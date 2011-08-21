@@ -1,0 +1,128 @@
+
+html, body {
+  height : 100%;
+  width : 100%;
+  margin : 0;
+  padding : 0;
+  overflow : hidden;
+  position : relative
+}
+
+#header {
+  height : 5%
+}
+
+#header img {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 5%;
+}
+
+#usr {
+  border-bottom : 1px solid #e5ecf9;
+  width : 100%;
+  font-size : 10pt;
+  text-align : right;
+  padding : 0.25em 0 0.25em 0;
+  position: relative;
+}
+
+#splitterContainer {
+  height : 95%;
+  width : 100%;
+  margin : 0;
+  padding : 0
+}
+
+#leftPane {
+  float : left;
+  width : 15%;
+  height : 100%;
+  border-top : solid 1px #9cbdff;
+  background : #FFE;
+  overflow : auto
+}
+
+#rightPane {
+  float : right;
+  width : 85%;
+  height : 100%;
+  background : #f4f4f4
+}
+
+#rightSplitterContainer {
+  width : 100%;
+  height : 95%;
+  background : #FFFFFF;
+  border-top : solid 1px #9cbdff
+}
+
+#rightTopPane {
+  width : 100%;
+  height : 50%;
+  overflow : auto;
+  background : #f4f4f4
+}
+
+#rightBottomPane {
+  background : #f4f4f4;
+  width : 100%;
+  overflow : auto
+}
+
+#toolbar {
+  height : 5%;
+  background : #bac8dc
+}
+
+.splitbarV {
+  float : left;
+  width : 6px;
+  height : 100%;
+  line-height : 0px;
+  font-size : 0px;
+  border-left : solid 1px #9cbdff;
+  border-right : solid 1px #9cbdff;
+  background : #cbe1fb url(/static/images/panev.gif) 0% 50%
+}
+
+.splitbarH {
+  height : 6px;
+  text-align : left;
+  line-height : 0px;
+  font-size : 0px;
+  border-top : solid 1px #9cbdff;
+  border-bottom : solid 1px #9cbdff;
+  background : #cbe1fb url(/static/images/paneh.gif) 50% 0%
+}
+
+.splitbuttonV {
+  margin-top : -41px;
+  margin-left : -4px;
+  top : 50%;
+  position : relative;
+  height : 83px;
+  width : 10px;
+  background : transparent url(/static/images/panevc.gif) 10px 50%
+}
+
+.splitbuttonV.invert {
+  margin-left : 0px;
+  background : transparent url(/static/images/panevc.gif) 0px 50%
+}
+
+.splitbuttonH {
+  margin-left : -41px;
+  left : 50%;
+  position : relative;
+  height : 10px !important;
+  width : 83px;
+  background : transparent url(/static/images/panehc.gif) 50% 0px
+}
+
+.splitbuttonH.invert {
+  margin-top : -4px;
+  background : transparent url(/static/images/panehc.gif) 50% -10px
+}

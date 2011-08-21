@@ -1,0 +1,58 @@
+// Copyright 2011 Google Inc. All Rights Reserved
+
+// Protobufs for information about a system
+
+syntax = "proto2";
+
+
+// A Process record describing a system process
+message Process {
+  optional string exe = 1;
+  optional string cmdline = 2;
+  optional uint32 pid = 3;
+  optional uint32 ppid = 4;
+  optional uint64 ctime = 5;
+  optional string user = 6;
+};
+
+// Describe filesystems
+message Filesystem {
+  optional string device = 1;
+  optional string mount_point = 2;
+  optional string type = 3;
+  optional string label = 4;
+};
+
+message Connection {
+  enum State {
+    UNKNOWN = 0;
+    CLOSED = 1;
+    LISTEN = 2;
+    SYN_SENT = 3;
+    SYN_RCVD = 4;
+    ESTAB = 5;
+    FIN_WAIT1 = 6;
+    FIN_WAIT2 = 7;
+    CLOSE_WAIT = 8;
+    CLOSING = 9;
+    LAST_ACK = 10;
+    TIME_WAIT = 11;
+    DELETE_TCB = 12;
+  };
+
+  enum SocketType {
+    UNKNOWN_SOCKET = 0;
+    TCP = 1;
+    UDP = 2;
+  };
+
+  optional State state = 1 [default = UNKNOWN];
+  optional SocketType type = 2 [default = UNKNOWN_SOCKET];
+
+  optional uint32 local_addr = 3;
+  optional uint32 local_port = 4;
+  optional uint32 remote_addr = 5;
+  optional uint32 remote_port = 6;
+  optional uint32 pid = 7;
+  optional uint64 ctime = 8;
+};

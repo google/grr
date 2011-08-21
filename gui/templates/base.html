@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+
+{% block styles %}
+<link rel="stylesheet" href="/static/css/smoothness/jquery-ui-1.7.2.custom.css" type="text/css" media="screen" title="smoothness" />
+
+<script src="/static/javascript/jquery/jquery-1.4.2.js"></script>
+<script src="/static/javascript/jquery_ui/jquery-ui-1.8.1.custom.js"></script>
+<script src="/static/javascript/jquery_template/jquery.tmpl.js"></script>
+<script src="/static/javascript/tooltip/tooltip.js"></script>
+<script src="/static/javascript/tooltip/tooltip.slide.js"></script>
+<script src="/static/javascript/tooltip/tooltip.dynamic.js"></script>
+<script src="/static/javascript/jstree/jquery.jstree.js"></script>
+<script src="/static/javascript/datatable/js/jquery.dataTables.js"></script>
+<script src="/static/javascript/jquery_splitter/jquery.splitter.js"></script>
+<link rel="stylesheet" type="text/css" href="/static/javascript/jquery_splitter/splitter.css" />
+<script src="/static/javascript/grr.js"></script>
+
+<script src="/static/javascript/mbExtruder/elements/mbExtruder-bundle.js"></script>
+<link rel="stylesheet" type="text/css" href="/static/javascript/mbExtruder/elements/mbExtruder.css" />
+<link rel="stylesheet" href="/static/css/grr.css" type="text/css" media="screen" />
+<link rel="shortcut icon" href="/static/images/favicon.png" />
+
+{% endblock %}
+
+{% block html_head %}
+{% endblock %}
+
+<title>{% block title %}{{title}}{% endblock %}</title>
+</head>
+<body id="body">
+<form id="csrf_form" method="POST"></form>
+  <div id="page">
+    <div id="grr_header">
+      {% block header %}
+      <div id="extruder" title="Start"></div>
+
+      <div id="usr">
+        <div id="logo">
+        <img src="/static/images/grr-logo.png" alt="{{title}}"></img>
+        <div id="client_selector"></div>
+        </div>
+        <a href="http://code.google.com/p/grr" target="_blank">Help</a> |
+        <a href="http://code.google.com/p/grr/issues/list" target="_blank">Report a problem</a> |
+      </div>
+      {% endblock header %}
+    </div>
+    <div id="content"></div>
+    <script type="text/javascript">
+      grr.layout("ContentView", "content");
+      grr.layout("SearchHostView", "client_selector");
+    </script>
+
+  <div id="footer" class="ui-widget-header"></div>
+  </div>
+
+  </body>
+</html>

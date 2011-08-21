@@ -1,0 +1,247 @@
+@import url("table_jui.css");
+
+.table {
+    width: 100%;
+}
+
+/* Fix the css of the thirdparty version */
+.paging_two_button .fg-button {
+    float: left;
+    cursor: pointer;
+}
+
+.fg-button {
+    cursor: pointer;
+}
+
+.monospace {
+  font-family:     "Courier New"
+                    Courier
+                    monospace;
+  font-size: 1ex;
+}
+
+table tr.even.row_selected td {
+    background-color: #B0BED9;
+}
+
+table tr.odd.row_selected td {
+    background-color: #9FAFD1;
+}
+
+table tr.odd, table tr.even {
+  cursor: pointer;
+}
+
+
+#logo img, #logo div {
+    height: 32px;
+    float: left;
+}
+
+#page {
+    height: 100%;
+}
+
+#content {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+}
+
+#main {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0
+}
+
+#footer {
+    width: 100%;
+    position: absolute;
+    height: 32px;
+    bottom: 0;
+}
+
+.status_active {
+    background: rgba(0, 240, 0, 0.25);
+    display: inline;
+    position: relative;
+}
+
+.GrrSearch {
+}
+
+
+/* GRR Specific splitter css */
+.leftPane {
+  float : left;
+  width : 15%;
+  height : 100%;
+  border-top : solid 1px #9cbdff;
+  background : white;
+  overflow : auto
+}
+
+.rightPane {
+  float : right;
+  width : 85%;
+  height : 100%;
+  background : #f4f4f4
+}
+
+.rightSplitterContainer {
+  width : 100%;
+  height : 100%;
+  background : #FFFFFF;
+  border-top : solid 1px #9cbdff
+}
+
+.rightTopPane {
+  width : 100%;
+  height : 50%;
+  overflow : hidden;
+  background : #f4f4f4
+}
+
+.rightBottomPane {
+  background : #f4f4f4;
+  width : 100%;
+  overflow : hidden;
+}
+
+#extruder {
+  padding: 0;
+}
+
+#extruder div.flap {
+  height: 20px;
+}
+
+/* We need to fix up the default look of jstree */
+div.jstree-default.jstree-focused {
+  background : white;
+}
+
+.jstree-loading-failed  {
+    background: url("/static/javascript/jstree/themes/default/throbber.gif") center center no-repeat !important;
+}
+
+.grr-icon {
+    width: 24px;
+}
+
+.grr_aff4_type_header {
+    background-color: #F0F0F0;
+    text-align: center;
+}
+
+.tooltip {
+    display:none;
+    background-color: #808080;
+    font-size:12px;
+    width:160px;
+    background-size: 100%;
+    padding:25px;
+    color:#fff; 
+    border-radius: 15px;
+    border-style: ridge;
+    border-width: 10px;
+    border-color: white;
+    -moz-box-shadow: 2px 2px 11px #666;
+    -webkit-box-shadow: 2px 2px 11px #666;
+}
+
+/* Make sure tables align to the top of each cell. */
+table.display td {
+    vertical-align: top;
+}
+
+.toolbar {
+    width: 100%;
+    background-color: #f0f0f0;
+}
+
+.toolbar div, .toolbar button {
+    display: inline;
+}
+
+.toolbar button img, .toolbar_icon {
+    height: 20px;
+}
+
+div#grr_header {
+    height: 32px;
+}
+
+div#usr {
+    border-bottom: 0px;
+}
+
+.TableBody {
+   height: 100%;
+   overflow: auto;
+}
+
+.FormBody {
+  overflow: auto;
+  height: 100%;
+  background : white;
+}
+
+img#logo {
+  height: 32px;
+}
+
+
+div.dataTables_processing {
+    top: 50px;
+    background: #F0F0F0;
+    margin-top: 50px;
+    -moz-box-shadow: 2px 2px 11px #666;
+    -webkit-box-shadow: 2px 2px 11px #666;
+    border-radius: 15px;
+    font-size: 36px;
+}
+
+.proto_key, .proto_value  {
+    padding-left: 0px;
+    padding-right: 2ex;
+    background: #F0F0F0;
+    word-wrap: break-word;
+}
+
+.proto_key {
+    width: 20ex;
+}
+
+.proto_table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.form_table {
+    width: 100%;
+}
+
+.proto_separator {
+    height: 2ex;
+}
+
+.ui-tabs .ui-tabs-panel {
+   overflow: auto;
+}
+
+.ui-tabs {
+    height: 100%;
+    padding: 0;
+}
+
+.tableWrapper {
+   height: 100%;
+}
+
+div.dataTables_wrapper {
+    height: 100%;
+    min-height: 0px;
+};

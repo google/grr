@@ -1,0 +1,550 @@
+// Copyright 2011 Google Inc. All Rights Reserved 
+
+// These are the messages used in GRR
+
+syntax = "proto2";
+
+
+
+// This message is sent between the client and the server.
+message GrrMessage {
+  // Every flow has a unique session ID
+  optional string session_id = 1;
+
+  // The message is in response to this request number (requests increment from
+  // 1).
+  optional uint32 request_id = 2;
+
+  // Responses for each request are also numbered from 1.
+  optional uint32 response_id = 3;
+
+  // This is the name of the client action that will be executed. It
+  // is set by the flow and is executed by the client.
+  optional string name = 4;
+
+  // This field contains an encoded protobuf.
+  optional bytes args = 5;
+
+  // Client name where the message came from (This is copied from the
+  // MessageList)
+  optional string source = 6;
+
+  // A Flag to indicate if the message is authenticated. Note that the client
+  // does not get to decide this - the_server will verify the message and tag it
+  // as such. The message is then passed down the chain of components carrying
+  // this tag.
+
+  // This is done because signing is done on a group of messages as they arrive
+  // over the POST, but after decryption and unpacking, messages are queued
+  // individually and therefore need to retain their authenticated status.
+  enum AuthorizationState {
+    UNAUTHENTICATED = 0;
+    AUTHENTICATED = 1;
+
+    // This indicates that clocks are out of sync and this message may be a
+    // replay.
+    DESYNCHRONIZED = 2;
+  };
+
+  optional AuthorizationState auth_state = 7 [ default = UNAUTHENTICATED ];
+
+  enum Type {
+    MESSAGE = 0;
+    STATUS = 1;
+    ITERATOR = 2;
+  };
+
+  // The final response to a request carries this type which indicates it is a
+  // status message.
+  optional Type type = 8 [ default = MESSAGE ];
+
+};
+
+// This is a list of messages
+message MessageList {
+  repeated GrrMessage job = 1;
+};
+
+// This is the protobuf which is transmitted on the wire
+message SignedMessageList {
+  enum CompressionType {
+    UNCOMPRESSED = 0;
+    // Compressed using the zlib.compress() function.
+    ZCOMPRESSION = 1;
+  };
+
+  // This is a serialized MessageList for signing
+  optional bytes message_list = 1;
+
+  optional bytes signature = 2;
+
+  // This source is copied to all individual messages and represents
+  // the client where the message came from.
+  optional string source = 3;
+
+  // How the message_list element is compressed
+  optional CompressionType compression = 4 [ default = UNCOMPRESSED ];
+
+  // The client sends its timestamp
+  optional uint64 timestamp = 6;
+};
+
+message CipherProperties {
+  required string name = 1;
+  required bytes key = 2;
+  optional bytes iv = 3;
+};
+
+message ClientCommunication {
+  optional bytes encrypted = 1;
+
+  // This is a CipherProperties protobuf encrypted with the public key
+  // of the receiver.
+  optional bytes encrypted_cipher = 2;
+
+
+  // The number of messages waiting on the input queue. The client
+  // fills this in so the server can limit the number of messages
+  // issued to the client as a means of throttling it.
+  optional uint32 queue_size = 4 [default = 0];
+
+  // This status code applies for the entire communication.
+  enum CommunicationStatus {
+    OK = 200;
+    CIPHER_ERROR = 406;
+  };
+  optional CommunicationStatus status = 5 [default = OK];
+};
+
+// This is a status response that is sent for each complete
+// transaction. It is always the last message in the transaction.
+message GrrStatus {
+  enum ReturnedStatus {
+    OK = 0;
+    IOERROR = 1;
+    RETRANSMISSION_DETECTED = 2;
+
+    GENERIC_ERROR = 10;
+  };
+
+  optional ReturnedStatus status = 1 [default = OK];
+
+  optional string error_message = 2 [default = ""];
+};
+
+// This is used to store a task in task scheduler
+message Task {
+  optional int32 id = 1;
+  optional bytes value = 2;
+
+  // Number of retransmission before the task is discarded. Note this is a low
+  // level task scheduler parameter which is not related to the
+  // RequestState.transmission_count. A task will be retransmitted automatically
+  // even if the worker does not process it.
+  optional int32 ttl = 3 [ default = 5 ];
+  optional uint64 eta = 4;
+  optional string queue = 5;
+};
+
+// A generic protobuf to deliver a single piece of data
+message DataBlob {
+  optional int64 integer = 1;
+  optional bytes data = 2;
+  optional string string = 3;
+  optional string proto_name = 4;   // If set data contains proto
+  optional string none = 5; // If set data contains None
+  optional bool boolean = 6; // If set data contains a boolean value
+};
+
+// A generic collection of blobs
+message BlobArray {
+  repeated DataBlob content = 1;
+};
+
+message PrintStr {
+  optional int32 level = 1 [ default = 10 ];
+  optional string data = 2;
+};
+
+// This message is sent to the CopyFile plugin
+message CopyFileMessage {
+  // The client_id that this file will be copied from
+  required string target = 1;
+  optional string source_path = 2;
+  optional string destination_path = 3;
+  optional Path source_pathspec = 4;
+  optional Path destination_pathspec = 5;
+};
+
+// Pass a buffer back.
+
+//   This protobuf is used for both the request and response.
+
+//   During the request:
+//     - path will be set to the desired file to read
+//     - offset, length specify the requested region
+//     - callback specifies the plugin to be called with the result on
+//       the server.
+
+//   During the response:
+//     - data is set to the buffer read
+//     - offset, length indicate the actual buffer returned (e.g. in
+//       case of truncated buffers).
+
+message BufferReadMessage {
+  required uint64 offset = 1;
+  required uint32 length = 2;
+  optional string callback = 3;
+  optional bytes  data = 4;
+  optional string path = 5;
+  optional Path pathspec = 6;
+};
+
+// Information for each request. Note that we are keeping all the
+// messages in a list until we receive the final Status message - when
+// we process them all. This allows us to roll back the transaction in
+// case the status is invalid.
+message RequestState {
+  // The number of this request (starts in 1).
+  required uint32 id = 1;
+
+  // The task scheduler ID corresponding to the message from this request.
+  optional uint32 ts_id = 2;
+  optional string next_state = 3;
+  optional GrrStatus status = 4;
+
+  // This can contain any data we want to associate with the request
+  optional Dict data = 5;
+
+  // Responses are kept in the datastore now. This just tells us the
+  // total number of responses we have for this request.
+  optional uint32 response_count = 6 [default = 0];
+
+  // A count of request retransmits
+  optional uint32 transmission_count = 7 [default = 0];
+
+  // The client id where the request was heading - we only receive
+  // responses from this client:
+  optional string client_id = 8;
+
+  // This is the session_id of the flow this request belongs to.
+  optional string session_id = 9;
+
+  // The original message request.
+  optional GrrMessage request = 10;
+};
+
+// Flows are pickled in taskmaster:
+message FlowPB {
+  required string name = 1;
+  optional bytes pickle = 2;
+  optional uint32 ts_id = 3;
+  enum FlowState {
+    RUNNING = 0;
+    TERMINATED = 1;
+    ERROR = 3;   // Flows which raise are marked as having an error.
+
+    // A well known flow will not queue any messages and always
+    // forward messages to the worker:
+    WELL_KNOWN = 2;
+  };
+
+  optional FlowState state = 4 [default = RUNNING];
+  optional string session_id = 5;
+
+  // The number of outstanding requests in this flow
+  optional uint32 outstanding_requests = 6 [default = 0];
+
+  optional string creator = 7;
+
+  // Flows terminated with an error include this backtrace.
+  optional string backtrace = 8;
+
+  // When this flow was created
+  optional uint64 create_time = 9 [default = 0];
+
+  // A progress indicator from 0-100.
+  optional int32 progress = 10 [default = 0];
+
+  // Dict of arguments passed to the flow.
+  optional Dict args = 11;
+
+  // Event ID - unique id for user initiated event.
+  optional string event_id = 12;
+
+  // RequestState - Only populated in child flows
+  optional RequestState request_state = 14;
+};
+
+// A message to encode a filesystem path (maybe for raw access)
+message Path {
+  enum PathType {
+    OS = 0;
+    TSK = 1;
+    REGISTRY = 2;
+  };
+  optional PathType pathtype = 1;
+  optional string path = 2;
+  optional string mountpoint = 3;
+  optional string device = 4;
+};
+
+// Ask the ListDir action to list all files in path (returns StatResponse)
+message ListDirRequest {
+  optional string path = 1;
+  optional Iterator iterator = 2;
+  optional Path pathspec = 3;
+};
+
+// A stat() record for a given path
+message StatResponse {
+  optional string path = 1;
+  optional uint32 st_mode = 2;
+  optional uint32 st_ino = 3;
+  optional uint32 st_dev = 4;
+  optional uint32 st_nlink = 5;
+  optional uint32 st_uid = 6;
+  optional uint32 st_gid = 7;
+  optional uint64 st_size = 8;
+  optional uint64 st_atime = 9;
+  optional uint64 st_mtime = 10;
+  optional uint64 st_ctime = 11;
+  optional uint32 st_blocks = 12;
+  optional uint32 st_blksize = 13;
+  optional uint32 st_rdev = 14;
+  optional string symlink = 15;
+
+  // These are used when mapping registry keys to the VFS
+  enum RegistryType {
+    REG_NONE = 0x00;
+    REG_SZ = 0x01;
+    REG_EXPAND_SZ = 0x02;
+    REG_BINARY = 0x03;
+    REG_DWORD = 0x04;
+    REG_DWORD_LITTLE_ENDIAN = 0x04;
+    REG_DWORD_BIG_ENDIAN = 0x05;
+    REG_LINK = 0x06;
+    REG_MULTI_SZ = 0x07;
+    REG_QWORD = 0x0B;
+  }
+  optional RegistryType registry_type = 16;
+  // For very small files their data is stored in this record.
+  optional bytes resident = 17;
+
+  optional Path pathspec = 18;
+};
+
+// Directory nodes get stored as these
+// TODO(user): Convert this into a regular BlobArray of StatResponse.
+message DirectoryINode {
+  optional GrrStatus status = 1;
+  repeated StatResponse children = 2;
+};
+
+
+// Windows WMI Request.
+message WmiRequest {
+  optional string query = 1;
+};
+
+// A Key Value pair
+message KeyValue {
+  optional DataBlob k = 1;
+  optional DataBlob v = 2;
+};
+
+// A list of Key Value pairs
+message Dict {
+  repeated KeyValue dat = 1;
+};
+
+
+// Certificates are exchanged with this
+message Certificate {
+  enum CertificateType {
+    CSR = 0;
+    CRT = 1;
+    CA  = 2;
+  };
+
+  optional CertificateType type = 1;
+  optional bytes pem = 2;
+  optional string cn = 3;
+};
+
+// Message to carry uname information
+message Uname {
+  optional string system = 1;
+  optional string node = 2;
+  optional string release = 3;
+  optional string version = 4;
+  optional string machine = 5;
+};
+
+// User account information
+message UserAccount {
+  optional string username = 1;
+  optional string full_name = 2;
+  optional string comment = 3;
+  optional uint64 last_logon = 4;
+  optional string domain = 5;
+  optional string homedir = 6;
+};
+
+// Information about a network interface
+message Interface {
+  optional bytes mac_address = 1;
+  optional bytes ip_address = 2;
+  optional string ifname = 3;
+};
+
+// Updates the client configuration. We deliberately only allow to update a few
+// options. Setting these should take effect immediately.
+message GRRConfig {
+  optional int32 foreman_check_frequency = 1;
+  optional string location = 2;
+  optional int32 max_post_size = 3;
+  optional int32 max_out_queue = 4;
+  optional int32 poll_min = 5;
+  optional int32 poll_max = 6;
+  optional int32 poll_slew = 7;
+  optional string compression = 8;
+};
+
+// The fingerprinting methods the fingerprinter can be asked to perform.
+// If none is given, all are applied.
+enum FingerprintType {
+  FPT_GENERIC = 0;
+  FPT_PE_COFF = 1;
+};
+
+message FingerprintTuple {
+  // The hash functions that a fingerprinting method may employ.
+  // If none is given, all applicable ones are used.
+  enum FingerprintHash {
+    MD5 = 0;
+    SHA1 = 1;
+    SHA256 = 2;
+  };
+  required FingerprintType fp_type = 1;
+  repeated FingerprintHash hashers = 2;
+};
+
+// Request fingerprints for a file.
+message FingerprintRequest {
+  optional string path = 1;
+  repeated FingerprintTuple tuples = 2;
+  optional Path pathspec = 3;
+};
+
+// Response data for file hashes and signature blobs.
+message FingerprintResponse {
+  repeated FingerprintType matching_types = 1;
+  repeated Dict fingerprint_results = 2;
+};
+
+// Requests and responses to allow a search for files that match all of these
+// conditions.
+message Find {
+  optional Iterator iterator = 1;
+
+  // The base path to recursive search from
+  optional string path = 2;
+
+  // This matches the filename
+  optional string path_regex = 3 [default = "."];
+
+  // This matches the content of the file
+  optional string data_regex = 4 [default = "."];
+
+  // Specify a time range
+  optional uint64 start_time = 5;
+  optional uint64 end_time = 6;
+
+  // Should we cross filesystems?
+  optional int32 xdev = 7 [default = 0];
+
+  // How deep to search?
+  optional int32 max_depth = 8 [ default = 15 ];
+
+  // Responses come in this proto
+  optional StatResponse hit = 9;
+
+  optional Path pathspec = 10;
+}
+
+
+// The Foreman schedules flows based on these rules firing.
+message ForemanAttributeRegex {
+  // A relative path under the client which the attribute applies to
+  optional string path = 1 [default = "/"];
+
+  // If these are specified we fire when the attribute's str() representation
+  // matches the regex:
+  optional string attribute_name = 2;
+  optional string attribute_regex = 3;
+}
+
+// This rule will fire if the expression operator(attribute, value) is true.
+message ForemanAttributeInteger {
+  // A relative path under the client which the attribute applies to
+  optional string path = 1 [default = "/"];
+  optional string attribute_name = 2;
+  enum Operator {
+    EQUAL = 0;
+    LESS_THAN = 1;
+    GREATER_THAN = 2;
+  }
+  optional Operator operator = 3 [default = EQUAL];
+  optional uint64 value = 4;
+}
+
+// This action happens when the rule fires
+message ForemanRuleAction {
+  optional string flow_name = 1;
+  optional Dict argv = 2;
+};
+
+message ForemanRule {
+  // We fire when all these rules match
+  repeated ForemanAttributeRegex regex_rules = 1;
+  repeated ForemanAttributeInteger integer_rules = 2;
+
+  // These will all run in case this rule fires
+  repeated ForemanRuleAction actions = 3;
+
+  // When this rule was created and will expire
+  optional uint64 created = 4;
+  optional uint64 expires = 5;
+
+  // A Human readable description of what this is supposed to do
+  optional string description = 6;
+}
+
+// An Iterator is an opaque object which is returned by the client for each
+// iteration.
+message Iterator {
+  // This is an opaque generic place for the client to store its state.
+  optional Dict client_state = 1;
+
+  // The following specify how many responses to send away. First we skip some
+  // responses and then send "number" responses. Note that skip is not supported
+  // by all iterating Actions.
+  optional uint32 skip = 2 [default = 0];
+  optional uint32 number = 3 [default = 10];
+
+  // When the iterator is complete, we this state should be set to FINISHED.
+  enum State {
+    RUNNING = 0;
+    FINISHED = 1;
+  };
+  optional State state = 4 [ default = RUNNING ];
+};
+
+/* FindAction returns these protobufs. */
+message IteratedStatResponse {
+  optional StatResponse stat = 1;
+  optional Iterator iterator = 2;
+}
+
+

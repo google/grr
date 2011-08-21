@@ -1,0 +1,154 @@
+#!/usr/bin/env python
+#
+# Copyright 2011 Google Inc.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+"""Parser for IE index.dat files.
+
+Note that this is a very naive and incomplete implementation and should be
+replaced with a more intelligent one. Do not implement anything based on this
+code, it is a placeholder for something real.
+
+For anyone who wants a useful reference, see this:
+http://heanet.dl.sourceforge.net/project/libmsiecf/Documentation/MSIE%20Cache%20
+File%20format/MSIE%20Cache%20File%20%28index.dat%29%20format.pdf
+"""
+
+
+
+
+import datetime
+import glob
+import logging
+import os
+import struct
+import sys
+
+# Difference between 1 Jan 1601 and 1 Jan 1970.
+WIN_UNIX_DIFF_MSECS = 11644473600 * 1e6
+
+
+class IEParser(object):
+  """Parser object for index.dat files.
+
+  The file format for IE index.dat files is somewhat poorly documented.
+  The following implementation is based on information from:
+
+  http://www.forensicswiki.org/wiki/Internet_Explorer_History_File_Format
+  """
+
+  FILE_HEADER = "Client UrlCache MMF Ver 5.2"
+  BLOCK_SIZE = 0x80
+
+  def __init__(self, input_obj):
+    """Initialize.
+
+    Args:
+      input_obj: A file like object to read the index.dat from.
+    """
+    self._file = input_obj
+    self._entries = []
+
+  def Parse(self):
+    """Parse the file."""
+    if not self._file:
+      logging.error("Couldn't open file")
+      return
+
+    # Limit read size to 5MB.
+    self.input_dat = self._file.read(1024 * 1024 * 5)
+    if not self.input_dat.startswith(self.FILE_HEADER):
+      logging.error("Invalid index.dat file %s", self._file)
+      return
+
+    for event in self._DoParse():
+      yield event
+
+  def _GetRecord(self, offset, record_size):
+    """Retrieve a single record from the file.
+
+    Args:
+      offset: offset from start of input_dat where header starts
+      record_size: length of the header according to file (untrusted)
+
+    Returns:
+      A dict containing a single browser history record.
+    """
+    record_header = "<4sLQQL"
+    get4 = lambda x: struct.unpack("<L", self.input_dat[x:x+4])[0]
+    url_offset = struct.unpack("B", self.input_dat[offset+52:offset+53])[0]
+    if url_offset in [0xFF, 0xFE]:
+      return None
+    data_offset = get4(offset + 68)
+    data_size = get4(offset + 72)
+    start_pos = offset + data_offset
+    data = struct.unpack("{0}s".format(data_size),
+                         self.input_dat[start_pos:start_pos + data_size])[0]
+    fmt = record_header
+    unknown_size = url_offset - struct.calcsize(fmt)
+    fmt += "{0}s".format(unknown_size)
+    fmt += "{0}s".format(record_size - struct.calcsize(fmt))
+    dat = struct.unpack(fmt, self.input_dat[offset:offset+record_size])
+    header, blocks, mtime, ctime, ftime, _, url = dat
+    url = url.split(chr(0x00))[0]
+    if mtime: mtime = mtime/10 - WIN_UNIX_DIFF_MSECS
+    if ctime: ctime = ctime/10 - WIN_UNIX_DIFF_MSECS
+    return {"header": header,            # the header
+            "blocks": blocks,            # number of blocks
+            "urloffset": url_offset,     # offset of URL in file
+            "data_offset": data_offset,  # offset for start of data
+            "data_size": data_size,      # size of data
+            "data": data,                # actual data
+            "mtime": mtime,              # modified time
+            "ctime": ctime,              # created time
+            "ftime": ftime,              # file time
+            "url": url                   # the url visited
+           }
+
+  def _DoParse(self):
+    """Parse a file for history records yielding dicts.
+
+    Yields:
+      Dicts containing browser history
+    """
+    get4 = lambda x: struct.unpack("<L", self.input_dat[x:x+4])[0]
+    filesize = get4(0x1c)
+    offset = get4(0x20)
+    coffset = offset
+    while coffset < filesize:
+      etype = struct.unpack("4s", self.input_dat[coffset:coffset + 4])[0]
+      if etype == "REDR":
+        pass
+      elif etype in ["URL "]:
+        # Found a valid record
+        reclen = get4(coffset + 4) * self.BLOCK_SIZE
+        yield self._GetRecord(coffset, reclen)
+      coffset += self.BLOCK_SIZE
+
+
+def main(argv):
+  if len(argv) < 2:
+    print "Usage: {0} index.dat".format(os.path.basename(argv[0]))
+  else:
+    files_to_process = []
+    for input_glob in argv[1:]:
+      files_to_process += glob.glob(input_glob)
+    for input_file in files_to_process:
+      ie = IEParser(open(input_file))
+      for dat in ie.Parse():
+        dat["ctime"] = datetime.datetime.utcfromtimestamp(dat["ctime"]/1e6)
+        print "{ctime} {header} {url}".format(**dat)
+
+if __name__ == "__main__":
+  main(sys.argv)

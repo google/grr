@@ -1,0 +1,5 @@
+# Configuration file for grr-worker init.d script
+
+# Start the grr-worker
+START="no";
+
