@@ -16,18 +16,39 @@
 """These are standard aff4 objects."""
 
 
-import stat
-import urllib
-
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
-def DateTime(value):
-  """Convert an integer in seconds into an RDFDatetime object."""
-  return aff4.RDFDatetime(value * aff4.MICROSECONDS)
+class RDFPathSpec(aff4.RDFProto):
+  """A path specification."""
+  _proto = jobs_pb2.Path
+
+  def __init__(self, serialized=None, age=None):
+    # Instantiate from RDFPathSpec
+    if isinstance(serialized, RDFPathSpec):
+      aff4.RDFProto.__init__(self, None, serialized.age)
+      self.data = serialized.data
+
+    # Allow ourselves to be instantiated from a protobuf
+    elif isinstance(serialized, self._proto):
+      aff4.RDFProto.__init__(self, None, age)
+      self.data = serialized
+
+    # Or a utility class instance
+    elif isinstance(serialized, utils.Pathspec):
+      aff4.RDFProto.__init__(self, None, age)
+      self.data = serialized.ToProto()
+
+    # Or a string
+    else:
+      self.data = self._proto()
+      aff4.RDFProto.__init__(self, serialized, age)
+
+    self.pathspec = self.data
 
 
 class StatEntry(aff4.RDFProto):
@@ -35,25 +56,14 @@ class StatEntry(aff4.RDFProto):
   _proto = jobs_pb2.StatResponse
 
   # Translate these fields as RDFValue objects.
-  rdf_map = dict(st_mtime=DateTime,
-                 st_atime=DateTime,
-                 st_ctime=DateTime,
+  rdf_map = dict(st_mtime=aff4.RDFDatetimeSeconds,
+                 st_atime=aff4.RDFDatetimeSeconds,
+                 st_ctime=aff4.RDFDatetimeSeconds,
                  st_inode=aff4.RDFInteger,
                  st_dev=aff4.RDFInteger,
                  st_nlink=aff4.RDFInteger,
-                 st_size=aff4.RDFInteger)
-
-
-class DirectoryInode(aff4.RDFProto):
-  """Allows the DirectoryINode which allows it to be stored as an RDFValue."""
-  _proto = jobs_pb2.DirectoryINode
-
-  def AddDirectoryEntry(self, entry):
-    self.data.children.extend([entry])
-
-  def __iter__(self):
-    for child in self.data.children:
-      yield child
+                 st_size=aff4.RDFInteger,
+                 pathspec=RDFPathSpec)
 
 
 class VFSDirectory(aff4.AFF4Volume):
@@ -64,147 +74,23 @@ class VFSDirectory(aff4.AFF4Volume):
   _behaviours = frozenset(["Container"])
 
   def Query(self, filter_string="", filter_obj=None):
-    # Parse the query string
-    ast = aff4.AFF4QueryParser(filter_string).Parse()
+    """This queries the Directory using a filter expression."""
 
-    # Query our own data store
-    filter_obj = ast.Compile(aff4.AFF4Filter)
+    direct_children_filter = data_store.DB.Filter.SubjectContainsFilter(
+        "%s/[^/]+$" % data_store.EscapeRegex(self.urn))
 
-    for child in filter_obj.Filter(self.OpenChildren()):
-      yield child
+    if not filter_string and filter_obj is None:
+      filter_obj = direct_children_filter
+    else:
+      # Parse the query string
+      ast = aff4.AFF4QueryParser(filter_string).Parse()
+      filter_obj = data_store.DB.Filter.AndFilter(
+          ast.Compile(data_store.DB.Filter),
+          direct_children_filter)
 
-  def _OpenDirectory(self, child, stem, mode, age):
-    """Open the direct_child as a directory."""
-    # No it does not already exist - we create it
-    result = self.CreateMember(child.path, self.default_container,
-                               clone={}, mode=mode)
+    return super(VFSDirectory, self).Query(filter_obj=filter_obj)
 
-    result.Set(result.Schema.STAT, StatEntry(child, age=age))
-    if stem:
-      result = result.Open(stem)
-
-    return result
-
-  def _OpenDirectChildAsFile(self, child, mode, age):
-    """Opens the direct_child as a file or psuedo-file."""
-    # Does the child already exist? If so just open it
-    fd = aff4.FACTORY.AFF4Object("VFSMemoryFile")(
-        self.urn.Add(child.path), mode)
-    # Pass some common attributes to it from the DirectoryINode
-    fd.Set(fd.Schema.STORED, self.urn)
-    fd.Set(fd.Schema.SIZE, aff4.RDFInteger(child.st_size, age=age))
-    fd.Set(fd.Schema.STAT, StatEntry(child, age=age))
-
-    if child.resident:
-      fd.Write(child.resident)
-      fd.Seek(0)
-
-    return fd
-
-  def Open(self, path, mode="r"):
-    """If this directory contains a resident file, we just serve it directly."""
-    result = None
-    path_elements = path.split("/", 1)
-    direct_child = path_elements[0]
-    try:
-      stem = "/".join(path_elements[1:])
-    except IndexError:
-      stem = ""
-
-    result = self._OpenDirectChild(direct_child, stem, mode)
-    if stem:
-      result = result.Open(stem)
-
-    return result
-
-  def _OpenDirectChild(self, direct_child, stem, mode="r"):
-    """Open the direct child."""
-    # Try to open this as a regular AFF4 object
-    try:
-      return super(VFSDirectory, self).Open(direct_child, mode)
-    except IOError:
-      return self._OpenVirtualisedChild(direct_child, stem, mode="r")
-
-  def _OpenVirtualisedChild(self, direct_child, stem, mode="r"):
-    # Following here we virtualize the object, making it not necessary to have
-    # specialized storage for it, we just use the DIRECTORY attribute to work
-    # out what objects we should contain.
-    directory = self.Get(self.Schema.DIRECTORY)
-    if directory:
-      for child in directory:
-        # Found the direct_child in the DIRECTORY attribute
-        if child.path == direct_child:
-          # Is the child a directory?
-          if stat.S_ISDIR(child.st_mode):
-            return self._OpenDirectory(child, stem, mode, directory.age)
-          # Prepare a one time memory resident file - this saves us from
-          # actually storing it in the data store separately
-          else:
-            return self._OpenDirectChildAsFile(child, mode, directory.age)
-
-    # Otherwise we dont have this file
-    raise IOError("File does not exist")
-
-  def ListChildren(self):
-    """List our children.
-
-    In addition to the regular way, we also list the objects which are contained
-    in our DIRECTORY attribute. Note that the objects might not actually exist
-    in our data store - we just infer their existence from our Directory Inode
-    structure. Typically users can try to open the child and if that fails,
-    issue a flow to recover it.
-
-    Returns:
-       A dict of all direct children and their types.
-    """
-    results, age = super(VFSDirectory, self).ListChildren()
-
-    directory = self.Get(self.Schema.DIRECTORY)
-    if directory:
-      age = directory.age
-      for child in directory:
-        if child.resident:
-          child_type = "AFF4MemoryStream"
-        elif stat.S_ISDIR(child.st_mode):
-          child_type = "VFSDirectory"
-        else:
-          child_type = "AFF4Stream"
-
-        child_urn = self.urn.Add(child.path)
-        results[child_urn] = child_type
-
-    return results, age
-
-  def OpenChildren(self, children=None, mode="r"):
-    """Add children from DIRECTORY attribute."""
-    if children is None:
-      children, _ = self.ListChildren()
-
-    # Convert all children to RDFURNs
-    urn_children = []
-    for child in children:
-      if not isinstance(child, aff4.RDFURN):
-        child = self.urn.Add(child)
-
-      urn_children.append(child)
-
-    results = {}
-
-    # Get those children from the baseclass
-    for fd in super(VFSDirectory, self).OpenChildren(
-        mode=mode, children=urn_children):
-      results[fd.urn] = fd
-
-    # These should be virtualized and therefore very fast.
-    for child in urn_children:
-      if child not in results:
-        results[child] = self._OpenVirtualisedChild(
-            child.RelativeName(self.urn), "", mode=mode)
-
-    for child in urn_children:
-      yield results[child]
-
-  def Update(self, attribute=None, user=None):
+  def Update(self, attribute=None):
     """Refresh an old attribute.
 
     Note that refreshing the attribute is asynchronous. It does not change
@@ -216,27 +102,172 @@ class VFSDirectory(aff4.AFF4Volume):
 
     Args:
        attribute: An attribute object as listed above.
-       user: The username which makes this request.
 
     Returns:
        The Flow ID that is pending
-    """
-    if attribute == self.Schema.DIRECTORY:
-      path_elements = [urllib.unquote(x) for x in self.urn.Path().split("/")]
-      client_id = path_elements[1]
-      path = "/" + "/".join(path_elements[2:]) + "/"
 
-      p = utils.Aff4ToPathspec(path)
-      flow_id = flow.FACTORY.StartFlow(client_id, "ListDirectory", user=user,
-                                       path=p.path, pathtype=p.pathtype)
+    Raises:
+       IOError: If there has been an error starting the flow.
+    """
+    if attribute == self.Schema.CONTAINS:
+      # Get the pathspec for this object
+      pathspec = self.Get(self.Schema.PATHSPEC)
+      if pathspec:
+        # client id is the first path element
+        client_id = self.urn.Path().split("/", 2)[1]
+        flow_id = flow.FACTORY.StartFlow(client_id, "ListDirectory",
+                                         pathspec=pathspec.data,
+                                         notify_to_user=False, token=self.token)
+      else:
+        raise IOError("Item has no pathspec.")
 
       return flow_id
 
-  class Schema(aff4.AFF4Volume.Schema):
+  class SchemaCls(aff4.AFF4Volume.SchemaCls):
     """Attributes specific to VFSDirectory."""
-    DIRECTORY = aff4.Attribute("aff4:directory_listing", DirectoryInode,
-                               "A list of StatResponses of contained files.")
-
     STAT = aff4.Attribute("aff4:stat", StatEntry,
                           "A StatResponse protobuf describing this file.",
-                          "Stat")
+                          "stat")
+
+    PATHSPEC = aff4.Attribute(
+        "aff4:pathspec", RDFPathSpec,
+        "The pathspec used to retrieve this object from the client.",
+        "pathspec")
+
+
+class HashImage(aff4.AFF4Image):
+  """An AFF4 Image which refers to chunks by their hash.
+
+  This object stores a large image in chunks. Each chunk is stored using its
+  hash in the AFF4 data store. We have an index with a series of hashes stored
+  back to back. When we need to read a chunk, we seek the index for the hash,
+  and then open the data blob indexed by this hash. Chunks are cached as per the
+  AFF4Image implementation.
+
+  Assumptions:
+    Hashes do not collide.
+    All data blobs have the same size (the chunk size), except possibly the last
+    one in the file.
+  """
+
+  # Size of a sha256 hash
+  _HASH_SIZE = 32
+
+  def Initialize(self):
+    super(HashImage, self).Initialize()
+    self.index = None
+
+  def _OpenIndex(self):
+    if self.index is None:
+      index_urn = self.urn.Add("index")
+      self.index = aff4.FACTORY.Create(index_urn, "AFF4Image", mode=self.mode,
+                                       token=self.token)
+
+  def _GetChunkForWriting(self, chunk):
+    """Chunks must be added using the AddBlob() method."""
+    raise NotImplementedError("Direct writing of HashImage not allowed.")
+
+  def _GetChunkForReading(self, chunk):
+    """Retrieve the relevant blob  from the AFF4 data store or cache."""
+    self._OpenIndex()
+    self.index.Seek(chunk * self._HASH_SIZE)
+
+    # TODO(user): Make the cache read chunks ahead.
+    chunk_name = self.index.Read(self._HASH_SIZE)
+    try:
+      fd = self.read_chunk_cache.Get(chunk_name)
+    except KeyError:
+      fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("blobs").Add(
+          chunk_name.encode("hex")), token=self.token)
+
+      self.read_chunk_cache.Put(chunk_name, fd)
+
+      # This should work now
+      fd = self.read_chunk_cache.Get(chunk_name)
+
+    return fd
+
+  def Close(self, sync=True):
+    if self.index:
+      self.index.Close(sync)
+    super(HashImage, self).Close(sync)
+
+  def AddBlob(self, blob_hash, length):
+    """Add another blob to this image using its hash."""
+    self._OpenIndex()
+    self.dirty = True
+    self.index.Seek(0, 2)
+    self.index.Write(blob_hash)
+    self.size += length
+    self.Set(self.Schema.SIZE(self.size))
+
+  class SchemaCls(aff4.AFF4Image.SchemaCls):
+    """The schema for AFF4 files in the GRR VFS."""
+    STAT = aff4.AFF4Object.VFSDirectory.SchemaCls.STAT
+
+
+class AFF4Index(aff4.AFF4Object):
+  """An aff4 object which manages access to an index.
+
+  This object has no actual attributes, it simply manages the index.
+  """
+
+  def __init__(self, urn, **kwargs):
+    # Never read anything directly from the table by forcing an empty clone.
+    kwargs["clone"] = {}
+    super(AFF4Index, self).__init__(urn, **kwargs)
+
+    # We collect index data here until we flush.
+    self.to_set = {}
+
+  def Flush(self):
+    """Flush the data to the index."""
+    if self.to_set:
+      data_store.DB.MultiSet(self.urn, self.to_set, token=self.token,
+                             replace=False, sync=False)
+
+  def Add(self, urn, attribute, value):
+    """Add the attribute of an AFF4 object to the index.
+
+    Args:
+      urn: The URN of the AFF4 object this attribute belongs to.
+      attribute: The attribute to add to the index.
+      value: The value of the attribute to index.
+    """
+    attribute_name = "index:%s:%s" % (
+        attribute.predicate, utils.SmartStr(value))
+    self.to_set[attribute_name] = (utils.SmartStr(urn),)
+
+  def Query(self, attributes, regex, limit=100):
+    """Query the index for the attribute.
+
+    Args:
+      attributes: A list of attributes to query for.
+      regex: The regex to search this attribute.
+      limit: Total number of objects to retrieve.
+
+    Returns:
+      A list of AFF4 objects which match the index search.
+    """
+    # Make the regular expression.
+    regex = ["index:%s:.*%s.*" % (a.predicate, regex) for a in attributes]
+    start = 0
+    try:
+      start, end = limit
+    except TypeError:
+      end = limit
+
+    # Get all the unique hits
+    index_hits = set([x for (_, x, _) in data_store.DB.ResolveRegex(
+        self.urn, regex, token=self.token,
+        timestamp=data_store.DB.ALL_TIMESTAMPS)])
+
+    hits = []
+    for i, x in enumerate(index_hits):
+      if i < start: continue
+
+      hits.append(x)
+      if i > end:
+        break
+
+    return aff4.FACTORY.MultiOpen(hits, mode=self.mode, token=self.token)

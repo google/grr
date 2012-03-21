@@ -15,12 +15,16 @@
 
 """Tests for utility classes."""
 
+import os
+import time
 
 
 from grr.client import conf
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.proto import jobs_pb2
+
+
 
 
 class StoreTests(test_lib.GRRBaseTest):
@@ -33,7 +37,7 @@ class StoreTests(test_lib.GRRBaseTest):
     for i in range(0, 100):
       keys.append(s.Put(i, i))
 
-    ## This should not raise
+    # This should not raise
     s.Get(keys[-1])
 
     # This should raise though
@@ -46,8 +50,8 @@ class StoreTests(test_lib.GRRBaseTest):
     for i in range(0, 5):
       keys.append(s.Put(i, i))
 
-    ## This should not raise because keys[0] should be refreshed each time its
-    ## gotten
+    # This should not raise because keys[0] should be refreshed each time its
+    # gotten
     for i in range(0, 1000):
       s.Get(keys[0])
       s.Put(i, i)
@@ -77,6 +81,34 @@ class StoreTests(test_lib.GRRBaseTest):
 
     # Only the first 5 messages have been expired (and hence called)
     self.assertEqual(results, range(0, 5))
+
+  def test05TimeBasedCache(self):
+    original_time = time.time
+
+    # Mock the time.time function
+    time.time = lambda: 100
+
+    key = "key"
+
+    tested_cache = utils.TimeBasedCache(max_age=50)
+
+    # Stop the housekeeper thread - we test it explicitely here
+    tested_cache.exit = True
+    tested_cache.Put(key, "hello")
+
+    self.assertEqual(tested_cache.Get(key), "hello")
+
+    # Fast forward time
+    time.time = lambda: 160
+
+    # Force the housekeeper to run
+    tested_cache.house_keeper_thread.target()
+
+    # This should now be expired
+    self.assertRaises(KeyError, tested_cache.Get, key)
+
+    # Fix up the mock
+    time.time = original_time
 
 
 class ProtoDictTests(test_lib.GRRBaseTest):
@@ -113,6 +145,17 @@ class ProtoDictTests(test_lib.GRRBaseTest):
       self.dict_test["bool" + str(i)] = True
       v = jobs_pb2.DataBlob(boolean=True)
       k = jobs_pb2.DataBlob(string="bool" + str(i))
+      self.proto.dat.add(k=k, v=v)
+    for i in range(10):
+      self.dict_test["list" + str(i)] = ["c", 1, "u"]
+      v = jobs_pb2.DataBlob(
+          list=jobs_pb2.BlobArray(
+              content=[jobs_pb2.DataBlob(string="c"),
+                       jobs_pb2.DataBlob(integer=1),
+                       jobs_pb2.DataBlob(string="u")
+                      ])
+          )
+      k = jobs_pb2.DataBlob(string="list" + str(i))
       self.proto.dat.add(k=k, v=v)
 
   def test01ParsingNone(self):
@@ -217,6 +260,10 @@ class ProtoDictTests(test_lib.GRRBaseTest):
 
     self.assertFalse("nonexistent" in proto_under_test)
 
+  def test12AssignList(self):
+    proto_under_test = utils.ProtoDict(self.dict_test)
+    self.assertEqual(proto_under_test["list1"], ["c", 1, "u"])
+
 
 class UtilsTest(test_lib.GRRBaseTest):
   """Utilities tests."""
@@ -235,25 +282,36 @@ class UtilsTest(test_lib.GRRBaseTest):
     for test, expected in data:
       self.assertEqual(expected, utils.NormalizePath(test))
 
-  def testPathspecToAff4(self):
-    """Test PathspecToAff4."""
-    pb = jobs_pb2.Path()
 
-    data = [
-        ("\\\\.\\Volume{111}", "\\Windows\\", 0, "/fs/os/Volume{111}/Windows/"),
-        ("\\\\.\\V{111}\\", "Windows\\file", 0, "/fs/os/V{111}/Windows/file"),
-        ("\\\\.\\Volume{111}", "/Windows/", 0, "/fs/os/Volume{111}/Windows/"),
-        ("\\\\.\\V{111}\\", "Windows\\file", 1, "/fs/raw/V{111}/Windows/file"),
-        ("", "HKEY_LOCAL_MACHINE\\SOFTWARE", 2,
-         "/registry/HKEY_LOCAL_MACHINE/SOFTWARE"),
-        ]
+class PathSpectTests(test_lib.GRRBaseTest):
+  """Test the pathspec manipulation function."""
 
-    for device, path, ptype, result in data:
-      pb.device = device
-      pb.path = path
-      pb.pathtype = ptype
+  def testPathSpec(self):
+    """Test that recursive pathspecs are properly parsed."""
+    path = os.path.join(self.base_path, "test_img.dd")
+    path2 = "Test Directory/numbers.txt"
 
-      self.assertEqual(utils.PathspecToAff4(pb), result)
+    p2 = jobs_pb2.Path(path=path2,
+                       pathtype=jobs_pb2.Path.TSK)
+    p1 = jobs_pb2.Path(path=path,
+                       pathtype=jobs_pb2.Path.OS,
+                       nested_path=p2)
+
+    pathspec = utils.Pathspec(p1)
+    self.assertEqual(pathspec.elements[0].path, path)
+    self.assertEqual(pathspec.elements[0].HasField("nested_path"), False)
+    self.assertEqual(pathspec.elements[1].path, path2)
+    self.assertEqual(pathspec.elements[1].HasField("nested_path"), False)
+
+    # Now combine it back to a recursive proto.
+    self.assertEqual(p1.SerializeToString(),
+                     pathspec.ToProto().SerializeToString())
+
+  def testDirname(self):
+    pathspec = utils.Pathspec(path="/foo").Append(path="/")
+    self.assertEqual(pathspec.Dirname().CollapsePath(), "/")
+    pathspec.Append(path="sdasda")
+    self.assertEqual(pathspec.Dirname().CollapsePath(), "/foo")
 
 
 def main(argv):

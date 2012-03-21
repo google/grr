@@ -7,10 +7,11 @@ from google.protobuf import descriptor_pb2
 # @@protoc_insertion_point(imports)
 
 
+
 DESCRIPTOR = descriptor.FileDescriptor(
   name='grr/proto/sysinfo.proto',
   package='',
-  serialized_pb='\n\x17grr/proto/sysinfo.proto\"_\n\x07Process\x12\x0b\n\x03\x65xe\x18\x01 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x02 \x01(\t\x12\x0b\n\x03pid\x18\x03 \x01(\r\x12\x0c\n\x04ppid\x18\x04 \x01(\r\x12\r\n\x05\x63time\x18\x05 \x01(\x04\x12\x0c\n\x04user\x18\x06 \x01(\t\"N\n\nFilesystem\x12\x0e\n\x06\x64\x65vice\x18\x01 \x01(\t\x12\x13\n\x0bmount_point\x18\x02 \x01(\t\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\r\n\x05label\x18\x04 \x01(\t\"\xcd\x03\n\nConnection\x12)\n\x05state\x18\x01 \x01(\x0e\x32\x11.Connection.State:\x07UNKNOWN\x12\x34\n\x04type\x18\x02 \x01(\x0e\x32\x16.Connection.SocketType:\x0eUNKNOWN_SOCKET\x12\x12\n\nlocal_addr\x18\x03 \x01(\r\x12\x12\n\nlocal_port\x18\x04 \x01(\r\x12\x13\n\x0bremote_addr\x18\x05 \x01(\r\x12\x13\n\x0bremote_port\x18\x06 \x01(\r\x12\x0b\n\x03pid\x18\x07 \x01(\r\x12\r\n\x05\x63time\x18\x08 \x01(\x04\"\xbb\x01\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\n\n\x06\x43LOSED\x10\x01\x12\n\n\x06LISTEN\x10\x02\x12\x0c\n\x08SYN_SENT\x10\x03\x12\x0c\n\x08SYN_RCVD\x10\x04\x12\t\n\x05\x45STAB\x10\x05\x12\r\n\tFIN_WAIT1\x10\x06\x12\r\n\tFIN_WAIT2\x10\x07\x12\x0e\n\nCLOSE_WAIT\x10\x08\x12\x0b\n\x07\x43LOSING\x10\t\x12\x0c\n\x08LAST_ACK\x10\n\x12\r\n\tTIME_WAIT\x10\x0b\x12\x0e\n\nDELETE_TCB\x10\x0c\"2\n\nSocketType\x12\x12\n\x0eUNKNOWN_SOCKET\x10\x00\x12\x07\n\x03TCP\x10\x01\x12\x07\n\x03UDP\x10\x02')
+  serialized_pb='\n\x17grr/proto/sysinfo.proto\"_\n\x07Process\x12\x0b\n\x03\x65xe\x18\x01 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x02 \x01(\t\x12\x0b\n\x03pid\x18\x03 \x01(\r\x12\x0c\n\x04ppid\x18\x04 \x01(\r\x12\r\n\x05\x63time\x18\x05 \x01(\x04\x12\x0c\n\x04user\x18\x06 \x01(\t\"N\n\nFilesystem\x12\x0e\n\x06\x64\x65vice\x18\x01 \x01(\t\x12\x13\n\x0bmount_point\x18\x02 \x01(\t\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\r\n\x05label\x18\x04 \x01(\t\"\xcd\x03\n\nConnection\x12)\n\x05state\x18\x01 \x01(\x0e\x32\x11.Connection.State:\x07UNKNOWN\x12\x34\n\x04type\x18\x02 \x01(\x0e\x32\x16.Connection.SocketType:\x0eUNKNOWN_SOCKET\x12\x12\n\nlocal_addr\x18\x03 \x01(\r\x12\x12\n\nlocal_port\x18\x04 \x01(\r\x12\x13\n\x0bremote_addr\x18\x05 \x01(\r\x12\x13\n\x0bremote_port\x18\x06 \x01(\r\x12\x0b\n\x03pid\x18\x07 \x01(\r\x12\r\n\x05\x63time\x18\x08 \x01(\x04\"\xbb\x01\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\n\n\x06\x43LOSED\x10\x01\x12\n\n\x06LISTEN\x10\x02\x12\x0c\n\x08SYN_SENT\x10\x03\x12\x0c\n\x08SYN_RCVD\x10\x04\x12\t\n\x05\x45STAB\x10\x05\x12\r\n\tFIN_WAIT1\x10\x06\x12\r\n\tFIN_WAIT2\x10\x07\x12\x0e\n\nCLOSE_WAIT\x10\x08\x12\x0b\n\x07\x43LOSING\x10\t\x12\x0c\n\x08LAST_ACK\x10\n\x12\r\n\tTIME_WAIT\x10\x0b\x12\x0e\n\nDELETE_TCB\x10\x0c\"2\n\nSocketType\x12\x12\n\x0eUNKNOWN_SOCKET\x10\x00\x12\x07\n\x03TCP\x10\x01\x12\x07\n\x03UDP\x10\x02\"1\n\x07MRUFile\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x14\n\ttimestamp\x18\x02 \x01(\x04:\x01\x30')
 
 
 
@@ -296,10 +297,48 @@ _CONNECTION = descriptor.Descriptor(
 )
 
 
+_MRUFILE = descriptor.Descriptor(
+  name='MRUFile',
+  full_name='MRUFile',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='filename', full_name='MRUFile.filename', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='timestamp', full_name='MRUFile.timestamp', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=True, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=668,
+  serialized_end=717,
+)
+
 _CONNECTION.fields_by_name['state'].enum_type = _CONNECTION_STATE
 _CONNECTION.fields_by_name['type'].enum_type = _CONNECTION_SOCKETTYPE
 _CONNECTION_STATE.containing_type = _CONNECTION;
 _CONNECTION_SOCKETTYPE.containing_type = _CONNECTION;
+DESCRIPTOR.message_types_by_name['Process'] = _PROCESS
+DESCRIPTOR.message_types_by_name['Filesystem'] = _FILESYSTEM
+DESCRIPTOR.message_types_by_name['Connection'] = _CONNECTION
+DESCRIPTOR.message_types_by_name['MRUFile'] = _MRUFILE
 
 class Process(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
@@ -318,5 +357,11 @@ class Connection(message.Message):
   DESCRIPTOR = _CONNECTION
   
   # @@protoc_insertion_point(class_scope:Connection)
+
+class MRUFile(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _MRUFILE
+  
+  # @@protoc_insertion_point(class_scope:MRUFile)
 
 # @@protoc_insertion_point(module_scope)

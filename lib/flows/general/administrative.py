@@ -25,8 +25,8 @@ from grr.proto import jobs_pb2
 class Uninstall(flow.GRRFlow):
   """Removes the persistence mechanism which the client uses at boot.
 
-  For Windows, this will disable the service, and then stop the service.
-  For Linux and OSX this flow will fail as we haven't implemented it yet :)
+  For Windows and OSX, this will disable the service, and then stop the service.
+  For Linux this flow will fail as we haven't implemented it yet :)
   """
 
   category = "/Administrative/"
@@ -39,10 +39,10 @@ class Uninstall(flow.GRRFlow):
   @flow.StateHandler(next_state=["Kill"])
   def Start(self):
     """Start the flow and determine OS support."""
-    client = aff4.FACTORY.Open(self.client_id)
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
     system = client.Get(client.Schema.SYSTEM)
 
-    if system == "Windows":
+    if system == "Darwin" or system == "Windows":
       self.CallClient("Uninstall", next_state="Kill")
     else:
       self.Log("Unsupported platform for Uninstall")
@@ -79,6 +79,83 @@ class Kill(flow.GRRFlow):
       self.Log("Kill failed on the client.")
 
 
+class UpdateConfig(flow.GRRFlow):
+  """Update the configuration of the client.
+
+    Note: This flow is somewhat dangerous, so we don't expose it in the UI.
+  """
+
+  # Still accessible (e.g. via ajax but not visible in the UI.)
+  category = None
+
+  def __init__(self, grr_config, **kwargs):
+    """Initialize.
+
+    Args:
+      grr_config: a jobs_pb2.GRRConfig object.
+    """
+    flow.GRRFlow.__init__(self, **kwargs)
+    self.grr_config = grr_config
+
+  @flow.StateHandler(next_state=["Confirmation"])
+  def Start(self):
+    """Call the GetConfig function on the client."""
+    self.CallClient("UpdateConfig", self.grr_config, next_state="Confirmation")
+
+  @flow.StateHandler(next_state="End")
+  def Confirmation(self, responses):
+    """Confirmation."""
+    if not responses.success:
+      raise flow.FlowError("Failed to write config. Err: {0}".format(
+          responses.status))
+
+
+class ExecuteCommand(flow.GRRFlow):
+  """Execute a predefined command on the client."""
+
+  category = "/Administrative/"
+
+  def __init__(self, cmd=None, args=None, time_limit=-1, **kwargs):
+    """Initialize the flow."""
+    flow.GRRFlow.__init__(self, **kwargs)
+    self.cmd = cmd
+    self.args = args.split(" ")
+    self.time_limit = time_limit
+
+  @flow.StateHandler(next_state=["Confirmation"])
+  def Start(self):
+    """Call the execute function on the client."""
+    self.CallClient("ExecuteCommand", cmd=self.cmd, args=self.args,
+                    time_limit=self.time_limit, next_state="Confirmation")
+
+  @flow.StateHandler(None, next_state="End")
+  def Confirmation(self, responses):
+    """Confirmation."""
+    if responses.success:
+      response = responses.First()
+      self.Log(("Execution of %s %s (return value %d, "
+                "ran for %f seconds):"),
+               response.request.cmd,
+               " ".join(response.request.args),
+               response.exit_status,
+               # time_used is returned in microseconds.
+               response.time_used / 1e6)
+      try:
+        # We don't want to overflow the log so we just save 100 bytes each.
+        logout = response.stdout[:100]
+        if len(response.stdout) > 100:
+          logout += "..."
+        logerr = response.stderr[:100]
+        if len(response.stderr) > 100:
+          logerr += "..."
+        self.Log("Output: %s, %s", logout, logerr)
+      except ValueError:
+        # The received byte buffer does not convert to unicode.
+        self.Log("Received output not convertible to unicode.")
+    else:
+      self.Log("Execute failed.")
+
+
 class Foreman(flow.WellKnownFlow):
   """The foreman assigns new flows to clients based on their type.
 
@@ -102,7 +179,7 @@ class Foreman(flow.WellKnownFlow):
     # Maintain a cache of the foreman
     if (self.foreman_cache is None or
         now > self.foreman_cache.age + self.cache_refresh_time):
-      self.foreman_cache = aff4.FACTORY.Open("aff4:/foreman")
+      self.foreman_cache = aff4.FACTORY.Open("aff4:/foreman", token=self.token)
       self.foreman_cache.age = now
 
     if message.source:

@@ -27,7 +27,7 @@ from grr.parsers import firefox3_history
 
 FLAGS = flags.FLAGS
 
-# Test method names dont conform with Google style
+
 
 
 class Firefox3HistoryTest(test_lib.GRRBaseTest):

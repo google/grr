@@ -52,14 +52,14 @@ class ActionPlugin(object):
 
   __metaclass__ = registry.MetaclassRegistry
 
-  def __init__(self, message, grr_context=None, **kwargs):
+  def __init__(self, message, grr_context=None, **proto_args):
     """Initialises our protobuf from the keywords passed.
 
     Args:
       message:     The GrrMessage that we are called to process.
       grr_context: The grr context object which may be used to
                    e.g. send new actions on.
-      kwargs:      Field initializers for the protobuf in self._protobuf.
+      **proto_args:  Field initializers for the protobuf in self._protobuf.
     """
     self.grr_context = grr_context
     self.message = message
@@ -68,7 +68,7 @@ class ActionPlugin(object):
     if self.in_protobuf:
       self.buff = self.in_protobuf()
 
-      for k, v in kwargs.items():
+      for k, v in proto_args.items():
         setattr(self.buff, k, v)
 
   def Execute(self, message):
@@ -90,9 +90,8 @@ class ActionPlugin(object):
     else:
       args = None
 
-    # Prepare a reply to the server
-    reply = jobs_pb2.GrrStatus()
-    reply.status = jobs_pb2.GrrStatus.OK
+    self.status = jobs_pb2.GrrStatus()
+    self.status.status = jobs_pb2.GrrStatus.OK  # Default status.
 
     try:
       # Only allow authenticated messages in the client
@@ -105,38 +104,41 @@ class ActionPlugin(object):
 
     # We want to report back all errors and map Python exceptions to
     # Grr Errors.
-    except (OSError, IOError), e:
-      reply.status = jobs_pb2.GrrStatus.IOERROR
-
-      if FLAGS.debug:
-        pdb.post_mortem()
-
     except Exception, e:
-      reply.status = jobs_pb2.GrrStatus.GENERIC_ERROR
+      self.SetStatus(jobs_pb2.GrrStatus.GENERIC_ERROR, "%r: %s" % (e, e),
+                     traceback.format_exc())
       if FLAGS.debug:
         pdb.post_mortem()
 
-    if reply.status != jobs_pb2.GrrStatus.OK:
-      logging.info("Job Error (%s): %s", self.__class__.__name__, e)
-      logging.debug(traceback.format_exc())
-      reply.error_message = "%r: %s" % (e, e)
+    if self.status.status != jobs_pb2.GrrStatus.OK:
+      logging.info("Job Error (%s): %s", self.__class__.__name__,
+                   self.status.error_message)
+      if self.status.backtrace:
+        logging.debug(self.status.backtrace)
 
     # This returns the error status of the Actions to the flow.
-    self.SendReply(reply, message_type=jobs_pb2.GrrMessage.STATUS)
+    self.SendReply(self.status, message_type=jobs_pb2.GrrMessage.STATUS)
 
-  def Run(self, args):
+  def Run(self, unused_args):
     """Main plugin entry point.
 
     This function will always be overridden by real plugins.
 
     Args:
-      args: An already initialised protobuf object.
+      unused_args: An already initialised protobuf object.
 
     Raises:
       KeyError: if not implemented.
     """
     raise KeyError("Action %s not available on this platform." %
                    self.message.name)
+
+  def SetStatus(self, status, message="", backtrace=None):
+    """Set a status to report back to the server."""
+    self.status.status = status
+    self.status.error_message = utils.SmartUnicode(message)
+    if backtrace:
+      self.status.backtrace = utils.SmartUnicode(backtrace)
 
   def SendReply(self, protobuf=None, message_type=jobs_pb2.GrrMessage.MESSAGE,
                 **kw):

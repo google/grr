@@ -18,22 +18,27 @@
 
 from hashlib import sha256
 import os
+import pdb
+import StringIO
+import urllib2
 
 
-from M2Crypto import RSA
 from M2Crypto import X509
 
 from grr.client import conf
 from grr.client import conf as flags
 
+# This is needed to define the flags used here.
+from grr.client import client
 from grr.client import client_config
 from grr.client import comms
-from grr.client import conf
 from grr.lib import aff4
 from grr.lib import communicator
 from grr.lib import flow
+from grr.lib import stats
 from grr.lib import test_lib
 from grr.proto import jobs_pb2
+
 
 FLAGS = flags.FLAGS
 
@@ -54,7 +59,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     """Set up communicator tests."""
     test_lib.GRRBaseTest.setUp(self)
 
-    self.options = conf.PARSER.flags
+    self.options = flags.FLAGS
     self.options.certificate = open(os.path.join(self.key_path,
                                                  "cert.pem")).read()
     self.options.server_serial_number = 0
@@ -70,7 +75,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
         client_config.CACERTS["TEST"])
 
     self.server_communicator = ServerCommunicatorFake(
-        self.server_certificate)
+        self.server_certificate, token=self.token)
 
   def ClientServerCommunicate(self, timestamp=None):
     """Tests the end to end encrypted communicators."""
@@ -106,9 +111,10 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     """Make a client in the data store."""
     client_cert = aff4.FACTORY.RDFValue("RDFX509Cert")(
         self.options.certificate)
-    client = aff4.FACTORY.Create(client_cert.common_name, "VFSGRRClient")
-    client.Set(client.Schema.CERT, client_cert)
-    client.Close()
+    new_client = aff4.FACTORY.Create(client_cert.common_name, "VFSGRRClient",
+                                     token=self.token)
+    new_client.Set(new_client.Schema.CERT, client_cert)
+    new_client.Close()
 
   def testKnownClient(self):
     """Test that messages from known clients are authenticated."""
@@ -140,25 +146,29 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
   def testCompression(self):
     """Tests that the compression works."""
-    FLAGS.compression = "UNCOMPRESSED"
-    self.testCommunications()
-    uncompressed_len = len(self.cipher_text)
+    compression_state = FLAGS.compression
+    try:
+      FLAGS.compression = "UNCOMPRESSED"
+      self.testCommunications()
+      uncompressed_len = len(self.cipher_text)
 
-    # If the client compresses, the server should still be able to
-    # parse it:
-    FLAGS.compression = "ZCOMPRESS"
-    self.testCommunications()
-    compressed_len = len(self.cipher_text)
+      # If the client compresses, the server should still be able to
+      # parse it:
+      FLAGS.compression = "ZCOMPRESS"
+      self.testCommunications()
+      compressed_len = len(self.cipher_text)
 
-    self.assert_(compressed_len < uncompressed_len)
+      self.assert_(compressed_len < uncompressed_len)
 
-    # If we chose a crazy compression scheme, the client should not
-    # compress.
-    FLAGS.compression = "SOMECRAZYCOMPRESSION"
-    self.testCommunications()
-    compressed_len = len(self.cipher_text)
+      # If we chose a crazy compression scheme, the client should not
+      # compress.
+      FLAGS.compression = "SOMECRAZYCOMPRESSION"
+      self.testCommunications()
+      compressed_len = len(self.cipher_text)
 
-    self.assertEqual(compressed_len, uncompressed_len)
+      self.assertEqual(compressed_len, uncompressed_len)
+    finally:
+      FLAGS.compression = compression_state
 
   def testErrorDetection(self):
     """Tests the end to end encrypted communicators."""
@@ -180,10 +190,9 @@ class ClientCommsTest(test_lib.GRRBaseTest):
                    cipher_text[101:])
 
     # This signature should not match
-    self.assertRaises(
-        RSA.RSAError,
-        self.server_communicator.DecryptMessage,
-        cipher_text)
+    self.assertRaises(communicator.DecryptionError,
+                      self.server_communicator.DecryptMessage,
+                      cipher_text)
 
   def testEnrollingCommunicatorWorks(self):
     """Test that the EnrollingCommunicator still works."""
@@ -212,6 +221,298 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     cn = "C.%s" % (
         sha256(public_key).digest()[:8].encode("hex"))
     self.assertEqual(cn, req.get_subject().CN)
+
+
+class HTTPContextTests(test_lib.GRRBaseTest):
+  """Test the http communicator."""
+
+  def setUp(self):
+    """Set up communicator tests."""
+    test_lib.GRRBaseTest.setUp(self)
+
+    self.options = flags.FLAGS
+    self.options.certificate = open(os.path.join(self.key_path,
+                                                 "cert.pem")).read()
+    self.options.server_serial_number = 0
+    self.options.config = os.path.join(FLAGS.test_tmpdir, "testconf")
+    self.server_certificate = open(
+        os.path.join(self.key_path, "server-priv.pem")).read()
+
+    self.client_cn = comms.ClientCommunicator(
+        self.options.certificate).common_name
+
+    # Make a new client
+    self.CreateNewClientContext()
+
+    # Make a client mock
+    self.client = aff4.FACTORY.Create(self.client_cn, "VFSGRRClient", mode="rw",
+                                      token=self.token)
+    self.client.Set(self.client.Schema.CERT(self.options.certificate))
+    self.client.Close()
+
+    # Stop the client from actually processing anything
+    flags.FLAGS.max_out_queue = 0
+
+    # And cache it in the server
+    self.CreateNewServerCommunicator()
+
+    self.urlopen = urllib2.urlopen
+    urllib2.urlopen = self.UrlMock
+    self.messages = []
+
+  def CreateNewServerCommunicator(self):
+    self.server_communicator = ServerCommunicatorFake(
+        self.server_certificate, token=self.token)
+
+    self.server_communicator.client_cache.Put(
+        self.client_cn, self.client)
+
+  def tearDown(self):
+    urllib2.urlopen = self.urlopen
+
+  def CreateNewClientContext(self):
+    self.client_context = comms.GRRHTTPContext(
+        self.options.certificate)
+
+    # Build a client context with preloaded server certificates
+    self.client_context.LoadCertificates()
+    self.client_context.communicator.LoadServerCertificate(
+        self.server_certificate, client_config.CACERTS["TEST"])
+
+  def UrlMock(self, req, **kwargs):
+    """A mock for url handler processing from the server's POV."""
+    try:
+      self.client_communication = jobs_pb2.ClientCommunication()
+      self.client_communication.ParseFromString(req.data)
+
+      # Decrypt incoming messages
+      self.messages, source, ts = self.server_communicator.DecodeMessages(
+          self.client_communication)
+
+      # Make sure the messages are correct
+      self.assertEqual(source, self.client_cn)
+      for i, message in enumerate(self.messages):
+        # Do not check any status messages.
+        if message.request_id:
+          self.assertEqual(message.response_id, i)
+          self.assertEqual(message.request_id, 1)
+          self.assertEqual(message.session_id, "session")
+
+      # Now prepare a response
+      response_comms = jobs_pb2.ClientCommunication()
+      message_list = jobs_pb2.MessageList()
+      for i in range(0, 10):
+        message_list.job.add(session_id="session",
+                             response_id=2, request_id=i)
+
+      # Preserve the timestamp as a nonce
+      self.server_communicator.EncodeMessages(
+          message_list, response_comms, destination=source,
+          timestamp=ts, api_version=self.client_communication.api_version)
+
+      return StringIO.StringIO(response_comms.SerializeToString())
+    except communicator.RekeyError:
+      raise urllib2.HTTPError(url=None, code=400, msg=None, hdrs=None, fp=None)
+    except communicator.UnknownClientCert:
+      raise urllib2.HTTPError(url=None, code=406, msg=None, hdrs=None, fp=None)
+    except Exception:
+      if FLAGS.debug:
+        pdb.post_mortem()
+
+      raise urllib2.HTTPError(url=None, code=500, msg=None, hdrs=None, fp=None)
+
+  def CheckClientQueue(self):
+    """Checks that the client context received all server messages."""
+    # Check the incoming messages
+    self.assertEqual(len(self.client_context._in_queue), 10)
+
+    for i, message in enumerate(self.client_context._in_queue):
+      self.assertEqual(message.source, "GRR Test Server")
+      self.assertEqual(message.response_id, 2)
+      self.assertEqual(message.request_id, i)
+      self.assertEqual(message.session_id, "session")
+      self.assertEqual(message.auth_state, jobs_pb2.GrrMessage.AUTHENTICATED)
+
+    # Clear the queue
+    self.client_context._in_queue = []
+
+  def SendToServer(self):
+    """Schedule some packets from client to server."""
+    # Generate some client traffic
+    for i in range(0, 10):
+      self.client_context.SendReply(
+          jobs_pb2.GrrStatus(),
+          session_id="session", response_id=i, request_id=1)
+
+  def testEnrollment(self):
+    """Test the http response to unknown clients."""
+    # We start off with the server not knowing about the client at all.
+    self.server_communicator.client_cache.Flush()
+
+    # Assume we do not know the client yet by clearing its certificate.
+    self.client = aff4.FACTORY.Create(self.client_cn, "VFSGRRClient", mode="rw",
+                                      token=self.token)
+    self.client.DeleteAttribute(self.client.Schema.CERT)
+    self.client.Close()
+
+    # Now communicate with the server.
+    self.SendToServer()
+    status = self.client_context.RunOnce()
+
+    # We expect to receive a 406 and all client messages will be tagged as
+    # UNAUTHENTICATED.
+    self.assertEqual(status.code, 406)
+    self.assertEqual(len(self.messages), 10)
+    self.assertEqual(self.messages[0].auth_state,
+                     jobs_pb2.GrrMessage.UNAUTHENTICATED)
+
+    # Client should switch to EnrollingCommunicator now:
+    self.assertEqual(self.client_context.communicator.__class__,
+                     comms.EnrollingCommunicator)
+
+  def testReboots(self):
+    """Test the http communication with reboots."""
+    # Now we add the new client record to the server cache
+    self.SendToServer()
+    self.client_context.RunOnce()
+    self.CheckClientQueue()
+
+    # Simulate the client rebooted
+    self.CreateNewClientContext()
+
+    self.SendToServer()
+    self.client_context.RunOnce()
+    self.CheckClientQueue()
+
+    # Simulate the server rebooting
+    self.CreateNewServerCommunicator()
+    self.server_communicator.client_cache.Put(
+        self.client_cn, self.client)
+
+    self.SendToServer()
+    self.client_context.RunOnce()
+    self.CheckClientQueue()
+
+  def testCachedRSAOperations(self):
+    """Make sure that expensive RSA operations are cached."""
+    # First time fill the cache.
+    self.SendToServer()
+    self.client_context.RunOnce()
+    self.CheckClientQueue()
+
+    self.assert_(stats.STATS.Get("grr_rsa_operations") > 0)
+
+    # Reset operation count
+    stats.STATS.Set("grr_rsa_operations", 0)
+    for _ in range(100):
+      self.SendToServer()
+      self.client_context.RunOnce()
+      self.CheckClientQueue()
+
+    # There should not have been any expensive operations any more
+    self.assertEqual(stats.STATS.Get("grr_rsa_operations"), 0)
+
+  def testCorruption(self):
+    """Simulate corruption of the http payload."""
+
+    def Corruptor(req):
+      """Futz with some of the fields."""
+      self.client_communication = jobs_pb2.ClientCommunication()
+      self.client_communication.ParseFromString(req.data)
+
+      cipher_text = self.client_communication.encrypted_cipher
+      cipher_text = (cipher_text[:10] +
+                     chr((ord(cipher_text[10]) % 250)+1) +
+                     cipher_text[11:])
+
+      self.client_communication.encrypted_cipher = cipher_text
+      req.data = self.client_communication.SerializeToString()
+      return self.UrlMock(req)
+
+    urllib2.urlopen = Corruptor
+
+    self.SendToServer()
+    status = self.client_context.RunOnce()
+    self.assertEqual(status.code, 500)
+
+  def testClientRetransmission(self):
+    """Test that client retransmits failed messages."""
+
+    fail = True
+
+    def FlakyServer(req):
+      if not fail:
+        return self.UrlMock(req)
+      raise urllib2.HTTPError(url=None, code=500, msg=None, hdrs=None, fp=None)
+
+    urllib2.urlopen = FlakyServer
+
+    self.SendToServer()
+    status = self.client_context.RunOnce()
+    self.assertEqual(status.code, 500)
+
+    # Server should not receive anything.
+    self.assertEqual(len(self.messages), 0)
+
+    # Try to send these messages again.
+    fail = False
+    status = self.client_context.RunOnce()
+    self.assertEqual(status.code, 200)
+    self.CheckClientQueue()
+
+    # Server should have received 10 messages this time.
+    self.assertEqual(len(self.messages), 10)
+
+
+class BackwardsCompatibleClientCommsTest(ClientCommsTest):
+  """Test that we can talk using the old protocol still (version 2)."""
+
+  def setUp(self):
+    self.current_api = client_config.NETWORK_API
+    client_config.NETWORK_API = 2
+    super(BackwardsCompatibleClientCommsTest, self).setUp()
+
+  def tearDown(self):
+    client_config.NETWORK_API = self.current_api
+    super(BackwardsCompatibleClientCommsTest, self).tearDown()
+
+
+class BackwardsCompatibleHTTPContextTests(HTTPContextTests):
+  """Test that we can talk using the old protocol still (version 2)."""
+
+  def setUp(self):
+    self.current_api = client_config.NETWORK_API
+    client_config.NETWORK_API = 2
+    super(BackwardsCompatibleHTTPContextTests, self).setUp()
+
+  def tearDown(self):
+    client_config.NETWORK_API = self.current_api
+    super(BackwardsCompatibleHTTPContextTests, self).tearDown()
+
+  def testCachedRSAOperations(self):
+    """With the old protocol there should be many RSA operations."""
+    # First time fill the cache.
+    self.SendToServer()
+    self.client_context.RunOnce()
+    self.CheckClientQueue()
+
+    self.assert_(stats.STATS.Get("grr_rsa_operations") > 0)
+
+    # Reset operation count
+    stats.STATS.Set("grr_rsa_operations", 0)
+    for _ in range(100):
+      self.SendToServer()
+      self.client_context.RunOnce()
+      self.CheckClientQueue()
+
+    # There should be about 2 operations per loop iteration using the old
+    # protocol (client and server must sign the message_list). Note that clients
+    # actually running the old version will do 4 operations per loop since we
+    # used to generate a new cipher protobuf for each packet as well. However,
+    # currently, when running in compatibility mode we cache the same ciphers on
+    # each end. The result is that the new code is still faster even when
+    # running the old api.
+    self.assertEqual(stats.STATS.Get("grr_rsa_operations"), 200)
 
 
 def main(argv):

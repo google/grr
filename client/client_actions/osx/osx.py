@@ -20,14 +20,177 @@
 import ctypes
 import logging
 import os
-import platform
+import re
 import sys
 
+
+import pytsk3
+
 from grr.client import actions
-from grr.client import comms
-from grr.lib import utils
+from grr.client import client_config
+from grr.client import client_utils_common
+from grr.client import client_utils_osx
+from grr.client import conf
 from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
+
+
+# struct sockaddr_dl {
+#       u_char  sdl_len;        /* Total length of sockaddr */
+#       u_char  sdl_family;     /* AF_LINK */
+#       u_short sdl_index;      /* if != 0, system given index for interface */
+#       u_char  sdl_type;       /* interface type */
+#       u_char  sdl_nlen;       /* interface name length, no trailing 0 reqd. */
+#       u_char  sdl_alen;       /* link level address length */
+#       u_char  sdl_slen;       /* link layer selector length */
+#       char    sdl_data[12];   /* minimum work area, can be larger;
+#                                  contains both if name and ll address */
+#       u_short sdl_rcf;        /* source routing control */
+#       u_short sdl_route[16];  /* source routing information */
+# };
+
+
+class Sockaddrdl(ctypes.Structure):
+  """The sockaddr_dl struct."""
+  _fields_ = [
+      ("sdl_len", ctypes.c_ubyte),
+      ("sdl_family", ctypes.c_ubyte),
+      ("sdl_index", ctypes.c_ushort),
+      ("sdl_type", ctypes.c_ubyte),
+      ("sdl_nlen", ctypes.c_ubyte),
+      ("sdl_alen", ctypes.c_ubyte),
+      ("sdl_slen", ctypes.c_ubyte),
+      ("sdl_data", ctypes.c_char * 12),
+      ("sdl_rcf", ctypes.c_ushort),
+      ("sdl_route", ctypes.c_char * 16)
+      ]
+
+# struct sockaddr_in {
+#         __uint8_t       sin_len;
+#         sa_family_t     sin_family;
+#         in_port_t       sin_port;
+#         struct  in_addr sin_addr;
+#         char            sin_zero[8];
+# };
+
+
+class Sockaddrin(ctypes.Structure):
+  """The sockaddr_in struct."""
+  _fields_ = [
+      ("sin_len", ctypes.c_ubyte),
+      ("sin_family", ctypes.c_ubyte),
+      ("sin_port", ctypes.c_ushort),
+      ("sin_addr", ctypes.c_ubyte * 4),
+      ("sin_zero", ctypes.c_char * 8)
+      ]
+
+# struct sockaddr_in6 {
+#         __uint8_t       sin6_len;       /* length of this struct */
+#         sa_family_t     sin6_family;    /* AF_INET6 (sa_family_t) */
+#         in_port_t       sin6_port;      /* Transport layer port */
+#         __uint32_t      sin6_flowinfo;  /* IP6 flow information */
+#         struct in6_addr sin6_addr;      /* IP6 address */
+#         __uint32_t      sin6_scope_id;  /* scope zone index */
+# };
+
+
+class Sockaddrin6(ctypes.Structure):
+  """The sockaddr_in6 struct."""
+  _fields_ = [
+      ("sin6_len", ctypes.c_ubyte),
+      ("sin6_family", ctypes.c_ubyte),
+      ("sin6_port", ctypes.c_ushort),
+      ("sin6_flowinfo", ctypes.c_ubyte * 4),
+      ("sin6_addr", ctypes.c_ubyte * 16),
+      ("sin6_scope_id", ctypes.c_ubyte * 4)
+      ]
+
+
+# struct ifaddrs   *ifa_next;         /* Pointer to next struct */
+#          char             *ifa_name;         /* Interface name */
+#          u_int             ifa_flags;        /* Interface flags */
+#          struct sockaddr  *ifa_addr;         /* Interface address */
+#          struct sockaddr  *ifa_netmask;      /* Interface netmask */
+#          struct sockaddr  *ifa_broadaddr;    /* Interface broadcast address */
+#          struct sockaddr  *ifa_dstaddr;      /* P2P interface destination */
+#          void             *ifa_data;         /* Address specific data */
+
+
+class Ifaddrs(ctypes.Structure):
+  pass
+
+Ifaddrs._fields_ = [
+    ("ifa_next", ctypes.POINTER(Ifaddrs)),
+    ("ifa_name", ctypes.POINTER(ctypes.c_char)),
+    ("ifa_flags", ctypes.c_uint),
+    ("ifa_addr", ctypes.POINTER(ctypes.c_char)),
+    ("ifa_netmask", ctypes.POINTER(ctypes.c_char)),
+    ("ifa_broadaddr", ctypes.POINTER(ctypes.c_char)),
+    ("ifa_destaddr", ctypes.POINTER(ctypes.c_char)),
+    ("ifa_data", ctypes.POINTER(ctypes.c_char))
+    ]
+
+
+class EnumerateInterfaces(actions.ActionPlugin):
+  """Enumerate all MAC addresses of all NICs."""
+  out_protobuf = jobs_pb2.Interface
+
+  def Run(self, unused_args):
+    """Enumerate all MAC addresses."""
+    libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))
+    ifa = Ifaddrs()
+    p_ifa = ctypes.pointer(ifa)
+    libc.getifaddrs(ctypes.pointer(p_ifa))
+
+    addresses = {}
+    macs = {}
+    ifs = set()
+
+    m = p_ifa
+    while m:
+      ifname = ctypes.string_at(m.contents.ifa_name)
+      ifs.add(ifname)
+      try:
+        iffamily = ord(m.contents.ifa_addr[1])
+        if iffamily == 0x2:     # AF_INET
+          data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
+          ip4 = "".join(map(chr, data.contents.sin_addr))
+          address_type = jobs_pb2.NetworkAddress.INET
+          address = jobs_pb2.NetworkAddress(address_type=address_type,
+                                            packed_bytes=ip4)
+          addresses.setdefault(ifname, []).append(address)
+
+        if iffamily == 0x12:    # AF_LINK
+          data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrdl))
+          iflen = data.contents.sdl_nlen
+          addlen = data.contents.sdl_alen
+          macs[ifname] = data.contents.sdl_data[iflen:iflen+addlen]
+
+        if iffamily == 0x1E:     # AF_INET6
+          data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
+          ip6 = "".join(map(chr, data.contents.sin6_addr))
+          address_type = jobs_pb2.NetworkAddress.INET6
+          address = jobs_pb2.NetworkAddress(address_type=address_type,
+                                            packed_bytes=ip6)
+          addresses.setdefault(ifname, []).append(address)
+      except ValueError:
+        # Some interfaces don't have a iffamily and will raise a null pointer
+        # exception. We still want to send back the name.
+        pass
+
+      m = m.contents.ifa_next
+
+    libc.freeifaddrs(p_ifa)
+
+    for interface in ifs:
+      mac = macs.setdefault(interface, "")
+      address_list = addresses.setdefault(interface, "")
+      args = {"ifname": interface}
+      if mac:
+        args["mac_address"] = mac
+      if address_list:
+        args["addresses"] = address_list
+      self.SendReply(**args)
 
 
 class GetInstallDate(actions.ActionPlugin):
@@ -35,7 +198,13 @@ class GetInstallDate(actions.ActionPlugin):
   out_protobuf = jobs_pb2.DataBlob
 
   def Run(self, unused_args):
-    # TODO(user): Find a sensible way to implement this.
+    for f in ["/var/log/CDIS.custom", "/var", "/private"]:
+      try:
+        stat = os.stat(f)
+        self.SendReply(integer=int(stat.st_ctime))
+        return
+      except OSError:
+        pass
     self.SendReply(integer=0)
 
 
@@ -53,130 +222,68 @@ class EnumerateUsers(actions.ActionPlugin):
         self.SendReply(username=user, homedir=userdir)
 
 
-class EnumerateInterfaces(actions.ActionPlugin):
-  """Enumerate all MAC addresses of all NICs.
-
-  See: http://developer.apple.com/library/mac/#documentation/Darwin/Reference/ManPages/man4/netintro.4.html
-  """
-  out_protobuf = jobs_pb2.Interface
-
-  def Run(self, unused_args):
-    """Enumerate all MAC addresses."""
-    # TODO(user): Implement this.
-    pass
-
-
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system."""
   out_protobuf = sysinfo_pb2.Filesystem
 
   def Run(self, unused_args):
     """List all local filesystems mounted on this system."""
-    for fs_struct in GetFileSystems():
+    drives = []
+    drive_re = re.compile("/dev/disk[0-9]")
+    for fs_struct in client_utils_osx.GetFileSystems():
       self.SendReply(device=fs_struct.f_mntfromname,
                      mount_point=fs_struct.f_mntonname,
                      type=fs_struct.f_fstypename)
 
+      match = drive_re.match(fs_struct.f_mntfromname)
+      if match:
+        drives.append(match.group())
 
-class StatFSStruct(utils.Struct):
-  """Parse filesystems getfsstat."""
-  _fields = [
-      ("h", "f_otype;"),
-      ("h", "f_oflags;"),
-      ("l", "f_bsize;"),
-      ("l", "f_iosize;"),
-      ("l", "f_blocks;"),
-      ("l", "f_bfree;"),
-      ("l", "f_bavail;"),
-      ("l", "f_files;"),
-      ("l", "f_ffree;"),
-      ("Q", "f_fsid;"),
-      ("l", "f_owner;"),
-      ("h", "f_reserved1;"),
-      ("h", "f_type;"),
-      ("l", "f_flags;"),
-      ("2l", "f_reserved2"),
-      ("15s", "f_fstypename"),
-      ("90s", "f_mntonname"),
-      ("90s", "f_mntfromname"),
-      ("x", "f_reserved3"),
-      ("16x", "f_reserved4")
-  ]
+    for drive in drives:
+      try:
+        img_inf = pytsk3.Img_Info(drive)
+        vol_inf = pytsk3.Volume_Info(img_inf)
+
+      except (IOError, RuntimeError):
+        continue
+
+      for volume in vol_inf:
+        if volume.flags == pytsk3.TSK_VS_PART_FLAG_ALLOC:
+          offset = volume.start * vol_inf.info.block_size
+          self.SendReply(device=drive + ":" + str(offset),
+                         type="split image volume")
 
 
-class StatFS64Struct(utils.Struct):
-  """Parse filesystems getfsstat for 64 bit."""
-  _fields = [
-      ("<L", "f_bsize"),
-      ("l", "f_iosize"),
-      ("Q", "f_blocks"),
-      ("Q", "f_bfree"),
-      ("Q", "f_bavail"),
-      ("Q", "f_files"),
-      ("Q", "f_ffree"),
-      ("l", "f_fsid1"),
-      ("l", "f_fsid2"),
-      ("l", "f_owner"),
-      ("L", "f_type"),
-      ("L", "f_flags"),
-      ("L", "f_fssubtype"),
-      ("16s", "f_fstypename"),
-      ("1024s", "f_mntonname"),
-      ("1024s", "f_mntfromname"),
-      ("32s", "f_reserved")
-  ]
+class Uninstall(actions.ActionPlugin):
+  """Remove the service that starts us at startup."""
+  out_protobuf = jobs_pb2.DataBlob
 
+  def Run(self, unused_arg):
+    """This kills us with no cleanups."""
+    logging.debug("Disabling service")
 
-def GetFileSystems():
-  """Make syscalls to get the mounted filesystems.
+    if not conf.RUNNING_AS_SERVICE:
+      self.SendReply(string="Not running as service.")
+    else:
+      plist = client_config.LAUNCHCTL_PLIST
+      (_, _, result) = client_utils_common.Execute("/sbin/launchctl",
+                                                   ["unload",
+                                                    plist])
 
-  Returns:
-    A list of Struct objects.
+      if result != 0:
+        self.SendReply(string="Service failed to disable.")
+      else:
+        logging.info("Disabled service successfully")
+        self.SendReply(string="Service disabled.")
 
-  Based on the information for getfsstat
-  http://developer.apple.com/library/mac/#documentation/Darwin/Reference/ManPages/man2/getfsstat.2.html
-  """
-  major, minor = platform.mac_ver()[0].split(".")[0:2]
-  libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))
+        os.remove(client_config.LAUNCHCTL_PLIST)
 
-  if major <= 10 and minor <= 5:
-    use_64 = False
-    fs_struct = StatFSStruct
-  else:
-    use_64 = True
-    fs_struct = StatFS64Struct
+        if hasattr(sys, "frozen"):
+          grr_binary = os.path.abspath(sys.executable)
+        elif __file__:
+          grr_binary = os.path.abspath(__file__)
 
-  # Get max 20 file systems.
-  struct_size = fs_struct.GetSize()
-  buf_size = struct_size * 20
-
-  cbuf = ctypes.create_string_buffer(buf_size)
-
-  if use_64:
-    # MNT_NOWAIT = 2 - don't ask the filesystems, just return cache.
-    ret = libc.getfsstat64(ctypes.byref(cbuf), buf_size, 2)
-  else:
-    ret = libc.getfsstat(ctypes.byref(cbuf), buf_size, 2)
-
-  if ret == 0:
-    logging.debug("getfsstat failed err: %s", ret)
-    return []
-  return ParseFileSystemsStruct(fs_struct, ret, cbuf)
-
-
-def ParseFileSystemsStruct(struct_class, fs_count, data):
-  """Take the struct type and parse it into a list of structs."""
-  results = []
-  cstr = lambda x: x.split("\0", 1)[0]
-  for count in range(0, fs_count):
-    struct_size = struct_class.GetSize()
-    s_data = data[count * struct_size:(count + 1) * struct_size]
-    s = struct_class(s_data)
-    s.f_fstypename = cstr(s.f_fstypename)
-    s.f_mntonname = cstr(s.f_mntonname)
-    s.f_mntfromname = cstr(s.f_mntfromname)
-    results.append(s)
-  return results
+        os.remove(grr_binary)
 
 
 class Kill(actions.ActionPlugin):
@@ -185,25 +292,25 @@ class Kill(actions.ActionPlugin):
 
   def Run(self, unused_arg):
     """Run the kill."""
-    if isinstance(self.grr_context, comms.SlaveContext):
-      sys.exit(0)
-    else:
+    try:
+      # If this works, the context is a ProcessSeparatedContext object.
+
       # Kill off children if we are running separated.
-      if isinstance(self.grr_context, comms.ProcessSeparatedContext):
-        logging.info("Requesting termination of slaves.")
-        self.grr_context.Terminate()
+      self.grr_context.Terminate()
+      logging.info("Requested termination of slaves.")
+    except AttributeError:
+      pass
+    # Send a message back to the service to say that we are about to shutdown.
+    reply = jobs_pb2.GrrStatus()
+    reply.status = jobs_pb2.GrrStatus.OK
+    # Queue up the response message.
+    self.SendReply(reply, message_type=jobs_pb2.GrrMessage.STATUS,
+                   jump_queue=True)
+    # Force a comms run.
+    status = self.grr_context.RunOnce()
+    if status.code != 200:
+      logging.error("Could not communicate our own death, re-death predicted")
 
-      # Send a message back to the service to say that we are about to shutdown.
-      reply = jobs_pb2.GrrStatus()
-      reply.status = jobs_pb2.GrrStatus.OK
-      # Queue up the response message.
-      self.SendReply(reply, message_type=jobs_pb2.GrrMessage.STATUS,
-                     jump_queue=True)
-      # Force a comms run.
-      status = self.grr_context.RunOnce()
-      if status.code != 200:
-        logging.error("Could not communicate our own death, re-death predicted")
-
-      # Die ourselves.
-      logging.info("Dying on request.")
-      sys.exit(0)
+    # Die ourselves.
+    logging.info("Dying on request.")
+    sys.exit(242)

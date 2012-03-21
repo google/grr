@@ -56,3 +56,8 @@ message Connection {
   optional uint32 pid = 7;
   optional uint64 ctime = 8;
 };
+
+message MRUFile {
+  optional string filename = 1;
+  optional uint64 timestamp = 2 [default = 0];
+}

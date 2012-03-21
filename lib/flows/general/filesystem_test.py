@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- mode: python; encoding: utf-8 -*-
 
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,21 +28,25 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
   def testListDirectory(self):
-    """Test that the Find flow works."""
-    client_mock = test_lib.ActionMock("ListDirectory")
+    """Test that the ListDirectory flow works."""
+    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
     # Deliberately specify incorrect casing
-    path = os.path.join(self.base_path, "test_img.dd",
-                        "test directory")
+    path = os.path.join(self.base_path, "test_img.dd")
+    pb2 = jobs_pb2.Path(path="test directory",
+                        pathtype=jobs_pb2.Path.TSK)
+    pb = jobs_pb2.Path(path=path,
+                       pathtype=jobs_pb2.Path.OS,
+                       nested_path=pb2)
     for _ in test_lib.TestFlowHelper(
         "ListDirectory", client_mock, client_id=self.client_id,
-        path=path, pathtype=jobs_pb2.Path.TSK):
+        pathspec=pb, token=self.token):
       pass
 
     # Check the output file is created
     output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/raw").Add(self.base_path).Add("test_img.dd")
+        "fs/tsk").Add(path.replace("\\", "/"))
 
-    fd = aff4.FACTORY.Open(output_path)
+    fd = aff4.FACTORY.Open(output_path, token=self.token)
     children = list(fd.OpenChildren())
     self.assertEqual(len(children), 1)
     child = children[0]
@@ -50,32 +55,63 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         os.path.basename(utils.SmartUnicode(child.urn)), "Test Directory")
 
     # And the wrong object is not there
-    self.assertRaises(IOError, aff4.FACTORY.Open,
+    self.assertRaises(IOError, fd.OpenMember,
                       output_path.Add("test directory"))
 
-    aff4.FACTORY.Open(output_path.Add("Test Directory"))
+    # This directory does exist
+    aff4.FACTORY.Open(output_path.Add("Test Directory"), token=self.token)
 
-  def testGetFile(self):
-    """Test that the Find flow works."""
-    client_mock = test_lib.ActionMock("ReadBuffer", "HashFile", "StatFile")
+  def testUnicodeListDirectory(self):
+    """Test that the ListDirectory flow works on unicode directories."""
+
+    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
     # Deliberately specify incorrect casing
-    path = os.path.join(self.base_path, "test_img.dd",
-                        "test directory", "NumBers.txt")
-
+    path = os.path.join(self.base_path, "test_img.dd")
+    pb2 = jobs_pb2.Path(path=u"入乡随俗 海外春节别样过法",
+                        pathtype=jobs_pb2.Path.TSK)
+    pb = jobs_pb2.Path(path=path,
+                       pathtype=jobs_pb2.Path.OS,
+                       nested_path=pb2)
     for _ in test_lib.TestFlowHelper(
-        "GetFile", client_mock, client_id=self.client_id,
-        path=path, pathtype=jobs_pb2.Path.TSK):
+        "ListDirectory", client_mock, client_id=self.client_id,
+        pathspec=pb, token=self.token):
       pass
 
     # Check the output file is created
     output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/raw").Add(self.base_path).Add("test_img.dd").Add(
+        "fs/tsk").Add(path.replace("\\", "/")).Add(pb2.path.replace("\\", "/"))
+
+    fd = aff4.FACTORY.Open(output_path, token=self.token)
+    children = list(fd.OpenChildren())
+    self.assertEqual(len(children), 1)
+    child = children[0]
+    self.assertEqual(
+        os.path.basename(utils.SmartUnicode(child.urn)), u"入乡随俗.txt")
+
+  def testSlowGetFile(self):
+    """Test that the SlowGetFile flow works."""
+    client_mock = test_lib.ActionMock("ReadBuffer", "HashFile", "StatFile")
+    # Deliberately specify incorrect casing
+    path = os.path.join(self.base_path, "test_img.dd")
+    pb2 = jobs_pb2.Path(path="test directory/NumBers.txt",
+                        pathtype=jobs_pb2.Path.TSK)
+    pb = jobs_pb2.Path(path=path,
+                       pathtype=jobs_pb2.Path.OS,
+                       nested_path=pb2)
+
+    for _ in test_lib.TestFlowHelper(
+        "SlowGetFile", client_mock, client_id=self.client_id,
+        pathspec=pb, token=self.token):
+      pass
+    # Check the output file is created
+    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
+        "fs/tsk").Add(path.replace("\\", "/")).Add(
             "Test Directory").Add("numbers.txt")
 
-    fd = aff4.FACTORY.Open(output_path)
+    fd = aff4.FACTORY.Open(output_path, token=self.token)
     self.assertEqual(fd.Read(10), "1\n2\n3\n4\n5\n")
     self.assertEqual(fd.size, 3893)
 
     # And the wrong object is not there
-    self.assertRaises(IOError, aff4.FACTORY.Open, aff4.ROOT_URN.Add(
-        self.client_id).Add(path))
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    self.assertRaises(IOError, client.OpenMember, path)

@@ -17,7 +17,23 @@
 """Test the flow_management interface."""
 
 
+from grr.lib import flow
 from grr.lib import test_lib
+
+
+class RecursiveTestFlow(flow.GRRFlow):
+  """A test flow which starts some subflows."""
+
+  def __init__(self, depth=0, **kwargs):
+    self.depth = depth
+    super(RecursiveTestFlow, self).__init__(**kwargs)
+
+  @flow.StateHandler(next_state="End")
+  def Start(self):
+    if self.depth < 2:
+      for _ in range(2):
+        self.CallFlow("RecursiveTestFlow", depth=self.depth+1,
+                      next_state="End")
 
 
 class TestFlowManagement(test_lib.GRRSeleniumTest):
@@ -28,41 +44,20 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     sel = self.selenium
     sel.open("/")
 
-    sel.type("css=input[name=Host]", "0001")
-    sel.key_up("css=input[name=Host]", "1")
+    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    sel.type("css=input[name=q]", "0001")
+    sel.click("css=input[type=submit]")
+
     self.WaitUntilEqual(u"aff4:/C.0000000000000001",
                         sel.get_text, "css=span[type=subject]")
 
     # Choose client 1
     sel.click("css=td:contains('0001')")
-    self.WaitUntil(sel.is_element_present, "css=#_fs")
-    sel.click("css=#_fs ins.jstree-icon")
 
-    self.WaitUntil(sel.is_element_present, "css=#_fs-os")
-    sel.click("css=#_fs-os ins.jstree-icon")
+    # First screen should be the Host Information already.
+    self.WaitUntil(sel.is_text_present, "VFSGRRClient")
 
-    self.WaitUntil(sel.is_element_present, "css=#_fs-os-c")
-    sel.click("css=#_fs-os-c ins.jstree-icon")
-
-    self.WaitUntil(sel.is_text_present, "Start")
-    self.assertEqual("GRR Admin Console", sel.get_title())
-
-    self.failUnless(sel.is_text_present("Help"))
-    self.WaitUntil(sel.is_element_present, "select_button")
-
-    sel.click("select_button")
-    self.WaitUntil(sel.is_element_present, "css=input[name=Host]")
-    self.failUnless(sel.is_text_present("aff4:/C.0000000000000001"))
-    self.failUnless(sel.is_text_present("HostC.0000000000000001"))
-
-    sel.click("css=td.sorting_1 > span")
-    self.assertEqual("HostC.0000000000000001", sel.get_text("select_button"))
-    sel.click("css=span.flapLabel")
-
-    self.WaitUntil(sel.is_element_present, "css=div.label")
-    sel.click("css=div.label")
-    self.WaitUntil(sel.is_element_present, "css=a.label")
-    sel.click("css=a.label")
+    sel.click("css=a[grrtarget=LaunchFlows]")
     self.WaitUntil(sel.is_element_present, "id=_Processes")
     self.failUnless(sel.is_element_present("id=_Processes"))
     sel.click("css=ins.jstree-icon")
@@ -70,20 +65,23 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     self.assertEqual("ListProcesses", sel.get_text("link=ListProcesses"))
     sel.click("link=ListProcesses")
-    self.WaitUntil(sel.is_element_present, "css=input#submit[value=Launch]")
-    self.failUnless(sel.is_text_present("aff4:/C.0000000000000001"))
-    self.failUnless(sel.is_text_present("Prototype: ListProcesses()"))
-    sel.click("submit")
-    self.WaitUntil(sel.is_element_present, "css=input#submit[value=Back]")
-    self.failUnless(sel.is_text_present("Launched flow ListProcesses"))
-    self.failUnless(sel.is_text_present("client_id = aff4:/C.0000000000000001"))
+    self.WaitUntil(sel.is_element_present, "css=input[value=Launch]")
+    self.failUnless(sel.is_text_present("C.0000000000000001"))
 
-    sel.click("submit")
-    self.WaitUntil(sel.is_element_present, "css=input#submit[value=Launch]")
+    self.failUnless(sel.is_text_present(
+        "Prototype: ListProcesses"))
+
+    sel.click("css=input[value=Launch]")
+    self.WaitUntil(sel.is_element_present, "css=input[value=Back]")
+    self.failUnless(sel.is_text_present("Launched flow ListProcesses"))
+    self.failUnless(sel.is_text_present("client_id = C.0000000000000001"))
+
+    sel.click("css=input[value=Back]")
+    self.WaitUntil(sel.is_element_present, "css=input[value=Launch]")
     self.assertEqual("Client ID", sel.get_text("css=td.proto_key"))
     sel.click("css=#_Network > ins.jstree-icon")
-    self.WaitUntil(sel.is_element_present, "link=NetstatFlow")
-    self.assertEqual("NetstatFlow", sel.get_text("link=NetstatFlow"))
+    self.WaitUntil(sel.is_element_present, "link=Netstat")
+    self.assertEqual("Netstat", sel.get_text("link=Netstat"))
     sel.click("css=#_Browser > ins.jstree-icon")
 
     # Check that we can get a file in chinese
@@ -92,6 +90,30 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     sel.click("link=GetFile")
     self.WaitUntil(sel.is_element_present, "css=input[name=v_path]")
     sel.type("css=input[name=v_path]", u"/dev/c/msn升级程序[1].exe")
-    sel.click("submit")
+    sel.click("css=input[value=Launch]")
 
-    self.WaitUntil(sel.is_text_present, "Launched flow GetFile with parameters")
+    self.WaitUntil(sel.is_text_present, "Launched flow GetFile")
+
+    # Test that recursive tests are shown in a tree table.
+    flow.FACTORY.StartFlow(
+        "aff4:/C.0000000000000001", "RecursiveTestFlow", token=self.token)
+
+    sel.click("css=a:contains('Manage launched flows')")
+
+    self.WaitUntilEqual("RecursiveTestFlow", sel.get_text,
+                        "//table/tbody/tr[1]/td[3]")
+
+    visibility = []
+    for i in range(1, 11):
+      visibility.append(sel.is_visible("//table/tbody/tr[%s]" % i))
+
+    self.assertEqual(visibility, [1, 0, 0, 0, 0, 0, 0, 1, 1, 0])
+
+    # Click on the first tree_closed to open it.
+    sel.click("css=.tree_closed")
+
+    visibility = []
+    for i in range(1, 11):
+      visibility.append(sel.is_visible("//table/tbody/tr[%s]" % i))
+
+    self.assertEqual(visibility, [1, 1, 0, 0, 1, 0, 0, 1, 1, 0])

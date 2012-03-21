@@ -17,54 +17,56 @@
 """This is the GRR client."""
 
 
-import logging
 import multiprocessing
-import os
+import platform
 import time
+
+
+from grr.client import conf
+from grr.client import conf as flags
+import logging
 
 # Make sure we load the client plugins
 from grr.client import client_actions
 
 from grr.client import client_config
-from grr.client import client_utils
 from grr.client import comms
 from grr.client import conf
-from grr.client import vfs
+from grr.lib import registry
 
-FLAGS = conf.PARSER.flags
 
-conf.PARSER.add_option("", "--poll_min",
-                       default=1, type="int",
-                       help="Minimum time between polls in seconds")
+flags.DEFINE_float("poll_min", 0.2,
+                   "Minimum time between polls in seconds")
 
-conf.PARSER.add_option("", "--poll_max",
-                       default=600, type="int",
-                       help="Maximum time between polls in seconds")
+flags.DEFINE_float("poll_max", 600,
+                   "Maximum time between polls in seconds")
 
-conf.PARSER.add_option("", "--poll_slew",
-                       default=0.5, type="int",
-                       help="Slew of poll time in seconds")
+flags.DEFINE_float("poll_slew", 1.15,
+                   "Slew of poll time in seconds")
 
-conf.PARSER.add_option("-p", "--process_separate",
-                       default=False, action="store_true",
-                       help="Use process separation for stability "
-                       "[Default:%default]")
+flags.DEFINE_bool("process_separate", False,
+                  "Use process separation for stability "
+                  "[Default:%default]")
 
-conf.PARSER.add_option("", "--camode",
-                       default="PRODUCTION", type="string",
-                       help="The mode to run in, test,production,staging. This "
-                       "affects the CA certificate we trust.")
+flags.DEFINE_string("camode", client_config.CAMODE,
+                    "The mode to run in, test,production,staging. This "
+                    "affects the CA certificate we trust.")
 
-conf.PARSER.add_option("", "--server_serial_number",
-                       default=0, type="int",
-                       help="Minimal serial number we accept for server cert.")
+flags.DEFINE_integer("server_serial_number", 0,
+                     "Minimal serial number we accept for server cert.")
 
-conf.PARSER.add_option("-c", "--certificate",
-                       default="", type="string",
-                       help="A PEM encoded certificate file (combined private "
-                       "and X509 key in PEM format)")
+flags.DEFINE_string("certificate", "",
+                    "A PEM encoded certificate file (combined private "
+                    "and X509 key in PEM format)")
 
-FLAGS = conf.PARSER.flags
+if platform.system() == "Windows":
+  flags.DEFINE_string("regpath", client_config.REGISTRY_KEY,
+                      "A registry path for storing GRR configuration.")
+else:
+  flags.DEFINE_string("config", "/etc/grr.ini",
+                      "Comma separated list of grr configuration files.")
+
+FLAGS = flags.FLAGS
 
 
 class GRRClient(object):
@@ -91,18 +93,14 @@ class GRRClient(object):
 
   def Run(self):
     """The client main loop - never exits."""
-    # Set up proxies:
-    proxies = client_utils.FindProxies()
-    if proxies:
-      os.environ["http_proxy"] = proxies[0]
-
     for status in self.context.Run():
       # If we communicated this time we want to continue aggressively
-      if status.sent_count > 0 or status.received_count > 0:
-        self.sleep_time = FLAGS.poll_min
+      if status.high_priority_sent > 0 or status.received_count > 0:
+        self.sleep_time = 0
 
-      logging.debug("Sending %s(%s), Received %s messages. Sleeping for %s",
-                    status.sent_count, status.sent_len,
+      cn = self.context.communicator.common_name
+      logging.debug("%s: Sending %s(%s), Received %s messages. Sleeping for %s",
+                    cn, status.sent_count, status.sent_len,
                     status.received_count,
                     self.sleep_time)
 
@@ -112,10 +110,13 @@ class GRRClient(object):
         logging.debug("Client stopped by main thread.")
         break
 
-      # Back off slowly
-      self.sleep_time = min(FLAGS.poll_max, self.sleep_time + FLAGS.poll_slew)
+      # Back off slowly at first and fast if no answer.
+      self.sleep_time = min(
+          FLAGS.poll_max,
+          max(FLAGS.poll_min, self.sleep_time) * FLAGS.poll_slew)
 
-if __name__ == "__main__":
+
+def main(unused_args):
   # Ensure multiprocesses can run when packaged on windows.
   multiprocessing.freeze_support()
 
@@ -124,9 +125,13 @@ if __name__ == "__main__":
   log_level = logging.INFO
   if FLAGS.verbose:
     log_level = logging.DEBUG
-  logging.basicConfig(level=log_level,
-                      format="%(levelname)s %(module)s:%(lineno)s] %(message)s")
-
-  vfs.VFSInit()
+    logging.basicConfig(level=log_level,
+                        format="[%(levelname)s "
+                               "%(module)s:%(lineno)s] %(message)s")
+  registry.Init()
   client = GRRClient()
   client.Run()
+
+
+if __name__ == "__main__":
+  conf.StartMain(main)

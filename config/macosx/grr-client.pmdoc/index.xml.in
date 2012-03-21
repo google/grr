@@ -1,0 +1,31 @@
+<pkmkdoc spec="1.12">
+  <properties>
+    <title>GRR</title>
+    <build>@GRRBUILDPATH@/GRR.pkg</build>
+    <organization>com.google.code</organization>
+    <userSees ui="both"/>
+    <min-target os="3"/>
+    <domain system="true"/>
+  </properties>
+  <distribution>
+    <versions min-spec="1.000000"/>
+    <scripts></scripts>
+  </distribution>
+  <contents>
+    <choice title="grrd" id="choicegrrd" starts_selected="true" starts_enabled="true" starts_hidden="false">
+      <pkgref id="com.google.code.grr.grrd.pkg"/>
+    </choice>
+    <choice title="com.google.code.grrd" id="choicecomgooglecodegrrd" starts_selected="true" starts_enabled="true" starts_hidden="false">
+      <pkgref id="com.google.code.grr.com.google.code.grrd.pkg"/>
+    </choice>
+  </contents>
+  <resources bg-scale="none" bg-align="topleft">
+    <locale lang="en"/>
+  </resources>
+  <flags/>
+  <item type="file">01grrd.xml</item>
+  <item type="file">02com.xml</item>
+  <mod>properties.title</mod>
+  <mod>properties.anywhereDomain</mod>
+  <mod>properties.systemDomain</mod>
+</pkmkdoc>

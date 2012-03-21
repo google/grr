@@ -27,9 +27,9 @@ from grr.client import conf as flags
 
 # Populate the action registry
 from grr.client import client_actions
+from grr.client import client_utils_osx
 from grr.client import conf
 from grr.client import vfs
-from grr.client.client_actions.osx import osx
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.proto import jobs_pb2
@@ -43,8 +43,9 @@ class OsxClientTests(test_lib.EmptyActionTest):
   def test64Bit(self):
     """Ensure we can enumerate file systems successfully."""
     path = os.path.join(self.base_path, "osx_fsdata")
-    results = osx.ParseFileSystemsStruct(osx.StatFS64Struct, 7,
-                                         open(path).read())
+    results = client_utils_osx.ParseFileSystemsStruct(
+        client_utils_osx.StatFS64Struct, 7,
+        open(path).read())
     self.assertEquals(len(results), 7)
     self.assertEquals(results[0].f_fstypename, "hfs")
     self.assertEquals(results[0].f_mntonname, "/")

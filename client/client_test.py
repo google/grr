@@ -32,9 +32,6 @@ from grr.proto import jobs_pb2
 FLAGS = flags.FLAGS
 
 
-
-
-
 class MockAction(actions.ActionPlugin):
   in_protobuf = jobs_pb2.PrintStr
   out_protobuf = jobs_pb2.PrintStr

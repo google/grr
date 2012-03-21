@@ -19,9 +19,12 @@
 
 import os
 
+
 from django.conf.urls import defaults
 from grr import gui
 from grr.gui import views
+from grr.lib import stats
+
 
 document_root = os.path.join(os.path.dirname(gui.__file__), "static")
 

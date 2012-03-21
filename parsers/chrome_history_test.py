@@ -28,8 +28,6 @@ from grr.parsers import chrome_history
 FLAGS = flags.FLAGS
 
 
-
-
 class ChromeHistoryTest(test_lib.GRRBaseTest):
   """Test parsing of chrome history files."""
 

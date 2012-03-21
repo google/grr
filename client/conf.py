@@ -25,6 +25,8 @@ import pdb
 import platform
 import sys
 
+
+
 if platform.system() == "Windows":
   import _winreg
 
@@ -114,17 +116,31 @@ class OptionParser(optparse.OptionParser):
     # This terminates the program on errors.
     optparse.OptionParser.error(self, msg)
 
+  def SetArg(self, key, value):
+    optparse.OptionParser.parse_args(self, ["--" + key, value],
+                                     values=self.values)
+
   def ProcessConfigFile(self):
     """Parse options from a config file."""
     # Parse the options once to pick up the config file.
     optparse.OptionParser.parse_args(self, values=self.values)
 
+    try:
+      self.values.config
+    except AttributeError:
+      # Config file was not set so we don't do anything here.
+      return
+
+    self._ProcessConfigFile(self.values.config.split(","))
+
+  def _ProcessConfigFile(self, files):
+    """Do the real work."""
     conf_file = ConfigParser.SafeConfigParser()
-    for path in self.values.config.split(","):
+    for path in files:
       try:
         conf_file.read(path)
       except ConfigParser.Error, e:
-        logging.error("%s: %s", path, e)
+        logging.error("Config parsing error: %s: %s", path, e)
 
     for section in conf_file.sections():
       logging.error("Section [%s] is not supported (Only use [DEFAULT])",
@@ -133,8 +149,7 @@ class OptionParser(optparse.OptionParser):
     # Now parse the args in order:
     for k, v in conf_file.defaults().items():
       try:
-        optparse.OptionParser.parse_args(self, ["--" + k, v],
-                                         values=self.values)
+        self.SetArg(k, v)
       except RuntimeError, e:
         logging.warn("Processing config files: %s", e)
 
@@ -147,8 +162,7 @@ class OptionParser(optparse.OptionParser):
 
         try:
           value = os.environ[opt_string.upper()]
-          optparse.OptionParser.parse_args(self, ["--" + opt_string, value],
-                                           values=self.values)
+          self.SetArg(opt_string, value)
         except (KeyError, RuntimeError):
           pass
 
@@ -162,10 +176,17 @@ class OptionParser(optparse.OptionParser):
     # Parse the options once to pick up the config file.
     optparse.OptionParser.parse_args(self, values=self.values)
 
+    self._ProcessRegistry()
+
+  def _ProcessRegistry(self):
+    """Do the real work."""
+
     try:
       hive, path = self.values.regpath.split("\\", 1)
     except TypeError:
       logging.warn("Registry path invalid: %s", self.values.regpath)
+      return
+    except AttributeError:
       return
 
     try:
@@ -184,11 +205,9 @@ class OptionParser(optparse.OptionParser):
       i += 1
 
       try:
-        optparse.OptionParser.parse_args(self,
-                                         ["--" + name, str(value)],
-                                         values=self.values)
+        self.SetArg(name, str(value))
       except RuntimeError, e:
-        logging.warn("Processing Registry Setting %s: %s", e)
+        logging.warn("Processing Registry Setting %s: %s", name, e)
 
   def parse_args(self, args=None, values=None):
     """Parse the args via ini files or windows registry."""
@@ -196,30 +215,12 @@ class OptionParser(optparse.OptionParser):
 
     if args is not None or values is not None:
       return optparse.OptionParser.parse_args(self, args, values)
-    old_argv = list(sys.argv)
 
     # Add a config file option
     if platform.system() == "Windows":
-      # For Windows only allow configuration via registry.
-      # Command line variables trump registry.
-      self.add_option("", "--regpath",
-                      default="HKEY_LOCAL_MACHINE\\SOFTWARE\\GRR",
-                      help="A registry path for storing GRR configuration.")
-      # Remove any values related to the service configuration.
-      svc_args = ["password", "username", "startup", "perfmonini", "perfmondll",
-                  "interactive"]
-      for arg in svc_args:
-        arg_str = "--%s" % arg
-        if arg_str in sys.argv:
-          sys.argv.remove(arg_str)
-
       self.ProcessRegistry()
     else:
       # For unix like systems read from ini files or environment.
-      # Command line args trump environment vars which in turn trump ini files.
-      self.add_option("", "--config",
-                      default="/etc/grr.ini",
-                      help="Comma separated list of grr configuration files.")
       self.ProcessEnvironment()
       self.ProcessConfigFile()
     self.state = "Final"
@@ -230,7 +231,6 @@ class OptionParser(optparse.OptionParser):
     for k, v in self.values.__dict__.items():
       self.flags.ensure_value(k, v)
 
-    sys.argv = old_argv  # reset argv if we modified it.
     return self.flags, self.args
 
   def UpdateConfig(self, update_args):
@@ -257,6 +257,12 @@ class OptionParser(optparse.OptionParser):
       for arg in update_args:
         conf_parser.set(ConfigParser.DEFAULTSECT, arg,
                         str(getattr(self.flags, arg)))
+
+      # Ensure intermediate directories exist
+      try:
+        os.makedirs(os.path.dirname(self.flags.config))
+      except (IOError, OSError):
+        pass
 
       # We can not use the standard open() call because we need to
       # enforce restrictive file permissions on the created file.
@@ -285,6 +291,7 @@ class OptionParser(optparse.OptionParser):
 # A global flags parser
 PARSER = OptionParser()
 FLAGS = PARSER.flags
+
 
 
 def CreateRegistryKeys(reg_path):
@@ -350,13 +357,11 @@ def DEFINE_integer(longopt, default, help):
   PARSER.add_option("", "--%s" % longopt, default=default, type="int",
                     help=help)
 
-DEFINE_bool("debug", default=False,
-            help="Print debugging statements to the console. "
-            "[Default: %default]")
 
-DEFINE_bool("verbose", default=False,
-            help="Enable debugging. This will enable file logging "
-            "for the service and increase verbosity. [Default: %default]")
+def DEFINE_float(longopt, default, help):
+  PARSER.add_option("", "--%s" % longopt, default=default, type="float",
+                    help=help)
+
 
 
 def StartMain(main):

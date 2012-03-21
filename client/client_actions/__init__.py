@@ -28,6 +28,5 @@ if platform.system() == "Linux":
   from grr.client.client_actions import linux
 elif platform.system() == "Windows":
   from grr.client.client_actions import windows
-  from grr.client.client_actions import wmi
 elif platform.system() == "Darwin":
   from grr.client.client_actions import osx

@@ -20,12 +20,13 @@
 
 
 from grr.lib import aff4
+from grr.lib.aff4_objects import aff4_grr
 
 
-class VFSBrowserExtension(aff4.AFF4MemoryStream):
+class VFSBrowserExtension(aff4_grr.VFSMemoryFile):
   """A extension analysis result."""
 
-  class Schema(aff4.AFF4MemoryStream.Schema):
+  class SchemaCls(aff4_grr.VFSMemoryFile.SchemaCls):
     """The schema for the extension dir."""
     NAME = aff4.Attribute("aff4:extensionname", aff4.RDFString,
                           "The name of the Chrome extension.")

@@ -16,14 +16,15 @@
 """Tests for the worker."""
 
 
+import time
 
 from grr.client import conf
 from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import flow_context
+from grr.lib import scheduler
 from grr.lib import test_lib
 from grr.proto import jobs_pb2
-
-
 
 
 # A global collector for test results
@@ -43,6 +44,8 @@ class SendingTestFlow(flow.GRRFlow):
 
   @flow.StateHandler(jobs_pb2.DataBlob, auth_required=False)
   def Incoming(self, responses):
+    # Add a delay here to catch thread races.
+    time.sleep(0.2)
     # We push the result into a global array so we can examine it
     # better.
     for response in responses:
@@ -68,9 +71,9 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     """Fake the message being inserted to the response queue."""
     # Retrieve the request state for this request_id
     request_state, _ = data_store.DB.Resolve(
-        flow.FlowManager.FLOW_STATE_TEMPLATE % message.session_id,
-        flow.FlowManager.FLOW_REQUEST_TEMPLATE % message.request_id,
-        decoder=jobs_pb2.RequestState)
+        flow_context.FlowManager.FLOW_STATE_TEMPLATE % message.session_id,
+        flow_context.FlowManager.FLOW_REQUEST_TEMPLATE % message.request_id,
+        decoder=jobs_pb2.RequestState, token=self.token)
 
     request_state.response_count += 1
     if message.type == jobs_pb2.GrrMessage.STATUS:
@@ -78,15 +81,15 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     # Store the request and response back
     data_store.DB.Set(
-        flow.FlowManager.FLOW_STATE_TEMPLATE % message.session_id,
-        flow.FlowManager.FLOW_REQUEST_TEMPLATE % message.request_id,
-        request_state)
+        flow_context.FlowManager.FLOW_STATE_TEMPLATE % message.session_id,
+        flow_context.FlowManager.FLOW_REQUEST_TEMPLATE % message.request_id,
+        request_state, token=self.token)
 
     data_store.DB.Set(
-        flow.FlowManager.FLOW_STATE_TEMPLATE % message.session_id,
-        flow.FlowManager.FLOW_RESPONSE_TEMPLATE % (
+        flow_context.FlowManager.FLOW_STATE_TEMPLATE % message.session_id,
+        flow_context.FlowManager.FLOW_RESPONSE_TEMPLATE % (
             message.request_id, message.response_id),
-        message)
+        message, token=self.token)
 
   def SendResponse(self, session_id, data):
     """Send a complete response to a message."""
@@ -104,33 +107,35 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         type=jobs_pb2.GrrMessage.STATUS)
 
     self.FakeResponse(status)
-    tasks = [flow.SCHEDULER.Task(queue="W", value=status)]
-    flow.SCHEDULER.Schedule(tasks)
+    tasks = [scheduler.SCHEDULER.Task(queue="W", value=status)]
+    scheduler.SCHEDULER.Schedule(tasks, token=self.token)
 
     return tasks
 
   def testProcessMessages(self):
     """Test processing of several inbound messages."""
-    worker = flow.GRRWorker("W")
+    worker = flow.GRRWorker("W", token=self.token)
 
     # Create a couple of flows
     flow_obj = self.FlowSetup("SendingTestFlow")
     session_id_1 = flow_obj.session_id
-    flow.FACTORY.ReturnFlow(flow_obj)
+    flow.FACTORY.ReturnFlow(flow_obj, token=self.token)
 
     flow_obj = self.FlowSetup("SendingTestFlow2")
     session_id_2 = flow_obj.session_id
-    flow.FACTORY.ReturnFlow(flow_obj)
+    flow.FACTORY.ReturnFlow(flow_obj, token=self.token)
 
     # Check that client queue has messages
-    tasks_on_client_queue = flow.SCHEDULER.Query(
-        self.client_id, 100, decoder=jobs_pb2.GrrMessage)
+    tasks_on_client_queue = scheduler.SCHEDULER.Query(
+        self.client_id, 100, decoder=jobs_pb2.GrrMessage, token=self.token)
 
     # should have 10 requests from SendingTestFlow and 1 from SendingTestFlow2
     self.assertEqual(len(tasks_on_client_queue), 11)
 
-    # Send each of the flows a message
+    # Send each of the flows a repeated message
     tasks = (self.SendResponse(session_id_1, "Hello1") +
+             self.SendResponse(session_id_2, "Hello2") +
+             self.SendResponse(session_id_1, "Hello1") +
              self.SendResponse(session_id_2, "Hello2"))
 
     # Clear the results global
@@ -139,27 +144,34 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     # Process all messages
     worker.ProcessMessages(tasks)
 
-    # Ensure both requests ran
-    self.assert_("Hello1" in RESULTS)
-    self.assert_("Hello2" in RESULTS)
+    worker.thread_pool.Join()
+
+    # Ensure both requests ran exactly once
+    RESULTS.sort()
+    self.assertEqual("Hello1", RESULTS[0])
+    self.assertEqual("Hello2", RESULTS[1])
+    self.assertEqual(2, len(RESULTS))
 
     # Check that client queue is cleared - should have 2 less messages (since
     # two were completed).
-    tasks_on_client_queue = flow.SCHEDULER.Query(
-        self.client_id, 100, decoder=jobs_pb2.GrrMessage)
+    tasks_on_client_queue = scheduler.SCHEDULER.Query(
+        self.client_id, 100, decoder=jobs_pb2.GrrMessage, token=self.token)
 
     self.assertEqual(len(tasks_on_client_queue), 9)
 
     # Ensure that processed requests are removed from state subject
     self.assertEqual((None, 0), data_store.DB.Resolve(
-        flow.FlowManager.FLOW_STATE_TEMPLATE % session_id_1,
-        flow.FlowManager.FLOW_REQUEST_TEMPLATE % 1))
+        flow_context.FlowManager.FLOW_STATE_TEMPLATE % session_id_1,
+        flow_context.FlowManager.FLOW_REQUEST_TEMPLATE % 1,
+        token=self.token))
 
-    flow_pb = flow.FACTORY.FetchFlow(session_id_1)
+    flow_pb = flow.FACTORY.FetchFlow(session_id_1, token=self.token)
     self.assert_(flow_pb.state != jobs_pb2.FlowPB.TERMINATED)
+    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
 
-    flow_pb = flow.FACTORY.FetchFlow(session_id_2)
+    flow_pb = flow.FACTORY.FetchFlow(session_id_2, token=self.token)
     self.assertEqual(flow_pb.state, jobs_pb2.FlowPB.TERMINATED)
+    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
 
 
 def main(_):

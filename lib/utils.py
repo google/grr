@@ -16,7 +16,11 @@
 """This file contains various utility classes used by GRR."""
 
 
+import posixpath
+import re
 import struct
+import threading
+import time
 
 from google.protobuf import message
 from grr.proto import jobs_pb2
@@ -30,13 +34,52 @@ def Proxy(f):
   return Wrapped
 
 
+# This is a synchronize decorator.
+def Synchronized(f):
+  """Synchronization decorator."""
+
+  def NewFunction(self, *args, **kw):
+    with self.lock:
+      return f(self, *args, **kw)
+  return NewFunction
+
+
+class InterruptableThread(threading.Thread):
+  """A class which exits once the main thread exits."""
+
+  # Class wide constant
+  exit = False
+  threads = []
+
+  def __init__(self, target=None, args=None, kwargs=None, **kw):
+    self.target = target
+    self.args = args or ()
+    self.kwargs = kwargs or {}
+
+    super(InterruptableThread, self).__init__(**kw)
+    # Do not hold up program exit
+    self.daemon = True
+
+  def Iterate(self):
+    """This will be repeatedly called between sleeps."""
+
+  def run(self):
+    while not self.exit:
+      if self.target:
+        self.target(*self.args, **self.kwargs)
+      else:
+        self.Iterate()
+
+      time.sleep(10)
+
+
 class FastStore(object):
   """This is a cache which expires objects in oldest first manner.
 
   This implementation first appeared in PyFlag.
   """
 
-  def __init__(self, max_size=0, kill_cb=None):
+  def __init__(self, max_size=10, kill_cb=None):
     """Constructor.
 
     Args:
@@ -48,21 +91,16 @@ class FastStore(object):
     self._hash = {}
     self._limit = max_size
     self._kill_cb = kill_cb
+    self.lock = threading.RLock()
 
+  @Synchronized
   def Expire(self):
     """Expires old cache entries."""
     while len(self._age) > self._limit:
       x = self._age.pop(0)
+      self.ExpireObject(x)
 
-      try:
-      ## Kill the object if needed
-        if self._kill_cb is not None:
-          self._kill_cb(self._hash[x])
-
-        del self._hash[x]
-      except (KeyError, TypeError):
-        pass
-
+  @Synchronized
   def Put(self, key, obj):
     """Add the object to the cache."""
     try:
@@ -78,13 +116,24 @@ class FastStore(object):
 
     return key
 
+  @Synchronized
   def ExpireObject(self, key):
     """Expire a specific object from cache."""
-    obj = self._hash.pop(key)
+    obj = self._hash.pop(key, None)
 
-    if self._kill_cb:
+    if self._kill_cb and obj is not None:
       self._kill_cb(obj)
 
+    return obj
+
+  @Synchronized
+  def ExpireRegEx(self, regex):
+    """Expire all the objects with the key matching the regex."""
+    for key in self._hash.keys():
+      if re.match(regex, key):
+        self.ExpireObject(key)
+
+  @Synchronized
   def Get(self, key):
     """Fetch the object from cache.
 
@@ -106,25 +155,129 @@ class FastStore(object):
       self._age.pop(idx)
       self._age.append(key)
     except ValueError:
-      raise KeyError()
+      raise KeyError(key)
 
     return self._hash[key]
 
+  @Synchronized
   def __contains__(self, obj):
     return obj in self._hash
 
+  @Synchronized
   def __getitem__(self, key):
     return self.Get(key)
 
+  @Synchronized
   def Flush(self):
     """Flush all items from cache."""
-
-    if self._kill_cb:
-      for x in self._hash.values():
-        self._kill_cb(x)
+    while self._age:
+      x = self._age.pop(0)
+      self.ExpireObject(x)
 
     self._hash = {}
-    self._age = []
+
+  @Synchronized
+  def __getstate__(self):
+    """When pickled the cache is fushed."""
+    if self._kill_cb:
+      raise RuntimeError("Unable to pickle a store with a kill callback.")
+
+    self.Flush()
+    return dict(max_size=self._limit)
+
+  def __setstate__(self, state):
+    self.__init__(max_size=state["max_size"])
+
+
+class TimeBasedCache(FastStore):
+  """A Cache which expires based on time."""
+
+  def __init__(self, max_size=10, max_age=600, kill_cb=None):
+    """Constructor.
+
+    This cache will refresh the age of the cached object as long as they are
+    accessed within the allowed age. The age refers to the time since it was
+    last touched.
+
+    Args:
+      max_size: The maximum number of objects held in cache.
+      max_age: The maximum length of time an object is considered alive.
+      kill_cb: An optional function which will be called on each expiration.
+    """
+    super(TimeBasedCache, self).__init__(max_size, kill_cb)
+    self.max_age = max_age
+
+    def HouseKeeper():
+      """A housekeeper thread which expunges old objects."""
+      now = time.time()
+      for key in self._age:
+        try:
+          timestamp, _ = self._hash[key]
+          if timestamp + self.max_age < now:
+            self.ExpireObject(key)
+        except KeyError:
+          pass
+
+    # This thread is designed to never finish
+    self.house_keeper_thread = InterruptableThread(target=HouseKeeper)
+    self.house_keeper_thread.start()
+
+  @Synchronized
+  def Get(self, key):
+    now = time.time()
+    stored = super(TimeBasedCache, self).Get(key)
+    if stored[0] + self.max_age < now:
+      raise KeyError("Expired")
+
+    # This updates the timestamp in place to keep the object alive
+    stored[0] = now
+
+    return stored[1]
+
+  def Put(self, key, obj):
+    super(TimeBasedCache, self).Put(key, [time.time(), obj])
+
+  @Synchronized
+  def __getstate__(self):
+    """When pickled the cache is flushed."""
+    if self._kill_cb:
+      raise RuntimeError("Unable to pickle a store with a kill callback.")
+
+    self.Flush()
+    return dict(max_size=self._limit, max_age=self.max_age)
+
+  def __setstate__(self, state):
+    self.__init__(max_size=state["max_size"], max_age=state["max_age"])
+
+
+class AgeBasedCache(TimeBasedCache):
+  """A cache which holds objects for a maximum length of time.
+
+  This differs from the TimeBasedCache which keeps the objects alive as long as
+  they are accessed.
+  """
+
+  @Synchronized
+  def Get(self, key):
+    now = time.time()
+    stored = FastStore.Get(self, key)
+    if stored[0] + self.max_age < now:
+      raise KeyError("Expired")
+
+    return stored[1]
+
+
+class PickleableStore(FastStore):
+  """A Cache which can be pickled."""
+
+  @Synchronized
+  def __getstate__(self):
+    self.lock = None
+    return self.__dict__
+
+  def __setstate__(self, state):
+    self.__dict__ = state
+    self.lock = threading.RLock()
 
 
 # TODO(user): Eventually slot in Volatility parsing system in here
@@ -163,6 +316,58 @@ class Struct(object):
     return struct.calcsize(format_str)
 
 
+class DataBlob(object):
+  """Wrapper class for DataBlob protobuf."""
+
+  def __init__(self, initializer=None, **kwarg):
+    if initializer is None:
+      initializer = jobs_pb2.DataBlob(**kwarg)
+    self.blob = initializer
+
+  def SetValue(self, value):
+    """Receives a value and fills it into a DataBlob."""
+    type_mappings = {unicode: "string", str: "data", int: "integer",
+                     long: "integer", bool: "boolean"}
+    if value is None:
+      self.blob.none = "None"
+    elif isinstance(value, message.Message):
+      # If we have a protobuf save the type and serialized data.
+      self.blob.data = value.SerializeToString()
+      self.blob.proto_name = value.__class__.__name__
+    elif isinstance(value, list):
+      self.blob.list.content.extend([DataBlob().SetValue(v) for v in value])
+    else:
+      for type_mapping, member in type_mappings.items():
+        if isinstance(value, type_mapping):
+          setattr(self.blob, member, value)
+          return self.blob
+
+      raise RuntimeError("Unsupported type for ProtoDict: %s" % type(value))
+
+    return self.blob
+
+  def GetValue(self):
+    """Extracts and returns a single value from a DataBlob."""
+    if self.blob.HasField("none"):
+      return None
+    field_names = ["integer", "string", "data", "boolean", "list"]
+    values = [getattr(self.blob, x) for x in field_names
+              if self.blob.HasField(x)]
+    if len(values) != 1:
+      raise RuntimeError("DataBlob must contain exactly one entry.")
+    if self.blob.HasField("proto_name"):
+      try:
+        pb = getattr(jobs_pb2, self.blob.proto_name)()
+        pb.ParseFromString(self.blob.data)
+        return pb
+      except AttributeError:
+        raise RuntimeError("Datablob has unknown protobuf.")
+    elif self.blob.HasField("list"):
+      return [DataBlob(x).GetValue() for x in self.blob.list.content]
+    else:
+      return values[0]
+
+
 class ProtoDict(object):
   """A high level interface for protobuf Dict objects.
 
@@ -171,49 +376,15 @@ class ProtoDict(object):
   or binary blobs (python string objects) as keys and values.
   """
 
-  def SetBlobValue(self, value):
-    """Receives a value and fills it into a DataBlob."""
-    type_mappings = {unicode: "string", str: "data", int: "integer",
-                     long: "integer", bool: "boolean"}
-    blob = jobs_pb2.DataBlob()
-    if value is None:
-      blob.none = "None"
-    elif type(value) in type_mappings:
-      setattr(blob, type_mappings[type(value)], value)
-    elif isinstance(value, message.Message):
-      # If we have a protobuf save the type and serialized data.
-      blob.data = value.SerializeToString()
-      blob.proto_name = value.__class__.__name__
-    else:
-      raise RuntimeError("Unsupported type for ProtoDict: %s" % type(value))
-    return blob
-
-  def GetBlobValue(self, blob):
-    """Extracts and returns a single value from a DataBlob."""
-    if blob.HasField("none"):
-      return None
-    field_names = ["integer", "string", "data", "boolean"]
-    values = [getattr(blob, x) for x in field_names if blob.HasField(x)]
-    if len(values) != 1:
-      raise RuntimeError("DataBlob must contain exactly one entry.")
-    if blob.HasField("proto_name"):
-      try:
-        pb = getattr(jobs_pb2, blob.proto_name)()
-        pb.ParseFromString(blob.data)
-        return pb
-      except AttributeError:
-        raise RuntimeError("Datablob has unknown protobuf.")
-    else:
-      return values[0]
-
   def __init__(self, initializer=None):
     # Support initializing from a mapping
     self._proto = jobs_pb2.Dict()
     if initializer is not None:
       try:
         for key in initializer:
-          self._proto.dat.add(k=self.SetBlobValue(key),
-                              v=self.SetBlobValue(initializer[key]))
+          new_proto = self._proto.dat.add()
+          DataBlob(new_proto.k).SetValue(key)
+          DataBlob(new_proto.v).SetValue(initializer[key])
       except (TypeError, AttributeError):
         # String initializer
         if type(initializer) == str:
@@ -223,7 +394,7 @@ class ProtoDict(object):
           self._proto = initializer
 
   def ToDict(self):
-    return dict([(self.GetBlobValue(x.k), self.GetBlobValue(x.v))
+    return dict([(DataBlob(x.k).GetValue(), DataBlob(x.v).GetValue())
                  for x in self._proto.dat])
 
   def FromDict(self, dictionary):
@@ -235,8 +406,8 @@ class ProtoDict(object):
 
   def __getitem__(self, key):
     for kv in self._proto.dat:
-      if self.GetBlobValue(kv.k) == key:
-        return self.GetBlobValue(kv.v)
+      if DataBlob(kv.k).GetValue() == key:
+        return DataBlob(kv.v).GetValue()
 
     raise KeyError("%s Not found" % key)
 
@@ -251,28 +422,30 @@ class ProtoDict(object):
   def __delitem__(self, key):
     proto = jobs_pb2.Dict()
     for kv in self._proto.dat:
-      if self.GetBlobValue(kv.k) != key:
+      if DataBlob(kv.k).GetValue() != key:
         proto.dat.add(k=kv.k, v=kv.v)
 
     self._proto.CopyFrom(proto)
 
   def __setitem__(self, key, value):
     del self[key]
-    self._proto.dat.add(k=self.SetBlobValue(key), v=self.SetBlobValue(value))
+    new_proto = self._proto.dat.add()
+    DataBlob(new_proto.k).SetValue(key)
+    DataBlob(new_proto.v).SetValue(value)
 
   def __str__(self):
     return self._proto.SerializeToString()
 
   def __iter__(self):
     for kv in self._proto.dat:
-      yield self.GetBlobValue(kv.k)
+      yield DataBlob(kv.k).GetValue()
 
 
 def GroupBy(items, key):
   """A generator that groups all items by a key.
 
   Args:
-    items:  A list of items.
+    items:  A list of items or a single item.
     key: A function which given each item will return the key.
 
   Returns:
@@ -280,7 +453,14 @@ def GroupBy(items, key):
     same key.  session id.
   """
   key_map = {}
-  for item in items:
+
+  # Make sure we are given a sequence of items here.
+  try:
+    item_iter = iter(items)
+  except TypeError:
+    item_iter = [items]
+
+  for item in item_iter:
     key_id = key(item)
     key_map.setdefault(key_id, []).append(item)
 
@@ -300,7 +480,7 @@ def SmartStr(string):
     an encoded string.
   """
   if type(string) == unicode:
-    return string.encode("utf8")
+    return string.encode("utf8", "ignore")
 
   return str(string)
 
@@ -318,7 +498,7 @@ def SmartUnicode(string):
     a unicode object.
   """
   if type(string) != unicode:
-    return str(string).decode("utf8")
+    return str(string).decode("utf8", "ignore")
 
   return string
 
@@ -386,7 +566,7 @@ def JoinPath(*parts):
   removes the path if the stem begins with a /.
 
   Args:
-     parts: parts of the path to join. The first arg is always the root and
+     *parts: parts of the path to join. The first arg is always the root and
         directory traversal is not allowed.
 
   Returns:
@@ -405,7 +585,7 @@ def Join(*parts):
   the parts are already normalized.
 
   Args:
-    parts: The parts to join
+    *parts: The parts to join
 
   Returns:
     The joined path.
@@ -413,30 +593,161 @@ def Join(*parts):
 
   return "/".join(parts)
 
-AFF4_PREFIXES = {jobs_pb2.Path.OS: "/fs/os",
-                 jobs_pb2.Path.TSK: "/fs/raw",
-                 jobs_pb2.Path.REGISTRY: "/registry"}
+
+class Pathspec(object):
+  """A client specification for opening files.
+
+  This class implements methods for manipulating the pathspec as a list of
+  instructions. We can insert, replace and iterate over all instructions.
+  """
+
+  def __init__(self, *args, **kwarg):
+    self.elements = []
+    self.path_options = None
+    for arg in args:
+      if isinstance(arg, Pathspec):
+        # Make explicit copies of the other pathspec elements.
+        for element in arg.elements:
+          element_copy = jobs_pb2.Path()
+          element_copy.CopyFrom(element)
+          self.elements.append(element_copy)
+
+      elif isinstance(arg, jobs_pb2.Path):
+        # Break up the protobuf into the elements array.
+        proto = jobs_pb2.Path()
+        proto.CopyFrom(arg)
+
+        # Unravel the nested proto into a list
+        while proto.HasField("nested_path"):
+          next_element = proto.nested_path
+          proto.ClearField("nested_path")
+          self.elements.append(proto)
+
+          proto = next_element
+
+        self.elements.append(proto)
+
+        # Can handle serialized form.
+      elif isinstance(arg, str):
+        proto = jobs_pb2.Path()
+        proto.ParseFromString(arg)
+        self.elements.extend(Pathspec(proto).elements)
+
+    # We can also initialize from kwargs.
+    if kwarg:
+      self.elements.append(jobs_pb2.Path(**kwarg))
+
+  def ToProto(self, output=None):
+    if output is None:
+      output = jobs_pb2.Path()
+
+    i = output
+    for element in self.elements:
+      i.MergeFrom(element)
+      i = i.nested_path
+
+    return output
+
+  def __len__(self):
+    return len(self.elements)
+
+  def __getitem__(self, item):
+    return self.elements[item]
+
+  def __iter__(self):
+    return iter(self.elements)
+
+  def Replace(self, start_index, end_index, *args, **kwarg):
+    """Replace some elements with the new elements.
+
+    Args:
+      start_index: The first element to remove.
+      end_index: The last element to remove (same as start_index to just remove
+           one).
+      *arg: New elements.
+      **kwarg: Optional constructor for a new pathspec.
+
+    Returns:
+      The elements which were removed.
+    """
+    new_elements = Pathspec(*args, **kwarg)
+    result = self.elements[start_index:end_index]
+    self.elements = (self.elements[:start_index] + new_elements.elements +
+                     self.elements[end_index+1:])
+
+    return result
+
+  def Copy(self):
+    """Return a copy of this pathspec."""
+    return self.__class__(*self.elements)
+
+  def Insert(self, index, *args, **kwarg):
+    new_elements = Pathspec(*args, **kwarg)
+    self.elements = (self.elements[:index] + new_elements.elements +
+                     self.elements[index:])
+
+  def Append(self, *args, **kwarg):
+    new_elements = Pathspec(*args, **kwarg)
+    self.elements.extend(new_elements.elements)
+    return self
+
+  def CollapsePath(self):
+    return JoinPath(*[x.path for x in self.elements])
+
+  def Pop(self, index=0):
+    return self.elements.pop(index)
+
+  def __str__(self):
+    return "<PathSpec>\n%s</PathSpec>" % str(self.ToProto())
+
+  @property
+  def first(self):
+    return self.elements[0]
+
+  @property
+  def last(self):
+    return self.elements[-1]
+
+  def Dirname(self):
+    """Get a new copied object with only the directory path."""
+    result = self.Copy()
+
+    while result:
+      last = result.Pop(-1)
+      if NormalizePath(last.path) != "/":
+        dirname = NormalizePath(posixpath.dirname(last.path))
+        result.Append(path=dirname, pathtype=last.pathtype)
+        break
+
+    return result
+
+  def Basename(self):
+    for component in reversed(self):
+      basename = posixpath.basename(component.path)
+      if basename: return basename
+
+    return ""
+
+  def SerializeToString(self):
+    return self.ToProto().SerializeToString()
 
 
-def Aff4ToPathspec(aff4path):
-  """Convert a AFF4 path string to a pathspec."""
-  for pt, prefix in AFF4_PREFIXES.items():
-    if aff4path.lower().startswith(prefix):
-      return jobs_pb2.Path(pathtype=pt,
-                           path=aff4path[len(prefix):])
-  raise RuntimeError("Unknown prefix for Aff4 to pathspec conversion.")
+class ProtoEnum(int):
+  """A class representing a protobuf enum.
 
+  Use an instance from this class to mark a default value in a flow constructor
+  so that the GUI can render all the enum choices.
 
-def PathspecToAff4(pathspec):
-  """Convert a pathspec to a AFF4 path string."""
+  Protobufs test for this being an instance of int or long, hence we must extend
+  int or long.
+  """
 
-  # Delete prefix for windows devices
-  dev = pathspec.device.replace("\\\\.\\", "")
-  dev = dev.replace("\\", "/")
-  dev = dev.strip("/")
+  def __new__(cls, protobuf_class, enum_name, default):
+    return int.__new__(cls, getattr(protobuf_class, default))
 
-  path = pathspec.path.replace("\\", "/").lstrip("/")
+  def __init__(self, protobuf_class, enum_name, default):
+    self.protobuf_class = protobuf_class
+    self.enum_name = enum_name
+    self.default = default
 
-  prefix = AFF4_PREFIXES[pathspec.pathtype]
-
-  return Join(prefix, dev, path).replace("//", "/")
+    int.__init__(self)

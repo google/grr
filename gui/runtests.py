@@ -13,12 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This is a selenium test harness."""
+"""This is a selenium test harness used interactively with Selenium IDE."""
 import socket
+import sys
 import threading
-import unittest
 import urllib
 from wsgiref import simple_server
+
+
 
 from django.core.handlers import wsgi
 from django.core.management import setup_environ
@@ -26,18 +28,19 @@ from IPython import Shell
 from grr.client import conf
 from grr.client import conf as flags
 import logging
+
 from grr.gui import settings
 from grr.lib import aff4
+from grr.lib import data_store
+
 from grr.lib import fake_data_store
+from grr.lib import flow
+from grr.lib import registry
 from grr.lib import test_lib
 from grr.lib.flows import general
 
-
-flags.DEFINE_bool("interactive", False,
-                  "run interactively (for use with Selenium IDE)")
-
 flags.DEFINE_integer("port", 8000,
-                     "port to listen on")
+                     "port to listen on for selenium tests.")
 
 FLAGS = flags.FLAGS
 
@@ -47,10 +50,12 @@ class DjangoThread(threading.Thread):
 
   keep_running = True
 
+  def __init__(self, **kwargs):
+    super(DjangoThread, self).__init__(**kwargs)
+    self.base_url = "http://%s:%d" % (socket.getfqdn(), FLAGS.port)
+
   def run(self):
     """Run the django server in a thread."""
-
-    self.base_url = "http://%s:%d" % (socket.getfqdn(), FLAGS.port)
     logging.info("Base URL is %s", self.base_url)
 
     # Make a simple reference implementation WSGI server
@@ -66,43 +71,23 @@ class DjangoThread(threading.Thread):
     self.join()
 
 
-def MakeFixtures():
-  # Make 10 clients
-  for i in range(0, 10):
-    test_lib.ClientFixture("C.%016X" % i)
+class RunTestsInit(aff4.AFF4InitHook):
+  altitude = aff4.AFF4InitHook.altitude + 10
+
+  def __init__(self):
+    # Install the mock security manager so we can trap errors in interactive
+    # mode.
+    data_store.DB.security_manager = test_lib.MockSecurityManager()
+    token = data_store.ACLToken("Test", "Make fixtures.")
+    # Make 10 clients
+    for i in range(0, 10):
+      test_lib.ClientFixture("C.%016X" % i, token=token)
 
 
-class SeleniumTestLoader(unittest.TestLoader):
-  """A test suite loader which searches for tests in all the plugins."""
-
-  def loadTestsFromModule(self, _):
-    """Just return all the tests as if they were in the same module."""
-    tests = [self.loadTestsFromTestCase(x)
-             for x in test_lib.GRRSeleniumTest.classes.values()]
-    return self.suiteClass(tests)
-
-  def loadTestsFromName(self, name, module=None):
-    """Load the tests named."""
-    parts = name.split(".")
-    tests = self.loadTestsFromTestCase(
-        test_lib.GRRSeleniumTest.classes[parts[0]])
-
-    # Specifies the whole test suite.
-    if len(parts) == 1:
-      return self.suiteClass(tests)
-    elif len(parts) == 2:
-      return unittest.TestSuite([parts[0].__class__(parts[1])])
-
-
-def main(argv):
+def main(_):
   """Run the main test harness."""
   # Tests run the fake data store
   FLAGS.storage = "FakeDataStore"
-
-  aff4.AFF4Init()
-
-  # Make the fixtures
-  MakeFixtures()
 
 
   setup_environ(settings)
@@ -114,16 +99,14 @@ def main(argv):
   trd = DjangoThread()
   trd.start()
   try:
-    # Run the test suite
-    if FLAGS.interactive:
-      user_ns = dict()
-      user_ns.update(globals())
-      user_ns.update(locals())
-      # Wait in the shell so selenium IDE can be used.
-      Shell.IPShell(argv=[], user_ns=user_ns).mainloop()
-    else:
-      # Run the full test suite
-      test_lib.GrrTestProgram(argv=argv, testLoader=SeleniumTestLoader())
+    user_ns = dict()
+    user_ns.update(globals())
+    user_ns.update(locals())
+
+    registry.Init()
+
+    # Wait in the shell so selenium IDE can be used.
+    Shell.IPShell(argv=[], user_ns=user_ns).mainloop()
   finally:
     # Kill the server thread
     trd.Stop()

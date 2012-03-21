@@ -21,15 +21,16 @@ import os
 import platform
 import stat
 
+
 from grr.client import conf
+import logging
 from grr.client import conf
 from grr.client import vfs
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.proto import jobs_pb2
 
 FLAGS = conf.PARSER.flags
-
-
 
 
 def setUp():
@@ -67,80 +68,270 @@ class VFSTest(test_lib.GRRBaseTest):
     self.assertEqual(fd.Read(10), "")
     self.assertEqual(fd.Tell(), len(original_string))
 
+    # Raise if we try to list the contents of a file object.
+    self.assertRaises(IOError, lambda: list(fd.ListFiles()))
+
   def testRegularFile(self):
     """Test our ability to read regular files."""
-    path = os.path.join(self.base_path, "numbers.txt")
+    path = os.path.join(self.base_path, "morenumbers.txt")
 
-    fd = vfs.VFSHandlerFactory(jobs_pb2.Path(path=path,
-                                             pathtype=jobs_pb2.Path.OS))
+    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS))
 
     self.TestFileHandling(fd)
 
   def testFileCasing(self):
     """Test our ability to read the correct casing from filesystem."""
     path = os.path.join(self.base_path, "numbers.txt")
+    try:
+      os.lstat(os.path.join(self.base_path, "nUmBeRs.txt"))
+      os.lstat(os.path.join(self.base_path, "nuMbErs.txt"))
+      # If we reached this point we are on a case insensitive file system
+      # and the tests below do not make any sense.
+      logging.warning("Case insensitive file system detected. Skipping test.")
+      return
+    except (IOError, OSError):
+      pass
 
-    fd = vfs.VFSHandlerFactory(jobs_pb2.Path(path=path,
-                                             pathtype=jobs_pb2.Path.OS))
-    self.assertEqual(os.path.basename(fd.path), "numbers.txt")
+    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS))
+    self.assertEqual(fd.pathspec.Basename(), "numbers.txt")
 
     path = os.path.join(self.base_path, "numbers.TXT")
 
-    fd = vfs.VFSHandlerFactory(jobs_pb2.Path(path=path,
-                                             pathtype=jobs_pb2.Path.OS))
-    self.assertEqual(os.path.basename(fd.path), "numbers.TXT")
+    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS))
+    self.assertEqual(fd.pathspec.Basename(), "numbers.TXT")
 
     path = os.path.join(self.base_path, "Numbers.txt")
-    fd = vfs.VFSHandlerFactory(jobs_pb2.Path(path=path,
-                                             pathtype=jobs_pb2.Path.OS))
-    read_path = os.path.basename(fd.path)
+    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS))
+    read_path = fd.pathspec.Basename()
+
     # The exact file now is non deterministic but should be either of the two:
     if read_path != "numbers.txt" and read_path != "numbers.TXT":
       raise RuntimeError("read path is %s" % read_path)
 
+    # Ensure that the produced pathspec specified no case folding:
+    s = fd.Stat()
+    self.assertEqual(s.pathspec.path_options, jobs_pb2.Path.CASE_LITERAL)
+
+    # Case folding will only occur when requested - this should raise because we
+    # have the CASE_LITERAL option:
+    self.assertRaises(IOError, vfs.VFSOpen,
+                      jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS,
+                                    path_options=jobs_pb2.Path.CASE_LITERAL))
+
   def testTSKFile(self):
     """Test our ability to read from image files."""
-    path = os.path.join(self.base_path, "test_img.dd",
-                        "Test Directory", "numbers.txt")
+    path = os.path.join(self.base_path, "test_img.dd")
+    path2 = "Test Directory/numbers.txt"
 
-    fd = vfs.VFSHandlerFactory(jobs_pb2.Path(path=path,
-                                             pathtype=jobs_pb2.Path.TSK))
+    p2 = jobs_pb2.Path(path=path2,
+                       pathtype=jobs_pb2.Path.TSK)
+    p1 = jobs_pb2.Path(path=path,
+                       pathtype=jobs_pb2.Path.OS,
+                       nested_path=p2)
+
+    fd = vfs.VFSOpen(p1)
+    self.TestFileHandling(fd)
+
+  def testTSKFileInode(self):
+    """Test opening a file through an indirect pathspec."""
+    pathspec = utils.Pathspec(path=os.path.join(self.base_path, "test_img.dd"),
+                              pathtype=jobs_pb2.Path.OS)
+    pathspec.Append(pathtype=jobs_pb2.Path.TSK, inode=12,
+                    path="/Test Directory")
+    pathspec.Append(pathtype=jobs_pb2.Path.TSK, path="numbers.txt")
+
+    fd = vfs.VFSOpen(pathspec)
+
+    # Check that the new pathspec is correctly reduced to two components.
+    self.assertEqual(fd.pathspec.first.path,
+                     os.path.join(self.base_path, "test_img.dd"))
+    self.assertEqual(fd.pathspec[1].path, "/Test Directory/numbers.txt")
+
+    # And the correct inode is placed in the final branch.
+    self.assertEqual(fd.Stat().pathspec.nested_path.inode, 15)
     self.TestFileHandling(fd)
 
   def testTSKFileCasing(self):
     """Test our ability to read the correct casing from image."""
-    path = os.path.join(self.base_path, "test_img.dd",
-                        "test directory", "NuMbErS.TxT")
+    path = os.path.join(self.base_path, "test_img.dd")
+    path2 = os.path.join("test directory", "NuMbErS.TxT")
 
-    fd = vfs.VFSHandlerFactory(jobs_pb2.Path(path=path,
-                                             pathtype=jobs_pb2.Path.TSK))
-    self.assertEqual(fd.path, u"/Test Directory/numbers.txt")
+    pb2 = jobs_pb2.Path(path=path2,
+                        pathtype=jobs_pb2.Path.TSK)
+
+    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS,
+                                   nested_path=pb2))
+
+    # This fixes Windows paths.
+    path = path.replace("\\", "/")
+    # The pathspec should have 2 components.
+
+    self.assertEqual(fd.pathspec.first.path, utils.NormalizePath(path))
+    self.assertEqual(fd.pathspec.first.pathtype, jobs_pb2.Path.OS)
+
+    nested = fd.pathspec.last
+    self.assertEqual(nested.path, u"/Test Directory/numbers.txt")
+    self.assertEqual(nested.pathtype, jobs_pb2.Path.TSK)
+
+  def testTSKInodeHandling(self):
+    """Test that we can open files by inode."""
+    path = os.path.join(self.base_path, "ntfs_img.dd")
+    pb2 = jobs_pb2.Path(inode=65, ntfs_type=128, ntfs_id=0,
+                        path="/this/will/be/ignored",
+                        pathtype=jobs_pb2.Path.TSK)
+
+    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS,
+                                   nested_path=pb2, offset=63*512))
+
+    self.assertEqual(fd.Read(100), "Hello world\n")
+
+    pb2 = jobs_pb2.Path(inode=65, ntfs_type=128, ntfs_id=4,
+                        pathtype=jobs_pb2.Path.TSK)
+
+    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS,
+                                   nested_path=pb2, offset=63*512))
+
+    self.assertEqual(fd.read(100), "I am a real ADS\n")
+
+  def testTSKNTFSHandling(self):
+    """Test that TSK can correctly encode NTFS features."""
+    path = os.path.join(self.base_path, "ntfs_img.dd")
+    path2 = "test directory"
+
+    pb2 = jobs_pb2.Path(path=path2,
+                        pathtype=jobs_pb2.Path.TSK)
+
+    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS,
+                                   nested_path=pb2, offset=63*512))
+
+    # This fixes Windows paths.
+    path = path.replace("\\", "/")
+    listing = []
+    pathspecs = []
+
+    for f in fd.ListFiles():
+      # Make sure the CASE_LITERAL option is set for all drivers so we can just
+      # resend this proto back.
+      self.assertEqual(f.pathspec.path_options, jobs_pb2.Path.CASE_LITERAL)
+      pathspec = f.pathspec.nested_path
+      self.assertEqual(pathspec.path_options, jobs_pb2.Path.CASE_LITERAL)
+      pathspecs.append(f.pathspec)
+      listing.append((pathspec.inode, pathspec.ntfs_type, pathspec.ntfs_id))
+
+    ref = [(65, jobs_pb2.Path.TSK_FS_ATTR_TYPE_DEFAULT, 0),
+           (65, jobs_pb2.Path.TSK_FS_ATTR_TYPE_NTFS_DATA, 4),
+           (66, jobs_pb2.Path.TSK_FS_ATTR_TYPE_DEFAULT, 0),
+           (67, jobs_pb2.Path.TSK_FS_ATTR_TYPE_DEFAULT, 0)]
+
+    # Make sure that the ADS is recovered.
+    self.assertEqual(listing, ref)
+
+    # Try to read the main file
+    self.assertEqual(pathspecs[0].nested_path.path, "/Test Directory/notes.txt")
+    fd = vfs.VFSOpen(pathspecs[0])
+    self.assertEqual(fd.read(1000), "Hello world\n")
+
+    s = fd.Stat()
+    self.assertEqual(s.pathspec.nested_path.inode, 65)
+    self.assertEqual(s.pathspec.nested_path.ntfs_type, 1)
+    self.assertEqual(s.pathspec.nested_path.ntfs_id, 0)
+
+    # Check that the name of the ads is consistent.
+    self.assertEqual(pathspecs[1].nested_path.path,
+                     "/Test Directory/notes.txt:ads")
+    fd = vfs.VFSOpen(pathspecs[1])
+    self.assertEqual(fd.read(1000), "I am a real ADS\n")
+
+    # Test that the stat contains the inode:
+    s = fd.Stat()
+    self.assertEqual(s.pathspec.nested_path.inode, 65)
+    self.assertEqual(s.pathspec.nested_path.ntfs_type, 128)
+    self.assertEqual(s.pathspec.nested_path.ntfs_id, 4)
 
   def testUnicodeFile(self):
     """Test ability to read unicode files from images."""
-    path = os.path.join(self.base_path, "test_img.dd",
-                        u"איןד ןד ש אקדא", u"איןד.txt")
+    path = os.path.join(self.base_path, "test_img.dd")
+    path2 = os.path.join(u"איןד ןד ש אקדא", u"איןד.txt")
 
-    fd = vfs.VFSHandlerFactory(jobs_pb2.Path(path=path,
-                                             pathtype=jobs_pb2.Path.TSK))
+    pb2 = jobs_pb2.Path(path=path2,
+                        pathtype=jobs_pb2.Path.TSK)
+
+    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS,
+                                   nested_path=pb2))
     self.TestFileHandling(fd)
 
   def testListDirectory(self):
     """Test our ability to list a directory."""
-    directory = vfs.VFSHandlerFactory(jobs_pb2.Path(path=self.base_path,
-                                                    pathtype=jobs_pb2.Path.OS))
+    directory = vfs.VFSOpen(jobs_pb2.Path(path=self.base_path,
+                                          pathtype=jobs_pb2.Path.OS))
 
-    self.CheckDirectoryListing(directory, "numbers.txt")
+    self.CheckDirectoryListing(directory, "morenumbers.txt")
 
   def testTSKListDirectory(self):
     """Test directory listing in sleuthkit."""
-    path = os.path.join(self.base_path, "test_img.dd",
-                        u"入乡随俗 海外春节别样过法")
-
-    directory = vfs.VFSHandlerFactory(jobs_pb2.Path(path=path,
-                                                    pathtype=jobs_pb2.Path.TSK))
-
+    path = os.path.join(self.base_path, u"test_img.dd")
+    pb2 = jobs_pb2.Path(path=u"入乡随俗 海外春节别样过法",
+                        pathtype=jobs_pb2.Path.TSK)
+    pb = jobs_pb2.Path(path=path,
+                       pathtype=jobs_pb2.Path.OS,
+                       nested_path=pb2)
+    directory = vfs.VFSOpen(pb)
     self.CheckDirectoryListing(directory, u"入乡随俗.txt")
+
+  def testRecursiveImages(self):
+    """Test directory listing in sleuthkit."""
+    p3 = jobs_pb2.Path(path="/home/a.txt",
+                       pathtype=jobs_pb2.Path.TSK)
+    p2 = jobs_pb2.Path(path="/home/image2.img",
+                       pathtype=jobs_pb2.Path.TSK,
+                       nested_path=p3)
+    p1 = jobs_pb2.Path(path=os.path.join(self.base_path, "test_img.dd"),
+                       pathtype=jobs_pb2.Path.OS,
+                       nested_path=p2)
+    f = vfs.VFSOpen(p1)
+
+    self.assertEqual(f.read(3), "yay")
+
+  def testGuessPathSpec(self):
+    """Test that we can guess a pathspec from a path."""
+    path = os.path.join(self.base_path, "test_img.dd", "home/image2.img",
+                        "home/a.txt")
+
+    pathspec = jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS)
+
+    fd = vfs.VFSOpen(pathspec)
+    self.assertEqual(fd.read(3), "yay")
+
+  def testFileNotFound(self):
+    """Test that we raise an IOError for file not found."""
+    path = os.path.join(self.base_path, "test_img.dd", "home/image2.img",
+                        "home/nosuchfile.txt")
+
+    pathspec = jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS)
+    self.assertRaises(IOError, vfs.VFSOpen, pathspec)
+
+  def testGuessPathSpecPartial(self):
+    """Test that we can guess a pathspec from a partial pathspec."""
+    path = os.path.join(self.base_path, "test_img.dd")
+    pathspec = jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS)
+    pathspec.nested_path.path = "/home/image2.img/home/a.txt"
+    pathspec.nested_path.pathtype = jobs_pb2.Path.TSK
+
+    fd = vfs.VFSOpen(pathspec)
+    self.assertEqual(fd.read(3), "yay")
+
+    # Open as a directory
+    pathspec.nested_path.path = "/home/image2.img/home/"
+    fd = vfs.VFSOpen(pathspec)
+
+    names = []
+    for s in fd.ListFiles():
+      # Make sure that the stat pathspec is correct - it should be 3 levels
+      # deep.
+      self.assertEqual(s.pathspec.nested_path.path, "/home/image2.img")
+      names.append(s.pathspec.nested_path.nested_path.path)
+
+    self.assertTrue("/home/a.txt" in names)
 
   def testRegistryListing(self):
     """Test our ability to list registry keys."""
@@ -148,24 +339,32 @@ class VFSTest(test_lib.GRRBaseTest):
       return
 
     # Make a value we can test for
-    from winsys import registry
+    import _winreg
 
-    registry.create("HKCU\\Software\\GRR_Test").set_value("foo", "bar")
+    key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER,
+                          "Software",
+                          0,
+                          _winreg.KEY_CREATE_SUB_KEY)
+    subkey = _winreg.CreateKey(key, "GRR_Test")
+    _winreg.SetValueEx(subkey, "foo", 0, _winreg.REG_SZ, "bar")
 
     vfs_path = "HKEY_CURRENT_USER/Software/GRR_Test"
 
     pathspec = jobs_pb2.Path(path=vfs_path,
                              pathtype=jobs_pb2.Path.REGISTRY)
-    for f in vfs.VFSHandlerFactory(pathspec).ListFiles():
-      self.assertEqual(f.path, "foo")
+    for f in vfs.VFSOpen(pathspec).ListFiles():
+      self.assertEqual(f.pathspec.path, "/" + vfs_path + "/foo")
       self.assertEqual(f.resident, "bar")
+
+    _winreg.DeleteKey(key, "GRR_Test")
 
   def CheckDirectoryListing(self, directory, test_file):
     """Check that the directory listing is sensible."""
+
     found = False
     for f in directory.ListFiles():
       # TSK makes virtual files with $ if front of them
-      path = os.path.basename(f.pathspec.path)
+      path = utils.Pathspec(f.pathspec).Basename()
       if path.startswith("$"): continue
 
       # Check the time is reasonable
@@ -180,6 +379,9 @@ class VFSTest(test_lib.GRRBaseTest):
         self.assertEqual(f.st_size, 3893)
 
     self.assertEqual(found, True)
+
+    # Raise if we try to read the contents of a directory object.
+    self.assertRaises(IOError, directory.Read, 5)
 
 
 def main(argv):

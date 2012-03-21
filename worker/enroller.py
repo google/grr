@@ -16,7 +16,8 @@
 """A special worker responsible for initial enrollment of clients."""
 
 
-import threading
+import re
+import sys
 
 
 from M2Crypto import RSA
@@ -24,15 +25,13 @@ from M2Crypto import X509
 
 from grr.client import conf
 from grr.client import conf as flags
-import logging
 
-from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import mongo_data_store
 from grr.lib import flow
 from grr.lib import key_utils
-from grr.lib import registry
 
+from grr.lib import registry
 
 # Make sure we load the enroller module
 from grr.lib.flows import general
@@ -41,12 +40,8 @@ from grr.lib.flows.caenroll import ca_enroller
 flags.DEFINE_string("ca", "ca.key",
                     "The location of the CA key file.")
 
-flags.DEFINE_string("plugin_path", "grr/server_actions",
-                    "The top level path for grr modules")
-
-flags.DEFINE_string("queue_name", "CA",
+flags.DEFINE_string("ca_queue_name", "CA",
                     "The name of the queue for this worker.")
-
 
 FLAGS = flags.FLAGS
 
@@ -59,12 +54,12 @@ def main(unused_argv):
   registry.CA_CERT = X509.load_cert_string(ca_pem)
 
   # Initialise everything
-  aff4.AFF4Init()
-
+  registry.Init()
 
   # Start a worker
-  worker_thrd = flow.GRRWorker(queue_name=FLAGS.queue_name)
-  worker_thrd.Run()
+  token = data_store.ACLToken("GRREnroller", "Implied.")
+  worker = flow.GRRWorker(queue_name=FLAGS.ca_queue_name, token=token)
+  worker.Run()
 
 if __name__ == "__main__":
   conf.StartMain(main)

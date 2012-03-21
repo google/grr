@@ -46,4 +46,5 @@ try:
   MonkeyPatch(message.Message, "__getstate__", Message__getstate__)
   MonkeyPatch(message.Message, "__setstate__", Message__setstate__)
 
-except ImportError: pass
+except ImportError:
+  pass

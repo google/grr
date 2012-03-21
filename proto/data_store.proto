@@ -1,0 +1,117 @@
+// Copyright 2011 Google Inc. All Rights Reserved
+
+// These are protobufs used in various analysis jobs.
+
+syntax = "proto2";
+import "grr/proto/jobs.proto";
+
+
+
+// This is the user's access token.
+message AccessToken {
+  optional string username = 1;
+
+  // A reason for access (e.g. case name, investigation id).
+  optional string reason = 2;
+
+  // What kind of access is required? r - read, w - write, x - execute (for
+  // flows)
+  optional string requested_access = 3;
+
+}
+
+
+message Value {
+  optional string predicate = 1;
+  optional DataBlob value = 2;
+  optional int64 timestamp = 3;
+  // Options specific to the Value.
+  enum Option {
+    DEFAULT = 0;
+
+    // The value should replace other values in the data store (Used for Set
+    // operations).
+    REPLACE = 1;
+  };
+  optional Option option = 4;
+}
+
+message DataStoreRequest {
+  repeated string subject = 1;
+  repeated Value values = 2;
+  optional int64 timestamp = 3;
+
+  // Alternatively the timestamp can be a range.
+  optional int64 timestamp_start = 4;
+  optional int64 timestamp_end = 5;
+
+  optional AccessToken token = 6;
+
+  optional bool sync = 7;
+};
+
+
+message QueryASTNode {
+  optional string name = 1;
+  repeated bytes args = 2;
+  repeated QueryASTNode children = 3;
+};
+
+message DataStoreQuery {
+  repeated string attributes = 1;
+  optional QueryASTNode filter = 2;
+  optional string subject_prefix = 3;
+  repeated string subjects = 4;
+  optional uint32 limit = 5;
+  optional uint32 limit_start = 6;
+  optional AccessToken token = 7;
+}
+
+message ResultSet {
+  optional string subject = 1;
+  repeated Value values = 2;
+}
+
+// explicitely return them here.
+enum Status {
+  OK = 0;
+  AUTHORIZATION_DENIED = 1;
+  DATA_STORE_ERROR = 2;
+  FLOW_ERROR = 3;
+};
+
+message DataStoreResponse {
+  repeated ResultSet results = 1;
+
+  // Total number of results on the server (Can be more than len(results)).
+  optional uint32 count = 2;
+
+  optional Status status = 3 [default = OK];
+
+  // Additional human readable message for the failure.
+  optional string status_desc = 4;
+};
+
+message StartFlowRequest {
+  optional string client_id = 1;
+  optional string flow_name = 2;
+  optional Dict args = 3;
+  optional AccessToken token = 4;
+};
+
+message TerminateFlowRequest {
+  optional string session_id = 1;
+  optional string reason = 2;  //Why is this flow terminated?
+  optional bool force = 3;
+  optional AccessToken token = 4;
+};
+
+message StartFlowResponse {
+  optional string session_id = 1;
+
+  optional Status status = 2 [default = OK];
+
+  // Additional human readable message for the failure.
+  optional string status_desc = 3;
+};
+

@@ -17,11 +17,10 @@
 
 """This plugin renders AFF4 objects contained within a container."""
 
-import json
 import locale
+import urllib
 
-from django import http
-from django import template
+import logging
 
 from grr.gui import renderers
 from grr.gui.plugins import fileview
@@ -38,139 +37,109 @@ class ViewRenderer(renderers.RDFValueRenderer):
   ClassName = "View"
   name = "Array"
 
-  layout_template = template.Template("""
-<a href="/#container={{container|urlencode}}&main=ContainerViewer"
-  target=new>View details.</a>
+  layout_template = renderers.Template("""
+<a href='#{{this.hash|escape}}' onclick='grr.loadFromHash(
+    "{{this.hash|escape}}");' class="grr-button grr-button-red">
+  View details.
+</a>
 """)
 
   def Layout(self, request, response):
-    container = aff4.RDFURN(request.REQ.get("client_id", "")).Add(
-      request.REQ.get("file_view_path", ""))
+    client_id = request.REQ.get("client_id")
+    self.container = aff4.RDFURN(request.REQ.get("aff4_path", client_id))
 
-    return self.RenderFromTemplate(self.layout_template, response,
-                                   container=utils.SmartUnicode(container))
+    h = dict(container=self.container, main="ContainerViewer", c=client_id,
+             reason=request.token.reason)
+
+    self.hash = urllib.urlencode(h)
+
+    return super(ViewRenderer, self).Layout(request, response)
 
 
 class ContainerAFF4Stats(fileview.AFF4Stats):
   """Display the stats of a container object."""
 
-  def Layout(self, request, response):
-    """Introspect the Schema for each object."""
-    response = renderers.Renderer.Layout(self, request, response)
-    urn = aff4.ROOT_URN.Add(request.REQ.get("file_view_path", "/"))
-
-    try:
-      fd = aff4.FACTORY.Open(urn)
-      classes = self.RenderAFF4Attributes(fd, request)
-
-      return self.RenderFromTemplate(
-          self.layout_template,
-          response, classes=classes, id=self.id, unique=self.unique,
-          path=fd.urn)
-    except IOError: pass
-
 
 class ContainerViewTabs(fileview.FileViewTabs):
   names = ["Stats", "Download"]
-  renderers = ["ContainerAFF4Stats", "DownloadView"]
+  delegated_renderers = ["ContainerAFF4Stats", "DownloadView"]
 
 
-class ContainerFileTable(fileview.FileTable):
-  """A table that displays the content of an AFF4Collection."""
+class ContainerFileTable(renderers.TableRenderer):
+  """A table that displays the content of an AFF4Collection.
 
-  # We receive change path events from this queue
-  event_queue = "tree_select"
-  # Set the first column to be zero width
-  table_options = {
-      "aoColumnDefs": [
-          {"sWidth": "1px", "aTargets": [0]}
-          ],
-      "bAutoWidth": False,
-      "table_hash": "tb",
-      }
+  Listening Javascript Events:
+    - query_changed(query) - When the query changes, we re-render the entire
+      table.
 
-  # We publish selected paths to this queue
-  selection_publish_queue = "file_select"
-  format = template.Template("""
-<"TableHeader"<"H"lrp>><"TableBody_{{unique}}"t><"TableFooter"<"F"p>>""")
-
-  # Subscribe for the event queue and when events arrive refresh the
-  # table.
-  vfs_table_template = template.Template("""<script>
-  // Update the table when the tree changes
-  grr.subscribe("{{ event_queue|escapejs }}", function(path, selected_id,
-    update_hash) {
-          grr.state.path = path;
-          grr.state.query = $("input#query").val() || "";
-
-          //Redraw the table
-          grr.redrawTable("table_{{unique}}");
-
-          // If the user really clicked the tree, we reset the hash
-          if (update_hash != 'no_hash') {
-            grr.publish('hash_state', 'tb', undefined);
-          }
-      }, 'table_{{ unique }}');
-
+  Internal State:
+    - container: The container to query.
+    - query: The query string to use.
+  """
+  layout_template = (renderers.TableRenderer.layout_template + """
+<script>
   //Receive the selection event and emit a path
-  grr.subscribe("table_selection_{{ id|escapejs }}", function(node) {
-    var path = grr.state.path || "";
+  grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
     if (node) {
       var element = node.find("span")[0];
       if (element) {
         var filename = element.innerHTML;
-        grr.publish("{{ selection_publish_queue|escapejs }}",
-                     filename);
+        grr.publish("file_select", filename);
       };
     };
-  }, 'table_{{ unique }}');
+  }, '{{ unique|escapejs }}');
 
-  $(".TableBody_{{unique}}").addClass("TableBody");
-
-   </script>""")
+  // Redraw the table if the query changes
+  grr.subscribe("query_changed", function(query) {
+    grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}", {
+      container: "{{this.state.container|escapejs}}",
+      query: query,
+    });
+  }, "{{unique|escapejs}}");
+</script>""")
 
   def __init__(self):
     renderers.TableRenderer.__init__(self)
     self.AddColumn(renderers.RDFValueColumn(
-        "Icon", renderer=renderers.IconRenderer))
+        "Icon", renderer=renderers.IconRenderer, width=0))
     self.AddColumn(renderers.AttributeColumn("subject"))
 
   def Layout(self, request, response):
     """The table lists files in the directory and allow file selection."""
+    self.state["container"] = request.REQ.get("container")
+    self.state["query"] = request.REQ.get("query", "")
+
     self.AddDynamicColumns(request)
 
-    response = super(ContainerFileTable, self).Layout(request, response)
-
-    return self.RenderFromTemplate(
-        self.vfs_table_template, response,
-        id=self.id, event_queue=self.event_queue, unique=self.unique,
-        selection_publish_queue=self.selection_publish_queue,
-        )
+    return super(ContainerFileTable, self).Layout(request, response)
 
   def AddDynamicColumns(self, request):
     """Add the columns in the VIEW attribute."""
     container_urn = aff4.RDFURN(request.REQ["container"])
-    fd = aff4.FACTORY.Open(container_urn)
+    fd = aff4.FACTORY.Open(container_urn, token=request.token)
     view = fd.Get(fd.Schema.VIEW)
     if view:
       for column_name in view:
         column_name = column_name.string
-        self.AddColumn(renderers.AttributeColumn(column_name))
+        try:
+          self.AddColumn(renderers.AttributeColumn(column_name))
+        except (KeyError, AttributeError):
+          logging.error("Container %s specifies an invalid attribute %s",
+                        container_urn, column_name)
 
   def BuildTable(self, start_row, end_row, request):
     """Renders the table."""
     self.AddDynamicColumns(request)
-
     sort_direction = request.REQ.get("sSortDir_0", "asc") == "desc"
     container_urn = aff4.RDFURN(request.REQ["container"])
 
-    # TODO(user): Implement query filtering here.
+    # Get the query from the user
     query = request.REQ.get("query")
     if not query:
       query = "subject matches '.'"
 
     # For now we just list the directory
-    container = aff4.FACTORY.Open(container_urn)
+    container = aff4.FACTORY.Open(container_urn, token=request.token)
     query_expression = query
     children = dict(((utils.SmartUnicode(c.urn), c)
                      for c in container.Query(query_expression)))
@@ -191,7 +160,8 @@ class ContainerFileTable(fileview.FileTable):
       for column in self.columns:
         try:
           column.AddRowFromFd(row_index, fd)
-        except AttributeError: pass
+        except AttributeError:
+          pass
 
       if "Container" in fd.behaviours:
         row_attributes["Icon"] = "directory"
@@ -205,211 +175,142 @@ class ContainerFileTable(fileview.FileTable):
 
 
 class ContainerNavigator(renderers.TreeRenderer):
-  """A FileSystem navigation Tree."""
+  """A Container navigation Tree.
 
-  renderer_template = template.Template("""
-<script>
-grr.grrTree("{{ renderer }}", "{{ id }}",
-            "{{ publish_select_queue }}", {{ state|escapejs }},
-            function (data, textStatus, jqXHR) {
-              if (!data.id) return;
+  Note that this renderer is only suitable for virtualized containers which are
+  not too large. This is due to the way the tree construction is done. To view
+  the VFS itself as a container use the VFSContainer renderer.
 
-              if (data.message) {
-                // Publish the message if it exist
-                grr.publish('grr_messages', data.message);
-              };
-             });
-</script>""")
+  Generated Javascript Events:
+    - tree_select(aff4_path) - The full aff4 path for the branch which the user
+      selected.
 
-  def RenderAjax(self, request, response):
-    """Renders tree leafs for filesystem path."""
-    response = super(ContainerNavigator, self).RenderAjax(request, response)
-
-    result = []
-
-    container_urn = aff4.RDFURN(request.REQ["container"])
-    path = aff4.ROOT_URN.Add(request.REQ.get("path", "/"))
-
-    # TODO(user): Implement query filtering
-    message = ""
-
-    # Open the container
-    try:
-      container = aff4.FACTORY.Open(container_urn)
-      # Find only direct children of this tree branch.
-      query_expression = (
-          "subject matches '%s.+'" % data_store.EscapeRegex(path))
-
-      branches = set()
-      for child in container.Query(query_expression):
-        try:
-          branch, _ = child.urn.RelativeName(path).split("/", 1)
-          branches.add(branch)
-        except ValueError: pass
-
-      # This actually sorts by the URN (which is UTF8) - I am not sure about the
-      # correct sorting order for unicode string?
-      directory_like = list(branches)
-      directory_like.sort(cmp=locale.strcoll)
-
-      for d in directory_like:
-        result.append(
-            dict(data=d,
-                 attr=dict(id=renderers.DeriveIDFromPath(
-                     utils.JoinPath(path, d))),
-                 children=[],
-                 state="closed"))
-    except IOError, e:
-      message = "Error fetching %s: %s" % (path, e)
-
-    encoder = json.JSONEncoder()
-    return http.HttpResponse(encoder.encode(dict(data=result, message=message,
-                                                 id=self.id)),
-                             mimetype="application/json")
-
-
-class ContainerToolbar(renderers.Renderer):
-  """A navigation enhancing toolbar."""
-
-  template = template.Template("""
-<a href="/render/Download/ContainerFileTable?container={{container}}"
-  target=_new >
-<button id='export' title="Export to CSV">
-<img src="/static/images/stock-save.png">
-</button></a>
-{{container}}
-<form id="{{unique}}" action="POST">
-Query
-<input type="text" id="query" name="query"
-  value="{{query|escapejs}}" size=180></input>
-</form>
-<script>
-$('#export').button();
-grr.subscribe("tree_select", function(path) {
-   $("input#query").val("subject startswith aff4:"+path);
-}, "{{unique}}");
-</script>
-""")
+  Internal State:
+    - aff4_root: The aff4 node which forms the root of this tree.
+    - container: The container we are querying.
+  """
 
   def Layout(self, request, response):
-    """Render the toolbar."""
-    response = super(ContainerToolbar, self).Layout(request, response)
+    self.state["container"] = request.REQ.get("container")
+    self.state["aff4_root"] = request.REQ.get("aff4_root", str(aff4.ROOT_URN))
 
+    return super(ContainerNavigator, self).Layout(request, response)
+
+  def RenderBranch(self, path, request):
+    """Renders tree leafs for filesystem path."""
+    aff4_root = aff4.RDFURN(request.REQ.get("aff4_root", aff4.ROOT_URN))
     container = request.REQ.get("container")
-    query = request.REQ.get("query", "")
+    if not container:
+      raise RuntimeError("Container not provided.")
 
-    return self.RenderFromTemplate(
-        self.template, response, container=container, query=query,
-        unique=self.unique, id=self.id)
+    # Path is relative to the aff4 root specified.
+    urn = aff4_root.Add(path)
+
+    # Open the container
+    container = aff4.FACTORY.Open(container, token=request.token)
+    # Find only direct children of this tree branch.
+
+    # NOTE: Although all AFF4Volumes are also containers, this gui element is
+    # really only suitable for showing AFF4Collection objects which are not very
+    # large, since we essentially list all members.
+    query_expression = ("subject matches '%s.+'" % data_store.EscapeRegex(urn))
+
+    branches = set()
+
+    for child in container.Query(query_expression):
+      try:
+        branch, _ = child.urn.RelativeName(urn).split("/", 1)
+        branches.add(branch)
+      except ValueError:
+        pass
+
+    # This actually sorts by the URN (which is UTF8) - I am not sure about the
+    # correct sorting order for unicode string?
+    directory_like = list(branches)
+    directory_like.sort(cmp=locale.strcoll)
+
+    for d in directory_like:
+      self.AddElement(d)
 
 
-class QueryDialog(renderers.Renderer):
-  """Render a query builder."""
+class ContainerToolbar(renderers.TemplateRenderer):
+  """A navigation enhancing toolbar.
 
-  layout_template = template.Template("""
-<form id="form">
-<select id="attribute">
-{% for attribute in attributes %}
-<option>{{attribute}}</option>
-{% endfor %}
-</select>
-<select id="operators">
-</select>
+  Listening Javascript Events:
+    - tree_select(aff4_path): Updates the query.
+
+  Generated Javascript Events:
+    - query_changed(query): The query has been updated by the user. The query is
+      set to be the full aff4 path of the tree node which was selected.
+  """
+
+  layout_template = renderers.Template("""
+<form id="csv_{{unique|escape}}" action="/render/Download/ContainerFileTable"
+   METHOD=post target='_blank'>
+<input type="hidden" name='container' value='{{this.container|escape}}' />
+<input type="hidden" id="csv_query" name="query" />
+<button id='export' title="Export to CSV">
+<img src="/static/images/stock-save.png">
+</button>
+{{this.container|escape}}
+</form>
+<form id="form_{{unique|escape}}" name="query_form">
+Query
+<input type="text" id="query" name="query"
+  value="{{this.query|escape}}" size=180></input>
 </form>
 <script>
-$("#attribute").change(function () {
-  grr.update("QueryDialog", "operators", {attribute: $(this).val()});
+$('#export').button().click(function () {
+  $("input#csv_query").val($("input#query").val());
+  $("#csv_{{unique|escape}}").submit();
+});
+
+grr.subscribe("tree_select", function(path) {
+   $("input#query").val("subject startswith '" +
+      path.replace("'", "\\'") + "/'");
+   $("#form_{{unique|escapejs}}").submit();
+}, "form_{{unique|escapejs}}");
+
+$("#form_{{unique|escapejs}}").submit(function () {
+  query = $("input#query").val();
+  grr.publish('query_changed', query);
+
+  return false;
 });
 </script>
 """)
 
-  ajax_template = template.Template("""
-{% for opt in operators %}
-<option>{{opt}}</option>
-{% endfor %}
-""")
-
   def Layout(self, request, response):
     """Render the toolbar."""
-    response = super(QueryDialog, self).Layout(request, response)
+    self.container = request.REQ.get("container")
+    self.query = request.REQ.get("query", "")
 
-    attributes = []
-    for name, attribute in aff4.Attribute.NAMES.items():
-      attributes.extend(attribute.Fields(name))
-
-    return self.RenderFromTemplate(
-        self.layout_template, response, attributes=attributes,
-        unique=self.unique, id=self.id)
-
-  def RenderAjax(self, request, response):
-    response = super(QueryDialog, self).RenderAjax(request, response)
-
-    attribute = request.REQ.get("attribute")
-    operators = aff4.Attribute.NAMES[attribute].attribute_type.operators.keys()
-
-    return self.RenderFromTemplate(
-        self.ajax_template, response, operators=operators, id=self.id)
+    return super(ContainerToolbar, self).Layout(request, response)
 
 
-class ContainerViewer(renderers.Renderer):
+class ContainerViewer(renderers.TemplateRenderer):
   """This is the main view to browse files."""
-  category = "Inspect Client"
-  description = "Browse Analysis result."
 
-  template = template.Template("""
-<div id='toolbar_{{id}}' class=toolbar></div>
-<div id='{{id}}'></div>
+  layout_template = renderers.Template("""
+<div id='toolbar_{{id|escape}}' class=toolbar></div>
+<div id='{{unique|escape}}'></div>
 <script>
   grr.state.container = grr.hash.container;
   grr.state.query = grr.hash.query || "";
 
-  grr.layout("ContainerToolbar", "toolbar_{{id}}");
-  grr.layout("ContainerViewerSplitter", "{{id}}");
-  grr.subscribe("GeometryChange", function () {
-    grr.fixHeight($("#{{id}}"));
-  }, "{{id}}");
+  grr.layout("ContainerToolbar", "toolbar_{{id|escapejs}}");
+  grr.layout("ContainerViewerSplitter", "{{unique|escapejs}}");
+  grr.subscribe("GeometryChange", function (id) {
+    if(id != "{{id|escapejs}}") return;
+    grr.fixHeight($("#{{unique|escapejs}}"));
+  }, "{{unique|escapejs}}");
 </script>
 """)
-
-  def Layout(self, request, response):
-    """Show the main view only if we have a client_id."""
-    response = renderers.Renderer.Layout(self, request, response)
-
-    container = request.REQ.get("container")
-
-    return self.RenderFromTemplate(
-        self.template, response, container=container, id=self.unique)
 
 
 class ContainerViewerSplitter(renderers.Splitter):
   """This is the main view to browse files."""
 
-  search_client_template = template.Template("""
-<h1 id="{{unique}}">Select a container</h1>
-Please search for a client above.
-
-<script>
-   grr.subscribe("client_selection", function (cn) {
-      grr.layout("{{renderer}}", "{{id}}", {client_id: cn});
-   }, "{{unique}}");
-</script>
-""")
-
-  def __init__(self):
-    self.left_renderer = "ContainerNavigator"
-    self.top_right_renderer = "ContainerFileTable"
-    self.bottom_right_renderer = "ContainerViewTabs"
-
-    super(ContainerViewerSplitter, self).__init__()
-
-  def Layout(self, request, response):
-    """Show the main view only if we have a client_id."""
-    renderers.Renderer.Layout(self, request, response)
-
-    container = request.REQ.get("container")
-    if not container:
-      return self.RenderFromTemplate(
-          self.search_client_template, response,
-          renderer=self.__class__.__name__, unique=self.unique, id=self.id)
-
-    return super(ContainerViewerSplitter, self).Layout(request, response)
+  left_renderer = "ContainerNavigator"
+  top_right_renderer = "ContainerFileTable"
+  bottom_right_renderer = "ContainerViewTabs"

@@ -1,31 +1,30 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:          grr_enroller
-# Required-Start:    $network $named $remote_fs $syslog
-# Required-Stop:     $network $named $remote_fs $syslog
+# Required-Start:    $network $named $local_fs $syslog
+# Required-Stop:     $network $named $local_fs $syslog
 # Should-Start:
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Description:       GRR Rapid Response enroller
 ### END INIT INFO
 
-PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin";
-DAEMON="grr_enroller.py";
-DAEMON_OPTS="--config=/etc/grr/grr-enroller.conf";
-NAME="grr-enroller";
-DESC="GRR Rapid Response enroller";
-DEFAULTFILE="/etc/default/${NAME}";
-PIDFILE="/var/run/${NAME}.pid";
+PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin"
+DESC="GRR Rapid Response enroller"
+NAME="grr-enroller"
+DAEMON="/usr/sbin/grr_enroller.py"
+DAEMON_ARGS="--config=/etc/grr/grr-enroller.conf"
+PIDFILE="/var/run/${NAME}.pid"
+SCRIPTNAME="/etc/init.d/${NAME}"
+DEFAULTFILE="/etc/default/${NAME}"
 
-if [ -x "/usr/sbin/${DAEMON}" ] ; then
-	DAEMON="/usr/sbin/${DAEMON}";
-elif [ -x "/usr/local/sbin/${DAEMON}" ] ; then
-	DAEMON="/usr/local/sbin/${DAEMON}";
-else
-	exit 0;
-fi
+[ -x "${DAEMON}" ] || DAEMON="/usr/local/sbin/grr_enroller.py"
+
+[ -x "${DAEMON}" ] || exit 0
 
 [ -r ${DEFAULTFILE} ] && . ${DEFAULTFILE}
+
+. /lib/init/vars.sh
 
 . /lib/lsb/init-functions
 
@@ -37,67 +36,130 @@ is_true() {
 	fi
 }
 
-reload_grr_enroller() {
-	start-stop-daemon --stop \
-	--quiet \
-	--pidfile ${PIDFILE} \
-	--signal HUP
-}
+do_start() {
+	if is_true "${START}" ; then
+		start-stop-daemon --start \
+		--quiet \
+		--test \
+		--make-pidfile \
+		--pidfile ${PIDFILE} \
+		--startas ${DAEMON} -- ${DAEMON_ARGS} || return 1
 
-start_grr_enroller() {
-	if is_true "$START" ; then
 		start-stop-daemon --start \
 		--quiet \
 		--background \
 		--make-pidfile \
 		--pidfile ${PIDFILE} \
-		--startas ${DAEMON} -- ${DAEMON_OPTS}
+		--startas ${DAEMON} -- ${DAEMON_ARGS} || return 2
 	else
 		echo ""
 		echo "${DESC} not configured to start, please edit ${DEFAULTFILE} to enable"
 	fi
 }
 
-stop_grr_enroller() {
+do_stop() {
 	start-stop-daemon --stop \
 	--quiet \
 	--oknodo \
+	--retry=TERM/30/KILL/5 \
 	--pidfile ${PIDFILE}
+
+	RETVAL="$?"
+
+	[ "${RETVAL}" = 2 ] && return 2
+
+	rm -f ${PIDFILE}
+
+	return "${RETVAL}"
 }
 
-status_grr_enroller() {
-	status_of_proc -p "${PIDFILE}" "${DAEMON}" "${NAME}"
+do_reload() {
+	start-stop-daemon --stop \
+	--quiet \
+	--pidfile ${PIDFILE} \
+	--signal HUP
+
+	return 0
 }
 
 case "$1" in
 	start)
-		log_begin_msg "Starting ${DESC}"
-		start_grr_enroller
-		log_end_msg $?
+		[ "${VERBOSE}" != no ] && log_daemon_msg "Starting ${DESC}" "${NAME}"
+
+		do_start
+
+		case "$?" in in
+			0|1)
+				[ "${VERBOSE}" != no ] && log_end_msg 0
+				;;
+
+			2)
+				[ "${VERBOSE}" != no ] && log_end_msg 1
+				;;
+		esac
 		;;
+
 	stop)
-		log_begin_msg "Stopping ${DESC}"
-		stop_grr_enroller
-		log_end_msg $?
+		[ "${VERBOSE}" != no ] && log_daemon_msg "Stopping ${DESC}" "${NAME}"
+
+		do_stop
+
+		case "$?" in
+			0|1)
+				[ "${VERBOSE}" != no ] && log_end_msg 0
+				;;
+
+			2)
+				[ "${VERBOSE}" != no ] && log_end_msg 1
+				;;
+		esac
 		;;
-	reload)
-		log_begin_msg "Reloading ${DESC}"
-		reload_grr_enroller
-		log_end_msg $?
-		;;
+
 	status)
-		status_grr_enroller
+		status_of_proc -p "${PIDFILE}" "${DAEMON}" "${NAME}" && exit 0 || exit $?
 		;;
-	restart|force-reload)
-		log_begin_msg "Restarting ${DESC}"
-		stop_grr_enroller
-		sleep 1
-		start_grr_enroller
+
+	reload|force-reload)
+		log_daemon_msg "Reloading ${DESC}" "${NAME}"
+
+		do_reload
+
 		log_end_msg $?
 		;;
+
+	restart)
+		log_daemon_msg "Restaring ${DESC}" "${NAME}"
+
+		do_stop
+
+		case "$?" in
+			0|1)
+				sleep 1
+
+				do_start
+
+				case "$?" in
+					0)
+						log_end_msg 0
+						;;
+
+					1|2)
+						log_end_msg 1
+						;;
+				esac
+				;;
+
+			2)
+				log_end_msg 1
+				;;
+		esac
+		;;
+
 	*)
-		echo "Usage: $0 {start|stop|status|restart|force-reload|reload}" >&2
-		exit 1
+		echo "Usage: ${SCRIPTNAME} {start|stop|status|restart|force-reload|reload}" >&2
+
+		exit 3
 		;;
 esac
 
+:

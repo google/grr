@@ -34,8 +34,9 @@ class Token(object):
       next_state: The next state we transition to if this Token matches.
       flags: re flags.
     """
-    self.state_regex = re.compile(state_regex, re.DOTALL | re.M | re.S | flags)
-    self.regex = re.compile(regex, re.DOTALL | re.M | re.S | flags)
+    self.state_regex = re.compile(state_regex, re.DOTALL | re.M | re.S | re.U |
+                                  flags)
+    self.regex = re.compile(regex, re.DOTALL | re.M | re.S | re.U | flags)
     self.re_str = regex
     self.actions = []
     if actions:
@@ -109,13 +110,15 @@ class Lexer(object):
         cb = getattr(self, action, self.Default)
 
         # Allow a callback to skip other callbacks.
-        possible_next_state = cb(string=m.group(0), match=m)
-        if possible_next_state == "CONTINUE":
-          continue
-
-        # Override the state from the Token
-        elif possible_next_state:
-          next_state = possible_next_state
+        try:
+          possible_next_state = cb(string=m.group(0), match=m)
+          if possible_next_state == "CONTINUE":
+            continue
+          # Override the state from the Token
+          elif possible_next_state:
+            next_state = possible_next_state
+        except ParseError, e:
+          self.Error(e)
 
       # Update the next state
       if next_state:
@@ -125,11 +128,9 @@ class Lexer(object):
 
     # Check that we are making progress - if we are too full, we assume we are
     # stuck.
+    self.Error("Expected %s" % (self.state))
     self.processed_buffer += self.buffer[:1]
     self.buffer = self.buffer[1:]
-    self.Error("Lexer Stuck, discarding 1 byte (%r) - state %s" % (
-        self.buffer[:10], self.state))
-
     return "Error"
 
   def Feed(self, data):
@@ -164,6 +165,7 @@ class Lexer(object):
   def PushBack(self, string="", **_):
     """Push the match back on the stream."""
     self.buffer = string + self.buffer
+    self.processed_buffer = self.processed_buffer[:-len(string)]
 
   def Close(self):
     """A convenience function to force us to parse all the data."""
@@ -255,24 +257,24 @@ class BinaryExpression(Expression):
 
   def __init__(self, operator="", part=None):
     self.operator = operator
-    self.parts = []
-    if part: self.parts.append(part)
+    self.args = []
+    if part: self.args.append(part)
     super(BinaryExpression, self).__init__()
 
   def __str__(self):
     return "Binary Expression: %s %s" % (
-        self.operator, [str(x) for x in self.parts])
+        self.operator, [str(x) for x in self.args])
 
   def AddOperands(self, lhs, rhs):
     if isinstance(lhs, Expression) and isinstance(rhs, Expression):
-      self.parts = [lhs, rhs]
+      self.args = [lhs, rhs]
     else:
       raise ParseError("Expected expression, got %s %s %s" % (
           lhs, self.operator, rhs))
 
   def PrintTree(self, depth=""):
     result = "%s%s\n" % (depth, self.operator)
-    for part in self.parts:
+    for part in self.args:
       result += "%s-%s\n" % (depth, part.PrintTree(depth + "  "))
 
     return result
@@ -287,8 +289,15 @@ class BinaryExpression(Expression):
     else:
       raise ParseError("Invalid binary operator %s" % operator)
 
-    args = [x.Compile(filter_implemention) for x in self.parts]
+    args = [x.Compile(filter_implemention) for x in self.args]
     return getattr(filter_implemention, method)(*args)
+
+
+class IdentityExpression(Expression):
+  """An Expression which always evaluates to True."""
+
+  def Compile(self, filter_implemention):
+    return filter_implemention.IdentityFilter()
 
 
 class SearchParser(Lexer):
@@ -306,12 +315,12 @@ class SearchParser(Lexer):
   tokens = [
       # Double quoted string
       Token("STRING", "\"", "PopState,StringFinish", None),
-      Token("STRING", r"\\[\"rnbt\\]", "StringEscape", None),
+      Token("STRING", r"\\(.)", "StringEscape", None),
       Token("STRING", r"[^\\\"]+", "StringInsert", None),
 
       # Single quoted string
       Token("SQ_STRING", "'", "PopState,StringFinish", None),
-      Token("SQ_STRING", r"\\['rnbt\\]", "StringEscape", None),
+      Token("SQ_STRING", r"\\(.)", "StringEscape", None),
       Token("SQ_STRING", r"[^\\']+", "StringInsert", None),
 
       # TODO(user): Implement a unary not operator.
@@ -321,7 +330,7 @@ class SearchParser(Lexer):
       Token("INITIAL", "\(", "BracketOpen", None),
       Token("INITIAL", r"\)", "BracketClose", None),
 
-      Token("ATTRIBUTE", "[a-z0-9]+", "StoreAttribute", "OPERATOR"),
+      Token("ATTRIBUTE", "[\w._0-9]+", "StoreAttribute", "OPERATOR"),
       Token("OPERATOR", "[a-z0-9<>=\-\+\!\^\&%]+", "StoreOperator", "ARG_LIST"),
       Token("OPERATOR", "(!=|[<>=])", "StoreSpecialOperator", "ARG_LIST"),
       Token("ARG_LIST", "[^\s'\"]+", "InsertArg", None),
@@ -337,6 +346,7 @@ class SearchParser(Lexer):
   def __init__(self, data):
     # Holds expression
     self.current_expression = self.expression_cls()
+    self.filter_string = data
 
     # The token stack
     self.stack = []
@@ -354,8 +364,20 @@ class SearchParser(Lexer):
   def StringStart(self, **_):
     self.string = ""
 
-  def StringEscape(self, string, **_):
-    self.string += string.decode("string_escape")
+  def StringEscape(self, string, match, **_):
+    """Escape backslashes found inside a string quote.
+
+    Backslashes followed by anything other than ['"rnbt] will just be included
+    in the string.
+
+    Args:
+       string: The string that matched.
+       match: The match object (m.group(1) is the escaped code)
+    """
+    if match.group(1) in "'\"rnbt":
+      self.string += string.decode("string_escape")
+    else:
+      self.string += string
 
   def StringInsert(self, string="", **_):
     self.string += string
@@ -371,7 +393,11 @@ class SearchParser(Lexer):
     logging.debug("Storing attribute %r", string)
 
     # TODO(user): Update the expected number_of_args
-    self.current_expression.SetAttribute(string)
+    try:
+      self.current_expression.SetAttribute(string)
+    except AttributeError:
+      raise ParseError("Invalid attribute '%s'" % string)
+
     return "OPERATOR"
 
   def StoreOperator(self, string="", **_):
@@ -416,7 +442,7 @@ class SearchParser(Lexer):
     """Reduce the token stack into an AST."""
     # Check for sanity
     if self.state != "INITIAL":
-      raise ParseError("Premature end of expression")
+      self.Error("Premature end of expression")
 
     length = len(self.stack)
     while length > 1:
@@ -430,10 +456,18 @@ class SearchParser(Lexer):
       length = len(self.stack)
 
     if length != 1:
-      raise ParseError("Illegal expression")
+      self.Error("Illegal query expression")
 
     return self.stack[0]
 
+  def Error(self, message=None, weight=1):
+    raise ParseError("%s in position %s: %s <----> %s )" % (
+        message, len(self.processed_buffer), self.processed_buffer,
+        self.buffer))
+
   def Parse(self):
+    if not self.filter_string:
+      return IdentityExpression()
+
     self.Close()
     return self.Reduce()

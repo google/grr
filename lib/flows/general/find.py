@@ -14,6 +14,8 @@
 # limitations under the License.
 
 """Find files on the client."""
+import re
+import stat
 import time
 
 from grr.lib import aff4
@@ -23,12 +25,22 @@ from grr.proto import jobs_pb2
 
 
 class FindFiles(flow.GRRFlow):
-  """Find files on the client."""
+  """Find files on the client.
+
+  Returns to parent flow:
+    jobs_pb2.StatResponse objects for each found file.
+  """
 
   category = "/Filesystem/"
 
-  def __init__(self, path="/", filename_regex="", data_regex="",
-               number_of_results=100, output="", raw=True, **kwargs):
+  out_protobuf = jobs_pb2.StatResponse
+
+  def __init__(self, path="/",
+               pathtype=utils.ProtoEnum(jobs_pb2.Path, "PathType", "OS"),
+               filename_regex="", data_regex="",
+               iterate_on_number=100, max_results=500,
+               output="analysis/find/{u}-{t}",
+               findspec=None, **kwargs):
     """This flow searches for files on the client.
 
     The result from this flow is an AFF4Collection which will be created on the
@@ -36,47 +48,70 @@ class FindFiles(flow.GRRFlow):
     criteria. Note that these files will not be downloaded by this flow, only
     the metadata of the file in fetched.
 
+    Note: This flow is inefficient for collecting a large number of files.
+
     Args:
       path: Search recursively from this place.
+      pathtype: Identifies requested path type. Enum from Path protobuf.
       filename_regex: A regular expression to match the filename (Note only the
            base component of the filename is matched).
       data_regex: The file data should match this regex.
-      number_of_results: The total number of files to search before iterating on
+      iterate_on_number: The total number of files to search before iterating on
            the server.
-      output: The path to the output container for this find. If blank uses a
-           default value under /client_id/analysis/Find/.
-      raw: Use raw files access.
-      kwargs: passthrough.
+      max_results: Maximum number of results to get.
+      output: The path to the output container for this find. Will be created
+          under the client. supports format variables {u} and {t} for user and
+          time. E.g. /analysis/Find/{u}-{t}.
+          If set to None, no collection will be created.
+      findspec: A jobs_pb2.Find, if specified, other arguments are ignored.
     """
     flow.GRRFlow.__init__(self, **kwargs)
 
-    self.path = path
-    if raw:
-      self._pathtype = jobs_pb2.Path.TSK
+    if findspec:
+      self.request = findspec
     else:
-      self._pathtype = jobs_pb2.Path.OS
-    self.filename_regex = filename_regex
-    self.data_regex = data_regex
-    self.number_of_results = number_of_results
-    if not output:
-      output = aff4.ROOT_URN.Add(self.client_id).Add(
-          "analysis/Find/%s-%d" % (self.user, time.time()))
+      pb = jobs_pb2.Path(path=path, pathtype=int(pathtype))
+      self.request = jobs_pb2.Find(pathspec=pb, path_regex=filename_regex)
+      if data_regex:
+        self.request.data_regex = data_regex
+      self.request.iterator.number = iterate_on_number
 
-    self.output = aff4.RDFURN(output)
+    self.request.iterator.number = min(max_results,
+                                       self.request.iterator.number)
+    # Check the regexes are valid.
+    try:
+      if self.request.data_regex:
+        re.compile(self.request.data_regex)
+      if self.request.path_regex:
+        re.compile(self.request.path_regex)
+    except re.error, e:
+      raise RuntimeError("Invalid regex for FindFiles. Err: {0}".format(e))
+
+    self.path = self.request.pathspec.path
+    self.max_results = max_results
+    self.received_count = 0
+
+    if output:
+      # Create the output collection and get it ready.
+      output = output.format(t=time.time(), u=self.user)
+      self.output = aff4.ROOT_URN.Add(self.client_id).Add(output)
+      self.fd = aff4.FACTORY.Create(self.output, "AFF4Collection", mode="rw",
+                                    token=self.token)
+
+      self.fd.Set(self.fd.Schema.DESCRIPTION("Find {0} -name {1}".format(
+          path, filename_regex)))
+      self.collection_list = self.fd.Get(self.fd.Schema.COLLECTION)
+      self.dirty = True
+
+    else:
+      self.output = None
+
     self.urn = aff4.ROOT_URN.Add(self.client_id)
 
   @flow.StateHandler(next_state="IterateFind")
   def Start(self, unused_response):
     """Issue the find request to the client."""
     # Build up the request protobuf.
-    pb = jobs_pb2.Path(path=self.path, pathtype=self._pathtype)
-    self.request = jobs_pb2.Find(pathspec=pb, path_regex=self.filename_regex)
-    if self.data_regex:
-      self.request.data_regex = self.data_regex
-
-    self.request.iterator.number = self.number_of_results
-    self.directory_inode = aff4.FACTORY.RDFValue("DirectoryInode")()
-
     # Call the client with it
     self.CallClient("Find", self.request, next_state="IterateFind")
 
@@ -88,28 +123,52 @@ class FindFiles(flow.GRRFlow):
 
     for response in responses:
       # Create the file in the VFS
-      vfs_urn = self.urn.Add(utils.PathspecToAff4(response.hit.pathspec))
-      fd = aff4.FACTORY.Create(vfs_urn, "VFSFile")
-      fd.Set(fd.Schema.STAT, aff4.FACTORY.RDFValue("StatEntry")(
-          response.hit))
-      fd.Set(fd.Schema.SIZE, aff4.RDFInteger(response.hit.st_size))
-      fd.Close()
+      vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+          response.hit.pathspec, self.urn)
+      response.hit.aff4path = utils.SmartUnicode(vfs_urn)
 
-      response.hit.path = utils.SmartUnicode(vfs_urn)
-      self.directory_inode.AddDirectoryEntry(response.hit)
+      # TODO(user): This ends up being fairly expensive.
+      if stat.S_ISDIR(response.hit.st_mode):
+        fd = aff4.FACTORY.Create(vfs_urn, "VFSDirectory", token=self.token)
+      else:
+        fd = aff4.FACTORY.Create(vfs_urn, "VFSFile", token=self.token)
+      fd.Set(fd.Schema.STAT(response.hit))
+      fd.Set(fd.Schema.PATHSPEC(response.hit.pathspec))
+      fd.Close(sync=False)
 
-    if responses.iterator.state != jobs_pb2.Iterator.FINISHED:
-      self.request.iterator.CopyFrom(responses.iterator)
-      self.CallClient("Find", self.request, next_state="IterateFind")
+      if self.output:
+        # Add the new objects URN to the collection.
+        self.collection_list.Append(response.hit)
+        self.dirty = True
 
+      # Send the stat to the parent flow.
+      self.SendReply(response.hit)
+
+    self.received_count += len(responses)
+
+    # Exit if we hit the max result count we wanted or we're finished.
+    if (self.received_count >= self.max_results or
+        responses.iterator.state == jobs_pb2.Iterator.FINISHED):
+      if self.output:
+        self.Notify("ViewObject", self.output, "Find on {0} completed".format(
+            self.path))
     else:
-      fd = aff4.FACTORY.Create(self.output).Upgrade("AFF4Collection")
-      fd.Set(fd.Schema.DIRECTORY, self.directory_inode)
-      fd.Set(fd.Schema.DESCRIPTION, aff4.RDFString("Find %s -name %s" % (
-            self.path, self.filename_regex)))
+      self.request.iterator.CopyFrom(responses.iterator)
+      # If we are close to max_results reduce the iterator.
+      self.request.iterator.number = min(self.request.iterator.number,
+                                         self.max_results - self.received_count)
+      self.CallClient("Find", self.request, next_state="IterateFind")
+      self.Log("%d files processed.", self.received_count)
 
-      view = fd.Schema.VIEW()
+  def Save(self):
+    if self.output and self.dirty:
+      # Store it in the data store.
+      self.fd.Set(self.fd.Schema.COLLECTION, self.collection_list)
+      self.fd.Close()
 
-      fd.Set(fd.Schema.VIEW, view)
-
-      fd.Close()
+  def Load(self):
+    """"Recreate the collection."""
+    if self.output:
+      self.fd = aff4.FACTORY.Open(self.output, mode="rw", token=self.token)
+      self.collection_list = self.fd.Get(self.fd.Schema.COLLECTION)
+    self.dirty = False

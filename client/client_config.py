@@ -24,18 +24,40 @@ import os
 SERVICE_NAME = "GRR Monitor"
 SERVICE_DISPLAY_NAME = "GRR Enterprise System Monitor"
 
+# Client Information
+GRR_CLIENT_NAME = "GRR Monitor"
+# Version 0.1
+GRR_CLIENT_VERSION = 1
+GRR_CLIENT_REVISION = 0
+GRR_CLIENT_BUILDTIME = "unknown"
+
+# MacOS-X launchctl plist
+LAUNCHCTL_PLIST = "/System/Library/LaunchDaemons/com.google.code.grrd.plist"
+
+# The key we store our config in windows
+REGISTRY_KEY = "HKEY_LOCAL_MACHINE\\SOFTWARE\\GRR"
+
+LOCATION = "http://grr-server/control"
+
+# The GRR client performs some proxy detection. However, it cannot
+# handle proxy autoconfig settings. Here, additional proxy servers
+# can be given as a list of strings of the form "http://server:port/".
+PROXY_SERVERS = []
+
 try:
   LOGFILE_PATH = "%s/system32/logfiles/GRRlog.txt" % os.environ["WINDIR"]
 except KeyError:
   LOGFILE_PATH = "/tmp/GRRlog.txt"
 
 # This is the version of this client.
-NETWORK_API = 1
-
+NETWORK_API = 3
 
 # Certificates: Separate CA certificates are stored here. The --camode argument
-# in the client sets which one of these the client trusts. This provides
-# enforced isolation of the environments.
+# in the client sets which one of these the client trusts. The default
+# of --camode is set by the CAMODE value below.
+# This provides enforced isolation of the environments.
+
+CAMODE = "TEST"
 
 CACERTS = {
     "TEST": """

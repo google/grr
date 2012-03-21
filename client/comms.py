@@ -17,58 +17,73 @@
 
 
 import hashlib
-import logging
 import multiprocessing
 import pdb
 import posixpath
 import sys
 import time
-import urllib
 import urllib2
+
 
 from M2Crypto import BIO
 from M2Crypto import EVP
 from M2Crypto import RSA
 from M2Crypto import X509
 
+from grr.client import conf as flags
+import logging
+
 from grr.client import actions
 from grr.client import client_config
+from grr.client import client_utils
+from grr.client import client_utils_common
 from grr.client import conf
 from grr.lib import communicator
+from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
-FLAGS = conf.PARSER.flags
 
-conf.PARSER.add_option("-l", "--location",
-                       default="http://grr-server/control.py",
-                       help="URL of the controlling server.")
+flags.DEFINE_string("location", client_config.LOCATION,
+                    "URL of the controlling server.")
 
-conf.PARSER.add_option("-m", "--max_post_size", default=800000, type="int",
-                       help="Maximum size of the post.")
+flags.DEFINE_integer("max_post_size", 8000000,
+                     "Maximum size of the post.")
 
-conf.PARSER.add_option("", "--max_out_queue", default=1024000, type="int",
-                       help="Maximum size of the output queue.")
+flags.DEFINE_integer("max_out_queue", 10240000,
+                     "Maximum size of the output queue.")
 
-conf.DEFINE_integer("foreman_check_frequency", default=3600,
-                    help="The minimum number of seconds before checking with "
-                    "the foreman for new work.")
+flags.DEFINE_integer("foreman_check_frequency", 3600,
+                     "The minimum number of seconds before checking with "
+                     "the foreman for new work.")
 
-# Counters used here
-stats.STATS.grr_client_sent_messages = 0
-stats.STATS.grr_client_received_messages = 0
-stats.STATS.grr_client_slave_restarts = 0
+FLAGS = flags.FLAGS
+
+# This determines after how many consecutive errors
+# GRR will retry all known proxies.
+PROXY_SCAN_ERROR_LIMIT = 10
+
+
+class CommsInit(registry.InitHook):
+  def __init__(self):
+    # Counters used here
+    stats.STATS.RegisterVar("grr_client_sent_messages")
+    stats.STATS.RegisterVar("grr_client_received_messages")
+    stats.STATS.RegisterVar("grr_client_slave_restarts")
 
 
 class Status(object):
-  """An abstraction to encapsulates results of the HTTP Post."""
+  """An abstraction to encapsulate results of the HTTP Post."""
   # Number of messages received
   received_count = 0
 
   # Number of messages sent to server.
   sent_count = 0
   sent_len = 0
+
+  # Number of high priority messages
+  high_priority_sent = 0
 
   # Server status code (200 is OK)
   code = 200
@@ -117,7 +132,7 @@ class GRRContext(object):
       message = self._out_queue.pop(0)
       new_job = queue.job.add()
       new_job.MergeFromString(message)
-      stats.STATS.grr_client_sent_messages += 1
+      stats.STATS.Increment("grr_client_sent_messages")
 
       # Maintain the output queue tally
       length += len(message)
@@ -126,7 +141,8 @@ class GRRContext(object):
     return queue
 
   def SendReply(self, protobuf=None, request_id=None, response_id=None,
-                session_id="W:0", message_type=None, jump_queue=False):
+                priority=None, session_id="W:0", message_type=None,
+                jump_queue=False):
     """Send the protobuf to the server."""
     message = jobs_pb2.GrrMessage()
     if protobuf:
@@ -142,6 +158,11 @@ class GRRContext(object):
 
     if message_type is None:
       message_type = jobs_pb2.GrrMessage.MESSAGE
+
+    # Setting priority can affect client behaviour such as poll time. (e.g. Low
+    # priority prevents a client from polling aggressively.)
+    if priority is not None:
+      message.priority = priority
 
     message.type = message_type
 
@@ -170,8 +191,8 @@ class GRRContext(object):
       action = action_cls(message=message, grr_context=self)
       action.Execute(message)
     else:
-      logging.error("Cannot handle message %s, we're not enrolled yet.",
-                    message.name)
+      logging.info("Cannot handle message %s, we're not enrolled yet.",
+                   message.name)
 
   def QueueMessages(self, messages):
     """Queue a message from the server for processing.
@@ -194,7 +215,7 @@ class GRRContext(object):
     # Push all the messages to our input queue
     for message in messages:
       self._in_queue.append(message)
-      stats.STATS.grr_client_received_messages += 1
+      stats.STATS.Increment("grr_client_received_messages")
 
     # As long as our output queue has some room we can process some
     # input messages:
@@ -206,11 +227,11 @@ class GRRContext(object):
         self.HandleMessage(message)
         # Catch any errors and keep going here
       except Exception, e:
-        logging.error("%s", e)
+        logging.warn("%s", e)
         self.SendReply(
             jobs_pb2.GrrStatus(
                 status=jobs_pb2.GrrStatus.GENERIC_ERROR,
-                error_message=str(e)),
+                error_message=utils.SmartUnicode(e)),
             request_id=message.request_id,
             response_id=message.response_id,
             session_id=message.session_id,
@@ -240,52 +261,106 @@ class GRRHTTPContext(GRRContext):
     """
     self.ca_cert = ca_cert
     self.communicator = None
+    self.active_proxy = None
+    self.consecutive_connection_errors = 0
 
     # The time we last checked with the foreman.
     self.last_foreman_check = 0
     GRRContext.__init__(self)
 
+  def FindProxy(self):
+    """This method tries all known proxies until one works.
+
+    It does so by downloading the server.pem from the GRR server and returns
+    it so it can be used by GetServerCert immediately.
+
+    Returns:
+      Contents of server.pem.
+    """
+    proxies = client_utils.FindProxies()
+
+    # Also try to connect directly if all proxies fail.
+    proxies.append("")
+
+    for proxy in proxies:
+      try:
+        proxydict = {}
+        if proxy:
+          proxydict["http"] = proxy
+        proxy_support = urllib2.ProxyHandler(proxydict)
+        opener = urllib2.build_opener(proxy_support)
+        urllib2.install_opener(opener)
+
+        cert_url = "/".join((posixpath.dirname(FLAGS.location), "server.pem"))
+        request = urllib2.Request(cert_url, None, {"Cache-Control": "no-cache"})
+        handle = urllib2.urlopen(request, timeout=10)
+        server_pem = handle.read()
+        # If we have reached this point, this proxy is working.
+        self.active_proxy = proxy
+        handle.close()
+        return server_pem
+      except urllib2.URLError:
+        pass
+
+    # No connection is possible at all.
+    return None
+
   def GetServerCert(self):
     """Obtain the server certificate and initialize the client."""
     cert_url = "/".join((posixpath.dirname(FLAGS.location), "server.pem"))
     try:
-      handle = urllib2.urlopen(cert_url)
-      data = handle.read()
+      data = self.FindProxy()
+      if not data:
+        raise urllib2.URLError("Could not connect to GRR server.")
 
       self.communicator.LoadServerCertificate(
           server_certificate=data, ca_certificate=self.ca_cert)
-      return
 
+      self.server_certificate = data
     # This has to succeed or we can not go on
     except Exception, e:
-      logging.error("Unable to verify server certificate at %s: %s",
-                    cert_url, e)
-      # Try again in a short time
-      time.sleep(60)
+      client_utils_common.ErrorOnceAnHour(
+          "Unable to verify server certificate at %s: %s", cert_url, e)
+      logging.info("Unable to verify server certificate at %s: %s",
+                   cert_url, e)
 
   def MakeRequest(self, data, status):
     """Make a HTTP Post request and return the raw results."""
-    request = dict(data=data.encode("base64"),
-                   api=client_config.NETWORK_API)
-
-    status.sent_len = len(request["data"])
-    start = time.time()
+    status.sent_len = len(data)
     try:
-      ## Now send the request using POST
-      url = urllib.urlencode(request)
-      handle = urllib2.urlopen(FLAGS.location, url)
+      # Now send the request using POST
+      start = time.time()
+      url = FLAGS.location + "?api=%s" % client_config.NETWORK_API
+      req = urllib2.Request(url, data,
+                            {"Content-Type": "binary/octet-stream"})
+      handle = urllib2.urlopen(req)
       data = handle.read()
       logging.debug("Request took %s Seconds", time.time() - start)
 
+      self.consecutive_connection_errors = 0
+
       return data
+
     except urllib2.HTTPError, e:
       status.code = e.code
       # Server can not talk with us - re-enroll.
       if e.code == 406:
         self.InitiateEnrolment()
+        return ""
+      else:
+        status.sent_count = 0
+        return str(e)
 
     except urllib2.URLError, e:
+      # Wait a bit to prevent expiring messages too quickly when aggressively
+      # polling
+      time.sleep(5)
       status.code = 500
+      status.sent_count = 0
+      self.consecutive_connection_errors += 1
+      if self.consecutive_connection_errors % PROXY_SCAN_ERROR_LIMIT == 0:
+        self.FindProxy()
+      return str(e)
 
     # Error path:
     status.sent_count = 0
@@ -301,7 +376,16 @@ class GRRHTTPContext(GRRContext):
       # Grab some messages to send
       message_list = self.Drain(max_size=FLAGS.max_post_size)
 
-      status = Status(sent_count=len(message_list.job))
+      sent_count = 0
+      high_priority_sent = 0
+      for message in message_list.job:
+        sent_count += 1
+
+        if message.priority >= jobs_pb2.GrrMessage.MEDIUM_PRIORITY:
+          high_priority_sent += 1
+
+      status = Status(sent_count=sent_count,
+                      high_priority_sent=high_priority_sent)
 
       # Make new encrypted ClientCommunication protobuf
       payload = jobs_pb2.ClientCommunication()
@@ -310,14 +394,25 @@ class GRRHTTPContext(GRRContext):
       # the input queue
       payload.queue_size = self.InQueueSize()
 
-      nonce = self.communicator.EncodeMessages(
-          message_list, payload)
+      nonce = self.communicator.EncodeMessages(message_list, payload)
 
       response = self.MakeRequest(payload.SerializeToString(), status)
 
       if status.code != 200:
-        logging.info("Could not connect to server at %s, status %s.",
-                     FLAGS.location, status.code)
+        logging.info("%s: Could not connect to server at %s, status %s (%s)",
+                     self.communicator.common_name,
+                     FLAGS.location, status.code, response)
+
+        # Reschedule the tasks back on the queue so they get retried next time.
+        messages = list(message_list.job)
+        messages.reverse()
+        for message in messages:
+          message.priority = jobs_pb2.GrrMessage.LOW_PRIORITY
+          message.ttl -= 1
+          if message.ttl > 0:
+            self.QueueResponse(message.SerializeToString(), jump_queue=True)
+          else:
+            logging.info("Dropped message due to retransmissions.")
         return status
 
       if not response:
@@ -354,8 +449,8 @@ class GRRHTTPContext(GRRContext):
 
     except Exception, e:
       # Catch everything, yes, this is terrible but necessary
-      logging.error("Uncaught exception caught. %s: %s",
-                    sys.exc_info()[0], e)
+      logging.warn("Uncaught exception caught. %s: %s",
+                   sys.exc_info()[0], e)
       status.code = 500
       if FLAGS.debug:
         pdb.post_mortem()
@@ -376,12 +471,17 @@ class GRRHTTPContext(GRRContext):
     while True:
       while self.communicator.server_name is None:
         self.GetServerCert()
+        if self.communicator.server_name:
+          # Everything went as expected - we don't need to return to
+          # the main loop (which would mean sleeping for a poll_time).
+          break
         yield Status()
 
       now = time.time()
       # Check with the foreman if we need to
       if now > self.last_foreman_check + FLAGS.foreman_check_frequency:
-        self.SendReply(jobs_pb2.DataBlob(), session_id="W:Foreman")
+        self.SendReply(jobs_pb2.DataBlob(), session_id="W:Foreman",
+                       priority=jobs_pb2.GrrMessage.LOW_PRIORITY)
         self.last_foreman_check = now
 
       status = self.RunOnce()
@@ -408,22 +508,33 @@ class GRRHTTPContext(GRRContext):
 
     After this function we will have valid keys which we can use.
     """
+    priority = jobs_pb2.GrrMessage.LOW_PRIORITY
+
     if not isinstance(self.communicator, EnrollingCommunicator):
       # Choose our enrolling communicator which will make new keys:
-      self.communicator = EnrollingCommunicator(
-          certificate=FLAGS.certificate,
-          )
+      new_communicator = EnrollingCommunicator(certificate=FLAGS.certificate)
+      if self.communicator:
+        new_communicator.LoadServerCertificate(
+            self.communicator.server_certificate,
+            self.communicator.ca_certificate)
+      self.communicator = new_communicator
 
-      # Send registration request:
-      self.SendReply(
-          jobs_pb2.Certificate(
-              type=jobs_pb2.Certificate.CSR,
-              pem=self.communicator.GetCSR()
-              ),
-          session_id="CA:Enrol")
+      # Send the first request with high priority
+      priority = jobs_pb2.GrrMessage.HIGH_PRIORITY
+
+    # Send registration request:
+    self.SendReply(
+        jobs_pb2.Certificate(type=jobs_pb2.Certificate.CSR,
+                             pem=self.communicator.GetCSR()),
+        priority=priority,
+        session_id="CA:Enrol")
 
   def StoreCert(self, cert):
     """Append the certificate received from the server to the cert store."""
+    if cert in FLAGS.certificate:
+      logging.debug("warning: tried to save a server cert twice.")
+      return
+
     FLAGS.certificate += cert
     conf.PARSER.UpdateConfig(["certificate"])
 
@@ -471,22 +582,33 @@ class PoolGRRHTTPContext(GRRHTTPContext):
 
     After this function we will have valid keys which we can use.
     """
+    priority = jobs_pb2.GrrMessage.LOW_PRIORITY
+
     if not isinstance(self.communicator, PoolEnrollingCommunicator):
       # Choose our enrolling communicator which will make new keys:
       self.communicator = PoolEnrollingCommunicator(self.cert_storage,
                                                     self.storage_id)
+      # Send the first request with high priority
+      priority = jobs_pb2.GrrMessage.HIGH_PRIORITY
 
-      # Send registration request:
-      self.SendReply(
-          jobs_pb2.Certificate(
-              type=jobs_pb2.Certificate.CSR,
-              pem=self.communicator.GetCSR()
-              ),
-          session_id="CA:Enrol")
+    # Send registration request:
+    self.SendReply(
+        jobs_pb2.Certificate(
+            type=jobs_pb2.Certificate.CSR,
+            pem=self.communicator.GetCSR()
+            ),
+        priority=priority,
+        session_id="CA:Enrol")
 
   def StoreCert(self, cert):
     """Append the certificate received from the server to the cert store."""
+    if cert in self.cert_storage[self.storage_id]:
+      logging.debug("warning: tried to save a server cert twice.")
+      return
+
     self.cert_storage[self.storage_id] += cert
+
+
 
 
 # The following GRRContext implementations implement process separation -
@@ -518,8 +640,8 @@ class SlaveContext(GRRContext, multiprocessing.Process):
         # Run the request
         self.HandleMessage(message)
       except Exception, e:
-        logging.error("Uncaught exception caught in slave. %s: %s",
-                      sys.exc_info()[0], e)
+        logging.warn("Uncaught exception caught in slave. %s: %s",
+                     sys.exc_info()[0], e)
         raise
 
   def HandleMessage(self, message):
@@ -569,7 +691,7 @@ class ProcessSeparatedContext(GRRHTTPContext):
     """Pass the message to the slave and wait for responses."""
     # If the slave has died restart it.
     if not self.slave.is_alive():
-      logging.error("Slave died - restarting")
+      logging.warn("Slave died - restarting")
       self.MakeSlave()
 
     # Handle special messages that cannot be sent to the child.
@@ -587,7 +709,7 @@ class ProcessSeparatedContext(GRRHTTPContext):
     while not self.pipe.poll():
       if not self.slave.is_alive():
         # Oops - whatever we did here caused the slave to crash
-        stats.STATS.grr_client_slave_restarts += 1
+        stats.STATS.Increment("grr_client_slave_restarts")
         self.slave.SendReply(
             jobs_pb2.GrrStatus(
                 status=jobs_pb2.GrrStatus.GENERIC_ERROR,
@@ -650,28 +772,35 @@ class ClientCommunicator(communicator.Communicator):
 
       # Make sure that the serial number is higher.
       server_cert_serial = server_cert.get_serial_number()
-      if server_cert_serial < FLAGS.server_serial_number:
+
+      if server_cert_serial < long(FLAGS.server_serial_number):
         # We can not accept this serial number...
         raise IOError("Server cert is too old.")
-      elif server_cert_serial > FLAGS.server_serial_number:
+      elif server_cert_serial > long(FLAGS.server_serial_number):
         logging.info("Server serial number updated to %s", server_cert_serial)
-        FLAGS.server_serial_number = server_cert_serial
+        FLAGS.server_serial_number = long(server_cert_serial)
         try:
           conf.PARSER.UpdateConfig(["server_serial_number"])
-        except IOError: pass
+        except (IOError, OSError):
+          pass
 
     except X509.X509Error:
       raise IOError("Server cert is invalid.")
 
-    self.server_name = self._GetCNFromCert(server_cert)
+    self.server_name = self.pub_key_cache.GetCNFromCert(server_cert)
+    self.server_certificate = server_certificate
+    self.ca_certificate = ca_certificate
 
-    # We need to store the serialised verion of the public key due
+    # We need to store the serialised version of the public key due
     # to M2Crypto memory referencing bugs
-    pub_key = server_cert.get_pubkey().get_rsa()
-    bio = BIO.MemoryBuffer()
-    pub_key.save_pub_key_bio(bio)
+    self.pub_key_cache.Put(
+        self.server_name, self.pub_key_cache.PubKeyFromCert(server_cert))
 
-    self.pub_key_cache.Put(self.server_name, bio.read_all())
+  def EncodeMessages(self, message_list, result, **kwargs):
+    # Force the right API to be used
+    kwargs["api_version"] = client_config.NETWORK_API
+    return  super(ClientCommunicator, self).EncodeMessages(
+        message_list, result, **kwargs)
 
 
 class EnrollingCommunicator(ClientCommunicator):
@@ -726,7 +855,10 @@ class EnrollingCommunicator(ClientCommunicator):
     self.private_key = bio.read_all()
 
     FLAGS.certificate = self.private_key
-    conf.PARSER.UpdateConfig(["certificate"])
+    try:
+      conf.PARSER.UpdateConfig(["certificate"])
+    except (IOError, OSError):
+      pass
 
 
 class PoolEnrollingCommunicator(EnrollingCommunicator):
@@ -734,10 +866,10 @@ class PoolEnrollingCommunicator(EnrollingCommunicator):
 
   def __init__(self, cert_storage, storage_id):
     """Creates a communicator."""
-    self.pub_key_cache = utils.FastStore(100)
     self.cert_storage = cert_storage
     self.storage_id = storage_id
-    self._LoadOurCertificate(self.cert_storage[self.storage_id])
+    super(PoolEnrollingCommunicator, self).__init__(
+        self.cert_storage[self.storage_id])
 
   def SavePrivateKey(self, pkey):
     """Store the new private key in the cert storage."""

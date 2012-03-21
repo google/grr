@@ -16,14 +16,20 @@
 
 """This module contains base classes for different kind of renderers."""
 
+import copy
 import csv
+import functools
 import json
+import os
 import re
 import StringIO
+import traceback
 
 
 from django import http
 from django import template
+
+import logging
 
 from grr.lib import aff4
 from grr.lib import registry
@@ -35,10 +41,36 @@ COUNTER = 1
 # Maximum size of tables that can be downloaded
 MAX_ROW_LIMIT = 1000000
 
+
+class Template(template.Template):
+  """A specialized template which supports concatenation."""
+
+  def __init__(self, template_string):
+    self.template_string = template_string
+    super(Template, self).__init__(template_string)
+
+  def Copy(self):
+    return Template(self.template_string)
+
+  def __str__(self):
+    return self.template_string
+
+  def __add__(self, other):
+    """Support concatenation."""
+    return Template(self.template_string + utils.SmartStr(other))
+
+  def __radd__(self, other):
+    """Support concatenation."""
+    return Template(utils.SmartStr(other) + self.template_string)
+
+
 class RDFValueColumn(object):
   """A column holds a bunch of cell values which are RDFValue instances."""
 
-  def __init__(self, name, header=None, renderer=None, sortable=False):
+  width = None
+
+  def __init__(self, name, header=None, renderer=None, sortable=False,
+               width=None):
     """Constructor.
 
     Args:
@@ -53,9 +85,11 @@ class RDFValueColumn(object):
        is None - meaning it will be automatically calculated.
 
      sortable: Should this column be sortable.
+     width: The ratio (in percent) of this column relative to the table width.
     """
     self.name = name
     self.header = header
+    self.width = width
     self.renderer = renderer
     self.sortable = sortable
     # This stores all Elements on this column. The column may be
@@ -67,16 +101,18 @@ class RDFValueColumn(object):
       try:
         self.header.Layout(request, response)
       except AttributeError:
-        response.write(str(self.header))
+        response.write(utils.SmartStr(self.header))
     else:
-      response.write(str(self.name))
+      response.write(utils.SmartStr(self.name))
 
   def AddElement(self, index, element):
     self.rows[index] = element
 
-  def RenderRow(self, index):
+  def RenderRow(self, index, request, row_options=None):
     """Render the RDFValue stored at the specific index."""
     value = self.rows.get(index, "")
+    if row_options is not None:
+      row_options["row_id"] = index
 
     renderer = self.renderer
     if renderer is None:
@@ -86,9 +122,9 @@ class RDFValueColumn(object):
 
     # Intantiate the renderer and return the HTML
     if renderer:
-      return renderer(value).RawHTML()
+      return renderer(value).RawHTML(request)
     else:
-      return str(value)
+      return utils.SmartStr(value)
 
 
 class AttributeColumn(RDFValueColumn):
@@ -115,8 +151,20 @@ class Renderer(object):
   # The following should be set for renderers that should be visible from the
   # main menu. Note- this does not allow inheritance - must be set for each
   # class that should be visible.
-  category = None
   description = None
+
+  # This property is used in GUIs to define behaviours. These can take arbitrary
+  # values as needed. Behaviours are read only and set in the class definition.
+  # For example "Host" behaviours represent a top level Host specific action
+  # (appears in the host menu), while "General" represents a top level General
+  # renderer (appears in the General menu).
+  behaviours = frozenset()
+
+  # Each widget maintains its own state.
+  state = None
+
+  def __init__(self):
+    self.state = {}
 
   def RenderAjax(self, request, response):
     """Responds to an AJAX request.
@@ -143,8 +191,16 @@ class Renderer(object):
     Returns:
       HTML to insert into the DOM.
     """
-    self.id = request.REQ.get("id", hash(self))
+    if request:
+      self.id = request.REQ.get("id", hash(self))
+    else:
+      self.id = 0
+
     self.unique = GetNextId()
+
+    # Make the encoded state available for our template.
+    encoder = json.JSONEncoder()
+    self.state_json = encoder.encode(self.state)
 
     return response
 
@@ -154,12 +210,18 @@ class Renderer(object):
     Args:
        template_obj: The template object to use.
        response: A HttpResponse object
-       kwargs: Arguments to be expanded into the template.
+       **kwargs: Arguments to be expanded into the template.
 
     Returns:
        the same response object we got.
+
+    Raises:
+       RuntimeError: if the template is not an instance of Template.
     """
     context = template.Context(kwargs)
+    if not isinstance(template_obj, Template):
+      raise RuntimeError("template must be an instance of Template")
+
     response.write(template_obj.render(context))
     return response
 
@@ -170,11 +232,65 @@ class Renderer(object):
   def FormatFromString(self, string, **kwargs):
     """Returns a http response from a dynamically compiled template."""
     result = http.HttpResponse(mimetype="text/html")
-    template_obj = template.Template(string)
+    template_obj = Template(string)
     return self.RenderFromTemplate(template_obj, result, **kwargs)
 
 
-class TableRenderer(Renderer):
+class ErrorHandler(Renderer):
+  """An error handler decorator which can be applied on individual methods."""
+
+  message_template = Template("""
+<script>
+  grr.publish("grr_messages", "Error: {{error|escapejs}}");
+  grr.publish("grr_traceback", "Error: {{backtrace|escapejs}}");
+</script>
+""")
+
+  def __init__(self, message_template=None, status_code=503):
+    super(ErrorHandler, self).__init__()
+    self.status_code = status_code
+    if message_template is not None:
+      self.message_template = message_template
+
+  def __call__(self, func):
+
+    @functools.wraps(func)
+    def Decorated(*args, **kwargs):
+      try:
+        return func(*args, **kwargs)
+      except Exception, e:
+        logging.error(e)
+        if not isinstance(self.message_template, Template):
+          self.message_template = Template(self.message_template)
+
+        response = self.FormatFromString(self.message_template, error=e,
+                                         backtrace=traceback.format_exc())
+        response.status_code = self.status_code
+
+        return response
+
+    return Decorated
+
+
+class TemplateRenderer(Renderer):
+  """A simple renderer for fixed templates.
+
+  The parameter 'this' is passed to the template as our reference.
+  """
+  # Derived classes should set this template
+  layout_template = Template("")
+
+  def Layout(self, request, response, apply_template=None):
+    response = super(TemplateRenderer, self).Layout(request, response)
+    if apply_template is None:
+      apply_template = self.layout_template
+
+    return self.RenderFromTemplate(apply_template, response,
+                                   this=self, id=self.id, unique=self.unique,
+                                   renderer=self.__class__.__name__)
+
+
+class TableRenderer(TemplateRenderer):
   """A renderer for tables.
 
   In order to have a table rendered, it is only needed to subclass
@@ -185,6 +301,7 @@ class TableRenderer(Renderer):
   # We receive change path events from this queue
   event_queue = "tree_select"
   table_options = {}
+  message = ""
 
   def __init__(self):
     # A list of columns
@@ -194,8 +311,9 @@ class TableRenderer(Renderer):
     self.size = 0
     self.message = ""
     # Make a copy of the table options so they can be mutated.
-    self.table_options = self.table_options.copy()
+    self.table_options = copy.deepcopy(self.table_options)
     self.table_options["iDisplayLength"] = 50
+    self.table_options["aLengthMenu"] = [10, 50, 100, 200, 1000]
 
     super(TableRenderer, self).__init__()
 
@@ -218,10 +336,20 @@ class TableRenderer(Renderer):
     for k, v in row_dict.iteritems():
       try:
         self.column_dict[k].AddElement(row_index, v)
-      except KeyError: pass
+      except KeyError:
+        pass
 
     row_index += 1
     self.size = max(self.size, row_index)
+
+  def AddRowFromFd(self, index, fd):
+    """Adds the row from an AFF4 object."""
+    for column in self.columns:
+      # This sets AttributeColumns directly from their fd.
+      try:
+        column.AddRowFromFd(index, fd)
+      except AttributeError:
+        pass
 
   def AddCell(self, row_index, column_name, value):
     if row_index is None:
@@ -229,39 +357,67 @@ class TableRenderer(Renderer):
 
     try:
       self.column_dict[column_name].AddElement(row_index, value)
-    except KeyError: pass
+    except KeyError:
+      pass
 
     self.size = max(self.size, row_index)
 
-  # This is the data table sDom parameter to control table formatting.
-  format = template.Template("""<"H"lrp><"TableBody"t><"F">""")
-
-  table_template = template.Template("""
-<div id="toolbar_{{unique}}" class="toolbar"></div>
-<div class="tableWrapper" id="table_wrapper_{{unique}}">
-<table id="table_{{ unique }}" class="table">
-    <thead>
-      {% autoescape off %}
-<tr> {{ headers }} </tr>
-      {% endautoescape %}
+  # The following should be safe: {{this.headers}} comes from the column's
+  # LayoutHeader().
+  layout_template = Template("""
+<div class="tableContainer" id="{{unique|escape}}">
+<table id="table_{{ id|escape }}" class="scrollTable">
+    <thead class="fixedHeader">
+<tr> {{ this.headers|safe }} </tr>
     </thead>
-    <tbody>
+    <tbody id="body_{{id|escape}}" class="scrollContent">
+      <tr class="even">
+        <td id="{{unique|escape}}" colspan="200" class="table_loading">
+          Loading...
+        </td>
+      </tr>
     </tbody>
 </table>
 </div>
 <script>
-  grr.grrTable("{{ renderer|escapejs }}",
-               "{{ id|escapejs }}",
-               "{{ format|escapejs }}", grr.state,
-      {% autoescape off %}
-               {{ options }});
-      {% endautoescape %}
+  grr.table.newTable("{{renderer|escapejs}}", "table_{{id|escapejs}}",
+    "{{unique|escapejs}}", {{this.state_json|safe}});
 
-  grr.subscribe("GeometryChange", function () {
-    grr.fixHeight($("#table_wrapper_{{unique}}"));
-    $(".TableBody").each(function () {grr.fixHeight($(this))});
-  }, "table_{{unique}}");
+  grr.subscribe("GeometryChange", function (id) {
+    if (id == "{{id|escapejs}}") {
+      grr.fixHeight($("#table_wrapper_{{unique|escapejs}}"));
+      $("#{{id|escapejs}}").find(".TableBody").each(function () {
+         grr.fixHeight($(this));
+      });
+    };
+  }, "{{unique|escapejs}}");
 
+  grr.publish("grr_messages", "{{this.message|escapejs}}");
+</script>
+""")
+
+  # Renders the inside of the tbody.
+  ajax_template = Template("""
+{% for row, row_options in this.rows %}
+<tr
+ {% for option, value in row_options %}
+   {{option|safe}}='{{value|escape}}'
+ {% endfor %} >
+ {% for cell in row %}
+   <td>{{cell|safe}}</td>
+ {% endfor %}
+</tr>
+{% endfor %}
+{% if this.additional_rows %}
+<tr>
+  <td id="{{unique|escape}}" colspan="200" class="table_loading">
+    Loading...
+  </td>
+</tr>
+{% endif %}
+<script>
+  grr.publish("GeometryChange", "main");
+  grr.publish("grr_messages", "{{this.message|escapejs}}");
 </script>
 """)
 
@@ -275,30 +431,30 @@ class TableRenderer(Renderer):
     Returns:
       HTML to insert into the DOM.
     """
-    response = super(TableRenderer, self).Layout(request, response)
-
-    self.table_options = self.table_options.copy()
+    self.table_options = copy.deepcopy(self.table_options)
     self.table_options.setdefault("aoColumnDefs", []).append(
         {"bSortable": False,
          "aTargets": [i for i, c in enumerate(self.columns) if not c.sortable]})
 
     self.table_options["sTableId"] = GetNextId()
 
-    headers = http.HttpResponse(mimetype="text/html")
+    # Make up the headers by interpolating the column headers
+    headers = StringIO.StringIO()
     for i in self.columns:
+      opts = ""
+      if i.width is not None:
+        opts += "header_width='%s' " % i.width
+
+      if i.sortable:
+        opts += "sortable=1 "
+
       # Ask each column to draw itself
-      headers.write("<th>")
+      headers.write("<th %s >" % opts)
       i.LayoutHeader(request, headers)
       headers.write("</th>")
 
-    encoder = json.JSONEncoder()
-    return self.RenderFromTemplate(
-        self.table_template, response,
-        headers=headers.content,
-        unique=self.unique, format=self.format.render(
-            template.Context(dict(unique=self.unique))),
-        options=encoder.encode(self.table_options),
-        id=self.id, renderer=self.__class__.__name__)
+    self.headers = headers.getvalue()
+    return super(TableRenderer, self).Layout(request, response)
 
   def BuildTable(self, start_row, end_row, request):
     """Populate the table between the start and end rows.
@@ -311,6 +467,8 @@ class TableRenderer(Renderer):
       request: The request object.
     """
 
+  # Do not trigger an error on the browser.
+  @ErrorHandler(status_code=200)
   def RenderAjax(self, request, response):
     """Responds to an AJAX request.
 
@@ -321,28 +479,26 @@ class TableRenderer(Renderer):
     Returns:
       JSON encoded parameters as expected by the javascript widget.
     """
-    super(TableRenderer, self).RenderAjax(request, response)
+    start_row = int(request.REQ.get("start_row", 0))
+    limit_row = int(request.REQ.get("length", 50))
 
-    start_row = int(request.REQ.get("iDisplayStart", 0))
-    limit_row = int(request.REQ.get("iDisplayLength", 10))
+    # The limit_row is merely a suggestion for the BuildTable method, but if
+    # the BuildTable method wants to render more we can render more here.
+    end_row = self.BuildTable(start_row, limit_row + start_row, request)
+    if not end_row: end_row = min(start_row + limit_row, self.size)
 
-    try:
-      self.BuildTable(start_row, limit_row + start_row, request)
-    except Exception, e:
-      self.message = str(e)
+    self.rows = []
+    for index in xrange(start_row, end_row):
+      row_options = {}
+      row = []
+      for c in self.columns:
+        row.append(utils.SmartStr(c.RenderRow(index, request, row_options)))
 
-    response = dict(sEcho=request.REQ.get("sEcho", 0),
-                    message=self.message,
-                    aaData=[],
-                    iTotalDisplayRecords=self.size,
-                    iTotalRecords=self.size)
+      self.rows.append((row, row_options.items()))
 
-    for index in xrange(start_row, min(start_row+limit_row, self.size)):
-      response["aaData"].append([str(c.RenderRow(index)) for c in self.columns])
-
-    encoder = json.JSONEncoder()
-    return http.HttpResponse(encoder.encode(response),
-                             mimetype="application/json")
+    self.additional_rows = self.size > end_row
+    return super(TableRenderer, self).Layout(request, response,
+                                             apply_template=self.ajax_template)
 
   def Download(self, request, _):
     """Export the table in CSV.
@@ -362,6 +518,7 @@ class TableRenderer(Renderer):
       return re.sub("(?ims)<[^>]+>", "", utils.SmartStr(string)).strip()
 
     def Generator():
+      """Generates the CSV for streaming."""
       fd = StringIO.StringIO()
       writer = csv.writer(fd)
 
@@ -375,7 +532,8 @@ class TableRenderer(Renderer):
           yield fd.getvalue()
           fd.truncate(0)
 
-        writer.writerow([RemoveTags(c.RenderRow(i)) for c in self.columns])
+        writer.writerow(
+            [RemoveTags(c.RenderRow(i, request)) for c in self.columns])
 
       # The last chunk
       yield fd.getvalue()
@@ -389,91 +547,168 @@ class TableRenderer(Renderer):
     return response
 
 
-class TreeRenderer(Renderer):
+class TreeRenderer(TemplateRenderer):
   """An abstract Renderer to support a navigation tree."""
 
   publish_select_queue = "tree_select"
 
-  # This state object will be updated (Default global state).
-  state = "grr.state"
-
-  renderer_template = template.Template("""
+  layout_template = Template("""
 <script>
-grr.grrTree("{{ renderer }}", "{{ id }}",
-            "{{ publish_select_queue }}", {{ state|escapejs }});
+grr.grrTree("{{ renderer|escapejs }}", "{{ id|escapejs }}",
+            "{{ this.publish_select_queue|escapejs }}",
+            {{ this.state_json|safe }});
 </script>""")
 
   def Layout(self, request, response):
-    response = super(TreeRenderer, self).Layout(request, response)
+    return super(TreeRenderer, self).Layout(request, response)
 
-    return self.RenderFromTemplate(
-        self.renderer_template, response,
-        publish_select_queue=self.publish_select_queue,
-        id=self.id, state=self.state,
-        renderer=self.__class__.__name__)
+  def RenderAjax(self, request, response):
+    """Render the tree leafs for the tree path."""
+    response = super(TreeRenderer, self).RenderAjax(request, response)
+    self.message = ""
+    result = []
+    self._elements = []
+    self._element_index = set()
+
+    path = request.REQ.get("path", "")
+
+    # All derived classes to populate the branch
+    self.RenderBranch(path, request)
+    for name, icon, behaviour in self._elements:
+      if name:
+        fullpath = os.path.join(path, name)
+        data = dict(data=dict(title=name, icon=icon),
+                    attr=dict(id=DeriveIDFromPath(fullpath),
+                              path=fullpath))
+        if behaviour == "branch":
+          data["state"] = "closed"
+
+        result.append(data)
+
+    encoder = json.JSONEncoder()
+    return http.HttpResponse(encoder.encode(dict(
+        data=result, message=self.message, id=self.id)),
+                             mimetype="application/json")
+
+  def AddElement(self, name, behaviour="branch", icon=None):
+    """This should be called by the RenderBranch method to prepare the tree."""
+    if icon is None:
+      icon = behaviour
+
+    self._elements.append((name, icon, behaviour))
+    self._element_index.add(name)
+
+  def __contains__(self, other):
+    return other in self._element_index
+
+  def RenderBranch(self, path, request):
+    """A generator of branch elements.
+
+    Should be overridden by derived classes. This method is called once to
+    render the branch. It is expected to call AddElement() repeatadly to build
+    the tree.
+
+    Args:
+      path: The path to list in the tree.
+      request: The request object.
+    """
 
 
-class TabLayout(Renderer):
+class TabLayout(TemplateRenderer):
   """This renderer creates a set of tabs containing other renderers."""
+  # The hash component that will be used to remember which tab we have open.
+  tab_hash = "tab"
+
+  # The name of the delegated renderer that will be used by default (None is the
+  # first one).
+  selected = None
 
   names = []
-  renderers = []
+  delegated_renderers = []
 
-  # These are pre-compiled templates
-  layout_template = template.Template("""
-<div id="tab_container_{{ unique }}">
-<ul>
- {% for child, name in indexes %}
-  <li>
-   <a tab_name="{{name}}"
-    href="render/Layout/{{ child }}?tab=tab_container_{{unique}}">
-   <span>{{ name }}</span></a>
+  # Note that we do not use jquery-ui tabs here because there is no way to hook
+  # a post rendering function so we can resize the canvas. We implement our own
+  # tabs here from scratch.
+  layout_template = Template("""
+<div class="ui-tabs ui-widget ui-widget-content ui-corner-all">
+<ul id="{{unique|escape}}" class="ui-tabs-nav ui-helper-reset ui-helper-clearfix
+  ui-widget-header ui-corner-all">
+ {% for child, name in this.indexes %}
+  <li class="ui-state-default ui-corner-top">
+   <a id="{{name|escape}}" renderer="{{ child|escape }}">
+   <span>{{ name|escape }}</span></a>
   </li>
  {% endfor %}
 </ul>
+<div id="tab_contents_{{unique|escape}}" class="ui-tabs-panel
+   ui-widget-content ui-corner-bottom">
 </div>
-
+</div>
 <script>
-  $("#tab_container_{{ unique }}").tabs({
-    ajaxOptions: {
-      data: grr.state,
-      type: grr.ajax_method,
-    },
-  }).bind('tabsselect', function (event, ui) {
-    grr.state.selected_tab = ui.tab.attributes.tab_name.nodeValue;
-  }).tabs("select", {{ select }});
+  // Store the state of this widget.
+  $("#{{unique|escapejs}}").data().state = {{this.state_json|safe}};
 
-  //Fix up the height of the tab containers.
-  grr.subscribe("GeometryChange", function () {
-    $(".ui-tabs-panel").each(function() {
-     grr.fixHeight($(this));
-    });
-  }, "tab_container_{{ unique }}");
+  // Add click handlers to switch tabs.
+  $("#{{unique|escapejs}} li a").click(function () {
+    if($(this).hasClass("ui-state-disabled")) return false;
+
+    var renderer = this.attributes["renderer"].value;
+
+    grr.publish("hash_state", "{{this.tab_hash|escapejs}}", renderer);
+
+    // Make a new div to accept the content of the tab rather than drawing
+    // directly on the content area. This prevents spurious drawings due to
+    // latent ajax calls.
+    $("#tab_contents_{{unique|escapejs}}").html(
+       '<div id="' + renderer + '_{{unique|escapejs}}">')
+
+    // We append the state of this widget which is stored on the unique element.
+    grr.layout(renderer, renderer + "_{{unique|escapejs}}",
+       $("#{{unique|escapejs}}").data().state, function() {
+         grr.publish("GeometryChange", "{{id|escapejs}}");
+       });
+
+    // Clear previously selected tab.
+    $("#{{unique|escapejs}}").find("li").removeClass(
+       "ui-tabs-selected ui-state-active");
+
+    // Select the new one.
+    $(this).parent().addClass("ui-tabs-selected ui-state-active");
+  });
+
+  //Fix up the height of the tab container when our height changes.
+  grr.subscribe("GeometryChange", function (id) {
+    if(id == "{{id|escapejs}}") {
+      grr.fixHeight($("#tab_contents_{{unique|escapejs}}"));
+      grr.fixHeight($("#tab_contents_{{unique|escapejs}} > div"));
+
+      // Propagate the signal along.
+      $("#tab_contents_{{unique|escapejs}} > div").each(function () {
+         var id = this.attributes["id"].value;
+         grr.publish("GeometryChange", id);
+      });
+    };
+   }, "tab_contents_{{unique|escapejs}}");
+
+ // Select the first tab at first.
+ var selected = grr.hash.{{this.tab_hash|safe}} || "{{this.selected|escapejs}}";
+ $($("#{{unique|escapejs}} li a[renderer='" + selected + "']")).click();
 </script>
 
 """)
 
   def Layout(self, request, response):
     """Render the content of the tab or the container tabset."""
-    response = super(TabLayout, self).Layout(request, response)
+    if not self.selected:
+      self.selected = self.delegated_renderers[0]
 
-    selected_tab = request.REQ.get("selected_tab")
-    try:
-      selected = self.names.index(selected_tab)
-    except ValueError:
-      selected = 0
+    self.indexes = [(self.delegated_renderers[i], self.names[i])
+                    for i in range(len(self.names))]
 
-    indexes = [(self.renderers[i], self.names[i])
-               for i in range(len(self.names))]
-
-    return self.RenderFromTemplate(
-        self.layout_template,
-        response, path=request.path, id=self.id,
-        unique=self.unique, select=selected, indexes=indexes
-        )
+    return super(TabLayout, self).Layout(request, response)
 
 
-class Splitter(Renderer):
+class Splitter(TemplateRenderer):
   """A renderer to achieve a three paned view with a splitter.
 
   There is a left pane dividing the screen into half horizontally, and
@@ -496,14 +731,14 @@ class Splitter(Renderer):
 
   # This ensures that many Splitters can be placed in the same page by
   # making ids unique.
-  splitter_template = template.Template("""
-      <div id="{{id|escapejs}}_leftPane" class="leftPane"></div>
-      <div id="{{id|escapejs}}_rightPane" class="rightPane">
-        <div id="{{ id|escapejs }}_rightSplitterContainer"
+  layout_template = Template("""
+      <div id="{{id|escape}}_leftPane" class="leftPane"></div>
+      <div id="{{id|escape}}_rightPane" class="rightPane">
+        <div id="{{ id|escape }}_rightSplitterContainer"
          class="rightSplitterContainer">
-          <div id="{{id|escapejs}}_rightTopPane"
+          <div id="{{id|escape}}_rightTopPane"
            class="rightTopPane"></div>
-          <div id="{{id|escapejs}}_rightBottomPane"
+          <div id="{{id|escape}}_rightBottomPane"
            class="rightBottomPane"></div>
         </div>
       </div>
@@ -515,67 +750,99 @@ class Splitter(Renderer):
               splitVertical: true,
               A: $('#{{id|escapejs}}_leftPane'),
               B: $('#{{id|escapejs}}_rightPane'),
-              slave: $("#{{id|escapejs}}_rightSplitterContainer"),
+              animSpeed: 50,
               closeableto: 0})
-          .bind("resize", function () {grr.publish("GeometryChange");});
+          .bind("resize", function (event) {
+            grr.publish("DelayedResize", "{{id|escapejs}}_leftPane");
+            event.stopPropagation();
+           });
 
       $("#{{id|escapejs}}_rightSplitterContainer")
           .splitter({
               splitHorizontal: true,
               A: $('#{{id|escapejs}}_rightTopPane'),
               B: $('#{{id|escapejs}}_rightBottomPane'),
-              closeableto: 100});
+              animSpeed: 50,
+              closeableto: 100})
+          .bind("resize", function (event) {
+            grr.publish("DelayedResize", "{{id|escapejs}}_rightTopPane");
+            grr.publish("DelayedResize", "{{id|escapejs}}_rightBottomPane");
+            event.stopPropagation();
+           }).resize();
 
-grr.layout("{{ left_renderer }}", "{{id|escapejs}}_leftPane");
-grr.layout("{{ top_right_renderer }}", "{{id|escapejs}}_rightTopPane");
-grr.layout("{{ bottom_right_renderer }}", "{{id|escapejs}}_rightBottomPane");
+// Pass our state to our children.
+var state = $.extend({}, grr.state, {{this.state_json|safe}});
+
+grr.layout("{{this.left_renderer|escapejs}}", "{{id|escapejs}}_leftPane",
+           state);
+grr.layout("{{ this.top_right_renderer|escapejs }}",
+           "{{id|escapejs}}_rightTopPane", state);
+grr.layout("{{ this.bottom_right_renderer|escapejs }}",
+           "{{id|escapejs}}_rightBottomPane", state);
 </script>
 """)
 
-  def Layout(self, request, response):
-    response = super(Splitter, self).Layout(request, response)
 
-    return self.RenderFromTemplate(
-        self.splitter_template,
-        response,
-        id=self.id,
-        left_renderer=self.left_renderer,
-        top_right_renderer=self.top_right_renderer,
-        bottom_right_renderer=self.bottom_right_renderer)
-
-
-class Splitter2Way(Splitter):
+class Splitter2Way(TemplateRenderer):
   """A two way top/bottom Splitter."""
   top_renderer = ""
   bottom_renderer = ""
 
-  splitter_template = template.Template("""
-      <div id="{{id|escapejs}}_topPane" class="rightTopPane"></div>
-      <div id="{{id|escapejs}}_bottomPane" class="rightBottomPane"></div>
+  layout_template = Template("""
+      <div id="{{id|escape}}_topPane" class="rightTopPane"></div>
+      <div id="{{id|escape}}_bottomPane" class="rightBottomPane"></div>
 <script>
       $("#{{id|escapejs}}")
           .splitter({
               splitHorizontal: true,
               A: $('#{{id|escapejs}}_topPane'),
               B: $('#{{id|escapejs}}_bottomPane'),
+              animSpeed: 50,
               closeableto: 100})
-          .bind("resize", function () {grr.publish("GeometryChange");});
+          .bind("resize", function (event) {
+            grr.publish("DelayedResize", "{{id|escapejs}}_topPane");
+            grr.publish("DelayedResize", "{{id|escapejs}}_bottomPane");
+            event.stopPropagation();
+          }).resize();
 
-grr.layout("{{ top_renderer }}", "{{id|escapejs}}_topPane");
-grr.layout("{{ bottom_renderer }}", "{{id|escapejs}}_bottomPane");
+var state = $.extend({}, grr.state, {{this.state_json|safe}});
+
+grr.layout("{{this.top_renderer|escapejs }}", "{{id|escapejs}}_topPane",
+           state);
+grr.layout("{{this.bottom_renderer|escapejs }}", "{{id|escapejs}}_bottomPane",
+           state);
 </script>
 """)
 
-  def Layout(self, request, response):
-    """Layout the two way splitter into the correct container."""
-    response = Renderer.Layout(self, request, response)
 
-    return self.RenderFromTemplate(
-        self.splitter_template,
-        response,
-        id=self.id,
-        top_renderer=self.top_renderer,
-        bottom_renderer=self.bottom_renderer)
+class Splitter2WayVertical(TemplateRenderer):
+  """A two way left/right Splitter."""
+  left_renderer = ""
+  right_renderer = ""
+
+  layout_template = Template("""
+      <div id="{{id|escape}}_leftPane" class="leftPane"></div>
+      <div id="{{id|escape}}_rightPane" class="rightPane"></div>
+<script>
+      $("#{{id|escapejs}}")
+          .splitter({
+              minAsize: 100,
+              maxAsize: 3000,
+              splitVertical: true,
+              A: $('#{{id|escapejs}}_leftPane'),
+              B: $('#{{id|escapejs}}_rightPane'),
+              animSpeed: 50,
+              closeableto: 0})
+          .bind("resize", function (event) {
+            grr.publish("DelayedResize", "{{id|escapejs}}_leftPane");
+            grr.publish("DelayedResize", "{{id|escapejs}}_rightPane");
+            event.stopPropagation();
+           }).resize();
+
+grr.layout("{{ this.left_renderer|escapejs }}", "{{id|escapejs}}_leftPane");
+grr.layout("{{ this.right_renderer|escapejs }}", "{{id|escapejs}}_rightPane");
+</script>
+""")
 
 
 class TextInput(Renderer):
@@ -588,47 +855,28 @@ class TextInput(Renderer):
   name = ""
   publish_queue = ""
 
-  template = template.Template("""
+  template = Template("""
 <div class="GrrSearch">
-{{ text }}<br>
-<input type="text" name="{{ name }}" id="{{ id }}_text"></input></div>
+{{ text|escape }}<br>
+<input type="text" name="{{this.name|escape}}"
+  id="{{unique|escape}}"></input></div>
 <script>
-   grr.installEventsForText("{{ id|escapejs }}_text",
-                            "{{ queue_name|escapejs }}");
+   grr.installEventsForText("{{unique|escapejs}}",
+                            "{{this.publish_queue|escapejs}}");
 </script>
 """)
 
-  def Layout(self, request, response):
-    """Display a search screen for the host."""
-    response = super(TextInput, self).Layout(request, response)
 
-    return self.RenderFromTemplate(
-        self.template, response,
-        id=str(self.id) + self.name,
-        name=self.name,
-        queue_name=self.publish_queue,
-        text=self.text)
-
-
-class Button(Renderer):
+class Button(TemplateRenderer):
   """A Renderer for a button."""
   text = "A button"
 
-  template = template.Template("""
-<button id="{{ id }}_button">{{ text }}</button>
+  template = Template("""
+<button id="{{ unique|escape }}_button">{{ this.text|escape }}</button>
 <script>
- $('#{{ id }}_button').button()
+ $('#{{ unique|escape }}_button').button()
 </script>
 """)
-
-  def Layout(self, request, response):
-    """Display a search screen for the host."""
-    response = super(Button, self).Layout(request, response)
-
-    return self.RenderFromTemplate(
-        self.template, response,
-        id=self.id,
-        text=self.text)
 
 
 def GetNextId():
@@ -638,11 +886,15 @@ def GetNextId():
   return COUNTER
 
 
-class RDFValueRenderer(Renderer):
+class RDFValueRenderer(TemplateRenderer):
   """These are abstract classes for rendering RDFValues."""
 
   # This specifies the name of the RDFValue object we will render.
   ClassName = ""
+
+  layout_template = Template("""
+{{this.proxy|escape}}
+""")
 
   def __init__(self, proxy):
     """Constructor.
@@ -652,17 +904,17 @@ class RDFValueRenderer(Renderer):
     Args:
       proxy: The RDFValue class we delegate.
     """
-    super(RDFValueRenderer, self).__init__()
     self.proxy = proxy
-
-  def Layout(self, _, response):
-    """Render ourselves into the response."""
-    return response.write(str(self.proxy))
+    super(RDFValueRenderer, self).__init__()
 
   def RawHTML(self, request=None):
     """This returns raw HTML, after sanitization by Layout()."""
     result = http.HttpResponse(mimetype="text/html")
-    self.Layout(request, result)
+    try:
+      self.Layout(request, result)
+    except AttributeError:
+      # This can happen when a empty protobuf field is rendered
+      return ""
 
     return result.content
 
@@ -679,13 +931,9 @@ class SubjectRenderer(RDFValueRenderer):
   """A special renderer for Subject columns."""
   ClassName = "Subject"
 
-  subject_template = template.Template("""
-<span type=subject>{{subject}}</span>
+  layout_template = Template("""
+<span type=subject>{{this.proxy|escape}}</span>
 """)
-
-  def Layout(self, _, response):
-    return self.RenderFromTemplate(self.subject_template, response,
-                                   subject=self.proxy)
 
 
 class RDFProtoRenderer(RDFValueRenderer):
@@ -704,15 +952,14 @@ class RDFProtoRenderer(RDFValueRenderer):
   # The field which holds the protobuf
   proxy_field = "data"
 
-  proto_template = template.Template("""
+  # {{value}} comes from the translator so its assumed to be safe.
+  layout_template = Template("""
 <table class='proto_table'>
 <tbody>
-{% for key, value in data %}
+{% for key, value in this.result %}
 <tr>
-<td class="proto_key">{{key}}</td><td class="proto_value">
-{% autoescape off %}
-{{value}}
-{% endautoescape %}
+<td class="proto_key">{{key|escape}}</td><td class="proto_value">
+{{value|safe}}
 </td>
 </tr>
 {% endfor %}
@@ -723,11 +970,13 @@ class RDFProtoRenderer(RDFValueRenderer):
   # This is a translation dispatcher for rendering special fields.
   translator = None
 
+  translator_error_template = Template("<pre>{{value|escape}}</pre>")
+
   def Ignore(self, unused_descriptor, unused_value):
     """A handler for ignoring a value."""
     return None
 
-  time_template = template.Template("{{value}}")
+  time_template = Template("{{value|escape}}")
 
   def Time(self, _, value):
     return self.FormatFromTemplate(self.time_template,
@@ -737,7 +986,7 @@ class RDFProtoRenderer(RDFValueRenderer):
     return self.FormatFromTemplate(self.time_template,
                                    value=aff4.RDFDatetime(value*1000000))
 
-  pre_template = template.Template("<pre>{{value}}</pre>")
+  pre_template = Template("<pre>{{value|escape}}</pre>")
 
   def Pre(self, _, value):
     return self.FormatFromTemplate(self.pre_template, value=value)
@@ -748,52 +997,56 @@ class RDFProtoRenderer(RDFValueRenderer):
     except (AttributeError, KeyError):
       return value
 
-  def ProtoDict(self, _, value):
+  def ProtoDict(self, _, protodict):
     """Render a ProtoDict as a string of values."""
-    st = ["%s:%s" % (k, v) for k, v in utils.ProtoDict(value).ToDict().items()]
-    return " ".join(st)
+    protodict = utils.ProtoDict(protodict)
+    return self.FormatFromTemplate(self.proto_template,
+                                   data=protodict.ToDict().items())
 
-  def RenderField(self, field_name):
-    protobuf = getattr(self.proxy, self.proxy_field)
-    value = getattr(protobuf, field_name)
-    try:
-      if self.translator:
-        value = self.translator[field_name](self, None, value)
-    except KeyError: pass
+  def RDFProtoRenderer(self, _, value, proto_renderer_name=None):
+    """Render a field using another RDFProtoRenderer."""
+    renderer_cls = self.classes[proto_renderer_name]
+    rdf_value = aff4.RDFProto.classes[renderer_cls.ClassName](value)
+    return renderer_cls(rdf_value).RawHTML()
 
-    return value
-
-  def Layout(self, _, response):
+  def Layout(self, request, response):
     """Render the protobuf as a table."""
-    result = []
+    self.result = []
 
     for descriptor, value in getattr(self.proxy, self.proxy_field).ListFields():
       # Try to translate the value
       name = descriptor.name
       try:
-        if self.translator:
-          value = self.translator[name](self, descriptor, value)
-      except KeyError: pass
-      if value:
-        result.append((name, value))
+        value = self.translator[name](self, descriptor, value)
 
-    return self.RenderFromTemplate(self.proto_template, response, data=result)
+        # If the translation fails for whatever reason, just output the string
+        # value literally (after escaping)
+      except KeyError:
+        value = self.FormatFromTemplate(self.translator_error_template,
+                                        value=value)
+      except Exception, e:
+        logging.warn("Failed to render {0}. Err: {1}".format(name, e))
+        value = ""
+
+      if value:
+        self.result.append((name, value))
+
+    return super(RDFProtoRenderer, self).Layout(request, response)
 
 
 class RDFProtoArrayRenderer(RDFProtoRenderer):
   """Renders arrays of protobufs."""
 
-  proto_template = template.Template("""
+  # {{value}} comes from the translator so its assumed to be safe.
+  proto_template = Template("""
 <table class='proto_table'>
 <tbody>
 {% for proto_table in data %}
 <tr class="proto_separator"></tr>
   {% for key, value in proto_table %}
     <tr>
-      <td class="proto_key">{{key}}</td><td class="proto_value">
-        {% autoescape off %}
-        {{value}}
-        {% endautoescape %}
+      <td class="proto_key">{{key|escape}}</td><td class="proto_value">
+        {{value|safe}}
       </td>
     </tr>
   {% endfor %}
@@ -812,9 +1065,16 @@ class RDFProtoArrayRenderer(RDFProtoRenderer):
         # Try to translate the value
         name = descriptor.name
         try:
-          if self.translator:
-            value = self.translator[name](self, descriptor, value)
-        except KeyError: pass
+          value = self.translator[name](self, descriptor, value)
+
+          # If the translation fails for whatever reason, just output the string
+          # value literally (after escaping)
+        except KeyError:
+          value = self.FormatFromTemplate(self.translator_error_template,
+                                          value=value)
+        except Exception, e:
+          logging.warn("Failed to render {0}. Err: {1}".format(name, e))
+
         if value:
           proto_table.append((name, value))
 
@@ -824,16 +1084,9 @@ class RDFProtoArrayRenderer(RDFProtoRenderer):
 
 
 class IconRenderer(RDFValueRenderer):
-
-  layout_template = template.Template("""
-<img class='grr-icon' src='/static/images/{{icon}}' />""")
-
-  def Layout(self, _, response):
-    icon = str(self.proxy)
-    if "." not in icon: icon += ".png"
-
-    return self.RenderFromTemplate(
-        self.layout_template, response, icon=icon)
+  width = 0
+  layout_template = Template("""
+<img class='grr-icon' src='/static/images/{{this.proxy|escape}}.png' />""")
 
 
 def DeriveIDFromPath(path):
@@ -858,3 +1111,35 @@ def DeriveIDFromPath(path):
   return "_" + "-".join(
       [invalid_chars.sub(lambda x: "_%02X" % ord(x.group(0)), x)
        for x in components if x])
+
+
+class ErrorRenderer(TemplateRenderer):
+  """Render Exceptions."""
+  layout_template = Template("""
+<script>
+  grr.publish("messages", "{{this.value|escapejs}}");
+</script>
+""")
+
+  def Layout(self, request, response):
+    self.value = request.REQ.get("value", "")
+    return super(ErrorRenderer, self).Layout(request, response)
+
+
+class UnauthorizedRenderer(TemplateRenderer):
+  """Send UnauthorizedAccess Exceptions to the queue."""
+
+  layout_template = Template("""
+<script>
+  grr.publish("unauthorized", "{{this.client_id|escapejs}}",
+              "{{this.message|escapejs}}");
+</script>
+""")
+
+  def Layout(self, request, response):
+    exception = request.REQ.get("e", "")
+    if exception:
+      self.client_id = exception.subject
+      self.message = str(exception)
+
+    return super(UnauthorizedRenderer, self).Layout(request, response)

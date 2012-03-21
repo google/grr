@@ -1,0 +1,26 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+
+# Uncomment this to turn on verbose mode.
+# export DH_VERBOSE=1
+
+%:
+	dh $@ --buildsystem=makefile
+
+override_dh_installinit:
+	install -D -p -m755 debian/tmp/usr/sbin/grrd debian/grr-client/usr/sbin/grrd
+	install -D -p -m755 grr/config/debian/initd/grr-client debian/grr-client/etc/init.d/grr-client
+	sed "s/#SCRIPT#/grr-client/;s/#INITPARMS#/defaults/;s/#ERROR_HANDLER#/exit \$$?/" \
+	/usr/share/debhelper/autoscripts/postinst-init >> debian/grr-client.postinst.debhelper
+	sed "s/#SCRIPT#/grr-client/;s/#INITPARMS#/defaults/;s/#ERROR_HANDLER#/exit \$$?/" \
+	/usr/share/debhelper/autoscripts/prerm-init >> debian/grr-client.prerm.debhelper
+	sed "s/#SCRIPT#/grr-client/;s/#INITPARMS#/defaults/;s/#ERROR_HANDLER#/exit \$$?/" \
+	/usr/share/debhelper/autoscripts/postrm-init >> debian/grr-client.postrm.debhelper
+
+override_dh_strip:
+

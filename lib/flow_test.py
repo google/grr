@@ -17,21 +17,23 @@
 
 
 import pickle
-import unittest
 
 
 from grr.client import conf
 from grr.client import vfs
 from grr.lib import aff4
+from grr.lib import aff4_objects
 from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import flow_context
+from grr.lib import registry
+from grr.lib import scheduler
 from grr.lib import test_lib
+from grr.lib import threadpool
 # These import populate the AFF4 registry
 from grr.lib.flows import general
 from grr.lib.flows import tests
 from grr.proto import jobs_pb2
-from grr.proto import sysinfo_pb2
-
 
 
 class FlowResponseSerialization(flow.GRRFlow):
@@ -64,55 +66,50 @@ class FlowResponseSerialization(flow.GRRFlow):
 class FlowFactoryTest(test_lib.FlowTestsBaseclass):
   """Test the flow factory."""
 
-  def testInitialization(self):
-    """Test that WellKnownFlows are created."""
-    aff4.AFF4Init()
-    # Check that the well known flow is initialized
-    flow_subject = (flow.FlowManager.FLOW_TASK_TEMPLATE %
-                    test_lib.WellKnownSessionTest.well_known_session_id)
-
-    # This should not raise
-    data_store.DB.subjects[flow_subject]
-
   def testInvalidClientId(self):
     """Should raise if the client_id is invalid."""
     self.assertRaises(IOError, flow.FACTORY.StartFlow,
-                      "hello", "FlowOrderTest")
+                      "hello", "FlowOrderTest", token=self.token)
 
   def testFetchReturn(self):
     """Check that we can Fetch and Return a flow."""
-    session_id = flow.FACTORY.StartFlow(self.client_id, "FlowOrderTest")
+    session_id = flow.FACTORY.StartFlow(self.client_id, "FlowOrderTest",
+                                        token=self.token)
 
-    flow_pb = flow.FACTORY.FetchFlow(session_id, sync=False)
+    flow_pb = flow.FACTORY.FetchFlow(session_id, sync=False, token=self.token)
 
     # We should not be able to fetch the flow again since its leased
     # now:
     self.assertRaises(flow.LockError, flow.FACTORY.FetchFlow,
-                      session_id, sync=False)
+                      session_id, sync=False, token=self.token)
 
     # Ok now its returned
-    flow.FACTORY.ReturnFlow(flow_pb)
-    flow_pb = flow.FACTORY.FetchFlow(session_id)
+    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
+    flow_pb = flow.FACTORY.FetchFlow(session_id, token=self.token)
 
     self.assert_(flow_pb)
+    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
 
   def testFlowSerialization(self):
     """Check that we can unpickle flows."""
-    session_id = flow.FACTORY.StartFlow(self.client_id, "FlowOrderTest")
+    session_id = flow.FACTORY.StartFlow(self.client_id, "FlowOrderTest",
+                                        token=self.token)
 
-    flow_pb = flow.FACTORY.FetchFlow(session_id)
+    flow_pb = flow.FACTORY.FetchFlow(session_id, token=self.token)
 
     flow_obj = flow.FACTORY.LoadFlow(flow_pb)
 
-    self.assertEqual(flow_obj.flow_pb.__class__, jobs_pb2.FlowPB)
+    self.assertEqual(flow_obj.context.flow_pb.__class__, jobs_pb2.FlowPB)
     self.assertEqual(flow_obj.__class__, test_lib.FlowOrderTest)
 
     serialized = flow_obj.Dump()
+    flow_obj.FlushMessages()
 
     # Now try to unpickle it
     result = pickle.loads(serialized.pickle)
 
-    self.assertEqual(result.flow_pb, None)
+    self.assertEqual(result.context.flow_pb, None)
+    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
 
   def testFlowSerialization2(self):
     """Check that we can unpickle flows."""
@@ -124,9 +121,62 @@ class FlowFactoryTest(test_lib.FlowTestsBaseclass):
 
     # Run the flow in the simulated way
     for _ in test_lib.TestFlowHelper("FlowResponseSerialization",
-                                     TestClientMock(),
+                                     TestClientMock(), token=self.token,
                                      client_id=self.client_id):
       pass
+
+  def testTerminate(self):
+    session_id = flow.FACTORY.StartFlow(self.client_id, "FlowOrderTest",
+                                        token=self.token)
+    flow.FACTORY.TerminateFlow(session_id, token=self.token)
+    flow_pb = flow.FACTORY.FetchFlow(session_id, token=self.token)
+    flow_obj = flow.FACTORY.LoadFlow(flow_pb)
+    self.assertEqual(flow_obj.context.IsRunning(), False)
+    self.assertEqual(flow_obj.context.flow_pb.state,
+                     flow_obj.context.flow_pb.ERROR)
+    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
+
+    session_id = flow.FACTORY.StartFlow(self.client_id, "FlowOrderTest",
+                                        token=self.token)
+    flow.FACTORY.TerminateFlow(session_id, reason="no reason",
+                               token=self.token)
+    flow_pb = flow.FACTORY.FetchFlow(session_id, token=self.token)
+    flow_obj = flow.FACTORY.LoadFlow(flow_pb)
+
+    self.assertEqual(flow_obj.context.IsRunning(), False)
+    self.assertEqual(flow_obj.context.flow_pb.state,
+                     flow_obj.context.flow_pb.ERROR)
+    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
+
+  def testNotification(self):
+    session_id = flow.FACTORY.StartFlow(self.client_id, "FlowOrderTest",
+                                        token=self.token)
+    flow_pb = flow.FACTORY.FetchFlow(session_id, token=self.token)
+    flow_obj = flow.FACTORY.LoadFlow(flow_pb)
+    msg = "Flow terminated due to error"
+    flow_obj.Notify("FlowStatus", session_id, msg)
+    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
+
+    user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add(
+        self.token.username), mode="r", token=self.token)
+    notifications = user_fd.ShowNotifications(reset=False)
+    self.assertEqual(len(notifications), 1)
+    for notification in notifications:
+      self.assertEqual(notification.message, ": " + msg)
+      self.assertEqual(notification.subject, session_id)
+
+  def testFormatstringNotification(self):
+    session_id = flow.FACTORY.StartFlow(self.client_id, "FlowOrderTest",
+                                        token=self.token)
+    flow_pb = flow.FACTORY.FetchFlow(session_id, token=self.token)
+    flow_obj = flow.FACTORY.LoadFlow(flow_pb)
+
+    # msg contains %s.
+    msg = "Flow reading %system% terminated due to error"
+    flow_obj.Notify("FlowStatus", session_id, msg)
+    flow_obj.Status(msg)
+
+    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
 
 
 class FlowTest(test_lib.FlowTestsBaseclass):
@@ -134,8 +184,8 @@ class FlowTest(test_lib.FlowTestsBaseclass):
 
   def testBrokenFlow(self):
     """Check that flows which call to incorrect states raise."""
-    self.assertRaises(flow.FlowError, flow.FACTORY.StartFlow,
-                      self.client_id, "BrokenFlow")
+    self.assertRaises(flow_context.FlowContextError, flow.FACTORY.StartFlow,
+                      self.client_id, "BrokenFlow", token=self.token)
 
   def SendMessages(self, response_ids, session_id, authenticated=True):
     """Send messages to the flow."""
@@ -152,14 +202,14 @@ class FlowTest(test_lib.FlowTestsBaseclass):
 
   def SendMessage(self, message):
     # Now messages are set in the data store
-    response_attribute = flow.FlowManager.FLOW_RESPONSE_TEMPLATE % (
+    response_attribute = flow_context.FlowManager.FLOW_RESPONSE_TEMPLATE % (
         message.request_id,
         message.response_id)
 
     data_store.DB.Set(
-        flow.FlowManager.FLOW_STATE_TEMPLATE % message.session_id,
+        flow_context.FlowManager.FLOW_STATE_TEMPLATE % message.session_id,
         response_attribute,
-        message)
+        message, token=self.token)
 
   def SendOKStatus(self, response_id, session_id):
     """Send a message to the flow."""
@@ -177,16 +227,16 @@ class FlowTest(test_lib.FlowTestsBaseclass):
 
     # Now also set the state on the RequestState
     request_state, _ = data_store.DB.Resolve(
-        flow.FlowManager.FLOW_STATE_TEMPLATE % message.session_id,
-        flow.FlowManager.FLOW_REQUEST_TEMPLATE % message.request_id,
-        decoder=jobs_pb2.RequestState)
+        flow_context.FlowManager.FLOW_STATE_TEMPLATE % message.session_id,
+        flow_context.FlowManager.FLOW_REQUEST_TEMPLATE % message.request_id,
+        decoder=jobs_pb2.RequestState, token=self.token)
 
     request_state.status.CopyFrom(status)
 
     data_store.DB.Set(
-        flow.FlowManager.FLOW_STATE_TEMPLATE % message.session_id,
-        flow.FlowManager.FLOW_REQUEST_TEMPLATE % message.request_id,
-        request_state)
+        flow_context.FlowManager.FLOW_STATE_TEMPLATE % message.session_id,
+        flow_context.FlowManager.FLOW_REQUEST_TEMPLATE % message.request_id,
+        request_state, token=self.token)
 
     return message
 
@@ -209,13 +259,16 @@ class FlowTest(test_lib.FlowTestsBaseclass):
     # Check that the messages were processed in order
     self.assertEqual(flow_obj.messages, [1, 2, 3, 4, 5])
 
+    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
+
   def testCallClient(self):
     """Flows can send client messages using CallClient()."""
     flow_pb = self.FlowSetup("FlowOrderTest")
 
     # Check that a message went out to the client
-    tasks = flow.SCHEDULER.Query(self.client_id, limit=100,
-                                 decoder=jobs_pb2.GrrMessage)
+    tasks = scheduler.SCHEDULER.Query(self.client_id, limit=100,
+                                      decoder=jobs_pb2.GrrMessage,
+                                      token=self.token)
 
     self.assertEqual(len(tasks), 1)
 
@@ -224,6 +277,7 @@ class FlowTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(message.session_id, flow_pb.session_id)
     self.assertEqual(message.request_id, 1)
     self.assertEqual(message.name, "Test")
+    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
 
   def testAuthentication1(self):
     """Test that flows refuse to processes unauthenticated messages."""
@@ -244,6 +298,7 @@ class FlowTest(test_lib.FlowTestsBaseclass):
 
     # Now messages should actually be processed
     self.assertEqual(flow_obj.messages, [])
+    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
 
   def testAuthentication2(self):
     """Test that flows refuse to processes unauthenticated messages.
@@ -283,6 +338,7 @@ class FlowTest(test_lib.FlowTestsBaseclass):
 
     # Some messages should actually be processed
     self.assertEqual(flow_obj.messages, [1, 2, 5, 6])
+    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
 
   def testWellKnownFlows(self):
     """Test the well known flows."""
@@ -298,68 +354,110 @@ class FlowTest(test_lib.FlowTestsBaseclass):
     # Messages to Well Known flows can be unauthenticated
     messages = [jobs_pb2.GrrMessage(args=str(i)) for i in range(10)]
 
-    test_flow.ProcessCompletedRequests(messages)
+    test_pool = threadpool.ThreadPool.Factory("flow_test", 10)
+    test_pool.Start()
+    test_flow.ProcessCompletedRequests(test_pool, messages)
+
+    # Wait for all async operations to complete
+    test_pool.Join()
+
+    # The messages might be processed in arbitrary order
+    test_flow.messages.sort()
 
     # Make sure that messages were processed even without a status
     # message to complete the transaction (Well known flows do not
     # have transactions or states - all messages always get to the
     # ProcessMessage method):
     self.assertEqual(test_flow.messages, range(10))
+    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
 
 
 class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
   """Tests some flows."""
 
+  def testCallState(self):
+    """Test the ability to chain flows."""
+    CallStateFlow.success = False
+
+    # Run the flow in the simulated way
+    for _ in test_lib.TestFlowHelper("CallStateFlow", ClientMock(),
+                                     client_id=self.client_id,
+                                     token=self.token):
+      pass
+
+    self.assertEqual(CallStateFlow.success, True)
+
   def testChainedFlow(self):
     """Test the ability to chain flows."""
+    ParentFlow.success = False
+
     # Run the flow in the simulated way
     for _ in test_lib.TestFlowHelper("ParentFlow", ClientMock(),
-                                     client_id=self.client_id):
+                                     client_id=self.client_id,
+                                     token=self.token):
       pass
+
+    self.assertEqual(ParentFlow.success, True)
 
   def testBrokenChainedFlow(self):
     """Test that exceptions are properly handled in chain flows."""
+    BrokenParentFlow.success = False
 
     # Run the flow in the simulated way
     for _ in test_lib.TestFlowHelper(
         "BrokenParentFlow", ClientMock(), client_id=self.client_id,
-        check_flow_errors=False):
+        check_flow_errors=False, token=self.token):
       pass
+
+    self.assertEqual(BrokenParentFlow.success, True)
 
   def testIteratedDirectoryListing(self):
     """Test that the client iterator works."""
-    path = "/mock/foobar"
+    # Install the mock
+    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = MockVFSHandler
+    path = "/"
+
     # Run the flow in the simulated way
     client_mock = test_lib.ActionMock("IteratedListDirectory")
     for _ in test_lib.TestFlowHelper(
         "IteratedListDirectory", client_mock, client_id=self.client_id,
-        path=path):
+        path=path, token=self.token):
       pass
 
-    # The flow should have stored it in the AFF4 DIRECTORY attribute.
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(path))
-    directory = fd.Get(fd.Schema.DIRECTORY)
+    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(
+        "fs/os").Add(path), token=self.token)
+    directory = [ch for ch in fd.OpenChildren()]
     pb = jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS)
-    directory2 = vfs.VFSHandlerFactory(pb).ListFiles()
+    directory2 = vfs.VFSOpen(pb).ListFiles()
+    directory.sort()
+    result = [x.Get(x.Schema.STAT).data for x in directory]
 
     # Make sure that the resulting directory is what it should be
-    for x, y in zip(directory, directory2):
+    for x, y in zip(result, directory2):
       self.assertEqual(x, y)
 
 
-# This registers the mock as a handler for paths which begin with /mock/
-class MockVFSHandler(vfs.AbstractDirectoryHandler):
+class MockVFSHandler(vfs.VFSHandler):
   """A mock VFS handler with fake files."""
-  children = [jobs_pb2.StatResponse(path="Foo%s" % x) for x in range(10)]
+  children = []
+  for x in range(10):
+    child = jobs_pb2.StatResponse()
+    child.pathspec.path = "Foo%s" % x
+    child.pathspec.pathtype = jobs_pb2.Path.OS
+    children.append(child)
+
   supported_pathtype = jobs_pb2.Path.OS
 
-  def __init__(self, pathspec):
-    path = pathspec.mountpoint + pathspec.path
-    if not path.startswith("/mock/"):
-      raise IOError("not mocking")
+  def __init__(self, base_fd, pathspec=None):
+    super(MockVFSHandler, self).__init__(base_fd, pathspec=pathspec)
+
+    self.pathspec.Append(pathspec)
 
   def ListFiles(self):
     return self.children
+
+  def IsDirectory(self):
+    return self.pathspec.path == "/"
 
 
 class ClientMock(object):
@@ -395,6 +493,9 @@ class BrokenChildFlow(ChildFlow):
 class ParentFlow(flow.GRRFlow):
   """This flow will launch a child flow."""
 
+  # This is a global flag which will be set when the flow runs.
+  success = False
+
   @flow.StateHandler(next_state="ParentReceiveHello")
   def Start(self):
     # Call the child flow.
@@ -408,9 +509,14 @@ class ParentFlow(flow.GRRFlow):
         "Hello" not in responses[1].string):
       raise RuntimeError("Messages not passed to parent")
 
+    ParentFlow.success = True
+
 
 class BrokenParentFlow(flow.GRRFlow):
   """This flow will launch a broken child flow."""
+
+  # This is a global flag which will be set when the flow runs.
+  success = False
 
   @flow.StateHandler(next_state="ReceiveHello")
   def Start(self):
@@ -424,28 +530,31 @@ class BrokenParentFlow(flow.GRRFlow):
         responses.status.status == jobs_pb2.GrrStatus.OK):
       raise RuntimeError("Error not propagated to parent")
 
+    BrokenParentFlow.success = True
 
-class FlowTestLoader(unittest.TestLoader):
-  """A test suite loader which searches for tests in all the plugins."""
 
-  def loadTestsFromModule(self, _):
-    """Just return all the tests as if they were in the same module."""
-    test_cases = [self.loadTestsFromTestCase(x)
-                  for x in test_lib.FlowTestsBaseclass.classes.values()]
-    return self.suiteClass(test_cases)
+class CallStateFlow(flow.GRRFlow):
+  """A flow that calls one of its own states."""
 
-  def loadTestsFromName(self, name, module=None):
-    """Load the tests named."""
-    parts = name.split(".")
-    test_cases = self.loadTestsFromTestCase(
-        test_lib.FlowTestsBaseclass.classes[parts[0]])
+  # This is a global flag which will be set when the flow runs.
+  success = False
 
-    # Specifies the whole test suite.
-    if len(parts) == 1:
-      return self.suiteClass(test_cases)
-    elif len(parts) == 2:
-      cls = test_lib.FlowTestsBaseclass.classes[parts[0]]
-      return unittest.TestSuite([cls(parts[1])])
+  @flow.StateHandler(next_state="ReceiveHello")
+  def Start(self):
+    # Call the child flow.
+    self.context.CallState([jobs_pb2.DataBlob(string="Hello")],
+                           next_state="ReceiveHello")
+
+  @flow.StateHandler(jobs_pb2.DataBlob)
+  def ReceiveHello(self, responses):
+    if responses.First().string != "Hello":
+      raise RuntimeError("Did not receive hello.")
+
+    CallStateFlow.success = True
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = test_lib.FlowTestsBaseclass
 
 
 def main(argv):

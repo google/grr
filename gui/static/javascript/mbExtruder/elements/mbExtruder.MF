@@ -1,4 +1,0 @@
- javascript/jquery_mb_extruder/inc/jquery.hoverIntent.min.js
- javascript/jquery_mb_extruder/inc/jquery.metadata.js
- javascript/jquery_mb_extruder/inc/jquery.mb.flipText.js
- javascript/jquery_mb_extruder/inc/mbExtruder.js

@@ -23,19 +23,44 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.aff4_objects import standard
+
+# Load plugins for aff4 objects and tests
+from grr.lib import aff4_objects
+from grr.lib.aff4_objects import tests
+
 from grr.proto import jobs_pb2
 
 
-
-
-class AFF4Tests(test_lib.GRRBaseTest):
+class AFF4Tests(test_lib.AFF4ObjectTest):
   """Test the AFF4 abstraction."""
+
+  def testAppendAttribute(self):
+    """Test that append attribute works."""
+    # Create an object to carry attributes
+    obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
+    obj.Set(obj.Schema.STORED("http://www.google.com"))
+    obj.Close()
+
+    obj = aff4.FACTORY.Open("foobar", mode="rw", token=self.token,
+                            age=aff4.ALL_TIMES)
+    self.assertEqual(1, len(list(obj.GetValuesForAttribute(obj.Schema.STORED))))
+
+    # Add a bunch of attributes now.
+    for i in range(5):
+      obj.AddAttribute(obj.Schema.STORED("http://example.com/%s" % i))
+
+    # There should be 6 there now
+    self.assertEqual(6, len(list(obj.GetValuesForAttribute(obj.Schema.STORED))))
+    obj.Close()
+
+    # Check that when read back from the data_store we stored them all
+    obj = aff4.FACTORY.Open("foobar", token=self.token, age=aff4.ALL_TIMES)
+    self.assertEqual(6, len(list(obj.GetValuesForAttribute(obj.Schema.STORED))))
 
   def testRDFTypes(self):
     """Test that types are properly serialized."""
     # Create an object to carry attributes
-    obj = aff4.FACTORY.Create("foobar", "AFF4Object")
+    obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
 
     # Make a url object
     str_url = "http://www.google.com/"
@@ -50,7 +75,7 @@ class AFF4Tests(test_lib.GRRBaseTest):
     obj.Close()
 
     # Check that its ok
-    obj = aff4.FACTORY.Open("foobar")
+    obj = aff4.FACTORY.Open("foobar", token=self.token)
     url = obj.Get(obj.Schema.STORED)
 
     # It must be a real RDFURN and be the same as the original string
@@ -117,7 +142,7 @@ class AFF4Tests(test_lib.GRRBaseTest):
       array.Append(my_proto)
 
     # We do not allow non compatible objects to be added.
-    self.assertRaises(RuntimeError, array.Append, jobs_pb2.GrrStatus())
+    self.assertRaises(TypeError, array.Append, jobs_pb2.GrrStatus())
     serialized = array.SerializeToString()
 
     # Now unserialize
@@ -135,77 +160,40 @@ class AFF4Tests(test_lib.GRRBaseTest):
 
   def testCreateObject(self):
     """Test that we can create a new object."""
-    path = "/C.1234/foo/bar/hello.txt"
+    path = "/C.0123456789abcdef/foo/bar/hello.txt"
 
-    fd = aff4.FACTORY.Create(path, "AFF4MemoryStream")
-    fd.Finish()
+    fd = aff4.FACTORY.Create(path, "AFF4MemoryStream", token=self.token)
+    fd.Flush()
 
     # Now object is ready for use
     fd.Write("hello")
     fd.Close()
 
-    fd = aff4.FACTORY.Open(path)
+    fd = aff4.FACTORY.Open(path, token=self.token)
     self.assertEqual(fd.Read(100), "hello")
 
-    # Make sure we can follow the fd parent to the root
-    parent_fd = fd
-    count = 0
-    # Check that parent terminate at the root
-    while parent_fd.parent:
-      parent_fd = parent_fd.parent
-      count += 1
-
-    self.assertEqual("aff4:/", parent_fd.urn)
-    self.assertEqual(count, 4)
+    # Make sure that we have intermediate objects created.
+    for path in ["aff4:/C.0123456789abcdef", "aff4:/C.0123456789abcdef/foo",
+                 "aff4:/C.0123456789abcdef/foo/bar",
+                 "aff4:/C.0123456789abcdef/foo/bar/hello.txt"]:
+      fd = aff4.FACTORY.Open(path, token=self.token)
+      last = fd.Get(fd.Schema.LAST)
+      self.assert_(int(last) > 1330354592221974)
 
   def testClientObject(self):
-    path = "/C.12345"
-
-    fd = aff4.FACTORY.Create(path, "VFSGRRClient")
+    fd = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", token=self.token)
 
     # Certs invalid - The RDFX509Cert should check the validity of the cert
     self.assertRaises(IOError, aff4.FACTORY.RDFValue("RDFX509Cert"), "My cert")
 
     fd.Close()
 
-  def testDirectoryInode(self):
-    """Test the VFSDirectory aff4 object."""
-    path = "/C.12345/foo"
-
-    fd = aff4.FACTORY.Create(path, "VFSDirectory")
-    directory = fd.Get(fd.Schema.DIRECTORY) or standard.DirectoryInode()
-
-    # First file - not resident
-    directory.AddDirectoryEntry(jobs_pb2.StatResponse(
-        path="file1"))
-
-    # Second file - resident
-    directory.AddDirectoryEntry(jobs_pb2.StatResponse(
-        path="file2", resident="hello"))
-
-    # Update the directory attribute
-    fd.Set(fd.Schema.DIRECTORY, directory)
-    fd.Close()
-
-    fd = aff4.FACTORY.Open(path)
-    children = list(fd.Get(fd.Schema.DIRECTORY))
-
-    self.assertEqual(children[0].path, "file1")
-    self.assertEqual(children[1].path, "file2")
-
-    # Now check that we can open the resident file
-    fd = aff4.FACTORY.Open(path + "/file2")
-
-    self.assert_(isinstance(fd, aff4.AFF4Stream))
-    self.assertEqual(fd.Read(100), "hello")
-
   def testAFF4Image(self):
     """Test the AFF4Image object."""
     path = "/C.12345/foo"
 
-    fd = aff4.FACTORY.Create(path, "AFF4Image")
-    fd.Set(fd.Schema.CHUNKSIZE, aff4.RDFInteger(10))
-    fd.Finish()
+    fd = aff4.FACTORY.Create(path, "AFF4Image", token=self.token)
+    fd.Set(fd.Schema.CHUNKSIZE(10))
 
     # Make lots of small writes - The length of this string and the chunk size
     # are relative primes for worst case.
@@ -214,24 +202,27 @@ class AFF4Tests(test_lib.GRRBaseTest):
 
     fd.Close()
 
-    fd = aff4.FACTORY.Open(path)
+    fd = aff4.FACTORY.Open(path, token=self.token)
     for i in range(100):
       self.assertEqual(fd.Read(13), "Test%08X\n" % i)
 
   def testAFF4FlowObject(self):
     """Test the AFF4 Flow switch and object."""
-    client_id = "C.12345"
-    client = aff4.FACTORY.Create(client_id, "VFSGRRClient")
+    client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient",
+                                 token=self.token)
     client.Close()
 
     # Start some new flows on it
-    session_ids = [flow.FACTORY.StartFlow(client_id, "FlowOrderTest")
+    session_ids = [flow.FACTORY.StartFlow(self.client_id, "FlowOrderTest",
+                                          token=self.token)
                    for _ in range(10)]
 
     # Try to open a single flow.
-    flow_obj = aff4.FACTORY.Open(
-        aff4.FLOW_SWITCH_URN.Add(session_ids[0]))
+    switch = aff4.FACTORY.Create(aff4.FLOW_SWITCH_URN, "GRRFlowSwitch",
+                                 mode="r", token=self.token)
+    flow_obj = switch.OpenMember(session_ids[0])
     flow_pb = flow_obj.Get(flow_obj.Schema.FLOW_PB)
+
     self.assertEqual(flow_pb.data.name, "FlowOrderTest")
     self.assertEqual(flow_pb.data.session_id, session_ids[0])
 
@@ -240,7 +231,8 @@ class AFF4Tests(test_lib.GRRBaseTest):
     self.assertEqual(grr_flow_obj.__class__.__name__, "FlowOrderTest")
 
     # Now load multiple flows at once
-    client = aff4.FACTORY.Open(client_id)
+    client = aff4.FACTORY.Open(self.client_id, token=self.token,
+                               age=aff4.ALL_TIMES)
 
     for f in client.GetFlows():
       del session_ids[session_ids.index(f.session_id)]
@@ -252,10 +244,10 @@ class AFF4Tests(test_lib.GRRBaseTest):
     """Test the AFF4Collection object."""
     # First we create a fixture
     client_id = "C.%016X" % 0
-    test_lib.ClientFixture(client_id)
+    test_lib.ClientFixture(client_id, token=self.token)
 
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
-        "/fs/os/c"))
+        "/fs/os/c"), token=self.token)
 
     # Test that we can match a unicode char
     matched = list(fd.Query(u"subject matches '中'"))
@@ -263,15 +255,50 @@ class AFF4Tests(test_lib.GRRBaseTest):
     self.assertEqual(utils.SmartUnicode(matched[0].urn),
                      u"aff4:/C.0000000000000000/"
                      u"fs/os/c/中国新闻网新闻中")
+    # Test that we can match a unicode char
+    matched = list(fd.Query(u"subject matches '\]\['"))
+    self.assertEqual(len(matched), 1)
+    self.assertEqual(utils.SmartUnicode(matched[0].urn),
+                     u"aff4:/C.0000000000000000/"
+                     u"fs/os/c/regex.*?][{}--")
+
+    # Test the OpenChildren function on files that contain regex chars.
+    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
+        "/fs/os/c/regex\V.*?]xx[{}--"), token=self.token)
+    children = list(fd.OpenChildren())
+    self.assertEqual(len(children), 1)
+    self.assertTrue("regexchild" in utils.SmartUnicode(children[0].urn))
+
+    # Test that OpenChildren works correctly on Unicode names.
+    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
+        "/fs/os/c"), token=self.token)
+    children = list(fd.OpenChildren())
+    # All children must have a valid type.
+    for child in children:
+      self.assertNotEqual(child.Get(child.Schema.TYPE), "VFSVolume")
+
+    urns = [utils.SmartUnicode(x.urn) for x in children]
+
+    self.assertTrue(u"aff4:/C.0000000000000000/fs/os/c/中国新闻网新闻中"
+                    in urns)
+
+    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
+        "/fs/os/c/中国新闻网新闻中"), token=self.token)
+    children = list(fd.OpenChildren())
+    self.assertEqual(len(children), 1)
+    child = children[0]
+    self.assertEqual(child.Get(child.Schema.TYPE), "VFSFile")
 
     # This tests the VFSDirectory implementation of Query (i.e. filtering
     # through the AFF4Filter).
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
-        "/fs/os/c/bin %s" % client_id))
+        "/fs/os/c/bin %s" % client_id), token=self.token)
 
     matched = list(fd.Query(
         "subject matches '%s/r?bash'" % data_store.EscapeRegex(fd.urn)))
     self.assertEqual(len(matched), 2)
+
+    matched.sort(key=lambda x: str(x.urn))
     self.assertEqual(utils.SmartUnicode(matched[0].urn),
                      u"aff4:/C.0000000000000000/fs/os/"
                      u"c/bin C.0000000000000000/bash")
@@ -279,16 +306,14 @@ class AFF4Tests(test_lib.GRRBaseTest):
                      u"aff4:/C.0000000000000000/fs/os/"
                      u"c/bin C.0000000000000000/rbash")
 
-    # This tests the native filtering through the database. NOTE - this will run
-    # the search on database rows only, so it will find those objects with data
-    # base storage but not objects with virtualized storage.
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id))
+    # This tests the native filtering through the database.
+    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id), token=self.token)
 
     # Deliberately call the baseclass Query to search in the database.
     matched = list(aff4.AFF4Volume.Query(
         fd, u"subject matches '中国新闻网新闻中'"))
 
-    self.assertEqual(len(matched), 1)
+    self.assertEqual(len(matched), 2)
     self.assertEqual(utils.SmartUnicode(matched[0].urn),
                      u"aff4:/C.0000000000000000/"
                      u"fs/os/c/中国新闻网新闻中")
@@ -299,15 +324,15 @@ class ForemanTests(test_lib.GRRBaseTest):
 
   def testOperatingSystemSelection(self):
     """Test that we can distinguish based on operating system."""
-    fd = aff4.FACTORY.Create("C.1", "VFSGRRClient")
+    fd = aff4.FACTORY.Create("C.1", "VFSGRRClient", token=self.token)
     fd.Set(fd.Schema.ARCH, aff4.RDFString("Windows XP"))
     fd.Close()
 
-    fd = aff4.FACTORY.Create("C.2", "VFSGRRClient")
+    fd = aff4.FACTORY.Create("C.2", "VFSGRRClient", token=self.token)
     fd.Set(fd.Schema.ARCH, aff4.RDFString("Linux"))
     fd.Close()
 
-    fd = aff4.FACTORY.Create("C.3", "VFSGRRClient")
+    fd = aff4.FACTORY.Create("C.3", "VFSGRRClient", token=self.token)
     fd.Set(fd.Schema.ARCH, aff4.RDFString("Windows 7"))
     fd.Close()
 
@@ -330,7 +355,7 @@ class ForemanTests(test_lib.GRRBaseTest):
 
     # Now setup the filters
     now = time.time() * 1e6
-    foreman = aff4.FACTORY.Open("aff4:/foreman")
+    foreman = aff4.FACTORY.Open("aff4:/foreman", token=self.token)
 
     # Make a new rule
     rule = jobs_pb2.ForemanRule(created=int(now), description="Test rule")
@@ -371,8 +396,13 @@ class ForemanTests(test_lib.GRRBaseTest):
     self.assertEqual(len(clients_launched), 0)
 
 
+class AFF4TestLoader(test_lib.GRRTestLoader):
+  base_class = test_lib.AFF4ObjectTest
+
+
 def main(argv):
-  test_lib.main(argv)
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=AFF4TestLoader())
 
 if __name__ == "__main__":
   conf.StartMain(main)

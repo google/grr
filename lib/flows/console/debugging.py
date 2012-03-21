@@ -16,24 +16,39 @@
 """Debugging flows for the console."""
 
 
+import os
+import pdb
+import pickle
+import tempfile
+
 from grr.lib import flow
 
 
 class ClientAction(flow.GRRFlow):
   """A Simple flow to execute any client action."""
 
-  def __init__(self, client_id, action=None, args=None, **kwargs):
+  def __init__(self, action=None, save_to="/tmp",
+               break_pdb=False, args=None, **kwargs):
     """Launch the action on the client.
 
     Args:
-       client_id: The client common name we issue the request.
        action: The name of the action on the client.
-       args: A request protobuf to provide to the action.
-       kwargs: passthrough.
+       save_to: If not None, interpreted as an path to write pickle
+           dumps of responses to.
+       break_pdb: If True run pdb.set_trace when the responses come back.
+       args: passthrough.
     """
+    if not action:
+      raise flow.FlowError("No action supplied.")
+    self.save_to = save_to
+    if self.save_to:
+      if not os.path.isdir(save_to):
+        os.makedirs(save_to, 0700)
+    self.break_pdb = break_pdb
     self.action = action
     self.args = args
-    super(ClientAction, self).__init__(client_id, **kwargs)
+
+    super(ClientAction, self).__init__(**kwargs)
 
   @flow.StateHandler(next_state="Print")
   def Start(self):
@@ -42,4 +57,20 @@ class ClientAction(flow.GRRFlow):
 
   @flow.StateHandler()
   def Print(self, responses):
-    self.responses = responses
+    """Dump the responses to a pickle file or allow for breaking."""
+    if self.break_pdb:
+      pdb.set_trace()
+    if self.save_to:
+      self._SaveResponses(responses)
+
+  def _SaveResponses(self, responses):
+    """Save responses to pickle files."""
+    if responses:
+      fd = None
+      try:
+        fdint, fname = tempfile.mkstemp(prefix="responses-", dir=self.save_to)
+        fd = os.fdopen(fdint, "wb")
+        pickle.dump(responses, fd)
+        self.Log("Wrote %d responses to %s", len(responses), fname)
+      finally:
+        if fd: fd.close()

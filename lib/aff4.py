@@ -20,6 +20,8 @@ This contains an AFF4 data model implementation.
 
 
 import abc
+import datetime
+import posixpath
 import StringIO
 import time
 import urlparse
@@ -28,6 +30,7 @@ import zlib
 from dateutil import parser
 
 from google.protobuf import message
+from grr.client import conf as flags
 import logging
 from grr.lib import data_store
 from grr.lib import lexer
@@ -35,46 +38,297 @@ from grr.lib import registry
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
+flags.DEFINE_integer("aff4_cache_age", 5,
+                     "The number of seconds AFF4 objects live in the cache.")
+
+FLAGS = flags.FLAGS
 
 # Factor to convert from seconds to microseconds
 MICROSECONDS = 1000000
+
+
+# Age specifications for opening AFF4 objects.
+NEWEST_TIME = "NEWEST_TIME"
+ALL_TIMES = "ALL_TIMES"
 
 
 class Factory(object):
   """A central factory for AFF4 objects."""
 
   def __init__(self):
-    # The root AFF4 object - Automatically contains everything:
-    self.root = AFF4Volume(ROOT_URN)
-    self.root.Finish()
+    # This is a relatively short lived cache of objects.
+    self.cache = utils.AgeBasedCache(max_size=10000,
+                                     max_age=FLAGS.aff4_cache_age)
+    self.intermediate_cache = utils.FastStore(100)
 
-  def Open(self, urn, mode="r"):
-    """Open the named object."""
-    if urn == ROOT_URN:
-      return self.root
+    # Create a token for system level actions:
+    self.root_token = data_store.ACLToken(username="system",
+                                          reason="Maintainance")
 
-    return self.root.Open(urn, mode)
+  def _ParseAgeSpecification(self, age):
+    if age == NEWEST_TIME:
+      return data_store.DB.NEWEST_TIMESTAMP
+    elif age == ALL_TIMES:
+      return data_store.DB.ALL_TIMESTAMPS
+    elif len(age) == 2:
+      start, end = age
+      return (int(start), int(end))
 
-  def MultiOpen(self, urns):
+    raise RuntimeError("Unknown age specification: %s" % age)
+
+  def GetAttributes(self, urns, ignore_cache=False, token=None,
+                    age=NEWEST_TIME):
+    """Retrieves all the attributes for all the urns."""
+    urns = [utils.SmartUnicode(u) for u in set(urns)]
+    try:
+      if not ignore_cache:
+        result = []
+        for subject in urns:
+          key = self._MakeCacheInvariant(subject, token, age)
+          result.append((subject, self.cache.Get(key)))
+
+        return result
+    except KeyError:
+      pass
+
+    subjects = []
+    result = {}
+    # If there are any cache misses, we need to go to the data store. So we
+    # might as well just re-fetch all the urns again in a single data store
+    # round trip.
+    for subject, values in data_store.DB.MultiResolveRegex(
+        urns, [".*"], timestamp=self._ParseAgeSpecification(age),
+        token=token).items():
+
+      key = self._MakeCacheInvariant(subject, token, age)
+      self.cache.Put(key, values)
+      result[subject] = values
+      subjects.append(subject)
+    return result.items()
+
+  def SetAttributes(self, urn, attributes, to_delete, sync=False, token=None):
+    """Sets the attributes in the data store and update the cache."""
+    # Force a data_store lookup next.
+    try:
+      # Expire all entries in the cache for this urn (for all tokens, and
+      # timestamps)
+      self.cache.ExpireRegEx(data_store.EscapeRegex(urn) + ".+")
+    except KeyError:
+      pass
+
+    attributes[AFF4Object.SchemaCls.LAST] = [
+        RDFDatetime().SerializeToDataStore()]
+    to_delete.add(AFF4Object.SchemaCls.LAST)
+    data_store.DB.MultiSet(urn, attributes, token=token,
+                           replace=False, sync=sync, to_delete=to_delete)
+
+    # TODO(user): This can run in the thread pool since its not time
+    # critical.
+    self._UpdateIndex(urn, attributes, token)
+
+  def _UpdateIndex(self, urn, attributes, token):
+    """Updates any indexes we need."""
+    index = {}
+    for attribute, values in attributes.items():
+      if attribute.index:
+        for value, _ in values:
+          index.setdefault(attribute.index, []).append((attribute, value))
+
+    if index:
+      for index_urn, index_data in index.items():
+        aff4index = self.Create(index_urn, "AFF4Index", mode="w", token=token)
+        for attribute, value in index_data:
+          aff4index.Add(urn, attribute, value)
+        aff4index.Flush()
+
+    try:
+      urn = RDFURN(urn.Dirname())
+      # Create navigation aids by touching intermediate subject names.
+      while urn.Path() != "/":
+        try:
+          self.intermediate_cache.Get(urn.Path())
+          return
+        except KeyError:
+          data_store.DB.MultiSet(urn, {AFF4Object.SchemaCls.LAST: [
+              RDFDatetime().SerializeToDataStore()]},
+                                 token=token, replace=True, sync=False)
+          self.intermediate_cache.Put(urn.Path(), 1)
+          urn = RDFURN(urn.Dirname())
+    except data_store.UnauthorizedAccess:
+      pass
+
+  def _ExpandURNComponents(self, urn):
+    """Breaks the urn into all the urns from its path components."""
+    urns = []
+    x = ROOT_URN
+    for component in RDFURN(urn).Path().split("/"):
+      if component:
+        x = x.Add(component)
+        urns.append(x)
+
+    return urns
+
+  def _MakeCacheInvariant(self, urn, token, age):
+    """Returns an invariant key for an AFF4 object.
+
+    The object will be cached based on this key. This function is specifically
+    extracted to ensure that we encapsulate all security critical aspects of the
+    AFF4 object so that objects do not leak across security boundaries.
+
+    Args:
+       urn: The urn of the object.
+       token: The access token used to receive the object.
+       age: The age policy used to build this object. Should be one
+            of ALL_TIMES, NEWEST_TIME or a range.
+
+    Returns:
+       A key into the cache.
+    """
+    return u"%s:%s:%s" % (urn, token, self._ParseAgeSpecification(age))
+
+  def Open(self, urn, required_type=None, mode="r", ignore_cache=False,
+           token=None, local_cache=None, age=NEWEST_TIME):
+    """Opens the named object.
+
+    This instantiates the object from the AFF4 data store.
+    Note that the root aff4:/ object is a container for all other
+    objects. Opening it for reading will instantiate a AFF4Volume instance, even
+    if the row does not exist.
+
+    The mode parameter specifies, how the object should be opened. A read only
+    mode will raise when calling Set() on it, while a write only object will
+    never read from the data store. Note that its impossible to open an object
+    with pure write support (since we have no idea what type it should be
+    without reading the data base) - use Create() instead for purely write mode.
+
+    Args:
+      urn: The urn to open.
+
+      required_type: If this optional parameter is set, we raise an IOError if
+          the object is not an instance of this type. This check is important
+          when a different object can be stored in this location.
+
+      mode: The mode to open the file with.
+      ignore_cache: Forces a data store read.
+      token: The Security Token to use for opening this item.
+      local_cache: A dict containing a cache as returned by GetAttributes. If
+                   set, this bypasses the factory cache.
+
+      age: The age policy used to build this object. Should be one of
+         NEWEST_TIME, ALL_TIMES or a time range.
+
+    Returns:
+      An AFF4Object instance.
+
+    Raises:
+      IOError: If the object is not of the required type.
+      AttributeError: If the requested mode is incorrect.
+    """
+    if mode not in ["w", "r", "rw"]:
+      raise AttributeError("Invalid mode %s" % mode)
+
+    if mode == "w":
+      raise AttributeError("Can not open an object in write mode. "
+                           "Use Create() instead.")
+
+    urn = RDFURN(urn)
+
+    if "r" in mode and (local_cache is None or urn not in local_cache):
+      # Warm up the cache. The idea is to prefetch all the path components in
+      # the same round trip and make sure this data is in cache, so that as each
+      # AFF4 object is instantiated it can read attributes from cache rather
+      # than round tripping to the data store.
+      local_cache = dict(self.GetAttributes(self._ExpandURNComponents(urn),
+                                            age=age, ignore_cache=ignore_cache,
+                                            token=token))
+
+    # Read the row from the table.
+    result = AFF4Object(urn, mode=mode, token=token, local_cache=local_cache,
+                        age=age)
+
+    # Get the correct type.
+    aff4_type = result.Get(result.Schema.TYPE, default="AFF4Volume")
+    if aff4_type:
+      result = result.Upgrade(aff4_type)
+
+    if (required_type is not None and
+        not isinstance(result, AFF4Object.classes[required_type])):
+      raise IOError("Object of type %s, but required_type is %s" % (
+          result.__class__.__name__, required_type))
+
+    return result
+
+  def MultiOpen(self, urns, mode="rw", token=None, required_type=None):
     """Opens a bunch of urns efficiently."""
-    # TODO(user): Make this work properly
+    if mode not in ["w", "r", "rw"]:
+      raise RuntimeError("Invalid mode %s" % mode)
+
+    # Fill up the cache with all the urns
+    unique_urn = set()
+    for urn in urns:
+      unique_urn = unique_urn.union(self._ExpandURNComponents(urn))
+
+    cache = dict(self.GetAttributes(unique_urn, token=token))
+
     for urn in urns:
       try:
-        yield self.Open(urn)
-      except IOError: pass
+        if urn in cache:
+          yield self.Open(urn, mode=mode, token=token, local_cache=cache,
+                          required_type=required_type)
+      except IOError:
+        pass
 
-  def Create(self, urn, aff4_type="AFF4Object"):
-    return self.root.CreateMember(urn, aff4_type)
+  def Create(self, urn, aff4_type, mode="w", token=None, age=NEWEST_TIME):
+    """Creates the urn if it does not already exist, otherwise opens it.
 
-  def Delete(self, urn):
+    If the urn exists and is of a different type, this will also promote it to
+    the specified type.
+
+    Args:
+       urn: The object to create.
+       aff4_type: The desired type for this object.
+       mode: The desired mode for this object.
+       token: The Security Token to use for opening this item.
+       age: The age policy used to build this object. Only makes sense when mode
+            has "r".
+
+    Returns:
+      An AFF4 object of the desired type and mode.
+
+    Raises:
+      AttributeError: If the mode is invalid.
+    """
+    if mode not in ["w", "r", "rw"]:
+      raise AttributeError("Invalid mode %s" % mode)
+
+    urn = RDFURN(urn)
+
+    if "r" in mode:
+      # Check to see if an object already exists.
+      try:
+        return self.Open(urn, mode=mode, token=token, age=age).Upgrade(
+            aff4_type)
+      except IOError:
+        pass
+
+    # Object does not exist, just make it.
+    cls = AFF4Object.classes[str(aff4_type)]
+    result = cls(urn, mode=mode, token=token, age=age)
+    result.Set(result.Schema.TYPE(aff4_type))
+    result.Initialize()
+
+    return result
+
+  def Delete(self, urn, token=None, limit=1000):
     """Drop all the information about this object.
 
-    DANGEROUS! This recursively deletes all object contained within the
+    DANGEROUS! This recursively deletes all objects contained within the
     specified URN.
 
     Args:
       urn: The object to remove.
-
+      token: The Security Token to use for opening this item.
+      limit: The number of objects to remove.
     Raises:
       RuntimeError: If the urn is too short. This is a safety check to ensure
       the root is not removed.
@@ -83,32 +337,57 @@ class Factory(object):
     if len(urn.Path()) < 1:
       raise RuntimeError("URN %s too short. Please enter a valid URN" % urn)
 
-    def _Delete(root):
-      """Recursively delete all objects contained within the specified URN."""
-      try:
-        children, _ = root.ListChildren()
-        for child in children:
-          try:
-            child_fd = root.OpenMember(child, "w")
-            # Watch out for recursion or . directories
-            if str(root.urn) != str(child):
-              _Delete(child_fd)
-          except IOError:
-            logging.debug("IOError, could not delete %s", child)
-      except AttributeError: pass
+    # Get all the children of this URN and delete them all.
+    logging.info("Recursively removing AFF4 Object %s", urn)
+    fd = FACTORY.Create(urn, "AFF4Volume", mode="rw", token=token)
+    count = 0
+    for child in fd.Query(limit=limit):
+      logging.info("Removing child %s", child.urn)
+      data_store.DB.DeleteSubject(child.urn, token=token)
+      count += 1
 
-      logging.info("Deleted object %s", root.urn)
-      data_store.DB.Transaction(
-          utils.SmartUnicode(root.urn)).DeleteSubject().Commit()
+    if count >= limit:
+      logging.info("Object limit reached, there may be further objects "
+                   "to delete.")
 
-    root = self.Open(urn)
-    _Delete(root)
+    logging.info("Removed %s objects", count)
+    data_store.DB.DeleteSubject(fd.urn, token=token)
 
   def RDFValue(self, name):
     return RDFValue.classes.get(name)
 
   def AFF4Object(self, name):
     return AFF4Object.classes.get(name)
+
+  def Merge(self, first, second):
+    """Merge two AFF4 objects and return a new object.
+
+    Args:
+      first: The first object (Can be None).
+      second: The second object (Can be None).
+
+    Returns:
+      A new object with the type of the latest object, but with both first and
+      second's attributes.
+    """
+    if first is None: return second
+    if second is None: return first
+
+    # Make first the most recent object, and second the least recent:
+    if first.Get("type").age < second.Get("type").age:
+      first, second = second, first
+
+    # Merge the attributes together.
+    for k, v in second.synced_attributes.items():
+      first.synced_attributes.setdefault(k, []).extend(v)
+
+    for k, v in second.new_attributes.items():
+      first.new_attributes.setdefault(k, []).extend(v)
+
+    return first
+
+  def Flush(self):
+    data_store.DB.Flush()
 
 
 class RDFValue(object):
@@ -118,6 +397,11 @@ class RDFValue(object):
   """
 
   __metaclass__ = registry.MetaclassRegistry
+
+  # This is how the attribute will be serialized to the data store. It must
+  # indicate both the type emitted by SerializeToDataStore() and expected by
+  # ParseFromDataStore()
+  data_store_type = "bytes"
 
   def __init__(self, serialized=None, age=None):
     """Constructor must be able to take no args.
@@ -137,10 +421,26 @@ class RDFValue(object):
     if serialized is not None:
       self.ParseFromString(serialized)
 
+  @property
+  def age(self):
+    return RDFDatetime(self._age)
+
+  @age.setter
+  def age(self, value):
+    self._age = value
+
+  def ParseFromDataStore(self, data_store_obj):
+    """Serialize from an object read from the datastore."""
+    return self.ParseFromString(data_store_obj)
+
   @abc.abstractmethod
   def ParseFromString(self, string):
     """Given a string, parse ourselves from it."""
     pass
+
+  def SerializeToDataStore(self):
+    """Serialize to a datastore compatible form."""
+    return self.SerializeToString()
 
   @abc.abstractmethod
   def SerializeToString(self):
@@ -164,8 +464,9 @@ class RDFValue(object):
   operators = dict(contains=(1, "ContainsMatch"))
 
 
-class RDFString(RDFValue):
-  """Represent a simple string."""
+class RDFBytes(RDFValue):
+  """An attribute which holds bytes."""
+  data_store_type = "bytes"
 
   def ParseFromString(self, string):
     self.value = string
@@ -174,7 +475,7 @@ class RDFString(RDFValue):
     return self.value
 
   def __str__(self):
-    return str(self.value)
+    return utils.SmartStr(self.value)
 
   def __eq__(self, other):
     return self.value == other
@@ -185,18 +486,33 @@ class RDFString(RDFValue):
   def __hash__(self):
     return hash(self.value)
 
+
+class RDFString(RDFBytes):
+  """Represent a simple string."""
+
+  data_store_type = "string"
+
   @staticmethod
   def Startswith(attribute, filter_implemention, string):
     return filter_implemention.PredicateContainsFilter(
-      attribute, "^" + data_store.EscapeRegex(string))
+        attribute, "^" + data_store.EscapeRegex(string))
 
   operators = RDFValue.operators.copy()
   operators["matches"] = (1, "ContainsMatch")
   operators["="] = (1, "ContainsMatch")
   operators["startswith"] = (1, "Startswith")
 
-class RDFSHAValue(RDFString):
+  def __unicode__(self):
+    return utils.SmartUnicode(self.value)
+
+  def SerializeToDataStore(self):
+    return utils.SmartUnicode(self.value)
+
+
+class RDFSHAValue(RDFBytes):
   """SHA256 hash."""
+
+  data_store_type = "bytes"
 
   def __str__(self):
     return self.value.encode("hex")
@@ -205,6 +521,8 @@ class RDFSHAValue(RDFString):
 class RDFInteger(RDFString):
   """Represent an integer."""
 
+  data_store_type = "integer"
+
   def __init__(self, serialized=None, age=None):
     super(RDFInteger, self).__init__(serialized, age)
     if serialized is None:
@@ -212,10 +530,18 @@ class RDFInteger(RDFString):
 
   def ParseFromString(self, string):
     self.value = 0
-    if string: self.value = long(string)
+    if string:
+      self.value = int(string)
 
-  def SerializeToString(self):
-    return str(int(self.value))
+  def SerializeToDataStore(self):
+    """Use varint to store the integer."""
+    return int(self.value)
+
+  def Set(self, value):
+    if isinstance(value, (long, int)):
+      self.value = value
+    else:
+      self.ParseFromString(value)
 
   def __long__(self):
     return long(self.value)
@@ -229,6 +555,28 @@ class RDFInteger(RDFString):
   def __gt__(self, other):
     return self.value > other
 
+  def __le__(self, other):
+    return self.value <= other
+
+  def __ge__(self, other):
+    return self.value >= other
+
+  def __add__(self, other):
+    return self.value + other
+
+  def __radd__(self, other):
+    return self.value + other
+
+  def __iadd__(self, other):
+    self.value += other
+    return self
+
+  def __mul__(self, other):
+    return self.value * other
+
+  def __div__(self, other):
+    return self.value / other
+
   @staticmethod
   def LessThan(attribute, filter_implemention, value):
     return filter_implemention.PredicateLessThanFilter(attribute, long(value))
@@ -238,12 +586,20 @@ class RDFInteger(RDFString):
     return filter_implemention.PredicateGreaterThanFilter(
         attribute, long(value))
 
+  @staticmethod
+  def Equal(attribute, filter_implemention, value):
+    return filter_implemention.PredicateNumericEqualFilter(
+        attribute, long(value))
+
   operators = {"<": (1, "LessThan"),
-               ">": (1, "GreaterThan")}
+               ">": (1, "GreaterThan"),
+               "=": (1, "Equal")}
 
 
 class RDFDatetime(RDFInteger):
-  """A date and time."""
+  """A date and time internally stored in MICROSECONDS."""
+  converter = MICROSECONDS
+
   # For now we just store as an integer number of microseconds since the epoch
 
   def __init__(self, serialized=None, age=None):
@@ -252,13 +608,16 @@ class RDFDatetime(RDFInteger):
       self.Now()
 
   def Now(self):
-    self.value = int(time.time() * MICROSECONDS)
+    self.value = int(time.time() * self.converter)
     return self
 
   def __str__(self):
     """Return the date in human readable (UTC)."""
-    value = self.value / MICROSECONDS
+    value = self.value / self.converter
     return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(value))
+
+  def __unicode__(self):
+    return utils.SmartUnicode(str(self))
 
   def __long__(self):
     return long(self.value)
@@ -267,10 +626,66 @@ class RDFDatetime(RDFInteger):
     self.value += other
     return self
 
-  def ParseFromHumanReadable(self, string):
-    """Parse a human readable string of a timestamp (in local time)."""
-    timestamp = parser.parse(string)
-    self.value = time.mktime(timestamp.utctimetuple()) * MICROSECONDS
+  def __sub__(self, other):
+    return self.value - other
+
+  def __add__(self, other):
+    return self.value + other
+
+  @classmethod
+  def ParseFromHumanReadable(cls, string, eoy=False):
+    """Parse a human readable string of a timestamp (in local time).
+
+    Args:
+      string: The string to parse.
+      eoy: If True, sets the default value to the end of the year.
+           Usually this method returns a timestamp where each field that is
+           not present in the given string is filled with values from the date
+           January 1st of the current year, midnight. Sometimes it makes more
+           sense to compare against the end of a period so if eoy is set, the
+           default values are copied from the 31st of December of the current
+           year, 23:59h.
+
+    Returns:
+      The parsed timestamp.
+    """
+    if eoy:
+      default = datetime.datetime(time.gmtime().tm_year, 12, 31, 23, 59)
+    else:
+      default = datetime.datetime(time.gmtime().tm_year, 1, 1, 0, 0)
+    timestamp = parser.parse(string, default=default)
+    return time.mktime(timestamp.utctimetuple()) * cls.converter
+
+  @classmethod
+  def LessThanEq(cls, attribute, filter_implemention, value):
+    return filter_implemention.PredicateLesserEqualFilter(
+        attribute, cls.ParseFromHumanReadable(value, eoy=True))
+
+  @classmethod
+  def LessThan(cls, attribute, filter_implemention, value):
+    """For dates we want to recognize a variety of values."""
+    return filter_implemention.PredicateLesserEqualFilter(
+        attribute, cls.ParseFromHumanReadable(value))
+
+  @classmethod
+  def GreaterThanEq(cls, attribute, filter_implemention, value):
+    return filter_implemention.PredicateGreaterEqualFilter(
+        attribute, cls.ParseFromHumanReadable(value))
+
+  @classmethod
+  def GreaterThan(cls, attribute, filter_implemention, value):
+    return filter_implemention.PredicateGreaterEqualFilter(
+        attribute, cls.ParseFromHumanReadable(value, eoy=True))
+
+  operators = {"<": (1, "LessThan"),
+               ">": (1, "GreaterThan"),
+               "<=": (1, "LessThanEq"),
+               ">=": (1, "GreaterThanEq")}
+
+
+class RDFDatetimeSeconds(RDFDatetime):
+  """A DateTime class which is stored in whole seconds."""
+  converter = 1
 
 
 class RDFProto(RDFValue):
@@ -282,6 +697,8 @@ class RDFProto(RDFValue):
   # This is a map between protobuf fields and RDFValue objects.
   rdf_map = {}
 
+  data_store_type = "bytes"
+
   def __init__(self, serialized=None, age=None):
     # Allow ourselves to be instantiated from a protobuf
     if isinstance(serialized, self._proto):
@@ -292,7 +709,7 @@ class RDFProto(RDFValue):
       super(RDFProto, self).__init__(serialized, age)
 
   def ParseFromString(self, string):
-    self.data.ParseFromString(string)
+    self.data.ParseFromString(utils.SmartStr(string))
 
   def SerializeToString(self):
     return self.data.SerializeToString()
@@ -311,6 +728,10 @@ class RDFProto(RDFValue):
     return ["%s.%s" % (name, x.name) for x in cls._proto.DESCRIPTOR.fields]
 
 
+class RDFProtoDict(RDFProto):
+  _proto = jobs_pb2.Dict
+
+
 class RDFProtoArray(RDFProto):
   """A baseclass for using an array of protobufs as RDFValue."""
   # This should be overridden as the proto in the array
@@ -324,31 +745,55 @@ class RDFProtoArray(RDFProto):
       self.ParseFromString(utils.SmartStr(serialized))
 
   def ParseFromString(self, string):
-    array = jobs_pb2.BlobArray()
-    array.ParseFromString(string)
+    myarray = jobs_pb2.BlobArray()
+    myarray.ParseFromString(string)
 
     self.data = []
-    for data_blob in array.content:
+    for data_blob in myarray.content:
       member = self._proto()
       member.ParseFromString(data_blob.data)
       self.data.append(member)
 
-  def Append(self, member):
-    if type(member) != self._proto:
-      raise RuntimeError("Can not append a %s to %s" % (
+  def Append(self, member=None, **kwargs):
+    """Add another member to the array.
+
+    Args:
+      member: A new protobuf to append to the array. Must be of the correct
+          type.
+
+      **kwargs: if member is not specified, a new array member is created and
+          these kwargs are passed to the protobuf constructor.
+
+    Raises:
+       TypeError: If the member is not of the correct type.
+    """
+    if member is None:
+      member = self._proto(**kwargs)
+
+    elif type(member) != self._proto:
+      raise TypeError("Can not append a %s to %s" % (
           type(member), self.__class__.__name__))
 
     self.data.append(member)
 
   def SerializeToString(self):
-    array = jobs_pb2.BlobArray()
+    myarray = jobs_pb2.BlobArray()
     for member in self.data:
-      array.content.add(data=member.SerializeToString())
+      myarray.content.add(data=member.SerializeToString())
 
-    return array.SerializeToString()
+    return myarray.SerializeToString()
 
   def __iter__(self):
     return self.data.__iter__()
+
+  def __len__(self):
+    return self.data.__len__()
+
+  def __nonzero__(self):
+    return bool(self.data)
+
+  def Pop(self, index=0):
+    self.data.pop(index)
 
   def __str__(self):
     results = [str(x) for x in self.data]
@@ -360,6 +805,8 @@ class RDFProtoArray(RDFProto):
 
 class RDFURN(RDFValue):
   """An object to abstract URL manipulation."""
+
+  data_store_type = "string"
 
   def __init__(self, urn=None, age=None):
     """Constructor.
@@ -378,13 +825,23 @@ class RDFURN(RDFValue):
     super(RDFURN, self).__init__(urn, age)
 
   def ParseFromString(self, serialized=None):
-    self._urn = urlparse.urlparse(serialized)
+    self._urn = urlparse.urlparse(serialized, scheme="aff4")
     # Normalize the URN path component
+    # namedtuple _replace() is not really private.
     self._urn = self._urn._replace(path=utils.NormalizePath(self._urn.path))
+    if not self._urn.scheme:
+      self._urn = self._urn._replace(scheme="aff4")
+
     self._string_urn = self._urn.geturl()
 
   def SerializeToString(self):
     return str(self)
+
+  def Dirname(self):
+    return posixpath.dirname(self.SerializeToString())
+
+  def Basename(self):
+    return posixpath.basename(self.Path())
 
   def Add(self, urn, age=None):
     """Add a relative stem to the current value and return a new RDFURN.
@@ -398,6 +855,9 @@ class RDFURN(RDFValue):
     Returns:
        A new RDFURN that can be chained.
     """
+    if isinstance(urn, RDFURN):
+      return urn
+
     parsed = urlparse.urlparse(urn)
     if parsed.scheme != "aff4":
       # Relative name - just append to us.
@@ -414,7 +874,7 @@ class RDFURN(RDFValue):
 
     Args:
        url: An optional string containing a URL.
-       kwargs: Can be one of "schema", "netloc", "query", "fragment"
+       **kwargs: Can be one of "schema", "netloc", "query", "fragment"
     """
     if url: self.ParseFromString(url)
 
@@ -430,15 +890,51 @@ class RDFURN(RDFValue):
   def __str__(self):
     return utils.SmartStr(self._string_urn)
 
+  def __unicode__(self):
+    return utils.SmartUnicode(self._string_urn)
+
   def __eq__(self, other):
-    return str(self) == str(other)
+    return utils.SmartStr(self) == utils.SmartStr(other)
 
   def __ne__(self, other):
     return str(self) != str(other)
 
+  def __lt__(self, other):
+    return self._string_urn < other
+
+  def __gt__(self, other):
+    return self._string_urn > other
+
   def Path(self):
     """Return the path of the urn."""
     return self._urn.path
+
+  @property
+  def scheme(self):
+    return self._urn.scheme
+
+  def Split(self, count=None):
+    """Returns all the path components.
+
+    Args:
+      count: If count is specified, the output will be exactly this many path
+        components, possibly extended with the empty string. This is useful for
+        tuple assignments without worrying about ValueErrors:
+
+           namespace, path = urn.Split(2)
+
+    Returns:
+      A list of path components of this URN.
+    """
+    if count:
+      result = filter(None, self.Path().split("/", count))
+      while len(result) < count:
+        result.append("")
+
+      return result
+
+    else:
+      return filter(None, self.Path().split("/"))
 
   def RelativeName(self, volume):
     """Given a volume URN return the relative URN as a unicode string.
@@ -464,7 +960,7 @@ class RDFURN(RDFValue):
     return None
 
   def __hash__(self):
-    return hash(str(self))
+    return hash(utils.SmartUnicode(self))
 
   def __repr__(self):
     return "<RDFURN@%X = %s age=%s>" % (hash(self), str(self), self.age)
@@ -480,11 +976,16 @@ class Subject(RDFURN):
   @staticmethod
   def Startswith(unused_attribute, filter_implemention, string):
     return filter_implemention.SubjectContainsFilter(
-      "^" + data_store.EscapeRegex(string))
+        "^" + data_store.EscapeRegex(string))
 
+  @staticmethod
+  def HasAttribute(unused_attribute, filter_implemention, string):
+    return filter_implemention.HasPredicateFilter(string)
 
   operators = dict(matches=(1, "ContainsMatch"),
-                   startswith=(1, "Startswith"))
+                   contains=(1, "ContainsMatch"),
+                   startswith=(1, "Startswith"),
+                   has=(1, "HasAttribute"))
 
 
 class Attribute(object):
@@ -499,11 +1000,8 @@ class Attribute(object):
   # A human readable name to be used in filter queries.
   NAMES = {}
 
-  # Field name can refer to a specific component of an attribute
-  field_name = None
-
   def __init__(self, predicate, attribute_type=RDFString, description="",
-               name=None, _copy=False):
+               name=None, _copy=False, default=None, index=None):
     """Constructor.
 
     Args:
@@ -514,11 +1012,21 @@ class Attribute(object):
        name: A human readable name for the attribute to be used in filters.
        _copy: Used internally to create a copy of this object without
           registering.
+       default: A default value will be returned if the attribute is not set on
+          an object. This can be a constant or a callback which receives the fd
+          itself as an arg.
+       index: The name of the index to use for this attribute. If None, the
+          attribute will not be indexed.
     """
     self.name = name
     self.predicate = predicate
     self.attribute_type = attribute_type
     self.description = description
+    self.default = default
+    self.index = index
+
+    # Field names can refer to a specific component of an attribute
+    self.field_names = []
 
     if not _copy:
       # Check the attribute registry for conflicts
@@ -530,7 +1038,8 @@ class Attribute(object):
               predicate, old_attribute.attribute_type.__class__.__name__,
               attribute_type.__class__.__name__)
           raise RuntimeError
-      except KeyError: pass
+      except KeyError:
+        pass
 
       # Register
       self.PREDICATES[predicate] = self
@@ -544,7 +1053,9 @@ class Attribute(object):
 
   def __call__(self, *args, **kwargs):
     """A shortcut allowing us to instantiate a new type from an attribute."""
-    return self.attribute_type(*args, **kwargs)
+    result = self.attribute_type(*args, **kwargs)
+    result.attribute_instance = self
+    return result
 
   def __str__(self):
     return self.predicate
@@ -563,7 +1074,7 @@ class Attribute(object):
 
   def __getitem__(self, item):
     result = self.Copy()
-    result.field_name = item
+    result.field_names = item.split(".")
 
     return result
 
@@ -573,25 +1084,49 @@ class Attribute(object):
   @classmethod
   def GetAttributeByName(cls, name):
     # Support attribute names with a . in them:
-    if "." in name:
-      name, field = name.split(".", 1)
-      return cls.NAMES[name][field]
+    try:
+      if "." in name:
+        name, field = name.split(".", 1)
+        return cls.NAMES[name][field]
 
-    return cls.NAMES[name]
+      return cls.NAMES[name]
+    except KeyError:
+      raise AttributeError("Invalid attribute")
 
   def GetRDFValueType(self):
     """Returns this attribute's RDFValue class."""
-    return self.attribute_type
+    result = self.attribute_type
+    for field_name in self.field_names:
+      result = result.rdf_map.get(field_name, RDFString)
+
+    return result
 
   def GetValues(self, fd):
     """Return the values for this attribute as stored in an AFF4Object."""
-    result = (fd._attributes.get(self, []) +
-              fd.new_attributes.get(self, []))
+    results = []
+    for result in (fd.synced_attributes.get(self, []) +
+                   fd.new_attributes.get(self, [])):
+      for field in self.field_names:
+        result = result.GetField(field)
 
-    if self.field_name:
-      result = [x.GetField(self.field_name) for x in result]
+      results.append(result)
 
-    return result
+    if not results:
+      default = self.GetDefault(fd)
+      if default is not None:
+        results.append(default)
+
+    return results
+
+  def GetDefault(self, fd, default=None):
+    """Returns a default attribute if it is not set."""
+    if callable(self.default):
+      return self.default(fd)
+
+    if self.default is not None:
+      return self(self.default)
+
+    return default
 
 
 class SubjectAttribute(Attribute):
@@ -612,15 +1147,26 @@ class ClassProperty(property):
     return self.fget.__get__(None, owner)()
 
 
+class ClassInstantiator(property):
+  """A property which instantiates the class on getting."""
+
+  def __get__(self, _, owner):
+    return self.fget()
+
+
 class AFF4Object(object):
   """Base class for all objects."""
 
   # We are a registered class.
   __metaclass__ = registry.MetaclassRegistry
+  include_plugins_as_attributes = True
 
   # This property is used in GUIs to define behaviours. These can take arbitrary
   # values as needed. Behaviours are read only and set in the class definition.
   _behaviours = frozenset()
+
+  # Should this object be synced back to the data store.
+  _dirty = False
 
   @ClassProperty
   @classmethod
@@ -629,8 +1175,9 @@ class AFF4Object(object):
 
   # We define the parts of the schema for each AFF4 Object as an internal
   # class. As new objects extend this, they can add more attributes to their
-  # schema by extending their parents.
-  class Schema(object):
+  # schema by extending their parents. Note that the class must be named
+  # SchemaCls.
+  class SchemaCls(object):
     """The standard AFF4 schema."""
     TYPE = Attribute("aff4:type", RDFString,
                      "The name of the AFF4Object derived class.", "type")
@@ -640,63 +1187,119 @@ class AFF4Object(object):
     STORED = Attribute("aff4:stored", RDFURN,
                        "The AFF4 container inwhich this object is stored.")
 
-    @classmethod
-    def ListAttributes(cls):
-      for attr in dir(cls):
-        attr = getattr(cls, attr)
+    DIRNAME = Attribute("aff4:dirname", RDFURN,
+                        "The directory name of this object for fast searching.",
+                        "dirname")
+
+    LAST = Attribute("metadata:last", RDFDatetime,
+                     "The last time any children of this object were written.")
+
+    def ListAttributes(self):
+      for attr in dir(self):
+        attr = getattr(self, attr)
         if isinstance(attr, Attribute):
           yield attr
 
-    @classmethod
-    def GetAttribute(cls, name):
-      for i in cls.ListAttributes():
+    def GetAttribute(self, name):
+      for i in self.ListAttributes():
         # Attributes are accessible by predicate or name
         if i.name == name or i.predicate == name:
           return i
 
-  def __init__(self, urn, mode="r", parent=None, clone=None):
+    def __getattr__(self, attr):
+      """For unknown attributes just return None.
+
+      Often the actual object returned is not the object that is expected. In
+      those cases attempting to retrieve a specific named attribute will raise,
+      e.g.:
+
+      fd = aff4.FACTORY.Open(urn)
+      fd.Get(fd.Schema.SOME_ATTRIBUTE, default_value)
+
+      This simply ensures that the default is chosen.
+
+      Args:
+        attr: Some ignored attribute.
+      """
+      return None
+
+    @classmethod
+    def FindAFF4Class(cls):
+      """Return a list of AFF4 Object classes which use us as a Schema."""
+      result = []
+      for aff4cls in AFF4Object.classes.values():
+        if aff4cls.SchemaCls is cls:
+          result.append(aff4cls)
+
+      return result
+
+  # Make sure that when someone references the schema, they receive an instance
+  # of the class.
+  @property
+  def Schema(self):
+    return self.SchemaCls()
+
+  def __init__(self, urn, mode="r", parent=None, clone=None, token=None,
+               local_cache=None, age=NEWEST_TIME):
     self.urn = RDFURN(urn)
     self.mode = mode
     self.parent = parent
+    self.token = token
+    self.age_policy = age
 
     # Mark out attributes to delete when Flushing()
     self._to_delete = set()
 
-    # We maintain two attribute caches - self._attributes reflects the
+    # We maintain two attribute caches - self.synced_attributes reflects the
     # attributes which are synced with the data_store, while self.new_attributes
     # are new attributes which still need to be flushed to the data_store. When
-    # this object is instantiated we populate self._attributes with the
+    # this object is instantiated we populate self.synced_attributes with the
     # data_store, while the finish method flushes new changes.
     if isinstance(clone, dict):
       # Just use these as the attributes - do not go to the data store. This is
       # a quick way of creating an object with data which was already fetched.
       self.new_attributes = {}
-      self._attributes = clone
+      self.synced_attributes = clone
 
     elif isinstance(clone, AFF4Object):
       # We were given another object to clone - we do not need to access the
       # data_store now.
       self.new_attributes = clone.new_attributes.copy()
-      self._attributes = clone._attributes.copy()
+      self.synced_attributes = clone.synced_attributes.copy()
+
     else:
-      # Populate the caches from the data store.
       self.new_attributes = {}
-      self._attributes = {}
-      if urn:
-        # Grab all the possible column families at once to minimize round trip
-        # times.
-        for attribute_name, value, ts in data_store.DB.ResolveRegex(
-            utils.SmartUnicode(urn), predicate_regex=[
-                "aff4:.*", "metadata:.*", "fs:.*", "task:.*"],
-            timestamp=data_store.ALL_TIMESTAMPS):
-          self.DecodeValueFromAttribute(attribute_name, value, ts)
+      self.synced_attributes = {}
+
+      if "r" in mode:
+        if local_cache:
+          try:
+            for attribute, value, ts in local_cache[utils.SmartUnicode(urn)]:
+              self.DecodeValueFromAttribute(attribute, value, ts)
+          except KeyError:
+            pass
+        else:
+          # Populate the caches from the data store.
+          for urn, values in FACTORY.GetAttributes([urn], token=self.token):
+            for attribute_name, value, ts in values:
+              self.DecodeValueFromAttribute(attribute_name, value, ts)
 
     # We do not initialize when we need to clone from another object.
     if clone is None:
       self.Initialize()
 
   def Initialize(self):
-    """The method is called after construction to initialize the object."""
+    """The method is called after construction to initialize the object.
+
+    This will be called after construction, and each time the object is
+    unserialized from the datastore.
+
+    An AFF4 object contains attributes which can be populated from the
+    database. This method is called to obtain a fully fledged object from
+    a collection of attributes.
+    """
+    if "w" in self.mode:
+      self.Set(self.Schema.DIRNAME(self.urn.Dirname()))
 
   def DecodeValueFromAttribute(self, attribute_name, value, ts):
     """Given a serialized value, decode the attribute.
@@ -713,7 +1316,7 @@ class AFF4Object(object):
       attribute = Attribute.PREDICATES[attribute_name]
       cls = attribute.attribute_type
       self._AddAttributeToCache(attribute, cls(value, ts),
-                                self._attributes)
+                                self.synced_attributes)
     except KeyError:
       logging.debug("Attribute %s not defined, skipping.", attribute_name)
     except (ValueError, message.DecodeError):
@@ -724,47 +1327,48 @@ class AFF4Object(object):
     """Helper to add a new attribute to a cache."""
     cache.setdefault(attribute_name, []).append(value)
 
-  def Flush(self):
-    """Alias for Finish(). Syncs this object with the data store."""
-    self.Finish()
-
-  def Finish(self):
-    """Complete the object."""
-    # If we dont have a type, store it now to allow us to be correctly
-    # un-serialized later. Note that this effectively represents the last
-    # modification time for this object.
-    if self.Get(self.Schema.TYPE) != self.__class__.__name__:
-      self.Set(self.Schema.TYPE, RDFString(self.__class__.__name__))
+  def Flush(self, sync=True):
+    """Syncs this object with the data store."""
+    # If the object is not opened for writing we do not need to flush it to the
+    # data_store.
+    if "w" not in self.mode:
+      return
 
     if self.new_attributes or self._to_delete:
       logging.debug("%s: Writing %s and deleting %s attributes", self.urn,
                     len(self.new_attributes), len(self._to_delete))
 
-    # Write all the new attributes back preserving value timestamps.
-    def Dummy(transaction):
-      """Update and delete attributes in a transaction."""
-      # Delete all the attributes
-      for attribute_name in self._to_delete:
-        transaction.DeleteAttribute(attribute_name)
+    to_set = {}
+    for attribute_name, value_array in self.new_attributes.items():
+      for value in value_array:
+        to_set.setdefault(attribute_name, []).append(
+            (value.SerializeToDataStore(), value.age))
 
-      for attribute_name, value_array in self.new_attributes.items():
-        for value in value_array:
-          transaction.Set(attribute_name, value.SerializeToString(),
-                          timestamp=value.age, replace=False)
+    if self._dirty:
+      # Set the type now to allow us to be correctly un-serialized later. Note
+      # that this effectively represents the last modification time for this
+      # object.
+      to_set[self.Schema.TYPE] = [
+          (RDFString(self.__class__.__name__).SerializeToDataStore(),
+           RDFDatetime())]
+      self._to_delete.add(self.Schema.TYPE)
 
-    data_store.DB.RetryWrapper(utils.SmartUnicode(self.urn), Dummy)
+      # Write the attributes to the Factory cache.
+      FACTORY.SetAttributes(self.urn, to_set, self._to_delete, sync=sync,
+                            token=self.token)
 
     # This effectively moves all the values from the new_attributes to the
     # _attributes caches.
     for attribute_name, value_array in self.new_attributes.items():
-      self._attributes.setdefault(attribute_name, []).extend(value_array)
+      self.synced_attributes.setdefault(attribute_name, []).extend(value_array)
 
     self.new_attributes = {}
     self._to_delete.clear()
+    self._dirty = False
 
     # Recurse back to all our parents and flush them
     if self.parent:
-      self.parent.Finish()
+      self.parent.Flush(sync=sync)
 
   def _CheckAttribute(self, attribute, value):
     """Check that the value is of the expected type.
@@ -784,52 +1388,117 @@ class AFF4Object(object):
       raise ValueError("Value for attribute %s must be of type %s()",
                        attribute, attribute.attribute_type.__name__)
 
-  def Set(self, attribute, value):
+  def Set(self, attribute, value=None):
     """Set an attribute on this object.
 
-    If the attribute is already set, it is cleared first.
+    If the attribute is already set, it is cleared first. If value is None,
+    attribute is expected to be already initialized with a value. For example:
+
+    fd.Set(fd.Schema.CONTAINS("some data"))
 
     Args:
        attribute: The attribute name.
        value: The value the attribute will be set to.
+
+    Raises:
+       IOError: If this object is read only.
     """
+    if "w" not in self.mode:
+      raise IOError("Writing attribute %s to read only object." % attribute)
+
+    # Support an alternate calling style
+    if value is None:
+      value = attribute
+      attribute = value.attribute_instance
+
     self._CheckAttribute(attribute, value)
 
     self.DeleteAttribute(attribute)
     self.AddAttribute(attribute, value)
 
-  def AddAttribute(self, attribute, value):
-    """Add an additional attribute to this object."""
+  def AddAttribute(self, attribute, value=None):
+    """Add an additional attribute to this object.
+
+    If value is None, attribute is expected to be already initialized with a
+    value. For example:
+
+    fd.AddAttribute(fd.Schema.CONTAINS("some data"))
+
+    Args:
+       attribute: The attribute name or an RDFValue derived from the attribute.
+       value: The value the attribute will be set to.
+
+    Raises:
+       IOError: If this object is read only.
+    """
+    if "w" not in self.mode:
+      raise IOError("Writing attribute %s to read only object." % attribute)
+
+    if value is None:
+      value = attribute
+      attribute = value.attribute_instance
+
     self._CheckAttribute(attribute, value)
 
     self._AddAttributeToCache(attribute, value, self.new_attributes)
+    self._dirty = True
 
   def DeleteAttribute(self, attribute):
     """Clears the attribute from this object."""
-    if attribute in self._attributes:
+    if attribute in self.synced_attributes:
       self._to_delete.add(attribute)
-      del self._attributes[attribute]
+      del self.synced_attributes[attribute]
 
     if attribute in self.new_attributes:
       del self.new_attributes[attribute]
 
+    self._dirty = True
+
   def Get(self, attribute, default=None):
-    result = self.GetValuesForAttribute(attribute)
+    """Gets the attribute from this object."""
+    if attribute is None:
+      return default
+
+    # Allow the user to specify the attribute by name.
+    elif isinstance(attribute, str):
+      attribute = Attribute.GetAttributeByName(attribute)
+
+    # Reads of un-flushed writes are still allowed.
+    if "r" not in self.mode and attribute not in self.new_attributes:
+      # If there are defaults for this attribute - just use them.
+      result = attribute.GetDefault(self)
+      if result:
+        self.Set(attribute(result))
+        return result
+
+      raise IOError(
+          "Fetching %s from object not opened for reading." % attribute)
+
+    result = list(self.GetValuesForAttribute(attribute, only_one=True))
+    if not result:
+      return attribute.GetDefault(self, default)
+
     # Get latest result
     result.sort(key=lambda x: x.age)
-    if result:
-      return result[-1]
+    return result[-1]
 
-    return default
-
-  def GetValuesForAttribute(self, attribute):
+  def GetValuesForAttribute(self, attribute, only_one=False):
     """Returns a list of values from this attribute."""
+    if not only_one and self.age_policy == NEWEST_TIME:
+      raise RuntimeError("Attempting to read all attribute versions for an "
+                         "object opened for NEWEST_TIME. This is probably "
+                         "not what you want.")
+    if attribute is None:
+      return []
+    elif isinstance(attribute, str):
+      attribute = Attribute.GetAttributeByName(attribute)
+
     return attribute.GetValues(self)
 
-  def Close(self):
+  def Close(self, sync=True):
     """Close and destroy the object."""
     # Sync the attributes
-    self.Finish()
+    self.Flush(sync=sync)
 
   def Update(self, attribute=None, user=None):
     """Requests the object refresh an attribute from the Schema."""
@@ -858,26 +1527,37 @@ class AFF4Object(object):
        AttributeError: When the new object can not accept some of the old
        attributes.
     """
+    # We are already of the required type
+    if self.__class__.__name__ == aff4_class:
+      return self
+
     # Instantiate the right type
     cls = self.classes[str(aff4_class)]
 
-    # Check that cls has all our attributes in its schema
-    names = set([str(x) for x in cls.Schema.ListAttributes()])
-    for x in list(self._attributes) + list(self.new_attributes):
-      if x not in names:
-        raise AttributeError("Unable to upgrade object to %s - "
-                             "cant store attributes %s" % (aff4_class, x))
+    # NOTE: It is possible for attributes to become inaccessible here if the old
+    # object has an attribute which the new object does not have in its
+    # schema. The values of these attributes will not be available any longer in
+    # the new object - usually because old attributes do not make sense in the
+    # context of the new object.
 
-    result = cls(self.urn, self.mode, clone=self, parent=self.parent)
+    # Instantiate the class
+    result = cls(self.urn, mode=self.mode, clone=self, parent=self.parent,
+                 token=self.token, age=self.age_policy)
     result.Initialize()
+    result._dirty = True
+
     return result
 
   def __repr__(self):
     return "<%s@%X = %s>" % (self.__class__.__name__, hash(self), self.urn)
 
+  # The following are used to ensure a bunch of AFF4Objects can be sorted on
+  # their URNs.
+  def __gt__(self, other):
+    return self.urn > other
 
-class AFF4Graph(AFF4Object):
-  """Just a container to hold data."""
+  def __lt__(self, other):
+    return self.urn < other
 
 
 class AttributeExpression(lexer.Expression):
@@ -887,7 +1567,7 @@ class AttributeExpression(lexer.Expression):
     """Checks that attribute is a valid Attribute() instance."""
     # Grab the attribute registered for this name
     self.attribute = attribute
-    self.attribute_obj = Attribute.NAMES.get(attribute)
+    self.attribute_obj = Attribute.GetAttributeByName(attribute)
     if self.attribute_obj is None:
       raise lexer.ParseError("Attribute %s not defined" % attribute)
 
@@ -895,18 +1575,18 @@ class AttributeExpression(lexer.Expression):
     """Sets the operator for this expression."""
     self.operator = operator
     # Find the appropriate list of operators for this attribute
-    operators = self.attribute_obj.attribute_type.operators
+    attribute_type = self.attribute_obj.GetRDFValueType()
+    operators = attribute_type.operators
 
     # Do we have such an operator?
     self.number_of_args, self.operator_method = operators.get(
         operator, (0, None))
 
     if self.operator_method is None:
-      raise lexer.ParseError("Operator %s not defined on attribute %s" % (
+      raise lexer.ParseError("Operator %s not defined on attribute '%s'" % (
           operator, self.attribute))
 
-    self.operator_method = getattr(self.attribute_obj.attribute_type,
-                                   self.operator_method)
+    self.operator_method = getattr(attribute_type, self.operator_method)
 
   def Compile(self, filter_implemention):
     """Returns the data_store filter implementation from the attribute."""
@@ -926,20 +1606,20 @@ class AFF4Volume(AFF4Object):
   implement any storage mechanism it likes, including virtualizing the objects
   contained within it.
   """
-  # New containers will be created with this type
-  default_container = "AFF4Volume"
+  _behaviours = frozenset(["Container"])
 
-  class Schema(AFF4Object.Schema):
+  class SchemaCls(AFF4Object.SchemaCls):
     CONTAINS = Attribute("aff4:contains", RDFURN,
-                         "An AFF4 obejct contained in this container.")
+                         "An AFF4 object contained in this container.")
 
-  def Query(self, filter_string="", filter_obj=None):
+  def Query(self, filter_string="", filter_obj=None, limit=1000):
     """A way to query the collection based on a filter object.
 
     Args:
       filter_string: An optional filter applied to our members. The filter
         string should correspond to the syntax described in lexer.py.
       filter_obj: An optional compiled filter (as obtained from lexer.Compile().
+      limit: A limit on the number of returned rows.
 
     Returns:
       A generator of all children which match the filter.
@@ -951,45 +1631,20 @@ class AFF4Volume(AFF4Object):
       # Query our own data store
       filter_obj = ast.Compile(data_store.DB.Filter)
 
-    result = []
-    for match in data_store.DB.Query([], filter_obj):
-      result.append(match["subject"][0])
+    result_set = data_store.DB.Query(
+        [], filter_obj, limit=limit, subject_prefix=self.urn, token=self.token)
 
-    return self.OpenChildren(result)
+    result = data_store.ResultSet(
+        self.OpenChildren([m["subject"][0] for m in result_set]))
 
-  def Open(self, urn, mode="r"):
-    """Open an object contained within this volume."""
-    # We automatically contain URNs which start with our own URN. For example if
-    # self.urn = RDFURN("aff4:/foobar") We will automatically contain
-    # RDFURN("aff4:/foobar/something"):
-    if not isinstance(urn, RDFURN):
-      # Interpret as a relative path
-      urn = self.urn.Add(urn)
+    result.total_count = result_set.total_count
+    return result
 
-    # Are we opening a direct child?
-    relative_name = urn.RelativeName(self.urn)
-    if relative_name:
-      path_components = [x for x in relative_name.split("/") if x]
-      direct_child = path_components[0]
-      stem = "/".join(path_components[1:])
-
-      child = self.OpenMember(direct_child, mode)
-
-      if stem: return child.Open(stem, mode)
-
-      return child
-
-    # Otherwise we use the CONTAINS attribute
-    if urn not in self.GetValuesForAttribute(self.Schema.CONTAINS):
-      raise IOError("Path %s not found in container %s." % (urn, self.urn))
-
-    return FACTORY.Open(urn)
-
-  def OpenMember(self, path, mode):
+  def OpenMember(self, path, mode="r"):
     """Opens the member which is contained in us.
 
     Args:
-       path: A string relative to our own URN or an RDFURN instance.
+       path: A string relative to our own URN or an absolute urn.
        mode: Mode for object.
 
     Returns:
@@ -1004,51 +1659,22 @@ class AFF4Volume(AFF4Object):
     else:
       child_urn = self.urn.Add(path)
 
-    # We instantiate the child. Because we dont know what type it is yet, we use
-    # the baseclass and then get the correct type:
-    result = AFF4Object(child_urn, mode, parent=self)
+    # Read the row from the table.
+    result = AFF4Object(child_urn, mode=mode, token=self.token)
 
-    # Get the real class
-    aff4_type = result.Get(self.Schema.TYPE)
-    if aff4_type not in AFF4Object.classes:
-      raise IOError("Object %s not found" % child_urn)
+    # Get the correct type.
+    aff4_type = result.Get(result.Schema.TYPE)
+    if aff4_type:
+      # Try to get the container.
+      return result.Upgrade(aff4_type)
 
-    # Instantiate the right type
-    cls = AFF4Object.classes[str(aff4_type)]
-    result = cls(child_urn, mode, clone=result, parent=self)
-    result.Initialize()
-    return result
+    raise IOError("Path %s not found" % path)
 
-  def ListChildren(self):
-    """Return all our children.
+  def CreateMember(self, path, aff4_type, mode="w"):
+    return FACTORY.Create(self.urn.Add(path), aff4_type, mode=mode,
+                          token=self.token)
 
-    Our children are those AFF4 objects with a URL with the same prefix as
-    us. For example if our urn is "aff4:/foo", then aff4:/foo/bar is a direct
-    child, but aff4:/foo/bar/zoo is not a direct child.
-
-    Returns:
-      A tuple of a dict keyed by relative names and values of their type, and
-      the most recent age of the entries.
-    """
-    results = {}
-    newest_age = 0
-
-    for row in data_store.DB.Query(
-        [self.Schema.TYPE], data_store.DB.Filter.AndFilter(
-            data_store.DB.Filter.HasPredicateFilter("aff4:type"),
-            data_store.DB.Filter.SubjectContainsFilter(
-                "%s/[^/]+$" % data_store.EscapeRegex(self.urn))),
-        utils.SmartUnicode(self.urn)):
-
-      # Return a relative path if possible
-      value, age = row[self.Schema.TYPE]
-      results[RDFURN(row["subject"][0], age=age)] = value
-
-      newest_age = max(age, newest_age)
-
-    return results, newest_age
-
-  def OpenChildren(self, children=None, mode="r"):
+  def OpenChildren(self, children=None, mode="r", limit=1000):
     """Yields AFF4 Objects of all our direct children.
 
     This method efficiently returns all attributes for our children directly, in
@@ -1058,104 +1684,60 @@ class AFF4Volume(AFF4Object):
       children: A list of children RDFURNs to open. If None open all our
              children.
       mode: The mode the files should be opened with.
-
-    Yields:
-      An AFF4 Object for each one of our children.
-    """
-    if children is None:
-      children, _ = self.ListChildren()
-
-    if not children: return
-
-    # Convert all children to RDFURNs
-    urn_children = []
-    for child in children:
-      if not isinstance(child, RDFURN):
-        child = self.urn.Add(child)
-
-      urn_children.append(child)
-
-    for child, attributes in data_store.DB.MultiResolveRegex(
-        urn_children, ["aff4:.*", "metadata:.*", "fs:.*", "task:.*"],
-        timestamp=data_store.ALL_TIMESTAMPS).iteritems():
-      # We need to search the list for the type
-      for attribute, value, _ in attributes:
-        # Find the type of the object
-        if attribute == "aff4:type":
-          # Create a blank object
-          cls = AFF4Object.classes[value]
-          result = cls(RDFURN(child), mode, clone={}, parent=self)
-
-          # Decode the attributes for the new object from existing data
-          for attribute, value, ts in attributes:
-            result.DecodeValueFromAttribute(attribute, value, ts)
-
-          # Initialize the result
-          result.Initialize()
-          yield result
-          break
-
-  def CreateMember(self, path, aff4_type, clone=None, mode="w"):
-    """Creates and adds a new member to this volume.
-
-    Args:
-       path: The URN of the member (can be a string relative to this volume or
-            RDFURN).
-       aff4_type: The name of the AFF4 type the new member will have.
-       clone: An optional AFF4 object we copy attributes from. Can also be a
-              dict of attributes.
-       mode: The mode an object should have. Can be "r" or "w".
+      limit: The maximum number of children returned.
     Returns:
-       an AFF4Object instance of the specified type.
-
-    Raises:
-       IOError: if the aff4_type is not registered.
+      Instances for all the children.
     """
-    stem = ""
-
-    # We contain a fully qualified URN
-    try:
-      relative_path = path.RelativeName(self.urn)
-      if relative_path is not None: path = relative_path
-    except AttributeError: pass
-
-    if isinstance(path, RDFURN):
-      child_urn = path
-      self.AddAttribute(self.Schema.CONTAINS, path)
+    # Grab all our direct children.
+    if children is None:
+      result_set = data_store.DB.Query(
+          filter_obj=data_store.DB.Filter.SubjectContainsFilter(
+              "%s/[^/]+$" % data_store.EscapeRegex(self.urn)),
+          subjects=children,
+          limit=limit, subject_prefix=self.urn, token=self.token)
+      subjects = set()
+      for result in result_set:
+        subjects.add(RDFURN(result["subject"][0]))
     else:
-      # path should be taken as relative to us
-      try:
-        direct_child, stem = path.split("/", 1)
-      except ValueError:
-        direct_child, stem = path, ""
+      subjects = children
 
-      child_urn = self.urn.Add(direct_child)
+    return FACTORY.MultiOpen(subjects, mode=mode, token=self.token)
 
-    # We instantiate the child. Because we dont know what type it is yet, we use
-    # the baseclass and then get the correct type:
-    result = AFF4Object(child_urn, mode, parent=self, clone=clone)
 
-    # Get the real class
-    result_type = result.Get(self.Schema.TYPE)
-    if not result_type:
-      # The object does not exist yet
-      if stem:
-        # It should be a container
-        result_type = self.default_container
-      else:
-        # Its a leaf
-        result_type = aff4_type
+class AFF4Root(AFF4Volume):
+  """The root of the VFS.
 
-    # Instantiate the right type
-    cls = AFF4Object.classes[str(result_type)]
-    result = cls(child_urn, mode, clone=result, parent=self)
+  This virtual collection contains the entire virtual filesystem, and therefore
+  can be queried across the entire data store.
+  """
+
+  def Query(self, filter_string="", filter_obj=None, subjects=None, limit=100):
+    """Filter the objects contained within this collection."""
+    if filter_obj is None and filter_string:
+      # Parse the query string
+      ast = AFF4QueryParser(filter_string).Parse()
+
+      # Query our own data store
+      filter_obj = ast.Compile(data_store.DB.Filter)
+
+    subjects = []
+    result_set = data_store.DB.Query([], filter_obj, subjects=subjects,
+                                     limit=limit, token=self.token)
+    for match in result_set:
+      subjects.append(match["subject"][0])
+
+    # Open them all at once.
+    result = data_store.ResultSet(FACTORY.MultiOpen(subjects, token=self.token))
+    result.total_count = result_set.total_count
+
+    return result
+
+  def OpenMember(self, path, mode="r"):
+    """If we get to the root without a container, virtualize an empty one."""
+    urn = self.urn.Add(path)
+    result = AFF4Volume(urn, mode=mode, token=self.token)
     result.Initialize()
 
-    # Do we need an intermediate container
-    if stem:
-      return result.CreateMember(stem, aff4_type)
-
-    # Final leaf
     return result
 
 
@@ -1188,33 +1770,37 @@ class AFF4OverlayedVolume(AFF4Volume):
     """
     return False
 
-  def OpenMember(self, path, mode):
+  def OpenMember(self, path, mode="rw"):
     if self.IsPathOverlayed(path):
-      result = self.__class__(self.urn, mode, clone=self, parent=self)
+      result = self.__class__(self.urn, mode=mode, clone=self, parent=self)
       result.overlayed_path = path
       return result
 
     return super(AFF4OverlayedVolume, self).OpenMember(path, mode)
 
-  def CreateMember(self, path, aff4_type):
+  def CreateMember(self, path, aff4_type, mode="w", clone=None):
     if self.IsPathOverlayed(path):
-      result = self.__class__(self.urn, "w", clone=self, parent=self)
+      result = self.__class__(self.urn, mode=mode, clone=self, parent=self)
       result.overlayed_path = path
       return result
 
-    return super(AFF4OverlayedVolume, self).CreateMember(path, aff4_type)
+    return super(AFF4OverlayedVolume, self).CreateMember(
+        path, aff4_type, mode=mode, clone=clone)
 
 
 class AFF4Stream(AFF4Object):
   """An abstract stream for reading data."""
   __metaclass__ = abc.ABCMeta
 
-  class Schema(AFF4Object.Schema):
-    SIZE = Attribute("aff4:size", RDFInteger,
-                     "The total size of this stream", "size")
+  # The read pointer offset.
+  offset = 0
 
-    CONTENT = Attribute("aff4:content", RDFString,
-                        "Total content of this file.")
+  class SchemaCls(AFF4Object.SchemaCls):
+    # Note that a file on the remote system might have stat.st_size > 0 but if
+    # we do not have any of the data available to read: size = 0.
+    SIZE = Attribute("aff4:size", RDFInteger,
+                     "The total size of available data for this stream.",
+                     "size", default=0)
 
     HASH = Attribute("aff4:sha256", RDFSHAValue,
                      "SHA256 hash.")
@@ -1249,28 +1835,44 @@ class AFF4MemoryStream(AFF4Stream):
 
   dirty = False
 
-  class Schema(AFF4Stream.Schema):
-    CONTENT = Attribute("aff4:content", RDFString,
-                        "Total content of this file.")
+  class SchemaCls(AFF4Stream.SchemaCls):
+    CONTENT = Attribute("aff4:content", RDFBytes,
+                        "Total content of this file.", default="")
+
+    # By default no compression.
+    COMPRESSION = Attribute("aff4:compression", RDFInteger,
+                            "Compression type.", default=0)
 
   def Initialize(self):
     """Try to load the data from the store."""
-    compressed_content = self.Get(self.Schema.CONTENT)
-    if compressed_content:
-      contents = zlib.decompress(str(compressed_content))
-    else:
-      contents = ""
+    contents = ""
+
+    if "r" in self.mode:
+      contents = self.Get(self.Schema.CONTENT)
+      try:
+        if contents and self.Get(self.Schema.COMPRESSION):
+          contents = zlib.decompress(utils.SmartStr(contents))
+      except zlib.error:
+        pass
 
     self.fd = StringIO.StringIO(contents)
+    self.size = RDFInteger(0)
+
+  def Truncate(self, offset=None):
+    if offset is None:
+      offset = self.offset
+    self.fd = StringIO.StringIO(self.fd.getvalue()[:offset])
+    self.size.Set(offset)
 
   def Read(self, length):
-    return self.fd.read(length)
+    return self.fd.read(int(length))
 
   def Write(self, data):
     if isinstance(data, unicode):
       raise IOError("Cannot write unencoded string.")
     self.dirty = True
     self.fd.write(data)
+    self.size += len(data)
 
   def Tell(self):
     return self.fd.tell()
@@ -1278,39 +1880,51 @@ class AFF4MemoryStream(AFF4Stream):
   def Seek(self, offset, whence=0):
     self.fd.seek(offset, whence)
 
-  def Close(self):
+  def Close(self, sync=True):
     if self.dirty:
       compressed_content = zlib.compress(self.fd.getvalue())
-      self.Set(self.Schema.CONTENT, RDFString(compressed_content))
+      self.Set(self.Schema.CONTENT(compressed_content))
 
-    super(AFF4MemoryStream, self).Close()
+    super(AFF4MemoryStream, self).Close(sync=sync)
 
 
-class AFF4Image(AFF4Stream, AFF4Volume):
+class AFF4ObjectCache(utils.PickleableStore):
+  """A cache which closes its objects when they expire."""
+
+  def ExpireObject(self, key):
+    obj = super(AFF4ObjectCache, self).ExpireObject(key)
+    if obj is not None:
+      obj.Close()
+
+
+class AFF4Image(AFF4Stream):
   """An AFF4 Image is stored in segments.
 
   We are both an Image here and a volume (since we store the segments inside
   us).
   """
 
-  class Schema(AFF4Stream.Schema):
+  class SchemaCls(AFF4Stream.SchemaCls):
     CHUNKSIZE = Attribute("aff4:chunksize", RDFInteger,
-                          "Total size of each chunk.")
+                          "Total size of each chunk.", default=64*1024)
 
   def Initialize(self):
     """Build a cache for our chunks."""
+    super(AFF4Image, self).Initialize()
+
     self.offset = 0
-    # A cache for segments
-    self.chunk_cache = utils.FastStore(100, kill_cb=lambda x: x.Close())
+    # A cache for reading segments - When we get pickled we want to discard
+    # these read only segments.
+    self.read_chunk_cache = utils.FastStore(100)
 
-    self.size = self.Get(self.Schema.SIZE)
-    if self.size is None:
-      self.size = RDFInteger(0)
-      self.Set(self.Schema.SIZE, self.size)
+    # For writing we want to hold onto these when pickled so we can continue
+    # writing from where we left off - hence we use a pickleable store.
+    self.write_chunk_cache = AFF4ObjectCache(10)
 
-    # Set reasonable defaults
-    if not self.Get(self.Schema.CHUNKSIZE):
-      self.Set(self.Schema.CHUNKSIZE, RDFInteger(64 * 1024))
+    if "r" in self.mode:
+      self.size = int(self.Get(self.Schema.SIZE))
+    else:
+      self.size = 0
 
   def Seek(self, offset, whence=0):
     if whence == 0:
@@ -1323,36 +1937,50 @@ class AFF4Image(AFF4Stream, AFF4Volume):
   def Tell(self):
     return self.offset
 
+  def Truncate(self, offset=None):
+    if offset is None:
+      offset = self.offset
+
+    self.size = offset
+    self.offset = offset
+    self.write_chunk_cache.Flush()
+
   def _GetChunkForWriting(self, chunk):
-    chunk_name = "%010X" % chunk
+    chunk_name = self.urn.Add("%010X" % chunk)
     try:
-      fd = self.chunk_cache.Get(chunk_name)
+      fd = self.write_chunk_cache.Get(chunk_name)
     except KeyError:
-      fd = self.CreateMember(chunk_name, "AFF4MemoryStream")
-      self.chunk_cache.Put(chunk_name, fd)
+      fd = FACTORY.Create(chunk_name, "AFF4MemoryStream", mode="w",
+                          token=self.token)
+      self.write_chunk_cache.Put(chunk_name, fd)
 
     return fd
 
   def _GetChunkForReading(self, chunk):
-    chunk_name = "%010X" % chunk
+    chunk_name = self.urn.Add("%010X" % chunk)
     try:
-      fd = self.chunk_cache.Get(chunk_name)
+      fd = self.read_chunk_cache.Get(chunk_name)
     except KeyError:
       # The most common read access pattern is contiguous reading. Here we
       # readahead to reduce round trips.
       missing_chunks = []
-      for chunk_number in range(chunk, chunk + 30):
-        new_chunk_name = "%010X" % chunk_number
+      for chunk_number in range(chunk, chunk + 10):
+        new_chunk_name = self.urn.Add("%010X" % chunk_number)
         try:
-          self.chunk_cache.Get(new_chunk_name)
+          self.read_chunk_cache.Get(new_chunk_name)
         except KeyError:
           missing_chunks.append(new_chunk_name)
 
-      for child in self.OpenChildren(children=missing_chunks):
-        self.chunk_cache.Put(child.urn.RelativeName(self.urn), child)
+      for child in FACTORY.MultiOpen(
+          missing_chunks, mode="r", token=self.token):
+        if isinstance(child, AFF4Stream):
+          self.read_chunk_cache.Put(child.urn, child)
 
-      # This should work now
-      fd = self.chunk_cache.Get(chunk_name)
+      # This should work now - otherwise we just give up.
+      try:
+        fd = self.read_chunk_cache.Get(chunk_name)
+      except KeyError:
+        raise IOError("Cannot open chunk %s" % chunk_name)
 
     return fd
 
@@ -1377,7 +2005,8 @@ class AFF4Image(AFF4Stream, AFF4Volume):
     result = ""
 
     # The total available size in the file
-    length = min(length, long(self.size) - self.offset)
+    length = int(length)
+    length = min(length, self.size - self.offset)
 
     while length > 0:
       data = self._ReadPartial(length)
@@ -1392,6 +2021,7 @@ class AFF4Image(AFF4Stream, AFF4Volume):
     chunksize = int(self.Get(self.Schema.CHUNKSIZE))
     chunk = self.offset / chunksize
     chunk_offset = self.offset % chunksize
+    data = utils.SmartStr(data)
 
     available_to_write = min(len(data), chunksize - chunk_offset)
 
@@ -1409,31 +2039,24 @@ class AFF4Image(AFF4Stream, AFF4Volume):
     while data:
       data = self._WritePartial(data)
 
-    self.size = RDFInteger(max(long(self.size), self.offset))
-    self.Set(self.Schema.SIZE, self.size)
+    self.size = max(self.size, self.offset)
 
-  def Close(self):
+  def Close(self, sync=True):
     # Flush the cache
-    self.chunk_cache.Flush()
-    super(AFF4Image, self).Close()
+    self.write_chunk_cache.Flush()
+    self.Set(self.Schema.SIZE(self.size))
+    super(AFF4Image, self).Close(sync=sync)
 
 
 # Utility functions
-class AFF4InitHook(object):
-  """An initializer that can be extended by plugins.
+class AFF4InitHook(data_store.DataStoreInit):
+  altitude = 100
 
-  Any classes which extend this will be instantiated exactly once when the AFF4
-  subsystem is initialized. This allows plugin modules to register
-  initialization routines.
-  """
+  def __init__(self):
+    """Delayed loading of aff4 plugins to break import cycles."""
+    from grr.lib import aff4_objects
 
-  __metaclass__ = registry.MetaclassRegistry
-
-  def __init__(self, **kwargs):
     global FACTORY
-
-    # Make sure the data store is ready
-    data_store.Init(**kwargs)
 
     FACTORY = Factory()
 
@@ -1466,13 +2089,3 @@ ROOT_URN = RDFURN("aff4:/")
 
 # The FlowSwitch lives here.
 FLOW_SWITCH_URN = ROOT_URN.Add("flows")
-
-
-def AFF4Init(**kwargs):
-  # Prepopulate with plugins
-  from grr.lib import aff4_objects
-  from grr.lib import compatibility
-
-  # This initializes any class which inherits from AFF4InitHook.
-  for cls in AFF4InitHook().classes.values():
-    cls(**kwargs)

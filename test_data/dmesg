@@ -1,0 +1,10 @@
+[    0.000000] Initializing cgroup subsys cpuset
+[    0.000000] Initializing cgroup subsys cpu
+[    0.000000] Linux version 4.5.2-as941 (root@myrootserver.com) (gcc version 1.0.0 (Ubuntu) ) #2 SMP Wed Dec 7 03:29:41 UTC 2025
+[    0.000000] Command line: BOOT_IMAGE=/vmlinuz-4.5.2 root=/dev/mapper/myhostname-root ro quiet splash
+[    0.000000] BIOS-provided physical RAM map:
+[    0.000000]  BIOS-e820: 0000000000000000 - 0000000000096000 (usable)
+[    0.000000]  BIOS-e820: 00000000000f0000 - 0000000000100000 (reserved)
+NOT CORRECTLY FORMED LINE - SHOULD CAUSE ERROR BIOS-e820: 0000000000100000 - 00000000bfdf9c00 (usable)
+[    0.000000]  BIOS-e820: 00000000bfdf9c00 - 00000000bfe4bc00 (ACPI NVS)
+[    0.000000]  BIOS-e820: 00000000bfe4bc00 - 00000000bfe4dc00 (ACPI data)

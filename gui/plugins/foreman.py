@@ -21,7 +21,6 @@
 import json
 import time
 
-from django import template
 from grr.gui import renderers
 from grr.gui.plugins import flow_management
 from grr.lib import aff4
@@ -32,8 +31,8 @@ from grr.proto import jobs_pb2
 
 class ManageForeman(renderers.Splitter2Way):
   """Manages class based flow creation."""
-  category = "Flow Management"
   description = "Automated flow scheduling"
+  behaviours = frozenset(["General"])
 
   top_renderer = "ForemanRuleTable"
   bottom_renderer = "Empty"
@@ -54,48 +53,46 @@ class ActionRuleArray(renderers.RDFProtoArrayRenderer):
 class ForemanRuleTable(renderers.TableRenderer):
   """Show all existing rules."""
   selection_publish_queue = "rule_select"
+
+  # Make the first few columns squish over to give more room to the last few.
   table_options = {
+      "aoColumnDefs": [
+          {"sWidth": "10%", "aTargets": [0, 1, 2]}
+          ],
       "table_hash": "fr",
       }
 
-  flow_table_template = template.Template("""
+  layout_template = renderers.TableRenderer.layout_template + """
 <script>
   //Receive the selection event and emit the rule creation time.
-  grr.subscribe("table_selection_{{ id|escapejs }}", function(node) {
+  grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
     if (node) {
       var row_id = node.attr("row_id");
       grr.layout("AddForemanRule", "main_bottomPane", {rule_id: row_id});
-      grr.publish("{{ selection_publish_queue|escapejs }}", row_id);
+      grr.publish("{{ this.selection_publish_queue|escapejs }}", row_id);
     };
-  }, 'table_{{ unique }}');
+  }, '{{ unique|escapejs }}');
 
-  grr.layout("ForemanToolbar", "toolbar_{{unique}}", "table_{{unique}}");
 </script>
-""")
+"""
 
   def __init__(self):
     super(ForemanRuleTable, self).__init__()
-    self.AddColumn(renderers.RDFValueColumn("Created"))
-    self.AddColumn(renderers.RDFValueColumn("Expires"))
-    self.AddColumn(renderers.RDFValueColumn("Description"))
+    self.AddColumn(renderers.RDFValueColumn("Created", width=10))
+    self.AddColumn(renderers.RDFValueColumn("Expires", width=10))
+    self.AddColumn(renderers.RDFValueColumn("Description", width=10))
     self.AddColumn(renderers.RDFValueColumn(
         "Rules", renderer=RegexRuleArray))
-    self.AddColumn(renderers.RDFValueColumn(
-        "Actions", renderer=ActionRuleArray))
 
   def Layout(self, request, response):
-    """The table lists files in the directory and allows file selection."""
-    response = super(ForemanRuleTable, self).Layout(request, response)
+    # First render the toolbar.
+    ForemanToolbar().Layout(request, response)
 
-    return self.RenderFromTemplate(
-        self.flow_table_template, response,
-        id=self.id, unique=self.unique,
-        selection_publish_queue=self.selection_publish_queue,
-        )
+    return super(ForemanRuleTable, self).Layout(request, response)
 
   def RenderAjax(self, request, response):
     """Renders the table."""
-    fd = aff4.FACTORY.Open("aff4:/foreman")
+    fd = aff4.FACTORY.Open("aff4:/foreman", token=request.token)
     rules = fd.Get(fd.Schema.RULES)
     if rules is not None:
       for rule in rules:
@@ -109,12 +106,12 @@ class ForemanRuleTable(renderers.TableRenderer):
     return super(ForemanRuleTable, self).RenderAjax(request, response)
 
 
-class ForemanToolbar(renderers.Renderer):
+class ForemanToolbar(renderers.TemplateRenderer):
   """Renders the toolbar."""
 
-  template = template.Template("""
-<button id="add_rule" title="Add a new rule.">
-  <img src="/static/images/new.png" class="toolbar_icon">
+  layout_template = renderers.Template("""
+<button id="add_rule" title="Add a new rule." class="grr-button">
+  Add Rule
 </button>
 <script>
   $("#add_rule").button().click(function () {
@@ -123,31 +120,30 @@ class ForemanToolbar(renderers.Renderer):
 </script>
 """)
 
-  def Layout(self, request, response):
-    """Render the toolbar."""
-    response = super(ForemanToolbar, self).Layout(request, response)
-
-    return self.RenderFromTemplate(self.template, response)
-
 
 class AddForemanRule(flow_management.FlowInformation):
   """Present a form to add a new rule."""
 
-  layout_template = template.Template("""
+  layout_template = renderers.Template("".join((
+      # This is the toolbar for manipulating the rule
+      """
 <div class="toolbar">
-<button title="Add Condition" id="AddCondition">
-<img src="/static/images/new.png" class="toolbar_icon">
+<button title="Add Condition" id="AddCondition" class="grr-button">
+Add Condition
 </button>
 
-<button title="Add Action" id="AddAction">
-<img src="/static/images/new.png" class="toolbar_icon">
+<button title="Add Action" id="AddAction" class="grr-button">
+Add Action
 </button>
 
-<button title="Delete Rule" id="DeleteRule" >
-<img src="/static/images/new.png" class="toolbar_icon">
+<button title="Delete Rule" id="DeleteRule" class="grr-button">
+Delete Rule
 </button>
 </div>
-<div id="form_{{unique}}" class="FormBody">
+""",
+
+      # Scripts to add new rules based on jquery templates
+      """<div id="form_{{unique|escapejs}}" class="FormBody">
 <script id="addRuleTemplate" type="text/x-jquery-tmpl">
   <tbody id="condition_row_${rule_number}">
     <tr><td colspan=3 class="grr_aff4_type_header"><b>Regex Condition</b>
@@ -161,8 +157,8 @@ class AddForemanRule(flow_management.FlowInformation):
 
     <tr><td class="proto_key">Attribute</td><td class="proto_value">
       <select name="attribute_name_${rule_number}" type=text size=1>
-        {% for option in attributes %}
-          <option>{{option}}</option>
+        {% for option in this.attributes %}
+          <option>{{option|escape}}</option>
         {% endfor %}
       </select>
     </td> </tr>
@@ -170,9 +166,10 @@ class AddForemanRule(flow_management.FlowInformation):
       <input name="attribute_regex_${rule_number}" type=text size=40 /></td>
     </tr>
   </tbody>
-</script>
+</script>""",
 
-<script id="addActionTemplate" type="text/x-jquery-tmpl">
+      # Scripts to add a new action based on jquery templates
+      """<script id="addActionTemplate" type="text/x-jquery-tmpl">
  <tbody id="action_row_${rule_number}">
    <tr><td colspan=3 class="grr_aff4_type_header"><b>Action</b>
      <a href="#" title="Remove Action"
@@ -185,16 +182,18 @@ class AddForemanRule(flow_management.FlowInformation):
        onchange="grr.layout('RenderFlowForm', 'flow_form_${rule_number}',
                             {rule_id: ${rule_id}, flow: this.value,
                              action_id: ${rule_number}});">
-       {% for option in flows %}
-         <option>{{option}}</option>
+         <option>Select a Flow</option>
+       {% for option in this.flows %}
+         <option>{{option|escape}}</option>
        {% endfor %}
      </select>
    </td></tr>
  </tbody>
  <tbody id="flow_form_${rule_number}"></tbody>
-</script>
+</script>""",
 
-<h1>Add a new automated rule.</h1>
+      # Rendering the actual form
+      """<h1>Add a new automated rule.</h1>
 <form id="form">
 <input type="hidden" name="rule_id" />
 <table id="ForemanFormBody" class="form_table">
@@ -218,14 +217,16 @@ class AddForemanRule(flow_management.FlowInformation):
 
 <input id="submit" type="submit" value="Launch"/>
 </form>
-</div>
-<script>
-  var defaults = {{ defaults|safe }};
+</div>""",
+
+      # Initialize the form - adds actions to toolbar items
+      """<script>
+  var defaults = {{ this.defaults|safe }};
 
   // Submit button
   $('#submit').button().click(function () {
-    return grr.submit('AddForemanRuleAction', 'form', 'form_{{unique}}',
-      false, grr.layout);
+    return grr.submit('AddForemanRuleAction', 'form',
+      'form_{{unique|escapejs}}', false, grr.layout);
   });
 
   $('#AddAction').button().click(function () {
@@ -237,7 +238,8 @@ class AddForemanRule(flow_management.FlowInformation):
   });
 
   $('#DeleteRule').button().click(function () {
-      grr.layout('DeleteRule', 'form_{{unique}}', {rule_id: defaults.rule_id});
+      grr.layout('DeleteRule', 'form_{{unique|escapejs}}',
+      {rule_id: defaults.rule_id});
   });
 
   $("[name='expires_text']").datepicker(
@@ -255,27 +257,25 @@ class AddForemanRule(flow_management.FlowInformation):
   };
 
   grr.update_form('form', defaults);
-  grr.subscribe('GeometryChange', function () {
-    grr.fixHeight($('#form_{{unique}}'));
-  }, 'form_{{unique}}');
+  grr.subscribe('GeometryChange', function (id) {
+    if(id != "{{id|escapejs}}") return;
+
+    grr.fixHeight($('#form_{{unique|escapejs}}'));
+  }, 'form_{{unique|escapejs}}');
 </script>
-""")
+""")))
 
   def Layout(self, request, response):
     """Render the AddForemanRule form."""
-    response = renderers.Renderer.Layout(self, request, response)
+    self.defaults = json.dumps(self.BuildDefaults(request))
+    self.flows = [x for x, cls in flow.GRRFlow.classes.items()
+                  if cls.category]
+    self.flows.sort()
 
-    defaults = json.dumps(self.BuildDefaults(request))
-    flows = [x for x, cls in flow.GRRFlow.classes.items()
-             if cls.category]
-    flows.sort()
+    self.attributes = [x.name for x in aff4.Attribute.NAMES.values()]
+    self.attributes.sort()
 
-    attributes = [x.name for x in aff4.Attribute.NAMES.values()]
-    attributes.sort()
-
-    return self.RenderFromTemplate(self.layout_template, response,
-                                   defaults=defaults, flows=flows,
-                                   attributes=attributes, unique=self.unique)
+    return renderers.TemplateRenderer.Layout(self, request, response)
 
   def BuildDefaults(self, request):
     """Prepopulate defaults from old entry."""
@@ -286,7 +286,7 @@ class AddForemanRule(flow_management.FlowInformation):
 
     if rule_id is not None:
       result["rule_id"] = int(rule_id)
-      fd = aff4.FACTORY.Open("aff4:/foreman")
+      fd = aff4.FACTORY.Open("aff4:/foreman", token=request.token)
       rules = fd.Get(fd.Schema.RULES)
       if rules is not None:
         rule = rules[result["rule_id"]]
@@ -315,13 +315,15 @@ class AddForemanRule(flow_management.FlowInformation):
 class RenderFlowForm(AddForemanRule):
   """Render a customized form for a foreman action."""
 
-  layout_template = template.Template("""
+  layout_template = renderers.Template("""
 {% for desc, field, value, default in fields %}
-  <tr><td>{{ desc }}</td>
+  <tr><td>{{ desc|escape }}</td>
 {% if value %}
- <td><input name="{{field}}_{{rule_number}}" type=text value="{{value}}"/></td>
+ <td><input name="{{field|escape}}" type=text
+      value="{{value|escape}}"/></td>
 {% else %}
- <td><input name="{{field}}_{{rule_number}}" type=text value="{{default}}"/>
+ <td><input name="{{field|escape}}" type=text
+      value="{{default|escape}}"/>
 </td></tr>
 {% endif %}
 {% endfor %}
@@ -337,7 +339,7 @@ class RenderFlowForm(AddForemanRule):
     if rule_id is not None:
       rule_id = int(rule_id)
 
-      fd = aff4.FACTORY.Open("aff4:/foreman")
+      fd = aff4.FACTORY.Open("aff4:/foreman", token=request.token)
       rules = fd.Get(fd.Schema.RULES)
       if rules is not None:
         try:
@@ -363,23 +365,33 @@ class RenderFlowForm(AddForemanRule):
             args = self.GetArgs(flow_class, request,
                                 arg_template="v_%%s_%s" % rule_number)
 
-        except IndexError: pass
+        except IndexError:
+          args = []
+
+      # User changed the flow - do not count existing values
+      else:
+        flow_class = flow.GRRFlow.classes[requested_flow_name]
+        args = self.GetArgs(flow_class, request,
+                            arg_template="v_%%s_%s" % rule_number)
 
     return self.RenderFromTemplate(
-        self.layout_template, response, name=flow_name,
+        self.layout_template, response, name=requested_flow_name,
         rule_number=rule_number, fields=args)
 
 
 class AddForemanRuleAction(flow_management.FlowFormAction):
   """Receive the parameters."""
 
-  layout_template = template.Template("""
+  layout_template = renderers.Template("""
 Created a new automatic rule:
-<pre> {{ rule }}</pre>
+<pre> {{ this.rule|escape }}</pre>
+<script>
+ grr.publish("grr_messages", "Created Foreman Rule");
+</script>
 """)
 
-  error_template = template.Template("""
-Error: {{ message }}
+  error_template = renderers.Template("""
+Error: {{ message|escape }}
 """)
 
   def ParseRegexRules(self, request, foreman_rule):
@@ -391,72 +403,73 @@ Error: {{ message }}
             path=request.REQ["path_%s" % i],
             attribute_name=request.REQ["attribute_name_%s" % i],
             attribute_regex=request.REQ["attribute_regex_%s" % i])
-      except KeyError: pass
+      except KeyError:
+        pass
 
   def ParseActionRules(self, request, foreman_rule):
     """Parse and add actions to foreman rule."""
     for i in range(100):
-      try:
-        flow_name = request.REQ["flow_name_%s" % i]
-        flow_class = flow.GRRFlow.classes[flow_name]
+      flow_name = request.REQ.get("flow_name_%s" % i)
+      if not flow_name: continue
 
-        arg_list = self.GetArgs(flow_class, request,
-                                arg_template="v_%%s_%s" % i)
+      flow_class = flow.GRRFlow.classes[flow_name]
 
-        args = self.BuildArgs(arg_list)
-        foreman_rule.actions.add(flow_name=flow_name,
-                                 argv=utils.ProtoDict(args).ToProto())
+      arg_list = self.GetArgs(flow_class, request,
+                              arg_template="v_%%s_%s" % i)
 
-      except KeyError: pass
+      args = self.BuildArgs(arg_list)
+      foreman_rule.actions.add(flow_name=flow_name,
+                               argv=utils.ProtoDict(args).ToProto())
 
-  def AddRuleToForeman(self, foreman_rule):
+  def AddRuleToForeman(self, foreman_rule, token):
     """Add the rule to the foreman."""
-    fd = aff4.FACTORY.Open("aff4:/foreman")
+    fd = aff4.FACTORY.Create("aff4:/foreman", "GRRForeman",
+                             mode="rw", token=token)
     rules = fd.Get(fd.Schema.RULES)
     if rules is None: rules = fd.Schema.RULES()
     rules.Append(foreman_rule)
     fd.Set(fd.Schema.RULES, rules)
     fd.Flush()
 
+  @renderers.ErrorHandler()
   def Layout(self, request, response):
     """Process the form action and add a new rule."""
-    expire_date = aff4.RDFDatetime()
-    expire_date.ParseFromHumanReadable(request.REQ["expires_text"])
-    foreman_rule = jobs_pb2.ForemanRule(
+    expire_date = aff4.RDFDatetime.ParseFromHumanReadable(
+        request.REQ["expires_text"])
+    self.foreman_rule = jobs_pb2.ForemanRule(
         description=request.REQ.get("description", ""),
         created=long(aff4.RDFDatetime()),
         expires=long(expire_date))
 
     # Check for sanity
-    if foreman_rule.expires < foreman_rule.created:
+    if self.foreman_rule.expires < self.foreman_rule.created:
       return self.RenderFromTemplate(self.error_template, response,
                                      message="Rule already expired?")
 
-    self.ParseRegexRules(request, foreman_rule)
-    self.ParseActionRules(request, foreman_rule)
-    self.AddRuleToForeman(foreman_rule)
+    self.ParseRegexRules(request, self.foreman_rule)
+    self.ParseActionRules(request, self.foreman_rule)
+    self.AddRuleToForeman(self.foreman_rule, request.token)
 
-    return self.RenderFromTemplate(self.layout_template, response,
-                                   rule=foreman_rule)
+    return renderers.TemplateRenderer.Layout(self, request, response)
 
 
-class DeleteRule(renderers.Renderer):
+class DeleteRule(renderers.TemplateRenderer):
   """Remove the specified rule from the foreman."""
 
-  layout_template = template.Template("""
-<h1> Removed rule {{rule_id}} </h1>
+  layout_template = renderers.Template("""
+<h1> Removed rule {{this.rule_id|escape}} </h1>
 """)
 
   def Layout(self, request, response):
     """Remove the rule from the foreman."""
-    rule_id = int(request.REQ.get("rule_id", -1))
-    fd = aff4.FACTORY.Open("aff4:/foreman")
+    self.rule_id = int(request.REQ.get("rule_id", -1))
+    fd = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=request.token)
     rules = fd.Get(fd.Schema.RULES)
     new_rules = fd.Schema.RULES()
 
-    if rule_id >= 0 and rules is not None:
+    if self.rule_id >= 0 and rules is not None:
       for i, rule in enumerate(rules):
-        if i == rule_id: continue
+        if i == self.rule_id: continue
 
         new_rules.Append(rule)
 
@@ -464,8 +477,7 @@ class DeleteRule(renderers.Renderer):
       fd.Set(fd.Schema.RULES, new_rules)
       fd.Flush()
 
-    return self.RenderFromTemplate(
-        self.layout_template, response, rule_id=rule_id)
+    return renderers.TemplateRenderer.Layout(self, request, response)
 
 
 class Empty(renderers.Renderer):

@@ -33,8 +33,8 @@ class SQLiteFile(object):
 
     Use as:
       c = SQLiteFile(open('filename.db'))
-      for hist in c.Parse():
-        print hist
+      for row in c.Query(sql_query):
+        print row
   """
 
   def __init__(self, file_object, delete_tempfile=True):

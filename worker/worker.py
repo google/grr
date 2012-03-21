@@ -20,26 +20,23 @@ it specifies.
 """
 
 
-import threading
+import re
+import sys
 
 from grr.client import conf
 from grr.client import conf as flags
-import logging
 
-from grr.lib import aff4
+from grr.lib import access_control
 from grr.lib import data_store
 from grr.lib import mongo_data_store
 from grr.lib import flow
+from grr.lib import registry
 
 # Make sure we load the enroller module
 from grr.lib.flows import console
 from grr.lib.flows import general
 
-
-flags.DEFINE_string("plugin_path", None,
-                    "The top level path for grr modules")
-
-flags.DEFINE_string("queue_name", "W",
+flags.DEFINE_string("worker_queue_name", "W",
                     "The name of the queue for this worker.")
 
 FLAGS = flags.FLAGS
@@ -48,12 +45,12 @@ FLAGS = flags.FLAGS
 def main(unused_argv):
   """Main."""
   # Initialise flows
-  aff4.AFF4Init()
+  registry.Init()
 
   # Start a worker
-  worker_thrd = flow.GRRWorker(queue_name=FLAGS.queue_name)
-  worker_thrd.Run()
-
+  token = data_store.ACLToken("GRRWorker", "Implied.")
+  worker = flow.GRRWorker(queue_name=FLAGS.worker_queue_name, token=token)
+  worker.Run()
 
 if __name__ == "__main__":
   conf.StartMain(main)

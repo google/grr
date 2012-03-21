@@ -19,6 +19,7 @@ We can schedule a new flow for a specific client.
 """
 
 
+import os
 import time
 
 from IPython import Shell
@@ -28,11 +29,16 @@ from grr.client import conf
 from grr.client import conf as flags
 import logging
 
+
 from grr.lib import aff4
 
 from grr.lib import data_store
-from grr.lib import mongo_data_store
+from grr.lib import fake_data_store
 from grr.lib import flow
+from grr.lib import registry
+
+from grr.lib import mongo_data_store
+from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 
 # Make sure we load the enroller module
@@ -88,6 +94,45 @@ def SearchClient(hostname_regex=None, os_regex=None, mac_regex=None, limit=100):
   return results
 
 
+def DownloadDir(aff4_path, output_dir, bufsize=8192, preserve_path=True):
+  """Take an aff4 path and download all files in it to output_dir.
+
+  Args:
+    aff4_path: Any aff4 path as a string
+    output_dir: A local directory to write to, will be created if not there.
+    bufsize: Buffer size to use.
+    preserve_path: If set all paths will be created.
+
+  Note that this works for collections as well. It will download all
+  files in the collection.
+
+  This only downloads files that are already in the datastore, it doesn't
+  queue anything on the client.
+  """
+  if not os.path.isdir(output_dir):
+    os.makedirs(output_dir)
+  fd = aff4.FACTORY.Open(aff4_path)
+  for child in fd.OpenChildren():
+    if preserve_path:
+      # Get a full path without the aff4:
+      full_dir = utils.JoinPath(output_dir, child.urn.Path())
+      full_dir = os.path.dirname(full_dir)
+      if not os.path.isdir(full_dir):
+        os.makedirs(full_dir)
+      outfile = os.path.join(full_dir, child.urn.Basename())
+    else:
+      outfile = os.path.join(output_dir, child.urn.Basename())
+    logging.info("Downloading %s to %s", child.urn, outfile)
+    with open(outfile, "wb") as out_fd:
+      try:
+        buf = child.Read(bufsize)
+        while buf:
+          out_fd.write(buf)
+          buf = child.Read(bufsize)
+      except IOError, e:
+        logging.error("Failed to read %s. Err: %s", child.urn, e)
+
+
 def GetFlows(client_id, limit=100):
   """Retrieve flows for a given client_id, return dict of dicts."""
   client = aff4.FACTORY.Open(client_id)
@@ -102,7 +147,7 @@ def GetFlows(client_id, limit=100):
 
 def FlowPBToDict(flow_pb, skip_attrs="pickle"):
   """Take a flow protobuf and return a formatted dict."""
-  #TODO(user): This is pretty general really, where should it live?
+  # TODO(user): This is pretty general really, where should it live?
   attrs = {}
   for f, v in flow_pb.ListFields():
     if f.name not in skip_attrs.split(","):
@@ -121,7 +166,7 @@ def StartFlowAndWait(client_id, flow_name, **kwargs):
   Args:
      client_id: The client common name we issue the request.
      flow_name: The name of the flow to launch.
-     kwargs: passthrough to flow.
+     **kwargs: passthrough to flow.
 
   Returns:
      A GRRFlow object.
@@ -136,23 +181,65 @@ def StartFlowAndWait(client_id, flow_name, **kwargs):
   return flow.FACTORY.LoadFlow(flow_pb)
 
 
-def TestFlows(client_id, test_list):
+def TestFlows(client_id, platform, testname=None):
   """Test a bunch of flows."""
-  # TODO(user): Quick hack, refactor to a real test.
-  for test in test_list:
-    flow_class = test[0]
-    expected_state = test[1]
-    args = []
-    if len(test) > 2:
-      args = test[2]
-    f = StartFlowAndWait(client_id, flow_class, **args)
-    if f.flow_pb.state != expected_state:
-      logging.warn("Flow %s failed on %s. Expected %s, got %s",
-                   flow_class, client_id, expected_state,
-                   f.flow_pb.state)
-      if f.flow_pb.state == jobs_pb2.FlowPB.ERROR:
-        logging.warn(f.flow_pb.backtrace)
-      return
+
+  if platform not in ["windows", "linux", "darwin"]:
+    raise RuntimeError("Requested operating system not supported.")
+
+  console.client_tests.RunTests(client_id, platform=platform,
+                                testname=testname)
+
+
+def CreateApproval(client_id, token):
+  """Creates an approval for a given token.
+
+  This method doesn't work through the Gatekeeper for obvious reasons. To use
+  it, the console has to use raw datastore access.
+
+  Args:
+    client_id: The client id the approval should be created for.
+    token: The token that will be used later for access.
+  """
+  approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
+      token.username).Add(token.reason)
+
+  super_token = data_store.ACLToken()
+  super_token.supervisor = True
+
+  approval_request = aff4.FACTORY.Create(approval_urn, "Approval", mode="rw",
+                                         token=super_token)
+  approval_request.AddAttribute(approval_request.Schema.APPROVER("Approver1"))
+  approval_request.AddAttribute(approval_request.Schema.APPROVER("Approver2"))
+  approval_request.Close()
+
+
+def RevokeApproval(client_id, token, remove_from_cache=False):
+  """Revokes an approval for a given token.
+
+  This method doesn't work through the Gatekeeper for obvious reasons. To use
+  it, the console has to use raw datastore access.
+
+  Args:
+    client_id: The client id the approval should be revoked for.
+    token: The token that should be revoked.
+    remove_from_cache: If True, also remove the approval from the
+                       security_manager cache.
+  """
+  approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
+      token.username).Add(token.reason)
+
+  super_token = data_store.ACLToken()
+  super_token.supervisor = True
+
+  approval_request = aff4.FACTORY.Open(approval_urn, mode="rw",
+                                       token=super_token)
+  approval_request.DeleteAttribute(approval_request.Schema.APPROVER)
+  approval_request.Close()
+
+  if remove_from_cache:
+    data_store.DB.security_manager.acl_cache.ExpireObject(
+        utils.SmartUnicode(approval_urn))
 
 
 def Help():
@@ -165,7 +252,7 @@ def main(unused_argv):
   banner = ("\nWelcome to the GRR console\n"
             "Type help<enter> to get help\n\n")
 
-  aff4.AFF4Init()
+  registry.Init()
 
   locals_vars = {"hilfe": Help,
                  "help": Help,

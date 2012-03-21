@@ -29,6 +29,24 @@ var grr = window.grr || {};
 grr.ajax_method = 'POST';
 
 /**
+ *  Flag to indicate if debugging messages go to the console.
+ */
+grr.debug = false;
+
+/**
+ * Wrapper for console.log in case it does not exist.
+ */
+grr.log = function() {
+  var published_arguments = arguments;
+  /* Suppress debugging. */
+  if (grr.debug) {
+    try {
+      console.log.apply(arguments);
+    } catch (e) {}
+  }
+};
+
+/**
  * Initializer for the grr object. Clears all message queues and state.
  */
 grr.init = function() {
@@ -52,8 +70,37 @@ grr.init = function() {
   }, 'body');
 
   grr.subscribe('grr_messages', function(message) {
-        $('#footer').text(message);
+    if (message) {
+      $('#footer_message').text(message).show().delay(5000).fadeOut('fast');
+      $('#footer #backtrace').text('');
+      $('#show_backtrace').hide();
+    }
   }, 'footer');
+
+  grr.subscribe('grr_traceback', function(message) {
+    if (message) {
+      $('#footer #backtrace').text(message);
+      $('#show_backtrace').show();
+    }
+  }, 'footer');
+
+  $('#show_backtrace').unbind('click').click(function() {
+    var node = $('<div><h3/><pre/></div>');
+
+    node.find('h3').text($('#footer_message').text());
+    node.find('pre').text($('#backtrace').text());
+    node.dialog({
+      width: $('html').width() * 0.7,
+      modal: true,
+      buttons: {
+        Ok: function() {
+          $(this).dialog('close');
+          // Clear the backtrace.
+          grr.publish('grr_messages', ' ');
+        }
+      }
+    });
+  });
 
   /**
    * This is a global state object. The state is a collection of query
@@ -92,6 +139,24 @@ grr.init = function() {
    * This object holds the current url location hash state.
    */
   grr.hash = grr.parseHashState();
+
+  /* Initialize the reason from the hash. */
+  grr.state.reason = grr.hash.reason;
+
+  /**
+   * We create a DelayedResize queue for debouncing resize events (e.g. from
+   * window resize).
+   */
+  grr.subscribe('DelayedResize', function(id) {
+    var timer = grr.timers[id];
+
+    if (!timer) {
+      grr.timers[id] = window.setTimeout(function() {
+        grr.publish('GeometryChange', id);
+        grr.timers[id] = null;
+      }, 100);
+    }
+  }, 'body');
 };
 
 /**
@@ -113,6 +178,8 @@ grr.grrTree = function(renderer, domId, opt_publishEvent, opt_state,
   var publishEvent = opt_publishEvent || 'tree_select';
 
   state.path = '/';
+  state.reason = state.reason || grr.state.reason;
+  state.client_id = state.client_id || grr.state.client_id;
 
   /* Build the tree navigator */
   var container = $('#' + domId);
@@ -151,22 +218,30 @@ grr.grrTree = function(renderer, domId, opt_publishEvent, opt_state,
 
           return data.data;
         }
-      }
+      },
+
+      'correct_state': false
      },
      'plugins' : ['themes', 'json_data', 'ui']
   });
 
   /* Bind the select event to the publish queue */
   tree.bind('select_node.jstree', function(event, data) {
-    var path = '/' + data.inst.get_path(data.rslt.obj).join('/');
+    var path = data.inst.get_path(data.rslt.obj).join('/');
     var selected_id = $(data.rslt.obj).attr('id');
     var update_hash = data.args[1];
 
-    grr.publish(publishEvent, path, selected_id, update_hash);
+    // Publish the full AFF4 path of the object the user clicked on.
+    var root = (state.aff4_root || '');
 
-    if (update_hash != 'no_hash') {
-      grr.publish('hash_state', 't', selected_id);
+    // TODO(user): We really need a proper path normalization function.
+    if (root.charAt(root.length - 1) != '/') {
+      root += '/';
     }
+    grr.publish(publishEvent, root + path, selected_id, update_hash);
+
+    // Selecting a node automatically opens it
+    $(this).jstree('open_node', '#' + selected_id);
     return true;
   });
 
@@ -178,18 +253,14 @@ grr.grrTree = function(renderer, domId, opt_publishEvent, opt_state,
   });
 
   /* Each node that is opened will update the hash */
-  tree.bind('open_node.jstree', function(e, data) {
-    var selected_id = data.args[0][0].id;
-    var update_hash = data.args[2];
-
-    if (selected_id && update_hash != 'no_hash') {
-      grr.publish('hash_state', 't', selected_id);
-    }
+  tree.bind('select_node.jstree', function(e, data) {
+    var selected_id = $(data.args[0]).parent().attr('id');
+    grr.publish('hash_state', 't', selected_id);
   });
 
   /* We do not want jstree to cache the leafs when a tree is closed. */
   tree.bind('close_node.jstree', function(e, data) {
-    $(data.args[0]).children('ul').text('');
+    $(data.args[0]).children('ul').html('');
   });
 
   grr.subscribe('client_selection', function(message) {
@@ -243,6 +314,10 @@ grr.subscribe = function(name, handle, domId) {
   var queue_name = 'queue_' + name;
   var queue = grr.queue_[queue_name] || [];
   var new_queue = [];
+
+  if (domId == null) {
+    alert('Programming error: subscribed function must depend on a dom node.');
+  }
 
   // Clean up the queue from events that no longer apply
   for (var i = 0; i < queue.length; i++) {
@@ -312,6 +387,7 @@ grr.publish = function(name, value, event, data) {
   var queue_name = 'queue_' + name;
   var queue = grr.queue_[queue_name];
 
+  grr.log(name + ':' + value);
   if (queue) {
     var new_queue = [];
 
@@ -337,27 +413,36 @@ grr.publish = function(name, value, event, data) {
  * @param {string} domId The element which will host the html.
  * @param {Object=} opt_state A data object which will be serialiased into
  *     the AJAX request (as query parameters).
+ * @param {Function=} on_success If provided this function will be called on
+ *     completion.
  */
-grr.layout = function(renderer, domId, opt_state) {
+grr.layout = function(renderer, domId, opt_state, on_success) {
   // Use global state by default
   var state = $.extend({}, opt_state || grr.state);
 
   state.id = domId;
+  state.reason = state.reason || grr.state.reason;
+  state.client_id = state.client_id || grr.state.client_id;
+
   $.ajax({
     dataType: 'html',
     data: state,
     type: grr.ajax_method,
     url: 'render/Layout/' + renderer,
+    error: function(jqXHR) {
+      $('#error_action').html(jqXHR.response);
+    },
     success: function(data) {
       // Load the new table DOM
       var node = $('#' + domId);
 
       if (node) {
-        node.html(data).
-          // Let the element know which is its renderer
-          data().renderer = renderer;
+        node.html(data);
+        grr.publish('GeometryChange', domId);
 
-        grr.publish('GeometryChange');
+        if (on_success) {
+          on_success(domId);
+        }
       }
     }
   });
@@ -381,60 +466,270 @@ grr.refresh = function(domId, opt_state) {
 };
 
 /**
- * Build a table using a renderer on a div node.
- *
- * @param {string} name The name of the renderer to call.
- * @param {string} domId The element which will host the html.
- * @param {string=} opt_domFormat A data table sDom Format string to control the
- *     layout of the table.
- * @param {string=} opt_state a state object to pass to the server.
- * @param {Object=} opt_options Options to pass to the dataTable.
+ * This is an implementation of a table widget for GRR.
  */
-grr.grrTable = function(name, domId, opt_domFormat, opt_state, opt_options) {
-  var domFormat = opt_domFormat || '<\'H\'lrp>t<\'F\'>';
-  var state = opt_state || grr.state;
-  var dataTableOptions = $.extend({}, opt_options || {});
-  var table_hash = opt_options.table_hash;
+grr.table = {};
 
-  /**
-   * This function filters the AJAX call to the server and adds the attributes
-   * to it.
-   * @param {string} source the url to call.
-   * @param {Object} data Data to send to the server.
-   * @param {Function} completion Function to be called when the request
-   *     completes.
-   */
-  var dataTableAJAXFilter = function(source, data, completion) {
-    /* Add the attributes to send to the source */
-    for (i in state) {
-      data.push({ 'name': i, 'value': state[i] });
+/**
+ * Sync the header widths with the table content widths.
+ *
+ * @param {Object} jtable - a jquery object of the table.
+ */
+grr.table.setHeaderWidths = function(jtable) {
+  // Account for the scrollbar.
+  var our_width = jtable.innerWidth();
+  var remaining_width = our_width;
+  var header_widths = (jtable.attr('header_widths') || '').split(',');
+  var th_elements = jtable.find('th');
+  var actual_widths = [];
+
+  th_elements.each(function(i) {
+    // Set the width as requested, or as an even proportion of the width.
+    var ratio = $(this).attr('header_width');
+    var width;
+
+    if (!ratio) {
+      width = remaining_width / (th_elements.length - i);
+    } else {
+      width = ratio * our_width / 100;
     }
 
-    $.ajax({
-      'dataType': 'json',
-      'type': grr.ajax_method,
-      'url': source,
-      'data': data,
-      // Hook the data table handle to allow row updates to indicate errors.
-      'success': function (data, textStatus, jqXHR) {
-        var message = data.message;
+    actual_widths.push(width);
+    remaining_width -= width;
+  });
 
-        if (message) {
-            grr.publish("grr_messages", message);
-        };
-        completion(data, textStatus, jqXHR);
-      }
+  // Set the width of each td element in all the following rows the same as the
+  // headers.
+  th_elements.each(function(i) {
+    $(this).width(actual_widths[i]);
+  });
+
+  th_elements.each(function(i) {
+    actual_widths[i] = $(this).width();
+  });
+
+  jtable.find('tr').each(function() {
+    $(this).find('td').each(function(i) {
+      $(this).width(actual_widths[i] || 0);
     });
+  });
+
+  jtable.find('tbody tr:first').find('td').each(function(i) {
+    if (!$(this).hasClass('table_loading')) {
+      actual_widths[i] = $(this).width();
+    }
+  });
+
+  jtable.find('thead tr th').each(function(i) {
+    $(this).width(actual_widths[i]);
+  });
+};
+
+/**
+ * Adjust the alternate colored rows in the table.
+ *
+ * @param {Object} jtable is a jqueried table node.
+ */
+grr.table.colorTable = function(jtable) {
+  // Color the rows nicely.
+  jtable.find('tr:even').addClass('even');
+  jtable.find('tr:odd').addClass('odd');
+};
+
+/**
+ * Create a dialog for allowing the table to be sorted and filtered.
+ *
+ * @this is the icon which takes the click event. This icon must be inside the
+ *       relevant th element.
+ */
+grr.table.sortableDialog = function() {
+  var header = $(this).parent();
+  var node = $('<div class="sort-dialog">' +
+               '<div class="asc">Sort A &rarr; Z</div>' +
+               '<div class="desc">Sort Z &rarr; A</div>' +
+               '<div class="filter">' +
+               '<form>Filter <input type=text><input type=submit ' +
+               'style="display: none;">' +
+               '</form></div>');
+
+  node.find('input[type=text]').val(header.attr('filter') || '');
+
+  var refresh = function() {
+    var tbody = header.parents('table').find('tbody');
+    var filter = header.attr('filter');
+
+    tbody.html('<tr><td class="table_loading">Loading...</td></tr>');
+    tbody.scroll();
+    if (filter != null) {
+      header.attr('title', 'Filter: ' + filter);
+    }
+
+    node.dialog('close');
+    $('.sort-dialog').remove();
   };
 
-  /**
-   * Unhighlights all the tr elements in the table and only Highlight the tr
-   * element directly above the clicked element. This event handler is attached
-   * to the table body.
-   * @param {Event} event The click event which was generated.
-   * @this The element that generated the event.
-   */
-  var tableClickHandler = function(event) {
+  node.find('.asc').click(function() {
+    header.attr('sort', 'asc');
+    refresh();
+  });
+
+  node.find('.desc').click(function() {
+    header.attr('sort', 'desc');
+    refresh();
+  });
+
+  node.find('form').submit(function(event) {
+    header.attr('filter', $(this).find('input').val());
+    refresh();
+    event.stopPropagation();
+    return false;
+  });
+
+  node.dialog();
+};
+
+/**
+ * An event handler for scrolling.
+ *
+ * If we notice an uncovered "Loading ..." element appear within the view port,
+ * we launch an ajax call to replace it with data.
+ *
+ * @param {string} renderer is the renderer which will be used to fill the ajax
+ * call.
+ *
+ * @param {Object} tbody is the jqueried object corresponding to the tbody
+ * element.
+ *
+ * @param {Object=} opt_state A data object which will be serialiased into the
+ *     AJAX request (as query parameters).
+ */
+grr.table.scrollHandler = function(renderer, tbody, opt_state) {
+  var loading = tbody.find('.table_loading');
+  var bottom = tbody.scrollTop() + tbody[0].offsetHeight;
+  var loading_id = loading.attr('id');
+
+  // Fire when the table loading element is visible.
+  if (loading && (bottom > loading.attr('offsetTop') -
+      loading.attr('offsetHeight'))) {
+    var previous_row_id = (tbody.find('tr[row_id]').last().attr('row_id') ||
+        -1);
+    var next_row = parseInt(previous_row_id) + 1;
+    var state = $.extend({start_row: next_row}, grr.state, opt_state);
+    var filter = tbody.parent().find('th[filter]');
+    var sort = tbody.parent().find('th[sort]');
+
+    if (filter && filter.attr('filter')) {
+      state.filter = filter.text() + ':' + filter.attr('filter');
+    }
+
+    if (sort && sort.attr('sort')) {
+      state.sort = sort.text() + ':' + sort.attr('sort');
+    }
+
+    // Insert the new data after the table loading message, and wipe it.
+    grr.update(renderer, loading_id, state,
+      function(data) {
+        // Make sure to insert this data only after its corresponding
+        // loading placer.
+        var table_loading;
+
+        if (loading_id) {
+          table_loading = tbody.find('#' + loading_id);
+        } else {
+          table_loading = tbody.find('.table_loading');
+        }
+
+        var loading_row = table_loading.parent('tr');
+
+        // Prevent a possible race: a scroll event can fire here after
+        // inserting the data, but before being able to remove the loading
+        // row. We remove the loading td first to prevent this.
+        loading_row.find('.table_loading').remove();
+
+        loading_row.after(data);
+        loading_row.remove();
+        grr.table.colorTable(tbody);
+        grr.table.setHeaderWidths(tbody.parent());
+
+        tbody.scroll();
+      }, loading_id + previous_row_id);
+  }
+};
+
+/**
+ * Hides the table rows below the current row which have a depth attribute
+ * greater than this one.
+ *
+ * @param {Object} node is a dom node somewhere inside the parent row.
+ */
+grr.table.hideChildRows = function(node) {
+  var item = $(node);
+  var row = item.parents('tr');
+  var row_id = parseInt(row.attr('row_id')) || 0;
+  var depth = parseInt(item.attr('depth')) || 0;
+  var end = false;
+
+  // If the tree is not closed, we close it.
+  if (!item.hasClass('tree_closed')) {
+    // Find all the children of this element and hide them.
+    row.parents('tbody').find('tr').each(function() {
+      var row = $(this);
+      var our_row_id = row.attr('row_id');
+      var our_depth = row.find('span').attr('depth');
+
+      if (our_row_id > row_id) {
+        if (our_depth > depth && !end) {
+          row.hide();
+        } else {
+          end = true;
+        }
+      }
+    });
+
+    item.addClass('tree_closed');
+    item.removeClass('tree_opened');
+  } else {
+    // Only open one level
+    row.parents('tbody').find('tr').each(function() {
+      var row = $(this);
+      var our_row_id = row.attr('row_id');
+      var our_depth = row.find('span').attr('depth');
+
+      if (our_row_id > row_id) {
+        if (our_depth == depth + 1 && !end) {
+          var spans = row.find('span[depth]');
+          row.show();
+
+          // By default mark the children as closed.
+          spans.addClass('tree_closed');
+          spans.removeClass('tree_opened');
+          row.removeClass('tree_hidden');
+        } else if (our_depth <= depth) {
+          end = true;
+        }
+      }
+    });
+
+    item.addClass('tree_opened');
+    item.removeClass('tree_closed');
+  }
+};
+
+
+/**
+ * Create a new table on the specified domId.
+ *
+ * @param {string} renderer is the name of the renderer we use.
+ * @param {string} domId is the id of the table element.
+ * @param {string} unique is a unique id for this element.
+ * @param {Object=} opt_state A data object which will be serialiased into the
+ *     AJAX request (as query parameters).
+ */
+grr.table.newTable = function(renderer, domId, unique, opt_state) {
+  var me = $('#' + domId);
+
+  // Click handler.
+  $('#' + unique).click(function(event) {
     /* Find the next TR above the clicked point */
     var node = $(event.target).closest('tr');
     var row_id = node.attr('row_id');
@@ -447,87 +742,42 @@ grr.grrTable = function(name, domId, opt_domFormat, opt_state, opt_options) {
       node.addClass('row_selected');
 
       // Publish the selected node
-      grr.publish('table_selection_' + domId, node);
-
-      // Update the table hash
-      if (table_hash) {
-        grr.publish('hash_state', table_hash, row_id);
-      }
+      grr.publish('select_' + domId, node);
     }
-  };
-
-  jQuery.fn.dataTableExt.oPagination.iFullNumbersShowPages = 15;
-  dataTableOptions = $.extend({
-    'bAutoWidth': true,
-    'bJQueryUI': true,
-    'sDom': domFormat,
-    'sPaginationType': 'full_numbers',
-    'bProcessing': true,
-    'bServerSide': true,
-    'fnDrawCallback': function(settings, data) {
-      if (table_hash && grr.hash[table_hash] != undefined) {
-        $('#' + domId + ' tr[row_id="' +
-          parseInt(grr.hash[table_hash]) + '"]').click();
-      }
-      grr.publish('GeometryChange');
-    },
-    'fnRowCallback': function(row, data, displayIndex) {
-      var settings = this.fnSettings();
-      // Make each row remember its row ID
-      $(row).attr('row_id', displayIndex + settings._iDisplayStart);
-
-      return row;
-    },
-    'sAjaxSource': 'render/RenderAjax/' + name,
-    'fnServerData': dataTableAJAXFilter
-  }, dataTableOptions);
-
-  var table = $('#' + domId + ' table').dataTable(dataTableOptions);
-  table.click(tableClickHandler);
-};
-
-
-/**
- * Makes a table listen to published events.
- *
- * @param {string} domId The dom id of the table.
- * @param {string} queue Name of the queue to listen on.
- * @param {string} parameter Events received from the queue are
- *     assigned to this CGI parameter which will be passed to the server.
-*/
-grr.subscribeUpdateTable = function(domId, queue, parameter) {
-  grr.delayedSubscribe(queue, 1, domId, function(event) {
-    grr.state[parameter] = event;
-
-    //Redraw the table
-    var table = $('#table_' + domId);
-    table.dataTable({'bRetrieve': true}).fnDraw();
+    event.stopPropagation();
   });
-};
 
-/**
- * Redraw the table and possibly sync up to a particular hash state.
- *
- * @param {string} domId The dom id of the table.
- */
-grr.redrawTable = function(domId) {
-  var table = $('#' + domId).dataTable();
-  var settings = table.fnSettings();
-  var tb = grr.hash.tb || 0;
+  // Add search buttons for columns.
+  me.find('th').each(function(i) {
+    var jthis = $(this);
+    if (jthis.attr('sortable')) {
+      var image = $('<img src="/static/images/forward_enabled.jpg"' +
+          'style="float: right">');
+      jthis.append(image);
+      image.click(grr.table.sortableDialog);
+    }
+  });
 
-  // If we need to go to a certain place we do so now
-  var page = parseInt(tb / settings._iDisplayLength);
-  settings._iDisplayStart = page * settings._iDisplayLength;
-  settings._iDisplayEnd = settings._iDisplayStart + settings._iDisplayLength;
+  grr.subscribe('GeometryChange', function(id) {
+    var us = $('#' + id + ' div.tableContainer').first();
+    if (us.length == 0) return;
 
-  // Do not let dataTable to sort or filter for us (This will reset the start
-  // position).
-  var old_filter = settings.oFeatures.bFilter;
-  settings.oFeatures.bSort = false;
-  settings.oFeatures.bFilter = false;
+    // Fix the height of the tbody area.
+    grr.fixHeight(us);
+    us.find('tbody').height(us.innerHeight() -
+        us.find('thead').innerHeight());
 
-  table.fnDraw();
-  settings.oFeatures.bFilter = old_filter;
+    // Fix the width of the tbody area
+    us.width(us.parent().innerWidth());
+    grr.table.setHeaderWidths(us);
+
+    // Fill in the table if needed.
+    us.find('tbody').scroll();
+  }, unique);
+
+  me.find('tbody').scroll(function() {
+    grr.table.scrollHandler(renderer, $(this), opt_state);
+  }).scroll();
 };
 
 /**
@@ -536,7 +786,7 @@ grr.redrawTable = function(domId) {
  * @param {string} renderer - The rernderer name to call via ajax.
  * @param {string} domId - This callback will be called as long as domId exists.
  * @param {Function} callback will be called each time with the data returned.
- * @param {number} timeout number of seconds between polls.
+ * @param {number} timeout number of milliseconds between polls.
  * @param {Object} state the state to pass to the server.
  * @param {string=} opt_datatype Expected data type "html" (default),
  *          "json", "xml".
@@ -546,6 +796,9 @@ grr.poll = function(renderer, domId, callback, timeout, state, opt_datatype) {
   if (!timeout || timeout < 1000) {
     timeout = 1000;
   }
+
+  state.reason = state.reason || grr.state.reason;
+  state.client_id = state.client_id || grr.state.client_id;
 
   /** We deliberately not call window.setInterval to avoid overrunning
      the server if its too slow.
@@ -574,6 +827,7 @@ grr.poll = function(renderer, domId, callback, timeout, state, opt_datatype) {
   };
 
   // First one to kick off
+  update();
   window.setTimeout(update, timeout);
 };
 
@@ -587,22 +841,51 @@ grr.poll = function(renderer, domId, callback, timeout, state, opt_datatype) {
  * @param {string} domId The element which will host the html.
  * @param {Object=} opt_state A data object which will be serialiased into the
  *     AJAX request (as query parameters).
- *
+ * @param {Function=} on_success If provided this function will be called on
+ *     completion.
+ * @param {string} inflight_key The key to use for the inflight queue. If null,
+ *     we use the domId.
  */
-grr.update = function(renderer, domId, opt_state) {
-  var target = $('#' + domId);
+grr.update = function(renderer, domId, opt_state, on_success, inflight_key) {
   var state = opt_state || grr.state;
+  var inflight_key = inflight_key || domId;
+
+  if (!on_success) {
+    on_success = function(data) {
+      $('#' + domId).html(data);
+    };
+  }
 
   state.id = domId;
+  state.reason = state.reason || grr.state.reason;
+  state.client_id = state.client_id || grr.state.client_id;
 
+  // If there is already an in flight request for this domId, drop this one.
+  if (grr.inFlightQueue[inflight_key]) {
+    return;
+  }
+
+  // Create a lock on this domId to prevent another ajax call while
+  // this one is inflight.
+  grr.inFlightQueue[inflight_key] = renderer;
   $.ajax({
     dataType: 'html',
     data: (state || grr.state),
     type: grr.ajax_method,
     url: 'render/RenderAjax/' + renderer,
+    complete: function() {
+      // Remove the lock for this domId
+      grr.inFlightQueue[inflight_key] = null;
+    },
+    error: function(jqXHR) {
+      $('#error_action').html(jqXHR.response);
+    },
     success: function(data) {
+      // Remove the lock for this domId
+      grr.inFlightQueue[inflight_key] = null;
+
       // Load the new table DOM
-      target.html(data);
+      on_success(data);
     }
   });
 };
@@ -669,16 +952,10 @@ grr.dialog = function(renderer, domId, openerId, opt_options) {
   // Create the dialog
   $('#' + domId).dialog($.extend(
     { autoOpen: false,
-      show: 'blind',
-      hide: 'explode',
       width: parseInt($('body').css('width')) * 0.90,
-      height: parseInt($('body').css('height')) * 0.90
-    }, opt_options))
-  .bind('dialogresizestop', function() {
-    grr.publish('GeometryChange');
-  });
-
-  grr.layout(renderer, domId);
+      maxHeight: parseInt($('body').css('height')) * 0.90,
+      minHeight: 400
+    }, opt_options));
 
   $('#' + openerId).click(function() {
     var dialog = $('#' + domId);
@@ -686,45 +963,14 @@ grr.dialog = function(renderer, domId, openerId, opt_options) {
     if (dialog.dialog('isOpen')) {
        dialog.dialog('close');
     } else {
-       dialog.dialog('open');
+      grr.layout(renderer, domId);
+      dialog.dialog('open');
     }
 
-    grr.publish('GeometryChange');
     return false;
   });
 };
 
-/**
- * Creates an extruder (A foldable collapsible menu) as in:
- * @see http://pupunzi.open-lab.com/mb-jquery-components/jquery-mb-extruder/
- *
- * @param {string} renderer The renderer used to render the element.
- * @param {string} domId The element we turn into an extruder.
- * @param {string=} opt_extruderPosition Optional position of the extruder
- *     (default top, can be left, right, bottom).
- * @param {Object=} opt_state Optional state to use (default grr.state).
- */
-grr.extruder = function(renderer, domId, opt_extruderPosition, opt_state) {
-  var selector = '#' + domId;
-  var extruder = $(selector);
-  var position = opt_extruderPosition || 'top';
-  var state = opt_state || grr.state;
-
-  state.id = domId;
-
-  extruder.buildMbExtruder({
-    position: position,
-    extruderOpacity: 0.8,
-    flapDim: 100
-  });
-
-  // Set the title of the flap from the title attribute
-  $(selector + ' .flap span').text($(selector).attr('title'));
-  extruder.setMbExtruderContent({
-    url: '/render/Layout/' + renderer,
-    data: state
-  });
-};
 
 /**
  * Sumbits a form to a renderer.
@@ -791,19 +1037,49 @@ grr.fixHeight = function(element) {
   var calculate_height = function() {
     var tag_name = this.tagName;
 
+    // Dialog boxes need to be excluded since the are absolutely positioned
+    if ($(this).attr('role') == 'dialog') return;
+
     // For some reason script tags report a non zero height in chrome.
     if (tag_name != 'SCRIPT') {
       height -= $(this).outerHeight();
     }
   };
 
-  element.prevAll().each(calculate_height);
-  element.nextAll().each(calculate_height);
+  element.prevAll(':visible').each(calculate_height);
+  element.nextAll(':visible').each(calculate_height);
 
   height -= parseInt(element.css('padding-top'));
   height -= parseInt(element.css('padding-bottom'));
 
   element.height(height + 'px');
+};
+
+/**
+ * Updates the width of the element so it and all its siblings fit within their
+ * parent.
+ *
+ * @param {Object} element A JQuery selected object for the element to fix.
+ *
+ */
+grr.fixWidth = function(element) {
+  var width = element.parent().width();
+  var calculate_width = function() {
+    var tag_name = this.tagName;
+
+    // For some reason script tags report a non zero height in chrome.
+    if (tag_name != 'SCRIPT') {
+      width -= $(this).outerWidth();
+    }
+  };
+
+  element.prevAll(':visible').each(calculate_width);
+  element.nextAll(':visible').each(calculate_width);
+
+  width -= parseInt(element.css('padding-top'));
+  width -= parseInt(element.css('padding-bottom'));
+
+  element.width(width + 'px');
 };
 
 /**
@@ -818,11 +1094,53 @@ grr.parseHashState = function() {
   for (var i = 0; i < parts.length; i++) {
     var kv = parts[i].split('=');
     if (kv[0]) {
-      result[kv[0]] = decodeURIComponent(kv[1] || '');
+      result[kv[0]] = decodeURIComponent(kv[1].replace(/\+/g, ' ') || '');
     }
   }
 
   return result;
+};
+
+/**
+ * Install the navigation actions on all items in the navigator.
+ */
+grr.installNavigationActions = function() {
+  $('#navigator ul.iconlist li a').each(function() {
+  var renderer = $(this).attr('grrtarget');
+
+  $(this).click(function() {
+    grr.layout(renderer, 'main');
+    grr.publish('hash_state', 'main', renderer);
+
+    // Clear all the other selected links
+    $('#navigator li').removeClass('selected');
+
+    // Make this element selected
+    $(this).parent().addClass('selected');
+
+    grr.publish('GeometryChange', 'navigator');
+    return false;
+  });
+ });
+};
+
+/**
+ * Load the main content pane from the hash provided.
+ *
+ * @param {string} hash to load from. If null, use the current window hash.
+ */
+grr.loadFromHash = function(hash) {
+  /* Close the notification dialog. */
+  $('#notification_dialog').dialog('close');
+
+  if (hash) {
+    window.location.hash = hash;
+  }
+
+  grr.hash = grr.parseHashState(hash);
+  $.extend(grr.state, grr.hash);
+
+  grr.layout('ContentView', 'content');
 };
 
 /**
@@ -857,7 +1175,350 @@ grr.foreman.add_action = function(defaults) {
   grr.foreman.action_rules += 1;
 };
 
+/**
+ * This is the hexview object.
+ */
+grr.hexview = {};
+
+/**
+ * Builds the hexview HTML inside the dom.
+ *
+ * @param {String} domId the id of the node to build this inside.
+ * @param {Integer} width The number of columns to have in the hexview.
+ * @param {Integer} height The number of rows to have in the hexview.
+ *
+ */
+grr.hexview.BuildTable = function(domId, width, height) {
+  var table = $($('#HexTableTemplate').text());
+
+  // Insert the offset headers
+  var layout = '';
+  for (var i = 0; i < width; i++) {
+    layout += ('<th class="monospace column' + i % 4 + '">' +
+        grr.hexview.ZeroPad(i.toString(16), 2) + '</th>');
+  }
+
+  $(layout).insertAfter(table.find('#offset'));
+
+  // Insert the offset column
+  var layout = '';
+  for (var i = 0; i < height; i++) {
+    layout += ('<tr><td id="offset_value_' + i + '" class="offset monospace">' +
+      '0x00000000</td></tr>');
+  }
+
+  $(layout).appendTo(table.find('#offset_area table'));
+
+  // Insert the cells
+  var layout = '';
+  var count = 0;
+  for (var i = 0; i < height; i++) {
+    layout += '<tr>';
+    for (var j = 0; j < width; j++) {
+      layout += ('<td class="monospace column' + j % 4 + '" id="cell_' +
+          count + '">&nbsp;&nbsp;</td>');
+      count += 1;
+    }
+    layout += '/<tr>';
+  }
+
+  table.find('#hex_area').attr('colspan', width);
+  $(layout).insertAfter(table.find('#hex_area table'));
+
+  // Insert printable data
+  var layout = '';
+  var count = 0;
+  for (var i = 0; i < height; i++) {
+    layout += '<tr>';
+    for (var j = 0; j < width; j++) {
+      layout += ('<td class="monospace" id="data_value_' +
+          count + '">&nbsp;</td>');
+      count += 1;
+    }
+    layout += '/<tr>';
+  }
+
+  $(layout).insertAfter(table.find('#data_area table'));
+
+  $('#' + domId).html(table);
+};
+
+/**
+ * A utility function to zero pad strings.
+ * @param {String} string_value the string to interpolate.
+ * @param {Integer} limit is the total width of the string.
+ * @return {String} An interporlated string.
+ */
+grr.hexview.ZeroPad = function(string_value, limit) {
+  while (string_value.length < limit) {
+    string_value = '0' + string_value;
+  }
+  return string_value;
+};
+
+/**
+ * Populate the hexviewer table with data.
+ * @param {Integer} offset is the initial offset of the array.
+ * @param {Integer} width is the number of cells in each row.
+ * @param {Array} values is an array of values to go into each cell of the view.
+ */
+grr.hexview._Populate = function(offset, width, values) {
+  // Update the offsets.
+  $('[id^=offset_value_]').each(function(index, element) {
+    var string_value = (offset + index * width).toString(16);
+    $(element).text('0x' + grr.hexview.ZeroPad(string_value, 8));
+  });
+
+  // Clear cells
+  $('[id^=cell_]').html('&nbsp;&nbsp;');
+
+  // Update the cells
+  for (var i = 0; i < values.length; i++) {
+    var value = parseInt(values[i]);
+    var string_value = value.toString(16);
+
+    $('#cell_' + i).text(grr.hexview.ZeroPad(string_value, 2));
+  }
+
+  // Clear data
+  $('[id^=data_value_]').html('&nbsp;');
+
+  // Update the data
+  for (var i = 0; i < values.length; i++) {
+    var value = parseInt(values[i]);
+    var string_value = '.';
+
+    if (value > 31 && value < 128) {
+      string_value = String.fromCharCode(value);
+    }
+
+    $('#data_value_' + i).text(string_value);
+  }
+
+};
+
+/**
+ * A helper function to create the slider.
+ * @param {String} renderer The renderer which will be used to interact with the
+ * hexview.
+ * @param {String} domId will receive the new widget.
+ * @param {Integer} total_size is the total size of the file (for maximum
+ * slider).
+ * @param {Integer} width is the number of bytes in each row. (The height is
+ * auto detected).
+ * @param {Integer} height The total number of rows in this hex viewer.
+ * @param {object} state The state that will be passed to our renderer.
+ */
+grr.hexview._makeSlider = function(renderer, domId, total_size, width, height,
+                            state) {
+  // Make the slider
+  var slider = $('#slider');
+
+  // Round the total size to the next row
+  var total_size = Math.floor(total_size / width + 1) * width;
+
+  slider.parent('td').attr('rowspan', height);
+  slider.slider({
+    orientation: 'vertical',
+    min: 0,
+    step: width,
+    value: total_size,
+    max: total_size,
+    change: function(event, ui) {
+      state.offset = total_size - ui.value;
+      state.hex_row_count = height;
+
+      grr.update(renderer, domId, state, function(data) {
+        data = jQuery.parseJSON(data);
+
+        // Fill in the table with the data that came back.
+        grr.hexview._Populate(data.offset, width, data.values);
+      });
+    }
+  }).slider('option', 'value', total_size);
+
+  // Make the slider take up the full height.
+  slider.height(slider.parent('td').height());
+
+  // Bind the mouse wheel on the actual table.
+  $('#hex_area').bind('mousewheel DOMMouseScroll', function(e) {
+    var delta = 0;
+    var element = $('#slider');
+    var value;
+
+    value = element.slider('option', 'value');
+    step = total_size / 100;
+
+    if (e.wheelDelta) {
+      delta = -e.wheelDelta;
+    }
+    if (e.detail) {
+      delta = e.detail * 40;
+    }
+
+    value -= delta / 8 * step;
+    if (value > total_size) {
+      value = total_size;
+    }
+    if (value < 0) {
+      value = 0;
+    }
+
+    element.slider('option', 'value', value);
+
+    return false;
+  });
+};
+
+
+/**
+ * Builds a hex viewer widget inside the specified domId.
+ * @param {String} renderer The renderer which will be used to interact with the
+ * hexview.
+ * @param {String} domId will receive the new widget.
+ * @param {Integer} width is the number of bytes in each row. (The height is
+ *    auto detected).
+ * @param {object} state is the state we use for send to our renderer.
+ */
+grr.hexview.HexViewer = function(renderer, domId, width, state) {
+  var header_height = $('#hex_header').outerHeight();
+
+  if (!header_height) {
+    // First build a small table to see how many rows we can fit.
+    grr.hexview.BuildTable(domId, width, 0);
+    header_height = $('#hex_header').outerHeight();
+  }
+
+  var view_port_height = $('#' + domId).parents('.ui-tabs-panel').height();
+
+  // Ensure a minimum of 2 rows.
+  var height = Math.max(Math.floor(view_port_height / header_height) - 2,
+    2);
+
+  state.hex_row_count = height;
+
+  // Ask for these many rows from the server.
+  grr.update(renderer, domId, state, function(data) {
+    data = jQuery.parseJSON(data);
+
+    // Now fill as many rows as we can in the view port.
+    grr.hexview.BuildTable(domId, width, state.hex_row_count);
+
+    //Fill in the table with the data that came back.
+    grr.hexview._Populate(data.offset, width, data.values);
+
+    grr.hexview._makeSlider(renderer, domId, data.total_size, width, height,
+      state);
+  });
+};
+
+
+/**
+ * This is the textview object.
+ */
+grr.textview = {};
+
+/**
+ * A helper function to create the slider.
+ * @param {String} renderer The renderer which will be used to interact with the
+ * textview.
+ * @param {String} domId will receive the new widget.
+ * @param {Integer} total_size is the total size of the file (for maximum
+ *    slider).
+ * @param {object} state is the state we use for send to our renderer.
+ */
+grr.textview._makeSlider = function(renderer, domId, total_size, state) {
+  // Make the slider
+  var slider = $('#text_viewer_slider');
+  slider.slider({
+    orientation: 'horizontal',
+    min: 0,
+    range: true,
+    max: total_size,
+    change: function(event, ui) {
+      grr.textview.Update(renderer, domId, state);
+    },
+    slide: function(event, ui) {
+      var offset = $(this).slider('values', 0);
+      var size = $(this).slider('values', 1) - offset;
+      $('#text_viewer_offset').val(offset);
+      $('#text_viewer_data_size').val(size);
+    }
+  }).slider('option', 'values', [0, 20000]);
+};
+
+
+/**
+ * Issue a request to update content based on current state.
+ * @param {String} renderer The renderer which will be used to interact with the
+ * textview.
+ * @param {String} domId will receive the new widget.
+ * @param {object} state is the state we use for send to our renderer.
+ */
+grr.textview.Update = function(renderer, domId, state) {
+  var state = $.extend({
+                offset: $('#text_viewer_offset').val(),
+                text_encoding: $('#text_encoding').val(),
+                data_size: $('#text_viewer_data_size').val()
+                       }, state);
+
+  grr.update(renderer, domId, state, function(data) {
+    $('#text_viewer_data').html(data);
+    total_size = parseInt($('#text_viewer_data_content').attr('total_size'));
+    $('#text_viewer_slider').slider('option', 'max', total_size);
+  });
+};
+
+/**
+ * Builds a text viewer widget inside the specified domId.
+ * @param {String} renderer The renderer which will be used to interact with the
+ * textview.
+ * @param {String} domId will receive the new widget.
+ * @param {String} default_codec codec to set as default for the widget.
+ * @param {object} state is the state we use for send to our renderer.
+ */
+grr.textview.TextViewer = function(renderer, domId, default_codec, state) {
+  // Create a slider, we don't know how big it should be yet.
+  var default_size = 20000;
+  $('#text_viewer_data_size').val(default_size);
+  $('#text_viewer_offset').val(0);
+  $('#text_encoding option[value=' + default_codec + ']').attr(
+      'selected', 'selected');
+  grr.update(renderer, domId, state, function(data) {
+    $('#text_viewer_data').html(data);
+    var total_size = $('#text_viewer_data_content').attr('total_size');
+    total_size = parseInt(total_size);
+    grr.textview._makeSlider(renderer, domId, total_size, state);
+    var new_size = Math.min(default_size, total_size);
+    $('#text_viewer_data_size').val(new_size);
+
+    // Add handlers for if someone updates the values manually.
+    $('#text_encoding').change(function() {
+      grr.textview.Update(renderer, domId);
+    });
+    $('#text_viewer_offset').change(function() {
+      $('#text_viewer_slider').slider('values', 0, $(this).val());
+    });
+    $('#text_viewer_data_size').change(function() {
+      var offset = $('#text_viewer_slider').slider('values', 0);
+      $('#text_viewer_slider').slider('values', 1, $(this).val() + offset);
+    });
+
+   $('#text_viewer_slider').slider('values', 1, new_size);
+  });
+};
+
+
+/**
+ *
+ * This is the queue of ajax requests which are currently in flight. If another
+ * query occurs for this same domId, it is canceled until the first request
+ * returns. This makes it safe to fire off ajax requests based on events, since
+ * there can be many requests in flight for the same element.
+ *
+ */
+grr.inFlightQueue = {};
+
 
 /** Initialize the grr object */
 grr.init();
-

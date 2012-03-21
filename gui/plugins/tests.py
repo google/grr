@@ -18,5 +18,10 @@
 
 
 
+from grr.gui.plugins import acl_manager_test
+from grr.gui.plugins import container_viewer_test
 from grr.gui.plugins import fileview_test
 from grr.gui.plugins import flow_management_test
+from grr.gui.plugins import notifications_test
+from grr.gui.plugins import statistics_test
+from grr.gui.plugins import timeline_view_test

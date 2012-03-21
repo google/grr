@@ -45,6 +45,7 @@
 * @param Object options Options for the splitter ( required).
 * @cat Plugins/Splitter
 * @return jQuery.
+* @author Kristaps Kukurs (contact@krikus.com)
 */
 
 (function($) {
@@ -210,7 +211,7 @@ function splitterImpl(splitter, args) {
 
   //C.onmouseup=endDrag
   function endDrag(e) {
-    var p = _ghost.position();
+    var p = _ghost.offset();
     $('div.splitterMask').remove();
     _ghost.remove();
     _ghost = null;

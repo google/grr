@@ -30,6 +30,7 @@ import logging
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import key_utils
+from grr.lib import utils
 from grr.proto import jobs_pb2
 
 FLAGS = flags.FLAGS
@@ -46,8 +47,8 @@ class CAEnroler(flow.GRRFlow):
 
     Args:
       csr: A Certificate protobuf with the CSR in it.
-      args: passthrough to base class
-      kwargs: passthrough to base class
+      *args: passthrough to base class
+      **kwargs: passthrough to base class
     """
     self.csr = csr
     flow.GRRFlow.__init__(self, *args, **kwargs)
@@ -70,11 +71,13 @@ class CAEnroler(flow.GRRFlow):
     logging.info("Will sign CSR for: %s", self.cn)
 
     # Create a new client object:
-    client = aff4.FACTORY.Open(self.cn)
+    client = aff4.FACTORY.Create(self.cn, "VFSGRRClient", mode="w",
+                                 token=self.token)
+
     cert = self.MakeCert(req)
     client.Set(client.Schema.CERT,
                aff4.FACTORY.RDFValue("RDFX509Cert")(cert.as_pem()))
-    client.Close()
+    client.Close(True)
 
     self.CallClient("SaveCert", pem=cert.as_pem(),
                     type=jobs_pb2.Certificate.CRT, next_state="Done")
@@ -123,9 +126,11 @@ class CAEnroler(flow.GRRFlow):
     # Start interrogation of the remote system (This will be done by the normal
     # worker after we complete)
     flow.FACTORY.StartFlow(client_id=self.client_id,
-                           flow_name="Interrogate")
+                           flow_name="Interrogate", token=self.token)
 
     self.Log("Enrolled %s successfully", self.client_id)
+
+enrolment_cache = utils.FastStore(500)
 
 
 class Enroler(flow.WellKnownFlow):
@@ -145,15 +150,16 @@ class Enroler(flow.WellKnownFlow):
     queue_name, _ = self.well_known_session_id.split(":", 1)
 
     client_id = message.source
-    # Make sure the client_id is valid
-    if flow.CLIENT_ID_RE.match(client_id):
-      # Make sure the client already exists so we can start an enrollment flow
-      fd = aff4.FACTORY.Create(client_id, "VFSGRRClient")
-      fd.Close()
 
-      flow.FACTORY.StartFlow(client_id=client_id,
-                             flow_name="CAEnroler",
-                             csr=cert,
-                             queue_name=queue_name)
-    else:
-      self.Log("Client id %s is invalid", client_id)
+    # It makes no sense to enrol the same client multiple times, so we
+    # eliminate duplicates. Note, that we can still enroll clients multiple
+    # times due to cache expiration or using multiple enrollers.
+    try:
+      enrolment_cache.Get(client_id)
+      return
+    except KeyError:
+      enrolment_cache.Put(client_id, 1)
+
+    # Start the enrollment flow for this client.
+    flow.FACTORY.StartFlow(client_id=client_id, flow_name="CAEnroler",
+                           csr=cert, queue_name=queue_name, token=self.token)

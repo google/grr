@@ -17,13 +17,14 @@
 
 
 import datetime
-
-import logging
+import time
 
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import flow_utils
 from grr.lib import utils
 from grr.parsers import chrome_history
+from grr.proto import jobs_pb2
 
 
 class ChromeHistory(flow.GRRFlow):
@@ -34,10 +35,10 @@ class ChromeHistory(flow.GRRFlow):
 
   Windows XP
   Google Chrome:
-  /c/Documents and Settings/<username>/Local Settings/Application Data/Google/Chrome/User Data/Default
+  c:\Documents and Settings\<username>\Local Settings\Application Data\Google\Chrome\User Data\Default
 
   Windows 7 or Vista
-  /c/Users/<username>/AppData/Local/Google/Chrome/User Data/Default
+  c:\Users\<username>\AppData\Local\Google\Chrome\User Data\Default
 
   Mac OS X
   /Users/<user>/Library/Application Support/Google/Chrome/Default
@@ -48,71 +49,87 @@ class ChromeHistory(flow.GRRFlow):
 
   category = "/Browser/"
 
-  def __init__(self, user, history_path=None, **kwargs):
+  def __init__(self, username="", history_path=None,
+               get_archive=False,
+               pathtype=utils.ProtoEnum(jobs_pb2.Path, "PathType", "TSK"),
+               output="analysis/chrome-{u}-{t}",
+               **kwargs):
     """Constructor.
 
     Args:
-      user: String, the user to get Chrome history for. If history_path is not
-        set this will be used to guess the path to the history files.
+      username: String, the user to get Chrome history for. If history_path is
+          not set this will be used to guess the path to the history files. Can
+          be in form DOMAIN\user.
       history_path: A specific file to parse.
-
-      kwargs: passthrough.
+      get_archive: Should we get Archived History as well (3 months old).
+      pathtype: Type of path to use.
+      output: A path relative to the client to put the output.
+      **kwargs: passthrough.
     """
+    self.pathtype = pathtype
+    self.username = username
+    self.get_archive = get_archive
+    self.hist_count = 0
     self.history_paths = []   # List of paths where history files are located
     if history_path:
       self.history_paths = [history_path]
-    self.user = user
 
     flow.GRRFlow.__init__(self, **kwargs)
+    self.output = output.format(t=time.time(), u=self.username)
 
-  @flow.StateHandler(next_state=["ParseFiles"])
+  @flow.StateHandler(next_state="ParseFiles")
   def Start(self):
     """Determine the Chrome directory."""
-    self.urn = aff4.ROOT_URN.Copy().Add(self.client_id)
+    self.urn = aff4.ROOT_URN.Add(self.client_id)
+    self.out_urn = self.urn.Add(self.output)
     if not self.history_paths:
-      self.history_paths = self.GuessHistoryPaths(self.user)
+      self.history_paths = self.GuessHistoryPaths(self.username)
+    if not self.history_paths:
+      raise flow.FlowError("Could not find valid History paths.")
 
+    filenames = ["History"]
+    if self.get_archive:
+      filenames.append("Archived History")
+    findspecs = []
     for path in self.history_paths:
-      # History is the main file, Archived History contains data older than
-      # 3 months.
-      for f in ["History", "Archived History"]:
-        full_path = self.urn.Copy().Add(path).Add(f)
-        rel_path = "/" + full_path.RelativeName(self.urn)
-        #TODO(user): Add args to response object to remove need for data.
-        self.CallFlow("GetFile", next_state="ParseFiles", path=rel_path,
-                      request_data=dict(path=utils.SmartStr(rel_path)))
+      for fname in filenames:
+        pathspec = jobs_pb2.Path(pathtype=int(self.pathtype),
+                                 path=path)
+        findspecs.append(jobs_pb2.Find(pathspec=pathspec, max_depth=1,
+                                       path_regex="^{0}$".format(fname),
+                                      ))
+    self.CallFlow("FileDownloader", findspecs=findspecs,
+                  next_state="ParseFiles")
 
-  @flow.StateHandler()
+  @flow.StateHandler(jobs_pb2.StatResponse)
   def ParseFiles(self, responses):
     """Take each file we retrieved and get the history from it."""
-    if responses.success:
-      outfile = aff4.FACTORY.Create(self.urn.Copy().Add("analysis/chrome.txt"),
-                                    "VFSAnalysisFile")
-      fd = aff4.FACTORY.Open(self.urn.Copy().Add(
-          responses.request_data["path"]))
-      hist = chrome_history.ChromeParser(fd)
-      count = 0
-      temp = []
-      for epoch64, dtype, url, dat1, dat2 in hist.Parse():
-        count += 1
-        str_entry = "%s %s %s %s %s" % (
-            datetime.datetime.utcfromtimestamp(epoch64/1e6), url,
-            dat1, dat2, dtype)
-        temp.append(utils.SmartStr(str_entry))
-        if not count % 10000:  # Write in batches to avoid datastore hits
-          outfile.write("\n".join(temp))
-          temp = []
-      outfile.write("\n".join(temp))
-
-      self.Log("Wrote %d Chrome History entries for user %s", count, self.user)
+    # Note that some of these Find requests will fail because some paths don't
+    # exist, e.g. Chromium on most machines, so we don't check for success.
+    if responses:
+      outfile = aff4.FACTORY.Create(self.out_urn, "VFSAnalysisFile",
+                                    token=self.token)
+      for response in responses:
+        fd = aff4.FACTORY.Open(response.aff4path, token=self.token)
+        hist = chrome_history.ChromeParser(fd)
+        count = 0
+        for epoch64, dtype, url, dat1, dat2, dat3 in hist.Parse():
+          count += 1
+          str_entry = "%s %s %s %s %s %s" % (
+              datetime.datetime.utcfromtimestamp(epoch64/1e6), url,
+              dat1, dat2, dat3, dtype)
+          outfile.write(utils.SmartStr(str_entry) + "\n")
+        path_obj = utils.Pathspec(response.pathspec)
+        self.Log("Wrote %d Chrome History entries for user %s from %s", count,
+                 self.user, path_obj.Basename())
+        self.hist_count += count
       outfile.Close()
 
-  def GuessHistoryPaths(self, user, driveroot=None):
+  def GuessHistoryPaths(self, username):
     """Take a user and return guessed full paths to History files.
 
     Args:
-      user: Username as string.
-      driveroot: Path to drive root, e.g. /dev/c or /c
+      username: Username as string.
 
     Returns:
       A list of strings containing paths to look for history files in.
@@ -120,53 +137,32 @@ class ChromeHistory(flow.GRRFlow):
     Raises:
       OSError: On invalid system in the Schema
     """
-    # TODO(user): Split a GetHomedir function into a utility function.
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Copy().Add(self.client_id), mode="r")
+    fd = aff4.FACTORY.Open(self.client_id, token=self.token)
     system = fd.Get(fd.Schema.SYSTEM)
-    release = str(fd.Get(fd.Schema.OS_RELEASE))
-    version = str(fd.Get(fd.Schema.OS_VERSION)).split(".")
-    major_version = int(version[0])
+    user_pb = flow_utils.GetUserInfo(self.client_id, username, token=self.token)
+    if not user_pb:
+      self.Error("Could not find homedir for user {0}".format(username))
+      return
+
     paths = []
-
     if system == "Windows":
-      if major_version < 6 or "XP" in release:  # XP
-        path = ("{driveroot}/Documents and Settings/{user}/Local Settings/"
-                "Application Data/{sw}/User Data/Default")
-      else:
-        path = "{driveroot}/Users/{user}/AppData/Local/{sw}/User Data/Default"
-      if driveroot is None:
-        driveroot = "/dev/c"    # default to raw reads.
-      for p in ["Google/Chrome", "Chromium"]:
-        paths.append(path.format(driveroot=driveroot, user=user, sw=p))
-
+      path = ("{app_data}\\{sw}\\User Data\\Default")
+      for sw_path in ["Google\\Chrome", "Chromium"]:
+        paths.append(path.format(
+            app_data=user_pb.special_folders.local_app_data, sw=sw_path))
     elif system == "Linux":
-      #TODO(user): This won't work on non /home homedirs, need to parse
-      #              /etc/passwd to get the real one.
-      path = "{homeroot}/{user}/.config/{sw}/Default"
-      if driveroot is None:
-        filesystems = aff4.FACTORY.Open(self.urn).Get(fd.Schema.FILESYSTEM)
-        home = [x for x in filesystems if x.mount_point == "/home"]
-        if home:
-          homeroot = home[0].device
-        else:
-          root = [x for x in filesystems if x.mount_point == "/"]
-          if root:
-            homeroot = root[0].device + "/home"
-          else:
-            homeroot = "/home"
-
-      for p in ["google-chrome", "chromium"]:
-        paths.append(path.format(homeroot=homeroot, user=user, sw=p))
-
-    elif system == "MacOS":
-      #TODO(user): what is the real path?
-      path = "{driveroot}/Users/{user}/Library/Application Support/{sw}/Default"
-      if driveroot is None:
-        driveroot = "/dev"    # default to raw reads.
-      for p in ["Google/Chrome", "Chromium"]:
-        paths.append(path.format(driveroot=driveroot, user=user, sw=p))
-
+      path = "{homedir}/.config/{sw}/Default"
+      for sw_path in ["google-chrome", "chromium"]:
+        paths.append(path.format(homedir=user_pb.homedir, sw=sw_path))
+    elif system == "Darwin":
+      path = "{homedir}/Library/Application Support/{sw}/Default"
+      for sw_path in ["Google/Chrome", "Chromium"]:
+        paths.append(path.format(homedir=user_pb.homedir, sw=sw_path))
     else:
-      logging.error("Invalid OS for Chrome History")
-      raise OSError
+      raise OSError("Invalid OS for Chrome History")
     return paths
+
+  def End(self):
+    self.SendReply(jobs_pb2.URN(urn=utils.SmartUnicode(self.out_urn)))
+    self.Notify("ViewObject", self.out_urn,
+                "Completed retrieval of Chrome History")

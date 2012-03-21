@@ -27,7 +27,7 @@ from grr.parsers import sqlite_file
 
 FLAGS = flags.FLAGS
 
-# Test method names dont conform with Google style
+
 
 
 class SQLiteFileTest(test_lib.GRRBaseTest):

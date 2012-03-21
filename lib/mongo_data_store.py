@@ -49,6 +49,9 @@ class Filter(object):
   # Automatically register plugins as class attributes
   include_plugins_as_attributes = True
 
+  def FilterExpression(self):
+    return {}
+
 
 class HasPredicateFilter(Filter):
 
@@ -68,11 +71,7 @@ class AndFilter(Filter):
     Filter.__init__(self)
 
   def FilterExpression(self):
-    spec = {}
-    for part in self.parts:
-      spec.update(part.FilterExpression())
-
-    return spec
+    return {"$and": [part.FilterExpression() for part in self.parts]}
 
 
 class OrFilter(Filter):
@@ -125,12 +124,74 @@ class SubjectContainsFilter(Filter):
     return {"_id": {"$regex": self.regex}}
 
 
+class PredicateGreaterThanFilter(Filter):
+  """A filter to be applied to DataStore.Query.
+
+  This filters all subjects which have this predicate greater than the value
+  specified.
+  """
+
+  def __init__(self, attribute_name, value):
+    """Constructor.
+
+    Args:
+       attribute_name: The attribute name must be set.
+       value: The value that attribute must be less than.
+    """
+    self.attribute_name = attribute_name
+    self.value = value
+    super(PredicateGreaterThanFilter, self).__init__()
+
+  def FilterExpression(self):
+    return {utils.SmartUnicode(self.attribute_name) + ".v": {"$gt":
+                                                             long(self.value)}}
+
+
+class PredicateGreaterEqualFilter(PredicateGreaterThanFilter):
+
+  def FilterExpression(self):
+    return {utils.SmartUnicode(self.attribute_name) + ".v": {"$ge":
+                                                             long(self.value)}}
+
+
+class PredicateLessThanFilter(Filter):
+  """A filter to be applied to DataStore.Query.
+
+  This filters all subjects which have this predicate greater than the value
+  specified.
+  """
+
+  def __init__(self, attribute_name, value):
+    """Constructor.
+
+    Args:
+       attribute_name: The attribute name must be set.
+       value: The value that attribute must be less than.
+    """
+    self.attribute_name = attribute_name
+    self.value = value
+    super(PredicateLessThanFilter, self).__init__()
+
+  def FilterExpression(self):
+    return {utils.SmartUnicode(self.attribute_name) + ".v": {"$lt":
+                                                             long(self.value)}}
+
+
+class PredicateLessEqualFilter(PredicateLessThanFilter):
+
+  def FilterExpression(self):
+    return {utils.SmartUnicode(self.attribute_name) + ".v": {"$le":
+                                                             long(self.value)}}
+
+
 class Transaction(data_store.Transaction):
   """Implement transactions in mongo."""
 
-  def __init__(self, ds, subject):
+  def __init__(self, ds, subject, token=None):
+    ds.security_manager.CheckAccess(token, [subject], "w")
     self.collection = ds.collection
     self.subject = subject
+    self.token = token
 
     # Bring all the data over to minimize round trips
     self._cache = self.collection.find_one(subject) or {}
@@ -174,7 +235,7 @@ class Transaction(data_store.Transaction):
     self._to_update[predicate] = values
 
   def ResolveRegex(self, predicate_regex, decoder=None,
-                   timestamp=data_store.NEWEST_TIMESTAMP):
+                   timestamp=None):
     """Retrieve a set of value matching for this subject's predicate."""
     regex = re.compile(predicate_regex)
     results = {}
@@ -187,8 +248,13 @@ class Transaction(data_store.Transaction):
     for value in results.values():
       value.sort(key=lambda x: x["t"])
 
-    for key, values in results.items():
-      if timestamp == data_store.NEWEST_TIMESTAMP:
+    keys = results.keys()
+    keys.sort()
+
+    for key in keys:
+      values = results[key]
+
+      if timestamp is None or timestamp == data_store.DB.NEWEST_TIMESTAMP:
         value = _Decode(values[-1]["v"], decoder)
         value_timestamp = values[-1]["t"]
         yield (key, value, value_timestamp)
@@ -202,7 +268,7 @@ class Transaction(data_store.Transaction):
           value = _Decode(value_dict["v"], decoder)
           value_timestamp = value_dict["t"]
 
-          if (timestamp == data_store.ALL_TIMESTAMPS or
+          if (timestamp == data_store.DB.ALL_TIMESTAMPS or
               (value_timestamp > start and value_timestamp <= end)):
             yield (key, value, value_timestamp)
 
@@ -223,10 +289,6 @@ class Transaction(data_store.Transaction):
     predicate = utils.SmartUnicode(predicate)
     self._cache[predicate] = self._to_update[predicate] = []
 
-  def DeleteSubject(self):
-    self.collection.remove(self.subject)
-    return self
-
   def Commit(self):
     """Commit the transaction."""
     if self._committed:
@@ -240,24 +302,25 @@ class Transaction(data_store.Transaction):
       spec = dict(_id=URNEncode(self.subject))
       try:
         spec["_lock"] = self._cache["_lock"]
-      except KeyError: pass
+      except KeyError:
+        pass
 
       self._to_update["_lock"] = self.version + 1
       # There are basically three cases here:
 
-      #1) The document does not already exist. Nothing will match spec, and this
-      #   will insert a new document (because of the upsert=True). The
-      #   transaction succeeds.
+      # 1) The document does not already exist. Nothing will match spec, and
+      #    this will insert a new document (because of the upsert=True). The
+      #    transaction succeeds.
 
-      #2) The document exists and matches spec - the same document will be
-      #   updated. The _lock version will be incremented. The transaction
-      #   succeeds.
+      # 2) The document exists and matches spec - the same document will be
+      #    updated. The _lock version will be incremented. The transaction
+      #    succeeds.
 
-      #3) The document exists but does not match spec. This is likely because
-      #   someone else has modified it since we opened for read. We will try to
-      #   add a new document (as in 1 above), but this will raise because there
-      #   already is a document with the same ID. We therefore trap this
-      #   exception and emit a TransactionError. Transaction fails.
+      # 3) The document exists but does not match spec. This is likely because
+      #    someone else has modified it since we opened for read. We will try to
+      #    add a new document (as in 1 above), but this will raise because there
+      #    already is a document with the same ID. We therefore trap this
+      #    exception and emit a TransactionError. Transaction fails.
       try:
         self.collection.update(spec, {"$set": self._to_update},
                                upsert=True, safe=True)
@@ -274,6 +337,7 @@ class MongoDataStore(data_store.DataStore):
   """A Mongo based data store."""
 
   def __init__(self):
+    super(MongoDataStore, self).__init__()
     if FLAGS.mongo_server:
       location, port = FLAGS.mongo_server.split(":")
       port = int(port)
@@ -287,31 +351,9 @@ class MongoDataStore(data_store.DataStore):
     self.collection = self.db_handle.data
     self.Filter = Filter
 
-  def Set(self, subject, attribute, value, timestamp=None, replace=True,
-          sync=True):
-    """Set a new value for this subject's predicate."""
-    if timestamp is None:
-      timestamp = time.time() * 1000
-
-    attribute = utils.SmartUnicode(attribute)
-    subject = utils.SmartUnicode(subject)
-
-    # Not replacing is expensive since we need to fetch the previous result
-    # first.
-    if not replace:
-      records = self.collection.find_one(subject, fields=[attribute]) or {}
-      values = records.get(attribute, [])
-    else:
-      values = []
-
-    # Store all values as binary - we will take care of encoding ourselves.
-    values.append(dict(v=_Encode(value), t=timestamp))
-
-    # Save the data
-    self.collection.save({"_id": URNEncode(subject), attribute: values})
-
-  def Resolve(self, subject, attribute, decoder=None):
-    """Retrieve a value set for a subject's predicate."""
+  def Resolve(self, subject, attribute, decoder=None, token=None):
+    """Retrieves a value set for a subject's predicate."""
+    self.security_manager.CheckAccess(token, [subject], "r")
     attribute = utils.SmartUnicode(attribute)
     subject = utils.SmartUnicode(subject)
 
@@ -325,19 +367,64 @@ class MongoDataStore(data_store.DataStore):
 
     return value, timestamp
 
-  def MultiSet(self, subject, values, timestamp=None, replace=True, sync=True):
-    """Set multiple predicates' values for this subject in one operation."""
-    if timestamp is None:
-      timestamp = time.time() * 1000
-
+  def ResolveMulti(self, subject, predicates, decoder=None, token=None):
+    """Resolves multiple predicates at once for one subject."""
     subject = utils.SmartUnicode(subject)
+    self.security_manager.CheckAccess(token, [subject], "r")
+
+    predicates = [utils.SmartUnicode(s) for s in predicates]
+    records = self.collection.find_one(URNEncode(subject), fields=predicates)
+    for predicate in predicates:
+      record = records.get(predicate)
+      if not record:
+        continue
+      timestamp = record[0]["t"]
+      value = _Decode(record[0]["v"], decoder)
+
+      yield predicate, value, timestamp
+
+  def DeleteSubject(self, subject, token=None):
+    """Completely deletes all information about the subject."""
+    self.security_manager.CheckAccess(token, [subject], "w")
+    self.collection.remove(subject)
+
+  def MultiSet(self, subject, values, timestamp=None, token=None,
+               replace=True, sync=True, to_delete=None):
+    """Set multiple predicates' values for this subject in one operation."""
+    self.security_manager.CheckAccess(token, [subject], "w")
+    subject = utils.SmartUnicode(subject)
+
+    # TODO(user): This could probably be combined with setting.
+    if to_delete:
+      self.DeleteAttributes(subject, to_delete, token=token)
 
     spec = dict(_id=URNEncode(subject))
 
-    document = dict()
-    for attribute, value in values.items():
-      document.setdefault(attribute, []).append(
-          dict(v=_Encode(value), t=timestamp))
+    # Do we need to merge old data with the new data? If so we re-fetch the old
+    # data here.
+    if not replace:
+      document = self.collection.find_one(
+          URNEncode(subject),
+          fields=[URNEncode(x) for x in values.keys()]) or {}
+
+      if "_id" in document:
+        del document["_id"]
+    else:
+      document = dict()
+
+    # Merge the new data with it.
+    for attribute, seq in values.items():
+      for value in seq:
+        try:
+          value, element_timestamp = value
+        except (TypeError, ValueError):
+          element_timestamp = timestamp
+
+        if element_timestamp is None:
+          element_timestamp = time.time() * 1e6
+
+        document.setdefault(utils.SmartUnicode(attribute), []).append(
+            dict(v=_Encode(value), t=int(element_timestamp)))
 
     self._MultiSet(subject, document, spec)
 
@@ -356,14 +443,18 @@ class MongoDataStore(data_store.DataStore):
         document["_id"] = URNEncode(subject)
         self.collection.save(document)
 
-  def DeleteAttributes(self, subject, attributes):
+  def DeleteAttributes(self, subject, attributes, token=None):
+    self.security_manager.CheckAccess(token, [subject], "w")
+
     self.collection.update(dict(_id=URNEncode(subject)), {"$unset": dict(
         [(utils.SmartUnicode(x), 1) for x in attributes])},
                            upsert=False, safe=False)
 
-  def MultiResolveRegex(self, subjects, predicate_regex,
+  def MultiResolveRegex(self, subjects, predicate_regex, token=None,
                         decoder=None, timestamp=None):
-    """Retrieve a bunch of subjects in one round trip."""
+    """Retrieves a bunch of subjects in one round trip."""
+    self.security_manager.CheckAccess(token, subjects, "r")
+
     # Allow users to specify a single string here.
     if type(predicate_regex) == str:
       predicate_regex = [predicate_regex]
@@ -387,17 +478,22 @@ class MongoDataStore(data_store.DataStore):
 
     return result
 
-  def ResolveRegex(self, subject, predicate_regex,
+  def ResolveRegex(self, subject, predicate_regex, token=None,
                    decoder=None, timestamp=None):
-    result = self.MultiResolveRegex([subject], predicate_regex, decoder=decoder,
-                                    timestamp=timestamp).get(subject, [])
+    result = self.MultiResolveRegex(
+        [subject], predicate_regex, decoder=decoder,
+        timestamp=timestamp, token=token).get(subject, [])
     result.sort(key=lambda a: a[0])
     return result
 
-  def Query(self, attributes=None, filter_obj="", subject_prefix="",
-            subjects=None, limit=100):
+  def Query(self, attributes=None, filter_obj=None, subject_prefix="",
+            token=None, subjects=None, limit=100):
     """Selects a set of subjects based on filters."""
-    spec = filter_obj.FilterExpression()
+    if filter_obj:
+      spec = filter_obj.FilterExpression()
+    else:
+      spec = {}
+
     try:
       skip, limit = limit
     except TypeError:
@@ -410,62 +506,109 @@ class MongoDataStore(data_store.DataStore):
       subjects = set(subjects)
     attributes = [utils.SmartUnicode(x) for x in attributes]
 
+    result_subjects = []
+
+    if subject_prefix:
+      regex = data_store.EscapeRegex(utils.SmartUnicode(subject_prefix))
+      spec = {"$and": [spec, {"_id": {"$regex": "^" + regex}}]}
+
+    if subjects:
+      expressions = []
+      for subject in subjects:
+        regex = data_store.EscapeRegex(utils.SmartUnicode(subject))
+        expressions.append({"_id": {"$regex": "^" + regex + "$"}})
+
+      spec = {"$and": [spec, {"$or": expressions}]}
+
     for document in self.collection.find(
         spec=spec, fields=attributes, skip=skip,
         limit=limit, slave_okay=True):
-      subject = document["_id"]
-      if not subject.startswith(subject_prefix):
-        continue
+      try:
+        subject = document["_id"]
+        # Only yield those subjects which we are allowed to view.
+        self.security_manager.CheckAccess(token, [subject], "r")
 
-      if subjects and subject not in subjects: continue
+        result = dict(subject=(subject, 0))
+        for key, values in document.items():
+          if isinstance(values, list):
+            result[key] = (_Decode(values[-1]["v"]), values[-1]["t"])
 
-      result = dict(subject=(subject, 0))
-      for key, values in document.items():
-        if isinstance(values, list):
-          result[key] = (_Decode(values[-1]["v"]), values[-1]["t"])
+        result_subjects.append(result)
+      except data_store.UnauthorizedAccess:
+        pass
 
-      yield result
+    result_subjects.sort()
+    total_count = len(result_subjects)
+    result_set = data_store.ResultSet(result_subjects)
+    result_set.total_count = total_count
+    return result_set
 
-  def Transaction(self, subject):
-    return Transaction(self, subject)
+  def Transaction(self, subject, token=None):
+    return Transaction(self, subject, token=token)
+
+  def Flush(self):
+    pass
 
 
 def _Decode(value, decoder=None):
-  """Decode from a value using the protobuf specified."""
+  """Decodes from a value using the protobuf specified."""
   if value and decoder:
     result = decoder()
     try:
+      # Try if the retrieved type is directly supported.
+      result.ParseFromDataStore(value)
+      return result
+    except (AttributeError, ValueError, message.DecodeError):
+      pass
+    try:
       result.ParseFromString(utils.SmartStr(value))
-    except (message.DecodeError, UnicodeError): pass
+    except (message.DecodeError, UnicodeError):
+      pass
 
     return result
+
+  if isinstance(value, binary.Binary):
+    return str(value)
 
   return value
 
 
-def _Encode(value):
-  """Encode the value into a Binary BSON object or a unicode object.
+def _StorableObject(obj):
+  # Mongo can handle integer types directly
+  if isinstance(obj, (int, long)):
+    return obj
+  elif isinstance(obj, str):
+    return binary.Binary(obj)
+  try:
+    return utils.SmartUnicode(obj)
+  except UnicodeError:
+    # We can store a binary object but regex dont apply to it:
+    return binary.Binary(obj)
 
-  Mongo can only store certain types of objects in the database. We can store
-  everything as a Binary blob but then regex dont work on it. Otherwise we store
-  unicode objects (or integers).
+
+def _Encode(value):
+  """Encodes the value into a Binary BSON object or a unicode object.
+
+  Mongo can only store certain types of objects in the database. We
+  can store everything as a Binary blob but then regex dont work on
+  it. So, we store the object as an integer or an unicode object if
+  possible and, if that fails, we return a binary blob.
 
   Args:
     value: A value to be encoded in the database.
 
   Returns:
-    something that mongo can store (unicode or Binary blob).
+    something that mongo can store (integer, unicode or Binary blob).
   """
-  try:
-    # We can store a binary object but regex dont apply to it:
-    return binary.Binary(value.SerializeToString())
-  except AttributeError:
-    # Or a unicode object
-    try:
-      return utils.SmartUnicode(value)
-    except UnicodeError:
-      # Or a binary object of a string
-      return binary.Binary(value)
+  if hasattr(value, "SerializeToDataStore"):
+    result = value.SerializeToDataStore()
+    return _StorableObject(result)
+
+  if hasattr(value, "SerializeToString"):
+    result = value.SerializeToString()
+    return _StorableObject(result)
+
+  return _StorableObject(value)
 
 
 def URNEncode(value):

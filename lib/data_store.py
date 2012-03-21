@@ -13,10 +13,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The main data store."""
+"""The main data store abstraction.
+
+The data store is responsible for storing AFF4 objects permanently. This file
+defines the basic interface of the data store, but there is no specific
+implementation. Concrete implementations should extend the DataStore class and
+provide non-abstract methods.
+
+The data store is essentially an object store. Objects have a subject (a unique
+identifying name) and a series of arbitrary attributes. Attributes also have a
+name and can only store a number of well defined types.
+
+Some data stores have internal capability to filter and search for objects based
+on attribute conditions. Due to the variability of this capability in
+implementations, the Filter() class is defined inside the DataStore class
+itself. This allows callers to create a data store specific filter
+implementation, with no prior knowledge of the concrete implementation.
+
+In order to accommodate for the data store's basic filtering capabilities it is
+important to allow the data store to store attribute values using the most
+appropriate types.
+
+The currently supported data store storage types are:
+  - Integer
+  - Bytes
+  - String (unicode object).
+
+This means that if one stores an attribute containing an integer, and then
+retrieves this attribute, the data store guarantees that an integer is
+returned (although it may be stored internally as something else).
+
+More complex types should be encoded into bytes and stored in the data store as
+bytes. The data store can then treat the type as an opaque type (and will not be
+able to filter it directly).
+"""
 
 
 import abc
+import getpass
+import logging
 import re
 import sys
 import time
@@ -26,7 +61,7 @@ from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 
-flags.DEFINE_string("storage", "MongoDataStore",
+flags.DEFINE_string("storage", "FakeDataStore",
                     "Storage subsystem to use.")
 
 flags.DEFINE_bool("list_storage", False,
@@ -48,12 +83,78 @@ class TransactionError(Error):
   counter = "grr_commit_failure"
 
 
-# Abstract some constants
-ALL_TIMESTAMPS = "ALL_TIMESTAMPS"
-NEWEST_TIMESTAMP = "NEWEST_TIMESTAMP"
+class UnauthorizedAccess(Error):
+  """Raised when a request arrived from an unauthorized source."""
+  counter = "grr_unauthorised_requests"
+
+  def __init__(self, format_str, *args, **kwargs):
+    self.subject = kwargs.get("subject")
+    logging.info(format_str, args)
+    super(UnauthorizedAccess, self).__init__(format_str % args)
 
 
-# The following abstract classes do not return anything
+class ACLToken(object):
+  """The access control token."""
+
+  def __init__(self, username="", reason="", requested_access="r"):
+    """Controls access to the data for the user.
+
+    This ACL token should be provided for any access to the data store. This
+    allows the data store to audit all access to data. Note that implementations
+    should implement a mechanism for authenticating tokens, so they can not be
+    forged.
+
+    Args:
+       username: The user which requires access to the data.
+       reason: The stated reason for the access (e.g. case name/id).
+       requested_access: The type of access this token is for.
+    """
+    self.username = username or getpass.getuser()
+    self.reason = reason
+    self.requested_access = requested_access
+
+    # This special bit indicates a privileged token for internal use. When this
+    # bit is set, ACLs will be bypassed. There should be no way for an external
+    # user to set this flag. IMPORTANT: This flag does not serialize to the
+    # protobuf for the remote data store!
+    self.supervisor = False
+
+  def __str__(self):
+    return "Token(%s:%s)" % (self.username, self.reason)
+
+  def Copy(self):
+    return ACLToken(username=self.username, reason=self.reason,
+                    requested_access=self.requested_access)
+
+  def ToProto(self, proto):
+    """Copy ourselves into the proto."""
+    proto.username = self.username
+    proto.reason = self.reason
+    proto.requested_access = self.requested_access
+
+
+class BaseAccessControlManager(object):
+  """A class managing access to data resources."""
+
+  __metaclass__ = registry.MetaclassRegistry
+
+  def CheckAccess(self, token, subjects, requested_access="r"):
+    """The main entry point for checking access to resources.
+
+    Args:
+      token: An instance of data_store.ACLToken security token.
+
+      subjects: The list of subject URNs which the user is requesting access
+         to. If any of these fail, the whole request is denied.
+
+      requested_access: A string specifying the desired level of access ("r" for
+         read and "w" for write).
+
+    Raises:
+       UnauthorizedAccess: If the user is not authorized to perform the action
+       on any of the subject URNs.
+    """
+    logging.debug("Checking %s: %s for %s", token, subjects, requested_access)
 
 
 class DataStore(object):
@@ -64,22 +165,36 @@ class DataStore(object):
   # This contains the supported filters by the datastore implementations.
   Filter = None
 
-  def Set(self, subject, predicate, value, timestamp=None,
+  # Constants relating to timestamps.
+  ALL_TIMESTAMPS = "ALL_TIMESTAMPS"
+  NEWEST_TIMESTAMP = "NEWEST_TIMESTAMP"
+  TIMESTAMPS = [ALL_TIMESTAMPS, NEWEST_TIMESTAMP]
+
+  def __init__(self):
+    self.security_manager = BaseAccessControlManager()
+
+  @abc.abstractmethod
+  def DeleteSubject(self, subject, token=None):
+    """Completely deletes all information about this subject."""
+
+  def Set(self, subject, predicate, value, timestamp=None, token=None,
           replace=True, sync=True):
     """Set a single value for this subject's predicate.
 
     Args:
       subject: The subject this applies to.
       predicate: Predicate name.
-      value: serialized value.
+      value: serialized value into one of the supported types.
       timestamp: The timestamp for this entry in microseconds since the
               epoch. If None means now.
+      token: An ACL token.
       replace: Bool whether or not to overwrite current records.
       sync: If true we ensure the new values are committed before returning.
     """
-    self.MultiSet(subject, {predicate: value}, timestamp, replace, sync)
+    self.MultiSet(subject, {predicate: [value]}, timestamp=timestamp,
+                  token=token, replace=replace, sync=sync)
 
-  def RetryWrapper(self, subject, callback, retrywrap_timeout=1,
+  def RetryWrapper(self, subject, callback, retrywrap_timeout=1, token=None,
                    retrywrap_max_timeout=10, **kw):
     """Retry a Transaction until it succeeds.
 
@@ -88,9 +203,9 @@ class DataStore(object):
       callback: A callback which will receive the transaction
          object. The callback will be called repeatedly until success.
       retrywrap_timeout: How long to wait before retrying the transaction.
+      token: An ACL token.
       retrywrap_max_timeout: The maximum time to wait for a retry until we
          raise.
-      kw: Passthrough to callback.
 
     Returns:
       The result from the callback.
@@ -101,7 +216,7 @@ class DataStore(object):
 
     def Retry():
       """Retry transaction."""
-      transaction = self.Transaction(subject)
+      transaction = self.Transaction(subject, token=token)
       try:
         result = callback(transaction, **kw)
       finally:
@@ -113,15 +228,30 @@ class DataStore(object):
     timeout = 0
     while retrywrap_timeout < retrywrap_max_timeout:
       try:
-        return Retry()
+        result = Retry()
+        if timeout > 1:
+          logging.debug("Transaction took %s tries.", timeout)
+        return result
       except TransactionError:
         time.sleep(timeout)
         timeout += 1
 
     raise TransactionError("Retry number exceeded.")
 
+  def _Decode(self, value, decoder=None):
+    if decoder:
+      try:
+        # Is it a protobuf?
+        result = decoder()
+        result.ParseFromString(value)
+      except AttributeError:
+        # Something else?
+        result = decoder(value)
+
+      return result
+
   @abc.abstractmethod
-  def Transaction(self, subject):
+  def Transaction(self, subject, token=None):
     """Returns a Transaction object for a subject.
 
     This opens a read lock to the subject. Any read access to the
@@ -135,38 +265,43 @@ class DataStore(object):
 
     Args:
         subject: The subject which the transaction applies to. Only a
-        single subject may be locked in a transaction.
+           single subject may be locked in a transaction.
+        token: An ACL token.
 
     Returns:
         A transaction object.
     """
 
   @abc.abstractmethod
-  def MultiSet(self, subject, values, timestamp=None,
-               replace=True, sync=True):
+  def MultiSet(self, subject, values, timestamp=None, token=None,
+               replace=True, sync=True, to_delete=None):
     """Set multiple predicates' values for this subject in one operation.
 
     Args:
-      subject: The subject this applies to (BT row).
-      values: A dict with keys containing predicates and values,
-              serializations to be set.
+      subject: The subject this applies to.
+      values: A dict with keys containing predicates and values, serializations
+              to be set. values can be a tuple of (value, timestamp). Value must
+              be one of the supported types.
       timestamp: The timestamp for this entry in microseconds since the
               epoch. None means now.
+      token: An ACL token.
       replace: Bool whether or not to overwrite current records.
       sync: If true we block until the operation completes.
+      to_delete: An array of predicates to clear prior to setting.
     """
 
   @abc.abstractmethod
-  def DeleteAttributes(self, subject, predicates):
+  def DeleteAttributes(self, subject, predicates, token=None):
     """Remove all specified predicates.
 
     Args:
       subject: The subject that will have these attributes removed.
       predicates: A list of predicate URN.
+      token: An ACL token.
     """
 
   @abc.abstractmethod
-  def Resolve(self, subject, predicate, decoder=None):
+  def Resolve(self, subject, predicate, decoder=None, token=None):
     """Retrieve a value set for a subject's predicate.
 
     Args:
@@ -174,24 +309,26 @@ class DataStore(object):
       predicate: The predicate URN.
       decoder: If specified the cell value will be parsed by constructing this
              class. This can also be a protobuf.
+      token: An ACL token.
 
     Returns:
-      A (string, timestamp in microseconds) stored in the datastore
-      cell, or (None, 0) or a (decoded protobuf, timestamp) if
-      protobuf was specified.
+      A (value, timestamp in microseconds) stored in the datastore cell, or
+      (None, 0) or a (decoded protobuf, timestamp) if protobuf was
+      specified. Value will be the same type as originally stored with Set().
 
     Raises:
       AccessError: if anything goes wrong.
     """
 
   @abc.abstractmethod
-  def MultiResolveRegex(self, subjects, predicate_regex,
+  def MultiResolveRegex(self, subjects, predicate_regex, token=None,
                         decoder=None, timestamp=None):
     """Generate a set of values matching for subjects' predicate.
 
     Args:
       subjects: A list of subjects.
       predicate_regex: The predicate URN regex.
+      token: An ACL token.
 
       decoder: If specified the cell value will be parsed by
           constructing this class. This can also be a protobuf.
@@ -210,13 +347,14 @@ class DataStore(object):
     """
 
   @abc.abstractmethod
-  def ResolveRegex(self, subject, predicate_regex,
+  def ResolveRegex(self, subject, predicate_regex, token=None,
                    decoder=None, timestamp=None):
     """Retrieve a set of value matching for this subject's predicate.
 
     Args:
       subject: The subject that we will search.
       predicate_regex: The predicate URN regex.
+      token: An ACL token.
 
       decoder: If specified the cell value will be parsed by
           constructing this class. This can also be a protobuf.
@@ -234,7 +372,7 @@ class DataStore(object):
     """
 
   @abc.abstractmethod
-  def Query(self, attributes, filter_obj="", subject_prefix="",
+  def Query(self, attributes=None, filter_obj="", subject_prefix="", token=None,
             subjects=None, limit=100):
     """Selects a set of subjects based on filters.
 
@@ -250,9 +388,10 @@ class DataStore(object):
           Query(AndFilter(HasPredicateFilter("foo"),HasPredicateFilter("bar")))
 
     Args:
-     attributes: A list of attributes to return
+     attributes: A list of attributes to return (None returns all attributes).
      filter_obj: A Filter() instance.
      subject_prefix: A prefix restriction for subjects.
+     token: An ACL token.
      subjects: A list of subject names which the query applies to.
      limit: A (start, end) tuple of integers representing subjects to
             return. Useful for paging. If its a single integer we take
@@ -266,6 +405,10 @@ class DataStore(object):
     Raises:
       AttributeError: When attributes is not a sequence of stings.
     """
+
+  @abc.abstractmethod
+  def Flush(self):
+    """Flushes the DataStore."""
 
 
 class Transaction(object):
@@ -282,7 +425,7 @@ class Transaction(object):
   __metaclass__ = registry.MetaclassRegistry
 
   @abc.abstractmethod
-  def __init__(self, table, subject):
+  def __init__(self, table, subject, token=None):
     """Constructor.
 
     This is never called directly but produced from the
@@ -291,11 +434,8 @@ class Transaction(object):
     Args:
       table: A data_store handler.
       subject: The name of a subject to lock.
+      token: An ACL token which applies to all methods in this transaction.
     """
-
-  @abc.abstractmethod
-  def DeleteSubject(self):
-    """Completely deletes all information about this subject."""
 
   @abc.abstractmethod
   def DeleteAttribute(self, predicate):
@@ -323,25 +463,7 @@ class Transaction(object):
     """
 
   @abc.abstractmethod
-  def ResolveMulti(self, predicates, decoder=None):
-    """A generator over a set of predicates.
-
-    Args:
-      predicates: A list of predicates URN.
-      decoder: If specified the cell value will be parsed by constructing this
-      class. This can also be a protobuf.
-
-    Yields:
-       A (string, timestamp), or (None, 0) or a (decoded protobuf, timestamp) if
-       protobuf was specified.
-
-    Raises:
-      AccessError: if anything goes wrong.
-    """
-
-  @abc.abstractmethod
-  def ResolveRegex(self, predicate_regex, decoder=None,
-                   timestamp=NEWEST_TIMESTAMP):
+  def ResolveRegex(self, predicate_regex, decoder=None, timestamp=None):
     """Retrieve a set of values matching for this subject's predicate.
 
     Args:
@@ -387,8 +509,35 @@ class Transaction(object):
   def Abort(self):
     """Aborts the transaction."""
 
+
+class ResultSet(object):
+  """A class returned from Query which contains all the result."""
+  # Total number of results that could have been returned. The results returned
+  # may have been limited in some way.
+  total_count = 0
+
+  def __init__(self, results=None):
+    if results is None:
+      results = []
+
+    self.results = results
+
+  def __iter__(self):
+    return iter(self.results)
+
+  def __len__(self):
+    return len(self.results)
+
+  def __iadd__(self, other):
+    self.results = list(self.results) + list(other)
+    return self
+
+  def Append(self, item):
+    self.results.append(item)
+
+
 # Regex chars that should not be in a regex
-disallowed_chars = re.compile("[\[\]\(\)\{\}\\\.\$\^]")
+disallowed_chars = re.compile("[\[\]\(\)\{\}\+\*\?\\\.\$\^]")
 
 
 def EscapeRegex(string):
@@ -397,20 +546,30 @@ def EscapeRegex(string):
                 utils.SmartUnicode(string))
 
 
-def Init(flush=False):
-  """Initialize the data_store."""
-  global DB
+class DataStoreInit(stats.StatsInit):
+  """Initialize the data store.
 
-  if FLAGS.list_storage:
-    for name, cls in DataStore.classes.items():
-      print "%s\t\t%s" % (name, cls.__doc__)
+  Depends on the stats module being initialized.
+  """
+  altitude = 5
 
-    sys.exit(0)
+  def __init__(self):
+    """Initialize the data_store."""
+    global DB
 
-  if flush or DB is None:
+    stats.STATS.RegisterVar("grr_unauthorised_requests")
+
+    if FLAGS.list_storage:
+      for name, cls in DataStore.classes.items():
+        print "%s\t\t%s" % (name, cls.__doc__)
+
+      sys.exit(0)
+
     try:
       cls = DataStore.NewPlugin(FLAGS.storage)
     except KeyError:
-      raise RuntimeError("No Storage System %s found." % FLAGS.storage)
+      logging.warning("No Storage System %s found. Using FakeStorage",
+                      FLAGS.storage)
+      cls = DataStore.NewPlugin("FakeDataStore")
 
     DB = cls()

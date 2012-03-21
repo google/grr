@@ -17,8 +17,11 @@
 
 import functools
 import logging
+import os
+import struct
 import time
 
+from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import utils
 from grr.proto import jobs_pb2
@@ -51,6 +54,12 @@ class TaskScheduler(object):
   SUBJECT_PREFIX = "task:"
   PREDICATE_PREFIX = "task:"
 
+  def __init__(self, store=None):
+    if store is None:
+      store = data_store.DB
+
+    self.data_store = store
+
   @classmethod
   def QueueToSubject(cls, queue):
     """Return an object name which manages that queue."""
@@ -65,7 +74,7 @@ class TaskScheduler(object):
     """Convert a subject name to a queue name."""
     return row_name[len(cls.SUBJECT_PREFIX):]
 
-  def Delete(self, queue, tasks):
+  def Delete(self, queue, tasks, token=None):
     """Removes the tasks from the queue.
 
     Note that tasks can already have been removed. It is not an error
@@ -75,9 +84,10 @@ class TaskScheduler(object):
      queue: A queue to clear.
      tasks: A list of tasks to remove. Tasks may be Task() instances
           or integers representing the task_id.
+     token: An access token to access the data store.
     """
-    data_store.DB.RetryWrapper(self.QueueToSubject(queue),
-                               self._Delete, tasks=tasks)
+    self.data_store.RetryWrapper(self.QueueToSubject(queue),
+                                 self._Delete, tasks=tasks, token=token)
 
   def _Delete(self, transaction, tasks=None):
     for task in tasks:
@@ -88,40 +98,44 @@ class TaskScheduler(object):
 
       transaction.DeleteAttribute(self._TaskIdToColumn(ts_id))
 
-  def Schedule(self, tasks):
+  def Schedule(self, tasks, sync=False, token=None):
     """Schedule a set of Task() instances."""
     for queue, queued_tasks in utils.GroupBy(tasks, lambda x: x.queue):
       if queue:
-        data_store.DB.RetryWrapper(self.QueueToSubject(queue),
-                                   self._Schedule, tasks=queued_tasks)
+        self.data_store.MultiSet(
+            self.QueueToSubject(queue), self._Schedule(tasks=queued_tasks),
+            sync=sync, token=token)
 
-  def _Schedule(self, transaction, tasks=None):
-    """Schedule the tasks in a transaction.
+  def _Schedule(self, tasks=None):
+    """Schedules the tasks asynchronously.
 
     Args:
-       transaction: The transaction object.
        tasks: The list of tasks to schedule. This can not be None and must be
             specified.
+    Returns:
+       A dict with keys the task attributes, and values being the serialized
+         task. This dict is suitable for direct use in MultiSet().
     """
-    max_counter, _ = transaction.Resolve(self.MAX_TS_ID)
-    if max_counter is None: max_counter = 0
+    result = {}
 
-    max_counter = int(max_counter)
+    # 32 bit random numbers
+    number_of_tasks = len(tasks)
+    random_numbers = list(struct.unpack(
+        "I"*number_of_tasks, os.urandom(4*number_of_tasks)))
+    random_numbers.sort()
 
-    for task in tasks:
-      # Allow a leased task to be rescheduled again.
+    # 32 bit timestamp (in 1 second resolution)
+    time_base = long(time.time()) << 32
+
+    for i, task in enumerate(tasks):
+      # Select a task id which is both random and monotonic
       if not task.id:
-        max_counter += 1
-        task.id = max_counter
+        task.id = time_base + random_numbers[i]
+      result[self._TaskIdToColumn(task.id)] = [task.SerializeToString()]
 
-      now = long(time.time() * 1e6)
-      transaction.Set(self._TaskIdToColumn(task.id),
-                      task, timestamp=now,
-                      replace=True)
+    return result
 
-    transaction.Set(self.MAX_TS_ID, max_counter)
-
-  def Query(self, queue, limit=1, decoder=None):
+  def Query(self, queue, limit=1, decoder=None, token=None):
     """Retrieves tasks from a queue without leasing them.
 
     This is good for a read only snapshot of the tasks.
@@ -130,6 +144,7 @@ class TaskScheduler(object):
        queue: The task queue that this task belongs to.
        limit: Number of values to fetch.
        decoder: An decoder to be used to decode the value.
+       token: An access token to access the data store.
 
     Returns:
         A list of Task() objects.
@@ -138,8 +153,9 @@ class TaskScheduler(object):
 
     # Do the real work in a transaction. This doesn't strictly need to
     # be in a transaction but it might give us more consistency.
-    return data_store.DB.RetryWrapper(subject, self._RetrieveTasks,
-                                      limit=limit, decoder=decoder)
+    return self.data_store.RetryWrapper(subject, self._RetrieveTasks,
+                                        limit=limit, decoder=decoder,
+                                        token=token)
 
   def _RetrieveTasks(self, transaction, limit=1, decoder=None):
     tasks = []
@@ -149,7 +165,7 @@ class TaskScheduler(object):
     for _, task, timestamp in transaction.ResolveRegex(
         "%s.*" % self.PREDICATE_PREFIX,
         decoder=functools.partial(self.Task, decoder=decoder),
-        timestamp=data_store.ALL_TIMESTAMPS):
+        timestamp=self.data_store.ALL_TIMESTAMPS):
 
       task.eta = timestamp
       tasks.append(task)
@@ -161,20 +177,20 @@ class TaskScheduler(object):
     transaction.Abort()
     return tasks
 
-  def ListQueues(self):
+  def ListQueues(self, token=None):
     """Returns a list of all queues in the scheduler."""
-    for row in data_store.DB.Query(
-        [], filter_obj=data_store.Filter.HasPredicateFilter(self.MAX_TS_ID)):
+    for row in self.data_store.Query(
+        [], filter_obj=self.data_store.Filter.HasPredicateFilter(
+            self.MAX_TS_ID), token=token):
       yield self.SubjectToQueue(row["subject"])
 
-  def DropQueue(self, queue):
+  def DropQueue(self, queue, token=None):
     """Deletes a queue - all tasks will be lost."""
     subject = self.QueueToSubject(queue)
+    data_store.DB.DeleteSubject(subject, token=token)
 
-    return data_store.DB.RetryWrapper(
-        subject, lambda transaction: transaction.DeleteSubject())
-
-  def QueryAndOwn(self, queue, lease_seconds=10, limit=1, decoder=None):
+  def QueryAndOwn(self, queue, lease_seconds=10, limit=1, decoder=None,
+                  token=None):
     """Returns a list of Tasks leased for a certain time.
 
     Args:
@@ -182,16 +198,25 @@ class TaskScheduler(object):
       lease_seconds: The tasks will be leased for this long.
       limit: Number of values to fetch.
       decoder: A decoder to be used to decode the value.
-
+      token: An access token to access the data store.
     Returns:
         A list of Task() objects leased.
     """
     subject = self.QueueToSubject(queue)
-
     # Do the real work in a transaction
-    return data_store.DB.RetryWrapper(
-        subject, self._QueryAndOwn, decoder=decoder,
-        lease_seconds=lease_seconds, limit=limit)
+    try:
+      res = self.data_store.RetryWrapper(
+          subject, self._QueryAndOwn, decoder=decoder,
+          lease_seconds=lease_seconds, limit=limit, token=token)
+      return res
+    except data_store.TransactionError:
+      # This exception just means that we could not obtain the lock on the queue
+      # so we just return an empty list, let the worker sleep and come back to
+      # fetch more tasks.
+      return []
+    except data_store.Error, e:
+      logging.warning("Datastore exception: %s", e)
+      return []
 
   def _QueryAndOwn(self, transaction, lease_seconds=100,
                    limit=1, decoder=None):
@@ -202,10 +227,11 @@ class TaskScheduler(object):
     lease = long(lease_seconds * 1e6)
 
     # Only grab attributes with timestamps in the past
-    for predicate, task, _ in transaction.ResolveRegex(
+    for predicate, task, timestamp in transaction.ResolveRegex(
         "%s.*" % (self.PREDICATE_PREFIX),
         decoder=functools.partial(self.Task, decoder=decoder),
         timestamp=(0, now)):
+      task.eta = timestamp
       # Decrement the ttl
       task.ttl -= 1
       if task.ttl <= 0:
@@ -215,12 +241,12 @@ class TaskScheduler(object):
                      task.id)
       else:
         # Update the timestamp on the value to be in the future
-        transaction.Set(predicate, task, replace=True, timestamp=now + lease)
+        transaction.Set(predicate, task.SerializeToString(), replace=True,
+                        timestamp=now + lease)
         tasks.append(task)
 
       if len(tasks) >= limit:
         break
-
     return tasks
 
   class Task(object):
@@ -233,11 +259,12 @@ class TaskScheduler(object):
         decoder: An decoder to be used to decode the value when
              parsing. (Can be a protobuf class).
         value: Something to populate the value field with.
-        kwargs: passthrough to Task protobuf.
+        **kwargs: passthrough to Task protobuf.
       """
       self.proto = jobs_pb2.Task(**kwargs)
       self.decoder = decoder
       self.value = value
+      self.eta = 0
 
     def __getattr__(self, attr):
       return getattr(self.proto, attr)
@@ -246,17 +273,16 @@ class TaskScheduler(object):
       try:
         if attr != "proto":
           return setattr(self.proto, attr, value)
-      except (AttributeError, TypeError): pass
+      except (AttributeError, TypeError):
+        pass
 
       object.__setattr__(self, attr, value)
-
-    def __str__(self):
-      return str(self.proto)
 
     def SerializeToString(self):
       try:
         self.proto.value = self.value.SerializeToString()
-      except AttributeError: pass
+      except AttributeError:
+        pass
 
       return self.proto.SerializeToString()
 
@@ -268,3 +294,30 @@ class TaskScheduler(object):
         value = self.decoder()
         value.ParseFromString(self.value)
         self.value = value
+
+    def __str__(self):
+      result = ""
+      for field in ["id", "value", "ttl", "eta", "queue"]:
+        value = getattr(self, field)
+        if field == "eta":
+          value = time.ctime(self.eta / 1e6)
+
+        result += "%s: %s\n" % (field, value)
+
+      return result
+
+
+# These are globally available handles to factories
+
+
+class SchedulerInit(aff4.AFF4InitHook):
+  """Ensures that the scheduler exists."""
+
+  def __init__(self):
+    # Make global handlers
+    global SCHEDULER
+
+    SCHEDULER = TaskScheduler()
+
+SCHEDULER = None
+

@@ -23,6 +23,10 @@ import pickle
 import threading
 import time
 
+
+from grr.client import conf
+from grr.client import conf as flags
+
 from grr.client import client
 
 # Make sure we load the client plugins
@@ -31,18 +35,19 @@ from grr.client import client_actions
 from grr.client import client_config
 from grr.client import comms
 from grr.client import conf
-from grr.client import vfs
+from grr.lib import registry
 
-conf.PARSER.add_option("-n", "--nrclients",
-                       default=1, type="int",
-                       help="Number of clients to start")
+flags.DEFINE_integer("nrclients", 1,
+                     "Number of clients to start")
 
-conf.PARSER.add_option("", "--cert_file",
-                       default="", type="string",
-                       help="Path to a file that stores all certificates for"
-                       "the client pool.")
+flags.DEFINE_string("cert_file", "",
+                    "Path to a file that stores all certificates for"
+                    "the client pool.")
 
-FLAGS = conf.PARSER.flags
+flags.DEFINE_bool("enroll_only", False,
+                  "If specified, the script will enroll all clients and exit.")
+
+FLAGS = flags.FLAGS
 
 
 class PoolGRRClient(client.GRRClient, threading.Thread):
@@ -51,6 +56,7 @@ class PoolGRRClient(client.GRRClient, threading.Thread):
   def __init__(self, cert_storage, storage_id):
     """Constructor."""
     threading.Thread.__init__(self)
+    self.daemon = True
 
     ca_cert = client_config.CACERTS.get(FLAGS.camode.upper())
     if not ca_cert:
@@ -90,12 +96,31 @@ def CreateClientPool(n):
     clients.append(cl)
     cl.start()
 
-  try:
+  if FLAGS.enroll_only:
+    last_time = 0
     while True:
-      time.sleep(100)
-  except KeyboardInterrupt:
-    for cl in clients:
-      cl.Stop()
+      time.sleep(1)
+      enrolled = 0
+      for certificate in cert_storage[:n]:
+        if "----BEGIN CERTIFICATE----" in certificate:
+          enrolled += 1
+
+      if enrolled == n:
+        logging.info("All clients enrolled, exiting.")
+        break
+      else:
+        if enrolled != last_time:
+          last_time = enrolled
+          logging.info("Enrolled %d/%d clients.", enrolled, n)
+  else:
+    try:
+      while True:
+        time.sleep(100)
+    except KeyboardInterrupt:
+      pass
+
+  for cl in clients:
+    cl.Stop()
 
   logging.debug("Pool done, saving certs.")
   try:
@@ -106,9 +131,13 @@ def CreateClientPool(n):
     pass
 
 
-if __name__ == "__main__":
+def main(unused_argv):
   # Ensure multiprocesses can run when packaged on windows.
   multiprocessing.freeze_support()
+
+  if FLAGS.camode.upper() == "PRODUCTION":
+    logging.error("Poolclient should not be run against production.")
+    exit()
 
   conf.PARSER.parse_args()
 
@@ -118,6 +147,9 @@ if __name__ == "__main__":
   logging.basicConfig(level=log_level,
                       format="%(levelname)s %(module)s:%(lineno)s] %(message)s")
 
-  vfs.VFSInit()
+  registry.Init()
 
   CreateClientPool(FLAGS.nrclients)
+
+if __name__ == "__main__":
+  conf.StartMain(main)

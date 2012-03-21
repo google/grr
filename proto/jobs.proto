@@ -6,6 +6,7 @@ syntax = "proto2";
 
 
 
+
 // This message is sent between the client and the server.
 message GrrMessage {
   // Every flow has a unique session ID
@@ -58,6 +59,16 @@ message GrrMessage {
   // status message.
   optional Type type = 8 [ default = MESSAGE ];
 
+  enum Priority {
+    LOW_PRIORITY = 0;
+    MEDIUM_PRIORITY = 1;
+    HIGH_PRIORITY = 2;
+  };
+
+  // The priority of this message - allows higher priority messages to leap
+  // queues.
+  optional Priority priority = 9 [ default = MEDIUM_PRIORITY ];
+  optional uint32 ttl = 10 [default = 10];
 };
 
 // This is a list of messages
@@ -76,10 +87,10 @@ message SignedMessageList {
   // This is a serialized MessageList for signing
   optional bytes message_list = 1;
 
+  // BEGIN DEPRECATED
   optional bytes signature = 2;
+  // END DEPRECATED
 
-  // This source is copied to all individual messages and represents
-  // the client where the message came from.
   optional string source = 3;
 
   // How the message_list element is compressed
@@ -91,16 +102,34 @@ message SignedMessageList {
 
 message CipherProperties {
   required string name = 1;
+
   required bytes key = 2;
+
+  // This is used to encrypt the cipher metadata block.
   optional bytes iv = 3;
+
+  // The key used for the hmac.
+  optional bytes hmac_key = 5;
+};
+
+message CipherMetadata {
+  // The common name this cipher should be used to communicate with.
+  optional string source = 1;
+
+  // The signature of the encrypted cipher block.
+  optional bytes signature = 2;
 };
 
 message ClientCommunication {
   optional bytes encrypted = 1;
 
-  // This is a CipherProperties protobuf encrypted with the public key
-  // of the receiver.
+  // This is a CipherProperties protobuf encrypted with the public key of the
+  // receiver.
   optional bytes encrypted_cipher = 2;
+  optional bytes encrypted_cipher_metadata = 9;
+
+  // This iv is used to encrypt the encrypted field.
+  optional bytes iv = 8;
 
 
   // The number of messages waiting on the input queue. The client
@@ -111,9 +140,16 @@ message ClientCommunication {
   // This status code applies for the entire communication.
   enum CommunicationStatus {
     OK = 200;
+    BAD_REQUEST = 400;
     CIPHER_ERROR = 406;
   };
   optional CommunicationStatus status = 5 [default = OK];
+
+  optional uint32 api_version = 6;
+
+  // Protocol Version >= 3: This field contains the hmac of the message with the
+  // cipher key.
+  optional bytes hmac = 7;
 };
 
 // This is a status response that is sent for each complete
@@ -130,11 +166,21 @@ message GrrStatus {
   optional ReturnedStatus status = 1 [default = OK];
 
   optional string error_message = 2 [default = ""];
+
+  optional string backtrace = 3 [default = ""];
 };
+
+// Stores information about the GRR client itself
+message ClientInformation {
+  optional string client_name = 1;
+  optional uint32 client_version = 2;
+  optional uint64 revision = 3;
+  optional string build_time = 4;
+}
 
 // This is used to store a task in task scheduler
 message Task {
-  optional int32 id = 1;
+  optional uint64 id = 1;
   optional bytes value = 2;
 
   // Number of retransmission before the task is discarded. Note this is a low
@@ -146,7 +192,8 @@ message Task {
   optional string queue = 5;
 };
 
-// A generic protobuf to deliver a single piece of data
+// A generic protobuf to deliver some data
+// The data can be a single value a protobuf or a list.
 message DataBlob {
   optional int64 integer = 1;
   optional bytes data = 2;
@@ -154,6 +201,16 @@ message DataBlob {
   optional string proto_name = 4;   // If set data contains proto
   optional string none = 5; // If set data contains None
   optional bool boolean = 6; // If set data contains a boolean value
+  optional BlobArray list = 8;  // For storing lists.
+
+  enum CompressionType {
+    UNCOMPRESSED = 0;
+    // Compressed using the zlib.compress() function.
+    ZCOMPRESSION = 1;
+  };
+
+  // How the message_list element is compressed
+  optional CompressionType compression = 7 [ default = UNCOMPRESSED ];
 };
 
 // A generic collection of blobs
@@ -166,22 +223,12 @@ message PrintStr {
   optional string data = 2;
 };
 
-// This message is sent to the CopyFile plugin
-message CopyFileMessage {
-  // The client_id that this file will be copied from
-  required string target = 1;
-  optional string source_path = 2;
-  optional string destination_path = 3;
-  optional Path source_pathspec = 4;
-  optional Path destination_pathspec = 5;
-};
-
 // Pass a buffer back.
 
 //   This protobuf is used for both the request and response.
 
 //   During the request:
-//     - path will be set to the desired file to read
+//     - pathspec will be set to the desired file to read
 //     - offset, length specify the requested region
 //     - callback specifies the plugin to be called with the result on
 //       the server.
@@ -196,7 +243,6 @@ message BufferReadMessage {
   required uint32 length = 2;
   optional string callback = 3;
   optional bytes  data = 4;
-  optional string path = 5;
   optional Path pathspec = 6;
 };
 
@@ -209,7 +255,7 @@ message RequestState {
   required uint32 id = 1;
 
   // The task scheduler ID corresponding to the message from this request.
-  optional uint32 ts_id = 2;
+  optional uint64 ts_id = 2;
   optional string next_state = 3;
   optional GrrStatus status = 4;
 
@@ -232,13 +278,15 @@ message RequestState {
 
   // The original message request.
   optional GrrMessage request = 10;
+
+  optional string flow_name = 11;
 };
 
 // Flows are pickled in taskmaster:
 message FlowPB {
   required string name = 1;
   optional bytes pickle = 2;
-  optional uint32 ts_id = 3;
+  optional uint64 ts_id = 3;
   enum FlowState {
     RUNNING = 0;
     TERMINATED = 1;
@@ -274,31 +322,98 @@ message FlowPB {
 
   // RequestState - Only populated in child flows
   optional RequestState request_state = 14;
+
+  // A helpful status message that can be set by flows to track their progress.
+  optional string status = 15;
+
+  // The children of this flow.
+  repeated string children = 16;
+
+  // The client id for this flow.
+  optional string client_id = 17;
 };
+
+message ExecuteRequest {
+  optional string cmd = 1;
+  repeated string args = 2;
+  // An execution time limit, given in seconds.
+  optional int32 time_limit = 3;
+}
+
+message ExecuteResponse {
+  optional ExecuteRequest request = 1;
+  optional int32 exit_status = 2;
+  optional bytes stdout = 3;
+  optional bytes stderr = 4;
+  // The time used to execute the cmd, given in microseconds.
+  optional int32 time_used = 5;
+}
 
 // A message to encode a filesystem path (maybe for raw access)
 message Path {
   enum PathType {
+    UNSET = -1;
     OS = 0;
     TSK = 1;
     REGISTRY = 2;
+    UNKNOWN = 3;
   };
-  optional PathType pathtype = 1;
+  optional PathType pathtype = 1 [default = UNSET];
+
   optional string path = 2;
-  optional string mountpoint = 3;
-  optional string device = 4;
+  optional string mount_point = 3;
+  optional Path nested_path = 5;
+
+  // Offset for split images
+  optional uint64 offset = 6;
+
+  enum Options {
+    CASE_INSENSITIVE = 0;
+    CASE_LITERAL = 1;
+  };
+  optional Options path_options = 7 [default = CASE_INSENSITIVE];
+
+  // On NTFS, the sleuthkit uses the inode, type and id to uniquely identify a
+  // file - instead of the path.
+  optional uint64 inode = 8;
+
+  enum tsk_fs_attr_type {
+    TSK_FS_ATTR_TYPE_DEFAULT = 0x01;        // 1
+    TSK_FS_ATTR_TYPE_NTFS_SI = 0x10;        // 16
+    TSK_FS_ATTR_TYPE_NTFS_ATTRLIST = 0x20;  // 32
+    TSK_FS_ATTR_TYPE_NTFS_FNAME = 0x30;     // 48
+    TSK_FS_ATTR_TYPE_NTFS_VVER = 0x40;      // 64 (NT)
+    TSK_FS_ATTR_TYPE_NTFS_OBJID = 0x40;     // 64 (2K)
+    TSK_FS_ATTR_TYPE_NTFS_SEC = 0x50;       // 80
+    TSK_FS_ATTR_TYPE_NTFS_VNAME = 0x60;     // 96
+    TSK_FS_ATTR_TYPE_NTFS_VINFO = 0x70;     // 112
+    TSK_FS_ATTR_TYPE_NTFS_DATA = 0x80;      // 128
+    TSK_FS_ATTR_TYPE_NTFS_IDXROOT = 0x90;   // 144
+    TSK_FS_ATTR_TYPE_NTFS_IDXALLOC = 0xA0;  // 160
+    TSK_FS_ATTR_TYPE_NTFS_BITMAP = 0xB0;    // 176
+    TSK_FS_ATTR_TYPE_NTFS_SYMLNK = 0xC0;    // 192 (NT)
+    TSK_FS_ATTR_TYPE_NTFS_REPARSE = 0xC0;   // 192 (2K)
+    TSK_FS_ATTR_TYPE_NTFS_EAINFO = 0xD0;    // 208
+    TSK_FS_ATTR_TYPE_NTFS_EA = 0xE0;        // 224
+    TSK_FS_ATTR_TYPE_NTFS_PROP = 0xF0;      // (NT)
+    TSK_FS_ATTR_TYPE_NTFS_LOG = 0x100;      // (2K)
+    TSK_FS_ATTR_TYPE_UNIX_INDIR = 0x1001;   // Indirect blocks for UFS and ExtX
+  };
+
+  optional tsk_fs_attr_type ntfs_type = 9 [default = TSK_FS_ATTR_TYPE_DEFAULT];
+  optional uint64 ntfs_id = 10;
 };
 
 // Ask the ListDir action to list all files in path (returns StatResponse)
 message ListDirRequest {
-  optional string path = 1;
+  optional Path pathspec = 1;
   optional Iterator iterator = 2;
-  optional Path pathspec = 3;
 };
 
 // A stat() record for a given path
 message StatResponse {
-  optional string path = 1;
+  // This contains the URN of the aff4 object represented by this protobuf.
+  optional string aff4path = 1;
   optional uint32 st_mode = 2;
   optional uint32 st_ino = 3;
   optional uint32 st_dev = 4;
@@ -331,14 +446,15 @@ message StatResponse {
   // For very small files their data is stored in this record.
   optional bytes resident = 17;
 
+  // The pathspec which the client can use to re-reach this file.
   optional Path pathspec = 18;
+
+  optional DataBlob registry_data = 19;
 };
 
-// Directory nodes get stored as these
-// TODO(user): Convert this into a regular BlobArray of StatResponse.
-message DirectoryINode {
-  optional GrrStatus status = 1;
-  repeated StatResponse children = 2;
+// This stores collection entries.
+message Collection {
+  repeated StatResponse items = 1;
 };
 
 
@@ -359,7 +475,7 @@ message Dict {
 };
 
 
-// Certificates are exchanged with this
+// Certificates are exchanged with this.
 message Certificate {
   enum CertificateType {
     CSR = 0;
@@ -372,7 +488,7 @@ message Certificate {
   optional string cn = 3;
 };
 
-// Message to carry uname information
+// Message to carry uname information.
 message Uname {
   optional string system = 1;
   optional string node = 2;
@@ -381,7 +497,30 @@ message Uname {
   optional string machine = 5;
 };
 
-// User account information
+message FolderInformation {
+  optional string app_data = 1;
+  optional string cache = 2;
+  optional string cookies = 3;
+  optional string desktop = 4;
+  optional string favorites = 5;
+  optional string history = 6;
+  optional string local_app_data = 7;
+  optional string local_settings = 8;
+  optional string my_music = 9;
+  optional string my_pictures = 10;
+  optional string my_video = 11;
+  optional string net_hood = 12;
+  optional string personal = 13;
+  optional string print_hood = 14;
+  optional string programs = 15;
+  optional string recent = 16;
+  optional string send_to = 17;
+  optional string start_menu = 18;
+  optional string startup = 19;
+  optional string templates = 20;
+};
+
+// User account information.
 message UserAccount {
   optional string username = 1;
   optional string full_name = 2;
@@ -389,13 +528,30 @@ message UserAccount {
   optional uint64 last_logon = 4;
   optional string domain = 5;
   optional string homedir = 6;
+  optional string sid = 7;
+  optional FolderInformation special_folders = 8;
 };
 
-// Information about a network interface
+// A protobuf to encode network addresses.
+message NetworkAddress {
+  enum NetworkFamily {
+    INET = 0;
+    INET6 = 1;
+  }
+  optional NetworkFamily address_type = 1;
+  optional string human_readable = 2;
+  optional string packed_bytes = 3;
+};
+
+// Information about a network interface.
 message Interface {
   optional bytes mac_address = 1;
-  optional bytes ip_address = 2;
+  // ip4_addresses is deprecated, use addresses.
+  repeated bytes ip4_addresses = 2;
   optional string ifname = 3;
+  // ip6_addresses is deprecated, use addresses.
+  repeated bytes ip6_addresses = 4;
+  repeated NetworkAddress addresses = 5;
 };
 
 // Updates the client configuration. We deliberately only allow to update a few
@@ -405,10 +561,19 @@ message GRRConfig {
   optional string location = 2;
   optional int32 max_post_size = 3;
   optional int32 max_out_queue = 4;
-  optional int32 poll_min = 5;
-  optional int32 poll_max = 6;
-  optional int32 poll_slew = 7;
+  optional float poll_min = 5;
+  optional float poll_max = 6;
+  optional float poll_slew = 7;
   optional string compression = 8;
+  optional bool verbose = 9;
+
+  // These options can be read but not modified.
+  optional string camode = 10;
+  optional int32 server_serial_number = 11;
+  optional string regpath = 12;
+  optional string config = 13;
+  optional bool debug = 14;
+  optional bool process_separate = 15;
 };
 
 // The fingerprinting methods the fingerprinter can be asked to perform.
@@ -432,9 +597,8 @@ message FingerprintTuple {
 
 // Request fingerprints for a file.
 message FingerprintRequest {
-  optional string path = 1;
+  optional Path pathspec = 1;
   repeated FingerprintTuple tuples = 2;
-  optional Path pathspec = 3;
 };
 
 // Response data for file hashes and signature blobs.
@@ -443,13 +607,40 @@ message FingerprintResponse {
   repeated Dict fingerprint_results = 2;
 };
 
+// Specialized binary blob for client.
+message SignedDriver {
+  enum HashType {
+    MD5 = 0;
+    SHA1 = 1;
+    SHA256 = 2;
+  };
+  enum SignatureType {
+    RSA_2048 = 0;
+  }
+  optional bytes data = 1;   // The driver binary itself.
+  optional bytes digest = 2;   // The hash of the driver.
+  optional HashType digest_type = 3;  // The type of hash used.
+  optional bytes signature = 4;     // Signature for the driver_hash.
+  optional SignatureType signature_type = 5;  //Type of the signature.
+}
+
+message InstallDriverRequest {
+  optional SignedDriver driver = 1;
+  optional string write_path = 2;     // Path to write the driver file to.
+  optional uint32 force_reload = 3;   // Unload/Load if driver already loaded.
+
+  // Windows specific options.
+  optional string driver_name = 6;           // Drivers service name
+  optional string driver_display_name = 7;   // Display name for driver.
+}
+
 // Requests and responses to allow a search for files that match all of these
 // conditions.
 message Find {
   optional Iterator iterator = 1;
 
   // The base path to recursive search from
-  optional string path = 2;
+  optional Path pathspec = 2;
 
   // This matches the filename
   optional string path_regex = 3 [default = "."];
@@ -469,8 +660,6 @@ message Find {
 
   // Responses come in this proto
   optional StatResponse hit = 9;
-
-  optional Path pathspec = 10;
 }
 
 
@@ -531,7 +720,7 @@ message Iterator {
   // responses and then send "number" responses. Note that skip is not supported
   // by all iterating Actions.
   optional uint32 skip = 2 [default = 0];
-  optional uint32 number = 3 [default = 10];
+  optional uint32 number = 3 [default = 100];
 
   // When the iterator is complete, we this state should be set to FINISHED.
   enum State {
@@ -541,10 +730,34 @@ message Iterator {
   optional State state = 4 [ default = RUNNING ];
 };
 
-/* FindAction returns these protobufs. */
+// FindAction returns these protobufs.
 message IteratedStatResponse {
   optional StatResponse stat = 1;
   optional Iterator iterator = 2;
 }
 
+// URN for an aff4 URN
+message URN {
+  optional string urn = 1;
+}
+
+// A notification is used in the GUI to alert users that some operation is
+// completed
+message Notification {
+  // The notification type - this is used to interpret the meaning of this
+  // message. For example in the GUI this is used to choose the view which is
+  // displayed when the notification is clicked on.
+  optional string type = 1;
+  optional string subject = 2;
+  optional string message = 3;
+
+  // The user or service which generated this notification.
+  optional string source = 4;
+  optional uint64 timestamp = 5;  // Time the notification was added.
+}
+
+
+
+message EmptyMessage {
+}
 

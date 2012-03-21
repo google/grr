@@ -5,23 +5,22 @@
 
 {% block styles %}
 <link rel="stylesheet" href="/static/css/smoothness/jquery-ui-1.7.2.custom.css" type="text/css" media="screen" title="smoothness" />
+<link rel="stylesheet" type="text/css" href="/static/javascript/jquery_splitter/splitter.css" />
 
 <script src="/static/javascript/jquery/jquery-1.4.2.js"></script>
 <script src="/static/javascript/jquery_ui/jquery-ui-1.8.1.custom.js"></script>
 <script src="/static/javascript/jquery_template/jquery.tmpl.js"></script>
-<script src="/static/javascript/tooltip/tooltip.js"></script>
-<script src="/static/javascript/tooltip/tooltip.slide.js"></script>
-<script src="/static/javascript/tooltip/tooltip.dynamic.js"></script>
 <script src="/static/javascript/jstree/jquery.jstree.js"></script>
-<script src="/static/javascript/datatable/js/jquery.dataTables.js"></script>
 <script src="/static/javascript/jquery_splitter/jquery.splitter.js"></script>
-<link rel="stylesheet" type="text/css" href="/static/javascript/jquery_splitter/splitter.css" />
-<script src="/static/javascript/grr.js"></script>
+<script src="/static/javascript/flot/jquery.flot.js"></script>
+<script src="/static/javascript/flot/jquery.flot.resize.js"></script>
+<script src="/static/javascript/flot/jquery.flot.pie.js"></script>
+<script src="/static/javascript/flot/jquery.flot.navigate.js"></script>
 
-<script src="/static/javascript/mbExtruder/elements/mbExtruder-bundle.js"></script>
-<link rel="stylesheet" type="text/css" href="/static/javascript/mbExtruder/elements/mbExtruder.css" />
 <link rel="stylesheet" href="/static/css/grr.css" type="text/css" media="screen" />
 <link rel="shortcut icon" href="/static/images/favicon.png" />
+
+
 
 {% endblock %}
 
@@ -31,30 +30,48 @@
 <title>{% block title %}{{title}}{% endblock %}</title>
 </head>
 <body id="body">
+<div id="ACL"></div>
 <form id="csrf_form" method="POST"></form>
-  <div id="page">
-    <div id="grr_header">
-      {% block header %}
-      <div id="extruder" title="Start"></div>
-
-      <div id="usr">
-        <div id="logo">
-        <img src="/static/images/grr-logo.png" alt="{{title}}"></img>
-        <div id="client_selector"></div>
-        </div>
-        <a href="http://code.google.com/p/grr" target="_blank">Help</a> |
-        <a href="http://code.google.com/p/grr/issues/list" target="_blank">Report a problem</a> |
-      </div>
-      {% endblock header %}
-    </div>
-    <div id="content"></div>
-    <script type="text/javascript">
-      grr.layout("ContentView", "content");
-      grr.layout("SearchHostView", "client_selector");
-    </script>
-
-  <div id="footer" class="ui-widget-header"></div>
+  <div class="grr-topbar">
+    <a class="grr-topbar-entry" href="http://code.google.com/p/grr" target="_blank">Help</a> |
+    <a class="grr-topbar-entry" href="http://code.google.com/p/grr/issues/list" target="_blank">Report a problem</a> |
+    <div id="notifications" class="grr-topbar-right"></div>
   </div>
+  <div id="grr-grrbar">
+    <div id="grr-appswitcher">
+      <a href="/">
+        <span class="logo"></span>
+      </a>
+    </div>
+    <div id="grr-search"></div>
+  </div>
+  <div id="content"></div>
+  <div id="footer" class="ui-widget-header toolbar">
+    <button id='show_backtrace' style='display: none'>
+      <img src='/static/images/stock_dialog_question.png' class='grr-icon'>
+    </button>
+    <div id="backtrace" style="display: none"></div>
+    <div id="footer_message"></div>
+  </div>
+  <div id="error_action" style="display: none" />
+  </div>
+  <script src="/static/javascript/grr.js"></script>
+  <script type="text/javascript">
+    grr.layout("ContentView", "content");
+    grr.layout("SearchHostView", "grr-search");
+    grr.layout("NotificationBar", "notifications");
+    grr.layout("ACLDialog", "ACL");
 
+    $(window).bind("resize", function (event) {
+      grr.publish("DelayedResize", "content");
+      event.stopPropagation();
+    }).resize();
+
+    grr.subscribe("GeometryChange", function (id) {
+      if(id != "content") return;
+
+      grr.fixHeight($("#content"));
+    }, "content");
+  </script>
   </body>
 </html>

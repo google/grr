@@ -28,6 +28,7 @@ import logging
 # Support grr plugins (These only need to be imported here)
 from grr.gui import plugins
 from grr.gui import renderers
+from grr.lib import data_store
 from grr.lib import log
 from grr.lib import stats
 
@@ -35,10 +36,10 @@ SERVER_NAME = "GRR Admin Console"
 FLAGS = flags.FLAGS
 
 # Counters used here
-stats.STATS.grr_admin_ui_unknown_renderer = 0
-stats.STATS.grr_admin_ui_renderer_called = 0
-stats.STATS.grr_admin_ui_access_denied = 0
-stats.STATS.grr_admin_ui_renderer_failed = 0
+stats.STATS.RegisterVar("grr_admin_ui_unknown_renderer")
+stats.STATS.RegisterVar("grr_admin_ui_renderer_called")
+stats.STATS.RegisterVar("grr_admin_ui_access_denied")
+stats.STATS.RegisterVar("grr_admin_ui_renderer_failed")
 
 LOGGER = log.GrrLogger(component="AdminUI")
 
@@ -53,7 +54,7 @@ def LoadPasswordFile(authorized_users):
 
 # This file is loaded by django upon the first request - therefore FLAGS is
 # already initialized.
-if FLAGS.htpasswd is not None:
+if getattr(FLAGS, "htpasswd", None) is not None:
   LoadPasswordFile(AUTHORIZED_USERS)
 
 
@@ -125,13 +126,13 @@ def RenderGenericRenderer(request):
 
     table_cls = renderers.Renderer.NewPlugin(name=table_name)
   except KeyError:
-    stats.STATS.grr_admin_ui_unknown_renderer += 1
+    stats.STATS.Increment("grr_admin_ui_unknown_renderer")
     return AccessDenied("Error: Renderer %s not found" % table_name)
 
   # Check that the action is valid
   ["Layout", "RenderAjax", "Download"].index(action)
   table = table_cls()
-  stats.STATS.grr_admin_ui_renderer_called += 1
+  stats.STATS.Increment("grr_admin_ui_renderer_called")
   result = http.HttpResponse(mimetype="text/html")
 
   # This is needed to force the server to use a session cookie - this is
@@ -146,6 +147,10 @@ def RenderGenericRenderer(request):
     # Only POST in production for CSRF protections.
     request.REQ = request.POST
 
+  # Build the security token for this request
+  request.token = data_store.ACLToken(request.user,
+                                      request.REQ.get("reason", ""))
+
   # Allow potential exceptions to be raised here so we can see them in the debug
   # log.
   result = getattr(table, action)(request, result) or result
@@ -153,7 +158,7 @@ def RenderGenericRenderer(request):
   if not isinstance(result, http.HttpResponse):
     raise RuntimeError("Renderer returned invalid response %r" % result)
 
-  # Prepend bad json to break json attacks as per:
+  # Prepend bad json to break json attacks.
   content_type = result.get("Content-Type", 0)
   if content_type and "json" in content_type.lower():
     result.content = ")]}\n" + result.content
@@ -166,11 +171,11 @@ def AccessDenied(message):
   response = shortcuts.render_to_response("404.html", {"message": message})
   logging.warn(message)
   response.status_code = 403
-  stats.STATS.grr_admin_ui_access_denied += 1
+  stats.STATS.Increment("grr_admin_ui_access_denied")
   return response
 
 
 def ServerError(unused_request, template_name="500.html"):
   """500 Error handler."""
-  stats.STATS.grr_admin_ui_renderer_failed += 1
+  stats.STATS.Increment("grr_admin_ui_renderer_failed")
   return shortcuts.render_to_response(template_name)

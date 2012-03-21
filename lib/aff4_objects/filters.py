@@ -22,6 +22,13 @@ from grr.lib import aff4
 from grr.lib import utils
 
 
+class IdentityFilter(aff4.AFF4Filter):
+  """Just pass all objects."""
+
+  def Filter(self, subjects):
+    return subjects
+
+
 class HasPredicateFilter(aff4.AFF4Filter):
   """Returns only the documents which have the predicate defined."""
 
@@ -83,6 +90,22 @@ class PredicateLessThanFilter(aff4.AFF4Filter):
 
 class PredicateGreaterThanFilter(PredicateLessThanFilter):
   operator_function = operator.gt
+
+
+class PredicateGreaterEqualFilter(PredicateLessThanFilter):
+  operator_function = operator.ge
+
+
+class PredicateLesserEqualFilter(PredicateLessThanFilter):
+  operator_function = operator.le
+
+
+class PredicateNumericEqualFilter(PredicateLessThanFilter):
+  operator_function = operator.eq
+
+
+class PredicateEqualFilter(PredicateLessThanFilter):
+  operator_function = operator.eq
 
 
 class PredicateContainsFilter(PredicateLessThanFilter):

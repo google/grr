@@ -43,7 +43,7 @@ class FingerprintFile(standard.ReadBuffer):
 
   def Run(self, args):
     """Fingerprint a file."""
-    with vfs.VFSHandlerFactory(args.pathspec) as file_obj:
+    with vfs.VFSOpen(args.pathspec) as file_obj:
       fingerprinter = fingerprint.Fingerprinter(file_obj)
       response = jobs_pb2.FingerprintResponse()
       if args.tuples:

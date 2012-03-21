@@ -81,6 +81,7 @@ class MIB_UDPROW_OWNER_MODULE(ctypes.Structure):
 class Netstat(actions.ActionPlugin):
   """Gather open network connection stats."""
   in_protobuf = None
+  out_protobuf = sysinfo_pb2.Connection
 
   def Run(self, unused_args):
     """Use the iphelper API to gather all network stats."""

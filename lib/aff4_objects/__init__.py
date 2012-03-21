@@ -19,5 +19,11 @@
 # These import populate the AFF4 registry
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import browser
+from grr.lib.aff4_objects import cronjobs
 from grr.lib.aff4_objects import filters
+from grr.lib.aff4_objects import network
+from grr.lib.aff4_objects import processes
+from grr.lib.aff4_objects import security
 from grr.lib.aff4_objects import standard
+from grr.lib.aff4_objects import timeline
+from grr.lib.aff4_objects import users

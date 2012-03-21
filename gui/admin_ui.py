@@ -17,6 +17,7 @@
 
 
 import logging
+import os
 import SocketServer
 import sys
 from wsgiref import simple_server
@@ -27,12 +28,19 @@ from grr.client import conf
 from grr.client import conf as flags
 
 from grr.gui import settings
-from grr.lib import aff4
+from grr.lib import registry
 
+# This needs to happen so that django can pre-import all the plugins
+SITE_SETTINGS = "grr.gui.settings"
+os.environ["DJANGO_SETTINGS_MODULE"] = SITE_SETTINGS
+
+from grr.lib import access_control
 # Support mongo storage
 from grr.lib import mongo_data_store
+
 # Support grr plugins (These only need to be imported here)
 from grr.lib.flows import general
+from grr.gui import plugins
 
 flags.DEFINE_integer("port", 8000,
                      "port to listen on")
@@ -57,7 +65,7 @@ class ThreadingDjango(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
 
 def main(_):
   """Run the main test harness."""
-  aff4.AFF4Init()
+  registry.Init()
 
   setup_environ(settings)
 

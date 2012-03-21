@@ -25,13 +25,12 @@ import time
 
 
 from grr.client import conf as flags
-from grr.lib import data_store
 
-from grr.lib import fake_data_store
+from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.proto import jobs_pb2
-
 
 
 FLAGS = flags.FLAGS
@@ -42,47 +41,122 @@ class DataStoreTest(test_lib.GRRBaseTest):
   test_row = "row:foo"
 
   def setUp(self):
+    super(DataStoreTest, self).setUp()
     # Remove all test rows from the table
-    for subject in data_store.DB.Query([], subject_prefix="row:"):
-      data_store.DB.Transaction(subject["subject"][0]).DeleteSubject().Commit()
+    for subject in data_store.DB.Query([], subject_prefix="row:",
+                                       token=self.token):
+      data_store.DB.DeleteSubject(subject["subject"][0], token=self.token)
 
   def testSetResolve(self):
     """Test the Set() and Resolve() methods."""
-    predicate = "metadata:predicate"
+    predicate = "task:00000001"
     value = jobs_pb2.GrrMessage(session_id="session")
 
     # Ensure that setting a value is immediately available.
-    data_store.DB.Set(self.test_row, predicate, value)
+    data_store.DB.Set(self.test_row, predicate, value, token=self.token)
     (stored_proto, _) = data_store.DB.Resolve(
-        self.test_row, predicate, decoder=jobs_pb2.GrrMessage)
+        self.test_row, predicate, decoder=jobs_pb2.GrrMessage,
+        token=self.token)
 
     self.assertEqual(stored_proto.session_id, value.session_id)
 
   def testMultiSet(self):
     """Test the MultiSet() methods."""
+    unicode_string = u"this is a uñîcödé string"
+
     data_store.DB.MultiSet(self.test_row,
-                           {"metadata:1": 1,
-                            "metadata:2": 2})
+                           {"aff4:size": [1],
+                            "aff4:stored": [unicode_string],
+                            "aff4:unknown_attribute": ["hello"]},
+                           token=self.token)
 
-    (stored, _) = data_store.DB.Resolve(self.test_row, "metadata:1")
-    self.assertEqual(stored, "1")
+    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:size",
+                                        token=self.token)
+    self.assertEqual(stored, 1)
 
-    (stored, _) = data_store.DB.Resolve(self.test_row, "metadata:2")
+    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:stored",
+                                        token=self.token)
+    self.assertEqual(stored, unicode_string)
+
+    # Make sure that unknown attributes are stored as bytes.
+    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:unknown_attribute",
+                                        token=self.token)
+    self.assertEqual(stored, "hello")
+    self.assertEqual(type(stored), str)
+
+  def testMultiSet2(self):
+    """Test the MultiSet() methods."""
+    # Specify a per element timestamp
+    data_store.DB.MultiSet(self.test_row,
+                           {"aff4:size": [(1, 100)],
+                            "aff4:stored": [("2", 200)]},
+                           token=self.token)
+
+    (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:size",
+                                         token=self.token)
+    self.assertEqual(stored, 1)
+    self.assertEqual(ts, 100)
+
+    (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:stored",
+                                         token=self.token)
     self.assertEqual(stored, "2")
+    self.assertEqual(ts, 200)
+
+  def testMultiSet3(self):
+    """Test the MultiSet() delete methods."""
+    data_store.DB.MultiSet(self.test_row,
+                           {"aff4:size": [1],
+                            "aff4:stored": ["2"]},
+                           token=self.token)
+
+    data_store.DB.MultiSet(self.test_row, {"aff4:stored": ["2"]},
+                           to_delete=["aff4:size"],
+                           token=self.token)
+
+    # This should be gone now
+    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:size",
+                                        token=self.token)
+    self.assertEqual(stored, None)
+
+    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:stored",
+                                        token=self.token)
+    self.assertEqual(stored, "2")
+
+  def testMultiSet4(self):
+    """Test the MultiSet() delete methods when deleting the same predicate."""
+    data_store.DB.MultiSet(self.test_row,
+                           {"aff4:size": [1],
+                            "aff4:stored": ["2"]},
+                           token=self.token)
+
+    data_store.DB.MultiSet(self.test_row, {"aff4:size": [4]},
+                           to_delete=["aff4:size"],
+                           token=self.token)
+
+    # This should only produce a single result
+    for count, (predicate, value, _) in enumerate(data_store.DB.ResolveRegex(
+        self.test_row, "aff4:size", timestamp=data_store.DB.ALL_TIMESTAMPS,
+        token=self.token)):
+      self.assertEqual(value, 4)
+      self.assertEqual(predicate, "aff4:size")
+
+    self.assertEqual(count, 0)
 
   def testDeleteAttributes(self):
     """Test we can delete an attribute."""
     predicate = "metadata:predicate"
 
-    data_store.DB.Set(self.test_row, predicate, "hello")
+    data_store.DB.Set(self.test_row, predicate, "hello", token=self.token)
 
     # Check its there
-    (stored, _) = data_store.DB.Resolve(self.test_row, predicate)
+    (stored, _) = data_store.DB.Resolve(self.test_row, predicate,
+                                        token=self.token)
 
     self.assertEqual(stored, "hello")
 
-    data_store.DB.DeleteAttributes(self.test_row, [predicate])
-    (stored, _) = data_store.DB.Resolve(self.test_row, predicate)
+    data_store.DB.DeleteAttributes(self.test_row, [predicate], token=self.token)
+    (stored, _) = data_store.DB.Resolve(self.test_row, predicate,
+                                        token=self.token)
 
     self.assertEqual(stored, None)
 
@@ -92,11 +166,12 @@ class DataStoreTest(test_lib.GRRBaseTest):
     rows = []
     for i in range(10):
       row_name = "row:%s" % i
-      data_store.DB.Set(row_name, "metadata:%s" % i, i, timestamp=5)
+      data_store.DB.Set(row_name, "metadata:%s" % i, i, timestamp=5,
+                        token=self.token)
       rows.append(row_name)
 
     subjects = data_store.DB.MultiResolveRegex(
-        rows, ["metadata:[34]", "metadata:[78]"])
+        rows, ["metadata:[34]", "metadata:[78]"], token=self.token)
 
     subject_names = subjects.keys()
     subject_names.sort()
@@ -109,12 +184,14 @@ class DataStoreTest(test_lib.GRRBaseTest):
     # Clear anything first
     for i in range(10):
       row_name = "row:%s" % i
-      data_store.DB.Set(row_name, "metadata:%s" % i, i, timestamp=5)
+      data_store.DB.Set(row_name, "metadata:%s" % i, str(i), timestamp=5,
+                        token=self.token)
+      data_store.DB.Set(row_name, "aff4:type", "test", token=self.token)
 
     # Retrieve all subjects with metadata:5 set:
     rows = [row for row in data_store.DB.Query(
         ["metadata:5"], data_store.DB.Filter.HasPredicateFilter("metadata:5"),
-        subject_prefix="row:")]
+        subject_prefix="row:", token=self.token)]
 
     self.assertEqual(len(rows), 1)
     self.assertEqual(rows[0]["subject"][0], "row:5")
@@ -127,18 +204,26 @@ class DataStoreTest(test_lib.GRRBaseTest):
     unicodestrings = [(u"aff4:/C.0000000000000000/"
                        u"/test-Îñţérñåţîöñåļîžåţîờñ"),
                       (u"aff4:/C.0000000000000000/"
-                       u"/test-[]()[]()"),
+                       u"/test-Îñ铁网åţî[öñåļ(îžåţîờñ"),
+                      # Test for special regex characters.
                       (u"aff4:/C.0000000000000000/"
-                       u"/test-Îñ铁网åţî[öñåļ(îžåţîờñ")]
+                       u"/test-[]()+*?[]()"),
+                      # We also want to test if datastore special characters
+                      # are escaped correctly.
+                      (u"aff4:/C.0000000000000000/"
+                       u"/test-{qqq@qqq{aaa}")
+                     ]
 
     for unicodestring in unicodestrings:
-      data_store.DB.Set(unicodestring, u"metadata:uñîcödé", 1, timestamp=5)
+      data_store.DB.Set(unicodestring, u"metadata:uñîcödé",
+                        "1", timestamp=5, token=self.token)
+      data_store.DB.Set(unicodestring, "aff4:type", "test", token=self.token)
 
       # Retrieve all subjects with metadata:uñîcödé set matching our string:
       rows = [row for row in data_store.DB.Query(
           [u"metadata:uñîcödé"],
           data_store.DB.Filter.HasPredicateFilter(u"metadata:uñîcödé"),
-          unicodestring)]
+          unicodestring, token=self.token)]
 
       self.assertEqual(len(rows), 1)
       self.assertEqual(utils.SmartUnicode(rows[0]["subject"][0]), unicodestring)
@@ -149,14 +234,16 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
       child = unicodestring + u"/Îñţérñåţîöñåļîžåţîờñ-child"
 
-      data_store.DB.Set(child, "metadata:regex", 2, timestamp=7)
+      data_store.DB.Set(child, "metadata:regex", "2", timestamp=7,
+                        token=self.token)
+      data_store.DB.Set(child, "aff4:type", "test", token=self.token)
 
       rows = [row for row in data_store.DB.Query(
           ["metadata:regex"], data_store.DB.Filter.AndFilter(
               data_store.DB.Filter.HasPredicateFilter("metadata:regex"),
               data_store.DB.Filter.SubjectContainsFilter(
                   "%s/[^/]+$" % data_store.EscapeRegex(unicodestring))),
-          unicodestring)]
+          unicodestring, token=self.token)]
 
       self.assertEqual(len(rows), 1)
       self.assertEqual(utils.SmartUnicode(rows[0]["subject"][0]), child)
@@ -176,7 +263,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
         rows = [row for row in data_store.DB.Query(
             [u"metadata:uñîcödé"],
             data_store.DB.Filter.SubjectContainsFilter(re),
-            u"aff4:")]
+            u"aff4:", token=self.token)]
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(utils.SmartUnicode(rows[0]["subject"][0]),
@@ -188,12 +275,13 @@ class DataStoreTest(test_lib.GRRBaseTest):
     """Test our ability to query with a prefix filter."""
     for i in range(11):
       row_name = "row:%s" % i
-      data_store.DB.Set(row_name, "metadata:5", i)
+      data_store.DB.Set(row_name, "metadata:5", i, token=self.token)
+      data_store.DB.Set(row_name, "aff4:type", "test", token=self.token)
 
     # Retrieve all subjects with prefix row1:
     rows = [row for row in data_store.DB.Query(
         ["metadata:5"], data_store.DB.Filter.HasPredicateFilter("metadata:5"),
-        subject_prefix="row:1")]
+        subject_prefix="row:1", token=self.token)]
 
     self.assertEqual(len(rows), 2)
     self.assertEqual(rows[0]["subject"][0], "row:1")
@@ -203,33 +291,58 @@ class DataStoreTest(test_lib.GRRBaseTest):
     """Test our ability to query with a prefix filter."""
     for i in range(11):
       row_name = "row:%s" % i
-      data_store.DB.Set(row_name, "metadata:51", i)
+      data_store.DB.Set(row_name, "metadata:5", i, token=self.token)
+      data_store.DB.Set(row_name, "aff4:type", "test", token=self.token)
 
     # Retrieve all subjects with prefix row1:
     rows = [row for row in data_store.DB.Query(
-        [], data_store.DB.Filter.HasPredicateFilter("metadata:51"),
-        subject_prefix="row:1")]
+        [], data_store.DB.Filter.HasPredicateFilter("metadata:5"),
+        subject_prefix="row:1", token=self.token)]
 
     self.assertEqual(len(rows), 2)
     self.assertEqual(rows[0]["subject"][0], "row:1")
     self.assertEqual(rows[1]["subject"][0], "row:10")
-    self.assertEqual(rows[1].keys(), ["subject"])
+    self.assert_("subject" in rows[1])
 
   def testQueryWithLimit(self):
     """Test our ability to query with a prefix filter."""
     for i in range(11):
       row_name = "row:%02d" % i
-      data_store.DB.Set(row_name, "metadata:51", i)
+      data_store.DB.Set(row_name, "metadata:5", i, token=self.token)
+      data_store.DB.Set(row_name, "aff4:type", "test", token=self.token)
 
     # Retrieve all subjects with prefix row1:
     rows = [row for row in data_store.DB.Query(
-        [], data_store.DB.Filter.HasPredicateFilter("metadata:51"),
-        subject_prefix="row:", limit=(2, 3))]
+        [], data_store.DB.Filter.HasPredicateFilter("metadata:5"),
+        subject_prefix="row:", limit=(2, 3), token=self.token)]
 
     self.assertEqual(len(rows), 3)
     self.assertEqual(rows[0]["subject"][0], "row:02")
     self.assertEqual(rows[1]["subject"][0], "row:03")
     self.assertEqual(rows[2]["subject"][0], "row:04")
+
+  def testQueryWithSubjectFilter(self):
+    """Test our ability to query with a subject filter."""
+    subjects = []
+    for i in range(9):
+      row_name = "row:test %d" % i
+      data_store.DB.Set(row_name, "metadata:5", i, token=self.token)
+      data_store.DB.Set(row_name, "aff4:type", "test", token=self.token)
+      subjects.append(row_name)
+
+    # Retrieve all subjects with prefix:
+    rows = [row for row in data_store.DB.Query(
+        [], data_store.DB.Filter.SubjectContainsFilter("test [1-5]"),
+        subjects=subjects, token=self.token)]
+
+    self.assertEqual(len(rows), 5)
+
+    # Retrieve all subjects with prefix:
+    rows = [row for row in data_store.DB.Query(
+        [], data_store.DB.Filter.SubjectContainsFilter("test [1-5]"),
+        subject_prefix="row:", token=self.token)]
+
+    self.assertEqual(len(rows), 5)
 
   def testFilters(self):
     """Test our ability to query with different filters."""
@@ -240,12 +353,15 @@ class DataStoreTest(test_lib.GRRBaseTest):
       row_name = "row:%02d" % i
       predicate = predicates[i % len(predicates)]
       data_store.DB.Set(row_name, "metadata:%s" % predicate,
-                        row_name + predicate)
+                        utils.SmartUnicode(row_name + predicate),
+                        token=self.token)
+      data_store.DB.Set(row_name, "aff4:type", u"test", token=self.token)
 
     # Retrieve all subjects with prefix row1:
     rows = list(data_store.DB.Query(
         attributes=["metadata:foo"],
-        filter_obj=data_store.DB.Filter.HasPredicateFilter("metadata:foo")))
+        filter_obj=data_store.DB.Filter.HasPredicateFilter("metadata:foo"),
+        token=self.token))
 
     for row in rows:
       self.assertEqual(row["metadata:foo"][0], row["subject"][0] + "foo")
@@ -258,7 +374,8 @@ class DataStoreTest(test_lib.GRRBaseTest):
     rows = list(data_store.DB.Query(
         filter_obj=data_store.DB.Filter.AndFilter(
             data_store.DB.Filter.HasPredicateFilter("metadata:foo"),
-            data_store.DB.Filter.SubjectContainsFilter("row:[0-1]0"))))
+            data_store.DB.Filter.SubjectContainsFilter("row:[0-1]0")),
+        token=self.token))
 
     self.assertEqual(len(rows), 2)
     self.assertEqual(rows[0]["subject"][0], "row:00")
@@ -267,7 +384,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
     # Check that we can Query with a set of subjects
     rows = list(data_store.DB.Query(
         filter_obj=data_store.DB.Filter.HasPredicateFilter("metadata:foo"),
-        subjects=["row:00", "row:10"]))
+        subjects=["row:00", "row:10"], token=self.token))
 
     self.assertEqual(len(rows), 2)
     self.assertEqual(rows[0]["subject"][0], "row:00")
@@ -275,7 +392,8 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     rows = list(data_store.DB.Query(
         filter_obj=data_store.DB.Filter.PredicateContainsFilter(
-            "metadata:foo", "row:0\\dfoo")))
+            "metadata:foo", "row:0\\dfoo"),
+        token=self.token))
 
     self.assertEqual(len(rows), 2)
     self.assertEqual(rows[0]["subject"][0], "row:00")
@@ -284,8 +402,8 @@ class DataStoreTest(test_lib.GRRBaseTest):
   def testTransactions(self):
     """Test transactions raise."""
     predicate = u"metadata:predicateÎñţér"
-    t1 = data_store.DB.Transaction(u"metadata:rowÎñţér")
-    t2 = data_store.DB.Transaction(u"metadata:rowÎñţér")
+    t1 = data_store.DB.Transaction(u"metadata:rowÎñţér", token=self.token)
+    t2 = data_store.DB.Transaction(u"metadata:rowÎñţér", token=self.token)
 
     # This grabs read locks on these transactions
     t1.Resolve(predicate)
@@ -312,8 +430,8 @@ class DataStoreTest(test_lib.GRRBaseTest):
   def testTransactions2(self):
     """Test that transactions on different rows do not interfere."""
     predicate = u"metadata:predicate_Îñţér"
-    t1 = data_store.DB.Transaction(u"metadata:row1Îñţér")
-    t2 = data_store.DB.Transaction(u"metadata:row2Îñţér")
+    t1 = data_store.DB.Transaction(u"metadata:row1Îñţér", token=self.token)
+    t2 = data_store.DB.Transaction(u"metadata:row2Îñţér", token=self.token)
 
     # This grabs read locks on these transactions
     t1.Resolve(predicate)
@@ -328,17 +446,14 @@ class DataStoreTest(test_lib.GRRBaseTest):
   def testTimestamps(self):
     """Check that timestamps are reasonable."""
     predicate = "metadata:predicate"
-    t = data_store.DB.Transaction("metadata:8")
+    subject = "metadata:8"
 
     # Extend the range of valid timestamps returned from the table to account
     # for potential clock skew.
     start = long(time.time() - 60) * 1e6
+    data_store.DB.Set(subject, predicate, "1", token=self.token)
 
-    t.Set(predicate, "1")
-    t.Commit()
-
-    t = data_store.DB.Transaction("metadata:8")
-    (stored, ts) = t.Resolve(predicate)
+    (stored, ts) = data_store.DB.Resolve(subject, predicate, token=self.token)
 
     # Check the time is reasonable
     end = long(time.time() + 60) * 1e6
@@ -349,32 +464,85 @@ class DataStoreTest(test_lib.GRRBaseTest):
   def testSpecificTimestamps(self):
     """Check arbitrary timestamps can be specified."""
     predicate = "metadata:predicate"
-    t = data_store.DB.Transaction("metadata:9")
+    subject = "metadata:9"
 
     # Check we can specify a timestamp
-    t.Set(predicate, "2", timestamp=1000)
-    t.Commit()
-
-    t = data_store.DB.Transaction("metadata:9")
-    (stored, ts) = t.Resolve(predicate)
+    data_store.DB.Set(subject, predicate, "2", timestamp=1000, token=self.token)
+    (stored, ts) = data_store.DB.Resolve(subject, predicate, token=self.token)
 
     # Check the time is reasonable
     self.assertEqual(ts, 1000)
     self.assertEqual(stored, "2")
 
+  def testNewestTimestamps(self):
+    """Check that NEWEST_TIMESTAMP works as expected."""
+    predicate1 = "metadata:predicate1"
+    predicate2 = "metadata:predicate2"
+    subject = "metadata:9.1"
+
+    # Check we can specify a timestamp
+    data_store.DB.Set(
+        subject, predicate1, "1.1", timestamp=1000, replace=False,
+        token=self.token)
+    data_store.DB.Set(
+        subject, predicate1, "1.2", timestamp=2000, replace=False,
+        token=self.token)
+    data_store.DB.Set(
+        subject, predicate2, "2.1", timestamp=1000, replace=False,
+        token=self.token)
+    data_store.DB.Set(
+        subject, predicate2, "2.2", timestamp=2000, replace=False,
+        token=self.token)
+
+    result = data_store.DB.ResolveRegex(
+        subject, predicate1, timestamp=data_store.DB.ALL_TIMESTAMPS,
+        token=self.token)
+
+    # Should return 2 results.
+    values = [x[1] for x in result]
+    self.assertEqual(len(values), 2)
+    self.assertItemsEqual(values, ["1.1", "1.2"])
+    times = [x[2] for x in result]
+    self.assertItemsEqual(times, [1000, 2000])
+
+    result = data_store.DB.ResolveRegex(
+        subject, predicate1, timestamp=data_store.DB.NEWEST_TIMESTAMP,
+        token=self.token)
+
+    # Should return 1 result - the most recent.
+    self.assertEqual(len(result), 1)
+    self.assertEqual(result[0][1], "1.2")
+    self.assertEqual(result[0][2], 2000)
+
+    result = list(data_store.DB.ResolveRegex(
+        subject, "metadata:.*", timestamp=data_store.DB.ALL_TIMESTAMPS,
+        token=self.token))
+
+    self.assertItemsEqual(result, [
+        (u"metadata:predicate1", "1.1", 1000),
+        (u"metadata:predicate1", "1.2", 2000),
+        (u"metadata:predicate2", "2.1", 1000),
+        (u"metadata:predicate2", "2.2", 2000)])
+
+    result = list(data_store.DB.ResolveRegex(
+        subject, "metadata:.*", timestamp=data_store.DB.NEWEST_TIMESTAMP,
+        token=self.token))
+
+    # Should only return the latest version.
+    self.assertItemsEqual(result, [
+        (u"metadata:predicate1", "1.2", 2000),
+        (u"metadata:predicate2", "2.2", 2000)])
+
   def testResolveRegEx(self):
     """Test regex Resolving works."""
     predicate = "metadata:predicate"
-
-    t = data_store.DB.Transaction("metadata:10")
+    subject = "metadata:10"
 
     # Check we can specify a timestamp
-    t.Set(predicate, "3", timestamp=1000)
-    t.Commit()
-
-    t = data_store.DB.Transaction("metadata:10")
-    results = [x for x in t.ResolveRegex("metadata:pred.*",
-                                         timestamp=(0, 2000))]
+    data_store.DB.Set(subject, predicate, "3", timestamp=1000, token=self.token)
+    results = [x for x in data_store.DB.ResolveRegex(subject, "metadata:pred.*",
+                                                     timestamp=(0, 2000),
+                                                     token=self.token)]
 
     self.assertEqual(len(results), 1)
     # Timestamp
@@ -387,14 +555,12 @@ class DataStoreTest(test_lib.GRRBaseTest):
   def testResolveRegExPrefix(self):
     """Test resolving with .* works (basically a prefix search)."""
     predicate = "metadata:predicate"
-    t = data_store.DB.Transaction("metadata:101")
+    subject = "metadata:101"
 
     # Check we can specify a timestamp
-    t.Set(predicate, "3")
-    t.Commit()
-
-    t = data_store.DB.Transaction("metadata:101")
-    results = [x for x in t.ResolveRegex("metadata:.*")]
+    data_store.DB.Set(subject, predicate, "3", token=self.token)
+    results = [x for x in data_store.DB.ResolveRegex(subject, "metadata:.*",
+                                                     token=self.token)]
 
     self.assertEqual(len(results), 1)
     # Value
@@ -404,25 +570,63 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
   def testResolveMulti(self):
     """Test regex Multi Resolving works."""
-
-    def SetPredicate(predicate):
-      t = data_store.DB.Transaction("metadata:11")
-
-      # Check we can specify a timestamp
-      t.Set(predicate, "Cell "+predicate, timestamp=1000)
-      t.Commit()
+    subject = "metadata:11"
 
     predicates = []
     for i in range(0, 100):
       predicate = "metadata:predicate" + str(i)
       predicates.append(predicate)
-      SetPredicate(predicate)
+      data_store.DB.Set(subject, predicate, "Cell "+predicate, timestamp=1000,
+                        token=self.token)
 
-    t = data_store.DB.Transaction("metadata:11")
-    results = [x for x in t.ResolveMulti(predicates)]
+    results = [x for x in data_store.DB.ResolveMulti(subject, predicates,
+                                                     token=self.token)]
 
     self.assertEqual(len(results), 100)
     # Value
     for i in range(0, 100):
       self.assertEqual(results[i][1], "Cell "+predicates[i])
       self.assertEqual(results[i][0], predicates[i])
+
+    # Now try to query for non existent predicates.
+    predicates = predicates[:10]
+    for i in range(10):
+      predicates.append("metadata:not_existing" + str(i))
+
+    results = [x for x in data_store.DB.ResolveMulti(subject, predicates,
+                                                     token=self.token)]
+
+    self.assertEqual(10, len(results))
+    for i in range(0, 10):
+      self.assertEqual(results[i][1], "Cell "+predicates[i])
+      self.assertEqual(results[i][0], predicates[i])
+
+  def testQueryIntegerRanges(self):
+    """Test that querying for ranges works."""
+    # Create some new aff4 objects with integer attributes
+    for i in range(10):
+      fd = aff4.FACTORY.Create("aff4:/C.1234/test%s" % i, "AFF4Image",
+                               token=self.token)
+      # This sets the SIZE attribute:
+      fd.Write("A" * i)
+      fd.Close()
+
+    # Select a range
+    rows = [row for row in data_store.DB.Query(
+        [fd.Schema.SIZE], data_store.DB.Filter.PredicateLessThanFilter(
+            fd.Schema.SIZE, 5),
+        subject_prefix="aff4:/C.1234/", token=self.token)]
+
+    # We should receive rows 0-4 inclusive.
+    self.assertEqual(len(rows), 5)
+    for i in range(5):
+      self.assertEqual("aff4:/C.1234/test%s" % i, rows[i]["subject"][0])
+
+    rows = [row for row in data_store.DB.Query(
+        [fd.Schema.SIZE], data_store.DB.Filter.PredicateGreaterThanFilter(
+            fd.Schema.SIZE, 5),
+        subject_prefix="aff4:/C.1234/", token=self.token)]
+
+    self.assertEqual(len(rows), 4)
+    for i in range(6, 10):
+      self.assertEqual("aff4:/C.1234/test%s" % i, rows[i-6]["subject"][0])

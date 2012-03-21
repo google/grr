@@ -23,27 +23,61 @@ import re
 import _winreg
 import pywintypes
 import win32file
+import win32service
+import win32serviceutil
+import winerror
 
+from grr.client import client_config
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
-def InterpolatePath(path):
-  """Interpolates the path based on client information.
+def CanonicalPathToLocalPath(path):
+  """Converts the canonical paths as used by GRR to OS specific paths.
+
+  Due to the inconsistencies between handling paths in windows we need to
+  convert a path to an OS specific version prior to using it. This function
+  should be called just before any OS specific functions.
+
+  Canonical paths on windows have:
+    - / instead of \\.
+    - Begin with /X:// where X is the drive letter.
 
   Args:
-    path: The format string on the path.
+    path: A canonical path specification.
 
   Returns:
-    Interpolated path.
+    A windows specific path.
   """
-  args = dict(SYSTEM_DIR=os.environ.get("SYSTEM_DIR"),
-              PROGRAM_FILES=os.environ.get("PROGRAM_FILES"))
-  return path % args
+  # Account for raw devices
+  path = path.replace("/\\", "\\")
+  path = path.replace("/", "\\")
+  m = re.match(r"\\([a-zA-Z]):(.*)$", path)
+  if m:
+    path = "%s:\\%s" % (m.group(1), m.group(2))
+
+  return path
+
+
+def LocalPathToCanonicalPath(path):
+  """Converts path from the local system's convention to the canonical."""
+  path_components = path.split("/")
+  result = []
+  for component in path_components:
+    # Devices must maintain their \\ so they do not get broken up.
+    m = re.match(r"\\\\.\\", component)
+
+    # The component is not special and can be converted as normal
+    if not m:
+      component = component.replace("\\", "/")
+
+    result.append(component)
+
+  return utils.JoinPath(*result)
 
 
 def WinFindProxies():
-  """Try to find proxies by interrogating all the user's settings.
+  """Tries to find proxies by interrogating all the user's settings.
 
   This function is a modified urillib.getproxies_registry() from the
   standard library. We just store the proxy value in the environment
@@ -102,72 +136,106 @@ def WinFindProxies():
 
   logging.debug("Found proxy servers: %s", proxies)
 
+  proxies.extend(client_config.PROXY_SERVERS)
   return proxies
 
 
-def WinSplitPathspec(pathspec):
-  """Splits a given path into device, mountpoint, and remaining path.
-
-  Examples:
-
-  Let's say "\\.\Volume{11111}\" is mounted on "C:\", then
-
-  "C:\\Windows\\" is split into
-  (device="\\.\Volume{11111}\", mountpoint="C:\", path="Windows")
-
-  and
-
-  "\\.\Volume{11111}\Windows\" is split into
-  ("\\.\Volume{11111}\", "C:\", "Windows")
-
-  After the split, mountpoint and path can always be concatenated
-  to obtain a valid os file path.
+def WinGetRawDevice(path):
+  """Resolves the raw device that contains the path.
 
   Args:
-    pathspec: Path specification to be split.
+    path: A path to examine.
 
   Returns:
-    Pathspec split into device, mountpoint, and remaining path.
+    A pathspec to read the raw device as well as the modified path to read
+    within the raw device. This is usually the path without the mount point.
 
   Raises:
-    IOError: Path was not found on any mounted device.
-
+    IOError: if the path does not exist or some unexpected behaviour occurs.
   """
-  # Do not split Registry requests.
-  if pathspec.pathtype == jobs_pb2.Path.REGISTRY:
-    return pathspec
-
-  path = pathspec.mountpoint + pathspec.path
-  path = utils.SmartUnicode(path)
-  path = InterpolatePath(path)
-
-  # We need \ only for windows.
-  path = path.replace("/", "\\").strip("\\")
-
-  path = utils.NormalizePath(path, "\\").lstrip("\\")
+  path = CanonicalPathToLocalPath(path)
+  # Try to expand the shortened paths
+  try:
+    path = win32file.GetLongPathName(path)
+  except pywintypes.error:
+    pass
 
   try:
-    mp = win32file.GetVolumePathName(path)
+    mount_point = win32file.GetVolumePathName(path)
   except pywintypes.error, details:
-    logging.error("path not found. %s", details)
+    logging.info("path not found. %s", details)
     raise IOError("No mountpoint for path: %s", path)
 
-  # GetVolumeNameForVolumeMountPoint is picky when it comes to trailing \'s
-  mp = mp.rstrip("\\")
-  mp += "\\"
-  volume = win32file.GetVolumeNameForVolumeMountPoint(mp)
+  if not path.startswith(mount_point):
+    raise IOError("path %s is not mounted under %s?" % (path, mount_point))
 
-  volume = volume.replace("\\\\?\\", "\\\\.\\")
+  corrected_path = LocalPathToCanonicalPath(path[len(mount_point):])
+  corrected_path = utils.NormalizePath(corrected_path)
 
-  res = jobs_pb2.Path()
-  res.pathtype = pathspec.pathtype
-  res.device, res.mountpoint = volume, mp
-  if path.lower().startswith(mp.lower()):
-    res.path = path[len(res.mountpoint):]
-  else:
-    # Path contains a volume string.
-    volume = volume.lstrip("\\.?")
-    pos = path.lower().find(volume.lower())
-    res.path = path[pos+len(volume):]
+  volume = win32file.GetVolumeNameForVolumeMountPoint(mount_point).rstrip("\\")
+  volume = LocalPathToCanonicalPath(volume)
 
-  return res
+  # The pathspec for the raw volume
+  result = jobs_pb2.Path(path=volume, pathtype=jobs_pb2.Path.OS,
+                         mount_point=mount_point.rstrip("\\"))
+
+  return result, corrected_path
+
+
+def InstallDriver(driver_path, service_name, driver_display_name):
+  """Loads a driver and start it."""
+  hscm = win32service.OpenSCManager(None, None,
+                                    win32service.SC_MANAGER_ALL_ACCESS)
+  try:
+    win32service.CreateService(hscm,
+                               service_name,
+                               driver_display_name,
+                               win32service.SERVICE_ALL_ACCESS,
+                               win32service.SERVICE_KERNEL_DRIVER,
+                               win32service.SERVICE_DEMAND_START,
+                               win32service.SERVICE_ERROR_IGNORE,
+                               driver_path,
+                               None,  # No load ordering
+                               0,     # No Tag identifier
+                               None,  # Service deps
+                               None,  # User name
+                               None)  # Password
+    win32serviceutil.StartService(service_name)
+  except pywintypes.error, e:
+    if e[0] == 1073:
+      raise OSError("Service already exists.")
+    else:
+      raise RuntimeError("StartService failure: {0}".format(e))
+
+
+def UninstallDriver(driver_path, service_name, delete_file=False):
+  """Unloads the driver and delete the driver file.
+
+  Args:
+    driver_path: Full path name to the driver file.
+    service_name: Name of the service the driver is loaded as.
+    delete_file: Should we delete the driver file after removing the service.
+
+  Raises:
+    OSError: On failure to uninstall or delete.
+  """
+
+  try:
+    win32serviceutil.StopService(service_name)
+  except pywintypes.error, e:
+    if e[0] not in [winerror.ERROR_SERVICE_NOT_ACTIVE,
+                    winerror.ERROR_SERVICE_DOES_NOT_EXIST]:
+      raise OSError("Could not stop service: {0}".format(e))
+
+  try:
+    win32serviceutil.RemoveService(service_name)
+  except pywintypes.error, e:
+    if e[0] != winerror.ERROR_SERVICE_DOES_NOT_EXIST:
+      raise OSError("Could not remove service: {0}".format(e))
+
+  if delete_file:
+    try:
+      if os.path.exists(driver_path):
+        os.remove(driver_path)
+    except (OSError, IOError), e:
+      raise OSError("Driver deletion failed: " + str(e))

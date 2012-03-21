@@ -1,0 +1,10 @@
+149.2.34.5 - - [08/Jan/2012:06:35:26 +0000] "GET /pub/dists/karmic/InRelease HTTP/1.0" 404 290 "-" "Debian APT-HTTP/1.3 (0.8.15.9)"
+149.2.34.5 - - [08/Jan/2012:06:35:27 +0000] "GET /pub/dists/karmic/Release HTTP/1.0" 304 - "-" "Debian APT-HTTP/1.3 (0.7.25.3)"
+149.2.34.5 - - [08/NoM/2012:06:35:28 +0000] "GET /pub/dists/karmic/Release HTTP/1.0" 304 - "My Referer" "Debian APT-HTTP/1.3 (0.7.25.3)"
+149.2.34.5 - - [08/Jan/2012:06:35:28 +0000] "GET /pub/dists/karmic/Release HTTP/1.0" 304 - "-" "Debian APT-HTTP/1.3 (0.7.20.2)"
+149.2.34.5 - - [08/Jan/2012:06:35:29 +0000] "GET /pub/dists/karmic/main/binary-i386/Packages.diff/Index HTTP/1.0" 404 317 "-" "Debian APT-HTTP/1.3 (0.7.25.3)"
+149.2.34.5 - - [08/Jan/2012:06:35:29 +0000] "GET /pub/dists/karmic/Release.gpg HTTP/1.0" 304 - "-" "Debian APT-HTTP/1.3 (0.8.15.9)"
+149.2.34.5 - - [08/Jan/2012:06:35:29 +0000] "GET /pub/dists/karmic/main/binary-i386/Packages.bz2 HTTP/1.0" 404 310 "-" "Debian APT-HTTP/1.3 (0.7.25.3)"
+149.2.34.5 - - [08/Jan/2012:06:35:29 +0000] "GET /pub/dists/karmic/main/binary-i386/Packages.lzma HTTP/1.0" 404 311 "-" "Debian APT-HTTP/1.3 (0.7.25.3)"
+149.2.34.5 AS - [08/Jan/2012:06:35:29 +0000] "GET /pub/dists/karmic/main/binary-i386/Packages.gz HTTP/ WRONG FILE 304 - FAULTY BAD LOG LINE...
+149.2.34.5 - - [08/Jan/2012:06:35:30 +0000] "GET /pub/dists/karmic/main/binary-i386/Packages.gz HTTP/1.0" 304 - "-" "Debian APT-HTTP/1.3 (0.7.20.2)"

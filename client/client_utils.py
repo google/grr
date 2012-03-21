@@ -13,22 +13,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Windows specific actions."""
+
+"""Client utilities."""
+
 
 
 import sys
 
 # Select the version of what we want based on the OS:
+
 if sys.platform == "win32":
   from grr.client import client_utils_windows
   FindProxies = client_utils_windows.WinFindProxies
-  SplitPathspec = client_utils_windows.WinSplitPathspec
+  GetRawDevice = client_utils_windows.WinGetRawDevice
+  CanonicalPathToLocalPath = client_utils_windows.CanonicalPathToLocalPath
+  LocalPathToCanonicalPath = client_utils_windows.LocalPathToCanonicalPath
 elif sys.platform == "darwin":
   from grr.client import client_utils_osx
   FindProxies = client_utils_osx.OSXFindProxies
-  SplitPathspec = client_utils_osx.OSXSplitPathspec
+  GetRawDevice = client_utils_osx.OSXGetRawDevice
+  # Should be the same as linux.
+  CanonicalPathToLocalPath = client_utils_osx.CanonicalPathToLocalPath
+  LocalPathToCanonicalPath = client_utils_osx.LocalPathToCanonicalPath
 else:
   from grr.client import client_utils_linux
   # Linux platform
   FindProxies = client_utils_linux.LinFindProxies
-  SplitPathspec = client_utils_linux.LinSplitPathspec
+  GetRawDevice = client_utils_linux.LinGetRawDevice
+  CanonicalPathToLocalPath = client_utils_linux.CanonicalPathToLocalPath
+  LocalPathToCanonicalPath = client_utils_linux.LocalPathToCanonicalPath

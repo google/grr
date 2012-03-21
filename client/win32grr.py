@@ -37,13 +37,22 @@ import win32service
 import win32serviceutil
 import winerror
 
+
+from grr.client import conf as flags
+
 from grr.client import client
 from grr.client import client_config
 from grr.client import client_utils
 from grr.client import comms
 from grr.client import conf
-from grr.client import vfs
+from grr.lib import registry
 
+
+# Those args are set by Windows when GRR is started as a service. We
+# just ignore them.
+for flag in ["password", "username", "startup", "perfmonini", "perfmondll",
+             "interactive"]:
+  flags.DEFINE_string(flag, "", "")
 
 FLAGS = client.FLAGS
 
@@ -74,15 +83,9 @@ class GRRMonitor(win32serviceutil.ServiceFramework):
       raise RuntimeError("Invalid camode specified.")
 
     if FLAGS.process_separate:
-      self.context = comms.ProcessSeparatedContext(
-          location=FLAGS.location,
-          max_post_size=FLAGS.max_post_size,
-          ca_cert=ca_cert)
+      self.context = comms.ProcessSeparatedContext(ca_cert=ca_cert)
     else:
-      self.context = comms.GRRHTTPContext(
-          location=FLAGS.location,
-          max_post_size=FLAGS.max_post_size,
-          ca_cert=ca_cert)
+      self.context = comms.GRRHTTPContext(ca_cert=ca_cert)
 
     self.context.LoadCertificates()
 
@@ -130,7 +133,7 @@ class GRRMonitor(win32serviceutil.ServiceFramework):
 
     logging.info("Starting")
 
-    vfs.VFSInit()
+    registry.Init()
 
     logging.debug("Starting mainloop")
     for status in self.context.Run():
@@ -138,7 +141,7 @@ class GRRMonitor(win32serviceutil.ServiceFramework):
 
       # If we communicated this time we want to continue aggressively
       if status.sent_count > 0 or status.received_count > 0:
-        self.sleep_time = FLAGS.poll_min
+        self.sleep_time = 0
 
       logging.debug("Sending %s, Received %s messages. Sleeping for %s",
                     status.sent_count, status.received_count, self.sleep_time)
@@ -147,8 +150,10 @@ class GRRMonitor(win32serviceutil.ServiceFramework):
       except StopIteration:
         break
 
-      # Back off slowly
-      self.sleep_time = min(FLAGS.poll_max, self.sleep_time + FLAGS.poll_slew)
+      # Back off slowly at first and fast if no answer.
+      self.sleep_time = min(
+          FLAGS.poll_max,
+          max(FLAGS.poll_min, self.sleep_time) * FLAGS.poll_slew)
 
     logging.info("Stopping service")
 
@@ -164,10 +169,17 @@ def SetupLogging(logger):
 
   # If debug enabled, add debug file logging.
   if FLAGS.verbose:
-    filehandler = logging.FileHandler(client_config.LOGFILE_PATH, mode="ab")
-    filehandler.setLevel(logging.DEBUG)
-    filehandler.setFormatter(formatter)
-    logger.addHandler(filehandler)
+    try:
+      # Create the directory if it doesn't exist.
+      if not os.path.isdir(os.path.dirname(client_config.LOGFILE_PATH)):
+        os.makedirs(os.path.dirname(client_config.LOGFILE_PATH))
+
+      filehandler = logging.FileHandler(client_config.LOGFILE_PATH, mode="ab")
+      filehandler.setLevel(logging.DEBUG)
+      filehandler.setFormatter(formatter)
+      logger.addHandler(filehandler)
+    except OSError:
+      pass
 
   # Add Windows Event logging for anything WARN or above.
   evt_log_level = logging.WARN

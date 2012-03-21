@@ -17,19 +17,166 @@
 """Linux specific actions."""
 
 
-import fcntl
+import ctypes
+import ctypes.util
 import logging
 import os
 import pwd
-import re
-import socket
-import struct
 
 from grr.client import actions
 from grr.client import comms
 from grr.lib import utils
 from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
+
+
+# struct sockaddr_ll
+#   {
+#     unsigned short int sll_family;
+#     unsigned short int sll_protocol;
+#     int sll_ifindex;
+#     unsigned short int sll_hatype;
+#     unsigned char sll_pkttype;
+#     unsigned char sll_halen;
+#     unsigned char sll_addr[8];
+#   };
+
+
+class Sockaddrll(ctypes.Structure):
+  """The sockaddr_ll struct."""
+  _fields_ = [
+      ("sll_family", ctypes.c_ushort),
+      ("sll_protocol", ctypes.c_ushort),
+      ("sll_ifindex", ctypes.c_byte * 4),
+      ("sll_hatype", ctypes.c_ushort),
+      ("sll_pkttype", ctypes.c_ubyte),
+      ("sll_halen", ctypes.c_ubyte),
+      ("sll_addr", ctypes.c_char * 8),
+      ]
+
+# struct sockaddr_in {
+#   sa_family_t           sin_family;     /* Address family               */
+#   __be16                sin_port;       /* Port number                  */
+#   struct in_addr        sin_addr;       /* Internet address             */
+#   /* Pad to size of `struct sockaddr'. */
+#   unsigned char         __pad[__SOCK_SIZE__ - sizeof(short int) -
+#                         sizeof(unsigned short int) - sizeof(struct in_addr)];
+# };
+
+
+class Sockaddrin(ctypes.Structure):
+  """The sockaddr_in struct."""
+  _fields_ = [
+      ("sin_family", ctypes.c_ubyte),
+      ("sin_port", ctypes.c_ushort),
+      ("sin_addr", ctypes.c_ubyte * 4),
+      ("sin_zero", ctypes.c_char * 8)
+      ]
+
+# struct sockaddr_in6 {
+#         unsigned short int      sin6_family;    /* AF_INET6 */
+#         __be16                  sin6_port;      /* Transport layer port # */
+#         __be32                  sin6_flowinfo;  /* IPv6 flow information */
+#         struct in6_addr         sin6_addr;      /* IPv6 address */
+#         __u32                   sin6_scope_id;  /* scope id */
+# };
+
+
+class Sockaddrin6(ctypes.Structure):
+  """The sockaddr_in6 struct."""
+  _fields_ = [
+      ("sin6_family", ctypes.c_ubyte),
+      ("sin6_port", ctypes.c_ushort),
+      ("sin6_flowinfo", ctypes.c_ubyte * 4),
+      ("sin6_addr", ctypes.c_ubyte * 16),
+      ("sin6_scope_id", ctypes.c_ubyte * 4)
+      ]
+
+
+# struct ifaddrs   *ifa_next;         /* Pointer to next struct */
+#          char             *ifa_name;         /* Interface name */
+#          u_int             ifa_flags;        /* Interface flags */
+#          struct sockaddr  *ifa_addr;         /* Interface address */
+#          struct sockaddr  *ifa_netmask;      /* Interface netmask */
+#          struct sockaddr  *ifa_broadaddr;    /* Interface broadcast address */
+#          struct sockaddr  *ifa_dstaddr;      /* P2P interface destination */
+#          void             *ifa_data;         /* Address specific data */
+
+
+class Ifaddrs(ctypes.Structure):
+  pass
+
+Ifaddrs._fields_ = [
+    ("ifa_next", ctypes.POINTER(Ifaddrs)),
+    ("ifa_name", ctypes.POINTER(ctypes.c_char)),
+    ("ifa_flags", ctypes.c_uint),
+    ("ifa_addr", ctypes.POINTER(ctypes.c_char)),
+    ("ifa_netmask", ctypes.POINTER(ctypes.c_char)),
+    ("ifa_broadaddr", ctypes.POINTER(ctypes.c_char)),
+    ("ifa_destaddr", ctypes.POINTER(ctypes.c_char)),
+    ("ifa_data", ctypes.POINTER(ctypes.c_char))
+    ]
+
+
+class EnumerateInterfaces(actions.ActionPlugin):
+  """Enumerates all MAC addresses on this system."""
+  out_protobuf = jobs_pb2.Interface
+
+  def Run(self, unused_args):
+    """Enumerate all interfaces and collect their MAC addresses."""
+    libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))
+    ifa = Ifaddrs()
+    p_ifa = ctypes.pointer(ifa)
+    libc.getifaddrs(ctypes.pointer(p_ifa))
+
+    addresses = {}
+    macs = {}
+    ifs = set()
+
+    m = p_ifa
+    while m:
+      ifname = ctypes.string_at(m.contents.ifa_name)
+      ifs.add(ifname)
+      try:
+        iffamily = ord(m.contents.ifa_addr[0])
+        if iffamily == 0x2:     # AF_INET
+          data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
+          ip4 = "".join(map(chr, data.contents.sin_addr))
+          address_type = jobs_pb2.NetworkAddress.INET
+          address = jobs_pb2.NetworkAddress(address_type=address_type,
+                                            packed_bytes=ip4)
+          addresses.setdefault(ifname, []).append(address)
+
+        if iffamily == 0x11:    # AF_PACKET
+          data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrll))
+          addlen = data.contents.sll_halen
+          macs[ifname] = data.contents.sll_addr[:addlen]
+
+        if iffamily == 0xA:     # AF_INET6
+          data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
+          ip6 = "".join(map(chr, data.contents.sin6_addr))
+          address_type = jobs_pb2.NetworkAddress.INET6
+          address = jobs_pb2.NetworkAddress(address_type=address_type,
+                                            packed_bytes=ip6)
+          addresses.setdefault(ifname, []).append(address)
+      except ValueError:
+        # Some interfaces don't have a iffamily and will raise a null pointer
+        # exception. We still want to send back the name.
+        pass
+
+      m = m.contents.ifa_next
+
+    libc.freeifaddrs(p_ifa)
+
+    for interface in ifs:
+      mac = macs.setdefault(interface, "")
+      address_list = addresses.setdefault(interface, "")
+      args = {"ifname": interface}
+      if mac:
+        args["mac_address"] = mac
+      if addresses:
+        args["addresses"] = address_list
+      self.SendReply(**args)
 
 
 class GetInstallDate(actions.ActionPlugin):
@@ -70,7 +217,8 @@ class EnumerateUsers(actions.ActionPlugin):
     while wtmp:
       try:
         record = UtmpStruct(wtmp)
-      except RuntimeError: break
+      except RuntimeError:
+        break
 
       wtmp = wtmp[record.size:]
 
@@ -102,44 +250,6 @@ class EnumerateUsers(actions.ActionPlugin):
                        full_name=full_name, last_logon=last_login*1000000)
 
 
-class EnumerateInterfaces(actions.ActionPlugin):
-  """Enumerates all MAC addresses on this system."""
-  out_protobuf = jobs_pb2.Interface
-
-  def Run(self, unused_args):
-    """Enumerate all interfaces and collect their MAC addresses."""
-    # First get a list of all interfaces (Not all of them are
-    # necessarily real)
-    interfaces = []
-    for line in open("/proc/net/dev"):
-      m = re.match(r"\s*([^:]+):", line)
-      if m:
-        interfaces.append(m.group(1))
-
-    # Now for each interface recover MAC address
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-    for interface in interfaces:
-      try:
-        # From /usr/include/linux/sockios.h:
-        #  define SIOCGIFHWADDR   0x8927          /* Get hardware address*/
-        mac = fcntl.ioctl(s.fileno(), 0x8927,
-                          struct.pack("256s", interface))[18:18+6]
-
-        # IP addresses assigned to interfaces change all the time but
-        # it might be worth recording them here as a time snapshot
-
-        #define SIOCGIFADDR     0x8915          /* get PA address */
-        ip_address = fcntl.ioctl(s.fileno(), 0x8915,
-                                 struct.pack("256s", interface))[20:24]
-
-        # Send the server info about this interface
-        self.SendReply(mac_address=mac, ip_address=ip_address,
-                       ifname=interface)
-
-      except IOError:
-        pass
-
-
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system."""
   acceptable_filesystems = set(["ext2", "ext3", "ext4", "vfat", "ntfs"])
@@ -157,9 +267,11 @@ class EnumerateFilesystems(actions.ActionPlugin):
             try:
               os.stat(device)
               self.devices[device] = (fs_type, mnt_point)
-            except OSError: pass
+            except OSError:
+              pass
 
-        except ValueError: pass
+        except ValueError:
+          pass
 
   def Run(self, unused_args):
     """List all the filesystems mounted on the system."""
@@ -182,4 +294,4 @@ class Kill(actions.ActionPlugin):
 
     # Die ourselves.
     logging.info("Dying on request.")
-    os._exit(0)
+    os._exit(242)

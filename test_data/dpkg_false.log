@@ -1,0 +1,10 @@
+2012-01-02 03:31:36 notavalidstatus packages configure
+2012-01-02 03:32:08 startup packages configure
+2012-01-02 03:32:17 update-alternatives: run with --set gl_conf /usr/lib/nvidia-current/ld.so.conf
+2012-01-02 22:00:20 startup archives install
+2012-01-02 22:00:20 upgrade libbde-dev 20111012-1 20111012-1
+2012-01-02 22:00:20 status half-configured libbde-dev 20111012-1
+2012-01-02 22:00:20 status unpacked libbde-dev 20111012-1
+2012-01-02 22:00:20 status half-installed libbde-dev 20111012-1
+2012-01-02 22:00:20 status triggers-pending man-db 2.5.7-2ubuntu1
+2012-01-02 22:00:20 status half-installed libbde-dev 20111012-1

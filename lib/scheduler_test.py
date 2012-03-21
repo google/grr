@@ -22,10 +22,9 @@ import time
 from grr.client import conf
 from grr.client import conf as flags
 from grr.lib import data_store
-from grr.lib import flow
+from grr.lib import scheduler
 from grr.lib import test_lib
 from grr.proto import jobs_pb2
-
 
 FLAGS = flags.FLAGS
 
@@ -45,22 +44,26 @@ class SchedulerTest(test_lib.GRRBaseTest):
   def testSchedule(self):
     """Test the ability to schedule a task."""
     test_queue = "fooSchedule"
-    task = flow.SCHEDULER.Task(queue=test_queue, ttl=5,
-                               value=jobs_pb2.GrrMessage(session_id="Test"))
+    task = scheduler.SCHEDULER.Task(queue=test_queue, ttl=5,
+                                    value=jobs_pb2.GrrMessage(
+                                        session_id="Test"))
 
-    flow.SCHEDULER.Schedule([task])
+    scheduler.SCHEDULER.Schedule([task], token=self.token)
 
     self.assert_(task.id > 0)
+    self.assert_(task.id & 0xffffffff > 0)
+    self.assertEqual(long(self._current_mock_time) << 32,
+                     task.id & 0xffffffff00000000)
     self.assertEqual(task.ttl, 5)
     value, ts = data_store.DB.Resolve("task:%s" % test_queue,
-                                      "task:%08d" % task.id)
+                                      "task:%08d" % task.id, token=self.token)
 
     self.assertEqual(value, task.SerializeToString())
     self.assert_(ts > 0)
 
     # Get a lease on the task
-    tasks = flow.SCHEDULER.QueryAndOwn(
-        test_queue, lease_seconds=100,
+    tasks = scheduler.SCHEDULER.QueryAndOwn(
+        test_queue, lease_seconds=100, token=self.token,
         limit=100, decoder=jobs_pb2.GrrMessage)
 
     self.assertEqual(len(tasks), 1)
@@ -70,16 +73,16 @@ class SchedulerTest(test_lib.GRRBaseTest):
 
     # If we try to get another lease on it we should fail
     self._current_mock_time += 10
-    tasks = flow.SCHEDULER.QueryAndOwn(
-        test_queue, lease_seconds=100,
+    tasks = scheduler.SCHEDULER.QueryAndOwn(
+        test_queue, lease_seconds=100, token=self.token,
         limit=100, decoder=jobs_pb2.GrrMessage)
 
     self.assertEqual(len(tasks), 0)
 
     # However after 100 seconds this should work again
     self._current_mock_time += 110
-    tasks = flow.SCHEDULER.QueryAndOwn(
-        test_queue, lease_seconds=100,
+    tasks = scheduler.SCHEDULER.QueryAndOwn(
+        test_queue, lease_seconds=100, token=self.token,
         limit=100, decoder=jobs_pb2.GrrMessage)
 
     self.assertEqual(len(tasks), 1)
@@ -88,28 +91,31 @@ class SchedulerTest(test_lib.GRRBaseTest):
     # Check now that after a few retransmits we drop the message
     for i in range(2, 0, -1):
       self._current_mock_time += 110
-      tasks = flow.SCHEDULER.QueryAndOwn(test_queue, lease_seconds=100)
+      tasks = scheduler.SCHEDULER.QueryAndOwn(
+          test_queue, lease_seconds=100, token=self.token)
 
       self.assertEqual(len(tasks), 1)
       self.assertEqual(tasks[0].ttl, i)
 
     # The task is now gone
     self._current_mock_time += 110
-    tasks = flow.SCHEDULER.QueryAndOwn(test_queue, lease_seconds=100)
+    tasks = scheduler.SCHEDULER.QueryAndOwn(
+        test_queue, lease_seconds=100, token=self.token)
     self.assertEqual(len(tasks), 0)
 
   def testDelete(self):
     """Test that we can delete tasks."""
 
     test_queue = "fooDelete"
-    task = flow.SCHEDULER.Task(queue=test_queue,
-                               value=jobs_pb2.GrrMessage(session_id="Test"))
+    task = scheduler.SCHEDULER.Task(queue=test_queue,
+                                    value=jobs_pb2.GrrMessage(
+                                        session_id="Test"))
 
-    flow.SCHEDULER.Schedule([task])
+    scheduler.SCHEDULER.Schedule([task], token=self.token)
 
     # Get a lease on the task
-    tasks = flow.SCHEDULER.QueryAndOwn(
-        test_queue, lease_seconds=100,
+    tasks = scheduler.SCHEDULER.QueryAndOwn(
+        test_queue, lease_seconds=100, token=self.token,
         limit=100, decoder=jobs_pb2.GrrMessage)
 
     self.assertEqual(len(tasks), 1)
@@ -117,11 +123,11 @@ class SchedulerTest(test_lib.GRRBaseTest):
     self.assertEqual(tasks[0].value.session_id, "Test")
 
     # Now delete the task
-    flow.SCHEDULER.Delete(test_queue, tasks)
+    scheduler.SCHEDULER.Delete(test_queue, tasks, token=self.token)
 
     # Should not exist in the table
     value, ts = data_store.DB.Resolve("task:%s" % test_queue,
-                                      "task:%08d" % task.id)
+                                      "task:%08d" % task.id, token=self.token)
 
     self.assertEqual(value, None)
     self.assertEqual(ts, 0)
@@ -129,8 +135,8 @@ class SchedulerTest(test_lib.GRRBaseTest):
     # If we try to get another lease on it we should fail - even after
     # expiry time.
     self._current_mock_time += 1000
-    tasks = flow.SCHEDULER.QueryAndOwn(
-        test_queue, lease_seconds=100,
+    tasks = scheduler.SCHEDULER.QueryAndOwn(
+        test_queue, lease_seconds=100, token=self.token,
         limit=100, decoder=jobs_pb2.GrrMessage)
 
     self.assertEqual(len(tasks), 0)
@@ -138,14 +144,14 @@ class SchedulerTest(test_lib.GRRBaseTest):
   def testReSchedule(self):
     """Test the ability to re-schedule a task."""
     test_queue = "fooReschedule"
-    task = flow.SCHEDULER.Task(queue=test_queue, value=jobs_pb2.GrrMessage(
+    task = scheduler.SCHEDULER.Task(queue=test_queue, value=jobs_pb2.GrrMessage(
         session_id="Test"))
 
-    flow.SCHEDULER.Schedule([task])
+    scheduler.SCHEDULER.Schedule([task], token=self.token)
 
     # Get a lease on the task
-    tasks = flow.SCHEDULER.QueryAndOwn(
-        test_queue, lease_seconds=100,
+    tasks = scheduler.SCHEDULER.QueryAndOwn(
+        test_queue, lease_seconds=100, token=self.token,
         limit=100, decoder=jobs_pb2.GrrMessage)
 
     self.assertEqual(len(tasks), 1)
@@ -154,21 +160,21 @@ class SchedulerTest(test_lib.GRRBaseTest):
     original_id = tasks[0].id
 
     # If we try to get another lease on it we should fail
-    tasks_2 = flow.SCHEDULER.QueryAndOwn(
-        test_queue, lease_seconds=100,
+    tasks_2 = scheduler.SCHEDULER.QueryAndOwn(
+        test_queue, lease_seconds=100, token=self.token,
         limit=100, decoder=jobs_pb2.GrrMessage)
 
     self.assertEqual(len(tasks_2), 0)
 
     # Now we reschedule it
-    flow.SCHEDULER.Schedule(tasks)
+    scheduler.SCHEDULER.Schedule(tasks, token=self.token)
 
     # The id should not change
     self.assertEqual(tasks[0].id, original_id)
 
     # If we try to get another lease on it we should not fail
-    tasks = flow.SCHEDULER.QueryAndOwn(
-        test_queue, lease_seconds=100,
+    tasks = scheduler.SCHEDULER.QueryAndOwn(
+        test_queue, lease_seconds=100, token=self.token,
         limit=100, decoder=jobs_pb2.GrrMessage)
 
     self.assertEqual(len(tasks), 1)

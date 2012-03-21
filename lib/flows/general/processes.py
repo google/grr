@@ -16,6 +16,7 @@
 """These are process related flows."""
 
 import os
+import pipes
 
 from grr.lib import aff4
 from grr.lib import flow
@@ -30,16 +31,21 @@ class ListProcesses(flow.GRRFlow):
 
   category = "/Processes/"
 
+  @flow.StateHandler(next_state=["Done"])
   def Start(self):
     """Start processing."""
-    client = aff4.FACTORY.Open(self.client_id)
-    system = client.Get(client.Schema.SYSTEM)
-    if system == "Windows":
-      flow.FACTORY.StartFlow(self.client_id, "ListWindowsProcesses")
-    elif system == "Linux":
-      flow.FACTORY.StartFlow(self.client_id, "ListLinuxProcesses")
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    self.system = client.Get(client.Schema.SYSTEM)
+    if self.system == "Windows":
+      self.CallFlow("ListWindowsProcesses", next_state="Done")
+    elif self.system == "Linux":
+      self.CallFlow("ListLinuxProcesses", next_state="Done")
     else:
-      self.Log("Unsupported platform for ListProcesses")
+      raise RuntimeError("Unsupported platform for ListProcesses")
+
+  @flow.StateHandler()
+  def Done(self):
+    self.Status("Listed Processed for %s", self.system)
 
 
 class ListWindowsProcesses(flow.GRRFlow):
@@ -59,11 +65,12 @@ class ListWindowsProcesses(flow.GRRFlow):
       responses: A list of Dict protobufs.
 
     Note that Windows WMI doesn't get process owner by default, it requires a
-    separate WMI object invocation. 
+    separate WMI object invocation.
     """
-    client_fd = aff4.FACTORY.Open(self.client_id)
+    process_fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add(
+        self.client_id).Add("processes"), "ProcessListing", token=self.token)
 
-    plist = client_fd.Schema.PROCESSES()
+    plist = process_fd.Schema.PROCESSES()
 
     for response in responses:
       try:
@@ -81,8 +88,8 @@ class ListWindowsProcesses(flow.GRRFlow):
         self.Log("Missing process data %s for %s", err, pdict.ToDict())
         continue
 
-    client_fd.AddAttribute(client_fd.Schema.PROCESSES, plist)
-    client_fd.Close()
+    process_fd.AddAttribute(process_fd.Schema.PROCESSES, plist)
+    process_fd.Close()
 
 
 class ListLinuxProcesses(flow.GRRFlow):
@@ -103,53 +110,69 @@ class ListLinuxProcesses(flow.GRRFlow):
     """Issue a request to list the processes via the proc filesystem."""
     self._procs = {}   # Temporary storage for processes as we collect them.
 
-    self._boot_time = None    # Epoch time in seconds for when machine booted.
-    self._jiffie_size = None  # Size of jiffies defined for the system.
+    self._boot_time = 0    # Epoch time in seconds for when machine booted.
+    self._jiffie_size = 0  # Size of jiffies defined for the system.
 
-    self.CallClient("ReadBuffer", path="/proc/stat", offset=0, length=8192,
+    self.proc_pathspec = utils.Pathspec(jobs_pb2.Path(path="/proc",
+                                                      pathtype=jobs_pb2.Path.OS))
+    stat_pathspec = self.proc_pathspec.Copy().Append(
+        pathtype=jobs_pb2.Path.OS, path="stat")
+
+    # Read /proc/stat for boot time
+    self.CallClient("ReadBuffer", offset=0, length=8192,
+                    pathspec=stat_pathspec.ToProto(),
                     next_state="GetBootTime")
 
-  @flow.StateHandler(jobs_pb2.BufferReadMessage, next_state="GetProcList")
+  @flow.StateHandler(next_state="GetProcList")
   def GetBootTime(self, responses):
     """Read the btime variable from /proc/stat and the uptime."""
-    try:
+    data = responses.First()
+    if data:
       for line in responses.First().data.splitlines():
         if line.startswith("btime"):
-          btime = int(line.split()[1])
-      self._boot_time = btime
-    except (AttributeError, UnboundLocalError):
+          self._boot_time = int(line.split()[1])
+          break
+
+    if not self._boot_time:
       self.Log("Error getting boot time.")
       self.Terminate()
       return
 
-    # If we know the boot time, continue processing.
-    self.CallClient("ListDirectory", path="/proc", next_state="GetProcList")
+    # If we know the boot time, continue processing. List the /proc/ directory.
+    self.CallClient("ListDirectory", pathspec=self.proc_pathspec.ToProto(),
+                    next_state="GetProcList")
 
-  @flow.StateHandler(jobs_pb2.StatResponse, next_state=["GetPidDirListing",
-                                                        "ReadProcBuffer"])
+  @flow.StateHandler(next_state=["GetPidDirListing", "GetCmdLine", "GetStat"])
   def GetProcList(self, responses):
     """Take a list of files/dirs in proc and retrieve info about processes."""
     for stat in responses:
-      dir_name = os.path.basename(stat.path)
-      if dir_name.isnumeric():
-        pid = int(dir_name)
+      pid = os.path.basename(stat.pathspec.path)
+      if pid.isnumeric():
         self._procs[pid] = {}
-        self._procs[pid]["pid"] = pid
+        self._procs[pid]["pid"] = int(pid)
         self._procs[pid]["user"] = str(stat.st_uid)
-        process_path = "/proc/%s" % dir_name
+        process_path = self.proc_pathspec.Copy()
+        process_path.Append(path=str(pid), pathtype=jobs_pb2.Path.OS)
 
-        self.CallClient("ListDirectory", path=process_path,
+        self.CallClient("ListDirectory", pathspec=process_path.ToProto(),
                         next_state="GetPidDirListing", request_data=dict(
-                            pid=dir_name))
-        bufpath = os.path.join(process_path, "cmdline")
+                            pid=pid))
 
-        self.CallClient("ReadBuffer", path=bufpath, offset=0, length=4096,
-                        next_state="ReadProcBuffer", request_data=dict(
-                            path=bufpath))
-        bufpath = os.path.join(process_path, "stat")
-        self.CallClient("ReadBuffer", path=bufpath, offset=0, length=4096,
-                        next_state="ReadProcBuffer", request_data=dict(
-                            path=bufpath))
+        # Get process command line
+        bufpath = process_path.Copy().Append(pathtype=jobs_pb2.Path.OS,
+                                             path="cmdline")
+        self.CallClient("ReadBuffer", pathspec=bufpath.ToProto(),
+                        offset=0, length=4096,
+                        next_state="GetCmdLine", request_data=dict(
+                            pid=pid))
+
+        # Get process stats
+        bufpath = process_path.Copy().Append(pathtype=jobs_pb2.Path.OS,
+                                             path="stat")
+        self.CallClient("ReadBuffer", pathspec=bufpath.ToProto(),
+                        offset=0, length=4096,
+                        next_state="GetStat", request_data=dict(
+                            pid=pid))
 
   @flow.StateHandler(jobs_pb2.StatResponse)
   def GetPidDirListing(self, responses):
@@ -157,29 +180,32 @@ class ListLinuxProcesses(flow.GRRFlow):
     pid = responses.request_data["pid"]
     if responses.status.status == jobs_pb2.GrrStatus.OK:
       for stat in responses:
-        fname = os.path.basename(stat.path)
+        fname = utils.Pathspec(stat.pathspec).Basename()
         if fname == "exe":
           try:
-            self._procs[pid]["exe"] = stat.symlink
-          except KeyError: pass
+            self._procs.setdefault(pid, {})["exe"] = stat.symlink
+          except KeyError:
+            pass
 
-  @flow.StateHandler(jobs_pb2.BufferReadMessage)
-  def ReadProcBuffer(self, responses):
-    """Read buffers sent back and store resulting data in self._procs."""
-    if responses.status.status != jobs_pb2.GrrStatus.OK:
-      self.Log("Error running ReadProcBuffer: %s", responses.status)
-      return
-    response = responses.First()
-    if not response:
-      self.Log("Missing response to ReadProcBuffer: %s", responses.status)
-      return
-    fname = os.path.basename(responses.request_data["path"])
-    pid = int(os.path.basename(os.path.dirname(responses.request_data["path"])))
-    if fname == "cmdline":
-      cmdline = response.data.replace("\0", " ")  # replace nulls with spaces
-      self._procs[pid]["cmdline"] = cmdline
-    elif fname == "stat":
-      proc_stat = self._ParseStat(response.data)
+  def _EncodeCmdLine(self, argv):
+    """Encode argv correctly into a cmdline."""
+    return " ".join([pipes.quote(x) for x in argv])
+
+  @flow.StateHandler()
+  def GetCmdLine(self, responses):
+    """Parse the command line."""
+    cmdline = responses.First()
+    if responses.success and cmdline:
+      pid = responses.request_data["pid"]
+      self._procs[pid]["cmdline"] = self._EncodeCmdLine(
+          cmdline.data.split("\x00"))
+
+  @flow.StateHandler()
+  def GetStat(self, responses):
+    data = responses.First()
+    if data:
+      pid = responses.request_data["pid"]
+      proc_stat = self._ParseStat(data.data)
       self._procs[pid]["ppid"] = int(proc_stat.get("ppid", 0))
       ctime = long(proc_stat.get("starttime", 0))
       ctime /= self._CalcJiffies(ctime)
@@ -201,8 +227,9 @@ class ListLinuxProcesses(flow.GRRFlow):
 
   def End(self):
     """Finalize the processes and write to the datastore."""
-    client_fd = aff4.FACTORY.Open(self.client_id)
-    plist = client_fd.Schema.PROCESSES()
+    urn = aff4.ROOT_URN.Add(self.client_id).Add("processes")
+    process_fd = aff4.FACTORY.Create(urn, "ProcessListing", token=self.token)
+    plist = process_fd.Schema.PROCESSES()
     for _, p_dict in self._procs.iteritems():
       proc = sysinfo_pb2.Process()
       for k, v in p_dict.iteritems():
@@ -211,37 +238,8 @@ class ListLinuxProcesses(flow.GRRFlow):
       plist.Append(proc)
 
     # Flush the data to the store.
-    client_fd.AddAttribute(client_fd.Schema.PROCESSES, plist)
-    client_fd.Close()
+    process_fd.AddAttribute(plist)
+    process_fd.Close()
 
     self.Log("Successfully wrote %d processes", len(self._procs))
-
-
-class NetstatFlow(flow.GRRFlow):
-  """Run a netstat flow on the client."""
-
-  category = "/Network/"
-
-  @flow.StateHandler(next_state=["Process", "EnumeratePids"])
-  def Start(self):
-    """Enumerate pids and list network connections."""
-    # First enumerate all the pids
-    self.CallClient("WmiQuery", query="Select * from Win32_Process",
-                    next_state="EnumeratePids")
-
-    self.CallClient("Netstat", next_state="Process")
-
-  @flow.StateHandler(jobs_pb2.Dict)
-  def EnumeratePids(self, responses):
-    self.pid_map = {}
-    for response in responses:
-      pdict = utils.ProtoDict(response)
-      pid = int(pdict.Get("ProcessId", 0))
-      self.pid_map[pid] = pdict.Get("CommandLine", "")
-
-  @flow.StateHandler(sysinfo_pb2.Connection, next_state="Done")
-  def Process(self, responses):
-    for response in responses:
-      # TODO(user): Implement proper AFF4 objects here.
-      print response
-      print self.pid_map.get(response.pid)
+    self.Notify("ViewObject", urn, "Listed Processes")

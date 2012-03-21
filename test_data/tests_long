@@ -1,0 +1,4 @@
+5 5 GetFile /tmp/some_file 1
+10 5 GetFile /tmp/some_file 1
+100 50 GetFile /tmp/otherfile 1
+100 70 GetFile /tmp/some_file 10

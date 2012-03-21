@@ -21,6 +21,14 @@ from grr.lib.flows.general import administrative
 from grr.lib.flows.general import discovery
 from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import find
+from grr.lib.flows.general import java_cache
+from grr.lib.flows.general import memory
+from grr.lib.flows.general import network
 from grr.lib.flows.general import processes
+from grr.lib.flows.general import registry
+from grr.lib.flows.general import sophos
+from grr.lib.flows.general import timelines
+from grr.lib.flows.general import transfer
+from grr.lib.flows.general import utilities
 from grr.lib.flows.general import webhistory
 from grr.lib.flows.general import webplugins

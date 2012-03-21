@@ -17,6 +17,7 @@
 
 
 
+import calendar
 import datetime
 import re
 import time
@@ -71,7 +72,7 @@ def WmiTimeToEpoch(cimdatetime_str):
   try:
     t_dict = re_match.groupdict()
     flt_time = time.strptime(t_dict["date"], "%Y%m%d%H%M%S")
-    epoch_time = int(time.mktime(flt_time)) * 1000000
+    epoch_time = int(calendar.timegm(flt_time)) * 1000000
     # Note that the tzoffset value is ignored, CIM_DATETIME stores in UTC
     epoch_time += int(t_dict["subsecond"])
     return epoch_time

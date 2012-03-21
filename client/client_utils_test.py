@@ -20,12 +20,12 @@
 import exceptions
 import imp
 import sys
+import time
 from grr.client import conf
+from grr.client import client_utils_common
 from grr.client import client_utils_linux
 from grr.lib import test_lib
 from grr.proto import jobs_pb2
-
-
 
 
 def GetVolumePathName(_):
@@ -39,29 +39,69 @@ def GetVolumeNameForVolumeMountPoint(_):
 class ClientUtilsTest(test_lib.GRRBaseTest):
   """Test the client utils."""
 
-  def testLinuxSplitPathspec(self):
-    """Test linux split pathspec functionality."""
+  def testLinGetRawDevice(self):
+    """Test the parser for linux mounts."""
+    proc_mounts = """rootfs / rootfs rw 0 0
+none /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0
+none /proc proc rw,nosuid,nodev,noexec,relatime 0 0
+none /dev devtmpfs rw,relatime,size=4056920k,nr_inodes=1014230,mode=755 0 0
+none /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=000 0 0
+/dev/mapper/root / ext4 rw,relatime,errors=remount-ro,barrier=1,data=ordered 0 0
+none /sys/fs/fuse/connections fusectl rw,relatime 0 0
+none /sys/kernel/debug debugfs rw,relatime 0 0
+none /sys/kernel/security securityfs rw,relatime 0 0
+none /dev/shm tmpfs rw,nosuid,nodev,relatime 0 0
+none /var/run tmpfs rw,nosuid,relatime 0 0
+none /var/lock tmpfs rw,nosuid,nodev,noexec,relatime 0 0
+none /lib/init/rw tmpfs rw,nosuid,relatime,mode=755 0 0
+/dev/sda1 /boot ext2 rw,relatime,errors=continue 0 0
+/dev/mapper/usr /usr/local/ ext4 rw,relatime,barrier=1,data=writeback 0 0
+binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc rw,nosuid,relatime 0 0
+server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
+"""
+    mountpoints = client_utils_linux.GetMountpoints(proc_mounts)
 
-    def MockGetMountpoints():
-      return {"/dev/sda1": ["/"],
-              "/dev/sdb1": ["/mnt/ext", "/home/test/ext"]}
+    def GetMountpointsMock():
+      return mountpoints
 
-    testdata = {"/home/test": ["/dev/sda1", "/", "home/test"],
-                "/home/test/file": ["/dev/sda1", "/", "home/test/file"],
-                "/home/test/ext/file": ["/dev/sdb1", "/home/test/ext", "/file"],
-                "/dev/sda1/home": ["/dev/sda1", "/", "/home"],
-                "/dev/sdb1/home": ["/dev/sdb1", "/mnt/ext", "/home"],
-                "//././../.././/home///test/": ["/dev/sda1", "/", "home/test"],
-               }
+    old_getmountpoints = client_utils_linux.GetMountpoints
+    client_utils_linux.GetMountpoints = GetMountpointsMock
 
-    for path, results in testdata.items():
-      pb = jobs_pb2.Path(path=path, pathtype=0)
-      res = client_utils_linux.LinSplitPathspec(pb, MockGetMountpoints)
-      self.assertEqual(res.device, results[0])
-      self.assertEqual(res.mountpoint, results[1])
-      self.assertEqual(res.path, results[2])
+    for filename, expected_device, expected_path, device_type in [
+        ("/etc/passwd", "/dev/mapper/root", "/etc/passwd", jobs_pb2.Path.OS),
+        ("/usr/local/bin/ls", "/dev/mapper/usr", "/bin/ls", jobs_pb2.Path.OS),
+        ("/proc/net/sys", "none", "/net/sys", jobs_pb2.Path.UNKNOWN),
+        ("/home/user/test.txt", "server.nfs:/vol/home", "/test.txt",
+         jobs_pb2.Path.UNKNOWN)]:
+      raw_pathspec, path = client_utils_linux.LinGetRawDevice(
+          filename)
 
-  def setupWinEnvironment(self):
+      self.assertEqual(expected_device, raw_pathspec.path)
+      self.assertEqual(device_type, raw_pathspec.pathtype)
+      self.assertEqual(expected_path, path)
+      client_utils_linux.GetMountpoints = old_getmountpoints
+
+  def testWinSplitPathspec(self):
+    """Test windows split pathspec functionality."""
+
+    self.SetupWinEnvironment()
+
+    # We need to import after SetupWinEnvironment or this will fail
+    from grr.client import client_utils_windows
+
+    testdata = [(r"C:\Windows", "\\\\?\\Volume{11111}", "/Windows"),
+                (r"C:\\Windows\\", "\\\\?\\Volume{11111}", "/Windows"),
+                (r"C:\\", "\\\\?\\Volume{11111}", "/"),
+               ]
+
+    for filename, expected_device, expected_path in testdata:
+      raw_pathspec, path = client_utils_windows.WinGetRawDevice(filename)
+
+      # Pathspec paths are always absolute and therefore must have a leading /.
+      self.assertEqual("/" + expected_device, raw_pathspec.path)
+      self.assertEqual(expected_path, path)
+
+  def SetupWinEnvironment(self):
     """Mock windows includes."""
 
     winreg = imp.new_module("_winreg")
@@ -69,6 +109,7 @@ class ClientUtilsTest(test_lib.GRRBaseTest):
     sys.modules["_winreg"] = winreg
 
     pywintypes = imp.new_module("pywintypes")
+    pywintypes.error = Exception
     sys.modules["pywintypes"] = pywintypes
 
     winfile = imp.new_module("win32file")
@@ -76,31 +117,70 @@ class ClientUtilsTest(test_lib.GRRBaseTest):
     winfile.GetVolumePathName = GetVolumePathName
     sys.modules["win32file"] = winfile
 
-  def testWinSplitPathspec(self):
-    """Test windows split pathspec functionality."""
+    win32service = imp.new_module("win32service")
+    sys.modules["win32service"] = win32service
+    win32serviceutil = imp.new_module("win32serviceutil")
+    sys.modules["win32serviceutil"] = win32serviceutil
+    winerror = imp.new_module("winerror")
+    sys.modules["winerror"] = winerror
 
-    self.setupWinEnvironment()
+  def testExecutionWhiteList(self):
+    """Test if unknown commands are filtered correctly."""
 
-    # We need to import after setupWinEnvironment or this will fail
-    from grr.client import client_utils_windows
+    # ls is not allowed
+    (stdout, stderr, status, _) = client_utils_common.Execute("ls",
+                                                              ["."])
+    self.assertEqual(status, -1)
+    self.assertEqual(stdout, "")
+    self.assertEqual(stderr, "Execution disallowed by whitelist.")
 
-    testdata = {r"C:\Windows": ["\\\\.\\Volume{11111}\\", "C:\\", "Windows"],
-                r"C:\\Windows\\": ["\\\\.\\Volume{11111}\\", "C:\\", "Windows"],
-                r"C:\\": ["\\\\.\\Volume{11111}\\", "C:\\", ""],
-                r"\\\\.\\Volume{11111}\\Windows\\":
-                ["\\\\.\\Volume{11111}\\", "C:\\", "Windows"],
-                r"Volume{11111}\\Windows\\":
-                ["\\\\.\\Volume{11111}\\", "C:\\", "Windows"],
-               }
+    # "echo 1" is
+    (stdout, stderr, status, _) = client_utils_common.Execute("/bin/echo",
+                                                              ["1"])
+    self.assertEqual(status, 0)
+    self.assertEqual(stdout, "1\n")
+    self.assertEqual(stderr, "")
 
-    for path, results in testdata.items():
-      pb = jobs_pb2.Path(path=path, pathtype=0)
-      res = client_utils_windows.WinSplitPathspec(pb)
-      self.assertEqual(res.device, results[0])
-      self.assertEqual(res.mountpoint, results[1])
-      self.assertEqual(res.path, results[2])
+    # but not "echo 11"
+    (stdout, stderr, status, _) = client_utils_common.Execute("/bin/echo",
+                                                              ["11"])
+    self.assertEqual(status, -1)
+    self.assertEqual(stdout, "")
+    self.assertEqual(stderr, "Execution disallowed by whitelist.")
 
-    sys.path.pop()
+  def AppendTo(self, list_obj, element):
+    list_obj.append(element)
+
+  def testAlarm(self):
+    """Test if the alarm really fires."""
+
+    sleep_orig = time.sleep
+    time.sleep = lambda _: None
+
+    l = []
+    alarm = client_utils_common.Alarm(10, self.AppendTo, (l, 1,))
+    # Disable alarm, don't really do anything.
+    alarm.Disable()
+    alarm.start()
+    alarm.join()
+
+    self.assertEqual(l, [])
+
+    alarm = client_utils_common.Alarm(10, self.AppendTo, (l, 1,))
+    alarm.start()
+    alarm.join()
+
+    self.assertEqual(l, [1])
+
+    time.sleep = sleep_orig
+
+  def testExecutionTimeLimit(self):
+    """Test if the time limit works."""
+
+    (_, _, _, time_used) = client_utils_common.Execute("/bin/sleep", ["10"], 1)
+
+    # This should take just a bit longer than one second.
+    self.assertTrue(time_used < 2.0)
 
 
 def main(argv):
