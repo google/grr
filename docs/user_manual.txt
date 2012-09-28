@@ -1,0 +1,24 @@
+GRR User manual.
+================
+:toc2:
+:icons:
+
+Deploying the client
+--------------------
+basics of running via psexec, ssh etc
+
+
+Using GRR
+---------
+
+- Starting Flows
+- Hunting
+- Using the console
+
+Glossary
+--------
+(cover all the terms, artifacts, collections etc)
+
+User FAQ
+--------
+Frequently asked questions

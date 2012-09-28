@@ -1,0 +1,8 @@
+GRR Rapid Response documentation.
+=================================
+
+GRR is an Incident Response Framework focused on Remote Live Forensics.
+
+1. link:implementation.html[Developed and Implementation Documentation]
+2. link:user_manual.html[User Manual]
+3. link:admin.html[Administration Documentation]

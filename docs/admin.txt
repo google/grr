@@ -1,0 +1,43 @@
+GRR Administrator Documentation
+===============================
+:toc2:
+:icons:
+
+This document is intended for administrators who wish to deploy and manage GRR
+in an enterprise. It is also applicable for anyone who wants to try it out.
+
+Deploying the GRR server.
+-------------------------
+
+This covers how to deploy the GRR server on an ubuntu system.
+
+Key management
+--------------
+
+How to create new keys.
+
+Security
+--------
+(dbilby)
+
+Scheduling Flows with Cron
+--------------------------
+How does cron work?
+
+Customizing the client
+----------------------
+
+The client can be customized for deployment.
+
+Modifying the configuration.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The client configuration controls the behaviour of the client.
+
+How to build the client.
+~~~~~~~~~~~~~~~~~~~~~~~~
+Discussion of Windows client components - bat files/vbs files
+
+
+Deploying custom drivers and code.
+----------------------------------
+(dbilby)
