@@ -1,5 +1,5 @@
-GRR Developer documentation.
-============================
+GRR Developer documentation
+===========================
 :toc2:
 :icons:
 
@@ -10,8 +10,8 @@ implementation from a developer's point of view, to assist external contributors
 to come up to speed with the code-base.
 
 
-GRR Component Overview.
------------------------
+GRR Component Overview
+----------------------
 
 The following describes the components that make up the GRR system. Since GRR is
 designed to be scalable, each component can exist on its own machine in the data
@@ -24,7 +24,7 @@ in different threads.
 image::images/overview.png[width=600,align="center"]
 
 
-The main components are:
+The main components running components are:
 
 Client::
 The GRR client agent is deployed on corporate assets using the usual mechanism
@@ -58,8 +58,8 @@ queues in the data stores for responses from the client, process those and
 re-queue new requests for the clients (See <<Flows>> and <<Queues>>).
 
 
-GRR Messages.
-~~~~~~~~~~~~~
+GRR Messages
+------------
 
 On the wire, the client and server interchange messages. We term the messages
 send from server to the client 'requests', while messages send from the client
@@ -105,6 +105,7 @@ is run again.
 
 Client Communication and Encryption
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+TBD
 
 
 [[Flows]]
@@ -311,8 +312,8 @@ for ExecuteBinaryRequest.
 
 
 [[datamodel]]
-AFF4 Data Model.
-----------------
+AFF4 Data Model
+---------------
 
 AFF4 was first published in 2008 as an extensible, modern forensic storage
 format. The AFF4 data model allows the representation of arbitrary objects and
@@ -520,8 +521,8 @@ Which means to use TSK to open the raw registry file and then REGFI to read the
 key from it (note that is needed because you generally cant read the registry
 file while the system is running).
 
-Pathspec transformations.
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Pathspec transformations
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The pathspec tells the client exactly how to open the required file, by nesting
 drivers on the client.  Generally, however, the server has no prior knowledge of
@@ -618,8 +619,94 @@ the corrected pathspec. The corrected pathspec has the LITERAL option enabled
 which prevents the client from applying any corrections.
 
 
-Developer Information.
-----------------------
+Foreman
+-------
+
+The Foreman is a client scheduling service. At a regular intervals (defaults to
+every 50 minutes) the client will report in asking if there are Foreman actions
+for it. At the time of this check in, the Foreman will be queried to decide if
+there are any jobs that match the host, if there are, appropriate flows will be
+created for the client. This mechanism is generally used by Hunts to schedule
+flows on a large number of clients.
+
+The foreman maintains a list of rules, if the rule matches a client when it
+checks in, the specified flow will execute on the client. The rules work against
+AFF4 attributes allowing for things like "All XP Machines" or "All OSX machines
+installed after 01.01.2011".
+
+The foreman check in request is a special request made by the client that
+communicates with a Well Known Flow (W:Foreman). When the server sees this
+request it does the following:
+
+. Determines how long since this client did a Foreman check-in.
+. Determines the set of that are non-expired and haven't previously been checked
+ by the client.
+. Matches those rules against the client's attributes to determine if there is a
+ match.
+. If there is a match, run the associated flow.
+
+The reason for the separate Foreman check-in request is that the rule matching
+can be expensive when you have a lot of clients, so having these less frequent
+saves a lot of processing.
+
+
+Reporting
+---------
+
+The current (September 2012) reporting capabilities of GRR are very limited. We
+have a small set of reports defined in lib/aff4_objects/reports.py that can be
+used and serve as examples for extension. There is no UI for these components
+currently, but they can be run from the Console.
+
+------------------------------------------------------------------
+r = reports.ClientListReport(data_store.ACLToken())                <1>
+r.Run()                                                            <2>
+r.MailReport("joe@mailinator.com")                                 <3>
+open("client_list.csv", "w").write(r.AsCsv())                      <4>
+------------------------------------------------------------------
+
+<1> Create a report that lists all clients and gives basic information about
+them. We pass an empty authorization token.
+<2> Run the report. This opens all client objects, so may take some time if you
+have a lot of clients.
+<3> Mail the output of the report to joe@mailinator.com.
+<4> Dump the CSV output of the report to client_list.csv.
+
+Using these report classes as a basis, it should be relatively easy to extend
+the reports to do whatever you need.
+
+
+Authorization and Auditing
+--------------------------
+
+GRR contains support for a full authorization and audit API (even for console
+users) and is implemented in an abstraction called a Security Manager.
+This Security Manager shipped with GRR (September 2012) does not make use of
+these APIs and is open by default. However, a deployment may build their own
+Security Manager which implements the authorization semantics they require.
+
+This infrastructure is noticeable throughout much of the code, as access to any
+data within the system requires the presence of a "token". The token contains
+the user information and additionally information about the authorization of the
+action. This passing of the token may seem superfluous with the current
+implementation, but enables developers to create extensive audit capabilities
+and interesting modes of authorization.
+
+By default, GRR should use data_store.default_token if one is not provided. To
+ease use this variable is automatically populated by the console if --client is
+used.
+
+Token generation is done using the data_store.ACLToken.
+
+[source, python]
+------------------------------------------------------------------
+token = data_store.ACLToken()
+fd = aff4.FACTORY.Open("aff4:/C.12345/", token=token)
+------------------------------------------------------------------
+
+
+Developer Information
+---------------------
 
 The following examples detail how developers can extend the GRR framework for
 implementing new features.
@@ -671,3 +758,27 @@ specifies all the possible other states that can be transitioned from this
 state.
 <4> The 'CallFlow' method delegates execution to another flow. The responses
 from this flows will be fed back into the End state.
+
+
+Key Libraries.
+--------------
+GRR makes use of a number of key open source projects in its implementation.
+These include:
+
+* AFF4 http://code.google.com/p/aff4/  (datastore uses aff4 design)
+* Django https://www.djangoproject.com/ (admin UI uses django templates)
+* Ipython http://ipython.org/  (Console is built on ipython)
+* Jquery http://jquery.com/  (UI code extensively uses jquery)
+* M2Crypto http://chandlerproject.org/Projects/MeTooCrypto/  (provides python
+ encryption libraries for comms and signing)
+* Mongo http://www.mongodb.org/  (datastore runs on mongo)
+* Protobuf http://code.google.com/p/protobuf/  (messages and interfaces are
+defined as protobufs)
+* psutil http://code.google.com/p/psutil/  (used for native process and network
+ data)
+* PyTSK http://code.google.com/p/pytsk/  (client uses pytsk to talk to tsk)
+* Sleuthkit http://www.sleuthkit.org/  (client uses tsk for raw access)
+* VerifySigs http://code.google.com/p/verify-sigs/ (used for authenticode
+signature handling and verification)
+* Volatility http://code.google.com/p/volatility/ (used for memory forensics
+capabilities)

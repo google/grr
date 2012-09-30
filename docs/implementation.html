@@ -4,7 +4,7 @@
 <head>
 <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
 <meta name="generator" content="AsciiDoc 8.6.6" />
-<title>GRR Developer documentation.</title>
+<title>GRR Developer documentation</title>
 <style type="text/css">
 /* Shared CSS for AsciiDoc xhtml11 and html5 backends */
 
@@ -769,7 +769,7 @@ asciidoc.install(2);
 </head>
 <body class="article">
 <div id="header">
-<h1>GRR Developer documentation.</h1>
+<h1>GRR Developer documentation</h1>
 <div id="toc">
   <div id="toctitle">Table of Contents</div>
   <noscript><p><b>JavaScript must be enabled in your browser to display the table of contents.</b></p></noscript>
@@ -786,7 +786,7 @@ to come up to speed with the code-base.</p></div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_grr_component_overview">GRR Component Overview.</h2>
+<h2 id="_grr_component_overview">GRR Component Overview</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>The following describes the components that make up the GRR system. Since GRR is
 designed to be scalable, each component can exist on its own machine in the data
@@ -799,7 +799,7 @@ in different threads.</p></div>
 </div>
 <div class="title">Figure 1: GRR Component overview</div>
 </div>
-<div class="paragraph"><p>The main components are:</p></div>
+<div class="paragraph"><p>The main components running components are:</p></div>
 <div class="dlist"><dl>
 <dt class="hdlist1">
 Client
@@ -858,8 +858,11 @@ re-queue new requests for the clients (See <a href="#Flows">[Flows]</a> and <a h
 </p>
 </dd>
 </dl></div>
-<div class="sect2">
-<h3 id="_grr_messages">GRR Messages.</h3>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_grr_messages">GRR Messages</h2>
+<div class="sectionbody">
 <div class="paragraph"><p>On the wire, the client and server interchange messages. We term the messages
 send from server to the client <em>requests</em>, while messages send from the client
 to the server are <em>responses</em>.  Requests sent to the client, ask the client to
@@ -919,9 +922,9 @@ the lease time, the requests become available for lease again. This is designed
 for the case of the client rebooting or losing connectivity part way through
 running the action. In this case, the request is re-transmitted and the action
 is run again.</p></div>
-</div>
 <div class="sect2">
 <h3 id="_client_communication_and_encryption">Client Communication and Encryption</h3>
+<div class="paragraph"><p>TBD</p></div>
 </div>
 </div>
 </div>
@@ -1015,7 +1018,31 @@ clients' messages. Therefore well known flows are stateless.</p></div>
 <div class="paragraph"><p>A well known flow typically is used simply to launch another flow or to process
 an event. For example:</p></div>
 <div class="listingblock">
-<div class="content"></div></div>
+<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><span style="font-weight: bold"><span style="color: #0000FF">class</span></span> <span style="font-weight: bold"><span style="color: #000000">Enroler</span></span><span style="color: #990000">(</span>flow<span style="color: #990000">.</span>WellKnownFlow<span style="color: #990000">):</span>                                      <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/1.png" alt="1" /></span></span>
+<span style="font-style: italic"><span style="color: #9A1900">  """Manage enrollment requests."""</span></span>
+  well_known_session_id <span style="color: #990000">=</span> <span style="color: #FF0000">"CA:Enrol"</span>                                    <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/2.png" alt="2" /></span></span>
+
+  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">ProcessMessage</span></span><span style="color: #990000">(</span>self<span style="color: #990000">,</span> message<span style="color: #990000">):</span>
+<span style="font-style: italic"><span style="color: #9A1900">    """Begins an enrollment flow for this client."""</span></span>
+    cert <span style="color: #990000">=</span> jobs_pb2<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Certificate</span></span><span style="color: #990000">()</span>                                       <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/3.png" alt="3" /></span></span>
+    cert<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ParseFromString</span></span><span style="color: #990000">(</span>message<span style="color: #990000">.</span>args<span style="color: #990000">)</span>
+
+    client_id <span style="color: #990000">=</span> message<span style="color: #990000">.</span>source
+
+    <span style="font-style: italic"><span style="color: #9A1900"># Create a new client object for this client.</span></span>
+    client <span style="color: #990000">=</span> aff4<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Create</span></span><span style="color: #990000">(</span>client_id<span style="color: #990000">,</span> <span style="color: #FF0000">"VFSGRRClient"</span><span style="color: #990000">,</span> mode<span style="color: #990000">=</span><span style="color: #FF0000">"rw"</span><span style="color: #990000">,</span>  <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/4.png" alt="4" /></span></span>
+                                 token<span style="color: #990000">=</span>self<span style="color: #990000">.</span>token<span style="color: #990000">)</span>
+
+    <span style="font-style: italic"><span style="color: #9A1900"># Only enroll this client if it has no certificate yet.</span></span>
+    <span style="font-weight: bold"><span style="color: #0000FF">if</span></span> <span style="font-weight: bold"><span style="color: #0000FF">not</span></span> client<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Get</span></span><span style="color: #990000">(</span>client<span style="color: #990000">.</span>Schema<span style="color: #990000">.</span>CERT<span style="color: #990000">):</span>
+      <span style="font-style: italic"><span style="color: #9A1900"># Start the enrollment flow for this client.</span></span>
+      flow<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StartFlow</span></span><span style="color: #990000">(</span>client_id<span style="color: #990000">=</span>client_id<span style="color: #990000">,</span> flow_name<span style="color: #990000">=</span><span style="color: #FF0000">"CAEnroler"</span><span style="color: #990000">,</span><span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/5.png" alt="5" /></span></span>
+                             csr<span style="color: #990000">=</span>cert<span style="color: #990000">,</span> queue_name<span style="color: #990000">=</span><span style="color: #FF0000">"CA"</span><span style="color: #990000">,</span>
+                             _client<span style="color: #990000">=</span>client<span style="color: #990000">,</span> token<span style="color: #990000">=</span>self<span style="color: #990000">.</span>token<span style="color: #990000">)</span></tt></pre></div></div>
 <div class="colist arabic"><table>
 <tr><td><img src="./images/icons/callouts/1.png" alt="1" /></td><td>
 A new well known flow is created by extending the WellKnownFlow baseclass.
@@ -1044,7 +1071,18 @@ have any other component broadcast the event.</p></div>
 <div class="paragraph"><p>For example, when a new client enrolls we wish to run the Interrogate flow
 automatically for it (so we can query it for hostname, usernames etc):</p></div>
 <div class="listingblock">
-<div class="content"></div></div>
+<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><span style="font-weight: bold"><span style="color: #0000FF">class</span></span> <span style="font-weight: bold"><span style="color: #000000">EnrolmentInterrogateEvent</span></span><span style="color: #990000">(</span>flow<span style="color: #990000">.</span>EventListener<span style="color: #990000">):</span>                  <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/1.png" alt="1" /></span></span>
+<span style="font-style: italic"><span style="color: #9A1900">  """An event handler which will schedule interrogation on client enrollment."""</span></span>
+  EVENTS <span style="color: #990000">=</span> <span style="color: #990000">[</span><span style="color: #FF0000">"ClientEnrollment"</span><span style="color: #990000">]</span>                                       <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/2.png" alt="2" /></span></span>
+  well_known_session_id <span style="color: #990000">=</span> <span style="color: #FF0000">"W:Interrogate"</span>
+
+  @flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">EventHandler</span></span><span style="color: #990000">(</span>in_protobuf<span style="color: #990000">=</span>jobs_pb2<span style="color: #990000">.</span>Certificate<span style="color: #990000">,</span> source_restriction<span style="color: #990000">=</span><span style="color: #FF0000">"CA"</span><span style="color: #990000">)</span>
+  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">ProcessMessage</span></span><span style="color: #990000">(</span>self<span style="color: #990000">,</span> message<span style="color: #990000">=</span>None<span style="color: #990000">,</span> event<span style="color: #990000">=</span>None<span style="color: #990000">):</span>
+    flow<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StartFlow</span></span><span style="color: #990000">(</span>event<span style="color: #990000">.</span>cn<span style="color: #990000">,</span> <span style="color: #FF0000">"Interrogate"</span><span style="color: #990000">,</span> token<span style="color: #990000">=</span>self<span style="color: #990000">.</span>token<span style="color: #990000">)</span> <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/3.png" alt="3" /></span></span></tt></pre></div></div>
 <div class="colist arabic"><table>
 <tr><td><img src="./images/icons/callouts/1.png" alt="1" /></td><td>
 An event listener is a class which extends flow.EventListener.
@@ -1062,7 +1100,19 @@ client.
 </table></div>
 <div class="paragraph"><p>The event can now be broadcast from any other flow:</p></div>
 <div class="listingblock">
-<div class="content"></div></div>
+<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><span style="font-weight: bold"><span style="color: #0000FF">class</span></span> <span style="font-weight: bold"><span style="color: #000000">CAEnroler</span></span><span style="color: #990000">(</span>flow<span style="color: #990000">.</span>GRRFlow<span style="color: #990000">):</span>
+<span style="font-style: italic"><span style="color: #9A1900">  """Enrol new clients."""</span></span>
+  <span style="color: #990000">.....</span>
+
+  @flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StateHandler</span></span><span style="color: #990000">(</span>next_state<span style="color: #990000">=</span><span style="color: #FF0000">"End"</span><span style="color: #990000">)</span>
+  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">Start</span></span><span style="color: #990000">(</span>self<span style="color: #990000">):</span>
+    <span style="color: #990000">.....</span>
+    <span style="font-style: italic"><span style="color: #9A1900"># Publish the client enrollment message.</span></span>
+    self<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Publish</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"ClientEnrollment"</span><span style="color: #990000">,</span> certificate_attribute<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">AsProto</span></span><span style="color: #990000">())</span></tt></pre></div></div>
 </div>
 </div>
 </div>
@@ -1105,7 +1155,7 @@ for ExecuteBinaryRequest.</p></div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="datamodel">AFF4 Data Model.</h2>
+<h2 id="datamodel">AFF4 Data Model</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>AFF4 was first published in 2008 as an extensible, modern forensic storage
 format. The AFF4 data model allows the representation of arbitrary objects and
@@ -1121,7 +1171,22 @@ also have optional attributes which are defined in the object&#8217;s Schema. Fo
 example consider the following definition of an AFF4 object representing a GRR
 Client:</p></div>
 <div class="listingblock">
-<div class="content"></div></div>
+<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><span style="font-weight: bold"><span style="color: #0000FF">class</span></span> <span style="font-weight: bold"><span style="color: #000000">VFSGRRClient</span></span><span style="color: #990000">(</span>aff4<span style="color: #990000">.</span>AFF4Object<span style="color: #990000">):</span>                                   <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/1.png" alt="1" /></span></span>
+<span style="font-style: italic"><span style="color: #9A1900">  """A Remote client."""</span></span>
+
+  <span style="font-weight: bold"><span style="color: #0000FF">class</span></span> <span style="font-weight: bold"><span style="color: #000000">SchemaCls</span></span><span style="color: #990000">(</span>aff4<span style="color: #990000">.</span>AFF4Object<span style="color: #990000">.</span>SchemaCls<span style="color: #990000">):</span>                          <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/2.png" alt="2" /></span></span>
+<span style="font-style: italic"><span style="color: #9A1900">    """The schema for the client."""</span></span>
+    CERT <span style="color: #990000">=</span> aff4<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Attribute</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"metadata:cert"</span><span style="color: #990000">,</span> RDFX509Cert<span style="color: #990000">,</span>                <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/3.png" alt="3" /></span></span>
+                          <span style="color: #FF0000">"The PEM encoded cert of the client."</span><span style="color: #990000">)</span>
+
+    <span style="font-style: italic"><span style="color: #9A1900"># Information about the host.</span></span>
+    HOSTNAME <span style="color: #990000">=</span> aff4<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Attribute</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"metadata:hostname"</span><span style="color: #990000">,</span> aff4<span style="color: #990000">.</span>RDFString<span style="color: #990000">,</span>     <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/4.png" alt="4" /></span></span>
+                              <span style="color: #FF0000">"Hostname of the host."</span><span style="color: #990000">,</span> <span style="color: #FF0000">"Host"</span><span style="color: #990000">,</span>
+                              index<span style="color: #990000">=</span>client_index<span style="color: #990000">)</span></tt></pre></div></div>
 <div class="colist arabic"><table>
 <tr><td><img src="./images/icons/callouts/1.png" alt="1" /></td><td>
 An AFF4 object is simply a class which extends the AFF4Object base class.
@@ -1329,7 +1394,7 @@ key from it (note that is needed because you generally cant read the registry
 file while the system is running).</p></div>
 </div>
 <div class="sect2">
-<h3 id="_pathspec_transformations">Pathspec transformations.</h3>
+<h3 id="_pathspec_transformations">Pathspec transformations</h3>
 <div class="paragraph"><p>The pathspec tells the client exactly how to open the required file, by nesting
 drivers on the client.  Generally, however, the server has no prior knowledge of
 files on the client, therefore the client needs to transform the server request
@@ -1454,7 +1519,113 @@ which prevents the client from applying any corrections.</p></div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_developer_information">Developer Information.</h2>
+<h2 id="_foreman">Foreman</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The Foreman is a client scheduling service. At a regular intervals (defaults to
+every 50 minutes) the client will report in asking if there are Foreman actions
+for it. At the time of this check in, the Foreman will be queried to decide if
+there are any jobs that match the host, if there are, appropriate flows will be
+created for the client. This mechanism is generally used by Hunts to schedule
+flows on a large number of clients.</p></div>
+<div class="paragraph"><p>The foreman maintains a list of rules, if the rule matches a client when it
+checks in, the specified flow will execute on the client. The rules work against
+AFF4 attributes allowing for things like "All XP Machines" or "All OSX machines
+installed after 01.01.2011".</p></div>
+<div class="paragraph"><p>The foreman check in request is a special request made by the client that
+communicates with a Well Known Flow (W:Foreman). When the server sees this
+request it does the following:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Determines how long since this client did a Foreman check-in.
+</p>
+</li>
+<li>
+<p>
+Determines the set of that are non-expired and haven&#8217;t previously been checked
+ by the client.
+</p>
+</li>
+<li>
+<p>
+Matches those rules against the client&#8217;s attributes to determine if there is a
+ match.
+</p>
+</li>
+<li>
+<p>
+If there is a match, run the associated flow.
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>The reason for the separate Foreman check-in request is that the rule matching
+can be expensive when you have a lot of clients, so having these less frequent
+saves a lot of processing.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_reporting">Reporting</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The current (September 2012) reporting capabilities of GRR are very limited. We
+have a small set of reports defined in lib/aff4_objects/reports.py that can be
+used and serve as examples for extension. There is no UI for these components
+currently, but they can be run from the Console.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>r = reports.ClientListReport(data_store.ACLToken())                <img src="./images/icons/callouts/1.png" alt="1" />
+r.Run()                                                            <img src="./images/icons/callouts/2.png" alt="2" />
+r.MailReport("joe@mailinator.com")                                 <img src="./images/icons/callouts/3.png" alt="3" />
+open("client_list.csv", "w").write(r.AsCsv())                      <img src="./images/icons/callouts/4.png" alt="4" /></tt></pre>
+</div></div>
+<div class="colist arabic"><table>
+<tr><td><img src="./images/icons/callouts/1.png" alt="1" /></td><td>
+Create a report that lists all clients and gives basic information about
+them. We pass an empty authorization token.
+</td></tr>
+<tr><td><img src="./images/icons/callouts/2.png" alt="2" /></td><td>
+Run the report. This opens all client objects, so may take some time if you
+have a lot of clients.
+</td></tr>
+<tr><td><img src="./images/icons/callouts/3.png" alt="3" /></td><td>
+Mail the output of the report to <a href="mailto:joe@mailinator.com">joe@mailinator.com</a>.
+</td></tr>
+<tr><td><img src="./images/icons/callouts/4.png" alt="4" /></td><td>
+Dump the CSV output of the report to client_list.csv.
+</td></tr>
+</table></div>
+<div class="paragraph"><p>Using these report classes as a basis, it should be relatively easy to extend
+the reports to do whatever you need.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_authorization_and_auditing">Authorization and Auditing</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>GRR contains support for a full authorization and audit API (even for console
+users) and is implemented in an abstraction called a Security Manager.
+This Security Manager shipped with GRR (September 2012) does not make use of
+these APIs and is open by default. However, a deployment may build their own
+Security Manager which implements the authorization semantics they require.</p></div>
+<div class="paragraph"><p>This infrastructure is noticeable throughout much of the code, as access to any
+data within the system requires the presence of a "token". The token contains
+the user information and additionally information about the authorization of the
+action. This passing of the token may seem superfluous with the current
+implementation, but enables developers to create extensive audit capabilities
+and interesting modes of authorization.</p></div>
+<div class="paragraph"><p>By default, GRR should use data_store.default_token if one is not provided. To
+ease use this variable is automatically populated by the console if --client is
+used.</p></div>
+<div class="paragraph"><p>Token generation is done using the data_store.ACLToken.</p></div>
+<div class="listingblock">
+<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>token <span style="color: #990000">=</span> data_store<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ACLToken</span></span><span style="color: #990000">()</span>
+fd <span style="color: #990000">=</span> aff4<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Open</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"aff4:/C.12345/"</span><span style="color: #990000">,</span> token<span style="color: #990000">=</span>token<span style="color: #990000">)</span></tt></pre></div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_developer_information">Developer Information</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>The following examples detail how developers can extend the GRR framework for
 implementing new features.</p></div>
@@ -1464,7 +1635,40 @@ implementing new features.</p></div>
 non-trivial flow from the GRR source code:</p></div>
 <div class="listingblock">
 <div class="title">A sample flow for analyzing client memory using Volatility (abridged and annotated).</div>
-<div class="content"></div></div>
+<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><span style="font-weight: bold"><span style="color: #0000FF">class</span></span> <span style="font-weight: bold"><span style="color: #000000">AnalyseClientMemory</span></span><span style="color: #990000">(</span>flow<span style="color: #990000">.</span>GRRFlow<span style="color: #990000">):</span>                   <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/1.png" alt="1" /></span></span>
+  category <span style="color: #990000">=</span> <span style="color: #FF0000">"/Memory/"</span>                                    <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/2.png" alt="2" /></span></span>
+
+  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">__init__</span></span><span style="color: #990000">(</span>self<span style="color: #990000">,</span> plugins<span style="color: #990000">=</span><span style="color: #FF0000">"pslist,dlllist,modules"</span><span style="color: #990000">,</span> driver_installer<span style="color: #990000">=</span>None<span style="color: #990000">,</span>
+               profile<span style="color: #990000">=</span>None<span style="color: #990000">,</span> <span style="color: #990000">**</span>kwargs<span style="color: #990000">):</span>
+    <span style="font-weight: bold"><span style="color: #000000">super</span></span><span style="color: #990000">(</span>AnalyseClientMemory<span style="color: #990000">,</span> self<span style="color: #990000">).</span><span style="font-weight: bold"><span style="color: #000000">__init__</span></span><span style="color: #990000">(**</span>kwargs<span style="color: #990000">)</span>
+    self<span style="color: #990000">.</span>plugins <span style="color: #990000">=</span> plugins
+    self<span style="color: #990000">.</span>driver_installer <span style="color: #990000">=</span> driver_installer
+    self<span style="color: #990000">.</span>profile <span style="color: #990000">=</span> profile
+
+  @flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StateHandler</span></span><span style="color: #990000">(</span>next_state<span style="color: #990000">=[</span><span style="color: #FF0000">"RunVolatilityPlugins"</span><span style="color: #990000">])</span>  <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/3.png" alt="3" /></span></span>
+  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">Start</span></span><span style="color: #990000">(</span>self<span style="color: #990000">):</span>
+    self<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">CallFlow</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"LoadMemoryDriver"</span><span style="color: #990000">,</span> next_state<span style="color: #990000">=</span><span style="color: #FF0000">"RunVolatilityPlugins"</span><span style="color: #990000">,</span>
+                  driver_installer<span style="color: #990000">=</span>self<span style="color: #990000">.</span>driver_installer<span style="color: #990000">)</span>
+
+  @flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StateHandler</span></span><span style="color: #990000">(</span>next_state<span style="color: #990000">=</span><span style="color: #FF0000">"ProcessVolatilityPlugins"</span><span style="color: #990000">)</span>
+  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">RunVolatilityPlugins</span></span><span style="color: #990000">(</span>self<span style="color: #990000">,</span> responses<span style="color: #990000">):</span>
+    <span style="font-weight: bold"><span style="color: #0000FF">if</span></span> responses<span style="color: #990000">.</span>success<span style="color: #990000">:</span>
+      memory_information <span style="color: #990000">=</span> responses<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">First</span></span><span style="color: #990000">()</span>
+
+      self<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">CallFlow</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"VolatilityPlugins"</span><span style="color: #990000">,</span> plugins<span style="color: #990000">=</span>self<span style="color: #990000">.</span>plugins<span style="color: #990000">,</span>
+                    device<span style="color: #990000">=</span>memory_information<span style="color: #990000">.</span>device<span style="color: #990000">,</span> profile<span style="color: #990000">=</span>self<span style="color: #990000">.</span>profile<span style="color: #990000">,</span>
+                    next_state<span style="color: #990000">=</span><span style="color: #FF0000">"End"</span><span style="color: #990000">)</span>                      <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/4.png" alt="4" /></span></span>
+    <span style="font-weight: bold"><span style="color: #0000FF">else</span></span><span style="color: #990000">:</span>
+      <span style="font-weight: bold"><span style="color: #0000FF">raise</span></span> flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">FlowError</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"Failed to Load driver: %s"</span> <span style="color: #990000">%</span> responses<span style="color: #990000">.</span>status<span style="color: #990000">)</span>
+
+  @flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StateHandler</span></span><span style="color: #990000">()</span>
+  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">End</span></span><span style="color: #990000">(</span>self<span style="color: #990000">):</span>
+    self<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Notify</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"ViewObject"</span><span style="color: #990000">,</span> self<span style="color: #990000">.</span>device_urn<span style="color: #990000">,</span>
+                <span style="color: #FF0000">"Completed execution of volatility plugins."</span><span style="color: #990000">)</span></tt></pre></div></div>
 <div class="colist arabic"><table>
 <tr><td><img src="./images/icons/callouts/1.png" alt="1" /></td><td>
 A flow is simply a class which extends flow.GRRFlow.
@@ -1485,11 +1689,85 @@ from this flows will be fed back into the End state.
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="_key_libraries">Key Libraries.</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>GRR makes use of a number of key open source projects in its implementation.
+These include:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+AFF4 <a href="http://code.google.com/p/aff4/">http://code.google.com/p/aff4/</a>  (datastore uses aff4 design)
+</p>
+</li>
+<li>
+<p>
+Django <a href="https://www.djangoproject.com/">https://www.djangoproject.com/</a> (admin UI uses django templates)
+</p>
+</li>
+<li>
+<p>
+Ipython <a href="http://ipython.org/">http://ipython.org/</a>  (Console is built on ipython)
+</p>
+</li>
+<li>
+<p>
+Jquery <a href="http://jquery.com/">http://jquery.com/</a>  (UI code extensively uses jquery)
+</p>
+</li>
+<li>
+<p>
+M2Crypto <a href="http://chandlerproject.org/Projects/MeTooCrypto/">http://chandlerproject.org/Projects/MeTooCrypto/</a>  (provides python
+ encryption libraries for comms and signing)
+</p>
+</li>
+<li>
+<p>
+Mongo <a href="http://www.mongodb.org/">http://www.mongodb.org/</a>  (datastore runs on mongo)
+</p>
+</li>
+<li>
+<p>
+Protobuf <a href="http://code.google.com/p/protobuf/">http://code.google.com/p/protobuf/</a>  (messages and interfaces are
+defined as protobufs)
+</p>
+</li>
+<li>
+<p>
+psutil <a href="http://code.google.com/p/psutil/">http://code.google.com/p/psutil/</a>  (used for native process and network
+ data)
+</p>
+</li>
+<li>
+<p>
+PyTSK <a href="http://code.google.com/p/pytsk/">http://code.google.com/p/pytsk/</a>  (client uses pytsk to talk to tsk)
+</p>
+</li>
+<li>
+<p>
+Sleuthkit <a href="http://www.sleuthkit.org/">http://www.sleuthkit.org/</a>  (client uses tsk for raw access)
+</p>
+</li>
+<li>
+<p>
+VerifySigs <a href="http://code.google.com/p/verify-sigs/">http://code.google.com/p/verify-sigs/</a> (used for authenticode
+signature handling and verification)
+</p>
+</li>
+<li>
+<p>
+Volatility <a href="http://code.google.com/p/volatility/">http://code.google.com/p/volatility/</a> (used for memory forensics
+capabilities)
+</p>
+</li>
+</ul></div>
+</div>
+</div>
 </div>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2012-09-28 21:43:45 CEST
+Last updated 2012-09-30 17:23:59 CEST
 </div>
 </div>
 </body>

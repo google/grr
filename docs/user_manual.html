@@ -4,7 +4,7 @@
 <head>
 <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
 <meta name="generator" content="AsciiDoc 8.6.6" />
-<title>GRR User manual.</title>
+<title>GRR User manual</title>
 <style type="text/css">
 /* Shared CSS for AsciiDoc xhtml11 and html5 backends */
 
@@ -769,7 +769,7 @@ asciidoc.install(2);
 </head>
 <body class="article">
 <div id="header">
-<h1>GRR User manual.</h1>
+<h1>GRR User manual</h1>
 <div id="toc">
   <div id="toctitle">Table of Contents</div>
   <noscript><p><b>JavaScript must be enabled in your browser to display the table of contents.</b></p></noscript>
@@ -777,13 +777,487 @@ asciidoc.install(2);
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="_deploying_the_client">Deploying the client</h2>
+<h2 id="_the_grr_response_model">The GRR response model</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>basics of running via psexec, ssh etc</p></div>
+<div class="paragraph"><p><strong>awesome introduction based on Darren&#8217;s OSFC preso explaining why and where
+GRR is needed</strong></p></div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_using_grr">Using GRR</h2>
+<h2 id="_high_level_overview">High-level overview</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>To function, an <em>agent</em> is deployed on systems that one might want to investigate. Once deployed, each system becomes a GRR <em>client</em> and they can start receiving messages from the frontend servers. Each message tells the client to run a specific client action and return the results. A client action is simply some well known code the agent knows how to execute (such as obtaining the list of files in a directory or reading a buffer from a file).</p></div>
+<div class="paragraph"><p>These actions are invoked server-side through what we call Flows. A Flow is a piece of server-side code that asks the GRR system to schedule remote calls to a client and has some additional logic to decide what to do based on the call results.</p></div>
+<div class="paragraph"><p>This <em>Flow</em> is running on a client because a user initiated it. To do so, he
+probably used the web GUI, which allows a GRR user to start flows for clients
+and review the results. Or he could also have used the text-based <em>console</em> to do
+the same.</p></div>
+<div class="paragraph"><p>So we&#8217;ve learnt these core concepts:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Agent
+</dt>
+<dd>
+<p>
+A platform-specific program that is installed on machines that one might want
+to investigate. It communicates with the GRR server and can perform client
+actions at the server&#8217;s request.
+</p>
+</dd>
+<dt class="hdlist1">
+Client
+</dt>
+<dd>
+<p>
+A system that has an agent installed. Also used to refer to the specific
+instance of an agent running in that system.
+</p>
+</dd>
+<dt class="hdlist1">
+Client Action
+</dt>
+<dd>
+<p>
+Code residing in the agent that performs a single action and returns results.
+It can be called from a Flow. Client actions often accept parameters.
+Examples of client actions are ListDirectory, ReadBuffer or GetFile.
+</p>
+</dd>
+<dt class="hdlist1">
+Flow
+</dt>
+<dd>
+<p>
+Code residing in the server that contains logic to execute higher level
+actions based on invocation of client actions.
+</p>
+</dd>
+<dt class="hdlist1">
+Message
+</dt>
+<dd>
+<p>
+Transfer unit in GRR that transports information from a Flow to a client and
+viceversa.
+</p>
+</dd>
+<dt class="hdlist1">
+Frontend server
+</dt>
+<dd>
+<p>
+Server-side component that sends and receives messages back and forth from
+clients.
+</p>
+</dd>
+<dt class="hdlist1">
+Worker
+</dt>
+<dd>
+<p>
+Once receiving a message from a client a worker will wake up the
+Flow that requested its results and execute it.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_the_virtual_filesystem">The Virtual Filesystem</h2>
+<div class="sectionbody">
+</div>
+</div>
+<div class="sect1">
+<h2 id="_getting_started">Getting started</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Once we&#8217;ve got <a href="installation.html">the GRR server installed and running</a>
+we&#8217;ll want to start deploying some agents.</p></div>
+<div class="paragraph"><p>To do so we&#8217;ll need to:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Download the specific agent version we need to install on the system.
+</p>
+</li>
+<li>
+<p>
+Decide on a deployment method.
+</p>
+</li>
+<li>
+<p>
+Perform the deployment and verify the results.
+</p>
+</li>
+</ol></div>
+<div class="sect2">
+<h3 id="_deployment_methods">Deployment methods</h3>
+<div class="paragraph"><p>There are as many deployment methods as code execution paths exist. We&#8217;ll
+discuss some of the most common ways and try to cover each platform.</p></div>
+<div class="sect3">
+<h4 id="_windows_deployment">Windows deployment</h4>
+<div class="paragraph"><p>The most straightforward way to deploy a GRR agent to a Windows machine is
+to use <a href="http://technet.microsoft.com/en-us/sysinternals/bb897553.aspx">PsExec</a>.
+PsExec allows one to execute commands on a remote system if credentials for
+a valid user are known.</p></div>
+<div class="paragraph"><p>To do so, start by downloading psexec and placing in a directory of your
+choice, we&#8217;ll call it AGENT_DIRECTORY here. Store the version of the agent
+you want to download to the same directory.</p></div>
+<div class="paragraph"><p>Once you have both, you have to make sure you know the username and password
+of an Administrator user in the remote system. Once all these requirements are
+met, just start a cmd.exe shell and type:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>cd C:\AGENT_DIRECTORY\
+net use \\MACHINE\IPC$ /USER:USERNAME *
+psexec \\MACHINE -c -f -s agent-version.exe</tt></pre>
+</div></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<img src="./images/icons/note.png" alt="Note" />
+</td>
+<td class="content">
+<div class="paragraph"><p>The NET USE command will ask for a password interactively, so it&#8217;s not suited
+for using in scripts. You could Switch the <em>*</em> for the PASSWORD instead if you
+want to include it in a script.</p></div>
+</td>
+</tr></table>
+</div>
+<div class="paragraph"><p>You&#8217;ll need to replace:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+C:\AGENT_DIRECTORY\ with the full path you chose.
+</p>
+</li>
+<li>
+<p>
+MACHINE with the name of the target system.
+</p>
+</li>
+<li>
+<p>
+USERNAME with the user with administrative privileges on the target system.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>This will copy the agent-version.exe executable on the target system and execute
+it. The installation doesn&#8217;t require user input.</p></div>
+<div class="paragraph"><p>The expected output is something along these lines:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>C:\&gt; cd C:\AGENT_DIRECTORY\
+C:\&gt; net use \\127.0.0.1\IPC$ /USER:admin *
+Type the password for \\127.0.0.1\IPC$:
+The command completed successfully
+
+C:\AGENT_DIRECTORY&gt; psexec \\127.0.0.1 -c -f -s agent.exe
+PsExec v1.98 - Execute processes remotely
+Copyright (C) 2001-2010 Mark Russinovich
+Sysinternals - www.sysinternals.com
+
+The command completed successfully.
+
+agent.exe exited on 127.0.0.1 with error code 0.
+
+C:\AGENT_DIRECTORY&gt;</tt></pre>
+</div></div>
+<div class="paragraph"><p>For even less footprint on installation you could host the agent on a shared
+folder on the network and use this psexec command instead:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>cd C:\AGENT_DIRECTORY\
+net use \\MACHINE\IPC$ /USER:USERNAME *
+psexec \\MACHINE -s \\SHARE\FOLDER\agent-version.exe</tt></pre>
+</div></div>
+<div class="paragraph"><p>This requires the USERNAME on the remote MACHINE be able to log into SHARE
+and access the shared folder FOLDER. You can do this either by explicitly
+allowing the user USERNAME on that share or by using an Anonymous share.</p></div>
+<div class="paragraph"><p>The best way to verify whether the whole installation process has worked is
+to <a href="#_searching_for_a_client">search for the client in the GUI</a>.</p></div>
+</div>
+<div class="sect3">
+<h4 id="_linux_macos_x_deployment">Linux / MacOS X deployment</h4>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_deploying_at_scale">Deploying at scale</h3>
+<div class="paragraph"><p><em>TODO</em></p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_the_grr_gui">The GRR GUI</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_searching_for_a_client">Searching for a client</h3>
+<div class="paragraph"><p>In order to start interfacing with a client, we first need to search for it
+in the GUI. The GRR search bar is located at the top of the GUI and allows you
+to search clients based on their hostname, users available on the system or
+client ID.</p></div>
+<div class="imageblock" style="text-align:center;">
+<div class="content">
+<img src="images/grr-gui-searchbar.png" alt="images/grr-gui-searchbar.png" width="850" />
+</div>
+<div class="title">Figure 1: GRR search bar</div>
+</div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<img src="./images/icons/note.png" alt="Note" />
+</td>
+<td class="content">
+<div class="paragraph"><p>One can also specify a specific attribute to search for by using the
+convention "attribute_name:search_value". So to search for usernames matching
+john we would use: user:john.</p></div>
+</td>
+</tr></table>
+</div>
+<div class="paragraph"><p>We&#8217;ll use "domU" in our case, as we&#8217;ve installed the agent in a hostname
+matching this name. A list of available clients matching your criteria will
+show.</p></div>
+<div class="imageblock" style="text-align:center;">
+<div class="content">
+<img src="images/grr-gui-searchbar-results.png" alt="images/grr-gui-searchbar-results.png" width="850" />
+</div>
+<div class="title">Figure 2: Search results</div>
+</div>
+<div class="paragraph"><p>As you can see, the main panel gets populated with table-based results. Let&#8217;s
+go through each of the columns shown:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<em>Online</em>: An icon indicating whether the host is online or not. Green means
+online; yellow, offline for some time; red, offline for a long time.
+</p>
+</li>
+<li>
+<p>
+<em>subject</em>: The client IDentifier. This is how GRR refers internally to the
+system.
+</p>
+</li>
+<li>
+<p>
+<em>Host</em>: The name of the host as the operating system sees it.
+</p>
+</li>
+<li>
+<p>
+<em>Version</em>: The operating system version.
+</p>
+</li>
+<li>
+<p>
+<em>MAC</em>: A list of MAC addresses of the system.
+</p>
+</li>
+<li>
+<p>
+<em>Usernames</em>: A list of user accounts the operating system knows about
+(usually users local to the system or that have logged in).
+</p>
+</li>
+<li>
+<p>
+<em>Install</em>: The time when the agent was installed on the system.
+</p>
+</li>
+<li>
+<p>
+<em>Clock</em>: The last time the client communicated with a worker.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Once you&#8217;ve found the client you were looking for, click on it and both the
+left panel and main panel will change to reflect you&#8217;re now working with a
+client.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_the_client_view">The client view</h3>
+<div class="paragraph"><p>When interfacing with a client the left pane contains additional options. By
+default, the Host information view will be active.
+It shows most of the information that was available in the search results in
+an attribute-value. This is because all of the information relative to the
+client is stored as an attribute of it.</p></div>
+<div class="imageblock" style="text-align:center;">
+<div class="content">
+<img src="images/grr-gui-client-mainview.png" alt="images/grr-gui-client-mainview.png" width="850" />
+</div>
+<div class="title">Figure 3: Client view</div>
+</div>
+<div class="paragraph"><p>GRR supports versioning of attributes. This means we store historical
+data of each of attribute. Effectively, each attribute value stores both the value
+and the time when this value was seen.
+When different values have been gathered over time for a specific attribute,
+a <em>+</em> sign will appear before it in the GUI. Click on it and it will display a table with
+all the known values over time.</p></div>
+<div class="imageblock" style="text-align:center;">
+<div class="content">
+<img src="images/grr-gui-client-versionedmac.png" alt="images/grr-gui-client-versionedmac.png" width="850" />
+</div>
+<div class="title">Figure 4: Versioned MAC address</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_listing_the_virtual_filesystem">Listing the Virtual FileSystem</h3>
+<div class="paragraph"><p>One of the basic requirements any forensic analyst needs from its tools is to be able
+to browse the target system&#8217;s filesystems. GRR allows you to do so but you won&#8217;t find
+the remote filesystems prepopulated once you add a new client.</p></div>
+<div class="paragraph"><p>First, let&#8217;s click the <em>Browse Virtual Filesystem</em> option on the left panel to access
+this client&#8217;s VFS.</p></div>
+<div class="imageblock" style="text-align:center;">
+<div class="content">
+<img src="images/grr-gui-vfs-main.png" alt="images/grr-gui-vfs-main.png" width="850" />
+</div>
+<div class="title">Figure 5: GRR VFS for a client</div>
+</div>
+<div class="paragraph"><p>As you can see, the main pane contains now 3 different subpanels:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<em>Tree view</em>. Located on the left side, the tree view presents a classical tree view
+of the client&#8217;s virtual filesystem.
+</p>
+</li>
+<li>
+<p>
+<em>Table view</em>. The table view shows the contents of whichever node is selected on
+the tree view as a table, showing several (but not all) the attributes of objects
+contained within the selected node.
+</p>
+</li>
+<li>
+<p>
+<em>Details view</em>. The bottom panel shows details about the node selected on the table
+view. It&#8217;s a tab based panel that allows to check the node in depth. One can see all
+its attributes, download its contents or see them in the browser either on a text based
+or hex-based view.
+</p>
+</li>
+</ul></div>
+<div class="imageblock" style="text-align:center;">
+<div class="content">
+<img src="images/grr-gui-vfs-panels.png" alt="images/grr-gui-vfs-panels.png" width="850" />
+</div>
+<div class="title">Figure 6: GRR VFS Pane</div>
+</div>
+<div class="paragraph"><p>In order to check contents of the remote filesystem you first need to request a
+directory listing. And before that you need to know which drive or volume you want to
+list. You can find these under the <tt>fs</tt> (FileSystem) node of the tree view.</p></div>
+<div class="paragraph"><p>Inside you will find two directories:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+<tt>os</tt> contains the volumes seen by the Operating System.
+</p>
+</li>
+<li>
+<p>
+<tt>tsk</tt> contains volumes seen by sleuthkit when analyzing the partition table on the
+remote system.
+</p>
+</li>
+</ol></div>
+<div class="imageblock" style="text-align:center;">
+<div class="content">
+<img src="images/grr-gui-vfs-fs.png" alt="images/grr-gui-vfs-fs.png" width="850" />
+</div>
+<div class="title">Figure 7: GRR VFS fs node</div>
+</div>
+<div class="paragraph"><p>If you try to expand (just click) any of these volumes on a fresh system you will see
+they are empty. To list its contents you just need to click on the refresh button of
+the table view. This will ask the agent to obtain the directory and send it back to
+the server.</p></div>
+<div class="paragraph"><p>Wait just a few seconds and the table view will refresh itself and show the contents.
+Take into account the refresh button only requests a listing of the current directory
+in a non-recursive manner.</p></div>
+<div class="imageblock" style="text-align:center;">
+<div class="content">
+<img src="images/grr-gui-vfs-table-refresh.png" alt="images/grr-gui-vfs-table-refresh.png" width="850" />
+</div>
+<div class="title">Figure 8: GRR VFS Directory listing done</div>
+</div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<img src="./images/icons/note.png" alt="Note" />
+</td>
+<td class="content">
+<div class="paragraph"><p>What just happened is that the GUI scheduled a Flow to list the directory.
+The agent received it and sent back messages with a list of entries. The
+frontend servers picked up the responses and populated the backend with an
+object for each of them. These objects are AFF4 objects and holdsthe filesystem
+specific attributes that we store (size on disk, dates, permissions) as
+attributes of this object. These AFF4 objects form a hierarchical (tree-like)
+structure. We map the filesystem hierarchy to the AFF4 hierarchy and the GUI
+simply shows you this list of objects in a custom view, which is the table
+you&#8217;re seeing for the VFS.</p></div>
+</td>
+</tr></table>
+</div>
+<div class="paragraph"><p>The table view of the VFS shows a few columns by default:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<em>icon</em>. Shows whether this entry is a file or a directory.
+</p>
+</li>
+<li>
+<p>
+<em>Name</em>. Contains the name of the file/directory entry.
+</p>
+</li>
+<li>
+<p>
+<em>type</em>. The GRR object type assigned to this entry.
+</p>
+</li>
+<li>
+<p>
+<em>size</em>. The object contents size in GRR. 0 in general because you&#8217;ve
+downloaded no content so far.
+</p>
+</li>
+<li>
+<p>
+<em>stat.st_size</em>. The file/directory contents size on the remote filesystem.
+</p>
+</li>
+<li>
+<p>
+<em>stat.st_mtime</em>. The file/directory last written time in UTC on the remote
+filesystem.
+</p>
+</li>
+<li>
+<p>
+<em>stat.st_ctime</em>. The file/directory creation time in UTC on the remote
+filesystem..
+</p>
+</li>
+<li>
+<p>
+<em>age</em>. The time at which all of this information was stored.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Now try clicking on any entry in the table view and the details view will
+populate with data from this file.</p></div>
+<div class="paragraph"><p>The details view has four tabs you can use. The default one is <tt>Stats</tt> and it
+shows all the attributes for the selected node. It should look familiar to you
+as it&#8217;s pretty much as the <tt>Host Information</tt> page you see where you can find
+information about the client object.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_downloading_files">Downloading Files</h3>
+<div class="paragraph"><p>.</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_flows">Flows</h2>
 <div class="sectionbody">
 <div class="ulist"><ul>
 <li>
@@ -791,17 +1265,17 @@ asciidoc.install(2);
 Starting Flows
 </p>
 </li>
-<li>
-<p>
-Hunting
-</p>
-</li>
-<li>
-<p>
-Using the console
-</p>
-</li>
 </ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_hunts">Hunts</h2>
+<div class="sectionbody">
+</div>
+</div>
+<div class="sect1">
+<h2 id="_the_console">The console</h2>
+<div class="sectionbody">
 </div>
 </div>
 <div class="sect1">
@@ -820,7 +1294,7 @@ Using the console
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2012-09-28 21:43:45 CEST
+Last updated 2012-09-30 17:23:59 CEST
 </div>
 </div>
 </body>

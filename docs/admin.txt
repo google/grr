@@ -9,20 +9,216 @@ in an enterprise. It is also applicable for anyone who wants to try it out.
 Deploying the GRR server.
 -------------------------
 
-This covers how to deploy the GRR server on an ubuntu system.
+Documentation on how deploy the GRR server on an Ubuntu system is currently
+covered in the wiki here:
+http://code.google.com/p/grr/wiki/ServerInstallation
 
 Key management
 --------------
 
-How to create new keys.
+GRR requires multiple key pairs. These are used to:
 
-Security
---------
-(dbilby)
+- Sign the client certificates for enrollment.
+- Sign and decrypt messages from the client.
+- Sign code and drivers sent to the client.
+
+In the scripts directory is a file called generate_keys.sh which can be used to
+generate the relevant keys.
+
+--------------------------------------------------------------------
+db@host:/usr/share/grr$ sudo ./grr/scripts/generate_keys.sh
+[sudo] password for db:
+Generating keys
+Generating passphrase
+Generating CA
+Generating server key
+Generating server certificate
+Exporting CA key
+writing RSA key
+Generating driver signing key
+writing RSA key
+Generating executable code signing key
+writing RSA key
+All done, cleaning up
+The generated keys are in /etc/grr/keys
+db@host:/usr/share/grr$
+--------------------------------------------------------------------
+
+To generate keys in a different directory, pass the environment variable KEYDIR
+e.g.
+--------------------------------------------------------------------
+db@host:/usr/share/grr$ sudo KEYDIR=grr/keys/test ./grr/scripts/generate_keys.sh
+--------------------------------------------------------------------
+
+Security Considerations
+-----------------------
+
+Because GRR is designed to be deployed on the Internet and provides very
+valuable functionality to an attacker, it comes with a number of security
+considerations to think about before deployment. This section will cover the key
+security mechanisms and the options you have.
+
+Communication Security.
+~~~~~~~~~~~~~~~~~~~~~~~
+
+GRR communication happens using signed and encrypted protobuf messages. We use
+1024 bit RSA keys to protect symmettric AES256 encryption. The security of the
+system does not rely on SSL transport for communication security. This enables
+easy replacement of the comms protocol with non-http mechanisms such as UDP
+packets.
+
+The communications use a CA and server public key pair generated on server
+install. The CA public key is deployed to the client so that it can ensure it
+is communicating with the correct server. If these keys are not kept secure,
+anyone with MITM capability can intercept communications and take control of
+your clients. Additionally, if you lose these keys, you lose ability to
+communicate with your clients.
+
+Full details of this protocol and the security properties can be found in the
+link:implementation.html[Implementation document].
+
+
+Driver, Code Signing and CA Keys.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In addition to the CA and Server key pairs, GRR maintains a set of code
+signing and driver signing keys.
+By default GRR aims to provide only read-only actions, this means that GRR is
+unlikely to modify evidence, and cannot trivially be used to take control of
+systems running the agent footnote:[Read only access many not give direct code
+exec, but may well provide it indirectly via read access to important keys and
+passwords on disk or in memory.].
+However, there are a number of use cases where it makes sense to have GRR
+execute arbitrary code as explained in the section Deploying custom drivers
+and code.
+
+However, as part of the GRR design, we decided that administrative control of
+the GRR server shouldn't trivially lead to code execution on the clients. As
+such, we have a separate set of keys for driver signing and code signing.
+For a driver to be loaded, or binary to be run the code has to be signed by
+the specific key, the client will confirm this signature before execution.
+
+In the default install, the driver and code signing private keys are not
+passphrase protected. In a secure environment we strongly recommended
+generating and storing these keys off the GRR server, and doing offline
+signing every time this functionality is required.
+
+Testing, Staging, Production.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+GRR is designed to be able to be deployed in multiple environments to allow
+for staged rollout. By default a client is deployed with three sets of keys so
+that the same, well tested agent can be used across the different environments
+and can be changed to talk to different backends by changing the commandline
+parameters via --camode.
+
+Agent Protection.
+~~~~~~~~~~~~~~~~~
+The open source agent contains no protections against being disabled by
+administrator/root on the machine. E.g. on Windows, if an attacker stops the
+service, the agent will stop and will no longer be reachable.
+Currently, it is up to the deployer of GRR to provide more protection for the
+service.
+
+Obfuscation.
+~~~~~~~~~~~~
+If every deployment in the world is running from the same location and the
+same code, e.g. c:\program files\grr\grr.exe, it becomes a pretty obvious
+thing for an attacker to look for and disable. Luckily the attacker has the
+same problem an investigator has in finding malware on a system, and we can
+use the same techniques to protect the client.
+One of the key benefits of having an open architecture is that customization
+of the client and server is easy, and completely within your control.
+
+For a test, or low security deployment, using the defaults open source agents
+is fine. However, in a secure environment we strongly recommend using some
+form of obfuscation.
+
+This can come in many forms, but to give some examples:
+- Changing service, and binary names
+- Changing registry keys
+- Obfuscating the underlying python code
+- Using a packer to obfuscate the resulting binary.
+- Implementing advanced protective or obfuscation functionality such as those used in rootkits.
+
+GRR does include any obfuscation mechanisms by default.
+
+Enrollment.
+~~~~~~~~~~
+In the default setup, clients can register to the GRR server with no prior
+knowledge. This means that anyone who has a copy of the GRR agent, and knows
+the address of your GRR server can register their client to your deployment.
+This significantly eases deployment, and is generally considered low risk as
+the client has no control or trust on the server.
+However, it does introduce some risk, in particular:
+- If there are flows or hunts you deploy to the entire fleet, a malicious
+client may receive them. These could give away information about what you are
+searching for.
+- Clients are allowed to send some limited messages to the server without
+prompting, these are called Well Known flows. By default these can be used
+to send log messages, or errors. A malicious client using these could fill up
+logs and disk space.
+- If you have custom Well Known Flows that perform interesting actions. You need
+ to be aware that untrusted clients can call them.
+
+In many environments this risk is unwarranted, so we suggest implementing
+further authorization in the Enrollment Flow using some information that only
+your client knows, to authenticate it before allowing it to become a
+registered client.
+
+Note that this does not give someone the ability to overwrite data from
+another client, as client name collisions are protected.
+
+Server Security.
+~~~~~~~~~~~~~~~~
+The http server is designed to be exposed to the Internet, but there is no
+reason for the other components in the GRR system to be.
+
+The Administration UI by default listens on all interfaces, and is protected by
+only basic authentication configured via the --htpasswd parameter. We strongly
+recommend putting the UI on SSL and IP limiting the clients that can connect.
+The best way to do this normally is by hosting it inside Apache via wsgi as
+using Apache to provide the SSL and other protection measures.
+
+Auditing.
+~~~~~~~~~
+By default GRR currently only offers limited audit logs in the /var/log/
+directory. However, the system is designed to allow for deployment of extensive
+auditing capabilities through the Security Manager.
+
+These capabilities will be built out in future versions.
+
+
+GRR Security Checklist.
+~~~~~~~~~~~~~~~~~~~~~~~
+.For all deployments
+- Generate new CA/server keys on initial install. Back up these keys somewhere
+securely.
+- Ensure the GRR Administrative UI interface is not exposed to the Internet
+and is protected.
+
+.For a high security environment
+- Introduce controls on enrollment to protect the server from unauthorized
+clients.
+- Produce obfuscated clients.
+- Regenerate code and driver signing keys off the GRR server and give them
+appropriate protection. Only put the public keys on the server (and in the
+client config).
+- Run the http server serving clients on a separate machine to the workers.
+- Ensure strong passwords are enabled on the Administrative UI and it is SSL
+protected.
+- Ensure the database server is using strong passwords and is well protected.
+
 
 Scheduling Flows with Cron
 --------------------------
-How does cron work?
+The cron allows for scheduling actions to run regularly on the GRR server.
+This is currently used to collect statistics and do cleanup on the database.
+
+The cron runs as a separate process cron.py. You can run it as often as you
+like, e.g. every five minutes. It maintains internally how often each job needs
+to run.
+
+The jobs that run are defined by CronJob classes, these are currently defined
+in lib/aff4_objects/cronjobs.py
 
 Customizing the client
 ----------------------
@@ -40,4 +236,180 @@ Discussion of Windows client components - bat files/vbs files
 
 Deploying custom drivers and code.
 ----------------------------------
-(dbilby)
+
+Drivers, binaries or python code can be pushed from the server to the clients
+to enable new functionality. This has a number of use cases, such as:
+
+- Upgrades. When you want to update the client you need to be able to push new
+code.
+- Drivers. If you want to load a driver on the client system to do memory
+analysis, you may need a custom driver per system (e.g. in the case of Linux
+kernel differences.)
+- Protected functionality. If you have code that you want to deploy to deal with
+ a specific case, you may not want that to be part of the client, and should
+ only be deployed to specific clients.
+
+The code that is pushed from the server must be signed by the exe_sign key for
+python and binaries, and by the driver_sign key for drivers. These signatures
+will be checked by the client to ensure they match before the code is used.
+
+What is actually sent to the client is the code or binary wrapped in a protobuf
+which will contain a hash, a signature and some other configuration data.
+
+To sign code requires use of config_updater utility. In a secure environment the
+signing will occur on a different box from the server, so examples will be given
+for that.
+
+Deploying Arbitrary Python Code.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+To execute an arbitrary python blob, you need to create a file with python code
+that has the following attributes:
+- Code in the file must work when executed by exec().
+- Any return data that you want sent back to the server should be stored string
+encoded in a variable called "magic_return_str".
+
+E.g. as a simple example. The following code modifies the clients poll_max
+setting and pings test.com.
+
+[source,python]
+------------------------------------------------------------------------
+import commands
+status, output = commands.getstatusoutput("ping -c 3 test.com")
+FLAGS.poll_max = 100
+magic_return_str = "poll_max successfully set. ping output %s" % output
+------------------------------------------------------------------------
+
+This file then needs to be signed and converted into the protobuf format
+required, and then needs to be uploaded to the data store. You can do this using
+the following command line and accepting the defaults in the interactive prompt.
+
+------------------------------------------------------------------------
+tools/config_updater.py --interactive --file=myfile.py --type=PYTHON
+------------------------------------------------------------------------
+
+At the end of this you should see something like:
+------------------------------------------------------------------------
+Uploaded successfully to aff4:/config/python_hacks/myfile.py
+------------------------------------------------------------------------
+
+The uploaded files live by convention in aff4:/config/python_hacks and are
+viewable in the Manage Binaries section of the Admin UI.
+
+At the moment there are no flows provided to execute these python blobs, but it
+can be done from the GRR Console using the ClientAction debugging flow.
+
+[source,python]
+------------------------------------------------------------------------
+client_id = "C.XXXXXXXXXXX"
+token = data_store.ACLToken()
+fd = aff4.FACTORY.Open("aff4:/config/python_hacks/myfile.py")
+signed_python_pb = fd.Get(fd.Schema.SIGNED_BLOB)
+argspb = jobs_pb2.ExecutePythonRequest(python_code=signed_python_pb.data)
+worker_thrd = flow.GRRWorker(queue_name="DEBUG", token=token)
+flow.FACTORY.StartFlow(client_id, "ClientAction", queue_name="DEBUG", args=argspb, action="ExecutePython", break_pdb=False, save_to="/tmp/grrdebug")
+worker_thrd.Run()
+------------------------------------------------------------------------
+
+If you need to sign offline, the same process can be followed, but with stating
+SIGN on the signing machine. And then using UPLOAD on the connected machine.
+
+
+
+Deploying Drivers
+~~~~~~~~~~~~~~~~~
+
+Drivers are currently used in memory analysis. By default we use drivers
+developed and released by the GRR team named "pmem". We currently have Apache
+Licensed, tested drivers for OSX, Linux and Windows.
+
+The drivers are distributed with GRR but are also available from the Volatility
+project in binary form at http://code.google.com/p/volatility/downloads/list,
+the source is stored in the scudette branch at http://code.google.com/p/volatili
+ty/source/browse/#svn%2Fbranches%2Fscudette%2Ftools.
+
+Deploying a driver works much the same as deploying python code. We sign the
+file, encode it in a protobuf and upload it to a specific place in the GRR
+datastore.
+
+NOTE: The signing we discuss here is independent of Authenticode driver signing,
+which is also required by modern 64 bit Windows distributions.
+
+------------------------------------------------------------------------
+tools/config_updater.py --interactive --file=/tmp/winpmem-0.1rc1/drivers/amd64/winpmem.sys --type=DRIVER
+Do you want to SIGN or UPLOAD a file? or BOTH? [BOTH]
+>
+Which is the file you want to sign? [/tmp/winpmem-0.1rc1/drivers/amd64/winpmem.sys]
+>
+Is this a DRIVER, BINARY or PYTHON file? [DRIVER]
+>
+What is the name of the driver? [None]
+> pmem
+What is the driver object name? [None]
+> \\.\pmem
+What is the driver rewrite mode? DISABLE, ENABLE or FORCE [None]
+> FORCE
+Which key is being used for signing? [grr/keys/test/driver_sign.pem]
+>
+Which key is being used for verification? [grr/keys/test/driver_sign_pub.pem]
+>
+Which platform is it for? WINDOWS, OSX or LINUX [WINDOWS]
+>
+Which name should the file have on the server? [winpmem.sys]
+> winpmem64.sys
+Which path should the file be uploaded to? [/config/drivers/windows/memory]
+>
+Uploaded successfully to /config/drivers/windows/memory
+
+------------------------------------------------------------------------
+
+Deploying this driver would normally be done using the LoadMemoryDriver flow.
+
+
+Deploying Executables.
+~~~~~~~~~~~~~~~~~~~~~~
+
+The GRR Agent provides an ExecuteBinaryCommand Client Action which allows us to
+send a binary and set of command line arguments to be executed. The binary must
+be signed using the exec_sign key.
+
+To sign an exe for execution use the config_updater.py script.
+
+------------------------------------------------------------------------
+config_updater.py --interactive --file=/tmp/bazinga.exe --type=EXE
+Do you want to SIGN or UPLOAD a file? or BOTH? [BOTH]
+>
+Which is the file you want to sign? [/tmp/bazinga.exe]
+>
+Is this a DRIVER, EXE or PYTHON file? [EXE]
+>
+Which directory are your signing keys in? [grr/keys/test]
+>
+Which key is being used for signing? [grr/keys/test/exe_sign.pem]
+>
+Which key is being used for verification? [grr/keys/test/exe_sign_pub.pem]
+>
+Which platform is it for? WINDOWS, OSX or LINUX [WINDOWS]
+>
+Which name should the file have on the server? [bazinga.exe]
+>
+Which path should the file be uploaded to? [/config/executables/windows/installers]
+>
+Uploaded successfully to /config/executables/windows/installers
+------------------------------------------------------------------------
+
+At the moment (Aug 2012) there are no flows provided to execute these binaries,
+but it can be done from the GRR Console using the ClientAction debugging flow.
+
+[source,python]
+------------------------------------------------------------------------
+client_id = "C.XXXXXXXXXXX"
+token = data_store.ACLToken()
+fd = aff4.FACTORY.Open("aff4:/config/executables/windows/bazinga.exe")
+signed_exe_pb = fd.Get(fd.Schema.SIGNED_BLOB)
+argspb = jobs_pb2.ExecuteBinaryRequest(executable=signed_exe_pb.data)
+worker_thrd = flow.GRRWorker(queue_name="DEBUG", token=token)
+flow.FACTORY.StartFlow(client_id, "ClientAction", queue_name="DEBUG",
+                       args=argspb, action="ExecutePython",
+                       break_pdb=True, save_to="/tmp/grrdebug")
+worker_thrd.Run()
+------------------------------------------------------------------------
