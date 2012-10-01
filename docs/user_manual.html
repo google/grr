@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
-<meta name="generator" content="AsciiDoc 8.6.6" />
+<meta name="generator" content="AsciiDoc 8.6.8" />
 <title>GRR User manual</title>
 <style type="text/css">
 /* Shared CSS for AsciiDoc xhtml11 and html5 backends */
@@ -87,10 +87,14 @@ ul, ol, li > p {
 ul > li     { color: #aaa; }
 ul > li > * { color: black; }
 
-pre {
+.monospaced, code, pre {
+  font-family: "Courier New", Courier, monospace;
+  font-size: inherit;
+  color: navy;
   padding: 0;
   margin: 0;
 }
+
 
 #author {
   color: #527bbd;
@@ -349,7 +353,7 @@ div.colist td img {
   margin-bottom: 0.1em;
 }
 
-div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
+div.toclevel0, div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
   margin-top: 0;
   margin-bottom: 0;
 }
@@ -407,17 +411,13 @@ span.underline { text-decoration: underline; }
 span.overline { text-decoration: overline; }
 span.line-through { text-decoration: line-through; }
 
+div.unbreakable { page-break-inside: avoid; }
+
 
 /*
  * xhtml11 specific
  *
  * */
-
-tt {
-  font-family: monospace;
-  font-size: inherit;
-  color: navy;
-}
 
 div.tableblock {
   margin-top: 1.0em;
@@ -451,12 +451,6 @@ div.tableblock > table[frame="vsides"] {
  * html5 specific
  *
  * */
-
-.monospaced {
-  font-family: monospace;
-  font-size: inherit;
-  color: navy;
-}
 
 table.tableblock {
   margin-top: 1.0em;
@@ -537,6 +531,8 @@ body.manpage div.sectionbody {
 @media print {
   body.manpage div#toc { display: none; }
 }
+
+
 @media screen {
   body {
     max-width: 50em; /* approximately 80 characters wide */
@@ -615,7 +611,7 @@ toc: function (toclevels) {
 
   function tocEntries(el, toclevels) {
     var result = new Array;
-    var re = new RegExp('[hH]([2-'+(toclevels+1)+'])');
+    var re = new RegExp('[hH]([1-'+(toclevels+1)+'])');
     // Function that scans the DOM tree for header elements (the DOM2
     // nodeIterator API would be a better technique but not supported by all
     // browsers).
@@ -644,7 +640,7 @@ toc: function (toclevels) {
   var i;
   for (i = 0; i < toc.childNodes.length; i++) {
     var entry = toc.childNodes[i];
-    if (entry.nodeName == 'div'
+    if (entry.nodeName.toLowerCase() == 'div'
      && entry.getAttribute("class")
      && entry.getAttribute("class").match(/^toclevel/))
       tocEntriesToRemove.push(entry);
@@ -690,7 +686,7 @@ footnotes: function () {
   var entriesToRemove = [];
   for (i = 0; i < noteholder.childNodes.length; i++) {
     var entry = noteholder.childNodes[i];
-    if (entry.nodeName == 'div' && entry.getAttribute("class") == "footnote")
+    if (entry.nodeName.toLowerCase() == 'div' && entry.getAttribute("class") == "footnote")
       entriesToRemove.push(entry);
   }
   for (i = 0; i < entriesToRemove.length; i++) {
@@ -779,8 +775,7 @@ asciidoc.install(2);
 <div class="sect1">
 <h2 id="_the_grr_response_model">The GRR response model</h2>
 <div class="sectionbody">
-<div class="paragraph"><p><strong>awesome introduction based on Darren&#8217;s OSFC preso explaining why and where
-GRR is needed</strong></p></div>
+<div class="paragraph"><p><em>TODO</em></p></div>
 </div>
 </div>
 <div class="sect1">
@@ -792,79 +787,12 @@ GRR is needed</strong></p></div>
 probably used the web GUI, which allows a GRR user to start flows for clients
 and review the results. Or he could also have used the text-based <em>console</em> to do
 the same.</p></div>
-<div class="paragraph"><p>So we&#8217;ve learnt these core concepts:</p></div>
-<div class="dlist"><dl>
-<dt class="hdlist1">
-Agent
-</dt>
-<dd>
-<p>
-A platform-specific program that is installed on machines that one might want
-to investigate. It communicates with the GRR server and can perform client
-actions at the server&#8217;s request.
-</p>
-</dd>
-<dt class="hdlist1">
-Client
-</dt>
-<dd>
-<p>
-A system that has an agent installed. Also used to refer to the specific
-instance of an agent running in that system.
-</p>
-</dd>
-<dt class="hdlist1">
-Client Action
-</dt>
-<dd>
-<p>
-Code residing in the agent that performs a single action and returns results.
-It can be called from a Flow. Client actions often accept parameters.
-Examples of client actions are ListDirectory, ReadBuffer or GetFile.
-</p>
-</dd>
-<dt class="hdlist1">
-Flow
-</dt>
-<dd>
-<p>
-Code residing in the server that contains logic to execute higher level
-actions based on invocation of client actions.
-</p>
-</dd>
-<dt class="hdlist1">
-Message
-</dt>
-<dd>
-<p>
-Transfer unit in GRR that transports information from a Flow to a client and
-viceversa.
-</p>
-</dd>
-<dt class="hdlist1">
-Frontend server
-</dt>
-<dd>
-<p>
-Server-side component that sends and receives messages back and forth from
-clients.
-</p>
-</dd>
-<dt class="hdlist1">
-Worker
-</dt>
-<dd>
-<p>
-Once receiving a message from a client a worker will wake up the
-Flow that requested its results and execute it.
-</p>
-</dd>
-</dl></div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="_the_virtual_filesystem">The Virtual Filesystem</h2>
 <div class="sectionbody">
+<div class="paragraph"><p><em>TODO</em></p></div>
 </div>
 </div>
 <div class="sect1">
@@ -908,9 +836,9 @@ of an Administrator user in the remote system. Once all these requirements are
 met, just start a cmd.exe shell and type:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>cd C:\AGENT_DIRECTORY\
+<pre><code>cd C:\AGENT_DIRECTORY\
 net use \\MACHINE\IPC$ /USER:USERNAME *
-psexec \\MACHINE -c -f -s agent-version.exe</tt></pre>
+psexec \\MACHINE -c -f -s agent-version.exe</code></pre>
 </div></div>
 <div class="admonitionblock">
 <table><tr>
@@ -947,7 +875,7 @@ it. The installation doesn&#8217;t require user input.</p></div>
 <div class="paragraph"><p>The expected output is something along these lines:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>C:\&gt; cd C:\AGENT_DIRECTORY\
+<pre><code>C:\&gt; cd C:\AGENT_DIRECTORY\
 C:\&gt; net use \\127.0.0.1\IPC$ /USER:admin *
 Type the password for \\127.0.0.1\IPC$:
 The command completed successfully
@@ -961,15 +889,15 @@ The command completed successfully.
 
 agent.exe exited on 127.0.0.1 with error code 0.
 
-C:\AGENT_DIRECTORY&gt;</tt></pre>
+C:\AGENT_DIRECTORY&gt;</code></pre>
 </div></div>
 <div class="paragraph"><p>For even less footprint on installation you could host the agent on a shared
 folder on the network and use this psexec command instead:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>cd C:\AGENT_DIRECTORY\
+<pre><code>cd C:\AGENT_DIRECTORY\
 net use \\MACHINE\IPC$ /USER:USERNAME *
-psexec \\MACHINE -s \\SHARE\FOLDER\agent-version.exe</tt></pre>
+psexec \\MACHINE -s \\SHARE\FOLDER\agent-version.exe</code></pre>
 </div></div>
 <div class="paragraph"><p>This requires the USERNAME on the remote MACHINE be able to log into SHARE
 and access the shared folder FOLDER. You can do this either by explicitly
@@ -979,6 +907,7 @@ to <a href="#_searching_for_a_client">search for the client in the GUI</a>.</p><
 </div>
 <div class="sect3">
 <h4 id="_linux_macos_x_deployment">Linux / MacOS X deployment</h4>
+<div class="paragraph"><p><em>TODO</em></p></div>
 </div>
 </div>
 <div class="sect2">
@@ -1000,7 +929,7 @@ client ID.</p></div>
 <div class="content">
 <img src="images/grr-gui-searchbar.png" alt="images/grr-gui-searchbar.png" width="850" />
 </div>
-<div class="title">Figure 1: GRR search bar</div>
+<div class="title">Figure 1. GRR search bar</div>
 </div>
 <div class="admonitionblock">
 <table><tr>
@@ -1021,7 +950,7 @@ show.</p></div>
 <div class="content">
 <img src="images/grr-gui-searchbar-results.png" alt="images/grr-gui-searchbar-results.png" width="850" />
 </div>
-<div class="title">Figure 2: Search results</div>
+<div class="title">Figure 2. Search results</div>
 </div>
 <div class="paragraph"><p>As you can see, the main panel gets populated with table-based results. Let&#8217;s
 go through each of the columns shown:</p></div>
@@ -1085,7 +1014,7 @@ client is stored as an attribute of it.</p></div>
 <div class="content">
 <img src="images/grr-gui-client-mainview.png" alt="images/grr-gui-client-mainview.png" width="850" />
 </div>
-<div class="title">Figure 3: Client view</div>
+<div class="title">Figure 3. Client view</div>
 </div>
 <div class="paragraph"><p>GRR supports versioning of attributes. This means we store historical
 data of each of attribute. Effectively, each attribute value stores both the value
@@ -1097,7 +1026,7 @@ all the known values over time.</p></div>
 <div class="content">
 <img src="images/grr-gui-client-versionedmac.png" alt="images/grr-gui-client-versionedmac.png" width="850" />
 </div>
-<div class="title">Figure 4: Versioned MAC address</div>
+<div class="title">Figure 4. Versioned MAC address</div>
 </div>
 </div>
 <div class="sect2">
@@ -1107,12 +1036,6 @@ to browse the target system&#8217;s filesystems. GRR allows you to do so but you
 the remote filesystems prepopulated once you add a new client.</p></div>
 <div class="paragraph"><p>First, let&#8217;s click the <em>Browse Virtual Filesystem</em> option on the left panel to access
 this client&#8217;s VFS.</p></div>
-<div class="imageblock" style="text-align:center;">
-<div class="content">
-<img src="images/grr-gui-vfs-main.png" alt="images/grr-gui-vfs-main.png" width="850" />
-</div>
-<div class="title">Figure 5: GRR VFS for a client</div>
-</div>
 <div class="paragraph"><p>As you can see, the main pane contains now 3 different subpanels:</p></div>
 <div class="ulist"><ul>
 <li>
@@ -1141,21 +1064,21 @@ or hex-based view.
 <div class="content">
 <img src="images/grr-gui-vfs-panels.png" alt="images/grr-gui-vfs-panels.png" width="850" />
 </div>
-<div class="title">Figure 6: GRR VFS Pane</div>
+<div class="title">Figure 5. GRR VFS Pane</div>
 </div>
 <div class="paragraph"><p>In order to check contents of the remote filesystem you first need to request a
 directory listing. And before that you need to know which drive or volume you want to
-list. You can find these under the <tt>fs</tt> (FileSystem) node of the tree view.</p></div>
+list. You can find these under the <code>fs</code> (FileSystem) node of the tree view.</p></div>
 <div class="paragraph"><p>Inside you will find two directories:</p></div>
 <div class="olist arabic"><ol class="arabic">
 <li>
 <p>
-<tt>os</tt> contains the volumes seen by the Operating System.
+<code>os</code> contains the volumes seen by the Operating System.
 </p>
 </li>
 <li>
 <p>
-<tt>tsk</tt> contains volumes seen by sleuthkit when analyzing the partition table on the
+<code>tsk</code> contains volumes seen by sleuthkit when analyzing the partition table on the
 remote system.
 </p>
 </li>
@@ -1164,7 +1087,7 @@ remote system.
 <div class="content">
 <img src="images/grr-gui-vfs-fs.png" alt="images/grr-gui-vfs-fs.png" width="850" />
 </div>
-<div class="title">Figure 7: GRR VFS fs node</div>
+<div class="title">Figure 6. GRR VFS fs node</div>
 </div>
 <div class="paragraph"><p>If you try to expand (just click) any of these volumes on a fresh system you will see
 they are empty. To list its contents you just need to click on the refresh button of
@@ -1177,7 +1100,7 @@ in a non-recursive manner.</p></div>
 <div class="content">
 <img src="images/grr-gui-vfs-table-refresh.png" alt="images/grr-gui-vfs-table-refresh.png" width="850" />
 </div>
-<div class="title">Figure 8: GRR VFS Directory listing done</div>
+<div class="title">Figure 7. GRR VFS Directory listing done</div>
 </div>
 <div class="admonitionblock">
 <table><tr>
@@ -1245,56 +1168,231 @@ filesystem..
 </ul></div>
 <div class="paragraph"><p>Now try clicking on any entry in the table view and the details view will
 populate with data from this file.</p></div>
-<div class="paragraph"><p>The details view has four tabs you can use. The default one is <tt>Stats</tt> and it
+<div class="paragraph"><p>The details view has four tabs you can use. The default one is <code>Stats</code> and it
 shows all the attributes for the selected node. It should look familiar to you
-as it&#8217;s pretty much as the <tt>Host Information</tt> page you see where you can find
+as it&#8217;s pretty much as the <code>Host Information</code> page you see where you can find
 information about the client object.</p></div>
+<div class="paragraph"><p>The rest are discussed in the next section.</p></div>
 </div>
 <div class="sect2">
 <h3 id="_downloading_files">Downloading Files</h3>
-<div class="paragraph"><p>.</p></div>
+<div class="paragraph"><p>The easiest way to download a file is through the GUI. To do so, you first have
+to list the directory it&#8217;s in and browse there with the GUI.</p></div>
+<div class="paragraph"><p>Select the file on the table panel and click the <em>Download</em> tab on the details
+view. By clicking on <em>Get new version</em> you will issue a Flow to download the
+given file. The client will transfer the given file by creating messages with
+the file contents and it will be stored in the GRR backend.</p></div>
+<div class="imageblock" style="text-align:center;">
+<div class="content">
+<img src="images/grr-gui-vfs-download.png" alt="images/grr-gui-vfs-download.png" />
+</div>
+<div class="title">Figure 8. Download tab</div>
+</div>
+<div class="paragraph"><p>Once the file is downloaded, a new button will appear in this view below the
+<em>Get new version</em> button called <em>Download</em>. As you guessed, this allows you to
+download the file from the GRR backend to your computer.</p></div>
+<div class="imageblock" style="text-align:center;">
+<div class="content">
+<img src="images/grr-gui-vfs-downloaded.png" alt="images/grr-gui-vfs-downloaded.png" />
+</div>
+<div class="title">Figure 9. Downloaded file</div>
+</div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<img src="./images/icons/note.png" alt="Note" />
+</td>
+<td class="content">
+<div class="paragraph"><p>For safety reasons, GRR appends ".noexec" to the name of every file you request
+to download to your computer.</p></div>
+</td>
+</tr></table>
+</div>
 </div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="_flows">Flows</h2>
 <div class="sectionbody">
-<div class="ulist"><ul>
+<div class="paragraph"><p>When designing GRR, one of the main goals was achieving great scalability.
+One of the main resource hogs with the client-server model is that
+while a client is active all resources that might have been needed on the
+server side to communicate with it and do processing are held (think temporary buffers, sockets, file descriptors&#8230;). Even when the client itself is doing operations that take time such as heavy computations or waiting on I/O, resources are held on the server.</p></div>
+<div class="paragraph"><p>When trying to deal with thousands of clients at the same time, this would
+translates into the server hoarding many unneeded resources.</p></div>
+<div class="paragraph"><p>To solve the resource hogging problem, Flows were created. Flows are the
+server-side code entities that call client actions. These calls are done
+asynchronously. That is, they are requested and their results become available
+later on. Flows are like a state machine, where transition between states
+happens when the results of client actions return to the server. So here&#8217;s
+what happens when the GRR server launches a typical Flow.</p></div>
+<div class="olist arabic"><ol class="arabic">
 <li>
 <p>
-Starting Flows
+The GRR server executes the initial Flow state.
 </p>
 </li>
-</ul></div>
+<li>
+<p>
+This state asks for one or more client actions to be performed on the client.
+</p>
+</li>
+<li>
+<p>
+The server clears all the resources this Flow has requested and waits for
+responses from the client to come back.
+</p>
+</li>
+<li>
+<p>
+When responses are received, the server fetches all the needed resources again
+and runs the Flow state where it expects these responses. If more client actions
+are requested by this state it goes back to step 2. Otherwise&#8230;
+</p>
+</li>
+<li>
+<p>
+The results of this Flow are stored and the flow state is updated.
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>Whether you&#8217;ve been following the <em>Getting started</em> chapter or not, you can
+already check some flows in the GUI.</p></div>
+<div class="paragraph"><p>While having a client selected, click on the <em>Manage launched flows</em> link on the
+left panel. This will bring you to a view that shows all the Flows that have been
+requested on this client.</p></div>
+<div class="imageblock" style="text-align:center;">
+<div class="content">
+<img src="images/grr-gui-flows-main.png" alt="images/grr-gui-flows-main.png" width="850" />
+</div>
+<div class="title">Figure 10. Launched flows view</div>
+</div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="_hunts">Hunts</h2>
 <div class="sectionbody">
+<div class="paragraph"><p><em>TODO</em></p></div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="_the_console">The console</h2>
 <div class="sectionbody">
+<div class="paragraph"><p><em>TODO</em></p></div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="_glossary">Glossary</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>(cover all the terms, artifacts, collections etc)</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+AFF4
+</dt>
+<dd>
+<p>
+AFF4 is the data model used for storage in GRR, with some minor extensions. You can read about the usage in the GRR paper linked above and there is additional detail linked at <a href="http://www.forensicswiki.org/wiki/AFF4">http://www.forensicswiki.org/wiki/AFF4</a>
+</p>
+</dd>
+<dt class="hdlist1">
+Agent
+</dt>
+<dd>
+<p>
+A platform-specific program that is installed on machines that one might want
+to investigate. It communicates with the GRR server and can perform client
+actions at the server&#8217;s request.
+</p>
+</dd>
+<dt class="hdlist1">
+Client
+</dt>
+<dd>
+<p>
+A system that has an agent installed. Also used to refer to the specific instance of an agent running in that system.
+</p>
+</dd>
+<dt class="hdlist1">
+Client Action
+</dt>
+<dd>
+<p>
+A client action is an action that a client can perform on behalf of the server. It is the base unit of work on the client. Client actions are initiated by the server through Flows.
+Example client actions are ListDirectory, EnumerateFilesystems, Uninstall.
+</p>
+</dd>
+<dt class="hdlist1">
+Collection
+</dt>
+<dd>
+<p>
+A Collection is a logical set of objects stored in the AFF4 database. Generally these are a list of URNs containing a grouping of data such as Artifacts or Events from a client.
+</p>
+</dd>
+<dt class="hdlist1">
+DataStore
+</dt>
+<dd>
+<p>
+The datastore is where all AFF4 and Scheduler data is stored. It is provided as an abstraction to allow for replacement of the backend without significant rewrite. The datastore supports read, write, querying and filtering. The implementation of a datastore currently is for Mongo only <a href="http://www.mongodb.org/">http://www.mongodb.org/</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+Flow
+</dt>
+<dd>
+<p>
+A logical collection of server or client actions which achieve a given objective. A flow is the core unit of work in the GRR server. For example a BrowserHistory flow contains all the logic to download, extract and display browser history from a client.
+Flows can call other flows to get their job done. E.g. A CollectBrowserHistory flow might call ListDirectory and GetFile to do it&#8217;s work. A flow is implemented as a class that inherits from GRRFlow.
+</p>
+</dd>
+<dt class="hdlist1">
+Frontend server
+</dt>
+<dd>
+<p>
+Server-side component that sends and receives messages back and forth from
+clients.
+</p>
+</dd>
+<dt class="hdlist1">
+Hunt
+</dt>
+<dd>
+<p>
+A Hunt is a mechanism for managing the execution of a flow on a large number of machines. A hunt is normally used when you are searching for a specific piece of data across a fleet of machines. Hunts allow for monitoring and reporting of status.
+</p>
+</dd>
+<dt class="hdlist1">
+Message
+</dt>
+<dd>
+<p>
+Transfer unit in GRR that transports information from a Flow to a client and
+viceversa.
+</p>
+</dd>
+<dt class="hdlist1">
+Worker
+</dt>
+<dd>
+<p>
+Once receiving a message from a client a worker will wake up the
+Flow that requested its results and execute it.
+</p>
+</dd>
+</dl></div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_user_faq">User FAQ</h2>
+<h2 id="_faq">FAQ</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>Frequently asked questions</p></div>
 </div>
 </div>
 </div>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2012-09-30 17:23:59 CEST
+Last updated 2012-10-01 15:22:22 CEST
 </div>
 </div>
 </body>

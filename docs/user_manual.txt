@@ -3,60 +3,36 @@ GRR User manual
 :toc2:
 :icons:
 
+
 The GRR response model
 ----------------------
-*awesome introduction based on Darren's OSFC preso explaining why and where
-GRR is needed*
+_TODO_
 
 
 High-level overview
 -------------------
 
-To function, an _agent_ is deployed on systems that one might want to investigate. Once deployed, each system becomes a GRR _client_ and they can start receiving messages from the frontend servers. Each message tells the client to run a specific client action and return the results. A client action is simply some well known code the agent knows how to execute (such as obtaining the list of files in a directory or reading a buffer from a file).
+To function, an _agent_ is deployed on systems that one might want to
+investigate. Once deployed, each system becomes a GRR _client_ and they can
+start receiving messages from the frontend servers. Each message tells the
+client to run a specific client action and return the results. A client action
+is simply some well known code the agent knows how to execute (such as obtaining
+the list of files in a directory or reading a buffer from a file).
 
-These actions are invoked server-side through what we call Flows. A Flow is a piece of server-side code that asks the GRR system to schedule remote calls to a client and has some additional logic to decide what to do based on the call results.
+These actions are invoked server-side through what we call Flows. A Flow is a
+piece of server-side code that asks the GRR system to schedule remote calls to a
+client and has some additional logic to decide what to do based on the call
+results.
 
 This _Flow_ is running on a client because a user initiated it. To do so, he
 probably used the web GUI, which allows a GRR user to start flows for clients
-and review the results. Or he could also have used the text-based _console_ to do
-the same.
-
-So we've learnt these core concepts:
-
-Agent::
-A platform-specific program that is installed on machines that one might want
-to investigate. It communicates with the GRR server and can perform client
-actions at the server's request.
-
-Client::
-A system that has an agent installed. Also used to refer to the specific
-instance of an agent running in that system.
-
-Client Action::
-Code residing in the agent that performs a single action and returns results.
-It can be called from a Flow. Client actions often accept parameters.
-Examples of client actions are ListDirectory, ReadBuffer or GetFile.
-
-Flow::
-Code residing in the server that contains logic to execute higher level
-actions based on invocation of client actions.
-
-Message::
-Transfer unit in GRR that transports information from a Flow to a client and
-viceversa.
-
-Frontend server::
-Server-side component that sends and receives messages back and forth from
-clients.
-
-Worker::
-Once receiving a message from a client a worker will wake up the
-Flow that requested its results and execute it.
+and review the results. Or he could also have used the text-based _console_ to
+do the same.
 
 
 The Virtual Filesystem
 ----------------------
-
+_TODO_
 
 
 Getting started
@@ -67,9 +43,13 @@ we'll want to start deploying some agents.
 
 To do so we'll need to:
 
+
 1. Download the specific agent version we need to install on the system.
+
 2. Decide on a deployment method.
+
 3. Perform the deployment and verify the results.
+
 
 Deployment methods
 ~~~~~~~~~~~~~~~~~~
@@ -80,18 +60,18 @@ discuss some of the most common ways and try to cover each platform.
 Windows deployment
 ^^^^^^^^^^^^^^^^^^
 
-The most straightforward way to deploy a GRR agent to a Windows machine is
-to use link:http://technet.microsoft.com/en-us/sysinternals/bb897553.aspx[PsExec].
-PsExec allows one to execute commands on a remote system if credentials for
-a valid user are known.
+The most straightforward way to deploy a GRR agent to a Windows machine is to
+use link:http://technet.microsoft.com/en-us/sysinternals/bb897553.aspx[PsExec].
+PsExec allows one to execute commands on a remote system if credentials for a
+valid user are known.
 
-To do so, start by downloading psexec and placing in a directory of your
-choice, we'll call it AGENT_DIRECTORY here. Store the version of the agent
-you want to download to the same directory.
+To do so, start by downloading psexec and placing in a directory of your choice,
+we'll call it AGENT_DIRECTORY here. Store the version of the agent you want to
+download to the same directory.
 
-Once you have both, you have to make sure you know the username and password
-of an Administrator user in the remote system. Once all these requirements are
-met, just start a cmd.exe shell and type:
+Once you have both, you have to make sure you know the username and password of
+an Administrator user in the remote system. Once all these requirements are met,
+just start a cmd.exe shell and type:
 
 -----------------------------------------------------------
 cd C:\AGENT_DIRECTORY\
@@ -144,15 +124,17 @@ net use \\MACHINE\IPC$ /USER:USERNAME *
 psexec \\MACHINE -s \\SHARE\FOLDER\agent-version.exe
 ------------------------------------------------------------------
 
-This requires the USERNAME on the remote MACHINE be able to log into SHARE
-and access the shared folder FOLDER. You can do this either by explicitly
-allowing the user USERNAME on that share or by using an Anonymous share.
+This requires the USERNAME on the remote MACHINE be able to log into SHARE and
+access the shared folder FOLDER. You can do this either by explicitly allowing
+the user USERNAME on that share or by using an Anonymous share.
 
-The best way to verify whether the whole installation process has worked is
-to xref:_searching_for_a_client[search for the client in the GUI].
+The best way to verify whether the whole installation process has worked is to
+xref:_searching_for_a_client[search for the client in the GUI].
+
 
 Linux / MacOS X deployment
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+_TODO_
 
 
 Deploying at scale
@@ -164,22 +146,22 @@ _TODO_
 The GRR GUI
 -----------
 
+
 Searching for a client
 ~~~~~~~~~~~~~~~~~~~~~~
-In order to start interfacing with a client, we first need to search for it
-in the GUI. The GRR search bar is located at the top of the GUI and allows you
-to search clients based on their hostname, users available on the system or
-client ID.
+In order to start interfacing with a client, we first need to search for it in
+the GUI. The GRR search bar is located at the top of the GUI and allows you to
+search clients based on their hostname, users available on the system or client
+ID.
 
 .GRR search bar
-[caption="Figure 1: "]
 image::images/grr-gui-searchbar.png[width=850,align="center"]
 
 [NOTE]
 =============================================================================
-One can also specify a specific attribute to search for by using the
-convention "attribute_name:search_value". So to search for usernames matching
-john we would use: user:john.
+One can also specify a specific attribute to search for by using the convention
+"attribute_name:search_value". So to search for usernames matching john we would
+use: user:john.
 =============================================================================
 
 We'll use "domU" in our case, as we've installed the agent in a hostname
@@ -187,126 +169,116 @@ matching this name. A list of available clients matching your criteria will
 show.
 
 .Search results
-[caption="Figure 2: "]
 image::images/grr-gui-searchbar-results.png[width=850,align="center"]
 
-As you can see, the main panel gets populated with table-based results. Let's
-go through each of the columns shown:
+As you can see, the main panel gets populated with table-based results. Let's go
+through each of the columns shown:
 
 - 'Online': An icon indicating whether the host is online or not. Green means
-online; yellow, offline for some time; red, offline for a long time.
+  online; yellow, offline for some time; red, offline for a long time.
 - 'subject': The client IDentifier. This is how GRR refers internally to the
-system.
+  system.
 - 'Host': The name of the host as the operating system sees it.
 - 'Version': The operating system version.
 - 'MAC': A list of MAC addresses of the system.
-- 'Usernames': A list of user accounts the operating system knows about
-(usually users local to the system or that have logged in).
+- 'Usernames': A list of user accounts the operating system knows about (usually
+  users local to the system or that have logged in).
 - 'Install': The time when the agent was installed on the system.
 - 'Clock': The last time the client communicated with a worker.
 
-Once you've found the client you were looking for, click on it and both the
-left panel and main panel will change to reflect you're now working with a
-client.
+Once you've found the client you were looking for, click on it and both the left
+panel and main panel will change to reflect you're now working with a client.
 
 
 The client view
 ~~~~~~~~~~~~~~~
 
 When interfacing with a client the left pane contains additional options. By
-default, the Host information view will be active.
-It shows most of the information that was available in the search results in
-an attribute-value. This is because all of the information relative to the
-client is stored as an attribute of it.
+default, the Host information view will be active.  It shows most of the
+information that was available in the search results in an attribute-value. This
+is because all of the information relative to the client is stored as an
+attribute of it.
 
 .Client view
-[caption="Figure 3: "]
 image::images/grr-gui-client-mainview.png[width=850,align="center"]
 
-GRR supports versioning of attributes. This means we store historical
-data of each of attribute. Effectively, each attribute value stores both the value
-and the time when this value was seen.
-When different values have been gathered over time for a specific attribute,
-a _+_ sign will appear before it in the GUI. Click on it and it will display a table with
-all the known values over time.
+GRR supports versioning of attributes. This means we store historical data of
+each of attribute. Effectively, each attribute value stores both the value and
+the time when this value was seen.  When different values have been gathered
+over time for a specific attribute, a _+_ sign will appear before it in the GUI.
+Click on it and it will display a table with all the known values over time.
 
 .Versioned MAC address
-[caption="Figure 4: "]
 image::images/grr-gui-client-versionedmac.png[width=850,align="center"]
 
 
 Listing the Virtual FileSystem
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-One of the basic requirements any forensic analyst needs from its tools is to be able 
-to browse the target system's filesystems. GRR allows you to do so but you won't find 
-the remote filesystems prepopulated once you add a new client.
+One of the basic requirements any forensic analyst needs from its tools is to be
+able to browse the target system's filesystems. GRR allows you to do so but you
+won't find the remote filesystems prepopulated once you add a new client.
 
-First, let's click the 'Browse Virtual Filesystem' option on the left panel to access
-this client's VFS.
-
-.GRR VFS for a client
-[caption="Figure 5: "]
-image::images/grr-gui-vfs-main.png[width=850,align="center"]
+First, let's click the 'Browse Virtual Filesystem' option on the left panel to
+access this client's VFS.
 
 As you can see, the main pane contains now 3 different subpanels:
 
-- 'Tree view'. Located on the left side, the tree view presents a classical tree view
-of the client's virtual filesystem.
-- 'Table view'. The table view shows the contents of whichever node is selected on
-the tree view as a table, showing several (but not all) the attributes of objects
-contained within the selected node.
-- 'Details view'. The bottom panel shows details about the node selected on the table
-view. It's a tab based panel that allows to check the node in depth. One can see all
-its attributes, download its contents or see them in the browser either on a text based
-or hex-based view.
+- 'Tree view'. Located on the left side, the tree view presents a classical tree
+  view of the client's virtual filesystem.
+- 'Table view'. The table view shows the contents of whichever node is selected
+  on the tree view as a table, showing several (but not all) the attributes of
+  objects contained within the selected node.
+- 'Details view'. The bottom panel shows details about the node selected on the
+  table view. It's a tab based panel that allows to check the node in depth. One
+  can see all its attributes, download its contents or see them in the browser
+  either on a text based or hex-based view.
 
 .GRR VFS Pane
-[caption="Figure 6: "]
 image::images/grr-gui-vfs-panels.png[width=850,align="center"]
 
 In order to check contents of the remote filesystem you first need to request a
-directory listing. And before that you need to know which drive or volume you want to
-list. You can find these under the `fs` (FileSystem) node of the tree view.
+directory listing. And before that you need to know which drive or volume you
+want to list. You can find these under the `fs` (FileSystem) node of the tree
+view.
 
 Inside you will find two directories:
 
 1. `os` contains the volumes seen by the Operating System.
-2. `tsk` contains volumes seen by sleuthkit when analyzing the partition table on the
-remote system. 
+2. `tsk` contains
+volumes seen by sleuthkit when analyzing the partition table on the remote
+system. 
 
 
 .GRR VFS fs node
-[caption="Figure 7: "]
 image::images/grr-gui-vfs-fs.png[width=850,align="center"]
 
 
-If you try to expand (just click) any of these volumes on a fresh system you will see
-they are empty. To list its contents you just need to click on the refresh button of
-the table view. This will ask the agent to obtain the directory and send it back to
-the server.
+If you try to expand (just click) any of these volumes on a fresh system you
+will see they are empty. To list its contents you just need to click on the
+refresh button of the table view. This will ask the agent to obtain the
+directory and send it back to the server.
 
-Wait just a few seconds and the table view will refresh itself and show the contents.
-Take into account the refresh button only requests a listing of the current directory
-in a non-recursive manner.
+Wait just a few seconds and the table view will refresh itself and show the
+contents.  Take into account the refresh button only requests a listing of the
+current directory in a non-recursive manner.
 
 
 .GRR VFS Directory listing done
-[caption="Figure 8: "]
 image::images/grr-gui-vfs-table-refresh.png[width=850,align="center"]
 
 
 [NOTE]
 ===============================================================================
-What just happened is that the GUI scheduled a Flow to list the directory.
-The agent received it and sent back messages with a list of entries. The
-frontend servers picked up the responses and populated the backend with an
-object for each of them. These objects are AFF4 objects and holdsthe filesystem
-specific attributes that we store (size on disk, dates, permissions) as
-attributes of this object. These AFF4 objects form a hierarchical (tree-like)
-structure. We map the filesystem hierarchy to the AFF4 hierarchy and the GUI
-simply shows you this list of objects in a custom view, which is the table
-you're seeing for the VFS.
+What just happened is that the GUI scheduled a Flow to list the directory.  The
+agent received it and sent back messages with a list of entries. The frontend
+servers picked up the responses and populated the datastore with an object for
+each of them. These objects are AFF4 objects and holdsthe filesystem specific
+attributes that we store (size on disk, dates, permissions) as attributes of
+this object. These AFF4 objects form a hierarchical (tree-like) structure. We
+map the filesystem hierarchy to the AFF4 hierarchy and the GUI simply shows you
+this list of objects in a custom view, which is the table you're seeing for the
+VFS.
 ===============================================================================
 
 The table view of the VFS shows a few columns by default:
@@ -315,12 +287,12 @@ The table view of the VFS shows a few columns by default:
 - 'Name'. Contains the name of the file/directory entry.
 - 'type'. The GRR object type assigned to this entry.
 - 'size'. The object contents size in GRR. 0 in general because you've
-downloaded no content so far.
+  downloaded no content so far.
 - 'stat.st_size'. The file/directory contents size on the remote filesystem.
 - 'stat.st_mtime'. The file/directory last written time in UTC on the remote
-filesystem.
+  filesystem.
 - 'stat.st_ctime'. The file/directory creation time in UTC on the remote
-filesystem..
+  filesystem..
 - 'age'. The time at which all of this information was stored.
 
 Now try clicking on any entry in the table view and the details view will
@@ -331,25 +303,162 @@ shows all the attributes for the selected node. It should look familiar to you
 as it's pretty much as the `Host Information` page you see where you can find
 information about the client object.
 
+The rest are discussed in the next section.
+
+
 Downloading Files
 ~~~~~~~~~~~~~~~~~
-.
+
+The easiest way to download a file is through the GUI. To do so, you first have
+to list the directory it's in and browse there with the GUI.
+
+Select the file on the table panel and click the 'Download' tab on the details
+view. By clicking on 'Get new version' you will issue a Flow to download the
+given file. The client will transfer the given file by creating messages with
+the file contents and it will be stored in the GRR datastore.
+
+.Download tab
+image::images/grr-gui-vfs-download.png[align="center"]
+
+Once the file is downloaded, a new button will appear in this view below the
+'Get new version' button called 'Download'. As you guessed, this allows you to
+download the file from the GRR datastore to your computer.
+
+.Downloaded file
+image::images/grr-gui-vfs-downloaded.png[align="center"]
+
+[NOTE]
+================================================================================
+For safety reasons, GRR appends ".noexec" to the name of every file you request
+to download to your computer.
+================================================================================
+
 
 Flows
 -----
 
-- Starting Flows
+When designing GRR, one of the main goals was achieving great scalability.  One
+of the main resource hogs with the client-server model is that while a client is
+active all resources that might have been needed on the server side to
+communicate with it and do processing are held (think temporary buffers,
+sockets, file descriptors...). Even when the client itself is doing operations
+that take time such as heavy computations or waiting on I/O, resources are held
+on the server.
+
+When trying to deal with thousands of clients at the same time, this would
+translates into the server hoarding many unneeded resources.
+
+To solve the resource hogging problem, Flows were created. Flows are the
+server-side code entities that call client actions. These calls are done
+asynchronously. That is, they are requested and their results become available
+later on. Flows are like a state machine, where transition between states
+happens when the results of client actions return to the server. So here's what
+happens when the GRR server launches a typical Flow.
+
+
+1. The GRR server executes the initial Flow state.
+
+2. This state asks for one or more client actions to be performed on the client.
+
+3. The server clears all the resources this Flow has requested and waits for
+responses from the client to come back.
+
+4. When responses are received, the server fetches all the needed resources
+again and runs the Flow state where it expects these responses. If more client
+actions are requested by this state it goes back to step 2. Otherwise...
+
+5. The results of this Flow are stored and the flow state is updated.
+
+Whether you've been following the 'Getting started' chapter or not, you can
+already check some flows in the GUI.
+
+While having a client selected, click on the 'Manage launched flows' link on the
+left panel. This will bring you to a view that shows all the Flows that have
+been requested on this client.
+
+.Launched flows view
+image::images/grr-gui-flows-main.png[width=850,align="center"]
+
+
+Launching flows manually
+^^^^^^^^^^^^^^^^^^^^^^^^
+_TODO_
+
+
+Finding flow results
+^^^^^^^^^^^^^^^^^^^^
+_TODO_
+
 
 Hunts
 -----
+_TODO_
+
 
 The console
 -----------
+_TODO_
+
 
 Glossary
 --------
-(cover all the terms, artifacts, collections etc)
 
-User FAQ
---------
-Frequently asked questions
+AFF4::
+AFF4 is the data model used for storage in GRR, with some minor extensions. You
+can read about the usage in the GRR paper linked above and there is additional
+detail linked at http://www.forensicswiki.org/wiki/AFF4
+
+Agent::
+A platform-specific program that is installed on machines that one might want to
+investigate. It communicates with the GRR server and can perform client actions
+at the server's request.
+
+Client::
+A system that has an agent installed. Also used to refer to the specific
+instance of an agent running in that system.
+
+Client Action::
+A client action is an action that a client can perform on behalf of the server.
+It is the base unit of work on the client. Client actions are initiated by the
+server through Flows.  Example client actions are ListDirectory,
+EnumerateFilesystems, Uninstall.
+
+Collection::
+A Collection is a logical set of objects stored in the AFF4 database. Generally
+these are a list of URNs containing a grouping of data such as Artifacts or
+Events from a client. 
+
+DataStore::
+The backend is where all AFF4 and Scheduler data is stored. It is provided as an
+abstraction to allow for replacement of the datastore without significant
+rewrite. The datastore supports read, write, querying and filtering.
+
+Flow::
+A logical collection of server or client actions which achieve a given
+objective. A flow is the core unit of work in the GRR server. For example a
+BrowserHistory flow contains all the logic to download, extract and display
+browser history from a client. Flows can call other flows to get their job
+done. E.g. A CollectBrowserHistory flow might call ListDirectory and GetFile to
+do it's work. A flow is implemented as a class that inherits from GRRFlow. 
+
+Frontend server::
+Server-side component that sends and receives messages back and forth from
+clients.
+
+Hunt::
+A Hunt is a mechanism for managing the execution of a flow on a large number of
+machines. A hunt is normally used when you are searching for a specific piece of
+data across a fleet of machines. Hunts allow for monitoring and reporting of
+status.
+
+Message::
+Transfer unit in GRR that transports information from a Flow to a client and
+viceversa.
+
+Worker::
+Once receiving a message from a client a worker will wake up the Flow that
+requested its results and execute it.
+
+
+FAQ
+---
