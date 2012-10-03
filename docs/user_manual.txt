@@ -3,52 +3,48 @@ GRR User manual
 :toc2:
 :icons:
 
-
 The GRR response model
 ----------------------
 _TODO_
 
-
 High-level overview
 -------------------
 
-To function, an _agent_ is deployed on systems that one might want to
-investigate. Once deployed, each system becomes a GRR _client_ and they can
-start receiving messages from the frontend servers. Each message tells the
-client to run a specific client action and return the results. A client action
-is simply some well known code the agent knows how to execute (such as obtaining
-the list of files in a directory or reading a buffer from a file).
+To function, an <<agent,_agent_>> is deployed on systems that one might want to
+investigate. Once deployed, each system becomes a GRR <<client,_client_>> and
+they can start receiving <<message,messages>> from the frontend servers. Each
+message tells the client to run a specific <<client_action,_client action_>> and
+return the results. A client action is simply some well known code the agent
+knows how to execute (such as obtaining the list of files in a directory or
+reading a buffer from a file).
 
-These actions are invoked server-side through what we call Flows. A Flow is a
-piece of server-side code that asks the GRR system to schedule remote calls to a
-client and has some additional logic to decide what to do based on the call
-results.
+These actions are invoked server-side through what we call <<flow,_flows_>>. A
+<<flow,_flow_>> is a piece of server-side code that asks the GRR system to
+schedule remote calls to a client and has some additional logic to decide what
+to do based on the call results.
 
-This _Flow_ is running on a client because a user initiated it. To do so, he
-probably used the web GUI, which allows a GRR user to start flows for clients
-and review the results. Or he could also have used the text-based _console_ to
-do the same.
-
-
-The Virtual Filesystem
-----------------------
-_TODO_
+This <<flow,_flow_>> is running on a client because a user initiated it. To do
+so, he probably used the web-based Graphical User Interface (GUI), which allows
+a GRR user to start flows for clients and review the results. Or he could also
+have used the text-based <<_the_console,_console_>> to do the same.
 
 
 Getting started
 ---------------
 
-Once we've got link:installation.html[the GRR server installed and running]
-we'll want to start deploying some agents.
+Once we've got link:admin.html[the GRR server installed and running] we'll want
+to start deploying some agents.
 
 To do so we'll need to:
-
 
 1. Download the specific agent version we need to install on the system.
 
 2. Decide on a deployment method.
 
 3. Perform the deployment and verify the results.
+
+For instructions on how to find/build the agents, please refer to
+http://code.google.com/p/grr/wiki/InstallingGRR.
 
 
 Deployment methods
@@ -89,6 +85,7 @@ want to include it in a script.
 You'll need to replace:
 
 - C:\AGENT_DIRECTORY\ with the full path you chose.
+
 - MACHINE with the name of the target system.
 - USERNAME with the user with administrative privileges on the target system.
 
@@ -131,21 +128,17 @@ the user USERNAME on that share or by using an Anonymous share.
 The best way to verify whether the whole installation process has worked is to
 xref:_searching_for_a_client[search for the client in the GUI].
 
-
 Linux / MacOS X deployment
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 _TODO_
-
 
 Deploying at scale
 ~~~~~~~~~~~~~~~~~~
 
 _TODO_
 
-
 The GRR GUI
 -----------
-
 
 Searching for a client
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -154,10 +147,12 @@ the GUI. The GRR search bar is located at the top of the GUI and allows you to
 search clients based on their hostname, users available on the system or client
 ID.
 
+
 .GRR search bar
 image::images/grr-gui-searchbar.png[width=850,align="center"]
 
-[NOTE]
+
+[TIP]
 =============================================================================
 One can also specify a specific attribute to search for by using the convention
 "attribute_name:search_value". So to search for usernames matching john we would
@@ -168,22 +163,31 @@ We'll use "domU" in our case, as we've installed the agent in a hostname
 matching this name. A list of available clients matching your criteria will
 show.
 
+
 .Search results
 image::images/grr-gui-searchbar-results.png[width=850,align="center"]
+
 
 As you can see, the main panel gets populated with table-based results. Let's go
 through each of the columns shown:
 
 - 'Online': An icon indicating whether the host is online or not. Green means
   online; yellow, offline for some time; red, offline for a long time.
+
 - 'subject': The client IDentifier. This is how GRR refers internally to the
   system.
+
 - 'Host': The name of the host as the operating system sees it.
+
 - 'Version': The operating system version.
+
 - 'MAC': A list of MAC addresses of the system.
+
 - 'Usernames': A list of user accounts the operating system knows about (usually
   users local to the system or that have logged in).
+
 - 'Install': The time when the agent was installed on the system.
+
 - 'Clock': The last time the client communicated with a worker.
 
 Once you've found the client you were looking for, click on it and both the left
@@ -194,19 +198,22 @@ The client view
 ~~~~~~~~~~~~~~~
 
 When interfacing with a client the left pane contains additional options. By
-default, the Host information view will be active.  It shows most of the
+default, the Host information view will be active. It shows most of the
 information that was available in the search results in an attribute-value. This
 is because all of the information relative to the client is stored as an
 attribute of it.
 
+
 .Client view
 image::images/grr-gui-client-mainview.png[width=850,align="center"]
 
+
 GRR supports versioning of attributes. This means we store historical data of
 each of attribute. Effectively, each attribute value stores both the value and
-the time when this value was seen.  When different values have been gathered
-over time for a specific attribute, a _+_ sign will appear before it in the GUI.
+the time when this value was seen. When different values have been gathered over
+time for a specific attribute, a _+_ sign will appear before it in the GUI.
 Click on it and it will display a table with all the known values over time.
+
 
 .Versioned MAC address
 image::images/grr-gui-client-versionedmac.png[width=850,align="center"]
@@ -222,20 +229,25 @@ won't find the remote filesystems prepopulated once you add a new client.
 First, let's click the 'Browse Virtual Filesystem' option on the left panel to
 access this client's VFS.
 
+
 As you can see, the main pane contains now 3 different subpanels:
 
 - 'Tree view'. Located on the left side, the tree view presents a classical tree
   view of the client's virtual filesystem.
+
 - 'Table view'. The table view shows the contents of whichever node is selected
   on the tree view as a table, showing several (but not all) the attributes of
   objects contained within the selected node.
+
 - 'Details view'. The bottom panel shows details about the node selected on the
   table view. It's a tab based panel that allows to check the node in depth. One
   can see all its attributes, download its contents or see them in the browser
   either on a text based or hex-based view.
 
+
 .GRR VFS Pane
 image::images/grr-gui-vfs-panels.png[width=850,align="center"]
+
 
 In order to check contents of the remote filesystem you first need to request a
 directory listing. And before that you need to know which drive or volume you
@@ -245,9 +257,9 @@ view.
 Inside you will find two directories:
 
 1. `os` contains the volumes seen by the Operating System.
-2. `tsk` contains
-volumes seen by sleuthkit when analyzing the partition table on the remote
-system. 
+
+2. `tsk` contains volumes seen by sleuthkit when analyzing the partition table
+on the remote system. 
 
 
 .GRR VFS fs node
@@ -284,11 +296,14 @@ VFS.
 The table view of the VFS shows a few columns by default:
 
 - 'icon'. Shows whether this entry is a file or a directory.
+
 - 'Name'. Contains the name of the file/directory entry.
 - 'type'. The GRR object type assigned to this entry.
+
 - 'size'. The object contents size in GRR. 0 in general because you've
   downloaded no content so far.
 - 'stat.st_size'. The file/directory contents size on the remote filesystem.
+
 - 'stat.st_mtime'. The file/directory last written time in UTC on the remote
   filesystem.
 - 'stat.st_ctime'. The file/directory creation time in UTC on the remote
@@ -305,7 +320,6 @@ information about the client object.
 
 The rest are discussed in the next section.
 
-
 Downloading Files
 ~~~~~~~~~~~~~~~~~
 
@@ -317,21 +331,30 @@ view. By clicking on 'Get new version' you will issue a Flow to download the
 given file. The client will transfer the given file by creating messages with
 the file contents and it will be stored in the GRR datastore.
 
+
 .Download tab
 image::images/grr-gui-vfs-download.png[align="center"]
 
-Once the file is downloaded, a new button will appear in this view below the
+
+Once the file is downloaded, a new button will appear in this view above the
 'Get new version' button called 'Download'. As you guessed, this allows you to
 download the file from the GRR datastore to your computer.
+
 
 .Downloaded file
 image::images/grr-gui-vfs-downloaded.png[align="center"]
 
-[NOTE]
+
+[CAUTION]
 ================================================================================
 For safety reasons, GRR appends ".noexec" to the name of every file you request
 to download to your computer.
 ================================================================================
+
+
+The Virtual Filesystem
+----------------------
+_TODO_
 
 
 Flows
@@ -355,7 +378,6 @@ later on. Flows are like a state machine, where transition between states
 happens when the results of client actions return to the server. So here's what
 happens when the GRR server launches a typical Flow.
 
-
 1. The GRR server executes the initial Flow state.
 
 2. This state asks for one or more client actions to be performed on the client.
@@ -369,30 +391,743 @@ actions are requested by this state it goes back to step 2. Otherwise...
 
 5. The results of this Flow are stored and the flow state is updated.
 
-Whether you've been following the 'Getting started' chapter or not, you can
-already check some flows in the GUI.
+Flows have a second very interesting property. For flows that make use of some
+of the most primitive client actions, because all of the logic is encapsulated
+on the server side and the client doesn't have any state at all, they naturally
+survive reboots while processing is taking place.
 
-While having a client selected, click on the 'Manage launched flows' link on the
-left panel. This will bring you to a view that shows all the Flows that have
-been requested on this client.
+Now, whether you've been following the <<_getting_started,'Getting started'>>
+chapter or not, as long as you have a client communicating with the server you
+can already check some flows in the GUI. While having selected a client in the
+GUI, click on the 'Manage launched flows' link on the left panel.  This will
+bring you to a view that shows all the Flows that have been requested on this
+client.
+
 
 .Launched flows view
 image::images/grr-gui-flows-main.png[width=850,align="center"]
 
 
+The flows view resembles very much the VFS view. Indeed, the GUI reuses
+table-detail panels on many of the views. The table view shows the current state
+of the flow, what's the flow identifier ('Path'), the name of the Flow launched,
+the date when it was launched, when it was last active and who created it.
+
+As you can see, 4 Flows have been launched in the shown example:
+
+1. 'CAEnroler'. This is the first flow ever to launch for any client. It is the
+enroling Flow which gets the client set up server side. 
+
+2. 'Interrogate'. After enroling, a client sends some information about the
+machine it's running in such as the hostname, MAC address or users available
+on the system. This is the flow that fetches this information and if you
+remember the 'Host Information' option, most information is contained there.
+
+3. 'ListDirectory'. A Flow that lists the contents of a directory. This is what
+happened when the refresh button was pressed on the GUI.
+
+4. 'GetFile'. A flow to download a specific file on a client. This is the flow
+that got launched when we asked to download a file through the GUI.
+
+
+[IMPORTANT]
+===============================================================================
+The list of flows doesn't auto-refresh at the moment. To see it updated you will
+have to manually refresh it by clicking on the 'Manage launched flows' option
+again.
+
+Clicking on an individual flow to see its details, however, DOES get fresh
+information from the datastore.
+===============================================================================
+
+
+Let's see the 'ListDirectory' flow in detail. You can click on any flow to get
+detailed information.
+
+
+.ListDirectory flow details
+image::images/grr-gui-flows-listdirectory.png[align="center"]
+
+
+There's a lot of information here. Again, all these values are attributes. The
+most interesting bits are the flow 'state', which tells us whether it finished
+correctly (oddly named *TERMINATED*) or not (*ERROR*), or if it's still running
+(*RUNNING*). The 'args', which are the specific arguments that were passed to
+it. Finally, the 'LOG' attribute holds a list of messages the Flow generated.
+
+
 Launching flows manually
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+We've seen how Flows were created through the UI. Now, we are gonna issue our
+own 'ListDirectory' flow, giving it parameters and then you can check the
+<<_available_flows,available flows>> list to decide what else you might want to
+run on your client.
+
+To start a new Flow simply click on the 'Start new flows' option on the left
+panel. The main panell will populate with the holy trinity of panels. The tree
+view shows all the Flows organized by category.
+
+Expand the 'FileSystem' category and select the 'ListDirectory' flow. The flow
+view will populate with a form with all the user-configurable parameters for
+every flow. What's more, because each parameter has a well-defined type, GRR
+shows you nice widgets to select a value for each of them.
+
+The ListDirectory flow accepts three parameters (the client ID is implicit in
+the GUI):
+
+1. 'path'. This is the textual path that you want listed.
+
+2. 'pathtype'. Which VFS handler you want to use for the path. Available options
+are:
+  - *OS*. Uses the OS "open" facility. These are the most straightforward for a
+    first user. Examples of 'os' paths are +C:/Windows+ on Windows or
+    +/etc/init.d/+ on Linux/OSX.
+
+  - *TSK*. Use Sleuthkit. Because Sleuthkit is invoked a path to the device is
+    needed along the actual directory path. Examples of 'tsk' paths are
+    +\\?\Volume\{19b4a721-6e90-12d3-fa01-806e6f6e6963\}\Windows+ for Windows or
+    +/dev/sda1/init.d/+ on Linux. The specific path will vary from client to
+    client.
+
+  - *REGISTRY*. Windows-related. You can open the live Windows registry as if it
+    was a virtual filesystem.a So you can specify a 'path' such as
+    +HKEY_LOCAL_MACHINE/Select/Current+.
+
+  - *MEMORY*. Access the client memory.
+
+3. 'Priority'. Three thresholds are given to flows. The higher priority flows
+take precedence executing over lower priority ones. By default all flows are
+scheduled as Medium priority. In general, you shouldn't change this parameter.
+
+Once you've filled in each required field, click on 'Launch' and if all
+parameters validated, the Flow will run. Now you can go to the 'Manage launched
+flows' view to find it running or track it.
+
+[IMPORTANT]
+===============================================================================
+Not all flows might be available on every platform. When trying to run a flow
+that's not available in the given platform an error will show up.
+===============================================================================
+
+
+Available flows
+~~~~~~~~~~~~~~~
+
+
+Administrative/ExecuteCommand
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Execute a predefined command on the client.
+
+
+Administrative/GetClientStats
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This flow retrieves information about the GRR client process.
+
+Arguments
+
+- 'context': A FlowContext object that will save the state for this flow.
+
+- 'notify_to_user': Should this flow notify completion to the user that started
+  it?
+
+
+Administrative/Kill
+^^^^^^^^^^^^^^^^^^^
+Terminate a running client (does not disable, just kill).
+
+Arguments
+
+- 'context': A FlowContext object that will save the state for this flow.
+
+- 'notify_to_user': Should this flow notify completion to the user that started
+  it?
+
+
+Administrative/OnlineNotification
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Notifies by email when a client comes online in GRR.
+
+Arguments
+
+- 'email': Email address to send to, can be comma separated. If not set, mail
+  will be sent to the logged in user.
+
+
+Administrative/Uninstall
 ^^^^^^^^^^^^^^^^^^^^^^^^
-_TODO_
+Removes the persistence mechanism which the client uses at boot. For Windows and
+OSX, this will disable the service, and then stop the service. For Linux this
+flow will fail as we haven't implemented it yet :)
 
 
-Finding flow results
+Administrative/Update
+^^^^^^^^^^^^^^^^^^^^^
+Updates the GRR client to a new version.
+
+Arguments
+
+- 'blob_path': An aff4 path to a GRRSignedBlob of a new client version.
+
+
+Automation/LinSystemActivityInvestigation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Do the initial work for a Linux system investigation.
+
+Arguments
+
+- 'list_processes': Call the ListProcesses flow.
+
+- 'list_network_connections': Call the Netstat flow.
+
+- 'artifact_list': List of artifacts to collect. If None use self.artifact_list.
+
+- 'use_tsk': Use raw filesystem access where possible.
+
+- 'timeline_collected_data': Once complete create a timeline for the host.
+
+
+Automation/WinSystemActivityInvestigation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Do the initial work for a system investigation.
+
+Arguments
+
+- 'list_processes': Call the ListProcesses flow.
+
+- 'list_network_connections': Call the Netstat flow.
+
+- 'artifact_list': List of artifacts to collect. If None use self.artifact_list.
+
+- 'collect_av_data': Call the Antivirus flows to collect quarantine/logs.
+  collect_bit9_database: Collect the bit9 database.
+
+- 'collect_prefetch': List the prefetch directory.
+
+- 'use_tsk': Use raw filesystem access where possible.
+
+- 'timeline_collected_data': Once complete create a timeline for the host.
+
+
+Automation/WinUserActivityInvestigation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Do the initial work for a user investigation.
+
+Arguments
+
+- 'username': The user to target the actions to.
+
+- 'get_browser_history': Call each of the browser history flows.
+- 'recursive_list_homedir': Recursively list the users homedir to this depth.
+
+- 'recursive_list_user_registry': Recursively list the users registry hive.
+- 'artifact_list': A list of Artifact names. If None use self.artifact_list.
+
+- 'timeline_collected_data': Once complete create a timeline for the host.
+- 'use_tsk': Use raw filesystem access where possible.
+
+
+Browser/ChromeHistory
+^^^^^^^^^^^^^^^^^^^^^
+Retrieve and analyze the chrome history for a machine. Default directories as
+per: http://www.chromium.org/user-experience/user-data-directory
+
+Windows XP
+Google Chrome:
+
+  c:\Documents and Settings\<username>\Local Settings\Application Data Google\
+  Chrome\User Data\Default
+
+Windows 7 or Vista
+  c:\Users\<username>\AppData\Local\Google\Chrome\User Data\Default
+
+Mac OS X
+
+  /Users/<user>/Library/Application Support/Google/Chrome/Default
+
+Linux
+
+  /home/<user>/.config/google-chrome/Default
+
+Arguments
+
+- 'username': String, the user to get Chrome history for. If history_path is not
+  set this will be used to guess the path to the history files. Can be in form
+  DOMAIN\user.
+
+- 'history_path': A specific file to parse.
+
+- 'get_archive': Should we get Archived History as well (3 months old).
+
+- 'pathtype': Type of path to use.
+
+- 'output': A path relative to the client to put the output.
+
+
+Browser/ChromePlugins
+^^^^^^^^^^^^^^^^^^^^^
+Extract information about the installed Chrome extensions. Default directories
+as per: http://www.chromium.org/user-experience/user-data-directory
+
+Windows XP
+
+  c:\Documents and Settings\<username>\Local Settings Application Data\
+  Google\Chrome\User Data\Default\Extensions
+
+Windows 7 or Vista
+
+  c:\Users\<username>\AppData\Local\Google\Chrome\User Data\Default\Extensions
+
+Mac OS X
+
+  /Users/<user>/Library/Application Support/Google/Chrome/Default/Extensions
+
+Linux
+
+  /home/<user>/.config/google-chrome/Default/Extensions
+
+Arguments
+
+- 'download_files': If set to 1, all files belonging to the extension are
+  downloaded for analysis.
+
+- 'path': A path to a Chrome Extensions directory. If path is None, the
+  directory is guessed.
+
+- 'pathtype': Identifies requested path type (Enum from Path protobuf).
+
+- 'output': A path relative to the client to put the output.
+
+- 'username': String, the user to get Chrome extension info for. If path is not
+  set this will be used to guess the path to the extensions. For Windows domain
+  can be specified using DOMAIN\user nomenclature.
+
+
+Browser/FirefoxHistory
+^^^^^^^^^^^^^^^^^^^^^^
+Retrieve and analyze the Firefox history for a machine. Default directories as
+per: http://www.forensicswiki.org/wiki/Mozilla_Firefox_3_History_File_Format
+
+Windows XP
+
+  C:\Documents and Settings\<username>\Application Data\Mozilla Firefox\
+  Profiles\<profile folder>\places.sqlite
+
+Windows Vista
+
+  C:\Users\<user>\AppData\Roaming\Mozilla\Firefox\Profiles\<profile
+  folder>\places.sqlite
+
+GNU/Linux
+
+  /home/<user>/.mozilla/firefox/<profile folder>/places.sqlite
+
+Mac OS X
+
+  /Users/<user>/Library/Application Support/Firefox/Profiles/<profile
+  folder>/places.sqlite
+
+Arguments
+
+- 'username': String, the user to get the history for. If history_path is not
+  set this will be used to guess the path to the history files. Can be in form
+  DOMAIN\user.
+- 'history_path': A specific file to parse.
+
+- 'pathtype': Type of path to use.
+
+- 'output': A path relative to the client to put the output.
+
+
+Collectors/JavaCacheCollector
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Collect all files in a user specific Java Cache directory.
+
+Arguments
+
+- 'pathtype': Identifies requested path type. Enum from Path protobuf.
+
+- 'username': A string containing the username.
+
+- 'domain': Optional string containing the domain of the username.
+
+- 'cachedir': Path to the Java cache. If provided, this overrides the guessing
+  of the cache directory using username/domain.
+- 'output': If set, a URN to an AFF4Collection to add each result to.  This will
+  create the collection if it does not exist.
+
+
+Collectors/SophosCollector
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+Collect all files related to Sophos.
+
+Arguments
+
+- 'pathtype': Identifies requested path type. Enum from Path protobuf.
+
+- 'output': If set, a URN to an AFF4Collection to add each result to.  This will
+  create the collection if it does not exist.
+
+
+Filesystem/DownloadDirectory
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Flow for recursively downloading all files in a directory.
+
+Arguments
+
+- 'path': The directory path to download.
+
+- 'pathtype': The type of path.
+
+- 'depth': Maximum recursion depth.
+
+- 'pathspec': If specified overrides path to the location of the directory.
+
+- 'ignore_errors': If True, we do not raise an error in the case that a
+  directory or file cannot be not found.
+
+
+Filesystem/FastGetFile
+^^^^^^^^^^^^^^^^^^^^^^
+An experimental GetFile which uses deduplication to save bandwidth.
+
+
+Filesystem/FetchAllFiles
+^^^^^^^^^^^^^^^^^^^^^^^^
+Fetch all files satisfying a findspec, unless already fetched.
+This flow finds files, computes their hashes, and fetches 'new' files.
+
+The result from this flow is a population of aff4 objects under
+aff4:/fp/(generic|pecoff)/<hashname>/<hashvalue>.  There may also be a symlink
+from the original file to the retrieved content.
+
+Arguments
+
+- 'pattern': filename_regex to search for. The default is good for windows.
+
+- 'pecoff': This causes the computation of Authenticode hashes, and their
+        use for deduplicating file fetches.
+
+- 'findspec': A jobs_pb2.Find, if specified, pattern and the pathspec
+        are ignored.
+
+- 'pathspec': If provided we start searching for the files recursively
+        from this path.
+
+
+Filesystem/FindFiles
 ^^^^^^^^^^^^^^^^^^^^
-_TODO_
+This flow searches for files on the client.
+
+The result from this flow is an AFF4Collection which will be created on the
+output path, containing all aff4 objects on the client which match the
+criteria. Note that these files will not be downloaded by this flow, only the
+metadata of the file in fetched.
+
+[CAUTION]
+==============================================================================
+This flow is inefficient for collecting a large number of files.
+==============================================================================
+
+Arguments
+
+- 'path': Search recursively from this place.
+
+- 'pathtype': Identifies requested path type. Enum from Path protobuf.
+
+- 'filename_regex': A regular expression to match the filename (Note only the
+  base component of the filename is matched).
+
+- 'data_regex': The file data should match this regex.
+
+- 'iterate_on_number': The total number of files to search before iterating on
+  the server.
+
+- 'max_results': Maximum number of results to get.
+
+- 'output': The path to the output container for this find. Will be created
+  under the client. supports format variables {u} and {t} for user and time.
+  E.g. /analysis/find/{u}-{t}.  If set to None, no collection will be created.
+
+- 'findspec': A jobs_pb2.Find, if specified, other arguments are ignored.
+
+- 'cross_devs': If True, the find action will descend into mounted devices.
 
 
-Hunts
------
-_TODO_
+Filesystem/FingerprintFile
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+Retrieve all fingerprints of a file.
+
+Allows declaration of a path or pathspec to compute the fingerprint on.
+
+Arguments
+
+- 'path': The file path to fingerprint.
+
+- 'pathtype': Identifies requested path type. Enum from Path protobuf.
+
+- 'device': Optional raw device that should be accessed.
+
+- 'pathspec': Use a pathspec instead of a path.
+
+
+Filesystem/GetFile
+^^^^^^^^^^^^^^^^^^
+An efficient file transfer mechanism.
+
+This flow uses chunking and hashes to de-duplicate data and send it efficiently.
+
+Arguments
+
+- 'path': The directory path to list.
+
+- 'pathtype': Identifies requested path type. Enum from Path protobuf.
+
+- 'pathspec': This flow also accepts all the information in one pathspec.  which
+  is preferred over the path and pathtype definition
+
+
+Filesystem/GetMBR
+^^^^^^^^^^^^^^^^^
+A flow to retrieve the MBR.
+
+
+Filesystem/Grep
+^^^^^^^^^^^^^^^
+This flow greps a file on the client for a pattern or a regex.
+
+Arguments
+
+- 'path': A path to the file.
+
+- 'pathtype': Identifies requested path type. Enum from Path protobuf.
+
+- 'grep_regex': The file data should match this regex.
+
+- 'grep_literal': The file data should contain this pattern. Only one parameter
+  of grep_regex and grep_literal should be set.
+- 'offset': An offset in the file to start grepping from.
+
+- 'length': The maximum number of bytes this flow will look at.
+
+- 'mode': Should this grep return all hits or just the first.
+
+- 'bytes_before': The number of data bytes to return before each hit.
+
+- 'bytes_after': The number of data bytes to return after each hit.
+
+- 'output': The path to the output container for this find. Will be created
+  under the client. supports format variables {u} and {t} for user and time.
+  E.g. /analysis/grep/{u}-{t}.
+
+
+Filesystem/ListDirectory
+^^^^^^^^^^^^^^^^^^^^^^^^
+List files in a directory.
+
+Arguments
+
+- 'path': The directory path to list.
+
+- 'pathtype': Identifies requested path type (Enum from Path protobuf).
+- 'pathspec': This flow also accepts all the information in one pathspec.
+
+
+Filesystem/RecursiveListDirectory
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Recursively list directory on the client.  This flow builds a timeline for the
+filesystem on the client.
+
+Arguments
+
+- 'path': Search recursively from this place.
+
+- 'pathtype': Identifies requested path type. Enum from Path protobuf.
+
+- 'pathspec': This flow also accepts all the information in one pathspec.
+
+- 'max_depth': Maximum depth to recurse
+
+
+Filesystem/SlowGetFile
+^^^^^^^^^^^^^^^^^^^^^^
+Simple file retrival.
+
+This flow does not use the efficient hash transfer mechanism used in GetFile
+so its only really suitable for transferring very small files.
+
+Arguments
+
+- 'path': The directory path to list.
+
+- 'pathtype': Identifies requested path type. Enum from Path protobuf.
+
+- 'aff4_chunk_size': Specifies how much data is sent back from the client in
+  each chunk.
+
+- 'pathspec': Use a pathspec instead of a path.
+
+
+Memory/AnalyseClientMemory
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+Runs client side analysis using volatility.
+
+Arguments
+
+- 'plugins': A list of volatility plugins to run on the client.
+
+- 'driver_installer': An optional driver installer protobuf.
+
+- 'profile': A volatility profile. None guesses.
+
+
+Memory/LoadMemoryDriver
+^^^^^^^^^^^^^^^^^^^^^^^
+Load a memory driver on the client.
+
+Arguments
+
+- 'driver_installer': An optional InstallDriverRequest proto to control driver
+  installation. If not set, the default installation proto will be used.
+
+
+Memory/UnloadMemoryDriver
+^^^^^^^^^^^^^^^^^^^^^^^^^
+Unloads a memory driver on the client.
+
+Arguments
+
+- 'driver_installer': An optional InstallDriverRequest proto to control driver
+  installation. If not set, the default installation proto will be used.
+
+
+Metadata/Interrogate
+^^^^^^^^^^^^^^^^^^^^
+Interrogate various things about the host.
+
+Arguments
+
+- 'context': A FlowContext object that will save the state for this flow.
+
+- 'notify_to_user': Should this flow notify completion to the user that started
+  it?
+
+Misc/TakeScreenshot
+^^^^^^^^^^^^^^^^^^^
+Take a screenshot from a running system.
+
+Arguments
+
+- 'context': A FlowContext object that will save the state for this flow.
+
+- 'notify_to_user': Should this flow notify completion to the user that started
+  it?
+
+Network/Netstat
+^^^^^^^^^^^^^^^
+List running processes on a system.
+
+Arguments
+
+- 'context': A FlowContext object that will save the state for this flow.
+
+- 'notify_to_user': Should this flow notify completion to the user that started
+  it?
+
+Processes/ListProcesses
+^^^^^^^^^^^^^^^^^^^^^^^
+List running processes on a system.
+Constructor for the Flow.
+
+Arguments
+
+- 'context': A FlowContext object that will save the state for this flow.
+
+- 'notify_to_user': Should this flow notify completion to the user that started
+  it?
+
+
+Registry/CollectRunKeys
+^^^^^^^^^^^^^^^^^^^^^^^
+Collect Run and RunOnce keys on the system for all users and System.
+
+Arguments
+
+- 'context': A FlowContext object that will save the state for this flow.
+
+- 'notify_to_user': Should this flow notify completion to the user that started
+  it?
+
+
+Registry/FindMRU
+^^^^^^^^^^^^^^^^
+Collect a list of the Most Recently Used files for all users.
+
+Arguments
+
+- 'context': A FlowContext object that will save the state for this flow.
+
+- 'notify_to_user': Should this flow notify completion to the user that started
+  it?
+
+Services/EnumerateRunningServices
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Collect running services.
+
+Arguments
+
+- 'context': A FlowContext object that will save the state for this flow.
+
+- 'notify_to_user': Should this flow notify completion to the user that started
+  it?
+
+Timeline/MACTimes
+^^^^^^^^^^^^^^^^^
+Calculate the MAC times from objects in the VFS.
+This flow builds a timeline for the filesystem on the client.
+
+[NOTE]
+=====================================================
+Currently only VFSDirectory objects are supported.
+=====================================================
+
+Arguments
+
+- 'path': An AFF4 path (relative to the client area of the VFS).
+
+- 'output': The path to the output container for this find. Will be created
+  under the client. supports format variables {u} and {t} for user and time.
+  E.g. /analysis/timeline/{u}-{t}.
+
+
+Volatility/Mutexes
+^^^^^^^^^^^^^^^^^^
+This flow uses a volatility plugin to find mutexes. It relies on a memory
+driver being loaded on the client or it will fail.
+
+Arguments
+
+- 'device': Name of the device the memory driver created.
+
+- 'output': The path to the output container for this find. Will be created
+  under the client. supports format variables {u} and {t} for user and time.
+  E.g. /analysis/mutexes/{u}-{t}.
+
+
+Volatility/VolatilityPlugins
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This flow runs a volatility plugin. It relies on a memory driver being loaded on
+the client or it will fail.
+
+Arguments
+
+- 'plugins': A list of plugins to run.
+
+- 'device': Name of the device the memory driver created.
+
+- 'output': The path to the output container for this find. Will be created
+  under the client. supports format variables {u}, {p} and {t} for user, plugin
+  and time. E.g. /analysis/{p}/{u}-{t}.
 
 
 The console
@@ -403,37 +1138,37 @@ _TODO_
 Glossary
 --------
 
-AFF4::
+[[aff4]] AFF4::
 AFF4 is the data model used for storage in GRR, with some minor extensions. You
 can read about the usage in the GRR paper linked above and there is additional
 detail linked at http://www.forensicswiki.org/wiki/AFF4
 
-Agent::
+[[agent]] Agent::
 A platform-specific program that is installed on machines that one might want to
 investigate. It communicates with the GRR server and can perform client actions
 at the server's request.
 
-Client::
+[[client]] Client::
 A system that has an agent installed. Also used to refer to the specific
 instance of an agent running in that system.
 
-Client Action::
+[[client_action]] Client Action::
 A client action is an action that a client can perform on behalf of the server.
 It is the base unit of work on the client. Client actions are initiated by the
 server through Flows.  Example client actions are ListDirectory,
 EnumerateFilesystems, Uninstall.
 
-Collection::
+[[collection]] Collection::
 A Collection is a logical set of objects stored in the AFF4 database. Generally
 these are a list of URNs containing a grouping of data such as Artifacts or
 Events from a client. 
 
-DataStore::
+[[datastore]] DataStore::
 The backend is where all AFF4 and Scheduler data is stored. It is provided as an
 abstraction to allow for replacement of the datastore without significant
 rewrite. The datastore supports read, write, querying and filtering.
 
-Flow::
+[[flow]] Flow::
 A logical collection of server or client actions which achieve a given
 objective. A flow is the core unit of work in the GRR server. For example a
 BrowserHistory flow contains all the logic to download, extract and display
@@ -445,20 +1180,22 @@ Frontend server::
 Server-side component that sends and receives messages back and forth from
 clients.
 
-Hunt::
+[[hunt]] Hunt::
 A Hunt is a mechanism for managing the execution of a flow on a large number of
 machines. A hunt is normally used when you are searching for a specific piece of
 data across a fleet of machines. Hunts allow for monitoring and reporting of
 status.
 
-Message::
+[[message]] Message::
 Transfer unit in GRR that transports information from a Flow to a client and
 viceversa.
 
-Worker::
+[[worker]] Worker::
 Once receiving a message from a client a worker will wake up the Flow that
 requested its results and execute it.
 
 
 FAQ
 ---
+
+

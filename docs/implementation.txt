@@ -273,8 +273,105 @@ class CAEnroler(flow.GRRFlow):
     self.Publish("ClientEnrollment", certificate_attribute.AsProto())
 ------------------------------------------------------------------------
 
+[[Hunts]]
+Hunts
+-----
+
+In order to be able to search for malicious code and abnormal behavior
+amongst the entire fleet of clients, GRR has implemented the concept
+of hunts. Hunts are essentially flows that run on multiple clients at
+the same time.
+
+At the moment, hunts are regarded as rather high impact since they can
+affect many clients at once so scheduling new hunts is restricted to
+console users. In order to schedule a hunt, this is the process:
+
+Import the hunts file and create a new hunt (This example uses the
+SampleHunt, replace with a hunt of your choice):
+
+[source,python]
+------------------------------------------------------------------------
+hunt = hunts.SampleHunt(client_limit=100, expiry_time=36000)
+------------------------------------------------------------------------
+
+This creates the SampleHunt, possible parameters:
+
+- client_limit to limit the number of clients this hunt will be
+  scheduled on for experiments.
+- expiry_time gives the time this hunt will be active (in seconds).
+
+Next you have to create rules to indicate which clients the hunt will
+be run on. Rules either compare fields stored in the client
+description to integer values or match regular expressions against
+them:
+
+[source,python]
+------------------------------------------------------------------------
+int_rule = jobs_pb2.ForemanAttributeInteger(
+                   attribute_name=client.Schema.OS_RELEASE.name,
+                   operator=jobs_pb2.ForemanAttributeInteger.EQUAL,
+                   value=7)
+regex_rule = flow.GRRHunt.MATCH_WINDOWS
+------------------------------------------------------------------------
+
+The two rules above will match clients that run windows and have an
+OS_RELEASE of 7.
+
+Next, you add the rules to the hunt:
+
+[source,python]
+------------------------------------------------------------------------
+hunt.AddRule([int_rule, regex_rule])
+------------------------------------------------------------------------
+
+You can call AddRule more than once. The hunt will be triggered if all
+the rules of one AddRule call match at the same time. So you can do:
+
+[source,python]
+------------------------------------------------------------------------
+hunt.AddRule([ flow.GRRHunt.MATCH_WINDOWS,
+  jobs_pb2.ForemanAttributeInteger(attribute_name=client.Schema.OS_RELEASE.name,
+  operator=jobs_pb2.ForemanAttributeInteger.EQUAL, value=7)])
+
+hunt.AddRule([ flow.GRRHunt.MATCH_WINDOWS,
+  jobs_pb2.ForemanAttributeInteger(attribute_name=client.Schema.OS_RELEASE.name,
+  operator=jobs_pb2.ForemanAttributeInteger.EQUAL, value=8)])
+------------------------------------------------------------------------
+
+to start a hunt on windows clients that have either OS_VERSION 7 or 8.
+
+If you are unsure about your rules, you can call
+
+[source,python]
+------------------------------------------------------------------------
+hunt.TestRules()
+------------------------------------------------------------------------
+
+This will show you how many clients in the db match your rules and
+give you some matching sample clients. Note that this will open all
+the clients and will therefore take a while if you have a lot of
+clients in the database.
+
+Once you are happy with your rules, you upload the hunt to the
+foreman:
+
+[source,python]
+------------------------------------------------------------------------
+hunt.Run()
+------------------------------------------------------------------------
+
+At this point, matching clients will pick up and run the hunt and you
+can see the progress in the UI.
+
+If you want to stop a running hunt and remove the foreman rules again, use
+
+[source,python]
+------------------------------------------------------------------------
+hunt.Stop()
+------------------------------------------------------------------------
+
 [[Queues]]
-Queues.
+Queues
 -------
 
 GRR Supports multiple processing queues on the server. This allows specialized

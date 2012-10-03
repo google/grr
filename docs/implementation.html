@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
-<meta name="generator" content="AsciiDoc 8.6.6" />
+<meta name="generator" content="AsciiDoc 8.6.8" />
 <title>GRR Developer documentation</title>
 <style type="text/css">
 /* Shared CSS for AsciiDoc xhtml11 and html5 backends */
@@ -87,10 +87,14 @@ ul, ol, li > p {
 ul > li     { color: #aaa; }
 ul > li > * { color: black; }
 
-pre {
+.monospaced, code, pre {
+  font-family: "Courier New", Courier, monospace;
+  font-size: inherit;
+  color: navy;
   padding: 0;
   margin: 0;
 }
+
 
 #author {
   color: #527bbd;
@@ -349,7 +353,7 @@ div.colist td img {
   margin-bottom: 0.1em;
 }
 
-div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
+div.toclevel0, div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
   margin-top: 0;
   margin-bottom: 0;
 }
@@ -407,17 +411,13 @@ span.underline { text-decoration: underline; }
 span.overline { text-decoration: overline; }
 span.line-through { text-decoration: line-through; }
 
+div.unbreakable { page-break-inside: avoid; }
+
 
 /*
  * xhtml11 specific
  *
  * */
-
-tt {
-  font-family: monospace;
-  font-size: inherit;
-  color: navy;
-}
 
 div.tableblock {
   margin-top: 1.0em;
@@ -451,12 +451,6 @@ div.tableblock > table[frame="vsides"] {
  * html5 specific
  *
  * */
-
-.monospaced {
-  font-family: monospace;
-  font-size: inherit;
-  color: navy;
-}
 
 table.tableblock {
   margin-top: 1.0em;
@@ -537,6 +531,8 @@ body.manpage div.sectionbody {
 @media print {
   body.manpage div#toc { display: none; }
 }
+
+
 @media screen {
   body {
     max-width: 50em; /* approximately 80 characters wide */
@@ -615,7 +611,7 @@ toc: function (toclevels) {
 
   function tocEntries(el, toclevels) {
     var result = new Array;
-    var re = new RegExp('[hH]([2-'+(toclevels+1)+'])');
+    var re = new RegExp('[hH]([1-'+(toclevels+1)+'])');
     // Function that scans the DOM tree for header elements (the DOM2
     // nodeIterator API would be a better technique but not supported by all
     // browsers).
@@ -644,7 +640,7 @@ toc: function (toclevels) {
   var i;
   for (i = 0; i < toc.childNodes.length; i++) {
     var entry = toc.childNodes[i];
-    if (entry.nodeName == 'div'
+    if (entry.nodeName.toLowerCase() == 'div'
      && entry.getAttribute("class")
      && entry.getAttribute("class").match(/^toclevel/))
       tocEntriesToRemove.push(entry);
@@ -690,7 +686,7 @@ footnotes: function () {
   var entriesToRemove = [];
   for (i = 0; i < noteholder.childNodes.length; i++) {
     var entry = noteholder.childNodes[i];
-    if (entry.nodeName == 'div' && entry.getAttribute("class") == "footnote")
+    if (entry.nodeName.toLowerCase() == 'div' && entry.getAttribute("class") == "footnote")
       entriesToRemove.push(entry);
   }
   for (i = 0; i < entriesToRemove.length; i++) {
@@ -1018,7 +1014,7 @@ clients' messages. Therefore well known flows are stateless.</p></div>
 <div class="paragraph"><p>A well known flow typically is used simply to launch another flow or to process
 an event. For example:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+<div class="content"><!-- Generator: GNU source-highlight 3.1.3
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
@@ -1071,7 +1067,7 @@ have any other component broadcast the event.</p></div>
 <div class="paragraph"><p>For example, when a new client enrolls we wish to run the Interrogate flow
 automatically for it (so we can query it for hostname, usernames etc):</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+<div class="content"><!-- Generator: GNU source-highlight 3.1.3
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
@@ -1100,7 +1096,7 @@ client.
 </table></div>
 <div class="paragraph"><p>The event can now be broadcast from any other flow:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+<div class="content"><!-- Generator: GNU source-highlight 3.1.3
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
@@ -1117,7 +1113,107 @@ http://www.gnu.org/software/src-highlite -->
 </div>
 </div>
 <div class="sect1">
-<h2 id="Queues">Queues.</h2>
+<h2 id="Hunts">Hunts</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>In order to be able to search for malicious code and abnormal behavior
+amongst the entire fleet of clients, GRR has implemented the concept
+of hunts. Hunts are essentially flows that run on multiple clients at
+the same time.</p></div>
+<div class="paragraph"><p>At the moment, hunts are regarded as rather high impact since they can
+affect many clients at once so scheduling new hunts is restricted to
+console users. In order to schedule a hunt, this is the process:</p></div>
+<div class="paragraph"><p>Import the hunts file and create a new hunt (This example uses the
+SampleHunt, replace with a hunt of your choice):</p></div>
+<div class="listingblock">
+<div class="content"><!-- Generator: GNU source-highlight 3.1.3
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>hunt <span style="color: #990000">=</span> hunts<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">SampleHunt</span></span><span style="color: #990000">(</span>client_limit<span style="color: #990000">=</span><span style="color: #993399">100</span><span style="color: #990000">,</span> expiry_time<span style="color: #990000">=</span><span style="color: #993399">36000</span><span style="color: #990000">)</span></tt></pre></div></div>
+<div class="paragraph"><p>This creates the SampleHunt, possible parameters:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+client_limit to limit the number of clients this hunt will be
+  scheduled on for experiments.
+</p>
+</li>
+<li>
+<p>
+expiry_time gives the time this hunt will be active (in seconds).
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Next you have to create rules to indicate which clients the hunt will
+be run on. Rules either compare fields stored in the client
+description to integer values or match regular expressions against
+them:</p></div>
+<div class="listingblock">
+<div class="content"><!-- Generator: GNU source-highlight 3.1.3
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>int_rule <span style="color: #990000">=</span> jobs_pb2<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ForemanAttributeInteger</span></span><span style="color: #990000">(</span>
+                   attribute_name<span style="color: #990000">=</span>client<span style="color: #990000">.</span>Schema<span style="color: #990000">.</span>OS_RELEASE<span style="color: #990000">.</span>name<span style="color: #990000">,</span>
+                   operator<span style="color: #990000">=</span>jobs_pb2<span style="color: #990000">.</span>ForemanAttributeInteger<span style="color: #990000">.</span>EQUAL<span style="color: #990000">,</span>
+                   value<span style="color: #990000">=</span><span style="color: #993399">7</span><span style="color: #990000">)</span>
+regex_rule <span style="color: #990000">=</span> flow<span style="color: #990000">.</span>GRRHunt<span style="color: #990000">.</span>MATCH_WINDOWS</tt></pre></div></div>
+<div class="paragraph"><p>The two rules above will match clients that run windows and have an
+OS_RELEASE of 7.</p></div>
+<div class="paragraph"><p>Next, you add the rules to the hunt:</p></div>
+<div class="listingblock">
+<div class="content"><!-- Generator: GNU source-highlight 3.1.3
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>hunt<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">AddRule</span></span><span style="color: #990000">([</span>int_rule<span style="color: #990000">,</span> regex_rule<span style="color: #990000">])</span></tt></pre></div></div>
+<div class="paragraph"><p>You can call AddRule more than once. The hunt will be triggered if all
+the rules of one AddRule call match at the same time. So you can do:</p></div>
+<div class="listingblock">
+<div class="content"><!-- Generator: GNU source-highlight 3.1.3
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>hunt<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">AddRule</span></span><span style="color: #990000">([</span> flow<span style="color: #990000">.</span>GRRHunt<span style="color: #990000">.</span>MATCH_WINDOWS<span style="color: #990000">,</span>
+  jobs_pb2<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ForemanAttributeInteger</span></span><span style="color: #990000">(</span>attribute_name<span style="color: #990000">=</span>client<span style="color: #990000">.</span>Schema<span style="color: #990000">.</span>OS_RELEASE<span style="color: #990000">.</span>name<span style="color: #990000">,</span>
+  operator<span style="color: #990000">=</span>jobs_pb2<span style="color: #990000">.</span>ForemanAttributeInteger<span style="color: #990000">.</span>EQUAL<span style="color: #990000">,</span> value<span style="color: #990000">=</span><span style="color: #993399">7</span><span style="color: #990000">)])</span>
+
+hunt<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">AddRule</span></span><span style="color: #990000">([</span> flow<span style="color: #990000">.</span>GRRHunt<span style="color: #990000">.</span>MATCH_WINDOWS<span style="color: #990000">,</span>
+  jobs_pb2<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ForemanAttributeInteger</span></span><span style="color: #990000">(</span>attribute_name<span style="color: #990000">=</span>client<span style="color: #990000">.</span>Schema<span style="color: #990000">.</span>OS_RELEASE<span style="color: #990000">.</span>name<span style="color: #990000">,</span>
+  operator<span style="color: #990000">=</span>jobs_pb2<span style="color: #990000">.</span>ForemanAttributeInteger<span style="color: #990000">.</span>EQUAL<span style="color: #990000">,</span> value<span style="color: #990000">=</span><span style="color: #993399">8</span><span style="color: #990000">)])</span></tt></pre></div></div>
+<div class="paragraph"><p>to start a hunt on windows clients that have either OS_VERSION 7 or 8.</p></div>
+<div class="paragraph"><p>If you are unsure about your rules, you can call</p></div>
+<div class="listingblock">
+<div class="content"><!-- Generator: GNU source-highlight 3.1.3
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>hunt<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">TestRules</span></span><span style="color: #990000">()</span></tt></pre></div></div>
+<div class="paragraph"><p>This will show you how many clients in the db match your rules and
+give you some matching sample clients. Note that this will open all
+the clients and will therefore take a while if you have a lot of
+clients in the database.</p></div>
+<div class="paragraph"><p>Once you are happy with your rules, you upload the hunt to the
+foreman:</p></div>
+<div class="listingblock">
+<div class="content"><!-- Generator: GNU source-highlight 3.1.3
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>hunt<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Run</span></span><span style="color: #990000">()</span></tt></pre></div></div>
+<div class="paragraph"><p>At this point, matching clients will pick up and run the hunt and you
+can see the progress in the UI.</p></div>
+<div class="paragraph"><p>If you want to stop a running hunt and remove the foreman rules again, use</p></div>
+<div class="listingblock">
+<div class="content"><!-- Generator: GNU source-highlight 3.1.3
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>hunt<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Stop</span></span><span style="color: #990000">()</span></tt></pre></div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="Queues">Queues</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>GRR Supports multiple processing queues on the server. This allows specialized
 workers to be used for specific tasks, independently routing all messages to
@@ -1171,7 +1267,7 @@ also have optional attributes which are defined in the object&#8217;s Schema. Fo
 example consider the following definition of an AFF4 object representing a GRR
 Client:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+<div class="content"><!-- Generator: GNU source-highlight 3.1.3
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
@@ -1239,7 +1335,7 @@ data store technology is abstracted.  Usually AFF4 objects are managed using the
 aff4 FACTORY:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>In [8]: pslist = aff4.FACTORY.Open("aff4:/C.d74adcb3bef6a388/devices\    <img src="./images/icons/callouts/1.png" alt="1" />
+<pre><code>In [8]: pslist = aff4.FACTORY.Open("aff4:/C.d74adcb3bef6a388/devices\    <img src="./images/icons/callouts/1.png" alt="1" />
    /memory/pslist", mode="r", age=aff4.ALL_TIMES)
 
 In [9]: pslist                                                           <img src="./images/icons/callouts/2.png" alt="2" />
@@ -1268,7 +1364,7 @@ In [15]: for s in pslist.GetValuesForAttribute(pslist.Schema.SIZE):     <img src
    ....:     print s, s.age
 4938 2012-05-21 14:48:20
 4832 2012-05-21 14:20:30
-4938 2012-05-21 13:53:05</tt></pre>
+4938 2012-05-21 13:53:05</code></pre>
 </div></div>
 <div class="colist arabic"><table>
 <tr><td><img src="./images/icons/callouts/1.png" alt="1" /></td><td>
@@ -1364,12 +1460,12 @@ new python file-like object from the previous file-like object. For example,
 image we have the following pathspec:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><tt>path:   /dev/sda1
+<pre><code>path:   /dev/sda1
 pathtype: OS
 nested_path: {
    path: /windows/notepad.exe
    pathtype: TSK
-}</tt></pre>
+}</code></pre>
 </div></div>
 <div class="paragraph"><p>This opens the raw device /dev/sda1 using the OS driver. The TSK driver is then
 given the previous file like object and the nested pathspec instructing it to
@@ -1378,7 +1474,7 @@ step.</p></div>
 <div class="paragraph"><p>This can get more involved, for example:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><tt>path:   /dev/sda1
+<pre><code>path:   /dev/sda1
 pathtype: OS
 nested_path: {
    path: /windows/system32/config/system
@@ -1387,7 +1483,7 @@ nested_path: {
       path: SOFTWARE/MICROSOFT/WINDOWS/
       pathtype: REGISTRY
   }
-}</tt></pre>
+}</code></pre>
 </div></div>
 <div class="paragraph"><p>Which means to use TSK to open the raw registry file and then REGFI to read the
 key from it (note that is needed because you generally cant read the registry
@@ -1408,14 +1504,14 @@ access the same file on disk. This file however, does have a well defined and
 unchanging casing.  The client can correct file casing, e.g.:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><tt>path: c:\documents and settings\
-pathtype: OS</tt></pre>
+<pre><code>path: c:\documents and settings\
+pathtype: OS</code></pre>
 </div></div>
 <div class="paragraph"><p>Is corrected to the normalized form:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><tt>path: /c/Documents and Settings/
-pathtype: OS</tt></pre>
+<pre><code>path: /c/Documents and Settings/
+pathtype: OS</code></pre>
 </div></div>
 </div>
 <div class="sect3">
@@ -1429,18 +1525,18 @@ through the raw interface, and therefore converts the pathspec to the correct
 form using the mount points information. For example:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><tt>path: /home/user/hello.txt
-pathtype: TSK</tt></pre>
+<pre><code>path: /home/user/hello.txt
+pathtype: TSK</code></pre>
 </div></div>
 <div class="paragraph"><p>Is converted to:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><tt>path: /dev/sda2
+<pre><code>path: /dev/sda2
 pathtype: OS
 nested_path: {
       path: /user/hello.txt
       pathtype: TSK
-}</tt></pre>
+}</code></pre>
 </div></div>
 </div>
 <div class="sect3">
@@ -1464,8 +1560,8 @@ A ListDirectory Flow is called with a pathspec of:
 </p>
 <div class="literalblock">
 <div class="content">
-<pre><tt>path: c:\docume~1\bob\
-pathtype: OS</tt></pre>
+<pre><code>path: c:\docume~1\bob\
+pathtype: OS</code></pre>
 </div></div>
 </li>
 <li>
@@ -1481,8 +1577,8 @@ to:
 </p>
 <div class="literalblock">
 <div class="content">
-<pre><tt>path: c:\Documents and Settings\Bob\
-pathtype: OS</tt></pre>
+<pre><code>path: c:\Documents and Settings\Bob\
+pathtype: OS</code></pre>
 </div></div>
 </li>
 <li>
@@ -1500,8 +1596,8 @@ contains the case corrected - expanded pathspec:
 </p>
 <div class="literalblock">
 <div class="content">
-<pre><tt>urn = GRRClient.PathspecToURN(pathspec)
-urn = aff4:/C.12345/fs/os/c/Documents and Settings/Bob</tt></pre>
+<pre><code>urn = GRRClient.PathspecToURN(pathspec)
+urn = aff4:/C.12345/fs/os/c/Documents and Settings/Bob</code></pre>
 </div></div>
 </li>
 <li>
@@ -1572,10 +1668,10 @@ used and serve as examples for extension. There is no UI for these components
 currently, but they can be run from the Console.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>r = reports.ClientListReport(data_store.ACLToken())                <img src="./images/icons/callouts/1.png" alt="1" />
+<pre><code>r = reports.ClientListReport(data_store.ACLToken())                <img src="./images/icons/callouts/1.png" alt="1" />
 r.Run()                                                            <img src="./images/icons/callouts/2.png" alt="2" />
 r.MailReport("joe@mailinator.com")                                 <img src="./images/icons/callouts/3.png" alt="3" />
-open("client_list.csv", "w").write(r.AsCsv())                      <img src="./images/icons/callouts/4.png" alt="4" /></tt></pre>
+open("client_list.csv", "w").write(r.AsCsv())                      <img src="./images/icons/callouts/4.png" alt="4" /></code></pre>
 </div></div>
 <div class="colist arabic"><table>
 <tr><td><img src="./images/icons/callouts/1.png" alt="1" /></td><td>
@@ -1616,7 +1712,7 @@ ease use this variable is automatically populated by the console if --client is
 used.</p></div>
 <div class="paragraph"><p>Token generation is done using the data_store.ACLToken.</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+<div class="content"><!-- Generator: GNU source-highlight 3.1.3
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
@@ -1635,7 +1731,7 @@ implementing new features.</p></div>
 non-trivial flow from the GRR source code:</p></div>
 <div class="listingblock">
 <div class="title">A sample flow for analyzing client memory using Volatility (abridged and annotated).</div>
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+<div class="content"><!-- Generator: GNU source-highlight 3.1.3
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
@@ -1767,7 +1863,7 @@ capabilities)
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2012-09-30 17:23:59 CEST
+Last updated 2012-10-03 11:19:15 CEST
 </div>
 </div>
 </body>
