@@ -22,7 +22,7 @@ import exceptions
 import hashlib
 import logging
 import os
-import sys
+import struct
 import _winreg
 
 import pythoncom
@@ -33,16 +33,19 @@ import win32service
 import win32serviceutil
 import wmi
 
+from grr.client import conf as flags
 from grr.client import actions
 from grr.client import client_config
 from grr.client import client_utils_common
 from grr.client import client_utils_windows
-from grr.client import comms
 from grr.client import conf
 from grr.lib import constants
 from grr.lib import utils
 from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
+
+flags.DEFINE_string("service_name", client_config.SERVICE_NAME,
+                    "The name of the nanny service")
 
 FLAGS = conf.PARSER.flags
 
@@ -205,6 +208,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
   def Run(self, unused_args):
     """Enumerate all MAC addresses."""
 
+    pythoncom.CoInitialize()
     for interface in wmi.WMI().Win32_NetworkAdapterConfiguration(IPEnabled=1):
       addresses = []
       for ip_address in interface.IPAddress:
@@ -270,40 +274,6 @@ class Uninstall(actions.ActionPlugin):
       self.SendReply(string="Not running as service.")
 
 
-class Kill(actions.ActionPlugin):
-  """This ourselves with no cleanups."""
-  out_protobuf = jobs_pb2.GrrMessage
-
-  def Run(self, unused_arg):
-    """Run the kill."""
-    if isinstance(self.grr_context, comms.SlaveContext):
-      sys.exit(242)
-    else:
-      # Kill off children if we are running separated.
-      if isinstance(self.grr_context, comms.ProcessSeparatedContext):
-        logging.info("Requesting termination of slaves.")
-        self.grr_context.Terminate()
-
-      # Send a message back to the service to say that we are about to shutdown.
-      reply = jobs_pb2.GrrStatus()
-      reply.status = jobs_pb2.GrrStatus.OK
-      # Queue up the response message.
-      self.SendReply(reply, message_type=jobs_pb2.GrrMessage.STATUS,
-                     jump_queue=True)
-      # Force a comms run.
-      status = self.grr_context.RunOnce()
-      if status.code != 200:
-        logging.error("Could not communicate our own death, re-death predicted")
-
-      if conf.RUNNING_AS_SERVICE:
-        # Terminate service
-        win32serviceutil.StopService(client_config.SERVICE_NAME)
-      else:
-        # Die ourselves.
-        logging.info("Dying on request.")
-        sys.exit(242)
-
-
 def QueryService(svc_name):
   """Query service and get its config."""
   hscm = win32service.OpenSCManager(None, None,
@@ -354,7 +324,7 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
   # Run query
   try:
     query_results = wmi_obj.ExecQuery(query)
-  except pythoncom.com_error, e:
+  except pythoncom.com_error as e:
     raise RuntimeError("Failed to run WMI query \'%s\' err was %s" %
                        (query, e))
 
@@ -379,7 +349,7 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
 
       yield response
 
-  except pythoncom.com_error, e:
+  except pythoncom.com_error as e:
     raise RuntimeError("WMI query data error on query \'%s\' err was %s" %
                        (e, query))
 
@@ -397,62 +367,82 @@ class InstallDriver(actions.ActionPlugin):
     if not args.driver:
       raise IOError("No driver supplied.")
 
-    if not client_utils_common.VerifySignedDriver(args.driver):
-      raise OSError("Driver signature signing failure.")
-
-    # Allow for overriding the default driver display name from the server.
-    driver_display_name = (args.driver_display_name or
-                           client_config.DRIVER_DISPLAY_NAME)
-
-    # Allow for overriding the default driver name from the server.
-    driver_name = args.driver_name or client_config.DRIVER_NAME
-    driver_path = args.write_path or client_config.DRIVER_FILE_PATH
+    if not client_utils_common.VerifySignedBlob(args.driver):
+      raise OSError("Driver signature verification error.")
 
     # TODO(user): What should we do if it fails to uninstall?
     if args.force_reload:
-      client_utils_windows.UninstallDriver(driver_path, driver_name,
+      client_utils_windows.UninstallDriver(args.write_path, args.driver_name,
                                            delete_file=True)
 
     # TODO(user): Ensure we have lock here, no races
-    logging.info("Writing driver to %s", driver_path)
+    logging.info("Writing driver to %s", args.write_path)
 
     # TODO(user): Handle SysWOW64, if we are 32 bit we will actually
     # write to SysWOW64 if we try and write to system32 and the service
     # will fail.
     try:
       # Note permissions default to global read, user only write.
-      with open(driver_path, "wb") as fd:
+      with open(args.write_path, "wb") as fd:
         fd.write(args.driver.data)
-    except IOError, e:
+    except IOError as e:
       raise IOError("Failed to write driver file %s" % e)
 
     try:
-      client_utils_windows.InstallDriver(driver_path, driver_name,
-                                         driver_display_name)
+      client_utils_windows.InstallDriver(args.write_path, args.driver_name,
+                                         args.driver_display_name)
     except OSError:
       raise IOError("Failed to install driver, may already be installed.")
 
 
-class InitializeMemoryDriver(actions.ActionPlugin):
+def CtlCode(device_type, function, method, access):
+  """Prepare an IO control code."""
+  return (device_type<<16) | (access << 14) | (function << 2) | method
+
+
+# IOCTLS for interacting with the driver.
+INFO_IOCTRL = CtlCode(0x22, 0x100, 0, 3)  # Get information.
+CTRL_IOCTRL = CtlCode(0x22, 0x101, 0, 3)  # Set acquisition modes.
+
+
+class GetMemoryInformation(actions.ActionPlugin):
   """Loads the driver for memory access and returns a Stat for the device."""
 
   in_protobuf = jobs_pb2.Path
-  out_protobuf = jobs_pb2.StatResponse
+  out_protobuf = jobs_pb2.MemoryInfomation
 
   def Run(self, args):
     """Run."""
-    device_name = args.path or client_config.DRIVER_DEVICE_NAME
+    # This action might crash the box so we need to flush the transaction log.
+    self.SyncTransactionLog()
+
+    result = self.out_protobuf()
 
     # Do any initialization we need to do.
-    logging.debug("Initializing %s", device_name)
-    #TODO(user): Add init code for our driver.
+    logging.debug("Querying device %s", args.path)
 
-    #TODO(user): Add IOCTL call to get memory size.
-    mem_size = 4 * 1024 * 1024 * 1024   # 4GB
+    fd = win32file.CreateFile(
+        args.path,
+        win32file.GENERIC_READ | win32file.GENERIC_WRITE,
+        win32file.FILE_SHARE_READ | win32file.FILE_SHARE_WRITE,
+        None,
+        win32file.OPEN_EXISTING,
+        win32file.FILE_ATTRIBUTE_NORMAL,
+        None)
 
-    # Send a reply telling the server we succeeded and where it
-    # can find the path it should read.
-    self.SendReply(pathspec=args.path, st_size=mem_size)
+    data = win32file.DeviceIoControl(fd, INFO_IOCTRL, "", 1024, None)
+    fmt_string = "QQl"
+    result.cr3, _, number_of_runs = struct.unpack_from(fmt_string, data)
+
+    offset = struct.calcsize(fmt_string)
+    for x in range(number_of_runs):
+      start, length = struct.unpack_from("QQ", data, x * 16 + offset)
+      result.runs.add(offset=start, length=length)
+
+    result.device.path = args.path
+    result.device.pathtype = jobs_pb2.Path.MEMORY
+
+    self.SendReply(result)
 
 
 class UninstallDriver(actions.ActionPlugin):
@@ -466,23 +456,21 @@ class UninstallDriver(actions.ActionPlugin):
 
   def Run(self, args):
     """Unloads a driver."""
-
-    # Allow for overriding the default driver name from the server.
-    driver_name = args.driver_name or client_config.DRIVER_NAME
-    driver_path = args.write_path or client_config.DRIVER_FILE_PATH
-
-    # First check the drver they sent us validates.
-    client_utils_common.VerifySignedDriver(args.driver, verify_data=False)
+    # First check the driver they sent us validates.
+    client_utils_common.VerifySignedBlob(args.driver, verify_data=False)
 
     # Confirm the digest in the driver matches what we are about to remove.
-    digest = hashlib.sha256(open(driver_path).read(DRIVER_MAX_SIZE)).digest()
+    digest = hashlib.sha256(open(args.write_path).read(
+        DRIVER_MAX_SIZE)).digest()
+
     if digest != args.digest:
       # Driver we are uninstalling has been modified from original or we
       # sent the wrong one.
       raise RuntimeError("Failed driver sig validation on UninstallDriver")
 
     # Do the unload.
-    result, err = client_utils_windows.UnloadDriver(driver_name, driver_path,
-                                                    delete_driver=True)
+    result, err = client_utils_windows.UnloadDriver(
+        args.driver_name, args.write_path, delete_driver=True)
+
     if not result:
       raise RuntimeError(err)

@@ -25,6 +25,17 @@ from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
+class EnrolmentInterrogateEvent(flow.EventListener):
+  """An event handler which will schedule interrogation on client enrollment."""
+  EVENTS = ["ClientEnrollment"]
+  well_known_session_id = "W:Interrogate"
+
+  @flow.EventHandler(in_protobuf=jobs_pb2.Certificate, source_restriction="CA")
+  def ProcessMessage(self, message=None, event=None):
+    _ = message
+    flow.FACTORY.StartFlow(event.cn, "Interrogate", token=self.token)
+
+
 class Interrogate(flow.GRRFlow):
   """Interrogate various things about the host."""
 
@@ -131,7 +142,9 @@ class Interrogate(flow.GRRFlow):
         returned_folder = os.path.basename(response.pathspec.path)
         for (folder, _, pb_field) in constants.profile_folders:
           if folder == returned_folder:
-            profile_folders[pb_field] = response.resident
+            profile_folders[pb_field] = (
+                response.resident or
+                utils.DataBlob(response.registry_data).GetValue())
             break
       # Save the user pb.
       data = self.sid_data[responses.request_data["SID"]]
@@ -270,7 +283,7 @@ class Interrogate(flow.GRRFlow):
       for response in responses:
         filesystems.Append(response)
 
-        if response.type == "split image volume":
+        if response.type == "partition":
           (device, offset) = response.device.rsplit(":", 1)
 
           offset = int(offset)
@@ -286,32 +299,34 @@ class Interrogate(flow.GRRFlow):
           fd.Close()
           continue
 
-        # Create the raw device
-        urn = "devices/%s" % response.device
-        nested_pathspec = jobs_pb2.Path(path="/",
-                                        pathtype=jobs_pb2.Path.TSK)
+        if response.device:
+          # Create the raw device
+          urn = "devices/%s" % response.device
+          nested_pathspec = jobs_pb2.Path(path="/",
+                                          pathtype=jobs_pb2.Path.TSK)
 
-        pathspec = jobs_pb2.Path(path=response.device,
-                                 pathtype=jobs_pb2.Path.OS,
-                                 nested_path=nested_pathspec)
+          pathspec = jobs_pb2.Path(path=response.device,
+                                   pathtype=jobs_pb2.Path.OS,
+                                   nested_path=nested_pathspec)
 
-        fd = self.client.CreateMember(urn, "VFSDirectory")
-        fd.Set(fd.Schema.PATHSPEC(pathspec))
-        fd.Close()
+          fd = self.client.CreateMember(urn, "VFSDirectory")
+          fd.Set(fd.Schema.PATHSPEC(pathspec))
+          fd.Close()
 
-        # Create the TSK device
-        urn = self.client.PathspecToURN(pathspec, self.client.urn)
-        fd = self.client.CreateMember(urn, "VFSDirectory")
-        fd.Set(fd.Schema.PATHSPEC(pathspec))
-        fd.Close()
+          # Create the TSK device
+          urn = self.client.PathspecToURN(pathspec, self.client.urn)
+          fd = self.client.CreateMember(urn, "VFSDirectory")
+          fd.Set(fd.Schema.PATHSPEC(pathspec))
+          fd.Close()
 
-        # Create the OS device
-        pathspec = jobs_pb2.Path(path=response.mount_point,
-                                 pathtype=jobs_pb2.Path.OS)
-        urn = self.client.PathspecToURN(pathspec, self.client.urn)
-        fd = self.client.CreateMember(urn, "VFSDirectory")
-        fd.Set(fd.Schema.PATHSPEC(pathspec))
-        fd.Close()
+        if response.mount_point:
+          # Create the OS device
+          pathspec = jobs_pb2.Path(path=response.mount_point,
+                                   pathtype=jobs_pb2.Path.OS)
+          urn = self.client.PathspecToURN(pathspec, self.client.urn)
+          fd = self.client.CreateMember(urn, "VFSDirectory")
+          fd.Set(fd.Schema.PATHSPEC(pathspec))
+          fd.Close()
 
       self.client.Set(self.client.Schema.FILESYSTEM, filesystems)
     else:

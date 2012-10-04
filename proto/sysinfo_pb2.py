@@ -11,13 +11,67 @@ from google.protobuf import descriptor_pb2
 DESCRIPTOR = descriptor.FileDescriptor(
   name='grr/proto/sysinfo.proto',
   package='',
-  serialized_pb='\n\x17grr/proto/sysinfo.proto\"_\n\x07Process\x12\x0b\n\x03\x65xe\x18\x01 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x02 \x01(\t\x12\x0b\n\x03pid\x18\x03 \x01(\r\x12\x0c\n\x04ppid\x18\x04 \x01(\r\x12\r\n\x05\x63time\x18\x05 \x01(\x04\x12\x0c\n\x04user\x18\x06 \x01(\t\"N\n\nFilesystem\x12\x0e\n\x06\x64\x65vice\x18\x01 \x01(\t\x12\x13\n\x0bmount_point\x18\x02 \x01(\t\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\r\n\x05label\x18\x04 \x01(\t\"\xcd\x03\n\nConnection\x12)\n\x05state\x18\x01 \x01(\x0e\x32\x11.Connection.State:\x07UNKNOWN\x12\x34\n\x04type\x18\x02 \x01(\x0e\x32\x16.Connection.SocketType:\x0eUNKNOWN_SOCKET\x12\x12\n\nlocal_addr\x18\x03 \x01(\r\x12\x12\n\nlocal_port\x18\x04 \x01(\r\x12\x13\n\x0bremote_addr\x18\x05 \x01(\r\x12\x13\n\x0bremote_port\x18\x06 \x01(\r\x12\x0b\n\x03pid\x18\x07 \x01(\r\x12\r\n\x05\x63time\x18\x08 \x01(\x04\"\xbb\x01\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\n\n\x06\x43LOSED\x10\x01\x12\n\n\x06LISTEN\x10\x02\x12\x0c\n\x08SYN_SENT\x10\x03\x12\x0c\n\x08SYN_RCVD\x10\x04\x12\t\n\x05\x45STAB\x10\x05\x12\r\n\tFIN_WAIT1\x10\x06\x12\r\n\tFIN_WAIT2\x10\x07\x12\x0e\n\nCLOSE_WAIT\x10\x08\x12\x0b\n\x07\x43LOSING\x10\t\x12\x0c\n\x08LAST_ACK\x10\n\x12\r\n\tTIME_WAIT\x10\x0b\x12\x0e\n\nDELETE_TCB\x10\x0c\"2\n\nSocketType\x12\x12\n\x0eUNKNOWN_SOCKET\x10\x00\x12\x07\n\x03TCP\x10\x01\x12\x07\n\x03UDP\x10\x02\"1\n\x07MRUFile\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x14\n\ttimestamp\x18\x02 \x01(\x04:\x01\x30')
+  serialized_pb='\n\x17grr/proto/sysinfo.proto\"\xf9\x03\n\x07Process\x12\x0b\n\x03pid\x18\x01 \x01(\r\x12\x0c\n\x04ppid\x18\x02 \x01(\r\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0b\n\x03\x65xe\x18\x04 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x05 \x03(\t\x12\r\n\x05\x63time\x18\x06 \x01(\x04\x12\x10\n\x08real_uid\x18\x07 \x01(\r\x12\x15\n\reffective_uid\x18\x08 \x01(\r\x12\x11\n\tsaved_uid\x18\t \x01(\r\x12\x10\n\x08real_gid\x18\n \x01(\r\x12\x15\n\reffective_gid\x18\x0b \x01(\r\x12\x11\n\tsaved_gid\x18\x0c \x01(\r\x12\x10\n\x08username\x18\r \x01(\t\x12\x10\n\x08terminal\x18\x0e \x01(\t\x12\x0e\n\x06status\x18\x0f \x01(\t\x12\x0c\n\x04nice\x18\x10 \x01(\x05\x12\x0b\n\x03\x63wd\x18\x11 \x01(\t\x12\x13\n\x0bnum_threads\x18\x12 \x01(\r\x12\x15\n\ruser_cpu_time\x18\x13 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x14 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x15 \x01(\x02\x12\x10\n\x08RSS_size\x18\x16 \x01(\x04\x12\x10\n\x08VMS_size\x18\x17 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x18 \x01(\x02\x12\x12\n\nopen_files\x18\x19 \x03(\t\x12\'\n\x0b\x63onnections\x18\x1a \x03(\x0b\x32\x12.NetworkConnection\"+\n\x0fNetworkEndpoint\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x0c\n\x04port\x18\x02 \x01(\x05\"\xea\x04\n\x11NetworkConnection\x12\x30\n\x06\x66\x61mily\x18\x01 \x01(\x0e\x32 .NetworkConnection.NetworkFamily\x12<\n\x04type\x18\x02 \x01(\x0e\x32\x1e.NetworkConnection.NetworkType:\x0eUNKNOWN_SOCKET\x12\'\n\rlocal_address\x18\x03 \x01(\x0b\x32\x10.NetworkEndpoint\x12(\n\x0eremote_address\x18\x04 \x01(\x0b\x32\x10.NetworkEndpoint\x12\x30\n\x05state\x18\x05 \x01(\x0e\x32\x18.NetworkConnection.State:\x07UNKNOWN\x12\x0b\n\x03pid\x18\x06 \x01(\r\x12\r\n\x05\x63time\x18\x07 \x01(\x04\"B\n\rNetworkFamily\x12\x08\n\x04INET\x10\x02\x12\t\n\x05INET6\x10\n\x12\r\n\tINET6_WIN\x10\x17\x12\r\n\tINET6_OSX\x10\x1e\"B\n\x0bNetworkType\x12\x12\n\x0eUNKNOWN_SOCKET\x10\x00\x12\x0f\n\x0bSOCK_STREAM\x10\x01\x12\x0e\n\nSOCK_DGRAM\x10\x02\"\xbb\x01\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\n\n\x06\x43LOSED\x10\x01\x12\n\n\x06LISTEN\x10\x02\x12\x0c\n\x08SYN_SENT\x10\x03\x12\x0c\n\x08SYN_RCVD\x10\x04\x12\t\n\x05\x45STAB\x10\x05\x12\r\n\tFIN_WAIT1\x10\x06\x12\r\n\tFIN_WAIT2\x10\x07\x12\x0e\n\nCLOSE_WAIT\x10\x08\x12\x0b\n\x07\x43LOSING\x10\t\x12\x0c\n\x08LAST_ACK\x10\n\x12\r\n\tTIME_WAIT\x10\x0b\x12\x0e\n\nDELETE_TCB\x10\x0c\"N\n\nFilesystem\x12\x0e\n\x06\x64\x65vice\x18\x01 \x01(\t\x12\x13\n\x0bmount_point\x18\x02 \x01(\t\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\r\n\x05label\x18\x04 \x01(\t\"1\n\x07MRUFile\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x14\n\ttimestamp\x18\x02 \x01(\x04:\x01\x30\"C\n\x06RunKey\x12\x0f\n\x07keyname\x18\x01 \x01(\t\x12\x10\n\x08\x66ilepath\x18\x02 \x01(\t\x12\x16\n\x0blastwritten\x18\x03 \x01(\x04:\x01\x30\"\x9c\x01\n\nLaunchdJob\x12\x13\n\x0bsessiontype\x18\x01 \x01(\t\x12\x16\n\x0elastexitstatus\x18\x02 \x01(\x04\x12\x0f\n\x07timeout\x18\x03 \x01(\x04\x12\x10\n\x08ondemand\x18\x04 \x01(\x08\x12\x13\n\x0bmachservice\x18\x05 \x03(\t\x12\x19\n\x11perjobmachservice\x18\x06 \x03(\t\x12\x0e\n\x06socket\x18\x07 \x03(\t\"f\n\x07Service\x12\r\n\x05label\x18\x01 \x01(\t\x12\x0f\n\x07program\x18\x02 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x03 \x01(\t\x12\x0b\n\x03pid\x18\x04 \x01(\x04\x12 \n\x0bosx_launchd\x18\x05 \x01(\x0b\x32\x0b.LaunchdJob')
 
 
 
-_CONNECTION_STATE = descriptor.EnumDescriptor(
+_NETWORKCONNECTION_NETWORKFAMILY = descriptor.EnumDescriptor(
+  name='NetworkFamily',
+  full_name='NetworkConnection.NetworkFamily',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    descriptor.EnumValueDescriptor(
+      name='INET', index=0, number=2,
+      options=None,
+      type=None),
+    descriptor.EnumValueDescriptor(
+      name='INET6', index=1, number=10,
+      options=None,
+      type=None),
+    descriptor.EnumValueDescriptor(
+      name='INET6_WIN', index=2, number=23,
+      options=None,
+      type=None),
+    descriptor.EnumValueDescriptor(
+      name='INET6_OSX', index=3, number=30,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=875,
+  serialized_end=941,
+)
+
+_NETWORKCONNECTION_NETWORKTYPE = descriptor.EnumDescriptor(
+  name='NetworkType',
+  full_name='NetworkConnection.NetworkType',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    descriptor.EnumValueDescriptor(
+      name='UNKNOWN_SOCKET', index=0, number=0,
+      options=None,
+      type=None),
+    descriptor.EnumValueDescriptor(
+      name='SOCK_STREAM', index=1, number=1,
+      options=None,
+      type=None),
+    descriptor.EnumValueDescriptor(
+      name='SOCK_DGRAM', index=2, number=2,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=943,
+  serialized_end=1009,
+)
+
+_NETWORKCONNECTION_STATE = descriptor.EnumDescriptor(
   name='State',
-  full_name='Connection.State',
+  full_name='NetworkConnection.State',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -76,33 +130,8 @@ _CONNECTION_STATE = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=427,
-  serialized_end=614,
-)
-
-_CONNECTION_SOCKETTYPE = descriptor.EnumDescriptor(
-  name='SocketType',
-  full_name='Connection.SocketType',
-  filename=None,
-  file=DESCRIPTOR,
-  values=[
-    descriptor.EnumValueDescriptor(
-      name='UNKNOWN_SOCKET', index=0, number=0,
-      options=None,
-      type=None),
-    descriptor.EnumValueDescriptor(
-      name='TCP', index=1, number=1,
-      options=None,
-      type=None),
-    descriptor.EnumValueDescriptor(
-      name='UDP', index=2, number=2,
-      options=None,
-      type=None),
-  ],
-  containing_type=None,
-  options=None,
-  serialized_start=616,
-  serialized_end=666,
+  serialized_start=1012,
+  serialized_end=1199,
 )
 
 
@@ -114,44 +143,184 @@ _PROCESS = descriptor.Descriptor(
   containing_type=None,
   fields=[
     descriptor.FieldDescriptor(
-      name='exe', full_name='Process.exe', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    descriptor.FieldDescriptor(
-      name='cmdline', full_name='Process.cmdline', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    descriptor.FieldDescriptor(
-      name='pid', full_name='Process.pid', index=2,
-      number=3, type=13, cpp_type=3, label=1,
+      name='pid', full_name='Process.pid', index=0,
+      number=1, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='ppid', full_name='Process.ppid', index=3,
-      number=4, type=13, cpp_type=3, label=1,
+      name='ppid', full_name='Process.ppid', index=1,
+      number=2, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='ctime', full_name='Process.ctime', index=4,
-      number=5, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    descriptor.FieldDescriptor(
-      name='user', full_name='Process.user', index=5,
-      number=6, type=9, cpp_type=9, label=1,
+      name='name', full_name='Process.name', index=2,
+      number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='exe', full_name='Process.exe', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='cmdline', full_name='Process.cmdline', index=4,
+      number=5, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='ctime', full_name='Process.ctime', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='real_uid', full_name='Process.real_uid', index=6,
+      number=7, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='effective_uid', full_name='Process.effective_uid', index=7,
+      number=8, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='saved_uid', full_name='Process.saved_uid', index=8,
+      number=9, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='real_gid', full_name='Process.real_gid', index=9,
+      number=10, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='effective_gid', full_name='Process.effective_gid', index=10,
+      number=11, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='saved_gid', full_name='Process.saved_gid', index=11,
+      number=12, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='username', full_name='Process.username', index=12,
+      number=13, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='terminal', full_name='Process.terminal', index=13,
+      number=14, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='status', full_name='Process.status', index=14,
+      number=15, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='nice', full_name='Process.nice', index=15,
+      number=16, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='cwd', full_name='Process.cwd', index=16,
+      number=17, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='num_threads', full_name='Process.num_threads', index=17,
+      number=18, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='user_cpu_time', full_name='Process.user_cpu_time', index=18,
+      number=19, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='system_cpu_time', full_name='Process.system_cpu_time', index=19,
+      number=20, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='cpu_percent', full_name='Process.cpu_percent', index=20,
+      number=21, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='RSS_size', full_name='Process.RSS_size', index=21,
+      number=22, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='VMS_size', full_name='Process.VMS_size', index=22,
+      number=23, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='memory_percent', full_name='Process.memory_percent', index=23,
+      number=24, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='open_files', full_name='Process.open_files', index=24,
+      number=25, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='connections', full_name='Process.connections', index=25,
+      number=26, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -164,8 +333,116 @@ _PROCESS = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=27,
-  serialized_end=122,
+  serialized_start=28,
+  serialized_end=533,
+)
+
+
+_NETWORKENDPOINT = descriptor.Descriptor(
+  name='NetworkEndpoint',
+  full_name='NetworkEndpoint',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='ip', full_name='NetworkEndpoint.ip', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='port', full_name='NetworkEndpoint.port', index=1,
+      number=2, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=535,
+  serialized_end=578,
+)
+
+
+_NETWORKCONNECTION = descriptor.Descriptor(
+  name='NetworkConnection',
+  full_name='NetworkConnection',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='family', full_name='NetworkConnection.family', index=0,
+      number=1, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=2,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='type', full_name='NetworkConnection.type', index=1,
+      number=2, type=14, cpp_type=8, label=1,
+      has_default_value=True, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='local_address', full_name='NetworkConnection.local_address', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='remote_address', full_name='NetworkConnection.remote_address', index=3,
+      number=4, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='state', full_name='NetworkConnection.state', index=4,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=True, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='pid', full_name='NetworkConnection.pid', index=5,
+      number=6, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='ctime', full_name='NetworkConnection.ctime', index=6,
+      number=7, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+    _NETWORKCONNECTION_NETWORKFAMILY,
+    _NETWORKCONNECTION_NETWORKTYPE,
+    _NETWORKCONNECTION_STATE,
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=581,
+  serialized_end=1199,
 )
 
 
@@ -213,87 +490,8 @@ _FILESYSTEM = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=124,
-  serialized_end=202,
-)
-
-
-_CONNECTION = descriptor.Descriptor(
-  name='Connection',
-  full_name='Connection',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    descriptor.FieldDescriptor(
-      name='state', full_name='Connection.state', index=0,
-      number=1, type=14, cpp_type=8, label=1,
-      has_default_value=True, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    descriptor.FieldDescriptor(
-      name='type', full_name='Connection.type', index=1,
-      number=2, type=14, cpp_type=8, label=1,
-      has_default_value=True, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    descriptor.FieldDescriptor(
-      name='local_addr', full_name='Connection.local_addr', index=2,
-      number=3, type=13, cpp_type=3, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    descriptor.FieldDescriptor(
-      name='local_port', full_name='Connection.local_port', index=3,
-      number=4, type=13, cpp_type=3, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    descriptor.FieldDescriptor(
-      name='remote_addr', full_name='Connection.remote_addr', index=4,
-      number=5, type=13, cpp_type=3, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    descriptor.FieldDescriptor(
-      name='remote_port', full_name='Connection.remote_port', index=5,
-      number=6, type=13, cpp_type=3, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    descriptor.FieldDescriptor(
-      name='pid', full_name='Connection.pid', index=6,
-      number=7, type=13, cpp_type=3, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    descriptor.FieldDescriptor(
-      name='ctime', full_name='Connection.ctime', index=7,
-      number=8, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-    _CONNECTION_STATE,
-    _CONNECTION_SOCKETTYPE,
-  ],
-  options=None,
-  is_extendable=False,
-  extension_ranges=[],
-  serialized_start=205,
-  serialized_end=666,
+  serialized_start=1201,
+  serialized_end=1279,
 )
 
 
@@ -327,18 +525,196 @@ _MRUFILE = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=668,
-  serialized_end=717,
+  serialized_start=1281,
+  serialized_end=1330,
 )
 
-_CONNECTION.fields_by_name['state'].enum_type = _CONNECTION_STATE
-_CONNECTION.fields_by_name['type'].enum_type = _CONNECTION_SOCKETTYPE
-_CONNECTION_STATE.containing_type = _CONNECTION;
-_CONNECTION_SOCKETTYPE.containing_type = _CONNECTION;
+
+_RUNKEY = descriptor.Descriptor(
+  name='RunKey',
+  full_name='RunKey',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='keyname', full_name='RunKey.keyname', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='filepath', full_name='RunKey.filepath', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='lastwritten', full_name='RunKey.lastwritten', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=True, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=1332,
+  serialized_end=1399,
+)
+
+
+_LAUNCHDJOB = descriptor.Descriptor(
+  name='LaunchdJob',
+  full_name='LaunchdJob',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='sessiontype', full_name='LaunchdJob.sessiontype', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='lastexitstatus', full_name='LaunchdJob.lastexitstatus', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='timeout', full_name='LaunchdJob.timeout', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='ondemand', full_name='LaunchdJob.ondemand', index=3,
+      number=4, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='machservice', full_name='LaunchdJob.machservice', index=4,
+      number=5, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='perjobmachservice', full_name='LaunchdJob.perjobmachservice', index=5,
+      number=6, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='socket', full_name='LaunchdJob.socket', index=6,
+      number=7, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=1402,
+  serialized_end=1558,
+)
+
+
+_SERVICE = descriptor.Descriptor(
+  name='Service',
+  full_name='Service',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='label', full_name='Service.label', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='program', full_name='Service.program', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='args', full_name='Service.args', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='pid', full_name='Service.pid', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='osx_launchd', full_name='Service.osx_launchd', index=4,
+      number=5, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=1560,
+  serialized_end=1662,
+)
+
+_PROCESS.fields_by_name['connections'].message_type = _NETWORKCONNECTION
+_NETWORKCONNECTION.fields_by_name['family'].enum_type = _NETWORKCONNECTION_NETWORKFAMILY
+_NETWORKCONNECTION.fields_by_name['type'].enum_type = _NETWORKCONNECTION_NETWORKTYPE
+_NETWORKCONNECTION.fields_by_name['local_address'].message_type = _NETWORKENDPOINT
+_NETWORKCONNECTION.fields_by_name['remote_address'].message_type = _NETWORKENDPOINT
+_NETWORKCONNECTION.fields_by_name['state'].enum_type = _NETWORKCONNECTION_STATE
+_NETWORKCONNECTION_NETWORKFAMILY.containing_type = _NETWORKCONNECTION;
+_NETWORKCONNECTION_NETWORKTYPE.containing_type = _NETWORKCONNECTION;
+_NETWORKCONNECTION_STATE.containing_type = _NETWORKCONNECTION;
+_SERVICE.fields_by_name['osx_launchd'].message_type = _LAUNCHDJOB
 DESCRIPTOR.message_types_by_name['Process'] = _PROCESS
+DESCRIPTOR.message_types_by_name['NetworkEndpoint'] = _NETWORKENDPOINT
+DESCRIPTOR.message_types_by_name['NetworkConnection'] = _NETWORKCONNECTION
 DESCRIPTOR.message_types_by_name['Filesystem'] = _FILESYSTEM
-DESCRIPTOR.message_types_by_name['Connection'] = _CONNECTION
 DESCRIPTOR.message_types_by_name['MRUFile'] = _MRUFILE
+DESCRIPTOR.message_types_by_name['RunKey'] = _RUNKEY
+DESCRIPTOR.message_types_by_name['LaunchdJob'] = _LAUNCHDJOB
+DESCRIPTOR.message_types_by_name['Service'] = _SERVICE
 
 class Process(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
@@ -346,22 +722,46 @@ class Process(message.Message):
   
   # @@protoc_insertion_point(class_scope:Process)
 
+class NetworkEndpoint(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _NETWORKENDPOINT
+  
+  # @@protoc_insertion_point(class_scope:NetworkEndpoint)
+
+class NetworkConnection(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _NETWORKCONNECTION
+  
+  # @@protoc_insertion_point(class_scope:NetworkConnection)
+
 class Filesystem(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
   DESCRIPTOR = _FILESYSTEM
   
   # @@protoc_insertion_point(class_scope:Filesystem)
 
-class Connection(message.Message):
-  __metaclass__ = reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _CONNECTION
-  
-  # @@protoc_insertion_point(class_scope:Connection)
-
 class MRUFile(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
   DESCRIPTOR = _MRUFILE
   
   # @@protoc_insertion_point(class_scope:MRUFile)
+
+class RunKey(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _RUNKEY
+  
+  # @@protoc_insertion_point(class_scope:RunKey)
+
+class LaunchdJob(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _LAUNCHDJOB
+  
+  # @@protoc_insertion_point(class_scope:LaunchdJob)
+
+class Service(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _SERVICE
+  
+  # @@protoc_insertion_point(class_scope:Service)
 
 # @@protoc_insertion_point(module_scope)

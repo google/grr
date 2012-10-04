@@ -16,13 +16,10 @@ DAEMON="/usr/sbin/grrd"
 DAEMON_ARGS="--config=/etc/grr-client.conf"
 PIDFILE="/var/run/${NAME}.pid"
 SCRIPTNAME="/etc/init.d/${NAME}"
-DEFAULTFILE="/etc/default/${NAME}"
 
 [ -x "${DAEMON}" ] || DAEMON="/usr/local/sbin/grrd"
 
 [ -x "${DAEMON}" ] || exit 0
-
-[ -r ${DEFAULTFILE} ] && . ${DEFAULTFILE}
 
 . /lib/init/vars.sh
 

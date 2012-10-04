@@ -22,10 +22,14 @@ import platform
 import stat
 
 
+import psutil
+
 from grr.client import conf
 import logging
 from grr.client import conf
 from grr.client import vfs
+from grr.client.vfs_handlers import files
+
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.proto import jobs_pb2
@@ -74,10 +78,48 @@ class VFSTest(test_lib.GRRBaseTest):
   def testRegularFile(self):
     """Test our ability to read regular files."""
     path = os.path.join(self.base_path, "morenumbers.txt")
-
     fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS))
 
     self.TestFileHandling(fd)
+
+  def testOpenFilehandles(self):
+    """Test that file handles are cached."""
+    current_process = psutil.Process(os.getpid())
+    num_open_files = len(current_process.get_open_files())
+
+    path = os.path.join(self.base_path, "morenumbers.txt")
+
+    fds = []
+    for _ in range(100):
+      fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS))
+      self.assertEqual(fd.read(20), "1\n2\n3\n4\n5\n6\n7\n8\n9\n10")
+      fds.append(fd)
+
+    # This should not create any new file handles.
+    self.assertTrue(len(current_process.get_open_files()) - num_open_files < 5)
+
+  def testOpenFilehandlesExpire(self):
+    """Test that file handles expire from cache."""
+    files.FILE_HANDLE_CACHE = utils.FastStore(max_size=10)
+
+    current_process = psutil.Process(os.getpid())
+    num_open_files = len(current_process.get_open_files())
+
+    path = os.path.join(self.base_path, "morenumbers.txt")
+    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS))
+
+    fds = []
+    for filename in fd.ListNames():
+      child_fd = vfs.VFSOpen(jobs_pb2.Path(path=os.path.join(path, filename),
+                                           pathtype=jobs_pb2.Path.OS))
+      fd.read(20)
+      fds.append(child_fd)
+
+    # This should not create any new file handles.
+    self.assertTrue(len(current_process.get_open_files()) - num_open_files < 5)
+
+    # Make sure we exceeded the size of the cache.
+    self.assert_(fds > 20)
 
   def testFileCasing(self):
     """Test our ability to read the correct casing from filesystem."""
@@ -192,6 +234,9 @@ class VFSTest(test_lib.GRRBaseTest):
                                    nested_path=pb2, offset=63*512))
 
     self.assertEqual(fd.read(100), "I am a real ADS\n")
+
+    # Make sure the size is correct:
+    self.assertEqual(fd.Stat().st_size, len("I am a real ADS\n"))
 
   def testTSKNTFSHandling(self):
     """Test that TSK can correctly encode NTFS features."""

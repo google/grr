@@ -79,13 +79,15 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     sel.type("css=input[name=q]", "0005")
     sel.click("css=input[type=submit]")
 
-    self.WaitUntilEqual(u"aff4:/C.0000000000000005",
+    self.WaitUntilEqual(u"C.0000000000000005",
                         sel.get_text, "css=span[type=subject]")
 
     # Choose client 1
     sel.click("css=td:contains('0005')")
 
     # Go to Browse VFS
+    self.WaitUntil(sel.is_element_present,
+                   "css=a:contains('Browse Virtual Filesystem')")
     sel.click("css=a:contains('Browse Virtual Filesystem')")
 
     # Navigate to the analysis directory
@@ -119,5 +121,5 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
                            "css=h3")
 
     # Check that the embedded stat proto is properly presented
-    self.assertEqual("2011-03-07 12:50:20", sel.get_text(
+    self.assertTrue("2011-03-07 12:50:20" in sel.get_text(
         "css=td.proto_value tr:contains(st_atime) td.proto_value"))

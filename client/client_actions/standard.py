@@ -18,25 +18,26 @@
 
 import ctypes
 import hashlib
-import logging
-import platform
-import re
-import socket
+import os
 import stat
 import sys
+import tempfile
 import time
 import zlib
 
 
+import psutil
+
 from grr.client import conf as flags
+import logging
 from grr.client import actions
 from grr.client import client_config
 from grr.client import client_utils_common
-from grr.client import comms
-from grr.client import conf
 from grr.client import vfs
+
 from grr.lib import utils
 from grr.proto import jobs_pb2
+from grr.proto import sysinfo_pb2
 
 # We do not send larger buffers than this:
 MAX_BUFFER_SIZE = 640*1024
@@ -104,8 +105,32 @@ class TransferBuffer(actions.ActionPlugin):
 
       # Now return the data to the server into the special TransferStore well
       # known flow.
-      self.grr_context.SendReply(result, session_id="W:TransferStore")
+      self.grr_worker.SendReply(result, session_id="W:TransferStore")
       HASH_CACHE.Put(digest, 1)
+
+    # Now report the hash of this blob to our flow as well as the offset and
+    # length.
+    self.SendReply(offset=args.offset, length=len(data),
+                   data=digest)
+
+
+class HashBuffer(actions.ActionPlugin):
+  """Hash a buffer from a file and returns it to the server efficiently."""
+  in_protobuf = jobs_pb2.BufferReadMessage
+  out_protobuf = jobs_pb2.BufferReadMessage
+
+  def Run(self, args):
+    """Reads a buffer on the client and sends it to the server."""
+    # Make sure we limit the size of our output
+    if args.length > MAX_BUFFER_SIZE:
+      raise RuntimeError("Can not read buffers this large.")
+
+    # Grab the buffer
+    fd = vfs.VFSOpen(args.pathspec)
+    fd.Seek(args.offset)
+    data = fd.Read(args.length)
+
+    digest = hashlib.sha256(data).digest()
 
     # Now report the hash of this blob to our flow as well as the offset and
     # length.
@@ -196,263 +221,6 @@ class HashFile(ListDirectory):
     self.SendReply(data=hasher.digest())
 
 
-class Echo(actions.ActionPlugin):
-  """Returns a message to the server."""
-  in_protobuf = jobs_pb2.PrintStr
-  out_protobuf = jobs_pb2.PrintStr
-
-  def Run(self, args):
-    self.SendReply(args)
-
-
-class GetHostname(actions.ActionPlugin):
-  """Retrieves the host name of the client."""
-  out_protobuf = jobs_pb2.DataBlob
-
-  def Run(self, unused_args):
-    self.SendReply(string=socket.gethostname())
-
-
-class GetPlatformInfo(actions.ActionPlugin):
-  """Retrieves platform information."""
-  out_protobuf = jobs_pb2.Uname
-
-  def Run(self, unused_args):
-    uname = platform.uname()
-    self.SendReply(system=uname[0],
-                   node=uname[1],
-                   release=uname[2],
-                   version=uname[3],
-                   machine=uname[4])
-
-
-class KillSlave(actions.ActionPlugin):
-  """Kills any slaves, no cleanups."""
-
-  def Run(self, unused_arg):
-    if isinstance(self.grr_context, comms.SlaveContext):
-      logging.info("Dying on request.")
-      sys.exit(0)
-
-
-class Find(actions.IteratedAction):
-  """Recurses through a directory returning files which match conditions."""
-  in_protobuf = jobs_pb2.Find
-  out_protobuf = jobs_pb2.Find
-
-  filesystem_id = 0
-
-  # If this is true we do not cross filesystem boundary
-  xdev = False
-
-  def ListDirectory(self, pathspec, state, depth=0):
-    """A Recursive generator of files."""
-    pathspec = utils.Pathspec(pathspec)
-
-    # Limit recursion depth
-    if depth >= self.max_depth: return
-
-    try:
-      fd = vfs.VFSOpen(pathspec)
-      files = list(fd.ListFiles())
-    except (IOError, OSError), e:
-      if depth == 0:
-        # We failed to open the directory the server asked for because dir
-        # doesn't exist or some other reason. So we set status and return
-        # back to the caller ending the Iterator.
-        self.SetStatus(jobs_pb2.GrrStatus.IOERROR, e)
-      else:
-        # Can't open the directory we're searching, ignore the directory.
-        logging.info("Find failed to ListDirectory for %s. Err: %s", pathspec, e)
-      return
-
-    files.sort(key=lambda x: x.pathspec.SerializeToString())
-
-    # Recover the start point for this directory from the state dict so we can
-    # resume.
-    start = state.get(pathspec.CollapsePath(), 0)
-
-    for i, file_stat in enumerate(files):
-      # Skip the files we already did before
-      if i < start: continue
-
-      if stat.S_ISDIR(file_stat.st_mode):
-        # Do not traverse directories in a different filesystem.
-        if self.filesystem_id == 0 or self.filesystem_id == file_stat.st_dev:
-          for child_stat in self.ListDirectory(file_stat.pathspec,
-                                               state, depth + 1):
-            yield child_stat
-
-      if self.xdev:
-        self.filesystem_id = file_stat.st_dev
-
-      state[pathspec.CollapsePath()] = i + 1
-      yield file_stat
-
-    # Now remove this from the state dict to prevent it from getting too large
-    try:
-      del state[pathspec.CollapsePath()]
-    except KeyError:
-      pass
-
-  def FilterFile(self, file_stat):
-    """Tests a file for filters.
-
-    Args:
-      file_stat: A StatResponse of specified file.
-
-    Returns:
-      True of the file matches all conditions, false otherwise.
-    """
-    # Check timestamp if needed
-    try:
-      if (file_stat.st_mtime > self.filter_expression["start_time"] and
-          file_stat.st_mtime < self.filter_expression["end_time"]):
-        return True
-    except KeyError:
-      pass
-
-    # Filename regex test
-    if not self.filter_expression["filename_regex"].search(
-        utils.Pathspec(file_stat.pathspec).Basename()):
-      return False
-
-    # Should we test for content? (Key Error skips this check)
-    if ("data_regex" in self.filter_expression and
-        not self.TestFileContent(file_stat)):
-      return False
-    return True
-
-  def TestFileContent(self, file_stat):
-    """Checks the file for the presence of the regular expression."""
-    # Content regex check
-    try:
-      data_regex = self.filter_expression["data_regex"]
-
-      # Can only search regular files
-      if not stat.S_ISREG(file_stat.st_mode): return False
-
-      # Search the file
-      found = False
-      data = ""
-
-      with vfs.VFSOpen(file_stat.pathspec) as fd:
-        while True:
-          data_read = fd.read(1000000)
-          if not data_read: break
-          data += data_read
-
-          if data_regex.search(data):
-            found = True
-            break
-
-          # Keep a bit of context from the last buffer to ensure we dont miss a
-          # match broken by buffer. We do not expect regex's to match something
-          # larger than about 100 chars.
-          data = data[-100:]
-
-      if not found: return False
-    except (IOError, KeyError):
-      pass
-
-    return True
-
-  def Iterate(self, request, client_state):
-    """Restores its way through the directory using an Iterator."""
-    self.filter_expression = dict(filename_regex=re.compile(request.path_regex))
-
-    if request.HasField("data_regex"):
-      self.filter_expression["data_regex"] = re.compile(request.data_regex)
-
-    if request.HasField("end_time") or request.HasField("start_time"):
-      self.filter_expression["end_time"] = request.end_time or time.time() * 1e6
-      self.filter_expression["start_time"] = request.start_time
-
-    limit = request.iterator.number
-    self.xdev = request.xdev
-    self.max_depth = request.max_depth
-
-    # TODO(user): What is a reasonable measure of work here?
-    for count, f in enumerate(
-        self.ListDirectory(request.pathspec, client_state)):
-      # Only send the reply if the file matches all criteria
-      if self.FilterFile(f):
-        result = jobs_pb2.Find()
-        result.hit.CopyFrom(f)
-        self.SendReply(result)
-
-      # We only check a limited number of files in each iteration. This might
-      # result in returning an empty response - but the iterator is not yet
-      # complete. Flows must check the state of the iterator explicitly.
-      if count >= limit - 1:
-        logging.debug("Processed %s entries, quitting", count)
-        return
-
-    # End this iterator
-    request.iterator.state = jobs_pb2.Iterator.FINISHED
-
-
-class GetConfig(actions.ActionPlugin):
-  """Retrieves the running configuration parameters."""
-  in_protobuf = None
-  out_protobuf = jobs_pb2.GRRConfig
-
-  def Run(self, unused_arg):
-    out = jobs_pb2.GRRConfig()
-    for field in out.DESCRIPTOR.fields_by_name:
-      if hasattr(conf.FLAGS, field):
-        setattr(out, field, getattr(conf.FLAGS, field))
-    self.SendReply(out)
-
-
-class UpdateConfig(actions.ActionPlugin):
-  """Updates configuration parameters on the client."""
-  in_protobuf = jobs_pb2.GRRConfig
-
-  UPDATEABLE_FIELDS = ["foreman_check_frequency",
-                       "location",
-                       "max_post_size",
-                       "max_out_queue",
-                       "poll_min",
-                       "poll_max",
-                       "poll_slew",
-                       "compression",
-                       "verbose"]
-
-  def Run(self, arg):
-    """Does the actual work."""
-    updated_keys = []
-    disallowed_fields = []
-    for field, value in arg.ListFields():
-      if field.name in self.UPDATEABLE_FIELDS:
-        setattr(conf.FLAGS, field.name, value)
-        updated_keys.append(field.name)
-      else:
-        disallowed_fields.append(field.name)
-
-    if disallowed_fields:
-      logging.warning("Received an update request for restricted field(s) %s.",
-                      ",".join(disallowed_fields))
-    try:
-      conf.PARSER.UpdateConfig(updated_keys)
-    except (IOError, OSError):
-      pass
-
-
-class GetClientInfo(actions.ActionPlugin):
-  """Obtains information about the GRR client installed."""
-  out_protobuf = jobs_pb2.ClientInformation
-
-  def Run(self, unused_args):
-
-    self.SendReply(
-        client_name=client_config.GRR_CLIENT_NAME,
-        client_version=client_config.GRR_CLIENT_VERSION,
-        revision=client_config.GRR_CLIENT_REVISION,
-        build_time=client_config.GRR_CLIENT_BUILDTIME,
-        )
-
-
 class ExecuteCommand(actions.ActionPlugin):
   """Executes one of the predefined commands."""
   in_protobuf = jobs_pb2.ExecuteRequest
@@ -467,9 +235,9 @@ class ExecuteCommand(actions.ActionPlugin):
     res = client_utils_common.Execute(cmd, args, time_limit)
     (stdout, stderr, status, time_used) = res
 
-    # Limit output to 200k so our response doesn't get too big.
-    stdout = stdout[:200 * 1024]
-    stderr = stderr[:200 * 1024]
+    # Limit output to 10MB so our response doesn't get too big.
+    stdout = stdout[:10 * 1024 * 1024]
+    stderr = stderr[:10 * 1024 * 1024]
 
     result = jobs_pb2.ExecuteResponse()
     result.request.CopyFrom(command)
@@ -478,6 +246,111 @@ class ExecuteCommand(actions.ActionPlugin):
     result.exit_status = status
     # We have to return microseconds.
     result.time_used = (int) (1e6 * time_used)
+    self.SendReply(result)
+
+
+class ExecuteBinaryCommand(actions.ActionPlugin):
+  """Executes a command from a passed in binary.
+
+  Obviously this is a dangerous function, it provides for arbitrary code exec by
+  the server running as root/SYSTEM.
+  This is protected by the client_config.EXEC_SIGNING_KEY, which should be
+  stored offline and well protected.
+
+  This method can be utilized as part of an autoupdate mechanism if necessary.
+  """
+  in_protobuf = jobs_pb2.ExecuteBinaryRequest
+  out_protobuf = jobs_pb2.ExecuteBinaryResponse
+
+  def Run(self, args):
+    """Run."""
+    signed_pb = args.executable
+    pub_key = client_config.EXEC_SIGNING_KEY.get(FLAGS.camode.upper())
+    if not client_utils_common.VerifySignedBlob(signed_pb,
+                                                pub_key=pub_key):
+      raise OSError("Code signature signing failure.")
+
+    if args.write_path:
+      # Caller passed in the path to write our file to.
+      write_path = args.write_path
+      with open(write_path, "wb") as fd:
+        fd.write(signed_pb.data)
+      cmd = write_path
+    else:
+      # Need to make a path to use. Want to put it somewhere we know we get
+      # good perms.
+      if sys.platform == "win32":
+        # Wherever we are being run from will have good perms.
+        write_dir = os.path.dirname(sys.executable)
+        suffix = ".exe"
+      else:
+        # We trust mkstemp on other platforms.
+        write_dir = None
+        suffix = ""
+      handle, path = tempfile.mkstemp(suffix=suffix, prefix="tmp",
+                                      dir=write_dir)
+      fd = os.fdopen(handle, "wb")
+      try:
+        fd.write(signed_pb.data)
+      finally:
+        fd.close()
+      cmd = path
+    os.chmod(cmd, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
+
+    cmd_args = args.args
+    time_limit = args.time_limit
+
+    res = client_utils_common.Execute(cmd, cmd_args, time_limit,
+                                      bypass_whitelist=True)
+    (stdout, stderr, status, time_used) = res
+
+    # Now attempt to clean up the file we wrote.
+    try:
+      os.remove(cmd)
+    except (OSError, IOError), e:
+      logging.info("Failed to remove temporary file %s. Err: %s", cmd, e)
+
+    # Limit output to 10MB so our response doesn't get too big.
+    stdout = stdout[:10 * 1024 * 1024]
+    stderr = stderr[:10 * 1024 * 1024]
+
+    result = jobs_pb2.ExecuteBinaryResponse()
+    result.stdout = stdout
+    result.stderr = stderr
+    result.exit_status = status
+    # We have to return microseconds.
+    result.time_used = (int) (1e6 * time_used)
+    self.SendReply(result)
+
+
+class ExecutePython(actions.ActionPlugin):
+  """Executes python code with exec.
+
+  Obviously this is a dangerous function, it provides for arbitrary code exec by
+  the server running as root/SYSTEM.
+  This is protected by the client_config.EXEC_SIGNING_KEY, which should be
+  stored offline and well protected.
+  """
+  in_protobuf = jobs_pb2.ExecutePythonRequest
+  out_protobuf = jobs_pb2.ExecutePythonResponse
+
+  def Run(self, args):
+    """Run."""
+    time_start = time.time()
+    pub_key = client_config.EXEC_SIGNING_KEY.get(FLAGS.camode.upper())
+    if not client_utils_common.VerifySignedBlob(args.python_code,
+                                                pub_key=pub_key):
+      raise OSError("Code signature signing failure.")
+
+    # The execed code can assign to this variable if it wants to return data.
+    magic_return_str = ""
+    logging.debug("exec for python code %s", args.python_code.data[0:100])
+    exec(args.python_code.data)
+    time_used = time.time() - time_start
+    # We have to return microseconds.
+    result = jobs_pb2.ExecutePythonResponse()
+    result.time_used = (int) (1e6 * time_used)
+    result.return_val = utils.SmartStr(magic_return_str)
     self.SendReply(result)
 
 
@@ -493,3 +366,117 @@ class Segfault(actions.ActionPlugin):
       print ctypes.cast(1, ctypes.POINTER(ctypes.c_void_p)).contents
     else:
       logging.warning("Segfault requested but not running in debug mode.")
+
+
+class ListProcesses(actions.ActionPlugin):
+  """This action lists all the processes running on a machine."""
+  in_protobuf = None
+  out_protobuf = sysinfo_pb2.Process
+
+  states = {
+      "UNKNOWN": sysinfo_pb2.NetworkConnection.UNKNOWN,
+      "LISTEN": sysinfo_pb2.NetworkConnection.LISTEN,
+      "ESTABLISHED": sysinfo_pb2.NetworkConnection.ESTAB,
+      "TIME_WAIT": sysinfo_pb2.NetworkConnection.TIME_WAIT,
+      "CLOSE_WAIT": sysinfo_pb2.NetworkConnection.CLOSE_WAIT,
+      }
+
+  def Run(self, unused_arg):
+
+    for proc in psutil.process_iter():
+      response = sysinfo_pb2.Process()
+      for field in ["pid", "ppid", "name", "exe", "username", "terminal"]:
+        try:
+          if not hasattr(proc, field) or not getattr(proc, field):
+            continue
+          value = getattr(proc, field)
+          if isinstance(value, (int, long)):
+            setattr(response, field, value)
+          else:
+            setattr(response, field, utils.SmartUnicode(value))
+
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+          pass
+
+      try:
+        for arg in proc.cmdline:
+          response.cmdline.append(utils.SmartUnicode(arg))
+      except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+      try:
+        response.nice = proc.get_nice()
+      except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+      try:
+        # Not available on Windows.
+        if hasattr(proc, "uids"):
+          (response.real_uid, response.effective_uid,
+           response.saved_uid) = proc.uids
+          (response.real_gid, response.effective_gid,
+           response.saved_gid) = proc.gids
+      except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+      try:
+        response.ctime = long(proc.create_time * 1e6)
+        response.status = str(proc.status)
+      except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+      try:
+        # Not available on OSX.
+        if hasattr(proc, "getcwd"):
+          response.cwd = proc.getcwd()
+      except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+      try:
+        response.num_threads = proc.get_num_threads()
+      except (psutil.NoSuchProcess, psutil.AccessDenied, RuntimeError):
+        pass
+
+      try:
+        (response.user_cpu_time,
+         response.system_cpu_time) = proc.get_cpu_times()
+        # This is very time consuming so we do not collect cpu_percent here.
+        # response.cpu_percent = proc.get_cpu_percent()
+      except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+      try:
+        response.RSS_size, response.VMS_size = proc.get_memory_info()
+        response.memory_percent = proc.get_memory_percent()
+      except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+      try:
+        for f in proc.get_open_files():
+          response.open_files.append(utils.SmartUnicode(f.path))
+      except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+      try:
+        for c in proc.get_connections():
+          conn = response.connections.add()
+          conn.family = c.family
+          conn.type = c.type
+          if c.status in self.states:
+            conn.state = self.states[c.status]
+          elif c.status:
+            logging.info("Encountered unknown connection status (%s).",
+                         c.status)
+
+          conn.local_address.ip, conn.local_address.port = c.local_address
+
+          # Could be in state LISTEN.
+          if c.remote_address:
+            (conn.remote_address.ip,
+             conn.remote_address.port) = c.remote_address
+      except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+      self.SendReply(response)
+      # Reading information here is slow so we heartbeat between processes.
+      self.Progress()

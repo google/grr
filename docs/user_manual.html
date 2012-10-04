@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
-<meta name="generator" content="AsciiDoc 8.6.8" />
+<meta name="generator" content="AsciiDoc 8.6.6" />
 <title>GRR User manual</title>
 <style type="text/css">
 /* Shared CSS for AsciiDoc xhtml11 and html5 backends */
@@ -87,14 +87,10 @@ ul, ol, li > p {
 ul > li     { color: #aaa; }
 ul > li > * { color: black; }
 
-.monospaced, code, pre {
-  font-family: "Courier New", Courier, monospace;
-  font-size: inherit;
-  color: navy;
+pre {
   padding: 0;
   margin: 0;
 }
-
 
 #author {
   color: #527bbd;
@@ -353,7 +349,7 @@ div.colist td img {
   margin-bottom: 0.1em;
 }
 
-div.toclevel0, div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
+div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
   margin-top: 0;
   margin-bottom: 0;
 }
@@ -411,13 +407,17 @@ span.underline { text-decoration: underline; }
 span.overline { text-decoration: overline; }
 span.line-through { text-decoration: line-through; }
 
-div.unbreakable { page-break-inside: avoid; }
-
 
 /*
  * xhtml11 specific
  *
  * */
+
+tt {
+  font-family: monospace;
+  font-size: inherit;
+  color: navy;
+}
 
 div.tableblock {
   margin-top: 1.0em;
@@ -451,6 +451,12 @@ div.tableblock > table[frame="vsides"] {
  * html5 specific
  *
  * */
+
+.monospaced {
+  font-family: monospace;
+  font-size: inherit;
+  color: navy;
+}
 
 table.tableblock {
   margin-top: 1.0em;
@@ -531,8 +537,6 @@ body.manpage div.sectionbody {
 @media print {
   body.manpage div#toc { display: none; }
 }
-
-
 @media screen {
   body {
     max-width: 50em; /* approximately 80 characters wide */
@@ -611,7 +615,7 @@ toc: function (toclevels) {
 
   function tocEntries(el, toclevels) {
     var result = new Array;
-    var re = new RegExp('[hH]([1-'+(toclevels+1)+'])');
+    var re = new RegExp('[hH]([2-'+(toclevels+1)+'])');
     // Function that scans the DOM tree for header elements (the DOM2
     // nodeIterator API would be a better technique but not supported by all
     // browsers).
@@ -640,7 +644,7 @@ toc: function (toclevels) {
   var i;
   for (i = 0; i < toc.childNodes.length; i++) {
     var entry = toc.childNodes[i];
-    if (entry.nodeName.toLowerCase() == 'div'
+    if (entry.nodeName == 'div'
      && entry.getAttribute("class")
      && entry.getAttribute("class").match(/^toclevel/))
       tocEntriesToRemove.push(entry);
@@ -686,7 +690,7 @@ footnotes: function () {
   var entriesToRemove = [];
   for (i = 0; i < noteholder.childNodes.length; i++) {
     var entry = noteholder.childNodes[i];
-    if (entry.nodeName.toLowerCase() == 'div' && entry.getAttribute("class") == "footnote")
+    if (entry.nodeName == 'div' && entry.getAttribute("class") == "footnote")
       entriesToRemove.push(entry);
   }
   for (i = 0; i < entriesToRemove.length; i++) {
@@ -841,9 +845,9 @@ an Administrator user in the remote system. Once all these requirements are met,
 just start a cmd.exe shell and type:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>cd C:\AGENT_DIRECTORY\
+<pre><tt>cd C:\AGENT_DIRECTORY\
 net use \\MACHINE\IPC$ /USER:USERNAME *
-psexec \\MACHINE -c -f -s agent-version.exe</code></pre>
+psexec \\MACHINE -c -f -s agent-version.exe</tt></pre>
 </div></div>
 <div class="admonitionblock">
 <table><tr>
@@ -880,7 +884,7 @@ it. The installation doesn&#8217;t require user input.</p></div>
 <div class="paragraph"><p>The expected output is something along these lines:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>C:\&gt; cd C:\AGENT_DIRECTORY\
+<pre><tt>C:\&gt; cd C:\AGENT_DIRECTORY\
 C:\&gt; net use \\127.0.0.1\IPC$ /USER:admin *
 Type the password for \\127.0.0.1\IPC$:
 The command completed successfully
@@ -894,15 +898,15 @@ The command completed successfully.
 
 agent.exe exited on 127.0.0.1 with error code 0.
 
-C:\AGENT_DIRECTORY&gt;</code></pre>
+C:\AGENT_DIRECTORY&gt;</tt></pre>
 </div></div>
 <div class="paragraph"><p>For even less footprint on installation you could host the agent on a shared
 folder on the network and use this psexec command instead:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>cd C:\AGENT_DIRECTORY\
+<pre><tt>cd C:\AGENT_DIRECTORY\
 net use \\MACHINE\IPC$ /USER:USERNAME *
-psexec \\MACHINE -s \\SHARE\FOLDER\agent-version.exe</code></pre>
+psexec \\MACHINE -s \\SHARE\FOLDER\agent-version.exe</tt></pre>
 </div></div>
 <div class="paragraph"><p>This requires the USERNAME on the remote MACHINE be able to log into SHARE and
 access the shared folder FOLDER. You can do this either by explicitly allowing
@@ -1071,18 +1075,18 @@ access this client&#8217;s VFS.</p></div>
 </div>
 <div class="paragraph"><p>In order to check contents of the remote filesystem you first need to request a
 directory listing. And before that you need to know which drive or volume you
-want to list. You can find these under the <code>fs</code> (FileSystem) node of the tree
+want to list. You can find these under the <tt>fs</tt> (FileSystem) node of the tree
 view.</p></div>
 <div class="paragraph"><p>Inside you will find two directories:</p></div>
 <div class="olist arabic"><ol class="arabic">
 <li>
 <p>
-<code>os</code> contains the volumes seen by the Operating System.
+<tt>os</tt> contains the volumes seen by the Operating System.
 </p>
 </li>
 <li>
 <p>
-<code>tsk</code> contains volumes seen by sleuthkit when analyzing the partition table
+<tt>tsk</tt> contains volumes seen by sleuthkit when analyzing the partition table
 on the remote system.
 </p>
 </li>
@@ -1172,9 +1176,9 @@ VFS.</p></div>
 </ul></div>
 <div class="paragraph"><p>Now try clicking on any entry in the table view and the details view will
 populate with data from this file.</p></div>
-<div class="paragraph"><p>The details view has four tabs you can use. The default one is <code>Stats</code> and it
+<div class="paragraph"><p>The details view has four tabs you can use. The default one is <tt>Stats</tt> and it
 shows all the attributes for the selected node. It should look familiar to you
-as it&#8217;s pretty much as the <code>Host Information</code> page you see where you can find
+as it&#8217;s pretty much as the <tt>Host Information</tt> page you see where you can find
 information about the client object.</p></div>
 <div class="paragraph"><p>The rest are discussed in the next section.</p></div>
 </div>
@@ -1375,16 +1379,16 @@ are:
 <li>
 <p>
 <strong>OS</strong>. Uses the OS "open" facility. These are the most straightforward for a
-    first user. Examples of <em>os</em> paths are <code>C:/Windows</code> on Windows or
-    <code>/etc/init.d/</code> on Linux/OSX.
+    first user. Examples of <em>os</em> paths are <tt>C:/Windows</tt> on Windows or
+    <tt>/etc/init.d/</tt> on Linux/OSX.
 </p>
 </li>
 <li>
 <p>
 <strong>TSK</strong>. Use Sleuthkit. Because Sleuthkit is invoked a path to the device is
     needed along the actual directory path. Examples of <em>tsk</em> paths are
-    <code>\\?\Volume{19b4a721-6e90-12d3-fa01-806e6f6e6963}\Windows</code> for Windows or
-    <code>/dev/sda1/init.d/</code> on Linux. The specific path will vary from client to
+    <tt>\\?\Volume{19b4a721-6e90-12d3-fa01-806e6f6e6963}\Windows</tt> for Windows or
+    <tt>/dev/sda1/init.d/</tt> on Linux. The specific path will vary from client to
     client.
 </p>
 </li>
@@ -1392,7 +1396,7 @@ are:
 <p>
 <strong>REGISTRY</strong>. Windows-related. You can open the live Windows registry as if it
     was a virtual filesystem.a So you can specify a <em>path</em> such as
-    <code>HKEY_LOCAL_MACHINE/Select/Current</code>.
+    <tt>HKEY_LOCAL_MACHINE/Select/Current</tt>.
 </p>
 </li>
 <li>
@@ -1623,20 +1627,20 @@ per: <a href="http://www.chromium.org/user-experience/user-data-directory">http:
 Google Chrome:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>c:\Documents and Settings\&lt;username&gt;\Local Settings\Application Data Google\
-Chrome\User Data\Default</code></pre>
+<pre><tt>c:\Documents and Settings\&lt;username&gt;\Local Settings\Application Data Google\
+Chrome\User Data\Default</tt></pre>
 </div></div>
 <div class="paragraph"><p>Windows 7 or Vista
   c:\Users\&lt;username&gt;\AppData\Local\Google\Chrome\User Data\Default</p></div>
 <div class="paragraph"><p>Mac OS X</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>/Users/&lt;user&gt;/Library/Application Support/Google/Chrome/Default</code></pre>
+<pre><tt>/Users/&lt;user&gt;/Library/Application Support/Google/Chrome/Default</tt></pre>
 </div></div>
 <div class="paragraph"><p>Linux</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>/home/&lt;user&gt;/.config/google-chrome/Default</code></pre>
+<pre><tt>/home/&lt;user&gt;/.config/google-chrome/Default</tt></pre>
 </div></div>
 <div class="paragraph"><p>Arguments</p></div>
 <div class="ulist"><ul>
@@ -1676,23 +1680,23 @@ as per: <a href="http://www.chromium.org/user-experience/user-data-directory">ht
 <div class="paragraph"><p>Windows XP</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>c:\Documents and Settings\&lt;username&gt;\Local Settings Application Data\
-Google\Chrome\User Data\Default\Extensions</code></pre>
+<pre><tt>c:\Documents and Settings\&lt;username&gt;\Local Settings Application Data\
+Google\Chrome\User Data\Default\Extensions</tt></pre>
 </div></div>
 <div class="paragraph"><p>Windows 7 or Vista</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>c:\Users\&lt;username&gt;\AppData\Local\Google\Chrome\User Data\Default\Extensions</code></pre>
+<pre><tt>c:\Users\&lt;username&gt;\AppData\Local\Google\Chrome\User Data\Default\Extensions</tt></pre>
 </div></div>
 <div class="paragraph"><p>Mac OS X</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>/Users/&lt;user&gt;/Library/Application Support/Google/Chrome/Default/Extensions</code></pre>
+<pre><tt>/Users/&lt;user&gt;/Library/Application Support/Google/Chrome/Default/Extensions</tt></pre>
 </div></div>
 <div class="paragraph"><p>Linux</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>/home/&lt;user&gt;/.config/google-chrome/Default/Extensions</code></pre>
+<pre><tt>/home/&lt;user&gt;/.config/google-chrome/Default/Extensions</tt></pre>
 </div></div>
 <div class="paragraph"><p>Arguments</p></div>
 <div class="ulist"><ul>
@@ -1734,25 +1738,25 @@ per: <a href="http://www.forensicswiki.org/wiki/Mozilla_Firefox_3_History_File_F
 <div class="paragraph"><p>Windows XP</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>C:\Documents and Settings\&lt;username&gt;\Application Data\Mozilla Firefox\
-Profiles\&lt;profile folder&gt;\places.sqlite</code></pre>
+<pre><tt>C:\Documents and Settings\&lt;username&gt;\Application Data\Mozilla Firefox\
+Profiles\&lt;profile folder&gt;\places.sqlite</tt></pre>
 </div></div>
 <div class="paragraph"><p>Windows Vista</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>C:\Users\&lt;user&gt;\AppData\Roaming\Mozilla\Firefox\Profiles\&lt;profile
-folder&gt;\places.sqlite</code></pre>
+<pre><tt>C:\Users\&lt;user&gt;\AppData\Roaming\Mozilla\Firefox\Profiles\&lt;profile
+folder&gt;\places.sqlite</tt></pre>
 </div></div>
 <div class="paragraph"><p>GNU/Linux</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>/home/&lt;user&gt;/.mozilla/firefox/&lt;profile folder&gt;/places.sqlite</code></pre>
+<pre><tt>/home/&lt;user&gt;/.mozilla/firefox/&lt;profile folder&gt;/places.sqlite</tt></pre>
 </div></div>
 <div class="paragraph"><p>Mac OS X</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>/Users/&lt;user&gt;/Library/Application Support/Firefox/Profiles/&lt;profile
-folder&gt;/places.sqlite</code></pre>
+<pre><tt>/Users/&lt;user&gt;/Library/Application Support/Firefox/Profiles/&lt;profile
+folder&gt;/places.sqlite</tt></pre>
 </div></div>
 <div class="paragraph"><p>Arguments</p></div>
 <div class="ulist"><ul>
@@ -2545,7 +2549,7 @@ requested its results and execute it.
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2012-10-03 11:19:15 CEST
+Last updated 2012-10-03 19:15:03 CEST
 </div>
 </div>
 </body>

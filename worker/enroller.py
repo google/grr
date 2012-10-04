@@ -26,6 +26,7 @@ from M2Crypto import X509
 from grr.client import conf
 from grr.client import conf as flags
 
+from grr.client import client_config
 from grr.lib import data_store
 from grr.lib import mongo_data_store
 from grr.lib import flow
@@ -36,9 +37,6 @@ from grr.lib import registry
 # Make sure we load the enroller module
 from grr.lib.flows import general
 from grr.lib.flows.caenroll import ca_enroller
-
-flags.DEFINE_string("ca", "ca.key",
-                    "The location of the CA key file.")
 
 flags.DEFINE_string("ca_queue_name", "CA",
                     "The name of the queue for this worker.")

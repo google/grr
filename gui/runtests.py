@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """This is a selenium test harness used interactively with Selenium IDE."""
+import copy
 import socket
 import sys
 import threading
@@ -24,7 +25,7 @@ from wsgiref import simple_server
 
 from django.core.handlers import wsgi
 from django.core.management import setup_environ
-from IPython import Shell
+
 from grr.client import conf
 from grr.client import conf as flags
 import logging
@@ -35,6 +36,8 @@ from grr.lib import data_store
 
 from grr.lib import fake_data_store
 from grr.lib import flow
+
+from grr.lib import ipshell
 from grr.lib import registry
 from grr.lib import test_lib
 from grr.lib.flows import general
@@ -71,17 +74,37 @@ class DjangoThread(threading.Thread):
     self.join()
 
 
-class RunTestsInit(aff4.AFF4InitHook):
-  altitude = aff4.AFF4InitHook.altitude + 10
+class RunTestsInit(registry.InitHook):
 
-  def __init__(self):
+  pre = ["AFF4InitHook"]
+
+  # We cache all the AFF4 objects created by this fixture so its faster to
+  # recreate it between tests.
+  fixture_cache = None
+
+  def Run(self):
     # Install the mock security manager so we can trap errors in interactive
     # mode.
     data_store.DB.security_manager = test_lib.MockSecurityManager()
     token = data_store.ACLToken("Test", "Make fixtures.")
-    # Make 10 clients
-    for i in range(0, 10):
-      test_lib.ClientFixture("C.%016X" % i, token=token)
+    token.supervisor = True
+
+    if RunTestsInit.fixture_cache is None:
+      # Make a data store snapshot.
+      db = data_store.DB.subjects
+      data_store.DB.subjects = {}
+
+      logging.info("Making fixtures")
+
+      # Make 10 clients
+      for i in range(0, 10):
+        test_lib.ClientFixture("C.%016X" % i, token=token)
+
+      (RunTestsInit.fixture_cache,
+       data_store.DB.subjects) = (data_store.DB.subjects, db)
+
+    # Restore the fixture from the cache
+    data_store.DB.subjects.update(copy.deepcopy(RunTestsInit.fixture_cache))
 
 
 def main(_):
@@ -106,7 +129,7 @@ def main(_):
     registry.Init()
 
     # Wait in the shell so selenium IDE can be used.
-    Shell.IPShell(argv=[], user_ns=user_ns).mainloop()
+    ipshell.IPShell(argv=[], user_ns=user_ns)
   finally:
     # Kill the server thread
     trd.Stop()

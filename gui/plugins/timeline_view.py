@@ -21,6 +21,7 @@ import urllib
 from grr.gui import renderers
 from grr.gui.plugins import fileview
 from grr.lib import aff4
+from grr.lib import utils
 
 
 class TimelineViewRenderer(renderers.RDFValueRenderer):
@@ -209,8 +210,11 @@ class EventTable(renderers.TableRenderer):
 
 </script>
 """
+  content_cache = None
 
   def __init__(self):
+    if EventTable.content_cache is None:
+      EventTable.content_cache = utils.TimeBasedCache()
     super(EventTable, self).__init__()
     self.AddColumn(renderers.AttributeColumn("event.id", width=0))
     self.AddColumn(renderers.AttributeColumn("timestamp", width=10))
@@ -228,23 +232,38 @@ class EventTable(renderers.TableRenderer):
     """Populate the table."""
     query = request.REQ.get("query", "")
     container = request.REQ.get("container")
-    fd = aff4.FACTORY.Open(container, token=request.token)
 
-    for i, child in enumerate(fd.Query(query)):
-      if i < start_row: continue
-      if i > end_row:
-        # Tell the table there are more rows
-        self.size = i + 1
-        return
+    key = utils.SmartUnicode(container)
+    key += ":" + query + ":%d"
+    try:
+      events = self.content_cache.Get(key % start_row)
+      self.content_cache.ExpireObject(key % start_row)
+      act_row = start_row
+    except KeyError:
+      fd = aff4.FACTORY.Open(container, token=request.token)
+      events = fd.Query(query)
+      act_row = 0
+
+    for child in events:
+      if act_row < start_row:
+        act_row += 1
+        continue
 
       # Add the event to the special message renderer.
-      self.AddCell(i, "Message", child.event)
+      self.AddCell(act_row, "Message", child.event)
 
       # Add the fd to all the columns
       for column in self.columns:
         # This sets AttributeColumns directly from their fd.
         if isinstance(column, renderers.AttributeColumn):
-          column.AddRowFromFd(i, child)
+          column.AddRowFromFd(act_row, child)
+
+      act_row += 1
+      if act_row >= end_row:
+        # Tell the table there are more rows.
+        self.size = act_row + 1
+        self.content_cache.Put(key % act_row, events)
+        return
 
 
 class EventViewTabs(renderers.TabLayout):
@@ -293,7 +312,7 @@ class EventSubjectView(fileview.AFF4Stats):
 
   def GetEvent(self, request):
     event_id = request.REQ.get("event")
-    if event_id is not None:
+    if event_id is not None and event_id != "null":
       event_id = int(event_id)
       container = request.REQ.get("container")
       fd = aff4.FACTORY.Open(container, token=request.token)

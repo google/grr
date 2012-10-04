@@ -84,7 +84,7 @@ class _WorkerThread(threading.Thread):
           which indicates that the worker should terminate.
     """
 
-    threading.Thread.__init__(self)
+    threading.Thread.__init__(self, name=threadpool_name + "_worker")
     self._queue = queue
     self.daemon = True
     self.threadpool_name = threadpool_name
@@ -118,7 +118,7 @@ class _WorkerThread(threading.Thread):
         # We can't let a worker die because one of the tasks it has to process
         # throws an exception. Therefore, we catch every error that is
         # raised in the call to target().
-        except Exception, e:
+        except Exception as e:
           stats.STATS.Increment(self.threadpool_name + "_task_exceptions")
           logging.exception("Caught exception in worker thread (%s): %s",
                             name, str(e))
@@ -188,7 +188,6 @@ class ThreadPool(object):
     self.num_threads = num_threads
     self.name = name
     self.started = False
-    self.num_workers = 0
 
     if stats.STATS.IsRegistered(self.name + "_idle_threads"):
       raise DuplicateThreadpoolError(
@@ -208,13 +207,15 @@ class ThreadPool(object):
 
   def Start(self):
     """This starts the worker threads."""
+    self.workers = []
+
     if not self.started:
       self.started = True
       for thread_counter in range(self.num_threads):
         try:
           worker = _WorkerThread(self.name, self._queue)
           worker.start()
-          self.num_workers += 1
+          self.workers.append(worker)
         except threading.ThreadError:
           if thread_counter == 0:
             logging.error(("Threadpool exception: "
@@ -233,11 +234,15 @@ class ThreadPool(object):
       return
 
     # Send a stop message to all the workers.
-    for _ in range(self.num_workers):
+    for _ in self.workers:
       self._queue.put(STOP_MESSAGE)
-    self.num_workers = 0
+
     self.started = False
     self.Join()
+
+    # Wait for the threads to all exit now.
+    for worker in self.workers:
+      worker.join()
 
   def AddTask(self, target, args, name="Unnamed task"):
     """Adds a task to be processed later.

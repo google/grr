@@ -13,12 +13,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This is the WSGI based version of the GRR HTTP Server."""
+"""This is the WSGI based version of the GRR HTTP Server.
+
+If you want to set up apache as an http server for GRR, here is a site config
+file you can use. Be aware though that this might not be 100% reliable since
+mod_wsgi uses subinterpreters which might lead to strange errors in the GRR
+code.
+
+<VirtualHost *:80>
+
+    ServerName www.example.com
+    ServerAlias example.com
+    ServerAdmin webmaster@example.com
+
+    DocumentRoot /tmp/wsgitest
+
+    SetEnv configuration /tmp/wsgitest/grr/tools/wsgi.conf
+    WSGIApplicationGroup %{GLOBAL}
+    WSGIScriptAlias / /tmp/wsgitest/grr/tools/wsgi_server.py
+
+    <Directory /tmp/wsgitest/grr/tools>
+    Order allow,deny
+    Allow from all
+    </Directory>
+
+</VirtualHost>
+
+"""
 
 
 import os
 import sys
-import time
 
 grrpath = os.path.dirname(os.path.realpath(__file__))
 grrpath = grrpath.replace("/grr/tools", "")
@@ -37,7 +62,7 @@ from grr.lib import log
 from grr.lib import registry
 from grr.proto import jobs_pb2
 
-flags.DEFINE_integer("max_queue_size", 50,
+flags.DEFINE_integer("max_queue_size", 500,
                      "Maximum number of messages to queue for the client.")
 
 flags.DEFINE_integer("max_receiver_threads", 10,
@@ -50,7 +75,12 @@ flags.DEFINE_integer("max_retransmission_time", 10,
 flags.DEFINE_integer("message_expiry_time", 600,
                      "Maximum time messages remain valid within the system.")
 
-# Allow method names starting with lower case.
+flags.DEFINE_string("server_cert", "grr/keys/test/server.pem",
+                    "The path to the server public key and certificate.")
+
+flags.DEFINE_string("server_private_key", "grr/keys/test/server-priv.pem",
+                    "The path to the server private key.")
+
 
 
 class GrrWSGIServer(object):
@@ -110,9 +140,7 @@ def application(environ, start_response):
 
   # We cannot continue without a config file so we don't try/catch.
   parser = flags.PARSER
-  parser.parse_args()
-  parser.values.config = environ["configuration"]
-  parser.ProcessConfigFile()
+  parser.parse_args(["--config", environ["configuration"]])
   global FLAGS
   FLAGS = parser.values
 

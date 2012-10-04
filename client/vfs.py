@@ -22,6 +22,11 @@ from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
+# A central Cache for vfs handlers. This can be used to keep objects alive
+# for a limited time.
+DEVICE_CACHE = utils.TimeBasedCache()
+
+
 class VFSHandler(object):
   """Base class for handling objects in the VFS."""
   supported_pathtype = -1
@@ -54,6 +59,7 @@ class VFSHandler(object):
       IOError: if this handler can not be instantiated over the
       requested path.
     """
+    _ = pathspec
     self.base_fd = base_fd
     if base_fd is None:
       self.pathspec = utils.Pathspec()
@@ -220,7 +226,8 @@ VFS_HANDLERS = {}
 
 
 class VFSInit(registry.InitHook):
-  def __init__(self):
+
+  def Run(self):
     from grr.client import vfs_handlers
 
     for handler in VFSHandler.classes.values():
@@ -304,7 +311,7 @@ def VFSOpen(pathspec):
     try:
       # Open the component.
       fd = handler.Open(fd, component, pathspec)
-    except IOError, e:
+    except IOError as e:
       raise IOError("%s: %s" % (e, component))
 
   return fd

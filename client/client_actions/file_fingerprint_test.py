@@ -60,11 +60,8 @@ class FilehashTest(test_lib.EmptyActionTest):
     """Fail on missing file?"""
     path = os.path.join(self.base_path, "this file does not exist")
     p = jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS)
-    try:
-      self.RunAction("FingerprintFile", jobs_pb2.FingerprintRequest(pathspec=p))
-    except IOError:
-      return
-    self.fail("Should fail.")
+    self.assertRaises(IOError, self.RunAction, "FingerprintFile",
+                      jobs_pb2.FingerprintRequest(pathspec=p))
 
 
 def parse_result(proto):

@@ -324,8 +324,7 @@ Licensed, tested drivers for OSX, Linux and Windows.
 
 The drivers are distributed with GRR but are also available from the Volatility
 project in binary form at http://code.google.com/p/volatility/downloads/list,
-the source is stored in the scudette branch at http://code.google.com/p/volatili
-ty/source/browse/#svn%2Fbranches%2Fscudette%2Ftools.
+the source is stored in the scudette branch at http://code.google.com/p/volatility/source/browse/#svn%2Fbranches%2Fscudette%2Ftools.
 
 Deploying a driver works much the same as deploying python code. We sign the
 file, encode it in a protobuf and upload it to a specific place in the GRR

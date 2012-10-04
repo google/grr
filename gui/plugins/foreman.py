@@ -29,13 +29,13 @@ from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
-class ManageForeman(renderers.Splitter2Way):
+class ManageForeman(renderers.UserLabelCheckMixin, renderers.Splitter2Way):
   """Manages class based flow creation."""
   description = "Automated flow scheduling"
   behaviours = frozenset(["General"])
-
+  AUTHORIZED_LABELS = ["admin"]
   top_renderer = "ForemanRuleTable"
-  bottom_renderer = "Empty"
+  bottom_renderer = "EmptyRenderer"
 
 
 class RegexRuleArray(renderers.RDFProtoArrayRenderer):
@@ -50,9 +50,8 @@ class ActionRuleArray(renderers.RDFProtoArrayRenderer):
   translator = dict(argv=renderers.RDFProtoRenderer.ProtoDict)
 
 
-class ForemanRuleTable(renderers.TableRenderer):
-  """Show all existing rules."""
-  selection_publish_queue = "rule_select"
+class ReadOnlyForemanRuleTable(renderers.TableRenderer):
+  """Show all the foreman rules."""
 
   # Make the first few columns squish over to give more room to the last few.
   table_options = {
@@ -61,6 +60,41 @@ class ForemanRuleTable(renderers.TableRenderer):
           ],
       "table_hash": "fr",
       }
+
+  def __init__(self):
+    super(ReadOnlyForemanRuleTable, self).__init__()
+    self.AddColumn(renderers.RDFValueColumn("Created", width=10))
+    self.AddColumn(renderers.RDFValueColumn("Expires", width=10))
+    self.AddColumn(renderers.RDFValueColumn("Description", width=10))
+    self.AddColumn(renderers.RDFValueColumn(
+        "Rules", renderer=RegexRuleArray))
+
+  def Layout(self, request, response):
+    """Readonly has no toolbar."""
+    return super(ReadOnlyForemanRuleTable, self).Layout(request, response)
+
+  def RenderAjax(self, request, response):
+    """Renders the table."""
+    fd = aff4.FACTORY.Open("aff4:/foreman", token=request.token)
+    rules = fd.Get(fd.Schema.RULES)
+    if rules is not None:
+      for rule in rules:
+        self.AddRow(dict(Created=aff4.RDFDatetime(rule.created),
+                         Expires=aff4.RDFDatetime(rule.expires),
+                         Description=rule.description,
+                         Rules=rule,
+                         Actions=rule))
+
+    # Call our baseclass to actually do the rendering
+    return super(ReadOnlyForemanRuleTable, self).RenderAjax(request, response)
+
+
+class ForemanRuleTable(ReadOnlyForemanRuleTable, renderers.UserLabelCheckMixin):
+  """Show all existing rules and allow for editing."""
+
+  selection_publish_queue = "rule_select"
+
+  AUTHORIZED_LABELS = ["admin"]
 
   layout_template = renderers.TableRenderer.layout_template + """
 <script>
@@ -76,34 +110,10 @@ class ForemanRuleTable(renderers.TableRenderer):
 </script>
 """
 
-  def __init__(self):
-    super(ForemanRuleTable, self).__init__()
-    self.AddColumn(renderers.RDFValueColumn("Created", width=10))
-    self.AddColumn(renderers.RDFValueColumn("Expires", width=10))
-    self.AddColumn(renderers.RDFValueColumn("Description", width=10))
-    self.AddColumn(renderers.RDFValueColumn(
-        "Rules", renderer=RegexRuleArray))
-
   def Layout(self, request, response):
     # First render the toolbar.
     ForemanToolbar().Layout(request, response)
-
     return super(ForemanRuleTable, self).Layout(request, response)
-
-  def RenderAjax(self, request, response):
-    """Renders the table."""
-    fd = aff4.FACTORY.Open("aff4:/foreman", token=request.token)
-    rules = fd.Get(fd.Schema.RULES)
-    if rules is not None:
-      for rule in rules:
-        self.AddRow(dict(Created=aff4.RDFDatetime(rule.created),
-                         Expires=aff4.RDFDatetime(rule.expires),
-                         Description=rule.description,
-                         Rules=rule,
-                         Actions=rule))
-
-    # Call our baseclass to actually do the rendering
-    return super(ForemanRuleTable, self).RenderAjax(request, response)
 
 
 class ForemanToolbar(renderers.TemplateRenderer):
@@ -379,8 +389,10 @@ class RenderFlowForm(AddForemanRule):
         rule_number=rule_number, fields=args)
 
 
-class AddForemanRuleAction(flow_management.FlowFormAction):
+class AddForemanRuleAction(flow_management.FlowFormAction,
+                           renderers.UserLabelCheckMixin):
   """Receive the parameters."""
+  AUTHORIZED_LABELS = ["admin"]
 
   layout_template = renderers.Template("""
 Created a new automatic rule:
@@ -453,8 +465,9 @@ Error: {{ message|escape }}
     return renderers.TemplateRenderer.Layout(self, request, response)
 
 
-class DeleteRule(renderers.TemplateRenderer):
+class DeleteRule(renderers.TemplateRenderer, renderers.UserLabelCheckMixin):
   """Remove the specified rule from the foreman."""
+  AUTHORIZED_LABELS = ["admin"]
 
   layout_template = renderers.Template("""
 <h1> Removed rule {{this.rule_id|escape}} </h1>
@@ -478,7 +491,3 @@ class DeleteRule(renderers.TemplateRenderer):
       fd.Flush()
 
     return renderers.TemplateRenderer.Layout(self, request, response)
-
-
-class Empty(renderers.Renderer):
-  pass

@@ -23,7 +23,7 @@ from grr.proto import sysinfo_pb2
 
 class Connections(aff4.RDFProtoArray):
   """An RDFValue class representing a list of connections on the host."""
-  _proto = sysinfo_pb2.Connection
+  _proto = sysinfo_pb2.NetworkConnection
 
 
 class Interfaces(aff4.RDFProtoArray):

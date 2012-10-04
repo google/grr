@@ -31,17 +31,5 @@ class SaveCert(actions.ActionPlugin):
 
   def Run(self, args):
     """Receive the certificate and store it to disk."""
-    # TODO(user): Validate this cert is ok
-    if args.pem:
-      # There is a valid certificate
-      self.grr_context.StoreCert(args.pem)
-
-      # Now loads the new certs on the client, and updates the client's
-      # common name. The client will not receive any messages going to
-      # the old CN any longer - only messages to the new CN.
-      self.grr_context.LoadCertificates()
-
-    else:
-      # Send the server our CSR again (Should we regenerate it here?)
-      self.SendReply(pem=self.grr_context.communicator.csr,
-                     type=jobs_pb2.Certificate.CSR)
+    # We dont really care about the certificate any more. The ca_enroller flow
+    # is changed to not issue this client action now.

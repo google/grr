@@ -20,6 +20,7 @@ import platform
 
 # These import populate the VFSHandler registry
 from grr.client.vfs_handlers import files
+from grr.client.vfs_handlers import memory
 from grr.client.vfs_handlers import sleuthkit
 
 if platform.system() == "Windows":

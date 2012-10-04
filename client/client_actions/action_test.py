@@ -14,101 +14,91 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test client vfs."""
+"""Test client actions."""
 
 
 import __builtin__
 import hashlib
-import logging
 import os
 import platform
 import stat
-import StringIO
 
-import mox
+import psutil
 
 from grr.client import conf
 from grr.client import conf as flags
 
 # Populate the action registry
+from grr.client import actions
 from grr.client import client_actions
 from grr.client import comms
 from grr.client import conf
 from grr.client import vfs
+from grr.client.client_actions import tests
 from grr.lib import registry
+from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
-
 FLAGS = flags.FLAGS
 
 
-class MockVFSHandlerFind(vfs.VFSHandler):
-  """A mock VFS handler for finding files.
 
-  This is used to create the /mock2/ client vfs branch which is utilized in the
-  below tests.
-  """
-  supported_pathtype = jobs_pb2.Path.OS
+class MockWindowsProcess(object):
 
-  filesystem = {"/": ["mock2"],
-                "/mock2": ["directory1", "directory3"],
-                "/mock2/directory1": ["file1.txt", "file2.txt", "directory2"],
-                "/mock2/directory1/file1.txt": "Secret 1",
-                "/mock2/directory1/file2.txt": "Another file",
-                "/mock2/directory1/directory2": ["file.jpg", "file.mp3"],
-                "/mock2/directory1/directory2/file.jpg": "JPEG",
-                "/mock2/directory1/directory2/file.mp3": "MP3 movie",
-                "/mock2/directory3": ["file1.txt", "long_file.text"],
-                "/mock2/directory3/file1.txt": "A text file",
-                "/mock2/directory3/long_file.text": ("space " * 100000 +
-                                                     "A Secret"),
-               }
+  pid = 10
+  ppid = 1
+  name = "cmd"
+  exe = "cmd.exe"
+  username = "test"
+  cmdline = ["c:\\Windows\\cmd.exe", "/?"]
 
-  def __init__(self, base_fd, pathspec):
-    super(MockVFSHandlerFind, self).__init__(base_fd, pathspec=pathspec)
+  create_time = 1217061982.375000
+  status = "running"
 
-    self.pathspec.Append(pathspec)
-    self.path = self.pathspec.CollapsePath()
+  def getcwd(self):
+    return "c:\\"
 
-    try:
-      self.content = self.filesystem[self.path]
-      if isinstance(self.content, str):
-        self.size = len(self.content)
-    except KeyError:
-      raise IOError("not mocking %s" % self.path)
+  def get_num_threads(self):
+    return 1
 
-  def Read(self, length):
-    result = self.content[self.offset:self.offset+length]
-    self.offset = min(self.size, self.offset + len(result))
-    return result
+  def get_cpu_times(self):
+    return (1.0, 1.0)
 
-  def ListNames(self):
-    return self.content
+  def get_cpu_percent(self):
+    return 10.0
 
-  def ListFiles(self):
-    """Mock the filesystem."""
-    for child in self.content:
-      # We have a mock FS here that only uses "/".
-      path = "/".join([self.path, child])
-      f = self.filesystem[path]
+  def get_memory_info(self):
+    return (100000, 150000)
 
-      ps = self.pathspec.Copy()
-      ps.Append(path=child, pathtype=self.supported_pathtype)
-      result = jobs_pb2.StatResponse(pathspec=ps.ToProto())
+  def get_memory_percent(self):
+    return 10.0
 
-      if isinstance(f, str):
-        result.st_mode = 0100664
-      else:
-        result.st_mode = 040775
+  def get_open_files(self):
+    return []
 
-      result.st_size = len(child)
+  def get_connections(self):
+    return []
 
-      yield result
+  def get_nice(self):
+    return 10
 
-  def IsDirectory(self):
-    return bool(self.content)
+
+class ProgressAction(actions.ActionPlugin):
+  """A mock action which just calls Progress."""
+  in_protobuf = jobs_pb2.PrintStr
+  out_protobuf = jobs_pb2.PrintStr
+
+  def Run(self, message):
+    _ = message
+    self.Progress()
+    self.Progress()
+    self.Progress()
+
+
+def process_iter():
+  return iter([MockWindowsProcess()])
 
 
 class ActionTest(test_lib.EmptyActionTest):
@@ -149,8 +139,10 @@ class ActionTest(test_lib.EmptyActionTest):
     p = jobs_pb2.Path(path=self.base_path, pathtype=jobs_pb2.Path.OS)
     non_iterated_results = self.RunAction(
         "ListDirectory", jobs_pb2.ListDirRequest(pathspec=p))
+
     # Make sure we get some results.
-    self.assert_(len(non_iterated_results) > 0)
+    l = len(non_iterated_results)
+    self.assertTrue(l > 0)
 
     iterated_results = []
     request = jobs_pb2.ListDirRequest(pathspec=p)
@@ -167,7 +159,10 @@ class ActionTest(test_lib.EmptyActionTest):
       request.iterator.CopyFrom(iterator)
 
     for x, y in zip(non_iterated_results, iterated_results):
-      self.assertEqual(x, y)
+      # Reset the st_atime in the results to avoid potential flakiness.
+      x.st_atime = y.st_atime = 0
+
+      self.assertProto2Equal(x, y)
 
   def testHashFile(self):
     """Can we hash a file?"""
@@ -193,7 +188,7 @@ class ActionTest(test_lib.EmptyActionTest):
       return
 
     path = os.path.join(self.base_path, "wtmp")
-    old_open = __builtins__.open
+    old_open = __builtin__.open
 
     # Mock the open call
     def MockedOpen(_):
@@ -220,147 +215,83 @@ class ActionTest(test_lib.EmptyActionTest):
 
     self.assertEqual(found, 3)
 
-  def testFindAction(self):
-    """Test the find action."""
-    # Install the mock
-    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = MockVFSHandlerFind
+  def testProcessListing(self):
+    """Tests if listing processes works."""
 
-    # First get all the files at once
-    pathspec = jobs_pb2.Path(path="/mock2/", pathtype=jobs_pb2.Path.OS)
-    request = jobs_pb2.Find(pathspec=pathspec, path_regex=".")
-    request.iterator.number = 200
-    result = self.RunAction("Find", request)
-    all_files = [x.hit for x in result if isinstance(x, jobs_pb2.Find)]
+    old_process_iter = psutil.process_iter
+    psutil.process_iter = process_iter
 
-    # Ask for the files one at the time
-    files = []
-    request = jobs_pb2.Find(pathspec=pathspec)
-    request.iterator.number = 1
-
-    while True:
-      result = self.RunAction("Find", request)
-      if request.iterator.state == jobs_pb2.Iterator.FINISHED:
-        break
-
-      self.assertEqual(len(result), 2)
-      self.assert_(isinstance(result[0], jobs_pb2.Find))
-      self.assert_(isinstance(result[1], jobs_pb2.Iterator))
-      files.append(result[0].hit)
-      request.iterator.CopyFrom(result[1])
-
-    for x, y in zip(all_files, files):
-      self.assertEqual(x, y)
-
-    # Make sure the iterator is finished
-    self.assertEqual(request.iterator.state, jobs_pb2.Iterator.FINISHED)
-
-    # Ensure we remove old states from client_state
-    self.assertEqual(len(request.iterator.client_state.dat), 0)
-
-  def testFindAction2(self):
-    """Test the find action path regex."""
-    # Install the mock
-    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = MockVFSHandlerFind
-
-    pathspec = jobs_pb2.Path(path="/mock2/", pathtype=jobs_pb2.Path.OS)
-    request = jobs_pb2.Find(pathspec=pathspec, path_regex=".*mp3")
-    request.iterator.number = 200
-    result = self.RunAction("Find", request)
-    all_files = [x.hit for x in result if isinstance(x, jobs_pb2.Find)]
-
-    self.assertEqual(len(all_files), 1)
-    self.assertEqual(
-        utils.Pathspec(all_files[0].pathspec).Basename(), "file.mp3")
-
-  def testFindAction3(self):
-    """Test the find action data regex."""
-    # Install the mock
-    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = MockVFSHandlerFind
-
-    # First get all the files at once
-    pathspec = jobs_pb2.Path(path="/mock2/", pathtype=jobs_pb2.Path.OS)
-    request = jobs_pb2.Find(pathspec=pathspec, data_regex="Secret")
-    request.iterator.number = 200
-    result = self.RunAction("Find", request)
-    all_files = [x.hit for x in result if isinstance(x, jobs_pb2.Find)]
-    self.assertEqual(len(all_files), 2)
-    self.assertEqual(utils.Pathspec(all_files[0].pathspec).Basename(),
-                     "file1.txt")
-    self.assertEqual(utils.Pathspec(all_files[1].pathspec).Basename(),
-                     "long_file.text")
-
-
-class ConfigActionTest(mox.MoxTestBase, test_lib.EmptyActionTest):
-  """Tests the client actions UpdateConfig and GetConfig."""
-
-  def testUpdateConfig(self):
-    """Test that we can update the config."""
-    # Make sure the config file is not already there
     try:
-      os.unlink(FLAGS.config)
-    except OSError:
-      pass
+      results = self.RunAction("ListProcesses", None)
 
-    # Make sure the file is gone
-    self.assertRaises(IOError, open, FLAGS.config)
-    location = "http://www.example.com"
-    request = jobs_pb2.GRRConfig(location=location,
-                                 foreman_check_frequency=3600)
-    result = self.RunAction("UpdateConfig", request)
+      self.assertEqual(len(results), 1)
+      result = results[0]
 
-    self.assertEqual(result, [])
-    self.assertEqual(conf.FLAGS.foreman_check_frequency, 3600)
+      self.assertEqual(result.pid, 10)
+      self.assertEqual(result.ppid, 1)
+      self.assertEqual(result.name, "cmd")
+      self.assertEqual(result.exe, "cmd.exe")
+      self.assertEqual(result.cmdline, ["c:\\Windows\\cmd.exe", "/?"])
+      self.assertEqual(result.ctime, 1217061982375000)
+      self.assertEqual(result.username, "test")
+      self.assertEqual(result.status, "running")
+      self.assertEqual(result.cwd, "c:\\")
+      self.assertEqual(result.num_threads, 1)
+      self.assertEqual(result.user_cpu_time, 1.0)
+      self.assertEqual(result.system_cpu_time, 1.0)
+      # This is disabled in the flow since it takes too long.
+      # self.assertEqual(result.cpu_percent, 10.0)
+      self.assertEqual(result.RSS_size, 100000)
+      self.assertEqual(result.VMS_size, 150000)
+      self.assertEqual(result.memory_percent, 10.0)
+      self.assertEqual(result.nice, 10)
 
-    # Test the config file got written.
-    data = open(conf.FLAGS.config).read()
-    self.assert_("location = {0}".format(location) in data)
+    finally:
+      psutil.process_iter = old_process_iter
 
-    # Now test that our location was actually updated.
-    def FakeUrlOpen(req):
-      self.fake_url = req.get_full_url()
-      return StringIO.StringIO()
-    comms.urllib2.urlopen = FakeUrlOpen
-    client_context = comms.GRRHTTPContext()
-    client_context.MakeRequest("", comms.Status())
-    self.assertTrue(self.fake_url.startswith(location))
+  def testCPULimit(self):
 
-  def testUpdateConfigBlacklist(self):
-    """Tests that disallowed fields are not getting updated."""
-    self.mox.StubOutWithMock(logging, "warning")
+    class FakeProcess(object):
 
-    logging.warning(mox.StrContains("restricted field(s)"), mox.And(
-        mox.StrContains("camode"),
-        mox.StrContains("debug"),
-        mox.Not(mox.StrContains("location"))))
+      times = [(1, 0), (2, 0), (3, 0), (10000, 0), (10001, 0)]
 
-    self.mox.ReplayAll()
+      def __init__(self, unused_pid):
+        pass
 
-    location = "http://www.example.com"
-    request = jobs_pb2.GRRConfig(location=location,
-                                 camode="test",
-                                 debug=True)
-    result = self.RunAction("UpdateConfig", request)
-    self.assertEqual(result, [])
+      def get_cpu_times(self):
+        return self.times.pop(0)
 
-  def testGetConfig(self):
-    """Check GetConfig client action works."""
-    # Use UpdateConfig to generate a config.
-    location = "http://example.com"
-    request = jobs_pb2.GRRConfig(location=location,
-                                 foreman_check_frequency=3600)
-    self.RunAction("UpdateConfig", request)
-    # Check that our GetConfig actually gets the real data.
-    result = self.RunAction("GetConfig")[0]
-    self.assertEqual(result.foreman_check_frequency, 3600)
-    self.assertEqual(result.location, location)
+    results = []
+
+    def MockSendReply(self, reply=None, **kwargs):
+      if reply is None:
+        reply = self.out_protobuf(**kwargs)
+      results.append(reply)
+
+    message = jobs_pb2.GrrMessage(name="ProgressAction", cpu_limit=3600)
+
+    old_proc = psutil.Process
+    psutil.Process = FakeProcess
+
+    action_cls = actions.ActionPlugin.classes[message.name]
+    action_cls.SendReply = MockSendReply
+    action_cls._authentication_required = False
+    action = action_cls(message=message)
+
+    action.Execute(message)
+
+    psutil.Process = old_proc
+
+    self.assertTrue("Action exceeded cpu limit." in results[0].error_message)
+    self.assertTrue("CPUExceededError" in results[0].error_message)
+
+
+class ActionTestLoader(test_lib.GRRTestLoader):
+  base_class = test_lib.EmptyActionTest
 
 
 def main(argv):
-  conf.FLAGS.config = FLAGS.test_tmpdir + "/config.ini"
-  # Initialize the VFS system
-  vfs.VFSInit()
-
-  test_lib.main(argv)
+  test_lib.GrrTestProgram(argv=argv, testLoader=ActionTestLoader())
 
 if __name__ == "__main__":
   conf.StartMain(main)

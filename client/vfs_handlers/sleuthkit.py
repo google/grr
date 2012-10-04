@@ -27,10 +27,6 @@ from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
-# Cache the filesystems as parsed by TSK for a limited time.
-DEVICE_CACHE = utils.TimeBasedCache()
-
-
 class CachedFilesystem(object):
   """A container for the filesystem and image."""
 
@@ -92,6 +88,9 @@ class TSKFile(vfs.VFSHandler):
   # The file like object we read our image from
   tsk_raw_device = None
 
+  # NTFS files carry an attribute identified by ntfs_type and ntfs_id.
+  tsk_attribute = None
+
   def __init__(self, base_fd, pathspec=None):
     """Use TSK to read the pathspec.
 
@@ -133,35 +132,28 @@ class TSKFile(vfs.VFSHandler):
     # correct.
     self.pathspec.last.path_options = jobs_pb2.Path.CASE_LITERAL
 
-    fd_hash = self.tsk_raw_device.path
-    if hasattr(self.tsk_raw_device, "image_offset"):
-      fd_hash += ":" + str(self.tsk_raw_device.image_offset)
+    fd_hash = self.tsk_raw_device.pathspec.SerializeToString()
 
     # Cache the filesystem using the path of the raw device
     try:
-      self.filesystem = DEVICE_CACHE.Get(fd_hash)
+      self.filesystem = vfs.DEVICE_CACHE.Get(fd_hash)
       self.fs = self.filesystem.fs
     except KeyError:
       self.img = MyImgInfo(fd=self.tsk_raw_device)
 
-      offset = 0
-      try:
-        offset = self.tsk_raw_device.image_offset
-      except AttributeError:
-        pass
-
-      self.fs = pytsk3.FS_Info(self.img, offset)
+      self.fs = pytsk3.FS_Info(self.img, 0)
       self.filesystem = CachedFilesystem(self.fs, self.img)
 
-      DEVICE_CACHE.Put(fd_hash, self.filesystem)
+      vfs.DEVICE_CACHE.Put(fd_hash, self.filesystem)
 
     # We prefer to open the file based on the inode because that is more
     # efficient.
     if pathspec.HasField("inode"):
       self.fd = self.fs.open_meta(pathspec.inode)
-      attribute = self.GetAttribute(pathspec.ntfs_type, pathspec.ntfs_id)
-      if attribute:
-        self.size = attribute.info.size
+      self.tsk_attribute = self.GetAttribute(
+          pathspec.ntfs_type, pathspec.ntfs_id)
+      if self.tsk_attribute:
+        self.size = self.tsk_attribute.info.size
       else:
         self.size = self.fd.info.meta.size
 
@@ -173,7 +165,11 @@ class TSKFile(vfs.VFSHandler):
 
   def GetAttribute(self, ntfs_type, ntfs_id):
     for attribute in self.fd:
-      if attribute.info.type == ntfs_type and attribute.info.id == ntfs_id:
+      if attribute.info.type == ntfs_type:
+        # If ntfs_id is specified it has to also match.
+        if ntfs_id != 0 and attribute.info.id != ntfs_id:
+          continue
+
         return attribute
 
     return None
@@ -187,7 +183,25 @@ class TSKFile(vfs.VFSHandler):
       yield utils.SmartUnicode(f.info.name.name)
 
   def MakeStatResponse(self, tsk_file, tsk_attribute=None, append_name=False):
-    """Given a TSK info object make a StatResponse."""
+    """Given a TSK info object make a StatResponse.
+
+    Note that tsk uses two things to uniquely identify a data stream - the inode
+    object given in tsk_file and the attribute object which may correspond to an
+    ADS of this file for filesystems which support ADS. We store both of these
+    in the stat response.
+
+    Args:
+      tsk_file: A TSK File object for the specified inode.
+
+      tsk_attribute: A TSK Attribute object for the ADS. If None we use the main
+        stream.
+
+      append_name: If specified we append this name to the last element of the
+        pathspec.
+
+    Returns:
+      A StatResponse protobuf which can be used to re-open this exact VFS node.
+    """
     info = tsk_file.info
     response = jobs_pb2.StatResponse()
     meta = info.meta
@@ -217,6 +231,9 @@ class TSKFile(vfs.VFSHandler):
       if tsk_attribute.info.name is not None:
         child_pathspec.last.path += ":" + tsk_attribute.info.name
 
+      # Update the size with the attribute size.
+      response.st_size = tsk_attribute.info.size
+
     if name:
       # Encode the type onto the st_mode response
       response.st_mode |= self.FILE_TYPE_LOOKUP.get(int(name.type), 0)
@@ -241,7 +258,7 @@ class TSKFile(vfs.VFSHandler):
         data = self.fd.read_random(self.offset, available,
                                    self.pathspec.last.ntfs_type,
                                    self.pathspec.last.ntfs_id)
-      except RuntimeError, e:
+      except RuntimeError as e:
         raise IOError(e)
 
       self.offset += len(data)
@@ -251,7 +268,7 @@ class TSKFile(vfs.VFSHandler):
 
   def Stat(self):
     """Return a stat of the file."""
-    return self.MakeStatResponse(self.fd, None)
+    return self.MakeStatResponse(self.fd, tsk_attribute=self.tsk_attribute)
 
   def ListFiles(self):
     """List all the files in the directory."""
@@ -265,14 +282,15 @@ class TSKFile(vfs.VFSHandler):
             continue
 
           # First we yield a standard response using the default attributes.
-          yield self.MakeStatResponse(f, append_name=name)
+          yield self.MakeStatResponse(f, tsk_attribute=None, append_name=name)
 
           # Now send back additional named attributes for the ADS.
           for attribute in f:
             if attribute.info.type in [pytsk3.TSK_FS_ATTR_TYPE_NTFS_DATA,
                                        pytsk3.TSK_FS_ATTR_TYPE_DEFAULT]:
               if attribute.info.name:
-                yield self.MakeStatResponse(f, attribute, append_name=name)
+                yield self.MakeStatResponse(f, append_name=name,
+                                            tsk_attribute=attribute)
         except AttributeError:
           pass
     else:

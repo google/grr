@@ -157,6 +157,20 @@ class ProtoDictTests(test_lib.GRRBaseTest):
           )
       k = jobs_pb2.DataBlob(string="list" + str(i))
       self.proto.dat.add(k=k, v=v)
+    for i in range(10):
+      self.dict_test["dict" + str(i)] = {"a": 1, "b": 2}
+      v = jobs_pb2.DataBlob(
+          dict=jobs_pb2.Dict(
+              dat=[jobs_pb2.KeyValue(
+                  k=jobs_pb2.DataBlob(data="a"),
+                  v=jobs_pb2.DataBlob(integer=1)),
+                   jobs_pb2.KeyValue(
+                       k=jobs_pb2.DataBlob(data="b"),
+                       v=jobs_pb2.DataBlob(integer=2))
+                  ])
+          )
+      k = jobs_pb2.DataBlob(string="dict" + str(i))
+      self.proto.dat.add(k=k, v=v)
 
   def test01ParsingNone(self):
     """Testing initializing from None."""
@@ -282,6 +296,15 @@ class UtilsTest(test_lib.GRRBaseTest):
     for test, expected in data:
       self.assertEqual(expected, utils.NormalizePath(test))
 
+  def FormatAsHexStringTest(self):
+    self.assertEqual(utils.FormatAsHexString(10), "0x1b")
+    self.assertEqual(utils.FormatAsHexString(10, 4), "0x001b")
+    self.assertEqual(utils.FormatAsHexString(10, 16), "0x000000000000001b")
+    # No trailing "L".
+    self.assertEqual(utils.FormatAsHexString(int(1e19)), "0x8ac7230489e80000")
+    self.assertEqual(utils.FormatAsHexString(int(1e19), 5),
+                     "0x8ac7230489e80000")
+
 
 class PathSpectTests(test_lib.GRRBaseTest):
   """Test the pathspec manipulation function."""
@@ -312,6 +335,23 @@ class PathSpectTests(test_lib.GRRBaseTest):
     self.assertEqual(pathspec.Dirname().CollapsePath(), "/")
     pathspec.Append(path="sdasda")
     self.assertEqual(pathspec.Dirname().CollapsePath(), "/foo")
+
+  def testXor(self):
+    test_str = "Hello World!!"
+    for key in [1, 5, 123, 255]:
+      xor_str = utils.Xor(test_str, key)
+      self.assertNotEqual(xor_str, test_str)
+      xor_str = utils.Xor(xor_str, key)
+      self.assertEqual(xor_str, test_str)
+
+  def testXorByteArray(self):
+    test_arr = bytearray("Hello World!!")
+    for key in [1, 5, 123, 255]:
+      xor_arr = bytearray(test_arr)
+      utils.XorByteArray(xor_arr, key)
+      self.assertNotEqual(xor_arr, test_arr)
+      utils.XorByteArray(xor_arr, key)
+      self.assertEqual(xor_arr, test_arr)
 
 
 def main(argv):

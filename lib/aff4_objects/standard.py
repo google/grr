@@ -73,7 +73,7 @@ class VFSDirectory(aff4.AFF4Volume):
   # We contain other objects within the tree.
   _behaviours = frozenset(["Container"])
 
-  def Query(self, filter_string="", filter_obj=None):
+  def Query(self, filter_string="", filter_obj=None, limit=1000):
     """This queries the Directory using a filter expression."""
 
     direct_children_filter = data_store.DB.Filter.SubjectContainsFilter(
@@ -81,14 +81,17 @@ class VFSDirectory(aff4.AFF4Volume):
 
     if not filter_string and filter_obj is None:
       filter_obj = direct_children_filter
+    elif filter_obj:
+      filter_obj = data_store.DB.Filter.AndFilter(
+          filter_obj, direct_children_filter)
     else:
-      # Parse the query string
+      # Parse the query string.
       ast = aff4.AFF4QueryParser(filter_string).Parse()
       filter_obj = data_store.DB.Filter.AndFilter(
           ast.Compile(data_store.DB.Filter),
           direct_children_filter)
 
-    return super(VFSDirectory, self).Query(filter_obj=filter_obj)
+    return super(VFSDirectory, self).Query(filter_obj=filter_obj, limit=limit)
 
   def Update(self, attribute=None):
     """Refresh an old attribute.
@@ -153,6 +156,9 @@ class HashImage(aff4.AFF4Image):
   # Size of a sha256 hash
   _HASH_SIZE = 32
 
+  # How many chunks we read ahead
+  _READAHEAD = 5
+
   def Initialize(self):
     super(HashImage, self).Initialize()
     self.index = None
@@ -168,24 +174,37 @@ class HashImage(aff4.AFF4Image):
     raise NotImplementedError("Direct writing of HashImage not allowed.")
 
   def _GetChunkForReading(self, chunk):
-    """Retrieve the relevant blob  from the AFF4 data store or cache."""
+    """Retrieve the relevant blob from the AFF4 data store or cache."""
+    result = None
     self._OpenIndex()
     self.index.Seek(chunk * self._HASH_SIZE)
 
-    # TODO(user): Make the cache read chunks ahead.
     chunk_name = self.index.Read(self._HASH_SIZE)
     try:
-      fd = self.read_chunk_cache.Get(chunk_name)
+      result = self.read_chunk_cache.Get(chunk_name)
     except KeyError:
-      fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("blobs").Add(
-          chunk_name.encode("hex")), token=self.token)
+      # Read ahead a few chunks.
+      self.index.Seek(-self._HASH_SIZE, whence=1)
+      readahead = {}
 
-      self.read_chunk_cache.Put(chunk_name, fd)
+      for _ in range(self._READAHEAD):
+        name = self.index.Read(self._HASH_SIZE)
+        if name and name not in self.read_chunk_cache:
+          urn = aff4.ROOT_URN.Add("blobs").Add(name.encode("hex"))
+          readahead[urn] = name
 
-      # This should work now
-      fd = self.read_chunk_cache.Get(chunk_name)
+      fds = aff4.FACTORY.MultiOpen(readahead, mode="r", token=self.token)
+      for fd in fds:
+        name = readahead[fd.urn]
 
-    return fd
+        # Remember the right fd
+        if name == chunk_name:
+          result = fd
+
+        # Put back into the cache
+        self.read_chunk_cache.Put(readahead[fd.urn], fd)
+
+    return result
 
   def Close(self, sync=True):
     if self.index:
@@ -204,6 +223,12 @@ class HashImage(aff4.AFF4Image):
   class SchemaCls(aff4.AFF4Image.SchemaCls):
     """The schema for AFF4 files in the GRR VFS."""
     STAT = aff4.AFF4Object.VFSDirectory.SchemaCls.STAT
+    CONTENT_LOCK = aff4.Attribute(
+        "aff4:content_lock", aff4.RDFURN,
+        "This lock contains a URN pointing to the flow that is currently "
+        "updating this object.")
+    FINGERPRINT = aff4.Attribute("aff4:fingerprint", aff4.RDFFingerprintValue,
+                                 "Protodict containing arrays of hashes.")
 
 
 class AFF4Index(aff4.AFF4Object):
@@ -235,7 +260,7 @@ class AFF4Index(aff4.AFF4Object):
       value: The value of the attribute to index.
     """
     attribute_name = "index:%s:%s" % (
-        attribute.predicate, utils.SmartStr(value))
+        attribute.predicate, utils.SmartStr(value).lower())
     self.to_set[attribute_name] = (utils.SmartStr(urn),)
 
   def Query(self, attributes, regex, limit=100):
@@ -250,7 +275,8 @@ class AFF4Index(aff4.AFF4Object):
       A list of AFF4 objects which match the index search.
     """
     # Make the regular expression.
-    regex = ["index:%s:.*%s.*" % (a.predicate, regex) for a in attributes]
+    regex = ["index:%s:.*%s.*" % (a.predicate, regex.lower())
+             for a in attributes]
     start = 0
     try:
       start, end = limit

@@ -52,7 +52,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
 
     self.assert_(task.id > 0)
     self.assert_(task.id & 0xffffffff > 0)
-    self.assertEqual(long(self._current_mock_time) << 32,
+    self.assertEqual((long(self._current_mock_time * 1000) & 0xffffffff) << 32,
                      task.id & 0xffffffff00000000)
     self.assertEqual(task.ttl, 5)
     value, ts = data_store.DB.Resolve("task:%s" % test_queue,
@@ -181,6 +181,51 @@ class SchedulerTest(test_lib.GRRBaseTest):
 
     # But the id should not change
     self.assertEqual(tasks[0].id, original_id)
+
+  def testPriorityScheduling(self):
+    test_queue = "fooReschedule"
+
+    tasks = []
+    for i in range(10):
+      msg = jobs_pb2.GrrMessage(
+          session_id="Test%d" % i,
+          priority=i%3)
+
+      tasks.append(scheduler.SCHEDULER.Task(queue=test_queue, value=msg))
+
+    scheduler.SCHEDULER.Schedule(tasks, token=self.token)
+
+    tasks = scheduler.SCHEDULER.QueryAndOwn(
+        test_queue, lease_seconds=100, token=self.token,
+        limit=3, decoder=jobs_pb2.GrrMessage)
+
+    self.assertEqual(len(tasks), 3)
+    for task in tasks:
+      self.assertEqual(task.priority, 2)
+
+    tasks = scheduler.SCHEDULER.QueryAndOwn(
+        test_queue, lease_seconds=100, token=self.token,
+        limit=3, decoder=jobs_pb2.GrrMessage)
+
+    self.assertEqual(len(tasks), 3)
+    for task in tasks:
+      self.assertEqual(task.priority, 1)
+
+    tasks = scheduler.SCHEDULER.QueryAndOwn(
+        test_queue, lease_seconds=100, token=self.token,
+        limit=100, decoder=jobs_pb2.GrrMessage)
+
+    self.assertEqual(len(tasks), 4)
+    for task in tasks:
+      self.assertEqual(task.priority, 0)
+
+    # Now for Query.
+    tasks = scheduler.SCHEDULER.Query(
+        test_queue, token=self.token,
+        limit=100, decoder=jobs_pb2.GrrMessage)
+    self.assertEqual(len(tasks), 10)
+    self.assertEqual([task.priority for task in tasks],
+                     [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])
 
 
 def main(argv):

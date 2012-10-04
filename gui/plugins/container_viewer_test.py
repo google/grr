@@ -61,7 +61,7 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
     fd.Close()
 
   def setUp(self):
-    test_lib.GRRSeleniumTest.setUp(self)
+    super(TestContainerViewer, self).setUp()
 
     # Create a new collection
     self.CreateCollectionFixture()
@@ -74,13 +74,15 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
     sel.type("css=input[name=q]", "0004")
     sel.click("css=input[type=submit]")
 
-    self.WaitUntilEqual(u"aff4:/C.0000000000000004",
+    self.WaitUntilEqual(u"C.0000000000000004",
                         sel.get_text, "css=span[type=subject]")
 
     # Choose client 1
     sel.click("css=td:contains('0004')")
 
     # Go to Browse VFS
+    self.WaitUntil(sel.is_element_present,
+                   "css=a:contains('Browse Virtual Filesystem')")
     sel.click("css=a:contains('Browse Virtual Filesystem')")
 
     # Navigate to the analysis directory
@@ -121,24 +123,23 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
                      sel.get_value("query"))
 
     # We should have exactly 4 files
-    self.assertEqual(
-        4, sel.get_css_count("css=.tableContainer  tbody > tr"))
+    self.WaitUntilEqual(4, sel.get_css_count, "css=.tableContainer  tbody > tr")
 
     # Check the rows
     self.assertEqual(
-        "aff4:/C.0000000000000004/fs/os/c/bin %(client_id)s/bash",
+        "C.0000000000000004/fs/os/c/bin %(client_id)s/bash",
         sel.get_text("css=.tableContainer  tbody > tr:nth(0) td:nth(1)"))
 
     self.assertEqual(
-        "aff4:/C.0000000000000004/fs/os/c/bin %(client_id)s/rbash",
+        "C.0000000000000004/fs/os/c/bin %(client_id)s/rbash",
         sel.get_text("css=.tableContainer  tbody > tr:nth(1) td:nth(1)"))
 
     self.assertEqual(
-        "aff4:/C.0000000000000004/fs/os/c/bin/bash",
+        "C.0000000000000004/fs/os/c/bin/bash",
         sel.get_text("css=.tableContainer  tbody > tr:nth(2) td:nth(1)"))
 
     self.assertEqual(
-        "aff4:/C.0000000000000004/fs/os/c/bin/rbash",
+        "C.0000000000000004/fs/os/c/bin/rbash",
         sel.get_text("css=.tableContainer  tbody > tr:nth(3) td:nth(1)"))
 
     # Check that query filtering works (Pressing enter)

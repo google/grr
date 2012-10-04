@@ -13,13 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This is a development server for running the admin ui."""
+"""This is a development server for running the UI."""
 
 
 import logging
 import os
 import SocketServer
-import sys
 from wsgiref import simple_server
 
 from django.core.handlers import wsgi
@@ -35,6 +34,7 @@ SITE_SETTINGS = "grr.gui.settings"
 os.environ["DJANGO_SETTINGS_MODULE"] = SITE_SETTINGS
 
 from grr.lib import access_control
+from grr.lib import aff4_objects
 # Support mongo storage
 from grr.lib import mongo_data_store
 
@@ -70,9 +70,10 @@ def main(_):
   setup_environ(settings)
 
   if FLAGS.htpasswd is None:
-    logging.error("Please specify the --htpasswd option to enable "
-                  "security on the admin interface.")
-    sys.exit(-1)
+    msg = ("Please specify the --htpasswd option to enable "
+           "security on the admin interface.")
+    logging.error(msg)
+    raise RuntimeError(msg)
 
   # Start up a server in another thread
   base_url = "http://%s:%d" % (FLAGS.bind, FLAGS.port)

@@ -1,0 +1,36 @@
+// Copyright 2012 Google Inc. All Rights Reserved
+
+syntax = "proto2";
+
+
+// An ObjectFilter is a boolean OR of ConditionList
+message ObjectFilter {
+  enum Operations {
+    OP_IS = 1;
+    OP_IS_NOT = 2;
+    OP_GREATER = 3;
+    OP_GREATER_EQUAL = 4;
+    OP_LESS = 5;
+    OP_LESS_EQUAL = 6;
+    OP_CONTAINS = 7;
+    OP_NOT_CONTAINS = 8;
+    OP_IN_SET = 9;
+    OP_NOT_IN_SET = 10;
+    OP_REGEXP = 11;
+  }
+  repeated ConditionList filters = 1;
+}
+
+
+// A PredicateList is a booleand AND of Predicates
+message ConditionList {
+  repeated Condition conditions = 1;
+}
+
+
+message Condition {
+  optional string key = 1;
+  optional int32 op = 2;
+  optional string value = 3;
+}
+

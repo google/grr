@@ -30,8 +30,12 @@ import logging
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import key_utils
+from grr.lib import type_info
 from grr.lib import utils
 from grr.proto import jobs_pb2
+
+flags.DEFINE_string("ca", "ca.key",
+                    "The location of the CA key file.")
 
 FLAGS = flags.FLAGS
 
@@ -42,18 +46,22 @@ CA_KEY = None
 class CAEnroler(flow.GRRFlow):
   """Enrol new clients."""
 
-  def __init__(self, csr=None, *args, **kwargs):
+  flow_typeinfo = {"csr": type_info.Proto(jobs_pb2.Certificate)}
+
+  def __init__(self, csr=None, _client=None, *args, **kwargs):
     """Start an enrollment flow with the client.
 
     Args:
       csr: A Certificate protobuf with the CSR in it.
+      _client: The client AFF4 Object.
       *args: passthrough to base class
       **kwargs: passthrough to base class
     """
     self.csr = csr
+    self.client = _client
     flow.GRRFlow.__init__(self, *args, **kwargs)
 
-  @flow.StateHandler(next_state="Done")
+  @flow.StateHandler(next_state="End")
   def Start(self):
     """Sign the CSR from the client."""
     if self.csr.type != jobs_pb2.Certificate.CSR:
@@ -70,17 +78,29 @@ class CAEnroler(flow.GRRFlow):
 
     logging.info("Will sign CSR for: %s", self.cn)
 
-    # Create a new client object:
-    client = aff4.FACTORY.Create(self.cn, "VFSGRRClient", mode="w",
-                                 token=self.token)
-
     cert = self.MakeCert(req)
-    client.Set(client.Schema.CERT,
-               aff4.FACTORY.RDFValue("RDFX509Cert")(cert.as_pem()))
-    client.Close(True)
 
+    # This check is important to ensure that the client id reported in the
+    # source of the enrollment request is the same as the one in the
+    # certificate.
+    if self.cn != self.client_id:
+      raise flow.FlowError("Certificate name %s mismatch for client %s",
+                           self.cn, self.client_id)
+
+    # Set and write the certificate to the client record.
+    certificate_attribute = aff4.FACTORY.RDFValue("RDFX509Cert")(cert.as_pem())
+    self.client.Set(self.client.Schema.CERT, certificate_attribute)
+    self.client.Close(sync=True)
+
+    # Publish the client enrollment message.
+    self.Publish("ClientEnrollment", certificate_attribute.AsProto())
+
+    self.Log("Enrolled %s successfully", self.client_id)
+
+    # This is needed for backwards compatibility.
+    # TODO(user): Remove this once all clients are > 2200.
     self.CallClient("SaveCert", pem=cert.as_pem(),
-                    type=jobs_pb2.Certificate.CRT, next_state="Done")
+                    type=jobs_pb2.Certificate.CRT, next_state="End")
 
     # We can not pickle protobufs
     self.csr = None
@@ -121,16 +141,8 @@ class CAEnroler(flow.GRRFlow):
 
     return cert
 
-  @flow.StateHandler()
-  def Done(self):
-    # Start interrogation of the remote system (This will be done by the normal
-    # worker after we complete)
-    flow.FACTORY.StartFlow(client_id=self.client_id,
-                           flow_name="Interrogate", token=self.token)
 
-    self.Log("Enrolled %s successfully", self.client_id)
-
-enrolment_cache = utils.FastStore(500)
+enrolment_cache = utils.FastStore(5000)
 
 
 class Enroler(flow.WellKnownFlow):
@@ -160,6 +172,13 @@ class Enroler(flow.WellKnownFlow):
     except KeyError:
       enrolment_cache.Put(client_id, 1)
 
-    # Start the enrollment flow for this client.
-    flow.FACTORY.StartFlow(client_id=client_id, flow_name="CAEnroler",
-                           csr=cert, queue_name=queue_name, token=self.token)
+    # Create a new client object for this client.
+    client = aff4.FACTORY.Create(client_id, "VFSGRRClient", mode="rw",
+                                 token=self.token)
+
+    # Only enroll this client if it has no certificate yet.
+    if not client.Get(client.Schema.CERT):
+      # Start the enrollment flow for this client.
+      flow.FACTORY.StartFlow(client_id=client_id, flow_name="CAEnroler",
+                             csr=cert, queue_name=queue_name,
+                             _client=client, token=self.token)

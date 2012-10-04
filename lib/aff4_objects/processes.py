@@ -50,12 +50,14 @@ class Process(aff4.AFF4Image):
 class ProcessListing(standard.VFSDirectory):
   """A container for all process listings."""
 
+  _behaviours = frozenset()
+
   class SchemaCls(standard.VFSDirectory.SchemaCls):
     PROCESSES = aff4.Attribute("aff4:processes", Processes,
                                "Process Listing.")
 
   def ListChildren(self):
-    """Virtualize all processes as children."""
+    """Virtualizes all processes as children."""
     result = {}
     processes = self.Get(self.Schema.PROCESSES) or []
     for process in processes:
@@ -64,8 +66,9 @@ class ProcessListing(standard.VFSDirectory):
     return result, self.urn.age
 
   def Open(self, urn, mode="r"):
+    """Opens a direct child of this object."""
     if not isinstance(urn, aff4.RDFURN):
-      # Interpret as a relative path
+      # Interpret as a relative path.
       urn = self.urn.Add(urn)
 
     components = urn.RelativeName(self.urn).split("/")
@@ -76,10 +79,11 @@ class ProcessListing(standard.VFSDirectory):
     processes = self.Get(self.Schema.PROCESSES) or []
     for process in processes:
       if pid == process.pid:
-        result = Process(self.urn.Add(str(pid)), parent=self, clone={})
+        result = Process(self.urn.Add(str(pid)), parent=self, clone={},
+                         mode="rw")
         result.Set(result.Schema.PID(process.pid))
         result.Set(result.Schema.PPID(process.ppid))
-        result.Set(result.Schema.CMDLINE(process.cmdline))
+        result.Set(result.Schema.CMDLINE(" ".join(process.cmdline)))
         result.Set(result.Schema.EXE(process.exe))
         result.Set(result.Schema.CREATED(process.ctime))
 
@@ -88,11 +92,12 @@ class ProcessListing(standard.VFSDirectory):
     raise IOError("%s not found" % pid)
 
   def OpenChildren(self, children=None, mode="r"):
+    """Opens the children of this object."""
     if children is None:
       children = self.ListChildren()[0]
 
     for child in children:
       try:
-        yield self.Open(child)
+        yield self.Open(child, mode)
       except IOError:
         pass

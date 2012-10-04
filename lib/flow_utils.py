@@ -26,28 +26,67 @@ from grr.lib import aff4
 from grr.lib import utils
 
 
-def GetUserInfo(client, user, token):
+def GetUserInfo(client, user):
   """Get a User protobuf for a specific user.
 
   Args:
-    client: Client ID as a string (e.g. "C.2f34cb70a2ae4c35").
+    client: A VFSGRRClient object.
     user: Username as string. May contain domain like DOMAIN\user.
-    token: The ACLToken we can use to retrieve the client object.
   Returns:
     A jobs_pb2.User protobuf or None
   """
-  fd = aff4.FACTORY.Open(client, token=token)
   if "\\" in user:
     domain, user = user.split("\\", 1)
-    users = [u for u in fd.Get(fd.Schema.USER, []) if u.username == user and
-             u.domain == domain]
+    users = [u for u in client.Get(client.Schema.USER, []) if u.username == user
+             and u.domain == domain]
   else:
-    users = [u for u in fd.Get(fd.Schema.USER, []) if u.username == user]
+    users = [u for u in client.Get(client.Schema.USER, [])
+             if u.username == user]
 
   if not users:
     return
   else:
     return users[0]
+
+
+def InterpolatePath(path, client, users=None, path_args=None, depth=0):
+  """Take a string as a path on a client and interpolate with client data.
+
+  Args:
+    path: A single string/unicode to be interpolated.
+    client: A VFSGRRClient object.
+    users: A list of string usernames, or None.
+    path_args: A dict of additional args to use in interpolation. These take
+        precedence over any system provided variables.
+    depth: A counter for recursion depth.
+
+  Returns:
+    A single string if users is None, otherwise a list of strings.
+  """
+
+  sys_formatters = {
+      #TODO(user): Collect this during discovery from the registry.
+      # HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\
+      # Value: SystemRoot
+      "systemroot": "c:\\Windows"
+      }
+
+  # Override any system formatters with path_args.
+  if path_args:
+    sys_formatters.update(path_args)
+
+  if users:
+    results = []
+    for user in users:
+      user_pb = GetUserInfo(client, user)
+      results.append(path.format(user_pb=user_pb, **sys_formatters))
+    return results
+  else:
+    path = path.format(**sys_formatters)
+    if "{" in path and depth < 10:
+      path = InterpolatePath(path, client=client, users=users,
+                             path_args=path_args, depth=depth+1)
+    return path
 
 
 # TODO(user): Deprecate this in favor of client side interpolation.

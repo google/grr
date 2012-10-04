@@ -349,7 +349,11 @@ class RegistryFile(vfs.VFSHandler):
         response_pathspec.last.path, name)
     response_pathspec.ToProto(response.pathspec)
 
-    response.st_mode = stat.S_IFREG
+    if self.IsDirectory():
+      response.st_mode = stat.S_IFDIR
+    else:
+      response.st_mode = stat.S_IFREG
+
     response.st_mtime = self.last_modified
     response.st_size = len(utils.SmartStr(value))
     response.registry_type = self.registry_map.get(value_type, 0)
@@ -392,7 +396,7 @@ class RegistryFile(vfs.VFSHandler):
           except exceptions.WindowsError:
             pass
 
-    except exceptions.WindowsError, e:
+    except exceptions.WindowsError as e:
       raise IOError("Unable to list key %s: %s" % (self.key_name, e))
 
   def ListFiles(self):
@@ -428,6 +432,8 @@ class RegistryFile(vfs.VFSHandler):
             response_pathspec.last.path = utils.JoinPath(
                 response_pathspec.last.path, name)
             response_pathspec.ToProto(response.pathspec)
+
+            # Keys look like Directories in the VFS.
             response.st_mode = stat.S_IFDIR
             response.st_mtime = self.last_modified
 
@@ -439,11 +445,16 @@ class RegistryFile(vfs.VFSHandler):
         for i in range(self.number_of_values):
           try:
             name, value, value_type = EnumValue(key, i)
-            yield self._Stat(name, value, value_type)
+            response = self._Stat(name, value, value_type)
+
+            # Values look like files in the VFS.
+            response.st_mode = stat.S_IFREG
+
+            yield response
 
           except exceptions.WindowsError:
             pass
-    except exceptions.WindowsError, e:
+    except exceptions.WindowsError as e:
       raise IOError("Unable to list key %s: %s" % (self.key_name, e))
 
   def IsDirectory(self):

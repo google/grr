@@ -22,10 +22,13 @@ import pickle
 import tempfile
 
 from grr.lib import flow
+from grr.lib import type_info
 
 
 class ClientAction(flow.GRRFlow):
   """A Simple flow to execute any client action."""
+
+  flow_typeinfo = {"args": type_info.ProtoOrNone()}
 
   def __init__(self, action=None, save_to="/tmp",
                break_pdb=False, args=None, **kwargs):
@@ -58,6 +61,10 @@ class ClientAction(flow.GRRFlow):
   @flow.StateHandler()
   def Print(self, responses):
     """Dump the responses to a pickle file or allow for breaking."""
+    if not responses.success:
+      self.Log("ClientAction %s failed. Staus: %s" % (self.action,
+                                                      responses.status))
+
     if self.break_pdb:
       pdb.set_trace()
     if self.save_to:

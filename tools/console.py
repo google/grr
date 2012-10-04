@@ -19,37 +19,49 @@ We can schedule a new flow for a specific client.
 """
 
 
+# Import things that are useful from the console.
+import collections
+import csv
 import os
+import sys
 import time
 
-from IPython import Shell
+
 
 from google.protobuf import descriptor
 from grr.client import conf
 from grr.client import conf as flags
 import logging
 
-
+from grr import artifacts
 from grr.lib import aff4
+from grr.lib import artifact
 
 from grr.lib import data_store
 from grr.lib import fake_data_store
 from grr.lib import flow
+from grr.lib import flow_context
+from grr.lib import ipshell
+from grr.lib import maintenance_utils
 from grr.lib import registry
+from grr.lib import type_info
 
 from grr.lib import mongo_data_store
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import reports
 
 # Make sure we load the enroller module
 from grr.lib.flows import console
 from grr.lib.flows import general
+from grr.lib.flows.general import memory
 
 from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
 
-flags.DEFINE_string("plugin_path", None,
-                    "The top level path for grr modules")
+flags.DEFINE_string("client", None,
+                    "Initialise the console with this client id "
+                    "(e.g. C.1234345).")
 FLAGS = flags.FLAGS
 
 
@@ -79,7 +91,7 @@ def SearchClient(hostname_regex=None, os_regex=None, mac_regex=None, limit=100):
     filters.append(data_store.DB.Filter.PredicateContainsFilter(
         schema.MAC_ADDRES, mac_regex))
   cols = [schema.HOSTNAME, schema.UNAME, schema.MAC_ADDRESS,
-          schema.INSTALL_DATE, schema.CLOCK]
+          schema.INSTALL_DATE, schema.PING]
 
   results = {}
   for row in data_store.DB.Query(cols,
@@ -129,7 +141,7 @@ def DownloadDir(aff4_path, output_dir, bufsize=8192, preserve_path=True):
         while buf:
           out_fd.write(buf)
           buf = child.Read(bufsize)
-      except IOError, e:
+      except IOError as e:
         logging.error("Failed to read %s. Err: %s", child.urn, e)
 
 
@@ -187,8 +199,13 @@ def TestFlows(client_id, platform, testname=None):
   if platform not in ["windows", "linux", "darwin"]:
     raise RuntimeError("Requested operating system not supported.")
 
+  # This token is not really used since there is no approval for the
+  # tested client - these tests are designed for raw access - but we send it
+  # anyways to have an access reason.
+  token = data_store.ACLToken("test", "client testing")
+
   console.client_tests.RunTests(client_id, platform=platform,
-                                testname=testname)
+                                testname=testname, token=token)
 
 
 def CreateApproval(client_id, token):
@@ -202,7 +219,7 @@ def CreateApproval(client_id, token):
     token: The token that will be used later for access.
   """
   approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
-      token.username).Add(token.reason)
+      token.username).Add(utils.EncodeReasonString(token.reason))
 
   super_token = data_store.ACLToken()
   super_token.supervisor = True
@@ -227,7 +244,7 @@ def RevokeApproval(client_id, token, remove_from_cache=False):
                        security_manager cache.
   """
   approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
-      token.username).Add(token.reason)
+      token.username).Add(utils.EncodeReasonString(token.reason))
 
   super_token = data_store.ACLToken()
   super_token.supervisor = True
@@ -247,6 +264,63 @@ def Help():
   print "Help is not implemented yet"
 
 
+def OpenClient(client_id=None):
+  """Opens the client, getting potential approval tokens.
+
+  Args:
+    client_id: The client id the approval should be revoked for.
+
+  Returns:
+    tuple containing (client, token) objects or (None, None) on if
+    no appropriate aproval tokens were found.
+  """
+  username = os.getlogin()
+  # Use an empty token to query the ACL system.
+  token = data_store.ACLToken()
+
+  # Now we try to find any reason which will allow the user to access this
+  # client right now.
+  approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
+      username)
+
+  fd = aff4.FACTORY.Open(approval_urn, mode="r", token=token)
+  for auth_request in fd.OpenChildren():
+    reason = utils.DecodeReasonString(auth_request.urn.Basename())
+
+    # Check authorization using the data_store for an authoritative source.
+    token = data_store.default_token = data_store.ACLToken(username, reason)
+    try:
+      aff4.FACTORY.Open(aff4.RDFURN(client_id).Add("ACL_Check"),
+                        mode="r", token=token)
+      logging.info("Found valid approval '%s' for client %s", reason, client_id)
+
+      # Make sure to have a client object here to return to the console
+      # the client object will be set in the IPython user_ns
+      client = aff4.FACTORY.Open(aff4.RDFURN(client_id), mode="r", token=token)
+
+      return client, token
+    except data_store.UnauthorizedAccess:
+      pass
+
+  logging.warning("Unable to find a valid reason for client %s. You may need "
+                  "to request approval.", client_id)
+
+  return None, None
+
+
+def ListDrivers():
+  urn = aff4.ROOT_URN.Add(memory.DRIVER_BASE)
+  token = data_store.ACLToken()
+  fd = aff4.FACTORY.Open(urn, mode="r", token=token)
+
+  return list(fd.Query())
+
+
+def Lister(arg):
+  for x in arg:
+    print x
+
+
 def main(unused_argv):
   """Main."""
   banner = ("\nWelcome to the GRR console\n"
@@ -254,14 +328,19 @@ def main(unused_argv):
 
   registry.Init()
 
+  if FLAGS.verbose:
+    logging.root.setLevel(logging.INFO)  # Allow for logging.
+
   locals_vars = {"hilfe": Help,
                  "help": Help,
-                 "__name__": "GRR Console"
+                 "__name__": "GRR Console",
+                 "l": Lister,
                 }
   locals_vars.update(globals())   # add global variables to console
+  if FLAGS.client is not None:
+    locals_vars["client"], locals_vars["token"] = OpenClient(FLAGS.client)
 
-  Shell.IPShell(argv=[],
-                user_ns=locals_vars).mainloop(banner=banner)
+  ipshell.IPShell(argv=[], user_ns=locals_vars, banner=banner)
 
 if __name__ == "__main__":
   conf.StartMain(main)

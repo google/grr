@@ -35,17 +35,29 @@ class SQLiteFile(object):
       c = SQLiteFile(open('filename.db'))
       for row in c.Query(sql_query):
         print row
+
+    The journal_mode parameter controls the "Write-Ahead Log"
+    introduced in recent SQLite versions. If set to "WAL", this log is
+    used to save transaction data and can bring performance
+    improvements. It does, however, require write permissions to the
+    directory the database resides in since it creates the log file
+    there. This can lead to problems with unit tests so we disable by
+    default since we are mostly using the database in read only mode
+    anyways.
+
   """
 
-  def __init__(self, file_object, delete_tempfile=True):
+  def __init__(self, file_object, delete_tempfile=True, journal_mode="DELETE"):
     """Init.
 
     Args:
       file_object: A file like object.
       delete_tempfile: If we create a tempfile, should we delete it when
         we're done.
+      journal_mode: If set to "WAL" a "Write-Ahead Log" is created.
     """
     self.file_object = file_object
+    self.journal_mode = journal_mode
 
     # We want to be able to read from arbitrary file like objects
     # but sqlite lib doesn't support this so we need to write out
@@ -76,11 +88,11 @@ class SQLiteFile(object):
 
     try:
       self._connection = sqlite.connect(self.name)
+      self._connection.execute("PRAGMA journal_mode=%s" % self.journal_mode)
       self._cursor = self._connection.cursor()
       results = self._cursor.execute(sql_query).fetchall()
 
-    except sqlite.Error, error_string:
+    except sqlite.Error as error_string:
       logging.warn("SQLite error %s", error_string)
 
     return results
-

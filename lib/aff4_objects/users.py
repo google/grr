@@ -40,8 +40,6 @@ class GRRUser(aff4.AFF4Object):
         "aff4:notifications/shown", NotificationList,
         "Notifications already shown to the user.", default="")
 
-    # TODO(user): Implement access controls here.
-
   def Notify(self, message_type, subject, msg, source):
     """Send a notification to the user in the UI."""
     pending = self.Get(self.Schema.PENDING_NOTIFICATIONS)

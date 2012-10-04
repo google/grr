@@ -21,8 +21,8 @@ import os
 import struct
 import time
 
-from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import registry
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
@@ -100,6 +100,7 @@ class TaskScheduler(object):
 
   def Schedule(self, tasks, sync=False, token=None):
     """Schedule a set of Task() instances."""
+
     for queue, queued_tasks in utils.GroupBy(tasks, lambda x: x.queue):
       if queue:
         self.data_store.MultiSet(
@@ -124,8 +125,8 @@ class TaskScheduler(object):
         "I"*number_of_tasks, os.urandom(4*number_of_tasks)))
     random_numbers.sort()
 
-    # 32 bit timestamp (in 1 second resolution)
-    time_base = long(time.time()) << 32
+    # 32 bit timestamp (in 1/1000 second resolution)
+    time_base = (long(time.time() * 1000) & 0xFFFFFFFF) << 32
 
     for i, task in enumerate(tasks):
       # Select a task id which is both random and monotonic
@@ -135,7 +136,27 @@ class TaskScheduler(object):
 
     return result
 
-  def Query(self, queue, limit=1, decoder=None, token=None):
+  def NotifyQueue(self, queue, session_id, token=None):
+    """This signals that there are new messages available in a queue."""
+    data_store.DB.MultiSet(
+        queue,
+        {"task:%s" % session_id: "X"},
+        sync=True, token=token)
+
+  def MultiNotifyQueue(self, queue, session_ids, token=None):
+    """This is the same as NotifyQueue but for several session_ids at once."""
+    data_store.DB.MultiSet(
+        queue,
+        dict([("task:%s" % session_id, "X") for session_id in session_ids]),
+        sync=True, replace=True, token=token)
+
+  def DeleteNotification(self, queue, session_id, token=None):
+    """This deletes the notification when all messages have been processed."""
+    data_store.DB.DeleteAttributes(
+        queue, ["task:%s" % session_id],
+        token=token)
+
+  def Query(self, queue, limit=1, decoder=None, token=None, task_id=None):
     """Retrieves tasks from a queue without leasing them.
 
     This is good for a read only snapshot of the tasks.
@@ -145,37 +166,47 @@ class TaskScheduler(object):
        limit: Number of values to fetch.
        decoder: An decoder to be used to decode the value.
        token: An access token to access the data store.
+       task_id: If an id is provided we only query for this id.
 
     Returns:
         A list of Task() objects.
     """
     subject = self.QueueToSubject(queue)
 
-    # Do the real work in a transaction. This doesn't strictly need to
-    # be in a transaction but it might give us more consistency.
-    return self.data_store.RetryWrapper(subject, self._RetrieveTasks,
-                                        limit=limit, decoder=decoder,
-                                        token=token)
-
-  def _RetrieveTasks(self, transaction, limit=1, decoder=None):
     tasks = []
+
+    if task_id is None:
+      regex = "%s.*" % self.PREDICATE_PREFIX
+    else:
+      regex = utils.SmartStr(task_id)
+
+    all_tasks = list(self.data_store.ResolveRegex(
+        subject, regex, decoder=functools.partial(self.Task, decoder=decoder),
+        timestamp=self.data_store.ALL_TIMESTAMPS, token=token))
+
+    all_tasks.sort(key=lambda task: task[1].priority, reverse=True)
 
     # This function should return all tasks - even those which are
     # currently leased (These will have timestamps in the future).
-    for _, task, timestamp in transaction.ResolveRegex(
-        "%s.*" % self.PREDICATE_PREFIX,
-        decoder=functools.partial(self.Task, decoder=decoder),
-        timestamp=self.data_store.ALL_TIMESTAMPS):
-
+    for task_id, task, timestamp in all_tasks:
+      task.task_id = task_id
       task.eta = timestamp
       tasks.append(task)
 
       if len(tasks) >= limit:
         break
 
-    # We didn't write anything here
-    transaction.Abort()
     return tasks
+
+  def MultiQuery(self, queue, decoder=None, limit=100000, token=None):
+    """Like Query above but opens multiple tasks at once."""
+
+    return self.data_store.MultiResolveRegex(
+        [self.QueueToSubject(q) for q in queue],
+        "%s.*" % self.PREDICATE_PREFIX,
+        decoder=functools.partial(self.Task, decoder=decoder),
+        timestamp=self.data_store.ALL_TIMESTAMPS,
+        limit=limit, token=token)
 
   def ListQueues(self, token=None):
     """Returns a list of all queues in the scheduler."""
@@ -214,7 +245,7 @@ class TaskScheduler(object):
       # so we just return an empty list, let the worker sleep and come back to
       # fetch more tasks.
       return []
-    except data_store.Error, e:
+    except data_store.Error as e:
       logging.warning("Datastore exception: %s", e)
       return []
 
@@ -226,11 +257,14 @@ class TaskScheduler(object):
     now = long(time.time() * 1e6)
     lease = long(lease_seconds * 1e6)
 
-    # Only grab attributes with timestamps in the past
-    for predicate, task, timestamp in transaction.ResolveRegex(
+    all_tasks = list(transaction.ResolveRegex(
         "%s.*" % (self.PREDICATE_PREFIX),
         decoder=functools.partial(self.Task, decoder=decoder),
-        timestamp=(0, now)):
+        timestamp=(0, now)))
+    all_tasks.sort(key=lambda task: task[1].priority, reverse=True)
+
+    # Only grab attributes with timestamps in the past
+    for predicate, task, timestamp in all_tasks:
       task.eta = timestamp
       # Decrement the ttl
       task.ttl -= 1
@@ -265,6 +299,10 @@ class TaskScheduler(object):
       self.decoder = decoder
       self.value = value
       self.eta = 0
+      try:
+        self.proto.priority = self.value.priority
+      except AttributeError:
+        pass
 
     def __getattr__(self, attr):
       return getattr(self.proto, attr)
@@ -297,12 +335,12 @@ class TaskScheduler(object):
 
     def __str__(self):
       result = ""
-      for field in ["id", "value", "ttl", "eta", "queue"]:
+      for field in ["id", "value", "ttl", "eta", "queue", "priority"]:
         value = getattr(self, field)
         if field == "eta":
           value = time.ctime(self.eta / 1e6)
 
-        result += "%s: %s\n" % (field, value)
+        result += "%s: %s\n" % (field, utils.SmartUnicode(value))
 
       return result
 
@@ -310,10 +348,12 @@ class TaskScheduler(object):
 # These are globally available handles to factories
 
 
-class SchedulerInit(aff4.AFF4InitHook):
+class SchedulerInit(registry.InitHook):
   """Ensures that the scheduler exists."""
 
-  def __init__(self):
+  pre = ["AFF4InitHook"]
+
+  def Run(self):
     # Make global handlers
     global SCHEDULER
 

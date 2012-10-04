@@ -29,7 +29,7 @@ from grr.lib import flow_context
 from grr.lib import registry
 from grr.lib import scheduler
 from grr.lib import test_lib
-from grr.lib import threadpool
+from grr.lib import type_info
 # These import populate the AFF4 registry
 from grr.lib.flows import general
 from grr.lib.flows import tests
@@ -354,12 +354,8 @@ class FlowTest(test_lib.FlowTestsBaseclass):
     # Messages to Well Known flows can be unauthenticated
     messages = [jobs_pb2.GrrMessage(args=str(i)) for i in range(10)]
 
-    test_pool = threadpool.ThreadPool.Factory("flow_test", 10)
-    test_pool.Start()
-    test_flow.ProcessCompletedRequests(test_pool, messages)
-
-    # Wait for all async operations to complete
-    test_pool.Join()
+    for message in messages:
+      test_flow.ProcessMessage(message)
 
     # The messages might be processed in arbitrary order
     test_flow.messages.sort()
@@ -370,6 +366,19 @@ class FlowTest(test_lib.FlowTestsBaseclass):
     # ProcessMessage method):
     self.assertEqual(test_flow.messages, range(10))
     flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
+
+  def testArgParsing(self):
+    """Test that arguments can be extracted and annotated successfully."""
+
+    # Should raise on parsing default.
+    self.assertRaises(RuntimeError, flow.FACTORY.StartFlow,
+                      self.client_id, "BadArgsFlow1", arg1=False,
+                      token=self.token)
+
+    # Should raise on parsing default even though value is ok.
+    self.assertRaises(RuntimeError, flow.FACTORY.StartFlow,
+                      self.client_id, "BadArgFlow1", arg1=jobs_pb2.Path(),
+                      token=self.token)
 
 
 class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
@@ -434,7 +443,150 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
 
     # Make sure that the resulting directory is what it should be
     for x, y in zip(result, directory2):
-      self.assertEqual(x, y)
+      self.assertProto2Equal(x, y)
+
+  def testClientEventNotification(self):
+    """Make sure that client events handled securely."""
+    received_events = []
+
+    class Listener1(flow.EventListener):
+      well_known_session_id = "W:test2"
+      EVENTS = ["Event2"]
+
+      @flow.EventHandler(in_protobuf=jobs_pb2.Path, auth_required=True)
+      def ProcessMessage(self, message=None, event=None):
+        # Store the results for later inspection.
+        received_events.append((message, event))
+
+    event = jobs_pb2.GrrMessage(session_id="W:SomeFlow",
+                                name="test message",
+                                args=jobs_pb2.Path(
+                                    path="foobar").SerializeToString())
+
+    event.source = "C.1395c448a443c7d9"
+    event.auth_state = jobs_pb2.GrrMessage.AUTHENTICATED
+
+    flow.PublishEvent("Event2", event, token=self.token)
+
+    worker = test_lib.MockWorker(queue_name="W", token=self.token)
+    worker.Next()
+    worker.pool.Join()
+
+    # This should not work - the event listender does not accept client events.
+    self.assertEqual(received_events, [])
+
+    class Listener2(flow.EventListener):
+      well_known_session_id = "W:test3"
+      EVENTS = ["Event2"]
+
+      @flow.EventHandler(in_protobuf=jobs_pb2.Path, auth_required=True,
+                         allow_client_access=True)
+      def ProcessMessage(self, message=None, event=None):
+        # Store the results for later inspection.
+        received_events.append((message, event))
+
+    flow.PublishEvent("Event2", event, token=self.token)
+
+    worker = test_lib.MockWorker(queue_name="W", token=self.token)
+    worker.Next()
+    worker.pool.Join()
+
+    # This should now work - the event listener does accept client events.
+    self.assertEqual(len(received_events), 1)
+
+  def testEventNotification(self):
+    """Test that events are sent to listeners."""
+    received_events = []
+
+    class Listener1(flow.EventListener):
+      well_known_session_id = "W:test1"
+      EVENTS = ["Event1"]
+
+      @flow.EventHandler(in_protobuf=jobs_pb2.Path, auth_required=True)
+      def ProcessMessage(self, message=None, event=None):
+        # Store the results for later inspection.
+        received_events.append((message, event))
+
+    event = jobs_pb2.GrrMessage(session_id="W:SomeFlow",
+                                name="test message",
+                                args=jobs_pb2.Path(
+                                    path="foobar").SerializeToString())
+
+    # Not allowed to publish a message not from a valid source.
+    self.assertRaises(RuntimeError, flow.PublishEvent, "Event1", event,
+                      token=self.token)
+
+    event.source = "Source"
+
+    # First make the message unauthenticated.
+    event.auth_state = jobs_pb2.GrrMessage.UNAUTHENTICATED
+
+    # Publish the event.
+    flow.PublishEvent("Event1", event, token=self.token)
+
+    # Now emulate a worker.
+    worker = test_lib.MockWorker(queue_name="W", token=self.token)
+    worker.Next()
+    worker.pool.Join()
+
+    # This should not work - the unauthenticated message is dropped.
+    self.assertEqual(received_events, [])
+
+    # First make the message unauthenticated.
+    event.auth_state = jobs_pb2.GrrMessage.AUTHENTICATED
+
+    # Publish the event.
+    flow.PublishEvent("Event1", event, token=self.token)
+
+    # Now emulate a worker.
+    worker.Next()
+    worker.pool.Join()
+
+    # This should now work:
+    self.assertEqual(len(received_events), 1)
+
+    # Make sure the source is correctly propagated.
+    self.assertEqual(received_events[0][0].source, "Source")
+    self.assertEqual(received_events[0][1].path, "foobar")
+
+  def testPrioritization(self):
+    """Test that flow priorities work."""
+
+    result = []
+    client_mock = PriorityClientMock(result)
+    client_mock = test_lib.MockClient(self.client_id, client_mock,
+                                      token=self.token)
+    worker_mock = test_lib.MockWorker(check_flow_errors=True,
+                                      token=self.token)
+
+    # Start some flows with different priorities.
+    args = [(jobs_pb2.GrrMessage.LOW_PRIORITY, "low priority"),
+            (jobs_pb2.GrrMessage.MEDIUM_PRIORITY, "medium priority"),
+            (jobs_pb2.GrrMessage.LOW_PRIORITY, "low priority2"),
+            (jobs_pb2.GrrMessage.HIGH_PRIORITY, "high priority"),
+            (jobs_pb2.GrrMessage.MEDIUM_PRIORITY, "medium priority2")]
+
+    for (priority, msg) in args:
+      flow.FACTORY.StartFlow(
+          self.client_id, "PriorityFlow", msg=msg,
+          priority=priority, token=self.token)
+
+    while True:
+      client_processed = client_mock.Next()
+      flows_run = []
+      for flow_run in worker_mock.Next():
+        flows_run.append(flow_run)
+
+      if client_processed == 0 and not flows_run:
+        break
+
+    # The flows should be run in order of priority.
+    self.assertEqual(result[0:1],
+                     [u"high priority"])
+    self.assertEqual(sorted(result[1:3]),
+                     [u"medium priority", u"medium priority2"])
+    self.assertEqual(sorted(result[3:5]),
+                     [u"low priority", u"low priority2"])
 
 
 class MockVFSHandler(vfs.VFSHandler):
@@ -458,6 +610,34 @@ class MockVFSHandler(vfs.VFSHandler):
 
   def IsDirectory(self):
     return self.pathspec.path == "/"
+
+
+class PriorityClientMock(object):
+
+  in_protobuf = jobs_pb2.DataBlob
+
+  def __init__(self, storage):
+    self.storage = storage
+
+  def Store(self, data):
+    self.storage.append(self.in_protobuf().FromString(data).string)
+    return [jobs_pb2.DataBlob(string="Hello World")]
+
+
+class PriorityFlow(flow.GRRFlow):
+  """This flow is used to test priorities."""
+
+  def __init__(self, msg="", **kw):
+    super(PriorityFlow, self).__init__(**kw)
+    self.msg = msg
+
+  @flow.StateHandler(next_state="Done")
+  def Start(self):
+    self.CallClient("Store", string=self.msg, next_state="Done")
+
+  @flow.StateHandler()
+  def Done(self, responses):
+    pass
 
 
 class ClientMock(object):
@@ -551,6 +731,16 @@ class CallStateFlow(flow.GRRFlow):
       raise RuntimeError("Did not receive hello.")
 
     CallStateFlow.success = True
+
+
+class BadArgsFlow1(flow.GRRFlow):
+  """A flow that has args that mismatch type info."""
+
+  flow_typeinfo = {"arg1": type_info.Proto(jobs_pb2.Path)}
+
+  def __init__(self, arg1=False):
+    _ = arg1
+    return
 
 
 class FlowTestLoader(test_lib.GRRTestLoader):

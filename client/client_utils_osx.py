@@ -18,7 +18,7 @@
 
 
 import ctypes
-from ctypes import util
+import ctypes.util
 import os
 import platform
 
@@ -27,88 +27,43 @@ import logging
 
 from grr.client import client_config
 from grr.client import client_utils_linux
+from grr.client.osx import objc
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
-def CFStringToPystring(sc, value):
-  length = (sc.CFStringGetLength(value) * 4) + 1
-  buff = ctypes.create_string_buffer(length)
-  # kCFStringEncodingUTF8 = 134217984
-  sc.CFStringGetCString(value, buff, length * 4, 134217984)
-  return unicode(buff.value, "utf8")
-
-
-def CFNumToInt32(sc, num):
-  tmp = ctypes.c_int32(0)
-  result_ptr = ctypes.pointer(tmp)
-  # kCFNumberSInt32Type = 3
-  sc.CFNumberGetValue(num, 3, result_ptr)
-  return result_ptr[0]
-
-
-def CFDictRetrieve(sc, dictionary, key):
-  ptr = ctypes.c_void_p.in_dll(sc, key)
-  return sc.CFDictionaryGetValue(dictionary, ptr)
-
-
 def OSXFindProxies():
   """This reads the OSX system configuration and gets the proxies."""
-  sc = ctypes.cdll.LoadLibrary(util.find_library("SystemConfiguration"))
 
-  cftable = [
-      ("CFDictionaryGetValue",
-       [ctypes.c_void_p, ctypes.c_void_p],
-       ctypes.c_void_p),
-      ("CFStringGetLength",
-       [ctypes.c_void_p],
-       ctypes.c_int32),
-      ("CFStringGetCString",
-       [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int32, ctypes.c_int32],
-       ctypes.c_int32),
-      ("CFNumberGetValue",
-       [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p],
-       ctypes.c_int32),
-      ("CFRelease",
-       [ctypes.c_void_p],
-       None),
-      ("SCDynamicStoreCopyProxies",
-       [ctypes.c_void_p],
-       ctypes.c_void_p),
-      ]
-
-  # We need to define input / output parameters for all functions we use
-  for (func, args, res) in cftable:
-    f = getattr(sc, func)
-    f.argtypes = args
-    f.restype = res
+  sc = objc.SystemConfiguration()
 
   # Get the dictionary of network proxy settings
-  settings = sc.SCDynamicStoreCopyProxies(None)
+  settings = sc.dll.SCDynamicStoreCopyProxies(None)
   if not settings:
     return []
 
   try:
-    cf_http_enabled = CFDictRetrieve(sc, settings,
-                                     "kSCPropNetProxiesHTTPEnable")
-    if cf_http_enabled and bool(CFNumToInt32(sc, cf_http_enabled)):
+    cf_http_enabled = sc.CFDictRetrieve(settings,
+                                        "kSCPropNetProxiesHTTPEnable")
+    if cf_http_enabled and bool(sc.CFNumToInt32(cf_http_enabled)):
       # Proxy settings for HTTP are enabled
-      cfproxy = CFDictRetrieve(sc, settings, "kSCPropNetProxiesHTTPProxy")
-      cfport = CFDictRetrieve(sc, settings, "kSCPropNetProxiesHTTPPort")
+      cfproxy = sc.CFDictRetrieve(settings, "kSCPropNetProxiesHTTPProxy")
+      cfport = sc.CFDictRetrieve(settings, "kSCPropNetProxiesHTTPPort")
       if cfproxy and cfport:
-        proxy = CFStringToPystring(sc, cfproxy)
-        port = CFNumToInt32(sc, cfport)
+        proxy = sc.CFStringToPystring(cfproxy)
+        port = sc.CFNumToInt32(cfport)
         result = ["http://%s:%d/" % (proxy, port)]
         result.extend(client_config.PROXY_SERVERS)
         return result
 
-    cf_auto_enabled = CFDictRetrieve(sc, settings,
-                                     "kSCPropNetProxiesProxyAutoConfigEnable")
-    if cf_auto_enabled and bool(CFNumToInt32(sc, cf_auto_enabled)):
-      cfurl = CFDictRetrieve(sc, settings,
-                             "kSCPropNetProxiesProxyAutoConfigURLString")
+    cf_auto_enabled = sc.CFDictRetrieve(
+        settings, "kSCPropNetProxiesProxyAutoConfigEnable")
+
+    if cf_auto_enabled and bool(sc.CFNumToInt32(cf_auto_enabled)):
+      cfurl = sc.CFDictRetrieve(settings,
+                                "kSCPropNetProxiesProxyAutoConfigURLString")
       if cfurl:
-        unused_url = CFStringToPystring(sc, cfurl)
+        unused_url = sc.CFStringToPystring(cfurl)
         # TODO(user): Auto config is enabled, what is the plan here?
         # Basically, all we get is the URL of a javascript file. To get the
         # correct proxy for a given URL, browsers call a Javascript function
@@ -117,7 +72,7 @@ def OSXFindProxies():
         return client_config.PROXY_SERVERS
 
   finally:
-    sc.CFRelease(settings)
+    sc.dll.CFRelease(settings)
   return client_config.PROXY_SERVERS
 
 
@@ -188,9 +143,12 @@ def GetFileSystems():
     A list of Struct objects.
 
   Based on the information for getfsstat
-  http://developer.apple.com/library/mac/#documentation/Darwin/Reference/ManPages/man2/getfsstat.2.html
+    http://developer.apple.com/library/mac/#documentation/Darwin/
+      Reference/ManPages/man2/getfsstat.2.html
   """
-  major, minor = platform.mac_ver()[0].split(".")[0:2]
+  version = OSXVersion()
+  major, minor = version.VersionAsMajorMinor()
+
   libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))
 
   if major <= 10 and minor <= 5:
@@ -304,3 +262,36 @@ def CanonicalPathToLocalPath(path):
 def LocalPathToCanonicalPath(path):
   """OSX uses a normal path."""
   return path
+
+
+class OSXVersion(object):
+  """Convenience functions for working with OSX versions."""
+
+  def __init__(self):
+    self.version = platform.mac_ver()[0]
+    self.splitversion = self.version.split(".")
+    self.majorminor = self.splitversion[0:2]
+
+  def VersionAsMajorMinor(self):
+    """Get version as major minor array.
+
+    Returns:
+      [10, 8] for 10.8.1
+    """
+    return [int(x) for x in self.majorminor]
+
+  def VersionString(self):
+    """Get version string.
+
+    Returns:
+      "10.8.1" for 10.8.1
+    """
+    return self.version
+
+  def VersionAsFloat(self):
+    """Get major/minor version as a float.
+
+    Returns:
+      10.8 for 10.8.1
+    """
+    return float(".".join(self.majorminor))

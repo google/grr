@@ -22,7 +22,7 @@ Collects Logs and Infected files.
 
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import utils
+from grr.lib import type_info
 from grr.proto import jobs_pb2
 
 
@@ -30,8 +30,9 @@ class SophosCollector(flow.GRRFlow):
   """Collect all files related to Sophos."""
 
   category = "/Collectors/"
+  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType")}
 
-  def __init__(self, pathtype=utils.ProtoEnum(jobs_pb2.Path, "PathType", "TSK"),
+  def __init__(self, pathtype=jobs_pb2.Path.TSK,
                output="analysis/sophos/{u}-{t}", **kwargs):
     """Constructor.
 

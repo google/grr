@@ -139,7 +139,7 @@ function splitterImpl(splitter, args) {
 
         Bt.toggleClass(opts.invertClass).hide();
         splitTo((splitPos == opts.closeableto) ?
-            _splitPos : opts.closeableto, true);
+            _splitPos : opts.closeableto, true, true);
         return false;
         });
   }
@@ -156,9 +156,10 @@ function splitterImpl(splitter, args) {
     splitTo(splitPos, false, true);
   });
 
-  $(window).bind('resize', function() {
-    splitTo(splitPos, false, true);
-  });
+  // This causes problems when having multiple splitters in the same window.
+  // $(window).bind('resize', function() {
+  //  splitTo(splitPos, false, true);
+  // });
 
   //C.onmousedown=startDrag
   function startDrag(e) {
@@ -265,12 +266,12 @@ function splitterImpl(splitter, args) {
     }
 
     var sizeA = Math.max(0, (percpx - barsize));
-    var sizeB = Math.max(0, (splitsize - percpx));
-    splitsize = (splitsize - barsize);
+    var sizeB = Math.max(0, (splitsize - sizeA - barsize));
 
     if (fast) {
       A.show().css(opts.sizing, sizeA + 'px');
       B.show().css(opts.sizing, sizeB + 'px');
+
       Bt.show();
 
       if (!$.browser.msie) {

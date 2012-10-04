@@ -101,7 +101,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
               1, message.response_id),
           decoder=jobs_pb2.GrrMessage, token=self.token)
 
-      self.assertEqual(stored_message, message)
+      self.assertProto2Equal(stored_message, message)
 
     flow.FACTORY.ReturnFlow(flow_obj, token=self.token)
     return messages
@@ -168,10 +168,13 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     # There should be nothing in the client_queue
     self.assertRaises(KeyError, lambda: data_store.DB.subjects[self.client_id])
 
-    # The well known flows should be waiting in the worker queue instead
-    queue = session_id.split(":")[0]
-    self.assertEqual(len(scheduler.SCHEDULER.Query(
-        queue, 10000, token=self.token)), 9)
+    # The well known flow messages should be waiting in the flow state now:
+    queued_messages = []
+    for predicate, _, _ in data_store.DB.ResolveRegex(
+        "task:%s:state" % session_id, "flow:.*", token=self.token):
+      queued_messages.append(predicate)
+
+    self.assertEqual(len(queued_messages), 9)
 
   def testDrainUpdateSessionRequestStates(self):
     """Draining the flow requests and preparing messages."""

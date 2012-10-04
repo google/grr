@@ -41,10 +41,15 @@ grr.log = function() {
   /* Suppress debugging. */
   if (grr.debug) {
     try {
-      console.log.apply(arguments);
+      console.log(Array.prototype.slice.call(arguments));
     } catch (e) {}
   }
 };
+
+/**
+ *  Do we still need to install XSSI protection?
+ */
+grr.installXssiProtection = true;
 
 /**
  * Initializer for the grr object. Clears all message queues and state.
@@ -90,7 +95,8 @@ grr.init = function() {
     node.find('h3').text($('#footer_message').text());
     node.find('pre').text($('#backtrace').text());
     node.dialog({
-      width: $('html').width() * 0.7,
+      width: $(document).width() * 0.7,
+      height: $(document).height() * 0.9,
       modal: true,
       buttons: {
         Ok: function() {
@@ -121,7 +127,21 @@ grr.init = function() {
    * basically patches the jQuery.ajax method to remove the XSSI preamble.
    */
   if (grr.installXssiProtection) {
-    grr.installXssiProtection();
+    $.ajaxSetup({
+      converters: { 'text json': function(data) {
+        if (typeof data !== 'string' || !data) {
+          return null;
+        }
+
+        if (data.substring(0, 4) != ')]}\n') {
+          return jQuery.error('JSON object not properly protected.');
+        }
+
+        return $.parseJSON(data.substring(4, data.length));
+      }
+    }
+  });
+
     grr.installXssiProtection = false;
 
     /* This is required to send the csrf token as per
@@ -132,6 +152,16 @@ grr.init = function() {
       if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
         xhr.setRequestHeader('X-CSRFToken', $('#csrfmiddlewaretoken').val());
       }
+    });
+
+    $('html').ajaxError(function(e, jqxhr, settings, exception) {
+      grr.publish('grr_messages', 'Server Error');
+      grr.publish('grr_traceback', exception + jqxhr.responseText);
+    });
+
+    // When the window is resized, resize all the elements in them.
+    $('window').bind('resize', function() {
+      grr.publish('GeometryChange', 'main');
     });
   }
 
@@ -152,12 +182,13 @@ grr.init = function() {
 
     if (!timer) {
       grr.timers[id] = window.setTimeout(function() {
-        grr.publish('GeometryChange', id);
         grr.timers[id] = null;
+        grr.publish('GeometryChange', id);
       }, 100);
     }
   }, 'body');
 };
+
 
 /**
  * Create a new tree on the domId provided.
@@ -195,6 +226,7 @@ grr.grrTree = function(renderer, domId, opt_publishEvent, opt_state,
       'ajax' : {
         'url' : 'render/RenderAjax/' + renderer,
         'type': grr.ajax_method,
+        dataType: '*', // Let the server decide on the mime type.
         beforeSend: function(xhr) {
           xhr.setRequestHeader('X-CSRFToken', $('#csrfmiddlewaretoken').val());
         },
@@ -387,7 +419,7 @@ grr.publish = function(name, value, event, data) {
   var queue_name = 'queue_' + name;
   var queue = grr.queue_[queue_name];
 
-  grr.log(name + ':' + value);
+  grr.log('grr.publish', name, value, data);
   if (queue) {
     var new_queue = [];
 
@@ -409,7 +441,7 @@ grr.publish = function(name, value, event, data) {
 /**
  * Lays out a GRR object by rendering the object into a div.
  *
- * @param {string} renderer The rernderer name to call via ajax.
+ * @param {string} renderer The renderer name to call via ajax.
  * @param {string} domId The element which will host the html.
  * @param {Object=} opt_state A data object which will be serialiased into
  *     the AJAX request (as query parameters).
@@ -508,13 +540,13 @@ grr.table.setHeaderWidths = function(jtable) {
     actual_widths[i] = $(this).width();
   });
 
-  jtable.find('tr').each(function() {
-    $(this).find('td').each(function(i) {
+  jtable.children('table').children('tbody').children('tr').each(function() {
+    $(this).children('td').each(function(i) {
       $(this).width(actual_widths[i] || 0);
     });
   });
 
-  jtable.find('tbody tr:first').find('td').each(function(i) {
+  jtable.find('tbody tr:first').children('td').each(function(i) {
     if (!$(this).hasClass('table_loading')) {
       actual_widths[i] = $(this).width();
     }
@@ -609,8 +641,8 @@ grr.table.scrollHandler = function(renderer, tbody, opt_state) {
   var loading_id = loading.attr('id');
 
   // Fire when the table loading element is visible.
-  if (loading && (bottom > loading.attr('offsetTop') -
-      loading.attr('offsetHeight'))) {
+  if (loading.length &&
+    (bottom > loading[0].offsetTop - loading[0].offsetHeight)) {
     var previous_row_id = (tbody.find('tr[row_id]').last().attr('row_id') ||
         -1);
     var next_row = parseInt(previous_row_id) + 1;
@@ -618,11 +650,11 @@ grr.table.scrollHandler = function(renderer, tbody, opt_state) {
     var filter = tbody.parent().find('th[filter]');
     var sort = tbody.parent().find('th[sort]');
 
-    if (filter && filter.attr('filter')) {
+    if (filter.length && filter.attr('filter')) {
       state.filter = filter.text() + ':' + filter.attr('filter');
     }
 
-    if (sort && sort.attr('sort')) {
+    if (sort.length && sort.attr('sort')) {
       state.sort = sort.text() + ':' + sort.attr('sort');
     }
 
@@ -790,8 +822,10 @@ grr.table.newTable = function(renderer, domId, unique, opt_state) {
  * @param {Object} state the state to pass to the server.
  * @param {string=} opt_datatype Expected data type "html" (default),
  *          "json", "xml".
+ * @param {Function} on_error will be called when there was an error.
 */
-grr.poll = function(renderer, domId, callback, timeout, state, opt_datatype) {
+grr.poll = function(renderer, domId, callback, timeout, state, opt_datatype,
+                    on_error) {
   /* Enforce a minimum timeout */
   if (!timeout || timeout < 1000) {
     timeout = 1000;
@@ -820,7 +854,10 @@ grr.poll = function(renderer, domId, callback, timeout, state, opt_datatype) {
       },
 
       // In case of error just keep trying
-      error: function(event) {
+      error: function(jqXHR, textStatus, errorThrown) {
+        if (on_error) {
+          on_error(jqXHR, textStatus, errorThrown);
+        }
         window.setTimeout(update, timeout);
       }
     });
@@ -835,7 +872,7 @@ grr.poll = function(renderer, domId, callback, timeout, state, opt_datatype) {
  * Function to update a dom node via an AJAX call to a renderer.
  *
  * This is similar to the grr.layout() method but it calls the RenderAjax method
- * and is suitable to repeatadely being applied to the same element.
+ * and is suitable to repeatedly being applied to the same element.
  *
  * @param {string} renderer The rernderer name to call via ajax.
  * @param {string} domId The element which will host the html.
@@ -845,8 +882,11 @@ grr.poll = function(renderer, domId, callback, timeout, state, opt_datatype) {
  *     completion.
  * @param {string} inflight_key The key to use for the inflight queue. If null,
  *     we use the domId.
+ * @param {Function=} on_error If provided this function will be called on
+ *     errors.
  */
-grr.update = function(renderer, domId, opt_state, on_success, inflight_key) {
+grr.update = function(renderer, domId, opt_state, on_success, inflight_key,
+                      on_error) {
   var state = opt_state || grr.state;
   var inflight_key = inflight_key || domId;
 
@@ -869,16 +909,21 @@ grr.update = function(renderer, domId, opt_state, on_success, inflight_key) {
   // this one is inflight.
   grr.inFlightQueue[inflight_key] = renderer;
   $.ajax({
-    dataType: 'html',
     data: (state || grr.state),
     type: grr.ajax_method,
     url: 'render/RenderAjax/' + renderer,
-    complete: function() {
+    complete: function(jqXHR) {
       // Remove the lock for this domId
       grr.inFlightQueue[inflight_key] = null;
     },
     error: function(jqXHR) {
-      $('#error_action').html(jqXHR.response);
+      if (!on_error) {
+        grr.publish('grr_messages', 'Server Error');
+        grr.publish('grr_traceback', jqXHR.response);
+      }
+      else {
+        on_error(jqXHR);
+      }
     },
     success: function(data) {
       // Remove the lock for this domId
@@ -915,29 +960,6 @@ grr.installEventsForText = function(domId, queue) {
   // Block bubbling of these events.
   node.mousedown(blocker);
   node.click(blocker);
-};
-
-/**
- * Override the jQuery parser to remove XSSI protections.
- *
- * @return {?Object} JSON object or null if parsing failed.
- */
-grr.installXssiProtection = function() {
-  var oldParseJSON = jQuery.parseJSON;
-
-  jQuery.parseJSON = function(data) {
-    if (typeof data !== 'string' || !data) {
-      return null;
-    }
-
-    if (data.substring(0, 4) != ')]}\n') {
-      return jQuery.error('JSON object not properly protected.');
-    }
-
-    return oldParseJSON(data.substring(4, data.length));
-  };
-
-  return null;
 };
 
 /**
@@ -996,7 +1018,17 @@ grr.submit = function(renderer, formId, resultId, opt_state,
     var value = $(this).val();
 
     if (name && value) {
-      new_state[name] = value;
+
+      if (this.type == 'checkbox') {
+        // Multiple checkboxes can be concatenated to the same name.
+        if (!(name in new_state)) {
+          new_state[name] = value;
+        } else {
+          new_state[name] += ',' + value;
+        }
+      } else {
+        new_state[name] = value;
+      }
     }
   });
 
@@ -1329,8 +1361,6 @@ grr.hexview._makeSlider = function(renderer, domId, total_size, width, height,
       state.hex_row_count = height;
 
       grr.update(renderer, domId, state, function(data) {
-        data = jQuery.parseJSON(data);
-
         // Fill in the table with the data that came back.
         grr.hexview._Populate(data.offset, width, data.values);
       });
@@ -1399,8 +1429,6 @@ grr.hexview.HexViewer = function(renderer, domId, width, state) {
 
   // Ask for these many rows from the server.
   grr.update(renderer, domId, state, function(data) {
-    data = jQuery.parseJSON(data);
-
     // Now fill as many rows as we can in the view port.
     grr.hexview.BuildTable(domId, width, state.hex_row_count);
 
@@ -1519,6 +1547,134 @@ grr.textview.TextViewer = function(renderer, domId, default_codec, state) {
  */
 grr.inFlightQueue = {};
 
+/**
+ * Builds a version selector UI into a node.
+ * @param {Object} node is a JQuery DOM node for an icon in the table.
+ */
+grr.versionSelector = function(node) {
+  var dialog = $('<div id="version-dialog">');
+  var table_state = node.parents('table[aff4_path]');
+  var aff4_path = node.parents('tr').find('span[aff4_path]').attr('aff4_path');
+  var state = $.extend({
+    aff4_path: aff4_path
+  }, grr.state);
+
+  dialog.dialog({
+    width: $('html').width() * 0.7,
+    height: $('html').height() * 0.7,
+    modal: true,
+    resize: function() {
+      grr.publish('GeometryChange', 'version-dialog');
+    },
+    close: function() {
+        $('#version-dialog').remove();
+    },
+    buttons: {
+      Ok: function() {
+        $(this).dialog('close');
+      }
+    }
+  });
+
+  grr.layout('VersionSelectorDialog', 'version-dialog', state, function() {
+    grr.publish('GeometryChange', 'version-dialog');
+  });
+};
+
+
+/**
+ * Add onclick and onchange handlers to an input form field to handle the None
+ * or Auto automatic value. This is used in the Start new flows UI.
+ * @param {object} node The node to apply the handlers to.
+ */
+grr.formNoneHandler = function(node) {
+
+  // If its the auto value we disable the input.
+  var disabled_color = 'rgb(200, 200, 200)';
+  var value = node.val();
+  if (value.toLowerCase() == 'none' || value == 'Auto' || value == '') {
+    node.css('color', disabled_color);
+    node.val('Auto');
+  }
+  node.focusin(function() {
+    if ($(this).css('color') == disabled_color) {
+      node.css('color', '');
+      $(this).val('');
+    }
+  });
+
+  node.focusout(function() {
+    var value = $(this).val();
+    if (value.toLowerCase() == 'none' || value == 'Auto' || value == '') {
+      node.css('color', disabled_color);
+      $(this).val('Auto');
+    }
+  });
+};
+
+
+/**
+ * Take a file upload form and send the file to the server.
+ * @param {string} renderer Path to the Ajax server handler.
+ * @param {string} formId The input form with the file parameter.
+ * @param {string} progressId Div to write progress to.
+ * @param {function} successHandler Function to call on success.
+ * @param {object} state is the state we use for send to our renderer.
+ */
+grr.uploadHandler = function(renderer, formId, progressId, successHandler,
+                             state) {
+  var formData = new FormData($('#' + formId)[0]);
+
+  // Include our state in the form post.
+  $.each(state, function(key, val) {
+    formData.append(key, val);
+  });
+  $('#' + progressId).progressbar();
+  var progressHandlingFunction = function(e) {
+    if (e.lengthComputable) {
+      $('#' + progressId).progressbar('value', (e.loaded / e.total) * 100);
+    }
+  };
+
+  $.ajax({
+    url: 'render/RenderAjax/' + renderer,
+    type: 'POST',
+    xhr: function() {
+      var myXhr = $.ajaxSettings.xhr();
+      if (myXhr.upload) {  // Special html5 handler for upload progress.
+        myXhr.upload.addEventListener('progress', progressHandlingFunction,
+                                      false);
+      }
+      return myXhr;
+    },
+    success: successHandler,
+    data: formData,
+    //Tell JQuery not to process data or worry about content-type.
+    cache: false,
+    contentType: false,
+    processData: false
+  });
+};
+
+
+/**
+ * Attach a download file handler to the click of a node.
+  * @param {String} clickNode DomID that we will attach the handler to.
+ * @param {object} state is the state we use for send to our renderer.
+ */
+grr.downloadHandler = function(clickNode, state) {
+  // Create a temporary form to post to the download page with.
+  clickNode.find('form').remove();   // remove any previous hidden forms.
+  var tmpform = $('<form target="_blank" />').appendTo(clickNode);
+  tmpform.attr({action: '/render/Download/DownloadView', method: 'post'});
+  $.each(state, function(key, val) {
+    $('<input type=hidden />').attr({name: key, value: val}).appendTo(tmpform);
+  });
+  $('#csrfmiddlewaretoken').clone().appendTo(tmpform);
+  clickNode.click(function() {
+    tmpform.submit();
+  });
+};
 
 /** Initialize the grr object */
 grr.init();

@@ -21,6 +21,7 @@ from grr.gui.plugins import fileview
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import utils
 
 
 class ACLDialog(renderers.TemplateRenderer):
@@ -120,12 +121,19 @@ You have granted access for {{this.client_id|escape}} to {{this.user|escape}}
   def Layout(self, request, response):
     """Launch the RequestApproval flow on the backend."""
     self.acl = request.REQ.get("acl")
+
     source = request.REQ.get("source")
 
     if self.acl is None and source != "hash":
       return renderers.TemplateRenderer.Layout(
           self, request, response,
           apply_template=self.refresh_from_hash_template)
+
+    # There is a bug in Firefox that strips trailing "="s from get parameters
+    # which is a problem with the base64 padding. To pass the selenium tests,
+    # we have to restore the original string.
+    while len(self.acl.split("/")[-1]) % 4 != 0:
+      self.acl += "="
 
     approval_urn = aff4.RDFURN(self.acl or "/")
     try:
@@ -148,8 +156,9 @@ You have granted access for {{this.client_id|escape}} to {{this.user|escape}}
     """Run the flow for granting access."""
     approval_urn = aff4.RDFURN(request.REQ.get("acl", "/"))
     try:
-      _, self.client_id, self.user, self.reason = approval_urn.Split()
-    except ValueError:
+      _, self.client_id, self.user, reason = approval_urn.Split()
+      self.reason = utils.DecodeReasonString(reason)
+    except (ValueError, TypeError):
       raise data_store.UnauthorizedAccess("Approval object is not well formed.")
 
     flow.FACTORY.StartFlow(self.client_id, "GrantAccessFlow",
@@ -230,7 +239,10 @@ $("#acl_dialog").dialog('open');
 
     fd = aff4.FACTORY.Open(approval_urn, mode="r", token=token)
     for auth_request in fd.OpenChildren():
-      reason = auth_request.urn.Basename()
+      try:
+        reason = utils.DecodeReasonString(auth_request.urn.Basename())
+      except TypeError:
+        continue
       # Check authorization using the data_store for an authoritative source.
       test_token = data_store.ACLToken(username, reason)
       try:
@@ -239,7 +251,7 @@ $("#acl_dialog").dialog('open');
         self.reason = reason
         # User is authorized.
         self.layout_template = self.access_ok_template
-      except data_store.UnauthorizedAccess, e:
+      except data_store.UnauthorizedAccess as e:
         self.error = str(e)
 
     return super(CheckAccess, self).Layout(request, response)

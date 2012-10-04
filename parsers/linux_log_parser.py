@@ -57,6 +57,7 @@ comes...
 
 
 import bz2
+import calendar
 import datetime
 import gzip
 import logging
@@ -234,9 +235,7 @@ class PipeFormatter(LogOutputFormatter):
     utc_timestamp = timestamp.astimezone(pytz.utc)
     return '%s|%s|%s|%s|%s\n' % (
         utc_timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'),
-        int(time.mktime(time.strptime(
-            utc_timestamp.strftime(self.DATESTRING),
-            self.DATESTRING))),
+        int(calendar.timegm(utc_timestamp.timetuple())),
         source_name, event_type, re.sub('\|', '::pipe::', event_msg))
 
 
@@ -356,7 +355,7 @@ class DpkgParser(LogParser):
     we will parse it.
 
   Example line:
-    2012-01-10 09:25:26 status unpacked borgcfg 20120105-113527-RC1
+    2012-01-10 09:25:26 status unpacked base-files 6.5ubuntu6
   """
   REG_COMP = re.compile("""(?P<year>\d{4})-    # year
                            (?P<month>\d{2})-
@@ -600,7 +599,7 @@ class WtmpParser(LogParser):
       if line is None:
         break
       msg = None
-      timestamp = datetime.datetime.fromtimestamp(int(line['sec']))
+      timestamp = datetime.datetime.utcfromtimestamp(int(line['sec']))
       timestamp = zone.localize(timestamp)
 
       if line['type'] == 'USER_PROCESS':
@@ -1129,7 +1128,12 @@ def SmartOpenFile(filename):
     fh.seek(0)
     test_gzip = fh.read(4)
 
-    gzip_int = struct.unpack('i', test_gzip)[0] & 0xFFFFFF
+    gzip_int = 0
+    try:
+      gzip_int = struct.unpack('i', test_gzip)[0] & 0xFFFFFF
+    except struct.error:
+      raise OpenFileError('Unable to read the first four bytes, too small?')
+
     if len(test_gzip) == 4 and gzip_int == 559903:
       logging.debug(('[FILE_VERIFY] File GZIP compressed, using GZIP '
                      'library.'))

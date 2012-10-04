@@ -31,8 +31,18 @@ from grr.client import client_config
 from grr.client import client_utils_common
 from grr.client import client_utils_osx
 from grr.client import conf
+from grr.client.osx.objc import ServiceManagement
+from grr.parsers import osx_launchd
 from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
+
+
+class Error(Exception):
+  """Base error class."""
+
+
+class UnsupportedOSVersionError(Error):
+  """This action not supported on this os version."""
 
 
 # struct sockaddr_dl {
@@ -228,30 +238,102 @@ class EnumerateFilesystems(actions.ActionPlugin):
 
   def Run(self, unused_args):
     """List all local filesystems mounted on this system."""
-    drives = []
-    drive_re = re.compile("/dev/disk[0-9]")
     for fs_struct in client_utils_osx.GetFileSystems():
       self.SendReply(device=fs_struct.f_mntfromname,
                      mount_point=fs_struct.f_mntonname,
                      type=fs_struct.f_fstypename)
 
-      match = drive_re.match(fs_struct.f_mntfromname)
-      if match:
-        drives.append(match.group())
+    drive_re = re.compile("r?disk[0-9].*")
+    for drive in os.listdir("/dev"):
+      if not drive_re.match(drive):
+        continue
 
-    for drive in drives:
+      path = os.path.join("/dev", drive)
       try:
-        img_inf = pytsk3.Img_Info(drive)
+        img_inf = pytsk3.Img_Info(path)
+        # This is a volume or a partition - we send back a TSK device.
+        self.SendReply(device=path)
+
         vol_inf = pytsk3.Volume_Info(img_inf)
+
+        for volume in vol_inf:
+          if volume.flags == pytsk3.TSK_VS_PART_FLAG_ALLOC:
+            offset = volume.start * vol_inf.info.block_size
+            self.SendReply(device=path + ":" + str(offset),
+                           type="partition")
 
       except (IOError, RuntimeError):
         continue
 
-      for volume in vol_inf:
-        if volume.flags == pytsk3.TSK_VS_PART_FLAG_ALLOC:
-          offset = volume.start * vol_inf.info.block_size
-          self.SendReply(device=drive + ":" + str(offset),
-                         type="split image volume")
+
+class EnumerateRunningServices(actions.ActionPlugin):
+  """Enumerate all running launchd jobs."""
+  in_protobuf = None
+  out_protobuf = sysinfo_pb2.Service
+
+  def GetRunningLaunchDaemons(self):
+    """Get running launchd jobs from objc ServiceManagement framework."""
+
+    sm = ServiceManagement()
+    return sm.SMGetAllJobDictionaries("kSMDomainSystemLaunchd")
+
+  def Run(self, unused_arg):
+    """Get running launchd jobs.
+
+    Raises:
+      UnsupportedOSVersionError: for OS X earlier than 10.6
+    """
+
+    self.osversion = client_utils_osx.OSXVersion().VersionAsFloat()
+
+    if self.osversion < 10.6:
+      raise UnsupportedOSVersionError(
+          "ServiceManagment API unsupported on < 10.6. This"
+          " client is %s" % self.osversion)
+
+    launchd_list = self.GetRunningLaunchDaemons()
+
+    self.parser = osx_launchd.OSXLaunchdJobDict(launchd_list)
+    for job in self.parser.Parse():
+      response = self.CreateServiceProto(job)
+      self.SendReply(response)
+
+  def _AddRepeatedField(self, job, keyname, protoaddcallback):
+    if keyname in job:
+      for item in job[keyname]:
+        protoaddcallback(item)
+
+  def CreateServiceProto(self, job):
+    """Create the Service protobuf.
+
+    Args:
+      job: Launcdjobdict from servicemanagement framework.
+    Returns:
+      sysinfo_pb2.Service proto
+    """
+    job_pb = sysinfo_pb2.LaunchdJob(sessiontype=
+                                    job.get("LimitLoadToSessionType", ""),
+                                    lastexitstatus=job["LastExitStatus"],
+                                    timeout=job["TimeOut"],
+                                    ondemand=job["OnDemand"])
+
+    args = map(str, job.get("ProgramArguments", ""))
+    args_str = " ".join(args)
+
+    self._AddRepeatedField(job, "MachServices",
+                           job_pb.machservice.append)
+    self._AddRepeatedField(job, "PerJobMachServices",
+                           job_pb.perjobmachservice.append)
+
+    service_pb = sysinfo_pb2.Service(label=job.get("Label", ""),
+                                     program=job.get("Program", ""),
+                                     args=args_str,
+                                     osx_launchd=job_pb)
+
+    if "PID" in job:
+      service_pb.pid = job["PID"]
+
+    return service_pb
 
 
 class Uninstall(actions.ActionPlugin):
@@ -284,33 +366,3 @@ class Uninstall(actions.ActionPlugin):
           grr_binary = os.path.abspath(__file__)
 
         os.remove(grr_binary)
-
-
-class Kill(actions.ActionPlugin):
-  """Kill our process with no cleanups."""
-  out_protobuf = jobs_pb2.GrrMessage
-
-  def Run(self, unused_arg):
-    """Run the kill."""
-    try:
-      # If this works, the context is a ProcessSeparatedContext object.
-
-      # Kill off children if we are running separated.
-      self.grr_context.Terminate()
-      logging.info("Requested termination of slaves.")
-    except AttributeError:
-      pass
-    # Send a message back to the service to say that we are about to shutdown.
-    reply = jobs_pb2.GrrStatus()
-    reply.status = jobs_pb2.GrrStatus.OK
-    # Queue up the response message.
-    self.SendReply(reply, message_type=jobs_pb2.GrrMessage.STATUS,
-                   jump_queue=True)
-    # Force a comms run.
-    status = self.grr_context.RunOnce()
-    if status.code != 200:
-      logging.error("Could not communicate our own death, re-death predicted")
-
-    # Die ourselves.
-    logging.info("Dying on request.")
-    sys.exit(242)

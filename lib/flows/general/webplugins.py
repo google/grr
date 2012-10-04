@@ -27,6 +27,7 @@ import logging
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import flow_utils
+from grr.lib import type_info
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
@@ -53,9 +54,11 @@ class ChromePlugins(flow.GRRFlow):
   """
 
   category = "/Browser/"
+  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
+                   "output": type_info.StringOrNone()}
 
   def __init__(self, download_files=False, path=None,
-               pathtype=utils.ProtoEnum(jobs_pb2.Path, "PathType", "TSK"),
+               pathtype=jobs_pb2.Path.TSK,
                output="analysis/chromeplugins-{u}-{t}", username=None,
                **kwargs):
     """Constructor.
@@ -251,12 +254,12 @@ class ChromePlugins(flow.GRRFlow):
     Raises:
       OSError: On invalid system in the Schema.
     """
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id), token=self.token)
-    system = fd.Get(fd.Schema.SYSTEM)
+    client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id), token=self.token)
+    system = client.Get(client.Schema.SYSTEM)
     paths = []
     profile_path = "Default"
 
-    user_pb = flow_utils.GetUserInfo(self.client_id, user, token=self.token)
+    user_pb = flow_utils.GetUserInfo(client, user)
     if not user_pb:
       logging.error("User not found")
       return []
@@ -274,7 +277,7 @@ class ChromePlugins(flow.GRRFlow):
         paths.append(path % {"home_path": user_pb.homedir, "sw": p,
                              "profile": profile_path})
 
-    elif system == "MacOS":
+    elif system == "Darwin":
       path = "%(home_path)s/Library/Application Support/%(sw)s/%(profile)s"
       for p in ["Google/Chrome", "Chromium"]:
         paths.append(path % {"home_path": user_pb.homedir, "sw": p,

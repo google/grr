@@ -34,6 +34,46 @@ from grr.proto import jobs_pb2
 class AFF4Tests(test_lib.AFF4ObjectTest):
   """Test the AFF4 abstraction."""
 
+  def testNonVersionedAttribute(self):
+    """Test that non versioned attributes work."""
+    client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
+                                 token=self.token)
+
+    # We update the client hostname twice - Since hostname is versioned we
+    # expect two versions of this object.
+    client.Set(client.Schema.HOSTNAME("client1"))
+    client.Close()
+
+    client.Set(client.Schema.HOSTNAME("client1"))
+    client.Close()
+
+    client_fd = aff4.FACTORY.Open(self.client_id, age=aff4.ALL_TIMES,
+                                  token=self.token)
+
+    # Versions are represented by the TYPE attribute.
+    versions = list(client_fd.GetValuesForAttribute(client_fd.Schema.TYPE))
+    self.assertEqual(len(versions), 2)
+
+    # Now update the CLOCK attribute twice. Since CLOCK is not versioned, this
+    # should not add newer versions to this object.
+    client.Set(client.Schema.CLOCK())
+    client.Close()
+
+    client.Set(client.Schema.CLOCK())
+    client.Close()
+
+    client_fd = aff4.FACTORY.Open(self.client_id, age=aff4.ALL_TIMES,
+                                  token=self.token)
+
+    # Versions are represented by the TYPE attribute.
+    new_versions = list(client_fd.GetValuesForAttribute(client_fd.Schema.TYPE))
+    self.assertEqual(versions, new_versions)
+
+    # There should also only be once clock attribute
+    clocks = list(client_fd.GetValuesForAttribute(client_fd.Schema.CLOCK))
+    self.assertEqual(len(clocks), 1)
+    self.assertEqual(clocks[0].age, 0)
+
   def testAppendAttribute(self):
     """Test that append attribute works."""
     # Create an object to carry attributes
@@ -114,7 +154,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     test_obj = RDFProtoTest(my_proto.SerializeToString())
 
-    self.assertEqual(test_obj.data, my_proto)
+    self.assertProto2Equal(test_obj.data, my_proto)
     self.assertEqual(test_obj.data.args, "hello")
 
     self.assertEqual(test_obj.SerializeToString(), my_proto.SerializeToString())
@@ -220,6 +260,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     # Try to open a single flow.
     switch = aff4.FACTORY.Create(aff4.FLOW_SWITCH_URN, "GRRFlowSwitch",
                                  mode="r", token=self.token)
+
     flow_obj = switch.OpenMember(session_ids[0])
     flow_pb = flow_obj.Get(flow_obj.Schema.FLOW_PB)
 
@@ -265,6 +306,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     # Test the OpenChildren function on files that contain regex chars.
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
         "/fs/os/c/regex\V.*?]xx[{}--"), token=self.token)
+
     children = list(fd.OpenChildren())
     self.assertEqual(len(children), 1)
     self.assertTrue("regexchild" in utils.SmartUnicode(children[0].urn))
@@ -272,6 +314,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     # Test that OpenChildren works correctly on Unicode names.
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
         "/fs/os/c"), token=self.token)
+
     children = list(fd.OpenChildren())
     # All children must have a valid type.
     for child in children:
@@ -284,6 +327,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
         "/fs/os/c/中国新闻网新闻中"), token=self.token)
+
     children = list(fd.OpenChildren())
     self.assertEqual(len(children), 1)
     child = children[0]
@@ -319,46 +363,51 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
                      u"fs/os/c/中国新闻网新闻中")
 
 
-class ForemanTests(test_lib.GRRBaseTest):
-  """Test the Foreman."""
+class ForemanTests(test_lib.AFF4ObjectTest):
+  """Tests the Foreman."""
 
   def testOperatingSystemSelection(self):
-    """Test that we can distinguish based on operating system."""
-    fd = aff4.FACTORY.Create("C.1", "VFSGRRClient", token=self.token)
+    """Tests that we can distinguish based on operating system."""
+    fd = aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
+                             token=self.token)
     fd.Set(fd.Schema.ARCH, aff4.RDFString("Windows XP"))
     fd.Close()
 
-    fd = aff4.FACTORY.Create("C.2", "VFSGRRClient", token=self.token)
+    fd = aff4.FACTORY.Create("C.0000000000000002", "VFSGRRClient",
+                             token=self.token)
     fd.Set(fd.Schema.ARCH, aff4.RDFString("Linux"))
     fd.Close()
 
-    fd = aff4.FACTORY.Create("C.3", "VFSGRRClient", token=self.token)
+    fd = aff4.FACTORY.Create("C.0000000000000003", "VFSGRRClient",
+                             token=self.token)
     fd.Set(fd.Schema.ARCH, aff4.RDFString("Windows 7"))
     fd.Close()
 
     # Set up the filters
     clients_launched = []
 
-    def StartFlow(client_id, flow_name, user=None, **kw):
+    def StartFlow(client_id, flow_name, token=None, **kw):
       # Make sure the foreman is launching these
-      self.assertEqual(user, "Foreman")
+      self.assertEqual(token.username, "Foreman")
 
       # Make sure we pass the argv along
       self.assertEqual(kw["foo"], "bar")
 
       # Keep a record of all the clients
-      clients_launched.append(client_id)
-      print "%s run %s on %s with %s" % (user, flow_name, client_id, kw)
+      clients_launched.append((client_id, flow_name))
 
+    old_start_flow = flow.FACTORY.StartFlow
     # Mock the StartFlow
     flow.FACTORY.StartFlow = StartFlow
 
     # Now setup the filters
     now = time.time() * 1e6
-    foreman = aff4.FACTORY.Open("aff4:/foreman", token=self.token)
+    expires = (time.time() + 3600) * 1e6
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
 
     # Make a new rule
-    rule = jobs_pb2.ForemanRule(created=int(now), description="Test rule")
+    rule = jobs_pb2.ForemanRule(created=int(now), expires=int(expires),
+                                description="Test rule")
 
     # Matches Windows boxes
     rule.regex_rules.add(attribute_name=fd.Schema.ARCH.name,
@@ -377,23 +426,207 @@ class ForemanTests(test_lib.GRRBaseTest):
     foreman.Close()
 
     clients_launched = []
-    foreman.AssignTasksToClient("C.1")
-    foreman.AssignTasksToClient("C.2")
-    foreman.AssignTasksToClient("C.3")
+    foreman.AssignTasksToClient("C.0000000000000001")
+    foreman.AssignTasksToClient("C.0000000000000002")
+    foreman.AssignTasksToClient("C.0000000000000003")
 
     # Make sure that only the windows machines ran
     self.assertEqual(len(clients_launched), 2)
-    self.assertEqual(clients_launched[0], "C.1")
-    self.assertEqual(clients_launched[1], "C.3")
+    self.assertEqual(clients_launched[0][0], "C.0000000000000001")
+    self.assertEqual(clients_launched[1][0], "C.0000000000000003")
 
     clients_launched = []
 
     # Run again - This should not fire since it did already
-    foreman.AssignTasksToClient("C.1")
-    foreman.AssignTasksToClient("C.2")
-    foreman.AssignTasksToClient("C.3")
+    foreman.AssignTasksToClient("C.0000000000000001")
+    foreman.AssignTasksToClient("C.0000000000000002")
+    foreman.AssignTasksToClient("C.0000000000000003")
 
     self.assertEqual(len(clients_launched), 0)
+
+    flow.FACTORY.StartFlow = old_start_flow
+
+  def testIntegerComparisons(self):
+    """Tests that we can use integer matching rules on the foreman."""
+
+    fd = aff4.FACTORY.Create("C.0000000000000011", "VFSGRRClient",
+                             token=self.token)
+    fd.Set(fd.Schema.ARCH, aff4.RDFString("Windows XP"))
+    fd.Set(fd.Schema.INSTALL_DATE(1336480583077736))
+    fd.Close()
+
+    fd = aff4.FACTORY.Create("C.0000000000000012", "VFSGRRClient",
+                             token=self.token)
+    fd.Set(fd.Schema.ARCH, aff4.RDFString("Windows 7"))
+    fd.Set(fd.Schema.INSTALL_DATE(1336480583077736))
+    fd.Close()
+
+    fd = aff4.FACTORY.Create("C.0000000000000013", "VFSGRRClient",
+                             token=self.token)
+    fd.Set(fd.Schema.ARCH, aff4.RDFString("Windows 7"))
+    # This one was installed one week earlier.
+    fd.Set(fd.Schema.INSTALL_DATE(1336480583077736 - 7*24*3600*1e6))
+    fd.Close()
+
+    fd = aff4.FACTORY.Create("C.0000000000000014", "VFSGRRClient",
+                             token=self.token)
+    fd.Set(fd.Schema.ARCH, aff4.RDFString("Windows 7"))
+    fd.Set(fd.Schema.OS_RELEASE(7))
+    fd.Close()
+
+    # Set up the filters
+    clients_launched = []
+
+    def StartFlow(client_id, flow_name, token=None, **kw):
+      # Make sure the foreman is launching these
+      self.assertEqual(token.username, "Foreman")
+
+      # Make sure we pass the argv along
+      self.assertEqual(kw["foo"], "bar")
+
+      # Keep a record of all the clients
+      clients_launched.append((client_id, flow_name))
+
+    # Mock the StartFlow
+    old_start_flow = flow.FACTORY.StartFlow
+    flow.FACTORY.StartFlow = StartFlow
+
+    # Now setup the filters
+    now = time.time() * 1e6
+    expires = (time.time() + 3600) * 1e6
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+
+    # Make a new rule
+    rule = jobs_pb2.ForemanRule(created=int(now), expires=int(expires),
+                                description="Test rule(old)")
+
+    # Matches the old client
+    rule.integer_rules.add(attribute_name=fd.Schema.INSTALL_DATE.name,
+                           operator=jobs_pb2.ForemanAttributeInteger.LESS_THAN,
+                           value=int(1336480583077736-3600*1e6))
+
+    old_flow = "Test flow for old clients"
+    # Will run Test Flow
+    rule.actions.add(flow_name=old_flow,
+                     argv=utils.ProtoDict(dict(foo="bar")).ToProto())
+
+    # Clear the rule set and add the new rule to it.
+    rule_set = foreman.Schema.RULES()
+    rule_set.Append(rule)
+
+    # Make a new rule
+    rule = jobs_pb2.ForemanRule(created=int(now), expires=int(expires),
+                                description="Test rule(new)")
+
+    # Matches the newer clients
+    rule.integer_rules.add(
+        attribute_name=fd.Schema.INSTALL_DATE.name,
+        operator=jobs_pb2.ForemanAttributeInteger.GREATER_THAN,
+        value=int(1336480583077736-3600*1e6))
+
+    new_flow = "Test flow for newer clients"
+
+    # Will run Test Flow
+    rule.actions.add(flow_name=new_flow,
+                     argv=utils.ProtoDict(dict(foo="bar")).ToProto())
+
+    rule_set.Append(rule)
+
+    # Make a new rule
+    rule = jobs_pb2.ForemanRule(created=int(now), expires=int(expires),
+                                description="Test rule(eq)")
+
+    # Note that this also tests the handling of nonexistent attributes.
+    rule.integer_rules.add(
+        attribute_name=fd.Schema.OS_RELEASE.name,
+        operator=jobs_pb2.ForemanAttributeInteger.EQUAL,
+        value=7)
+
+    eq_flow = "Test flow for OS_RELEASE"
+
+    rule.actions.add(flow_name=eq_flow,
+                     argv=utils.ProtoDict(dict(foo="bar")).ToProto())
+
+    rule_set.Append(rule)
+
+    # Assign it to the foreman
+    foreman.Set(foreman.Schema.RULES, rule_set)
+    foreman.Close()
+
+    clients_launched = []
+    foreman.AssignTasksToClient("C.0000000000000011")
+    foreman.AssignTasksToClient("C.0000000000000012")
+    foreman.AssignTasksToClient("C.0000000000000013")
+    foreman.AssignTasksToClient("C.0000000000000014")
+
+    # Make sure that the clients ran the correct flows.
+    self.assertEqual(len(clients_launched), 4)
+    self.assertEqual(clients_launched[0][0], "C.0000000000000011")
+    self.assertEqual(clients_launched[0][1], new_flow)
+    self.assertEqual(clients_launched[1][0], "C.0000000000000012")
+    self.assertEqual(clients_launched[1][1], new_flow)
+    self.assertEqual(clients_launched[2][0], "C.0000000000000013")
+    self.assertEqual(clients_launched[2][1], old_flow)
+    self.assertEqual(clients_launched[3][0], "C.0000000000000014")
+    self.assertEqual(clients_launched[3][1], eq_flow)
+
+    flow.FACTORY.StartFlow = old_start_flow
+
+  def MockTime(self):
+    return self.mock_time
+
+  def testRuleExpiration(self):
+
+    old_time = time.time
+    self.mock_time = 1000
+    time.time = self.MockTime
+
+    try:
+      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+
+      rules = []
+      rules.append(jobs_pb2.ForemanRule(created=1000 * 1000000,
+                                        expires=1500 * 1000000,
+                                        description="Test rule1"))
+      rules.append(jobs_pb2.ForemanRule(created=1000 * 1000000,
+                                        expires=1200 * 1000000,
+                                        description="Test rule2"))
+      rules.append(jobs_pb2.ForemanRule(created=1000 * 1000000,
+                                        expires=1500 * 1000000,
+                                        description="Test rule3"))
+      rules.append(jobs_pb2.ForemanRule(created=1000 * 1000000,
+                                        expires=1300 * 1000000,
+                                        description="Test rule4"))
+
+      client_id = "C.0000000000000021"
+      fd = aff4.FACTORY.Create(client_id, "VFSGRRClient",
+                               token=self.token)
+      fd.Close()
+
+      # Clear the rule set and add the new rules to it.
+      rule_set = foreman.Schema.RULES()
+      for rule in rules:
+        # Add some regex that does not match the client.
+        rule.regex_rules.add(attribute_name=fd.Schema.ARCH.name,
+                             attribute_regex="XXX")
+        rule_set.Append(rule)
+      foreman.Set(foreman.Schema.RULES, rule_set)
+      foreman.Close()
+
+      for now, num_rules in [(1000, 4), (1250, 3), (1350, 2), (1600, 0)]:
+        self.mock_time = now
+        foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw",
+                                    token=self.token)
+        foreman.AssignTasksToClient(client_id)
+        rules = foreman.Get(foreman.Schema.RULES)
+        self.assertEqual(len(rules), num_rules)
+
+    finally:
+      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+      foreman.Set(foreman.Schema.RULES())
+      foreman.Close()
+
+      time.time = old_time
 
 
 class AFF4TestLoader(test_lib.GRRTestLoader):

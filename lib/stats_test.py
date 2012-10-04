@@ -28,7 +28,10 @@ from grr.lib import test_lib
 
 
 class StatsTestInit(registry.InitHook):
-  def __init__(self):
+
+  pre = ["StatsInit"]
+
+  def RunOnce(self):
     stats.STATS.RegisterVar("test_counter")
     stats.STATS.RegisterVar("test_counter2")
     stats.STATS.RegisterMap("test_map", "time", bin_list=[0.1], precision=0)

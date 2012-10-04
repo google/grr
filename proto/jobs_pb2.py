@@ -11,7 +11,7 @@ from google.protobuf import descriptor_pb2
 DESCRIPTOR = descriptor.FileDescriptor(
   name='grr/proto/jobs.proto',
   package='',
-  serialized_pb='\n\x14grr/proto/jobs.proto\"\xf4\x03\n\nGrrMessage\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x12\n\nrequest_id\x18\x02 \x01(\r\x12\x13\n\x0bresponse_id\x18\x03 \x01(\r\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x05 \x01(\x0c\x12\x0e\n\x06source\x18\x06 \x01(\t\x12\x43\n\nauth_state\x18\x07 \x01(\x0e\x32\x1e.GrrMessage.AuthorizationState:\x0fUNAUTHENTICATED\x12\'\n\x04type\x18\x08 \x01(\x0e\x32\x10.GrrMessage.Type:\x07MESSAGE\x12\x37\n\x08priority\x18\t \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITY\x12\x0f\n\x03ttl\x18\n \x01(\r:\x02\x31\x30\"P\n\x12\x41uthorizationState\x12\x13\n\x0fUNAUTHENTICATED\x10\x00\x12\x11\n\rAUTHENTICATED\x10\x01\x12\x12\n\x0e\x44\x45SYNCHRONIZED\x10\x02\"-\n\x04Type\x12\x0b\n\x07MESSAGE\x10\x00\x12\n\n\x06STATUS\x10\x01\x12\x0c\n\x08ITERATOR\x10\x02\"D\n\x08Priority\x12\x10\n\x0cLOW_PRIORITY\x10\x00\x12\x13\n\x0fMEDIUM_PRIORITY\x10\x01\x12\x11\n\rHIGH_PRIORITY\x10\x02\"\'\n\x0bMessageList\x12\x18\n\x03job\x18\x01 \x03(\x0b\x32\x0b.GrrMessage\"\xdd\x01\n\x11SignedMessageList\x12\x14\n\x0cmessage_list\x18\x01 \x01(\x0c\x12\x11\n\tsignature\x18\x02 \x01(\x0c\x12\x0e\n\x06source\x18\x03 \x01(\t\x12\x45\n\x0b\x63ompression\x18\x04 \x01(\x0e\x32\".SignedMessageList.CompressionType:\x0cUNCOMPRESSED\x12\x11\n\ttimestamp\x18\x06 \x01(\x04\"5\n\x0f\x43ompressionType\x12\x10\n\x0cUNCOMPRESSED\x10\x00\x12\x10\n\x0cZCOMPRESSION\x10\x01\"K\n\x10\x43ipherProperties\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0b\n\x03key\x18\x02 \x02(\x0c\x12\n\n\x02iv\x18\x03 \x01(\x0c\x12\x10\n\x08hmac_key\x18\x05 \x01(\x0c\"3\n\x0e\x43ipherMetadata\x12\x0e\n\x06source\x18\x01 \x01(\t\x12\x11\n\tsignature\x18\x02 \x01(\x0c\"\xae\x02\n\x13\x43lientCommunication\x12\x11\n\tencrypted\x18\x01 \x01(\x0c\x12\x18\n\x10\x65ncrypted_cipher\x18\x02 \x01(\x0c\x12!\n\x19\x65ncrypted_cipher_metadata\x18\t \x01(\x0c\x12\n\n\x02iv\x18\x08 \x01(\x0c\x12\x15\n\nqueue_size\x18\x04 \x01(\r:\x01\x30\x12<\n\x06status\x18\x05 \x01(\x0e\x32(.ClientCommunication.CommunicationStatus:\x02OK\x12\x13\n\x0b\x61pi_version\x18\x06 \x01(\r\x12\x0c\n\x04hmac\x18\x07 \x01(\x0c\"C\n\x13\x43ommunicationStatus\x12\x07\n\x02OK\x10\xc8\x01\x12\x10\n\x0b\x42\x41\x44_REQUEST\x10\x90\x03\x12\x11\n\x0c\x43IPHER_ERROR\x10\x96\x03\"\xbf\x01\n\tGrrStatus\x12-\n\x06status\x18\x01 \x01(\x0e\x32\x19.GrrStatus.ReturnedStatus:\x02OK\x12\x17\n\rerror_message\x18\x02 \x01(\t:\x00\x12\x13\n\tbacktrace\x18\x03 \x01(\t:\x00\"U\n\x0eReturnedStatus\x12\x06\n\x02OK\x10\x00\x12\x0b\n\x07IOERROR\x10\x01\x12\x1b\n\x17RETRANSMISSION_DETECTED\x10\x02\x12\x11\n\rGENERIC_ERROR\x10\n\"f\n\x11\x43lientInformation\x12\x13\n\x0b\x63lient_name\x18\x01 \x01(\t\x12\x16\n\x0e\x63lient_version\x18\x02 \x01(\r\x12\x10\n\x08revision\x18\x03 \x01(\x04\x12\x12\n\nbuild_time\x18\x04 \x01(\t\"M\n\x04Task\x12\n\n\x02id\x18\x01 \x01(\x04\x12\r\n\x05value\x18\x02 \x01(\x0c\x12\x0e\n\x03ttl\x18\x03 \x01(\x05:\x01\x35\x12\x0b\n\x03\x65ta\x18\x04 \x01(\x04\x12\r\n\x05queue\x18\x05 \x01(\t\"\xfb\x01\n\x08\x44\x61taBlob\x12\x0f\n\x07integer\x18\x01 \x01(\x03\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\x12\x0e\n\x06string\x18\x03 \x01(\t\x12\x12\n\nproto_name\x18\x04 \x01(\t\x12\x0c\n\x04none\x18\x05 \x01(\t\x12\x0f\n\x07\x62oolean\x18\x06 \x01(\x08\x12\x18\n\x04list\x18\x08 \x01(\x0b\x32\n.BlobArray\x12<\n\x0b\x63ompression\x18\x07 \x01(\x0e\x32\x19.DataBlob.CompressionType:\x0cUNCOMPRESSED\"5\n\x0f\x43ompressionType\x12\x10\n\x0cUNCOMPRESSED\x10\x00\x12\x10\n\x0cZCOMPRESSION\x10\x01\"\'\n\tBlobArray\x12\x1a\n\x07\x63ontent\x18\x01 \x03(\x0b\x32\t.DataBlob\"+\n\x08PrintStr\x12\x11\n\x05level\x18\x01 \x01(\x05:\x02\x31\x30\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\t\"l\n\x11\x42ufferReadMessage\x12\x0e\n\x06offset\x18\x01 \x02(\x04\x12\x0e\n\x06length\x18\x02 \x02(\r\x12\x10\n\x08\x63\x61llback\x18\x03 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\x12\x17\n\x08pathspec\x18\x06 \x01(\x0b\x32\x05.Path\"\x80\x02\n\x0cRequestState\x12\n\n\x02id\x18\x01 \x02(\r\x12\r\n\x05ts_id\x18\x02 \x01(\x04\x12\x12\n\nnext_state\x18\x03 \x01(\t\x12\x1a\n\x06status\x18\x04 \x01(\x0b\x32\n.GrrStatus\x12\x13\n\x04\x64\x61ta\x18\x05 \x01(\x0b\x32\x05.Dict\x12\x19\n\x0eresponse_count\x18\x06 \x01(\r:\x01\x30\x12\x1d\n\x12transmission_count\x18\x07 \x01(\r:\x01\x30\x12\x11\n\tclient_id\x18\x08 \x01(\t\x12\x12\n\nsession_id\x18\t \x01(\t\x12\x1c\n\x07request\x18\n \x01(\x0b\x32\x0b.GrrMessage\x12\x11\n\tflow_name\x18\x0b \x01(\t\"\xad\x03\n\x06\x46lowPB\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0e\n\x06pickle\x18\x02 \x01(\x0c\x12\r\n\x05ts_id\x18\x03 \x01(\x04\x12)\n\x05state\x18\x04 \x01(\x0e\x32\x11.FlowPB.FlowState:\x07RUNNING\x12\x12\n\nsession_id\x18\x05 \x01(\t\x12\x1f\n\x14outstanding_requests\x18\x06 \x01(\r:\x01\x30\x12\x0f\n\x07\x63reator\x18\x07 \x01(\t\x12\x11\n\tbacktrace\x18\x08 \x01(\t\x12\x16\n\x0b\x63reate_time\x18\t \x01(\x04:\x01\x30\x12\x13\n\x08progress\x18\n \x01(\x05:\x01\x30\x12\x13\n\x04\x61rgs\x18\x0b \x01(\x0b\x32\x05.Dict\x12\x10\n\x08\x65vent_id\x18\x0c \x01(\t\x12$\n\rrequest_state\x18\x0e \x01(\x0b\x32\r.RequestState\x12\x0e\n\x06status\x18\x0f \x01(\t\x12\x10\n\x08\x63hildren\x18\x10 \x03(\t\x12\x11\n\tclient_id\x18\x11 \x01(\t\"C\n\tFlowState\x12\x0b\n\x07RUNNING\x10\x00\x12\x0e\n\nTERMINATED\x10\x01\x12\t\n\x05\x45RROR\x10\x03\x12\x0e\n\nWELL_KNOWN\x10\x02\"?\n\x0e\x45xecuteRequest\x12\x0b\n\x03\x63md\x18\x01 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x02 \x03(\t\x12\x12\n\ntime_limit\x18\x03 \x01(\x05\"{\n\x0f\x45xecuteResponse\x12 \n\x07request\x18\x01 \x01(\x0b\x32\x0f.ExecuteRequest\x12\x13\n\x0b\x65xit_status\x18\x02 \x01(\x05\x12\x0e\n\x06stdout\x18\x03 \x01(\x0c\x12\x0e\n\x06stderr\x18\x04 \x01(\x0c\x12\x11\n\ttime_used\x18\x05 \x01(\x05\"\xca\x08\n\x04Path\x12\'\n\x08pathtype\x18\x01 \x01(\x0e\x32\x0e.Path.PathType:\x05UNSET\x12\x0c\n\x04path\x18\x02 \x01(\t\x12\x13\n\x0bmount_point\x18\x03 \x01(\t\x12\x1a\n\x0bnested_path\x18\x05 \x01(\x0b\x32\x05.Path\x12\x0e\n\x06offset\x18\x06 \x01(\x04\x12\x35\n\x0cpath_options\x18\x07 \x01(\x0e\x32\r.Path.Options:\x10\x43\x41SE_INSENSITIVE\x12\r\n\x05inode\x18\x08 \x01(\x04\x12\x43\n\tntfs_type\x18\t \x01(\x0e\x32\x16.Path.tsk_fs_attr_type:\x18TSK_FS_ATTR_TYPE_DEFAULT\x12\x0f\n\x07ntfs_id\x18\n \x01(\x04\"J\n\x08PathType\x12\x12\n\x05UNSET\x10\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x12\x06\n\x02OS\x10\x00\x12\x07\n\x03TSK\x10\x01\x12\x0c\n\x08REGISTRY\x10\x02\x12\x0b\n\x07UNKNOWN\x10\x03\"1\n\x07Options\x12\x14\n\x10\x43\x41SE_INSENSITIVE\x10\x00\x12\x10\n\x0c\x43\x41SE_LITERAL\x10\x01\"\xae\x05\n\x10tsk_fs_attr_type\x12\x1c\n\x18TSK_FS_ATTR_TYPE_DEFAULT\x10\x01\x12\x1c\n\x18TSK_FS_ATTR_TYPE_NTFS_SI\x10\x10\x12\"\n\x1eTSK_FS_ATTR_TYPE_NTFS_ATTRLIST\x10 \x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_FNAME\x10\x30\x12\x1e\n\x1aTSK_FS_ATTR_TYPE_NTFS_VVER\x10@\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_OBJID\x10@\x12\x1d\n\x19TSK_FS_ATTR_TYPE_NTFS_SEC\x10P\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_VNAME\x10`\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_VINFO\x10p\x12\x1f\n\x1aTSK_FS_ATTR_TYPE_NTFS_DATA\x10\x80\x01\x12\"\n\x1dTSK_FS_ATTR_TYPE_NTFS_IDXROOT\x10\x90\x01\x12#\n\x1eTSK_FS_ATTR_TYPE_NTFS_IDXALLOC\x10\xa0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_BITMAP\x10\xb0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_SYMLNK\x10\xc0\x01\x12\"\n\x1dTSK_FS_ATTR_TYPE_NTFS_REPARSE\x10\xc0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_EAINFO\x10\xd0\x01\x12\x1d\n\x18TSK_FS_ATTR_TYPE_NTFS_EA\x10\xe0\x01\x12\x1f\n\x1aTSK_FS_ATTR_TYPE_NTFS_PROP\x10\xf0\x01\x12\x1e\n\x19TSK_FS_ATTR_TYPE_NTFS_LOG\x10\x80\x02\x12 \n\x1bTSK_FS_ATTR_TYPE_UNIX_INDIR\x10\x81 \"F\n\x0eListDirRequest\x12\x17\n\x08pathspec\x18\x01 \x01(\x0b\x32\x05.Path\x12\x1b\n\x08iterator\x18\x02 \x01(\x0b\x32\t.Iterator\"\xd6\x04\n\x0cStatResponse\x12\x10\n\x08\x61\x66\x66\x34path\x18\x01 \x01(\t\x12\x0f\n\x07st_mode\x18\x02 \x01(\r\x12\x0e\n\x06st_ino\x18\x03 \x01(\r\x12\x0e\n\x06st_dev\x18\x04 \x01(\r\x12\x10\n\x08st_nlink\x18\x05 \x01(\r\x12\x0e\n\x06st_uid\x18\x06 \x01(\r\x12\x0e\n\x06st_gid\x18\x07 \x01(\r\x12\x0f\n\x07st_size\x18\x08 \x01(\x04\x12\x10\n\x08st_atime\x18\t \x01(\x04\x12\x10\n\x08st_mtime\x18\n \x01(\x04\x12\x10\n\x08st_ctime\x18\x0b \x01(\x04\x12\x11\n\tst_blocks\x18\x0c \x01(\r\x12\x12\n\nst_blksize\x18\r \x01(\r\x12\x0f\n\x07st_rdev\x18\x0e \x01(\r\x12\x0f\n\x07symlink\x18\x0f \x01(\t\x12\x31\n\rregistry_type\x18\x10 \x01(\x0e\x32\x1a.StatResponse.RegistryType\x12\x10\n\x08resident\x18\x11 \x01(\x0c\x12\x17\n\x08pathspec\x18\x12 \x01(\x0b\x32\x05.Path\x12 \n\rregistry_data\x18\x13 \x01(\x0b\x32\t.DataBlob\"\xc0\x01\n\x0cRegistryType\x12\x0c\n\x08REG_NONE\x10\x00\x12\n\n\x06REG_SZ\x10\x01\x12\x11\n\rREG_EXPAND_SZ\x10\x02\x12\x0e\n\nREG_BINARY\x10\x03\x12\r\n\tREG_DWORD\x10\x04\x12\x1b\n\x17REG_DWORD_LITTLE_ENDIAN\x10\x04\x12\x18\n\x14REG_DWORD_BIG_ENDIAN\x10\x05\x12\x0c\n\x08REG_LINK\x10\x06\x12\x10\n\x0cREG_MULTI_SZ\x10\x07\x12\r\n\tREG_QWORD\x10\x0b\"*\n\nCollection\x12\x1c\n\x05items\x18\x01 \x03(\x0b\x32\r.StatResponse\"\x1b\n\nWmiRequest\x12\r\n\x05query\x18\x01 \x01(\t\"6\n\x08KeyValue\x12\x14\n\x01k\x18\x01 \x01(\x0b\x32\t.DataBlob\x12\x14\n\x01v\x18\x02 \x01(\x0b\x32\t.DataBlob\"\x1e\n\x04\x44ict\x12\x16\n\x03\x64\x61t\x18\x01 \x03(\x0b\x32\t.KeyValue\"\x7f\n\x0b\x43\x65rtificate\x12*\n\x04type\x18\x01 \x01(\x0e\x32\x1c.Certificate.CertificateType\x12\x0b\n\x03pem\x18\x02 \x01(\x0c\x12\n\n\x02\x63n\x18\x03 \x01(\t\"+\n\x0f\x43\x65rtificateType\x12\x07\n\x03\x43SR\x10\x00\x12\x07\n\x03\x43RT\x10\x01\x12\x06\n\x02\x43\x41\x10\x02\"X\n\x05Uname\x12\x0e\n\x06system\x18\x01 \x01(\t\x12\x0c\n\x04node\x18\x02 \x01(\t\x12\x0f\n\x07release\x18\x03 \x01(\t\x12\x0f\n\x07version\x18\x04 \x01(\t\x12\x0f\n\x07machine\x18\x05 \x01(\t\"\x86\x03\n\x11\x46olderInformation\x12\x10\n\x08\x61pp_data\x18\x01 \x01(\t\x12\r\n\x05\x63\x61\x63he\x18\x02 \x01(\t\x12\x0f\n\x07\x63ookies\x18\x03 \x01(\t\x12\x0f\n\x07\x64\x65sktop\x18\x04 \x01(\t\x12\x11\n\tfavorites\x18\x05 \x01(\t\x12\x0f\n\x07history\x18\x06 \x01(\t\x12\x16\n\x0elocal_app_data\x18\x07 \x01(\t\x12\x16\n\x0elocal_settings\x18\x08 \x01(\t\x12\x10\n\x08my_music\x18\t \x01(\t\x12\x13\n\x0bmy_pictures\x18\n \x01(\t\x12\x10\n\x08my_video\x18\x0b \x01(\t\x12\x10\n\x08net_hood\x18\x0c \x01(\t\x12\x10\n\x08personal\x18\r \x01(\t\x12\x12\n\nprint_hood\x18\x0e \x01(\t\x12\x10\n\x08programs\x18\x0f \x01(\t\x12\x0e\n\x06recent\x18\x10 \x01(\t\x12\x0f\n\x07send_to\x18\x11 \x01(\t\x12\x12\n\nstart_menu\x18\x12 \x01(\t\x12\x0f\n\x07startup\x18\x13 \x01(\t\x12\x11\n\ttemplates\x18\x14 \x01(\t\"\xb2\x01\n\x0bUserAccount\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x11\n\tfull_name\x18\x02 \x01(\t\x12\x0f\n\x07\x63omment\x18\x03 \x01(\t\x12\x12\n\nlast_logon\x18\x04 \x01(\x04\x12\x0e\n\x06\x64omain\x18\x05 \x01(\t\x12\x0f\n\x07homedir\x18\x06 \x01(\t\x12\x0b\n\x03sid\x18\x07 \x01(\t\x12+\n\x0fspecial_folders\x18\x08 \x01(\x0b\x32\x12.FolderInformation\"\x99\x01\n\x0eNetworkAddress\x12\x33\n\x0c\x61\x64\x64ress_type\x18\x01 \x01(\x0e\x32\x1d.NetworkAddress.NetworkFamily\x12\x16\n\x0ehuman_readable\x18\x02 \x01(\t\x12\x14\n\x0cpacked_bytes\x18\x03 \x01(\t\"$\n\rNetworkFamily\x12\x08\n\x04INET\x10\x00\x12\t\n\x05INET6\x10\x01\"\x82\x01\n\tInterface\x12\x13\n\x0bmac_address\x18\x01 \x01(\x0c\x12\x15\n\rip4_addresses\x18\x02 \x03(\x0c\x12\x0e\n\x06ifname\x18\x03 \x01(\t\x12\x15\n\rip6_addresses\x18\x04 \x03(\x0c\x12\"\n\taddresses\x18\x05 \x03(\x0b\x32\x0f.NetworkAddress\"\xc1\x02\n\tGRRConfig\x12\x1f\n\x17\x66oreman_check_frequency\x18\x01 \x01(\x05\x12\x10\n\x08location\x18\x02 \x01(\t\x12\x15\n\rmax_post_size\x18\x03 \x01(\x05\x12\x15\n\rmax_out_queue\x18\x04 \x01(\x05\x12\x10\n\x08poll_min\x18\x05 \x01(\x02\x12\x10\n\x08poll_max\x18\x06 \x01(\x02\x12\x11\n\tpoll_slew\x18\x07 \x01(\x02\x12\x13\n\x0b\x63ompression\x18\x08 \x01(\t\x12\x0f\n\x07verbose\x18\t \x01(\x08\x12\x0e\n\x06\x63\x61mode\x18\n \x01(\t\x12\x1c\n\x14server_serial_number\x18\x0b \x01(\x05\x12\x0f\n\x07regpath\x18\x0c \x01(\t\x12\x0e\n\x06\x63onfig\x18\r \x01(\t\x12\r\n\x05\x64\x65\x62ug\x18\x0e \x01(\x08\x12\x18\n\x10process_separate\x18\x0f \x01(\x08\"\x9b\x01\n\x10\x46ingerprintTuple\x12!\n\x07\x66p_type\x18\x01 \x02(\x0e\x32\x10.FingerprintType\x12\x32\n\x07hashers\x18\x02 \x03(\x0e\x32!.FingerprintTuple.FingerprintHash\"0\n\x0f\x46ingerprintHash\x12\x07\n\x03MD5\x10\x00\x12\x08\n\x04SHA1\x10\x01\x12\n\n\x06SHA256\x10\x02\"P\n\x12\x46ingerprintRequest\x12\x17\n\x08pathspec\x18\x01 \x01(\x0b\x32\x05.Path\x12!\n\x06tuples\x18\x02 \x03(\x0b\x32\x11.FingerprintTuple\"c\n\x13\x46ingerprintResponse\x12(\n\x0ematching_types\x18\x01 \x03(\x0e\x32\x10.FingerprintType\x12\"\n\x13\x66ingerprint_results\x18\x02 \x03(\x0b\x32\x05.Dict\"\xeb\x01\n\x0cSignedDriver\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06\x64igest\x18\x02 \x01(\x0c\x12+\n\x0b\x64igest_type\x18\x03 \x01(\x0e\x32\x16.SignedDriver.HashType\x12\x11\n\tsignature\x18\x04 \x01(\x0c\x12\x33\n\x0esignature_type\x18\x05 \x01(\x0e\x32\x1b.SignedDriver.SignatureType\")\n\x08HashType\x12\x07\n\x03MD5\x10\x00\x12\x08\n\x04SHA1\x10\x01\x12\n\n\x06SHA256\x10\x02\"\x1d\n\rSignatureType\x12\x0c\n\x08RSA_2048\x10\x00\"\x91\x01\n\x14InstallDriverRequest\x12\x1d\n\x06\x64river\x18\x01 \x01(\x0b\x32\r.SignedDriver\x12\x12\n\nwrite_path\x18\x02 \x01(\t\x12\x14\n\x0c\x66orce_reload\x18\x03 \x01(\r\x12\x13\n\x0b\x64river_name\x18\x06 \x01(\t\x12\x1b\n\x13\x64river_display_name\x18\x07 \x01(\t\"\xd4\x01\n\x04\x46ind\x12\x1b\n\x08iterator\x18\x01 \x01(\x0b\x32\t.Iterator\x12\x17\n\x08pathspec\x18\x02 \x01(\x0b\x32\x05.Path\x12\x15\n\npath_regex\x18\x03 \x01(\t:\x01.\x12\x15\n\ndata_regex\x18\x04 \x01(\t:\x01.\x12\x12\n\nstart_time\x18\x05 \x01(\x04\x12\x10\n\x08\x65nd_time\x18\x06 \x01(\x04\x12\x0f\n\x04xdev\x18\x07 \x01(\x05:\x01\x30\x12\x15\n\tmax_depth\x18\x08 \x01(\x05:\x02\x31\x35\x12\x1a\n\x03hit\x18\t \x01(\x0b\x32\r.StatResponse\"Y\n\x15\x46oremanAttributeRegex\x12\x0f\n\x04path\x18\x01 \x01(\t:\x01/\x12\x16\n\x0e\x61ttribute_name\x18\x02 \x01(\t\x12\x17\n\x0f\x61ttribute_regex\x18\x03 \x01(\t\"\xc5\x01\n\x17\x46oremanAttributeInteger\x12\x0f\n\x04path\x18\x01 \x01(\t:\x01/\x12\x16\n\x0e\x61ttribute_name\x18\x02 \x01(\t\x12:\n\x08operator\x18\x03 \x01(\x0e\x32!.ForemanAttributeInteger.Operator:\x05\x45QUAL\x12\r\n\x05value\x18\x04 \x01(\x04\"6\n\x08Operator\x12\t\n\x05\x45QUAL\x10\x00\x12\r\n\tLESS_THAN\x10\x01\x12\x10\n\x0cGREATER_THAN\x10\x02\";\n\x11\x46oremanRuleAction\x12\x11\n\tflow_name\x18\x01 \x01(\t\x12\x13\n\x04\x61rgv\x18\x02 \x01(\x0b\x32\x05.Dict\"\xc7\x01\n\x0b\x46oremanRule\x12+\n\x0bregex_rules\x18\x01 \x03(\x0b\x32\x16.ForemanAttributeRegex\x12/\n\rinteger_rules\x18\x02 \x03(\x0b\x32\x18.ForemanAttributeInteger\x12#\n\x07\x61\x63tions\x18\x03 \x03(\x0b\x32\x12.ForemanRuleAction\x12\x0f\n\x07\x63reated\x18\x04 \x01(\x04\x12\x0f\n\x07\x65xpires\x18\x05 \x01(\x04\x12\x13\n\x0b\x64\x65scription\x18\x06 \x01(\t\"\x9a\x01\n\x08Iterator\x12\x1b\n\x0c\x63lient_state\x18\x01 \x01(\x0b\x32\x05.Dict\x12\x0f\n\x04skip\x18\x02 \x01(\r:\x01\x30\x12\x13\n\x06number\x18\x03 \x01(\r:\x03\x31\x30\x30\x12\'\n\x05state\x18\x04 \x01(\x0e\x32\x0f.Iterator.State:\x07RUNNING\"\"\n\x05State\x12\x0b\n\x07RUNNING\x10\x00\x12\x0c\n\x08\x46INISHED\x10\x01\"P\n\x14IteratedStatResponse\x12\x1b\n\x04stat\x18\x01 \x01(\x0b\x32\r.StatResponse\x12\x1b\n\x08iterator\x18\x02 \x01(\x0b\x32\t.Iterator\"\x12\n\x03URN\x12\x0b\n\x03urn\x18\x01 \x01(\t\"a\n\x0cNotification\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0f\n\x07subject\x18\x02 \x01(\t\x12\x0f\n\x07message\x18\x03 \x01(\t\x12\x0e\n\x06source\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\x04\"\x0e\n\x0c\x45mptyMessage*3\n\x0f\x46ingerprintType\x12\x0f\n\x0b\x46PT_GENERIC\x10\x00\x12\x0f\n\x0b\x46PT_PE_COFF\x10\x01')
+  serialized_pb='\n\x14grr/proto/jobs.proto\"\xb7\x01\n\x0bHttpRequest\x12\x13\n\x0braw_headers\x18\x01 \x01(\t\x12\x12\n\nuser_agent\x18\x02 \x01(\t\x12\x11\n\tsource_ip\x18\x03 \x01(\t\x12\x0b\n\x03url\x18\x04 \x01(\t\x12\x17\n\x04user\x18\x05 \x01(\t:\tanonymous\x12\x11\n\ttimestamp\x18\x06 \x01(\x04\x12\x13\n\x06method\x18\x07 \x01(\t:\x03GET\x12\x10\n\x08referrer\x18\x08 \x01(\t\x12\x0c\n\x04size\x18\t \x01(\x04\"\xad\x04\n\nGrrMessage\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x12\n\nrequest_id\x18\x02 \x01(\r\x12\x13\n\x0bresponse_id\x18\x03 \x01(\r\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x05 \x01(\x0c\x12\x0e\n\x06source\x18\x06 \x01(\t\x12\x43\n\nauth_state\x18\x07 \x01(\x0e\x32\x1e.GrrMessage.AuthorizationState:\x0fUNAUTHENTICATED\x12\'\n\x04type\x18\x08 \x01(\x0e\x32\x10.GrrMessage.Type:\x07MESSAGE\x12\x37\n\x08priority\x18\t \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITY\x12\x0f\n\x03ttl\x18\n \x01(\r:\x02\x31\x30\x12\x1e\n\x10require_fastpoll\x18\x0b \x01(\x08:\x04true\x12\x17\n\tcpu_limit\x18\x0c \x01(\x04:\x04\x33\x36\x30\x30\"P\n\x12\x41uthorizationState\x12\x13\n\x0fUNAUTHENTICATED\x10\x00\x12\x11\n\rAUTHENTICATED\x10\x01\x12\x12\n\x0e\x44\x45SYNCHRONIZED\x10\x02\"-\n\x04Type\x12\x0b\n\x07MESSAGE\x10\x00\x12\n\n\x06STATUS\x10\x01\x12\x0c\n\x08ITERATOR\x10\x02\"D\n\x08Priority\x12\x10\n\x0cLOW_PRIORITY\x10\x00\x12\x13\n\x0fMEDIUM_PRIORITY\x10\x01\x12\x11\n\rHIGH_PRIORITY\x10\x02\"\'\n\x0bMessageList\x12\x18\n\x03job\x18\x01 \x03(\x0b\x32\x0b.GrrMessage\"\xdd\x01\n\x11SignedMessageList\x12\x14\n\x0cmessage_list\x18\x01 \x01(\x0c\x12\x11\n\tsignature\x18\x02 \x01(\x0c\x12\x0e\n\x06source\x18\x03 \x01(\t\x12\x45\n\x0b\x63ompression\x18\x04 \x01(\x0e\x32\".SignedMessageList.CompressionType:\x0cUNCOMPRESSED\x12\x11\n\ttimestamp\x18\x06 \x01(\x04\"5\n\x0f\x43ompressionType\x12\x10\n\x0cUNCOMPRESSED\x10\x00\x12\x10\n\x0cZCOMPRESSION\x10\x01\"K\n\x10\x43ipherProperties\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0b\n\x03key\x18\x02 \x02(\x0c\x12\n\n\x02iv\x18\x03 \x01(\x0c\x12\x10\n\x08hmac_key\x18\x05 \x01(\x0c\"3\n\x0e\x43ipherMetadata\x12\x0e\n\x06source\x18\x01 \x01(\t\x12\x11\n\tsignature\x18\x02 \x01(\x0c\"\xd2\x02\n\x13\x43lientCommunication\x12\x11\n\tencrypted\x18\x01 \x01(\x0c\x12\x18\n\x10\x65ncrypted_cipher\x18\x02 \x01(\x0c\x12!\n\x19\x65ncrypted_cipher_metadata\x18\t \x01(\x0c\x12\n\n\x02iv\x18\x08 \x01(\x0c\x12\"\n\x0corig_request\x18\x03 \x01(\x0b\x32\x0c.HttpRequest\x12\x15\n\nqueue_size\x18\x04 \x01(\r:\x01\x30\x12<\n\x06status\x18\x05 \x01(\x0e\x32(.ClientCommunication.CommunicationStatus:\x02OK\x12\x13\n\x0b\x61pi_version\x18\x06 \x01(\r\x12\x0c\n\x04hmac\x18\x07 \x01(\x0c\"C\n\x13\x43ommunicationStatus\x12\x07\n\x02OK\x10\xc8\x01\x12\x10\n\x0b\x42\x41\x44_REQUEST\x10\x90\x03\x12\x11\n\x0c\x43IPHER_ERROR\x10\x96\x03\"\xac\x02\n\tGrrStatus\x12-\n\x06status\x18\x01 \x01(\x0e\x32\x19.GrrStatus.ReturnedStatus:\x02OK\x12\x17\n\rerror_message\x18\x02 \x01(\t:\x00\x12\x13\n\tbacktrace\x18\x03 \x01(\t:\x00\x12\"\n\rcpu_time_used\x18\x04 \x01(\x0b\x32\x0b.CpuSeconds\x12\x18\n\x10\x63hild_session_id\x18\x05 \x01(\t\x12\x1a\n\x12network_bytes_sent\x18\x06 \x01(\x04\"h\n\x0eReturnedStatus\x12\x06\n\x02OK\x10\x00\x12\x0b\n\x07IOERROR\x10\x01\x12\x1b\n\x17RETRANSMISSION_DETECTED\x10\x02\x12\x11\n\rCLIENT_KILLED\x10\x03\x12\x11\n\rGENERIC_ERROR\x10\n\"f\n\x11\x43lientInformation\x12\x13\n\x0b\x63lient_name\x18\x01 \x01(\t\x12\x16\n\x0e\x63lient_version\x18\x02 \x01(\r\x12\x10\n\x08revision\x18\x03 \x01(\x04\x12\x12\n\nbuild_time\x18\x04 \x01(\t\"\x86\x01\n\x04Task\x12\n\n\x02id\x18\x01 \x01(\x04\x12\r\n\x05value\x18\x02 \x01(\x0c\x12\x0e\n\x03ttl\x18\x03 \x01(\x05:\x01\x35\x12\x0b\n\x03\x65ta\x18\x04 \x01(\x04\x12\r\n\x05queue\x18\x05 \x01(\t\x12\x37\n\x08priority\x18\x06 \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITY\"\x90\x02\n\x08\x44\x61taBlob\x12\x0f\n\x07integer\x18\x01 \x01(\x03\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\x12\x0e\n\x06string\x18\x03 \x01(\t\x12\x12\n\nproto_name\x18\x04 \x01(\t\x12\x0c\n\x04none\x18\x05 \x01(\t\x12\x0f\n\x07\x62oolean\x18\x06 \x01(\x08\x12\x18\n\x04list\x18\x08 \x01(\x0b\x32\n.BlobArray\x12\x13\n\x04\x64ict\x18\t \x01(\x0b\x32\x05.Dict\x12<\n\x0b\x63ompression\x18\x07 \x01(\x0e\x32\x19.DataBlob.CompressionType:\x0cUNCOMPRESSED\"5\n\x0f\x43ompressionType\x12\x10\n\x0cUNCOMPRESSED\x10\x00\x12\x10\n\x0cZCOMPRESSION\x10\x01\"\'\n\tBlobArray\x12\x1a\n\x07\x63ontent\x18\x01 \x03(\x0b\x32\t.DataBlob\"+\n\x08PrintStr\x12\x11\n\x05level\x18\x01 \x01(\x05:\x02\x31\x30\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\t\"l\n\x11\x42ufferReadMessage\x12\x0e\n\x06offset\x18\x01 \x02(\x04\x12\x0e\n\x06length\x18\x02 \x02(\x04\x12\x10\n\x08\x63\x61llback\x18\x03 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\x12\x17\n\x08pathspec\x18\x06 \x01(\x0b\x32\x05.Path\"\x80\x02\n\x0cRequestState\x12\n\n\x02id\x18\x01 \x02(\r\x12\r\n\x05ts_id\x18\x02 \x01(\x04\x12\x12\n\nnext_state\x18\x03 \x01(\t\x12\x1a\n\x06status\x18\x04 \x01(\x0b\x32\n.GrrStatus\x12\x13\n\x04\x64\x61ta\x18\x05 \x01(\x0b\x32\x05.Dict\x12\x19\n\x0eresponse_count\x18\x06 \x01(\r:\x01\x30\x12\x1d\n\x12transmission_count\x18\x07 \x01(\r:\x01\x30\x12\x11\n\tclient_id\x18\x08 \x01(\t\x12\x12\n\nsession_id\x18\t \x01(\t\x12\x1c\n\x07request\x18\n \x01(\x0b\x32\x0b.GrrMessage\x12\x11\n\tflow_name\x18\x0b \x01(\t\"\x90\x04\n\x06\x46lowPB\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0e\n\x06pickle\x18\x02 \x01(\x0c\x12\r\n\x05ts_id\x18\x03 \x01(\x04\x12)\n\x05state\x18\x04 \x01(\x0e\x32\x11.FlowPB.FlowState:\x07RUNNING\x12\x12\n\nsession_id\x18\x05 \x01(\t\x12\x1f\n\x14outstanding_requests\x18\x06 \x01(\r:\x01\x30\x12\x0f\n\x07\x63reator\x18\x07 \x01(\t\x12\x11\n\tbacktrace\x18\x08 \x01(\t\x12\x16\n\x0b\x63reate_time\x18\t \x01(\x04:\x01\x30\x12\x13\n\x08progress\x18\n \x01(\x05:\x01\x30\x12\x13\n\x04\x61rgs\x18\x0b \x01(\x0b\x32\x05.Dict\x12\x10\n\x08\x65vent_id\x18\x0c \x01(\t\x12$\n\rrequest_state\x18\x0e \x01(\x0b\x32\r.RequestState\x12\x0e\n\x06status\x18\x0f \x01(\t\x12\x10\n\x08\x63hildren\x18\x10 \x03(\t\x12\x11\n\tclient_id\x18\x11 \x01(\t\x12\x1d\n\x08\x63pu_used\x18\x12 \x01(\x0b\x32\x0b.CpuSeconds\x12\x1a\n\x12network_bytes_sent\x18\x13 \x01(\x04\x12&\n\x08priority\x18\x14 \x01(\x0e\x32\x14.GrrMessage.Priority\"C\n\tFlowState\x12\x0b\n\x07RUNNING\x10\x00\x12\x0e\n\nTERMINATED\x10\x01\x12\t\n\x05\x45RROR\x10\x03\x12\x0e\n\nWELL_KNOWN\x10\x02\"<\n\nCpuSeconds\x12\x15\n\ruser_cpu_time\x18\x01 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x02 \x01(\x02\"c\n\tCpuSample\x12\x15\n\ruser_cpu_time\x18\x01 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x02 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x03 \x01(\x02\x12\x11\n\ttimestamp\x18\x04 \x01(\x04\"o\n\x08IOSample\x12\x12\n\nread_count\x18\x01 \x01(\x04\x12\x13\n\x0bwrite_count\x18\x02 \x01(\x04\x12\x12\n\nread_bytes\x18\x03 \x01(\x04\x12\x13\n\x0bwrite_bytes\x18\x04 \x01(\x04\x12\x11\n\ttimestamp\x18\x05 \x01(\x04\"\xca\x01\n\x0b\x43lientStats\x12\x1f\n\x0b\x63pu_samples\x18\x01 \x03(\x0b\x32\n.CpuSample\x12\x10\n\x08RSS_size\x18\x02 \x01(\x04\x12\x10\n\x08VMS_size\x18\x03 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x04 \x01(\x02\x12\x16\n\x0e\x62ytes_received\x18\x05 \x01(\x04\x12\x12\n\nbytes_sent\x18\x06 \x01(\x04\x12\x1d\n\nio_samples\x18\x07 \x03(\x0b\x32\t.IOSample\x12\x13\n\x0b\x63reate_time\x18\x08 \x01(\x04\"?\n\x0e\x45xecuteRequest\x12\x0b\n\x03\x63md\x18\x01 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x02 \x03(\t\x12\x12\n\ntime_limit\x18\x03 \x01(\x05\"{\n\x0f\x45xecuteResponse\x12 \n\x07request\x18\x01 \x01(\x0b\x32\x0f.ExecuteRequest\x12\x13\n\x0b\x65xit_status\x18\x02 \x01(\x05\x12\x0e\n\x06stdout\x18\x03 \x01(\x0c\x12\x0e\n\x06stderr\x18\x04 \x01(\x0c\x12\x11\n\ttime_used\x18\x05 \x01(\x05\"\xc9\x08\n\x04Path\x12\'\n\x08pathtype\x18\x01 \x01(\x0e\x32\x0e.Path.PathType:\x05UNSET\x12\x0c\n\x04path\x18\x02 \x01(\t\x12\x13\n\x0bmount_point\x18\x03 \x01(\t\x12\x1a\n\x0bnested_path\x18\x05 \x01(\x0b\x32\x05.Path\x12\x0e\n\x06offset\x18\x06 \x01(\x04\x12\x35\n\x0cpath_options\x18\x07 \x01(\x0e\x32\r.Path.Options:\x10\x43\x41SE_INSENSITIVE\x12\r\n\x05inode\x18\x08 \x01(\x04\x12\x43\n\tntfs_type\x18\t \x01(\x0e\x32\x16.Path.tsk_fs_attr_type:\x18TSK_FS_ATTR_TYPE_DEFAULT\x12\x0f\n\x07ntfs_id\x18\n \x01(\x04\"I\n\x08PathType\x12\x12\n\x05UNSET\x10\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x12\x06\n\x02OS\x10\x00\x12\x07\n\x03TSK\x10\x01\x12\x0c\n\x08REGISTRY\x10\x02\x12\n\n\x06MEMORY\x10\x03\"1\n\x07Options\x12\x14\n\x10\x43\x41SE_INSENSITIVE\x10\x00\x12\x10\n\x0c\x43\x41SE_LITERAL\x10\x01\"\xae\x05\n\x10tsk_fs_attr_type\x12\x1c\n\x18TSK_FS_ATTR_TYPE_DEFAULT\x10\x01\x12\x1c\n\x18TSK_FS_ATTR_TYPE_NTFS_SI\x10\x10\x12\"\n\x1eTSK_FS_ATTR_TYPE_NTFS_ATTRLIST\x10 \x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_FNAME\x10\x30\x12\x1e\n\x1aTSK_FS_ATTR_TYPE_NTFS_VVER\x10@\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_OBJID\x10@\x12\x1d\n\x19TSK_FS_ATTR_TYPE_NTFS_SEC\x10P\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_VNAME\x10`\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_VINFO\x10p\x12\x1f\n\x1aTSK_FS_ATTR_TYPE_NTFS_DATA\x10\x80\x01\x12\"\n\x1dTSK_FS_ATTR_TYPE_NTFS_IDXROOT\x10\x90\x01\x12#\n\x1eTSK_FS_ATTR_TYPE_NTFS_IDXALLOC\x10\xa0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_BITMAP\x10\xb0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_SYMLNK\x10\xc0\x01\x12\"\n\x1dTSK_FS_ATTR_TYPE_NTFS_REPARSE\x10\xc0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_EAINFO\x10\xd0\x01\x12\x1d\n\x18TSK_FS_ATTR_TYPE_NTFS_EA\x10\xe0\x01\x12\x1f\n\x1aTSK_FS_ATTR_TYPE_NTFS_PROP\x10\xf0\x01\x12\x1e\n\x19TSK_FS_ATTR_TYPE_NTFS_LOG\x10\x80\x02\x12 \n\x1bTSK_FS_ATTR_TYPE_UNIX_INDIR\x10\x81 \"F\n\x0eListDirRequest\x12\x17\n\x08pathspec\x18\x01 \x01(\x0b\x32\x05.Path\x12\x1b\n\x08iterator\x18\x02 \x01(\x0b\x32\t.Iterator\"\xd6\x04\n\x0cStatResponse\x12\x10\n\x08\x61\x66\x66\x34path\x18\x01 \x01(\t\x12\x0f\n\x07st_mode\x18\x02 \x01(\r\x12\x0e\n\x06st_ino\x18\x03 \x01(\r\x12\x0e\n\x06st_dev\x18\x04 \x01(\r\x12\x10\n\x08st_nlink\x18\x05 \x01(\r\x12\x0e\n\x06st_uid\x18\x06 \x01(\r\x12\x0e\n\x06st_gid\x18\x07 \x01(\r\x12\x0f\n\x07st_size\x18\x08 \x01(\x04\x12\x10\n\x08st_atime\x18\t \x01(\x04\x12\x10\n\x08st_mtime\x18\n \x01(\x04\x12\x10\n\x08st_ctime\x18\x0b \x01(\x04\x12\x11\n\tst_blocks\x18\x0c \x01(\r\x12\x12\n\nst_blksize\x18\r \x01(\r\x12\x0f\n\x07st_rdev\x18\x0e \x01(\r\x12\x0f\n\x07symlink\x18\x0f \x01(\t\x12\x31\n\rregistry_type\x18\x10 \x01(\x0e\x32\x1a.StatResponse.RegistryType\x12\x10\n\x08resident\x18\x11 \x01(\x0c\x12\x17\n\x08pathspec\x18\x12 \x01(\x0b\x32\x05.Path\x12 \n\rregistry_data\x18\x13 \x01(\x0b\x32\t.DataBlob\"\xc0\x01\n\x0cRegistryType\x12\x0c\n\x08REG_NONE\x10\x00\x12\n\n\x06REG_SZ\x10\x01\x12\x11\n\rREG_EXPAND_SZ\x10\x02\x12\x0e\n\nREG_BINARY\x10\x03\x12\r\n\tREG_DWORD\x10\x04\x12\x1b\n\x17REG_DWORD_LITTLE_ENDIAN\x10\x04\x12\x18\n\x14REG_DWORD_BIG_ENDIAN\x10\x05\x12\x0c\n\x08REG_LINK\x10\x06\x12\x10\n\x0cREG_MULTI_SZ\x10\x07\x12\r\n\tREG_QWORD\x10\x0b\"*\n\nCollection\x12\x1c\n\x05items\x18\x01 \x03(\x0b\x32\r.StatResponse\"\x1b\n\nWmiRequest\x12\r\n\x05query\x18\x01 \x01(\t\"6\n\x08KeyValue\x12\x14\n\x01k\x18\x01 \x01(\x0b\x32\t.DataBlob\x12\x14\n\x01v\x18\x02 \x01(\x0b\x32\t.DataBlob\"\x1e\n\x04\x44ict\x12\x16\n\x03\x64\x61t\x18\x01 \x03(\x0b\x32\t.KeyValue\"\x7f\n\x0b\x43\x65rtificate\x12*\n\x04type\x18\x01 \x01(\x0e\x32\x1c.Certificate.CertificateType\x12\x0b\n\x03pem\x18\x02 \x01(\x0c\x12\n\n\x02\x63n\x18\x03 \x01(\t\"+\n\x0f\x43\x65rtificateType\x12\x07\n\x03\x43SR\x10\x00\x12\x07\n\x03\x43RT\x10\x01\x12\x06\n\x02\x43\x41\x10\x02\"X\n\x05Uname\x12\x0e\n\x06system\x18\x01 \x01(\t\x12\x0c\n\x04node\x18\x02 \x01(\t\x12\x0f\n\x07release\x18\x03 \x01(\t\x12\x0f\n\x07version\x18\x04 \x01(\t\x12\x0f\n\x07machine\x18\x05 \x01(\t\"\x86\x03\n\x11\x46olderInformation\x12\x10\n\x08\x61pp_data\x18\x01 \x01(\t\x12\r\n\x05\x63\x61\x63he\x18\x02 \x01(\t\x12\x0f\n\x07\x63ookies\x18\x03 \x01(\t\x12\x0f\n\x07\x64\x65sktop\x18\x04 \x01(\t\x12\x11\n\tfavorites\x18\x05 \x01(\t\x12\x0f\n\x07history\x18\x06 \x01(\t\x12\x16\n\x0elocal_app_data\x18\x07 \x01(\t\x12\x16\n\x0elocal_settings\x18\x08 \x01(\t\x12\x10\n\x08my_music\x18\t \x01(\t\x12\x13\n\x0bmy_pictures\x18\n \x01(\t\x12\x10\n\x08my_video\x18\x0b \x01(\t\x12\x10\n\x08net_hood\x18\x0c \x01(\t\x12\x10\n\x08personal\x18\r \x01(\t\x12\x12\n\nprint_hood\x18\x0e \x01(\t\x12\x10\n\x08programs\x18\x0f \x01(\t\x12\x0e\n\x06recent\x18\x10 \x01(\t\x12\x0f\n\x07send_to\x18\x11 \x01(\t\x12\x12\n\nstart_menu\x18\x12 \x01(\t\x12\x0f\n\x07startup\x18\x13 \x01(\t\x12\x11\n\ttemplates\x18\x14 \x01(\t\"\xb2\x01\n\x0bUserAccount\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x11\n\tfull_name\x18\x02 \x01(\t\x12\x0f\n\x07\x63omment\x18\x03 \x01(\t\x12\x12\n\nlast_logon\x18\x04 \x01(\x04\x12\x0e\n\x06\x64omain\x18\x05 \x01(\t\x12\x0f\n\x07homedir\x18\x06 \x01(\t\x12\x0b\n\x03sid\x18\x07 \x01(\t\x12+\n\x0fspecial_folders\x18\x08 \x01(\x0b\x32\x12.FolderInformation\"\x99\x01\n\x0eNetworkAddress\x12\x33\n\x0c\x61\x64\x64ress_type\x18\x01 \x01(\x0e\x32\x1d.NetworkAddress.NetworkFamily\x12\x16\n\x0ehuman_readable\x18\x02 \x01(\t\x12\x14\n\x0cpacked_bytes\x18\x03 \x01(\t\"$\n\rNetworkFamily\x12\x08\n\x04INET\x10\x00\x12\t\n\x05INET6\x10\x01\"\x82\x01\n\tInterface\x12\x13\n\x0bmac_address\x18\x01 \x01(\x0c\x12\x15\n\rip4_addresses\x18\x02 \x03(\x0c\x12\x0e\n\x06ifname\x18\x03 \x01(\t\x12\x15\n\rip6_addresses\x18\x04 \x03(\x0c\x12\"\n\taddresses\x18\x05 \x03(\x0b\x32\x0f.NetworkAddress\"X\n\x10MemoryInfomation\x12\x15\n\x06\x64\x65vice\x18\x01 \x01(\x0b\x32\x05.Path\x12 \n\x04runs\x18\x02 \x03(\x0b\x32\x12.BufferReadMessage\x12\x0b\n\x03\x63r3\x18\x03 \x01(\x04\"\xc1\x02\n\tGRRConfig\x12\x1f\n\x17\x66oreman_check_frequency\x18\x01 \x01(\x05\x12\x10\n\x08location\x18\x02 \x01(\t\x12\x15\n\rmax_post_size\x18\x03 \x01(\x05\x12\x15\n\rmax_out_queue\x18\x04 \x01(\x05\x12\x10\n\x08poll_min\x18\x05 \x01(\x02\x12\x10\n\x08poll_max\x18\x06 \x01(\x02\x12\x11\n\tpoll_slew\x18\x07 \x01(\x02\x12\x13\n\x0b\x63ompression\x18\x08 \x01(\t\x12\x0f\n\x07verbose\x18\t \x01(\x08\x12\x0e\n\x06\x63\x61mode\x18\n \x01(\t\x12\x1c\n\x14server_serial_number\x18\x0b \x01(\x05\x12\x0f\n\x07regpath\x18\x0c \x01(\t\x12\x0e\n\x06\x63onfig\x18\r \x01(\t\x12\r\n\x05\x64\x65\x62ug\x18\x0e \x01(\x08\x12\x18\n\x10process_separate\x18\x0f \x01(\x08\"\x9b\x01\n\x10\x46ingerprintTuple\x12!\n\x07\x66p_type\x18\x01 \x02(\x0e\x32\x10.FingerprintType\x12\x32\n\x07hashers\x18\x02 \x03(\x0e\x32!.FingerprintTuple.FingerprintHash\"0\n\x0f\x46ingerprintHash\x12\x07\n\x03MD5\x10\x00\x12\x08\n\x04SHA1\x10\x01\x12\n\n\x06SHA256\x10\x02\"P\n\x12\x46ingerprintRequest\x12\x17\n\x08pathspec\x18\x01 \x01(\x0b\x32\x05.Path\x12!\n\x06tuples\x18\x02 \x03(\x0b\x32\x11.FingerprintTuple\"c\n\x13\x46ingerprintResponse\x12(\n\x0ematching_types\x18\x01 \x03(\x0e\x32\x10.FingerprintType\x12\"\n\x13\x66ingerprint_results\x18\x02 \x03(\x0b\x32\x05.Dict\"\xe5\x01\n\nSignedBlob\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06\x64igest\x18\x02 \x01(\x0c\x12)\n\x0b\x64igest_type\x18\x03 \x01(\x0e\x32\x14.SignedBlob.HashType\x12\x11\n\tsignature\x18\x04 \x01(\x0c\x12\x31\n\x0esignature_type\x18\x05 \x01(\x0e\x32\x19.SignedBlob.SignatureType\")\n\x08HashType\x12\x07\n\x03MD5\x10\x00\x12\x08\n\x04SHA1\x10\x01\x12\n\n\x06SHA256\x10\x02\"\x1d\n\rSignatureType\x12\x0c\n\x08RSA_2048\x10\x00\"8\n\x14\x45xecutePythonRequest\x12 \n\x0bpython_code\x18\x01 \x01(\x0b\x32\x0b.SignedBlob\">\n\x15\x45xecutePythonResponse\x12\x12\n\nreturn_val\x18\x01 \x01(\x0c\x12\x11\n\ttime_used\x18\x02 \x01(\x05\"a\n\x11VolatilityRequest\x12\x13\n\x04\x61rgs\x18\x01 \x01(\x0b\x32\x05.Dict\x12\x0f\n\x07plugins\x18\x02 \x03(\t\x12\x0f\n\x07profile\x18\x03 \x01(\t\x12\x15\n\x06\x64\x65vice\x18\x04 \x01(\x0b\x32\x05.Path\"I\n\x10VolatilityHeader\x12\x12\n\nprint_name\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x13\n\x0b\x66ormat_hint\x18\x03 \x01(\t\"x\n\x0fVolatilityValue\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06offset\x18\x03 \x01(\x03\x12\n\n\x02vm\x18\x04 \x01(\t\x12\r\n\x05value\x18\x05 \x01(\x03\x12\x0e\n\x06svalue\x18\x06 \x01(\t\x12\x0e\n\x06reason\x18\x07 \x01(\t\"4\n\x10VolatilityValues\x12 \n\x06values\x18\x01 \x03(\x0b\x32\x10.VolatilityValue\"V\n\x0fVolatilityTable\x12\"\n\x07headers\x18\x01 \x03(\x0b\x32\x11.VolatilityHeader\x12\x1f\n\x04rows\x18\x02 \x03(\x0b\x32\x11.VolatilityValues\"Q\n\x18VolatilityFormattedValue\x12\x14\n\x0c\x66ormatstring\x18\x01 \x01(\t\x12\x1f\n\x04\x64\x61ta\x18\x02 \x01(\x0b\x32\x11.VolatilityValues\"P\n\x19VolatilityFormattedValues\x12\x33\n\x10\x66ormatted_values\x18\x01 \x03(\x0b\x32\x19.VolatilityFormattedValue\"n\n\x11VolatilitySection\x12\x1f\n\x05table\x18\x01 \x01(\x0b\x32\x10.VolatilityTable\x12\x38\n\x14\x66ormatted_value_list\x18\x02 \x01(\x0b\x32\x1a.VolatilityFormattedValues\"Y\n\x12VolatilityResponse\x12$\n\x08sections\x18\x01 \x03(\x0b\x32\x12.VolatilitySection\x12\x0e\n\x06plugin\x18\x02 \x01(\t\x12\r\n\x05\x65rror\x18\x03 \x01(\t\"m\n\x14\x45xecuteBinaryRequest\x12\x1f\n\nexecutable\x18\x01 \x01(\x0b\x32\x0b.SignedBlob\x12\x12\n\nwrite_path\x18\x02 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x03 \x03(\t\x12\x12\n\ntime_limit\x18\x04 \x01(\x05\"_\n\x15\x45xecuteBinaryResponse\x12\x13\n\x0b\x65xit_status\x18\x01 \x01(\x05\x12\x0e\n\x06stdout\x18\x02 \x01(\x0c\x12\x0e\n\x06stderr\x18\x03 \x01(\x0c\x12\x11\n\ttime_used\x18\x04 \x01(\x05\"\x90\x02\n\x14InstallDriverRequest\x12\x1b\n\x06\x64river\x18\x01 \x01(\x0b\x32\x0b.SignedBlob\x12\x12\n\nwrite_path\x18\x02 \x01(\t\x12\x14\n\x0c\x66orce_reload\x18\x03 \x01(\r\x12\x13\n\x0b\x64river_name\x18\x06 \x01(\t\x12\x1b\n\x13\x64river_display_name\x18\x07 \x01(\t\x12\x13\n\x0b\x64\x65vice_path\x18\x08 \x01(\t\x12\x37\n\x04mode\x18\t \x01(\x0e\x32!.InstallDriverRequest.RewriteMode:\x06\x45NABLE\"1\n\x0bRewriteMode\x12\x0b\n\x07\x44ISABLE\x10\x00\x12\n\n\x06\x45NABLE\x10\x01\x12\t\n\x05\x46ORCE\x10\x02\"\xa8\x02\n\x0bGrepRequest\x12\x15\n\x06target\x18\x01 \x01(\x0b\x32\x05.Path\x12\x17\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x12\x17\n\x06length\x18\x03 \x01(\x04:\x07\x31\x30\x32\x34\x30\x30\x30\x12\r\n\x05regex\x18\x04 \x01(\t\x12\x0f\n\x07literal\x18\x05 \x01(\x0c\x12)\n\x04mode\x18\x06 \x01(\x0e\x32\x11.GrepRequest.Mode:\x08\x41LL_HITS\x12\x18\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x12\x17\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x12\x15\n\nxor_in_key\x18\t \x01(\r:\x01\x30\x12\x16\n\x0bxor_out_key\x18\n \x01(\r:\x01\x30\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"\xf5\x01\n\x04\x46ind\x12\x1b\n\x08iterator\x18\x01 \x01(\x0b\x32\t.Iterator\x12\x17\n\x08pathspec\x18\x02 \x01(\x0b\x32\x05.Path\x12\x15\n\npath_regex\x18\x03 \x01(\t:\x01.\x12\x15\n\ndata_regex\x18\x04 \x01(\t:\x01.\x12\x12\n\nstart_time\x18\x05 \x01(\x04\x12\x10\n\x08\x65nd_time\x18\x06 \x01(\x04\x12\x15\n\ncross_devs\x18\x07 \x01(\x05:\x01\x30\x12\x15\n\tmax_depth\x18\x08 \x01(\x05:\x02\x31\x35\x12\x1a\n\x03hit\x18\t \x01(\x0b\x32\r.StatResponse\x12\x19\n\x08max_data\x18\n \x01(\x04:\x07\x31\x30\x32\x34\x30\x30\x30\"Y\n\x15\x46oremanAttributeRegex\x12\x0f\n\x04path\x18\x01 \x01(\t:\x01/\x12\x16\n\x0e\x61ttribute_name\x18\x02 \x01(\t\x12\x17\n\x0f\x61ttribute_regex\x18\x03 \x01(\t\"\xc5\x01\n\x17\x46oremanAttributeInteger\x12\x0f\n\x04path\x18\x01 \x01(\t:\x01/\x12\x16\n\x0e\x61ttribute_name\x18\x02 \x01(\t\x12:\n\x08operator\x18\x03 \x01(\x0e\x32!.ForemanAttributeInteger.Operator:\x05\x45QUAL\x12\r\n\x05value\x18\x04 \x01(\x04\"6\n\x08Operator\x12\t\n\x05\x45QUAL\x10\x00\x12\r\n\tLESS_THAN\x10\x01\x12\x10\n\x0cGREATER_THAN\x10\x02\"u\n\x11\x46oremanRuleAction\x12\x11\n\tflow_name\x18\x01 \x01(\t\x12\x13\n\x04\x61rgv\x18\x02 \x01(\x0b\x32\x05.Dict\x12\x11\n\thunt_name\x18\x03 \x01(\t\x12\x0f\n\x07hunt_id\x18\x04 \x01(\t\x12\x14\n\x0c\x63lient_limit\x18\x05 \x01(\r\"F\n\tHuntError\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x13\n\x0blog_message\x18\x02 \x01(\t\x12\x11\n\tbacktrace\x18\x03 \x01(\t\">\n\x07HuntLog\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x13\n\x0blog_message\x18\x02 \x01(\t\x12\x0b\n\x03urn\x18\x03 \x01(\t\"t\n\x0f\x43lientResources\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x12\n\nsession_id\x18\x02 \x01(\t\x12\x1e\n\tcpu_usage\x18\x03 \x01(\x0b\x32\x0b.CpuSeconds\x12\x1a\n\x12network_bytes_sent\x18\x04 \x01(\x04\"\xc7\x01\n\x0b\x46oremanRule\x12+\n\x0bregex_rules\x18\x01 \x03(\x0b\x32\x16.ForemanAttributeRegex\x12/\n\rinteger_rules\x18\x02 \x03(\x0b\x32\x18.ForemanAttributeInteger\x12#\n\x07\x61\x63tions\x18\x03 \x03(\x0b\x32\x12.ForemanRuleAction\x12\x0f\n\x07\x63reated\x18\x04 \x01(\x04\x12\x0f\n\x07\x65xpires\x18\x05 \x01(\x04\x12\x13\n\x0b\x64\x65scription\x18\x06 \x01(\t\"\x9a\x01\n\x08Iterator\x12\x1b\n\x0c\x63lient_state\x18\x01 \x01(\x0b\x32\x05.Dict\x12\x0f\n\x04skip\x18\x02 \x01(\r:\x01\x30\x12\x13\n\x06number\x18\x03 \x01(\r:\x03\x31\x30\x30\x12\'\n\x05state\x18\x04 \x01(\x0e\x32\x0f.Iterator.State:\x07RUNNING\"\"\n\x05State\x12\x0b\n\x07RUNNING\x10\x00\x12\x0c\n\x08\x46INISHED\x10\x01\"P\n\x14IteratedStatResponse\x12\x1b\n\x04stat\x18\x01 \x01(\x0b\x32\r.StatResponse\x12\x1b\n\x08iterator\x18\x02 \x01(\x0b\x32\t.Iterator\"\x12\n\x03URN\x12\x0b\n\x03urn\x18\x01 \x01(\t\"a\n\x0cNotification\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0f\n\x07subject\x18\x02 \x01(\t\x12\x0f\n\x07message\x18\x03 \x01(\t\x12\x0e\n\x06source\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\x04\"\x1a\n\tLabelList\x12\r\n\x05label\x18\x01 \x03(\t\"\x0e\n\x0c\x45mptyMessage*3\n\x0f\x46ingerprintType\x12\x0f\n\x0b\x46PT_GENERIC\x10\x00\x12\x0f\n\x0b\x46PT_PE_COFF\x10\x01')
 
 _FINGERPRINTTYPE = descriptor.EnumDescriptor(
   name='FingerprintType',
@@ -30,8 +30,8 @@ _FINGERPRINTTYPE = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=8146,
-  serialized_end=8197,
+  serialized_start=11211,
+  serialized_end=11262,
 )
 
 
@@ -60,8 +60,8 @@ _GRRMESSAGE_AUTHORIZATIONSTATE = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=328,
-  serialized_end=408,
+  serialized_start=571,
+  serialized_end=651,
 )
 
 _GRRMESSAGE_TYPE = descriptor.EnumDescriptor(
@@ -85,8 +85,8 @@ _GRRMESSAGE_TYPE = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=410,
-  serialized_end=455,
+  serialized_start=653,
+  serialized_end=698,
 )
 
 _GRRMESSAGE_PRIORITY = descriptor.EnumDescriptor(
@@ -110,8 +110,8 @@ _GRRMESSAGE_PRIORITY = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=457,
-  serialized_end=525,
+  serialized_start=700,
+  serialized_end=768,
 )
 
 _SIGNEDMESSAGELIST_COMPRESSIONTYPE = descriptor.EnumDescriptor(
@@ -131,8 +131,8 @@ _SIGNEDMESSAGELIST_COMPRESSIONTYPE = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=737,
-  serialized_end=790,
+  serialized_start=980,
+  serialized_end=1033,
 )
 
 _CLIENTCOMMUNICATION_COMMUNICATIONSTATUS = descriptor.EnumDescriptor(
@@ -156,8 +156,8 @@ _CLIENTCOMMUNICATION_COMMUNICATIONSTATUS = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1158,
-  serialized_end=1225,
+  serialized_start=1437,
+  serialized_end=1504,
 )
 
 _GRRSTATUS_RETURNEDSTATUS = descriptor.EnumDescriptor(
@@ -179,14 +179,18 @@ _GRRSTATUS_RETURNEDSTATUS = descriptor.EnumDescriptor(
       options=None,
       type=None),
     descriptor.EnumValueDescriptor(
-      name='GENERIC_ERROR', index=3, number=10,
+      name='CLIENT_KILLED', index=3, number=3,
+      options=None,
+      type=None),
+    descriptor.EnumValueDescriptor(
+      name='GENERIC_ERROR', index=4, number=10,
       options=None,
       type=None),
   ],
   containing_type=None,
   options=None,
-  serialized_start=1334,
-  serialized_end=1419,
+  serialized_start=1703,
+  serialized_end=1807,
 )
 
 _DATABLOB_COMPRESSIONTYPE = descriptor.EnumDescriptor(
@@ -206,8 +210,8 @@ _DATABLOB_COMPRESSIONTYPE = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=737,
-  serialized_end=790,
+  serialized_start=980,
+  serialized_end=1033,
 )
 
 _FLOWPB_FLOWSTATE = descriptor.EnumDescriptor(
@@ -235,8 +239,8 @@ _FLOWPB_FLOWSTATE = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=2676,
-  serialized_end=2743,
+  serialized_start=3242,
+  serialized_end=3309,
 )
 
 _PATH_PATHTYPE = descriptor.EnumDescriptor(
@@ -262,14 +266,14 @@ _PATH_PATHTYPE = descriptor.EnumDescriptor(
       options=None,
       type=None),
     descriptor.EnumValueDescriptor(
-      name='UNKNOWN', index=4, number=3,
+      name='MEMORY', index=4, number=3,
       options=None,
       type=None),
   ],
   containing_type=None,
   options=None,
-  serialized_start=3220,
-  serialized_end=3294,
+  serialized_start=4267,
+  serialized_end=4340,
 )
 
 _PATH_OPTIONS = descriptor.EnumDescriptor(
@@ -289,8 +293,8 @@ _PATH_OPTIONS = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=3296,
-  serialized_end=3345,
+  serialized_start=4342,
+  serialized_end=4391,
 )
 
 _PATH_TSK_FS_ATTR_TYPE = descriptor.EnumDescriptor(
@@ -382,8 +386,8 @@ _PATH_TSK_FS_ATTR_TYPE = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=3348,
-  serialized_end=4034,
+  serialized_start=4394,
+  serialized_end=5080,
 )
 
 _STATRESPONSE_REGISTRYTYPE = descriptor.EnumDescriptor(
@@ -435,8 +439,8 @@ _STATRESPONSE_REGISTRYTYPE = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=4515,
-  serialized_end=4707,
+  serialized_start=5561,
+  serialized_end=5753,
 )
 
 _CERTIFICATE_CERTIFICATETYPE = descriptor.EnumDescriptor(
@@ -460,8 +464,8 @@ _CERTIFICATE_CERTIFICATETYPE = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=4954,
-  serialized_end=4997,
+  serialized_start=6000,
+  serialized_end=6043,
 )
 
 _NETWORKADDRESS_NETWORKFAMILY = descriptor.EnumDescriptor(
@@ -481,8 +485,8 @@ _NETWORKADDRESS_NETWORKFAMILY = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=5781,
-  serialized_end=5817,
+  serialized_start=6827,
+  serialized_end=6863,
 )
 
 _FINGERPRINTTUPLE_FINGERPRINTHASH = descriptor.EnumDescriptor(
@@ -506,13 +510,13 @@ _FINGERPRINTTUPLE_FINGERPRINTHASH = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=6384,
-  serialized_end=6432,
+  serialized_start=7520,
+  serialized_end=7568,
 )
 
-_SIGNEDDRIVER_HASHTYPE = descriptor.EnumDescriptor(
+_SIGNEDBLOB_HASHTYPE = descriptor.EnumDescriptor(
   name='HashType',
-  full_name='SignedDriver.HashType',
+  full_name='SignedBlob.HashType',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -531,13 +535,13 @@ _SIGNEDDRIVER_HASHTYPE = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=6781,
-  serialized_end=6822,
+  serialized_start=7911,
+  serialized_end=7952,
 )
 
-_SIGNEDDRIVER_SIGNATURETYPE = descriptor.EnumDescriptor(
+_SIGNEDBLOB_SIGNATURETYPE = descriptor.EnumDescriptor(
   name='SignatureType',
-  full_name='SignedDriver.SignatureType',
+  full_name='SignedBlob.SignatureType',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -548,8 +552,54 @@ _SIGNEDDRIVER_SIGNATURETYPE = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=6824,
-  serialized_end=6853,
+  serialized_start=7954,
+  serialized_end=7983,
+)
+
+_INSTALLDRIVERREQUEST_REWRITEMODE = descriptor.EnumDescriptor(
+  name='RewriteMode',
+  full_name='InstallDriverRequest.RewriteMode',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    descriptor.EnumValueDescriptor(
+      name='DISABLE', index=0, number=0,
+      options=None,
+      type=None),
+    descriptor.EnumValueDescriptor(
+      name='ENABLE', index=1, number=1,
+      options=None,
+      type=None),
+    descriptor.EnumValueDescriptor(
+      name='FORCE', index=2, number=2,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=9345,
+  serialized_end=9394,
+)
+
+_GREPREQUEST_MODE = descriptor.EnumDescriptor(
+  name='Mode',
+  full_name='GrepRequest.Mode',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    descriptor.EnumValueDescriptor(
+      name='ALL_HITS', index=0, number=0,
+      options=None,
+      type=None),
+    descriptor.EnumValueDescriptor(
+      name='FIRST_HIT', index=1, number=1,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=9658,
+  serialized_end=9693,
 )
 
 _FOREMANATTRIBUTEINTEGER_OPERATOR = descriptor.EnumDescriptor(
@@ -573,8 +623,8 @@ _FOREMANATTRIBUTEINTEGER_OPERATOR = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=7453,
-  serialized_end=7507,
+  serialized_start=10178,
+  serialized_end=10232,
 )
 
 _ITERATOR_STATE = descriptor.EnumDescriptor(
@@ -594,8 +644,92 @@ _ITERATOR_STATE = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=7893,
-  serialized_end=7927,
+  serialized_start=10930,
+  serialized_end=10964,
+)
+
+
+_HTTPREQUEST = descriptor.Descriptor(
+  name='HttpRequest',
+  full_name='HttpRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='raw_headers', full_name='HttpRequest.raw_headers', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='user_agent', full_name='HttpRequest.user_agent', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='source_ip', full_name='HttpRequest.source_ip', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='url', full_name='HttpRequest.url', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='user', full_name='HttpRequest.user', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=True, default_value=unicode("anonymous", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='timestamp', full_name='HttpRequest.timestamp', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='method', full_name='HttpRequest.method', index=6,
+      number=7, type=9, cpp_type=9, label=1,
+      has_default_value=True, default_value=unicode("GET", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='referrer', full_name='HttpRequest.referrer', index=7,
+      number=8, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='size', full_name='HttpRequest.size', index=8,
+      number=9, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=25,
+  serialized_end=208,
 )
 
 
@@ -676,6 +810,20 @@ _GRRMESSAGE = descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    descriptor.FieldDescriptor(
+      name='require_fastpoll', full_name='GrrMessage.require_fastpoll', index=10,
+      number=11, type=8, cpp_type=7, label=1,
+      has_default_value=True, default_value=True,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='cpu_limit', full_name='GrrMessage.cpu_limit', index=11,
+      number=12, type=4, cpp_type=4, label=1,
+      has_default_value=True, default_value=3600,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -688,8 +836,8 @@ _GRRMESSAGE = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=25,
-  serialized_end=525,
+  serialized_start=211,
+  serialized_end=768,
 )
 
 
@@ -716,8 +864,8 @@ _MESSAGELIST = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=527,
-  serialized_end=566,
+  serialized_start=770,
+  serialized_end=809,
 )
 
 
@@ -773,8 +921,8 @@ _SIGNEDMESSAGELIST = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=569,
-  serialized_end=790,
+  serialized_start=812,
+  serialized_end=1033,
 )
 
 
@@ -822,8 +970,8 @@ _CIPHERPROPERTIES = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=792,
-  serialized_end=867,
+  serialized_start=1035,
+  serialized_end=1110,
 )
 
 
@@ -857,8 +1005,8 @@ _CIPHERMETADATA = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=869,
-  serialized_end=920,
+  serialized_start=1112,
+  serialized_end=1163,
 )
 
 
@@ -898,28 +1046,35 @@ _CLIENTCOMMUNICATION = descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='queue_size', full_name='ClientCommunication.queue_size', index=4,
+      name='orig_request', full_name='ClientCommunication.orig_request', index=4,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='queue_size', full_name='ClientCommunication.queue_size', index=5,
       number=4, type=13, cpp_type=3, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='status', full_name='ClientCommunication.status', index=5,
+      name='status', full_name='ClientCommunication.status', index=6,
       number=5, type=14, cpp_type=8, label=1,
       has_default_value=True, default_value=200,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='api_version', full_name='ClientCommunication.api_version', index=6,
+      name='api_version', full_name='ClientCommunication.api_version', index=7,
       number=6, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='hmac', full_name='ClientCommunication.hmac', index=7,
+      name='hmac', full_name='ClientCommunication.hmac', index=8,
       number=7, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value="",
       message_type=None, enum_type=None, containing_type=None,
@@ -935,8 +1090,8 @@ _CLIENTCOMMUNICATION = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=923,
-  serialized_end=1225,
+  serialized_start=1166,
+  serialized_end=1504,
 )
 
 
@@ -968,6 +1123,27 @@ _GRRSTATUS = descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    descriptor.FieldDescriptor(
+      name='cpu_time_used', full_name='GrrStatus.cpu_time_used', index=3,
+      number=4, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='child_session_id', full_name='GrrStatus.child_session_id', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='network_bytes_sent', full_name='GrrStatus.network_bytes_sent', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -978,8 +1154,8 @@ _GRRSTATUS = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1228,
-  serialized_end=1419,
+  serialized_start=1507,
+  serialized_end=1807,
 )
 
 
@@ -1027,8 +1203,8 @@ _CLIENTINFORMATION = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1421,
-  serialized_end=1523,
+  serialized_start=1809,
+  serialized_end=1911,
 )
 
 
@@ -1074,6 +1250,13 @@ _TASK = descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    descriptor.FieldDescriptor(
+      name='priority', full_name='Task.priority', index=5,
+      number=6, type=14, cpp_type=8, label=1,
+      has_default_value=True, default_value=1,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -1083,8 +1266,8 @@ _TASK = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1525,
-  serialized_end=1602,
+  serialized_start=1914,
+  serialized_end=2048,
 )
 
 
@@ -1145,7 +1328,14 @@ _DATABLOB = descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='compression', full_name='DataBlob.compression', index=7,
+      name='dict', full_name='DataBlob.dict', index=7,
+      number=9, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='compression', full_name='DataBlob.compression', index=8,
       number=7, type=14, cpp_type=8, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -1161,8 +1351,8 @@ _DATABLOB = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1605,
-  serialized_end=1856,
+  serialized_start=2051,
+  serialized_end=2323,
 )
 
 
@@ -1189,8 +1379,8 @@ _BLOBARRAY = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1858,
-  serialized_end=1897,
+  serialized_start=2325,
+  serialized_end=2364,
 )
 
 
@@ -1224,8 +1414,8 @@ _PRINTSTR = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1899,
-  serialized_end=1942,
+  serialized_start=2366,
+  serialized_end=2409,
 )
 
 
@@ -1245,7 +1435,7 @@ _BUFFERREADMESSAGE = descriptor.Descriptor(
       options=None),
     descriptor.FieldDescriptor(
       name='length', full_name='BufferReadMessage.length', index=1,
-      number=2, type=13, cpp_type=3, label=2,
+      number=2, type=4, cpp_type=4, label=2,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -1280,8 +1470,8 @@ _BUFFERREADMESSAGE = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1944,
-  serialized_end=2052,
+  serialized_start=2411,
+  serialized_end=2519,
 )
 
 
@@ -1378,8 +1568,8 @@ _REQUESTSTATE = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2055,
-  serialized_end=2311,
+  serialized_start=2522,
+  serialized_end=2778,
 )
 
 
@@ -1502,6 +1692,27 @@ _FLOWPB = descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    descriptor.FieldDescriptor(
+      name='cpu_used', full_name='FlowPB.cpu_used', index=16,
+      number=18, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='network_bytes_sent', full_name='FlowPB.network_bytes_sent', index=17,
+      number=19, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='priority', full_name='FlowPB.priority', index=18,
+      number=20, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -1512,8 +1723,225 @@ _FLOWPB = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2314,
-  serialized_end=2743,
+  serialized_start=2781,
+  serialized_end=3309,
+)
+
+
+_CPUSECONDS = descriptor.Descriptor(
+  name='CpuSeconds',
+  full_name='CpuSeconds',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='user_cpu_time', full_name='CpuSeconds.user_cpu_time', index=0,
+      number=1, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='system_cpu_time', full_name='CpuSeconds.system_cpu_time', index=1,
+      number=2, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=3311,
+  serialized_end=3371,
+)
+
+
+_CPUSAMPLE = descriptor.Descriptor(
+  name='CpuSample',
+  full_name='CpuSample',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='user_cpu_time', full_name='CpuSample.user_cpu_time', index=0,
+      number=1, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='system_cpu_time', full_name='CpuSample.system_cpu_time', index=1,
+      number=2, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='cpu_percent', full_name='CpuSample.cpu_percent', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='timestamp', full_name='CpuSample.timestamp', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=3373,
+  serialized_end=3472,
+)
+
+
+_IOSAMPLE = descriptor.Descriptor(
+  name='IOSample',
+  full_name='IOSample',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='read_count', full_name='IOSample.read_count', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='write_count', full_name='IOSample.write_count', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='read_bytes', full_name='IOSample.read_bytes', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='write_bytes', full_name='IOSample.write_bytes', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='timestamp', full_name='IOSample.timestamp', index=4,
+      number=5, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=3474,
+  serialized_end=3585,
+)
+
+
+_CLIENTSTATS = descriptor.Descriptor(
+  name='ClientStats',
+  full_name='ClientStats',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='cpu_samples', full_name='ClientStats.cpu_samples', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='RSS_size', full_name='ClientStats.RSS_size', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='VMS_size', full_name='ClientStats.VMS_size', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='memory_percent', full_name='ClientStats.memory_percent', index=3,
+      number=4, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='bytes_received', full_name='ClientStats.bytes_received', index=4,
+      number=5, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='bytes_sent', full_name='ClientStats.bytes_sent', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='io_samples', full_name='ClientStats.io_samples', index=6,
+      number=7, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='create_time', full_name='ClientStats.create_time', index=7,
+      number=8, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=3588,
+  serialized_end=3790,
 )
 
 
@@ -1554,8 +1982,8 @@ _EXECUTEREQUEST = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2745,
-  serialized_end=2808,
+  serialized_start=3792,
+  serialized_end=3855,
 )
 
 
@@ -1610,8 +2038,8 @@ _EXECUTERESPONSE = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2810,
-  serialized_end=2933,
+  serialized_start=3857,
+  serialized_end=3980,
 )
 
 
@@ -1697,8 +2125,8 @@ _PATH = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2936,
-  serialized_end=4034,
+  serialized_start=3983,
+  serialized_end=5080,
 )
 
 
@@ -1732,8 +2160,8 @@ _LISTDIRREQUEST = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4036,
-  serialized_end=4106,
+  serialized_start=5082,
+  serialized_end=5152,
 )
 
 
@@ -1887,8 +2315,8 @@ _STATRESPONSE = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4109,
-  serialized_end=4707,
+  serialized_start=5155,
+  serialized_end=5753,
 )
 
 
@@ -1915,8 +2343,8 @@ _COLLECTION = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4709,
-  serialized_end=4751,
+  serialized_start=5755,
+  serialized_end=5797,
 )
 
 
@@ -1943,8 +2371,8 @@ _WMIREQUEST = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4753,
-  serialized_end=4780,
+  serialized_start=5799,
+  serialized_end=5826,
 )
 
 
@@ -1978,8 +2406,8 @@ _KEYVALUE = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4782,
-  serialized_end=4836,
+  serialized_start=5828,
+  serialized_end=5882,
 )
 
 
@@ -2006,8 +2434,8 @@ _DICT = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4838,
-  serialized_end=4868,
+  serialized_start=5884,
+  serialized_end=5914,
 )
 
 
@@ -2049,8 +2477,8 @@ _CERTIFICATE = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4870,
-  serialized_end=4997,
+  serialized_start=5916,
+  serialized_end=6043,
 )
 
 
@@ -2105,8 +2533,8 @@ _UNAME = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4999,
-  serialized_end=5087,
+  serialized_start=6045,
+  serialized_end=6133,
 )
 
 
@@ -2266,8 +2694,8 @@ _FOLDERINFORMATION = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=5090,
-  serialized_end=5480,
+  serialized_start=6136,
+  serialized_end=6526,
 )
 
 
@@ -2343,8 +2771,8 @@ _USERACCOUNT = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=5483,
-  serialized_end=5661,
+  serialized_start=6529,
+  serialized_end=6707,
 )
 
 
@@ -2386,8 +2814,8 @@ _NETWORKADDRESS = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=5664,
-  serialized_end=5817,
+  serialized_start=6710,
+  serialized_end=6863,
 )
 
 
@@ -2442,8 +2870,50 @@ _INTERFACE = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=5820,
-  serialized_end=5950,
+  serialized_start=6866,
+  serialized_end=6996,
+)
+
+
+_MEMORYINFOMATION = descriptor.Descriptor(
+  name='MemoryInfomation',
+  full_name='MemoryInfomation',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='device', full_name='MemoryInfomation.device', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='runs', full_name='MemoryInfomation.runs', index=1,
+      number=2, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='cr3', full_name='MemoryInfomation.cr3', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=6998,
+  serialized_end=7086,
 )
 
 
@@ -2568,8 +3038,8 @@ _GRRCONFIG = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=5953,
-  serialized_end=6274,
+  serialized_start=7089,
+  serialized_end=7410,
 )
 
 
@@ -2604,8 +3074,8 @@ _FINGERPRINTTUPLE = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6277,
-  serialized_end=6432,
+  serialized_start=7413,
+  serialized_end=7568,
 )
 
 
@@ -2639,8 +3109,8 @@ _FINGERPRINTREQUEST = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6434,
-  serialized_end=6514,
+  serialized_start=7570,
+  serialized_end=7650,
 )
 
 
@@ -2674,48 +3144,48 @@ _FINGERPRINTRESPONSE = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6516,
-  serialized_end=6615,
+  serialized_start=7652,
+  serialized_end=7751,
 )
 
 
-_SIGNEDDRIVER = descriptor.Descriptor(
-  name='SignedDriver',
-  full_name='SignedDriver',
+_SIGNEDBLOB = descriptor.Descriptor(
+  name='SignedBlob',
+  full_name='SignedBlob',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     descriptor.FieldDescriptor(
-      name='data', full_name='SignedDriver.data', index=0,
+      name='data', full_name='SignedBlob.data', index=0,
       number=1, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value="",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='digest', full_name='SignedDriver.digest', index=1,
+      name='digest', full_name='SignedBlob.digest', index=1,
       number=2, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value="",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='digest_type', full_name='SignedDriver.digest_type', index=2,
+      name='digest_type', full_name='SignedBlob.digest_type', index=2,
       number=3, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='signature', full_name='SignedDriver.signature', index=3,
+      name='signature', full_name='SignedBlob.signature', index=3,
       number=4, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value="",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='signature_type', full_name='SignedDriver.signature_type', index=4,
+      name='signature_type', full_name='SignedBlob.signature_type', index=4,
       number=5, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -2726,14 +3196,539 @@ _SIGNEDDRIVER = descriptor.Descriptor(
   ],
   nested_types=[],
   enum_types=[
-    _SIGNEDDRIVER_HASHTYPE,
-    _SIGNEDDRIVER_SIGNATURETYPE,
+    _SIGNEDBLOB_HASHTYPE,
+    _SIGNEDBLOB_SIGNATURETYPE,
   ],
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6618,
-  serialized_end=6853,
+  serialized_start=7754,
+  serialized_end=7983,
+)
+
+
+_EXECUTEPYTHONREQUEST = descriptor.Descriptor(
+  name='ExecutePythonRequest',
+  full_name='ExecutePythonRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='python_code', full_name='ExecutePythonRequest.python_code', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=7985,
+  serialized_end=8041,
+)
+
+
+_EXECUTEPYTHONRESPONSE = descriptor.Descriptor(
+  name='ExecutePythonResponse',
+  full_name='ExecutePythonResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='return_val', full_name='ExecutePythonResponse.return_val', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value="",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='time_used', full_name='ExecutePythonResponse.time_used', index=1,
+      number=2, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=8043,
+  serialized_end=8105,
+)
+
+
+_VOLATILITYREQUEST = descriptor.Descriptor(
+  name='VolatilityRequest',
+  full_name='VolatilityRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='args', full_name='VolatilityRequest.args', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='plugins', full_name='VolatilityRequest.plugins', index=1,
+      number=2, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='profile', full_name='VolatilityRequest.profile', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='device', full_name='VolatilityRequest.device', index=3,
+      number=4, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=8107,
+  serialized_end=8204,
+)
+
+
+_VOLATILITYHEADER = descriptor.Descriptor(
+  name='VolatilityHeader',
+  full_name='VolatilityHeader',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='print_name', full_name='VolatilityHeader.print_name', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='name', full_name='VolatilityHeader.name', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='format_hint', full_name='VolatilityHeader.format_hint', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=8206,
+  serialized_end=8279,
+)
+
+
+_VOLATILITYVALUE = descriptor.Descriptor(
+  name='VolatilityValue',
+  full_name='VolatilityValue',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='type', full_name='VolatilityValue.type', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='name', full_name='VolatilityValue.name', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='offset', full_name='VolatilityValue.offset', index=2,
+      number=3, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='vm', full_name='VolatilityValue.vm', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='value', full_name='VolatilityValue.value', index=4,
+      number=5, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='svalue', full_name='VolatilityValue.svalue', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='reason', full_name='VolatilityValue.reason', index=6,
+      number=7, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=8281,
+  serialized_end=8401,
+)
+
+
+_VOLATILITYVALUES = descriptor.Descriptor(
+  name='VolatilityValues',
+  full_name='VolatilityValues',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='values', full_name='VolatilityValues.values', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=8403,
+  serialized_end=8455,
+)
+
+
+_VOLATILITYTABLE = descriptor.Descriptor(
+  name='VolatilityTable',
+  full_name='VolatilityTable',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='headers', full_name='VolatilityTable.headers', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='rows', full_name='VolatilityTable.rows', index=1,
+      number=2, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=8457,
+  serialized_end=8543,
+)
+
+
+_VOLATILITYFORMATTEDVALUE = descriptor.Descriptor(
+  name='VolatilityFormattedValue',
+  full_name='VolatilityFormattedValue',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='formatstring', full_name='VolatilityFormattedValue.formatstring', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='data', full_name='VolatilityFormattedValue.data', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=8545,
+  serialized_end=8626,
+)
+
+
+_VOLATILITYFORMATTEDVALUES = descriptor.Descriptor(
+  name='VolatilityFormattedValues',
+  full_name='VolatilityFormattedValues',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='formatted_values', full_name='VolatilityFormattedValues.formatted_values', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=8628,
+  serialized_end=8708,
+)
+
+
+_VOLATILITYSECTION = descriptor.Descriptor(
+  name='VolatilitySection',
+  full_name='VolatilitySection',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='table', full_name='VolatilitySection.table', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='formatted_value_list', full_name='VolatilitySection.formatted_value_list', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=8710,
+  serialized_end=8820,
+)
+
+
+_VOLATILITYRESPONSE = descriptor.Descriptor(
+  name='VolatilityResponse',
+  full_name='VolatilityResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='sections', full_name='VolatilityResponse.sections', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='plugin', full_name='VolatilityResponse.plugin', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='error', full_name='VolatilityResponse.error', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=8822,
+  serialized_end=8911,
+)
+
+
+_EXECUTEBINARYREQUEST = descriptor.Descriptor(
+  name='ExecuteBinaryRequest',
+  full_name='ExecuteBinaryRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='executable', full_name='ExecuteBinaryRequest.executable', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='write_path', full_name='ExecuteBinaryRequest.write_path', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='args', full_name='ExecuteBinaryRequest.args', index=2,
+      number=3, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='time_limit', full_name='ExecuteBinaryRequest.time_limit', index=3,
+      number=4, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=8913,
+  serialized_end=9022,
+)
+
+
+_EXECUTEBINARYRESPONSE = descriptor.Descriptor(
+  name='ExecuteBinaryResponse',
+  full_name='ExecuteBinaryResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='exit_status', full_name='ExecuteBinaryResponse.exit_status', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='stdout', full_name='ExecuteBinaryResponse.stdout', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value="",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='stderr', full_name='ExecuteBinaryResponse.stderr', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value="",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='time_used', full_name='ExecuteBinaryResponse.time_used', index=3,
+      number=4, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=9024,
+  serialized_end=9119,
 )
 
 
@@ -2779,17 +3774,124 @@ _INSTALLDRIVERREQUEST = descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    descriptor.FieldDescriptor(
+      name='device_path', full_name='InstallDriverRequest.device_path', index=5,
+      number=8, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='mode', full_name='InstallDriverRequest.mode', index=6,
+      number=9, type=14, cpp_type=8, label=1,
+      has_default_value=True, default_value=1,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
   nested_types=[],
   enum_types=[
+    _INSTALLDRIVERREQUEST_REWRITEMODE,
   ],
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6856,
-  serialized_end=7001,
+  serialized_start=9122,
+  serialized_end=9394,
+)
+
+
+_GREPREQUEST = descriptor.Descriptor(
+  name='GrepRequest',
+  full_name='GrepRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='target', full_name='GrepRequest.target', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='start_offset', full_name='GrepRequest.start_offset', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=True, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='length', full_name='GrepRequest.length', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=True, default_value=1024000,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='regex', full_name='GrepRequest.regex', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='literal', full_name='GrepRequest.literal', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value="",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='mode', full_name='GrepRequest.mode', index=5,
+      number=6, type=14, cpp_type=8, label=1,
+      has_default_value=True, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='bytes_before', full_name='GrepRequest.bytes_before', index=6,
+      number=7, type=13, cpp_type=3, label=1,
+      has_default_value=True, default_value=10,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='bytes_after', full_name='GrepRequest.bytes_after', index=7,
+      number=8, type=13, cpp_type=3, label=1,
+      has_default_value=True, default_value=10,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='xor_in_key', full_name='GrepRequest.xor_in_key', index=8,
+      number=9, type=13, cpp_type=3, label=1,
+      has_default_value=True, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='xor_out_key', full_name='GrepRequest.xor_out_key', index=9,
+      number=10, type=13, cpp_type=3, label=1,
+      has_default_value=True, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+    _GREPREQUEST_MODE,
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=9397,
+  serialized_end=9693,
 )
 
 
@@ -2843,7 +3945,7 @@ _FIND = descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='xdev', full_name='Find.xdev', index=6,
+      name='cross_devs', full_name='Find.cross_devs', index=6,
       number=7, type=5, cpp_type=1, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -2863,6 +3965,13 @@ _FIND = descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    descriptor.FieldDescriptor(
+      name='max_data', full_name='Find.max_data', index=9,
+      number=10, type=4, cpp_type=4, label=1,
+      has_default_value=True, default_value=1024000,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -2872,8 +3981,8 @@ _FIND = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7004,
-  serialized_end=7216,
+  serialized_start=9696,
+  serialized_end=9941,
 )
 
 
@@ -2914,8 +4023,8 @@ _FOREMANATTRIBUTEREGEX = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7218,
-  serialized_end=7307,
+  serialized_start=9943,
+  serialized_end=10032,
 )
 
 
@@ -2964,8 +4073,8 @@ _FOREMANATTRIBUTEINTEGER = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7310,
-  serialized_end=7507,
+  serialized_start=10035,
+  serialized_end=10232,
 )
 
 
@@ -2990,6 +4099,27 @@ _FOREMANRULEACTION = descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    descriptor.FieldDescriptor(
+      name='hunt_name', full_name='ForemanRuleAction.hunt_name', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='hunt_id', full_name='ForemanRuleAction.hunt_id', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='client_limit', full_name='ForemanRuleAction.client_limit', index=4,
+      number=5, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -2999,8 +4129,141 @@ _FOREMANRULEACTION = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7509,
-  serialized_end=7568,
+  serialized_start=10234,
+  serialized_end=10351,
+)
+
+
+_HUNTERROR = descriptor.Descriptor(
+  name='HuntError',
+  full_name='HuntError',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='client_id', full_name='HuntError.client_id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='log_message', full_name='HuntError.log_message', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='backtrace', full_name='HuntError.backtrace', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=10353,
+  serialized_end=10423,
+)
+
+
+_HUNTLOG = descriptor.Descriptor(
+  name='HuntLog',
+  full_name='HuntLog',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='client_id', full_name='HuntLog.client_id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='log_message', full_name='HuntLog.log_message', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='urn', full_name='HuntLog.urn', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=10425,
+  serialized_end=10487,
+)
+
+
+_CLIENTRESOURCES = descriptor.Descriptor(
+  name='ClientResources',
+  full_name='ClientResources',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='client_id', full_name='ClientResources.client_id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='session_id', full_name='ClientResources.session_id', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='cpu_usage', full_name='ClientResources.cpu_usage', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='network_bytes_sent', full_name='ClientResources.network_bytes_sent', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=10489,
+  serialized_end=10605,
 )
 
 
@@ -3062,8 +4325,8 @@ _FOREMANRULE = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7571,
-  serialized_end=7770,
+  serialized_start=10608,
+  serialized_end=10807,
 )
 
 
@@ -3112,8 +4375,8 @@ _ITERATOR = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7773,
-  serialized_end=7927,
+  serialized_start=10810,
+  serialized_end=10964,
 )
 
 
@@ -3147,8 +4410,8 @@ _ITERATEDSTATRESPONSE = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7929,
-  serialized_end=8009,
+  serialized_start=10966,
+  serialized_end=11046,
 )
 
 
@@ -3175,8 +4438,8 @@ _URN = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8011,
-  serialized_end=8029,
+  serialized_start=11048,
+  serialized_end=11066,
 )
 
 
@@ -3231,8 +4494,36 @@ _NOTIFICATION = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8031,
-  serialized_end=8128,
+  serialized_start=11068,
+  serialized_end=11165,
+)
+
+
+_LABELLIST = descriptor.Descriptor(
+  name='LabelList',
+  full_name='LabelList',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='label', full_name='LabelList.label', index=0,
+      number=1, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=11167,
+  serialized_end=11193,
 )
 
 
@@ -3252,8 +4543,8 @@ _EMPTYMESSAGE = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8130,
-  serialized_end=8144,
+  serialized_start=11195,
+  serialized_end=11209,
 )
 
 _GRRMESSAGE.fields_by_name['auth_state'].enum_type = _GRRMESSAGE_AUTHORIZATIONSTATE
@@ -3265,11 +4556,15 @@ _GRRMESSAGE_PRIORITY.containing_type = _GRRMESSAGE;
 _MESSAGELIST.fields_by_name['job'].message_type = _GRRMESSAGE
 _SIGNEDMESSAGELIST.fields_by_name['compression'].enum_type = _SIGNEDMESSAGELIST_COMPRESSIONTYPE
 _SIGNEDMESSAGELIST_COMPRESSIONTYPE.containing_type = _SIGNEDMESSAGELIST;
+_CLIENTCOMMUNICATION.fields_by_name['orig_request'].message_type = _HTTPREQUEST
 _CLIENTCOMMUNICATION.fields_by_name['status'].enum_type = _CLIENTCOMMUNICATION_COMMUNICATIONSTATUS
 _CLIENTCOMMUNICATION_COMMUNICATIONSTATUS.containing_type = _CLIENTCOMMUNICATION;
 _GRRSTATUS.fields_by_name['status'].enum_type = _GRRSTATUS_RETURNEDSTATUS
+_GRRSTATUS.fields_by_name['cpu_time_used'].message_type = _CPUSECONDS
 _GRRSTATUS_RETURNEDSTATUS.containing_type = _GRRSTATUS;
+_TASK.fields_by_name['priority'].enum_type = _GRRMESSAGE_PRIORITY
 _DATABLOB.fields_by_name['list'].message_type = _BLOBARRAY
+_DATABLOB.fields_by_name['dict'].message_type = _DICT
 _DATABLOB.fields_by_name['compression'].enum_type = _DATABLOB_COMPRESSIONTYPE
 _DATABLOB_COMPRESSIONTYPE.containing_type = _DATABLOB;
 _BLOBARRAY.fields_by_name['content'].message_type = _DATABLOB
@@ -3280,7 +4575,11 @@ _REQUESTSTATE.fields_by_name['request'].message_type = _GRRMESSAGE
 _FLOWPB.fields_by_name['state'].enum_type = _FLOWPB_FLOWSTATE
 _FLOWPB.fields_by_name['args'].message_type = _DICT
 _FLOWPB.fields_by_name['request_state'].message_type = _REQUESTSTATE
+_FLOWPB.fields_by_name['cpu_used'].message_type = _CPUSECONDS
+_FLOWPB.fields_by_name['priority'].enum_type = _GRRMESSAGE_PRIORITY
 _FLOWPB_FLOWSTATE.containing_type = _FLOWPB;
+_CLIENTSTATS.fields_by_name['cpu_samples'].message_type = _CPUSAMPLE
+_CLIENTSTATS.fields_by_name['io_samples'].message_type = _IOSAMPLE
 _EXECUTERESPONSE.fields_by_name['request'].message_type = _EXECUTEREQUEST
 _PATH.fields_by_name['pathtype'].enum_type = _PATH_PATHTYPE
 _PATH.fields_by_name['nested_path'].message_type = _PATH
@@ -3305,6 +4604,8 @@ _USERACCOUNT.fields_by_name['special_folders'].message_type = _FOLDERINFORMATION
 _NETWORKADDRESS.fields_by_name['address_type'].enum_type = _NETWORKADDRESS_NETWORKFAMILY
 _NETWORKADDRESS_NETWORKFAMILY.containing_type = _NETWORKADDRESS;
 _INTERFACE.fields_by_name['addresses'].message_type = _NETWORKADDRESS
+_MEMORYINFOMATION.fields_by_name['device'].message_type = _PATH
+_MEMORYINFOMATION.fields_by_name['runs'].message_type = _BUFFERREADMESSAGE
 _FINGERPRINTTUPLE.fields_by_name['fp_type'].enum_type = _FINGERPRINTTYPE
 _FINGERPRINTTUPLE.fields_by_name['hashers'].enum_type = _FINGERPRINTTUPLE_FINGERPRINTHASH
 _FINGERPRINTTUPLE_FINGERPRINTHASH.containing_type = _FINGERPRINTTUPLE;
@@ -3312,17 +4613,35 @@ _FINGERPRINTREQUEST.fields_by_name['pathspec'].message_type = _PATH
 _FINGERPRINTREQUEST.fields_by_name['tuples'].message_type = _FINGERPRINTTUPLE
 _FINGERPRINTRESPONSE.fields_by_name['matching_types'].enum_type = _FINGERPRINTTYPE
 _FINGERPRINTRESPONSE.fields_by_name['fingerprint_results'].message_type = _DICT
-_SIGNEDDRIVER.fields_by_name['digest_type'].enum_type = _SIGNEDDRIVER_HASHTYPE
-_SIGNEDDRIVER.fields_by_name['signature_type'].enum_type = _SIGNEDDRIVER_SIGNATURETYPE
-_SIGNEDDRIVER_HASHTYPE.containing_type = _SIGNEDDRIVER;
-_SIGNEDDRIVER_SIGNATURETYPE.containing_type = _SIGNEDDRIVER;
-_INSTALLDRIVERREQUEST.fields_by_name['driver'].message_type = _SIGNEDDRIVER
+_SIGNEDBLOB.fields_by_name['digest_type'].enum_type = _SIGNEDBLOB_HASHTYPE
+_SIGNEDBLOB.fields_by_name['signature_type'].enum_type = _SIGNEDBLOB_SIGNATURETYPE
+_SIGNEDBLOB_HASHTYPE.containing_type = _SIGNEDBLOB;
+_SIGNEDBLOB_SIGNATURETYPE.containing_type = _SIGNEDBLOB;
+_EXECUTEPYTHONREQUEST.fields_by_name['python_code'].message_type = _SIGNEDBLOB
+_VOLATILITYREQUEST.fields_by_name['args'].message_type = _DICT
+_VOLATILITYREQUEST.fields_by_name['device'].message_type = _PATH
+_VOLATILITYVALUES.fields_by_name['values'].message_type = _VOLATILITYVALUE
+_VOLATILITYTABLE.fields_by_name['headers'].message_type = _VOLATILITYHEADER
+_VOLATILITYTABLE.fields_by_name['rows'].message_type = _VOLATILITYVALUES
+_VOLATILITYFORMATTEDVALUE.fields_by_name['data'].message_type = _VOLATILITYVALUES
+_VOLATILITYFORMATTEDVALUES.fields_by_name['formatted_values'].message_type = _VOLATILITYFORMATTEDVALUE
+_VOLATILITYSECTION.fields_by_name['table'].message_type = _VOLATILITYTABLE
+_VOLATILITYSECTION.fields_by_name['formatted_value_list'].message_type = _VOLATILITYFORMATTEDVALUES
+_VOLATILITYRESPONSE.fields_by_name['sections'].message_type = _VOLATILITYSECTION
+_EXECUTEBINARYREQUEST.fields_by_name['executable'].message_type = _SIGNEDBLOB
+_INSTALLDRIVERREQUEST.fields_by_name['driver'].message_type = _SIGNEDBLOB
+_INSTALLDRIVERREQUEST.fields_by_name['mode'].enum_type = _INSTALLDRIVERREQUEST_REWRITEMODE
+_INSTALLDRIVERREQUEST_REWRITEMODE.containing_type = _INSTALLDRIVERREQUEST;
+_GREPREQUEST.fields_by_name['target'].message_type = _PATH
+_GREPREQUEST.fields_by_name['mode'].enum_type = _GREPREQUEST_MODE
+_GREPREQUEST_MODE.containing_type = _GREPREQUEST;
 _FIND.fields_by_name['iterator'].message_type = _ITERATOR
 _FIND.fields_by_name['pathspec'].message_type = _PATH
 _FIND.fields_by_name['hit'].message_type = _STATRESPONSE
 _FOREMANATTRIBUTEINTEGER.fields_by_name['operator'].enum_type = _FOREMANATTRIBUTEINTEGER_OPERATOR
 _FOREMANATTRIBUTEINTEGER_OPERATOR.containing_type = _FOREMANATTRIBUTEINTEGER;
 _FOREMANRULEACTION.fields_by_name['argv'].message_type = _DICT
+_CLIENTRESOURCES.fields_by_name['cpu_usage'].message_type = _CPUSECONDS
 _FOREMANRULE.fields_by_name['regex_rules'].message_type = _FOREMANATTRIBUTEREGEX
 _FOREMANRULE.fields_by_name['integer_rules'].message_type = _FOREMANATTRIBUTEINTEGER
 _FOREMANRULE.fields_by_name['actions'].message_type = _FOREMANRULEACTION
@@ -3331,6 +4650,7 @@ _ITERATOR.fields_by_name['state'].enum_type = _ITERATOR_STATE
 _ITERATOR_STATE.containing_type = _ITERATOR;
 _ITERATEDSTATRESPONSE.fields_by_name['stat'].message_type = _STATRESPONSE
 _ITERATEDSTATRESPONSE.fields_by_name['iterator'].message_type = _ITERATOR
+DESCRIPTOR.message_types_by_name['HttpRequest'] = _HTTPREQUEST
 DESCRIPTOR.message_types_by_name['GrrMessage'] = _GRRMESSAGE
 DESCRIPTOR.message_types_by_name['MessageList'] = _MESSAGELIST
 DESCRIPTOR.message_types_by_name['SignedMessageList'] = _SIGNEDMESSAGELIST
@@ -3346,6 +4666,10 @@ DESCRIPTOR.message_types_by_name['PrintStr'] = _PRINTSTR
 DESCRIPTOR.message_types_by_name['BufferReadMessage'] = _BUFFERREADMESSAGE
 DESCRIPTOR.message_types_by_name['RequestState'] = _REQUESTSTATE
 DESCRIPTOR.message_types_by_name['FlowPB'] = _FLOWPB
+DESCRIPTOR.message_types_by_name['CpuSeconds'] = _CPUSECONDS
+DESCRIPTOR.message_types_by_name['CpuSample'] = _CPUSAMPLE
+DESCRIPTOR.message_types_by_name['IOSample'] = _IOSAMPLE
+DESCRIPTOR.message_types_by_name['ClientStats'] = _CLIENTSTATS
 DESCRIPTOR.message_types_by_name['ExecuteRequest'] = _EXECUTEREQUEST
 DESCRIPTOR.message_types_by_name['ExecuteResponse'] = _EXECUTERESPONSE
 DESCRIPTOR.message_types_by_name['Path'] = _PATH
@@ -3361,22 +4685,47 @@ DESCRIPTOR.message_types_by_name['FolderInformation'] = _FOLDERINFORMATION
 DESCRIPTOR.message_types_by_name['UserAccount'] = _USERACCOUNT
 DESCRIPTOR.message_types_by_name['NetworkAddress'] = _NETWORKADDRESS
 DESCRIPTOR.message_types_by_name['Interface'] = _INTERFACE
+DESCRIPTOR.message_types_by_name['MemoryInfomation'] = _MEMORYINFOMATION
 DESCRIPTOR.message_types_by_name['GRRConfig'] = _GRRCONFIG
 DESCRIPTOR.message_types_by_name['FingerprintTuple'] = _FINGERPRINTTUPLE
 DESCRIPTOR.message_types_by_name['FingerprintRequest'] = _FINGERPRINTREQUEST
 DESCRIPTOR.message_types_by_name['FingerprintResponse'] = _FINGERPRINTRESPONSE
-DESCRIPTOR.message_types_by_name['SignedDriver'] = _SIGNEDDRIVER
+DESCRIPTOR.message_types_by_name['SignedBlob'] = _SIGNEDBLOB
+DESCRIPTOR.message_types_by_name['ExecutePythonRequest'] = _EXECUTEPYTHONREQUEST
+DESCRIPTOR.message_types_by_name['ExecutePythonResponse'] = _EXECUTEPYTHONRESPONSE
+DESCRIPTOR.message_types_by_name['VolatilityRequest'] = _VOLATILITYREQUEST
+DESCRIPTOR.message_types_by_name['VolatilityHeader'] = _VOLATILITYHEADER
+DESCRIPTOR.message_types_by_name['VolatilityValue'] = _VOLATILITYVALUE
+DESCRIPTOR.message_types_by_name['VolatilityValues'] = _VOLATILITYVALUES
+DESCRIPTOR.message_types_by_name['VolatilityTable'] = _VOLATILITYTABLE
+DESCRIPTOR.message_types_by_name['VolatilityFormattedValue'] = _VOLATILITYFORMATTEDVALUE
+DESCRIPTOR.message_types_by_name['VolatilityFormattedValues'] = _VOLATILITYFORMATTEDVALUES
+DESCRIPTOR.message_types_by_name['VolatilitySection'] = _VOLATILITYSECTION
+DESCRIPTOR.message_types_by_name['VolatilityResponse'] = _VOLATILITYRESPONSE
+DESCRIPTOR.message_types_by_name['ExecuteBinaryRequest'] = _EXECUTEBINARYREQUEST
+DESCRIPTOR.message_types_by_name['ExecuteBinaryResponse'] = _EXECUTEBINARYRESPONSE
 DESCRIPTOR.message_types_by_name['InstallDriverRequest'] = _INSTALLDRIVERREQUEST
+DESCRIPTOR.message_types_by_name['GrepRequest'] = _GREPREQUEST
 DESCRIPTOR.message_types_by_name['Find'] = _FIND
 DESCRIPTOR.message_types_by_name['ForemanAttributeRegex'] = _FOREMANATTRIBUTEREGEX
 DESCRIPTOR.message_types_by_name['ForemanAttributeInteger'] = _FOREMANATTRIBUTEINTEGER
 DESCRIPTOR.message_types_by_name['ForemanRuleAction'] = _FOREMANRULEACTION
+DESCRIPTOR.message_types_by_name['HuntError'] = _HUNTERROR
+DESCRIPTOR.message_types_by_name['HuntLog'] = _HUNTLOG
+DESCRIPTOR.message_types_by_name['ClientResources'] = _CLIENTRESOURCES
 DESCRIPTOR.message_types_by_name['ForemanRule'] = _FOREMANRULE
 DESCRIPTOR.message_types_by_name['Iterator'] = _ITERATOR
 DESCRIPTOR.message_types_by_name['IteratedStatResponse'] = _ITERATEDSTATRESPONSE
 DESCRIPTOR.message_types_by_name['URN'] = _URN
 DESCRIPTOR.message_types_by_name['Notification'] = _NOTIFICATION
+DESCRIPTOR.message_types_by_name['LabelList'] = _LABELLIST
 DESCRIPTOR.message_types_by_name['EmptyMessage'] = _EMPTYMESSAGE
+
+class HttpRequest(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _HTTPREQUEST
+  
+  # @@protoc_insertion_point(class_scope:HttpRequest)
 
 class GrrMessage(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
@@ -3468,6 +4817,30 @@ class FlowPB(message.Message):
   
   # @@protoc_insertion_point(class_scope:FlowPB)
 
+class CpuSeconds(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _CPUSECONDS
+  
+  # @@protoc_insertion_point(class_scope:CpuSeconds)
+
+class CpuSample(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _CPUSAMPLE
+  
+  # @@protoc_insertion_point(class_scope:CpuSample)
+
+class IOSample(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _IOSAMPLE
+  
+  # @@protoc_insertion_point(class_scope:IOSample)
+
+class ClientStats(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _CLIENTSTATS
+  
+  # @@protoc_insertion_point(class_scope:ClientStats)
+
 class ExecuteRequest(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
   DESCRIPTOR = _EXECUTEREQUEST
@@ -3558,6 +4931,12 @@ class Interface(message.Message):
   
   # @@protoc_insertion_point(class_scope:Interface)
 
+class MemoryInfomation(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _MEMORYINFOMATION
+  
+  # @@protoc_insertion_point(class_scope:MemoryInfomation)
+
 class GRRConfig(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
   DESCRIPTOR = _GRRCONFIG
@@ -3582,17 +4961,101 @@ class FingerprintResponse(message.Message):
   
   # @@protoc_insertion_point(class_scope:FingerprintResponse)
 
-class SignedDriver(message.Message):
+class SignedBlob(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _SIGNEDDRIVER
+  DESCRIPTOR = _SIGNEDBLOB
   
-  # @@protoc_insertion_point(class_scope:SignedDriver)
+  # @@protoc_insertion_point(class_scope:SignedBlob)
+
+class ExecutePythonRequest(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _EXECUTEPYTHONREQUEST
+  
+  # @@protoc_insertion_point(class_scope:ExecutePythonRequest)
+
+class ExecutePythonResponse(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _EXECUTEPYTHONRESPONSE
+  
+  # @@protoc_insertion_point(class_scope:ExecutePythonResponse)
+
+class VolatilityRequest(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _VOLATILITYREQUEST
+  
+  # @@protoc_insertion_point(class_scope:VolatilityRequest)
+
+class VolatilityHeader(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _VOLATILITYHEADER
+  
+  # @@protoc_insertion_point(class_scope:VolatilityHeader)
+
+class VolatilityValue(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _VOLATILITYVALUE
+  
+  # @@protoc_insertion_point(class_scope:VolatilityValue)
+
+class VolatilityValues(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _VOLATILITYVALUES
+  
+  # @@protoc_insertion_point(class_scope:VolatilityValues)
+
+class VolatilityTable(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _VOLATILITYTABLE
+  
+  # @@protoc_insertion_point(class_scope:VolatilityTable)
+
+class VolatilityFormattedValue(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _VOLATILITYFORMATTEDVALUE
+  
+  # @@protoc_insertion_point(class_scope:VolatilityFormattedValue)
+
+class VolatilityFormattedValues(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _VOLATILITYFORMATTEDVALUES
+  
+  # @@protoc_insertion_point(class_scope:VolatilityFormattedValues)
+
+class VolatilitySection(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _VOLATILITYSECTION
+  
+  # @@protoc_insertion_point(class_scope:VolatilitySection)
+
+class VolatilityResponse(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _VOLATILITYRESPONSE
+  
+  # @@protoc_insertion_point(class_scope:VolatilityResponse)
+
+class ExecuteBinaryRequest(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _EXECUTEBINARYREQUEST
+  
+  # @@protoc_insertion_point(class_scope:ExecuteBinaryRequest)
+
+class ExecuteBinaryResponse(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _EXECUTEBINARYRESPONSE
+  
+  # @@protoc_insertion_point(class_scope:ExecuteBinaryResponse)
 
 class InstallDriverRequest(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
   DESCRIPTOR = _INSTALLDRIVERREQUEST
   
   # @@protoc_insertion_point(class_scope:InstallDriverRequest)
+
+class GrepRequest(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _GREPREQUEST
+  
+  # @@protoc_insertion_point(class_scope:GrepRequest)
 
 class Find(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
@@ -3617,6 +5080,24 @@ class ForemanRuleAction(message.Message):
   DESCRIPTOR = _FOREMANRULEACTION
   
   # @@protoc_insertion_point(class_scope:ForemanRuleAction)
+
+class HuntError(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _HUNTERROR
+  
+  # @@protoc_insertion_point(class_scope:HuntError)
+
+class HuntLog(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _HUNTLOG
+  
+  # @@protoc_insertion_point(class_scope:HuntLog)
+
+class ClientResources(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _CLIENTRESOURCES
+  
+  # @@protoc_insertion_point(class_scope:ClientResources)
 
 class ForemanRule(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
@@ -3647,6 +5128,12 @@ class Notification(message.Message):
   DESCRIPTOR = _NOTIFICATION
   
   # @@protoc_insertion_point(class_scope:Notification)
+
+class LabelList(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _LABELLIST
+  
+  # @@protoc_insertion_point(class_scope:LabelList)
 
 class EmptyMessage(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType

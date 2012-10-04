@@ -20,6 +20,7 @@ import exceptions
 import logging
 import os
 import re
+import time
 import _winreg
 import pywintypes
 import win32file
@@ -27,9 +28,14 @@ import win32service
 import win32serviceutil
 import winerror
 
+from google.protobuf import message
+from grr.client import conf as flags
+
 from grr.client import client_config
 from grr.lib import utils
 from grr.proto import jobs_pb2
+
+FLAGS = flags.FLAGS
 
 
 def CanonicalPathToLocalPath(path):
@@ -162,7 +168,7 @@ def WinGetRawDevice(path):
 
   try:
     mount_point = win32file.GetVolumePathName(path)
-  except pywintypes.error, details:
+  except pywintypes.error as details:
     logging.info("path not found. %s", details)
     raise IOError("No mountpoint for path: %s", path)
 
@@ -201,7 +207,7 @@ def InstallDriver(driver_path, service_name, driver_display_name):
                                None,  # User name
                                None)  # Password
     win32serviceutil.StartService(service_name)
-  except pywintypes.error, e:
+  except pywintypes.error as e:
     if e[0] == 1073:
       raise OSError("Service already exists.")
     else:
@@ -222,14 +228,14 @@ def UninstallDriver(driver_path, service_name, delete_file=False):
 
   try:
     win32serviceutil.StopService(service_name)
-  except pywintypes.error, e:
+  except pywintypes.error as e:
     if e[0] not in [winerror.ERROR_SERVICE_NOT_ACTIVE,
                     winerror.ERROR_SERVICE_DOES_NOT_EXIST]:
       raise OSError("Could not stop service: {0}".format(e))
 
   try:
     win32serviceutil.RemoveService(service_name)
-  except pywintypes.error, e:
+  except pywintypes.error as e:
     if e[0] != winerror.ERROR_SERVICE_DOES_NOT_EXIST:
       raise OSError("Could not remove service: {0}".format(e))
 
@@ -237,5 +243,85 @@ def UninstallDriver(driver_path, service_name, delete_file=False):
     try:
       if os.path.exists(driver_path):
         os.remove(driver_path)
-    except (OSError, IOError), e:
+    except (OSError, IOError) as e:
       raise OSError("Driver deletion failed: " + str(e))
+
+
+class NannyController(object):
+  """Controls communication with the nanny."""
+
+  _service_key = None
+  synced = True
+
+  def _GetKey(self):
+    """Returns the service key."""
+    if self._service_key is None:
+      hive, path = FLAGS.regpath.split("\\", 1)
+      hive = getattr(_winreg, hive)
+      self._service_key = _winreg.OpenKeyEx(
+          hive, path, 0, 0x100 | _winreg.KEY_ALL_ACCESS)
+
+    return self._service_key
+
+  def Heartbeat(self):
+    """Writes a heartbeat to the registry."""
+    try:
+      _winreg.SetValueEx(self._GetKey(), "HeartBeat", 0, _winreg.REG_DWORD,
+                         int(time.time()))
+    except exceptions.WindowsError:
+      pass
+
+  def WriteTransactionLog(self, grr_message):
+    """Write the message into the transaction log.
+
+    Args:
+      grr_message: A GrrMessage instance or a string.
+    """
+    try:
+      grr_message = grr_message.SerializeToString()
+    except AttributeError:
+      grr_message = str(grr_message)
+
+    try:
+      _winreg.SetValueEx(self._GetKey(), "Transaction", 0, _winreg.REG_BINARY,
+                         grr_message)
+      NannyController.synced = False
+    except exceptions.WindowsError:
+      pass
+
+  def SyncTransactionLog(self):
+    if not NannyController.synced:
+      _winreg.FlushKey(self._GetKey())
+      NannyController.synced = True
+
+  def CleanTransactionLog(self):
+    """Wipes the transaction log."""
+    try:
+      _winreg.DeleteValue(self._GetKey(), "Transaction")
+      NannyController.synced = False
+    except exceptions.WindowsError:
+      pass
+
+  def GetTransactionLog(self):
+    """Return a GrrMessage instance from the transaction log or None."""
+    try:
+      value, reg_type = _winreg.QueryValueEx(self._GetKey(), "Transaction")
+    except exceptions.WindowsError:
+      return
+
+    if reg_type != _winreg.REG_BINARY:
+      return
+
+    try:
+      result = jobs_pb2.GrrMessage()
+      result.ParseFromString(value)
+
+      return result
+    except message.Error:
+      return
+
+  def StartNanny(self):
+    """Not used for the Windows nanny."""
+
+  def StopNanny(self):
+    """Not used for the Windows nanny."""

@@ -107,10 +107,9 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         type=jobs_pb2.GrrMessage.STATUS)
 
     self.FakeResponse(status)
-    tasks = [scheduler.SCHEDULER.Task(queue="W", value=status)]
-    scheduler.SCHEDULER.Schedule(tasks, token=self.token)
 
-    return tasks
+    # Signal on the worker queue that this flow is ready.
+    data_store.DB.Set("W", "task:%s" % session_id, "X", token=self.token)
 
   def testProcessMessages(self):
     """Test processing of several inbound messages."""
@@ -133,24 +132,24 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(tasks_on_client_queue), 11)
 
     # Send each of the flows a repeated message
-    tasks = (self.SendResponse(session_id_1, "Hello1") +
-             self.SendResponse(session_id_2, "Hello2") +
-             self.SendResponse(session_id_1, "Hello1") +
-             self.SendResponse(session_id_2, "Hello2"))
+    self.SendResponse(session_id_1, "Hello1")
+    self.SendResponse(session_id_2, "Hello2")
+    self.SendResponse(session_id_1, "Hello1")
+    self.SendResponse(session_id_2, "Hello2")
 
     # Clear the results global
     del RESULTS[:]
 
     # Process all messages
-    worker.ProcessMessages(tasks)
+    worker.RunOnce()
 
     worker.thread_pool.Join()
 
     # Ensure both requests ran exactly once
     RESULTS.sort()
+    self.assertEqual(2, len(RESULTS))
     self.assertEqual("Hello1", RESULTS[0])
     self.assertEqual("Hello2", RESULTS[1])
-    self.assertEqual(2, len(RESULTS))
 
     # Check that client queue is cleared - should have 2 less messages (since
     # two were completed).

@@ -1,11 +1,22 @@
-// Copyright 2011 Google Inc. All Rights Reserved 
+// Copyright 2011 Google Inc. All Rights Reserved
 
 // These are the messages used in GRR
 
 syntax = "proto2";
 
 
-
+message HttpRequest {
+  optional string raw_headers = 1;
+  optional string user_agent = 2;
+  optional string source_ip = 3;
+  optional string url = 4;
+  optional string user = 5 [default = "anonymous"];
+  // Timestamp in microseconds - unique identifier for the request
+  optional uint64 timestamp = 6;
+  optional string method = 7 [default = "GET"];  // Method e.g. GET/POST/PUT
+  optional string referrer = 8;
+  optional uint64 size = 9;  // Size of the request in bytes
+}
 
 // This message is sent between the client and the server.
 message GrrMessage {
@@ -69,6 +80,12 @@ message GrrMessage {
   // queues.
   optional Priority priority = 9 [ default = MEDIUM_PRIORITY ];
   optional uint32 ttl = 10 [default = 10];
+
+  // If this is true, the client will enter fast poll mode after processing.
+  optional bool require_fastpoll = 11 [ default = true ];
+
+  // Maximum number of CPU seconds to be used by this action.
+  optional uint64 cpu_limit = 12 [ default = 3600 ];
 };
 
 // This is a list of messages
@@ -131,6 +148,7 @@ message ClientCommunication {
   // This iv is used to encrypt the encrypted field.
   optional bytes iv = 8;
 
+  optional HttpRequest orig_request = 3;
 
   // The number of messages waiting on the input queue. The client
   // fills this in so the server can limit the number of messages
@@ -159,6 +177,7 @@ message GrrStatus {
     OK = 0;
     IOERROR = 1;
     RETRANSMISSION_DETECTED = 2;
+    CLIENT_KILLED = 3;
 
     GENERIC_ERROR = 10;
   };
@@ -168,6 +187,12 @@ message GrrStatus {
   optional string error_message = 2 [default = ""];
 
   optional string backtrace = 3 [default = ""];
+
+  optional CpuSeconds cpu_time_used = 4;
+
+  optional string child_session_id = 5;
+
+  optional uint64 network_bytes_sent = 6;
 };
 
 // Stores information about the GRR client itself
@@ -190,6 +215,7 @@ message Task {
   optional int32 ttl = 3 [ default = 5 ];
   optional uint64 eta = 4;
   optional string queue = 5;
+  optional GrrMessage.Priority priority = 6 [ default = MEDIUM_PRIORITY ];
 };
 
 // A generic protobuf to deliver some data
@@ -202,6 +228,7 @@ message DataBlob {
   optional string none = 5; // If set data contains None
   optional bool boolean = 6; // If set data contains a boolean value
   optional BlobArray list = 8;  // For storing lists.
+  optional Dict dict = 9; // Stores a dictionary
 
   enum CompressionType {
     UNCOMPRESSED = 0;
@@ -240,7 +267,7 @@ message PrintStr {
 
 message BufferReadMessage {
   required uint64 offset = 1;
-  required uint32 length = 2;
+  required uint64 length = 2;
   optional string callback = 3;
   optional bytes  data = 4;
   optional Path pathspec = 6;
@@ -331,7 +358,47 @@ message FlowPB {
 
   // The client id for this flow.
   optional string client_id = 17;
+
+  // The cpu seconds used on the client to complete this flow.
+  optional CpuSeconds cpu_used = 18;
+
+  // The bandwidth used for this flow.
+  optional uint64 network_bytes_sent = 19;
+
+  // The priority of this flow.
+  optional GrrMessage.Priority priority = 20;
 };
+
+message CpuSeconds {
+  optional float user_cpu_time = 1;
+  optional float system_cpu_time = 2;
+}
+
+message CpuSample {
+  optional float user_cpu_time = 1;
+  optional float system_cpu_time = 2;
+  optional float cpu_percent = 3;
+  optional uint64 timestamp = 4;
+}
+
+message IOSample {
+  optional uint64 read_count = 1;
+  optional uint64 write_count = 2;
+  optional uint64 read_bytes = 3;
+  optional uint64 write_bytes = 4;
+  optional uint64 timestamp = 5;
+}
+
+message ClientStats {
+  repeated CpuSample cpu_samples = 1;
+  optional uint64 RSS_size = 2;
+  optional uint64 VMS_size = 3;
+  optional float memory_percent = 4;
+  optional uint64 bytes_received = 5;
+  optional uint64 bytes_sent = 6;
+  repeated IOSample io_samples = 7;
+  optional uint64 create_time = 8;
+}
 
 message ExecuteRequest {
   optional string cmd = 1;
@@ -356,7 +423,7 @@ message Path {
     OS = 0;
     TSK = 1;
     REGISTRY = 2;
-    UNKNOWN = 3;
+    MEMORY = 3;
   };
   optional PathType pathtype = 1 [default = UNSET];
 
@@ -554,6 +621,15 @@ message Interface {
   repeated NetworkAddress addresses = 5;
 };
 
+
+// This returns information about the memory geometry.
+message MemoryInfomation {
+  optional Path device = 1;
+  repeated BufferReadMessage runs = 2;
+  optional uint64 cr3 = 3;
+}
+
+
 // Updates the client configuration. We deliberately only allow to update a few
 // options. Setting these should take effect immediately.
 message GRRConfig {
@@ -573,7 +649,7 @@ message GRRConfig {
   optional string regpath = 12;
   optional string config = 13;
   optional bool debug = 14;
-  optional bool process_separate = 15;
+  optional bool process_separate = 15;   // deprecated
 };
 
 // The fingerprinting methods the fingerprinter can be asked to perform.
@@ -608,7 +684,7 @@ message FingerprintResponse {
 };
 
 // Specialized binary blob for client.
-message SignedDriver {
+message SignedBlob {
   enum HashType {
     MD5 = 0;
     SHA1 = 1;
@@ -617,22 +693,151 @@ message SignedDriver {
   enum SignatureType {
     RSA_2048 = 0;
   }
-  optional bytes data = 1;   // The driver binary itself.
-  optional bytes digest = 2;   // The hash of the driver.
+  optional bytes data = 1;   // The blob itself.
+  optional bytes digest = 2;   // The hash of the blob.
   optional HashType digest_type = 3;  // The type of hash used.
-  optional bytes signature = 4;     // Signature for the driver_hash.
+  optional bytes signature = 4;     // Signature for the digest.
   optional SignatureType signature_type = 5;  //Type of the signature.
 }
 
+// Message containing request to execute python in the context of the client.
+message ExecutePythonRequest {
+  optional SignedBlob python_code = 1;
+}
+
+// Message containing response from ExecutePythonRequest.
+message ExecutePythonResponse {
+  optional bytes return_val = 1;
+  optional int32 time_used = 2;
+}
+
+// Issue a request for volatility memory analysis.
+message VolatilityRequest {
+  optional Dict args = 1;
+
+  // We can run several plugins in one request.
+  repeated string plugins = 2;
+
+  // The profile name to use. Defaults to autoguessing on the client.
+  optional string profile = 3;
+
+  // The raw device to use.
+  optional Path device = 4;
+}
+
+message VolatilityHeader {
+  optional string print_name = 1;
+  optional string name = 2;
+  optional string format_hint = 3;
+}
+
+message VolatilityValue {
+  optional string type = 1;
+  optional string name = 2;
+  optional int64 offset = 3;
+  optional string vm = 4;
+  optional int64 value = 5;
+  optional string svalue = 6;
+  optional string reason = 7;
+}
+
+message VolatilityValues {
+  repeated VolatilityValue values = 1;
+}
+
+message VolatilityTable {
+  repeated VolatilityHeader headers = 1;
+  repeated VolatilityValues rows = 2;
+}
+
+message VolatilityFormattedValue {
+  optional string formatstring = 1;
+  optional VolatilityValues data = 2;
+}
+
+message VolatilityFormattedValues {
+  repeated VolatilityFormattedValue formatted_values = 1;
+}
+
+message VolatilitySection {
+  optional VolatilityTable table = 1;
+  optional VolatilityFormattedValues formatted_value_list = 2;
+}
+
+message VolatilityResponse {
+  repeated VolatilitySection sections = 1;
+  optional string plugin = 2;
+  optional string error = 3;
+}
+
+// Requests and responses to allow for executing an arbitrary binary.
+// This differs from ExecuteRequest as it includes sending the binary.
+message ExecuteBinaryRequest {
+  optional SignedBlob executable = 1;  // The binary that will be executed.
+  optional string write_path = 2;  // Path to write the binary to.
+  repeated string args = 3;
+  // An execution time limit, given in seconds.
+  optional int32 time_limit = 4;
+}
+
+message ExecuteBinaryResponse {
+  optional int32 exit_status = 1;
+  optional bytes stdout = 2;
+  optional bytes stderr = 3;
+  // The time used to execute the cmd, given in microseconds.
+  optional int32 time_used = 4;
+}
+
 message InstallDriverRequest {
-  optional SignedDriver driver = 1;
+  optional SignedBlob driver = 1;
   optional string write_path = 2;     // Path to write the driver file to.
   optional uint32 force_reload = 3;   // Unload/Load if driver already loaded.
 
   // Windows specific options.
   optional string driver_name = 6;           // Drivers service name
   optional string driver_display_name = 7;   // Display name for driver.
+  optional string device_path = 8;   // A path to the raw device.
+
+  // Linux specific options.
+  enum RewriteMode {
+    DISABLE = 0;
+    ENABLE = 1;
+    FORCE = 2;
+  }
+  optional RewriteMode mode = 9 [default = ENABLE];
 }
+
+
+// Grep searches the content of files for a hit and returns several
+// BufferReadMessage.
+message GrepRequest {
+  // The target of this search.
+  optional Path target = 1;
+
+  // The search only covers this buffer.
+  optional uint64 start_offset = 2 [default = 0];
+  optional uint64 length = 3 [default = 1024000];
+
+  optional string regex = 4;
+
+  // A literal search.
+  optional bytes literal = 5;
+
+  enum Mode {
+    ALL_HITS = 0;   // Report all hits.
+    FIRST_HIT = 1;  // Stop after one hit.
+  }
+
+  optional Mode mode = 6 [default = ALL_HITS];
+
+  optional uint32 bytes_before = 7 [default = 10];
+  optional uint32 bytes_after = 8 [default = 10];
+
+  // These are used to encode the arguments / results.
+  optional uint32 xor_in_key = 9 [default = 0];
+  optional uint32 xor_out_key = 10 [default = 0];
+}
+
 
 // Requests and responses to allow a search for files that match all of these
 // conditions.
@@ -652,16 +857,18 @@ message Find {
   optional uint64 start_time = 5;
   optional uint64 end_time = 6;
 
-  // Should we cross filesystems?
-  optional int32 xdev = 7 [default = 0];
+  // Should we cross filesystems? Default is no.
+  optional int32 cross_devs = 7 [default = 0];
 
   // How deep to search?
   optional int32 max_depth = 8 [ default = 15 ];
 
   // Responses come in this proto
   optional StatResponse hit = 9;
-}
 
+  // The maximum amount of data from this file to search for data_regex.
+  optional uint64 max_data = 10 [default = 1024000];
+}
 
 // The Foreman schedules flows based on these rules firing.
 message ForemanAttributeRegex {
@@ -692,7 +899,31 @@ message ForemanAttributeInteger {
 message ForemanRuleAction {
   optional string flow_name = 1;
   optional Dict argv = 2;
+
+  optional string hunt_name = 3;
+  // Hunt session id.
+  optional string hunt_id = 4;
+  optional uint32 client_limit = 5;
 };
+
+message HuntError {
+  optional string client_id = 1;
+  optional string log_message = 2;
+  optional string backtrace = 3;
+}
+
+message HuntLog {
+  optional string client_id = 1;
+  optional string log_message = 2;
+  optional string urn = 3;
+}
+
+message ClientResources {
+  optional string client_id = 1;
+  optional string session_id = 2;
+  optional CpuSeconds cpu_usage = 3;
+  optional uint64 network_bytes_sent = 4;
+}
 
 message ForemanRule {
   // We fire when all these rules match
@@ -756,6 +987,11 @@ message Notification {
   optional uint64 timestamp = 5;  // Time the notification was added.
 }
 
+
+// An object can be labeled for various purposes.
+message LabelList {
+  repeated string label = 1;
+}
 
 
 message EmptyMessage {

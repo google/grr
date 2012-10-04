@@ -28,13 +28,22 @@ if sys.platform == "win32":
   GetRawDevice = client_utils_windows.WinGetRawDevice
   CanonicalPathToLocalPath = client_utils_windows.CanonicalPathToLocalPath
   LocalPathToCanonicalPath = client_utils_windows.LocalPathToCanonicalPath
+  NannyController = client_utils_windows.NannyController
+
 elif sys.platform == "darwin":
   from grr.client import client_utils_osx
+  from grr.client import client_utils_linux
+
   FindProxies = client_utils_osx.OSXFindProxies
   GetRawDevice = client_utils_osx.OSXGetRawDevice
+
   # Should be the same as linux.
-  CanonicalPathToLocalPath = client_utils_osx.CanonicalPathToLocalPath
-  LocalPathToCanonicalPath = client_utils_osx.LocalPathToCanonicalPath
+  CanonicalPathToLocalPath = client_utils_linux.CanonicalPathToLocalPath
+  LocalPathToCanonicalPath = client_utils_linux.LocalPathToCanonicalPath
+
+  # Should be the same as linux.
+  NannyController = client_utils_linux.NannyController
+
 else:
   from grr.client import client_utils_linux
   # Linux platform
@@ -42,3 +51,4 @@ else:
   GetRawDevice = client_utils_linux.LinGetRawDevice
   CanonicalPathToLocalPath = client_utils_linux.CanonicalPathToLocalPath
   LocalPathToCanonicalPath = client_utils_linux.LocalPathToCanonicalPath
+  NannyController = client_utils_linux.NannyController

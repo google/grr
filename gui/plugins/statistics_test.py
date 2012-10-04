@@ -47,7 +47,8 @@ data {
     now = 1321057655
 
     for i in range(10, 15):
-      histogram = fd.Schema.VERSION_HISTOGRAM(age=int((now + i*60*60*24) * 1e6))
+      histogram = fd.Schema.VERSION_HISTOGRAM(
+          age=int((now + i*60*60*24) * 1e6))
 
       for number in [1, 7, 14, 30]:
         d = data % dict(win=i+number, lin=i*2+number, number=number)
@@ -56,6 +57,18 @@ data {
         histogram.Append(graph)
 
       fd.AddAttribute(histogram)
+    fd.Close()
+
+  @staticmethod
+  def MakeUserAdmin():
+    """Makes the test user an admin."""
+    token = data_store.ACLToken()
+    token.supervisor = True
+    fd = aff4.FACTORY.Create("aff4:/users/test/labels", "AFF4Object",
+                             token=token)
+    labels = fd.Get(fd.Schema.LABEL)
+    labels.data.label.append("admin")
+    fd.Set(labels)
     fd.Close()
 
   def testStats(self):
@@ -68,6 +81,20 @@ data {
     sel.open("/")
 
     self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+
+    # Make sure the foreman is not there (we are not admin yet)
+    self.assert_(not sel.is_element_present("css=a[grrtarget=ManageForeman]"))
+
+    # Make the user an admin
+    self.MakeUserAdmin()
+
+    sel.open("/")
+
+    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+
+    # Make sure that now we can see this option.
+    self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageForeman]")
+    self.assert_(sel.is_element_present("css=a[grrtarget=ManageForeman]"))
 
     # Go to Statistics
     sel.click("css=a:contains('Statistics')")

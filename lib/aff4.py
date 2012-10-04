@@ -51,6 +51,9 @@ MICROSECONDS = 1000000
 NEWEST_TIME = "NEWEST_TIME"
 ALL_TIMES = "ALL_TIMES"
 
+# Just something to write on an index attribute to make it exist.
+EMPTY_DATA = "X"
+
 
 class Factory(object):
   """A central factory for AFF4 objects."""
@@ -64,14 +67,18 @@ class Factory(object):
     # Create a token for system level actions:
     self.root_token = data_store.ACLToken(username="system",
                                           reason="Maintainance")
+    self.root_token.supervisor = True
 
   def _ParseAgeSpecification(self, age):
     if age == NEWEST_TIME:
       return data_store.DB.NEWEST_TIMESTAMP
     elif age == ALL_TIMES:
       return data_store.DB.ALL_TIMESTAMPS
+    elif isinstance(age, (int, long, RDFDatetime)):
+      return (0, int(age))
     elif len(age) == 2:
       start, end = age
+
       return (int(start), int(end))
 
     raise RuntimeError("Unknown age specification: %s" % age)
@@ -98,7 +105,7 @@ class Factory(object):
     # round trip.
     for subject, values in data_store.DB.MultiResolveRegex(
         urns, [".*"], timestamp=self._ParseAgeSpecification(age),
-        token=token).items():
+        token=token, limit=None).items():
 
       key = self._MakeCacheInvariant(subject, token, age)
       self.cache.Put(key, values)
@@ -141,32 +148,65 @@ class Factory(object):
           aff4index.Add(urn, attribute, value)
         aff4index.Flush()
 
+    self._UpdateChildIndex(urn, token)
+
+  def _UpdateChildIndex(self, urn, token):
+    """Update the child indexes.
+
+    This function maintains the index for direct child relations. When we set
+    an AFF4 path, we always add an attribute like
+    index:dir/%(childname)s to its parent. This is written
+    asynchronously to its parent.
+
+    In order to query for all direct children of an AFF4 object, we then simple
+    get the attributes which match the regex index:dir/.+ which are the
+    direct children.
+
+    Args:
+      urn: The AFF4 object for which we update the index.
+      token: The token to use.
+    """
     try:
-      urn = RDFURN(urn.Dirname())
       # Create navigation aids by touching intermediate subject names.
       while urn.Path() != "/":
+        basename = urn.Basename()
+        dirname = RDFURN(urn.Dirname())
+
         try:
           self.intermediate_cache.Get(urn.Path())
           return
         except KeyError:
-          data_store.DB.MultiSet(urn, {AFF4Object.SchemaCls.LAST: [
-              RDFDatetime().SerializeToDataStore()]},
+          data_store.DB.MultiSet(dirname, {
+              AFF4Object.SchemaCls.LAST: [RDFDatetime().SerializeToDataStore()],
+
+              # This updates the directory index.
+              "index:dir/%s" % utils.SmartStr(basename): [EMPTY_DATA],
+              },
                                  token=token, replace=True, sync=False)
+
           self.intermediate_cache.Put(urn.Path(), 1)
-          urn = RDFURN(urn.Dirname())
+
+          urn = dirname
+
     except data_store.UnauthorizedAccess:
       pass
 
-  def _ExpandURNComponents(self, urn):
-    """Breaks the urn into all the urns from its path components."""
-    urns = []
+  def _ExpandURNComponents(self, urn, unique_urns):
+    """This expands URNs.
+
+    This method breaks the urn into all the urns from its path components and
+    adds them to the set unique_urns.
+
+    Args:
+      urn: An RDFURN.
+      unique_urns: A set to add the components of the urn to.
+    """
+
     x = ROOT_URN
     for component in RDFURN(urn).Path().split("/"):
       if component:
         x = x.Add(component)
-        urns.append(x)
-
-    return urns
+        unique_urns.add(x)
 
   def _MakeCacheInvariant(self, urn, token, age):
     """Returns an invariant key for an AFF4 object.
@@ -184,7 +224,8 @@ class Factory(object):
     Returns:
        A key into the cache.
     """
-    return u"%s:%s:%s" % (urn, token, self._ParseAgeSpecification(age))
+    return "%s:%s:%s" % (utils.SmartStr(urn), utils.SmartStr(token),
+                         self._ParseAgeSpecification(age))
 
   def Open(self, urn, required_type=None, mode="r", ignore_cache=False,
            token=None, local_cache=None, age=NEWEST_TIME):
@@ -215,7 +256,8 @@ class Factory(object):
                    set, this bypasses the factory cache.
 
       age: The age policy used to build this object. Should be one of
-         NEWEST_TIME, ALL_TIMES or a time range.
+         NEWEST_TIME, ALL_TIMES or a time range given as a tuple (start, end) in
+         microseconds since Jan 1st, 1970.
 
     Returns:
       An AFF4Object instance.
@@ -238,9 +280,12 @@ class Factory(object):
       # the same round trip and make sure this data is in cache, so that as each
       # AFF4 object is instantiated it can read attributes from cache rather
       # than round tripping to the data store.
-      local_cache = dict(self.GetAttributes(self._ExpandURNComponents(urn),
-                                            age=age, ignore_cache=ignore_cache,
-                                            token=token))
+      unique_urn = set()
+      self._ExpandURNComponents(urn, unique_urn)
+      local_cache = dict(
+          self.GetAttributes(unique_urn,
+                             age=age, ignore_cache=ignore_cache,
+                             token=token))
 
     # Read the row from the table.
     result = AFF4Object(urn, mode=mode, token=token, local_cache=local_cache,
@@ -250,6 +295,10 @@ class Factory(object):
     aff4_type = result.Get(result.Schema.TYPE, default="AFF4Volume")
     if aff4_type:
       result = result.Upgrade(aff4_type)
+      # This is the same type that was already stored so we don't have to
+      # rewrite it.
+      result._dirty = False
+      result._new_version = False
 
     if (required_type is not None and
         not isinstance(result, AFF4Object.classes[required_type])):
@@ -266,7 +315,7 @@ class Factory(object):
     # Fill up the cache with all the urns
     unique_urn = set()
     for urn in urns:
-      unique_urn = unique_urn.union(self._ExpandURNComponents(urn))
+      self._ExpandURNComponents(urn, unique_urn)
 
     cache = dict(self.GetAttributes(unique_urn, token=token))
 
@@ -278,7 +327,24 @@ class Factory(object):
       except IOError:
         pass
 
-  def Create(self, urn, aff4_type, mode="w", token=None, age=NEWEST_TIME):
+  def Stat(self, urns, token=None):
+    """Returns metadata about all urns.
+
+    Currently the metadata include type, and last update time.
+
+    Args:
+      urns: The urns of the objects to open.
+      token: The token to use.
+
+    Yields:
+      A dict of metadata.
+    """
+    for subject, values in data_store.DB.MultiResolveRegex(
+        urns, ["aff4:type"], token=token).items():
+      yield dict(urn=RDFURN(subject), type=values[0])
+
+  def Create(self, urn, aff4_type, mode="w", token=None, age=NEWEST_TIME,
+             ignore_cache=False):
     """Creates the urn if it does not already exist, otherwise opens it.
 
     If the urn exists and is of a different type, this will also promote it to
@@ -291,6 +357,7 @@ class Factory(object):
        token: The Security Token to use for opening this item.
        age: The age policy used to build this object. Only makes sense when mode
             has "r".
+       ignore_cache: Bypass the aff4 cache.
 
     Returns:
       An AFF4 object of the desired type and mode.
@@ -306,16 +373,17 @@ class Factory(object):
     if "r" in mode:
       # Check to see if an object already exists.
       try:
-        return self.Open(urn, mode=mode, token=token, age=age).Upgrade(
-            aff4_type)
+        return self.Open(urn, mode=mode, token=token, age=age,
+                         ignore_cache=ignore_cache).Upgrade(aff4_type)
       except IOError:
         pass
 
     # Object does not exist, just make it.
     cls = AFF4Object.classes[str(aff4_type)]
     result = cls(urn, mode=mode, token=token, age=age)
-    result.Set(result.Schema.TYPE(aff4_type))
     result.Initialize()
+    result._new_version = True
+    result._dirty = True
 
     return result
 
@@ -341,9 +409,9 @@ class Factory(object):
     logging.info("Recursively removing AFF4 Object %s", urn)
     fd = FACTORY.Create(urn, "AFF4Volume", mode="rw", token=token)
     count = 0
-    for child in fd.Query(limit=limit):
-      logging.info("Removing child %s", child.urn)
-      data_store.DB.DeleteSubject(child.urn, token=token)
+    for child in fd.ListChildren():
+      logging.info("Removing child %s", child)
+      self.Delete(child, token=token)
       count += 1
 
     if count >= limit:
@@ -486,6 +554,9 @@ class RDFBytes(RDFValue):
   def __hash__(self):
     return hash(self.value)
 
+  def __int__(self):
+    return int(self.value)
+
 
 class RDFString(RDFBytes):
   """Represent a simple string."""
@@ -626,8 +697,17 @@ class RDFDatetime(RDFInteger):
     self.value += other
     return self
 
+  def __isub__(self, other):
+    return int(other) - self.value
+
+  def __gt__(self, other):
+    return self.value > other
+
+  def __lt__(self, other):
+    return self.value < other
+
   def __sub__(self, other):
-    return self.value - other
+    return self.value - int(other)
 
   def __add__(self, other):
     return self.value + other
@@ -691,7 +771,7 @@ class RDFDatetimeSeconds(RDFDatetime):
 class RDFProto(RDFValue):
   """A baseclass for using a protobuff as a RDFValue."""
   # This should be overriden with a protobuf class
-  _proto = lambda: None
+  _proto = None
   data = None
 
   # This is a map between protobuf fields and RDFValue objects.
@@ -701,7 +781,7 @@ class RDFProto(RDFValue):
 
   def __init__(self, serialized=None, age=None):
     # Allow ourselves to be instantiated from a protobuf
-    if isinstance(serialized, self._proto):
+    if self._proto is None or isinstance(serialized, self._proto):
       self.data = serialized
       super(RDFProto, self).__init__(None, age)
     else:
@@ -730,6 +810,11 @@ class RDFProto(RDFValue):
 
 class RDFProtoDict(RDFProto):
   _proto = jobs_pb2.Dict
+
+
+class LabelList(RDFProto):
+  """A list of labels."""
+  _proto = jobs_pb2.LabelList
 
 
 class RDFProtoArray(RDFProto):
@@ -966,6 +1051,20 @@ class RDFURN(RDFValue):
     return "<RDFURN@%X = %s age=%s>" % (hash(self), str(self), self.age)
 
 
+class RDFFingerprintValue(RDFProto):
+  """Proto containing dicts with hashes."""
+  _proto = jobs_pb2.FingerprintResponse
+  # TODO(user): Add reasonable accessors for UI/console integration.
+  # This includes parsing out the SignatureBlob for windows binaries.
+
+  def Get(self, name):
+    """Gets the first fingerprint type from the protobuf."""
+    for result in self.data.fingerprint_results:
+      result = utils.ProtoDict(result)
+      if result.Get("name") == name:
+        return result
+
+
 class Subject(RDFURN):
   """A psuedo attribute representing the subject of an AFF4 object."""
 
@@ -1001,7 +1100,8 @@ class Attribute(object):
   NAMES = {}
 
   def __init__(self, predicate, attribute_type=RDFString, description="",
-               name=None, _copy=False, default=None, index=None):
+               name=None, _copy=False, default=None, index=None,
+               versioned=True):
     """Constructor.
 
     Args:
@@ -1017,6 +1117,8 @@ class Attribute(object):
           itself as an arg.
        index: The name of the index to use for this attribute. If None, the
           attribute will not be indexed.
+       versioned: Should this attribute be versioned? Non-versioned attributes
+          always overwrite other versions of the same attribute.
     """
     self.name = name
     self.predicate = predicate
@@ -1024,6 +1126,7 @@ class Attribute(object):
     self.description = description
     self.default = default
     self.index = index
+    self.versioned = versioned
 
     # Field names can refer to a specific component of an attribute
     self.field_names = []
@@ -1187,12 +1290,11 @@ class AFF4Object(object):
     STORED = Attribute("aff4:stored", RDFURN,
                        "The AFF4 container inwhich this object is stored.")
 
-    DIRNAME = Attribute("aff4:dirname", RDFURN,
-                        "The directory name of this object for fast searching.",
-                        "dirname")
-
     LAST = Attribute("metadata:last", RDFDatetime,
-                     "The last time any children of this object were written.")
+                     "The last time any attribute of this object was written.")
+
+    LABEL = Attribute("aff4:labels", LabelList,
+                      "Any object can have labels applied to it.", default="")
 
     def ListAttributes(self):
       for attr in dir(self):
@@ -1247,6 +1349,9 @@ class AFF4Object(object):
     self.token = token
     self.age_policy = age
 
+    # This flag will be set whenever a versioned attribute is changed.
+    self._new_version = False
+
     # Mark out attributes to delete when Flushing()
     self._to_delete = set()
 
@@ -1280,7 +1385,8 @@ class AFF4Object(object):
             pass
         else:
           # Populate the caches from the data store.
-          for urn, values in FACTORY.GetAttributes([urn], token=self.token):
+          for urn, values in FACTORY.GetAttributes([urn], age=age,
+                                                   token=self.token):
             for attribute_name, value, ts in values:
               self.DecodeValueFromAttribute(attribute_name, value, ts)
 
@@ -1298,8 +1404,6 @@ class AFF4Object(object):
     database. This method is called to obtain a fully fledged object from
     a collection of attributes.
     """
-    if "w" in self.mode:
-      self.Set(self.Schema.DIRNAME(self.urn.Dirname()))
 
   def DecodeValueFromAttribute(self, attribute_name, value, ts):
     """Given a serialized value, decode the attribute.
@@ -1345,13 +1449,14 @@ class AFF4Object(object):
             (value.SerializeToDataStore(), value.age))
 
     if self._dirty:
-      # Set the type now to allow us to be correctly un-serialized later. Note
-      # that this effectively represents the last modification time for this
-      # object.
-      to_set[self.Schema.TYPE] = [
-          (RDFString(self.__class__.__name__).SerializeToDataStore(),
-           RDFDatetime())]
-      self._to_delete.add(self.Schema.TYPE)
+      # We determine this object has a new version only if any of the versioned
+      # attributes have changed. Non-versioned attributes do not represent a new
+      # object version. The type of an object is versioned and represents a
+      # version point in the life of the object.
+      if self._new_version:
+        to_set[self.Schema.TYPE] = [
+            (RDFString(self.__class__.__name__).SerializeToDataStore(),
+             RDFDatetime())]
 
       # Write the attributes to the Factory cache.
       FACTORY.SetAttributes(self.urn, to_set, self._to_delete, sync=sync,
@@ -1365,6 +1470,7 @@ class AFF4Object(object):
     self.new_attributes = {}
     self._to_delete.clear()
     self._dirty = False
+    self._new_version = False
 
     # Recurse back to all our parents and flush them
     if self.parent:
@@ -1411,9 +1517,11 @@ class AFF4Object(object):
       value = attribute
       attribute = value.attribute_instance
 
-    self._CheckAttribute(attribute, value)
+    # Does this represent a new version?
+    if attribute.versioned:
+      self._new_version = True
 
-    self.DeleteAttribute(attribute)
+    self._CheckAttribute(attribute, value)
     self.AddAttribute(attribute, value)
 
   def AddAttribute(self, attribute, value=None):
@@ -1440,6 +1548,19 @@ class AFF4Object(object):
 
     self._CheckAttribute(attribute, value)
 
+    # Does this represent a new version?
+    if attribute.versioned:
+      self._new_version = True
+
+      # Update the time of this new attribute.
+      value.age.Now()
+
+    # Non-versioned attributes always replace previous versions and get written
+    # at the earliest timestamp (so they appear in all objects).
+    else:
+      self._to_delete.add(attribute)
+      value.age = 0
+
     self._AddAttributeToCache(attribute, value, self.new_attributes)
     self._dirty = True
 
@@ -1451,6 +1572,10 @@ class AFF4Object(object):
 
     if attribute in self.new_attributes:
       del self.new_attributes[attribute]
+
+    # Does this represent a new version?
+    if attribute.versioned:
+      self._new_version = True
 
     self._dirty = True
 
@@ -1468,7 +1593,6 @@ class AFF4Object(object):
       # If there are defaults for this attribute - just use them.
       result = attribute.GetDefault(self)
       if result:
-        self.Set(attribute(result))
         return result
 
       raise IOError(
@@ -1545,6 +1669,7 @@ class AFF4Object(object):
                  token=self.token, age=self.age_policy)
     result.Initialize()
     result._dirty = True
+    result._new_version = True
 
     return result
 
@@ -1624,6 +1749,10 @@ class AFF4Volume(AFF4Object):
     Returns:
       A generator of all children which match the filter.
     """
+    # If no filtering is required we can just use OpenChildren.
+    if not filter_obj and not filter_string:
+      return self.OpenChildren(limit=limit)
+
     if filter_obj is None and filter_string:
       # Parse the query string
       ast = AFF4QueryParser(filter_string).Parse()
@@ -1674,34 +1803,52 @@ class AFF4Volume(AFF4Object):
     return FACTORY.Create(self.urn.Add(path), aff4_type, mode=mode,
                           token=self.token)
 
-  def OpenChildren(self, children=None, mode="r", limit=1000):
+  def ListChildren(self, limit=1000000):
+    """Yields RDFURNs of all the children of this object.
+
+    Args:
+      limit: Total number of items we will attempt to retrieve.
+
+    Yields:
+      RDFURNs instances of each child.
+    """
+    # Just grab all the children from the index.
+    index_prefix = "index:dir/"
+    for predicate, _, timestamp in data_store.DB.ResolveRegex(
+        self.urn, index_prefix + ".+", token=self.token,
+        timestamp=data_store.DB.NEWEST_TIMESTAMP, limit=limit):
+      urn = self.urn.Add(predicate[len(index_prefix):])
+      urn.age = RDFDatetime(timestamp)
+      yield urn
+
+  def OpenChildren(self, children=None, mode="r", limit=1000000,
+                   chunk_limit=1000):
     """Yields AFF4 Objects of all our direct children.
 
     This method efficiently returns all attributes for our children directly, in
-    a single data store round trip.
+    a few data store round trips. We use the directory indexes to query the data
+    store.
 
     Args:
       children: A list of children RDFURNs to open. If None open all our
              children.
       mode: The mode the files should be opened with.
-      limit: The maximum number of children returned.
-    Returns:
-      Instances for all the children.
+      limit: Total number of items we will attempt to retrieve.
+      chunk_limit: Maximum number of items to retrieve at a time.
+    Yields:
+      Instances for each direct child.
     """
-    # Grab all our direct children.
     if children is None:
-      result_set = data_store.DB.Query(
-          filter_obj=data_store.DB.Filter.SubjectContainsFilter(
-              "%s/[^/]+$" % data_store.EscapeRegex(self.urn)),
-          subjects=children,
-          limit=limit, subject_prefix=self.urn, token=self.token)
-      subjects = set()
-      for result in result_set:
-        subjects.add(RDFURN(result["subject"][0]))
+      subjects = list(self.ListChildren(limit=limit))
     else:
-      subjects = children
-
-    return FACTORY.MultiOpen(subjects, mode=mode, token=self.token)
+      subjects = list(children)
+    subjects.sort()
+    # Read at most limit children at a time.
+    while subjects:
+      to_read = subjects[:chunk_limit]
+      subjects = subjects[chunk_limit:]
+      for child in FACTORY.MultiOpen(to_read, mode=mode, token=self.token):
+        yield child
 
 
 class AFF4Root(AFF4Volume):
@@ -1802,9 +1949,6 @@ class AFF4Stream(AFF4Object):
                      "The total size of available data for this stream.",
                      "size", default=0)
 
-    HASH = Attribute("aff4:sha256", RDFSHAValue,
-                     "SHA256 hash.")
-
   @abc.abstractmethod
   def Read(self, length):
     pass
@@ -1884,6 +2028,7 @@ class AFF4MemoryStream(AFF4Stream):
     if self.dirty:
       compressed_content = zlib.compress(self.fd.getvalue())
       self.Set(self.Schema.CONTENT(compressed_content))
+      self.Set(self.Schema.SIZE(self.size))
 
     super(AFF4MemoryStream, self).Close(sync=sync)
 
@@ -1903,6 +2048,8 @@ class AFF4Image(AFF4Stream):
   We are both an Image here and a volume (since we store the segments inside
   us).
   """
+
+  NUM_RETRIES = 10
 
   class SchemaCls(AFF4Stream.SchemaCls):
     CHUNKSIZE = Attribute("aff4:chunksize", RDFInteger,
@@ -1938,6 +2085,7 @@ class AFF4Image(AFF4Stream):
     return self.offset
 
   def Truncate(self, offset=None):
+    self._dirty = True
     if offset is None:
       offset = self.offset
 
@@ -1992,7 +2140,21 @@ class AFF4Image(AFF4Stream):
 
     available_to_read = min(length, chunksize - chunk_offset)
 
-    fd = self._GetChunkForReading(chunk)
+    retries = 0
+    while retries < self.NUM_RETRIES:
+      fd = self._GetChunkForReading(chunk)
+      if fd:
+        break
+      # Arriving here means we know about blobs that cannot be found in the db.
+      # The most likely reason is that they have not been synced yet so we
+      # retry a couple of times just in case they come in eventually.
+      logging.warning("Chunk not found.")
+      time.sleep(1)
+      retries += 1
+
+    if retries >= self.NUM_RETRIES:
+      raise IOError("Chunk not found for reading.")
+
     fd.Seek(chunk_offset)
 
     result = fd.Read(available_to_read)
@@ -2034,6 +2196,7 @@ class AFF4Image(AFF4Stream):
     return data[available_to_write:]
 
   def Write(self, data):
+    self._dirty = True
     if isinstance(data, unicode):
       raise IOError("Cannot write unencoded string.")
     while data:
@@ -2042,17 +2205,19 @@ class AFF4Image(AFF4Stream):
     self.size = max(self.size, self.offset)
 
   def Close(self, sync=True):
-    # Flush the cache
-    self.write_chunk_cache.Flush()
-    self.Set(self.Schema.SIZE(self.size))
+    if self._dirty:
+      # Flush the cache
+      self.write_chunk_cache.Flush()
+      self.Set(self.Schema.SIZE(self.size))
     super(AFF4Image, self).Close(sync=sync)
 
 
 # Utility functions
-class AFF4InitHook(data_store.DataStoreInit):
-  altitude = 100
+class AFF4InitHook(registry.InitHook):
 
-  def __init__(self):
+  pre = ["DataStoreInit"]
+
+  def Run(self):
     """Delayed loading of aff4 plugins to break import cycles."""
     from grr.lib import aff4_objects
 

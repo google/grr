@@ -24,6 +24,7 @@ and class as value.
 
 # The following are abstract base classes
 import abc
+import threading
 
 from grr.client import conf as flags
 import logging
@@ -31,7 +32,6 @@ import logging
 # This is required to monkey patch various older libraries so
 from grr.lib import compatibility
 
-# ones.
 flags.DEFINE_bool("debug", default=False,
                   help="Print debugging statements to the console.")
 
@@ -46,7 +46,13 @@ class MetaclassRegistry(abc.ABCMeta):
   def __init__(mcs, name, bases, env_dict):
     abc.ABCMeta.__init__(mcs, name, bases, env_dict)
 
-    if not mcs.__name__.startswith("Abstract"):
+    # Abstract classes should not be registered. We define classes as abstract
+    # by giving them the __abstract attribute (this is not inheritable) or by
+    # naming them Abstract<ClassName>.
+    abstract_attribute = "_%s__abstract" % name
+
+    if (not mcs.__name__.startswith("Abstract") and
+        not hasattr(mcs, abstract_attribute)):
       # Attach the classes dict to the baseclass and have all derived classes
       # use the same one:
       for base in bases:
@@ -101,43 +107,57 @@ class InitHook(object):
 
   __metaclass__ = MetaclassRegistry
 
-  # This controls the order for execution of initialization functions - the
-  # higher the altitude, the later in the process this is executed.
-  altitude = 10
+  # A list of class names that have to be initialized before this hook.
+  pre = []
 
   # Already run hooks
   already_run_once = set()
 
-  def __init__(self):
-    """Default init hook entry point.
+  lock = threading.RLock()
 
-    This can be extended by other init hookers.
-    """
-    if self.__class__.__name__ not in self.already_run_once:
-      self.RunOnce()
-      self.already_run_once.add(self.__class__.__name__)
+  def Init(self):
+    with InitHook.lock:
+      executed_hooks = []
+      while True:
+        hooks = []
+        for cl in self.__class__.classes.itervalues():
+          if cl.__name__ not in executed_hooks:
+            # We only care about classes that are actually imported.
+            pre = [x for x in cl.pre if x in self.__class__.classes]
+            if all([hook in executed_hooks for hook in pre]):
+              hooks.append(cl)
+
+        if not hooks:
+          break
+
+        for cls in hooks:
+          executed_hooks.append(cls.__name__)
+
+          cls_instance = cls()
+          logging.info("Initializing %s", cls.__name__)
+          # Always call the Run hook.
+          cls_instance.Run()
+
+          # Call the RunOnce hook if it has not been called.
+          if cls.__name__ not in InitHook.already_run_once:
+            cls_instance.RunOnce()
+            InitHook.already_run_once.add(cls.__name__)
 
   def RunOnce(self):
     """Hooks which only want to be run once."""
 
-  @classmethod
-  def Run(cls):
-    """Run all the initialization tasks derived from this class."""
-    executed_hooks = []
-    # Handle the case where hooks cause an import which adds more hooks.
-    while True:
-      hooks = [c for c in cls.class_list
-               if issubclass(c, cls) and c not in executed_hooks]
-      if not hooks: break
+  def Run(self):
+    """Hooks that can be called more than once."""
 
-      hooks.sort(key=lambda x: x.altitude)
 
-      for cls in hooks:
-        logging.info("Running Hook %s", cls.__name__)
-        cls()
-        executed_hooks.append(cls)
+# This method is only used in tests and will rerun all the hooks to create a
+# clean state.
+def TestInit():
+  InitHook().Init()
 
 
 def Init():
+  if InitHook.already_run_once:
+    return
   # This initializes any class which inherits from InitHook.
-  InitHook().Run()
+  InitHook().Init()

@@ -21,7 +21,9 @@ Implementations should be able to pass these tests to be conformant.
 """
 
 
+import hashlib
 import time
+import zlib
 
 
 from grr.client import conf as flags
@@ -161,7 +163,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(stored, None)
 
   def testMultiResolveRegex(self):
-    """Test our ability to query."""
+    """tests MultiResolveRegex."""
     # Make some rows
     rows = []
     for i in range(10):
@@ -605,7 +607,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
     """Test that querying for ranges works."""
     # Create some new aff4 objects with integer attributes
     for i in range(10):
-      fd = aff4.FACTORY.Create("aff4:/C.1234/test%s" % i, "AFF4Image",
+      fd = aff4.FACTORY.Create("aff4:/C.1234/test%s" % i, "AFF4MemoryStream",
                                token=self.token)
       # This sets the SIZE attribute:
       fd.Write("A" * i)
@@ -630,3 +632,58 @@ class DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(len(rows), 4)
     for i in range(6, 10):
       self.assertEqual("aff4:/C.1234/test%s" % i, rows[i-6]["subject"][0])
+
+  def testAFF4Image(self):
+    # 500k
+    data = "randomdata" * 50 * 1024
+
+    # Create a blob.
+    cdata = zlib.compress(data)
+    digest = hashlib.sha256(data).digest()
+    urn = aff4.ROOT_URN.Add("blobs").Add(digest.encode("hex"))
+    blob_fd = aff4.FACTORY.Create(urn, "AFF4MemoryStream", mode="w",
+                                  token=self.token)
+    blob_fd.Set(blob_fd.Schema.CONTENT(cdata))
+    blob_fd.Set(blob_fd.Schema.SIZE(len(data)))
+    blob_fd.Close(sync=True)
+
+    # Now create the image containing the blob.
+    fd = aff4.FACTORY.Create("aff4:/C.1235/image", "HashImage",
+                             token=self.token)
+    fd.Set(fd.Schema.CHUNKSIZE(512*1024))
+    fd.Set(fd.Schema.STAT())
+
+    fd.AddBlob(digest, len(data))
+    fd.Close(sync=True)
+
+    # Check if we can read back the data.
+    fd = aff4.FACTORY.Open("aff4:/C.1235/image", token=self.token)
+    self.assertEqual(fd.read(len(data)), data)
+    fd.Close()
+
+  def testDotsInDirectory(self):
+    """Dots are special in MongoDB, check that they work in rows/indexes."""
+
+    for directory in ["aff4:/C.1240/dir",
+                      "aff4:/C.1240/dir/a.b",
+                      "aff4:/C.1240/dir/a.b/c",
+                      "aff4:/C.1240/dir/b"]:
+      aff4.FACTORY.Create(directory, "VFSDirectory", token=self.token).Close()
+
+    # We want the indexes to be written now.
+    data_store.DB.Flush()
+
+    # This must not raise.
+    aff4.FACTORY.Open("aff4:/C.1240/dir/a.b/c", "VFSDirectory",
+                      token=self.token)
+
+    index = data_store.DB.ResolveRegex("aff4:/C.1240/dir",
+                                       "index:dir/.+",
+                                       token=self.token)
+    subjects = [s for (s, _, _) in index]
+    self.assertTrue("index:dir/b" in subjects)
+    self.assertTrue("index:dir/a.b" in subjects)
+
+    directory = aff4.FACTORY.Open("aff4:/C.1240/dir", token=self.token)
+    self.assertEqual(2, len(list(directory.OpenChildren())))
+    self.assertEqual(2, len(list(directory.ListChildren())))

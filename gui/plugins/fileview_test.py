@@ -16,14 +16,50 @@
 
 """Test the fileview interface."""
 
+import time
+
+from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import test_lib
 
 
 class TestFileView(test_lib.GRRSeleniumTest):
   """Test the fileview interface."""
 
+  @staticmethod
+  def CreateFileVersions():
+    """Add a new version for a file."""
+    # Mock the time function.
+    old_time = time.time
+
+    # Create another file at 2012-04-07 08:53:53.
+    time.time = lambda: 1333788833
+
+    token = data_store.ACLToken()
+    # This file already exists in the fixture, and we overwrite it with a new
+    # version at 2012-04-07 08:53:53.
+    fd = aff4.FACTORY.Create(
+        "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
+        "AFF4MemoryStream", mode="w", token=token)
+    fd.Write("Hello World")
+    fd.Close()
+
+    # Create another version of this file at 2012-04-09 16:27:13.
+    time.time = lambda: 1333988833
+    fd = aff4.FACTORY.Create(
+        "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
+        "AFF4MemoryStream", mode="w", token=token)
+    fd.Write("Goodbye World")
+    fd.Close()
+
+    # Restore the mocks.
+    time.time = old_time
+
   def testFileView(self):
     """Test the fileview interface."""
+    # Prepare our fixture.
+    self.CreateFileVersions()
+
     sel = self.selenium
 
     sel.open("/")
@@ -32,13 +68,15 @@ class TestFileView(test_lib.GRRSeleniumTest):
     sel.type("css=input[name=q]", "0001")
     sel.click("css=input[type=submit]")
 
-    self.WaitUntilEqual(u"aff4:/C.0000000000000001",
+    self.WaitUntilEqual(u"C.0000000000000001",
                         sel.get_text, "css=span[type=subject]")
 
     # Choose client 1
     sel.click("css=td:contains('0001')")
 
     # Go to Browse VFS
+    self.WaitUntil(sel.is_element_present,
+                   "css=a:contains('Browse Virtual Filesystem')")
     sel.click("css=a:contains('Browse Virtual Filesystem')")
 
     self.WaitUntil(sel.is_element_present, "css=#_fs")
@@ -49,6 +87,39 @@ class TestFileView(test_lib.GRRSeleniumTest):
 
     self.WaitUntil(sel.is_element_present, "css=#_fs-os-c")
     sel.click("css=#_fs-os-c ins.jstree-icon")
+
+    # Test file versioning.
+    self.WaitUntil(sel.is_element_present, "css=#_fs-os-c-Downloads")
+    sel.click("link=Downloads")
+
+    # Verify that we have the latest version in the table by default
+    self.WaitUntil(sel.is_element_present, "css=tr:contains(\"a.txt\")")
+    self.assert_(
+        "2012-04-09 16:27:13" in sel.get_text("css=tr:contains(\"a.txt\")"))
+
+    # Click on the row.
+    sel.click("css=tr:contains(\"a.txt\")")
+    self.WaitUntilContains("a.txt @ 2012-04-09", sel.get_text,
+                           "css=div#main_rightBottomPane h3")
+
+    # Check the data in this file.
+    sel.click("css=#TextView")
+    self.WaitUntilContains("Goodbye World", sel.get_text,
+                           "css=div#text_viewer_data_content")
+
+    # Click on the version selector.
+    sel.click("css=tr:contains(\"a.txt\") img.version-selector")
+    self.WaitUntilContains("Versions of", sel.get_text,
+                           "css=div#version-dialog h3")
+
+    # Select the previous version.
+    self.WaitUntil(sel.is_element_present, "css=td:contains(\"2012-04-07\")")
+    sel.click("css=td:contains(\"2012-04-07\")")
+
+    # Make sure the file content has changed. This version has "Hello World" in
+    # it.
+    self.WaitUntilContains("Hello World", sel.get_text,
+                           "css=div#text_viewer_data_content")
 
     # Test the hex viewer.
     self.WaitUntil(sel.is_element_present, "css=#_fs-os-proc")
@@ -101,9 +172,9 @@ class TestFileView(test_lib.GRRSeleniumTest):
         1, sel.get_css_count("css=#main_rightTopPane  tbody > tr"))
     sel.click("css=tr:nth(1)")
 
-    self.WaitUntilEqual("aff4:/C.0000000000000001/fs/os/"
-                        "c/bin C.0000000000000001/cat",
-                        sel.get_text, "css=div h3")
+    self.WaitUntilContains(
+        "aff4:/C.0000000000000001/fs/os/c/bin C.0000000000000001/cat",
+        sel.get_text, "css=div h3")
     self.failUnless(sel.is_text_present("1026267"))
 
     # Lets download it.
@@ -115,7 +186,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.WaitUntilEqual("fs", sel.get_text, "css=tr:nth(1) span")
 
     sel.click("css=span:contains(\"Stats\")")
-    self.WaitUntilEqual(
+    self.WaitUntilContains(
         "aff4:/C.0000000000000001", sel.get_text, "css=div h3")
 
     # Grab the root directory again - should produce an Interrogate flow.

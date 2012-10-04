@@ -21,6 +21,7 @@ from grr.lib import aff4
 from grr.lib import constants
 from grr.lib import flow
 from grr.lib import flow_utils
+from grr.lib import type_info
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
@@ -33,10 +34,11 @@ class JavaCacheCollector(flow.GRRFlow):
   """
 
   category = "/Collectors/"
+  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType")}
   MAJOR_VERSION_WINDOWS_VISTA = 6
 
   def __init__(self,
-               pathtype=utils.ProtoEnum(jobs_pb2.Path, "PathType", "OS"),
+               pathtype=jobs_pb2.Path.OS,
                username=None, domain=None, cachedir="",
                output="analysis/java-cache/{u}-{t}", **kwargs):
     """Constructor.
@@ -91,8 +93,7 @@ class JavaCacheCollector(flow.GRRFlow):
     system = client.Get(client.Schema.SYSTEM)
     version = client.Get(client.Schema.OS_VERSION)
 
-    user_pb = flow_utils.GetUserInfo(self.client_id, self.username,
-                                     self.token)
+    user_pb = flow_utils.GetUserInfo(client, self.username)
 
     if user_pb is None:
       raise flow.FlowError("User %s not found." % self.username)

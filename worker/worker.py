@@ -26,6 +26,9 @@ import sys
 from grr.client import conf
 from grr.client import conf as flags
 
+from grr.client import client_config
+from grr import artifacts
+
 from grr.lib import access_control
 from grr.lib import data_store
 from grr.lib import mongo_data_store

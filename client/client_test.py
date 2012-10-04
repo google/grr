@@ -13,8 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test for client."""
+"""Tests for the client."""
 
+import tempfile
 
 
 from grr.client import conf
@@ -22,7 +23,7 @@ from grr.client import conf as flags
 # Need to import client to add the flags.
 from grr.client import actions
 
-# Load all the standard actions
+# Load all the standard actions.
 from grr.client import client_actions
 from grr.client import comms
 from grr.lib import test_lib
@@ -50,7 +51,7 @@ class RaiseAction(actions.ActionPlugin):
     raise RuntimeError("I dont like %s" % message.data)
 
 
-class TestedContext(comms.GRRContext):
+class TestedContext(comms.GRRClientWorker):
   """We test a simpler Context without crypto here."""
 
   def LoadCertificates(self):
@@ -134,47 +135,60 @@ class BasicContextTests(test_lib.GRRBaseTest):
     self.assert_("RuntimeError" in status.error_message)
     self.assertNotEqual(status.status, jobs_pb2.GrrStatus.OK)
 
+  def testPriorities(self):
+    for i in range(10):
+      message = jobs_pb2.GrrMessage(
+          name="MockAction",
+          session_id=self.session_id + str(i),
+          auth_state=jobs_pb2.GrrMessage.UNAUTHENTICATED,
+          request_id=1,
+          priority=i%3)
+      self.context.HandleMessage(message)
+    message_list = self.context.Drain(max_size=1000000).job
+    self.assertEqual(len(message_list), 10)
+    self.assertEqual([m.priority for m in message_list],
+                     [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])
 
-class TestedProcessSeparatedContext(comms.ProcessSeparatedContext):
-  def LoadCertificates(self):
-    pass
+  def testSizeQueue(self):
 
+    queue = comms.SizeQueue(maxsize=10000000)
 
-class TestProcessSeparatedContext(BasicContextTests):
-  """Test the process separated context."""
-  to_test_context = TestedProcessSeparatedContext
+    for _ in range(10):
+      queue.Put("A", 1)
+      queue.Put("B", 1)
+      queue.Put("C", 2)
 
-  def setUp(self):
-    comms.SlaveContext.LoadCertificates = lambda self: None
-    BasicContextTests.setUp(self)
+    result = []
+    for item in queue.Get():
+      result.append(item)
+    self.assertEqual(result, ["C"] * 10 + ["A", "B"] * 10)
 
-  def tearDown(self):
-    self.context.Terminate()
+    # Tests a partial Get().
+    for _ in range(7):
+      queue.Put("A", 1)
+      queue.Put("B", 1)
+      queue.Put("C", 2)
 
-  def testSegFault(self):
-    """What happens if our slave crashes?"""
-    # Push a request on it
-    message = jobs_pb2.GrrMessage(
-        name="KillSlave",
-        session_id=self.session_id,
-        auth_state=jobs_pb2.GrrMessage.AUTHENTICATED,
-        request_id=1)
+    result = []
+    for item in queue.Get():
+      result.append(item)
+      if len(result) == 5:
+        break
 
-    self.context.HandleMessage(message)
+    self.assertEqual(result, ["C"] * 5)
 
-    # We expect to receive an GrrStatus to indicate an exception was
-    # raised:
-    # Check the response - one data and one status
-    message_list = self.context.Drain().job
-    self.assertEqual(len(message_list), 1)
-    self.assertEqual(message_list[0].session_id, self.session_id)
-    status = jobs_pb2.GrrStatus()
-    status.ParseFromString(message_list[0].args)
-    self.assert_("Slave crashed" in status.error_message)
-    self.assertNotEqual(status.status, jobs_pb2.GrrStatus.OK)
+    for _ in range(3):
+      queue.Put("A", 1)
+      queue.Put("B", 1)
+      queue.Put("C", 2)
+
+    for item in queue.Get():
+      result.append(item)
+    self.assertEqual(result, ["C"] * 10 + ["A", "B"] * 10)
 
 
 def main(argv):
+  _, FLAGS.nanny_logfile = tempfile.mkstemp()
   test_lib.main(argv)
 
 if __name__ == "__main__":

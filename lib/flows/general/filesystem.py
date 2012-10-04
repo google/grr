@@ -20,6 +20,7 @@ import stat
 
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import type_info
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
@@ -29,9 +30,11 @@ class ListDirectory(flow.GRRFlow):
 
   category = "/Filesystem/"
   urn = None
+  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
+                   "pathspec": type_info.ProtoOrNone(jobs_pb2.Path)}
 
   def __init__(self, path="/",
-               pathtype=utils.ProtoEnum(jobs_pb2.Path, "PathType", "OS"),
+               pathtype=jobs_pb2.Path.OS,
                pathspec=None, **kwargs):
     """Constructor.
 
@@ -62,10 +65,7 @@ class ListDirectory(flow.GRRFlow):
     """Save stat information on the directory."""
     # Did it work?
     if not responses.success:
-      self.Log("Could not stat directory: %s", responses.status)
-
-      # Make sure we do not run any more states.
-      self.Terminate()
+      self.Error("Could not stat directory: %s" % responses.status)
 
     else:
       # Keep the stat response for later.
@@ -186,9 +186,11 @@ class RecursiveListDirectory(ListDirectory):
   """Recursively list directory on the client."""
 
   category = "/Filesystem/"
+  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
+                   "pathspec": type_info.ProtoOrNone(jobs_pb2.Path)}
 
   def __init__(self, path="/",
-               pathtype=utils.ProtoEnum(jobs_pb2.Path, "PathType", "OS"),
+               pathtype=jobs_pb2.Path.OS,
                pathspec=None, max_depth=5, **kwargs):
     """This flow builds a timeline for the filesystem on the client.
 
@@ -272,6 +274,8 @@ class SlowGetFile(flow.GRRFlow):
   """Simple file retrival."""
 
   category = "/Filesystem/"
+  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
+                   "pathspec": type_info.ProtoOrNone(jobs_pb2.Path)}
 
   # Read in 32kb chunks
   _CHUNK_SIZE = 1024 * 32
@@ -280,8 +284,7 @@ class SlowGetFile(flow.GRRFlow):
   _WINDOW_SIZE = 330
 
   def __init__(self, path="/",
-               pathtype=utils.ProtoEnum(jobs_pb2.Path, "PathType", "OS"),
-               device=None, aff4_chunk_size=2**20,
+               pathtype=jobs_pb2.Path.OS, aff4_chunk_size=2**20,
                pathspec=None, **kwargs):
     """Constructor.
 
@@ -291,7 +294,6 @@ class SlowGetFile(flow.GRRFlow):
     Args:
       path: The directory path to list.
       pathtype: Identifies requested path type. Enum from Path protobuf.
-      device: Optional raw device that should be accessed.
       aff4_chunk_size: Specifies how much data is sent back from the
                        client in each chunk.
       pathspec: Use a pathspec instead of a path.
@@ -304,8 +306,6 @@ class SlowGetFile(flow.GRRFlow):
       self._pathpb = pathspec
     else:
       self._pathpb = jobs_pb2.Path(path=path, pathtype=int(pathtype))
-      if device:
-        self._pathpb.device = device
 
     flow.GRRFlow.__init__(self, **kwargs)
 

@@ -123,7 +123,7 @@ def GRRFindPackages():
   """
   packages = ['grr']
 
-  for package in find_packages('.', exclude=['test_data']):
+  for package in find_packages('.'):
     packages.append('grr.' + package)
 
   return packages
@@ -142,8 +142,12 @@ grr_client_data_files_spec = ('grr.client',
                               [''],
                               ['*.txt'])
 
+grr_test_data_files_spec = ('grr.test_data',
+                            [''],
+                            ['*'])
+
 setup(name='grr',
-      version='0.1',
+      version='0.2',
       description='GRR Rapid Response Framework',
       license='Apache License, Version 2.0',
       url='http://code.google.com/p/grr',
@@ -153,5 +157,6 @@ setup(name='grr',
       package_dir={'grr': '../grr'},
       package_data=GRRFindDataFiles([grr_data_files_spec,
                                      grr_gui_data_files_spec,
-                                     grr_client_data_files_spec])
+                                     grr_client_data_files_spec,
+                                     grr_test_data_files_spec])
      )

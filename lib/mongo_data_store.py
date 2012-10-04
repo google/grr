@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- mode: python; encoding: utf-8 -*-
 
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +22,9 @@ import random
 import re
 import time
 from bson import binary
-from google.protobuf import message
 import pymongo
 from pymongo import errors
+from google.protobuf import message
 
 from grr.client import conf as flags
 from grr.lib import data_store
@@ -60,7 +61,8 @@ class HasPredicateFilter(Filter):
     Filter.__init__(self)
 
   def FilterExpression(self):
-    return {utils.SmartUnicode(self.attribute_name): {"$exists": True}}
+    return {EscapeKey(self.attribute_name): {
+        "$exists": True}}
 
 
 class AndFilter(Filter):
@@ -99,7 +101,7 @@ class PredicateContainsFilter(Filter):
     # the column to be set.
     if not self.regex: return {}
 
-    return {utils.SmartUnicode(self.attribute_name) + ".v":
+    return {EscapeKey(self.attribute_name) + ".v":
             {"$regex": self.regex}}
 
 
@@ -121,7 +123,7 @@ class SubjectContainsFilter(Filter):
     # the column to be set.
     if not self.regex: return {}
 
-    return {"_id": {"$regex": self.regex}}
+    return {"_id": {"$regex": EscapeRegex(self.regex)}}
 
 
 class PredicateGreaterThanFilter(Filter):
@@ -143,15 +145,15 @@ class PredicateGreaterThanFilter(Filter):
     super(PredicateGreaterThanFilter, self).__init__()
 
   def FilterExpression(self):
-    return {utils.SmartUnicode(self.attribute_name) + ".v": {"$gt":
-                                                             long(self.value)}}
+    return {EscapeKey(self.attribute_name) + ".v": {
+        "$gt": long(self.value)}}
 
 
 class PredicateGreaterEqualFilter(PredicateGreaterThanFilter):
 
   def FilterExpression(self):
-    return {utils.SmartUnicode(self.attribute_name) + ".v": {"$ge":
-                                                             long(self.value)}}
+    return {EscapeKey(self.attribute_name) + ".v": {
+        "$ge": long(self.value)}}
 
 
 class PredicateLessThanFilter(Filter):
@@ -173,15 +175,15 @@ class PredicateLessThanFilter(Filter):
     super(PredicateLessThanFilter, self).__init__()
 
   def FilterExpression(self):
-    return {utils.SmartUnicode(self.attribute_name) + ".v": {"$lt":
-                                                             long(self.value)}}
+    return {EscapeKey(self.attribute_name) + ".v": {
+        "$lt": long(self.value)}}
 
 
 class PredicateLessEqualFilter(PredicateLessThanFilter):
 
   def FilterExpression(self):
-    return {utils.SmartUnicode(self.attribute_name) + ".v": {"$le":
-                                                             long(self.value)}}
+    return {EscapeKey(self.attribute_name) + ".v": {
+        "$le": long(self.value)}}
 
 
 class Transaction(data_store.Transaction):
@@ -194,7 +196,10 @@ class Transaction(data_store.Transaction):
     self.token = token
 
     # Bring all the data over to minimize round trips
-    self._cache = self.collection.find_one(subject) or {}
+    encoded_cache = self.collection.find_one(EscapeKey(subject)) or {}
+    self._cache = {}
+    for (k, v) in encoded_cache.items():
+      self._cache[DecodeKey(k)] = v
 
     # Initial lock number is a random number to avoid a race on creating new
     # documents.
@@ -202,15 +207,15 @@ class Transaction(data_store.Transaction):
     if not self.version:
       # This object is not currently present or versioned, Create it
       try:
-        self.collection.update(dict(_id=subject),
+        self.collection.update(dict(_id=EscapeKey(subject)),
                                {"$set": {"_lock": random.randint(1, 1e6)}},
                                upsert=True, safe=True)
         # Re-read the lock to ensure we do not have a race
-        self._cache = self.collection.find_one(subject)
+        self._cache = self.collection.find_one(EscapeKey(subject))
         self.version = self._cache.get("_lock")
-      except errors.PyMongoError, e:
-        logging.error("Mongo Error %s", e)
-        raise data_store.Error(str(e))
+      except errors.PyMongoError as e:
+        logging.error(u"Mongo Error %s", utils.SmartUnicode(e))
+        raise data_store.TransactionError(utils.SmartUnicode(e))
 
     self._to_update = {}
     self._committed = False
@@ -232,7 +237,7 @@ class Transaction(data_store.Transaction):
     values.append(dict(v=_Encode(value), t=timestamp))
 
     self._cache[predicate] = values
-    self._to_update[predicate] = values
+    self._to_update[EscapeKey(predicate)] = values
 
   def ResolveRegex(self, predicate_regex, decoder=None,
                    timestamp=None):
@@ -299,7 +304,7 @@ class Transaction(data_store.Transaction):
 
     # We set the entire object now:
     if self._to_update:
-      spec = dict(_id=URNEncode(self.subject))
+      spec = dict(_id=URNEncode(EscapeKey(self.subject)))
       try:
         spec["_lock"] = self._cache["_lock"]
       except KeyError:
@@ -324,13 +329,27 @@ class Transaction(data_store.Transaction):
       try:
         self.collection.update(spec, {"$set": self._to_update},
                                upsert=True, safe=True)
-      except errors.OperationFailure, e:
+      except errors.OperationFailure as e:
         # Transaction failed.
-        raise data_store.TransactionError(str(e))
+        raise data_store.TransactionError(utils.SmartUnicode(e))
 
   def Abort(self):
     # Nothing to do if we abort
     pass
+
+
+def EscapeKey(key):
+  return utils.SmartUnicode(key).replace(u".", u"¿")
+
+
+def DecodeKey(key):
+  return utils.SmartUnicode(key).replace(u"¿", u".")
+
+
+def EscapeRegex(regex):
+  # TODO(user): This is not perfect, but it's really hard to parse the regex
+  # correctly to do the right thing so we just use this heuristics for now.
+  return regex.replace(r"\.", u"¿")
 
 
 class MongoDataStore(data_store.DataStore):
@@ -354,8 +373,8 @@ class MongoDataStore(data_store.DataStore):
   def Resolve(self, subject, attribute, decoder=None, token=None):
     """Retrieves a value set for a subject's predicate."""
     self.security_manager.CheckAccess(token, [subject], "r")
-    attribute = utils.SmartUnicode(attribute)
-    subject = utils.SmartUnicode(subject)
+    attribute = EscapeKey(attribute)
+    subject = EscapeKey(subject)
 
     records = self.collection.find_one(URNEncode(subject),
                                        fields=[URNEncode(attribute)]) or {}
@@ -371,8 +390,9 @@ class MongoDataStore(data_store.DataStore):
     """Resolves multiple predicates at once for one subject."""
     subject = utils.SmartUnicode(subject)
     self.security_manager.CheckAccess(token, [subject], "r")
+    subject = EscapeKey(subject)
 
-    predicates = [utils.SmartUnicode(s) for s in predicates]
+    predicates = [EscapeKey(s) for s in predicates]
     records = self.collection.find_one(URNEncode(subject), fields=predicates)
     for predicate in predicates:
       record = records.get(predicate)
@@ -381,16 +401,17 @@ class MongoDataStore(data_store.DataStore):
       timestamp = record[0]["t"]
       value = _Decode(record[0]["v"], decoder)
 
-      yield predicate, value, timestamp
+      yield DecodeKey(predicate), value, timestamp
 
   def DeleteSubject(self, subject, token=None):
     """Completely deletes all information about the subject."""
     self.security_manager.CheckAccess(token, [subject], "w")
-    self.collection.remove(subject)
+    self.collection.remove(EscapeKey(subject))
 
   def MultiSet(self, subject, values, timestamp=None, token=None,
                replace=True, sync=True, to_delete=None):
     """Set multiple predicates' values for this subject in one operation."""
+    _ = sync
     self.security_manager.CheckAccess(token, [subject], "w")
     subject = utils.SmartUnicode(subject)
 
@@ -398,14 +419,14 @@ class MongoDataStore(data_store.DataStore):
     if to_delete:
       self.DeleteAttributes(subject, to_delete, token=token)
 
-    spec = dict(_id=URNEncode(subject))
+    spec = dict(_id=URNEncode(EscapeKey(subject)))
 
     # Do we need to merge old data with the new data? If so we re-fetch the old
     # data here.
     if not replace:
       document = self.collection.find_one(
-          URNEncode(subject),
-          fields=[URNEncode(x) for x in values.keys()]) or {}
+          URNEncode(EscapeKey(subject)),
+          fields=[URNEncode(EscapeKey(x)) for x in values.keys()]) or {}
 
       if "_id" in document:
         del document["_id"]
@@ -423,8 +444,8 @@ class MongoDataStore(data_store.DataStore):
         if element_timestamp is None:
           element_timestamp = time.time() * 1e6
 
-        document.setdefault(utils.SmartUnicode(attribute), []).append(
-            dict(v=_Encode(value), t=int(element_timestamp)))
+        vals = document.setdefault(EscapeKey(attribute), [])
+        vals.append(dict(v=_Encode(value), t=int(element_timestamp)))
 
     self._MultiSet(subject, document, spec)
 
@@ -434,38 +455,43 @@ class MongoDataStore(data_store.DataStore):
       try:
         result = self.collection.update(spec, {"$set": document},
                                         upsert=False, safe=True)
-      except errors.PyMongoError, e:
+      except errors.PyMongoError as e:
         logging.error("Mongo Error %s", e)
-        raise data_store.Error(str(e))
+        raise data_store.Error(utils.SmartUnicode(e))
 
       # If the document does not already exist, just save a new one
       if not result["updatedExisting"]:
-        document["_id"] = URNEncode(subject)
+        document["_id"] = URNEncode(EscapeKey(subject))
         self.collection.save(document)
 
   def DeleteAttributes(self, subject, attributes, token=None):
     self.security_manager.CheckAccess(token, [subject], "w")
 
-    self.collection.update(dict(_id=URNEncode(subject)), {"$unset": dict(
-        [(utils.SmartUnicode(x), 1) for x in attributes])},
+    to_del = dict([(EscapeKey(x), 1) for x in attributes])
+    self.collection.update(dict(_id=URNEncode(EscapeKey(subject))),
+                           {"$unset": to_del},
                            upsert=False, safe=False)
 
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
-                        decoder=None, timestamp=None):
+                        decoder=None, timestamp=None, limit=None):
     """Retrieves a bunch of subjects in one round trip."""
     self.security_manager.CheckAccess(token, subjects, "r")
+
+    if not subjects:
+      return {}
 
     # Allow users to specify a single string here.
     if type(predicate_regex) == str:
       predicate_regex = [predicate_regex]
 
-    predicate_res = [re.compile(x) for x in predicate_regex]
+    predicate_res = [re.compile(EscapeRegex(x)) for x in predicate_regex]
     # Only fetch the subjects we care about
-    spec = {"$or": [dict(_id=URNEncode(x)) for x in subjects]}
+    spec = {"$or": [dict(_id=URNEncode(EscapeKey(x))) for x in subjects]}
     result = {}
 
+    result_count = 0
     for document in self.collection.find(spec):
-      subject = document["_id"]
+      subject = DecodeKey(document["_id"])
       for key, values in document.items():
         # only proceed if a the key matches any of the subject_res
         for predicate in predicate_res:
@@ -473,16 +499,20 @@ class MongoDataStore(data_store.DataStore):
             for value_obj in values:
               timestamp = value_obj["t"]
               value = _Decode(value_obj["v"], decoder)
-              result.setdefault(subject, []).append((key, value, timestamp))
+              result.setdefault(subject, []).append(
+                  (DecodeKey(key), value, timestamp))
+              result_count += 1
+              if limit and result_count >= limit:
+                return result
             break
 
     return result
 
   def ResolveRegex(self, subject, predicate_regex, token=None,
-                   decoder=None, timestamp=None):
+                   decoder=None, timestamp=None, limit=None):
     result = self.MultiResolveRegex(
         [subject], predicate_regex, decoder=decoder,
-        timestamp=timestamp, token=token).get(subject, [])
+        timestamp=timestamp, token=token, limit=limit).get(subject, [])
     result.sort(key=lambda a: a[0])
     return result
 
@@ -504,18 +534,19 @@ class MongoDataStore(data_store.DataStore):
     # Make this lookup fast
     if subjects:
       subjects = set(subjects)
-    attributes = [utils.SmartUnicode(x) for x in attributes]
+    attributes = [EscapeKey(x) for x in attributes]
 
     result_subjects = []
 
     if subject_prefix:
-      regex = data_store.EscapeRegex(utils.SmartUnicode(subject_prefix))
+      regex = data_store.EscapeRegex(
+          EscapeKey(subject_prefix))
       spec = {"$and": [spec, {"_id": {"$regex": "^" + regex}}]}
 
     if subjects:
       expressions = []
       for subject in subjects:
-        regex = data_store.EscapeRegex(utils.SmartUnicode(subject))
+        regex = data_store.EscapeRegex(EscapeKey(subject))
         expressions.append({"_id": {"$regex": "^" + regex + "$"}})
 
       spec = {"$and": [spec, {"$or": expressions}]}
@@ -524,7 +555,7 @@ class MongoDataStore(data_store.DataStore):
         spec=spec, fields=attributes, skip=skip,
         limit=limit, slave_okay=True):
       try:
-        subject = document["_id"]
+        subject = DecodeKey(document["_id"])
         # Only yield those subjects which we are allowed to view.
         self.security_manager.CheckAccess(token, [subject], "r")
 

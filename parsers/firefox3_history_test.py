@@ -28,8 +28,6 @@ from grr.parsers import firefox3_history
 FLAGS = flags.FLAGS
 
 
-
-
 class Firefox3HistoryTest(test_lib.GRRBaseTest):
   """Test parsing of Firefox 3 history files."""
 
@@ -43,18 +41,32 @@ class Firefox3HistoryTest(test_lib.GRRBaseTest):
     # Parse returns (timestamp, dtype, url, title)
     entries = [x for x in history.Parse()]
 
+    self.assertEquals(len(entries), 1)
+
     try:
       dt1 = datetime.datetime(1970, 1, 1)
       dt1 += datetime.timedelta(microseconds=entries[0][0])
-    except TypeError:
-      dt1 = entries[0][0]
-    except ValueError:
+    except (TypeError, ValueError):
       dt1 = entries[0][0]
 
     self.assertEquals(str(dt1), "2011-07-01 11:16:21.371935")
     self.assertEquals(entries[0][2], "http://news.google.com/")
     self.assertEquals(entries[0][3], "Google News")
-    self.assertEquals(len(entries), 1)
+
+  def testNewHistoryFile(self):
+    """Tests reading of history files written by recent versions of Firefox."""
+    history_file = os.path.join(self.base_path, "new_places.sqlite")
+    history = firefox3_history.Firefox3History(open(history_file))
+    entries = [x for x in history.Parse()]
+
+    self.assertEquals(len(entries), 3)
+    self.assertEquals(entries[1][3],
+                      "Slashdot: News for nerds, stuff that matters")
+    self.assertEquals(entries[2][0], 1342526323608384L)
+    self.assertEquals(entries[2][1], "FIREFOX3_VISIT")
+    self.assertEquals(entries[2][2],
+                      "https://blog.duosecurity.com/2012/07/exploit-mitigations"
+                      "-in-android-jelly-bean-4-1/")
 
 
 def main(argv):

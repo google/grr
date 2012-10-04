@@ -16,14 +16,49 @@
 """This file contains various utility classes used by GRR."""
 
 
+
+import base64
 import posixpath
 import re
+import socket
 import struct
 import threading
 import time
 
 from google.protobuf import message
+from grr.lib import stats
 from grr.proto import jobs_pb2
+
+
+class IPInfo(object):
+  UNKNOWN = 0
+  INTERNAL = 1
+  EXTERNAL = 2
+  VPN = 3
+
+
+def RetrieveIPInfo(ip):
+  if not ip:
+    return (IPInfo.UNKNOWN, "No ip information.")
+  ip = SmartStr(ip)
+  if ":" in ip:
+    return RetrieveIP6Info(ip)
+  return RetrieveIP4Info(ip)
+
+def RetrieveIP4Info(ip):
+  """Retrieves information for an IP4 address."""
+  if ip.startswith("192"):
+    return (IPInfo.INTERNAL, "Internal IP address.")
+  try:
+    # It's an external IP, let's try to do a reverse lookup.
+    res = socket.gethostbyaddr(ip)
+    return (IPInfo.EXTERNAL, res[0])
+  except (socket.herror, socket.gaierror):
+    return (IPInfo.EXTERNAL, "Unknown IP address.")
+
+def RetrieveIP6Info(ip):
+  """Retrieves information for an IP6 address."""
+  return (IPInfo.INTERNAL, "Internal IP6 address.")
 
 
 def Proxy(f):
@@ -51,10 +86,11 @@ class InterruptableThread(threading.Thread):
   exit = False
   threads = []
 
-  def __init__(self, target=None, args=None, kwargs=None, **kw):
+  def __init__(self, target=None, args=None, kwargs=None, sleep_time=10, **kw):
     self.target = target
     self.args = args or ()
     self.kwargs = kwargs or {}
+    self.sleep_time = sleep_time
 
     super(InterruptableThread, self).__init__(**kw)
     # Do not hold up program exit
@@ -70,7 +106,10 @@ class InterruptableThread(threading.Thread):
       else:
         self.Iterate()
 
-      time.sleep(10)
+      for _ in range(self.sleep_time):
+        if self.exit:
+          break
+        time.sleep(1)
 
 
 class FastStore(object):
@@ -326,18 +365,22 @@ class DataBlob(object):
 
   def SetValue(self, value):
     """Receives a value and fills it into a DataBlob."""
-    type_mappings = {unicode: "string", str: "data", int: "integer",
-                     long: "integer", bool: "boolean"}
+    type_mappings = [(unicode, "string"), (str, "data"), (bool, "boolean"),
+                     (int, "integer"), (long, "integer"), (dict, "dict")]
     if value is None:
       self.blob.none = "None"
     elif isinstance(value, message.Message):
       # If we have a protobuf save the type and serialized data.
       self.blob.data = value.SerializeToString()
       self.blob.proto_name = value.__class__.__name__
-    elif isinstance(value, list):
+    elif isinstance(value, (list, tuple)):
       self.blob.list.content.extend([DataBlob().SetValue(v) for v in value])
+    elif isinstance(value, dict):
+      pdict = ProtoDict()
+      pdict.FromDict(value)
+      self.blob.dict.MergeFrom(pdict.ToProto())
     else:
-      for type_mapping, member in type_mappings.items():
+      for type_mapping, member in type_mappings:
         if isinstance(value, type_mapping):
           setattr(self.blob, member, value)
           return self.blob
@@ -350,7 +393,7 @@ class DataBlob(object):
     """Extracts and returns a single value from a DataBlob."""
     if self.blob.HasField("none"):
       return None
-    field_names = ["integer", "string", "data", "boolean", "list"]
+    field_names = ["integer", "string", "data", "boolean", "list", "dict"]
     values = [getattr(self.blob, x) for x in field_names
               if self.blob.HasField(x)]
     if len(values) != 1:
@@ -364,6 +407,8 @@ class DataBlob(object):
         raise RuntimeError("Datablob has unknown protobuf.")
     elif self.blob.HasField("list"):
       return [DataBlob(x).GetValue() for x in self.blob.list.content]
+    elif self.blob.HasField("dict"):
+      return ProtoDict(values[0]).ToDict()
     else:
       return values[0]
 
@@ -498,9 +543,41 @@ def SmartUnicode(string):
     a unicode object.
   """
   if type(string) != unicode:
-    return str(string).decode("utf8", "ignore")
+    try:
+      return string.__unicode__()
+    except (AttributeError, UnicodeError):
+      return str(string).decode("utf8", "ignore")
 
   return string
+
+
+def Xor(string, key):
+  """Returns a string where each character has been xored with key."""
+  return "".join([chr(c ^ key) for c in bytearray(string)])
+
+
+def XorByteArray(array, key):
+  """Xors every item in the array with key and returns it."""
+  for i in xrange(len(array)):
+    array[i] ^= key
+  return array
+
+
+def FormatAsHexString(num, width=None):
+  """Takes an int and returns the number formatted as a hex string."""
+  # Strip "0x".
+  hex_str = hex(num)[2:]
+  # Strip "L" for long values.
+  hex_str = hex_str.replace("L", "")
+  if width:
+    hex_str = hex_str.rjust(width, "0")
+  return "0x%s" % hex_str
+
+
+def FormatAsTimestamp(timestamp):
+  if not timestamp:
+    return "-"
+  return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
 
 
 def NormalizePath(path, sep="/"):
@@ -522,7 +599,6 @@ def NormalizePath(path, sep="/"):
      that would result in the system opening the same physical file will produce
      the same normalized path.
   """
-
   path = SmartUnicode(path)
 
   path_list = path.split(sep)
@@ -732,22 +808,25 @@ class Pathspec(object):
     return self.ToProto().SerializeToString()
 
 
-class ProtoEnum(int):
-  """A class representing a protobuf enum.
+def Grouper(iterable, n):
+  """Group iterable into lists of size n. Last list will be short."""
+  items = []
+  for count, item in enumerate(iterable):
+    items.append(item)
+    if (count + 1) % n == 0:
+      yield items
+      items = []
+  if items:
+    yield items
 
-  Use an instance from this class to mark a default value in a flow constructor
-  so that the GUI can render all the enum choices.
 
-  Protobufs test for this being an instance of int or long, hence we must extend
-  int or long.
-  """
+def EncodeReasonString(reason):
+  return base64.urlsafe_b64encode(SmartStr(reason))
 
-  def __new__(cls, protobuf_class, enum_name, default):
-    return int.__new__(cls, getattr(protobuf_class, default))
 
-  def __init__(self, protobuf_class, enum_name, default):
-    self.protobuf_class = protobuf_class
-    self.enum_name = enum_name
-    self.default = default
+def DecodeReasonString(reason):
+  return base64.urlsafe_b64decode(SmartStr(reason))
 
-    int.__init__(self)
+
+def ToProtoString(string):
+  return SmartUnicode(string)

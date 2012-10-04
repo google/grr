@@ -106,4 +106,3 @@ class TestDownloadDirectory(test_lib.FlowTestsBaseclass):
 
     self.assertEqual("a.txt b.txt c.txt d.txt".split(),
                      sorted([child.urn.Basename() for child in children]))
-

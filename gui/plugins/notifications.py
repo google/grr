@@ -43,7 +43,7 @@ class NotificationCount(renderers.TemplateRenderer):
 
     encoder = json.JSONEncoder()
     return http.HttpResponse(encoder.encode(dict(number=number)),
-                             mimetype="application/json")
+                             mimetype="text/json")
 
 
 class NotificationBar(renderers.TemplateRenderer):

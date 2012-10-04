@@ -16,9 +16,9 @@
 """A module to allow option processing from files or registry."""
 
 
+import collections
 import ConfigParser
 import exceptions
-import logging
 import optparse
 import os
 import pdb
@@ -26,6 +26,7 @@ import platform
 import sys
 
 
+import logging
 
 if platform.system() == "Windows":
   import _winreg
@@ -47,6 +48,7 @@ class MyOption(optparse.Option):
       # We have not parsed everything yet.
       if parser.state != "Final":
         return
+
       else:
         # Fill in the metavars from the calculated values
         for option in parser.option_list:
@@ -117,14 +119,14 @@ class OptionParser(optparse.OptionParser):
     optparse.OptionParser.error(self, msg)
 
   def SetArg(self, key, value):
+    # Do not set booleans to false.
+    if value == "False":
+      return
     optparse.OptionParser.parse_args(self, ["--" + key, value],
                                      values=self.values)
 
   def ProcessConfigFile(self):
     """Parse options from a config file."""
-    # Parse the options once to pick up the config file.
-    optparse.OptionParser.parse_args(self, values=self.values)
-
     try:
       self.values.config
     except AttributeError:
@@ -139,7 +141,7 @@ class OptionParser(optparse.OptionParser):
     for path in files:
       try:
         conf_file.read(path)
-      except ConfigParser.Error, e:
+      except ConfigParser.Error as e:
         logging.error("Config parsing error: %s: %s", path, e)
 
     for section in conf_file.sections():
@@ -150,8 +152,8 @@ class OptionParser(optparse.OptionParser):
     for k, v in conf_file.defaults().items():
       try:
         self.SetArg(k, v)
-      except RuntimeError, e:
-        logging.warn("Processing config files: %s", e)
+      except RuntimeError as e:
+        pass
 
   def ProcessEnvironment(self):
     """Merge values into options from the environment."""
@@ -171,16 +173,8 @@ class OptionParser(optparse.OptionParser):
 
     Note that we use the 32 bit registry by not passing KEY_WOW64_64KEY.
     This means that our configuration is stored by default in:
-      HKLM\Software\Wow6432Node\Software\GRR
+      HKLM\\Software\\Wow6432Node\\Software\\GRR
     """
-    # Parse the options once to pick up the config file.
-    optparse.OptionParser.parse_args(self, values=self.values)
-
-    self._ProcessRegistry()
-
-  def _ProcessRegistry(self):
-    """Do the real work."""
-
     try:
       hive, path = self.values.regpath.split("\\", 1)
     except TypeError:
@@ -190,9 +184,10 @@ class OptionParser(optparse.OptionParser):
       return
 
     try:
-      sid = _winreg.OpenKey(getattr(_winreg, hive),
-                            path, 0, _winreg.KEY_READ)
-    except exceptions.WindowsError, e:
+      sid = _winreg.OpenKey(
+          getattr(_winreg, hive),
+          path, 0, KEY_WOW64_64KEY | _winreg.KEY_READ)
+    except exceptions.WindowsError as e:
       logging.debug("Unable to open config registry key: %s", e)
       return
 
@@ -200,21 +195,23 @@ class OptionParser(optparse.OptionParser):
     while True:
       try:
         name, value, _ = _winreg.EnumValue(sid, i)
-      except exceptions.WindowsError, e:
+      except exceptions.WindowsError as e:
         break
       i += 1
 
       try:
         self.SetArg(name, str(value))
-      except RuntimeError, e:
-        logging.warn("Processing Registry Setting %s: %s", name, e)
+      except RuntimeError as e:
+        pass
 
   def parse_args(self, args=None, values=None):
     """Parse the args via ini files or windows registry."""
-    if self.state == "Final": return
+    # Turn off strict parsing - this prevents --help from firing right now.
+    self.state = "PreParse"
 
-    if args is not None or values is not None:
-      return optparse.OptionParser.parse_args(self, args, values)
+    # Parse the options once to pick up config files/reg keys etc.
+    self.values, self.args = optparse.OptionParser.parse_args(
+        self, args=args, values=self.values)
 
     # Add a config file option
     if platform.system() == "Windows":
@@ -223,9 +220,16 @@ class OptionParser(optparse.OptionParser):
       # For unix like systems read from ini files or environment.
       self.ProcessEnvironment()
       self.ProcessConfigFile()
+
+    # Turn strict parsing back on. If --help fires now it will show the config
+    # file options.
     self.state = "Final"
 
-    _, self.args = optparse.OptionParser.parse_args(self, values=self.values)
+    # Parse the options again in order to override anything specified in the
+    # config file.
+    self.values, self.args = optparse.OptionParser.parse_args(
+        self, args=args, values=self.values)
+
     # Copy the new results to the flags. This is required since there may be
     # references still to the old flags object so we cant just swap it.
     for k, v in self.values.__dict__.items():
@@ -242,7 +246,7 @@ class OptionParser(optparse.OptionParser):
     Raises:
      IOError or OSError if we fail to write on the file.
     """
-    if hasattr(self.flags, "config"):
+    if getattr(self.flags, "config", None):
       # Deal with config stored in the config file. Only write back things that
       # were read from the file or were specified in args_to_update.
 
@@ -250,7 +254,7 @@ class OptionParser(optparse.OptionParser):
       for path in self.flags.config.split(","):
         try:
           conf_parser.read(path)
-        except ConfigParser.Error, e:
+        except ConfigParser.Error as e:
           logging.error("Error reading config: %s: %s", path, e)
 
       # Now override with our new values
@@ -264,14 +268,17 @@ class OptionParser(optparse.OptionParser):
       except (IOError, OSError):
         pass
 
-      # We can not use the standard open() call because we need to
-      # enforce restrictive file permissions on the created file.
-      mode = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-      fd = os.open(self.flags.config, mode, 0600)
-      with os.fdopen(fd, "wb") as config_file:
-        conf_parser.write(config_file)
+      try:
+        # We can not use the standard open() call because we need to
+        # enforce restrictive file permissions on the created file.
+        mode = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+        fd = os.open(self.flags.config, mode, 0600)
+        with os.fdopen(fd, "wb") as config_file:
+          conf_parser.write(config_file)
+      except OSError:
+        logging.warn("Unable to write config file %s.", self.flags.config)
 
-    elif hasattr(self.flags, "regpath"):
+    elif getattr(self.flags, "regpath", None):
       # Deal with config stored in the registry.
       key = CreateRegistryKeys(self.flags.regpath)
       if not key:
@@ -282,15 +289,31 @@ class OptionParser(optparse.OptionParser):
         try:
           _winreg.SetValueEx(key, arg, 0, _winreg.REG_SZ,
                              str(getattr(self.flags, arg)))
-        except exceptions.WindowsError, e:
+        except exceptions.WindowsError as e:
           logging.warn("Unable to write config registry key: %s", e)
       if key:
         key.Close()
+
+  def FlagDict(self):
+    """Gets the flags as a dict.
+
+    Returns:
+      A dict of named tuples with name, value, type.
+    """
+    flag_obj = collections.namedtuple("FlagObj", "name value type")
+    f_dict = {}
+    for flag in self.option_list:
+      if not flag.dest:  # Skip special vars such as --help.
+        continue
+      f_dict[flag.dest] = flag_obj(flag.dest, getattr(self.values, flag.dest),
+                                   flag.type)
+    return f_dict
 
 
 # A global flags parser
 PARSER = OptionParser()
 FLAGS = PARSER.flags
+
 
 
 
@@ -313,33 +336,19 @@ def CreateRegistryKeys(reg_path):
   except TypeError:
     logging.warn("Registry path invalid: %s", reg_path)
     return
-  full_path = path
 
-  pieces = path.split("\\")
-  # Determine the first key in the path that doesn't exist.
-  key = None
-  for i in range(len(pieces), 0, -1):
-    try:
-      path = "\\".join(pieces[0:i])
-      key = _winreg.OpenKey(hive, path, 0, _winreg.KEY_WRITE)
-      if key:
-        break
-    except exceptions.WindowsError, e:
-      logging.debug("Unable to open config registry key: %s", e)
-  if not key:
-    logging.warn("Registry path invalid or not enough permissions")
+  try:
+    return _winreg.OpenKey(
+        hive, path, 0, KEY_WOW64_64KEY | _winreg.KEY_WRITE | _winreg.KEY_READ)
+  except exceptions.WindowsError as e:
+    logging.debug("Unable to open config registry key: %s", e)
+
+  try:
+    return _winreg.CreateKeyEx(
+        hive, path, 0,
+        KEY_WOW64_64KEY | _winreg.KEY_WRITE | _winreg.KEY_READ)
+  except exceptions.WindowsError:
     return
-
-  if path != full_path:
-    # Create any keys we don't have.
-    cur_path = full_path[len(path) + 1:]
-    try:
-      key = _winreg.CreateKey(key, cur_path)
-    except exceptions.WindowsError:
-      return
-
-  if key:
-    return key
 
 
 # Helper functions for setting options on the global parser object
@@ -363,17 +372,24 @@ def DEFINE_float(longopt, default, help):
                     help=help)
 
 
+def DEFINE_enum(longopt, default, choices, help):
+  PARSER.add_option("", "--%s" % longopt, default=default, choices=choices,
+                    type="choice", help=help)
 
-def StartMain(main):
+
+
+
+def StartMain(main, argv=None):
   """The main entry point to start applications.
 
   Parses flags and catches all exceptions for debugging.
 
   Args:
      main: A main function to call.
+     argv: The argv to parse. Default from sys.argv.
   """
   # Make sure we parse all the args
-  PARSER.parse_args()
+  PARSER.parse_args(args=argv)
 
   # Call the main function
   try:

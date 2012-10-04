@@ -12,15 +12,24 @@
 %:
 	dh $@ --buildsystem=makefile
 
+# Init.d version
+# override_dh_installinit:
+#       install -D -p -m755 grr/config/debian/initd/grr-client debian/grr-client/etc/init.d/grr-client
+#       sed "s/#SCRIPT#/grr-client/;s/#INITPARMS#/defaults/;s/#ERROR_HANDLER#/exit \$$?/" \
+#       /usr/share/debhelper/autoscripts/postinst-init >> debian/grr-client.postinst.debhelper
+#       sed "s/#SCRIPT#/grr-client/;s/#INITPARMS#/defaults/;s/#ERROR_HANDLER#/exit \$$?/" \
+#       /usr/share/debhelper/autoscripts/prerm-init >> debian/grr-client.prerm.debhelper
+#       sed "s/#SCRIPT#/grr-client/;s/#INITPARMS#/defaults/;s/#ERROR_HANDLER#/exit \$$?/" \
+#       /usr/share/debhelper/autoscripts/postrm-init >> debian/grr-client.postrm.debhelper
+
 override_dh_installinit:
 	install -D -p -m755 debian/tmp/usr/sbin/grrd debian/grr-client/usr/sbin/grrd
-	install -D -p -m755 grr/config/debian/initd/grr-client debian/grr-client/etc/init.d/grr-client
-	sed "s/#SCRIPT#/grr-client/;s/#INITPARMS#/defaults/;s/#ERROR_HANDLER#/exit \$$?/" \
-	/usr/share/debhelper/autoscripts/postinst-init >> debian/grr-client.postinst.debhelper
-	sed "s/#SCRIPT#/grr-client/;s/#INITPARMS#/defaults/;s/#ERROR_HANDLER#/exit \$$?/" \
-	/usr/share/debhelper/autoscripts/prerm-init >> debian/grr-client.prerm.debhelper
-	sed "s/#SCRIPT#/grr-client/;s/#INITPARMS#/defaults/;s/#ERROR_HANDLER#/exit \$$?/" \
-	/usr/share/debhelper/autoscripts/postrm-init >> debian/grr-client.postrm.debhelper
+	install -D -p -m755 grr/config/debian/upstart/grr-client.conf debian/grr-client.upstart
+	sed "s/#JOB#/grr-client/;s/#ERROR_HANDLER#/exit \$$?/" \
+	/usr/share/debhelper/autoscripts/postinst-upstart >> debian/grr-client.postinst.debhelper
+	sed "s/#JOB#/grr-client/;s/#ERROR_HANDLER#/exit \$$?/" \
+	/usr/share/debhelper/autoscripts/prerm-upstart >> debian/grr-client.prerm.debhelper
+	dh_installinit --upstart-only
 
 override_dh_strip:
 

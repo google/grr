@@ -26,6 +26,7 @@ from grr.client import conf as flags
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 
@@ -58,6 +59,8 @@ class AccessControlManager(data_store.BaseAccessControlManager):
     self.super_token = data_store.ACLToken()
     self.super_token.supervisor = True
     self.flow_switch = aff4.FACTORY.Create("aff4:/flows", "GRRFlowSwitch",
+                                           mode="r", token=self.super_token)
+    self.hunt_switch = aff4.FACTORY.Create("aff4:/hunts", "GRRHuntSwitch",
                                            mode="r", token=self.super_token)
 
     super(AccessControlManager, self).__init__()
@@ -99,7 +102,13 @@ class AccessControlManager(data_store.BaseAccessControlManager):
     Raises:
        data_store.UnauthorizedAccess: If the user is not authorized to perform
        the action on any of the subject URNs.
+
+       data_store.ExpiryError: If the token is expired.
     """
+    # Token must not be expired here.
+    if token:
+      token.CheckExpiry()
+
     # The supervisor may bypass all ACL checks.
     if token and token.supervisor:
       return True
@@ -109,17 +118,19 @@ class AccessControlManager(data_store.BaseAccessControlManager):
     # Execute access applies to flows only.
     if "x" in requested_access:
       for subject in subjects:
-        if not self.CheckFlowAccess(subject, token):
+        if not self.CheckFlowAccess(subject, token, requested_access):
           raise data_store.UnauthorizedAccess(
-              "Execution of flow %s rejected." % subject, subject=subject)
+              "Execution of flow %s rejected." % subject,
+              subject=subject, requested_access=requested_access)
 
     else:
-      # Check each subject in turn. If any subject is reject the entire request
-      # is rejected.
+      # Check each subject in turn. If any subject is rejected the entire
+      # request is rejected.
       for subject in subjects:
         if not self.CheckSubject(subject, token, requested_access):
           raise data_store.UnauthorizedAccess(
-              "Must specify authorization for %s" % subject, subject=subject)
+              "Access denied for %s (%s)" % (subject, requested_access),
+              subject=subject, requested_access=requested_access)
 
     return True
 
@@ -129,7 +140,7 @@ class AccessControlManager(data_store.BaseAccessControlManager):
     Args:
       subject: The subject to check - Can be an RDFURN or string.
       token: The token to check with.
-      requested_access: The type of access requested (can be "r", "w", "x")
+      requested_access: The type of access requested (can be "r", "w", "x", "q")
 
     Returns:
       True if the access is allowed.
@@ -151,14 +162,24 @@ class AccessControlManager(data_store.BaseAccessControlManager):
     if not token:
       raise data_store.UnauthorizedAccess(
           "Must give an authorization token for %s" % subject,
-          subject=namespace)
+          subject=namespace, requested_access=requested_access)
 
     # This is a request into a client namespace, requires approval.
     if self.client_id_re.match(namespace):
-      return self.CheckApproval(namespace, token)
+      return self.CheckApproval(namespace, token, requested_access)
 
-    # Anyone should be able to read their own user record.
+    # Foreman is only accessible by admins.
+    if namespace == "foreman":
+      return self.CheckUserLabels(token.username, ["admin"])
+
+    # Anyone should be able to access their own user record.
     if namespace == "users" and path == token.username:
+      return True
+
+    # Anyone should be able to read their own labels but not write to them.
+    if (namespace == "users" and
+        path == token.username + "/labels" and
+        requested_access == "r"):
       return True
 
     # Tasks live in their own URN scheme
@@ -167,19 +188,29 @@ class AccessControlManager(data_store.BaseAccessControlManager):
 
       # This allows access to queued tasks for approved clients.
       if self.client_id_re.match(session_id):
-        return self.CheckApproval(session_id, token)
+        return self.CheckApproval(session_id, token, requested_access)
 
       # This provides access to flow objects for approved clients.
-      flow_urn = aff4.ROOT_URN.Add("flows").Add(session_id)
       try:
-        client_id = self.flow_cache.Get(flow_urn)
+        client_id = self.flow_cache.Get(session_id)
+
+        if client_id in ["Invalid", "Hunt"]:
+          return True
 
         # Check for write access to the client id itself.
-        return self.CheckApproval(client_id, token)
+        return self.CheckApproval(client_id, token, requested_access)
 
       except KeyError:
         try:
-          aff4_flow = self.flow_switch.OpenMember(flow_urn)
+          self.hunt_switch.OpenMember(session_id)
+          # If we reach this point, we are opening a hunt object which should
+          # be allowed.
+          self.flow_cache.Put(session_id, "Hunt")
+          return True
+        except (IOError, flow.FlowError):
+          pass
+        try:
+          aff4_flow = self.flow_switch.OpenMember(session_id)
         except (IOError, flow.FlowError):
           # The flow was not loadable so we allow access to the urn here. This
           # is a race condition but if someone can access a flow it's not a
@@ -199,19 +230,47 @@ class AccessControlManager(data_store.BaseAccessControlManager):
         self.flow_cache.Put(session_id, client_id)
 
         # Check access to the client id itself.
-        if self.CheckApproval(client_id, token):
+        if self.CheckApproval(client_id, token, requested_access):
           # The user has access to the client, pre-populate the flow cache. Even
           # though this is one more roundtrip we can save a lot of round trips
           # by having the cache pre-populated here.
           fd = aff4.FACTORY.Open(client_id, mode="r", token=self.super_token,
                                  age=aff4.ALL_TIMES)
           for client_flow_urn in fd.GetValuesForAttribute(fd.Schema.FLOW):
-            self.flow_cache.Put(client_flow_urn, client_id)
+            client_session_id = client_flow_urn.Basename()
+            self.flow_cache.Put(client_session_id, client_id)
 
           # We have write access to this client.
           return True
 
     return False
+
+  def CheckUserLabels(self, username, authorized_labels):
+    """Verify that the username has the authorized_labels set.
+
+    Args:
+       username: The name of the user.
+       authorized_labels: A list of string labels.
+
+    Returns:
+      True if the user has one of the authorized_labels set.
+    """
+    try:
+      # Labels are kept at a different location than the main user object so the
+      # user can not modify them themselves.
+      label_urn = aff4.RDFURN("aff4:/users/").Add(username).Add("labels")
+      labels = self.acl_cache.Get(label_urn)
+    except KeyError:
+      fd = aff4.FACTORY.Open(label_urn, mode="r", token=self.super_token)
+      labels = fd.Get(fd.Schema.LABEL).data.label
+
+      # Cache labels for a short time.
+      if labels:
+        self.acl_cache.Put(label_urn, labels)
+
+    for label in labels:
+      if label in authorized_labels:
+        return True
 
   def CheckWhiteList(self, namespace, path, requested_access):
     """Checks for access against whitelisted namespaces.
@@ -222,20 +281,17 @@ class AccessControlManager(data_store.BaseAccessControlManager):
     Args:
       namespace: The namespace to check, this is a string.
       path: path following the namespace
-      requested_access: The type of access requested (can be "r", "w", "x")
+      requested_access: The type of access requested (can be "r", "w", "x", "q")
 
     Returns:
       True if the access is allowed, False otherwise.
     """
+
     # The ROOT_URN is always allowed.
     if not namespace:
       return True
 
-    # Not sure about this, supervisor token might be better.
-    if namespace == "foreman":
-      return True
-
-    if namespace == "flows":
+    if namespace == "flows" or namespace == "hunts":
       return True
 
     # Querying is not allowed for the blob namespace. Blobs are stored by hashes
@@ -243,6 +299,11 @@ class AccessControlManager(data_store.BaseAccessControlManager):
     # however they must not be allowed to query for hashes. Users are not
     # allowed to write to blobs either - so they must only use "r".
     if namespace == "blobs" and self.AccessLowerThan(requested_access, "r"):
+      return True
+
+    # The fingerprint namespace typically points to blobs. As such, it follows
+    # the same rules.
+    if namespace == "FP" and self.AccessLowerThan(requested_access, "r"):
       return True
 
     if namespace == "users" and not path:
@@ -253,7 +314,9 @@ class AccessControlManager(data_store.BaseAccessControlManager):
       return True
 
     # Anyone can read stats.
-    if namespace == "OSBreakDown" and self.AccessLowerThan(
+    stat_namespaces = ["OSBreakDown", "GRRVersionBreakDown", "LastAccessStats",
+                       "ClientStatsCronJob"]
+    if namespace in stat_namespaces and self.AccessLowerThan(
         requested_access, "r"):
       return True
 
@@ -280,12 +343,13 @@ class AccessControlManager(data_store.BaseAccessControlManager):
 
     return False
 
-  def CheckApproval(self, client_id, token):
+  def CheckApproval(self, client_id, token, requested_access):
     """Checks if access for this client is allowed using the given token.
 
     Args:
       client_id: The client to check - Can be an RDFURN or string.
       token: The token to check with.
+      requested_access: The type of access requested (can be "r", "w", "x", "q")
 
     Returns:
       True if the access is allowed.
@@ -297,21 +361,23 @@ class AccessControlManager(data_store.BaseAccessControlManager):
 
     if not token.username:
       raise data_store.UnauthorizedAccess(
-          "Must specify a username for access.", subject=client_id)
+          "Must specify a username for access.",
+          subject=client_id, requested_access=requested_access)
 
     if not token.reason:
       raise data_store.UnauthorizedAccess(
-          "Must specify a reason for access.", subject=client_id)
+          "Must specify a reason for access.",
+          subject=client_id, requested_access=requested_access)
 
     # Accept either a client_id or a URN.
     client_id, _ = aff4.RDFURN(client_id).Split(2)
 
     # Build the approval URN.
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
-        token.username).Add(token.reason)
+        token.username).Add(utils.EncodeReasonString(token.reason))
 
     try:
-      self.acl_cache.Get(approval_urn)
+      token.is_emergency = self.acl_cache.Get(approval_urn)
       return True
     except KeyError:
       try:
@@ -323,23 +389,26 @@ class AccessControlManager(data_store.BaseAccessControlManager):
 
         if approval_request.CheckAccess(token):
           # Cache this approval for fast path checking.
-          self.acl_cache.Put(approval_urn, True)
+          self.acl_cache.Put(approval_urn, token.is_emergency)
           return True
 
         raise data_store.UnauthorizedAccess(
-            "Approval %s was rejected." % approval_urn, subject=client_id)
+            "Approval %s was rejected." % approval_urn,
+            subject=client_id, requested_access=requested_access)
 
       except IOError:
         # No Approval found, reject this request.
         raise data_store.UnauthorizedAccess(
-            "No approval found for client %s." % client_id, subject=client_id)
+            "No approval found for client %s." % client_id,
+            subject=client_id, requested_access=requested_access)
 
-  def CheckFlowAccess(self, subject, token):
+  def CheckFlowAccess(self, subject, token, requested_access):
     """This is called when the user wishes to execute a flow against a client.
 
     Args:
       subject: The flow must be encoded as aff4:/client_id/flow_name.
       token: The access token.
+      requested_access: The type of access requested (can be "r", "w", "x", "q")
 
     Returns:
       True is access if allowed, False otherwise.
@@ -354,21 +423,24 @@ class AccessControlManager(data_store.BaseAccessControlManager):
     if not self.client_id_re.match(client_id):
       raise data_store.UnauthorizedAccess(
           "Malformed subject for mode 'x': %s." % subject,
-          subject=client_id)
+          subject=client_id, requested_access=requested_access)
 
-    return self.CheckApproval(client_id, token)
+    return self.CheckApproval(client_id, token, requested_access)
 
 
-class ACLInit(aff4.AFF4InitHook):
+class ACLInit(registry.InitHook):
   """Install the selected security manager.
 
   Since many security managers depend on AFF4, we must run after the AFF4
   subsystem is ready.
   """
 
-  def __init__(self):
+  pre = ["StatsInit", "AFF4InitHook"]
+
+  def RunOnce(self):
     stats.STATS.RegisterMap("acl_check_time", "times", precision=0)
 
+  def Run(self):
     security_manager = data_store.BaseAccessControlManager.NewPlugin(
         FLAGS.security_manager)()
     data_store.DB.security_manager = security_manager

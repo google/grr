@@ -16,6 +16,9 @@
 """A module to load all windows client plugins."""
 
 
+
 # These import populate the Action registry
-from grr.client.client_actions.windows import network
-from grr.client.client_actions.windows import windows
+import platform
+
+if platform.system() == "Windows":
+  from grr.client.client_actions.windows import windows

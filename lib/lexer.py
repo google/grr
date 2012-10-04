@@ -117,7 +117,7 @@ class Lexer(object):
           # Override the state from the Token
           elif possible_next_state:
             next_state = possible_next_state
-        except ParseError, e:
+        except ParseError as e:
           self.Error(e)
 
       # Update the next state

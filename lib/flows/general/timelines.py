@@ -27,7 +27,7 @@ from grr.proto import jobs_pb2
 class MACTimes(flow.GRRFlow):
   """Calculate the MAC times from objects in the VFS."""
 
-  category = "/Filesystem/"
+  category = "/Timeline/"
 
   # Maximum depth of recursion.
   MAX_DEPTH = 5
@@ -94,3 +94,4 @@ class MACTimes(flow.GRRFlow):
   def End(self):
     # Flush the time line object.
     self.timeline_fd.Close()
+    super(MACTimes, self).End()

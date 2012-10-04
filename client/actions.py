@@ -18,10 +18,15 @@
 
 
 import logging
+import os
 import pdb
 import traceback
 
+
+import psutil
+
 from grr.client import conf as flags
+from grr.client import client_utils
 from grr.lib import registry
 from grr.lib import utils
 from grr.proto import jobs_pb2
@@ -30,6 +35,14 @@ FLAGS = flags.FLAGS
 
 # Our first response in the session is this:
 INITIAL_RESPONSE_ID = 1
+
+
+class Error(Exception):
+  pass
+
+
+class CPUExceededError(Error):
+  pass
 
 
 class ActionPlugin(object):
@@ -52,18 +65,26 @@ class ActionPlugin(object):
 
   __metaclass__ = registry.MetaclassRegistry
 
-  def __init__(self, message, grr_context=None, **proto_args):
+  priority = jobs_pb2.GrrMessage.MEDIUM_PRIORITY
+
+  require_fastpoll = True
+
+  def __init__(self, message, grr_worker=None, **proto_args):
     """Initialises our protobuf from the keywords passed.
 
     Args:
       message:     The GrrMessage that we are called to process.
-      grr_context: The grr context object which may be used to
+      grr_worker:  The grr client worker object which may be used to
                    e.g. send new actions on.
       **proto_args:  Field initializers for the protobuf in self._protobuf.
     """
-    self.grr_context = grr_context
+    self.grr_worker = grr_worker
     self.message = message
     self.response_id = INITIAL_RESPONSE_ID
+    self.cpu_used = None
+    self.nanny_controller = None
+    if message:
+      self.priority = message.priority
 
     if self.in_protobuf:
       self.buff = self.in_protobuf()
@@ -100,7 +121,15 @@ class ActionPlugin(object):
         raise RuntimeError("Message for %s was not Authenticated." %
                            message.name)
 
+      pid = os.getpid()
+      self.proc = psutil.Process(pid)
+      user_start, system_start = self.proc.get_cpu_times()
+      self.cpu_start = (user_start, system_start)
+      self.cpu_limit = message.cpu_limit
       self.Run(args)
+      user_end, system_end = self.proc.get_cpu_times()
+
+      self.cpu_used = (user_end - user_start, system_end - system_start)
 
     # We want to report back all errors and map Python exceptions to
     # Grr Errors.
@@ -115,6 +144,10 @@ class ActionPlugin(object):
                    self.status.error_message)
       if self.status.backtrace:
         logging.debug(self.status.backtrace)
+
+    if self.cpu_used:
+      self.status.cpu_time_used.user_cpu_time = self.cpu_used[0]
+      self.status.cpu_time_used.system_cpu_time = self.cpu_used[1]
 
     # This returns the error status of the Actions to the flow.
     self.SendReply(self.status, message_type=jobs_pb2.GrrMessage.STATUS)
@@ -146,13 +179,51 @@ class ActionPlugin(object):
     if protobuf is None:
       protobuf = self.out_protobuf(**kw)
 
-    self.grr_context.SendReply(protobuf,
-                               session_id=self.message.session_id,
-                               response_id=self.response_id,
-                               request_id=self.message.request_id,
-                               message_type=message_type)
+    self.grr_worker.SendReply(protobuf,
+                              # This is not strictly necessary but adds context
+                              # to this response.
+                              name=self.__class__.__name__,
+                              session_id=self.message.session_id,
+                              response_id=self.response_id,
+                              request_id=self.message.request_id,
+                              message_type=message_type,
+                              priority=self.priority,
+                              require_fastpoll=self.require_fastpoll)
 
     self.response_id += 1
+
+  def Progress(self):
+    """Indicate progress of the client action.
+
+    This function should be called periodically during client actions that do
+    not finish instantly. It will notify the nanny that the action is not stuck
+    and avoid the timeout and it will also check if the action has reached its
+    cpu limit.
+
+    Raises:
+      CPUExceededError: CPU limit exceeded.
+    """
+    if self.nanny_controller is None:
+      self.nanny_controller = client_utils.NannyController()
+    self.nanny_controller.Heartbeat()
+    try:
+      used_user_cpu = self.proc.get_cpu_times()[0] - self.cpu_start[0]
+      if used_user_cpu > self.cpu_limit:
+        raise CPUExceededError("Action exceeded cpu limit.")
+    except AttributeError:
+      pass
+
+  def SyncTransactionLog(self):
+    """This flushes the transaction log.
+
+    This function should be called by the client before performing
+    potential dangerous actions so the server can get notified in case
+    the whole machine crashes.
+    """
+
+    if self.nanny_controller is None:
+      self.nanny_controller = client_utils.NannyController()
+    self.nanny_controller.SyncTransactionLog()
 
 
 class IteratedAction(ActionPlugin):

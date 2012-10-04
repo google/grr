@@ -18,6 +18,18 @@ message AccessToken {
   // flows)
   optional string requested_access = 3;
 
+
+  // When does this token expire?
+  optional int64 expiry = 5;
+
+  // The IP this request originated from as well as proxies on the way.
+  repeated string source_ips = 6;
+
+  // The issuing process.
+  optional string process = 7;
+
+  // Is this action an emergency action?
+  optional bool is_emergency = 8;
 }
 
 
@@ -48,6 +60,8 @@ message DataStoreRequest {
   optional AccessToken token = 6;
 
   optional bool sync = 7;
+
+  optional uint32 limit = 8;
 };
 
 
@@ -78,6 +92,7 @@ enum Status {
   AUTHORIZATION_DENIED = 1;
   DATA_STORE_ERROR = 2;
   FLOW_ERROR = 3;
+  TIMEOUT_ERROR = 4;
 };
 
 message DataStoreResponse {

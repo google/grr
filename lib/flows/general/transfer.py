@@ -25,6 +25,7 @@ import zlib
 import logging
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import type_info
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
@@ -38,6 +39,8 @@ class GetFile(flow.GRRFlow):
 
   category = "/Filesystem/"
   out_protobuf = jobs_pb2.StatResponse
+  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
+                   "pathspec": type_info.Proto(jobs_pb2.Path)}
 
   # Read in 512kb chunks
   _CHUNK_SIZE = 512 * 1024
@@ -48,7 +51,7 @@ class GetFile(flow.GRRFlow):
   max_chunk_number = 2
 
   def __init__(self, path="/",
-               pathtype=utils.ProtoEnum(jobs_pb2.Path, "PathType", "OS"),
+               pathtype=jobs_pb2.Path.OS,
                pathspec=None, **kwargs):
     """Constructor.
 
@@ -66,9 +69,11 @@ class GetFile(flow.GRRFlow):
       self.pathspec = utils.Pathspec(pathspec)
     else:
       self.pathspec = utils.Pathspec(path=path, pathtype=int(pathtype))
+
+    self.fd = None
     flow.GRRFlow.__init__(self, **kwargs)
 
-  @flow.StateHandler(next_state=["Stat", "ReadBuffer"])
+  @flow.StateHandler(next_state=["Stat", "ReadBuffer", "CheckHashes"])
   def Start(self):
     """Get information about the file from the client."""
     self.CallClient("StatFile", pathspec=self.pathspec.ToProto(),
@@ -99,7 +104,31 @@ class GetFile(flow.GRRFlow):
                       length=self._CHUNK_SIZE, next_state="ReadBuffer")
       self.current_chunk_number += 1
 
-  @flow.StateHandler(next_state="ReadBuffer")
+  def CreateHashImage(self):
+    """Force creation of the new AFF4 object.
+
+    Note that this is pinned on the client id - i.e. the client can not change
+    aff4 objects outside its tree.
+    """
+    self.urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+        self.pathspec, self.client_id)
+    self.stat.aff4path = utils.SmartUnicode(self.urn)
+
+    # Create a new Hash image for the data. Note that this object is pickled
+    # with this flow between states.
+    self.fd = aff4.FACTORY.Create(self.urn, "HashImage", token=self.token)
+
+    # The chunksize must be set to be the same as the transfer chunk size.
+    self.fd.Set(self.fd.Schema.CHUNKSIZE(self._CHUNK_SIZE))
+    self.fd.Set(self.fd.Schema.STAT(self.stat))
+    self.fd.Set(self.fd.Schema.CONTENT_LOCK(self.session_id))
+
+    self.max_chunk_number = self.stat.st_size / self._CHUNK_SIZE
+
+    # Fill up the window with requests
+    self.FetchWindow(self._WINDOW_SIZE)
+
+  @flow.StateHandler(next_state=["ReadBuffer", "CheckHashes"])
   def ReadBuffer(self, responses):
     """Read the buffer and write to the file."""
     # Did it work?
@@ -108,26 +137,8 @@ class GetFile(flow.GRRFlow):
       if not response:
         raise IOError("Missing hash for offset %s missing" % response.offset)
 
-      if response.offset == 0:
-        # Force creation of the new AFF4 object (Note that this is pinned on the
-        # client id - i.e. the client can not change aff4 objects outside its
-        # tree).
-        self.urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-            self.pathspec, self.client_id)
-        self.stat.aff4path = utils.SmartUnicode(self.urn)
-
-        # Create a new Hash image for the data. Note that this object is pickled
-        # with this flow between states.
-        self.fd = aff4.FACTORY.Create(self.urn, "HashImage", token=self.token)
-
-        # The chunksize must be set to be the same as the transfer chunk size.
-        self.fd.Set(self.fd.Schema.CHUNKSIZE(self._CHUNK_SIZE))
-        self.fd.Set(self.fd.Schema.STAT(self.stat))
-
-        self.max_chunk_number = self.stat.st_size / self._CHUNK_SIZE
-
-        # Fill up the window with requests
-        self.FetchWindow(self._WINDOW_SIZE)
+      if self.fd is None:
+        self.CreateHashImage()
 
       # Write the hash to the index. Note that response.data is the hash of the
       # block (32 bytes) and response.length is the length of the block.
@@ -149,9 +160,136 @@ class GetFile(flow.GRRFlow):
       self.Log("Flow Completed in %s seconds",
                time.time() - self.flow_pb.create_time/1e6)
 
-      # Notify any parent flows the file is ready to be used now.
-      self.SendReply(self.fd.Get(self.fd.Schema.STAT))
+      response = self.fd.Get(self.fd.Schema.STAT)
       self.fd.Close(sync=True)
+      # Notify any parent flows the file is ready to be used now.
+      self.SendReply(response)
+
+
+class FastGetFile(GetFile):
+  """An experimental GetFile which uses deduplication to save bandwidth."""
+
+  # We can be much more aggressive here.
+  _WINDOW_SIZE = 400
+
+  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
+                   "pathspec": type_info.Proto(jobs_pb2.Path)}
+
+  def __init__(self, path="/", pathtype=jobs_pb2.Path.OS,
+               pathspec=None, **kwargs):
+    self.hash_queue = []
+    super(FastGetFile, self).__init__(path=path, pathtype=pathtype,
+                                      pathspec=pathspec, **kwargs)
+
+  def FetchWindow(self, number_of_chunks_to_readahead):
+    """Read ahead a number of buffers to fill the window."""
+    for _ in range(number_of_chunks_to_readahead):
+
+      # Do not read past the end of file
+      if self.current_chunk_number > self.max_chunk_number:
+        return
+
+      self.CallClient("HashBuffer", pathspec=self.pathspec.ToProto(),
+                      offset=self.current_chunk_number * self._CHUNK_SIZE,
+                      length=self._CHUNK_SIZE, next_state="CheckHashes")
+      self.current_chunk_number += 1
+
+  def CreateHashImage(self):
+    super(FastGetFile, self).CreateHashImage()
+    self.hash_queue = []
+
+  @flow.StateHandler(next_state=["ReadBuffer", "CheckHashes"])
+  def CheckHashes(self, responses):
+    """Check if the hashes are already in the data store."""
+    for response in responses:
+      blob_urn = aff4.ROOT_URN.Add("blobs").Add(response.data.encode("hex"))
+      self.hash_queue.append((blob_urn, response))
+
+    if len(self.hash_queue) > self._WINDOW_SIZE / 2:
+      self.CheckQueuedHashes()
+
+  def CheckQueuedHashes(self):
+    """Check which of the hashes in the queue we already have."""
+    urns = [blob_urn for blob_urn, _ in self.hash_queue]
+    fds = aff4.FACTORY.Stat(urns, token=self.token)
+
+    # These blob urns we have already.
+    matched_urns = set([x["urn"] for x in fds])
+
+    for blob_urn, response in self.hash_queue:
+      if blob_urn in matched_urns:
+        if self.fd is None:
+          self.CreateHashImage()
+
+        self.fd.AddBlob(response.data, response.length)
+        self.Log("Received blob hash %s", response.data.encode("hex"))
+        self.Status("Received %s bytes", self.fd.size)
+      else:
+        self.CallClient("TransferBuffer", pathspec=self.pathspec.ToProto(),
+                        offset=response.offset, length=self._CHUNK_SIZE,
+                        next_state="ReadBuffer")
+
+      # Keep the window open in any case by hashing the next buffer.  Do not
+      # read past the end of file though.
+      if self.current_chunk_number < self.max_chunk_number:
+        self.CallClient("HashBuffer", pathspec=self.pathspec.ToProto(),
+                        offset=self.current_chunk_number * self._CHUNK_SIZE,
+                        length=self._CHUNK_SIZE, next_state="CheckHashes")
+
+        self.current_chunk_number += 1
+
+    # Clear the queue.
+    self.hash_queue = []
+
+  @flow.StateHandler(next_state=["CheckHashes", "ReadBuffer"])
+  def End(self):
+    if self.hash_queue:
+      self.CheckQueuedHashes()
+    else:
+      super(FastGetFile, self).End()
+
+
+class GetMBR(flow.GRRFlow):
+  """A flow to retrieve the MBR.
+
+  Returns to parent flow:
+    The retrieved MBR.
+  """
+
+  category = "/Filesystem/"
+  out_protobuf = jobs_pb2.BufferReadMessage
+
+  def __init__(self, length=4096, **kw):
+    self.length = length
+    super(GetMBR, self).__init__(**kw)
+
+  @flow.StateHandler(next_state=["StoreMBR"])
+  def Start(self):
+    """Schedules the ReadBuffer client action."""
+    pathspec = jobs_pb2.Path(path="\\\\.\\PhysicalDrive0\\",
+                             pathtype=jobs_pb2.Path.OS,
+                             path_options=jobs_pb2.Path.CASE_LITERAL)
+
+    self.CallClient("ReadBuffer", pathspec=pathspec, offset=0,
+                    length=self.length, next_state="StoreMBR")
+
+  @flow.StateHandler()
+  def StoreMBR(self, responses):
+    """This method stores the MBR."""
+
+    if not responses.success:
+      msg = "Could not retrieve MBR: %s" % responses.status
+      self.Log(msg)
+      raise flow.FlowError(msg)
+
+    response = responses.First()
+
+    mbr = aff4.FACTORY.Create("aff4:/%s/mbr" % self.client_id, "VFSMemoryFile",
+                              mode="rw", token=self.token)
+    mbr.write(response.data)
+    mbr.Close()
+    self.Log("Successfully stored the MBR (%d bytes)." % len(response.data))
+    self.SendReply(response)
 
 
 class TransferStore(flow.WellKnownFlow):
@@ -191,7 +329,7 @@ class TransferStore(flow.WellKnownFlow):
                                token=self.token)
       fd.Set(fd.Schema.CONTENT(cdata))
       fd.Set(fd.Schema.SIZE(len(data)))
-      fd.Close(sync=False)
+      fd.Close(sync=True)
 
       logging.info("Got blob %s (length %s)", digest.encode("hex"),
                    len(cdata))
@@ -205,7 +343,7 @@ class FileDownloader(flow.GRRFlow):
 
   Classes that want to implement this functionality for a specific
   set of files should inherit from it and override __init__ and set
-  self.findspecs to something appropriate.
+  self.findspecs and/or self.pathspecs to something appropriate.
 
   Alternatively they can override GetFindSpecs for simple cases.
 
@@ -214,32 +352,44 @@ class FileDownloader(flow.GRRFlow):
   """
 
   out_protobuf = jobs_pb2.StatResponse
+  flow_typeinfo = {"findspecs": type_info.ListProto(jobs_pb2.Find),
+                   "pathspecs": type_info.Proto(jobs_pb2.Path)}
 
-  def __init__(self, findspecs=None, **kwargs):
+  def __init__(self, findspecs=None, pathspecs=None, **kwargs):
     """Determine the usable findspecs.
 
     Args:
       findspecs: A list of jobs_pb2.Find protos. If None, self.GetFindSpecs
           will be called to get the specs.
+      pathspecs: A list of jobs_pb2.Path protos. If None, self.GetPathSpecs
+          will be called to get the specs.
     """
     flow.GRRFlow.__init__(self, **kwargs)
 
     self.findspecs = findspecs
+    self.pathspecs = pathspecs
 
-  @flow.StateHandler(next_state=["DownloadFiles"])
+  @flow.StateHandler(next_state=["DownloadFiles", "HandleDownloadedFiles"])
   def Start(self):
     """Queue flows for all valid find specs."""
     if self.findspecs is None:
       # Call GetFindSpecs, should be overridden by inheriting classes.
-      self.findspecs = list(self.GetFindSpecs())
+      self.findspecs = self.GetFindSpecs()
 
-    if not self.findspecs:
-      self.Log("No usable specs found.")
-      self.Terminate()
+    if self.pathspecs is None:
+      # Call GetPathSpecs, should be overridden by inheriting classes.
+      self.pathspecs = self.GetPathSpecs()
+
+    if not self.findspecs and not self.pathspecs:
+      self.Error("No usable specs found.")
 
     for findspec in self.findspecs:
       self.CallFlow("FindFiles", next_state="DownloadFiles",
                     findspec=findspec, output=None)
+
+    for pathspec in self.pathspecs:
+      self.CallFlow("GetFile", next_state="HandleDownloadedFiles",
+                    pathspec=pathspec)
 
   @flow.StateHandler(jobs_pb2.StatResponse, next_state="HandleDownloadedFiles")
   def DownloadFiles(self, responses):
@@ -275,6 +425,10 @@ class FileDownloader(flow.GRRFlow):
     """Returns iterable of jobs_pb2.Find objects. Should be overridden."""
     return []
 
+  def GetPathSpecs(self):
+    """Returns iterable of jobs_pb2.Path objects. Should be overridden."""
+    return []
+
 
 class FileCollector(flow.GRRFlow):
   """Flow to create a collection from downloaded files.
@@ -285,6 +439,7 @@ class FileCollector(flow.GRRFlow):
   """
 
   out_protobuf = jobs_pb2.StatResponse
+  flow_typeinfo = {"findspecs": type_info.ListProto(jobs_pb2.Find)}
 
   def __init__(self, findspecs=None,
                output="analysis/collect/{u}-{t}", **kwargs):

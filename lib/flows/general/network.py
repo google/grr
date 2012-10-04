@@ -29,19 +29,14 @@ class Netstat(flow.GRRFlow):
   @flow.StateHandler(next_state=["StoreNetstat"])
   def Start(self):
     """Start processing."""
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.system = client.Get(client.Schema.SYSTEM)
-    if self.system != "Windows":
-      raise OSError("Unsupported platform for Netstat")
-    else:
-      self.CallClient("Netstat", next_state="StoreNetstat")
+    self.CallClient("Netstat", next_state="StoreNetstat")
 
-  @flow.StateHandler(sysinfo_pb2.Connection)
+  @flow.StateHandler(sysinfo_pb2.NetworkConnection)
   def StoreNetstat(self, responses):
     """Collect the connections and store in the datastore.
 
     Args:
-      responses: A list of sysinfo_pb2.Connection objects.
+      responses: A list of sysinfo_pb2.NetworkConnection objects.
 
     Raises:
       flow.FlowError: On failure to get retrieve the connections.

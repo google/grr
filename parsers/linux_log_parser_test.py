@@ -29,6 +29,7 @@ from grr.parsers import linux_log_parser
 FLAGS = flags.FLAGS
 
 
+# We are intentionally not implementing the class correctly.
 class NewImplementation(linux_log_parser.LogParser):
   """Tries to implement LogParser but is insufficient.
 
@@ -123,7 +124,7 @@ class LinuxLogParserTest(test_lib.GRRBaseTest):
     event = self.ReturnLines(linux_log_parser.WtmpParser, full_path)[0]
     line = out.AddEvent(event)
 
-    self.assertEquals(line, ('12/01/2011,09:36:38,UTC,MACB,LOG,UTMP,Logon,'
+    self.assertEquals(line, ('12/01/2011,17:36:38,UTC,MACB,LOG,UTMP,Logon,'
                              '-,-,User userA [host 10.10.122.1]. PID 20060.'
                              ' Event came from s/12 (id s/12),User userA '
                              '[host 10.10.122.1]. PID 20060. Event came '
@@ -178,7 +179,7 @@ class LinuxLogParserTest(test_lib.GRRBaseTest):
     event = self.ReturnLines(linux_log_parser.WtmpParser, full_path)[0]
     line = out.AddEvent(event)
 
-    self.assertEquals(line, ('2011-12-01T09:36:38Z|1322760998|UTMP|Logon|'
+    self.assertEquals(line, ('2011-12-01T17:36:38Z|1322760998|UTMP|Logon|'
                              'User userA [host 10.10.122.1]. PID 20060. '
                              'Event came from s/12 (id s/12)\n'))
 
@@ -198,7 +199,7 @@ class LinuxLogParserTest(test_lib.GRRBaseTest):
   def testUtmpParsing(self):
     """Test to see if we can parse an utmp file."""
     self.CheckFirstLine('wtmp.1', linux_log_parser.WtmpParser,
-                        '2011-12-01 09:36:38',
+                        '2011-12-01 17:36:38',
                         'UTMP',
                         'Logon',
                         ('User userA [host 10.10.122.1]. '

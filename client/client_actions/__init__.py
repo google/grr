@@ -17,12 +17,28 @@
 """A module to load all client plugins."""
 
 
-# These import populate the Action registry
 import platform
 
+import logging
+
+# These imports populate the Action registry
+from grr.client import actions
+from grr.client.client_actions import admin
 from grr.client.client_actions import enrol
 from grr.client.client_actions import file_fingerprint
+from grr.client.client_actions import network
+from grr.client.client_actions import searching
 from grr.client.client_actions import standard
+from grr.proto import jobs_pb2
+
+
+try:
+  from grr.client.client_actions import grr_volatility
+except ImportError:
+  class VolatilityAction(actions.ActionPlugin):
+    """Runs a volatility command on live memory."""
+    in_protobuf = jobs_pb2.VolatilityRequest
+    out_protobuf = jobs_pb2.VolatilityResponse
 
 if platform.system() == "Linux":
   from grr.client.client_actions import linux

@@ -46,7 +46,11 @@ DECRYPT = 0
 
 
 class CommunicatorInit(registry.InitHook):
-  def __init__(self):
+
+  pre = ["StatsInit"]
+
+  def RunOnce(self):
+    """This is run only once."""
     # Initialize the PRNG.
     Rand.rand_seed(Rand.rand_bytes(1000))
 
@@ -254,7 +258,7 @@ class ReceivedCipher(Cipher):
       else:
         # Old version: To be set once the message is verified.
         self.cipher_metadata = None
-    except RSA.RSAError, e:
+    except RSA.RSAError as e:
       raise DecryptionError(e)
 
   def VerifyCipherSignature(self):
@@ -266,10 +270,10 @@ class ReceivedCipher(Cipher):
             self.cipher_metadata.source)
 
         stats.STATS.Increment("grr_rsa_operations")
-        remote_public_key.verify(digest, self.cipher_metadata.signature,
-                                 self.hash_function_name)
+        if remote_public_key.verify(digest, self.cipher_metadata.signature,
+                                    self.hash_function_name):
+          self.signature_verified = True
 
-        self.signature_verified = True
       except (UnknownClientCert, X509.X509Error):
         pass
 
@@ -282,11 +286,11 @@ class Communicator(object):
     """Creates a communicator.
 
     Args:
-       certificate: Our own certificate and key in string form. If
-         this is not specified we send unsigned packets.
+       certificate: Our own certificate and key in string form (as PEM).
     """
     # A cache of cipher objects.
     self.cipher_cache = utils.TimeBasedCache()
+    self.private_key = certificate
 
     # A cache for encrypted ciphers
     self.encrypted_cipher_cache = utils.FastStore(max_size=50000)
@@ -442,7 +446,7 @@ class Communicator(object):
     elif compression == jobs_pb2.SignedMessageList.ZCOMPRESSION:
       try:
         data = zlib.decompress(signed_message_list.message_list)
-      except zlib.error, e:
+      except zlib.error as e:
         raise DecodingError("Failed to decompress: %s" % e)
     else:
       raise DecodingError("Compression scheme not supported")
@@ -479,8 +483,10 @@ class Communicator(object):
         cipher = ReceivedCipher(response_comms, self.private_key,
                                 self.pub_key_cache)
 
-        # Remember it for next time.
-        self.encrypted_cipher_cache.Put(response_comms.encrypted_cipher, cipher)
+        if cipher.signature_verified:
+          # Remember it for next time.
+          self.encrypted_cipher_cache.Put(response_comms.encrypted_cipher,
+                                          cipher)
 
       # Add entropy to the PRNG.
       Rand.rand_add(response_comms.encrypted, len(response_comms.encrypted))
@@ -543,11 +549,10 @@ class Communicator(object):
           signed_message_list.source)
 
       stats.STATS.Increment("grr_rsa_operations")
-      remote_public_key.verify(digest, signed_message_list.signature,
-                               cipher.hash_function_name)
-
-      stats.STATS.Increment("grr_authenticated_messages")
-      result = jobs_pb2.GrrMessage.AUTHENTICATED
+      if remote_public_key.verify(digest, signed_message_list.signature,
+                                  cipher.hash_function_name):
+        stats.STATS.Increment("grr_authenticated_messages")
+        result = jobs_pb2.GrrMessage.AUTHENTICATED
 
     else:
       if cipher.HMAC(response_comms.encrypted) != response_comms.hmac:

@@ -79,7 +79,7 @@ class TestNotifications(test_lib.GRRSeleniumTest):
                    "css=li[id=_fs-os-proc-10]")
 
     # The stats pane shows the target file
-    self.WaitUntilEqual(
+    self.WaitUntilContains(
         "aff4:/C.0000000000000001/fs/os/proc/10/exe",
         sel.get_text, "css=h3")
 
@@ -97,6 +97,5 @@ class TestNotifications(test_lib.GRRSeleniumTest):
         sel.get_text, "css=li[class='selected']")
 
     # The stats pane shows the relevant flow
-    self.WaitUntilEqual(
-        "aff4:/flows/%s" % self.session_id,
-        sel.get_text, "css=h3")
+    self.WaitUntilContains("aff4:/flows/%s" % self.session_id,
+                           sel.get_text, "css=h3")

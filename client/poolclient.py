@@ -17,7 +17,6 @@
 """This is the GRR client for thread pools."""
 
 
-import logging
 import multiprocessing
 import pickle
 import threading
@@ -26,16 +25,18 @@ import time
 
 from grr.client import conf
 from grr.client import conf as flags
+import logging
 
 from grr.client import client
 
 # Make sure we load the client plugins
 from grr.client import client_actions
 
-from grr.client import client_config
-from grr.client import comms
+from grr.client import client_log
 from grr.client import conf
+from grr.client import vfs
 from grr.lib import registry
+from grr.proto import jobs_pb2
 
 flags.DEFINE_integer("nrclients", 1,
                      "Number of clients to start")
@@ -53,21 +54,27 @@ FLAGS = flags.FLAGS
 class PoolGRRClient(client.GRRClient, threading.Thread):
   """A GRR client for running in pool mode."""
 
-  def __init__(self, cert_storage, storage_id):
+  def __init__(self, certificate):
     """Constructor."""
-    threading.Thread.__init__(self)
+    super(PoolGRRClient, self).__init__(certificate=certificate)
     self.daemon = True
+    self.stop = False
 
-    ca_cert = client_config.CACERTS.get(FLAGS.camode.upper())
-    if not ca_cert:
-      raise RuntimeError("Invalid camode specified.")
+    # Is this client already enrolled?
+    self.enrolled = False
 
-    self.context = comms.PoolGRRHTTPContext(cert_storage, storage_id, ca_cert)
+    self.common_name = self.client.communicator.common_name
+    self.private_key = self.client.communicator.private_key
 
-    self.context.LoadCertificates()
+  def Run(self):
+    for status in self.client.Run():
+      #if the status is 200 we assume we have successfully enrolled.
+      if status.code == 200:
+        self.enrolled = True
 
-    # Start off with a maximum poling interval
-    self.sleep_time = FLAGS.poll_max
+      # Thread should stop now.
+      if self.stop:
+        break
 
   def Stop(self):
     self.stop = True
@@ -78,54 +85,59 @@ class PoolGRRClient(client.GRRClient, threading.Thread):
 
 def CreateClientPool(n):
   """Create n clients to run in a pool."""
-  cert_storage = []
   clients = []
 
+  # Load previously stored clients.
   try:
     fd = open(FLAGS.cert_file, "rb")
-    cert_storage = pickle.load(fd)
+    certificates = pickle.load(fd)
     fd.close()
+
+    for certificate in certificates:
+      clients.append(PoolGRRClient(certificate=certificate))
+
   except (IOError, EOFError):
     pass
 
-  if len(cert_storage) < n:
-    cert_storage.extend([None] * (n - len(cert_storage)))
+  while len(clients) < n:
+    # Force the client to regenerate the RSA key pair each time.
+    clients.append(PoolGRRClient("Invalid"))
 
-  for i in range(n):
-    cl = PoolGRRClient(cert_storage, i)
-    clients.append(cl)
-    cl.start()
+  # Start all the clients now.
+  for c in clients:
+    c.start()
 
-  if FLAGS.enroll_only:
-    last_time = 0
-    while True:
-      time.sleep(1)
-      enrolled = 0
-      for certificate in cert_storage[:n]:
-        if "----BEGIN CERTIFICATE----" in certificate:
-          enrolled += 1
-
-      if enrolled == n:
-        logging.info("All clients enrolled, exiting.")
-        break
-      else:
-        if enrolled != last_time:
-          last_time = enrolled
-          logging.info("Enrolled %d/%d clients.", enrolled, n)
-  else:
-    try:
+  start_time = time.time()
+  try:
+    if FLAGS.enroll_only:
       while True:
-        time.sleep(100)
-    except KeyboardInterrupt:
-      pass
+        time.sleep(1)
+        enrolled = len([x for x in clients if x.enrolled])
 
-  for cl in clients:
-    cl.Stop()
+        if enrolled == n:
+          logging.info("All clients enrolled, exiting.")
+          break
 
-  logging.debug("Pool done, saving certs.")
+        else:
+          logging.info("%s: Enrolled %d/%d clients.", int(time.time()),
+                       enrolled, n)
+    else:
+      try:
+        while True:
+          time.sleep(100)
+      except KeyboardInterrupt:
+        pass
+
+  finally:
+    # Stop all pool clients.
+    for cl in clients:
+      cl.Stop()
+
+  logging.info("Pool done in %s seconds, saving certs.",
+               time.time() - start_time)
   try:
     fd = open(FLAGS.cert_file, "wb")
-    pickle.dump(cert_storage, fd)
+    pickle.dump([x.private_key for x in clients], fd)
     fd.close()
   except IOError:
     pass
@@ -135,19 +147,22 @@ def main(unused_argv):
   # Ensure multiprocesses can run when packaged on windows.
   multiprocessing.freeze_support()
 
+  conf.PARSER.parse_args()
+
+  # Make sure that we do not update the config file when we create new clients.
+  FLAGS.config = "/dev/null"
+
+  client_log.SetUpClientLogging()
+
   if FLAGS.camode.upper() == "PRODUCTION":
     logging.error("Poolclient should not be run against production.")
     exit()
 
-  conf.PARSER.parse_args()
-
-  log_level = logging.INFO
-  if FLAGS.verbose:
-    log_level = logging.DEBUG
-  logging.basicConfig(level=log_level,
-                      format="%(levelname)s %(module)s:%(lineno)s] %(message)s")
-
   registry.Init()
+
+  # Let the OS handler also handle sleuthkit requests since sleuthkit is not
+  # thread safe.
+  vfs.VFS_HANDLERS[jobs_pb2.Path.TSK] = vfs.VFS_HANDLERS[jobs_pb2.Path.OS]
 
   CreateClientPool(FLAGS.nrclients)
 

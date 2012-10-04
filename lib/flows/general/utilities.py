@@ -23,7 +23,7 @@ import stat
 
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import utils
+from grr.lib import type_info
 from grr.proto import jobs_pb2
 
 
@@ -31,11 +31,11 @@ class DownloadDirectory(flow.GRRFlow):
   """Flow for recursively downloading all files in a directory."""
 
   category = "/Filesystem/"
+  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
+                   "pathspec": type_info.Proto(jobs_pb2.Path)}
 
-  def __init__(self, path="/",
-               pathtype=utils.ProtoEnum(jobs_pb2.Path, "PathType", "OS"),
-               depth=10, pathspec=None,
-               ignore_errors=False, **kwargs):
+  def __init__(self, path="/", pathtype=jobs_pb2.Path.OS, depth=10,
+               pathspec=None, ignore_errors=False, **kwargs):
     """Constructor.
 
     Args:

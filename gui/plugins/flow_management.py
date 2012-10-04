@@ -17,6 +17,7 @@
 """GUI elements allowing launching and management of flows."""
 
 
+import functools
 import urllib
 
 
@@ -24,7 +25,10 @@ import logging
 from grr.gui import renderers
 from grr.gui.plugins import fileview
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import flow_context
+from grr.lib import type_info
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
@@ -49,9 +53,10 @@ class FlowTree(renderers.TreeRenderer):
 
   publish_select_queue = "flow_select"
 
-  def EnumerateCategories(self, path):
+  def EnumerateCategories(self, path, request):
     """Search through all flows for categories starting with path."""
     categories = set()
+    userlabels = None
     flows = set()
     # Use an object for path manipulations.
     path = aff4.RDFURN(path)
@@ -59,6 +64,18 @@ class FlowTree(renderers.TreeRenderer):
     for name, cls in flow.GRRFlow.classes.items():
       if not cls.category:
         continue
+      if cls.AUTHORIZED_LABELS:
+        if userlabels is None:
+          userlabels = set()
+          user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users")
+                                      .Add(request.token.username)
+                                      .Add("labels"), token=request.token)
+          for label in user_fd.Get(user_fd.Schema.LABEL).data.label:
+            userlabels.add(label)
+
+        intersection = userlabels & set(cls.AUTHORIZED_LABELS)
+        if not intersection:
+          continue
 
       category = aff4.RDFURN(cls.category)
       if category == path:
@@ -71,13 +88,13 @@ class FlowTree(renderers.TreeRenderer):
 
     return categories, flows
 
-  def RenderBranch(self, path, _):
+  def RenderBranch(self, path, request):
     """Renders tree leafs for flows."""
-    categories, flows = self.EnumerateCategories(path)
-    for category in categories:
+    categories, flows = self.EnumerateCategories(path, request)
+    for category in sorted(categories):
       self.AddElement(category)
 
-    for f in flows:
+    for f in sorted(flows):
       self.AddElement(f, "leaf")
 
 
@@ -98,9 +115,9 @@ class FlowManagementTabs(renderers.TabLayout):
   layout_template = renderers.TabLayout.layout_template + """
 <script>
 grr.subscribe('flow_select', function (path) {
-  grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}",
-    {flow_path: path, client_id: grr.state.client_id});
-}, "tab_contents_{{unique|escapejs}}");
+    $("#{{unique|escapejs}}").data().state.flow_path = path;
+    $("#{{unique|escapejs}} li.ui-state-active a").click();
+}, "{{unique|escapejs}}");
 </script>"""
 
   def Layout(self, request, response):
@@ -147,34 +164,22 @@ Prototype: {{ this.prototype|escape }}
   def GetArgs(self, flow_class, request, arg_template=None):
     """Return all the required args for the flow."""
 
-    # Calculate the prototype
-    omit_args = ("self kwargs kw client_id _request_state _store pathspec "
-                 "flow_factory queue_name event_id context findspec").split()
-
-    function_obj = flow_class.__init__.im_func
-    arg_count = function_obj.func_code.co_argcount
-    # The args are usually first in the local variable names.
-    args = function_obj.func_code.co_varnames[:arg_count]
-    defaults = function_obj.func_defaults
-
     if arg_template is None:
       arg_template = self.arg_prefix + "%s"
 
-    # Map the default values on the args
     result = []
-    for i in range(len(args)):
-      if args[i] in omit_args: continue
-      try:
-        default = defaults[i - 1]
-      except IndexError:
-        default = ""
+    for arg_name, arg_type, arg_default in flow_class.GetFlowArgTypeInfo():
 
-      # Parse the get value based on the type of the default
-      get_var = request.REQ.get(arg_template % utils.SmartStr(args[i]))
+      # Retrieve the value from the request, use arg default if not present.
+      get_var = request.REQ.get(arg_template % utils.SmartStr(arg_name))
+      if get_var is None:
+        get_var = arg_default
+      else:
+        get_var = arg_type.DecodeString(get_var)
 
-      # We append a special prefix to prevent name collisions
-      result.append((args[i], arg_template % utils.SmartStr(args[i]),
-                     get_var, default))
+      # We append a special prefix to prevent name collisions.
+      result.append((arg_name, arg_template % utils.SmartStr(arg_name),
+                     arg_type, get_var, arg_default))
 
     return result
 
@@ -256,6 +261,16 @@ class FlowForm(FlowInformation):
        reason: grr.state.reason
      });
   }, 'form_{{unique|escapejs}}');
+
+  $("input.form_field_or_none").each(function(index) {
+    grr.formNoneHandler($(this));
+  });
+
+  // Fixup checkboxes so they return values even if unchecked.
+  $(".FormBody").find("input[type=checkbox]").change(function() {
+    $(this).attr("value", $(this).attr("checked") ? "True" : "False");
+  });
+
 </script>
 """)
 
@@ -274,47 +289,21 @@ class FlowForm(FlowInformation):
 
     return renderers.TemplateRenderer.Layout(self, request, response)
 
-  default_form_template = renderers.Template("""
-<td>{{desc|escape}}</td>
-<td><input name='{{ field|escape }}' type=text
-     value='{{ value|escape }}'/></td>
-""")
-
-  enum_form_template = renderers.Template("""
-<td>{{desc|escape}}</td><td><select name="{{field|escape}}">
-{% for value, name, selected in options %}
- <option {{selected|escape}} value="{{value|escape}}">{{name|escape}}</option>
-{% endfor %}
-</select></td>
-""")
-
   def RenderFormElements(self, args):
     """Produce html for each arg so a form can be build."""
-    for desc, field, value, default in args:
-      # Specialized rendering for protobuf ENUMs
-      if isinstance(default, utils.ProtoEnum):
-        # The currently selected value is either passed in or taken from the
-        # default.
-        try:
-          value = int(value)
-        except (AttributeError, ValueError, TypeError):
-          value = int(default)
-
-        # We use the enum descriptor to introspect the options.
-        enum_descriptor = default.protobuf_class.DESCRIPTOR.enum_types_by_name[
-            default.enum_name]
-
-        yield self.FormatFromTemplate(
-            self.enum_form_template, field=field, desc=desc,
-            options=[(x.number, x.name, "selected"*(value == x.number))
-                     for x in enum_descriptor.values])
-
+    for desc, field, arg_type, value, default in args:
+      if not isinstance(arg_type, type_info.TypeInfoObject):
+        raise RuntimeError("%s is not a valid TypeInfoObject" % arg_type)
       else:
-        if value is None:
-          value = default
+        form_renderer = renderers.Renderer.classes[arg_type.renderer]()
+        yield form_renderer.Format(arg_type=arg_type, field=field, desc=desc,
+                                   value=value, default=default)
 
-        yield self.FormatFromTemplate(self.default_form_template, field=field,
-                                      value=value, desc=desc)
+    arg_type = type_info.ProtoEnum(jobs_pb2.GrrMessage, "Priority")
+    form_renderer = renderers.Renderer.classes[arg_type.renderer]()
+
+    yield form_renderer.Format(desc="Priority", field="priority",
+                               arg_type=arg_type, default=1, value=1)
 
 
 class FlowFormAction(FlowInformation):
@@ -372,39 +361,6 @@ client_id = {{ this.client_id|escape }}
 <h2>Error: Flow '{{ name|escape }}' : </h2> {{ error|escape }}
 """ + back_button)
 
-  def BuildArgs(self, arg_list):
-    """Convert the arg_list into a dict substituting default values."""
-    args = {}
-    for name, _, get_var, default in arg_list:
-      if get_var is not None:
-        # Here we try to guess the real type of the encoded get_var by examining
-        # the type of the default parameter. If the default is a bool we try to
-        # interpret the value as a true/value.
-        if type(default) == bool:
-          if get_var.lower() == "true":
-            default = True
-          elif get_var.lower() == "false":
-            default = False
-          else:
-            raise RuntimeError("Error parsing parameter '%s': "
-                               "Value '%s' invalid" % (name, get_var))
-        elif default is None and get_var == "None":
-          # If the default is None we have no idea what the arg type really is,
-          # we just need to preserve the None or else convert to string.
-          default = None
-        else:
-          try:
-            # Only convert to long if the default is also a integer type.
-            long(default)
-            default = long(get_var)
-          except ValueError:
-            # String parameter
-            default = utils.SmartUnicode(get_var)
-
-      args[name] = default
-
-    return args
-
   def Layout(self, request, response):
     """Launch the flow."""
     req = request.REQ
@@ -418,33 +374,37 @@ client_id = {{ this.client_id|escape }}
                                      name=self.flow_name)
 
     try:
-      arg_list = self.GetArgs(flow_class, request)
-
       self.client_id = req.get("client_id")
       if not self.client_id:
         raise RuntimeError("Client Id Not provided.")
 
       # We need to be careful here as an attacker controls flow name and
-      # arguments. Make sure to append the username and event_id as keyword
+      # arguments. Make sure to append the token and event_id as keyword
       # arguments to the constructor - this will raise if a non-flow reference
       # happened to make its way here, and is thus more defensive.
-      self.args = self.BuildArgs(arg_list)
+      self.args = {}
       self.args["event_id"] = request.event_id
+
+      for name, _, _, value, _ in self.GetArgs(flow_class, request):
+        self.args[name] = value
+
+      priority = request.REQ.get("priority")
+      if priority:
+        self.args["priority"] = int(priority)
 
       self.flow_id = flow.FACTORY.StartFlow(self.client_id, self.flow_name,
                                             token=request.token, **self.args)
-
       self.args_sent = self.args.items()
 
       return renderers.TemplateRenderer.Layout(self, request, response)
 
     # Here we catch all exceptions in order to relay potential errors to users
     # (Otherwise they are just hidden by django error page).
-    except Exception, e:
+    except Exception as e:
       logging.exception("Error: %s", e)
       renderers.Renderer.Layout(self, request, response)
       return self.RenderFromTemplate(
-          self.error_template, response, args=arg_list,
+          self.error_template, response,
           error=str(e), id=self.id, name=self.flow_name)
 
 
@@ -505,7 +465,83 @@ class ManageFlows(renderers.Splitter2Way):
   behaviours = frozenset(["Host"])
 
   top_renderer = "ListFlowsTable"
-  bottom_renderer = "ShowFlowInformation"
+  bottom_renderer = "FlowTabView"
+
+
+class FlowTabView(renderers.TabLayout):
+  """Show various flow information in a Tab view.
+
+  Listening Javascript Events:
+    - flow_table_select(flow_path) - A selection event on the tree informing us
+      of the flow path. The basename of flow_path is the name of the flow.
+
+  Internal State:
+    - flow_path - The category and name of the flow we display.
+  """
+  names = ["Flow Information", "Requests"]
+  delegated_renderers = ["ShowFlowInformation", "FlowRequestView"]
+
+  tab_hash = "ftv"
+
+  layout_template = renderers.TabLayout.layout_template + """
+<script>
+grr.subscribe('flow_table_select', function (path) {
+  grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}",
+    {flow: path, client_id: grr.state.client_id});
+}, "tab_contents_{{unique|escapejs}}");
+</script>"""
+
+  def Layout(self, request, response):
+    self.state = dict(flow=request.REQ.get("flow"),
+                      client_id=request.REQ.get("client_id"))
+    return super(FlowTabView, self).Layout(request, response)
+
+
+class RequestStateRenderer(renderers.RDFProtoRenderer):
+  """Render the RequestState proto."""
+
+  translator = dict(
+      request=functools.partial(renderers.RDFProtoRenderer.RDFProtoRenderer,
+                                proto_renderer_name="GrrRequestRenderer"))
+
+
+class FlowRequestView(renderers.TableRenderer):
+  """View outstanding requests for a flow.
+
+  Post Parameters:
+    - client_id: The client to show the flows for.
+    - flow: The flow to show.
+  """
+
+  post_parameters = ["flow", "client_id"]
+
+  def __init__(self):
+    super(FlowRequestView, self).__init__()
+    self.AddColumn(renderers.RDFValueColumn("ID", width=10))
+    self.AddColumn(renderers.RDFValueColumn("Request",
+                                            renderer=RequestStateRenderer))
+
+  def BuildTable(self, start_row, end_row, request):
+    session_id = request.REQ.get("flow", "")
+
+    state_queue = flow_context.FlowManager.FLOW_STATE_TEMPLATE % session_id
+    predicate_re = flow_context.FlowManager.FLOW_REQUEST_PREFIX + ".*"
+
+    # Get all the responses for this request.
+    for i, (predicate, req_state, _) in enumerate(data_store.DB.ResolveRegex(
+        state_queue, predicate_re, decoder=jobs_pb2.RequestState,
+        limit=end_row, token=request.token)):
+
+      if i < start_row:
+        continue
+      if i > end_row:
+        break
+
+      # Tie up the request to each response to make it easier to render.
+      rdf_req_state = aff4.RDFProto(req_state)
+
+      self.AddCell(i, "ID", predicate)
+      self.AddCell(i, "Request", rdf_req_state)
 
 
 class TreeColumn(renderers.RDFValueColumn, renderers.TemplateRenderer):
@@ -658,26 +694,40 @@ class ListFlowsTable(renderers.TableRenderer):
       flow_obj.children = []
 
       # If there are parents, add them here.
-      parent = flow_obj.flow_pb.data.request_state.session_id or "root"
+      parent = flow_obj.flow_pb.data.request_state.session_id
+
+      # Reparent orphans to the root. This happens when we fetch more of flows
+      # for the incremental table, and the new flows really belong to a flow
+      # fetched by previous refresh. By re-parenting these orphans at least we
+      # can show them in the table.
+      if parent not in index:
+        parent = "root"
+
       index[parent].children.append(flow_obj)
 
     return index
 
-  def BuildTable(self, start, unused_end, request):
+  def BuildTable(self, start, end, request):
     """Renders the table."""
     client_id = request.REQ.get("client_id")
-    self.row_index = 0
-
-    # We override the number of rows the table will render.
-    length = 500
+    if not client_id: return
+    self.row_index = start
 
     # Flows are stored as versions of the FLOW attribute, so here we need all
     # the versions so we can list them in the table.
     client = aff4.FACTORY.Create(client_id, "VFSGRRClient", mode="r",
                                  token=request.token, age=aff4.ALL_TIMES)
 
+    # This is how many flows we have.
+    flows = client.GetValuesForAttribute(client.Schema.FLOW)
+
+    self.size = len(flows)
+
+    flows = flows[start:end]
+
     # Sort the flows so the most recent ones are at the top.
-    index = self._BuildParentTree(client.GetFlows())
+    index = self._BuildParentTree(client.GetFlows(start=start, length=end-start,
+                                                  age_policy=aff4.NEWEST_TIME))
 
     def RenderBranch(session_id, depth):
       """Render a single branch of the tree."""
@@ -691,15 +741,10 @@ class ListFlowsTable(renderers.TableRenderer):
         else:
           row_type = "leaf"
 
-        if self.row_index >= start:
-          self.columns[1].AddElement(self.row_index, child.session_id,
-                                     depth, row_type)
-          self.columns[4].AddElement(self.row_index, child.flow_pb.age)
-          self.AddRowFromFd(self.row_index, child)
-
-        # Stop rendering as soon as we have rendered enough top level.
-        if depth == 0 and self.row_index > start + length:
-          break
+        self.columns[1].AddElement(self.row_index, child.session_id,
+                                   depth, row_type)
+        self.columns[4].AddElement(self.row_index, child.flow_pb.age)
+        self.AddRowFromFd(self.row_index, child)
 
         self.row_index += 1
         nodes += 1
@@ -711,21 +756,23 @@ class ListFlowsTable(renderers.TableRenderer):
       return nodes
 
     # Recursively render all the branches.
-    top_level_rendered = RenderBranch("root", 0)
+    RenderBranch("root", 0)
 
-    # Tell the client we have another page for it.
-    if top_level_rendered < len(index["root"].children):
-      self.size = self.row_index + length
-    else:
-      self.size = self.row_index
+    for f in flows:
+      session_id = f.Split()[-1]
+      if session_id not in index:
+        self.columns[1].AddElement(self.row_index, session_id, 0, "leaf")
+        self.columns[2].AddElement(self.row_index,
+                                   "Flow too old, no information")
+        self.columns[4].AddElement(self.row_index, f.age)
+        self.row_index += 1
+
+    # The last row we wrote.
+    return self.row_index
 
 
 class ShowFlowInformation(fileview.AFF4Stats):
   """Display information about the flow.
-
-  Listening Javascript Events:
-    - flow_table_select(flow_id): When the user selects the flow in the table,
-      we redraw ourselves here.
 
   Post Parameters:
     - flow: The flow id we will display.
@@ -746,17 +793,6 @@ class ShowFlowInformation(fileview.AFF4Stats):
 {% else %}
 Please select a flow to manage from the above table.
 {% endif %}
-<script>
-  grr.subscribe("{{ this.selection_publish_queue|escapejs }}",
-    function (session_id) {
-      var state = {
-        client_id: grr.state.client_id,
-        flow: session_id,
-      };
-      grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}", state);
-      $('#container_{{unique|escapejs}}').data().state = state
-  }, "container_{{unique|escapejs}}");
-</script>
 </div>
 """)
 
@@ -830,12 +866,14 @@ class FlowPBRenderer(renderers.RDFProtoRenderer):
                                    data=protodict.ToDict().items())
 
   # Pretty print these special fields.
-  translator = dict(create_time=renderers.RDFProtoRenderer.Time,
-                    pickle=renderers.RDFProtoRenderer.Ignore,
-                    backtrace=renderers.RDFProtoRenderer.Pre,
-                    state=renderers.RDFProtoRenderer.Enum,
-                    ts_id=renderers.RDFProtoRenderer.Ignore,
-                    args=renderers.RDFProtoRenderer.ProtoDict)
+  translator = dict(
+      create_time=renderers.RDFProtoRenderer.Time,
+      pickle=renderers.RDFProtoRenderer.Ignore,
+      backtrace=renderers.RDFProtoRenderer.Pre,
+      state=renderers.RDFProtoRenderer.Enum,
+      ts_id=renderers.RDFProtoRenderer.Ignore,
+      args=renderers.RDFProtoRenderer.ProtoDict,
+      network_bytes_sent=renderers.RDFProtoRenderer.HumanReadableBytes)
 
 
 class FlowNotificationRenderer(renderers.RDFValueRenderer):

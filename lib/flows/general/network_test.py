@@ -28,22 +28,28 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
 
     class ClientMock(object):
       def Netstat(self, _):
-        conn1 = sysinfo_pb2.Connection(state=sysinfo_pb2.Connection.LISTEN,
-                                       type=sysinfo_pb2.Connection.TCP,
-                                       local_addr=0,
-                                       local_port=22,
-                                       remote_addr=0,
-                                       remote_port=0,
-                                       pid=2136,
-                                       ctime=0)
-        conn2 = sysinfo_pb2.Connection(state=sysinfo_pb2.Connection.LISTEN,
-                                       type=sysinfo_pb2.Connection.TCP,
-                                       local_addr=167772161,
-                                       local_port=31337,
-                                       remote_addr=3232235777,
-                                       remote_port=6667,
-                                       pid=1,
-                                       ctime=0)
+        conn1 = sysinfo_pb2.NetworkConnection(
+            state=sysinfo_pb2.NetworkConnection.LISTEN,
+            type=sysinfo_pb2.NetworkConnection.SOCK_STREAM,
+            local_address=sysinfo_pb2.NetworkEndpoint(
+                ip="0.0.0.0",
+                port=22),
+            remote_address=sysinfo_pb2.NetworkEndpoint(
+                ip="0.0.0.0",
+                port=0),
+            pid=2136,
+            ctime=0)
+        conn2 = sysinfo_pb2.NetworkConnection(
+            state=sysinfo_pb2.NetworkConnection.LISTEN,
+            type=sysinfo_pb2.NetworkConnection.SOCK_STREAM,
+            local_address=sysinfo_pb2.NetworkEndpoint(
+                ip="192.168.1.1",
+                port=31337),
+            remote_address=sysinfo_pb2.NetworkEndpoint(
+                ip="1.2.3.4",
+                port=6667),
+            pid=1,
+            ctime=0)
         return [conn1, conn2]
 
     # Set the system to Windows so the netstat flow will run as its the only
@@ -63,8 +69,8 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
     conns = fd.Get(fd.Schema.CONNECTIONS).data
 
     self.assertEqual(len(conns), 2)
-    self.assertEqual(conns[0].local_addr, 0)
-    self.assertEqual(conns[0].local_port, 22)
-    self.assertEqual(conns[1].local_addr, 167772161)
+    self.assertEqual(conns[0].local_address.ip, "0.0.0.0")
+    self.assertEqual(conns[0].local_address.port, 22)
+    self.assertEqual(conns[1].local_address.ip, "192.168.1.1")
     self.assertEqual(conns[1].pid, 1)
-    self.assertEqual(conns[1].remote_port, 6667)
+    self.assertEqual(conns[1].remote_address.port, 6667)

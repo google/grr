@@ -380,14 +380,15 @@ class FakeDataStore(data_store.DataStore):
 
   @utils.Synchronized
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
-                        decoder=None, timestamp=None):
+                        decoder=None, timestamp=None, limit=None):
     result = {}
     for subject in subjects:
       # If any of the subjects is forbidden we fail the entire request.
       self.security_manager.CheckAccess(token, [subject], "r")
 
       values = self.ResolveRegex(subject, predicate_regex, token=token,
-                                 decoder=decoder, timestamp=timestamp)
+                                 decoder=decoder, timestamp=timestamp,
+                                 limit=limit)
       if values:
         result[subject] = values
 
@@ -410,7 +411,7 @@ class FakeDataStore(data_store.DataStore):
 
   @utils.Synchronized
   def ResolveRegex(self, subject, predicate_regex, decoder=None, token=None,
-                   timestamp=None):
+                   timestamp=None, limit=None):
     """Resolve all predicates for a subject matching a regex."""
     self.security_manager.CheckAccess(token, [subject], "r")
 
@@ -429,6 +430,8 @@ class FakeDataStore(data_store.DataStore):
     except KeyError:
       return []
 
+    # Holds all the attributes which matched. Keys are attribute names, values
+    # are lists of timestamped data.
     results = {}
     for regex in predicate_regex:
       regex = re.compile(regex)
@@ -448,6 +451,8 @@ class FakeDataStore(data_store.DataStore):
               continue
 
             results_list.append((attribute, ts, self._Decode(value, decoder)))
+            if limit and len(results) >= limit:
+              break
 
     result = []
     for k, values in results.items():

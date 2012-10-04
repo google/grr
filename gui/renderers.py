@@ -31,7 +31,10 @@ from django import template
 
 import logging
 
+from grr import artifacts
 from grr.lib import aff4
+from grr.lib import artifact
+from grr.lib import data_store
 from grr.lib import registry
 from grr.lib import utils
 
@@ -105,6 +108,9 @@ class RDFValueColumn(object):
     else:
       response.write(utils.SmartStr(self.name))
 
+  def GetElement(self, index):
+    return self.rows[index]
+
   def AddElement(self, index, element):
     self.rows[index] = element
 
@@ -162,6 +168,11 @@ class Renderer(object):
 
   # Each widget maintains its own state.
   state = None
+
+  # This is a maximum time in seconds the renderer is allowed to run. Renderers
+  # exceeding this time are killed softly (i.e. the time is not a guaranteed
+  # maximum, but will be used as a guide).
+  max_execution_time = 60
 
   def __init__(self):
     self.state = {}
@@ -229,11 +240,45 @@ class Renderer(object):
     """Return a safe formatted unicode object using a template."""
     return template_obj.render(template.Context(kwargs)).encode("utf8")
 
-  def FormatFromString(self, string, **kwargs):
+  def FormatFromString(self, string, mimetype="text/html", **kwargs):
     """Returns a http response from a dynamically compiled template."""
-    result = http.HttpResponse(mimetype="text/html")
+    result = http.HttpResponse(mimetype=mimetype)
     template_obj = Template(string)
     return self.RenderFromTemplate(template_obj, result, **kwargs)
+
+  @classmethod
+  def CheckAccess(cls, request):
+    """Checks if the user is allowed to view this renderer.
+
+    Args:
+      request: A request object.
+
+    Raises:
+      data_store.UnauthorizedAccess if the user is not permitted.
+    """
+
+
+class UserLabelCheckMixin(object):
+  """Checks the user has a label or deny access to this renderer."""
+
+  # This should be overridden in the mixed class.
+  AUTHORIZED_LABELS = []
+
+  @classmethod
+  def CheckAccess(cls, request):
+    """If the user is not in the AUTHORIZED_LABELS, reject this renderer."""
+    try:
+      user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users")
+                                  .Add(request.token.username)
+                                  .Add("labels"), token=request.token)
+
+      for label in user_fd.Get(user_fd.Schema.LABEL).data.label:
+        if label in cls.AUTHORIZED_LABELS:
+          return
+    except IOError:
+      pass
+
+    raise data_store.UnauthorizedAccess("User not allowed")
 
 
 class ErrorHandler(Renderer):
@@ -258,14 +303,14 @@ class ErrorHandler(Renderer):
     def Decorated(*args, **kwargs):
       try:
         return func(*args, **kwargs)
-      except Exception, e:
+      except Exception as e:
         logging.error(e)
         if not isinstance(self.message_template, Template):
           self.message_template = Template(self.message_template)
 
         response = self.FormatFromString(self.message_template, error=e,
                                          backtrace=traceback.format_exc())
-        response.status_code = self.status_code
+        response.status_code = 200
 
         return response
 
@@ -277,10 +322,20 @@ class TemplateRenderer(Renderer):
 
   The parameter 'this' is passed to the template as our reference.
   """
+
+  # These post parameters will be automatically imported into the state.
+  post_parameters = []
+
   # Derived classes should set this template
   layout_template = Template("")
 
   def Layout(self, request, response, apply_template=None):
+    """Render the layout from the template."""
+    for parameter in self.post_parameters:
+      value = request.REQ.get(parameter)
+      if value is not None:
+        self.state[parameter] = value
+
     response = super(TemplateRenderer, self).Layout(request, response)
     if apply_template is None:
       apply_template = self.layout_template
@@ -288,6 +343,26 @@ class TemplateRenderer(Renderer):
     return self.RenderFromTemplate(apply_template, response,
                                    this=self, id=self.id, unique=self.unique,
                                    renderer=self.__class__.__name__)
+
+  def RawHTML(self, request=None):
+    """This returns raw HTML, after sanitization by Layout()."""
+    result = http.HttpResponse(mimetype="text/html")
+    try:
+      self.Layout(request, result)
+    except AttributeError:
+      # This can happen when a empty protobuf field is rendered
+      return ""
+
+    return result.content
+
+
+class EscapingRenderer(TemplateRenderer):
+  """A simple renderer to escape a string."""
+  layout_template = Template("{{this.to_escape|escape}}")
+
+  def __init__(self, to_escape):
+    self.to_escape = to_escape
+    super(EscapingRenderer, self).__init__()
 
 
 class TableRenderer(TemplateRenderer):
@@ -351,6 +426,16 @@ class TableRenderer(TemplateRenderer):
       except AttributeError:
         pass
 
+  def GetCell(self, row_index, column_name):
+    """Gets the value of a Cell."""
+    if row_index is None:
+      row_index = self.size
+
+    try:
+      return self.column_dict[column_name].GetElement(row_index)
+    except KeyError:
+      pass
+
   def AddCell(self, row_index, column_name, value):
     if row_index is None:
       row_index = self.size
@@ -360,7 +445,7 @@ class TableRenderer(TemplateRenderer):
     except KeyError:
       pass
 
-    self.size = max(self.size, row_index)
+    self.size = max(self.size, row_index + 1)
 
   # The following should be safe: {{this.headers}} comes from the column's
   # LayoutHeader().
@@ -393,6 +478,7 @@ class TableRenderer(TemplateRenderer):
   }, "{{unique|escapejs}}");
 
   grr.publish("grr_messages", "{{this.message|escapejs}}");
+  $("#table_{{id|escapejs}}").attr({{this.state_json|safe}});
 </script>
 """)
 
@@ -418,6 +504,7 @@ class TableRenderer(TemplateRenderer):
 <script>
   grr.publish("GeometryChange", "main");
   grr.publish("grr_messages", "{{this.message|escapejs}}");
+  grr.table.setHeaderWidths($('#{{id}}'));
 </script>
 """)
 
@@ -497,6 +584,14 @@ class TableRenderer(TemplateRenderer):
       self.rows.append((row, row_options.items()))
 
     self.additional_rows = self.size > end_row
+
+    # If we did not write any additional rows in this round trip we ensure the
+    # table does not try to fetch more rows. This is a safety check in case
+    # BuildTable does not set the correct size and end row. Without this check
+    # the browser will spin trying to fill the table.
+    if not self.rows:
+      self.additional_rows = False
+
     return super(TableRenderer, self).Layout(request, response,
                                              apply_template=self.ajax_template)
 
@@ -585,10 +680,17 @@ grr.grrTree("{{ renderer|escapejs }}", "{{ id|escapejs }}",
 
         result.append(data)
 
+    # If this is a completely empty tree we have to return at least something
+    # or the tree will load forever.
+    if not result and path == "/":
+      result.append(dict(data=dict(title=path, icon="branch"),
+                         attr=dict(id=DeriveIDFromPath(path),
+                                   path=path)))
+
     encoder = json.JSONEncoder()
     return http.HttpResponse(encoder.encode(dict(
         data=result, message=self.message, id=self.id)),
-                             mimetype="application/json")
+                             mimetype="text/json")
 
   def AddElement(self, name, behaviour="branch", icon=None):
     """This should be called by the RenderBranch method to prepare the tree."""
@@ -664,8 +766,8 @@ class TabLayout(TemplateRenderer):
 
     // We append the state of this widget which is stored on the unique element.
     grr.layout(renderer, renderer + "_{{unique|escapejs}}",
-       $("#{{unique|escapejs}}").data().state, function() {
-         grr.publish("GeometryChange", "{{id|escapejs}}");
+       $("#{{unique|escapejs}}").data().state, function () {
+        grr.publish("GeometryChange", "{{id|escapejs}}");
        });
 
     // Clear previously selected tab.
@@ -690,9 +792,13 @@ class TabLayout(TemplateRenderer):
     };
    }, "tab_contents_{{unique|escapejs}}");
 
- // Select the first tab at first.
- var selected = grr.hash.{{this.tab_hash|safe}} || "{{this.selected|escapejs}}";
- $($("#{{unique|escapejs}} li a[renderer='" + selected + "']")).click();
+  // Select the first tab at first.
+  var selected = grr.hash.{{this.tab_hash|safe}}||"{{this.selected|escapejs}}";
+  // Check that tab exists and fall back to default if not.
+  if (! $("#{{unique|escapejs}} li a[renderer='" + selected + "']")) {
+    selected = "{{this.selected|escapejs}}";
+  }
+  $($("#{{unique|escapejs}} li a[renderer='" + selected + "']")).click();
 </script>
 
 """)
@@ -745,7 +851,7 @@ class Splitter(TemplateRenderer):
 <script>
       $("#{{ id|escapejs }}")
           .splitter({
-              minAsize: 100,
+              minAsize: 0,
               maxAsize: 3000,
               splitVertical: true,
               A: $('#{{id|escapejs}}_leftPane'),
@@ -753,7 +859,7 @@ class Splitter(TemplateRenderer):
               animSpeed: 50,
               closeableto: 0})
           .bind("resize", function (event) {
-            grr.publish("DelayedResize", "{{id|escapejs}}_leftPane");
+            grr.publish("GeometryChange", "{{id|escapejs}}_leftPane");
             event.stopPropagation();
            });
 
@@ -765,10 +871,10 @@ class Splitter(TemplateRenderer):
               animSpeed: 50,
               closeableto: 100})
           .bind("resize", function (event) {
-            grr.publish("DelayedResize", "{{id|escapejs}}_rightTopPane");
-            grr.publish("DelayedResize", "{{id|escapejs}}_rightBottomPane");
+            grr.publish("GeometryChange", "{{id|escapejs}}_rightTopPane");
+            grr.publish("GeometryChange", "{{id|escapejs}}_rightBottomPane");
             event.stopPropagation();
-           }).resize();
+           });
 
 // Pass our state to our children.
 var state = $.extend({}, grr.state, {{this.state_json|safe}});
@@ -779,6 +885,16 @@ grr.layout("{{ this.top_right_renderer|escapejs }}",
            "{{id|escapejs}}_rightTopPane", state);
 grr.layout("{{ this.bottom_right_renderer|escapejs }}",
            "{{id|escapejs}}_rightBottomPane", state);
+
+// Propagate geometry change events to all our subpanes.
+grr.subscribe("GeometryChange", function(id) {
+  if (id == "{{id|escapejs}}") {
+    grr.publish("GeometryChange", '{{id|escapejs}}_rightBottomPane');
+    grr.publish("GeometryChange", '{{id|escapejs}}_rightTopPane');
+    grr.publish("GeometryChange", '{{id|escapejs}}_leftPane');
+  };
+}, "{{id|escapejs}}_leftPane");
+
 </script>
 """)
 
@@ -800,10 +916,11 @@ class Splitter2Way(TemplateRenderer):
               animSpeed: 50,
               closeableto: 100})
           .bind("resize", function (event) {
-            grr.publish("DelayedResize", "{{id|escapejs}}_topPane");
-            grr.publish("DelayedResize", "{{id|escapejs}}_bottomPane");
+            grr.log("splitter resize event");
+            grr.publish("GeometryChange", "{{id|escapejs}}_topPane");
+            grr.publish("GeometryChange", "{{id|escapejs}}_bottomPane");
             event.stopPropagation();
-          }).resize();
+          });
 
 var state = $.extend({}, grr.state, {{this.state_json|safe}});
 
@@ -811,6 +928,7 @@ grr.layout("{{this.top_renderer|escapejs }}", "{{id|escapejs}}_topPane",
            state);
 grr.layout("{{this.bottom_renderer|escapejs }}", "{{id|escapejs}}_bottomPane",
            state);
+
 </script>
 """)
 
@@ -821,26 +939,37 @@ class Splitter2WayVertical(TemplateRenderer):
   right_renderer = ""
 
   layout_template = Template("""
-      <div id="{{id|escape}}_leftPane" class="leftPane"></div>
-      <div id="{{id|escape}}_rightPane" class="rightPane"></div>
+      <div id="{{unique|escape}}_leftPane" class="leftPane"></div>
+      <div id="{{unique|escape}}_rightPane" class="rightPane"></div>
 <script>
       $("#{{id|escapejs}}")
           .splitter({
-              minAsize: 100,
+              minAsize: 0,
               maxAsize: 3000,
               splitVertical: true,
-              A: $('#{{id|escapejs}}_leftPane'),
-              B: $('#{{id|escapejs}}_rightPane'),
+              A: $('#{{unique|escapejs}}_leftPane'),
+              B: $('#{{unique|escapejs}}_rightPane'),
               animSpeed: 50,
               closeableto: 0})
           .bind("resize", function (event) {
-            grr.publish("DelayedResize", "{{id|escapejs}}_leftPane");
-            grr.publish("DelayedResize", "{{id|escapejs}}_rightPane");
+            grr.publish("GeometryChange", "{{unique|escapejs}}_leftPane");
+            grr.publish("GeometryChange", "{{unique|escapejs}}_rightPane");
             event.stopPropagation();
-           }).resize();
+           });
 
-grr.layout("{{ this.left_renderer|escapejs }}", "{{id|escapejs}}_leftPane");
-grr.layout("{{ this.right_renderer|escapejs }}", "{{id|escapejs}}_rightPane");
+grr.layout("{{ this.left_renderer|escapejs }}",
+           "{{unique|escapejs}}_leftPane");
+grr.layout("{{ this.right_renderer|escapejs }}",
+           "{{unique|escapejs}}_rightPane");
+
+grr.subscribe("GeometryChange", function (id) {
+  if (id == "{{id|escapejs}}") {
+    grr.fixWidth($("#{{unique|escapejs}}_leftPane"));
+    grr.fixWidth($("#{{unique|escapejs}}_rightPane"));
+  };
+}, "{{unique|escapejs}}_leftPane");
+
+
 </script>
 """)
 
@@ -907,17 +1036,6 @@ class RDFValueRenderer(TemplateRenderer):
     self.proxy = proxy
     super(RDFValueRenderer, self).__init__()
 
-  def RawHTML(self, request=None):
-    """This returns raw HTML, after sanitization by Layout()."""
-    result = http.HttpResponse(mimetype="text/html")
-    try:
-      self.Layout(request, result)
-    except AttributeError:
-      # This can happen when a empty protobuf field is rendered
-      return ""
-
-    return result.content
-
   @classmethod
   def RendererForRDFValue(cls, rdfvalue_cls_name):
     """Returns the class of the RDFValueRenderer which renders rdfvalue_cls."""
@@ -932,8 +1050,17 @@ class SubjectRenderer(RDFValueRenderer):
   ClassName = "Subject"
 
   layout_template = Template("""
-<span type=subject>{{this.proxy|escape}}</span>
+<span type=subject aff4_path='{{this.aff4_path|escape}}'>
+  {{this.basename|escape}}
+</span>
 """)
+
+  def Layout(self, request, response):
+    aff4_path = aff4.RDFURN(request.REQ.get("aff4_path", ""))
+    self.basename = self.proxy.RelativeName(aff4_path)
+    self.aff4_path = self.proxy
+
+    return super(SubjectRenderer, self).Layout(request, response)
 
 
 class RDFProtoRenderer(RDFValueRenderer):
@@ -968,7 +1095,7 @@ class RDFProtoRenderer(RDFValueRenderer):
 """)
 
   # This is a translation dispatcher for rendering special fields.
-  translator = None
+  translator = {}
 
   translator_error_template = Template("<pre>{{value|escape}}</pre>")
 
@@ -985,6 +1112,12 @@ class RDFProtoRenderer(RDFValueRenderer):
   def Time32Bit(self, _, value):
     return self.FormatFromTemplate(self.time_template,
                                    value=aff4.RDFDatetime(value*1000000))
+
+  hrb_template = Template("{{value|filesizeformat}}")
+
+  def HumanReadableBytes(self, _, value):
+    """Format byte values using human readable units."""
+    return self.FormatFromTemplate(self.hrb_template, value=value)
 
   pre_template = Template("<pre>{{value|escape}}</pre>")
 
@@ -1024,7 +1157,7 @@ class RDFProtoRenderer(RDFValueRenderer):
       except KeyError:
         value = self.FormatFromTemplate(self.translator_error_template,
                                         value=value)
-      except Exception, e:
+      except Exception as e:
         logging.warn("Failed to render {0}. Err: {1}".format(name, e))
         value = ""
 
@@ -1072,7 +1205,7 @@ class RDFProtoArrayRenderer(RDFProtoRenderer):
         except KeyError:
           value = self.FormatFromTemplate(self.translator_error_template,
                                           value=value)
-        except Exception, e:
+        except Exception as e:
           logging.warn("Failed to render {0}. Err: {1}".format(name, e))
 
         if value:
@@ -1083,10 +1216,44 @@ class RDFProtoArrayRenderer(RDFProtoRenderer):
     return self.RenderFromTemplate(self.proto_template, response, data=result)
 
 
+class AbstractLogRenderer(TemplateRenderer):
+  """Render a page for view a Log file.
+
+  Implements a very simple view. That will be extended with filtering
+  capabilities.
+
+  Implementations should implement the GetLog function.
+  """
+
+  layout_template = Template("""
+<table class="proto_table">
+{% for line in this.log %}
+  <tr>
+  {% for val in line %}
+    <td class="proto_key">{{ val|escape }}</td>
+  {% endfor %}
+  </tr>
+{% empty %}
+<tr><td>No entries</tr></td>
+{% endfor %}
+<table>
+""")
+
+  def GetLog(self, request):
+    """Take a request and return a list of tuples for a log."""
+
+  def Layout(self, request, response):
+    """Fill in the form with the specific fields for the flow requested."""
+    self.log = self.GetLog(request)
+    return super(AbstractLogRenderer, self).Layout(request, response)
+
+
 class IconRenderer(RDFValueRenderer):
   width = 0
   layout_template = Template("""
-<img class='grr-icon' src='/static/images/{{this.proxy|escape}}.png' />""")
+<img class='grr-icon' src='/static/images/{{this.proxy.icon}}.png'
+ alt='{{this.proxy.description}}' title='{{this.proxy.description}}'
+ />""")
 
 
 def DeriveIDFromPath(path):
@@ -1126,6 +1293,13 @@ class ErrorRenderer(TemplateRenderer):
     return super(ErrorRenderer, self).Layout(request, response)
 
 
+class EmptyRenderer(Renderer):
+  """A do nothing renderer."""
+
+  def Format(self, **_):
+    return ""
+
+
 class UnauthorizedRenderer(TemplateRenderer):
   """Send UnauthorizedAccess Exceptions to the queue."""
 
@@ -1143,3 +1317,93 @@ class UnauthorizedRenderer(TemplateRenderer):
       self.message = str(exception)
 
     return super(UnauthorizedRenderer, self).Layout(request, response)
+
+
+class FormElementRenderer(TemplateRenderer):
+  """Base class for renderers for basic form elements."""
+
+  form_template = Template("")
+
+  def Format(self, **kwargs):
+    return self.FormatFromTemplate(self.form_template, **kwargs)
+
+
+class StringFormRenderer(FormElementRenderer):
+  form_template = Template("""
+<td>{{desc|escape}}</td>
+<td><input {% if arg_type.AllowNone %}class="form_field_or_none"{% endif %}
+name='{{ field|escape }}' type=text value='{{ value|escape }}'/></td>
+""")
+
+
+class BoolFormRenderer(FormElementRenderer):
+  form_template = Template("""
+<td>{{desc|escape}}</td>
+<td><input name='{{ field|escape }}' type=checkbox
+    {% if value %}checked {% endif %} value='{{ value|escape }}'/></td>
+""")
+
+
+class ProtoEnumFormRenderer(FormElementRenderer):
+  """Renders protobuf enums."""
+
+  form_template = Template("""
+<td>{{desc|escape}}</td><td><select name="{{field|escape}}">
+{% for enum_name, enum_desc in enum_values %}
+ <option {% ifequal enum_desc.number value %}selected{% endifequal %}
+   value="{{enum_desc.number|escape}}">
+   {{enum_name|escape}}
+   {% ifequal enum_desc.number default %} (default){% endifequal %}
+</option>
+{% endfor %}
+</select></td>
+""")
+
+  def Format(self, arg_type, **kwargs):
+    # We want enums to be sorted by their numerical value.
+    enum_values = sorted(
+        arg_type.enum_descriptor.values_by_name.items(),
+        key=lambda (k, v): v)
+    return self.FormatFromTemplate(self.form_template, enum_values=enum_values,
+                                   **kwargs)
+
+
+class ArtifactListRenderer(FormElementRenderer):
+  """Renders an Artifact selector."""
+
+  form_template = Template("""
+<tr><td><hr/></td></tr>
+{% for name, cls in artifact_list %}
+  {% if name in default %}
+    <tr>
+      <td>Collect {{name|escape}}</td>
+      <td><input name='{{ desc|escape }}' type='checkbox'
+          checked value='{{ name|escape }}'/></td>
+      <td>{{ cls.GetDescription|escape }}</td>
+    </tr>
+  {% endif %}
+{% endfor %}
+
+<tr><td><hr/></td></tr>
+""")
+
+  def Format(self, arg_type, **kwargs):
+    artifacts_list = []
+    for key, val in artifact.Artifact.classes.items():
+      if key != "Artifact":
+        artifacts_list.append((key, val))
+    return self.FormatFromTemplate(
+        self.form_template, artifact_list=artifacts_list, **kwargs)
+
+
+def FindRendererForObject(rdf_obj):
+  """Find the appropriate renderer for an RDFValue object."""
+  for cls in RDFValueRenderer.classes.values():
+    try:
+      if cls.ClassName == rdf_obj.__class__.__name__:
+        return cls(rdf_obj)
+    except AttributeError:
+      pass
+
+  # Default renderer.
+  return RDFValueRenderer(rdf_obj)

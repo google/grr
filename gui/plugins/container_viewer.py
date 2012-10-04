@@ -28,7 +28,7 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import utils
 
-# this reads the environment and inits the right locale
+# This reads the environment and inits the right locale.
 locale.setlocale(locale.LC_ALL, "")
 
 
@@ -98,7 +98,13 @@ class ContainerFileTable(renderers.TableRenderer):
   }, "{{unique|escapejs}}");
 </script>""")
 
+  content_cache = None
+  max_items = 10000
+
   def __init__(self):
+    if ContainerFileTable.content_cache is None:
+      ContainerFileTable.content_cache = utils.TimeBasedCache()
+
     renderers.TableRenderer.__init__(self)
     self.AddColumn(renderers.RDFValueColumn(
         "Icon", renderer=renderers.IconRenderer, width=0))
@@ -109,15 +115,14 @@ class ContainerFileTable(renderers.TableRenderer):
     self.state["container"] = request.REQ.get("container")
     self.state["query"] = request.REQ.get("query", "")
 
-    self.AddDynamicColumns(request)
+    container = aff4.FACTORY.Open(self.state["container"], token=request.token)
+    self.AddDynamicColumns(container)
 
     return super(ContainerFileTable, self).Layout(request, response)
 
-  def AddDynamicColumns(self, request):
+  def AddDynamicColumns(self, container):
     """Add the columns in the VIEW attribute."""
-    container_urn = aff4.RDFURN(request.REQ["container"])
-    fd = aff4.FACTORY.Open(container_urn, token=request.token)
-    view = fd.Get(fd.Schema.VIEW)
+    view = container.Get(container.Schema.VIEW)
     if view:
       for column_name in view:
         column_name = column_name.string
@@ -125,34 +130,50 @@ class ContainerFileTable(renderers.TableRenderer):
           self.AddColumn(renderers.AttributeColumn(column_name))
         except (KeyError, AttributeError):
           logging.error("Container %s specifies an invalid attribute %s",
-                        container_urn, column_name)
+                        container.urn, column_name)
 
   def BuildTable(self, start_row, end_row, request):
     """Renders the table."""
-    self.AddDynamicColumns(request)
-    sort_direction = request.REQ.get("sSortDir_0", "asc") == "desc"
     container_urn = aff4.RDFURN(request.REQ["container"])
-
-    # Get the query from the user
-    query = request.REQ.get("query")
-    if not query:
-      query = "subject matches '.'"
-
-    # For now we just list the directory
     container = aff4.FACTORY.Open(container_urn, token=request.token)
-    query_expression = query
-    children = dict(((utils.SmartUnicode(c.urn), c)
-                     for c in container.Query(query_expression)))
+    self.AddDynamicColumns(container)
+
+    sort_direction = request.REQ.get("sSortDir_0", "asc") == "desc"
+
+    # Get the query from the user.
+    query_expression = request.REQ.get("query")
+    if not query_expression:
+      query_expression = "subject matches '.'"
+
+    limit = max(self.max_items, end_row)
+
+    key = utils.SmartUnicode(container_urn)
+    key += ":" + query_expression + ":" + str(limit)
+    try:
+      children = self.content_cache.Get(key)
+    except KeyError:
+      children = dict(((utils.SmartUnicode(c.urn), c)
+                       for c in container.Query(query_expression,
+                                                limit=limit)))
+      self.content_cache.Put(key, children)
 
     child_names = children.keys()
     child_names.sort(reverse=sort_direction)
+
+    if len(children) == self.max_items:
+      self.columns[0].AddElement(0, aff4.RDFString("nuke"))
+      msg = ("This table contains more than %d entries, please use a filter "
+             "string or download it as a CSV file.") % self.max_items
+      self.columns[1].AddElement(0, aff4.RDFString(msg))
+      self.AddRow({}, row_index=0)
+      return
 
     row_index = start_row
 
     # Make sure the table knows how large it is.
     self.size = len(child_names)
 
-    for child_urn in child_names:
+    for child_urn in child_names[row_index:]:
       fd = children[child_urn]
       row_attributes = dict()
 
@@ -164,9 +185,9 @@ class ContainerFileTable(renderers.TableRenderer):
           pass
 
       if "Container" in fd.behaviours:
-        row_attributes["Icon"] = "directory"
+        row_attributes["Icon"] = dict(icon="directory")
       else:
-        row_attributes["Icon"] = "file"
+        row_attributes["Icon"] = dict(icon="file")
 
       self.AddRow(row_attributes, row_index=row_index)
       row_index += 1

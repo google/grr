@@ -1,0 +1,63 @@
+#!/usr/bin/env python
+# Copyright 2012 Google Inc.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# -*- mode: python; encoding: utf-8 -*-
+
+"""Tests for artifacts."""
+
+
+
+from grr.client import conf
+
+# Need to import artifacts so they get registered
+from grr.artifacts import win_artifacts
+
+from grr.lib import artifact
+from grr.lib import test_lib
+from grr.lib.flows.general import collectors
+
+
+class FakeFlow(collectors.ArtifactCollectorFlow):
+  """Fake flow object."""
+  client = None
+
+  def __init__(self):
+    """Do Nothing."""
+
+
+class ArtifactTest(test_lib.GRRBaseTest):
+
+  def testArtifactsValidate(self):
+    """Check each artifact we have passes validation."""
+
+    fake_flow = FakeFlow()
+    for a_cls in artifact.Artifact.classes:
+      if a_cls == "Artifact":
+        continue    # Skip the base object.
+      art = artifact.Artifact.classes[a_cls]
+      art_obj = art(parent_flow=FakeFlow())
+      art_obj.Validate()
+
+    art_cls = artifact.Artifact.classes["ApplicationEventLog"]
+    art_obj = art_cls(parent_flow=fake_flow)
+    art_obj.LABELS.append("BadLabel")
+
+    self.assertRaises(artifact.ArtifactDefinitionError, art_obj.Validate)
+
+
+def main(args):
+  test_lib.main(args)
+
+if __name__ == "__main__":
+  conf.StartMain(main)

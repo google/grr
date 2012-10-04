@@ -48,7 +48,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     sel.type("css=input[name=q]", "0001")
     sel.click("css=input[type=submit]")
 
-    self.WaitUntilEqual(u"aff4:/C.0000000000000001",
+    self.WaitUntilEqual(u"C.0000000000000001",
                         sel.get_text, "css=span[type=subject]")
 
     # Choose client 1
@@ -60,7 +60,8 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     sel.click("css=a[grrtarget=LaunchFlows]")
     self.WaitUntil(sel.is_element_present, "id=_Processes")
     self.failUnless(sel.is_element_present("id=_Processes"))
-    sel.click("css=ins.jstree-icon")
+    sel.click("css=#_Processes > ins.jstree-icon")
+
     self.WaitUntil(sel.is_element_present, "link=ListProcesses")
 
     self.assertEqual("ListProcesses", sel.get_text("link=ListProcesses"))
@@ -104,16 +105,28 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
                         "//table/tbody/tr[1]/td[3]")
 
     visibility = []
-    for i in range(1, 11):
+    for i in range(1, 10):
       visibility.append(sel.is_visible("//table/tbody/tr[%s]" % i))
 
-    self.assertEqual(visibility, [1, 0, 0, 0, 0, 0, 0, 1, 1, 0])
+    self.assertEqual(visibility, [1, 0, 0, 0, 0, 0, 0, 1, 1])
 
     # Click on the first tree_closed to open it.
     sel.click("css=.tree_closed")
 
     visibility = []
-    for i in range(1, 11):
+    for i in range(1, 10):
       visibility.append(sel.is_visible("//table/tbody/tr[%s]" % i))
 
-    self.assertEqual(visibility, [1, 1, 0, 0, 1, 0, 0, 1, 1, 0])
+    self.assertEqual(visibility, [1, 1, 0, 0, 1, 0, 0, 1, 1])
+
+    # Select the requests tab
+    sel.click("css=div.ui-tabs a:contains(Requests)")
+    sel.click("css=td:contains(GetFile)")
+
+    self.WaitUntil(sel.is_element_present,
+                   "css=td:contains(flow:request:00000001)")
+
+    # Check that a StatFile client action was issued as part of the GetFile
+    # flow.
+    self.assertTrue(sel.is_element_present(
+        "css=div.ui-tabs td.proto_value:contains(StatFile)"))

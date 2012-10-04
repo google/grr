@@ -19,13 +19,21 @@
 
 import exceptions
 import imp
+import os
 import sys
+import tempfile
 import time
+import mox
 from grr.client import conf
+from grr.client import conf as flags
+
 from grr.client import client_utils_common
 from grr.client import client_utils_linux
+from grr.client import client_utils_osx
 from grr.lib import test_lib
 from grr.proto import jobs_pb2
+
+FLAGS = flags.FLAGS
 
 
 def GetVolumePathName(_):
@@ -70,9 +78,9 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     for filename, expected_device, expected_path, device_type in [
         ("/etc/passwd", "/dev/mapper/root", "/etc/passwd", jobs_pb2.Path.OS),
         ("/usr/local/bin/ls", "/dev/mapper/usr", "/bin/ls", jobs_pb2.Path.OS),
-        ("/proc/net/sys", "none", "/net/sys", jobs_pb2.Path.UNKNOWN),
+        ("/proc/net/sys", "none", "/net/sys", jobs_pb2.Path.UNSET),
         ("/home/user/test.txt", "server.nfs:/vol/home", "/test.txt",
-         jobs_pb2.Path.UNKNOWN)]:
+         jobs_pb2.Path.UNSET)]:
       raw_pathspec, path = client_utils_linux.LinGetRawDevice(
           filename)
 
@@ -182,8 +190,91 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     # This should take just a bit longer than one second.
     self.assertTrue(time_used < 2.0)
 
+  def testLinuxNanny(self):
+    """Tests the linux nanny."""
+    self.exit_called = False
+
+    # Mock out the exit call.
+    old_exit = os._exit
+    try:
+      nanny_controller = client_utils_linux.NannyController()
+      nanny_controller.StartNanny(unresponsive_kill_period=0.5)
+
+      def MockExit(value):
+        self.exit_called = value
+        # Heartbeat to avoid spinning here.
+        nanny_controller.Heartbeat()
+
+      os._exit = MockExit
+
+      for _ in range(10):
+        # Unfortunately we really need to sleep because we cant mock out
+        # time.time.
+        time.sleep(0.1)
+        nanny_controller.Heartbeat()
+
+      self.assertEqual(self.exit_called, False)
+
+      # Main thread sleeps for long enough for the nanny to fire.
+      time.sleep(1)
+      self.assertEqual(self.exit_called, -1)
+
+      nanny_controller.StopNanny()
+
+    finally:
+      os._exit = old_exit
+
+  def testLinuxNannyLog(self):
+    """Tests the linux nanny transaction log."""
+    with tempfile.NamedTemporaryFile() as fd:
+      nanny_controller = client_utils_linux.NannyController()
+      nanny_controller.StartNanny(nanny_logfile=fd.name)
+      grr_message = jobs_pb2.GrrMessage(session_id="W:test")
+
+      nanny_controller.WriteTransactionLog(grr_message)
+      self.assertProto2Equal(grr_message, nanny_controller.GetTransactionLog())
+      nanny_controller.CleanTransactionLog()
+
+      self.assert_(nanny_controller.GetTransactionLog() is None)
+
+      nanny_controller.StopNanny()
+
+
+class OSXVersionTests(test_lib.GRRBaseTest):
+
+  def setUp(self):
+    super(OSXVersionTests, self).setUp()
+    self.mox = mox.Mox()
+    self.mac_ver = ("10.8.1", ("", "", ""), "x86_64")
+
+    self.mox.StubOutWithMock(client_utils_osx.platform, "mac_ver")
+    client_utils_osx.platform.mac_ver().AndReturn(self.mac_ver)
+
+  def testVersionAsIntArray(self):
+    self.mox.ReplayAll()
+    osversion = client_utils_osx.OSXVersion()
+    self.assertEqual(osversion.VersionAsMajorMinor(), [10, 8])
+    self.mox.VerifyAll()
+
+  def testVersionString(self):
+    self.mox.ReplayAll()
+    osversion = client_utils_osx.OSXVersion()
+    self.assertEqual(osversion.VersionString(), "10.8.1")
+    self.mox.VerifyAll()
+
+  def testVersionAsFloat(self):
+    self.mox.ReplayAll()
+    osversion = client_utils_osx.OSXVersion()
+    self.assertEqual(osversion.VersionAsFloat(), 10.8)
+    self.mox.VerifyAll()
+
+  def tearDown(self):
+    self.mox.UnsetStubs()
+    super(OSXVersionTests, self).tearDown()
+
 
 def main(argv):
+  _, FLAGS.nanny_logfile = tempfile.mkstemp()
   test_lib.main(argv)
 
 if __name__ == "__main__":

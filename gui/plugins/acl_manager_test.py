@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- mode: python; encoding: utf-8 -*-
 
 # Copyright 2012 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,11 +17,11 @@
 """Tests the access control authorization workflow."""
 
 
-
 from grr.client import conf as flags
 
 from grr.lib import access_control
 from grr.lib import data_store
+from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import test_lib
 
@@ -30,10 +31,22 @@ FLAGS = flags.FLAGS
 class TestACLWorkflow(test_lib.GRRSeleniumTest):
   """Tests the access control workflow."""
 
+  # Using an Unicode string for the test here would be optimal but Selenium
+  # can't correctly enter Unicode text into forms.
+  reason = "Felt like it!"
+
   @classmethod
   def InstallACLChecks(cls):
     data_store.DB.security_manager = access_control.AccessControlManager()
 
+    # Stub out the email function
+    cls.old_SendEmail = email_alerts.SendEmail
+    cls.emails_sent = []
+
+    def SendEmailStub(from_user, to_user, subject, message, **unused_kwargs):
+      cls.emails_sent.append((from_user, to_user, subject, message))
+
+    email_alerts.SendEmail = SendEmailStub
 
   def testACLWorkflow(self):
     self.InstallACLChecks()
@@ -45,7 +58,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     sel.type("css=input[name=q]", "0001")
     sel.click("css=input[type=submit]")
 
-    self.WaitUntilEqual(u"aff4:/C.0000000000000001",
+    self.WaitUntilEqual(u"C.0000000000000001",
                         sel.get_text, "css=span[type=subject]")
 
     # Choose client 1
@@ -57,7 +70,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # This asks the user "test" (which is us) to approve the request.
     sel.type("css=input[id=acl_approver]", "test")
-    sel.type("css=input[id=acl_reason]", "Felt like it!")
+    sel.type("css=input[id=acl_reason]", self.reason)
     sel.click("css=form.acl_form input[type=submit]")
 
     # User test logs in as an approver.
@@ -97,7 +110,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Lets add another approver.
     token = data_store.ACLToken(username="approver")
     flow.FACTORY.StartFlow("C.0000000000000001", "GrantAccessFlow",
-                           reason="Felt like it!", delegate="test", token=token)
+                           reason=self.reason, delegate="test", token=token)
 
     # Try again:
     sel.open("/")
@@ -108,7 +121,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(sel.get_text, "css=td:contains('has approved')")
     sel.click("css=td:contains('has approved')")
 
-    self.WaitUntilEqual("fs", sel.get_text, "css=span:contains('fs')")
+    self.WaitUntil(sel.get_text, "css=span:contains('fs')")
     sel.click("css=span:contains('fs')")
 
     # This is ok - it should work now

@@ -5,25 +5,59 @@
 syntax = "proto2";
 
 
-// A Process record describing a system process
+// A Process record describing a system process.
 message Process {
-  optional string exe = 1;
-  optional string cmdline = 2;
-  optional uint32 pid = 3;
-  optional uint32 ppid = 4;
-  optional uint64 ctime = 5;
-  optional string user = 6;
-};
+  optional uint32 pid = 1;
+  optional uint32 ppid = 2;
+  optional string name = 3;
+  optional string exe = 4;
+  repeated string cmdline = 5;
+  optional uint64 ctime = 6;
+  optional uint32 real_uid = 7;
+  optional uint32 effective_uid = 8;
+  optional uint32 saved_uid = 9;
+  optional uint32 real_gid = 10;
+  optional uint32 effective_gid = 11;
+  optional uint32 saved_gid = 12;
+  optional string username = 13;
+  optional string terminal = 14;
+  optional string status = 15;
+  optional int32 nice = 16;
+  optional string cwd = 17;
+  optional uint32 num_threads = 18;
+  optional float user_cpu_time = 19;
+  optional float system_cpu_time = 20;
+  optional float cpu_percent = 21;
+  optional uint64 RSS_size = 22;
+  optional uint64 VMS_size = 23;
+  optional float memory_percent = 24;
+  repeated string open_files = 25;
+  repeated NetworkConnection connections = 26;
+}
 
-// Describe filesystems
-message Filesystem {
-  optional string device = 1;
-  optional string mount_point = 2;
-  optional string type = 3;
-  optional string label = 4;
-};
+message NetworkEndpoint {
+  optional string ip = 1;
+  optional int32 port = 2;
+}
 
-message Connection {
+message NetworkConnection {
+  enum NetworkFamily {
+    INET = 2;
+    INET6 = 10;
+    INET6_WIN = 23;
+    INET6_OSX = 30;
+  };
+  enum NetworkType {
+    UNKNOWN_SOCKET = 0;
+    SOCK_STREAM = 1;
+    SOCK_DGRAM = 2;
+  };
+
+  optional NetworkFamily family = 1;
+  optional NetworkType type = 2 [default = UNKNOWN_SOCKET];
+  optional NetworkEndpoint local_address = 3;
+  optional NetworkEndpoint remote_address = 4;
+
   enum State {
     UNKNOWN = 0;
     CLOSED = 1;
@@ -39,25 +73,50 @@ message Connection {
     TIME_WAIT = 11;
     DELETE_TCB = 12;
   };
+  optional State state = 5 [default = UNKNOWN];
+  optional uint32 pid = 6;
+  optional uint64 ctime = 7;
+}
 
-  enum SocketType {
-    UNKNOWN_SOCKET = 0;
-    TCP = 1;
-    UDP = 2;
-  };
-
-  optional State state = 1 [default = UNKNOWN];
-  optional SocketType type = 2 [default = UNKNOWN_SOCKET];
-
-  optional uint32 local_addr = 3;
-  optional uint32 local_port = 4;
-  optional uint32 remote_addr = 5;
-  optional uint32 remote_port = 6;
-  optional uint32 pid = 7;
-  optional uint64 ctime = 8;
+// Describe filesystems
+message Filesystem {
+  optional string device = 1;
+  optional string mount_point = 2;
+  optional string type = 3;
+  optional string label = 4;
 };
 
 message MRUFile {
   optional string filename = 1;
   optional uint64 timestamp = 2 [default = 0];
+}
+
+message RunKey {
+  optional string keyname = 1;
+  optional string filepath = 2;
+  optional uint64 lastwritten = 3 [default = 0];
+}
+
+//OS X specific aspects of a service
+message LaunchdJob {
+  optional string sessiontype = 1;
+  optional uint64 lastexitstatus = 2;
+  optional uint64 timeout = 3;
+  optional bool ondemand = 4;
+  repeated string machservice = 5;
+  repeated string perjobmachservice = 6;
+  repeated string socket = 7;
+
+}
+
+// Describe a running service:
+// Windows service,
+// linux daemon
+// OS X launchd jobs (launchagents/daemons)
+message Service {
+  optional string label = 1;
+  optional string program = 2;
+  optional string args = 3;
+  optional uint64 pid = 4;
+  optional LaunchdJob osx_launchd = 5;
 }

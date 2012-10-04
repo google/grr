@@ -1,4 +1,4 @@
-# Configuration file for grr-enroller init.d script
+# Configuration file for grr-enroller start-up script
 
 # Start the grr-enroller
 START="no";

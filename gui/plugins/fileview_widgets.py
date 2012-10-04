@@ -31,6 +31,7 @@ class HexView(renderers.TemplateRenderer):
 
   Internal State:
     - aff4_path: The name of the aff4 object we are viewing now.
+    - age: The version of the AFF4 object to display.
   """
   table_width = 32
   total_size = 0
@@ -83,6 +84,7 @@ class HexView(renderers.TemplateRenderer):
   def Layout(self, request, response):
     """Render the content of the tab or the container tabset."""
     self.state["aff4_path"] = request.REQ.get("aff4_path")
+    self.state["age"] = request.REQ.get("age")
 
     encoder = json.JSONEncoder()
     self.state_json = encoder.encode(self.state)
@@ -108,7 +110,7 @@ class HexView(renderers.TemplateRenderer):
     response["total_size"] = self.total_size
 
     return http.HttpResponse(encoder.encode(response),
-                             mimetype="application/json")
+                             mimetype="text/json")
 
   def ReadBuffer(self, request, offset, length):
     """Should be overriden by derived classes to satisfy read requests.
@@ -186,6 +188,7 @@ class TextView(renderers.TemplateRenderer):
   def Layout(self, request, response):
     """Render the content of the tab or the container tabset."""
     self.state["aff4_path"] = request.REQ.get("aff4_path")
+    self.state["age"] = request.REQ.get("age")
 
     encoder = json.JSONEncoder()
     self.state_json = encoder.encode(self.state)
@@ -206,7 +209,7 @@ class TextView(renderers.TemplateRenderer):
     try:
       buf = self.ReadBuffer(request, self.offset, self.data_size)
       self.data = self._Decode(text_encoding, buf)
-    except RuntimeError, e:
+    except RuntimeError as e:
       self.error = "Failed to decode: %s" % utils.SmartStr(e)
 
     return renderers.TemplateRenderer.Layout(self, request, response,

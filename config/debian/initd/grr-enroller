@@ -12,13 +12,13 @@
 PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin"
 DESC="GRR Rapid Response enroller"
 NAME="grr-enroller"
-DAEMON="/usr/sbin/grr_enroller.py"
-DAEMON_ARGS="--config=/etc/grr/grr-enroller.conf"
+DAEMON="/usr/sbin/grr_server.py"
+DAEMON_ARGS="--start_enroller --config=/etc/grr/grr-server.conf --grrlog=/var/log/grr/grr-enroller.log"
 PIDFILE="/var/run/${NAME}.pid"
 SCRIPTNAME="/etc/init.d/${NAME}"
 DEFAULTFILE="/etc/default/${NAME}"
 
-[ -x "${DAEMON}" ] || DAEMON="/usr/local/sbin/grr_enroller.py"
+[ -x "${DAEMON}" ] || DAEMON="/usr/local/sbin/grr_server.py"
 
 [ -x "${DAEMON}" ] || exit 0
 

@@ -20,6 +20,26 @@
 
 
 
+LINUX_FIXTURE = [
+    (u"/", ("VFSGRRClient", {
+        "metadata:hostname": "Linux%(client_id)s",
+        "metadata:system": "Linux",
+        "metadata:os_release": "2.6.38.8",
+        "metadata:os_version": "#2 SMP Fri Feb 24 03:31:23 PST 2012",
+        "metadata:uname": "Linux-#2 SMP Fri Feb 24 03:31:23 PST 2012-2.6.38.8",
+        "metadata:clock": "%(age)s329740",
+        "metadata:ping": "%(age)s329740",
+        "metadata:install_date": "1303680521557627",
+        "metadata:ClientInfo": """
+client_name: "GRR Monitor"
+client_version: 1
+revision: 0
+build_time: "unknown"
+""",
+        })),
+    ]
+
+
 # This dict represents a client VFS. It is a list of (path, attributes) tuples,
 # where attributes is a tuple of AFF4 object type and a dict of attributes. All
 # strings can contain interpolation strings, and protobufs are encoded in text
@@ -31,8 +51,15 @@ VFS = [
         "metadata:os_release": "7",
         "metadata:os_version": "6.1.7600",
         "metadata:uname": "Windows-6.1.7600-7",
-        "metadata:clock": "1308864467329740",
+        "metadata:clock": "%(age)s329740",
+        "metadata:ping": "%(age)s329740",
         "metadata:install_date": "1303680521557627",
+        "metadata:ClientInfo": """
+client_name: "GRR Monitor"
+client_version: 1
+revision: 0
+build_time: "unknown"
+""",
         })),
     # The following deliberately neglects to include proc so we can test if its
     # picked up anyway.
@@ -3502,6 +3529,40 @@ pathspec {
 }
 registry_data {
   data: "\024\000\037DG\032\003Yr?\247D\211\305U\225\376k0\356~\000t\000\034\000CFSF\026\0002\000\000\340\365\0051@\366E \000test.dd\000\000\000t\032Y^\226\337\323H\215g\0273\274\356(\272\305\315\372\337\237gVA\211G\305\307k\300\266\177<\000\010\000\004\000\357\2761@\306E1@\306E*\000\000\000\226b\001\000\000\0003\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000t\000e\000s\000t\000.\000d\000d\000\000\000B\000\000\000"
+}
+"""
+})),
+# This is for testing CollectRunKeys.
+
+(u"/registry/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/Sidebar", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 51
+st_mtime: 1247546054
+registry_type: REG_EXPAND_SZ
+pathspec {
+ path: "/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/Sidebar"
+ pathtype: REGISTRY
+}
+registry_data {
+  string: "%%ProgramFiles%%/Windows Sidebar/Sidebar.exe /autoRun"
+}
+"""
+})),
+(u"/registry/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/MctAdmin", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 51
+st_mtime: 1247546054
+registry_type: REG_EXPAND_SZ
+pathspec {
+  pathtype: REGISTRY
+  path: "/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/Sidebar"
+}
+registry_data {
+  string: "Sidebar.exe"
 }
 """
 })),

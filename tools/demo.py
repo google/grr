@@ -16,12 +16,20 @@
 """This is a single binary demo program."""
 
 
+import sys
 import threading
+
+
+
+from django.core.handlers import wsgi
+from django.core.management import setup_environ
 
 from grr.client import conf
 from grr.client import conf as flags
+
 from grr.client import client
 from grr.gui import runtests
+from grr.gui import settings
 from grr.lib import registry
 from grr.tools import http_server
 from grr.worker import enroller
@@ -34,26 +42,39 @@ FLAGS = flags.FLAGS
 
 def main(argv):
   """Sets up all the component in their own threads."""
-  registry.Init()
   FLAGS.storage = "FakeDataStore"
   FLAGS.server_cert = BASE_DIR + "keys/test/server.pem"
   FLAGS.server_private_key = BASE_DIR + "keys/test/server-priv.pem"
 
+
+  setup_environ(settings)
+
+  from grr.gui import plugins
+
+  # Get everything initialized.
+  registry.Init()
+
+  # Increase the memory limit to 4GB.
+  FLAGS.rss_max = 4000
+
   # This is the worker thread.
-  worker_thread = threading.Thread(target=worker.main, args=[argv])
+  worker_thread = threading.Thread(target=worker.main, args=[argv],
+                                   name="Worker")
   worker_thread.daemon = True
   worker_thread.start()
 
   FLAGS.ca = BASE_DIR + "keys/test/ca-priv.pem"
   # This is the enroller thread.
-  enroller_thread = threading.Thread(target=enroller.main, args=[argv])
+  enroller_thread = threading.Thread(target=enroller.main, args=[argv],
+                                     name="Enroller")
   enroller_thread.daemon = True
   enroller_thread.start()
 
   # This is the http server that clients communicate with.
   FLAGS.http_bind_address = "127.0.0.1"
   FLAGS.http_bind_port = 8001
-  http_thread = threading.Thread(target=http_server.main, args=[argv])
+  http_thread = threading.Thread(target=http_server.main, args=[argv],
+                                 name="HTTP Server")
   http_thread.daemon = True
   http_thread.start()
 
@@ -63,11 +84,12 @@ def main(argv):
   FLAGS.config = "/tmp/grr_config.txt"
   FLAGS.poll_max = 5
 
-  client_thread = threading.Thread(target=client.main, args=[argv])
+  client_thread = threading.Thread(target=client.main, args=[argv],
+                                   name="Client")
   client_thread.daemon = True
   client_thread.start()
 
-  # The admin ui is running in the main thread.
+  # The UI is running in the main thread.
   runtests.main(argv)
 
 if __name__ == "__main__":

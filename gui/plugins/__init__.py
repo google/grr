@@ -17,10 +17,14 @@
 """GRR GUI plugins simplify the task of displaying different GUI elements."""
 
 from grr.gui.plugins import acl_manager
+from grr.gui.plugins import configuration_view
 from grr.gui.plugins import container_viewer
+from grr.gui.plugins import cron_view
 from grr.gui.plugins import fileview
 from grr.gui.plugins import flow_management
 from grr.gui.plugins import foreman
+from grr.gui.plugins import hunt_view
+from grr.gui.plugins import inspect
 from grr.gui.plugins import notifications
 from grr.gui.plugins import searchclient
 from grr.gui.plugins import statistics

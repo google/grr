@@ -15,11 +15,66 @@
 
 """Administrative flows for managing the clients state."""
 
+
 import time
+import urllib
+
+from grr.client import conf as flags
 
 from grr.lib import aff4
+from grr.lib import email_alerts
 from grr.lib import flow
 from grr.proto import jobs_pb2
+
+FLAGS = flags.FLAGS
+
+
+class GetClientStats(flow.GRRFlow):
+  """This flow retrieves information about the GRR client process."""
+
+  category = "/Administrative/"
+
+  @flow.StateHandler(next_state=["StoreResults"])
+  def Start(self):
+    self.CallClient("GetClientStats", next_state="StoreResults")
+
+  @flow.StateHandler()
+  def StoreResults(self, responses):
+    """Stores the responses."""
+
+    if not responses.success:
+      self.Error("Failed to retrieve client stats.")
+      return
+
+    for response in responses:
+      self.ProcessResponse(response)
+
+  def ProcessResponse(self, response):
+    """Actually processes the contents of the response."""
+
+    urn = aff4.ROOT_URN.Add(self.client_id).Add("stats")
+    stats_fd = aff4.FACTORY.Create(urn, "ClientStats", token=self.token,
+                                   mode="rw")
+    stats_fd.AddAttribute(stats_fd.Schema.STATS(response))
+
+    stats_fd.Close()
+
+    self.Notify("ViewObject", urn, "Client Stats")
+
+
+class GetClientStatsAuto(GetClientStats, flow.WellKnownFlow):
+  """This action pushes client stats to the server automatically."""
+
+  category = None
+
+  well_known_session_id = "W:Stats"
+
+  def ProcessMessage(self, message):
+    """Processes a stats response from the client."""
+    stats = jobs_pb2.ClientStats()
+    stats.ParseFromString(message.args)
+    self.client_id = message.source
+    self.ProcessResponse(stats)
 
 
 class Uninstall(flow.GRRFlow):
@@ -179,8 +234,105 @@ class Foreman(flow.WellKnownFlow):
     # Maintain a cache of the foreman
     if (self.foreman_cache is None or
         now > self.foreman_cache.age + self.cache_refresh_time):
-      self.foreman_cache = aff4.FACTORY.Open("aff4:/foreman", token=self.token)
+      self.foreman_cache = aff4.FACTORY.Open("aff4:/foreman", mode="rw",
+                                             token=self.token)
       self.foreman_cache.age = now
 
     if message.source:
       self.foreman_cache.AssignTasksToClient(message.source)
+
+
+class OnlineNotification(flow.GRRFlow):
+  """Notifies by email when a client comes online in GRR."""
+
+  category = "/Administrative/"
+
+  template = """
+<html><body><h1>GRR Client Online Notification.</h1>
+
+Client %(client_id)s (%(hostname)s) just came online. Click
+<a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
+
+<p>Thanks,</p>
+<p>The GRR team.
+</body></html>"""
+
+  def __init__(self, email=None, **kwargs):
+    """Init.
+
+    Args:
+      email: Email address to send to, can be comma separated. If not set, mail
+      will be sent to the logged in user.
+    """
+    self.email = email or kwargs["context"].token.username
+    flow.GRRFlow.__init__(self, **kwargs)
+
+  @flow.StateHandler(next_state="SendMail")
+  def Start(self):
+    """Starts processing."""
+    request = jobs_pb2.PrintStr()
+    request.data = "Ping"
+    self.CallClient("Echo", request,
+                    next_state="SendMail")
+
+  @flow.StateHandler()
+  def SendMail(self, responses):
+    """Sends a mail when the client has responded."""
+    if responses.success:
+      client = aff4.FACTORY.Open(self.client_id, token=self.token)
+      hostname = client.Get(client.Schema.HOSTNAME)
+
+      url = urllib.urlencode((("c", self.client_id),
+                              ("main", "HostInformation")))
+
+      subject = "GRR Client on %s became available." % hostname
+
+      email_alerts.SendEmail(self.email, self.token.username,
+                             subject,
+                             self.template % dict(
+                                 client_id=self.client_id,
+                                 admin_ui=FLAGS.ui_url,
+                                 hostname=hostname,
+                                 urn=url),
+                             is_html=True)
+    else:
+      flow.FlowError("Error while pinging client.")
+
+
+class Update(flow.GRRFlow):
+  """Updates the GRR client to a new version."""
+
+  category = "/Administrative/"
+
+  AUTHORIZED_LABELS = ["admin"]
+
+  def __init__(self, blob_path=None, **kw):
+    """Init.
+
+    Args:
+      blob_path: An aff4 path to a GRRSignedBlob of a new client version.
+    """
+    super(Update, self).__init__(**kw)
+    self.blob_path = blob_path
+
+  @flow.StateHandler(next_state="Interrogate")
+  def Start(self):
+    aff4_blob = aff4.FACTORY.Open(self.blob_path, token=self.token)
+    blob = aff4_blob.Get(aff4_blob.Schema.BINARY)
+
+    req = jobs_pb2.ExecuteBinaryRequest()
+    req.executable.MergeFrom(blob.data)
+    self.CallClient("ExecuteBinaryCommand", req, next_state="Interrogate")
+
+  @flow.StateHandler(next_state="Done")
+  def Interrogate(self, responses):
+    _ = responses
+    self.CallFlow("Interrogate", next_state="Done")
+
+  @flow.StateHandler()
+  def Done(self):
+    client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(
+        self.client_id), token=self.token)
+    info = client.Get(client.Schema.CLIENT_INFO)
+    self.Log("Client update completed, new version: %s" %
+             info.data.client_version)

@@ -18,35 +18,20 @@
 
 
 import multiprocessing
-import platform
-import time
 
 
 from grr.client import conf
 from grr.client import conf as flags
-import logging
 
 # Make sure we load the client plugins
 from grr.client import client_actions
 
 from grr.client import client_config
+from grr.client import client_log
 from grr.client import comms
 from grr.client import conf
 from grr.lib import registry
 
-
-flags.DEFINE_float("poll_min", 0.2,
-                   "Minimum time between polls in seconds")
-
-flags.DEFINE_float("poll_max", 600,
-                   "Maximum time between polls in seconds")
-
-flags.DEFINE_float("poll_slew", 1.15,
-                   "Slew of poll time in seconds")
-
-flags.DEFINE_bool("process_separate", False,
-                  "Use process separation for stability "
-                  "[Default:%default]")
 
 flags.DEFINE_string("camode", client_config.CAMODE,
                     "The mode to run in, test,production,staging. This "
@@ -55,65 +40,28 @@ flags.DEFINE_string("camode", client_config.CAMODE,
 flags.DEFINE_integer("server_serial_number", 0,
                      "Minimal serial number we accept for server cert.")
 
-flags.DEFINE_string("certificate", "",
-                    "A PEM encoded certificate file (combined private "
-                    "and X509 key in PEM format)")
-
-if platform.system() == "Windows":
-  flags.DEFINE_string("regpath", client_config.REGISTRY_KEY,
-                      "A registry path for storing GRR configuration.")
-else:
-  flags.DEFINE_string("config", "/etc/grr.ini",
-                      "Comma separated list of grr configuration files.")
-
 FLAGS = flags.FLAGS
 
 
 class GRRClient(object):
-  """A stand alone GRR client."""
+  """A stand alone GRR client, which uses the HTTP mechanism."""
 
   stop = False
 
-  def __init__(self):
+  def __init__(self, certificate=None):
     """Constructor."""
-
+    super(GRRClient, self).__init__()
     ca_cert = client_config.CACERTS.get(FLAGS.camode.upper())
     if not ca_cert:
       raise RuntimeError("Invalid camode specified.")
 
-    if FLAGS.process_separate:
-      self.context = comms.ProcessSeparatedContext(ca_cert=ca_cert)
-    else:
-      self.context = comms.GRRHTTPContext(ca_cert=ca_cert)
-
-    self.context.LoadCertificates()
-
-    # Start off with a maximum poling interval
-    self.sleep_time = FLAGS.poll_max
+    self.client = comms.GRRHTTPClient(ca_cert=ca_cert, certificate=certificate)
 
   def Run(self):
     """The client main loop - never exits."""
-    for status in self.context.Run():
-      # If we communicated this time we want to continue aggressively
-      if status.high_priority_sent > 0 or status.received_count > 0:
-        self.sleep_time = 0
-
-      cn = self.context.communicator.common_name
-      logging.debug("%s: Sending %s(%s), Received %s messages. Sleeping for %s",
-                    cn, status.sent_count, status.sent_len,
-                    status.received_count,
-                    self.sleep_time)
-
-      time.sleep(self.sleep_time)
-
-      if self.stop:
-        logging.debug("Client stopped by main thread.")
-        break
-
-      # Back off slowly at first and fast if no answer.
-      self.sleep_time = min(
-          FLAGS.poll_max,
-          max(FLAGS.poll_min, self.sleep_time) * FLAGS.poll_slew)
+    # Generate the client forever.
+    for _ in self.client.Run():
+      pass
 
 
 def main(unused_args):
@@ -122,12 +70,8 @@ def main(unused_args):
 
   conf.PARSER.parse_args()
 
-  log_level = logging.INFO
-  if FLAGS.verbose:
-    log_level = logging.DEBUG
-    logging.basicConfig(level=log_level,
-                        format="[%(levelname)s "
-                               "%(module)s:%(lineno)s] %(message)s")
+  client_log.SetUpClientLogging()
+
   registry.Init()
   client = GRRClient()
   client.Run()

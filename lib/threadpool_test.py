@@ -42,6 +42,11 @@ class ThreadPoolTest(mox.MoxTestBase):
   def tearDown(self):
     self.test_pool.Stop()
 
+  def Count(self, thread_name):
+    worker_threads = [thread for thread in threading.enumerate()
+                      if thread_name in thread.name]
+    return len(worker_threads)
+
   def testThreadCreation(self):
     """Checks if at least 100 workers can be created.
 
@@ -50,18 +55,19 @@ class ThreadPoolTest(mox.MoxTestBase):
     constraints) but we demand at least 100 workers in the default
     settings here.
     """
-    self.assertTrue(threading.active_count() > 100)
+
+    self.assertEqual(self.Count("pool-testThreadCreation_worker"), 500)
 
   def testStopping(self):
     """Tests if all worker threads terminate if the thread pool is stopped."""
 
+    self.assertEqual(self.Count("pool-testStopping_worker"), 500)
     self.test_pool.Stop()
-    self.assertTrue(threading.active_count() < self.base_thread_count + 5)
+    self.assertEqual(self.Count("pool-testStopping_worker"), 0)
     self.test_pool.Start()
-    self.assertTrue(threading.active_count() > self.base_thread_count + 100)
+    self.assertEqual(self.Count("pool-testStopping_worker"), 500)
     self.test_pool.Stop()
-    # Make sure there are not significantly more threads running than before.
-    self.assertTrue(threading.active_count() < self.base_thread_count + 5)
+    self.assertEqual(self.Count("pool-testStopping_worker"), 0)
 
     # This test leaves the test pool in stopped state. tearDown will try to
     # Stop() it again but this should work and just log a warning.
@@ -79,11 +85,8 @@ class ThreadPoolTest(mox.MoxTestBase):
     self.lock = threading.Lock()
 
     def Insert(list_obj, element):
-      self.lock.acquire()
-      try:
+      with self.lock:
         list_obj.append(element)
-      finally:
-        self.lock.release()
 
     # We want to schedule more than 500 tasks here so we can see if
     # reusing threads is actually working and more than 1000 to see if
@@ -104,12 +107,9 @@ class ThreadPoolTest(mox.MoxTestBase):
 
     def IRaise(some_obj):
       """This method just raises an exception."""
-      self.lock.acquire()
-      try:
+      with self.lock:
         # This simulates an error by calling a non-existent function.
         some_obj.process()
-      finally:
-        self.lock.release()
 
     self.mox.StubOutWithMock(logging, "exception")
     logging.exception(mox.StrContains("exception in worker thread"),
@@ -183,6 +183,20 @@ class ThreadPoolTest(mox.MoxTestBase):
     prefix = self.test_pool.name
     self.assertRaises(threadpool.DuplicateThreadpoolError,
                       threadpool.ThreadPool, prefix, 10)
+
+  def testDuplicateName(self):
+    """Tests that we can get the same pool again through the factory."""
+
+    prefix = "duplicate_name"
+
+    pool = threadpool.ThreadPool.Factory(prefix, 10)
+    self.assertEqual(pool.started, False)
+    pool.Start()
+    self.assertEqual(pool.started, True)
+
+    # This should return the same pool as before.
+    pool2 = threadpool.ThreadPool.Factory(prefix, 10)
+    self.assertEqual(pool2.started, True)
 
 
 def main(argv):

@@ -30,6 +30,7 @@ from grr.client import conf
 from grr.client import conf as flags
 import logging
 
+from grr.client import client_config
 from grr.lib import communicator
 from grr.lib import mongo_data_store
 from grr.lib import flow
@@ -109,8 +110,15 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       responses_comms = jobs_pb2.ClientCommunication(
           api_version=request_comms.api_version)
 
-      self.server.frontend.HandleMessageBundles(
+      request_comms.orig_request.MergeFrom(jobs_pb2.HttpRequest(
+          raw_headers=str(self.headers),
+          source_ip=self.client_address[0]))
+
+      source, nr_messages = self.server.frontend.HandleMessageBundles(
           request_comms, responses_comms)
+
+      logging.info("HTTP request from %s (%s), %d bytes - %d messages.",
+                   source, self.client_address[0], length, nr_messages)
 
       self.Send(responses_comms.SerializeToString())
 
@@ -120,10 +128,11 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       # client appropriately.
       return self.Send("Enrollment required", status=406)
 
-    except Exception:
+    except Exception as e:
       if FLAGS.debug:
         pdb.post_mortem()
 
+      logging.error("Had to respond with status 500: %s.", e)
       return self.Send("Error", status=500)
 
 

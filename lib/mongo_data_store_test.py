@@ -35,6 +35,10 @@ class MongoDataStoreTest(data_store_test.DataStoreTest):
 
   def setUp(self):
     self.token = data_store.ACLToken("test", "Running tests")
+    FLAGS.test_data_store = "MongoDataStore"
+    FLAGS.mongo_db_name = "grr_test"
+    super(MongoDataStoreTest, self).setUp()
+
     data_store.DB.security_manager = test_lib.MockSecurityManager()
 
     # Drop the collection.
@@ -59,8 +63,6 @@ class MongoDataStoreTest(data_store_test.DataStoreTest):
 
 
 def main(args):
-  FLAGS.storage = "MongoDataStore"
-  FLAGS.mongo_db_name = "grr_test"
   test_lib.main(args)
 
 if __name__ == "__main__":

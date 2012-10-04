@@ -16,15 +16,22 @@
 
 """These aff4 objects are periodic cron jobs."""
 import bisect
+import datetime
+import time
+import traceback
 import logging
 
 from grr.lib import aff4
-from grr.lib import data_store
+from grr.lib import utils
 from grr.proto import analysis_pb2
 
 
 class CronJob(aff4.AFF4Object):
-  """The baseclass of all cron jobs."""
+  """The baseclass of all cron jobs.
+
+  Note: you should normally inherit from AbstractScheduledCronJob instead of
+        this one.
+  """
 
   # How often we should run in hours (Note this is a best effort attempt).
   frequency = 24.0
@@ -32,10 +39,12 @@ class CronJob(aff4.AFF4Object):
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     LAST_RUN_TIME = aff4.Attribute(
         "aff4:cron/last_run", aff4.RDFDatetime,
-        "The last time this cron job ran.", "last_run")
+        "The last time this cron job ran.", "last_run", versioned=False)
+    LOG = aff4.Attribute("aff4:log", aff4.RDFString,
+                         "Log messages related to the progress of this cron.")
 
-  def Run(self):
-    """This method gets called periodically by the cron daemon.
+  def DueToRun(self):
+    """Called periodically by the cron daemon, if True Run() will be called.
 
     Returns:
         True if it is time to run based on the specified frequency.
@@ -45,12 +54,27 @@ class CronJob(aff4.AFF4Object):
 
     if (last_run_time is None or
         now - self.frequency * 60 * 60 * 1e6 > last_run_time):
-      # Touch up our last run time
-      self.Set(now)
-      logging.info("Running cron job %s", self.__class__.__name__)
       return True
 
     return False
+
+  def Run(self):
+    """Do the actual work of the Cron."""
+    self.Set(self.Schema.LAST_RUN_TIME())   # Update LAST_RUN_TIME to now.
+
+  def Log(self, message, level=logging.INFO, **kwargs):
+    """Log a message to the cron's log attribute."""
+    logging.log(level, message, **kwargs)
+    message = "%s: %s" % (logging._levelNames[level], message)
+    self.AddAttribute(self.Schema.LOG(message))
+
+
+class AbstractScheduledCronJob(CronJob):
+  """CronJob that will be automatically run."""
+
+
+class AbstractCronTask(CronJob):
+  """A Cron sub task that is scheduled from another Cron."""
 
 
 class Graph(aff4.RDFProto):
@@ -63,16 +87,39 @@ class GraphSeries(aff4.RDFProtoArray):
 
 
 class _ActiveCounter(object):
-  """A helper class to count the number of times a specific category occured."""
+  """Helper class to count the number of times a specific category occurred.
+
+  This class maintains running counts of event occurrence at different
+  times. For example, the number of times an OS was reported as a category of
+  "Windows" in the last 1 day, 7 days etc (as a measure of 7 day active windows
+  systems).
+  """
 
   active_days = [1, 7, 14, 30]
 
   def __init__(self, attribute):
+    """Constructor.
+
+    Args:
+       attribute: The histogram object will be stored in this attribute.
+    """
     self.attribute = attribute
     self.categories = dict([(x, {}) for x in self.active_days])
 
   def Add(self, category, age):
+    """Adds another instance of this category into the active_days counter.
+
+    We automatically count the event towards all relevant active_days. For
+    example, if the category "Windows" was seen 8 days ago it will be counted
+    towards the 30 day active, 14 day active but not against the 7 and 1 day
+    actives.
+
+    Args:
+      category: The category name to account this instance against.
+      age: When this instance occurred.
+    """
     now = aff4.RDFDatetime()
+    category = utils.SmartUnicode(category)
 
     for active_time in self.active_days:
       if now - age < active_time * 24 * 60 * 60 * 1e6:
@@ -80,6 +127,7 @@ class _ActiveCounter(object):
             active_time].get(category, 0) + 1
 
   def Save(self, fd):
+    """Generate a histogram object and store in the specified attribute."""
     histogram = self.attribute()
     for active_time in self.active_days:
       graph = analysis_pb2.Graph(title="%s day actives" % active_time)
@@ -88,13 +136,96 @@ class _ActiveCounter(object):
 
       histogram.data.append(graph)
 
+    # Add an additional instance of this histogram (without removing previous
+    # instances).
     fd.AddAttribute(histogram)
 
 
-class OSBreakDown(CronJob):
+class ClientStatsCronJob(AbstractScheduledCronJob):
+  """A cron job which opens every client in the system.
+
+  We feed all the client objects to the AbstractClientStatsCollector instances.
+  """
+
+  def Run(self):
+    """Retrieve all the clients for the AbstractClientStatsCollectors."""
+    # Instantiate all the depended cron jobs.
+    super(ClientStatsCronJob, self).Run()
+    jobs = []
+    self.Log("Collecting ClientStatsCollectors that are due to run.")
+    for cls_name, cls in self.classes.items():
+      if issubclass(cls, AbstractClientStatsCollector):
+        job = aff4.FACTORY.Create("cron:/%s" % cls_name, cls_name, mode="rw",
+                                  token=self.token)
+        if job.DueToRun():
+          logging.info("%s: Will run %s", self.__class__.__name__, cls_name)
+          job.Log("Starting cron job %s" % (cls_name))
+          job.Run()  # Run will ensure LAST_RUN_TIME is updated.
+          job.Start()
+          jobs.append(job)
+    self.Log("Collected %d ClientStatsCollectors. Starting run." % len(jobs))
+
+    # Iterates over all the clients in the system, and feed them to the jobs.
+    if jobs:
+      root = aff4.FACTORY.Open(aff4.ROOT_URN, token=self.token)
+      for child in root.OpenChildren(chunk_limit=100000):
+        for job in jobs:
+          job.ProcessClient(child)
+
+      # Let the jobs know we are all done here.
+      for job in jobs:
+        job.Log("Successfully ran cron job %s" % (job.__class__.__name__))
+        job.End()
+
+  def DueToRun(self):
+    """This job should always run."""
+    return True
+
+
+class AbstractClientStatsCollector(AbstractCronTask):
+  """A base class for all jobs interested in all clients.
+
+  The ClientStatsCronJob will open all the client objects and feed those to all
+  derived classes for processing. This allows a single pass over all clients.
+  """
+
+  def ProcessClient(self, client):
+    """This method will be called for each client in the system."""
+
+
+class GRRVersionBreakDown(AbstractClientStatsCollector):
+  """Records relative ratios of GRR versions in 7 day actives."""
+
+  # Run every 4 hours.
+  frequency = 4
+
+  class SchemaCls(CronJob.SchemaCls):
+    GRRVERSION_HISTOGRAM = aff4.Attribute("aff4:stats/grrversion", GraphSeries,
+                                          "GRR version statistics for active "
+                                          "clients.")
+
+  def Start(self):
+    self.counter = _ActiveCounter(self.Schema.GRRVERSION_HISTOGRAM)
+
+  def End(self):
+    self.counter.Save(self)
+    self.Flush()
+
+  def ProcessClient(self, client):
+    ping = client.Get(client.Schema.PING)
+    c_info = client.Get(client.Schema.CLIENT_INFO)
+    if c_info and ping:
+      category = " ".join([c_info.data.client_name,
+                           str(c_info.data.client_version)])
+
+      self.counter.Add(category, ping)
+
+
+class OSBreakDown(AbstractClientStatsCollector):
   """Records relative ratios of OS versions in 7 day actives."""
 
-  frequency = 0
+  # Run every 24 hours.
+  frequency = 24
 
   class SchemaCls(CronJob.SchemaCls):
     OS_HISTOGRAM = aff4.Attribute(
@@ -105,41 +236,40 @@ class OSBreakDown(CronJob):
                                        "Release statistics for active clients.")
 
     VERSION_HISTOGRAM = aff4.Attribute("aff4:stats/version", GraphSeries,
-                                       "Release statistics for active clients.")
+                                       "Version statistics for active clients.")
 
-  def Run(self):
-    if super(OSBreakDown, self).Run():
-      # Use the clock attribute as the last checked in time.
-      predicates = [
-          aff4.Attribute.GetAttributeByName("System").predicate,
-          aff4.Attribute.GetAttributeByName("Version").predicate,
-          aff4.Attribute.GetAttributeByName("Release").predicate,
-          aff4.Attribute.GetAttributeByName("Clock").predicate]
+  def Start(self):
+    self.counters = [
+        _ActiveCounter(self.Schema.OS_HISTOGRAM),
+        _ActiveCounter(self.Schema.VERSION_HISTOGRAM),
+        _ActiveCounter(self.Schema.RELEASE_HISTOGRAM),
+        ]
 
-      counters = [
-          _ActiveCounter(self.Schema.OS_HISTOGRAM),
-          _ActiveCounter(self.Schema.VERSION_HISTOGRAM),
-          _ActiveCounter(self.Schema.RELEASE_HISTOGRAM),
-          ]
+  def End(self):
+    # Write all the counter attributes.
+    for counter in self.counters:
+      counter.Save(self)
 
-      for row in data_store.DB.Query(
-          predicates, data_store.DB.Filter.HasPredicateFilter(predicates[0]),
-          limit=1e6, token=self.token):
+    # Flush the data to the data store.
+    self.Flush()
 
-        category = []
-        for i, counter in enumerate(counters):
-          # Take the age from the clock attribute as representative of the
-          # active time.
-          _, age = row[predicates[3]]
-          value, _ = row[predicates[i]]
-          category.append(value)
-          counter.Add(",".join(category), age)
+  def ProcessClient(self, client):
+    """Update counters for system, version and release attributes."""
+    ping = client.Get(client.Schema.PING)
+    system = client.Get(client.Schema.SYSTEM)
+    if system:
+      self.counters[0].Add(system, ping)
 
-      for counter in counters:
-        counter.Save(self)
+    version = client.Get(client.Schema.VERSION)
+    if version:
+      self.counters[1].Add(version, ping)
+
+    release = client.Get(client.Schema.OS_RELEASE)
+    if release:
+      self.counters[2].Add(release, ping)
 
 
-class LastAccessStats(CronJob):
+class LastAccessStats(AbstractClientStatsCollector):
   """Calculates a histogram statistics of clients last contacted times."""
 
   # The number of clients fall into these bins (number of hours ago)
@@ -152,39 +282,63 @@ class LastAccessStats(CronJob):
     HISTOGRAM = aff4.Attribute("aff4:stats/last_contacted",
                                Graph, "Last contacted time")
 
-  def Run(self):
-    if super(LastAccessStats, self).Run():
-      now = aff4.RDFDatetime()
+  def Start(self):
+    self._bins = [long(x*1e6*24*60*60) for x in self._bins]
 
-      # Change the bins to be in microseconds
-      bins = [long(x*1e6*24*60*60) for x in self._bins]
+    # We will count them in this bin
+    self._value = [0] * len(self._bins)
 
-      # We will count them in this bin
-      self._value = [0] * len(self._bins)
+  def End(self):
+    # Build and store the graph now. Day actives are cumulative.
+    cumulative_count = 0
+    graph = self.Schema.HISTOGRAM()
+    for x, y in zip(self._bins, self._value):
+      cumulative_count += y
+      graph.data.data.add(x_value=x, y_value=cumulative_count)
 
-      # Use the clock attribute as the last checked in time.
-      predicate = aff4.Attribute.GetAttributeByName("Clock").predicate
+    self.AddAttribute(graph)
+    self.Flush()
 
-      for row in data_store.DB.Query(
-          [predicate], data_store.DB.Filter.HasPredicateFilter(predicate),
-          limit=1e6, token=self.token):
+  def ProcessClient(self, client):
+    now = aff4.RDFDatetime()
 
-        # We just use the age of the attribute
-        _, age = row[predicate]
-        time_ago = now - age
+    ping = client.Get(client.Schema.PING)
+    if ping:
+      time_ago = now - ping
+      pos = bisect.bisect(self._bins, time_ago)
 
-        pos = bisect.bisect(bins, time_ago)
-        # If clients are older than the last bin forget them.
-        try:
-          self._value[pos] += 1
-        except IndexError:
-          pass
+      # If clients are older than the last bin forget them.
+      try:
+        self._value[pos] += 1
+      except IndexError:
+        pass
 
-      # Build and store the graph now. Day actives are cumulative.
-      cumulative_count = 0
-      graph = self.Schema.HISTOGRAM()
-      for x, y in zip(self._bins, self._value):
-        cumulative_count += y
-        graph.data.data.add(x_value=x, y_value=cumulative_count)
 
-      self.AddAttribute(graph)
+def RunAllCronJobs(token=None):
+  """Search for all CronJobs and run them."""
+  for cls_name, cls in aff4.AFF4Object.classes.iteritems():
+    if issubclass(cls, AbstractScheduledCronJob):
+      # Create the job if it does not already exist.
+      try:
+        fd = aff4.FACTORY.Create("cron:/%s" % cls_name, cls_name, mode="rw",
+                                 token=token)
+      except IOError as e:
+        logging.warn("Failed to open cron job %s", cls_name)
+        continue
+
+      if not fd.DueToRun():   # Only run if schedule says we should.
+        continue
+
+      start_time = time.time()
+      fd.Log("Running cron job %s" % cls_name)
+      try:
+        fd.Run()
+        total_time = datetime.timedelta(seconds=int(time.time()-start_time))
+        fd.Log("Successfully ran cron job %s in %s" % (cls_name, total_time))
+
+      # Just keep going on all errors.
+      except Exception as e:
+        fd.Log("Cron Job %s died: %s" % (cls_name, e), level=logging.ERROR)
+        fd.Log("Exception: %s" % traceback.format_exc())
+
+      fd.Close()

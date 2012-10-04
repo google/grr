@@ -20,13 +20,16 @@ from hashlib import sha256
 import os
 import pdb
 import StringIO
+import time
 import urllib2
 
 
 from M2Crypto import X509
+import mox
 
 from grr.client import conf
 from grr.client import conf as flags
+import logging
 
 # This is needed to define the flags used here.
 from grr.client import client
@@ -35,8 +38,13 @@ from grr.client import comms
 from grr.lib import aff4
 from grr.lib import communicator
 from grr.lib import flow
+from grr.lib import flow_context
 from grr.lib import stats
 from grr.lib import test_lib
+from grr.lib import utils
+from grr.lib.flows.caenroll import ca_enroller
+from grr.lib.flows import general
+
 from grr.proto import jobs_pb2
 
 
@@ -46,7 +54,7 @@ FLAGS = flags.FLAGS
 class ServerCommunicatorFake(flow.ServerCommunicator):
   """A fake communicator to initialize the ServerCommunicator."""
 
-  # For tests we bypass the keystore.
+  # For tests we bypass loading of the server certificate.
   def _LoadOurCertificate(self, certificate):
     return communicator.Communicator._LoadOurCertificate(
         self, certificate)
@@ -194,20 +202,9 @@ class ClientCommsTest(test_lib.GRRBaseTest):
                       self.server_communicator.DecryptMessage,
                       cipher_text)
 
-  def testEnrollingCommunicatorWorks(self):
-    """Test that the EnrollingCommunicator still works."""
-    self.client_communicator = comms.EnrollingCommunicator(
-        certificate="")
-
-    self.client_communicator.LoadServerCertificate(
-        self.server_certificate,
-        client_config.CACERTS["TEST"])
-
-    self.testCommunications()
-
   def testEnrollingCommunicator(self):
-    """Test that the EnrollingCommunicator generates good keys."""
-    self.client_communicator = comms.EnrollingCommunicator(
+    """Test that the ClientCommunicator generates good keys."""
+    self.client_communicator = comms.ClientCommunicator(
         certificate="")
 
     self.client_communicator.LoadServerCertificate(
@@ -223,12 +220,12 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.assertEqual(cn, req.get_subject().CN)
 
 
-class HTTPContextTests(test_lib.GRRBaseTest):
+class HTTPClientTests(test_lib.GRRBaseTest):
   """Test the http communicator."""
 
   def setUp(self):
     """Set up communicator tests."""
-    test_lib.GRRBaseTest.setUp(self)
+    super(HTTPClientTests, self).setUp()
 
     self.options = flags.FLAGS
     self.options.certificate = open(os.path.join(self.key_path,
@@ -242,7 +239,13 @@ class HTTPContextTests(test_lib.GRRBaseTest):
         self.options.certificate).common_name
 
     # Make a new client
-    self.CreateNewClientContext()
+    self.CreateNewClientObject()
+
+    # The housekeeper threads of the time based caches also call time.time and
+    # interfere with some tests so we disable them here.
+    utils.InterruptableThread.exit = True
+    # The same also applies to the StatsCollector thread.
+    stats.StatsCollector.exit = True
 
     # Make a client mock
     self.client = aff4.FACTORY.Create(self.client_cn, "VFSGRRClient", mode="rw",
@@ -260,6 +263,10 @@ class HTTPContextTests(test_lib.GRRBaseTest):
     urllib2.urlopen = self.UrlMock
     self.messages = []
 
+    ca_enroller.enrolment_cache.Flush()
+
+    super(HTTPClientTests, self).setUp()
+
   def CreateNewServerCommunicator(self):
     self.server_communicator = ServerCommunicatorFake(
         self.server_certificate, token=self.token)
@@ -269,18 +276,22 @@ class HTTPContextTests(test_lib.GRRBaseTest):
 
   def tearDown(self):
     urllib2.urlopen = self.urlopen
+    super(HTTPClientTests, self).tearDown()
 
-  def CreateNewClientContext(self):
-    self.client_context = comms.GRRHTTPContext(
-        self.options.certificate)
+  def CreateNewClientObject(self):
+    self.client_communicator = comms.GRRHTTPClient(
+        self.options.certificate, worker=comms.GRRClientWorker)
+
+    # Disable stats collection for tests.
+    stats.STATS.Set("grr_client_last_stats_sent_time", time.time() + 3600)
 
     # Build a client context with preloaded server certificates
-    self.client_context.LoadCertificates()
-    self.client_context.communicator.LoadServerCertificate(
+    self.client_communicator.communicator.LoadServerCertificate(
         self.server_certificate, client_config.CACERTS["TEST"])
 
   def UrlMock(self, req, **kwargs):
     """A mock for url handler processing from the server's POV."""
+    _ = kwargs
     try:
       self.client_communication = jobs_pb2.ClientCommunication()
       self.client_communication.ParseFromString(req.data)
@@ -324,9 +335,10 @@ class HTTPContextTests(test_lib.GRRBaseTest):
   def CheckClientQueue(self):
     """Checks that the client context received all server messages."""
     # Check the incoming messages
-    self.assertEqual(len(self.client_context._in_queue), 10)
+    self.assertEqual(self.client_communicator.client_worker.InQueueSize(), 10)
 
-    for i, message in enumerate(self.client_context._in_queue):
+    for i, message in enumerate(
+        self.client_communicator.client_worker._in_queue):
       self.assertEqual(message.source, "GRR Test Server")
       self.assertEqual(message.response_id, 2)
       self.assertEqual(message.request_id, i)
@@ -334,15 +346,44 @@ class HTTPContextTests(test_lib.GRRBaseTest):
       self.assertEqual(message.auth_state, jobs_pb2.GrrMessage.AUTHENTICATED)
 
     # Clear the queue
-    self.client_context._in_queue = []
+    self.client_communicator.client_worker._in_queue = []
 
   def SendToServer(self):
     """Schedule some packets from client to server."""
     # Generate some client traffic
     for i in range(0, 10):
-      self.client_context.SendReply(
+      self.client_communicator.client_worker.SendReply(
           jobs_pb2.GrrStatus(),
           session_id="session", response_id=i, request_id=1)
+
+  def testInitialEnrollment(self):
+    """If the client has no certificate initially it should enroll."""
+
+    old_cert, FLAGS.certificate = FLAGS.certificate, ""
+    old_cn = self.client_cn
+    try:
+      self.CreateNewClientObject()
+
+      # Client should get a new Common Name.
+      self.assertNotEqual(self.client_cn,
+                          self.client_communicator.communicator.common_name)
+
+      self.client_cn = self.client_communicator.communicator.common_name
+
+      # Now communicate with the server.
+      status = self.client_communicator.RunOnce()
+
+      self.assertEqual(status.code, 406)
+
+      # The client should now send an enrollment request.
+      status = self.client_communicator.RunOnce()
+
+      # Client should generate enrollment message by itself.
+      self.assertEqual(len(self.messages), 1)
+      self.assertEqual("CA:Enrol", self.messages[0].session_id)
+    finally:
+      FLAGS.certificate = old_cert
+      self.client_cn = old_cn
 
   def testEnrollment(self):
     """Test the http response to unknown clients."""
@@ -357,7 +398,7 @@ class HTTPContextTests(test_lib.GRRBaseTest):
 
     # Now communicate with the server.
     self.SendToServer()
-    status = self.client_context.RunOnce()
+    status = self.client_communicator.RunOnce()
 
     # We expect to receive a 406 and all client messages will be tagged as
     # UNAUTHENTICATED.
@@ -366,22 +407,52 @@ class HTTPContextTests(test_lib.GRRBaseTest):
     self.assertEqual(self.messages[0].auth_state,
                      jobs_pb2.GrrMessage.UNAUTHENTICATED)
 
-    # Client should switch to EnrollingCommunicator now:
-    self.assertEqual(self.client_context.communicator.__class__,
-                     comms.EnrollingCommunicator)
+    # The next request should be an enrolling request.
+    status = self.client_communicator.RunOnce()
+
+    self.assertEqual(len(self.messages), 11)
+    self.assertEqual("CA:Enrol", self.messages[-1].session_id)
+
+    # Now we manually run the enroll well known flow with the enrollment request
+    # - in reality this will be run on the Enroller.
+
+    # First load the test certificates.
+    FLAGS.ca = os.path.join(self.key_path, "ca-priv.pem")
+
+    # Now run the enrol_flow. This will start a new flow for enrolling the
+    # client, sign the cert and add it to the data store.
+    context = flow_context.FlowContext()
+    enrol_flow = ca_enroller.Enroler(context)
+    enrol_flow.ProcessMessage(self.messages[-1])
+
+    # The next client communication should be enrolled now.
+    status = self.client_communicator.RunOnce()
+
+    self.assertEqual(status.code, 200)
+
+    # There should be a cert for the client right now.
+    self.client = aff4.FACTORY.Create(self.client_cn, "VFSGRRClient", mode="rw",
+                                      token=self.token)
+    self.assertTrue(self.client.Get(self.client.Schema.CERT))
+
+    # Now communicate with the server once again.
+    self.SendToServer()
+    status = self.client_communicator.RunOnce()
+
+    self.assertEqual(status.code, 200)
 
   def testReboots(self):
     """Test the http communication with reboots."""
     # Now we add the new client record to the server cache
     self.SendToServer()
-    self.client_context.RunOnce()
+    self.client_communicator.RunOnce()
     self.CheckClientQueue()
 
     # Simulate the client rebooted
-    self.CreateNewClientContext()
+    self.CreateNewClientObject()
 
     self.SendToServer()
-    self.client_context.RunOnce()
+    self.client_communicator.RunOnce()
     self.CheckClientQueue()
 
     # Simulate the server rebooting
@@ -390,14 +461,14 @@ class HTTPContextTests(test_lib.GRRBaseTest):
         self.client_cn, self.client)
 
     self.SendToServer()
-    self.client_context.RunOnce()
+    self.client_communicator.RunOnce()
     self.CheckClientQueue()
 
   def testCachedRSAOperations(self):
     """Make sure that expensive RSA operations are cached."""
     # First time fill the cache.
     self.SendToServer()
-    self.client_context.RunOnce()
+    self.client_communicator.RunOnce()
     self.CheckClientQueue()
 
     self.assert_(stats.STATS.Get("grr_rsa_operations") > 0)
@@ -406,7 +477,7 @@ class HTTPContextTests(test_lib.GRRBaseTest):
     stats.STATS.Set("grr_rsa_operations", 0)
     for _ in range(100):
       self.SendToServer()
-      self.client_context.RunOnce()
+      self.client_communicator.RunOnce()
       self.CheckClientQueue()
 
     # There should not have been any expensive operations any more
@@ -429,11 +500,15 @@ class HTTPContextTests(test_lib.GRRBaseTest):
       req.data = self.client_communication.SerializeToString()
       return self.UrlMock(req)
 
-    urllib2.urlopen = Corruptor
+    old_urlopen = urllib2.urlopen
+    try:
+      urllib2.urlopen = Corruptor
 
-    self.SendToServer()
-    status = self.client_context.RunOnce()
-    self.assertEqual(status.code, 500)
+      self.SendToServer()
+      status = self.client_communicator.RunOnce()
+      self.assertEqual(status.code, 500)
+    finally:
+      urllib2.urlopen = old_urlopen
 
   def testClientRetransmission(self):
     """Test that client retransmits failed messages."""
@@ -448,7 +523,7 @@ class HTTPContextTests(test_lib.GRRBaseTest):
     urllib2.urlopen = FlakyServer
 
     self.SendToServer()
-    status = self.client_context.RunOnce()
+    status = self.client_communicator.RunOnce()
     self.assertEqual(status.code, 500)
 
     # Server should not receive anything.
@@ -456,12 +531,64 @@ class HTTPContextTests(test_lib.GRRBaseTest):
 
     # Try to send these messages again.
     fail = False
-    status = self.client_context.RunOnce()
+    status = self.client_communicator.RunOnce()
     self.assertEqual(status.code, 200)
     self.CheckClientQueue()
 
     # Server should have received 10 messages this time.
     self.assertEqual(len(self.messages), 10)
+
+  def testClientStatsCollection(self):
+    """Tests that the client stats are collected automatically."""
+
+    now = 1000000
+    # Pretend we have already sent stats.
+    stats.STATS.Set("grr_client_last_stats_sent_time", now)
+
+    self.mox = mox.Mox()
+    self.mox.StubOutWithMock(logging, "info")
+    self.mox.StubOutWithMock(time, "time")
+
+    try:
+      # No calls to logging here.
+      time.time().AndReturn(now)
+      self.mox.ReplayAll()
+
+      self.client_communicator.CheckStats()
+
+    finally:
+      self.mox.UnsetStubs()
+      self.mox.VerifyAll()
+
+    self.mox.StubOutWithMock(logging, "info")
+    self.mox.StubOutWithMock(time, "time")
+
+    try:
+      # No stats collection after 10 minutes.
+      time.time().AndReturn(now + 600)
+      # Let one hour pass.
+      time.time().AndReturn(now + 3600)
+      # This time the client should collect stats.
+      logging.info("Sending back client statistics to the server.")
+      # For setting the last time we need to replay another time() call.
+      time.time().AndReturn(now + 3600)
+
+      # The last call will be shortly after.
+      time.time().AndReturn(now + 3600 + 600)
+      # Again, there should be no stats collection and, thus, no logging either.
+
+      self.mox.ReplayAll()
+
+      self.client_communicator.CheckStats()
+      self.client_communicator.CheckStats()
+      self.client_communicator.CheckStats()
+
+    finally:
+      self.mox.UnsetStubs()
+      self.mox.VerifyAll()
+
+    # Disable stats collection again.
+    stats.STATS.Set("grr_client_last_stats_sent_time", time.time() + 3600)
 
 
 class BackwardsCompatibleClientCommsTest(ClientCommsTest):
@@ -477,32 +604,32 @@ class BackwardsCompatibleClientCommsTest(ClientCommsTest):
     super(BackwardsCompatibleClientCommsTest, self).tearDown()
 
 
-class BackwardsCompatibleHTTPContextTests(HTTPContextTests):
+class BackwardsCompatibleHTTPClientTests(HTTPClientTests):
   """Test that we can talk using the old protocol still (version 2)."""
 
   def setUp(self):
     self.current_api = client_config.NETWORK_API
     client_config.NETWORK_API = 2
-    super(BackwardsCompatibleHTTPContextTests, self).setUp()
+    super(BackwardsCompatibleHTTPClientTests, self).setUp()
 
   def tearDown(self):
     client_config.NETWORK_API = self.current_api
-    super(BackwardsCompatibleHTTPContextTests, self).tearDown()
+    super(BackwardsCompatibleHTTPClientTests, self).tearDown()
 
   def testCachedRSAOperations(self):
     """With the old protocol there should be many RSA operations."""
     # First time fill the cache.
     self.SendToServer()
-    self.client_context.RunOnce()
+    self.client_communicator.RunOnce()
     self.CheckClientQueue()
 
     self.assert_(stats.STATS.Get("grr_rsa_operations") > 0)
 
     # Reset operation count
     stats.STATS.Set("grr_rsa_operations", 0)
-    for _ in range(100):
+    for _ in range(5):
       self.SendToServer()
-      self.client_context.RunOnce()
+      self.client_communicator.RunOnce()
       self.CheckClientQueue()
 
     # There should be about 2 operations per loop iteration using the old
@@ -512,10 +639,11 @@ class BackwardsCompatibleHTTPContextTests(HTTPContextTests):
     # currently, when running in compatibility mode we cache the same ciphers on
     # each end. The result is that the new code is still faster even when
     # running the old api.
-    self.assertEqual(stats.STATS.Get("grr_rsa_operations"), 200)
+    self.assertEqual(stats.STATS.Get("grr_rsa_operations"), 10)
 
 
 def main(argv):
+  FLAGS.rss_max = 1e9
   test_lib.main(argv)
 
 if __name__ == "__main__":

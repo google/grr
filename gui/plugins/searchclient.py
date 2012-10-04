@@ -18,86 +18,50 @@
 import re
 import time
 
+from django.utils import datastructures
+
 from grr.gui import renderers
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import registry
 from grr.lib import stats
+from grr.lib import utils
 
 
 class SearchHostInit(registry.InitHook):
-  def __init__(self):
+
+  pre = ["StatsInit"]
+
+  def RunOnce(self):
     # Counters used here
     stats.STATS.RegisterMap("grr_gui_search_host_time", "times", precision=0)
 
 
-class ContentView(renderers.Renderer):
-  """Manage the main content pane."""
+class ContentView(renderers.Splitter2WayVertical):
+  """The content view has a navigator and the main panel."""
+  left_renderer = "Navigator"
+  right_renderer = "FrontPage"
 
-  template = renderers.Template("""
-<div id="navigator" class="sidebarHolder grr-content-sidebar
-  grr-sidebar-search"></div>
-<div id="main" class="rightPane"></div>
+  layout_template = """
 <script>
-  $("#{{id|escapejs}}").splitter({
-    minAsize: 100,
-    maxAsize: 3000,
-    splitVertical: true,
-    A: $('#navigator'),
-    B: $('#main'),
-    animSpeed: 10,
-    closeableto: 0})
-  .bind("resize", function (event) {
-    grr.publish("DelayedResize", "navigator");
-    grr.publish("DelayedResize", "main");
-    grr.fixWidth($("#main"));
-    event.stopPropagation();
-  }).resize();
-
   if (grr.hash.c) {
     grr.state.client_id = grr.hash.c;
   };
-
-  // Update main's state from the hash
-  if (grr.hash.main) {
-    grr.layout(grr.hash.main, "main");
-  } else {
-    grr.layout("FrontPage", "main");
-  };
-
-  // Reload the navigator when a new client is selected.
-  grr.subscribe("client_selection", function () {
-    grr.layout("Navigator", "navigator");
-  }, "{{id|escapejs}}");
-
-  grr.layout("Navigator", "navigator");
 </script>
-""")
-
-  def Layout(self, request, response):
-    """Manage content pane depending on passed in query parameter."""
-    response = super(ContentView, self).Layout(request, response)
-
-    return self.RenderFromTemplate(
-        self.template, response, id=self.id)
+""" + renderers.Splitter2WayVertical.layout_template
 
 
 class StatusRenderer(renderers.TemplateRenderer):
   """A renderer for the online status line."""
 
-  # Update time in ms.
-  poll_time = 30000
-
   layout_template = renderers.Template("""
-<div class="infoline" id="infoline_{{unique|escape}}">
 Status: {{this.icon|safe}}
 {{this.last_seen_msg|escape}} ago.
-
-<script>
-window.setTimeout(function () {
-  grr.layout("StatusRenderer", "infoline_{{unique|escapejs}}")},
-  {{this.poll_time|escapejs}});
-</script>
-</div>
+{% if this.ip_description %}
+<br>
+{{this.ip_icon|safe}} {{this.ip_description|escape}}
+{% endif %}
+<br>
 """)
 
   def Layout(self, request, response):
@@ -106,16 +70,16 @@ window.setTimeout(function () {
     client_id = request.REQ.get("client_id")
     if client_id:
       client = aff4.FACTORY.Open(client_id, token=request.token)
-      clock = client.Get(client.Schema.CLOCK)
-      if clock:
-        age = clock.age
+      ping = client.Get(client.Schema.PING)
+      if ping:
+        age = ping
       else:
         age = 0
 
       # Also check for proper access.
       aff4.FACTORY.Open(client.urn.Add("fs"), token=request.token)
 
-      time_last_seen = (client.Schema.CLOCK() - int(age)) / 1e6
+      time_last_seen = (aff4.RDFDatetime() - int(age)) / 1e6
       self.icon = OnlineStateIcon(age).RawHTML()
 
       if time_last_seen < 60:
@@ -127,43 +91,70 @@ window.setTimeout(function () {
       else:
         self.last_seen_msg = "%d days" % int(time_last_seen // (60 * 60 * 24))
 
+      ip = client.Get(client.Schema.CLIENT_IP)
+      (status, description) = utils.RetrieveIPInfo(ip)
+      self.ip_icon = IPStatusIcon(status).RawHTML()
+      self.ip_description = description
+
     return super(StatusRenderer, self).Layout(request, response)
 
+  def RenderAjax(self, request, response):
+    return self.Layout(request, response)
 
-class Navigator(StatusRenderer):
+
+class Navigator(renderers.TemplateRenderer):
   """A Renderer to show all menu options in an extruder."""
 
-  layout_template = renderers.Template("""
-<div id="nav_{{unique|escape}}"></div>
-{% for client_id, host in this.hosts %}
-<div class="headline">
-{{host|escape}}</div>
+  # Status update interval in ms.
+  poll_time = 30000
 
-{% if this.reason %}
-<div class="ACL_reason">
- Access reason: {{this.reason|escape}}
-</div>
-{% endif %} """ + str(StatusRenderer.layout_template) + """
- <ul class="iconlist">
-  {% for heading, renderer in this.host_headings %}
-   <li>
-     <a grrtarget="{{renderer|escape}}"
-      href="#c={{client_id|escape}}&main={{renderer|escape}}">
-       {{ heading|escape }}</a>
-   </li>
-  {% endfor %}
-</ul>
+  layout_template = renderers.Template("""
+<div id="navigator" class="grr-content-sidebar grr-sidebar-search">
+
+<div id="{{unique|escape}}"></div>
+{% for client_id, host in this.hosts %}
+  <div class="headline">
+  {{host|escape}}</div>
+
+  {% if this.unauthorized %}
+  <div class="ACL_reason">
+   Searching for authorization...
+  </div>
+  {% else %}
+
+    {% if this.reason %}
+    <div class="ACL_reason">
+     Access reason: {{this.reason|escape}}
+    </div>
+    {% endif %}
+    <div class="infoline" id="infoline_{{unique|escape}}">
+    </div>
+     <ul class="iconlist">
+      {% for renderer, name in this.host_headings %}
+       <li>
+         <a grrtarget="{{name|escape}}"
+            href="#c={{client_id|escape}}&main={{name|escape}}">
+           {{ renderer.description|escape }}</a>
+       </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
 {% endfor %}
-<div class="headline">GRR Management</div>
+
+{% for heading, data in this.general_headings.items %}
+<div class="headline">{{ data.0|escape }}</div>
 <ul class="iconlist">
-  {% for heading, renderer in this.general_headings %}
+  {% for renderer, name in data.1 %}
    <li>
-     <a grrtarget="{{renderer|escapejs}}"
-      href="#c={{client_id|escapejs}}&main={{renderer|escapejs}}">
-       {{ heading|escape }}</a>
+     <a grrtarget="{{name|escape}}"
+        href="#c={{client_id|escape}}&main={{name|escape}}">
+       {{ renderer.description|escape }}</a>
    </li>
   {% endfor %}
 </ul></li>
+{% endfor %}
+
+</div>
 <script>
 
  grr.installNavigationActions("nav_{{unique|escapejs}}");
@@ -172,32 +163,71 @@ class Navigator(StatusRenderer):
  } else {
    $('a[grrtarget=' + grr.hash.main + ']').click();
  };
+
+ grr.poll("StatusRenderer", "infoline_{{unique|escapejs}}",
+   function(data) {
+     $("#infoline_{{unique|escapejs}}").html(data);
+     return true;
+   }, {{this.poll_time|escapejs}}, grr.state, null,
+   function() {
+      $("#infoline_{{unique|escapejs}}").html("Client status not available.");
+   });
+
+  // Reload the navigator when a new client is selected.
+  grr.subscribe("client_selection", function () {
+    grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}");
+  }, "{{unique|escapejs}}");
+
+{% if this.unauthorized %}
+  grr.publish("unauthorized", "None",
+              "Must specify a reason for access.");
+{% endif %}
+
 </script>
 """)
 
   def Layout(self, request, response):
     """Manage content pane depending on passed in query parameter."""
-    self.reason = request.REQ.get("reason")
+    self.reason = request.REQ.get("reason", "")
+
+    self.host_headings = []
+    self.general_headings = datastructures.SortedDict([
+        ("General", ("GRR Management", [])),
+        ("Configuration", ("GRR Configuration", []))
+    ])
 
     # Introspect all the categories
-    self.host_headings = []
-    self.general_headings = []
-
     for cls in self.classes.values():
+      try:
+        cls.CheckAccess(request)
+      except data_store.UnauthorizedAccess:
+        continue
+
+      for behaviour in self.general_headings:
+        if behaviour in cls.behaviours:
+          self.general_headings[behaviour][1].append((cls, cls.__name__))
       if "Host" in cls.behaviours:
-        self.host_headings.append((cls.description, cls.__name__))
-      elif "General" in cls.behaviours:
-        self.general_headings.append((cls.description, cls.__name__))
+        self.host_headings.append((cls, cls.__name__))
+
+    # Sort the output so they are in order.
+    for heading in self.general_headings:
+      lkey = lambda x: getattr(x[0], "order", 10)
+      self.general_headings[heading][1].sort(key=lkey)
+    self.host_headings.sort(key=lambda x: getattr(x[0], "order", 10))
 
     self.hosts = []
+    self.unauthorized = False
     client_id = request.REQ.get("client_id")
     if client_id:
       client = aff4.FACTORY.Open(client_id, token=request.token)
-
-      # Also check for proper access.
-      aff4.FACTORY.Open(client.urn.Add("acl_check"), token=request.token)
-
       self.hosts.append((client_id, client.Get(client.Schema.HOSTNAME)))
+
+      try:
+        # Also check for proper access.
+        aff4.FACTORY.Open(client.urn.Add("acl_check"), token=request.token)
+
+      except data_store.UnauthorizedAccess:
+        self.unauthorized = True
 
     return super(Navigator, self).Layout(request, response)
 
@@ -228,6 +258,25 @@ class OnlineStateIcon(renderers.RDFValueRenderer):
     return super(OnlineStateIcon, self).Layout(request, response)
 
 
+class IPStatusIcon(renderers.RDFValueRenderer):
+  """Renders the ip status (internal, external) icon."""
+
+  cls = "vertical_aligned"
+
+  layout_template = renderers.Template("""
+<img class="grr-icon-small {{this.cls|escape}}"
+     src="/static/images/{{this.ip_icon|escape}}"/>""")
+
+  icons = {utils.IPInfo.UNKNOWN: "ip_unknown.png",
+           utils.IPInfo.INTERNAL: "ip_internal.png",
+           utils.IPInfo.EXTERNAL: "ip_external.png",
+           utils.IPInfo.VPN: "ip_unknown.png"}
+
+  def Layout(self, request, response):
+    self.ip_icon = self.icons.setdefault(int(self.proxy), "ip_unknown.png")
+    return super(IPStatusIcon, self).Layout(request, response)
+
+
 class CenteredOnlineStateIcon(OnlineStateIcon):
   """Render the online state by using a centered icon."""
 
@@ -243,17 +292,17 @@ class HostTable(renderers.TableRenderer):
   vfs_table_template = renderers.Template("""<script>
      //Receive the selection event and emit a client_id
      grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
-          var spans = node.find("span[type=subject]");
-          var cn = $(spans[0]).text().replace("aff4:/", "");
-          var hostname = $(spans[1]).text();
+          var aff4_path = node.find("span[aff4_path]").attr("aff4_path");
+          var cn = aff4_path.replace("aff4:/", "");
           grr.state.client_id = cn;
           grr.publish("hash_state", "c", cn);
+
           // Clear the authorization for new clients.
           grr.publish("hash_state", "reason", "");
           grr.state.reason = "";
 
           grr.publish("hash_state", "main", null);
-          grr.publish("client_selection", cn, hostname);
+          grr.publish("client_selection", cn);
      }, "{{ unique|escapejs }}");
  </script>""")
 
@@ -262,8 +311,7 @@ class HostTable(renderers.TableRenderer):
     self.AddColumn(renderers.RDFValueColumn("Online", width=0,
                                             renderer=CenteredOnlineStateIcon))
     self.AddColumn(renderers.AttributeColumn("subject"))
-    self.AddColumn(renderers.AttributeColumn(
-        "Host", renderer=renderers.SubjectRenderer))
+    self.AddColumn(renderers.AttributeColumn("Host"))
     self.AddColumn(renderers.AttributeColumn("Version"))
     self.AddColumn(renderers.AttributeColumn("MAC"))
     self.AddColumn(renderers.AttributeColumn("Usernames"))
@@ -305,8 +353,13 @@ class HostTable(renderers.TableRenderer):
     if not query_string:
       raise RuntimeError("A query string must be provided.")
 
+    match = re.search("(C\.[0-9a-f]{16})", query_string)
+    if match:
+      client_id = match.group(1)
+      result_set = [aff4.FACTORY.Open("aff4:/%s" % client_id)]
+
     # More complex searches are done through the data_store.Query()
-    if ":" in query_string:
+    elif ":" in query_string:
       result_set = self.QueryWithDataStore(query_string, request.token,
                                            start, length)
 
@@ -332,8 +385,8 @@ class HostTable(renderers.TableRenderer):
           pass
 
       # Also update the online status.
-      clock = child.Get(child.Schema.CLOCK) or 0
-      self.columns[0].AddElement(row_count + start, long(clock))
+      ping = child.Get(child.Schema.PING) or 0
+      self.columns[0].AddElement(row_count + start, long(ping))
 
       row_count += 1
 
@@ -375,17 +428,24 @@ class FrontPage(renderers.Renderer):
   """The front page of the GRR application."""
 
   layout_template = renderers.Template("""
-<div id='front'><h1>Welcome to GRR</h1></div>
-Query for a system to view in the search box above.
+<div id="main" >
+  <div id='front'><h1>Welcome to GRR</h1></div>
+  Query for a system to view in the search box above.
 
-<div>
-A bare search term searches for a hostname. Prefix the term with "version:" to
-search for the OS version, "mac:" to search for a mac address. Terms may also be
-combined by using and, or and parenthesis.
+  <div>
+  A bare search term searches for a hostname. Prefix the term with "version:" to
+  search for the OS version, "mac:" to search for a mac address, "id:" for a
+  client id. Terms may also be combined by using and, or and parenthesis.
+  </div>
 </div>
-
 <script>
  $("#content").resize();
+
+ // Update main's state from the hash
+ if (grr.hash.main) {
+   grr.layout(grr.hash.main, "main");
+ };
+
 </script>
 """)
 

@@ -16,32 +16,30 @@
 
 
 """Test the process list module."""
-import shlex
 
-from grr.client import vfs
 from grr.lib import aff4
 from grr.lib import test_lib
-from grr.lib import utils
-from grr.proto import jobs_pb2
+from grr.proto import sysinfo_pb2
 
 
 class ProcessListTest(test_lib.FlowTestsBaseclass):
   """Test the process listing flow."""
 
-  def testWindowsProcessListing(self):
-    """Test that the ListWindowsProcesses flow works."""
+  def testProcessListing(self):
+    """Test that the ListProcesses flow works."""
 
     class ClientMock(object):
-      def WmiQuery(self, _):
-        process1 = dict(ProcessId=2, ParentProcessId=1,
-                        CommandLine="cmd.exe",
-                        ExecutablePath="c:\windows\cmd.exe",
-                        CreationDate="20080726084622.375000+120")
-
-        return [utils.ProtoDict(process1).ToProto()]
+      def ListProcesses(self, _):
+        response = sysinfo_pb2.Process()
+        response.pid = 2
+        response.ppid = 1
+        response.cmdline.append("cmd.exe")
+        response.exe = "c:\\windows\\cmd.exe"
+        response.ctime = long(1333718907.167083 * 1e6)
+        return [response]
 
     for _ in test_lib.TestFlowHelper(
-        "ListWindowsProcesses", ClientMock(), client_id=self.client_id,
+        "ListProcesses", ClientMock(), client_id=self.client_id,
         token=self.token):
       pass
 
@@ -51,36 +49,5 @@ class ProcessListTest(test_lib.FlowTestsBaseclass):
     processes = fd.Get(fd.Schema.PROCESSES).data
 
     self.assertEqual(len(processes), 1)
-    self.assertEqual(processes[0].ctime, 1217061982375000L)
-    self.assertEqual(processes[0].cmdline, "cmd.exe")
-
-  def testLinuxProcessListing(self):
-    """Test the ListLinuxProcesses flow works."""
-    # Install the mock
-    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = test_lib.ClientVFSHandlerFixture
-
-    client_mock = test_lib.ActionMock("ListDirectory", "ReadBuffer")
-
-    for _ in test_lib.TestFlowHelper(
-        "ListLinuxProcesses", client_mock, client_id=self.client_id,
-        token=self.token):
-      pass
-
-    process_fd = aff4.FACTORY.Open(
-        aff4.ROOT_URN.Add(self.client_id).Add("processes"), token=self.token)
-    processes = list(process_fd.Get(process_fd.Schema.PROCESSES))
-    self.assertEqual(len(processes), 1)
-    self.assertEqual(processes[0].exe, "/bin/ls")
-    argv = shlex.split(utils.SmartStr(processes[0].cmdline))
-    self.assertEqual(argv[0], "ls")
-    self.assertEqual(argv[1], "hello world'")
-    self.assertEqual(argv[2], "-l")
-
-    for _ in test_lib.TestFlowHelper(
-        "ListLinuxProcesses", client_mock, client_id=self.client_id,
-        token=self.token):
-      pass
-
-    process_fd = aff4.FACTORY.Open(
-        aff4.ROOT_URN.Add(self.client_id).Add("processes"), token=self.token)
-    processes = list(process_fd.Get(process_fd.Schema.PROCESSES))
+    self.assertEqual(processes[0].ctime, 1333718907167083L)
+    self.assertEqual(processes[0].cmdline, ["cmd.exe"])

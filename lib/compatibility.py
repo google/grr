@@ -21,6 +21,7 @@ versions of dependencies.
 """
 
 
+
 def MonkeyPatch(cls, method_name, method):
   try:
     return getattr(cls, method_name)

@@ -51,17 +51,18 @@ able to filter it directly).
 
 import abc
 import getpass
-import logging
 import re
 import sys
 import time
 
 from grr.client import conf as flags
+import logging
+
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 
-flags.DEFINE_string("storage", "FakeDataStore",
+flags.DEFINE_string("storage", "MongoDataStore",
                     "Storage subsystem to use.")
 
 flags.DEFINE_bool("list_storage", False,
@@ -87,16 +88,25 @@ class UnauthorizedAccess(Error):
   """Raised when a request arrived from an unauthorized source."""
   counter = "grr_unauthorised_requests"
 
-  def __init__(self, format_str, *args, **kwargs):
-    self.subject = kwargs.get("subject")
-    logging.info(format_str, args)
-    super(UnauthorizedAccess, self).__init__(format_str % args)
+  def __init__(self, message, subject=None, requested_access="?"):
+    self.subject = subject
+    self.requested_access = requested_access
+    logging.warning(message)
+    super(UnauthorizedAccess, self).__init__(message)
+
+
+class ExpiryError(Error):
+  """Raised when a token is used which is expired."""
+  counter = "grr_expired_tokens"
 
 
 class ACLToken(object):
   """The access control token."""
 
-  def __init__(self, username="", reason="", requested_access="r"):
+  is_emergency = False
+
+  def __init__(self, username="", reason="", requested_access="r",
+               source_ips=None, process=None, expiry=None):
     """Controls access to the data for the user.
 
     This ACL token should be provided for any access to the data store. This
@@ -108,10 +118,16 @@ class ACLToken(object):
        username: The user which requires access to the data.
        reason: The stated reason for the access (e.g. case name/id).
        requested_access: The type of access this token is for.
+       source_ips: Optional list of source IPs of the request.
+       process: Optional name of the process issuing this token.
+       expiry: When does this token expire (seconds since epoch)? Use of this
+          token after this time will raise ExpiryError.
     """
     self.username = username or getpass.getuser()
     self.reason = reason
     self.requested_access = requested_access
+    self.source_ips = source_ips or []
+    self.process = process
 
     # This special bit indicates a privileged token for internal use. When this
     # bit is set, ACLs will be bypassed. There should be no way for an external
@@ -119,18 +135,41 @@ class ACLToken(object):
     # protobuf for the remote data store!
     self.supervisor = False
 
+    # By default never expire.
+    if expiry is None:
+      expiry = sys.maxint
+
+    self.expiry = expiry
+
+  def CheckExpiry(self):
+    if time.time() > self.expiry:
+      raise ExpiryError("Token expired.")
+
   def __str__(self):
-    return "Token(%s:%s)" % (self.username, self.reason)
+    return "Token(%s:%s)" % (utils.SmartStr(self.username),
+                             utils.SmartStr(self.reason))
 
   def Copy(self):
     return ACLToken(username=self.username, reason=self.reason,
-                    requested_access=self.requested_access)
+                    requested_access=self.requested_access,
+                    source_ips=self.source_ips, process=self.process,
+                    expiry=self.expiry)
 
   def ToProto(self, proto):
     """Copy ourselves into the proto."""
+    # Only bother with valid tokens.
+    self.CheckExpiry()
     proto.username = self.username
     proto.reason = self.reason
     proto.requested_access = self.requested_access
+    proto.expiry = long(self.expiry)
+    proto.source_ips.extend(self.source_ips)
+    if self.process:
+      proto.process = self.process
+
+
+# This token will be used by default if no token was provided.
+default_token = ACLToken()
 
 
 class BaseAccessControlManager(object):
@@ -348,7 +387,7 @@ class DataStore(object):
 
   @abc.abstractmethod
   def ResolveRegex(self, subject, predicate_regex, token=None,
-                   decoder=None, timestamp=None):
+                   decoder=None, timestamp=None, limit=1000):
     """Retrieve a set of value matching for this subject's predicate.
 
     Args:
@@ -363,6 +402,7 @@ class DataStore(object):
           microseconds). Can be a constant such as ALL_TIMESTAMPS or
           NEWEST_TIMESTAMP or a tuple of ints (start, end).
 
+      limit: The number of predicates to fetch.
     Returns:
        A list of (predicate, value string, timestamp), or a (predicate, decoded
        protobuf, timestamp) if protobuf was specified.
@@ -546,18 +586,17 @@ def EscapeRegex(string):
                 utils.SmartUnicode(string))
 
 
-class DataStoreInit(stats.StatsInit):
+class DataStoreInit(registry.InitHook):
   """Initialize the data store.
 
   Depends on the stats module being initialized.
   """
-  altitude = 5
 
-  def __init__(self):
+  pre = ["StatsInit"]
+
+  def Run(self):
     """Initialize the data_store."""
     global DB
-
-    stats.STATS.RegisterVar("grr_unauthorised_requests")
 
     if FLAGS.list_storage:
       for name, cls in DataStore.classes.items():
@@ -573,3 +612,9 @@ class DataStoreInit(stats.StatsInit):
       cls = DataStore.NewPlugin("FakeDataStore")
 
     DB = cls()
+
+  def RunOnce(self):
+    """Initialize some Varz."""
+    stats.STATS.RegisterVar("grr_commit_failure")
+    stats.STATS.RegisterVar("grr_expired_tokens")
+    stats.STATS.RegisterVar("grr_unauthorised_requests")

@@ -21,10 +21,14 @@
 import bisect
 import collections
 import functools
+import os
 import socket
 import sys
 import threading
 import time
+
+
+import psutil
 
 
 from grr.client import conf as flags
@@ -86,12 +90,13 @@ class Varz(object):
     with self.lock:
       try:
         self._exported_vars[varname] += n
-      except KeyError, e:
+      except KeyError as e:
         logging.error("Variable %s not registered.", e)
 
   def RegisterMap(self, varname, label, bin_list=None,
                   precision=6):
     """This registers an exported map to publish timing information."""
+    _ = (label, precision)
 
     if varname in self._exported_maps:
       return self._exported_maps[varname]
@@ -114,17 +119,17 @@ class Varz(object):
 
   def ExportTime(self, varname, time_to_log):
     """A method to export times grouped in bins."""
-
-    bins = self._bins[varname]
-    pos = bisect.bisect(bins, time_to_log)
-    var = self._exported_maps[varname]
-    try:
-      b = bins[pos]
-      var[b] += 1
-    except IndexError:
-      # Time is greater than any bin in the array
-      s = ">" + str(bins[-1])
-      var[s] += 1
+    with self.lock:
+      bins = self._bins[varname]
+      pos = bisect.bisect(bins, time_to_log)
+      var = self._exported_maps[varname]
+      try:
+        b = bins[pos]
+        var[b] += 1
+      except IndexError:
+        # Time is greater than any bin in the array
+        s = ">" + str(bins[-1])
+        var[s] += 1
 
   def RegisterFunction(self, varname, function):
     self._callbacks[varname] = function
@@ -209,7 +214,6 @@ STATS = None
 
 
 class StatsInit(registry.InitHook):
-  altitude = 5
 
   def RunOnce(self):
     global STATS
@@ -280,6 +284,7 @@ class AvgTimed(object):
 
     @functools.wraps(func)
     def Decorated(*args, **kwargs):
+      """The decorated function."""
       start_time = time.time()
       try:
         res = func(*args, **kwargs)
@@ -311,3 +316,52 @@ class Counted(object):
       return res
 
     return Decorated
+
+
+class StatsCollector(threading.Thread):
+  """This thread keeps track of client stats."""
+
+  exit = False
+
+  def __init__(self, sleep_time=10):
+    super(StatsCollector, self).__init__()
+    self.sleep_time = sleep_time
+    self.daemon = True
+    self.proc = psutil.Process(os.getpid())
+    self.cpu_samples = []
+    self.io_samples = []
+    STATS.RegisterFunction("grr_client_cpu_usage", self.PrintCpuSamples)
+    STATS.RegisterFunction("grr_client_io_usage", self.PrintIOSample)
+
+  def run(self):
+    while True:
+      time.sleep(self.sleep_time)
+      if self.exit:
+        break
+      self.Collect()
+
+  def Collect(self):
+    """Collects the stats."""
+
+    user, system = self.proc.get_cpu_times()
+    percent = self.proc.get_cpu_percent()
+    self.cpu_samples.append((time.time(), user, system, percent))
+    self.cpu_samples = self.cpu_samples[-360:]
+
+    # Not supported on MacOS.
+    if hasattr(self.proc, "get_io_counters"):
+      try:
+        _, _, read_bytes, write_bytes = self.proc.get_io_counters()
+        self.io_samples.append((time.time(), read_bytes, write_bytes))
+        self.io_samples = self.io_samples[-360:]
+      except psutil.Error:
+        pass
+
+  def PrintCpuSamples(self):
+    samples = [str(sample[3]) for sample in self.cpu_samples[-20:]]
+    return ", ".join(samples)
+
+  def PrintIOSample(self):
+    if hasattr(self.proc, "get_io_counters"):
+      return str(self.proc.get_io_counters())
+    return "Not available on this platform."

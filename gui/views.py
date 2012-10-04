@@ -109,6 +109,22 @@ def SecurityCheck(func):
 
   return Wrapper
 
+# If testing we ignore the security check
+try:
+  FLAGS.test_srcdir
+
+  def SecurityCheck(func):
+    def Wrapper(request, *args, **kwargs):
+      request.event_id = "1"
+      request.user = "test"
+      request.token = data_store.ACLToken("Testing", "Just a test")
+
+      return func(request, *args, **kwargs)
+
+    return Wrapper
+except AttributeError:
+  pass
+
 
 @SecurityCheck
 def Homepage(unused_request):
@@ -119,6 +135,7 @@ def Homepage(unused_request):
 
 
 @SecurityCheck
+@renderers.ErrorHandler()
 def RenderGenericRenderer(request):
   """Django handler for rendering registered GUI Elements."""
   try:
@@ -151,9 +168,15 @@ def RenderGenericRenderer(request):
   request.token = data_store.ACLToken(request.user,
                                       request.REQ.get("reason", ""))
 
-  # Allow potential exceptions to be raised here so we can see them in the debug
-  # log.
-  result = getattr(table, action)(request, result) or result
+  try:
+    # Allow potential exceptions to be raised here so we can see them in the
+    # debug log.
+    result = getattr(table, action)(request, result) or result
+  except data_store.UnauthorizedAccess as e:
+    result = http.HttpResponse(mimetype="text/html")
+    request.REQ = dict(e=e)
+    result = renderers.Renderer.NewPlugin("UnauthorizedRenderer")().Layout(
+        request, result)
 
   if not isinstance(result, http.HttpResponse):
     raise RuntimeError("Renderer returned invalid response %r" % result)
