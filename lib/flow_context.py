@@ -326,7 +326,7 @@ class HuntFlowContext(object):
             try:
               if self.current_state != "End":
                 self.parent_flow.End()
-            except Exception:
+            except Exception:   # pylint: disable=W0703
               # This flow will terminate now
               stats.STATS.Increment("grr_flow_errors")
               self.Error(self.client_id, traceback.format_exc())
@@ -384,7 +384,7 @@ class HuntFlowContext(object):
                                                     responses=responses)
     # We don't know here what exceptions can be thrown in the flow but we have
     # to continue. Thus, we catch everything.
-    except Exception:
+    except Exception:  # pylint: disable=W0703
       # This flow will terminate now
       stats.STATS.Increment("grr_flow_errors")
 

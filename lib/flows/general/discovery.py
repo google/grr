@@ -39,7 +39,7 @@ class EnrolmentInterrogateEvent(flow.EventListener):
 class Interrogate(flow.GRRFlow):
   """Interrogate various things about the host."""
 
-  category = "/Metadata/"
+  category = "/Administrative/"
   client = None
 
   @flow.StateHandler(next_state=["Hostname", "Platform",
@@ -58,7 +58,7 @@ class Interrogate(flow.GRRFlow):
     self.sid_data = {}
 
     self.profiles_key = (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft"
-                         "\Windows NT\CurrentVersion\ProfileList")
+                         r"\Windows NT\CurrentVersion\ProfileList")
 
     self.CallClient("GetPlatformInfo", next_state="Platform")
     self.CallClient("GetInstallDate", next_state="InstallDate")

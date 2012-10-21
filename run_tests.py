@@ -17,6 +17,7 @@
 
 This program will run all the tests in separate processes to speed things up.
 """
+# argparse is standard in 2.7 so pylint: disable=C6203
 import argparse
 import curses
 import os
@@ -26,6 +27,7 @@ import sys
 import time
 import unittest
 
+# These need to register plugins so, pylint: disable=W0611
 
 from grr.client import client_test
 from grr.client import client_utils_test

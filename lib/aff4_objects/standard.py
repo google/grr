@@ -76,19 +76,19 @@ class VFSDirectory(aff4.AFF4Volume):
   def Query(self, filter_string="", filter_obj=None, limit=1000):
     """This queries the Directory using a filter expression."""
 
-    direct_children_filter = data_store.DB.Filter.SubjectContainsFilter(
+    direct_children_filter = data_store.DB.filter.SubjectContainsFilter(
         "%s/[^/]+$" % data_store.EscapeRegex(self.urn))
 
     if not filter_string and filter_obj is None:
       filter_obj = direct_children_filter
     elif filter_obj:
-      filter_obj = data_store.DB.Filter.AndFilter(
+      filter_obj = data_store.DB.filter.AndFilter(
           filter_obj, direct_children_filter)
     else:
       # Parse the query string.
       ast = aff4.AFF4QueryParser(filter_string).Parse()
-      filter_obj = data_store.DB.Filter.AndFilter(
-          ast.Compile(data_store.DB.Filter),
+      filter_obj = data_store.DB.filter.AndFilter(
+          ast.Compile(data_store.DB.filter),
           direct_children_filter)
 
     return super(VFSDirectory, self).Query(filter_obj=filter_obj, limit=limit)

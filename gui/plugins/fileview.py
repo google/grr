@@ -32,11 +32,12 @@ from grr.lib import utils
 from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
 
+# pylint: disable=C6409
 
 
 class StatEntryRenderer(renderers.RDFProtoRenderer):
   """Nicely format the StatResponse proto."""
-  ClassName = "StatEntry"
+  classname = "StatEntry"
   name = "Stat Entry"
 
   def Translate_st_mode(self, _, st_mode):
@@ -79,7 +80,7 @@ class StatEntryRenderer(renderers.RDFProtoRenderer):
 
 class CollectionRenderer(StatEntryRenderer):
   """Nicely format a Collection."""
-  ClassName = "CollectionList"
+  classname = "CollectionList"
   name = "Collection Listing"
 
   layout_template = renderers.Template("""
@@ -114,7 +115,7 @@ class CollectionRenderer(StatEntryRenderer):
           value = self.translator[name](self, None, value)
 
         # Regardless of what the error is, we need to escape the value.
-        except StandardError:
+        except StandardError:  # pylint: disable=W0703
           value = self.FormatFromTemplate(self.translator_error_template,
                                           value=value)
 
@@ -127,7 +128,7 @@ class CollectionRenderer(StatEntryRenderer):
 
 class GrepResultRenderer(renderers.RDFProtoRenderer):
   """Nicely format grep results."""
-  ClassName = "GrepResultList"
+  classname = "GrepResultList"
   name = "Grep Result Listing"
 
   layout_template = renderers.Template("""
@@ -307,7 +308,7 @@ Details:<br>
 
 class VolatilityResultRenderer(renderers.RDFProtoRenderer):
   """Nicely format results of volatility plugins."""
-  ClassName = "VolatilityResult"
+  classname = "VolatilityResult"
 
   subrenderers = {
       "mutantscan": MutantscanResultRenderer,
@@ -326,7 +327,7 @@ class VolatilityResultRenderer(renderers.RDFProtoRenderer):
 
 
 class UserEntryRenderer(renderers.RDFProtoArrayRenderer):
-  ClassName = "User"
+  classname = "User"
   name = "User Record"
 
   translator = dict(last_logon=renderers.RDFProtoRenderer.Time)
@@ -334,7 +335,7 @@ class UserEntryRenderer(renderers.RDFProtoArrayRenderer):
 
 class InterfaceRenderer(renderers.RDFProtoArrayRenderer):
   """Render a machine's interfaces."""
-  ClassName = "Interfaces"
+  classname = "Interfaces"
   name = "Interface Record"
 
   def TranslateIp4Addresses(self, _, value):
@@ -368,7 +369,7 @@ class InterfaceRenderer(renderers.RDFProtoArrayRenderer):
 
 
 class ConfigRenderer(renderers.RDFProtoRenderer):
-  ClassName = "GRRConfig"
+  classname = "GRRConfig"
   name = "GRR Configuration"
 
   translator = {}
@@ -395,7 +396,7 @@ class StringListRenderer(renderers.TemplateRenderer):
 
 class ConnectionRenderer(renderers.RDFProtoArrayRenderer):
   """Renders connection listings."""
-  ClassName = "Connections"
+  classname = "Connections"
   name = "Connection Listing"
 
   # The contents of result are safe since they were already escaped in
@@ -476,7 +477,7 @@ class ConnectionRenderer(renderers.RDFProtoArrayRenderer):
 
 class ProcessRenderer(renderers.RDFProtoArrayRenderer):
   """Renders process listings."""
-  ClassName = "Processes"
+  classname = "Processes"
   name = "Process Listing"
 
   def RenderConnections(self, unused_descriptor, connection_list):
@@ -491,13 +492,13 @@ class ProcessRenderer(renderers.RDFProtoArrayRenderer):
 
 
 class FilesystemRenderer(renderers.RDFProtoArrayRenderer):
-  ClassName = "FileSystem"
+  classname = "FileSystem"
   name = "FileSystems"
 
 
 class CertificateRenderer(renderers.RDFValueRenderer):
   """Render X509 Certs properly."""
-  ClassName = "RDFX509Cert"
+  classname = "RDFX509Cert"
   name = "X509 Certificate"
 
   # Implement hide/show behaviour for certificates as they tend to be long and
@@ -530,7 +531,7 @@ $('#certificate_viewer_{{unique|escape}}').click(function () {
 
 class BlobArrayRenderer(renderers.RDFValueRenderer):
   """Render a blob array."""
-  ClassName = "BlobArray"
+  classname = "BlobArray"
   name = "Array"
 
   layout_template = renderers.Template("""
@@ -556,7 +557,7 @@ class BlobArrayRenderer(renderers.RDFValueRenderer):
 
 class PathspecRenderer(renderers.RDFValueRenderer):
   """Renders the pathspec protobuf."""
-  ClassName = "RDFPathSpec"
+  classname = "RDFPathSpec"
 
   template = renderers.Template("""
 <pre>{{this.proxy|escape}}</pre>
@@ -576,7 +577,7 @@ class AgeSelector(renderers.RDFValueRenderer):
 
 
 class AgeRenderer(AgeSelector):
-  ClassName = "RDFDatetime"
+  classname = "RDFDatetime"
 
   layout_template = renderers.Template("""
 <span age='{{this.int}}'>{{this.proxy|escape}}</span>

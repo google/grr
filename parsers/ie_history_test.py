@@ -14,6 +14,7 @@
 # limitations under the License.
 
 
+"""Tests for grr.parsers.ie_history."""
 
 
 
@@ -29,6 +30,7 @@ from grr.parsers import ie_history
 FLAGS = flags.FLAGS
 
 
+# pylint: disable=C6409
 
 
 class IEHistoryTest(test_lib.GRRBaseTest):

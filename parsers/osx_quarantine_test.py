@@ -14,6 +14,7 @@
 # limitations under the License.
 
 
+"""Tests for grr.parsers.osx_quarantine."""
 
 
 
@@ -28,6 +29,7 @@ from grr.parsers import osx_quarantine
 FLAGS = flags.FLAGS
 
 
+# pylint: disable=C6409
 
 
 class OSXQuarantineTest(test_lib.GRRBaseTest):

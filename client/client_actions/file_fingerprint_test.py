@@ -24,6 +24,7 @@ import os
 
 from grr.client import conf
 # Populate the action registry
+# pylint: disable=W0611
 from grr.client import client_actions
 from grr.client import conf
 from grr.client import vfs
@@ -32,6 +33,7 @@ from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
+# pylint: disable=C6409
 
 
 class FilehashTest(test_lib.EmptyActionTest):

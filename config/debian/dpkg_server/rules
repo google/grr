@@ -1,0 +1,82 @@
+#!/usr/bin/make -f
+# debian/rules that uses debhelper >= 7.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# This has to be exported to make some magic below work.
+export DH_OPTIONS
+
+
+%:
+	dh  $@
+
+override_dh_auto_clean:
+
+override_dh_auto_test:
+
+override_dh_installinit:
+	dh_installinit
+	# Add path for symbolic link
+	mkdir -p debian/grr-server/usr/sbin
+	# Set up default configuration
+	mkdir -p debian/grr-server/etc/grr
+	install -p -m644 config/debian/etc/grr-* debian/grr-server/etc/grr
+	# Set up upstart scripts
+	mkdir -p debian/grr-server/etc/default
+	mkdir -p debian/grr-server/etc/init
+	install -p -m644 config/debian/default/grr-* debian/grr-server/etc/default
+	install -p -m644 config/debian/upstart/grr-* debian/grr-server/etc/init
+	# Set up test keys
+	mkdir -p debian/grr-server/etc/grr/keys
+	# install -p -m400 keys/test/*.pem debian/grr-server/etc/grr/keys
+	# Set up grr-server shared directories and files
+	mkdir -p debian/grr-server/usr/share/grr/scripts
+	mkdir -p debian/grr-server/usr/share/grr/executables/linux/installers/
+	mkdir -p debian/grr-server/usr/share/grr/executables/osx/installers/
+	mkdir -p debian/grr-server/usr/share/grr/executables/windows/installers/
+	mkdir -p debian/grr-server/usr/share/grr/executables/windows/templates/unzipsfx/
+	mkdir -p debian/grr-server/usr/share/grr/executables/windows/templates/win32/$(shell cd executables/windows/templates/win32 && ls -d ????)
+	mkdir -p debian/grr-server/usr/share/grr/executables/windows/templates/win64/$(shell cd executables/windows/templates/win64 && ls -d ????)
+	mkdir -p debian/grr-server/usr/share/grr/executables/osx/templates/$(shell cd executables/osx/templates && ls -d ????)
+	install -p -m755 scripts/* debian/grr-server/usr/share/grr/scripts
+	install -p -m755 executables/windows/templates/unzipsfx/*.* debian/grr-server/usr/share/grr/executables/windows/templates/unzipsfx/
+	install -p -m755 executables/windows/templates/win32/????/*.* debian/grr-server/usr/share/grr/executables/windows/templates/win32/????/
+	install -p -m755 executables/windows/templates/win64/????/*.* debian/grr-server/usr/share/grr/executables/windows/templates/win64/????/
+	install -p -m755 executables/osx/templates/????/*.* debian/grr-server/usr/share/grr/executables/osx/templates/????/
+	# Set up log directory
+	mkdir -p debian/grr-server/var/log/grr
+	# Add post installation actions
+	cat debian/grr-server.postinst.in >> debian/grr-server.postinst.debhelper
+
+override_dh_installmenu:
+
+override_dh_installmime:
+
+override_dh_installmodules:
+
+override_dh_installlogcheck:
+
+override_dh_installlogrotate:
+
+override_dh_installpam:
+
+override_dh_installppp:
+
+override_dh_installudev:
+
+override_dh_installwm:
+
+override_dh_installxfonts:
+
+override_dh_link:
+	dh_link "/$(shell cd debian/grr-server/ && find usr/ -name config_updater.py)" "/usr/bin/grr_config_updater.py"
+	dh_link "/$(shell cd debian/grr-server/ && find usr/ -name console.py)" "/usr/bin/grr_console.py"
+	dh_link "/$(shell cd debian/grr-server/ && find usr/ -name grr_server.py)" "/usr/sbin/grr_server.py"
+	dh_link "/$(shell cd debian/grr-server/ && find usr/ -name cron.py)" "/usr/sbin/grr_cron.py"
+
+override_dh_gconf:
+
+override_dh_icons:
+
+override_dh_perl:

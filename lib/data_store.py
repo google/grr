@@ -73,8 +73,11 @@ FLAGS = flags.FLAGS
 # A global data store handle
 DB = None
 
+# There are stub methods that don't return/yield as indicated by the docstring.
+# pylint: disable=C6112
 
-class Error(stats.CountingException):
+
+class Error(stats.CountingExceptionMixin, Exception):
   """Base class for all exceptions in this module."""
   pass
 
@@ -202,7 +205,7 @@ class DataStore(object):
   __metaclass__ = registry.MetaclassRegistry
 
   # This contains the supported filters by the datastore implementations.
-  Filter = None
+  filter = None
 
   # Constants relating to timestamps.
   ALL_TIMESTAMPS = "ALL_TIMESTAMPS"
@@ -277,7 +280,7 @@ class DataStore(object):
 
     raise TransactionError("Retry number exceeded.")
 
-  def _Decode(self, value, decoder=None):
+  def Decode(self, value, decoder=None):
     if decoder:
       try:
         # Is it a protobuf?
@@ -450,6 +453,9 @@ class DataStore(object):
   def Flush(self):
     """Flushes the DataStore."""
 
+  def __del__(self):
+    self.Flush()
+
 
 class Transaction(object):
   """This abstracts operations on a subject which is locked.
@@ -577,7 +583,7 @@ class ResultSet(object):
 
 
 # Regex chars that should not be in a regex
-disallowed_chars = re.compile("[\[\]\(\)\{\}\+\*\?\\\.\$\^]")
+disallowed_chars = re.compile(r"[[\](){}+*?.$^\\]")
 
 
 def EscapeRegex(string):
@@ -596,7 +602,7 @@ class DataStoreInit(registry.InitHook):
 
   def Run(self):
     """Initialize the data_store."""
-    global DB
+    global DB  # pylint: disable=W0603
 
     if FLAGS.list_storage:
       for name, cls in DataStore.classes.items():
@@ -611,7 +617,7 @@ class DataStoreInit(registry.InitHook):
                       FLAGS.storage)
       cls = DataStore.NewPlugin("FakeDataStore")
 
-    DB = cls()
+    DB = cls()  # pylint: disable=C6409
 
   def RunOnce(self):
     """Initialize some Varz."""

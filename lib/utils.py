@@ -109,7 +109,13 @@ class InterruptableThread(threading.Thread):
       for _ in range(self.sleep_time):
         if self.exit:
           break
-        time.sleep(1)
+        try:
+          time.sleep(1)
+        except AttributeError:
+          # When the main thread exits, time might be already None. We should
+          # just ignore that and exit as well.
+          self.exit = True
+          break
 
 
 class FastStore(object):
@@ -248,6 +254,10 @@ class TimeBasedCache(FastStore):
 
     def HouseKeeper():
       """A housekeeper thread which expunges old objects."""
+      if not time:
+        # This might happen when the main thread exits, we don't want to raise.
+        return
+
       now = time.time()
       for key in self._age:
         try:
@@ -563,7 +573,7 @@ def XorByteArray(array, key):
   return array
 
 
-def FormatAsHexString(num, width=None):
+def FormatAsHexString(num, width=None, prefix="0x"):
   """Takes an int and returns the number formatted as a hex string."""
   # Strip "0x".
   hex_str = hex(num)[2:]
@@ -571,7 +581,7 @@ def FormatAsHexString(num, width=None):
   hex_str = hex_str.replace("L", "")
   if width:
     hex_str = hex_str.rjust(width, "0")
-  return "0x%s" % hex_str
+  return "%s%s" % (prefix, hex_str)
 
 
 def FormatAsTimestamp(timestamp):

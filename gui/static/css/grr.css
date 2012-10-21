@@ -1213,3 +1213,28 @@ td.leased {
 td.lease_available {
    background-color: rgba(0, 250, 0, 0.1) !important;
 }
+
+.Wizard .WizardBar {
+    background-color: #2D2D2D;
+    padding-left: 1em;
+    padding-top: 0.5em;
+    color: #FFFFFF;
+    font-size: 140%;
+    vertical-align: middle;
+}
+
+.Wizard .WizardBar .Description {
+    font-weight:bold;
+}
+
+.Wizard .WizardBar .Back,
+.Wizard .WizardBar .Next {
+    margin-left: 2em;
+    margin-right: 2em;
+    width: 6em;
+    height: 70%;
+}
+
+.Wizard .WizardBar .Next {
+    float: right;
+}

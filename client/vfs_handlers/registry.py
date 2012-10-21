@@ -56,36 +56,36 @@ class FileTime(ctypes.Structure):
               ("dwHighDateTime", ctypes.wintypes.DWORD)]
 
 
-RegCloseKey = advapi32.RegCloseKey
+RegCloseKey = advapi32.RegCloseKey  # pylint: disable=C6409
 RegCloseKey.restype = ctypes.c_long
 RegCloseKey.argtypes = [ctypes.c_void_p]
 
-RegEnumKeyEx = advapi32.RegEnumKeyExW
+RegEnumKeyEx = advapi32.RegEnumKeyExW  # pylint: disable=C6409
 RegEnumKeyEx.restype = ctypes.c_long
 RegEnumKeyEx.argtypes = [ctypes.c_void_p, ctypes.wintypes.DWORD,
                          ctypes.c_wchar_p, LPDWORD,
                          LPDWORD, ctypes.c_wchar_p, LPDWORD,
                          ctypes.POINTER(FileTime)]
 
-RegEnumValue = advapi32.RegEnumValueW
+RegEnumValue = advapi32.RegEnumValueW  # pylint: disable=C6409
 RegEnumValue.restype = ctypes.c_long
 RegEnumValue.argtypes = [ctypes.c_void_p, ctypes.wintypes.DWORD,
                          ctypes.c_wchar_p, LPDWORD, LPDWORD, LPDWORD, LPBYTE,
                          LPDWORD]
 
-RegOpenKeyEx = advapi32.RegOpenKeyExW
+RegOpenKeyEx = advapi32.RegOpenKeyExW  # pylint: disable=C6409
 RegOpenKeyEx.restype = ctypes.c_long
 RegOpenKeyEx.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_ulong,
                          ctypes.c_ulong, ctypes.POINTER(ctypes.c_void_p)]
 
-RegQueryInfoKey = advapi32.RegQueryInfoKeyW
+RegQueryInfoKey = advapi32.RegQueryInfoKeyW  # pylint: disable=C6409
 RegQueryInfoKey.restype = ctypes.c_long
 RegQueryInfoKey.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD, LPDWORD,
                             LPDWORD, LPDWORD, LPDWORD, LPDWORD,
                             LPDWORD, LPDWORD, LPDWORD,
                             ctypes.POINTER(FileTime)]
 
-RegQueryValueEx = advapi32.RegQueryValueExW
+RegQueryValueEx = advapi32.RegQueryValueExW  # pylint: disable=C6409
 RegQueryValueEx.restype = ctypes.c_long
 RegQueryValueEx.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD, LPDWORD,
                             LPBYTE, LPDWORD]

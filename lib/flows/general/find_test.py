@@ -135,8 +135,8 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     children = list(fd.OpenChildren())
     self.assertEqual(len(children), 7)
 
-  def testCollectionAddition(self):
-    """Test we add to a collection instead of overwriting."""
+  def testCollectionOverwriting(self):
+    """Test we overwrite the collection every time the flow is executed."""
     # Install the mock
     vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = test_lib.ClientVFSHandlerFixture
     client_mock = test_lib.ActionMock("Find")
@@ -155,17 +155,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         aff4.FACTORY.Open(output_path, token=self.token).OpenChildren())
     self.assertEqual(len(children), 2)
 
-    # Now find the same results, should update, but not add to collection.
-    for _ in test_lib.TestFlowHelper(
-        "FindFiles", client_mock, client_id=self.client_id, token=self.token,
-        findspec=pb, output=output_path):
-      pass
-
-    children = list(
-        aff4.FACTORY.Open(output_path, token=self.token).OpenChildren())
-    self.assertEqual(len(children), 2)
-
-    # Now find a new result, should update.
+    # Now find a new result, should overwrite the collection
     pb.path_regex = "dd"
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=self.client_id, token=self.token,
@@ -174,4 +164,4 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
 
     children = list(aff4.FACTORY.Open(
         output_path, token=self.token).OpenChildren())
-    self.assertEqual(len(children), 3)
+    self.assertEqual(len(children), 1)

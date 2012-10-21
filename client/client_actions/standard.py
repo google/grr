@@ -19,6 +19,7 @@
 import ctypes
 import hashlib
 import os
+import socket
 import stat
 import sys
 import tempfile
@@ -26,6 +27,7 @@ import time
 import zlib
 
 
+from M2Crypto import EVP
 import psutil
 
 from grr.client import conf as flags
@@ -262,31 +264,23 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
   in_protobuf = jobs_pb2.ExecuteBinaryRequest
   out_protobuf = jobs_pb2.ExecuteBinaryResponse
 
-  def Run(self, args):
-    """Run."""
-    signed_pb = args.executable
-    pub_key = client_config.EXEC_SIGNING_KEY.get(FLAGS.camode.upper())
-    if not client_utils_common.VerifySignedBlob(signed_pb,
-                                                pub_key=pub_key):
-      raise OSError("Code signature signing failure.")
+  def WriteBlobToFile(self, signed_pb, write_path, suffix=""):
+    """Writes the blob to a file and returns its path."""
 
-    if args.write_path:
+    if write_path:
       # Caller passed in the path to write our file to.
-      write_path = args.write_path
       with open(write_path, "wb") as fd:
         fd.write(signed_pb.data)
-      cmd = write_path
+      path = write_path
     else:
       # Need to make a path to use. Want to put it somewhere we know we get
       # good perms.
       if sys.platform == "win32":
         # Wherever we are being run from will have good perms.
         write_dir = os.path.dirname(sys.executable)
-        suffix = ".exe"
       else:
         # We trust mkstemp on other platforms.
         write_dir = None
-        suffix = ""
       handle, path = tempfile.mkstemp(suffix=suffix, prefix="tmp",
                                       dir=write_dir)
       fd = os.fdopen(handle, "wb")
@@ -294,9 +288,35 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
         fd.write(signed_pb.data)
       finally:
         fd.close()
-      cmd = path
-    os.chmod(cmd, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
 
+    return path
+
+  def CleanUp(self, path):
+    """Removes the temp file."""
+    try:
+      os.remove(path)
+    except (OSError, IOError), e:
+      logging.info("Failed to remove temporary file %s. Err: %s", path, e)
+
+  def VerifyBlob(self, signed_pb):
+    pub_key = client_config.EXEC_SIGNING_KEY.get(FLAGS.camode.upper())
+    if not client_utils_common.VerifySignedBlob(signed_pb,
+                                                pub_key=pub_key):
+      raise OSError("Code signature signing failure.")
+
+  def Run(self, args):
+    """Run."""
+    self.VerifyBlob(args.executable)
+
+    if sys.platform == "win32":
+      # We need .exe here.
+      suffix = ".exe"
+    else:
+      suffix = ""
+    path = self.WriteBlobToFile(args.executable, args.write_path, suffix)
+    os.chmod(path, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
+
+    cmd = path
     cmd_args = args.args
     time_limit = args.time_limit
 
@@ -304,11 +324,7 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
                                       bypass_whitelist=True)
     (stdout, stderr, status, time_used) = res
 
-    # Now attempt to clean up the file we wrote.
-    try:
-      os.remove(cmd)
-    except (OSError, IOError), e:
-      logging.info("Failed to remove temporary file %s. Err: %s", cmd, e)
+    self.CleanUp(cmd)
 
     # Limit output to 10MB so our response doesn't get too big.
     stdout = stdout[:10 * 1024 * 1024]
@@ -345,7 +361,9 @@ class ExecutePython(actions.ActionPlugin):
     # The execed code can assign to this variable if it wants to return data.
     magic_return_str = ""
     logging.debug("exec for python code %s", args.python_code.data[0:100])
+    # pylint: disable=W0122
     exec(args.python_code.data)
+    # pylint: enable=W0122
     time_used = time.time() - time_start
     # We have to return microseconds.
     result = jobs_pb2.ExecutePythonResponse()
@@ -480,3 +498,63 @@ class ListProcesses(actions.ActionPlugin):
       self.SendReply(response)
       # Reading information here is slow so we heartbeat between processes.
       self.Progress()
+
+
+class SendFile(actions.ActionPlugin):
+  """This action encrypts and sends a file to a remote listener."""
+  in_protobuf = jobs_pb2.SendFileRequest
+  out_protobuf = jobs_pb2.StatResponse
+
+  BLOCK_SIZE = 1024 * 1024 * 10  # 10 MB
+  OP_ENCRYPT = 1
+
+  def Send(self, sock, msg):
+    totalsent = 0
+    n = len(msg)
+    while totalsent < n:
+      sent = sock.send(msg[totalsent:])
+      if sent == 0:
+        raise RuntimeError("socket connection broken")
+      totalsent += sent
+
+  def Run(self, args):
+    """Run."""
+
+    # Open the file.
+    fd = vfs.VFSOpen(args.pathspec)
+
+    key = args.key
+    if len(key) != 16:
+      raise RuntimeError("Invalid key length (%d)." % len(key))
+
+    iv = args.iv
+    if len(iv) != 16:
+      raise RuntimeError("Invalid iv length (%d)." % len(iv))
+
+    if args.address_family == jobs_pb2.NetworkAddress.INET:
+      family = socket.AF_INET
+    elif args.address_family == jobs_pb2.NetworkAddress.INET6:
+      family = socket.AF_INET6
+    else:
+      raise RuntimeError("Socket address family not supported.")
+
+    s = socket.socket(family, socket.SOCK_STREAM)
+
+    try:
+      s.connect((args.host, args.port))
+    except socket.error as e:
+      raise RuntimeError(str(e))
+
+    cipher = EVP.Cipher(alg="aes_128_cbc", key=key, iv=iv, op=self.OP_ENCRYPT)
+
+    while True:
+      data = fd.read(self.BLOCK_SIZE)
+      if not data:
+        break
+      self.Send(s, cipher.update(data))
+      # Send heartbeats for long files.
+      self.Progress()
+    self.Send(s, cipher.final())
+    s.close()
+
+    self.SendReply(fd.Stat())

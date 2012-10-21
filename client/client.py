@@ -23,8 +23,10 @@ import multiprocessing
 from grr.client import conf
 from grr.client import conf as flags
 
+# pylint: disable=W0611
 # Make sure we load the client plugins
 from grr.client import client_actions
+# pylint: enable=W0611
 
 from grr.client import client_config
 from grr.client import client_log

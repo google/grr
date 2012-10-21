@@ -14,6 +14,7 @@
 # limitations under the License.
 
 
+"""Tests for grr.lib.type_info."""
 
 
 

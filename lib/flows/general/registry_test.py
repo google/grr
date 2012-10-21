@@ -44,7 +44,7 @@ class TestRegistry(test_lib.FlowTestsBaseclass):
     users = fd.Schema.USER()
     users.Append(jobs_pb2.UserAccount(
         username="testing", domain="testing-PC",
-        homedir="C:\Users\testing", sid="S-1-5-21-2911950750-476812067-"
+        homedir=r"C:\Users\testing", sid="S-1-5-21-2911950750-476812067-"
         "1487428992-1001"))
     fd.Set(users)
     fd.Close()
@@ -78,7 +78,7 @@ class TestRegistry(test_lib.FlowTestsBaseclass):
     users = fd.Schema.USER()
     users.Append(jobs_pb2.UserAccount(
         username="LocalService", domain="testing-PC",
-        homedir="C:\Users\localservice", sid="S-1-5-20"))
+        homedir=r"C:\Users\localservice", sid="S-1-5-20"))
     fd.Set(users)
     fd.Close()
 

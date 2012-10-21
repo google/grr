@@ -807,6 +807,20 @@ message InstallDriverRequest {
   optional RewriteMode mode = 9 [default = ENABLE];
 }
 
+// This requests the client to encrypt a file and send it to a specified server.
+message SendFileRequest {
+  // The file to send.
+  optional Path pathspec = 1;
+  // Connect to the receiver using IPv4 or IPv6.
+  optional NetworkAddress.NetworkFamily address_family = 2;
+  // Receiving host.
+  optional string host = 3;
+  // Receiving port.
+  optional uint32 port = 4;
+  // Encryption key and iv for AES. Both have to be exactly 16 bytes.
+  optional bytes key = 5;
+  optional bytes iv = 6;
+}
 
 // Grep searches the content of files for a hit and returns several
 // BufferReadMessage.

@@ -22,6 +22,8 @@ import sys
 
 # Select the version of what we want based on the OS:
 
+# pylint: disable=C6409
+# pylint: disable=C6204
 if sys.platform == "win32":
   from grr.client import client_utils_windows
   FindProxies = client_utils_windows.WinFindProxies

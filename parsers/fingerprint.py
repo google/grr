@@ -43,9 +43,11 @@ import os
 import struct
 
 
+# pylint: disable=C6409
 # Two classes given named tupes for ranges and relative ranges.
 Range = collections.namedtuple('Range', 'start end')
 RelRange = collections.namedtuple('RelRange', 'start len')
+# pylint: enable=C6409
 
 
 class Finger(object):

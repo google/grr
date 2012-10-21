@@ -25,6 +25,7 @@ from django import shortcuts
 from grr.client import conf as flags
 import logging
 
+# pylint: disable=W0611
 # Support grr plugins (These only need to be imported here)
 from grr.gui import plugins
 from grr.gui import renderers

@@ -31,10 +31,12 @@ def MonkeyPatch(cls, method_name, method):
 
 
 # Fixup the protobuf implementation.
+# pylint: disable=C6204
 try:
   from google.protobuf import message
 
   # These are required to make protobufs pickle-able
+  # pylint: disable=C6409
   def Message__getstate__(self):
     """Support the pickle protocol."""
     return dict(serialized=self.SerializePartialToString())

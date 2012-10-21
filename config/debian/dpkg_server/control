@@ -1,0 +1,15 @@
+Source: grr-server
+Section: misc
+Priority: extra
+Maintainer: Joachim Metz <joachim.metz@gmail.com>
+Build-Depends: debhelper (>= 7), python, python-setuptools
+Standards-Version: 3.8.3
+Homepage: http://code.google.com/p/grr/
+
+Package: grr-server
+Section: python
+Architecture: any
+Depends: apache2-utils, ipython, m2crypto, mongodb, python-dateutil, python-django, python-pymongo, sleuthkit-lib, pytsk3, python-protobuf
+Description: GRR Rapid Response is an Incident Response Framework
+ GRR Rapid Response is an Incident Response Framework.
+

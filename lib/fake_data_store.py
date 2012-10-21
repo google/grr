@@ -253,12 +253,12 @@ class FakeDataStore(data_store.DataStore):
   def __init__(self):
     super(FakeDataStore, self).__init__()
     self.subjects = {}
-    self.Filter = Filter
+    self.filter = Filter
     # All access to the store must hold this lock.
     self.lock = threading.RLock()
 
-  def _Decode(self, value, decoder=None):
-    result = super(FakeDataStore, self)._Decode(value, decoder=decoder)
+  def Decode(self, value, decoder=None):
+    result = super(FakeDataStore, self).Decode(value, decoder=decoder)
     if result is None:
       result = value
 
@@ -376,7 +376,7 @@ class FakeDataStore(data_store.DataStore):
 
     # Always get the newest timestamp.
     value = records.get(attribute, [(None, 0)])[-1]
-    return self._Decode(value[0], decoder), value[1]
+    return self.Decode(value[0], decoder), value[1]
 
   @utils.Synchronized
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
@@ -450,7 +450,7 @@ class FakeDataStore(data_store.DataStore):
             elif ts < start or ts > end:
               continue
 
-            results_list.append((attribute, ts, self._Decode(value, decoder)))
+            results_list.append((attribute, ts, self.Decode(value, decoder)))
             if limit and len(results) >= limit:
               break
 

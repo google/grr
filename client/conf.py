@@ -29,14 +29,11 @@ import sys
 import logging
 
 if platform.system() == "Windows":
-  import _winreg
+  import _winreg  # pylint: disable=C6204
 
 # This constant is not always present in _winreg if the python version
 # is too old.
 KEY_WOW64_64KEY = 0x100
-
-# Default value, updated by the service code if necessary
-RUNNING_AS_SERVICE = False
 
 
 class MyOption(optparse.Option):
@@ -352,6 +349,8 @@ def CreateRegistryKeys(reg_path):
 
 
 # Helper functions for setting options on the global parser object
+# pylint: disable=C6409
+# pylint: disable=W0622
 def DEFINE_string(longopt, default, help):
   PARSER.add_option("", "--%s" % longopt, default=default, type="str",
                     help=help)
@@ -377,6 +376,8 @@ def DEFINE_enum(longopt, default, choices, help):
                     type="choice", help=help)
 
 
+# pylint: enable=W0622
+# pylint: enable=C6409
 
 
 def StartMain(main, argv=None):

@@ -68,7 +68,7 @@ class MACTimes(flow.GRRFlow):
     """Populate the timeline with the MAC data."""
 
     attribute = aff4.Attribute.GetAttributeByName("stat")
-    filter_obj = data_store.DB.Filter.HasPredicateFilter(attribute)
+    filter_obj = data_store.DB.filter.HasPredicateFilter(attribute)
 
     for row in data_store.DB.Query([attribute], filter_obj,
                                    subject_prefix=self.urn, token=self.token,

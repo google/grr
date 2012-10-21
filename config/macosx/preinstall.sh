@@ -2,7 +2,7 @@
 #
 # Pre installation script for GRR client MacOS-X package
 
-LAUNCHCTL_PLIST="/System/Library/LaunchDaemons/com.google.code.grrd.plist";
+LAUNCHCTL_PLIST="/Library/LaunchDaemons/com.google.code.grrd.plist";
 
 if [ -f ${LAUNCHCTL_PLIST} ];
 then

@@ -1,0 +1,14 @@
+grr-server (0.2-2) unstable; urgency=low
+
+  * Update build and update mechanisms to ease maintenance and install
+  * Include OSX client builds
+  * Add memory driver installation support
+  * Numerous bug fixes
+
+ -- GRR development team <grr-dev@googlegroups.com>  Thurs, 18 Oct 2012 12:00:00 +0200
+
+grr-server (0.2-1) unstable; urgency=low
+
+  * Initial release
+
+ -- GRR development team <grr-dev@googlegroups.com>  Fri, 28 Sep 2012 12:00:00 +0200

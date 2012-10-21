@@ -34,6 +34,7 @@ from grr.gui import settings
 from grr.lib import aff4
 from grr.lib import data_store
 
+# These need to register plugins so, pylint: disable=W0611
 from grr.lib import fake_data_store
 from grr.lib import flow
 
@@ -41,6 +42,7 @@ from grr.lib import ipshell
 from grr.lib import registry
 from grr.lib import test_lib
 from grr.lib.flows import general
+# pylint: enable=W0611
 
 flags.DEFINE_integer("port", 8000,
                      "port to listen on for selenium tests.")
@@ -116,7 +118,9 @@ def main(_):
   setup_environ(settings)
 
   # Load up the tests after the environment has been configured.
+  # pylint: disable=C6204,W0612
   from grr.gui.plugins import tests
+  # pylint: enable=C6204
 
   # Start up a server in another thread
   trd = DjangoThread()

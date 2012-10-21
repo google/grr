@@ -34,7 +34,7 @@ locale.setlocale(locale.LC_ALL, "")
 
 class ViewRenderer(renderers.RDFValueRenderer):
   """Render a container View."""
-  ClassName = "View"
+  classname = "View"
   name = "Array"
 
   layout_template = renderers.Template("""

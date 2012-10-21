@@ -384,7 +384,7 @@ class VFSTest(test_lib.GRRBaseTest):
       return
 
     # Make a value we can test for
-    import _winreg
+    import _winreg  # pylint: disable=C6204
 
     key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER,
                           "Software",

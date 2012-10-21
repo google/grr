@@ -14,6 +14,9 @@
 # limitations under the License.
 
 
+# pylint: disable=W0612
+# pylint: disable=C6201
+# pylint: disable=C6204
 
 import glob
 import os
@@ -130,7 +133,7 @@ def GRRFindPackages():
 
 
 grr_data_files_spec = ('grr',
-                       ['tools', 'worker'],
+                       ['tools', 'worker', 'cron'],
                        ['*.py'])
 
 grr_gui_data_files_spec = ('grr.gui',

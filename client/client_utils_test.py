@@ -95,7 +95,9 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     self.SetupWinEnvironment()
 
     # We need to import after SetupWinEnvironment or this will fail
+    # pylint: disable=C6204
     from grr.client import client_utils_windows
+    # pylint: enable=C6204
 
     testdata = [(r"C:\Windows", "\\\\?\\Volume{11111}", "/Windows"),
                 (r"C:\\Windows\\", "\\\\?\\Volume{11111}", "/Windows"),

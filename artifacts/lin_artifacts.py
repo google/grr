@@ -21,8 +21,8 @@
 from grr.lib import artifact
 
 # Shorcut to make things cleaner.
-Artifact = artifact.GenericArtifact
-Collector = artifact.Collector
+Artifact = artifact.GenericArtifact   # pylint: disable=C6409
+Collector = artifact.Collector        # pylint: disable=C6409
 
 
 ################################################################################

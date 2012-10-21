@@ -595,7 +595,7 @@ class GRRForeman(aff4.AFF4Object):
                                  **utils.ProtoDict(action.argv).ToDict())
       # There could be all kinds of errors we don't know about when starting the
       # flow/hunt so we catch everything here.
-      except Exception:
+      except Exception:  # pylint: disable=W0703
         pass
 
   def AssignTasksToClient(self, client_id):
@@ -717,7 +717,7 @@ class AFF4Collection(aff4.AFF4Volume):
       ast = aff4.AFF4QueryParser(filter_string).Parse()
 
       # Query our own data store
-      filter_obj = ast.Compile(data_store.DB.Filter)
+      filter_obj = ast.Compile(data_store.DB.filter)
 
     subjects = set([
         aff4.RDFURN(x.aff4path) for x in self.Get(self.Schema.COLLECTION)])

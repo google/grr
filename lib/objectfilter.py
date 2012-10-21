@@ -99,6 +99,7 @@ class Operator(Filter):
   operation = None
 
   def Operate(self, values):
+    # pylint: disable=E1102
     return self.operation(values)
 
   def Matches(self, obj):
@@ -136,6 +137,7 @@ class BinaryOperator(Operator):
     self.comp_value = self.children[1]
 
   def Operate(self, values):
+    # pylint: disable=E1102
     return self.operation(values, self.comp_value)
 
 
@@ -148,6 +150,7 @@ class GenericBinaryOperator(BinaryOperator):
       try:
         logging.debug('Operating %s with x=%s and y=%s',
                       self.__class__.__name__, val, self.comp_value)
+        # pylint: disable=E1102
         if val and self.operation(val, self.comp_value): return True
       except (ValueError, TypeError):
         continue
@@ -205,6 +208,7 @@ class InSet(GenericBinaryOperator):
   The list of values at the right operand is comma-separated.
   """
 
+  # pylint: disable=C6402
   operation = lambda self, x, y: (utils.SmartUnicode(x) in
                                   utils.SmartUnicode(y).split(','))
 

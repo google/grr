@@ -7,7 +7,7 @@
 *   http://www.opensource.org/licenses/mit-license.php
 *   http://www.gnu.org/licenses/gpl.html
 *
-* Code cleaned up and made to pass jslint <scudette@google.com>. Also
+* Code cleaned up and made to pass jslint <scudette@gmail.com>. Also
 * changed default behaviour to not animate when dragged.
 *
 */

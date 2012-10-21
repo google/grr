@@ -29,9 +29,13 @@ import traceback
 from django import http
 from django import template
 
+from M2Crypto import BN
+
 import logging
 
+# pylint: disable=W0611
 from grr import artifacts
+# pylint: enable=W0611
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import data_store
@@ -303,7 +307,7 @@ class ErrorHandler(Renderer):
     def Decorated(*args, **kwargs):
       try:
         return func(*args, **kwargs)
-      except Exception as e:
+      except Exception as e:  # pylint: disable=W0703
         logging.error(e)
         if not isinstance(self.message_template, Template):
           self.message_template = Template(self.message_template)
@@ -369,7 +373,7 @@ class TableRenderer(TemplateRenderer):
   """A renderer for tables.
 
   In order to have a table rendered, it is only needed to subclass
-  this class in a plugin. Requests to the URL table/ClassName are then
+  this class in a plugin. Requests to the URL table/classname are then
   handled by this class.
   """
 
@@ -719,6 +723,7 @@ grr.grrTree("{{ renderer|escapejs }}", "{{ id|escapejs }}",
 class TabLayout(TemplateRenderer):
   """This renderer creates a set of tabs containing other renderers."""
   # The hash component that will be used to remember which tab we have open.
+  # If set to None, currently selected tab name won't be preserved.
   tab_hash = "tab"
 
   # The name of the delegated renderer that will be used by default (None is the
@@ -756,13 +761,22 @@ class TabLayout(TemplateRenderer):
 
     var renderer = this.attributes["renderer"].value;
 
-    grr.publish("hash_state", "{{this.tab_hash|escapejs}}", renderer);
+    {% if this.tab_hash %}
+      grr.publish("hash_state", "{{this.tab_hash|escapejs}}", renderer);
+    {% endif %}
 
     // Make a new div to accept the content of the tab rather than drawing
     // directly on the content area. This prevents spurious drawings due to
     // latent ajax calls.
-    $("#tab_contents_{{unique|escapejs}}").html(
-       '<div id="' + renderer + '_{{unique|escapejs}}">')
+    content_area = $("#tab_contents_{{unique|escapejs}}");
+    content_area.html('<div id="' + renderer + '_{{unique|escapejs}}">')
+    update_area = $("#" + renderer + "_{{unique|escapejs}}");
+
+    // Ensure that new div's dimensions are explicitly set to match content's
+    // dimensions. Otherwise we can get weird bugs if dimensions of the content
+    // areas of different tabs are different.
+    update_area.width(content_area.width());
+    update_area.height(content_area.height());
 
     // We append the state of this widget which is stored on the unique element.
     grr.layout(renderer, renderer + "_{{unique|escapejs}}",
@@ -793,7 +807,12 @@ class TabLayout(TemplateRenderer):
    }, "tab_contents_{{unique|escapejs}}");
 
   // Select the first tab at first.
-  var selected = grr.hash.{{this.tab_hash|safe}}||"{{this.selected|escapejs}}";
+  {% if this.tab_hash %}
+    var selected = grr.hash.{{this.tab_hash|safe}} ||
+      "{{this.selected|escapejs}}";
+  {% else %}
+    var selected = "{{this.selected|escapejs}}";
+  {% endif %}
   // Check that tab exists and fall back to default if not.
   if (! $("#{{unique|escapejs}} li a[renderer='" + selected + "']")) {
     selected = "{{this.selected|escapejs}}";
@@ -835,6 +854,9 @@ class Splitter(TemplateRenderer):
   top_right_renderer = ""
   bottom_right_renderer = ""
 
+  # Override to change minimum allowed width of the left pane.
+  min_left_pane_width = 0
+
   # This ensures that many Splitters can be placed in the same page by
   # making ids unique.
   layout_template = Template("""
@@ -851,7 +873,7 @@ class Splitter(TemplateRenderer):
 <script>
       $("#{{ id|escapejs }}")
           .splitter({
-              minAsize: 0,
+              minAsize: {{ this.min_left_pane_width }},
               maxAsize: 3000,
               splitVertical: true,
               A: $('#{{id|escapejs}}_leftPane'),
@@ -1010,8 +1032,8 @@ class Button(TemplateRenderer):
 
 def GetNextId():
   """Generate a unique id."""
-  global COUNTER
-  COUNTER += 1
+  global COUNTER  # pylint: disable=W0603
+  COUNTER += 1  # pylint: disable=C6409
   return COUNTER
 
 
@@ -1019,7 +1041,7 @@ class RDFValueRenderer(TemplateRenderer):
   """These are abstract classes for rendering RDFValues."""
 
   # This specifies the name of the RDFValue object we will render.
-  ClassName = ""
+  classname = ""
 
   layout_template = Template("""
 {{this.proxy|escape}}
@@ -1041,13 +1063,13 @@ class RDFValueRenderer(TemplateRenderer):
     """Returns the class of the RDFValueRenderer which renders rdfvalue_cls."""
     for candidate in cls.classes.values():
       if (issubclass(candidate, RDFValueRenderer) and
-          candidate.ClassName == rdfvalue_cls_name):
+          candidate.classname == rdfvalue_cls_name):
         return candidate
 
 
 class SubjectRenderer(RDFValueRenderer):
   """A special renderer for Subject columns."""
-  ClassName = "Subject"
+  classname = "Subject"
 
   layout_template = Template("""
 <span type=subject aff4_path='{{this.aff4_path|escape}}'>
@@ -1139,7 +1161,7 @@ class RDFProtoRenderer(RDFValueRenderer):
   def RDFProtoRenderer(self, _, value, proto_renderer_name=None):
     """Render a field using another RDFProtoRenderer."""
     renderer_cls = self.classes[proto_renderer_name]
-    rdf_value = aff4.RDFProto.classes[renderer_cls.ClassName](value)
+    rdf_value = aff4.RDFProto.classes[renderer_cls.classname](value)
     return renderer_cls(rdf_value).RawHTML()
 
   def Layout(self, request, response):
@@ -1336,6 +1358,26 @@ name='{{ field|escape }}' type=text value='{{ value|escape }}'/></td>
 """)
 
 
+class EncryptionKeyFormRenderer(FormElementRenderer):
+  """Renders an encryption key."""
+
+  # Length of this key in bits.
+  bits = 128
+
+  form_template = Template("""
+<td>{{desc|escape}}</td>
+<td><input {% if arg_type.AllowNone %}class="form_field_or_none"{% endif %}
+name='{{ field|escape }}' type=text value='{{ value|escape }}'
+size='{{field_size|escape}}' max_size='{{field_size|escape}}'/></td>
+""")
+
+  def Format(self, **kwargs):
+    key = BN.rand(self.bits)
+    kwargs["value"] = utils.FormatAsHexString(key, width=self.bits/4, prefix="")
+    kwargs["field_size"] = (self.bits/4) + 2
+    return self.FormatFromTemplate(self.form_template, **kwargs)
+
+
 class BoolFormRenderer(FormElementRenderer):
   form_template = Template("""
 <td>{{desc|escape}}</td>
@@ -1388,6 +1430,7 @@ class ArtifactListRenderer(FormElementRenderer):
 """)
 
   def Format(self, arg_type, **kwargs):
+    _ = arg_type
     artifacts_list = []
     for key, val in artifact.Artifact.classes.items():
       if key != "Artifact":
@@ -1400,10 +1443,140 @@ def FindRendererForObject(rdf_obj):
   """Find the appropriate renderer for an RDFValue object."""
   for cls in RDFValueRenderer.classes.values():
     try:
-      if cls.ClassName == rdf_obj.__class__.__name__:
+      if cls.classname == rdf_obj.__class__.__name__:
         return cls(rdf_obj)
     except AttributeError:
       pass
 
   # Default renderer.
   return RDFValueRenderer(rdf_obj)
+
+
+class WizardPage(object):
+  """Configuration object used to configure WizardRenderer."""
+
+  def __init__(self, name=None, description=None, renderer=None,
+               next_button_label="Next", show_back_button=True,
+               wait_for_event=None):
+    """Constructor.
+
+    Args:
+      name: unique name for a given page.
+      description: description that will be shown in the wizard's
+                   "current step" bar. Default is None.
+      renderer: renderer used to render given page.
+      next_button_label: label for the "next" button for the current
+                         page. Default is "Next".
+      show_back_button: whether to show back button on current page. Default
+                        is True.
+      wait_for_event: wait for given event in the "WizardProceed" queue before
+                      enabling "Next" button. Default is False.
+
+    Raises:
+      RuntimeError: if name or renderer is None
+    """
+
+    if name is None:
+      raise RuntimeError("Name is not specified for WizardPage")
+    self.name = name
+
+    self.description = description
+
+    if renderer is None:
+      raise RuntimeError("Renderer is not specified for WizardPage")
+    self.renderer = renderer
+
+    self.next_button_label = next_button_label
+    self.show_back_button = show_back_button
+    self.wait_for_event = wait_for_event
+
+
+class WizardRenderer(TemplateRenderer):
+  """This renderer creates a wizard."""
+  # The name of the delegated renderer that will be used by default (None is the
+  # first one).
+  selected = None
+
+  # WizardPage objects that defined this wizard's behaviour.
+  pages = []
+
+  # grr.state[wizard_state_name] will be emptied on wizard initialization and
+  # then passed to every nested renderer.
+  wizard_state_name = "wizard"
+
+  layout_template = Template("""
+<div id="Wizard_{{unique|escape}}"
+     class="Wizard"
+     style="width: 100%; height: 100%; padding-top: 40px">
+  <div class="WizardBar"
+       style="width: 100%; position: relative; top: -40px; height: 40px">
+
+    <input type="button" value="Back" class="Back" style="visibility: hidden"/>
+    <span class="Description"></span>
+    <input type="button" value="Next" class="Next" />
+
+  </div>
+  <div id="WizardContent_{{unique|escape}}"
+       style="width: 100%; height: 100%; position: relative; top: -40px">
+  </div>
+</div>
+
+<script>
+(function() {
+
+var stateJson = {{this.state_json|safe}};
+var wizardPages = stateJson.pages;
+var selectedWizardTab = 0;
+
+$("#Wizard_{{unique|escapejs}} .WizardBar .Back").button().click(function() {
+  selectTab(selectedWizardTab - 1);
+});
+
+$("#Wizard_{{unique|escapejs}} .WizardBar .Next").button().click(function() {
+  if (selectedWizardTab + 1 < wizardPages.length) {
+    selectTab(selectedWizardTab + 1);
+  } else {
+    grr.publish("WizardComplete", "{{this.wizard_state_name|escapejs}}");
+  }
+});
+
+function selectTab(index) {
+  selectedWizardTab = index;
+  $("#Wizard_{{unique|escapejs}} .WizardBar .Description").text(
+    wizardPages[index].description);
+
+  var wizardStateJson = JSON.stringify(
+    grr.state["{{this.wizard_state_name|escapejs}}"]);
+  grr.layout(wizardPages[index].renderer, "WizardContent_{{unique|escapejs}}",
+    { "{{this.wizard_state_name|escapejs}}": wizardStateJson });
+
+  $("#Wizard_{{unique|escapejs}} .WizardBar .Back").css("visibility",
+    index > 0 && wizardPages[index].show_back_button ? "visible" : "hidden");
+
+  var nextButton = $("#Wizard_{{unique|escapejs}} .WizardBar .Next");
+  nextButton.button("option", "label", wizardPages[index].next_button_label);
+
+  var eventToWait = wizardPages[index].wait_for_event;
+  if (eventToWait) {
+    nextButton.button({ disabled: true });
+    grr.subscribe("WizardProceed", function(id) {
+      if (id == eventToWait) {
+        nextButton.button({ disabled: false });
+      }
+    }, "Wizard_{{unique|escapejs}}");
+  }
+}
+
+grr.state["{{this.wizard_state_name}}"] = {}
+selectTab(0);
+
+})();
+</script>
+""")
+
+  def Layout(self, request, response):
+    """Render the content of the tab or the container tabset."""
+    # Passing JSON-serializable wizard configuration (array of pages)
+    # to the renderer's client side.
+    self.state["pages"] = [page.__dict__ for page in self.pages]
+    return super(WizardRenderer, self).Layout(request, response)

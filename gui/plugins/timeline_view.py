@@ -30,7 +30,7 @@ class TimelineViewRenderer(renderers.RDFValueRenderer):
   Post Parameters:
     - aff4_path: The path to the currently drawn object.
   """
-  ClassName = "TimelineView"
+  classname = "TimelineView"
 
   layout_template = renderers.Template("""
 <a href='#{{this.hash|escape}}'
@@ -359,7 +359,7 @@ class EventView(EventSubjectView):
 
 class RDFEventRenderer(renderers.RDFProtoRenderer):
   """A renderer for Event Protobufs."""
-  ClassName = "RDFEvent"
+  classname = "RDFEvent"
   name = "Event"
 
   translator = dict(

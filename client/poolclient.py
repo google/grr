@@ -29,8 +29,10 @@ import logging
 
 from grr.client import client
 
+# pylint: disable=W0611
 # Make sure we load the client plugins
 from grr.client import client_actions
+# pylint: enable=W0611
 
 from grr.client import client_log
 from grr.client import conf

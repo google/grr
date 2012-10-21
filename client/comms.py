@@ -314,7 +314,7 @@ class GRRClientWorker(object):
       try:
         self.HandleMessage(message)
         # Catch any errors and keep going here
-      except Exception, e:
+      except Exception, e:  # pylint: disable=W0703
         logging.warn("%s", e)
         self.SendReply(
             jobs_pb2.GrrStatus(
@@ -553,7 +553,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
       try:
         self.HandleMessage(message)
         # Catch any errors and keep going here
-      except Exception as e:
+      except Exception as e:  # pylint: disable=W0703
         logging.warn("%s", e)
         self.SendReply(
             jobs_pb2.GrrStatus(
@@ -680,7 +680,7 @@ class GRRHTTPClient(object):
 
       self.server_certificate = data
     # This has to succeed or we can not go on
-    except Exception, e:
+    except Exception, e:  # pylint: disable=W0703
       client_utils_common.ErrorOnceAnHour(
           "Unable to verify server certificate at %s: %s", cert_url, e)
       logging.info("Unable to verify server certificate at %s: %s",
@@ -710,7 +710,7 @@ class GRRHTTPClient(object):
       status.code = e.code
       # Server can not talk with us - re-enroll.
       if e.code == 406:
-        self.InitiateEnrolment()
+        self.InitiateEnrolment(status)
         return ""
       else:
         status.sent_count = 0
@@ -842,7 +842,7 @@ class GRRHTTPClient(object):
       # any order since clients do not have state.
       self.client_worker.QueueMessages(messages)
 
-    except Exception, e:
+    except Exception, e:  # pylint: disable=W0703
       # Catch everything, yes, this is terrible but necessary
       logging.warn("Uncaught exception caught. %s: %s",
                    sys.exc_info()[0], e)
@@ -924,13 +924,20 @@ class GRRHTTPClient(object):
         FLAGS.poll_max,
         max(FLAGS.poll_min, self.sleep_time) * FLAGS.poll_slew)
 
-  def InitiateEnrolment(self):
+  def InitiateEnrolment(self, status):
     """Initiate the enrollment process.
 
     We do not sent more than one request every 10 minutes.
+
+    Args:
+      status: The http status object, used to set fastpoll mode if this is the
+              first enrollment request sent since restart.
     """
     now = time.time()
     if now > self.last_enrollment_time + 10 * 60:
+      if not self.last_enrollment_time:
+        # This is the first enrolment request - we should enter fastpoll mode.
+        status.require_fastpoll = True
       self.last_enrollment_time = now
       # Send registration request:
       self.client_worker.SendReply(

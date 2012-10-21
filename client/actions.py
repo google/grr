@@ -87,7 +87,7 @@ class ActionPlugin(object):
       self.priority = message.priority
 
     if self.in_protobuf:
-      self.buff = self.in_protobuf()
+      self.buff = self.in_protobuf()  # pylint: disable=E1102
 
       for k, v in proto_args.items():
         setattr(self.buff, k, v)
@@ -106,7 +106,7 @@ class ActionPlugin(object):
        the end of the function and pass back exceptions.
     """
     if self.in_protobuf:
-      args = self.in_protobuf()
+      args = self.in_protobuf()  # pylint: disable=E1102
       args.ParseFromString(message.args)
     else:
       args = None
@@ -133,7 +133,7 @@ class ActionPlugin(object):
 
     # We want to report back all errors and map Python exceptions to
     # Grr Errors.
-    except Exception, e:
+    except Exception, e:  # pylint: disable=W0703
       self.SetStatus(jobs_pb2.GrrStatus.GENERIC_ERROR, "%r: %s" % (e, e),
                      traceback.format_exc())
       if FLAGS.debug:
@@ -177,7 +177,7 @@ class ActionPlugin(object):
                 **kw):
     """Send response back to the server."""
     if protobuf is None:
-      protobuf = self.out_protobuf(**kw)
+      protobuf = self.out_protobuf(**kw)  # pylint: disable=E1102
 
     self.grr_worker.SendReply(protobuf,
                               # This is not strictly necessary but adds context

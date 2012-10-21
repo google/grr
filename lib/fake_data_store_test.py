@@ -20,8 +20,10 @@
 from grr.client import conf
 from grr.client import conf as flags
 
+# pylint: disable=W0611
 # Support bt storage
 from grr.lib import data_store
+# pylint: enable=W0611
 
 from grr.lib import data_store_test
 from grr.lib import registry

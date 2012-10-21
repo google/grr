@@ -23,6 +23,7 @@ can use it to test the parsing code without needing to run on OS X.
 
 
 # Disable some lint warnings to avoid tedious fixing of test data
+#pylint: disable=C6310
 
 
 # Number of entries we expect to be dropped due to filtering
@@ -3485,3 +3486,4 @@ JOBS = [
     }
 ]
 
+#pylint: enable=C6310

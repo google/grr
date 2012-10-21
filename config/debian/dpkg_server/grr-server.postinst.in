@@ -1,0 +1,24 @@
+# Generate the CSRF/XSRF secret key
+if [ -f /usr/share/pyshared/grr/gui/settings.py ];
+then
+  echo "Generating django secret key."
+  echo "";
+
+  SECRET_KEY=`dd if=/dev/urandom count=10 | strings | tr -dc "[:alnum:]"`;
+  sed -i "s/CHANGE_ME/${SECRET_KEY}/" /usr/share/pyshared/grr/gui/settings.py;
+else
+  echo "WARNING: unable to generate django secret key".
+  echo "Replace CHANGE_ME in: /usr/share/pyshared/grr/gui/settings.py";
+  echo "";
+fi
+
+# Generate the keys
+if [ -x /usr/share/grr/scripts/generate_keys.sh ];
+then
+  /usr/share/grr/scripts/generate_keys.sh;
+else
+  echo "WARNING: unable to generate the keys".
+  echo "Try manually running: /usr/share/grr/scripts/generate_keys.sh";
+  echo "";
+fi
+

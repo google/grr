@@ -338,7 +338,12 @@ class Factory(object):
 
     Yields:
       A dict of metadata.
+
+    Raises:
+      RuntimeError: A string was passed instead of an iterable.
     """
+    if isinstance(urns, basestring):
+      raise RuntimeError("Expected an iterable, not string.")
     for subject, values in data_store.DB.MultiResolveRegex(
         urns, ["aff4:type"], token=token).items():
       yield dict(urn=RDFURN(subject), type=values[0])
@@ -902,6 +907,7 @@ class RDFURN(RDFValue):
     """
     if type(urn) == RDFURN:
       # Make a direct copy of the other object
+      # pylint: disable=W0212
       self._urn = urn._urn
       self._string_urn = urn._string_urn
       super(RDFURN, self).__init__(None, age)
@@ -913,6 +919,7 @@ class RDFURN(RDFValue):
     self._urn = urlparse.urlparse(serialized, scheme="aff4")
     # Normalize the URN path component
     # namedtuple _replace() is not really private.
+    # pylint: disable=W0212
     self._urn = self._urn._replace(path=utils.NormalizePath(self._urn.path))
     if not self._urn.scheme:
       self._urn = self._urn._replace(scheme="aff4")
@@ -963,7 +970,7 @@ class RDFURN(RDFValue):
     """
     if url: self.ParseFromString(url)
 
-    self._urn = self._urn._replace(**kwargs)
+    self._urn = self._urn._replace(**kwargs)  # pylint: disable=W0212
     self._string_urn = self._urn.geturl()
 
   def Copy(self, age=None):
@@ -1273,7 +1280,7 @@ class AFF4Object(object):
 
   @ClassProperty
   @classmethod
-  def behaviours(cls):
+  def behaviours(cls):  # pylint: disable=C6409
     return cls._behaviours
 
   # We define the parts of the schema for each AFF4 Object as an internal
@@ -1338,7 +1345,7 @@ class AFF4Object(object):
   # Make sure that when someone references the schema, they receive an instance
   # of the class.
   @property
-  def Schema(self):
+  def Schema(self):   # pylint: disable=C6409
     return self.SchemaCls()
 
   def __init__(self, urn, mode="r", parent=None, clone=None, token=None,
@@ -1579,6 +1586,23 @@ class AFF4Object(object):
 
     self._dirty = True
 
+  def IsAttributeSet(self, attribute):
+    """Determine if the attribute is set.
+
+    Args:
+      attribute: The attribute to check.
+
+    Returns:
+      True if set, otherwise False.
+
+    Checking Get against None doesn't work as Get will return a default
+    attribute value. This determines if the attribute has been manually set.
+    """
+    if (attribute in self.synced_attributes or
+        attribute in self.new_attributes):
+      return True
+    return False
+
   def Get(self, attribute, default=None):
     """Gets the attribute from this object."""
     if attribute is None:
@@ -1758,7 +1782,7 @@ class AFF4Volume(AFF4Object):
       ast = AFF4QueryParser(filter_string).Parse()
 
       # Query our own data store
-      filter_obj = ast.Compile(data_store.DB.Filter)
+      filter_obj = ast.Compile(data_store.DB.filter)
 
     result_set = data_store.DB.Query(
         [], filter_obj, limit=limit, subject_prefix=self.urn, token=self.token)
@@ -1865,7 +1889,7 @@ class AFF4Root(AFF4Volume):
       ast = AFF4QueryParser(filter_string).Parse()
 
       # Query our own data store
-      filter_obj = ast.Compile(data_store.DB.Filter)
+      filter_obj = ast.Compile(data_store.DB.filter)
 
     subjects = []
     result_set = data_store.DB.Query([], filter_obj, subjects=subjects,
@@ -1906,7 +1930,7 @@ class AFF4OverlayedVolume(AFF4Volume):
   """
   overlayed_path = ""
 
-  def IsPathOverlayed(self, path):
+  def IsPathOverlayed(self, path):   # pylint: disable=W0613
     """Should this path be overlayed.
 
     Args:
@@ -2219,11 +2243,13 @@ class AFF4InitHook(registry.InitHook):
 
   def Run(self):
     """Delayed loading of aff4 plugins to break import cycles."""
+    # pylint: disable=W0612,W0603,C6204
     from grr.lib import aff4_objects
 
     global FACTORY
 
-    FACTORY = Factory()
+    FACTORY = Factory()  # pylint: disable=C6409
+    # pylint: enable=W0612,W0603,C6204
 
 
 class AFF4Filter(object):

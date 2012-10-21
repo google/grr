@@ -27,6 +27,7 @@ from grr.client import conf
 from grr.client import conf as flags
 
 from grr.client import client_config
+# pylint: disable=W0611
 from grr import artifacts
 
 from grr.lib import access_control
@@ -38,6 +39,7 @@ from grr.lib import registry
 # Make sure we load the enroller module
 from grr.lib.flows import console
 from grr.lib.flows import general
+# pylint: enable=W0611
 
 flags.DEFINE_string("worker_queue_name", "W",
                     "The name of the queue for this worker.")

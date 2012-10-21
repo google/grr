@@ -19,7 +19,9 @@
 
 import ctypes
 import ctypes.util
+import subprocess
 
+import logging
 
 # kCFStringEncodingUTF8
 UTF8 = 134217984
@@ -36,6 +38,12 @@ BOOL = ctypes.c_byte
 # kCFAllocatorDefault
 CF_DEFAULT_ALLOCATOR = None
 
+# kCFURLPOSIXPathStyle
+POSIX_PATH_STYLE = 0
+
+# kOSReturnSuccess
+OS_SUCCESS = None
+
 
 class Error(Exception):
   """Base error class."""
@@ -43,6 +51,16 @@ class Error(Exception):
 
 class ErrorLibNotFound(Error):
   """Couldn't find specified library."""
+
+
+def FilterFnTable(fn_table, symbol):
+  """Remove a specific symbol from a fn_table."""
+  new_table = list()
+  for entry in fn_table:
+    # symbol[0] is a str with the symbol name
+    if entry[0] != symbol:
+      new_table.append(entry)
+  return new_table
 
 
 def SetCTypesForLibrary(libname, fn_table):
@@ -137,7 +155,13 @@ class Foundation(object):
          ctypes.c_void_p),
         ('CFGetTypeID',
          [ctypes.c_void_p],
-         ctypes.c_ulong)
+         ctypes.c_ulong),
+        ('CFURLCreateWithFileSystemPath',
+         [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int],
+         ctypes.c_long),
+        ('CFURLCopyFileSystemPath',
+         [ctypes.c_void_p, ctypes.c_void_p],
+         ctypes.c_void_p)
     ]
 
     self.LoadLibrary('Foundation', self.cftable)
@@ -416,3 +440,73 @@ class CFDictionary(CFType):
       representation += '{0}:{1},'.format(str(key), str(value))
     representation += '}'
     return representation
+
+
+class KextManager(Foundation):
+  """Loads and unloads kernel extensions.
+
+  Apple documentations:
+    http://goo.gl/HukWV
+  """
+
+  def __init__(self):
+    super(KextManager, self).__init__()
+    self.kext_functions = [
+        # Only available 10.6 and later
+        ('KextManagerLoadKextWithURL',
+         [ctypes.c_void_p, ctypes.c_void_p],
+         ctypes.c_void_p),
+        # Only available 10.7 and later
+        ('KextManagerUnloadKextWithIdentifier',
+         [ctypes.c_void_p],
+         ctypes.c_void_p)
+    ]
+    self.iokit = self.SafeLoadKextManager(self.kext_functions)
+
+  def SafeLoadKextManager(self, fn_table):
+    """Load the kextmanager, replacing unavailable symbols."""
+    dll = None
+    try:
+      dll = SetCTypesForLibrary('IOKit', fn_table)
+    except AttributeError as ae:
+      if 'KextManagerUnloadKextWithIdentifier' in str(ae):
+        # Try without this symbol, as it is not available on 10.6
+        logging.debug('Using legacy kextunload')
+        dll = self.SafeLoadKextManager(
+            FilterFnTable(fn_table, 'KextManagerUnloadKextWithIdentifier'))
+        dll.KextManagerUnloadKextWithIdentifier = self.LegacyKextunload
+      elif 'KextManagerLoadKextWithURL' in str(ae):
+        logging.debug('Using legacy kextload')
+        dll = self.SafeLoadKextManager(
+            FilterFnTable(fn_table, 'KextManagerLoadKextWithURL'))
+        dll.KextManagerLoadKextWithURL = self.LegacyKextload
+      else:
+        raise OSError('Can\'t resolve KextManager symbols:{0}'.format(str(ae)))
+
+    return dll
+
+  def LegacyKextload(self, cf_bundle_url, dependency_kext):
+    """Load a kext by forking into kextload."""
+    _ = dependency_kext
+    error_code = OS_SUCCESS
+    cf_path = self.dll.CFURLCopyFileSystemPath(cf_bundle_url, POSIX_PATH_STYLE)
+    path = self.CFStringToPystring(cf_path)
+    self.dll.CFRelease(cf_path)
+    try:
+      subprocess.check_call(['/sbin/kextload', path])
+    except subprocess.CalledProcessError as cpe:
+      logging.debug('failed to load {0}:{1}'.format(path, str(cpe)))
+      error_code = -1
+    return error_code
+
+  def LegacyKextunload(self, cf_bundle_identifier):
+    """Unload a kext by forking into kextunload."""
+    error_code = OS_SUCCESS
+    bundle_identifier = self.CFStringToPystring(cf_bundle_identifier)
+    try:
+      subprocess.check_call(['/sbin/kextunload', '-b', bundle_identifier])
+    except subprocess.CalledProcessError as cpe:
+      logging.debug(
+          'failed to unload {0}:{1}'.format(bundle_identifier, str(cpe)))
+      error_code = -1
+    return error_code

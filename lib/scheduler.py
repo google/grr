@@ -346,6 +346,8 @@ class TaskScheduler(object):
 
 
 # These are globally available handles to factories
+# pylint: disable=W0603
+# pylint: disable=C6409
 
 
 class SchedulerInit(registry.InitHook):
@@ -361,3 +363,5 @@ class SchedulerInit(registry.InitHook):
 
 SCHEDULER = None
 
+# pylint: enable=W0603
+# pylint: enable=C6409

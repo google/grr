@@ -42,9 +42,11 @@ FLAGS = flags.FLAGS
 class NullACLManager(data_store.BaseAccessControlManager):
   """An ACL manager which does not enforce any ACLs."""
 
+  # pylint: disable=W0613
   def CheckAccess(self, token, subjects, requested_access="r"):
     """Allow all access."""
     return True
+  # pylint: enable=W0613
 
 
 class AccessControlManager(data_store.BaseAccessControlManager):

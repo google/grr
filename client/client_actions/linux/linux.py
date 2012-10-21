@@ -28,6 +28,7 @@ import tempfile
 from grr.client import actions
 from grr.client import client_utils_common
 from grr.client import client_utils_linux
+from grr.client.client_actions import standard
 from grr.client.client_actions.linux import ko_patcher
 from grr.lib import utils
 from grr.proto import jobs_pb2
@@ -389,3 +390,13 @@ class UninstallDriver(actions.ActionPlugin):
 
     # Do the unload and let exceptions pass through.
     client_utils_linux.UninstallDriver(args.driver_name)
+
+
+class UpdateAgent(standard.ExecuteBinaryCommand):
+  """Updates the GRR agent to a new version."""
+
+  in_protobuf = jobs_pb2.ExecuteBinaryRequest
+  out_protobuf = jobs_pb2.ExecuteBinaryResponse
+
+  # This is not yet supported but we need this stub here so the worker can
+  # determine the correct protobufs.

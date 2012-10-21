@@ -498,3 +498,81 @@ class FileCollector(flow.GRRFlow):
 
     self.Notify("ViewObject", self.output,
                 "Completed download of {0:d} files.".format(num_files))
+
+
+class SendFile(flow.GRRFlow):
+  """This flow sends a file to remote listener.
+
+  To use this flow, choose a key and an IV in hex format (if run from the GUI,
+  there will be a pregenerated pair key and iv for you to use) and run a
+  listener on the server you want to use like this:
+
+  nc -l <port> | openssl aes-128-cbc -d -K <key> -iv <iv> > <filename>
+
+  Returns to parent flow:
+    A jobs_pb2.StatResponse of the sent file.
+  """
+
+  category = "/Filesystem/"
+  out_protobuf = jobs_pb2.StatResponse
+  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
+                   "pathspec": type_info.Proto(jobs_pb2.Path),
+                   "address_family": type_info.ProtoEnum(
+                       jobs_pb2.NetworkAddress, "NetworkFamily"),
+                   "key": type_info.EncryptionKey(16),
+                   "iv": type_info.EncryptionKey(16)}
+
+  def __init__(self, host="", port=12345,
+               address_family=jobs_pb2.NetworkAddress.INET,
+               path="/",
+               pathtype=jobs_pb2.Path.OS,
+               pathspec=None,
+               key="", iv="",
+               **kwargs):
+    """Constructor.
+
+    Args:
+      host: Hostname or IP for the listening server.
+      port: Port number on the listening server.
+      address_family: AF_INET or AF_INET6.
+      path: The directory path to list.
+      pathtype: Identifies requested path type. Enum from Path protobuf.
+      pathspec: This flow also accepts all the information in one pathspec.
+        which is preferred over the path and pathtype definition
+      key: An encryption key given in hex representation.
+      iv: The iv for AES, also given in hex representation.
+    """
+
+    self.key = key.decode("hex")
+    if len(self.key) != 16:
+      raise flow.FlowError("Invalid key length (%d)." % len(self.key))
+
+    self.iv = iv.decode("hex")
+    if len(self.iv) != 16:
+      raise flow.FlowError("Invalid iv length (%d)." % len(self.iv))
+
+    if pathspec:
+      self.pathspec = utils.Pathspec(pathspec)
+    else:
+      self.pathspec = utils.Pathspec(path=path, pathtype=int(pathtype))
+
+    self.host = host
+    self.port = port
+    self.family = address_family
+
+    flow.GRRFlow.__init__(self, **kwargs)
+
+  @flow.StateHandler(next_state="Done")
+  def Start(self):
+    self.CallClient("SendFile", key=utils.SmartStr(self.key),
+                    iv=utils.SmartStr(self.iv),
+                    pathspec=self.pathspec.ToProto(),
+                    address_family=self.family,
+                    host=self.host, port=self.port,
+                    next_state="Done")
+
+  @flow.StateHandler()
+  def Done(self, responses):
+    if not responses.success:
+      self.Log(responses.status.error_message)
+      raise flow.FlowError(responses.status.error_message)

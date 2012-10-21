@@ -31,8 +31,10 @@ from grr.client import conf
 from grr.client import conf as flags
 import logging
 
+# pylint: disable=W0611
 # This is needed to define the flags used here.
 from grr.client import client
+# pylint: enable=W0611
 from grr.client import client_config
 from grr.client import comms
 from grr.lib import aff4

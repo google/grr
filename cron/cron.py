@@ -23,9 +23,11 @@ import sys
 
 from grr.client import conf
 
+# pylint: disable=W0611
 # Support bt storage
 from grr.lib import registry
 from grr.lib import mongo_data_store
+# pylint: enable=W0611
 
 from grr.lib.aff4_objects import cronjobs
 

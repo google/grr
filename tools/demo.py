@@ -49,7 +49,9 @@ def main(argv):
 
   setup_environ(settings)
 
+  # pylint: disable=W0612
   from grr.gui import plugins
+  # pylint: enable=W0612
 
   # Get everything initialized.
   registry.Init()

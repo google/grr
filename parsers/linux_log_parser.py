@@ -754,6 +754,25 @@ class WtmpParser(LogParser):
 
 
 class SyslogParser(LogParser):
+  """Syslog Parser.
+
+  If this is a syslog file it will also determine the year the file was
+  created and last modified, since syslog doesn't contain that information.
+
+  The year is then used to calculate the actual year the record occured on
+  using a simple algorithm (if one call it really an algorithm). That is we
+  take the year the file was created, and assume that is a correct year for
+  the first entry.
+
+  Then when the file is parsed the current month value is compared to last
+  entries month value, and if we see that the current one is less than the
+  last one (for example it's now 01 instead of 12 as it was last time) we
+  increment the year value.
+
+  Example line:
+    Dec  6 10:16:01 vinnuvelin.net CRON[21352]: (root) CMD\
+    (touch /var/run/crond.sittercheck)
+  """
   REG_COMP = re.compile("""(?P<month>\w+)  # month when event got recorded
                            \s+             #
                            (?P<day>\d+)    # the day (int)
@@ -899,6 +918,16 @@ class SyslogParser(LogParser):
 
 
 class AuthParser(SyslogParser):
+  """Auth log file parser.
+
+  Example line:
+    Dec  6 11:39:01 vinnuvelin.net CRON[30933]:
+    pam_unix(cron:session): session closed for user root
+
+  The problem with the AUTH file is that it follows the syslog format
+  (so we need to parse this one first) and it requires a bit different
+  manipulation of the data field.
+  """
   REG_COMP = re.compile("""(?P<month>\w+)\s+
                            (?P<day>\d+)\s
                            (?P<hour>\d+):

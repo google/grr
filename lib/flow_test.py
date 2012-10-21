@@ -22,17 +22,23 @@ import pickle
 from grr.client import conf
 from grr.client import vfs
 from grr.lib import aff4
+# pylint: disable=W0611
 from grr.lib import aff4_objects
+# pylint: enable=W0611
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import flow_context
+# pylint: disable=W0611
 from grr.lib import registry
+# pylint: enable=W0611
 from grr.lib import scheduler
 from grr.lib import test_lib
 from grr.lib import type_info
 # These import populate the AFF4 registry
+# pylint: disable=W0611
 from grr.lib.flows import general
 from grr.lib.flows import tests
+# pylint: enable=W0611
 from grr.proto import jobs_pb2
 
 
@@ -116,6 +122,7 @@ class FlowFactoryTest(test_lib.FlowTestsBaseclass):
 
     class TestClientMock(object):
 
+      # pylint: disable=W0613
       def Test(self, args):
         return [jobs_pb2.DataBlob(integer=100)]
 

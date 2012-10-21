@@ -27,6 +27,7 @@ from grr.client import conf
 from grr.client import conf as flags
 
 # Populate the action registry
+# pylint: disable=W0611
 from grr.client import client_actions
 from grr.client import client_utils_osx
 from grr.client import conf

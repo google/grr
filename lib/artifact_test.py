@@ -21,6 +21,7 @@
 from grr.client import conf
 
 # Need to import artifacts so they get registered
+# pylint: disable=W0611
 from grr.artifacts import win_artifacts
 
 from grr.lib import artifact

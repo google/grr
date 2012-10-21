@@ -371,7 +371,8 @@ client_id = {{ this.client_id|escape }}
     except KeyError:
       return self.RenderFromTemplate(self.error_template, response,
                                      error="Flow not found",
-                                     name=self.flow_name)
+                                     name=self.flow_name,
+                                     this=self)
 
     try:
       self.client_id = req.get("client_id")
@@ -400,11 +401,11 @@ client_id = {{ this.client_id|escape }}
 
     # Here we catch all exceptions in order to relay potential errors to users
     # (Otherwise they are just hidden by django error page).
-    except Exception as e:
+    except Exception as e:  # pylint: disable=W0703
       logging.exception("Error: %s", e)
       renderers.Renderer.Layout(self, request, response)
       return self.RenderFromTemplate(
-          self.error_template, response,
+          self.error_template, response, this=self,
           error=str(e), id=self.id, name=self.flow_name)
 
 
@@ -451,7 +452,7 @@ class FlowArgsRenderer(renderers.RDFProtoRenderer):
 
 class RDFDatetimeRenderer(renderers.RDFValueRenderer):
   """Render the date time with a non breaking space."""
-  ClassName = "RDFDatetime"
+  classname = "RDFDatetime"
 
   template = renderers.Template(
       "<div class='non-breaking'>{{data|escape}}</div>")
@@ -841,7 +842,7 @@ class HistoricalFlowView(fileview.HistoricalView):
 
 class FlowPBRenderer(renderers.RDFProtoRenderer):
   """Format the FlowPB protobuf."""
-  ClassName = "Flow"
+  classname = "Flow"
   name = "Flow Protobuf"
 
   # {{value}} comes from the translator so its assumed to be safe.
@@ -878,7 +879,7 @@ class FlowPBRenderer(renderers.RDFProtoRenderer):
 
 class FlowNotificationRenderer(renderers.RDFValueRenderer):
   """Renders notifications inside the FlowRenderer."""
-  ClassName = "Notification"
+  classname = "Notification"
 
   # Note here that following href e.g. right click new tab will give a fresh URL
   # but clicking will maintain state of other tabs.

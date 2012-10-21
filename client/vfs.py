@@ -228,6 +228,8 @@ VFS_HANDLERS = {}
 class VFSInit(registry.InitHook):
 
   def Run(self):
+    # pylint: disable=W0612
+    # pylint: disable=C6204
     from grr.client import vfs_handlers
 
     for handler in VFSHandler.classes.values():

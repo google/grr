@@ -25,17 +25,22 @@ import cherrypy
 from grr.client import conf
 from grr.client import conf as flags
 
+# pylint: disable=W0611
+# pylint: enable=W0611
 
 from grr.lib import communicator
 from grr.lib import mongo_data_store
 from grr.lib import flow
 from grr.lib import log
 from grr.lib import registry
+# pylint: disable=W0611
 from grr.lib import server_flags
+# pylint: enable=W0611
 from grr.proto import jobs_pb2
 
 FLAGS = flags.FLAGS
 
+# pylint: disable=C6409
 
 
 class GrrCherryServer(object):

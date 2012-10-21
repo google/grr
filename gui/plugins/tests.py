@@ -18,6 +18,7 @@
 
 
 
+# pylint: disable=W0611
 from grr.gui.plugins import acl_manager_test
 from grr.gui.plugins import container_viewer_test
 from grr.gui.plugins import cron_view_test

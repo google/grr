@@ -15,6 +15,7 @@
 """Init for all artifacts."""
 
 
+# pylint: disable=W0611
 # These imports populate the Artifact registry.
 from grr.artifacts import lin_artifacts
 from grr.artifacts import win_artifacts

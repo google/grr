@@ -21,20 +21,29 @@ import ctypes
 import logging
 import os
 import re
+import shutil
+import StringIO
 import sys
+import tarfile
+import tempfile
 
 
 import pytsk3
+
+from grr.client import conf as flags
 
 from grr.client import actions
 from grr.client import client_config
 from grr.client import client_utils_common
 from grr.client import client_utils_osx
-from grr.client import conf
+from grr.client.client_actions import standard
 from grr.client.osx.objc import ServiceManagement
+from grr.client.vfs_handlers import memory
 from grr.parsers import osx_launchd
 from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
+
+FLAGS = flags.FLAGS
 
 
 class Error(Exception):
@@ -129,7 +138,7 @@ class Sockaddrin6(ctypes.Structure):
 class Ifaddrs(ctypes.Structure):
   pass
 
-Ifaddrs._fields_ = [
+setattr(Ifaddrs, "_fields_", [
     ("ifa_next", ctypes.POINTER(Ifaddrs)),
     ("ifa_name", ctypes.POINTER(ctypes.c_char)),
     ("ifa_flags", ctypes.c_uint),
@@ -138,7 +147,7 @@ Ifaddrs._fields_ = [
     ("ifa_broadaddr", ctypes.POINTER(ctypes.c_char)),
     ("ifa_destaddr", ctypes.POINTER(ctypes.c_char)),
     ("ifa_data", ctypes.POINTER(ctypes.c_char))
-    ]
+    ])
 
 
 class EnumerateInterfaces(actions.ActionPlugin):
@@ -344,25 +353,142 @@ class Uninstall(actions.ActionPlugin):
     """This kills us with no cleanups."""
     logging.debug("Disabling service")
 
-    if not conf.RUNNING_AS_SERVICE:
-      self.SendReply(string="Not running as service.")
-    else:
-      plist = client_config.LAUNCHCTL_PLIST
-      (_, _, result) = client_utils_common.Execute("/sbin/launchctl",
-                                                   ["unload",
-                                                    plist])
+    msg = "Service disabled."
+    if hasattr(sys, "frozen"):
+      grr_binary = os.path.abspath(sys.executable)
+    elif __file__:
+      grr_binary = os.path.abspath(__file__)
 
-      if result != 0:
-        self.SendReply(string="Service failed to disable.")
+    try:
+      os.remove(grr_binary)
+    except OSError:
+      msg = "Could not remove binary."
+
+    try:
+      os.remove(client_config.LAUNCHCTL_PLIST)
+    except OSError:
+      if "Could not" in msg:
+        msg += " Could not remove plist file."
       else:
-        logging.info("Disabled service successfully")
-        self.SendReply(string="Service disabled.")
+        msg = "Could not remove plist file."
 
-        os.remove(client_config.LAUNCHCTL_PLIST)
+    # Get the directory we are running in from pyinstaller. This is either the
+    # GRR directory which we should delete (onedir mode) or a generated temp
+    # directory which we can delete without problems in onefile mode.
+    directory = getattr(sys, "_MEIPASS", None)
+    if directory:
+      shutil.rmtree(directory, ignore_errors=True)
 
-        if hasattr(sys, "frozen"):
-          grr_binary = os.path.abspath(sys.executable)
-        elif __file__:
-          grr_binary = os.path.abspath(__file__)
+    self.SendReply(string=msg)
 
-        os.remove(grr_binary)
+
+class InstallDriver(actions.ActionPlugin):
+  """Installs a driver.
+
+  Note that only drivers with a signature that validates with
+  client_config.DRIVER_SIGNING_CERT can be loaded.
+  """
+  in_protobuf = jobs_pb2.InstallDriverRequest
+
+  def Run(self, args):
+    """Initializes the driver."""
+    # This action might crash the box so we need to flush the transaction log.
+    self.SyncTransactionLog()
+
+    if not args.driver:
+      raise IOError("No driver supplied.")
+
+    if not client_utils_common.VerifySignedBlob(args.driver):
+      raise OSError("Driver signature signing failure.")
+
+    if args.force_reload:
+      client_utils_osx.UninstallDriver(args.driver_name)
+    # Wrap the tarball in a file like object for tarfile to handle it.
+    driver_buf = StringIO.StringIO(args.driver.data)
+    # Unpack it to a temporary directory.
+    kext_tmp_dir = tempfile.mkdtemp(prefix="osxpmem")
+    driver_archive = tarfile.open(fileobj=driver_buf, mode="r:gz")
+    driver_archive.extractall(kext_tmp_dir)
+    driver_archive.close()
+    driver_buf.close()
+    # Now load it.
+    kext_path = os.path.join(kext_tmp_dir, args.write_path)
+    logging.debug("Loading kext {0}".format(kext_path))
+    client_utils_osx.InstallDriver(kext_path)
+    # Finally clean up.
+    shutil.rmtree(kext_tmp_dir)
+
+
+class GetMemoryInformation(actions.ActionPlugin):
+  """Loads the driver for memory access and returns a Stat for the device."""
+
+  in_protobuf = jobs_pb2.Path
+  out_protobuf = jobs_pb2.MemoryInfomation
+
+  def Run(self, args):
+    """Run."""
+    # This action might crash the box so we need to flush the transaction log.
+    self.SyncTransactionLog()
+
+    result = self.out_protobuf()
+
+    # Do any initialization we need to do.
+    logging.debug("Querying device %s", args.path)
+    mem_dev = open(args.path, "rb")
+    result.cr3 = memory.OSXMemory.GetCR3(mem_dev)
+    result.device.path = args.path
+    result.device.pathtype = jobs_pb2.Path.MEMORY
+    for start, length in memory.OSXMemory.GetMemoryMap(mem_dev):
+      result.runs.add(offset=start, length=length)
+    self.SendReply(result)
+
+
+class UninstallDriver(actions.ActionPlugin):
+  """Unloads a memory driver.
+
+  Only if the request contains a valid signature the driver will be uninstalled.
+  """
+
+  in_protobuf = jobs_pb2.InstallDriverRequest
+
+  def Run(self, args):
+    """Unloads a driver."""
+    if not client_utils_common.VerifySignedBlob(args.driver, verify_data=False):
+      raise OSError("Driver signature signing failure.")
+    # Unload the driver and pass exceptions through
+    client_utils_osx.UninstallDriver(args.driver_name)
+
+
+class UpdateAgent(standard.ExecuteBinaryCommand):
+  """Updates the GRR agent to a new version."""
+
+  in_protobuf = jobs_pb2.ExecuteBinaryRequest
+  out_protobuf = jobs_pb2.ExecuteBinaryResponse
+
+  def Run(self, args):
+    """Run."""
+    self.VerifyBlob(args.executable)
+
+    path = self.WriteBlobToFile(args.executable, args.write_path, ".pkg")
+
+    cmd = "/usr/sbin/installer"
+    cmd_args = ["-pkg", path, "-target", "/"]
+    time_limit = args.time_limit
+
+    res = client_utils_common.Execute(cmd, cmd_args, time_limit=time_limit,
+                                      bypass_whitelist=True)
+    (stdout, stderr, status, time_used) = res
+
+    self.CleanUp(path)
+
+    # Limit output to 10MB so our response doesn't get too big.
+    stdout = stdout[:10 * 1024 * 1024]
+    stderr = stderr[:10 * 1024 * 1024]
+
+    result = jobs_pb2.ExecuteBinaryResponse()
+    result.stdout = stdout
+    result.stderr = stderr
+    result.exit_status = status
+    # We have to return microseconds.
+    result.time_used = (int) (1e6 * time_used)
+    self.SendReply(result)

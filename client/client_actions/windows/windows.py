@@ -39,6 +39,7 @@ from grr.client import client_config
 from grr.client import client_utils_common
 from grr.client import client_utils_windows
 from grr.client import conf
+from grr.client.client_actions import standard
 from grr.lib import constants
 from grr.lib import utils
 from grr.proto import jobs_pb2
@@ -138,7 +139,7 @@ class EnumerateUsers(actions.ActionPlugin):
   def GetSpecialFolders(self, sid):
     """Retrieves all the special folders from the registry."""
     folders_key = (r"%s\Software\Microsoft\Windows"
-                   "\CurrentVersion\Explorer\Shell Folders")
+                   r"\CurrentVersion\Explorer\Shell Folders")
     try:
       key = _winreg.OpenKey(_winreg.HKEY_USERS, folders_key % sid)
     except exceptions.WindowsError:
@@ -257,21 +258,16 @@ class Uninstall(actions.ActionPlugin):
   def Run(self, unused_arg):
     """This kills us with no cleanups."""
     logging.debug("Disabling service")
-    if conf.RUNNING_AS_SERVICE:
-      # Import here as we only want it if we're running as a service.
-      from grr.client import win32grr
 
-      win32serviceutil.ChangeServiceConfig(
-          "win32grr.GRRMonitor", client_config.SERVICE_NAME,
-          startType=win32service.SERVICE_DISABLED)
-      svc_config = QueryService(client_config.SERVICE_NAME)
-      if svc_config[1] == win32service.SERVICE_DISABLED:
-        logging.info("Disabled service successfully")
-        self.SendReply(string="Service disabled.")
-      else:
-        self.SendReply(string="Service failed to disable.")
+    win32serviceutil.ChangeServiceConfig(
+        None, client_config.SERVICE_NAME,
+        startType=win32service.SERVICE_DISABLED)
+    svc_config = QueryService(client_config.SERVICE_NAME)
+    if svc_config[1] == win32service.SERVICE_DISABLED:
+      logging.info("Disabled service successfully")
+      self.SendReply(string="Service disabled.")
     else:
-      self.SendReply(string="Not running as service.")
+      self.SendReply(string="Service failed to disable.")
 
 
 def QueryService(svc_name):
@@ -460,17 +456,20 @@ class UninstallDriver(actions.ActionPlugin):
     client_utils_common.VerifySignedBlob(args.driver, verify_data=False)
 
     # Confirm the digest in the driver matches what we are about to remove.
-    digest = hashlib.sha256(open(args.write_path).read(
+    digest = hashlib.sha256(open(args.write_path, "rb").read(
         DRIVER_MAX_SIZE)).digest()
 
-    if digest != args.digest:
+    if digest != args.driver.digest:
       # Driver we are uninstalling has been modified from original or we
       # sent the wrong one.
       raise RuntimeError("Failed driver sig validation on UninstallDriver")
 
     # Do the unload.
-    result, err = client_utils_windows.UnloadDriver(
-        args.driver_name, args.write_path, delete_driver=True)
+    client_utils_windows.UninstallDriver(
+        args.write_path, args.driver_name, delete_file=True)
 
-    if not result:
-      raise RuntimeError(err)
+
+class UpdateAgent(standard.ExecuteBinaryCommand):
+  """Updates the GRR agent to a new version."""
+
+  # For Windows this is just an alias to ExecuteBinaryCommand.

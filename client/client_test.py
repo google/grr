@@ -24,7 +24,9 @@ from grr.client import conf as flags
 from grr.client import actions
 
 # Load all the standard actions.
+# pylint: disable=W0611
 from grr.client import client_actions
+# pylint: enable=W0611
 from grr.client import comms
 from grr.lib import test_lib
 from grr.proto import jobs_pb2

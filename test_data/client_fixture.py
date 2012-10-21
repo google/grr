@@ -18,6 +18,7 @@
 """This is a test fixture for client objects.."""
 
 
+# This file is mostly data so pylint: disable=C6005,C6310
 
 
 LINUX_FIXTURE = [

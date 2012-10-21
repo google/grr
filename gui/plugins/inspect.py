@@ -35,7 +35,7 @@ from grr.proto import jobs_pb2
 
 class TaskRenderer(renderers.RDFProtoRenderer):
   """Render a Task Scheduler Task."""
-  ClassName = "TaskSchedulerTask"
+  classname = "TaskSchedulerTask"
   name = "Task Scheduler Task"
 
   def RenderAsRequest(self, *args):
@@ -246,7 +246,7 @@ class RequestRenderer(renderers.TemplateRenderer):
 
 class GrrRequestRenderer(renderers.RDFProtoRenderer):
   """Render a GRR Message."""
-  ClassName = "GRRMessage"
+  classname = "GRRMessage"
   name = "GRR Request"
 
   # A map between the protobuf and the renderer for it.

@@ -64,8 +64,12 @@ class CommunicatorInit(registry.InitHook):
     stats.STATS.RegisterVar("grr_rsa_operations")
 
 
-# These actually are inherited from Exception
-class DecodingError(stats.CountingException):
+class Error(stats.CountingExceptionMixin, Exception):
+  """Base class for all exceptions in this module."""
+  pass
+
+
+class DecodingError(Error):
   """Raised when the message failed to decrypt or decompress."""
   counter = "grr_decoding_error"
 
@@ -223,6 +227,7 @@ class ReceivedCipher(Cipher):
   # Indicates if the cipher contained in the response_comms is verified.
   signature_verified = False
 
+  # pylint: disable=W0231
   def __init__(self, response_comms, private_key, pub_key_cache):
     self.private_key = private_key
     self.pub_key_cache = pub_key_cache

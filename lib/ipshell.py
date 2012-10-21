@@ -19,6 +19,7 @@
 
 
 
+# pylint: disable=C6204
 def IPShell(argv=None, user_ns=None, banner=None):
   if argv is None:
     argv = []

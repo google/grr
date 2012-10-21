@@ -167,7 +167,7 @@ class NannyThread(threading.Thread):
         logging.error("Suicide by nanny thread.")
 
         # Die hard here to prevent hangs due to non daemonized threads.
-        os._exit(-1)
+        os._exit(-1)  # pylint: disable=W0212
       else:
         # Sleep until the next heartbeat is due.
         time.sleep(check_time - now)
@@ -235,7 +235,7 @@ class NannyController(object):
     """Return a GrrMessage instance from the transaction log or None."""
     try:
       with open(self.nanny_logfile, "r") as fd:
-        data = fd.read(1000000)
+        data = fd.read(100000000)
     except (IOError, OSError):
       return
 

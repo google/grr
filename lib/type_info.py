@@ -253,6 +253,24 @@ class StringOrNone(String):
   allow_none = True
 
 
+class EncryptionKey(String):
+
+  renderer = "EncryptionKeyFormRenderer"
+
+  def __init__(self, length):
+    self.length = length
+    super(EncryptionKey, self).__init__()
+
+  def Validate(self, value):
+    try:
+      key = value.decode("hex")
+    except TypeError:
+      raise TypeValueError("Key given is not a hex string.")
+
+    if len(key) != self.length:
+      raise TypeValueError("Invalid key length (%d)." % len(value))
+
+
 class Number(TypeInfoObject):
   """A Number type."""
 

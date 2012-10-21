@@ -25,8 +25,10 @@ from grr.lib import test_lib
 from grr.lib import utils
 
 # Load plugins for aff4 objects and tests
+# pylint: disable=W0611,C6203
 from grr.lib import aff4_objects
 from grr.lib.aff4_objects import tests
+# pylint: enable=W0611,C6203
 
 from grr.proto import jobs_pb2
 
@@ -96,6 +98,16 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     # Check that when read back from the data_store we stored them all
     obj = aff4.FACTORY.Open("foobar", token=self.token, age=aff4.ALL_TIMES)
     self.assertEqual(6, len(list(obj.GetValuesForAttribute(obj.Schema.STORED))))
+
+  def testAttributeSet(self):
+    obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
+    self.assertFalse(obj.IsAttributeSet(obj.Schema.STORED))
+    obj.Set(obj.Schema.STORED("http://www.google.com"))
+    self.assertTrue(obj.IsAttributeSet(obj.Schema.STORED))
+    obj.Close()
+
+    obj = aff4.FACTORY.Open("foobar", token=self.token)
+    self.assertTrue(obj.IsAttributeSet(obj.Schema.STORED))
 
   def testRDFTypes(self):
     """Test that types are properly serialized."""

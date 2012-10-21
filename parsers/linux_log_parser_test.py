@@ -30,6 +30,7 @@ FLAGS = flags.FLAGS
 
 
 # We are intentionally not implementing the class correctly.
+# pylint: disable=W0223
 class NewImplementation(linux_log_parser.LogParser):
   """Tries to implement LogParser but is insufficient.
 

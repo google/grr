@@ -17,6 +17,7 @@
 """A module to load all client plugins."""
 
 
+# pylint: disable=W0611
 import platform
 
 import logging
@@ -31,6 +32,8 @@ from grr.client.client_actions import searching
 from grr.client.client_actions import standard
 from grr.proto import jobs_pb2
 
+# pylint: disable=C6204
+# pylint: disable=C6302
 
 try:
   from grr.client.client_actions import grr_volatility

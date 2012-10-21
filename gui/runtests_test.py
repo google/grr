@@ -72,7 +72,9 @@ def main(argv):
   setup_environ(settings)
 
   # Load up the tests after the environment has been configured.
+  # pylint: disable=C6204,W0612
   from grr.gui.plugins import tests
+  # pylint: enable=C6204
 
   # Start up a server in another thread
   trd = runtests.DjangoThread()

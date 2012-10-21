@@ -260,7 +260,7 @@ class Transaction(data_store.Transaction):
       values = results[key]
 
       if timestamp is None or timestamp == data_store.DB.NEWEST_TIMESTAMP:
-        value = _Decode(values[-1]["v"], decoder)
+        value = Decode(values[-1]["v"], decoder)
         value_timestamp = values[-1]["t"]
         yield (key, value, value_timestamp)
       else:
@@ -270,7 +270,7 @@ class Transaction(data_store.Transaction):
           start, end = 0, timestamp
 
         for value_dict in values:
-          value = _Decode(value_dict["v"], decoder)
+          value = Decode(value_dict["v"], decoder)
           value_timestamp = value_dict["t"]
 
           if (timestamp == data_store.DB.ALL_TIMESTAMPS or
@@ -282,7 +282,7 @@ class Transaction(data_store.Transaction):
       if predicate in self._cache:
         values = self._cache.get(predicate, [])
         if values:
-          yield predicate, _Decode(values[-1]["v"], decoder), values[-1]["t"]
+          yield predicate, Decode(values[-1]["v"], decoder), values[-1]["t"]
 
   def Resolve(self, predicate, decoder=None):
     for _, value, timestamp in self.ResolveMulti([predicate], decoder=decoder):
@@ -368,7 +368,7 @@ class MongoDataStore(data_store.DataStore):
     # For now use a single "data" collection
     self.db_handle = connection[FLAGS.mongo_db_name]
     self.collection = self.db_handle.data
-    self.Filter = Filter
+    self.filter = Filter
 
   def Resolve(self, subject, attribute, decoder=None, token=None):
     """Retrieves a value set for a subject's predicate."""
@@ -381,7 +381,7 @@ class MongoDataStore(data_store.DataStore):
     values = records.get(attribute)
     value, timestamp = None, 0
     if values:
-      value = _Decode(values[0]["v"], decoder)
+      value = Decode(values[0]["v"], decoder)
       timestamp = values[0]["t"]
 
     return value, timestamp
@@ -399,7 +399,7 @@ class MongoDataStore(data_store.DataStore):
       if not record:
         continue
       timestamp = record[0]["t"]
-      value = _Decode(record[0]["v"], decoder)
+      value = Decode(record[0]["v"], decoder)
 
       yield DecodeKey(predicate), value, timestamp
 
@@ -498,7 +498,7 @@ class MongoDataStore(data_store.DataStore):
           if predicate.match(key) and isinstance(values, list):
             for value_obj in values:
               timestamp = value_obj["t"]
-              value = _Decode(value_obj["v"], decoder)
+              value = Decode(value_obj["v"], decoder)
               result.setdefault(subject, []).append(
                   (DecodeKey(key), value, timestamp))
               result_count += 1
@@ -562,7 +562,7 @@ class MongoDataStore(data_store.DataStore):
         result = dict(subject=(subject, 0))
         for key, values in document.items():
           if isinstance(values, list):
-            result[key] = (_Decode(values[-1]["v"]), values[-1]["t"])
+            result[key] = (Decode(values[-1]["v"]), values[-1]["t"])
 
         result_subjects.append(result)
       except data_store.UnauthorizedAccess:
@@ -581,7 +581,7 @@ class MongoDataStore(data_store.DataStore):
     pass
 
 
-def _Decode(value, decoder=None):
+def Decode(value, decoder=None):
   """Decodes from a value using the protobuf specified."""
   if value and decoder:
     result = decoder()

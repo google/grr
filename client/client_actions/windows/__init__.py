@@ -16,6 +16,7 @@
 """A module to load all windows client plugins."""
 
 
+# pylint: disable=W0611,C6204
 
 # These import populate the Action registry
 import platform

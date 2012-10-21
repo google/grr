@@ -16,6 +16,7 @@
 
 """GRR GUI plugins simplify the task of displaying different GUI elements."""
 
+# pylint: disable=W0611
 from grr.gui.plugins import acl_manager
 from grr.gui.plugins import configuration_view
 from grr.gui.plugins import container_viewer

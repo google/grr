@@ -14,6 +14,7 @@
 # limitations under the License.
 
 
+"""Tests for grr.parsers.sqlite_file."""
 
 
 
@@ -28,6 +29,7 @@ from grr.parsers import sqlite_file
 FLAGS = flags.FLAGS
 
 
+# pylint: disable=C6409
 
 
 class SQLiteFileTest(test_lib.GRRBaseTest):

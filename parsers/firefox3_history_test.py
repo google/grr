@@ -14,6 +14,7 @@
 # limitations under the License.
 
 
+"""Tests for grr.parsers.firefox3_history."""
 
 
 

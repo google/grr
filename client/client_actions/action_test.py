@@ -29,6 +29,7 @@ from grr.client import conf
 from grr.client import conf as flags
 
 # Populate the action registry
+# pylint: disable=W0611
 from grr.client import actions
 from grr.client import client_actions
 from grr.client import comms
@@ -43,6 +44,7 @@ from grr.proto import jobs_pb2
 
 FLAGS = flags.FLAGS
 
+# pylint: disable=C6409
 
 
 class MockWindowsProcess(object):

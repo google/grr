@@ -18,6 +18,7 @@
 
 import logging
 import os
+import socket
 import SocketServer
 from wsgiref import simple_server
 
@@ -33,6 +34,9 @@ from grr.lib import registry
 SITE_SETTINGS = "grr.gui.settings"
 os.environ["DJANGO_SETTINGS_MODULE"] = SITE_SETTINGS
 
+# pylint: disable=W0611
+from grr.gui import plugins  # pylint: disable=C6204
+
 from grr.lib import access_control
 from grr.lib import aff4_objects
 # Support mongo storage
@@ -40,12 +44,13 @@ from grr.lib import mongo_data_store
 
 # Support grr plugins (These only need to be imported here)
 from grr.lib.flows import general
-from grr.gui import plugins
+
+# pylint: enable=W0611
 
 flags.DEFINE_integer("port", 8000,
                      "port to listen on")
 
-flags.DEFINE_string("bind", "0.0.0.0",
+flags.DEFINE_string("bind", "::",
                     "interface to bind to.")
 
 # This allows users to specify access controls for the gui.
@@ -60,7 +65,7 @@ if settings.SECRET_KEY == "CHANGE_ME":
 
 
 class ThreadingDjango(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
-  pass
+  address_family = socket.AF_INET6
 
 
 def main(_):

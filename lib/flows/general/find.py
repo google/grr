@@ -101,13 +101,12 @@ class FindFiles(flow.GRRFlow):
       # Create the output collection and get it ready.
       output = output.format(t=time.time(), u=self.user)
       self.output = aff4.ROOT_URN.Add(self.client_id).Add(output)
-      self.fd = aff4.FACTORY.Create(self.output, "AFF4Collection", mode="rw",
+      self.fd = aff4.FACTORY.Create(self.output, "AFF4Collection", mode="w",
                                     token=self.token)
 
       self.fd.Set(self.fd.Schema.DESCRIPTION("Find {0} -name {1}".format(
           path, filename_regex)))
-      self.collection_list = self.fd.Get(self.fd.Schema.COLLECTION)
-      self.dirty = True
+      self.collection_list = self.fd.Schema.COLLECTION()
 
     else:
       self.output = None
@@ -145,7 +144,6 @@ class FindFiles(flow.GRRFlow):
       if self.output:
         # Add the new objects URN to the collection.
         self.collection_list.Append(response.hit)
-        self.dirty = True
 
       # Send the stat to the parent flow.
       self.SendReply(response.hit)
@@ -162,21 +160,12 @@ class FindFiles(flow.GRRFlow):
       self.CallClient("Find", self.request, next_state="IterateFind")
       self.Log("%d files processed.", self.received_count)
 
-  def Save(self):
-    if self.output and self.dirty:
-      # Store it in the data store.
+  def End(self):
+    """Save the collection and notification if output is enabled."""
+    if self.output:
       self.fd.Set(self.fd.Schema.COLLECTION, self.collection_list)
       self.fd.Close()
 
-  def Load(self):
-    """"Recreate the collection."""
-    if self.output:
-      self.fd = aff4.FACTORY.Open(self.output, mode="rw", token=self.token)
-      self.collection_list = self.fd.Get(self.fd.Schema.COLLECTION)
-    self.dirty = False
-
-  def End(self):
-    if self.output:
       self.Notify("ViewObject", self.output,
                   u"Found on {0} completed {1} hits".format(
                       len(self.collection_list), self.path))

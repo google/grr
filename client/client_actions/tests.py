@@ -17,6 +17,7 @@
 
 """Loads up all client action tests."""
 
+# pylint: disable=W0611
 # These import populate the action test registry
 from grr.client.client_actions import admin_test
 from grr.client.client_actions import file_fingerprint_test

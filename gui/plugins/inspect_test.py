@@ -43,8 +43,8 @@ class TestInspectView(test_lib.GRRSeleniumTest):
     self.WaitUntil(sel.is_element_present, "css=a[grrtarget=LaunchFlows]")
 
     sel.click("css=a[grrtarget=LaunchFlows]")
-    self.WaitUntil(sel.is_element_present, "id=_Metadata")
-    sel.click("css=#_Metadata ins")
+    self.WaitUntil(sel.is_element_present, "id=_Administrative")
+    sel.click("css=#_Administrative ins")
 
     self.WaitUntil(sel.is_text_present, "Interrogate")
     sel.click("css=a:contains(Interrogate)")

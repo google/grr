@@ -174,24 +174,35 @@ def GetConfigBinaryPathType(aff4_path):
 def CreateBinaryConfigPaths():
   """Create the paths required for binary configs."""
   required_dirs = set(["drivers", "executables", "python_hacks"])
+  required_urns = set()
 
   try:
-    config_obj = aff4.FACTORY.Open("aff4:/config", required_type="AFF4Volume")
-    dirs = set(d.Basename() for d in config_obj.ListChildren())
     for req_dir in required_dirs:
-      if req_dir not in dirs:
-        aff4.FACTORY.Create("aff4:/config/%s" % req_dir, "AFF4Volume").Flush()
-    if not dirs:
-      # We weren't already initialized, create all directories.
-      for platform in SUPPORTED_PLATFORMS:
-        aff4.FACTORY.Create("aff4:/config/drivers/%s/memory" % platform,
-                            "AFF4Volume").Flush()
-      for platform in SUPPORTED_PLATFORMS:
-        aff4.FACTORY.Create("aff4:/config/executables/%s/agentupdates"
-                            % platform, "AFF4Volume").Flush()
-        aff4.FACTORY.Create("aff4:/config/executables/%s/installers"
-                            % platform, "AFF4Volume").Flush()
+      required_urns.add("aff4:/config/%s" % req_dir)
+
+    # We weren't already initialized, create all directories.
+    for platform in SUPPORTED_PLATFORMS:
+      required_urns.add("aff4:/config/drivers/%s/memory" % platform)
+      required_urns.add("aff4:/config/executables/%s/agentupdates" % platform)
+      required_urns.add("aff4:/config/executables/%s/installers" % platform)
+
+    existing_urns = [x["urn"] for x in aff4.FACTORY.Stat(list(required_urns))]
+
+    missing_urns = required_urns - set(existing_urns)
+
+    # One by one is not optimal but we have to do it only once per urn.
+    for urn in missing_urns:
+      aff4.FACTORY.Create(urn, "AFF4Volume").Flush()
 
   except data_store.UnauthorizedAccess:
     logging.info("User is not admin, cannot check configuration tree.")
     return
+
+
+def MakeUserAdmin(user, token=None):
+  """Add the Admin label to a specific user."""
+  u = aff4.FACTORY.Open("/users/%s/labels" % user, mode="rw", token=token)
+  labels = u.Schema.LABEL()
+  labels.data.label.append("admin")
+  u.Set(labels)
+  u.Close()

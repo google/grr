@@ -27,16 +27,20 @@ from grr.client import conf
 from grr.client import conf as flags
 
 from grr.client import client_config
+# pylint: disable=W0611
 from grr.lib import data_store
+# pylint: enable=W0611
 from grr.lib import mongo_data_store
 from grr.lib import flow
 from grr.lib import key_utils
 
 from grr.lib import registry
 
+# pylint: disable=W0611
 # Make sure we load the enroller module
 from grr.lib.flows import general
 from grr.lib.flows.caenroll import ca_enroller
+# pylint: enable=W0611
 
 flags.DEFINE_string("ca_queue_name", "CA",
                     "The name of the queue for this worker.")

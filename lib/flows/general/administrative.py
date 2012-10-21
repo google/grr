@@ -20,11 +20,18 @@ import time
 import urllib
 
 from grr.client import conf as flags
+import logging
 
 from grr.lib import aff4
 from grr.lib import email_alerts
 from grr.lib import flow
+from grr.lib import registry
+from grr.lib import stats
+from grr.lib import utils
 from grr.proto import jobs_pb2
+
+flags.DEFINE_string("monitoring_email", None,
+                    "The email address to send events to.")
 
 FLAGS = flags.FLAGS
 
@@ -71,10 +78,10 @@ class GetClientStatsAuto(GetClientStats, flow.WellKnownFlow):
 
   def ProcessMessage(self, message):
     """Processes a stats response from the client."""
-    stats = jobs_pb2.ClientStats()
-    stats.ParseFromString(message.args)
+    client_stats = jobs_pb2.ClientStats()
+    client_stats.ParseFromString(message.args)
     self.client_id = message.source
-    self.ProcessResponse(stats)
+    self.ProcessResponse(client_stats)
 
 
 class Uninstall(flow.GRRFlow):
@@ -306,6 +313,11 @@ class Update(flow.GRRFlow):
 
   AUTHORIZED_LABELS = ["admin"]
 
+  system_platform_mapping = {
+      "Darwin": "osx",
+      "Linux": "linux",
+      "Windows": "windows"}
+
   def __init__(self, blob_path=None, **kw):
     """Init.
 
@@ -317,16 +329,40 @@ class Update(flow.GRRFlow):
 
   @flow.StateHandler(next_state="Interrogate")
   def Start(self):
-    aff4_blob = aff4.FACTORY.Open(self.blob_path, token=self.token)
+    """Start."""
+    if not self.blob_path:
+      client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(
+          self.client_id), token=self.token)
+      client_platform = client.Get(client.Schema.SYSTEM)
+      if not client_platform:
+        raise RuntimeError("Can't determine client platform, please specify.")
+      blob_urn = "aff4:/config/executables/%s/agentupdates" % (
+          self.system_platform_mapping[client_platform])
+      blob_dir = aff4.FACTORY.Open(blob_urn, token=self.token)
+      updates = sorted(list(blob_dir.OpenChildren()))
+      if not updates:
+        raise RuntimeError(
+            "No matching updates found, please specify one manually.")
+      aff4_blob = updates[-1]
+      self.blob_path = aff4_blob.urn
+    else:
+      aff4_blob = aff4.FACTORY.Open(self.blob_path, token=self.token)
+
     blob = aff4_blob.Get(aff4_blob.Schema.BINARY)
 
-    req = jobs_pb2.ExecuteBinaryRequest()
-    req.executable.MergeFrom(blob.data)
-    self.CallClient("ExecuteBinaryCommand", req, next_state="Interrogate")
+    if ("windows" in utils.SmartStr(self.blob_path) or
+        "osx" in utils.SmartStr(self.blob_path)):
+      req = jobs_pb2.ExecuteBinaryRequest()
+      req.executable.MergeFrom(blob.data)
+      self.CallClient("UpdateAgent", req, next_state="Interrogate")
+    else:
+      raise RuntimeError("Update not supported for this urn, use aff4:/config"
+                         "/executables/<platform>/agentupdates/<version>")
 
   @flow.StateHandler(next_state="Done")
   def Interrogate(self, responses):
     _ = responses
+    self.Log("Installer completed.")
     self.CallFlow("Interrogate", next_state="Done")
 
   @flow.StateHandler()
@@ -336,3 +372,56 @@ class Update(flow.GRRFlow):
     info = client.Get(client.Schema.CLIENT_INFO)
     self.Log("Client update completed, new version: %s" %
              info.data.client_version)
+
+
+class ClientCrashHandler(flow.EventListener):
+  """A listener for client crashes."""
+  EVENTS = ["ClientCrash"]
+
+  well_known_session_id = "W:CrashHandler"
+
+  mail_template = """
+<html><body><h1>GRR client crash report.</h1>
+
+Client %(client_id)s (%(hostname)s) just crashed while executing an action.
+Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
+
+<p>Thanks,</p>
+<p>The GRR team.
+</body></html>"""
+
+  @flow.EventHandler(allow_client_access=True)
+  def ProcessMessage(self, message=None, event=None):
+    """Processes this event."""
+    _ = event
+    client_id = message.source
+
+    # Log.
+    logging.info("Client crash reported, client %s.", client_id)
+
+    # Export.
+    stats.STATS.Increment("grr_client_crashes")
+
+    # Also send email.
+    if FLAGS.monitoring_email:
+      client = aff4.FACTORY.Open(client_id)
+      hostname = client.Get(client.Schema.HOSTNAME)
+      url = urllib.urlencode((("c", client_id),
+                              ("main", "HostInformation")))
+
+      email_alerts.SendEmail(FLAGS.monitoring_email, "GRR server",
+                             "Client %s reported a crash." % client_id,
+                             self.mail_template % dict(
+                                 client_id=client_id,
+                                 admin_ui=FLAGS.ui_url,
+                                 hostname=hostname,
+                                 urn=url),
+                             is_html=True)
+
+
+class AdministrativeInit(registry.InitHook):
+
+  pre = ["StatsInit"]
+
+  def RunOnce(self):
+    stats.STATS.RegisterVar("grr_client_crashes")

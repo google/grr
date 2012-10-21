@@ -17,6 +17,7 @@
 
 """Loads up all flow tests."""
 
+# pylint: disable=W0611
 # These import populate the Flow test registry
 from grr.lib.flows.general import administrative_test
 from grr.lib.flows.general import collectors_test

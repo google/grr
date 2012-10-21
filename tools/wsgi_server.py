@@ -54,6 +54,8 @@ if grrpath not in sys.path:
 
 from grr.client import conf as flags
 
+# pylint: disable=W0611
+# pylint: enable=W0611
 
 from grr.lib import communicator
 from grr.lib import mongo_data_store

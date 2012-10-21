@@ -24,6 +24,14 @@ then
   PYTHONPATH="/usr/share";
 fi
 
+echo "#########################################################################"
+echo "###   Windows Client Builds"
+echo "#########################################################################"
+
+#### Notes
+# The Windows clients get built with an injected script to make them one
+# click to install. This requires a bit of work to get right with packing
+# so this script automates the process.
 
 
 # Set this to OUT="&1" for debugging.
@@ -56,8 +64,8 @@ fi;
 GRR_PATH=$(dirname ${SCRIPTS_DIR})
 CLIENT_DIR=$GRR_PATH/executables/windows
 CLIENT_TEMPLATE_DIR=$CLIENT_DIR/templates
-CLIENT_BASE_DIR_32=$CLIENT_TEMPLATE_DIR/win32/
-CLIENT_BASE_DIR_64=$CLIENT_TEMPLATE_DIR/win64/
+CLIENT_BASE_DIR_32=$CLIENT_TEMPLATE_DIR/win32
+CLIENT_BASE_DIR_64=$CLIENT_TEMPLATE_DIR/win64
 SFX_DIR=$CLIENT_TEMPLATE_DIR/unzipsfx/
 CLIENT_OUT_DIR=$CLIENT_DIR/installers
 INSTALLER_DIR=$SCRIPTS_DIR
@@ -76,6 +84,7 @@ else
   CLIENT_DIR_32=$CLIENT_BASE_DIR_32/$VERSION
 
   PYTHONPATH=${PYTHONPATH} python $INSTALLER_DIR/inject_keys.py \
+    --type vbs \
     --ca_cert $KEYDIR/ca.pem \
     --driver_key $KEYDIR/driver_sign_pub.pem \
     --exe_key $KEYDIR/exe_sign_pub.pem \
@@ -102,7 +111,8 @@ else
   echo "All done, cleaning up"
   rm $CLIENT_OUT_DIR/grr32.zip
 
-  echo "Build successfull! Your 32 bit client installer has been placed in $CLIENT_OUT_DIR"
+  WIN32_OUT=$CLIENT_OUT_DIR/grr-installer-win-$VERSION-32.exe;
+  echo "Build successfull! Your 32 bit client installer has been placed in $WIN32_OUT"
 fi;
 
 echo "Repacking 64 bit client"
@@ -119,6 +129,7 @@ else
   CLIENT_DIR_64=$CLIENT_BASE_DIR_64/$VERSION
 
   PYTHONPATH=${PYTHONPATH} python $INSTALLER_DIR/inject_keys.py \
+    --type vbs \
     --ca_cert $KEYDIR/ca.pem \
     --driver_key $KEYDIR/driver_sign_pub.pem \
     --exe_key $KEYDIR/exe_sign_pub.pem \
@@ -145,7 +156,67 @@ else
   echo "All done, cleaning up"
   rm $CLIENT_OUT_DIR/grr64.zip
 
-  echo "Build successfull! Your 64 bit client installer has been placed in $CLIENT_OUT_DIR"
+  WIN64_OUT=$CLIENT_OUT_DIR/grr-installer-win-$VERSION-64.exe;
+  echo "Build successfull! Your 64 bit client installer has been placed in $WIN64_OUT"
+fi
 
-fi;
+echo "#########################################################################"
+echo "###   OSX Client Builds"
+echo "#########################################################################"
+
+#### Notes
+# The OSX client currently doesn't have a config injector so we package it
+# on its own. To install the user will have to install the package, and then
+# drop the correct grr.ini into place in /etc/ so it will work.
+
+CLIENT_DIR=$GRR_PATH/executables/osx
+CLIENT_TEMPLATE_DIR=$CLIENT_DIR/templates
+CLIENT_OUT_DIR=$CLIENT_DIR/installers
+
+echo "Repacking OSX client"
+echo "Finding latest version"
+VERSION=`ls $CLIENT_TEMPLATE_DIR | sort -n | tail -n 1`
+
+if [ "$VERSION" == "" ]; then
+  echo "No osx client template found."
+  exit -1
+fi
+
+echo "Will use $VERSION"
+
+PYTHONPATH=${PYTHONPATH} python $INSTALLER_DIR/inject_keys.py \
+  --type ini \
+  --ca_cert $KEYDIR/ca.pem \
+  --driver_key $KEYDIR/driver_sign_pub.pem \
+  --exe_key $KEYDIR/exe_sign_pub.pem \
+  --installer_template $SCRIPTS_DIR/grr.ini.template \
+  --client_dir $CLIENT_OUT_DIR \
+  --location $LOCATION \
+  --agent_version $VERSION;
+
+# Copy the DMG out to the installer directory where the grr.ini is.
+OSX_OUT=${CLIENT_OUT_DIR}/GRR-${VERSION}.dmg;
+cp $CLIENT_DIR/templates/${VERSION}/GRR.dmg ${OSX_OUT};
+echo "Build successfull! Your OSX installer and ini have been placed in $CLIENT_OUT_DIR"
+
+
+echo "#########################################################################"
+echo "###   Uploading built agents to the database"
+echo "#########################################################################"
+
+CONFIG_UPDATER="/usr/bin/grr_config_updater.py"
+
+${CONFIG_UPDATER} --action=RAWUPLOAD --file=${OSX_OUT} \
+  --upload_name=$(basename ${OSX_OUT}) \
+  --aff4_path=/config/executables/osx/installers;
+
+${CONFIG_UPDATER} --action=RAWUPLOAD \
+  --file=${WIN64_OUT} \
+  --upload_name=$(basename ${WIN64_OUT}) \
+  --aff4_path=/config/executables/windows/installers;
+
+${CONFIG_UPDATER} --action=RAWUPLOAD \
+  --file=${WIN32_OUT} \
+  --upload_name=$(basename ${WIN32_OUT}) \
+  --aff4_path=/config/executables/windows/installers;
 

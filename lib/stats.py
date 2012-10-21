@@ -39,7 +39,7 @@ from grr.lib import registry
 FLAGS = flags.FLAGS
 
 
-class CountingException(Exception):
+class CountingExceptionMixin(object):
   """Each time this exception is raised we increment the counter."""
   # Override with the name of the counter
   counter = None
@@ -47,7 +47,7 @@ class CountingException(Exception):
   def __init__(self, *args, **kwargs):
     if self.counter:
       STATS.Increment(self.counter)
-    Exception.__init__(self, *args, **kwargs)
+    super(CountingExceptionMixin, self).__init__(*args, **kwargs)
 
 
 class Varz(object):

@@ -30,7 +30,9 @@ from grr.client import conf as flags
 import logging
 
 # This is required to monkey patch various older libraries so
+# pylint: disable=W0611
 from grr.lib import compatibility
+# pylint: enable=W0611
 
 flags.DEFINE_bool("debug", default=False,
                   help="Print debugging statements to the console.")

@@ -6,7 +6,7 @@
     <post-install type="none"/>
     <requireAuthorization/>
     <installFrom relative="true">com.google.code.grrd.plist</installFrom>
-    <installTo mod="true">/System/Library/LaunchDaemons/</installTo>
+    <installTo mod="true">/Library/LaunchDaemons/</installTo>
     <flags>
       <followSymbolicLinks/>
     </flags>

@@ -118,7 +118,7 @@ class _WorkerThread(threading.Thread):
         # We can't let a worker die because one of the tasks it has to process
         # throws an exception. Therefore, we catch every error that is
         # raised in the call to target().
-        except Exception as e:
+        except Exception as e:  # pylint: disable=W0703
           stats.STATS.Increment(self.threadpool_name + "_task_exceptions")
           logging.exception("Caught exception in worker thread (%s): %s",
                             name, str(e))

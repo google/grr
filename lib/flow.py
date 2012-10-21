@@ -42,7 +42,9 @@ from google.protobuf import message as proto_message
 from grr.client import conf as flags
 import logging
 from grr.client import actions
+# pylint: disable=W0611
 from grr.client import client_actions
+# pylint: enable=W0611
 from grr.lib import aff4
 from grr.lib import communicator
 from grr.lib import data_store
@@ -51,7 +53,9 @@ from grr.lib import key_utils
 from grr.lib import log
 from grr.lib import registry
 from grr.lib import scheduler
+# pylint: disable=W0611
 from grr.lib import server_stubs
+# pylint: enable=W0611
 from grr.lib import stats
 from grr.lib import threadpool
 from grr.lib import type_info
@@ -579,6 +583,10 @@ class GRRFlow(object):
     Yields:
       Tuples of (arg_name, arg_type_object, default_value}
       e.g. {"pathspec", type_info.ProtoOrNone(jobs_pb2.Path), None}
+
+    Raises:
+      RuntimeError:
+        A flow has defined required arguments.
 
     This uses both the explicitly set self.flow_typinfo data and combines it
     with inferred data based on default arguments to provide type information
@@ -1110,6 +1118,7 @@ class FlowFactory(object):
   def __init__(self):
     self.outstanding_flows = set()
 
+  #  _parameters are private so pylint: disable=C6409
   def StartFlow(self, client_id, flow_name,
                 queue_name=flow_context.DEFAULT_WORKER_QUEUE_NAME,
                 event_id=None, token=None, priority=None,
@@ -1769,6 +1778,15 @@ class FrontEndServer(object):
     Args:
       messages: A list of GrrMessage protos.
     """
+
+    for msg in messages:
+      if msg.type == jobs_pb2.GrrMessage.STATUS:
+        status = jobs_pb2.GrrStatus()
+        status.ParseFromString(msg.args)
+        if status.status == jobs_pb2.GrrStatus.CLIENT_KILLED:
+          # A client crashed while performing an action, fire an event.
+          PublishEvent("ClientCrash", msg)
+
     sessions_handled = []
     for session_id, messages in utils.GroupBy(
         messages, operator.attrgetter("session_id")):
@@ -1950,7 +1968,7 @@ class GRRWorker(object):
     try:
       processed = self.ProcessMessages(active_sessions)
     # We need to keep going no matter what.
-    except Exception as e:
+    except Exception as e:    # pylint: disable=W0703
       logging.error("Error processing message %s. %s.", e,
                     traceback.format_exc())
 
@@ -2042,6 +2060,8 @@ class GRRWorker(object):
 
 
 # These are globally available handles to factories
+# pylint: disable=W0603
+# pylint: disable=C6409
 
 
 class FlowInit(registry.InitHook):
@@ -2080,3 +2100,5 @@ class FlowInit(registry.InitHook):
 # A global factory that can be used to create new flows
 FACTORY = None
 
+# pylint: enable=W0603
+# pylint: enable=C6409

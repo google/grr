@@ -25,6 +25,7 @@ from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
+# pylint: disable=C6409
 
 
 class StoreTests(test_lib.GRRBaseTest):

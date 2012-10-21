@@ -22,27 +22,35 @@ import cgi
 from multiprocessing import freeze_support
 from multiprocessing import Process
 import pdb
+import socket
 import SocketServer
 import sys
 
+
+import ipaddr
 
 from grr.client import conf
 from grr.client import conf as flags
 import logging
 
 from grr.client import client_config
+# pylint: disable=W0611
+# pylint: enable=W0611
 from grr.lib import communicator
 from grr.lib import mongo_data_store
 from grr.lib import flow
 from grr.lib import log
 from grr.lib import registry
+# pylint: disable=W0611
 from grr.lib import server_flags
+from grr.lib import utils
 # Transfer well known flows should run on the front end.
 from grr.lib.flows.general import transfer
 from grr.proto import jobs_pb2
+# pylint: enable=W0611
 
 
-flags.DEFINE_string("http_bind_address", "127.0.0.1", "The ip address to bind.")
+flags.DEFINE_string("http_bind_address", "::", "The ip address to bind.")
 
 flags.DEFINE_integer("http_bind_port", 8080, "The port to bind.")
 
@@ -51,6 +59,7 @@ flags.DEFINE_integer("processes", 1,
 
 FLAGS = flags.FLAGS
 
+# pylint: disable=C6409
 
 
 class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -110,15 +119,20 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       responses_comms = jobs_pb2.ClientCommunication(
           api_version=request_comms.api_version)
 
+      source_ip = ipaddr.IPAddress(self.client_address[0])
+
+      if source_ip.version == 6:
+        source_ip = source_ip.ipv4_mapped or source_ip
+
       request_comms.orig_request.MergeFrom(jobs_pb2.HttpRequest(
-          raw_headers=str(self.headers),
-          source_ip=self.client_address[0]))
+          raw_headers=utils.SmartStr(self.headers),
+          source_ip=utils.SmartStr(source_ip)))
 
       source, nr_messages = self.server.frontend.HandleMessageBundles(
           request_comms, responses_comms)
 
       logging.info("HTTP request from %s (%s), %d bytes - %d messages.",
-                   source, self.client_address[0], length, nr_messages)
+                   source, utils.SmartStr(source_ip), length, nr_messages)
 
       self.Send(responses_comms.SerializeToString())
 
@@ -141,6 +155,8 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
   allow_reuse_address = True
   request_queue_size = 500
+
+  address_family = socket.AF_INET6
 
   def __init__(self, frontend=None, logger=None, *args, **kwargs):
     if frontend:

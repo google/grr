@@ -38,7 +38,7 @@ FLAGS = flags.FLAGS
 # File names for memory drivers.
 WIN_MEM = "winpmem.{arch}.sys"
 LIN_MEM = "pmem-{kernel}.ko"
-OSX_MEM = "osxmem"
+OSX_MEM = "pmem"
 
 DRIVER_BASE = "/config/drivers/{os}/memory/"
 
@@ -78,7 +78,6 @@ class LoadMemoryDriver(flow.GRRFlow):
 
     # We want to force unload old driver and reload the current one.
     self.driver_installer.force_reload = 1
-
     self.CallClient("InstallDriver", self.driver_installer,
                     next_state="InstallDriver")
 

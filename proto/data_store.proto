@@ -86,7 +86,8 @@ message ResultSet {
   repeated Value values = 2;
 }
 
-// explicitely return them here.
+// Although we can relay exceptions they mess up the logs so we
+// explicitly return them here.
 enum Status {
   OK = 0;
   AUTHORIZATION_DENIED = 1;

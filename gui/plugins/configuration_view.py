@@ -115,9 +115,29 @@ class ConfigFileTable(fileview.AbstractFileTable):
     self.AddColumn(renderers.RDFValueColumn(
         "Name", renderer=renderers.SubjectRenderer, sortable=True))
     self.AddColumn(renderers.AttributeColumn("type"))
-    self.AddColumn(renderers.AttributeColumn("installation"))
+    self.AddColumn(ConfigDescriptionColumn())
     self.AddColumn(renderers.RDFValueColumn(
         "Age", renderer=fileview.AgeSelector))
+
+
+class ConfigDescriptionColumn(renderers.AttributeColumn):
+  """An AttributeColumn for Details which is different depending on type."""
+
+  def __init__(self, **kwargs):
+    # The below is a set of attributes, we'll try each of them until one works
+    # for the details column.
+    self.attrs = [aff4.Attribute.GetAttributeByName("installation"),
+                  aff4.Attribute.GetAttributeByName("size")]
+    renderers.RDFValueColumn.__init__(self, name="Details", **kwargs)
+
+  def AddRowFromFd(self, index, fd):
+    """Add a new value from the fd customizing for the type."""
+    for attr in self.attrs:
+      if fd.IsAttributeSet(attr):
+        val = fd.Get(attr)
+        if val:
+          self.rows[index] = val
+          break
 
 
 class ConfigFileTableToolbar(renderers.TemplateRenderer):

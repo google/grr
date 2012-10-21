@@ -65,6 +65,7 @@ class CronJob(aff4.AFF4Object):
   def Log(self, message, level=logging.INFO, **kwargs):
     """Log a message to the cron's log attribute."""
     logging.log(level, message, **kwargs)
+    # pylint: disable=W0212
     message = "%s: %s" % (logging._levelNames[level], message)
     self.AddAttribute(self.Schema.LOG(message))
 
@@ -337,7 +338,7 @@ def RunAllCronJobs(token=None):
         fd.Log("Successfully ran cron job %s in %s" % (cls_name, total_time))
 
       # Just keep going on all errors.
-      except Exception as e:
+      except Exception as e:  # pylint: disable=W0703
         fd.Log("Cron Job %s died: %s" % (cls_name, e), level=logging.ERROR)
         fd.Log("Exception: %s" % traceback.format_exc())
 

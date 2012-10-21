@@ -36,12 +36,16 @@ import unittest
 from grr.client import actions
 from grr.client import conf
 from grr.client import vfs
+# pylint: disable=W0611
 from grr.lib import access_control
+# pylint: enable=W0611
 from grr.lib import aff4
+# pylint: disable=W0611
 from grr.lib import aff4_objects
 from grr.lib import data_store
 # Load the fake data store implementation
 from grr.lib import fake_data_store
+# pylint: enable=W0611
 from grr.lib import flow
 from grr.lib import flow_context
 from grr.lib import registry
@@ -356,7 +360,7 @@ class GRRSeleniumTest(GRRBaseTest):
 
       # The element might not exist yet and selenium could raise here. (Also
       # Selenium raises Exception not StandardError).
-      except Exception as e:
+      except Exception as e:  # pylint: disable=W0703
         logging.warn("Selenium raised %s", e)
 
       time.sleep(0.5)
@@ -371,7 +375,7 @@ class GRRSeleniumTest(GRRBaseTest):
 
       # The element might not exist yet and selenium could raise here. (Also
       # Selenium raises Exception not StandardError).
-      except Exception as e:
+      except Exception as e:  # pylint: disable=W0703
         logging.warn("Selenium raised %s", e)
 
       time.sleep(0.5)
@@ -387,7 +391,7 @@ class GRRSeleniumTest(GRRBaseTest):
           return True
 
       # The element might not exist yet and selenium could raise here.
-      except Exception as e:
+      except Exception as e:  # pylint: disable=W0703
         logging.warn("Selenium raised %s", e)
 
       time.sleep(0.5)
@@ -482,7 +486,7 @@ class MockClient(object):
                      message.name, len(responses) + 1)
 
         status = jobs_pb2.GrrStatus()
-      except Exception as e:
+      except Exception as e:  # pylint: disable=W0703
         logging.exception("Error %s occurred in client", e)
 
         # Error occurred.

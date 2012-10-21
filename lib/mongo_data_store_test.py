@@ -20,10 +20,12 @@
 from grr.client import conf
 from grr.client import conf as flags
 
+# pylint: disable=W0611
 # Support mongo storage
 from grr.lib import data_store
 from grr.lib import data_store_test
 from grr.lib import mongo_data_store
+# pylint: enable=W0611
 
 from grr.lib import test_lib
 

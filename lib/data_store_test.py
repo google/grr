@@ -142,7 +142,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
       self.assertEqual(value, 4)
       self.assertEqual(predicate, "aff4:size")
 
-    self.assertEqual(count, 0)
+    self.assertEqual(count, 0)  # pylint: disable=W0631
 
   def testDeleteAttributes(self):
     """Test we can delete an attribute."""
@@ -192,7 +192,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     # Retrieve all subjects with metadata:5 set:
     rows = [row for row in data_store.DB.Query(
-        ["metadata:5"], data_store.DB.Filter.HasPredicateFilter("metadata:5"),
+        ["metadata:5"], data_store.DB.filter.HasPredicateFilter("metadata:5"),
         subject_prefix="row:", token=self.token)]
 
     self.assertEqual(len(rows), 1)
@@ -224,7 +224,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
       # Retrieve all subjects with metadata:uñîcödé set matching our string:
       rows = [row for row in data_store.DB.Query(
           [u"metadata:uñîcödé"],
-          data_store.DB.Filter.HasPredicateFilter(u"metadata:uñîcödé"),
+          data_store.DB.filter.HasPredicateFilter(u"metadata:uñîcödé"),
           unicodestring, token=self.token)]
 
       self.assertEqual(len(rows), 1)
@@ -241,9 +241,9 @@ class DataStoreTest(test_lib.GRRBaseTest):
       data_store.DB.Set(child, "aff4:type", "test", token=self.token)
 
       rows = [row for row in data_store.DB.Query(
-          ["metadata:regex"], data_store.DB.Filter.AndFilter(
-              data_store.DB.Filter.HasPredicateFilter("metadata:regex"),
-              data_store.DB.Filter.SubjectContainsFilter(
+          ["metadata:regex"], data_store.DB.filter.AndFilter(
+              data_store.DB.filter.HasPredicateFilter("metadata:regex"),
+              data_store.DB.filter.SubjectContainsFilter(
                   "%s/[^/]+$" % data_store.EscapeRegex(unicodestring))),
           unicodestring, token=self.token)]
 
@@ -264,7 +264,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
       for re in regexes:
         rows = [row for row in data_store.DB.Query(
             [u"metadata:uñîcödé"],
-            data_store.DB.Filter.SubjectContainsFilter(re),
+            data_store.DB.filter.SubjectContainsFilter(re),
             u"aff4:", token=self.token)]
 
         self.assertEqual(len(rows), 1)
@@ -282,7 +282,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     # Retrieve all subjects with prefix row1:
     rows = [row for row in data_store.DB.Query(
-        ["metadata:5"], data_store.DB.Filter.HasPredicateFilter("metadata:5"),
+        ["metadata:5"], data_store.DB.filter.HasPredicateFilter("metadata:5"),
         subject_prefix="row:1", token=self.token)]
 
     self.assertEqual(len(rows), 2)
@@ -298,7 +298,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     # Retrieve all subjects with prefix row1:
     rows = [row for row in data_store.DB.Query(
-        [], data_store.DB.Filter.HasPredicateFilter("metadata:5"),
+        [], data_store.DB.filter.HasPredicateFilter("metadata:5"),
         subject_prefix="row:1", token=self.token)]
 
     self.assertEqual(len(rows), 2)
@@ -315,7 +315,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     # Retrieve all subjects with prefix row1:
     rows = [row for row in data_store.DB.Query(
-        [], data_store.DB.Filter.HasPredicateFilter("metadata:5"),
+        [], data_store.DB.filter.HasPredicateFilter("metadata:5"),
         subject_prefix="row:", limit=(2, 3), token=self.token)]
 
     self.assertEqual(len(rows), 3)
@@ -334,14 +334,14 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     # Retrieve all subjects with prefix:
     rows = [row for row in data_store.DB.Query(
-        [], data_store.DB.Filter.SubjectContainsFilter("test [1-5]"),
+        [], data_store.DB.filter.SubjectContainsFilter("test [1-5]"),
         subjects=subjects, token=self.token)]
 
     self.assertEqual(len(rows), 5)
 
     # Retrieve all subjects with prefix:
     rows = [row for row in data_store.DB.Query(
-        [], data_store.DB.Filter.SubjectContainsFilter("test [1-5]"),
+        [], data_store.DB.filter.SubjectContainsFilter("test [1-5]"),
         subject_prefix="row:", token=self.token)]
 
     self.assertEqual(len(rows), 5)
@@ -362,7 +362,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
     # Retrieve all subjects with prefix row1:
     rows = list(data_store.DB.Query(
         attributes=["metadata:foo"],
-        filter_obj=data_store.DB.Filter.HasPredicateFilter("metadata:foo"),
+        filter_obj=data_store.DB.filter.HasPredicateFilter("metadata:foo"),
         token=self.token))
 
     for row in rows:
@@ -374,9 +374,9 @@ class DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(rows[2]["subject"][0], "row:10")
 
     rows = list(data_store.DB.Query(
-        filter_obj=data_store.DB.Filter.AndFilter(
-            data_store.DB.Filter.HasPredicateFilter("metadata:foo"),
-            data_store.DB.Filter.SubjectContainsFilter("row:[0-1]0")),
+        filter_obj=data_store.DB.filter.AndFilter(
+            data_store.DB.filter.HasPredicateFilter("metadata:foo"),
+            data_store.DB.filter.SubjectContainsFilter("row:[0-1]0")),
         token=self.token))
 
     self.assertEqual(len(rows), 2)
@@ -385,7 +385,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     # Check that we can Query with a set of subjects
     rows = list(data_store.DB.Query(
-        filter_obj=data_store.DB.Filter.HasPredicateFilter("metadata:foo"),
+        filter_obj=data_store.DB.filter.HasPredicateFilter("metadata:foo"),
         subjects=["row:00", "row:10"], token=self.token))
 
     self.assertEqual(len(rows), 2)
@@ -393,7 +393,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(rows[1]["subject"][0], "row:10")
 
     rows = list(data_store.DB.Query(
-        filter_obj=data_store.DB.Filter.PredicateContainsFilter(
+        filter_obj=data_store.DB.filter.PredicateContainsFilter(
             "metadata:foo", "row:0\\dfoo"),
         token=self.token))
 
@@ -424,7 +424,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
       # We are not exactly sure what exception is raised here. Normally commit()
       # can raise whatever the implementation of RetryWrapper can take. Commit()
       # should never be called outside of RetwryWrapper.
-    except Exception:
+    except Exception:  # pylint: disable=W0703
       # The first transaction succeeds
       t1.Set(predicate, "1")
       t1.Commit()
@@ -615,7 +615,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     # Select a range
     rows = [row for row in data_store.DB.Query(
-        [fd.Schema.SIZE], data_store.DB.Filter.PredicateLessThanFilter(
+        [fd.Schema.SIZE], data_store.DB.filter.PredicateLessThanFilter(
             fd.Schema.SIZE, 5),
         subject_prefix="aff4:/C.1234/", token=self.token)]
 
@@ -625,7 +625,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
       self.assertEqual("aff4:/C.1234/test%s" % i, rows[i]["subject"][0])
 
     rows = [row for row in data_store.DB.Query(
-        [fd.Schema.SIZE], data_store.DB.Filter.PredicateGreaterThanFilter(
+        [fd.Schema.SIZE], data_store.DB.filter.PredicateGreaterThanFilter(
             fd.Schema.SIZE, 5),
         subject_prefix="aff4:/C.1234/", token=self.token)]
 

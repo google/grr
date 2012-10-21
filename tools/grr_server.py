@@ -44,6 +44,8 @@ from grr.client import conf
 from grr.client import conf as flags
 
 from grr.gui import admin_ui
+# pylint: disable=W0611
+# pylint: enable=W0611
 from grr.lib import registry
 from grr.tools import http_server
 from grr.worker import enroller

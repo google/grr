@@ -19,6 +19,7 @@ We can schedule a new flow for a specific client.
 """
 
 
+# pylint: disable=W0611
 # Import things that are useful from the console.
 import collections
 import csv
@@ -27,6 +28,7 @@ import sys
 import time
 
 
+# pylint: disable=C6204
 
 from google.protobuf import descriptor
 from grr.client import conf
@@ -54,10 +56,16 @@ from grr.lib.aff4_objects import reports
 # Make sure we load the enroller module
 from grr.lib.flows import console
 from grr.lib.flows import general
+from grr.lib.flows.general import hunts
 from grr.lib.flows.general import memory
 
 from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
+
+# Import some specific functions we want available in the console.
+# pylint: disable=C6203
+from grr.lib.maintenance_utils import MakeUserAdmin
+# pylint: enable=W0611,6203
 
 flags.DEFINE_string("client", None,
                     "Initialise the console with this client id "
@@ -78,24 +86,24 @@ def SearchClient(hostname_regex=None, os_regex=None, mac_regex=None, limit=100):
   """Search for clients and return as a list of dicts."""
   schema = aff4_grr.VFSGRRClient.Schema
   filters = [
-      data_store.DB.Filter.HasPredicateFilter(schema.HOSTNAME),
-      data_store.DB.Filter.SubjectContainsFilter("aff4:/C.[^/]+")
+      data_store.DB.filter.HasPredicateFilter(schema.HOSTNAME),
+      data_store.DB.filter.SubjectContainsFilter("aff4:/C.[^/]+")
   ]
   if hostname_regex:
-    filters.append(data_store.DB.Filter.PredicateContainsFilter(
+    filters.append(data_store.DB.filter.PredicateContainsFilter(
         schema.HOSTNAME, hostname_regex))
   if os_regex:
-    filters.append(data_store.DB.Filter.PredicateContainsFilter(
+    filters.append(data_store.DB.filter.PredicateContainsFilter(
         schema.UNAME, os_regex))
   if mac_regex:
-    filters.append(data_store.DB.Filter.PredicateContainsFilter(
+    filters.append(data_store.DB.filter.PredicateContainsFilter(
         schema.MAC_ADDRES, mac_regex))
   cols = [schema.HOSTNAME, schema.UNAME, schema.MAC_ADDRESS,
           schema.INSTALL_DATE, schema.PING]
 
   results = {}
   for row in data_store.DB.Query(cols,
-                                 data_store.DB.Filter.AndFilter(*filters),
+                                 data_store.DB.filter.AndFilter(*filters),
                                  limit=(0, limit),
                                  subject_prefix="aff4:/"):
     c_id = row["subject"][0]
@@ -278,8 +286,13 @@ def OpenClient(client_id=None):
   # Use an empty token to query the ACL system.
   token = data_store.ACLToken()
 
-  # Now we try to find any reason which will allow the user to access this
-  # client right now.
+  if FLAGS.acl_approvers_required > 1:
+    # No approvals required.
+    client = aff4.FACTORY.Open(aff4.RDFURN(client_id), mode="r", token=token)
+    return client, token
+
+  # We require approval so now we try to find any reason which will allow the
+  # user to access this client right now.
   approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
       username)
 
@@ -328,7 +341,7 @@ def main(unused_argv):
 
   registry.Init()
 
-  if FLAGS.verbose:
+  if FLAGS.verbose and hasattr(logging, "root"):
     logging.root.setLevel(logging.INFO)  # Allow for logging.
 
   locals_vars = {"hilfe": Help,

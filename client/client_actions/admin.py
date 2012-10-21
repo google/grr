@@ -84,7 +84,7 @@ class Kill(actions.ActionPlugin):
 
     # Die ourselves.
     logging.info("Dying on request.")
-    os._exit(242)
+    os._exit(242)  # pylint: disable=W0212
 
 
 class Hang(actions.ActionPlugin):
