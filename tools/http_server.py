@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -158,7 +157,8 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
   address_family = socket.AF_INET6
 
-  def __init__(self, frontend=None, logger=None, *args, **kwargs):
+  def __init__(self, server_address, handler, frontend=None, logger=None,
+               *args, **kwargs):
     if frontend:
       if logger is None:
         raise RuntimeError("No logger provided.")
@@ -174,7 +174,15 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
     self.server_cert = open(FLAGS.server_cert, "rb").read()
 
-    BaseHTTPServer.HTTPServer.__init__(self, *args, **kwargs)
+    (address, _) = server_address
+    version = ipaddr.IPAddress(address).version
+    if version == 4:
+      self.address_family = socket.AF_INET
+    elif version == 6:
+      self.address_family = socket.AF_INET6
+
+    BaseHTTPServer.HTTPServer.__init__(self, server_address, handler, *args,
+                                       **kwargs)
 
 
 def serve_forever(server):
@@ -189,7 +197,7 @@ def main(unused_argv):
   registry.Init()
 
   server_address = (FLAGS.http_bind_address, FLAGS.http_bind_port)
-  httpd = GRRHTTPServer(None, None, server_address, GRRHTTPServerHandler)
+  httpd = GRRHTTPServer(server_address, GRRHTTPServerHandler)
 
   sa = httpd.socket.getsockname()
   logging.info("Serving HTTP on %s port %d ...", sa[0], sa[1])
