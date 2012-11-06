@@ -1493,7 +1493,8 @@ class AFF4Object(object):
       self._AddAttributeToCache(attribute, cls(value, ts),
                                 self.synced_attributes)
     except KeyError:
-      logging.debug("Attribute %s not defined, skipping.", attribute_name)
+      if not attribute_name.startswith("index:"):
+        logging.debug("Attribute %s not defined, skipping.", attribute_name)
     except (ValueError, message.DecodeError):
       logging.debug("%s: %s invalid encoding. Skipping.",
                     self.urn, attribute_name)

@@ -210,6 +210,31 @@ echo "Build successful! Your OSX installer and ini have been placed in $CLIENT_O
 
 
 echo "#########################################################################"
+echo "###   Linux Client Builds"
+echo "###         (no real support yet, just build the ini)"
+echo "#########################################################################"
+
+CLIENT_DIR=$GRR_PATH/executables/linux
+CLIENT_OUT_DIR=$CLIENT_DIR/installers
+
+mkdir -p $CLIENT_OUT_DIR
+
+PYTHONPATH=${PYTHONPATH} python $INSTALLER_DIR/inject_keys.py \
+  --type ini \
+  --ca_cert $KEYDIR/ca.pem \
+  --driver_key $KEYDIR/driver_sign_pub.pem \
+  --exe_key $KEYDIR/exe_sign_pub.pem \
+  --installer_template $SCRIPTS_DIR/grr.ini.template \
+  --client_dir $CLIENT_OUT_DIR \
+  --location $LOCATION \
+  --agent_version $VERSION;
+
+LINUX_INI=${CLIENT_OUT_DIR}/grr.ini;
+
+echo "Build successful! Your Linuxini has been placed in $CLIENT_OUT_DIR"
+
+
+echo "#########################################################################"
 echo "###   Uploading built agents to the database"
 echo "#########################################################################"
 
@@ -221,6 +246,10 @@ ${CONFIG_UPDATER} --action=RAWUPLOAD --file=${OSX_OUT} \
 ${CONFIG_UPDATER} --action=RAWUPLOAD --file=${OSX_INI} \
   --upload_name=$(basename ${OSX_INI}) \
   --aff4_path=/config/executables/osx/installers;
+
+${CONFIG_UPDATER} --action=RAWUPLOAD --file=${LINUX_INI} \
+  --upload_name=$(basename ${LINUX_INI}) \
+  --aff4_path=/config/executables/linux/installers;
 
 ${CONFIG_UPDATER} --action=RAWUPLOAD \
   --file=${WIN64_OUT} \
