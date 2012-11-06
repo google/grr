@@ -91,5 +91,6 @@ class TakeScreenshot(flow.GRRFlow):
     if not responses.success:
       self.Log("Failed to remove captured file")
 
+  @flow.StateHandler()
   def End(self):
     self.Notify("ViewObject", self.new_urn, "Got screencap %s" % self.filename)

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2012 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,7 +53,7 @@ def SignConfigBlob(blob_data, signing_key=None):
   if signing_key:
     rsa = RSA.load_key_string(signing_key)  # will prompt for passphrase
     if len(rsa) < 2048:
-      raise IOError("signing key is too short.")
+      logging.warn("signing key is too short.")
 
     sig = rsa.sign(digest, DIGEST_ALGORITHM_STR)
     pb.signature = sig
@@ -199,8 +198,14 @@ def CreateBinaryConfigPaths():
     return
 
 
-def MakeUserAdmin(user, token=None):
+def MakeUserAdmin(user, user_must_exist=True, token=None):
   """Add the Admin label to a specific user."""
+  if user_must_exist:
+    try:
+      user = aff4.FACTORY.Open("/users/%s" % user, mode="r", token=token,
+                               required_type="GRRUser")
+    except IOError:
+      raise Exception("User does not exist: %s" % user)
   u = aff4.FACTORY.Open("/users/%s/labels" % user, mode="rw", token=token)
   labels = u.Schema.LABEL()
   labels.data.label.append("admin")

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,6 +32,7 @@ import sys
 import threading
 import time
 import traceback
+
 
 from M2Crypto import BIO
 from M2Crypto import RSA
@@ -87,16 +87,17 @@ class Responses(object):
   def __init__(self, request=None, responses=None, in_protobuf=None,
                auth_required=True):
     self.status = None    # A jobs_pb2.GrrStatus proto
+    self.success = True
     self.request = request
     self._auth_required = auth_required
     if request:
       self.request_data = utils.ProtoDict(request.data)
+    self._responses = []
 
     if responses:
       # This may not be needed if we can assume that responses are
       # returned in lexical order from the data_store.
       responses.sort(key=operator.attrgetter("response_id"))
-      self._responses = []
 
       # The iterator that was returned as part of these responses. This should
       # be passed back to actions that expect an iterator.
@@ -151,29 +152,40 @@ class Responses(object):
       else:
         old_response_id = self.message.response_id
 
-      # Only process messages
-      if self.message.type != jobs_pb2.GrrMessage.MESSAGE:
-        continue
+      # Messages come from the client. These are raw protobufs. We need to
+      # figure out what they actually are depending on the action class's
+      # out_protobuf decleration.
+      if self.message.type == jobs_pb2.GrrMessage.MESSAGE:
+        if self._in_protobuf is None:
+          try:
+            action_cls = actions.ActionPlugin.classes[self.request.request.name]
+            protobuf = action_cls.out_protobuf
+          except KeyError:
+            logging.info("Cant parse response from %s",
+                         self.request.request.name)
+            protobuf = jobs_pb2.GrrMessage
+        else:
+          protobuf = self._in_protobuf
 
-      # If the protobufs came as responses from another flow, we look up their
-      # type.
-      flow_name = self.request.flow_name
-      if self._in_protobuf:
-        protobuf = self._in_protobuf
-      elif flow_name:
-        protobuf = GRRFlow.classes.get(flow_name, GRRFlow).out_protobuf
-      else:
-        try:
-          action_cls = actions.ActionPlugin.classes[self.request.request.name]
-          protobuf = action_cls.out_protobuf
-        except KeyError:
-          logging.info("Cant parse response from %s", self.request.request.name)
-          protobuf = jobs_pb2.GrrMessage
+        result = protobuf()
+        result.ParseFromString(self.message.args)
 
-      result = protobuf()
-      result.ParseFromString(self.message.args)
+        yield result
 
-      yield result
+      # Flows send back packed RDFValues. These already contain sufficient
+      # context.
+      elif self.message.type == jobs_pb2.GrrMessage.RDF_VALUE:
+        rdf_value_proto = jobs_pb2.RDFValue()
+        rdf_value_proto.ParseFromString(self.message.args)
+
+        # Now try to create the correct RDFValue.
+        result_cls = (aff4.FACTORY.RDFValue(rdf_value_proto.name) or
+                      aff4.RDFString)
+
+        result = result_cls(age=rdf_value_proto.age)
+        result.ParseFromString(rdf_value_proto.data)
+
+        yield result
 
   def First(self):
     """A convenience method to return the first response."""
@@ -197,6 +209,7 @@ class Responses(object):
 
     except KeyError:
       logging.info("Cant parse response from %s", self.request.request.name)
+
       return None
 
 
@@ -227,8 +240,11 @@ def StateHandler(in_protobuf=None, next_state="End", auth_required=True):
       next_states = next_state
 
     @functools.wraps(f)
-    def Decorated(self, request=None, responses=None):
+    def Decorated(self, direct_response, request=None, responses=None):
       """A decorator that defines allowed follow up states for a method."""
+      if direct_response is not None:
+        return f(self, *direct_response)
+
       # Record the permitted next states so CallClient() can check.
       self.context.next_states = next_states
       # Prepare a responses object for the state method to use:
@@ -384,8 +400,9 @@ class GRRFlow(object):
     return self.context.CallClient(action_name, args_pb, next_state,
                                    request_data, **kwargs)
 
-  def CallState(self, messages=None, next_state=""):
-    return self.context.CallState(messages, next_state)
+  def CallState(self, messages=None, next_state="", delay=0):
+    return self.context.CallState(messages=messages, next_state=next_state,
+                                  delay=delay)
 
   def CallFlow(self, flow_name, next_state=None, request_data=None, **kwargs):
     return self.context.CallFlow(FACTORY, flow_name, next_state, request_data,
@@ -607,13 +624,28 @@ class GRRFlow(object):
       raise RuntimeError("Required args are not allowed in flows. Flow %s, "
                          "Args: %s" % (cls, required_args))
 
+    result = {}
+    # TODO(user): Use an OrderedDict instead.
+    order = []
+    try:
+      # Also show inherited parameters and process them first such that a local
+      # constructor can override.
+      for arg, arg_type, default in super(GRRFlow, cls).GetFlowArgTypeInfo():
+        result[arg] = (arg_type, default)
+        if arg not in order:
+          order.append(arg)
+    except AttributeError:
+      pass
+
     try:
       for arg, default in zip(args, defaults):
         if omit_internal and arg in omit_args:
           continue
         if arg in cls.flow_typeinfo:
           # The arg type has been explicitly defined, return it.
-          yield arg, cls.flow_typeinfo[arg], default
+          result[arg] = (cls.flow_typeinfo[arg], default)
+          if arg not in order:
+            order.append(arg)
         else:
           # Arg has not been defined, we are going to guess based on the default
           # value.
@@ -635,10 +667,16 @@ class GRRFlow(object):
             # We really don't know what it is, let's pretend its a string.
             arg_type = type_info.String()
 
-          yield arg, arg_type, default
+          result[arg] = (arg_type, default)
+          if arg not in order:
+            order.append(arg)
     except TypeError as e:
       raise RuntimeError("Failed to parse args for %s. Bad type definition? %s"
                          % (cls, e))
+
+    for arg in order:
+      arg_type, default = result[arg]
+      yield arg, arg_type, default
 
   def Publish(self, event_name, message=None):
     """Publish a message to a queue.
@@ -691,7 +729,7 @@ class WellKnownFlow(GRRFlow):
     self.SetState(jobs_pb2.FlowPB.WELL_KNOWN)
     self.session_id = self.well_known_session_id
 
-  def CallState(self, messages=None, next_state=None):
+  def CallState(self, messages=None, next_state=None, delay=0):
     """Well known flows have no states to call."""
     pass
 
@@ -719,7 +757,7 @@ class WellKnownFlow(GRRFlow):
       # There is more data for this flow so we have to tell the worker to
       # fetch more messages later.
       scheduler.SCHEDULER.NotifyQueue(self.context.queue_name, self.session_id,
-                                      self.token)
+                                      token=self.token)
 
   def ProcessMessage(self, msg):
     """This is where messages get processed.
@@ -785,7 +823,7 @@ def PublishEvent(event_name, msg, token=None):
   # Notify all the workers of their pending sessions.
   for queue, session_ids in utils.GroupBy(
       sessions_queued, lambda x: x.split(":", 1)[0]):
-    scheduler.SCHEDULER.MultiNotifyQueue(queue, session_ids, token)
+    scheduler.SCHEDULER.MultiNotifyQueue(queue, session_ids, token=token)
 
 
 class GRRHunt(GRRFlow):
@@ -806,6 +844,12 @@ class GRRHunt(GRRFlow):
     if token is None:
       raise RuntimeError("You need to supply a token.")
 
+    if client_limit > 1000:
+      # For large hunts, checking client limits creates a high load on the
+      # foreman when loading the hunt as rw and therefore we don't allow setting
+      # it for large hunts.
+      raise RuntimeError("Please specify a lower client_limit.")
+
     context = flow_context.HuntFlowContext(client_id=None,
                                            flow_name=self.__class__.__name__,
                                            queue_name=queue_name,
@@ -822,22 +866,11 @@ class GRRHunt(GRRFlow):
     self.next_request_id = 0
     self.client_limit = client_limit
 
-    hunt_obj = self.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME,
-                                  token=self.token)
-    hunt_obj.Set(hunt_obj.Schema.CREATOR(token.username))
-    hunt_obj.Set(hunt_obj.Schema.HUNT_NAME(self.__class__.__name__))
-    hunt_obj.Close()
+    # This is the URN for the Hunt object we use.
+    self.urn = aff4.ROOT_URN.Add("hunts").Add(self.session_id)
 
-    # Push the new flow onto the queue.
-    task = scheduler.SCHEDULER.Task(queue=self.session_id, id=1,
-                                    value=self.Dump())
-
-    # There is a potential race here where we write the client requests first
-    # and pickle the flow later. To avoid this, we have to keep the order and
-    # schedule the tasks synchronously.
-    scheduler.SCHEDULER.Schedule([task], sync=True, token=self.token)
-
-    self.FlushMessages()
+    # Hunts run in multiple threads so we need to protect access.
+    self.lock = threading.RLock()
 
   def AddRule(self, rules=None):
     """Adds one more rule for clients that trigger the hunt.
@@ -957,10 +990,31 @@ class GRRHunt(GRRFlow):
     if matching_clients:
       logging.info("Example matches: %s", str(matching_clients[:3]))
 
-  def Run(self):
+  def Run(self, description=None):
     """This uploads the rules to the foreman and, thus, starts the hunt."""
     if self.started:
       return
+
+    # Write the hunt object. It will be overwritten if the hunt is restarted
+    # (Stop() and then Run() are called).
+    hunt_obj = self.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME,
+                                  token=self.token)
+    hunt_obj.Set(hunt_obj.Schema.CREATOR(self.token.username))
+    hunt_obj.Set(hunt_obj.Schema.HUNT_NAME(self.__class__.__name__))
+    if description:
+      hunt_obj.Set(hunt_obj.Schema.DESCRIPTION(description))
+    hunt_obj.Close()
+
+    # Push the new flow onto the queue.
+    task = scheduler.SCHEDULER.Task(queue=self.session_id, id=1,
+                                    value=self.Dump())
+
+    # There is a potential race here where we write the client requests first
+    # and pickle the flow later. To avoid this, we have to keep the order and
+    # schedule the tasks synchronously.
+    scheduler.SCHEDULER.Schedule([task], sync=True, token=self.token)
+
+    self.FlushMessages()
     self.started = True
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
@@ -1006,18 +1060,24 @@ class GRRHunt(GRRFlow):
 
     token = data_store.ACLToken("Hunt", "hunting")
 
-    hunt_obj = aff4.FACTORY.Open("aff4:/hunts/%s" % hunt_id, mode="rw",
-                                 age=aff4.ALL_TIMES, token=token)
-    clients = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
+    if client_limit:
+      hunt_obj = aff4.FACTORY.Open("aff4:/hunts/%s" % hunt_id, mode="rw",
+                                   age=aff4.ALL_TIMES, token=token)
+      clients = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
+
+      if len(clients) >= client_limit:
+        return
+
+      client_urn = hunt_obj.Schema.CLIENTS(client_id)
+
+      if client_urn in clients:
+        logging.info("This hunt was already scheduled on %s.", client_id)
+        return
+    else:
+      hunt_obj = aff4.FACTORY.Create("aff4:/hunts/%s" % hunt_id, "VFSHunt",
+                                     mode="w", token=token)
 
     client_urn = hunt_obj.Schema.CLIENTS(client_id)
-
-    if client_limit and len(clients) >= client_limit:
-      return
-
-    if client_urn in clients:
-      logging.info("This hunt was already scheduled on %s.", client_id)
-      return
 
     hunt_obj.AddAttribute(client_urn)
     hunt_obj.Close()
@@ -1107,6 +1167,13 @@ class GRRHunt(GRRFlow):
     hunt_obj.AddAttribute(client_urn)
     hunt_obj.Close()
 
+  @utils.Synchronized
+  def Save(self):
+    self.lock = None
+
+  def Load(self):
+    self.lock = threading.RLock()
+
 
 class FlowFactory(object):
   """A factory for flow objects.
@@ -1121,7 +1188,7 @@ class FlowFactory(object):
   #  _parameters are private so pylint: disable=C6409
   def StartFlow(self, client_id, flow_name,
                 queue_name=flow_context.DEFAULT_WORKER_QUEUE_NAME,
-                event_id=None, token=None, priority=None,
+                event_id=None, token=None, priority=None, cpu_limit=None,
                 _parent_request_queue=None, _request_state=None,
                 _store=None, **kw):
     """Creates and executes a new flow.
@@ -1133,6 +1200,7 @@ class FlowFactory(object):
       event_id: A logging event id for issuing further logs.
       token: The access token to be used for this request.
       priority: The priority of the started flow.
+      cpu_limit: A limit on the client cpu seconds used by this flow.
       _parent_request_queue: This is used to pass queued messages to the client
                              up to a parent flow instead of writing it to the
                              data store.
@@ -1187,7 +1255,7 @@ class FlowFactory(object):
                                        event_id=event_id, _store=_store,
                                        state=_request_state, token=token,
                                        args=utils.ProtoDict(args).ToProto(),
-                                       priority=priority)
+                                       priority=priority, cpu_limit=cpu_limit)
 
     flow_obj = flow_cls(context=context, **kw)
 
@@ -1208,7 +1276,7 @@ class FlowFactory(object):
     # that starts the flow so it must be very fast, basically just CallClient()
     # CallFlow() or CallState(). If a long delay is needed, this should call
     # CallState() and put the heavy lifting in another state.
-    flow_obj.Start()
+    flow_obj.Start(None)
 
     # The flow does not need to actually remain running.
     if not flow_obj.OutstandingRequests():
@@ -1807,7 +1875,7 @@ class FrontEndServer(object):
     # worker queue).
     for queue, session_ids in utils.GroupBy(
         sessions_handled, lambda x: x.split(":", 1)[0]):
-      scheduler.SCHEDULER.MultiNotifyQueue(queue, session_ids, self.token)
+      scheduler.SCHEDULER.MultiNotifyQueue(queue, session_ids, token=self.token)
 
   def HandleWellKnownFlows(self, messages):
     """Hands off messages to well known flows."""
@@ -1958,10 +2026,10 @@ class GRRWorker(object):
     """
     # Check which sessions have new data.
     active_sessions = []
+    now = int(time.time() * 1e6)
     for predicate, _, _ in data_store.DB.ResolveRegex(
         self.queue_name, flow_context.FlowManager.FLOW_TASK_REGEX,
-        timestamp=data_store.DB.NEWEST_TIMESTAMP,
-        token=self.token, limit=100):
+        timestamp=(0, now), token=self.token, limit=100):
       session_id = predicate.split(":", 1)[1]
       active_sessions.append(session_id)
 

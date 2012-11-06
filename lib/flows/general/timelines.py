@@ -91,7 +91,8 @@ class MACTimes(flow.GRRFlow):
         event.subject = utils.SmartUnicode(source)
         self.timeline_fd.AddEvent(event)
 
-  def End(self):
+  @flow.StateHandler()
+  def End(self, responses):
     # Flush the time line object.
     self.timeline_fd.Close()
-    super(MACTimes, self).End()
+    super(MACTimes, self).End(responses)

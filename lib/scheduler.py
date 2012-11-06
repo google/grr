@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +18,7 @@ import functools
 import logging
 import os
 import struct
+import threading
 import time
 
 from grr.lib import data_store
@@ -98,57 +98,31 @@ class TaskScheduler(object):
 
       transaction.DeleteAttribute(self._TaskIdToColumn(ts_id))
 
-  def Schedule(self, tasks, sync=False, token=None):
+  def Schedule(self, tasks, sync=False, timestamp=None, token=None):
     """Schedule a set of Task() instances."""
 
     for queue, queued_tasks in utils.GroupBy(tasks, lambda x: x.queue):
       if queue:
+        to_schedule = dict(
+            [(self._TaskIdToColumn(task.id), [task.SerializeToString()])
+             for task in queued_tasks])
         self.data_store.MultiSet(
-            self.QueueToSubject(queue), self._Schedule(tasks=queued_tasks),
-            sync=sync, token=token)
+            self.QueueToSubject(queue), to_schedule,
+            timestamp=timestamp, sync=sync, token=token)
 
-  def _Schedule(self, tasks=None):
-    """Schedules the tasks asynchronously.
-
-    Args:
-       tasks: The list of tasks to schedule. This can not be None and must be
-            specified.
-    Returns:
-       A dict with keys the task attributes, and values being the serialized
-         task. This dict is suitable for direct use in MultiSet().
-    """
-    result = {}
-
-    # 32 bit random numbers
-    number_of_tasks = len(tasks)
-    random_numbers = list(struct.unpack(
-        "I"*number_of_tasks, os.urandom(4*number_of_tasks)))
-    random_numbers.sort()
-
-    # 32 bit timestamp (in 1/1000 second resolution)
-    time_base = (long(time.time() * 1000) & 0xFFFFFFFF) << 32
-
-    for i, task in enumerate(tasks):
-      # Select a task id which is both random and monotonic
-      if not task.id:
-        task.id = time_base + random_numbers[i]
-      result[self._TaskIdToColumn(task.id)] = [task.SerializeToString()]
-
-    return result
-
-  def NotifyQueue(self, queue, session_id, token=None):
+  def NotifyQueue(self, queue, session_id, timestamp=None, token=None):
     """This signals that there are new messages available in a queue."""
     data_store.DB.MultiSet(
         queue,
         {"task:%s" % session_id: "X"},
-        sync=True, token=token)
+        sync=True, token=token, timestamp=timestamp)
 
-  def MultiNotifyQueue(self, queue, session_ids, token=None):
+  def MultiNotifyQueue(self, queue, session_ids, timestamp=None, token=None):
     """This is the same as NotifyQueue but for several session_ids at once."""
     data_store.DB.MultiSet(
         queue,
         dict([("task:%s" % session_id, "X") for session_id in session_ids]),
-        sync=True, replace=True, token=token)
+        sync=True, replace=True, token=token, timestamp=timestamp)
 
   def DeleteNotification(self, queue, session_id, token=None):
     """This deletes the notification when all messages have been processed."""
@@ -286,6 +260,9 @@ class TaskScheduler(object):
   class Task(object):
     """Tasks are scheduled on the TaskScheduler."""
 
+    lock = threading.Lock()
+    next_id_base = 0
+
     def __init__(self, decoder=None, value="", **kwargs):
       """Constructor.
 
@@ -299,6 +276,26 @@ class TaskScheduler(object):
       self.decoder = decoder
       self.value = value
       self.eta = 0
+
+      if self.proto.id:
+        self.id = self.proto.id
+      else:
+        with TaskScheduler.Task.lock:
+          # 32 bit random numbers
+          random_number = struct.unpack("H", os.urandom(2))[0]
+          next_id_base = TaskScheduler.Task.next_id_base
+
+          id_base = (next_id_base + random_number) & 0xFFFFFFFF
+          if id_base < next_id_base:
+            time.sleep(0.001)
+
+          TaskScheduler.Task.next_id_base = id_base
+
+          # 32 bit timestamp (in 1/1000 second resolution)
+          time_base = (long(time.time() * 1000) & 0xFFFFFFFF) << 32
+
+          self.id = time_base + id_base
+
       try:
         self.proto.priority = self.value.priority
       except AttributeError:

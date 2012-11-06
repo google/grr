@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -136,6 +135,8 @@ class GRRClientWorker(object):
 
   sent_bytes_per_flow = {}
 
+  STATS_SEND_INTERVALL = 50 * 60  # 50 minutes
+
   def __init__(self):
     """Create a new GRRClientWorker."""
     super(GRRClientWorker, self).__init__()
@@ -149,13 +150,15 @@ class GRRClientWorker(object):
     # A tally of the total byte count of messages
     self._out_queue_size = 0
 
+    self._is_active = False
+
     self.proc = psutil.Process(os.getpid())
 
     # Use this to control the nanny transaction log.
     self.nanny_controller = client_utils.NannyController()
     self.nanny_controller.StartNanny()
     if not GRRClientWorker.stats_collector:
-      GRRClientWorker.stats_collector = stats.StatsCollector()
+      GRRClientWorker.stats_collector = stats.StatsCollector(self)
       GRRClientWorker.stats_collector.start()
 
   def Sleep(self, timeout):
@@ -272,15 +275,21 @@ class GRRClientWorker(object):
     Args:
         message: The GrrMessage that was delivered from the server.
     """
-    # Write the message to the transaction log.
-    self.nanny_controller.WriteTransactionLog(message)
-    action_cls = actions.ActionPlugin.classes.get(
-        message.name, actions.ActionPlugin)
-    action = action_cls(message=message, grr_worker=self)
-    action.Execute(message)
+    self._is_active = True
+    try:
+      # Write the message to the transaction log.
+      self.nanny_controller.WriteTransactionLog(message)
+      action_cls = actions.ActionPlugin.classes.get(
+          message.name, actions.ActionPlugin)
+      action = action_cls(message=message, grr_worker=self)
+      # Heartbeat so we have the full period to work on this message.
+      action.Progress()
+      action.Execute(message)
 
-    # If we get here without exception, we can remove the transaction.
-    self.nanny_controller.CleanTransactionLog()
+      # If we get here without exception, we can remove the transaction.
+      self.nanny_controller.CleanTransactionLog()
+    finally:
+      self._is_active = False
 
   def QueueMessages(self, messages):
     """Queue a message from the server for processing.
@@ -315,7 +324,7 @@ class GRRClientWorker(object):
         self.HandleMessage(message)
         # Catch any errors and keep going here
       except Exception, e:  # pylint: disable=W0703
-        logging.warn("%s", e)
+        logging.warn("12 %s", e)
         self.SendReply(
             jobs_pb2.GrrStatus(
                 status=jobs_pb2.GrrStatus.GENERIC_ERROR,
@@ -339,6 +348,24 @@ class GRRClientWorker(object):
   def OutQueueSize(self):
     """Returns the total size of messages ready to be sent."""
     return len(self._out_queue)
+
+  def IsActive(self):
+    """Returns True if worker is currently handling a message."""
+    return self._is_active
+
+  def CheckStats(self):
+    """Checks if the last transmission of client stats is too long ago."""
+    if not stats.STATS.Get("grr_client_last_stats_sent_time"):
+      stats.STATS.Set("grr_client_last_stats_sent_time", time.time())
+
+    last = stats.STATS.Get("grr_client_last_stats_sent_time")
+    if time.time() - last > self.STATS_SEND_INTERVALL:
+      logging.info("Sending back client statistics to the server.")
+      stats.STATS.Set("grr_client_last_stats_sent_time", time.time())
+      action_cls = actions.ActionPlugin.classes.get(
+          "GetClientStatsAuto", actions.ActionPlugin)
+      action = action_cls(None, grr_worker=self)
+      action.Run(None)
 
 
 class SizeQueue(object):
@@ -544,7 +571,11 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     # As long as our output queue has some room we can process some
     # input messages:
     while True:
-      message = self._in_queue.get(block=True)
+      try:
+        message = self._in_queue.get(block=True, timeout=5)
+      except Queue.Empty:
+        self.nanny_controller.Heartbeat()
+        continue
 
       # A message of None is our terminal message.
       if message is None:
@@ -596,8 +627,6 @@ class GRRHTTPClient(object):
     - A status code of 500 is an error, the messages are re-queued and the
       client waits and retried to send them later.
   """
-
-  STATS_SEND_INTERVALL = 50 * 60  # 50 minutes
 
   def __init__(self, ca_cert=None, worker=None, certificate=None):
     """Constructor.
@@ -731,20 +760,6 @@ class GRRHTTPClient(object):
     status.sent_count = 0
     return ""
 
-  def CheckStats(self):
-    """Checks if the last transmission of client stats is too long ago."""
-    if not stats.STATS.Get("grr_client_last_stats_sent_time"):
-      stats.STATS.Set("grr_client_last_stats_sent_time", time.time())
-
-    last = stats.STATS.Get("grr_client_last_stats_sent_time")
-    if time.time() - last > self.STATS_SEND_INTERVALL:
-      logging.info("Sending back client statistics to the server.")
-      stats.STATS.Set("grr_client_last_stats_sent_time", time.time())
-      action_cls = actions.ActionPlugin.classes.get(
-          "GetClientStatsAuto", actions.ActionPlugin)
-      action = action_cls(None, grr_worker=self.client_worker)
-      action.Run(None)
-
   def RunOnce(self):
     """Makes a single request to the GRR server.
 
@@ -753,9 +768,6 @@ class GRRHTTPClient(object):
     """
     try:
       status = Status()
-
-      # Check if we have to send back statistics.
-      self.CheckStats()
 
       # Grab some messages to send
       message_list = self.client_worker.Drain(max_size=FLAGS.max_post_size)
@@ -889,6 +901,7 @@ class GRRHTTPClient(object):
       # right now. Our death should not result in loss of messages since we are
       # not holding any requests in our input queues.
       if (self.client_worker.MemoryExceeded() and
+          not self.client_worker.IsActive() and
           self.client_worker.InQueueSize() == 0 and
           self.client_worker.OutQueueSize() == 0):
         logging.warning("Memory exceeded - exiting.")
@@ -917,7 +930,7 @@ class GRRHTTPClient(object):
                   status.received_count,
                   self.sleep_time)
 
-    self.Sleep(self.sleep_time)
+    self.Sleep(self.sleep_time, heartbeat=False)
 
     # Back off slowly at first and fast if no answer.
     self.sleep_time = min(
@@ -945,8 +958,11 @@ class GRRHTTPClient(object):
                                pem=self.communicator.GetCSR()),
           session_id="CA:Enrol")
 
-  def Sleep(self, timeout):
-    self.client_worker.Sleep(timeout)
+  def Sleep(self, timeout, heartbeat=False):
+    if not heartbeat:
+      time.sleep(timeout)
+    else:
+      self.client_worker.Sleep(timeout)
 
 
 

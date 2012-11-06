@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +25,7 @@ from grr.lib.flows.general import filesystem_test
 from grr.lib.flows.general import find_test
 from grr.lib.flows.general import fingerprint_test
 from grr.lib.flows.general import grep_test
+from grr.lib.flows.general import hunts_test
 from grr.lib.flows.general import memory_test
 from grr.lib.flows.general import network_test
 from grr.lib.flows.general import processes_test

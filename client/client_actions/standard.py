@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -97,18 +96,13 @@ class TransferBuffer(actions.ActionPlugin):
 
     digest = hashlib.sha256(data).digest()
 
-    # Check if the hash is in cache
-    try:
-      HASH_CACHE.Get(digest)
-    except KeyError:
-      # Ok we need to send it. First compress the data.
-      result.data = zlib.compress(data)
-      result.compression = result.ZCOMPRESSION
+    # Ok we need to send it. First compress the data.
+    result.data = zlib.compress(data)
+    result.compression = result.ZCOMPRESSION
 
-      # Now return the data to the server into the special TransferStore well
-      # known flow.
-      self.grr_worker.SendReply(result, session_id="W:TransferStore")
-      HASH_CACHE.Put(digest, 1)
+    # Now return the data to the server into the special TransferStore well
+    # known flow.
+    self.grr_worker.SendReply(result, session_id="W:TransferStore")
 
     # Now report the hash of this blob to our flow as well as the offset and
     # length.
@@ -353,6 +347,7 @@ class ExecutePython(actions.ActionPlugin):
   def Run(self, args):
     """Run."""
     time_start = time.time()
+
     pub_key = client_config.EXEC_SIGNING_KEY.get(FLAGS.camode.upper())
     if not client_utils_common.VerifySignedBlob(args.python_code,
                                                 pub_key=pub_key):

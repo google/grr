@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -555,8 +554,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       # No calls to logging here.
       time.time().AndReturn(now)
       self.mox.ReplayAll()
-
-      self.client_communicator.CheckStats()
+      self.client_communicator.client_worker.CheckStats()
 
     finally:
       self.mox.UnsetStubs()
@@ -581,9 +579,9 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
       self.mox.ReplayAll()
 
-      self.client_communicator.CheckStats()
-      self.client_communicator.CheckStats()
-      self.client_communicator.CheckStats()
+      self.client_communicator.client_worker.CheckStats()
+      self.client_communicator.client_worker.CheckStats()
+      self.client_communicator.client_worker.CheckStats()
 
     finally:
       self.mox.UnsetStubs()

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#
 # Copyright 2012 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,13 +21,13 @@ performing basic analysis.
 
 
 
-
 from grr.client import conf as flags
 import logging
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.flows.general import grep
 
 from grr.proto import jobs_pb2
 
@@ -103,16 +102,18 @@ class LoadMemoryDriver(flow.GRRFlow):
 
       fd = aff4.FACTORY.Create(self._device_urn, "MemoryImage",
                                token=self.token)
+      layout = fd.Schema.LAYOUT(response)
       fd.Set(fd.Schema.PATHSPEC(response.device))
-      fd.Set(fd.Schema.LAYOUT(response))
+      fd.Set(layout)
       fd.Close()
 
       # Let a parent flow know which driver was installed.
-      self.SendReply(response)
+      self.SendReply(layout)
     else:
       raise flow.FlowError("Failed to query device %s" %
                            self.driver_installer.device_path)
 
+  @flow.StateHandler()
   def End(self):
     if self.flow_pb.state != jobs_pb2.FlowPB.ERROR:
       self.Notify("ViewObject", self._device_urn,
@@ -251,5 +252,58 @@ class UnloadMemoryDriver(LoadMemoryDriver):
       raise flow.FlowError("Failed to uninstall memory driver: %s",
                            responses.status)
 
+  @flow.StateHandler()
   def End(self):
     pass
+
+
+class GrepAndDownload(grep.Grep):
+  """Downloads client memory if a signature is found."""
+
+  category = "/Memory/"
+
+  def __init__(self, load_driver=True, **kwargs):
+    """Downloads client memory if a signature is found.
+
+    This flow greps memory or a file on the client for a pattern or a regex
+    and, if the pattern is found, downloads the file/memory.
+
+    Args:
+      load_driver: Load the memory driver before grepping.
+    """
+
+    self.load_driver = load_driver
+    super(GrepAndDownload, self).__init__(**kwargs)
+
+  @flow.StateHandler(next_state=["Start", "StoreResults"])
+  def Start(self, responses):
+    if not responses.success:
+      self.Log("Error while loading memory driver: %s" % responses.status)
+      return
+
+    if self.load_driver:
+      self.load_driver = False
+      self.CallFlow("LoadMemoryDriver", next_state="Start")
+    else:
+      super(GrepAndDownload, self). Start()
+
+  @flow.StateHandler(next_state=["Done"])
+  def StoreResults(self, responses):
+    if not responses.success:
+      self.Log("Error grepping file: %s.", responses.status)
+      return
+
+    super(GrepAndDownload, self).StoreResults(responses)
+
+    if responses:
+      self.CallFlow("GetFile", pathspec=self.request.target,
+                    next_state="Done")
+    else:
+      self.Log("Grep did not yield any results.")
+
+  @flow.StateHandler()
+  def Done(self, responses):
+    if not responses.success:
+      self.Log("Error while downloading memory image: %s" % responses.status)
+    else:
+      self.Log("Memory image successfully downloaded.")

@@ -1146,6 +1146,8 @@ As downloaded on {{ this.age|escape }}.<br>
   error_template = renderers.Template("""
 <h1>Error</h1>{{this.urn|escape}} does not appear to be a file object.
 """)
+  bad_extensions = [".bat", ".cmd", ".exe", ".com", ".pif", ".py", ".pl",
+                    ".scr", ".vbs"]
 
   def Layout(self, request, response):
     """Present a download form."""
@@ -1183,6 +1185,9 @@ As downloaded on {{ this.age|escape }}.<br>
     self.age = aff4.RDFDatetime(request.REQ.get("age"))
     self.token = request.token
 
+    # If set, we don't append .noexec to dangerous extensions.
+    safe_extension = bool(request.REQ.get("safe_extension", 0))
+
     if self.aff4_path:
 
       def Generator():
@@ -1195,13 +1200,16 @@ As downloaded on {{ this.age|escape }}.<br>
 
           yield data
 
+      filename = os.path.basename(utils.SmartStr(self.aff4_path))
+      if not safe_extension:
+        for ext in self.bad_extensions:
+          if filename.lower().endswith(ext):
+            filename += ".noexec"
+
       response = http.HttpResponse(content=Generator(),
                                    mimetype="binary/octet-stream")
-
       # This must be a string.
-      response["Content-Disposition"] = (
-          "attachment; filename=%s.noexec" % os.path.basename(
-              utils.SmartStr(self.aff4_path)))
+      response["Content-Disposition"] = ("attachment; filename=%s" % filename)
 
       return response
 

@@ -10,6 +10,7 @@
 # export KEYDIR=/tmp/keys
 #
 
+
 # Allow KEYDIR to be overridden by environment variable.
 if [ -z "${KEYDIR}" ];
 then
@@ -17,12 +18,16 @@ then
 fi
 echo "Using ${KEYDIR} for keys"
 
+PREFIX=/usr
+
 # Allow PYTHONPATH to be set externally, need to check if its "" as well as this
 # is valid here.
 if [ -n "${PYTHONPATH-x}" ];
 then
-  PYTHONPATH="/usr/share";
+  PYTHONPATH=${PREFIX}/share;
 fi
+
+CONFIG_UPDATER=${PREFIX}/bin/grr_config_updater.py
 
 echo "#########################################################################"
 echo "###   Windows Client Builds"
@@ -70,7 +75,9 @@ SFX_DIR=$CLIENT_TEMPLATE_DIR/unzipsfx/
 CLIENT_OUT_DIR=$CLIENT_DIR/installers
 INSTALLER_DIR=$SCRIPTS_DIR
 
-echo "Repacking 32 bit client"
+
+
+echo "Repacking 32 bit Windows client"
 
 echo "Finding latest version"
 
@@ -95,6 +102,7 @@ else
     --agent_version $VERSION
 
   if [ "$?" -eq "1" ]; then
+    echo "################ ERROR ERROR ERROR ######################"";
     exit
   fi;
 
@@ -115,7 +123,7 @@ else
   echo "Build successfull! Your 32 bit client installer has been placed in $WIN32_OUT"
 fi;
 
-echo "Repacking 64 bit client"
+echo "Repacking 64 bit Windows client"
 
 echo "Finding latest version"
 
@@ -196,18 +204,22 @@ PYTHONPATH=${PYTHONPATH} python $INSTALLER_DIR/inject_keys.py \
 
 # Copy the DMG out to the installer directory where the grr.ini is.
 OSX_OUT=${CLIENT_OUT_DIR}/GRR-${VERSION}.dmg;
+OSX_INI=${CLIENT_OUT_DIR}/grr.ini;
 cp $CLIENT_DIR/templates/${VERSION}/GRR.dmg ${OSX_OUT};
-echo "Build successfull! Your OSX installer and ini have been placed in $CLIENT_OUT_DIR"
+echo "Build successful! Your OSX installer and ini have been placed in $CLIENT_OUT_DIR"
 
 
 echo "#########################################################################"
 echo "###   Uploading built agents to the database"
 echo "#########################################################################"
 
-CONFIG_UPDATER="/usr/bin/grr_config_updater.py"
 
 ${CONFIG_UPDATER} --action=RAWUPLOAD --file=${OSX_OUT} \
   --upload_name=$(basename ${OSX_OUT}) \
+  --aff4_path=/config/executables/osx/installers;
+
+${CONFIG_UPDATER} --action=RAWUPLOAD --file=${OSX_INI} \
+  --upload_name=$(basename ${OSX_INI}) \
   --aff4_path=/config/executables/osx/installers;
 
 ${CONFIG_UPDATER} --action=RAWUPLOAD \

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,6 +25,9 @@ from grr.proto import jobs_pb2
 class RDFPathSpec(aff4.RDFProto):
   """A path specification."""
   _proto = jobs_pb2.Path
+
+  # This is an alias for self.data.
+  pathspec = None
 
   def __init__(self, serialized=None, age=None):
     # Instantiate from RDFPathSpec

@@ -32,12 +32,18 @@ class ConfigManager(renderers.TemplateRenderer):
 {% for f in this.flags %}
   <tr><td>{{ f.name|escape }}</td>
       <td>{{ f.type|escape }}</td>
+  {% if f.name in this.banned_flags %}
+      <td>&lt;REDACTED&gt;</td>
+  {% else %}
       <td>{{ f.value|escape }}</td>
+  {% endif %}
 {% empty %}
   <tr><td>Could not retrieve configuration.</td></tr>
 {% endfor %}
 <table>
 """)
+
+  banned_flags = ["django_secret_key"]
 
   def Layout(self, request, response):
     """Fill in the form with the specific fields for the flow requested."""
@@ -163,7 +169,8 @@ class ConfigFileTableToolbar(renderers.TemplateRenderer):
 <script>
 grr.subscribe('file_select', function(aff4_path, age) {
   var state = {aff4_path: aff4_path};
-  grr.downloadHandler($('#{{unique|escapejs}}_download'), state);
+  grr.downloadHandler($('#{{unique|escapejs}}_download'), state,
+                      safe_extension=true);
 }, 'toolbar_{{unique|escapejs}}');
 
 grr.dialog('ConfigBinaryUploadView', '{{unique|escapejs}}_upload_dialog',

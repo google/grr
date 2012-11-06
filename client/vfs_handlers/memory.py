@@ -26,7 +26,6 @@ import struct
 import sys
 
 from grr.client import vfs
-from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
@@ -91,15 +90,26 @@ elif sys.platform.startswith("win"):
   # These imports are needed in windows so pylint: disable=C6204
   import win32file
 
-  from grr.client.client_actions.windows import windows
+  def CtlCode(device_type, function, method, access):
+    return (device_type<<16) | (access << 14) | (function << 2) | method
 
   class WindowsMemory(MemoryVFS):
     """Read the raw memory."""
     supported_pathtype = jobs_pb2.Path.MEMORY
     auto_register = True
 
-    # This is the dtb if available
+    # This is the dtb and kdbg if available
     cr3 = None
+    kdbg = None
+
+    FIELDS = (["CR3", "NtBuildNumber", "KernBase", "KDBG"] +
+              ["KPCR%s" % i for i in range(32)] +
+              ["PfnDataBase", "PsLoadedModuleList", "PsActiveProcessHead"] +
+              ["Padding%s" % i for i in range(0xff)] +
+              ["NumberOfRuns"])
+
+    # IOCTLS for interacting with the driver.
+    INFO_IOCTRL = CtlCode(0x22, 0x103, 0, 3)
 
     def __init__(self, base_fd, pathspec=None):
       """Open the raw memory image.
@@ -114,8 +124,6 @@ elif sys.platform.startswith("win"):
       if self.base_fd is not None:
         raise IOError("Memory driver must be a top level.")
 
-      self.pathspec = utils.Pathspec(pathspec)
-
       # We need to use win32 api to open the device.
       self.fd = win32file.CreateFile(
           pathspec.path,
@@ -126,17 +134,20 @@ elif sys.platform.startswith("win"):
           win32file.FILE_ATTRIBUTE_NORMAL,
           None)
 
-      # Obtain the valid memory runs
-      data = win32file.DeviceIoControl(
-          self.fd, windows.INFO_IOCTRL, "", 1024, None)
-      fmt_string = "QQl"
-      self.cr3, _, number_of_runs = struct.unpack_from(fmt_string, data)
+      result = win32file.DeviceIoControl(
+          self.fd, self.INFO_IOCTRL, "", 102400, None)
+
+      fmt_string = "Q" * len(self.FIELDS)
+      memory_parameters = dict(zip(self.FIELDS,
+                                   struct.unpack_from(fmt_string, result)))
+      self.cr3 = memory_parameters["CR3"]
+      self.kdbg = memory_parameters["KDBG"]
 
       offset = struct.calcsize(fmt_string)
       self.runs = []
       self.size = 0
-      for x in range(number_of_runs):
-        start, length = struct.unpack_from("QQ", data, x * 16 + offset)
+      for x in range(memory_parameters["NumberOfRuns"]):
+        start, length = struct.unpack_from("QQ", result, x * 16 + offset)
         if length == 0: break
 
         self.runs.append((start, length))

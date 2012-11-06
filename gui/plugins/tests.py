@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,6 +25,7 @@ from grr.gui.plugins import fileview_test
 from grr.gui.plugins import flow_management_test
 from grr.gui.plugins import hunt_view_test
 from grr.gui.plugins import inspect_test
+from grr.gui.plugins import launch_hunt_test
 from grr.gui.plugins import notifications_test
 from grr.gui.plugins import statistics_test
 from grr.gui.plugins import timeline_view_test

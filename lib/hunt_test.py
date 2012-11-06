@@ -170,10 +170,10 @@ class HuntTest(test_lib.FlowTestsBaseclass):
   def Callback(self, hunt_id, client_id, client_limit):
     self.called.append((hunt_id, client_id, client_limit))
 
-  def testCallback(self):
+  def testCallback(self, client_limit=None):
     """Checks that the foreman uses the callback specified in the action."""
 
-    hunt = hunts.SampleHunt(token=self.token)
+    hunt = hunts.SampleHunt(client_limit=client_limit, token=self.token)
     regex_rule = jobs_pb2.ForemanAttributeRegex(
         attribute_name="GRR client",
         attribute_regex="GRR")
@@ -190,18 +190,26 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client.Close()
 
     old_start_client = hunts.SampleHunt.StartClient
-    hunts.SampleHunt.StartClient = self.Callback
-    self.called = []
+    try:
+      hunts.SampleHunt.StartClient = self.Callback
+      self.called = []
 
-    foreman.AssignTasksToClient(client.client_id)
+      foreman.AssignTasksToClient(client.client_id)
 
-    self.assertEqual(len(self.called), 1)
-    self.assertEqual(self.called[0][1], client.client_id)
+      self.assertEqual(len(self.called), 1)
+      self.assertEqual(self.called[0][1], client.client_id)
 
-    # Clean up.
-    foreman.Set(foreman.Schema.RULES())
-    foreman.Close()
-    hunts.SampleHunt.StartClient = staticmethod(old_start_client)
+      # Clean up.
+      foreman.Set(foreman.Schema.RULES())
+      foreman.Close()
+    finally:
+      hunts.SampleHunt.StartClient = staticmethod(old_start_client)
+
+  def testCallbackWithLimit(self):
+
+    self.assertRaises(RuntimeError, self.testCallback, 2000)
+
+    self.testCallback(100)
 
   class SampleHuntMock(object):
 

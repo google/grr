@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +19,7 @@ import time
 
 
 from grr.client import conf
+from grr.lib import aff4
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.proto import jobs_pb2
@@ -280,33 +280,6 @@ class ProtoDictTests(test_lib.GRRBaseTest):
     self.assertEqual(proto_under_test["list1"], ["c", 1, "u"])
 
 
-class UtilsTest(test_lib.GRRBaseTest):
-  """Utilities tests."""
-
-  def testNormpath(self):
-    """Test our Normpath."""
-    data = [
-        ("foo/../../../../", "/"),
-        ("/foo/../../../../bar", "/bar"),
-        ("/foo/bar/../3sdfdfsa/.", "/foo/3sdfdfsa"),
-        ("../foo/bar", "/foo/bar"),
-        ("./foo/bar", "/foo/bar"),
-        ("/", "/"),
-        ]
-
-    for test, expected in data:
-      self.assertEqual(expected, utils.NormalizePath(test))
-
-  def FormatAsHexStringTest(self):
-    self.assertEqual(utils.FormatAsHexString(10), "0x1b")
-    self.assertEqual(utils.FormatAsHexString(10, 4), "0x001b")
-    self.assertEqual(utils.FormatAsHexString(10, 16), "0x000000000000001b")
-    # No trailing "L".
-    self.assertEqual(utils.FormatAsHexString(int(1e19)), "0x8ac7230489e80000")
-    self.assertEqual(utils.FormatAsHexString(int(1e19), 5),
-                     "0x8ac7230489e80000")
-
-
 class PathSpectTests(test_lib.GRRBaseTest):
   """Test the pathspec manipulation function."""
 
@@ -337,6 +310,33 @@ class PathSpectTests(test_lib.GRRBaseTest):
     pathspec.Append(path="sdasda")
     self.assertEqual(pathspec.Dirname().CollapsePath(), "/foo")
 
+
+class UtilsTest(test_lib.GRRBaseTest):
+  """Utilities tests."""
+
+  def testNormpath(self):
+    """Test our Normpath."""
+    data = [
+        ("foo/../../../../", "/"),
+        ("/foo/../../../../bar", "/bar"),
+        ("/foo/bar/../3sdfdfsa/.", "/foo/3sdfdfsa"),
+        ("../foo/bar", "/foo/bar"),
+        ("./foo/bar", "/foo/bar"),
+        ("/", "/"),
+        ]
+
+    for test, expected in data:
+      self.assertEqual(expected, utils.NormalizePath(test))
+
+  def FormatAsHexStringTest(self):
+    self.assertEqual(utils.FormatAsHexString(10), "0x1b")
+    self.assertEqual(utils.FormatAsHexString(10, 4), "0x001b")
+    self.assertEqual(utils.FormatAsHexString(10, 16), "0x000000000000001b")
+    # No trailing "L".
+    self.assertEqual(utils.FormatAsHexString(int(1e19)), "0x8ac7230489e80000")
+    self.assertEqual(utils.FormatAsHexString(int(1e19), 5),
+                     "0x8ac7230489e80000")
+
   def testXor(self):
     test_str = "Hello World!!"
     for key in [1, 5, 123, 255]:
@@ -353,6 +353,7 @@ class PathSpectTests(test_lib.GRRBaseTest):
       self.assertNotEqual(xor_arr, test_arr)
       utils.XorByteArray(xor_arr, key)
       self.assertEqual(xor_arr, test_arr)
+
 
 
 def main(argv):

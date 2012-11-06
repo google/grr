@@ -128,42 +128,48 @@ grr.init = function() {
    */
   if (grr.installXssiProtection) {
     $.ajaxSetup({
-      converters: { 'text json': function(data) {
-        if (typeof data !== 'string' || !data) {
-          return null;
-        }
+      crossDomain: false,
+      converters:
+        { 'text json': function(data) {
+          if (typeof data !== 'string' || !data) {
+            return null;
+          }
 
-        if (data.substring(0, 4) != ')]}\n') {
-          return jQuery.error('JSON object not properly protected.');
-        }
+          if (data.substring(0, 4) != ')]}\n') {
+            return jQuery.error('JSON object not properly protected.');
+          }
 
-        return $.parseJSON(data.substring(4, data.length));
+          return $.parseJSON(data.substring(4, data.length));
+        }
       }
+    });
+    grr.installXssiProtection = false;
+  }
+
+
+  /* This is required to send the csrf token as per
+   https://docs.djangoproject.com/en/1.4/ref/contrib/csrf/
+  */
+  var csrftoken = grr.getCookie('csrftoken');
+
+  $('html').ajaxSend(function(event, xhr, settings) {
+    // Officially crossdomain should be covered by ajaxSetup call, but that
+    // appears to not apply to tree renderers, so belt and braces here.
+    if (!grr.csrfSafeMethod(settings.type) && grr.sameOrigin(settings.url)) {
+      xhr.setRequestHeader('X-CSRFToken', csrftoken);
     }
   });
 
-    grr.installXssiProtection = false;
+  $('html').ajaxError(function(e, jqxhr, settings, exception) {
+    grr.publish('grr_messages', 'Server Error');
+    grr.publish('grr_traceback', exception + jqxhr.responseText);
+  });
 
-    /* This is required to send the csrf token as per
-     https://docs.djangoproject.com/en/1.1/ref/contrib/csrf/
-     */
-    $('html').ajaxSend(function(event, xhr, settings) {
-      // Only send the token to relative URLs i.e. locally.
-      if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
-        xhr.setRequestHeader('X-CSRFToken', $('#csrfmiddlewaretoken').val());
-      }
-    });
+  // When the window is resized, resize all the elements in them.
+  $('window').bind('resize', function() {
+    grr.publish('GeometryChange', 'main');
+  });
 
-    $('html').ajaxError(function(e, jqxhr, settings, exception) {
-      grr.publish('grr_messages', 'Server Error');
-      grr.publish('grr_traceback', exception + jqxhr.responseText);
-    });
-
-    // When the window is resized, resize all the elements in them.
-    $('window').bind('resize', function() {
-      grr.publish('GeometryChange', 'main');
-    });
-  }
 
   /**
    * This object holds the current url location hash state.
@@ -1661,8 +1667,9 @@ grr.uploadHandler = function(renderer, formId, progressId, successHandler,
  * Attach a download file handler to the click of a node.
   * @param {String} clickNode DomID that we will attach the handler to.
  * @param {object} state is the state we use for send to our renderer.
+ * @param {bool} safe_extension should the downloaded file have .noexec added.
  */
-grr.downloadHandler = function(clickNode, state) {
+grr.downloadHandler = function(clickNode, state, safe_extension) {
   // Create a temporary form to post to the download page with.
   clickNode.find('form').remove();   // remove any previous hidden forms.
   var tmpform = $('<form target="_blank" />').appendTo(clickNode);
@@ -1670,10 +1677,65 @@ grr.downloadHandler = function(clickNode, state) {
   $.each(state, function(key, val) {
     $('<input type=hidden />').attr({name: key, value: val}).appendTo(tmpform);
   });
-  $('#csrfmiddlewaretoken').clone().appendTo(tmpform);
-  clickNode.click(function() {
+  var csrf = grr.getCookie('csrftoken');
+  $('<input type=hidden name=csrfmiddlewaretoken>').val(csrf).appendTo(tmpform);
+  if (safe_extension) {
+    var safe_ext = $('<input type=hidden name=safe_extension>');
+    safe_ext.val(safe_extension).appendTo(tmpform);
+  }
+  clickNode.unbind('click').click(function() {
     tmpform.submit();
   });
+};
+
+
+/**
+  * Determine if a method is safe to add CSRF token to.
+  * As per https://docs.djangoproject.com/en/1.4/ref/contrib/csrf/#using-csrf
+  * @param {String} method Method the request uses.
+  * @return {boolean} whether or not the method is safe from csrf.
+**/
+grr.csrfSafeMethod = function(method) {
+  // these HTTP methods do not require CSRF protection.
+  return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+};
+
+
+/**
+  * Test that a given url is a same-origin URL.
+  * URL could be relative or scheme relative or absolute.
+  * As per https://docs.djangoproject.com/en/1.4/ref/contrib/csrf/#using-csrf
+  * @param {String} url URL we are sending to.
+  * @return {boolean} whether or not the url is in the same origin.
+**/
+grr.sameOrigin = function(url) {
+  var a = document.createElement('a');
+  a.href = url;
+  return (document.location.host == a.host &&
+          document.location.protocol == a.protocol);
+};
+
+
+/**
+  * Helper function to retrieve the value of a cookie, in lieu of an extra
+  * dependency on jquery.cookie.
+  * @param {String} name The cookie we want the value for.
+  * @return {String} value of the cookie.
+**/
+grr.getCookie = function(name) {
+  var cookieValue = null;
+  if (document.cookie && document.cookie != '') {
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+      var cookie = jQuery.trim(cookies[i]);
+      // Does this cookie string begin with the name we want?
+      if (cookie.substring(0, name.length + 1) == (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
 };
 
 /** Initialize the grr object */

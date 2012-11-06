@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +22,9 @@ We can schedule a new flow for a specific client.
 # Import things that are useful from the console.
 import collections
 import csv
+import datetime
 import os
+import re
 import sys
 import time
 
@@ -43,6 +44,7 @@ from grr.lib import data_store
 from grr.lib import fake_data_store
 from grr.lib import flow
 from grr.lib import flow_context
+from grr.lib import flow_utils
 from grr.lib import ipshell
 from grr.lib import maintenance_utils
 from grr.lib import registry
@@ -59,13 +61,14 @@ from grr.lib.flows import general
 from grr.lib.flows.general import hunts
 from grr.lib.flows.general import memory
 
+# Import some specific functions we want available in the console.
+from grr.lib.maintenance_utils import MakeUserAdmin
+
 from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
+# pylint: enable=W0611
 
-# Import some specific functions we want available in the console.
-# pylint: disable=C6203
-from grr.lib.maintenance_utils import MakeUserAdmin
-# pylint: enable=W0611,6203
+# pylint: enable=W0611,C6203
 
 flags.DEFINE_string("client", None,
                     "Initialise the console with this client id "

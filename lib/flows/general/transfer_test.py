@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -106,12 +105,11 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
         pathtype=jobs_pb2.Path.OS,
         path=os.path.join(self.base_path, "test_img.dd"))
 
-    count = 0
     for _ in test_lib.TestFlowHelper("FastGetFile", client_mock,
                                      token=self.token,
                                      client_id=self.client_id,
                                      pathspec=pathspec):
-      count += 1
+      pass
 
     # Fix path for Windows testing.
     pathspec.path = pathspec.path.replace("\\", "/")
@@ -125,18 +123,35 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
     self.CompareFDs(fd1, fd2)
 
+    # Should have transferred 21 buffers.
+    self.assertEqual(client_mock.action_counts["TransferBuffer"], 21)
+
     # Now get the same file again and check that its faster.
-    new_count = 0
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile",
+                                      "HashBuffer")
+
+    # Make sure we remove the old version completely.
+    aff4.FACTORY.Delete(urn, token=self.token)
+
+    # Remove one of the hash blobs.
+    aff4.FACTORY.Delete("aff4:/blobs/02303d0cb2f7fe70b933f2e83033d73de27"
+                        "fed291560fd0116389de37ca8eaab", token=self.token)
+
     for _ in test_lib.TestFlowHelper("FastGetFile", client_mock,
                                      token=self.token,
                                      client_id=self.client_id,
                                      pathspec=pathspec):
-      new_count += 1
+      pass
 
-    # We expect half as many client requests since all the hashes should be
-    # found now. (Previously we have HashBuffer + TransferBuffer and now we have
-    # only HashBuffer). A small fudge factor accounts for the setup steps.
-    self.assertTrue(new_count * 2 - 5 < count)
+    # Should have transferred exactly 1 buffer and Hashed 21.
+    self.assertEqual(client_mock.action_counts["TransferBuffer"], 1)
+    self.assertEqual(client_mock.action_counts["HashBuffer"], 21)
+
+    fd1 = aff4.FACTORY.Open(urn, token=self.token)
+    fd2 = open(pathspec.path)
+    fd2.seek(0, 2)
+
+    self.CompareFDs(fd1, fd2)
 
 
 class TestFileCollector(test_lib.FlowTestsBaseclass):

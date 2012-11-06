@@ -13,16 +13,102 @@
 # limitations under the License.
 
 
-"""Modules to perform filtering of objects based on their data members."""
+"""Classes to perform filtering of objects based on their data members.
+
+Given a list of objects and a textual filter expression, these classes allow
+you to determine which objects match the filter. The system has two main
+pieces: A parser for the supported grammar and a filter implementation.
+
+Given any complying user-supplied grammar, it is parsed with a custom lexer
+based on GRR's lexer and then compiled into an actual implementation by using
+the filter implementation. A filter implementation simply provides actual
+implementations for the primitives required to perform filtering. The compiled
+result is always a class supporting the Filter interface.
+
+If we define a class called Car such as:
+
+class Car(object):
+  def __init__(self, code, color="white", doors=3):
+    self.code = code
+    self.color = color
+    self.doors = 3
+
+And we have two instances:
+
+  ford_ka = Car("FORDKA1", color="grey")
+  toyota_corolla = Car("COROLLA1", color="white", doors=5)
+  fleet = [ford_ka, toyota_corolla]
+
+We want to find cars that are grey and have 3 or more doors. We could filter
+our fleet like this:
+
+  criteria = "(color is grey) and (doors >= 3)"
+  parser = ContextFilterParser(criteria).Parse()
+  compiled_filter = parser.Compile(LowercaseAttributeFilterImp)
+
+  for car in fleet:
+    if compiled_filter.Matches(car):
+      print "Car %s matches the supplied filter." % car.code
+
+The filter expression contains two subexpressions joined by an AND operator:
+  "color is grey" and "doors >= 3"
+This means we want to search for objects matching these two subexpressions.
+Let's analyze the first one in depth "color is grey":
+
+  "color": the left operand specifies a search path to look for the data. This
+  tells our filtering system to look for the color property on passed objects.
+  "is": the operator. Values retrieved for the "color" property will be checked
+  against the right operand to see if they are equal.
+  "grey": the right operand. It specifies an explicit value to check for.
+
+So each time an object is passed through the filter, it will expand the value
+of the color data member, and compare its value against "grey".
+
+Because data members of objects are often not simple datatypes but other
+objects, the system allows you to reference data members within other data
+members by separating each by a dot. Let's see an example:
+
+Let's add a more complex Car class with default tyre data:
+
+class CarWithTyres(Car):
+  def __init__(self, code, tyres=None, color="white", doors=3):
+    super(self, CarWithTyres).__init__(code, color, doors)
+    tyres = tyres or Tyre("Pirelli", "PZERO")
+
+class Tyre(object):
+  def __init__(self, brand, code):
+    self.brand = brand
+    self.code = code
+
+And two new instances:
+  ford_ka = CarWithTyres("FORDKA", color="grey", tyres=Tyre("AVON", "ZT5"))
+  toyota_corolla = Car("COROLLA1", color="white", doors=5)
+  fleet = [ford_ka, toyota_corolla]
+
+To filter a car based on the tyre brand, we would use a search path of
+"tyres.brand".
+
+Because the filter implementation provides the actual classes that perform
+handling of the search paths, operators, etc. customizing the behaviour of the
+filter is easy. Three basic filter implementations are given:
+  BaseFilterImplementation: search path expansion is done on attribute names
+  as provided (case-sensitive).
+  LowercaseAttributeFilterImp: search path expansion is done on the lowercased
+  attribute name, so that it only accesses attributes, not methods.
+  DictFilterImplementation: search path expansion is done on dictionary access
+  to the given object. So "a.b" expands the object obj to obj["a"]["b"]
+"""
+
 
 
 
 import abc
+import binascii
 import logging
 import re
 
+from grr.lib import lexer
 from grr.lib import utils
-from grr.proto import objectfilter_pb2
 
 
 class Error(Exception):
@@ -44,11 +130,27 @@ class InvalidNumberOfOperands(Error):
 class Filter(object):
   """Base class for every filter."""
 
-  def __init__(self, children=None):
-    self.children = []
-    logging.debug('Adding %s', children)
-    if children:
-      self.children.extend(children)
+  def __init__(self, arguments=None, value_expander=None):
+    """Constructor.
+
+    Args:
+      arguments: Arguments to the filter.
+      value_expander: A callable that will be used to expand values for the
+      objects passed to this filter. Implementations expanders are provided by
+      subclassing ValueExpander.
+
+    Raises:
+      Error: If the given value_expander is not a subclass of ValueExpander
+    """
+    self.value_expander = None
+    self.value_expander_cls = value_expander
+    if self.value_expander_cls:
+      if not issubclass(self.value_expander_cls, ValueExpander):
+        raise Error("%s is not a valid value expander" % (
+            self.value_expander_cls))
+      self.value_expander = self.value_expander_cls()
+    self.args = arguments or []
+    logging.debug("Adding %s", arguments)
 
   @abc.abstractmethod
   def Matches(self, obj):
@@ -59,186 +161,212 @@ class Filter(object):
     return filter(self.Matches, objects)
 
   def __str__(self):
-    return '%s(%s)' % (self.__class__.__name__,
-                       ', '.join([str(child) for child in self.children]))
+    return "%s(%s)" % (self.__class__.__name__,
+                       ", ".join([str(arg) for arg in self.args]))
 
 
 class AndFilter(Filter):
-  """A filter that performs a boolean AND of the children filters.
+  """Performs a boolean AND of the given Filter instances as arguments.
 
     Note that if no conditions are passed, all objects will pass.
   """
 
   def Matches(self, obj):
-    for child in self.children:
-      if not child.Matches(obj):
+    for child_filter in self.args:
+      if not child_filter.Matches(obj):
         return False
     return True
 
 
 class OrFilter(Filter):
-  """Performs a boolean OR of the children filters.
+  """Performs a boolean OR of the given Filter instances as arguments.
 
   Note that if no conditions are passed, all objects will pass.
   """
 
   def Matches(self, obj):
-    for child in self.children:
-      if child.Matches(obj):
+    if not self.args: return True
+    for child_filter in self.args:
+      if child_filter.Matches(obj):
         return True
     return False
 
 
 class Operator(Filter):
-  """Base class for all operators. Takes a path as the first child.
+  """Base class for all operators."""
 
-  A path is a list of members that will be traversed for each object to
-  match.
-  """
 
-  operation = None
-
-  def Operate(self, values):
-    # pylint: disable=E1102
-    return self.operation(values)
-
-  def Matches(self, obj):
-    key = self.children[0]
-    values = ExpandValues(obj, key)
-    if values and self.Operate(values):
-      return True
-    return False
+class IdentityFilter(Operator):
+  def Matches(self, _):
+    return True
 
 
 class UnaryOperator(Operator):
   """Base class for unary operators."""
 
-  def __init__(self, children):
-    super(UnaryOperator, self).__init__(children)
-    if len(self.children) != 1:
-      raise InvalidNumberOfOperands('Only one operand is accepted by %s. '
-                                    'Received %d.' % (self.__class__.__name__,
-                                                      len(self.children)))
+  def __init__(self, operand, **kwargs):
+    """Constructor."""
+
+    super(UnaryOperator, self).__init__(arguments=[operand], **kwargs)
+    if len(self.args) != 1:
+      raise InvalidNumberOfOperands("Only one operand is accepted by %s. "
+                                    "Received %d." % (self.__class__.__name__,
+                                                      len(self.args)))
 
 
 class BinaryOperator(Operator):
   """Base class for binary operators.
 
-  The left operand is always a path into the object. The right operand is a
-  value defined by the operator itself and is stored at self.comp_value.
+  The left operand is always a path into the object which will be expanded for
+  values. The right operand is a value defined at initialization and is stored
+  at self.right_operand.
   """
 
-  def __init__(self, children):
-    super(BinaryOperator, self).__init__(children)
-    if len(self.children) != 2:
-      raise InvalidNumberOfOperands('Only two operands are accepted by %s. '
-                                    'Received %d.' % (self.__class__.__name__,
-                                                      len(self.children)))
-    self.comp_value = self.children[1]
-
-  def Operate(self, values):
-    # pylint: disable=E1102
-    return self.operation(values, self.comp_value)
-
+  def __init__(self, arguments=None, **kwargs):
+    super(BinaryOperator, self).__init__(arguments=arguments, **kwargs)
+    if len(self.args) != 2:
+      raise InvalidNumberOfOperands("Only two operands are accepted by %s. "
+                                    "Received %d." % (self.__class__.__name__,
+                                                      len(self.args)))
+    self.left_operand = self.args[0]
+    self.right_operand = self.args[1]
 
 class GenericBinaryOperator(BinaryOperator):
-  """Allows easy implementations of simple binary operators."""
+  """Allows easy implementations of operators."""
+
+  def Operation(self, x, y):
+    """Performs the operation between two values."""
 
   def Operate(self, values):
     """Takes a list of values and if at least one matches, returns True."""
     for val in values:
       try:
-        logging.debug('Operating %s with x=%s and y=%s',
-                      self.__class__.__name__, val, self.comp_value)
-        # pylint: disable=E1102
-        if val and self.operation(val, self.comp_value): return True
+        logging.debug("Operating %s with x=%s and y=%s",
+                      self.__class__.__name__, val, self.right_operand)
+        if self.Operation(val, self.right_operand):
+          return True
+        else:
+          continue
       except (ValueError, TypeError):
         continue
     return False
 
+  def Matches(self, obj):
+    key = self.left_operand
+    values = self.value_expander.Expand(obj, key)
+    if values and self.Operate(values):
+      return True
+    return False
 
-class Is(GenericBinaryOperator):
-  """Operator that returns objects when it matches against a given value."""
-  operation = lambda self, x, y: utils.SmartUnicode(x) == utils.SmartUnicode(y)
+
+class Equals(GenericBinaryOperator):
+  """Matches objects when the right operand equals the expanded value."""
+
+  def Operation(self, x, y):
+    return x == y
 
 
-class IsNot(GenericBinaryOperator):
-  """Operator that returns objects when it doesn't match an explicit value."""
+class NotEquals(GenericBinaryOperator):
+  """Matches when the right operand isn't equal to the expanded value."""
 
   def Operate(self, values):
-    return not Is(self.children).Operate(values)
+    return not Equals(arguments=self.args,
+                      value_expander=self.value_expander_cls).Operate(values)
 
 
 class Less(GenericBinaryOperator):
-  """Performs numerical < comparisons against a given value."""
-  operation = lambda self, x, y: long(x) < long(y)
+  """Whether the expanded value >= right_operand."""
+
+  def Operation(self, x, y):
+    return x < y
 
 
 class LessEqual(GenericBinaryOperator):
-  """Performs numerical <= comparisons against the right operand."""
-  operation = lambda self, x, y: long(x) <= long(y)
+  """Whether the expanded value <= right_operand."""
+
+  def Operation(self, x, y):
+    return x <= y
 
 
 class Greater(GenericBinaryOperator):
-  """Performs numerical > comparisons against the right operand."""
-  operation = lambda self, x, y: long(x) > long(y)
+  """Whether the expanded value > right_operand."""
+
+  def Operation(self, x, y):
+    return x > y
 
 
 class GreaterEqual(GenericBinaryOperator):
-  """Performs numerical >= comparisons against the right operand."""
-  operation = lambda self, x, y: long(x) >= long(y)
+  """Whether the expanded value >= right_operand."""
+
+  def Operation(self, x, y):
+    return x >= y
 
 
 class Contains(GenericBinaryOperator):
-  """Performs a textual contains operation against a given value."""
-  operation = lambda self, x, y: utils.SmartUnicode(y) in utils.SmartUnicode(x)
+  """Whether the right operand is contained in the value."""
+
+  def Operation(self, x, y):
+    return y in x
 
 
 class NotContains(GenericBinaryOperator):
-  """Whether the right operand is not contained in any of the values."""
+  """Whether the right operand is not contained in the values."""
 
   def Operate(self, values):
-    return not Contains(self.children).Operate(values)
+    return not Contains(arguments=self.args,
+                        value_expander=self.value_expander_cls).Operate(values)
 
 
-#TODO(user): Change to an N-ary Operator?
+# TODO(user): Change to an N-ary Operator?
 class InSet(GenericBinaryOperator):
-  """Whether at least a value is contained in the list at the right operand.
+  """Whether all values are contained within the right operand."""
 
-  The list of values at the right operand is comma-separated.
-  """
+  def Operation(self, x, y):
+    """Whether x is fully contained in y."""
+    if x in y:
+      return True
 
-  # pylint: disable=C6402
-  operation = lambda self, x, y: (utils.SmartUnicode(x) in
-                                  utils.SmartUnicode(y).split(','))
+    # x might be an iterable
+    # first we need to skip strings or we'll do silly things
+    if (isinstance(x, basestring)
+        or isinstance(x, bytes)):
+      return False
+
+    try:
+      for value in x:
+        if value not in y:
+          return False
+      return True
+    except TypeError:
+      return False
 
 
 class NotInSet(GenericBinaryOperator):
-  """Whether no values are present in the list at the right operand."""
+  """Whether at least a value is not present in the right operand."""
 
   def Operate(self, values):
-    return not InSet(self.children).Operate(values)
+    return not InSet(arguments=self.args,
+                     value_expander=self.value_expander_cls).Operate(values)
 
 
 class Regexp(GenericBinaryOperator):
-  """Whether any of the values match the regexp in the right operand."""
+  """Whether the value matches the regexp in the right operand."""
 
-  def __init__(self, children):
-    super(Regexp, self).__init__(children)
-    logging.debug('Compiled: %s', self.comp_value)
+  def __init__(self, *children, **kwargs):
+    super(Regexp, self).__init__(*children, **kwargs)
+    logging.debug("Compiled: %s", self.right_operand)
     try:
-      self.compiled_re = re.compile(utils.SmartUnicode(self.comp_value))
+      self.compiled_re = re.compile(utils.SmartUnicode(self.right_operand))
     except re.error:
-      raise ValueError('Regular expression "%s" is malformed.' %
-                       self.comp_value)
+      raise ValueError("Regular expression \"%s\" is malformed." %
+                       self.right_operand)
 
-  def Operate(self, values):
+  def Operation(self, x, y):
     try:
-      for val in values:
-        if self.compiled_re.search(utils.SmartUnicode(val)): return True
-    except ValueError:
+      if self.compiled_re.search(utils.SmartUnicode(x)):
+        return True
+    except TypeError:
       return False
-    return False
 
 
 class Context(Operator):
@@ -255,8 +383,8 @@ class Context(Operator):
 
 
   AndOperator(
-    Equal('ImportedDLLs.ImpFunctions.Name', 'RegQueryValueEx'),
-    Equal('ImportedDLLs.NumImpFunctions', '1')
+    Equal("ImportedDLLs.ImpFunctions.Name", "RegQueryValueEx"),
+    Equal("ImportedDLLs.NumImpFunctions", "1")
     )
 
   Now imagine you have these two processes on a given system.
@@ -291,190 +419,416 @@ class Context(Operator):
   To write such an indicator you need to specify a context of ImportedDLLs for
   these two clauses. Such that you convert your indicator to:
 
-  Context('ImportedDLLs',
+  Context("ImportedDLLs",
           AndOperator(
-            Equal('ImpFunctions.Name', 'RegQueryValueEx'),
-            Equal('NumImpFunctions', '1')
+            Equal("ImpFunctions.Name", "RegQueryValueEx"),
+            Equal("NumImpFunctions", "1")
           ))
 
   Context will execute the filter specified as the second parameter for each of
-  the objects under 'ImportedDLLs', thus applying the condition per DLL, not per
+  the objects under "ImportedDLLs", thus applying the condition per DLL, not per
   object and returning the right result.
   """
 
-  def __init__(self, children):
-    if len(children) != 2:
-      raise InvalidNumberOfOperands('Context accepts only 2 operands.')
-    super(Context, self).__init__(children)
-    self.context, self.condition = self.children
+  def __init__(self, arguments=None, **kwargs):
+    if len(arguments) != 2:
+      raise InvalidNumberOfOperands("Context accepts only 2 operands.")
+    super(Context, self).__init__(arguments=arguments, **kwargs)
+    self.context, self.condition = self.args
 
   def Matches(self, obj):
-    for sub_object in ExpandValues(obj, self.context):
-      if self.condition.Matches(sub_object):
-        return True
+    for object_list in self.value_expander.Expand(obj, self.context):
+      for sub_object in object_list:
+        if self.condition.Matches(sub_object):
+          return True
     return False
 
 
-class ObjectFilter(object):
-  """Uses an ObjectFilter proto to return a compiled filter for objects."""
-
-  OP = {objectfilter_pb2.ObjectFilter.OP_IS: Is,
-        objectfilter_pb2.ObjectFilter.OP_IS_NOT: IsNot,
-        objectfilter_pb2.ObjectFilter.OP_GREATER: Greater,
-        objectfilter_pb2.ObjectFilter.OP_GREATER_EQUAL: GreaterEqual,
-        objectfilter_pb2.ObjectFilter.OP_LESS: Less,
-        objectfilter_pb2.ObjectFilter.OP_LESS_EQUAL: LessEqual,
-        objectfilter_pb2.ObjectFilter.OP_CONTAINS: Contains,
-        objectfilter_pb2.ObjectFilter.OP_NOT_CONTAINS: NotContains,
-        objectfilter_pb2.ObjectFilter.OP_REGEXP: Regexp,
-        objectfilter_pb2.ObjectFilter.OP_IN_SET: InSet,
-        objectfilter_pb2.ObjectFilter.OP_NOT_IN_SET: NotInSet,
-       }
-
-  OP2ENUM = {'is': objectfilter_pb2.ObjectFilter.OP_IS,
-             'isnot': objectfilter_pb2.ObjectFilter.OP_IS_NOT,
-             'contains': objectfilter_pb2.ObjectFilter.OP_CONTAINS,
-             'notcontains': objectfilter_pb2.ObjectFilter.OP_NOT_CONTAINS,
-             '>': objectfilter_pb2.ObjectFilter.OP_GREATER,
-             '>=': objectfilter_pb2.ObjectFilter.OP_GREATER_EQUAL,
-             '<': objectfilter_pb2.ObjectFilter.OP_LESS,
-             '<=': objectfilter_pb2.ObjectFilter.OP_LESS_EQUAL,
-             'inset': objectfilter_pb2.ObjectFilter.OP_IN_SET,
-             'notinset': objectfilter_pb2.ObjectFilter.OP_NOT_IN_SET,
-             'regexp': objectfilter_pb2.ObjectFilter.OP_REGEXP,
-            }
-
-  # Matches:
-  # path1.path2 operation "value" AND path4.path5 operation "value2"
-  finder = re.compile(r'^([^ ]+)\s+([^ ]+)\s+"([^"]+)"'
-                      r'(?:(?:\s+AND\s+)([^ ]+)\s+([^ ]+)\s+"([^"]+)")*$')
-
-  def __init__(self, filter_proto=None, filter_query=None):
-    self.filter_proto = filter_proto or ParseFilterQuery(filter_query)
-
-  def Compile(self):
-    """Returns a Filter instance representing the given filter query."""
-
-    if not self.filter_proto:
-      raise ValueError('No filter supplied')
-
-    or_children = []
-    for filt in self.filter_proto.filters:
-      and_children = []
-      for condition in filt.conditions:
-        try:
-          operation = ObjectFilter.OP[condition.op]
-          and_children.append(operation([condition.key, condition.value]))
-        except KeyError:
-          raise AttributeError('Operation %s not found' % condition.op)
-      or_children.append(AndFilter(and_children))
-    return OrFilter(or_children)
+OP2FN = {"equals": Equals,
+         "is": Equals,
+         "==": Equals,
+         "notequals": NotEquals,
+         "isnot": NotEquals,
+         "!=": NotEquals,
+         "contains": Contains,
+         "notcontains": NotContains,
+         ">": Greater,
+         ">=": GreaterEqual,
+         "<": Less,
+         "<=": LessEqual,
+         "inset": InSet,
+         "notinset": NotInSet,
+         "regexp": Regexp,
+        }
 
 
-def ParseFilterQuery(filter_query):
-  """Takes a filter in textual form and converts it to a ObjectFilter.
+class ValueExpander(object):
+  """Encapsulates the logic to expand values available in an object.
 
-  The filter_query takes the form of:
-    condition AND condition
-
-  Where condition is
-    key operation "value"
-
-  The supported operations can be found in ObjectFilter.OP2ENUM.
-
-  Args:
-    filter_query: The textual filter query.
-
-  Returns:
-    An instance of an ObjectFilter with the query already parsed and
-    ready to be compiled.
-
-  Raises:
-    MalformedQueryError: When the query is invalid.
-    ParseError: When unexpected results were foudn while parsing the query.
+  Once instantiated and called, this class returns all the values that follow a
+  given field path.
   """
 
-  try:
-    found = ObjectFilter.finder.match(filter_query)
-  except TypeError:
-    raise MalformedQueryError('The query must be a string or buffer.')
+  FIELD_SEPARATOR = "."
 
-  if not found:
-    raise MalformedQueryError('Invalid query.')
-  found_groups = list(found.groups())
+  def _GetAttributeName(self, path):
+    """Returns the attribute name to fetch given a path."""
+    return path[0]
 
-  if (len(found_groups) % 3) != 0:
-    raise ParseError('ParseFilterQuery expects conditions as 3 parameters. '
-                     '%d found.' % len(found_groups))
+  def _GetValue(self, obj, attr_name):
+    """Returns the value of tha attribute attr_name."""
+    raise NotImplementedError()
 
-  filter_pb = objectfilter_pb2.ObjectFilter()
-  filter_pb.filters.add()
+  def _AtLeaf(self, attr_value):
+    """Called when at a leaf value. Should yield a value."""
+    yield attr_value
 
-  while found_groups:
-    val = found_groups.pop()
-    op = found_groups.pop()
-    key = found_groups.pop()
-
-    # Special case for the second group of capturing groups
-    # When a filter such as 'key op "value"' is given
-    if key is op is val is None: continue
-
-    if op in ObjectFilter.OP2ENUM.keys():
-      condition = filter_pb.filters[0].conditions.add()
-      condition.key = key
-      condition.op = ObjectFilter.OP2ENUM[op]
-      condition.value = utils.SmartUnicode(val)
-  return filter_pb
-
-
-def ExpandValues(obj, path):
-  """Returns a list of all the values for the given path in the object obj.
-
-  Given a path such as ['sub1', 'sub2'] it will return all the values available
-  in obj.sub1.sub2 as a list. sub1 and sub2 must be data attributes or
-  properties.
-
-  If sub1 returns a list of objects, or a generator, ExpandValues aggregates
-  the values for the remaining path for each of the objects, thus returning a
-  list of all the values under the given path for the input object.
-
-  Args:
-    obj: An object that will be traversed for the given path
-    path: A list of strings
-
-  Yields:
-    The values once the object is traversed.
-  """
-
-  if isinstance(path, basestring):
-    path = path.split('.')
-
-  attr_name = path[0].lower()
-  attr_value = getattr(obj, attr_name, None)
-  if attr_value is None:
-    return
-
-  if len(path) == 1:
-    # If it returned an iterable and it's not a string or bytes, return its
-    # values.
-    if (not isinstance(attr_value, basestring)
-        and not isinstance(attr_value, bytes)):
-      try:
-        logging.debug('Returning %s as an iterated.', attr_value)
-        for value in attr_value:
-          yield value
-      except TypeError:
-        logging.debug('This object is not iterable. Returning as is.')
-        yield attr_value
-    else:
-      # Otherwise, return the object itself
-      yield attr_value
-  else:
-    # If we're not in a leaf, then we recurse
+  def _AtNonLeaf(self, attr_value, path):
+    """Called when at a non-leaf value. Should recurse and yield values."""
     try:
-      for sub_obj in attr_value:
-        for value in ExpandValues(sub_obj, path[1:]):
-          yield value
+      # Check first for iterables
+      # If it's a dictionary, we yield it
+      if isinstance(attr_value, dict):
+        yield attr_value
+      else:
+        # If it's an iterable, we recurse on each value.
+        for sub_obj in attr_value:
+          for value in self.Expand(sub_obj, path[1:]):
+            yield value
     except TypeError:  # This is then not iterable, we recurse with the value
-      for value in ExpandValues(attr_value, path[1:]):
+      for value in self.Expand(attr_value, path[1:]):
         yield value
+
+  def Expand(self, obj, path):
+    """Returns a list of all the values for the given path in the object obj.
+
+    Given a path such as ["sub1", "sub2"] it returns all the values available
+    in obj.sub1.sub2 as a list. sub1 and sub2 must be data attributes or
+    properties.
+
+    If sub1 returns a list of objects, or a generator, Expand aggregates the
+    values for the remaining path for each of the objects, thus returning a
+    list of all the values under the given path for the input object.
+
+    Args:
+      obj: An object that will be traversed for the given path
+      path: A list of strings
+
+    Yields:
+      The values once the object is traversed.
+    """
+    if isinstance(path, basestring):
+      path = path.split(self.FIELD_SEPARATOR)
+
+    attr_name = self._GetAttributeName(path)
+    attr_value = self._GetValue(obj, attr_name)
+    if attr_value is None:
+      return
+
+    if len(path) == 1:
+      for value in self._AtLeaf(attr_value):
+        yield value
+    else:
+      for value in self._AtNonLeaf(attr_value, path):
+        yield value
+
+
+class AttributeValueExpander(ValueExpander):
+  """An expander that gives values based on object attribute names."""
+
+  def _GetValue(self, obj, attr_name):
+    return getattr(obj, attr_name, None)
+
+
+class LowercaseAttributeValueExpander(AttributeValueExpander):
+  """An expander that lowercases all attribute names before access."""
+
+  def _GetAttributeName(self, path):
+    return path[0].lower()
+
+
+class DictValueExpander(ValueExpander):
+  """An expander that gets values from dictionary access to the object."""
+
+  def _GetValue(self, obj, attr_name):
+    return obj.get(attr_name, None)
+
+
+### PARSER DEFINITION
+class BasicExpression(lexer.Expression):
+  def Compile(self, filter_implementation):
+    arguments = [self.attribute]
+    op_str = self.operator.lower()
+    operator = filter_implementation.OPS.get(op_str, None)
+    if not operator:
+      raise ParseError("Unknown operator %s provided." % self.operator)
+    arguments.extend(self.args)
+    expander = filter_implementation.FILTERS["ValueExpander"]
+    return operator(arguments=arguments, value_expander=expander)
+
+
+class ContextExpression(lexer.Expression):
+  """Represents the context operator."""
+
+  def __init__(self, attribute="", part=None):
+    self.attribute = attribute
+    self.args = []
+    if part: self.args.append(part)
+    super(ContextExpression, self).__init__()
+
+  def __str__(self):
+    return "Context(%s %s)" % (
+        self.attribute, [str(x) for x in self.args])
+
+  def SetExpression(self, expression):
+    if isinstance(expression, lexer.Expression):
+      self.args = [expression]
+    else:
+      raise ParseError("Expected expression, got %s" % expression)
+
+  def Compile(self, filter_implementation):
+    arguments = [self.attribute]
+    for arg in self.args:
+      arguments.append(arg.Compile(filter_implementation))
+    expander = filter_implementation.FILTERS["ValueExpander"]
+    context_cls = filter_implementation.FILTERS["Context"]
+    return context_cls(arguments=arguments,
+                       value_expander=expander)
+
+
+class BinaryExpression(lexer.BinaryExpression):
+  def Compile(self, filter_implemention):
+    """Compile the binary expression into a filter object."""
+    operator = self.operator.lower()
+    if operator == "and" or operator == "&&":
+      method = "AndFilter"
+    elif operator == "or" or operator == "||":
+      method = "OrFilter"
+    else:
+      raise ParseError("Invalid binary operator %s" % operator)
+
+    args = [x.Compile(filter_implemention) for x in self.args]
+    return filter_implemention.FILTERS[method](arguments=args)
+
+
+class Parser(lexer.SearchParser):
+  """Parses and generates an AST for a query written in the described language.
+
+  Examples of valid syntax:
+    size is 40
+    (name contains "Program Files" AND hash.md5 is "123abc")
+    @imported_modules (num_symbols = 14 AND symbol.name is "FindWindow")
+  """
+  expression_cls = BasicExpression
+  binary_expression_cls = BinaryExpression
+  context_cls = ContextExpression
+
+  tokens = [
+      # Operators and related tokens
+      lexer.Token("INITIAL", r"\@[\w._0-9]+",
+                  "ContextOperator,PushState", "CONTEXTOPEN"),
+      lexer.Token("INITIAL", r"[^\s\(\)]", "PushState,PushBack", "ATTRIBUTE"),
+      lexer.Token("INITIAL", r"\(", "PushState,BracketOpen", None),
+      lexer.Token("INITIAL", r"\)", "BracketClose", "BINARY"),
+
+      # Context
+      lexer.Token("CONTEXTOPEN", r"\(", "BracketOpen", "INITIAL"),
+
+      # Double quoted string
+      lexer.Token("STRING", "\"", "PopState,StringFinish", None),
+      lexer.Token("STRING", r"\\x(..)", "HexEscape", None),
+      lexer.Token("STRING", r"\\(.)", "StringEscape", None),
+      lexer.Token("STRING", r"[^\\\"]+", "StringInsert", None),
+
+      # Single quoted string
+      lexer.Token("SQ_STRING", "'", "PopState,StringFinish", None),
+      lexer.Token("SQ_STRING", r"\\x(..)", "HexEscape", None),
+      lexer.Token("SQ_STRING", r"\\(.)", "StringEscape", None),
+      lexer.Token("SQ_STRING", r"[^\\']+", "StringInsert", None),
+
+      # Basic expression
+      lexer.Token("ATTRIBUTE", r"[\w._0-9]+", "StoreAttribute", "OPERATOR"),
+      lexer.Token("OPERATOR", r"(\w+|[<>!=]=?)", "StoreOperator", "ARG"),
+      lexer.Token("ARG", r"(\d+\.\d+)", "InsertFloatArg", "ARG"),
+      lexer.Token("ARG", r"(0x\d+)", "InsertInt16Arg", "ARG"),
+      lexer.Token("ARG", r"(\d+)", "InsertIntArg", "ARG"),
+      lexer.Token("ARG", "\"", "PushState,StringStart", "STRING"),
+      lexer.Token("ARG", "'", "PushState,StringStart", "SQ_STRING"),
+      # When the last parameter from arg_list has been pushed
+
+      # State where binary operators are supported (AND, OR)
+      lexer.Token("BINARY", r"(?i)(and|or|\&\&|\|\|)",
+                  "BinaryOperator", "INITIAL"),
+      # - We can also skip spaces
+      lexer.Token("BINARY", r"\s+", None, None),
+      # - But if it's not "and" or just spaces we have to go back
+      lexer.Token("BINARY", ".", "PushBack,PopState", None),
+
+      # Skip whitespace.
+      lexer.Token(".", r"\s+", None, None),
+      ]
+
+  def InsertArg(self, string="", **_):
+    """Insert an arg to the current expression."""
+    logging.debug("Storing Argument %s", string)
+
+    # This expression is complete
+    if self.current_expression.AddArg(string):
+      self.stack.append(self.current_expression)
+      self.current_expression = self.expression_cls()
+      # We go to the BINARY state, to find if there's an AND or OR operator
+      return "BINARY"
+
+  def InsertFloatArg(self, string="", **_):
+    """Inserts a Float argument."""
+    try:
+      float_value = float(string)
+      return self.InsertArg(float_value)
+    except (TypeError, ValueError):
+      raise ParseError("%s is not a valid float." % string)
+
+  def InsertIntArg(self, string="", **_):
+    """Inserts an Integer argument."""
+    try:
+      int_value = int(string)
+      return self.InsertArg(int_value)
+    except (TypeError, ValueError):
+      raise ParseError("%s is not a valid integer." % string)
+
+  def InsertInt16Arg(self, string="", **_):
+    """Inserts an Integer in base16 argument."""
+    try:
+      int_value = int(string, 16)
+      return self.InsertArg(int_value)
+    except (TypeError, ValueError):
+      raise ParseError("%s is not a valid base16 integer." % string)
+
+  def StringFinish(self, **_):
+    if self.state == "ATTRIBUTE":
+      return self.StoreAttribute(string=self.string)
+
+    elif self.state == "ARG":
+      return self.InsertArg(string=self.string)
+
+  def StringEscape(self, string, match, **_):
+    """Escape backslashes found inside a string quote.
+
+    Backslashes followed by anything other than [\'"rnbt] will raise an Error.
+
+    Args:
+      string: The string that matched.
+      match: The match object (m.group(1) is the escaped code)
+
+    Raises:
+      ParseError: When the escaped string is not one of [\'"rnbt]
+    """
+    if match.group(1) in "\\'\"rnbt":
+      self.string += string.decode("string_escape")
+    else:
+      raise ParseError("Invalid escape character %s." % string)
+
+  def HexEscape(self, string, match, **_):
+    """Converts a hex escaped string."""
+    logging.debug("HexEscape matched %s", string)
+    hex_string = match.group(1)
+    try:
+      self.string += binascii.unhexlify(hex_string)
+    except TypeError:
+      raise ParseError("Invalid hex escape %s" % string)
+
+  def ContextOperator(self, string="", **_):
+    self.stack.append(self.context_cls(string[1:]))
+
+  def Reduce(self):
+    """Reduce the token stack into an AST."""
+    # Check for sanity
+    if self.state != "INITIAL" and self.state != "BINARY":
+      self.Error("Premature end of expression")
+
+    length = len(self.stack)
+    while length > 1:
+      # Precendence order
+      self._CombineParenthesis()
+      self._CombineBinaryExpressions("and")
+      self._CombineBinaryExpressions("or")
+      self._CombineContext()
+
+      # No change
+      if len(self.stack) == length: break
+      length = len(self.stack)
+
+    if length != 1:
+      self.Error("Illegal query expression")
+
+    return self.stack[0]
+
+  def Error(self, message=None, _=None):
+    raise ParseError("%s in position %s: %s <----> %s )" % (
+        message, len(self.processed_buffer), self.processed_buffer,
+        self.buffer))
+
+  def _CombineBinaryExpressions(self, operator):
+    for i in range(1, len(self.stack)-1):
+      item = self.stack[i]
+      if (isinstance(item, lexer.BinaryExpression) and
+          item.operator.lower() == operator.lower() and
+          isinstance(self.stack[i-1], lexer.Expression) and
+          isinstance(self.stack[i+1], lexer.Expression)):
+        lhs = self.stack[i-1]
+        rhs = self.stack[i+1]
+
+        self.stack[i].AddOperands(lhs, rhs)
+        self.stack[i-1] = None
+        self.stack[i+1] = None
+
+    self.stack = filter(None, self.stack)
+
+  def _CombineContext(self):
+    # Context can merge from item 0
+    for i in range(len(self.stack)-1, 0, -1):
+      item = self.stack[i-1]
+      if (isinstance(item, ContextExpression) and
+          isinstance(self.stack[i], lexer.Expression)):
+        expression = self.stack[i]
+        self.stack[i-1].SetExpression(expression)
+        self.stack[i] = None
+
+    self.stack = filter(None, self.stack)
+
+
+### FILTER IMPLEMENTATIONS
+
+
+class BaseFilterImplementation(object):
+  """Defines the base implementation of an object filter by its attributes.
+
+  Inherit from this class, switch any of the needed operators and pass it to
+  the Compile method of a parsed string to obtain an executable filter.
+  """
+
+  OPS = OP2FN
+  FILTERS = {"ValueExpander": AttributeValueExpander,
+             "AndFilter": AndFilter,
+             "OrFilter": OrFilter,
+             "IdentityFilter": IdentityFilter,
+             "Context": Context}
+
+
+class LowercaseAttributeFilterImplementation(BaseFilterImplementation):
+  """Does field name access on the lowercase version of names.
+
+  Useful to only access attributes and properties with Google's python naming
+  style.
+  """
+
+  FILTERS = {}
+  FILTERS.update(BaseFilterImplementation.FILTERS)
+  FILTERS.update({"ValueExpander": LowercaseAttributeValueExpander})
+
+
+class DictFilterImplementation(BaseFilterImplementation):
+  """Does value fetching by dictionary access on the object."""
+
+  FILTERS = {}
+  FILTERS.update(BaseFilterImplementation.FILTERS)
+  FILTERS.update({"ValueExpander": DictValueExpander})

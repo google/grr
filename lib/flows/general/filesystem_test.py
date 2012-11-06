@@ -115,3 +115,111 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # And the wrong object is not there
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     self.assertRaises(IOError, client.OpenMember, path)
+
+  def testGlob(self):
+    """Test that glob works properly."""
+
+    # Add some usernames we can interpolate later.
+    client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
+    client.Set(client.Schema.USERNAMES("test syslog"))
+    client.Close()
+
+    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+
+    # This glob selects all files which start with the username on this system.
+    path = os.path.join(self.base_path, "%%Usernames%%*")
+
+    # Run the flow.
+    for _ in test_lib.TestFlowHelper(
+        "Glob", client_mock, client_id=self.client_id,
+        paths=[path], pathtype=jobs_pb2.Path.OS, token=self.token):
+      pass
+
+    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
+        "fs/os").Add(self.base_path.replace("\\", "/"))
+
+    count = 0
+    fd = aff4.FACTORY.Open(output_path, token=self.token)
+    for child in fd.ListChildren():
+      childname = child.Basename()
+      self.assertTrue(childname.startswith("test") or
+                      childname.startswith("syslog"))
+      count += 1
+
+    # We should find some files.
+    self.assertTrue(count >= 6)
+
+  def testGlobDirectory(self):
+    """Test that glob expands directories."""
+
+    # Add some usernames we can interpolate later.
+    client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
+    user_attribute = client.Schema.USER()
+
+    user_record = jobs_pb2.UserAccount()
+    user_record.special_folders.app_data = "test_data/index.dat"
+    user_attribute.Append(user_record)
+
+    user_record = jobs_pb2.UserAccount()
+    user_record.special_folders.app_data = "test_data/History"
+    user_attribute.Append(user_record)
+
+    # This is a record which means something to the interpolation system. We
+    # should not process this especially.
+    user_record = jobs_pb2.UserAccount()
+    user_record.special_folders.app_data = "%%PATH%%"
+    user_attribute.Append(user_record)
+
+    client.Set(user_attribute)
+
+    client.Close()
+
+    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+
+    # This glob selects all files which start with the username on this system.
+    path = os.path.join(os.path.dirname(self.base_path),
+                        "%%Users.special_folders.app_data%%")
+
+    # Run the flow.
+    for _ in test_lib.TestFlowHelper(
+        "Glob", client_mock, client_id=self.client_id,
+        paths=[path], token=self.token):
+      pass
+
+    path = aff4.ROOT_URN.Add(self.client_id).Add(
+        "fs/os").Add(self.base_path).Add("index.dat")
+
+    aff4.FACTORY.Open(path, required_type="VFSFile", token=self.token)
+
+    path = aff4.ROOT_URN.Add(self.client_id).Add(
+        "fs/os").Add(self.base_path).Add("index.dat")
+
+    aff4.FACTORY.Open(path, required_type="VFSFile", token=self.token)
+
+  def testGlobGrouping(self):
+    """Test that glob expands directories."""
+
+    pattern = "test_data/{ntfs_img.dd,*.log,*.raw}"
+
+    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+    path = os.path.join(os.path.dirname(self.base_path), pattern)
+
+    # Run the flow.
+    for _ in test_lib.TestFlowHelper(
+        "Glob", client_mock, client_id=self.client_id,
+        paths=[path], token=self.token):
+      pass
+
+  def testIllegalGlob(self):
+    """Test that illegal globs raise."""
+
+    pattern = "Test/%%Weird_illegal_attribute%%"
+
+    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+    path = os.path.join(os.path.dirname(self.base_path), pattern)
+
+    # Run the flow - we expect an AttributeError error to be raised from the
+    # flow since Weird_illegal_attribute is not a valid client attribute.
+    self.assertRaises(AttributeError, list, test_lib.TestFlowHelper(
+        "Glob", client_mock, client_id=self.client_id,
+        paths=[path], token=self.token))

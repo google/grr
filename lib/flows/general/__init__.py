@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,5 +39,6 @@ from grr.lib.flows.general import timelines
 from grr.lib.flows.general import transfer
 from grr.lib.flows.general import utilities
 from grr.lib.flows.general import volatility
+from grr.lib.flows.general import webcache
 from grr.lib.flows.general import webhistory
 from grr.lib.flows.general import webplugins

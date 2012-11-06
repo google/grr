@@ -378,6 +378,8 @@ ul.iconlist li a
 
 .ui-tabs .ui-tabs-panel {
    overflow: auto;
+   /* Do not pad tabs' contents*/
+   padding: 0;
 }
 
 .ui-tabs {
@@ -1097,6 +1099,12 @@ div::-webkit-scrollbar-thumb
     font-size:80%;
 }
 
+.ui-dialog .ui-dialog-content
+{
+    padding: 0;
+    overflow: hidden;
+}
+
 /* The following are for styling the table widget. */
 div.tableContainer {
     clear: both;
@@ -1214,12 +1222,22 @@ td.lease_available {
    background-color: rgba(0, 250, 0, 0.1) !important;
 }
 
+.Wizard {
+    font-size: 13px;
+}
+
+.Wizard h1 {
+    font-size: 130%;
+    font-weight: bold;
+    padding-bottom: 0.5em;
+}
+
 .Wizard .WizardBar {
     background-color: #2D2D2D;
     padding-left: 1em;
     padding-top: 0.5em;
     color: #FFFFFF;
-    font-size: 140%;
+    font-size: 120%;
     vertical-align: middle;
 }
 
@@ -1237,4 +1255,78 @@ td.lease_available {
 
 .Wizard .WizardBar .Next {
     float: right;
+}
+
+/* LaunchHunts wizard related styles */
+.HuntFormBody {
+    padding: 1em;
+}
+
+.HuntConfigureRules {
+    padding: 1em;
+}
+
+.HuntConfigureRules table {
+    margin-bottom: 0.25em;
+}
+
+.HuntConfigureRules .RulesList {
+    border-bottom: 1px solid black;
+    margin-bottom: 1em;
+}
+
+.HuntConfigureRules .RulesList .Rule {
+    margin-bottom: 3em;
+}
+
+.HuntInformation {
+    padding: 1em;
+    height: 100%;
+}
+
+.HuntInformation .attributesTable {
+    width: 50%;
+}
+
+.HuntInformation .attributesTableHeader th {
+    background: #A0A0A0;
+    border-left: 1px solid #B8B8B8;
+    border-right: 1px solid #747474;
+    border-top: 1px solid #B8B8B8;
+    padding: 4px;
+    text-align: left;
+}
+
+.HuntInformation .attributesTableContent td {
+    border-bottom: 1px solid #CCC;
+    border-left: 1px solid #CCC;
+    border-right: 1px solid #CCC;
+    border-top: 1px solid #DDD;
+    padding: 4px;
+}
+
+.HuntInformation .Flow, .HuntInformation .Rules {
+    padding-bottom: 1em;
+}
+
+.HuntInformation .TestsInProgress {
+    margin-top: 1em;
+    margin-bottom: 2em;
+    padding: 1em;
+    background-color: #AFDFF1; 
+}
+
+.HuntInformation .tableContainer {
+    border: none;
+}
+
+.HuntLaunchSummary {
+    padding: 1em;
+}
+
+.Wizard .Failure {
+  padding: 1em;
+  font-size: 150%;
+  color: red;
+  font-weight: bold;
 }

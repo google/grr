@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +21,8 @@ import re
 # because some of them rely on AFF4 which would
 # create a cyclic dependency
 
+import logging
+
 from grr.lib import aff4
 from grr.lib import utils
 
@@ -31,7 +32,7 @@ def GetUserInfo(client, user):
 
   Args:
     client: A VFSGRRClient object.
-    user: Username as string. May contain domain like DOMAIN\user.
+    user: Username as string. May contain domain like DOMAIN\\user.
   Returns:
     A jobs_pb2.User protobuf or None
   """
@@ -65,7 +66,7 @@ def InterpolatePath(path, client, users=None, path_args=None, depth=0):
   """
 
   sys_formatters = {
-      #TODO(user): Collect this during discovery from the registry.
+      # TODO(user): Collect this during discovery from the registry.
       # HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\
       # Value: SystemRoot
       "systemroot": "c:\\Windows"
@@ -78,11 +79,25 @@ def InterpolatePath(path, client, users=None, path_args=None, depth=0):
   if users:
     results = []
     for user in users:
+      # Extract and interpolate user specific formatters.
       user_pb = GetUserInfo(client, user)
-      results.append(path.format(user_pb=user_pb, **sys_formatters))
+      if user_pb:
+        formatters = dict([(k.name, v) for k, v in user_pb.ListFields()])
+        special_folders = dict([(k.name, v) for k, v in
+                                user_pb.special_folders.ListFields()])
+        formatters.update(special_folders)
+        formatters.update(sys_formatters)
+        try:
+          results.append(path.format(**formatters))
+        except KeyError:
+          pass   # We may be missing values for some users.
     return results
   else:
-    path = path.format(**sys_formatters)
+    try:
+      path = path.format(**sys_formatters)
+    except KeyError:
+      logging.warn("Failed path interpolation on %s", path)
+      return ""
     if "{" in path and depth < 10:
       path = InterpolatePath(path, client=client, users=users,
                              path_args=path_args, depth=depth+1)

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +16,7 @@
 
 
 import pickle
+import time
 
 
 from grr.client import conf
@@ -403,6 +403,51 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(CallStateFlow.success, True)
 
+  def Work(self, client_mock, worker_mock):
+    while True:
+      client_processed = client_mock.Next()
+      flows_run = []
+      for flow_run in worker_mock.Next():
+        flows_run.append(flow_run)
+
+      if client_processed == 0 and not flows_run:
+        break
+
+  def testDelayedCallState(self):
+    """Tests the ability to delay a CallState invocation."""
+
+    old_time = time.time
+    try:
+      time.time = lambda: 10000
+
+      client_mock = ClientMock()
+      client_mock = test_lib.MockClient(self.client_id, client_mock,
+                                        token=self.token)
+      worker_mock = test_lib.MockWorker(check_flow_errors=True,
+                                        token=self.token)
+
+      flow.FACTORY.StartFlow(self.client_id, "DelayedCallStateFlow",
+                             token=self.token)
+
+      self.Work(client_mock, worker_mock)
+
+      # We should have done the first CallState so far.
+      self.assertEqual(DelayedCallStateFlow.state, 1)
+
+      time.time = lambda: 10050
+
+      # 50 seconds more is not enough.
+      self.Work(client_mock, worker_mock)
+      self.assertEqual(DelayedCallStateFlow.state, 1)
+
+      # But 100 is.
+      time.time = lambda: 10100
+      self.Work(client_mock, worker_mock)
+      self.assertEqual(DelayedCallStateFlow.state, 2)
+
+    finally:
+      time.time = old_time
+
   def testChainedFlow(self):
     """Test the ability to chain flows."""
     ParentFlow.success = False
@@ -456,7 +501,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     """Make sure that client events handled securely."""
     received_events = []
 
-    class Listener1(flow.EventListener):
+    class Listener1(flow.EventListener):  # pylint:disable=W0612
       well_known_session_id = "W:test2"
       EVENTS = ["Event2"]
 
@@ -482,7 +527,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     # This should not work - the event listender does not accept client events.
     self.assertEqual(received_events, [])
 
-    class Listener2(flow.EventListener):
+    class Listener2(flow.EventListener):  # pylint:disable=W0612
       well_known_session_id = "W:test3"
       EVENTS = ["Event2"]
 
@@ -505,7 +550,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     """Test that events are sent to listeners."""
     received_events = []
 
-    class Listener1(flow.EventListener):
+    class Listener1(flow.EventListener):  # pylint:disable=W0612
       well_known_session_id = "W:test1"
       EVENTS = ["Event1"]
 
@@ -595,6 +640,31 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(sorted(result[3:5]),
                      [u"low priority", u"low priority2"])
 
+  def testCPULimit(self):
+    """Tests that the cpu limit works."""
+
+    result = []
+    client_mock = CPULimitClientMock(result)
+    client_mock = test_lib.MockClient(self.client_id, client_mock,
+                                      token=self.token)
+    worker_mock = test_lib.MockWorker(check_flow_errors=True,
+                                      token=self.token)
+
+    flow.FACTORY.StartFlow(
+        self.client_id, "CPULimitFlow",
+        cpu_limit=100, token=self.token)
+
+    while True:
+      client_processed = client_mock.Next()
+      flows_run = []
+      for flow_run in worker_mock.Next():
+        flows_run.append(flow_run)
+
+      if client_processed == 0 and not flows_run:
+        break
+
+    self.assertEqual(result, [100, 98, 78])
+
 
 class MockVFSHandler(vfs.VFSHandler):
   """A mock VFS handler with fake files."""
@@ -647,6 +717,44 @@ class PriorityFlow(flow.GRRFlow):
     pass
 
 
+class CPULimitClientMock(object):
+
+  in_protobuf = jobs_pb2.DataBlob
+
+  def __init__(self, storage):
+    self.storage = storage
+
+  def HandleMessage(self, message):
+    self.storage.append(message.cpu_limit)
+
+
+class CPULimitFlow(flow.GRRFlow):
+  """This flow is used to test the cpu limit."""
+
+  @flow.StateHandler(next_state="State1")
+  def Start(self):
+    self.CallClient("Store", string="Hey!", next_state="State1")
+
+  @flow.StateHandler(next_state="State2")
+  def State1(self):
+    # The mock worker doesn't track usage so we add it here.
+    self.flow_pb.cpu_used.user_cpu_time += 1
+    self.flow_pb.cpu_used.system_cpu_time += 1
+    self.flow_pb.remaining_cpu_quota -= 2
+    self.CallClient("Store", string="Hey!", next_state="State2")
+
+  @flow.StateHandler(next_state="Done")
+  def State2(self):
+    self.flow_pb.cpu_used.user_cpu_time += 10
+    self.flow_pb.cpu_used.system_cpu_time += 10
+    self.flow_pb.remaining_cpu_quota -= 20
+    self.CallClient("Store", string="Hey!", next_state="Done")
+
+  @flow.StateHandler()
+  def Done(self, responses):
+    pass
+
+
 class ClientMock(object):
   """Mock of client actions."""
 
@@ -665,8 +773,8 @@ class ChildFlow(flow.GRRFlow):
   def ReceiveHello(self, responses):
     # Relay the client's message to our parent
     for response in responses:
-      self.SendReply(jobs_pb2.DataBlob(string="Child received"))
-      self.SendReply(response)
+      self.SendReply(aff4.RDFString("Child received"))
+      self.SendReply(aff4.RDFString(response.string))
 
 
 class BrokenChildFlow(ChildFlow):
@@ -692,8 +800,8 @@ class ParentFlow(flow.GRRFlow):
   @flow.StateHandler(jobs_pb2.DataBlob)
   def ParentReceiveHello(self, responses):
     responses = list(responses)
-    if (len(responses) != 2 or "Child" not in responses[0].string or
-        "Hello" not in responses[1].string):
+    if (len(responses) != 2 or "Child" not in unicode(responses[0]) or
+        "Hello" not in unicode(responses[1])):
       raise RuntimeError("Messages not passed to parent")
 
     ParentFlow.success = True
@@ -738,6 +846,35 @@ class CallStateFlow(flow.GRRFlow):
       raise RuntimeError("Did not receive hello.")
 
     CallStateFlow.success = True
+
+
+class DelayedCallStateFlow(flow.GRRFlow):
+  """A flow that calls one of its own states with a delay."""
+
+  # This is a global flag which will be set when the flow runs.
+  state = 0
+
+  @flow.StateHandler(next_state="ReceiveHello")
+  def Start(self):
+    # Call the child flow.
+    self.context.CallState([jobs_pb2.DataBlob(string="Hello")],
+                           next_state="ReceiveHello")
+
+  @flow.StateHandler(jobs_pb2.DataBlob, next_state="DelayedHello")
+  def ReceiveHello(self, responses):
+    if responses.First().string != "Hello":
+      raise RuntimeError("Did not receive hello.")
+    DelayedCallStateFlow.state = 1
+
+    # Call the child flow.
+    self.context.CallState([jobs_pb2.DataBlob(string="Hello")],
+                           next_state="DelayedHello", delay=100)
+
+  @flow.StateHandler(jobs_pb2.DataBlob)
+  def DelayedHello(self, responses):
+    if responses.First().string != "Hello":
+      raise RuntimeError("Did not receive hello.")
+    DelayedCallStateFlow.state = 2
 
 
 class BadArgsFlow1(flow.GRRFlow):

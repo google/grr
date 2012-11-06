@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +20,8 @@ import crypt
 
 from django import http
 from django import shortcuts
+from django import template
+from django.views.decorators import csrf
 
 from grr.client import conf as flags
 import logging
@@ -95,7 +96,8 @@ def SecurityCheck(func):
             # The password is ok - update the user
             request.user = user
 
-      except (IndexError, KeyError): pass
+      except (IndexError, KeyError):
+        pass
 
       if not authorized:
         result = http.HttpResponse("Unauthorized", status=401)
@@ -112,9 +114,9 @@ def SecurityCheck(func):
 
 # If testing we ignore the security check
 try:
-  FLAGS.test_srcdir
+  _ = FLAGS.test_srcdir  # pylint: disable=g-unititialized-flag-used
 
-  def SecurityCheck(func):
+  def SecurityCheck(func):  # pylint: disable=function-redefined
     def Wrapper(request, *args, **kwargs):
       request.event_id = "1"
       request.user = "test"
@@ -128,11 +130,13 @@ except AttributeError:
 
 
 @SecurityCheck
-def Homepage(unused_request):
+@csrf.ensure_csrf_cookie    # Set the csrf cookie on the homepage.
+def Homepage(request):
   """Basic handler to render the index page."""
 
   context = {"title": SERVER_NAME}
-  return shortcuts.render_to_response("base.html", context)
+  return shortcuts.render_to_response(
+      "base.html", context, context_instance=template.RequestContext(request))
 
 
 @SecurityCheck

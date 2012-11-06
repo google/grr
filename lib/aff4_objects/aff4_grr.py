@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,15 +34,29 @@ from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
 
 
+class SpaceSeperatedStringArray(aff4.RDFString):
+  """A special string which stores strings as space separated."""
+
+  def __iter__(self):
+    for value in self.value.split():
+      yield value
+
+
 # These are objects we store as attributes of the client.
 class FileSystem(aff4.RDFProtoArray):
   """An RDFValue class representing one of the filesystems."""
   _proto = sysinfo_pb2.Filesystem
 
 
+class RDFSpecialFolders(aff4.RDFProto):
+  _proto = jobs_pb2.FolderInformation
+
+
 class User(aff4.RDFProtoArray):
   """An RDFValue class representing a list of users account."""
   _proto = jobs_pb2.UserAccount
+
+  rdf_map = dict(special_folders=RDFSpecialFolders)
 
 
 class GRRConfig(aff4.RDFProto):
@@ -89,7 +102,8 @@ class Flow(aff4.RDFProto):
   _proto = jobs_pb2.Task
 
   rdf_map = dict(create_time=aff4.RDFDatetime,
-                 args=aff4.RDFProtoDict)
+                 args=aff4.RDFProtoDict,
+                 state=aff4.RDFInteger)
 
   def ParseFromString(self, string):
     task = scheduler.TaskScheduler.Task(decoder=jobs_pb2.FlowPB)
@@ -121,9 +135,34 @@ class VersionString(aff4.RDFString):
     return result
 
 
+class RDFValueProto(aff4.RDFProto):
+  _proto = jobs_pb2.RDFValue
+
+  def AsRDFValue(self):
+    # Now try to create the correct RDFValue.
+    result_cls = aff4.FACTORY.RDFValue(self.data.name)
+    if result_cls is None:
+      raise RuntimeError("Unknown RDFValue %s" % self.data.name)
+
+    result = result_cls(age=self.data.age)
+    result.ParseFromString(self.data.data)
+
+    return result
+
+
 class GRRMessage(aff4.RDFProto):
   """An RDFValue for GRR messages."""
   _proto = jobs_pb2.GrrMessage
+
+  @property
+  def value(self):
+    """Return the RDFValue stored in this message."""
+    return RDFValueProto(self.args).AsRDFValue()
+
+
+class RDFStatus(aff4.RDFProto):
+  """An RDF object encapsulating the client status message."""
+  _proto = jobs_pb2.GrrStatus
 
 
 class TaskSchedulerTask(aff4.RDFProto):
@@ -170,7 +209,7 @@ class VFSGRRClient(standard.VFSDirectory):
     USER = aff4.Attribute("aff4:users", User,
                           "A user of the system.", "Users")
 
-    USERNAMES = aff4.Attribute("aff4:user_names", aff4.RDFString,
+    USERNAMES = aff4.Attribute("aff4:user_names", SpaceSeperatedStringArray,
                                "A space separated list of system users.",
                                "Usernames",
                                index=client_index)
@@ -609,18 +648,24 @@ class GRRForeman(aff4.AFF4Object):
     except AttributeError:
       last_foreman_run = 0
 
+    latest_rule = max([rule.created for rule in rules])
+
+    if latest_rule <= int(last_foreman_run):
+      return
+
+    # Update the latest checked rule on the client.
+    client.Set(client.Schema.LAST_FOREMAN_TIME(latest_rule))
+    client.Flush()
+
     # For efficiency we collect all the objects we want to open first and then
     # open them all in one round trip.
     object_urns = {}
     relevant_rules = []
-    latest_rule = 0
     expired_rules = False
 
     now = time.time() * 1e6
-    for rule in rules:
-      # What is the latest created rule?
-      latest_rule = max(latest_rule, rule.created)
 
+    for rule in rules:
       if rule.expires < now:
         expired_rules = True
         continue
@@ -643,11 +688,6 @@ class GRRForeman(aff4.AFF4Object):
     for rule in relevant_rules:
       if self._EvaluateRules(objects, rule, client_id):
         self._RunActions(rule, client_id)
-
-    # Update the latest checked rule on the client.
-    if latest_rule > int(last_foreman_run):
-      client.Set(client.Schema.LAST_FOREMAN_TIME(latest_rule))
-      client.Flush()
 
     if expired_rules:
       self.ExpireRules()
@@ -814,6 +854,9 @@ class VFSHunt(aff4.AFF4Object):
 
     HUNT_NAME = aff4.Attribute("aff4:hunt_name", aff4.RDFString,
                                "Name of this hunt.")
+
+    DESCRIPTION = aff4.Attribute("aff4:hunt_description", aff4.RDFString,
+                                 "Description of this hunt.")
 
     CREATOR = aff4.Attribute("aff4:creator_name", aff4.RDFString,
                              "Creator of this hunt.")

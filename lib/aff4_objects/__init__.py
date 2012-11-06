@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +20,7 @@
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import browser
 from grr.lib.aff4_objects import client_stats
+from grr.lib.aff4_objects import collections
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.aff4_objects import filters
 from grr.lib.aff4_objects import network

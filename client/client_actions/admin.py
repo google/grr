@@ -88,7 +88,7 @@ class Kill(actions.ActionPlugin):
 
 
 class Hang(actions.ActionPlugin):
-  """A client action for simulate the client becoming unresponsive (hanging).
+  """A client action for simulating the client becoming unresponsive (hanging).
 
   Used for testing nanny terminating the client.
   """
@@ -97,6 +97,16 @@ class Hang(actions.ActionPlugin):
   def Run(self, arg):
     # Sleep a really long time.
     time.sleep(arg.integer or 6000)
+
+
+class BusyHang(actions.ActionPlugin):
+  """A client action that burns cpu cycles. Used for testing cpu limits."""
+  in_protobuf = jobs_pb2.DataBlob
+
+  def Run(self, arg):
+    end = time.time() + (arg.integer or 5)
+    while time.time() < end:
+      pass
 
 
 class GetConfig(actions.ActionPlugin):

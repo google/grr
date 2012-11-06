@@ -1,5 +1,0 @@
-# Configuration file for grr-admin-ui init.d script
-
-# Start the grr-admin-ui
-START="no";
-

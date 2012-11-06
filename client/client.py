@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,10 +33,6 @@ from grr.client import comms
 from grr.client import conf
 from grr.lib import registry
 
-
-flags.DEFINE_string("camode", client_config.CAMODE,
-                    "The mode to run in, test,production,staging. This "
-                    "affects the CA certificate we trust.")
 
 flags.DEFINE_integer("server_serial_number", 0,
                      "Minimal serial number we accept for server cert.")

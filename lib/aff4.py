@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -297,8 +296,8 @@ class Factory(object):
       result = result.Upgrade(aff4_type)
       # This is the same type that was already stored so we don't have to
       # rewrite it.
-      result._dirty = False
-      result._new_version = False
+      setattr(result, "_dirty", False)
+      setattr(result, "_new_version", False)
 
     if (required_type is not None and
         not isinstance(result, AFF4Object.classes[required_type])):
@@ -387,8 +386,8 @@ class Factory(object):
     cls = AFF4Object.classes[str(aff4_type)]
     result = cls(urn, mode=mode, token=token, age=age)
     result.Initialize()
-    result._new_version = True
-    result._dirty = True
+    setattr(result, "_new_version", True)
+    setattr(result, "_dirty", True)
 
     return result
 
@@ -491,7 +490,11 @@ class RDFValue(object):
     else:
       self.age = age
 
-    if serialized is not None:
+    # Allow an RDFValue to be initialized from an identical RDFValue.
+    if serialized.__class__ == self.__class__:
+      self.ParseFromString(serialized.SerializeToString())
+
+    elif serialized is not None:
       self.ParseFromString(serialized)
 
   @property
@@ -519,6 +522,10 @@ class RDFValue(object):
   def SerializeToString(self):
     """Serialize into a string which can be parsed using ParseFromString."""
     pass
+
+  def __iter__(self):
+    """This allows every RDFValue to be iterated over."""
+    yield self
 
   def Summary(self):
     """Return a summary representation of the object."""
@@ -562,6 +569,12 @@ class RDFBytes(RDFValue):
   def __int__(self):
     return int(self.value)
 
+  def __bool__(self):
+    return bool(self.value)
+
+  def __nonzero__(self):
+    return bool(self.value)
+
 
 class RDFString(RDFBytes):
   """Represent a simple string."""
@@ -580,6 +593,9 @@ class RDFString(RDFBytes):
 
   def __unicode__(self):
     return utils.SmartUnicode(self.value)
+
+  def SerializeToString(self):
+    return utils.SmartStr(self.value)
 
   def SerializeToDataStore(self):
     return utils.SmartUnicode(self.value)
@@ -799,11 +815,15 @@ class RDFProto(RDFValue):
   def SerializeToString(self):
     return self.data.SerializeToString()
 
-  def GetField(self, field_name):
-    rdf_class = self.rdf_map.get(field_name, RDFString)
-    value = getattr(self.data, field_name)
+  def GetFields(self, field_names):
+    value = self.data
+    rdf_class = self
 
-    return rdf_class(value)
+    for field_name in field_names:
+      rdf_class = rdf_class.rdf_map.get(field_name, RDFString)
+      value = getattr(value, field_name)
+
+    return [rdf_class(value)]
 
   def __str__(self):
     return self.data.__str__()
@@ -811,6 +831,25 @@ class RDFProto(RDFValue):
   @classmethod
   def Fields(cls, name):
     return ["%s.%s" % (name, x.name) for x in cls._proto.DESCRIPTOR.fields]
+
+  def __getattr__(self, attr):
+    # Delegate to the protobuf if possible, but do not proxy private methods.
+    if not attr.startswith("_"):
+      return getattr(self.data, attr)
+
+    raise AttributeError(AttributeError)
+
+  def __setattr__(self, attr, value):
+    """If this attr does not belong to ourselves set in the proxied protobuf.
+
+    Args:
+      attr: The attribute to set.
+      value: The value to set.
+    """
+    if hasattr(self.data, attr) and not hasattr(self.__class__, attr):
+      setattr(self.data, attr, value)
+    else:
+      object.__setattr__(self, attr, value)
 
 
 class RDFProtoDict(RDFProto):
@@ -827,11 +866,16 @@ class RDFProtoArray(RDFProto):
   # This should be overridden as the proto in the array
   _proto = lambda: None
 
+  # This is where we store all the protobufs in the array.
+  data = None
+
   def __init__(self, serialized=None, age=None):
     super(RDFProtoArray, self).__init__(age=age)
     self.data = []
+    if isinstance(serialized, self._proto):
+      self.data.append(serialized)
 
-    if serialized is not None:
+    elif serialized is not None:
       self.ParseFromString(utils.SmartStr(serialized))
 
   def ParseFromString(self, string):
@@ -843,6 +887,20 @@ class RDFProtoArray(RDFProto):
       member = self._proto()
       member.ParseFromString(data_blob.data)
       self.data.append(member)
+
+  def GetFields(self, field_names):
+    """Recurse into an attribute to get sub fields by name."""
+    result = []
+    for value in self.data:
+      rdf_class = self
+
+      for field_name in field_names:
+        rdf_class = rdf_class.rdf_map.get(field_name, RDFString)
+        value = getattr(value, field_name)
+
+      result.append(rdf_class(value))
+
+    return result
 
   def Append(self, member=None, **kwargs):
     """Add another member to the array.
@@ -860,7 +918,11 @@ class RDFProtoArray(RDFProto):
     if member is None:
       member = self._proto(**kwargs)
 
-    elif type(member) != self._proto:
+    # Allow the member to be an RDFProto instance.
+    elif isinstance(member, RDFProto):
+      member = member.data
+
+    if type(member) != self._proto:
       raise TypeError("Can not append a %s to %s" % (
           type(member), self.__class__.__name__))
 
@@ -1216,10 +1278,12 @@ class Attribute(object):
     results = []
     for result in (fd.synced_attributes.get(self, []) +
                    fd.new_attributes.get(self, [])):
-      for field in self.field_names:
-        result = result.GetField(field)
 
-      results.append(result)
+      # We need to interpolate sub fields in this protobuf.
+      if self.field_names:
+        results.extend(result.GetFields(self.field_names))
+      else:
+        results.append(result)
 
     if not results:
       default = self.GetDefault(fd)
@@ -1598,10 +1662,8 @@ class AFF4Object(object):
     Checking Get against None doesn't work as Get will return a default
     attribute value. This determines if the attribute has been manually set.
     """
-    if (attribute in self.synced_attributes or
-        attribute in self.new_attributes):
-      return True
-    return False
+    return (attribute in self.synced_attributes or
+            attribute in self.new_attributes)
 
   def Get(self, attribute, default=None):
     """Gets the attribute from this object."""
@@ -1613,10 +1675,11 @@ class AFF4Object(object):
       attribute = Attribute.GetAttributeByName(attribute)
 
     # Reads of un-flushed writes are still allowed.
-    if "r" not in self.mode and attribute not in self.new_attributes:
+    if "r" not in self.mode and (attribute not in self.new_attributes and
+                                 attribute not in self.synced_attributes):
       # If there are defaults for this attribute - just use them.
       result = attribute.GetDefault(self)
-      if result:
+      if result is not None:
         return result
 
       raise IOError(
@@ -1636,9 +1699,11 @@ class AFF4Object(object):
       raise RuntimeError("Attempting to read all attribute versions for an "
                          "object opened for NEWEST_TIME. This is probably "
                          "not what you want.")
+
     if attribute is None:
       return []
-    elif isinstance(attribute, str):
+
+    elif isinstance(attribute, basestring):
       attribute = Attribute.GetAttributeByName(attribute)
 
     return attribute.GetValues(self)
@@ -2007,10 +2072,6 @@ class AFF4MemoryStream(AFF4Stream):
     CONTENT = Attribute("aff4:content", RDFBytes,
                         "Total content of this file.", default="")
 
-    # By default no compression.
-    COMPRESSION = Attribute("aff4:compression", RDFInteger,
-                            "Compression type.", default=0)
-
   def Initialize(self):
     """Try to load the data from the store."""
     contents = ""
@@ -2018,7 +2079,7 @@ class AFF4MemoryStream(AFF4Stream):
     if "r" in self.mode:
       contents = self.Get(self.Schema.CONTENT)
       try:
-        if contents and self.Get(self.Schema.COMPRESSION):
+        if contents is not None:
           contents = zlib.decompress(utils.SmartStr(contents))
       except zlib.error:
         pass
@@ -2074,6 +2135,7 @@ class AFF4Image(AFF4Stream):
   """
 
   NUM_RETRIES = 10
+  CHUNK_ID_TEMPLATE = "%010X"
 
   class SchemaCls(AFF4Stream.SchemaCls):
     CHUNKSIZE = Attribute("aff4:chunksize", RDFInteger,
@@ -2098,6 +2160,15 @@ class AFF4Image(AFF4Stream):
       self.size = 0
 
   def Seek(self, offset, whence=0):
+    # This stream does not support random writing in "w" mode. When the stream
+    # is opened in "w" mode we can not read from the data store and therefore we
+    # can not merge writes with existing data. It only makes sense to append to
+    # existing streams.
+    if self.mode == "w":
+      # Seeking to the end of the stream is ok.
+      if not (whence == 2 and offset == 0):
+        raise IOError("Can not seek with an AFF4Image opened for write only.")
+
     if whence == 0:
       self.offset = offset
     elif whence == 1:
@@ -2118,7 +2189,7 @@ class AFF4Image(AFF4Stream):
     self.write_chunk_cache.Flush()
 
   def _GetChunkForWriting(self, chunk):
-    chunk_name = self.urn.Add("%010X" % chunk)
+    chunk_name = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk)
     try:
       fd = self.write_chunk_cache.Get(chunk_name)
     except KeyError:
@@ -2129,7 +2200,7 @@ class AFF4Image(AFF4Stream):
     return fd
 
   def _GetChunkForReading(self, chunk):
-    chunk_name = self.urn.Add("%010X" % chunk)
+    chunk_name = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk)
     try:
       fd = self.read_chunk_cache.Get(chunk_name)
     except KeyError:
@@ -2137,7 +2208,7 @@ class AFF4Image(AFF4Stream):
       # readahead to reduce round trips.
       missing_chunks = []
       for chunk_number in range(chunk, chunk + 10):
-        new_chunk_name = self.urn.Add("%010X" % chunk_number)
+        new_chunk_name = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number)
         try:
           self.read_chunk_cache.Get(new_chunk_name)
         except KeyError:
@@ -2228,12 +2299,35 @@ class AFF4Image(AFF4Stream):
 
     self.size = max(self.size, self.offset)
 
-  def Close(self, sync=True):
+  def Flush(self, sync=True):
+    """This method is called to sync our data into storage.
+
+    We must flush all the chunks in the chunk cache, but we leave the one chunk
+    we still have at the moment, so that subsequent writes can add data to it.
+
+    Args:
+      sync: Should flushing be synchronous.
+    """
+    fd = None
     if self._dirty:
+      chunksize = int(self.Get(self.Schema.CHUNKSIZE))
+
+      chunk = self.offset / chunksize
+
+      cache_key = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk)
+      try:
+        fd = self.write_chunk_cache[cache_key]
+      except KeyError:
+        pass
+
       # Flush the cache
       self.write_chunk_cache.Flush()
       self.Set(self.Schema.SIZE(self.size))
-    super(AFF4Image, self).Close(sync=sync)
+
+    super(AFF4Image, self).Flush(sync=sync)
+
+    if fd:
+      self.write_chunk_cache.Put(cache_key, fd)
 
 
 # Utility functions

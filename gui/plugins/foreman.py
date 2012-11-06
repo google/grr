@@ -240,11 +240,11 @@ Delete Rule
   });
 
   $('#AddAction').button().click(function () {
-    grr.foreman.add_action({});
+    grr.foreman.add_action({rule_id: defaults.rule_id});
   });
 
   $('#AddCondition').button().click(function () {
-    grr.foreman.add_condition({});
+    grr.foreman.add_condition({rule_id: defaults.rule_id});
   });
 
   $('#DeleteRule').button().click(function () {
@@ -322,21 +322,19 @@ Delete Rule
     return result
 
 
-class RenderFlowForm(AddForemanRule):
+class RenderFlowForm(AddForemanRule, flow_management.FlowForm):
   """Render a customized form for a foreman action."""
 
   layout_template = renderers.Template("""
-{% for desc, field, value, default in fields %}
-  <tr><td>{{ desc|escape }}</td>
-{% if value %}
- <td><input name="{{field|escape}}" type=text
-      value="{{value|escape}}"/></td>
-{% else %}
- <td><input name="{{field|escape}}" type=text
-      value="{{default|escape}}"/>
-</td></tr>
-{% endif %}
+{% for row in this.form_elements %}
+  <tr> {{ row|escape }} </tr>
 {% endfor %}
+<script>
+  // Fixup checkboxes so they return values even if unchecked.
+  $(".FormBody").find("input[type=checkbox]").change(function() {
+    $(this).attr("value", $(this).attr("checked") ? "True" : "False");
+  });
+</script>
 """)
 
   def Layout(self, request, response):
@@ -346,7 +344,8 @@ class RenderFlowForm(AddForemanRule):
     requested_flow_name = request.REQ.get("flow", "ListDirectory")
     rule_number = int(request.REQ.get("action_id", 0))
 
-    if rule_id is not None:
+    args = []
+    if rule_id is not None and int(rule_id) != -1:
       rule_id = int(rule_id)
 
       fd = aff4.FACTORY.Open("aff4:/foreman", token=request.token)
@@ -369,24 +368,19 @@ class RenderFlowForm(AddForemanRule):
               fields.append((desc, field, action_argv[desc], default))
 
             args = fields
-          # User changed the flow - do not count existing values
-          else:
-            flow_class = flow.GRRFlow.classes[requested_flow_name]
-            args = self.GetArgs(flow_class, request,
-                                arg_template="v_%%s_%s" % rule_number)
 
         except IndexError:
-          args = []
+          pass
 
-      # User changed the flow - do not count existing values
-      else:
-        flow_class = flow.GRRFlow.classes[requested_flow_name]
-        args = self.GetArgs(flow_class, request,
-                            arg_template="v_%%s_%s" % rule_number)
+    # User changed the flow - do not count existing values
+    if not args:
+      flow_class = flow.GRRFlow.classes[requested_flow_name]
+      args = self.GetArgs(flow_class, request,
+                          arg_template="v_%%s_%s" % rule_number)
 
-    return self.RenderFromTemplate(
-        self.layout_template, response, name=requested_flow_name,
-        rule_number=rule_number, fields=args)
+    self.form_elements = self.RenderFormElements(args)
+
+    return renderers.TemplateRenderer.Layout(self, request, response)
 
 
 class AddForemanRuleAction(flow_management.FlowFormAction,
@@ -396,7 +390,7 @@ class AddForemanRuleAction(flow_management.FlowFormAction,
 
   layout_template = renderers.Template("""
 Created a new automatic rule:
-<pre> {{ this.rule|escape }}</pre>
+<pre> {{ this.foreman_rule|escape }}</pre>
 <script>
  grr.publish("grr_messages", "Created Foreman Rule");
 </script>
@@ -428,8 +422,7 @@ Error: {{ message|escape }}
 
       arg_list = self.GetArgs(flow_class, request,
                               arg_template="v_%%s_%s" % i)
-
-      args = self.BuildArgs(arg_list)
+      args = dict([(k, v) for (k, _, _, v, _) in arg_list])
       foreman_rule.actions.add(flow_name=flow_name,
                                argv=utils.ProtoDict(args).ToProto())
 

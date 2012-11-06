@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,6 +31,8 @@ if sys.platform == "win32":
   LocalPathToCanonicalPath = client_utils_windows.LocalPathToCanonicalPath
   NannyController = client_utils_windows.NannyController
 
+  KeepAlive = client_utils_windows.KeepAlive
+
 elif sys.platform == "darwin":
   from grr.client import client_utils_osx
   from grr.client import client_utils_linux
@@ -46,6 +47,8 @@ elif sys.platform == "darwin":
   # Should be the same as linux.
   NannyController = client_utils_linux.NannyController
 
+  KeepAlive = client_utils_osx.KeepAlive
+
 else:
   from grr.client import client_utils_linux
   # Linux platform
@@ -54,3 +57,5 @@ else:
   CanonicalPathToLocalPath = client_utils_linux.CanonicalPathToLocalPath
   LocalPathToCanonicalPath = client_utils_linux.LocalPathToCanonicalPath
   NannyController = client_utils_linux.NannyController
+
+  KeepAlive = client_utils_linux.KeepAlive

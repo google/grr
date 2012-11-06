@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -166,16 +165,27 @@ Prototype: {{ this.prototype|escape }}
 
     if arg_template is None:
       arg_template = self.arg_prefix + "%s"
+    multi_arg_template = arg_template + "[]"
 
     result = []
     for arg_name, arg_type, arg_default in flow_class.GetFlowArgTypeInfo():
 
-      # Retrieve the value from the request, use arg default if not present.
-      get_var = request.REQ.get(arg_template % utils.SmartStr(arg_name))
-      if get_var is None:
-        get_var = arg_default
+      # Note this is a hack that requires refactoring of the typeinfo/renderer
+      # binding. The correct solution is that the get_var is handled in the
+      # renderer, and the DecodeString intelligence is moved there as well.
+      if not isinstance(arg_type, type_info.MultiSelectList):
+        # Retrieve the value from the request, use arg default if not present.
+        get_var = request.REQ.get(arg_template % utils.SmartStr(arg_name))
+        if get_var is None:
+          get_var = arg_default
+        else:
+          get_var = arg_type.DecodeString(get_var)
       else:
-        get_var = arg_type.DecodeString(get_var)
+        # This is from a multiselect option box, variables are called v_var[]
+        get_var = request.REQ.getlist(multi_arg_template %
+                                      utils.SmartStr(arg_name))
+        if get_var is None:
+          get_var = arg_default
 
       # We append a special prefix to prevent name collisions.
       result.append((arg_name, arg_template % utils.SmartStr(arg_name),
@@ -278,6 +288,7 @@ class FlowForm(FlowInformation):
     """Update the form from the tree selection."""
     self.flow_name = request.REQ.get("flow_name", "").split("/")[-1]
     self.client_id = request.REQ.get("client_id", "")
+    self.client = aff4.FACTORY.Open(self.client_id, token=request.token)
 
     # Fill in the form elements
     try:
@@ -297,13 +308,15 @@ class FlowForm(FlowInformation):
       else:
         form_renderer = renderers.Renderer.classes[arg_type.renderer]()
         yield form_renderer.Format(arg_type=arg_type, field=field, desc=desc,
-                                   value=value, default=default)
+                                   value=value, default=default,
+                                   client=self.client, unique=self.unique)
 
     arg_type = type_info.ProtoEnum(jobs_pb2.GrrMessage, "Priority")
     form_renderer = renderers.Renderer.classes[arg_type.renderer]()
 
     yield form_renderer.Format(desc="Priority", field="priority",
-                               arg_type=arg_type, default=1, value=1)
+                               arg_type=arg_type, default=1, value=1,
+                               unique=self.unique)
 
 
 class FlowFormAction(FlowInformation):
@@ -428,17 +441,23 @@ class FlowStateIcon(renderers.RDFValueRenderer):
   """Render the flow state by using an icon."""
 
   layout_template = renderers.Template("""
-<img class='grr-icon grr-flow-icon' src='/static/images/{{icon|escape}}' />""")
+<img class='grr-icon grr-flow-icon'
+  src='/static/images/{{this.icon|escape}}' />""")
 
   # Maps the flow states to icons we can show
   state_map = {jobs_pb2.FlowPB.TERMINATED: "stock_yes.png",
                jobs_pb2.FlowPB.RUNNING: "clock.png",
                jobs_pb2.FlowPB.ERROR: "nuke.png"}
 
-  def Layout(self, _, response):
-    return self.RenderFromTemplate(
-        self.layout_template, response,
-        icon=self.state_map.get(self.proxy, "question-red.png"))
+  icon = "question-red.png"
+
+  def Layout(self, request, response):
+    try:
+      self.icon = self.state_map[int(self.proxy)]
+    except (KeyError, ValueError):
+      pass
+
+    super(FlowStateIcon, self).Layout(request, response)
 
 
 class FlowArgsRenderer(renderers.RDFProtoRenderer):
@@ -689,7 +708,6 @@ class ListFlowsTable(renderers.TableRenderer):
     # flows. So we can not have a situation where a parent flow can not be
     # found.
     for flow_obj in sorted(flows, key=lambda x: x.flow_pb.data.create_time):
-
       # Assume that session_ids are unique.
       index[flow_obj.session_id] = flow_obj
       flow_obj.children = []
@@ -866,11 +884,32 @@ class FlowPBRenderer(renderers.RDFProtoRenderer):
     return self.FormatFromTemplate(self.proto_template,
                                    data=protodict.ToDict().items())
 
+  backtrace_template = renderers.Template("""
+<div id='hidden_pre_{{name|escape}}'>
+  <ins class='fg-button ui-icon ui-icon-minus'/>
+  {{error_msg|escape}}
+  <div class='contents'>
+    <pre>{{value|escape}}</pre>
+  </div>
+</div>
+<script>
+$('#hidden_pre_{{name|escape}}').click(function () {
+  $(this).find('ins').toggleClass('ui-icon-plus ui-icon-minus');
+  $(this).find('.contents').toggle();
+}).click();
+</script>
+""")
+
+  def RenderBacktrace(self, descriptor, value):
+    error_msg = value.rstrip().split("\n")[-1]
+    return self.FormatFromTemplate(self.backtrace_template, value=value,
+                                   name=descriptor.name, error_msg=error_msg)
+
   # Pretty print these special fields.
   translator = dict(
       create_time=renderers.RDFProtoRenderer.Time,
       pickle=renderers.RDFProtoRenderer.Ignore,
-      backtrace=renderers.RDFProtoRenderer.Pre,
+      backtrace=RenderBacktrace,
       state=renderers.RDFProtoRenderer.Enum,
       ts_id=renderers.RDFProtoRenderer.Ignore,
       args=renderers.RDFProtoRenderer.ProtoDict,

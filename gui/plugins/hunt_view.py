@@ -44,8 +44,35 @@ class HuntTable(renderers.TableRenderer):
   """Show all hunts."""
   selection_publish_queue = "hunt_select"
 
-  layout_template = renderers.TableRenderer.layout_template + """
+  layout_template = """
+<div id="toolbar_{{unique|escape}}" class="toolbar">
+  <button id='launch_hunt_{{unique|escape}}' title='Launch Hunt'
+    name="LaunchHunt">
+    <img src='/static/images/new.png' class='toolbar_icon'>
+  </button>
+  <div class="new_hunt_dialog" id="new_hunt_dialog_{{unique|escape}}" />
+</div>
+""" + renderers.TableRenderer.layout_template + """
 <script>
+  $(".new_hunt_dialog[id!='new_hunt_dialog_{{unique|escape}}'").remove();
+
+  $("#new_hunt_dialog_{{unique|escape}}").bind('resize', function() {
+    grr.publish("GeometryChange", "new_hunt_dialog_{{unique|escape}}");
+  });
+  grr.dialog("LaunchHunts", "new_hunt_dialog_{{unique|escape}}",
+    "launch_hunt_{{unique|escape}}",
+    { modal: true,
+      width: Math.min(parseInt($('body').css('width')) * 0.9, 1000),
+      height: Math.min(parseInt($('body').css('height')) * 0.9, 700),
+      title: "Launch New Hunt",
+      open: function() {
+        grr.layout("LaunchHunts", "new_hunt_dialog_{{unique|escape}}");
+      }
+    });
+  grr.subscribe("WizardComplete", function(wizardStateName) {
+    $("#new_hunt_dialog_{{unique|escape}}").dialog("close");
+  }, "new_hunt_dialog_{{unique|escape}}");
+
   //Receive the selection event and emit the detail.
   grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
     if (node) {
@@ -90,19 +117,22 @@ class HuntTable(renderers.TableRenderer):
 
       hunts = list(fd.OpenChildren(children=children))
 
-      session_ids = [h.urn.Basename() for h in hunts]
-      hunt_objs = list(flow.FACTORY.GetFlowObjs(session_ids,
+      hunts_by_session_ids = dict([(h.urn.Basename(), h) for h in hunts])
+      hunt_objs = list(flow.FACTORY.GetFlowObjs(hunts_by_session_ids.keys(),
                                                 token=request.token))
       hunt_objs.sort(key=lambda obj: obj.start_time, reverse=True)
       for hunt in hunt_objs:
         expire_time = (hunt.start_time + hunt.expiry_time) * 1e6
+        vfshunt = hunts_by_session_ids[hunt.session_id]
+        description = (vfshunt.Get(vfshunt.Schema.DESCRIPTION) or
+                       hunt.__class__.__doc__.split("\n", 1)[0])
         self.AddRow({"Hunt ID": hunt.session_id,
                      "Name": hunt.__class__.__name__,
                      "Status": hunt.flow_pb.state,
                      "Start Time": aff4.RDFDatetime(hunt.start_time * 1e6),
                      "Expires": aff4.RDFDatetime(expire_time),
                      "Creator": hunt.user,
-                     "Description": hunt.__class__.__doc__.split("\n", 1)[0]})
+                     "Description": description})
       displayed_ok = set([h.session_id for h in hunt_objs])
       for hunt in hunts:
         session_id = hunt.urn.Split()[-1]
@@ -256,7 +286,7 @@ back to hunt view</a>
         if resource_max[i] < resource[i]:
           resource_max[i] = resource[i]
 
-    #TODO(user): Allow table to be filtered by client status.
+    # TODO(user): Allow table to be filtered by client status.
     results = {}
     for status, client_list in self.hunt.GetClientsByStatus().items():
       for client in client_list:

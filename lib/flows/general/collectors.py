@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -105,6 +104,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     """Get a set of files."""
     self.GetFiles([path], path_type=path_type)
 
+  @flow.StateHandler()
   def End(self):
     self.Notify("FlowStatus", self.client_id,
                 "Completed artifact collection of %s. Collected %d. Errors %d."

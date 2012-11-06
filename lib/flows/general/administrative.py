@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -172,6 +171,31 @@ class UpdateConfig(flow.GRRFlow):
           responses.status))
 
 
+class ExecutePythonHack(flow.GRRFlow):
+  """Execute a signed python hack on a client."""
+
+  category = "/Administrative/"
+
+  def __init__(self, hack_name=None, **kwargs):
+    self.hack_name = hack_name
+    super(ExecutePythonHack, self).__init__(**kwargs)
+
+  @flow.StateHandler(next_state=["End"])
+  def Start(self):
+    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("config").Add(
+        "python_hacks").Add(self.hack_name), token=self.token)
+
+    python_blob = fd.Get(fd.Schema.BINARY)
+    self.CallClient("ExecutePython", python_code=python_blob.data,
+                    next_state="End")
+
+  @flow.StateHandler()
+  def End(self, responses):
+    response = responses.First()
+    if responses.success and response:
+      self.SendReply(aff4.RDFBytes(utils.SmartStr(response.return_val)))
+
+
 class ExecuteCommand(flow.GRRFlow):
   """Execute a predefined command on the client."""
 
@@ -229,7 +253,7 @@ class Foreman(flow.WellKnownFlow):
   foreman_cache = None
 
   # How often we refresh the rule set from the data store.
-  cache_refresh_time = 600
+  cache_refresh_time = 60
 
   def ProcessMessage(self, message):
     """Run the foreman on the client."""
@@ -388,6 +412,10 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
 
 <p>Thanks,</p>
 <p>The GRR team.
+<p>
+P.S. The failing flow was:
+%(flow)s
+
 </body></html>"""
 
   @flow.EventHandler(allow_client_access=True)
@@ -395,6 +423,9 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
     """Processes this event."""
     _ = event
     client_id = message.source
+
+    flow_pb = flow.FACTORY.FetchFlow(message.session_id, token=self.token,
+                                     lock=False)
 
     # Log.
     logging.info("Client crash reported, client %s.", client_id)
@@ -404,7 +435,7 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
 
     # Also send email.
     if FLAGS.monitoring_email:
-      client = aff4.FACTORY.Open(client_id)
+      client = aff4.FACTORY.Open(client_id, token=self.token)
       hostname = client.Get(client.Schema.HOSTNAME)
       url = urllib.urlencode((("c", client_id),
                               ("main", "HostInformation")))
@@ -414,7 +445,7 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
                              self.mail_template % dict(
                                  client_id=client_id,
                                  admin_ui=FLAGS.ui_url,
-                                 hostname=hostname,
+                                 hostname=hostname, flow=flow_pb,
                                  urn=url),
                              is_html=True)
 
@@ -425,3 +456,42 @@ class AdministrativeInit(registry.InitHook):
 
   def RunOnce(self):
     stats.STATS.RegisterVar("grr_client_crashes")
+
+
+class KeepAlive(flow.GRRFlow):
+  """Requests that the clients stays alive for a period of time."""
+
+  category = "/Administrative/"
+
+  sleep_time = 60
+
+  def __init__(self, stayalive_time=3600, **kwargs):
+    """Init.
+
+    Args:
+      stayalive_time: How long the client should be kept in the faster poll
+                      state.
+    """
+    self.end_time = time.time() + stayalive_time
+    super(KeepAlive, self).__init__(**kwargs)
+
+  @flow.StateHandler(next_state="SendMessage")
+  def Start(self):
+    self.CallState(next_state="SendMessage")
+
+  @flow.StateHandler(next_state="Sleep")
+  def SendMessage(self, responses):
+    if not responses.success:
+      self.Log(responses.status.error_message)
+      raise flow.FlowError(responses.status.error_message)
+
+    self.CallClient("Echo", data="Wake up!", next_state="Sleep")
+
+  @flow.StateHandler(next_state="SendMessage")
+  def Sleep(self, responses):
+    if not responses.success:
+      self.Log(responses.status.error_message)
+      raise flow.FlowError(responses.status.error_message)
+
+    if time.time() < self.end_time - self.sleep_time:
+      self.CallState(next_state="SendMessage", delay=self.sleep_time)

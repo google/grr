@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-
-# Copyright 2011 Google Inc.
+# Copyright 2012 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -137,7 +136,10 @@ class FindFiles(flow.GRRFlow):
         fd = aff4.FACTORY.Create(vfs_urn, "VFSDirectory", token=self.token)
       else:
         fd = aff4.FACTORY.Create(vfs_urn, "VFSFile", token=self.token)
-      fd.Set(fd.Schema.STAT(response.hit))
+
+      stat_response = fd.Schema.STAT(response.hit)
+      fd.Set(stat_response)
+
       fd.Set(fd.Schema.PATHSPEC(response.hit.pathspec))
       fd.Close(sync=False)
 
@@ -146,7 +148,7 @@ class FindFiles(flow.GRRFlow):
         self.collection_list.Append(response.hit)
 
       # Send the stat to the parent flow.
-      self.SendReply(response.hit)
+      self.SendReply(stat_response)
 
     self.received_count += len(responses)
 
@@ -160,6 +162,7 @@ class FindFiles(flow.GRRFlow):
       self.CallClient("Find", self.request, next_state="IterateFind")
       self.Log("%d files processed.", self.received_count)
 
+  @flow.StateHandler()
   def End(self):
     """Save the collection and notification if output is enabled."""
     if self.output:

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -85,7 +84,7 @@ class GetFile(flow.GRRFlow):
   @flow.StateHandler()
   def Stat(self, responses):
     """Fix up the pathspec of the file."""
-    if responses.success:
+    if responses.success and responses.First():
       self.stat = responses.First()
       self.pathspec = utils.Pathspec(self.stat.pathspec)
     else:
@@ -149,6 +148,7 @@ class GetFile(flow.GRRFlow):
       # Add one more chunk to the window.
       self.FetchWindow(1)
 
+  @flow.StateHandler()
   def End(self):
     """Finalize reading the file."""
     if self.urn is None:
@@ -160,10 +160,20 @@ class GetFile(flow.GRRFlow):
       self.Log("Flow Completed in %s seconds",
                time.time() - self.flow_pb.create_time/1e6)
 
-      response = self.fd.Get(self.fd.Schema.STAT)
+      stat_response = self.fd.Get(self.fd.Schema.STAT)
       self.fd.Close(sync=True)
+
       # Notify any parent flows the file is ready to be used now.
-      self.SendReply(response)
+      self.SendReply(stat_response)
+
+
+class HashTracker(object):
+  """A class to track a blob hash."""
+
+  def __init__(self, hash_response):
+    self.hash_response = hash_response
+    self.blob_urn = aff4.ROOT_URN.Add("blobs").Add(
+        hash_response.data.encode("hex"))
 
 
 class FastGetFile(GetFile):
@@ -177,14 +187,16 @@ class FastGetFile(GetFile):
 
   def __init__(self, path="/", pathtype=jobs_pb2.Path.OS,
                pathspec=None, **kwargs):
+
     self.hash_queue = []
+    self.hash_map = {}
+    self.in_flight = set()
     super(FastGetFile, self).__init__(path=path, pathtype=pathtype,
                                       pathspec=pathspec, **kwargs)
 
   def FetchWindow(self, number_of_chunks_to_readahead):
     """Read ahead a number of buffers to fill the window."""
     for _ in range(number_of_chunks_to_readahead):
-
       # Do not read past the end of file
       if self.current_chunk_number > self.max_chunk_number:
         return
@@ -192,61 +204,80 @@ class FastGetFile(GetFile):
       self.CallClient("HashBuffer", pathspec=self.pathspec.ToProto(),
                       offset=self.current_chunk_number * self._CHUNK_SIZE,
                       length=self._CHUNK_SIZE, next_state="CheckHashes")
+
       self.current_chunk_number += 1
 
-  def CreateHashImage(self):
-    super(FastGetFile, self).CreateHashImage()
-    self.hash_queue = []
-
-  @flow.StateHandler(next_state=["ReadBuffer", "CheckHashes"])
+  @flow.StateHandler(next_state=["CheckHashes"])
   def CheckHashes(self, responses):
     """Check if the hashes are already in the data store."""
+    # In order to minimize the round trips we only actually check the hashes
+    # periodically.
     for response in responses:
-      blob_urn = aff4.ROOT_URN.Add("blobs").Add(response.data.encode("hex"))
-      self.hash_queue.append((blob_urn, response))
+      if response.offset not in self.hash_map:
+        tracker = HashTracker(response)
+        self.hash_queue.append(tracker)
+        self.hash_map[response.offset] = tracker
 
-    if len(self.hash_queue) > self._WINDOW_SIZE / 2:
-      self.CheckQueuedHashes()
+    self.CheckQueuedHashes()
 
   def CheckQueuedHashes(self):
     """Check which of the hashes in the queue we already have."""
-    urns = [blob_urn for blob_urn, _ in self.hash_queue]
+    urns = [x.blob_urn for x in self.hash_queue]
     fds = aff4.FACTORY.Stat(urns, token=self.token)
 
     # These blob urns we have already.
     matched_urns = set([x["urn"] for x in fds])
 
-    for blob_urn, response in self.hash_queue:
-      if blob_urn in matched_urns:
-        if self.fd is None:
-          self.CreateHashImage()
-
-        self.fd.AddBlob(response.data, response.length)
-        self.Log("Received blob hash %s", response.data.encode("hex"))
-        self.Status("Received %s bytes", self.fd.size)
-      else:
+    # Fetch all the blob urns we do not have and that are not currently already
+    # in flight.
+    for hash_blob in self.hash_queue:
+      offset = hash_blob.hash_response.offset
+      if (hash_blob.blob_urn not in matched_urns and
+          offset not in self.in_flight):
         self.CallClient("TransferBuffer", pathspec=self.pathspec.ToProto(),
-                        offset=response.offset, length=self._CHUNK_SIZE,
-                        next_state="ReadBuffer")
-
-      # Keep the window open in any case by hashing the next buffer.  Do not
-      # read past the end of file though.
-      if self.current_chunk_number < self.max_chunk_number:
-        self.CallClient("HashBuffer", pathspec=self.pathspec.ToProto(),
-                        offset=self.current_chunk_number * self._CHUNK_SIZE,
+                        offset=offset,
                         length=self._CHUNK_SIZE, next_state="CheckHashes")
+        self.in_flight.add(offset)
 
-        self.current_chunk_number += 1
+    # Now read the hashes in order and append as many as possible to the image.
+    i = 0
+    for i in range(len(self.hash_queue)):
+      hash_blob = self.hash_queue[i]
 
-    # Clear the queue.
-    self.hash_queue = []
+      if self.fd is None:
+        self.CreateHashImage()
 
-  @flow.StateHandler(next_state=["CheckHashes", "ReadBuffer"])
-  def End(self):
+      if hash_blob.blob_urn not in matched_urns:
+        # We can not keep writing until this buffer comes back from the client
+        # since hash blobs must be written in order.
+        break
+
+      # We must write the hashes in order to the output.
+      if hash_blob.hash_response.offset < self.fd.size:
+        continue
+
+      elif hash_blob.hash_response.offset > self.fd.size:
+        break
+
+      self.fd.AddBlob(hash_blob.hash_response.data,
+                      hash_blob.hash_response.length)
+
+      self.Log("Received blob hash %s", hash_blob.blob_urn)
+      self.Status("Received %s bytes", self.fd.size)
+
+    if i:
+      self.hash_queue = self.hash_queue[i:]
+      self.hash_map = dict(
+          [(x.hash_response.offset, x) for x in self.hash_queue])
+
+  @flow.StateHandler(next_state=["CheckHashes"])
+  def End(self, responses):
     if self.hash_queue:
       self.CheckQueuedHashes()
-    else:
-      super(FastGetFile, self).End()
+
+    # Are we really finished?
+    if not self.OutstandingRequests():
+      super(FastGetFile, self).End(responses)
 
 
 class GetMBR(flow.GRRFlow):
@@ -289,7 +320,7 @@ class GetMBR(flow.GRRFlow):
     mbr.write(response.data)
     mbr.Close()
     self.Log("Successfully stored the MBR (%d bytes)." % len(response.data))
-    self.SendReply(response)
+    self.SendReply(aff4.RDFBytes(response.data))
 
 
 class TransferStore(flow.WellKnownFlow):
@@ -402,24 +433,25 @@ class FileDownloader(flow.GRRFlow):
           count += 1
           self.CallFlow("GetFile",
                         next_state="HandleDownloadedFiles",
-                        pathspec=response.pathspec)
+                        pathspec=response.pathspec,
+                        request_data=dict(pathspec=response.pathspec))
 
       self.Log("Scheduling download of %d files", count)
 
     else:
       self.Log("Find failed %s", responses.status)
 
-  @flow.StateHandler(jobs_pb2.StatResponse)
+  @flow.StateHandler()
   def HandleDownloadedFiles(self, responses):
     """Handle the Stats that come back from the GetFile calls."""
     if responses.success:
-      # GetFile returns a list of StatResponse protos.
-      for response_stat in responses:
-        self.Log("Downloaded %s", response_stat.pathspec)
-        self.SendReply(response_stat)
+      # GetFile returns a list of StatEntry.
+      for response in responses:
+        self.Log("Downloaded %s", response)
+        self.SendReply(response)
     else:
       self.Log("Download of file %s failed %s",
-               responses.GetRequestArgPb().pathspec, responses.status)
+               responses.request_data["pathspec"], responses.status)
 
   def GetFindSpecs(self):
     """Returns iterable of jobs_pb2.Find objects. Should be overridden."""
@@ -488,8 +520,7 @@ class FileCollector(flow.GRRFlow):
     self.fd.Close(True)
 
     # Tell our caller about the new collection.
-    self.SendReply(jobs_pb2.StatResponse(
-        aff4path=utils.SmartUnicode(self.fd.urn)))
+    self.SendReply(self.fd.urn)
 
   @flow.StateHandler()
   def End(self):

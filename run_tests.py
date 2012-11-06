@@ -73,6 +73,12 @@ def ParseArgs(argv=None):
   parser.add_argument("--output",
                       help="The name of the file we write on (default stderr).")
 
+  parser.add_argument("--verbose", action="store_true", default=False,
+                      help="Verbose output")
+
+  parser.add_argument("--debug", action="store_true", default=False,
+                      help="Debug tests.")
+
   parser.add_argument("--processes", type=int, default=5,
                       help="Total number of simultaneous tests to run.")
 
@@ -193,6 +199,11 @@ def main(argv=None):
       sys.stdout = stream
 
     sys.argv = [""]
+    if FLAGS.verbose:
+      sys.argv.append("--verbose")
+
+    if FLAGS.debug:
+      sys.argv.append("--debug")
 
     for test_suite in FLAGS.tests:
       RunTest(test_suite, stream=stream)

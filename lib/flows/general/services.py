@@ -51,6 +51,7 @@ class EnumerateRunningServices(flow.GRRFlow):
     master.Set(services)
     master.Close()
 
+  @flow.StateHandler()
   def End(self):
     self.Log('Successfully wrote %d services.', self.service_count)
     urn = aff4.ROOT_URN.Add(self.client_id).Add('analysis/Services')

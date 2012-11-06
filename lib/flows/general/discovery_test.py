@@ -87,7 +87,8 @@ class TestInterrogate(test_lib.FlowTestsBaseclass):
 
     # Run the flow in the simulated way
     for _ in test_lib.TestFlowHelper(flow_name, InterrogatedClient(),
-                                     token=self.token, client_id=self.client_id):
+                                     token=self.token,
+                                     client_id=self.client_id):
       pass
 
     # Now check that the AFF4 object is properly set
@@ -159,4 +160,4 @@ class TestInterrogate(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(notifications.data), 1)
     notification = notifications.data[0]
 
-    self.assertEqual(notification.subject, aff4.ROOT_URN.Add(self.client_id))
+    self.assertEqual(notification.subject, self.client_id)

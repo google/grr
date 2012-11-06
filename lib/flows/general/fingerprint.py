@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2012 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -71,9 +70,10 @@ class FingerprintFile(flow.GRRFlow):
     fd.Set(fingerprint)
     fd.Close(sync=False)
 
+  @flow.StateHandler()
   def End(self):
     """Finalize the flow."""
     self.Notify("ViewObject", self.urn, "Fingerprint retrieved.")
     self.Status("Finished fingerprinting %s", self.pathspec.path)
     # Notify any parent flows.
-    self.SendReply(self.pathspec)
+    self.SendReply(self.urn)

@@ -340,3 +340,31 @@ class ArtifactList(TypeInfoObject):
 class ArtifactListOrNone(ArtifactList):
   """An artifact list or the value None."""
   allow_none = True
+
+
+class MultiSelectList(TypeInfoObject):
+  """Abstract type that select from a list of values."""
+
+  def Validate(self, value):
+    if value is None:
+      if not self.allow_none:
+        raise NoneNotAllowedTypeValueError("None is an invalid value here")
+    else:
+      try:
+        iter(value)
+      except TypeError:
+        raise TypeValueError("%s not a valid iterable" % value)
+      for val in value:
+        if not isinstance(val, basestring):
+          raise TypeValueError("%s not a valid instance string." % val)
+
+
+class UserList(MultiSelectList):
+  """A list of usernames."""
+  renderer = "UserListRenderer"
+
+
+class UserListOrNone(UserList):
+  """A list of usernames or the value None."""
+  allow_none = True
+

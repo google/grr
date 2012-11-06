@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -47,7 +46,6 @@ class Interrogate(flow.GRRFlow):
                                  "EnumerateInterfaces", "EnumerateFilesystems",
                                  "ClientInfo", "ClientConfig",
                                  "VerifyUsers"])
-
   def Start(self):
     """Start off all the tests."""
     # Create the objects we need to exist.
@@ -126,7 +124,7 @@ class Interrogate(flow.GRRFlow):
 
       self.sid_data[acc["SID"]]["domain"] = acc["Domain"]
       folder_path = (r"HKEY_USERS\%s\Software\Microsoft\Windows"
-                     "\CurrentVersion\Explorer\Shell Folders") % acc["SID"]
+                     r"\CurrentVersion\Explorer\Shell Folders") % acc["SID"]
       self.CallClient("ListDirectory",
                       pathspec=jobs_pb2.Path(path=folder_path,
                                              pathtype=jobs_pb2.Path.REGISTRY),
@@ -355,10 +353,11 @@ class Interrogate(flow.GRRFlow):
     else:
       self.Log("Could not get client config.")
 
+  @flow.StateHandler()
   def End(self):
     """Finalize client registration."""
     # Create the bare VFS with empty virtual directories.
     fd = aff4.FACTORY.Create(self.client.urn.Add("processes"),
                              "ProcessListing", token=self.token)
     fd.Close()
-    self.Notify("Discovery", self.client.urn, "Client Discovery Complete")
+    self.Notify("Discovery", self.client_id, "Client Discovery Complete")

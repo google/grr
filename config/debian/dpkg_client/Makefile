@@ -12,7 +12,7 @@ all: build
 
 build: $(BUILDFILES)
 	$(PYINSTALLER) \
-	  --onefile \
+	  --onedir \
 	  --console \
 	  --strip \
 	  --name=$(BUILDNAME) \
@@ -22,8 +22,8 @@ clean:
 	@rm -rf build/ dist/
 
 install:
-	@mkdir -p $(prefix)/sbin
-	@install -m 0755 dist/grrd $(prefix)/sbin/grrd
+	@mkdir -p $(prefix)/share/grr
+	@install -m 0755 dist/grrd/* $(prefix)/share/grr/
 
 .py:
 

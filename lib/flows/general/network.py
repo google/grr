@@ -55,6 +55,7 @@ class Netstat(flow.GRRFlow):
     net_fd.Set(conns)
     net_fd.Close()
 
+  @flow.StateHandler()
   def End(self):
     self.Log("Successfully wrote %d connections.", self.conn_count)
     self.Notify("ViewObject", self.urn, "Listed Connections")

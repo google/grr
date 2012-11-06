@@ -35,6 +35,7 @@ class ClientTestBase(unittest.TestCase):
   platforms = []
   flow = None
   args = {}
+  cpu_limit = None
 
   __metaclass__ = registry.MetaclassRegistry
 
@@ -60,7 +61,7 @@ class ClientTestBase(unittest.TestCase):
       A GRRFlow object.
     """
     session_id = flow.FACTORY.StartFlow(client_id, flow_name, token=self.token,
-                                        **kwargs)
+                                        cpu_limit=self.cpu_limit, **kwargs)
     while 1:
       time.sleep(1)
       flow_pb = flow.FACTORY.FetchFlow(session_id, lock=False, token=self.token)
@@ -326,3 +327,30 @@ def RunTests(client_id, platform, testname=None, token=None):
     if platform in cls.platforms:
       print "Running %s." % cls.__name__
       runner.run(cls(client_id, token=token))
+
+
+class TestCPULimit(ClientTestBase):
+  platforms = ["linux", "windows", "darwin"]
+
+  flow = "CPULimitTestFlow"
+
+  cpu_limit = 7
+
+  def CheckFlow(self):
+    self.assertTrue("CPU quota exceeded." in self.session_id.flow_pb.backtrace)
+
+
+class CPULimitTestFlow(flow.GRRFlow):
+  """This flow is used to test the cpu limit."""
+
+  @flow.StateHandler(next_state="State1")
+  def Start(self):
+    self.CallClient("BusyHang", next_state="State1")
+
+  @flow.StateHandler(next_state="Done")
+  def State1(self):
+    self.CallClient("BusyHang", next_state="Done")
+
+  @flow.StateHandler()
+  def Done(self, responses):
+    pass

@@ -7,13 +7,15 @@
 # deployable agents.
 #
 
+PREFIX=/usr
 VERSION_URL=https://grr.googlecode.com/files/latest_versions.txt
+REPO_BASE_URL=https://grr.googlecode.com/git
 
 # EXE_DIR is where the executables and templates are stored
 # Allow it to be overridden by environment variable.
 if [ -z "${EXE_DIR}" ];
 then
-  EXE_DIR=/usr/share/grr/executables;
+  EXE_DIR=${PREFIX}/share/grr/executables;
 fi
 
 
@@ -37,9 +39,9 @@ function run_cmd_confirm()
   CMD=$*;
   echo ""
   if [ ${ALL_YES} = 0 ]; then
-    read -p "Run ${CMD} [y/N/a]? " REPLY
+    read -p "Run ${CMD} [Y/n/a]? " REPLY
     case $REPLY in
-      y|Y) run_header ${CMD};;
+      y|Y|'') run_header ${CMD};;
       a|A) echo "Answering yes from now on"; ALL_YES=1;;
       *) return ;;
     esac
@@ -54,7 +56,7 @@ function run_cmd_confirm()
 echo "###############################################################"
 echo "### Retrieving the latest list of clients and their packages"
 echo "###############################################################"
-run_cmd_confirm wget ${VERSION_URL}
+run_cmd_confirm wget -N --no-verbose ${VERSION_URL}
 VERSION_FILE=$(basename ${VERSION_URL});
 WIN64_URL=$(grep client-win-64 ${VERSION_FILE} | cut -f 2);
 WIN32_URL=$(grep client-win-32 ${VERSION_FILE} | cut -f 2);
@@ -66,12 +68,21 @@ echo "###############################################################"
 # File will look like grr-installer-2204-64.zip and contain a directory named
 # as the version, e.g. 2204
 # 2204/grr.exe 2204/grrservice.exe 2204/....
-run_cmd_confirm wget ${WIN64_URL}
+run_cmd_confirm wget -N --no-verbose ${WIN64_URL}
 run_cmd_confirm sudo unzip -o -d ${EXE_DIR}/windows/templates/win64 $(basename ${WIN64_URL});
 
-run_cmd_confirm wget ${WIN32_URL}
+run_cmd_confirm wget -N --no-verbose ${WIN32_URL}
 run_cmd_confirm sudo unzip -o -d ${EXE_DIR}/windows/templates/win32 $(basename ${WIN32_URL});
 
+
+SFX_DIR=$EXE_DIR/windows/templates/unzipsfx/
+sudo mkdir -p $EXE_DIR/windows/templates/unzipsfx;
+if [ ! -f ${SFX_DIR}/unzipsfx-32.exe ]; then
+  run_cmd_confirm wget --no-verbose -N ${REPO_BASE_URL}/executables/templates/windows/unzipsfx-32.exe;
+  run_cmd_confirm wget --no-verbose -N ${REPO_BASE_URL}/executables/templates/windows/unzipsfx-64.exe;
+  mv -f unzipsfx-32.exe ${SFX_DIR}
+  mv -f unzipsfx-64.exe ${SFX_DIR}
+fi
 
 echo "###############################################################"
 echo "### OSX client"
@@ -79,7 +90,7 @@ echo "###############################################################"
 # File will look like grr-client-osx-2206.zip and contain a GRR.dmg file
 # under a directory named as the version, e.g. 2206
 # /2206/GRR.dmg
-run_cmd_confirm wget ${OSX_URL};
+run_cmd_confirm wget -N --no-verbose ${OSX_URL};
 if [ ! -d ${EXE_DIR}/osx/templates ]; then
   run_cmd_confirm mkdir -p ${EXE_DIR}/osx/templates
 fi

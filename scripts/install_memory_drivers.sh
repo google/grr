@@ -8,10 +8,12 @@
 #
 #
 
+PREFIX="/usr"
+
 OSX_PMEM_URL="https://volatility.googlecode.com/svn/branches/scudette/tools/osx/OSXPMem/OSXPMem-RC1.tar.gz"
 WIN_PMEM_URL_BASE="https://volatility.googlecode.com/svn/branches/scudette/tools/windows/winpmem/binaries"
 
-CONFIG_UPDATER="/usr/bin/grr_config_updater.py"
+CONFIG_UPDATER="${PREFIX}/bin/grr_config_updater.py"
 
 # Variable to store if the user has answered "Yes to All"
 ALL_YES=0;
@@ -39,11 +41,11 @@ function exit_fail() {
 function run_cmd_confirm()
 {
   CMD=$*;
-  echo ""
   if [ ${ALL_YES} = 0 ]; then
-    read -p "Run ${CMD} [y/N/a]? " REPLY
+    echo ""
+    read -p "Run ${CMD} [Y/n/a]? " REPLY
     case $REPLY in
-      y|Y) run_header ${CMD};;
+      y|Y|'') run_header ${CMD};;
       a|A) echo "Answering yes from now on"; ALL_YES=1;;
       *) return ;;
     esac
@@ -57,9 +59,9 @@ function run_cmd_confirm()
 
 
 header "Downloading winpmem drivers"
-run_cmd_confirm wget ${WIN_PMEM_URL_BASE}/amd64/winpmem_64.sys;
-run_cmd_confirm wget ${WIN_PMEM_URL_BASE}/i386/winpmem_32.sys;
-run_cmd_confirm wget ${OSX_PMEM_URL};
+run_cmd_confirm wget --no-verbose -N ${WIN_PMEM_URL_BASE}/amd64/winpmem_64.sys;
+run_cmd_confirm wget --no-verbose -N ${WIN_PMEM_URL_BASE}/i386/winpmem_32.sys;
+run_cmd_confirm wget --no-verbose -N ${OSX_PMEM_URL};
 
 
 header "Sign and upload OSX pmem driver"

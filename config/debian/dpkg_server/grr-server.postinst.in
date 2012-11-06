@@ -1,15 +1,7 @@
 # Generate the CSRF/XSRF secret key
-if [ -f /usr/share/pyshared/grr/gui/settings.py ];
+if [ -x /usr/share/grr/scripts/generate_django_key.sh ];
 then
-  echo "Generating django secret key."
-  echo "";
-
-  SECRET_KEY=`dd if=/dev/urandom count=10 | strings | tr -dc "[:alnum:]"`;
-  sed -i "s/CHANGE_ME/${SECRET_KEY}/" /usr/share/pyshared/grr/gui/settings.py;
-else
-  echo "WARNING: unable to generate django secret key".
-  echo "Replace CHANGE_ME in: /usr/share/pyshared/grr/gui/settings.py";
-  echo "";
+  /usr/share/grr/scripts/generate_django_key.sh
 fi
 
 # Generate the keys
@@ -22,3 +14,12 @@ else
   echo "";
 fi
 
+echo "########################################################"
+echo "Post install done"
+echo ""
+echo "Next steps:"
+echo "1. Run /usr/share/grr/scripts/grr_add_user.sh"
+echo "2. Run /usr/share/grr/scripts/update_clients.sh"
+echo "3. Run /usr/share/grr/scripts/build_clients.sh"
+echo "4. Run /usr/share/grr/scripts/build_memory_drivers.sh"
+echo "########################################################"

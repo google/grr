@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -203,6 +202,10 @@ class ActionPlugin(object):
     Raises:
       CPUExceededError: CPU limit exceeded.
     """
+
+    # Prevent the machine from sleeping while the action is running.
+    client_utils.KeepAlive()
+
     if self.nanny_controller is None:
       self.nanny_controller = client_utils.NannyController()
     self.nanny_controller.Heartbeat()

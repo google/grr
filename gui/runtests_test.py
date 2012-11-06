@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +17,7 @@ import socket
 import sys
 
 
-from django.core.management import setup_environ
+from django.conf import settings
 
 
 from grr.client import conf
@@ -27,7 +26,6 @@ import selenium
 
 
 from grr.gui import runtests
-from grr.gui import settings
 from grr.lib import test_lib
 
 flags.DEFINE_integer("selenium_port", 4444,
@@ -69,7 +67,7 @@ def main(argv):
   FLAGS.storage = "FakeDataStore"
 
 
-  setup_environ(settings)
+  settings.configure(**runtests.DJANGO_SETTINGS)
 
   # Load up the tests after the environment has been configured.
   # pylint: disable=C6204,W0612

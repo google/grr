@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,3 +51,23 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     self.assertEqual(
         urn, aff4.RDFURN(r"aff4:/C.1234/fs/tsk/\\.\Volume{1234}\/"
                          "Test Directory/notes.txt:ads"))
+
+  def testClientSubfieldGet(self):
+    """Test we can get subfields of the client."""
+
+    fd = aff4.FACTORY.Create("C.0000000000000000", "VFSGRRClient",
+                             token=self.token, age=aff4.ALL_TIMES)
+
+    for i in range(5):
+      folder = "C:/Users/user%s" % i
+      user_pb = jobs_pb2.UserAccount(username="user%s" % i)
+      user_pb.special_folders.app_data = folder
+
+      fd.AddAttribute(fd.Schema.USER(user_pb))
+
+    fd.Close()
+
+    # Check the repeated Users array.
+    for i, folder in enumerate(
+        fd.GetValuesForAttribute("Users.special_folders.app_data")):
+      self.assertEqual(folder, "C:/Users/user%s" % i)

@@ -334,3 +334,8 @@ class OSXVersion(object):
       10.8 for 10.8.1
     """
     return float(".".join(self.majorminor))
+
+
+def KeepAlive():
+  # Not yet supported for OSX.
+  pass

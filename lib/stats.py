@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,6 +33,7 @@ import psutil
 from grr.client import conf as flags
 import logging
 from grr.lib import registry
+
 
 
 FLAGS = flags.FLAGS
@@ -323,13 +323,14 @@ class StatsCollector(threading.Thread):
 
   exit = False
 
-  def __init__(self, sleep_time=10):
+  def __init__(self, worker, sleep_time=10):
     super(StatsCollector, self).__init__()
     self.sleep_time = sleep_time
     self.daemon = True
     self.proc = psutil.Process(os.getpid())
     self.cpu_samples = []
     self.io_samples = []
+    self.worker = worker
     STATS.RegisterFunction("grr_client_cpu_usage", self.PrintCpuSamples)
     STATS.RegisterFunction("grr_client_io_usage", self.PrintIOSample)
 
@@ -339,6 +340,8 @@ class StatsCollector(threading.Thread):
       if self.exit:
         break
       self.Collect()
+      # Let the worker check if it should send back the stats.
+      self.worker.CheckStats()
 
   def Collect(self):
     """Collects the stats."""

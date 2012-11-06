@@ -20,7 +20,6 @@ volatility to operate directly on the client.
 """
 
 
-import sys
 
 
 # Initialize the volatility plugins, so pylint: disable=W0611
@@ -48,7 +47,9 @@ class ProtobufRenderer(renderer.RendererBaseClass):
     TABLE = 1
     STRING = 2
 
-  def __init__(self):
+  def __init__(self, vol_session=None, fd=None, **_):
+    super(ProtobufRenderer, self).__init__(session=vol_session, fd=fd)
+
     self.response = jobs_pb2.VolatilityResponse()
     self.active_section = None
     self.mode = None
@@ -63,7 +64,8 @@ class ProtobufRenderer(renderer.RendererBaseClass):
   def end(self):
     pass
 
-  def start(self, plugin_name=None):
+  def start(self, plugin_name=None, kwargs=None):
+    _ = kwargs
     if plugin_name:
       self.response.plugin = plugin_name
 
@@ -101,7 +103,6 @@ class ProtobufRenderer(renderer.RendererBaseClass):
       header_pb.format_hint = format_hint
 
   def AddValue(self, row, value):
-
     response = row.values.add()
     if isinstance(value, obj.BaseObject):
       response.type = value.obj_type
@@ -157,6 +158,9 @@ class ProtobufRenderer(renderer.RendererBaseClass):
   def GetResponse(self):
     return self.response
 
+  def RenderProgress(self, *args):
+    self.session.progress(*args)
+
 
 class UnicodeStringIO(object):
   """Just like StringIO but uses unicode strings."""
@@ -177,12 +181,6 @@ class VolatilityAction(actions.ActionPlugin):
   in_protobuf = jobs_pb2.VolatilityRequest
   out_protobuf = jobs_pb2.VolatilityResponse
 
-  def GuessProfile(self, vol_session):
-    """Guesses a likely profile from the client."""
-    if sys.platform.startswith("win"):
-      # Have volatility itself guess the profile.
-      return vol_session.plugins.guess_profile(session=vol_session)
-
   def Run(self, args):
     """Run a volatility plugin and return the result."""
     # Recover the volatility session.
@@ -196,10 +194,10 @@ class VolatilityAction(actions.ActionPlugin):
         self.Progress()
 
       vol_session = session.Session()
+      vol_session.profile = args.profile
       vol_session.fhandle = vfs.VFSOpen(args.device)
-
-      # Install the heartbeat mechanism.
       vol_session.progress = Progress
+      vol_session.renderer = "ProtobufRenderer"
 
       # Get the dtb from the driver if possible.
       try:
@@ -207,15 +205,16 @@ class VolatilityAction(actions.ActionPlugin):
       except AttributeError:
         pass
 
+      vol_session.vol("load_as")
+
+      # Get the kdbg from the driver if possible.
       try:
-        vol_session.profile = self.GuessProfile(vol_session)
+        vol_session.kdbg = vol_session.fhandle.kdbg
       except AttributeError:
-        # TODO(user): Volatility does not have this plugin yet.
         pass
 
-      # Have a default if we cant guess.
       if not vol_session.profile:
-        vol_session.profile = "Win7SP1x64"
+        vol_session.vol("guess_profile")
 
       SESSION_CACHE.Put(args.device.path, vol_session)
 
@@ -229,20 +228,13 @@ class VolatilityAction(actions.ActionPlugin):
       # Heartbeat the client to ensure we keep our nanny happy.
       vol_session.progress(message="Running plugin %s" % plugin)
 
-      result_renderer = ProtobufRenderer()
-      result_renderer.start(plugin)
+      ui_renderer = ProtobufRenderer(session=vol_session)
       try:
-        # Get the plugin the server asked for.
-        vol_plugin = getattr(vol_session.plugins, plugin)(session=vol_session)
-
-        # Render the results.
-        vol_plugin.render(result_renderer)
-
-      # Whatever happens here we need to report it.
-      except Exception as e:  #pylint: disable=W0703
+        vol_session.vol(plugin, renderer=ui_renderer)
+      except Exception as e:  # pylint: disable=W0703
         error = str(e)
 
-      response = result_renderer.GetResponse()
+      response = ui_renderer.GetResponse()
       if error:
         response.error = error
 

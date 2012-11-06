@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,6 +25,7 @@ from grr.gui.plugins import flow_management
 from grr.gui.plugins import foreman
 from grr.gui.plugins import hunt_view
 from grr.gui.plugins import inspect
+from grr.gui.plugins import launch_hunt
 from grr.gui.plugins import notifications
 from grr.gui.plugins import searchclient
 from grr.gui.plugins import statistics

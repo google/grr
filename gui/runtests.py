@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,14 +22,13 @@ from wsgiref import simple_server
 
 
 
+from django.conf import settings
 from django.core.handlers import wsgi
-from django.core.management import setup_environ
 
 from grr.client import conf
 from grr.client import conf as flags
 import logging
 
-from grr.gui import settings
 from grr.lib import aff4
 from grr.lib import data_store
 
@@ -48,6 +46,14 @@ flags.DEFINE_integer("port", 8000,
                      "port to listen on for selenium tests.")
 
 FLAGS = flags.FLAGS
+
+DJANGO_SETTINGS = {
+    "SECRET_KEY": "TEST KEY 1234567890",         # Used for XSRF protection.
+    "ROOT_URLCONF": "grr.gui.urls",
+    "TEMPLATE_DIRS": ("grr/gui/templates",),
+    # Don't use the database for sessions, use a file.
+    "SESSION_ENGINE": "django.contrib.sessions.backends.file",
+}
 
 
 class DjangoThread(threading.Thread):
@@ -85,6 +91,7 @@ class RunTestsInit(registry.InitHook):
   fixture_cache = None
 
   def Run(self):
+    """Run the hook setting up fixture and security mananger."""
     # Install the mock security manager so we can trap errors in interactive
     # mode.
     data_store.DB.security_manager = test_lib.MockSecurityManager()
@@ -115,7 +122,7 @@ def main(_):
   FLAGS.storage = "FakeDataStore"
 
 
-  setup_environ(settings)
+  settings.configure(**DJANGO_SETTINGS)
 
   # Load up the tests after the environment has been configured.
   # pylint: disable=C6204,W0612

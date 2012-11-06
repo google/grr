@@ -64,6 +64,7 @@ message GrrMessage {
     MESSAGE = 0;
     STATUS = 1;
     ITERATOR = 2;
+    RDF_VALUE = 3;
   };
 
   // The final response to a request carries this type which indicates it is a
@@ -367,6 +368,12 @@ message FlowPB {
 
   // The priority of this flow.
   optional GrrMessage.Priority priority = 20;
+
+  // The cpu quota of this flow.
+  optional float cpu_quota = 21;
+
+  // The remaining cpu quota of this flow.
+  optional float remaining_cpu_quota = 22;
 };
 
 message CpuSeconds {
@@ -999,6 +1006,15 @@ message Notification {
   // The user or service which generated this notification.
   optional string source = 4;
   optional uint64 timestamp = 5;  // Time the notification was added.
+}
+
+
+// This is a way to serialize an arbitrary RDFValue.
+message RDFValue {
+  optional uint64 age = 1;   // The age of this RDFValue.
+  optional string name = 2;  // The type name of this RDFValue - used to
+                             // retrieve the class for it.
+  optional bytes data = 3;   // The serialized data of the RDFValue.
 }
 
 

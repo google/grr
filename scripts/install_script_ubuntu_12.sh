@@ -1,9 +1,11 @@
 #!/bin/bash
 #
-# Script to install GRR from scratch on an Ubuntu 12.04 system.
+# Script to install GRR from scratch on an Ubuntu 12.04 or 12.10 system.
 #
 # By default this will generate keys in /etc/grr/keys and install into /usr
 #
+
+PREFIX=/usr
 
 # URL to read the latest version URLs from
 VERSION_URL=https://grr.googlecode.com/files/latest_versions.txt
@@ -11,7 +13,7 @@ VERSION_URL=https://grr.googlecode.com/files/latest_versions.txt
 # Variables to control the install versions etc. Made for changing this to
 # support other platforms more easily.
 PLAT=amd64
-INSTALL_DIR=/usr/share/grr
+INSTALL_DIR=${PREFIX}/share/grr
 DEB_DEPENDENCIES=ubuntu-12.04-${PLAT}-debs.tar.gz;
 DEB_DEPENDENCIES_DIR=ubuntu-12.04-${PLAT}-debs;
 SLEUTHKIT_DEB=sleuthkit-lib_3.2.3-1_${PLAT}.deb
@@ -49,11 +51,11 @@ function exit_fail()
 function run_cmd_confirm()
 {
   CMD=$*;
-  echo ""
   if [ ${ALL_YES} = 0 ]; then
-    read -p "Run ${CMD} [y/N/a]? " REPLY
+    echo ""
+    read -p "Run ${CMD} [Y/n/a]? " REPLY
     case $REPLY in
-      y|Y) run_header ${CMD};;
+      y|Y|'') run_header ${CMD};;
       a|A) echo "Answering yes from now on"; ALL_YES=1;;
       *) return ;;
     esac
@@ -67,54 +69,69 @@ function run_cmd_confirm()
 
 
 header "Updating APT and Installing dependencies"
-run_cmd_confirm sudo apt-get update;
-run_cmd_confirm sudo apt-get upgrade;
-run_cmd_confirm sudo apt-get --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr;
+run_cmd_confirm sudo apt-get --yes update;
+run_cmd_confirm sudo apt-get --yes upgrade;
+run_cmd_confirm sudo apt-get --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support;
 
 
 header "Getting the right version of M2Crypto installed"
 run_cmd_confirm sudo apt-get --yes remove python-m2crypto;
-run_cmd_confirm wget https://grr.googlecode.com/files/${DEB_DEPENDENCIES};
+run_cmd_confirm wget --no-verbose https://grr.googlecode.com/files/${DEB_DEPENDENCIES} -O ${DEB_DEPENDENCIES};
 run_cmd_confirm tar zxfv ${DEB_DEPENDENCIES};
 run_cmd_confirm sudo dpkg -i ${DEB_DEPENDENCIES_DIR}/${M2CRYPTO_DEB};
 
 header "Installing Protobuf"
-run_cmd_confirm sudo apt-get --yes install libprotobuf-dev python-protobuf
+run_cmd_confirm sudo apt-get --yes install libprotobuf-dev python-protobuf;
 
 header "Installing Sleuthkit and Pytsk"
 run_cmd_confirm sudo apt-get --yes remove libtsk3* sleuthkit
 run_cmd_confirm sudo dpkg -i ${DEB_DEPENDENCIES_DIR}/${SLEUTHKIT_DEB} ${DEB_DEPENDENCIES_DIR}/${PYTSK_DEB};
 
 header "Installing Mongodb"
-run_cmd_confirm sudo apt-get --yes install mongodb python-pymongo
+run_cmd_confirm sudo apt-get --yes install mongodb python-pymongo;
 
-header "Getting correct psutil version (we require 0.5 or newer)"
-run_cmd_confirm sudo apt-get --yes remove python-psutil
-run_cmd_confirm sudo apt-get --yes install python-pip build-essential python-dev
-run_cmd_confirm sudo easy_install -v psutil
+header "Getting correct psutil version (we require 0.6 or newer)"
+PSUTIL_VERSION=`dpkg-query -W python-psutil | cut -f 2`
+if [[ "$PSUTIL_VERSION" == 0.5* ]]; then
+  echo "Unsupported psutil version ${PSUTIL_VERSION}. Upgrading with pip."
+  run_cmd_confirm sudo apt-get --yes remove python-psutil;
+  run_cmd_confirm sudo apt-get --yes install python-pip build-essential python-dev;
+  run_cmd_confirm sudo easy_install psutil;
+fi
 
+header "Checking Django version is > 1.4 and fixing up"
+# We need 1.4, 12.04 ships with 1.3
+DJANGO_VERSION=`dpkg-query -W python-django | cut -f 2`
+if [[ "$DJANGO_VERSION" == 1.3* ]]; then
+  echo "Unsupported Django version ${DJANGO_VERSION}. Upgrading with pip."
+  run_cmd_confirm sudo apt-get --yes remove python-django
+  run_cmd_confirm sudo easy_install django
+fi
 
 header "Getting latest package information from repo"
-run_cmd_confirm wget ${VERSION_URL};
 VERSION_FILE=$(basename ${VERSION_URL});
+run_cmd_confirm wget --no-verbose ${VERSION_URL} -O ${VERSION_FILE};
 SERVER_DEB_URL=$(grep grr-server ${VERSION_FILE} | grep $PLAT | cut -f 2);
 SERVER_DEB=$(basename ${SERVER_DEB_URL});
 run_cmd_confirm rm -f ${VERSION_FILE}
 
 header "Installing GRR from prebuilt package"
-run_cmd_confirm wget ${SERVER_DEB_URL};
+run_cmd_confirm wget --no-verbose ${SERVER_DEB_URL} -O ${SERVER_DEB};
 run_cmd_confirm sudo dpkg -i ${SERVER_DEB};
 
 header "Setup Admin UI password/user"
-read -p "Which username do you want to use for basic authentication to the Admin UI? e.g. admin. " ADMIN_USER
-run_cmd_confirm sudo htpasswd -d -c /etc/grr/grr-ui.htaccess ${ADMIN_USER}
-
-header "Configuring user ${ADMIN_USER} as admin in GRR"
-run_cmd_confirm echo "MakeUserAdmin('${ADMIN_USER}')" | /usr/bin/grr-console.py
+run_cmd_confirm ${INSTALL_DIR}/scripts/grr_add_user.sh
 
 header "Enable grr-single-server to start automatically on boot"
 SERVER_DEFAULT=/etc/default/grr-single-server
 run_cmd_confirm sudo sed -i 's/START=\"no\"/START=\"yes\"/' ${SERVER_DEFAULT};
+
+header "Starting up the service"
+sudo initctl status grr-single-server | grep "running"
+IS_RUNNING=$?
+if [ $IS_RUNNING = 0 ]; then
+  run_cmd_confirm sudo initctl stop grr-single-server
+fi
 run_cmd_confirm sudo initctl start grr-single-server
 
 header "Updating clients from the repo"

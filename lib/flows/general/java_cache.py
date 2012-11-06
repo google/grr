@@ -34,12 +34,13 @@ class JavaCacheCollector(flow.GRRFlow):
   """
 
   category = "/Collectors/"
-  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType")}
+  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
+                   "username": type_info.String()}
   MAJOR_VERSION_WINDOWS_VISTA = 6
 
   def __init__(self,
                pathtype=jobs_pb2.Path.OS,
-               username=None, domain=None, cachedir="",
+               username="", domain=None, cachedir="",
                output="analysis/java-cache/{u}-{t}", **kwargs):
     """Constructor.
 
@@ -51,10 +52,16 @@ class JavaCacheCollector(flow.GRRFlow):
                 of the cache directory using username/domain.
       output: If set, a URN to an AFF4Collection to add each result to.
           This will create the collection if it does not exist.
+
+    Raises:
+      RuntimeError: If parameters are invalid.
     """
     super(JavaCacheCollector, self).__init__(**kwargs)
     self.pathtype = pathtype
     self.cache_dir = cachedir
+    if not username:
+      raise RuntimeError("Username not set")
+
     self.username = username
     self.domain = domain
     self.output = output

@@ -274,18 +274,19 @@ class ActionTest(test_lib.EmptyActionTest):
 
     old_proc = psutil.Process
     psutil.Process = FakeProcess
+    try:
+      action_cls = actions.ActionPlugin.classes[message.name]
+      action_cls.SendReply = MockSendReply
+      action_cls._authentication_required = False
+      action = action_cls(message=message)
 
-    action_cls = actions.ActionPlugin.classes[message.name]
-    action_cls.SendReply = MockSendReply
-    action_cls._authentication_required = False
-    action = action_cls(message=message)
+      action.Execute(message)
 
-    action.Execute(message)
+      self.assertTrue("Action exceeded cpu limit." in results[0].error_message)
+      self.assertTrue("CPUExceededError" in results[0].error_message)
 
-    psutil.Process = old_proc
-
-    self.assertTrue("Action exceeded cpu limit." in results[0].error_message)
-    self.assertTrue("CPUExceededError" in results[0].error_message)
+    finally:
+      psutil.Process = old_proc
 
 
 class ActionTestLoader(test_lib.GRRTestLoader):

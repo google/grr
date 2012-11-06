@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +15,7 @@
 """Windows specific utils."""
 
 
+import ctypes
 import exceptions
 import logging
 import os
@@ -325,3 +325,23 @@ class NannyController(object):
 
   def StopNanny(self):
     """Not used for the Windows nanny."""
+
+
+class Kernel32(object):
+  _kernel32 = None
+
+  def __init__(self):
+    if not Kernel32._kernel32:
+      Kernel32._kernel32 = ctypes.windll.LoadLibrary("Kernel32.dll")
+
+  @property
+  def kernel32(self):
+    return self._kernel32
+
+
+def KeepAlive():
+
+  es_system_required = 0x00000001
+
+  kernel32 = Kernel32().kernel32
+  kernel32.SetThreadExecutionState(ctypes.c_int(es_system_required))

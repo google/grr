@@ -117,7 +117,7 @@ class RegistryFileHunt(flow.GRRHunt):
     users = client.Get(client.Schema.USER) or []
     for user in users:
       pathspec = jobs_pb2.Path(pathtype=jobs_pb2.Path.TSK,
-                               path=user.homedir + "\NTUSER.DAT")
+                               path=user.homedir + r"\NTUSER.DAT")
       self.files[client_id] += 1
       self.CallFlow("GetFile", pathspec=pathspec, next_state="StoreResults",
                     client_id=client_id)
@@ -165,7 +165,7 @@ class ProcessesHunt(flow.GRRHunt):
   def FindProcess(self, process_name):
     """This finds processes that contain process_name."""
 
-    hunt = aff4.FACTORY.Open("aff4:/hunts/%s" % self.session_id,
+    hunt = aff4.FACTORY.Open(self.urn,
                              age=aff4.ALL_TIMES, token=self.token)
     log = hunt.GetValuesForAttribute(hunt.Schema.LOG)
 
@@ -183,7 +183,7 @@ class ProcessesHunt(flow.GRRHunt):
 
     hist = {}
 
-    hunt = aff4.FACTORY.Open("aff4:/hunts/%s" % self.session_id,
+    hunt = aff4.FACTORY.Open(self.urn,
                              age=aff4.ALL_TIMES, token=self.token)
     log = hunt.GetValuesForAttribute(hunt.Schema.LOG)
 
@@ -237,7 +237,7 @@ class MBRHunt(flow.GRRHunt):
 
     hist = {}
 
-    hunt = aff4.FACTORY.Open("aff4:/hunts/%s" % self.session_id,
+    hunt = aff4.FACTORY.Open(self.urn,
                              age=aff4.ALL_TIMES, token=self.token)
 
     log = hunt.GetValuesForAttribute(hunt.Schema.LOG)
@@ -582,11 +582,22 @@ class GenericHunt(flow.GRRHunt):
   """
 
   def __init__(self, flow_name, args=None, **kw):
+    super(GenericHunt, self).__init__(**kw)
     self.flow_name = flow_name
     if args is None:
       args = {}
     self.flow_args = args
-    super(GenericHunt, self).__init__(**kw)
+
+    # Our results will be written inside this collection.
+    self.collection = aff4.FACTORY.Create(
+        self.urn.Add("Results"), "GRRRDFValueCollection",
+        token=self.token)
+
+  def Run(self, description=None):
+    if description is None:
+      description = "%s with args %s." % (
+          self.flow_name, utils.SmartStr(self.flow_args))
+    super(GenericHunt, self).Run(description=description)
 
   @flow.StateHandler(next_state=["MarkDone"])
   def Start(self, responses):
@@ -594,16 +605,35 @@ class GenericHunt(flow.GRRHunt):
     self.CallFlow(self.flow_name, next_state="MarkDone", client_id=client_id,
                   **self.flow_args)
 
+  @utils.Synchronized
+  def Save(self):
+    # Flush results frequently so users can monitor them as they come in.
+    self.collection.Flush()
+
+    super(GenericHunt, self).Save()
+
+  @utils.Synchronized
   @flow.StateHandler()
   def MarkDone(self, responses):
     """Mark a client as done."""
     client_id = responses.request.client_id
     if responses.success:
       self.LogResult(client_id, "Flow %s completed." % self.flow_name)
+
+      for orig_message in getattr(responses, "_responses", []):
+        msg = jobs_pb2.GrrMessage()
+        msg.MergeFrom(orig_message)
+        msg.source = client_id
+        self.collection.Add(aff4_grr.GRRMessage(msg))
+
     else:
       self.LogClientError(client_id, log_message=utils.SmartStr(
           responses.status))
     self.MarkClientDone(client_id)
+
+  def Stop(self):
+    super(GenericHunt, self).Stop()
+    self.collection.Close()
 
 
 class VariableGenericHunt(flow.GRRHunt):

@@ -279,3 +279,8 @@ def UninstallDriver(driver_name):
   logging.info("Unloading driver finished, status: %d.", exit_status)
   if exit_status != 0:
     raise OSError("Failed to unload driver.")
+
+
+def KeepAlive():
+  # Not yet supported for Linux.
+  pass

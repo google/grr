@@ -1,20 +1,6 @@
 #!/usr/bin/env python
-
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 """This module contains base classes for different kind of renderers."""
+
 
 import copy
 import csv
@@ -149,7 +135,7 @@ class AttributeColumn(RDFValueColumn):
   def AddRowFromFd(self, index, fd):
     """Add a new value from the fd."""
     value = fd.Get(self.attribute)
-    if value:
+    if value is not None:
       self.rows[index] = value
 
 
@@ -1439,6 +1425,39 @@ class ArtifactListRenderer(FormElementRenderer):
         self.form_template, artifact_list=artifacts_list, **kwargs)
 
 
+class UserListRenderer(FormElementRenderer):
+  """Renders a User selector."""
+
+  form_template = Template("""
+<tr><td>{{desc|escape}}</td><td>
+<select id="user_select_{{unique|escape}}" name="{{field|escape}}"
+  multiple="multiple">
+{% for user in valid_users %}
+  <option value="{{user.username|escape}}">{{user.username|escape}}
+  {% if user.domain %} ({{user.domain|escape}}){% endif %}
+  </option>
+{% endfor %}
+</select>
+</td></tr>
+<script>
+  $("#user_select_{{unique|escapejs}}").multiselect({
+    header: "Select users",
+    noneSelectedText: "Select users"});
+</script>
+""")
+
+  def Format(self, arg_type, **kwargs):
+    _ = arg_type
+    client = kwargs.get("client")
+    if client:
+      valid_users = list(client.Get(client.Schema.USER, []))
+    else:
+      valid_users = []
+
+    return self.FormatFromTemplate(
+        self.form_template, valid_users=valid_users, **kwargs)
+
+
 def FindRendererForObject(rdf_obj):
   """Find the appropriate renderer for an RDFValue object."""
   for cls in RDFValueRenderer.classes.values():
@@ -1500,9 +1519,8 @@ class WizardRenderer(TemplateRenderer):
   # WizardPage objects that defined this wizard's behaviour.
   pages = []
 
-  # grr.state[wizard_state_name] will be emptied on wizard initialization and
-  # then passed to every nested renderer.
-  wizard_state_name = "wizard"
+  # This will be used for identifying the wizard when publishing the events.
+  wizard_name = "wizard"
 
   layout_template = Template("""
 <div id="Wizard_{{unique|escape}}"
@@ -1536,7 +1554,7 @@ $("#Wizard_{{unique|escapejs}} .WizardBar .Next").button().click(function() {
   if (selectedWizardTab + 1 < wizardPages.length) {
     selectTab(selectedWizardTab + 1);
   } else {
-    grr.publish("WizardComplete", "{{this.wizard_state_name|escapejs}}");
+    grr.publish("WizardComplete", "{{this.wizard_name|escapejs}}");
   }
 });
 
@@ -1546,9 +1564,9 @@ function selectTab(index) {
     wizardPages[index].description);
 
   var wizardStateJson = JSON.stringify(
-    grr.state["{{this.wizard_state_name|escapejs}}"]);
+    $("#Wizard_{{unique|escapejs}}").data());
   grr.layout(wizardPages[index].renderer, "WizardContent_{{unique|escapejs}}",
-    { "{{this.wizard_state_name|escapejs}}": wizardStateJson });
+    { "{{this.wizard_name|escapejs}}": wizardStateJson });
 
   $("#Wizard_{{unique|escapejs}} .WizardBar .Back").css("visibility",
     index > 0 && wizardPages[index].show_back_button ? "visible" : "hidden");
@@ -1564,10 +1582,12 @@ function selectTab(index) {
         nextButton.button({ disabled: false });
       }
     }, "Wizard_{{unique|escapejs}}");
+  } else {
+    nextButton.button({ disabled: false });
   }
 }
 
-grr.state["{{this.wizard_state_name}}"] = {}
+$("#Wizard_{{unique|escapejs}}").data({});
 selectTab(0);
 
 })();

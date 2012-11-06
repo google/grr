@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,8 +20,8 @@ import threading
 
 
 
+from django.conf import settings
 from django.core.handlers import wsgi
-from django.core.management import setup_environ
 
 from grr.client import conf
 from grr.client import conf as flags
@@ -47,7 +46,18 @@ def main(argv):
   FLAGS.server_private_key = BASE_DIR + "keys/test/server-priv.pem"
 
 
-  setup_environ(settings)
+  # Note that Django settings are immutable once set.
+  django_settings = {
+      "SECRET_KEY": "NOT VERY SECRET KEY",           # Used for XSRF protection.
+      "ROOT_URLCONF": "grr.gui.urls",           # Where to find url mappings.
+      "TEMPLATE_DIRS": ("grr/gui/templates",),  # Look here for templates.
+      # Don't use the database for sessions, use a file.
+      "SESSION_ENGINE": "django.contrib.sessions.backends.file"
+  }
+
+  # The below will use conf/global_settings/py from Django, we need to override
+  # every variable we need to set.
+  settings.configure(**django_settings)
 
   # pylint: disable=W0612
   from grr.gui import plugins

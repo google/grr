@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,21 +35,22 @@ import unittest
 from grr.client import actions
 from grr.client import conf
 from grr.client import vfs
-# pylint: disable=W0611
+# pylint: disable=unused-import
 from grr.lib import access_control
-# pylint: enable=W0611
+# pylint: enable=unused-import
+
 from grr.lib import aff4
-# pylint: disable=W0611
+# pylint: disable=unused-import
 from grr.lib import aff4_objects
 from grr.lib import data_store
 # Load the fake data store implementation
 from grr.lib import fake_data_store
-# pylint: enable=W0611
+# pylint: enable=unused-import
+
 from grr.lib import flow
 from grr.lib import flow_context
 from grr.lib import registry
 from grr.lib import scheduler
-from grr.lib import threadpool
 from grr.lib import utils
 from grr.proto import jobs_pb2
 from grr.test_data import client_fixture
@@ -83,8 +83,6 @@ flags.DEFINE_integer("remote_pdb_port", 2525,
 
 
 FLAGS = flags.FLAGS
-
-logging.disable(logging.ERROR)
 
 #  Since GRRFlow is an abstract class we have some concrete
 #  implementations here for testing.
@@ -222,6 +220,10 @@ class GRRBaseTest(unittest.TestCase):
       except KeyboardInterrupt:
         raise
       except:
+        # Break into interactive debugger on test failure.
+        if FLAGS.debug:
+          pdb.post_mortem()
+
         result.addError(self, sys.exc_info())
         return
 
@@ -518,6 +520,24 @@ class MockClient(object):
     return len(request_tasks)
 
 
+class MockThreadPool(object):
+  """A mock thread pool which runs all jobs serially."""
+
+  def __init__(self, *_):
+    pass
+
+  def AddTask(self, target, args, name="Unnamed task"):
+    _ = name
+    try:
+      target(*args)
+      # The real threadpool can not raise from a task. We emulate this here.
+    except Exception:  # pylint: disable=broad-except
+      pass
+
+  def Join(self):
+    pass
+
+
 class MockWorker(object):
   """Mock the worker."""
 
@@ -526,8 +546,7 @@ class MockWorker(object):
     self.check_flow_errors = check_flow_errors
     self.token = token
 
-    self.pool = threadpool.ThreadPool.Factory("MockWorker_pool", 25)
-    self.pool.Start()
+    self.pool = MockThreadPool("MockWorker_pool", 25)
 
     # Collect all the well known flows.
     self.well_known_flows = {}
@@ -552,10 +571,10 @@ class MockWorker(object):
     # Check which sessions have new data. Very small limit forces serialization
     # of flows after each state run to catch unpickleable objects.
     active_sessions = []
+    now = int(time.time() * 1e6)
     for predicate, _, _ in data_store.DB.ResolveRegex(
         self.queue_name, flow_context.FlowManager.FLOW_TASK_REGEX,
-        timestamp=data_store.DB.NEWEST_TIMESTAMP,
-        token=self.token, limit=1):
+        timestamp=(0, now), token=self.token, limit=1):
       session_id = predicate.split(":", 1)[1]
       active_sessions.append(session_id)
 
@@ -625,6 +644,7 @@ class ActionMock(object):
     self.action_classes = dict(
         [(k, v) for (k, v) in actions.ActionPlugin.classes.items()
          if k in action_names])
+    self.action_counts = dict((x, 0) for x in action_names)
 
   def HandleMessage(self, message):
     message.auth_state = jobs_pb2.GrrMessage.AUTHENTICATED
@@ -635,6 +655,7 @@ class ActionMock(object):
     action_cls = self.action_classes[message.name]
     action = action_cls(message=message, grr_worker=client_worker)
     action.Execute(message)
+    self.action_counts[message.name] += 1
     return client_worker.responses
 
   class FakeClientWorker(object):
@@ -940,7 +961,7 @@ class GrrTestProgram(unittest.TestProgram):
     """Delegate arg parsing to the conf subsystem."""
     if FLAGS.verbose:
       self.verbosity = 2
-      logging.set_verbosity(logging.DEBUG)
+      logging.getLogger().setLevel(logging.DEBUG)
 
     argv = argv[1:]
 

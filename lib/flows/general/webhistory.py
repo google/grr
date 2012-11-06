@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,11 +36,11 @@ class ChromeHistory(flow.GRRFlow):
 
   Windows XP
   Google Chrome:
-  c:\Documents and Settings\<username>\Local Settings\Application Data\
-    Google\Chrome\User Data\Default
+  c:\\Documents and Settings\\<username>\\Local Settings\\Application Data\\
+    Google\\Chrome\\User Data\\Default
 
   Windows 7 or Vista
-  c:\Users\<username>\AppData\Local\Google\Chrome\User Data\Default
+  c:\\Users\\<username>\\AppData\\Local\\Google\\Chrome\\User Data\\Default
 
   Mac OS X
   /Users/<user>/Library/Application Support/Google/Chrome/Default
@@ -64,8 +63,8 @@ class ChromeHistory(flow.GRRFlow):
     Args:
       username: String, the user to get Chrome history for. If history_path is
           not set this will be used to guess the path to the history files. Can
-          be in form DOMAIN\user.
-      history_path: A specific file to parse.
+          be in form DOMAIN\\user.
+      history_path: Path to a profile directory that contains a History file.
       get_archive: Should we get Archived History as well (3 months old).
       pathtype: Type of path to use.
       output: A path relative to the client to put the output.
@@ -169,6 +168,7 @@ class ChromeHistory(flow.GRRFlow):
       raise OSError("Invalid OS for Chrome History")
     return paths
 
+  @flow.StateHandler()
   def End(self):
     self.SendReply(jobs_pb2.URN(urn=utils.SmartUnicode(self.out_urn)))
     self.Notify("ViewObject", self.out_urn,
@@ -182,12 +182,12 @@ class FirefoxHistory(flow.GRRFlow):
     http://www.forensicswiki.org/wiki/Mozilla_Firefox_3_History_File_Format
 
   Windows XP
-    C:\Documents and Settings\<username>\Application Data\Mozilla\
-      Firefox\Profiles\<profile folder>\places.sqlite
+    C:\\Documents and Settings\\<username>\\Application Data\\Mozilla\\
+      Firefox\\Profiles\\<profile folder>\\places.sqlite
 
   Windows Vista
-    C:\Users\<user>\AppData\Roaming\Mozilla\Firefox\Profiles\
-      <profile folder>\places.sqlite
+    C:\\Users\\<user>\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\
+      <profile folder>\\places.sqlite
 
   GNU/Linux
     /home/<user>/.mozilla/firefox/<profile folder>/places.sqlite
@@ -208,8 +208,8 @@ class FirefoxHistory(flow.GRRFlow):
     Args:
       username: String, the user to get the history for. If history_path is
           not set this will be used to guess the path to the history files. Can
-          be in form DOMAIN\user.
-      history_path: A specific file to parse.
+          be in form DOMAIN\\user.
+      history_path: Path to a profile directory containing a places.sqlite file.
       pathtype: Type of path to use.
       output: A path relative to the client to put the output.
       **kwargs: passthrough.
@@ -288,7 +288,7 @@ class FirefoxHistory(flow.GRRFlow):
 
     paths = []
     if system == "Windows":
-      path = "{app_data}\Mozilla\Firefox\Profiles"
+      path = "{app_data}\\Mozilla\\Firefox\\Profiles"
       paths.append(path.format(
           app_data=user_pb.special_folders.app_data))
     elif system == "Linux":
@@ -302,6 +302,7 @@ class FirefoxHistory(flow.GRRFlow):
       raise OSError("Invalid OS for Chrome History")
     return paths
 
+  @flow.StateHandler()
   def End(self):
     self.SendReply(jobs_pb2.URN(urn=utils.SmartUnicode(self.out_urn)))
     self.Notify("ViewObject", self.out_urn,

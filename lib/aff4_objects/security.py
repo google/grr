@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2012 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -126,6 +125,7 @@ class RequestApproval(flow.GRRFlow):
     self.approver = approver
     super(RequestApproval, self).__init__(**kwargs)
 
+  @flow.StateHandler()
   def Start(self):
     """Create the Approval object and notify the Approval Granter."""
     # Make a supervisor token
@@ -197,6 +197,7 @@ class GrantAccessFlow(flow.GRRFlow):
     self.delegate = delegate
     super(GrantAccessFlow, self).__init__(**kwargs)
 
+  @flow.StateHandler()
   def Start(self):
     """Create the Approval object and notify the Approval Granter."""
     # TODO(user): Right now anyone can approve anything. We may want to
@@ -255,6 +256,7 @@ Please click <a href='%(admin_ui)s#%(urn)s'>
 class BreakGlassGrantAccessFlow(GrantAccessFlow):
   """Grant an approval in an emergency."""
 
+  @flow.StateHandler()
   def Start(self):
     """Create the Approval object and notify the Approval Granter."""
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.client_id).Add(

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,21 +21,15 @@ import socket
 import SocketServer
 from wsgiref import simple_server
 
+import django
+from django.conf import settings
 from django.core.handlers import wsgi
-from django.core.management import setup_environ
+
 from grr.client import conf
 from grr.client import conf as flags
-
-from grr.gui import settings
 from grr.lib import registry
 
-# This needs to happen so that django can pre-import all the plugins
-SITE_SETTINGS = "grr.gui.settings"
-os.environ["DJANGO_SETTINGS_MODULE"] = SITE_SETTINGS
-
 # pylint: disable=W0611
-from grr.gui import plugins  # pylint: disable=C6204
-
 from grr.lib import access_control
 from grr.lib import aff4_objects
 # Support mongo storage
@@ -53,15 +46,19 @@ flags.DEFINE_integer("port", 8000,
 flags.DEFINE_string("bind", "::",
                     "interface to bind to.")
 
+flags.DEFINE_bool("django_debug", False,
+                  "Turn on to add django debugging")
+
+flags.DEFINE_string("django_secret_key", "CHANGE_ME",
+                    "This is a secret key that should be set in the server "
+                    "config. It is used in XSRF and session protection.")
+
+
 # This allows users to specify access controls for the gui.
 flags.DEFINE_string("htpasswd", None,
                     "An apache style htpasswd file for gui access control.")
 
 FLAGS = flags.FLAGS
-
-
-if settings.SECRET_KEY == "CHANGE_ME":
-  logging.error("Please change the secret key in the settings module.")
 
 
 class ThreadingDjango(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
@@ -70,15 +67,47 @@ class ThreadingDjango(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
 
 def main(_):
   """Run the main test harness."""
-  registry.Init()
 
-  setup_environ(settings)
+  if django.VERSION[0] == 1 and django.VERSION[1] < 4:
+    msg = ("The installed Django version is too old. We need 1.4+. You can "
+           "install a new version with 'sudo easy_install Django'.")
+    logging.error(msg)
+    raise RuntimeError(msg)
+
+  base_app_path = os.path.normpath(os.path.dirname(__file__))
+
+  # Note that Django settings are immutable once set.
+  django_settings = {
+      "DEBUG": FLAGS.django_debug,
+      "TEMPLATE_DEBUG": FLAGS.django_debug,
+      "SECRET_KEY": FLAGS.django_secret_key,         # Used for XSRF protection.
+      # Set to default as we don't supply an HTTPS server.
+      # "CSRF_COOKIE_SECURE": not FLAGS.django_debug,  # Cookie only over HTTPS.
+      "ROOT_URLCONF": "grr.gui.urls",           # Where to find url mappings.
+      "TEMPLATE_DIRS": ("%s/templates" % base_app_path,),
+      # Don't use the database for sessions, use a file.
+      "SESSION_ENGINE": "django.contrib.sessions.backends.file"
+  }
+
+  # The below will use conf/global_settings/py from Django, we need to override
+  # every variable we need to set.
+  settings.configure(**django_settings)
+
+  if settings.SECRET_KEY == "CHANGE_ME":
+    msg = "Please change the secret key in the settings module."
+    logging.error(msg)
 
   if FLAGS.htpasswd is None:
     msg = ("Please specify the --htpasswd option to enable "
            "security on the admin interface.")
     logging.error(msg)
     raise RuntimeError(msg)
+
+  # We cannot import plugins until we have initialized Django, and we cannot
+  # initialize Django until we have the flags. So we do this here.
+  # pylint: disable=unused-variable,g-import-not-at-top
+  from grr.gui import plugins
+  registry.Init()
 
   # Start up a server in another thread
   base_url = "http://%s:%d" % (FLAGS.bind, FLAGS.port)

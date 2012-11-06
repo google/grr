@@ -258,6 +258,26 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     for i in range(100):
       self.assertEqual(fd.Read(13), "Test%08X\n" % i)
 
+  def testAFF4ImageWithFlush(self):
+    """Make sure the AFF4Image can survive with partial flushes."""
+    path = "/C.12345/foo"
+
+    fd = aff4.FACTORY.Create(path, "AFF4Image", mode="w", token=self.token)
+    fd.Set(fd.Schema.CHUNKSIZE(10))
+
+    # Make lots of small writes - The length of this string and the chunk size
+    # are relative primes for worst case.
+    for i in range(100):
+      fd.Write("Test%08X\n" % i)
+      # Flush after every write.
+      fd.Flush()
+
+    fd.Close()
+
+    fd = aff4.FACTORY.Open(path, token=self.token)
+    for i in range(100):
+      self.assertEqual(fd.Read(13), "Test%08X\n" % i)
+
   def testAFF4FlowObject(self):
     """Test the AFF4 Flow switch and object."""
     client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient",
@@ -309,7 +329,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
                      u"aff4:/C.0000000000000000/"
                      u"fs/os/c/中国新闻网新闻中")
     # Test that we can match a unicode char
-    matched = list(fd.Query(u"subject matches '\]\['"))
+    matched = list(fd.Query(ur"subject matches '\]\['"))
     self.assertEqual(len(matched), 1)
     self.assertEqual(utils.SmartUnicode(matched[0].urn),
                      u"aff4:/C.0000000000000000/"
@@ -317,7 +337,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     # Test the OpenChildren function on files that contain regex chars.
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
-        "/fs/os/c/regex\V.*?]xx[{}--"), token=self.token)
+        r"/fs/os/c/regex\V.*?]xx[{}--"), token=self.token)
 
     children = list(fd.OpenChildren())
     self.assertEqual(len(children), 1)
@@ -625,8 +645,12 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       foreman.Set(foreman.Schema.RULES, rule_set)
       foreman.Close()
 
+      fd = aff4.FACTORY.Create(client_id, "VFSGRRClient",
+                               token=self.token)
       for now, num_rules in [(1000, 4), (1250, 3), (1350, 2), (1600, 0)]:
         self.mock_time = now
+        fd.Set(fd.Schema.LAST_FOREMAN_TIME(100))
+        fd.Flush()
         foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw",
                                     token=self.token)
         foreman.AssignTasksToClient(client_id)

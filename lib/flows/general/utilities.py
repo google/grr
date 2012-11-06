@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -108,6 +107,7 @@ class DownloadDirectory(flow.GRRFlow):
         logging.error(err)
         raise flow.FlowError(err)
 
+  @flow.StateHandler()
   def End(self):
     if self._out_urn:
       self.Notify("ViewObject", self._out_urn, "Completed DownloadDirectory")

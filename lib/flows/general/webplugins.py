@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#
 # Copyright 2011 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -238,6 +237,7 @@ class ChromePlugins(flow.GRRFlow):
     if not responses.success:
       logging.error("Error downloading directory recursively.")
 
+  @flow.StateHandler()
   def End(self):
     self.Notify("ViewObject", self.out_urn,
                 "Completed retrieval of Chrome Plugins")
@@ -254,7 +254,8 @@ class ChromePlugins(flow.GRRFlow):
     Raises:
       OSError: On invalid system in the Schema.
     """
-    client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id), token=self.token)
+    client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id),
+                               token=self.token)
     system = client.Get(client.Schema.SYSTEM)
     paths = []
     profile_path = "Default"
