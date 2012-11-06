@@ -61,37 +61,53 @@ flags.DEFINE_string("htpasswd", None,
 FLAGS = flags.FLAGS
 
 
+class DjangoInit(registry.InitHook):
+  """Initialize the Django environment."""
+
+  def RunOnce(self):
+    """Configure the Django environment."""
+    base_app_path = os.path.normpath(os.path.dirname(__file__))
+    # Note that Django settings are immutable once set.
+    django_settings = {
+        "DEBUG": FLAGS.django_debug,
+        "TEMPLATE_DEBUG": FLAGS.django_debug,
+        "SECRET_KEY": FLAGS.django_secret_key,       # Used for XSRF protection.
+        # Set to default as we don't supply an HTTPS server.
+        # "CSRF_COOKIE_SECURE": not FLAGS.django_debug,  # Only send over HTTPS.
+        "ROOT_URLCONF": "grr.gui.urls",           # Where to find url mappings.
+        "TEMPLATE_DIRS": ("%s/templates" % base_app_path,),
+        # Don't use the database for sessions, use a file.
+        "SESSION_ENGINE": "django.contrib.sessions.backends.file"
+    }
+
+    # The below will use conf/global_settings/py from Django, we need to
+    # override every variable we need to set.
+    settings.configure(**django_settings)
+
+
+class GuiPluginsInit(registry.InitHook):
+  """Initialize the GUI plugins once Django is initialized."""
+
+  pre = ["DjangoInit"]
+
+  def RunOnce(self):
+    """Import the plugins once only."""
+    from grr.gui import plugins  # pylint: disable=unused-variable,C6204
+
+
 class ThreadingDjango(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
   address_family = socket.AF_INET6
 
 
 def main(_):
   """Run the main test harness."""
+  registry.Init()
 
   if django.VERSION[0] == 1 and django.VERSION[1] < 4:
     msg = ("The installed Django version is too old. We need 1.4+. You can "
            "install a new version with 'sudo easy_install Django'.")
     logging.error(msg)
     raise RuntimeError(msg)
-
-  base_app_path = os.path.normpath(os.path.dirname(__file__))
-
-  # Note that Django settings are immutable once set.
-  django_settings = {
-      "DEBUG": FLAGS.django_debug,
-      "TEMPLATE_DEBUG": FLAGS.django_debug,
-      "SECRET_KEY": FLAGS.django_secret_key,         # Used for XSRF protection.
-      # Set to default as we don't supply an HTTPS server.
-      # "CSRF_COOKIE_SECURE": not FLAGS.django_debug,  # Cookie only over HTTPS.
-      "ROOT_URLCONF": "grr.gui.urls",           # Where to find url mappings.
-      "TEMPLATE_DIRS": ("%s/templates" % base_app_path,),
-      # Don't use the database for sessions, use a file.
-      "SESSION_ENGINE": "django.contrib.sessions.backends.file"
-  }
-
-  # The below will use conf/global_settings/py from Django, we need to override
-  # every variable we need to set.
-  settings.configure(**django_settings)
 
   if settings.SECRET_KEY == "CHANGE_ME":
     msg = "Please change the secret key in the settings module."
@@ -102,12 +118,6 @@ def main(_):
            "security on the admin interface.")
     logging.error(msg)
     raise RuntimeError(msg)
-
-  # We cannot import plugins until we have initialized Django, and we cannot
-  # initialize Django until we have the flags. So we do this here.
-  # pylint: disable=unused-variable,g-import-not-at-top
-  from grr.gui import plugins
-  registry.Init()
 
   # Start up a server in another thread
   base_url = "http://%s:%d" % (FLAGS.bind, FLAGS.port)

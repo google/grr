@@ -71,7 +71,7 @@ function run_cmd_confirm()
 header "Updating APT and Installing dependencies"
 run_cmd_confirm sudo apt-get --yes update;
 run_cmd_confirm sudo apt-get --yes upgrade;
-run_cmd_confirm sudo apt-get --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support;
+run_cmd_confirm sudo apt-get --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil;
 
 
 header "Getting the right version of M2Crypto installed"

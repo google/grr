@@ -102,7 +102,7 @@ else
     --agent_version $VERSION
 
   if [ "$?" -eq "1" ]; then
-    echo "################ ERROR ERROR ERROR ######################"";
+    echo "################ ERROR ERROR ERROR ######################";
     exit
   fi;
 
