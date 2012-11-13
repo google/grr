@@ -248,6 +248,14 @@ class NannyController(object):
     except message.Error:
       return
 
+  def GetNannyMessage(self):
+    # Not implemented on Linux.
+    return None
+
+  def GetNannyStatus(self):
+    # Not implemented on Linux.
+    return None
+
 
 def InstallDriver(driver_path):
   """Loads a driver and starts it."""

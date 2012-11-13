@@ -109,6 +109,22 @@ class BusyHang(actions.ActionPlugin):
       pass
 
 
+class Bloat(actions.ActionPlugin):
+  """A client action that uses lots of memory for testing."""
+  in_protobuf = jobs_pb2.DataBlob
+
+  def Run(self, arg):
+
+    iterations = arg.integer or 1024  # Gives 1 gb.
+
+    l = []
+
+    for _ in range(iterations):
+      l.append("X" * 1048576)  # 1 mb.
+
+    time.sleep(60)
+
+
 class GetConfig(actions.ActionPlugin):
   """Retrieves the running configuration parameters."""
   in_protobuf = None

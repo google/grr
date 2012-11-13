@@ -194,6 +194,8 @@ message GrrStatus {
   optional string child_session_id = 5;
 
   optional uint64 network_bytes_sent = 6;
+
+  optional string nanny_status = 7;
 };
 
 // Stores information about the GRR client itself

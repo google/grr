@@ -56,6 +56,9 @@ struct ControllerConfig {
   // Number of failures until the child is considered broken, and the last known
   // good version is used.
   int failure_count_to_revert;
+
+  // Hard memory limit for clients.
+  unsigned int client_memory_limit;
 };
 
 // This class represents the child process, and how to manage it. Concrete
@@ -66,7 +69,7 @@ class ChildProcess {
   virtual ~ChildProcess();
 
   // Kills the child unconditionally.
-  virtual void KillChild() = 0;
+  virtual void KillChild(std::string msg) = 0;
 
   // Creates the child process. Returns true on success, false on failure
   // (e.g. the child executable is not found).
@@ -81,6 +84,12 @@ class ChildProcess {
   virtual time_t GetCurrentTime() = 0;
 
   virtual EventLogger *GetEventLogger();
+
+  // Returns if the spawned process is still alive.
+  virtual bool IsAlive() = 0;
+
+  // Returns the child's memory usage.
+  virtual size_t GetMemoryUsage() = 0;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(ChildProcess);
@@ -100,13 +109,14 @@ class ChildController {
   virtual ~ChildController();
 
   // Kills the child unconditionally.
-  virtual void KillChild();
+  virtual void KillChild(std::string msg);
 
   // The controller's main loop.  This method should be called periodically to
   // check on the child's heartbeat status. Currently the child controller is
   // not thread-safe and so this method should always be called in the same
-  // thread.
-  virtual void Run();
+  // thread. After each invocation of Run(), the next call should follow not
+  // more than the return value in seconds later.
+  virtual time_t Run();
 
  private:
   struct ControllerConfig config_;
@@ -117,9 +127,6 @@ class ChildController {
   // The last time we know the service ran. This is required if we can not read
   // the heartbeat from the child for some reason.
   time_t last_heartbeat_time_;
-
-  // Is the child supposed to be running now?
-  bool child_is_running_;
 
   DISALLOW_COPY_AND_ASSIGN(ChildController);
 };

@@ -25,45 +25,52 @@ ChildController::~ChildController() {}
 ChildController::ChildController(const struct ControllerConfig config)
     : config_(config),
       child_(),
-      last_heartbeat_time_(0),
-      child_is_running_(0) {}
+      last_heartbeat_time_(0) {}
 
 ChildController::ChildController(const struct ControllerConfig config,
                                  ChildProcess *child)
     : config_(config),
       child_(child),
-      last_heartbeat_time_(0),
-      child_is_running_(0) {}
+      last_heartbeat_time_(0) {}
 
 
-void ChildController::KillChild() {
-  child_->KillChild();
+void ChildController::KillChild(std::string msg) {
+  child_->KillChild(msg);
 };
 
 
 // The main controller loop. Will be called periodically by the nanny.
-void ChildController::Run() {
+time_t ChildController::Run() {
   time_t now = child_->GetCurrentTime();
 
   // Check the heartbeat from the child.
   time_t heartbeat = std::max(child_->GetHeartBeat(), last_heartbeat_time_);
   last_heartbeat_time_ = heartbeat;
 
-  if (child_is_running_) {
+  time_t call_delay = 0;
+  if (child_->IsAlive()) {
     if (now - heartbeat > config_.unresponsive_kill_period) {
       // We have not received a heartbeat in a while, kill the child.
-      child_->KillChild();
-      child_is_running_ = 0;
+      child_->KillChild("No heartbeat received.");
+      call_delay = 1;
+    } else {
+      call_delay = config_.unresponsive_kill_period - (now - heartbeat);
     }
-  } else if (heartbeat + config_.unresponsive_kill_period +
-             config_.resurrection_period <= now) {
-    // Make the new child.
-    child_->CreateChildProcess();
+  } else {
+    if (heartbeat + config_.unresponsive_kill_period +
+        config_.resurrection_period <= now) {
+      // Make the new child.
+      child_->CreateChildProcess();
 
-    // Do not create the child again until it is time to resurrect it.
-    last_heartbeat_time_ = now;
-    child_is_running_ = 1;
+      // Do not create the child again until it is time to resurrect it.
+      last_heartbeat_time_ = now;
+      call_delay = 1;
+    } else {
+      call_delay = heartbeat + config_.unresponsive_kill_period +
+          config_.resurrection_period - now;
+    }
   }
+  return call_delay;
 };
 
 // -----------------------------------------------------------------

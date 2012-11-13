@@ -367,6 +367,15 @@ class GRRClientWorker(object):
       action = action_cls(None, grr_worker=self)
       action.Run(None)
 
+  def SendNannyMessage(self):
+    msg = self.nanny_controller.GetNannyMessage()
+    if msg:
+      self.SendReply(
+          jobs_pb2.DataBlob(string=msg), session_id="W:NannyMessage",
+          priority=jobs_pb2.GrrMessage.LOW_PRIORITY,
+          require_fastpoll=False)
+      self.nanny_controller.ClearNannyMessage()
+
 
 class SizeQueue(object):
   """A Queue which limits the total size of its elements.
@@ -559,9 +568,14 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     # last time and let the server know.
     last_request = self.nanny_controller.GetTransactionLog()
     if last_request:
-      self.SendReply(jobs_pb2.GrrStatus(
+      status = jobs_pb2.GrrStatus(
           status=jobs_pb2.GrrStatus.CLIENT_KILLED,
-          error_message="Client killed during transaction"),
+          error_message="Client killed during transaction")
+      nanny_status = self.nanny_controller.GetNannyStatus()
+      if nanny_status:
+        status.nanny_status = nanny_status
+      nanny_status = self.nanny_controller.GetNannyStatus()
+      self.SendReply(status,
                      request_id=last_request.request_id,
                      response_id=1,
                      session_id=last_request.session_id,
@@ -686,10 +700,11 @@ class GRRHTTPClient(object):
         request = urllib2.Request(cert_url, None, {"Cache-Control": "no-cache"})
         handle = urllib2.urlopen(request, timeout=10)
         server_pem = handle.read()
-        # If we have reached this point, this proxy is working.
-        self.active_proxy = proxy
-        handle.close()
-        return server_pem
+        if "BEGIN CERTIFICATE" in server_pem:
+          # If we have reached this point, this proxy is working.
+          self.active_proxy = proxy
+          handle.close()
+          return server_pem
       except urllib2.URLError:
         pass
 
@@ -884,6 +899,9 @@ class GRRHTTPClient(object):
           # the main loop (which would mean sleeping for a poll_time).
           break
         yield Status()
+
+      # Check if there is a message from the nanny to be sent.
+      self.client_worker.SendNannyMessage()
 
       now = time.time()
       # Check with the foreman if we need to

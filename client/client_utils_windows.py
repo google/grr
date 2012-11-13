@@ -320,6 +320,30 @@ class NannyController(object):
     except message.Error:
       return
 
+  def GetNannyStatus(self):
+    try:
+      value, _ = _winreg.QueryValueEx(self._GetKey(), "NannyStatus")
+    except exceptions.WindowsError:
+      return None
+
+    return value
+
+  def GetNannyMessage(self):
+    try:
+      value, _ = _winreg.QueryValueEx(self._GetKey(), "NannyMessage")
+    except exceptions.WindowsError:
+      return None
+
+    return value
+
+  def ClearNannyMessage(self):
+    """Wipes the nanny message."""
+    try:
+      _winreg.DeleteValue(self._GetKey(), "NannyMessage")
+      NannyController.synced = False
+    except exceptions.WindowsError:
+      pass
+
   def StartNanny(self):
     """Not used for the Windows nanny."""
 

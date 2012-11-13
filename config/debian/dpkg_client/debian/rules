@@ -12,6 +12,9 @@
 %:
 	dh $@ --buildsystem=makefile
 
+override_dh_auto_install:
+	dh_auto_install --destdir=debian/tmp
+
 override_dh_installinit:
 	mkdir -p debian/grr-client/usr/sbin
 	mkdir -p debian/grr-client/usr/share/grr

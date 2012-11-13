@@ -7,9 +7,12 @@
 
 #include "grr/client/nanny/windows_nanny.h"
 
+#include <Psapi.h>
 #include <stdio.h>
 #include <tchar.h>
 #include <time.h>
+// TODO(user): On Windows 8 this should be replaced by Processthreadsapi.h
+#include <WinBase.h>
 #include <windows.h>
 
 #include <memory>
@@ -132,9 +135,18 @@ HKEY ServiceKey::GetServiceKey() {
 
   // We need to turn on 64 bit access as per
   // http://msdn.microsoft.com/en-us/library/aa384129(v=VS.85).aspx
-  if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, kGrrServiceRegistry, 0,
-                   KEY_WOW64_64KEY | KEY_READ, &key) != ERROR_SUCCESS) {
+  HRESULT result = RegOpenKeyEx(HKEY_LOCAL_MACHINE,
+                                kGrrServiceRegistry,
+                                0,
+                                KEY_WOW64_64KEY | KEY_READ | KEY_WRITE,
+                                &key);
+  if (result != ERROR_SUCCESS) {
     key = 0;
+    TCHAR errormsg[1024];
+    FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, result, 0, errormsg,
+                  1024, NULL);
+    logger_.Log("Unable to open service key (%s): %s", kGrrServiceRegistry,
+                errormsg);
     return NULL;
   }
 
@@ -157,7 +169,7 @@ class WindowsChildProcess : public grr::ChildProcess {
   virtual ~WindowsChildProcess();
 
   // Kills the child.
-  virtual void KillChild();
+  virtual void KillChild(std::string msg);
 
   // Create the child process.
   virtual bool CreateChildProcess();
@@ -168,6 +180,17 @@ class WindowsChildProcess : public grr::ChildProcess {
   virtual time_t GetCurrentTime();
 
   virtual EventLogger *GetEventLogger();
+
+  virtual void SetNannyMessage(std::string msg);
+
+  virtual void SetNannyStatus(std::string msg);
+
+  virtual void ClearHeartbeat();
+
+  virtual size_t GetMemoryUsage();
+
+  virtual bool IsAlive();
+
  private:
   PROCESS_INFORMATION child_process;
   WindowsEventLogger logger_;
@@ -181,9 +204,11 @@ EventLogger *WindowsChildProcess::GetEventLogger() {
 
 
 // Kills the child.
-void WindowsChildProcess::KillChild() {
+void WindowsChildProcess::KillChild(std::string msg) {
   if (child_process.hProcess == NULL)
     return;
+
+  SetNannyStatus(msg);
 
   TerminateProcess(child_process.hProcess, 0);
 
@@ -220,6 +245,63 @@ time_t WindowsChildProcess::GetHeartBeat() {
   return last_heartbeat;
 }
 
+// Clears the heartbeat.
+void WindowsChildProcess::ClearHeartbeat() {
+  ServiceKey key;
+
+  if (!key.GetServiceKey()) {
+    return;
+  }
+
+  DWORD value = 0;
+  HRESULT result = 0;
+
+  result = RegSetValueEx(key.GetServiceKey(),
+                         kGrrServiceHeartBeatTime,
+                         0,
+                         REG_DWORD,
+                         reinterpret_cast<BYTE*>(&value),
+                         sizeof(DWORD));
+  if (result != ERROR_SUCCESS) {
+    TCHAR errormsg[1024];
+    FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, result, 0, errormsg,
+                  1024, NULL);
+    logger_.Log("Unable to clear heartbeat value: %s", errormsg);
+  }
+};
+
+// This sends a status message back to the server in case of a child kill.
+void WindowsChildProcess::SetNannyStatus(std::string msg) {
+  ServiceKey key;
+
+  if (!key.GetServiceKey()) {
+    return;
+  }
+
+  if (RegSetValueExA(key.GetServiceKey(), kGrrServiceNannyStatus, 0, REG_SZ,
+                     reinterpret_cast<const BYTE*>(msg.c_str()),
+                     msg.size() + 1) != ERROR_SUCCESS) {
+    logger_.Log("Unable to set Nanny status (%s).", msg.c_str());
+  }
+};
+
+// This sends a message back to the server.
+void WindowsChildProcess::SetNannyMessage(std::string msg) {
+  ServiceKey key;
+
+  if (!key.GetServiceKey()) {
+    return;
+  }
+
+  if (RegSetValueExA(key.GetServiceKey(), kGrrServiceNannyMessage, 0, REG_SZ,
+                     reinterpret_cast<const BYTE*>(msg.c_str()),
+                     msg.size() + 1) != ERROR_SUCCESS) {
+    logger_.Log("Unable to set Nanny message (%s).", msg.c_str());
+  }
+};
+
+
+
 // Launch the child process.
 bool WindowsChildProcess::CreateChildProcess() {
   // Get the binary location from our registry key.
@@ -255,7 +337,9 @@ bool WindowsChildProcess::CreateChildProcess() {
 
   command_line[command_line_len] = '\0';
   // If the child is already running or we have a handle to it, try to kill it.
-  KillChild();
+  if (IsAlive()) {
+    KillChild("Child process restart.");
+  }
 
   // Just copy our own startup info for the child.
   STARTUPINFO startup_info;
@@ -278,6 +362,7 @@ bool WindowsChildProcess::CreateChildProcess() {
     return false;
   }
 
+  SetNannyStatus("Child process started.");
   return true;
 }
 
@@ -288,12 +373,39 @@ time_t WindowsChildProcess::GetCurrentTime() {
 };
 
 
+size_t WindowsChildProcess::GetMemoryUsage() {
+  PROCESS_MEMORY_COUNTERS pmc;
+  if (!child_process.hProcess) {
+    return 0;
+  }
+
+  if (GetProcessMemoryInfo(child_process.hProcess, &pmc, sizeof(pmc))) {
+    return (size_t) pmc.WorkingSetSize;
+  }
+  DWORD res = GetLastError();
+  TCHAR errormsg[1024];
+  FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, res, 0, errormsg, 1024, NULL);
+  logger_.Log("Could not obtain memory information: %s", errormsg);
+  return 0;
+};
+
+bool WindowsChildProcess::IsAlive() {
+  DWORD exit_code = 0;
+  if (!child_process.hProcess ||
+      !GetExitCodeProcess(child_process.hProcess, &exit_code)) {
+    return false;
+  }
+  return exit_code == STILL_ACTIVE;
+};
+
 WindowsChildProcess::WindowsChildProcess()
-    : logger_(NULL) {}
+    : logger_(NULL) {
+  ClearHeartbeat();
+};
 
 
 WindowsChildProcess::~WindowsChildProcess() {
-  KillChild();
+  KillChild("Shutting down.");
 };
 
 
@@ -549,17 +661,29 @@ VOID WINAPI ServiceMain(DWORD argc, TCHAR *argv) {
   // Report running status when initialization is complete.
   ReportSvcStatus(SERVICE_RUNNING, NO_ERROR, 0);
 
+  time_t sleep_time = 0;
   // Spin in this loop until the service is stopped.
   while (1) {
-    // Check every second whether to stop the service.
-    if (WaitForSingleObject(g_service_stop_event, 1000) != WAIT_TIMEOUT) {
-      child.KillChild();
-      ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
-      break;
+    for (unsigned int i = 0; i < sleep_time; i++) {
+      // Check every second whether to stop the service.
+      if (WaitForSingleObject(g_service_stop_event, 1000) != WAIT_TIMEOUT) {
+        child.KillChild("Service stopped.");
+        ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
+        return;
+      }
+      if (child.GetMemoryUsage() > kNannyConfig.client_memory_limit) {
+        child.KillChild("Child process exceeded memory limit.");
+        break;
+      }
+      if (!child.IsAlive()) {
+                child.SetNannyMessage("Unexpected child process exit!");
+        child.KillChild("Child process exited.");
+        break;
+      }
     }
 
     // Run the child a bit more.
-    child_controller.Run();
+    sleep_time = child_controller.Run();
   }
 }
 

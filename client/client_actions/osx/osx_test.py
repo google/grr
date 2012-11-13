@@ -45,7 +45,7 @@ FLAGS = flags.FLAGS
 class OsxClientTests(test_lib.EmptyActionTest):
   """Test reading osx file system."""
 
-  def test64Bit(self):
+  def testFileSystemEnumeration64Bit(self):
     """Ensure we can enumerate file systems successfully."""
     path = os.path.join(self.base_path, "osx_fsdata")
     results = client_utils_osx.ParseFileSystemsStruct(

@@ -32,6 +32,12 @@ const TCHAR* kGrrServiceBinaryChildAlternate = TEXT("ChildBinaryLastKnownGood");
 // stores a unix epoch time.
 const TCHAR* kGrrServiceHeartBeatTime = TEXT("HeartBeat");
 
+// The registry value which is updated for the nanny messages.
+const TCHAR* kGrrServiceNannyMessage = TEXT("NannyMessage");
+
+// The registry value which is updated for the nanny status.
+const TCHAR* kGrrServiceNannyStatus = TEXT("NannyStatus");
+
 // Configuration of nanny policies.
 const struct grr::ControllerConfig kNannyConfig = {
   // Child must stay dead for this many seconds.
@@ -40,7 +46,8 @@ const struct grr::ControllerConfig kNannyConfig = {
   // If we receive no heartbeats from the client in this long, child is killed.
   180,  // unresponsive_kill_period
   60,  // event_log_message_suppression
-  0
+  0,  // failure_count, not yet used
+  1024 * 1024 * 1024,  // client memory limit
 };
 
 #endif  // OPS_SECURITY_GRR_CLIENT_NANNY_WINDOWS_NANNY_H_

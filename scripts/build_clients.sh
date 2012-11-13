@@ -231,7 +231,7 @@ PYTHONPATH=${PYTHONPATH} python $INSTALLER_DIR/inject_keys.py \
 
 LINUX_INI=${CLIENT_OUT_DIR}/grr.ini;
 
-echo "Build successful! Your Linuxini has been placed in $CLIENT_OUT_DIR"
+echo "Build successful! Your Linux ini has been placed in $CLIENT_OUT_DIR"
 
 
 echo "#########################################################################"

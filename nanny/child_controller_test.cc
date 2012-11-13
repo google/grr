@@ -7,6 +7,7 @@
 #include "testing/base/public/gunit.h"
 
 using ::testing::_;
+using ::testing::Assign;
 using ::testing::AtLeast;
 using ::testing::Return;
 using ::testing::ReturnPointee;
@@ -18,8 +19,10 @@ class MockChildProcess : public ChildProcess {
  public:
   MOCK_METHOD0(CreateChildProcess, bool());
   MOCK_METHOD0(GetHeartBeat, time_t());
-  MOCK_METHOD0(KillChild, void());
+  MOCK_METHOD1(KillChild, void(std::string msg));
   MOCK_METHOD0(GetCurrentTime, time_t());
+  MOCK_METHOD0(IsAlive, bool());
+  MOCK_METHOD0(GetMemoryUsage, size_t());
 };
 
 class ChildTest : public ::testing::Test {};
@@ -47,22 +50,41 @@ TEST_F(ChildTest, StartsChildAtStartUp) {
   ASSERT_TRUE(Mock::VerifyAndClearExpectations(&child));
 }
 
+ACTION_P(SetAndReturn, p) {
+  *p = true;
+  return true;
+};
+
+
 TEST_F(ChildTest, KillUnresponsiveChild) {
   // This test verifies that unresponsive children are killed and not restarted
   // until the resurrection_period. See comments atop child_controller.h.
 
   int current_epoch;
+  bool alive = false;
   MockChildProcess child;
   ChildController child_controller(kConfig, &child);
 
   ON_CALL(child, GetCurrentTime())
       .WillByDefault(ReturnPointee(&current_epoch));
 
+  ON_CALL(child, IsAlive())
+      .WillByDefault(ReturnPointee(&alive));
+
+  ON_CALL(child, CreateChildProcess())
+      .WillByDefault(SetAndReturn(&alive));
+
+  ON_CALL(child, KillChild(_))
+      .WillByDefault(Assign(&alive, false));
+
+  ON_CALL(child, GetHeartBeat())
+      .WillByDefault(Return(0));
+
   // Run for 20 seconds - child should start and not be killed.
   EXPECT_CALL(child, CreateChildProcess())
       .Times(1);
 
-  EXPECT_CALL(child, KillChild())
+  EXPECT_CALL(child, KillChild(_))
       .Times(0);
 
   // Scan the time line.
@@ -76,8 +98,7 @@ TEST_F(ChildTest, KillUnresponsiveChild) {
   EXPECT_CALL(child, CreateChildProcess())
       .Times(0);
 
-  // It is ok to call KillChild on an already dead child.
-  EXPECT_CALL(child, KillChild())
+  EXPECT_CALL(child, KillChild(_))
       .Times(AtLeast(1));
 
   // Scan the time line.
@@ -91,7 +112,7 @@ TEST_F(ChildTest, KillUnresponsiveChild) {
   EXPECT_CALL(child, CreateChildProcess())
       .Times(1);
 
-  EXPECT_CALL(child, KillChild())
+  EXPECT_CALL(child, KillChild(_))
       .Times(0);
 
   // Scan the time line - After 60 seconds we should start the child.
@@ -107,6 +128,7 @@ TEST_F(ChildTest, SteadyState) {
   int current_epoch;
   MockChildProcess child;
   ChildController child_controller(kConfig, &child);
+  std::string msg;
 
   ON_CALL(child, GetCurrentTime())
       .WillByDefault(ReturnPointee(&current_epoch));
@@ -115,7 +137,7 @@ TEST_F(ChildTest, SteadyState) {
   EXPECT_CALL(child, CreateChildProcess())
       .Times(1);
 
-  EXPECT_CALL(child, KillChild())
+  EXPECT_CALL(child, KillChild(msg))
       .Times(0);
 
   // Scan the time line.
@@ -132,12 +154,68 @@ TEST_F(ChildTest, SteadyState) {
   EXPECT_CALL(child, CreateChildProcess())
       .Times(0);
 
-  EXPECT_CALL(child, KillChild())
+  EXPECT_CALL(child, KillChild(msg))
       .Times(0);
 
   // Run for 200 more seconds - We should not kill the child.
   for (; current_epoch < 1220; current_epoch += 10) {
     child_controller.Run();
+  }
+
+  ASSERT_TRUE(Mock::VerifyAndClearExpectations(&child));
+}
+
+TEST_F(ChildTest, TestSuspending) {
+  // This test verifies that when the machine suspends, the client does not
+  // get killed.
+  int current_epoch, current_hb = 0;
+  time_t sleep_time = 0;
+  bool alive = false;
+  MockChildProcess child;
+  ChildController child_controller(kConfig, &child);
+  std::string msg;
+
+  ON_CALL(child, GetCurrentTime())
+      .WillByDefault(ReturnPointee(&current_epoch));
+
+  ON_CALL(child, GetHeartBeat())
+      .WillByDefault(ReturnPointee(&current_hb));
+
+  ON_CALL(child, IsAlive())
+      .WillByDefault(ReturnPointee(&alive));
+
+  ON_CALL(child, CreateChildProcess())
+      .WillByDefault(SetAndReturn(&alive));
+
+  // Run for 20 seconds - child should start and not be killed.
+  EXPECT_CALL(child, CreateChildProcess())
+      .Times(1);
+
+  EXPECT_CALL(child, KillChild(msg))
+      .Times(0);
+
+  // Scan the time line.
+  for (current_epoch = 1000; current_epoch < 1020;
+       current_epoch += sleep_time) {
+    sleep_time = child_controller.Run();
+  }
+
+  // Scan the time line.
+  for (; current_epoch < 2000; current_epoch += sleep_time) {
+    // The child heartbeats only every 10 seconds.
+    current_hb = (current_epoch / 10) * 10;
+    sleep_time = child_controller.Run();
+  }
+
+  // The machine suspends.
+  current_epoch = 100000;
+
+  // Scan the time line, child should not be killed.
+  for (; current_epoch < 102000; current_epoch += sleep_time) {
+    if ((current_epoch / 10) * 10 >= 100000) {
+      current_hb = (current_epoch / 10) * 10;
+    }
+    sleep_time = child_controller.Run();
   }
 
   ASSERT_TRUE(Mock::VerifyAndClearExpectations(&child));
