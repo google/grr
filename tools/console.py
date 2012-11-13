@@ -68,8 +68,6 @@ from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
 # pylint: enable=W0611
 
-# pylint: enable=W0611,C6203
-
 flags.DEFINE_string("client", None,
                     "Initialise the console with this client id "
                     "(e.g. C.1234345).")

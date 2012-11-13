@@ -29,6 +29,7 @@ from grr.client import conf
 from grr.client import conf as flags
 import logging
 
+
 from grr.lib import aff4
 from grr.lib import data_store
 
@@ -121,13 +122,15 @@ def main(_):
   # Tests run the fake data store
   FLAGS.storage = "FakeDataStore"
 
-
   settings.configure(**DJANGO_SETTINGS)
 
   # Load up the tests after the environment has been configured.
   # pylint: disable=C6204,W0612
   from grr.gui.plugins import tests
   # pylint: enable=C6204
+
+
+  registry.Init()
 
   # Start up a server in another thread
   trd = DjangoThread()
@@ -136,8 +139,6 @@ def main(_):
     user_ns = dict()
     user_ns.update(globals())
     user_ns.update(locals())
-
-    registry.Init()
 
     # Wait in the shell so selenium IDE can be used.
     ipshell.IPShell(argv=[], user_ns=user_ns)

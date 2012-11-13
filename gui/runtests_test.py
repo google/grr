@@ -26,6 +26,7 @@ import selenium
 
 
 from grr.gui import runtests
+from grr.lib import registry
 from grr.lib import test_lib
 
 flags.DEFINE_integer("selenium_port", 4444,

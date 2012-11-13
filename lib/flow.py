@@ -1367,7 +1367,6 @@ class FlowFactory(object):
 
       # We can not wait - just raise now
       if not sync: raise LockError(session_id)
-
       logging.info("Waiting for flow %s", session_id)
       time.sleep(1)
 
@@ -2125,6 +2124,13 @@ class GRRWorker(object):
       if flow_pb:
         # Unlock this flow
         FACTORY.ReturnFlow(flow_pb, token=self.token)
+
+
+class GRREnroler(GRRWorker):
+  """A GRR enroler.
+
+  Subclassed here so that log messages arrive from the right class.
+  """
 
 
 # These are globally available handles to factories

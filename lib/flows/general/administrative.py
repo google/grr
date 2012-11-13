@@ -398,6 +398,55 @@ class Update(flow.GRRFlow):
              info.data.client_version)
 
 
+class NannyMessageHandler(flow.EventListener):
+  """A listener for nanny messages."""
+  EVENTS = ["NannyMessage"]
+
+  well_known_session_id = "W:NannyMessage"
+
+  mail_template = """
+<html><body><h1>GRR nanny message received.</h1>
+
+The nanny for client %(client_id)s (%(hostname)s) just sent a message:<br>
+<br>
+%(message)s
+<br>
+Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
+
+<p>The GRR team.
+
+</body></html>"""
+
+  @flow.EventHandler(allow_client_access=True)
+  def ProcessMessage(self, message=None, event=None):
+    """Processes this event."""
+    _ = event
+
+    client_id = message.source
+
+    blob = jobs_pb2.DataBlob()
+    blob.ParseFromString(message.args)
+    message = blob.string
+
+    logging.info("Nanny for client %s sent: %s", client_id, message)
+
+    # Also send email.
+    if FLAGS.monitoring_email:
+      client = aff4.FACTORY.Open(client_id, token=self.token)
+      hostname = client.Get(client.Schema.HOSTNAME)
+      url = urllib.urlencode((("c", client_id),
+                              ("main", "HostInformation")))
+
+      email_alerts.SendEmail(FLAGS.monitoring_email, "GRR server",
+                             "GRR nanny message received from %s." % client_id,
+                             self.mail_template % dict(
+                                 client_id=client_id,
+                                 admin_ui=FLAGS.ui_url,
+                                 hostname=hostname,
+                                 urn=url, message=message),
+                             is_html=True)
+
+
 class ClientCrashHandler(flow.EventListener):
   """A listener for client crashes."""
   EVENTS = ["ClientCrash"]
@@ -415,6 +464,8 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
 <p>
 P.S. The failing flow was:
 %(flow)s
+
+%(nanny_msg)s
 
 </body></html>"""
 
@@ -435,6 +486,12 @@ P.S. The failing flow was:
 
     # Also send email.
     if FLAGS.monitoring_email:
+      nanny_msg = ""
+      status = jobs_pb2.GrrStatus()
+      status.ParseFromString(message.args)
+      if status.nanny_status:
+        nanny_msg = "Nanny status: %s" % status.nanny_status
+
       client = aff4.FACTORY.Open(client_id, token=self.token)
       hostname = client.Get(client.Schema.HOSTNAME)
       url = urllib.urlencode((("c", client_id),
@@ -445,8 +502,9 @@ P.S. The failing flow was:
                              self.mail_template % dict(
                                  client_id=client_id,
                                  admin_ui=FLAGS.ui_url,
-                                 hostname=hostname, flow=flow_pb,
-                                 urn=url),
+                                 hostname=hostname,
+                                 flow=utils.SmartStr(flow_pb),
+                                 urn=url, nanny_msg=nanny_msg),
                              is_html=True)
 
 

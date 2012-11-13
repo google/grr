@@ -54,12 +54,12 @@ def main(unused_argv):
   registry.CA_KEY = RSA.load_key_string(ca_pem)
   registry.CA_CERT = X509.load_cert_string(ca_pem)
 
-  # Initialise everything
+  # Initialise everything.
   registry.Init()
 
-  # Start a worker
+  # Start an Enroler.
   token = data_store.ACLToken("GRREnroller", "Implied.")
-  worker = flow.GRRWorker(queue_name=FLAGS.ca_queue_name, token=token)
+  worker = flow.GRREnroler(queue_name=FLAGS.ca_queue_name, token=token)
   worker.Run()
 
 if __name__ == "__main__":

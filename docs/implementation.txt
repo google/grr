@@ -857,6 +857,97 @@ state.
 from this flows will be fed back into the End state.
 
 
+== Testing ==
+
+We aim to keep GRR well unit tested to ensure we can move quickly with new
+changes without unknowingly breaking things. Different pieces of the system
+are tested to different levels of rigour, but generally new functionality
+should not go in without a test.
+
+=== Running the Tests ===
+Use the run_tests.py script to run the unit tests.
+
+------------------------------------------------------------------
+joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/run_tests.py
+        SchedulerTest                            PASSED in   0.31s
+        FlowFactoryTest                          PASSED in   0.41s
+        NetstatTest                              PASSED in   0.40s
+        SQLiteFileTest                           PASSED in   0.50s
+        BackwardsCompatibleClientCommsTest       PASSED in   0.91s
+        GrrWorkerTest                            PASSED in   0.61s
+        AFF4GRRTest                              PASSED in   0.41s
+        ChromeHistoryTest                        PASSED in   0.41s
+        AccessControlTest                        PASSED in   0.41s
+        ...
+        TestAdministrativeFlows                  FAILED in   0.41s
+        ...
+        TestFileCollector                        PASSED in   2.02s
+        TestWebHistory                           PASSED in   1.31s
+
+Ran 75 tests in 8.98 sec, 74 tests passed, 1 tests failed.
+------------------------------------------------------------------
+
+To run a specific test name the test class on the command line:
+------------------------------------------------------------------
+joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/run_tests.py TestAdministrativeFlows
+------------------------------------------------------------------
+
+
+=== Testing the UI. ===
+
+Testing the admin interface requires the selenium framework.
+
+First you need to download selenium from http://seleniumhq.org/download/.
+This will come in a jar file which you can run in one window.
+
+Note: If you are doing this on a remote machine over SSH you need to make
+sure your X display is forwarded for Selenium, it will spawn a Firefox window
+during the tests.
+
+------------------------------------------------------------------
+$ java -jar selenium-server-standalone-2.5.0.jar
+Aug 30, 2012 4:02:21 PM org.openqa.grid.selenium.GridLauncher main
+INFO: Launching a standalone server
+16:02:22.093 INFO - Java: Sun Microsystems Inc. 19.0-b09
+16:02:22.094 INFO - OS: Linux 2.6.38.8-gg868 i386
+16:02:22.130 INFO - v2.5.0, with Core v2.5.0. Built from revision 13516
+16:02:22.348 INFO - RemoteWebDriver instances should connect to: http://127.0.0.1:4444/wd/hub
+16:02:22.349 INFO - Version Jetty/5.1.x
+16:02:22.350 INFO - Started HttpContext[/selenium-server/driver,/selenium-server/driver]
+16:02:22.350 INFO - Started HttpContext[/selenium-server,/selenium-server]
+16:02:22.351 INFO - Started HttpContext[/,/]
+16:02:22.375 INFO - Started org.openqa.jetty.jetty.servlet.ServletHandler@ef2c60
+16:02:22.376 INFO - Started HttpContext[/wd,/wd]
+16:02:22.379 INFO - Started SocketListener on 0.0.0.0:4444
+------------------------------------------------------------------
+
+Then run the run_tests.py script
+
+------------------------------------------------------------------
+joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/gui/runtests_test.py
+------------------------------------------------------------------
+
+To run a specific test name the test class on the command line:
+------------------------------------------------------------------
+joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/gui/runtests_test.py TestTimelineView
+------------------------------------------------------------------
+
+==== Debugging GUI Tests ====
+Selenium will instrument the browser flow, but to figure out why something isn't
+working it's often useful to be able to single step through the Selenium actions.
+Add a call to import pdb; pdb.set_trace() into your test. e.g.
+
+[source, python]
+------------------------------------------------------------------
+sel.click("css=tbody tr:first td")
+import pdb; pdb.set_trace()
+sel.click("css=a:contains(\"View details\")")
+------------------------------------------------------------------
+
+When the test hits this point it will break into a pdb shell for you to step
+through.
+
+
 Key Libraries.
 --------------
 GRR makes use of a number of key open source projects in its implementation.

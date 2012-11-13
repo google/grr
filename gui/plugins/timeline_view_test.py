@@ -108,9 +108,9 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
 
     self.WaitUntilContains("Filter Expression", sel.get_text, "id=toolbar_main")
 
-    sel.type("css=input[name=query]",
+    sel.type("css=input#container_query",
              "subject contains bash and timestamp > 2010")
-    sel.key_press("query", "13")
+    sel.key_press("css=input#container_query", "13")
 
     self.WaitUntilContains("2011-03-07 12:50:20",
                            sel.get_text, "css=tbody tr:first")

@@ -109,7 +109,11 @@ class InterruptableThread(threading.Thread):
         if self.exit:
           break
         try:
-          time.sleep(1)
+          if time:
+            time.sleep(1)
+          else:
+            self.exit = True
+            break
         except AttributeError:
           # When the main thread exits, time might be already None. We should
           # just ignore that and exit as well.

@@ -131,7 +131,7 @@ class _ActiveCounter(object):
     histogram = self.attribute()
     for active_time in self.active_days:
       graph = analysis_pb2.Graph(title="%s day actives" % active_time)
-      for k, v in self.categories[active_time].items():
+      for k, v in sorted(self.categories[active_time].items()):
         graph.data.add(label=k, y_value=v)
 
       histogram.data.append(graph)

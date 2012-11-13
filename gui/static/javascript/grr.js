@@ -155,7 +155,7 @@ grr.init = function() {
   $('html').ajaxSend(function(event, xhr, settings) {
     // Officially crossdomain should be covered by ajaxSetup call, but that
     // appears to not apply to tree renderers, so belt and braces here.
-    if (!grr.csrfSafeMethod(settings.type) && grr.sameOrigin(settings.url)) {
+    if (!grr.csrfSafeMethod(settings.type)) {
       xhr.setRequestHeader('X-CSRFToken', csrftoken);
     }
   });
@@ -1666,14 +1666,15 @@ grr.uploadHandler = function(renderer, formId, progressId, successHandler,
 /**
  * Attach a download file handler to the click of a node.
   * @param {String} clickNode DomID that we will attach the handler to.
- * @param {object} state is the state we use for send to our renderer.
- * @param {bool} safe_extension should the downloaded file have .noexec added.
+  * @param {object} state is the state we use for send to our renderer.
+  * @param {bool} safe_extension should the downloaded file have .noexec added.
+  * @param {String} url URL to post to.
  */
-grr.downloadHandler = function(clickNode, state, safe_extension) {
+grr.downloadHandler = function(clickNode, state, safe_extension, url) {
   // Create a temporary form to post to the download page with.
   clickNode.find('form').remove();   // remove any previous hidden forms.
   var tmpform = $('<form target="_blank" />').appendTo(clickNode);
-  tmpform.attr({action: '/render/Download/DownloadView', method: 'post'});
+  tmpform.attr({action: url, method: 'post'});
   $.each(state, function(key, val) {
     $('<input type=hidden />').attr({name: key, value: val}).appendTo(tmpform);
   });
@@ -1698,21 +1699,6 @@ grr.downloadHandler = function(clickNode, state, safe_extension) {
 grr.csrfSafeMethod = function(method) {
   // these HTTP methods do not require CSRF protection.
   return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
-};
-
-
-/**
-  * Test that a given url is a same-origin URL.
-  * URL could be relative or scheme relative or absolute.
-  * As per https://docs.djangoproject.com/en/1.4/ref/contrib/csrf/#using-csrf
-  * @param {String} url URL we are sending to.
-  * @return {boolean} whether or not the url is in the same origin.
-**/
-grr.sameOrigin = function(url) {
-  var a = document.createElement('a');
-  a.href = url;
-  return (document.location.host == a.host &&
-          document.location.protocol == a.protocol);
 };
 
 

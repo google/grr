@@ -106,16 +106,16 @@ class CronJobTest(test_lib.AFF4ObjectTest):
 
     # There should be 10 of each (Linux, Windows) instances in 14 day actives.
     self.assertEqual(histogram.data[2].title, "14 day actives")
-    self.assertEqual(histogram.data[2].data[0].label, "Windows")
+    self.assertEqual(histogram.data[2].data[0].label, "Linux")
     self.assertEqual(histogram.data[2].data[0].y_value, 10)
-    self.assertEqual(histogram.data[2].data[1].label, "Linux")
+    self.assertEqual(histogram.data[2].data[1].label, "Windows")
     self.assertEqual(histogram.data[2].data[1].y_value, 10)
 
     # There should be 10 of each (Linux, Windows) instances in 30 day actives.
     self.assertEqual(histogram.data[3].title, "30 day actives")
-    self.assertEqual(histogram.data[3].data[0].label, "Windows")
+    self.assertEqual(histogram.data[3].data[0].label, "Linux")
     self.assertEqual(histogram.data[3].data[0].y_value, 10)
-    self.assertEqual(histogram.data[3].data[1].label, "Linux")
+    self.assertEqual(histogram.data[3].data[1].label, "Windows")
     self.assertEqual(histogram.data[3].data[1].y_value, 10)
 
   def testLastAccessStats(self):

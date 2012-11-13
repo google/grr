@@ -29,7 +29,6 @@ document_root = os.path.join(os.path.dirname(gui.__file__), "static")
 
 django_base = "django."
 view_base = "grr.gui.views."
-handler404 = "defaults.handler404"
 handler500 = "views.ServerError"
 
 urlpatterns = defaults.patterns(

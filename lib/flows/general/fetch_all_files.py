@@ -226,5 +226,3 @@ class FetchAllFiles(flow.GRRFlow):
 
 # A cron job should check on these symlinks, and make sure the file content
 # actually matches the advertised hash. Also true for hashImage files?
-# TODO(user): feed the newly fetched file to BinEval, here or in another
-# flow.

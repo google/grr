@@ -1139,7 +1139,8 @@ As downloaded on {{ this.age|escape }}.<br>
                client_id: grr.state.client_id,
                age: '{{this.age.value|escapejs}}'
               }
-  grr.downloadHandler(download_button, state);
+  grr.downloadHandler(download_button, state, false,
+                      '/render/Download/DownloadView');
   {% endif %}
 </script>""")
 

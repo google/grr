@@ -46,19 +46,24 @@ class GrrLogger(object):
     """
     path = FLAGS.grrlog
     logger = logging.getLogger()
+    logger.handlers = []         # Disable all current loggers.
+    formatter = logging.Formatter("%(asctime)s - " + component +
+                                  " - %(levelname)s - %(message)s")
     log_level = logging.INFO
     if FLAGS.verbose:
       log_level = logging.DEBUG
       logger.setLevel(log_level)
 
-      # Also log to stderr.
-      handler = logging.StreamHandler()
-      handler.setLevel(logging.DEBUG)
-      logger.addHandler(handler)
+    # Also log to stderr.
+    handler = logging.StreamHandler()
+    handler.setLevel(log_level)
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
     # Create a logfile.
     filehandler = logging.FileHandler(path, mode="ab")
-    filehandler.setLevel(logging.DEBUG)
+    filehandler.setLevel(log_level)
+    filehandler.setFormatter(formatter)
     logger.addHandler(filehandler)
 
     self._hostname = socket.gethostname()

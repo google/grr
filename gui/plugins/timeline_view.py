@@ -107,31 +107,25 @@ class TimelineToolbar(renderers.TemplateRenderer):
   """
 
   layout_template = renderers.Template("""
-<form id="csv_{{unique|escape}}" action="/render/Download/EventTable"
-   METHOD=post target='_blank'>
-<input type="hidden" name='container' value='{{this.container|escape}}' />
-<input type="hidden" id="csv_query" />
-<input type=hidden name='reason' value='{{this.token.reason|escape}}'>
-<button id='export' title="Export to CSV">
+<button id='export_{{unique|escape}}' title="Export to CSV">
 <img src="/static/images/stock-save.png">
 </button>
 {{this.container|escape}}
-</form>
 
 <form id="form_{{unique|escape}}" name="query_form">
 Filter Expression
-<input type="text" id="query" name="query"
+<input type="text" id="container_query" name="query"
   value="{{this.query|escape}}" size=180></input>
 </form>
 <script>
-
-$('#export').button().click(function () {
-  $("input#csv_query").val($("input#query").val());
-  $("#csv_{{unique|escape}}").submit();
-});
+var container = "{{this.container|escapejs}}";
+var state = {query: $("input#container_query").val(),
+             container: container};
+grr.downloadHandler($('#export_{{unique|escapejs}}'), state, true,
+                    '/render/Download/EventTable');
 
 $("#form_{{unique|escapejs}}").submit(function () {
-  var query = $("input#query").val();
+  var query = $("input#container_query").val();
   grr.publish('query_changed', query);
   grr.publish('hash_state', 'query', query);
 

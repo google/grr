@@ -165,6 +165,7 @@ class GRRBaseTest(unittest.TestCase):
   install_mock_acl = True
 
   __metaclass__ = registry.MetaclassRegistry
+  include_plugins_as_attributes = True
 
   def setUp(self):
     # We want to use the fake usually
@@ -345,9 +346,6 @@ class FlowTestsBaseclass(GRRBaseTest):
 
 class GRRSeleniumTest(GRRBaseTest):
   """Baseclass for selenium UI tests."""
-
-  __metaclass__ = registry.MetaclassRegistry
-  include_plugins_as_attributes = True
 
   # Default duration for WaitUntil.
   duration = 10
