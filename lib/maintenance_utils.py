@@ -170,7 +170,7 @@ def GetConfigBinaryPathType(aff4_path):
     return
 
 
-def CreateBinaryConfigPaths():
+def CreateBinaryConfigPaths(token=None):
   """Create the paths required for binary configs."""
   required_dirs = set(["drivers", "executables", "python_hacks"])
   required_urns = set()
@@ -185,13 +185,14 @@ def CreateBinaryConfigPaths():
       required_urns.add("aff4:/config/executables/%s/agentupdates" % platform)
       required_urns.add("aff4:/config/executables/%s/installers" % platform)
 
-    existing_urns = [x["urn"] for x in aff4.FACTORY.Stat(list(required_urns))]
+    existing_urns = [x["urn"] for x in aff4.FACTORY.Stat(list(required_urns),
+                                                         token=token)]
 
     missing_urns = required_urns - set(existing_urns)
 
     # One by one is not optimal but we have to do it only once per urn.
     for urn in missing_urns:
-      aff4.FACTORY.Create(urn, "AFF4Volume").Flush()
+      aff4.FACTORY.Create(urn, "AFF4Volume", token=token).Flush()
 
   except data_store.UnauthorizedAccess:
     logging.info("User is not admin, cannot check configuration tree.")

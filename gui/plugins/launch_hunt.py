@@ -517,10 +517,12 @@ grr.update("HuntReviewAndTest", "TestsInProgress_{{unique|escapejs}}",
     self.num_matching_clients = 0
     matching_clients = []
     for client in root.OpenChildren(chunk_limit=100000):
-      self.all_clients += 1
-      if generic_hunt.CheckClient(client):
-        self.num_matching_clients += 1
-        matching_clients.append(utils.SmartUnicode(client.urn))
+      if client.Get(client.Schema.TYPE) == "VFSGRRClient":
+        self.all_clients += 1
+        if generic_hunt.CheckClient(client):
+          self.num_matching_clients += 1
+          if len(matching_clients) < 3:
+            matching_clients.append(utils.SmartUnicode(client.urn))
 
     self.matching_clients = matching_clients[:3]
     return renderers.TemplateRenderer.Layout(self, request, response,

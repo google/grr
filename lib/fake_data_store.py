@@ -315,6 +315,7 @@ class FakeDataStore(data_store.DataStore):
   def Set(self, subject, attribute, value, timestamp=None, token=None,
           replace=True, sync=True):
     """Set the value into the data store."""
+    _ = sync
     self.security_manager.CheckAccess(token, [subject], "w")
 
     subject = utils.SmartUnicode(subject)

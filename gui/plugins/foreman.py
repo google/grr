@@ -31,10 +31,10 @@ from grr.proto import jobs_pb2
 
 class ManageForeman(renderers.UserLabelCheckMixin, renderers.Splitter2Way):
   """Manages class based flow creation."""
-  description = "Automated flow scheduling"
+  description = "Automated flows"
   behaviours = frozenset(["General"])
   AUTHORIZED_LABELS = ["admin"]
-  top_renderer = "ForemanRuleTable"
+  top_renderer = "ReadOnlyForemanRuleTable"
   bottom_renderer = "EmptyRenderer"
 
 

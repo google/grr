@@ -175,7 +175,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.WaitUntilContains(
         "aff4:/C.0000000000000001/fs/os/c/bin C.0000000000000001/cat",
         sel.get_text, "css=div h3")
-    self.failUnless(sel.is_text_present("1026267"))
+    self.WaitUntil(sel.is_text_present, "1026267")
 
     # Lets download it.
     sel.click("css=span:contains(\"Download\")")

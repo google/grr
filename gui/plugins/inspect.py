@@ -297,6 +297,9 @@ class GrrRequestRenderer(renderers.RDFProtoRenderer):
 class GrrResponseRenderer(GrrRequestRenderer):
   """A renderer for responses."""
 
+  # This makes sure this renderer is not used for GrrMessages.
+  classname = "GrrResponse"
+
   def ArgRenderer(self, description, value):
     """Render the args field intelligently."""
     # Status messages are special.

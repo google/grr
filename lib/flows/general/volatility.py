@@ -21,6 +21,7 @@ import time
 
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import type_info
 from grr.proto import jobs_pb2
 
 
@@ -41,6 +42,7 @@ class VolatilityPlugins(flow.GRRFlow):
   category = "/Volatility/"
 
   out_protobuf = jobs_pb2.VolatilityResponse
+  flow_typeinfo = {"profile": type_info.StringOrNone()}
 
   response_obj = "VolatilityResponse"
 

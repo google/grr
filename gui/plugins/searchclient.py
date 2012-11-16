@@ -210,7 +210,9 @@ class Navigator(renderers.TemplateRenderer):
 
     # Sort the output so they are in order.
     for heading in self.general_headings:
-      lkey = lambda x: getattr(x[0], "order", 10)
+      # pylint: disable=g-long-lambda
+      lkey = lambda x: (getattr(x[0], "order", 10),
+                        getattr(x[0], "description", ""))
       self.general_headings[heading][1].sort(key=lkey)
     self.host_headings.sort(key=lambda x: getattr(x[0], "order", 10))
 
@@ -330,12 +332,12 @@ class HostTable(renderers.TableRenderer):
   def QueryWithDataStore(self, query_string, token, start, length):
     """Query using the data store Query mechanism."""
     for (pattern,
-         replacement) in [("host:([^\ ]+)", "Host contains '\\1'"),
-                          ("id:([^\ ]+)", "( subject contains '\\1' and "
+         replacement) in [(r"host:([^\ ]+)", "Host contains '\\1'"),
+                          (r"id:([^\ ]+)", "( subject contains '\\1' and "
                            "type = VFSGRRClient )"),
-                          ("version:([^\ ]+)", "Version contains '\\1'"),
-                          ("mac:([^\ ]+)", "MAC contains '\\1'"),
-                          ("user:([^\ ]+)", "Usernames contains '\\1'")]:
+                          (r"version:([^\ ]+)", "Version contains '\\1'"),
+                          (r"mac:([^\ ]+)", "MAC contains '\\1'"),
+                          (r"user:([^\ ]+)", "Usernames contains '\\1'")]:
       query_string = re.sub(pattern, replacement, query_string)
 
     root = aff4.FACTORY.Create(aff4.ROOT_URN, "AFF4Volume", "r",
@@ -352,10 +354,11 @@ class HostTable(renderers.TableRenderer):
     if not query_string:
       raise RuntimeError("A query string must be provided.")
 
-    match = re.search("(C\.[0-9a-f]{16})", query_string)
+    match = re.search(r"(C\.[0-9a-f]{16})", query_string)
     if match:
       client_id = match.group(1)
-      result_set = [aff4.FACTORY.Open("aff4:/%s" % client_id)]
+      result_set = [aff4.FACTORY.Open("aff4:/%s" % client_id,
+                                      token=request.token)]
 
     # More complex searches are done through the data_store.Query()
     elif ":" in query_string:

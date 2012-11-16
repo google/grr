@@ -45,7 +45,6 @@ stats.STATS.RegisterVar("grr_admin_ui_renderer_failed")
 
 LOGGER = log.GrrLogger(component="AdminUI")
 
-
 AUTHORIZED_USERS = {}
 
 

@@ -48,7 +48,7 @@ class TimelineViewRenderer(renderers.RDFValueRenderer):
       self.hash_dict = dict(
           container=self.container, main="TimelineMain", c=client_id,
           reason=request.token.reason)
-      self.hash = urllib.urlencode(self.hash_dict)
+      self.hash = urllib.urlencode(sorted(self.hash_dict.items()))
 
       return super(TimelineViewRenderer, self).Layout(request, response)
 

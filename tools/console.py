@@ -29,7 +29,6 @@ import sys
 import time
 
 
-# pylint: disable=C6204
 
 from google.protobuf import descriptor
 from grr.client import conf

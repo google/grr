@@ -255,7 +255,7 @@ back to hunt view</a>
     self.state = {"hunt_id": hunt_id}
     self.title = "Viewing Hunt %s" % hunt_id
     h = dict(main="ManageHunts", hunt_id=hunt_id)
-    self.hunt_hash = urllib.urlencode(h)
+    self.hunt_hash = urllib.urlencode(sorted(h.items()))
     super(HuntClientTableRenderer, self).Layout(request, response)
 
   def BuildTable(self, start_row, end_row, request):
@@ -377,7 +377,7 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
     """Display the overview."""
     hunt_id = request.REQ.get("hunt_id")
     h = dict(main="ManageHuntsClientView", hunt_id=hunt_id)
-    self.hash = urllib.urlencode(h)
+    self.hash = urllib.urlencode(sorted(h.items()))
     self.data = {}
     if hunt_id is not None:
       try:
@@ -518,7 +518,7 @@ class HuntClientOverviewRenderer(renderers.TemplateRenderer):
             self.client.Get(self.client.Schema.PING))
 
         h = dict(main="HostInformation", c=self.client.client_id)
-        self.hash = urllib.urlencode(h)
+        self.hash = urllib.urlencode(sorted(h.items()))
       except IOError as e:
         logging.error("Attempt to open client %s. Err %s", hunt_client, e)
 

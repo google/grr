@@ -39,9 +39,9 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
     fd.Set(fd.Schema.CLOCK(2336650631137737))
     fd.Close()
 
-    # Empty foreman rules' set
-    self.foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw",
-                                     token=self.token)
+    # Create a Foreman with an empty rule set
+    self.foreman = aff4.FACTORY.Create("aff4:/foreman", "GRRForeman",
+                                       mode="rw", token=self.token)
     self.foreman.Set(self.foreman.Schema.RULES())
     self.foreman.Close()
 
@@ -56,7 +56,6 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
 
   def testLaunchHuntWizard(self):
     """Test that we can launch a hunt through the wizard."""
-
     # Open up and click on View Hunts.
     sel = self.selenium
     sel.open("/")

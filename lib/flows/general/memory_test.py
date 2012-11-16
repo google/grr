@@ -67,6 +67,7 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
   def CreateClient(self):
     client = aff4.FACTORY.Create(aff4.ROOT_URN.Add(self.client_id),
                                  "VFSGRRClient", token=self.token)
+    client.Set(client.Schema.ARCH("AMD64"))
     client.Set(client.Schema.OS_RELEASE("7"))
     client.Set(client.Schema.SYSTEM("Windows"))
     client.Close()

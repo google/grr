@@ -68,12 +68,13 @@ class LoadMemoryDriver(flow.GRRFlow):
   def Start(self):
     """Start processing."""
     if self.driver_installer is None:
-      module = self.GetMemoryModule(self.client_id)
-      if not module:
+      module, self.driver_installer = GetMemoryModule(self.client_id,
+                                                      self.token)
+      if not module.data or not self.driver_installer:
         raise IOError("No memory driver currently available for this system.")
 
       # Create a protobuf containing the request.
-      self.driver_installer.driver.MergeFrom(module)
+      self.driver_installer.driver.MergeFrom(module.data)
 
     # We want to force unload old driver and reload the current one.
     self.driver_installer.force_reload = 1
@@ -119,69 +120,76 @@ class LoadMemoryDriver(flow.GRRFlow):
       self.Notify("ViewObject", self._device_urn,
                   "Driver successfully initialized.")
 
-  def GetMemoryModule(self, client_id):
-    """Given a host, return an appropriate memory module.
 
-    Args:
-      client_id: The client_id of the host to use.
+def GetMemoryModule(client_id, token):
+  """Given a host, return an appropriate memory module.
 
-    Returns:
-      A GRRSignedDriver object or None.
+  Args:
+    client_id: The client_id of the host to use.
+    token: Token to use for access.
 
-    Raises:
-      IOError: on inability to get driver.
+  Returns:
+    A tuple of GRRSignedDriver, InstallDriverRequest or None, None
 
-    The driver we are sending should have a signature associated
-    This would get verified by the client (independently of OS driver signing).
-    Having this mechanism will allow for offline signing of drivers to reduce
-    the risk of the system being used to deploy evil things.
-    """
+  Raises:
+    IOError: on inability to get driver.
 
-    client = aff4.FACTORY.Open(client_id, token=self.token)
-    system = client.Get(client.Schema.SYSTEM)
-    release = client.Get(client.Schema.OS_RELEASE)
+  The driver we are sending should have a signature associated
+  This would get verified by the client (independently of OS driver signing).
+  Having this mechanism will allow for offline signing of drivers to reduce
+  the risk of the system being used to deploy evil things.
+  """
 
-    if system == "Windows":
-      # TODO(user): Gather Windows 64 bitness to select driver correctly.
+  client = aff4.FACTORY.Open(client_id, token=token)
+  system = client.Get(client.Schema.SYSTEM)
+  release = client.Get(client.Schema.OS_RELEASE)
+
+  if system == "Windows":
+    arch = client.Get(client.Schema.ARCH)
+    if arch == "AMD64":
       path = WIN_MEM.format(arch="64")
-      sys_os = "windows"
-      inst_path = WIN_DRV_PATH
-    elif system == "Darwin":
-      path = OSX_MEM
-      sys_os = "osx"
-      inst_path = OSX_DRV_PATH
-    elif system == "Linux":
-      sys_os = "linux"
-      path = LIN_MEM.format(kernel=release)
-      inst_path = LIN_DRV_PATH
+    elif arch == "x86":
+      path = WIN_MEM.format(arch="32")
     else:
-      raise IOError("No OS Memory support for platform %s" % system)
+      raise flow.FlowError("No memory driver for the architecture %s" % arch)
+    sys_os = "windows"
+    inst_path = WIN_DRV_PATH
+  elif system == "Darwin":
+    path = OSX_MEM
+    sys_os = "osx"
+    inst_path = OSX_DRV_PATH
+  elif system == "Linux":
+    sys_os = "linux"
+    path = LIN_MEM.format(kernel=release)
+    inst_path = LIN_DRV_PATH
+  else:
+    raise IOError("No OS Memory support for platform %s" % system)
 
-    driver_path = utils.JoinPath(DRIVER_BASE.format(os=sys_os), path)
-    fd = aff4.FACTORY.Create(driver_path, "GRRMemoryDriver",
-                             mode="r", token=self.token)
+  driver_path = utils.JoinPath(DRIVER_BASE.format(os=sys_os), path)
+  fd = aff4.FACTORY.Create(driver_path, "GRRMemoryDriver",
+                           mode="r", token=token)
 
-    # Get the signed driver.
-    driver_blob = fd.Get(fd.Schema.BINARY)
-    if not driver_blob:
-      msg = "No OS Memory module available for %s %s" % (system, release)
-      logging.info(msg)
-      raise IOError(msg)
+  # Get the signed driver.
+  driver_blob = fd.Get(fd.Schema.BINARY)
+  if not driver_blob:
+    msg = "No OS Memory module available for %s %s" % (system, release)
+    logging.info(msg)
+    raise IOError(msg)
 
-    logging.info("Found driver %s", driver_path)
+  logging.info("Found driver %s", driver_path)
 
-    # How should this driver be installed?
-    self.driver_installer = fd.Get(fd.Schema.INSTALLATION).data
+  # How should this driver be installed?
+  driver_installer = fd.Get(fd.Schema.INSTALLATION).data
 
-    # If we didn't get a write path, we make one.
-    if not self.driver_installer.write_path:
-      if self.driver_installer.driver_name:
-        self.driver_installer.write_path = inst_path.format(
-            name=self.driver_installer.driver_name)
-      else:
-        self.driver_installer.write_path = inst_path.format(name="pmem")
+  # If we didn't get a write path, we make one.
+  if not driver_installer.write_path:
+    if driver_installer.driver_name:
+      driver_installer.write_path = inst_path.format(
+          name=driver_installer.driver_name)
+    else:
+      driver_installer.write_path = inst_path.format(name="pmem")
 
-    return driver_blob.data
+  return driver_blob, driver_installer
 
 
 class AnalyseClientMemory(flow.GRRFlow):
@@ -203,20 +211,45 @@ class AnalyseClientMemory(flow.GRRFlow):
     self.driver_installer = driver_installer
     self.profile = profile
 
-  @flow.StateHandler(next_state=["RunVolatilityPlugins"])
+  @flow.StateHandler(next_state=["LoadDriver"])
   def Start(self):
-    self.CallFlow("LoadMemoryDriver", next_state="RunVolatilityPlugins",
-                  driver_installer=self.driver_installer)
+    if self.driver_installer is None:
+      _, installer = GetMemoryModule(self.client_id, token=self.token)
+      if not installer:
+        raise IOError("Could not determine path for memory driver. No module "
+                      "available for this platform.")
+    self.CallClient("GetMemoryInformation",
+                    jobs_pb2.Path(path=installer.device_path,
+                                  pathtype=jobs_pb2.Path.MEMORY),
+                    next_state="LoadDriver")
+
+  @flow.StateHandler(next_state=["RunVolatilityPlugins"])
+  def LoadDriver(self, responses):
+    """If necessary load the memory driver."""
+    if responses.success:
+      # The file existed
+      self.CallState(next_state="RunVolatilityPlugins")
+    else:
+      self.CallFlow("LoadMemoryDriver", next_state="RunVolatilityPlugins",
+                    driver_installer=self.driver_installer)
 
   @flow.StateHandler(next_state=["ProcessVolatilityPlugins", "Done"])
   def RunVolatilityPlugins(self, responses):
     """Run all the plugins and process the responses."""
     if responses.success:
       memory_information = responses.First()
+      if memory_information:
+        # We just loaded the driver, it gave us the path.
+        device_path = memory_information.device.path
+      else:
+        # We loaded the driver previously and stored the path.
+        device_urn = aff4.ROOT_URN.Add(self.client_id).Add("devices/memory")
+        fd = aff4.FACTORY.Open(device_urn, "MemoryImage", token=self.token)
+        device_path = fd.Get(fd.Schema.LAYOUT).device.path
 
       self.CallFlow("VolatilityPlugins", plugins=self.plugins,
-                    devicepath=memory_information.device, profile=self.profile,
-                    next_state="Done")
+                    devicepath=device_path,
+                    profile=self.profile, next_state="Done")
     else:
       raise flow.FlowError("Failed to Load driver: %s" % responses.status)
 
@@ -226,7 +259,8 @@ class AnalyseClientMemory(flow.GRRFlow):
 
   @flow.StateHandler()
   def End(self):
-    self.Notify("ViewObject", self.device_urn,
+    out_urn = aff4.ROOT_URN.Add(self.client_id).Add("analysis")
+    self.Notify("ViewObject", out_urn,
                 "Completed execution of volatility plugins.")
 
 
@@ -236,7 +270,7 @@ class UnloadMemoryDriver(LoadMemoryDriver):
   @flow.StateHandler(next_state=["Done"])
   def Start(self):
     """Start processing."""
-    module = self.GetMemoryModule(self.client_id)
+    module = GetMemoryModule(self.client_id, self.token)
     if not module:
       raise IOError("No memory driver currently available for this system.")
 
@@ -285,7 +319,7 @@ class GrepAndDownload(grep.Grep):
       self.load_driver = False
       self.CallFlow("LoadMemoryDriver", next_state="Start")
     else:
-      super(GrepAndDownload, self). Start()
+      super(GrepAndDownload, self).Start()
 
   @flow.StateHandler(next_state=["Done"])
   def StoreResults(self, responses):

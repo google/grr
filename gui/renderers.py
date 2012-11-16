@@ -35,6 +35,20 @@ COUNTER = 1
 MAX_ROW_LIMIT = 1000000
 
 
+class VerifyRenderers(registry.InitHook):
+
+  def RunOnce(self):
+    renderers = {}
+
+    for candidate in RDFValueRenderer.classes.values():
+      if issubclass(candidate, RDFValueRenderer) and candidate.classname:
+        renderers.setdefault(candidate.classname, []).append(candidate)
+
+    for r in renderers:
+      if len(renderers[r]) > 1:
+        raise RuntimeError("More than one renderer found for %s!" % str(r))
+
+
 class Template(template.Template):
   """A specialized template which supports concatenation."""
 
@@ -268,7 +282,8 @@ class UserLabelCheckMixin(object):
     except IOError:
       pass
 
-    raise data_store.UnauthorizedAccess("User not allowed")
+    raise data_store.UnauthorizedAccess("User %s not allowed." %
+                                        request.token.username)
 
 
 class ErrorHandler(Renderer):

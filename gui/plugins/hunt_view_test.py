@@ -70,11 +70,11 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # Run the hunt.
     client_mock = self.h.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
-    hunt.LogResult("Result 1")
+    hunt.LogResult(self.client_ids[2], "Result 1")
 
     # Log an error just with some random traceback.
     hunt.LogClientError(self.client_ids[1], "Client Error 1",
-                        traceback.print_exc())
+                        traceback.format_exc())
 
     hunt_obj = aff4.FACTORY.Open("aff4:/hunts/%s" % hunt.session_id, mode="rw",
                                  age=aff4.ALL_TIMES, token=self.token)
@@ -100,7 +100,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # Click the Log Tab.
     sel.click("css=a[renderer=HuntLogRenderer]")
     self.WaitUntil(sel.is_element_present, "css=div[id^=HuntLogRenderer_]")
-    self.failUnless(sel.is_text_present("Result 1"))
+    self.WaitUntil(sel.is_text_present, "Result 1")
 
     # Click the Error Tab.
     sel.click("css=a[renderer=HuntErrorRenderer]")
@@ -123,7 +123,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
     hunt.LogClientError(self.client_ids[1], "Client Error 1",
-                        traceback.print_exc())
+                        traceback.format_exc())
 
     # Open up and click on View Hunts then the first Hunt.
     sel = self.selenium
@@ -139,31 +139,31 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # Click the Overview Tab then the Details Link.
     sel.click("css=a[renderer=HuntOverviewRenderer]")
     self.WaitUntil(sel.is_element_present, "css=div[id^=HuntOverviewRenderer_]")
-    self.failUnless(sel.is_text_present("Hunt URN"))
+    self.WaitUntil(sel.is_text_present, "Hunt URN")
     sel.click("css=a[id^=ViewHuntDetails_]")
     self.WaitUntil(sel.is_text_present, "Viewing Hunt W:")
 
-    self.failUnless(sel.is_text_present("COMPLETED"))
-    self.failUnless(sel.is_text_present("BAD"))
+    self.WaitUntil(sel.is_text_present, "COMPLETED")
+    self.WaitUntil(sel.is_text_present, "BAD")
 
     # Select the first client which should have errors.
     sel.click("css=td:contains('%s')" % self.client_ids[1])
     self.WaitUntil(sel.is_element_present,
                    "css=div[id^=HuntClientOverviewRenderer_]")
-    self.failUnless(sel.is_text_present("Last Checkin"))
+    self.WaitUntil(sel.is_text_present, "Last Checkin")
 
     sel.click("css=a:[renderer=HuntLogRenderer]")
     self.WaitUntil(sel.is_element_present, "css=div[id^=HuntLogRenderer_]")
-    self.failUnless(sel.is_text_present("No entries"))
+    self.WaitUntil(sel.is_text_present, "No entries")
 
     sel.click("css=a:[renderer=HuntErrorRenderer]")
     self.WaitUntil(sel.is_element_present, "css=div[id^=HuntErrorRenderer_]")
-    self.failUnless(sel.is_text_present("Client Error 1"))
+    self.WaitUntil(sel.is_text_present, "Client Error 1")
 
     sel.click("css=a:[renderer=HuntHostInformationRenderer]")
     self.WaitUntil(sel.is_element_present,
                    "css=div[id^=HuntHostInformationRenderer_]")
-    self.failUnless(sel.is_text_present("CLIENT_INFO"))
-    self.failUnless(sel.is_text_present("VFSGRRClient"))
+    self.WaitUntil(sel.is_text_present, "CLIENT_INFO")
+    self.WaitUntil(sel.is_text_present, "VFSGRRClient")
 
     self.CleanUpState()

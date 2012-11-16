@@ -95,9 +95,11 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
 
     self.WaitUntil(sel.is_element_present, "css=td:contains(\"VIEW\")")
     self.assert_("View details" in sel.get_text(
-        "css=a[href=\"#reason=&main=ContainerViewer&"
-        "container=aff4%3A%2FC.0000000000000004%2Fanalysis%2FFindFlowTest"
-        "&c=C.0000000000000004\"]"))
+        "css=a[href=\"#"
+        "c=C.0000000000000004&"
+        "container=aff4%3A%2FC.0000000000000004%2Fanalysis%2FFindFlowTest&"
+        "main=ContainerViewer&"
+        "reason=\"]"))
 
     sel.click("css=a:contains(\"View details\")")
 

@@ -198,6 +198,7 @@ class VFSGRRClient(standard.VFSDirectory):
                                 "OS Major release number.", "Release")
     OS_VERSION = aff4.Attribute("metadata:os_version", VersionString,
                                 "OS Version number.", "Version")
+    # ARCH values come from platform.uname machine value, e.g. x86_64, AMD64.
     ARCH = aff4.Attribute("metadata:architecture", aff4.RDFString,
                           "Architecture.", "Architecture")
     INSTALL_DATE = aff4.Attribute("metadata:install_date", aff4.RDFDatetime,
@@ -937,9 +938,13 @@ class VFSHunt(aff4.AFF4Object):
 
   def GetClientsByStatus(self):
     """Get all the clients in a dict of {status: [client_list]}."""
-    return {"COMPLETED": self.GetCompletedClients(),
+    completed = set(self.GetCompletedClients())
+    bad = set(self.GetBadClients())
+    completed -= bad
+
+    return {"COMPLETED": sorted(completed),
             "OUTSTANDING": self.GetOutstandingClients(),
-            "BAD": self.GetBadClients()}
+            "BAD": sorted(bad)}
 
   def GetClientStates(self, client_list, client_chunk=50):
     """Take in a client list and return dicts with their age and hostname."""

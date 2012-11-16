@@ -12,6 +12,7 @@ from grr.client import conf as flags
 from grr.gui import renderers
 from grr.gui.plugins import fileview
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import maintenance_utils
 from grr.lib import registry
 from grr.proto import jobs_pb2
@@ -170,7 +171,7 @@ class ConfigFileTableToolbar(renderers.TemplateRenderer):
 grr.subscribe('file_select', function(aff4_path, age) {
   var state = {aff4_path: aff4_path};
   grr.downloadHandler($('#{{unique|escapejs}}_download'), state,
-                      safe_extension=true);
+                      safe_extension=true, '/render/Download/DownloadView');
 }, 'toolbar_{{unique|escapejs}}');
 
 grr.dialog('ConfigBinaryUploadView', '{{unique|escapejs}}_upload_dialog',
@@ -244,4 +245,5 @@ class ConfigurationViewInitHook(registry.InitHook):
 
   def Run(self):
     """Create the necessary directories."""
-    maintenance_utils.CreateBinaryConfigPaths()
+    token = data_store.ACLToken("system", "Init")
+    maintenance_utils.CreateBinaryConfigPaths(token=token)

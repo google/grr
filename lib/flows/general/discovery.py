@@ -211,6 +211,13 @@ class Interrogate(flow.GRRFlow):
       self.client.Set(self.client.Schema.SYSTEM(response.system))
       self.client.Set(self.client.Schema.OS_RELEASE(response.release))
       self.client.Set(self.client.Schema.OS_VERSION(response.version))
+
+      # response.machine is the machine value of platform.uname()
+      # On Windows this is the value of:
+      # HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session
+      # Manager\Environment\PROCESSOR_ARCHITECTURE
+      # "AMD64", "IA64" or "x86"
+      self.client.Set(self.client.Schema.ARCH(response.machine))
       self.client.Set(self.client.Schema.UNAME("%s-%s-%s" % (
           response.system, response.version,
           response.release)))

@@ -173,8 +173,8 @@ Please click <a href='%(admin_ui)s#%(approval_urn)s'>
       client = aff4.FACTORY.Open(self.client_id, token=self.token)
       hostname = client.Get(client.Schema.HOSTNAME)
 
-      url = urllib.urlencode((("main", "GrantAccess"),
-                              ("acl", str(approval_urn))))
+      url = urllib.urlencode((("acl", str(approval_urn)),
+                              ("main", "GrantAccess")))
 
       email_alerts.SendEmail(user, self.token.username,
                              "Please grant %s access." % self.token.username,

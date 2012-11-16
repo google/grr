@@ -51,7 +51,7 @@ class ViewRenderer(renderers.RDFValueRenderer):
     h = dict(container=self.container, main="ContainerViewer", c=client_id,
              reason=request.token.reason)
 
-    self.hash = urllib.urlencode(h)
+    self.hash = urllib.urlencode(sorted(h.items()))
 
     return super(ViewRenderer, self).Layout(request, response)
 

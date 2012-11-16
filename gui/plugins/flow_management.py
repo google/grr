@@ -469,14 +469,6 @@ class FlowArgsRenderer(renderers.RDFProtoRenderer):
     return response
 
 
-class RDFDatetimeRenderer(renderers.RDFValueRenderer):
-  """Render the date time with a non breaking space."""
-  classname = "RDFDatetime"
-
-  template = renderers.Template(
-      "<div class='non-breaking'>{{data|escape}}</div>")
-
-
 # Here we want the same behaviour as VirtualFileSystemView (i.e. present a
 # select client form initially), but then we want a 2 way splitter instead.
 class ManageFlows(renderers.Splitter2Way):
@@ -947,4 +939,4 @@ $("#{{unique|escape}}").click(function(){
     h["t"] = renderers.DeriveIDFromPath("/".join(components[1:-1]))
     h["main"] = "VirtualFileSystemView"
     return urllib.urlencode(
-        dict([(x, utils.SmartStr(y)) for x, y in h.items()]))
+        sorted([(x, utils.SmartStr(y)) for x, y in h.items()]))

@@ -46,5 +46,4 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
     # Check we can now see the log.
     self.WaitUntil(sel.is_element_present, "css=table[class=proto_table]")
-    self.failUnless(sel.is_text_present("Successfully ran cron job "
-                                        "OSBreakDown"))
+    self.WaitUntil(sel.is_text_present, "Successfully ran cron job OSBreakDown")

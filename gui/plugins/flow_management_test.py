@@ -59,7 +59,6 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     sel.click("css=a[grrtarget=LaunchFlows]")
     self.WaitUntil(sel.is_element_present, "id=_Processes")
-    self.failUnless(sel.is_element_present("id=_Processes"))
     sel.click("css=#_Processes > ins.jstree-icon")
 
     self.WaitUntil(sel.is_element_present, "link=ListProcesses")
@@ -67,15 +66,14 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.assertEqual("ListProcesses", sel.get_text("link=ListProcesses"))
     sel.click("link=ListProcesses")
     self.WaitUntil(sel.is_element_present, "css=input[value=Launch]")
-    self.failUnless(sel.is_text_present("C.0000000000000001"))
+    self.WaitUntil(sel.is_text_present, "C.0000000000000001")
 
-    self.failUnless(sel.is_text_present(
-        "Prototype: ListProcesses"))
+    self.WaitUntil(sel.is_text_present, "Prototype: ListProcesses")
 
     sel.click("css=input[value=Launch]")
     self.WaitUntil(sel.is_element_present, "css=input[value=Back]")
-    self.failUnless(sel.is_text_present("Launched flow ListProcesses"))
-    self.failUnless(sel.is_text_present("client_id = C.0000000000000001"))
+    self.WaitUntil(sel.is_text_present, "Launched flow ListProcesses")
+    self.WaitUntil(sel.is_text_present, "client_id = C.0000000000000001")
 
     sel.click("css=input[value=Back]")
     self.WaitUntil(sel.is_element_present, "css=input[value=Launch]")

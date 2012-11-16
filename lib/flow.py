@@ -980,10 +980,11 @@ class GRRHunt(GRRFlow):
     num_matching_clients = 0
     matching_clients = []
     for client in root.OpenChildren(chunk_limit=100000):
-      all_clients += 1
-      if self.CheckClient(client):
-        num_matching_clients += 1
-        matching_clients.append(utils.SmartUnicode(client.urn))
+      if client.Get(client.Schema.TYPE) == "VFSGRRClient":
+        all_clients += 1
+        if self.CheckClient(client):
+          num_matching_clients += 1
+          matching_clients.append(utils.SmartUnicode(client.urn))
 
     logging.info("Out of %d checked clients, %d matched the given rule set.",
                  all_clients, num_matching_clients)
@@ -1423,8 +1424,7 @@ class FlowFactory(object):
                              lock=not force, token=token)
 
     if flow_pb.state != jobs_pb2.FlowPB.RUNNING:
-      raise FlowError("Flow can not be terminated - "
-                      "it is not in the running state.")
+      return
 
     flow_obj = self.LoadFlow(flow_pb)
     if not flow_obj:

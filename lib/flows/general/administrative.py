@@ -330,8 +330,18 @@ Client %(client_id)s (%(hostname)s) just came online. Click
       flow.FlowError("Error while pinging client.")
 
 
-class Update(flow.GRRFlow):
-  """Updates the GRR client to a new version."""
+class UpdateClient(flow.GRRFlow):
+  """Updates the GRR client to a new version replacing the current client.
+
+  This will execute the specified installer on the client and then run
+  an Interrogate flow.
+
+  The new installer needs to be loaded into the database, generally in
+  /config/executables/<platform>/installers and must be signed using the
+  exec signing key.
+
+  Signing and upload of the file is done with config_updater.
+  """
 
   category = "/Administrative/"
 
@@ -348,7 +358,7 @@ class Update(flow.GRRFlow):
     Args:
       blob_path: An aff4 path to a GRRSignedBlob of a new client version.
     """
-    super(Update, self).__init__(**kw)
+    super(UpdateClient, self).__init__(**kw)
     self.blob_path = blob_path
 
   @flow.StateHandler(next_state="Interrogate")
