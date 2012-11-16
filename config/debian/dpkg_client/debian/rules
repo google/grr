@@ -17,9 +17,11 @@ override_dh_auto_install:
 
 override_dh_installinit:
 	mkdir -p debian/grr-client/usr/sbin
-	mkdir -p debian/grr-client/usr/share/grr
-	install -p -m755 debian/tmp/usr/share/grr/*.* debian/grr-client/usr/share/grr/
-	install -p -m755 debian/tmp/usr/share/grr/grrd debian/grr-client/usr/share/grr/grrd
+	mkdir -p debian/grr-client/usr/lib/grr
+	mkdir -p debian/grr-client/usr/share/man/man1
+	install -p -m755 debian/tmp/usr/lib/grr/*.* debian/grr-client/usr/lib/grr/
+	install -p -m755 debian/tmp/usr/lib/grr/grrd debian/grr-client/usr/lib/grr/grrd
+	install -p -m0644 grr/config/debian/manuals/*.1 debian/grr-client/usr/share/man/man1
 	install -p -m755 grr/config/debian/upstart/grr-client.conf debian/grr-client.upstart
 	# Create upstart scripts
 	sed "s/#JOB#/grr-client/;s/#ERROR_HANDLER#/exit \$$?/" \
@@ -36,12 +38,17 @@ override_dh_installinit:
 	# sed "s/#SCRIPT#/grr-client/;s/#INITPARMS#/defaults/;s/#ERROR_HANDLER#/exit \$$?/" \
 	# /usr/share/debhelper/autoscripts/postrm-init >> debian/grr-client.postrm.debhelper
 
-override_dh_strip:
-
 override_dh_link:
 	dh_link "/$(shell cd debian/grr-client/ && find usr/ -name grrd)" "/usr/sbin/grrd"
 
+override_dh_strip:
+	# Necessary otherwise the PyInstaller build executables will not run
+
+override_dh_makeshlibs:
+	# Prevent useless call to ldconfig
+	dh_makeshlibs -n
+
 override_dh_shlibdeps:
 	# Point debhelper to the locally included shared libraries
-	dh_shlibdeps -l${PWD}/debian/tmp/usr/share/grr
+	dh_shlibdeps -l${PWD}/debian/tmp/usr/lib/grr
 

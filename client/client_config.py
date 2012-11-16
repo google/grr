@@ -59,6 +59,7 @@ CONFIG_FILE = "/etc/grr.ini"
 
 # Nanny control
 NANNY_LOGFILE = "/var/run/grr.log"
+NANNY_STATUS_FILE = "/var/run/grr.status"
 UNRESPONSIVE_KILL_PERIOD = 60
 
 # The GRR client performs some proxy detection. However, it cannot

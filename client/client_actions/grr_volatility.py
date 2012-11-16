@@ -194,7 +194,8 @@ class VolatilityAction(actions.ActionPlugin):
         self.Progress()
 
       vol_session = session.Session()
-      vol_session.profile = args.profile
+      if args.profile:  # Protobuf default is '' which is invalid.
+        vol_session.profile = args.profile
       vol_session.fhandle = vfs.VFSOpen(args.device)
       vol_session.progress = Progress
       vol_session.renderer = "ProtobufRenderer"

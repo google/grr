@@ -10,4 +10,4 @@ Package: grr-client
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: GRR Rapid Response Client
- GRR Rapid Response Client
+ The GRR Rapid Response Client

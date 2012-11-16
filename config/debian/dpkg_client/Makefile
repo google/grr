@@ -22,9 +22,9 @@ clean:
 	@rm -rf build/ dist/
 
 install:
-	@mkdir -p $(prefix)/share/grr
-	@install -m 0755 dist/grrd/*.* $(prefix)/share/grr/
-	@install -m 0755 dist/grrd/grrd $(prefix)/share/grr/
+	@mkdir -p $(prefix)/lib/grr
+	@install -m 0755 dist/grrd/*.* $(prefix)/lib/grr/
+	@install -m 0755 dist/grrd/grrd $(prefix)/lib/grr/
 
 .py:
 

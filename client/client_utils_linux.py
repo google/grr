@@ -35,6 +35,9 @@ from grr.proto import jobs_pb2
 flags.DEFINE_string("nanny_logfile", client_config.NANNY_LOGFILE,
                     "The file where we write the nanny transaction log.")
 
+flags.DEFINE_string("nanny_statusfile", client_config.NANNY_STATUS_FILE,
+                    "The file where we write the nanny status.")
+
 flags.DEFINE_integer("unresponsive_kill_period",
                      client_config.UNRESPONSIVE_KILL_PERIOD,
                      "The time in seconds after which the nanny kills us.")
@@ -156,6 +159,7 @@ class NannyThread(threading.Thread):
     self.daemon = True
 
   def run(self):
+    self.WriteNannyStatus("Nanny starting.")
     while self.running:
       now = time.time()
 
@@ -164,7 +168,9 @@ class NannyThread(threading.Thread):
 
       # Missed the deadline, we need to die.
       if check_time < now:
-        logging.error("Suicide by nanny thread.")
+        msg = "Suicide by nanny thread."
+        logging.error(msg)
+        self.WriteNannyStatus(msg)
 
         # Die hard here to prevent hangs due to non daemonized threads.
         os._exit(-1)  # pylint: disable=W0212
@@ -175,9 +181,17 @@ class NannyThread(threading.Thread):
   def Stop(self):
     """Exits the main thread."""
     self.running = False
+    self.WriteNannyStatus("Nanny stopping.")
 
   def Heartbeat(self):
     self.last_heart_beat_time = time.time()
+
+  def WriteNannyStatus(self, status):
+    try:
+      with open(FLAGS.nanny_statusfile, "w") as fd:
+        fd.write(status)
+    except (IOError, OSError):
+      pass
 
 
 class NannyController(object):
@@ -235,7 +249,7 @@ class NannyController(object):
     """Return a GrrMessage instance from the transaction log or None."""
     try:
       with open(self.nanny_logfile, "r") as fd:
-        data = fd.read(100000000)
+        data = fd.read(10000000)
     except (IOError, OSError):
       return
 
@@ -253,8 +267,11 @@ class NannyController(object):
     return None
 
   def GetNannyStatus(self):
-    # Not implemented on Linux.
-    return None
+    try:
+      with open(FLAGS.nanny_statusfile, "r") as fd:
+        return fd.read(100000000)
+    except (IOError, OSError):
+      return None
 
 
 def InstallDriver(driver_path):

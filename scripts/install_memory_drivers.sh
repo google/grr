@@ -11,7 +11,7 @@
 PREFIX="/usr"
 
 OSX_PMEM_URL="https://volatility.googlecode.com/svn/branches/scudette/tools/osx/OSXPMem/OSXPMem-RC1.tar.gz"
-WIN_PMEM_URL_BASE="https://volatility.googlecode.com/svn/branches/scudette/tools/windows/winpmem/binaries"
+WIN_PMEM_URL_BASE="https://volatility.googlecode.com/files"
 
 CONFIG_UPDATER="${PREFIX}/bin/grr_config_updater.py"
 
@@ -59,8 +59,8 @@ function run_cmd_confirm()
 
 
 header "Downloading winpmem drivers"
-run_cmd_confirm wget --no-verbose -N ${WIN_PMEM_URL_BASE}/amd64/winpmem_64.sys;
-run_cmd_confirm wget --no-verbose -N ${WIN_PMEM_URL_BASE}/i386/winpmem_32.sys;
+WIN_PMEM_URL=${WIN_PMEM_URL_BASE}/winpmem-1.3.zip;
+run_cmd_confirm wget --no-verbose -N ${WIN_PMEM_URL};
 run_cmd_confirm wget --no-verbose -N ${OSX_PMEM_URL};
 
 
@@ -78,12 +78,19 @@ CMD="${CONFIG_UPDATER} --action=BOTH --file=${OSX_PMEM} --type=DRIVER --install_
 run_cmd_confirm ${CMD};
 
 header "Sign and upload Windows pmem drivers (32 & 64 bit)"
-CMD="${CONFIG_UPDATER} --action=BOTH --file=winpmem_32.sys --type=DRIVER --install_driver_name=pmem --install_device_path=\\\\.\\pmem --install_rewrite_mode=FORCE --signing_key=/etc/grr/keys/driver_sign.pem --verification_key=/etc/grr/keys/driver_sign_pub.pem --platform=WINDOWS --upload_name=winpmem.32.sys --aff4_path=/config/drivers/windows/memory";
+
+WIN_PMEM=$(basename ${WIN_PMEM_URL});
+run_cmd_confirm unzip -o ${WIN_PMEM}
+UNPACKED=$(echo ${WIN_PMEM} | cut -d "." -f -2);
+BIN_DIR=$UNPACKED/binaries
+
+CMD="${CONFIG_UPDATER} --action=BOTH --file=${BIN_DIR}/winpmem_32.sys --type=DRIVER --install_driver_name=pmem --install_device_path=\\\\.\\pmem --install_rewrite_mode=FORCE --signing_key=/etc/grr/keys/driver_sign.pem --verification_key=/etc/grr/keys/driver_sign_pub.pem --platform=WINDOWS --upload_name=winpmem.32.sys --aff4_path=/config/drivers/windows/memory";
 run_cmd_confirm ${CMD};
 
-CMD="${CONFIG_UPDATER} --action=BOTH --file=winpmem_64.sys --type=DRIVER --install_driver_name=pmem --install_device_path=\\\\.\\pmem --install_rewrite_mode=FORCE --signing_key=/etc/grr/keys/driver_sign.pem --verification_key=/etc/grr/keys/driver_sign_pub.pem --platform=WINDOWS --upload_name=winpmem.64.sys --aff4_path=/config/drivers/windows/memory";
+CMD="${CONFIG_UPDATER} --action=BOTH --file=${BIN_DIR}/winpmem_64.sys --type=DRIVER --install_driver_name=pmem --install_device_path=\\\\.\\pmem --install_rewrite_mode=FORCE --signing_key=/etc/grr/keys/driver_sign.pem --verification_key=/etc/grr/keys/driver_sign_pub.pem --platform=WINDOWS --upload_name=winpmem.64.sys --aff4_path=/config/drivers/windows/memory";
 run_cmd_confirm ${CMD};
 
+rm -rf ${UNPACKED}
 
 echo "############################################################################################"
 echo "Driver install complete."
