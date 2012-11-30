@@ -7,12 +7,12 @@
 
 #include "grr/client/nanny/windows_nanny.h"
 
-#include <Psapi.h>
+#include <psapi.h>
 #include <stdio.h>
 #include <tchar.h>
 #include <time.h>
 // TODO(user): On Windows 8 this should be replaced by Processthreadsapi.h
-#include <WinBase.h>
+#include <winbase.h>
 #include <windows.h>
 
 #include <memory>
@@ -183,6 +183,8 @@ class WindowsChildProcess : public grr::ChildProcess {
 
   virtual void SetNannyMessage(std::string msg);
 
+  virtual void SetPendingNannyMessage(std::string msg);
+
   virtual void SetNannyStatus(std::string msg);
 
   virtual void ClearHeartbeat();
@@ -194,7 +196,7 @@ class WindowsChildProcess : public grr::ChildProcess {
  private:
   PROCESS_INFORMATION child_process;
   WindowsEventLogger logger_;
-
+  std::string pendingNannyMsg_;
   DISALLOW_COPY_AND_ASSIGN(WindowsChildProcess);
 };
 
@@ -285,6 +287,10 @@ void WindowsChildProcess::SetNannyStatus(std::string msg) {
   }
 };
 
+void WindowsChildProcess::SetPendingNannyMessage(std::string msg) {
+  pendingNannyMsg_ = msg;
+}
+
 // This sends a message back to the server.
 void WindowsChildProcess::SetNannyMessage(std::string msg) {
   ServiceKey key;
@@ -311,6 +317,11 @@ bool WindowsChildProcess::CreateChildProcess() {
   DWORD process_len = MAX_PATH - 1;
   DWORD command_line_len = MAX_PATH - 1;
   DWORD type;
+
+  if (pendingNannyMsg_ != "") {
+    SetNannyMessage(pendingNannyMsg_);
+    pendingNannyMsg_ = "";
+  }
 
   if (!key.GetServiceKey()) {
     return false;
@@ -362,7 +373,6 @@ bool WindowsChildProcess::CreateChildProcess() {
     return false;
   }
 
-  SetNannyStatus("Child process started.");
   return true;
 }
 
@@ -391,15 +401,17 @@ size_t WindowsChildProcess::GetMemoryUsage() {
 
 bool WindowsChildProcess::IsAlive() {
   DWORD exit_code = 0;
-  if (!child_process.hProcess ||
-      !GetExitCodeProcess(child_process.hProcess, &exit_code)) {
+  if (!child_process.hProcess) {
+    return true;
+  }
+  if (!GetExitCodeProcess(child_process.hProcess, &exit_code)) {
     return false;
   }
   return exit_code == STILL_ACTIVE;
 };
 
 WindowsChildProcess::WindowsChildProcess()
-    : logger_(NULL) {
+    : logger_(NULL), pendingNannyMsg_("") {
   ClearHeartbeat();
 };
 
@@ -511,10 +523,19 @@ bool StopService(SC_HANDLE service_handle, int time_out) {
 // ---------------------------------------------------------
 bool InstallService() {
   SC_HANDLE service_control_manager;
-  SC_HANDLE service_handle;
+  SC_HANDLE service_handle = NULL;
   TCHAR module_name[MAX_PATH];
   SERVICE_DESCRIPTION service_descriptor;
   WindowsEventLogger logger(NULL);
+  unsigned int tries = 0;
+
+#if defined(_WIN32)
+  BOOL f64 = FALSE;
+  if (IsWow64Process(GetCurrentProcess(), &f64) && f64) {
+    printf("32 bit installer should not be run on a 64 bit machine!\n");
+    return false;
+  }
+#endif
 
   if (!GetModuleFileName(NULL, module_name, MAX_PATH)) {
     logger.Log("Cannot install service.\n");
@@ -539,16 +560,16 @@ bool InstallService() {
       printf("Service could not be stopped. This is ok if the "
              "service is not already started.\n");
     }
-    if (!DeleteService(service_handle)) {
-      logger.Log("DeleteService failed (%d)\n", GetLastError());
-      CloseServiceHandle(service_handle);
-      return false;
-    }
-    CloseServiceHandle(service_handle);
-  }
 
-  // Create the service control entry so we can get started.
-  service_handle = CreateService(
+    if (!ChangeServiceConfig(service_handle, SERVICE_NO_CHANGE,
+                             SERVICE_NO_CHANGE, SERVICE_NO_CHANGE, module_name,
+                             NULL, NULL, NULL, NULL, NULL, NULL)) {
+      printf("Service could not be reconfigured (%d). Will use the existing "
+             "nanny binary.", GetLastError());
+    }
+  } else {
+    // Create the service control entry so we can get started.
+    service_handle = CreateService(
       service_control_manager, kGrrServiceName, kGrrServiceName,
       SERVICE_ALL_ACCESS,
       SERVICE_WIN32_OWN_PROCESS,  // Run in our own process.
@@ -558,10 +579,15 @@ bool InstallService() {
       // Run as LocalSystem so no username and password.
       NULL, NULL);
 
-  if (service_handle == NULL) {
-    logger.Log("CreateService failed (%s)\n", module_name);
-    CloseServiceHandle(service_control_manager);
-    return false;
+    if (service_handle == NULL) {
+      printf("CreateService failed (%s)\n", module_name);
+      CloseServiceHandle(service_control_manager);
+      return false;
+    }
+  }
+
+  if (StartService(service_handle, 0, NULL) == 0) {
+    printf("Starting service failed (%d).\n", GetLastError());
   }
 
   printf("Service successfully installed.\nExecutable: %s\n", module_name);
@@ -676,7 +702,9 @@ VOID WINAPI ServiceMain(DWORD argc, TCHAR *argv) {
         break;
       }
       if (!child.IsAlive()) {
-                child.SetNannyMessage("Unexpected child process exit!");
+        // This could be part of a normal shutdown so we don't send the message
+        // right away.
+        child.SetPendingNannyMessage("Unexpected child process exit!");
         child.KillChild("Child process exited.");
         break;
       }

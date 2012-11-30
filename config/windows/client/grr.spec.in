@@ -1,0 +1,27 @@
+# -*- mode: python -*-
+a = Analysis([os.path.join(HOMEPATH,'support\\_mountzlib.py'),
+              os.path.join(HOMEPATH,'support\\useUnicode.py'),
+              os.path.join(%(.source)r, 'client', 'client.py')],
+             pathex=%(.librarypaths)s)
+pyz = PYZ(a.pure)
+exe = EXE(pyz,
+          a.scripts,
+          exclude_binaries=1,
+          name=os.path.join(
+              %(.build_dir)r,
+              'build\\pyi.win32\\%(Nanny.Name)s_%(GRR.version)s_%(.arch)s',
+              '%(Client.Binary_Name)s'),
+
+          debug=False,
+          strip=None,
+          upx=True,
+          console=True , version=os.path.join(%(.source)r, 'config', 'windows',
+                                               'client', 'version.txt'), icon='grr.ico')
+coll = COLLECT(exe,
+               a.binaries,
+               a.zipfiles,
+               a.datas,
+               strip=None,
+               upx=True,
+               name=os.path.join(
+                   %(.build_dir)r, 'dist', '%(Nanny.Name)s_%(GRR.version)s_%(.arch)s'))

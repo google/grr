@@ -1,0 +1,119 @@
+' Seems to be some kind of turn off all errors in VB
+On Error Resume Next
+
+basename = "%(Nanny.Name)s"
+package_build = "%(.arch)s"
+basename_text = "%(Nanny.Name)s"
+service_name = "%(Nanny.Desc)s"
+agent_version = "%(GRR.version)s"
+service_file = "%(Nanny.Service_Name)s"
+client_file = "%(Client.Binary_Name)s"
+install_dir = "%(Nanny.Install_Path)s\" & agent_version & "\"
+reg_base = "%(Nanny.Registry_Service_Key)s"
+
+' Where the HTTP URL of the service is?
+location = "%(Client.Location)s"
+
+' The CA Certificate we trust
+cacert = "%(Crypto.CA_Public_Key|join)s"
+
+' The public key we trust for running binaries
+exec_signing_key = "%(Crypto.Executable_Signing_Public_key|join)s"
+
+' The public key we trust for loading drivers
+driver_signing_key = "%(Crypto.Driver_Signing_Public_Key|join)s"
+
+Const HKEY_LOCAL_MACHINE = &H80000002
+
+Function RecursivelyCreateDirectory(Path)
+  Dim fso: Set fso = Wscript.CreateObject("Scripting.FileSystemObject")
+  if fso.FolderExists(Path) Then Exit Function
+  Call RecursivelyCreateDirectory(fso.GetParentFolderName(Path))
+  fso.CreateFolder(Path)
+  End Function
+
+Set objShell = Wscript.CreateObject("WScript.Shell")
+Set fso = Wscript.CreateObject("Scripting.FileSystemObject")
+
+' Stop the service first
+Set oExec = objShell.Exec("sc stop " & service_name)
+Do While oExec.Status = 0
+  Wscript.Sleep 100
+Loop
+
+destination = objShell.ExpandEnvironmentStrings(install_dir)
+
+' Create the output directory if needed.
+RecursivelyCreateDirectory(destination)
+
+' Copy into the output directory
+fso.CopyFile objShell.CurrentDirectory & "\*.*", destination, TRUE
+
+service_path = destination & service_file
+client_path = destination & client_file
+
+' Write the nanny registry keys.
+call CreateKey (HKEY_LOCAL_MACHINE, reg_base,64)
+call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "Version", "%(GRR.version)s", 64)
+call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "%(Nanny.Binary_Child)s", client_path, 64)
+call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "%(Nanny.Binary_CommandLine)s", client_path + " %(Nanny.Initial_Commandline)s", 64)
+call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "location", location, 64)
+call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "cacert", cacert, 64)
+call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "exec_signing_key", exec_signing_key, 64)
+call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "driver_signing_key", driver_signing_key, 64)
+call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "camode", "production", 64)
+
+' Install and start the service.
+Set oExec = objShell.Exec(service_path & " install")
+Do While oExec.Status = 0
+  Wscript.Sleep 100
+Loop
+
+' Give the service a chance to start.
+Wscript.Sleep 500
+
+
+' Add recovery options to the service.
+cmd = "sc failure " & chr(34) & service_name & chr(34) & " reset= 3600 actions= restart/10000/restart/30000/restart/3600000"
+Set oExec = objShell.Exec(cmd)
+Do While oExec.Status = 0
+  Wscript.Sleep 100
+Loop
+
+' Registry helper functions.
+
+Function WriteRegStr (RootKey, Key, ValueName, Value, RegType)
+    Dim oCtx, oLocator, oReg, oInParams
+
+    Set oCtx = CreateObject("WbemScripting.SWbemNamedValueSet")
+    oCtx.Add "__ProviderArchitecture", RegType
+
+    Set oLocator = CreateObject("Wbemscripting.SWbemLocator")
+    Set oReg = oLocator.ConnectServer("", "root\default", "", "", , , , oCtx).Get("StdRegProv")
+
+    Set oInParams = oReg.Methods_("SetStringValue").InParameters
+    oInParams.hDefKey = RootKey
+    oInParams.sSubKeyName = Key
+    oInParams.sValueName = ValueName
+    oInParams.sValue = Value
+
+    call oReg.ExecMethod_("SetStringValue", oInParams, , oCtx)
+
+End Function
+
+Function CreateKey(RootKey, Key, RegType)
+    Dim oCtx, oLocator, oReg, oInParams
+
+    Set oCtx = CreateObject("WbemScripting.SWbemNamedValueSet")
+    oCtx.Add "__ProviderArchitecture", RegType
+
+    Set oLocator = CreateObject("Wbemscripting.SWbemLocator")
+    Set oReg = oLocator.ConnectServer("", "root\default", "", "", , , , oCtx).Get("StdRegProv")
+
+    Set oInParams = oReg.Methods_("CreateKey").InParameters
+    oInParams.hDefKey = RootKey
+    oInParams.sSubKeyName = Key
+
+    call oReg.ExecMethod_("CreateKey", oInParams, , oCtx)
+
+End Function
