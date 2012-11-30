@@ -1,4 +1,5 @@
-# The PyInstaller build binary should be stripped otherwise it stops working.
+# The PyInstaller build binary should not be stripped otherwise it stops
+# working.
 grr-client binary: unstripped-binary-or-object
 
 # The PyInstaller build package directory contains all its dependencies.
