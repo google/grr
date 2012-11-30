@@ -50,15 +50,14 @@ source ${SCRIPTS_DIR}/generate_keys.sh
 
 echo "Injecting keys into install.vbs"
 
-echo "Please enter the server location your clients should connect to (example: http://grrserver.com:8080/control)"
-
-
 # Allow GRR_SERVER_URL to be set externally.
 if [ -z "${GRR_SERVER_URL}" ];
 then
+  echo "Please enter the server location your clients should connect to (example: http://grrserver.com:8080/control)"
   read LOCATION
 else
   LOCATION="${GRR_SERVER_URL}";
+  echo "Using ${LOCATION}";
 fi
 
 if [ "$LOCATION" == "" ]; then

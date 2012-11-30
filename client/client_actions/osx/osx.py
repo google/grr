@@ -423,7 +423,7 @@ class GetMemoryInformation(actions.ActionPlugin):
   """Loads the driver for memory access and returns a Stat for the device."""
 
   in_protobuf = jobs_pb2.Path
-  out_protobuf = jobs_pb2.MemoryInfomation
+  out_protobuf = jobs_pb2.MemoryInformation
 
   def Run(self, args):
     """Run."""

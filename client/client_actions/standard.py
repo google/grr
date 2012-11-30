@@ -356,9 +356,10 @@ class ExecutePython(actions.ActionPlugin):
     # The execed code can assign to this variable if it wants to return data.
     magic_return_str = ""
     logging.debug("exec for python code %s", args.python_code.data[0:100])
-    # pylint: disable=W0122
+    # pylint: disable=W0122,W0612
+    py_args = utils.ProtoDict(args.py_args).ToDict()
     exec(args.python_code.data)
-    # pylint: enable=W0122
+    # pylint: enable=W0122,W0612
     time_used = time.time() - time_start
     # We have to return microseconds.
     result = jobs_pb2.ExecutePythonResponse()
@@ -441,7 +442,7 @@ class ListProcesses(actions.ActionPlugin):
       try:
         # Not available on OSX.
         if hasattr(proc, "getcwd"):
-          response.cwd = proc.getcwd()
+          response.cwd = utils.SmartUnicode(proc.getcwd())
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
@@ -464,11 +465,12 @@ class ListProcesses(actions.ActionPlugin):
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
-      try:
-        for f in proc.get_open_files():
-          response.open_files.append(utils.SmartUnicode(f.path))
-      except (psutil.NoSuchProcess, psutil.AccessDenied):
-        pass
+      # Due to a bug in psutil, this function is disabled for now.
+      # try:
+      #   for f in proc.get_open_files():
+      #     response.open_files.append(utils.SmartUnicode(f.path))
+      # except (psutil.NoSuchProcess, psutil.AccessDenied):
+      #   pass
 
       try:
         for c in proc.get_connections():

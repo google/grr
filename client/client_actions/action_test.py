@@ -36,6 +36,7 @@ from grr.client import comms
 from grr.client import conf
 from grr.client import vfs
 from grr.client.client_actions import tests
+from grr.lib import flow
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import test_lib
@@ -60,7 +61,7 @@ class MockWindowsProcess(object):
   status = "running"
 
   def getcwd(self):
-    return "c:\\"
+    return "X:\\RECEP\xc3\x87\xc3\x95ES"
 
   def get_num_threads(self):
     return 1
@@ -237,7 +238,7 @@ class ActionTest(test_lib.EmptyActionTest):
       self.assertEqual(result.ctime, 1217061982375000)
       self.assertEqual(result.username, "test")
       self.assertEqual(result.status, "running")
-      self.assertEqual(result.cwd, "c:\\")
+      self.assertEqual(result.cwd, ur"X:\RECEPÇÕES")
       self.assertEqual(result.num_threads, 1)
       self.assertEqual(result.user_cpu_time, 1.0)
       self.assertEqual(result.system_cpu_time, 1.0)
@@ -252,6 +253,13 @@ class ActionTest(test_lib.EmptyActionTest):
       psutil.process_iter = old_process_iter
 
   def testCPULimit(self):
+
+    received_messages = []
+
+    class MockWorker(object):
+
+      def SendClientAlert(self, msg):
+        received_messages.append(msg)
 
     class FakeProcess(object):
 
@@ -278,13 +286,15 @@ class ActionTest(test_lib.EmptyActionTest):
       action_cls = actions.ActionPlugin.classes[message.name]
       action_cls.SendReply = MockSendReply
       action_cls._authentication_required = False
-      action = action_cls(message=message)
+      action = action_cls(message=message, grr_worker=MockWorker())
 
       action.Execute(message)
 
       self.assertTrue("Action exceeded cpu limit." in results[0].error_message)
       self.assertTrue("CPUExceededError" in results[0].error_message)
 
+      self.assertTrue(len(received_messages), 1)
+      self.assertEqual(received_messages[0], "Cpu limit exceeded.")
     finally:
       psutil.Process = old_proc
 

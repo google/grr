@@ -18,10 +18,10 @@
 import binascii
 import ctypes
 import exceptions
-import hashlib
 import logging
 import os
 import struct
+import tempfile
 import _winreg
 
 import pythoncom
@@ -349,47 +349,6 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
                        (e, query))
 
 
-class InstallDriver(actions.ActionPlugin):
-  """Installs a driver.
-
-  Note that only drivers with a signature that validates with
-  client_config.DRIVER_SIGNING_CERT can be loaded.
-  """
-  in_protobuf = jobs_pb2.InstallDriverRequest
-
-  def Run(self, args):
-    """Initializes the driver."""
-    if not args.driver:
-      raise IOError("No driver supplied.")
-
-    if not client_utils_common.VerifySignedBlob(args.driver):
-      raise OSError("Driver signature verification error.")
-
-    # TODO(user): What should we do if it fails to uninstall?
-    if args.force_reload:
-      client_utils_windows.UninstallDriver(args.write_path, args.driver_name,
-                                           delete_file=True)
-
-    # TODO(user): Ensure we have lock here, no races
-    logging.info("Writing driver to %s", args.write_path)
-
-    # TODO(user): Handle SysWOW64, if we are 32 bit we will actually
-    # write to SysWOW64 if we try and write to system32 and the service
-    # will fail.
-    try:
-      # Note permissions default to global read, user only write.
-      with open(args.write_path, "wb") as fd:
-        fd.write(args.driver.data)
-    except IOError as e:
-      raise IOError("Failed to write driver file %s" % e)
-
-    try:
-      client_utils_windows.InstallDriver(args.write_path, args.driver_name,
-                                         args.driver_display_name)
-    except OSError:
-      raise IOError("Failed to install driver, may already be installed.")
-
-
 def CtlCode(device_type, function, method, access):
   """Prepare an IO control code."""
   return (device_type<<16) | (access << 14) | (function << 2) | method
@@ -404,7 +363,7 @@ class GetMemoryInformation(actions.ActionPlugin):
   """Loads the driver for memory access and returns a Stat for the device."""
 
   in_protobuf = jobs_pb2.Path
-  out_protobuf = jobs_pb2.MemoryInfomation
+  out_protobuf = jobs_pb2.MemoryInformation
 
   def Run(self, args):
     """Run."""
@@ -449,23 +408,58 @@ class UninstallDriver(actions.ActionPlugin):
 
   in_protobuf = jobs_pb2.InstallDriverRequest
 
-  def Run(self, args):
-    """Unloads a driver."""
+  def VerifyAndUninstall(self, args):
+    """Do the verification and uninstall the driver."""
+
     # First check the driver they sent us validates.
     client_utils_common.VerifySignedBlob(args.driver, verify_data=False)
 
-    # Confirm the digest in the driver matches what we are about to remove.
-    digest = hashlib.sha256(open(args.write_path, "rb").read(
-        DRIVER_MAX_SIZE)).digest()
-
-    if digest != args.driver.digest:
-      # Driver we are uninstalling has been modified from original or we
-      # sent the wrong one.
-      raise RuntimeError("Failed driver sig validation on UninstallDriver")
-
     # Do the unload.
     client_utils_windows.UninstallDriver(
-        args.write_path, args.driver_name, delete_file=True)
+        None, args.driver_name, delete_file=False)
+
+  def Run(self, args):
+    """Unloads a driver."""
+    self.VerifyAndUninstall(args)
+
+
+class InstallDriver(UninstallDriver):
+  """Installs a driver.
+
+  Note that only drivers with a signature that validates with
+  client_config.DRIVER_SIGNING_CERT can be loaded.
+  """
+  in_protobuf = jobs_pb2.InstallDriverRequest
+
+  def Run(self, args):
+    """Initializes the driver."""
+    if not args.driver:
+      raise IOError("No driver supplied.")
+
+    if not client_utils_common.VerifySignedBlob(args.driver):
+      raise OSError("Driver signature verification error.")
+
+    if args.force_reload:
+      try:
+        self.VerifyAndUninstall(args)
+      except Exception:  # pylint: disable=broad-except
+        pass
+
+    try:
+      path_handle, path_name = tempfile.mkstemp(suffix=".sys")
+
+      # TODO(user): Ensure we have lock here, no races
+      logging.info("Writing driver to %s", path_name)
+
+      # Note permissions default to global read, user only write.
+      os.write(path_handle, args.driver.data)
+      os.close(path_handle)
+
+      client_utils_windows.InstallDriver(path_name, args.driver_name,
+                                         args.driver_display_name)
+
+    finally:
+      os.unlink(path_name)
 
 
 class UpdateAgent(standard.ExecuteBinaryCommand):

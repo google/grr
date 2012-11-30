@@ -10,8 +10,7 @@
 
 PREFIX="/usr"
 
-OSX_PMEM_URL="https://volatility.googlecode.com/svn/branches/scudette/tools/osx/OSXPMem/OSXPMem-RC1.tar.gz"
-WIN_PMEM_URL_BASE="https://volatility.googlecode.com/files"
+PMEM_URL="https://grr.googlecode.com/files/pmem.zip"
 
 CONFIG_UPDATER="${PREFIX}/bin/grr_config_updater.py"
 
@@ -58,19 +57,19 @@ function run_cmd_confirm()
 };
 
 
-header "Downloading winpmem drivers"
-WIN_PMEM_URL=${WIN_PMEM_URL_BASE}/winpmem-1.3.zip;
-run_cmd_confirm wget --no-verbose -N ${WIN_PMEM_URL};
-run_cmd_confirm wget --no-verbose -N ${OSX_PMEM_URL};
-
+header "Downloading pmem driver archive"
+run_cmd_confirm wget --no-verbose -N ${PMEM_URL};
+PMEM=$(basename ${PMEM_URL});
+run_cmd_confirm unzip -o ${PMEM};
+PMEM_OUT="./pmem";
 
 header "Sign and upload OSX pmem driver"
-OSX_PMEM=$(basename ${OSX_PMEM_URL});
-UNPACKED=$(echo ${OSX_PMEM} | cut -d "." -f -2);
+OSX_PMEM="${PMEM_OUT}/OSXPMem.tar.gz";
+UNPACKED=$(echo ${OSX_PMEM} | cut -d "." -f -3);
 
 # Hack to remove unecessary files from gzip before we sign them.
 # OSX wants tar.gz of directory with just kext dir in it.
-run_cmd_confirm gunzip ${OSX_PMEM};
+run_cmd_confirm gunzip -f ${OSX_PMEM};
 run_cmd_confirm tar --delete OSXPMem/osxpmem -f ${UNPACKED};
 run_cmd_confirm tar --delete OSXPMem/README -f ${UNPACKED};
 run_cmd_confirm gzip ${UNPACKED};
@@ -79,18 +78,13 @@ run_cmd_confirm ${CMD};
 
 header "Sign and upload Windows pmem drivers (32 & 64 bit)"
 
-WIN_PMEM=$(basename ${WIN_PMEM_URL});
-run_cmd_confirm unzip -o ${WIN_PMEM}
-UNPACKED=$(echo ${WIN_PMEM} | cut -d "." -f -2);
-BIN_DIR=$UNPACKED/binaries
-
-CMD="${CONFIG_UPDATER} --action=BOTH --file=${BIN_DIR}/winpmem_32.sys --type=DRIVER --install_driver_name=pmem --install_device_path=\\\\.\\pmem --install_rewrite_mode=FORCE --signing_key=/etc/grr/keys/driver_sign.pem --verification_key=/etc/grr/keys/driver_sign_pub.pem --platform=WINDOWS --upload_name=winpmem.32.sys --aff4_path=/config/drivers/windows/memory";
+CMD="${CONFIG_UPDATER} --action=BOTH --file=${PMEM_OUT}/winpmem_32.sys --type=DRIVER --install_driver_name=pmem --install_device_path=\\\\.\\pmem --install_rewrite_mode=FORCE --signing_key=/etc/grr/keys/driver_sign.pem --verification_key=/etc/grr/keys/driver_sign_pub.pem --platform=WINDOWS --upload_name=winpmem.32.sys --aff4_path=/config/drivers/windows/memory";
 run_cmd_confirm ${CMD};
 
-CMD="${CONFIG_UPDATER} --action=BOTH --file=${BIN_DIR}/winpmem_64.sys --type=DRIVER --install_driver_name=pmem --install_device_path=\\\\.\\pmem --install_rewrite_mode=FORCE --signing_key=/etc/grr/keys/driver_sign.pem --verification_key=/etc/grr/keys/driver_sign_pub.pem --platform=WINDOWS --upload_name=winpmem.64.sys --aff4_path=/config/drivers/windows/memory";
+CMD="${CONFIG_UPDATER} --action=BOTH --file=${PMEM_OUT}/winpmem_64.sys --type=DRIVER --install_driver_name=pmem --install_device_path=\\\\.\\pmem --install_rewrite_mode=FORCE --signing_key=/etc/grr/keys/driver_sign.pem --verification_key=/etc/grr/keys/driver_sign_pub.pem --platform=WINDOWS --upload_name=winpmem.64.sys --aff4_path=/config/drivers/windows/memory";
 run_cmd_confirm ${CMD};
 
-rm -rf ${UNPACKED}
+rm -rf ${PMEM_OUT} ${PMEM};
 
 echo "############################################################################################"
 echo "Driver install complete."

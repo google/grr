@@ -266,6 +266,10 @@ class NannyController(object):
     # Not implemented on Linux.
     return None
 
+  def ClearNannyMessage(self):
+    # Not implemented on Linux.
+    pass
+
   def GetNannyStatus(self):
     try:
       with open(FLAGS.nanny_statusfile, "r") as fd:

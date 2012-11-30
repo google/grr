@@ -5,10 +5,22 @@
 # By default this will generate keys in /etc/grr/keys and install into /usr
 #
 
+if [ -z "${GRR_TEST_VERSIONS}" ];
+then
+  GRR_TEST_VERSIONS=0;
+else
+  GRR_TEST_VERSIONS=1;
+  echo "Running with Beta test versions"
+fi
+
 PREFIX=/usr
 
 # URL to read the latest version URLs from
-VERSION_URL=https://grr.googlecode.com/files/latest_versions.txt
+if [ $GRR_TEST_VERSIONS = 0 ]; then
+  VERSION_URL=https://grr.googlecode.com/files/latest_versions.txt
+else
+  VERSION_URL=https://grr.googlecode.com/files/latest_versions_test.txt
+fi
 
 # Variables to control the install versions etc. Made for changing this to
 # support other platforms more easily.

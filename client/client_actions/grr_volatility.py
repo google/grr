@@ -35,9 +35,6 @@ from grr.client import vfs
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
-# We use a global session for memory analysis of the live system.
-SESSION_CACHE = utils.FastStore()
-
 
 # pylint: disable=C6409
 class ProtobufRenderer(renderer.RendererBaseClass):
@@ -47,8 +44,8 @@ class ProtobufRenderer(renderer.RendererBaseClass):
     TABLE = 1
     STRING = 2
 
-  def __init__(self, vol_session=None, fd=None, **_):
-    super(ProtobufRenderer, self).__init__(session=vol_session, fd=fd)
+  def __init__(self, **kwargs):
+    super(ProtobufRenderer, self).__init__(**kwargs)
 
     self.response = jobs_pb2.VolatilityResponse()
     self.active_section = None
@@ -184,60 +181,63 @@ class VolatilityAction(actions.ActionPlugin):
   def Run(self, args):
     """Run a volatility plugin and return the result."""
     # Recover the volatility session.
-    try:
-      vol_session = SESSION_CACHE.Get(args.device.path)
-    except KeyError:
 
-      def Progress(message=None, **_):
-        """Allow volatility to heartbeat us so we do not die."""
-        _ = message
-        self.Progress()
+    def Progress(message=None, **_):
+      """Allow volatility to heartbeat us so we do not die."""
+      _ = message
+      self.Progress()
 
+    # Create a session and run all the plugins with it.
+    with vfs.VFSOpen(args.device) as fhandle:
       vol_session = session.Session()
-      if args.profile:  # Protobuf default is '' which is invalid.
+
+      if args.profile:
         vol_session.profile = args.profile
-      vol_session.fhandle = vfs.VFSOpen(args.device)
+
+      # Make the physical address space by wrapping our VFS handler.
+      vol_session.physical_address_space = standard.FDAddressSpace(
+          fhandle=fhandle)
+
+      # Set the progress method so the nanny is heartbeat.
       vol_session.progress = Progress
       vol_session.renderer = "ProtobufRenderer"
 
       # Get the dtb from the driver if possible.
       try:
-        vol_session.dtb = vol_session.fhandle.cr3
+        vol_session.dtb = fhandle.cr3
       except AttributeError:
         pass
 
-      vol_session.vol("load_as")
+      # Try to load the kernel address space now.
+      vol_session.plugins.load_as().GetVirtualAddressSpace()
 
       # Get the kdbg from the driver if possible.
       try:
-        vol_session.kdbg = vol_session.fhandle.kdbg
+        vol_session.kdbg = fhandle.kdbg
       except AttributeError:
         pass
 
       if not vol_session.profile:
         vol_session.vol("guess_profile")
 
-      SESSION_CACHE.Put(args.device.path, vol_session)
+      vol_args = utils.ProtoDict(args.args).ToDict()
 
-    vol_args = utils.ProtoDict(args.args)
-    for k, v in vol_args.ToDict().items():
-      setattr(vol_session, k, v)
+      for plugin in args.plugins:
+        error = ""
 
-    for plugin in args.plugins:
-      error = ""
+        # Heartbeat the client to ensure we keep our nanny happy.
+        vol_session.progress(message="Running plugin %s" % plugin)
 
-      # Heartbeat the client to ensure we keep our nanny happy.
-      vol_session.progress(message="Running plugin %s" % plugin)
+        ui_renderer = ProtobufRenderer(session=vol_session)
+        args = vol_args.get(plugin, {})
+        try:
+          vol_session.vol(plugin, renderer=ui_renderer, **args)
+        except Exception as e:  # pylint: disable=W0703
+          error = str(e)
 
-      ui_renderer = ProtobufRenderer(session=vol_session)
-      try:
-        vol_session.vol(plugin, renderer=ui_renderer)
-      except Exception as e:  # pylint: disable=W0703
-        error = str(e)
+        response = ui_renderer.GetResponse()
+        if error:
+          response.error = error
 
-      response = ui_renderer.GetResponse()
-      if error:
-        response.error = error
-
-      # Send it back to the server.
-      self.SendReply(response)
+        # Send it back to the server.
+        self.SendReply(response)

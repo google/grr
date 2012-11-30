@@ -212,6 +212,7 @@ class ActionPlugin(object):
     try:
       used_user_cpu = self.proc.get_cpu_times()[0] - self.cpu_start[0]
       if used_user_cpu > self.cpu_limit:
+        self.grr_worker.SendClientAlert("Cpu limit exceeded.")
         raise CPUExceededError("Action exceeded cpu limit.")
     except AttributeError:
       pass

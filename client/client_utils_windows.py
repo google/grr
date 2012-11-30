@@ -208,9 +208,9 @@ def InstallDriver(driver_path, service_name, driver_display_name):
                                None)  # Password
     win32serviceutil.StartService(service_name)
   except pywintypes.error as e:
-    if e[0] == 1073:
-      raise OSError("Service already exists.")
-    else:
+    # The following errors are expected:
+    if e[0] not in [winerror.ERROR_SERVICE_EXISTS,
+                    winerror.ERROR_SERVICE_MARKED_FOR_DELETE]:
       raise RuntimeError("StartService failure: {0}".format(e))
 
 

@@ -75,9 +75,9 @@ class Kill(actions.ActionPlugin):
     # Send a message back to the service to say that we are about to shutdown.
     reply = jobs_pb2.GrrStatus()
     reply.status = jobs_pb2.GrrStatus.OK
-    # Queue up the response message.
+    # Queue up the response message, jump the queue.
     self.SendReply(reply, message_type=jobs_pb2.GrrMessage.STATUS,
-                   jump_queue=True)
+                   priority=jobs_pb2.GrrMessage.HIGH_PRIORITY + 1)
 
     # Give the http thread some time to send the reply.
     self.grr_worker.Sleep(10)
@@ -142,14 +142,15 @@ class UpdateConfig(actions.ActionPlugin):
   """Updates configuration parameters on the client."""
   in_protobuf = jobs_pb2.GRRConfig
 
-  UPDATEABLE_FIELDS = ["foreman_check_frequency",
+  UPDATEABLE_FIELDS = ["compression",
+                       "foreman_check_frequency",
                        "location",
                        "max_post_size",
                        "max_out_queue",
                        "poll_min",
                        "poll_max",
                        "poll_slew",
-                       "compression",
+                       "rss_max",
                        "verbose"]
 
   def Run(self, arg):
@@ -181,7 +182,6 @@ class GetClientInfo(actions.ActionPlugin):
     self.SendReply(
         client_name=client_config.GRR_CLIENT_NAME,
         client_version=client_config.GRR_CLIENT_VERSION,
-        revision=client_config.GRR_CLIENT_REVISION,
         build_time=client_config.GRR_CLIENT_BUILDTIME,
         )
 
@@ -200,6 +200,7 @@ class GetClientStats(actions.ActionPlugin):
     response.bytes_received = stats.STATS.Get("grr_client_received_bytes")
     response.bytes_sent = stats.STATS.Get("grr_client_sent_bytes")
     response.create_time = long(proc.create_time * 1e6)
+    response.boot_time = long(psutil.BOOT_TIME * 1e6)
 
     samples = self.grr_worker.stats_collector.cpu_samples
     for (timestamp, user, system, percent) in samples:
@@ -233,3 +234,32 @@ class GetClientStatsAuto(GetClientStats):
                               priority=jobs_pb2.GrrMessage.LOW_PRIORITY,
                               message_type=jobs_pb2.GrrMessage.MESSAGE,
                               require_fastpoll=False)
+
+
+class SendStartupInfo(actions.ActionPlugin):
+
+  in_protobuf = None
+  out_protobuf = jobs_pb2.StartupInfo
+
+  well_known_session_id = "W:Startup"
+
+  def Run(self, unused_arg, ttl=None):
+    """Returns the startup information."""
+
+    response = jobs_pb2.StartupInfo()
+    client_info = jobs_pb2.ClientInformation(
+        client_name=client_config.GRR_CLIENT_NAME,
+        client_version=client_config.GRR_CLIENT_VERSION,
+        build_time=client_config.GRR_CLIENT_BUILDTIME)
+
+    response.client_info.MergeFrom(client_info)
+    response.boot_time = long(psutil.BOOT_TIME * 1e6)
+
+    self.grr_worker.SendReply(response,
+                              session_id=self.well_known_session_id,
+                              response_id=0,
+                              request_id=0,
+                              priority=jobs_pb2.GrrMessage.LOW_PRIORITY,
+                              message_type=jobs_pb2.GrrMessage.MESSAGE,
+                              require_fastpoll=False,
+                              ttl=ttl)

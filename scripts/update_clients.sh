@@ -8,7 +8,6 @@
 #
 
 PREFIX=/usr
-VERSION_URL=https://grr.googlecode.com/files/latest_versions.txt
 REPO_BASE_URL=https://grr.googlecode.com/git
 
 # EXE_DIR is where the executables and templates are stored
@@ -18,7 +17,20 @@ then
   EXE_DIR=${PREFIX}/share/grr/executables;
 fi
 
+if [ -z "${GRR_TEST_VERSIONS}" ];
+then
+  GRR_TEST_VERSIONS=0;
+else
+  GRR_TEST_VERSIONS=1;
+  echo "Running with Beta test versions"
+fi
 
+# URL to read the latest version URLs from
+if [ $GRR_TEST_VERSIONS = 0 ]; then
+  VERSION_URL=https://grr.googlecode.com/files/latest_versions.txt
+else
+  VERSION_URL=https://grr.googlecode.com/files/latest_versions_test.txt
+fi
 
 # Variable to store if the user has answered "Yes to All"
 ALL_YES=0;
@@ -56,7 +68,8 @@ function run_cmd_confirm()
 echo "###############################################################"
 echo "### Retrieving the latest list of clients and their packages"
 echo "###############################################################"
-run_cmd_confirm wget -N --no-verbose ${VERSION_URL}
+rm $(basename ${VERSION_URL})
+run_cmd_confirm wget --no-verbose ${VERSION_URL};
 VERSION_FILE=$(basename ${VERSION_URL});
 WIN64_URL=$(grep client-win-64 ${VERSION_FILE} | cut -f 2);
 WIN32_URL=$(grep client-win-32 ${VERSION_FILE} | cut -f 2);
@@ -68,10 +81,12 @@ echo "###############################################################"
 # File will look like grr-installer-2204-64.zip and contain a directory named
 # as the version, e.g. 2204
 # 2204/grr.exe 2204/grrservice.exe 2204/....
-run_cmd_confirm wget -N --no-verbose ${WIN64_URL}
+run_cmd_confirm rm -f $(basename ${WIN64_URL});
+run_cmd_confirm wget -N --no-verbose ${WIN64_URL};
 run_cmd_confirm sudo unzip -o -d ${EXE_DIR}/windows/templates/win64 $(basename ${WIN64_URL});
 
-run_cmd_confirm wget -N --no-verbose ${WIN32_URL}
+rm -f $(basename ${WIN32_URL})
+run_cmd_confirm wget -N --no-verbose ${WIN32_URL};
 run_cmd_confirm sudo unzip -o -d ${EXE_DIR}/windows/templates/win32 $(basename ${WIN32_URL});
 
 
@@ -90,6 +105,7 @@ echo "###############################################################"
 # File will look like grr-client-osx-2206.zip and contain a GRR.dmg file
 # under a directory named as the version, e.g. 2206
 # /2206/GRR.dmg
+rm -f $(basename ${OSX_URL});
 run_cmd_confirm wget -N --no-verbose ${OSX_URL};
 if [ ! -d ${EXE_DIR}/osx/templates ]; then
   run_cmd_confirm mkdir -p ${EXE_DIR}/osx/templates

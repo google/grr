@@ -68,11 +68,11 @@ flags.DEFINE_integer("max_post_size", 8000000,
 flags.DEFINE_integer("max_out_queue", 10240000,
                      "Maximum size of the output queue.")
 
-flags.DEFINE_integer("foreman_check_frequency", 3600,
+flags.DEFINE_integer("foreman_check_frequency", 1800,
                      "The minimum number of seconds before checking with "
                      "the foreman for new work.")
 
-flags.DEFINE_float("rss_max", 100,
+flags.DEFINE_float("rss_max", 500,
                    "Maximum memory footprint in MB.")
 
 flags.DEFINE_string("certificate", "",
@@ -217,8 +217,22 @@ class GRRClientWorker(object):
 
   def SendReply(self, protobuf=None, request_id=None, response_id=None,
                 priority=None, session_id="W:0", message_type=None, name=None,
-                require_fastpoll=None, jump_queue=False):
-    """Send the protobuf to the server."""
+                require_fastpoll=None, ttl=None):
+    """Send the protobuf to the server.
+
+    Args:
+      protobuf: The protobuf to return.
+      request_id: The id of the request this is a response to.
+      response_id: The id of this response.
+      priority: The priority of this message, used to jump the scheduling queue.
+      session_id: The session id of the flow.
+      message_type: The contents of this message, MESSAGE, STATUS, ITERATOR or
+                    RDF_VALUE.
+      name: The name of the client action that sends this response.
+      require_fastpoll: If set, this will set the client to fastpoll mode after
+                        sending this message.
+      ttl: The time to live of this message.
+    """
     message = jobs_pb2.GrrMessage()
     if protobuf:
       message.args = protobuf.SerializeToString()
@@ -243,6 +257,9 @@ class GRRClientWorker(object):
     if require_fastpoll is not None:
       message.require_fastpoll = require_fastpoll
 
+    if ttl is not None:
+      message.ttl = ttl
+
     message.type = message_type
 
     serialized_message = message.SerializeToString()
@@ -256,11 +273,7 @@ class GRRClientWorker(object):
       message.args = protobuf.SerializeToString()
       serialized_message = message.SerializeToString()
 
-    if jump_queue:
-      self.QueueResponse(serialized_message,
-                         jobs_pb2.GrrMessage.HIGH_PRIORITY + 1)
-    else:
-      self.QueueResponse(serialized_message, message.priority)
+    self.QueueResponse(serialized_message, message.priority)
 
   def QueueResponse(self, serialized_message,
                     priority=jobs_pb2.GrrMessage.MEDIUM_PRIORITY):
@@ -375,6 +388,12 @@ class GRRClientWorker(object):
           priority=jobs_pb2.GrrMessage.LOW_PRIORITY,
           require_fastpoll=False)
       self.nanny_controller.ClearNannyMessage()
+
+  def SendClientAlert(self, msg):
+    self.SendReply(
+        jobs_pb2.DataBlob(string=msg), session_id="W:ClientAlert",
+        priority=jobs_pb2.GrrMessage.LOW_PRIORITY,
+        require_fastpoll=False)
 
 
 class SizeQueue(object):
@@ -561,8 +580,8 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     self._in_queue.put(None, block=True)
     self.nanny_controller.StopNanny()
 
-  def run(self):
-    """Main thread for processing messages."""
+  def OnStartup(self):
+    """A handler that is called on client startup."""
     # We read the transaction log and fail any requests that are in it. If there
     # is anything in the transaction log we assume its there because we crashed
     # last time and let the server know.
@@ -581,6 +600,17 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
                      session_id=last_request.session_id,
                      message_type=jobs_pb2.GrrMessage.STATUS)
       self.nanny_controller.CleanTransactionLog()
+
+    # Inform the server that we started.
+    action_cls = actions.ActionPlugin.classes.get(
+        "SendStartupInfo", actions.ActionPlugin)
+    action = action_cls(None, grr_worker=self)
+    action.Run(None, ttl=1)
+
+  def run(self):
+    """Main thread for processing messages."""
+
+    self.OnStartup()
 
     # As long as our output queue has some room we can process some
     # input messages:
@@ -923,6 +953,14 @@ class GRRHTTPClient(object):
           self.client_worker.InQueueSize() == 0 and
           self.client_worker.OutQueueSize() == 0):
         logging.warning("Memory exceeded - exiting.")
+        self.client_worker.SendClientAlert("Memory limit exceeded, exiting.")
+        # Make sure this will return True so we don't get more work.
+        # pylint: disable=C6409
+        self.client_worker.MemoryExceeded = lambda: True
+        # pylint: enable=C6409
+        # Now send back the client message.
+        self.RunOnce()
+        # And done for now.
         sys.exit(-1)
 
       self.Wait(status)

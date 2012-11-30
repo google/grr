@@ -21,30 +21,37 @@ import os
 import logging
 
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
 class GrrVolatilityTest(test_lib.EmptyActionTest):
 
-  def testPsList(self):
-    """Tests that we can run a simple PsList Action."""
+  def SetupRequest(self, plugin):
     # Only run this test if the image file is found.
     image_path = os.path.join(self.base_path, "win7_trial_64bit.raw")
     if not os.access(image_path, os.R_OK):
       logging.warning("Unable to locate test memory image. Skipping test.")
-      return
+      return False
 
-    request = jobs_pb2.VolatilityRequest()
+    self.request = jobs_pb2.VolatilityRequest()
 
     # In this test we explicitly set the profile to use.
-    request.profile = "Win7SP1x64"
-    request.plugins.append("pslist")
+    self.request.profile = "Win7SP1x64"
+    self.request.plugins.append(plugin)
 
     # Use the memory image in the pathspec.
-    request.device.path = image_path
-    request.device.pathtype = jobs_pb2.Path.OS
+    self.request.device.path = image_path
+    self.request.device.pathtype = jobs_pb2.Path.OS
 
-    result = self.RunAction("VolatilityAction", request)
+    return True
+
+  def testPsList(self):
+    """Tests that we can run a simple PsList Action."""
+    if not self.SetupRequest("pslist"):
+      return
+
+    result = self.RunAction("VolatilityAction", self.request)
 
     # There should be 1 result back.
     self.assertEqual(len(result), 1)
@@ -62,25 +69,36 @@ class GrrVolatilityTest(test_lib.EmptyActionTest):
     self.assertTrue("DumpIt.exe" in names)
     self.assertTrue("conhost.exe" in names)
 
-  def testDLLList(self):
-    """Tests that we can run a simple DLLList Action."""
-    # Only run this test if the image file is found.
-    image_path = os.path.join(self.base_path, "win7_trial_64bit.raw")
-    if not os.access(image_path, os.R_OK):
-      logging.warning("Unable to locate test memory image. Skipping test.")
+  def testParameters(self):
+    if not self.SetupRequest("pslist"):
       return
 
-    request = jobs_pb2.VolatilityRequest()
+    args = {"pslist": {"pid": 2860}}
 
-    # In this test we explicitly set the profile to use.
-    request.profile = "Win7SP1x64"
-    request.plugins.append("dlllist")
+    self.request.args.MergeFrom(utils.ProtoDict(args).ToProto())
 
-    # Use the memory image in the pathspec.
-    request.device.path = image_path
-    request.device.pathtype = jobs_pb2.Path.OS
+    result = self.RunAction("VolatilityAction", self.request)
 
-    result = self.RunAction("VolatilityAction", request)
+    # There should be 1 result back.
+    self.assertEqual(len(result), 1)
+
+    # There should be one section.
+    self.assertEqual(len(result[0].sections), 1)
+
+    rows = result[0].sections[0].table.rows
+    # Pslist should now have 1 result.
+    self.assertEqual(len(rows), 1)
+
+    name = rows[0].values[1].svalue
+
+    self.assertTrue("DumpIt.exe" in name)
+
+  def testDLLList(self):
+    """Tests that we can run a simple DLLList Action."""
+    if not self.SetupRequest("dlllist"):
+      return
+
+    result = self.RunAction("VolatilityAction", self.request)
 
     self.assertEqual(len(result), 1)
     sections = result[0].sections

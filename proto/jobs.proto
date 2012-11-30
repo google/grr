@@ -25,10 +25,10 @@ message GrrMessage {
 
   // The message is in response to this request number (requests increment from
   // 1).
-  optional uint32 request_id = 2;
+  optional uint64 request_id = 2;
 
   // Responses for each request are also numbered from 1.
-  optional uint32 response_id = 3;
+  optional uint64 response_id = 3;
 
   // This is the name of the client action that will be executed. It
   // is set by the flow and is executed by the client.
@@ -197,6 +197,31 @@ message GrrStatus {
 
   optional string nanny_status = 7;
 };
+
+message HuntNotification {
+  optional string session_id = 1;
+  optional string client_id = 2;
+
+  enum Status {
+    UNKNOWN = 0;
+    OK = 1;
+    ERROR = 2;
+    BAD = 3;
+  }
+  optional Status status = 3;
+}
+
+message FlowNotification {
+  optional string session_id = 1;
+  optional string flow_name = 2;
+  optional string client_id = 3;
+  enum Status {
+    UNKNOWN = 0;
+    OK = 1;
+    ERROR = 2;
+  }
+  optional Status status = 4;
+}
 
 // Stores information about the GRR client itself
 message ClientInformation {
@@ -407,6 +432,12 @@ message ClientStats {
   optional uint64 bytes_sent = 6;
   repeated IOSample io_samples = 7;
   optional uint64 create_time = 8;
+  optional uint64 boot_time = 9;
+}
+
+message StartupInfo {
+  optional ClientInformation client_info = 1;
+  optional uint64 boot_time = 2;
 }
 
 message ExecuteRequest {
@@ -454,6 +485,7 @@ message Path {
   optional uint64 inode = 8;
 
   enum tsk_fs_attr_type {
+
     TSK_FS_ATTR_TYPE_DEFAULT = 0x01;        // 1
     TSK_FS_ATTR_TYPE_NTFS_SI = 0x10;        // 16
     TSK_FS_ATTR_TYPE_NTFS_ATTRLIST = 0x20;  // 32
@@ -507,6 +539,7 @@ message StatResponse {
 
   // These are used when mapping registry keys to the VFS
   enum RegistryType {
+
     REG_NONE = 0x00;
     REG_SZ = 0x01;
     REG_EXPAND_SZ = 0x02;
@@ -632,7 +665,7 @@ message Interface {
 
 
 // This returns information about the memory geometry.
-message MemoryInfomation {
+message MemoryInformation {
   optional Path device = 1;
   repeated BufferReadMessage runs = 2;
   optional uint64 cr3 = 3;
@@ -659,6 +692,7 @@ message GRRConfig {
   optional string config = 13;
   optional bool debug = 14;
   optional bool process_separate = 15;   // deprecated
+  optional float rss_max = 16;
 };
 
 // The fingerprinting methods the fingerprinter can be asked to perform.
@@ -712,6 +746,7 @@ message SignedBlob {
 // Message containing request to execute python in the context of the client.
 message ExecutePythonRequest {
   optional SignedBlob python_code = 1;
+  optional Dict py_args = 2;
 }
 
 // Message containing response from ExecutePythonRequest.

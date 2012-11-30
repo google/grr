@@ -21,6 +21,7 @@ import os
 import StringIO
 
 import mox
+import psutil
 
 from grr.client import conf as flags
 import logging
@@ -126,6 +127,8 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     self.assertEqual(response.io_samples[1].read_bytes, 200)
     self.assertEqual(response.io_samples[1].write_bytes, 200)
 
+    self.assertEqual(response.boot_time, long(100 * 1e6))
+
   def testGetClientStatsAuto(self):
     """Checks that stats collection works."""
 
@@ -137,12 +140,18 @@ class ConfigActionTest(test_lib.EmptyActionTest):
       def __init__(self):
         self.stats_collector = MockCollector()
 
-    stats.STATS.Set("grr_client_received_bytes", 1566)
-    stats.STATS.Set("grr_client_sent_bytes", 2000)
+    old_boot_time = psutil.BOOT_TIME
+    psutil.BOOT_TIME = 100
+    try:
 
-    action_cls = actions.ActionPlugin.classes.get(
-        "GetClientStatsAuto", actions.ActionPlugin)
-    action = action_cls(None, grr_worker=self)
-    action.grr_worker = MockContext()
-    action.Send = self.VerifyResponse
-    action.Run(None)
+      stats.STATS.Set("grr_client_received_bytes", 1566)
+      stats.STATS.Set("grr_client_sent_bytes", 2000)
+
+      action_cls = actions.ActionPlugin.classes.get(
+          "GetClientStatsAuto", actions.ActionPlugin)
+      action = action_cls(None, grr_worker=self)
+      action.grr_worker = MockContext()
+      action.Send = self.VerifyResponse
+      action.Run(None)
+    finally:
+      psutil.BOOT_TIME = old_boot_time
