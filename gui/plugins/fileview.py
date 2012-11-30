@@ -1440,7 +1440,7 @@ class HostInformation(AFF4Stats):
   behaviours = frozenset(["Host"])
   css_class = "TableBody"
   filtered_attributes = ["USERNAMES", "HOSTNAME", "MAC_ADDRESS", "INSTALL_DATE",
-                         "SYSTEM", "CLOCK", "CLIENT_INFO"]
+                         "SYSTEM", "CLOCK", "CLIENT_INFO", "UNAME", "ARCH"]
 
   def Layout(self, request, response):
     self.client_id = request.REQ.get("client_id")

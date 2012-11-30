@@ -186,6 +186,14 @@ class VFSGRRClient(standard.VFSDirectory):
     CLIENT_INFO = aff4.Attribute("metadata:ClientInfo", ClientInfo,
                                  "GRR client information", "GRR client")
 
+    LAST_BOOT_TIME = aff4.Attribute("metadata:LastBootTime", aff4.RDFDatetime,
+                                    "When the machine was last booted",
+                                    "BootTime")
+
+    FIRST_SEEN = aff4.Attribute("metadata:FirstSeen", aff4.RDFDatetime,
+                                "First time the client registered with us",
+                                "FirstSeen")
+
     # Information about the host.
     HOSTNAME = aff4.Attribute("metadata:hostname", aff4.RDFString,
                               "Hostname of the host.", "Host",
@@ -381,7 +389,7 @@ class VFSFile(aff4.AFF4Image):
 
 class MemoryGeometry(aff4.RDFProto):
   """The GRR client info pb."""
-  _proto = jobs_pb2.MemoryInfomation
+  _proto = jobs_pb2.MemoryInformation
 
 
 class MemoryImage(VFSFile):
@@ -1083,3 +1091,61 @@ class ServiceCollection(AFF4Collection):
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     SERVICES = aff4.Attribute("aff4:service", Service,
                               "Services", default="")
+
+
+class AFF4RegexNotificationRule(aff4.AFF4NotificationRule):
+  """AFF4 rule that matches path to a regex and publishes an event."""
+
+  class SchemaCls(aff4.AFF4Object.SchemaCls):
+    """Schema for AFF4RegexNotificationRule."""
+    CLIENT_PATH_REGEX = aff4.Attribute("aff4:change_rule/client_path_regex",
+                                       aff4.RDFString,
+                                       "Regex to match the urn.")
+    EVENT_NAME = aff4.Attribute("aff4:change_rule/event_name",
+                                aff4.RDFString,
+                                "Event to trigger on match.")
+    NOTIFY_ONLY_IF_NEW = aff4.Attribute("aff4:change_rule/notify_only_if_new",
+                                        aff4.RDFInteger,
+                                        "If True (1), then notify only when "
+                                        "the file is created for the first "
+                                        "time")
+
+  def _UpdateState(self):
+    regex_str = self.Get(self.Schema.CLIENT_PATH_REGEX)
+    if not regex_str:
+      raise IOError("Regular expression not specified for the rule.")
+    self.regex = re.compile(utils.SmartStr(regex_str))
+
+    self.event_name = self.Get(self.Schema.EVENT_NAME)
+    if not self.event_name:
+      raise IOError("Event name not specified for the rule.")
+
+  def Initialize(self):
+    if "r" in self.mode:
+      self._UpdateState()
+
+  def OnWriteObject(self, aff4_object):
+    if not self.event_name:
+      self._UpdateState()
+
+    client_name, path = aff4_object.urn.Split(2)
+    if not aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(client_name):
+      return
+
+    if self.regex.match(path):
+      # TODO(user): maybe add a timestamp attribute to the rule so
+      # that we get notified only for the new writes after a certain
+      # timestamp?
+      if (self.IsAttributeSet(self.Schema.NOTIFY_ONLY_IF_NEW) and
+          self.Get(self.Schema.NOTIFY_ONLY_IF_NEW).value):
+        fd = aff4.FACTORY.Open(aff4_object.urn, age=aff4.ALL_TIMES,
+                               token=self.token)
+        stored_vals = fd.GetValuesForAttribute(fd.Schema.TYPE)
+        if len(stored_vals) > 1:
+          return
+
+      event = jobs_pb2.GrrMessage(name="AFF4RegexNotificationRuleMatch",
+                                  args=aff4_object.urn.SerializeToString(),
+                                  auth_state=jobs_pb2.GrrMessage.AUTHENTICATED,
+                                  source=client_name)
+      flow.PublishEvent(self.event_name, event, token=self.token)

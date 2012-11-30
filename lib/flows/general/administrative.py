@@ -427,6 +427,10 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
 
 </body></html>"""
 
+  subject = "GRR nanny message received from %s."
+
+  logline = "Nanny for client %s sent: %s"
+
   @flow.EventHandler(allow_client_access=True)
   def ProcessMessage(self, message=None, event=None):
     """Processes this event."""
@@ -438,7 +442,7 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
     blob.ParseFromString(message.args)
     message = blob.string
 
-    logging.info("Nanny for client %s sent: %s", client_id, message)
+    logging.info(self.logline, client_id, message)
 
     # Also send email.
     if FLAGS.monitoring_email:
@@ -448,13 +452,37 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
                               ("main", "HostInformation")))
 
       email_alerts.SendEmail(FLAGS.monitoring_email, "GRR server",
-                             "GRR nanny message received from %s." % client_id,
+                             self.subject % client_id,
                              self.mail_template % dict(
                                  client_id=client_id,
                                  admin_ui=FLAGS.ui_url,
                                  hostname=hostname,
                                  urn=url, message=message),
                              is_html=True)
+
+
+class ClientAlertHandler(NannyMessageHandler):
+  """A listener for client messages."""
+  EVENTS = ["ClientAlert"]
+
+  well_known_session_id = "W:ClientAlert"
+
+  mail_template = """
+<html><body><h1>GRR client message received.</h1>
+
+The client %(client_id)s (%(hostname)s) just sent a message:<br>
+<br>
+%(message)s
+<br>
+Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
+
+<p>The GRR team.
+
+</body></html>"""
+
+  subject = "GRR client message received from %s."
+
+  logline = "Client message from %s: %s"
 
 
 class ClientCrashHandler(flow.EventListener):
@@ -516,6 +544,55 @@ P.S. The failing flow was:
                                  flow=utils.SmartStr(flow_pb),
                                  urn=url, nanny_msg=nanny_msg),
                              is_html=True)
+
+    if nanny_msg:
+      msg = "Client crashed, " + nanny_msg
+    else:
+      msg = "Client crashed."
+    # Now terminate the flow.
+    flow.FACTORY.TerminateFlow(message.session_id, reason=msg,
+                               token=self.token, force=True)
+
+
+class ClientStartupHandler(flow.EventListener):
+  EVENTS = ["ClientStartup"]
+
+  well_known_session_id = "W:Startup"
+
+  @flow.EventHandler(allow_client_access=True, auth_required=False)
+  def ProcessMessage(self, message=None, event=None):
+    """Handle a startup event."""
+    _ = event
+
+    # We accept unauthenticated messages so there are no errors but we don't
+    # store the results.
+    if message.auth_state != jobs_pb2.GrrMessage.AUTHENTICATED:
+      return
+
+    client_id = message.source
+
+    client = aff4.FACTORY.Create(aff4.ROOT_URN.Add(client_id),
+                                 "VFSGRRClient", mode="rw", token=self.token)
+    old_info = client.Get(client.Schema.CLIENT_INFO)
+    old_boot = client.Get(client.Schema.LAST_BOOT_TIME, 0)
+    startup_info = jobs_pb2.StartupInfo()
+    startup_info.ParseFromString(message.args)
+    info = startup_info.client_info
+
+    if old_info:
+      # Only write to the datastore if we have new information.
+      new_data = (info.client_name, info.client_version, info.revision,
+                  startup_info.boot_time)
+      old_data = (old_info.client_name, old_info.client_version,
+                  old_info.revision, old_boot)
+
+      if new_data == old_data:
+        # Information has not changed, we save the write.
+        return
+
+    client.Set(client.Schema.CLIENT_INFO(info))
+    client.Set(client.Schema.LAST_BOOT_TIME(startup_info.boot_time))
+    client.Close()
 
 
 class AdministrativeInit(registry.InitHook):

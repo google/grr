@@ -389,8 +389,11 @@ class FakeDataStore(data_store.DataStore):
       values = self.ResolveRegex(subject, predicate_regex, token=token,
                                  decoder=decoder, timestamp=timestamp,
                                  limit=limit)
+
       if values:
         result[subject] = values
+        if limit:
+          limit -= len(values)
 
     return result
 
@@ -433,10 +436,13 @@ class FakeDataStore(data_store.DataStore):
     # Holds all the attributes which matched. Keys are attribute names, values
     # are lists of timestamped data.
     results = {}
+    nr_results = 0
     for regex in predicate_regex:
       regex = re.compile(regex)
 
       for attribute, values in record.iteritems():
+        if limit and nr_results >= limit:
+          break
         if regex.match(attribute):
           for value, ts in values:
             results_list = results.setdefault(attribute, [])
@@ -451,7 +457,8 @@ class FakeDataStore(data_store.DataStore):
               continue
 
             results_list.append((attribute, ts, self.Decode(value, decoder)))
-            if limit and len(results) >= limit:
+            nr_results += 1
+            if limit and nr_results >= limit:
               break
 
     result = []

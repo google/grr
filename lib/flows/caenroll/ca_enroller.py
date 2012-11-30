@@ -89,6 +89,10 @@ class CAEnroler(flow.GRRFlow):
     # Set and write the certificate to the client record.
     certificate_attribute = aff4.FACTORY.RDFValue("RDFX509Cert")(cert.as_pem())
     self.client.Set(self.client.Schema.CERT, certificate_attribute)
+
+    first_seen = time.time() * 1e6
+    self.client.Set(self.client.Schema.FIRST_SEEN, aff4.RDFDatetime(first_seen))
+
     self.client.Close(sync=True)
 
     # Publish the client enrollment message.

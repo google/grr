@@ -18,6 +18,7 @@
 
 import time
 from grr.client import conf
+from grr.client import conf as flags
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
@@ -33,8 +34,19 @@ from grr.lib.aff4_objects import tests
 from grr.proto import jobs_pb2
 
 
+class MockNotificationRule(aff4.AFF4NotificationRule):
+  OBJECTS_WRITTEN = []
+
+  def OnWriteObject(self, aff4_object):
+    MockNotificationRule.OBJECTS_WRITTEN.append(aff4_object)
+
+
 class AFF4Tests(test_lib.AFF4ObjectTest):
   """Test the AFF4 abstraction."""
+
+  def setUp(self):
+    super(AFF4Tests, self).setUp()
+    MockNotificationRule.OBJECTS_WRITTEN = []
 
   def testNonVersionedAttribute(self):
     """Test that non versioned attributes work."""
@@ -393,6 +405,85 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(utils.SmartUnicode(matched[0].urn),
                      u"aff4:/C.0000000000000000/"
                      u"fs/os/c/中国新闻网新闻中")
+
+  def testChangeNotifications(self):
+    rule_fd = aff4.FACTORY.Create(
+        aff4.RDFURN("aff4:/config/aff4_rules/new_rule"),
+        aff4_type="MockNotificationRule",
+        token=self.token)
+    rule_fd.Close()
+
+    aff4.FACTORY.UpdateNotificationRules()
+
+    fd = aff4.FACTORY.Create(
+        aff4.RDFURN("aff4:/some"),
+        aff4_type="AFF4Object",
+        token=self.token)
+    fd.Close()
+
+    self.assertEquals(len(MockNotificationRule.OBJECTS_WRITTEN), 1)
+    self.assertEquals(MockNotificationRule.OBJECTS_WRITTEN[0].urn,
+                      aff4.RDFURN("aff4:/some"))
+
+  def testNotificationRulesArePeriodicallyUpdated(self):
+    current_time = time.time()
+    time_in_future = current_time + flags.FLAGS.notification_rules_cache_age + 1
+    old_time = time.time
+    try:
+      # Be sure that we're well in advance from the time when aff4.FACTORY
+      # got intialized.
+      time.time = lambda: time_in_future
+
+      fd = aff4.FACTORY.Create(
+          aff4.RDFURN("aff4:/some"),
+          aff4_type="AFF4Object",
+          token=self.token)
+      fd.Close()
+
+      # There are no rules set up yet.
+      self.assertEquals(len(MockNotificationRule.OBJECTS_WRITTEN), 0)
+
+      # Settin up the rule.
+      rule_fd = aff4.FACTORY.Create(
+          aff4.RDFURN("aff4:/config/aff4_rules/new_rule"),
+          aff4_type="MockNotificationRule",
+          token=self.token)
+      rule_fd.Close()
+
+      fd = aff4.FACTORY.Create(
+          aff4.RDFURN("aff4:/some"),
+          aff4_type="AFF4Object",
+          token=self.token)
+      fd.Close()
+
+      # Rules were not reloaded yet.
+      self.assertEquals(len(MockNotificationRule.OBJECTS_WRITTEN), 0)
+
+      t = (time_in_future +
+           flags.FLAGS.notification_rules_cache_age - 1)
+      time.time = lambda: t
+      fd = aff4.FACTORY.Create(
+          aff4.RDFURN("aff4:/some"),
+          aff4_type="AFF4Object",
+          token=self.token)
+      fd.Close()
+
+      # It's still too early to reload the rules.
+      self.assertEquals(len(MockNotificationRule.OBJECTS_WRITTEN), 0)
+
+      t = (time_in_future +
+           flags.FLAGS.notification_rules_cache_age + 1)
+      time.time = lambda: t
+      fd = aff4.FACTORY.Create(
+          aff4.RDFURN("aff4:/some"),
+          aff4_type="AFF4Object",
+          token=self.token)
+      fd.Close()
+
+      # Rules have been already reloaded.
+      self.assertEquals(len(MockNotificationRule.OBJECTS_WRITTEN), 1)
+    finally:
+      time.time = old_time
 
 
 class ForemanTests(test_lib.AFF4ObjectTest):

@@ -482,6 +482,9 @@ class MockClient(object):
         else:
           responses = getattr(self.client_mock, message.name)(message.args)
 
+        if not responses:
+          responses = []
+
         logging.info("Called client action %s generating %s responses",
                      message.name, len(responses) + 1)
 
@@ -580,6 +583,10 @@ class MockWorker(object):
     run_sessions = []
 
     for session_id in active_sessions:
+      scheduler.SCHEDULER.DeleteNotification(self.queue_name, session_id,
+                                             token=self.token)
+      run_sessions.append(session_id)
+
       # Handle well known flows here.
       if session_id in self.well_known_flows:
         self.well_known_flows[session_id].ProcessCompletedRequests(
@@ -591,12 +598,6 @@ class MockWorker(object):
                                        token=self.token)
       try:
         flow_obj = flow.FACTORY.LoadFlow(flow_pb)
-
-        scheduler.SCHEDULER.DeleteNotification(self.queue_name, session_id,
-                                               token=self.token)
-
-        # Make note that we ran this flow
-        run_sessions.append(session_id)
 
         # Run it
         flow_obj.ProcessCompletedRequests(self.pool)
@@ -690,7 +691,8 @@ def CheckFlowErrors(total_flows, token=None):
 
 
 def TestFlowHelper(flow_class_name, client_mock, client_id=None,
-                   check_flow_errors=True, token=None, **kwargs):
+                   check_flow_errors=True, token=None, notification_event=None,
+                   **kwargs):
   """Build a full test harness: client - worker + start flow."""
 
   client_mock = MockClient(client_id, client_mock, token=token)
@@ -698,6 +700,7 @@ def TestFlowHelper(flow_class_name, client_mock, client_id=None,
 
   # Instantiate the flow:
   session_id = flow.FACTORY.StartFlow(client_id, flow_class_name,
+                                      notification_event=notification_event,
                                       token=token, **kwargs)
 
   total_flows = set()

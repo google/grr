@@ -170,7 +170,7 @@ class ChromeHistory(flow.GRRFlow):
 
   @flow.StateHandler()
   def End(self):
-    self.SendReply(jobs_pb2.URN(urn=utils.SmartUnicode(self.out_urn)))
+    self.SendReply(self.out_urn)
     self.Notify("ViewObject", self.out_urn,
                 "Completed retrieval of Chrome History")
 
@@ -304,6 +304,6 @@ class FirefoxHistory(flow.GRRFlow):
 
   @flow.StateHandler()
   def End(self):
-    self.SendReply(jobs_pb2.URN(urn=utils.SmartUnicode(self.out_urn)))
+    self.SendReply(self.out_urn)
     self.Notify("ViewObject", self.out_urn,
                 "Completed retrieval of Firefox History")

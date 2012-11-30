@@ -314,8 +314,21 @@ class LastAccessStats(AbstractClientStatsCollector):
         pass
 
 
-def RunAllCronJobs(token=None):
-  """Search for all CronJobs and run them."""
+def RunAllCronJobs(token=None, override_frequency=None):
+  """Search for all CronJobs and run them.
+
+  Args:
+    token: Auth token to use.
+    override_frequency: Force the cron jobs to run at a different frequency.
+        Defaults to None which uses the class specified value.
+  """
+  if override_frequency is not None:
+    # Go through the ClientStatsCollectors changing them so they will run
+    # on the override_frequency instead of default.
+    for cls_name, cls in aff4.AFF4Object.classes.items():
+      if issubclass(cls, AbstractClientStatsCollector):
+        cls.frequency = int(override_frequency)
+
   for cls_name, cls in aff4.AFF4Object.classes.iteritems():
     if issubclass(cls, AbstractScheduledCronJob):
       # Create the job if it does not already exist.
@@ -326,6 +339,8 @@ def RunAllCronJobs(token=None):
         logging.warn("Failed to open cron job %s", cls_name)
         continue
 
+      if override_frequency is not None:
+        fd.frequency = int(override_frequency)
       if not fd.DueToRun():   # Only run if schedule says we should.
         continue
 

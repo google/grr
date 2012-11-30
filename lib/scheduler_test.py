@@ -22,6 +22,7 @@ from grr.client import conf
 from grr.client import conf as flags
 from grr.lib import data_store
 from grr.lib import scheduler
+from grr.lib import stats
 from grr.lib import test_lib
 from grr.proto import jobs_pb2
 
@@ -32,6 +33,8 @@ class SchedulerTest(test_lib.GRRBaseTest):
   """Test the Task Scheduler abstraction."""
 
   def setUp(self):
+    stats.STATS.Set("grr_task_retransmission_count", 0)
+
     test_lib.GRRBaseTest.setUp(self)
     self._current_mock_time = 1000.015
     self.old_time = time.time
@@ -101,6 +104,35 @@ class SchedulerTest(test_lib.GRRBaseTest):
     tasks = scheduler.SCHEDULER.QueryAndOwn(
         test_queue, lease_seconds=100, token=self.token)
     self.assertEqual(len(tasks), 0)
+
+  def testTaskRetransmissionsAreCorrectlyAccounted(self):
+    test_queue = "fooSchedule"
+    task = scheduler.SCHEDULER.Task(queue=test_queue,
+                                    value=jobs_pb2.GrrMessage(
+                                        session_id="Test"))
+
+    scheduler.SCHEDULER.Schedule([task], token=self.token)
+
+    # Get a lease on the task
+    tasks = scheduler.SCHEDULER.QueryAndOwn(
+        test_queue, lease_seconds=100, token=self.token,
+        limit=100, decoder=jobs_pb2.GrrMessage)
+
+    self.assertEqual(len(tasks), 1)
+    self.assertEqual(tasks[0].ttl, 4)
+
+    self.assertEqual(stats.STATS.Get("grr_task_retransmission_count"), 0)
+
+    # Get a lease on the task 100 seconds later
+    self._current_mock_time += 110
+    tasks = scheduler.SCHEDULER.QueryAndOwn(
+        test_queue, lease_seconds=100, token=self.token,
+        limit=100, decoder=jobs_pb2.GrrMessage)
+
+    self.assertEqual(len(tasks), 1)
+    self.assertEqual(tasks[0].ttl, 3)
+
+    self.assertEqual(stats.STATS.Get("grr_task_retransmission_count"), 1)
 
   def testDelete(self):
     """Test that we can delete tasks."""

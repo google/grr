@@ -21,6 +21,7 @@ import re
 import sys
 
 from grr.client import conf
+from grr.client import conf as flags
 
 # pylint: disable=W0611
 # Support bt storage
@@ -30,12 +31,18 @@ from grr.lib import mongo_data_store
 
 from grr.lib.aff4_objects import cronjobs
 
+flags.DEFINE_integer("override_frequency", None,
+                     "Force the cron to run at this frequency. None "
+                     "means use the default.")
+
+FLAGS = flags.FLAGS
+
 
 def main(unused_argv):
   # Initialise everything
   registry.Init()
 
-  cronjobs.RunAllCronJobs()
+  cronjobs.RunAllCronJobs(override_frequency=FLAGS.override_frequency)
 
 if __name__ == "__main__":
   conf.StartMain(main)

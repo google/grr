@@ -205,6 +205,29 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     finally:
       hunts.SampleHunt.StartClient = staticmethod(old_start_client)
 
+  def testStartClient(self):
+    hunt = hunts.SampleHunt(token=self.token)
+    hunt.Run()
+
+    client = aff4.FACTORY.Open("aff4:/%s" % self.client_id, token=self.token,
+                               age=aff4.ALL_TIMES)
+
+    flows = client.GetValuesForAttribute(client.Schema.FLOW)
+
+    self.assertEqual(flows, [])
+
+    flow.GRRHunt.StartClient(hunt.session_id, self.client_id)
+
+    test_lib.TestHuntHelper(None, [self.client_id], False, self.token)
+
+    client = aff4.FACTORY.Open("aff4:/%s" % self.client_id, token=self.token,
+                               age=aff4.ALL_TIMES)
+
+    flows = client.GetValuesForAttribute(client.Schema.FLOW)
+
+    # One flow should have been started.
+    self.assertEqual(len(flows), 1)
+
   def testCallbackWithLimit(self):
 
     self.assertRaises(RuntimeError, self.testCallback, 2000)
@@ -414,6 +437,47 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     # All of the clients that have the file should still finish eventually.
     self.assertEqual(len(set(finished)), 5)
     self.assertEqual(len(set(badness)), 5)
+
+    # Clean up.
+    foreman.Set(foreman.Schema.RULES())
+    foreman.Close()
+
+    self.DeleteClients(10)
+
+  def testHuntNotifications(self):
+    """This tests the Hunt notification event."""
+
+    received_events = []
+
+    class Listener1(flow.EventListener):  # pylint:disable=W0612
+      well_known_session_id = "W:TestHuntDone"
+      EVENTS = ["TestHuntDone"]
+
+      @flow.EventHandler(auth_required=True)
+      def ProcessMessage(self, message=None):
+        # Store the results for later inspection.
+        received_events.append(message)
+
+    # Set up 10 clients.
+    client_ids = self.SetupClients(10)
+
+    hunt = BrokenSampleHunt(notification_event="TestHuntDone",
+                            token=self.token)
+    regex_rule = jobs_pb2.ForemanAttributeRegex(
+        attribute_name="GRR client",
+        attribute_regex="GRR")
+    hunt.AddRule([regex_rule])
+    hunt.Run()
+
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    for client_id in client_ids:
+      foreman.AssignTasksToClient(client_id)
+
+    # Run the hunt.
+    client_mock = self.SampleHuntMock()
+    test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
+
+    self.assertEqual(len(received_events), 5)
 
     # Clean up.
     foreman.Set(foreman.Schema.RULES())

@@ -79,13 +79,55 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     super(StandardHuntTest, self).tearDown()
     self.DeleteClients(10)
 
+  def testGenericHuntWithSendRepliesSetToFalse(self):
+    """This tests running the hunt on some clients."""
+
+    hunt = hunts.GenericHunt(flow_name="GetFile", args=dict(
+        path="/tmp/evil.txt",
+        pathspec=jobs_pb2.Path.OS,
+        ), collect_replies=False, token=self.token)
+
+    regex_rule = jobs_pb2.ForemanAttributeRegex(
+        attribute_name="GRR client",
+        attribute_regex="GRR")
+    hunt.AddRule([regex_rule])
+    hunt.Run()
+
+    # Pretend to be the foreman now and dish out hunting jobs to all the
+    # client..
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    for client_id in self.client_ids:
+      foreman.AssignTasksToClient(client_id)
+
+    # Run the hunt.
+    client_mock = SampleHuntMock()
+    test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
+
+    # Stop the hunt now.
+    hunt.Stop()
+
+    hunt_obj = hunt.GetAFF4Object(token=self.token)
+
+    started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
+    finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
+    errors = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.ERRORS)
+
+    self.assertEqual(len(set(started)), 10)
+    self.assertEqual(len(set(finished)), 10)
+    self.assertEqual(len(set(errors)), 5)
+
+    # We shouldn't receive any entries as send_replies is set to False.
+    collection = aff4.FACTORY.Open(hunt.collection.urn, mode="r",
+                                   token=self.token)
+    self.assertEqual(len(list(collection)), 0)
+
   def testGenericHunt(self):
     """This tests running the hunt on some clients."""
 
     hunt = hunts.GenericHunt(flow_name="GetFile", args=dict(
         path="/tmp/evil.txt",
         pathspec=jobs_pb2.Path.OS,
-        ), token=self.token)
+        ), collect_replies=True, token=self.token)
 
     regex_rule = jobs_pb2.ForemanAttributeRegex(
         attribute_name="GRR client",

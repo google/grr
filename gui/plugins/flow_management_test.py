@@ -126,5 +126,5 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     # Check that a StatFile client action was issued as part of the GetFile
     # flow.
-    self.assertTrue(sel.is_element_present(
-        "css=div.ui-tabs td.proto_value:contains(StatFile)"))
+    self.WaitUntil(sel.is_element_present,
+                   "css=div.ui-tabs td.proto_value:contains(StatFile)")

@@ -19,7 +19,12 @@
 
 
 import operator
+import StringIO
 import urllib
+
+
+from django import http
+import matplotlib.pyplot as plt
 
 import logging
 
@@ -27,6 +32,7 @@ from grr.gui import renderers
 from grr.gui.plugins import fileview
 from grr.gui.plugins import flow_management
 from grr.gui.plugins import foreman
+from grr.gui.plugins import searchclient
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import utils
@@ -103,6 +109,7 @@ class HuntTable(renderers.TableRenderer):
     self.AddColumn(renderers.RDFValueColumn("Name", width=10))
     self.AddColumn(renderers.RDFValueColumn("Start Time", width=10))
     self.AddColumn(renderers.RDFValueColumn("Expires", width=10))
+    self.AddColumn(renderers.RDFValueColumn("Client Limit", width=5))
     self.AddColumn(renderers.RDFValueColumn("Creator", width=10))
     self.AddColumn(renderers.RDFValueColumn("Description", width=60))
 
@@ -111,8 +118,8 @@ class HuntTable(renderers.TableRenderer):
     try:
       children = list(fd.ListChildren())
       total_size = len(children)
-      # Sort by index, really a hack.
-      children.sort(key=operator.attrgetter("age"))
+
+      children.sort(key=operator.attrgetter("age"), reverse=True)
       children = children[start_row:end_row]
 
       hunts = list(fd.OpenChildren(children=children))
@@ -131,6 +138,7 @@ class HuntTable(renderers.TableRenderer):
                      "Status": hunt.flow_pb.state,
                      "Start Time": aff4.RDFDatetime(hunt.start_time * 1e6),
                      "Expires": aff4.RDFDatetime(expire_time),
+                     "Client Limit": hunt.client_limit,
                      "Creator": hunt.user,
                      "Description": description})
       displayed_ok = set([h.session_id for h in hunt_objs])
@@ -149,10 +157,11 @@ class HuntTable(renderers.TableRenderer):
 class HuntViewTabs(renderers.TabLayout):
   """Show a tabset to inspect the selected hunt."""
 
-  names = ["Overview", "Log", "Errors", "Rules"]
+  names = ["Overview", "Log", "Errors", "Rules", "Graph"]
   # TODO(user): Add Renderer for Hunt Resource Usage (CPU/IO etc).
   delegated_renderers = ["HuntOverviewRenderer", "HuntLogRenderer",
-                         "HuntErrorRenderer", "HuntRuleRenderer"]
+                         "HuntErrorRenderer", "HuntRuleRenderer",
+                         "HuntClientGraphRenderer"]
 
   def Layout(self, request, response):
     """Add hunt_id to the state of the tabs."""
@@ -303,7 +312,8 @@ back to hunt view</a>
       row = {"Client ID": client_id,
              "Hostname": cdict.get("hostname"),
              "Status": results[c_urn],
-             "Last Checkin": cdict.get("age"),
+             "Last Checkin": searchclient.FormatLastSeenTime(
+                 cdict.get("age") or 0),
             }
       if client_id in resource_usage:
         usage = resource_usage[client_id]
@@ -523,6 +533,118 @@ class HuntClientOverviewRenderer(renderers.TemplateRenderer):
         logging.error("Attempt to open client %s. Err %s", hunt_client, e)
 
     return super(HuntClientOverviewRenderer, self).Layout(request, response)
+
+
+class HuntClientGraphRenderer(renderers.TemplateRenderer):
+  """Renders the button to download a hunt graph."""
+
+  layout_template = renderers.Template("""
+{% if this.clients %}
+<button id="{{ unique|escape }}">
+ Generate
+</button>
+<script>
+  var button = $("#{{ unique|escapejs }}").button();
+
+  var state = {hunt_id: '{{this.hunt_id|escapejs}}'};
+  grr.downloadHandler(button, state, false,
+                      '/render/Download/HuntClientCompletionGraphRenderer');
+</script>
+{% else %}
+No data to graph yet.
+{% endif %}
+""")
+
+  def Layout(self, request, response):
+    self.hunt_id = request.REQ.get("hunt_id")
+    hunt = aff4.FACTORY.Open("aff4:/hunts/%s" % self.hunt_id)
+    self.clients = bool(hunt.Get(hunt.Schema.CLIENTS))
+    super(HuntClientGraphRenderer, self).Layout(request, response)
+
+
+class ImageDownloadRenderer(renderers.TemplateRenderer):
+
+  mimetype = "image/png"
+
+  def Content(self, request, response):
+    _ = request, response
+    return ""
+
+  def Download(self, request, response):
+
+    response = http.HttpResponse(content=self.Content(request, response),
+                                 mimetype=self.mimetype)
+
+    return response
+
+
+class HuntClientCompletionGraphRenderer(ImageDownloadRenderer):
+
+  def Content(self, request, _):
+    """Generates the actual image to display."""
+    hunt_id = request.REQ.get("hunt_id")
+    hunt = aff4.FACTORY.Open("aff4:/hunts/%s" % hunt_id, age=aff4.ALL_TIMES)
+    cl = hunt.GetValuesForAttribute(hunt.Schema.CLIENTS)
+    fi = hunt.GetValuesForAttribute(hunt.Schema.FINISHED)
+
+    cl_age = sorted([int(c.age/1e6) for c in cl])
+    fi_age = sorted([int(c.age/1e6) for c in fi])
+
+    cl_hist = {}
+    fi_hist = {}
+
+    for age in cl_age:
+      cl_hist.setdefault(age, 0)
+      cl_hist[age] += 1
+
+    for age in fi_age:
+      fi_hist.setdefault(age, 0)
+      fi_hist[age] += 1
+
+    t0 = min(cl_age) - 1
+    times = [t0]
+    cl = [0]
+    fi = [0]
+
+    all_times = set(cl_age) | set(fi_age)
+    cl_count = 0
+    fi_count = 0
+
+    for time in sorted(all_times):
+      # Check if there is a datapoint one second earlier, add one if not.
+      if times[-1] != time-1:
+        times.append(time)
+        cl.append(cl_count)
+        fi.append(fi_count)
+
+      cl_count += cl_hist.get(time, 0)
+      fi_count += fi_hist.get(time, 0)
+
+      times.append(time)
+      cl.append(cl_count)
+      fi.append(fi_count)
+
+    # Convert to hours, starting from 0.
+    times = [(t-t0)/3600.0 for t in times]
+
+    params = {"backend": "png"}
+
+    plt.rcParams.update(params)
+    plt.figure(1)
+    plt.clf()
+
+    plt.plot(times, cl, label="Agents issued.")
+    plt.plot(times, fi, label="Agents completed.")
+    plt.title("Agent Coverage")
+    plt.xlabel("Time (h)")
+    plt.ylabel(r"Agents")
+    plt.grid(True)
+    plt.legend(loc=4)
+    buf = StringIO.StringIO()
+    plt.savefig(buf)
+    buf.seek(0)
+
+    return buf.read()
 
 
 class HuntHostInformationRenderer(fileview.AFF4Stats):

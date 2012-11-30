@@ -213,11 +213,7 @@ class HuntFlowContext(object):
 
       self._outstanding_requests += 1
 
-      # Also schedule the last status message on the worker queue.
-      task = scheduler.SCHEDULER.Task(queue=self.queue_name, value=msg)
-      scheduler.SCHEDULER.Schedule([task], token=self.token)
-
-      # And notify the worker about it.
+      # Notify the worker about it.
       timestamp = None
       if delay:
         timestamp = int((time.time() + delay) * 1e6)
@@ -313,6 +309,7 @@ class HuntFlowContext(object):
             # automatic retransmission facilitated by the task scheduler (the
             # Task.ttl field) which would happen regardless of these.
             if request.transmission_count < 5:
+              stats.STATS.Increment("grr_request_retransmission_count")
               request.transmission_count += 1
               self.new_request_states.append(request)
             break
@@ -565,8 +562,9 @@ class HuntFlowContext(object):
     if not isinstance(response, aff4.RDFValue):
       raise RuntimeError("SendReply does not send RDFValue")
 
-    # We have a parent only if we know our parent's request state.
-    if self.flow_pb.HasField("request_state"):
+    # Only send the reply if we have a parent and if flow's send_replies
+    # attribute is True. We have a parent only if we know our parent's request.
+    if self.flow_pb.HasField("request_state") and self.parent_flow.send_replies:
       response_proto = jobs_pb2.RDFValue(
           age=int(response.age), name=response.__class__.__name__,
           data=response.SerializeToString())
@@ -584,11 +582,6 @@ class HuntFlowContext(object):
           auth_state=jobs_pb2.GrrMessage.AUTHENTICATED,
           type=jobs_pb2.GrrMessage.RDF_VALUE,
           args=response_proto.SerializeToString())
-
-      # Status messages are also sent to their worker queues
-      scheduler.SCHEDULER.Schedule(
-          [scheduler.SCHEDULER.Task(queue=worker_queue, value=msg)],
-          token=self.token)
 
       try:
         # queue the response message to the parent flow
@@ -699,10 +692,6 @@ class HuntFlowContext(object):
           args=response_proto.SerializeToString())
 
       worker_queue = request_state.session_id.split(":")[0]
-      # Status messages are also sent to their worker queues
-      scheduler.SCHEDULER.Schedule(
-          [scheduler.SCHEDULER.Task(queue=worker_queue, value=msg)],
-          token=self.token)
 
       try:
         # queue the response message to the parent flow

@@ -33,5 +33,4 @@ class WmiQuery(actions.ActionPlugin):
 class GetMemoryInformation(actions.ActionPlugin):
   """Gets information about memory layout."""
   in_protobuf = jobs_pb2.Path
-  out_protobuf = jobs_pb2.MemoryInfomation
-
+  out_protobuf = jobs_pb2.MemoryInformation

@@ -41,6 +41,10 @@ class Interrogate(flow.GRRFlow):
   category = "/Administrative/"
   client = None
 
+  def __init__(self, lightweight=False, **kw):
+    self.lightweight = lightweight
+    super(Interrogate, self).__init__(**kw)
+
   @flow.StateHandler(next_state=["Hostname", "Platform",
                                  "InstallDate", "EnumerateUsers",
                                  "EnumerateInterfaces", "EnumerateFilesystems",
@@ -53,24 +57,26 @@ class Interrogate(flow.GRRFlow):
     fd = aff4.FACTORY.Create(self.client.urn.Add("network"), "Network",
                              token=self.token)
     fd.Close()
-    self.sid_data = {}
-
-    self.profiles_key = (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft"
-                         r"\Windows NT\CurrentVersion\ProfileList")
 
     self.CallClient("GetPlatformInfo", next_state="Platform")
     self.CallClient("GetInstallDate", next_state="InstallDate")
-    user_list = jobs_pb2.Path(path=self.profiles_key,
-                              pathtype=jobs_pb2.Path.REGISTRY)
-    request = jobs_pb2.Find(pathspec=user_list,
-                            path_regex="ProfileImagePath", max_depth=2)
-    # Download all the Registry keys, it is limited by max_depth.
-    request.iterator.number = 10000
-    self.CallClient("Find", request, next_state="VerifyUsers")
-    self.CallClient("EnumerateInterfaces", next_state="EnumerateInterfaces")
-    self.CallClient("EnumerateFilesystems", next_state="EnumerateFilesystems")
     self.CallClient("GetClientInfo", next_state="ClientInfo")
     self.CallClient("GetConfig", next_state="ClientConfig")
+
+    if not self.lightweight:
+      self.sid_data = {}
+      profiles_key = (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft"
+                      r"\Windows NT\CurrentVersion\ProfileList")
+
+      user_list = jobs_pb2.Path(path=profiles_key,
+                                pathtype=jobs_pb2.Path.REGISTRY)
+      request = jobs_pb2.Find(pathspec=user_list,
+                              path_regex="ProfileImagePath", max_depth=2)
+      # Download all the Registry keys, it is limited by max_depth.
+      request.iterator.number = 10000
+      self.CallClient("Find", request, next_state="VerifyUsers")
+      self.CallClient("EnumerateInterfaces", next_state="EnumerateInterfaces")
+      self.CallClient("EnumerateFilesystems", next_state="EnumerateFilesystems")
 
   def Load(self):
     # Ensure there is a client object
@@ -342,12 +348,7 @@ class Interrogate(flow.GRRFlow):
     """Obtain some information about the GRR client running."""
     if responses.success:
       response = responses.First()
-      self.client.Set(self.client.Schema.CLIENT_INFO(
-          jobs_pb2.ClientInformation(client_name=response.client_name,
-                                     client_version=response.client_version,
-                                     revision=response.revision,
-                                     build_time=response.build_time,
-                                    )))
+      self.client.Set(self.client.Schema.CLIENT_INFO(response))
     else:
       self.Log("Could not get ClientInfo.")
 

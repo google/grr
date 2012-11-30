@@ -43,7 +43,7 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
       return []
 
     def GetMemoryInformation(self, _):
-      reply = jobs_pb2.MemoryInfomation()
+      reply = jobs_pb2.MemoryInformation()
       reply.device.path = r"\\.\pmem"
       reply.device.pathtype = jobs_pb2.Path.MEMORY
 
@@ -107,7 +107,7 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
 
       def GetMemoryInformation(self, _):
         """Mock out the driver loading code to pass the memory image."""
-        reply = jobs_pb2.MemoryInfomation()
+        reply = jobs_pb2.MemoryInformation()
         reply.device.path = image_path
         reply.device.pathtype = jobs_pb2.Path.OS
 

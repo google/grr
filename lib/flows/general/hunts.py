@@ -203,6 +203,8 @@ class ProcessesHunt(flow.GRRHunt):
     for proc, freq in proc_list:
       print "%d  %s" % (freq, proc)
 
+    return hist
+
 
 class MBRHunt(flow.GRRHunt):
   """A hunt that downloads MBRs."""
@@ -581,11 +583,14 @@ class GenericHunt(flow.GRRHunt):
     args: A dict containing the parameters for the flow.
   """
 
-  def __init__(self, flow_name, args=None, **kw):
+  def __init__(self, flow_name, args=None, collect_replies=False, **kw):
     super(GenericHunt, self).__init__(**kw)
     self.flow_name = flow_name
     if args is None:
       args = {}
+    self.collect_replies = collect_replies
+    if not collect_replies:
+      args["send_replies"] = False
     self.flow_args = args
 
     # Our results will be written inside this collection.
@@ -605,14 +610,14 @@ class GenericHunt(flow.GRRHunt):
     self.CallFlow(self.flow_name, next_state="MarkDone", client_id=client_id,
                   **self.flow_args)
 
-  @utils.Synchronized
   def Save(self):
-    # Flush results frequently so users can monitor them as they come in.
-    self.collection.Flush()
+    if self.collect_replies:
+      with self.lock:
+        # Flush results frequently so users can monitor them as they come in.
+        self.collection.Flush()
 
     super(GenericHunt, self).Save()
 
-  @utils.Synchronized
   @flow.StateHandler()
   def MarkDone(self, responses):
     """Mark a client as done."""
@@ -620,11 +625,13 @@ class GenericHunt(flow.GRRHunt):
     if responses.success:
       self.LogResult(client_id, "Flow %s completed." % self.flow_name)
 
-      for orig_message in getattr(responses, "_responses", []):
-        msg = jobs_pb2.GrrMessage()
-        msg.MergeFrom(orig_message)
-        msg.source = client_id
-        self.collection.Add(aff4_grr.GRRMessage(msg))
+      if self.collect_replies:
+        with self.lock:
+          for orig_message in getattr(responses, "_responses", []):
+            msg = jobs_pb2.GrrMessage()
+            msg.MergeFrom(orig_message)
+            msg.source = client_id
+            self.collection.Add(aff4_grr.GRRMessage(msg))
 
     else:
       self.LogClientError(client_id, log_message=utils.SmartStr(

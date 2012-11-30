@@ -32,16 +32,22 @@ from grr.gui import plugins
 from grr.gui import renderers
 from grr.lib import data_store
 from grr.lib import log
+from grr.lib import registry
 from grr.lib import stats
 
 SERVER_NAME = "GRR Admin Console"
 FLAGS = flags.FLAGS
 
-# Counters used here
-stats.STATS.RegisterVar("grr_admin_ui_unknown_renderer")
-stats.STATS.RegisterVar("grr_admin_ui_renderer_called")
-stats.STATS.RegisterVar("grr_admin_ui_access_denied")
-stats.STATS.RegisterVar("grr_admin_ui_renderer_failed")
+
+class ViewsInit(registry.InitHook):
+  pre = ["StatsInit"]
+
+  def RunOnce(self):
+    # Counters used here
+    stats.STATS.RegisterVar("grr_admin_ui_unknown_renderer")
+    stats.STATS.RegisterVar("grr_admin_ui_renderer_called")
+    stats.STATS.RegisterVar("grr_admin_ui_access_denied")
+    stats.STATS.RegisterVar("grr_admin_ui_renderer_failed")
 
 LOGGER = log.GrrLogger(component="AdminUI")
 

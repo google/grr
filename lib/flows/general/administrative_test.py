@@ -85,6 +85,8 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
             args=status.SerializeToString(), source=client_id,
             auth_state=jobs_pb2.GrrMessage.AUTHENTICATED)
 
+        self.flow_id = message.session_id
+
         # This is normally done by the FrontEnd when a CLIENT_KILLED message is
         # received.
         flow.PublishEvent("ClientCrash", msg, token=token)
@@ -102,8 +104,9 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       email_alerts.SendEmail = SendEmail
       FLAGS.monitoring_email = "admin@nowhere.com"
 
+      client = ClientMock()
       for _ in test_lib.TestFlowHelper(
-          "ListDirectory", ClientMock(), client_id=self.client_id,
+          "ListDirectory", client, client_id=self.client_id,
           path="/", token=self.token, check_flow_errors=False):
         pass
 
@@ -112,7 +115,12 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       self.assertTrue(self.client_id in self.email_message["title"])
 
       # Make sure the flow protobuf dump is included in the email message.
-      self.assertTrue("state: RUNNING" in self.email_message["message"])
+      for s in ["name: \"ListDirectory\"", "state:", "pickle:"]:
+        self.assertTrue(s in self.email_message["message"])
+
+      flow_pb = flow.FACTORY.FetchFlow(client.flow_id, token=self.token)
+      self.assertEqual(flow_pb.state, jobs_pb2.FlowPB.ERROR)
+      flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
 
     finally:
       email_alerts.SendEmail = old_send_email

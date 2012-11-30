@@ -40,7 +40,12 @@ from grr.proto import jobs_pb2
 flags.DEFINE_integer("aff4_cache_age", 5,
                      "The number of seconds AFF4 objects live in the cache.")
 
+flags.DEFINE_integer("notification_rules_cache_age", 60,
+                     "The number of seconds AFF4 notification rules "
+                     "are cached.")
+
 FLAGS = flags.FLAGS
+
 
 # Factor to convert from seconds to microseconds
 MICROSECONDS = 1000000
@@ -67,6 +72,9 @@ class Factory(object):
     self.root_token = data_store.ACLToken(username="system",
                                           reason="Maintainance")
     self.root_token.supervisor = True
+
+    self.notification_rules = []
+    self.notification_rules_timestamp = 0
 
   def _ParseAgeSpecification(self, age):
     if age == NEWEST_TIME:
@@ -265,6 +273,7 @@ class Factory(object):
       IOError: If the object is not of the required type.
       AttributeError: If the requested mode is incorrect.
     """
+
     if mode not in ["w", "r", "rw"]:
       raise AttributeError("Invalid mode %s" % mode)
 
@@ -308,6 +317,7 @@ class Factory(object):
 
   def MultiOpen(self, urns, mode="rw", token=None, required_type=None):
     """Opens a bunch of urns efficiently."""
+
     if mode not in ["w", "r", "rw"]:
       raise RuntimeError("Invalid mode %s" % mode)
 
@@ -341,6 +351,7 @@ class Factory(object):
     Raises:
       RuntimeError: A string was passed instead of an iterable.
     """
+
     if isinstance(urns, basestring):
       raise RuntimeError("Expected an iterable, not string.")
     for subject, values in data_store.DB.MultiResolveRegex(
@@ -369,6 +380,7 @@ class Factory(object):
     Raises:
       AttributeError: If the mode is invalid.
     """
+
     if mode not in ["w", "r", "rw"]:
       raise AttributeError("Invalid mode %s" % mode)
 
@@ -405,6 +417,7 @@ class Factory(object):
       RuntimeError: If the urn is too short. This is a safety check to ensure
       the root is not removed.
     """
+
     urn = RDFURN(urn)
     if len(urn.Path()) < 1:
       raise RuntimeError("URN %s too short. Please enter a valid URN" % urn)
@@ -460,6 +473,25 @@ class Factory(object):
 
   def Flush(self):
     data_store.DB.Flush()
+
+  def UpdateNotificationRules(self):
+    fd = self.Open(RDFURN("aff4:/config/aff4_rules"), mode="r",
+                   token=self.root_token)
+    self.notification_rules = [rule for rule in fd.OpenChildren()
+                               if isinstance(rule, AFF4NotificationRule)]
+
+  def NotifyWriteObject(self, aff4_object):
+    current_time = time.time()
+    if (current_time - self.notification_rules_timestamp >
+        FLAGS.notification_rules_cache_age):
+      self.notification_rules_timestamp = current_time
+      self.UpdateNotificationRules()
+
+    for rule in self.notification_rules:
+      try:
+        rule.OnWriteObject(aff4_object)
+      except Exception, e:  # pylint: disable=broad-except
+        logging.error("Error while applying the rule: %s", e)
 
 
 class RDFValue(object):
@@ -1533,6 +1565,8 @@ class AFF4Object(object):
       # Write the attributes to the Factory cache.
       FACTORY.SetAttributes(self.urn, to_set, self._to_delete, sync=sync,
                             token=self.token)
+      # Notify factory that the object got updated.
+      FACTORY.NotifyWriteObject(self)
 
     # This effectively moves all the values from the new_attributes to the
     # _attributes caches.
@@ -2329,6 +2363,11 @@ class AFF4Image(AFF4Stream):
 
     if fd:
       self.write_chunk_cache.Put(cache_key, fd)
+
+
+class AFF4NotificationRule(AFF4Object):
+  def OnWriteObject(self, unused_aff4_object):
+    raise NotImplementedError()
 
 
 # Utility functions

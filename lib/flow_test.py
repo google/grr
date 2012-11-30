@@ -185,6 +185,16 @@ class FlowFactoryTest(test_lib.FlowTestsBaseclass):
 
     flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
 
+  def testSendRepliesAttribute(self):
+    # Run the flow in the simulated way. Child's send_replies is set to False.
+    # Parent flow will raise if number of responses is > 0.
+    for _ in test_lib.TestFlowHelper(
+        "ParentFlowWithoutResponses", ClientMock(), client_id=self.client_id,
+        check_flow_errors=False, token=self.token,):
+      pass
+
+    self.assertEqual(ParentFlowWithoutResponses.success, True)
+
 
 class FlowTest(test_lib.FlowTestsBaseclass):
   """Tests the Flow."""
@@ -521,7 +531,8 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     flow.PublishEvent("Event2", event, token=self.token)
 
     worker = test_lib.MockWorker(queue_name="W", token=self.token)
-    worker.Next()
+    while worker.Next():
+      pass
     worker.pool.Join()
 
     # This should not work - the event listender does not accept client events.
@@ -540,11 +551,54 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     flow.PublishEvent("Event2", event, token=self.token)
 
     worker = test_lib.MockWorker(queue_name="W", token=self.token)
-    worker.Next()
+    while worker.Next():
+      pass
     worker.pool.Join()
 
     # This should now work - the event listener does accept client events.
     self.assertEqual(len(received_events), 1)
+
+  def testFlowNotification(self):
+    event_queue = "EV"
+
+    received_events = []
+
+    class FlowDoneListener(flow.EventListener):  # pylint:disable=W0612
+      well_known_session_id = "%s:FlowDone" % event_queue
+      EVENTS = ["Not used"]
+
+      @flow.EventHandler(auth_required=True)
+      def ProcessMessage(self, message=None):
+        # Store the results for later inspection.
+        received_events.append(message)
+
+    # Install the mock
+    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = MockVFSHandler
+    path = "/"
+
+    # Run the flow in the simulated way
+    client_mock = test_lib.ActionMock("IteratedListDirectory")
+    for _ in test_lib.TestFlowHelper(
+        "IteratedListDirectory", client_mock, client_id=self.client_id,
+        path=path, notification_event="%s:FlowDone" % event_queue,
+        token=self.token):
+      pass
+
+    # The event goes to an external queue so we need another worker.
+    worker = test_lib.MockWorker(queue_name=event_queue, token=self.token)
+    while worker.Next():
+      pass
+    worker.pool.Join()
+
+    self.assertEqual(len(received_events), 1)
+    self.assertEqual(received_events[0].session_id, "EV:FlowDone")
+    self.assertEqual(received_events[0].source, "IteratedListDirectory")
+
+    flow_event = jobs_pb2.FlowNotification()
+    flow_event.ParseFromString(received_events[0].args)
+    self.assertEqual(flow_event.flow_name, "IteratedListDirectory")
+    self.assertEqual(flow_event.client_id, "C.1000000000000000")
+    self.assertEqual(flow_event.status, jobs_pb2.FlowNotification.OK)
 
   def testEventNotification(self):
     """Test that events are sent to listeners."""
@@ -578,7 +632,8 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
 
     # Now emulate a worker.
     worker = test_lib.MockWorker(queue_name="W", token=self.token)
-    worker.Next()
+    while worker.Next():
+      pass
     worker.pool.Join()
 
     # This should not work - the unauthenticated message is dropped.
@@ -591,7 +646,8 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     flow.PublishEvent("Event1", event, token=self.token)
 
     # Now emulate a worker.
-    worker.Next()
+    while worker.Next():
+      pass
     worker.pool.Join()
 
     # This should now work:
@@ -600,6 +656,22 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     # Make sure the source is correctly propagated.
     self.assertEqual(received_events[0][0].source, "Source")
     self.assertEqual(received_events[0][1].path, "foobar")
+
+    received_events = []
+    # Now schedule ten events at the same time.
+    for i in xrange(10):
+      event.source = "Source%d" % i
+      flow.PublishEvent("Event1", event, token=self.token)
+
+    # Now emulate a worker.
+    while worker.Next():
+      pass
+    worker.pool.Join()
+
+    self.assertEqual(len(received_events), 10)
+    for i in range(10):
+      self.assertEqual(received_events[i][0].source, "Source%d" % i)
+      self.assertEqual(received_events[i][1].path, "foobar")
 
   def testPrioritization(self):
     """Test that flow priorities work."""
@@ -805,6 +877,26 @@ class ParentFlow(flow.GRRFlow):
       raise RuntimeError("Messages not passed to parent")
 
     ParentFlow.success = True
+
+
+class ParentFlowWithoutResponses(flow.GRRFlow):
+  """This flow will launch a child flow."""
+
+  success = False
+
+  @flow.StateHandler(next_state="ParentReceiveHello")
+  def Start(self):
+    # Call the child flow.
+    self.CallFlow("ChildFlow",
+                  send_replies=False,
+                  next_state="ParentReceiveHello")
+
+  @flow.StateHandler(jobs_pb2.DataBlob)
+  def ParentReceiveHello(self, responses):
+    if responses:
+      raise RuntimeError("Messages are not expected to be passed to parent")
+
+    ParentFlowWithoutResponses.success = True
 
 
 class BrokenParentFlow(flow.GRRFlow):

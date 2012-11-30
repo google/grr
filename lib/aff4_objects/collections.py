@@ -19,7 +19,6 @@
 import struct
 
 from grr.lib import aff4
-from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.proto import jobs_pb2
 

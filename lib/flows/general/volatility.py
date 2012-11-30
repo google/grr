@@ -22,6 +22,7 @@ import time
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import type_info
+from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
@@ -33,6 +34,7 @@ class VolatilityPlugins(flow.GRRFlow):
 
   Args:
     plugins: A list of plugins to run.
+    args: A dict of dicts, the arguments to pass for each of the plugins.
     device: Name of the device the memory driver created.
     output: The path to the output container for this find. Will be created
             under the client. supports format variables {u}, {p} and {t} for
@@ -42,17 +44,35 @@ class VolatilityPlugins(flow.GRRFlow):
   category = "/Volatility/"
 
   out_protobuf = jobs_pb2.VolatilityResponse
-  flow_typeinfo = {"profile": type_info.StringOrNone()}
+  flow_typeinfo = {"profile": type_info.StringOrNone(),
+                   "plugin_list": type_info.List(type_info.String),
+                   "args": type_info.TypeInfoObject()}   # Fake out
 
   response_obj = "VolatilityResponse"
 
-  def __init__(self, plugins="modules,dlllist,pslist", devicepath=r"\\.\pmem",
-               profile=None, output="analysis/{p}/{u}-{t}", **kw):
+  def __init__(self, plugins="modules,dlllist,pslist", args=None,
+               devicepath=r"\\.\pmem", profile=None,
+               output="analysis/{p}/{u}-{t}", **kw):
     super(VolatilityPlugins, self).__init__(**kw)
     device = jobs_pb2.Path(path=devicepath, pathtype=jobs_pb2.Path.MEMORY)
     self.request = jobs_pb2.VolatilityRequest(device=device)
     self.plugins = plugins
-    for plugin in plugins.split(","):
+    plugin_list = plugins.split(",")
+    if not plugin_list:
+      raise RuntimeError("Need some plugins to run.")
+    # Some basic sanity checking for args.
+    if args:
+      if len(plugin_list) == 1:
+        if plugin_list[0] not in args:
+          # We have been probably passed only the args for this one plugin.
+          args = {plugin_list[0]: args}
+      else:
+        if set(args.keys()) - set(plugin_list):
+          # There were args passed for a plugin not in the list.
+          raise RuntimeError("Malformed argument dict.")
+
+    self.request.args.MergeFrom(utils.ProtoDict(args or {}).ToProto())
+    for plugin in plugin_list:
       self.request.plugins.append(plugin.strip())
     if profile:
       self.request.profile = profile

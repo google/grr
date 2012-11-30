@@ -26,6 +26,7 @@ import functools
 import operator
 import os
 import pdb
+import random
 import re
 import struct
 import sys
@@ -68,6 +69,10 @@ flags.DEFINE_integer("threadpool_size", 50,
 
 flags.DEFINE_integer("worker_task_limit", 2000,
                      "Limits the number of tasks a worker retrieves every poll")
+
+flags.DEFINE_integer("throttle_average_interval", 60,
+                     "Time interval over which average request rate is "
+                     "calculated when throttling is enabled.")
 
 FLAGS = flags.FLAGS
 
@@ -305,7 +310,7 @@ def EventHandler(in_protobuf=None, source_restriction=None, auth_required=True,
       """A decorator that assists in enforcing EventListener restrictions."""
       if (auth_required and
           msg.auth_state != jobs_pb2.GrrMessage.AUTHENTICATED):
-        raise RuntimeError("Message not authenticated.")
+        raise RuntimeError("Message from %s not authenticated." % msg.source)
 
       if (not allow_client_access and
           aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(msg.source)):
@@ -370,17 +375,24 @@ class GRRFlow(object):
   flow_typeinfo = {}
 
   # Should we notify to the user about the progress of this flow?
-  def __init__(self, context=None, notify_to_user=True):
+  def __init__(self, context=None, notify_to_user=True,
+               notification_event=None, send_replies=True):
     """Constructor for the Flow.
 
     Args:
       context: A FlowContext object that will save the state for this flow.
       notify_to_user: Should this flow notify completion to the user that
                       started it?
+      notification_event: A well known flow session_id of an event listener. An
+                          event will be published to this listener once the
+                          flow finishes.
+      send_replies: If False, SendReply calls are ignored.
     Raises:
       RuntimeError: No context object was passed to this flow.
     """
     self.notify_to_user = notify_to_user
+    self.notification_event = notification_event
+    self.send_replies = send_replies
 
     if context is None:
       raise RuntimeError("No context given for flow %s." %
@@ -590,6 +602,34 @@ class GRRFlow(object):
                           notification, replace=False, sync=False,
                           token=self.token)
 
+    if self.notification_event:
+      if self.flow_pb.state == jobs_pb2.FlowPB.ERROR:
+        status = jobs_pb2.FlowNotification.ERROR
+      else:
+        status = jobs_pb2.FlowNotification.OK
+
+      event = jobs_pb2.FlowNotification(session_id=self.session_id,
+                                        flow_name=self.__class__.__name__,
+                                        client_id=self.client_id,
+                                        status=status)
+      msg = jobs_pb2.GrrMessage(args=event.SerializeToString())
+
+      msg.session_id = self.notification_event
+      msg.auth_state = jobs_pb2.GrrMessage.AUTHENTICATED
+      msg.source = self.__class__.__name__
+
+      # Randomize the response id or events will get overwritten.
+      msg.response_id = scheduler.SCHEDULER.Task().id
+
+      with flow_context.WellKnownFlowManager(
+          self.notification_event, token=self.token) as flow_manager:
+        flow_manager.QueueResponse(msg)
+
+      # Notify the worker of the pending sessions.
+      queue = self.notification_event.split(":", 1)[0]
+      scheduler.SCHEDULER.NotifyQueue(queue, self.notification_event,
+                                      token=self.token)
+
   @classmethod
   def GetFlowArgTypeInfo(cls, omit_internal=True):
     """Get the type information for the flow arguments.
@@ -678,19 +718,20 @@ class GRRFlow(object):
       arg_type, default = result[arg]
       yield arg, arg_type, default
 
-  def Publish(self, event_name, message=None):
+  def Publish(self, event_name, message=None, session_id=None):
     """Publish a message to a queue.
 
     Args:
        event_name: The name of the event to publish to.
        message: A protobuf to send to all the event listeners.
+       session_id: The session id to send from, defaults to self.session_id.
     """
     result = message
 
     if not isinstance(message, jobs_pb2.GrrMessage):
       result = jobs_pb2.GrrMessage(args=message.SerializeToString())
 
-    result.session_id = self.session_id
+    result.session_id = session_id or self.session_id
     result.auth_state = jobs_pb2.GrrMessage.AUTHENTICATED
     result.source = self.__class__.__name__
 
@@ -804,6 +845,9 @@ def PublishEvent(event_name, msg, token=None):
   if not msg.source:
     raise RuntimeError("Message must have a valid source.")
 
+  # Randomize the response id or events will get overwritten.
+  msg.response_id = scheduler.SCHEDULER.Task().id
+
   sessions_queued = []
   for event_cls in EventListener.classes.values():
     if (issubclass(event_cls, EventListener) and
@@ -837,7 +881,8 @@ class GRRHunt(GRRFlow):
   MATCH_DARWIN = jobs_pb2.ForemanAttributeRegex(attribute_name="System",
                                                 attribute_regex="Darwin")
 
-  def __init__(self, token=None, expiry_time=24*3600, client_limit=None, **kw):
+  def __init__(self, token=None, expiry_time=31*24*3600, client_limit=None,
+               notification_event=None, **kw):
 
     queue_name = flow_context.DEFAULT_WORKER_QUEUE_NAME
 
@@ -865,6 +910,7 @@ class GRRHunt(GRRFlow):
     self.started = False
     self.next_request_id = 0
     self.client_limit = client_limit
+    self.notification_event = notification_event
 
     # This is the URN for the Hunt object we use.
     self.urn = aff4.ROOT_URN.Add("hunts").Add(self.session_id)
@@ -1103,10 +1149,6 @@ class GRRHunt(GRRFlow):
 
       flow_manager.QueueResponse(msg)
 
-      # Also schedule the last status message on the worker queue.
-      scheduler.SCHEDULER.Schedule(
-          [scheduler.SCHEDULER.Task(queue="W", value=msg)], token=token)
-
       # And notify the worker about it.
       scheduler.SCHEDULER.NotifyQueue("W", hunt_id, token=token)
 
@@ -1122,6 +1164,11 @@ class GRRHunt(GRRFlow):
 
     self.MarkClient(client_id,
                     aff4.AFF4Object.classes["VFSHunt"].SchemaCls.FINISHED)
+
+    if self.notification_event:
+      status = jobs_pb2.HuntNotification(session_id=self.session_id,
+                                         client_id=client_id)
+      self.Publish(self.notification_event, status)
 
   def MarkClientBad(self, client_id):
     """Marks a client as worth investigating."""
@@ -1190,8 +1237,8 @@ class FlowFactory(object):
   def StartFlow(self, client_id, flow_name,
                 queue_name=flow_context.DEFAULT_WORKER_QUEUE_NAME,
                 event_id=None, token=None, priority=None, cpu_limit=None,
-                _parent_request_queue=None, _request_state=None,
-                _store=None, **kw):
+                notification_event=None, _parent_request_queue=None,
+                _request_state=None, _store=None, **kw):
     """Creates and executes a new flow.
 
     Args:
@@ -1202,6 +1249,8 @@ class FlowFactory(object):
       token: The access token to be used for this request.
       priority: The priority of the started flow.
       cpu_limit: A limit on the client cpu seconds used by this flow.
+      notification_event: The session_id of an event to be published when the
+                          flow completes.
       _parent_request_queue: This is used to pass queued messages to the client
                              up to a parent flow instead of writing it to the
                              data store.
@@ -1258,7 +1307,8 @@ class FlowFactory(object):
                                        args=utils.ProtoDict(args).ToProto(),
                                        priority=priority, cpu_limit=cpu_limit)
 
-    flow_obj = flow_cls(context=context, **kw)
+    flow_obj = flow_cls(context=context, notification_event=notification_event,
+                        **kw)
 
     if client_id is not None:
       # This client may not exist already but we create it anyway.
@@ -1360,7 +1410,7 @@ class FlowFactory(object):
           queue=session_id,
           limit=1,
           decoder=jobs_pb2.FlowPB,
-          lease_seconds=6000, token=token)
+          lease_seconds=1200, token=token)
 
       self.outstanding_flows.add(session_id)
 
@@ -1492,8 +1542,9 @@ class FlowFactory(object):
     # it - just convert all exceptions to a FlowError and let our callers deal
     # with it..
     except Exception as e:
-      logging.error("Unable to handle Flow %s: %s", flow_pb.name, e)
-      raise FlowError(flow_pb.name)
+      msg = "Unable to handle Flow %s: %s" % (flow_pb.name, e)
+      logging.error(msg)
+      raise FlowError(msg)
 
     # Restore the flow_pb here
     result.flow_pb = flow_pb
@@ -1733,6 +1784,8 @@ class FrontEndServer(object):
     self.token = data_store.ACLToken("FrontEndServer", "Implied.")
     self.token.supervisor = True
 
+    self.SetThrottleBundlesRatio(None)
+
     # This object manages our crypto
     self._communicator = ServerCommunicator(certificate, token=self.token)
     self.data_store = store or data_store.DB
@@ -1753,6 +1806,72 @@ class FrontEndServer(object):
         self.well_known_flows[
             cls.well_known_session_id] = cls(context)
 
+  def SetThrottleBundlesRatio(self, throttle_bundles_ratio):
+    """Sets throttling ration.
+
+    Throttling ratio is a value between 0 and 1 which determines
+    which percentage of requests from clients will get proper responses.
+    I.e. 0.3 means that only 30% of clients will get new tasks scheduled for
+    them when HandleMessageBundles() method is called.
+
+    Args:
+      throttle_bundles_ratio: throttling ratio.
+    """
+    self.throttle_bundles_ratio = throttle_bundles_ratio
+    if throttle_bundles_ratio is None:
+      self.handled_bundles = []
+      self.last_not_throttled_bundle_time = 0
+
+    stats.STATS.Set("grr_frontendserver_throttle_setting",
+                    throttle_bundles_ratio)
+
+  def UpdateAndCheckIfShouldThrottle(self, bundle_time):
+    """Update throttling data and check if request should be throttled.
+
+    When throttling is enabled (self.throttle_bundles_ratio is not None)
+    request times are stored. In order to detect whether particular
+    request should be throttled, we do the following:
+    1. Calculate the average interval between requests over last minute.
+    2. Check that [time since last non-throttled request] is less than
+       [average interval] / [throttle ratio].
+
+    Args:
+      bundle_time: time of the request.
+
+    Returns:
+      True if the request should be throttled, False otherwise.
+    """
+    if self.throttle_bundles_ratio is None:
+      return False
+
+    self.handled_bundles.append(bundle_time)
+    oldest_limit = bundle_time - FLAGS.throttle_average_interval
+    try:
+      oldest_index = next(i for i, v in enumerate(self.handled_bundles)
+                          if v > oldest_limit)
+      self.handled_bundles = self.handled_bundles[oldest_index:]
+    except StopIteration:
+      self.handled_bundles = []
+
+    blen = len(self.handled_bundles)
+    if blen > 1:
+      interval = (self.handled_bundles[-1] -
+                  self.handled_bundles[0]) / float(blen - 1)
+    else:
+      # TODO(user): this can occasionally return False even when
+      # throttle_bundles_ratio is 0, treat it in a generic way.
+      return self.throttle_bundles_ratio == 0
+
+    should_throttle = (bundle_time - self.last_not_throttled_bundle_time <
+                       interval / max(0.1e-6,
+                                      float(self.throttle_bundles_ratio)))
+
+    if not should_throttle:
+      self.last_not_throttled_bundle_time = bundle_time
+
+    return should_throttle
+
+  @stats.Counted("grr_frontendserver_handle_num")
   @stats.Timed("grr_frontendserver_handle_time")
   @stats.TimespanAvg("grr_frontendserver_handle_time_running_avg")
   def HandleMessageBundles(self, request_comms, response_comms):
@@ -1784,8 +1903,12 @@ class FrontEndServer(object):
     required_count = max(0, self.max_queue_size - request_comms.queue_size)
 
     message_list = jobs_pb2.MessageList()
-    tasks = self.DrainTaskSchedulerQueueForClient(source, required_count,
-                                                  message_list)
+    if self.UpdateAndCheckIfShouldThrottle(time.time()):
+      tasks = []
+      stats.STATS.Increment("grr_frontendserver_handle_throttled_num")
+    else:
+      tasks = self.DrainTaskSchedulerQueueForClient(source, required_count,
+                                                    message_list)
 
     # Encode the message_list in the response_comms using the same API version
     # the client used.
@@ -2026,9 +2149,16 @@ class GRRWorker(object):
     # Check which sessions have new data.
     active_sessions = []
     now = int(time.time() * 1e6)
-    for predicate, _, _ in data_store.DB.ResolveRegex(
+    # Read all the sessions that have notifications.
+    sessions_available = data_store.DB.ResolveRegex(
         self.queue_name, flow_context.FlowManager.FLOW_TASK_REGEX,
-        timestamp=(0, now), token=self.token, limit=100):
+        timestamp=(0, now), token=self.token, limit=10000)
+    sessions_available = [predicate for predicate, _, _ in sessions_available]
+    # Shuffle them so workers work on different flows.
+    random.shuffle(sessions_available)
+
+    # We can not have more than 100 tasks in the queue at once.
+    for predicate in sessions_available[:100]:
       session_id = predicate.split(":", 1)[1]
       active_sessions.append(session_id)
 
@@ -2161,6 +2291,7 @@ class FlowInit(registry.InitHook):
     stats.STATS.RegisterTimespanAvg(
         "grr_frontendserver_handle_time_running_avg", 60)
     stats.STATS.RegisterVar("grr_messages_sent")
+    stats.STATS.RegisterVar("grr_request_retransmissions_count")
     stats.STATS.RegisterVar("grr_response_out_of_order")
     stats.STATS.RegisterVar("grr_unique_clients")
     stats.STATS.RegisterVar("grr_unknown_clients")
@@ -2170,6 +2301,9 @@ class FlowInit(registry.InitHook):
     stats.STATS.RegisterVar("grr_worker_requests_issued")
     stats.STATS.RegisterVar("grr_worker_states_run")
     stats.STATS.RegisterVar("grr_worker_well_known_flow_requests")
+    stats.STATS.RegisterVar("grr_frontendserver_handle_num")
+    stats.STATS.RegisterVar("grr_frontendserver_handle_throttled_num")
+    stats.STATS.RegisterVar("grr_frontendserver_throttle_setting")
 
 # A global factory that can be used to create new flows
 FACTORY = None

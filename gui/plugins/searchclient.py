@@ -50,12 +50,29 @@ class ContentView(renderers.Splitter2WayVertical):
 """ + renderers.Splitter2WayVertical.layout_template
 
 
+def FormatLastSeenTime(age):
+
+  if int(age) == 0:
+    return "Never"
+
+  time_last_seen = (aff4.RDFDatetime() - int(age)) / 1e6
+
+  if time_last_seen < 60:
+    return "%d seconds ago" % int(time_last_seen)
+  elif time_last_seen < 60 * 60:
+    return "%d minutes ago" % int(time_last_seen // 60)
+  elif time_last_seen < 60 * 60 * 24:
+    return "%d hours ago" % int(time_last_seen // (60 * 60))
+  else:
+    return "%d days ago" % int(time_last_seen // (60 * 60 * 24))
+
+
 class StatusRenderer(renderers.TemplateRenderer):
   """A renderer for the online status line."""
 
   layout_template = renderers.Template("""
 Status: {{this.icon|safe}}
-{{this.last_seen_msg|escape}} ago.
+{{this.last_seen_msg|escape}}.
 {% if this.ip_description %}
 <br>
 {{this.ip_icon|safe}} {{this.ip_description|escape}}
@@ -78,17 +95,8 @@ Status: {{this.icon|safe}}
       # Also check for proper access.
       aff4.FACTORY.Open(client.urn.Add("fs"), token=request.token)
 
-      time_last_seen = (aff4.RDFDatetime() - int(age)) / 1e6
       self.icon = OnlineStateIcon(age).RawHTML()
-
-      if time_last_seen < 60:
-        self.last_seen_msg = "%d seconds" % int(time_last_seen)
-      elif time_last_seen < 60 * 60:
-        self.last_seen_msg = "%d minutes" % int(time_last_seen // 60)
-      elif time_last_seen < 60 * 60 * 24:
-        self.last_seen_msg = "%d hours" % int(time_last_seen // (60 * 60))
-      else:
-        self.last_seen_msg = "%d days" % int(time_last_seen // (60 * 60 * 24))
+      self.last_seen_msg = FormatLastSeenTime(age)
 
       ip = client.Get(client.Schema.CLIENT_IP)
       (status, description) = utils.RetrieveIPInfo(ip)

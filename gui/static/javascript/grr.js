@@ -1051,7 +1051,7 @@ grr.submit = function(renderer, formId, resultId, opt_state,
  * Updates the form from an object.
  *
  * @param {string} formId The form to update.
- * @param {object=} state Optional state to merge with the form (default
+ * @param {Object=} state Optional state to merge with the form (default
  *     grr.state).
  */
 grr.update_form = function(formId, state) {
@@ -1221,9 +1221,9 @@ grr.hexview = {};
 /**
  * Builds the hexview HTML inside the dom.
  *
- * @param {String} domId the id of the node to build this inside.
- * @param {Integer} width The number of columns to have in the hexview.
- * @param {Integer} height The number of rows to have in the hexview.
+ * @param {string} domId the id of the node to build this inside.
+ * @param {number} width The number of columns to have in the hexview.
+ * @param {number} height The number of rows to have in the hexview.
  *
  */
 grr.hexview.BuildTable = function(domId, width, height) {
@@ -1283,9 +1283,9 @@ grr.hexview.BuildTable = function(domId, width, height) {
 
 /**
  * A utility function to zero pad strings.
- * @param {String} string_value the string to interpolate.
- * @param {Integer} limit is the total width of the string.
- * @return {String} An interporlated string.
+ * @param {string} string_value the string to interpolate.
+ * @param {number} limit is the total width of the string.
+ * @return {string} An interporlated string.
  */
 grr.hexview.ZeroPad = function(string_value, limit) {
   while (string_value.length < limit) {
@@ -1296,8 +1296,8 @@ grr.hexview.ZeroPad = function(string_value, limit) {
 
 /**
  * Populate the hexviewer table with data.
- * @param {Integer} offset is the initial offset of the array.
- * @param {Integer} width is the number of cells in each row.
+ * @param {number} offset is the initial offset of the array.
+ * @param {number} width is the number of cells in each row.
  * @param {Array} values is an array of values to go into each cell of the view.
  */
 grr.hexview._Populate = function(offset, width, values) {
@@ -1337,15 +1337,15 @@ grr.hexview._Populate = function(offset, width, values) {
 
 /**
  * A helper function to create the slider.
- * @param {String} renderer The renderer which will be used to interact with the
+ * @param {string} renderer The renderer which will be used to interact with the
  * hexview.
- * @param {String} domId will receive the new widget.
- * @param {Integer} total_size is the total size of the file (for maximum
+ * @param {string} domId will receive the new widget.
+ * @param {number} total_size is the total size of the file (for maximum
  * slider).
- * @param {Integer} width is the number of bytes in each row. (The height is
+ * @param {number} width is the number of bytes in each row. (The height is
  * auto detected).
- * @param {Integer} height The total number of rows in this hex viewer.
- * @param {object} state The state that will be passed to our renderer.
+ * @param {number} height The total number of rows in this hex viewer.
+ * @param {Object} state The state that will be passed to our renderer.
  */
 grr.hexview._makeSlider = function(renderer, domId, total_size, width, height,
                             state) {
@@ -1409,12 +1409,12 @@ grr.hexview._makeSlider = function(renderer, domId, total_size, width, height,
 
 /**
  * Builds a hex viewer widget inside the specified domId.
- * @param {String} renderer The renderer which will be used to interact with the
+ * @param {string} renderer The renderer which will be used to interact with the
  * hexview.
- * @param {String} domId will receive the new widget.
- * @param {Integer} width is the number of bytes in each row. (The height is
+ * @param {string} domId will receive the new widget.
+ * @param {number} width is the number of bytes in each row. (The height is
  *    auto detected).
- * @param {object} state is the state we use for send to our renderer.
+ * @param {Object} state is the state we use for send to our renderer.
  */
 grr.hexview.HexViewer = function(renderer, domId, width, state) {
   var header_height = $('#hex_header').outerHeight();
@@ -1454,12 +1454,12 @@ grr.textview = {};
 
 /**
  * A helper function to create the slider.
- * @param {String} renderer The renderer which will be used to interact with the
+ * @param {string} renderer The renderer which will be used to interact with the
  * textview.
- * @param {String} domId will receive the new widget.
- * @param {Integer} total_size is the total size of the file (for maximum
+ * @param {string} domId will receive the new widget.
+ * @param {number} total_size is the total size of the file (for maximum
  *    slider).
- * @param {object} state is the state we use for send to our renderer.
+ * @param {Object} state is the state we use for send to our renderer.
  */
 grr.textview._makeSlider = function(renderer, domId, total_size, state) {
   // Make the slider
@@ -1484,10 +1484,10 @@ grr.textview._makeSlider = function(renderer, domId, total_size, state) {
 
 /**
  * Issue a request to update content based on current state.
- * @param {String} renderer The renderer which will be used to interact with the
+ * @param {string} renderer The renderer which will be used to interact with the
  * textview.
- * @param {String} domId will receive the new widget.
- * @param {object} state is the state we use for send to our renderer.
+ * @param {string} domId will receive the new widget.
+ * @param {Object} state is the state we use for send to our renderer.
  */
 grr.textview.Update = function(renderer, domId, state) {
   var state = $.extend({
@@ -1505,11 +1505,11 @@ grr.textview.Update = function(renderer, domId, state) {
 
 /**
  * Builds a text viewer widget inside the specified domId.
- * @param {String} renderer The renderer which will be used to interact with the
+ * @param {string} renderer The renderer which will be used to interact with the
  * textview.
- * @param {String} domId will receive the new widget.
- * @param {String} default_codec codec to set as default for the widget.
- * @param {object} state is the state we use for send to our renderer.
+ * @param {string} domId will receive the new widget.
+ * @param {string} default_codec codec to set as default for the widget.
+ * @param {Object} state is the state we use for send to our renderer.
  */
 grr.textview.TextViewer = function(renderer, domId, default_codec, state) {
   // Create a slider, we don't know how big it should be yet.
@@ -1544,7 +1544,6 @@ grr.textview.TextViewer = function(renderer, domId, default_codec, state) {
 
 
 /**
- *
  * This is the queue of ajax requests which are currently in flight. If another
  * query occurs for this same domId, it is canceled until the first request
  * returns. This makes it safe to fire off ajax requests based on events, since
@@ -1591,7 +1590,7 @@ grr.versionSelector = function(node) {
 /**
  * Add onclick and onchange handlers to an input form field to handle the None
  * or Auto automatic value. This is used in the Start new flows UI.
- * @param {object} node The node to apply the handlers to.
+ * @param {Object} node The node to apply the handlers to.
  */
 grr.formNoneHandler = function(node) {
 
@@ -1625,7 +1624,7 @@ grr.formNoneHandler = function(node) {
  * @param {string} formId The input form with the file parameter.
  * @param {string} progressId Div to write progress to.
  * @param {function} successHandler Function to call on success.
- * @param {object} state is the state we use for send to our renderer.
+ * @param {Object} state is the state we use for send to our renderer.
  */
 grr.uploadHandler = function(renderer, formId, progressId, successHandler,
                              state) {
@@ -1665,15 +1664,20 @@ grr.uploadHandler = function(renderer, formId, progressId, successHandler,
 
 /**
  * Attach a download file handler to the click of a node.
-  * @param {String} clickNode DomID that we will attach the handler to.
-  * @param {object} state is the state we use for send to our renderer.
-  * @param {bool} safe_extension should the downloaded file have .noexec added.
-  * @param {String} url URL to post to.
+ * @param {string} clickNode DomID that we will attach the handler to.
+ * @param {Object} state is the state we use for send to our renderer.
+ * @param {boolean} safe_extension should the downloaded file have .noexec
+ *     added.
+ * @param {string} url URL to post to.
+ * @param {string} target The target for the form, defaults to "_blank".
  */
-grr.downloadHandler = function(clickNode, state, safe_extension, url) {
+grr.downloadHandler = function(clickNode, state, safe_extension, url, target) {
   // Create a temporary form to post to the download page with.
   clickNode.find('form').remove();   // remove any previous hidden forms.
-  var tmpform = $('<form target="_blank" />').appendTo(clickNode);
+  if (target == null) {
+    target = '_blank';
+  }
+  var tmpform = $('<form target="' + target + '" />').appendTo(clickNode);
   tmpform.attr({action: url, method: 'post'});
   $.each(state, function(key, val) {
     $('<input type=hidden />').attr({name: key, value: val}).appendTo(tmpform);
@@ -1693,7 +1697,7 @@ grr.downloadHandler = function(clickNode, state, safe_extension, url) {
 /**
   * Determine if a method is safe to add CSRF token to.
   * As per https://docs.djangoproject.com/en/1.4/ref/contrib/csrf/#using-csrf
-  * @param {String} method Method the request uses.
+  * @param {string} method Method the request uses.
   * @return {boolean} whether or not the method is safe from csrf.
 **/
 grr.csrfSafeMethod = function(method) {
@@ -1703,11 +1707,11 @@ grr.csrfSafeMethod = function(method) {
 
 
 /**
-  * Helper function to retrieve the value of a cookie, in lieu of an extra
-  * dependency on jquery.cookie.
-  * @param {String} name The cookie we want the value for.
-  * @return {String} value of the cookie.
-**/
+ * Helper function to retrieve the value of a cookie, in lieu of an extra
+ * dependency on jquery.cookie.
+ * @param {string} name The cookie we want the value for.
+ * @return {string} value of the cookie.
+ */
 grr.getCookie = function(name) {
   var cookieValue = null;
   if (document.cookie && document.cookie != '') {

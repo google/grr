@@ -152,6 +152,7 @@ class ClientListReport(ClientReport):
       aff4.Attribute.GetAttributeByName("subject"),
       aff4.Attribute.GetAttributeByName("Host"),
       aff4.Attribute.GetAttributeByName("System"),
+      aff4.Attribute.GetAttributeByName("Architecture"),
       aff4.Attribute.GetAttributeByName("GRR client")
   ]
 
@@ -160,6 +161,8 @@ class ClientListReport(ClientReport):
   def Run(self, max_age=60*60*24*7):
     """Collect all the data for the report."""
     start_time = time.time()
+    self.results = []
+    self.broken_subjects = []
     for client in self._QueryResults(max_age):
       self.results.append(client)
     self.SortResults("GRR client")
@@ -179,6 +182,8 @@ class VersionBreakdownReport(ClientReport):
     """Run the report."""
     counts = {}
     self.fields.append("count")
+    self.results = []
+    self.broken_subjects = []
     for client in self._QueryResults(max_age):
       version = client.get("GRR client")
       try:

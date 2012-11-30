@@ -296,7 +296,8 @@ def main(unused_argv):
         open(FLAGS.local_output, "wb").write(blob_pb.SerializeToString())
         print "Written successfully to %s" % FLAGS.local_output
       else:
-        if FLAGS.install_device_path or FLAGS.install_driver_name:
+        if FLAGS.type == "DRIVER":
+          # Driver
           install_request = GetInstallInfo()
           out_path = maintenance_utils.UploadSignedDriverBlob(
               blob_pb, upload_name, install_request=install_request,

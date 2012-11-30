@@ -95,7 +95,7 @@ def UploadSignedConfigBlob(blob_pb, file_name=None,
   fd = aff4.FACTORY.Create(path, "GRRSignedBlob", mode="w", token=token)
   fd.Set(fd.Schema.BINARY(blob_pb))
   fd.Close()
-  logging.info("Uploaded to %s", path)
+  logging.info("Uploaded to %s", fd.urn)
   return str(fd.urn)
 
 

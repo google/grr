@@ -324,8 +324,9 @@ class PickleableStore(FastStore):
 
   @Synchronized
   def __getstate__(self):
-    self.lock = None
-    return self.__dict__
+    to_pickle = self.__dict__.copy()
+    to_pickle["lock"] = None
+    return to_pickle
 
   def __setstate__(self, state):
     self.__dict__ = state

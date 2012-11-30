@@ -23,6 +23,7 @@ import time
 
 from grr.lib import data_store
 from grr.lib import registry
+from grr.lib import stats
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
@@ -247,7 +248,11 @@ class TaskScheduler(object):
         transaction.DeleteAttribute(predicate)
         logging.info("TTL exceeded on task %s:%s, dequeueing", task.queue,
                      task.id)
+        stats.STATS.Increment("grr_task_ttl_expired_count")
       else:
+        if task.ttl != self.Task.max_ttl - 1:
+          stats.STATS.Increment("grr_task_retransmission_count")
+
         # Update the timestamp on the value to be in the future
         transaction.Set(predicate, task.SerializeToString(), replace=True,
                         timestamp=now + lease)
@@ -262,6 +267,7 @@ class TaskScheduler(object):
 
     lock = threading.Lock()
     next_id_base = 0
+    max_ttl = jobs_pb2.Task().ttl
 
     def __init__(self, decoder=None, value="", **kwargs):
       """Constructor.
@@ -281,8 +287,10 @@ class TaskScheduler(object):
         self.id = self.proto.id
       else:
         with TaskScheduler.Task.lock:
-          # 32 bit random numbers
+          # 16 bit random numbers
           random_number = struct.unpack("H", os.urandom(2))[0]
+          while random_number == 0:
+            random_number = struct.unpack("H", os.urandom(2))[0]
           next_id_base = TaskScheduler.Task.next_id_base
 
           id_base = (next_id_base + random_number) & 0xFFFFFFFF
@@ -353,6 +361,9 @@ class SchedulerInit(registry.InitHook):
   pre = ["AFF4InitHook"]
 
   def Run(self):
+    # Counters used by Scheduler.
+    stats.STATS.RegisterVar("grr_task_retransmission_count")
+    stats.STATS.RegisterVar("grr_task_ttl_expired_count")
     # Make global handlers
     global SCHEDULER
 
