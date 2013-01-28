@@ -1080,7 +1080,7 @@ http://www.gnu.org/software/src-highlite -->
   EVENTS <span style="color: #990000">=</span> <span style="color: #990000">[</span><span style="color: #FF0000">"ClientEnrollment"</span><span style="color: #990000">]</span>                                       <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/2.png" alt="2" /></span></span>
   well_known_session_id <span style="color: #990000">=</span> <span style="color: #FF0000">"W:Interrogate"</span>
 
-  @flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">EventHandler</span></span><span style="color: #990000">(</span>in_protobuf<span style="color: #990000">=</span>jobs_pb2<span style="color: #990000">.</span>Certificate<span style="color: #990000">,</span> source_restriction<span style="color: #990000">=</span><span style="color: #FF0000">"CA"</span><span style="color: #990000">)</span>
+  @flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">EventHandler</span></span><span style="color: #990000">(</span>source_restriction<span style="color: #990000">=</span><span style="color: #FF0000">"CA"</span><span style="color: #990000">)</span>
   <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">ProcessMessage</span></span><span style="color: #990000">(</span>self<span style="color: #990000">,</span> message<span style="color: #990000">=</span>None<span style="color: #990000">,</span> event<span style="color: #990000">=</span>None<span style="color: #990000">):</span>
     flow<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StartFlow</span></span><span style="color: #990000">(</span>event<span style="color: #990000">.</span>cn<span style="color: #990000">,</span> <span style="color: #FF0000">"Interrogate"</span><span style="color: #990000">,</span> token<span style="color: #990000">=</span>self<span style="color: #990000">.</span>token<span style="color: #990000">)</span> <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/3.png" alt="3" /></span></span></tt></pre></div></div>
 <div class="colist arabic"><table>
@@ -1739,7 +1739,7 @@ non-trivial flow from the GRR source code:</p></div>
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
-<pre><tt><span style="font-weight: bold"><span style="color: #0000FF">class</span></span> <span style="font-weight: bold"><span style="color: #000000">AnalyseClientMemory</span></span><span style="color: #990000">(</span>flow<span style="color: #990000">.</span>GRRFlow<span style="color: #990000">):</span>                   <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/1.png" alt="1" /></span></span>
+<pre><tt><span style="font-weight: bold"><span style="color: #0000FF">class</span></span> <span style="font-weight: bold"><span style="color: #000000">AnalyzeClientMemory</span></span><span style="color: #990000">(</span>flow<span style="color: #990000">.</span>GRRFlow<span style="color: #990000">):</span>                   <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/1.png" alt="1" /></span></span>
   category <span style="color: #990000">=</span> <span style="color: #FF0000">"/Memory/"</span>                                    <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/2.png" alt="2" /></span></span>
 
   <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">__init__</span></span><span style="color: #990000">(</span>self<span style="color: #990000">,</span> plugins<span style="color: #990000">=</span><span style="color: #FF0000">"pslist,dlllist,modules"</span><span style="color: #990000">,</span> driver_installer<span style="color: #990000">=</span>None<span style="color: #990000">,</span>
@@ -1786,6 +1786,96 @@ The <em>CallFlow</em> method delegates execution to another flow. The responses
 from this flows will be fed back into the End state.
 </td></tr>
 </table></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_testing">Testing</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>We aim to keep GRR well unit tested to ensure we can move quickly with new
+changes without unknowingly breaking things. Different pieces of the system
+are tested to different levels of rigour, but generally new functionality
+should not go in without a test.</p></div>
+<div class="sect2">
+<h3 id="_running_the_tests">Running the Tests</h3>
+<div class="paragraph"><p>Use the run_tests.py script to run the unit tests.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/run_tests.py
+        SchedulerTest                            PASSED in   0.31s
+        FlowFactoryTest                          PASSED in   0.41s
+        NetstatTest                              PASSED in   0.40s
+        SQLiteFileTest                           PASSED in   0.50s
+        BackwardsCompatibleClientCommsTest       PASSED in   0.91s
+        GrrWorkerTest                            PASSED in   0.61s
+        AFF4GRRTest                              PASSED in   0.41s
+        ChromeHistoryTest                        PASSED in   0.41s
+        AccessControlTest                        PASSED in   0.41s
+        ...
+        TestAdministrativeFlows                  FAILED in   0.41s
+        ...
+        TestFileCollector                        PASSED in   2.02s
+        TestWebHistory                           PASSED in   1.31s
+
+Ran 75 tests in 8.98 sec, 74 tests passed, 1 tests failed.</tt></pre>
+</div></div>
+<div class="paragraph"><p>To run a specific test name the test class on the command line:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/run_tests.py TestAdministrativeFlows</tt></pre>
+</div></div>
+</div>
+<div class="sect2">
+<h3 id="_testing_the_ui">Testing the UI.</h3>
+<div class="paragraph"><p>Testing the admin interface requires the selenium framework.</p></div>
+<div class="paragraph"><p>First you need to download selenium from <a href="http://seleniumhq.org/download/">http://seleniumhq.org/download/</a>.
+This will come in a jar file which you can run in one window.</p></div>
+<div class="paragraph"><p>Note: If you are doing this on a remote machine over SSH you need to make
+sure your X display is forwarded for Selenium, it will spawn a Firefox window
+during the tests.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>$ java -jar selenium-server-standalone-2.5.0.jar
+Aug 30, 2012 4:02:21 PM org.openqa.grid.selenium.GridLauncher main
+INFO: Launching a standalone server
+16:02:22.093 INFO - Java: Sun Microsystems Inc. 19.0-b09
+16:02:22.094 INFO - OS: Linux 2.6.38.8-gg868 i386
+16:02:22.130 INFO - v2.5.0, with Core v2.5.0. Built from revision 13516
+16:02:22.348 INFO - RemoteWebDriver instances should connect to: http://127.0.0.1:4444/wd/hub
+16:02:22.349 INFO - Version Jetty/5.1.x
+16:02:22.350 INFO - Started HttpContext[/selenium-server/driver,/selenium-server/driver]
+16:02:22.350 INFO - Started HttpContext[/selenium-server,/selenium-server]
+16:02:22.351 INFO - Started HttpContext[/,/]
+16:02:22.375 INFO - Started org.openqa.jetty.jetty.servlet.ServletHandler@ef2c60
+16:02:22.376 INFO - Started HttpContext[/wd,/wd]
+16:02:22.379 INFO - Started SocketListener on 0.0.0.0:4444</tt></pre>
+</div></div>
+<div class="paragraph"><p>Then run the run_tests.py script</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/gui/runtests_test.py</tt></pre>
+</div></div>
+<div class="paragraph"><p>To run a specific test name the test class on the command line:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/gui/runtests_test.py TestTimelineView</tt></pre>
+</div></div>
+<div class="sect3">
+<h4 id="_debugging_gui_tests">Debugging GUI Tests</h4>
+<div class="paragraph"><p>Selenium will instrument the browser flow, but to figure out why something isn&#8217;t
+working it&#8217;s often useful to be able to single step through the Selenium actions.
+Add a call to import pdb; pdb.set_trace() into your test. e.g.</p></div>
+<div class="listingblock">
+<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>sel<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">click</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"css=tbody tr:first td"</span><span style="color: #990000">)</span>
+<span style="font-weight: bold"><span style="color: #000080">import</span></span> pdb<span style="color: #990000">;</span> pdb<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">set_trace</span></span><span style="color: #990000">()</span>
+sel<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">click</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"css=a:contains(\"View details\")"</span><span style="color: #990000">)</span></tt></pre></div></div>
+<div class="paragraph"><p>When the test hits this point it will break into a pdb shell for you to step
+through.</p></div>
+</div>
 </div>
 </div>
 </div>
@@ -1867,7 +1957,7 @@ capabilities)
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2012-10-03 19:15:03 CEST
+Last updated 2013-01-28 21:48:25 CET
 </div>
 </div>
 </body>
