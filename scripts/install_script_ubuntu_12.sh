@@ -2,7 +2,8 @@
 #
 # Script to install GRR from scratch on an Ubuntu 12.04 or 12.10 system.
 #
-# By default this will generate keys in /etc/grr/keys and install into /usr
+# By default this will install into /usr and set the config in
+# /etc/grr/grr-server.conf
 #
 
 if [ -z "${GRR_TEST_VERSIONS}" ];
@@ -83,7 +84,7 @@ function run_cmd_confirm()
 header "Updating APT and Installing dependencies"
 run_cmd_confirm sudo apt-get --yes update;
 run_cmd_confirm sudo apt-get --yes upgrade;
-run_cmd_confirm sudo apt-get --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil;
+run_cmd_confirm sudo apt-get --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil python-matplotlib;
 
 
 header "Getting the right version of M2Crypto installed"
@@ -131,8 +132,8 @@ header "Installing GRR from prebuilt package"
 run_cmd_confirm wget --no-verbose ${SERVER_DEB_URL} -O ${SERVER_DEB};
 run_cmd_confirm sudo dpkg -i ${SERVER_DEB};
 
-header "Setup Admin UI password/user"
-run_cmd_confirm ${INSTALL_DIR}/scripts/grr_add_user.sh
+header "Initialize the configuration, building clients and setting options."
+run_cmd_confirm grr_config_updater.py initialize
 
 header "Enable grr-single-server to start automatically on boot"
 SERVER_DEFAULT=/etc/default/grr-single-server
@@ -145,15 +146,6 @@ if [ $IS_RUNNING = 0 ]; then
   run_cmd_confirm sudo initctl stop grr-single-server
 fi
 run_cmd_confirm sudo initctl start grr-single-server
-
-header "Updating clients from the repo"
-run_cmd_confirm sudo ${INSTALL_DIR}/scripts/update_clients.sh
-
-header "Building clients"
-run_cmd_confirm sudo ${INSTALL_DIR}/scripts/build_clients.sh
-
-header "Installing memory drivers"
-run_cmd_confirm sudo ${INSTALL_DIR}/scripts/install_memory_drivers.sh
 
 HOSTNAME=`hostname`
 echo "############################################################################################"

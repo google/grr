@@ -16,16 +16,17 @@
 
 """Test the collection viewer interface."""
 
-import os
 from grr.client import conf as flags
 
 from grr.client import vfs
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import jobs_pb2
 
 FLAGS = flags.FLAGS
+CONFIG = config_lib.CONFIG
 
 
 class TestContainerViewer(test_lib.GRRSeleniumTest):
@@ -35,24 +36,27 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
   def CreateCollectionFixture():
     """Creates a new collection we can play with."""
     # Create a client for testing
-    key_path = os.path.join(FLAGS.test_srcdir, FLAGS.test_keydir)
     client_id = "C.0000000000000004"
     token = data_store.ACLToken("test", "Fixture")
 
     fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=token)
     fd.Set(fd.Schema.CERT, aff4.FACTORY.RDFValue("RDFX509Cert")(
-        open(os.path.join(key_path, "cert.pem")).read()))
+        CONFIG["Test.Test_Client_Cert"]))
     fd.Close()
 
     # Install the mock
-    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = test_lib.ClientVFSHandlerFixture
+    vfs.VFS_HANDLERS[
+        rdfvalue.RDFPathSpec.Enum("OS")] = test_lib.ClientVFSHandlerFixture
     client_mock = test_lib.ActionMock("Find")
     output_path = "aff4:/%s/analysis/FindFlowTest" % client_id
 
+    findspec = rdfvalue.RDFFindSpec(path_regex="bash")
+    findspec.pathspec.path = "/"
+    findspec.pathspec.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=client_id,
-        path="/", filename_regex="bash", token=token,
-        pathtype=jobs_pb2.Path.OS, output=output_path):
+        findspec=findspec, token=token, output=output_path):
       pass
 
     # Make the view a bit more interesting
@@ -146,15 +150,15 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
 
     # Check that query filtering works (Pressing enter)
     sel.type("query", "stat.st_size < 5000")
-    sel.key_press("query", "13")
+    sel.click("css=form:contains('Query') input[type=submit]")
 
     # This should be fixed eventually and the test turned back on.
     self.WaitUntilContains("Filtering by subfields is not implemented yet.",
                            sel.get_text, "css=#footer")
 
-    #self.WaitUntilEqual("4874", sel.get_text,
+    # self.WaitUntilEqual("4874", sel.get_text,
     #                    "css=.tableContainer  tbody > tr:nth(0) td:nth(4)")
 
     # We should have exactly 1 file
-    #self.assertEqual(
+    # self.assertEqual(
     #    1, sel.get_css_count("css=.tableContainer  tbody > tr"))

@@ -18,13 +18,8 @@
 import time
 
 from grr.lib import aff4
-from grr.lib import utils
+from grr.lib import rdfvalue
 from grr.proto import jobs_pb2
-
-
-class NotificationList(aff4.RDFProtoArray):
-  """A List of notifications for this user."""
-  _proto = jobs_pb2.Notification
 
 
 class GRRUser(aff4.AFF4Object):
@@ -32,21 +27,32 @@ class GRRUser(aff4.AFF4Object):
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     PENDING_NOTIFICATIONS = aff4.Attribute(
-        "aff4:notification/pending", NotificationList,
+        "aff4:notification/pending", rdfvalue.NotificationList,
         "The notifications pending for the user.", default="")
 
     SHOWN_NOTIFICATIONS = aff4.Attribute(
-        "aff4:notifications/shown", NotificationList,
+        "aff4:notifications/shown", rdfvalue.NotificationList,
         "Notifications already shown to the user.", default="")
 
   def Notify(self, message_type, subject, msg, source):
-    """Send a notification to the user in the UI."""
-    pending = self.Get(self.Schema.PENDING_NOTIFICATIONS)
+    """Send a notification to the user in the UI.
 
-    pending.Append(jobs_pb2.Notification(
-        type=message_type, subject=utils.SmartUnicode(subject),
-        message=utils.SmartUnicode(msg), source=source,
-        timestamp=long(time.time() * 1e6)))
+    Args:
+      message_type: One of aff4_grr.Notification.notification_types e.g.
+        "ViewObject", "HostInformation", "GrantAccess".
+      subject: The subject to use, normally a URN.
+      msg: The message to display.
+      source: The class doing the notification.
+
+    Raises:
+      TypeError: On invalid message_type.
+    """
+    pending = self.Get(self.Schema.PENDING_NOTIFICATIONS)
+    if message_type not in rdfvalue.Notification.notification_types:
+      raise TypeError("Invalid notification type %s" % message_type)
+
+    pending.Append(type=message_type, subject=subject, message=msg,
+                   source=source, timestamp=long(time.time() * 1e6))
 
     # Limit the notification to 50, expiring older notifications.
     while len(pending) > 50:
@@ -61,11 +67,11 @@ class GRRUser(aff4.AFF4Object):
     # Pending notifications first
     pending = self.Get(self.Schema.PENDING_NOTIFICATIONS)
     for notification in pending:
-      shown_notifications.data.append(notification)
+      shown_notifications.Append(notification)
 
     notifications = self.Get(self.Schema.SHOWN_NOTIFICATIONS)
     for notification in notifications:
-      shown_notifications.data.append(notification)
+      shown_notifications.Append(notification)
 
     # Shall we reset the pending notification state?
     if reset:
@@ -73,4 +79,4 @@ class GRRUser(aff4.AFF4Object):
       self.Set(self.Schema.PENDING_NOTIFICATIONS())
       self.Flush()
 
-    return shown_notifications.data
+    return shown_notifications

@@ -24,22 +24,24 @@ import zlib
 import logging
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 class GetFile(flow.GRRFlow):
   """An efficient file transfer mechanism.
 
   Returns to parent flow:
-    A jobs_pb2.Path.
+    An RDFPathSpec.
   """
 
   category = "/Filesystem/"
-  out_protobuf = jobs_pb2.StatResponse
-  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
-                   "pathspec": type_info.Proto(jobs_pb2.Path)}
+
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.PathspecType(
+          description="The pathspec for the file to retrieve."),
+      )
 
   # Read in 512kb chunks
   _CHUNK_SIZE = 512 * 1024
@@ -49,33 +51,16 @@ class GetFile(flow.GRRFlow):
   current_chunk_number = 0
   max_chunk_number = 2
 
-  def __init__(self, path="/",
-               pathtype=jobs_pb2.Path.OS,
-               pathspec=None, **kwargs):
-    """Constructor.
+  fd = None
 
-    This flow uses chunking and hashes to de-duplicate data and send it
-    efficiently.
-
-    Args:
-      path: The directory path to list.
-      pathtype: Identifies requested path type. Enum from Path protobuf.
-      pathspec: This flow also accepts all the information in one pathspec.
-        which is preferred over the path and pathtype definition
-    """
-    self.urn = None
-    if pathspec:
-      self.pathspec = utils.Pathspec(pathspec)
-    else:
-      self.pathspec = utils.Pathspec(path=path, pathtype=int(pathtype))
-
-    self.fd = None
-    flow.GRRFlow.__init__(self, **kwargs)
+  def Init(self):
+    pass
 
   @flow.StateHandler(next_state=["Stat", "ReadBuffer", "CheckHashes"])
   def Start(self):
     """Get information about the file from the client."""
-    self.CallClient("StatFile", pathspec=self.pathspec.ToProto(),
+    self.Init()
+    self.CallClient("StatFile", rdfvalue.ListDirRequest(pathspec=self.pathspec),
                     next_state="Stat")
 
     # Read the first buffer
@@ -86,7 +71,7 @@ class GetFile(flow.GRRFlow):
     """Fix up the pathspec of the file."""
     if responses.success and responses.First():
       self.stat = responses.First()
-      self.pathspec = utils.Pathspec(self.stat.pathspec)
+      self.pathspec = self.stat.pathspec
     else:
       raise IOError("Error: %s" % responses.status)
 
@@ -98,9 +83,11 @@ class GetFile(flow.GRRFlow):
       if self.current_chunk_number > self.max_chunk_number:
         return
 
-      self.CallClient("TransferBuffer", pathspec=self.pathspec.ToProto(),
-                      offset=self.current_chunk_number * self._CHUNK_SIZE,
-                      length=self._CHUNK_SIZE, next_state="ReadBuffer")
+      request = rdfvalue.BufferReference(
+          pathspec=self.pathspec,
+          offset=self.current_chunk_number * self._CHUNK_SIZE,
+          length=self._CHUNK_SIZE)
+      self.CallClient("TransferBuffer", request, next_state="ReadBuffer")
       self.current_chunk_number += 1
 
   def CreateHashImage(self):
@@ -111,6 +98,7 @@ class GetFile(flow.GRRFlow):
     """
     self.urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
         self.pathspec, self.client_id)
+
     self.stat.aff4path = utils.SmartUnicode(self.urn)
 
     # Create a new Hash image for the data. Note that this object is pickled
@@ -182,17 +170,10 @@ class FastGetFile(GetFile):
   # We can be much more aggressive here.
   _WINDOW_SIZE = 400
 
-  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
-                   "pathspec": type_info.Proto(jobs_pb2.Path)}
-
-  def __init__(self, path="/", pathtype=jobs_pb2.Path.OS,
-               pathspec=None, **kwargs):
-
+  def Init(self):
     self.hash_queue = []
     self.hash_map = {}
     self.in_flight = set()
-    super(FastGetFile, self).__init__(path=path, pathtype=pathtype,
-                                      pathspec=pathspec, **kwargs)
 
   def FetchWindow(self, number_of_chunks_to_readahead):
     """Read ahead a number of buffers to fill the window."""
@@ -201,9 +182,10 @@ class FastGetFile(GetFile):
       if self.current_chunk_number > self.max_chunk_number:
         return
 
-      self.CallClient("HashBuffer", pathspec=self.pathspec.ToProto(),
-                      offset=self.current_chunk_number * self._CHUNK_SIZE,
-                      length=self._CHUNK_SIZE, next_state="CheckHashes")
+      offset = self.current_chunk_number * self._CHUNK_SIZE
+      request = rdfvalue.BufferReference(pathspec=self.pathspec, offset=offset,
+                                         length=self._CHUNK_SIZE)
+      self.CallClient("HashBuffer", request, next_state="CheckHashes")
 
       self.current_chunk_number += 1
 
@@ -234,9 +216,10 @@ class FastGetFile(GetFile):
       offset = hash_blob.hash_response.offset
       if (hash_blob.blob_urn not in matched_urns and
           offset not in self.in_flight):
-        self.CallClient("TransferBuffer", pathspec=self.pathspec.ToProto(),
-                        offset=offset,
-                        length=self._CHUNK_SIZE, next_state="CheckHashes")
+        request = rdfvalue.BufferReference(pathspec=self.pathspec,
+                                           offset=offset,
+                                           length=self._CHUNK_SIZE)
+        self.CallClient("TransferBuffer", request, next_state="CheckHashes")
         self.in_flight.add(offset)
 
     # Now read the hashes in order and append as many as possible to the image.
@@ -288,21 +271,26 @@ class GetMBR(flow.GRRFlow):
   """
 
   category = "/Filesystem/"
-  out_protobuf = jobs_pb2.BufferReadMessage
 
-  def __init__(self, length=4096, **kw):
-    self.length = length
-    super(GetMBR, self).__init__(**kw)
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.Number(
+          description="The length of the MBR buffer to read.",
+          name="length",
+          default=4096,
+          )
+      )
 
   @flow.StateHandler(next_state=["StoreMBR"])
   def Start(self):
     """Schedules the ReadBuffer client action."""
-    pathspec = jobs_pb2.Path(path="\\\\.\\PhysicalDrive0\\",
-                             pathtype=jobs_pb2.Path.OS,
-                             path_options=jobs_pb2.Path.CASE_LITERAL)
+    pathspec = rdfvalue.RDFPathSpec(
+        path="\\\\.\\PhysicalDrive0\\",
+        pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+        path_options=rdfvalue.RDFPathSpec.Enum("CASE_LITERAL"))
 
-    self.CallClient("ReadBuffer", pathspec=pathspec, offset=0,
-                    length=self.length, next_state="StoreMBR")
+    request = rdfvalue.BufferReference(pathspec=pathspec, offset=0,
+                                       length=self.length)
+    self.CallClient("ReadBuffer", request, next_state="StoreMBR")
 
   @flow.StateHandler()
   def StoreMBR(self, responses):
@@ -320,32 +308,31 @@ class GetMBR(flow.GRRFlow):
     mbr.write(response.data)
     mbr.Close()
     self.Log("Successfully stored the MBR (%d bytes)." % len(response.data))
-    self.SendReply(aff4.RDFBytes(response.data))
+    self.SendReply(rdfvalue.RDFBytes(response.data))
 
 
 class TransferStore(flow.WellKnownFlow):
   """Store a buffer into a determined location."""
-  well_known_session_id = "W:TransferStore"
+  well_known_session_id = "aff4:/flows/W:TransferStore"
 
   def ProcessMessage(self, message):
     """Write the blob into the AFF4 blob storage area."""
     # Check that the message is authenticated
-    if message.auth_state != jobs_pb2.GrrMessage.AUTHENTICATED:
+    if message.auth_state != rdfvalue.GRRMessage.Enum("AUTHENTICATED"):
       logging.error("TransferStore request from %s is not authenticated.",
                     message.source)
       return
 
-    read_buffer = jobs_pb2.DataBlob()
-    read_buffer.ParseFromString(message.args)
+    read_buffer = rdfvalue.DataBlob(message.args)
 
     # Only store non empty buffers
     if read_buffer.data:
       data = read_buffer.data
 
-      if read_buffer.compression == jobs_pb2.DataBlob.ZCOMPRESSION:
+      if read_buffer.compression == rdfvalue.DataBlob.Enum("ZCOMPRESSION"):
         cdata = data
         data = zlib.decompress(cdata)
-      elif read_buffer.compression == jobs_pb2.DataBlob.UNCOMPRESSED:
+      elif read_buffer.compression == rdfvalue.DataBlob.Enum("UNCOMPRESSED"):
         cdata = zlib.compress(data)
       else:
         raise RuntimeError("Unsupported compression")
@@ -382,23 +369,18 @@ class FileDownloader(flow.GRRFlow):
     A StatResponse protobuf for each downloaded file.
   """
 
-  out_protobuf = jobs_pb2.StatResponse
-  flow_typeinfo = {"findspecs": type_info.ListProto(jobs_pb2.Find),
-                   "pathspecs": type_info.Proto(jobs_pb2.Path)}
-
-  def __init__(self, findspecs=None, pathspecs=None, **kwargs):
-    """Determine the usable findspecs.
-
-    Args:
-      findspecs: A list of jobs_pb2.Find protos. If None, self.GetFindSpecs
-          will be called to get the specs.
-      pathspecs: A list of jobs_pb2.Path protos. If None, self.GetPathSpecs
-          will be called to get the specs.
-    """
-    flow.GRRFlow.__init__(self, **kwargs)
-
-    self.findspecs = findspecs
-    self.pathspecs = pathspecs
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.List(
+          description="A list of Find Specifications.",
+          name="findspecs",
+          validator=type_info.FindSpecType(),
+          default=[]),
+      type_info.List(
+          description="A list of Path specifications to find.",
+          name="pathspecs",
+          validator=type_info.PathspecType(),
+          default=[])
+      )
 
   @flow.StateHandler(next_state=["DownloadFiles", "HandleDownloadedFiles"])
   def Start(self):
@@ -422,7 +404,7 @@ class FileDownloader(flow.GRRFlow):
       self.CallFlow("GetFile", next_state="HandleDownloadedFiles",
                     pathspec=pathspec)
 
-  @flow.StateHandler(jobs_pb2.StatResponse, next_state="HandleDownloadedFiles")
+  @flow.StateHandler(next_state="HandleDownloadedFiles")
   def DownloadFiles(self, responses):
     """For each file found in the resulting collection, download it."""
     if responses.success:
@@ -454,11 +436,11 @@ class FileDownloader(flow.GRRFlow):
                responses.request_data["pathspec"], responses.status)
 
   def GetFindSpecs(self):
-    """Returns iterable of jobs_pb2.Find objects. Should be overridden."""
+    """Returns iterable of rdfvalue.FindSpec objects. Should be overridden."""
     return []
 
   def GetPathSpecs(self):
-    """Returns iterable of jobs_pb2.Path objects. Should be overridden."""
+    """Returns iterable of rdfvalue.PathSpec objects. Should be overridden."""
     return []
 
 
@@ -470,53 +452,40 @@ class FileCollector(flow.GRRFlow):
     A StatResponse protobuf describing the output collection.
   """
 
-  out_protobuf = jobs_pb2.StatResponse
-  flow_typeinfo = {"findspecs": type_info.ListProto(jobs_pb2.Find)}
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.List(
+          name="findspecs",
+          description="A list of find specifications.",
+          validator=type_info.FindSpecType()),
+      type_info.String(
+          name="output",
+          description="A URN to an AFF4Collection to add each result to.",
+          default="analysis/collect/{u}-{t}")
+      )
 
-  def __init__(self, findspecs=None,
-               output="analysis/collect/{u}-{t}", **kwargs):
-    """Download all files matching the findspecs and generate a collection.
-
-    Args:
-      findspecs: A list of jobs_pb2.Find protos. If None, self.GetFindSpecs
-          will be called to get the specs.
-      output: If set, a URN to an AFF4Collection to add each result to.
-          This will create the collection if it does not exist.
-    """
-    flow.GRRFlow.__init__(self, **kwargs)
-
-    # Expand special escapes.
-    output = output.format(t=time.time(), u=self.user)
+  @flow.StateHandler(next_state="WriteCollection")
+  def Start(self):
+    """Start FileCollector flow."""
+    output = self.output.format(t=time.time(), u=self.user)
     self.output = aff4.ROOT_URN.Add(self.client_id).Add(output)
-    self.collection_list = None
-
     self.fd = aff4.FACTORY.Create(self.output, "AFF4Collection", mode="rw",
                                   token=self.token)
+
     self.Log("Created output collection %s", self.output)
 
     self.fd.Set(self.fd.Schema.DESCRIPTION("CollectFiles {0}".format(
         self.__class__.__name__)))
 
-    # Append to the collection if needed.
-    self.collection_list = self.fd.Get(self.fd.Schema.COLLECTION)
-    self.findspecs = findspecs
-
-  @flow.StateHandler(next_state="WriteCollection")
-  def Start(self):
-    if self.findspecs:
-      # Just call the FileDownloader with these findspecs
-      self.CallFlow("FileDownloader", findspecs=self.findspecs,
-                    next_state="WriteCollection")
-    else:
-      self.Log("No findspecs to run.")
+    # Just call the FileDownloader with these findspecs
+    self.CallFlow("FileDownloader", findspecs=self.findspecs,
+                  next_state="WriteCollection")
 
   @flow.StateHandler()
   def WriteCollection(self, responses):
     """Adds the results to the collection."""
     for response_stat in responses:
-      self.collection_list.Append(response_stat)
+      self.fd.Add(stat=response_stat, urn=response_stat.aff4path)
 
-    self.fd.Set(self.fd.Schema.COLLECTION, self.collection_list)
     self.fd.Close(True)
 
     # Tell our caller about the new collection.
@@ -525,7 +494,7 @@ class FileCollector(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     # Notify our creator.
-    num_files = len(self.collection_list)
+    num_files = len(self.fd)
 
     self.Notify("ViewObject", self.output,
                 "Completed download of {0:d} files.".format(num_files))
@@ -541,66 +510,53 @@ class SendFile(flow.GRRFlow):
   nc -l <port> | openssl aes-128-cbc -d -K <key> -iv <iv> > <filename>
 
   Returns to parent flow:
-    A jobs_pb2.StatResponse of the sent file.
+    A rdfvalue.StatEntry of the sent file.
   """
 
   category = "/Filesystem/"
-  out_protobuf = jobs_pb2.StatResponse
-  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
-                   "pathspec": type_info.Proto(jobs_pb2.Path),
-                   "address_family": type_info.ProtoEnum(
-                       jobs_pb2.NetworkAddress, "NetworkFamily"),
-                   "key": type_info.EncryptionKey(16),
-                   "iv": type_info.EncryptionKey(16)}
 
-  def __init__(self, host="", port=12345,
-               address_family=jobs_pb2.NetworkAddress.INET,
-               path="/",
-               pathtype=jobs_pb2.Path.OS,
-               pathspec=None,
-               key="", iv="",
-               **kwargs):
-    """Constructor.
-
-    Args:
-      host: Hostname or IP for the listening server.
-      port: Port number on the listening server.
-      address_family: AF_INET or AF_INET6.
-      path: The directory path to list.
-      pathtype: Identifies requested path type. Enum from Path protobuf.
-      pathspec: This flow also accepts all the information in one pathspec.
-        which is preferred over the path and pathtype definition
-      key: An encryption key given in hex representation.
-      iv: The iv for AES, also given in hex representation.
-    """
-
-    self.key = key.decode("hex")
-    if len(self.key) != 16:
-      raise flow.FlowError("Invalid key length (%d)." % len(self.key))
-
-    self.iv = iv.decode("hex")
-    if len(self.iv) != 16:
-      raise flow.FlowError("Invalid iv length (%d)." % len(self.iv))
-
-    if pathspec:
-      self.pathspec = utils.Pathspec(pathspec)
-    else:
-      self.pathspec = utils.Pathspec(path=path, pathtype=int(pathtype))
-
-    self.host = host
-    self.port = port
-    self.family = address_family
-
-    flow.GRRFlow.__init__(self, **kwargs)
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.PathspecType(
+          description="The pathspec for the file to retrieve.",
+          default=None),
+      type_info.String(
+          name="host",
+          description="Hostname or IP to send the file to.",
+          default=None),
+      type_info.Number(
+          name="port",
+          description="Port number on the listening server.",
+          default=12345),
+      type_info.RDFEnum(
+          rdfclass=rdfvalue.NetworkAddress,
+          enum_name="NetworkFamily",
+          name="address_family",
+          default=rdfvalue.NetworkAddress.Enum("INET"),
+          description="AF_INET or AF_INET6."),
+      type_info.EncryptionKey(
+          name="key",
+          description="An encryption key given in hex representation.",
+          default="",
+          length=16),
+      type_info.EncryptionKey(
+          name="iv",
+          description="The iv for AES, also given in hex representation.",
+          default="",
+          length=16)
+      )
 
   @flow.StateHandler(next_state="Done")
   def Start(self):
-    self.CallClient("SendFile", key=utils.SmartStr(self.key),
-                    iv=utils.SmartStr(self.iv),
-                    pathspec=self.pathspec.ToProto(),
-                    address_family=self.family,
-                    host=self.host, port=self.port,
-                    next_state="Done")
+
+    self.key = self.key.decode("hex")
+    self.iv = self.iv.decode("hex")
+
+    request = rdfvalue.SendFileRequest(key=utils.SmartStr(self.key),
+                                       iv=utils.SmartStr(self.iv),
+                                       pathspec=self.pathspec,
+                                       address_family=self.address_family,
+                                       host=self.host, port=self.port)
+    self.CallClient("SendFile", request, next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):

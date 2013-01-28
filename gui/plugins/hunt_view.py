@@ -20,6 +20,7 @@
 
 import operator
 import StringIO
+import sys
 import urllib
 
 
@@ -30,23 +31,56 @@ import logging
 
 from grr.gui import renderers
 from grr.gui.plugins import fileview
-from grr.gui.plugins import flow_management
 from grr.gui.plugins import foreman
 from grr.gui.plugins import searchclient
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import utils
+from grr.lib import hunts
+from grr.lib import rdfvalue
+from grr.lib.aff4_objects import collections
+
+# TODO(user): This is needed to load existing hunts into the gui. When
+# unpickling stored hunts, python issues an import command for the module
+# the pickled class is located. We moved some of the files during the last
+# refactor so we make this work again using this hack. Hunts expire after
+# three months anyways so we can remove this soon.
+sys.modules["grr.lib.flows.general.hunts"] = hunts
+collections.GRRRDFValueCollection = collections.RDFValueCollection
 
 
 class ManageHunts(renderers.Splitter2Way):
-  """Manages Hunts."""
+  """Manages Hunts GUI Screen."""
   description = "Hunt Viewer"
   behaviours = frozenset(["General"])
   top_renderer = "HuntTable"
-  bottom_renderer = "EmptyRenderer"
+  bottom_renderer = "HuntViewTabs"
 
 
-class HuntTable(renderers.TableRenderer):
+class HuntStateIcon(renderers.RDFValueRenderer):
+  """Render the hunt state by using an icon.
+
+  This class is similar to FlowStateIcon, but it also adds STATE_STOPPED
+  state for hunts that were created but not yet started (because of lack of
+  approval, for example).
+  """
+
+  layout_template = renderers.Template("""
+<img class='grr-icon grr-flow-icon' src='/static/images/{{icon|escape}}' />
+""")
+
+  # Maps the flow states to icons we can show
+  state_map = {rdfvalue.Flow.Enum("TERMINATED"): "stock_yes.png",
+               rdfvalue.Flow.Enum("RUNNING"): "clock.png",
+               rdfvalue.Flow.Enum("ERROR"): "nuke.png",
+               aff4.AFF4Object.VFSHunt.STATE_STOPPED: "pause.png"}
+
+  def Layout(self, _, response):
+    return self.RenderFromTemplate(
+        self.layout_template, response,
+        icon=self.state_map.get(self.proxy, "question-red.png"))
+
+
+class HuntTable(fileview.AbstractFileTable):
   """Show all hunts."""
   selection_publish_queue = "hunt_select"
 
@@ -58,13 +92,10 @@ class HuntTable(renderers.TableRenderer):
   </button>
   <div class="new_hunt_dialog" id="new_hunt_dialog_{{unique|escape}}" />
 </div>
-""" + renderers.TableRenderer.layout_template + """
+""" + fileview.AbstractFileTable.layout_template + """
 <script>
   $(".new_hunt_dialog[id!='new_hunt_dialog_{{unique|escape}}'").remove();
 
-  $("#new_hunt_dialog_{{unique|escape}}").bind('resize', function() {
-    grr.publish("GeometryChange", "new_hunt_dialog_{{unique|escape}}");
-  });
   grr.dialog("LaunchHunts", "new_hunt_dialog_{{unique|escape}}",
     "launch_hunt_{{unique|escape}}",
     { modal: true,
@@ -73,39 +104,32 @@ class HuntTable(renderers.TableRenderer):
       title: "Launch New Hunt",
       open: function() {
         grr.layout("LaunchHunts", "new_hunt_dialog_{{unique|escape}}");
+      },
+      close: function() {
+        $("#new_hunt_dialog_{{unique|escape}}").remove();
       }
     });
   grr.subscribe("WizardComplete", function(wizardStateName) {
     $("#new_hunt_dialog_{{unique|escape}}").dialog("close");
   }, "new_hunt_dialog_{{unique|escape}}");
 
-  //Receive the selection event and emit the detail.
-  grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
-    if (node) {
-      //ID is the second column.
-      var hunt_id = $(node).find("td")[1].textContent;
-      grr.state.hunt_id = hunt_id;
-      grr.layout("HuntViewTabs", "main_bottomPane", {hunt_id: hunt_id});
-      grr.publish("{{ this.selection_publish_queue|escapejs }}", hunt_id);
-    };
-  }, '{{ unique|escapejs }}');
-
   // If hunt_id in hash, click that row.
-  // TODO: This doesn't work because the table isn't rendered yet.
-  //       Need to hook the completion of ajax render of table.
   if (grr.hash.hunt_id) {
     $("#{{this.id}}").find("td:contains('" + grr.hash.hunt_id + "')").click();
   };
 </script>
 """
 
-  def __init__(self):
-    super(HuntTable, self).__init__()
-    status = renderers.RDFValueColumn("Status",
-                                      renderer=flow_management.FlowStateIcon,
-                                      width=0)
-    self.AddColumn(status)
-    self.AddColumn(renderers.RDFValueColumn("Hunt ID", width=10))
+  root_path = "aff4:/hunts"
+
+  def __init__(self, **kwargs):
+    super(HuntTable, self).__init__(**kwargs)
+    self.AddColumn(renderers.RDFValueColumn(
+        "Status", renderer=HuntStateIcon, width=0))
+
+    # The hunt id is the AFF4 URN for the hunt object.
+    self.AddColumn(renderers.RDFValueColumn(
+        "Hunt ID", renderer=renderers.SubjectRenderer, width=10))
     self.AddColumn(renderers.RDFValueColumn("Name", width=10))
     self.AddColumn(renderers.RDFValueColumn("Start Time", width=10))
     self.AddColumn(renderers.RDFValueColumn("Expires", width=10))
@@ -122,32 +146,46 @@ class HuntTable(renderers.TableRenderer):
       children.sort(key=operator.attrgetter("age"), reverse=True)
       children = children[start_row:end_row]
 
-      hunts = list(fd.OpenChildren(children=children))
+      hunt_list = list(fd.OpenChildren(children=children))
+      hunt_list.sort(key=lambda x: x.create_time, reverse=True)
 
-      hunts_by_session_ids = dict([(h.urn.Basename(), h) for h in hunts])
-      hunt_objs = list(flow.FACTORY.GetFlowObjs(hunts_by_session_ids.keys(),
-                                                token=request.token))
-      hunt_objs.sort(key=lambda obj: obj.start_time, reverse=True)
-      for hunt in hunt_objs:
-        expire_time = (hunt.start_time + hunt.expiry_time) * 1e6
-        vfshunt = hunts_by_session_ids[hunt.session_id]
-        description = (vfshunt.Get(vfshunt.Schema.DESCRIPTION) or
-                       hunt.__class__.__doc__.split("\n", 1)[0])
-        self.AddRow({"Hunt ID": hunt.session_id,
-                     "Name": hunt.__class__.__name__,
-                     "Status": hunt.flow_pb.state,
-                     "Start Time": aff4.RDFDatetime(hunt.start_time * 1e6),
-                     "Expires": aff4.RDFDatetime(expire_time),
-                     "Client Limit": hunt.client_limit,
-                     "Creator": hunt.user,
-                     "Description": description})
-      displayed_ok = set([h.session_id for h in hunt_objs])
-      for hunt in hunts:
-        session_id = hunt.urn.Split()[-1]
-        if session_id not in displayed_ok:
-          self.AddRow({"Hunt ID": session_id,
-                       "Start Time": hunt.urn.age,
-                       "Description": "Hunt too old, no information available"})
+      row_index = start_row
+      for aff4_hunt in hunt_list:
+        hunt_obj = aff4_hunt.flow_obj
+
+        if not hunt_obj:
+          continue
+
+        expire_time = (hunt_obj.start_time +
+                       hunt_obj.expiry_time) * 1e6
+
+        description = (aff4_hunt.Get(aff4_hunt.Schema.DESCRIPTION) or
+                       hunt_obj.__class__.__doc__.split("\n", 1)[0])
+
+        if aff4_hunt.Get(aff4_hunt.Schema.STATE) == aff4_hunt.STATE_STOPPED:
+          hunt_state = aff4_hunt.STATE_STOPPED
+        else:
+          hunt_state = aff4_hunt.flow_pb.state
+
+        self.AddRow({"Hunt ID": aff4_hunt.urn,
+                     "Name": hunt_obj.__class__.__name__,
+                     "Status": hunt_state,
+                     "Start Time": rdfvalue.RDFDatetime(
+                         hunt_obj.start_time * 1e6),
+                     "Expires": rdfvalue.RDFDatetime(expire_time),
+                     "Client Limit": hunt_obj.client_limit,
+                     "Creator": hunt_obj.user,
+                     "Description": description},
+                    row_index=row_index)
+        row_index += 1
+
+      for aff4_hunt in hunt_list:
+        if not aff4_hunt.flow_obj:
+          self.AddRow({"Hunt ID": aff4_hunt.urn,
+                       "Description": "Hunt too old, no information available"},
+                      row_index=row_index)
+          row_index += 1
+
       self.size = total_size
 
     except IOError as e:
@@ -155,7 +193,14 @@ class HuntTable(renderers.TableRenderer):
 
 
 class HuntViewTabs(renderers.TabLayout):
-  """Show a tabset to inspect the selected hunt."""
+  """Show a tabset to inspect the selected hunt.
+
+  Listening Javascript Events:
+    - file_select(aff4_path, age) - A selection event on the hunt table
+      informing us of a new hunt to show. We redraw the entire bottom right
+      side using a new renderer.
+
+  """
 
   names = ["Overview", "Log", "Errors", "Rules", "Graph"]
   # TODO(user): Add Renderer for Hunt Resource Usage (CPU/IO etc).
@@ -163,19 +208,23 @@ class HuntViewTabs(renderers.TabLayout):
                          "HuntErrorRenderer", "HuntRuleRenderer",
                          "HuntClientGraphRenderer"]
 
-  def Layout(self, request, response):
-    """Add hunt_id to the state of the tabs."""
-    hunt_id = request.REQ.get("hunt_id")
-    self.state = dict(hunt_id=hunt_id)
+  layout_template = renderers.TabLayout.layout_template + """
+<script>
+  // When the hunt id is selected, redraw the tabs below.
+  grr.subscribe("file_select", function(hunt_id) {
+    grr.layout("HuntViewTabs", "main_bottomPane", {hunt_id: hunt_id});
+  }, "{{unique|escapejs}}");
+</script>
+"""
 
-    return super(HuntViewTabs, self).Layout(request, response)
+  post_parameters = ["hunt_id"]
 
 
 class ManageHuntsClientView(renderers.Splitter2Way):
   """Manages the clients involved in a hunt."""
   description = "Hunt Client View"
   top_renderer = "HuntClientTableRenderer"
-  bottom_renderer = "EmptyRenderer"
+  bottom_renderer = "HuntClientViewTabs"
 
 
 class ResourceRenderer(renderers.RDFValueRenderer):
@@ -203,7 +252,7 @@ class FloatRenderer(renderers.RDFValueRenderer):
     super(FloatRenderer, self).Layout(request, response)
 
 
-class HuntClientTableRenderer(renderers.TableRenderer):
+class HuntClientTableRenderer(fileview.AbstractFileTable):
   """Displays the clients."""
 
   selection_publish_queue = "hunt_client_select"
@@ -212,7 +261,7 @@ class HuntClientTableRenderer(renderers.TableRenderer):
 {{this.title|escape}}
 <a id="backlink_{{unique|escape}}" href='#{{this.hash|escape}}'>
 back to hunt view</a>
-""" + renderers.TableRenderer.layout_template + """
+""" + fileview.AbstractFileTable.layout_template + """
 <script>
   if (!grr.state.hunt_id) {
     // Refresh the page with the hunt_id from the hash.
@@ -227,24 +276,15 @@ back to hunt view</a>
     grr.loadFromHash("{{this.hunt_hash}}");
   });
 
-  //Receive the selection event and emit the detail.
-  grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
-    if (node) {
-      // ID is the first column.
-      var hunt_client = $(node).find("td")[0].textContent;
-      var state = grr.state;
-      state.hunt_client = hunt_client
-      grr.layout("HuntClientViewTabs", "main_bottomPane", state);
-      grr.publish("{{ this.selection_publish_queue|escapejs }}", hunt_client);
-    };
-  }, '{{ unique|escapejs }}');
-
 </script>
 """
 
-  def __init__(self):
-    super(HuntClientTableRenderer, self).__init__()
-    self.AddColumn(renderers.RDFValueColumn("Client ID", width=10))
+  post_parameters = ["hunt_id"]
+
+  def __init__(self, **kwargs):
+    super(HuntClientTableRenderer, self).__init__(**kwargs)
+    self.AddColumn(renderers.RDFValueColumn(
+        "Client ID", width=10, renderer=renderers.SubjectRenderer))
     self.AddColumn(renderers.RDFValueColumn("Hostname", width=10))
     self.AddColumn(renderers.RDFValueColumn("Status", width=10))
     self.AddColumn(renderers.RDFValueColumn("User CPU seconds", width=10,
@@ -261,7 +301,6 @@ back to hunt view</a>
   def Layout(self, request, response):
     """Ensure our hunt is in our state for HTML layout."""
     hunt_id = request.REQ.get("hunt_id")
-    self.state = {"hunt_id": hunt_id}
     self.title = "Viewing Hunt %s" % hunt_id
     h = dict(main="ManageHunts", hunt_id=hunt_id)
     self.hunt_hash = urllib.urlencode(sorted(h.items()))
@@ -273,21 +312,21 @@ back to hunt view</a>
     if hunt_id is None:
       return
     try:
-      self.hunt = aff4.FACTORY.Open("aff4:/hunts/%s" % hunt_id,
+      self.hunt = aff4.FACTORY.Open(hunt_id,
                                     required_type="VFSHunt",
                                     token=request.token, age=aff4.ALL_TIMES)
     except IOError:
-      logging.error("Invalid hunt %s", "aff4:/hunts/%s" % hunt_id)
+      logging.error("Invalid hunt %s", hunt_id)
       return
 
     resources = self.hunt.GetValuesForAttribute(self.hunt.Schema.RESOURCES)
     resource_usage = {}
     for resource in resources:
-      usage = resource_usage.setdefault(resource.data.client_id, [0, 0, 0])
-      usage[0] += resource.data.cpu_usage.user_cpu_time
-      usage[1] += resource.data.cpu_usage.system_cpu_time
-      usage[2] += resource.data.network_bytes_sent
-      resource_usage[resource.data.client_id] = usage
+      usage = resource_usage.setdefault(resource.client_id, [0, 0, 0])
+      usage[0] += resource.cpu_usage.user_cpu_time
+      usage[1] += resource.cpu_usage.system_cpu_time
+      usage[2] += resource.network_bytes_sent
+      resource_usage[resource.client_id] = usage
 
     resource_max = [0, 0, 0]
     for resource in resource_usage.values():
@@ -308,13 +347,14 @@ back to hunt view</a>
 
     row_index = start_row
     for c_urn, cdict in self.hunt.GetClientStates(client_list):
-      client_id = c_urn.Basename()
-      row = {"Client ID": client_id,
+      row = {"Client ID": c_urn,
              "Hostname": cdict.get("hostname"),
              "Status": results[c_urn],
              "Last Checkin": searchclient.FormatLastSeenTime(
                  cdict.get("age") or 0),
             }
+
+      client_id = c_urn.Basename()
       if client_id in resource_usage:
         usage = resource_usage[client_id]
         row["User CPU seconds"] = usage[0]
@@ -340,6 +380,21 @@ back to hunt view</a>
     self.size = len(results)
 
 
+class HuntViewRunHunt(renderers.TemplateRenderer):
+  """Runs a hunt when "Run Hunt" button is pressed and permissions checked."""
+
+  layout_template = renderers.Template("""
+  Hunt was started!
+""")
+
+  def Layout(self, request, response):
+    hunt_urn = request.REQ.get("hunt_id")
+    flow.FACTORY.StartFlow(None, "RunHuntFlow", token=request.token,
+                           hunt_urn=hunt_urn)
+
+    return super(HuntViewRunHunt, self).Layout(request, response)
+
+
 class HuntOverviewRenderer(renderers.AbstractLogRenderer):
   """Renders the overview tab."""
 
@@ -350,6 +405,15 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
     class="grr-button grr-button-red">
   View hunt details
 </a>
+{% if this.allow_run %}
+<br/><br/>
+<div id="RunHunt_{{unique|escape}}">
+<a id="RunHuntButton_{{unique|escape}}" name="RunHunt"
+    href='#{{this.hash|escape}}' class="grr-button grr-button-red">
+  Run Hunt
+</a>
+</div>
+{% endif %}
 <br/><br/>
 <table class="proto_table">
 {% for key, val in this.data.items %}
@@ -364,6 +428,8 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
       <td>{{ this.hunt.urn|escape }}</td>
   <tr><td class="proto_key">Creator</td>
       <td>{{ this.hunt_creator|escape }}</td>
+  <tr><td class="proto_key">Client Limit</td>
+      <td>{{ this.client_limit|escape }}</td>
   <tr><td class="proto_key">Client Count</td>
       <td>{{ this.hunt.NumClients|escape }}</td>
   <tr><td class="proto_key">Outstanding</td>
@@ -376,29 +442,73 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
       <td>{{ this.cpu_sum|escape }}</td>
   <tr><td class="proto_key">Total network traffic</td>
       <td>{{ this.net_sum|filesizeformat }}</td>
+  <tr><td class="proto_key">Arguments</td>
+      <td><pre>{{ this.args_str|safe }}</pre></td>
 
 </table>
+
+<script>
+(function() {
+
+$("#RunHuntButton_{{unique|escapejs}}").click(function() {
+  grr.update("HuntOverviewRenderer", "RunHunt_{{unique|escapejs}}",
+    { hunt_id: "{{this.hunt_id|escapejs}}" });
+});
+
+})();
+</script>
 """)
 
   error_template = renderers.Template(
       "No information available for this Hunt.")
 
+  ajax_template = renderers.Template("""
+<div id="RunHuntResult_{{unique|escape}}"></div>
+<script>
+  // We execute CheckAccess renderer with silent=true. Therefore it searches
+  // for an approval and sets correct reason if approval is found. When
+  // CheckAccess completes, we execute HuntViewRunHunt renderer, which
+  // tries to run an actual hunt. If the approval wasn't found on CheckAccess
+  // stage, it will fail due to unauthorized access and proper ACLDialog will
+  // be displayed.
+  grr.layout("CheckAccess", "RunHuntResult_{{unique|escapejs}}",
+    {silent: true, subject: "{{this.subject|escapejs}}" },
+    function() {
+      grr.layout("HuntViewRunHunt", "RunHuntResult_{{unique|escapejs}}",
+        { hunt_id: "{{this.hunt_id|escapejs}}" });
+    });
+</script>
+""")
+
+  def RenderAjax(self, request, response):
+    self.hunt_id = request.REQ.get("hunt_id")
+    self.subject = rdfvalue.RDFURN(self.hunt_id)
+
+    return renderers.TemplateRenderer.Layout(self, request, response,
+                                             apply_template=self.ajax_template)
+
   def Layout(self, request, response):
     """Display the overview."""
-    hunt_id = request.REQ.get("hunt_id")
-    h = dict(main="ManageHuntsClientView", hunt_id=hunt_id)
+    # If hunt_id is set by a subclass, don't look for it in request.REQ
+    if not hasattr(self, "hunt_id"):
+      self.hunt_id = request.REQ.get("hunt_id")
+
+    h = dict(main="ManageHuntsClientView", hunt_id=self.hunt_id)
     self.hash = urllib.urlencode(sorted(h.items()))
     self.data = {}
-    if hunt_id is not None:
+    self.args_str = ""
+    self.client_limit = None
+
+    if self.hunt_id:
       try:
-        self.hunt = aff4.FACTORY.Open("aff4:/hunts/%s" % hunt_id,
+        self.hunt = aff4.FACTORY.Open(self.hunt_id,
                                       required_type="VFSHunt",
                                       token=request.token, age=aff4.ALL_TIMES)
         resources = self.hunt.GetValuesForAttribute(self.hunt.Schema.RESOURCES)
         self.cpu_sum, self.net_sum = 0, 0
         for resource in resources:
-          self.cpu_sum += resource.data.cpu_usage.user_cpu_time
-          self.net_sum += resource.data.network_bytes_sent
+          self.cpu_sum += resource.cpu_usage.user_cpu_time
+          self.net_sum += resource.network_bytes_sent
 
         self.cpu_sum = "%.2f" % self.cpu_sum
 
@@ -410,8 +520,17 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
 
           enum_types = fpb.DESCRIPTOR.enum_types_by_name["FlowState"]
           self.data = {
-              "Start Time": aff4.RDFDatetime(self.flow.start_time * 1e6),
+              "Start Time": rdfvalue.RDFDatetime(self.flow.start_time * 1e6),
               "Status": enum_types.values[fpb.state].name}
+
+          self.client_limit = self.flow.client_limit
+          self.args_str = renderers.RDFProtoDictRenderer(fpb.args).RawHTML()
+
+        # The hunt is allowed to run if it's stopped. Also, if allow_run
+        # is set by the subclass, we don't override it
+        if not hasattr(self, "allow_run"):
+          self.allow_run = (self.hunt.Get(self.hunt.Schema.STATE) ==
+                            self.hunt.STATE_STOPPED)
 
       except IOError:
         self.layout_template = self.error_template
@@ -429,13 +548,14 @@ class HuntLogRenderer(renderers.AbstractLogRenderer):
     if hunt_id is None:
       return []
 
-    fd = aff4.FACTORY.Open("aff4:/hunts/%s" % hunt_id, token=request.token,
+    fd = aff4.FACTORY.Open(hunt_id, token=request.token,
                            age=aff4.ALL_TIMES)
     log_vals = fd.GetValuesForAttribute(fd.Schema.LOG)
     log = []
     for l in log_vals:
-      if not hunt_client or hunt_client == l.data.client_id:
-        log.append((l.age, l.data.client_id, l.data.log_message))
+      if not hunt_client or hunt_client == l.client_id:
+        log.append((l.age, l.client_id, l.log_message))
+
     return log
 
 
@@ -449,14 +569,14 @@ class HuntErrorRenderer(renderers.AbstractLogRenderer):
     if hunt_id is None:
       return []
 
-    fd = aff4.FACTORY.Open("aff4:/hunts/%s" % hunt_id, token=request.token,
+    fd = aff4.FACTORY.Open(hunt_id, token=request.token,
                            age=aff4.ALL_TIMES)
     err_vals = fd.GetValuesForAttribute(fd.Schema.ERRORS)
     log = []
     for l in err_vals:
-      if not hunt_client or hunt_client == l.data.client_id:
-        log.append((l.age, l.data.client_id, l.data.backtrace,
-                    l.data.log_message))
+      if not hunt_client or hunt_client == rdfvalue.RDFURN(l.client_id):
+        log.append((l.age, l.client_id, l.backtrace,
+                    l.log_message))
     return log
 
 
@@ -467,21 +587,23 @@ class HuntRuleRenderer(foreman.ReadOnlyForemanRuleTable):
     """Renders the table."""
     hunt_id = request.REQ.get("hunt_id")
     if hunt_id is not None:
-      fman = aff4.FACTORY.Open("aff4:/foreman", mode="r", token=request.token)
-      hunt_rules = []
-      rules = fman.Get(fman.Schema.RULES, [])
-      for rule in rules:
-        for action in rule.actions:
-          if action.hunt_id == hunt_id:
-            hunt_rules.append(rule)
-            break  # move to next rule
+      hunt = aff4.FACTORY.Open(hunt_id, required_type="VFSHunt",
+                               age=aff4.ALL_TIMES, token=request.token)
 
-      for rule in hunt_rules:
-        self.AddRow(dict(Created=aff4.RDFDatetime(rule.created),
-                         Expires=aff4.RDFDatetime(rule.expires),
-                         Description=rule.description,
-                         Rules=rule,
-                         Actions=rule))
+      # Getting list of rules from hunt object: this doesn't require us to
+      # have admin privileges (which we need to go through foreman rules).
+      hunt_obj = hunt.GetFlowObj()
+
+      for rule in hunt_obj.rules:
+        self.AddRow(Created=rule.created,
+                    Expires=rule.expires,
+                    Description=rule.description)
+
+        self.AddRow(Created=rule.created,
+                    Expires=rule.expires,
+                    Description=rule.description,
+                    Rules=rule,
+                    Actions=rule)
 
     # Call our raw TableRenderer to actually do the rendering
     return renderers.TableRenderer.RenderAjax(self, request, response)
@@ -494,12 +616,19 @@ class HuntClientViewTabs(renderers.TabLayout):
   delegated_renderers = ["HuntClientOverviewRenderer", "HuntLogRenderer",
                          "HuntErrorRenderer", "HuntHostInformationRenderer"]
 
-  def Layout(self, request, response):
-    """Populate the hunt_id and client in the tab."""
-    hunt_id = request.REQ.get("hunt_id")
-    hunt_client = request.REQ.get("hunt_client")
-    self.state = dict(hunt_id=hunt_id, hunt_client=hunt_client)
-    return super(HuntClientViewTabs, self).Layout(request, response)
+  layout_template = renderers.TabLayout.layout_template + """
+<script>
+  // When the hunt id is selected, redraw the tabs below.
+  grr.subscribe("file_select", function(client_id) {
+    grr.layout("HuntClientViewTabs", "main_bottomPane", {
+                 hunt_client: client_id,
+                 hunt_id: '{{this.state.hunt_id|escapejs}}'
+               });
+  }, "{{unique|escapejs}}");
+</script>
+"""
+
+  post_parameters = ["hunt_id", "hunt_client"]
 
 
 class HuntClientOverviewRenderer(renderers.TemplateRenderer):
@@ -524,7 +653,7 @@ class HuntClientOverviewRenderer(renderers.TemplateRenderer):
       try:
         self.client = aff4.FACTORY.Open(hunt_client, token=request.token,
                                         required_type="VFSGRRClient")
-        self.last_checkin = aff4.RDFDatetime(
+        self.last_checkin = rdfvalue.RDFDatetime(
             self.client.Get(self.client.Schema.PING))
 
         h = dict(main="HostInformation", c=self.client.client_id)
@@ -557,7 +686,8 @@ No data to graph yet.
 
   def Layout(self, request, response):
     self.hunt_id = request.REQ.get("hunt_id")
-    hunt = aff4.FACTORY.Open("aff4:/hunts/%s" % self.hunt_id)
+    hunt = aff4.FACTORY.Open(self.hunt_id, token=request.token)
+
     self.clients = bool(hunt.Get(hunt.Schema.CLIENTS))
     super(HuntClientGraphRenderer, self).Layout(request, response)
 
@@ -583,12 +713,20 @@ class HuntClientCompletionGraphRenderer(ImageDownloadRenderer):
   def Content(self, request, _):
     """Generates the actual image to display."""
     hunt_id = request.REQ.get("hunt_id")
-    hunt = aff4.FACTORY.Open("aff4:/hunts/%s" % hunt_id, age=aff4.ALL_TIMES)
+    hunt = aff4.FACTORY.Open(hunt_id, age=aff4.ALL_TIMES)
     cl = hunt.GetValuesForAttribute(hunt.Schema.CLIENTS)
     fi = hunt.GetValuesForAttribute(hunt.Schema.FINISHED)
 
-    cl_age = sorted([int(c.age/1e6) for c in cl])
-    fi_age = sorted([int(c.age/1e6) for c in fi])
+    cdict = {}
+    for c in cl:
+      cdict.setdefault(c, []).append(c.age)
+
+    fdict = {}
+    for c in fi:
+      fdict.setdefault(c, []).append(c.age)
+
+    cl_age = [int(min(x)/1e6) for x in cdict.values()]
+    fi_age = [int(min(x)/1e6) for x in fdict.values()]
 
     cl_hist = {}
     fi_hist = {}
@@ -657,18 +795,8 @@ class HuntHostInformationRenderer(fileview.AFF4Stats):
 
   def Layout(self, request, response):
     """Produce a summary of the client information."""
-    self.client_id = request.REQ.get("hunt_client")
-    self.urn = aff4.RDFURN(self.client_id)
-
-    try:
-      # Get all the versions of this file.
-      self.fd = aff4.FACTORY.Open(self.client_id, token=request.token,
-                                  age=aff4.ALL_TIMES)
-      self.classes = self.RenderAFF4Attributes(self.fd, request)
-      self.state["path"] = self.path = utils.SmartStr(self.fd.urn)
-    except IOError:
-      self.path = "Unable to open %s" % self.urn
-      self.classes = []
-
-    # Skip our direct parent and call up.
-    return super(fileview.AFF4Stats, self).Layout(request, response)
+    client_id = request.REQ.get("hunt_client")
+    super(HuntHostInformationRenderer, self).Layout(
+        request, response, client_id=client_id,
+        aff4_path=rdfvalue.RDFURN(client_id),
+        age=aff4.ALL_TIMES)

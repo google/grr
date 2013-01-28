@@ -30,10 +30,6 @@ import logging
 if platform.system() == "Windows":
   import _winreg  # pylint: disable=C6204
 
-# This constant is not always present in _winreg if the python version
-# is too old.
-KEY_WOW64_64KEY = 0x100
-
 
 class MyOption(optparse.Option):
   """A special option class for delayed processing of help."""
@@ -107,6 +103,11 @@ class OptionParser(optparse.OptionParser):
     optparse.OptionParser.__init__(self, *args, **kwargs)
 
   def error(self, msg):
+    # TODO(user): BIG UGLY HACK while we wait to refactor all this crap.
+    # This needs to be disabled as we now sometimes mix argparse and
+    # this parser. We want to allow arguments that aren't handled here
+    # to pass through to argparse without complaint.
+    return
     # This suppresses errors during intermediate parses.
     if self.state == "PreParse":
       raise RuntimeError(msg)
@@ -140,10 +141,6 @@ class OptionParser(optparse.OptionParser):
       except ConfigParser.Error as e:
         logging.error("Config parsing error: %s: %s", path, e)
 
-    for section in conf_file.sections():
-      logging.error("Section [%s] is not supported (Only use [DEFAULT])",
-                    section)
-
     # Now parse the args in order:
     for k, v in conf_file.defaults().items():
       try:
@@ -165,12 +162,7 @@ class OptionParser(optparse.OptionParser):
           pass
 
   def ProcessRegistry(self):
-    """Parse options from a registry key.
-
-    Note that we use the 32 bit registry by not passing KEY_WOW64_64KEY.
-    This means that our configuration is stored by default in:
-      HKLM\\Software\\Wow6432Node\\Software\\GRR
-    """
+    """Parse options from a registry key."""
     try:
       hive, path = self.values.regpath.split("\\", 1)
     except TypeError:
@@ -180,9 +172,8 @@ class OptionParser(optparse.OptionParser):
       return
 
     try:
-      sid = _winreg.OpenKey(
-          getattr(_winreg, hive),
-          path, 0, KEY_WOW64_64KEY | _winreg.KEY_READ)
+      # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
+      sid = _winreg.OpenKey(getattr(_winreg, hive), path, 0, _winreg.KEY_READ)
     except exceptions.WindowsError as e:
       logging.debug("Unable to open config registry key: %s", e)
       return
@@ -334,15 +325,16 @@ def CreateRegistryKeys(reg_path):
     return
 
   try:
+    # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
     return _winreg.OpenKey(
-        hive, path, 0, KEY_WOW64_64KEY | _winreg.KEY_WRITE | _winreg.KEY_READ)
+        hive, path, 0, _winreg.KEY_WRITE | _winreg.KEY_READ)
   except exceptions.WindowsError as e:
     logging.debug("Unable to open config registry key: %s", e)
 
   try:
+    # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
     return _winreg.CreateKeyEx(
-        hive, path, 0,
-        KEY_WOW64_64KEY | _winreg.KEY_WRITE | _winreg.KEY_READ)
+        hive, path, 0, _winreg.KEY_WRITE | _winreg.KEY_READ)
   except exceptions.WindowsError:
     return
 
@@ -374,6 +366,15 @@ def DEFINE_enum(longopt, default, choices, help):
   PARSER.add_option("", "--%s" % longopt, default=default, choices=choices,
                     type="choice", help=help)
 
+
+def list_callback(option, unused_opt, value, parser):
+  setattr(parser.values, option.dest, value.split(","))
+
+
+def DEFINE_list(longopt, default, help):
+  PARSER.add_option("", "--%s" % longopt, default=default,
+                    type="string", action="callback", help=help,
+                    callback=list_callback)
 
 # pylint: enable=W0622
 # pylint: enable=C6409

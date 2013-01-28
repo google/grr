@@ -25,7 +25,7 @@ import logging
 from grr.gui import renderers
 from grr.gui.plugins import fileview
 from grr.lib import aff4
-from grr.lib import data_store
+from grr.lib import rdfvalue
 from grr.lib import utils
 
 # This reads the environment and inits the right locale.
@@ -46,7 +46,7 @@ class ViewRenderer(renderers.RDFValueRenderer):
 
   def Layout(self, request, response):
     client_id = request.REQ.get("client_id")
-    self.container = aff4.RDFURN(request.REQ.get("aff4_path", client_id))
+    self.container = rdfvalue.RDFURN(request.REQ.get("aff4_path", client_id))
 
     h = dict(container=self.container, main="ContainerViewer", c=client_id,
              reason=request.token.reason)
@@ -81,10 +81,9 @@ class ContainerFileTable(renderers.TableRenderer):
   //Receive the selection event and emit a path
   grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
     if (node) {
-      var element = node.find("span")[0];
+      var element = node.find("span[aff4_path]");
       if (element) {
-        var filename = element.innerHTML;
-        grr.publish("file_select", filename);
+        grr.publish("file_select", element.attr("aff4_path"));
       };
     };
   }, '{{ unique|escapejs }}');
@@ -101,11 +100,12 @@ class ContainerFileTable(renderers.TableRenderer):
   content_cache = None
   max_items = 10000
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     if ContainerFileTable.content_cache is None:
       ContainerFileTable.content_cache = utils.TimeBasedCache()
 
-    renderers.TableRenderer.__init__(self)
+    super(ContainerFileTable, self).__init__(**kwargs)
+
     self.AddColumn(renderers.RDFValueColumn(
         "Icon", renderer=renderers.IconRenderer, width=0))
     self.AddColumn(renderers.AttributeColumn("subject"))
@@ -122,19 +122,17 @@ class ContainerFileTable(renderers.TableRenderer):
 
   def AddDynamicColumns(self, container):
     """Add the columns in the VIEW attribute."""
-    view = container.Get(container.Schema.VIEW)
-    if view:
-      for column_name in view:
-        column_name = column_name.string
-        try:
-          self.AddColumn(renderers.AttributeColumn(column_name))
-        except (KeyError, AttributeError):
-          logging.error("Container %s specifies an invalid attribute %s",
-                        container.urn, column_name)
+    view = container.Get(container.Schema.VIEW, [])
+    for column_name in view:
+      try:
+        self.AddColumn(renderers.AttributeColumn(column_name))
+      except (KeyError, AttributeError):
+        logging.error("Container %s specifies an invalid attribute %s",
+                      container.urn, column_name)
 
   def BuildTable(self, start_row, end_row, request):
     """Renders the table."""
-    container_urn = aff4.RDFURN(request.REQ["container"])
+    container_urn = rdfvalue.RDFURN(request.REQ["container"])
     container = aff4.FACTORY.Open(container_urn, token=request.token)
     self.AddDynamicColumns(container)
 
@@ -161,10 +159,10 @@ class ContainerFileTable(renderers.TableRenderer):
     child_names.sort(reverse=sort_direction)
 
     if len(children) == self.max_items:
-      self.columns[0].AddElement(0, aff4.RDFString("nuke"))
+      self.columns[0].AddElement(0, rdfvalue.RDFString("nuke"))
       msg = ("This table contains more than %d entries, please use a filter "
              "string or download it as a CSV file.") % self.max_items
-      self.columns[1].AddElement(0, aff4.RDFString(msg))
+      self.columns[1].AddElement(0, rdfvalue.RDFString(msg))
       self.AddRow({}, row_index=0)
       return
 
@@ -219,7 +217,7 @@ class ContainerNavigator(renderers.TreeRenderer):
 
   def RenderBranch(self, path, request):
     """Renders tree leafs for filesystem path."""
-    aff4_root = aff4.RDFURN(request.REQ.get("aff4_root", aff4.ROOT_URN))
+    aff4_root = rdfvalue.RDFURN(request.REQ.get("aff4_root", aff4.ROOT_URN))
     container = request.REQ.get("container")
     if not container:
       raise RuntimeError("Container not provided.")
@@ -234,7 +232,7 @@ class ContainerNavigator(renderers.TreeRenderer):
     # NOTE: Although all AFF4Volumes are also containers, this gui element is
     # really only suitable for showing AFF4Collection objects which are not very
     # large, since we essentially list all members.
-    query_expression = ("subject matches '%s.+'" % data_store.EscapeRegex(urn))
+    query_expression = ("subject matches '%s.+'" % utils.EscapeRegex(urn))
 
     branches = set()
 
@@ -279,6 +277,7 @@ class ContainerToolbar(renderers.TemplateRenderer):
 Query
 <input type="text" id="query" name="query"
   value="{{this.query|escape}}" size=180></input>
+<input type="submit" style="display: none" />
 </form>
 <script>
 $('#export').button().click(function () {
@@ -324,6 +323,7 @@ class ContainerViewer(renderers.TemplateRenderer):
   grr.subscribe("GeometryChange", function (id) {
     if(id != "{{id|escapejs}}") return;
     grr.fixHeight($("#{{unique|escapejs}}"));
+    grr.publish("GeometryChange", "{{unique|escapejs}}");
   }, "{{unique|escapejs}}");
 </script>
 """)
@@ -334,4 +334,4 @@ class ContainerViewerSplitter(renderers.Splitter):
 
   left_renderer = "ContainerNavigator"
   top_right_renderer = "ContainerFileTable"
-  bottom_right_renderer = "ContainerViewTabs"
+  bottom_right_renderer = "AFF4ObjectRenderer"

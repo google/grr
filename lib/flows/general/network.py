@@ -18,7 +18,6 @@
 
 from grr.lib import aff4
 from grr.lib import flow
-from grr.proto import sysinfo_pb2
 
 
 class Netstat(flow.GRRFlow):
@@ -31,7 +30,7 @@ class Netstat(flow.GRRFlow):
     """Start processing."""
     self.CallClient("Netstat", next_state="StoreNetstat")
 
-  @flow.StateHandler(sysinfo_pb2.NetworkConnection)
+  @flow.StateHandler()
   def StoreNetstat(self, responses):
     """Collect the connections and store in the datastore.
 

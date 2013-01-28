@@ -17,42 +17,42 @@
 
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import type_info
-from grr.proto import jobs_pb2
 
 
 class FingerprintFile(flow.GRRFlow):
   """Retrieve all fingerprints of a file."""
 
   category = "/Filesystem/"
-  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
-                   "pathspec": type_info.Proto(jobs_pb2.Path)}
 
-  def __init__(self, path="/",
-               pathtype=jobs_pb2.Path.OS,
-               device=None, pathspec=None, **kwargs):
-    """Constructor.
-
-    Allows declaration of a path or pathspec to compute the fingerprint on.
-
-    Args:
-      path: The file path to fingerprint.
-      pathtype: Identifies requested path type. Enum from Path protobuf.
-      device: Optional raw device that should be accessed.
-      pathspec: Use a pathspec instead of a path.
-    """
-    if pathspec:
-      self.pathspec = pathspec
-    else:
-      self.pathspec = jobs_pb2.Path(path=path, pathtype=int(pathtype))
-      if device:
-        self.pathspec.device = device
-    self.request = jobs_pb2.FingerprintRequest(pathspec=self.pathspec)
-    flow.GRRFlow.__init__(self, **kwargs)
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.PathspecType(
+          description="The file path to fingerprint."),
+      )
 
   @flow.StateHandler(next_state="Done")
   def Start(self):
-    self.CallClient("FingerprintFile", self.request, next_state="Done")
+    """Issue the fingerprinting request."""
+
+    request = rdfvalue.FingerprintRequest(
+        pathspec=self.pathspec)
+
+    # Generic hash.
+    request.AddRequest(
+        fp_type=rdfvalue.FingerprintTuple.Enum("FPT_GENERIC"),
+        hashers=[rdfvalue.FingerprintTuple.Enum("MD5"),
+                 rdfvalue.FingerprintTuple.Enum("SHA1"),
+                 rdfvalue.FingerprintTuple.Enum("SHA256")])
+
+    # Authenticode hash.
+    request.AddRequest(
+        fp_type=rdfvalue.FingerprintTuple.Enum("FPT_PE_COFF"),
+        hashers=[rdfvalue.FingerprintTuple.Enum("MD5"),
+                 rdfvalue.FingerprintTuple.Enum("SHA1"),
+                 rdfvalue.FingerprintTuple.Enum("SHA256")])
+
+    self.CallClient("FingerprintFile", request, next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -63,6 +63,10 @@ class FingerprintFile(flow.GRRFlow):
       raise flow.FlowError("Could not fingerprint file: %s" % responses.status)
 
     response = responses.First()
+
+    # TODO(user): This is a bug - the fingerprinter client action should
+    # return the pathspec it actually created to access the file - this corrects
+    # for file casing etc.
     self.urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(self.pathspec,
                                                           self.client_id)
     fd = aff4.FACTORY.Create(self.urn, "VFSFile", mode="w", token=self.token)

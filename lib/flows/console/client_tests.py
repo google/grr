@@ -24,10 +24,10 @@ import unittest
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
 from grr.lib.aff4_objects import standard
-from grr.proto import jobs_pb2
 
 
 class ClientTestBase(unittest.TestCase):
@@ -67,7 +67,7 @@ class ClientTestBase(unittest.TestCase):
       flow_pb = flow.FACTORY.FetchFlow(session_id, lock=False, token=self.token)
       if flow_pb is None:
         continue
-      if flow_pb.state != jobs_pb2.FlowPB.RUNNING:
+      if flow_pb.state != rdfvalue.Flow.Enum("RUNNING"):
         break
 
     return flow.FACTORY.LoadFlow(flow_pb)
@@ -81,8 +81,9 @@ class TestGetFileTSKLinux(ClientTestBase):
   platforms = ["linux"]
 
   flow = "GetFile"
-  args = {"path": "/bin/ls",
-          "pathtype": jobs_pb2.Path.TSK}
+  args = {"pathspec": rdfvalue.RDFPathSpec(
+      path="/bin/ls",
+      pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))}
 
   output_path = "/fs/tsk/bin/ls"
 
@@ -112,8 +113,9 @@ class TestGetFileTSKMac(TestGetFileTSKLinux):
 
 class TestGetFileOSLinux(TestGetFileTSKLinux):
   """Tests if GetFile works on Linux."""
-  args = {"path": "/bin/ls",
-          "pathtype": jobs_pb2.Path.OS}
+  args = {"pathspec": rdfvalue.RDFPathSpec(
+      path="/bin/ls",
+      pathtype=rdfvalue.RDFPathSpec.Enum("OS"))}
   output_path = "/fs/os/bin/ls"
 
 
@@ -121,8 +123,9 @@ class TestListDirectoryOSLinux(ClientTestBase):
   """Tests if ListDirectory works on Linux."""
   platforms = ["linux", "darwin"]
   flow = "ListDirectory"
-  args = {"path": "/bin",
-          "pathtype": jobs_pb2.Path.OS}
+  args = {"pathspec": rdfvalue.RDFPathSpec(
+      path="/bin",
+      pathtype=rdfvalue.RDFPathSpec.Enum("OS"))}
 
   output_path = "/fs/os/bin"
   file_to_find = "ls"
@@ -144,8 +147,9 @@ class TestListDirectoryOSLinux(ClientTestBase):
 
 class TestListDirectoryTSKLinux(TestListDirectoryOSLinux):
   """Tests if ListDirectory works on Linux using Sleuthkit."""
-  args = {"path": "/bin",
-          "pathtype": jobs_pb2.Path.TSK}
+  args = {"pathspec": rdfvalue.RDFPathSpec(
+      path="/bin",
+      pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))}
   output_path = "/fs/tsk/bin"
 
 
@@ -153,10 +157,20 @@ class TestFindTSKLinux(TestListDirectoryTSKLinux):
   """Tests if the find flow works on Linux using Sleuthkit."""
   flow = "FindFiles"
 
+  args = {"findspec": rdfvalue.RDFFindSpec(
+      pathspec=rdfvalue.RDFPathSpec(
+          path="/bin",
+          pathtype=rdfvalue.RDFPathSpec.Enum("TSK")))}
+
 
 class TestFindOSLinux(TestListDirectoryOSLinux):
   """Tests if the find flow works on Linux."""
   flow = "FindFiles"
+
+  args = {"findspec": rdfvalue.RDFFindSpec(
+      pathspec=rdfvalue.RDFPathSpec(
+          path="/bin",
+          pathtype=rdfvalue.RDFPathSpec.Enum("OS")))}
 
 
 class TestInterrogateWindows(ClientTestBase):
@@ -176,8 +190,9 @@ class TestInterrogateWindows(ClientTestBase):
 class TestListDirectoryOSWindows(TestListDirectoryOSLinux):
   """Tests if ListDirectory works on Linux."""
   platforms = ["windows"]
-  args = {"path": "C:\\Windows",
-          "pathtype": jobs_pb2.Path.OS}
+  args = {"pathspec": rdfvalue.RDFPathSpec(
+      path="C:\\Windows",
+      pathtype=rdfvalue.RDFPathSpec.Enum("OS"))}
   file_to_find = "System32"
   output_path = "/fs/os/C:/Windows"
 
@@ -185,8 +200,9 @@ class TestListDirectoryOSWindows(TestListDirectoryOSLinux):
 class TestListDirectoryTSKWindows(TestListDirectoryTSKLinux):
   """Tests if ListDirectory works on Windows using Sleuthkit."""
   platforms = ["windows"]
-  args = {"path": "C:\\Windows",
-          "pathtype": jobs_pb2.Path.TSK}
+  args = {"pathspec": rdfvalue.RDFPathSpec(
+      path="C:\\Windows",
+      pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))}
   file_to_find = "System32"
 
   def CheckFlow(self):
@@ -208,8 +224,9 @@ class TestListDirectoryTSKWindows(TestListDirectoryTSKLinux):
 
 class TestRecursiveListDirectoryOSWindows(TestListDirectoryOSWindows):
   flow = "RecursiveListDirectory"
-  args = {"path": "C:\\",
-          "pathtype": jobs_pb2.Path.OS,
+  args = {"pathspec": rdfvalue.RDFPathSpec(
+      path="C:\\",
+      pathtype=rdfvalue.RDFPathSpec.Enum("OS")),
           "max_depth": 1}
   file_to_find = "System32"
   output_path = "/fs/os/C:/Windows"
@@ -230,13 +247,18 @@ class TestFindWindowsRegistry(ClientTestBase):
   def runTest(self):
     """Launch our flows."""
     self.StartFlowAndWait(self.client_id, "ListDirectory",
-                          pathtype=jobs_pb2.Path.REGISTRY,
-                          path=self.reg_path)
+                          pathspec=rdfvalue.RDFPathSpec(
+                              pathtype=rdfvalue.RDFPathSpec.Enum("REGISTRY"),
+                              path=self.reg_path))
 
-    self.StartFlowAndWait(self.client_id, "FindFiles",
-                          path=self.reg_path, pathtype=jobs_pb2.Path.REGISTRY,
-                          filename_regex="ProfileImagePath",
-                          output=self.output_path)
+    self.StartFlowAndWait(
+        self.client_id, "FindFiles",
+        findspec=rdfvalue.RDFFindSpec(
+            pathspec=rdfvalue.RDFPathSpec(
+                path=self.reg_path,
+                pathtype=rdfvalue.RDFPathSpec.Enum("REGISTRY")),
+            path_regex="ProfileImagePath"),
+        output=self.output_path)
 
     self.CheckFlow()
 
@@ -262,8 +284,9 @@ class TestFindWindowsRegistry(ClientTestBase):
 class TestGetFileOSWindows(TestGetFileOSLinux):
   """Tests if GetFile works on Windows."""
   platforms = ["windows"]
-  args = {"path": "C:\\Windows\\regedit.exe",
-          "pathtype": jobs_pb2.Path.OS}
+  args = {"pathspec": rdfvalue.RDFPathSpec(
+      path="C:\\Windows\\regedit.exe",
+      pathtype=rdfvalue.RDFPathSpec.Enum("OS"))}
   output_path = "/fs/os/C:/Windows/regedit.exe"
 
   def CheckFile(self, fd):
@@ -273,8 +296,9 @@ class TestGetFileOSWindows(TestGetFileOSLinux):
 
 class TestGetFileTSKWindows(TestGetFileOSWindows):
   """Tests if GetFile works on Windows using TSK."""
-  args = {"path": "C:\\Windows\\regedit.exe",
-          "pathtype": jobs_pb2.Path.TSK}
+  args = {"pathspec": rdfvalue.RDFPathSpec(
+      path="C:\\Windows\\regedit.exe",
+      pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))}
 
   def CheckFlow(self):
     urn = aff4.ROOT_URN.Add(self.client_id).Add("/fs/tsk")
@@ -301,8 +325,9 @@ class TestRegistry(ClientTestBase):
   platforms = ["windows"]
   flow = "ListDirectory"
 
-  args = {"path": "HKEY_LOCAL_MACHINE",
-          "pathtype": jobs_pb2.Path.REGISTRY}
+  args = {"pathspec": rdfvalue.RDFPathSpec(
+      path="HKEY_LOCAL_MACHINE",
+      pathtype=rdfvalue.RDFPathSpec.Enum("REGISTRY"))}
   output_path = "/registry/HKEY_LOCAL_MACHINE"
 
   def CheckFlow(self):

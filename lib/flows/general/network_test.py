@@ -16,8 +16,8 @@
 """Test the connections listing module."""
 
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import sysinfo_pb2
 
 
 class NetstatTest(test_lib.FlowTestsBaseclass):
@@ -28,24 +28,24 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
 
     class ClientMock(object):
       def Netstat(self, _):
-        conn1 = sysinfo_pb2.NetworkConnection(
-            state=sysinfo_pb2.NetworkConnection.LISTEN,
-            type=sysinfo_pb2.NetworkConnection.SOCK_STREAM,
-            local_address=sysinfo_pb2.NetworkEndpoint(
+        conn1 = rdfvalue.NetworkConnection(
+            state=rdfvalue.NetworkConnection.Enum("LISTEN"),
+            type=rdfvalue.NetworkConnection.Enum("SOCK_STREAM"),
+            local_address=rdfvalue.NetworkEndpoint(
                 ip="0.0.0.0",
                 port=22),
-            remote_address=sysinfo_pb2.NetworkEndpoint(
+            remote_address=rdfvalue.NetworkEndpoint(
                 ip="0.0.0.0",
                 port=0),
             pid=2136,
             ctime=0)
-        conn2 = sysinfo_pb2.NetworkConnection(
-            state=sysinfo_pb2.NetworkConnection.LISTEN,
-            type=sysinfo_pb2.NetworkConnection.SOCK_STREAM,
-            local_address=sysinfo_pb2.NetworkEndpoint(
+        conn2 = rdfvalue.NetworkConnection(
+            state=rdfvalue.NetworkConnection.Enum("LISTEN"),
+            type=rdfvalue.NetworkConnection.Enum("SOCK_STREAM"),
+            local_address=rdfvalue.NetworkEndpoint(
                 ip="192.168.1.1",
                 port=31337),
-            remote_address=sysinfo_pb2.NetworkEndpoint(
+            remote_address=rdfvalue.NetworkEndpoint(
                 ip="1.2.3.4",
                 port=6667),
             pid=1,
@@ -66,7 +66,7 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
     # Check the output file is created
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add("network"),
                            token=self.token)
-    conns = fd.Get(fd.Schema.CONNECTIONS).data
+    conns = fd.Get(fd.Schema.CONNECTIONS)
 
     self.assertEqual(len(conns), 2)
     self.assertEqual(conns[0].local_address.ip, "0.0.0.0")

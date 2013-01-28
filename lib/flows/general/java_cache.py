@@ -21,9 +21,9 @@ from grr.lib import aff4
 from grr.lib import constants
 from grr.lib import flow
 from grr.lib import flow_utils
+from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 class JavaCacheCollector(flow.GRRFlow):
@@ -34,41 +34,38 @@ class JavaCacheCollector(flow.GRRFlow):
   """
 
   category = "/Collectors/"
-  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
-                   "username": type_info.String()}
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.PathTypeEnum(
+          description="The requested path type.",
+          name="pathtype",
+          default=rdfvalue.RDFPathSpec.Enum("OS")),
+      type_info.NotEmptyString(
+          name="username",
+          default="",
+          description="A string containing the username."),
+      type_info.String(
+          name="domain",
+          default="",
+          description="Optional string containing the domain of the username."),
+      type_info.String(
+          name="cache_dir",
+          default="",
+          description=("Path to the Java cache. If provided, this overrides "
+                       "the guessing of the cache directory using "
+                       "username/domain.")),
+      type_info.String(
+          name="output",
+          default="analysis/java-cache/{u}-{t}",
+          description=("If set, a URN to an AFF4Collection to add each result "
+                       "to. This will create the collection if it does not "
+                       "exist.")),
+      )
+
   MAJOR_VERSION_WINDOWS_VISTA = 6
-
-  def __init__(self,
-               pathtype=jobs_pb2.Path.OS,
-               username="", domain=None, cachedir="",
-               output="analysis/java-cache/{u}-{t}", **kwargs):
-    """Constructor.
-
-    Args:
-      pathtype: Identifies requested path type. Enum from Path protobuf.
-      username: A string containing the username.
-      domain: Optional string containing the domain of the username.
-      cachedir: Path to the Java cache. If provided, this overrides the guessing
-                of the cache directory using username/domain.
-      output: If set, a URN to an AFF4Collection to add each result to.
-          This will create the collection if it does not exist.
-
-    Raises:
-      RuntimeError: If parameters are invalid.
-    """
-    super(JavaCacheCollector, self).__init__(**kwargs)
-    self.pathtype = pathtype
-    self.cache_dir = cachedir
-    if not username:
-      raise RuntimeError("Username not set")
-
-    self.username = username
-    self.domain = domain
-    self.output = output
-    self.findspecs = list(self.GetFindSpecs())
 
   @flow.StateHandler(next_state="End")
   def Start(self):
+    self.findspecs = list(self.GetFindSpecs())
     self.CallFlow("FileCollector", output=self.output,
                   findspecs=self.findspecs, next_state="End")
 
@@ -145,10 +142,10 @@ class JavaCacheCollector(flow.GRRFlow):
     """
     cache_directory = self.cache_dir or self.GetJavaCachePath()
 
-    path_spec = utils.Pathspec(jobs_pb2.Path(path=cache_directory,
-                                             pathtype=self.pathtype))
+    pathspec = rdfvalue.RDFPathSpec(path=cache_directory,
+                                    pathtype=self.pathtype)
 
-    yield jobs_pb2.Find(
-        pathspec=path_spec.ToProto(),
+    yield rdfvalue.RDFFindSpec(
+        pathspec=pathspec,
         path_regex=".*",
         max_depth=2)

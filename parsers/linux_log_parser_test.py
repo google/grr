@@ -208,8 +208,10 @@ class LinuxLogParserTest(test_lib.GRRBaseTest):
 
   def testSyslogParsing(self):
     """Test to see if we can parse a syslog file."""
+    # All those hard coded years are a really ugly hack. We should deprecate
+    # the log_parser in favor of Plaso and get rid of those tests asap...
     self.CheckFirstLine('syslog', linux_log_parser.SyslogParser,
-                        '2012-01-22 07:52:33',
+                        '2013-01-22 07:52:33',
                         'Syslog',
                         'Entry Written',
                         ('[myhostname.myhost.com] Reporter '
@@ -234,7 +236,7 @@ class LinuxLogParserTest(test_lib.GRRBaseTest):
   def testAuthParsing(self):
     """Test to see if we can parse an auth file."""
     self.CheckFirstLine('auth.log', linux_log_parser.AuthParser,
-                        '2012-01-26 19:35:30',
+                        '2013-01-26 19:35:30',
                         'Auth',
                         'Entry Written',
                         ('[myhost.log.mydomain.com] Reporter <sshd> '
@@ -329,7 +331,7 @@ class LinuxLogParserTest(test_lib.GRRBaseTest):
     event_generator = module.Parse(filehandle)
     self.RunGenerator(event_generator)
 
-    self.assertEquals(module.year_use, 2012)
+    self.assertEquals(module.year_use, 2013)
 
   def testFalseApacheParsing(self):
     """See if we get a correct error with a slightly false Apache file."""
@@ -368,11 +370,11 @@ class LinuxLogParserTest(test_lib.GRRBaseTest):
     self.assertEquals(out_handle.getvalue(), ("""\
 date,time,timezone,MACB,source,sourcetype,type,user,host,short,desc,version,\
 filename,inode,notes,format,extra
-01/22/2012,07:52:33,UTC,MACB,LOG,Syslog,Entry Written,-,-,\
+01/22/2013,07:52:33,UTC,MACB,LOG,Syslog,Entry Written,-,-,\
 [myhostname.myhost.com] Reporter <client> PID: 30840 (INFO \
 No new content.),[myhostname.myhost.com] Reporter <client> PID: \
 30840 (INFO No new content.),2,-,0,-,linux_log_parser,-
-01/22/2012,07:52:33,UTC,MACB,LOG,Syslog,Entry Written,-,-,\
+01/22/2013,07:52:33,UTC,MACB,LOG,Syslog,Entry Written,-,-,\
 [myhostname.myhost.com] Reporter <client> PID: 30840 (INFO No \
 change in [/etc/netgroup]. Done),[myhostname.myhost.com] Reporter \
 <client> PID: 30840 (INFO No change in [/etc/netgroup]. Done),2,-\

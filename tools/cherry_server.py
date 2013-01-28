@@ -16,7 +16,6 @@
 
 
 import sys
-import time
 
 
 import cherrypy
@@ -24,18 +23,15 @@ import cherrypy
 from grr.client import conf
 from grr.client import conf as flags
 
-# pylint: disable=W0611
-# pylint: enable=W0611
-
 from grr.lib import communicator
-from grr.lib import mongo_data_store
 from grr.lib import flow
+from grr.lib import key_utils
 from grr.lib import log
+from grr.lib import rdfvalue
 from grr.lib import registry
 # pylint: disable=W0611
-from grr.lib import server_flags
+from grr.lib import server_plugins
 # pylint: enable=W0611
-from grr.proto import jobs_pb2
 
 FLAGS = flags.FLAGS
 
@@ -46,11 +42,11 @@ class GrrCherryServer(object):
   """The CherryPy version of the GRR http server."""
 
   def __init__(self):
-    self.serverpem = open(FLAGS.server_cert, "rb").read()
+    self.serverpem = key_utils.GetCert("Server_Public_Cert")
     registry.Init()
     self.logger = log.GrrLogger(component="Cherryserver")
     self.front_end = flow.FrontEndServer(
-        FLAGS.server_private_key, self.logger,
+        "Server_Private_Key", self.logger,
         max_queue_size=FLAGS.max_queue_size,
         message_expiry_time=FLAGS.message_expiry_time,
         max_retransmission_time=FLAGS.max_retransmission_time)
@@ -65,10 +61,9 @@ class GrrCherryServer(object):
 
     try:
       data = cherrypy.request.body.read()
-      request_comms = jobs_pb2.ClientCommunication()
-      request_comms.ParseFromString(data)
+      request_comms = rdfvalue.ClientCommunication(data)
 
-      responses_comms = jobs_pb2.ClientCommunication()
+      responses_comms = rdfvalue.ClientCommunication()
 
       self.front_end.HandleMessageBundles(
           request_comms, responses_comms)

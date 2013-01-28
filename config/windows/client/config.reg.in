@@ -1,0 +1,11 @@
+Windows Registry Editor Version 5.00
+
+[%(ClientBuildWindows.service_key)s]
+"Version"="%(ClientBuildWindows.version_string)s"
+"%(ClientBuildWindows.Binary_Child)s"="%(ClientBuildWindows.install_path|escape)s\\%(ClientBuildWindows.Version_String)s\\%(ClientBuildWindows.binary_name)s"
+"%(ClientBuildWindows.Binary_CommandLine)s"="%(ClientBuildWindows.install_path|escape)s\\%(ClientBuildWindows.version_string)s\\%(ClientBuildWindows.binary_name)s %(ClientBuildWindows.initial_commandline)s"
+"location"="%(ClientBuildWindows.location)s"
+"cacert"="%(ServerKeys.ca_public_cert|join)s"
+"exec_signing_key"="%(ClientSigningKeysWindows.executable_signing_public_key|join)s"
+"driver_signing_key"="%(ClientSigningKeysWindows.driver_signing_public_key|join)s"
+

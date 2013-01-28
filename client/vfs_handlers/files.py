@@ -22,8 +22,8 @@ import threading
 
 from grr.client import client_utils
 from grr.client import vfs
+from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 # File handles are cached here.
@@ -76,7 +76,7 @@ class FileHandleManager(object):
 
 def MakeStatResponse(st, pathspec):
   """Creates a StatResponse proto."""
-  response = jobs_pb2.StatResponse()
+  response = rdfvalue.StatEntry(pathspec=pathspec)
 
   if st is None:
     # Special case empty stat if we don't have a real value, e.g. we get Access
@@ -106,16 +106,13 @@ def MakeStatResponse(st, pathspec):
       except AttributeError:
         pass
 
-  # Write the pathspec into the result stat proto.
-  pathspec.ToProto(response.pathspec)
-
   return response
 
 
 class File(vfs.VFSHandler):
   """Read a regular file."""
 
-  supported_pathtype = jobs_pb2.Path.OS
+  supported_pathtype = rdfvalue.RDFPathSpec.Enum("OS")
   auto_register = True
 
   # The file descriptor of the OS file.
@@ -146,7 +143,7 @@ class File(vfs.VFSHandler):
 
     # We can optionally apply a global offset to the file.
     self.file_offset = self.pathspec[0].offset
-    self.pathspec.last.path_options = jobs_pb2.Path.CASE_LITERAL
+    self.pathspec.last.path_options = rdfvalue.RDFPathSpec.Enum("CASE_LITERAL")
 
     self.WindowsHacks()
     self.filename = client_utils.CanonicalPathToLocalPath(self.path)
@@ -159,7 +156,6 @@ class File(vfs.VFSHandler):
         local_path = client_utils.CanonicalPathToLocalPath(self.path + "/")
         self.files = [utils.SmartUnicode(entry) for entry in
                       os.listdir(local_path)]
-
     # Some filesystems do not support unicode properly
     except UnicodeEncodeError as e:
       raise IOError(str(e))
@@ -279,7 +275,7 @@ class File(vfs.VFSHandler):
         response = self.Stat(utils.JoinPath(self.path, path))
         pathspec = self.pathspec.Copy()
         pathspec.last.path = utils.JoinPath(pathspec.last.path, path)
-        pathspec.ToProto(response.pathspec)
+        response.pathspec = pathspec
 
         yield response
       except OSError:

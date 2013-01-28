@@ -19,6 +19,7 @@
 
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import rdfvalue
 
 
 class EnumerateRunningServices(flow.GRRFlow):
@@ -36,20 +37,16 @@ class EnumerateRunningServices(flow.GRRFlow):
   @flow.StateHandler()
   def StoreServices(self, responses):
     """Store services in ServiceCollection."""
+    services = aff4.FACTORY.Create(
+        rdfvalue.RDFURN(self.client_id).Add('analysis/Services'),
+        'RDFValueCollection', token=self.token, mode='rw')
 
-    master = aff4.FACTORY.Create(aff4.RDFURN(self.client_id)
-                                 .Add('analysis/Services'),
-                                 'ServiceCollection',
-                                 token=self.token, mode='rw')
-
-    services = master.Schema.SERVICES()
-
-    self.service_count = len(responses)
     for response in responses:
-      services.Append(response)
+      services.Add(response)
 
-    master.Set(services)
-    master.Close()
+    services.Close()
+
+    self.service_count = len(services)
 
   @flow.StateHandler()
   def End(self):

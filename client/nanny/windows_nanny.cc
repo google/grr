@@ -11,8 +11,13 @@
 #include <stdio.h>
 #include <tchar.h>
 #include <time.h>
-// TODO(user): On Windows 8 this should be replaced by Processthreadsapi.h
-#include <winbase.h>
+
+/* On Windows 8 or later a separate include is required
+ * earlier versions implicitely include winbase.h from windows.h
+ */
+#if WINVER >= 0x602
+#include <Processthreadsapi.h>
+#endif
 #include <windows.h>
 
 #include <memory>
@@ -87,6 +92,8 @@ void WindowsEventLogger::WriteLog(std::string message) {
   strings[0] = kGrrServiceName;
   strings[1] = message.c_str();
 
+  // TODO(user): change this into overwriting % with place holder chars
+  // or equiv
   if (message.find("%") != std::string::npos) {
     strings[1] = "Invalid event message (Contains %%)";
   }
@@ -132,13 +139,12 @@ HKEY ServiceKey::GetServiceKey() {
   if (key) {
     return key;
   }
-
-  // We need to turn on 64 bit access as per
-  // http://msdn.microsoft.com/en-us/library/aa384129(v=VS.85).aspx
-  HRESULT result = RegOpenKeyEx(HKEY_LOCAL_MACHINE,
+  // Do not define KEY_WOW64_64KEY here as part of the access flags
+  // it will break on WINVER < 0x501
+  HRESULT result = RegOpenKeyEx(GRR_SERVICE_REGISTRY_HIVE,
                                 kGrrServiceRegistry,
                                 0,
-                                KEY_WOW64_64KEY | KEY_READ | KEY_WRITE,
+                                KEY_READ | KEY_WRITE,
                                 &key);
   if (result != ERROR_SUCCESS) {
     key = 0;
@@ -168,14 +174,12 @@ class WindowsChildProcess : public grr::ChildProcess {
   WindowsChildProcess();
   virtual ~WindowsChildProcess();
 
-  // Kills the child.
+  // The methods below are overridden from Childprocess. See child_controller.h
+  // for more information.
+
   virtual void KillChild(std::string msg);
 
-  // Create the child process.
   virtual bool CreateChildProcess();
-
-  // Check the last heart beat from the child.
-  virtual time_t GetHeartBeat();
 
   virtual time_t GetCurrentTime();
 
@@ -187,11 +191,21 @@ class WindowsChildProcess : public grr::ChildProcess {
 
   virtual void SetNannyStatus(std::string msg);
 
+  virtual time_t GetHeartbeat();
+
   virtual void ClearHeartbeat();
+
+  virtual void SetHeartbeat(unsigned int value);
+
+  virtual void Heartbeat();
 
   virtual size_t GetMemoryUsage();
 
   virtual bool IsAlive();
+
+  virtual bool Started();
+
+  virtual void Sleep(unsigned int milliseconds);
 
  private:
   PROCESS_INFORMATION child_process;
@@ -226,7 +240,7 @@ void WindowsChildProcess::KillChild(std::string msg) {
 };
 
 // Returns the last time the child produced a heartbeat.
-time_t WindowsChildProcess::GetHeartBeat() {
+time_t WindowsChildProcess::GetHeartbeat() {
   ServiceKey key;
 
   if (!key.GetServiceKey()) {
@@ -237,7 +251,7 @@ time_t WindowsChildProcess::GetHeartBeat() {
   DWORD data_len = sizeof(last_heartbeat);
   DWORD type;
 
-  if (RegQueryValueEx(key.GetServiceKey(), kGrrServiceHeartBeatTime,
+  if (RegQueryValueEx(key.GetServiceKey(), kGrrServiceHeartbeatTime,
                       0, &type, reinterpret_cast<BYTE*>(&last_heartbeat),
                       &data_len) != ERROR_SUCCESS ||
       type != REG_DWORD || data_len != sizeof(last_heartbeat)) {
@@ -249,26 +263,35 @@ time_t WindowsChildProcess::GetHeartBeat() {
 
 // Clears the heartbeat.
 void WindowsChildProcess::ClearHeartbeat() {
+  SetHeartbeat(0);
+}
+
+// Sets the heartbeat to the current time.
+void WindowsChildProcess::Heartbeat() {
+  SetHeartbeat(GetCurrentTime());
+}
+
+void WindowsChildProcess::SetHeartbeat(unsigned int value) {
   ServiceKey key;
 
   if (!key.GetServiceKey()) {
     return;
   }
 
-  DWORD value = 0;
+  DWORD v = value;
   HRESULT result = 0;
 
   result = RegSetValueEx(key.GetServiceKey(),
-                         kGrrServiceHeartBeatTime,
+                         kGrrServiceHeartbeatTime,
                          0,
                          REG_DWORD,
-                         reinterpret_cast<BYTE*>(&value),
+                         reinterpret_cast<BYTE*>(&v),
                          sizeof(DWORD));
   if (result != ERROR_SUCCESS) {
     TCHAR errormsg[1024];
     FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, result, 0, errormsg,
                   1024, NULL);
-    logger_.Log("Unable to clear heartbeat value: %s", errormsg);
+    logger_.Log("Unable to set heartbeat value: %s", errormsg);
   }
 };
 
@@ -312,10 +335,15 @@ void WindowsChildProcess::SetNannyMessage(std::string msg) {
 bool WindowsChildProcess::CreateChildProcess() {
   // Get the binary location from our registry key.
   ServiceKey key;
-  TCHAR process_name[MAX_PATH];
   TCHAR command_line[MAX_PATH];
-  DWORD process_len = MAX_PATH - 1;
+  TCHAR expanded_command_line[MAX_PATH];
+  TCHAR expanded_process_name[MAX_PATH];
+  TCHAR process_name[MAX_PATH];
   DWORD command_line_len = MAX_PATH - 1;
+  DWORD expanded_command_line_len = 0;
+  DWORD expanded_process_name_len = 0;
+  DWORD process_name_len = MAX_PATH - 1;
+  DWORD creation_flags = 0;
   DWORD type;
 
   if (pendingNannyMsg_ != "") {
@@ -329,14 +357,23 @@ bool WindowsChildProcess::CreateChildProcess() {
 
   if (RegQueryValueEx(key.GetServiceKey(), kGrrServiceBinaryChild,
                       0, &type, reinterpret_cast<BYTE*>(process_name),
-                      &process_len) != ERROR_SUCCESS ||
-      type != REG_SZ || process_len >= MAX_PATH) {
+                      &process_name_len) != ERROR_SUCCESS ||
+      type != REG_SZ || process_name_len >= MAX_PATH) {
     logger_.Log("Unable to open kGrrServiceBinaryChild value.");
     return false;
   }
 
   // Ensure it is null terminated.
-  process_name[process_len] = '\0';
+  process_name[process_name_len] = '\0';
+
+  expanded_process_name_len = ExpandEnvironmentStrings(
+      process_name, expanded_process_name, MAX_PATH);
+
+  if ((expanded_process_name_len == 0) ||
+      (expanded_process_name_len > MAX_PATH)) {
+    logger_.Log("Unable to expand kGrrServiceBinaryChild value.");
+    return false;
+  }
 
   if (RegQueryValueEx(key.GetServiceKey(), kGrrServiceBinaryCommandLine,
                       0, &type, reinterpret_cast<BYTE*>(command_line),
@@ -347,6 +384,16 @@ bool WindowsChildProcess::CreateChildProcess() {
   }
 
   command_line[command_line_len] = '\0';
+
+  expanded_command_line_len = ExpandEnvironmentStrings(
+      command_line, expanded_command_line, MAX_PATH);
+
+  if ((expanded_command_line_len == 0) ||
+      (expanded_command_line_len > MAX_PATH)) {
+    logger_.Log("Unable to expand kGrrServiceBinaryCommandLine value.");
+    return false;
+  }
+
   // If the child is already running or we have a handle to it, try to kill it.
   if (IsAlive()) {
     KillChild("Child process restart.");
@@ -356,19 +403,27 @@ bool WindowsChildProcess::CreateChildProcess() {
   STARTUPINFO startup_info;
   GetStartupInfo(&startup_info);
 
+  // From: http://msdn.microsoft.com/en-us/library/ms682425(VS.85).aspx
+  // If this parameter is NULL and the environment block of the parent process
+  // contains Unicode characters, you must also ensure that dwCreationFlags
+  // includes CREATE_UNICODE_ENVIRONMENT.
+#if defined( UNICODE )
+  creation_flags = CREATE_UNICODE_ENVIRONMENT;
+#endif
+
   // Now try to start it.
   if (!CreateProcess(
-          process_name,  // Application Name
-          command_line,  // Command line
+          expanded_process_name,  // Application Name
+          expanded_command_line,  // Command line
           NULL,  // Process attributes
           NULL,  //  lpThreadAttributes
           0,  // bInheritHandles
-          NULL,  // dwCreationFlags
+          creation_flags,  // dwCreationFlags
           NULL,  // lpEnvironment
           NULL,  // lpCurrentDirectory
           &startup_info,  // lpStartupInfo
           &child_process)) {
-    logger_.Log("Unable to launch child process: %s %u.", process_name,
+    logger_.Log("Unable to launch child process: %s %u.", expanded_process_name,
                 GetLastError());
     return false;
   }
@@ -382,13 +437,16 @@ time_t WindowsChildProcess::GetCurrentTime() {
   return time(NULL);
 };
 
+void WindowsChildProcess::Sleep(unsigned int milliseconds) {
+  Sleep(milliseconds);
+};
+
 
 size_t WindowsChildProcess::GetMemoryUsage() {
   PROCESS_MEMORY_COUNTERS pmc;
   if (!child_process.hProcess) {
     return 0;
   }
-
   if (GetProcessMemoryInfo(child_process.hProcess, &pmc, sizeof(pmc))) {
     return (size_t) pmc.WorkingSetSize;
   }
@@ -409,6 +467,10 @@ bool WindowsChildProcess::IsAlive() {
   }
   return exit_code == STILL_ACTIVE;
 };
+
+bool WindowsChildProcess::Started() {
+  return child_process.hProcess != NULL;
+}
 
 WindowsChildProcess::WindowsChildProcess()
     : logger_(NULL), pendingNannyMsg_("") {
@@ -514,6 +576,49 @@ bool StopService(SC_HANDLE service_handle, int time_out) {
 }
 
 
+#if defined(_WIN32)
+typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS) (HANDLE, BOOL*);
+
+// ---------------------------------------------------------
+// windows_nanny_IsWow64Process()
+//
+//     Replace of IsWow64Process function for Windows XP SP1
+// and earlier versions. Uses dynamic late binding to call the
+// IsWow64Process function or returns False otherwise.
+// Returns True if successful, False otherwise
+// ---------------------------------------------------------
+BOOL windows_nanny_IsWow64Process(HANDLE hProcess, BOOL *Wow64Process) {
+  LPFN_ISWOW64PROCESS function = NULL;
+  HMODULE library_handle = NULL;
+  BOOL result = FALSE;
+
+  if (hProcess == NULL) {
+    return FALSE;
+  }
+  if (Wow64Process == NULL) {
+    return FALSE;
+  }
+  library_handle = LoadLibrary(_T("kernel32.dll"));
+
+  if (library_handle == NULL) {
+    return FALSE;
+  }
+  function = (LPFN_ISWOW64PROCESS) GetProcAddress(
+      library_handle, (LPCSTR) "IsWow64Process");
+
+  if (function != NULL) {
+    result = function(hProcess, Wow64Process);
+  } else {
+    *Wow64Process = FALSE;
+    result = TRUE;
+  }
+  if (FreeLibrary(library_handle) != TRUE) {
+    result = FALSE;
+  }
+  return result;
+}
+#endif
+
 // ---------------------------------------------------------
 // InstallService()
 //
@@ -531,7 +636,16 @@ bool InstallService() {
 
 #if defined(_WIN32)
   BOOL f64 = FALSE;
-  if (IsWow64Process(GetCurrentProcess(), &f64) && f64) {
+  BOOL result = FALSE;
+
+  // Using dynamic late binding here to support WINVER < 0x501
+  // TODO(user): remove this function make sure to have installer
+  // detect right platform also see:
+  // http://blogs.msdn.com/b/david.wang/archive/2006/03/26/
+  // howto-detect-process-bitness.aspx
+  result = windows_nanny_IsWow64Process(GetCurrentProcess(), &f64);
+
+  if (result && f64) {
     printf("32 bit installer should not be run on a 64 bit machine!\n");
     return false;
   }
@@ -687,6 +801,11 @@ VOID WINAPI ServiceMain(DWORD argc, TCHAR *argv) {
   // Report running status when initialization is complete.
   ReportSvcStatus(SERVICE_RUNNING, NO_ERROR, 0);
 
+  child.CreateChildProcess();
+
+  // Give the child process some time to start up.
+  child.Heartbeat();
+
   time_t sleep_time = 0;
   // Spin in this loop until the service is stopped.
   while (1) {
@@ -701,7 +820,7 @@ VOID WINAPI ServiceMain(DWORD argc, TCHAR *argv) {
         child.KillChild("Child process exceeded memory limit.");
         break;
       }
-      if (!child.IsAlive()) {
+      if (child.Started() && !child.IsAlive()) {
         // This could be part of a normal shutdown so we don't send the message
         // right away.
         child.SetPendingNannyMessage("Unexpected child process exit!");

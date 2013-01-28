@@ -16,18 +16,13 @@
 
 
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib.aff4_objects import standard
-from grr.proto import jobs_pb2
-
-
-class ClientStatsProto(aff4.RDFProto):
-  """A list of client stat objects."""
-  _proto = jobs_pb2.ClientStats
 
 
 class ClientStats(standard.VFSDirectory):
   """A container for all process listings."""
 
   class SchemaCls(standard.VFSDirectory.SchemaCls):
-    STATS = aff4.Attribute("aff4:stats", ClientStatsProto,
+    STATS = aff4.Attribute("aff4:stats", rdfvalue.ClientStats,
                            "Client Stats.", "Client stats")

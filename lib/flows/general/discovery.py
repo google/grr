@@ -20,19 +20,20 @@ import os
 from grr.lib import aff4
 from grr.lib import constants
 from grr.lib import flow
+from grr.lib import rdfvalue
+from grr.lib import type_info
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 class EnrolmentInterrogateEvent(flow.EventListener):
   """An event handler which will schedule interrogation on client enrollment."""
   EVENTS = ["ClientEnrollment"]
-  well_known_session_id = "W:Interrogate"
+  well_known_session_id = "aff4:/flows/W:Interrogate"
 
-  @flow.EventHandler(in_protobuf=jobs_pb2.Certificate, source_restriction="CA")
+  @flow.EventHandler(source_restriction="CA")
   def ProcessMessage(self, message=None, event=None):
     _ = message
-    flow.FACTORY.StartFlow(event.cn, "Interrogate", token=self.token)
+    flow.FACTORY.StartFlow(event.common_name, "Interrogate", token=self.token)
 
 
 class Interrogate(flow.GRRFlow):
@@ -41,9 +42,12 @@ class Interrogate(flow.GRRFlow):
   category = "/Administrative/"
   client = None
 
-  def __init__(self, lightweight=False, **kw):
-    self.lightweight = lightweight
-    super(Interrogate, self).__init__(**kw)
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.Bool(
+          description="Perform a light weight version of the interrogate.",
+          name="lightweight",
+          default=False)
+      )
 
   @flow.StateHandler(next_state=["Hostname", "Platform",
                                  "InstallDate", "EnumerateUsers",
@@ -68,10 +72,11 @@ class Interrogate(flow.GRRFlow):
       profiles_key = (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft"
                       r"\Windows NT\CurrentVersion\ProfileList")
 
-      user_list = jobs_pb2.Path(path=profiles_key,
-                                pathtype=jobs_pb2.Path.REGISTRY)
-      request = jobs_pb2.Find(pathspec=user_list,
-                              path_regex="ProfileImagePath", max_depth=2)
+      request = rdfvalue.RDFFindSpec(path_regex="ProfileImagePath", max_depth=2)
+
+      request.pathspec.path = profiles_key
+      request.pathspec.pathtype = request.pathspec.REGISTRY
+
       # Download all the Registry keys, it is limited by max_depth.
       request.iterator.number = 10000
       self.CallClient("Find", request, next_state="VerifyUsers")
@@ -102,7 +107,7 @@ class Interrogate(flow.GRRFlow):
         # Support old clients.
         homedir = utils.SmartUnicode(response.hit.resident)
       else:
-        homedir = utils.DataBlob(response.hit.registry_data).GetValue()
+        homedir = response.hit.registry_data.GetValue()
       # Cut away ProfilePath
       path = os.path.dirname(response.hit.pathspec.path)
       sid = os.path.basename(path)
@@ -121,8 +126,7 @@ class Interrogate(flow.GRRFlow):
     if not responses.success:
       return
 
-    for response in responses:
-      acc = utils.ProtoDict(response).ToDict()
+    for acc in responses:
       # It could happen that wmi returns an AD user with the same name as the
       # local one. In this case, we just ignore the unknown SID.
       if acc["SID"] not in self.sid_data.iterkeys():
@@ -132,8 +136,9 @@ class Interrogate(flow.GRRFlow):
       folder_path = (r"HKEY_USERS\%s\Software\Microsoft\Windows"
                      r"\CurrentVersion\Explorer\Shell Folders") % acc["SID"]
       self.CallClient("ListDirectory",
-                      pathspec=jobs_pb2.Path(path=folder_path,
-                                             pathtype=jobs_pb2.Path.REGISTRY),
+                      pathspec=rdfvalue.RDFPathSpec(
+                          path=folder_path,
+                          pathtype=rdfvalue.RDFPathSpec.Enum("REGISTRY")),
                       request_data=responses.request_data,
                       next_state="VerifyFolders")
 
@@ -148,11 +153,11 @@ class Interrogate(flow.GRRFlow):
           if folder == returned_folder:
             profile_folders[pb_field] = (
                 response.resident or
-                utils.DataBlob(response.registry_data).GetValue())
+                response.registry_data.GetValue())
             break
       # Save the user pb.
       data = self.sid_data[responses.request_data["SID"]]
-      data["special_folders"] = jobs_pb2.FolderInformation(**profile_folders)
+      data["special_folders"] = rdfvalue.FolderInformation(**profile_folders)
 
       if self.OutstandingRequests() == 1:
         # This is the last response -> save all data.
@@ -165,10 +170,10 @@ class Interrogate(flow.GRRFlow):
         data = responses.request_data
         data["pb_field"] = pb_field
         self.CallClient("StatFile",
-                        pathspec=jobs_pb2.Path(
+                        pathspec=rdfvalue.RDFPathSpec(
                             path=utils.JoinPath(homedir,
                                                 subdirectory),
-                            pathtype=jobs_pb2.Path.OS),
+                            pathtype=rdfvalue.RDFPathSpec.Enum("OS")),
                         request_data=data,
                         next_state="SaveFolders")
 
@@ -183,11 +188,11 @@ class Interrogate(flow.GRRFlow):
         path = path.lstrip("/").replace("/", "\\")
         profile_folders[responses.request_data["pb_field"]] = path
       data = self.sid_data[responses.request_data["SID"]]
-      folder_pb = jobs_pb2.FolderInformation(**profile_folders)
+      folder = rdfvalue.FolderInformation(**profile_folders)
       try:
-        data["special_folders"].MergeFrom(folder_pb)
+        data["special_folders"].MergeFrom(folder)
       except KeyError:
-        data["special_folders"] = folder_pb
+        data["special_folders"] = folder
 
     if self.OutstandingRequests() == 1:
       # This is the last response -> save all the data.
@@ -200,10 +205,10 @@ class Interrogate(flow.GRRFlow):
     for sid in self.sid_data.iterkeys():
       data = self.sid_data[sid]
       usernames.append(data["username"])
-      user_list.Append(jobs_pb2.UserAccount(**data))
+      user_list.Append(rdfvalue.User(**data))
       self.client.AddAttribute(self.client.Schema.USER, user_list)
     self.client.AddAttribute(self.client.Schema.USERNAMES(
-        " ".join(usernames)))
+        " ".join(sorted(usernames))))
 
   @flow.StateHandler()
   def Platform(self, responses):
@@ -225,14 +230,13 @@ class Interrogate(flow.GRRFlow):
       # "AMD64", "IA64" or "x86"
       self.client.Set(self.client.Schema.ARCH(response.machine))
       self.client.Set(self.client.Schema.UNAME("%s-%s-%s" % (
-          response.system, response.version,
-          response.release)))
+          response.system, response.release, response.version)))
 
       # Windows systems get registry hives
       if response.system == "Windows":
         fd = self.client.CreateMember("registry", "VFSDirectory")
-        fd.Set(fd.Schema.PATHSPEC, fd.Schema.PATHSPEC(jobs_pb2.Path(
-            path="/", pathtype=jobs_pb2.Path.REGISTRY)))
+        fd.Set(fd.Schema.PATHSPEC, fd.Schema.PATHSPEC(
+            path="/", pathtype=rdfvalue.RDFPathSpec.Enum("REGISTRY")))
         fd.Close()
     else:
       self.Log("Could not retrieve Platform info.")
@@ -249,7 +253,7 @@ class Interrogate(flow.GRRFlow):
   @flow.StateHandler()
   def EnumerateUsers(self, responses):
     """Store all users in the data store and maintain indexes."""
-    if responses.success and len(responses):
+    if responses.success and responses:
       usernames = []
       user_list = self.client.Schema.USER()
       # Add all the users to the client object
@@ -268,8 +272,8 @@ class Interrogate(flow.GRRFlow):
   @flow.StateHandler()
   def EnumerateInterfaces(self, responses):
     """Enumerates the interfaces."""
-    if responses.success and len(responses):
-      net_fd = self.client.OpenMember("network", mode="rw")
+    if responses.success and responses:
+      net_fd = self.client.CreateMember("network", "Network")
       interface_list = net_fd.Schema.INTERFACES()
       mac_addresses = []
       for response in responses:
@@ -298,12 +302,14 @@ class Interrogate(flow.GRRFlow):
           (device, offset) = response.device.rsplit(":", 1)
 
           offset = int(offset)
-          nested_pathspec = jobs_pb2.Path(path="/",
-                                          pathtype=jobs_pb2.Path.TSK)
-          pathspec = jobs_pb2.Path(path=device,
-                                   pathtype=jobs_pb2.Path.OS,
-                                   offset=offset,
-                                   nested_path=nested_pathspec)
+
+          pathspec = rdfvalue.RDFPathSpec(
+              path=device, pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+              offset=offset)
+
+          pathspec.Append(path="/",
+                          pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+
           urn = self.client.PathspecToURN(pathspec, self.client.urn)
           fd = self.client.CreateMember(urn, "VFSDirectory")
           fd.Set(fd.Schema.PATHSPEC(pathspec))
@@ -313,12 +319,12 @@ class Interrogate(flow.GRRFlow):
         if response.device:
           # Create the raw device
           urn = "devices/%s" % response.device
-          nested_pathspec = jobs_pb2.Path(path="/",
-                                          pathtype=jobs_pb2.Path.TSK)
 
-          pathspec = jobs_pb2.Path(path=response.device,
-                                   pathtype=jobs_pb2.Path.OS,
-                                   nested_path=nested_pathspec)
+          pathspec = rdfvalue.RDFPathSpec(
+              path=response.device, pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+
+          pathspec.Append(path="/",
+                          pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
 
           fd = self.client.CreateMember(urn, "VFSDirectory")
           fd.Set(fd.Schema.PATHSPEC(pathspec))
@@ -332,8 +338,10 @@ class Interrogate(flow.GRRFlow):
 
         if response.mount_point:
           # Create the OS device
-          pathspec = jobs_pb2.Path(path=response.mount_point,
-                                   pathtype=jobs_pb2.Path.OS)
+          pathspec = rdfvalue.RDFPathSpec(
+              path=response.mount_point,
+              pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+
           urn = self.client.PathspecToURN(pathspec, self.client.urn)
           fd = self.client.CreateMember(urn, "VFSDirectory")
           fd.Set(fd.Schema.PATHSPEC(pathspec))
@@ -352,7 +360,7 @@ class Interrogate(flow.GRRFlow):
     else:
       self.Log("Could not get ClientInfo.")
 
-  @flow.StateHandler(jobs_pb2.GRRConfig)
+  @flow.StateHandler()
   def ClientConfig(self, responses):
     """Process client config."""
     if responses.success:
@@ -365,7 +373,10 @@ class Interrogate(flow.GRRFlow):
   def End(self):
     """Finalize client registration."""
     # Create the bare VFS with empty virtual directories.
-    fd = aff4.FACTORY.Create(self.client.urn.Add("processes"),
-                             "ProcessListing", token=self.token)
+    fd = self.client.CreateMember("processes", "ProcessListing")
     fd.Close()
-    self.Notify("Discovery", self.client_id, "Client Discovery Complete")
+
+    self.Notify("Discovery", self.client.urn, "Client Discovery Complete")
+
+    # Flush the data to the data store.
+    self.client.Close()

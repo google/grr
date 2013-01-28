@@ -16,7 +16,6 @@
 """GUI elements allowing launching and management of flows."""
 
 
-import functools
 import urllib
 
 
@@ -27,6 +26,7 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import flow_context
+from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
 from grr.proto import jobs_pb2
@@ -36,6 +36,7 @@ class LaunchFlows(renderers.Splitter):
   """Launches a new flow."""
   description = "Start new flows"
   behaviours = frozenset(["Host"])
+  order = 10
 
   left_renderer = "FlowTree"
   top_right_renderer = "FlowForm"
@@ -55,28 +56,19 @@ class FlowTree(renderers.TreeRenderer):
   def EnumerateCategories(self, path, request):
     """Search through all flows for categories starting with path."""
     categories = set()
-    userlabels = None
     flows = set()
     # Use an object for path manipulations.
-    path = aff4.RDFURN(path)
+    path = rdfvalue.RDFURN(path)
 
     for name, cls in flow.GRRFlow.classes.items():
       if not cls.category:
         continue
       if cls.AUTHORIZED_LABELS:
-        if userlabels is None:
-          userlabels = set()
-          user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users")
-                                      .Add(request.token.username)
-                                      .Add("labels"), token=request.token)
-          for label in user_fd.Get(user_fd.Schema.LABEL).data.label:
-            userlabels.add(label)
-
-        intersection = userlabels & set(cls.AUTHORIZED_LABELS)
-        if not intersection:
+        if not data_store.DB.security_manager.CheckUserLabels(
+            request.token.username, cls.AUTHORIZED_LABELS):
           continue
 
-      category = aff4.RDFURN(cls.category)
+      category = rdfvalue.RDFURN(cls.category)
       if category == path:
         flows.add(name)
       else:
@@ -160,39 +152,6 @@ Prototype: {{ this.prototype|escape }}
   # This is prepended to flow args to eliminate clashes with other parameters.
   arg_prefix = "v_"
 
-  def GetArgs(self, flow_class, request, arg_template=None):
-    """Return all the required args for the flow."""
-
-    if arg_template is None:
-      arg_template = self.arg_prefix + "%s"
-    multi_arg_template = arg_template + "[]"
-
-    result = []
-    for arg_name, arg_type, arg_default in flow_class.GetFlowArgTypeInfo():
-
-      # Note this is a hack that requires refactoring of the typeinfo/renderer
-      # binding. The correct solution is that the get_var is handled in the
-      # renderer, and the DecodeString intelligence is moved there as well.
-      if not isinstance(arg_type, type_info.MultiSelectList):
-        # Retrieve the value from the request, use arg default if not present.
-        get_var = request.REQ.get(arg_template % utils.SmartStr(arg_name))
-        if get_var is None:
-          get_var = arg_default
-        else:
-          get_var = arg_type.DecodeString(get_var)
-      else:
-        # This is from a multiselect option box, variables are called v_var[]
-        get_var = request.REQ.getlist(multi_arg_template %
-                                      utils.SmartStr(arg_name))
-        if get_var is None:
-          get_var = arg_default
-
-      # We append a special prefix to prevent name collisions.
-      result.append((arg_name, arg_template % utils.SmartStr(arg_name),
-                     arg_type, get_var, arg_default))
-
-    return result
-
   def Layout(self, request, response):
     """Update the progress bar based on the progress reported."""
     self.flow_name = request.REQ.get("flow_path", "").split("/")[-1]
@@ -203,6 +162,7 @@ Prototype: {{ this.prototype|escape }}
       return response
 
     self.states = []
+
     # Fill in information about each state
     for state_method in flow_class.__dict__.values():
       try:
@@ -218,15 +178,16 @@ Prototype: {{ this.prototype|escape }}
       except AttributeError:
         pass
 
-    args = self.GetArgs(flow_class, request)
-    self.prototype = "%s(%s)" % (flow_class.__name__,
-                                 ", ".join([x[0] for x in args]))
+    # Now fill in information about each arg to this flow.
+    prototypes = []
+    for type_descriptor in flow_class.flow_typeinfo:
+      if not type_descriptor.hidden:
+        prototypes.append("%s %s" % (type_descriptor.__class__.__name__,
+                                     type_descriptor.name))
 
-    self.prototype_doc = ""
+    self.prototype = "%s(%s)" % (flow_class.__name__, ", ".join(prototypes))
+
     self.flow_doc = flow_class.__doc__
-
-    if flow_class.__init__.__doc__ != flow.GRRFlow.__init__.__doc__:
-      self.prototype_doc = flow_class.__init__.__doc__
 
     return super(FlowInformation, self).Layout(request, response)
 
@@ -239,19 +200,24 @@ class FlowForm(FlowInformation):
       rerender ourselves to make a new form.
   """
 
+  # Prefix to use in form elements' names
+  prefix = "v_"
+
+  # Ignore flow argumentes with given names
+  ignore_flow_args = []
+
   layout_template = renderers.Template("""
 <div class="FormBody" id="FormBody_{{unique|escape}}">
 <form id='form_{{unique|escape}}' method='POST'>
-{% if this.form_elements %}
+{% if this.flow_name %}
   <input type=hidden name='FlowName' value='{{ this.flow_name|escape }}'/>
   <table><tbody><tr>
   <td class='proto_key'>Client ID</td><td>
   <div class="proto_value" id="client_id_{{unique|escape}}">
     {{this.client_id|escape}}</div></td>
 
-  {% for form_element in this.form_elements %}
-    <tr>{{form_element|escape}}</tr>
-  {% endfor %}
+  {{this.flow_args|safe}}
+
   </tbody></table>
   <input id='submit_{{unique|escape}}' type="submit" value="Launch"/>
 {% endif %}
@@ -290,33 +256,26 @@ class FlowForm(FlowInformation):
     self.client_id = request.REQ.get("client_id", "")
     self.client = aff4.FACTORY.Open(self.client_id, token=request.token)
 
+    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
+
     # Fill in the form elements
-    try:
+    if self.flow_name in flow.GRRFlow.classes:
       flow_class = flow.GRRFlow.classes[self.flow_name]
-      self.form_elements = self.RenderFormElements(
-          self.GetArgs(flow_class, request))
-    except KeyError:
-      pass
+      flow_typeinfo = flow_class.flow_typeinfo
+
+      # Merge standard flow args if needed
+      if flow_typeinfo is not flow.GRRFlow.flow_typeinfo:
+        flow_typeinfo = flow_typeinfo.Add(flow.GRRFlow.flow_typeinfo)
+
+      # Filter out ignored args so that they do not get rendered
+      flow_typeinfo = flow_typeinfo.Remove(
+          *[arg for arg in self.ignore_flow_args
+            if flow_typeinfo.HasDescriptor(arg)])
+
+      self.flow_args = type_descriptor_renderer.Form(
+          flow_typeinfo, request, prefix=self.prefix)
 
     return renderers.TemplateRenderer.Layout(self, request, response)
-
-  def RenderFormElements(self, args):
-    """Produce html for each arg so a form can be build."""
-    for desc, field, arg_type, value, default in args:
-      if not isinstance(arg_type, type_info.TypeInfoObject):
-        raise RuntimeError("%s is not a valid TypeInfoObject" % arg_type)
-      else:
-        form_renderer = renderers.Renderer.classes[arg_type.renderer]()
-        yield form_renderer.Format(arg_type=arg_type, field=field, desc=desc,
-                                   value=value, default=default,
-                                   client=self.client, unique=self.unique)
-
-    arg_type = type_info.ProtoEnum(jobs_pb2.GrrMessage, "Priority")
-    form_renderer = renderers.Renderer.classes[arg_type.renderer]()
-
-    yield form_renderer.Format(desc="Priority", field="priority",
-                               arg_type=arg_type, default=1, value=1,
-                               unique=self.unique)
 
 
 class FlowFormAction(FlowInformation):
@@ -363,9 +322,9 @@ class FlowFormAction(FlowInformation):
 Launched flow <b>{{this.flow_name|escape}}</b><br/>
 {{this.flow_id|escape}}<br/>
 parameters: <p>
-client_id = {{ this.client_id|escape }}
+client_id = '{{ this.client_id|escape }}'
 {% for desc, arg in this.args_sent %}
-<br>  {{ desc|escape }} = '{{ arg|escape }}'
+<br>  {{ desc|escape }} = {{ arg|escape }}
 {% endfor %}
 <div class='button_row'>
 """ + back_button + view_button + "</div>")
@@ -392,23 +351,30 @@ client_id = {{ this.client_id|escape }}
       if not self.client_id:
         raise RuntimeError("Client Id Not provided.")
 
+      type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
+
       # We need to be careful here as an attacker controls flow name and
       # arguments. Make sure to append the token and event_id as keyword
       # arguments to the constructor - this will raise if a non-flow reference
       # happened to make its way here, and is thus more defensive.
-      self.args = {}
-      self.args["event_id"] = request.event_id
+      self.args = dict(type_descriptor_renderer.ParseArgs(
+          flow_class.flow_typeinfo, request))
 
-      for name, _, _, value, _ in self.GetArgs(flow_class, request):
-        self.args[name] = value
+      self.args["event_id"] = request.event_id
 
       priority = request.REQ.get("priority")
       if priority:
         self.args["priority"] = int(priority)
 
+      self.args_sent = []
+      for (k, v) in self.args.items():
+        value = utils.SmartUnicode(v)
+        if v:
+          value = "'" + value + "'"
+        self.args_sent.append((utils.SmartUnicode(k), value))
+
       self.flow_id = flow.FACTORY.StartFlow(self.client_id, self.flow_name,
                                             token=request.token, **self.args)
-      self.args_sent = self.args.items()
 
       return renderers.TemplateRenderer.Layout(self, request, response)
 
@@ -445,36 +411,26 @@ class FlowStateIcon(renderers.RDFValueRenderer):
   src='/static/images/{{this.icon|escape}}' />""")
 
   # Maps the flow states to icons we can show
-  state_map = {jobs_pb2.FlowPB.TERMINATED: "stock_yes.png",
-               jobs_pb2.FlowPB.RUNNING: "clock.png",
-               jobs_pb2.FlowPB.ERROR: "nuke.png"}
+  state_map = {"TERMINATED": "stock_yes.png",
+               "RUNNING": "clock.png",
+               "ERROR": "nuke.png"}
 
   icon = "question-red.png"
 
   def Layout(self, request, response):
     try:
-      self.icon = self.state_map[int(self.proxy)]
+      self.icon = self.state_map[str(self.proxy)]
     except (KeyError, ValueError):
       pass
 
     super(FlowStateIcon, self).Layout(request, response)
 
 
-class FlowArgsRenderer(renderers.RDFProtoRenderer):
-  """Render the flow args."""
-
-  def Layout(self, _, response):
-    response.write(self.ProtoDict(_, self.proxy.data))
-
-    return response
-
-
-# Here we want the same behaviour as VirtualFileSystemView (i.e. present a
-# select client form initially), but then we want a 2 way splitter instead.
 class ManageFlows(renderers.Splitter2Way):
-  """Managed launched flows."""
+  """View launched flows in a tree."""
   description = "Manage launched flows"
   behaviours = frozenset(["Host"])
+  order = 20
 
   top_renderer = "ListFlowsTable"
   bottom_renderer = "FlowTabView"
@@ -484,8 +440,9 @@ class FlowTabView(renderers.TabLayout):
   """Show various flow information in a Tab view.
 
   Listening Javascript Events:
-    - flow_table_select(flow_path) - A selection event on the tree informing us
-      of the flow path. The basename of flow_path is the name of the flow.
+    - flow_table_select(flow_aff4_path) - A selection event on the tree
+      informing us of the flow aff4 path. The basename of flow_path is the name
+      of the flow.
 
   Internal State:
     - flow_path - The category and name of the flow we display.
@@ -509,14 +466,6 @@ grr.subscribe('flow_table_select', function (path) {
     return super(FlowTabView, self).Layout(request, response)
 
 
-class RequestStateRenderer(renderers.RDFProtoRenderer):
-  """Render the RequestState proto."""
-
-  translator = dict(
-      request=functools.partial(renderers.RDFProtoRenderer.RDFProtoRenderer,
-                                proto_renderer_name="GrrRequestRenderer"))
-
-
 class FlowRequestView(renderers.TableRenderer):
   """View outstanding requests for a flow.
 
@@ -527,11 +476,10 @@ class FlowRequestView(renderers.TableRenderer):
 
   post_parameters = ["flow", "client_id"]
 
-  def __init__(self):
-    super(FlowRequestView, self).__init__()
+  def __init__(self, **kwargs):
+    super(FlowRequestView, self).__init__(**kwargs)
     self.AddColumn(renderers.RDFValueColumn("ID", width=10))
-    self.AddColumn(renderers.RDFValueColumn("Request",
-                                            renderer=RequestStateRenderer))
+    self.AddColumn(renderers.RDFValueColumn("Request"))
 
   def BuildTable(self, start_row, end_row, request):
     session_id = request.REQ.get("flow", "")
@@ -550,10 +498,8 @@ class FlowRequestView(renderers.TableRenderer):
         break
 
       # Tie up the request to each response to make it easier to render.
-      rdf_req_state = aff4.RDFProto(req_state)
-
       self.AddCell(i, "ID", predicate)
-      self.AddCell(i, "Request", rdf_req_state)
+      self.AddCell(i, "Request", rdfvalue.RequestState(req_state))
 
 
 class TreeColumn(renderers.RDFValueColumn, renderers.TemplateRenderer):
@@ -561,12 +507,10 @@ class TreeColumn(renderers.RDFValueColumn, renderers.TemplateRenderer):
 
   template = renderers.Template("""
 {% if this.branch %}
-<span depth='{{this.depth|escape}}' onclick='grr.table.hideChildRows(this);'
-  style='margin-left: {{this.depth|escape}}em;' class='tree_closed tree_branch
-  {% if this.depth %}
-    tree_hidden
-  {% endif %}
-  '/>
+<span depth='{{this.depth|escape}}'
+  onclick='grr.table.toggleChildRows(this, "{{this.value|escapejs}}");'
+  style='margin-left: {{this.depth|escape}}em;'
+  class='tree_closed tree_branch'/>
 {% else %}
 <span depth='{{this.depth|escape}}' class='tree_leaf'
    style='margin-left: {{this.depth|escape}}em;' />
@@ -582,8 +526,6 @@ class TreeColumn(renderers.RDFValueColumn, renderers.TemplateRenderer):
     self.index = index
 
     row_options["row_id"] = index
-    if self.depth:
-      row_options["class"] = "tree_hidden"
 
     renderer = self.renderer
     if renderer is None:
@@ -608,7 +550,7 @@ class FlowColumn(TreeColumn):
 <div id='cancel_{{this.index|escape}}' flow_id="{{this.value|escape}}"
   style='float: left'>
 </div>""" + TreeColumn.template + """
-{{this.value|safe}}
+{{this.value.Basename|safe}}
 """
 
 
@@ -654,8 +596,10 @@ class ListFlowsTable(renderers.TableRenderer):
   grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
     if (node) {
       flow = node.find("div[flow_id]").attr('flow_id');
-      grr.publish("{{ this.selection_publish_queue|escapejs }}",
-                  flow);
+      if (flow) {
+        grr.publish("{{ this.selection_publish_queue|escapejs }}",
+                    flow);
+      };
     };
   }, '{{ unique|escapejs }}');
 
@@ -667,8 +611,18 @@ class ListFlowsTable(renderers.TableRenderer):
 </script>
 """
 
-  def __init__(self):
-    super(ListFlowsTable, self).__init__()
+  def _ExpandVolumes(self, flows):
+    """Recursively flattens mixed list of GRRFlow and AFF4Volume objects."""
+    result = []
+    for f in flows:
+      if not isinstance(f, aff4.AFF4Object.GRRFlow):
+        result.extend(self._ExpandVolumes(f.OpenChildren()))
+      else:
+        result.append(f)
+    return result
+
+  def __init__(self, **kwargs):
+    super(ListFlowsTable, self).__init__(**kwargs)
     self.AddColumn(renderers.AttributeColumn(
         "Flow.state", renderer=FlowStateIcon, width=0))
     self.AddColumn(FlowColumn("Path", renderer=renderers.SubjectRenderer))
@@ -677,109 +631,36 @@ class ListFlowsTable(renderers.TableRenderer):
     self.AddColumn(renderers.RDFValueColumn("Last Active"))
     self.AddColumn(renderers.AttributeColumn("Flow.creator"))
 
-  def _BuildParentTree(self, flows):
-    """Given a list of flows, builds an index of the flows.
-
-    We also add a children list to each flow.
-
-    Args:
-       flows: A list of GRRFlow objects.
-
-    Returns:
-       A dict of all flow objects, keyed by session_id. Each flow object will
-       also have a children list of its children. In addition, the "root" object
-       will contain all the flows without parents.
-    """
-    # Make a root node to hold all unparented flows.
-    root = aff4.RDFValue.classes["Flow"]()
-    root.children = []
-
-    index = {"root": root}
-
-    # We use the precondition that later flows are always parented by earlier
-    # flows. So we can not have a situation where a parent flow can not be
-    # found.
-    for flow_obj in sorted(flows, key=lambda x: x.flow_pb.data.create_time):
-      # Assume that session_ids are unique.
-      index[flow_obj.session_id] = flow_obj
-      flow_obj.children = []
-
-      # If there are parents, add them here.
-      parent = flow_obj.flow_pb.data.request_state.session_id
-
-      # Reparent orphans to the root. This happens when we fetch more of flows
-      # for the incremental table, and the new flows really belong to a flow
-      # fetched by previous refresh. By re-parenting these orphans at least we
-      # can show them in the table.
-      if parent not in index:
-        parent = "root"
-
-      index[parent].children.append(flow_obj)
-
-    return index
-
-  def BuildTable(self, start, end, request):
+  def BuildTable(self, start, _, request):
     """Renders the table."""
-    client_id = request.REQ.get("client_id")
-    if not client_id: return
-    self.row_index = start
+    depth = request.REQ.get("depth", 0)
+    flow_urn = request.REQ.get("value")
+    if flow_urn is None:
+      client_id = request.REQ.get("client_id")
+      if not client_id: return
 
-    # Flows are stored as versions of the FLOW attribute, so here we need all
-    # the versions so we can list them in the table.
-    client = aff4.FACTORY.Create(client_id, "VFSGRRClient", mode="r",
-                                 token=request.token, age=aff4.ALL_TIMES)
+      flow_urn = rdfvalue.RDFURN(client_id).Add("flows")
 
-    # This is how many flows we have.
-    flows = client.GetValuesForAttribute(client.Schema.FLOW)
+    flow_root = aff4.FACTORY.Open(flow_urn, mode="r", token=request.token)
 
-    self.size = len(flows)
+    row_index = start
+    # Using _ExpandVolumes to get a list of all the flows, including the ones
+    # which are stored in "[hunt_id]:hunt" volumes inside "[client_id]/flows".
+    for flow_obj in sorted(self._ExpandVolumes(flow_root.OpenChildren()),
+                           key=lambda x: x.create_time,
+                           reverse=True):
+      if list(flow_obj.ListChildren()):
+        row_type = "branch"
+      else:
+        row_type = "leaf"
 
-    flows = flows[start:end]
+      self.columns[1].AddElement(row_index, flow_obj.urn, depth, row_type)
 
-    # Sort the flows so the most recent ones are at the top.
-    index = self._BuildParentTree(client.GetFlows(start=start, length=end-start,
-                                                  age_policy=aff4.NEWEST_TIME))
-
-    def RenderBranch(session_id, depth):
-      """Render a single branch of the tree."""
-      children = index[session_id].children
-      children.sort(key=lambda x: x.flow_pb.data.create_time, reverse=True)
-      nodes = 0
-
-      for child in children:
-        if child.children:
-          row_type = "branch"
-        else:
-          row_type = "leaf"
-
-        self.columns[1].AddElement(self.row_index, child.session_id,
-                                   depth, row_type)
-        self.columns[4].AddElement(self.row_index, child.flow_pb.age)
-        self.AddRowFromFd(self.row_index, child)
-
-        self.row_index += 1
-        nodes += 1
-
-        # Now do the children
-        if row_type == "branch":
-          RenderBranch(child.session_id, depth + 1)
-
-      return nodes
-
-    # Recursively render all the branches.
-    RenderBranch("root", 0)
-
-    for f in flows:
-      session_id = f.Split()[-1]
-      if session_id not in index:
-        self.columns[1].AddElement(self.row_index, session_id, 0, "leaf")
-        self.columns[2].AddElement(self.row_index,
-                                   "Flow too old, no information")
-        self.columns[4].AddElement(self.row_index, f.age)
-        self.row_index += 1
+      self.AddRowFromFd(row_index, flow_obj)
+      row_index += 1
 
     # The last row we wrote.
-    return self.row_index
+    return row_index
 
 
 class ShowFlowInformation(fileview.AFF4Stats):
@@ -811,9 +692,8 @@ Please select a flow to manage from the above table.
     """Introspect the Schema for flow objects."""
     try:
       self.state["flow"] = session_id = request.REQ["flow"]
-      switch = aff4.FACTORY.Open(aff4.FLOW_SWITCH_URN, token=request.token,
-                                 age=aff4.ALL_TIMES)
-      self.fd = switch.OpenMember(session_id)
+      self.fd = aff4.FACTORY.Open(session_id, token=request.token,
+                                  age=aff4.ALL_TIMES)
       self.classes = self.RenderAFF4Attributes(self.fd, request)
       self.path = self.fd.urn
     except (KeyError, IOError):
@@ -855,27 +735,6 @@ class FlowPBRenderer(renderers.RDFProtoRenderer):
   classname = "Flow"
   name = "Flow Protobuf"
 
-  # {{value}} comes from the translator so its assumed to be safe.
-  proto_template = renderers.Template("""
-<table class='proto_table'>
-<tbody>
-{% for key, value in data %}
-<tr>
-<td class="proto_key">{{key|escape}}</td><td class="proto_value">
-{{value|safe}}
-</td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
-""")
-
-  def RenderProtoDict(self, _, protodict):
-    protodict = utils.ProtoDict(protodict)
-
-    return self.FormatFromTemplate(self.proto_template,
-                                   data=protodict.ToDict().items())
-
   backtrace_template = renderers.Template("""
 <div id='hidden_pre_{{name|escape}}'>
   <ins class='fg-button ui-icon ui-icon-minus'/>
@@ -899,12 +758,8 @@ $('#hidden_pre_{{name|escape}}').click(function () {
 
   # Pretty print these special fields.
   translator = dict(
-      create_time=renderers.RDFProtoRenderer.Time,
       pickle=renderers.RDFProtoRenderer.Ignore,
-      backtrace=RenderBacktrace,
-      state=renderers.RDFProtoRenderer.Enum,
-      ts_id=renderers.RDFProtoRenderer.Ignore,
-      args=renderers.RDFProtoRenderer.ProtoDict,
+      children=renderers.RDFProtoRenderer.Ignore,
       network_bytes_sent=renderers.RDFProtoRenderer.HumanReadableBytes)
 
 
@@ -915,12 +770,12 @@ class FlowNotificationRenderer(renderers.RDFValueRenderer):
   # Note here that following href e.g. right click new tab will give a fresh URL
   # but clicking will maintain state of other tabs.
   layout_template = renderers.Template("""
-{% if this.proxy.data.type == "ViewObject" %}
+{% if this.proxy.type == "ViewObject" %}
 <a id="{{unique}}" href="/#{{this.BuildHash|escape}}"
 target_hash="{{this.BuildHash|escape}}">
-{{this.proxy.data.subject|escape}}</a>
+{{this.proxy.subject|escape}}</a>
 {% endif %}
-{{this.proxy.data.message|escape}}
+{{this.proxy.message|escape}}
 
 <script>
 $("#{{unique|escape}}").click(function(){
@@ -932,7 +787,7 @@ $("#{{unique|escape}}").click(function(){
   def BuildHash(self):
     """Build hash string to navigate to the appropriate location."""
     h = {}
-    path = aff4.RDFURN(self.proxy.data.subject)
+    path = rdfvalue.RDFURN(self.proxy.subject)
     components = path.Path().split("/")[1:]
     h["c"] = components[0]
     h["path"] = "/".join(components[1:])
@@ -940,3 +795,16 @@ $("#{{unique|escape}}").click(function(){
     h["main"] = "VirtualFileSystemView"
     return urllib.urlencode(
         sorted([(x, utils.SmartStr(y)) for x, y in h.items()]))
+
+
+class PathspecFormRenderer(renderers.DelegatedTypeInfoRenderer):
+  """Render a form for a pathspec."""
+  type_info_cls = type_info.PathspecType
+
+
+class GrepspecFormRenderer(renderers.DelegatedTypeInfoRenderer):
+  type_info_cls = type_info.GrepspecType
+
+
+class FindspecFormRenderer(renderers.DelegatedTypeInfoRenderer):
+  type_info_cls = type_info.FindSpecType

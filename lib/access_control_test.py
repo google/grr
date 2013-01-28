@@ -23,7 +23,8 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import flow
-from grr.lib import registry
+from grr.lib import hunts
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 
@@ -33,28 +34,26 @@ FLAGS = flags.FLAGS
 class AccessControlTest(test_lib.GRRBaseTest):
   """Tests the access control mechanisms."""
 
-  __metaclass__ = registry.MetaclassRegistry
-
   install_mock_acl = False
 
   def setUp(self):
-    FLAGS.security_manager = "AccessControlManager"
+    FLAGS.security_manager = "FullAccessControlManager"
     super(AccessControlTest, self).setUp()
 
-  def CreateApproval(self, client_id, token):
+  def CreateClientApproval(self, client_id, token):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
         token.username).Add(utils.EncodeReasonString(token.reason))
 
     super_token = data_store.ACLToken()
     super_token.supervisor = True
 
-    approval_request = aff4.FACTORY.Create(approval_urn, "Approval", mode="rw",
-                                           token=super_token)
+    approval_request = aff4.FACTORY.Create(approval_urn, "ClientApproval",
+                                           mode="rw", token=super_token)
     approval_request.AddAttribute(approval_request.Schema.APPROVER("Approver1"))
     approval_request.AddAttribute(approval_request.Schema.APPROVER("Approver2"))
     approval_request.Close()
 
-  def RevokeApproval(self, client_id, token, remove_from_cache=True):
+  def RevokeClientApproval(self, client_id, token, remove_from_cache=True):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
         token.username).Add(utils.EncodeReasonString(token.reason))
 
@@ -70,14 +69,40 @@ class AccessControlTest(test_lib.GRRBaseTest):
       data_store.DB.security_manager.acl_cache.ExpireObject(
           utils.SmartUnicode(approval_urn))
 
+  def CreateHuntApproval(self, hunt_urn, token, admin=False):
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(hunt_urn.Path()).Add(
+        token.username).Add(utils.EncodeReasonString(token.reason))
+
+    super_token = data_store.ACLToken()
+    super_token.supervisor = True
+
+    approval_request = aff4.FACTORY.Create(approval_urn, "HuntApproval",
+                                           mode="rw", token=super_token)
+    approval_request.AddAttribute(approval_request.Schema.APPROVER("Approver1"))
+    approval_request.AddAttribute(approval_request.Schema.APPROVER("Approver2"))
+    approval_request.Close()
+
+    if admin:
+      self.MakeUserAdmin("Approver1")
+
+  def CreateSampleHunt(self):
+    """Creats SampleHunt, writes it to the data store and returns it's id."""
+
+    super_token = data_store.ACLToken()
+    super_token.supervisor = True
+
+    hunt = hunts.SampleHunt(token=super_token)
+    hunt.WriteToDataStore()
+
+    return rdfvalue.RDFURN(hunt.session_id)
+
   def testSimpleAccess(self):
     """Tests that simple access does not need any token."""
 
     client_id = "C.%016X" % 0
     client_urn = aff4.ROOT_URN.Add(client_id)
 
-    for urn, mode in [("aff4:/flows", "rw"),
-                      ("aff4:/ACL", "r"),
+    for urn, mode in [("aff4:/ACL", "r"),
                       ("aff4:/config/drivers", "r"),
                       ("aff4:/", "rw"),
                       (client_urn, "r")]:
@@ -92,8 +117,15 @@ class AccessControlTest(test_lib.GRRBaseTest):
       fd._dirty = True
       self.assertRaises(data_store.UnauthorizedAccess, fd.Close)
 
-    self.assertRaises(data_store.UnauthorizedAccess, aff4.FACTORY.Open,
-                      client_urn.Add("/fs"), None, mode)
+    # These should raise for access without a token:
+    for urn, mode in [(client_urn.Add("flows").Add("W:1234"), "rw"),
+                      (client_urn.Add("/fs"), "r")]:
+      self.assertRaises(data_store.UnauthorizedAccess, aff4.FACTORY.Open,
+                        urn, mode=mode)
+
+      # Even if a token is provided - it is not authorized.
+      self.assertRaises(data_store.UnauthorizedAccess, aff4.FACTORY.Open,
+                        urn, mode=mode, token=self.token)
 
   def testSupervisorToken(self):
     """Tests that the supervisor token overrides the approvals."""
@@ -145,7 +177,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     old_time = time.time
     try:
       time.time = lambda: 100.0
-      self.CreateApproval(client_id, token)
+      self.CreateClientApproval(client_id, token)
 
       # This should work now.
       aff4.FACTORY.Open(urn, mode="rw", token=token)
@@ -170,7 +202,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     finally:
       time.time = old_time
 
-  def testApproval(self):
+  def testClientApproval(self):
     """Tests that we can create an approval object to access clients."""
 
     client_id = "C.%016X" % 0
@@ -180,15 +212,37 @@ class AccessControlTest(test_lib.GRRBaseTest):
     self.assertRaises(data_store.UnauthorizedAccess, aff4.FACTORY.Open, urn,
                       None, "rw", token=token)
 
-    self.CreateApproval(client_id, token)
+    self.CreateClientApproval(client_id, token)
 
     fd = aff4.FACTORY.Open(urn, None, "rw", token=token)
     fd.Close()
 
-    self.RevokeApproval(client_id, token)
+    self.RevokeClientApproval(client_id, token)
 
     self.assertRaises(data_store.UnauthorizedAccess,
                       aff4.FACTORY.Open, urn, None, "rw", token=token)
+
+  def testHuntApproval(self):
+    """Tests that we can create an approval object to run hunts."""
+    token = data_store.ACLToken("test", "For testing")
+    hunt_urn = self.CreateSampleHunt()
+
+    self.assertRaisesRegexp(
+        data_store.UnauthorizedAccess,
+        "No approval found for hunt",
+        flow.FACTORY.StartFlow,
+        None, "RunHuntFlow", token=token, hunt_urn=hunt_urn)
+
+    self.CreateHuntApproval(hunt_urn, token)
+
+    self.assertRaisesRegexp(
+        data_store.UnauthorizedAccess,
+        "At least one approver should have 'admin' label",
+        flow.FACTORY.StartFlow,
+        None, "RunHuntFlow", token=token, hunt_urn=hunt_urn)
+
+    self.CreateHuntApproval(hunt_urn, token, admin=True)
+    flow.FACTORY.StartFlow(None, "RunHuntFlow", token=token, hunt_urn=hunt_urn)
 
   def testUserAccess(self):
     """Tests access to user objects."""
@@ -208,7 +262,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
 
     # But we cannot write to them.
     l = labels.Schema.LABEL()
-    l.data.label.append("admin")
+    l.Append("admin")
     labels.Set(labels.Schema.LABEL, l)
     self.assertRaises(data_store.UnauthorizedAccess, labels.Close)
 
@@ -223,7 +277,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
                              token=token)
 
     labels = fd.Schema.LABEL()
-    labels.data.label.append("admin")
+    labels.Append("admin")
     fd.Set(labels)
 
     # The write will fail due to access denied!
@@ -238,7 +292,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
                              token=super_token)
 
     labels = fd.Schema.LABEL()
-    labels.data.label.append("admin")
+    labels.Append("admin")
     fd.Set(labels)
     fd.Close()
 
@@ -253,18 +307,31 @@ class AccessControlTest(test_lib.GRRBaseTest):
     self.assertRaises(data_store.UnauthorizedAccess, flow.FACTORY.StartFlow,
                       client_id, "SendingFlow", message_count=1, token=token)
 
-    self.CreateApproval(client_id, token)
+    self.CreateClientApproval(client_id, token)
     sid = flow.FACTORY.StartFlow(client_id, "SendingFlow", message_count=1,
                                  token=token)
 
-    self.RevokeApproval(client_id, token)
+    # Check we can open the flow object.
+    flow_obj = aff4.FACTORY.Open(sid, mode="r", token=token)
+
+    # Check that we can not write to it.
+    flow_obj.mode = "rw"
+
+    flow_pb = flow_obj.Get(flow_obj.Schema.FLOW_PB)
+    flow_obj.Set(flow_pb)
+
+    # This is not allowed - Users can not write to flows.
+    self.assertRaises(data_store.UnauthorizedAccess,
+                      flow_obj.Close)
+
+    self.RevokeClientApproval(client_id, token)
 
     self.assertRaises(data_store.UnauthorizedAccess,
-                      flow.FACTORY.FetchFlow, sid, token=token)
+                      aff4.FACTORY.Open, sid, mode="r", token=token)
 
-    self.CreateApproval(client_id, token)
+    self.CreateClientApproval(client_id, token)
 
-    flow.FACTORY.FetchFlow(sid, token=token)
+    aff4.FACTORY.Open(sid, mode="r", token=token)
 
   def testCaches(self):
     """Makes sure that results are cached in the security manager."""
@@ -272,26 +339,33 @@ class AccessControlTest(test_lib.GRRBaseTest):
     token = data_store.ACLToken("test", "For testing")
     client_id = "C." + "B" * 16
 
-    self.CreateApproval(client_id, token)
+    self.CreateClientApproval(client_id, token)
+
     sid = flow.FACTORY.StartFlow(client_id, "SendingFlow", message_count=1,
                                  token=token)
 
     # Fill all the caches.
-    flow.FACTORY.FetchFlow(sid, lock=False, token=token)
+    aff4.FACTORY.Open(sid, mode="r", token=token)
 
-    flow_factory = flow.FACTORY
-    aff4_factory = aff4.FACTORY
+    # Flush the AFF4 caches.
+    aff4.FACTORY.Flush()
 
-    # Disable flow to client_id resolution.
-    flow.FACTORY = None
-    # Disable reading of approval objects.
-    aff4.FACTORY = None
+    # Remove the approval from the data store, but it should still exist in the
+    # security manager cache.
+    self.RevokeClientApproval(client_id, token, remove_from_cache=False)
 
     # If this doesn't raise now, all answers were cached.
-    flow_factory.FetchFlow(sid, lock=False, token=token)
+    aff4.FACTORY.Open(sid, mode="r", token=token)
 
-    flow.FACTORY = flow_factory
-    aff4.FACTORY = aff4_factory
+    # Flush the AFF4 caches.
+    aff4.FACTORY.Flush()
+
+    # Remove the approval from the data store, and from the security manager.
+    self.RevokeClientApproval(client_id, token, remove_from_cache=True)
+
+    # This must raise now.
+    self.assertRaises(data_store.UnauthorizedAccess,
+                      aff4.FACTORY.Open, sid, mode="r", token=token)
 
   def testBreakGlass(self):
     """Test the breakglass mechanism."""
@@ -315,7 +389,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     email_alerts.SendEmail = SendEmail
 
     try:
-      flow.FACTORY.StartFlow(client_id, "BreakGlassGrantAccessFlow",
+      flow.FACTORY.StartFlow(client_id, "BreakGlassGrantClientApprovalFlow",
                              token=self.token, reason=self.token.reason)
 
       # Reset the emergency state of the token.

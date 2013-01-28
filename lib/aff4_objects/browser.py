@@ -19,6 +19,7 @@
 
 
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib.aff4_objects import aff4_grr
 
 
@@ -27,22 +28,22 @@ class VFSBrowserExtension(aff4_grr.VFSMemoryFile):
 
   class SchemaCls(aff4_grr.VFSMemoryFile.SchemaCls):
     """The schema for the extension dir."""
-    NAME = aff4.Attribute("aff4:extensionname", aff4.RDFString,
+    NAME = aff4.Attribute("aff4:extensionname", rdfvalue.RDFString,
                           "The name of the Chrome extension.")
 
-    VERSION = aff4.Attribute("aff4:extensionversion", aff4.RDFString,
+    VERSION = aff4.Attribute("aff4:extensionversion", rdfvalue.RDFString,
                              "The version of the Chrome extension.")
 
-    UPDATEURL = aff4.Attribute("aff4:updateurl", aff4.RDFString,
+    UPDATEURL = aff4.Attribute("aff4:updateurl", rdfvalue.RDFString,
                                "The update URL for the extension.")
 
-    PERMISSIONS = aff4.Attribute("aff4:permissions", aff4.RDFString,
+    PERMISSIONS = aff4.Attribute("aff4:permissions", rdfvalue.RDFString,
                                  "The requested permissions.")
 
-    CHROMEID = aff4.Attribute("aff4:chromeid", aff4.RDFString,
+    CHROMEID = aff4.Attribute("aff4:chromeid", rdfvalue.RDFString,
                               "The public key hash for the extension.")
 
-    EXTENSIONDIR = aff4.Attribute("aff4:extensiondir", aff4.RDFString,
+    EXTENSIONDIR = aff4.Attribute("aff4:extensiondir", rdfvalue.RDFString,
                                   "The directory where the extension resides.")
 
   def __init__(self, urn, mode="r", **kwargs):

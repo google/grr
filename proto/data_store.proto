@@ -79,6 +79,9 @@ message DataStoreQuery {
   optional uint32 limit = 5;
   optional uint32 limit_start = 6;
   optional AccessToken token = 7;
+  optional int64 timestamp = 8;
+  optional int64 timestamp_start = 9;
+  optional int64 timestamp_end = 10;
 }
 
 message ResultSet {
@@ -106,6 +109,9 @@ message DataStoreResponse {
 
   // Additional human readable message for the failure.
   optional string status_desc = 4;
+
+  // In case of failure, subject that caused the request to fail
+  optional string failed_subject = 5;
 };
 
 message StartFlowRequest {
@@ -129,5 +135,8 @@ message StartFlowResponse {
 
   // Additional human readable message for the failure.
   optional string status_desc = 3;
+
+  // In case of failure, subject that caused the request to fail
+  optional string failed_subject = 4;
 };
 

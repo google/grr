@@ -39,9 +39,8 @@ from grr.client import client_utils_osx
 from grr.client.client_actions import standard
 from grr.client.osx.objc import ServiceManagement
 from grr.client.vfs_handlers import memory
+from grr.lib import rdfvalue
 from grr.parsers import osx_launchd
-from grr.proto import jobs_pb2
-from grr.proto import sysinfo_pb2
 
 FLAGS = flags.FLAGS
 
@@ -152,7 +151,7 @@ setattr(Ifaddrs, "_fields_", [
 
 class EnumerateInterfaces(actions.ActionPlugin):
   """Enumerate all MAC addresses of all NICs."""
-  out_protobuf = jobs_pb2.Interface
+  out_rdfvalue = rdfvalue.Interface
 
   def Run(self, unused_args):
     """Enumerate all MAC addresses."""
@@ -174,8 +173,8 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0x2:     # AF_INET
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
           ip4 = "".join(map(chr, data.contents.sin_addr))
-          address_type = jobs_pb2.NetworkAddress.INET
-          address = jobs_pb2.NetworkAddress(address_type=address_type,
+          address_type = rdfvalue.NetworkAddress.Enum("INET")
+          address = rdfvalue.NetworkAddress(address_type=address_type,
                                             packed_bytes=ip4)
           addresses.setdefault(ifname, []).append(address)
 
@@ -188,8 +187,8 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0x1E:     # AF_INET6
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
           ip6 = "".join(map(chr, data.contents.sin6_addr))
-          address_type = jobs_pb2.NetworkAddress.INET6
-          address = jobs_pb2.NetworkAddress(address_type=address_type,
+          address_type = rdfvalue.NetworkAddress.Enum("INET6")
+          address = rdfvalue.NetworkAddress(address_type=address_type,
                                             packed_bytes=ip6)
           addresses.setdefault(ifname, []).append(address)
       except ValueError:
@@ -214,7 +213,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
 
 class GetInstallDate(actions.ActionPlugin):
   """Estimate the install date of this system."""
-  out_protobuf = jobs_pb2.DataBlob
+  out_rdfvalue = rdfvalue.DataBlob
 
   def Run(self, unused_args):
     for f in ["/var/log/CDIS.custom", "/var", "/private"]:
@@ -229,7 +228,7 @@ class GetInstallDate(actions.ActionPlugin):
 
 class EnumerateUsers(actions.ActionPlugin):
   """Enumerates all the users on this system."""
-  out_protobuf = jobs_pb2.UserAccount
+  out_rdfvalue = rdfvalue.User
 
   def Run(self, unused_args):
     """Enumerate all users on this machine."""
@@ -243,7 +242,7 @@ class EnumerateUsers(actions.ActionPlugin):
 
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system."""
-  out_protobuf = sysinfo_pb2.Filesystem
+  out_rdfvalue = rdfvalue.Filesystem
 
   def Run(self, unused_args):
     """List all local filesystems mounted on this system."""
@@ -277,8 +276,8 @@ class EnumerateFilesystems(actions.ActionPlugin):
 
 class EnumerateRunningServices(actions.ActionPlugin):
   """Enumerate all running launchd jobs."""
-  in_protobuf = None
-  out_protobuf = sysinfo_pb2.Service
+  in_rdfvalue = None
+  out_rdfvalue = rdfvalue.Service
 
   def GetRunningLaunchDaemons(self):
     """Get running launchd jobs from objc ServiceManagement framework."""
@@ -307,11 +306,6 @@ class EnumerateRunningServices(actions.ActionPlugin):
       response = self.CreateServiceProto(job)
       self.SendReply(response)
 
-  def _AddRepeatedField(self, job, keyname, protoaddcallback):
-    if keyname in job:
-      for item in job[keyname]:
-        protoaddcallback(item)
-
   def CreateServiceProto(self, job):
     """Create the Service protobuf.
 
@@ -320,34 +314,35 @@ class EnumerateRunningServices(actions.ActionPlugin):
     Returns:
       sysinfo_pb2.Service proto
     """
-    job_pb = sysinfo_pb2.LaunchdJob(sessiontype=
-                                    job.get("LimitLoadToSessionType", ""),
-                                    lastexitstatus=job["LastExitStatus"],
-                                    timeout=job["TimeOut"],
-                                    ondemand=job["OnDemand"])
+    rdf_job = rdfvalue.LaunchdJob(sessiontype=
+                                  job.get("LimitLoadToSessionType", ""),
+                                  lastexitstatus=job["LastExitStatus"],
+                                  timeout=job["TimeOut"],
+                                  ondemand=job["OnDemand"])
 
     args = map(str, job.get("ProgramArguments", ""))
     args_str = " ".join(args)
 
-    self._AddRepeatedField(job, "MachServices",
-                           job_pb.machservice.append)
-    self._AddRepeatedField(job, "PerJobMachServices",
-                           job_pb.perjobmachservice.append)
+    for j in job.get("MachServices", []):
+      rdf_job.machservice.Append(j)
 
-    service_pb = sysinfo_pb2.Service(label=job.get("Label", ""),
-                                     program=job.get("Program", ""),
-                                     args=args_str,
-                                     osx_launchd=job_pb)
+    for j in job.get("PerJobMachServices", []):
+      rdf_job.perjobmachservice.Append(j)
+
+    service = rdfvalue.Service(label=job.get("Label", ""),
+                               program=job.get("Program", ""),
+                               args=args_str,
+                               osx_launchd=rdf_job)
 
     if "PID" in job:
-      service_pb.pid = job["PID"]
+      service.pid = job["PID"]
 
-    return service_pb
+    return service
 
 
 class Uninstall(actions.ActionPlugin):
   """Remove the service that starts us at startup."""
-  out_protobuf = jobs_pb2.DataBlob
+  out_rdfvalue = rdfvalue.DataBlob
 
   def Run(self, unused_arg):
     """This kills us with no cleanups."""
@@ -388,7 +383,7 @@ class InstallDriver(actions.ActionPlugin):
   Note that only drivers with a signature that validates with
   client_config.DRIVER_SIGNING_CERT can be loaded.
   """
-  in_protobuf = jobs_pb2.InstallDriverRequest
+  in_rdfvalue = rdfvalue.DriverInstallTemplate
 
   def Run(self, args):
     """Initializes the driver."""
@@ -422,22 +417,23 @@ class InstallDriver(actions.ActionPlugin):
 class GetMemoryInformation(actions.ActionPlugin):
   """Loads the driver for memory access and returns a Stat for the device."""
 
-  in_protobuf = jobs_pb2.Path
-  out_protobuf = jobs_pb2.MemoryInformation
+  in_rdfvalue = rdfvalue.RDFPathSpec
+  out_rdfvalue = rdfvalue.MemoryInformation
 
   def Run(self, args):
     """Run."""
     # This action might crash the box so we need to flush the transaction log.
     self.SyncTransactionLog()
 
-    result = self.out_protobuf()
-
     # Do any initialization we need to do.
     logging.debug("Querying device %s", args.path)
     mem_dev = open(args.path, "rb")
-    result.cr3 = memory.OSXMemory.GetCR3(mem_dev)
-    result.device.path = args.path
-    result.device.pathtype = jobs_pb2.Path.MEMORY
+
+    result = rdfvalue.MemoryInformation(
+        cr3=memory.OSXMemory.GetCR3(mem_dev),
+        device=rdfvalue.RDFPathSpec(
+            path=args.path,
+            pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY")))
     for start, length in memory.OSXMemory.GetMemoryMap(mem_dev):
       result.runs.add(offset=start, length=length)
     self.SendReply(result)
@@ -449,7 +445,7 @@ class UninstallDriver(actions.ActionPlugin):
   Only if the request contains a valid signature the driver will be uninstalled.
   """
 
-  in_protobuf = jobs_pb2.InstallDriverRequest
+  in_rdfvalue = rdfvalue.DriverInstallTemplate
 
   def Run(self, args):
     """Unloads a driver."""
@@ -462,8 +458,8 @@ class UninstallDriver(actions.ActionPlugin):
 class UpdateAgent(standard.ExecuteBinaryCommand):
   """Updates the GRR agent to a new version."""
 
-  in_protobuf = jobs_pb2.ExecuteBinaryRequest
-  out_protobuf = jobs_pb2.ExecuteBinaryResponse
+  in_rdfvalue = rdfvalue.ExecuteBinaryRequest
+  out_rdfvalue = rdfvalue.ExecuteBinaryResponse
 
   def Run(self, args):
     """Run."""
@@ -485,10 +481,9 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
     stdout = stdout[:10 * 1024 * 1024]
     stderr = stderr[:10 * 1024 * 1024]
 
-    result = jobs_pb2.ExecuteBinaryResponse()
-    result.stdout = stdout
-    result.stderr = stderr
-    result.exit_status = status
-    # We have to return microseconds.
-    result.time_used = (int) (1e6 * time_used)
+    result = rdfvalue.ExecuteBinaryResponse(stdout=stdout,
+                                            stderr=stderr,
+                                            exit_status=status,
+                                            # We have to return microseconds.
+                                            time_used=(int) (1e6 * time_used))
     self.SendReply(result)

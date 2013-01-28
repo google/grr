@@ -19,23 +19,22 @@ This contains an AFF4 data model implementation.
 
 
 import abc
-import datetime
-import posixpath
 import StringIO
 import time
-import urlparse
 import zlib
 
-from dateutil import parser
 
 from google.protobuf import message
 from grr.client import conf as flags
 import logging
 from grr.lib import data_store
 from grr.lib import lexer
+from grr.lib import rdfvalue
+# pylint:disable=unused-import
+from grr.lib import rdfvalues
+# pylint:enable=unused-import
 from grr.lib import registry
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 flags.DEFINE_integer("aff4_cache_age", 5,
                      "The number of seconds AFF4 objects live in the cache.")
@@ -58,6 +57,13 @@ ALL_TIMES = "ALL_TIMES"
 # Just something to write on an index attribute to make it exist.
 EMPTY_DATA = "X"
 
+# TODO(user): this is a temporary hack to allow proper unpickling of old hunts.
+# Remove this as soon as we don't care about them.
+RDFInteger = rdfvalue.RDFInteger  # pylint: disable=g-bad-name
+RDFURN = rdfvalue.RDFURN
+RDFBytes = rdfvalue.RDFBytes  # pylint: disable=g-bad-name
+RDFString = rdfvalue.RDFString  # pylint: disable=g-bad-name
+
 
 class Factory(object):
   """A central factory for AFF4 objects."""
@@ -66,7 +72,7 @@ class Factory(object):
     # This is a relatively short lived cache of objects.
     self.cache = utils.AgeBasedCache(max_size=10000,
                                      max_age=FLAGS.aff4_cache_age)
-    self.intermediate_cache = utils.FastStore(100)
+    self.intermediate_cache = utils.FastStore(2000)
 
     # Create a token for system level actions:
     self.root_token = data_store.ACLToken(username="system",
@@ -76,12 +82,14 @@ class Factory(object):
     self.notification_rules = []
     self.notification_rules_timestamp = 0
 
-  def _ParseAgeSpecification(self, age):
+  @classmethod
+  def ParseAgeSpecification(cls, age):
+    """Parses an aff4 age and returns a datastore age specification."""
     if age == NEWEST_TIME:
       return data_store.DB.NEWEST_TIMESTAMP
     elif age == ALL_TIMES:
       return data_store.DB.ALL_TIMESTAMPS
-    elif isinstance(age, (int, long, RDFDatetime)):
+    elif isinstance(age, (int, long, rdfvalue.RDFDatetime)):
       return (0, int(age))
     elif len(age) == 2:
       start, end = age
@@ -111,13 +119,15 @@ class Factory(object):
     # might as well just re-fetch all the urns again in a single data store
     # round trip.
     for subject, values in data_store.DB.MultiResolveRegex(
-        urns, [".*"], timestamp=self._ParseAgeSpecification(age),
+        urns, [".*"],
+        timestamp=self.ParseAgeSpecification(age),
         token=token, limit=None).items():
 
       key = self._MakeCacheInvariant(subject, token, age)
       self.cache.Put(key, values)
       result[subject] = values
       subjects.append(subject)
+
     return result.items()
 
   def SetAttributes(self, urn, attributes, to_delete, sync=False, token=None):
@@ -126,12 +136,12 @@ class Factory(object):
     try:
       # Expire all entries in the cache for this urn (for all tokens, and
       # timestamps)
-      self.cache.ExpireRegEx(data_store.EscapeRegex(urn) + ".+")
+      self.cache.ExpirePrefix(utils.SmartStr(urn) + ":")
     except KeyError:
       pass
 
     attributes[AFF4Object.SchemaCls.LAST] = [
-        RDFDatetime().SerializeToDataStore()]
+        rdfvalue.RDFDatetime().SerializeToDataStore()]
     to_delete.add(AFF4Object.SchemaCls.LAST)
     data_store.DB.MultiSet(urn, attributes, token=token,
                            replace=False, sync=sync, to_delete=to_delete)
@@ -177,14 +187,15 @@ class Factory(object):
       # Create navigation aids by touching intermediate subject names.
       while urn.Path() != "/":
         basename = urn.Basename()
-        dirname = RDFURN(urn.Dirname())
+        dirname = rdfvalue.RDFURN(urn.Dirname())
 
         try:
           self.intermediate_cache.Get(urn.Path())
           return
         except KeyError:
           data_store.DB.MultiSet(dirname, {
-              AFF4Object.SchemaCls.LAST: [RDFDatetime().SerializeToDataStore()],
+              AFF4Object.SchemaCls.LAST: [
+                  rdfvalue.RDFDatetime().SerializeToDataStore()],
 
               # This updates the directory index.
               "index:dir/%s" % utils.SmartStr(basename): [EMPTY_DATA],
@@ -210,7 +221,7 @@ class Factory(object):
     """
 
     x = ROOT_URN
-    for component in RDFURN(urn).Path().split("/"):
+    for component in rdfvalue.RDFURN(urn).Path().split("/"):
       if component:
         x = x.Add(component)
         unique_urns.add(x)
@@ -232,7 +243,7 @@ class Factory(object):
        A key into the cache.
     """
     return "%s:%s:%s" % (utils.SmartStr(urn), utils.SmartStr(token),
-                         self._ParseAgeSpecification(age))
+                         self.ParseAgeSpecification(age))
 
   def Open(self, urn, required_type=None, mode="r", ignore_cache=False,
            token=None, local_cache=None, age=NEWEST_TIME):
@@ -281,7 +292,7 @@ class Factory(object):
       raise AttributeError("Can not open an object in write mode. "
                            "Use Create() instead.")
 
-    urn = RDFURN(urn)
+    urn = rdfvalue.RDFURN(urn)
 
     if "r" in mode and (local_cache is None or urn not in local_cache):
       # Warm up the cache. The idea is to prefetch all the path components in
@@ -315,7 +326,8 @@ class Factory(object):
 
     return result
 
-  def MultiOpen(self, urns, mode="rw", token=None, required_type=None):
+  def MultiOpen(self, urns, mode="rw", token=None, required_type=None,
+                age=NEWEST_TIME):
     """Opens a bunch of urns efficiently."""
 
     if mode not in ["w", "r", "rw"]:
@@ -326,13 +338,13 @@ class Factory(object):
     for urn in urns:
       self._ExpandURNComponents(urn, unique_urn)
 
-    cache = dict(self.GetAttributes(unique_urn, token=token))
+    cache = dict(self.GetAttributes(unique_urn, token=token, age=age))
 
     for urn in urns:
       try:
         if urn in cache:
           yield self.Open(urn, mode=mode, token=token, local_cache=cache,
-                          required_type=required_type)
+                          required_type=required_type, age=age)
       except IOError:
         pass
 
@@ -356,7 +368,7 @@ class Factory(object):
       raise RuntimeError("Expected an iterable, not string.")
     for subject, values in data_store.DB.MultiResolveRegex(
         urns, ["aff4:type"], token=token).items():
-      yield dict(urn=RDFURN(subject), type=values[0])
+      yield dict(urn=rdfvalue.RDFURN(subject), type=values[0])
 
   def Create(self, urn, aff4_type, mode="w", token=None, age=NEWEST_TIME,
              ignore_cache=False):
@@ -384,7 +396,8 @@ class Factory(object):
     if mode not in ["w", "r", "rw"]:
       raise AttributeError("Invalid mode %s" % mode)
 
-    urn = RDFURN(urn)
+    if urn is not None:
+      urn = rdfvalue.RDFURN(urn)
 
     if "r" in mode:
       # Check to see if an object already exists.
@@ -417,8 +430,7 @@ class Factory(object):
       RuntimeError: If the urn is too short. This is a safety check to ensure
       the root is not removed.
     """
-
-    urn = RDFURN(urn)
+    urn = rdfvalue.RDFURN(urn)
     if len(urn.Path()) < 1:
       raise RuntimeError("URN %s too short. Please enter a valid URN" % urn)
 
@@ -439,7 +451,7 @@ class Factory(object):
     data_store.DB.DeleteSubject(fd.urn, token=token)
 
   def RDFValue(self, name):
-    return RDFValue.classes.get(name)
+    return rdfvalue.RDFValue.classes.get(name)
 
   def AFF4Object(self, name):
     return AFF4Object.classes.get(name)
@@ -463,19 +475,21 @@ class Factory(object):
       first, second = second, first
 
     # Merge the attributes together.
-    for k, v in second.synced_attributes.items():
+    for k, v in second.synced_attributes.iteritems():
       first.synced_attributes.setdefault(k, []).extend(v)
 
-    for k, v in second.new_attributes.items():
+    for k, v in second.new_attributes.iteritems():
       first.new_attributes.setdefault(k, []).extend(v)
 
     return first
 
   def Flush(self):
     data_store.DB.Flush()
+    self.cache.Flush()
+    self.intermediate_cache.Flush()
 
   def UpdateNotificationRules(self):
-    fd = self.Open(RDFURN("aff4:/config/aff4_rules"), mode="r",
+    fd = self.Open(rdfvalue.RDFURN("aff4:/config/aff4_rules"), mode="r",
                    token=self.root_token)
     self.notification_rules = [rule for rule in fd.OpenChildren()
                                if isinstance(rule, AFF4NotificationRule)]
@@ -494,700 +508,6 @@ class Factory(object):
         logging.error("Error while applying the rule: %s", e)
 
 
-class RDFValue(object):
-  """Baseclass for values.
-
-  RDFValues are serialized to and from the data store.
-  """
-
-  __metaclass__ = registry.MetaclassRegistry
-
-  # This is how the attribute will be serialized to the data store. It must
-  # indicate both the type emitted by SerializeToDataStore() and expected by
-  # ParseFromDataStore()
-  data_store_type = "bytes"
-
-  def __init__(self, serialized=None, age=None):
-    """Constructor must be able to take no args.
-
-    Args:
-      serialized: Optional string to construct from.
-                  Equivalent to ParseFromString()
-
-      age: The age of this entry in microseconds since epoch. If set to None the
-           age is set to now.
-    """
-    if age is None:
-      self.age = int(time.time() * MICROSECONDS)
-    else:
-      self.age = age
-
-    # Allow an RDFValue to be initialized from an identical RDFValue.
-    if serialized.__class__ == self.__class__:
-      self.ParseFromString(serialized.SerializeToString())
-
-    elif serialized is not None:
-      self.ParseFromString(serialized)
-
-  @property
-  def age(self):
-    return RDFDatetime(self._age)
-
-  @age.setter
-  def age(self, value):
-    self._age = value
-
-  def ParseFromDataStore(self, data_store_obj):
-    """Serialize from an object read from the datastore."""
-    return self.ParseFromString(data_store_obj)
-
-  @abc.abstractmethod
-  def ParseFromString(self, string):
-    """Given a string, parse ourselves from it."""
-    pass
-
-  def SerializeToDataStore(self):
-    """Serialize to a datastore compatible form."""
-    return self.SerializeToString()
-
-  @abc.abstractmethod
-  def SerializeToString(self):
-    """Serialize into a string which can be parsed using ParseFromString."""
-    pass
-
-  def __iter__(self):
-    """This allows every RDFValue to be iterated over."""
-    yield self
-
-  def Summary(self):
-    """Return a summary representation of the object."""
-    return str(self)
-
-  @classmethod
-  def Fields(cls, name):
-    """Return a list of fields which can be queried from this value."""
-    return [name]
-
-  @staticmethod
-  def ContainsMatch(attribute, filter_implemention, regex):
-    return filter_implemention.PredicateContainsFilter(attribute, regex)
-
-  # The operators this type supports in the query language
-  operators = dict(contains=(1, "ContainsMatch"))
-
-
-class RDFBytes(RDFValue):
-  """An attribute which holds bytes."""
-  data_store_type = "bytes"
-
-  def ParseFromString(self, string):
-    self.value = string
-
-  def SerializeToString(self):
-    return self.value
-
-  def __str__(self):
-    return utils.SmartStr(self.value)
-
-  def __eq__(self, other):
-    return self.value == other
-
-  def __ne__(self, other):
-    return self.value != other
-
-  def __hash__(self):
-    return hash(self.value)
-
-  def __int__(self):
-    return int(self.value)
-
-  def __bool__(self):
-    return bool(self.value)
-
-  def __nonzero__(self):
-    return bool(self.value)
-
-
-class RDFString(RDFBytes):
-  """Represent a simple string."""
-
-  data_store_type = "string"
-
-  @staticmethod
-  def Startswith(attribute, filter_implemention, string):
-    return filter_implemention.PredicateContainsFilter(
-        attribute, "^" + data_store.EscapeRegex(string))
-
-  operators = RDFValue.operators.copy()
-  operators["matches"] = (1, "ContainsMatch")
-  operators["="] = (1, "ContainsMatch")
-  operators["startswith"] = (1, "Startswith")
-
-  def __unicode__(self):
-    return utils.SmartUnicode(self.value)
-
-  def SerializeToString(self):
-    return utils.SmartStr(self.value)
-
-  def SerializeToDataStore(self):
-    return utils.SmartUnicode(self.value)
-
-
-class RDFSHAValue(RDFBytes):
-  """SHA256 hash."""
-
-  data_store_type = "bytes"
-
-  def __str__(self):
-    return self.value.encode("hex")
-
-
-class RDFInteger(RDFString):
-  """Represent an integer."""
-
-  data_store_type = "integer"
-
-  def __init__(self, serialized=None, age=None):
-    super(RDFInteger, self).__init__(serialized, age)
-    if serialized is None:
-      self.value = 0
-
-  def ParseFromString(self, string):
-    self.value = 0
-    if string:
-      self.value = int(string)
-
-  def SerializeToDataStore(self):
-    """Use varint to store the integer."""
-    return int(self.value)
-
-  def Set(self, value):
-    if isinstance(value, (long, int)):
-      self.value = value
-    else:
-      self.ParseFromString(value)
-
-  def __long__(self):
-    return long(self.value)
-
-  def __int__(self):
-    return int(self.value)
-
-  def __lt__(self, other):
-    return self.value < other
-
-  def __gt__(self, other):
-    return self.value > other
-
-  def __le__(self, other):
-    return self.value <= other
-
-  def __ge__(self, other):
-    return self.value >= other
-
-  def __add__(self, other):
-    return self.value + other
-
-  def __radd__(self, other):
-    return self.value + other
-
-  def __iadd__(self, other):
-    self.value += other
-    return self
-
-  def __mul__(self, other):
-    return self.value * other
-
-  def __div__(self, other):
-    return self.value / other
-
-  @staticmethod
-  def LessThan(attribute, filter_implemention, value):
-    return filter_implemention.PredicateLessThanFilter(attribute, long(value))
-
-  @staticmethod
-  def GreaterThan(attribute, filter_implemention, value):
-    return filter_implemention.PredicateGreaterThanFilter(
-        attribute, long(value))
-
-  @staticmethod
-  def Equal(attribute, filter_implemention, value):
-    return filter_implemention.PredicateNumericEqualFilter(
-        attribute, long(value))
-
-  operators = {"<": (1, "LessThan"),
-               ">": (1, "GreaterThan"),
-               "=": (1, "Equal")}
-
-
-class RDFDatetime(RDFInteger):
-  """A date and time internally stored in MICROSECONDS."""
-  converter = MICROSECONDS
-
-  # For now we just store as an integer number of microseconds since the epoch
-
-  def __init__(self, serialized=None, age=None):
-    super(RDFDatetime, self).__init__(serialized, age)
-    if serialized is None:
-      self.Now()
-
-  def Now(self):
-    self.value = int(time.time() * self.converter)
-    return self
-
-  def __str__(self):
-    """Return the date in human readable (UTC)."""
-    value = self.value / self.converter
-    return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(value))
-
-  def __unicode__(self):
-    return utils.SmartUnicode(str(self))
-
-  def __long__(self):
-    return long(self.value)
-
-  def __iadd__(self, other):
-    self.value += other
-    return self
-
-  def __isub__(self, other):
-    return int(other) - self.value
-
-  def __gt__(self, other):
-    return self.value > other
-
-  def __lt__(self, other):
-    return self.value < other
-
-  def __sub__(self, other):
-    return self.value - int(other)
-
-  def __add__(self, other):
-    return self.value + other
-
-  @classmethod
-  def ParseFromHumanReadable(cls, string, eoy=False):
-    """Parse a human readable string of a timestamp (in local time).
-
-    Args:
-      string: The string to parse.
-      eoy: If True, sets the default value to the end of the year.
-           Usually this method returns a timestamp where each field that is
-           not present in the given string is filled with values from the date
-           January 1st of the current year, midnight. Sometimes it makes more
-           sense to compare against the end of a period so if eoy is set, the
-           default values are copied from the 31st of December of the current
-           year, 23:59h.
-
-    Returns:
-      The parsed timestamp.
-    """
-    if eoy:
-      default = datetime.datetime(time.gmtime().tm_year, 12, 31, 23, 59)
-    else:
-      default = datetime.datetime(time.gmtime().tm_year, 1, 1, 0, 0)
-    timestamp = parser.parse(string, default=default)
-    return time.mktime(timestamp.utctimetuple()) * cls.converter
-
-  @classmethod
-  def LessThanEq(cls, attribute, filter_implemention, value):
-    return filter_implemention.PredicateLesserEqualFilter(
-        attribute, cls.ParseFromHumanReadable(value, eoy=True))
-
-  @classmethod
-  def LessThan(cls, attribute, filter_implemention, value):
-    """For dates we want to recognize a variety of values."""
-    return filter_implemention.PredicateLesserEqualFilter(
-        attribute, cls.ParseFromHumanReadable(value))
-
-  @classmethod
-  def GreaterThanEq(cls, attribute, filter_implemention, value):
-    return filter_implemention.PredicateGreaterEqualFilter(
-        attribute, cls.ParseFromHumanReadable(value))
-
-  @classmethod
-  def GreaterThan(cls, attribute, filter_implemention, value):
-    return filter_implemention.PredicateGreaterEqualFilter(
-        attribute, cls.ParseFromHumanReadable(value, eoy=True))
-
-  operators = {"<": (1, "LessThan"),
-               ">": (1, "GreaterThan"),
-               "<=": (1, "LessThanEq"),
-               ">=": (1, "GreaterThanEq")}
-
-
-class RDFDatetimeSeconds(RDFDatetime):
-  """A DateTime class which is stored in whole seconds."""
-  converter = 1
-
-
-class RDFProto(RDFValue):
-  """A baseclass for using a protobuff as a RDFValue."""
-  # This should be overriden with a protobuf class
-  _proto = None
-  data = None
-
-  # This is a map between protobuf fields and RDFValue objects.
-  rdf_map = {}
-
-  data_store_type = "bytes"
-
-  def __init__(self, serialized=None, age=None):
-    # Allow ourselves to be instantiated from a protobuf
-    if self._proto is None or isinstance(serialized, self._proto):
-      self.data = serialized
-      super(RDFProto, self).__init__(None, age)
-    else:
-      self.data = self._proto()
-      super(RDFProto, self).__init__(serialized, age)
-
-  def ParseFromString(self, string):
-    self.data.ParseFromString(utils.SmartStr(string))
-
-  def SerializeToString(self):
-    return self.data.SerializeToString()
-
-  def GetFields(self, field_names):
-    value = self.data
-    rdf_class = self
-
-    for field_name in field_names:
-      rdf_class = rdf_class.rdf_map.get(field_name, RDFString)
-      value = getattr(value, field_name)
-
-    return [rdf_class(value)]
-
-  def __str__(self):
-    return self.data.__str__()
-
-  @classmethod
-  def Fields(cls, name):
-    return ["%s.%s" % (name, x.name) for x in cls._proto.DESCRIPTOR.fields]
-
-  def __getattr__(self, attr):
-    # Delegate to the protobuf if possible, but do not proxy private methods.
-    if not attr.startswith("_"):
-      return getattr(self.data, attr)
-
-    raise AttributeError(AttributeError)
-
-  def __setattr__(self, attr, value):
-    """If this attr does not belong to ourselves set in the proxied protobuf.
-
-    Args:
-      attr: The attribute to set.
-      value: The value to set.
-    """
-    if hasattr(self.data, attr) and not hasattr(self.__class__, attr):
-      setattr(self.data, attr, value)
-    else:
-      object.__setattr__(self, attr, value)
-
-
-class RDFProtoDict(RDFProto):
-  _proto = jobs_pb2.Dict
-
-
-class LabelList(RDFProto):
-  """A list of labels."""
-  _proto = jobs_pb2.LabelList
-
-
-class RDFProtoArray(RDFProto):
-  """A baseclass for using an array of protobufs as RDFValue."""
-  # This should be overridden as the proto in the array
-  _proto = lambda: None
-
-  # This is where we store all the protobufs in the array.
-  data = None
-
-  def __init__(self, serialized=None, age=None):
-    super(RDFProtoArray, self).__init__(age=age)
-    self.data = []
-    if isinstance(serialized, self._proto):
-      self.data.append(serialized)
-
-    elif serialized is not None:
-      self.ParseFromString(utils.SmartStr(serialized))
-
-  def ParseFromString(self, string):
-    myarray = jobs_pb2.BlobArray()
-    myarray.ParseFromString(string)
-
-    self.data = []
-    for data_blob in myarray.content:
-      member = self._proto()
-      member.ParseFromString(data_blob.data)
-      self.data.append(member)
-
-  def GetFields(self, field_names):
-    """Recurse into an attribute to get sub fields by name."""
-    result = []
-    for value in self.data:
-      rdf_class = self
-
-      for field_name in field_names:
-        rdf_class = rdf_class.rdf_map.get(field_name, RDFString)
-        value = getattr(value, field_name)
-
-      result.append(rdf_class(value))
-
-    return result
-
-  def Append(self, member=None, **kwargs):
-    """Add another member to the array.
-
-    Args:
-      member: A new protobuf to append to the array. Must be of the correct
-          type.
-
-      **kwargs: if member is not specified, a new array member is created and
-          these kwargs are passed to the protobuf constructor.
-
-    Raises:
-       TypeError: If the member is not of the correct type.
-    """
-    if member is None:
-      member = self._proto(**kwargs)
-
-    # Allow the member to be an RDFProto instance.
-    elif isinstance(member, RDFProto):
-      member = member.data
-
-    if type(member) != self._proto:
-      raise TypeError("Can not append a %s to %s" % (
-          type(member), self.__class__.__name__))
-
-    self.data.append(member)
-
-  def SerializeToString(self):
-    myarray = jobs_pb2.BlobArray()
-    for member in self.data:
-      myarray.content.add(data=member.SerializeToString())
-
-    return myarray.SerializeToString()
-
-  def __iter__(self):
-    return self.data.__iter__()
-
-  def __len__(self):
-    return self.data.__len__()
-
-  def __nonzero__(self):
-    return bool(self.data)
-
-  def Pop(self, index=0):
-    self.data.pop(index)
-
-  def __str__(self):
-    results = [str(x) for x in self.data]
-    return "\n\n".join(results)
-
-  def __getitem__(self, item):
-    return self.data.__getitem__(item)
-
-
-class RDFURN(RDFValue):
-  """An object to abstract URL manipulation."""
-
-  data_store_type = "string"
-
-  def __init__(self, urn=None, age=None):
-    """Constructor.
-
-    Args:
-      urn: A string or another RDFURN.
-      age: The age of this entry.
-    """
-    if type(urn) == RDFURN:
-      # Make a direct copy of the other object
-      # pylint: disable=W0212
-      self._urn = urn._urn
-      self._string_urn = urn._string_urn
-      super(RDFURN, self).__init__(None, age)
-      return
-
-    super(RDFURN, self).__init__(urn, age)
-
-  def ParseFromString(self, serialized=None):
-    self._urn = urlparse.urlparse(serialized, scheme="aff4")
-    # Normalize the URN path component
-    # namedtuple _replace() is not really private.
-    # pylint: disable=W0212
-    self._urn = self._urn._replace(path=utils.NormalizePath(self._urn.path))
-    if not self._urn.scheme:
-      self._urn = self._urn._replace(scheme="aff4")
-
-    self._string_urn = self._urn.geturl()
-
-  def SerializeToString(self):
-    return str(self)
-
-  def Dirname(self):
-    return posixpath.dirname(self.SerializeToString())
-
-  def Basename(self):
-    return posixpath.basename(self.Path())
-
-  def Add(self, urn, age=None):
-    """Add a relative stem to the current value and return a new RDFURN.
-
-    If urn is a fully qualified URN, replace the current value with it.
-
-    Args:
-      urn: A string containing a relative or absolute URN.
-      age: The age of the object. If None set to current time.
-
-    Returns:
-       A new RDFURN that can be chained.
-    """
-    if isinstance(urn, RDFURN):
-      return urn
-
-    parsed = urlparse.urlparse(urn)
-    if parsed.scheme != "aff4":
-      # Relative name - just append to us.
-      result = self.Copy(age)
-      result.Update(path=utils.JoinPath(self._urn.path, urn))
-    else:
-      # Make a copy of the arg
-      result = RDFURN(urn, age)
-
-    return result
-
-  def Update(self, url=None, **kwargs):
-    """Update one of the fields.
-
-    Args:
-       url: An optional string containing a URL.
-       **kwargs: Can be one of "schema", "netloc", "query", "fragment"
-    """
-    if url: self.ParseFromString(url)
-
-    self._urn = self._urn._replace(**kwargs)  # pylint: disable=W0212
-    self._string_urn = self._urn.geturl()
-
-  def Copy(self, age=None):
-    """Make a copy of ourselves."""
-    if age is None:
-      age = int(time.time() * MICROSECONDS)
-    return RDFURN(str(self), age=age)
-
-  def __str__(self):
-    return utils.SmartStr(self._string_urn)
-
-  def __unicode__(self):
-    return utils.SmartUnicode(self._string_urn)
-
-  def __eq__(self, other):
-    return utils.SmartStr(self) == utils.SmartStr(other)
-
-  def __ne__(self, other):
-    return str(self) != str(other)
-
-  def __lt__(self, other):
-    return self._string_urn < other
-
-  def __gt__(self, other):
-    return self._string_urn > other
-
-  def Path(self):
-    """Return the path of the urn."""
-    return self._urn.path
-
-  @property
-  def scheme(self):
-    return self._urn.scheme
-
-  def Split(self, count=None):
-    """Returns all the path components.
-
-    Args:
-      count: If count is specified, the output will be exactly this many path
-        components, possibly extended with the empty string. This is useful for
-        tuple assignments without worrying about ValueErrors:
-
-           namespace, path = urn.Split(2)
-
-    Returns:
-      A list of path components of this URN.
-    """
-    if count:
-      result = filter(None, self.Path().split("/", count))
-      while len(result) < count:
-        result.append("")
-
-      return result
-
-    else:
-      return filter(None, self.Path().split("/"))
-
-  def RelativeName(self, volume):
-    """Given a volume URN return the relative URN as a unicode string.
-
-    We remove the volume prefix from our own.
-    Args:
-      volume: An RDFURN or fully qualified url string.
-
-    Returns:
-      A string of the url relative from the volume or None if our URN does not
-      start with the volume prefix.
-    """
-    string_url = utils.SmartUnicode(self)
-    volume_url = utils.SmartUnicode(volume)
-    if string_url.startswith(volume_url):
-      result = string_url[len(volume_url):]
-      # Must always return a relative path
-      while result.startswith("/"): result = result[1:]
-
-      # Should return a unicode string.
-      return utils.SmartUnicode(result)
-
-    return None
-
-  def __hash__(self):
-    return hash(utils.SmartUnicode(self))
-
-  def __repr__(self):
-    return "<RDFURN@%X = %s age=%s>" % (hash(self), str(self), self.age)
-
-
-class RDFFingerprintValue(RDFProto):
-  """Proto containing dicts with hashes."""
-  _proto = jobs_pb2.FingerprintResponse
-  # TODO(user): Add reasonable accessors for UI/console integration.
-  # This includes parsing out the SignatureBlob for windows binaries.
-
-  def Get(self, name):
-    """Gets the first fingerprint type from the protobuf."""
-    for result in self.data.fingerprint_results:
-      result = utils.ProtoDict(result)
-      if result.Get("name") == name:
-        return result
-
-
-class Subject(RDFURN):
-  """A psuedo attribute representing the subject of an AFF4 object."""
-
-  @staticmethod
-  def ContainsMatch(unused_attribute, filter_implemention, regex):
-    return filter_implemention.SubjectContainsFilter(regex)
-
-  @staticmethod
-  def Startswith(unused_attribute, filter_implemention, string):
-    return filter_implemention.SubjectContainsFilter(
-        "^" + data_store.EscapeRegex(string))
-
-  @staticmethod
-  def HasAttribute(unused_attribute, filter_implemention, string):
-    return filter_implemention.HasPredicateFilter(string)
-
-  operators = dict(matches=(1, "ContainsMatch"),
-                   contains=(1, "ContainsMatch"),
-                   startswith=(1, "Startswith"),
-                   has=(1, "HasAttribute"))
-
-
 class Attribute(object):
   """AFF4 schema attributes are instances of this class."""
 
@@ -1200,8 +520,8 @@ class Attribute(object):
   # A human readable name to be used in filter queries.
   NAMES = {}
 
-  def __init__(self, predicate, attribute_type=RDFString, description="",
-               name=None, _copy=False, default=None, index=None,
+  def __init__(self, predicate, attribute_type=rdfvalue.RDFString,
+               description="", name=None, _copy=False, default=None, index=None,
                versioned=True):
     """Constructor.
 
@@ -1301,7 +621,7 @@ class Attribute(object):
     """Returns this attribute's RDFValue class."""
     result = self.attribute_type
     for field_name in self.field_names:
-      result = result.rdf_map.get(field_name, RDFString)
+      result = result.rdf_map.get(field_name, rdfvalue.RDFString)
 
     return result
 
@@ -1324,13 +644,17 @@ class Attribute(object):
 
     return results
 
-  def GetDefault(self, fd, default=None):
+  def GetDefault(self, fd=None, default=None):
     """Returns a default attribute if it is not set."""
     if callable(self.default):
       return self.default(fd)
 
     if self.default is not None:
       return self(self.default)
+
+    if isinstance(default, rdfvalue.RDFValue):
+      default = default.Copy()
+      default.attribute_instance = self
 
     return default
 
@@ -1340,10 +664,11 @@ class SubjectAttribute(Attribute):
 
   def __init__(self):
     Attribute.__init__(self, "aff4:subject",
-                       Subject, "A subject pseodo attribute", "subject")
+                       rdfvalue.Subject, "A subject pseodo attribute",
+                       "subject")
 
   def GetValues(self, fd):
-    return [Subject(fd.urn)]
+    return [rdfvalue.Subject(fd.urn)]
 
 
 class ClassProperty(property):
@@ -1385,19 +710,19 @@ class AFF4Object(object):
   # SchemaCls.
   class SchemaCls(object):
     """The standard AFF4 schema."""
-    TYPE = Attribute("aff4:type", RDFString,
+    TYPE = Attribute("aff4:type", rdfvalue.RDFString,
                      "The name of the AFF4Object derived class.", "type")
 
     SUBJECT = SubjectAttribute()
 
-    STORED = Attribute("aff4:stored", RDFURN,
+    STORED = Attribute("aff4:stored", rdfvalue.RDFURN,
                        "The AFF4 container inwhich this object is stored.")
 
-    LAST = Attribute("metadata:last", RDFDatetime,
+    LAST = Attribute("metadata:last", rdfvalue.RDFDatetime,
                      "The last time any attribute of this object was written.")
 
-    LABEL = Attribute("aff4:labels", LabelList,
-                      "Any object can have labels applied to it.", default="")
+    LABEL = Attribute("aff4:labels", rdfvalue.LabelList,
+                      "Any object can have labels applied to it.")
 
     def ListAttributes(self):
       for attr in dir(self):
@@ -1441,12 +766,14 @@ class AFF4Object(object):
   # Make sure that when someone references the schema, they receive an instance
   # of the class.
   @property
-  def Schema(self):   # pylint: disable=C6409
+  def Schema(self):   # pylint: disable=g-bad-name
     return self.SchemaCls()
 
   def __init__(self, urn, mode="r", parent=None, clone=None, token=None,
                local_cache=None, age=NEWEST_TIME):
-    self.urn = RDFURN(urn)
+    if urn is not None:
+      urn = rdfvalue.RDFURN(urn)
+    self.urn = urn
     self.mode = mode
     self.parent = parent
     self.token = token
@@ -1542,15 +869,14 @@ class AFF4Object(object):
     if "w" not in self.mode:
       return
 
-    if self.new_attributes or self._to_delete:
-      logging.debug("%s: Writing %s and deleting %s attributes", self.urn,
-                    len(self.new_attributes), len(self._to_delete))
+    if self.urn is None:
+      raise RuntimeError("Storing of anonymouse AFF4 objects not supported.")
 
     to_set = {}
-    for attribute_name, value_array in self.new_attributes.items():
+    for attribute_name, value_array in self.new_attributes.iteritems():
+      to_set_list = to_set.setdefault(attribute_name, [])
       for value in value_array:
-        to_set.setdefault(attribute_name, []).append(
-            (value.SerializeToDataStore(), value.age))
+        to_set_list.append((value.SerializeToDataStore(), value.age))
 
     if self._dirty:
       # We determine this object has a new version only if any of the versioned
@@ -1559,8 +885,8 @@ class AFF4Object(object):
       # version point in the life of the object.
       if self._new_version:
         to_set[self.Schema.TYPE] = [
-            (RDFString(self.__class__.__name__).SerializeToDataStore(),
-             RDFDatetime())]
+            (rdfvalue.RDFString(self.__class__.__name__).SerializeToDataStore(),
+             rdfvalue.RDFDatetime())]
 
       # Write the attributes to the Factory cache.
       FACTORY.SetAttributes(self.urn, to_set, self._to_delete, sync=sync,
@@ -1570,7 +896,7 @@ class AFF4Object(object):
 
     # This effectively moves all the values from the new_attributes to the
     # _attributes caches.
-    for attribute_name, value_array in self.new_attributes.items():
+    for attribute_name, value_array in self.new_attributes.iteritems():
       self.synced_attributes.setdefault(attribute_name, []).extend(value_array)
 
     self.new_attributes = {}
@@ -1709,14 +1035,10 @@ class AFF4Object(object):
     elif isinstance(attribute, str):
       attribute = Attribute.GetAttributeByName(attribute)
 
-    # Reads of un-flushed writes are still allowed.
+    # We can't read attributes from the data_store unless read mode was
+    # specified. It is ok to read new attributes though.
     if "r" not in self.mode and (attribute not in self.new_attributes and
                                  attribute not in self.synced_attributes):
-      # If there are defaults for this attribute - just use them.
-      result = attribute.GetDefault(self)
-      if result is not None:
-        return result
-
       raise IOError(
           "Fetching %s from object not opened for reading." % attribute)
 
@@ -1726,7 +1048,10 @@ class AFF4Object(object):
 
     # Get latest result
     result.sort(key=lambda x: x.age)
-    return result[-1]
+    result = result[-1]
+    result.attribute_instance = attribute
+
+    return result
 
   def GetValuesForAttribute(self, attribute, only_one=False):
     """Returns a list of values from this attribute."""
@@ -1782,6 +1107,17 @@ class AFF4Object(object):
     # Instantiate the right type
     cls = self.classes[str(aff4_class)]
 
+    # It's not allowed to downgrade the object
+    if isinstance(self, cls):
+      # TODO(user): check what we should do here:
+      #                 1) Nothing
+      #                 2) raise
+      #                 3) return self
+      # Option 3) seems ok, but we need to be sure that we don't use
+      # Create(mode='r') anywhere where code actually expects the object to be
+      # downgraded.
+      return self
+
     # NOTE: It is possible for attributes to become inaccessible here if the old
     # object has an attribute which the new object does not have in its
     # schema. The values of these attributes will not be available any longer in
@@ -1792,8 +1128,10 @@ class AFF4Object(object):
     result = cls(self.urn, mode=self.mode, clone=self, parent=self.parent,
                  token=self.token, age=self.age_policy)
     result.Initialize()
+    # pylint: disable=protected-access
     result._dirty = True
     result._new_version = True
+    # pylint: disable=protected-access
 
     return result
 
@@ -1858,10 +1196,11 @@ class AFF4Volume(AFF4Object):
   _behaviours = frozenset(["Container"])
 
   class SchemaCls(AFF4Object.SchemaCls):
-    CONTAINS = Attribute("aff4:contains", RDFURN,
+    CONTAINS = Attribute("aff4:contains", rdfvalue.RDFURN,
                          "An AFF4 object contained in this container.")
 
-  def Query(self, filter_string="", filter_obj=None, limit=1000):
+  def Query(self, filter_string="", filter_obj=None, limit=1000,
+            age=NEWEST_TIME):
     """A way to query the collection based on a filter object.
 
     Args:
@@ -1869,13 +1208,15 @@ class AFF4Volume(AFF4Object):
         string should correspond to the syntax described in lexer.py.
       filter_obj: An optional compiled filter (as obtained from lexer.Compile().
       limit: A limit on the number of returned rows.
+      age: The age of the objects to retrieve. Should be one of ALL_TIMES,
+           NEWEST_TIME or a range.
 
     Returns:
       A generator of all children which match the filter.
     """
     # If no filtering is required we can just use OpenChildren.
     if not filter_obj and not filter_string:
-      return self.OpenChildren(limit=limit)
+      return self.OpenChildren(limit=limit, age=age)
 
     if filter_obj is None and filter_string:
       # Parse the query string
@@ -1888,7 +1229,9 @@ class AFF4Volume(AFF4Object):
         [], filter_obj, limit=limit, subject_prefix=self.urn, token=self.token)
 
     result = data_store.ResultSet(
-        self.OpenChildren([m["subject"][0] for m in result_set]))
+        self.OpenChildren([m["subject"][0][0] for m in result_set],
+                          limit=limit,
+                          age=age))
 
     result.total_count = result_set.total_count
     return result
@@ -1907,7 +1250,7 @@ class AFF4Volume(AFF4Object):
       IOError: If we are unable to open the member (e.g. it does not already
       exist.)
     """
-    if isinstance(path, RDFURN):
+    if isinstance(path, rdfvalue.RDFURN):
       child_urn = path
     else:
       child_urn = self.urn.Add(path)
@@ -1927,11 +1270,13 @@ class AFF4Volume(AFF4Object):
     return FACTORY.Create(self.urn.Add(path), aff4_type, mode=mode,
                           token=self.token)
 
-  def ListChildren(self, limit=1000000):
+  def ListChildren(self, limit=1000000, age=NEWEST_TIME):
     """Yields RDFURNs of all the children of this object.
 
     Args:
       limit: Total number of items we will attempt to retrieve.
+      age: The age of the items to retrieve. Should be one of ALL_TIMES,
+           NEWEST_TIME or a range.
 
     Yields:
       RDFURNs instances of each child.
@@ -1940,13 +1285,13 @@ class AFF4Volume(AFF4Object):
     index_prefix = "index:dir/"
     for predicate, _, timestamp in data_store.DB.ResolveRegex(
         self.urn, index_prefix + ".+", token=self.token,
-        timestamp=data_store.DB.NEWEST_TIMESTAMP, limit=limit):
+        timestamp=Factory.ParseAgeSpecification(age), limit=limit):
       urn = self.urn.Add(predicate[len(index_prefix):])
-      urn.age = RDFDatetime(timestamp)
+      urn.age = rdfvalue.RDFDatetime(timestamp)
       yield urn
 
   def OpenChildren(self, children=None, mode="r", limit=1000000,
-                   chunk_limit=1000):
+                   chunk_limit=100000, age=NEWEST_TIME):
     """Yields AFF4 Objects of all our direct children.
 
     This method efficiently returns all attributes for our children directly, in
@@ -1959,11 +1304,13 @@ class AFF4Volume(AFF4Object):
       mode: The mode the files should be opened with.
       limit: Total number of items we will attempt to retrieve.
       chunk_limit: Maximum number of items to retrieve at a time.
+      age: The age of the items to retrieve. Should be one of ALL_TIMES,
+           NEWEST_TIME or a range.
     Yields:
       Instances for each direct child.
     """
     if children is None:
-      subjects = list(self.ListChildren(limit=limit))
+      subjects = list(self.ListChildren(limit=limit, age=age))
     else:
       subjects = list(children)
     subjects.sort()
@@ -1971,7 +1318,8 @@ class AFF4Volume(AFF4Object):
     while subjects:
       to_read = subjects[:chunk_limit]
       subjects = subjects[chunk_limit:]
-      for child in FACTORY.MultiOpen(to_read, mode=mode, token=self.token):
+      for child in FACTORY.MultiOpen(to_read, mode=mode, token=self.token,
+                                     age=age):
         yield child
 
 
@@ -1995,7 +1343,7 @@ class AFF4Root(AFF4Volume):
     result_set = data_store.DB.Query([], filter_obj, subjects=subjects,
                                      limit=limit, token=self.token)
     for match in result_set:
-      subjects.append(match["subject"][0])
+      subjects.append(match["subject"][0][0])
 
     # Open them all at once.
     result = data_store.ResultSet(FACTORY.MultiOpen(subjects, token=self.token))
@@ -2010,6 +1358,36 @@ class AFF4Root(AFF4Volume):
     result.Initialize()
 
     return result
+
+
+class AFF4Symlink(AFF4Object):
+  """This is a symlink to another AFF4 object.
+
+  This means that opening this object will return the linked to object. To
+  create a symlink, one must open the symlink for writing and set the
+  Schema.SYMLINK_TARGET attribute.
+
+  Opening the object for reading will return the linked to object.
+  """
+
+  class SchemaCls(AFF4Object.SchemaCls):
+    SYMLINK_TARGET = Attribute("aff4:symlink_target", rdfvalue.RDFURN,
+                               "The target of this link.")
+
+  def __new__(cls, urn, mode="r", clone=None, token=None, local_cache=None,
+              age=NEWEST_TIME, parent=None):
+    # When first created, the symlink object is exposed.
+    if mode == "w":
+      return super(AFF4Symlink, cls).__new__(
+          cls, urn, mode=mode, clone=clone, token=token, parent=parent,
+          local_cache=local_cache, age=age)
+    elif clone is not None:
+      # Get the real object (note, clone shouldn't be None during normal
+      # object creation process):
+      target_urn = clone.Get(cls.SchemaCls.SYMLINK_TARGET)
+      return FACTORY.Open(target_urn, mode=mode, age=age, token=token)
+    else:
+      raise RuntimeError("Unable to open symlink.")
 
 
 class AFF4OverlayedVolume(AFF4Volume):
@@ -2069,7 +1447,7 @@ class AFF4Stream(AFF4Object):
   class SchemaCls(AFF4Object.SchemaCls):
     # Note that a file on the remote system might have stat.st_size > 0 but if
     # we do not have any of the data available to read: size = 0.
-    SIZE = Attribute("aff4:size", RDFInteger,
+    SIZE = Attribute("aff4:size", rdfvalue.RDFInteger,
                      "The total size of available data for this stream.",
                      "size", default=0)
 
@@ -2104,7 +1482,7 @@ class AFF4MemoryStream(AFF4Stream):
   dirty = False
 
   class SchemaCls(AFF4Stream.SchemaCls):
-    CONTENT = Attribute("aff4:content", RDFBytes,
+    CONTENT = Attribute("aff4:content", rdfvalue.RDFBytes,
                         "Total content of this file.", default="")
 
   def Initialize(self):
@@ -2120,7 +1498,7 @@ class AFF4MemoryStream(AFF4Stream):
         pass
 
     self.fd = StringIO.StringIO(contents)
-    self.size = RDFInteger(0)
+    self.size = rdfvalue.RDFInteger(0)
 
   def Truncate(self, offset=None):
     if offset is None:
@@ -2156,10 +1534,8 @@ class AFF4MemoryStream(AFF4Stream):
 class AFF4ObjectCache(utils.PickleableStore):
   """A cache which closes its objects when they expire."""
 
-  def ExpireObject(self, key):
-    obj = super(AFF4ObjectCache, self).ExpireObject(key)
-    if obj is not None:
-      obj.Close()
+  def KillObject(self, obj):
+    obj.Close()
 
 
 class AFF4Image(AFF4Stream):
@@ -2173,7 +1549,7 @@ class AFF4Image(AFF4Stream):
   CHUNK_ID_TEMPLATE = "%010X"
 
   class SchemaCls(AFF4Stream.SchemaCls):
-    CHUNKSIZE = Attribute("aff4:chunksize", RDFInteger,
+    CHUNKSIZE = Attribute("aff4:chunksize", rdfvalue.RDFInteger,
                           "Total size of each chunk.", default=64*1024)
 
   def Initialize(self):
@@ -2193,6 +1569,7 @@ class AFF4Image(AFF4Stream):
       self.size = int(self.Get(self.Schema.SIZE))
     else:
       self.size = 0
+      self.Set(self.Schema.CHUNKSIZE.GetDefault())
 
   def Seek(self, offset, whence=0):
     # This stream does not support random writing in "w" mode. When the stream
@@ -2250,7 +1627,7 @@ class AFF4Image(AFF4Stream):
           missing_chunks.append(new_chunk_name)
 
       for child in FACTORY.MultiOpen(
-          missing_chunks, mode="r", token=self.token):
+          missing_chunks, mode="r", token=self.token, age=self.age_policy):
         if isinstance(child, AFF4Stream):
           self.read_chunk_cache.Put(child.urn, child)
 
@@ -2346,7 +1723,6 @@ class AFF4Image(AFF4Stream):
     fd = None
     if self._dirty:
       chunksize = int(self.Get(self.Schema.CHUNKSIZE))
-
       chunk = self.offset / chunksize
 
       cache_key = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk)
@@ -2410,7 +1786,7 @@ class AFF4Filter(object):
 
 # A global registry of all AFF4 classes
 FACTORY = None
-ROOT_URN = RDFURN("aff4:/")
+ROOT_URN = rdfvalue.RDFURN("aff4:/")
 
 # The FlowSwitch lives here.
 FLOW_SWITCH_URN = ROOT_URN.Add("flows")

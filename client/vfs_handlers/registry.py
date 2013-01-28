@@ -24,12 +24,19 @@ import StringIO
 import _winreg
 
 from grr.client import vfs
+from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
 # Difference between 1 Jan 1601 and 1 Jan 1970.
 WIN_UNIX_DIFF_MSECS = 11644473600
+
+# KEY_READ = STANDARD_RIGHTS_READ | KEY_QUERY_VALUE |
+#            KEY_ENUMERATE_SUB_KEYS | KEY_NOTIFY
+# Also see: http://msdn.microsoft.com/en-us/library/windows/desktop/
+# ms724878(v=vs.85).aspx
+KEY_READ = 0x20019
 
 
 def CanonicalPathToLocalPath(path):
@@ -123,9 +130,8 @@ class KeyHandle(object):
 def OpenKey(key, sub_key):
   """This calls the Windows OpenKeyEx function in a Unicode safe way."""
   new_key = KeyHandle()
-  key_read = 0x20019
-  key_wow64_64key = 0x100
-  rc = RegOpenKeyEx(key.handle, sub_key, 0, key_read | key_wow64_64key,
+  # Don't use KEY_WOW64_64KEY (0x100) since it breaks on Windows 2000
+  rc = RegOpenKeyEx(key.handle, sub_key, 0, KEY_READ,
                     ctypes.cast(ctypes.byref(new_key.handle),
                                 ctypes.POINTER(ctypes.c_void_p)))
   if rc != ERROR_SUCCESS:
@@ -247,7 +253,7 @@ def Reg2Py(data, size, data_type):
   elif data_type == _winreg.REG_SZ or data_type == _winreg.REG_EXPAND_SZ:
     return ctypes.wstring_at(data, size // 2).rstrip(u"\x00")
   elif data_type == _winreg.REG_MULTI_SZ:
-    return ctypes.wstring_at(data, size // 2).rstrip(u"\x00").split(u"\00")
+    return ctypes.wstring_at(data, size // 2).rstrip(u"\x00").split(u"\x00")
   else:
     if size == 0:
       return None
@@ -257,7 +263,7 @@ def Reg2Py(data, size, data_type):
 class RegistryFile(vfs.VFSHandler):
   """Emulate registry access through the VFS."""
 
-  supported_pathtype = jobs_pb2.Path.REGISTRY
+  supported_pathtype = rdfvalue.RDFPathSpec.Enum("REGISTRY")
   auto_register = True
 
   value = None
@@ -268,16 +274,17 @@ class RegistryFile(vfs.VFSHandler):
 
   # Maps the registry types to protobuf enums
   registry_map = {
-      _winreg.REG_NONE: jobs_pb2.StatResponse.REG_NONE,
-      _winreg.REG_SZ: jobs_pb2.StatResponse.REG_SZ,
-      _winreg.REG_EXPAND_SZ: jobs_pb2.StatResponse.REG_EXPAND_SZ,
-      _winreg.REG_BINARY: jobs_pb2.StatResponse.REG_BINARY,
-      _winreg.REG_DWORD: jobs_pb2.StatResponse.REG_DWORD,
+      _winreg.REG_NONE: rdfvalue.StatEntry.Enum("REG_NONE"),
+      _winreg.REG_SZ: rdfvalue.StatEntry.Enum("REG_SZ"),
+      _winreg.REG_EXPAND_SZ: rdfvalue.StatEntry.Enum("REG_EXPAND_SZ"),
+      _winreg.REG_BINARY: rdfvalue.StatEntry.Enum("REG_BINARY"),
+      _winreg.REG_DWORD: rdfvalue.StatEntry.Enum("REG_DWORD"),
       _winreg.REG_DWORD_LITTLE_ENDIAN: (
-          jobs_pb2.StatResponse.REG_DWORD_LITTLE_ENDIAN),
-      _winreg.REG_DWORD_BIG_ENDIAN: jobs_pb2.StatResponse.REG_DWORD_BIG_ENDIAN,
-      _winreg.REG_LINK: jobs_pb2.StatResponse.REG_LINK,
-      _winreg.REG_MULTI_SZ: jobs_pb2.StatResponse.REG_MULTI_SZ,
+          rdfvalue.StatEntry.Enum("REG_DWORD_LITTLE_ENDIAN")),
+      _winreg.REG_DWORD_BIG_ENDIAN: (
+          rdfvalue.StatEntry.Enum("REG_DWORD_BIG_ENDIAN")),
+      _winreg.REG_LINK: rdfvalue.StatEntry.Enum("REG_LINK"),
+      _winreg.REG_MULTI_SZ: rdfvalue.StatEntry.Enum("REG_MULTI_SZ"),
       }
 
   def __init__(self, base_fd, pathspec=None):
@@ -337,16 +344,16 @@ class RegistryFile(vfs.VFSHandler):
     return self._Stat("", self.value, self.value_type)
 
   def _Stat(self, name, value, value_type):
-    response = jobs_pb2.StatResponse()
+    response = rdfvalue.StatEntry()
     response_pathspec = self.pathspec.Copy()
 
     # No matter how we got here, there is no need to do case folding from now on
     # since this is the exact filename casing.
-    response_pathspec.path_options = jobs_pb2.Path.CASE_LITERAL
+    response_pathspec.path_options = rdfvalue.RDFPathSpec.Enum("CASE_LITERAL")
 
     response_pathspec.last.path = utils.JoinPath(
         response_pathspec.last.path, name)
-    response_pathspec.ToProto(response.pathspec)
+    response.pathspec = response_pathspec
 
     if self.IsDirectory():
       response.st_mode = stat.S_IFDIR
@@ -356,8 +363,7 @@ class RegistryFile(vfs.VFSHandler):
     response.st_mtime = self.last_modified
     response.st_size = len(utils.SmartStr(value))
     response.registry_type = self.registry_map.get(value_type, 0)
-    utils.DataBlob(response.registry_data).SetValue(value)
-
+    response.registry_data = rdfvalue.DataBlob().SetValue(value)
     return response
 
   def ListNames(self):

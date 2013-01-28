@@ -48,12 +48,11 @@ class AndFilter(aff4.AFF4Filter):
     self.parts = parts
 
   def Filter(self, subjects):
-    for subject in subjects:
-      for part in self.parts:
-        if not list(part.Filter([subject])):
-          break
+    result = subjects
+    for part in self.parts:
+      result = list(part.Filter(result))
 
-      else: yield subject
+    return result or []
 
   def Compile(self, filter_cls):
     return getattr(filter_cls, self.__class__.__name__)(

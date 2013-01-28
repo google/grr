@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """Various configuration related things."""
-
 
 
 import os
@@ -30,74 +28,79 @@ from grr.client import conf as flags
 from grr.client import client_keys
 from grr.lib import registry
 
-flags.DEFINE_string("camode", client_keys.CAMODE,
-                    "The mode to run in, test,production,staging. This "
-                    "affects the CA certificate we trust.")
 
-
-# Default Windows nanny service name. Override using --service_name flag.
-SERVICE_NAME = %(Nanny.Name)r
-
-# Client Information
+# Client name and version information.
 GRR_CLIENT_NAME = %(Client.Name)r
-
-# Version information.
-GRR_CLIENT_VERSION = %(GRR.Version_numeric)s
+GRR_CLIENT_VERSION = %(GRR.Version_Numeric)s
 GRR_CLIENT_BUILDTIME = %(.Build_Time)r
 
-# MacOS-X launchctl plist
-LAUNCHCTL_PLIST = "/Library/LaunchDaemons/com.google.code.grrd.plist"
+# Network information.
+NETWORK_API = 3
 
-# The key we store our config in windows
-REGISTRY_KEY = "HKEY_LOCAL_MACHINE\\%(Nanny.Registry)s"
-
+# The location URL of the server.
 LOCATION = "%(Client.Location)s"
-
-# Config file for linux/osx
-CONFIG_FILE = "/etc/grr.ini"
-
-# Nanny control
-NANNY_LOGFILE = "/var/run/grr.log"
-NANNY_STATUS_FILE = "/var/run/grr.status"
-UNRESPONSIVE_KILL_PERIOD = 60
 
 # The GRR client performs some proxy detection. However, it cannot
 # handle proxy autoconfig settings. Here, additional proxy servers
 # can be given as a list of strings of the form "http://server:port/".
 PROXY_SERVERS = []
 
-try:
-  LOGFILE_PATH = "%%s/system32/logfiles/GRRlog.txt" %% os.environ["WINDIR"]
-except KeyError:
-  LOGFILE_PATH = "/tmp/GRRlog.txt"
+# Nanny service information.
 
-# This is the version of this client.
-NETWORK_API = 3
+# TODO(jbmetz): does this comment still apply? Especially the override part.
+# Default Windows nanny service name. Override using --service_name flag.
+SERVICE_NAME = %(Nanny.Name)r
 
-# Import the keys from the client_key file.
+# TODO(jbmetz): move the log file to the configuration file?
+NANNY_LOGFILE = "/var/run/%(Nanny.Log_File_Name)s"
+NANNY_STATUS_FILE = "/var/run/(Nanny.Status_File_Name)s"
+UNRESPONSIVE_KILL_PERIOD = 60
+
+# Certificates and keys information.
 CAMODE = client_keys.CAMODE
 CACERTS = client_keys.CACERTS
 EXEC_SIGNING_KEY = client_keys.EXEC_SIGNING_KEY
 DRIVER_SIGNING_KEY = client_keys.DRIVER_SIGNING_KEY
 
-# The following allows the certificates to be updated using the command line or
-# config file.
-flags.DEFINE_string("cacert", None,
-                    help="The CA certificate we use to verify the server.")
+flags.DEFINE_string(
+    "cacert", None, help="The CA certificate we use to verify the server.")
 
-flags.DEFINE_string("exec_signing_key", None,
-                    help="The certificate we use to verify executables.")
+flags.DEFINE_string(
+    "camode", client_keys.CAMODE, "The mode to run in, options: test, "
+    "production, staging. This affects the CA certificate we trust.")
 
 flags.DEFINE_string("driver_signing_key", None,
                     help="The certificate we use to verify drivers.")
 
+flags.DEFINE_string("exec_signing_key", None,
+                    help="The certificate we use to verify executables.")
+
+# Platform specific information.
+
+# The configuration file which is used for POSIX-based systems like Linux or
+# Mac OS X.
+CONFIG_FILE = "%(ConfigFile.Path_Prefix)s/%(ConfigFile.Name)s"
+
+# The location of the Mac OS X launchctl plist.
+LAUNCHCTL_PLIST = "%(Plist.Path)s"
+
+# The Registry key in which the configuratioin is stored for Windows-based
+# systems.
+REGISTRY_KEY = "%(Registry.Service_Key|escape)s"
 
 if platform.system() == "Windows":
-  flags.DEFINE_string("regpath", REGISTRY_KEY,
-                      "A registry path for storing GRR configuration.")
+  # The double escaped %% is removed by the config manager.
+  LOGFILE_PATH = "%%s/System32/LogFiles/%(Client.Log_File_Name)s" %% (
+      os.environ["SystemRoot"])
+
+  flags.DEFINE_string(
+      "regpath", REGISTRY_KEY, "A registry path for storing GRR configuration.")
 else:
-  flags.DEFINE_string("config", CONFIG_FILE,
-                      "Comma separated list of grr configuration files.")
+  LOGFILE_PATH = "/tmp/%(Client.Log_File_Name)s"
+
+  flags.DEFINE_string(
+      "config", CONFIG_FILE, "Comma separated list of grr configuration files.")
+
 
 FLAGS = flags.FLAGS
 
@@ -106,8 +109,8 @@ class ConfigInit(registry.InitHook):
   """Update configuration from command line flags."""
 
   def CheckCert(self, cert_string, label):
-    """Check certificates for validity and try to fix mangled cert strings."""
-
+    """Checks certificates for validity and tries to fix mangled certifcate
+       strings."""
     start_marker = "-----BEGIN CERTIFICATE-----"
     end_marker = "-----END CERTIFICATE-----"
 
@@ -136,12 +139,11 @@ class ConfigInit(registry.InitHook):
       except X509.X509Error:
         pass
 
-    # Cannot fix this cert, giving up.
+    # The double escaped %% is removed by the config manager.
     raise RuntimeError("Invalid %%s certificate." %% label)
 
   def CheckKey(self, key_string, label):
-    """Check keys for validity and try to fix mangled key strings."""
-
+    """Checks the keys for validity and tries to fix mangled key strings."""
     start_marker = "-----BEGIN PUBLIC KEY-----"
     end_marker = "-----END PUBLIC KEY-----"
 
@@ -172,12 +174,11 @@ class ConfigInit(registry.InitHook):
       except RSA.RSAError:
         pass
 
-    # Cannot fix this key, giving up.
+    # The double escaped %% is removed by the config manager.
     raise RuntimeError("Invalid %%s key." %% label)
 
   def RunOnce(self):
-    """Inits and validates the certificates."""
-
+    """Initializes and validates the certificates."""
     try:
       camode = FLAGS.camode.upper()
     except AttributeError:

@@ -20,6 +20,7 @@ import urllib
 from django import http
 from grr.gui import renderers
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import utils
 
 
@@ -36,7 +37,7 @@ class NotificationCount(renderers.TemplateRenderer):
           request.user), token=request.token)
       notifications = user_fd.Get(user_fd.Schema.PENDING_NOTIFICATIONS)
       if notifications:
-        number = len(notifications.data)
+        number = len(notifications)
     except IOError:
       pass
 
@@ -127,8 +128,8 @@ class ViewNotifications(renderers.TableRenderer):
 </script>
   """
 
-  def __init__(self):
-    renderers.TableRenderer.__init__(self)
+  def __init__(self, **kwargs):
+    renderers.TableRenderer.__init__(self, **kwargs)
 
     self.AddColumn(renderers.RDFValueColumn("Timestamp", width=10))
     self.AddColumn(renderers.RDFValueColumn("Message"))
@@ -161,7 +162,7 @@ class ViewNotifications(renderers.TableRenderer):
                    self.target_template,
                    hash=self.BuildHashFromNotification(notification),
                    target=notification.subject),
-               "Timestamp": aff4.RDFDatetime(notification.timestamp),
+               "Timestamp": rdfvalue.RDFDatetime(notification.timestamp),
               }
         self.AddRow(row, row_index)
         row_index += 1
@@ -180,7 +181,7 @@ class ViewNotifications(renderers.TableRenderer):
 
     # Downloading a file
     elif notification.type == "ViewObject":
-      path = aff4.RDFURN(notification.subject)
+      path = rdfvalue.RDFURN(notification.subject)
       components = path.Path().split("/")[1:]
       h["c"] = components[0]
       h["aff4_path"] = notification.subject

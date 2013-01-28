@@ -23,59 +23,42 @@ import stat
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import type_info
-from grr.proto import jobs_pb2
 
 
 class DownloadDirectory(flow.GRRFlow):
   """Flow for recursively downloading all files in a directory."""
 
   category = "/Filesystem/"
-  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
-                   "pathspec": type_info.Proto(jobs_pb2.Path)}
 
-  def __init__(self, path="/", pathtype=jobs_pb2.Path.OS, depth=10,
-               pathspec=None, ignore_errors=False, **kwargs):
-    """Constructor.
-
-    Args:
-      path: The directory path to download.
-      pathtype: The type of path.
-      depth: Maximum recursion depth.
-      pathspec: If specified overrides path to the location of the directory.
-      ignore_errors: If True, we do not raise an error in the case
-                     that a directory or file cannot be not found.
-
-    Raises:
-      ValueError: if one of the arguments is incorrect
-    """
-    if depth <= 0:
-      raise ValueError("Invalid depth: %d value is zero or less" %(depth))
-
-    self._pathspec = pathspec
-    self._depth = depth
-    self._ignore_errors = ignore_errors
-    self._out_urn = None
-
-    if pathspec is None:
-      # We use data to pass the path to the callback:
-      self._pathspec = jobs_pb2.Path(path=path, pathtype=int(pathtype))
-
-    flow.GRRFlow.__init__(self, **kwargs)
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.PathspecType(
+          description="The pathspec for the directory to list."),
+      type_info.Number(
+          name="depth",
+          description="Maximum recursion depth.",
+          default=10),
+      type_info.Bool(
+          name="ignore_errors",
+          description=("If True, we do not raise an error in the case"
+                       "that a directory or file cannot be not found."),
+          default=False)
+      )
 
   @flow.StateHandler(next_state="DownloadDir")
   def Start(self, unused_response):
     """Issue a request to list the directory."""
     self.urn = aff4.ROOT_URN.Add(self.client_id)
-    self.CallClient("ListDirectory", pathspec=self._pathspec,
+    self.out_urn = None
+    self.CallClient("ListDirectory", pathspec=self.pathspec,
                     next_state="DownloadDir",
-                    request_data=dict(depth=self._depth))
+                    request_data=dict(depth=self.depth))
 
   @flow.StateHandler(next_state=["DownloadDir", "Done"])
   def DownloadDir(self, responses):
     """Download all files in a given directory recursively."""
 
     if not responses.success:
-      if not self._ignore_errors:
+      if not self.ignore_errors:
         err = "Error downloading directory: %s" % responses.status
         logging.error(err)
         raise flow.FlowError(err)
@@ -84,8 +67,8 @@ class DownloadDirectory(flow.GRRFlow):
 
       for stat_response in responses:
         # Retrieve where the files are being stored in the VFS.
-        if not self._out_urn:
-          self._out_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+        if not self.out_urn:
+          self.out_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
               stat_response.pathspec, self.client_id).Dirname()
 
         if stat.S_ISDIR(stat_response.st_mode):
@@ -102,12 +85,12 @@ class DownloadDirectory(flow.GRRFlow):
   @flow.StateHandler()
   def Done(self, responses):
     if not responses.success:
-      if not self._ignore_errors:
+      if not self.ignore_errors:
         err = "Error downloading file %s" % responses.status
         logging.error(err)
         raise flow.FlowError(err)
 
   @flow.StateHandler()
   def End(self):
-    if self._out_urn:
-      self.Notify("ViewObject", self._out_urn, "Completed DownloadDirectory")
+    if self.out_urn:
+      self.Notify("ViewObject", self.out_urn, "Completed DownloadDirectory")

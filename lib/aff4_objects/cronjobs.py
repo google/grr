@@ -21,6 +21,9 @@ import traceback
 import logging
 
 from grr.lib import aff4
+from grr.lib import data_store
+from grr.lib import export_utils
+from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.proto import analysis_pb2
 
@@ -37,9 +40,9 @@ class CronJob(aff4.AFF4Object):
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     LAST_RUN_TIME = aff4.Attribute(
-        "aff4:cron/last_run", aff4.RDFDatetime,
+        "aff4:cron/last_run", rdfvalue.RDFDatetime,
         "The last time this cron job ran.", "last_run", versioned=False)
-    LOG = aff4.Attribute("aff4:log", aff4.RDFString,
+    LOG = aff4.Attribute("aff4:log", rdfvalue.RDFString,
                          "Log messages related to the progress of this cron.")
 
   def DueToRun(self):
@@ -77,13 +80,34 @@ class AbstractCronTask(CronJob):
   """A Cron sub task that is scheduled from another Cron."""
 
 
-class Graph(aff4.RDFProto):
+class Sample(rdfvalue.RDFProto):
+  """A Graph sample is a single data point."""
+  _proto = analysis_pb2.Sample
+
+
+class Graph(rdfvalue.RDFProto):
+  """A Graph is a collection of sample points."""
   _proto = analysis_pb2.Graph
 
+  rdf_map = dict(data=Sample)
 
-class GraphSeries(aff4.RDFProtoArray):
+  def Append(self, **kwargs):
+    self.data.Append(**kwargs)
+
+  def __len__(self):
+    return len(self.data)
+
+  def __getitem__(self, item):
+    return Sample(self.data[item])
+
+  def __iter__(self):
+    for x in self.data:
+      yield Sample(x)
+
+
+class GraphSeries(rdfvalue.RDFValueArray):
   """A sequence of graphs (e.g. evolving over time)."""
-  _proto = analysis_pb2.Graph
+  rdf_type = Graph
 
 
 class _ActiveCounter(object):
@@ -118,7 +142,7 @@ class _ActiveCounter(object):
       category: The category name to account this instance against.
       age: When this instance occurred.
     """
-    now = aff4.RDFDatetime()
+    now = rdfvalue.RDFDatetime()
     category = utils.SmartUnicode(category)
 
     for active_time in self.active_days:
@@ -130,11 +154,11 @@ class _ActiveCounter(object):
     """Generate a histogram object and store in the specified attribute."""
     histogram = self.attribute()
     for active_time in self.active_days:
-      graph = analysis_pb2.Graph(title="%s day actives" % active_time)
+      graph = Graph(title="%s day actives" % active_time)
       for k, v in sorted(self.categories[active_time].items()):
-        graph.data.add(label=k, y_value=v)
+        graph.Append(label=k, y_value=v)
 
-      histogram.data.append(graph)
+      histogram.Append(graph)
 
     # Add an additional instance of this histogram (without removing previous
     # instances).
@@ -215,8 +239,8 @@ class GRRVersionBreakDown(AbstractClientStatsCollector):
     ping = client.Get(client.Schema.PING)
     c_info = client.Get(client.Schema.CLIENT_INFO)
     if c_info and ping:
-      category = " ".join([c_info.data.client_name,
-                           str(c_info.data.client_version)])
+      category = " ".join([c_info.client_name,
+                           str(c_info.client_version)])
 
       self.counter.Add(category, ping)
 
@@ -294,13 +318,13 @@ class LastAccessStats(AbstractClientStatsCollector):
     graph = self.Schema.HISTOGRAM()
     for x, y in zip(self._bins, self._value):
       cumulative_count += y
-      graph.data.data.add(x_value=x, y_value=cumulative_count)
+      graph.Append(x_value=x, y_value=cumulative_count)
 
     self.AddAttribute(graph)
     self.Flush()
 
   def ProcessClient(self, client):
-    now = aff4.RDFDatetime()
+    now = rdfvalue.RDFDatetime()
 
     ping = client.Get(client.Schema.PING)
     if ping:
@@ -312,6 +336,8 @@ class LastAccessStats(AbstractClientStatsCollector):
         self._value[pos] += 1
       except IndexError:
         pass
+
+
 
 
 def RunAllCronJobs(token=None, override_frequency=None):

@@ -57,22 +57,22 @@ class CronJobTest(test_lib.AFF4ObjectTest):
     histogram = fd.Get(fd.Schema.GRRVERSION_HISTOGRAM)
 
     # There should be 0 instances in 1 day actives.
-    self.assertEqual(histogram.data[0].title, "1 day actives")
-    self.assertEqual(len(histogram.data[0].data), 0)
+    self.assertEqual(histogram[0].title, "1 day actives")
+    self.assertEqual(len(histogram[0]), 0)
 
     # There should be 0 instances in 7 day actives.
-    self.assertEqual(histogram.data[1].title, "7 day actives")
-    self.assertEqual(len(histogram.data[1].data), 0)
+    self.assertEqual(histogram[1].title, "7 day actives")
+    self.assertEqual(len(histogram[1]), 0)
 
     # There should be 10 of each (Linux, Windows) instances in 14 day actives.
-    self.assertEqual(histogram.data[2].title, "14 day actives")
-    self.assertEqual(histogram.data[2].data[0].label, "GRR Monitor 1")
-    self.assertEqual(histogram.data[2].data[0].y_value, 20)
+    self.assertEqual(histogram[2].title, "14 day actives")
+    self.assertEqual(histogram[2][0].label, "GRR Monitor 1")
+    self.assertEqual(histogram[2][0].y_value, 20)
 
     # There should be 10 of each (Linux, Windows) instances in 30 day actives.
-    self.assertEqual(histogram.data[3].title, "30 day actives")
-    self.assertEqual(histogram.data[3].data[0].label, "GRR Monitor 1")
-    self.assertEqual(histogram.data[3].data[0].y_value, 20)
+    self.assertEqual(histogram[3].title, "30 day actives")
+    self.assertEqual(histogram[3][0].label, "GRR Monitor 1")
+    self.assertEqual(histogram[3][0].y_value, 20)
 
     # Make sure that we only run once. We try to run all the crons after 20
     # minutes.
@@ -97,26 +97,26 @@ class CronJobTest(test_lib.AFF4ObjectTest):
     histogram = fd.Get(fd.Schema.OS_HISTOGRAM)
 
     # There should be a 0 instances in 1 day actives.
-    self.assertEqual(histogram.data[0].title, "1 day actives")
-    self.assertEqual(len(histogram.data[0].data), 0)
+    self.assertEqual(histogram[0].title, "1 day actives")
+    self.assertEqual(len(histogram[0]), 0)
 
     # There should be a 0 instances in 7 day actives.
-    self.assertEqual(histogram.data[1].title, "7 day actives")
-    self.assertEqual(len(histogram.data[1].data), 0)
+    self.assertEqual(histogram[1].title, "7 day actives")
+    self.assertEqual(len(histogram[1]), 0)
 
     # There should be 10 of each (Linux, Windows) instances in 14 day actives.
-    self.assertEqual(histogram.data[2].title, "14 day actives")
-    self.assertEqual(histogram.data[2].data[0].label, "Linux")
-    self.assertEqual(histogram.data[2].data[0].y_value, 10)
-    self.assertEqual(histogram.data[2].data[1].label, "Windows")
-    self.assertEqual(histogram.data[2].data[1].y_value, 10)
+    self.assertEqual(histogram[2].title, "14 day actives")
+    self.assertEqual(histogram[2][0].label, "Linux")
+    self.assertEqual(histogram[2][0].y_value, 10)
+    self.assertEqual(histogram[2][1].label, "Windows")
+    self.assertEqual(histogram[2][1].y_value, 10)
 
     # There should be 10 of each (Linux, Windows) instances in 30 day actives.
-    self.assertEqual(histogram.data[3].title, "30 day actives")
-    self.assertEqual(histogram.data[3].data[0].label, "Linux")
-    self.assertEqual(histogram.data[3].data[0].y_value, 10)
-    self.assertEqual(histogram.data[3].data[1].label, "Windows")
-    self.assertEqual(histogram.data[3].data[1].y_value, 10)
+    self.assertEqual(histogram[3].title, "30 day actives")
+    self.assertEqual(histogram[3][0].label, "Linux")
+    self.assertEqual(histogram[3][0].y_value, 10)
+    self.assertEqual(histogram[3][1].label, "Windows")
+    self.assertEqual(histogram[3][1].y_value, 10)
 
   def testLastAccessStats(self):
     """Check that all client stats cron jobs are run."""
@@ -126,7 +126,7 @@ class CronJobTest(test_lib.AFF4ObjectTest):
 
     histogram = fd.Get(fd.Schema.HISTOGRAM)
 
-    data = [(x.x_value, x.y_value) for x in histogram.data.data]
+    data = [(x.x_value, x.y_value) for x in histogram]
     self.assertEqual(data, [
         (86400000000L, 0L),
         (172800000000L, 0L),

@@ -1,29 +1,43 @@
 ' Seems to be some kind of turn off all errors in VB
 On Error Resume Next
 
-basename = "%(Nanny.Name)s"
-package_build = "%(.arch)s"
-basename_text = "%(Nanny.Name)s"
-service_name = "%(Nanny.Desc)s"
-agent_version = "%(GRR.version)s"
-service_file = "%(Nanny.Service_Name)s"
-client_file = "%(Client.Binary_Name)s"
-install_dir = "%(Nanny.Install_Path)s\" & agent_version & "\"
-reg_base = "%(Nanny.Registry_Service_Key)s"
+basename = "%(ClientBuildWindows.name)s"
+package_build = "%(Temp.arch)s"
+basename_text = "%(ClientBuildWindows.name)s"
+service_name = "%(ClientBuildWindows.description)s"
+service_file = "%(ClientBuildWindows.service_name)s"
+client_file = "%(ClientBuildWindows.binary_name)s"
+install_dir = "%(ClientBuildWindows.full_install_path)s" & "\"
+reg_hive_name = "%(ClientBuildWindows.service_key_hive)s"
+reg_base = "%(ClientBuildWindows.service_key_path)s"
 
 ' Where the HTTP URL of the service is?
-location = "%(Client.Location)s"
+location = "%(ClientBuild.location)s"
 
 ' The CA Certificate we trust
-cacert = "%(Crypto.CA_Public_Key|join)s"
+cacert = "%(ServerKeys.ca_public_cert|join)s"
 
 ' The public key we trust for running binaries
-exec_signing_key = "%(Crypto.Executable_Signing_Public_key|join)s"
+exec_signing_key = "%(ClientSigningKeysWindows.executable_signing_public_key|join)s"
 
 ' The public key we trust for loading drivers
-driver_signing_key = "%(Crypto.Driver_Signing_Public_Key|join)s"
+driver_signing_key = "%(ClientSigningKeysWindows.driver_signing_public_key|join)s"
 
-Const HKEY_LOCAL_MACHINE = &H80000002
+If reg_hive_name = "HKEY_CLASSES_ROOT" Then
+  reg_hive = &H80000000
+ElseIf reg_hive_name = "HKEY_CURRENT_USER" Then
+  reg_hive = &H80000001
+ElseIf reg_hive_name = "HKEY_LOCAL_MACHINE" Then
+  reg_hive = &H80000002
+ElseIf reg_hive_name = "HKEY_USERS" Then
+  reg_hive = &H80000003
+ElseIf reg_hive_name = "HKEY_PERFORMANCE_DATA" Then
+  reg_hive = &H80000004
+ElseIf reg_hive_name = "HKEY_CURRENT_CONFIG" Then
+  reg_hive = &H80000005
+ElseIf reg_hive_name = "HKEY_DYN_DATA" Then
+  reg_hive = &H80000006
+End If
 
 Function RecursivelyCreateDirectory(Path)
   Dim fso: Set fso = Wscript.CreateObject("Scripting.FileSystemObject")
@@ -53,15 +67,14 @@ service_path = destination & service_file
 client_path = destination & client_file
 
 ' Write the nanny registry keys.
-call CreateKey (HKEY_LOCAL_MACHINE, reg_base,64)
-call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "Version", "%(GRR.version)s", 64)
-call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "%(Nanny.Binary_Child)s", client_path, 64)
-call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "%(Nanny.Binary_CommandLine)s", client_path + " %(Nanny.Initial_Commandline)s", 64)
-call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "location", location, 64)
-call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "cacert", cacert, 64)
-call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "exec_signing_key", exec_signing_key, 64)
-call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "driver_signing_key", driver_signing_key, 64)
-call WriteRegStr (HKEY_LOCAL_MACHINE, reg_base, "camode", "production", 64)
+call CreateKey (reg_hive, reg_base,64)
+call WriteRegStr (reg_hive, reg_base, "Version", "%(ClientBuildWindows.version_string)s", 64)
+call WriteRegStr (reg_hive, reg_base, "%(ClientBuildWindows.binary_child)s", client_path, 64)
+call WriteRegStr (reg_hive, reg_base, "%(ClientBuildWindows.binary_commandline)s", client_path + " %(ClientBuildWindows.initial_commandline)s", 64)
+call WriteRegStr (reg_hive, reg_base, "location", location, 64)
+call WriteRegStr (reg_hive, reg_base, "cacert", cacert, 64)
+call WriteRegStr (reg_hive, reg_base, "exec_signing_key", exec_signing_key, 64)
+call WriteRegStr (reg_hive, reg_base, "driver_signing_key", driver_signing_key, 64)
 
 ' Install and start the service.
 Set oExec = objShell.Exec(service_path & " install")

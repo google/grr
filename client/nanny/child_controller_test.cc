@@ -18,11 +18,19 @@ namespace grr {
 class MockChildProcess : public ChildProcess {
  public:
   MOCK_METHOD0(CreateChildProcess, bool());
-  MOCK_METHOD0(GetHeartBeat, time_t());
+  MOCK_METHOD0(GetHeartbeat, time_t());
+  MOCK_METHOD0(ClearHeartbeat, void());
+  MOCK_METHOD1(SetHeartbeat, void(unsigned int));
+  MOCK_METHOD0(Heartbeat, void());
   MOCK_METHOD1(KillChild, void(std::string msg));
   MOCK_METHOD0(GetCurrentTime, time_t());
   MOCK_METHOD0(IsAlive, bool());
+  MOCK_METHOD0(Started, bool());
   MOCK_METHOD0(GetMemoryUsage, size_t());
+  MOCK_METHOD1(SetNannyMessage, void(std::string msg));
+  MOCK_METHOD1(SetNannyStatus, void(std::string msg));
+  MOCK_METHOD1(SetPendingNannyMessage, void(std::string msg));
+  MOCK_METHOD1(Sleep, void(unsigned int));
 };
 
 class ChildTest : public ::testing::Test {};
@@ -71,13 +79,16 @@ TEST_F(ChildTest, KillUnresponsiveChild) {
   ON_CALL(child, IsAlive())
       .WillByDefault(ReturnPointee(&alive));
 
+  ON_CALL(child, Started())
+      .WillByDefault(ReturnPointee(&alive));
+
   ON_CALL(child, CreateChildProcess())
       .WillByDefault(SetAndReturn(&alive));
 
   ON_CALL(child, KillChild(_))
       .WillByDefault(Assign(&alive, false));
 
-  ON_CALL(child, GetHeartBeat())
+  ON_CALL(child, GetHeartbeat())
       .WillByDefault(Return(0));
 
   // Run for 20 seconds - child should start and not be killed.
@@ -148,7 +159,7 @@ TEST_F(ChildTest, SteadyState) {
   ASSERT_TRUE(Mock::VerifyAndClearExpectations(&child));
 
   // Now the child heartbeats as normal.
-  ON_CALL(child, GetHeartBeat())
+  ON_CALL(child, GetHeartbeat())
       .WillByDefault(ReturnPointee(&current_epoch));
 
   EXPECT_CALL(child, CreateChildProcess())
@@ -178,7 +189,7 @@ TEST_F(ChildTest, TestSuspending) {
   ON_CALL(child, GetCurrentTime())
       .WillByDefault(ReturnPointee(&current_epoch));
 
-  ON_CALL(child, GetHeartBeat())
+  ON_CALL(child, GetHeartbeat())
       .WillByDefault(ReturnPointee(&current_hb));
 
   ON_CALL(child, IsAlive())
@@ -213,6 +224,72 @@ TEST_F(ChildTest, TestSuspending) {
   // Scan the time line, child should not be killed.
   for (; current_epoch < 102000; current_epoch += sleep_time) {
     if ((current_epoch / 10) * 10 >= 100000) {
+      current_hb = (current_epoch / 10) * 10;
+    }
+    sleep_time = child_controller.Run();
+  }
+
+  ASSERT_TRUE(Mock::VerifyAndClearExpectations(&child));
+}
+
+TEST_F(ChildTest, TestSuspendingWhenNannyWakesUpEarlier) {
+  // This test verifies that when the nanny wakes up from a resume before the
+  // client is ready, it waits and doesn't kill it right away.
+  int current_epoch, current_hb = 0;
+  int * p_epoch = &current_epoch;
+  time_t sleep_time = 0;
+  bool alive = false;
+  MockChildProcess child;
+  ChildController child_controller(kConfig, &child);
+  std::string msg;
+  bool started = false;
+
+  ON_CALL(child, GetCurrentTime())
+      .WillByDefault(ReturnPointee(&current_epoch));
+
+  ON_CALL(child, GetHeartbeat())
+      .WillByDefault(ReturnPointee(&current_hb));
+
+  ON_CALL(child, IsAlive())
+      .WillByDefault(ReturnPointee(&alive));
+
+  ON_CALL(child, Started())
+      .WillByDefault(ReturnPointee(&started));
+
+  ON_CALL(child, CreateChildProcess())
+      .WillByDefault(DoAll(Assign(&started, true), SetAndReturn(&alive)));
+
+  // Child should start and not be killed.
+  EXPECT_CALL(child, CreateChildProcess())
+      .Times(1);
+
+  EXPECT_CALL(child, KillChild(msg))
+      .Times(0);
+
+  // Scan the time line.
+  for (current_epoch = 1000; current_epoch < 1020;
+       current_epoch += sleep_time) {
+    sleep_time = child_controller.Run();
+  }
+
+  for (current_epoch = 1020; current_epoch < 1200;
+       current_epoch += sleep_time) {
+    // The child heartbeats only every 10 seconds.
+    current_hb = (current_epoch / 10) * 10;
+    sleep_time = child_controller.Run();
+  }
+
+  // The machine suspends.
+  current_epoch = 100000;
+
+  // While the nanny sleeps there should be a heartbeat.
+  ON_CALL(child, Sleep(2000))
+      .WillByDefault(Assign(&current_hb, *p_epoch));
+
+  // Scan the time line, child should not be killed.
+  for (; current_epoch < 102000; current_epoch += sleep_time) {
+    // Add a 5 second delay to the heartbeat.
+    if (((current_epoch) / 10) * 10 >= 100000 + 5) {
       current_hb = (current_epoch / 10) * 10;
     }
     sleep_time = child_controller.Run();

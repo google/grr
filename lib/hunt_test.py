@@ -25,9 +25,16 @@ import logging
 
 from grr.lib import aff4
 from grr.lib import flow
+
+# These imports populate the GRRHunt registry.
+from grr.lib import hunts
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib.flows.general import hunts
-from grr.proto import jobs_pb2
+
+# pylint: disable=W0611
+# These imports populate the flow registry.
+from grr.lib.flows import general
+# pylint: enable=W0611
 
 
 class BrokenSampleHunt(hunts.SampleHunt):
@@ -56,16 +63,18 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     rules = foreman.Get(foreman.Schema.RULES)
     # Make sure there are no rules yet.
-    self.assertEqual(rules, None)
+    self.assertEqual(len(rules), 0)
 
     hunt = hunts.SampleHunt(token=self.token)
-    regex_rule = jobs_pb2.ForemanAttributeRegex(
+    regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="GRR client",
         attribute_regex="HUNT")
-    int_rule = jobs_pb2.ForemanAttributeInteger(
+
+    int_rule = rdfvalue.ForemanAttributeInteger(
         attribute_name="Clock",
-        operator=jobs_pb2.ForemanAttributeInteger.GREATER_THAN,
+        operator=rdfvalue.ForemanAttributeInteger.Enum("GREATER_THAN"),
         value=1336650631137737)
+
     hunt.AddRule([int_rule, regex_rule])
     # Push the rules to the foreman.
     hunt.Run()
@@ -76,6 +85,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     # Make sure they were written correctly.
     self.assertEqual(len(rules), 1)
     rule = rules[0]
+
     self.assertEqual(len(rule.regex_rules), 1)
     self.assertEqual(rule.regex_rules[0].attribute_name, "GRR client")
     self.assertEqual(rule.regex_rules[0].attribute_regex, "HUNT")
@@ -83,7 +93,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(rule.integer_rules), 1)
     self.assertEqual(rule.integer_rules[0].attribute_name, "Clock")
     self.assertEqual(rule.integer_rules[0].operator,
-                     jobs_pb2.ForemanAttributeInteger.GREATER_THAN)
+                     rdfvalue.ForemanAttributeInteger.Enum("GREATER_THAN"))
     self.assertEqual(rule.integer_rules[0].value, 1336650631137737)
 
     self.assertEqual(len(rule.actions), 1)
@@ -112,23 +122,23 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     rules = foreman.Get(foreman.Schema.RULES)
     # Make sure there are no rules yet.
-    self.assertEqual(rules, None)
+    self.assertEqual(len(rules), 0)
     now = int(time.time() * 1e6)
     expires = now + 3600
     # Add some rules.
-    rules = [jobs_pb2.ForemanRule(created=now, expires=expires,
+    rules = [rdfvalue.ForemanRule(created=now, expires=expires,
                                   description="Test rule1"),
-             jobs_pb2.ForemanRule(created=now, expires=expires,
+             rdfvalue.ForemanRule(created=now, expires=expires,
                                   description="Test rule2")]
     self.AddForemanRules(rules)
 
     hunt = hunts.SampleHunt(token=self.token)
-    regex_rule = jobs_pb2.ForemanAttributeRegex(
+    regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="GRR client",
         attribute_regex="HUNT")
-    int_rule = jobs_pb2.ForemanAttributeInteger(
+    int_rule = rdfvalue.ForemanAttributeInteger(
         attribute_name="Clock",
-        operator=jobs_pb2.ForemanAttributeInteger.GREATER_THAN,
+        operator=rdfvalue.ForemanAttributeInteger.Enum("GREATER_THAN"),
         value=1336650631137737)
     # Fire on either of the rules.
     hunt.AddRule([int_rule])
@@ -137,9 +147,9 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     hunt.Run()
 
     # Add some more rules.
-    rules = [jobs_pb2.ForemanRule(created=now, expires=expires,
+    rules = [rdfvalue.ForemanRule(created=now, expires=expires,
                                   description="Test rule3"),
-             jobs_pb2.ForemanRule(created=now, expires=expires,
+             rdfvalue.ForemanRule(created=now, expires=expires,
                                   description="Test rule4")]
     self.AddForemanRules(rules)
 
@@ -162,7 +172,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     """Tests the behavior when a wrong attribute name is passed in a rule."""
 
     hunt = hunts.SampleHunt(token=self.token)
-    regex_rule = jobs_pb2.ForemanAttributeRegex(
+    regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="no such attribute",
         attribute_regex="HUNT")
     self.assertRaises(RuntimeError, hunt.AddRule, [regex_rule])
@@ -174,7 +184,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     """Checks that the foreman uses the callback specified in the action."""
 
     hunt = hunts.SampleHunt(client_limit=client_limit, token=self.token)
-    regex_rule = jobs_pb2.ForemanAttributeRegex(
+    regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="GRR client",
         attribute_regex="GRR")
     hunt.AddRule([regex_rule])
@@ -185,7 +195,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     # Create a client that matches our regex.
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     info = client.Schema.CLIENT_INFO()
-    info.data.client_name = "GRR Monitor"
+    info.client_name = "GRR Monitor"
     client.Set(client.Schema.CLIENT_INFO, info)
     client.Close()
 
@@ -216,7 +226,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(flows, [])
 
-    flow.GRRHunt.StartClient(hunt.session_id, self.client_id)
+    hunts.GRRHunt.StartClient(hunt.session_id, self.client_id)
 
     test_lib.TestHuntHelper(None, [self.client_id], False, self.token)
 
@@ -244,9 +254,9 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       return self._StatFile(args)
 
     def _StatFile(self, args):
-      req = jobs_pb2.ListDirRequest()
-      req.ParseFromString(args)
-      response = jobs_pb2.StatResponse(
+      req = rdfvalue.ListDirRequest(args)
+
+      response = rdfvalue.StatEntry(
           pathspec=req.pathspec,
           st_mode=33184,
           st_ino=1063090,
@@ -269,9 +279,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     def TransferBuffer(self, args):
 
-      response = jobs_pb2.BufferReadMessage()
-      response.ParseFromString(args)
-
+      response = rdfvalue.BufferReference(args)
       response.data = self.data
       response.length = len(self.data)
       return [response]
@@ -292,7 +300,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client_ids = self.SetupClients(10)
 
     hunt = hunts.SampleHunt(token=self.token)
-    regex_rule = jobs_pb2.ForemanAttributeRegex(
+    regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="GRR client",
         attribute_regex="GRR")
     hunt.AddRule([regex_rule])
@@ -306,7 +314,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client_mock = self.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
-    hunt_obj = aff4.FACTORY.Open("aff4:/hunts/%s" % hunt.session_id, mode="rw",
+    hunt_obj = aff4.FACTORY.Open(hunt.session_id, mode="rw",
                                  age=aff4.ALL_TIMES, token=self.token)
 
     started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
@@ -329,7 +337,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client_ids = self.SetupClients(10)
 
     hunt = hunts.SampleHunt(token=self.token)
-    regex_rule = jobs_pb2.ForemanAttributeRegex(
+    regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="GRR client",
         attribute_regex="GRR")
     hunt.AddRule([regex_rule])
@@ -343,7 +351,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     # Just pass 8 clients to run, the other two went offline.
     test_lib.TestHuntHelper(client_mock, client_ids[1:9], False, self.token)
 
-    hunt_obj = aff4.FACTORY.Open("aff4:/hunts/%s" % hunt.session_id, mode="rw",
+    hunt_obj = aff4.FACTORY.Open(hunt.session_id, mode="rw",
                                  age=aff4.ALL_TIMES, token=self.token)
 
     started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
@@ -363,6 +371,41 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     self.DeleteClients(10)
 
+  def testPausingAndRestartingDoesNotStartHuntTwiceOnTheSameClient(self):
+    """This tests if the hunt completes when some clients hang or raise."""
+    client_ids = self.SetupClients(10)
+
+    hunt = hunts.SampleHunt(token=self.token)
+    regex_rule = rdfvalue.ForemanAttributeRegex(
+        attribute_name="GRR client",
+        attribute_regex="GRR")
+    hunt.AddRule([regex_rule])
+    hunt.Run()
+
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    for client_id in client_ids:
+      num_tasks = foreman.AssignTasksToClient(client_id)
+      self.assertEqual(num_tasks, 1)
+
+    client_mock = self.SampleHuntMock()
+    test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
+
+    # Pausing and running hunt: this leads to the fresh rules being written
+    # to Foreman.RULES.
+    hunt.Pause()
+    hunt.Run()
+    # Recreating the foreman so that it updates list of rules.
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    for client_id in client_ids:
+      num_tasks = foreman.AssignTasksToClient(client_id)
+      # No tasks should be assigned as this hunt ran of all the clients before.
+      self.assertEqual(num_tasks, 0)
+
+    foreman.Set(foreman.Schema.RULES())
+    foreman.Close()
+
+    self.DeleteClients(10)
+
   def testClientLimit(self):
     """This tests that we can limit hunts to a number of clients."""
 
@@ -370,7 +413,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client_ids = self.SetupClients(10)
 
     hunt = hunts.SampleHunt(token=self.token, client_limit=5)
-    regex_rule = jobs_pb2.ForemanAttributeRegex(
+    regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="GRR client",
         attribute_regex="GRR")
     hunt.AddRule([regex_rule])
@@ -384,7 +427,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client_mock = self.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
-    hunt_obj = aff4.FACTORY.Open("aff4:/hunts/%s" % hunt.session_id, mode="rw",
+    hunt_obj = aff4.FACTORY.Open(hunt.session_id, mode="rw",
                                  age=aff4.ALL_TIMES, token=self.token)
 
     started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
@@ -409,7 +452,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client_ids = self.SetupClients(10)
 
     hunt = BrokenSampleHunt(token=self.token)
-    regex_rule = jobs_pb2.ForemanAttributeRegex(
+    regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="GRR client",
         attribute_regex="GRR")
     hunt.AddRule([regex_rule])
@@ -423,7 +466,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client_mock = self.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
-    hunt_obj = aff4.FACTORY.Open("aff4:/hunts/%s" % hunt.session_id, mode="rw",
+    hunt_obj = aff4.FACTORY.Open(hunt.session_id, mode="rw",
                                  age=aff4.ALL_TIMES, token=self.token)
 
     started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
@@ -450,11 +493,12 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     received_events = []
 
     class Listener1(flow.EventListener):  # pylint:disable=W0612
-      well_known_session_id = "W:TestHuntDone"
+      well_known_session_id = "aff4:/flows/W:TestHuntDone"
       EVENTS = ["TestHuntDone"]
 
       @flow.EventHandler(auth_required=True)
-      def ProcessMessage(self, message=None):
+      def ProcessMessage(self, message=None, event=None):
+        _ = event
         # Store the results for later inspection.
         received_events.append(message)
 
@@ -463,7 +507,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     hunt = BrokenSampleHunt(notification_event="TestHuntDone",
                             token=self.token)
-    regex_rule = jobs_pb2.ForemanAttributeRegex(
+    regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="GRR client",
         attribute_regex="GRR")
     hunt.AddRule([regex_rule])
@@ -475,7 +519,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     # Run the hunt.
     client_mock = self.SampleHuntMock()
-    test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
+    test_lib.TestHuntHelper(client_mock, client_ids, check_flow_errors=False,
+                            token=self.token)
 
     self.assertEqual(len(received_events), 5)
 
@@ -510,10 +555,10 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     # Add some client stats.
     for (client_id, session_id, user, sys) in usages:
       resource = hunt_obj.Schema.RESOURCES()
-      resource.data.client_id = client_id
-      resource.data.session_id = session_id
-      resource.data.cpu_usage.user_cpu_time = user
-      resource.data.cpu_usage.system_cpu_time = sys
+      resource.client_id = client_id
+      resource.session_id = session_id
+      resource.cpu_usage.user_cpu_time = user
+      resource.cpu_usage.system_cpu_time = sys
       hunt_obj.AddAttribute(resource)
 
     hunt_obj.Close()

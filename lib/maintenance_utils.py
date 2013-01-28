@@ -18,69 +18,36 @@
 
 
 import hashlib
+import socket
 
-
-from M2Crypto import BIO
-from M2Crypto import RSA
+import ipaddr
 
 import logging
 
 from grr.lib import aff4
 from grr.lib import data_store
-from grr.proto import jobs_pb2
+from grr.lib import rdfvalue
 
 DIGEST_ALGORITHM = hashlib.sha256
 DIGEST_ALGORITHM_STR = "sha256"
 
-SUPPORTED_PLATFORMS = ["windows", "linux", "osx"]
+SUPPORTED_PLATFORMS = ["windows", "linux", "darwin"]
 
 
-def SignConfigBlob(blob_data, signing_key=None):
+def UploadSignedConfigBlob(
+    content, file_name, config, platform,
+    aff4_path="/config/executables/{platform}/installers/{file_name}",
+    token=None):
   """Upload a signed blob into the datastore.
 
   Args:
-    blob_data: String containing the blob data.
-    signing_key: A key that can be loaded to sign the data as a string.
-
-  Returns:
-    A completed jobs_pb2.SignedBlob
-
-  Raises:
-    IOError: On bad key.
-  """
-  pb = jobs_pb2.SignedBlob()
-  digest = DIGEST_ALGORITHM(blob_data).digest()
-  if signing_key:
-    rsa = RSA.load_key_string(signing_key)  # will prompt for passphrase
-    if len(rsa) < 2048:
-      logging.warn("signing key is too short.")
-
-    sig = rsa.sign(digest, DIGEST_ALGORITHM_STR)
-    pb.signature = sig
-    pb.signature_type = pb.RSA_2048
-
-  pb.digest = digest
-  pb.digest_type = pb.SHA256
-  pb.data = blob_data
-
-  # Test we can verify before we send it off.
-  m = BIO.MemoryBuffer()
-  rsa.save_pub_key_bio(m)
-  if not VerifySignedBlob(pb, m.read_all()):
-    raise IOError("Failed to verify our own signed blob")
-
-  logging.info("Successfully signed")
-  return pb
-
-
-def UploadSignedConfigBlob(blob_pb, file_name=None,
-                           aff4_path="/config/executables", token=None):
-  """Upload a signed blob into the datastore.
-
-  Args:
-    blob_pb: A completed SignedBlob protobuf.
-    file_name: Unique name for file to upload as
-    aff4_path: Path in aff4 to upload to.
+    content: File content to upload.
+    file_name: Unique name for file to upload.
+    config: A ConfigManager object which contains the signing keys.
+    platform: Which client platform to sign for. This determines which signing
+        keys to use.
+    aff4_path: aff4 path to upload to. Note this can handle platform and
+        file_name interpolation.
     token: A security token.
 
   Returns:
@@ -89,63 +56,70 @@ def UploadSignedConfigBlob(blob_pb, file_name=None,
   Raises:
     IOError: On failure to write.
   """
-  path = aff4.RDFURN(aff4_path)
-  if file_name:
-    path = path.Add(file_name)
-  fd = aff4.FACTORY.Create(path, "GRRSignedBlob", mode="w", token=token)
-  fd.Set(fd.Schema.BINARY(blob_pb))
+  section = "ClientSigningKeys%s" % platform.title()
+  sig_key = config["%s.executable_signing_private_key" % section]
+  ver_key = config["%s.executable_signing_public_key" % section]
+  blob_rdf = rdfvalue.SignedBlob()
+  blob_rdf.Sign(content, sig_key, ver_key, prompt=True)
+  aff4_path = rdfvalue.RDFURN(aff4_path.format(platform=platform.lower(),
+                                               file_name=file_name))
+  fd = aff4.FACTORY.Create(aff4_path, "GRRSignedBlob", mode="w", token=token)
+  fd.Set(fd.Schema.BINARY(blob_rdf))
   fd.Close()
   logging.info("Uploaded to %s", fd.urn)
   return str(fd.urn)
 
 
-def UploadSignedDriverBlob(blob_pb, file_name=None, aff4_path="/config/drivers",
-                           install_request=None, token=None):
-  """Upload a signed driver blob into the datastore.
+def UploadSignedDriverBlob(content, file_name, config, platform,
+                           aff4_path="/config/drivers/{platform}/memory/"
+                           "{file_name}", install_request=None, token=None):
+  """Upload a signed blob into the datastore.
 
   Args:
-    blob_pb: A completed SignedBlob protobuf.
-    file_name: Unique name for file to upload as
-    aff4_path: Path in aff4 to upload to.
-    install_request: A protobuf describing the installation parameters
-                     for this driver.
+    content: Content of the driver file to upload.
+    file_name: Unique name for file to upload.
+    config: A ConfigManager object which contains the signing keys.
+    platform: Which client platform to sign for. This determines which signing
+        keys to use. If you don't have per platform signing keys. The standard
+        keys will be used.
+    aff4_path: aff4 path to upload to. Note this can handle platform and
+        file_name interpolation.
+    install_request: A DriverInstallRequest rdfvalue describing the installation
+      parameters for this driver. If None these are read from the config.
     token: A security token.
 
   Returns:
     String containing path the file was written to.
 
   Raises:
-    IOError: On failure to write driver.
+    IOError: On failure to write.
   """
-  path = UploadSignedConfigBlob(blob_pb, file_name=file_name,
-                                aff4_path=aff4_path, token=token)
-  fd = aff4.FACTORY.Open(path, required_type="GRRSignedBlob", mode="rw",
-                         token=token)
-  fd = fd.Upgrade("GRRMemoryDriver")
-  if install_request:
-    logging.info("Setting installation parameters.")
-    fd.Set(fd.Schema.INSTALLATION(install_request))
+  sig_key = config["ClientSigningKeys%s.driver_signing_private_key" %
+                   platform.title()]
+  ver_key = config["ClientSigningKeys%s.driver_signing_public_key" %
+                   platform.title()]
+  blob_rdf = rdfvalue.SignedBlob()
+  blob_rdf.Sign(content, sig_key, ver_key, prompt=True)
+  aff4_path = rdfvalue.RDFURN(aff4_path.format(platform=platform.lower(),
+                                               file_name=file_name))
+  fd = aff4.FACTORY.Create(aff4_path, "GRRMemoryDriver", mode="w", token=token)
+  fd.Set(fd.Schema.BINARY(blob_rdf))
+  if not install_request:
+    installer = rdfvalue.DriverInstallTemplate()
+    # Create install_request from the configuration.
+    section = "MemoryDriver%s" % platform.title()
+    installer.device_path = config["%s.device_path" % section]
+    installer.write_path = config["%s.install_write_path" % section]
+    if platform == "Windows":
+      installer.driver_display_name = config["%s.driver_display_name" % section]
+      installer.driver_name = config["%s.driver_service_name" % section]
+  else:
+    installer = install_request
+
+  fd.Set(fd.Schema.INSTALLATION(installer))
   fd.Close()
+  logging.info("Uploaded to %s", fd.urn)
   return str(fd.urn)
-
-
-def VerifySignedBlob(blob_pb, pub_key):
-  """Verify a key, returns True or False."""
-  bio = BIO.MemoryBuffer(pub_key)
-  rsa = RSA.load_pub_key_bio(bio)
-  result = 0
-  try:
-    result = rsa.verify(blob_pb.digest, blob_pb.signature,
-                        DIGEST_ALGORITHM_STR)
-  except RSA.RSAError, e:
-    logging.warn("Could not verify blob. Error: %s", e)
-    return False
-  digest = hashlib.sha256(blob_pb.data).digest()
-  if digest != blob_pb.digest:
-    logging.warn("Digest in proto did not match actual data.")
-    return False
-
-  return result == 1
 
 
 def GetConfigBinaryPathType(aff4_path):
@@ -199,16 +173,16 @@ def CreateBinaryConfigPaths(token=None):
     return
 
 
-def MakeUserAdmin(user, user_must_exist=True, token=None):
-  """Add the Admin label to a specific user."""
-  if user_must_exist:
-    try:
-      user = aff4.FACTORY.Open("/users/%s" % user, mode="r", token=token,
-                               required_type="GRRUser")
-    except IOError:
-      raise Exception("User does not exist: %s" % user)
-  u = aff4.FACTORY.Open("/users/%s/labels" % user, mode="rw", token=token)
-  labels = u.Schema.LABEL()
-  labels.data.label.append("admin")
-  u.Set(labels)
-  u.Close()
+def GuessPublicHostname():
+  """Attempt to guess a public host name for this machine."""
+  local_hostname = socket.gethostname()
+  local_ip = socket.gethostbyname(local_hostname)
+  if not ipaddr.IPAddress(local_ip).is_private:
+    # The host name resolves and is not private.
+    return local_hostname
+  else:
+    # Our local host does not resolve attempt to retreive it externally.
+    raise OSError("Could not detect public hostname for this machine")
+
+
+

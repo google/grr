@@ -18,8 +18,8 @@
 
 
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import sysinfo_pb2
 
 
 class ServicesTest(test_lib.FlowTestsBaseclass):
@@ -28,16 +28,14 @@ class ServicesTest(test_lib.FlowTestsBaseclass):
 
     class ClientMock(object):
       def EnumerateRunningServices(self, _):
-        launchdjob = sysinfo_pb2.LaunchdJob()
-        launchdjob.sessiontype = 'Aqua'
-        launchdjob.lastexitstatus = 0
-        launchdjob.timeout = 30
-        launchdjob.ondemand = 1
+        service = rdfvalue.Service(label='org.openbsd.ssh-agent',
+                                   args='/usr/bin/ssh-agent -l')
+        service.osx_launchd.sessiontype = 'Aqua'
+        service.osx_launchd.lastexitstatus = 0
+        service.osx_launchd.timeout = 30
+        service.osx_launchd.ondemand = 1
 
-        response = sysinfo_pb2.Service(osx_launchd=launchdjob)
-        response.label = 'org.openbsd.ssh-agent'
-        response.args = '/usr/bin/ssh-agent -l'
-        return [response]
+        return [service]
 
     # Run the flow in the emulated way.
     for _ in test_lib.TestFlowHelper(
@@ -46,12 +44,14 @@ class ServicesTest(test_lib.FlowTestsBaseclass):
       pass
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open(aff4.RDFURN(self.client_id)
+    fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id)
                            .Add('analysis/Services'),
                            token=self.token)
 
-    self.assertEqual(fd.__class__.__name__, 'ServiceCollection')
-    jobs = fd.Get(fd.Schema.SERVICES).data
-    self.assertEqual(len(jobs), 1)
+    self.assertEqual(fd.__class__.__name__, 'RDFValueCollection')
+    jobs = list(fd)
+
+    self.assertEqual(len(fd), 1)
     self.assertEqual(jobs[0].label, 'org.openbsd.ssh-agent')
     self.assertEqual(jobs[0].args, '/usr/bin/ssh-agent -l')
+    self.assertIsInstance(jobs[0], rdfvalue.Service)

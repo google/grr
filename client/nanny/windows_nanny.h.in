@@ -16,28 +16,30 @@
 
 #include "grr/client/nanny/child_controller.h"
 
-TCHAR kGrrServiceName[] = TEXT("%(Nanny.NAME)s");
-TCHAR kGrrServiceDesc[] = TEXT("%(Nanny.DESC)s");
+TCHAR kGrrServiceName[] = TEXT("%(Nanny.Name)s");
+TCHAR kGrrServiceDesc[] = TEXT("%(Nanny.Description)s");
 
 // A registry key that holds GRR service configuration.
-const TCHAR* kGrrServiceRegistry = TEXT("%(Nanny.REGISTRY)s");
+#define GRR_SERVICE_REGISTRY_HIVE %(Registry.Service_Key_Hive)s
+
+const TCHAR* kGrrServiceRegistry = TEXT("%(Registry.Service_Key_Path|escape)s");
 
 // A registry value specifying the child that will be run.
-const TCHAR* kGrrServiceBinaryChild = TEXT("%(Nanny.BINARY_CHILD)s");
-const TCHAR* kGrrServiceBinaryCommandLine = TEXT("%(Nanny.BINARY_COMMANDLINE)s");
+const TCHAR* kGrrServiceBinaryChild = TEXT("%(Nanny.Binary_Child)s");
+const TCHAR* kGrrServiceBinaryCommandLine = TEXT("%(Nanny.Binary_CommandLine)s");
 
 // A backup binary location, in case the primary binary failed to start.
-const TCHAR* kGrrServiceBinaryChildAlternate = TEXT("%(Nanny.BINARY_CHILD_ALTERNATE)s");
+const TCHAR* kGrrServiceBinaryChildAlternate = TEXT("%(Nanny.Binary_Child_Alternate)s");
 
 // The registry value which is updated for each heartbeat. It is a REG_DWORD and
 // stores a unix epoch time.
-const TCHAR* kGrrServiceHeartBeatTime = TEXT("%(Nanny.HEARTBEAT_TIME)s");
+const TCHAR* kGrrServiceHeartbeatTime = TEXT("%(Nanny.HeartBeat_Time)s");
 
 // The registry value which is updated for the nanny messages.
-const TCHAR* kGrrServiceNannyMessage = TEXT("%(Nanny.NANNY_MESSAGE)s");
+const TCHAR* kGrrServiceNannyMessage = TEXT("%(Nanny.Nanny_Message)s");
 
 // The registry value which is updated for the nanny status.
-const TCHAR* kGrrServiceNannyStatus = TEXT("%(Nanny.NANNY_STATUS)s");
+const TCHAR* kGrrServiceNannyStatus = TEXT("%(Nanny.Nanny_Status)s");
 
 // Configuration of nanny policies.
 const struct grr::ControllerConfig kNannyConfig = {

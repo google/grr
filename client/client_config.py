@@ -97,7 +97,7 @@ if platform.system() == "Windows":
   flags.DEFINE_string("regpath", REGISTRY_KEY,
                       "A registry path for storing GRR configuration.")
 else:
-  flags.DEFINE_string("config", CONFIG_FILE,
+  flags.DEFINE_string("client_config", CONFIG_FILE,
                       "Comma separated list of grr configuration files.")
 
 FLAGS = flags.FLAGS

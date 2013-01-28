@@ -26,13 +26,13 @@ import logging
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import flow_utils
+from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 class ChromePlugins(flow.GRRFlow):
-  """Extract information about the installed Chrome extensions.
+  r"""Extract information about the installed Chrome extensions.
 
   Default directories as per:
     http://www.chromium.org/user-experience/user-data-directory
@@ -53,72 +53,61 @@ class ChromePlugins(flow.GRRFlow):
   """
 
   category = "/Browser/"
-  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType"),
-                   "output": type_info.StringOrNone()}
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.String(
+          description=("A path to a Chrome Extensions directory. If not set, "
+                       "the path is guessed from the username."),
+          name="path",
+          default=""),
+      type_info.PathTypeEnum(),
+      type_info.String(
+          description="A path relative to the client to put the output.",
+          name="output",
+          default="analysis/chromeplugins-{u}-{t}"),
 
-  def __init__(self, download_files=False, path=None,
-               pathtype=jobs_pb2.Path.TSK,
-               output="analysis/chromeplugins-{u}-{t}", username=None,
-               **kwargs):
-    """Constructor.
+      type_info.String(
+          description=("The user to get Chrome extensions for."),
+          name="username",
+          default=""),
 
-    Args:
-      download_files: If set to 1, all files belonging to the extension
-        are downloaded for analysis.
-
-      path: A path to a Chrome Extensions directory. If path is None, the
-        directory is guessed.
-
-      pathtype: Identifies requested path type (Enum from Path protobuf).
-
-      output: A path relative to the client to put the output.
-
-      username: String, the user to get Chrome extension info for. If path
-        is not set this will be used to guess the path to the extensions. For
-        Windows domain can be specified using DOMAIN\\user nomenclature.
-    """
-    self._paths = []
-    if path:
-      self._paths = [path]
-
-    self._username = username
-    self._download_files = download_files
-    self._storage = {}
-    self._ptype = pathtype
-
-    flow.GRRFlow.__init__(self, **kwargs)
-
-    self.output = output.format(t=time.time(), u=self._username)
+      type_info.Bool(
+          name="download_files",
+          description="Should extensions be downloaded?",
+          default=False),
+      )
 
   @flow.StateHandler(next_state=["EnumerateExtensionDirs"])
   def Start(self):
     """Determine the Chrome directory."""
     self.urn = aff4.ROOT_URN.Add(self.client_id)
+    self.output = self.output.format(t=time.time(), u=self.username)
     self.out_urn = self.urn.Add(self.output)
+    self._storage = {}
 
-    if not self._paths and self._username:
-      self._paths = self.GuessExtensionPaths(self._username)
+    if self.path:
+      self._paths = [self.path]
+    elif self.username:
+      self._paths = self.GuessExtensionPaths(self.username)
 
     if not self._paths:
       raise flow.FlowError("No valid extension paths found.")
 
     for path in self._paths:
       rel_path = utils.JoinPath(path, "Extensions")
-      p = jobs_pb2.Path(path=rel_path, pathtype=self._ptype)
+      pathspec = rdfvalue.RDFPathSpec(path=rel_path, pathtype=self.pathtype)
       self.CallClient("ListDirectory", next_state="EnumerateExtensionDirs",
-                      pathspec=p)
+                      pathspec=pathspec)
 
   @flow.StateHandler(next_state=["EnumerateVersions"])
   def EnumerateExtensionDirs(self, responses):
     """Enumerates all extension directories."""
     if responses.success:
       for response in responses:
-        directory_pathspec = utils.Pathspec(response.pathspec)
-        chromeid = os.path.basename(directory_pathspec.last.path)
+        chromeid = os.path.basename(response.pathspec.last.path)
 
         self._storage[chromeid] = {}
         self.CallClient("ListDirectory", next_state="EnumerateVersions",
-                        pathspec=directory_pathspec.ToProto())
+                        pathspec=response.pathspec)
 
   @flow.StateHandler(next_state=["GetExtensionName"])
   def EnumerateVersions(self, responses):
@@ -126,21 +115,20 @@ class ChromePlugins(flow.GRRFlow):
     if responses.success:
       for response in responses:
         # Get the json manifest.
-        pathspec = utils.Pathspec(response.pathspec)
-        pathspec.Append(pathtype=self._ptype, path="manifest.json")
+        pathspec = response.pathspec
+        pathspec.Append(pathtype=self.pathtype, path="manifest.json")
 
         self.CallFlow("GetFile", next_state="GetExtensionName",
-                      pathspec=pathspec.ToProto())
+                      pathspec=pathspec)
 
-  @flow.StateHandler(jobs_pb2.StatResponse, next_state=["GetLocalizedName",
-                                                        "Done"])
+  @flow.StateHandler(next_state=["GetLocalizedName", "Done"])
   def GetExtensionName(self, responses):
     """Gets the name of the extension from the manifest."""
     if responses.success:
       # The pathspec to the manifest file
       file_stat = responses.First()
 
-      extension_directory = utils.Pathspec(file_stat.pathspec).Dirname()
+      extension_directory = file_stat.pathspec.Dirname()
 
       # Read the manifest file which should be just json - already stored in
       fd = aff4.FACTORY.Open(file_stat.aff4path, token=self.token)
@@ -156,15 +144,15 @@ class ChromePlugins(flow.GRRFlow):
         # Extension has a localized name
         if "default_locale" in manifest:
           msg_path = extension_directory.Copy().Append(
-              pathtype=self._ptype,
+              pathtype=self.pathtype,
               path="_locales/" + manifest["default_locale"] + "/messages.json")
 
           request_data = dict(
               manifest_data=manifest_data,
-              extension_directory=extension_directory.SerializeToString())
+              extension_directory=extension_directory)
 
           self.CallFlow("GetFile", next_state="GetLocalizedName",
-                        pathspec=msg_path.ToProto(), request_data=request_data)
+                        pathspec=msg_path, request_data=request_data)
           return
         else:
           logging.error("Malformed extension %s, missing default_locale.",
@@ -173,17 +161,16 @@ class ChromePlugins(flow.GRRFlow):
 
       self.CreateAnalysisVFile(extension_directory, manifest)
 
-      if self._download_files:
+      if self.download_files:
         self.CallFlow("DownloadDirectory", next_state="Done",
-                      pathspec=extension_directory.ToProto())
+                      pathspec=extension_directory)
 
-  @flow.StateHandler(jobs_pb2.StatResponse, next_state="Done")
+  @flow.StateHandler(next_state="Done")
   def GetLocalizedName(self, responses):
     """Determines the name of the extension if the extension uses locales."""
     if responses.success:
       manifest = json.loads(responses.request_data["manifest_data"])
-      extension_directory = utils.Pathspec(
-          responses.request_data["extension_directory"])
+      extension_directory = responses.request_data["extension_directory"]
 
       # Parse the locale json.
       urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
@@ -206,9 +193,9 @@ class ChromePlugins(flow.GRRFlow):
 
     self.CreateAnalysisVFile(extension_directory, manifest)
 
-    if self._download_files:
+    if self.download_files:
       self.CallFlow("DownloadDirectory", next_state="Done",
-                    pathspec=extension_directory.ToProto())
+                    pathspec=extension_directory)
 
   def CreateAnalysisVFile(self, extension_directory, manifest):
     """Creates the analysis result object."""

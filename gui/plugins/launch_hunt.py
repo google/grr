@@ -10,10 +10,10 @@ from grr.gui.plugins import flow_management
 from grr.gui.plugins import foreman
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import hunts
+from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
-from grr.lib.flows.general import hunts
-from grr.proto import jobs_pb2
 
 
 class LaunchHunts(renderers.WizardRenderer):
@@ -88,21 +88,36 @@ class HuntFlowForm(flow_management.FlowForm):
 
   # No need to avoid clashes, because the form by itself is not submitted, it's
   # only used by Javascript to form a JSON request.
-  arg_prefix = ""
+  prefix = ""
+
+  # There's no sense in displaying "Notify at Completion" argument when
+  # configuring hunts
+  ignore_flow_args = ["notify_to_user"]
 
   layout_template = renderers.Template("""
 <div class="HuntFormBody" id="FormBody_{{unique|escape}}">
 <h1>{{this.flow_name|escape}}</h1>
 
-{% if this.form_elements %}
-  <table><tbody>
-  {% for form_element in this.form_elements %}
-    <tr>{{form_element|escape}}</tr>
-  {% endfor %}
-  </tbody></table>
+<table><tbody>
+{% if this.flow_name %}
+
+  {{this.flow_args|safe}}
+
 {% else %}
-  Nothing to configure.
+  <tr><td>Nothing to configure for the Flow.</td></tr>
 {% endif %}
+<tr class="HuntParameters"><td><h1>Hunt Parameters</h1></td></tr>
+<tr>
+  <td> Client Limit </td>
+  <td> <input name='client_limit' type=text value=''/> </td>
+</tr>
+
+<tr>
+  <td> Expiration Time (in seconds, try s,m,h,d)</td>
+  <td> <input name='expiry_time' type=text value='31d'/> </td>
+</tr>
+
+</tbody></table>
 </div>
 
 {% if this.flow_name %}
@@ -146,6 +161,7 @@ class HuntFlowForm(flow_management.FlowForm):
   $("#FormBody_{{unique|escape}} :input").change(function() {
     wizardState["hunt_flow_config"][$(this).attr("name")] = $(this).val();
   });
+  $("#FormBody_{{unique|escape}} :input").change();
 })();
 </script>
 {% endif %}
@@ -164,6 +180,8 @@ class HuntConfigureRules(renderers.TemplateRenderer):
   # wizard's configuration (by convention stored in wizard's DOM by using
   # jQuery.data()).
   layout_template = renderers.Template("""
+{{this.hunt_form|safe}}
+
 <script id="HuntsRulesModels_{{unique|escape}}" type="text/x-jquery-tmpl">
   <div class="Rule">
     {% for form_name, form in this.forms.items %}
@@ -183,9 +201,7 @@ class HuntConfigureRules(renderers.TemplateRenderer):
                </select>
              </td>
           </tr>
-          {% for form_element in form %}
-          <tr>{{form_element|escape}}</tr>
-          {% endfor %}
+        {{form|safe}}
         </tbody></table>
       {% templatetag openvariable %}/if{% templatetag closevariable %}
     {% endfor %}
@@ -226,11 +242,15 @@ function updateRules() {
     });
 
     // Fill input elements for this rule with the data that we have.
+    // If we don't have the data, then do the reverse thing - put value
+    // from the input element into our data structure.
     $(":input", this).each(function() {
       attr_name = $(this).attr("name");
 
       if (rules[index][attr_name] != null) {
         $(this).val(rules[index][attr_name]);
+      } else {
+        rules[index][attr_name] = $(this).val();
       }
     });
 
@@ -256,33 +276,25 @@ updateRules();
 </script>
 """)
 
-  def RenderProtobufElements(self, pb):
-    for field in pb.DESCRIPTOR.fields:
-      if field.type == field.TYPE_STRING:
-        tinfo = type_info.String()
-      elif field.type == field.TYPE_UINT64:
-        tinfo = type_info.Number()
-      elif field.type == field.TYPE_ENUM:
-        tinfo = type_info.ProtoEnum(pb, field.enum_type.name)
-      else:
-        tinfo = None
-
-      if not tinfo:
-        continue
-      form_renderer = renderers.Renderer.classes[tinfo.renderer]()
-      yield form_renderer.Format(field=field.name, arg_type=tinfo,
-                                 value=getattr(pb, field.name),
-                                 desc=field.name)
-
   def Layout(self, request, response):
-    self.forms = {
-        "ForemanAttributeRegex": self.RenderProtobufElements(
-            jobs_pb2.ForemanAttributeRegex()),
-        "ForemanAttributeInteger": self.RenderProtobufElements(
-            jobs_pb2.ForemanAttributeInteger())
-        }
+    """Layout hunt rules."""
+    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
 
-    return renderers.TemplateRenderer.Layout(self, request, response)
+    regex_form = type_descriptor_renderer.Form(
+        type_info.TypeDescriptorSet(type_info.ForemanAttributeRegexType()),
+        request, prefix="")
+    int_form = type_descriptor_renderer.Form(
+        type_info.TypeDescriptorSet(type_info.ForemanAttributeIntegerType()),
+        request, prefix="")
+
+    self.forms = {"ForemanAttributeRegex": regex_form,
+                  "ForemanAttributeInteger": int_form}
+
+    return super(HuntConfigureRules, self).Layout(request, response)
+
+
+class EmptyRequest(object):
+  pass
 
 
 class HuntRequestParsingMixin(object):
@@ -291,46 +303,72 @@ class HuntRequestParsingMixin(object):
   def ParseFlowConfig(self, flow_class, flow_args_json):
     """Parse flow config JSON."""
 
-    result = {}
-    for arg_name, arg_type, arg_default in flow_class.GetFlowArgTypeInfo():
-      if arg_name in flow_args_json:
-        val = arg_type.DecodeString(flow_args_json[arg_name])
-      else:
-        val = arg_default
-      result[arg_name] = val
+    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
+    # We ignore certain args in HuntFlowForm therefore we shouldn't parse
+    # it here.
+    tinfo = flow_class.flow_typeinfo
+    for arg in HuntFlowForm.ignore_flow_args:
+      try:
+        tinfo = tinfo.Remove(arg)
+      except KeyError:
+        pass  # this flow_arg was not part of the request
 
-    return result
+    request = EmptyRequest()
+    request.REQ = flow_args_json  # pylint: disable=g-bad-name
+    flow_config = rdfvalue.RDFProtoDict(
+        initializer=dict(type_descriptor_renderer.ParseArgs(
+            tinfo, request, prefix="")))
+    return flow_config
 
   def ParseHuntRules(self, hunt_rules_json):
     """Parse rules config JSON."""
 
+    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
     result = []
     for rule_json in hunt_rules_json:
       if rule_json["rule_type"] == "ForemanAttributeRegex":
-        rule_pb = jobs_pb2.ForemanAttributeRegex()
+        tinfo = type_info.TypeDescriptorSet(
+            type_info.ForemanAttributeRegexType())
       elif rule_json["rule_type"] == "ForemanAttributeInteger":
-        rule_pb = jobs_pb2.ForemanAttributeInteger()
+        tinfo = type_info.TypeDescriptorSet(
+            type_info.ForemanAttributeIntegerType())
       else:
         raise RuntimeError("Unknown rule type: " + rule_json["rule_type"])
 
-      for field in rule_pb.DESCRIPTOR.fields:
-        if not field.name in rule_json:
-          continue
+      request = EmptyRequest()
+      request.REQ = rule_json
+      parse_result = dict(type_descriptor_renderer.ParseArgs(
+          tinfo, request, prefix=""))
 
-        if field.type == field.TYPE_STRING:
-          tinfo = type_info.String()
-        elif field.type == field.TYPE_UINT64:
-          tinfo = type_info.Number()
-        elif field.type == field.TYPE_ENUM:
-          tinfo = type_info.ProtoEnum(rule_pb, field.enum_type.name)
-        else:
-          raise RuntimeError("Unknown field type: " + field.type)
-
-        setattr(rule_pb, field.name, tinfo.DecodeString(rule_json[field.name]))
-
-      result.append(rule_pb)
+      rdf_rule = parse_result["foreman_attributes"]
+      result.append(rdf_rule)
 
     return result
+
+  def ParseExpiryTime(self, timestring):
+    """Parses the expiration time."""
+    multiplicator = 1
+
+    if not timestring:
+      return None
+    orig_string = timestring
+
+    if timestring[-1].isdigit():
+      pass
+    else:
+      if timestring[-1] == "s":
+        pass
+      elif timestring[-1] == "m":
+        multiplicator = 60
+      elif timestring[-1] == "h":
+        multiplicator = 60*60
+      elif timestring[-1] == "d":
+        multiplicator = 60*60*24
+      timestring = timestring[:-1]
+    try:
+      return int(timestring) * multiplicator
+    except ValueError:
+      raise RuntimeError("Could not parse expiration time '%s'." % orig_string)
 
   def GetHuntFromRequest(self, request):
     """Parse JSON'ed hunt configuration from request into hunt object."""
@@ -342,13 +380,21 @@ class HuntRequestParsingMixin(object):
     flow_config_json = hunt_config.get("hunt_flow_config", {})
     rules_config_json = hunt_config["hunt_rules_config"]
 
+    expiry_time = self.ParseExpiryTime(flow_config_json["expiry_time"])
+    client_limit = None
+    if flow_config_json["client_limit"]:
+      client_limit = int(flow_config_json["client_limit"])
+
     flow_class = flow.GRRFlow.classes[flow_name]
     flow_config = self.ParseFlowConfig(flow_class, flow_config_json or {})
     rules_config = self.ParseHuntRules(rules_config_json)
 
-    generic_hunt = hunts.GenericHunt(flow_name, flow_config,
+    generic_hunt = hunts.GenericHunt(flow_name=flow_name, args=flow_config,
+                                     client_limit=client_limit,
+                                     expiry_time=expiry_time,
                                      token=request.token)
-    generic_hunt.AddRule(rules_config)
+
+    generic_hunt.AddRule(rules=rules_config)
 
     return generic_hunt
 
@@ -357,17 +403,13 @@ class HuntRuleInformation(foreman.ReadOnlyForemanRuleTable,
                           HuntRequestParsingMixin):
   """Renders hunt's rules table, getting rules configuration from request."""
 
-  def Layout(self, request, response):
-    # We have to explicitly preserve "hunt_run" request variable in the state
-    # so that it would be passed in the request to RenderAjax handler.
-    self.state["hunt_run"] = request.REQ.get("hunt_run", "")
-    return foreman.ReadOnlyForemanRuleTable.Layout(self, request, response)
+  post_parameters = ["hunt_run"]
 
   def RenderAjax(self, request, response):
     hunt = self.GetHuntFromRequest(request)
     for rule in hunt.rules:
-      self.AddRow(dict(Created=aff4.RDFDatetime(rule.created),
-                       Expires=aff4.RDFDatetime(rule.expires),
+      self.AddRow(dict(Created=rdfvalue.RDFDatetime(rule.created),
+                       Expires=rdfvalue.RDFDatetime(rule.expires),
                        Description=rule.description,
                        Rules=rule,
                        Actions=rule))
@@ -452,7 +494,7 @@ Failure due: <span class="Reason">{{this.failure_reason|escape}}</span>
 class HuntReviewAndTest(HuntInformation):
   """Runs hunt's tests and displays the results."""
 
-  ajax_template = renderers.Template("""
+  clients_list_template = renderers.Template("""
 <h2>Rules Testing Results</h2>
 {% if this.display_warning %}
   Warning! One or more rules use a relative path under the client,
@@ -471,6 +513,14 @@ Example matches:
   {% endfor %}
 </ul>
 </div>
+
+<script>
+  grr.publish("WizardProceed", "HuntTestPerformed");
+</script>
+""")
+
+  rules_testing_template = renderers.Template("""
+Hunt's rules were tested successfully.
 
 <script>
   grr.publish("WizardProceed", "HuntTestPerformed");
@@ -496,7 +546,10 @@ grr.update("HuntReviewAndTest", "TestsInProgress_{{unique|escapejs}}",
 
 """ + HuntInformation.layout_template
 
-  def RenderAjax(self, request, response):
+  post_parameters = ["hunt_run"]
+
+  # TODO(user): optimize or get rid of this function.
+  def RenderMatchingClientslist(self, request, response):
     """Run hunt's rules test and render testing summary."""
     try:
       generic_hunt = self.GetHuntFromRequest(request)
@@ -513,26 +566,28 @@ grr.update("HuntReviewAndTest", "TestsInProgress_{{unique|escapejs}}",
         if r.path != "/":
           self.display_warning = True
 
+    # Filtering out non-clients to avoid UnauthorizedAccess exceptions
+    clients = []
+    for urn in root.ListChildren():
+      if aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(urn.Basename()):
+        clients.append(urn)
+
     self.all_clients = 0
     self.num_matching_clients = 0
     matching_clients = []
-    for client in root.OpenChildren(chunk_limit=100000):
-      if client.Get(client.Schema.TYPE) == "VFSGRRClient":
-        self.all_clients += 1
-        if generic_hunt.CheckClient(client):
-          self.num_matching_clients += 1
-          if len(matching_clients) < 3:
-            matching_clients.append(utils.SmartUnicode(client.urn))
+    for client in aff4.FACTORY.MultiOpen(clients, token=request.token):
+      self.all_clients += 1
+      if generic_hunt.CheckClient(client):
+        self.num_matching_clients += 1
+        matching_clients.append(utils.SmartUnicode(client.urn))
 
     self.matching_clients = matching_clients[:3]
     return renderers.TemplateRenderer.Layout(self, request, response,
                                              apply_template=self.ajax_template)
 
-  def Layout(self, request, response):
-    # We have to explicitly preserve "hunt_run" request variable in the state
-    # so that it would be passed in the request to RenderAjax handler.
-    self.state["hunt_run"] = request.REQ.get("hunt_run", "")
-    return HuntInformation.Layout(self, request, response)
+  def RenderAjax(self, request, response):
+    return renderers.TemplateRenderer.Layout(
+        self, request, response, apply_template=self.rules_testing_template)
 
 
 class HuntRunStatus(HuntInformation):
@@ -546,10 +601,22 @@ class HuntRunStatus(HuntInformation):
 """)
 
   def Layout(self, request, response):
+    """Attempt to run a CreateAndRunGenericHuntFlow."""
     hunt = self.GetHuntFromRequest(request)
 
     try:
-      hunt.Run()
+      hunt_rules = []
+      for r in hunt.rules:
+        hunt_rules.extend(r.regex_rules)
+        hunt_rules.extend(r.integer_rules)
+
+      flow.FACTORY.StartFlow(None, "CreateAndRunGenericHuntFlow",
+                             token=request.token,
+                             expiry_time=hunt.expiry_time,
+                             client_limit=hunt.client_limit,
+                             hunt_flow_name=hunt.flow_name,
+                             hunt_flow_args=hunt.args,
+                             hunt_rules=hunt_rules)
     except RuntimeError, e:
       return self.Fail(e, request, response)
 

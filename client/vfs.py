@@ -16,9 +16,12 @@
 
 
 from grr.client import client_utils
+from grr.lib import rdfvalue
+# pylint:disable=unused-import
+from grr.lib import rdfvalues
+# pylint:enable=unused-import
 from grr.lib import registry
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 # A central Cache for vfs handlers. This can be used to keep objects alive
@@ -61,7 +64,7 @@ class VFSHandler(object):
     _ = pathspec
     self.base_fd = base_fd
     if base_fd is None:
-      self.pathspec = utils.Pathspec()
+      self.pathspec = rdfvalue.RDFPathSpec()
     else:
       # Make a copy of the base pathspec.
       self.pathspec = base_fd.pathspec.Copy()
@@ -110,8 +113,9 @@ class VFSHandler(object):
     # TODO(user): Add support for more container here (e.g. registries, zip
     # files etc).
     else:  # For now just guess TSK.
-      return VFS_HANDLERS[jobs_pb2.Path.TSK](
-          self, jobs_pb2.Path(path="/", pathtype=jobs_pb2.Path.TSK))
+      return VFS_HANDLERS[rdfvalue.RDFPathSpec.Enum("TSK")](
+          self, rdfvalue.RDFPathSpec(path="/",
+                                     pathtype=rdfvalue.RDFPathSpec.Enum("TSK")))
 
   def MatchBestComponentName(self, component):
     """Returns the name of the component which matches best our base listing.
@@ -139,8 +143,9 @@ class VFSHandler(object):
           component = x
           break
 
-    new_pathspec = jobs_pb2.Path(path=component,
-                                 pathtype=fd.supported_pathtype)
+    new_pathspec = rdfvalue.RDFPathSpec(path=component,
+                                        pathtype=fd.supported_pathtype)
+
     return new_pathspec
 
   def ListFiles(self):
@@ -193,7 +198,7 @@ class VFSHandler(object):
           "VFS handler %d not supported." % component.pathtype)
 
     # We will not do any case folding unless requested.
-    if component.path_options == jobs_pb2.Path.CASE_LITERAL:
+    if component.path_options == rdfvalue.RDFPathSpec.Enum("CASE_LITERAL"):
       return handler(base_fd=fd, pathspec=component)
 
     path_components = client_utils.LocalPathToCanonicalPath(component.path)
@@ -214,7 +219,7 @@ class VFSHandler(object):
 
         # Insert the remaining path at the front of the pathspec.
         pathspec.Insert(0, path=utils.JoinPath(*path_components[i:]),
-                        pathtype=jobs_pb2.Path.TSK)
+                        pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
         break
 
     return fd
@@ -296,12 +301,15 @@ def VFSOpen(pathspec):
   Raises:
     IOError: if one of the path components can not be opened.
   """
-  pathspec = utils.Pathspec(pathspec)
   fd = None
+
+  # Opening changes the pathspec so we work on a copy.
+  pathspec = pathspec.Copy()
 
   # For each pathspec step, we get the handler for it and instantiate it with
   # the old object, and the current step.
   while pathspec:
+
     component = pathspec.Pop()
     try:
       handler = VFS_HANDLERS[component.pathtype]

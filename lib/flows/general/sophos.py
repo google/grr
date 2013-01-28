@@ -22,39 +22,37 @@ Collects Logs and Infected files.
 
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import type_info
-from grr.proto import jobs_pb2
 
 
 class SophosCollector(flow.GRRFlow):
   """Collect all files related to Sophos."""
 
   category = "/Collectors/"
-  flow_typeinfo = {"pathtype": type_info.ProtoEnum(jobs_pb2.Path, "PathType")}
 
-  def __init__(self, pathtype=jobs_pb2.Path.TSK,
-               output="analysis/sophos/{u}-{t}", **kwargs):
-    """Constructor.
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.PathTypeEnum(
+          description="The requested path type.",
+          name="pathtype",
+          default=rdfvalue.RDFPathSpec.Enum("OS")),
+      type_info.String(
+          name="output",
+          default="analysis/sophos/{u}-{t}",
+          description=("If set, a URN to an AFF4Collection to add each result "
+                       "to. This will create the collection if it does not "
+                       "exist.")),
+      )
 
-    Args:
-      pathtype: Identifies requested path type. Enum from Path protobuf.
-      output: If set, a URN to an AFF4Collection to add each result to.
-          This will create the collection if it does not exist.
-    """
-    super(SophosCollector, self).__init__(**kwargs)
-
-    self.pathtype = pathtype
-
+  @flow.StateHandler(next_state="End")
+  def Start(self):
     fd = aff4.FACTORY.Open(self.client_id, token=self.token)
     self.system = fd.Get(fd.Schema.SYSTEM)
     self.version = fd.Get(fd.Schema.OS_VERSION)
 
     # Set our findspecs.
     self.findspecs = list(self.GetFindSpecs())
-    self.output = output
 
-  @flow.StateHandler(next_state="End")
-  def Start(self):
     self.CallFlow("FileCollector", output=self.output,
                   findspecs=self.findspecs, next_state="End")
 
@@ -146,18 +144,20 @@ class SophosCollector(flow.GRRFlow):
     Raises:
       OSError: If the client operating system is not supported.
     """
-    path_spec = jobs_pb2.Path(path=self.GetSophosAVInfectedPath(),
-                              pathtype=int(self.pathtype))
+    path_spec = rdfvalue.RDFPathSpec(
+        path=self.GetSophosAVInfectedPath(),
+        pathtype=int(self.pathtype))
 
-    yield jobs_pb2.Find(
+    yield rdfvalue.RDFFindSpec(
         pathspec=path_spec,
         path_regex=".*",
         max_depth=1)
 
-    path_spec = jobs_pb2.Path(path=self.GetSophosAVLogsPath(),
-                              pathtype=int(self.pathtype))
+    path_spec = rdfvalue.RDFPathSpec(
+        path=self.GetSophosAVLogsPath(),
+        pathtype=int(self.pathtype))
 
-    yield jobs_pb2.Find(
+    yield rdfvalue.RDFFindSpec(
         pathspec=path_spec,
         path_regex=self.GetSophosAVLogsPathRegex(),
         max_depth=1)

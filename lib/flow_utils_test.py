@@ -18,10 +18,9 @@
 
 from grr.client import conf
 from grr.lib import aff4
-from grr.lib import aff4
 from grr.lib import flow_utils
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import jobs_pb2
 
 
 class TestInterpolatePath(test_lib.FlowTestsBaseclass):
@@ -33,16 +32,18 @@ class TestInterpolatePath(test_lib.FlowTestsBaseclass):
     self.client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     self.client.Set(self.client.Schema.SYSTEM("Windows"))
     user_list = self.client.Schema.USER()
-    user_list.Append(jobs_pb2.UserAccount(username="test",
-                                          domain="TESTDOMAIN",
-                                          full_name="test user",
-                                          homedir="c:\\Users\\test",
-                                          last_logon=250))
-    user_list.Append(jobs_pb2.UserAccount(username="test2",
-                                          domain="TESTDOMAIN",
-                                          full_name="test user 2",
-                                          homedir="c:\\Users\\test2",
-                                          last_logon=100))
+    user_list.Append(username="test",
+                     domain="TESTDOMAIN",
+                     full_name="test user",
+                     homedir="c:\\Users\\test",
+                     last_logon=rdfvalue.RDFDatetime("2012-11-10"))
+
+    user_list.Append(username="test2",
+                     domain="TESTDOMAIN",
+                     full_name="test user 2",
+                     homedir="c:\\Users\\test2",
+                     last_logon=100)
+
     self.client.AddAttribute(self.client.Schema.USER, user_list)
     self.client.Close()
     self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -64,7 +65,8 @@ class TestInterpolatePath(test_lib.FlowTestsBaseclass):
 
     path = "{systemroot}\\{last_logon}\\dir"
     new_path = flow_utils.InterpolatePath(path, self.client, users=["test"])
-    self.assertEqual(new_path[0].lower(), "c:\\windows\\250\\dir")
+    self.assertEqual(new_path[0].lower(),
+                     "c:\\windows\\2012-11-10 00:00:00\\dir")
 
     path = "{homedir}\\a"
     new_path = flow_utils.InterpolatePath(path, self.client,
@@ -99,19 +101,14 @@ class TestClientPathHelper(test_lib.GRRBaseTest):
 
     # Add a user account to the client
     users_list = client.Schema.USER()
+    users_list.Append(
+        username="Administrator",
+        comment="Built-in account for administering the computer/domain",
+        last_logon=1296205801,
+        domain="MYDOMAIN",
+        homedir="C:\\Users\\Administrator")
 
-    user_account = jobs_pb2.UserAccount(username="Administrator",
-                                        comment="Built-in account for "
-                                        "administering the computer/domain",
-                                        last_logon=1296205801,
-                                        domain="MYDOMAIN",
-                                        homedir="C:\\Users\\Administrator")
-
-    users_list.Append(user_account)
-
-    client.AddAttribute(client.Schema.USER,
-                        users_list)
-
+    client.AddAttribute(client.Schema.USER, users_list)
     client.Close()
 
     # Run tests

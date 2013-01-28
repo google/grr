@@ -73,7 +73,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     sel.click("css=input[value=Launch]")
     self.WaitUntil(sel.is_element_present, "css=input[value=Back]")
     self.WaitUntil(sel.is_text_present, "Launched flow ListProcesses")
-    self.WaitUntil(sel.is_text_present, "client_id = C.0000000000000001")
+    self.WaitUntil(sel.is_text_present, "client_id = 'C.0000000000000001'")
 
     sel.click("css=input[value=Back]")
     self.WaitUntil(sel.is_element_present, "css=input[value=Launch]")
@@ -87,8 +87,8 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     sel.click("css=#_Filesystem > ins.jstree-icon")
     self.WaitUntil(sel.is_element_present, "link=GetFile")
     sel.click("link=GetFile")
-    self.WaitUntil(sel.is_element_present, "css=input[name=v_path]")
-    sel.type("css=input[name=v_path]", u"/dev/c/msn升级程序[1].exe")
+    self.WaitUntil(sel.is_element_present, "css=input[name=v_pathspec_path]")
+    sel.type("css=input[name=v_pathspec_path]", u"/dev/c/msn升级程序[1].exe")
     sel.click("css=input[value=Launch]")
 
     self.WaitUntil(sel.is_text_present, "Launched flow GetFile")
@@ -102,20 +102,20 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.WaitUntilEqual("RecursiveTestFlow", sel.get_text,
                         "//table/tbody/tr[1]/td[3]")
 
-    visibility = []
-    for i in range(1, 10):
-      visibility.append(sel.is_visible("//table/tbody/tr[%s]" % i))
+    self.WaitUntilEqual("GetFile", sel.get_text,
+                        "//table/tbody/tr[2]/td[3]")
 
-    self.assertEqual(visibility, [1, 0, 0, 0, 0, 0, 0, 1, 1])
+    # There should only be 3 rows (since the child flows are not shown).
+    self.assertRaises(Exception, sel.is_visible, "//table/tbody/tr[4]")
 
     # Click on the first tree_closed to open it.
     sel.click("css=.tree_closed")
 
-    visibility = []
-    for i in range(1, 10):
-      visibility.append(sel.is_visible("//table/tbody/tr[%s]" % i))
+    self.WaitUntilEqual("RecursiveTestFlow", sel.get_text,
+                        "//table/tbody/tr[1]/td[3]")
 
-    self.assertEqual(visibility, [1, 1, 0, 0, 1, 0, 0, 1, 1])
+    self.WaitUntilEqual("RecursiveTestFlow", sel.get_text,
+                        "//table/tbody/tr[2]/td[3]")
 
     # Select the requests tab
     sel.click("css=div.ui-tabs a:contains(Requests)")

@@ -16,18 +16,20 @@
 """Tests for administrative flows."""
 
 
-import os
 import sys
 
 from grr.client import conf as flags
 
+from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import maintenance_utils
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import jobs_pb2
 
 FLAGS = flags.FLAGS
+CONFIG = config_lib.CONFIG
 
 
 class TestClientConfigHandling(test_lib.FlowTestsBaseclass):
@@ -41,7 +43,7 @@ class TestClientConfigHandling(test_lib.FlowTestsBaseclass):
     # # Fix up the client actions to not use /etc.
     # conf.FLAGS.config = FLAGS.test_tmpdir + "/config.ini"
     # loc = "http://www.example.com"
-    # grr_config = jobs_pb2.GRRConfig(location=loc,
+    # grr_config = rdfvalue.GRRConfig(location=loc,
     #                                 foreman_check_frequency=3600,
     #                                 poll_min=1)
     # # Write the config.
@@ -75,22 +77,24 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
     class ClientMock(object):
 
       def HandleMessage(self, message):
-        status = jobs_pb2.GrrStatus(
-            status=jobs_pb2.GrrStatus.CLIENT_KILLED,
+        status = rdfvalue.GrrStatus(
+            status=rdfvalue.GrrStatus.Enum("CLIENT_KILLED"),
             error_message="Client killed during transaction")
 
-        msg = jobs_pb2.GrrMessage(
+        msg = rdfvalue.GRRMessage(
             request_id=message.request_id, response_id=1,
-            session_id=message.session_id, type=jobs_pb2.GrrMessage.STATUS,
+            session_id=message.session_id,
+            type=rdfvalue.GRRMessage.Enum("STATUS"),
             args=status.SerializeToString(), source=client_id,
-            auth_state=jobs_pb2.GrrMessage.AUTHENTICATED)
+            auth_state=rdfvalue.GRRMessage.Enum("AUTHENTICATED"))
 
         self.flow_id = message.session_id
 
         # This is normally done by the FrontEnd when a CLIENT_KILLED message is
         # received.
         flow.PublishEvent("ClientCrash", msg, token=token)
-        return [msg]
+
+        return [status]
 
     try:
       old_send_email = email_alerts.SendEmail
@@ -107,7 +111,8 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       client = ClientMock()
       for _ in test_lib.TestFlowHelper(
           "ListDirectory", client, client_id=self.client_id,
-          path="/", token=self.token, check_flow_errors=False):
+          pathspec=rdfvalue.RDFPathSpec(path="/"), token=self.token,
+          check_flow_errors=False):
         pass
 
       # We expect the email to be sent.
@@ -119,7 +124,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
         self.assertTrue(s in self.email_message["message"])
 
       flow_pb = flow.FACTORY.FetchFlow(client.flow_id, token=self.token)
-      self.assertEqual(flow_pb.state, jobs_pb2.FlowPB.ERROR)
+      self.assertEqual(flow_pb.state, rdfvalue.Flow.Enum("ERROR"))
       flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
 
     finally:
@@ -139,13 +144,9 @@ import sys
 sys.test_code_ran_here = True
 """
 
-    signing_key = os.path.join(self.base_path, "../keys/test/exe_sign.pem")
-
-    blob = maintenance_utils.SignConfigBlob(
-        code, signing_key=open(signing_key, "rb").read())
-
     maintenance_utils.UploadSignedConfigBlob(
-        blob, aff4_path="aff4:/config/python_hacks/test", token=self.token)
+        code, file_name="", config=CONFIG, platform="Windows",
+        aff4_path="aff4:/config/python_hacks/test", token=self.token)
 
     for _ in test_lib.TestFlowHelper(
         "ExecutePythonHack", client_mock, client_id=self.client_id,
@@ -153,3 +154,54 @@ sys.test_code_ran_here = True
       pass
 
     self.assertTrue(sys.test_code_ran_here)
+
+  def testGetClientStats(self):
+
+    class ClientMock(object):
+      def GetClientStats(self, _):
+        response = rdfvalue.ClientStats()
+        for i in range(12):
+          sample = rdfvalue.CpuSample(
+              timestamp=int(i * 10 * 1e6),
+              user_cpu_time=10 + i,
+              system_cpu_time=20 + i,
+              cpu_percent=10 + i)
+          response.cpu_samples.Append(sample)
+
+          sample = rdfvalue.IOSample(
+              timestamp=int(i * 10 * 1e6),
+              read_bytes=10 + i,
+              write_bytes=10 + i)
+          response.io_samples.Append(sample)
+
+        return [response]
+
+    for _ in test_lib.TestFlowHelper("GetClientStats", ClientMock(),
+                                     token=self.token,
+                                     client_id=self.client_id):
+      pass
+
+    urn = aff4.ROOT_URN.Add(self.client_id).Add("stats")
+    stats_fd = aff4.FACTORY.Create(urn, "ClientStats", token=self.token,
+                                   mode="rw")
+    sample = stats_fd.Get(stats_fd.Schema.STATS)
+
+    # Samples are taken at the following timestamps and should be split into 2
+    # bins as follows (sample_interval is 60000000):
+
+    # 00000000, 10000000, 20000000, 30000000, 40000000, 50000000  -> Bin 1
+    # 60000000, 70000000, 80000000, 90000000, 100000000, 110000000  -> Bin 2
+
+    self.assertEqual(len(sample.cpu_samples), 2)
+    self.assertEqual(len(sample.io_samples), 2)
+
+    self.assertAlmostEqual(sample.io_samples[0].read_bytes, 15.0)
+    self.assertAlmostEqual(sample.io_samples[1].read_bytes, 21.0)
+
+    self.assertAlmostEqual(sample.cpu_samples[0].cpu_percent,
+                           sum(range(10, 16))/6.0)
+    self.assertAlmostEqual(sample.cpu_samples[1].cpu_percent,
+                           sum(range(16, 22))/6.0)
+
+    self.assertAlmostEqual(sample.cpu_samples[0].user_cpu_time, 15.0)
+    self.assertAlmostEqual(sample.cpu_samples[1].system_cpu_time, 31.0)

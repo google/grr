@@ -30,9 +30,9 @@ from grr.client import actions
 from grr.client import comms
 from grr.client import conf
 from grr.client import vfs
+from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
-from grr.proto import jobs_pb2
 
 FLAGS = flags.FLAGS
 
@@ -41,10 +41,10 @@ class ConfigActionTest(test_lib.EmptyActionTest):
   """Tests the client actions UpdateConfig and GetConfig."""
 
   def setUp(self):
-    FLAGS.config = FLAGS.test_tmpdir + "/config.ini"
     vfs.VFSInit()
 
     super(ConfigActionTest, self).setUp()
+    FLAGS.config = FLAGS.test_tmpdir + "/config.ini"
 
   def testUpdateConfig(self):
     """Test that we can update the config."""
@@ -57,7 +57,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     # Make sure the file is gone
     self.assertRaises(IOError, open, FLAGS.config)
     location = "http://www.example.com"
-    request = jobs_pb2.GRRConfig(location=location,
+    request = rdfvalue.GRRConfig(location=location,
                                  foreman_check_frequency=3600)
     result = self.RunAction("UpdateConfig", request)
 
@@ -90,7 +90,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     self.mox.ReplayAll()
 
     location = "http://www.example.com"
-    request = jobs_pb2.GRRConfig(location=location,
+    request = rdfvalue.GRRConfig(location=location,
                                  camode="test",
                                  debug=True)
     result = self.RunAction("UpdateConfig", request)
@@ -104,7 +104,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     """Check GetConfig client action works."""
     # Use UpdateConfig to generate a config.
     location = "http://example.com"
-    request = jobs_pb2.GRRConfig(location=location,
+    request = rdfvalue.GRRConfig(location=location,
                                  foreman_check_frequency=3600)
     self.RunAction("UpdateConfig", request)
     # Check that our GetConfig actually gets the real data.

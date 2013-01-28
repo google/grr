@@ -78,7 +78,16 @@ class ChildProcess {
   // Checks the last heart beat from the child. Returns the time of the last
   // child heartbeat (Seconds since the Epoch). A value of 0 means the child
   // failed to read its heartbeat.
-  virtual time_t GetHeartBeat() = 0;
+  virtual time_t GetHeartbeat() = 0;
+
+  // Sets the heartbeat to a specific value.
+  virtual void SetHeartbeat(unsigned int value) = 0;
+
+  // Sets the heartbeat to the current time.
+  virtual void Heartbeat() = 0;
+
+  // Clears the last heartbeat time.
+  virtual void ClearHeartbeat() = 0;
 
   // Gets the current time in seconds since the Epoch.
   virtual time_t GetCurrentTime() = 0;
@@ -88,8 +97,23 @@ class ChildProcess {
   // Returns if the spawned process is still alive.
   virtual bool IsAlive() = 0;
 
+  // Returns if a process has been spawned.
+  virtual bool Started() = 0;
+
   // Returns the child's memory usage.
   virtual size_t GetMemoryUsage() = 0;
+
+  // Sets the nanny message.
+  virtual void SetNannyMessage(std::string msg) = 0;
+
+  // Sets a nanny message to be sent with a delay.
+  virtual void SetPendingNannyMessage(std::string msg) = 0;
+
+  // Sets the nanny status.
+  virtual void SetNannyStatus(std::string msg) = 0;
+
+  // Just sleeps for the indicated time.
+  virtual void Sleep(unsigned int milliseconds) = 0;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(ChildProcess);

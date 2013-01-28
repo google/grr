@@ -59,18 +59,6 @@ data {
       fd.AddAttribute(histogram)
     fd.Close()
 
-  @staticmethod
-  def MakeUserAdmin():
-    """Makes the test user an admin."""
-    token = data_store.ACLToken()
-    token.supervisor = True
-    fd = aff4.FACTORY.Create("aff4:/users/test/labels", "AFF4Object",
-                             token=token)
-    labels = fd.Get(fd.Schema.LABEL)
-    labels.data.label.append("admin")
-    fd.Set(labels)
-    fd.Close()
-
   def testStats(self):
     """Test the statistics interface.
 
@@ -85,8 +73,8 @@ data {
     # Make sure the foreman is not there (we are not admin yet)
     self.assert_(not sel.is_element_present("css=a[grrtarget=ManageForeman]"))
 
-    # Make the user an admin
-    self.MakeUserAdmin()
+    # Make "test" user an admin
+    self.MakeUserAdmin("test")
 
     sel.open("/")
 

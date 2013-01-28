@@ -596,7 +596,8 @@ grr.table.sortableDialog = function() {
     var tbody = header.parents('table').find('tbody');
     var filter = header.attr('filter');
 
-    tbody.html('<tr><td class="table_loading">Loading...</td></tr>');
+    tbody.html('<tr><td id="' + tbody.attr('id') +
+        '" class="table_loading">Loading...</td></tr>');
     tbody.scroll();
     if (filter != null) {
       header.attr('title', 'Filter: ' + filter);
@@ -645,6 +646,8 @@ grr.table.scrollHandler = function(renderer, tbody, opt_state) {
   var loading = tbody.find('.table_loading');
   var bottom = tbody.scrollTop() + tbody[0].offsetHeight;
   var loading_id = loading.attr('id');
+  var value = loading.attr('data');
+  var depth = loading.attr('depth');
 
   // Fire when the table loading element is visible.
   if (loading.length &&
@@ -663,6 +666,9 @@ grr.table.scrollHandler = function(renderer, tbody, opt_state) {
     if (sort.length && sort.attr('sort')) {
       state.sort = sort.text() + ':' + sort.attr('sort');
     }
+
+    state['value'] = value;
+    state['depth'] = depth;
 
     // Insert the new data after the table loading message, and wipe it.
     grr.update(renderer, loading_id, state,
@@ -686,8 +692,6 @@ grr.table.scrollHandler = function(renderer, tbody, opt_state) {
 
         loading_row.after(data);
         loading_row.remove();
-        grr.table.colorTable(tbody);
-        grr.table.setHeaderWidths(tbody.parent());
 
         tbody.scroll();
       }, loading_id + previous_row_id);
@@ -695,12 +699,16 @@ grr.table.scrollHandler = function(renderer, tbody, opt_state) {
 };
 
 /**
- * Hides the table rows below the current row which have a depth attribute
- * greater than this one.
+ * Hides or shows the table rows below the current row which have a depth
+ * attribute greater than this one.
  *
  * @param {Object} node is a dom node somewhere inside the parent row.
+ *
+ * @param {Object} data is a parameter to be passed to the table renderer
+ * representing the value of the current row (usually a serialized RDFValue
+ * instance). This is used to calculate the children of this row.
  */
-grr.table.hideChildRows = function(node) {
+grr.table.toggleChildRows = function(node, data) {
   var item = $(node);
   var row = item.parents('tr');
   var row_id = parseInt(row.attr('row_id')) || 0;
@@ -717,7 +725,7 @@ grr.table.hideChildRows = function(node) {
 
       if (our_row_id > row_id) {
         if (our_depth > depth && !end) {
-          row.hide();
+          row.remove();
         } else {
           end = true;
         }
@@ -727,29 +735,19 @@ grr.table.hideChildRows = function(node) {
     item.addClass('tree_closed');
     item.removeClass('tree_opened');
   } else {
-    // Only open one level
-    row.parents('tbody').find('tr').each(function() {
-      var row = $(this);
-      var our_row_id = row.attr('row_id');
-      var our_depth = row.find('span').attr('depth');
+    var tbody = item.parents('table').find('tbody');
+    var dom = $("<td id='" + tbody.attr('id') +
+        "' class='table_loading' colspan=200>Loading ...</td>");
+    dom.attr('data', data);
+    dom.attr('depth', depth + 1);
 
-      if (our_row_id > row_id) {
-        if (our_depth == depth + 1 && !end) {
-          var spans = row.find('span[depth]');
-          row.show();
-
-          // By default mark the children as closed.
-          spans.addClass('tree_closed');
-          spans.removeClass('tree_opened');
-          row.removeClass('tree_hidden');
-        } else if (our_depth <= depth) {
-          end = true;
-        }
-      }
-    });
+    // Add a new row after this one.
+    item.parents('tr:first').after($('<tr>').append(dom));
 
     item.addClass('tree_opened');
     item.removeClass('tree_closed');
+
+    tbody.scroll();
   }
 };
 

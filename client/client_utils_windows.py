@@ -32,6 +32,7 @@ from google.protobuf import message
 from grr.client import conf as flags
 
 from grr.client import client_config
+from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
@@ -182,8 +183,9 @@ def WinGetRawDevice(path):
   volume = LocalPathToCanonicalPath(volume)
 
   # The pathspec for the raw volume
-  result = jobs_pb2.Path(path=volume, pathtype=jobs_pb2.Path.OS,
-                         mount_point=mount_point.rstrip("\\"))
+  result = rdfvalue.RDFPathSpec(path=volume,
+                                pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+                                mount_point=mount_point.rstrip("\\"))
 
   return result, corrected_path
 
@@ -258,8 +260,10 @@ class NannyController(object):
     if self._service_key is None:
       hive, path = FLAGS.regpath.split("\\", 1)
       hive = getattr(_winreg, hive)
+
+      # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
       self._service_key = _winreg.OpenKeyEx(
-          hive, path, 0, 0x100 | _winreg.KEY_ALL_ACCESS)
+          hive, path, 0, _winreg.KEY_ALL_ACCESS)
 
     return self._service_key
 

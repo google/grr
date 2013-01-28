@@ -16,29 +16,19 @@
 
 
 from grr.lib import aff4
-from grr.lib.aff4_objects import aff4_grr
-from grr.proto import jobs_pb2
-from grr.proto import sysinfo_pb2
+from grr.lib import rdfvalue
+from grr.lib.aff4_objects import collections
 
 
-class Connections(aff4.RDFProtoArray):
-  """An RDFValue class representing a list of connections on the host."""
-  _proto = sysinfo_pb2.NetworkConnection
-
-
-class Interfaces(aff4.RDFProtoArray):
-  """An RDFValue class representing an list of interfaces on the host."""
-  _proto = jobs_pb2.Interface
-
-
-class Network(aff4_grr.AFF4Collection):
+class Network(collections.AFF4Collection):
   """A class abstracting Network information on the client."""
 
-  class SchemaCls(aff4_grr.AFF4Collection.SchemaCls):
+  class SchemaCls(collections.AFF4Collection.SchemaCls):
     """Schema of the network object."""
 
-    INTERFACES = aff4.Attribute("aff4:interfaces", Interfaces,
+    INTERFACES = aff4.Attribute("aff4:interfaces", rdfvalue.Interfaces,
                                 "Network interfaces.", "Interfaces")
 
-    CONNECTIONS = aff4.Attribute("aff4:connections", Connections,
+    CONNECTIONS = aff4.Attribute("aff4:connections",
+                                 rdfvalue.Connections,
                                  "Network Connections", "Connections")

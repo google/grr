@@ -23,6 +23,7 @@ We can schedule a new flow for a specific client.
 import collections
 import csv
 import datetime
+import getpass
 import os
 import re
 import sys
@@ -36,20 +37,24 @@ from grr.client import conf as flags
 import logging
 
 from grr import artifacts
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import artifact
 
+from grr.lib import config_lib
 from grr.lib import data_store
-from grr.lib import fake_data_store
+from grr.lib import data_stores
 from grr.lib import flow
 from grr.lib import flow_context
 from grr.lib import flow_utils
+from grr.lib import hunts
 from grr.lib import ipshell
 from grr.lib import maintenance_utils
+from grr.lib import rdfvalue
+from grr.lib import rdfvalues
 from grr.lib import registry
 from grr.lib import type_info
 
-from grr.lib import mongo_data_store
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import reports
@@ -57,11 +62,7 @@ from grr.lib.aff4_objects import reports
 # Make sure we load the enroller module
 from grr.lib.flows import console
 from grr.lib.flows import general
-from grr.lib.flows.general import hunts
 from grr.lib.flows.general import memory
-
-# Import some specific functions we want available in the console.
-from grr.lib.maintenance_utils import MakeUserAdmin
 
 from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
@@ -71,6 +72,8 @@ flags.DEFINE_string("client", None,
                     "Initialise the console with this client id "
                     "(e.g. C.1234345).")
 FLAGS = flags.FLAGS
+CONFIG = config_lib.CONFIG
+CONFIG.flag_sections.append("ServerFlags")
 
 
 def FormatISOTime(t):
@@ -106,7 +109,7 @@ def SearchClient(hostname_regex=None, os_regex=None, mac_regex=None, limit=100):
                                  data_store.DB.filter.AndFilter(*filters),
                                  limit=(0, limit),
                                  subject_prefix="aff4:/"):
-    c_id = row["subject"][0]
+    c_id = row["subject"][0][0]
     results[c_id] = {}
     for k, v in row.items():
       if k.startswith("metadata:"):
@@ -158,7 +161,7 @@ def GetFlows(client_id, limit=100):
   client = aff4.FACTORY.Open(client_id)
   results = {}
   for flow_obj in client.GetFlows(0, limit):
-    flow_pb = flow_obj.Get(flow_obj.Schema.FLOW_PB).data
+    flow_pb = flow_obj.Get(flow_obj.Schema.FLOW_PB)
     pb_dict = FlowPBToDict(flow_pb)
     results[pb_dict["session_id"]] = pb_dict
 
@@ -195,10 +198,97 @@ def StartFlowAndWait(client_id, flow_name, **kwargs):
   while 1:
     time.sleep(1)
     flow_pb = flow.FACTORY.FetchFlow(session_id, lock=False)
-    if flow_pb.state != jobs_pb2.FlowPB.RUNNING:
+    if flow_pb.state != rdfvalue.Flow.Enum("RUNNING"):
       break
 
   return flow.FACTORY.LoadFlow(flow_pb)
+
+
+def StartFlowAndWorker(client_id, flow_name, **kwargs):
+  """Launches the flow and worker and waits for it to finish.
+
+  Args:
+     client_id: The client common name we issue the request.
+     flow_name: The name of the flow to launch.
+     **kwargs: passthrough to flow.
+
+  Returns:
+     A GRRFlow object.
+
+  Note: you need raw access to run this flow as it requires running a worker.
+  """
+  queue = "DEBUG-%s-" % getpass.getuser()
+  session_id = flow.FACTORY.StartFlow(client_id, flow_name, queue_name=queue,
+                                      **kwargs)
+  # Empty token, only works with raw access.
+  worker_thrd = flow.GRRWorker(queue_name=queue, token=data_store.ACLToken(),
+                               threadpool_size=1)
+  while True:
+    try:
+      worker_thrd.RunOnce()
+    except KeyboardInterrupt:
+      print "exiting"
+      worker_thrd.thread_pool.Join()
+    time.sleep(2)
+    flow_pb = flow.FACTORY.FetchFlow(session_id, lock=False)
+    if flow_pb.state != rdfvalue.Flow.Enum("RUNNING"):
+      break
+
+  # Terminate the worker threads
+  worker_thrd.thread_pool.Stop()
+  worker_thrd.thread_pool.Join()
+  return flow.FACTORY.LoadFlow(flow_pb)
+
+
+def GetNotifications(user=None, token=None):
+  """Show pending notifications for a user."""
+  if not user:
+    user = getpass.getuser()
+  user_obj = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add(user),
+                               token=token)
+  return list(user_obj.Get(user_obj.Schema.PENDING_NOTIFICATIONS))
+
+
+def ApprovalRequest(client_id, reason, approvers, token=None):
+  """Request approval to access a host."""
+  return flow.FACTORY.StartFlow(client_id, "RequestClientApprovalFlow",
+                                reason=reason, approver=approvers, token=token)
+
+
+def ApprovalGrant(token=None):
+  """Iterate through requested access approving or not."""
+  user = getpass.getuser()
+  notifications = GetNotifications(user, token=token)
+  requests = [n for n in notifications if n.type == "GrantAccess"]
+  for request in requests:
+    _, client_id, user, reason = aff4.RDFURN(request.subject).Split()
+    reason = utils.DecodeReasonString(reason)
+    print request
+    print "Reason: %s" % reason
+    if raw_input("Do you approve this request? [y/N] ").lower() == "y":
+      flow_id = flow.FACTORY.StartFlow(client_id, "GrantClientApprovalFlow",
+                                       reason=reason, delegate=user,
+                                       token=token)
+      # TODO(user): Remove the notification.
+    else:
+      print "skipping request"
+    print "Approval sent: %s" % flow_id
+
+
+def ApprovalFind(object_id, token=None):
+  """Find approvals issued for a specific client."""
+  user = getpass.getuser()
+  if aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(object_id):
+    namespace = "clients"
+  else:
+    namespace = "hunts"
+  try:
+    approved_token = access_control.GetApprovalForObject(
+        namespace, object_id, token=token, username=user)
+    print "Found token %s" % str(approved_token)
+    return approved_token
+  except data_store.UnauthorizedAccess:
+    print "No token available for access to %s" % object_id
 
 
 def TestFlows(client_id, platform, testname=None):
@@ -216,7 +306,7 @@ def TestFlows(client_id, platform, testname=None):
                                 testname=testname, token=token)
 
 
-def CreateApproval(client_id, token):
+def CreateApproval(client_id, token, approval_type="ClientApproval"):
   """Creates an approval for a given token.
 
   This method doesn't work through the Gatekeeper for obvious reasons. To use
@@ -225,6 +315,7 @@ def CreateApproval(client_id, token):
   Args:
     client_id: The client id the approval should be created for.
     token: The token that will be used later for access.
+    approval_type: The type of the approval to create.
   """
   approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
       token.username).Add(utils.EncodeReasonString(token.reason))
@@ -232,8 +323,8 @@ def CreateApproval(client_id, token):
   super_token = data_store.ACLToken()
   super_token.supervisor = True
 
-  approval_request = aff4.FACTORY.Create(approval_urn, "Approval", mode="rw",
-                                         token=super_token)
+  approval_request = aff4.FACTORY.Create(approval_urn, approval_type,
+                                         mode="rw", token=super_token)
   approval_request.AddAttribute(approval_request.Schema.APPROVER("Approver1"))
   approval_request.AddAttribute(approval_request.Schema.APPROVER("Approver2"))
   approval_request.Close()
@@ -282,43 +373,20 @@ def OpenClient(client_id=None):
     tuple containing (client, token) objects or (None, None) on if
     no appropriate aproval tokens were found.
   """
-  username = os.getlogin()
-  # Use an empty token to query the ACL system.
   token = data_store.ACLToken()
+  try:
+    token = ApprovalFind(client_id, token=token)
+  except data_store.AuthorizationError as e:
+    logging.warn("No authorization found for access to client: %s", e)
 
-  if FLAGS.acl_approvers_required > 1:
-    # No approvals required.
+  try:
+    # Try and open with the token we managed to retrieve or the default.
     client = aff4.FACTORY.Open(aff4.RDFURN(client_id), mode="r", token=token)
     return client, token
-
-  # We require approval so now we try to find any reason which will allow the
-  # user to access this client right now.
-  approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
-      username)
-
-  fd = aff4.FACTORY.Open(approval_urn, mode="r", token=token)
-  for auth_request in fd.OpenChildren():
-    reason = utils.DecodeReasonString(auth_request.urn.Basename())
-
-    # Check authorization using the data_store for an authoritative source.
-    token = data_store.default_token = data_store.ACLToken(username, reason)
-    try:
-      aff4.FACTORY.Open(aff4.RDFURN(client_id).Add("ACL_Check"),
-                        mode="r", token=token)
-      logging.info("Found valid approval '%s' for client %s", reason, client_id)
-
-      # Make sure to have a client object here to return to the console
-      # the client object will be set in the IPython user_ns
-      client = aff4.FACTORY.Open(aff4.RDFURN(client_id), mode="r", token=token)
-
-      return client, token
-    except data_store.UnauthorizedAccess:
-      pass
-
-  logging.warning("Unable to find a valid reason for client %s. You may need "
-                  "to request approval.", client_id)
-
-  return None, None
+  except data_store.UnauthorizedAccess:
+    logging.warning("Unable to find a valid reason for client %s. You may need "
+                    "to request approval.", client_id)
+    return None, None
 
 
 def ListDrivers():
@@ -355,5 +423,11 @@ def main(unused_argv):
 
   ipshell.IPShell(argv=[], user_ns=locals_vars, banner=banner)
 
-if __name__ == "__main__":
+
+def ConsoleMain():
+  """Helper function for calling with setup tools entry points."""
   conf.StartMain(main)
+
+
+if __name__ == "__main__":
+  ConsoleMain()

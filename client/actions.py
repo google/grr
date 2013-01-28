@@ -26,9 +26,12 @@ import psutil
 
 from grr.client import conf as flags
 from grr.client import client_utils
+from grr.lib import rdfvalue
+# pylint: disable=unused-import
+from grr.lib import rdfvalues
+# pylint: enable=unused-import
 from grr.lib import registry
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 FLAGS = flags.FLAGS
 
@@ -47,35 +50,36 @@ class CPUExceededError(Error):
 class ActionPlugin(object):
   """Baseclass for plugins.
 
-  An action is a plugin abstraction which receives a protobuf and
-  sends a protobuf in response.
+  An action is a plugin abstraction which receives an rdfvalue and
+  sends another rdfvalue in response.
 
   The code is specified in the Run() method, while the data is
-  specified in the in_protobuf and out_protobuf classes.
+  specified in the in_rdfvalue and out_rdfvalue classes.
   """
-  # The protobuf that will be used to encode this message
-  in_protobuf = None
+  # The rdfvalue used to encode this message.
+  in_rdfvalue = None
 
-  # The protobuf type we send
-  out_protobuf = None
+  # TODO(user): The RDFValue instance for the output protobufs. This is
+  # required temporarily until the client sends RDFValue instances instead of
+  # protobufs.
+  out_rdfvalue = None
 
   # Authentication Required for this Action:
   _authentication_required = True
 
   __metaclass__ = registry.MetaclassRegistry
 
-  priority = jobs_pb2.GrrMessage.MEDIUM_PRIORITY
+  priority = rdfvalue.GRRMessage.Enum("MEDIUM_PRIORITY")
 
   require_fastpoll = True
 
-  def __init__(self, message, grr_worker=None, **proto_args):
-    """Initialises our protobuf from the keywords passed.
+  def __init__(self, message, grr_worker=None):
+    """Initializes the action plugin.
 
     Args:
       message:     The GrrMessage that we are called to process.
       grr_worker:  The grr client worker object which may be used to
                    e.g. send new actions on.
-      **proto_args:  Field initializers for the protobuf in self._protobuf.
     """
     self.grr_worker = grr_worker
     self.message = message
@@ -85,60 +89,66 @@ class ActionPlugin(object):
     if message:
       self.priority = message.priority
 
-    if self.in_protobuf:
-      self.buff = self.in_protobuf()  # pylint: disable=E1102
+  def Execute(self):
+    """This function parses the RDFValue from the server.
 
-      for k, v in proto_args.items():
-        setattr(self.buff, k, v)
-
-  def Execute(self, message):
-    """This function parses the protobuf from the server.
-
-    The Run method will be called with the unserialised protobuf.
-
-    Args:
-       message: The encoded protobuf which will be decoded
-       by the plugin.
+    The Run method will be called with the specified RDFValue.
 
     Returns:
        Upon return a callback will be called on the server to register
        the end of the function and pass back exceptions.
-    """
-    if self.in_protobuf:
-      args = self.in_protobuf()  # pylint: disable=E1102
-      args.ParseFromString(message.args)
-    else:
-      args = None
+    Raises:
+       RuntimeError: The arguments from the server do not match the expected
+                     rdf type.
 
-    self.status = jobs_pb2.GrrStatus()
-    self.status.status = jobs_pb2.GrrStatus.OK  # Default status.
+    """
+    args = None
+    if self.message.args_rdf_name:
+      if not self.in_rdfvalue:
+        raise RuntimeError("Did not expect arguments, got %s." %
+                           self.message.args_rdf_name)
+      if self.in_rdfvalue.__name__ != self.message.args_rdf_name:
+        raise RuntimeError("Unexpected arg type %s != %s." %
+                           self.message.args_rdf_name,
+                           self.in_rdfvalue.__name__)
+
+      # TODO(user): should be args = self.message.payload
+      args = rdfvalue.GRRMessage(self.message).payload
+
+    self.status = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.Enum("OK"))
 
     try:
       # Only allow authenticated messages in the client
       if (self._authentication_required and
-          message.auth_state != jobs_pb2.GrrMessage.AUTHENTICATED):
+          self.message.auth_state != rdfvalue.GRRMessage.Enum("AUTHENTICATED")):
         raise RuntimeError("Message for %s was not Authenticated." %
-                           message.name)
+                           self.message.name)
 
       pid = os.getpid()
       self.proc = psutil.Process(pid)
       user_start, system_start = self.proc.get_cpu_times()
       self.cpu_start = (user_start, system_start)
-      self.cpu_limit = message.cpu_limit
-      self.Run(args)
-      user_end, system_end = self.proc.get_cpu_times()
+      self.cpu_limit = self.message.cpu_limit
 
-      self.cpu_used = (user_end - user_start, system_end - system_start)
+      try:
+        self.Run(args)
+
+      # Ensure we always add CPU usage even if an exception occured.
+      finally:
+        user_end, system_end = self.proc.get_cpu_times()
+
+        self.cpu_used = (user_end - user_start, system_end - system_start)
 
     # We want to report back all errors and map Python exceptions to
     # Grr Errors.
-    except Exception, e:  # pylint: disable=W0703
-      self.SetStatus(jobs_pb2.GrrStatus.GENERIC_ERROR, "%r: %s" % (e, e),
+    except Exception as e:  # pylint: disable=W0703
+      self.SetStatus(rdfvalue.GrrStatus.Enum("GENERIC_ERROR"),
+                     "%r: %s" % (e, e),
                      traceback.format_exc())
       if FLAGS.debug:
         pdb.post_mortem()
 
-    if self.status.status != jobs_pb2.GrrStatus.OK:
+    if self.status.status != rdfvalue.GrrStatus.Enum("OK"):
       logging.info("Job Error (%s): %s", self.__class__.__name__,
                    self.status.error_message)
       if self.status.backtrace:
@@ -149,7 +159,7 @@ class ActionPlugin(object):
       self.status.cpu_time_used.system_cpu_time = self.cpu_used[1]
 
     # This returns the error status of the Actions to the flow.
-    self.SendReply(self.status, message_type=jobs_pb2.GrrMessage.STATUS)
+    self.SendReply(self.status, message_type=rdfvalue.GRRMessage.Enum("STATUS"))
 
   def Run(self, unused_args):
     """Main plugin entry point.
@@ -172,13 +182,13 @@ class ActionPlugin(object):
     if backtrace:
       self.status.backtrace = utils.SmartUnicode(backtrace)
 
-  def SendReply(self, protobuf=None, message_type=jobs_pb2.GrrMessage.MESSAGE,
-                **kw):
+  def SendReply(self, rdf_value=None,
+                message_type=rdfvalue.GRRMessage.Enum("MESSAGE"), **kw):
     """Send response back to the server."""
-    if protobuf is None:
-      protobuf = self.out_protobuf(**kw)  # pylint: disable=E1102
+    if rdf_value is None:
+      rdf_value = self.out_rdfvalue(**kw)  # pylint: disable=E1102
 
-    self.grr_worker.SendReply(protobuf,
+    self.grr_worker.SendReply(rdf_value,
                               # This is not strictly necessary but adds context
                               # to this response.
                               name=self.__class__.__name__,
@@ -202,18 +212,23 @@ class ActionPlugin(object):
     Raises:
       CPUExceededError: CPU limit exceeded.
     """
-
     # Prevent the machine from sleeping while the action is running.
     client_utils.KeepAlive()
 
     if self.nanny_controller is None:
       self.nanny_controller = client_utils.NannyController()
+
     self.nanny_controller.Heartbeat()
     try:
-      used_user_cpu = self.proc.get_cpu_times()[0] - self.cpu_start[0]
-      if used_user_cpu > self.cpu_limit:
+      user_start, system_start = self.cpu_start
+      user_end, system_end = self.proc.get_cpu_times()
+
+      used_cpu = user_end - user_start + system_end - system_start
+
+      if used_cpu > self.cpu_limit:
         self.grr_worker.SendClientAlert("Cpu limit exceeded.")
         raise CPUExceededError("Action exceeded cpu limit.")
+
     except AttributeError:
       pass
 
@@ -241,17 +256,17 @@ class IteratedAction(ActionPlugin):
     """Munge the iterator to the server and abstract it away."""
     # Pass the client_state as a dict to the action. This is often more
     # efficient than manipulating a protobuf.
-    client_state = utils.ProtoDict(request.iterator.client_state).ToDict()
+    client_state = request.iterator.client_state.ToDict()
 
     # Derived classes should implement this.
     self.Iterate(request, client_state)
 
     # Update the iterator client_state from the dict.
-    request.iterator.client_state.CopyFrom(
-        utils.ProtoDict(client_state).ToProto())
+    request.iterator.client_state = rdfvalue.RDFProtoDict(client_state)
 
     # Return the iterator
-    self.SendReply(request.iterator, message_type=jobs_pb2.GrrMessage.ITERATOR)
+    self.SendReply(request.iterator,
+                   message_type=rdfvalue.GRRMessage.Enum("ITERATOR"))
 
   def Iterate(self, request, client_state):
     """Actions should override this."""

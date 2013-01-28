@@ -17,11 +17,14 @@
 import functools
 import logging
 import os
+import random
+import socket
 import struct
 import threading
 import time
 
 from grr.lib import data_store
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
@@ -52,8 +55,7 @@ class TaskScheduler(object):
   """
   # This is the column name for counting the next available task ID:
   MAX_TS_ID = "metadata:task_counter"
-  SUBJECT_PREFIX = "task:"
-  PREDICATE_PREFIX = "task:"
+  PREDICATE_PREFIX = "task:%s"
 
   def __init__(self, store=None):
     if store is None:
@@ -61,19 +63,21 @@ class TaskScheduler(object):
 
     self.data_store = store
 
-  @classmethod
-  def QueueToSubject(cls, queue):
-    """Return an object name which manages that queue."""
-    return "%s%s" % (cls.SUBJECT_PREFIX, queue)
-
   def _TaskIdToColumn(self, task_id):
     """Return a predicate representing this task."""
-    return "%s%08d" % (self.PREDICATE_PREFIX, task_id)
+    return self.PREDICATE_PREFIX % ("%08d" % task_id)
 
   @classmethod
-  def SubjectToQueue(cls, row_name):
-    """Convert a subject name to a queue name."""
-    return row_name[len(cls.SUBJECT_PREFIX):]
+  def QueueNameFromURN(cls, urn):
+    """Returns the queue name from a flow URN.
+
+    Args:
+      urn: The Flow urn. Normally of the format: aff4:/client_id/flows/W:12345/
+
+    Returns:
+      The Queue name.
+    """
+    return rdfvalue.RDFURN(urn).Basename().split(":")[0]
 
   def Delete(self, queue, tasks, token=None):
     """Removes the tasks from the queue.
@@ -87,8 +91,9 @@ class TaskScheduler(object):
           or integers representing the task_id.
      token: An access token to access the data store.
     """
-    self.data_store.RetryWrapper(self.QueueToSubject(queue),
-                                 self._Delete, tasks=tasks, token=token)
+    if queue:
+      self.data_store.RetryWrapper(
+          queue, self._Delete, tasks=tasks, token=token)
 
   def _Delete(self, transaction, tasks=None):
     for task in tasks:
@@ -107,28 +112,63 @@ class TaskScheduler(object):
         to_schedule = dict(
             [(self._TaskIdToColumn(task.id), [task.SerializeToString()])
              for task in queued_tasks])
+
         self.data_store.MultiSet(
-            self.QueueToSubject(queue), to_schedule,
-            timestamp=timestamp, sync=sync, token=token)
+            queue, to_schedule, timestamp=timestamp, sync=sync, token=token)
 
-  def NotifyQueue(self, queue, session_id, timestamp=None, token=None):
+  def NotifyQueue(self, queue, session_id,
+                  priority=rdfvalue.GRRMessage.Enum("MEDIUM_PRIORITY"),
+                  **kwargs):
     """This signals that there are new messages available in a queue."""
-    data_store.DB.MultiSet(
-        queue,
-        {"task:%s" % session_id: "X"},
-        sync=True, token=token, timestamp=timestamp)
+    self.MultiNotifyQueue(queue, [session_id], [priority], **kwargs)
 
-  def MultiNotifyQueue(self, queue, session_ids, timestamp=None, token=None):
-    """This is the same as NotifyQueue but for several session_ids at once."""
+  def GetSessionsFromQueue(self, queue, token=None):
+    """Retrieves candidate session ids for processing from the datastore."""
+
+    # Check which sessions have new data.
+    now = int(time.time() * 1e6)
+    # Read all the sessions that have notifications.
+    sessions_by_priority = {}
+    for predicate, priority, _ in data_store.DB.ResolveRegex(
+        queue, self.PREDICATE_PREFIX % ".*",
+        timestamp=(0, now), token=token, limit=10000):
+      # Strip the prefix from the predicate.
+      predicate = predicate[len(self.PREDICATE_PREFIX % ""):]
+
+      sessions_by_priority.setdefault(priority, []).append(predicate)
+
+    # We want to return the sessions by order of priority,
+    # but with all sessions at the same priority randomly shuffled.
+    sessions_available = []
+    for priority in sorted(sessions_by_priority, reverse=True):
+      session_ids = sessions_by_priority[priority]
+      random.shuffle(session_ids)
+      sessions_available.extend(session_ids)
+
+    return sessions_available
+
+  def MultiNotifyQueue(self, queue, session_ids, priorities, timestamp=None,
+                       token=None):
+    """This is the same as NotifyQueue but for several session_ids at once.
+
+    Args:
+      queue: The queue to notify.
+      session_ids: A list of session_ids with new messages to process.
+      priorities: A list of priorities, one for each session_id in the
+                  session_id list.
+      timestamp: An optional timestamp for this notification.
+      token: An access token to access the data store.
+    """
     data_store.DB.MultiSet(
         queue,
-        dict([("task:%s" % session_id, "X") for session_id in session_ids]),
+        dict([(self.PREDICATE_PREFIX % session_id, str(priority))
+              for session_id, priority in zip(session_ids, priorities)]),
         sync=True, replace=True, token=token, timestamp=timestamp)
 
   def DeleteNotification(self, queue, session_id, token=None):
     """This deletes the notification when all messages have been processed."""
     data_store.DB.DeleteAttributes(
-        queue, ["task:%s" % session_id],
+        queue, [self.PREDICATE_PREFIX % session_id],
         token=token)
 
   def Query(self, queue, limit=1, decoder=None, token=None, task_id=None):
@@ -146,17 +186,15 @@ class TaskScheduler(object):
     Returns:
         A list of Task() objects.
     """
-    subject = self.QueueToSubject(queue)
-
     tasks = []
 
     if task_id is None:
-      regex = "%s.*" % self.PREDICATE_PREFIX
+      regex = self.PREDICATE_PREFIX % ".*"
     else:
       regex = utils.SmartStr(task_id)
 
     all_tasks = list(self.data_store.ResolveRegex(
-        subject, regex, decoder=functools.partial(self.Task, decoder=decoder),
+        queue, regex, decoder=functools.partial(self.Task, decoder=decoder),
         timestamp=self.data_store.ALL_TIMESTAMPS, token=token))
 
     all_tasks.sort(key=lambda task: task[1].priority, reverse=True)
@@ -173,27 +211,18 @@ class TaskScheduler(object):
 
     return tasks
 
-  def MultiQuery(self, queue, decoder=None, limit=100000, token=None):
+  def MultiQuery(self, queues, decoder=None, limit=100000, token=None):
     """Like Query above but opens multiple tasks at once."""
 
     return self.data_store.MultiResolveRegex(
-        [self.QueueToSubject(q) for q in queue],
-        "%s.*" % self.PREDICATE_PREFIX,
+        queues, self.PREDICATE_PREFIX % ".*",
         decoder=functools.partial(self.Task, decoder=decoder),
         timestamp=self.data_store.ALL_TIMESTAMPS,
         limit=limit, token=token)
 
-  def ListQueues(self, token=None):
-    """Returns a list of all queues in the scheduler."""
-    for row in self.data_store.Query(
-        [], filter_obj=self.data_store.Filter.HasPredicateFilter(
-            self.MAX_TS_ID), token=token):
-      yield self.SubjectToQueue(row["subject"])
-
   def DropQueue(self, queue, token=None):
     """Deletes a queue - all tasks will be lost."""
-    subject = self.QueueToSubject(queue)
-    data_store.DB.DeleteSubject(subject, token=token)
+    data_store.DB.DeleteSubject(queue, token=token)
 
   def QueryAndOwn(self, queue, lease_seconds=10, limit=1, decoder=None,
                   token=None):
@@ -208,12 +237,16 @@ class TaskScheduler(object):
     Returns:
         A list of Task() objects leased.
     """
-    subject = self.QueueToSubject(queue)
+    user = ""
+    if token:
+      user = token.username
     # Do the real work in a transaction
     try:
       res = self.data_store.RetryWrapper(
-          subject, self._QueryAndOwn, decoder=decoder,
-          lease_seconds=lease_seconds, limit=limit, token=token)
+          queue, self._QueryAndOwn, decoder=decoder,
+          lease_seconds=lease_seconds, limit=limit, token=token,
+          user=user)
+
       return res
     except data_store.TransactionError:
       # This exception just means that we could not obtain the lock on the queue
@@ -225,7 +258,7 @@ class TaskScheduler(object):
       return []
 
   def _QueryAndOwn(self, transaction, lease_seconds=100,
-                   limit=1, decoder=None):
+                   limit=1, decoder=None, user=""):
     """Does the real work of self.QueryAndOwn()."""
     tasks = []
 
@@ -233,7 +266,7 @@ class TaskScheduler(object):
     lease = long(lease_seconds * 1e6)
 
     all_tasks = list(transaction.ResolveRegex(
-        "%s.*" % (self.PREDICATE_PREFIX),
+        self.PREDICATE_PREFIX % ".*",
         decoder=functools.partial(self.Task, decoder=decoder),
         timestamp=(0, now)))
     all_tasks.sort(key=lambda task: task[1].priority, reverse=True)
@@ -241,6 +274,9 @@ class TaskScheduler(object):
     # Only grab attributes with timestamps in the past
     for predicate, task, timestamp in all_tasks:
       task.eta = timestamp
+      task.last_lease = "%s@%s:%d" % (user,
+                                      socket.gethostname(),
+                                      os.getpid())
       # Decrement the ttl
       task.ttl -= 1
       if task.ttl <= 0:
@@ -286,11 +322,12 @@ class TaskScheduler(object):
       if self.proto.id:
         self.id = self.proto.id
       else:
-        with TaskScheduler.Task.lock:
-          # 16 bit random numbers
+        # 16 bit random numbers
+        random_number = struct.unpack("H", os.urandom(2))[0]
+        while random_number == 0:
           random_number = struct.unpack("H", os.urandom(2))[0]
-          while random_number == 0:
-            random_number = struct.unpack("H", os.urandom(2))[0]
+
+        with TaskScheduler.Task.lock:
           next_id_base = TaskScheduler.Task.next_id_base
 
           id_base = (next_id_base + random_number) & 0xFFFFFFFF
@@ -299,10 +336,10 @@ class TaskScheduler(object):
 
           TaskScheduler.Task.next_id_base = id_base
 
-          # 32 bit timestamp (in 1/1000 second resolution)
-          time_base = (long(time.time() * 1000) & 0xFFFFFFFF) << 32
+        # 32 bit timestamp (in 1/1000 second resolution)
+        time_base = (long(time.time() * 1000) & 0xFFFFFFFF) << 32
 
-          self.id = time_base + id_base
+        self.id = time_base + id_base
 
       try:
         self.proto.priority = self.value.priority
@@ -344,11 +381,31 @@ class TaskScheduler(object):
         value = getattr(self, field)
         if field == "eta":
           value = time.ctime(self.eta / 1e6)
+          lease = (self.eta / 1e6) - time.time()
+          if lease < 0:
+            value += ", available for leasing"
+          else:
+            value += ", leased for another %d seconds" % int(lease)
 
-        result += "%s: %s\n" % (field, utils.SmartUnicode(value))
+        result += u"%s: %s\n" % (field, utils.SmartUnicode(value))
 
       return result
 
+    def __repr__(self):
+      result = []
+      for field in ["id", "ttl", "eta", "queue", "priority"]:
+        value = getattr(self, field)
+        if field == "eta":
+          value = time.ctime(self.eta / 1e6)
+          lease = (self.eta / 1e6) - time.time()
+          if lease < 0:
+            value += ", available for leasing."
+          else:
+            value += ", leased for another %d seconds." % int(lease)
+
+        result.append(u"%s: %s" % (field, utils.SmartUnicode(value)))
+
+      return u"<Task %s>" % u",". join(result)
 
 # These are globally available handles to factories
 # pylint: disable=W0603

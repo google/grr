@@ -19,9 +19,9 @@
 import os
 
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 class TestFilesystem(test_lib.FlowTestsBaseclass):
@@ -30,13 +30,16 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
   def testListDirectory(self):
     """Test that the ListDirectory flow works."""
     client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
-    # Deliberately specify incorrect casing
-    path = os.path.join(self.base_path, "test_img.dd")
-    pb2 = jobs_pb2.Path(path="test directory",
-                        pathtype=jobs_pb2.Path.TSK)
-    pb = jobs_pb2.Path(path=path,
-                       pathtype=jobs_pb2.Path.OS,
-                       nested_path=pb2)
+
+    # Deliberately specify incorrect casing for the image name.
+    pb = rdfvalue.RDFPathSpec(
+        path=os.path.join(self.base_path, "test_img.dd"),
+        pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+
+    # Nest inside the image using TSK.
+    pb.Append(path="test directory",
+              pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+
     for _ in test_lib.TestFlowHelper(
         "ListDirectory", client_mock, client_id=self.client_id,
         pathspec=pb, token=self.token):
@@ -44,7 +47,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Check the output file is created
     output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/tsk").Add(path.replace("\\", "/"))
+        "fs/tsk").Add(pb.first.path)
 
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     children = list(fd.OpenChildren())
@@ -65,13 +68,15 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     """Test that the ListDirectory flow works on unicode directories."""
 
     client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+
     # Deliberately specify incorrect casing
-    path = os.path.join(self.base_path, "test_img.dd")
-    pb2 = jobs_pb2.Path(path=u"入乡随俗 海外春节别样过法",
-                        pathtype=jobs_pb2.Path.TSK)
-    pb = jobs_pb2.Path(path=path,
-                       pathtype=jobs_pb2.Path.OS,
-                       nested_path=pb2)
+    pb = rdfvalue.RDFPathSpec(
+        path=os.path.join(self.base_path, "test_img.dd"),
+        pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+
+    pb.Append(path=u"入乡随俗 海外春节别样过法",
+              pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+
     for _ in test_lib.TestFlowHelper(
         "ListDirectory", client_mock, client_id=self.client_id,
         pathspec=pb, token=self.token):
@@ -79,7 +84,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Check the output file is created
     output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/tsk").Add(path.replace("\\", "/")).Add(pb2.path.replace("\\", "/"))
+        "fs/tsk").Add(pb.CollapsePath())
 
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     children = list(fd.OpenChildren())
@@ -91,21 +96,23 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
   def testSlowGetFile(self):
     """Test that the SlowGetFile flow works."""
     client_mock = test_lib.ActionMock("ReadBuffer", "HashFile", "StatFile")
+
     # Deliberately specify incorrect casing
-    path = os.path.join(self.base_path, "test_img.dd")
-    pb2 = jobs_pb2.Path(path="test directory/NumBers.txt",
-                        pathtype=jobs_pb2.Path.TSK)
-    pb = jobs_pb2.Path(path=path,
-                       pathtype=jobs_pb2.Path.OS,
-                       nested_path=pb2)
+    pb = rdfvalue.RDFPathSpec(
+        path=os.path.join(self.base_path, "test_img.dd"),
+        pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+
+    pb.Append(path="test directory/NumBers.txt",
+              pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
 
     for _ in test_lib.TestFlowHelper(
         "SlowGetFile", client_mock, client_id=self.client_id,
         pathspec=pb, token=self.token):
       pass
+
     # Check the output file is created
     output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/tsk").Add(path.replace("\\", "/")).Add(
+        "fs/tsk").Add(pb.first.path.replace("\\", "/")).Add(
             "Test Directory").Add("numbers.txt")
 
     fd = aff4.FACTORY.Open(output_path, token=self.token)
@@ -114,7 +121,12 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # And the wrong object is not there
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.assertRaises(IOError, client.OpenMember, path)
+    self.assertRaises(IOError, client.OpenMember, pb.first.path)
+
+    # Check that the hash is recorded correctly.
+    self.assertEqual(
+        str(fd.Get(fd.Schema.HASH)),
+        "67d4ff71d43921d5739f387da09746f405e425b07d727e4c69d029461d1f051f")
 
   def testGlob(self):
     """Test that glob works properly."""
@@ -132,7 +144,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
         "Glob", client_mock, client_id=self.client_id,
-        paths=[path], pathtype=jobs_pb2.Path.OS, token=self.token):
+        paths=[path], pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+        token=self.token):
       pass
 
     output_path = aff4.ROOT_URN.Add(self.client_id).Add(
@@ -156,17 +169,17 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     user_attribute = client.Schema.USER()
 
-    user_record = jobs_pb2.UserAccount()
+    user_record = rdfvalue.User()
     user_record.special_folders.app_data = "test_data/index.dat"
     user_attribute.Append(user_record)
 
-    user_record = jobs_pb2.UserAccount()
+    user_record = rdfvalue.User()
     user_record.special_folders.app_data = "test_data/History"
     user_attribute.Append(user_record)
 
     # This is a record which means something to the interpolation system. We
     # should not process this especially.
-    user_record = jobs_pb2.UserAccount()
+    user_record = rdfvalue.User()
     user_record.special_folders.app_data = "%%PATH%%"
     user_attribute.Append(user_record)
 

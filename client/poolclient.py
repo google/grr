@@ -36,8 +36,8 @@ from grr.client import client_actions
 from grr.client import client_log
 from grr.client import conf
 from grr.client import vfs
+from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.proto import jobs_pb2
 
 flags.DEFINE_integer("nrclients", 1,
                      "Number of clients to start")
@@ -69,7 +69,7 @@ class PoolGRRClient(client.GRRClient, threading.Thread):
 
   def Run(self):
     for status in self.client.Run():
-      #if the status is 200 we assume we have successfully enrolled.
+      # if the status is 200 we assume we have successfully enrolled.
       if status.code == 200:
         self.enrolled = True
 
@@ -155,15 +155,17 @@ def main(unused_argv):
 
   client_log.SetUpClientLogging()
 
-  if FLAGS.camode.upper() == "PRODUCTION":
-    logging.error("Poolclient should not be run against production.")
+  if "staging" not in FLAGS.location and "localhost" not in FLAGS.location:
+    logging.error("Poolclient should only be run against test or staging.")
     exit()
 
   registry.Init()
 
   # Let the OS handler also handle sleuthkit requests since sleuthkit is not
   # thread safe.
-  vfs.VFS_HANDLERS[jobs_pb2.Path.TSK] = vfs.VFS_HANDLERS[jobs_pb2.Path.OS]
+  tsk = rdfvalue.RDFPathSpec.Enum("TSK")
+  os = rdfvalue.RDFPathSpec.Enum("OS")
+  vfs.VFS_HANDLERS[tsk] = vfs.VFS_HANDLERS[os]
 
   CreateClientPool(FLAGS.nrclients)
 

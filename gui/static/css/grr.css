@@ -1224,6 +1224,17 @@ td.lease_available {
 
 .Wizard {
     font-size: 13px;
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.Wizard .WizardContent {
+    position: absolute;
+    top: 45px;
+    bottom: 0;
+    left: 0;
+    right: 0;
 }
 
 .Wizard h1 {
@@ -1233,9 +1244,9 @@ td.lease_available {
 }
 
 .Wizard .WizardBar {
+    width: 100%;
+    height: 45px;
     background-color: #2D2D2D;
-    padding-left: 1em;
-    padding-top: 0.5em;
     color: #FFFFFF;
     font-size: 120%;
     vertical-align: middle;
@@ -1243,14 +1254,16 @@ td.lease_available {
 
 .Wizard .WizardBar .Description {
     font-weight:bold;
-}
+    margin-top: 0.5em;
+ }
 
 .Wizard .WizardBar .Back,
 .Wizard .WizardBar .Next {
+    margin-top: 0.5em;
     margin-left: 2em;
     margin-right: 2em;
     width: 6em;
-    height: 70%;
+    height: 65%;
 }
 
 .Wizard .WizardBar .Next {
@@ -1260,10 +1273,22 @@ td.lease_available {
 /* LaunchHunts wizard related styles */
 .HuntFormBody {
     padding: 1em;
+    overflow: auto;
+}
+
+.HuntFormBody tr.HuntParameters {
+    height: 3em;
+    vertical-align: bottom;
 }
 
 .HuntConfigureRules {
     padding: 1em;
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
 }
 
 .HuntConfigureRules table {
@@ -1282,6 +1307,7 @@ td.lease_available {
 .HuntInformation {
     padding: 1em;
     height: 100%;
+    overflow: auto;
 }
 
 .HuntInformation .attributesTable {

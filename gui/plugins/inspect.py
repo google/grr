@@ -25,11 +25,10 @@ progress of existing flows.
 
 from grr.client import actions
 from grr.gui import renderers
-from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow_context
+from grr.lib import rdfvalue
 from grr.lib import scheduler
-from grr.lib.aff4_objects import aff4_grr
 from grr.proto import jobs_pb2
 
 
@@ -70,8 +69,7 @@ class RequestTable(renderers.TableRenderer):
   //Receive the selection event and emit a path
   grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
     if (node) {
-      var task_id = node.find("td:contains(task)").text();
-
+      var task_id = node.find("span[rdfvalue]").attr("rdfvalue");
       grr.publish("request_table_select", task_id);
     };
   }, '{{ unique|escapejs }}');
@@ -80,19 +78,20 @@ class RequestTable(renderers.TableRenderer):
 
   post_parameters = ["client_id"]
 
-  def __init__(self):
-    super(RequestTable, self).__init__()
+  def __init__(self, **kwargs):
+    super(RequestTable, self).__init__(**kwargs)
     self.AddColumn(renderers.RDFValueColumn(
         "Status", renderer=renderers.IconRenderer, width=0))
 
-    self.AddColumn(renderers.RDFValueColumn("ID"))
+    self.AddColumn(renderers.RDFValueColumn(
+        "ID", renderer=renderers.ValueRenderer))
     self.AddColumn(renderers.RDFValueColumn("Due"))
     self.AddColumn(renderers.RDFValueColumn("Flow", width=20))
     self.AddColumn(renderers.RDFValueColumn("Client Action"))
 
   def BuildTable(self, start_row, end_row, request):
     client_id = request.REQ.get("client_id")
-    now = aff4.RDFDatetime()
+    now = rdfvalue.RDFDatetime()
 
     # Make a local scheduler.
     scheduler_obj = scheduler.TaskScheduler()
@@ -116,7 +115,7 @@ class RequestTable(renderers.TableRenderer):
 
       self.AddCell(i, "ID", task.task_id)
       self.AddCell(i, "Flow", request.session_id)
-      self.AddCell(i, "Due", aff4.RDFDatetime(task.eta))
+      self.AddCell(i, "Due", rdfvalue.RDFDatetime(task.eta))
       self.AddCell(i, "Client Action", request.name)
 
 
@@ -130,21 +129,26 @@ class ResponsesTable(renderers.TableRenderer):
 
   post_parameters = ["client_id", "task_id"]
 
-  def __init__(self):
-    super(ResponsesTable, self).__init__()
+  def __init__(self, **kwargs):
+    super(ResponsesTable, self).__init__(**kwargs)
     self.AddColumn(renderers.RDFValueColumn("Task ID", width=10))
     self.AddColumn(renderers.RDFValueColumn(
         "Response", renderer=GrrResponseRenderer))
 
   def BuildTable(self, start_row, end_row, request):
+    """Builds the table."""
     client_id = request.REQ.get("client_id")
     task_id = request.REQ.get("task_id")
 
     # This is the request.
     scheduler_obj = scheduler.TaskScheduler()
-    request_message = scheduler_obj.Query(
+    request_messages = scheduler_obj.Query(
         client_id, task_id=task_id, token=request.token,
-        decoder=jobs_pb2.GrrMessage)[0].value
+        decoder=jobs_pb2.GrrMessage)
+
+    if not request_messages: return
+
+    request_message = request_messages[0].value
 
     state_queue = (flow_context.FlowManager.FLOW_STATE_TEMPLATE %
                    request_message.session_id)
@@ -163,7 +167,7 @@ class ResponsesTable(renderers.TableRenderer):
         break
 
       # Tie up the request to each response to make it easier to render.
-      rdf_response_message = aff4_grr.GRRMessage(message)
+      rdf_response_message = rdfvalue.GRRMessage(message)
       rdf_response_message.request = request_message
 
       self.AddCell(i, "Task ID", predicate)
@@ -227,6 +231,7 @@ class RequestRenderer(renderers.TemplateRenderer):
 """)
 
   def Layout(self, request, response):
+    """Layout."""
     client_id = request.REQ.get("client_id")
     task_id = request.REQ.get("task_id")
 
@@ -238,7 +243,7 @@ class RequestRenderer(renderers.TemplateRenderer):
       self.task = tasks[0]
 
       # Make an RDFValue from the task.
-      rdf_task = aff4_grr.TaskSchedulerTask(self.task.SerializeToString())
+      rdf_task = rdfvalue.TaskSchedulerTask(self.task.SerializeToString())
       self.view = renderers.FindRendererForObject(rdf_task).RawHTML(request)
 
     return super(RequestRenderer, self).Layout(request, response)
@@ -249,49 +254,18 @@ class GrrRequestRenderer(renderers.RDFProtoRenderer):
   classname = "GRRMessage"
   name = "GRR Request"
 
-  # A map between the protobuf and the renderer for it.
-  RENDERER_LOOKUP = {"GrrStatus": ("StatusProtoRenderer", "RDFProto")}
-
-  def _GetProtoFromAction(self, client_action):
-    return client_action.in_protobuf()
-
   def ArgRenderer(self, description, value):
     """Render the args field intelligently."""
-    # The args field is a serialized protobuf destined for a client action. We
-    # need to come up with a way to sensibly render this field:
-    #
-    # 1) Use the name of the field to find the client action this request is
-    # going to.
-    #
-    # 2) Find the protobuf which can be used to decode it from the action's
-    # in_protobuf.
-    #
-    # 3) Find the best renderer and RDFValue for this protobuf through a lookup
-    # mapping.
-    client_action = actions.ActionPlugin.classes.get(self.proxy.data.name)
-    if client_action is None or client_action.in_protobuf is None:
+    # The args field is a serialized rdfvalue destined for a client action.
+    client_action = actions.ActionPlugin.classes.get(self.proxy.name)
+    if client_action is None:
       return self.Pre(description, value)
 
-    # The args member is a serialized proto of this type:
-    proto = self._GetProtoFromAction(client_action)
-    proto.ParseFromString(value)
-
-    proto_renderer, rdf_value_cls = self.RENDERER_LOOKUP.get(
-        proto.__class__.__name__,
-        ("RDFProtoRenderer", "RDFProto"))
-
-    # Make an RDFValue to represent this protobuf.
-    rdf_value = aff4.RDFValue.classes[rdf_value_cls](proto)
-
-    # Now render this RDFValue using the specified renderer.
-    renderer = self.classes[proto_renderer](rdf_value)
+    renderer = renderers.RDFProtoRenderer(client_action.in_rdfvalue(value))
 
     return renderer.RawHTML()
 
-  translator = dict(args=ArgRenderer,
-                    auth_state=renderers.RDFProtoRenderer.Enum,
-                    type=renderers.RDFProtoRenderer.Enum,
-                    priority=renderers.RDFProtoRenderer.Enum)
+  translator = dict(args=ArgRenderer)
 
 
 class GrrResponseRenderer(GrrRequestRenderer):
@@ -303,35 +277,19 @@ class GrrResponseRenderer(GrrRequestRenderer):
   def ArgRenderer(self, description, value):
     """Render the args field intelligently."""
     # Status messages are special.
-    if self.proxy.data.type == jobs_pb2.GrrMessage.STATUS:
-      proto_cls = jobs_pb2.GrrStatus
+    if self.proxy.type == self.proxy.STATUS:
+      rdfclass = rdfvalue.GrrStatus
     else:
-      # Find the protobuf type by consulting the original request's
-      # client_action.
       client_action = actions.ActionPlugin.classes.get(self.proxy.request.name)
-      if client_action is None or client_action.out_protobuf is None:
+      if client_action is None:
         return self.Pre(description, value)
 
-      proto_cls = client_action.out_protobuf
+      rdfclass = client_action.out_rdfvalue
 
-    # The args member is a serialized proto of this type:
-    proto = proto_cls()
-    proto.ParseFromString(value)
-
-    proto_renderer, rdf_value_cls = self.RENDERER_LOOKUP.get(
-        proto.__class__.__name__,
-        ("RDFProtoRenderer", "RDFProto"))
-
-    # Make an RDFValue to represent this protobuf.
-    rdf_value = aff4.RDFValue.classes[rdf_value_cls](proto)
-
-    # Now render this RDFValue using the specified renderer.
-    renderer = self.classes[proto_renderer](rdf_value)
-
+    renderer = renderers.RDFProtoRenderer(rdfclass(value))
     return renderer.RawHTML()
 
-  translator = GrrRequestRenderer.translator.copy()
-  translator.update(args=ArgRenderer)
+  translator = dict(args=ArgRenderer)
 
 
 class StatusProtoRenderer(renderers.RDFProtoRenderer):

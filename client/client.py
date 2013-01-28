@@ -31,8 +31,13 @@ from grr.client import client_config
 from grr.client import client_log
 from grr.client import comms
 from grr.client import conf
-from grr.lib import registry
 
+# pylint: disable=W0611
+# Make sure we load the client plugins
+from grr.lib import rdfvalues
+# pylint: enable=W0611
+
+from grr.lib import registry
 
 flags.DEFINE_integer("server_serial_number", 0,
                      "Minimal serial number we accept for server cert.")

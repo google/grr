@@ -1,0 +1,11 @@
+@rem Create the destination directories and copy the files
+@mkdir %(ClientBuildWindows.install_path)s > NUL 2> NUL
+@mkdir %(ClientBuildWindows.install_path)s\%(ClientBuildWindows.version_string)s > NUL 2> NUL
+@xcopy /q /y /s * %(ClientBuildWindows.install_path)s\%(ClientBuildWindows.version_string)s > NUL
+@rem Import the settings into the Registy
+@regedit /s config.reg > NUL
+@rem Remove the instalation files from the destination directory
+@del /q %(ClientBuildWindows.install_path)s\%(ClientBuildWindows.version_string)s\config.reg > NUL
+@del /q %(ClientBuildWindows.install_path)s\%(ClientBuildWindows.version_string)s\install.bat > NUL
+@rem Configure to run %(ClientBuildWindows.service_name)s as a service
+@%(ClientBuildWindows.install_path)s\%(ClientBuildWindows.version_string)s\%(ClientBuildWindows.service_name)s install > NUL

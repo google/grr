@@ -12,7 +12,7 @@
 PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin"
 DESC="GRR Rapid Response HTTP server"
 NAME="grr-http-server"
-DAEMON="/usr/sbin/grr_server.py"
+DAEMON="/usr/bin/grr_server"
 DAEMON_ARGS="--start_http_server --config=/etc/grr/grr-server.conf  --grrlog=/var/log/grr/grr-http-server.log"
 PIDFILE="/var/run/${NAME}.pid"
 SCRIPTNAME="/etc/init.d/${NAME}"

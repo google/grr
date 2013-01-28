@@ -4,9 +4,8 @@
 import os
 
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import jobs_pb2
-from grr.proto import sysinfo_pb2
 
 
 class ProcessListTest(test_lib.FlowTestsBaseclass):
@@ -17,12 +16,12 @@ class ProcessListTest(test_lib.FlowTestsBaseclass):
 
     class ClientMock(object):
       def ListProcesses(self, _):
-        response = sysinfo_pb2.Process()
-        response.pid = 2
-        response.ppid = 1
-        response.cmdline.append("cmd.exe")
-        response.exe = "c:\\windows\\cmd.exe"
-        response.ctime = long(1333718907.167083 * 1e6)
+        response = rdfvalue.Process(
+            pid=2,
+            ppid=1,
+            cmdline=["cmd.exe"],
+            exe="c:\\windows\\cmd.exe",
+            ctime=long(1333718907.167083 * 1e6))
         return [response]
 
     for _ in test_lib.TestFlowHelper(
@@ -33,7 +32,7 @@ class ProcessListTest(test_lib.FlowTestsBaseclass):
     # Check the output file is created
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(
         self.client_id).Add("processes"), token=self.token)
-    processes = fd.Get(fd.Schema.PROCESSES).data
+    processes = fd.Get(fd.Schema.PROCESSES)
 
     self.assertEqual(len(processes), 1)
     self.assertEqual(processes[0].ctime, 1333718907167083L)
@@ -56,11 +55,11 @@ class GetProcessesBinariesTest(test_lib.FlowTestsBaseclass):
   """Test the get processes binaries flow."""
 
   def testFiltersOutProcessesWithoutExeAttribute(self):
-    process = sysinfo_pb2.Process()
-    process.pid = 2
-    process.ppid = 1
-    process.cmdline.append("test_img.dd")
-    process.ctime = long(1333718907.167083 * 1e6)
+    process = rdfvalue.Process(
+        pid=2,
+        ppid=1,
+        cmdline=["test_img.dd"],
+        ctime=long(1333718907.167083 * 1e6))
 
     client_mock = ListProcessesMock([process])
     output_path = "analysis/GetBinariesFlowTest1"
@@ -72,16 +71,15 @@ class GetProcessesBinariesTest(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
                            token=self.token)
-    collection = fd.Get(fd.Schema.COLLECTION)
-    self.assertEqual(len(collection), 0)
+    self.assertEqual(len(fd), 0)
 
   def testFetchesAndStoresBinary(self):
-    process = sysinfo_pb2.Process()
-    process.pid = 2
-    process.ppid = 1
-    process.cmdline.append("test_img.dd")
-    process.exe = os.path.join(self.base_path, "test_img.dd")
-    process.ctime = long(1333718907.167083 * 1e6)
+    process = rdfvalue.Process(
+        pid=2,
+        ppid=1,
+        cmdline=["test_img.dd"],
+        exe=os.path.join(self.base_path, "test_img.dd"),
+        ctime=long(1333718907.167083 * 1e6))
 
     client_mock = ListProcessesMock([process])
     output_path = "analysis/GetBinariesFlowTest1"
@@ -93,25 +91,25 @@ class GetProcessesBinariesTest(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
                            token=self.token)
-    collection = fd.Get(fd.Schema.COLLECTION)
-    self.assertEqual(len(collection), 1)
-    self.assertEqual(collection[0].pathspec.path, process.exe)
-    self.assertEqual(collection[0].st_size, os.stat(process.exe).st_size)
+    summaries = list(fd)
+    self.assertEqual(len(summaries), 1)
+    self.assertEqual(summaries[0].stat.pathspec.path, process.exe)
+    self.assertEqual(summaries[0].stat.st_size, os.stat(process.exe).st_size)
 
   def testDoesNotFetchDuplicates(self):
-    process1 = sysinfo_pb2.Process()
-    process1.pid = 2
-    process1.ppid = 1
-    process1.cmdline.append("test_img.dd")
-    process1.exe = os.path.join(self.base_path, "test_img.dd")
-    process1.ctime = long(1333718907.167083 * 1e6)
+    process1 = rdfvalue.Process(
+        pid=2,
+        ppid=1,
+        cmdline=["test_img.dd"],
+        exe=os.path.join(self.base_path, "test_img.dd"),
+        ctime=long(1333718907.167083 * 1e6))
 
-    process2 = sysinfo_pb2.Process()
-    process2.pid = 3
-    process2.ppid = 1
-    process2.cmdline.extend(["test_img.dd", "--arg"])
-    process2.exe = os.path.join(self.base_path, "test_img.dd")
-    process2.ctime = long(1333718942.167083 * 1e6)
+    process2 = rdfvalue.Process(
+        pid=3,
+        ppid=1,
+        cmdline=["test_img.dd", "--arg"],
+        exe=os.path.join(self.base_path, "test_img.dd"),
+        ctime=long(1333718907.167083 * 1e6))
 
     client_mock = ListProcessesMock([process1, process2])
     output_path = "analysis/GetBinariesFlowTest1"
@@ -123,23 +121,22 @@ class GetProcessesBinariesTest(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
                            token=self.token)
-    collection = fd.Get(fd.Schema.COLLECTION)
-    self.assertEqual(len(collection), 1)
+    self.assertEqual(len(fd), 1)
 
   def testIgnoresMissingFiles(self):
-    process1 = sysinfo_pb2.Process()
-    process1.pid = 2
-    process1.ppid = 1
-    process1.cmdline.append("test_img.dd")
-    process1.exe = os.path.join(self.base_path, "test_img.dd")
-    process1.ctime = long(1333718907.167083 * 1e6)
+    process1 = rdfvalue.Process(
+        pid=2,
+        ppid=1,
+        cmdline=["test_img.dd"],
+        exe=os.path.join(self.base_path, "test_img.dd"),
+        ctime=long(1333718907.167083 * 1e6))
 
-    process2 = sysinfo_pb2.Process()
-    process2.pid = 2
-    process2.ppid = 1
-    process2.cmdline.append("file_that_does_not_exist")
-    process2.exe = os.path.join(self.base_path, "file_that_does_not_exist")
-    process2.ctime = long(1333718907.167083 * 1e6)
+    process2 = rdfvalue.Process(
+        pid=2,
+        ppid=1,
+        cmdline=["file_that_does_not_exist"],
+        exe=os.path.join(self.base_path, "file_that_does_not_exist"),
+        ctime=long(1333718907.167083 * 1e6))
 
     client_mock = ListProcessesMock([process1, process2])
     output_path = "analysis/GetBinariesFlowTest1"
@@ -151,9 +148,9 @@ class GetProcessesBinariesTest(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
                            token=self.token)
-    collection = fd.Get(fd.Schema.COLLECTION)
-    self.assertEqual(len(collection), 1)
-    self.assertEqual(collection[0].pathspec.path, process1.exe)
+    summaries = list(fd)
+    self.assertEqual(len(summaries), 1)
+    self.assertEqual(summaries[0].stat.pathspec.path, process1.exe)
 
 
 class VolatilityActionMock(test_lib.ActionMock):
@@ -165,9 +162,9 @@ class VolatilityActionMock(test_lib.ActionMock):
     self.processes_list = processes_list
 
   def VolatilityAction(self, _):
-    volatility_response = jobs_pb2.VolatilityResponse()
+    volatility_response = rdfvalue.VolatilityResult()
 
-    section = volatility_response.sections.add()
+    section = rdfvalue.VolatilitySection()
 
     header = section.table.headers.add()
     header.print_name = "Protection"
@@ -203,6 +200,8 @@ class VolatilityActionMock(test_lib.ActionMock):
       value.value = 275427702111096
       value.svalue = proc
 
+    volatility_response.sections.Append(section)
+
     return [volatility_response]
 
 
@@ -227,15 +226,15 @@ class GetProcessesBinariesVolatilityTest(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
                            token=self.token)
     # Sorting output collection to make the test deterministic
-    collection = sorted(fd.Get(fd.Schema.COLLECTION),
-                        key=lambda k: k.pathspec.path)
-    self.assertEqual(len(collection), 2)
+    summaries = sorted(fd, key=lambda x: x.urn)
 
-    self.assertEqual(collection[0].pathspec.path, process1_exe)
-    self.assertEqual(collection[0].st_size, os.stat(process1_exe).st_size)
+    self.assertEqual(len(summaries), 2)
 
-    self.assertEqual(collection[1].pathspec.path, process2_exe)
-    self.assertEqual(collection[1].st_size, os.stat(process2_exe).st_size)
+    self.assertEqual(summaries[0].stat.pathspec.path, process1_exe)
+    self.assertEqual(summaries[0].stat.st_size, os.stat(process1_exe).st_size)
+
+    self.assertEqual(summaries[1].stat.pathspec.path, process2_exe)
+    self.assertEqual(summaries[1].stat.st_size, os.stat(process2_exe).st_size)
 
   def testDoesNotFetchDuplicates(self):
     process_exe = os.path.join(self.base_path, "test_img.dd")
@@ -252,10 +251,11 @@ class GetProcessesBinariesVolatilityTest(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
                            token=self.token)
-    collection = fd.Get(fd.Schema.COLLECTION)
-    self.assertEqual(len(collection), 1)
-    self.assertEqual(collection[0].pathspec.path, process_exe)
-    self.assertEqual(collection[0].st_size, os.stat(process_exe).st_size)
+    summaries = list(fd)
+
+    self.assertEqual(len(summaries), 1)
+    self.assertEqual(summaries[0].stat.pathspec.path, process_exe)
+    self.assertEqual(summaries[0].stat.st_size, os.stat(process_exe).st_size)
 
   def testFiltersOutBinariesUsingRegex(self):
     process1_exe = os.path.join(self.base_path, "test_img.dd")
@@ -275,10 +275,11 @@ class GetProcessesBinariesVolatilityTest(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
                            token=self.token)
-    collection = fd.Get(fd.Schema.COLLECTION)
-    self.assertEqual(len(collection), 1)
-    self.assertEqual(collection[0].pathspec.path, process1_exe)
-    self.assertEqual(collection[0].st_size, os.stat(process1_exe).st_size)
+    summaries = list(fd)
+
+    self.assertEqual(len(summaries), 1)
+    self.assertEqual(summaries[0].stat.pathspec.path, process1_exe)
+    self.assertEqual(summaries[0].stat.st_size, os.stat(process1_exe).st_size)
 
   def testIgnoresMissingFiles(self):
     process1_exe = os.path.join(self.base_path, "test_img.dd")
@@ -298,7 +299,7 @@ class GetProcessesBinariesVolatilityTest(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
                            token=self.token)
-    collection = fd.Get(fd.Schema.COLLECTION)
-    self.assertEqual(len(collection), 1)
-    self.assertEqual(collection[0].pathspec.path, process1_exe)
-    self.assertEqual(collection[0].st_size, os.stat(process1_exe).st_size)
+    summaries = list(fd)
+    self.assertEqual(len(summaries), 1)
+    self.assertEqual(summaries[0].stat.pathspec.path, process1_exe)
+    self.assertEqual(summaries[0].stat.st_size, os.stat(process1_exe).st_size)

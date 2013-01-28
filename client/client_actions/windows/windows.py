@@ -40,9 +40,9 @@ from grr.client import client_utils_windows
 from grr.client import conf
 from grr.client.client_actions import standard
 from grr.lib import constants
+from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.proto import jobs_pb2
-from grr.proto import sysinfo_pb2
 
 flags.DEFINE_string("service_name", client_config.SERVICE_NAME,
                     "The name of the nanny service")
@@ -73,23 +73,22 @@ def UnicodeFromCodePage(string):
 
 class GetInstallDate(actions.ActionPlugin):
   """Estimate the install date of this system."""
-  out_protobuf = jobs_pb2.DataBlob
+  out_rdfvalue = rdfvalue.DataBlob
 
   def Run(self, unused_args):
-    # We need to turn on 64 bit access as per
-    # http://msdn.microsoft.com/en-us/library/aa384129(v=VS.85).aspx
+    """Estimate the install date of this system."""
+    # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
     subkey = _winreg.OpenKey(
         _winreg.HKEY_LOCAL_MACHINE,
         "Software\\Microsoft\\Windows NT\\CurrentVersion",
-        0,
-        0x100 | _winreg.KEY_READ)
+        0, _winreg.KEY_READ)
     install_date = _winreg.QueryValueEx(subkey, "InstallDate")
     self.SendReply(integer=install_date[0])
 
 
 class EnumerateUsers(actions.ActionPlugin):
   """Enumerates all the users on this system."""
-  out_protobuf = jobs_pb2.UserAccount
+  out_rdfvalue = rdfvalue.User
 
   def GetUsersAndHomeDirs(self):
     """Gets the home directory from the registry for all users on the system.
@@ -102,20 +101,20 @@ class EnumerateUsers(actions.ActionPlugin):
     results = []
 
     try:
-      user_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,
-                                 profiles_key,
-                                 0, _winreg.KEY_WOW64_64KEY |
-                                 _winreg.KEY_ENUMERATE_SUB_KEYS)
+      # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
+      user_key = _winreg.OpenKey(
+          _winreg.HKEY_LOCAL_MACHINE, profiles_key, 0,
+          _winreg.KEY_ENUMERATE_SUB_KEYS)
       try:
         index = 0
         while True:
           sid = _winreg.EnumKey(user_key, index)
           index += 1
 
-          homedir_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,
-                                        profiles_key + "\\" + sid,
-                                        0, _winreg.KEY_WOW64_64KEY |
-                                        _winreg.KEY_QUERY_VALUE)
+          # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
+          homedir_key = _winreg.OpenKey(
+              _winreg.HKEY_LOCAL_MACHINE, profiles_key + "\\" + sid, 0,
+              _winreg.KEY_QUERY_VALUE)
 
           (homedir, _) = _winreg.QueryValueEx(homedir_key, "ProfileImagePath")
 
@@ -203,7 +202,7 @@ class EnumerateUsers(actions.ActionPlugin):
 
 class EnumerateInterfaces(actions.ActionPlugin):
   """Enumerate all MAC addresses of all NICs."""
-  out_protobuf = jobs_pb2.Interface
+  out_rdfvalue = rdfvalue.Interface
 
   def Run(self, unused_args):
     """Enumerate all MAC addresses."""
@@ -232,7 +231,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
 
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system."""
-  out_protobuf = sysinfo_pb2.Filesystem
+  out_rdfvalue = rdfvalue.Filesystem
 
   def Run(self, unused_args):
     """List all local filesystems mounted on this system."""
@@ -252,7 +251,7 @@ class EnumerateFilesystems(actions.ActionPlugin):
 
 class Uninstall(actions.ActionPlugin):
   """Remove the service that starts us at startup."""
-  out_protobuf = jobs_pb2.DataBlob
+  out_rdfvalue = rdfvalue.DataBlob
 
   def Run(self, unused_arg):
     """This kills us with no cleanups."""
@@ -287,8 +286,8 @@ def QueryService(svc_name):
 
 class WmiQuery(actions.ActionPlugin):
   """Runs a WMI query and returns the results to a server callback."""
-  in_protobuf = jobs_pb2.WmiRequest
-  out_protobuf = jobs_pb2.Dict
+  in_rdfvalue = rdfvalue.WMIRequest
+  out_rdfvalue = rdfvalue.RDFProtoDict
 
   def Run(self, args):
     """Run the WMI query and return the data."""
@@ -296,8 +295,7 @@ class WmiQuery(actions.ActionPlugin):
 
     # Now return the data to the server
     for response_dict in RunWMIQuery(query):
-      response = utils.ProtoDict(response_dict)
-      self.SendReply(response.ToProto())
+      self.SendReply(rdfvalue.RDFProtoDict(response_dict))
 
 
 def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
@@ -362,15 +360,13 @@ CTRL_IOCTRL = CtlCode(0x22, 0x101, 0, 3)  # Set acquisition modes.
 class GetMemoryInformation(actions.ActionPlugin):
   """Loads the driver for memory access and returns a Stat for the device."""
 
-  in_protobuf = jobs_pb2.Path
-  out_protobuf = jobs_pb2.MemoryInformation
+  in_rdfvalue = rdfvalue.RDFPathSpec
+  out_rdfvalue = rdfvalue.MemoryInformation
 
   def Run(self, args):
     """Run."""
     # This action might crash the box so we need to flush the transaction log.
     self.SyncTransactionLog()
-
-    result = self.out_protobuf()
 
     # Do any initialization we need to do.
     logging.debug("Querying device %s", args.path)
@@ -386,15 +382,18 @@ class GetMemoryInformation(actions.ActionPlugin):
 
     data = win32file.DeviceIoControl(fd, INFO_IOCTRL, "", 1024, None)
     fmt_string = "QQl"
-    result.cr3, _, number_of_runs = struct.unpack_from(fmt_string, data)
+    cr3, _, number_of_runs = struct.unpack_from(fmt_string, data)
+
+    result = rdfvalue.MemoryInformation(
+        cr3=cr3,
+        device=rdfvalue.RDFPathSpec(
+            path=args.path,
+            pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY")))
 
     offset = struct.calcsize(fmt_string)
     for x in range(number_of_runs):
       start, length = struct.unpack_from("QQ", data, x * 16 + offset)
-      result.runs.add(offset=start, length=length)
-
-    result.device.path = args.path
-    result.device.pathtype = jobs_pb2.Path.MEMORY
+      result.runs.Append(offset=start, length=length)
 
     self.SendReply(result)
 
@@ -406,7 +405,7 @@ class UninstallDriver(actions.ActionPlugin):
   client_config.DRIVER_SIGNING_CERT can be uninstalled.
   """
 
-  in_protobuf = jobs_pb2.InstallDriverRequest
+  in_rdfvalue = rdfvalue.DriverInstallTemplate
 
   def VerifyAndUninstall(self, args):
     """Do the verification and uninstall the driver."""
@@ -429,7 +428,7 @@ class InstallDriver(UninstallDriver):
   Note that only drivers with a signature that validates with
   client_config.DRIVER_SIGNING_CERT can be loaded.
   """
-  in_protobuf = jobs_pb2.InstallDriverRequest
+  in_rdfvalue = rdfvalue.DriverInstallTemplate
 
   def Run(self, args):
     """Initializes the driver."""
@@ -445,15 +444,16 @@ class InstallDriver(UninstallDriver):
       except Exception:  # pylint: disable=broad-except
         pass
 
+    path_handle, path_name = tempfile.mkstemp(suffix=".sys")
     try:
-      path_handle, path_name = tempfile.mkstemp(suffix=".sys")
-
       # TODO(user): Ensure we have lock here, no races
       logging.info("Writing driver to %s", path_name)
 
       # Note permissions default to global read, user only write.
-      os.write(path_handle, args.driver.data)
-      os.close(path_handle)
+      try:
+        os.write(path_handle, args.driver)
+      finally:
+        os.close(path_handle)
 
       client_utils_windows.InstallDriver(path_name, args.driver_name,
                                          args.driver_display_name)

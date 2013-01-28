@@ -349,22 +349,23 @@ class StatsCollector(threading.Thread):
     user, system = self.proc.get_cpu_times()
     percent = self.proc.get_cpu_percent()
     self.cpu_samples.append((time.time(), user, system, percent))
-    self.cpu_samples = self.cpu_samples[-360:]
+    # Keep stats for one hour.
+    self.cpu_samples = self.cpu_samples[-3600/self.sleep_time:]
 
     # Not supported on MacOS.
-    if hasattr(self.proc, "get_io_counters"):
-      try:
-        _, _, read_bytes, write_bytes = self.proc.get_io_counters()
-        self.io_samples.append((time.time(), read_bytes, write_bytes))
-        self.io_samples = self.io_samples[-360:]
-      except psutil.Error:
-        pass
+    try:
+      _, _, read_bytes, write_bytes = self.proc.get_io_counters()
+      self.io_samples.append((time.time(), read_bytes, write_bytes))
+      self.io_samples = self.io_samples[-3600/self.sleep_time:]
+    except (AttributeError, NotImplementedError, psutil.Error):
+      pass
 
   def PrintCpuSamples(self):
     samples = [str(sample[3]) for sample in self.cpu_samples[-20:]]
     return ", ".join(samples)
 
   def PrintIOSample(self):
-    if hasattr(self.proc, "get_io_counters"):
+    try:
       return str(self.proc.get_io_counters())
-    return "Not available on this platform."
+    except (NotImplementedError, AttributeError):
+      return "Not available on this platform."

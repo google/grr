@@ -16,12 +16,14 @@
 """A module to load all client plugins."""
 
 
-# pylint: disable=W0611
+# pylint: disable=W0611,C6203
 import platform
 
 import logging
 
 # These imports populate the Action registry
+from grr.lib import rdfvalue
+from grr.lib import rdfvalues
 from grr.client import actions
 from grr.client.client_actions import admin
 from grr.client.client_actions import enrol
@@ -39,8 +41,8 @@ try:
 except ImportError:
   class VolatilityAction(actions.ActionPlugin):
     """Runs a volatility command on live memory."""
-    in_protobuf = jobs_pb2.VolatilityRequest
-    out_protobuf = jobs_pb2.VolatilityResponse
+    in_rdfvalue = rdfvalue.VolatilityRequest
+    out_rdfvalue = rdfvalue.VolatilityResult
 
 if platform.system() == "Linux":
   from grr.client.client_actions import linux

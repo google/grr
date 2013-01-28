@@ -34,7 +34,7 @@ message GrrMessage {
   // is set by the flow and is executed by the client.
   optional string name = 4;
 
-  // This field contains an encoded protobuf.
+  // This field contains an encoded rdfvalue.
   optional bytes args = 5;
 
   // Client name where the message came from (This is copied from the
@@ -64,7 +64,6 @@ message GrrMessage {
     MESSAGE = 0;
     STATUS = 1;
     ITERATOR = 2;
-    RDF_VALUE = 3;
   };
 
   // The final response to a request carries this type which indicates it is a
@@ -87,6 +86,12 @@ message GrrMessage {
 
   // Maximum number of CPU seconds to be used by this action.
   optional uint64 cpu_limit = 12 [ default = 3600 ];
+
+  // The age of the args rdfvalue.
+  optional uint64 args_age = 13;
+
+  // The rdfvalue class of the args.
+  optional string args_rdf_name = 14;
 };
 
 // This is a list of messages
@@ -244,6 +249,7 @@ message Task {
   optional uint64 eta = 4;
   optional string queue = 5;
   optional GrrMessage.Priority priority = 6 [ default = MEDIUM_PRIORITY ];
+  optional string last_lease = 7;
 };
 
 // A generic protobuf to deliver some data
@@ -257,6 +263,7 @@ message DataBlob {
   optional bool boolean = 6; // If set data contains a boolean value
   optional BlobArray list = 8;  // For storing lists.
   optional Dict dict = 9; // Stores a dictionary
+  optional RDFValue rdf_value = 10; // Store an RDFValue.
 
   enum CompressionType {
     UNCOMPRESSED = 0;
@@ -273,6 +280,7 @@ message BlobArray {
   repeated DataBlob content = 1;
 };
 
+// This is a log message sent from the client to the server logging subsystem.
 message PrintStr {
   optional int32 level = 1 [ default = 10 ];
   optional string data = 2;
@@ -294,8 +302,8 @@ message PrintStr {
 //       case of truncated buffers).
 
 message BufferReadMessage {
-  required uint64 offset = 1;
-  required uint64 length = 2;
+  optional uint64 offset = 1 [ default = 0 ];
+  optional uint64 length = 2 [ default = 0 ];
   optional string callback = 3;
   optional bytes  data = 4;
   optional Path pathspec = 6;
@@ -337,9 +345,9 @@ message RequestState {
   optional string flow_name = 11;
 };
 
-// Flows are pickled in taskmaster:
+// Flows are pickled in the data store:
 message FlowPB {
-  required string name = 1;
+  optional string name = 1;
   optional bytes pickle = 2;
   optional uint64 ts_id = 3;
   enum FlowState {
@@ -604,6 +612,7 @@ message Uname {
   optional string release = 3;
   optional string version = 4;
   optional string machine = 5;
+  optional string kernel = 6;
 };
 
 message FolderInformation {
@@ -649,6 +658,8 @@ message NetworkAddress {
   }
   optional NetworkFamily address_type = 1;
   optional string human_readable = 2;
+
+  // This does not seem to be used?
   optional string packed_bytes = 3;
 };
 
@@ -695,14 +706,14 @@ message GRRConfig {
   optional float rss_max = 16;
 };
 
-// The fingerprinting methods the fingerprinter can be asked to perform.
-// If none is given, all are applied.
-enum FingerprintType {
-  FPT_GENERIC = 0;
-  FPT_PE_COFF = 1;
-};
 
 message FingerprintTuple {
+  // The fingerprinting methods the fingerprinter can be asked to perform.
+  // If none is given, all are applied.
+  enum FingerprintType {
+    FPT_GENERIC = 0;
+    FPT_PE_COFF = 1;
+  };
   // The hash functions that a fingerprinting method may employ.
   // If none is given, all applicable ones are used.
   enum FingerprintHash {
@@ -722,7 +733,7 @@ message FingerprintRequest {
 
 // Response data for file hashes and signature blobs.
 message FingerprintResponse {
-  repeated FingerprintType matching_types = 1;
+  repeated FingerprintTuple.FingerprintType matching_types = 1;
   repeated Dict fingerprint_results = 2;
 };
 
@@ -767,6 +778,9 @@ message VolatilityRequest {
 
   // The raw device to use.
   optional Path device = 4;
+
+  // These parameters are used to initialize the session.
+  optional Dict session = 5;
 }
 
 message VolatilityHeader {
@@ -1055,10 +1069,18 @@ message RDFValue {
 }
 
 
-// An object can be labeled for various purposes.
-message LabelList {
-  repeated string label = 1;
+// This is a summary of an AFF4 object. It consists of the most important
+// attributes of some common AFF4 objects. It is used to store a summary in AFF4
+// collections for efficient searching and filtering - without needing to load
+// all this information from the data store.
+message AFF4ObjectSummary {
+  // The TYPE attribute.
+  optional string type = 1;
+  optional string urn = 2;
+  optional StatResponse stat = 3;
 }
+
+
 
 
 message EmptyMessage {

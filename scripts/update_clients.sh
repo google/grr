@@ -17,23 +17,11 @@ then
   EXE_DIR=${PREFIX}/share/grr/executables;
 fi
 
-if [ -z "${GRR_TEST_VERSIONS}" ];
-then
-  GRR_TEST_VERSIONS=0;
-else
-  GRR_TEST_VERSIONS=1;
-  echo "Running with Beta test versions"
-fi
-
-# URL to read the latest version URLs from
-if [ $GRR_TEST_VERSIONS = 0 ]; then
-  VERSION_URL=https://grr.googlecode.com/files/latest_versions.txt
-else
-  VERSION_URL=https://grr.googlecode.com/files/latest_versions_test.txt
-fi
-
 # Variable to store if the user has answered "Yes to All"
-ALL_YES=0;
+if [ -z "${ALL_YES}" ];
+then
+  ALL_YES=0;
+fi
 
 function run_header() { echo "#### Running #### ${*}"; }
 
@@ -65,12 +53,30 @@ function run_cmd_confirm()
   fi
 };
 
+# Determine where to get the latest versions from.
+if [ -z "${GRR_TEST_VERSIONS}" ];
+then
+  GRR_TEST_VERSIONS=0;
+  VERSION_URL=https://grr.googlecode.com/files/latest_versions.txt
+  VERSION_FILE=$(basename ${VERSION_URL})
+  rm -f $VERSION_FILE
+  run_cmd_confirm wget --no-verbose ${VERSION_URL};
+elif [ $GRR_TEST_VERSIONS = 1 ]
+then
+  echo "Running with Beta test versions"
+  VERSION_URL=https://grr.googlecode.com/files/latest_versions_test.txt
+  VERSION_FILE=$(basename ${VERSION_URL})
+  run_cmd_confirm wget --no-verbose ${VERSION_URL};
+  rm -f $VERSION_FILE
+else
+  echo "Using $GRR_TEST_VERSIONS as version file"
+  VERSION_FILE=$GRR_TEST_VERSIONS;
+fi
+
+
 echo "###############################################################"
 echo "### Retrieving the latest list of clients and their packages"
 echo "###############################################################"
-rm $(basename ${VERSION_URL})
-run_cmd_confirm wget --no-verbose ${VERSION_URL};
-VERSION_FILE=$(basename ${VERSION_URL});
 WIN64_URL=$(grep client-win-64 ${VERSION_FILE} | cut -f 2);
 WIN32_URL=$(grep client-win-32 ${VERSION_FILE} | cut -f 2);
 OSX_URL=$(grep client-osx ${VERSION_FILE} | cut -f 2);
@@ -107,13 +113,13 @@ echo "###############################################################"
 # /2206/GRR.dmg
 rm -f $(basename ${OSX_URL});
 run_cmd_confirm wget -N --no-verbose ${OSX_URL};
-if [ ! -d ${EXE_DIR}/osx/templates ]; then
-  run_cmd_confirm mkdir -p ${EXE_DIR}/osx/templates
+if [ ! -d ${EXE_DIR}/darwin/templates ]; then
+  run_cmd_confirm mkdir -p ${EXE_DIR}/darwin/templates
 fi
-run_cmd_confirm sudo unzip -o -d ${EXE_DIR}/osx/templates $(basename ${OSX_URL});
+run_cmd_confirm sudo unzip -o -d ${EXE_DIR}/darwin/templates $(basename ${OSX_URL});
 
 echo "cleaning up downloaded files."
-run_cmd_confirm rm -f ${VERSION_FILE} $(basename ${WIN64_URL}) \
+run_cmd_confirm rm -f $(basename ${WIN64_URL}) \
   $(basename ${WIN32_URL}) $(basename ${OSX_URL});
 
 

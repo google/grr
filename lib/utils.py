@@ -17,7 +17,6 @@
 
 
 import base64
-import posixpath
 import re
 import socket
 import struct
@@ -75,6 +74,7 @@ def Synchronized(f):
   def NewFunction(self, *args, **kw):
     with self.lock:
       return f(self, *args, **kw)
+
   return NewFunction
 
 
@@ -105,6 +105,11 @@ class InterruptableThread(threading.Thread):
       else:
         self.Iterate()
 
+      # During shutdown range can disappear leaving ugly error messages.
+      if not range:
+        self.exit = True
+        continue
+
       for _ in range(self.sleep_time):
         if self.exit:
           break
@@ -121,44 +126,139 @@ class InterruptableThread(threading.Thread):
           break
 
 
+class Node(object):
+  """An entry to a linked list."""
+  next = None
+  prev = None
+  data = None
+
+  def __init__(self, key, data):
+    self.data = data
+    self.key = key
+
+  def __str__(self):
+    return "Node %s: %s" % (self.key, SmartStr(self.data))
+
+  def __repr__(self):
+    return SmartStr(self)
+
+
+class LinkedList(object):
+  """A simple doubly linked list used for fast caches."""
+
+  def __init__(self):
+    # We are the head node.
+    self.next = self.prev = self
+    self.size = 0
+
+  def AppendNode(self, node):
+    self.size += 1
+    last_node = self.prev
+
+    last_node.next = node
+    node.prev = last_node
+    node.next = self
+    self.prev = node
+
+  def PopLeft(self):
+    """Returns the head node and removes it from the list."""
+    if self.next is self:
+      raise IndexError("Pop from empty list.")
+
+    first_node = self.next
+    self.Unlink(first_node)
+    return first_node
+
+  def Pop(self):
+    """Returns the tail node and removes it from the list."""
+    if self.prev is self:
+      raise IndexError("Pop from empty list.")
+
+    last_node = self.prev
+    self.Unlink(last_node)
+    return last_node
+
+  def Unlink(self, node):
+    """Removes a given node from the list."""
+    self.size -= 1
+
+    node.prev.next = node.next
+    node.next.prev = node.prev
+    node.next = node.prev = None
+
+  def __iter__(self):
+    p = self.next
+    while p is not self:
+      yield p
+      p = p.next
+
+  def __len__(self):
+    return self.size
+
+  def __str__(self):
+    p = self.next
+    s = []
+    while p is not self:
+      s.append(str(p.data))
+      p = p.next
+
+    return "[" + ", ".join(s) + "]"
+
+  def Print(self):
+    p = self.next
+    while p is not self:
+      print "%s: prev %r next %r\n" % (p.data, p.prev, p.next)
+      p = p.next
+
+
 class FastStore(object):
   """This is a cache which expires objects in oldest first manner.
 
   This implementation first appeared in PyFlag.
   """
 
-  def __init__(self, max_size=10, kill_cb=None):
+  def __init__(self, max_size=10):
     """Constructor.
 
     Args:
        max_size: The maximum number of objects held in cache.
-       kill_cb: An optional function which will be called on each
-                object terminated from cache.
     """
-    self._age = []
+    # This class implements a LRU cache which needs fast updates of the LRU
+    # order for random elements. This is usually implemented by using a
+    # dict for fast lookups and a linked list for quick deletions / insertions.
+    self._age = LinkedList()
     self._hash = {}
     self._limit = max_size
-    self._kill_cb = kill_cb
     self.lock = threading.RLock()
+
+  def KillObject(self, obj):
+    """Perform cleanup on objects when they expire.
+
+    Should be overridden by classes which need to perform special cleanup.
+    Args:
+      obj: The object which was stored in the cache and is now expired.
+    """
 
   @Synchronized
   def Expire(self):
     """Expires old cache entries."""
     while len(self._age) > self._limit:
-      x = self._age.pop(0)
-      self.ExpireObject(x)
+      node = self._age.PopLeft()
+      self._hash.pop(node.key, None)
+      self.KillObject(node.data)
 
   @Synchronized
   def Put(self, key, obj):
     """Add the object to the cache."""
-    try:
-      idx = self._age.index(key)
-      self._age.pop(idx)
-    except ValueError:
-      pass
+    # Remove the old entry if it is there.
+    node = self._hash.pop(key, None)
+    if node:
+      self._age.Unlink(node)
 
-    self._hash[key] = obj
-    self._age.append(key)
+    # Make a new node and insert it.
+    node = Node(key=key, data=obj)
+    self._hash[key] = node
+    self._age.AppendNode(node)
 
     self.Expire()
 
@@ -167,18 +267,26 @@ class FastStore(object):
   @Synchronized
   def ExpireObject(self, key):
     """Expire a specific object from cache."""
-    obj = self._hash.pop(key, None)
+    node = self._hash.pop(key, None)
+    if node:
+      self._age.Unlink(node)
+      self.KillObject(node.data)
 
-    if self._kill_cb and obj is not None:
-      self._kill_cb(obj)
-
-    return obj
+      return node.data
 
   @Synchronized
   def ExpireRegEx(self, regex):
     """Expire all the objects with the key matching the regex."""
-    for key in self._hash.keys():
-      if re.match(regex, key):
+    reg = re.compile(regex)
+    for key in list(self._hash):
+      if reg.match(key):
+        self.ExpireObject(key)
+
+  @Synchronized
+  def ExpirePrefix(self, prefix):
+    """Expire all the objects with the key having a given prefix."""
+    for key in list(self._hash):
+      if key.startswith(prefix):
         self.ExpireObject(key)
 
   @Synchronized
@@ -197,15 +305,15 @@ class FastStore(object):
     Raises:
       KeyError: If the object is not present in the cache.
     """
-    # Remove the item and put to the end of the age list
-    try:
-      idx = self._age.index(key)
-      self._age.pop(idx)
-      self._age.append(key)
-    except ValueError:
+    if key not in self._hash:
       raise KeyError(key)
 
-    return self._hash[key]
+    node = self._hash[key]
+
+    self._age.Unlink(node)
+    self._age.AppendNode(node)
+
+    return node.data
 
   @Synchronized
   def __contains__(self, obj):
@@ -219,17 +327,14 @@ class FastStore(object):
   def Flush(self):
     """Flush all items from cache."""
     while self._age:
-      x = self._age.pop(0)
-      self.ExpireObject(x)
+      node = self._age.PopLeft()
+      self.KillObject(node.data)
 
-    self._hash = {}
+    self._hash = dict()
 
   @Synchronized
   def __getstate__(self):
     """When pickled the cache is fushed."""
-    if self._kill_cb:
-      raise RuntimeError("Unable to pickle a store with a kill callback.")
-
     self.Flush()
     return dict(max_size=self._limit)
 
@@ -240,7 +345,7 @@ class FastStore(object):
 class TimeBasedCache(FastStore):
   """A Cache which expires based on time."""
 
-  def __init__(self, max_size=10, max_age=600, kill_cb=None):
+  def __init__(self, max_size=10, max_age=600):
     """Constructor.
 
     This cache will refresh the age of the cached object as long as they are
@@ -250,9 +355,8 @@ class TimeBasedCache(FastStore):
     Args:
       max_size: The maximum number of objects held in cache.
       max_age: The maximum length of time an object is considered alive.
-      kill_cb: An optional function which will be called on each expiration.
     """
-    super(TimeBasedCache, self).__init__(max_size, kill_cb)
+    super(TimeBasedCache, self).__init__(max_size)
     self.max_age = max_age
 
     def HouseKeeper():
@@ -262,13 +366,20 @@ class TimeBasedCache(FastStore):
         return
 
       now = time.time()
-      for key in self._age:
-        try:
-          timestamp, _ = self._hash[key]
+
+      # Only expunge while holding the lock on the data store.
+      with self.lock:
+        # We need to take a copy of the value list because we are changing this
+        # dict during the iteration.
+        for node in self._hash.values():
+          timestamp, obj = node.data
+
+          # Expire the object if it is too old.
           if timestamp + self.max_age < now:
-            self.ExpireObject(key)
-        except KeyError:
-          pass
+            self.KillObject(obj)
+
+            self._age.Unlink(node)
+            self._hash.pop(node.key, None)
 
     # This thread is designed to never finish
     self.house_keeper_thread = InterruptableThread(target=HouseKeeper)
@@ -292,9 +403,6 @@ class TimeBasedCache(FastStore):
   @Synchronized
   def __getstate__(self):
     """When pickled the cache is flushed."""
-    if self._kill_cb:
-      raise RuntimeError("Unable to pickle a store with a kill callback.")
-
     self.Flush()
     return dict(max_size=self._limit, max_age=self.max_age)
 
@@ -367,137 +475,6 @@ class Struct(object):
     """Calculate the size of the struct."""
     format_str = "".join([x[0] for x in cls._fields])
     return struct.calcsize(format_str)
-
-
-class DataBlob(object):
-  """Wrapper class for DataBlob protobuf."""
-
-  def __init__(self, initializer=None, **kwarg):
-    if initializer is None:
-      initializer = jobs_pb2.DataBlob(**kwarg)
-    self.blob = initializer
-
-  def SetValue(self, value):
-    """Receives a value and fills it into a DataBlob."""
-    type_mappings = [(unicode, "string"), (str, "data"), (bool, "boolean"),
-                     (int, "integer"), (long, "integer"), (dict, "dict")]
-    if value is None:
-      self.blob.none = "None"
-    elif isinstance(value, message.Message):
-      # If we have a protobuf save the type and serialized data.
-      self.blob.data = value.SerializeToString()
-      self.blob.proto_name = value.__class__.__name__
-    elif isinstance(value, (list, tuple)):
-      self.blob.list.content.extend([DataBlob().SetValue(v) for v in value])
-    elif isinstance(value, dict):
-      pdict = ProtoDict()
-      pdict.FromDict(value)
-      self.blob.dict.MergeFrom(pdict.ToProto())
-    else:
-      for type_mapping, member in type_mappings:
-        if isinstance(value, type_mapping):
-          setattr(self.blob, member, value)
-          return self.blob
-
-      raise RuntimeError("Unsupported type for ProtoDict: %s" % type(value))
-
-    return self.blob
-
-  def GetValue(self):
-    """Extracts and returns a single value from a DataBlob."""
-    if self.blob.HasField("none"):
-      return None
-    field_names = ["integer", "string", "data", "boolean", "list", "dict"]
-    values = [getattr(self.blob, x) for x in field_names
-              if self.blob.HasField(x)]
-    if len(values) != 1:
-      raise RuntimeError("DataBlob must contain exactly one entry.")
-    if self.blob.HasField("proto_name"):
-      try:
-        pb = getattr(jobs_pb2, self.blob.proto_name)()
-        pb.ParseFromString(self.blob.data)
-        return pb
-      except AttributeError:
-        raise RuntimeError("Datablob has unknown protobuf.")
-    elif self.blob.HasField("list"):
-      return [DataBlob(x).GetValue() for x in self.blob.list.content]
-    elif self.blob.HasField("dict"):
-      return ProtoDict(values[0]).ToDict()
-    else:
-      return values[0]
-
-
-class ProtoDict(object):
-  """A high level interface for protobuf Dict objects.
-
-  This effectively converts from a dict to a proto and back.
-  The dict may contain strings (python unicode objects), int64,
-  or binary blobs (python string objects) as keys and values.
-  """
-
-  def __init__(self, initializer=None):
-    # Support initializing from a mapping
-    self._proto = jobs_pb2.Dict()
-    if initializer is not None:
-      try:
-        for key in initializer:
-          new_proto = self._proto.dat.add()
-          DataBlob(new_proto.k).SetValue(key)
-          DataBlob(new_proto.v).SetValue(initializer[key])
-      except (TypeError, AttributeError):
-        # String initializer
-        if type(initializer) == str:
-          self._proto.ParseFromString(initializer)
-        else:
-          # Support initializing from a protobuf
-          self._proto = initializer
-
-  def ToDict(self):
-    return dict([(DataBlob(x.k).GetValue(), DataBlob(x.v).GetValue())
-                 for x in self._proto.dat])
-
-  def FromDict(self, dictionary):
-    for k, v in dictionary.items():
-      self[k] = v
-
-  def ToProto(self):
-    return self._proto
-
-  def __getitem__(self, key):
-    for kv in self._proto.dat:
-      if DataBlob(kv.k).GetValue() == key:
-        return DataBlob(kv.v).GetValue()
-
-    raise KeyError("%s Not found" % key)
-
-  def Get(self, key, default=None):
-    try:
-      return self[key]
-    except KeyError:
-      return default
-
-  get = Proxy("Get")
-
-  def __delitem__(self, key):
-    proto = jobs_pb2.Dict()
-    for kv in self._proto.dat:
-      if DataBlob(kv.k).GetValue() != key:
-        proto.dat.add(k=kv.k, v=kv.v)
-
-    self._proto.CopyFrom(proto)
-
-  def __setitem__(self, key, value):
-    del self[key]
-    new_proto = self._proto.dat.add()
-    DataBlob(new_proto.k).SetValue(key)
-    DataBlob(new_proto.v).SetValue(value)
-
-  def __str__(self):
-    return self._proto.SerializeToString()
-
-  def __iter__(self):
-    for kv in self._proto.dat:
-      yield DataBlob(kv.k).GetValue()
 
 
 def GroupBy(items, key):
@@ -684,144 +661,6 @@ def Join(*parts):
   return "/".join(parts)
 
 
-class Pathspec(object):
-  """A client specification for opening files.
-
-  This class implements methods for manipulating the pathspec as a list of
-  instructions. We can insert, replace and iterate over all instructions.
-  """
-
-  def __init__(self, *args, **kwarg):
-    self.elements = []
-    self.path_options = None
-    for arg in args:
-      if isinstance(arg, Pathspec):
-        # Make explicit copies of the other pathspec elements.
-        for element in arg.elements:
-          element_copy = jobs_pb2.Path()
-          element_copy.CopyFrom(element)
-          self.elements.append(element_copy)
-
-      elif isinstance(arg, jobs_pb2.Path):
-        # Break up the protobuf into the elements array.
-        proto = jobs_pb2.Path()
-        proto.CopyFrom(arg)
-
-        # Unravel the nested proto into a list
-        while proto.HasField("nested_path"):
-          next_element = proto.nested_path
-          proto.ClearField("nested_path")
-          self.elements.append(proto)
-
-          proto = next_element
-
-        self.elements.append(proto)
-
-        # Can handle serialized form.
-      elif isinstance(arg, str):
-        proto = jobs_pb2.Path()
-        proto.ParseFromString(arg)
-        self.elements.extend(Pathspec(proto).elements)
-
-    # We can also initialize from kwargs.
-    if kwarg:
-      self.elements.append(jobs_pb2.Path(**kwarg))
-
-  def ToProto(self, output=None):
-    if output is None:
-      output = jobs_pb2.Path()
-
-    i = output
-    for element in self.elements:
-      i.MergeFrom(element)
-      i = i.nested_path
-
-    return output
-
-  def __len__(self):
-    return len(self.elements)
-
-  def __getitem__(self, item):
-    return self.elements[item]
-
-  def __iter__(self):
-    return iter(self.elements)
-
-  def Replace(self, start_index, end_index, *args, **kwarg):
-    """Replace some elements with the new elements.
-
-    Args:
-      start_index: The first element to remove.
-      end_index: The last element to remove (same as start_index to just remove
-           one).
-      *arg: New elements.
-      **kwarg: Optional constructor for a new pathspec.
-
-    Returns:
-      The elements which were removed.
-    """
-    new_elements = Pathspec(*args, **kwarg)
-    result = self.elements[start_index:end_index]
-    self.elements = (self.elements[:start_index] + new_elements.elements +
-                     self.elements[end_index+1:])
-
-    return result
-
-  def Copy(self):
-    """Return a copy of this pathspec."""
-    return self.__class__(*self.elements)
-
-  def Insert(self, index, *args, **kwarg):
-    new_elements = Pathspec(*args, **kwarg)
-    self.elements = (self.elements[:index] + new_elements.elements +
-                     self.elements[index:])
-
-  def Append(self, *args, **kwarg):
-    new_elements = Pathspec(*args, **kwarg)
-    self.elements.extend(new_elements.elements)
-    return self
-
-  def CollapsePath(self):
-    return JoinPath(*[x.path for x in self.elements])
-
-  def Pop(self, index=0):
-    return self.elements.pop(index)
-
-  def __str__(self):
-    return "<PathSpec>\n%s</PathSpec>" % str(self.ToProto())
-
-  @property
-  def first(self):
-    return self.elements[0]
-
-  @property
-  def last(self):
-    return self.elements[-1]
-
-  def Dirname(self):
-    """Get a new copied object with only the directory path."""
-    result = self.Copy()
-
-    while result:
-      last = result.Pop(-1)
-      if NormalizePath(last.path) != "/":
-        dirname = NormalizePath(posixpath.dirname(last.path))
-        result.Append(path=dirname, pathtype=last.pathtype)
-        break
-
-    return result
-
-  def Basename(self):
-    for component in reversed(self):
-      basename = posixpath.basename(component.path)
-      if basename: return basename
-
-    return ""
-
-  def SerializeToString(self):
-    return self.ToProto().SerializeToString()
-
-
 def Grouper(iterable, n):
   """Group iterable into lists of size n. Last list will be short."""
   items = []
@@ -844,3 +683,13 @@ def DecodeReasonString(reason):
 
 def ToProtoString(string):
   return SmartUnicode(string)
+
+
+# Regex chars that should not be in a regex
+disallowed_chars = re.compile(r"[[\](){}+*?.$^\\]")
+
+
+def EscapeRegex(string):
+  return re.sub(disallowed_chars,
+                lambda x: "\\" + x.group(0),
+                SmartUnicode(string))

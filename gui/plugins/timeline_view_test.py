@@ -18,17 +18,17 @@
 
 
 
-import os
 from grr.client import conf as flags
 
 from grr.client import vfs
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib import test_lib
-from grr.proto import jobs_pb2
 
 FLAGS = flags.FLAGS
+CONFIG = config_lib.CONFIG
 
 
 class TestTimelineView(test_lib.GRRSeleniumTest):
@@ -38,24 +38,26 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
   def CreateTimelineFixture():
     """Creates a new timeline fixture we can play with."""
     # Create a client for testing
-    key_path = os.path.join(FLAGS.test_srcdir, FLAGS.test_keydir)
-    client_id = "C.0000000000000005"
+    client_id = "C.0000000000000001"
 
     token = data_store.ACLToken("test", "fixture")
 
     fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=token)
     fd.Set(fd.Schema.CERT, aff4.FACTORY.RDFValue("RDFX509Cert")(
-        open(os.path.join(key_path, "cert.pem")).read()))
+        CONFIG["Test.Test_Client_Cert"]))
     fd.Close()
 
     # Install the mock
-    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = test_lib.ClientVFSHandlerFixture
+    vfs.VFS_HANDLERS[
+        rdfvalue.RDFPathSpec.Enum("OS")] = test_lib.ClientVFSHandlerFixture
     client_mock = test_lib.ActionMock("ListDirectory")
     output_path = "analysis/Timeline/MAC"
 
     for _ in test_lib.TestFlowHelper(
         "RecursiveListDirectory", client_mock, client_id=client_id,
-        path="/", pathtype=jobs_pb2.Path.OS, token=token):
+        pathspec=rdfvalue.RDFPathSpec(
+            path="/", pathtype=rdfvalue.RDFPathSpec.Enum("OS")),
+        token=token):
       pass
 
     # Now make a timeline
@@ -76,14 +78,14 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     sel.open("/")
 
     self.WaitUntil(sel.is_element_present, "css=input[name=q]")
-    sel.type("css=input[name=q]", "0005")
+    sel.type("css=input[name=q]", "0001")
     sel.click("css=input[type=submit]")
 
-    self.WaitUntilEqual(u"C.0000000000000005",
+    self.WaitUntilEqual(u"C.0000000000000001",
                         sel.get_text, "css=span[type=subject]")
 
     # Choose client 1
-    sel.click("css=td:contains('0005')")
+    sel.click("css=td:contains('0001')")
 
     # Go to Browse VFS
     self.WaitUntil(sel.is_element_present,
@@ -110,7 +112,11 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
 
     sel.type("css=input#container_query",
              "subject contains bash and timestamp > 2010")
-    sel.key_press("css=input#container_query", "13")
+
+    # Use the hidden submit button to issue the query. Ordinarily users have to
+    # press enter here as they do not see the submit button. But pressing enter
+    # does not work with chrome.
+    sel.click("css=form:contains('Filter') input[type=submit]")
 
     self.WaitUntilContains("2011-03-07 12:50:20",
                            sel.get_text, "css=tbody tr:first")

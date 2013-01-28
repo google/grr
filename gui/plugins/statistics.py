@@ -18,7 +18,7 @@
 
 from grr.gui import renderers
 from grr.lib import aff4
-from grr.proto import analysis_pb2
+from grr.lib import rdfvalue
 
 
 class ShowStatistics(renderers.Splitter2WayVertical):
@@ -104,7 +104,7 @@ class PieChart(Report):
   """Display a pie chart."""
 
   layout_template = renderers.Template("""
-{% if this.graph.data %}
+{% if this.graph %}
   <h1>{{this.title|escape}}</h1>
   <div>
   {{this.description|escape}}
@@ -114,7 +114,7 @@ class PieChart(Report):
   <script>
 
   var specs = [
-    {% for data in this.graph.data %}
+    {% for data in this.graph %}
     {label: "{{data.label|escapejs}}", data: {{data.y_value|escapejs}} },
     {% endfor %}
   ];
@@ -152,7 +152,7 @@ class PieChart(Report):
         percent = parseFloat(obj.series.percent).toFixed(2);
         $("#hover").html('<span style="font-weight: bold; color: ' +
                          obj.series.color + '">' + obj.series.label + " " +
-                         obj.series.data[0][1] + ' (' + percent + '%)</span>');
+                         obj.series[0][1] + ' (' + percent + '%)</span>');
     }
   });
 
@@ -177,13 +177,13 @@ class OSBreakdown(PieChart):
       fd = aff4.FACTORY.Open("cron:/OSBreakDown", token=request.token)
       graph_series = fd.Get(getattr(fd.Schema, self.attribute_name))
 
-      self.graph = analysis_pb2.Graph(title="Operating system break down.")
+      self.graph = rdfvalue.Graph(title="Operating system break down.")
       for graph in graph_series:
         # Find the correct graph and merge the OS categories together
         if "%s day" % self.active_day in graph.title:
-          for sample in graph.data:
-            self.graph.data.add(label=sample.label,
-                                y_value=sample.y_value)
+          for sample in graph:
+            self.graph.Append(label=sample.label,
+                              y_value=sample.y_value)
 
           break
     except (IOError, TypeError):
@@ -269,7 +269,7 @@ evolves over time.
     specs.push({
       label: "{{graph.title|escapejs}}",
       data: [
-  {% for series in graph.data %}
+  {% for series in graph %}
         [ {{series.x_value|escapejs}}, {{series.y_value|escapejs}}],
   {% endfor %}
       ],
@@ -313,10 +313,10 @@ evolves over time.
       categories = {}
       for graph_series in fd.GetValuesForAttribute(
           getattr(fd.Schema, self.attribute_name)):
-        for graph in graph_series.data:
+        for graph in graph_series:
           # Find the correct graph and merge the OS categories together
           if "%s day" % self.active_day in graph.title:
-            for sample in graph.data:
+            for sample in graph:
               # Provide the time in js timestamps (millisecond since the epoch)
               categories.setdefault(sample.label, []).append(
                   (graph_series.age/1000, sample.y_value))
@@ -325,9 +325,9 @@ evolves over time.
 
       self.graphs = []
       for k, v in categories.items():
-        graph = analysis_pb2.Graph(title=k)
+        graph = rdfvalue.Graph(title=k)
         for x, y in v:
-          graph.data.add(x_value=x, y_value=y)
+          graph.Append(x_value=x, y_value=y)
 
         self.graphs.append(graph)
     except IOError:
@@ -454,7 +454,7 @@ selectTab = function (tabid) {
     specs_{{graph.id|escapejs}}.push({
       label: "{{stats.label|escapejs}}",
       data: [
-        {{stats.data|escapejs}}
+        {{stats|escapejs}}
       ],
     });
   {% endfor %}
@@ -494,10 +494,10 @@ selectTab = function (tabid) {
 {% endif %}
 """)
 
-  def __init__(self, fd=None):
+  def __init__(self, fd=None, **kwargs):
     if fd:
       self.fd = fd
-    super(AFF4ClientStats, self).__init__()
+    super(AFF4ClientStats, self).__init__(**kwargs)
 
   def Layout(self, request, response):
     """This renders graphs for the various client statistics."""
@@ -517,7 +517,7 @@ selectTab = function (tabid) {
     graph = StatGraph()
     series = dict()
     for stat_entry in stats:
-      for s in stat_entry.data.cpu_samples:
+      for s in stat_entry.cpu_samples:
         series[int(s.timestamp/1e3)] = s.cpu_percent
     data = [[k, series[k]] for k in sorted(series)]
     graph.series = [StatData("CPU Usage in %", ",".join(map(str, data)))]
@@ -530,7 +530,7 @@ selectTab = function (tabid) {
     graph = StatGraph()
     series = dict()
     for stat_entry in stats:
-      for s in stat_entry.data.io_samples:
+      for s in stat_entry.io_samples:
         series[int(s.timestamp/1e3)] = int(s.read_bytes)
     data = [[k, series[k]] for k in sorted(series)]
     graph.series = [StatData("IO Bytes Read", ",".join(map(str, data)))]
@@ -542,7 +542,7 @@ selectTab = function (tabid) {
     graph = StatGraph()
     series = dict()
     for stat_entry in stats:
-      for s in stat_entry.data.io_samples:
+      for s in stat_entry.io_samples:
         series[int(s.timestamp/1e3)] = int(s.write_bytes)
     data = [[k, series[k]] for k in sorted(series)]
     graph.series = [StatData("IO Bytes Written", ",".join(map(str, data)))]
@@ -555,13 +555,13 @@ selectTab = function (tabid) {
     graph = StatGraph()
     series = dict()
     for stat_entry in stats:
-      series[int(stat_entry.age/1e3)] = int(stat_entry.data.RSS_size)
+      series[int(stat_entry.age/1e3)] = int(stat_entry.RSS_size)
     data = [[k, series[k]] for k in sorted(series)]
     graph.series = [StatData("RSS size", ",".join(map(str, data)))]
 
     series = dict()
     for stat_entry in stats:
-      series[int(stat_entry.age/1e3)] = int(stat_entry.data.VMS_size)
+      series[int(stat_entry.age/1e3)] = int(stat_entry.VMS_size)
     data = [[k, series[k]] for k in sorted(series)]
     graph.series.append(StatData("VMS size", ",".join(map(str, data))))
 
@@ -574,7 +574,7 @@ selectTab = function (tabid) {
     graph = StatGraph()
     series = dict()
     for stat_entry in stats:
-      series[int(stat_entry.age/1e3)] = int(stat_entry.data.bytes_received)
+      series[int(stat_entry.age/1e3)] = int(stat_entry.bytes_received)
     data = [[k, series[k]] for k in sorted(series)]
     graph.series = [StatData("Network Bytes Received",
                              ",".join(map(str, data)))]
@@ -586,7 +586,7 @@ selectTab = function (tabid) {
     graph = StatGraph()
     series = dict()
     for stat_entry in stats:
-      series[int(stat_entry.age/1e3)] = int(stat_entry.data.bytes_sent)
+      series[int(stat_entry.age/1e3)] = int(stat_entry.bytes_sent)
     data = [[k, series[k]] for k in sorted(series)]
     graph.series = [StatData("Network Bytes Sent", ",".join(map(str, data)))]
     graph.name = "Network Bytes Sent"

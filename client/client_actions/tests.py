@@ -22,6 +22,7 @@
 from grr.client.client_actions import admin_test
 from grr.client.client_actions import file_fingerprint_test
 from grr.client.client_actions import searching_test
+from grr.client.client_actions import standard_test
 
 # Enable the volatility specific client actions only if volatility is installed.
 try:

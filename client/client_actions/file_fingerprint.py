@@ -20,38 +20,39 @@ import hashlib
 from grr.parsers import fingerprint
 from grr.client import vfs
 from grr.client.client_actions import standard
-from grr.lib import utils
-from grr.proto import jobs_pb2
+from grr.lib import rdfvalue
 
 
 class FingerprintFile(standard.ReadBuffer):
   """Apply a set of fingerprinting methods to a file."""
-  in_protobuf = jobs_pb2.FingerprintRequest
-  out_protobuf = jobs_pb2.FingerprintResponse
+  in_rdfvalue = rdfvalue.FingerprintRequest
+  out_rdfvalue = rdfvalue.FingerprintResponse
 
   _hash_types = {
-      jobs_pb2.FingerprintTuple.MD5: hashlib.md5,
-      jobs_pb2.FingerprintTuple.SHA1: hashlib.sha1,
-      jobs_pb2.FingerprintTuple.SHA256: hashlib.sha256,
+      rdfvalue.FingerprintTuple.Enum("MD5"): hashlib.md5,
+      rdfvalue.FingerprintTuple.Enum("SHA1"): hashlib.sha1,
+      rdfvalue.FingerprintTuple.Enum("SHA256"): hashlib.sha256,
   }
 
   _fingerprint_types = {
-      jobs_pb2.FPT_GENERIC: fingerprint.Fingerprinter.EvalGeneric,
-      jobs_pb2.FPT_PE_COFF: fingerprint.Fingerprinter.EvalPecoff,
+      rdfvalue.FingerprintTuple.Enum("FPT_GENERIC"):
+      fingerprint.Fingerprinter.EvalGeneric,
+      rdfvalue.FingerprintTuple.Enum("FPT_PE_COFF"):
+      fingerprint.Fingerprinter.EvalPecoff,
   }
 
   def Run(self, args):
     """Fingerprint a file."""
     with vfs.VFSOpen(args.pathspec) as file_obj:
       fingerprinter = fingerprint.Fingerprinter(file_obj)
-      response = jobs_pb2.FingerprintResponse()
+      response = rdfvalue.FingerprintResponse()
       if args.tuples:
         tuples = args.tuples
       else:
         # There are none selected -- we will cover everything
         tuples = list()
         for k in self._fingerprint_types.iterkeys():
-          tuples.append(jobs_pb2.FingerprintTuple(fp_type=k))
+          tuples.append(rdfvalue.FingerprintTuple(fp_type=k))
 
       for finger in tuples:
         hashers = [self._hash_types[h] for h in finger.hashers] or None
@@ -68,7 +69,5 @@ class FingerprintFile(standard.ReadBuffer):
       # name of the hashing method, hashes for enabled hash algorithms,
       # and auxilliary data where present (e.g. signature blobs).
       # Also see Fingerprint:HashIt()
-      result = fingerprinter.HashIt()
-      proto_dicts = [utils.ProtoDict(r).ToProto() for r in result]
-      response.fingerprint_results.extend(proto_dicts)
+      response.fingerprint_results = fingerprinter.HashIt()
       self.SendReply(response)

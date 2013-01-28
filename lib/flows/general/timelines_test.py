@@ -18,8 +18,8 @@
 
 from grr.client import vfs
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import jobs_pb2
 
 
 class TestTimelines(test_lib.FlowTestsBaseclass):
@@ -30,14 +30,18 @@ class TestTimelines(test_lib.FlowTestsBaseclass):
   def testMACTimes(self):
     """Test that the timelining works with files."""
     # Install the mock
-    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = test_lib.ClientVFSHandlerFixture
+    vfs.VFS_HANDLERS[
+        rdfvalue.RDFPathSpec.Enum("OS")] = test_lib.ClientVFSHandlerFixture
 
     client_mock = test_lib.ActionMock("ListDirectory")
     output_path = "analysis/Timeline/MAC"
 
+    pathspec = rdfvalue.RDFPathSpec(path="/",
+                                    pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+
     for _ in test_lib.TestFlowHelper(
         "RecursiveListDirectory", client_mock, client_id=self.client_id,
-        path="/", pathtype=jobs_pb2.Path.OS, token=self.token):
+        pathspec=pathspec, token=self.token):
       pass
 
     # Now make a timeline

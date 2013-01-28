@@ -18,54 +18,8 @@
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.proto import jobs_pb2
-
-
-class RDFPathSpec(aff4.RDFProto):
-  """A path specification."""
-  _proto = jobs_pb2.Path
-
-  # This is an alias for self.data.
-  pathspec = None
-
-  def __init__(self, serialized=None, age=None):
-    # Instantiate from RDFPathSpec
-    if isinstance(serialized, RDFPathSpec):
-      aff4.RDFProto.__init__(self, None, serialized.age)
-      self.data = serialized.data
-
-    # Allow ourselves to be instantiated from a protobuf
-    elif isinstance(serialized, self._proto):
-      aff4.RDFProto.__init__(self, None, age)
-      self.data = serialized
-
-    # Or a utility class instance
-    elif isinstance(serialized, utils.Pathspec):
-      aff4.RDFProto.__init__(self, None, age)
-      self.data = serialized.ToProto()
-
-    # Or a string
-    else:
-      self.data = self._proto()
-      aff4.RDFProto.__init__(self, serialized, age)
-
-    self.pathspec = self.data
-
-
-class StatEntry(aff4.RDFProto):
-  """Represent an extended stat response."""
-  _proto = jobs_pb2.StatResponse
-
-  # Translate these fields as RDFValue objects.
-  rdf_map = dict(st_mtime=aff4.RDFDatetimeSeconds,
-                 st_atime=aff4.RDFDatetimeSeconds,
-                 st_ctime=aff4.RDFDatetimeSeconds,
-                 st_inode=aff4.RDFInteger,
-                 st_dev=aff4.RDFInteger,
-                 st_nlink=aff4.RDFInteger,
-                 st_size=aff4.RDFInteger,
-                 pathspec=RDFPathSpec)
 
 
 class VFSDirectory(aff4.AFF4Volume):
@@ -75,11 +29,12 @@ class VFSDirectory(aff4.AFF4Volume):
   # We contain other objects within the tree.
   _behaviours = frozenset(["Container"])
 
-  def Query(self, filter_string="", filter_obj=None, limit=1000):
+  def Query(self, filter_string="", filter_obj=None, limit=1000,
+            age=aff4.NEWEST_TIME):
     """This queries the Directory using a filter expression."""
 
     direct_children_filter = data_store.DB.filter.SubjectContainsFilter(
-        "%s/[^/]+$" % data_store.EscapeRegex(self.urn))
+        "%s/[^/]+$" % utils.EscapeRegex(self.urn))
 
     if not filter_string and filter_obj is None:
       filter_obj = direct_children_filter
@@ -93,7 +48,8 @@ class VFSDirectory(aff4.AFF4Volume):
           ast.Compile(data_store.DB.filter),
           direct_children_filter)
 
-    return super(VFSDirectory, self).Query(filter_obj=filter_obj, limit=limit)
+    return super(VFSDirectory, self).Query(filter_obj=filter_obj, limit=limit,
+                                           age=age)
 
   def Update(self, attribute=None):
     """Refresh an old attribute.
@@ -121,7 +77,7 @@ class VFSDirectory(aff4.AFF4Volume):
         # client id is the first path element
         client_id = self.urn.Path().split("/", 2)[1]
         flow_id = flow.FACTORY.StartFlow(client_id, "ListDirectory",
-                                         pathspec=pathspec.data,
+                                         pathspec=pathspec,
                                          notify_to_user=False, token=self.token)
       else:
         raise IOError("Item has no pathspec.")
@@ -130,12 +86,12 @@ class VFSDirectory(aff4.AFF4Volume):
 
   class SchemaCls(aff4.AFF4Volume.SchemaCls):
     """Attributes specific to VFSDirectory."""
-    STAT = aff4.Attribute("aff4:stat", StatEntry,
+    STAT = aff4.Attribute("aff4:stat", rdfvalue.StatEntry,
                           "A StatResponse protobuf describing this file.",
                           "stat")
 
     PATHSPEC = aff4.Attribute(
-        "aff4:pathspec", RDFPathSpec,
+        "aff4:pathspec", rdfvalue.RDFPathSpec,
         "The pathspec used to retrieve this object from the client.",
         "pathspec")
 
@@ -226,10 +182,12 @@ class HashImage(aff4.AFF4Image):
     """The schema for AFF4 files in the GRR VFS."""
     STAT = aff4.AFF4Object.VFSDirectory.SchemaCls.STAT
     CONTENT_LOCK = aff4.Attribute(
-        "aff4:content_lock", aff4.RDFURN,
+        "aff4:content_lock", rdfvalue.RDFURN,
         "This lock contains a URN pointing to the flow that is currently "
         "updating this object.")
-    FINGERPRINT = aff4.Attribute("aff4:fingerprint", aff4.RDFFingerprintValue,
+
+    FINGERPRINT = aff4.Attribute("aff4:fingerprint",
+                                 rdfvalue.FingerprintResponse,
                                  "Protodict containing arrays of hashes.")
 
 

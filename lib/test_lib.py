@@ -42,13 +42,15 @@ from grr.lib import access_control
 from grr.lib import aff4
 # pylint: disable=unused-import
 from grr.lib import aff4_objects
+from grr.lib import config_lib
 from grr.lib import data_store
-# Load the fake data store implementation
-from grr.lib import fake_data_store
+from grr.lib import data_stores
+from grr.lib import email_alerts
 # pylint: enable=unused-import
 
 from grr.lib import flow
 from grr.lib import flow_context
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import scheduler
 from grr.lib import utils
@@ -67,22 +69,20 @@ flags.DEFINE_string("test_datadir",
                     help="The directory relative to the srcdir "
                     "where test data exist.")
 
-flags.DEFINE_string("test_keydir",
-                    default="grr/keys/test",
-                    help="The directory relative to the srcdir "
-                    "where test keys exist.")
+flags.DEFINE_string("test_config",
+                    default="grr/config/grr_test.conf",
+                    help="The path relative to the srcdir "
+                    "where configuration file exists.")
 
 flags.DEFINE_string("test_data_store", "FakeDataStore",
                     "The data store to run the tests against.")
-
-flags.DEFINE_bool("nomock", False,
-                  "Run client tests on real system not a mock.")
 
 flags.DEFINE_integer("remote_pdb_port", 2525,
                      "Remote debugger port.")
 
 
 FLAGS = flags.FLAGS
+CONFIG = config_lib.CONFIG
 
 #  Since GRRFlow is an abstract class we have some concrete
 #  implementations here for testing.
@@ -134,7 +134,7 @@ class BrokenFlow(flow.GRRFlow):
 
 class WellKnownSessionTest(flow.WellKnownFlow):
   """Tests the well known flow implementation."""
-  well_known_session_id = "test:TestSessionId"
+  well_known_session_id = "aff4:/flows/test:TestSessionId"
   messages = []
 
   def __init__(self, *args, **kwargs):
@@ -145,12 +145,32 @@ class WellKnownSessionTest(flow.WellKnownFlow):
     self.messages.append(int(message.args))
 
 
-class MockSecurityManager(data_store.BaseAccessControlManager):
-  """A special security manager which ensures that the token is valid.
+class MockUserManager(access_control.BaseUserManager):
 
-  This guarantees that the correct access token has been passed to the security
-  manager.
+  def __init__(self):
+    super(MockUserManager, self).__init__()
+    self.labels = []
+
+  # pylint: disable=unused-argument
+  def SetUserLabels(self, username, labels):
+    self.labels = list(labels)
+
+  def GetUserLabels(self, username):
+    return self.labels
+
+  # pylint: enable=unused-argument
+
+
+class MockSecurityManager(access_control.BaseAccessControlManager):
+  """A simple in memory ACL manager which only enforces the Admin label.
+
+  This also guarantees that the correct access token has been passed to the
+  security manager.
+
+  Note: No user management, we assume a single test user.
   """
+
+  user_manager_cls = MockUserManager
 
   def CheckAccess(self, token, subjects, requested_access="r"):
     _ = subjects, requested_access
@@ -167,16 +187,31 @@ class GRRBaseTest(unittest.TestCase):
   __metaclass__ = registry.MetaclassRegistry
   include_plugins_as_attributes = True
 
+  def __init__(self, methodName=None):
+    """Hack around unittest's stupid constructor.
+
+    We sometimes need to instantiate the test suite without running any tests -
+    e.g. to start initialization or setUp() functions. The unittest constructor
+    requires to provide a valid method name.
+
+    Args:
+      methodName: The test method to run.
+    """
+    super(GRRBaseTest, self).__init__(methodName=methodName or "__init__")
+
   def setUp(self):
     # We want to use the fake usually
     FLAGS.storage = FLAGS.test_data_store
+
+    # Ensure the config is set to our test config file.
+    FLAGS.config = os.path.join(FLAGS.test_srcdir, FLAGS.test_config)
 
     # Recreate a new data store each time.
     registry.TestInit()
     vfs.VFSInit()
 
     self.base_path = os.path.join(FLAGS.test_srcdir, FLAGS.test_datadir)
-    self.key_path = os.path.join(FLAGS.test_srcdir, FLAGS.test_keydir)
+
     self.token = data_store.ACLToken("test", "Running tests")
 
     if self.install_mock_acl:
@@ -188,16 +223,6 @@ class GRRBaseTest(unittest.TestCase):
     doc = self._testMethodDoc or ""
     doc = doc.split("\n")[0].strip()
     return "%s - %s\n" % (self, doc)
-
-  def assertItemsEqual(self, x, y):
-    """This method is present in python 2.7 but is here for compatibility."""
-    self.assertEqual(sorted(x), sorted(y))
-
-  def assertIsInstance(self, got_object, expected_class, msg=""):
-    """Checks that got_object is an instance of expected_class or sub-class."""
-    if not isinstance(got_object, expected_class):
-      self.fail("%r is not an instance of %r. %s" % (got_object,
-                                                     expected_class, msg))
 
   def assertProto2Equal(self, x, y):
    self.assertEqual(x, y)
@@ -264,6 +289,10 @@ class GRRBaseTest(unittest.TestCase):
     finally:
       result.stopTest(self)
 
+  def MakeUserAdmin(self, username):
+    """Makes the test user an admin."""
+    data_store.DB.security_manager.user_manager.MakeUserAdmin(username)
+
 
 class EmptyActionTest(GRRBaseTest):
   """Test the client Actions."""
@@ -281,17 +310,18 @@ class EmptyActionTest(GRRBaseTest):
       A list of response protobufs.
     """
     if arg is None:
-      arg = jobs_pb2.GrrMessage()
+      arg = rdfvalue.GRRMessage()
 
-    message = jobs_pb2.GrrMessage(name=action_name,
-                                  args=arg.SerializeToString())
+    message = rdfvalue.GRRMessage(name=action_name,
+                                  payload=arg)
     action_cls = actions.ActionPlugin.classes[message.name]
     results = []
 
     # Monkey patch a mock SendReply() method
     def MockSendReply(self, reply=None, **kwargs):
       if reply is None:
-        reply = self.out_protobuf(**kwargs)
+        reply = self.out_rdfvalue(**kwargs)
+
       results.append(reply)
 
     action_cls.SendReply = MockSendReply
@@ -313,10 +343,10 @@ class FlowTestsBaseclass(GRRBaseTest):
       client_id = "C.1%015d" % i
       client_ids.append(client_id)
       fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=self.token)
-      fd.Set(fd.Schema.CERT, aff4.FACTORY.RDFValue("RDFX509Cert")(
-          open(os.path.join(self.key_path, "cert.pem")).read()))
+      fd.Set(fd.Schema.CERT, rdfvalue.RDFX509Cert(
+          CONFIG["Test.Test_Client_Cert"]))
       info = fd.Schema.CLIENT_INFO()
-      info.data.client_name = "GRR Monitor"
+      info.client_name = "GRR Monitor"
       fd.Set(fd.Schema.CLIENT_INFO, info)
       fd.Close()
     return client_ids
@@ -324,7 +354,7 @@ class FlowTestsBaseclass(GRRBaseTest):
   def DeleteClients(self, nr_clients):
     for i in range(nr_clients):
       client_id = "C.1%015d" % i
-      data_store.DB.DeleteSubject(client_id)
+      data_store.DB.DeleteSubject(client_id, token=self.token)
 
   def setUp(self):
     GRRBaseTest.setUp(self)
@@ -352,6 +382,36 @@ class GRRSeleniumTest(GRRBaseTest):
 
   # This is the global selenium handle.
   selenium = None
+
+  # Whether InstallACLChecks() was called during the test
+  acl_checks_installed = False
+
+  def InstallACLChecks(self):
+    """Installs AccessControlManager and stubs out SendEmail."""
+    if self.acl_checks_installed:
+      return
+
+    self.old_security_manager = data_store.DB.security_manager
+    data_store.DB.security_manager = access_control.FullAccessControlManager()
+
+    # Stub out the email function
+    self.old_send_email = email_alerts.SendEmail
+    self.emails_sent = []
+
+    def SendEmailStub(from_user, to_user, subject, message, **unused_kwargs):
+      self.emails_sent.append((from_user, to_user, subject, message))
+
+    email_alerts.SendEmail = SendEmailStub
+    self.acl_checks_installed = True
+
+  def UninstallACLChecks(self):
+    """Deinstall previously installed ACL checks."""
+    if not self.acl_checks_installed:
+      return
+
+    data_store.DB.security_manager = self.old_security_manager
+    email_alerts.SendEmail = self.old_send_email
+    self.acl_checks_installed = False
 
   def WaitUntil(self, condition_cb, *args):
     for _ in range(self.duration):
@@ -443,15 +503,15 @@ class MockClient(object):
     if message.request_id == 0:
       # Assume the message is authenticated and comes from this client.
       message.source = self.client_id
-      message.auth_state = jobs_pb2.GrrMessage.AUTHENTICATED
+      message.auth_state = rdfvalue.GRRMessage.Enum("AUTHENTICATED")
 
-      flow_name = message.session_id.split(":")[1]
+      flow_name = scheduler.SCHEDULER.QueueNameFromURN(message.session_id)
       context = flow_context.FlowContext(flow_name=flow_name, token=self.token)
       flow.GRRFlow.classes[flow_name](context=context).ProcessMessage(message)
       return
 
     # Assume the client is authorized
-    message.auth_state = jobs_pb2.GrrMessage.AUTHENTICATED
+    message.auth_state = rdfvalue.GRRMessage.Enum("AUTHENTICATED")
 
     # Update kw args
     for k, v in kw.items():
@@ -488,21 +548,32 @@ class MockClient(object):
         logging.info("Called client action %s generating %s responses",
                      message.name, len(responses) + 1)
 
-        status = jobs_pb2.GrrStatus()
+        status = rdfvalue.GrrStatus()
       except Exception as e:  # pylint: disable=W0703
         logging.exception("Error %s occurred in client", e)
 
         # Error occurred.
         responses = []
-        status = jobs_pb2.GrrStatus(status=jobs_pb2.GrrStatus.GENERIC_ERROR)
+        status = rdfvalue.GrrStatus(
+            status=rdfvalue.GrrStatus.Enum("GENERIC_ERROR"))
 
       # Now insert those on the flow state queue
       for response in responses:
-        if not isinstance(response, jobs_pb2.GrrMessage):
-          response = jobs_pb2.GrrMessage(
+        if isinstance(response, rdfvalue.GrrStatus):
+          msg_type = rdfvalue.GRRMessage.Enum("STATUS")
+          response = rdfvalue.GRRMessage(
               session_id=message.session_id, name=message.name,
               response_id=response_id, request_id=message.request_id,
-              args=response.SerializeToString())
+              payload=response,
+              type=msg_type)
+
+        elif not isinstance(response, rdfvalue.GRRMessage):
+          msg_type = rdfvalue.GRRMessage.Enum("MESSAGE")
+          response = rdfvalue.GRRMessage(
+              session_id=message.session_id, name=message.name,
+              response_id=response_id, request_id=message.request_id,
+              payload=response,
+              type=msg_type)
 
         # Next expected response
         response_id = response.response_id + 1
@@ -511,11 +582,12 @@ class MockClient(object):
       # Add a Status message to the end
       self.PushToStateQueue(message, response_id=response_id,
                             args=status.SerializeToString(),
-                            type=jobs_pb2.GrrMessage.STATUS)
+                            type=rdfvalue.GRRMessage.Enum("STATUS"))
 
       # Additionally schedule a task for the worker
-      queue_name = message.session_id.split(":")[0]
+      queue_name = scheduler.SCHEDULER.QueueNameFromURN(message.session_id)
       scheduler.SCHEDULER.NotifyQueue(queue_name, message.session_id,
+                                      priority=message.priority,
                                       token=self.token)
 
     return len(request_tasks)
@@ -539,7 +611,7 @@ class MockThreadPool(object):
     pass
 
 
-class MockWorker(object):
+class MockWorker(flow.GRRWorker):
   """Mock the worker."""
 
   def __init__(self, queue_name="W", check_flow_errors=True, token=None):
@@ -568,21 +640,15 @@ class MockWorker(object):
     Raises:
       RuntimeError: if the flow terminates with an error.
     """
-
-    # Check which sessions have new data. Very small limit forces serialization
-    # of flows after each state run to catch unpickleable objects.
-    active_sessions = []
-    now = int(time.time() * 1e6)
-    for predicate, _, _ in data_store.DB.ResolveRegex(
-        self.queue_name, flow_context.FlowManager.FLOW_TASK_REGEX,
-        timestamp=(0, now), token=self.token, limit=1):
-      session_id = predicate.split(":", 1)[1]
-      active_sessions.append(session_id)
+    sessions_available = scheduler.SCHEDULER.GetSessionsFromQueue(
+        self.queue_name, self.token)
 
     # Run all the flows until they are finished
     run_sessions = []
 
-    for session_id in active_sessions:
+    # Only sample one session at the time to force serialization of flows after
+    # each state run - this helps to catch unpickleable objects.
+    for session_id in sessions_available[:1]:
       scheduler.SCHEDULER.DeleteNotification(self.queue_name, session_id,
                                              token=self.token)
       run_sessions.append(session_id)
@@ -607,7 +673,8 @@ class MockWorker(object):
 
         logging.info("Flow pickle is %s bytes",
                      len(flow_pb.SerializeToString()))
-        if self.check_flow_errors and flow_pb.state == jobs_pb2.FlowPB.ERROR:
+        if (self.check_flow_errors and
+            flow_pb.state == rdfvalue.Flow.Enum("ERROR")):
           logging.exception("Flow terminated in state %s with an error: %s",
                             flow_obj.context.current_state, flow_pb.backtrace)
           raise RuntimeError(flow_pb.backtrace)
@@ -646,14 +713,14 @@ class ActionMock(object):
     self.action_counts = dict((x, 0) for x in action_names)
 
   def HandleMessage(self, message):
-    message.auth_state = jobs_pb2.GrrMessage.AUTHENTICATED
+    message.auth_state = rdfvalue.GRRMessage.Enum("AUTHENTICATED")
     client_worker = self.FakeClientWorker()
     if hasattr(self, message.name):
       return getattr(self, message.name)(message.args)
 
     action_cls = self.action_classes[message.name]
     action = action_cls(message=message, grr_worker=client_worker)
-    action.Execute(message)
+    action.Execute()
     self.action_counts[message.name] += 1
     return client_worker.responses
 
@@ -663,25 +730,25 @@ class ActionMock(object):
     def __init__(self):
       self.responses = []
 
-    def SendReply(self, protobuf, message_type=jobs_pb2.GrrMessage.MESSAGE,
-                  **kw):
-      message = jobs_pb2.GrrMessage(
-          type=message_type, args=protobuf.SerializeToString(), **kw)
+    def SendReply(self, rdf_value,
+                  message_type=rdfvalue.GRRMessage.Enum("MESSAGE"), **kw):
+      message = rdfvalue.GRRMessage(
+          type=message_type, payload=rdf_value, **kw)
 
       self.responses.append(message)
 
 
 class Test(actions.ActionPlugin):
   """A test action which can be used in mocks."""
-  in_protobuf = jobs_pb2.DataBlob
-  out_protobuf = jobs_pb2.DataBlob
+  in_rdfvalue = rdfvalue.DataBlob
+  out_rdfvalue = rdfvalue.DataBlob
 
 
 def CheckFlowErrors(total_flows, token=None):
   # Check that all the flows are complete.
   for session_id in total_flows:
     flow_pb = flow.FACTORY.FetchFlow(session_id, token=token)
-    if flow_pb.state != jobs_pb2.FlowPB.TERMINATED:
+    if flow_pb.state != rdfvalue.Flow.Enum("TERMINATED"):
       if FLAGS.debug:
         pdb.set_trace()
 
@@ -737,7 +804,9 @@ def TestHuntHelper(client_mock, client_ids, check_flow_errors=False,
     client_processed = 0
     for client_mock in client_mocks:
       client_processed += client_mock.Next()
+
     flows_run = []
+
     for flow_run in worker_mock.Next():
       total_flows.add(flow_run)
       flows_run.append(flow_run)
@@ -812,24 +881,29 @@ class ClientFixture(object):
                                           token=self.token)
         for attribute_name, value in attributes.items():
           attribute = aff4.Attribute.PREDICATES[attribute_name]
-
-          if isinstance(value, str) or isinstance(value, unicode):
+          if isinstance(value, (str, unicode)):
             # Interpolate the value
-            value %= self.args
+            value = utils.SmartUnicode(value) % self.args
 
-            # For readability we store protobufs in text encoding.
-            if issubclass(attribute.attribute_type, aff4.RDFProto):
-              tmp_proto = attribute.attribute_type._proto()
+          # Is this supposed to be an RDFValue array?
+          if issubclass(attribute.attribute_type, rdfvalue.RDFValueArray):
+            rdfvalue_object = attribute()
+            for item in value:
+              new_object = rdfvalue_object.rdf_type.FromTextProtobuf(
+                  utils.SmartStr(item))
+              rdfvalue_object.Append(new_object)
 
-              text_format.Merge(utils.SmartStr(value), tmp_proto)
-              value = tmp_proto
+          # It is a text serialized protobuf.
+          elif issubclass(attribute.attribute_type, rdfvalue.RDFProto):
+            # Use the alternate constructor - we always write protobufs in
+            # textual form:
+            rdfvalue_object = attribute.attribute_type.FromTextProtobuf(
+                utils.SmartStr(value))
 
-          if issubclass(attribute.attribute_type, aff4.RDFProtoArray):
-            act = aff4_object.Get(attribute) or attribute()
-            act.Append(value)
-            aff4_object.Set(attribute, act)
           else:
-            aff4_object.AddAttribute(attribute, attribute(value))
+            rdfvalue_object = attribute(value)
+
+          aff4_object.AddAttribute(attribute, rdfvalue_object)
 
         # Make sure we do not actually close the object here - we only want to
         # sync back its attributes, not run any finalization code.
@@ -847,7 +921,7 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
   cache = {}
 
   paths = None
-  supported_pathtype = jobs_pb2.Path.OS
+  supported_pathtype = rdfvalue.RDFPathSpec.Enum("OS")
 
   # Do not auto-register.
   auto_register = False
@@ -878,14 +952,14 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
       if path == "/":
         continue
 
-      stat = jobs_pb2.StatResponse()
+      stat = rdfvalue.StatEntry()
       try:
         content = attributes["aff4:stat"]
         text_format.Merge(utils.SmartStr(content), stat)
       except KeyError:
         pass
-      stat.pathspec.pathtype = self.supported_pathtype
-      stat.pathspec.path = path
+      stat.pathspec = rdfvalue.RDFPathSpec(pathtype=self.supported_pathtype,
+                                           path=path)
       # TODO(user): Once we add tests around not crossing device boundaries,
       # we need to be smarter here, especially for the root entry.
       stat.st_dev = 1
@@ -902,17 +976,14 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
     for dirname, stat in self.paths.items():
       while 1:
         dirname = os.path.dirname(dirname)
-        partial_pathspec = utils.Pathspec(stat.pathspec).Dirname()
+        partial_pathspec = stat.pathspec.Dirname()
 
         if dirname == "/" or dirname in self.paths: break
 
-        new_stat = jobs_pb2.StatResponse()
-        new_stat.st_mode = 16877
-        new_stat.st_size = 1
-        new_stat.st_dev = 1
-        new_stat.pathspec.MergeFrom(partial_pathspec.ToProto())
-
-        self.paths[dirname] = new_stat
+        self.paths[dirname] = rdfvalue.StatEntry(st_mode=16877,
+                                                 st_size=1,
+                                                 st_dev=1,
+                                                 pathspec=partial_pathspec)
 
   def ListFiles(self):
     # First return exact matches
@@ -938,16 +1009,11 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
     return bool(self.ListFiles())
 
   def Stat(self):
-    response = jobs_pb2.StatResponse()
-
-    self.pathspec.ToProto(response.pathspec)
-
-    response.st_mode = 16877
-    response.st_size = 12288
-    response.st_atime = 1319796280
-    response.st_dev = 1
-
-    return response
+    return rdfvalue.StatEntry(pathspec=self.pathspec,
+                              st_mode=16877,
+                              st_size=12288,
+                              st_atime=1319796280,
+                              st_dev=1)
 
 
 class GrrTestProgram(unittest.TestProgram):
@@ -955,6 +1021,9 @@ class GrrTestProgram(unittest.TestProgram):
 
   def __init__(self, **kw):
     conf.PARSER.parse_args()
+    # Ensure the config is set to our test config file.
+    FLAGS.config = os.path.join(FLAGS.test_srcdir, FLAGS.test_config)
+    CONFIG.Initialize(FLAGS.config)
     registry.TestInit()
     super(GrrTestProgram, self).__init__(**kw)
 

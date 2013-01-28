@@ -22,8 +22,6 @@ import time
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import type_info
-from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 class VolatilityPlugins(flow.GRRFlow):
@@ -31,63 +29,72 @@ class VolatilityPlugins(flow.GRRFlow):
 
   This flow runs a volatility plugin. It relies on a memory driver
   being loaded on the client or it will fail.
-
-  Args:
-    plugins: A list of plugins to run.
-    args: A dict of dicts, the arguments to pass for each of the plugins.
-    device: Name of the device the memory driver created.
-    output: The path to the output container for this find. Will be created
-            under the client. supports format variables {u}, {p} and {t} for
-            user, plugin and time. E.g. /analysis/{p}/{u}-{t}.
   """
-
   category = "/Volatility/"
-
-  out_protobuf = jobs_pb2.VolatilityResponse
-  flow_typeinfo = {"profile": type_info.StringOrNone(),
-                   "plugin_list": type_info.List(type_info.String),
-                   "args": type_info.TypeInfoObject()}   # Fake out
-
   response_obj = "VolatilityResponse"
 
-  def __init__(self, plugins="modules,dlllist,pslist", args=None,
-               devicepath=r"\\.\pmem", profile=None,
-               output="analysis/{p}/{u}-{t}", **kw):
-    super(VolatilityPlugins, self).__init__(**kw)
-    device = jobs_pb2.Path(path=devicepath, pathtype=jobs_pb2.Path.MEMORY)
-    self.request = jobs_pb2.VolatilityRequest(device=device)
-    self.plugins = plugins
-    plugin_list = plugins.split(",")
-    if not plugin_list:
-      raise RuntimeError("Need some plugins to run.")
-    # Some basic sanity checking for args.
-    if args:
-      if len(plugin_list) == 1:
-        if plugin_list[0] not in args:
-          # We have been probably passed only the args for this one plugin.
-          args = {plugin_list[0]: args}
-      else:
-        if set(args.keys()) - set(plugin_list):
-          # There were args passed for a plugin not in the list.
-          raise RuntimeError("Malformed argument dict.")
+  # Allow running these plugins on any version or OS.
+  plugin_whitelist = ["raw2dmp", "imagecopy"]
 
-    self.request.args.MergeFrom(utils.ProtoDict(args or {}).ToProto())
-    for plugin in plugin_list:
-      self.request.plugins.append(plugin.strip())
-    if profile:
-      self.request.profile = profile
-    self.output = output
-    self.output_urn = ""
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.VolatilityRequestType(
+          description="A request for the client's volatility subsystem."),
+
+      type_info.String(
+          description="""
+The path to the output container for this flow. Will be created
+under the client. supports format variables {u}, {p} and {t} for
+user, plugin and time. E.g. /analysis/{p}/{u}-{t}.""",
+          name="output",
+          default="analysis/{p}/{u}-{t}"),
+
+      type_info.String(
+          description="A comma separated list of plugins.",
+          name="plugins",
+          default=""),
+      )
+
+  def GetPlugins(self):
+    return self.plugins.split(",")
 
   @flow.StateHandler(next_state=["StoreResults"])
   def Start(self):
+    """Call the client with the volatility actions."""
+    plugin_list = self.GetPlugins()
+    for plugin in plugin_list:
+      if plugin not in self.request.args:
+        self.request.args[plugin] = None
+
+      # Also support this deprecated request method for old clients.
+      self.request.plugins.Append(plugin)
+
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+
+    # Disable running everything but the raw2dmp action for non-windows and for
+    # windows 2000.
+    # This will need revision once we add further volatility support.
+    system = client.Get(client.Schema.SYSTEM)
+    version = str(client.Get(client.Schema.OS_VERSION))
+
+    if self.plugins not in self.plugin_whitelist:
+      if system != "Windows":
+        raise flow.FlowError("Volatility not supported on non-Windows.")
+      else:
+        # For Windows
+        if version[0:3] <= "5.0":
+          raise flow.FlowError("Cannot run volatility on versions < Win2K")
+
     self.CallClient("VolatilityAction", self.request, next_state="StoreResults")
 
   @flow.StateHandler()
   def StoreResults(self, responses):
+    """Stores the results."""
+    self.output_urn = None
     if not responses.success:
       self.Log("Error running plugins: %s.", responses.status)
       return
+
+    self.Log("Client returned %s responses." % len(responses))
 
     for response in responses:
       output = self.output.format(t=time.time(), u=self.user, p=response.plugin)
@@ -105,6 +112,8 @@ class VolatilityPlugins(flow.GRRFlow):
 
   @flow.StateHandler()
   def End(self):
+    if not self.output_urn:
+      self.output_urn = aff4.ROOT_URN.Add(self.client_id)
     self.Notify("ViewObject", self.output_urn,
                 "Ran volatility modules %s" % self.plugins)
 
@@ -122,7 +131,7 @@ class Mutexes(VolatilityPlugins):
             time. E.g. /analysis/mutexes/{u}-{t}.
   """
 
-  def __init__(self, devicepath=r"\\.\pmem", profile=None,
-               output="analysis/{p}/{u}-{t}", **kw):
-    super(Mutexes, self).__init__(plugins="mutantscan", devicepath=devicepath,
-                                  profile=profile, output=output, **kw)
+  flow_typeinfo = VolatilityPlugins.flow_typeinfo.Remove("plugins")
+
+  def GetPlugins(self):
+    return ["mutantscan"]

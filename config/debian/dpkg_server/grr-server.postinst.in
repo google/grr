@@ -1,25 +1,6 @@
-# Generate the CSRF/XSRF secret key
-if [ -x /usr/share/grr/scripts/generate_django_key.sh ];
-then
-  /usr/share/grr/scripts/generate_django_key.sh
-fi
-
-# Generate the keys
-if [ -x /usr/share/grr/scripts/generate_keys.sh ];
-then
-  /usr/share/grr/scripts/generate_keys.sh;
-else
-  echo "WARNING: unable to generate the keys".
-  echo "Try manually running: /usr/share/grr/scripts/generate_keys.sh";
-  echo "";
-fi
-
 echo "########################################################"
 echo "Post install done"
 echo ""
-echo "Next steps:"
-echo "1. Run /usr/share/grr/scripts/grr_add_user.sh"
-echo "2. Run /usr/share/grr/scripts/update_clients.sh"
-echo "3. Run /usr/share/grr/scripts/build_clients.sh"
-echo "4. Run /usr/share/grr/scripts/build_memory_drivers.sh"
+echo "Next step:"
+echo "   Run:   grr_config_updater initialize"
 echo "########################################################"

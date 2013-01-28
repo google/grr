@@ -21,6 +21,7 @@
 from grr.client import conf
 
 from grr.artifacts import win_artifacts
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
 from grr.proto import jobs_pb2
@@ -31,18 +32,11 @@ class TypeInfoTest(test_lib.GRRBaseTest):
   def testTypeInfoBoolObjects(self):
     """Test the type info objects behave as expected."""
     a = type_info.Bool()
-    self.assertRaises(type_info.TypeValueError, a.Validate, 1)
+    self.assertRaises(type_info.TypeValueError, a.Validate, 2)
     self.assertRaises(type_info.TypeValueError, a.Validate, None)
     a.Validate(True)
-    self.assertEqual(a.DecodeString("tRue"), True)
-    self.assertRaises(type_info.DecodeError, a.DecodeString, "None")
-
-    a = type_info.BoolOrNone()
-    self.assertRaises(type_info.TypeValueError, a.Validate, 1)
-    a.Validate(None)
-    a.Validate(False)
-    a.DecodeString(u"none")
-    a.DecodeString("false")
+    # 1 is a valid substitute for True.
+    a.Validate(1)
 
   def testTypeInfoStringObjects(self):
     """Test the type info objects behave as expected."""
@@ -52,15 +46,6 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     a.Validate("test")
     a.Validate(u"test")
     a.Validate(u"/test-Îñ铁网åţî[öñåļ(îžåţîờñ")
-    self.assertEqual(a.DecodeString(u"/test-Îñ铁网åţî[öñåļ(îžåţîờñ"),
-                     u"/test-Îñ铁网åţî[öñåļ(îžåţîờñ")
-    self.assertEqual(a.DecodeString("None"), "None")
-
-    a = type_info.StringOrNone()
-    self.assertRaises(type_info.TypeValueError, a.Validate, 1)
-    a.Validate(None)
-    a.Validate("test")
-    self.assertTrue(a.DecodeString(u"none") is None)
 
   def testTypeInfoEnumObjects(self):
     """Test the type info objects behave as expected."""
@@ -68,51 +53,11 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     self.assertRaises(type_info.TypeValueError, a.Validate, 9999)
     self.assertRaises(type_info.TypeValueError, a.Validate, None)
     a.Validate(jobs_pb2.Path.OS)
-    self.assertEqual(a.DecodeString("-1"), -1)
-    self.assertEqual(a.DecodeString("2"), 2)
-    self.assertRaises(type_info.DecodeError, a.DecodeString, "test")
 
-    a = type_info.ProtoEnumOrNone(jobs_pb2.Path, "PathType")
+    a = type_info.RDFEnum(rdfvalue.RDFPathSpec, "PathType")
     self.assertRaises(type_info.TypeValueError, a.Validate, 9999)
-    a.Validate(None)
-    a.Validate(jobs_pb2.Path.TSK)
-    self.assertTrue(a.DecodeString(u"none") is None)
-    a.DecodeString("1")
-
-  def testTypeInfoProtoObjects(self):
-    """Test the type info objects behave as expected."""
-    a = type_info.Proto(jobs_pb2.Path)
-    self.assertRaises(type_info.TypeValueError, a.Validate, "test")
     self.assertRaises(type_info.TypeValueError, a.Validate, None)
-    a.Validate(jobs_pb2.Path())
-
-    # No decode functionality yet.
-    self.assertRaises(type_info.DecodeError, a.DecodeString, "test")
-
-    a = type_info.ProtoOrNone(jobs_pb2.Path)
-    self.assertRaises(type_info.TypeValueError, a.Validate, "test")
-    a.Validate(None)
-    a.Validate(jobs_pb2.Path())
-    self.assertTrue(a.DecodeString(u"none") is None)
-
-  def testTypeInfoListProtoObjects(self):
-    """Test the type info list proto objects behave as expected."""
-    a = type_info.ListProto(jobs_pb2.Path)
-    self.assertRaises(type_info.TypeValueError, a.Validate, "test")
-    self.assertRaises(type_info.TypeValueError, a.Validate, 1)
-    self.assertRaises(type_info.TypeValueError, a.Validate, [1, 2])
-    self.assertRaises(type_info.TypeValueError, a.Validate, None)
-    a.Validate([jobs_pb2.Path()])
-
-    # Reject mixed protos.
-    self.assertRaises(type_info.TypeValueError, a.Validate,
-                      [jobs_pb2.Path(), jobs_pb2.GrrMessage()])
-
-    # No decode functionality yet.
-    self.assertRaises(type_info.DecodeError, a.DecodeString, "test")
-
-    a = type_info.ListProtoOrNone(jobs_pb2.Path)
-    a.Validate(None)
+    a.Validate(rdfvalue.RDFPathSpec.Enum("OS"))
 
   def testTypeInfoNumberObjects(self):
     """Test the type info objects behave as expected."""
@@ -121,17 +66,6 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     self.assertRaises(type_info.TypeValueError, a.Validate, None)
     a.Validate(1231232)
     a.Validate(-2)
-    self.assertEqual(a.DecodeString("1234"), 1234)
-    self.assertEqual(a.DecodeString("-1234"), -1234)
-    self.assertRaises(type_info.DecodeError, a.DecodeString, "None")
-
-    a = type_info.NumberOrNone()
-    self.assertRaises(type_info.TypeValueError, a.Validate, "a1")
-    a.Validate(None)
-    a.Validate(1234)
-    a.DecodeString(u"none")
-    a.DecodeString("123")
-    a.DecodeString("0")
 
   def testTypeInfoListObjects(self):
     """Test List objects."""
@@ -140,12 +74,9 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     self.assertRaises(type_info.TypeValueError, a.Validate, "test")
     self.assertRaises(type_info.TypeValueError, a.Validate, None)
     self.assertRaises(type_info.TypeValueError, a.Validate, ["test"])
-    self.assertRaises(type_info.TypeValueError, a.Validate, [jobs_pb2.Path()])
+    self.assertRaises(type_info.TypeValueError, a.Validate, [
+        rdfvalue.RDFPathSpec()])
     a.Validate([1, 2, 3])
-    self.assertRaises(type_info.DecodeError, a.DecodeString, "None")
-
-    a = type_info.ListOrNone(type_info.Number())
-    self.assertTrue(a.DecodeString(u"none") is None)
 
   def testTypeInfoArtifactObjects(self):
     """Test list List objects."""
@@ -157,8 +88,66 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     self.assertRaises(type_info.TypeValueError, a.Validate,
                       [win_artifacts.ApplicationEventLog])
 
-    a = type_info.ArtifactListOrNone()
-    self.assertTrue(a.DecodeString(u"none") is None)
+  def testTypeDescriptorSet(self):
+
+    type_infos = [
+        type_info.VolatilityRequestType(
+            description="A request for the client's volatility subsystem."),
+
+        type_info.String(
+            name="output",
+            default="analysis/{p}/{u}-{t}"),
+
+        type_info.String(
+            description="Profile to use.",
+            name="profile",
+            default=""),
+
+        type_info.String(
+            description="A comma separated list of plugins.",
+            name="plugins",
+            default=""),
+
+        type_info.GenericProtoDictType(
+            description="Volatility Arguments",
+            name="args"),
+    ]
+
+    info = type_info.TypeDescriptorSet(
+        type_infos[0],
+        type_infos[1],
+        type_infos[2],
+        type_infos[3],
+        type_infos[4],
+        )
+
+    new_info = type_info.TypeDescriptorSet(
+        type_infos[0],
+        type_infos[1],
+        )
+
+    updated_info = new_info + type_info.TypeDescriptorSet(
+        type_infos[2],
+        type_infos[3],
+        )
+
+    updated_info += type_info.TypeDescriptorSet(
+        type_infos[4],
+        )
+
+    self.assertEqual(info.descriptor_map, updated_info.descriptor_map)
+    self.assertEqual(sorted(info.descriptors), sorted(updated_info.descriptors))
+
+    self.assertTrue(type_infos[3] in updated_info)
+    self.assertTrue("plugins" in updated_info.descriptor_map)
+
+    removed_info = updated_info.Remove("plugins")
+
+    self.assertTrue(type_infos[3] in updated_info)
+    self.assertTrue("plugins" in updated_info.descriptor_map)
+
+    self.assertFalse(type_infos[3] in removed_info)
+    self.assertFalse("plugins" in removed_info.descriptor_map)
 
 
 def main(args):

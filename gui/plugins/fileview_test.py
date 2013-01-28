@@ -61,7 +61,6 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.CreateFileVersions()
 
     sel = self.selenium
-
     sel.open("/")
 
     self.WaitUntil(sel.is_element_present, "css=input[name=q]")
@@ -147,7 +146,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
     sel.click("link=bin C.0000000000000001")
 
     # Filter the table for bash (should match both bash and rbash)
-    self.WaitUntil(sel.is_element_present, "css=th:contains('Name')")
+    self.WaitUntil(sel.is_element_present, "css=td:contains('bash')")
     sel.click("css=th:contains('Name') img")
 
     sel.type("css=.sort-dialog input[type=text]", "bash")
@@ -182,8 +181,9 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.WaitUntil(sel.is_element_present,
                    "css=span:contains(\"Get a new Version\")")
     sel.click("css=span:contains(\"Get a new Version\")")
+
     sel.click("path_0")
-    self.WaitUntilEqual("fs", sel.get_text, "css=tr:nth(1) span")
+    self.WaitUntilEqual("fs", sel.get_text, "css=tr:nth(2) span")
 
     sel.click("css=span:contains(\"Stats\")")
     self.WaitUntilContains(

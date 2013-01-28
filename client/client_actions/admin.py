@@ -29,14 +29,14 @@ import logging
 from grr.client import actions
 from grr.client import client_config
 from grr.client import conf
+from grr.lib import rdfvalue
 from grr.lib import stats
-from grr.proto import jobs_pb2
 
 
 class Echo(actions.ActionPlugin):
   """Returns a message to the server."""
-  in_protobuf = jobs_pb2.PrintStr
-  out_protobuf = jobs_pb2.PrintStr
+  in_rdfvalue = rdfvalue.EchoRequest
+  out_rdfvalue = rdfvalue.LogMessage
 
   def Run(self, args):
     self.SendReply(args)
@@ -44,7 +44,7 @@ class Echo(actions.ActionPlugin):
 
 class GetHostname(actions.ActionPlugin):
   """Retrieves the host name of the client."""
-  out_protobuf = jobs_pb2.DataBlob
+  out_rdfvalue = rdfvalue.DataBlob
 
   def Run(self, unused_args):
     self.SendReply(string=socket.gethostname())
@@ -52,15 +52,32 @@ class GetHostname(actions.ActionPlugin):
 
 class GetPlatformInfo(actions.ActionPlugin):
   """Retrieves platform information."""
-  out_protobuf = jobs_pb2.Uname
+  out_rdfvalue = rdfvalue.Uname
 
   def Run(self, unused_args):
+    """Populate platform information into a Uname response."""
     uname = platform.uname()
-    self.SendReply(system=uname[0],
+    system = uname[0]
+    if system == "Windows":
+      service_pack = platform.win32_ver()[2]
+      kernel = uname[3]                           # 5.1.2600
+      release = uname[2]                          # XP, 2000, 7
+      version = uname[3] + service_pack           # 5.1.2600 SP3, 6.1.7601 SP1
+    elif system == "Darwin":
+      kernel = uname[2]                           # 12.2.0
+      release = "OSX"                             # OSX
+      version = platform.mac_ver()[0]             # 10.8.2
+    elif system == "Linux":
+      kernel = uname[2]                           # 3.2.5
+      release = platform.linux_distribution()[0]  # Ubuntu
+      version = platform.linux_distribution()[1]  # 12.04
+
+    self.SendReply(system=system,
                    node=uname[1],
-                   release=uname[2],
-                   version=uname[3],
-                   machine=uname[4])
+                   release=release,
+                   version=version,
+                   machine=uname[4],              # x86, x86_64
+                   kernel=kernel)
 
 
 class Kill(actions.ActionPlugin):
@@ -68,16 +85,15 @@ class Kill(actions.ActionPlugin):
 
   Used for testing process respawn.
   """
-  out_protobuf = jobs_pb2.GrrMessage
+  out_rdfvalue = rdfvalue.GRRMessage
 
   def Run(self, unused_arg):
     """Run the kill."""
     # Send a message back to the service to say that we are about to shutdown.
-    reply = jobs_pb2.GrrStatus()
-    reply.status = jobs_pb2.GrrStatus.OK
+    reply = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.Enum("OK"))
     # Queue up the response message, jump the queue.
-    self.SendReply(reply, message_type=jobs_pb2.GrrMessage.STATUS,
-                   priority=jobs_pb2.GrrMessage.HIGH_PRIORITY + 1)
+    self.SendReply(reply, message_type=rdfvalue.GRRMessage.Enum("STATUS"),
+                   priority=rdfvalue.GRRMessage.Enum("HIGH_PRIORITY") + 1)
 
     # Give the http thread some time to send the reply.
     self.grr_worker.Sleep(10)
@@ -92,7 +108,7 @@ class Hang(actions.ActionPlugin):
 
   Used for testing nanny terminating the client.
   """
-  in_protobuf = jobs_pb2.DataBlob
+  in_rdfvalue = rdfvalue.DataBlob
 
   def Run(self, arg):
     # Sleep a really long time.
@@ -101,7 +117,7 @@ class Hang(actions.ActionPlugin):
 
 class BusyHang(actions.ActionPlugin):
   """A client action that burns cpu cycles. Used for testing cpu limits."""
-  in_protobuf = jobs_pb2.DataBlob
+  in_rdfvalue = rdfvalue.DataBlob
 
   def Run(self, arg):
     end = time.time() + (arg.integer or 5)
@@ -111,7 +127,7 @@ class BusyHang(actions.ActionPlugin):
 
 class Bloat(actions.ActionPlugin):
   """A client action that uses lots of memory for testing."""
-  in_protobuf = jobs_pb2.DataBlob
+  in_rdfvalue = rdfvalue.DataBlob
 
   def Run(self, arg):
 
@@ -127,11 +143,11 @@ class Bloat(actions.ActionPlugin):
 
 class GetConfig(actions.ActionPlugin):
   """Retrieves the running configuration parameters."""
-  in_protobuf = None
-  out_protobuf = jobs_pb2.GRRConfig
+  in_rdfvalue = None
+  out_rdfvalue = rdfvalue.GRRConfig
 
   def Run(self, unused_arg):
-    out = jobs_pb2.GRRConfig()
+    out = rdfvalue.GRRConfig()
     for field in out.DESCRIPTOR.fields_by_name:
       if hasattr(conf.FLAGS, field):
         setattr(out, field, getattr(conf.FLAGS, field))
@@ -140,7 +156,7 @@ class GetConfig(actions.ActionPlugin):
 
 class UpdateConfig(actions.ActionPlugin):
   """Updates configuration parameters on the client."""
-  in_protobuf = jobs_pb2.GRRConfig
+  in_rdfvalue = rdfvalue.GRRConfig
 
   UPDATEABLE_FIELDS = ["compression",
                        "foreman_check_frequency",
@@ -157,12 +173,13 @@ class UpdateConfig(actions.ActionPlugin):
     """Does the actual work."""
     updated_keys = []
     disallowed_fields = []
+
     for field, value in arg.ListFields():
-      if field.name in self.UPDATEABLE_FIELDS:
-        setattr(conf.FLAGS, field.name, value)
-        updated_keys.append(field.name)
+      if field in self.UPDATEABLE_FIELDS:
+        setattr(conf.FLAGS, field, value)
+        updated_keys.append(field)
       else:
-        disallowed_fields.append(field.name)
+        disallowed_fields.append(field)
 
     if disallowed_fields:
       logging.warning("Received an update request for restricted field(s) %s.",
@@ -175,7 +192,7 @@ class UpdateConfig(actions.ActionPlugin):
 
 class GetClientInfo(actions.ActionPlugin):
   """Obtains information about the GRR client installed."""
-  out_protobuf = jobs_pb2.ClientInformation
+  out_rdfvalue = rdfvalue.ClientInformation
 
   def Run(self, unused_args):
 
@@ -188,34 +205,38 @@ class GetClientInfo(actions.ActionPlugin):
 
 class GetClientStats(actions.ActionPlugin):
   """This retrieves some stats about the GRR process."""
-  in_protobuf = None
-  out_protobuf = jobs_pb2.ClientStats
+  in_rdfvalue = None
+  out_rdfvalue = rdfvalue.ClientStats
 
   def Run(self, unused_arg):
     """Returns the client stats."""
-    response = jobs_pb2.ClientStats()
     proc = psutil.Process(os.getpid())
-    response.RSS_size, response.VMS_size = proc.get_memory_info()
-    response.memory_percent = proc.get_memory_percent()
-    response.bytes_received = stats.STATS.Get("grr_client_received_bytes")
-    response.bytes_sent = stats.STATS.Get("grr_client_sent_bytes")
-    response.create_time = long(proc.create_time * 1e6)
-    response.boot_time = long(psutil.BOOT_TIME * 1e6)
+    meminfo = proc.get_memory_info()
+    response = rdfvalue.ClientStats(
+        RSS_size=meminfo[0],
+        VMS_size=meminfo[1],
+        memory_percent=proc.get_memory_percent(),
+        bytes_received=stats.STATS.Get("grr_client_received_bytes"),
+        bytes_sent=stats.STATS.Get("grr_client_sent_bytes"),
+        create_time=long(proc.create_time * 1e6),
+        boot_time=long(psutil.BOOT_TIME * 1e6))
 
     samples = self.grr_worker.stats_collector.cpu_samples
     for (timestamp, user, system, percent) in samples:
-      sample = response.cpu_samples.add()
-      sample.timestamp = long(timestamp * 1e6)
-      sample.user_cpu_time = user
-      sample.system_cpu_time = system
-      sample.cpu_percent = percent
+      sample = rdfvalue.CpuSample(
+          timestamp=long(timestamp * 1e6),
+          user_cpu_time=user,
+          system_cpu_time=system,
+          cpu_percent=percent)
+      response.cpu_samples.Append(sample)
 
     samples = self.grr_worker.stats_collector.io_samples
     for (timestamp, read_bytes, write_bytes) in samples:
-      sample = response.io_samples.add()
-      sample.timestamp = long(timestamp * 1e6)
-      sample.read_bytes = read_bytes
-      sample.write_bytes = write_bytes
+      sample = rdfvalue.IOSample(
+          timestamp=long(timestamp * 1e6),
+          read_bytes=read_bytes,
+          write_bytes=write_bytes)
+      response.io_samples.Append(sample)
 
     self.Send(response)
 
@@ -231,35 +252,33 @@ class GetClientStatsAuto(GetClientStats):
                               session_id="W:Stats",
                               response_id=0,
                               request_id=0,
-                              priority=jobs_pb2.GrrMessage.LOW_PRIORITY,
-                              message_type=jobs_pb2.GrrMessage.MESSAGE,
+                              priority=rdfvalue.GRRMessage.Enum("LOW_PRIORITY"),
+                              message_type=rdfvalue.GRRMessage.Enum("MESSAGE"),
                               require_fastpoll=False)
 
 
 class SendStartupInfo(actions.ActionPlugin):
 
-  in_protobuf = None
-  out_protobuf = jobs_pb2.StartupInfo
+  in_rdfvalue = None
+  out_rdfvalue = rdfvalue.StartupInfo
 
-  well_known_session_id = "W:Startup"
+  well_known_session_id = "aff4:/flows/W:Startup"
 
   def Run(self, unused_arg, ttl=None):
     """Returns the startup information."""
 
-    response = jobs_pb2.StartupInfo()
-    client_info = jobs_pb2.ClientInformation(
-        client_name=client_config.GRR_CLIENT_NAME,
-        client_version=client_config.GRR_CLIENT_VERSION,
-        build_time=client_config.GRR_CLIENT_BUILDTIME)
-
-    response.client_info.MergeFrom(client_info)
-    response.boot_time = long(psutil.BOOT_TIME * 1e6)
+    response = rdfvalue.StartupInfo(
+        boot_time=long(psutil.BOOT_TIME * 1e6),
+        client_info=rdfvalue.ClientInformation(
+            client_name=client_config.GRR_CLIENT_NAME,
+            client_version=client_config.GRR_CLIENT_VERSION,
+            build_time=client_config.GRR_CLIENT_BUILDTIME))
 
     self.grr_worker.SendReply(response,
                               session_id=self.well_known_session_id,
                               response_id=0,
                               request_id=0,
-                              priority=jobs_pb2.GrrMessage.LOW_PRIORITY,
-                              message_type=jobs_pb2.GrrMessage.MESSAGE,
+                              priority=rdfvalue.GRRMessage.Enum("LOW_PRIORITY"),
+                              message_type=rdfvalue.GRRMessage.Enum("MESSAGE"),
                               require_fastpoll=False,
                               ttl=ttl)

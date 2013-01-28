@@ -5,7 +5,6 @@
 syntax = "proto2";
 
 
-
 // A Process record describing a system process.
 message Process {
   optional uint32 pid = 1;

@@ -25,25 +25,19 @@ import sys
 from grr.client import conf
 from grr.client import conf as flags
 
-from grr.client import client_config
-# pylint: disable=W0611
-from grr import artifacts
-
-from grr.lib import access_control
+from grr.lib import config_lib
 from grr.lib import data_store
-from grr.lib import mongo_data_store
 from grr.lib import flow
 from grr.lib import registry
+from grr.lib import server_plugins  # pylint: disable=W0611
 
-# Make sure we load the enroller module
-from grr.lib.flows import console
-from grr.lib.flows import general
-# pylint: enable=W0611
 
 flags.DEFINE_string("worker_queue_name", "W",
                     "The name of the queue for this worker.")
 
 FLAGS = flags.FLAGS
+CONFIG = config_lib.CONFIG
+CONFIG.flag_sections.append("ServerFlags")
 
 
 def main(unused_argv):

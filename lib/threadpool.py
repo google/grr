@@ -42,9 +42,17 @@ import threading
 import time
 
 
+from grr.client import conf as flags
 import logging
 
+from grr.lib import registry
 from grr.lib import stats
+
+
+flags.DEFINE_bool("mock_threadpool", False,
+                  "Use a single threaded mock for the threadpool.")
+
+FLAGS = flags.FLAGS
 
 STOP_MESSAGE = "Stop message"
 
@@ -89,6 +97,30 @@ class _WorkerThread(threading.Thread):
     self.daemon = True
     self.threadpool_name = threadpool_name
 
+  def ProcessTask(self, target, args, name, queueing_time):
+    """Processes the tasks."""
+
+    time_in_queue = time.time() - queueing_time
+    stats.STATS.ExportTime(self.threadpool_name + "_queueing_time",
+                           time_in_queue)
+
+    start_time = time.time()
+    try:
+      target(*args)
+    # We can't let a worker die because one of the tasks it has to process
+    # throws an exception. Therefore, we catch every error that is
+    # raised in the call to target().
+    except Exception as e:  # pylint: disable=W0703
+      stats.STATS.Increment(self.threadpool_name + "_task_exceptions")
+      logging.exception("Caught exception in worker thread (%s): %s",
+                        name, str(e))
+
+    total_time = time.time() - start_time
+    stats.STATS.ExportTimespanAvg(self.threadpool_name +
+                                  "_working_time_running_avg", total_time)
+    stats.STATS.ExportTime(self.threadpool_name + "_working_time",
+                           total_time)
+
   def run(self):
     """This overrides the Thread.run method.
 
@@ -106,28 +138,8 @@ class _WorkerThread(threading.Thread):
         if task == STOP_MESSAGE:
           break
 
-        target, args, name, queueing_time = task
+        self.ProcessTask(*task)
 
-        time_in_queue = time.time() - queueing_time
-        stats.STATS.ExportTime(self.threadpool_name + "_queueing_time",
-                               time_in_queue)
-
-        start_time = time.time()
-        try:
-          target(*args)
-        # We can't let a worker die because one of the tasks it has to process
-        # throws an exception. Therefore, we catch every error that is
-        # raised in the call to target().
-        except Exception as e:  # pylint: disable=W0703
-          stats.STATS.Increment(self.threadpool_name + "_task_exceptions")
-          logging.exception("Caught exception in worker thread (%s): %s",
-                            name, str(e))
-
-        total_time = time.time() - start_time
-        stats.STATS.ExportTimespanAvg(self.threadpool_name +
-                                      "_working_time_running_avg", total_time)
-        stats.STATS.ExportTime(self.threadpool_name + "_working_time",
-                               total_time)
       finally:
         self._queue.task_done()
 
@@ -252,8 +264,65 @@ class ThreadPool(object):
       args: A tuple of arguments to target.
       name: The name of this task. Used to identify tasks in the log.
     """
-    self._queue.put((target, args, name, time.time()))
+    try:
+      # Push the task on the queue but raise if unsuccessful.
+      self._queue.put((target, args, name, time.time()), block=False)
+    except Queue.Full:
+      # The pool cannot accept new work so in order to avoid deadlocks we just
+      # process one task inline.
+      try:
+        task = self._queue.get(block=False)
+      except Queue.Empty:
+        # All the tasks have finished in the meantime?! We just try again.
+        self.AddTask(target, args, name=name)
+        return
+
+      # Now create a worker and process the task.
+      try:
+        _WorkerThread(self.name, self._queue).ProcessTask(*task)
+      finally:
+        self._queue.task_done()
+        self.AddTask(target, args, name=name)
 
   def Join(self):
     """Waits until all outstanding tasks are completed."""""
     self._queue.join()
+
+
+class MockThreadPool(object):
+  """A mock thread pool which runs all jobs serially."""
+
+  def __init__(self, *_):
+    pass
+
+  def AddTask(self, target, args, name="Unnamed task"):
+    _ = name
+    try:
+      target(*args)
+      # The real threadpool can not raise from a task. We emulate this here.
+    except Exception:  # pylint: disable=broad-except
+      pass
+
+  @classmethod
+  def Factory(cls, name, num_threads):
+    return cls(name, num_threads)
+
+  def Start(self):
+    pass
+
+  def Stop(self):
+    pass
+
+  def Join(self):
+    pass
+
+
+class ThreadPoolInit(registry.InitHook):
+  def RunOnce(self):
+    if FLAGS.mock_threadpool:
+      logging.warning("Using mocked thread pool.")
+
+      # pylint: disable=global-variable-undefined, g-bad-name
+      global ThreadPool
+
+      ThreadPool = MockThreadPool

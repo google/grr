@@ -16,73 +16,57 @@
 
 
 
-import re
 import stat
 
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import rdfvalue
+from grr.lib import type_info
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 class FetchAllFiles(flow.GRRFlow):
-  """Fetch all files satisfying a findspec, unless already fetched."""
+  """This flow finds files, computes their hashes, and fetches 'new' files.
+
+  The result from this flow is a population of aff4 objects under
+  aff4:/fp/(generic|pecoff)/<hashname>/<hashvalue>.
+  There may also be a symlink from the original file to the retrieved
+  content.
+  """
 
   category = "/Filesystem/"
   _CHUNK_SIZE = 512 * 1024
   _MAX_FETCHABLE_SIZE = 100 * 1024 * 1024
 
-  def __init__(self, pattern="\.(exe|com|bat|dll|msi|sys|scr|pif)$",
-               pecoff=True, findspec=None, pathspec=None,
-               **kwargs):
-    """This flow finds files, computes their hashes, and fetches 'new' files.
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.Bool(
+          description=("This causes the computation of Authenticode "
+                       "hashes, and their use for deduplicating file fetches."),
+          name="pecoff",
+          default=True),
 
-    The result from this flow is a population of aff4 objects under
-    aff4:/fp/(generic|pecoff)/<hashname>/<hashvalue>.
-    There may also be a symlink from the original file to the retrieved
-    content.
+      type_info.FindSpecType(
+          description=("Which files to search for. The default is to search "
+                       "the entire system for files with an executable "
+                       "extension."),
+          name="findspec",
+          default=rdfvalue.RDFFindSpec(
+              pathspec=rdfvalue.RDFPathSpec(
+                  path="/",
+                  pathtype=rdfvalue.RDFPathSpec.Enum("OS")),
+              path_regex=r"\.(exe|com|bat|dll|msi|sys|scr|pif)$")
+          ),
+      )
 
-    Args:
-      pattern: filename_regex to search for. The default is good for windows.
-
-      pecoff: This causes the computation of Authenticode hashes, and their
-        use for deduplicating file fetches.
-
-      findspec: A jobs_pb2.Find, if specified, pattern and the pathspec
-        are ignored.
-
-      pathspec: If provided we start searching for the files recursively
-        from this path.
-    """
-    flow.GRRFlow.__init__(self, **kwargs)
-
+  @flow.StateHandler(next_state="IterateFind")
+  def Start(self):
+    """Issue the find request."""
     self.files_found = 0
     self.files_hashed = 0
     self.files_to_fetch = 0
     self.files_fetched = 0
     self.fd_store = {}
 
-    self.pecoff = pecoff
-    self.findspec = findspec
-    pathspec = (pathspec or
-                jobs_pb2.Path(pathtype=jobs_pb2.Path.OS, path="C:/"))
-    if self.findspec is None:
-      self.findspec = jobs_pb2.Find(pathspec=pathspec,
-                                    path_regex=pattern,
-                                    max_depth=999,
-                                    cross_devs=False)
-      self.findspec.iterator.number = 1000
-
-    # Check the regexes are valid.
-    try:
-      re.compile(self.findspec.data_regex)
-      re.compile(self.findspec.path_regex)
-    except re.error, e:
-      raise RuntimeError("Invalid regex for FindFiles. Err: {0}".format(e))
-
-  @flow.StateHandler(next_state="IterateFind")
-  def Start(self):
-    """Issue the find request."""
     self.CallClient("Find", self.findspec, next_state="IterateFind")
 
   @flow.StateHandler(next_state=["IterateFind", "CheckFingerprint"])
@@ -94,7 +78,6 @@ class FetchAllFiles(flow.GRRFlow):
       return
 
     for response in responses:
-
       # Create the file in the VFS
       vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
           response.hit.pathspec, self.client_id)
@@ -102,14 +85,20 @@ class FetchAllFiles(flow.GRRFlow):
 
       if stat.S_ISREG(response.hit.st_mode):
         self.files_found += 1
-        fingerspec = jobs_pb2.FingerprintRequest(pathspec=response.hit.pathspec)
-        finger = fingerspec.tuples.add(fp_type=jobs_pb2.FPT_GENERIC)
-        finger.hashers.append(jobs_pb2.FingerprintTuple.SHA256)
+
+        tuples = []
+        tuples.append(rdfvalue.FingerprintTuple(
+            fp_type=rdfvalue.FingerprintTuple.Enum("FPT_GENERIC"),
+            hashers=[rdfvalue.FingerprintTuple.Enum("SHA256")]))
 
         if self.pecoff:
-          finger = fingerspec.tuples.add(fp_type=jobs_pb2.FPT_PE_COFF)
-          finger.hashers.extend([jobs_pb2.FingerprintTuple.MD5,
-                                 jobs_pb2.FingerprintTuple.SHA1])
+          tuples.append(rdfvalue.FingerprintTuple(
+              fp_type=rdfvalue.FingerprintTuple.Enum("FPT_PE_COFF"),
+              hashers=[rdfvalue.FingerprintTuple.Enum("MD5"),
+                       rdfvalue.FingerprintTuple.Enum("SHA1")]))
+
+        fingerspec = rdfvalue.FingerprintRequest(pathspec=response.hit.pathspec,
+                                                 tuples=tuples)
 
         self.CallClient("FingerprintFile", fingerspec,
                         next_state="CheckFingerprint",
@@ -117,7 +106,7 @@ class FetchAllFiles(flow.GRRFlow):
 
     # In the future, might talk to parent to tell number of file stated / bytes
     # hashed / bytes fetched, so that the hunt knows what's going on?
-    if responses.iterator.state != jobs_pb2.Iterator.FINISHED:
+    if responses.iterator.state != rdfvalue.Iterator.Enum("FINISHED"):
       self.findspec.iterator.CopyFrom(responses.iterator)
       self.CallClient("Find", self.findspec, next_state="IterateFind")
     else:

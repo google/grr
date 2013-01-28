@@ -24,14 +24,15 @@ import logging
 
 from grr.client import actions
 from grr.client import vfs
+from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
 class Find(actions.IteratedAction):
   """Recurses through a directory returning files which match conditions."""
-  in_protobuf = jobs_pb2.Find
-  out_protobuf = jobs_pb2.Find
+  in_rdfvalue = rdfvalue.RDFFindSpec
+  out_rdfvalue = rdfvalue.RDFFindSpec
 
   # If this is true we cross filesystem boundaries.
   # This defaults to true so you can see mountpoints with ListDirectory.
@@ -43,7 +44,6 @@ class Find(actions.IteratedAction):
 
   def ListDirectory(self, pathspec, state, depth=0):
     """A Recursive generator of files."""
-    pathspec = utils.Pathspec(pathspec)
 
     # Limit recursion depth
     if depth >= self.max_depth: return
@@ -51,16 +51,16 @@ class Find(actions.IteratedAction):
     try:
       fd = vfs.VFSOpen(pathspec)
       files = list(fd.ListFiles())
-    except (IOError, OSError), e:
+    except (IOError, OSError) as e:
       if depth == 0:
         # We failed to open the directory the server asked for because dir
         # doesn't exist or some other reason. So we set status and return
         # back to the caller ending the Iterator.
-        self.SetStatus(jobs_pb2.GrrStatus.IOERROR, e)
+        self.SetStatus(rdfvalue.GrrStatus.Enum("IOERROR"), e)
       else:
         # Can't open the directory we're searching, ignore the directory.
-        logging.info("Find failed to ListDirectory for %s. Err: %s", pathspec,
-                     e)
+        logging.info("Find failed to ListDirectory for %s. Err: %s",
+                     pathspec, e)
       return
 
     # If we are not supposed to cross devices, and don't know yet
@@ -114,7 +114,7 @@ class Find(actions.IteratedAction):
 
     # Filename regex test
     if not self.filter_expression["filename_regex"].search(
-        utils.Pathspec(file_stat.pathspec).Basename()):
+        file_stat.pathspec.Basename()):
       return False
 
     # Should we test for content? (Key Error skips this check)
@@ -172,11 +172,10 @@ class Find(actions.IteratedAction):
     # TODO(user): What is a reasonable measure of work here?
     for count, f in enumerate(
         self.ListDirectory(request.pathspec, client_state)):
+
       # Only send the reply if the file matches all criteria
       if self.FilterFile(f):
-        result = jobs_pb2.Find()
-        result.hit.CopyFrom(f)
-        self.SendReply(result)
+        self.SendReply(rdfvalue.RDFFindSpec(hit=f))
 
       # We only check a limited number of files in each iteration. This might
       # result in returning an empty response - but the iterator is not yet
@@ -191,8 +190,8 @@ class Find(actions.IteratedAction):
 
 class Grep(actions.ActionPlugin):
   """Search a file for a pattern."""
-  in_protobuf = jobs_pb2.GrepRequest
-  out_protobuf = jobs_pb2.BufferReadMessage
+  in_rdfvalue = rdfvalue.GrepSpec
+  out_rdfvalue = rdfvalue.BufferReference
 
   def FindRegex(self, pattern, data):
     """Search the data for a hit."""

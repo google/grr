@@ -15,7 +15,7 @@ CMD="python2 $PREFIX/lib/pymodules/python2.7/grr/client/client.py \
 --poll_max=5 \
 --foreman_check_frequency=20 \
 --verbose \
---config=${TMP_CONFIG} \
+--client_config=${TMP_CONFIG} \
 $@"
 
 echo "Running:"

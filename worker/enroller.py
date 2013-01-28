@@ -25,18 +25,15 @@ from M2Crypto import X509
 from grr.client import conf
 from grr.client import conf as flags
 
-from grr.client import client_config
-# pylint: disable=W0611
+from grr.lib import config_lib
 from grr.lib import data_store
-# pylint: enable=W0611
-from grr.lib import mongo_data_store
 from grr.lib import flow
 from grr.lib import key_utils
-
 from grr.lib import registry
 
 # pylint: disable=W0611
 # Make sure we load the enroller module
+from grr.lib import server_plugins
 from grr.lib.flows import general
 from grr.lib.flows.caenroll import ca_enroller
 # pylint: enable=W0611
@@ -45,17 +42,19 @@ flags.DEFINE_string("ca_queue_name", "CA",
                     "The name of the queue for this worker.")
 
 FLAGS = flags.FLAGS
+CONFIG = config_lib.CONFIG
+CONFIG.flag_sections.append("ServerFlags")
 
 
 def main(unused_argv):
   """Main."""
-  # Try to load the CA key.
-  ca_pem = key_utils.GetCert(FLAGS.ca)
-  registry.CA_KEY = RSA.load_key_string(ca_pem)
-  registry.CA_CERT = X509.load_cert_string(ca_pem)
-
   # Initialise everything.
   registry.Init()
+
+  # Try to load the CA key.
+  ca_pem = key_utils.GetCert("CA_Private_Key")
+  registry.CA_KEY = RSA.load_key_string(ca_pem)
+  registry.CA_CERT = X509.load_cert_string(ca_pem)
 
   # Start an Enroler.
   token = data_store.ACLToken("GRREnroller", "Implied.")

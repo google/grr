@@ -21,9 +21,9 @@
 import os
 
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
-from grr.proto import jobs_pb2
 
 
 class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
@@ -31,16 +31,16 @@ class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
 
   def testFingerprintPresence(self):
     path = os.path.join(self.base_path, "winexec_img.dd")
-    pathspec = jobs_pb2.Path(pathtype=jobs_pb2.Path.OS,
-                             path=path)
-    pathspec.nested_path.path = "/Ext2IFS_1_10b.exe"
-    pathspec.nested_path.pathtype = jobs_pb2.Path.TSK
+    pathspec = rdfvalue.RDFPathSpec(
+        pathtype=rdfvalue.RDFPathSpec.Enum("OS"), path=path)
+
+    pathspec.Append(path="/Ext2IFS_1_10b.exe",
+                    pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
 
     client_mock = test_lib.ActionMock("FingerprintFile")
     for _ in test_lib.TestFlowHelper(
         "FingerprintFile", client_mock, token=self.token,
-        client_id=self.client_id,
-        pathspec=pathspec):
+        client_id=self.client_id, pathspec=pathspec):
       pass
 
     urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, self.client_id)

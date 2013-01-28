@@ -50,18 +50,18 @@ able to filter it directly).
 
 import abc
 import getpass
-import re
 import sys
 import time
 
 from grr.client import conf as flags
 import logging
 
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 
-flags.DEFINE_string("storage", "MongoDataStore",
+flags.DEFINE_string("storage", "FakeDataStore",
                     "Storage subsystem to use.")
 
 flags.DEFINE_bool("list_storage", False,
@@ -169,33 +169,20 @@ class ACLToken(object):
     if self.process:
       proto.process = self.process
 
+  def ToRDFToken(self):
+    result = rdfvalue.AccessToken(
+        username=self.username,
+        reason=self.reason,
+        requested_access=self.requested_access,
+        expiry=long(self.expiry),
+        source_ips=self.source_ips)
+    if self.process:
+      result.process = self.process
+    return result
+
 
 # This token will be used by default if no token was provided.
 default_token = ACLToken()
-
-
-class BaseAccessControlManager(object):
-  """A class managing access to data resources."""
-
-  __metaclass__ = registry.MetaclassRegistry
-
-  def CheckAccess(self, token, subjects, requested_access="r"):
-    """The main entry point for checking access to resources.
-
-    Args:
-      token: An instance of data_store.ACLToken security token.
-
-      subjects: The list of subject URNs which the user is requesting access
-         to. If any of these fail, the whole request is denied.
-
-      requested_access: A string specifying the desired level of access ("r" for
-         read and "w" for write).
-
-    Raises:
-       UnauthorizedAccess: If the user is not authorized to perform the action
-       on any of the subject URNs.
-    """
-    logging.debug("Checking %s: %s for %s", token, subjects, requested_access)
 
 
 class DataStore(object):
@@ -212,7 +199,7 @@ class DataStore(object):
   TIMESTAMPS = [ALL_TIMESTAMPS, NEWEST_TIMESTAMP]
 
   def __init__(self):
-    self.security_manager = BaseAccessControlManager()
+    self.security_manager = None
 
   @abc.abstractmethod
   def DeleteSubject(self, subject, token=None):
@@ -282,11 +269,9 @@ class DataStore(object):
   def Decode(self, value, decoder=None):
     if decoder:
       try:
-        # Is it a protobuf?
         result = decoder()
         result.ParseFromString(value)
       except AttributeError:
-        # Something else?
         result = decoder(value)
 
       return result
@@ -332,24 +317,30 @@ class DataStore(object):
     """
 
   @abc.abstractmethod
-  def DeleteAttributes(self, subject, predicates, token=None):
+  def DeleteAttributes(self, subject, predicates, start=None, end=None,
+                       token=None):
     """Remove all specified predicates.
 
     Args:
       subject: The subject that will have these attributes removed.
       predicates: A list of predicate URN.
+      start: A timestamp, attributes older than start will not be deleted.
+      end: A timestamp, attributes newer than end will not be deleted.
       token: An ACL token.
     """
 
-  @abc.abstractmethod
   def Resolve(self, subject, predicate, decoder=None, token=None):
     """Retrieve a value set for a subject's predicate.
+
+    This method is easy to use but always gets the latest version of the
+    attribute. It is more flexible and efficient to use the other Resolve
+    methods.
 
     Args:
       subject: The subject URN.
       predicate: The predicate URN.
       decoder: If specified the cell value will be parsed by constructing this
-             class. This can also be a protobuf.
+             class.
       token: An ACL token.
 
     Returns:
@@ -360,10 +351,20 @@ class DataStore(object):
     Raises:
       AccessError: if anything goes wrong.
     """
+    result = self.MultiResolveRegex([subject],
+                                    ["^" + utils.EscapeRegex(predicate) + "$"],
+                                    decoder=decoder, token=token,
+                                    timestamp=self.NEWEST_TIMESTAMP)
+    for _, hits in result.items():
+      for _, value, timestamp in hits:
+        # Just return the first one.
+        return value, timestamp
+
+    return (None, 0)
 
   @abc.abstractmethod
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
-                        decoder=None, timestamp=None):
+                        decoder=None, timestamp=None, limit=None):
     """Generate a set of values matching for subjects' predicate.
 
     Args:
@@ -372,11 +373,13 @@ class DataStore(object):
       token: An ACL token.
 
       decoder: If specified the cell value will be parsed by
-          constructing this class. This can also be a protobuf.
+          constructing this class.
 
       timestamp: A range of times for consideration (In
           microseconds). Can be a constant such as ALL_TIMESTAMPS or
           NEWEST_TIMESTAMP or a tuple of ints (start, end).
+
+      limit: The number of subjects to return.
 
     Returns:
        A dict keyed by subjects, with values being a list of (predicate, value
@@ -387,7 +390,6 @@ class DataStore(object):
       AccessError: if anything goes wrong.
     """
 
-  @abc.abstractmethod
   def ResolveRegex(self, subject, predicate_regex, token=None,
                    decoder=None, timestamp=None, limit=1000):
     """Retrieve a set of value matching for this subject's predicate.
@@ -398,7 +400,7 @@ class DataStore(object):
       token: An ACL token.
 
       decoder: If specified the cell value will be parsed by
-          constructing this class. This can also be a protobuf.
+          constructing this class.
 
       timestamp: A range of times for consideration (In
           microseconds). Can be a constant such as ALL_TIMESTAMPS or
@@ -412,10 +414,15 @@ class DataStore(object):
     Raises:
       AccessError: if anything goes wrong.
     """
+    result = self.MultiResolveRegex(
+        [subject], predicate_regex, decoder=decoder,
+        timestamp=timestamp, token=token, limit=limit).get(subject, [])
+    result.sort(key=lambda a: a[0])
+    return result
 
   @abc.abstractmethod
   def Query(self, attributes=None, filter_obj="", subject_prefix="", token=None,
-            subjects=None, limit=100):
+            subjects=None, limit=100, timestamp=None):
     """Selects a set of subjects based on filters.
 
     Examples:
@@ -438,17 +445,20 @@ class DataStore(object):
      limit: A (start, end) tuple of integers representing subjects to
             return. Useful for paging. If its a single integer we take
             it as the end limit (start=0).
+     timestamp: A range of times for consideration (In
+                microseconds). Can be a constant such as ALL_TIMESTAMPS or
+                NEWEST_TIMESTAMP or a tuple of ints (start, end).
 
     Yields:
       A dict for each subject that matches. The Keys are named by the attributes
-      requested, the values are a tuple of (value, timestamp). The special key
-      "subject" represents the subject name which is always returned.
+      requested, the values are a list of tuples of (value, timestamp). The
+      special key "subject" represents the subject name which is always
+      returned.
 
     Raises:
       AttributeError: When attributes is not a sequence of stings.
     """
 
-  @abc.abstractmethod
   def Flush(self):
     """Flushes the DataStore."""
 
@@ -497,7 +507,7 @@ class Transaction(object):
     Args:
       predicate: The predicate URN.
       decoder: If specified the cell value will be parsed by constructing this
-      class. This can also be a protobuf.
+               class.
 
     Returns:
        A (string, timestamp), or (None, 0) or a (decoded protobuf, timestamp) if
@@ -514,7 +524,7 @@ class Transaction(object):
     Args:
       predicate_regex: The predicate URN regex.
       decoder: If specified the cell value will be parsed by constructing this
-      class. This can also be a protobuf.
+               class.
 
       timestamp: A range of times for consideration (In
           microseconds). Can be a constant such as ALL_TIMESTAMPS or
@@ -581,23 +591,13 @@ class ResultSet(object):
     self.results.append(item)
 
 
-# Regex chars that should not be in a regex
-disallowed_chars = re.compile(r"[[\](){}+*?.$^\\]")
-
-
-def EscapeRegex(string):
-  return re.sub(disallowed_chars,
-                lambda x: "\\" + x.group(0),
-                utils.SmartUnicode(string))
-
-
 class DataStoreInit(registry.InitHook):
   """Initialize the data store.
 
   Depends on the stats module being initialized.
   """
 
-  pre = ["StatsInit"]
+  pre = ["StatsInit", "ConfigInit"]
 
   def Run(self):
     """Initialize the data_store."""

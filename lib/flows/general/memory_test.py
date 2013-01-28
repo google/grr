@@ -22,12 +22,14 @@ from grr.client import conf as flags
 import logging
 
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import maintenance_utils
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import jobs_pb2
 
 
 FLAGS = flags.FLAGS
+CONFIG = config_lib.CONFIG
 
 
 class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
@@ -43,23 +45,21 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
       return []
 
     def GetMemoryInformation(self, _):
-      reply = jobs_pb2.MemoryInformation()
-      reply.device.path = r"\\.\pmem"
-      reply.device.pathtype = jobs_pb2.Path.MEMORY
-
-      reply.runs.add(offset=0x1000, length=0x10000)
-      reply.runs.add(offset=0x20000, length=0x10000)
+      reply = rdfvalue.MemoryInformation(
+          device=rdfvalue.RDFPathSpec(
+              path=r"\\.\pmem",
+              pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY")))
+      reply.runs.Append(offset=0x1000, length=0x10000)
+      reply.runs.Append(offset=0x20000, length=0x10000)
 
       return [reply]
 
   def CreateSignedDriver(self):
     # Make sure there is a signed driver for our client.
-    signing_key_path = os.path.join(self.key_path, "ca-priv.pem")
-    signing_key = open(signing_key_path).read()
-    signed_pb = maintenance_utils.SignConfigBlob(
-        "MZ Driveeerrrrrr", signing_key)
     driver_path = maintenance_utils.UploadSignedDriverBlob(
-        signed_pb, "winpmem.64.sys", "/config/drivers/windows/memory",
+        "MZ Driveeerrrrrr", file_name="winpmem.64.sys", config=CONFIG,
+        platform="Windows",
+        aff4_path="/config/drivers/windows/memory/{file_name}",
         token=self.token)
 
     logging.info("Wrote signed driver to %s", driver_path)
@@ -85,7 +85,7 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
 
     device_urn = aff4.ROOT_URN.Add(self.client_id).Add("devices/memory")
     fd = aff4.FACTORY.Open(device_urn, mode="r", token=self.token)
-    runs = fd.Get(fd.Schema.LAYOUT).data.runs
+    runs = fd.Get(fd.Schema.LAYOUT).runs
 
     self.assertEqual(runs[0].offset, 0x1000)
     self.assertEqual(runs[0].length, 0x10000)
@@ -107,36 +107,48 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
 
       def GetMemoryInformation(self, _):
         """Mock out the driver loading code to pass the memory image."""
-        reply = jobs_pb2.MemoryInformation()
-        reply.device.path = image_path
-        reply.device.pathtype = jobs_pb2.Path.OS
+        reply = rdfvalue.MemoryInformation(
+            device=rdfvalue.RDFPathSpec(
+                path=image_path,
+                pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
 
         reply.runs.add(offset=0, length=1000000000)
 
         return [reply]
 
+    request = rdfvalue.VolatilityRequest()
+    request.plugins.Append("pslist")
+    request.plugins.Append("modules")
+
+    # To speed up the test we provide these values. In real life these values
+    # will be provided by the kernel driver.
+    request.session = rdfvalue.RDFProtoDict(
+        dtb=0x187000, kdbg=0xF80002803070)
+
     # Allow the real VolatilityAction to run against the image.
     for _ in test_lib.TestFlowHelper(
-        "AnalyseClientMemory", ClientMock("VolatilityAction"),
+        "AnalyzeClientMemory", ClientMock("VolatilityAction"),
         token=self.token, client_id=self.client_id,
-        plugins="pslist,modules"):
+        request=request, output="analysis/memory/{p}"):
       pass
 
-    fd = aff4.FACTORY.Open("aff4:/%s/devices/memory/pslist" % self.client_id,
+    fd = aff4.FACTORY.Open("aff4:/%s/analysis/memory/pslist" % self.client_id,
                            token=self.token)
-    data = fd.Read(1000000)
-    # Pslist should have 34 lines.
-    self.assertEqual(len(data.splitlines()), 34)
+
+    result = fd.Get(fd.Schema.RESULT)
+
+    # Pslist should have 32 rows.
+    self.assertEqual(len(result.sections[0].table.rows), 32)
 
     # And should include the DumpIt binary.
-    self.assert_("DumpIt.exe" in data)
+    self.assert_("DumpIt.exe" in str(result))
 
-    fd = aff4.FACTORY.Open("aff4:/%s/devices/memory/modules" % self.client_id,
+    fd = aff4.FACTORY.Open("aff4:/%s/analysis/memory/modules" % self.client_id,
                            token=self.token)
-    data = fd.Read(1000000)
+    result = fd.Get(fd.Schema.RESULT)
 
-    # Modules should have 34 lines.
-    self.assertEqual(len(data.splitlines()), 134)
+    # Modules should have 133 lines.
+    self.assertEqual(len(result.sections[0].table.rows), 133)
 
     # And should include the DumpIt kernel driver.
-    self.assert_("DumpIt.sys" in data)
+    self.assert_("DumpIt.sys" in str(result))

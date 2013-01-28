@@ -20,7 +20,7 @@ import threading
 
 
 
-from django.conf import settings
+from django.conf import settings as django_settings
 from django.core.handlers import wsgi
 
 from grr.client import conf
@@ -28,7 +28,6 @@ from grr.client import conf as flags
 
 from grr.client import client
 from grr.gui import runtests
-from grr.gui import settings
 from grr.lib import registry
 from grr.tools import http_server
 from grr.worker import enroller
@@ -36,31 +35,22 @@ from grr.worker import worker
 
 
 BASE_DIR = "grr/"
+
 FLAGS = flags.FLAGS
 
 
 def main(argv):
   """Sets up all the component in their own threads."""
   FLAGS.storage = "FakeDataStore"
-  FLAGS.server_cert = BASE_DIR + "keys/test/server.pem"
-  FLAGS.server_private_key = BASE_DIR + "keys/test/server-priv.pem"
 
-
-  # Note that Django settings are immutable once set.
-  django_settings = {
-      "SECRET_KEY": "NOT VERY SECRET KEY",           # Used for XSRF protection.
-      "ROOT_URLCONF": "grr.gui.urls",           # Where to find url mappings.
-      "TEMPLATE_DIRS": ("grr/gui/templates",),  # Look here for templates.
-      # Don't use the database for sessions, use a file.
-      "SESSION_ENGINE": "django.contrib.sessions.backends.file"
-  }
 
   # The below will use conf/global_settings/py from Django, we need to override
   # every variable we need to set.
-  settings.configure(**django_settings)
+  django_settings.configure(**runtests.DJANGO_SETTINGS)
 
   # pylint: disable=W0612
   from grr.gui import plugins
+  from grr.gui import views
   # pylint: enable=W0612
 
   # Get everything initialized.
@@ -93,7 +83,7 @@ def main(argv):
   # Finally we start up a client too.
   FLAGS.location = "http://localhost:8001/control"
   FLAGS.camode = "test"
-  FLAGS.config = "/tmp/grr_config.txt"
+  FLAGS.client_config = "/tmp/grr_config.txt"
   FLAGS.poll_max = 5
 
   client_thread = threading.Thread(target=client.main, args=[argv],

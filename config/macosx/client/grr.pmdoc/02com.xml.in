@@ -1,0 +1,24 @@
+<pkgref spec="1.12" uuid="7A6AD666-820C-4F5F-9F80-1E927FBCF6C2">
+  <config>
+    <identifier>%(ClientBuildDarwin.package_maker_organization)s.%(ClientBuildDarwin.plist_filename|lower)s.pkg</identifier>
+    <version>%(ClientBuildDarwin.version_string)s</version>
+    <description/>
+    <post-install type="none"/>
+    <requireAuthorization/>
+    <installFrom>%(Temp.dist_dir)s/%(ClientBuildDarwin.plist_filename)s</installFrom>
+    <installTo mod="true">/Library/LaunchDaemons</installTo>
+    <flags>
+      <followSymbolicLinks/>
+    </flags>
+    <packageStore type="internal"></packageStore>
+    <mod>installTo.path</mod>
+    <mod>scripts.postinstall.path</mod>
+    <mod>parent</mod>
+    <mod>scripts.preinstall.path</mod>
+    <mod>installTo</mod>
+  </config>
+  <scripts>
+    <preinstall relative="true" mod="true">preinstall.sh</preinstall>
+    <postinstall relative="true" mod="true">postinstall.sh</postinstall>
+  </scripts>
+</pkgref>

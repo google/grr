@@ -21,66 +21,68 @@
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import flow_utils
+from grr.lib import rdfvalue
 from grr.lib import type_info
-from grr.proto import jobs_pb2
 
 
 class WinUserActivityInvestigation(flow.GRRFlow):
   """Do the initial work for a user investigation."""
 
   category = "/Automation/"
-  flow_typeinfo = {"username": type_info.String(),
-                   "artifact_list": type_info.ArtifactList()}
 
-  artifact_list = ()
-
-  def __init__(self, username="", get_browser_history=True,
-               recursive_list_homedir=5, recursive_list_user_registry=5,
-               artifact_list=None,
-               timeline_collected_data=True,
-               use_tsk=True, **kwargs):
-    """Constructor.
-
-    Args:
-      username: The user to target the actions to.
-      get_browser_history: Call each of the browser history flows.
-      recursive_list_homedir: Recursively list the users homedir to this depth.
-      recursive_list_user_registry: Recursively list the users registry hive.
-      artifact_list: A list of Artifact names. If None use self.artifact_list.
-      timeline_collected_data: Once complete create a timeline for the host.
-      use_tsk: Use raw filesystem access where possible.
-
-    Raises:
-      RuntimeError: On bad parameters.
-
-    """
-    super(WinUserActivityInvestigation, self).__init__(**kwargs)
-
-    if not username:
-      raise RuntimeError("Please supply a valid user name.")
-    self.username = username
-    self.timeline_collected_data = timeline_collected_data
-    self.recursive_list_homedir = recursive_list_homedir
-    self.recursive_list_user_registry = recursive_list_user_registry
-    if artifact_list is not None:
-      self.artifact_list = artifact_list
-    self.get_browser_history = get_browser_history
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
-
-    self.user_pb = flow_utils.GetUserInfo(client, username)
-    if not self.user_pb:
-      self.Error("Could not find homedir for user %s" % username)
-      raise RuntimeError("No homedir found for user %s" % username)
-
-    self.use_tsk = use_tsk
-    if use_tsk:
-      self.path_type = jobs_pb2.Path.TSK
-    else:
-      self.path_type = jobs_pb2.Path.OS
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.String(
+          name="username",
+          description="The user to target the actions to.",
+          ),
+      type_info.Bool(
+          name="get_browser_history",
+          description="Call each of the browser history flows.",
+          default=True),
+      type_info.Number(
+          name="recursive_list_homedir",
+          description="Recursively list the users homedir to this depth.",
+          default=5),
+      type_info.Number(
+          name="recursive_list_user_registry",
+          description="Recursively list the users registry hive.",
+          default=5),
+      type_info.List(
+          type_info.String(),
+          name="artifact_list",
+          description="A list of Artifact names.",
+          default=[],
+          ),
+      type_info.Bool(
+          name="timeline_collected_data",
+          description="Once complete create a timeline for the host.",
+          default=True
+          ),
+      type_info.Bool(
+          name="use_tsk",
+          description="Use raw filesystem access where possible.",
+          default=True
+          ),
+      )
 
   @flow.StateHandler(next_state="FinishFlow")
   def Start(self):
-    """Do the actual work."""
+    """Validate parameters and do the actual work."""
+    if not self.username:
+      raise RuntimeError("Please supply a valid user name.")
+
+    if self.use_tsk:
+      self.path_type = rdfvalue.RDFPathSpec.Enum("TSK")
+    else:
+      self.path_type = rdfvalue.RDFPathSpec.Enum("OS")
+
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+
+    self.user_pb = flow_utils.GetUserInfo(client, self.username)
+    if not self.user_pb:
+      self.Error("Could not find homedir for user %s" % self.username)
+      raise RuntimeError("No homedir found for user %s" % self.username)
+
     if self.get_browser_history:
       self.CallFlow("FirefoxHistory", pathtype=self.path_type,
                     username=self.user, next_state="FinishFlow")
@@ -96,12 +98,15 @@ class WinUserActivityInvestigation(flow.GRRFlow):
     if self.recursive_list_user_registry:
       regdir = "HKEY_USERS/%s" % self.user_pb.sid
       max_depth = int(self.recursive_list_user_registry)
-      self.CallFlow("RecursiveListDirectory", pathtype=jobs_pb2.Path.REGISTRY,
+      self.CallFlow("RecursiveListDirectory",
+                    pathtype=rdfvalue.RDFPathSpec.Enum("REGISTRY"),
                     path=regdir, max_depth=max_depth, next_state="FinishFlow")
 
     if self.artifact_list:
-      self.CallFlow("ArtifactCollectorFlow", artifact_list=self.artifact_list,
-                    use_tsk=self.use_tsk, next_state="FinishFlow")
+      self.CallFlow("ArtifactCollectorFlow",
+                    artifact_list=list(self.artifact_list),
+                    use_tsk=self.use_tsk,
+                    next_state="FinishFlow")
 
   @flow.StateHandler()
   def FinishFlow(self, responses):
@@ -125,11 +130,52 @@ class WinSystemActivityInvestigation(flow.GRRFlow):
   This encapsulates the different platform specific modules.
   """
   category = "/Automation/"
-  flow_typeinfo = {"artifact_list": type_info.ArtifactList()}
 
-  artifact_list = ("ApplicationEventLog", "SystemEventLog", "SecurityEventLog",
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.Bool(
+          name="list_processes",
+          description="Call the ListProcesses flow.",
+          default=True,
+          ),
+      type_info.Bool(
+          name="list_network_connections",
+          description="Call the Netstat flow.",
+          default=True,
+          ),
+      type_info.List(
+          type_info.String(),
+          name="artifact_list",
+          description="A list of Artifact names.",
+          default=["ApplicationEventLog", "SystemEventLog", "SecurityEventLog",
                    "TerminalServicesEventLogEvtx", "ApplicationEventLogEvtx",
-                   "SystemEventLogEvtx", "SecurityEventLogEvtx")
+                   "SystemEventLogEvtx", "SecurityEventLogEvtx"],
+          ),
+      type_info.Bool(
+          name="collect_av_data",
+          description="Call the Antivirus flows to collect quarantine/logs.",
+          default=True,
+          ),
+      type_info.Bool(
+          name="collect_prefetch",
+          description="List the prefetch directory.",
+          default=True,
+          ),
+      type_info.Bool(
+          name="list_common_dirs",
+          description="List common system directories.",
+          default=True,
+          ),
+      type_info.Bool(
+          name="use_tsk",
+          description="Use raw filesystem access where possible.",
+          default=True
+          ),
+      type_info.Bool(
+          name="timeline_collected_data",
+          description="Once complete create a timeline for the host.",
+          default=True
+          ),
+      )
 
   common_dirs = ["c:\\",
                  "c:\\users",
@@ -138,48 +184,19 @@ class WinSystemActivityInvestigation(flow.GRRFlow):
                  "c:\\windows\\logs",
                  "c:\\program files"]
 
-  def __init__(self, list_processes=True, list_network_connections=True,
-               artifact_list=artifact_list, collect_av_data=True,
-               collect_prefetch=True, list_common_dirs=True, use_tsk=True,
-               timeline_collected_data=True,
-               **kwargs):
-    """Constructor.
-
-    Args:
-      list_processes: Call the ListProcesses flow.
-      list_network_connections: Call the Netstat flow.
-      artifact_list: List of artifacts to collect. If None use
-          self.artifact_list.
-      collect_av_data: Call the Antivirus flows to collect quarantine/logs.
-      collect_prefetch: List the prefetch directory.
-      list_common_dirs: List common system directories.
-      use_tsk: Use raw filesystem access where possible.
-      timeline_collected_data: Once complete create a timeline for the host.
-    """
-    super(WinSystemActivityInvestigation, self).__init__(**kwargs)
-
+  @flow.StateHandler(next_state="FinishFlow")
+  def Start(self):
+    """Start."""
     self.client = aff4.FACTORY.Open(self.client_id)
     self.system = str(self.client.Get(self.client.Schema.SYSTEM))
     self.os_version = str(self.client.Get(self.client.Schema.OS_VERSION))
     self.os_major_version = self.os_version.split(".")[0]
 
-    self.list_processes = list_processes
-    self.list_network_connections = list_network_connections
-    self.collect_av_data = collect_av_data
-    self.timeline_collected_data = timeline_collected_data
-    self.artifact_list = artifact_list
-    self.collect_prefetch = collect_prefetch
-    self.list_common_dirs = list_common_dirs
-
-    self.use_tsk = use_tsk
-    if use_tsk:
-      self.path_type = jobs_pb2.Path.TSK
+    if self.use_tsk:
+      self.path_type = rdfvalue.RDFPathSpec.Enum("TSK")
     else:
-      self.path_type = jobs_pb2.Path.OS
+      self.path_type = rdfvalue.RDFPathSpec.Enum("OS")
 
-  @flow.StateHandler(next_state="FinishFlow")
-  def Start(self):
-    """Start."""
     if self.collect_av_data:
       self.CallFlow("SophosCollector", pathtype=self.path_type,
                     next_state="FinishFlow")
@@ -199,8 +216,10 @@ class WinSystemActivityInvestigation(flow.GRRFlow):
                       pathtype=self.path_type, next_state="FinishFlow")
 
     if self.artifact_list:
-      self.CallFlow("ArtifactCollectorFlow", artifact_list=self.artifact_list,
-                    use_tsk=self.use_tsk, next_state="FinishFlow")
+      self.CallFlow("ArtifactCollectorFlow",
+                    artifact_list=list(self.artifact_list),
+                    use_tsk=self.use_tsk,
+                    next_state="FinishFlow")
 
   @flow.StateHandler()
   def FinishFlow(self, responses):
@@ -223,53 +242,59 @@ class LinSystemActivityInvestigation(flow.GRRFlow):
   This encapsulates the different platform specific modules.
   """
   category = "/Automation/"
-  flow_typeinfo = {"artifact_list": type_info.ArtifactList()}
 
-  artifact_list = ("AuthLog", "Wtmp")
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.Bool(
+          name="list_processes",
+          description="Call the ListProcesses flow.",
+          default=True,
+          ),
+      type_info.Bool(
+          name="list_network_connections",
+          description="Call the Netstat flow.",
+          default=True,
+          ),
+      type_info.List(
+          type_info.String(),
+          name="artifact_list",
+          description="A list of Artifact names.",
+          default=["AuthLog", "Wtmp"],
+          ),
+      type_info.Bool(
+          name="use_tsk",
+          description="Use raw filesystem access where possible.",
+          default=True
+          ),
+      type_info.Bool(
+          name="timeline_collected_data",
+          description="Once complete create a timeline for the host.",
+          default=True
+          ),
+      )
 
-  def __init__(self, list_processes=True, list_network_connections=True,
-               artifact_list=artifact_list, use_tsk=False,
-               timeline_collected_data=True,
-               **kwargs):
-    """Constructor.
-
-    Args:
-      list_processes: Call the ListProcesses flow.
-      list_network_connections: Call the Netstat flow.
-      artifact_list: List of artifacts to collect. If None use
-          self.artifact_list.
-      use_tsk: Use raw filesystem access where possible.
-      timeline_collected_data: Once complete create a timeline for the host.
-    """
-    super(LinSystemActivityInvestigation, self).__init__(**kwargs)
-
+  @flow.StateHandler(next_state="FinishFlow")
+  def Start(self):
+    """Start."""
     self.client = aff4.FACTORY.Open(self.client_id)
     self.system = str(self.client.Get(self.client.Schema.SYSTEM))
     self.os_version = str(self.client.Get(self.client.Schema.OS_VERSION))
     self.os_major_version = self.os_version.split(".")[0]
 
-    self.list_processes = list_processes
-    self.list_network_connections = list_network_connections
-    self.timeline_collected_data = timeline_collected_data
-    self.artifact_list = artifact_list
-
-    self.use_tsk = use_tsk
-    if use_tsk:
-      self.path_type = jobs_pb2.Path.TSK
+    if self.use_tsk:
+      self.path_type = rdfvalue.RDFPathSpec.Enum("TSK")
     else:
-      self.path_type = jobs_pb2.Path.OS
+      self.path_type = rdfvalue.RDFPathSpec.Enum("OS")
 
-  @flow.StateHandler(next_state="FinishFlow")
-  def Start(self):
-    """Start."""
     if self.list_processes:
       self.CallFlow("ListProcesses", next_state="FinishFlow")
     if self.list_network_connections:
       self.CallFlow("Netstat", next_state="FinishFlow")
 
     if self.artifact_list:
-      self.CallFlow("ArtifactCollectorFlow", artifact_list=self.artifact_list,
-                    use_tsk=self.use_tsk, next_state="FinishFlow")
+      self.CallFlow("ArtifactCollectorFlow",
+                    artifact_list=self.artifact_list,
+                    use_tsk=self.use_tsk,
+                    next_state="FinishFlow")
 
   @flow.StateHandler()
   def FinishFlow(self, responses):

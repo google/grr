@@ -26,7 +26,6 @@ import functools
 import operator
 import os
 import pdb
-import random
 import re
 import struct
 import sys
@@ -39,7 +38,6 @@ from M2Crypto import BIO
 from M2Crypto import RSA
 from M2Crypto import X509
 
-from google.protobuf import message as proto_message
 from grr.client import conf as flags
 import logging
 from grr.client import actions
@@ -52,6 +50,7 @@ from grr.lib import data_store
 from grr.lib import flow_context
 from grr.lib import key_utils
 from grr.lib import log
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import scheduler
 # pylint: disable=W0611
@@ -74,6 +73,10 @@ flags.DEFINE_integer("throttle_average_interval", 60,
                      "Time interval over which average request rate is "
                      "calculated when throttling is enabled.")
 
+flags.DEFINE_list("frontend_well_known_flows", "TransferStore",
+                  "Allow these well known flows to run directly on the"
+                  "frontend.")
+
 FLAGS = flags.FLAGS
 
 
@@ -89,14 +92,13 @@ class Responses(object):
   decorator.
   """
 
-  def __init__(self, request=None, responses=None, in_protobuf=None,
-               auth_required=True):
-    self.status = None    # A jobs_pb2.GrrStatus proto
+  def __init__(self, request=None, responses=None, auth_required=True):
+    self.status = None    # A GrrStatus rdfvalue object.
     self.success = True
     self.request = request
     self._auth_required = auth_required
     if request:
-      self.request_data = utils.ProtoDict(request.data)
+      self.request_data = rdfvalue.RDFProtoDict(request.data)
     self._responses = []
 
     if responses:
@@ -106,14 +108,14 @@ class Responses(object):
 
       # The iterator that was returned as part of these responses. This should
       # be passed back to actions that expect an iterator.
-      self.iterator = jobs_pb2.Iterator()
+      self.iterator = rdfvalue.Iterator()
 
       # Filter the responses by authorized states
       for msg in responses:
         # Check if the message is authenticated correctly.
-        if msg.auth_state == jobs_pb2.GrrMessage.DESYNCHRONIZED or (
+        if msg.auth_state == msg.DESYNCHRONIZED or (
             self._auth_required and
-            msg.auth_state != jobs_pb2.GrrMessage.AUTHENTICATED):
+            msg.auth_state != msg.AUTHENTICATED):
           logging.info("%s: Messages must be authenticated (Auth state %s)",
                        msg.session_id, msg.auth_state)
 
@@ -121,18 +123,18 @@ class Responses(object):
           continue
 
         # Check for iterators
-        if msg.type == jobs_pb2.GrrMessage.ITERATOR:
+        if msg.type == msg.ITERATOR:
           self.iterator.ParseFromString(msg.args)
           continue
 
         # Look for a status message
-        if msg.type == jobs_pb2.GrrMessage.STATUS:
+        if msg.type == msg.STATUS:
           # Our status is set to the first status message that we see in
           # the responses. We ignore all other messages after that.
-          self.status = jobs_pb2.GrrStatus()
-          self.status.ParseFromString(msg.args)
+          self.status = rdfvalue.GrrStatus(msg.args)
+
           # Check this to see if the call succeeded
-          self.success = self.status.status == jobs_pb2.GrrStatus.OK
+          self.success = self.status.status == self.status.OK
 
           # Ignore all other messages
           break
@@ -143,54 +145,42 @@ class Responses(object):
       if self.status is None:
         raise FlowError("No valid Status message.")
 
-    self._in_protobuf = in_protobuf
     # This is the raw message accessible while going through the iterator
     self.message = None
 
   def __iter__(self):
     """An iterator which returns all the responses in order."""
     old_response_id = None
-    for self.message in self._responses:
+    for message in self._responses:
+      self.message = rdfvalue.GRRMessage(message)
+
       # Handle retransmissions
       if self.message.response_id == old_response_id:
         continue
+
       else:
         old_response_id = self.message.response_id
 
-      # Messages come from the client. These are raw protobufs. We need to
-      # figure out what they actually are depending on the action class's
-      # out_protobuf decleration.
-      if self.message.type == jobs_pb2.GrrMessage.MESSAGE:
-        if self._in_protobuf is None:
+      if self.message.type == self.message.MESSAGE:
+        # FIXME(scudette): Deprecate this once the client returns rdfvalue
+        # messages.
+        if not self.message.args_rdf_name:
+          client_action_name = self.request.request.name
           try:
-            action_cls = actions.ActionPlugin.classes[self.request.request.name]
-            protobuf = action_cls.out_protobuf
+            action_cls = actions.ActionPlugin.classes[client_action_name]
+            if not action_cls.out_rdfvalue:
+              raise RuntimeError(
+                  "Client action %s does not specify out_rdfvalue" %
+                  client_action_name)
+
           except KeyError:
-            logging.info("Cant parse response from %s",
-                         self.request.request.name)
-            protobuf = jobs_pb2.GrrMessage
+            raise RuntimeError("Unknown client action %s.", client_action_name)
+
+          yield action_cls.out_rdfvalue(self.message.args)
+
         else:
-          protobuf = self._in_protobuf
-
-        result = protobuf()
-        result.ParseFromString(self.message.args)
-
-        yield result
-
-      # Flows send back packed RDFValues. These already contain sufficient
-      # context.
-      elif self.message.type == jobs_pb2.GrrMessage.RDF_VALUE:
-        rdf_value_proto = jobs_pb2.RDFValue()
-        rdf_value_proto.ParseFromString(self.message.args)
-
-        # Now try to create the correct RDFValue.
-        result_cls = (aff4.FACTORY.RDFValue(rdf_value_proto.name) or
-                      aff4.RDFString)
-
-        result = result_cls(age=rdf_value_proto.age)
-        result.ParseFromString(rdf_value_proto.data)
-
-        yield result
+          # Flows send back RDFValues. These already contain sufficient context.
+          yield self.message.payload
 
   def First(self):
     """A convenience method to return the first response."""
@@ -203,27 +193,11 @@ class Responses(object):
   def __nonzero__(self):
     return bool(self._responses)
 
-  def GetRequestArgPb(self):
-    """Retrieves the argument protobuf for the original request."""
-    try:
-      action_cls = actions.ActionPlugin.classes[self.request.request.name]
-      protobuf = action_cls.in_protobuf
-      req = protobuf()
-      req.ParseFromString(self.request.request.args)
-      return req
 
-    except KeyError:
-      logging.info("Cant parse response from %s", self.request.request.name)
-
-      return None
-
-
-def StateHandler(in_protobuf=None, next_state="End", auth_required=True):
+def StateHandler(next_state="End", auth_required=True):
   """A convenience decorator for state methods.
 
   Args:
-    in_protobuf: The protobuf class we will convert the message from.
-
     next_state: One or more next states possible from here (can be a
                 string or a list of strings). If a state attempts to
                 redirect to a state other than on this (with
@@ -232,14 +206,20 @@ def StateHandler(in_protobuf=None, next_state="End", auth_required=True):
     auth_required: Do we require messages to be authenticated? If the
                 message is not authenticated we raise.
 
+  Raises:
+    RuntimeError: If a next state is not specified.
+
   Returns:
     A decorator
   """
 
+  if not isinstance(next_state, (basestring, list, tuple)):
+    raise RuntimeError("Next state must be a string.")
+
   def Decorator(f):
     """Initialised Decorator."""
     # Allow next_state to be a single string
-    if type(next_state) is str:
+    if isinstance(next_state, basestring):
       next_states = [next_state]
     else:
       next_states = next_state
@@ -255,7 +235,6 @@ def StateHandler(in_protobuf=None, next_state="End", auth_required=True):
       # Prepare a responses object for the state method to use:
       responses = Responses(request=request,
                             responses=responses,
-                            in_protobuf=in_protobuf,
                             auth_required=auth_required)
 
       if responses.status:
@@ -277,13 +256,11 @@ def StateHandler(in_protobuf=None, next_state="End", auth_required=True):
   return Decorator
 
 
-def EventHandler(in_protobuf=None, source_restriction=None, auth_required=True,
+def EventHandler(source_restriction=None, auth_required=True,
                  allow_client_access=False):
   """A convenience decorator for Event Handlers.
 
   Args:
-    in_protobuf: The protobuf class we will convert the message from.
-
     source_restriction: A regex which will be applied to the source. The source
       of this message indicates who sent the message (e.g. if a client sent it,
       the client_id while if a flow sent it, the flow name).
@@ -308,8 +285,7 @@ def EventHandler(in_protobuf=None, source_restriction=None, auth_required=True,
     @functools.wraps(f)
     def Decorated(self, msg):
       """A decorator that assists in enforcing EventListener restrictions."""
-      if (auth_required and
-          msg.auth_state != jobs_pb2.GrrMessage.AUTHENTICATED):
+      if auth_required and msg.auth_state != msg.AUTHENTICATED:
         raise RuntimeError("Message from %s not authenticated." % msg.source)
 
       if (not allow_client_access and
@@ -321,15 +297,8 @@ def EventHandler(in_protobuf=None, source_restriction=None, auth_required=True,
         raise RuntimeError("Message source invalid.")
 
       stats.STATS.Increment("grr_worker_states_run")
-      kwargs = dict(message=msg)
-
-      if in_protobuf:
-        parsed_message = in_protobuf()
-        parsed_message.ParseFromString(msg.args)
-        kwargs["event"] = parsed_message
-
-      res = f(self, **kwargs)
-
+      rdf_msg = rdfvalue.GRRMessage(msg)
+      res = f(self, message=rdf_msg, event=rdf_msg.payload)
       return res
 
     return Decorated
@@ -361,55 +330,92 @@ class GRRFlow(object):
   # access to the client before they can run this flow.
   ACL_ENFORCED = True
 
-  # These are the protobufs that this flow sends back to its caller if present.
-  out_protobuf = None
+  # A list of type descriptor for this flow. The Flow constructor accept all
+  # these args the these type descriptors themselves implement the required
+  # validation. Therefore the flow constructor should take no real args (other
+  # than **kwargs) and instead specify all required parameters as a list of
+  # TypeInfoObject instances.
 
-  # Dictionary for storing type information about a flow's init parameters.
-  # This dict acts as typing reference to help the UI to render the parameters
-  # in a way that makes sense to the user. TypeInfoObjects are in type_info.py.
-  # Format is:
-  #   {arg_name: TypeInfoObject}
-  # e.g.
-  #   {"notify_user", type_info.Bool(),
-  #    "path_type", type_info.ProtoEnum(jobs_pb2.PathType)}
-  flow_typeinfo = {}
+  # The following args are standard for all flows.
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.RDFEnum(
+          description="The priority used for this flow.",
+          name="priority",
+          rdfclass=rdfvalue.GRRMessage,
+          enum_name="Priority",
+          default=rdfvalue.GRRMessage.Enum("MEDIUM_PRIORITY")),
+
+      type_info.Bool(
+          description="Should a notification be sent to the initiator.",
+          name="notify_to_user",
+          friendly_name="Notify at Completion",
+          default=True),
+
+      type_info.Bool(
+          description="Should send replies back to the parent flow or not.",
+          name="send_replies",
+          friendly_name="Send Replies",
+          hidden=True,
+          default=True),
+
+      type_info.String(
+          description=("A well known flow session_id of an event listener. An "
+                       "event will be published to this listener once the "
+                       "flow finishes."),
+          name="notification_event",
+          friendly_name="Notification Event",
+          hidden=True,
+          default=None),
+      )
 
   # Should we notify to the user about the progress of this flow?
-  def __init__(self, context=None, notify_to_user=True,
-               notification_event=None, send_replies=True):
+  def __init__(self, context=None, **kwargs):
     """Constructor for the Flow.
 
     Args:
       context: A FlowContext object that will save the state for this flow.
-      notify_to_user: Should this flow notify completion to the user that
-                      started it?
-      notification_event: A well known flow session_id of an event listener. An
-                          event will be published to this listener once the
-                          flow finishes.
-      send_replies: If False, SendReply calls are ignored.
+
     Raises:
       RuntimeError: No context object was passed to this flow.
+      AttributeError: If some of the args are invalid.
     """
-    self.notify_to_user = notify_to_user
-    self.notification_event = notification_event
-    self.send_replies = send_replies
-
     if context is None:
       raise RuntimeError("No context given for flow %s." %
                          self.__class__.__name__)
 
     self.context = context
     self.context.SetFlowObj(self)
+    self._user_notified = False   # Have we sent a notification to the user.
+
+    self._SetTypedArgs(self.flow_typeinfo, kwargs)
+    if GRRFlow.flow_typeinfo != self.flow_typeinfo:
+      self._SetTypedArgs(GRRFlow.flow_typeinfo, kwargs)
+
+    if kwargs:
+      raise type_info.UnknownArg("%s: Args %s not known" % (
+          self.__class__.__name__, kwargs.keys()))
 
     stats.STATS.Increment("grr_flows_created")
+
+  def _SetTypedArgs(self, type_descriptor, kwargs):
+    """Sets our attributes from the type_descriptor."""
+    # Parse and validate the args to this flow. This will raise if the args are
+    # invalid.
+    for name, value in type_descriptor.ParseArgs(kwargs):
+      # Make sure we dont trash an internal name.
+      if getattr(self, name, None) is not None:
+        raise AttributeError("Flow arg name can not be the same "
+                             "as an internal flow attribute: %s" % name)
+
+      setattr(self, name, value)
 
   # Set up some proxy methods to allow easy access to the context.
   def GetFlowArgs(self):
     return self.context.GetFlowArgs()
 
-  def CallClient(self, action_name, args_pb=None, next_state=None,
+  def CallClient(self, action_name, request=None, next_state=None,
                  request_data=None, **kwargs):
-    return self.context.CallClient(action_name, args_pb, next_state,
+    return self.context.CallClient(action_name, request, next_state,
                                    request_data, **kwargs)
 
   def CallState(self, messages=None, next_state="", delay=0):
@@ -500,8 +506,10 @@ class GRRFlow(object):
     This method is called prior to destruction of the flow to give
     the flow a chance to clean up.
     """
-    self.Notify("FlowStatus", self.client_id,
-                "Flow %s completed" % self.__class__.__name__)
+    if not self._user_notified:
+      # Only send a notification if one hasn't already been sent in this flow.
+      self.Notify("FlowStatus", self.client_id,
+                  "Flow %s completed" % self.__class__.__name__)
 
   def Load(self):
     """Loads the flow from storage.
@@ -535,6 +543,9 @@ class GRRFlow(object):
     result = self.flow_pb
     result.pickle = ""
     result.pickle = pickle.dumps(self)
+
+    self.Load()
+
     return result
 
   def Log(self, format_str, *args):
@@ -557,7 +568,7 @@ class GRRFlow(object):
     self.context.SetStatus(utils.SmartUnicode(status))
 
     # Add the message to the flow's log attribute
-    self.data_store.Set(scheduler.SCHEDULER.QueueToSubject(self.session_id),
+    self.data_store.Set(self.session_id,
                         aff4.AFF4Object.GRRFlow.SchemaCls.LOG,
                         status, replace=False, sync=False, token=self.token)
 
@@ -570,7 +581,7 @@ class GRRFlow(object):
 
     Args:
        message_type: The type of the message. This allows the UI to format
-         a link to the origial object.
+         a link to the original object e.g. "ViewObject" or "HostInformation"
        subject: The urn of the AFF4 object of interest in this link.
        msg: A free form textual message.
     """
@@ -594,145 +605,62 @@ class GRRFlow(object):
       # Add notifications to the flow.
       notification = jobs_pb2.Notification(
           type=message_type, subject=utils.SmartUnicode(subject),
-          message=utils.SmartUnicode(msg), source=self.session_id,
+          message=utils.SmartUnicode(msg),
+          source=utils.SmartUnicode(self.session_id),
           timestamp=long(time.time() * 1e6))
 
-      self.data_store.Set(scheduler.SCHEDULER.QueueToSubject(self.session_id),
+      self.data_store.Set(self.session_id,
                           aff4.AFF4Object.GRRFlow.SchemaCls.NOTIFICATION,
                           notification, replace=False, sync=False,
                           token=self.token)
+      self._user_notified = True
 
+    # TODO(user): This should be using PublishEvent()
     if self.notification_event:
-      if self.flow_pb.state == jobs_pb2.FlowPB.ERROR:
-        status = jobs_pb2.FlowNotification.ERROR
+      if self.flow_pb.state == rdfvalue.Flow.Enum("ERROR"):
+        status = rdfvalue.FlowNotification.Enum("ERROR")
       else:
-        status = jobs_pb2.FlowNotification.OK
+        status = rdfvalue.FlowNotification.Enum("OK")
 
-      event = jobs_pb2.FlowNotification(session_id=self.session_id,
-                                        flow_name=self.__class__.__name__,
-                                        client_id=self.client_id,
-                                        status=status)
-      msg = jobs_pb2.GrrMessage(args=event.SerializeToString())
-
-      msg.session_id = self.notification_event
-      msg.auth_state = jobs_pb2.GrrMessage.AUTHENTICATED
-      msg.source = self.__class__.__name__
-
-      # Randomize the response id or events will get overwritten.
-      msg.response_id = scheduler.SCHEDULER.Task().id
+      event = rdfvalue.FlowNotification(
+          session_id=utils.SmartUnicode(self.session_id),
+          flow_name=self.__class__.__name__,
+          client_id=self.client_id,
+          status=status)
+      msg = rdfvalue.GRRMessage(
+          payload=event,
+          session_id=self.notification_event,
+          auth_state=rdfvalue.GRRMessage.Enum("AUTHENTICATED"),
+          source=self.__class__.__name__,
+          # Randomize the response id or events will get overwritten.
+          response_id=scheduler.SCHEDULER.Task().id)
 
       with flow_context.WellKnownFlowManager(
           self.notification_event, token=self.token) as flow_manager:
         flow_manager.QueueResponse(msg)
 
       # Notify the worker of the pending sessions.
-      queue = self.notification_event.split(":", 1)[0]
+      queue = scheduler.SCHEDULER.QueueNameFromURN(self.notification_event)
       scheduler.SCHEDULER.NotifyQueue(queue, self.notification_event,
                                       token=self.token)
-
-  @classmethod
-  def GetFlowArgTypeInfo(cls, omit_internal=True):
-    """Get the type information for the flow arguments.
-
-    Args:
-      omit_internal: Omit flow internal arguments.
-
-    Yields:
-      Tuples of (arg_name, arg_type_object, default_value}
-      e.g. {"pathspec", type_info.ProtoOrNone(jobs_pb2.Path), None}
-
-    Raises:
-      RuntimeError:
-        A flow has defined required arguments.
-
-    This uses both the explicitly set self.flow_typinfo data and combines it
-    with inferred data based on default arguments to provide type information
-    for each argument.
-    """
-    omit_args = ["self", "kwargs", "kw", "client_id", "_request_state",
-                 "_store", "pathspec", "flow_factory", "queue_name", "event_id",
-                 "context", "findspec"]
-    function_obj = cls.__init__.im_func
-    arg_count = function_obj.func_code.co_argcount
-    # The args are usually first in the local variable names.
-    args = function_obj.func_code.co_varnames[1:arg_count]  # skip "self" arg.
-    defaults = function_obj.func_defaults or ()
-
-    # Required args are those without defaults.
-    required_args = args[0:len(args)-len(defaults)]
-    if required_args:
-      raise RuntimeError("Required args are not allowed in flows. Flow %s, "
-                         "Args: %s" % (cls, required_args))
-
-    result = {}
-    # TODO(user): Use an OrderedDict instead.
-    order = []
-    try:
-      # Also show inherited parameters and process them first such that a local
-      # constructor can override.
-      for arg, arg_type, default in super(GRRFlow, cls).GetFlowArgTypeInfo():
-        result[arg] = (arg_type, default)
-        if arg not in order:
-          order.append(arg)
-    except AttributeError:
-      pass
-
-    try:
-      for arg, default in zip(args, defaults):
-        if omit_internal and arg in omit_args:
-          continue
-        if arg in cls.flow_typeinfo:
-          # The arg type has been explicitly defined, return it.
-          result[arg] = (cls.flow_typeinfo[arg], default)
-          if arg not in order:
-            order.append(arg)
-        else:
-          # Arg has not been defined, we are going to guess based on the default
-          # value.
-          if isinstance(default, bool):
-            arg_type = type_info.Bool()
-          elif isinstance(default, basestring):
-            arg_type = type_info.String()
-          elif isinstance(default, proto_message.Message):
-            # Default is protobuf, lets use that as type.
-            arg_type = type_info.Proto(default.__class__)
-          elif type(default) in (int, long):
-            arg_type = type_info.Number()
-          elif type(default) == float:
-            arg_type = type_info.Float()
-          elif default is None:
-            # We don't know what it is, but it can be None.
-            arg_type = type_info.StringOrNone()
-          else:
-            # We really don't know what it is, let's pretend its a string.
-            arg_type = type_info.String()
-
-          result[arg] = (arg_type, default)
-          if arg not in order:
-            order.append(arg)
-    except TypeError as e:
-      raise RuntimeError("Failed to parse args for %s. Bad type definition? %s"
-                         % (cls, e))
-
-    for arg in order:
-      arg_type, default = result[arg]
-      yield arg, arg_type, default
 
   def Publish(self, event_name, message=None, session_id=None):
     """Publish a message to a queue.
 
     Args:
        event_name: The name of the event to publish to.
-       message: A protobuf to send to all the event listeners.
+       message: An RDFValue instance to publish to the event listeners.
        session_id: The session id to send from, defaults to self.session_id.
     """
     result = message
 
-    if not isinstance(message, jobs_pb2.GrrMessage):
-      result = jobs_pb2.GrrMessage(args=message.SerializeToString())
+    # TODO(user): Lets not support publishing of protobufs since we
+    # want to deprecate them.
+    if not isinstance(message, rdfvalue.GRRMessage):
+      result = rdfvalue.GRRMessage(payload=message)
 
     result.session_id = session_id or self.session_id
-    result.auth_state = jobs_pb2.GrrMessage.AUTHENTICATED
+    result.auth_state = rdfvalue.GRRMessage.Enum("AUTHENTICATED")
     result.source = self.__class__.__name__
 
     PublishEvent(event_name, result, token=self.token)
@@ -767,7 +695,7 @@ class WellKnownFlow(GRRFlow):
     GRRFlow.__init__(self, *args, **kwargs)
 
     # Tag this flow as well known
-    self.SetState(jobs_pb2.FlowPB.WELL_KNOWN)
+    self.SetState(rdfvalue.Flow.Enum("WELL_KNOWN"))
     self.session_id = self.well_known_session_id
 
   def CallState(self, messages=None, next_state=None, delay=0):
@@ -785,11 +713,13 @@ class WellKnownFlow(GRRFlow):
   def ProcessCompletedRequests(self, thread_pool):
     """For WellKnownFlows we receive these messages directly."""
     try:
+      priority = rdfvalue.GRRMessage.Enum("MEDIUM_PRIORITY")
       with flow_context.WellKnownFlowManager(
           self.session_id, token=self.token,
           store=self.data_store) as flow_manager:
         for request, responses in flow_manager.FetchRequestsAndResponses():
           for msg in responses:
+            priority = msg.priority
             thread_pool.AddTask(target=self.ProcessMessage,
                                 args=(msg,), name=self.__class__.__name__)
 
@@ -798,7 +728,7 @@ class WellKnownFlow(GRRFlow):
       # There is more data for this flow so we have to tell the worker to
       # fetch more messages later.
       scheduler.SCHEDULER.NotifyQueue(self.context.queue_name, self.session_id,
-                                      token=self.token)
+                                      priority=priority, token=self.token)
 
   def ProcessMessage(self, msg):
     """This is where messages get processed.
@@ -845,6 +775,9 @@ def PublishEvent(event_name, msg, token=None):
   if not msg.source:
     raise RuntimeError("Message must have a valid source.")
 
+  if not isinstance(msg, rdfvalue.RDFValue):
+    raise ValueError("Can only publish RDFValue instances.")
+
   # Randomize the response id or events will get overwritten.
   msg.response_id = scheduler.SCHEDULER.Task().id
 
@@ -866,361 +799,9 @@ def PublishEvent(event_name, msg, token=None):
 
   # Notify all the workers of their pending sessions.
   for queue, session_ids in utils.GroupBy(
-      sessions_queued, lambda x: x.split(":", 1)[0]):
-    scheduler.SCHEDULER.MultiNotifyQueue(queue, session_ids, token=token)
-
-
-class GRRHunt(GRRFlow):
-  """The GRR Hunt class."""
-
-  # Some common rules.
-  MATCH_WINDOWS = jobs_pb2.ForemanAttributeRegex(attribute_name="System",
-                                                 attribute_regex="Windows")
-  MATCH_LINUX = jobs_pb2.ForemanAttributeRegex(attribute_name="System",
-                                               attribute_regex="Linux")
-  MATCH_DARWIN = jobs_pb2.ForemanAttributeRegex(attribute_name="System",
-                                                attribute_regex="Darwin")
-
-  def __init__(self, token=None, expiry_time=31*24*3600, client_limit=None,
-               notification_event=None, **kw):
-
-    queue_name = flow_context.DEFAULT_WORKER_QUEUE_NAME
-
-    if token is None:
-      raise RuntimeError("You need to supply a token.")
-
-    if client_limit > 1000:
-      # For large hunts, checking client limits creates a high load on the
-      # foreman when loading the hunt as rw and therefore we don't allow setting
-      # it for large hunts.
-      raise RuntimeError("Please specify a lower client_limit.")
-
-    context = flow_context.HuntFlowContext(client_id=None,
-                                           flow_name=self.__class__.__name__,
-                                           queue_name=queue_name,
-                                           event_id=None,
-                                           state=None, token=token,
-                                           args=utils.ProtoDict(kw).ToProto())
-
-    super(GRRHunt, self).__init__(context=context, notify_to_user=False)
-
-    self.rules = []
-    self.expiry_time = expiry_time
-    self.start_time = time.time()
-    self.started = False
-    self.next_request_id = 0
-    self.client_limit = client_limit
-    self.notification_event = notification_event
-
-    # This is the URN for the Hunt object we use.
-    self.urn = aff4.ROOT_URN.Add("hunts").Add(self.session_id)
-
-    # Hunts run in multiple threads so we need to protect access.
-    self.lock = threading.RLock()
-
-  def AddRule(self, rules=None):
-    """Adds one more rule for clients that trigger the hunt.
-
-    The hunt will only be triggered on clients that match all the given rules.
-
-    Args:
-      rules: A list of ForemanAttributeInteger and ForemanAttributeRegex
-             protobufs.
-
-    Raises:
-      RuntimeError: When an invalid attribute name was given in a rule.
-    """
-    integer_rules = [rule for rule in rules if isinstance(
-        rule, jobs_pb2.ForemanAttributeInteger)]
-    regex_rules = [rule for rule in rules if isinstance(
-        rule, jobs_pb2.ForemanAttributeRegex)]
-
-    for i in integer_rules:
-      if i.attribute_name not in aff4.Attribute.NAMES:
-        raise RuntimeError("Unknown attribute name: %s." %
-                           i.attribute_name)
-    for r in regex_rules:
-      if r.attribute_name not in aff4.Attribute.NAMES:
-        raise RuntimeError("Unknown attribute name: %s." %
-                           r.attribute_name)
-
-    rule = jobs_pb2.ForemanRule()
-    rule.created = int(time.time() * 1e6)
-    rule.expires = int((time.time() + self.expiry_time) * 1e6)
-    rule.description = "Hunt %s %s" % (self.context.session_id,
-                                       self.__class__.__name__)
-    if integer_rules:
-      rule.integer_rules.extend(integer_rules)
-    if regex_rules:
-      rule.regex_rules.extend(regex_rules)
-    action = rule.actions.add()
-    action.hunt_id = self.context.session_id
-    action.hunt_name = self.__class__.__name__
-    if self.client_limit:
-      action.client_limit = self.client_limit
-    self.rules.append(rule)
-
-  def CheckClient(self, client):
-    for rule in self.rules:
-      if self.CheckRule(client, rule):
-        return True
-    return False
-
-  def CheckRule(self, client, rule):
-    try:
-      for r in rule.regex_rules:
-        if r.path != "/":
-          continue
-
-        attribute = aff4.Attribute.NAMES[r.attribute_name]
-        value = utils.SmartStr(client.Get(attribute))
-
-        if not re.search(r.attribute_regex, value):
-          return False
-
-      for i in rule.integer_rules:
-        if i.path != "/":
-          continue
-
-        value = int(client.Get(aff4.Attribute.NAMES[i.attribute_name]))
-        op = i.operator
-        if op == jobs_pb2.ForemanAttributeInteger.LESS_THAN:
-          if not value < i.value:
-            return False
-        elif op == jobs_pb2.ForemanAttributeInteger.GREATER_THAN:
-          if not value > i.value:
-            return False
-        elif op == jobs_pb2.ForemanAttributeInteger.EQUAL:
-          if not value == i.value:
-            return False
-        else:
-          # Unknown operator.
-          return False
-
-      return True
-
-    except (KeyError, ValueError):
-      return False
-
-  def TestRules(self):
-    """This quickly verifies the ruleset.
-
-    This applies the ruleset to all clients in the db to see how many of them
-    would match the current rules.
-    """
-
-    root = aff4.FACTORY.Open(aff4.ROOT_URN, token=self.token)
-    display_warning = False
-    for rule in self.rules:
-      for r in rule.regex_rules:
-        if r.path != "/":
-          display_warning = True
-      for r in rule.integer_rules:
-        if r.path != "/":
-          display_warning = True
-    if display_warning:
-      logging.info("One or more rules use a relative path under the client, "
-                   "this is not supported so your count may be off.")
-
-    all_clients = 0
-    num_matching_clients = 0
-    matching_clients = []
-    for client in root.OpenChildren(chunk_limit=100000):
-      if client.Get(client.Schema.TYPE) == "VFSGRRClient":
-        all_clients += 1
-        if self.CheckClient(client):
-          num_matching_clients += 1
-          matching_clients.append(utils.SmartUnicode(client.urn))
-
-    logging.info("Out of %d checked clients, %d matched the given rule set.",
-                 all_clients, num_matching_clients)
-    if matching_clients:
-      logging.info("Example matches: %s", str(matching_clients[:3]))
-
-  def Run(self, description=None):
-    """This uploads the rules to the foreman and, thus, starts the hunt."""
-    if self.started:
-      return
-
-    # Write the hunt object. It will be overwritten if the hunt is restarted
-    # (Stop() and then Run() are called).
-    hunt_obj = self.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME,
-                                  token=self.token)
-    hunt_obj.Set(hunt_obj.Schema.CREATOR(self.token.username))
-    hunt_obj.Set(hunt_obj.Schema.HUNT_NAME(self.__class__.__name__))
-    if description:
-      hunt_obj.Set(hunt_obj.Schema.DESCRIPTION(description))
-    hunt_obj.Close()
-
-    # Push the new flow onto the queue.
-    task = scheduler.SCHEDULER.Task(queue=self.session_id, id=1,
-                                    value=self.Dump())
-
-    # There is a potential race here where we write the client requests first
-    # and pickle the flow later. To avoid this, we have to keep the order and
-    # schedule the tasks synchronously.
-    scheduler.SCHEDULER.Schedule([task], sync=True, token=self.token)
-
-    self.FlushMessages()
-    self.started = True
-
-    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-    # TODO(user): Refactor this into a Foreman.AddRules().
-    aff4_rules = foreman.Get(foreman.Schema.RULES) or foreman.Schema.RULES()
-    for rule in self.rules:
-      aff4_rules.Append(rule)
-    foreman.Set(foreman.Schema.RULES, aff4_rules)
-    foreman.Close()
-
-  def Stop(self):
-    """Cancels a running hunt."""
-    if not self.started:
-      return
-    self.started = False
-
-    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-    aff4_rules = foreman.Get(foreman.Schema.RULES) or foreman.Schema.RULES()
-    new_rules = foreman.Schema.RULES()
-    for rule in aff4_rules:
-      add = True
-      for action in rule.actions or []:
-        if action.hunt_id == self.context.session_id:
-          add = False
-          break
-      if add:
-        new_rules.Append(rule)
-    foreman.Set(foreman.Schema.RULES, new_rules)
-    foreman.Close()
-
-    # Expire the hunt so the worker can destroy it.
-    self.expiry_time = 0
-
-  def OutstandingRequests(self):
-    if self.start_time + self.expiry_time > time.time():
-      # Lie about it to prevent us from being destroyed.
-      return 1
-    return 0
-
-  @staticmethod
-  def StartClient(hunt_id, client_id, client_limit=None):
-    """This method is called by the foreman for each client it discovers."""
-
-    token = data_store.ACLToken("Hunt", "hunting")
-
-    if client_limit:
-      hunt_obj = aff4.FACTORY.Open("aff4:/hunts/%s" % hunt_id, mode="rw",
-                                   age=aff4.ALL_TIMES, token=token)
-      clients = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
-
-      if len(clients) >= client_limit:
-        return
-
-      client_urn = hunt_obj.Schema.CLIENTS(client_id)
-
-      if client_urn in clients:
-        logging.info("This hunt was already scheduled on %s.", client_id)
-        return
-    else:
-      hunt_obj = aff4.FACTORY.Create("aff4:/hunts/%s" % hunt_id, "VFSHunt",
-                                     mode="w", token=token)
-
-    client_urn = hunt_obj.Schema.CLIENTS(client_id)
-
-    hunt_obj.AddAttribute(client_urn)
-    hunt_obj.Close()
-
-    request_id = struct.unpack("l", os.urandom(struct.calcsize("l")))[0] % 2**32
-
-    state = jobs_pb2.RequestState(id=request_id,
-                                  session_id=hunt_id,
-                                  client_id=client_id,
-                                  next_state="Start")
-
-    # Queue the new request.
-    with flow_context.FlowManager(hunt_id, token=token) as flow_manager:
-      flow_manager.QueueRequest(state)
-
-      # Send a response.
-      msg = jobs_pb2.GrrMessage(session_id=hunt_id,
-                                request_id=state.id, response_id=1,
-                                auth_state=jobs_pb2.GrrMessage.AUTHENTICATED,
-                                args=jobs_pb2.GrrStatus().SerializeToString(),
-                                type=jobs_pb2.GrrMessage.STATUS)
-
-      flow_manager.QueueResponse(msg)
-
-      # And notify the worker about it.
-      scheduler.SCHEDULER.NotifyQueue("W", hunt_id, token=token)
-
-  def GetAFF4Object(self, mode="rw", age=aff4.ALL_TIMES, token=None):
-    return aff4.FACTORY.Create("aff4:/hunts/%s" % self.session_id,
-                               "VFSHunt", mode=mode, age=age, token=token)
-
-  def Start(self, responses):
-    """Do the real work here."""
-
-  def MarkClientDone(self, client_id):
-    """Adds a client_id to the list of completed tasks."""
-
-    self.MarkClient(client_id,
-                    aff4.AFF4Object.classes["VFSHunt"].SchemaCls.FINISHED)
-
-    if self.notification_event:
-      status = jobs_pb2.HuntNotification(session_id=self.session_id,
-                                         client_id=client_id)
-      self.Publish(self.notification_event, status)
-
-  def MarkClientBad(self, client_id):
-    """Marks a client as worth investigating."""
-
-    self.MarkClient(client_id,
-                    aff4.AFF4Object.classes["VFSHunt"].SchemaCls.BADNESS)
-
-  def LogClientError(self, client_id, log_message=None, backtrace=None):
-    """Logs an error for a client."""
-
-    token = data_store.ACLToken("Hunt", "hunting")
-    hunt_obj = self.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME, token=token)
-
-    error = hunt_obj.Schema.ERRORS()
-    error.data.client_id = client_id
-    if log_message:
-      error.data.log_message = utils.SmartUnicode(log_message)
-    if backtrace:
-      error.data.backtrace = backtrace
-    hunt_obj.AddAttribute(error)
-    hunt_obj.Close()
-
-  def LogResult(self, client_id, log_message=None, urn=None):
-    """Logs a message for a client."""
-
-    token = data_store.ACLToken("Hunt", "hunting")
-    hunt_obj = self.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME, token=token)
-
-    log_entry = hunt_obj.Schema.LOG()
-    log_entry.data.client_id = client_id
-    if log_message:
-      log_entry.data.log_message = utils.SmartUnicode(log_message)
-    if urn:
-      log_entry.data.urn = utils.SmartUnicode(urn)
-    hunt_obj.AddAttribute(log_entry)
-    hunt_obj.Close()
-
-  def MarkClient(self, client_id, attribute):
-    """Adds a client to the list indicated by attribute."""
-    token = data_store.ACLToken("Hunt", "hunting")
-    hunt_obj = self.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME, token=token)
-
-    client_urn = attribute(client_id)
-    hunt_obj.AddAttribute(client_urn)
-    hunt_obj.Close()
-
-  @utils.Synchronized
-  def Save(self):
-    self.lock = None
-
-  def Load(self):
-    self.lock = threading.RLock()
+      sessions_queued, scheduler.SCHEDULER.QueueNameFromURN):
+    scheduler.SCHEDULER.MultiNotifyQueue(
+        queue, session_ids, [msg.priority] * len(session_ids), token=token)
 
 
 class FlowFactory(object):
@@ -1237,8 +818,9 @@ class FlowFactory(object):
   def StartFlow(self, client_id, flow_name,
                 queue_name=flow_context.DEFAULT_WORKER_QUEUE_NAME,
                 event_id=None, token=None, priority=None, cpu_limit=None,
-                notification_event=None, _parent_request_queue=None,
-                _request_state=None, _store=None, **kw):
+                notification_event=None, parent_flow=None,
+                _parent_request_queue=None, _request_state=None,
+                _store=None, **kw):
     """Creates and executes a new flow.
 
     Args:
@@ -1251,6 +833,8 @@ class FlowFactory(object):
       cpu_limit: A limit on the client cpu seconds used by this flow.
       notification_event: The session_id of an event to be published when the
                           flow completes.
+      parent_flow: The URN of the parent flow or None if this is a top level
+                   flow .
       _parent_request_queue: This is used to pass queued messages to the client
                              up to a parent flow instead of writing it to the
                              data store.
@@ -1273,11 +857,11 @@ class FlowFactory(object):
 
     # Make sure we are allowed to run this flow.
     data_store.DB.security_manager.CheckAccess(token, [aff4.ROOT_URN.Add(
-        client_id).Add(flow_name)], "x")
+        client_id or "").Add(flow_name)], "x")
 
     # From now on we run with supervisor access
     if token is None:
-      token = data_store.ACLToken()
+      token = data_store.default_token.Copy()
     else:
       token = token.Copy()
 
@@ -1286,61 +870,49 @@ class FlowFactory(object):
     # Extend the expiry time of this token indefinitely.
     token.expiry = sys.maxint
 
+    # Only the supervisor can create the containing AFF4 object.
+    aff4_flow_obj = aff4.FACTORY.Create(None, "GRRFlow", token=token)
+
     # Strip out any private args so they do not get converted to a protodict.
     args = dict([(k, v) for k, v in kw.items() if not k.startswith("_")])
 
-    # Validate arguments against any provided type information.
-    for arg_name, arg_type, _ in flow_cls.GetFlowArgTypeInfo():
-      if arg_name in args:
-        try:
-          arg_type.Validate(args[arg_name])
-        except type_info.TypeValueError as e:
-          raise RuntimeError("Invalid %s argument %s to flow %s: %s"
-                             % (arg_type.__class__.__name__, arg_name,
-                                flow_name, e))
-
     context = flow_context.FlowContext(client_id=client_id,
                                        flow_name=flow_cls.__name__,
-                                       queue_name=queue_name,
+                                       queue_name=queue_name, args=args,
+                                       parent_flow=parent_flow,
                                        event_id=event_id, _store=_store,
                                        state=_request_state, token=token,
-                                       args=utils.ProtoDict(args).ToProto(),
                                        priority=priority, cpu_limit=cpu_limit)
 
     flow_obj = flow_cls(context=context, notification_event=notification_event,
                         **kw)
 
-    if client_id is not None:
+    if client_id:
       # This client may not exist already but we create it anyway.
       client = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=token)
 
-      flow_urn = aff4.FLOW_SWITCH_URN.Add(flow_obj.session_id)
-
       # Add this flow to the client
-      client.AddAttribute(client.Schema.FLOW, flow_urn)
+      client.AddAttribute(client.Schema.FLOW(flow_obj.session_id))
       client.Flush()
 
     logging.info("Scheduling %s(%s) on %s: %s", flow_obj.session_id,
                  flow_name, client_id, kw)
 
-    # Just run the first state. NOTE: The Start flow always runs on the thread
+    # Just run the first state. NOTE: The Start method always runs on the thread
     # that starts the flow so it must be very fast, basically just CallClient()
     # CallFlow() or CallState(). If a long delay is needed, this should call
-    # CallState() and put the heavy lifting in another state.
+    # CallState() and put the heavy lifting in another state. Similarly it is
+    # preferred that any sanity checking of parameters etc be done by the
+    # Start() method so the flow invocation can be aborted immediately.
     flow_obj.Start(None)
 
     # The flow does not need to actually remain running.
     if not flow_obj.OutstandingRequests():
       flow_obj.Terminate()
 
-    # Push the new flow onto the queue
-    task = scheduler.SCHEDULER.Task(queue=flow_obj.session_id, id=1,
-                                    value=flow_obj.Dump())
-
-    # There is a potential race here where we write the client requests first
-    # and pickle the flow later. To avoid this, we have to keep the order and
-    # schedule the tasks synchronously.
-    scheduler.SCHEDULER.Schedule([task], sync=True, token=token)
+    # Flows always have task id 1.
+    flow_obj.flow_pb.ts_id = 1
+    aff4_flow_obj.SetFlowObj(flow_obj)
 
     if _parent_request_queue is not None:
       # We were called by another flow so we don't write our requests directly
@@ -1349,9 +921,10 @@ class FlowFactory(object):
       _parent_request_queue.extend(flow_obj.context.new_request_states)
       flow_obj.context.new_request_states = []
 
-    flow_obj.FlushMessages()
+    aff4_flow_obj.Close()
 
-    return flow_obj.session_id
+    # TODO(user): This needs to return an RDFURN object not a string.
+    return str(aff4_flow_obj.urn)
 
   def ListFlow(self, client_id, limit=1000, token=None):
     """Fetches the flow based on session_id.
@@ -1366,8 +939,8 @@ class FlowFactory(object):
     """
     tasks = scheduler.SCHEDULER.Query(queue=client_id, limit=limit,
                                       decoder=jobs_pb2.FlowPB, token=token)
-    live = [t for t in tasks if t.value.state != jobs_pb2.FlowPB.TERMINATED]
-    return live
+    return [t for t in tasks
+            if t.value.state != rdfvalue.Flow.Enum("TERMINATED")]
 
   def FetchFlow(self, session_id, sync=True, lock=True, token=None):
     """Fetches the flow based on session_id.
@@ -1400,7 +973,7 @@ class FlowFactory(object):
         return None
 
       # Flow is terminated do not lock it
-      if flow_tasks[0].value.state == jobs_pb2.FlowPB.TERMINATED:
+      if flow_tasks[0].value.state == rdfvalue.Flow.Enum("TERMINATED"):
         return flow_tasks[0].value
 
       # If we dont need to lock it - we are done
@@ -1439,20 +1012,16 @@ class FlowFactory(object):
     self.outstanding_flows.discard(flow_pb.session_id)
 
     # Is this flow still alive?
-    if flow_pb.state != jobs_pb2.FlowPB.TERMINATED:
+    if flow_pb.state != rdfvalue.Flow.Enum("TERMINATED"):
       logging.info("Returning flow %s", flow_pb.session_id)
 
       # Re-insert it into the Task Scheduler
       flow_task = scheduler.SCHEDULER.Task(queue=flow_pb.session_id,
-                                           id=flow_pb.ts_id, value=flow_pb)
+                                           id=1, value=flow_pb)
 
       scheduler.SCHEDULER.Schedule([flow_task], token=token, sync=True)
     else:
       logging.info("Deleting flow %s", flow_pb.session_id)
-      flow_pb.state = jobs_pb2.FlowPB.TERMINATED
-      flow_task = scheduler.SCHEDULER.Task(
-          queue=flow_pb.session_id, id=flow_pb.ts_id, value=flow_pb)
-      scheduler.SCHEDULER.Schedule([flow_task], token=token)
       self.DeleteFlow(flow_pb, token=token)
 
   def TerminateFlow(self, flow_id, reason=None, token=None, force=False,
@@ -1473,7 +1042,7 @@ class FlowFactory(object):
     flow_pb = self.FetchFlow(flow_id, sync=False,
                              lock=not force, token=token)
 
-    if flow_pb.state != jobs_pb2.FlowPB.RUNNING:
+    if flow_pb.state != rdfvalue.Flow.Enum("RUNNING"):
       return
 
     flow_obj = self.LoadFlow(flow_pb)
@@ -1510,12 +1079,12 @@ class FlowFactory(object):
 
   def DeleteFlow(self, flow_pb, token=None):
     """Deletes the flow from the Task Scheduler."""
-    flow_pb.state = jobs_pb2.FlowPB.TERMINATED
+    flow_pb.state = rdfvalue.Flow.Enum("TERMINATED")
     flow_task = scheduler.SCHEDULER.Task(
         queue=flow_pb.session_id, id=flow_pb.ts_id, value=flow_pb)
     scheduler.SCHEDULER.Schedule([flow_task], token=token, sync=True)
 
-  def LoadFlow(self, flow_pb):
+  def LoadFlow(self, flow_pb, forced_token=None):
     """Restores the flow stored in flow_pb.
 
     We might want to make this more flexible down the track
@@ -1523,6 +1092,8 @@ class FlowFactory(object):
 
     Args:
       flow_pb: The flow protobuf
+      forced_token: If not None, this token will override the previously
+                    pickled flow's token
     Returns:
       A complete flow object.
 
@@ -1535,6 +1106,8 @@ class FlowFactory(object):
       result = pickle.loads(flow_pb.pickle)
       result.data_store = data_store.DB
       result.context.outbound_lock = threading.Lock()
+      if forced_token:
+        result.context.token = forced_token
 
       # Allow the flow to hook the load operation.
       result.Load()
@@ -1552,8 +1125,8 @@ class FlowFactory(object):
     return result
 
   def GetFlowObj(self, session_id, token=None):
-    return self.LoadFlow(self.FetchFlow(session_id, lock=False,
-                                        token=token))
+    return self.LoadFlow(self.FetchFlow(
+        session_id, lock=False, token=token), forced_token=token)
 
   def QueryFlows(self, session_ids, token=None):
     """This queries multiple flows at once.
@@ -1575,7 +1148,14 @@ class FlowFactory(object):
 
   def GetFlowObjs(self, session_ids, token=None):
     flow_pbs = self.QueryFlows(session_ids, token=token)
-    return [self.LoadFlow(pb) for pb in flow_pbs]
+    result = []
+    for pb in flow_pbs:
+      try:
+        result.append(self.LoadFlow(pb, forced_token=token))
+      except FlowError as e:
+        logging.error("Can't load Flow %s: %s", pb.name, e)
+
+    return result
 
 
 class ServerPubKeyCache(communicator.PubKeyCache):
@@ -1640,7 +1220,7 @@ class ServerCommunicator(communicator.Communicator):
     client = self.client_cache.Get(common_name)
     cipher = client.Get(client.Schema.CIPHER)
     if cipher:
-      return cipher.data
+      return cipher
 
     raise KeyError("Cipher not found.")
 
@@ -1655,9 +1235,9 @@ class ServerCommunicator(communicator.Communicator):
 
     client.Set(client.Schema.CIPHER(cipher))
 
-  def _LoadOurCertificate(self, certificate_path):
+  def _LoadOurCertificate(self, certificate_name):
     """Loads the server certificate."""
-    server_pem = key_utils.GetCert(certificate_path)
+    server_pem = key_utils.GetCert(certificate_name)
     self.cert = X509.load_cert_string(server_pem)
 
     # Make sure its valid
@@ -1682,14 +1262,14 @@ class ServerCommunicator(communicator.Communicator):
 
     Args:
        response_comms: The raw response_comms protobuf.
-       signed_message_list: The SignedMessageList proto from the server.
+       signed_message_list: The SignedMessageList rdfvalue from the server.
        cipher: The cipher object that should be used to verify the message.
        api_version: The api version we should use.
 
     Returns:
-       a jobs_pb2.GrrMessage.AuthorizationState.
+       a rdfvalue.GRRMessage.Enum("A")uthorizationState.
     """
-    result = jobs_pb2.GrrMessage.UNAUTHENTICATED
+    result = rdfvalue.GRRMessage.Enum("UNAUTHENTICATED")
     try:
       if api_version >= 3:
         # New version:
@@ -1697,7 +1277,7 @@ class ServerCommunicator(communicator.Communicator):
           raise communicator.DecryptionError("HMAC does not match.")
 
         if cipher.signature_verified:
-          result = jobs_pb2.GrrMessage.AUTHENTICATED
+          result = rdfvalue.GRRMessage.Enum("AUTHENTICATED")
 
       else:
         # Fake the metadata
@@ -1714,17 +1294,16 @@ class ServerCommunicator(communicator.Communicator):
         try:
           stats.STATS.Increment("grr_rsa_operations")
           # Signature is not verified, we consider the message unauthenticated.
-          if not remote_public_key.verify(
-              digest, signed_message_list.signature,
-              cipher.hash_function_name):
-            return jobs_pb2.GrrMessage.UNAUTHENTICATED
+          if remote_public_key.verify(digest, signed_message_list.signature,
+                                      cipher.hash_function_name) != 1:
+            return rdfvalue.GRRMessage.Enum("UNAUTHENTICATED")
 
         except RSA.RSAError as e:
           raise communicator.DecryptionError(e)
 
-        result = jobs_pb2.GrrMessage.AUTHENTICATED
+        result = rdfvalue.GRRMessage.Enum("AUTHENTICATED")
 
-      if result == jobs_pb2.GrrMessage.AUTHENTICATED:
+      if result == rdfvalue.GRRMessage.Enum("AUTHENTICATED"):
         try:
           client = self.client_cache.Get(cipher.cipher_metadata.source)
         except KeyError:
@@ -1743,12 +1322,12 @@ class ServerCommunicator(communicator.Communicator):
           stats.STATS.Increment("grr_authenticated_messages")
 
           # Update the client and server timestamps.
-          client.Set(client.Schema.CLOCK, aff4.RDFDatetime(client_time))
-          client.Set(client.Schema.PING, aff4.RDFDatetime())
+          client.Set(client.Schema.CLOCK, rdfvalue.RDFDatetime(client_time))
+          client.Set(client.Schema.PING, rdfvalue.RDFDatetime())
 
         else:
           # This is likely an old message
-          return jobs_pb2.GrrMessage.DESYNCHRONIZED
+          return rdfvalue.GRRMessage.Enum("DESYNCHRONIZED")
 
         # If we are prepared to live with a slight risk of replay we can
         # remove this.
@@ -1757,7 +1336,7 @@ class ServerCommunicator(communicator.Communicator):
     except communicator.UnknownClientCert:
       pass
 
-    if result != jobs_pb2.GrrMessage.AUTHENTICATED:
+    if result != rdfvalue.GRRMessage.Enum("AUTHENTICATED"):
       stats.STATS.Increment("grr_unauthenticated_messages")
 
     return result
@@ -1801,7 +1380,9 @@ class FrontEndServer(object):
     # Well known flows are run on the front end.
     self.well_known_flows = {}
     for name, cls in GRRFlow.classes.items():
-      if issubclass(cls, WellKnownFlow) and cls.well_known_session_id:
+      if (issubclass(cls, WellKnownFlow) and
+          cls.well_known_session_id and
+          name in FLAGS.frontend_well_known_flows):
         context = flow_context.FlowContext(flow_name=name, token=self.token)
         self.well_known_flows[
             cls.well_known_session_id] = cls(context)
@@ -1902,7 +1483,7 @@ class FrontEndServer(object):
     # We send the client a maximum of self.max_queue_size messages
     required_count = max(0, self.max_queue_size - request_comms.queue_size)
 
-    message_list = jobs_pb2.MessageList()
+    message_list = rdfvalue.MessageList()
     if self.UpdateAndCheckIfShouldThrottle(time.time()):
       tasks = []
       stats.STATS.Increment("grr_frontendserver_handle_throttled_num")
@@ -1954,7 +1535,8 @@ class FrontEndServer(object):
         lease_seconds=self.message_expiry_time,
         decoder=jobs_pb2.GrrMessage)
 
-    response_message.job.extend([x.value for x in new_tasks])
+    for task in new_tasks:
+      response_message.job.Append(task.value)
     stats.STATS.Add("grr_messages_sent", len(new_tasks))
     return new_tasks
 
@@ -1970,14 +1552,18 @@ class FrontEndServer(object):
     """
 
     for msg in messages:
-      if msg.type == jobs_pb2.GrrMessage.STATUS:
-        status = jobs_pb2.GrrStatus()
-        status.ParseFromString(msg.args)
-        if status.status == jobs_pb2.GrrStatus.CLIENT_KILLED:
+      # Support old clients without fully qualified session ids.
+      if not msg.session_id.startswith("aff4"):
+        msg.session_id = "aff4:/flows/" + msg.session_id
+
+      if msg.type == rdfvalue.GRRMessage.Enum("STATUS"):
+        status = rdfvalue.GrrStatus(msg.args)
+        if status.status == rdfvalue.GrrStatus.Enum("CLIENT_KILLED"):
           # A client crashed while performing an action, fire an event.
-          PublishEvent("ClientCrash", msg)
+          PublishEvent("ClientCrash", rdfvalue.GRRMessage(msg))
 
     sessions_handled = []
+    priorities = {}
     for session_id, messages in utils.GroupBy(
         messages, operator.attrgetter("session_id")):
 
@@ -1991,18 +1577,23 @@ class FrontEndServer(object):
       with flow_context.FlowManager(session_id, token=self.token,
                                     store=self.data_store) as flow_manager:
         for msg in messages:
+          priorities[session_id] = max(priorities.setdefault(session_id, 0),
+                                       msg.priority)
           flow_manager.QueueResponse(msg)
 
     # Write the session ids that we saw to the worker queue. (One round trip per
     # worker queue).
     for queue, session_ids in utils.GroupBy(
-        sessions_handled, lambda x: x.split(":", 1)[0]):
-      scheduler.SCHEDULER.MultiNotifyQueue(queue, session_ids, token=self.token)
+        sessions_handled, scheduler.SCHEDULER.QueueNameFromURN):
+
+      scheduler.SCHEDULER.MultiNotifyQueue(
+          queue, session_ids,
+          [priorities[session_id] for session_id in session_ids],
+          token=self.token)
 
   def HandleWellKnownFlows(self, messages):
     """Hands off messages to well known flows."""
     result = []
-
     for msg in messages:
       # Regular message - queue it.
       if msg.response_id != 0:
@@ -2014,6 +1605,11 @@ class FrontEndServer(object):
           # This message should be processed directly on the front end.
           flow = self.well_known_flows[msg.session_id]
           flow.ProcessMessage(msg)
+
+          # Remove the notification from the well known flows.
+          scheduler.SCHEDULER.DeleteNotification(
+              scheduler.SCHEDULER.QueueNameFromURN(msg.session_id),
+              msg.session_id, token=self.token)
 
           stats.STATS.Increment("grr_well_known_flow_requests")
         else:
@@ -2146,24 +1742,15 @@ class GRRWorker(object):
     Returns:
         Total number of messages processed by this call.
     """
-    # Check which sessions have new data.
-    active_sessions = []
-    now = int(time.time() * 1e6)
-    # Read all the sessions that have notifications.
-    sessions_available = data_store.DB.ResolveRegex(
-        self.queue_name, flow_context.FlowManager.FLOW_TASK_REGEX,
-        timestamp=(0, now), token=self.token, limit=10000)
-    sessions_available = [predicate for predicate, _, _ in sessions_available]
-    # Shuffle them so workers work on different flows.
-    random.shuffle(sessions_available)
+    sessions_available = scheduler.SCHEDULER.GetSessionsFromQueue(
+        self.queue_name, self.token)
 
-    # We can not have more than 100 tasks in the queue at once.
-    for predicate in sessions_available[:100]:
-      session_id = predicate.split(":", 1)[1]
-      active_sessions.append(session_id)
+    # Filter out session ids we already tried to lock but failed.
+    sessions_available = [session for session in sessions_available
+                          if session not in self.queued_flows]
 
     try:
-      processed = self.ProcessMessages(active_sessions)
+      processed = self.ProcessMessages(sessions_available)
     # We need to keep going no matter what.
     except Exception as e:    # pylint: disable=W0703
       logging.error("Error processing message %s. %s.", e,
@@ -2208,12 +1795,11 @@ class GRRWorker(object):
       flow_pb = FACTORY.FetchFlow(session_id, lock=True, sync=False,
                                   token=self.token)
 
-      # If we get here, we now own the flow, so we can remove the place holder
-      # from the worker queue.
-      queue = session_id.split(":", 1)[0]
-      data_store.DB.DeleteAttributes(
-          queue, [flow_context.FlowManager.FLOW_TASK_TEMPLATE % session_id],
-          token=self.token)
+      # If we get here, we now own the flow, so we can remove the notification
+      # for it from the worker queue.
+      scheduler.SCHEDULER.DeleteNotification(
+          scheduler.SCHEDULER.QueueNameFromURN(session_id),
+          session_id, token=self.token)
 
     except LockError:
       # Another worker is dealing with this flow right now, we just skip it.
@@ -2244,11 +1830,12 @@ class GRRWorker(object):
 
     except FlowError as e:
       # Something went wrong - log it
-      self.flow_pb.state = jobs_pb2.FlowPB.ERROR
-      if not flow_pb.backtrace:
-        flow_pb.backtrace = traceback.format_exc()
+      if flow_pb:
+        flow_pb.state = rdfvalue.Flow.Enum("ERROR")
+        if not flow_pb.backtrace:
+          flow_pb.backtrace = traceback.format_exc()
 
-        logging.error("Flow %s: %s", flow_obj, e)
+      logging.error("Flow %s: %s", flow_obj, e)
 
     finally:
       if flow_pb:

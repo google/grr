@@ -21,6 +21,10 @@ import time
 from grr.client import conf
 from grr.client import conf as flags
 from grr.lib import data_store
+# pylint: disable=unused-import
+from grr.lib import rdfvalue
+from grr.lib import rdfvalues
+# pylint: enable=unused-import
 from grr.lib import scheduler
 from grr.lib import stats
 from grr.lib import test_lib
@@ -57,7 +61,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
     self.assertEqual((long(self._current_mock_time * 1000) & 0xffffffff) << 32,
                      task.id & 0xffffffff00000000)
     self.assertEqual(task.ttl, 5)
-    value, ts = data_store.DB.Resolve("task:%s" % test_queue,
+    value, ts = data_store.DB.Resolve(test_queue,
                                       "task:%08d" % task.id, token=self.token)
 
     self.assertEqual(value, task.SerializeToString())
@@ -157,7 +161,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
     scheduler.SCHEDULER.Delete(test_queue, tasks, token=self.token)
 
     # Should not exist in the table
-    value, ts = data_store.DB.Resolve("task:%s" % test_queue,
+    value, ts = data_store.DB.Resolve(test_queue,
                                       "task:%08d" % task.id, token=self.token)
 
     self.assertEqual(value, None)

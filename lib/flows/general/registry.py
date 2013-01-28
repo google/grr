@@ -19,8 +19,8 @@ import stat
 
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
 
 
@@ -39,13 +39,13 @@ class CollectRunKeys(flow.GRRFlow):
       for key in ["Run", "RunOnce"]:
         run_path = ("HKEY_USERS/%s/Software/Microsoft/Windows/CurrentVersion"
                     "/%s" % (user.sid, key))
-        pathspec_run = jobs_pb2.Path(pathtype=jobs_pb2.Path.REGISTRY,
-                                     path=run_path)
 
-        findspec_run = jobs_pb2.Find(pathspec=pathspec_run, max_depth=2)
+        findspec_run = rdfvalue.RDFFindSpec(max_depth=2)
         findspec_run.iterator.number = 1000
+        findspec_run.pathspec.path = run_path
+        findspec_run.pathspec.pathtype = rdfvalue.RDFPathSpec.Enum("REGISTRY")
 
-        self.CallFlow("FindFiles", findspec=findspec_run, output=None,
+        self.CallFlow("FindFiles", findspec=findspec_run,
                       next_state="StoreRunKeys",
                       request_data=dict(username=user.username, keytype=key))
 
@@ -53,13 +53,13 @@ class CollectRunKeys(flow.GRRFlow):
     for key in ["Run", "RunOnce"]:
       run_path = ("HKEY_LOCAL_MACHINE/Software/Microsoft/Windows/CurrentVersion"
                   "/%s" % key)
-      pathspec_run = jobs_pb2.Path(pathtype=jobs_pb2.Path.REGISTRY,
-                                   path=run_path)
 
-      findspec_run = jobs_pb2.Find(pathspec=pathspec_run, max_depth=2)
+      findspec_run = rdfvalue.RDFFindSpec(max_depth=2)
       findspec_run.iterator.number = 1000
+      findspec_run.pathspec.path = run_path
+      findspec_run.pathspec.pathtype = rdfvalue.RDFPathSpec.Enum("REGISTRY")
 
-      self.CallFlow("FindFiles", findspec=findspec_run, output=None,
+      self.CallFlow("FindFiles", findspec=findspec_run,
                     next_state="StoreRunKeys",
                     request_data=dict(username="System", keytype=key))
 
@@ -76,28 +76,19 @@ class CollectRunKeys(flow.GRRFlow):
       self.Log("%s for %s does not exist" % (keytype, username))
 
     # Creates a RunKeyCollection for everyone, even if the key does not exist.
-    master = aff4.FACTORY.Create(aff4.RDFURN(self.client_id)
-                                 .Add("analysis/RunKeys")
-                                 .Add(username)
-                                 .Add(keytype), "RunKeyCollection",
-                                 token=self.token, mode="rw")
-    # Initiate the runkeyentry to empty.
-    runkeyentry = master.Schema.RUNKEYS()
+    runkey_collection = aff4.FACTORY.Create(
+        rdfvalue.RDFURN(self.client_id).Add("analysis/RunKeys")
+        .Add(username).Add(keytype),
+        "RDFValueCollection", token=self.token, mode="rw")
 
     for response in responses:
-      # Append the RunKey to the current set.
-      self.numrunkeys += 1
+      runkey_collection.Add(rdfvalue.RunKey(
+          keyname=utils.SmartUnicode(response.pathspec.path),
+          filepath=utils.SmartUnicode(response.registry_data.string),
+          lastwritten=int(response.st_mtime)))
 
-      rk_temp = sysinfo_pb2.RunKey(keyname=
-                                   utils.SmartUnicode(response.pathspec.path),
-                                   filepath=utils.SmartUnicode(
-                                       response.registry_data.string),
-                                   lastwritten=response.st_mtime)
-      runkeyentry.Append(rk_temp)
-
-    # Store the runkey entries and close.
-    master.Set(runkeyentry)
-    master.Close()
+    runkey_collection.Close()
+    self.numrunkeys = len(runkey_collection)
 
   @flow.StateHandler()
   def End(self):
@@ -120,12 +111,10 @@ class FindMRU(flow.GRRFlow):
                   "/CurrentVersion/Explorer/ComDlg32"
                   "/OpenSavePidlMRU" % user.sid)
 
-      pathspec = jobs_pb2.Path(pathtype=jobs_pb2.Path.REGISTRY,
-                               path=mru_path)
-
-      findspec = jobs_pb2.Find(pathspec=pathspec,
-                               max_depth=2)
+      findspec = rdfvalue.RDFFindSpec(max_depth=2)
       findspec.iterator.number = 1000
+      findspec.pathspec.path = mru_path
+      findspec.pathspec.pathtype = rdfvalue.RDFPathSpec.Enum("REGISTRY")
 
       self.CallFlow("FindFiles", findspec=findspec, output=None,
                     next_state="StoreMRUs",
@@ -154,7 +143,7 @@ class FindMRU(flow.GRRFlow):
       if m:
         extension = m.group(1)
         fd = aff4.FACTORY.Create(
-            aff4.RDFURN(self.client_id)
+            rdfvalue.RDFURN(self.client_id)
             .Add("analysis/MRU/Explorer")
             .Add(extension)
             .Add(username),

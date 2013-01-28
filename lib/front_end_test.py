@@ -24,6 +24,7 @@ from grr.lib import communicator
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import flow_context
+from grr.lib import rdfvalue
 from grr.lib import scheduler
 from grr.lib import test_lib
 from grr.proto import jobs_pb2
@@ -36,7 +37,7 @@ class SendingTestFlow(flow.GRRFlow):
   def Start(self):
     for i in range(10):
       self.CallClient("Test",
-                      jobs_pb2.PrintStr(data="test%s" % i),
+                      rdfvalue.DataBlob(string="test%s" % i),
                       data=str(i),
                       next_state="Incoming")
 
@@ -49,11 +50,19 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     """Setup the server."""
     super(GRRFEServerTest, self).setUp()
 
+    # Whitelist test flow.
+    self.prev_frontend_well_known_flows = flags.FLAGS.frontend_well_known_flows
+    flags.FLAGS.frontend_well_known_flows = ["WellKnownSessionTest"]
+
     # For tests, small pools are ok.
     flags.FLAGS.threadpool_size = 10
     prefix = "pool-%s" % self._testMethodName
-    self.server = flow.FrontEndServer(self.key_path + "/server-priv.pem",
+    self.server = flow.FrontEndServer("Server_Private_Key",
                                       None, threadpool_prefix=prefix)
+
+  def tearDown(self):
+    super(GRRFEServerTest, self).tearDown()
+    flags.FLAGS.frontend_well_known_flows = self.prev_frontend_well_known_flows
 
   def CheckMessages(self, left, right):
     """Compares two lists of messages for equality.
@@ -79,7 +88,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     flow_obj = self.FlowSetup("FlowOrderTest")
 
     session_id = flow_obj.session_id
-    messages = [jobs_pb2.GrrMessage(request_id=1,
+    messages = [rdfvalue.GRRMessage(request_id=1,
                                     response_id=i,
                                     session_id=session_id,
                                     args=str(i))
@@ -100,7 +109,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
               1, message.response_id),
           decoder=jobs_pb2.GrrMessage, token=self.token)
 
-      self.assertProto2Equal(stored_message, message)
+      self.assertProto2Equal(stored_message, message.ToProto())
 
     flow.FACTORY.ReturnFlow(flow_obj, token=self.token)
     return messages
@@ -110,11 +119,11 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     messages = self.testReceiveMessages()
 
     # Now add the status message
-    status = jobs_pb2.GrrStatus(status=jobs_pb2.GrrStatus.OK)
-    status_messages = [jobs_pb2.GrrMessage(
+    status = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.Enum("OK"))
+    status_messages = [rdfvalue.GRRMessage(
         request_id=1, response_id=len(messages)+1,
-        session_id=messages[0].session_id, args=status.SerializeToString(),
-        type=jobs_pb2.GrrMessage.STATUS)]
+        session_id=messages[0].session_id, payload=status,
+        type=rdfvalue.GRRMessage.Enum("STATUS"))]
 
     self.server.ReceiveMessages(status_messages)
 
@@ -123,7 +132,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     test_lib.WellKnownSessionTest.messages = []
     session_id = test_lib.WellKnownSessionTest.well_known_session_id
 
-    messages = [jobs_pb2.GrrMessage(request_id=0,
+    messages = [rdfvalue.GRRMessage(request_id=0,
                                     response_id=0,
                                     session_id=session_id,
                                     args=str(i))
@@ -148,7 +157,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     test_lib.WellKnownSessionTest.messages = []
     session_id = test_lib.WellKnownSessionTest.well_known_session_id
 
-    messages = [jobs_pb2.GrrMessage(request_id=0,
+    messages = [rdfvalue.GRRMessage(request_id=0,
                                     response_id=0,
                                     session_id=session_id,
                                     args=str(i))
@@ -170,7 +179,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     # The well known flow messages should be waiting in the flow state now:
     queued_messages = []
     for predicate, _, _ in data_store.DB.ResolveRegex(
-        "task:%s:state" % session_id, "flow:.*", token=self.token):
+        "%s/state" % session_id, "flow:.*", token=self.token):
       queued_messages.append(predicate)
 
     self.assertEqual(len(queued_messages), 9)
@@ -208,7 +217,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
     # Now ask the server to drain the outbound messages into the
     # message list.
-    response = jobs_pb2.MessageList()
+    response = rdfvalue.MessageList()
 
     self.server.DrainTaskSchedulerQueueForClient(
         self.client_id, 5, response)
@@ -311,7 +320,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     self.server._communicator = MockCommunicator()
 
     # First request, the server will raise UnknownClientCert.
-    request_comms = jobs_pb2.ClientCommunication()
+    request_comms = rdfvalue.ClientCommunication()
     self.assertRaises(communicator.UnknownClientCert,
                       self.server.HandleMessageBundles, request_comms, 2)
 

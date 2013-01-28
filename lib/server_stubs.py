@@ -21,16 +21,11 @@ server.)
 
 
 from grr.client import actions
+from grr.lib import rdfvalue
 from grr.proto import jobs_pb2
 
 
 class WmiQuery(actions.ActionPlugin):
   """Runs a WMI query and returns the results to a server callback."""
-  in_protobuf = jobs_pb2.WmiRequest
-  out_protobuf = jobs_pb2.Dict
-
-
-class GetMemoryInformation(actions.ActionPlugin):
-  """Gets information about memory layout."""
-  in_protobuf = jobs_pb2.Path
-  out_protobuf = jobs_pb2.MemoryInformation
+  in_rdfvalue = rdfvalue.WMIRequest
+  out_rdfvalue = rdfvalue.RDFProtoDict

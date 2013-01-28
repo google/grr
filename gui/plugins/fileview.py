@@ -27,9 +27,8 @@ from M2Crypto import X509
 from grr.gui import renderers
 from grr.gui.plugins import fileview_widgets
 from grr.lib import aff4
-from grr.lib import data_store
+from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
 
 # pylint: disable=C6409
@@ -40,42 +39,17 @@ class StatEntryRenderer(renderers.RDFProtoRenderer):
   classname = "StatEntry"
   name = "Stat Entry"
 
-  def Translate_st_mode(self, _, st_mode):
-    """Pretty print the file mode."""
-    mode_template = "rwx" * 3
-    mode = bin(st_mode)[-9:]
-
-    bits = []
-    for i in range(len(mode_template)):
-      if mode[i] == "1":
-        bit = mode_template[i]
-      else:
-        bit = "-"
-
-      bits.append(bit)
-
-    return "".join(bits)
-
   def TranslateRegistryData(self, _, registry_data):
     if registry_data.HasField("data"):
-      ret = repr(utils.DataBlob(registry_data).GetValue())
+      ret = repr(registry_data.GetValue())
     else:
-      ret = utils.SmartStr(utils.DataBlob(registry_data).GetValue())
+      ret = utils.SmartStr(registry_data.GetValue())
 
     # This is not escaped by the template!
     return renderers.EscapingRenderer(ret).RawHTML()
 
-  def TranslatePathSpecBasename(self, _, pathspec):
-    """Render the basename of the pathspec."""
-    return utils.Pathspec(pathspec).Basename()
-
-  translator = dict(st_mtime=renderers.RDFProtoRenderer.Time32Bit,
-                    st_atime=renderers.RDFProtoRenderer.Time32Bit,
-                    st_ctime=renderers.RDFProtoRenderer.Time32Bit,
-                    st_mode=Translate_st_mode,
-                    registry_data=TranslateRegistryData,
-                    registry_type=renderers.RDFProtoRenderer.Enum,
-                    pathspec=TranslatePathSpecBasename)
+  translator = dict(registry_data=TranslateRegistryData,
+                    registry_type=renderers.RDFProtoRenderer.Enum)
 
 
 class CollectionRenderer(StatEntryRenderer):
@@ -106,7 +80,7 @@ class CollectionRenderer(StatEntryRenderer):
     """Render collections as a table."""
     self.result = []
     fields = "st_mode pathspec st_size st_mtime".split()
-    items = self.proxy.data.items
+    items = self.proxy.items
     for item in items:
       row = []
       for name in fields:
@@ -152,8 +126,8 @@ class GrepResultRenderer(renderers.RDFProtoRenderer):
 
   def Layout(self, request, response):
     self.results = []
-    for row in self.proxy.data:
-      self.results.append([row.offset, repr(row.data)])
+    for row in self.proxy:
+      self.results.append([row.offset, repr(row)])
 
     return renderers.TemplateRenderer.Layout(self, request, response)
 
@@ -170,7 +144,7 @@ class VolatilityFormatstringRenderer(renderers.RDFProtoRenderer):
   def GenerateLine(self, formatted_value):
     format_string = formatted_value.formatstring.replace("\n", "<br>")
     values = []
-    for value in formatted_value.data.values:
+    for value in formatted_value.values:
       values.append(value.svalue or value.value)
     return format_string.format(*values)
 
@@ -253,16 +227,16 @@ class GenericVolatilityResultRenderer(renderers.RDFProtoRenderer):
 <hr>
 {% endfor %}
 
-{% if this.proxy.data.error %}
+{% if this.proxy.error %}
 Error:
-{{this.proxy.data.error|escape}}
+{{this.proxy.error|escape}}
 {% endif %}
 """)
 
   def Layout(self, request, response):
     """Layout."""
     self.section_html = []
-    for section in self.proxy.data.sections:
+    for section in self.proxy.sections:
       if section.HasField("table"):
         self.section_html.append(
             VolatilityTableRenderer(section.table).RawHTML())
@@ -299,7 +273,7 @@ Details:<br>
 
   def Layout(self, request, response):
     """Prepare the data."""
-    table = self.proxy.data.sections[0].table
+    table = self.proxy.sections[0].table
     self.GenerateRows(table)
     self.names = sorted(set([values[-1] for values in self.rows if values[-1]]))
     self.details = VolatilityTableRenderer(table).RawHTML()
@@ -318,7 +292,7 @@ class VolatilityResultRenderer(renderers.RDFProtoRenderer):
     """Produces a layout as returned by the subrenderer."""
 
     # This is the standard renderer for now.
-    plugin = self.proxy.data.plugin
+    plugin = self.proxy.plugin
     subrenderer = self.subrenderers.get(plugin, GenericVolatilityResultRenderer)
 
     self.layout_template = subrenderer.layout_template
@@ -326,14 +300,12 @@ class VolatilityResultRenderer(renderers.RDFProtoRenderer):
     return super(VolatilityResultRenderer, self).Layout(request, response)
 
 
-class UserEntryRenderer(renderers.RDFProtoArrayRenderer):
-  classname = "User"
-  name = "User Record"
-
-  translator = dict(last_logon=renderers.RDFProtoRenderer.Time)
+class UsersRenderer(renderers.RDFValueArrayRenderer):
+  classname = "Users"
+  name = "Users"
 
 
-class InterfaceRenderer(renderers.RDFProtoArrayRenderer):
+class InterfaceRenderer(renderers.RDFValueArrayRenderer):
   """Render a machine's interfaces."""
   classname = "Interfaces"
   name = "Interface Record"
@@ -354,7 +326,7 @@ class InterfaceRenderer(renderers.RDFProtoArrayRenderer):
       if address.human_readable:
         output_strings.append(address.human_readable)
       else:
-        if address.address_type == jobs_pb2.NetworkAddress.INET:
+        if address.address_type == rdfvalue.NetworkAddress.Enum("INET"):
           output_strings.append(socket.inet_ntop(socket.AF_INET,
                                                  address.packed_bytes))
         else:
@@ -389,12 +361,12 @@ class StringListRenderer(renderers.TemplateRenderer):
 </table>
 """)
 
-  def __init__(self, strings):
+  def __init__(self, strings, **kwargs):
     self.strings = strings
-    super(StringListRenderer, self).__init__()
+    super(StringListRenderer, self).__init__(**kwargs)
 
 
-class ConnectionRenderer(renderers.RDFProtoArrayRenderer):
+class ConnectionRenderer(renderers.RDFValueArrayRenderer):
   """Renders connection listings."""
   classname = "Connections"
   name = "Connection Listing"
@@ -475,7 +447,7 @@ class ConnectionRenderer(renderers.RDFProtoArrayRenderer):
                                    result=sorted(result))
 
 
-class ProcessRenderer(renderers.RDFProtoArrayRenderer):
+class ProcessRenderer(renderers.RDFValueArrayRenderer):
   """Renders process listings."""
   classname = "Processes"
   name = "Process Listing"
@@ -491,7 +463,7 @@ class ProcessRenderer(renderers.RDFProtoArrayRenderer):
                     open_files=RenderFiles)
 
 
-class FilesystemRenderer(renderers.RDFProtoArrayRenderer):
+class FilesystemRenderer(renderers.RDFValueArrayRenderer):
   classname = "FileSystem"
   name = "FileSystems"
 
@@ -545,7 +517,7 @@ class BlobArrayRenderer(renderers.RDFValueRenderer):
 
   def Layout(self, _, response):
     array = []
-    for i in self.proxy.data:
+    for i in self.proxy:
       for field in ["integer", "string", "data", "boolean"]:
         if i.HasField(field):
           array.append(getattr(i, field))
@@ -553,15 +525,6 @@ class BlobArrayRenderer(renderers.RDFValueRenderer):
 
     return self.RenderFromTemplate(self.layout_template, response,
                                    first=array[0:1], array=array[1:])
-
-
-class PathspecRenderer(renderers.RDFValueRenderer):
-  """Renders the pathspec protobuf."""
-  classname = "RDFPathSpec"
-
-  template = renderers.Template("""
-<pre>{{this.proxy|escape}}</pre>
-""")
 
 
 class AgeSelector(renderers.RDFValueRenderer):
@@ -642,6 +605,10 @@ class AbstractFileTable(renderers.TableRenderer):
       grr.publish('hash_state', 'tb', undefined);
     }
   }, '{{ unique|escapejs }}');
+
+  // Allow the table content to be restored from the hash.
+  $("span[aff4_path='" + grr.hash.aff4_path + "']").click()
+
 </script>""")
 
   layout_template = (renderers.TableRenderer.layout_template +
@@ -662,8 +629,12 @@ class AbstractFileTable(renderers.TableRenderer):
   post_parameters = ["aff4_path"]
   root_path = "/"   # Paths will all be under this path.
 
-  def __init__(self):
-    super(AbstractFileTable, self).__init__()
+  # This can restrict the view to only certain types of objects. It should be a
+  # list of types to show.
+  visible_types = None
+
+  def __init__(self, **kwargs):
+    super(AbstractFileTable, self).__init__(**kwargs)
 
     if AbstractFileTable.content_cache is None:
       AbstractFileTable.content_cache = utils.TimeBasedCache()
@@ -686,20 +657,19 @@ class AbstractFileTable(renderers.TableRenderer):
       reverse_sort = False
 
     filter_term = request.REQ.get("filter")
-
     aff4_path = request.REQ.get("aff4_path", self.root_path)
-    urn = aff4.RDFURN(aff4_path)
+    urn = rdfvalue.RDFURN(aff4_path)
 
     filter_string = None
     if filter_term:
       column, regex = filter_term.split(":", 1)
 
-      escaped_regex = data_store.EscapeRegex(aff4_path + "/")
+      escaped_regex = utils.EscapeRegex(aff4_path + "/")
       # The start anchor refers only to this directory.
       if regex.startswith("^"):
-        escaped_regex += data_store.EscapeRegex(regex[1:])
+        escaped_regex += utils.EscapeRegex(regex[1:])
       else:
-        escaped_regex += ".*" + data_store.EscapeRegex(regex)
+        escaped_regex += ".*" + utils.EscapeRegex(regex)
 
       filter_string = "subject matches '%s'" % escaped_regex
 
@@ -709,10 +679,11 @@ class AbstractFileTable(renderers.TableRenderer):
       if filter_string:
         key += ":" + filter_string
       # Open the directory as a directory.
-      directory_node = aff4.FACTORY.Create(urn, "VFSDirectory", mode="r",
-                                           token=request.token)
+      directory_node = aff4.FACTORY.Open(urn, token=request.token).Upgrade(
+          "VFSDirectory")
       if not directory_node:
         raise IOError()
+
       key += str(directory_node.Get(directory_node.Schema.LAST))
       key += ":" + str(request.token)
       try:
@@ -721,6 +692,12 @@ class AbstractFileTable(renderers.TableRenderer):
         # Only show the direct children.
         children = sorted(directory_node.Query(filter_string=filter_string,
                                                limit=100000))
+
+        # Filter the children according to types.
+        if self.visible_types:
+          children = [x for x in children
+                      if x.__class__.__name__ in self.visible_types]
+
         self.content_cache.Put(key, children)
 
         try:
@@ -738,8 +715,13 @@ class AbstractFileTable(renderers.TableRenderer):
     # Make sure the table knows how large it is for paging.
     self.size = len(children)
     self.columns[1].base_path = urn
-
     for fd in children[start_row:end_row]:
+      # We use the timestamp on the TYPE as a proxy for the last update time
+      # of this object - its only an estimate.
+      fd_type = fd.Get(fd.Schema.TYPE)
+      if fd_type:
+        self.AddCell(row_index, "Age", rdfvalue.RDFDatetime(fd_type.age))
+
       self.AddCell(row_index, "Name", fd.urn)
 
       # Add the fd to all the columns
@@ -747,12 +729,6 @@ class AbstractFileTable(renderers.TableRenderer):
         # This sets AttributeColumns directly from their fd.
         if isinstance(column, renderers.AttributeColumn):
           column.AddRowFromFd(row_index, fd)
-
-      # We use the timestamp on the TYPE as a proxy for the last update time
-      # of this object - its only an estimate.
-      fd_type = fd.Get(fd.Schema.TYPE)
-      if fd_type:
-        self.AddCell(row_index, "Age", aff4.RDFDatetime(fd_type.age))
 
       if "Container" in fd.behaviours:
         self.AddCell(row_index, "Icon", dict(icon="directory",
@@ -785,8 +761,8 @@ class FileTable(AbstractFileTable):
   root_path = None   # The root will be dynamically set to the client path.
   toolbar = "Toolbar"
 
-  def __init__(self):
-    super(FileTable, self).__init__()
+  def __init__(self, **kwargs):
+    super(FileTable, self).__init__(**kwargs)
 
     self.AddColumn(renderers.RDFValueColumn(
         "Icon", renderer=renderers.IconRenderer, width=0))
@@ -833,14 +809,14 @@ class FileSystemTree(renderers.TreeRenderer):
   def RenderBranch(self, path, request):
     """Renders tree leafs for filesystem path."""
     client_id = request.REQ["client_id"]
-    aff4_root = aff4.RDFURN(request.REQ.get("aff4_root", client_id))
+    aff4_root = rdfvalue.RDFURN(request.REQ.get("aff4_root", client_id))
 
     # Path is relative to the aff4 root specified.
     urn = aff4_root.Add(path)
     try:
       # Open the client
-      directory = aff4.FACTORY.Create(urn, "VFSDirectory", mode="r",
-                                      token=request.token)
+      directory = aff4.FACTORY.Open(urn, token=request.token).Upgrade(
+          "VFSDirectory")
 
       children = [ch for ch in directory.OpenChildren(limit=100000)
                   if "Container" in ch.behaviours]
@@ -934,10 +910,10 @@ $('#path_{{i|escapejs}}').button().click(function () {
     self.state["aff4_path"] = self.aff4_path = request.REQ.get(
         "aff4_path", client_id)
 
-    client_urn = aff4.RDFURN(client_id)
+    client_urn = rdfvalue.RDFURN(client_id)
 
     self.paths = [("/", client_urn, "_", 0)]
-    for path in aff4.RDFURN(self.aff4_path).Split()[1:]:
+    for path in rdfvalue.RDFURN(self.aff4_path).Split()[1:]:
       previous = self.paths[-1]
       fullpath = client_urn.Add(previous[1].Add(path))
 
@@ -1025,7 +1001,7 @@ window.setTimeout(function () {
       switch = aff4.FACTORY.Open(aff4.FLOW_SWITCH_URN, token=request.token)
       flow_obj = switch.OpenMember(self.flow_urn)
       flow_pb = flow_obj.Get(flow_obj.Schema.FLOW_PB)
-      if flow_pb and flow_pb.data.state != jobs_pb2.FlowPB.RUNNING:
+      if flow_pb and flow_pb.state != rdfvalue.Flow.Enum("RUNNING"):
         complete = True
     except IOError:
       # Something went wrong, stop polling.
@@ -1054,7 +1030,7 @@ class AFF4ReaderMixin(object):
 
     try:
       fd = aff4.FACTORY.Open(self.aff4_path, token=request.token,
-                             age=aff4.RDFDatetime(self.age))
+                             age=rdfvalue.RDFDatetime(self.age))
       self.total_size = int(fd.Get(fd.Schema.SIZE))
     except (IOError, TypeError, AttributeError):
       self.total_size = 0
@@ -1075,6 +1051,7 @@ class FileTextViewer(AFF4ReaderMixin, fileview_widgets.TextView):
 class VirtualFileSystemView(renderers.Splitter):
   """This is the main view to browse files."""
   behaviours = frozenset(["Host"])
+  order = 10
   description = "Browse Virtual Filesystem"
 
   left_renderer = "FileSystemTree"
@@ -1154,7 +1131,7 @@ As downloaded on {{ this.age|escape }}.<br>
     """Present a download form."""
     self.client_id = request.REQ.get("client_id")
     self.aff4_path = request.REQ.get("aff4_path", self.client_id)
-    self.age = aff4.RDFDatetime(request.REQ.get("age"))
+    self.age = rdfvalue.RDFDatetime(request.REQ.get("age"))
     self.token = request.token
 
     try:
@@ -1183,7 +1160,7 @@ As downloaded on {{ this.age|escape }}.<br>
     # Open the client
     client_id = request.REQ.get("client_id")
     self.aff4_path = request.REQ.get("aff4_path", client_id)
-    self.age = aff4.RDFDatetime(request.REQ.get("age"))
+    self.age = rdfvalue.RDFDatetime(request.REQ.get("age"))
     self.token = request.token
 
     # If set, we don't append .noexec to dangerous extensions.
@@ -1290,7 +1267,7 @@ Success: File uploaded {{this.dest_path|escape}}.
 
   def GetFilePath(self, unused_request):
     """Get the path to write the file to and aff4 type as a tuple."""
-    path = aff4.RDFURN(self.storage_path).Add(self.uploaded_file.name)
+    path = rdfvalue.RDFURN(self.storage_path).Add(self.uploaded_file.name)
     return path, "VFSFile"
 
   def ValidateFile(self):
@@ -1378,16 +1355,16 @@ $('.attribute_opener').click(function () {
 </script>
 """)
 
-  def Layout(self, request, response):
+  def Layout(self, request, response, client_id=None, aff4_path=None, age=None):
     """Introspect the Schema for each object."""
-    # Allow derived classes to just set the urn directly
-    self.client_id = request.REQ.get("client_id")
-    self.aff4_path = request.REQ.get("aff4_path", self.client_id)
-    self.age = aff4.RDFDatetime(request.REQ.get("age"))
+    # Allow derived classes to just set the client_id/aff4_path/age directly
+    self.client_id = client_id or request.REQ.get("client_id")
+    self.aff4_path = aff4_path or request.REQ.get("aff4_path")
+    self.age = age or rdfvalue.RDFDatetime(request.REQ.get("age"))
+
     if not self.aff4_path: return
 
     try:
-      # Get all the versions of this file.
       self.fd = aff4.FACTORY.Open(self.aff4_path, token=request.token,
                                   age=self.age)
       self.classes = self.RenderAFF4Attributes(self.fd, request)
@@ -1425,7 +1402,7 @@ $('.attribute_opener').click(function () {
                              # This is assumed to be in safe RawHTML and not
                              # escaped.
                              value_renderer.RawHTML(request),
-                             aff4.RDFDatetime(values[0].age), multi))
+                             rdfvalue.RDFDatetime(values[0].age), multi))
 
       if attributes:
         name = ", ".join([cls.__name__ for cls in schema.FindAFF4Class()])
@@ -1438,20 +1415,23 @@ class HostInformation(AFF4Stats):
   """View information about the host."""
   description = "Host Information"
   behaviours = frozenset(["Host"])
+  order = 0
   css_class = "TableBody"
   filtered_attributes = ["USERNAMES", "HOSTNAME", "MAC_ADDRESS", "INSTALL_DATE",
                          "SYSTEM", "CLOCK", "CLIENT_INFO", "UNAME", "ARCH"]
 
-  def Layout(self, request, response):
-    self.client_id = request.REQ.get("client_id")
-    self.urn = aff4.RDFURN(self.client_id)
+  def Layout(self, request, response, client_id=None):
+    client_id = client_id or request.REQ.get("client_id")
+    urn = rdfvalue.RDFURN(client_id)
 
     # This verifies we have auth for deep client paths. If this raises, we
     # force the auth screen.
-    aff4.FACTORY.Open(aff4.RDFURN(self.urn).Add("CheckAuth"),
+    aff4.FACTORY.Open(rdfvalue.RDFURN(urn).Add("CheckAuth"),
                       token=request.token, mode="r")
 
-    return super(HostInformation, self).Layout(request, response)
+    return super(HostInformation, self).Layout(request, response,
+                                               client_id=client_id,
+                                               aff4_path=urn)
 
 
 class AFF4ObjectRenderer(renderers.TemplateRenderer):
@@ -1523,28 +1503,24 @@ $("li a[renderer={{disabled|escapejs}}]").removeClass(
 </script>
 """
 
-  def __init__(self, fd=None):
+  def __init__(self, fd=None, **kwargs):
     if fd:
       self.fd = fd
-    super(FileViewTabs, self).__init__()
+    super(FileViewTabs, self).__init__(**kwargs)
 
   def Layout(self, request, response):
     """Check if the file is a readable and disable the tabs."""
     client_id = request.REQ.get("client_id")
     self.aff4_path = request.REQ.get("aff4_path", client_id)
-    self.age = request.REQ.get("age", aff4.RDFDatetime())
+    self.age = request.REQ.get("age", rdfvalue.RDFDatetime())
     self.state = dict(aff4_path=self.aff4_path, age=int(self.age))
 
-    data = None
     try:
       if not self.fd:
         self.fd = aff4.FACTORY.Open(self.aff4_path, token=request.token)
       # We just check if the object has a read method.
-      data = self.fd.Read
+      _ = self.fd.Read
     except (IOError, AttributeError):
-      pass
-
-    if data is None:
       self.disabled = ["DownloadView", "FileHexViewer", "FileTextViewer"]
 
     return super(FileViewTabs, self).Layout(request, response)
@@ -1590,8 +1566,8 @@ Very doubtful""".splitlines()
 class HistoricalView(renderers.TableRenderer):
   """Show historical view for an attribute."""
 
-  def __init__(self):
-    super(HistoricalView, self).__init__()
+  def __init__(self, **kwargs):
+    super(HistoricalView, self).__init__(**kwargs)
 
     self.AddColumn(renderers.RDFValueColumn("Age"))
 
@@ -1601,28 +1577,23 @@ class HistoricalView(renderers.TableRenderer):
     if client_id is None:
       raise RuntimeError("Expected client_id")
 
-    client_urn = aff4.RDFURN(client_id)
-    path = request.REQ.get("path", "/")
-
-    # Path is relative
-    urn = client_urn.Add(path)
-
-    # Pass the urn to our render method.
-    self.state["urn"] = utils.SmartStr(urn)
-    self.state["attribute"] = request.REQ.get("attribute")
-
-    self.AddColumn(renderers.RDFValueColumn(self.state["attribute"]))
+    self.AddColumn(renderers.RDFValueColumn(request.REQ.get("attribute")))
 
     return super(HistoricalView, self).Layout(request, response)
 
   def BuildTable(self, start_row, end_row, request):
     """Populate the table with attribute values."""
-    # Path is relative
-    urn = request.REQ.get("urn")
-    attribute_name = request.REQ.get("attribute")
 
+    attribute_name = request.REQ.get("attribute")
     if attribute_name is None:
       return
+
+    urn = request.REQ.get("urn")
+    if urn is None:
+      client_id = request.REQ.get("client_id")
+      client_urn = rdfvalue.RDFURN(client_id)
+      path = request.REQ.get("path", "/")
+      urn = client_urn.Add(path)
 
     self.AddColumn(renderers.RDFValueColumn(attribute_name))
     fd = aff4.FACTORY.Open(urn, token=request.token, age=aff4.ALL_TIMES)
@@ -1637,7 +1608,7 @@ class HistoricalView(renderers.TableRenderer):
       if i > end_row: break
       if i < start_row: continue
 
-      self.AddCell(i, "Age", aff4.RDFDatetime(value.age))
+      self.AddCell(i, "Age", rdfvalue.RDFDatetime(value.age))
       self.AddCell(i, attribute_name, value)
 
     self.size = i + 1
@@ -1665,8 +1636,8 @@ class VersionSelectorDialog(renderers.TableRenderer):
 <h3> Versions of {{this.state.aff4_path}}</h3>
 """ + renderers.TableRenderer.layout_template
 
-  def __init__(self):
-    super(VersionSelectorDialog, self).__init__()
+  def __init__(self, **kwargs):
+    super(VersionSelectorDialog, self).__init__(**kwargs)
 
     self.AddColumn(renderers.RDFValueColumn("Age"))
     self.AddColumn(renderers.RDFValueColumn("Type"))
@@ -1688,7 +1659,7 @@ class VersionSelectorDialog(renderers.TableRenderer):
       if i < start_row or i > end_row:
         continue
 
-      self.AddCell(i, "Age", aff4.RDFDatetime(type_attribute.age))
+      self.AddCell(i, "Age", rdfvalue.RDFDatetime(type_attribute.age))
       self.AddCell(i, "Type", type_attribute)
 
     return i + 1

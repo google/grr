@@ -26,7 +26,7 @@ import struct
 import sys
 
 from grr.client import vfs
-from grr.proto import jobs_pb2
+from grr.lib import rdfvalue
 
 
 class MemoryVFS(vfs.VFSHandler):
@@ -45,8 +45,7 @@ class MemoryVFS(vfs.VFSHandler):
     return False
 
   def Stat(self):
-    result = jobs_pb2.StatResponse(st_size=self.size)
-    result.pathspec.MergeFrom(self.pathspec)
+    result = rdfvalue.StatEntry(st_size=self.size, pathspec=self.pathspec)
     return result
 
 if "linux" in sys.platform:
@@ -54,7 +53,7 @@ if "linux" in sys.platform:
   class LinuxMemory(MemoryVFS):
     """A Linux memory VFS driver."""
 
-    supported_pathtype = jobs_pb2.Path.MEMORY
+    supported_pathtype = rdfvalue.RDFPathSpec.Enum("MEMORY")
     auto_register = True
 
     def __init__(self, base_fd, pathspec=None):
@@ -95,7 +94,7 @@ elif sys.platform.startswith("win"):
 
   class WindowsMemory(MemoryVFS):
     """Read the raw memory."""
-    supported_pathtype = jobs_pb2.Path.MEMORY
+    supported_pathtype = rdfvalue.RDFPathSpec.Enum("MEMORY")
     auto_register = True
 
     # This is the dtb and kdbg if available
@@ -216,7 +215,7 @@ if "darwin" in sys.platform:
                           13,  # Pal Code
                           14)  # Max Memory Type
 
-    supported_pathtype = jobs_pb2.Path.MEMORY
+    supported_pathtype = rdfvalue.RDFPathSpec.Enum("MEMORY")
     auto_register = True
 
     def __init__(self, base_fd, pathspec=None):

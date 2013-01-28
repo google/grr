@@ -21,37 +21,39 @@ from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import flow
 from grr.lib import flow_utils
+from grr.lib import rdfvalue
 from grr.lib import type_info
 
 
 class ArtifactCollectorFlow(flow.GRRFlow):
-  """Flow that takes a list of artifacts and collects them."""
+  """Flow that takes a list of artifacts and collects them.
 
-  flow_typeinfo = {"artifact_list": type_info.ListOrNone(type_info.String())}
+  NOTE!!!! the artifact_object is not preserved across Collect and
+  Process phases. It is reinitialized as it is used in an async process.
+  """
 
-  def __init__(self, artifact_list=None, use_tsk=True, **kwargs):
-    """Constructor.
-
-    Args:
-      artifact_list: A list of Artifact class names.
-      use_tsk: Whether raw filesystem access should be used.
-
-    NOTE!!!! the artifact_object is not preserved across Collect and
-    Process phases. It is reinitialized as it is used in an async process.
-    """
-    super(ArtifactCollectorFlow, self).__init__(**kwargs)
-    self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.system = self.client.Get(self.client.Schema.SYSTEM)
-
-    self.artifact_class_names = artifact_list
-
-    self.use_tsk = use_tsk
-    self.collected_count = 0
-    self.failed_count = 0
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.List(
+          description="A list of Artifact class names.",
+          name="artifact_list",
+          validator=type_info.String(),
+          ),
+      type_info.Bool(
+          description="Whether raw filesystem access should be used.",
+          name="use_tsk",
+          default=True)
+      )
 
   @flow.StateHandler(next_state="ProcessCollected")
   def Start(self):
     """For each artifact, create subflows for each collector."""
+    self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    self.system = self.client.Get(self.client.Schema.SYSTEM)
+
+    self.artifact_class_names = self.artifact_list
+    self.collected_count = 0
+    self.failed_count = 0
+
     for cls_name in self.artifact_class_names:
       artifact_cls = self._GetArtifactClassFromName(cls_name)
       artifact_obj = artifact_cls(self, use_tsk=self.use_tsk)
@@ -90,12 +92,13 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     """Get a set of files."""
     for path in path_list:
       artifact_cls = self._GetArtifactClassFromName(self._current_artifact)
-      path_args = artifact_cls.PATH_VARS
+      path_args = artifact_cls.PATH_ARGS
       new_path = flow_utils.InterpolatePath(path, self.client,
                                             path_args=path_args)
 
       self.CallFlow(
-          "GetFile", path=new_path, pathtype=path_type,
+          "GetFile", pathspec=rdfvalue.RDFPathSpec(
+              path=new_path, pathtype=path_type),
           request_data={"artifact_name": self._current_artifact},
           next_state="ProcessCollected"
           )

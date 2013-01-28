@@ -23,6 +23,7 @@ volatility to operate directly on the client.
 
 
 # Initialize the volatility plugins, so pylint: disable=W0611
+from volatility import addrspace
 from volatility import obj
 from volatility import plugins
 from volatility import session
@@ -32,8 +33,8 @@ from volatility.ui import renderer
 
 from grr.client import actions
 from grr.client import vfs
+from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 # pylint: disable=C6409
@@ -47,19 +48,20 @@ class ProtobufRenderer(renderer.RendererBaseClass):
   def __init__(self, **kwargs):
     super(ProtobufRenderer, self).__init__(**kwargs)
 
-    self.response = jobs_pb2.VolatilityResponse()
+    self.response = rdfvalue.VolatilityResult()
     self.active_section = None
     self.mode = None
 
   def InitSection(self, mode=None):
-    if self.mode != mode:
+    if self.mode != mode and self.active_section:
+      self.response.sections.Append(self.active_section)
       self.active_section = None
     if not self.active_section:
-      self.active_section = self.response.sections.add()
+      self.active_section = rdfvalue.VolatilitySection()
     self.mode = mode
 
   def end(self):
-    pass
+    self.response.sections.Append(self.active_section)
 
   def start(self, plugin_name=None, kwargs=None):
     _ = kwargs
@@ -82,6 +84,7 @@ class ProtobufRenderer(renderer.RendererBaseClass):
       self.AddValue(values, d)
 
   def section(self):
+    self.response.sections.Append(self.active_section)
     self.active_section = None
 
   def flush(self):
@@ -173,12 +176,17 @@ class UnicodeStringIO(object):
     return self.data
 
 
+class CachingFDAddressSpace(addrspace.CachingAddressSpaceMixIn,
+                            standard.FDAddressSpace):
+  """A Caching version of the address space."""
+
+
 class VolatilityAction(actions.ActionPlugin):
   """Runs a volatility command on live memory."""
-  in_protobuf = jobs_pb2.VolatilityRequest
-  out_protobuf = jobs_pb2.VolatilityResponse
+  in_rdfvalue = rdfvalue.VolatilityRequest
+  out_rdfvalue = rdfvalue.VolatilityResult
 
-  def Run(self, args):
+  def Run(self, request):
     """Run a volatility plugin and return the result."""
     # Recover the volatility session.
 
@@ -188,50 +196,58 @@ class VolatilityAction(actions.ActionPlugin):
       self.Progress()
 
     # Create a session and run all the plugins with it.
-    with vfs.VFSOpen(args.device) as fhandle:
-      vol_session = session.Session()
-
-      if args.profile:
-        vol_session.profile = args.profile
+    with vfs.VFSOpen(request.device) as fhandle:
+      session_args = request.session.ToDict()
+      vol_session = session.Session(**session_args)
 
       # Make the physical address space by wrapping our VFS handler.
-      vol_session.physical_address_space = standard.FDAddressSpace(
+      vol_session.physical_address_space = CachingFDAddressSpace(
           fhandle=fhandle)
 
       # Set the progress method so the nanny is heartbeat.
       vol_session.progress = Progress
       vol_session.renderer = "ProtobufRenderer"
 
-      # Get the dtb from the driver if possible.
+      # Get the dtb from the driver if possible,
+      # it significantly speeds up detection.
       try:
         vol_session.dtb = fhandle.cr3
       except AttributeError:
         pass
 
-      # Try to load the kernel address space now.
-      vol_session.plugins.load_as().GetVirtualAddressSpace()
-
-      # Get the kdbg from the driver if possible.
+      # Get the kdbg from the driver if possible,
+      # it significantly speeds up detection.
       try:
         vol_session.kdbg = fhandle.kdbg
       except AttributeError:
         pass
 
+      # Which profile should be used?
+      if request.profile:
+        vol_session.profile = request.profile
+      else:
+        vol_session.plugins.guess_profile().update_session()
+
       if not vol_session.profile:
-        vol_session.vol("guess_profile")
+        raise RuntimeError("Unable to autodetect profile")
 
-      vol_args = utils.ProtoDict(args.args).ToDict()
+      # Try to load the kernel address space now.
+      if not vol_session.kernel_address_space:
+        vol_session.plugins.load_as().GetVirtualAddressSpace()
 
-      for plugin in args.plugins:
+      # Get the keyword args to this plugin.
+      vol_args = request.args.ToDict()
+      for plugin, plugin_args in vol_args.items():
         error = ""
 
         # Heartbeat the client to ensure we keep our nanny happy.
         vol_session.progress(message="Running plugin %s" % plugin)
 
         ui_renderer = ProtobufRenderer(session=vol_session)
-        args = vol_args.get(plugin, {})
+        plugin_args = plugin_args or {}
+
         try:
-          vol_session.vol(plugin, renderer=ui_renderer, **args)
+          vol_session.vol(plugin, renderer=ui_renderer, **plugin_args)
         except Exception as e:  # pylint: disable=W0703
           error = str(e)
 

@@ -7,15 +7,14 @@ import time
 
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import utils
-from grr.proto import jobs_pb2
+from grr.lib import rdfvalue
+from grr.lib import type_info
 
 
 class ListProcesses(flow.GRRFlow):
   """List running processes on a system."""
 
   category = "/Processes/"
-  out_protobuf = jobs_pb2.URN
 
   @flow.StateHandler(next_state=["StoreProcessList"])
   def Start(self):
@@ -30,8 +29,9 @@ class ListProcesses(flow.GRRFlow):
       # Check for error, but continue. Errors are common on client.
       raise flow.FlowError("Error during process listing %s" % responses.status)
 
-    urn = aff4.ROOT_URN.Add(self.client_id).Add("processes")
-    process_fd = aff4.FACTORY.Create(urn, "ProcessListing", token=self.token)
+    out_urn = aff4.ROOT_URN.Add(self.client_id).Add("processes")
+    process_fd = aff4.FACTORY.Create(out_urn, "ProcessListing",
+                                     token=self.token)
     plist = process_fd.Schema.PROCESSES()
 
     proc_count = len(responses)
@@ -41,9 +41,8 @@ class ListProcesses(flow.GRRFlow):
     process_fd.AddAttribute(plist)
     process_fd.Close()
 
-    self.SendReply(urn)
-
-    self.Notify("ViewObject", urn, "Listed %d Processes" % proc_count)
+    self.Notify("ViewObject", out_urn, "Listed %d Processes" % proc_count)
+    self.SendReply(out_urn)
 
 
 class GetProcessesBinaries(flow.GRRFlow):
@@ -51,29 +50,24 @@ class GetProcessesBinaries(flow.GRRFlow):
 
   category = "/Processes/"
 
-  def __init__(self, output="analysis/get-processes-binaries/{u}-{t}",
-               **kwargs):
-    """Constructor.
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.String(
+          description="A path relative to the client to put the output.",
+          name="output",
+          default="analysis/get-processes-binaries/{u}-{t}")
+      )
 
-    This flow exexutes ListProcesses flow and fetches binary for every process
-    in the list.
+  @flow.StateHandler(next_state="IterateProcesses")
+  def Start(self):
+    """Start processing, request processes list."""
 
-    Args:
-      output: Pattern used to generate a name for the output collection.
-    """
-    flow.GRRFlow.__init__(self, **kwargs)
-
-    output = output.format(t=time.time(), u=self.user)
+    output = self.output.format(t=time.time(), u=self.user)
     self.output = aff4.ROOT_URN.Add(self.client_id).Add(output)
     self.fd = aff4.FACTORY.Create(self.output, "AFF4Collection", mode="w",
                                   token=self.token)
     self.fd.Set(self.fd.Schema.DESCRIPTION(
         "GetProcessesBinaries processes list"))
-    self.collection_list = self.fd.Schema.COLLECTION()
 
-  @flow.StateHandler(next_state="IterateProcesses")
-  def Start(self):
-    """Start processing, request processes list."""
     self.CallFlow("ListProcesses", next_state="IterateProcesses")
 
   @flow.StateHandler(next_state="HandleDownloadedFiles")
@@ -105,24 +99,28 @@ class GetProcessesBinaries(flow.GRRFlow):
              len(paths_to_fetch))
 
     for p in paths_to_fetch:
+      pathspec = rdfvalue.RDFPathSpec(path=p,
+                                      pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+
       # Sending reply with an expected file URN - this may be useful if this
       # flow is used as a nested flow.
       file_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-          utils.Pathspec(path=p, pathtype=jobs_pb2.Path.OS), self.client_id)
+          pathspec, self.client_id)
+
       self.SendReply(file_urn)
 
       self.CallFlow("FastGetFile",
                     next_state="HandleDownloadedFiles",
-                    path=p,
+                    pathspec=pathspec,
                     request_data={"path": p})
 
-  @flow.StateHandler(jobs_pb2.StatResponse)
+  @flow.StateHandler()
   def HandleDownloadedFiles(self, responses):
     """Handle success/failure of the FastGetFile flow."""
     if responses.success:
       for response_stat in responses:
         self.Log("Downloaded %s", response_stat.pathspec)
-        self.collection_list.Append(response_stat)
+        self.fd.Add(stat=response_stat, urn=response_stat.aff4path)
     else:
       self.Log("Download of file %s failed %s",
                responses.request_data["path"], responses.status)
@@ -130,83 +128,77 @@ class GetProcessesBinaries(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     """Save the results collection and update the notification line."""
-    self.fd.Set(self.collection_list)
     self.fd.Close()
 
-    num_files = len(self.collection_list)
+    num_files = len(self.fd)
     self.Notify("ViewObject", self.output,
                 "GetProcessesBinaries completed. "
                 "Fetched {0:d} files".format(num_files))
 
 
 class GetProcessesBinariesVolatility(flow.GRRFlow):
-  """Get list of all running binaries from Volatility and fetch them."""
+  """Get list of all running binaries from Volatility and fetch them.
 
-  category = "/Processes/"
-
-  def __init__(self,
-               output="analysis/get-processes-binaries-volatility/{u}-{t}",
-               devicepath=r"\\.\pmem",
-               profile=None,
-               filename_regex="",
-               **kwargs):
-    """Constructor.
-
-    This flow executes "vad" Volatility plugin to get the list of all
-    currently running binaries (including dynamic libraries). Then it
-    fetches all the binaries it has found.
+    This flow executes the "vad" Volatility plugin to get the list of all
+    currently running binaries (including dynamic libraries). Then it fetches
+    all the binaries it has found.
 
     There is a caveat regarding using the "vad" plugin to detect currently
-    running executable binaries. "Filename" memory area attribute that we use
-    is not reliable:
+    running executable binaries. The "Filename" member of the _FILE_OBJECT
+    struct is not reliable:
+
       * Usually it does not include volume information: i.e.
         \\Windows\\some\\path. Therefore it's impossible to detect the actual
-        volume where executable is located.
-      * If the binary is executed from a shared volume of the network, the
-        Filename attribute is not descriptive enough to easily fetch the file.
+        volume where the executable is located.
+
+      * If the binary is executed from a shared network volume, the Filename
+        attribute is not descriptive enough to easily fetch the file.
+
       * If the binary is executed directly from a network location (without
         mounting the volume) Filename attribute will contain yet another
         form of path.
+
       * Filename attribute is not actually used by the system (it's probably
-        there for debugging purposes). It can be easily overwritten by the
-        rootkit without any noticeable consequences for the running system,
-        but breaking our functionality as a result.
+        there for debugging purposes). It can be easily overwritten by a rootkit
+        without any noticeable consequences for the running system, but breaking
+        our functionality as a result.
 
     Therefore this plugin's functionality is somewhat limited. Basically, it
-    won't fetch binaries that are located on non-default volume.
+    won't fetch binaries that are located on non-default volumes.
 
     Possible workaround (future work):
     * Find a way to map given address space into the filename on the filesystem.
     * Fetch binaries directly from memory by forcing page-ins first (via
       some debug userland-process-dump API?) and then reading the memory.
+  """
+  category = "/Processes/"
 
-    Args:
-      output: Pattern used to generate a name for the output collection.
-      devicepath: Device path used by Volatility.
-      profile: Profile used by Volatility.
-      filename_regex: Regex used to filter the list of binaries to download.
-    """
-    super(GetProcessesBinariesVolatility, self).__init__(**kwargs)
-
-    output = output.format(t=time.time(), u=self.user)
-    self.output = aff4.ROOT_URN.Add(self.client_id).Add(output)
-    self.fd = aff4.FACTORY.Create(self.output, "AFF4Collection", mode="w",
-                                  token=self.token)
-    self.fd.Set(self.fd.Schema.DESCRIPTION(
-        "GetProcessesBinariesVolatility binaries (regex: %s) " %
-        filename_regex or "None"))
-    self.collection_list = self.fd.Schema.COLLECTION()
-
-    device = jobs_pb2.Path(path=devicepath, pathtype=jobs_pb2.Path.MEMORY)
-    self.request = jobs_pb2.VolatilityRequest(device=device)
-    self.request.plugins.append("vad")
-    if profile:
-      self.request.profile = profile
-    self.filename_regex = re.compile(filename_regex or ".")
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.String(
+          description="A path relative to the client to put the output.",
+          name="output",
+          default="analysis/get-processes-binaries/{u}-{t}"),
+      type_info.VolatilityRequestType(),
+      type_info.RegularExpression(
+          description="Regex used to filter the list of binaries to download.",
+          name="filename_regex",
+          default=".",
+          friendly_name="Filename Regex")
+      )
 
   @flow.StateHandler(next_state="FetchBinaries")
   def Start(self):
     """Request VAD data."""
+    output = self.output.format(t=time.time(), u=self.user)
+    self.output = aff4.ROOT_URN.Add(self.client_id).Add(output)
+    self.fd = aff4.FACTORY.Create(self.output, "AFF4Collection", mode="w",
+                                  token=self.token)
+
+    self.fd.Set(self.fd.Schema.DESCRIPTION(
+        "GetProcessesBinariesVolatility binaries (regex: %s) " %
+        self.filename_regex or "None"))
+
+    self.request.plugins.Append("vad")
     self.CallClient("VolatilityAction", self.request,
                     next_state="FetchBinaries")
 
@@ -249,29 +241,34 @@ class GetProcessesBinariesVolatility(flow.GRRFlow):
 
     self.Log("Found %d binaries", len(binaries))
     if self.filename_regex:
-      binaries = filter(self.filename_regex.match, binaries)
+      regex = re.compile(self.filename_regex)
+      binaries = filter(regex.match, binaries)
       self.Log("Applied filename regex. Will fetch %d files",
                len(binaries))
 
     for path in binaries:
+      pathspec = rdfvalue.RDFPathSpec(path=path,
+                                      pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+
       # Sending reply with an expected file URN - this may be useful if this
       # flow is used as a nested flow.
       file_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-          utils.Pathspec(path=path, pathtype=jobs_pb2.Path.OS), self.client_id)
+          pathspec, self.client_id)
+
       self.SendReply(file_urn)
 
       self.CallFlow("FastGetFile",
                     next_state="HandleDownloadedFiles",
-                    path=path,
+                    pathspec=pathspec,
                     request_data={"path": path})
 
-  @flow.StateHandler(jobs_pb2.StatResponse)
+  @flow.StateHandler()
   def HandleDownloadedFiles(self, responses):
     """Handle success/failure of the FastGetFile flow."""
     if responses.success:
       for response_stat in responses:
-        self.Log("Downloaded %s", response_stat.pathspec)
-        self.collection_list.Append(response_stat)
+        self.Log("Downloaded %s", responses.request_data["path"])
+        self.fd.Add(stat=response_stat, urn=response_stat.aff4path)
     else:
       self.Log("Download of file %s failed %s",
                responses.request_data["path"], responses.status)
@@ -279,10 +276,9 @@ class GetProcessesBinariesVolatility(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     """Save the results collection and update the notification line."""
-    self.fd.Set(self.collection_list)
     self.fd.Close()
 
-    num_files = len(self.collection_list)
+    num_files = len(self.fd)
     self.Notify("ViewObject", self.output,
                 "GetProcessesBinariesVolatility completed. "
                 "Fetched {0:d} files".format(num_files))

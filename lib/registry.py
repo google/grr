@@ -44,45 +44,49 @@ flags.DEFINE_bool("verbose", default=False,
 class MetaclassRegistry(abc.ABCMeta):
   """Automatic Plugin Registration through metaclasses."""
 
-  def __init__(mcs, name, bases, env_dict):
-    abc.ABCMeta.__init__(mcs, name, bases, env_dict)
+  def __init__(cls, name, bases, env_dict):
+    abc.ABCMeta.__init__(cls, name, bases, env_dict)
 
     # Abstract classes should not be registered. We define classes as abstract
     # by giving them the __abstract attribute (this is not inheritable) or by
     # naming them Abstract<ClassName>.
     abstract_attribute = "_%s__abstract" % name
 
-    if (not mcs.__name__.startswith("Abstract") and
-        not hasattr(mcs, abstract_attribute)):
+    if (not cls.__name__.startswith("Abstract") and
+        not hasattr(cls, abstract_attribute)):
       # Attach the classes dict to the baseclass and have all derived classes
       # use the same one:
       for base in bases:
         try:
-          mcs.classes = base.classes
-          mcs.plugin_feature = base.plugin_feature
-          mcs.top_level_class = base.top_level_class
+          cls.classes = base.classes
+          cls.plugin_feature = base.plugin_feature
+          cls.top_level_class = base.top_level_class
           break
         except AttributeError:
           pass
 
       try:
-        mcs.classes[mcs.__name__] = mcs
-        mcs.class_list.append(mcs)
+        if cls.classes and cls.__name__ in cls.classes:
+          logging.warn("Duplicate names for registered classes: %s, %s",
+                       cls, cls.classes[cls.__name__])
+
+        cls.classes[cls.__name__] = cls
+        cls.class_list.append(cls)
       except AttributeError:
-        mcs.classes = {mcs.__name__: mcs}
-        mcs.class_list = [mcs]
-        mcs.plugin_feature = mcs.__name__
+        cls.classes = {cls.__name__: cls}
+        cls.class_list = [cls]
+        cls.plugin_feature = cls.__name__
         # Keep a reference to the top level class
-        mcs.top_level_class = mcs
+        cls.top_level_class = cls
 
       try:
-        if mcs.top_level_class.include_plugins_as_attributes:
-          setattr(mcs.top_level_class, mcs.__name__, mcs)
+        if cls.top_level_class.include_plugins_as_attributes:
+          setattr(cls.top_level_class, cls.__name__, cls)
 
       except AttributeError:
         pass
 
-  def NewPlugin(mcs, name):
+  def NewPlugin(cls, name):
     """Return the class of the implementation that carries that name.
 
     Args:
@@ -94,7 +98,7 @@ class MetaclassRegistry(abc.ABCMeta):
     Returns:
        A the registered class referred to by the name.
     """
-    return mcs.classes[name]
+    return cls.classes[name]
 
 
 # Utility functions
@@ -124,6 +128,14 @@ class InitHook(object):
         for cl in self.__class__.classes.itervalues():
           if cl.__name__ not in executed_hooks:
             # We only care about classes that are actually imported.
+            pre = []
+            for c in cl.pre:
+              if c in self.__class__.classes:
+                pre.append(c)
+              else:
+                raise RuntimeError("Pre Init Hook %s c in %s could not"
+                                   " be found. Missing import?" % (c, cl))
+
             pre = [x for x in cl.pre if x in self.__class__.classes]
             if all([hook in executed_hooks for hook in pre]):
               hooks.append(cl)

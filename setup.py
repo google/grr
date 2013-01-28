@@ -135,6 +135,11 @@ grr_data_files_spec = ('grr',
                        ['tools', 'worker', 'cron'],
                        ['*.py'])
 
+grr_config_files_spec = ('grr',
+                         ['config'],
+                         ['*.py', '*.in'])
+
+
 grr_gui_data_files_spec = ('grr.gui',
                            ['static', 'templates'],
                            ['*.css', '*.js', '*.gif', '*.html',
@@ -160,5 +165,13 @@ setup(name='grr',
       package_data=GRRFindDataFiles([grr_data_files_spec,
                                      grr_gui_data_files_spec,
                                      grr_client_data_files_spec,
-                                     grr_test_data_files_spec])
-     )
+                                     grr_test_data_files_spec,
+                                     grr_config_files_spec]),
+      entry_points = {
+          'console_scripts': [
+              'grr_console = grr.tools.console:ConsoleMain',
+              'grr_config_updater = grr.tools.config_updater:ConsoleMain',
+              'grr_server = grr.tools.grr_server:ConsoleMain',
+              'grr_cron = grr.cron.cron:ConsoleMain',
+          ]
+     })

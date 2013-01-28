@@ -30,6 +30,7 @@ from grr.client import conf as flags
 from grr.client import client_utils_common
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.proto import jobs_pb2
 
@@ -76,11 +77,14 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     client_utils_linux.GetMountpoints = GetMountpointsMock
 
     for filename, expected_device, expected_path, device_type in [
-        ("/etc/passwd", "/dev/mapper/root", "/etc/passwd", jobs_pb2.Path.OS),
-        ("/usr/local/bin/ls", "/dev/mapper/usr", "/bin/ls", jobs_pb2.Path.OS),
-        ("/proc/net/sys", "none", "/net/sys", jobs_pb2.Path.UNSET),
+        ("/etc/passwd", "/dev/mapper/root", "/etc/passwd",
+         rdfvalue.RDFPathSpec.Enum("OS")),
+        ("/usr/local/bin/ls", "/dev/mapper/usr", "/bin/ls",
+         rdfvalue.RDFPathSpec.Enum("OS")),
+        ("/proc/net/sys", "none", "/net/sys",
+         rdfvalue.RDFPathSpec.Enum("UNSET")),
         ("/home/user/test.txt", "server.nfs:/vol/home", "/test.txt",
-         jobs_pb2.Path.UNSET)]:
+         rdfvalue.RDFPathSpec.Enum("UNSET"))]:
       raw_pathspec, path = client_utils_linux.LinGetRawDevice(
           filename)
 
@@ -204,8 +208,8 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
 
       def MockExit(value):
         self.exit_called = value
-        # Heartbeat to avoid spinning here.
-        nanny_controller.Heartbeat()
+        # Kill the nanny thread.
+        raise RuntimeError("Nannythread exiting.")
 
       os._exit = MockExit
 

@@ -53,15 +53,14 @@ if grrpath not in sys.path:
 
 from grr.client import conf as flags
 
-# pylint: disable=W0611
-# pylint: enable=W0611
-
 from grr.lib import communicator
-from grr.lib import mongo_data_store
+from grr.lib import config_lib
 from grr.lib import flow
+from grr.lib import key_utils
 from grr.lib import log
+from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.proto import jobs_pb2
+from grr.lib import server_plugins  # pylint: disable=W0611
 
 flags.DEFINE_integer("max_queue_size", 500,
                      "Maximum number of messages to queue for the client.")
@@ -76,12 +75,10 @@ flags.DEFINE_integer("max_retransmission_time", 10,
 flags.DEFINE_integer("message_expiry_time", 600,
                      "Maximum time messages remain valid within the system.")
 
-flags.DEFINE_string("server_cert", "grr/keys/test/server.pem",
-                    "The path to the server public key and certificate.")
 
-flags.DEFINE_string("server_private_key", "grr/keys/test/server-priv.pem",
-                    "The path to the server private key.")
 
+
+CONFIG = config_lib.CONFIG
 
 
 class GrrWSGIServer(object):
@@ -91,10 +88,10 @@ class GrrWSGIServer(object):
 
   def __init__(self):
     registry.Init()
-    self.server_pem = open(FLAGS.server_cert, "rb").read()
+    self.server_pem = key_utils.GetCert("Server_Public_Cert")
     self.logger = log.GrrLogger(component="WSGI server")
     self.front_end = flow.FrontEndServer(
-        FLAGS.server_private_key, self.logger,
+        "Server_Private_Key", self.logger,
         max_queue_size=FLAGS.max_queue_size,
         message_expiry_time=FLAGS.message_expiry_time,
         max_retransmission_time=FLAGS.max_retransmission_time)
@@ -113,10 +110,9 @@ class GrrWSGIServer(object):
         length = int(environ["CONTENT_LENGTH"])
         input_data = environ["wsgi.input"].read(length)
 
-        request_comms = jobs_pb2.ClientCommunication()
-        request_comms.ParseFromString(input_data)
+        request_comms = rdfvalue.ClientCommunication(input_data)
 
-        responses_comms = jobs_pb2.ClientCommunication()
+        responses_comms = rdfvalue.ClientCommunication()
 
         self.front_end.HandleMessageBundles(
             request_comms, responses_comms)

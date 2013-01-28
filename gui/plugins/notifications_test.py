@@ -46,7 +46,6 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     self.GenerateNotifications()
 
     sel = self.selenium
-    # Open the main page (We need to do this twice for some reason).
     sel.open("/")
 
     self.WaitUntil(sel.is_element_present, "css=input[name=q]")
@@ -97,5 +96,5 @@ class TestNotifications(test_lib.GRRSeleniumTest):
         sel.get_text, "css=li[class='selected']")
 
     # The stats pane shows the relevant flow
-    self.WaitUntilContains("aff4:/flows/%s" % self.session_id,
-                           sel.get_text, "css=h3")
+    self.WaitUntilContains(
+        self.session_id, sel.get_text, "css=h3")

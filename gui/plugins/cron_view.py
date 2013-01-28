@@ -31,7 +31,7 @@ class ManageCron(renderers.Splitter2Way):
   description = "Cron Job Viewer"
   behaviours = frozenset(["General"])
   top_renderer = "CronTable"
-  bottom_renderer = "EmptyRenderer"
+  bottom_renderer = "ViewCronDetail"
 
 
 class CronTable(renderers.TableRenderer):
@@ -43,19 +43,18 @@ class CronTable(renderers.TableRenderer):
   //Receive the selection event and emit the detail.
   grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
     if (node) {
-      var cron_name = $(node).find("td").first()[0].textContent;
-      $("#main_bottomPane").html("<em>Loading&#8230;</em>");
-      grr.layout("ViewCronDetail", "main_bottomPane", {cron_name: cron_name});
-      grr.publish("{{ this.selection_publish_queue|escapejs }}", cron_name);
+      var cron_urn = $(node).find("span[aff4_path]").attr("aff4_path");
+      grr.publish("cron_select", cron_urn);
     };
   }, '{{ unique|escapejs }}');
 
 </script>
 """
 
-  def __init__(self):
-    super(CronTable, self).__init__()
-    self.AddColumn(renderers.RDFValueColumn("Name", width=10))
+  def __init__(self, **kwargs):
+    super(CronTable, self).__init__(**kwargs)
+    self.AddColumn(renderers.RDFValueColumn(
+        "Name", width=10, renderer=renderers.SubjectRenderer))
     self.AddColumn(renderers.RDFValueColumn("Last Run", width=10))
     self.AddColumn(renderers.RDFValueColumn("Frequency", width=10))
     self.AddColumn(renderers.RDFValueColumn("Description", width=60))
@@ -70,7 +69,7 @@ class CronTable(renderers.TableRenderer):
                                  mode="r", token=request.token)
           last_run_time = fd.Get(fd.Schema.LAST_RUN_TIME)
 
-          self.AddRow({"Name": cls_name,
+          self.AddRow({"Name": fd.urn,
                        "Last Run": last_run_time,
                        "Frequency": "%sH" % int(fd.frequency),
                        "Description": cls.__doc__})
@@ -87,22 +86,29 @@ class ViewCronDetail(renderers.TemplateRenderer):
   """Render a customized form for a foreman action."""
 
   layout_template = renderers.Template("""
-<h3>Cron Log</h3>
-<table class="proto_table">
-{% for val in this.log %}
-  <tr><td class="proto_key">{{ val.age }}</td><td>{{ val|escape }}</td>
-{% empty %}
-  <tr><td>No logs</td></tr>
-{% endfor %}
-<table>
+<div id="{{unique}}">
+  <h3>Cron Log</h3>
+  <table class="proto_table">
+  {% for val in this.log %}
+    <tr><td class="proto_key">{{ val.age }}</td><td>{{ val|escape }}</td>
+  {% empty %}
+    <tr><td>No logs</td></tr>
+  {% endfor %}
+  <table>
+</div>
+<script>
+grr.subscribe("cron_select", function(cron_urn) {
+  $("#{{unique|escapejs}}").html("<em>Loading&#8230;</em>");
+  grr.layout("ViewCronDetail", "{{unique|escapejs}}", {cron_urn: cron_urn});
+}, "{{unique}}");
+</script>
 """)
 
   def Layout(self, request, response):
     """Fill in the form with the specific fields for the flow requested."""
-    cron_name = request.REQ.get("cron_name")
-
-    if cron_name is not None:
-      fd = aff4.FACTORY.Open("cron:/%s" % cron_name, token=request.token,
+    cron_urn = request.REQ.get("cron_urn")
+    if cron_urn:
+      fd = aff4.FACTORY.Open(cron_urn, token=request.token,
                              age=aff4.ALL_TIMES)
       self.log = fd.GetValuesForAttribute(fd.Schema.LOG)
     return super(ViewCronDetail, self).Layout(request, response)

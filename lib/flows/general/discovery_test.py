@@ -18,16 +18,15 @@
 
 from grr.client import client_config
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import jobs_pb2
-from grr.proto import sysinfo_pb2
 
 
 class InterrogatedClient(object):
   """A mock of client state."""
 
   def GetPlatformInfo(self, _):
-    return [jobs_pb2.Uname(
+    return [rdfvalue.Uname(
         system="Linux",
         node="test_node",
         release="5",
@@ -35,36 +34,42 @@ class InterrogatedClient(object):
         machine="i386")]
 
   def GetInstallDate(self, _):
-    return [jobs_pb2.DataBlob(integer=100)]
+    return [rdfvalue.DataBlob(integer=100)]
 
   def EnumerateUsers(self, _):
-    return [jobs_pb2.UserAccount(username="Foo",
-                                 full_name="FooFoo",
-                                 last_logon=150),
-            jobs_pb2.UserAccount(username="Bar",
-                                 full_name="BarBar",
-                                 last_logon=250),
-            jobs_pb2.UserAccount(username=u"文德文",
-                                 full_name="BarBar",
-                                 last_logon=250)]
+    return [rdfvalue.User(username="Foo",
+                          full_name="FooFoo",
+                          last_logon=150),
+            rdfvalue.User(username="Bar",
+                          full_name="BarBar",
+                          last_logon=250),
+            rdfvalue.User(username=u"文德文",
+                          full_name="BarBar",
+                          last_logon=250)]
 
   def EnumerateInterfaces(self, _):
-    return [jobs_pb2.Interface(mac_address="123456",
-                               ip4_addresses="127.0.0.1")]
+    return [rdfvalue.Interface(
+        mac_address="123456",
+        addresses=[
+            rdfvalue.NetworkAddress(
+                address_type=rdfvalue.NetworkAddress.Enum("INET"),
+                human_readable="127.0.0.1"
+                )]
+        )]
 
   def EnumerateFilesystems(self, _):
-    return [sysinfo_pb2.Filesystem(device="/dev/sda",
-                                   mount_point="/mnt/data")]
+    return [rdfvalue.Filesystem(device="/dev/sda",
+                                mount_point="/mnt/data")]
 
   def GetClientInfo(self, _):
-    return [jobs_pb2.ClientInformation(
+    return [rdfvalue.ClientInformation(
         client_name=client_config.GRR_CLIENT_NAME,
         client_version=client_config.GRR_CLIENT_VERSION,
         revision=client_config.GRR_CLIENT_REVISION,
         build_time=client_config.GRR_CLIENT_BUILDTIME)]
 
   def GetConfig(self, _):
-    return [jobs_pb2.GRRConfig(
+    return [rdfvalue.GRRConfig(
         location="http://www.example.com",
         foreman_check_frequency=1,
         max_post_size=1000000,
@@ -89,7 +94,7 @@ class TestInterrogate(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd.Get(fd.Schema.INSTALL_DATE), 100 * 1000000)
 
     # Check the client info
-    info = fd.Get(fd.Schema.CLIENT_INFO).data
+    info = fd.Get(fd.Schema.CLIENT_INFO)
 
     self.assertEqual(info.client_name, client_config.GRR_CLIENT_NAME)
     self.assertEqual(info.client_version, client_config.GRR_CLIENT_VERSION)
@@ -98,8 +103,8 @@ class TestInterrogate(test_lib.FlowTestsBaseclass):
 
     # Check the client config
     config_info = fd.Get(fd.Schema.GRR_CONFIG)
-    self.assertEqual(config_info.data.location, "http://www.example.com")
-    self.assertEqual(config_info.data.poll_min, 1.0)
+    self.assertEqual(config_info.location, "http://www.example.com")
+    self.assertEqual(config_info.poll_min, 1.0)
 
     # Check that the index has been updated.
     index_fd = aff4.FACTORY.Create(fd.Schema.client_index, "AFF4Index",
@@ -113,10 +118,10 @@ class TestInterrogate(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open("aff4:/users/test", token=self.token)
     notifications = fd.Get(fd.Schema.PENDING_NOTIFICATIONS)
 
-    self.assertEqual(len(notifications.data), 1)
-    notification = notifications.data[0]
+    self.assertEqual(len(notifications), 1)
+    notification = notifications[0]
 
-    self.assertEqual(notification.subject, self.client_id)
+    self.assertEqual(notification.subject, rdfvalue.RDFURN(self.client_id))
 
   def testLightweightInterrogate(self):
     """Tests the lightweight interrogation."""
@@ -166,6 +171,7 @@ class TestInterrogate(test_lib.FlowTestsBaseclass):
     net_fd = fd.OpenMember("network")
     interfaces = list(net_fd.Get(net_fd.Schema.INTERFACES))
     self.assertEqual(interfaces[0].mac_address, "123456")
+    self.assertEqual(interfaces[0].ip4_addresses, ["127.0.0.1"])
 
     # Mac addresses should be available as hex for searching
     mac_addresses = fd.Get(fd.Schema.MAC_ADDRESS)

@@ -22,6 +22,7 @@ from django.utils import datastructures
 from grr.gui import renderers
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
@@ -55,7 +56,7 @@ def FormatLastSeenTime(age):
   if int(age) == 0:
     return "Never"
 
-  time_last_seen = (aff4.RDFDatetime() - int(age)) / 1e6
+  time_last_seen = (rdfvalue.RDFDatetime() - int(age)) / 1e6
 
   if time_last_seen < 60:
     return "%d seconds ago" % int(time_last_seen)
@@ -110,7 +111,7 @@ Status: {{this.icon|safe}}
 
 
 class Navigator(renderers.TemplateRenderer):
-  """A Renderer to show all menu options in an extruder."""
+  """A Renderer to show all menu options."""
 
   # Status update interval in ms.
   poll_time = 30000
@@ -185,10 +186,9 @@ class Navigator(renderers.TemplateRenderer):
     grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}");
   }, "{{unique|escapejs}}");
 
-{% if this.unauthorized %}
-  grr.publish("unauthorized", "None",
-              "Must specify a reason for access.");
-{% endif %}
+  if(grr.hash.c && grr.hash.c != "{{this.client_id|escapejs}}") {
+    grr.publish("client_selection", grr.hash.c);
+  };
 
 </script>
 """)
@@ -226,19 +226,25 @@ class Navigator(renderers.TemplateRenderer):
 
     self.hosts = []
     self.unauthorized = False
-    client_id = request.REQ.get("client_id")
-    if client_id:
-      client = aff4.FACTORY.Open(client_id, token=request.token)
-      self.hosts.append((client_id, client.Get(client.Schema.HOSTNAME)))
+    self.client_id = request.REQ.get("client_id")
+    if self.client_id:
+      client = aff4.FACTORY.Open(self.client_id, token=request.token)
+      self.hosts.append((self.client_id, client.Get(client.Schema.HOSTNAME)))
 
       try:
         # Also check for proper access.
         aff4.FACTORY.Open(client.urn.Add("acl_check"), token=request.token)
 
-      except data_store.UnauthorizedAccess:
+      except data_store.UnauthorizedAccess as e:
         self.unauthorized = True
+        self.unauthorized_exception = e
 
-    return super(Navigator, self).Layout(request, response)
+    super(Navigator, self).Layout(request, response)
+    if self.unauthorized:
+      renderers.Renderer.NewPlugin("UnauthorizedRenderer")().Layout(
+          request, response, exception=e)
+
+    return response
 
 
 class OnlineStateIcon(renderers.RDFValueRenderer):
@@ -315,8 +321,8 @@ class HostTable(renderers.TableRenderer):
      }, "{{ unique|escapejs }}");
  </script>""")
 
-  def __init__(self):
-    renderers.TableRenderer.__init__(self)
+  def __init__(self, **kwargs):
+    renderers.TableRenderer.__init__(self, **kwargs)
     self.AddColumn(renderers.RDFValueColumn("Online", width=0,
                                             renderer=CenteredOnlineStateIcon))
     self.AddColumn(renderers.AttributeColumn("subject"))
@@ -418,8 +424,7 @@ class SearchHostView(renderers.Renderer):
 </form>
 <script>
  $("#search_host").submit(function () {
-   grr.layout("HostTable", "main");
-   grr.state.q = $('input[name="q"]').val()
+   grr.layout("HostTable", "main", {q: $('input[name="q"]').val()});
    return false;
  }).find("input[name=q]").focus();
 </script>
@@ -434,7 +439,7 @@ class SearchHostView(renderers.Renderer):
         id=self.id)
 
 
-class FrontPage(renderers.Renderer):
+class FrontPage(renderers.TemplateRenderer):
   """The front page of the GRR application."""
 
   layout_template = renderers.Template("""
@@ -456,12 +461,10 @@ class FrontPage(renderers.Renderer):
    grr.layout(grr.hash.main, "main");
  };
 
+ grr.subscribe("GeometryChange", function (id) {
+   if(id != "{{id|escapejs}}") return;
+   grr.publish("GeometryChange", "main");
+ }, "main");
+
 </script>
 """)
-
-  def Layout(self, request, response):
-    """Manage content pane depending on passed in query parameter."""
-    response = super(FrontPage, self).Layout(request, response)
-
-    return self.RenderFromTemplate(
-        self.layout_template, response)

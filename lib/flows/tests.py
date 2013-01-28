@@ -25,7 +25,6 @@ from grr.lib.flows.general import filesystem_test
 from grr.lib.flows.general import find_test
 from grr.lib.flows.general import fingerprint_test
 from grr.lib.flows.general import grep_test
-from grr.lib.flows.general import hunts_test
 from grr.lib.flows.general import memory_test
 from grr.lib.flows.general import network_test
 from grr.lib.flows.general import processes_test
@@ -36,3 +35,6 @@ from grr.lib.flows.general import transfer_test
 from grr.lib.flows.general import utilities_test
 from grr.lib.flows.general import webhistory_test
 from grr.lib.flows.general import webplugin_test
+
+# Hunt tests.
+from grr.lib.hunts import standard_test

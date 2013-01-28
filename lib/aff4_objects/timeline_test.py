@@ -64,7 +64,8 @@ class TimelineTest(test_lib.AFF4ObjectTest):
     for t in times:
       event = analysis_pb2.Event(timestamp=t)
       event.stat.st_mtime = t / 1000000
-      event.stat.pathspec.path = time.ctime(t/1000000)
+      event.stat.pathspec.path = time.strftime("%a %b %d %T %Y",
+                                               time.gmtime(t/1000000))
       fd.AddEvent(event)
 
     fd.Close()

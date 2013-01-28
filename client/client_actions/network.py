@@ -23,13 +23,14 @@ import psutil
 import logging
 
 from grr.client import actions
+from grr.lib import rdfvalue
 from grr.proto import sysinfo_pb2
 
 
 class Netstat(actions.ActionPlugin):
   """Gather open network connection stats."""
-  in_protobuf = None
-  out_protobuf = sysinfo_pb2.NetworkConnection
+  in_rdfvalue = None
+  out_rdfvalue = rdfvalue.NetworkConnection
 
   states = {
       "UNKNOWN": sysinfo_pb2.NetworkConnection.UNKNOWN,

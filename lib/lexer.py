@@ -18,6 +18,9 @@ import logging
 import re
 
 
+from grr.lib import utils
+
+
 class Token(object):
   """A token action."""
 
@@ -460,9 +463,9 @@ class SearchParser(Lexer):
     return self.stack[0]
 
   def Error(self, message=None, weight=1):
-    raise ParseError("%s in position %s: %s <----> %s )" % (
-        message, len(self.processed_buffer), self.processed_buffer,
-        self.buffer))
+    raise ParseError(u"%s in position %s: %s <----> %s )" % (
+        utils.SmartUnicode(message), len(self.processed_buffer),
+        self.processed_buffer, self.buffer))
 
   def Parse(self):
     if not self.filter_string:

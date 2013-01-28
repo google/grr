@@ -1,0 +1,25 @@
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(%(GRR.Version_Major)s, %(GRR.Version_Minor)s, %(GRR.Version_Revision)s, %(GRR.Version_Release)s),
+    prodvers=(%(GRR.Version_Major)s, %(GRR.Version_Minor)s, %(GRR.Version_Revision)s, %(GRR.Version_Release)s),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+    ),
+  kids=[
+    StringFileInfo(
+      [
+      StringTable(
+        '040904B0',
+        [StringStruct('CompanyName', %(Client.Company_Name)r),
+        StringStruct('FileDescription', %(Client.Description)r),
+        StringStruct('FileVersion', '%(GRR.Version_String)s'),
+        StringStruct('InternalName', %(Client.Description)r ),
+        StringStruct('OriginalFilename', %(Client.Binary_Name_Windows)r )]),
+      ]),
+  VarFileInfo([VarStruct('Translation', [1033, 1200])])
+  ]
+)

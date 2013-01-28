@@ -30,6 +30,7 @@ from grr.client import conf
 from grr.client import conf as flags
 import logging
 
+from grr.client import actions
 # pylint: disable=W0611
 # This is needed to define the flags used here.
 from grr.client import client
@@ -38,18 +39,24 @@ from grr.client import client_config
 from grr.client import comms
 from grr.lib import aff4
 from grr.lib import communicator
+from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import flow_context
+from grr.lib import key_utils
+from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.flows.caenroll import ca_enroller
-from grr.lib.flows import general
 
-from grr.proto import jobs_pb2
+# pylint: disable=W0611
+from grr.lib.flows import general
+# pylint: enable=W0611
+
+from grr.lib.flows.caenroll import ca_enroller
 
 
 FLAGS = flags.FLAGS
+CONFIG = config_lib.CONFIG
 
 
 class ServerCommunicatorFake(flow.ServerCommunicator):
@@ -69,16 +76,14 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     test_lib.GRRBaseTest.setUp(self)
 
     self.options = flags.FLAGS
-    self.options.certificate = open(os.path.join(self.key_path,
-                                                 "cert.pem")).read()
+
+    self.options.certificate = CONFIG["Test.Test_Client_Cert"]
     self.options.server_serial_number = 0
     self.options.config = os.path.join(FLAGS.test_tmpdir, "testconf")
-    self.server_certificate = open(
-        os.path.join(self.key_path, "server-priv.pem")).read()
+    self.server_certificate = key_utils.GetCert("Server_Private_Key")
 
     self.client_communicator = comms.ClientCommunicator(
         self.options.certificate)
-
     self.client_communicator.LoadServerCertificate(
         self.server_certificate,
         client_config.CACERTS["TEST"])
@@ -88,11 +93,11 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
   def ClientServerCommunicate(self, timestamp=None):
     """Tests the end to end encrypted communicators."""
-    message_list = jobs_pb2.MessageList()
+    message_list = rdfvalue.MessageList()
     for i in range(0, 10):
-      message_list.job.add(session_id=str(i), name="OMG it's a string")
+      message_list.job.Append(session_id=str(i), name="OMG it's a string")
 
-    result = jobs_pb2.ClientCommunication()
+    result = rdfvalue.ClientCommunication()
     timestamp = self.client_communicator.EncodeMessages(message_list, result,
                                                         timestamp=timestamp)
     self.cipher_text = result.SerializeToString()
@@ -114,12 +119,11 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     decoded_messages = self.ClientServerCommunicate()
     for i in range(len(decoded_messages)):
       self.assertEqual(decoded_messages[i].auth_state,
-                       jobs_pb2.GrrMessage.UNAUTHENTICATED)
+                       rdfvalue.GRRMessage.Enum("UNAUTHENTICATED"))
 
   def MakeClientAFF4Record(self):
     """Make a client in the data store."""
-    client_cert = aff4.FACTORY.RDFValue("RDFX509Cert")(
-        self.options.certificate)
+    client_cert = rdfvalue.RDFX509Cert(self.options.certificate)
     new_client = aff4.FACTORY.Create(client_cert.common_name, "VFSGRRClient",
                                      token=self.token)
     new_client.Set(new_client.Schema.CERT, client_cert)
@@ -133,7 +137,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
     for i in range(len(decoded_messages)):
       self.assertEqual(decoded_messages[i].auth_state,
-                       jobs_pb2.GrrMessage.AUTHENTICATED)
+                       rdfvalue.GRRMessage.Enum("AUTHENTICATED"))
 
   def testServerReplayAttack(self):
     """Test that replaying encrypted messages to the server invalidates them."""
@@ -143,7 +147,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     decoded_messages = self.ClientServerCommunicate()
 
     self.assertEqual(decoded_messages[0].auth_state,
-                     jobs_pb2.GrrMessage.AUTHENTICATED)
+                     rdfvalue.GRRMessage.Enum("AUTHENTICATED"))
 
     # Now replay the last message to the server
     (decoded_messages, _, _) = self.server_communicator.DecryptMessage(
@@ -151,7 +155,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
     # Messages should now be tagged as desynced
     self.assertEqual(decoded_messages[0].auth_state,
-                     jobs_pb2.GrrMessage.DESYNCHRONIZED)
+                     rdfvalue.GRRMessage.Enum("DESYNCHRONIZED"))
 
   def testCompression(self):
     """Tests that the compression works."""
@@ -179,17 +183,42 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     finally:
       FLAGS.compression = compression_state
 
+  def testX509Verify(self):
+    """X509 Verify can have several failure paths."""
+    x509_verify = X509.X509.verify
+
+    try:
+      # This is a successful verify.
+      X509.X509.verify = lambda self, pkey=None: 1
+      self.client_communicator.LoadServerCertificate(
+          self.server_certificate, client_config.CACERTS["TEST"])
+
+      # Mock the verify function to simulate certificate failures.
+      X509.X509.verify = lambda self, pkey=None: 0
+      self.assertRaises(
+          IOError, self.client_communicator.LoadServerCertificate,
+          self.server_certificate, client_config.CACERTS["TEST"])
+
+      # Verification can also fail with a -1 error.
+      X509.X509.verify = lambda self, pkey=None: -1
+      self.assertRaises(
+          IOError, self.client_communicator.LoadServerCertificate,
+          self.server_certificate, client_config.CACERTS["TEST"])
+
+    finally:
+      X509.X509.verify = x509_verify
+
   def testErrorDetection(self):
     """Tests the end to end encrypted communicators."""
     # Install the client - now we can verify its signed messages
     self.MakeClientAFF4Record()
 
     # Make something to send
-    message_list = jobs_pb2.MessageList()
+    message_list = rdfvalue.MessageList()
     for i in range(0, 10):
-      message_list.job.add(session_id=str(i))
+      message_list.job.Append(session_id=str(i))
 
-    result = jobs_pb2.ClientCommunication()
+    result = rdfvalue.ClientCommunication()
     self.client_communicator.EncodeMessages(message_list, result)
     cipher_text = result.SerializeToString()
 
@@ -229,13 +258,11 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     super(HTTPClientTests, self).setUp()
 
     self.options = flags.FLAGS
-    self.options.certificate = open(os.path.join(self.key_path,
-                                                 "cert.pem")).read()
+    self.options.certificate = CONFIG["Test.Test_Client_Cert"]
     self.options.server_serial_number = 0
     self.options.config = os.path.join(FLAGS.test_tmpdir, "testconf")
-    self.server_certificate = open(
-        os.path.join(self.key_path, "server-priv.pem")).read()
 
+    self.server_certificate = key_utils.GetCert("Server_Private_Key")
     self.client_cn = comms.ClientCommunicator(
         self.options.certificate).common_name
 
@@ -294,7 +321,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     """A mock for url handler processing from the server's POV."""
     _ = kwargs
     try:
-      self.client_communication = jobs_pb2.ClientCommunication()
+      self.client_communication = rdfvalue.ClientCommunication()
       self.client_communication.ParseFromString(req.data)
 
       # Decrypt incoming messages
@@ -311,11 +338,11 @@ class HTTPClientTests(test_lib.GRRBaseTest):
           self.assertEqual(message.session_id, "session")
 
       # Now prepare a response
-      response_comms = jobs_pb2.ClientCommunication()
-      message_list = jobs_pb2.MessageList()
+      response_comms = rdfvalue.ClientCommunication()
+      message_list = rdfvalue.MessageList()
       for i in range(0, 10):
-        message_list.job.add(session_id="session",
-                             response_id=2, request_id=i)
+        message_list.job.Append(session_id="session",
+                                response_id=2, request_id=i)
 
       # Preserve the timestamp as a nonce
       self.server_communicator.EncodeMessages(
@@ -327,7 +354,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       raise urllib2.HTTPError(url=None, code=400, msg=None, hdrs=None, fp=None)
     except communicator.UnknownClientCert:
       raise urllib2.HTTPError(url=None, code=406, msg=None, hdrs=None, fp=None)
-    except Exception:
+    except Exception as e:
+      logging.info("Exception in mock urllib2.Open: %s.", e)
       if FLAGS.debug:
         pdb.post_mortem()
 
@@ -344,7 +372,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       self.assertEqual(message.response_id, 2)
       self.assertEqual(message.request_id, i)
       self.assertEqual(message.session_id, "session")
-      self.assertEqual(message.auth_state, jobs_pb2.GrrMessage.AUTHENTICATED)
+      self.assertEqual(message.auth_state,
+                       rdfvalue.GRRMessage.Enum("AUTHENTICATED"))
 
     # Clear the queue
     self.client_communicator.client_worker._in_queue = []
@@ -354,7 +383,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # Generate some client traffic
     for i in range(0, 10):
       self.client_communicator.client_worker.SendReply(
-          jobs_pb2.GrrStatus(),
+          rdfvalue.GrrStatus(),
           session_id="session", response_id=i, request_id=1)
 
   def testInitialEnrollment(self):
@@ -406,7 +435,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.assertEqual(status.code, 406)
     self.assertEqual(len(self.messages), 10)
     self.assertEqual(self.messages[0].auth_state,
-                     jobs_pb2.GrrMessage.UNAUTHENTICATED)
+                     rdfvalue.GRRMessage.Enum("UNAUTHENTICATED"))
 
     # The next request should be an enrolling request.
     status = self.client_communicator.RunOnce()
@@ -416,12 +445,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     # Now we manually run the enroll well known flow with the enrollment request
     # - in reality this will be run on the Enroller.
-
-    # First load the test certificates.
-    FLAGS.ca = os.path.join(self.key_path, "ca-priv.pem")
-
-    # Now run the enrol_flow. This will start a new flow for enrolling the
-    # client, sign the cert and add it to the data store.
+    # This will start a new flow for enrolling the client, sign the cert and
+    # add it to the data store.
     context = flow_context.FlowContext()
     enrol_flow = ca_enroller.Enroler(context)
     enrol_flow.ProcessMessage(self.messages[-1])
@@ -489,7 +514,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     def Corruptor(req):
       """Futz with some of the fields."""
-      self.client_communication = jobs_pb2.ClientCommunication()
+      self.client_communication = rdfvalue.ClientCommunication()
       self.client_communication.ParseFromString(req.data)
 
       cipher_text = self.client_communication.encrypted_cipher
@@ -532,7 +557,9 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     # Try to send these messages again.
     fail = False
+
     status = self.client_communicator.RunOnce()
+
     self.assertEqual(status.code, 200)
     self.CheckClientQueue()
 
@@ -560,6 +587,10 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       self.mox.UnsetStubs()
       self.mox.VerifyAll()
 
+    # Creating responses calls time.time() so we mock the action out.
+    action_cls = actions.ActionPlugin.classes.get("GetClientStatsAuto")
+    old_run = action_cls.Run
+    action_cls.Run = lambda cls, _: True
     self.mox.StubOutWithMock(logging, "info")
     self.mox.StubOutWithMock(time, "time")
 
@@ -586,6 +617,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     finally:
       self.mox.UnsetStubs()
       self.mox.VerifyAll()
+      action_cls.Run = old_run
 
     # Disable stats collection again.
     stats.STATS.Set("grr_client_last_stats_sent_time", time.time() + 3600)

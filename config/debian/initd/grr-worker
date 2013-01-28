@@ -12,7 +12,7 @@
 PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin"
 DESC="GRR Rapid Response worker"
 NAME="grr-worker"
-DAEMON="/usr/sbin/grr_server.py"
+DAEMON="/usr/bin/grr_server"
 DAEMON_ARGS="--start_worker --config=/etc/grr/grr-server.conf --grrlog=/var/log/grr/grr-worker.log"
 PIDFILE="/var/run/${NAME}.pid"
 SCRIPTNAME="/etc/init.d/${NAME}"

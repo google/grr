@@ -22,8 +22,9 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import flow
+from grr.lib import rdfvalue
+from grr.lib import type_info
 from grr.lib import utils
-
 
 flags.DEFINE_integer("acl_approvers_required", 2,
                      "The number of approvers required for access.")
@@ -38,6 +39,32 @@ FLAGS = flags.FLAGS
 
 
 class Approval(aff4.AFF4Object):
+  """An abstract approval request object.
+
+  This object normally lives within the namespace:
+  aff4:/ACL/...
+
+  The aff4:/ACL namespace is not writable by users, hence all manipulation of
+  this object must be done via dedicated flows. These flows use the server's
+  access credentials for manipulating this object.
+  """
+
+  class SchemaCls(aff4.AFF4Object.SchemaCls):
+    """The Schema for the Approval class."""
+    APPROVER = aff4.Attribute("aff4:approval/approver", rdfvalue.RDFString,
+                              "An approver for the request.", "approver")
+
+    REASON = aff4.Attribute("aff4:approval/reason",
+                            rdfvalue.RDFString,
+                            "The reason for requesting access to this client.")
+
+  def CheckAccess(self, token):
+    """Check that this approval applies to the given token."""
+    _ = token
+    raise RuntimeError("Not implemented.")
+
+
+class ClientApproval(Approval):
   """An approval request for access to a specific client.
 
   This object normally lives within the namespace:
@@ -50,30 +77,25 @@ class Approval(aff4.AFF4Object):
   this object must be done via dedicated flows. These flows use the server's
   access credentials for manipulating this object:
 
-   - RequestApproval()
-   - GrantAccess()
+   - RequestClientApprovalFlow()
+   - GrantClientApprovalFlow()
   """
 
-  class SchemaCls(aff4.AFF4Object.SchemaCls):
-    """The Schema for the Approval class."""
-    APPROVER = aff4.Attribute("aff4:approval/approver", aff4.RDFString,
-                              "An approver for the request.", "approver")
-
-    REASON = aff4.Attribute("aff4:approval/reason", aff4.RDFString,
-                            "The reason for requesting access to this client.")
-
+  class SchemaCls(Approval.SchemaCls):
+    """The Schema for the ClientAccessApproval class."""
     LIFETIME = aff4.Attribute(
-        "aff4:approval/lifetime", aff4.RDFInteger,
+        "aff4:approval/lifetime", rdfvalue.RDFInteger,
         "The number of microseconds an approval is valid for.",
         default=4 * 7 * 24 * 60 * 60 * 1000000)  # 4 weeks
 
     BREAK_GLASS = aff4.Attribute(
-        "aff4:approval/breakglass", aff4.RDFDatetime,
+        "aff4:approval/breakglass", rdfvalue.RDFDatetime,
         "The date when this break glass approval will expire.")
 
   def CheckAccess(self, token):
     """Enforce a dual approver policy for access."""
     namespace, client_id, user, _ = self.urn.Split(4)
+
     if namespace != "ACL":
       raise data_store.UnauthorizedAccess(
           "Approval object has invalid urn %s.", self.urn,
@@ -90,7 +112,7 @@ class Approval(aff4.AFF4Object):
           "Approval can only be granted on clients, not %s" % client_id,
           requested_access=token.requested_access)
 
-    now = aff4.RDFDatetime()
+    now = rdfvalue.RDFDatetime()
 
     # Is this an emergency access?
     break_glass = self.Get(self.Schema.BREAK_GLASS)
@@ -114,7 +136,70 @@ class Approval(aff4.AFF4Object):
     return True
 
 
-class RequestApproval(flow.GRRFlow):
+class HuntApproval(Approval):
+  """An approval request for running a specific hunt.
+
+  This object normally lives within the namespace:
+  aff4:/ACL/hunts/hunt_id/user_id/<utils.EncodeReasonString(reason)>
+
+  Hence the hunt_id and user_id are inferred from this object's URN.
+
+  The aff4:/ACL namespace is not writable by users, hence all manipulation of
+  this object must be done via dedicated flows. These flows use the server's
+  access credentials for manipulating this object:
+
+   - RequestHuntApprovalFlow()
+   - GrantHuntApprovalFlow()
+  """
+
+  class SchemaCls(Approval.SchemaCls):
+    """The Schema for the ClientAccessApproval class."""
+    LIFETIME = aff4.Attribute(
+        "aff4:approval/lifetime", rdfvalue.RDFInteger,
+        "The number of microseconds an approval is valid for.",
+        default=4 * 7 * 24 * 60 * 60 * 1000000)  # 4 weeks
+
+  def CheckAccess(self, token):
+    """Enforce that there are 2 approvers and one of them has "admin" label."""
+    namespace, hunts_str, _, user, _ = self.urn.Split(5)
+    if namespace != "ACL" or hunts_str != "hunts":
+      raise data_store.UnauthorizedAccess(
+          "Approval object has invalid urn %s.", self.urn,
+          requested_access=token.requested_access)
+
+    if user != token.username:
+      raise data_store.UnauthorizedAccess(
+          "Approval object is not for user %s." % token.username,
+          requested_access=token.requested_access)
+
+    now = rdfvalue.RDFDatetime()
+
+    # Check that there are enough approvers.
+    lifetime = self.Get(self.Schema.LIFETIME)
+    approvers = set()
+    for approver in self.GetValuesForAttribute(self.Schema.APPROVER):
+      if approver.age + lifetime > now:
+        approvers.add(utils.SmartStr(approver))
+
+    if len(approvers) < FLAGS.acl_approvers_required:
+      raise data_store.UnauthorizedAccess(
+          "Requires %s approvers for access." % FLAGS.acl_approvers_required,
+          requested_access=token.requested_access)
+
+    # Check that at least one approver has admin label
+    admins = [approver for approver in approvers
+              if data_store.DB.security_manager.CheckUserLabels(
+                  approver, ["admin"])]
+
+    if not admins:
+      raise data_store.UnauthorizedAccess(
+          "At least one approver should have 'admin' label.",
+          requested_access=token.requested_access)
+
+    return True
+
+
+class RequestClientApprovalFlow(flow.GRRFlow):
   """A flow to request approval to access a client."""
 
   # This flow can run on any client without ACL enforcement (an SUID flow).
@@ -123,7 +208,7 @@ class RequestApproval(flow.GRRFlow):
   def __init__(self, reason="Unspecified", approver="", **kwargs):
     self.reason = reason
     self.approver = approver
-    super(RequestApproval, self).__init__(**kwargs)
+    super(RequestClientApprovalFlow, self).__init__(**kwargs)
 
   @flow.StateHandler()
   def Start(self):
@@ -135,8 +220,8 @@ class RequestApproval(flow.GRRFlow):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.client_id).Add(
         self.token.username).Add(utils.EncodeReasonString(self.reason))
 
-    approval_request = aff4.FACTORY.Create(approval_urn, "Approval",
-                                           mode="rw", token=token)
+    approval_request = aff4.FACTORY.Create(approval_urn, "ClientApproval",
+                                           mode="w", token=token)
     approval_request.Set(approval_request.Schema.REASON(self.reason))
 
     # We add ourselves as an approver as well (The requirement is that we have 2
@@ -173,7 +258,7 @@ Please click <a href='%(admin_ui)s#%(approval_urn)s'>
       client = aff4.FACTORY.Open(self.client_id, token=self.token)
       hostname = client.Get(client.Schema.HOSTNAME)
 
-      url = urllib.urlencode((("acl", str(approval_urn)),
+      url = urllib.urlencode((("acl", utils.SmartStr(approval_urn)),
                               ("main", "GrantAccess")))
 
       email_alerts.SendEmail(user, self.token.username,
@@ -187,15 +272,87 @@ Please click <a href='%(admin_ui)s#%(approval_urn)s'>
                              is_html=True)
 
 
-class GrantAccessFlow(flow.GRRFlow):
+class RequestHuntApprovalFlow(flow.GRRFlow):
+  """A flow to request approval to access a client."""
+
+  # This flow can run on any client without ACL enforcement (an SUID flow).
+  ACL_ENFORCED = False
+
+  def __init__(self, reason="Unspecified", approver="", hunt_id="",
+               **kwargs):
+    self.reason = reason
+    self.approver = approver
+    self.hunt_id = hunt_id
+    super(RequestHuntApprovalFlow, self).__init__(**kwargs)
+
+  @flow.StateHandler()
+  def Start(self):
+    """Create the Approval object and notify the Approval Granter."""
+    # Make a supervisor token
+    token = data_store.ACLToken()
+    token.supervisor = True
+
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add("hunts").Add(self.hunt_id).Add(
+        self.token.username).Add(utils.EncodeReasonString(self.reason))
+    approval_request = aff4.FACTORY.Create(approval_urn, "HuntApproval",
+                                           mode="rw", token=token)
+    approval_request.Set(approval_request.Schema.REASON(self.reason))
+
+    # We add ourselves as an approver as well (The requirement is that we have 2
+    # approvers, so the requester is automatically an approver). For hunts also,
+    # one of the approvers must have an "admin" label.
+    approval_request.AddAttribute(
+        approval_request.Schema.APPROVER(self.token.username))
+
+    approval_request.Close()
+
+    # Notify to the users.
+    for user in self.approver.split(","):
+      user = user.strip()
+      fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(user),
+                               "GRRUser", mode="rw", token=token)
+
+      fd.Notify("GrantAccess", approval_urn,
+                "Please grant permission to run a hunt",
+                self.session_id)
+      fd.Close()
+
+      template = """
+<html><body><h1>GRR hunt run permission requested.</h1>
+
+The user "%(username)s" has requested a permission to run a hunt
+for the purpose of "%(reason)s".
+
+Please click <a href='%(admin_ui)s#%(approval_urn)s'>
+  here
+</a> to review this hunt and then grant access.
+
+<p>Thanks,</p>
+<p>The GRR team.
+</body></html>"""
+
+      url = urllib.urlencode((("main", "GrantAccess"),
+                              ("acl", utils.SmartStr(approval_urn))))
+
+      email_alerts.SendEmail(user, self.token.username,
+                             "Please grant %s access." % self.token.username,
+                             template % dict(
+                                 username=self.token.username,
+                                 reason=utils.SmartStr(self.reason),
+                                 admin_ui=FLAGS.ui_url,
+                                 approval_urn=url),
+                             is_html=True)
+
+
+class GrantClientApprovalFlow(flow.GRRFlow):
   """Grant the approval requested."""
-    # This flow can run on any client without ACL enforcement (an SUID flow).
+  # This flow can run on any client without ACL enforcement (an SUID flow).
   ACL_ENFORCED = False
 
   def __init__(self, reason="Unspecified", delegate="", **kwargs):
     self.reason = reason
     self.delegate = delegate
-    super(GrantAccessFlow, self).__init__(**kwargs)
+    super(GrantClientApprovalFlow, self).__init__(**kwargs)
 
   @flow.StateHandler()
   def Start(self):
@@ -206,9 +363,11 @@ class GrantAccessFlow(flow.GRRFlow):
         self.delegate).Add(utils.EncodeReasonString(self.reason))
 
     # This object must already exist.
-    approval_request = aff4.FACTORY.Open(approval_urn, mode="rw",
-                                         token=self.token)
-    if not isinstance(approval_request, Approval):
+    try:
+      approval_request = aff4.FACTORY.Open(approval_urn, mode="rw",
+                                           required_type="Approval",
+                                           token=self.token)
+    except IOError:
       raise data_store.UnauthorizedAccess("Approval object does not exist.",
                                           requested_access="rw")
 
@@ -221,7 +380,7 @@ class GrantAccessFlow(flow.GRRFlow):
     fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(self.delegate),
                              "GRRUser", mode="rw", token=self.token)
 
-    fd.Notify("ViewObject", aff4.RDFURN(self.client_id),
+    fd.Notify("ViewObject", rdfvalue.RDFURN(self.client_id),
               "%s has approved your request to this "
               "machine" % self.token.username, self.session_id)
     fd.Close()
@@ -253,7 +412,7 @@ Please click <a href='%(admin_ui)s#%(urn)s'>
                            is_html=True)
 
 
-class BreakGlassGrantAccessFlow(GrantAccessFlow):
+class BreakGlassGrantClientApprovalFlow(GrantClientApprovalFlow):
   """Grant an approval in an emergency."""
 
   @flow.StateHandler()
@@ -263,7 +422,7 @@ class BreakGlassGrantAccessFlow(GrantAccessFlow):
         self.token.username).Add(utils.EncodeReasonString(self.reason))
 
     # Create a new Approval object.
-    approval_request = aff4.FACTORY.Create(approval_urn, "Approval",
+    approval_request = aff4.FACTORY.Create(approval_urn, "ClientApproval",
                                            token=self.token)
 
     approval_request.Set(approval_request.Schema.REASON(self.reason))
@@ -282,7 +441,7 @@ class BreakGlassGrantAccessFlow(GrantAccessFlow):
     fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(
         self.token.username), "GRRUser", mode="rw", token=self.token)
 
-    fd.Notify("ViewObject", aff4.RDFURN(self.client_id),
+    fd.Notify("ViewObject", rdfvalue.RDFURN(self.client_id),
               "An Emergency Approval has been granted to this "
               "machine", self.session_id)
     fd.Close()
@@ -309,4 +468,77 @@ This access has been logged and granted for 24 hours.
                                                    "Unknown"),
                                username=self.token.username,
                                reason=utils.SmartStr(self.reason)),
+                           is_html=True)
+
+
+class GrantHuntApprovalFlow(flow.GRRFlow):
+  """Grant the approval requested."""
+  # This flow can run on any client without ACL enforcement (an SUID flow).
+  ACL_ENFORCED = False
+
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.RDFURNType(
+          description="The URN of the hunt to execute.",
+          name="hunt_urn"),
+      type_info.String(
+          description="The reason for access.",
+          name="reason"),
+      type_info.String(
+          description="The username to grant approval.",
+          name="delegate"),
+      )
+
+  @flow.StateHandler()
+  def Start(self):
+    """Create the Approval object and notify the Approval Granter."""
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.hunt_urn.Path()).Add(
+        self.delegate).Add(utils.EncodeReasonString(self.reason))
+
+    # This object must already exist.
+    try:
+      approval_request = aff4.FACTORY.Open(approval_urn, mode="rw",
+                                           required_type="Approval",
+                                           token=self.token)
+    except IOError:
+      raise data_store.UnauthorizedAccess("Approval object does not exist.",
+                                          requested_access="rw")
+
+    # We are now an approver for this request.
+    approval_request.AddAttribute(
+        approval_request.Schema.APPROVER(self.token.username))
+    approval_request.Close(sync=True)
+
+    # Notify to the user.
+    fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(self.delegate),
+                             "GRRUser", mode="rw", token=self.token)
+
+    fd.Notify("ViewObject", self.hunt_urn,
+              "%s has approved your permission to this hunt" %
+              self.token.username, self.session_id)
+    fd.Close()
+
+    template = """
+<html><body><h1>GRR hunt running permission granted.</h1>
+
+The user %(username)s has granted you permission to run a hunt for the
+purpose of: "%(reason)s".
+
+Please click <a href='%(admin_ui)s#%(urn)s'>
+  here
+</a> to get access to the hunt.
+
+<p>Thanks,</p>
+<p>The GRR team.
+</body></html>"""
+
+    url = urllib.urlencode((("main", "ManageHunts"),
+                            ("hunt", utils.SmartStr(self.hunt_urn))))
+
+    email_alerts.SendEmail(self.delegate, self.token.username,
+                           "Running permission granted for hunt.",
+                           template % dict(
+                               username=self.token.username,
+                               reason=utils.SmartStr(self.reason),
+                               admin_ui=FLAGS.ui_url,
+                               urn=url),
                            is_html=True)

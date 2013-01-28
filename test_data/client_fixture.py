@@ -61,6 +61,16 @@ client_version: 1
 revision: 0
 build_time: "unknown"
 """,
+        "aff4:users": [u"""
+username: "Bert"
+full_name: "Eric Jacobson"
+comment: "A Muppet"
+""",
+                       u"""
+username: "Ernie"
+full_name: "Steve Whitmire"
+comment: "A Muppet"
+"""],
         })),
     # The following deliberately neglects to include proc so we can test if its
     # picked up anyway.
@@ -156,7 +166,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin/bash"
+  path: "/bin/bash"
 }
 """
 })),
@@ -382,7 +392,7 @@ pathspec {
 })),
 (u"/fs/os/c/中国新闻网新闻中/bzcmp", ("VFSFile", {
 "aff4:stat":
-"""
+u"""
 st_mode: 33261
 st_ino: 1026148
 st_dev: 51713
@@ -398,7 +408,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/\344\270\255\345\233\275\346\226\260\351\227\273\347\275\221\346\226\260\351\227\273\344\270\255/bzcmp"
+  path: "/fs/os/c/中国新闻网新闻中/bzcmp"
 }
 """
 })),
@@ -2207,7 +2217,7 @@ pathspec {
 })),
 (u"/fs/os/c/中国新闻网新闻中", ("VFSDirectory", {
 "aff4:stat":
-"""
+u"""
 st_mode: 16877
 st_ino: 1026118
 st_dev: 51713
@@ -2223,7 +2233,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/\344\270\255\345\233\275\346\226\260\351\227\273\347\275\221\346\226\260\351\227\273\344\270\255"
+  path: "/fs/os/c/中国新闻网新闻中"
 }
 """
 })),

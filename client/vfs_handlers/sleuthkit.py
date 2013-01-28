@@ -22,8 +22,8 @@ import pytsk3
 
 from grr.client import client_utils
 from grr.client import vfs
+from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 class CachedFilesystem(object):
@@ -55,7 +55,7 @@ class MyImgInfo(pytsk3.Img_Info):
 class TSKFile(vfs.VFSHandler):
   """Read a regular file."""
 
-  supported_pathtype = jobs_pb2.Path.TSK
+  supported_pathtype = rdfvalue.RDFPathSpec.Enum("TSK")
   auto_register = True
 
   # A mapping to encode TSK types to a stat.st_mode
@@ -129,7 +129,7 @@ class TSKFile(vfs.VFSHandler):
 
     # If we are successful in opening this path below the path casing is
     # correct.
-    self.pathspec.last.path_options = jobs_pb2.Path.CASE_LITERAL
+    self.pathspec.last.path_options = rdfvalue.RDFPathSpec.Enum("CASE_LITERAL")
 
     fd_hash = self.tsk_raw_device.pathspec.SerializeToString()
 
@@ -202,7 +202,7 @@ class TSKFile(vfs.VFSHandler):
       A StatResponse protobuf which can be used to re-open this exact VFS node.
     """
     info = tsk_file.info
-    response = jobs_pb2.StatResponse()
+    response = rdfvalue.StatEntry()
     meta = info.meta
     if meta:
       response.st_ino = meta.addr
@@ -242,7 +242,7 @@ class TSKFile(vfs.VFSHandler):
       response.st_mode |= self.META_TYPE_LOOKUP.get(int(meta.type), 0)
 
     # Write the pathspec on the response.
-    child_pathspec.ToProto(response.pathspec)
+    response.pathspec = child_pathspec
     return response
 
   def Read(self, length):
@@ -305,7 +305,7 @@ class TSKFile(vfs.VFSHandler):
   def Open(cls, fd, component, pathspec):
     # A Pathspec which starts with TSK means we need to resolve the mount point
     # at runtime.
-    if fd is None and component.pathtype == jobs_pb2.Path.TSK:
+    if fd is None and component.pathtype == rdfvalue.RDFPathSpec.Enum("TSK"):
       # We are the top level handler. This means we need to check the system
       # mounts to work out the exact mount point and device we need to
       # open. We then modify the pathspec so we get nested in the raw
@@ -315,7 +315,8 @@ class TSKFile(vfs.VFSHandler):
       # Insert the raw device before the component in the pathspec and correct
       # the path
       component.path = corrected_path
-      pathspec.Insert(0, raw_pathspec, component)
+      pathspec.Insert(0, component)
+      pathspec.Insert(0, raw_pathspec)
 
       # Allow incoming pathspec to be given in the local system path
       # conventions.

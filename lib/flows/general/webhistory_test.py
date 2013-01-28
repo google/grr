@@ -20,9 +20,9 @@ from grr.client import client_utils_linux
 from grr.client import client_utils_osx
 from grr.client.client_actions import standard
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 class TestWebHistory(test_lib.FlowTestsBaseclass):
@@ -35,10 +35,10 @@ class TestWebHistory(test_lib.FlowTestsBaseclass):
     self.client.Set(self.client.Schema.SYSTEM("Linux"))
 
     user_list = self.client.Schema.USER()
-    user_list.Append(jobs_pb2.UserAccount(username="test",
-                                          full_name="test user",
-                                          homedir="/home/test/",
-                                          last_logon=250))
+    user_list.Append(rdfvalue.User(username="test",
+                                   full_name="test user",
+                                   homedir="/home/test/",
+                                   last_logon=250))
     self.client.AddAttribute(self.client.Schema.USER, user_list)
     self.client.Close()
 
@@ -71,15 +71,17 @@ class TestWebHistory(test_lib.FlowTestsBaseclass):
     for _ in test_lib.TestFlowHelper(
         "ChromeHistory", self.client_mock, check_flow_errors=False,
         client_id=self.client_id, username="test", token=self.token,
-        output="analysis/testfoo", pathtype=jobs_pb2.Path.TSK):
+        output="analysis/testfoo", pathtype=rdfvalue.RDFPathSpec.Enum("TSK")):
       pass
 
     # Now check that the right files were downloaded.
     fs_path = "/home/test/.config/google-chrome/Default/History"
+
     # Check if the History file is created.
     output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/tsk").Add("/".join([self.base_path.replace("\\", "/"),
-                                "test_img.dd"])).Add(fs_path.replace("\\", "/"))
+        "fs/tsk").Add(self.base_path.replace("\\", "/")).Add(
+            "test_img.dd").Add(fs_path.replace("\\", "/"))
+
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     self.assertTrue(fd.size > 20000)
 
@@ -96,7 +98,7 @@ class TestWebHistory(test_lib.FlowTestsBaseclass):
     for _ in test_lib.TestFlowHelper(
         "FirefoxHistory", self.client_mock, check_flow_errors=False,
         client_id=self.client_id, username="test", token=self.token,
-        output="analysis/ff_out", pathtype=jobs_pb2.Path.TSK):
+        output="analysis/ff_out", pathtype=rdfvalue.RDFPathSpec.Enum("TSK")):
       pass
 
     # Now check that the right files were downloaded.
@@ -117,3 +119,31 @@ class TestWebHistory(test_lib.FlowTestsBaseclass):
     data = fd.Read(1000)
     self.assertTrue(data.find("Welcome to Firefox") != -1)
     self.assertTrue(data.find("sport.orf.at") != -1)
+
+  def testCacheGrep(self):
+    """Test the Cache Grep plugin."""
+    # Run the flow in the simulated way
+    for _ in test_lib.TestFlowHelper(
+        "CacheGrep", self.client_mock, check_flow_errors=False,
+        client_id=self.client_id, grep_users=["test"],
+        data_regex="ENIAC", output="analysis/cachegrep/{u}",
+        pathtype=rdfvalue.RDFPathSpec.Enum("TSK"), token=self.token):
+      pass
+
+    # Check if the collection file was created.
+    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
+        "analysis/cachegrep").Add("test")
+
+    fd = aff4.FACTORY.Open(output_path, required_type="RDFValueCollection",
+                           token=self.token)
+
+    # There should be one hit.
+    self.assertEquals(len(fd), 1)
+
+    # Get the first hit.
+    hits = list(fd)
+
+    self.assertIsInstance(hits[0], rdfvalue.StatEntry)
+
+    self.assertEquals(hits[0].pathspec.last.path,
+                      "/home/test/.config/google-chrome/Default/Cache/data_1")

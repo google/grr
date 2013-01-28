@@ -23,10 +23,10 @@ from grr.client import conf as flags
 
 from grr.client.client_actions import standard
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.general import transfer
-from grr.proto import jobs_pb2
 
 FLAGS = flags.FLAGS
 
@@ -52,12 +52,33 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     transfer.GetFile._WINDOW_SIZE = self.old_window_size
     transfer.GetFile._CHUNK_SIZE = self.old_chunk_size
 
+  def testGetMBR(self):
+    """Test that the GetMBR flow works."""
+
+    mbr = ("123456789" * 1000)[:4096]
+
+    class ClientMock(object):
+
+      def ReadBuffer(self, args):
+        _ = args
+        return [
+            rdfvalue.BufferReference(
+                data=mbr, offset=0, length=len(mbr))]
+
+    for _ in test_lib.TestFlowHelper("GetMBR", ClientMock(), token=self.token,
+                                     client_id=self.client_id):
+      pass
+
+    fd = aff4.FACTORY.Open("aff4:/%s/mbr" % self.client_id,
+                           token=self.token)
+    self.assertEqual(fd.Read(4096), mbr)
+
   def testGetFile(self):
     """Test that the GetFile flow works."""
 
     client_mock = test_lib.ActionMock("TransferBuffer", "StatFile")
-    pathspec = jobs_pb2.Path(
-        pathtype=jobs_pb2.Path.OS,
+    pathspec = rdfvalue.RDFPathSpec(
+        pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
         path=os.path.join(self.base_path, "test_img.dd"))
 
     for _ in test_lib.TestFlowHelper("GetFile", client_mock, token=self.token,
@@ -101,8 +122,8 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
     client_mock = test_lib.ActionMock("TransferBuffer", "StatFile",
                                       "HashBuffer")
-    pathspec = jobs_pb2.Path(
-        pathtype=jobs_pb2.Path.OS,
+    pathspec = rdfvalue.RDFPathSpec(
+        pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
         path=os.path.join(self.base_path, "test_img.dd"))
 
     for _ in test_lib.TestFlowHelper("FastGetFile", client_mock,
@@ -207,12 +228,13 @@ class TestFileCollector(test_lib.FlowTestsBaseclass):
 class TestCollector(transfer.FileCollector):
   """Test Inherited Collector Flow."""
 
-  def __init__(self, pathtype=jobs_pb2.Path.OS, **kwargs):
+  def __init__(self, **kwargs):
     """Define what we collect."""
     base_path = os.path.join(FLAGS.test_srcdir, FLAGS.test_datadir)
-    findspecs = [jobs_pb2.Find(
-        pathspec=jobs_pb2.Path(path=base_path, pathtype=pathtype),
-        path_regex="(ntfs_img.dd|sqlite)$",
-        max_depth=4)]
+    findspec = rdfvalue.RDFFindSpec(
+        path_regex="(ntfs_img.dd|sqlite)$", max_depth=4)
 
-    super(TestCollector, self).__init__(findspecs=findspecs, **kwargs)
+    findspec.pathspec.path = base_path
+    findspec.pathspec.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+
+    super(TestCollector, self).__init__(findspecs=[findspec], **kwargs)

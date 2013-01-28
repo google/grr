@@ -16,13 +16,8 @@
 
 
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib.aff4_objects import standard
-from grr.proto import sysinfo_pb2
-
-
-class Processes(aff4.RDFProtoArray):
-  """A list of processes on the system."""
-  _proto = sysinfo_pb2.Process
 
 
 class Process(aff4.AFF4Image):
@@ -30,19 +25,19 @@ class Process(aff4.AFF4Image):
 
   class SchemaCls(aff4.AFF4Image.SchemaCls):
     """We try to break down all the fields we are likely to search on."""
-    PID = aff4.Attribute("aff4:process/pid", aff4.RDFInteger,
+    PID = aff4.Attribute("aff4:process/pid", rdfvalue.RDFInteger,
                          "The process ID.", "pid")
 
-    PPID = aff4.Attribute("aff4:process/ppid", aff4.RDFInteger,
+    PPID = aff4.Attribute("aff4:process/ppid", rdfvalue.RDFInteger,
                           "The parent process ID.", "ppid")
 
-    CMDLINE = aff4.Attribute("aff4:process/cmdline", aff4.RDFString,
+    CMDLINE = aff4.Attribute("aff4:process/cmdline", rdfvalue.RDFString,
                              "Process command line.", "cmdline")
 
-    EXE = aff4.Attribute("aff4:process/exe", aff4.RDFString,
+    EXE = aff4.Attribute("aff4:process/exe", rdfvalue.RDFString,
                          "Process Executable Path.", "exe")
 
-    CREATED = aff4.Attribute("aff4:process/ctime", aff4.RDFDatetime,
+    CREATED = aff4.Attribute("aff4:process/ctime", rdfvalue.RDFDatetime,
                              "Process creation time.", "created")
 
 
@@ -52,13 +47,13 @@ class ProcessListing(standard.VFSDirectory):
   _behaviours = frozenset()
 
   class SchemaCls(standard.VFSDirectory.SchemaCls):
-    PROCESSES = aff4.Attribute("aff4:processes", Processes,
-                               "Process Listing.")
+    PROCESSES = aff4.Attribute("aff4:processes", rdfvalue.Processes,
+                               "Process Listing.", default=rdfvalue.Processes())
 
   def ListChildren(self):
     """Virtualizes all processes as children."""
     result = {}
-    processes = self.Get(self.Schema.PROCESSES) or []
+    processes = self.Get(self.Schema.PROCESSES)
     for process in processes:
       result[self.urn.Add(str(process.pid))] = "Process"
 
@@ -66,7 +61,7 @@ class ProcessListing(standard.VFSDirectory):
 
   def Open(self, urn, mode="r"):
     """Opens a direct child of this object."""
-    if not isinstance(urn, aff4.RDFURN):
+    if not isinstance(urn, rdfvalue.RDFURN):
       # Interpret as a relative path.
       urn = self.urn.Add(urn)
 

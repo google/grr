@@ -27,18 +27,11 @@ from django.core.handlers import wsgi
 
 from grr.client import conf
 from grr.client import conf as flags
+# TODO(user): Remove webauth import after change to CONFIG
+from grr.gui import webauth   # pylint: disable=W0611
+from grr.lib import config_lib
 from grr.lib import registry
-
-# pylint: disable=W0611
-from grr.lib import access_control
-from grr.lib import aff4_objects
-# Support mongo storage
-from grr.lib import mongo_data_store
-
-# Support grr plugins (These only need to be imported here)
-from grr.lib.flows import general
-
-# pylint: enable=W0611
+from grr.lib import server_plugins  # pylint: disable=W0611
 
 flags.DEFINE_integer("port", 8000,
                      "port to listen on")
@@ -53,12 +46,9 @@ flags.DEFINE_string("django_secret_key", "CHANGE_ME",
                     "This is a secret key that should be set in the server "
                     "config. It is used in XSRF and session protection.")
 
-
-# This allows users to specify access controls for the gui.
-flags.DEFINE_string("htpasswd", None,
-                    "An apache style htpasswd file for gui access control.")
-
 FLAGS = flags.FLAGS
+CONFIG = config_lib.CONFIG
+CONFIG.flag_sections.append("ServerFlags")
 
 
 class DjangoInit(registry.InitHook):
@@ -92,7 +82,9 @@ class GuiPluginsInit(registry.InitHook):
 
   def RunOnce(self):
     """Import the plugins once only."""
-    from grr.gui import plugins  # pylint: disable=unused-variable,C6204
+    # pylint: disable=unused-variable,C6204
+    from grr.gui import gui_plugins
+    # pylint: enable=unused-variable,C6204
 
 
 class ThreadingDjango(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
@@ -113,12 +105,6 @@ def main(_):
     msg = "Please change the secret key in the settings module."
     logging.error(msg)
 
-  if FLAGS.htpasswd is None:
-    msg = ("Please specify the --htpasswd option to enable "
-           "security on the admin interface.")
-    logging.error(msg)
-    raise RuntimeError(msg)
-
   # Start up a server in another thread
   base_url = "http://%s:%d" % (FLAGS.bind, FLAGS.port)
   logging.info("Base URL is %s", base_url)
@@ -132,6 +118,4 @@ def main(_):
 
 
 if __name__ == "__main__":
-  logging.basicConfig(level=logging.INFO)
-
   conf.StartMain(main)

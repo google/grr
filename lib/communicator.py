@@ -29,6 +29,7 @@ from M2Crypto import X509
 
 from google.protobuf import message
 from grr.client import conf as flags
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
@@ -275,7 +276,7 @@ class ReceivedCipher(Cipher):
 
         stats.STATS.Increment("grr_rsa_operations")
         if remote_public_key.verify(digest, self.cipher_metadata.signature,
-                                    self.hash_function_name):
+                                    self.hash_function_name) == 1:
           self.signature_verified = True
 
       except (UnknownClientCert, X509.X509Error):
@@ -320,7 +321,7 @@ class Communicator(object):
         self.common_name, self.pub_key_cache.PubKeyFromCert(self.cert))
 
   def EncodeMessageList(self, message_list, signed_message_list):
-    """Encode the MessageList proto into the signed_message_list proto."""
+    """Encode the MessageList into the signed_message_list rdfvalue."""
     # By default uncompress
     uncompressed_data = message_list.SerializeToString()
     signed_message_list.message_list = uncompressed_data
@@ -331,7 +332,7 @@ class Communicator(object):
       # Only compress if it buys us something.
       if len(compressed_data) < len(uncompressed_data):
         signed_message_list.compression = (
-            jobs_pb2.SignedMessageList.ZCOMPRESSION)
+            rdfvalue.SignedMessageList.Enum("ZCOMPRESSION"))
         signed_message_list.message_list = compressed_data
 
   def EncodeMessages(self, message_list, result, destination=None,
@@ -341,10 +342,10 @@ class Communicator(object):
     This function signs and then encrypts the payload.
 
     Args:
-       message_list: A MessageList protobuf containing a list of
+       message_list: A MessageList rdfvalue containing a list of
        GrrMessages.
 
-       result: A ClientCommunication protobuf which will be filled in.
+       result: A ClientCommunication rdfvalue which will be filled in.
 
        destination: The CN of the remote system this should go to.
 
@@ -380,7 +381,7 @@ class Communicator(object):
                       self.pub_key_cache)
       self.cipher_cache.Put(destination, cipher)
 
-    signed_message_list = jobs_pb2.SignedMessageList(timestamp=timestamp)
+    signed_message_list = rdfvalue.SignedMessageList(timestamp=timestamp)
     self.EncodeMessageList(message_list, signed_message_list)
 
     # TODO(user): This is for backwards compatibility. Remove when all
@@ -424,10 +425,9 @@ class Communicator(object):
        encrypted_response: A serialized and encrypted string.
 
     Returns:
-       a Signed_Message_List protobuf
+       a Signed_Message_List rdfvalue
     """
-    response_comms = jobs_pb2.ClientCommunication()
-    response_comms.ParseFromString(encrypted_response)
+    response_comms = rdfvalue.ClientCommunication(encrypted_response)
 
     return self.DecodeMessages(response_comms)
 
@@ -435,19 +435,19 @@ class Communicator(object):
     """Decompress the message data from signed_message_list.
 
     Args:
-      signed_message_list: A SignedMessageList proto with some data in it.
+      signed_message_list: A SignedMessageList rdfvalue with some data in it.
 
     Returns:
-      a MessageList proto.
+      a MessageList rdfvalue.
 
     Raises:
       DecodingError: If decompression fails.
     """
     compression = signed_message_list.compression
-    if compression == jobs_pb2.SignedMessageList.UNCOMPRESSED:
+    if compression == rdfvalue.SignedMessageList.Enum("UNCOMPRESSED"):
       data = signed_message_list.message_list
 
-    elif compression == jobs_pb2.SignedMessageList.ZCOMPRESSION:
+    elif compression == rdfvalue.SignedMessageList.Enum("ZCOMPRESSION"):
       try:
         data = zlib.decompress(signed_message_list.message_list)
       except zlib.error as e:
@@ -456,10 +456,9 @@ class Communicator(object):
       raise DecodingError("Compression scheme not supported")
 
     try:
-      result = jobs_pb2.MessageList()
-      result.ParseFromString(data)
+      result = rdfvalue.MessageList(data)
     except message.DecodeError:
-      raise DecodingError("Proto parsing failed.")
+      raise DecodingError("RDFValue parsing failed.")
 
     return result
 
@@ -467,7 +466,7 @@ class Communicator(object):
     """Extract and verify server message.
 
     Args:
-        response_comms: A ClientCommunication protobuf
+        response_comms: A ClientCommunication rdfvalue
 
     Returns:
        list of messages and the CN where they came from.
@@ -497,8 +496,7 @@ class Communicator(object):
 
       # Decrypt the messages
       iv = response_comms.iv or cipher.cipher.iv
-      signed_message_list = jobs_pb2.SignedMessageList()
-      signed_message_list.ParseFromString(
+      signed_message_list = rdfvalue.SignedMessageList(
           cipher.Decrypt(response_comms.encrypted, iv))
 
       message_list = self.DecompressMessageList(signed_message_list)
@@ -532,18 +530,18 @@ class Communicator(object):
     unauthenticated since it might have resulted from a replay attack.
 
     Args:
-       response_comms: The raw response_comms protobuf.
-       signed_message_list: The SignedMessageList proto from the server.
+       response_comms: The raw response_comms rdfvalue.
+       signed_message_list: The SignedMessageList rdfvalue from the server.
        cipher: The cipher belonging to the remote end.
        api_version: The api version we should use.
 
     Returns:
-       a jobs_pb2.GrrMessage.AuthorizationState.
+       a rdfvalue.GRRMessage.AuthorizationState.
 
     Raises:
        DecryptionError: if the message is corrupt.
     """
-    result = jobs_pb2.GrrMessage.UNAUTHENTICATED
+    result = rdfvalue.GRRMessage.Enum("UNAUTHENTICATED")
     if api_version < 3:
       # Old version: signature is on the message_list
       digest = cipher.hash_function(
@@ -554,9 +552,9 @@ class Communicator(object):
 
       stats.STATS.Increment("grr_rsa_operations")
       if remote_public_key.verify(digest, signed_message_list.signature,
-                                  cipher.hash_function_name):
+                                  cipher.hash_function_name) == 1:
         stats.STATS.Increment("grr_authenticated_messages")
-        result = jobs_pb2.GrrMessage.AUTHENTICATED
+        result = rdfvalue.GRRMessage.Enum("AUTHENTICATED")
 
     else:
       if cipher.HMAC(response_comms.encrypted) != response_comms.hmac:
@@ -568,12 +566,12 @@ class Communicator(object):
 
       if cipher.signature_verified:
         stats.STATS.Increment("grr_authenticated_messages")
-        result = jobs_pb2.GrrMessage.AUTHENTICATED
+        result = rdfvalue.GRRMessage.Enum("AUTHENTICATED")
 
     # Check for replay attacks. We expect the server to return the same
     # timestamp nonce we sent.
     if signed_message_list.timestamp != self.timestamp:
-      result = jobs_pb2.GrrMessage.UNAUTHENTICATED
+      result = rdfvalue.GRRMessage.Enum("UNAUTHENTICATED")
 
     if not cipher.cipher_metadata:
       # Fake the metadata

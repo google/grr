@@ -137,10 +137,11 @@ class ClientReport(object):
               result[attr.name] = None
               continue
 
-            result[attr.name] = "%s %s" % (c_info.data.client_name,
-                                           str(c_info.data.client_version))
+            result[attr.name] = "%s %s" % (c_info.client_name,
+                                           str(c_info.client_version))
           else:
             result[attr.name] = child.Get(attr)
+
         yield result
 
 
@@ -153,7 +154,8 @@ class ClientListReport(ClientReport):
       aff4.Attribute.GetAttributeByName("Host"),
       aff4.Attribute.GetAttributeByName("System"),
       aff4.Attribute.GetAttributeByName("Architecture"),
-      aff4.Attribute.GetAttributeByName("GRR client")
+      aff4.Attribute.GetAttributeByName("Uname"),
+      aff4.Attribute.GetAttributeByName("GRR client"),
   ]
 
   REPORT_NAME = "GRR Client List Report"

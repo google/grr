@@ -25,8 +25,7 @@ from grr.gui import renderers
 from grr.gui.plugins import flow_management
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import utils
-from grr.proto import jobs_pb2
+from grr.lib import rdfvalue
 
 
 class ManageForeman(renderers.UserLabelCheckMixin, renderers.Splitter2Way):
@@ -38,12 +37,12 @@ class ManageForeman(renderers.UserLabelCheckMixin, renderers.Splitter2Way):
   bottom_renderer = "EmptyRenderer"
 
 
-class RegexRuleArray(renderers.RDFProtoArrayRenderer):
+class RegexRuleArray(renderers.RDFValueArrayRenderer):
   """Nicely render all the rules."""
   proxy_field = "regex_rules"
 
 
-class ActionRuleArray(renderers.RDFProtoArrayRenderer):
+class ActionRuleArray(renderers.RDFValueArrayRenderer):
   """Nicely render all the actions for a rule."""
   proxy_field = "actions"
 
@@ -53,37 +52,24 @@ class ActionRuleArray(renderers.RDFProtoArrayRenderer):
 class ReadOnlyForemanRuleTable(renderers.TableRenderer):
   """Show all the foreman rules."""
 
-  # Make the first few columns squish over to give more room to the last few.
-  table_options = {
-      "aoColumnDefs": [
-          {"sWidth": "10%", "aTargets": [0, 1, 2]}
-          ],
-      "table_hash": "fr",
-      }
-
-  def __init__(self):
-    super(ReadOnlyForemanRuleTable, self).__init__()
+  def __init__(self, **kwargs):
+    super(ReadOnlyForemanRuleTable, self).__init__(**kwargs)
     self.AddColumn(renderers.RDFValueColumn("Created", width=10))
     self.AddColumn(renderers.RDFValueColumn("Expires", width=10))
     self.AddColumn(renderers.RDFValueColumn("Description", width=10))
     self.AddColumn(renderers.RDFValueColumn(
         "Rules", renderer=RegexRuleArray))
 
-  def Layout(self, request, response):
-    """Readonly has no toolbar."""
-    return super(ReadOnlyForemanRuleTable, self).Layout(request, response)
-
   def RenderAjax(self, request, response):
     """Renders the table."""
     fd = aff4.FACTORY.Open("aff4:/foreman", token=request.token)
-    rules = fd.Get(fd.Schema.RULES)
-    if rules is not None:
-      for rule in rules:
-        self.AddRow(dict(Created=aff4.RDFDatetime(rule.created),
-                         Expires=aff4.RDFDatetime(rule.expires),
-                         Description=rule.description,
-                         Rules=rule,
-                         Actions=rule))
+    rules = fd.Get(fd.Schema.RULES, [])
+    for rule in rules:
+      self.AddRow(Created=rule.created,
+                  Expires=rule.expires,
+                  Description=rule.description,
+                  Rules=rule,
+                  Actions=rule)
 
     # Call our baseclass to actually do the rendering
     return super(ReadOnlyForemanRuleTable, self).RenderAjax(request, response)
@@ -316,8 +302,8 @@ Delete Rule
         result["action_count"] = len(rule.actions)
 
     # Expand the human readable defaults
-    result["created_text"] = str(aff4.RDFDatetime(result["created"]))
-    result["expires_text"] = str(aff4.RDFDatetime(result["expires"]))
+    result["created_text"] = str(rdfvalue.RDFDatetime(result["created"]))
+    result["expires_text"] = str(rdfvalue.RDFDatetime(result["expires"]))
 
     return result
 
@@ -358,7 +344,7 @@ class RenderFlowForm(AddForemanRule, flow_management.FlowForm):
 
           # User has not changed the existing flow
           if flow_name == requested_flow_name:
-            action_argv = utils.ProtoDict(action.argv).ToDict()
+            action_argv = action.argv.ToDict()
             flow_class = flow.GRRFlow.classes[flow_name]
             args = self.GetArgs(flow_class, request,
                                 arg_template="v_%%s_%s" % rule_number)
@@ -424,7 +410,7 @@ Error: {{ message|escape }}
                               arg_template="v_%%s_%s" % i)
       args = dict([(k, v) for (k, _, _, v, _) in arg_list])
       foreman_rule.actions.add(flow_name=flow_name,
-                               argv=utils.ProtoDict(args).ToProto())
+                               argv=rdfvalue.ProtoDict(args))
 
   def AddRuleToForeman(self, foreman_rule, token):
     """Add the rule to the foreman."""
@@ -439,12 +425,12 @@ Error: {{ message|escape }}
   @renderers.ErrorHandler()
   def Layout(self, request, response):
     """Process the form action and add a new rule."""
-    expire_date = aff4.RDFDatetime.ParseFromHumanReadable(
+    expire_date = rdfvalue.RDFDatetime.ParseFromHumanReadable(
         request.REQ["expires_text"])
-    self.foreman_rule = jobs_pb2.ForemanRule(
+    self.foreman_rule = rdfvalue.ForemanRule(
         description=request.REQ.get("description", ""),
-        created=long(aff4.RDFDatetime()),
-        expires=long(expire_date))
+        created=rdfvalue.RDFDatetime(),
+        expires=expire_date)
 
     # Check for sanity
     if self.foreman_rule.expires < self.foreman_rule.created:

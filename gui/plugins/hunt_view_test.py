@@ -22,53 +22,68 @@ import traceback
 
 from grr.lib import aff4
 from grr.lib import hunt_test
+from grr.lib import hunts
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib.flows.general import hunts
-from grr.proto import jobs_pb2
 
 
 def CreateHunts():
   """Create some test hunts."""
-  thunt = hunt_test.HuntTest(methodName="run")
-  thunt.setUp()
-  return thunt
+  test_hunt = hunt_test.HuntTest(methodName="run")
+  test_hunt.setUp()
+  return test_hunt
 
 
 class TestHuntView(test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
+  @staticmethod
+  def SetUp():
+    result = TestHuntView(methodName="run")
+    result.setUp()
+    result.CreateSampleHunt()
+
+    return result
+
   def setUp(self):
     super(TestHuntView, self).setUp()
-    self.h = CreateHunts()
+    self.hunts = CreateHunts()
 
-  def CreateSampleHunt(self):
-    self.client_ids = self.h.SetupClients(10)
+  def tearDown(self):
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw",
+                                token=self.token)
+    foreman.Set(foreman.Schema.RULES())
+    foreman.Close()
+
+    self.hunts.DeleteClients(10)
+
+  def CreateSampleHunt(self, stopped=False):
+    self.client_ids = self.hunts.SetupClients(10)
+
     hunt = hunts.SampleHunt(token=self.token)
-
-    regex_rule = jobs_pb2.ForemanAttributeRegex(
+    regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="GRR client",
         attribute_regex="GRR")
     hunt.AddRule([regex_rule])
-    hunt.Run()
 
-    self.foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw",
-                                     token=self.token)
-    for client_id in self.client_ids:
-      self.foreman.AssignTasksToClient(client_id)
+    if stopped:
+      hunt.WriteToDataStore()
+    else:
+      hunt.Run()
+
+      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw",
+                                  token=self.token)
+      for client_id in self.client_ids:
+        foreman.AssignTasksToClient(client_id)
+      foreman.Close()
+
     return hunt
 
-  def CleanUpState(self):
-    self.foreman.Set(self.foreman.Schema.RULES())
-    self.foreman.Close()
-    self.h.DeleteClients(10)
-
-  def testHuntView(self):
-    """Test that we can see all the hunt data."""
-
+  def SetupTestHuntView(self):
     # Create some clients and a hunt to view.
     hunt = self.CreateSampleHunt()
     # Run the hunt.
-    client_mock = self.h.SampleHuntMock()
+    client_mock = self.hunts.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
     hunt.LogResult(self.client_ids[2], "Result 1")
 
@@ -76,10 +91,14 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     hunt.LogClientError(self.client_ids[1], "Client Error 1",
                         traceback.format_exc())
 
-    hunt_obj = aff4.FACTORY.Open("aff4:/hunts/%s" % hunt.session_id, mode="rw",
+    hunt_obj = aff4.FACTORY.Open(hunt.session_id, mode="rw",
                                  age=aff4.ALL_TIMES, token=self.token)
     started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
     self.assertEqual(len(set(started)), 10)
+
+  def testHuntView(self):
+    """Test that we can see all the hunt data."""
+    self.SetupTestHuntView()
 
     # Open up and click on View Hunts.
     sel = self.selenium
@@ -112,24 +131,66 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(sel.is_element_present, "css=div[id^=HuntRuleRenderer_]")
     self.WaitUntil(sel.is_text_present, "GRR client")
 
-    self.CleanUpState()
+  def testRunButtonIsVisibleOnStoppedHunt(self):
+    self.CreateSampleHunt(stopped=True)
+    sel = self.selenium
 
-  def testHuntDetailView(self):
-    """Test the detailed client view works."""
-    # Create some clients and a hunt to view.
+    sel.open("/")
+    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
+    sel.click("css=a[grrtarget=ManageHunts]")
+    self.WaitUntil(sel.is_text_present, "SampleHunt")
+
+     # Select a Hunt.
+    sel.click("css=td:contains('SampleHunt')")
+
+     # Check we can now see the details.
+    self.WaitUntil(sel.is_element_present, "css=table[class=proto_table]")
+    self.WaitUntil(sel.is_text_present, "Client Count")
+    self.WaitUntil(sel.is_text_present, "Hunt URN")
+
+    self.assertTrue(sel.is_text_present("Run Hunt"))
+
+  def testRunButtonIsInvisibleOnRunningHunt(self):
+    self.CreateSampleHunt(stopped=False)
+    sel = self.selenium
+
+    sel.open("/")
+    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
+    sel.click("css=a[grrtarget=ManageHunts]")
+    self.WaitUntil(sel.is_text_present, "SampleHunt")
+
+     # Select a Hunt.
+    sel.click("css=td:contains('SampleHunt')")
+
+     # Check we can now see the details.
+    self.WaitUntil(sel.is_element_present, "css=table[class=proto_table]")
+    self.WaitUntil(sel.is_text_present, "Client Count")
+    self.WaitUntil(sel.is_text_present, "Hunt URN")
+
+    self.assertFalse(sel.is_text_present("Run Hunt"))
+
+  def SetupHuntDetailView(self):
+    """Create some clients and a hunt to view."""
     hunt = self.CreateSampleHunt()
     # Run the hunt.
-    client_mock = self.h.SampleHuntMock()
+    client_mock = self.hunts.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
     hunt.LogClientError(self.client_ids[1], "Client Error 1",
                         traceback.format_exc())
+
+  def testHuntDetailView(self):
+    """Test the detailed client view works."""
+    self.SetupHuntDetailView()
 
     # Open up and click on View Hunts then the first Hunt.
     sel = self.selenium
     sel.open("/")
     self.WaitUntil(sel.is_element_present, "css=input[name=q]")
     sel.click("css=a[grrtarget=ManageHunts]")
+
     self.WaitUntil(sel.is_text_present, "SampleHunt")
     sel.click("css=td:contains('SampleHunt')")
 
@@ -141,7 +202,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(sel.is_element_present, "css=div[id^=HuntOverviewRenderer_]")
     self.WaitUntil(sel.is_text_present, "Hunt URN")
     sel.click("css=a[id^=ViewHuntDetails_]")
-    self.WaitUntil(sel.is_text_present, "Viewing Hunt W:")
+    self.WaitUntil(sel.is_text_present, "Viewing Hunt aff4:/hunts/")
 
     self.WaitUntil(sel.is_text_present, "COMPLETED")
     self.WaitUntil(sel.is_text_present, "BAD")
@@ -163,7 +224,6 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     sel.click("css=a:[renderer=HuntHostInformationRenderer]")
     self.WaitUntil(sel.is_element_present,
                    "css=div[id^=HuntHostInformationRenderer_]")
+
     self.WaitUntil(sel.is_text_present, "CLIENT_INFO")
     self.WaitUntil(sel.is_text_present, "VFSGRRClient")
-
-    self.CleanUpState()

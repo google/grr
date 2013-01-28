@@ -24,8 +24,8 @@ from grr.client import conf
 from grr.client import conf as flags
 import selenium
 
-
 from grr.gui import runtests
+from grr.gui import webauth
 from grr.lib import registry
 from grr.lib import test_lib
 
@@ -54,7 +54,7 @@ class SeleniumTestProgram(test_lib.GrrTestProgram):
     # This is very expensive to start up - we make it a class attribute so it
     # can be shared with all the classes.
     test_lib.GRRSeleniumTest.selenium = selenium.selenium("localhost", FLAGS.selenium_port,
-                                      "*chrome", "http://localhost:%s/" % FLAGS.port)
+                                      "*googlechrome", "http://localhost:%s/" % FLAGS.port)
 
     test_lib.GRRSeleniumTest.selenium.start()
 
@@ -67,23 +67,4 @@ def main(argv):
   # Tests run the fake data store
   FLAGS.storage = "FakeDataStore"
 
-
-  settings.configure(**runtests.DJANGO_SETTINGS)
-
-  # Load up the tests after the environment has been configured.
-  # pylint: disable=C6204,W0612
-  from grr.gui.plugins import tests
-  # pylint: enable=C6204
-
-  # Start up a server in another thread
-  trd = runtests.DjangoThread()
-  trd.start()
-
-  # Run the full test suite
-  try:
-    SeleniumTestProgram(argv=argv)
-  finally:
-    trd.Stop()
-
-if __name__ == "__main__":
-  conf.StartMain(main)
+  

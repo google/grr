@@ -18,15 +18,12 @@
 
 from grr.client import actions
 from grr.client import conf
-from grr.proto import jobs_pb2
 
 FLAGS = conf.PARSER.flags
 
 
 class SaveCert(actions.ActionPlugin):
   """Accepts a signed certificate from the server and saves it to disk."""
-  in_protobuf = jobs_pb2.Certificate
-  out_protobuf = jobs_pb2.Certificate
 
   def Run(self, args):
     """Receive the certificate and store it to disk."""

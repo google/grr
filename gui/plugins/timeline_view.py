@@ -20,6 +20,7 @@ import urllib
 from grr.gui import renderers
 from grr.gui.plugins import fileview
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import utils
 
 
@@ -44,7 +45,7 @@ class TimelineViewRenderer(renderers.RDFValueRenderer):
 
     container = request.REQ.get("aff4_path", "")
     if container:
-      self.container = aff4.RDFURN(container)
+      self.container = rdfvalue.RDFURN(container)
       self.hash_dict = dict(
           container=self.container, main="TimelineMain", c=client_id,
           reason=request.token.reason)
@@ -116,11 +117,15 @@ class TimelineToolbar(renderers.TemplateRenderer):
 Filter Expression
 <input type="text" id="container_query" name="query"
   value="{{this.query|escape}}" size=180></input>
+<input type="submit" style="display: none" />
 </form>
 <script>
 var container = "{{this.container|escapejs}}";
 var state = {query: $("input#container_query").val(),
-             container: container};
+             container: container,
+             reason: '{{this.token.reason|escapejs}}',
+             client_id: grr.state.client_id,
+            };
 grr.downloadHandler($('#export_{{unique|escapejs}}'), state, true,
                     '/render/Download/EventTable');
 
@@ -205,10 +210,10 @@ class EventTable(renderers.TableRenderer):
 """
   content_cache = None
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     if EventTable.content_cache is None:
       EventTable.content_cache = utils.TimeBasedCache()
-    super(EventTable, self).__init__()
+    super(EventTable, self).__init__(**kwargs)
     self.AddColumn(renderers.AttributeColumn("event.id", width=0))
     self.AddColumn(renderers.AttributeColumn("timestamp", width=10))
     self.AddColumn(renderers.AttributeColumn("subject"))
@@ -341,7 +346,7 @@ class EventView(EventSubjectView):
       event_class = aff4.AFF4Object.classes["AFF4Event"]
       self.classes = self.RenderAFF4Attributes(event_class(event), request)
       self.path = "Event %s at %s" % (event.id,
-                                      aff4.RDFDatetime(event.timestamp))
+                                      rdfvalue.RDFDatetime(event.timestamp))
 
       return renderers.TemplateRenderer.Layout(self, request, response)
 

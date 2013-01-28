@@ -31,8 +31,3 @@ flags.DEFINE_integer("max_retransmission_time", 10,
 flags.DEFINE_integer("message_expiry_time", 600,
                      "Maximum time messages remain valid within the system.")
 
-flags.DEFINE_string("server_cert", "grr/keys/test/server.pem",
-                    "The path to the server public key and certificate.")
-
-flags.DEFINE_string("server_private_key", "grr/keys/test/server-priv.pem",
-                    "The path to the server private key.")

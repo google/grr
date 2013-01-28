@@ -21,13 +21,12 @@ import pickle
 import tempfile
 
 from grr.lib import flow
-from grr.lib import type_info
 
 
 class ClientAction(flow.GRRFlow):
   """A Simple flow to execute any client action."""
 
-  flow_typeinfo = {"args": type_info.ProtoOrNone()}
+  # TODO(user): add flow_typeinfo definition.
 
   def __init__(self, action=None, save_to="/tmp",
                break_pdb=False, args=None, **kwargs):

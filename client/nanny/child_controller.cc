@@ -44,17 +44,24 @@ time_t ChildController::Run() {
   time_t now = child_->GetCurrentTime();
 
   // Check the heartbeat from the child.
-  time_t heartbeat = std::max(child_->GetHeartBeat(), last_heartbeat_time_);
+  time_t heartbeat = std::max(child_->GetHeartbeat(), last_heartbeat_time_);
   last_heartbeat_time_ = heartbeat;
 
   time_t call_delay = 0;
-  if (child_->IsAlive()) {
+  if (child_->Started() && child_->IsAlive()) {
+    call_delay = config_.unresponsive_kill_period - (now - heartbeat);
     if (now - heartbeat > config_.unresponsive_kill_period) {
-      // We have not received a heartbeat in a while, kill the child.
-      child_->KillChild("No heartbeat received.");
-      call_delay = 1;
-    } else {
-      call_delay = config_.unresponsive_kill_period - (now - heartbeat);
+      // There is a very unlikely race condition if the machine gets suspended
+      // for longer than unresponsive_kill_period seconds so we give the client
+      // some time to catch up.
+      child_->Sleep(2000);
+      heartbeat = std::max(child_->GetHeartbeat(), last_heartbeat_time_);
+      if (now - heartbeat > config_.unresponsive_kill_period) {
+        // We have not received a heartbeat in a while, kill the child.
+        child_->SetNannyMessage("No heartbeat received.");
+        child_->KillChild("No heartbeat received.");
+        call_delay = 1;
+      }
     }
   } else {
     if (heartbeat + config_.unresponsive_kill_period +

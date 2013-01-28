@@ -17,27 +17,34 @@
 """Tests for the Find flow."""
 from grr.client import vfs
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.aff4_objects import standard
-from grr.proto import jobs_pb2
 
 
 class TestFindFlow(test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
+  def setUp(self):
+    super(TestFindFlow, self).setUp()
+    # Install the mock
+    vfs_type = rdfvalue.RDFPathSpec.Enum("OS")
+    vfs.VFS_HANDLERS[vfs_type] = test_lib.ClientVFSHandlerFixture
+
   def testFindFiles(self):
     """Test that the Find flow works with files."""
-    # Install the mock
-    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = test_lib.ClientVFSHandlerFixture
-
     client_mock = test_lib.ActionMock("Find")
     output_path = "analysis/FindFlowTest1"
 
+    # Prepare a findspec.
+    findspec = rdfvalue.RDFFindSpec(
+        path_regex="bash",
+        pathspec=rdfvalue.RDFPathSpec(path="/",
+                                      pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
+
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=self.client_id,
-        path="/", filename_regex="bash", token=self.token,
-        pathtype=jobs_pb2.Path.OS, output=output_path):
+        token=self.token, output=output_path, findspec=findspec):
       pass
 
     # Check the output file is created
@@ -47,24 +54,28 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
 
     # Make sure that bash is a file.
     children = list(fd.OpenChildren())
+
     self.assertEqual(len(children), 4)
     for child in children:
       path = utils.SmartStr(child.urn)
-      self.assert_(path.endswith("bash"))
+      self.assertTrue(path.endswith("bash"))
       self.assertEqual(child.__class__.__name__, "VFSFile")
 
   def testFindDirectories(self):
     """Test that the Find flow works with directories."""
-    # Install the mock
-    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = test_lib.ClientVFSHandlerFixture
 
     client_mock = test_lib.ActionMock("Find")
     output_path = "analysis/FindFlowTest2"
 
+    # Prepare a findspec.
+    findspec = rdfvalue.RDFFindSpec(
+        path_regex="bin",
+        pathspec=rdfvalue.RDFPathSpec(path="/",
+                                      pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
+
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=self.client_id,
-        path="/", filename_regex="bin", token=self.token,
-        pathtype=jobs_pb2.Path.OS, output=output_path):
+        token=self.token, output=output_path, findspec=findspec):
       pass
 
     # Check the output file is created
@@ -77,53 +88,27 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(children), 2)
     for child in children:
       path = utils.SmartStr(child.urn)
-      self.assert_("bin" in path)
+      self.assertTrue("bin" in path)
       self.assertEqual(child.__class__.__name__, "VFSDirectory")
-
-  def testFindWithFindSpec(self):
-    """Test that the Find flow works when specifying proto directly."""
-    # Install the mock
-    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = test_lib.ClientVFSHandlerFixture
-    client_mock = test_lib.ActionMock("Find")
-
-    # Additionally test the expansion of user variable.
-    output_path = "analysis/FindFlowTest3.{u}"
-    expected_output_path = output_path.replace("{u}", "test")
-
-    pathspec = jobs_pb2.Path(path="/", pathtype=jobs_pb2.Path.OS)
-    pb = jobs_pb2.Find(pathspec=pathspec, path_regex="bin")
-
-    for _ in test_lib.TestFlowHelper(
-        "FindFiles", client_mock, client_id=self.client_id,
-        findspec=pb, output=output_path, token=self.token):
-      pass
-
-    # Check the output file is created
-    fd = aff4.FACTORY.Open(
-        "aff4:/{0}/{1}".format(self.client_id, expected_output_path),
-        token=self.token)
-
-    # Make sure that bin is a directory
-    children = list(fd.OpenChildren())
-    self.assertEqual(len(children), 2)
-    for child in children:
-      path = utils.SmartStr(child.urn)
-      self.assert_("bin" in path)
-      self.assertTrue(isinstance(child, standard.VFSDirectory))
 
   def testFindWithMaxFiles(self):
     """Test that the Find flow works when specifying proto directly."""
-    # Install the mock
-    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = test_lib.ClientVFSHandlerFixture
+
     client_mock = test_lib.ActionMock("Find")
     output_path = "analysis/FindFlowTest4"
 
-    pathspec = jobs_pb2.Path(path="/", pathtype=jobs_pb2.Path.OS)
-    pb = jobs_pb2.Find(pathspec=pathspec, path_regex=".*")
+    # Prepare a findspec.
+    findspec = rdfvalue.RDFFindSpec(
+        path_regex=".*",
+        pathspec=rdfvalue.RDFPathSpec(path="/",
+                                      pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
+
+    # Come back to the flow every 3 hits.
+    findspec.iterator.number = 3
 
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=self.client_id, token=self.token,
-        findspec=pb, output=output_path, iterate_on_number=3, max_results=7):
+        findspec=findspec, output=output_path, max_results=7):
       pass
 
     # Check the output file is created
@@ -137,16 +122,19 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
 
   def testCollectionOverwriting(self):
     """Test we overwrite the collection every time the flow is executed."""
-    # Install the mock
-    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = test_lib.ClientVFSHandlerFixture
+
     client_mock = test_lib.ActionMock("Find")
     output_path = "analysis/FindFlowTest5"
-    pathspec = jobs_pb2.Path(path="/", pathtype=jobs_pb2.Path.OS)
-    pb = jobs_pb2.Find(pathspec=pathspec, path_regex="bin")
+
+    # Prepare a findspec.
+    findspec = rdfvalue.RDFFindSpec()
+    findspec.path_regex = "bin"
+    findspec.pathspec.path = "/"
+    findspec.pathspec.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
 
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=self.client_id, token=self.token,
-        findspec=pb, output=output_path):
+        findspec=findspec, output=output_path):
       pass
 
     output_path = "aff4:/{0}/{1}".format(self.client_id, output_path)
@@ -156,10 +144,10 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(children), 2)
 
     # Now find a new result, should overwrite the collection
-    pb.path_regex = "dd"
+    findspec.path_regex = "dd"
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=self.client_id, token=self.token,
-        findspec=pb, output=output_path, max_results=1):
+        findspec=findspec, output=output_path, max_results=1):
       pass
 
     children = list(aff4.FACTORY.Open(

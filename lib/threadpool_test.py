@@ -126,6 +126,57 @@ class ThreadPoolTest(mox.MoxTestBase):
     self.assertEqual(stats.STATS.Get(self.test_pool.name + "_task_exceptions"),
                      2)
 
+  def testBlockingTasks(self):
+    self.test_pool.Join()
+    done_event = threading.Event()
+    ready_events = []
+    self.lock = threading.Lock()
+    res = []
+
+    def Block(ready, done):
+      ready.set()
+      done.wait()
+
+    def Insert(list_obj, element):
+      with self.lock:
+        list_obj.append(element)
+
+    # Schedule blocking tasks on all the workers.
+    for _ in self.test_pool.workers:
+      ready_event = threading.Event()
+      ready_events.append(ready_event)
+      self.test_pool.AddTask(Block, (ready_event, done_event), "Blocking")
+
+    for ev in ready_events:
+      ev.wait()
+
+    try:
+      self.assertEqual(stats.STATS.Get(
+          self.test_pool.name + "_idle_threads"), 0)
+
+      i = 0
+      n = 10
+      while self.test_pool._queue.qsize() < self.test_pool._queue.maxsize:
+        self.test_pool.AddTask(Insert, (res, i), "Insert")
+        i += 1
+
+      # Inserting more tasks than the queue can hold should lead to processing
+      # of some the earlier tasks.
+      for _ in range(n):
+        self.test_pool.AddTask(Insert, (res, i), "Insert")
+        i += 1
+
+      self.assertEqual(sorted(res), range(n))
+
+      done_event.set()
+      self.test_pool.Join()
+
+      # Now the rest of the tasks should have been processed as well.
+      self.assertEqual(sorted(res), range(n + self.test_pool._queue.maxsize))
+
+    finally:
+      done_event.set()
+
   def testThreadSpawningProblemsNoWorker(self):
     """Tests behavior when spawning threads fails."""
 

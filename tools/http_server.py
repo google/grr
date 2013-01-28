@@ -32,21 +32,15 @@ from grr.client import conf
 from grr.client import conf as flags
 import logging
 
-from grr.client import client_config
-# pylint: disable=W0611
-# pylint: enable=W0611
 from grr.lib import communicator
-from grr.lib import mongo_data_store
+from grr.lib import config_lib
 from grr.lib import flow
+from grr.lib import key_utils
 from grr.lib import log
+from grr.lib import rdfvalue
 from grr.lib import registry
-# pylint: disable=W0611
-from grr.lib import server_flags
+from grr.lib import server_plugins  # pylint: disable=W0611
 from grr.lib import utils
-# Transfer well known flows should run on the front end.
-from grr.lib.flows.general import transfer
-from grr.proto import jobs_pb2
-# pylint: enable=W0611
 
 
 flags.DEFINE_string("http_bind_address", "::", "The ip address to bind.")
@@ -57,6 +51,8 @@ flags.DEFINE_integer("processes", 1,
                      "Number of processes to use for the HTTP server")
 
 FLAGS = flags.FLAGS
+CONFIG = config_lib.CONFIG
+CONFIG.flag_sections.append("ServerFlags")
 
 # pylint: disable=C6409
 
@@ -106,8 +102,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       length = int(self.headers.getheader("content-length"))
       input_data = self.rfile.read(length)
 
-      request_comms = jobs_pb2.ClientCommunication()
-      request_comms.ParseFromString(input_data)
+      request_comms = rdfvalue.ClientCommunication(input_data)
 
       # If the client did not supply the version in the protobuf we use the get
       # parameter.
@@ -115,7 +110,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         request_comms.api_version = api_version
 
       # Reply using the same version we were requested with.
-      responses_comms = jobs_pb2.ClientCommunication(
+      responses_comms = rdfvalue.ClientCommunication(
           api_version=request_comms.api_version)
 
       source_ip = ipaddr.IPAddress(self.client_address[0])
@@ -123,9 +118,9 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       if source_ip.version == 6:
         source_ip = source_ip.ipv4_mapped or source_ip
 
-      request_comms.orig_request.MergeFrom(jobs_pb2.HttpRequest(
+      request_comms.orig_request = rdfvalue.HttpRequest(
           raw_headers=utils.SmartStr(self.headers),
-          source_ip=utils.SmartStr(source_ip)))
+          source_ip=utils.SmartStr(source_ip))
 
       source, nr_messages = self.server.frontend.HandleMessageBundles(
           request_comms, responses_comms)
@@ -167,12 +162,12 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     else:
       self._logger = log.GrrLogger(component=self.__class__.__name__)
       self.frontend = flow.FrontEndServer(
-          FLAGS.server_private_key, self._logger,
+          "Server_Private_Key", self._logger,
           max_queue_size=FLAGS.max_queue_size,
           message_expiry_time=FLAGS.message_expiry_time,
           max_retransmission_time=FLAGS.max_retransmission_time)
 
-    self.server_cert = open(FLAGS.server_cert, "rb").read()
+    self.server_cert = key_utils.GetCert("Server_Public_Cert")
 
     (address, _) = server_address
     version = ipaddr.IPAddress(address).version

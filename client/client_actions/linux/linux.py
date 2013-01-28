@@ -29,6 +29,7 @@ from grr.client import client_utils_common
 from grr.client import client_utils_linux
 from grr.client.client_actions import standard
 from grr.client.client_actions.linux import ko_patcher
+from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
@@ -110,7 +111,7 @@ class Sockaddrin6(ctypes.Structure):
 class Ifaddrs(ctypes.Structure):
   pass
 
-Ifaddrs._fields_ = [
+Ifaddrs._fields_ = [  # pylint: disable=protected-access
     ("ifa_next", ctypes.POINTER(Ifaddrs)),
     ("ifa_name", ctypes.POINTER(ctypes.c_char)),
     ("ifa_flags", ctypes.c_uint),
@@ -124,7 +125,7 @@ Ifaddrs._fields_ = [
 
 class EnumerateInterfaces(actions.ActionPlugin):
   """Enumerates all MAC addresses on this system."""
-  out_protobuf = jobs_pb2.Interface
+  out_rdfvalue = rdfvalue.Interface
 
   def Run(self, unused_args):
     """Enumerate all interfaces and collect their MAC addresses."""
@@ -180,12 +181,12 @@ class EnumerateInterfaces(actions.ActionPlugin):
         args["mac_address"] = mac
       if addresses:
         args["addresses"] = address_list
-      self.SendReply(**args)
+      self.SendReply(jobs_pb2.Interface(**args))
 
 
 class GetInstallDate(actions.ActionPlugin):
   """Estimate the install date of this system."""
-  out_protobuf = jobs_pb2.DataBlob
+  out_rdfvalue = rdfvalue.DataBlob
 
   def Run(self, unused_args):
     self.SendReply(integer=int(os.stat("/lost+found").st_ctime))
@@ -211,7 +212,7 @@ class UtmpStruct(utils.Struct):
 
 class EnumerateUsers(actions.ActionPlugin):
   """Enumerates all the users on this system."""
-  out_protobuf = jobs_pb2.UserAccount
+  out_rdfvalue = rdfvalue.User
 
   def ParseWtmp(self):
     """Parse wtmp and extract the last logon time."""
@@ -256,7 +257,7 @@ class EnumerateUsers(actions.ActionPlugin):
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system."""
   acceptable_filesystems = set(["ext2", "ext3", "ext4", "vfat", "ntfs"])
-  out_protobuf = sysinfo_pb2.Filesystem
+  out_rdfvalue = rdfvalue.Filesystem
 
   def CheckMounts(self, filename):
     """Parses the currently mounted devices."""
@@ -292,8 +293,8 @@ class EnumerateRunningServices(actions.ActionPlugin):
 
   TODO(user): This is a placeholder and needs to be implemented.
   """
-  in_protobuf = None
-  out_protobuf = sysinfo_pb2.Service
+  in_rdfvalue = None
+  out_rdfvalue = None
 
   def Run(self, unused_arg):
     raise RuntimeError("Not implemented")
@@ -305,7 +306,7 @@ class InstallDriver(actions.ActionPlugin):
   Note that only drivers with a signature that validates with
   client_config.DRIVER_SIGNING_CERT can be loaded.
   """
-  in_protobuf = jobs_pb2.InstallDriverRequest
+  in_rdfvalue = rdfvalue.DriverInstallTemplate
 
   def Run(self, args):
     """Initializes the driver."""
@@ -355,19 +356,19 @@ class InstallDriver(actions.ActionPlugin):
 class GetMemoryInformation(actions.ActionPlugin):
   """Loads the driver for memory access and returns a Stat for the device."""
 
-  in_protobuf = jobs_pb2.Path
-  out_protobuf = jobs_pb2.MemoryInformation
+  in_rdfvalue = rdfvalue.RDFPathSpec
+  out_rdfvalue = rdfvalue.MemoryInformation
 
   def Run(self, args):
     """Run."""
-    result = self.out_protobuf()
+    result = sysinfo_pb2.MemoryInformation()
 
     # Try if we can actually open the device.
     with open(args.path, "rb") as fd:
       fd.read(5)
 
     result.device.path = args.path
-    result.device.pathtype = jobs_pb2.Path.MEMORY
+    result.device.pathtype = rdfvalue.RDFPathSpec.Enum("MEMORY")
 
     self.SendReply(result)
 
@@ -379,7 +380,7 @@ class UninstallDriver(actions.ActionPlugin):
   client_config.DRIVER_SIGNING_CERT can be uninstalled.
   """
 
-  in_protobuf = jobs_pb2.InstallDriverRequest
+  in_rdfvalue = rdfvalue.DriverInstallTemplate
 
   def Run(self, args):
     """Unloads a driver."""
@@ -394,8 +395,8 @@ class UninstallDriver(actions.ActionPlugin):
 class UpdateAgent(standard.ExecuteBinaryCommand):
   """Updates the GRR agent to a new version."""
 
-  in_protobuf = jobs_pb2.ExecuteBinaryRequest
-  out_protobuf = jobs_pb2.ExecuteBinaryResponse
+  in_rdfvalue = rdfvalue.ExecuteBinaryRequest
+  out_rdfvalue = rdfvalue.ExecuteBinaryResponse
 
   # This is not yet supported but we need this stub here so the worker can
   # determine the correct protobufs.

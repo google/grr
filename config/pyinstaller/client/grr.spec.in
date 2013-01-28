@@ -1,0 +1,27 @@
+# -*- mode: python -*-
+a = Analysis(
+    [%(PyInstaller.Sources)s],
+    pathex=%(PyInstaller.Pathex)s,
+    hiddenimports=[],
+    hookspath=None)
+pyz = PYZ(
+    a.pure)
+exe = EXE(
+    pyz,
+    a.scripts,
+    exclude_binaries=1,
+    name='%(PyInstaller.Build_Directory|escape)s',
+    debug=False,
+    strip=False,
+    upx=True,
+    console=True,
+    version='%(PyInstaller.Version_File|escape)s',
+    icon='%(PyInstaller.Icon_File|escape)s')
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    name='%(PyInstaller.Output_Directory|escape)s')

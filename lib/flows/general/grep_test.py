@@ -21,8 +21,9 @@ from grr.client import vfs
 from grr.client.client_actions import searching
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import jobs_pb2
+from grr.lib import type_info
 
 
 class TestGrepFlow(test_lib.FlowTestsBaseclass):
@@ -73,17 +74,23 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
     super(TestGrepFlow, self).setUp()
 
     # Install the mock
-    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = test_lib.ClientVFSHandlerFixture
+    vfs.VFS_HANDLERS[
+        rdfvalue.RDFPathSpec.Enum("OS")] = test_lib.ClientVFSHandlerFixture
     self.client_mock = test_lib.ActionMock("Grep")
 
   def testNormalGrep(self):
 
     output_path = "analysis/grep1"
 
+    grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Enum("FIRST_HIT"),
+                                 literal="hello")
+
+    grepspec.target.path = "/proc/10/cmdline"
+    grepspec.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+
     for _ in test_lib.TestFlowHelper(
         "Grep", self.client_mock, client_id=self.client_id,
-        pathtype=0, grep_literal="hello", mode=jobs_pb2.GrepRequest.FIRST_HIT,
-        path="/proc/10/cmdline", token=self.token, output=output_path):
+        token=self.token, output=output_path, request=grepspec):
       pass
 
     # Check the output file is created
@@ -94,7 +101,7 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(len(hits), 1)
     self.assertEqual(hits[0].offset, 3)
-    self.assertEqual(hits[0].data, "ls\000hello world\'\000-l")
+    self.assertEqual(hits[0], "ls\x00hello world\'\x00-l")
     self.assertEqual(hits[0].length, 18)
 
   def testMultipleHits(self):
@@ -105,10 +112,15 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
 
     output_path = "analysis/grep2"
 
+    grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Enum("ALL_HITS"),
+                                 literal="HIT")
+
+    grepspec.target.path = "/c/Downloads/grepfile.txt"
+    grepspec.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+
     for _ in test_lib.TestFlowHelper(
         "Grep", self.client_mock, client_id=self.client_id,
-        pathtype=0, grep_literal="HIT", mode=jobs_pb2.GrepRequest.ALL_HITS,
-        path="/c/Downloads/grepfile.txt", token=self.token, output=output_path):
+        request=grepspec, token=self.token, output=output_path):
       pass
 
     # Check the output file is created
@@ -119,8 +131,8 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(len(hits), 100)
     self.assertEqual(hits[15].offset, 523)
-    self.assertEqual(hits[38].data, "e. I am a HIT!!random c")
-    self.assertEqual(hits[99].data, "e. I am a HIT!!")
+    self.assertEqual(hits[38], "e. I am a HIT!!random c")
+    self.assertEqual(hits[99], "e. I am a HIT!!")
 
     self.DeleteFile(filename)
 
@@ -135,13 +147,17 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
 
       output_path = "analysis/grep"
       output_urn = "aff4:/{0}/{1}".format(self.client_id, output_path)
-      data_store.DB.DeleteSubject(output_urn)
+      data_store.DB.DeleteSubject(output_urn, token=self.token)
+
+      grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Enum("FIRST_HIT"),
+                                   literal="HIT")
+
+      grepspec.target.path = "/c/Downloads/grepfile.txt"
+      grepspec.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
 
       for _ in test_lib.TestFlowHelper(
           "Grep", self.client_mock, client_id=self.client_id,
-          pathtype=0, grep_literal="HIT", mode=jobs_pb2.GrepRequest.FIRST_HIT,
-          path="/c/Downloads/grepfile.txt", token=self.token,
-          output=output_path):
+          token=self.token, output=output_path, request=grepspec):
         pass
 
       # Check the output file is created
@@ -155,3 +171,14 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
       self.DeleteFile(filename)
     finally:
       searching.Grep.BUFF_SIZE = old_size
+
+  def testInvalidArg(self):
+    """Check that the Grep flow raises if the GrepSpec is invlaid."""
+    # No target set.
+    grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Enum("FIRST_HIT"),
+                                 literal="hello")
+
+    self.assertRaises(
+        type_info.Error, list, test_lib.TestFlowHelper(
+            "Grep", self.client_mock, client_id=self.client_id,
+            token=self.token, request=grepspec))

@@ -20,9 +20,8 @@ import os
 
 import logging
 
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 class GrrVolatilityTest(test_lib.EmptyActionTest):
@@ -34,15 +33,19 @@ class GrrVolatilityTest(test_lib.EmptyActionTest):
       logging.warning("Unable to locate test memory image. Skipping test.")
       return False
 
-    self.request = jobs_pb2.VolatilityRequest()
+    self.request = rdfvalue.VolatilityRequest(
+        device=rdfvalue.RDFPathSpec(path=image_path,
+                                    pathtype=rdfvalue.RDFPathSpec.Enum("OS")),
+        # To speed up the test we provide these values. In real life these
+        # values will be provided by the kernel driver.
+        session=rdfvalue.RDFProtoDict(
+            dtb=0x187000, kdbg=0xF80002803070))
 
-    # In this test we explicitly set the profile to use.
-    self.request.profile = "Win7SP1x64"
-    self.request.plugins.append(plugin)
+    # In this test we explicitly do not set the profile to use so we can see if
+    # the profile autodetection works.
 
-    # Use the memory image in the pathspec.
-    self.request.device.path = image_path
-    self.request.device.pathtype = jobs_pb2.Path.OS
+    # Add the plugin to the request.
+    self.request.args[plugin] = None
 
     return True
 
@@ -75,7 +78,7 @@ class GrrVolatilityTest(test_lib.EmptyActionTest):
 
     args = {"pslist": {"pid": 2860}}
 
-    self.request.args.MergeFrom(utils.ProtoDict(args).ToProto())
+    self.request.args = rdfvalue.RDFProtoDict(args)
 
     result = self.RunAction("VolatilityAction", self.request)
 

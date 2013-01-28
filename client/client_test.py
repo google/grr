@@ -27,29 +27,29 @@ from grr.client import actions
 from grr.client import client_actions
 # pylint: enable=W0611
 from grr.client import comms
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import jobs_pb2
 
 
 FLAGS = flags.FLAGS
 
 
 class MockAction(actions.ActionPlugin):
-  in_protobuf = jobs_pb2.PrintStr
-  out_protobuf = jobs_pb2.PrintStr
+  in_rdfvalue = rdfvalue.LogMessage
+  out_rdfvalue = rdfvalue.LogMessage
 
   def Run(self, message):
-    self.SendReply(jobs_pb2.PrintStr(
+    self.SendReply(rdfvalue.EchoRequest(
         data="Received Message: %s. Data %s" % (message.data, "x" * 100)))
 
 
 class RaiseAction(actions.ActionPlugin):
   """A mock action which raises an error."""
-  in_protobuf = jobs_pb2.PrintStr
-  out_protobuf = jobs_pb2.PrintStr
+  in_rdfvalue = rdfvalue.LogMessage
+  out_rdfvalue = rdfvalue.LogMessage
 
-  def Run(self, message):
-    raise RuntimeError("I dont like %s" % message.data)
+  def Run(self, unused_args):
+    raise RuntimeError("I dont like.")
 
 
 class TestedContext(comms.GRRClientWorker):
@@ -70,12 +70,13 @@ class BasicContextTests(test_lib.GRRBaseTest):
 
   def testHandleMessage(self):
     """Test handling of a normal request with a response."""
+    args = rdfvalue.LogMessage(data="hello")
     # Push a request on it
-    message = jobs_pb2.GrrMessage(
+    message = rdfvalue.GRRMessage(
         name="MockAction",
         session_id=self.session_id,
-        auth_state=jobs_pb2.GrrMessage.AUTHENTICATED,
-        args=jobs_pb2.PrintStr(data="hello").SerializeToString(),
+        auth_state=rdfvalue.GRRMessage.Enum("AUTHENTICATED"),
+        payload=args,
         request_id=1)
 
     self.context.HandleMessage(message)
@@ -83,19 +84,20 @@ class BasicContextTests(test_lib.GRRBaseTest):
     # Check the response - one data and one status
 
     message_list = self.context.Drain().job
+
     self.assertEqual(message_list[0].session_id, self.session_id)
     self.assertEqual(message_list[0].response_id, 1)
     self.assert_("hello" in message_list[0].args)
     self.assertEqual(message_list[1].response_id, 2)
-    self.assertEqual(message_list[1].type, jobs_pb2.GrrMessage.STATUS)
+    self.assertEqual(message_list[1].type, rdfvalue.GRRMessage.Enum("STATUS"))
 
   def testHandleError(self):
     """Test handling of a request which raises."""
     # Push a request on it
-    message = jobs_pb2.GrrMessage(
+    message = rdfvalue.GRRMessage(
         name="RaiseAction",
         session_id=self.session_id,
-        auth_state=jobs_pb2.GrrMessage.AUTHENTICATED,
+        auth_state=rdfvalue.GRRMessage.Enum("AUTHENTICATED"),
         request_id=1)
 
     self.context.HandleMessage(message)
@@ -104,10 +106,9 @@ class BasicContextTests(test_lib.GRRBaseTest):
     message_list = self.context.Drain().job
     self.assertEqual(message_list[0].session_id, self.session_id)
     self.assertEqual(message_list[0].response_id, 1)
-    status = jobs_pb2.GrrStatus()
-    status.ParseFromString(message_list[0].args)
+    status = rdfvalue.GrrStatus(message_list[0].args)
     self.assert_("RuntimeError" in status.error_message)
-    self.assertNotEqual(status.status, jobs_pb2.GrrStatus.OK)
+    self.assertNotEqual(status.status, rdfvalue.GrrStatus.Enum("OK"))
 
   def testUnauthenticated(self):
     """What happens if an unauthenticated message is sent to the client?
@@ -116,10 +117,10 @@ class BasicContextTests(test_lib.GRRBaseTest):
     GrrStatus message with the traceback in it.
     """
     # Push a request on it
-    message = jobs_pb2.GrrMessage(
+    message = rdfvalue.GRRMessage(
         name="MockAction",
         session_id=self.session_id,
-        auth_state=jobs_pb2.GrrMessage.UNAUTHENTICATED,
+        auth_state=rdfvalue.GRRMessage.Enum("UNAUTHENTICATED"),
         request_id=1)
 
     self.context.HandleMessage(message)
@@ -130,18 +131,17 @@ class BasicContextTests(test_lib.GRRBaseTest):
     self.assertEqual(len(message_list), 1)
     self.assertEqual(message_list[0].session_id, self.session_id)
     self.assertEqual(message_list[0].response_id, 1)
-    status = jobs_pb2.GrrStatus()
-    status.ParseFromString(message_list[0].args)
+    status = rdfvalue.GrrStatus(message_list[0].args)
     self.assert_("not Authenticated" in status.error_message)
     self.assert_("RuntimeError" in status.error_message)
-    self.assertNotEqual(status.status, jobs_pb2.GrrStatus.OK)
+    self.assertNotEqual(status.status, rdfvalue.GrrStatus.Enum("OK"))
 
   def testPriorities(self):
     for i in range(10):
-      message = jobs_pb2.GrrMessage(
+      message = rdfvalue.GRRMessage(
           name="MockAction",
           session_id=self.session_id + str(i),
-          auth_state=jobs_pb2.GrrMessage.UNAUTHENTICATED,
+          auth_state=rdfvalue.GRRMessage.Enum("UNAUTHENTICATED"),
           request_id=1,
           priority=i%3)
       self.context.HandleMessage(message)

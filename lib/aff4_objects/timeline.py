@@ -16,26 +16,28 @@
 
 
 import heapq
+import StringIO
 import struct
 
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
 from grr.proto import analysis_pb2
 
 
-class RDFEvent(aff4.RDFProto):
+class RDFEvent(rdfvalue.RDFProto):
   _proto = analysis_pb2.Event
 
-  rdf_map = dict(timestamp=aff4.RDFDatetime,
-                 stat=standard.StatEntry)
+  rdf_map = dict(timestamp=rdfvalue.RDFDatetime,
+                 stat=rdfvalue.StatEntry)
 
 
 class AFF4Event(aff4.AFF4Object):
   """An AFF4 representation of an Event."""
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
-    TIMESTAMP = aff4.Attribute("aff4:timeline/timestamp", aff4.RDFDatetime,
+    TIMESTAMP = aff4.Attribute("aff4:timeline/timestamp", rdfvalue.RDFDatetime,
                                "The time of this event.", "timestamp")
 
     # The actual event protobuf
@@ -72,13 +74,13 @@ class GRRTimeSeries(standard.VFSDirectory):
     # Total number of events here
     SIZE = aff4.AFF4Stream.SchemaCls.SIZE
 
-    START = aff4.Attribute("aff4:timeline/start", aff4.RDFDatetime,
+    START = aff4.Attribute("aff4:timeline/start", rdfvalue.RDFDatetime,
                            "The timestamp of the first event in this series")
 
-    END = aff4.Attribute("aff4:timeline/end", aff4.RDFDatetime,
+    END = aff4.Attribute("aff4:timeline/end", rdfvalue.RDFDatetime,
                          "The timestamp of the last event in this series")
 
-    DESCRIPTION = aff4.Attribute("aff4:description", aff4.RDFString,
+    DESCRIPTION = aff4.Attribute("aff4:description", rdfvalue.RDFString,
                                  "This collection's description", "description")
 
     TIMELINE = aff4.Attribute("aff4:timeline/view", TimelineView,
@@ -119,6 +121,16 @@ class GRRTimeSeries(standard.VFSDirectory):
 
     count = 0
     storage = aff4.FACTORY.Open(self.urn.Add("Storage"), token=self.token)
+
+    # If the timeline is small enough we buffer it in memory to make quick
+    # iteration possible. This is limited to a size of one GB.
+    # Note that this is a hack and is supposed to go away soon as we integrate
+    # plaso for timelines.
+    if storage.size <= 1024 * 1024 * 1024:
+      buf = storage.Read(1024 * 1024 * 1024)
+      storage = StringIO.StringIO(buf)
+      storage.Read = storage.read
+
     while True:
       try:
         length = struct.unpack("<i", storage.Read(4))[0]
@@ -134,8 +146,10 @@ class GRRTimeSeries(standard.VFSDirectory):
       yield event
 
   def Query(self, filter_string="", filter_obj=None):
+    """Implement the Query interface for the time series."""
     # An empty filter string returns all the children.
-    if not filter_string: return self.OpenChildren(mode=self.mode)
+    if not filter_string:
+      return self.OpenChildren(mode=self.mode)
 
     # Parse the query string
     ast = aff4.AFF4QueryParser(filter_string).Parse()
@@ -150,6 +164,7 @@ class GRRTimeSeries(standard.VFSDirectory):
     if not self.dirty: return
     storage = aff4.FACTORY.Create(self.urn.Add("Storage"), "AFF4Image",
                                   token=self.token)
+    storage.Set(storage.Schema.CHUNKSIZE(1024 * 1024))
     storage.Truncate(0)
 
     if self.heap:

@@ -29,10 +29,9 @@ import logging
 from grr.client import conf
 from grr.client import vfs
 from grr.client.vfs_handlers import files
-
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 FLAGS = conf.PARSER.flags
 
@@ -78,7 +77,9 @@ class VFSTest(test_lib.GRRBaseTest):
   def testRegularFile(self):
     """Test our ability to read regular files."""
     path = os.path.join(self.base_path, "morenumbers.txt")
-    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS))
+    pathspec = rdfvalue.RDFPathSpec(path=path,
+                                    pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    fd = vfs.VFSOpen(pathspec)
 
     self.TestFileHandling(fd)
 
@@ -91,7 +92,9 @@ class VFSTest(test_lib.GRRBaseTest):
 
     fds = []
     for _ in range(100):
-      fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS))
+      fd = vfs.VFSOpen(
+          rdfvalue.RDFPathSpec(path=path,
+                               pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
       self.assertEqual(fd.read(20), "1\n2\n3\n4\n5\n6\n7\n8\n9\n10")
       fds.append(fd)
 
@@ -106,12 +109,15 @@ class VFSTest(test_lib.GRRBaseTest):
     num_open_files = len(current_process.get_open_files())
 
     path = os.path.join(self.base_path, "morenumbers.txt")
-    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS))
+    fd = vfs.VFSOpen(
+        rdfvalue.RDFPathSpec(path=path,
+                             pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
 
     fds = []
     for filename in fd.ListNames():
-      child_fd = vfs.VFSOpen(jobs_pb2.Path(path=os.path.join(path, filename),
-                                           pathtype=jobs_pb2.Path.OS))
+      child_fd = vfs.VFSOpen(
+          rdfvalue.RDFPathSpec(path=os.path.join(path, filename),
+                               pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
       fd.read(20)
       fds.append(child_fd)
 
@@ -134,16 +140,22 @@ class VFSTest(test_lib.GRRBaseTest):
     except (IOError, OSError):
       pass
 
-    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS))
+    fd = vfs.VFSOpen(
+        rdfvalue.RDFPathSpec(path=path,
+                             pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
     self.assertEqual(fd.pathspec.Basename(), "numbers.txt")
 
     path = os.path.join(self.base_path, "numbers.TXT")
 
-    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS))
+    fd = vfs.VFSOpen(
+        rdfvalue.RDFPathSpec(path=path,
+                             pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
     self.assertEqual(fd.pathspec.Basename(), "numbers.TXT")
 
     path = os.path.join(self.base_path, "Numbers.txt")
-    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS))
+    fd = vfs.VFSOpen(
+        rdfvalue.RDFPathSpec(path=path,
+                             pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
     read_path = fd.pathspec.Basename()
 
     # The exact file now is non deterministic but should be either of the two:
@@ -152,35 +164,39 @@ class VFSTest(test_lib.GRRBaseTest):
 
     # Ensure that the produced pathspec specified no case folding:
     s = fd.Stat()
-    self.assertEqual(s.pathspec.path_options, jobs_pb2.Path.CASE_LITERAL)
+    self.assertEqual(s.pathspec.path_options,
+                     rdfvalue.RDFPathSpec.Enum("CASE_LITERAL"))
 
     # Case folding will only occur when requested - this should raise because we
     # have the CASE_LITERAL option:
-    self.assertRaises(IOError, vfs.VFSOpen,
-                      jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS,
-                                    path_options=jobs_pb2.Path.CASE_LITERAL))
+    pathspec = rdfvalue.RDFPathSpec(
+        path=path,
+        pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+        path_options=rdfvalue.RDFPathSpec.Enum("CASE_LITERAL"))
+    self.assertRaises(IOError, vfs.VFSOpen, pathspec)
 
   def testTSKFile(self):
     """Test our ability to read from image files."""
     path = os.path.join(self.base_path, "test_img.dd")
     path2 = "Test Directory/numbers.txt"
 
-    p2 = jobs_pb2.Path(path=path2,
-                       pathtype=jobs_pb2.Path.TSK)
-    p1 = jobs_pb2.Path(path=path,
-                       pathtype=jobs_pb2.Path.OS,
-                       nested_path=p2)
-
+    p2 = rdfvalue.RDFPathSpec(path=path2,
+                              pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+    p1 = rdfvalue.RDFPathSpec(path=path,
+                              pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    p1.Append(p2)
     fd = vfs.VFSOpen(p1)
     self.TestFileHandling(fd)
 
   def testTSKFileInode(self):
     """Test opening a file through an indirect pathspec."""
-    pathspec = utils.Pathspec(path=os.path.join(self.base_path, "test_img.dd"),
-                              pathtype=jobs_pb2.Path.OS)
-    pathspec.Append(pathtype=jobs_pb2.Path.TSK, inode=12,
+    pathspec = rdfvalue.RDFPathSpec(
+        path=os.path.join(self.base_path, "test_img.dd"),
+        pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    pathspec.Append(pathtype=rdfvalue.RDFPathSpec.Enum("TSK"), inode=12,
                     path="/Test Directory")
-    pathspec.Append(pathtype=jobs_pb2.Path.TSK, path="numbers.txt")
+    pathspec.Append(pathtype=rdfvalue.RDFPathSpec.Enum("TSK"),
+                    path="numbers.txt")
 
     fd = vfs.VFSOpen(pathspec)
 
@@ -198,40 +214,51 @@ class VFSTest(test_lib.GRRBaseTest):
     path = os.path.join(self.base_path, "test_img.dd")
     path2 = os.path.join("test directory", "NuMbErS.TxT")
 
-    pb2 = jobs_pb2.Path(path=path2,
-                        pathtype=jobs_pb2.Path.TSK)
+    ps2 = rdfvalue.RDFPathSpec(
+        path=path2,
+        pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
 
-    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS,
-                                   nested_path=pb2))
+    ps = rdfvalue.RDFPathSpec(path=path,
+                              pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    ps.Append(ps2)
+    fd = vfs.VFSOpen(ps)
 
     # This fixes Windows paths.
     path = path.replace("\\", "/")
     # The pathspec should have 2 components.
 
-    self.assertEqual(fd.pathspec.first.path, utils.NormalizePath(path))
-    self.assertEqual(fd.pathspec.first.pathtype, jobs_pb2.Path.OS)
+    self.assertEqual(fd.pathspec.first.path,
+                     utils.NormalizePath(path))
+    self.assertEqual(fd.pathspec.first.pathtype,
+                     rdfvalue.RDFPathSpec.Enum("OS"))
 
     nested = fd.pathspec.last
     self.assertEqual(nested.path, u"/Test Directory/numbers.txt")
-    self.assertEqual(nested.pathtype, jobs_pb2.Path.TSK)
+    self.assertEqual(nested.pathtype, rdfvalue.RDFPathSpec.Enum("TSK"))
 
   def testTSKInodeHandling(self):
     """Test that we can open files by inode."""
     path = os.path.join(self.base_path, "ntfs_img.dd")
-    pb2 = jobs_pb2.Path(inode=65, ntfs_type=128, ntfs_id=0,
-                        path="/this/will/be/ignored",
-                        pathtype=jobs_pb2.Path.TSK)
+    ps2 = rdfvalue.RDFPathSpec(
+        inode=65, ntfs_type=128, ntfs_id=0,
+        path="/this/will/be/ignored",
+        pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
 
-    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS,
-                                   nested_path=pb2, offset=63*512))
+    ps = rdfvalue.RDFPathSpec(path=path,
+                              pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+                              offset=63*512)
+    ps.Append(ps2)
+    fd = vfs.VFSOpen(ps)
 
     self.assertEqual(fd.Read(100), "Hello world\n")
 
-    pb2 = jobs_pb2.Path(inode=65, ntfs_type=128, ntfs_id=4,
-                        pathtype=jobs_pb2.Path.TSK)
-
-    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS,
-                                   nested_path=pb2, offset=63*512))
+    ps2 = rdfvalue.RDFPathSpec(inode=65, ntfs_type=128, ntfs_id=4,
+                               pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+    ps = rdfvalue.RDFPathSpec(path=path,
+                              pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+                              offset=63*512)
+    ps.Append(ps2)
+    fd = vfs.VFSOpen(ps)
 
     self.assertEqual(fd.read(100), "I am a real ADS\n")
 
@@ -243,11 +270,14 @@ class VFSTest(test_lib.GRRBaseTest):
     path = os.path.join(self.base_path, "ntfs_img.dd")
     path2 = "test directory"
 
-    pb2 = jobs_pb2.Path(path=path2,
-                        pathtype=jobs_pb2.Path.TSK)
+    ps2 = rdfvalue.RDFPathSpec(path=path2,
+                               pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
 
-    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS,
-                                   nested_path=pb2, offset=63*512))
+    ps = rdfvalue.RDFPathSpec(path=path,
+                              pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+                              offset=63*512)
+    ps.Append(ps2)
+    fd = vfs.VFSOpen(ps)
 
     # This fixes Windows paths.
     path = path.replace("\\", "/")
@@ -257,16 +287,18 @@ class VFSTest(test_lib.GRRBaseTest):
     for f in fd.ListFiles():
       # Make sure the CASE_LITERAL option is set for all drivers so we can just
       # resend this proto back.
-      self.assertEqual(f.pathspec.path_options, jobs_pb2.Path.CASE_LITERAL)
+      self.assertEqual(f.pathspec.path_options,
+                       rdfvalue.RDFPathSpec.Enum("CASE_LITERAL"))
       pathspec = f.pathspec.nested_path
-      self.assertEqual(pathspec.path_options, jobs_pb2.Path.CASE_LITERAL)
+      self.assertEqual(pathspec.path_options,
+                       rdfvalue.RDFPathSpec.Enum("CASE_LITERAL"))
       pathspecs.append(f.pathspec)
       listing.append((pathspec.inode, pathspec.ntfs_type, pathspec.ntfs_id))
 
-    ref = [(65, jobs_pb2.Path.TSK_FS_ATTR_TYPE_DEFAULT, 0),
-           (65, jobs_pb2.Path.TSK_FS_ATTR_TYPE_NTFS_DATA, 4),
-           (66, jobs_pb2.Path.TSK_FS_ATTR_TYPE_DEFAULT, 0),
-           (67, jobs_pb2.Path.TSK_FS_ATTR_TYPE_DEFAULT, 0)]
+    ref = [(65, rdfvalue.RDFPathSpec.Enum("TSK_FS_ATTR_TYPE_DEFAULT"), 0),
+           (65, rdfvalue.RDFPathSpec.Enum("TSK_FS_ATTR_TYPE_NTFS_DATA"), 4),
+           (66, rdfvalue.RDFPathSpec.Enum("TSK_FS_ATTR_TYPE_DEFAULT"), 0),
+           (67, rdfvalue.RDFPathSpec.Enum("TSK_FS_ATTR_TYPE_DEFAULT"), 0)]
 
     # Make sure that the ADS is recovered.
     self.assertEqual(listing, ref)
@@ -298,41 +330,44 @@ class VFSTest(test_lib.GRRBaseTest):
     path = os.path.join(self.base_path, "test_img.dd")
     path2 = os.path.join(u"איןד ןד ש אקדא", u"איןד.txt")
 
-    pb2 = jobs_pb2.Path(path=path2,
-                        pathtype=jobs_pb2.Path.TSK)
+    ps2 = rdfvalue.RDFPathSpec(path=path2,
+                               pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
 
-    fd = vfs.VFSOpen(jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS,
-                                   nested_path=pb2))
+    ps = rdfvalue.RDFPathSpec(path=path,
+                              pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    ps.Append(ps2)
+    fd = vfs.VFSOpen(ps)
     self.TestFileHandling(fd)
 
   def testListDirectory(self):
     """Test our ability to list a directory."""
-    directory = vfs.VFSOpen(jobs_pb2.Path(path=self.base_path,
-                                          pathtype=jobs_pb2.Path.OS))
+    directory = vfs.VFSOpen(
+        rdfvalue.RDFPathSpec(path=self.base_path,
+                             pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
 
     self.CheckDirectoryListing(directory, "morenumbers.txt")
 
   def testTSKListDirectory(self):
     """Test directory listing in sleuthkit."""
     path = os.path.join(self.base_path, u"test_img.dd")
-    pb2 = jobs_pb2.Path(path=u"入乡随俗 海外春节别样过法",
-                        pathtype=jobs_pb2.Path.TSK)
-    pb = jobs_pb2.Path(path=path,
-                       pathtype=jobs_pb2.Path.OS,
-                       nested_path=pb2)
-    directory = vfs.VFSOpen(pb)
+    ps2 = rdfvalue.RDFPathSpec(path=u"入乡随俗 海外春节别样过法",
+                               pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+    ps = rdfvalue.RDFPathSpec(path=path,
+                              pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    ps.Append(ps2)
+    directory = vfs.VFSOpen(ps)
     self.CheckDirectoryListing(directory, u"入乡随俗.txt")
 
   def testRecursiveImages(self):
     """Test directory listing in sleuthkit."""
-    p3 = jobs_pb2.Path(path="/home/a.txt",
-                       pathtype=jobs_pb2.Path.TSK)
-    p2 = jobs_pb2.Path(path="/home/image2.img",
-                       pathtype=jobs_pb2.Path.TSK,
-                       nested_path=p3)
-    p1 = jobs_pb2.Path(path=os.path.join(self.base_path, "test_img.dd"),
-                       pathtype=jobs_pb2.Path.OS,
-                       nested_path=p2)
+    p3 = rdfvalue.RDFPathSpec(path="/home/a.txt",
+                              pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+    p2 = rdfvalue.RDFPathSpec(path="/home/image2.img",
+                              pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+    p1 = rdfvalue.RDFPathSpec(path=os.path.join(self.base_path, "test_img.dd"),
+                              pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    p2.Append(p3)
+    p1.Append(p2)
     f = vfs.VFSOpen(p1)
 
     self.assertEqual(f.read(3), "yay")
@@ -342,7 +377,8 @@ class VFSTest(test_lib.GRRBaseTest):
     path = os.path.join(self.base_path, "test_img.dd", "home/image2.img",
                         "home/a.txt")
 
-    pathspec = jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS)
+    pathspec = rdfvalue.RDFPathSpec(path=path,
+                                    pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
 
     fd = vfs.VFSOpen(pathspec)
     self.assertEqual(fd.read(3), "yay")
@@ -352,15 +388,17 @@ class VFSTest(test_lib.GRRBaseTest):
     path = os.path.join(self.base_path, "test_img.dd", "home/image2.img",
                         "home/nosuchfile.txt")
 
-    pathspec = jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS)
+    pathspec = rdfvalue.RDFPathSpec(path=path,
+                                    pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
     self.assertRaises(IOError, vfs.VFSOpen, pathspec)
 
   def testGuessPathSpecPartial(self):
     """Test that we can guess a pathspec from a partial pathspec."""
     path = os.path.join(self.base_path, "test_img.dd")
-    pathspec = jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS)
+    pathspec = rdfvalue.RDFPathSpec(path=path,
+                                    pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
     pathspec.nested_path.path = "/home/image2.img/home/a.txt"
-    pathspec.nested_path.pathtype = jobs_pb2.Path.TSK
+    pathspec.nested_path.pathtype = rdfvalue.RDFPathSpec.Enum("TSK")
 
     fd = vfs.VFSOpen(pathspec)
     self.assertEqual(fd.read(3), "yay")
@@ -395,8 +433,9 @@ class VFSTest(test_lib.GRRBaseTest):
 
     vfs_path = "HKEY_CURRENT_USER/Software/GRR_Test"
 
-    pathspec = jobs_pb2.Path(path=vfs_path,
-                             pathtype=jobs_pb2.Path.REGISTRY)
+    pathspec = rdfvalue.RDFPathSpec(
+        path=vfs_path,
+        pathtype=rdfvalue.RDFPathSpec.Enum("REGISTRY"))
     for f in vfs.VFSOpen(pathspec).ListFiles():
       self.assertEqual(f.pathspec.path, "/" + vfs_path + "/foo")
       self.assertEqual(f.resident, "bar")
@@ -409,7 +448,7 @@ class VFSTest(test_lib.GRRBaseTest):
     found = False
     for f in directory.ListFiles():
       # TSK makes virtual files with $ if front of them
-      path = utils.Pathspec(f.pathspec).Basename()
+      path = f.pathspec.Basename()
       if path.startswith("$"): continue
 
       # Check the time is reasonable

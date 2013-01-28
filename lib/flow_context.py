@@ -20,18 +20,17 @@ calling clients, changing state, ...).
 
 
 import os
-import pdb
 import struct
 import threading
 import time
 import traceback
 
 
-from grr.client import conf as flags
 import logging
 from grr.client import actions
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import rdfvalue
 from grr.lib import scheduler
 from grr.lib import stats
 from grr.lib import utils
@@ -64,7 +63,7 @@ class HuntFlowContext(object):
   def __init__(self, client_id=None, flow_name=None,
                queue_name=DEFAULT_WORKER_QUEUE_NAME, event_id=None,
                state=None, args=None, priority=None, cpu_limit=None,
-               _store=None, token=None):
+               parent_flow=None, _store=None, token=None):
     """Constructor for the FlowContext.
 
     Args:
@@ -78,13 +77,15 @@ class HuntFlowContext(object):
       args: A protodict containing the arguments that the flow was run with.
       priority: The priority of this flow.
       cpu_limit: A limit for the cpu seconds used on the client for this flow.
+      parent_flow: The URN of the parent flow or None if this is a top level
+                   flow.
       _store: An optional data store to use. (Usually only used in tests).
       token: An instance of data_store.ACLToken security token.
     """
     self.queue_name = queue_name
-    self.session_id = self._GetNewSessionID(queue_name)
     self.client_id = client_id
-
+    self.parent_flow = parent_flow
+    self.session_id = self._GetNewSessionID()
     if token is None:
       token = data_store.ACLToken()
 
@@ -117,12 +118,13 @@ class HuntFlowContext(object):
       flow_name = "unknown"
 
     # We create a flow_pb for us to be stored in
-    self.flow_pb = jobs_pb2.FlowPB(session_id=self.session_id,
-                                   create_time=long(time.time() * 1e6),
-                                   state=jobs_pb2.FlowPB.RUNNING,
-                                   name=flow_name,
-                                   creator=token.username,
-                                   event_id=event_id)
+    self.flow_pb = jobs_pb2.FlowPB(
+        session_id=utils.SmartUnicode(self.session_id),
+        create_time=long(time.time() * 1e6),
+        state=rdfvalue.Flow.Enum("RUNNING"),
+        name=flow_name,
+        creator=token.username,
+        event_id=event_id)
 
     if cpu_limit is not None:
       self.flow_pb.remaining_cpu_quota = cpu_limit
@@ -138,10 +140,10 @@ class HuntFlowContext(object):
       self.flow_pb.request_state.MergeFrom(state)
 
     if args is not None:
-      self.flow_pb.args.MergeFrom(args)
+      self.flow_pb.args.MergeFrom(rdfvalue.RDFProtoDict(args).ToProto())
 
-  def SetFlowObj(self, parent_flow):
-    self.parent_flow = parent_flow
+  def SetFlowObj(self, owning_flow):
+    self.owning_flow = owning_flow
 
   def SetState(self, state):
     self.flow_pb.state = state
@@ -151,7 +153,7 @@ class HuntFlowContext(object):
 
   def GetFlowArgs(self):
     """Shortcut function to get the arguments passed to the flow."""
-    return utils.ProtoDict(self.flow_pb.args).ToDict()
+    return rdfvalue.RDFProtoDict(self.flow_pb.args).ToDict()
 
   def GetNextOutboundId(self):
     with self.outbound_lock:
@@ -167,7 +169,7 @@ class HuntFlowContext(object):
     messages we send.
 
     Args:
-       messages: A list of protobufs to send. If the last one is not a
+       messages: A list of rdfvalues to send. If the last one is not a
             GrrStatus, we append an OK Status.
        next_state: The state in this flow to be invoked with the responses.
        client_id: This client_id is used to schedule the request.
@@ -180,7 +182,7 @@ class HuntFlowContext(object):
       messages = []
 
     # Check if the state is valid
-    if not getattr(self.parent_flow, next_state):
+    if not getattr(self.owning_flow, next_state):
       raise FlowContextError("Next state %s is invalid.")
 
     # Queue the response message to the parent flow
@@ -188,7 +190,7 @@ class HuntFlowContext(object):
                      store=self.data_store) as flow_manager:
       outbound_id = self.GetNextOutboundId()
       # Create a new request state
-      request_state = jobs_pb2.RequestState(id=outbound_id,
+      request_state = rdfvalue.RequestState(id=outbound_id,
                                             session_id=self.session_id,
                                             client_id=client_id,
                                             next_state=next_state)
@@ -196,18 +198,21 @@ class HuntFlowContext(object):
       flow_manager.QueueRequest(request_state)
 
       # Add the status message if needed.
-      if not messages or not isinstance(messages[-1], jobs_pb2.GrrStatus):
-        messages.append(jobs_pb2.GrrStatus())
+      if not messages or not isinstance(messages[-1], rdfvalue.GrrStatus):
+        messages.append(rdfvalue.GrrStatus())
 
       # Send all the messages
       for i, payload in enumerate(messages):
-        msg = jobs_pb2.GrrMessage(session_id=self.session_id,
-                                  request_id=request_state.id, response_id=1+i,
-                                  auth_state=jobs_pb2.GrrMessage.AUTHENTICATED,
-                                  args=payload.SerializeToString())
+        if isinstance(payload, rdfvalue.RDFValue):
+          msg = rdfvalue.GRRMessage(
+              session_id=self.session_id, request_id=request_state.id,
+              response_id=1+i,
+              auth_state=rdfvalue.GRRMessage.Enum("AUTHENTICATED"),
+              payload=payload,
+              type=rdfvalue.GRRMessage.Enum("MESSAGE"))
 
-        if isinstance(payload, jobs_pb2.GrrStatus):
-          msg.type = jobs_pb2.GrrMessage.STATUS
+          if isinstance(payload, rdfvalue.GrrStatus):
+            msg.type = rdfvalue.GRRMessage.Enum("STATUS")
 
         flow_manager.QueueResponse(msg)
 
@@ -220,27 +225,47 @@ class HuntFlowContext(object):
       scheduler.SCHEDULER.NotifyQueue(self.queue_name, self.session_id,
                                       timestamp=timestamp, token=self.token)
 
-  def _GetNewSessionID(self, queue_name):
-    """Returns a random integer session ID.
-
-    This id is used to refer to the serialized flow in the task
-    master. If a collision occurs the flow objects will be
-    overwritten.
-
-    TODO(user): Check the task scheduler here for a session of this
-    same ID to avoid possible collisions.
-
-    Args:
-      queue_name: The name of the queue to prefix to the session id
+  def _GetNewSessionID(self):
+    """Returns a random integer session ID for this flow.
 
     Returns:
       a formatted session id string
     """
-    while 1:
-      result = struct.unpack("l", os.urandom(struct.calcsize("l")))[0] % 2**32
-      # Ensure session ids are larger than the reserved ones
-      if result > RESERVED_RANGE:
-        return "%s:%X" % (queue_name, result)
+    result = struct.unpack("l", os.urandom(struct.calcsize("l")))[0] % 2**32
+    return "aff4:/hunts/%s:%X" % (self.queue_name, result)
+
+  def _GenerateParentFlow(self, client_id):
+    """Returns a urn which will be used as a parent flow urn for hunt's flows.
+
+    Flows executed from HuntFlowContext (i.e. flows issued by a hunt) have
+    following urn pattern: aff4:/hunts/[hunt_id]/[client_id]/[flow_id].
+
+    aff4:/hunts/[hunt_id]/[client_id] (an AFF4Volume) is symlinked to
+    aff4:/[client_id]/flows/[hunt_id]:hunt/[flow_id].  Therefore it's easy
+    to check whether hunt has been already scheduled on a given client
+    (by doing Stat on a symlink).
+
+    Args:
+      client_id: Client id of the client where hunt's flow will run.
+
+    Returns:
+      RDFURN built using this pattern: aff4:/hunts/[hunt_id]/[client_id] or
+      this context's session id if client_id is None.
+    """
+    if client_id:
+      hunt_urn = rdfvalue.RDFURN(self.session_id)
+      parent_flow_urn = hunt_urn.Add(client_id)
+
+      hunt_link_urn = aff4.ROOT_URN.Add(client_id).Add("flows").Add(
+          "%s:hunt" % (hunt_urn.Basename()))
+      hunt_link = aff4.FACTORY.Create(hunt_link_urn, "AFF4Symlink",
+                                      token=self.token)
+      hunt_link.Set(hunt_link.Schema.SYMLINK_TARGET(parent_flow_urn))
+      hunt_link.Close()
+
+      return str(parent_flow_urn)
+    else:
+      return self.session_id
 
   def ProcessCompletedRequests(self, thread_pool):
     """Go through the list of requests and process the completed ones.
@@ -262,7 +287,7 @@ class HuntFlowContext(object):
     try:
       # The flow is dead - remove all outstanding requests and responses.
       if not self.IsRunning():
-        self.parent_flow.Log("Flow complete.")
+        self.owning_flow.Log("Flow complete.")
         with FlowManager(self.session_id, token=self.token,
                          store=self.data_store) as flow_manager:
           for request, responses in flow_manager.FetchRequestsAndResponses():
@@ -296,7 +321,7 @@ class HuntFlowContext(object):
 
           # Check if the responses are complete (Last response must be a
           # STATUS message).
-          if responses[-1].type != jobs_pb2.GrrMessage.STATUS:
+          if responses[-1].type != rdfvalue.GRRMessage.Enum("STATUS"):
             continue
 
           # At this point we process this request - we can remove all requests
@@ -325,12 +350,12 @@ class HuntFlowContext(object):
           self._outstanding_requests -= 1
 
         # Are there any more outstanding requests?
-        if not self.parent_flow.OutstandingRequests():
+        if not self.owning_flow.OutstandingRequests():
           # Allow the flow to cleanup
           if self.IsRunning():
             try:
               if self.current_state != "End":
-                self.parent_flow.End(None)
+                self.owning_flow.End(None)
             except Exception:   # pylint: disable=W0703
               # This flow will terminate now
               stats.STATS.Increment("grr_flow_errors")
@@ -338,10 +363,10 @@ class HuntFlowContext(object):
 
         # This allows the End state to issue further client requests - hence
         # postpone termination.
-        if not self.parent_flow.OutstandingRequests():
+        if not self.owning_flow.OutstandingRequests():
           stats.STATS.Increment("grr_flow_completed_count")
           logging.info("Destroying session %s(%s) for client %s",
-                       self.session_id, self.parent_flow.__class__.__name__,
+                       self.session_id, self.owning_flow.__class__.__name__,
                        self.client_id)
 
           self.Terminate()
@@ -386,7 +411,7 @@ class HuntFlowContext(object):
       logging.info("%s Running %s with %d responses from %s",
                    self.session_id, request.next_state,
                    len(responses), client_id)
-      getattr(self.parent_flow, request.next_state)(direct_response=None,
+      getattr(self.owning_flow, request.next_state)(direct_response=None,
                                                     request=request,
                                                     responses=responses)
     # We don't know here what exceptions can be thrown in the flow but we have
@@ -401,7 +426,7 @@ class HuntFlowContext(object):
       if event:
         event.set()
 
-  def CallClient(self, action_name, args_pb=None, next_state=None,
+  def CallClient(self, action_name, request=None, next_state=None,
                  request_data=None, client_id=None, **kwargs):
     """Calls the client asynchronously.
 
@@ -414,32 +439,48 @@ class HuntFlowContext(object):
     Args:
        action_name: The function to call on the client.
 
-       args_pb: A protobuf to send to the client. If not specified (Or None) we
+       request: The request to send to the client. If not specified (Or None) we
              create a new protobuf using the kwargs.
 
        next_state: The state in this flow, that responses to this
-       message should go to.
+             message should go to.
 
        request_data: A dict which will be available in the RequestState
              protobuf. The Responses object maintains a reference to this
              protobuf for use in the execution of the state method. (so you can
-             access this data by responses.request.data). Valid values are
+             access this data by responses.request). Valid values are
              strings, unicode and protobufs.
        client_id: The request is sent to this client.
 
     Raises:
        FlowContextError: If next_state is not one of the allowed next states.
+       RuntimeError: The request passed to the client does not have the correct
+                     type.
     """
-    if args_pb is None:
-      # Retrieve the correct protobuf to use to send to the action
-      try:
-        proto_cls = actions.ActionPlugin.classes[action_name].in_protobuf
-      except KeyError:
-        proto_cls = None
+    # Retrieve the correct rdfvalue to use for this client action.
+    try:
+      action = actions.ActionPlugin.classes[action_name]
+    except KeyError:
+      raise RuntimeError("Client action %s not found." % action_name)
 
-      if proto_cls is None: proto_cls = jobs_pb2.DataBlob
+    request_kw = {}
+    if action.in_rdfvalue is None:
+      if request:
+        raise RuntimeError("Client action %s does not expect args." %
+                           action_name)
+    else:
+      if request is None:
+        # Create a new rdf request.
+        request = action.in_rdfvalue(**kwargs)
+      else:
+        # Verify that the request type matches the client action requirements.
+        if not isinstance(request, action.in_rdfvalue):
+          raise RuntimeError("Client action expected %s but got %s" % (
+              action.in_rdfvalue, type(request)))
 
-      args_pb = proto_cls(**kwargs)
+      request_kw["args"] = request.SerializeToString()
+      request_kw["args_age"] = int(request.age)
+      request_kw["args_rdf_name"] = request.__class__.__name__
 
     # Check that the next state is allowed
     if next_state is None:
@@ -454,19 +495,21 @@ class HuntFlowContext(object):
 
     outbound_id = self.GetNextOutboundId()
     # Create a new request state
-    state = jobs_pb2.RequestState(id=outbound_id,
-                                  session_id=self.session_id,
-                                  next_state=next_state,
-                                  client_id=client_id)
+    state = jobs_pb2.RequestState(
+        id=outbound_id,
+        session_id=utils.SmartUnicode(self.session_id),
+        next_state=next_state,
+        client_id=client_id)
 
     if request_data is not None:
-      state.data.MergeFrom(utils.ProtoDict(request_data).ToProto())
+      state.data.MergeFrom(rdfvalue.RDFProtoDict(request_data).ToProto())
 
     # Send the message with the request state
     msg = jobs_pb2.GrrMessage(
-        session_id=self.session_id, name=action_name,
-        request_id=outbound_id, args=args_pb.SerializeToString(),
-        priority=self.flow_pb.priority)
+        session_id=utils.SmartUnicode(self.session_id), name=action_name,
+        request_id=outbound_id,
+        priority=self.flow_pb.priority,
+        **request_kw)
     if self.flow_pb.remaining_cpu_quota:
       msg.cpu_limit = int(self.flow_pb.remaining_cpu_quota)
     state.request.MergeFrom(msg)
@@ -494,7 +537,7 @@ class HuntFlowContext(object):
        request_data: Any string provided here will be available in the
              RequestState protobuf. The Responses object maintains a reference
              to this protobuf for use in the execution of the state method. (so
-             you can access this data by responses.request.data). There is no
+             you can access this data by responses.request). There is no
              format mandated on this data but it may be a serialized protobuf.
 
        client_id: If given, the flow is started for this client.
@@ -521,14 +564,15 @@ class HuntFlowContext(object):
     # the request state and the stated next_state. Note however, that there is
     # no client_id or actual request message here because we directly invoke the
     # child flow rather than queue anything for it.
-    state = jobs_pb2.RequestState(id=outbound_id,
-                                  session_id=self.session_id,
-                                  client_id=client_id,
-                                  next_state=next_state, flow_name=flow_name,
-                                  response_count=0)
+    state = jobs_pb2.RequestState(
+        id=outbound_id,
+        session_id=utils.SmartUnicode(self.session_id),
+        client_id=client_id,
+        next_state=next_state, flow_name=flow_name,
+        response_count=0)
 
     if request_data:
-      state.data.MergeFrom(utils.ProtoDict(request_data).ToProto())
+      state.data.MergeFrom(rdfvalue.RDFProtoDict(request_data).ToProto())
 
     cpu_limit = self.flow_pb.remaining_cpu_quota or None
 
@@ -536,7 +580,8 @@ class HuntFlowContext(object):
     child = flow_factory.StartFlow(
         client_id, flow_name, event_id=self.flow_pb.event_id,
         _request_state=state, token=self.token,
-        notify_to_user=False, _store=self.data_store,
+        notify_to_user=False, parent_flow=self._GenerateParentFlow(client_id),
+        _store=self.data_store,
         _parent_request_queue=self.new_request_states,
         queue_name=self.queue_name, cpu_limit=cpu_limit, **kwargs)
 
@@ -544,6 +589,7 @@ class HuntFlowContext(object):
     self.new_request_states.append(state)
 
     # Keep track of our children.
+    # TODO(user): This should be .Append(child)
     self.flow_pb.children.append(child)
 
     self._outstanding_requests += 1
@@ -559,29 +605,30 @@ class HuntFlowContext(object):
     Raises:
       RuntimeError: If responses is not of the correct type.
     """
-    if not isinstance(response, aff4.RDFValue):
+    if not isinstance(response, rdfvalue.RDFValue):
       raise RuntimeError("SendReply does not send RDFValue")
 
     # Only send the reply if we have a parent and if flow's send_replies
     # attribute is True. We have a parent only if we know our parent's request.
-    if self.flow_pb.HasField("request_state") and self.parent_flow.send_replies:
-      response_proto = jobs_pb2.RDFValue(
-          age=int(response.age), name=response.__class__.__name__,
-          data=response.SerializeToString())
+    if self.flow_pb.HasField("request_state") and self.owning_flow.send_replies:
 
       request_state = self.flow_pb.request_state
 
       request_state.response_count += 1
-      worker_queue = request_state.session_id.split(":")[0]
+
+      worker_queue = scheduler.SCHEDULER.QueueNameFromURN(
+          request_state.session_id)
 
       # Make a response message
       msg = jobs_pb2.GrrMessage(
           session_id=request_state.session_id,
           request_id=request_state.id,
           response_id=request_state.response_count,
-          auth_state=jobs_pb2.GrrMessage.AUTHENTICATED,
-          type=jobs_pb2.GrrMessage.RDF_VALUE,
-          args=response_proto.SerializeToString())
+          auth_state=rdfvalue.GRRMessage.Enum("AUTHENTICATED"),
+          type=rdfvalue.GRRMessage.Enum("MESSAGE"),
+          args=response.SerializeToString(),
+          args_rdf_name=response.__class__.__name__,
+          args_age=int(response.age))
 
       try:
         # queue the response message to the parent flow
@@ -605,8 +652,6 @@ class HuntFlowContext(object):
     all_tasks = []
 
     try:
-      # The most important thing here is to adjust request.ts_id to the correct
-      # task scheduler id.
       for destination, requests in utils.GroupBy(to_flush,
                                                  lambda x: x.client_id):
 
@@ -647,10 +692,11 @@ class HuntFlowContext(object):
 
   def Error(self, client_id, backtrace=None):
     """Logs an error for a client."""
-    self.parent_flow.LogClientError(client_id, backtrace=backtrace)
+    logging.error("Hunt Error: %s", backtrace)
+    self.owning_flow.LogClientError(client_id, backtrace=backtrace)
 
   def IsRunning(self):
-    return self.flow_pb.state == jobs_pb2.FlowPB.RUNNING
+    return self.flow_pb.state == rdfvalue.Flow.Enum("RUNNING")
 
   def Terminate(self, status=None):
     """Terminates this flow."""
@@ -663,14 +709,14 @@ class HuntFlowContext(object):
       pass
 
     # This flow might already not be running.
-    if self.flow_pb.state != jobs_pb2.FlowPB.RUNNING:
+    if self.flow_pb.state != rdfvalue.Flow.Enum("RUNNING"):
       return
 
     if self.flow_pb.HasField("request_state"):
       logging.debug("Terminating flow %s", self.session_id)
 
       # Make a response or use the existing one.
-      response_proto = status or aff4.FACTORY.RDFValue("RDFStatus")()
+      response_proto = status or rdfvalue.GrrStatus()
 
       user_cpu = self.flow_pb.cpu_used.user_cpu_time
       sys_cpu = self.flow_pb.cpu_used.system_cpu_time
@@ -687,11 +733,12 @@ class HuntFlowContext(object):
           session_id=request_state.session_id,
           request_id=request_state.id,
           response_id=request_state.response_count,
-          auth_state=jobs_pb2.GrrMessage.AUTHENTICATED,
-          type=jobs_pb2.GrrMessage.STATUS,
+          auth_state=rdfvalue.GRRMessage.Enum("AUTHENTICATED"),
+          type=rdfvalue.GRRMessage.Enum("STATUS"),
           args=response_proto.SerializeToString())
 
-      worker_queue = request_state.session_id.split(":")[0]
+      worker_queue = scheduler.SCHEDULER.QueueNameFromURN(
+          request_state.session_id)
 
       try:
         # queue the response message to the parent flow
@@ -705,8 +752,8 @@ class HuntFlowContext(object):
                                         token=self.token)
 
     # Mark as terminated.
-    self.flow_pb.state = jobs_pb2.FlowPB.TERMINATED
-    self.parent_flow.Save()
+    self.flow_pb.state = rdfvalue.Flow.Enum("TERMINATED")
+    self.owning_flow.Save()
 
   def OutstandingRequests(self):
     """Returns the number of all outstanding requests.
@@ -755,14 +802,14 @@ class HuntFlowContext(object):
       user_cpu = status.cpu_time_used.user_cpu_time
       system_cpu = status.cpu_time_used.system_cpu_time
 
-      fd = self.parent_flow.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME,
+      fd = self.owning_flow.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME,
                                           token=self.token)
       resources = fd.Schema.RESOURCES()
-      resources.data.client_id = request.client_id
-      resources.data.session_id = status.child_session_id
-      resources.data.cpu_usage.user_cpu_time = user_cpu
-      resources.data.cpu_usage.system_cpu_time = system_cpu
-      resources.data.network_bytes_sent = status.network_bytes_sent
+      resources.client_id = request.client_id
+      resources.session_id = status.child_session_id
+      resources.cpu_usage.user_cpu_time = user_cpu
+      resources.cpu_usage.system_cpu_time = system_cpu
+      resources.network_bytes_sent = status.network_bytes_sent
 
       fd.AddAttribute(resources)
       fd.Close(sync=False)
@@ -772,44 +819,68 @@ class HuntFlowContext(object):
 
 
 class FlowContext(HuntFlowContext):
-  """The flow context class."""
+  """The context for a flow."""
 
   process_requests_in_order = True
+
+  def _GetNewSessionID(self):
+    """Returns a random integer session ID for this flow.
+
+    Returns:
+      a formatted session id string
+    """
+    random_number = struct.unpack(
+        "l", os.urandom(struct.calcsize("l")))[0] % 2**32
+
+    if self.parent_flow:
+      result = rdfvalue.RDFURN(self.parent_flow)
+    else:
+      result = aff4.ROOT_URN
+      if self.client_id:
+        result = result.Add(self.client_id)
+      result = result.Add("flows")
+
+    return result.Add("%s:%X" % (self.queue_name, random_number))
+
+  def _GenerateParentFlow(self, client_id):
+    return self.session_id
 
   def _Process(self, request, responses, unused_thread_pool=None, event=None):
     self._ProcessSingleRequest(request, responses, event=event)
 
   def CallState(self, messages=None, next_state="", client_id=None, delay=0):
     client_id = client_id or self.client_id
-    HuntFlowContext.CallState(self, messages=messages, next_state=next_state,
-                              client_id=client_id, delay=delay)
+    super(FlowContext, self).CallState(messages=messages, next_state=next_state,
+                                       client_id=client_id, delay=delay)
 
-  def CallClient(self, action_name, args_pb=None, next_state=None,
+  def CallClient(self, action_name, request=None, next_state=None,
                  request_data=None, client_id=None, **kwargs):
     client_id = client_id or self.client_id
-    HuntFlowContext.CallClient(self, action_name, args_pb=args_pb,
-                               next_state=next_state, request_data=request_data,
-                               client_id=client_id, **kwargs)
+    super(FlowContext, self).CallClient(
+        action_name, request=request,
+        next_state=next_state, request_data=request_data,
+        client_id=client_id, **kwargs)
 
   def CallFlow(self, flow_factory, flow_name, next_state=None,
                request_data=None, client_id=None, **kwargs):
     client_id = client_id or self.client_id
-    HuntFlowContext.CallFlow(self, flow_factory, flow_name,
-                             next_state=next_state, request_data=request_data,
-                             client_id=client_id, **kwargs)
+    super(FlowContext, self).CallFlow(
+        flow_factory, flow_name,
+        next_state=next_state, request_data=request_data,
+        client_id=client_id, **kwargs)
 
   def Error(self, client_id, backtrace=None):
     """Kills this flow with an error."""
-    if self.flow_pb.state == jobs_pb2.FlowPB.RUNNING:
+    if self.flow_pb.state == rdfvalue.Flow.Enum("RUNNING"):
       # Set an error status
-      reply = aff4.FACTORY.RDFValue("RDFStatus")()
-      reply.status = jobs_pb2.GrrStatus.GENERIC_ERROR
+      reply = rdfvalue.GrrStatus()
+      reply.status = rdfvalue.GrrStatus.Enum("GENERIC_ERROR")
       if backtrace:
         reply.error_message = backtrace
 
       self.Terminate(reply)
 
-      self.flow_pb.state = jobs_pb2.FlowPB.ERROR
+      self.flow_pb.state = rdfvalue.Flow.Enum("ERROR")
 
       if backtrace:
         logging.error("Error in flow %s (%s). Trace: %s", self.session_id,
@@ -818,11 +889,8 @@ class FlowContext(HuntFlowContext):
       else:
         logging.error("Error in flow %s (%s).", self.session_id, client_id)
 
-      self.parent_flow.Save()
-      if flags.FLAGS.debug:
-        pdb.set_trace()
-
-      self.parent_flow.Notify(
+      self.owning_flow.Save()
+      self.owning_flow.Notify(
           "FlowStatus", self.client_id,
           "Flow (%s) terminated due to error" % self.session_id)
 
@@ -858,8 +926,8 @@ class FlowManager(object):
 
   # This is the subject name of flow state variables. We need to be
   # able to lock these independently from the actual flow.
-  FLOW_TASK_TEMPLATE = "task:%s"
-  FLOW_STATE_TEMPLATE = "task:%s:state"
+  FLOW_TASK_TEMPLATE = "%s"
+  FLOW_STATE_TEMPLATE = "%s/state"
 
   FLOW_TASK_REGEX = "task:.*"
 
@@ -906,6 +974,7 @@ class FlowManager(object):
     for predicate, serialized, _ in sorted(self.data_store.ResolveRegex(
         subject, self.FLOW_REQUEST_REGEX, token=self.token,
         limit=self.request_limit)):
+
       components = predicate.split(":")
       max_request_id = components[2]
 
@@ -921,13 +990,12 @@ class FlowManager(object):
         subject, self.FLOW_RESPONSE_REGEX, token=self.token,
         limit=self.response_limit)):
       response_count += 1
+
       components = predicate.split(":")
       if components[2] > max_request_id:
         break
 
-      response = jobs_pb2.GrrMessage()
-      response.ParseFromString(serialized)
-
+      response = rdfvalue.GRRMessage(serialized)
       if response.request_id in state_map:
         meta_data = state_map.setdefault(response.request_id, {})
         responses = meta_data.setdefault("RESPONSES", [])
@@ -1025,7 +1093,6 @@ class WellKnownFlowManager(FlowManager):
 
       # The predicate format is flow:response:REQUEST_ID:RESPONSE_ID. For well
       # known flows both request_id and response_id are randomized.
-      response = jobs_pb2.GrrMessage()
-      response.ParseFromString(serialized)
+      response = rdfvalue.GRRMessage(serialized)
 
       yield None, [response]

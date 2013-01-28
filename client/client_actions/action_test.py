@@ -37,6 +37,7 @@ from grr.client import conf
 from grr.client import vfs
 from grr.client.client_actions import tests
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import test_lib
@@ -90,8 +91,8 @@ class MockWindowsProcess(object):
 
 class ProgressAction(actions.ActionPlugin):
   """A mock action which just calls Progress."""
-  in_protobuf = jobs_pb2.PrintStr
-  out_protobuf = jobs_pb2.PrintStr
+  in_rdfvalue = rdfvalue.LogMessage
+  out_rdfvalue = rdfvalue.LogMessage
 
   def Run(self, message):
     _ = message
@@ -110,9 +111,10 @@ class ActionTest(test_lib.EmptyActionTest):
   def testReadBuffer(self):
     """Test reading a buffer."""
     path = os.path.join(self.base_path, "morenumbers.txt")
-    p = jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS)
+    p = rdfvalue.RDFPathSpec(path=path,
+                             pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
     result = self.RunAction("ReadBuffer",
-                            jobs_pb2.BufferReadMessage(
+                            rdfvalue.BufferReference(
                                 pathspec=p, offset=100, length=10))[0]
 
     self.assertEqual(result.offset, 100)
@@ -121,9 +123,9 @@ class ActionTest(test_lib.EmptyActionTest):
 
   def testListDirectory(self):
     """Tests listing directories."""
-    p = jobs_pb2.Path(path=self.base_path, pathtype=0)
+    p = rdfvalue.RDFPathSpec(path=self.base_path, pathtype=0)
     results = self.RunAction("ListDirectory",
-                             jobs_pb2.ListDirRequest(
+                             rdfvalue.ListDirRequest(
                                  pathspec=p))
     # Find the number.txt file
     result = None
@@ -132,47 +134,48 @@ class ActionTest(test_lib.EmptyActionTest):
         break
 
     self.assert_(result)
-    self.assertEqual(result.__class__, jobs_pb2.StatResponse)
-    self.assertEqual(os.path.basename(result.pathspec.path), "morenumbers.txt")
+    self.assertEqual(result.__class__, rdfvalue.StatEntry)
+    self.assertEqual(result.pathspec.Basename(), "morenumbers.txt")
     self.assertEqual(result.st_size, 3893)
     self.assert_(stat.S_ISREG(result.st_mode))
 
   def testIteratedListDirectory(self):
     """Tests iterated listing of directories."""
-    p = jobs_pb2.Path(path=self.base_path, pathtype=jobs_pb2.Path.OS)
+    p = rdfvalue.RDFPathSpec(path=self.base_path,
+                             pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
     non_iterated_results = self.RunAction(
-        "ListDirectory", jobs_pb2.ListDirRequest(pathspec=p))
+        "ListDirectory", rdfvalue.ListDirRequest(pathspec=p))
 
     # Make sure we get some results.
     l = len(non_iterated_results)
     self.assertTrue(l > 0)
 
     iterated_results = []
-    request = jobs_pb2.ListDirRequest(pathspec=p)
+    request = rdfvalue.ListDirRequest(pathspec=p)
     request.iterator.number = 2
     while True:
       responses = self.RunAction("IteratedListDirectory", request)
       results = responses[:-1]
-      iterator = responses[-1]
       if not results: break
 
       for result in results:
         iterated_results.append(result)
 
-      request.iterator.CopyFrom(iterator)
-
     for x, y in zip(non_iterated_results, iterated_results):
       # Reset the st_atime in the results to avoid potential flakiness.
       x.st_atime = y.st_atime = 0
 
-      self.assertProto2Equal(x, y)
+      self.assertProto2Equal(x._data, y._data)
 
   def testHashFile(self):
     """Can we hash a file?"""
     path = os.path.join(self.base_path, "morenumbers.txt")
-    p = jobs_pb2.Path(path=path, pathtype=jobs_pb2.Path.OS)
+    p = rdfvalue.RDFPathSpec(path=path,
+                             pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+
+    # The action returns a DataBlob object.
     result = self.RunAction("HashFile",
-                            jobs_pb2.ListDirRequest(
+                            rdfvalue.ListDirRequest(
                                 pathspec=p))[0]
 
     self.assertEqual(result.data,
@@ -182,13 +185,6 @@ class ActionTest(test_lib.EmptyActionTest):
     """Enumerate users from the wtmp file."""
     # Linux only
     if platform.system() != "Linux": return
-
-    # If the --nomock flag is set we just print all the usernames we find
-    if test_lib.FLAGS.nomock:
-      for result in self.RunAction("EnumerateUsers"):
-        print "Found user %s" % result.username
-
-      return
 
     path = os.path.join(self.base_path, "wtmp")
     old_open = __builtin__.open
@@ -273,10 +269,8 @@ class ActionTest(test_lib.EmptyActionTest):
 
     results = []
 
-    def MockSendReply(self, reply=None, **kwargs):
-      if reply is None:
-        reply = self.out_protobuf(**kwargs)
-      results.append(reply)
+    def MockSendReply(unused_self, reply=None, **kwargs):
+      results.append(reply or rdfvalue.LogMessage(**kwargs))
 
     message = jobs_pb2.GrrMessage(name="ProgressAction", cpu_limit=3600)
 
@@ -288,7 +282,7 @@ class ActionTest(test_lib.EmptyActionTest):
       action_cls._authentication_required = False
       action = action_cls(message=message, grr_worker=MockWorker())
 
-      action.Execute(message)
+      action.Execute()
 
       self.assertTrue("Action exceeded cpu limit." in results[0].error_message)
       self.assertTrue("CPUExceededError" in results[0].error_message)

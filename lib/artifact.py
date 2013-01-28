@@ -26,8 +26,8 @@ of key properties about the artifact:
 from grr.client import conf as flags
 import logging
 
+from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.proto import jobs_pb2
 
 
 FLAGS = flags.FLAGS
@@ -102,7 +102,8 @@ class GenericArtifact(Artifact):
            Process. State is not preserved.
   """
 
-  __abstract = True          # Prevents this from automatically registering.
+  # Prevents this from automatically registering.
+  __abstract = True  # pylint: disable=g-bad-name
 
   # Which OS are supported by the Artifact e.g. Linux, Windows, Darwin
   # Note that this can be implemented by CONDITIONS as well, but this
@@ -139,7 +140,10 @@ class GenericArtifact(Artifact):
     if hasattr(parent_flow, "client"):
       self.client = parent_flow.client
     self.parent_flow = parent_flow
-    self.path_type = jobs_pb2.Path.TSK if use_tsk else jobs_pb2.Path.OS
+    if use_tsk:
+      self.path_type = rdfvalue.RDFPathSpec.Enum("TSK")
+    else:
+      self.path_type = rdfvalue.RDFPathSpec.Enum("OS")
 
     # Ensure we've been written sanely.
     # Note that this could be removed if it turns out to be expensive. The

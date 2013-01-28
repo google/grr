@@ -24,9 +24,8 @@ from grr.client import conf
 from grr.client import conf as flags
 
 # pylint: disable=W0611
-# Support bt storage
+from grr.lib import data_stores
 from grr.lib import registry
-from grr.lib import mongo_data_store
 # pylint: enable=W0611
 
 from grr.lib.aff4_objects import cronjobs
@@ -38,6 +37,11 @@ flags.DEFINE_integer("override_frequency", None,
 FLAGS = flags.FLAGS
 
 
+def ConsoleMain():
+  """Helper function for calling with setup tools entry points."""
+  conf.StartMain(main)
+
+
 def main(unused_argv):
   # Initialise everything
   registry.Init()
@@ -45,4 +49,5 @@ def main(unused_argv):
   cronjobs.RunAllCronJobs(override_frequency=FLAGS.override_frequency)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  ConsoleMain()
+

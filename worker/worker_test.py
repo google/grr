@@ -21,7 +21,9 @@ from grr.client import conf
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import flow_context
+from grr.lib import rdfvalue
 from grr.lib import scheduler
+from grr.lib import server_plugins  # pylint: disable=W0611
 from grr.lib import test_lib
 from grr.proto import jobs_pb2
 
@@ -30,18 +32,18 @@ from grr.proto import jobs_pb2
 RESULTS = []
 
 
-class SendingTestFlow(flow.GRRFlow):
+class WorkerSendingTestFlow(flow.GRRFlow):
   """Tests that sent messages are correctly collected."""
 
   @flow.StateHandler(next_state="Incoming")
   def Start(self):
     for i in range(10):
       self.CallClient("Test",
-                      jobs_pb2.PrintStr(data="test%s" % i),
+                      rdfvalue.DataBlob(string="test%s" % i),
                       data=str(i),
                       next_state="Incoming")
 
-  @flow.StateHandler(jobs_pb2.DataBlob, auth_required=False)
+  @flow.StateHandler(auth_required=False)
   def Incoming(self, responses):
     # Add a delay here to catch thread races.
     time.sleep(0.2)
@@ -51,14 +53,14 @@ class SendingTestFlow(flow.GRRFlow):
       RESULTS.append(response.string)
 
 
-class SendingTestFlow2(SendingTestFlow):
+class WorkerSendingTestFlow2(WorkerSendingTestFlow):
   """Only send a single request."""
 
   @flow.StateHandler(next_state="Incoming")
   def Start(self):
     i = 1
     self.CallClient("Test",
-                    jobs_pb2.PrintStr(data="test%s" % i),
+                    rdfvalue.DataBlob(string="test%s" % i),
                     data=str(i),
                     next_state="Incoming")
 
@@ -75,7 +77,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         decoder=jobs_pb2.RequestState, token=self.token)
 
     request_state.response_count += 1
-    if message.type == jobs_pb2.GrrMessage.STATUS:
+    if message.type == rdfvalue.GRRMessage.Enum("STATUS"):
       request_state.status.ParseFromString(message.args)
 
     # Store the request and response back
@@ -92,18 +94,16 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
   def SendResponse(self, session_id, data):
     """Send a complete response to a message."""
-    self.FakeResponse(jobs_pb2.GrrMessage(
-        session_id=session_id, args=jobs_pb2.DataBlob(
-            string=data).SerializeToString(),
-        request_id=1,
-        response_id=1))
+    self.FakeResponse(rdfvalue.GRRMessage(
+        session_id=session_id,
+        payload=rdfvalue.DataBlob(string=data),
+        request_id=1, response_id=1))
 
-    status = jobs_pb2.GrrMessage(
-        session_id=session_id, args=jobs_pb2.GrrStatus(
-            status=jobs_pb2.GrrStatus.OK).SerializeToString(),
-        request_id=1,
-        response_id=2,
-        type=jobs_pb2.GrrMessage.STATUS)
+    status = rdfvalue.GRRMessage(
+        session_id=session_id,
+        payload=rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.Enum("OK")),
+        request_id=1, response_id=2,
+        type=rdfvalue.GRRMessage.Enum("STATUS"))
 
     self.FakeResponse(status)
 
@@ -115,11 +115,11 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     worker = flow.GRRWorker("W", token=self.token)
 
     # Create a couple of flows
-    flow_obj = self.FlowSetup("SendingTestFlow")
+    flow_obj = self.FlowSetup("WorkerSendingTestFlow")
     session_id_1 = flow_obj.session_id
     flow.FACTORY.ReturnFlow(flow_obj, token=self.token)
 
-    flow_obj = self.FlowSetup("SendingTestFlow2")
+    flow_obj = self.FlowSetup("WorkerSendingTestFlow2")
     session_id_2 = flow_obj.session_id
     flow.FACTORY.ReturnFlow(flow_obj, token=self.token)
 
@@ -127,7 +127,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     tasks_on_client_queue = scheduler.SCHEDULER.Query(
         self.client_id, 100, decoder=jobs_pb2.GrrMessage, token=self.token)
 
-    # should have 10 requests from SendingTestFlow and 1 from SendingTestFlow2
+    # should have 10 requests from WorkerSendingTestFlow and 1 from
+    # SendingTestFlow2
     self.assertEqual(len(tasks_on_client_queue), 11)
 
     # Send each of the flows a repeated message
@@ -164,11 +165,11 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         token=self.token))
 
     flow_pb = flow.FACTORY.FetchFlow(session_id_1, token=self.token)
-    self.assert_(flow_pb.state != jobs_pb2.FlowPB.TERMINATED)
+    self.assert_(flow_pb.state != rdfvalue.Flow.Enum("TERMINATED"))
     flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
 
     flow_pb = flow.FACTORY.FetchFlow(session_id_2, token=self.token)
-    self.assertEqual(flow_pb.state, jobs_pb2.FlowPB.TERMINATED)
+    self.assertEqual(flow_pb.state, rdfvalue.Flow.Enum("TERMINATED"))
     flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
 
 

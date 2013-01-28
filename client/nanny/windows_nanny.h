@@ -19,6 +19,8 @@ TCHAR kGrrServiceName[] = TEXT("GRR");
 TCHAR kGrrServiceDesc[] = TEXT("The GRR Monitoring Service");
 
 // A registry key that holds GRR service configuration.
+#define GRR_SERVICE_REGISTRY_HIVE HKEY_LOCAL_MACHINE
+
 const TCHAR* kGrrServiceRegistry = TEXT("SOFTWARE\\Google\\GRR");
 
 // A registry value specifying the child that will be run.
@@ -30,7 +32,7 @@ const TCHAR* kGrrServiceBinaryChildAlternate = TEXT("ChildBinaryLastKnownGood");
 
 // The registry value which is updated for each heartbeat. It is a REG_DWORD and
 // stores a unix epoch time.
-const TCHAR* kGrrServiceHeartBeatTime = TEXT("HeartBeat");
+const TCHAR* kGrrServiceHeartbeatTime = TEXT("Heartbeat");
 
 // The registry value which is updated for the nanny messages.
 const TCHAR* kGrrServiceNannyMessage = TEXT("NannyMessage");

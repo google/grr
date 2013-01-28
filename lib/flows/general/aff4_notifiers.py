@@ -20,8 +20,8 @@ from grr.client import conf as flags
 from grr.lib import aff4
 from grr.lib import email_alerts
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 flags.DEFINE_string("aff4_change_email", None,
                     "Enail used by AFF4NotificationEmailListener to notify "
@@ -34,7 +34,7 @@ class AFF4NotificationEmailListener(flow.EventListener):
   """Email notificator to be used with AFF4 change notifiers."""
   EVENTS = ["AFF4ChangeNotifyByEmail"]
 
-  well_known_session_id = "W:AFF4ChangeNotifyByEmailHandler"
+  well_known_session_id = "aff4:/flows/W:AFF4ChangeNotifyByEmailHandler"
 
   mail_template = """<html><body><h1>AFF4 change notification</h1>
 Following path got modified: %(path)s"
@@ -45,7 +45,7 @@ Following path got modified: %(path)s"
     """Process an event message."""
 
     # Only accept authenticated messages
-    if message.auth_state != jobs_pb2.GrrMessage.AUTHENTICATED:
+    if message.auth_state != rdfvalue.GRRMessage.Enum("AUTHENTICATED"):
       return
 
     if not FLAGS.aff4_change_email:

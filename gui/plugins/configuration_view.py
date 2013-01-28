@@ -14,8 +14,8 @@ from grr.gui.plugins import fileview
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import maintenance_utils
+from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.proto import jobs_pb2
 
 FLAGS = flags.FLAGS
 
@@ -85,7 +85,7 @@ class ConfigurationTree(renderers.TreeRenderer):
 
   def RenderBranch(self, path, request):
     """Renders tree leafs for filesystem path."""
-    aff4_root = aff4.RDFURN(request.REQ.get("aff4_root", self.root_path))
+    aff4_root = rdfvalue.RDFURN(request.REQ.get("aff4_root", self.root_path))
     urn = aff4_root.Add(path)
     try:
       directory = aff4.FACTORY.Create(urn, "VFSDirectory", mode="r",
@@ -114,8 +114,8 @@ class ConfigFileTable(fileview.AbstractFileTable):
   root_path = "/config"
   toolbar = "ConfigFileTableToolbar"
 
-  def __init__(self):
-    super(ConfigFileTable, self).__init__()
+  def __init__(self, **kwargs):
+    super(ConfigFileTable, self).__init__(**kwargs)
 
     self.AddColumn(renderers.RDFValueColumn(
         "Icon", renderer=renderers.IconRenderer, width=0))
@@ -203,15 +203,14 @@ class ConfigBinaryUploadHandler(fileview.UploadHandler):
       content = StringIO.StringIO()
       for chunk in self.uploaded_file.chunks():
         content.write(chunk)
-      blob_pb = jobs_pb2.SignedBlob.FromString(content.getvalue())
 
       if aff4_type == "GRRMemoryDriver":
         # TODO(user): Add support for driver parameters.
         self.dest_path = maintenance_utils.UploadSignedDriverBlob(
-            blob_pb, aff4_path=self.dest_path, token=request.token)
+            content.getvalue(), aff4_path=self.dest_path, token=request.token)
       else:
         self.dest_path = maintenance_utils.UploadSignedConfigBlob(
-            blob_pb, aff4_path=self.dest_path, token=request.token)
+            content.getvalue(), aff4_path=self.dest_path, token=request.token)
 
       return renderers.TemplateRenderer.Layout(self, request, response,
                                                self.success_template)
@@ -230,7 +229,7 @@ class ConfigBinaryUploadHandler(fileview.UploadHandler):
     if not aff4_path:
       raise IOError("No tree_path specified")
 
-    aff4_path = aff4.RDFURN(aff4_path).Add(self.uploaded_file.name)
+    aff4_path = rdfvalue.RDFURN(aff4_path).Add(self.uploaded_file.name)
     bin_type = maintenance_utils.GetConfigBinaryPathType(aff4_path)
     if not bin_type:
       raise IOError("Cannot upload to this path")
@@ -241,7 +240,7 @@ class ConfigBinaryUploadHandler(fileview.UploadHandler):
 class ConfigurationViewInitHook(registry.InitHook):
   """Init hook run on load of UI to initialize config directories."""
 
-  pre = ["AFF4InitHook"]
+  pre = ["AFF4InitHook", "ACLInit"]
 
   def Run(self):
     """Create the necessary directories."""

@@ -23,20 +23,16 @@ from M2Crypto import ASN1
 from M2Crypto import EVP
 from M2Crypto import RSA
 from M2Crypto import X509
-from grr.client import conf as flags
 
 import logging
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import key_utils
+from grr.lib import rdfvalue
+from grr.lib import scheduler
 from grr.lib import type_info
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
-flags.DEFINE_string("ca", "ca.key",
-                    "The location of the CA key file.")
-
-FLAGS = flags.FLAGS
 
 # Store the CA key as a global for reuse.
 CA_KEY = None
@@ -45,25 +41,22 @@ CA_KEY = None
 class CAEnroler(flow.GRRFlow):
   """Enrol new clients."""
 
-  flow_typeinfo = {"csr": type_info.Proto(jobs_pb2.Certificate)}
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.RDFValueType(
+          name="csr",
+          description="A Certificate RDFValue with the CSR in it.",
+          rdfclass=rdfvalue.Certificate,
+          default=None),
+      )
 
-  def __init__(self, csr=None, _client=None, *args, **kwargs):
-    """Start an enrollment flow with the client.
-
-    Args:
-      csr: A Certificate protobuf with the CSR in it.
-      _client: The client AFF4 Object.
-      *args: passthrough to base class
-      **kwargs: passthrough to base class
-    """
-    self.csr = csr
+  def __init__(self, _client=None, **kwargs):  # pylint: disable=g-bad-name
+    super(CAEnroler, self).__init__(**kwargs)
     self.client = _client
-    flow.GRRFlow.__init__(self, *args, **kwargs)
 
   @flow.StateHandler(next_state="End")
   def Start(self):
     """Sign the CSR from the client."""
-    if self.csr.type != jobs_pb2.Certificate.CSR:
+    if self.csr.type != rdfvalue.Certificate.Enum("CSR"):
       raise IOError("Must be called with CSR")
 
     req = X509.load_request_string(self.csr.pem)
@@ -87,23 +80,24 @@ class CAEnroler(flow.GRRFlow):
                            self.cn, self.client_id)
 
     # Set and write the certificate to the client record.
-    certificate_attribute = aff4.FACTORY.RDFValue("RDFX509Cert")(cert.as_pem())
+    certificate_attribute = rdfvalue.RDFX509Cert(cert.as_pem())
     self.client.Set(self.client.Schema.CERT, certificate_attribute)
 
     first_seen = time.time() * 1e6
-    self.client.Set(self.client.Schema.FIRST_SEEN, aff4.RDFDatetime(first_seen))
+    self.client.Set(self.client.Schema.FIRST_SEEN,
+                    rdfvalue.RDFDatetime(first_seen))
 
     self.client.Close(sync=True)
 
     # Publish the client enrollment message.
-    self.Publish("ClientEnrollment", certificate_attribute.AsProto())
+    self.Publish("ClientEnrollment", certificate_attribute)
 
     self.Log("Enrolled %s successfully", self.client_id)
 
     # This is needed for backwards compatibility.
     # TODO(user): Remove this once all clients are > 2200.
     self.CallClient("SaveCert", pem=cert.as_pem(),
-                    type=jobs_pb2.Certificate.CRT, next_state="End")
+                    type=rdfvalue.Certificate.Enum("CRT"), next_state="End")
 
     # We can not pickle protobufs
     self.csr = None
@@ -130,7 +124,7 @@ class CAEnroler(flow.GRRFlow):
     cert.set_not_after(now_plus_year)
 
     # Get the CA issuer:
-    ca_data = key_utils.GetCert(FLAGS.ca)
+    ca_data = key_utils.GetCert("CA_Private_Key")
     ca_cert = X509.load_cert_string(ca_data)
     cert.set_issuer(ca_cert.get_issuer())
     cert.set_pubkey(req.get_pubkey())
@@ -150,7 +144,7 @@ enrolment_cache = utils.FastStore(5000)
 
 class Enroler(flow.WellKnownFlow):
   """Manage enrolment requests."""
-  well_known_session_id = "CA:Enrol"
+  well_known_session_id = "aff4:/flows/CA:Enrol"
 
   def ProcessMessage(self, message):
     """Begins an enrollment flow for this client.
@@ -159,10 +153,9 @@ class Enroler(flow.WellKnownFlow):
         message: The Certificate sent by the client. Note that this
         message is not authenticated.
     """
-    cert = jobs_pb2.Certificate()
-    cert.ParseFromString(message.args)
+    cert = rdfvalue.Certificate(message.args)
 
-    queue_name, _ = self.well_known_session_id.split(":", 1)
+    queue = scheduler.SCHEDULER.QueueNameFromURN(self.well_known_session_id)
 
     client_id = message.source
 
@@ -183,5 +176,5 @@ class Enroler(flow.WellKnownFlow):
     if not client.Get(client.Schema.CERT):
       # Start the enrollment flow for this client.
       flow.FACTORY.StartFlow(client_id=client_id, flow_name="CAEnroler",
-                             csr=cert, queue_name=queue_name,
+                             csr=cert, queue_name=queue,
                              _client=client, token=self.token)

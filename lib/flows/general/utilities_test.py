@@ -18,8 +18,8 @@
 
 from grr.client import vfs
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import jobs_pb2
 
 
 class TestDownloadDirectory(test_lib.FlowTestsBaseclass):
@@ -27,7 +27,8 @@ class TestDownloadDirectory(test_lib.FlowTestsBaseclass):
 
   def testDownloadDirectory(self):
     """Test a DownloadDirectory flow with depth=1."""
-    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = test_lib.ClientVFSHandlerFixture
+    vfs.VFS_HANDLERS[
+        rdfvalue.RDFPathSpec.Enum("OS")] = test_lib.ClientVFSHandlerFixture
 
     # Mock the client actions DownloadDirectory uses
     client_mock = test_lib.ActionMock("HashFile",
@@ -36,10 +37,12 @@ class TestDownloadDirectory(test_lib.FlowTestsBaseclass):
                                       "StatFile",
                                       "TransferBuffer")
 
+    pathspec = rdfvalue.RDFPathSpec(
+        path="/c/Downloads", pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+
     for _ in test_lib.TestFlowHelper(
         "DownloadDirectory", client_mock, client_id=self.client_id,
-        path="/c/Downloads", pathtype=jobs_pb2.Path.OS, depth=1,
-        ignore_errors=False, token=self.token):
+        depth=1, pathspec=pathspec, ignore_errors=False, token=self.token):
       pass
 
     # Check if the base path was created
@@ -66,7 +69,8 @@ class TestDownloadDirectory(test_lib.FlowTestsBaseclass):
 
   def testDownloadDirectorySub(self):
     """Test a DownloadDirectory flow with depth=5."""
-    vfs.VFS_HANDLERS[jobs_pb2.Path.OS] = test_lib.ClientVFSHandlerFixture
+    vfs.VFS_HANDLERS[
+        rdfvalue.RDFPathSpec.Enum("OS")] = test_lib.ClientVFSHandlerFixture
 
     # Mock the client actions DownloadDirectory uses
     client_mock = test_lib.ActionMock("HashFile",
@@ -75,10 +79,12 @@ class TestDownloadDirectory(test_lib.FlowTestsBaseclass):
                                       "StatFile",
                                       "TransferBuffer")
 
+    pathspec = rdfvalue.RDFPathSpec(
+        path="/c/Downloads", pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+
     for _ in test_lib.TestFlowHelper(
         "DownloadDirectory", client_mock, client_id=self.client_id,
-        path="/c/Downloads", pathtype=jobs_pb2.Path.OS, depth=5,
-        ignore_errors=False, token=self.token):
+        pathspec=pathspec, depth=5, ignore_errors=False, token=self.token):
       pass
 
     # Check if the base path was created

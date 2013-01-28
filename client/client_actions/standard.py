@@ -18,6 +18,7 @@
 import ctypes
 import hashlib
 import os
+import platform
 import socket
 import stat
 import sys
@@ -35,7 +36,7 @@ from grr.client import actions
 from grr.client import client_config
 from grr.client import client_utils_common
 from grr.client import vfs
-
+from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
@@ -48,8 +49,8 @@ FLAGS = flags.FLAGS
 
 class ReadBuffer(actions.ActionPlugin):
   """Reads a buffer from a file and returns it to a server callback."""
-  in_protobuf = jobs_pb2.BufferReadMessage
-  out_protobuf = jobs_pb2.BufferReadMessage
+  in_rdfvalue = rdfvalue.BufferReference
+  out_rdfvalue = rdfvalue.BufferReference
 
   def Run(self, args):
     """Reads a buffer on the client and sends it to the server."""
@@ -66,7 +67,7 @@ class ReadBuffer(actions.ActionPlugin):
       data = fd.Read(args.length)
 
     except (IOError, OSError), e:
-      self.SetStatus(jobs_pb2.GrrStatus.IOERROR, e)
+      self.SetStatus(rdfvalue.GrrStatus.Enum("IOERROR"), e)
       return
 
     # Now return the data to the server
@@ -79,8 +80,8 @@ HASH_CACHE = utils.FastStore(100)
 
 class TransferBuffer(actions.ActionPlugin):
   """Reads a buffer from a file and returns it to the server efficiently."""
-  in_protobuf = jobs_pb2.BufferReadMessage
-  out_protobuf = jobs_pb2.BufferReadMessage
+  in_rdfvalue = rdfvalue.BufferReference
+  out_rdfvalue = rdfvalue.BufferReference
 
   def Run(self, args):
     """Reads a buffer on the client and sends it to the server."""
@@ -92,13 +93,11 @@ class TransferBuffer(actions.ActionPlugin):
     fd = vfs.VFSOpen(args.pathspec)
     fd.Seek(args.offset)
     data = fd.Read(args.length)
-    result = jobs_pb2.DataBlob()
+    result = rdfvalue.DataBlob(
+        data=zlib.compress(data),
+        compression=rdfvalue.DataBlob.Enum("ZCOMPRESSION"))
 
     digest = hashlib.sha256(data).digest()
-
-    # Ok we need to send it. First compress the data.
-    result.data = zlib.compress(data)
-    result.compression = result.ZCOMPRESSION
 
     # Now return the data to the server into the special TransferStore well
     # known flow.
@@ -112,8 +111,8 @@ class TransferBuffer(actions.ActionPlugin):
 
 class HashBuffer(actions.ActionPlugin):
   """Hash a buffer from a file and returns it to the server efficiently."""
-  in_protobuf = jobs_pb2.BufferReadMessage
-  out_protobuf = jobs_pb2.BufferReadMessage
+  in_rdfvalue = rdfvalue.BufferReference
+  out_rdfvalue = rdfvalue.BufferReference
 
   def Run(self, args):
     """Reads a buffer on the client and sends it to the server."""
@@ -136,15 +135,15 @@ class HashBuffer(actions.ActionPlugin):
 
 class ListDirectory(ReadBuffer):
   """Lists all the files in a directory."""
-  in_protobuf = jobs_pb2.ListDirRequest
-  out_protobuf = jobs_pb2.StatResponse
+  in_rdfvalue = rdfvalue.ListDirRequest
+  out_rdfvalue = rdfvalue.StatEntry
 
   def Run(self, args):
     """Lists a directory."""
     try:
       directory = vfs.VFSOpen(args.pathspec)
     except (IOError, OSError), e:
-      self.SetStatus(jobs_pb2.GrrStatus.IOERROR, e)
+      self.SetStatus(rdfvalue.GrrStatus.Enum("IOERROR"), e)
       return
 
     files = list(directory.ListFiles())
@@ -156,15 +155,15 @@ class ListDirectory(ReadBuffer):
 
 class IteratedListDirectory(actions.IteratedAction):
   """Lists a directory as an iterator."""
-  in_protobuf = jobs_pb2.ListDirRequest
-  out_protobuf = jobs_pb2.StatResponse
+  in_rdfvalue = rdfvalue.ListDirRequest
+  out_rdfvalue = rdfvalue.StatEntry
 
   def Iterate(self, request, client_state):
     """Restores its way through the directory using an Iterator."""
     try:
       fd = vfs.VFSOpen(request.pathspec)
     except (IOError, OSError), e:
-      self.SetStatus(jobs_pb2.GrrStatus.IOERROR, e)
+      self.SetStatus(rdfvalue.GrrStatus.Enum("IOERROR"), e)
       return
     files = list(fd.ListFiles())
     files.sort(key=lambda x: x.pathspec.path)
@@ -180,24 +179,25 @@ class IteratedListDirectory(actions.IteratedAction):
 
 class StatFile(ListDirectory):
   """Sends a StatResponse for a single file."""
-  in_protobuf = jobs_pb2.ListDirRequest
-  out_protobuf = jobs_pb2.StatResponse
+  in_rdfvalue = rdfvalue.ListDirRequest
+  out_rdfvalue = rdfvalue.StatEntry
 
   def Run(self, args):
     """Sends a StatResponse for a single file."""
     try:
       fd = vfs.VFSOpen(args.pathspec)
       res = fd.Stat()
+
       self.SendReply(res)
     except (IOError, OSError), e:
-      self.SetStatus(jobs_pb2.GrrStatus.IOERROR, e)
+      self.SetStatus(rdfvalue.GrrStatus.Enum("IOERROR"), e)
       return
 
 
 class HashFile(ListDirectory):
   """Hashes the file and transmits it to the server."""
-  in_protobuf = jobs_pb2.ListDirRequest
-  out_protobuf = jobs_pb2.DataBlob
+  in_rdfvalue = rdfvalue.ListDirRequest
+  out_rdfvalue = rdfvalue.DataBlob
 
   def Run(self, args):
     """Hash a file."""
@@ -211,7 +211,7 @@ class HashFile(ListDirectory):
         hasher.update(data)
 
     except (IOError, OSError), e:
-      self.SetStatus(jobs_pb2.GrrStatus.IOERROR, e)
+      self.SetStatus(rdfvalue.GrrStatus.Enum("IOERROR"), e)
       return
 
     self.SendReply(data=hasher.digest())
@@ -219,8 +219,8 @@ class HashFile(ListDirectory):
 
 class ExecuteCommand(actions.ActionPlugin):
   """Executes one of the predefined commands."""
-  in_protobuf = jobs_pb2.ExecuteRequest
-  out_protobuf = jobs_pb2.ExecuteResponse
+  in_rdfvalue = rdfvalue.ExecuteRequest
+  out_rdfvalue = rdfvalue.ExecuteResponse
 
   def Run(self, command):
     """Run."""
@@ -255,8 +255,8 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
 
   This method can be utilized as part of an autoupdate mechanism if necessary.
   """
-  in_protobuf = jobs_pb2.ExecuteBinaryRequest
-  out_protobuf = jobs_pb2.ExecuteBinaryResponse
+  in_rdfvalue = rdfvalue.ExecuteBinaryRequest
+  out_rdfvalue = rdfvalue.ExecuteBinaryResponse
 
   def WriteBlobToFile(self, signed_pb, write_path, suffix=""):
     """Writes the blob to a file and returns its path."""
@@ -341,8 +341,8 @@ class ExecutePython(actions.ActionPlugin):
   This is protected by the client_config.EXEC_SIGNING_KEY, which should be
   stored offline and well protected.
   """
-  in_protobuf = jobs_pb2.ExecutePythonRequest
-  out_protobuf = jobs_pb2.ExecutePythonResponse
+  in_rdfvalue = rdfvalue.ExecutePythonRequest
+  out_rdfvalue = rdfvalue.ExecutePythonResponse
 
   def Run(self, args):
     """Run."""
@@ -357,7 +357,7 @@ class ExecutePython(actions.ActionPlugin):
     magic_return_str = ""
     logging.debug("exec for python code %s", args.python_code.data[0:100])
     # pylint: disable=W0122,W0612
-    py_args = utils.ProtoDict(args.py_args).ToDict()
+    py_args = args.py_args.ToDict()
     exec(args.python_code.data)
     # pylint: enable=W0122,W0612
     time_used = time.time() - time_start
@@ -370,8 +370,8 @@ class ExecutePython(actions.ActionPlugin):
 
 class Segfault(actions.ActionPlugin):
   """This action is just for debugging. It induces a segfault."""
-  in_protobuf = jobs_pb2.EmptyMessage
-  out_protobuf = jobs_pb2.EmptyMessage
+  in_rdfvalue = None
+  out_rdfvalue = None
 
   def Run(self, unused_args):
     """Does the segfaulting."""
@@ -384,8 +384,8 @@ class Segfault(actions.ActionPlugin):
 
 class ListProcesses(actions.ActionPlugin):
   """This action lists all the processes running on a machine."""
-  in_protobuf = None
-  out_protobuf = sysinfo_pb2.Process
+  in_rdfvalue = None
+  out_rdfvalue = rdfvalue.Process
 
   states = {
       "UNKNOWN": sysinfo_pb2.NetworkConnection.UNKNOWN,
@@ -396,6 +396,9 @@ class ListProcesses(actions.ActionPlugin):
       }
 
   def Run(self, unused_arg):
+    # psutil will cause an active loop on Windows 2000
+    if platform.system() == "Windows" and platform.version().startswith("5.0"):
+      raise RuntimeError("ListProcesses not supported on Windows 2000")
 
     for proc in psutil.process_iter():
       response = sysinfo_pb2.Process()
@@ -499,8 +502,8 @@ class ListProcesses(actions.ActionPlugin):
 
 class SendFile(actions.ActionPlugin):
   """This action encrypts and sends a file to a remote listener."""
-  in_protobuf = jobs_pb2.SendFileRequest
-  out_protobuf = jobs_pb2.StatResponse
+  in_rdfvalue = rdfvalue.SendFileRequest
+  out_rdfvalue = rdfvalue.StatEntry
 
   BLOCK_SIZE = 1024 * 1024 * 10  # 10 MB
   OP_ENCRYPT = 1

@@ -243,7 +243,7 @@ class EnrolmentInterrogateEvent(flow.EventListener):                  # <1>
   EVENTS = ["ClientEnrollment"]                                       # <2>
   well_known_session_id = "W:Interrogate"
 
-  @flow.EventHandler(in_protobuf=jobs_pb2.Certificate, source_restriction="CA")
+  @flow.EventHandler(source_restriction="CA")
   def ProcessMessage(self, message=None, event=None):
     flow.FACTORY.StartFlow(event.cn, "Interrogate", token=self.token) # <3>
 ------------------------------------------------------------------------
@@ -816,7 +816,7 @@ non-trivial flow from the GRR source code:
 .A sample flow for analyzing client memory using Volatility (abridged and annotated).
 [source,python]
 ------------------------------------------------------------------
-class AnalyseClientMemory(flow.GRRFlow):                   # <1>
+class AnalyzeClientMemory(flow.GRRFlow):                   # <1>
   category = "/Memory/"                                    # <2>
 
   def __init__(self, plugins="pslist,dlllist,modules", driver_installer=None,

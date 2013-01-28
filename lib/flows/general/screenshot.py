@@ -20,9 +20,7 @@ import time
 
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import utils
-
-from grr.proto import jobs_pb2
+from grr.lib import rdfvalue
 
 
 class TakeScreenshot(flow.GRRFlow):
@@ -43,7 +41,7 @@ class TakeScreenshot(flow.GRRFlow):
     self._sspath = "/tmp/ss.dat"
     # TODO(user): Add support for non-constrained parameters so file can be
     # random/hidden.
-    cmd = jobs_pb2.ExecuteRequest(cmd="/usr/sbin/screencapture",
+    cmd = rdfvalue.ExecuteRequest(cmd="/usr/sbin/screencapture",
                                   args=["-x", "-t", "jpg", self._sspath],
                                   time_limit=15)
     self.CallClient("ExecuteCommand", cmd, next_state="RetrieveFile")
@@ -55,7 +53,8 @@ class TakeScreenshot(flow.GRRFlow):
     if not responses.success or responses.First().exit_status != 0:
       raise flow.FlowError("Capture failed to run." % responses.status)
 
-    pathspec = jobs_pb2.Path(pathtype=jobs_pb2.Path.OS, path=self._sspath)
+    pathspec = rdfvalue.RDFPathSpec(pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+                                    path=self._sspath)
     self.CallFlow("GetFile", next_state="ProcessFile",
                   pathspec=pathspec)
 
@@ -67,8 +66,7 @@ class TakeScreenshot(flow.GRRFlow):
                            "to the screen being off.")
 
     ss_file = responses.First()
-    ss_pathspec = utils.Pathspec(ss_file.pathspec)
-    ss_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(ss_pathspec,
+    ss_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(ss_file.pathspec,
                                                         self.client_id)
     ss_fd = aff4.FACTORY.Open(ss_urn, required_type="HashImage")
     content = ss_fd.Read(10000000)
@@ -80,7 +78,7 @@ class TakeScreenshot(flow.GRRFlow):
     fd.Write(content)
     fd.Close()
 
-    cmd = jobs_pb2.ExecuteRequest(cmd="/bin/rm",
+    cmd = rdfvalue.ExecuteRequest(cmd="/bin/rm",
                                   args=["-f", self._sspath],
                                   time_limit=15)
     self.CallClient("ExecuteCommand", cmd, next_state="FinishedRemove")
