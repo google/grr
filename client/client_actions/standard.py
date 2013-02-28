@@ -33,18 +33,36 @@ import psutil
 from grr.client import conf as flags
 import logging
 from grr.client import actions
-from grr.client import client_config
 from grr.client import client_utils_common
 from grr.client import vfs
+from grr.lib import config_lib
 from grr.lib import rdfvalue
+from grr.lib import type_info
 from grr.lib import utils
-from grr.proto import jobs_pb2
-from grr.proto import sysinfo_pb2
 
 # We do not send larger buffers than this:
 MAX_BUFFER_SIZE = 640*1024
 
-FLAGS = flags.FLAGS
+
+config_lib.CONFIG.AddOption(type_info.PEMPublicKey(
+    name="Client.executable_signing_public_key",
+    description="public key for verifying executable signing."))
+
+config_lib.CONFIG.AddOption(type_info.PEMPrivateKey(
+    name="PrivateKeys.executable_signing_private_key",
+    description="Private keys for signing executables. NOTE: This "
+    "key is usually kept offline and is thus not present in the "
+    "configuration file."))
+
+config_lib.CONFIG.AddOption(type_info.PEMPublicKey(
+    name="Client.driver_signing_public_key",
+    description="public key for verifying driver signing."))
+
+config_lib.CONFIG.AddOption(type_info.PEMPrivateKey(
+    name="PrivateKeys.driver_signing_private_key",
+    description="Private keys for signing drivers. NOTE: This "
+    "key is usually kept offline and is thus not present in the "
+    "configuration file."))
 
 
 class ReadBuffer(actions.ActionPlugin):
@@ -235,13 +253,13 @@ class ExecuteCommand(actions.ActionPlugin):
     stdout = stdout[:10 * 1024 * 1024]
     stderr = stderr[:10 * 1024 * 1024]
 
-    result = jobs_pb2.ExecuteResponse()
-    result.request.CopyFrom(command)
-    result.stdout = stdout
-    result.stderr = stderr
-    result.exit_status = status
-    # We have to return microseconds.
-    result.time_used = (int) (1e6 * time_used)
+    result = rdfvalue.ExecuteResponse(
+        request=command,
+        stdout=stdout,
+        stderr=stderr,
+        exit_status=status,
+        # We have to return microseconds.
+        time_used=int(1e6 * time_used))
     self.SendReply(result)
 
 
@@ -250,8 +268,9 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
 
   Obviously this is a dangerous function, it provides for arbitrary code exec by
   the server running as root/SYSTEM.
-  This is protected by the client_config.EXEC_SIGNING_KEY, which should be
-  stored offline and well protected.
+
+  This is protected by the CONFIG[PrivateKeys.executable_signing_private_key],
+  which should be stored offline and well protected.
 
   This method can be utilized as part of an autoupdate mechanism if necessary.
   """
@@ -270,7 +289,9 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
       # Need to make a path to use. Want to put it somewhere we know we get
       # good perms.
       if sys.platform == "win32":
-        # Wherever we are being run from will have good perms.
+        # Wherever we are being run from will have good perms. Note that mkstemp
+        # on windows is not secure since it creates a world writable files when
+        # run as system.
         write_dir = os.path.dirname(sys.executable)
       else:
         # We trust mkstemp on other platforms.
@@ -292,15 +313,11 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
     except (OSError, IOError), e:
       logging.info("Failed to remove temporary file %s. Err: %s", path, e)
 
-  def VerifyBlob(self, signed_pb):
-    pub_key = client_config.EXEC_SIGNING_KEY.get(FLAGS.camode.upper())
-    if not client_utils_common.VerifySignedBlob(signed_pb,
-                                                pub_key=pub_key):
-      raise OSError("Code signature signing failure.")
-
   def Run(self, args):
     """Run."""
-    self.VerifyBlob(args.executable)
+    # Verify the executable blob.
+    args.executable.Verify(config_lib.CONFIG[
+        "Client.executable_signing_public_key"])
 
     if sys.platform == "win32":
       # We need .exe here.
@@ -324,12 +341,12 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
     stdout = stdout[:10 * 1024 * 1024]
     stderr = stderr[:10 * 1024 * 1024]
 
-    result = jobs_pb2.ExecuteBinaryResponse()
-    result.stdout = stdout
-    result.stderr = stderr
-    result.exit_status = status
-    # We have to return microseconds.
-    result.time_used = (int) (1e6 * time_used)
+    result = rdfvalue.ExecuteBinaryResponse(
+        stdout=stdout,
+        stderr=stderr,
+        exit_status=status,
+        # We have to return microseconds.
+        time_used=int(1e6 * time_used))
     self.SendReply(result)
 
 
@@ -338,8 +355,9 @@ class ExecutePython(actions.ActionPlugin):
 
   Obviously this is a dangerous function, it provides for arbitrary code exec by
   the server running as root/SYSTEM.
-  This is protected by the client_config.EXEC_SIGNING_KEY, which should be
-  stored offline and well protected.
+
+  This is protected by CONFIG[PrivateKeys.executable_signing_private_key], which
+  should be stored offline and well protected.
   """
   in_rdfvalue = rdfvalue.ExecutePythonRequest
   out_rdfvalue = rdfvalue.ExecutePythonResponse
@@ -348,10 +366,8 @@ class ExecutePython(actions.ActionPlugin):
     """Run."""
     time_start = time.time()
 
-    pub_key = client_config.EXEC_SIGNING_KEY.get(FLAGS.camode.upper())
-    if not client_utils_common.VerifySignedBlob(args.python_code,
-                                                pub_key=pub_key):
-      raise OSError("Code signature signing failure.")
+    args.python_code.Verify(config_lib.CONFIG[
+        "Client.executable_signing_public_key"])
 
     # The execed code can assign to this variable if it wants to return data.
     magic_return_str = ""
@@ -362,9 +378,9 @@ class ExecutePython(actions.ActionPlugin):
     # pylint: enable=W0122,W0612
     time_used = time.time() - time_start
     # We have to return microseconds.
-    result = jobs_pb2.ExecutePythonResponse()
-    result.time_used = (int) (1e6 * time_used)
-    result.return_val = utils.SmartStr(magic_return_str)
+    result = rdfvalue.ExecutePythonResponse(
+        time_used=int(1e6 * time_used),
+        return_val=utils.SmartStr(magic_return_str))
     self.SendReply(result)
 
 
@@ -375,7 +391,7 @@ class Segfault(actions.ActionPlugin):
 
   def Run(self, unused_args):
     """Does the segfaulting."""
-    if FLAGS.debug:
+    if flags.FLAGS.debug:
       logging.warning("Segfault action requested :(")
       print ctypes.cast(1, ctypes.POINTER(ctypes.c_void_p)).contents
     else:
@@ -388,11 +404,11 @@ class ListProcesses(actions.ActionPlugin):
   out_rdfvalue = rdfvalue.Process
 
   states = {
-      "UNKNOWN": sysinfo_pb2.NetworkConnection.UNKNOWN,
-      "LISTEN": sysinfo_pb2.NetworkConnection.LISTEN,
-      "ESTABLISHED": sysinfo_pb2.NetworkConnection.ESTAB,
-      "TIME_WAIT": sysinfo_pb2.NetworkConnection.TIME_WAIT,
-      "CLOSE_WAIT": sysinfo_pb2.NetworkConnection.CLOSE_WAIT,
+      "UNKNOWN": rdfvalue.NetworkConnection.Enum("UNKNOWN"),
+      "LISTEN": rdfvalue.NetworkConnection.Enum("LISTEN"),
+      "ESTABLISHED": rdfvalue.NetworkConnection.Enum("ESTAB"),
+      "TIME_WAIT": rdfvalue.NetworkConnection.Enum("TIME_WAIT"),
+      "CLOSE_WAIT": rdfvalue.NetworkConnection.Enum("CLOSE_WAIT"),
       }
 
   def Run(self, unused_arg):
@@ -401,7 +417,7 @@ class ListProcesses(actions.ActionPlugin):
       raise RuntimeError("ListProcesses not supported on Windows 2000")
 
     for proc in psutil.process_iter():
-      response = sysinfo_pb2.Process()
+      response = rdfvalue.Process()
       for field in ["pid", "ppid", "name", "exe", "username", "terminal"]:
         try:
           if not hasattr(proc, field) or not getattr(proc, field):
@@ -531,9 +547,9 @@ class SendFile(actions.ActionPlugin):
     if len(iv) != 16:
       raise RuntimeError("Invalid iv length (%d)." % len(iv))
 
-    if args.address_family == jobs_pb2.NetworkAddress.INET:
+    if args.address_family == rdfvalue.NetworkAddress.Enum("INET"):
       family = socket.AF_INET
-    elif args.address_family == jobs_pb2.NetworkAddress.INET6:
+    elif args.address_family == rdfvalue.NetworkAddress.Enum("INET6"):
       family = socket.AF_INET6
     else:
       raise RuntimeError("Socket address family not supported.")

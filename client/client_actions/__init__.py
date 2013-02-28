@@ -31,7 +31,6 @@ from grr.client.client_actions import file_fingerprint
 from grr.client.client_actions import network
 from grr.client.client_actions import searching
 from grr.client.client_actions import standard
-from grr.proto import jobs_pb2
 
 # pylint: disable=C6204
 # pylint: disable=C6302

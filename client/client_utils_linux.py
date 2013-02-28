@@ -25,30 +25,28 @@ import threading
 import time
 
 from google.protobuf import message
-from grr.client import conf as flags
 import logging
 
-from grr.client import client_config
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
-flags.DEFINE_string("nanny_logfile", client_config.NANNY_LOGFILE,
-                    "The file where we write the nanny transaction log.")
+config_lib.DEFINE_string("Nanny.logfile", "%(Logging.path)/nanny.log",
+                         "The file where we write the nanny transaction log.")
 
-flags.DEFINE_string("nanny_statusfile", client_config.NANNY_STATUS_FILE,
-                    "The file where we write the nanny status.")
+config_lib.DEFINE_string("Nanny.statusfile", "%(Logging.path)/nanny.status",
+                         "The file where we write the nanny status.")
 
-flags.DEFINE_integer("unresponsive_kill_period",
-                     client_config.UNRESPONSIVE_KILL_PERIOD,
-                     "The time in seconds after which the nanny kills us.")
+config_lib.DEFINE_integer("Nanny.unresponsive_kill_period", 60,
+                          "The time in seconds after which the nanny kills us.")
 
-FLAGS = flags.FLAGS
+config_lib.DEFINE_list("Network.proxy_servers", [],
+                       "A list of proxy servers to try to connect through.")
 
 
 # TODO(user): Find reliable ways to do this for different OSes
 def LinFindProxies():
-  return client_config.PROXY_SERVERS
+  return config_lib.CONFIG["Network.proxy_servers"]
 
 MOUNTPOINT_CACHE = [0, None]
 
@@ -188,7 +186,7 @@ class NannyThread(threading.Thread):
 
   def WriteNannyStatus(self, status):
     try:
-      with open(FLAGS.nanny_statusfile, "w") as fd:
+      with open(config_lib.CONFIG["Nanny.statusfile"], "w") as fd:
         fd.write(status)
     except (IOError, OSError):
       pass
@@ -204,9 +202,11 @@ class NannyController(object):
     # The nanny thread is a singleton.
     if NannyController.nanny is None:
       if unresponsive_kill_period is None:
-        unresponsive_kill_period = FLAGS.unresponsive_kill_period
+        unresponsive_kill_period = config_lib.CONFIG[
+            "Nanny.unresponsive_kill_period"]
 
-      NannyController.nanny_logfile = nanny_logfile or FLAGS.nanny_logfile
+      NannyController.nanny_logfile = (nanny_logfile or
+                                       config_lib.CONFIG["Nanny.logfile"])
       NannyController.nanny = NannyThread(unresponsive_kill_period)
       NannyController.nanny.start()
 
@@ -255,10 +255,7 @@ class NannyController(object):
 
     try:
       if data:
-        result = jobs_pb2.GrrMessage()
-        result.ParseFromString(data)
-
-        return result
+        return rdfvalue.GRRMessage(data)
     except message.Error:
       return
 
@@ -272,7 +269,7 @@ class NannyController(object):
 
   def GetNannyStatus(self):
     try:
-      with open(FLAGS.nanny_statusfile, "r") as fd:
+      with open(config_lib.CONFIG["Nanny.statusfile"], "r") as fd:
         return fd.read(100000000)
     except (IOError, OSError):
       return None

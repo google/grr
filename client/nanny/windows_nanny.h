@@ -2,8 +2,8 @@
 // All Rights Reserved.
 //
 
-#ifndef OPS_SECURITY_GRR_CLIENT_NANNY_WINDOWS_NANNY_H_
-#define OPS_SECURITY_GRR_CLIENT_NANNY_WINDOWS_NANNY_H_
+#ifndef GRR_CLIENT_NANNY_WINDOWS_NANNY_H_
+#define GRR_CLIENT_NANNY_WINDOWS_NANNY_H_
 
 // The nanny is a service which runs another child executable, and makes it
 // behave. The nanny itself is very simple, hence is it unlikely to leak or
@@ -47,9 +47,9 @@ const struct grr::ControllerConfig kNannyConfig = {
 
   // If we receive no heartbeats from the client in this long, child is killed.
   180,  // unresponsive_kill_period
-  60,  // event_log_message_suppression
+  60 * 60 * 24,  // event_log_message_suppression
   0,  // failure_count, not yet used
   1024 * 1024 * 1024,  // client memory limit
 };
 
-#endif  // OPS_SECURITY_GRR_CLIENT_NANNY_WINDOWS_NANNY_H_
+#endif  // GRR_CLIENT_NANNY_WINDOWS_NANNY_H_

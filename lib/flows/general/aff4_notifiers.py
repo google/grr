@@ -27,8 +27,6 @@ flags.DEFINE_string("aff4_change_email", None,
                     "Enail used by AFF4NotificationEmailListener to notify "
                     "about AFF4 changes.")
 
-FLAGS = flags.FLAGS
-
 
 class AFF4NotificationEmailListener(flow.EventListener):
   """Email notificator to be used with AFF4 change notifiers."""
@@ -48,14 +46,14 @@ Following path got modified: %(path)s"
     if message.auth_state != rdfvalue.GRRMessage.Enum("AUTHENTICATED"):
       return
 
-    if not FLAGS.aff4_change_email:
+    if not flags.FLAGS.aff4_change_email:
       return
 
     urn = aff4.RDFURN()
     urn.ParseFromString(message.args)
 
     subject = "AFF4 change: %s" % utils.SmartStr(urn)
-    email_alerts.SendEmail(FLAGS.aff4_change_email, "GRR server",
+    email_alerts.SendEmail(flags.FLAGS.aff4_change_email, "GRR server",
                            subject,
                            self.mail_template % dict(
                                path=utils.SmartStr(urn)),

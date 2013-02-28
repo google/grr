@@ -29,14 +29,24 @@ import win32serviceutil
 import winerror
 
 from google.protobuf import message
-from grr.client import conf as flags
 
-from grr.client import client_config
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
-FLAGS = flags.FLAGS
+config_lib.DEFINE_list(
+    name="Client.proxy_servers",
+    help="List of valid proxy servers the client should try.",
+    default=[])
+
+config_lib.DEFINE_string("NannyWindows.service_key_hive", "HKEY_LOCAL_MACHINE",
+                         help="The hive which carries the service key.")
+
+config_lib.DEFINE_string("NannyWindows.service_key_path", "Software\\GRR",
+                         help="The hive which carries the service key.")
+
+config_lib.DEFINE_string("NannyWindows.name", "GRR Service",
+                         help="The name of the nanny.")
 
 
 def CanonicalPathToLocalPath(path):
@@ -143,7 +153,7 @@ def WinFindProxies():
 
   logging.debug("Found proxy servers: %s", proxies)
 
-  proxies.extend(client_config.PROXY_SERVERS)
+  proxies.extend(config_lib.CONFIG["Client.proxy_servers"])
   return proxies
 
 
@@ -258,8 +268,9 @@ class NannyController(object):
   def _GetKey(self):
     """Returns the service key."""
     if self._service_key is None:
-      hive, path = FLAGS.regpath.split("\\", 1)
-      hive = getattr(_winreg, hive)
+      hive = getattr(_winreg,
+                     config_lib.CONFIG["NannyWindows.service_key_hive"])
+      path = config_lib.CONFIG["NannyWindows.service_key_path"]
 
       # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
       self._service_key = _winreg.OpenKeyEx(
@@ -317,10 +328,7 @@ class NannyController(object):
       return
 
     try:
-      result = jobs_pb2.GrrMessage()
-      result.ParseFromString(value)
-
-      return result
+      return rdfvalue.GRRMessage(value)
     except message.Error:
       return
 

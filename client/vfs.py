@@ -17,9 +17,6 @@
 
 from grr.client import client_utils
 from grr.lib import rdfvalue
-# pylint:disable=unused-import
-from grr.lib import rdfvalues
-# pylint:enable=unused-import
 from grr.lib import registry
 from grr.lib import utils
 
@@ -230,12 +227,9 @@ VFS_HANDLERS = {}
 
 
 class VFSInit(registry.InitHook):
+  """Register all known vfs handlers to open a pathspec types."""
 
   def Run(self):
-    # pylint: disable=W0612
-    # pylint: disable=C6204
-    from grr.client import vfs_handlers
-
     for handler in VFSHandler.classes.values():
       if handler.auto_register:
         VFS_HANDLERS[handler.supported_pathtype] = handler

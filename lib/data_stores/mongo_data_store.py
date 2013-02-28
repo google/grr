@@ -9,21 +9,19 @@ from bson import binary
 import pymongo
 from pymongo import errors
 
-from grr.client import conf as flags
 import logging
 
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import registry
 from grr.lib import utils
 
-flags.DEFINE_string("mongo_server", "127.0.0.1:27017",
-                    "The mongo server location (hostname:port). "
-                    "By default use localhost.")
+config_lib.DEFINE_string("Mongo.server", None,
+                         "The mongo server hostname.")
 
-flags.DEFINE_string("mongo_db_name", "grr",
-                    "The mongo database name")
+config_lib.DEFINE_integer("Mongo.port", 27017, "The mongo server port..")
 
-FLAGS = flags.FLAGS
+config_lib.DEFINE_string("Mongo.db_name", "grr", "The mongo database name")
 
 
 # These are filters
@@ -189,23 +187,22 @@ class MongoDataStore(data_store.DataStore):
 
   def __init__(self):
     super(MongoDataStore, self).__init__()
-
     # Support various versions on the pymongo connection object.
     try:
       connector = pymongo.MongoClient
     except AttributeError:
       connector = pymongo.Connection
 
-    if FLAGS.mongo_server:
-      location, port = FLAGS.mongo_server.split(":")
-      port = int(port)
+    if config_lib.CONFIG["Mongo.server"]:
+      mongo_client = connector(
+          location=config_lib.CONFIG["Mongo.server"],
+          port=config_lib.CONFIG["Mongo.port"])
 
-      mongo_client = connector(location, port)
     else:
       mongo_client = connector()
 
     # For now use a single "data" collection
-    self.db_handle = mongo_client[FLAGS.mongo_db_name]
+    self.db_handle = mongo_client[config_lib.CONFIG["Mongo.db_name"]]
 
     # We have two collections - the latest collection maintains the latest data
     # and the versioned collection maintains versioned data.
@@ -446,7 +443,12 @@ class MongoDataStore(data_store.DataStore):
       for predicate, value, ts in data:
         result.setdefault(predicate, []).append((value, ts))
 
-      result_set.Append(result)
+      try:
+        self.security_manager.CheckAccess(token, [subject], "rq")
+
+        result_set.Append(result)
+      except data_store.UnauthorizedAccess:
+        continue
 
     result_set.total_count = len(total_hits)
 
@@ -472,6 +474,8 @@ class MongoTransaction(data_store.Transaction):
   # The maximum time the lock remains active in seconds.
   LOCK_TIME = 60
 
+  locked = False
+
   def __init__(self, store, subject, token=None):
     """Ensure we can take a lock on this subject."""
     self.store = store
@@ -485,6 +489,7 @@ class MongoTransaction(data_store.Transaction):
 
     if self.document:
       # We hold a lock now:
+      self.locked = True
       return
 
     self.document = store.latest_collection.find_one(
@@ -500,6 +505,7 @@ class MongoTransaction(data_store.Transaction):
       self.document = dict(subject=self.subject, type="transaction",
                            lock_time=time.time())
       store.latest_collection.save(self.document)
+      self.locked = True
       return
 
     raise data_store.TransactionError("Subject %s is locked" % subject)
@@ -525,10 +531,11 @@ class MongoTransaction(data_store.Transaction):
     self.Commit()
 
   def Commit(self):
-    # Remove the lock on the document:
-    self.store.latest_collection.find_and_modify(
-        query=self.document,
-        update=dict(subject=self.subject, type="transaction", lock_time=0))
+    if self.locked:
+      # Remove the lock on the document:
+      self.store.latest_collection.find_and_modify(
+          query=self.document,
+          update=dict(subject=self.subject, type="transaction", lock_time=0))
 
   def __del__(self):
     try:

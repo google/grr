@@ -49,25 +49,28 @@ able to filter it directly).
 
 
 import abc
-import getpass
 import sys
 import time
 
 from grr.client import conf as flags
 import logging
 
-from grr.lib import rdfvalue
+from grr.lib import access_control
+from grr.lib import config_lib
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 
-flags.DEFINE_string("storage", "FakeDataStore",
-                    "Storage subsystem to use.")
+config_lib.DEFINE_string("Datastore.implementation", "FakeDataStore",
+                         "Storage subsystem to use.")
+
+config_lib.DEFINE_string("Datastore.security_manager",
+                         "NullAccessControlManager",
+                         "Security manager for data store access.")
 
 flags.DEFINE_bool("list_storage", False,
                   "List all storage subsystems present.")
 
-FLAGS = flags.FLAGS
 
 # A global data store handle
 DB = None
@@ -81,108 +84,18 @@ class Error(stats.CountingExceptionMixin, Exception):
   pass
 
 
+class TimeoutError(Exception):
+  """Raised when an access times out."""
+  pass
+
+
 class TransactionError(Error):
   """Raised when a transaction fails to commit."""
   counter = "grr_commit_failure"
 
 
-class UnauthorizedAccess(Error):
-  """Raised when a request arrived from an unauthorized source."""
-  counter = "grr_unauthorised_requests"
-
-  def __init__(self, message, subject=None, requested_access="?"):
-    self.subject = subject
-    self.requested_access = requested_access
-    logging.warning(message)
-    super(UnauthorizedAccess, self).__init__(message)
-
-
-class ExpiryError(Error):
-  """Raised when a token is used which is expired."""
-  counter = "grr_expired_tokens"
-
-
-class ACLToken(object):
-  """The access control token."""
-
-  is_emergency = False
-
-  def __init__(self, username="", reason="", requested_access="r",
-               source_ips=None, process=None, expiry=None):
-    """Controls access to the data for the user.
-
-    This ACL token should be provided for any access to the data store. This
-    allows the data store to audit all access to data. Note that implementations
-    should implement a mechanism for authenticating tokens, so they can not be
-    forged.
-
-    Args:
-       username: The user which requires access to the data.
-       reason: The stated reason for the access (e.g. case name/id).
-       requested_access: The type of access this token is for.
-       source_ips: Optional list of source IPs of the request.
-       process: Optional name of the process issuing this token.
-       expiry: When does this token expire (seconds since epoch)? Use of this
-          token after this time will raise ExpiryError.
-    """
-    self.username = username or getpass.getuser()
-    self.reason = reason
-    self.requested_access = requested_access
-    self.source_ips = source_ips or []
-    self.process = process
-
-    # This special bit indicates a privileged token for internal use. When this
-    # bit is set, ACLs will be bypassed. There should be no way for an external
-    # user to set this flag. IMPORTANT: This flag does not serialize to the
-    # protobuf for the remote data store!
-    self.supervisor = False
-
-    # By default never expire.
-    if expiry is None:
-      expiry = sys.maxint
-
-    self.expiry = expiry
-
-  def CheckExpiry(self):
-    if time.time() > self.expiry:
-      raise ExpiryError("Token expired.")
-
-  def __str__(self):
-    return "Token(%s:%s)" % (utils.SmartStr(self.username),
-                             utils.SmartStr(self.reason))
-
-  def Copy(self):
-    return ACLToken(username=self.username, reason=self.reason,
-                    requested_access=self.requested_access,
-                    source_ips=self.source_ips, process=self.process,
-                    expiry=self.expiry)
-
-  def ToProto(self, proto):
-    """Copy ourselves into the proto."""
-    # Only bother with valid tokens.
-    self.CheckExpiry()
-    proto.username = self.username
-    proto.reason = self.reason
-    proto.requested_access = self.requested_access
-    proto.expiry = long(self.expiry)
-    proto.source_ips.extend(self.source_ips)
-    if self.process:
-      proto.process = self.process
-
-  def ToRDFToken(self):
-    result = rdfvalue.AccessToken(
-        username=self.username,
-        reason=self.reason,
-        requested_access=self.requested_access,
-        expiry=long(self.expiry),
-        source_ips=self.source_ips)
-    if self.process:
-      result.process = self.process
-    return result
-
-
 # This token will be used by default if no token was provided.
-default_token = ACLToken()
+default_token = access_control.ACLToken()
 
 
 class DataStore(object):
@@ -199,7 +112,10 @@ class DataStore(object):
   TIMESTAMPS = [ALL_TIMESTAMPS, NEWEST_TIMESTAMP]
 
   def __init__(self):
-    self.security_manager = None
+    security_manager = access_control.BaseAccessControlManager.NewPlugin(
+        config_lib.CONFIG["Datastore.security_manager"])()
+    self.security_manager = security_manager
+    logging.info("Using security manager %s", security_manager)
 
   @abc.abstractmethod
   def DeleteSubject(self, subject, token=None):
@@ -254,14 +170,14 @@ class DataStore(object):
       return result
 
     timeout = 0
-    while retrywrap_timeout < retrywrap_max_timeout:
+    while timeout < retrywrap_max_timeout:
       try:
         result = Retry()
         if timeout > 1:
           logging.debug("Transaction took %s tries.", timeout)
         return result
       except TransactionError:
-        time.sleep(timeout)
+        time.sleep(retrywrap_timeout)
         timeout += 1
 
     raise TransactionError("Retry number exceeded.")
@@ -351,14 +267,12 @@ class DataStore(object):
     Raises:
       AccessError: if anything goes wrong.
     """
-    result = self.MultiResolveRegex([subject],
-                                    ["^" + utils.EscapeRegex(predicate) + "$"],
-                                    decoder=decoder, token=token,
-                                    timestamp=self.NEWEST_TIMESTAMP)
-    for _, hits in result.items():
-      for _, value, timestamp in hits:
-        # Just return the first one.
-        return value, timestamp
+    for _, value, timestamp in self.ResolveMulti(
+        subject, [utils.EscapeRegex(predicate)], decoder=decoder,
+        token=token, timestamp=self.NEWEST_TIMESTAMP):
+
+      # Just return the first one.
+      return value, timestamp
 
     return (None, 0)
 
@@ -597,29 +511,26 @@ class DataStoreInit(registry.InitHook):
   Depends on the stats module being initialized.
   """
 
-  pre = ["StatsInit", "ConfigInit"]
+  pre = ["StatsInit"]
 
   def Run(self):
     """Initialize the data_store."""
     global DB  # pylint: disable=W0603
 
-    if FLAGS.list_storage:
+    if flags.FLAGS.list_storage:
       for name, cls in DataStore.classes.items():
         print "%s\t\t%s" % (name, cls.__doc__)
 
       sys.exit(0)
 
     try:
-      cls = DataStore.NewPlugin(FLAGS.storage)
+      cls = DataStore.NewPlugin(config_lib.CONFIG["Datastore.implementation"])
     except KeyError:
-      logging.warning("No Storage System %s found. Using FakeStorage",
-                      FLAGS.storage)
-      cls = DataStore.NewPlugin("FakeDataStore")
+      raise RuntimeError("No Storage System %s found." %
+                         config_lib.CONFIG["Datastore.implementation"])
 
     DB = cls()  # pylint: disable=C6409
 
   def RunOnce(self):
     """Initialize some Varz."""
     stats.STATS.RegisterVar("grr_commit_failure")
-    stats.STATS.RegisterVar("grr_expired_tokens")
-    stats.STATS.RegisterVar("grr_unauthorised_requests")

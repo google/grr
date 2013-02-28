@@ -27,13 +27,12 @@ class TestInspectView(test_lib.GRRSeleniumTest):
     """Test the inspect UI."""
 
     sel = self.selenium
-    # Open the main page (We need to do this twice for some reason).
     sel.open("/")
 
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    self.WaitUntil(sel.is_element_present, "client_query")
 
-    sel.type("css=input[name=q]", "0001")
-    sel.click("css=input[type=submit]")
+    sel.type("client_query", "0001")
+    sel.click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",
                         sel.get_text, "css=span[type=subject]")
@@ -65,11 +64,11 @@ class TestInspectView(test_lib.GRRSeleniumTest):
 
     # Check that the proto is rendered inside the tab.
     self.WaitUntil(sel.is_element_present,
-                   "css=div.ui-tabs td.proto_value:contains(GetPlatformInfo)")
+                   "css=.tab-content td.proto_value:contains(GetPlatformInfo)")
 
     # Check that the request tab is currently selected.
     self.assertTrue(
-        sel.is_element_present("css=li.ui-state-active:contains(Request)"))
+        sel.is_element_present("css=li.active:contains(Request)"))
 
     # Here we emulate a mock client with no actions (None) this should produce
     # an error.
@@ -82,7 +81,7 @@ class TestInspectView(test_lib.GRRSeleniumTest):
     self.WaitUntil(sel.is_element_present, "css=td:contains('flow:response:')")
 
     self.assertTrue(sel.is_element_present(
-        "css=div.ui-tabs td.proto_value:contains(GENERIC_ERROR)"))
+        "css=.tab-content td.proto_value:contains(GENERIC_ERROR)"))
 
     self.assertTrue(sel.is_element_present(
-        "css=div.ui-tabs td.proto_value:contains(STATUS)"))
+        "css=.tab-content td.proto_value:contains(STATUS)"))

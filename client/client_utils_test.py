@@ -25,16 +25,12 @@ import tempfile
 import time
 import mox
 from grr.client import conf
-from grr.client import conf as flags
 
 from grr.client import client_utils_common
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import jobs_pb2
-
-FLAGS = flags.FLAGS
 
 
 def GetVolumePathName(_):
@@ -235,10 +231,11 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     with tempfile.NamedTemporaryFile() as fd:
       nanny_controller = client_utils_linux.NannyController()
       nanny_controller.StartNanny(nanny_logfile=fd.name)
-      grr_message = jobs_pb2.GrrMessage(session_id="W:test")
+      grr_message = rdfvalue.GRRMessage(session_id="W:test")
 
       nanny_controller.WriteTransactionLog(grr_message)
-      self.assertProto2Equal(grr_message, nanny_controller.GetTransactionLog())
+      self.assertProto2Equal(grr_message.ToProto(),
+                             nanny_controller.GetTransactionLog().ToProto())
       nanny_controller.CleanTransactionLog()
 
       self.assert_(nanny_controller.GetTransactionLog() is None)
@@ -280,7 +277,6 @@ class OSXVersionTests(test_lib.GRRBaseTest):
 
 
 def main(argv):
-  _, FLAGS.nanny_logfile = tempfile.mkstemp()
   test_lib.main(argv)
 
 if __name__ == "__main__":

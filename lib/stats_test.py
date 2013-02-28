@@ -24,6 +24,7 @@ import logging
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import test_lib
+from grr.lib import utils
 
 
 class StatsTestInit(registry.InitHook):
@@ -31,6 +32,11 @@ class StatsTestInit(registry.InitHook):
   pre = ["StatsInit"]
 
   def RunOnce(self):
+    # In the stat tests we mock out time.sleep but the InterruptableThread uses
+    # this function to determine when to take action and calls our mock function
+    # asynchronously which causes interference. Therefore we just disable
+    # those threads entirely.
+    utils.InterruptableThread.exit = True
     stats.STATS.RegisterVar("test_counter")
     stats.STATS.RegisterVar("test_counter2")
     stats.STATS.RegisterMap("test_map", "time", bin_list=[0.1], precision=0)
@@ -68,14 +74,18 @@ class StatsTests(test_lib.GRRBaseTest):
     stats.STATS.Set("test_var", 89)
     self.assertEqual(stats.STATS.Get("test_var"), 89)
 
-    logging.error = self.CountErrors
-    self.errors_logged = 0
+    old_error = logging.error
+    try:
+      logging.error = self.CountErrors
+      self.errors_logged = 0
 
-    self.assertFalse(stats.STATS.IsRegistered("test_undefined"))
-    stats.STATS.Set("test_undefined", 10)
-    self.assertEqual(self.errors_logged, 1)
+      self.assertFalse(stats.STATS.IsRegistered("test_undefined"))
+      stats.STATS.Set("test_undefined", 10)
+      self.assertEqual(self.errors_logged, 1)
 
-    self.assertEqual(stats.STATS.Get("test_undefined"), 0)
+      self.assertEqual(stats.STATS.Get("test_undefined"), 0)
+    finally:
+      logging.error = old_error
 
   @stats.Counted("test_counter")
   def CountedFunc(self):

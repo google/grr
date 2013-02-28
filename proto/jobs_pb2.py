@@ -13,7 +13,7 @@ from google.protobuf import descriptor_pb2
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='grr/proto/jobs.proto',
   package='',
-  serialized_pb='\n\x14grr/proto/jobs.proto\"\xb7\x01\n\x0bHttpRequest\x12\x13\n\x0braw_headers\x18\x01 \x01(\t\x12\x12\n\nuser_agent\x18\x02 \x01(\t\x12\x11\n\tsource_ip\x18\x03 \x01(\t\x12\x0b\n\x03url\x18\x04 \x01(\t\x12\x17\n\x04user\x18\x05 \x01(\t:\tanonymous\x12\x11\n\ttimestamp\x18\x06 \x01(\x04\x12\x13\n\x06method\x18\x07 \x01(\t:\x03GET\x12\x10\n\x08referrer\x18\x08 \x01(\t\x12\x0c\n\x04size\x18\t \x01(\x04\"\xd6\x04\n\nGrrMessage\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x12\n\nrequest_id\x18\x02 \x01(\x04\x12\x13\n\x0bresponse_id\x18\x03 \x01(\x04\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x05 \x01(\x0c\x12\x0e\n\x06source\x18\x06 \x01(\t\x12\x43\n\nauth_state\x18\x07 \x01(\x0e\x32\x1e.GrrMessage.AuthorizationState:\x0fUNAUTHENTICATED\x12\'\n\x04type\x18\x08 \x01(\x0e\x32\x10.GrrMessage.Type:\x07MESSAGE\x12\x37\n\x08priority\x18\t \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITY\x12\x0f\n\x03ttl\x18\n \x01(\r:\x02\x31\x30\x12\x1e\n\x10require_fastpoll\x18\x0b \x01(\x08:\x04true\x12\x17\n\tcpu_limit\x18\x0c \x01(\x04:\x04\x33\x36\x30\x30\x12\x10\n\x08\x61rgs_age\x18\r \x01(\x04\x12\x15\n\rargs_rdf_name\x18\x0e \x01(\t\"P\n\x12\x41uthorizationState\x12\x13\n\x0fUNAUTHENTICATED\x10\x00\x12\x11\n\rAUTHENTICATED\x10\x01\x12\x12\n\x0e\x44\x45SYNCHRONIZED\x10\x02\"-\n\x04Type\x12\x0b\n\x07MESSAGE\x10\x00\x12\n\n\x06STATUS\x10\x01\x12\x0c\n\x08ITERATOR\x10\x02\"D\n\x08Priority\x12\x10\n\x0cLOW_PRIORITY\x10\x00\x12\x13\n\x0fMEDIUM_PRIORITY\x10\x01\x12\x11\n\rHIGH_PRIORITY\x10\x02\"\'\n\x0bMessageList\x12\x18\n\x03job\x18\x01 \x03(\x0b\x32\x0b.GrrMessage\"\xdd\x01\n\x11SignedMessageList\x12\x14\n\x0cmessage_list\x18\x01 \x01(\x0c\x12\x11\n\tsignature\x18\x02 \x01(\x0c\x12\x0e\n\x06source\x18\x03 \x01(\t\x12\x45\n\x0b\x63ompression\x18\x04 \x01(\x0e\x32\".SignedMessageList.CompressionType:\x0cUNCOMPRESSED\x12\x11\n\ttimestamp\x18\x06 \x01(\x04\"5\n\x0f\x43ompressionType\x12\x10\n\x0cUNCOMPRESSED\x10\x00\x12\x10\n\x0cZCOMPRESSION\x10\x01\"K\n\x10\x43ipherProperties\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0b\n\x03key\x18\x02 \x02(\x0c\x12\n\n\x02iv\x18\x03 \x01(\x0c\x12\x10\n\x08hmac_key\x18\x05 \x01(\x0c\"3\n\x0e\x43ipherMetadata\x12\x0e\n\x06source\x18\x01 \x01(\t\x12\x11\n\tsignature\x18\x02 \x01(\x0c\"\xd2\x02\n\x13\x43lientCommunication\x12\x11\n\tencrypted\x18\x01 \x01(\x0c\x12\x18\n\x10\x65ncrypted_cipher\x18\x02 \x01(\x0c\x12!\n\x19\x65ncrypted_cipher_metadata\x18\t \x01(\x0c\x12\n\n\x02iv\x18\x08 \x01(\x0c\x12\"\n\x0corig_request\x18\x03 \x01(\x0b\x32\x0c.HttpRequest\x12\x15\n\nqueue_size\x18\x04 \x01(\r:\x01\x30\x12<\n\x06status\x18\x05 \x01(\x0e\x32(.ClientCommunication.CommunicationStatus:\x02OK\x12\x13\n\x0b\x61pi_version\x18\x06 \x01(\r\x12\x0c\n\x04hmac\x18\x07 \x01(\x0c\"C\n\x13\x43ommunicationStatus\x12\x07\n\x02OK\x10\xc8\x01\x12\x10\n\x0b\x42\x41\x44_REQUEST\x10\x90\x03\x12\x11\n\x0c\x43IPHER_ERROR\x10\x96\x03\"\xc2\x02\n\tGrrStatus\x12-\n\x06status\x18\x01 \x01(\x0e\x32\x19.GrrStatus.ReturnedStatus:\x02OK\x12\x17\n\rerror_message\x18\x02 \x01(\t:\x00\x12\x13\n\tbacktrace\x18\x03 \x01(\t:\x00\x12\"\n\rcpu_time_used\x18\x04 \x01(\x0b\x32\x0b.CpuSeconds\x12\x18\n\x10\x63hild_session_id\x18\x05 \x01(\t\x12\x1a\n\x12network_bytes_sent\x18\x06 \x01(\x04\x12\x14\n\x0cnanny_status\x18\x07 \x01(\t\"h\n\x0eReturnedStatus\x12\x06\n\x02OK\x10\x00\x12\x0b\n\x07IOERROR\x10\x01\x12\x1b\n\x17RETRANSMISSION_DETECTED\x10\x02\x12\x11\n\rCLIENT_KILLED\x10\x03\x12\x11\n\rGENERIC_ERROR\x10\n\"\x96\x01\n\x10HuntNotification\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x11\n\tclient_id\x18\x02 \x01(\t\x12(\n\x06status\x18\x03 \x01(\x0e\x32\x18.HuntNotification.Status\"1\n\x06Status\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x06\n\x02OK\x10\x01\x12\t\n\x05\x45RROR\x10\x02\x12\x07\n\x03\x42\x41\x44\x10\x03\"\xa0\x01\n\x10\x46lowNotification\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x11\n\tflow_name\x18\x02 \x01(\t\x12\x11\n\tclient_id\x18\x03 \x01(\t\x12(\n\x06status\x18\x04 \x01(\x0e\x32\x18.FlowNotification.Status\"(\n\x06Status\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x06\n\x02OK\x10\x01\x12\t\n\x05\x45RROR\x10\x02\"f\n\x11\x43lientInformation\x12\x13\n\x0b\x63lient_name\x18\x01 \x01(\t\x12\x16\n\x0e\x63lient_version\x18\x02 \x01(\r\x12\x10\n\x08revision\x18\x03 \x01(\x04\x12\x12\n\nbuild_time\x18\x04 \x01(\t\"\x9a\x01\n\x04Task\x12\n\n\x02id\x18\x01 \x01(\x04\x12\r\n\x05value\x18\x02 \x01(\x0c\x12\x0e\n\x03ttl\x18\x03 \x01(\x05:\x01\x35\x12\x0b\n\x03\x65ta\x18\x04 \x01(\x04\x12\r\n\x05queue\x18\x05 \x01(\t\x12\x37\n\x08priority\x18\x06 \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITY\x12\x12\n\nlast_lease\x18\x07 \x01(\t\"\xae\x02\n\x08\x44\x61taBlob\x12\x0f\n\x07integer\x18\x01 \x01(\x03\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\x12\x0e\n\x06string\x18\x03 \x01(\t\x12\x12\n\nproto_name\x18\x04 \x01(\t\x12\x0c\n\x04none\x18\x05 \x01(\t\x12\x0f\n\x07\x62oolean\x18\x06 \x01(\x08\x12\x18\n\x04list\x18\x08 \x01(\x0b\x32\n.BlobArray\x12\x13\n\x04\x64ict\x18\t \x01(\x0b\x32\x05.Dict\x12\x1c\n\trdf_value\x18\n \x01(\x0b\x32\t.RDFValue\x12<\n\x0b\x63ompression\x18\x07 \x01(\x0e\x32\x19.DataBlob.CompressionType:\x0cUNCOMPRESSED\"5\n\x0f\x43ompressionType\x12\x10\n\x0cUNCOMPRESSED\x10\x00\x12\x10\n\x0cZCOMPRESSION\x10\x01\"\'\n\tBlobArray\x12\x1a\n\x07\x63ontent\x18\x01 \x03(\x0b\x32\t.DataBlob\"+\n\x08PrintStr\x12\x11\n\x05level\x18\x01 \x01(\x05:\x02\x31\x30\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\t\"r\n\x11\x42ufferReadMessage\x12\x11\n\x06offset\x18\x01 \x01(\x04:\x01\x30\x12\x11\n\x06length\x18\x02 \x01(\x04:\x01\x30\x12\x10\n\x08\x63\x61llback\x18\x03 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\x12\x17\n\x08pathspec\x18\x06 \x01(\x0b\x32\x05.Path\"\x80\x02\n\x0cRequestState\x12\n\n\x02id\x18\x01 \x02(\r\x12\r\n\x05ts_id\x18\x02 \x01(\x04\x12\x12\n\nnext_state\x18\x03 \x01(\t\x12\x1a\n\x06status\x18\x04 \x01(\x0b\x32\n.GrrStatus\x12\x13\n\x04\x64\x61ta\x18\x05 \x01(\x0b\x32\x05.Dict\x12\x19\n\x0eresponse_count\x18\x06 \x01(\r:\x01\x30\x12\x1d\n\x12transmission_count\x18\x07 \x01(\r:\x01\x30\x12\x11\n\tclient_id\x18\x08 \x01(\t\x12\x12\n\nsession_id\x18\t \x01(\t\x12\x1c\n\x07request\x18\n \x01(\x0b\x32\x0b.GrrMessage\x12\x11\n\tflow_name\x18\x0b \x01(\t\"\xc0\x04\n\x06\x46lowPB\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0e\n\x06pickle\x18\x02 \x01(\x0c\x12\r\n\x05ts_id\x18\x03 \x01(\x04\x12)\n\x05state\x18\x04 \x01(\x0e\x32\x11.FlowPB.FlowState:\x07RUNNING\x12\x12\n\nsession_id\x18\x05 \x01(\t\x12\x1f\n\x14outstanding_requests\x18\x06 \x01(\r:\x01\x30\x12\x0f\n\x07\x63reator\x18\x07 \x01(\t\x12\x11\n\tbacktrace\x18\x08 \x01(\t\x12\x16\n\x0b\x63reate_time\x18\t \x01(\x04:\x01\x30\x12\x13\n\x08progress\x18\n \x01(\x05:\x01\x30\x12\x13\n\x04\x61rgs\x18\x0b \x01(\x0b\x32\x05.Dict\x12\x10\n\x08\x65vent_id\x18\x0c \x01(\t\x12$\n\rrequest_state\x18\x0e \x01(\x0b\x32\r.RequestState\x12\x0e\n\x06status\x18\x0f \x01(\t\x12\x10\n\x08\x63hildren\x18\x10 \x03(\t\x12\x11\n\tclient_id\x18\x11 \x01(\t\x12\x1d\n\x08\x63pu_used\x18\x12 \x01(\x0b\x32\x0b.CpuSeconds\x12\x1a\n\x12network_bytes_sent\x18\x13 \x01(\x04\x12&\n\x08priority\x18\x14 \x01(\x0e\x32\x14.GrrMessage.Priority\x12\x11\n\tcpu_quota\x18\x15 \x01(\x02\x12\x1b\n\x13remaining_cpu_quota\x18\x16 \x01(\x02\"C\n\tFlowState\x12\x0b\n\x07RUNNING\x10\x00\x12\x0e\n\nTERMINATED\x10\x01\x12\t\n\x05\x45RROR\x10\x03\x12\x0e\n\nWELL_KNOWN\x10\x02\"<\n\nCpuSeconds\x12\x15\n\ruser_cpu_time\x18\x01 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x02 \x01(\x02\"c\n\tCpuSample\x12\x15\n\ruser_cpu_time\x18\x01 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x02 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x03 \x01(\x02\x12\x11\n\ttimestamp\x18\x04 \x01(\x04\"o\n\x08IOSample\x12\x12\n\nread_count\x18\x01 \x01(\x04\x12\x13\n\x0bwrite_count\x18\x02 \x01(\x04\x12\x12\n\nread_bytes\x18\x03 \x01(\x04\x12\x13\n\x0bwrite_bytes\x18\x04 \x01(\x04\x12\x11\n\ttimestamp\x18\x05 \x01(\x04\"\xdd\x01\n\x0b\x43lientStats\x12\x1f\n\x0b\x63pu_samples\x18\x01 \x03(\x0b\x32\n.CpuSample\x12\x10\n\x08RSS_size\x18\x02 \x01(\x04\x12\x10\n\x08VMS_size\x18\x03 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x04 \x01(\x02\x12\x16\n\x0e\x62ytes_received\x18\x05 \x01(\x04\x12\x12\n\nbytes_sent\x18\x06 \x01(\x04\x12\x1d\n\nio_samples\x18\x07 \x03(\x0b\x32\t.IOSample\x12\x13\n\x0b\x63reate_time\x18\x08 \x01(\x04\x12\x11\n\tboot_time\x18\t \x01(\x04\"I\n\x0bStartupInfo\x12\'\n\x0b\x63lient_info\x18\x01 \x01(\x0b\x32\x12.ClientInformation\x12\x11\n\tboot_time\x18\x02 \x01(\x04\"?\n\x0e\x45xecuteRequest\x12\x0b\n\x03\x63md\x18\x01 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x02 \x03(\t\x12\x12\n\ntime_limit\x18\x03 \x01(\x05\"{\n\x0f\x45xecuteResponse\x12 \n\x07request\x18\x01 \x01(\x0b\x32\x0f.ExecuteRequest\x12\x13\n\x0b\x65xit_status\x18\x02 \x01(\x05\x12\x0e\n\x06stdout\x18\x03 \x01(\x0c\x12\x0e\n\x06stderr\x18\x04 \x01(\x0c\x12\x11\n\ttime_used\x18\x05 \x01(\x05\"\xc9\x08\n\x04Path\x12\'\n\x08pathtype\x18\x01 \x01(\x0e\x32\x0e.Path.PathType:\x05UNSET\x12\x0c\n\x04path\x18\x02 \x01(\t\x12\x13\n\x0bmount_point\x18\x03 \x01(\t\x12\x1a\n\x0bnested_path\x18\x05 \x01(\x0b\x32\x05.Path\x12\x0e\n\x06offset\x18\x06 \x01(\x04\x12\x35\n\x0cpath_options\x18\x07 \x01(\x0e\x32\r.Path.Options:\x10\x43\x41SE_INSENSITIVE\x12\r\n\x05inode\x18\x08 \x01(\x04\x12\x43\n\tntfs_type\x18\t \x01(\x0e\x32\x16.Path.tsk_fs_attr_type:\x18TSK_FS_ATTR_TYPE_DEFAULT\x12\x0f\n\x07ntfs_id\x18\n \x01(\x04\"I\n\x08PathType\x12\x12\n\x05UNSET\x10\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x12\x06\n\x02OS\x10\x00\x12\x07\n\x03TSK\x10\x01\x12\x0c\n\x08REGISTRY\x10\x02\x12\n\n\x06MEMORY\x10\x03\"1\n\x07Options\x12\x14\n\x10\x43\x41SE_INSENSITIVE\x10\x00\x12\x10\n\x0c\x43\x41SE_LITERAL\x10\x01\"\xae\x05\n\x10tsk_fs_attr_type\x12\x1c\n\x18TSK_FS_ATTR_TYPE_DEFAULT\x10\x01\x12\x1c\n\x18TSK_FS_ATTR_TYPE_NTFS_SI\x10\x10\x12\"\n\x1eTSK_FS_ATTR_TYPE_NTFS_ATTRLIST\x10 \x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_FNAME\x10\x30\x12\x1e\n\x1aTSK_FS_ATTR_TYPE_NTFS_VVER\x10@\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_OBJID\x10@\x12\x1d\n\x19TSK_FS_ATTR_TYPE_NTFS_SEC\x10P\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_VNAME\x10`\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_VINFO\x10p\x12\x1f\n\x1aTSK_FS_ATTR_TYPE_NTFS_DATA\x10\x80\x01\x12\"\n\x1dTSK_FS_ATTR_TYPE_NTFS_IDXROOT\x10\x90\x01\x12#\n\x1eTSK_FS_ATTR_TYPE_NTFS_IDXALLOC\x10\xa0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_BITMAP\x10\xb0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_SYMLNK\x10\xc0\x01\x12\"\n\x1dTSK_FS_ATTR_TYPE_NTFS_REPARSE\x10\xc0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_EAINFO\x10\xd0\x01\x12\x1d\n\x18TSK_FS_ATTR_TYPE_NTFS_EA\x10\xe0\x01\x12\x1f\n\x1aTSK_FS_ATTR_TYPE_NTFS_PROP\x10\xf0\x01\x12\x1e\n\x19TSK_FS_ATTR_TYPE_NTFS_LOG\x10\x80\x02\x12 \n\x1bTSK_FS_ATTR_TYPE_UNIX_INDIR\x10\x81 \"F\n\x0eListDirRequest\x12\x17\n\x08pathspec\x18\x01 \x01(\x0b\x32\x05.Path\x12\x1b\n\x08iterator\x18\x02 \x01(\x0b\x32\t.Iterator\"\xd6\x04\n\x0cStatResponse\x12\x10\n\x08\x61\x66\x66\x34path\x18\x01 \x01(\t\x12\x0f\n\x07st_mode\x18\x02 \x01(\r\x12\x0e\n\x06st_ino\x18\x03 \x01(\r\x12\x0e\n\x06st_dev\x18\x04 \x01(\r\x12\x10\n\x08st_nlink\x18\x05 \x01(\r\x12\x0e\n\x06st_uid\x18\x06 \x01(\r\x12\x0e\n\x06st_gid\x18\x07 \x01(\r\x12\x0f\n\x07st_size\x18\x08 \x01(\x04\x12\x10\n\x08st_atime\x18\t \x01(\x04\x12\x10\n\x08st_mtime\x18\n \x01(\x04\x12\x10\n\x08st_ctime\x18\x0b \x01(\x04\x12\x11\n\tst_blocks\x18\x0c \x01(\r\x12\x12\n\nst_blksize\x18\r \x01(\r\x12\x0f\n\x07st_rdev\x18\x0e \x01(\r\x12\x0f\n\x07symlink\x18\x0f \x01(\t\x12\x31\n\rregistry_type\x18\x10 \x01(\x0e\x32\x1a.StatResponse.RegistryType\x12\x10\n\x08resident\x18\x11 \x01(\x0c\x12\x17\n\x08pathspec\x18\x12 \x01(\x0b\x32\x05.Path\x12 \n\rregistry_data\x18\x13 \x01(\x0b\x32\t.DataBlob\"\xc0\x01\n\x0cRegistryType\x12\x0c\n\x08REG_NONE\x10\x00\x12\n\n\x06REG_SZ\x10\x01\x12\x11\n\rREG_EXPAND_SZ\x10\x02\x12\x0e\n\nREG_BINARY\x10\x03\x12\r\n\tREG_DWORD\x10\x04\x12\x1b\n\x17REG_DWORD_LITTLE_ENDIAN\x10\x04\x12\x18\n\x14REG_DWORD_BIG_ENDIAN\x10\x05\x12\x0c\n\x08REG_LINK\x10\x06\x12\x10\n\x0cREG_MULTI_SZ\x10\x07\x12\r\n\tREG_QWORD\x10\x0b\"*\n\nCollection\x12\x1c\n\x05items\x18\x01 \x03(\x0b\x32\r.StatResponse\"\x1b\n\nWmiRequest\x12\r\n\x05query\x18\x01 \x01(\t\"6\n\x08KeyValue\x12\x14\n\x01k\x18\x01 \x01(\x0b\x32\t.DataBlob\x12\x14\n\x01v\x18\x02 \x01(\x0b\x32\t.DataBlob\"\x1e\n\x04\x44ict\x12\x16\n\x03\x64\x61t\x18\x01 \x03(\x0b\x32\t.KeyValue\"\x7f\n\x0b\x43\x65rtificate\x12*\n\x04type\x18\x01 \x01(\x0e\x32\x1c.Certificate.CertificateType\x12\x0b\n\x03pem\x18\x02 \x01(\x0c\x12\n\n\x02\x63n\x18\x03 \x01(\t\"+\n\x0f\x43\x65rtificateType\x12\x07\n\x03\x43SR\x10\x00\x12\x07\n\x03\x43RT\x10\x01\x12\x06\n\x02\x43\x41\x10\x02\"h\n\x05Uname\x12\x0e\n\x06system\x18\x01 \x01(\t\x12\x0c\n\x04node\x18\x02 \x01(\t\x12\x0f\n\x07release\x18\x03 \x01(\t\x12\x0f\n\x07version\x18\x04 \x01(\t\x12\x0f\n\x07machine\x18\x05 \x01(\t\x12\x0e\n\x06kernel\x18\x06 \x01(\t\"\x86\x03\n\x11\x46olderInformation\x12\x10\n\x08\x61pp_data\x18\x01 \x01(\t\x12\r\n\x05\x63\x61\x63he\x18\x02 \x01(\t\x12\x0f\n\x07\x63ookies\x18\x03 \x01(\t\x12\x0f\n\x07\x64\x65sktop\x18\x04 \x01(\t\x12\x11\n\tfavorites\x18\x05 \x01(\t\x12\x0f\n\x07history\x18\x06 \x01(\t\x12\x16\n\x0elocal_app_data\x18\x07 \x01(\t\x12\x16\n\x0elocal_settings\x18\x08 \x01(\t\x12\x10\n\x08my_music\x18\t \x01(\t\x12\x13\n\x0bmy_pictures\x18\n \x01(\t\x12\x10\n\x08my_video\x18\x0b \x01(\t\x12\x10\n\x08net_hood\x18\x0c \x01(\t\x12\x10\n\x08personal\x18\r \x01(\t\x12\x12\n\nprint_hood\x18\x0e \x01(\t\x12\x10\n\x08programs\x18\x0f \x01(\t\x12\x0e\n\x06recent\x18\x10 \x01(\t\x12\x0f\n\x07send_to\x18\x11 \x01(\t\x12\x12\n\nstart_menu\x18\x12 \x01(\t\x12\x0f\n\x07startup\x18\x13 \x01(\t\x12\x11\n\ttemplates\x18\x14 \x01(\t\"\xb2\x01\n\x0bUserAccount\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x11\n\tfull_name\x18\x02 \x01(\t\x12\x0f\n\x07\x63omment\x18\x03 \x01(\t\x12\x12\n\nlast_logon\x18\x04 \x01(\x04\x12\x0e\n\x06\x64omain\x18\x05 \x01(\t\x12\x0f\n\x07homedir\x18\x06 \x01(\t\x12\x0b\n\x03sid\x18\x07 \x01(\t\x12+\n\x0fspecial_folders\x18\x08 \x01(\x0b\x32\x12.FolderInformation\"\x99\x01\n\x0eNetworkAddress\x12\x33\n\x0c\x61\x64\x64ress_type\x18\x01 \x01(\x0e\x32\x1d.NetworkAddress.NetworkFamily\x12\x16\n\x0ehuman_readable\x18\x02 \x01(\t\x12\x14\n\x0cpacked_bytes\x18\x03 \x01(\t\"$\n\rNetworkFamily\x12\x08\n\x04INET\x10\x00\x12\t\n\x05INET6\x10\x01\"\x82\x01\n\tInterface\x12\x13\n\x0bmac_address\x18\x01 \x01(\x0c\x12\x15\n\rip4_addresses\x18\x02 \x03(\x0c\x12\x0e\n\x06ifname\x18\x03 \x01(\t\x12\x15\n\rip6_addresses\x18\x04 \x03(\x0c\x12\"\n\taddresses\x18\x05 \x03(\x0b\x32\x0f.NetworkAddress\"Y\n\x11MemoryInformation\x12\x15\n\x06\x64\x65vice\x18\x01 \x01(\x0b\x32\x05.Path\x12 \n\x04runs\x18\x02 \x03(\x0b\x32\x12.BufferReadMessage\x12\x0b\n\x03\x63r3\x18\x03 \x01(\x04\"\xd2\x02\n\tGRRConfig\x12\x1f\n\x17\x66oreman_check_frequency\x18\x01 \x01(\x05\x12\x10\n\x08location\x18\x02 \x01(\t\x12\x15\n\rmax_post_size\x18\x03 \x01(\x05\x12\x15\n\rmax_out_queue\x18\x04 \x01(\x05\x12\x10\n\x08poll_min\x18\x05 \x01(\x02\x12\x10\n\x08poll_max\x18\x06 \x01(\x02\x12\x11\n\tpoll_slew\x18\x07 \x01(\x02\x12\x13\n\x0b\x63ompression\x18\x08 \x01(\t\x12\x0f\n\x07verbose\x18\t \x01(\x08\x12\x0e\n\x06\x63\x61mode\x18\n \x01(\t\x12\x1c\n\x14server_serial_number\x18\x0b \x01(\x05\x12\x0f\n\x07regpath\x18\x0c \x01(\t\x12\x0e\n\x06\x63onfig\x18\r \x01(\t\x12\r\n\x05\x64\x65\x62ug\x18\x0e \x01(\x08\x12\x18\n\x10process_separate\x18\x0f \x01(\x08\x12\x0f\n\x07rss_max\x18\x10 \x01(\x02\"\xe1\x01\n\x10\x46ingerprintTuple\x12\x32\n\x07\x66p_type\x18\x01 \x02(\x0e\x32!.FingerprintTuple.FingerprintType\x12\x32\n\x07hashers\x18\x02 \x03(\x0e\x32!.FingerprintTuple.FingerprintHash\"3\n\x0f\x46ingerprintType\x12\x0f\n\x0b\x46PT_GENERIC\x10\x00\x12\x0f\n\x0b\x46PT_PE_COFF\x10\x01\"0\n\x0f\x46ingerprintHash\x12\x07\n\x03MD5\x10\x00\x12\x08\n\x04SHA1\x10\x01\x12\n\n\x06SHA256\x10\x02\"P\n\x12\x46ingerprintRequest\x12\x17\n\x08pathspec\x18\x01 \x01(\x0b\x32\x05.Path\x12!\n\x06tuples\x18\x02 \x03(\x0b\x32\x11.FingerprintTuple\"t\n\x13\x46ingerprintResponse\x12\x39\n\x0ematching_types\x18\x01 \x03(\x0e\x32!.FingerprintTuple.FingerprintType\x12\"\n\x13\x66ingerprint_results\x18\x02 \x03(\x0b\x32\x05.Dict\"\xe5\x01\n\nSignedBlob\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06\x64igest\x18\x02 \x01(\x0c\x12)\n\x0b\x64igest_type\x18\x03 \x01(\x0e\x32\x14.SignedBlob.HashType\x12\x11\n\tsignature\x18\x04 \x01(\x0c\x12\x31\n\x0esignature_type\x18\x05 \x01(\x0e\x32\x19.SignedBlob.SignatureType\")\n\x08HashType\x12\x07\n\x03MD5\x10\x00\x12\x08\n\x04SHA1\x10\x01\x12\n\n\x06SHA256\x10\x02\"\x1d\n\rSignatureType\x12\x0c\n\x08RSA_2048\x10\x00\"P\n\x14\x45xecutePythonRequest\x12 \n\x0bpython_code\x18\x01 \x01(\x0b\x32\x0b.SignedBlob\x12\x16\n\x07py_args\x18\x02 \x01(\x0b\x32\x05.Dict\">\n\x15\x45xecutePythonResponse\x12\x12\n\nreturn_val\x18\x01 \x01(\x0c\x12\x11\n\ttime_used\x18\x02 \x01(\x05\"y\n\x11VolatilityRequest\x12\x13\n\x04\x61rgs\x18\x01 \x01(\x0b\x32\x05.Dict\x12\x0f\n\x07plugins\x18\x02 \x03(\t\x12\x0f\n\x07profile\x18\x03 \x01(\t\x12\x15\n\x06\x64\x65vice\x18\x04 \x01(\x0b\x32\x05.Path\x12\x16\n\x07session\x18\x05 \x01(\x0b\x32\x05.Dict\"I\n\x10VolatilityHeader\x12\x12\n\nprint_name\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x13\n\x0b\x66ormat_hint\x18\x03 \x01(\t\"x\n\x0fVolatilityValue\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06offset\x18\x03 \x01(\x03\x12\n\n\x02vm\x18\x04 \x01(\t\x12\r\n\x05value\x18\x05 \x01(\x03\x12\x0e\n\x06svalue\x18\x06 \x01(\t\x12\x0e\n\x06reason\x18\x07 \x01(\t\"4\n\x10VolatilityValues\x12 \n\x06values\x18\x01 \x03(\x0b\x32\x10.VolatilityValue\"V\n\x0fVolatilityTable\x12\"\n\x07headers\x18\x01 \x03(\x0b\x32\x11.VolatilityHeader\x12\x1f\n\x04rows\x18\x02 \x03(\x0b\x32\x11.VolatilityValues\"Q\n\x18VolatilityFormattedValue\x12\x14\n\x0c\x66ormatstring\x18\x01 \x01(\t\x12\x1f\n\x04\x64\x61ta\x18\x02 \x01(\x0b\x32\x11.VolatilityValues\"P\n\x19VolatilityFormattedValues\x12\x33\n\x10\x66ormatted_values\x18\x01 \x03(\x0b\x32\x19.VolatilityFormattedValue\"n\n\x11VolatilitySection\x12\x1f\n\x05table\x18\x01 \x01(\x0b\x32\x10.VolatilityTable\x12\x38\n\x14\x66ormatted_value_list\x18\x02 \x01(\x0b\x32\x1a.VolatilityFormattedValues\"Y\n\x12VolatilityResponse\x12$\n\x08sections\x18\x01 \x03(\x0b\x32\x12.VolatilitySection\x12\x0e\n\x06plugin\x18\x02 \x01(\t\x12\r\n\x05\x65rror\x18\x03 \x01(\t\"m\n\x14\x45xecuteBinaryRequest\x12\x1f\n\nexecutable\x18\x01 \x01(\x0b\x32\x0b.SignedBlob\x12\x12\n\nwrite_path\x18\x02 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x03 \x03(\t\x12\x12\n\ntime_limit\x18\x04 \x01(\x05\"_\n\x15\x45xecuteBinaryResponse\x12\x13\n\x0b\x65xit_status\x18\x01 \x01(\x05\x12\x0e\n\x06stdout\x18\x02 \x01(\x0c\x12\x0e\n\x06stderr\x18\x03 \x01(\x0c\x12\x11\n\ttime_used\x18\x04 \x01(\x05\"\x90\x02\n\x14InstallDriverRequest\x12\x1b\n\x06\x64river\x18\x01 \x01(\x0b\x32\x0b.SignedBlob\x12\x12\n\nwrite_path\x18\x02 \x01(\t\x12\x14\n\x0c\x66orce_reload\x18\x03 \x01(\r\x12\x13\n\x0b\x64river_name\x18\x06 \x01(\t\x12\x1b\n\x13\x64river_display_name\x18\x07 \x01(\t\x12\x13\n\x0b\x64\x65vice_path\x18\x08 \x01(\t\x12\x37\n\x04mode\x18\t \x01(\x0e\x32!.InstallDriverRequest.RewriteMode:\x06\x45NABLE\"1\n\x0bRewriteMode\x12\x0b\n\x07\x44ISABLE\x10\x00\x12\n\n\x06\x45NABLE\x10\x01\x12\t\n\x05\x46ORCE\x10\x02\"\x96\x01\n\x0fSendFileRequest\x12\x17\n\x08pathspec\x18\x01 \x01(\x0b\x32\x05.Path\x12\x35\n\x0e\x61\x64\x64ress_family\x18\x02 \x01(\x0e\x32\x1d.NetworkAddress.NetworkFamily\x12\x0c\n\x04host\x18\x03 \x01(\t\x12\x0c\n\x04port\x18\x04 \x01(\r\x12\x0b\n\x03key\x18\x05 \x01(\x0c\x12\n\n\x02iv\x18\x06 \x01(\x0c\"\xa8\x02\n\x0bGrepRequest\x12\x15\n\x06target\x18\x01 \x01(\x0b\x32\x05.Path\x12\x17\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x12\x17\n\x06length\x18\x03 \x01(\x04:\x07\x31\x30\x32\x34\x30\x30\x30\x12\r\n\x05regex\x18\x04 \x01(\t\x12\x0f\n\x07literal\x18\x05 \x01(\x0c\x12)\n\x04mode\x18\x06 \x01(\x0e\x32\x11.GrepRequest.Mode:\x08\x41LL_HITS\x12\x18\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x12\x17\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x12\x15\n\nxor_in_key\x18\t \x01(\r:\x01\x30\x12\x16\n\x0bxor_out_key\x18\n \x01(\r:\x01\x30\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"\xf5\x01\n\x04\x46ind\x12\x1b\n\x08iterator\x18\x01 \x01(\x0b\x32\t.Iterator\x12\x17\n\x08pathspec\x18\x02 \x01(\x0b\x32\x05.Path\x12\x15\n\npath_regex\x18\x03 \x01(\t:\x01.\x12\x15\n\ndata_regex\x18\x04 \x01(\t:\x01.\x12\x12\n\nstart_time\x18\x05 \x01(\x04\x12\x10\n\x08\x65nd_time\x18\x06 \x01(\x04\x12\x15\n\ncross_devs\x18\x07 \x01(\x05:\x01\x30\x12\x15\n\tmax_depth\x18\x08 \x01(\x05:\x02\x31\x35\x12\x1a\n\x03hit\x18\t \x01(\x0b\x32\r.StatResponse\x12\x19\n\x08max_data\x18\n \x01(\x04:\x07\x31\x30\x32\x34\x30\x30\x30\"Y\n\x15\x46oremanAttributeRegex\x12\x0f\n\x04path\x18\x01 \x01(\t:\x01/\x12\x16\n\x0e\x61ttribute_name\x18\x02 \x01(\t\x12\x17\n\x0f\x61ttribute_regex\x18\x03 \x01(\t\"\xc5\x01\n\x17\x46oremanAttributeInteger\x12\x0f\n\x04path\x18\x01 \x01(\t:\x01/\x12\x16\n\x0e\x61ttribute_name\x18\x02 \x01(\t\x12:\n\x08operator\x18\x03 \x01(\x0e\x32!.ForemanAttributeInteger.Operator:\x05\x45QUAL\x12\r\n\x05value\x18\x04 \x01(\x04\"6\n\x08Operator\x12\t\n\x05\x45QUAL\x10\x00\x12\r\n\tLESS_THAN\x10\x01\x12\x10\n\x0cGREATER_THAN\x10\x02\"u\n\x11\x46oremanRuleAction\x12\x11\n\tflow_name\x18\x01 \x01(\t\x12\x13\n\x04\x61rgv\x18\x02 \x01(\x0b\x32\x05.Dict\x12\x11\n\thunt_name\x18\x03 \x01(\t\x12\x0f\n\x07hunt_id\x18\x04 \x01(\t\x12\x14\n\x0c\x63lient_limit\x18\x05 \x01(\r\"F\n\tHuntError\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x13\n\x0blog_message\x18\x02 \x01(\t\x12\x11\n\tbacktrace\x18\x03 \x01(\t\">\n\x07HuntLog\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x13\n\x0blog_message\x18\x02 \x01(\t\x12\x0b\n\x03urn\x18\x03 \x01(\t\"t\n\x0f\x43lientResources\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x12\n\nsession_id\x18\x02 \x01(\t\x12\x1e\n\tcpu_usage\x18\x03 \x01(\x0b\x32\x0b.CpuSeconds\x12\x1a\n\x12network_bytes_sent\x18\x04 \x01(\x04\"\xc7\x01\n\x0b\x46oremanRule\x12+\n\x0bregex_rules\x18\x01 \x03(\x0b\x32\x16.ForemanAttributeRegex\x12/\n\rinteger_rules\x18\x02 \x03(\x0b\x32\x18.ForemanAttributeInteger\x12#\n\x07\x61\x63tions\x18\x03 \x03(\x0b\x32\x12.ForemanRuleAction\x12\x0f\n\x07\x63reated\x18\x04 \x01(\x04\x12\x0f\n\x07\x65xpires\x18\x05 \x01(\x04\x12\x13\n\x0b\x64\x65scription\x18\x06 \x01(\t\"\x9a\x01\n\x08Iterator\x12\x1b\n\x0c\x63lient_state\x18\x01 \x01(\x0b\x32\x05.Dict\x12\x0f\n\x04skip\x18\x02 \x01(\r:\x01\x30\x12\x13\n\x06number\x18\x03 \x01(\r:\x03\x31\x30\x30\x12\'\n\x05state\x18\x04 \x01(\x0e\x32\x0f.Iterator.State:\x07RUNNING\"\"\n\x05State\x12\x0b\n\x07RUNNING\x10\x00\x12\x0c\n\x08\x46INISHED\x10\x01\"P\n\x14IteratedStatResponse\x12\x1b\n\x04stat\x18\x01 \x01(\x0b\x32\r.StatResponse\x12\x1b\n\x08iterator\x18\x02 \x01(\x0b\x32\t.Iterator\"\x12\n\x03URN\x12\x0b\n\x03urn\x18\x01 \x01(\t\"a\n\x0cNotification\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0f\n\x07subject\x18\x02 \x01(\t\x12\x0f\n\x07message\x18\x03 \x01(\t\x12\x0e\n\x06source\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\x04\"3\n\x08RDFValue\x12\x0b\n\x03\x61ge\x18\x01 \x01(\x04\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x03 \x01(\x0c\"K\n\x11\x41\x46\x46\x34ObjectSummary\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0b\n\x03urn\x18\x02 \x01(\t\x12\x1b\n\x04stat\x18\x03 \x01(\x0b\x32\r.StatResponse\"\x0e\n\x0c\x45mptyMessage')
+  serialized_pb='\n\x14grr/proto/jobs.proto\"\xb7\x01\n\x0bHttpRequest\x12\x13\n\x0braw_headers\x18\x01 \x01(\t\x12\x12\n\nuser_agent\x18\x02 \x01(\t\x12\x11\n\tsource_ip\x18\x03 \x01(\t\x12\x0b\n\x03url\x18\x04 \x01(\t\x12\x17\n\x04user\x18\x05 \x01(\t:\tanonymous\x12\x11\n\ttimestamp\x18\x06 \x01(\x04\x12\x13\n\x06method\x18\x07 \x01(\t:\x03GET\x12\x10\n\x08referrer\x18\x08 \x01(\t\x12\x0c\n\x04size\x18\t \x01(\x04\"\xac\x05\n\nGrrMessage\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x12\n\nrequest_id\x18\x02 \x01(\x04\x12\x13\n\x0bresponse_id\x18\x03 \x01(\x04\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x05 \x01(\x0c\x12\x0e\n\x06source\x18\x06 \x01(\t\x12\x43\n\nauth_state\x18\x07 \x01(\x0e\x32\x1e.GrrMessage.AuthorizationState:\x0fUNAUTHENTICATED\x12\'\n\x04type\x18\x08 \x01(\x0e\x32\x10.GrrMessage.Type:\x07MESSAGE\x12\x37\n\x08priority\x18\t \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITY\x12\x0f\n\x03ttl\x18\n \x01(\r:\x02\x31\x30\x12\x1e\n\x10require_fastpoll\x18\x0b \x01(\x08:\x04true\x12\x17\n\tcpu_limit\x18\x0c \x01(\x04:\x04\x33\x36\x30\x30\x12\x10\n\x08\x61rgs_age\x18\r \x01(\x04\x12\x15\n\rargs_rdf_name\x18\x0e \x01(\t\x12\x0f\n\x07task_id\x18\x0f \x01(\x04\x12\x13\n\x08task_ttl\x18\x10 \x01(\x05:\x01\x35\x12\r\n\x05queue\x18\x11 \x01(\t\x12\x0b\n\x03\x65ta\x18\x12 \x01(\x04\x12\x12\n\nlast_lease\x18\x13 \x01(\t\"P\n\x12\x41uthorizationState\x12\x13\n\x0fUNAUTHENTICATED\x10\x00\x12\x11\n\rAUTHENTICATED\x10\x01\x12\x12\n\x0e\x44\x45SYNCHRONIZED\x10\x02\"-\n\x04Type\x12\x0b\n\x07MESSAGE\x10\x00\x12\n\n\x06STATUS\x10\x01\x12\x0c\n\x08ITERATOR\x10\x02\"D\n\x08Priority\x12\x10\n\x0cLOW_PRIORITY\x10\x00\x12\x13\n\x0fMEDIUM_PRIORITY\x10\x01\x12\x11\n\rHIGH_PRIORITY\x10\x02\"\'\n\x0bMessageList\x12\x18\n\x03job\x18\x01 \x03(\x0b\x32\x0b.GrrMessage\"\xdd\x01\n\x11SignedMessageList\x12\x14\n\x0cmessage_list\x18\x01 \x01(\x0c\x12\x11\n\tsignature\x18\x02 \x01(\x0c\x12\x0e\n\x06source\x18\x03 \x01(\t\x12\x45\n\x0b\x63ompression\x18\x04 \x01(\x0e\x32\".SignedMessageList.CompressionType:\x0cUNCOMPRESSED\x12\x11\n\ttimestamp\x18\x06 \x01(\x04\"5\n\x0f\x43ompressionType\x12\x10\n\x0cUNCOMPRESSED\x10\x00\x12\x10\n\x0cZCOMPRESSION\x10\x01\"K\n\x10\x43ipherProperties\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0b\n\x03key\x18\x02 \x02(\x0c\x12\n\n\x02iv\x18\x03 \x01(\x0c\x12\x10\n\x08hmac_key\x18\x05 \x01(\x0c\"3\n\x0e\x43ipherMetadata\x12\x0e\n\x06source\x18\x01 \x01(\t\x12\x11\n\tsignature\x18\x02 \x01(\x0c\"\xd2\x02\n\x13\x43lientCommunication\x12\x11\n\tencrypted\x18\x01 \x01(\x0c\x12\x18\n\x10\x65ncrypted_cipher\x18\x02 \x01(\x0c\x12!\n\x19\x65ncrypted_cipher_metadata\x18\t \x01(\x0c\x12\n\n\x02iv\x18\x08 \x01(\x0c\x12\"\n\x0corig_request\x18\x03 \x01(\x0b\x32\x0c.HttpRequest\x12\x15\n\nqueue_size\x18\x04 \x01(\r:\x01\x30\x12<\n\x06status\x18\x05 \x01(\x0e\x32(.ClientCommunication.CommunicationStatus:\x02OK\x12\x13\n\x0b\x61pi_version\x18\x06 \x01(\r\x12\x0c\n\x04hmac\x18\x07 \x01(\x0c\"C\n\x13\x43ommunicationStatus\x12\x07\n\x02OK\x10\xc8\x01\x12\x10\n\x0b\x42\x41\x44_REQUEST\x10\x90\x03\x12\x11\n\x0c\x43IPHER_ERROR\x10\x96\x03\"\xc2\x02\n\tGrrStatus\x12-\n\x06status\x18\x01 \x01(\x0e\x32\x19.GrrStatus.ReturnedStatus:\x02OK\x12\x17\n\rerror_message\x18\x02 \x01(\t:\x00\x12\x13\n\tbacktrace\x18\x03 \x01(\t:\x00\x12\"\n\rcpu_time_used\x18\x04 \x01(\x0b\x32\x0b.CpuSeconds\x12\x18\n\x10\x63hild_session_id\x18\x05 \x01(\t\x12\x1a\n\x12network_bytes_sent\x18\x06 \x01(\x04\x12\x14\n\x0cnanny_status\x18\x07 \x01(\t\"h\n\x0eReturnedStatus\x12\x06\n\x02OK\x10\x00\x12\x0b\n\x07IOERROR\x10\x01\x12\x1b\n\x17RETRANSMISSION_DETECTED\x10\x02\x12\x11\n\rCLIENT_KILLED\x10\x03\x12\x11\n\rGENERIC_ERROR\x10\n\"\x96\x01\n\x10HuntNotification\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x11\n\tclient_id\x18\x02 \x01(\t\x12(\n\x06status\x18\x03 \x01(\x0e\x32\x18.HuntNotification.Status\"1\n\x06Status\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x06\n\x02OK\x10\x01\x12\t\n\x05\x45RROR\x10\x02\x12\x07\n\x03\x42\x41\x44\x10\x03\"\xa0\x01\n\x10\x46lowNotification\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x11\n\tflow_name\x18\x02 \x01(\t\x12\x11\n\tclient_id\x18\x03 \x01(\t\x12(\n\x06status\x18\x04 \x01(\x0e\x32\x18.FlowNotification.Status\"(\n\x06Status\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x06\n\x02OK\x10\x01\x12\t\n\x05\x45RROR\x10\x02\"f\n\x11\x43lientInformation\x12\x13\n\x0b\x63lient_name\x18\x01 \x01(\t\x12\x16\n\x0e\x63lient_version\x18\x02 \x01(\r\x12\x10\n\x08revision\x18\x03 \x01(\x04\x12\x12\n\nbuild_time\x18\x04 \x01(\t\"\x9a\x01\n\x04Task\x12\n\n\x02id\x18\x01 \x01(\x04\x12\r\n\x05value\x18\x02 \x01(\x0c\x12\x0e\n\x03ttl\x18\x03 \x01(\x05:\x01\x35\x12\x0b\n\x03\x65ta\x18\x04 \x01(\x04\x12\r\n\x05queue\x18\x05 \x01(\t\x12\x37\n\x08priority\x18\x06 \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITY\x12\x12\n\nlast_lease\x18\x07 \x01(\t\"\xbd\x02\n\x08\x44\x61taBlob\x12\x0f\n\x07integer\x18\x01 \x01(\x03\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\x12\x0e\n\x06string\x18\x03 \x01(\t\x12\x12\n\nproto_name\x18\x04 \x01(\t\x12\x0c\n\x04none\x18\x05 \x01(\t\x12\x0f\n\x07\x62oolean\x18\x06 \x01(\x08\x12\x18\n\x04list\x18\x08 \x01(\x0b\x32\n.BlobArray\x12\x13\n\x04\x64ict\x18\t \x01(\x0b\x32\x05.Dict\x12\x1c\n\trdf_value\x18\n \x01(\x0b\x32\t.RDFValue\x12\r\n\x05\x66loat\x18\x0b \x01(\x02\x12<\n\x0b\x63ompression\x18\x07 \x01(\x0e\x32\x19.DataBlob.CompressionType:\x0cUNCOMPRESSED\"5\n\x0f\x43ompressionType\x12\x10\n\x0cUNCOMPRESSED\x10\x00\x12\x10\n\x0cZCOMPRESSION\x10\x01\"\'\n\tBlobArray\x12\x1a\n\x07\x63ontent\x18\x01 \x03(\x0b\x32\t.DataBlob\"+\n\x08PrintStr\x12\x11\n\x05level\x18\x01 \x01(\x05:\x02\x31\x30\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\t\"r\n\x11\x42ufferReadMessage\x12\x11\n\x06offset\x18\x01 \x01(\x04:\x01\x30\x12\x11\n\x06length\x18\x02 \x01(\x04:\x01\x30\x12\x10\n\x08\x63\x61llback\x18\x03 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\x12\x17\n\x08pathspec\x18\x06 \x01(\x0b\x32\x05.Path\"\x80\x02\n\x0cRequestState\x12\n\n\x02id\x18\x01 \x02(\r\x12\r\n\x05ts_id\x18\x02 \x01(\x04\x12\x12\n\nnext_state\x18\x03 \x01(\t\x12\x1a\n\x06status\x18\x04 \x01(\x0b\x32\n.GrrStatus\x12\x13\n\x04\x64\x61ta\x18\x05 \x01(\x0b\x32\x05.Dict\x12\x19\n\x0eresponse_count\x18\x06 \x01(\r:\x01\x30\x12\x1d\n\x12transmission_count\x18\x07 \x01(\r:\x01\x30\x12\x11\n\tclient_id\x18\x08 \x01(\t\x12\x12\n\nsession_id\x18\t \x01(\t\x12\x1c\n\x07request\x18\n \x01(\x0b\x32\x0b.GrrMessage\x12\x11\n\tflow_name\x18\x0b \x01(\t\"\xc0\x04\n\x06\x46lowPB\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0e\n\x06pickle\x18\x02 \x01(\x0c\x12\r\n\x05ts_id\x18\x03 \x01(\x04\x12)\n\x05state\x18\x04 \x01(\x0e\x32\x11.FlowPB.FlowState:\x07RUNNING\x12\x12\n\nsession_id\x18\x05 \x01(\t\x12\x1f\n\x14outstanding_requests\x18\x06 \x01(\r:\x01\x30\x12\x0f\n\x07\x63reator\x18\x07 \x01(\t\x12\x11\n\tbacktrace\x18\x08 \x01(\t\x12\x16\n\x0b\x63reate_time\x18\t \x01(\x04:\x01\x30\x12\x13\n\x08progress\x18\n \x01(\x05:\x01\x30\x12\x13\n\x04\x61rgs\x18\x0b \x01(\x0b\x32\x05.Dict\x12\x10\n\x08\x65vent_id\x18\x0c \x01(\t\x12$\n\rrequest_state\x18\x0e \x01(\x0b\x32\r.RequestState\x12\x0e\n\x06status\x18\x0f \x01(\t\x12\x10\n\x08\x63hildren\x18\x10 \x03(\t\x12\x11\n\tclient_id\x18\x11 \x01(\t\x12\x1d\n\x08\x63pu_used\x18\x12 \x01(\x0b\x32\x0b.CpuSeconds\x12\x1a\n\x12network_bytes_sent\x18\x13 \x01(\x04\x12&\n\x08priority\x18\x14 \x01(\x0e\x32\x14.GrrMessage.Priority\x12\x11\n\tcpu_quota\x18\x15 \x01(\x02\x12\x1b\n\x13remaining_cpu_quota\x18\x16 \x01(\x02\"C\n\tFlowState\x12\x0b\n\x07RUNNING\x10\x00\x12\x0e\n\nTERMINATED\x10\x01\x12\t\n\x05\x45RROR\x10\x03\x12\x0e\n\nWELL_KNOWN\x10\x02\"<\n\nCpuSeconds\x12\x15\n\ruser_cpu_time\x18\x01 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x02 \x01(\x02\"c\n\tCpuSample\x12\x15\n\ruser_cpu_time\x18\x01 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x02 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x03 \x01(\x02\x12\x11\n\ttimestamp\x18\x04 \x01(\x04\"o\n\x08IOSample\x12\x12\n\nread_count\x18\x01 \x01(\x04\x12\x13\n\x0bwrite_count\x18\x02 \x01(\x04\x12\x12\n\nread_bytes\x18\x03 \x01(\x04\x12\x13\n\x0bwrite_bytes\x18\x04 \x01(\x04\x12\x11\n\ttimestamp\x18\x05 \x01(\x04\"\xdd\x01\n\x0b\x43lientStats\x12\x1f\n\x0b\x63pu_samples\x18\x01 \x03(\x0b\x32\n.CpuSample\x12\x10\n\x08RSS_size\x18\x02 \x01(\x04\x12\x10\n\x08VMS_size\x18\x03 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x04 \x01(\x02\x12\x16\n\x0e\x62ytes_received\x18\x05 \x01(\x04\x12\x12\n\nbytes_sent\x18\x06 \x01(\x04\x12\x1d\n\nio_samples\x18\x07 \x03(\x0b\x32\t.IOSample\x12\x13\n\x0b\x63reate_time\x18\x08 \x01(\x04\x12\x11\n\tboot_time\x18\t \x01(\x04\"I\n\x0bStartupInfo\x12\'\n\x0b\x63lient_info\x18\x01 \x01(\x0b\x32\x12.ClientInformation\x12\x11\n\tboot_time\x18\x02 \x01(\x04\"?\n\x0e\x45xecuteRequest\x12\x0b\n\x03\x63md\x18\x01 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x02 \x03(\t\x12\x12\n\ntime_limit\x18\x03 \x01(\x05\"{\n\x0f\x45xecuteResponse\x12 \n\x07request\x18\x01 \x01(\x0b\x32\x0f.ExecuteRequest\x12\x13\n\x0b\x65xit_status\x18\x02 \x01(\x05\x12\x0e\n\x06stdout\x18\x03 \x01(\x0c\x12\x0e\n\x06stderr\x18\x04 \x01(\x0c\x12\x11\n\ttime_used\x18\x05 \x01(\x05\"\xc9\x08\n\x04Path\x12\'\n\x08pathtype\x18\x01 \x01(\x0e\x32\x0e.Path.PathType:\x05UNSET\x12\x0c\n\x04path\x18\x02 \x01(\t\x12\x13\n\x0bmount_point\x18\x03 \x01(\t\x12\x1a\n\x0bnested_path\x18\x05 \x01(\x0b\x32\x05.Path\x12\x0e\n\x06offset\x18\x06 \x01(\x04\x12\x35\n\x0cpath_options\x18\x07 \x01(\x0e\x32\r.Path.Options:\x10\x43\x41SE_INSENSITIVE\x12\r\n\x05inode\x18\x08 \x01(\x04\x12\x43\n\tntfs_type\x18\t \x01(\x0e\x32\x16.Path.tsk_fs_attr_type:\x18TSK_FS_ATTR_TYPE_DEFAULT\x12\x0f\n\x07ntfs_id\x18\n \x01(\x04\"I\n\x08PathType\x12\x12\n\x05UNSET\x10\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x12\x06\n\x02OS\x10\x00\x12\x07\n\x03TSK\x10\x01\x12\x0c\n\x08REGISTRY\x10\x02\x12\n\n\x06MEMORY\x10\x03\"1\n\x07Options\x12\x14\n\x10\x43\x41SE_INSENSITIVE\x10\x00\x12\x10\n\x0c\x43\x41SE_LITERAL\x10\x01\"\xae\x05\n\x10tsk_fs_attr_type\x12\x1c\n\x18TSK_FS_ATTR_TYPE_DEFAULT\x10\x01\x12\x1c\n\x18TSK_FS_ATTR_TYPE_NTFS_SI\x10\x10\x12\"\n\x1eTSK_FS_ATTR_TYPE_NTFS_ATTRLIST\x10 \x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_FNAME\x10\x30\x12\x1e\n\x1aTSK_FS_ATTR_TYPE_NTFS_VVER\x10@\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_OBJID\x10@\x12\x1d\n\x19TSK_FS_ATTR_TYPE_NTFS_SEC\x10P\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_VNAME\x10`\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_VINFO\x10p\x12\x1f\n\x1aTSK_FS_ATTR_TYPE_NTFS_DATA\x10\x80\x01\x12\"\n\x1dTSK_FS_ATTR_TYPE_NTFS_IDXROOT\x10\x90\x01\x12#\n\x1eTSK_FS_ATTR_TYPE_NTFS_IDXALLOC\x10\xa0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_BITMAP\x10\xb0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_SYMLNK\x10\xc0\x01\x12\"\n\x1dTSK_FS_ATTR_TYPE_NTFS_REPARSE\x10\xc0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_EAINFO\x10\xd0\x01\x12\x1d\n\x18TSK_FS_ATTR_TYPE_NTFS_EA\x10\xe0\x01\x12\x1f\n\x1aTSK_FS_ATTR_TYPE_NTFS_PROP\x10\xf0\x01\x12\x1e\n\x19TSK_FS_ATTR_TYPE_NTFS_LOG\x10\x80\x02\x12 \n\x1bTSK_FS_ATTR_TYPE_UNIX_INDIR\x10\x81 \"F\n\x0eListDirRequest\x12\x17\n\x08pathspec\x18\x01 \x01(\x0b\x32\x05.Path\x12\x1b\n\x08iterator\x18\x02 \x01(\x0b\x32\t.Iterator\"\xd6\x04\n\x0cStatResponse\x12\x10\n\x08\x61\x66\x66\x34path\x18\x01 \x01(\t\x12\x0f\n\x07st_mode\x18\x02 \x01(\r\x12\x0e\n\x06st_ino\x18\x03 \x01(\r\x12\x0e\n\x06st_dev\x18\x04 \x01(\r\x12\x10\n\x08st_nlink\x18\x05 \x01(\r\x12\x0e\n\x06st_uid\x18\x06 \x01(\r\x12\x0e\n\x06st_gid\x18\x07 \x01(\r\x12\x0f\n\x07st_size\x18\x08 \x01(\x04\x12\x10\n\x08st_atime\x18\t \x01(\x04\x12\x10\n\x08st_mtime\x18\n \x01(\x04\x12\x10\n\x08st_ctime\x18\x0b \x01(\x04\x12\x11\n\tst_blocks\x18\x0c \x01(\r\x12\x12\n\nst_blksize\x18\r \x01(\r\x12\x0f\n\x07st_rdev\x18\x0e \x01(\r\x12\x0f\n\x07symlink\x18\x0f \x01(\t\x12\x31\n\rregistry_type\x18\x10 \x01(\x0e\x32\x1a.StatResponse.RegistryType\x12\x10\n\x08resident\x18\x11 \x01(\x0c\x12\x17\n\x08pathspec\x18\x12 \x01(\x0b\x32\x05.Path\x12 \n\rregistry_data\x18\x13 \x01(\x0b\x32\t.DataBlob\"\xc0\x01\n\x0cRegistryType\x12\x0c\n\x08REG_NONE\x10\x00\x12\n\n\x06REG_SZ\x10\x01\x12\x11\n\rREG_EXPAND_SZ\x10\x02\x12\x0e\n\nREG_BINARY\x10\x03\x12\r\n\tREG_DWORD\x10\x04\x12\x1b\n\x17REG_DWORD_LITTLE_ENDIAN\x10\x04\x12\x18\n\x14REG_DWORD_BIG_ENDIAN\x10\x05\x12\x0c\n\x08REG_LINK\x10\x06\x12\x10\n\x0cREG_MULTI_SZ\x10\x07\x12\r\n\tREG_QWORD\x10\x0b\"*\n\nCollection\x12\x1c\n\x05items\x18\x01 \x03(\x0b\x32\r.StatResponse\"\x1b\n\nWmiRequest\x12\r\n\x05query\x18\x01 \x01(\t\"6\n\x08KeyValue\x12\x14\n\x01k\x18\x01 \x01(\x0b\x32\t.DataBlob\x12\x14\n\x01v\x18\x02 \x01(\x0b\x32\t.DataBlob\"\x1e\n\x04\x44ict\x12\x16\n\x03\x64\x61t\x18\x01 \x03(\x0b\x32\t.KeyValue\"\x7f\n\x0b\x43\x65rtificate\x12*\n\x04type\x18\x01 \x01(\x0e\x32\x1c.Certificate.CertificateType\x12\x0b\n\x03pem\x18\x02 \x01(\x0c\x12\n\n\x02\x63n\x18\x03 \x01(\t\"+\n\x0f\x43\x65rtificateType\x12\x07\n\x03\x43SR\x10\x00\x12\x07\n\x03\x43RT\x10\x01\x12\x06\n\x02\x43\x41\x10\x02\"h\n\x05Uname\x12\x0e\n\x06system\x18\x01 \x01(\t\x12\x0c\n\x04node\x18\x02 \x01(\t\x12\x0f\n\x07release\x18\x03 \x01(\t\x12\x0f\n\x07version\x18\x04 \x01(\t\x12\x0f\n\x07machine\x18\x05 \x01(\t\x12\x0e\n\x06kernel\x18\x06 \x01(\t\"\x86\x03\n\x11\x46olderInformation\x12\x10\n\x08\x61pp_data\x18\x01 \x01(\t\x12\r\n\x05\x63\x61\x63he\x18\x02 \x01(\t\x12\x0f\n\x07\x63ookies\x18\x03 \x01(\t\x12\x0f\n\x07\x64\x65sktop\x18\x04 \x01(\t\x12\x11\n\tfavorites\x18\x05 \x01(\t\x12\x0f\n\x07history\x18\x06 \x01(\t\x12\x16\n\x0elocal_app_data\x18\x07 \x01(\t\x12\x16\n\x0elocal_settings\x18\x08 \x01(\t\x12\x10\n\x08my_music\x18\t \x01(\t\x12\x13\n\x0bmy_pictures\x18\n \x01(\t\x12\x10\n\x08my_video\x18\x0b \x01(\t\x12\x10\n\x08net_hood\x18\x0c \x01(\t\x12\x10\n\x08personal\x18\r \x01(\t\x12\x12\n\nprint_hood\x18\x0e \x01(\t\x12\x10\n\x08programs\x18\x0f \x01(\t\x12\x0e\n\x06recent\x18\x10 \x01(\t\x12\x0f\n\x07send_to\x18\x11 \x01(\t\x12\x12\n\nstart_menu\x18\x12 \x01(\t\x12\x0f\n\x07startup\x18\x13 \x01(\t\x12\x11\n\ttemplates\x18\x14 \x01(\t\"\xb2\x01\n\x0bUserAccount\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x11\n\tfull_name\x18\x02 \x01(\t\x12\x0f\n\x07\x63omment\x18\x03 \x01(\t\x12\x12\n\nlast_logon\x18\x04 \x01(\x04\x12\x0e\n\x06\x64omain\x18\x05 \x01(\t\x12\x0f\n\x07homedir\x18\x06 \x01(\t\x12\x0b\n\x03sid\x18\x07 \x01(\t\x12+\n\x0fspecial_folders\x18\x08 \x01(\x0b\x32\x12.FolderInformation\"\x99\x01\n\x0eNetworkAddress\x12\x33\n\x0c\x61\x64\x64ress_type\x18\x01 \x01(\x0e\x32\x1d.NetworkAddress.NetworkFamily\x12\x16\n\x0ehuman_readable\x18\x02 \x01(\t\x12\x14\n\x0cpacked_bytes\x18\x03 \x01(\t\"$\n\rNetworkFamily\x12\x08\n\x04INET\x10\x00\x12\t\n\x05INET6\x10\x01\"\x82\x01\n\tInterface\x12\x13\n\x0bmac_address\x18\x01 \x01(\x0c\x12\x15\n\rip4_addresses\x18\x02 \x03(\x0c\x12\x0e\n\x06ifname\x18\x03 \x01(\t\x12\x15\n\rip6_addresses\x18\x04 \x03(\x0c\x12\"\n\taddresses\x18\x05 \x03(\x0b\x32\x0f.NetworkAddress\"Y\n\x11MemoryInformation\x12\x15\n\x06\x64\x65vice\x18\x01 \x01(\x0b\x32\x05.Path\x12 \n\x04runs\x18\x02 \x03(\x0b\x32\x12.BufferReadMessage\x12\x0b\n\x03\x63r3\x18\x03 \x01(\x04\"\xd2\x02\n\tGRRConfig\x12\x1f\n\x17\x66oreman_check_frequency\x18\x01 \x01(\x05\x12\x10\n\x08location\x18\x02 \x01(\t\x12\x15\n\rmax_post_size\x18\x03 \x01(\x05\x12\x15\n\rmax_out_queue\x18\x04 \x01(\x05\x12\x10\n\x08poll_min\x18\x05 \x01(\x02\x12\x10\n\x08poll_max\x18\x06 \x01(\x02\x12\x11\n\tpoll_slew\x18\x07 \x01(\x02\x12\x13\n\x0b\x63ompression\x18\x08 \x01(\t\x12\x0f\n\x07verbose\x18\t \x01(\x08\x12\x0e\n\x06\x63\x61mode\x18\n \x01(\t\x12\x1c\n\x14server_serial_number\x18\x0b \x01(\x05\x12\x0f\n\x07regpath\x18\x0c \x01(\t\x12\x0e\n\x06\x63onfig\x18\r \x01(\t\x12\r\n\x05\x64\x65\x62ug\x18\x0e \x01(\x08\x12\x18\n\x10process_separate\x18\x0f \x01(\x08\x12\x0f\n\x07rss_max\x18\x10 \x01(\x02\"\xe1\x01\n\x10\x46ingerprintTuple\x12\x32\n\x07\x66p_type\x18\x01 \x02(\x0e\x32!.FingerprintTuple.FingerprintType\x12\x32\n\x07hashers\x18\x02 \x03(\x0e\x32!.FingerprintTuple.FingerprintHash\"3\n\x0f\x46ingerprintType\x12\x0f\n\x0b\x46PT_GENERIC\x10\x00\x12\x0f\n\x0b\x46PT_PE_COFF\x10\x01\"0\n\x0f\x46ingerprintHash\x12\x07\n\x03MD5\x10\x00\x12\x08\n\x04SHA1\x10\x01\x12\n\n\x06SHA256\x10\x02\"P\n\x12\x46ingerprintRequest\x12\x17\n\x08pathspec\x18\x01 \x01(\x0b\x32\x05.Path\x12!\n\x06tuples\x18\x02 \x03(\x0b\x32\x11.FingerprintTuple\"t\n\x13\x46ingerprintResponse\x12\x39\n\x0ematching_types\x18\x01 \x03(\x0e\x32!.FingerprintTuple.FingerprintType\x12\"\n\x13\x66ingerprint_results\x18\x02 \x03(\x0b\x32\x05.Dict\"\xe5\x01\n\nSignedBlob\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06\x64igest\x18\x02 \x01(\x0c\x12)\n\x0b\x64igest_type\x18\x03 \x01(\x0e\x32\x14.SignedBlob.HashType\x12\x11\n\tsignature\x18\x04 \x01(\x0c\x12\x31\n\x0esignature_type\x18\x05 \x01(\x0e\x32\x19.SignedBlob.SignatureType\")\n\x08HashType\x12\x07\n\x03MD5\x10\x00\x12\x08\n\x04SHA1\x10\x01\x12\n\n\x06SHA256\x10\x02\"\x1d\n\rSignatureType\x12\x0c\n\x08RSA_2048\x10\x00\"P\n\x14\x45xecutePythonRequest\x12 \n\x0bpython_code\x18\x01 \x01(\x0b\x32\x0b.SignedBlob\x12\x16\n\x07py_args\x18\x02 \x01(\x0b\x32\x05.Dict\">\n\x15\x45xecutePythonResponse\x12\x12\n\nreturn_val\x18\x01 \x01(\x0c\x12\x11\n\ttime_used\x18\x02 \x01(\x05\"y\n\x11VolatilityRequest\x12\x13\n\x04\x61rgs\x18\x01 \x01(\x0b\x32\x05.Dict\x12\x0f\n\x07plugins\x18\x02 \x03(\t\x12\x0f\n\x07profile\x18\x03 \x01(\t\x12\x15\n\x06\x64\x65vice\x18\x04 \x01(\x0b\x32\x05.Path\x12\x16\n\x07session\x18\x05 \x01(\x0b\x32\x05.Dict\"I\n\x10VolatilityHeader\x12\x12\n\nprint_name\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x13\n\x0b\x66ormat_hint\x18\x03 \x01(\t\"x\n\x0fVolatilityValue\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06offset\x18\x03 \x01(\x03\x12\n\n\x02vm\x18\x04 \x01(\t\x12\r\n\x05value\x18\x05 \x01(\x03\x12\x0e\n\x06svalue\x18\x06 \x01(\t\x12\x0e\n\x06reason\x18\x07 \x01(\t\"4\n\x10VolatilityValues\x12 \n\x06values\x18\x01 \x03(\x0b\x32\x10.VolatilityValue\"V\n\x0fVolatilityTable\x12\"\n\x07headers\x18\x01 \x03(\x0b\x32\x11.VolatilityHeader\x12\x1f\n\x04rows\x18\x02 \x03(\x0b\x32\x11.VolatilityValues\"Q\n\x18VolatilityFormattedValue\x12\x14\n\x0c\x66ormatstring\x18\x01 \x01(\t\x12\x1f\n\x04\x64\x61ta\x18\x02 \x01(\x0b\x32\x11.VolatilityValues\"P\n\x19VolatilityFormattedValues\x12\x33\n\x10\x66ormatted_values\x18\x01 \x03(\x0b\x32\x19.VolatilityFormattedValue\"n\n\x11VolatilitySection\x12\x1f\n\x05table\x18\x01 \x01(\x0b\x32\x10.VolatilityTable\x12\x38\n\x14\x66ormatted_value_list\x18\x02 \x01(\x0b\x32\x1a.VolatilityFormattedValues\"Y\n\x12VolatilityResponse\x12$\n\x08sections\x18\x01 \x03(\x0b\x32\x12.VolatilitySection\x12\x0e\n\x06plugin\x18\x02 \x01(\t\x12\r\n\x05\x65rror\x18\x03 \x01(\t\"m\n\x14\x45xecuteBinaryRequest\x12\x1f\n\nexecutable\x18\x01 \x01(\x0b\x32\x0b.SignedBlob\x12\x12\n\nwrite_path\x18\x02 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x03 \x03(\t\x12\x12\n\ntime_limit\x18\x04 \x01(\x05\"_\n\x15\x45xecuteBinaryResponse\x12\x13\n\x0b\x65xit_status\x18\x01 \x01(\x05\x12\x0e\n\x06stdout\x18\x02 \x01(\x0c\x12\x0e\n\x06stderr\x18\x03 \x01(\x0c\x12\x11\n\ttime_used\x18\x04 \x01(\x05\"\x90\x02\n\x14InstallDriverRequest\x12\x1b\n\x06\x64river\x18\x01 \x01(\x0b\x32\x0b.SignedBlob\x12\x12\n\nwrite_path\x18\x02 \x01(\t\x12\x14\n\x0c\x66orce_reload\x18\x03 \x01(\r\x12\x13\n\x0b\x64river_name\x18\x06 \x01(\t\x12\x1b\n\x13\x64river_display_name\x18\x07 \x01(\t\x12\x13\n\x0b\x64\x65vice_path\x18\x08 \x01(\t\x12\x37\n\x04mode\x18\t \x01(\x0e\x32!.InstallDriverRequest.RewriteMode:\x06\x45NABLE\"1\n\x0bRewriteMode\x12\x0b\n\x07\x44ISABLE\x10\x00\x12\n\n\x06\x45NABLE\x10\x01\x12\t\n\x05\x46ORCE\x10\x02\"\x96\x01\n\x0fSendFileRequest\x12\x17\n\x08pathspec\x18\x01 \x01(\x0b\x32\x05.Path\x12\x35\n\x0e\x61\x64\x64ress_family\x18\x02 \x01(\x0e\x32\x1d.NetworkAddress.NetworkFamily\x12\x0c\n\x04host\x18\x03 \x01(\t\x12\x0c\n\x04port\x18\x04 \x01(\r\x12\x0b\n\x03key\x18\x05 \x01(\x0c\x12\n\n\x02iv\x18\x06 \x01(\x0c\"\xa8\x02\n\x0bGrepRequest\x12\x15\n\x06target\x18\x01 \x01(\x0b\x32\x05.Path\x12\x17\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x12\x17\n\x06length\x18\x03 \x01(\x04:\x07\x31\x30\x32\x34\x30\x30\x30\x12\r\n\x05regex\x18\x04 \x01(\t\x12\x0f\n\x07literal\x18\x05 \x01(\x0c\x12)\n\x04mode\x18\x06 \x01(\x0e\x32\x11.GrepRequest.Mode:\x08\x41LL_HITS\x12\x18\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x12\x17\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x12\x15\n\nxor_in_key\x18\t \x01(\r:\x01\x30\x12\x16\n\x0bxor_out_key\x18\n \x01(\r:\x01\x30\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"\xf5\x01\n\x04\x46ind\x12\x1b\n\x08iterator\x18\x01 \x01(\x0b\x32\t.Iterator\x12\x17\n\x08pathspec\x18\x02 \x01(\x0b\x32\x05.Path\x12\x15\n\npath_regex\x18\x03 \x01(\t:\x01.\x12\x15\n\ndata_regex\x18\x04 \x01(\t:\x01.\x12\x12\n\nstart_time\x18\x05 \x01(\x04\x12\x10\n\x08\x65nd_time\x18\x06 \x01(\x04\x12\x15\n\ncross_devs\x18\x07 \x01(\x05:\x01\x30\x12\x15\n\tmax_depth\x18\x08 \x01(\x05:\x02\x31\x35\x12\x1a\n\x03hit\x18\t \x01(\x0b\x32\r.StatResponse\x12\x19\n\x08max_data\x18\n \x01(\x04:\x07\x31\x30\x32\x34\x30\x30\x30\"G\n\x0cPlistRequest\x12\x17\n\x08pathspec\x18\x01 \x01(\x0b\x32\x05.Path\x12\x0f\n\x07\x63ontext\x18\x02 \x01(\t\x12\r\n\x05query\x18\x03 \x01(\t\"Y\n\x15\x46oremanAttributeRegex\x12\x0f\n\x04path\x18\x01 \x01(\t:\x01/\x12\x16\n\x0e\x61ttribute_name\x18\x02 \x01(\t\x12\x17\n\x0f\x61ttribute_regex\x18\x03 \x01(\t\"\xc5\x01\n\x17\x46oremanAttributeInteger\x12\x0f\n\x04path\x18\x01 \x01(\t:\x01/\x12\x16\n\x0e\x61ttribute_name\x18\x02 \x01(\t\x12:\n\x08operator\x18\x03 \x01(\x0e\x32!.ForemanAttributeInteger.Operator:\x05\x45QUAL\x12\r\n\x05value\x18\x04 \x01(\x04\"6\n\x08Operator\x12\t\n\x05\x45QUAL\x10\x00\x12\r\n\tLESS_THAN\x10\x01\x12\x10\n\x0cGREATER_THAN\x10\x02\"u\n\x11\x46oremanRuleAction\x12\x11\n\tflow_name\x18\x01 \x01(\t\x12\x13\n\x04\x61rgv\x18\x02 \x01(\x0b\x32\x05.Dict\x12\x11\n\thunt_name\x18\x03 \x01(\t\x12\x0f\n\x07hunt_id\x18\x04 \x01(\t\x12\x14\n\x0c\x63lient_limit\x18\x05 \x01(\r\"F\n\tHuntError\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x13\n\x0blog_message\x18\x02 \x01(\t\x12\x11\n\tbacktrace\x18\x03 \x01(\t\">\n\x07HuntLog\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x13\n\x0blog_message\x18\x02 \x01(\t\x12\x0b\n\x03urn\x18\x03 \x01(\t\"t\n\x0f\x43lientResources\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x12\n\nsession_id\x18\x02 \x01(\t\x12\x1e\n\tcpu_usage\x18\x03 \x01(\x0b\x32\x0b.CpuSeconds\x12\x1a\n\x12network_bytes_sent\x18\x04 \x01(\x04\"2\n\x0eStatsHistogram\x12 \n\x04\x62ins\x18\x03 \x03(\x0b\x32\x12.StatsHistogramBin\"9\n\x11StatsHistogramBin\x12\x17\n\x0frange_max_value\x18\x01 \x01(\x02\x12\x0b\n\x03num\x18\x02 \x01(\x04\"\\\n\x0cRunningStats\x12\"\n\thistogram\x18\x01 \x01(\x0b\x32\x0f.StatsHistogram\x12\x0b\n\x03num\x18\x02 \x01(\x04\x12\x0b\n\x03sum\x18\x03 \x01(\x01\x12\x0e\n\x06sum_sq\x18\x04 \x01(\x01\"\xc3\x01\n\x14\x43lientResourcesStats\x12%\n\x0euser_cpu_stats\x18\x01 \x01(\x0b\x32\r.RunningStats\x12\'\n\x10system_cpu_stats\x18\x02 \x01(\x0b\x32\r.RunningStats\x12/\n\x18network_bytes_sent_stats\x18\x03 \x01(\x0b\x32\r.RunningStats\x12*\n\x10worst_performers\x18\x04 \x03(\x0b\x32\x10.ClientResources\"\xc7\x01\n\x0b\x46oremanRule\x12+\n\x0bregex_rules\x18\x01 \x03(\x0b\x32\x16.ForemanAttributeRegex\x12/\n\rinteger_rules\x18\x02 \x03(\x0b\x32\x18.ForemanAttributeInteger\x12#\n\x07\x61\x63tions\x18\x03 \x03(\x0b\x32\x12.ForemanRuleAction\x12\x0f\n\x07\x63reated\x18\x04 \x01(\x04\x12\x0f\n\x07\x65xpires\x18\x05 \x01(\x04\x12\x13\n\x0b\x64\x65scription\x18\x06 \x01(\t\"\x9a\x01\n\x08Iterator\x12\x1b\n\x0c\x63lient_state\x18\x01 \x01(\x0b\x32\x05.Dict\x12\x0f\n\x04skip\x18\x02 \x01(\r:\x01\x30\x12\x13\n\x06number\x18\x03 \x01(\r:\x03\x31\x30\x30\x12\'\n\x05state\x18\x04 \x01(\x0e\x32\x0f.Iterator.State:\x07RUNNING\"\"\n\x05State\x12\x0b\n\x07RUNNING\x10\x00\x12\x0c\n\x08\x46INISHED\x10\x01\"P\n\x14IteratedStatResponse\x12\x1b\n\x04stat\x18\x01 \x01(\x0b\x32\r.StatResponse\x12\x1b\n\x08iterator\x18\x02 \x01(\x0b\x32\t.Iterator\"\x12\n\x03URN\x12\x0b\n\x03urn\x18\x01 \x01(\t\"a\n\x0cNotification\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0f\n\x07subject\x18\x02 \x01(\t\x12\x0f\n\x07message\x18\x03 \x01(\t\x12\x0e\n\x06source\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\x04\"3\n\x08RDFValue\x12\x0b\n\x03\x61ge\x18\x01 \x01(\x04\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x03 \x01(\x0c\"K\n\x11\x41\x46\x46\x34ObjectSummary\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0b\n\x03urn\x18\x02 \x01(\t\x12\x1b\n\x04stat\x18\x03 \x01(\x0b\x32\r.StatResponse\"\x0e\n\x0c\x45mptyMessage')
 
 
 
@@ -38,8 +38,8 @@ _GRRMESSAGE_AUTHORIZATIONSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=612,
-  serialized_end=692,
+  serialized_start=698,
+  serialized_end=778,
 )
 
 _GRRMESSAGE_TYPE = _descriptor.EnumDescriptor(
@@ -63,8 +63,8 @@ _GRRMESSAGE_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=694,
-  serialized_end=739,
+  serialized_start=780,
+  serialized_end=825,
 )
 
 _GRRMESSAGE_PRIORITY = _descriptor.EnumDescriptor(
@@ -88,8 +88,8 @@ _GRRMESSAGE_PRIORITY = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=741,
-  serialized_end=809,
+  serialized_start=827,
+  serialized_end=895,
 )
 
 _SIGNEDMESSAGELIST_COMPRESSIONTYPE = _descriptor.EnumDescriptor(
@@ -109,8 +109,8 @@ _SIGNEDMESSAGELIST_COMPRESSIONTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1021,
-  serialized_end=1074,
+  serialized_start=1107,
+  serialized_end=1160,
 )
 
 _CLIENTCOMMUNICATION_COMMUNICATIONSTATUS = _descriptor.EnumDescriptor(
@@ -134,8 +134,8 @@ _CLIENTCOMMUNICATION_COMMUNICATIONSTATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1478,
-  serialized_end=1545,
+  serialized_start=1564,
+  serialized_end=1631,
 )
 
 _GRRSTATUS_RETURNEDSTATUS = _descriptor.EnumDescriptor(
@@ -167,8 +167,8 @@ _GRRSTATUS_RETURNEDSTATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1766,
-  serialized_end=1870,
+  serialized_start=1852,
+  serialized_end=1956,
 )
 
 _HUNTNOTIFICATION_STATUS = _descriptor.EnumDescriptor(
@@ -196,8 +196,8 @@ _HUNTNOTIFICATION_STATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1974,
-  serialized_end=2023,
+  serialized_start=2060,
+  serialized_end=2109,
 )
 
 _FLOWNOTIFICATION_STATUS = _descriptor.EnumDescriptor(
@@ -221,8 +221,8 @@ _FLOWNOTIFICATION_STATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1974,
-  serialized_end=2014,
+  serialized_start=2060,
+  serialized_end=2100,
 )
 
 _DATABLOB_COMPRESSIONTYPE = _descriptor.EnumDescriptor(
@@ -242,8 +242,8 @@ _DATABLOB_COMPRESSIONTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1021,
-  serialized_end=1074,
+  serialized_start=1107,
+  serialized_end=1160,
 )
 
 _FLOWPB_FLOWSTATE = _descriptor.EnumDescriptor(
@@ -271,8 +271,8 @@ _FLOWPB_FLOWSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=3725,
-  serialized_end=3792,
+  serialized_start=3826,
+  serialized_end=3893,
 )
 
 _PATH_PATHTYPE = _descriptor.EnumDescriptor(
@@ -304,8 +304,8 @@ _PATH_PATHTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=4844,
-  serialized_end=4917,
+  serialized_start=4945,
+  serialized_end=5018,
 )
 
 _PATH_OPTIONS = _descriptor.EnumDescriptor(
@@ -325,8 +325,8 @@ _PATH_OPTIONS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=4919,
-  serialized_end=4968,
+  serialized_start=5020,
+  serialized_end=5069,
 )
 
 _PATH_TSK_FS_ATTR_TYPE = _descriptor.EnumDescriptor(
@@ -418,8 +418,8 @@ _PATH_TSK_FS_ATTR_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=4971,
-  serialized_end=5657,
+  serialized_start=5072,
+  serialized_end=5758,
 )
 
 _STATRESPONSE_REGISTRYTYPE = _descriptor.EnumDescriptor(
@@ -471,8 +471,8 @@ _STATRESPONSE_REGISTRYTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=6138,
-  serialized_end=6330,
+  serialized_start=6239,
+  serialized_end=6431,
 )
 
 _CERTIFICATE_CERTIFICATETYPE = _descriptor.EnumDescriptor(
@@ -496,8 +496,8 @@ _CERTIFICATE_CERTIFICATETYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=6577,
-  serialized_end=6620,
+  serialized_start=6678,
+  serialized_end=6721,
 )
 
 _NETWORKADDRESS_NETWORKFAMILY = _descriptor.EnumDescriptor(
@@ -517,8 +517,8 @@ _NETWORKADDRESS_NETWORKFAMILY = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=7420,
-  serialized_end=7456,
+  serialized_start=7521,
+  serialized_end=7557,
 )
 
 _FINGERPRINTTUPLE_FINGERPRINTTYPE = _descriptor.EnumDescriptor(
@@ -538,8 +538,8 @@ _FINGERPRINTTUPLE_FINGERPRINTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=8148,
-  serialized_end=8199,
+  serialized_start=8249,
+  serialized_end=8300,
 )
 
 _FINGERPRINTTUPLE_FINGERPRINTHASH = _descriptor.EnumDescriptor(
@@ -563,8 +563,8 @@ _FINGERPRINTTUPLE_FINGERPRINTHASH = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=8201,
-  serialized_end=8249,
+  serialized_start=8302,
+  serialized_end=8350,
 )
 
 _SIGNEDBLOB_HASHTYPE = _descriptor.EnumDescriptor(
@@ -588,8 +588,8 @@ _SIGNEDBLOB_HASHTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=8609,
-  serialized_end=8650,
+  serialized_start=8710,
+  serialized_end=8751,
 )
 
 _SIGNEDBLOB_SIGNATURETYPE = _descriptor.EnumDescriptor(
@@ -605,8 +605,8 @@ _SIGNEDBLOB_SIGNATURETYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=8652,
-  serialized_end=8681,
+  serialized_start=8753,
+  serialized_end=8782,
 )
 
 _INSTALLDRIVERREQUEST_REWRITEMODE = _descriptor.EnumDescriptor(
@@ -630,8 +630,8 @@ _INSTALLDRIVERREQUEST_REWRITEMODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=10091,
-  serialized_end=10140,
+  serialized_start=10192,
+  serialized_end=10241,
 )
 
 _GREPREQUEST_MODE = _descriptor.EnumDescriptor(
@@ -651,8 +651,8 @@ _GREPREQUEST_MODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=10557,
-  serialized_end=10592,
+  serialized_start=10658,
+  serialized_end=10693,
 )
 
 _FOREMANATTRIBUTEINTEGER_OPERATOR = _descriptor.EnumDescriptor(
@@ -676,8 +676,8 @@ _FOREMANATTRIBUTEINTEGER_OPERATOR = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=11077,
-  serialized_end=11131,
+  serialized_start=11251,
+  serialized_end=11305,
 )
 
 _ITERATOR_STATE = _descriptor.EnumDescriptor(
@@ -697,8 +697,8 @@ _ITERATOR_STATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=11829,
-  serialized_end=11863,
+  serialized_start=12406,
+  serialized_end=12440,
 )
 
 
@@ -891,6 +891,41 @@ _GRRMESSAGE = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='task_id', full_name='GrrMessage.task_id', index=14,
+      number=15, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='task_ttl', full_name='GrrMessage.task_ttl', index=15,
+      number=16, type=5, cpp_type=1, label=1,
+      has_default_value=True, default_value=5,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='queue', full_name='GrrMessage.queue', index=16,
+      number=17, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='eta', full_name='GrrMessage.eta', index=17,
+      number=18, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='last_lease', full_name='GrrMessage.last_lease', index=18,
+      number=19, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -904,7 +939,7 @@ _GRRMESSAGE = _descriptor.Descriptor(
   is_extendable=False,
   extension_ranges=[],
   serialized_start=211,
-  serialized_end=809,
+  serialized_end=895,
 )
 
 
@@ -931,8 +966,8 @@ _MESSAGELIST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=811,
-  serialized_end=850,
+  serialized_start=897,
+  serialized_end=936,
 )
 
 
@@ -988,8 +1023,8 @@ _SIGNEDMESSAGELIST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=853,
-  serialized_end=1074,
+  serialized_start=939,
+  serialized_end=1160,
 )
 
 
@@ -1037,8 +1072,8 @@ _CIPHERPROPERTIES = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1076,
-  serialized_end=1151,
+  serialized_start=1162,
+  serialized_end=1237,
 )
 
 
@@ -1072,8 +1107,8 @@ _CIPHERMETADATA = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1153,
-  serialized_end=1204,
+  serialized_start=1239,
+  serialized_end=1290,
 )
 
 
@@ -1157,8 +1192,8 @@ _CLIENTCOMMUNICATION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1207,
-  serialized_end=1545,
+  serialized_start=1293,
+  serialized_end=1631,
 )
 
 
@@ -1228,8 +1263,8 @@ _GRRSTATUS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1548,
-  serialized_end=1870,
+  serialized_start=1634,
+  serialized_end=1956,
 )
 
 
@@ -1271,8 +1306,8 @@ _HUNTNOTIFICATION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1873,
-  serialized_end=2023,
+  serialized_start=1959,
+  serialized_end=2109,
 )
 
 
@@ -1321,8 +1356,8 @@ _FLOWNOTIFICATION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2026,
-  serialized_end=2186,
+  serialized_start=2112,
+  serialized_end=2272,
 )
 
 
@@ -1370,8 +1405,8 @@ _CLIENTINFORMATION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2188,
-  serialized_end=2290,
+  serialized_start=2274,
+  serialized_end=2376,
 )
 
 
@@ -1440,8 +1475,8 @@ _TASK = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2293,
-  serialized_end=2447,
+  serialized_start=2379,
+  serialized_end=2533,
 )
 
 
@@ -1516,7 +1551,14 @@ _DATABLOB = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='compression', full_name='DataBlob.compression', index=9,
+      name='float', full_name='DataBlob.float', index=9,
+      number=11, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='compression', full_name='DataBlob.compression', index=10,
       number=7, type=14, cpp_type=8, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -1532,8 +1574,8 @@ _DATABLOB = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2450,
-  serialized_end=2752,
+  serialized_start=2536,
+  serialized_end=2853,
 )
 
 
@@ -1560,8 +1602,8 @@ _BLOBARRAY = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2754,
-  serialized_end=2793,
+  serialized_start=2855,
+  serialized_end=2894,
 )
 
 
@@ -1595,8 +1637,8 @@ _PRINTSTR = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2795,
-  serialized_end=2838,
+  serialized_start=2896,
+  serialized_end=2939,
 )
 
 
@@ -1651,8 +1693,8 @@ _BUFFERREADMESSAGE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2840,
-  serialized_end=2954,
+  serialized_start=2941,
+  serialized_end=3055,
 )
 
 
@@ -1749,8 +1791,8 @@ _REQUESTSTATE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2957,
-  serialized_end=3213,
+  serialized_start=3058,
+  serialized_end=3314,
 )
 
 
@@ -1918,8 +1960,8 @@ _FLOWPB = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=3216,
-  serialized_end=3792,
+  serialized_start=3317,
+  serialized_end=3893,
 )
 
 
@@ -1953,8 +1995,8 @@ _CPUSECONDS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=3794,
-  serialized_end=3854,
+  serialized_start=3895,
+  serialized_end=3955,
 )
 
 
@@ -2002,8 +2044,8 @@ _CPUSAMPLE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=3856,
-  serialized_end=3955,
+  serialized_start=3957,
+  serialized_end=4056,
 )
 
 
@@ -2058,8 +2100,8 @@ _IOSAMPLE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=3957,
-  serialized_end=4068,
+  serialized_start=4058,
+  serialized_end=4169,
 )
 
 
@@ -2142,8 +2184,8 @@ _CLIENTSTATS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4071,
-  serialized_end=4292,
+  serialized_start=4172,
+  serialized_end=4393,
 )
 
 
@@ -2177,8 +2219,8 @@ _STARTUPINFO = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4294,
-  serialized_end=4367,
+  serialized_start=4395,
+  serialized_end=4468,
 )
 
 
@@ -2219,8 +2261,8 @@ _EXECUTEREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4369,
-  serialized_end=4432,
+  serialized_start=4470,
+  serialized_end=4533,
 )
 
 
@@ -2275,8 +2317,8 @@ _EXECUTERESPONSE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4434,
-  serialized_end=4557,
+  serialized_start=4535,
+  serialized_end=4658,
 )
 
 
@@ -2362,8 +2404,8 @@ _PATH = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4560,
-  serialized_end=5657,
+  serialized_start=4661,
+  serialized_end=5758,
 )
 
 
@@ -2397,8 +2439,8 @@ _LISTDIRREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=5659,
-  serialized_end=5729,
+  serialized_start=5760,
+  serialized_end=5830,
 )
 
 
@@ -2552,8 +2594,8 @@ _STATRESPONSE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=5732,
-  serialized_end=6330,
+  serialized_start=5833,
+  serialized_end=6431,
 )
 
 
@@ -2580,8 +2622,8 @@ _COLLECTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6332,
-  serialized_end=6374,
+  serialized_start=6433,
+  serialized_end=6475,
 )
 
 
@@ -2608,8 +2650,8 @@ _WMIREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6376,
-  serialized_end=6403,
+  serialized_start=6477,
+  serialized_end=6504,
 )
 
 
@@ -2643,8 +2685,8 @@ _KEYVALUE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6405,
-  serialized_end=6459,
+  serialized_start=6506,
+  serialized_end=6560,
 )
 
 
@@ -2671,8 +2713,8 @@ _DICT = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6461,
-  serialized_end=6491,
+  serialized_start=6562,
+  serialized_end=6592,
 )
 
 
@@ -2714,8 +2756,8 @@ _CERTIFICATE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6493,
-  serialized_end=6620,
+  serialized_start=6594,
+  serialized_end=6721,
 )
 
 
@@ -2777,8 +2819,8 @@ _UNAME = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6622,
-  serialized_end=6726,
+  serialized_start=6723,
+  serialized_end=6827,
 )
 
 
@@ -2938,8 +2980,8 @@ _FOLDERINFORMATION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6729,
-  serialized_end=7119,
+  serialized_start=6830,
+  serialized_end=7220,
 )
 
 
@@ -3015,8 +3057,8 @@ _USERACCOUNT = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7122,
-  serialized_end=7300,
+  serialized_start=7223,
+  serialized_end=7401,
 )
 
 
@@ -3058,8 +3100,8 @@ _NETWORKADDRESS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7303,
-  serialized_end=7456,
+  serialized_start=7404,
+  serialized_end=7557,
 )
 
 
@@ -3114,8 +3156,8 @@ _INTERFACE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7459,
-  serialized_end=7589,
+  serialized_start=7560,
+  serialized_end=7690,
 )
 
 
@@ -3156,8 +3198,8 @@ _MEMORYINFORMATION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7591,
-  serialized_end=7680,
+  serialized_start=7692,
+  serialized_end=7781,
 )
 
 
@@ -3289,8 +3331,8 @@ _GRRCONFIG = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7683,
-  serialized_end=8021,
+  serialized_start=7784,
+  serialized_end=8122,
 )
 
 
@@ -3326,8 +3368,8 @@ _FINGERPRINTTUPLE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8024,
-  serialized_end=8249,
+  serialized_start=8125,
+  serialized_end=8350,
 )
 
 
@@ -3361,8 +3403,8 @@ _FINGERPRINTREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8251,
-  serialized_end=8331,
+  serialized_start=8352,
+  serialized_end=8432,
 )
 
 
@@ -3396,8 +3438,8 @@ _FINGERPRINTRESPONSE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8333,
-  serialized_end=8449,
+  serialized_start=8434,
+  serialized_end=8550,
 )
 
 
@@ -3454,8 +3496,8 @@ _SIGNEDBLOB = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8452,
-  serialized_end=8681,
+  serialized_start=8553,
+  serialized_end=8782,
 )
 
 
@@ -3489,8 +3531,8 @@ _EXECUTEPYTHONREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8683,
-  serialized_end=8763,
+  serialized_start=8784,
+  serialized_end=8864,
 )
 
 
@@ -3524,8 +3566,8 @@ _EXECUTEPYTHONRESPONSE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8765,
-  serialized_end=8827,
+  serialized_start=8866,
+  serialized_end=8928,
 )
 
 
@@ -3580,8 +3622,8 @@ _VOLATILITYREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8829,
-  serialized_end=8950,
+  serialized_start=8930,
+  serialized_end=9051,
 )
 
 
@@ -3622,8 +3664,8 @@ _VOLATILITYHEADER = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8952,
-  serialized_end=9025,
+  serialized_start=9053,
+  serialized_end=9126,
 )
 
 
@@ -3692,8 +3734,8 @@ _VOLATILITYVALUE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=9027,
-  serialized_end=9147,
+  serialized_start=9128,
+  serialized_end=9248,
 )
 
 
@@ -3720,8 +3762,8 @@ _VOLATILITYVALUES = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=9149,
-  serialized_end=9201,
+  serialized_start=9250,
+  serialized_end=9302,
 )
 
 
@@ -3755,8 +3797,8 @@ _VOLATILITYTABLE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=9203,
-  serialized_end=9289,
+  serialized_start=9304,
+  serialized_end=9390,
 )
 
 
@@ -3790,8 +3832,8 @@ _VOLATILITYFORMATTEDVALUE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=9291,
-  serialized_end=9372,
+  serialized_start=9392,
+  serialized_end=9473,
 )
 
 
@@ -3818,8 +3860,8 @@ _VOLATILITYFORMATTEDVALUES = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=9374,
-  serialized_end=9454,
+  serialized_start=9475,
+  serialized_end=9555,
 )
 
 
@@ -3853,8 +3895,8 @@ _VOLATILITYSECTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=9456,
-  serialized_end=9566,
+  serialized_start=9557,
+  serialized_end=9667,
 )
 
 
@@ -3895,8 +3937,8 @@ _VOLATILITYRESPONSE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=9568,
-  serialized_end=9657,
+  serialized_start=9669,
+  serialized_end=9758,
 )
 
 
@@ -3944,8 +3986,8 @@ _EXECUTEBINARYREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=9659,
-  serialized_end=9768,
+  serialized_start=9760,
+  serialized_end=9869,
 )
 
 
@@ -3993,8 +4035,8 @@ _EXECUTEBINARYRESPONSE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=9770,
-  serialized_end=9865,
+  serialized_start=9871,
+  serialized_end=9966,
 )
 
 
@@ -4064,8 +4106,8 @@ _INSTALLDRIVERREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=9868,
-  serialized_end=10140,
+  serialized_start=9969,
+  serialized_end=10241,
 )
 
 
@@ -4127,8 +4169,8 @@ _SENDFILEREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=10143,
-  serialized_end=10293,
+  serialized_start=10244,
+  serialized_end=10394,
 )
 
 
@@ -4219,8 +4261,8 @@ _GREPREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=10296,
-  serialized_end=10592,
+  serialized_start=10397,
+  serialized_end=10693,
 )
 
 
@@ -4310,8 +4352,50 @@ _FIND = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=10595,
-  serialized_end=10840,
+  serialized_start=10696,
+  serialized_end=10941,
+)
+
+
+_PLISTREQUEST = _descriptor.Descriptor(
+  name='PlistRequest',
+  full_name='PlistRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='pathspec', full_name='PlistRequest.pathspec', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='context', full_name='PlistRequest.context', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='query', full_name='PlistRequest.query', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=10943,
+  serialized_end=11014,
 )
 
 
@@ -4352,8 +4436,8 @@ _FOREMANATTRIBUTEREGEX = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=10842,
-  serialized_end=10931,
+  serialized_start=11016,
+  serialized_end=11105,
 )
 
 
@@ -4402,8 +4486,8 @@ _FOREMANATTRIBUTEINTEGER = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=10934,
-  serialized_end=11131,
+  serialized_start=11108,
+  serialized_end=11305,
 )
 
 
@@ -4458,8 +4542,8 @@ _FOREMANRULEACTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11133,
-  serialized_end=11250,
+  serialized_start=11307,
+  serialized_end=11424,
 )
 
 
@@ -4500,8 +4584,8 @@ _HUNTERROR = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11252,
-  serialized_end=11322,
+  serialized_start=11426,
+  serialized_end=11496,
 )
 
 
@@ -4542,8 +4626,8 @@ _HUNTLOG = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11324,
-  serialized_end=11386,
+  serialized_start=11498,
+  serialized_end=11560,
 )
 
 
@@ -4591,8 +4675,169 @@ _CLIENTRESOURCES = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11388,
-  serialized_end=11504,
+  serialized_start=11562,
+  serialized_end=11678,
+)
+
+
+_STATSHISTOGRAM = _descriptor.Descriptor(
+  name='StatsHistogram',
+  full_name='StatsHistogram',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='bins', full_name='StatsHistogram.bins', index=0,
+      number=3, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=11680,
+  serialized_end=11730,
+)
+
+
+_STATSHISTOGRAMBIN = _descriptor.Descriptor(
+  name='StatsHistogramBin',
+  full_name='StatsHistogramBin',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='range_max_value', full_name='StatsHistogramBin.range_max_value', index=0,
+      number=1, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='num', full_name='StatsHistogramBin.num', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=11732,
+  serialized_end=11789,
+)
+
+
+_RUNNINGSTATS = _descriptor.Descriptor(
+  name='RunningStats',
+  full_name='RunningStats',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='histogram', full_name='RunningStats.histogram', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='num', full_name='RunningStats.num', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='sum', full_name='RunningStats.sum', index=2,
+      number=3, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='sum_sq', full_name='RunningStats.sum_sq', index=3,
+      number=4, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=11791,
+  serialized_end=11883,
+)
+
+
+_CLIENTRESOURCESSTATS = _descriptor.Descriptor(
+  name='ClientResourcesStats',
+  full_name='ClientResourcesStats',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='user_cpu_stats', full_name='ClientResourcesStats.user_cpu_stats', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='system_cpu_stats', full_name='ClientResourcesStats.system_cpu_stats', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='network_bytes_sent_stats', full_name='ClientResourcesStats.network_bytes_sent_stats', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='worst_performers', full_name='ClientResourcesStats.worst_performers', index=3,
+      number=4, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=11886,
+  serialized_end=12081,
 )
 
 
@@ -4654,8 +4899,8 @@ _FOREMANRULE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11507,
-  serialized_end=11706,
+  serialized_start=12084,
+  serialized_end=12283,
 )
 
 
@@ -4704,8 +4949,8 @@ _ITERATOR = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11709,
-  serialized_end=11863,
+  serialized_start=12286,
+  serialized_end=12440,
 )
 
 
@@ -4739,8 +4984,8 @@ _ITERATEDSTATRESPONSE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11865,
-  serialized_end=11945,
+  serialized_start=12442,
+  serialized_end=12522,
 )
 
 
@@ -4767,8 +5012,8 @@ _URN = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11947,
-  serialized_end=11965,
+  serialized_start=12524,
+  serialized_end=12542,
 )
 
 
@@ -4823,8 +5068,8 @@ _NOTIFICATION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11967,
-  serialized_end=12064,
+  serialized_start=12544,
+  serialized_end=12641,
 )
 
 
@@ -4865,8 +5110,8 @@ _RDFVALUE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=12066,
-  serialized_end=12117,
+  serialized_start=12643,
+  serialized_end=12694,
 )
 
 
@@ -4907,8 +5152,8 @@ _AFF4OBJECTSUMMARY = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=12119,
-  serialized_end=12194,
+  serialized_start=12696,
+  serialized_end=12771,
 )
 
 
@@ -4928,8 +5173,8 @@ _EMPTYMESSAGE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=12196,
-  serialized_end=12210,
+  serialized_start=12773,
+  serialized_end=12787,
 )
 
 _GRRMESSAGE.fields_by_name['auth_state'].enum_type = _GRRMESSAGE_AUTHORIZATIONSTATE
@@ -5034,10 +5279,17 @@ _GREPREQUEST_MODE.containing_type = _GREPREQUEST;
 _FIND.fields_by_name['iterator'].message_type = _ITERATOR
 _FIND.fields_by_name['pathspec'].message_type = _PATH
 _FIND.fields_by_name['hit'].message_type = _STATRESPONSE
+_PLISTREQUEST.fields_by_name['pathspec'].message_type = _PATH
 _FOREMANATTRIBUTEINTEGER.fields_by_name['operator'].enum_type = _FOREMANATTRIBUTEINTEGER_OPERATOR
 _FOREMANATTRIBUTEINTEGER_OPERATOR.containing_type = _FOREMANATTRIBUTEINTEGER;
 _FOREMANRULEACTION.fields_by_name['argv'].message_type = _DICT
 _CLIENTRESOURCES.fields_by_name['cpu_usage'].message_type = _CPUSECONDS
+_STATSHISTOGRAM.fields_by_name['bins'].message_type = _STATSHISTOGRAMBIN
+_RUNNINGSTATS.fields_by_name['histogram'].message_type = _STATSHISTOGRAM
+_CLIENTRESOURCESSTATS.fields_by_name['user_cpu_stats'].message_type = _RUNNINGSTATS
+_CLIENTRESOURCESSTATS.fields_by_name['system_cpu_stats'].message_type = _RUNNINGSTATS
+_CLIENTRESOURCESSTATS.fields_by_name['network_bytes_sent_stats'].message_type = _RUNNINGSTATS
+_CLIENTRESOURCESSTATS.fields_by_name['worst_performers'].message_type = _CLIENTRESOURCES
 _FOREMANRULE.fields_by_name['regex_rules'].message_type = _FOREMANATTRIBUTEREGEX
 _FOREMANRULE.fields_by_name['integer_rules'].message_type = _FOREMANATTRIBUTEINTEGER
 _FOREMANRULE.fields_by_name['actions'].message_type = _FOREMANRULEACTION
@@ -5108,12 +5360,17 @@ DESCRIPTOR.message_types_by_name['InstallDriverRequest'] = _INSTALLDRIVERREQUEST
 DESCRIPTOR.message_types_by_name['SendFileRequest'] = _SENDFILEREQUEST
 DESCRIPTOR.message_types_by_name['GrepRequest'] = _GREPREQUEST
 DESCRIPTOR.message_types_by_name['Find'] = _FIND
+DESCRIPTOR.message_types_by_name['PlistRequest'] = _PLISTREQUEST
 DESCRIPTOR.message_types_by_name['ForemanAttributeRegex'] = _FOREMANATTRIBUTEREGEX
 DESCRIPTOR.message_types_by_name['ForemanAttributeInteger'] = _FOREMANATTRIBUTEINTEGER
 DESCRIPTOR.message_types_by_name['ForemanRuleAction'] = _FOREMANRULEACTION
 DESCRIPTOR.message_types_by_name['HuntError'] = _HUNTERROR
 DESCRIPTOR.message_types_by_name['HuntLog'] = _HUNTLOG
 DESCRIPTOR.message_types_by_name['ClientResources'] = _CLIENTRESOURCES
+DESCRIPTOR.message_types_by_name['StatsHistogram'] = _STATSHISTOGRAM
+DESCRIPTOR.message_types_by_name['StatsHistogramBin'] = _STATSHISTOGRAMBIN
+DESCRIPTOR.message_types_by_name['RunningStats'] = _RUNNINGSTATS
+DESCRIPTOR.message_types_by_name['ClientResourcesStats'] = _CLIENTRESOURCESSTATS
 DESCRIPTOR.message_types_by_name['ForemanRule'] = _FOREMANRULE
 DESCRIPTOR.message_types_by_name['Iterator'] = _ITERATOR
 DESCRIPTOR.message_types_by_name['IteratedStatResponse'] = _ITERATEDSTATRESPONSE
@@ -5489,6 +5746,12 @@ class Find(_message.Message):
 
   # @@protoc_insertion_point(class_scope:Find)
 
+class PlistRequest(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _PLISTREQUEST
+
+  # @@protoc_insertion_point(class_scope:PlistRequest)
+
 class ForemanAttributeRegex(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
   DESCRIPTOR = _FOREMANATTRIBUTEREGEX
@@ -5524,6 +5787,30 @@ class ClientResources(_message.Message):
   DESCRIPTOR = _CLIENTRESOURCES
 
   # @@protoc_insertion_point(class_scope:ClientResources)
+
+class StatsHistogram(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _STATSHISTOGRAM
+
+  # @@protoc_insertion_point(class_scope:StatsHistogram)
+
+class StatsHistogramBin(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _STATSHISTOGRAMBIN
+
+  # @@protoc_insertion_point(class_scope:StatsHistogramBin)
+
+class RunningStats(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _RUNNINGSTATS
+
+  # @@protoc_insertion_point(class_scope:RunningStats)
+
+class ClientResourcesStats(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _CLIENTRESOURCESSTATS
+
+  # @@protoc_insertion_point(class_scope:ClientResourcesStats)
 
 class ForemanRule(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType

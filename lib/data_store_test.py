@@ -12,16 +12,12 @@ import time
 import zlib
 
 
-from grr.client import conf as flags
-
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
+from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
-
-
-FLAGS = flags.FLAGS
 
 
 class DataStoreTest(test_lib.GRRBaseTest):
@@ -35,6 +31,12 @@ class DataStoreTest(test_lib.GRRBaseTest):
                                        token=self.token):
       data_store.DB.DeleteSubject(subject["subject"][0][0], token=self.token)
     data_store.DB.Flush()
+
+    # The housekeeper threads of the time based caches also call time.time and
+    # interfere with some tests so we disable them here.
+    utils.InterruptableThread.exit = True
+    # The same also applies to the StatsCollector thread.
+    stats.StatsCollector.exit = True
 
   def testSetResolve(self):
     """Test the Set() and Resolve() methods."""
@@ -507,7 +509,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     rows = list(data_store.DB.Query(
         filter_obj=data_store.DB.filter.PredicateContainsFilter(
-            "metadata:foo", "row:0\\dfoo"),
+            "metadata:foo", "row:0[0-9]foo"),
         token=self.token))
 
     self.assertEqual(len(rows), 2)
@@ -564,6 +566,33 @@ class DataStoreTest(test_lib.GRRBaseTest):
     t1.Commit()
     t2.Set(predicate, "2")
     t2.Commit()
+
+  def testRetryWrapper(self):
+
+    self.call_count = 0
+
+    def MockSleep(_):
+      self.call_count += 1
+
+    def Callback(unused_transaction):
+      # Now that we have a transaction, lets try to get another one on the same
+      # subject. Since it is locked this should retry.
+      try:
+        data_store.DB.RetryWrapper("subject", lambda _: None, token=self.token)
+        self.fail("Transaction error not raised.")
+      except data_store.TransactionError as e:
+        self.assertEqual("Retry number exceeded.", str(e))
+        self.assertEqual(self.call_count, 10)
+
+    old_sleep = time.sleep
+    time.sleep = MockSleep
+    try:
+      data_store.DB.RetryWrapper("subject", Callback, token=self.token)
+    except NotImplementedError:
+      # If the data_store does not implement retrying, there is nothing to test.
+      return
+    finally:
+      time.sleep = old_sleep
 
   def testTimestamps(self):
     """Check that timestamps are reasonable."""

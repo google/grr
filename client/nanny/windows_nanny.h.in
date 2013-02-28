@@ -3,8 +3,8 @@
 //
 // Author: scudette@gmail.com (Michael Cohen)
 
-#ifndef OPS_SECURITY_GRR_CLIENT_NANNY_WINDOWS_NANNY_H_
-#define OPS_SECURITY_GRR_CLIENT_NANNY_WINDOWS_NANNY_H_
+#ifndef GRR_CLIENT_NANNY_WINDOWS_NANNY_H_
+#define GRR_CLIENT_NANNY_WINDOWS_NANNY_H_
 
 // The nanny is a service which runs another child executable, and makes it
 // behave. The nanny itself is very simple, hence is it unlikely to leak or
@@ -16,30 +16,30 @@
 
 #include "grr/client/nanny/child_controller.h"
 
-TCHAR kGrrServiceName[] = TEXT("%(Nanny.Name)s");
-TCHAR kGrrServiceDesc[] = TEXT("%(Nanny.Description)s");
+TCHAR kGrrServiceName[] = TEXT("%(NannyWindows.name)s");
+TCHAR kGrrServiceDesc[] = TEXT("%(NannyWindows.description)s");
 
 // A registry key that holds GRR service configuration.
 #define GRR_SERVICE_REGISTRY_HIVE %(Registry.Service_Key_Hive)s
 
-const TCHAR* kGrrServiceRegistry = TEXT("%(Registry.Service_Key_Path|escape)s");
+const TCHAR* kGrrServiceRegistry = TEXT("%(NannyWindows.service_key_path)s");
 
 // A registry value specifying the child that will be run.
-const TCHAR* kGrrServiceBinaryChild = TEXT("%(Nanny.Binary_Child)s");
-const TCHAR* kGrrServiceBinaryCommandLine = TEXT("%(Nanny.Binary_CommandLine)s");
+const TCHAR* kGrrServiceBinaryChild = TEXT("%(NannyWindows.binary_child)s");
+const TCHAR* kGrrServiceBinaryCommandLine = TEXT("%(NannyWindows.commandline)s");
 
 // A backup binary location, in case the primary binary failed to start.
-const TCHAR* kGrrServiceBinaryChildAlternate = TEXT("%(Nanny.Binary_Child_Alternate)s");
+const TCHAR* kGrrServiceBinaryChildAlternate = TEXT("%(NannyWindows.binary_child_alternate)s");
 
 // The registry value which is updated for each heartbeat. It is a REG_DWORD and
 // stores a unix epoch time.
-const TCHAR* kGrrServiceHeartbeatTime = TEXT("%(Nanny.HeartBeat_Time)s");
+const TCHAR* kGrrServiceHeartbeatTime = TEXT("%(NannyWindows.heartbeat_time)s");
 
 // The registry value which is updated for the nanny messages.
-const TCHAR* kGrrServiceNannyMessage = TEXT("%(Nanny.Nanny_Message)s");
+const TCHAR* kGrrServiceNannyMessage = TEXT("%(NannyWindows.nanny_message)s");
 
 // The registry value which is updated for the nanny status.
-const TCHAR* kGrrServiceNannyStatus = TEXT("%(Nanny.Nanny_Status)s");
+const TCHAR* kGrrServiceNannyStatus = TEXT("%(NannyWindows.nanny_status)s");
 
 // Configuration of nanny policies.
 const struct grr::ControllerConfig kNannyConfig = {
@@ -53,4 +53,4 @@ const struct grr::ControllerConfig kNannyConfig = {
   1024 * 1024 * 1024,  // client memory limit
 };
 
-#endif  // OPS_SECURITY_GRR_CLIENT_NANNY_WINDOWS_NANNY_H_
+#endif  // GRR_CLIENT_NANNY_WINDOWS_NANNY_H_

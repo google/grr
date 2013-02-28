@@ -16,7 +16,6 @@
 """This is the GRR client for thread pools."""
 
 
-import multiprocessing
 import pickle
 import threading
 import time
@@ -33,7 +32,6 @@ from grr.client import client
 from grr.client import client_actions
 # pylint: enable=W0611
 
-from grr.client import client_log
 from grr.client import conf
 from grr.client import vfs
 from grr.lib import rdfvalue
@@ -49,15 +47,13 @@ flags.DEFINE_string("cert_file", "",
 flags.DEFINE_bool("enroll_only", False,
                   "If specified, the script will enroll all clients and exit.")
 
-FLAGS = flags.FLAGS
-
 
 class PoolGRRClient(client.GRRClient, threading.Thread):
   """A GRR client for running in pool mode."""
 
-  def __init__(self, certificate):
+  def __init__(self):
     """Constructor."""
-    super(PoolGRRClient, self).__init__(certificate=certificate)
+    super(PoolGRRClient, self).__init__()
     self.daemon = True
     self.stop = False
 
@@ -90,7 +86,7 @@ def CreateClientPool(n):
 
   # Load previously stored clients.
   try:
-    fd = open(FLAGS.cert_file, "rb")
+    fd = open(flags.FLAGS.cert_file, "rb")
     certificates = pickle.load(fd)
     fd.close()
 
@@ -110,7 +106,7 @@ def CreateClientPool(n):
 
   start_time = time.time()
   try:
-    if FLAGS.enroll_only:
+    if flags.FLAGS.enroll_only:
       while True:
         time.sleep(1)
         enrolled = len([x for x in clients if x.enrolled])
@@ -137,7 +133,7 @@ def CreateClientPool(n):
   logging.info("Pool done in %s seconds, saving certs.",
                time.time() - start_time)
   try:
-    fd = open(FLAGS.cert_file, "wb")
+    fd = open(flags.FLAGS.cert_file, "wb")
     pickle.dump([x.private_key for x in clients], fd)
     fd.close()
   except IOError:
@@ -145,17 +141,13 @@ def CreateClientPool(n):
 
 
 def main(unused_argv):
-  # Ensure multiprocesses can run when packaged on windows.
-  multiprocessing.freeze_support()
-
   conf.PARSER.parse_args()
 
   # Make sure that we do not update the config file when we create new clients.
-  FLAGS.config = "/dev/null"
+  flags.FLAGS.client_config = "/dev/null"
 
-  client_log.SetUpClientLogging()
-
-  if "staging" not in FLAGS.location and "localhost" not in FLAGS.location:
+  if ("staging" not in flags.FLAGS.location and
+      "localhost" not in flags.FLAGS.location):
     logging.error("Poolclient should only be run against test or staging.")
     exit()
 
@@ -167,7 +159,7 @@ def main(unused_argv):
   os = rdfvalue.RDFPathSpec.Enum("OS")
   vfs.VFS_HANDLERS[tsk] = vfs.VFS_HANDLERS[os]
 
-  CreateClientPool(FLAGS.nrclients)
+  CreateClientPool(flags.FLAGS.nrclients)
 
 if __name__ == "__main__":
   conf.StartMain(main)

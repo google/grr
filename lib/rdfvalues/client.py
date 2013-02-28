@@ -18,24 +18,16 @@ This module contains the RDFValue implementations used to communicate with the
 client.
 """
 
-import hashlib
-
-from M2Crypto import BIO
-from M2Crypto import RSA
-from M2Crypto import util
-from M2Crypto import X509
-
-import logging
+import re
 
 from grr.lib import rdfvalue
+from grr.lib import type_info
+from grr.lib.rdfvalues import crypto
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import protodict
 from grr.proto import analysis_pb2
 from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
-
-DIGEST_ALGORITHM = hashlib.sha256
-DIGEST_ALGORITHM_STR = "sha256"
 
 
 # These are objects we store as attributes of the client.
@@ -116,40 +108,10 @@ class Interfaces(protodict.RDFValueArray):
   rdf_type = Interface
 
 
+# DEPRECATED - do not use.
 class GRRConfig(rdfvalue.RDFProto):
   """The configuration of a GRR Client."""
   _proto = jobs_pb2.GRRConfig
-
-
-class Certificate(rdfvalue.RDFProto):
-  _proto = jobs_pb2.Certificate
-
-
-class RDFX509Cert(rdfvalue.RDFString):
-  """X509 certificates used to communicate with this client."""
-
-  def _GetCN(self, x509cert):
-    subject = x509cert.get_subject()
-    try:
-      cn_id = subject.nid["CN"]
-      cn = subject.get_entries_by_nid(cn_id)[0]
-    except IndexError:
-      raise IOError("Cert has no CN")
-
-    self.common_name = cn.get_data().as_text()
-
-  def GetX509Cert(self):
-    return X509.load_cert_string(str(self))
-
-  def GetPubKey(self):
-    return self.GetX509Cert().get_pubkey().get_rsa()
-
-  def ParseFromString(self, string):
-    super(RDFX509Cert, self).ParseFromString(string)
-    try:
-      self._GetCN(self.GetX509Cert())
-    except X509.X509Error:
-      raise IOError("Cert invalid")
 
 
 class ClientInformation(rdfvalue.RDFProto):
@@ -245,89 +207,6 @@ class ClientStats(rdfvalue.RDFProto):
     self.io_samples = self.DownsampleList(self.io_samples, sampling_interval)
 
 
-class SignedBlob(rdfvalue.RDFProto):
-  """A signed blob.
-
-  The client can receive and verify a signed blob (e.g. driver or executable
-  binary). Once verified, the client may execute this.
-  """
-  _proto = jobs_pb2.SignedBlob
-
-  def Verify(self, pub_key):
-    """Verify the data in this blob.
-
-    Args:
-      pub_key: The public key to use for verification.
-
-    Returns:
-      True if the data is verified, else False.
-    """
-    if self.digest_type != self.SHA256:
-      logging.warn("Unsupported digest.")
-      return False
-
-    bio = BIO.MemoryBuffer(pub_key)
-    rsa = RSA.load_pub_key_bio(bio)
-    result = 0
-    try:
-      result = rsa.verify(self.digest, self.signature,
-                          DIGEST_ALGORITHM_STR)
-      if result != 1:
-        logging.warn("Could not verify blob.")
-        return False
-
-    except RSA.RSAError, e:
-      logging.warn("Could not verify blob. Error: %s", e)
-      return False
-
-    digest = hashlib.sha256(self._data.data).digest()
-    if digest != self.digest:
-      logging.warn("SignedBlob: Digest did not match actual data.")
-      return False
-
-    return result == 1
-
-  def Sign(self, data, signing_key, verify_key=None, prompt=False):
-    """Use the data to sign this blob.
-
-    Args:
-      data: String containing the blob data.
-      signing_key: A key that can be loaded to sign the data as a string.
-      verify_key: Key to verify with. If None we assume the signing key also
-        contains the public key.
-      prompt: If True we allow a password prompt to be presented.
-
-    Raises:
-      IOError: On bad key.
-    """
-    callback = None
-    if prompt:
-      callback = util.passphrase_callback
-    else:
-      callback = lambda x: ""
-
-    digest = DIGEST_ALGORITHM(data).digest()
-    rsa = RSA.load_key_string(signing_key, callback=callback)
-    if len(rsa) < 2048:
-      logging.warn("signing key is too short.")
-
-    sig = rsa.sign(digest, DIGEST_ALGORITHM_STR)
-    self.signature = sig
-    self.signature_type = self.RSA_2048
-
-    self.digest = digest
-    self.digest_type = self.SHA256
-    self._data.data = data
-
-    # Test we can verify before we send it off.
-    if verify_key is None:
-      m = BIO.MemoryBuffer()
-      rsa.save_pub_key_bio(m)
-      verify_key = m.read_all()
-    if not self.Verify(verify_key):
-      raise IOError("Failed to verify our own signed blob")
-
-
 class DriverInstallTemplate(rdfvalue.RDFProto):
   """Driver specific information controlling default installation.
 
@@ -335,7 +214,7 @@ class DriverInstallTemplate(rdfvalue.RDFProto):
   """
   _proto = jobs_pb2.InstallDriverRequest
 
-  rdf_map = dict(driver=SignedBlob)
+  rdf_map = dict(driver=crypto.SignedBlob)
 
 
 class BufferReference(rdfvalue.RDFProto):
@@ -351,6 +230,8 @@ class BufferReference(rdfvalue.RDFProto):
 class Process(rdfvalue.RDFProto):
   """Represent a process on the client."""
   _proto = sysinfo_pb2.Process
+
+  rdf_map = dict(connections=NetworkConnection)
 
 
 class Processes(protodict.RDFValueArray):
@@ -423,6 +304,8 @@ class EchoRequest(rdfvalue.RDFProto):
 class ExecuteBinaryRequest(rdfvalue.RDFProto):
   _proto = jobs_pb2.ExecuteBinaryRequest
 
+  rdf_map = dict(executable=crypto.SignedBlob)
+
 
 class ExecuteBinaryResponse(rdfvalue.RDFProto):
   _proto = jobs_pb2.ExecuteBinaryResponse
@@ -431,7 +314,7 @@ class ExecuteBinaryResponse(rdfvalue.RDFProto):
 class ExecutePythonRequest(rdfvalue.RDFProto):
   _proto = jobs_pb2.ExecutePythonRequest
 
-  rdf_map = dict(python_code=SignedBlob,
+  rdf_map = dict(python_code=crypto.SignedBlob,
                  py_args=rdfvalue.RDFProtoDict)
 
 
@@ -554,3 +437,133 @@ class Event(rdfvalue.RDFProto):
   _proto = analysis_pb2.Event
 
   rdf_type = dict(stat=StatEntry)
+
+
+class AFF4ObjectSummary(rdfvalue.RDFProto):
+  """A summary of an AFF4 object.
+
+  AFF4Collection objects maintain a list of AFF4 objects. To make it easier to
+  filter and search these collections, we need to store a summary of each AFF4
+  object inside the collection (so we do not need to open every object for
+  filtering).
+
+  This summary is maintained in the RDFProto instance.
+  """
+  _proto = jobs_pb2.AFF4ObjectSummary
+
+  rdf_map = dict(urn=rdfvalue.RDFURN,
+                 stat=rdfvalue.StatEntry)
+
+
+class EmptyTargetGrepspecType(type_info.RDFValueType):
+  """A Type for handling Grep specifications with a yet undefined target."""
+
+  child_descriptor = type_info.TypeDescriptorSet(
+      type_info.PathspecType(name="target"),
+      type_info.String(
+          description="Search for this regular expression.",
+          name="regex",
+          friendly_name="Regular Expression",
+          default=""),
+      type_info.Bytes(
+          description="Search for this literal expression.",
+          name="literal",
+          friendly_name="Literal Match",
+          default=""),
+      type_info.Integer(
+          description="Offset to start searching from.",
+          name="start_offset",
+          friendly_name="Start",
+          default=0),
+      type_info.Integer(
+          description="Length to search.",
+          name="length",
+          friendly_name="Length",
+          default=10737418240),
+      type_info.RDFEnum(
+          description="How many results should be returned?",
+          name="mode",
+          friendly_name="Search Mode",
+          rdfclass=rdfvalue.GrepSpec,
+          enum_name="Mode",
+          default=rdfvalue.GrepSpec.Enum("FIRST_HIT")),
+      type_info.Integer(
+          description="Snippet returns these many bytes before the hit.",
+          name="bytes_before",
+          friendly_name="Preamble",
+          default=0),
+      type_info.Integer(
+          description="Snippet returns these many bytes after the hit.",
+          name="bytes_after",
+          friendly_name="Context",
+          default=0),
+      )
+
+  def __init__(self, **kwargs):
+    defaults = dict(name="grepspec",
+                    rdfclass=rdfvalue.GrepSpec)
+
+    defaults.update(kwargs)
+    super(EmptyTargetGrepspecType, self).__init__(**defaults)
+
+
+class GrepspecType(EmptyTargetGrepspecType):
+  """A Type for handling Grep specifications."""
+
+  def Validate(self, value):
+    if value.target.pathtype < 0:
+      raise type_info.TypeValueError("GrepSpec has an invalid target PathSpec.")
+
+    return super(GrepspecType, self).Validate(value)
+
+
+class FindSpecType(type_info.RDFValueType):
+  """A Find spec type."""
+
+  child_descriptor = type_info.TypeDescriptorSet(
+      type_info.PathspecType(),
+      type_info.String(
+          description="Search for this regular expression.",
+          name="path_regex",
+          friendly_name="Path Regular Expression",
+          default=""),
+      type_info.String(
+          description="Search for this regular expression in the data.",
+          name="data_regex",
+          friendly_name="Data Regular Expression",
+          default=""),
+      type_info.Bool(
+          description="Should we cross devices?",
+          name="cross_devs",
+          friendly_name="Cross Devices",
+          default=False),
+      type_info.Integer(
+          description="Maximum recursion depth.",
+          name="max_depth",
+          friendly_name="Depth",
+          default=5),
+      )
+
+  def __init__(self, **kwargs):
+    defaults = dict(name="findspec",
+                    rdfclass=rdfvalue.RDFFindSpec)
+
+    defaults.update(kwargs)
+    super(FindSpecType, self).__init__(**defaults)
+
+  def Validate(self, value):
+    """Validates the passed in protobuf for sanity."""
+    value = super(FindSpecType, self).Validate(value)
+
+    # Check the regexes are valid.
+    try:
+      if value.data_regex:
+        re.compile(value.data_regex)
+
+      if value.path_regex:
+        re.compile(value.path_regex)
+    except re.error, e:
+      raise type_info.TypeValueError(
+          "Invalid regex for FindFiles. Err: {0}".format(e))
+
+    return value

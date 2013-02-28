@@ -22,6 +22,7 @@ This module loads and registers all the tests for the RDFValue implementations.
 
 # These need to register plugins so, pylint: disable=W0611
 from grr.lib.rdfvalues import basic_test
-from grr.lib.rdfvalues import client_test
+from grr.lib.rdfvalues import crypto_test
 from grr.lib.rdfvalues import paths_test
 from grr.lib.rdfvalues import protodict_test
+from grr.lib.rdfvalues import stats_test

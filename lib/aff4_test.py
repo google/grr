@@ -1,37 +1,22 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """Tests for the flow."""
 
 
 import time
 from grr.client import conf
-from grr.client import conf as flags
+
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import,g-bad-import-order
+
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
-
-# Load plugins for aff4 objects and tests
-# pylint: disable=W0611,C6203
-from grr.lib import aff4_objects
-from grr.lib import rdfvalue_test
-from grr.lib.aff4_objects import tests
-# pylint: enable=W0611,C6203
 
 
 class MockNotificationRule(aff4.AFF4NotificationRule):
@@ -156,13 +141,48 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     fd = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", token=self.token)
 
     # Certs invalid - The RDFX509Cert should check the validity of the cert
-    self.assertRaises(IOError, rdfvalue.RDFX509Cert, "My cert")
+    self.assertRaises(rdfvalue.DecodeError, rdfvalue.RDFX509Cert, "My cert")
 
+    fd.Close()
+
+  def testAFF4MemoryStream(self):
+    """Tests the AFF4MemoryStream."""
+
+    path = "/C.12345/memorystreamtest"
+
+    fd = aff4.FACTORY.Create(path, "AFF4MemoryStream", token=self.token)
+    self.assertEqual(fd.size, 0)
+    self.assertEqual(fd.Tell(), 0)
+
+    size = 0
+    for i in range(100):
+      data = "Test%08X\n" % i
+      fd.Write(data)
+      size += len(data)
+      self.assertEqual(fd.size, size)
+      self.assertEqual(fd.Tell(), size)
+    fd.Close()
+
+    fd = aff4.FACTORY.Open(path, mode="rw", token=self.token)
+    self.assertEqual(fd.size, size)
+    self.assertEqual(fd.Tell(), 0)
+    fd.Seek(size)
+    self.assertEqual(fd.Tell(), size)
+    fd.Seek(100)
+    fd.Write("Hello World!")
+    self.assertEqual(fd.size, size)
+    fd.Close()
+
+    fd = aff4.FACTORY.Open(path, mode="rw", token=self.token)
+    self.assertEqual(fd.size, size)
+    data = fd.Read(size)
+    self.assertEqual(len(data), size)
+    self.assertTrue("Hello World!" in data)
     fd.Close()
 
   def testAFF4Image(self):
     """Test the AFF4Image object."""
-    path = "/C.12345/foo"
+    path = "/C.12345/aff4image"
 
     fd = aff4.FACTORY.Create(path, "AFF4Image", token=self.token)
     fd.Set(fd.Schema.CHUNKSIZE(10))
@@ -177,6 +197,78 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     fd = aff4.FACTORY.Open(path, token=self.token)
     for i in range(100):
       self.assertEqual(fd.Read(13), "Test%08X\n" % i)
+
+    fd.Close()
+
+    fd = aff4.FACTORY.Create(path, "AFF4Image", mode="rw", token=self.token)
+    fd.Set(fd.Schema.CHUNKSIZE(10))
+
+    # Overflow the cache.
+    fd.Write("X" * 10000)
+    self.assertEqual(fd.size, 10000)
+    # Now rewind a bit and write something.
+    fd.seek(fd.size - 100)
+    fd.Write("Hello World")
+    self.assertEqual(fd.size, 10000)
+    # Now append to the end.
+    fd.seek(fd.size)
+    fd.Write("Y" * 100)
+    self.assertEqual(fd.size, 10100)
+    # And verify everything worked as expected.
+    fd.seek(10000 - 200)
+    data = fd.Read(500)
+    self.assertEqual(len(data), 300)
+    self.assertTrue("XXXHello WorldXXX" in data)
+    self.assertTrue("XXXYYY" in data)
+
+  def testAFF4ImageSize(self):
+    path = "/C.12345/aff4imagesize"
+
+    fd = aff4.FACTORY.Create(path, "AFF4Image", token=self.token)
+    fd.Set(fd.Schema.CHUNKSIZE(10))
+
+    size = 0
+    for i in range(99):
+      data = "Test%08X\n" % i
+      fd.Write(data)
+      size += len(data)
+      self.assertEqual(fd.size, size)
+
+    fd.Close()
+
+    # Check that size is preserved.
+    fd = aff4.FACTORY.Open(path, mode="rw", token=self.token)
+    self.assertEqual(fd.size, size)
+
+    # Now append some more data.
+    fd.seek(fd.size)
+    for i in range(99):
+      data = "Test%08X\n" % i
+      fd.Write(data)
+      size += len(data)
+      self.assertEqual(fd.size, size)
+
+    fd.Close()
+
+    # Check that size is preserved.
+    fd = aff4.FACTORY.Open(path, mode="rw", token=self.token)
+    self.assertEqual(fd.size, size)
+    fd.Close()
+
+    # Writes in the middle should not change size.
+    fd = aff4.FACTORY.Open(path, mode="rw", token=self.token)
+    fd.Seek(100)
+    fd.Write("Hello World!")
+    self.assertEqual(fd.size, size)
+    fd.Close()
+
+    # Check that size is preserved.
+    fd = aff4.FACTORY.Open(path, mode="rw", token=self.token)
+    self.assertEqual(fd.size, size)
+    data = fd.Read(fd.size)
+    self.assertEqual(len(data), size)
+    self.assertTrue("Hello World" in data)
+    fd.Close()
 
   def testAFF4ImageWithFlush(self):
     """Make sure the AFF4Image can survive with partial flushes."""
@@ -194,15 +286,17 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     try:
       time.time = lambda: timestamp
       fd = aff4.FACTORY.Create(path, "AFF4Image", mode="w", token=self.token)
-      time.time = lambda: timestamp + 1
+      timestamp += 1
       fd.Set(fd.Schema.CHUNKSIZE(10))
 
       # Make lots of small writes - The length of this string and the chunk size
       # are relative primes for worst case.
       for i in range(100):
         fd.Write("%s%08X\n" % (prefix, i))
-          # Flush after every write.
+        # Flush after every write.
         fd.Flush()
+        # And advance the time.
+        timestamp += 1
       fd.Close()
 
     finally:
@@ -217,13 +311,13 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     # Write a newer version.
     self.WriteImage(path, "Time2", timestamp=2000)
 
-    fd = aff4.FACTORY.Open(path, token=self.token, age=(0, 1100 * 1e6))
+    fd = aff4.FACTORY.Open(path, token=self.token, age=(0, 1150 * 1e6))
 
     for i in range(100):
       s = "Time1%08X\n" % i
       self.assertEqual(fd.Read(len(s)), s)
 
-    fd = aff4.FACTORY.Open(path, token=self.token, age=(0, 2200 * 1e6))
+    fd = aff4.FACTORY.Open(path, token=self.token, age=(0, 2250 * 1e6))
     for i in range(100):
       s = "Time2%08X\n" % i
       self.assertEqual(fd.Read(len(s)), s)
@@ -241,10 +335,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     # Try to open a single flow.
     flow_obj = aff4.FACTORY.Open(session_ids[0], mode="r", token=self.token)
-    flow_pb = flow_obj.Get(flow_obj.Schema.FLOW_PB)
+    rdf_flow = flow_obj.Get(flow_obj.Schema.RDF_FLOW).payload
 
-    self.assertEqual(flow_pb.name, "FlowOrderTest")
-    self.assertEqual(flow_pb.session_id, session_ids[0])
+    self.assertEqual(rdf_flow.name, "FlowOrderTest")
+    self.assertEqual(rdf_flow.session_id, session_ids[0])
 
     grr_flow_obj = flow_obj.GetFlowObj()
     self.assertEqual(grr_flow_obj.session_id, session_ids[0])
@@ -413,7 +507,9 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
   def testNotificationRulesArePeriodicallyUpdated(self):
     current_time = time.time()
-    time_in_future = current_time + flags.FLAGS.notification_rules_cache_age + 1
+    time_in_future = (
+        current_time +
+        config_lib.CONFIG["AFF4.notification_rules_cache_age"] + 1)
     old_time = time.time
     try:
       # Be sure that we're well in advance from the time when aff4.FACTORY
@@ -446,7 +542,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertEquals(len(MockNotificationRule.OBJECTS_WRITTEN), 0)
 
       t = (time_in_future +
-           flags.FLAGS.notification_rules_cache_age - 1)
+           config_lib.CONFIG["AFF4.notification_rules_cache_age"] - 1)
       time.time = lambda: t
       fd = aff4.FACTORY.Create(
           rdfvalue.RDFURN("aff4:/some"),
@@ -458,7 +554,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertEquals(len(MockNotificationRule.OBJECTS_WRITTEN), 0)
 
       t = (time_in_future +
-           flags.FLAGS.notification_rules_cache_age + 1)
+           config_lib.CONFIG["AFF4.notification_rules_cache_age"] + 1)
+
       time.time = lambda: t
       fd = aff4.FACTORY.Create(
           rdfvalue.RDFURN("aff4:/some"),

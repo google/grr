@@ -49,40 +49,40 @@ class NotificationCount(renderers.TemplateRenderer):
 class NotificationBar(renderers.TemplateRenderer):
   """Render a notification bar for the user."""
 
-  bug_url = "http://code.google.com/p/grr/issues/list"
-  code_url = "http://code.google.com/p/grr"
-
   layout_template = renderers.Template("""
-<div class="grr-topbar-username">{{user|escape}}</div>
-<span class="grr-topbar-divider">
- <span class="grr-topbar-divider-img"></span>
-</span>
-<button id="notification_button" class="grr-button">
-</button>
-<div id="notification_dialog"></div>
+<div id="notification_dialog" class="modal wide-modal hide fade" tabindex="-1"
+  role="dialog" aria-hidden="true">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal"
+      aria-hidden="true">x</button>
+    <h3>Notifications for {{this.user|escape}}</h3>
+  </div>
+  <div class="modal-body" id="notification_dialog_body">
+  </div>
+  <div class="modal-footer">
+    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+  </div>
+</div>
 
-<span class="grr-topbar-divider">
- <span class="grr-topbar-divider-img"></span>
-</span>
+<ul class="nav pull-left">
+  <li><p class="navbar-text">User: {{this.user|escape}}</p></li>
+</ul>
 
-<a class="grr-topbar-entry" href="{{this.code_url|escape}}"
-  target="_blank">Help</a>
-
-<span class="grr-topbar-divider">
- <span class="grr-topbar-divider-img"></span>
-</span>
-
-<a class="grr-topbar-entry" href="{{this.bug_url|escape}}"
-  target="_blank">Report a problem</a>
+<ul class="nav pull-right">
+  <li><button id="notification_button" class="nav-btn btn btn-info span1"
+         data-toggle="modal" data-target="#notification_dialog"/></li>
+</ul>
 
 <script>
   grr.subscribe("NotificationCount", function (number) {
     var button;
 
     if(parseInt(number) > 0) {
-      button = $('#notification_button').addClass("grr-button-red");
+      button = $('#notification_button').removeClass("btn-info");
+      button = $('#notification_button').addClass("btn-danger");
     } else {
-      button = $('#notification_button').removeClass("grr-button-red");
+      button = $('#notification_button').addClass("btn-info");
+      button = $('#notification_button').removeClass("btn-danger");
     };
     button.text(number);
   }, "notification_button");
@@ -95,9 +95,11 @@ class NotificationBar(renderers.TemplateRenderer):
     return true;
   }, 60000, grr.state, 'json');
 
-  grr.dialog("ViewNotifications", "notification_dialog", "notification_button",
-    {open: function() {grr.publish("NotificationCount", 0);},
-     title: "Notifications for {{this.user|escapejs}}"});
+  $("#notification_dialog").detach().appendTo("body");
+  $("#notification_dialog").on("show", function () {
+    grr.layout("ViewNotifications", "notification_dialog_body");
+    grr.publish("NotificationCount", 0);
+  });
 </script>
 """)
 
@@ -131,8 +133,8 @@ class ViewNotifications(renderers.TableRenderer):
   def __init__(self, **kwargs):
     renderers.TableRenderer.__init__(self, **kwargs)
 
-    self.AddColumn(renderers.RDFValueColumn("Timestamp", width=10))
-    self.AddColumn(renderers.RDFValueColumn("Message"))
+    self.AddColumn(renderers.RDFValueColumn("Timestamp"))
+    self.AddColumn(renderers.RDFValueColumn("Message", width="100%"))
     self.AddColumn(renderers.RDFValueColumn("Target"))
 
   def BuildTable(self, start_row, end_row, request):
@@ -183,10 +185,18 @@ class ViewNotifications(renderers.TableRenderer):
     elif notification.type == "ViewObject":
       path = rdfvalue.RDFURN(notification.subject)
       components = path.Path().split("/")[1:]
-      h["c"] = components[0]
-      h["aff4_path"] = notification.subject
-      h["t"] = renderers.DeriveIDFromPath("/".join(components[1:-1]))
-      h["main"] = "VirtualFileSystemView"
+      if len(components) == 2 and components[0] == "hunts":
+        h["hunt_id"] = notification.subject
+        h["main"] = "ManageHunts"
+      elif len(components) == 3 and components[1] == "flows":
+        h["flow"] = notification.subject
+        h["c"] = components[0]
+        h["main"] = "ManageFlows"
+      else:
+        h["c"] = components[0]
+        h["aff4_path"] = notification.subject
+        h["t"] = renderers.DeriveIDFromPath("/".join(components[1:-1]))
+        h["main"] = "VirtualFileSystemView"
 
     # Error with a flow
     elif notification.type == "FlowStatus":

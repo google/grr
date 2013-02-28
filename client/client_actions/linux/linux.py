@@ -31,8 +31,6 @@ from grr.client.client_actions import standard
 from grr.client.client_actions.linux import ko_patcher
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.proto import jobs_pb2
-from grr.proto import sysinfo_pb2
 
 
 # struct sockaddr_ll
@@ -147,8 +145,8 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0x2:     # AF_INET
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
           ip4 = "".join(map(chr, data.contents.sin_addr))
-          address_type = jobs_pb2.NetworkAddress.INET
-          address = jobs_pb2.NetworkAddress(address_type=address_type,
+          address_type = rdfvalue.NetworkAddress.Enum("INET")
+          address = rdfvalue.NetworkAddress(address_type=address_type,
                                             packed_bytes=ip4)
           addresses.setdefault(ifname, []).append(address)
 
@@ -160,8 +158,8 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0xA:     # AF_INET6
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
           ip6 = "".join(map(chr, data.contents.sin6_addr))
-          address_type = jobs_pb2.NetworkAddress.INET6
-          address = jobs_pb2.NetworkAddress(address_type=address_type,
+          address_type = rdfvalue.NetworkAddress.Enum("INET6")
+          address = rdfvalue.NetworkAddress(address_type=address_type,
                                             packed_bytes=ip6)
           addresses.setdefault(ifname, []).append(address)
       except ValueError:
@@ -181,7 +179,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
         args["mac_address"] = mac
       if addresses:
         args["addresses"] = address_list
-      self.SendReply(jobs_pb2.Interface(**args))
+      self.SendReply(rdfvalue.Interface(**args))
 
 
 class GetInstallDate(actions.ActionPlugin):
@@ -328,8 +326,8 @@ class InstallDriver(actions.ActionPlugin):
     try:
       fd = tempfile.NamedTemporaryFile()
       data = args.driver.data
-      if args.mode >= jobs_pb2.InstallDriverRequest.ENABLE:
-        force = args.mode == jobs_pb2.InstallDriverRequest.FORCE
+      if args.mode >= rdfvalue.InstallDriverRequest.Enum("ENABLE"):
+        force = args.mode == rdfvalue.InstallDriverRequest.Enum("FORCE")
         data = ko_patcher.KernelObjectPatcher().Patch(data, force_patch=force)
       fd.write(data)
       fd.flush()
@@ -361,14 +359,15 @@ class GetMemoryInformation(actions.ActionPlugin):
 
   def Run(self, args):
     """Run."""
-    result = sysinfo_pb2.MemoryInformation()
+    result = rdfvalue.MemoryInformation()
 
     # Try if we can actually open the device.
     with open(args.path, "rb") as fd:
       fd.read(5)
 
-    result.device.path = args.path
-    result.device.pathtype = rdfvalue.RDFPathSpec.Enum("MEMORY")
+    result.device = rdfvalue.RDFPathSpec(
+        path=args.path,
+        pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY"))
 
     self.SendReply(result)
 
@@ -399,4 +398,4 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
   out_rdfvalue = rdfvalue.ExecuteBinaryResponse
 
   # This is not yet supported but we need this stub here so the worker can
-  # determine the correct protobufs.
+  # determine the correct rdfvalues.

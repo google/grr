@@ -20,9 +20,9 @@
 import re
 import stat
 
-from grr.client import conf as flags
 import logging
 
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
@@ -31,8 +31,6 @@ from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.hunts import implementation
-
-FLAGS = flags.FLAGS
 
 
 class CreateAndRunGenericHuntFlow(flow.GRRFlow):
@@ -58,12 +56,12 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
           description="Foreman rules for the hunt.",
           name="hunt_rules"),
 
-      type_info.Number(
+      type_info.Integer(
           description="Expiration time for this hunt in seconds.",
           default=None,
           name="expiry_time"),
 
-      type_info.Number(
+      type_info.Integer(
           description="A client limit.",
           default=None,
           name="client_limit"),
@@ -83,8 +81,8 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
 
     # We have to create special token here, because within the flow
     # token has supervisor access.
-    check_token = data_store.ACLToken(username=self.token.username,
-                                      reason=self.token.reason)
+    check_token = access_control.ACLToken(username=self.token.username,
+                                          reason=self.token.reason)
     data_store.DB.security_manager.CheckAccess(
         check_token, [aff4.ROOT_URN.Add("hunts").Add(hunt.session_id)], "x")
     hunt.Run()
@@ -110,8 +108,8 @@ class RunHuntFlow(flow.GRRFlow):
 
     # We have to create special token here, because within the flow
     # token has supervisor access.
-    check_token = data_store.ACLToken(username=self.token.username,
-                                      reason=self.token.reason)
+    check_token = access_control.ACLToken(username=self.token.username,
+                                          reason=self.token.reason)
     data_store.DB.security_manager.CheckAccess(
         check_token, [aff4.ROOT_URN.Add("hunts").Add(hunt.session_id)], "x")
 
@@ -135,9 +133,9 @@ class CheckHuntAccessFlow(flow.GRRFlow):
     if not self.hunt_id:
       raise RuntimeError("hunt_id was not provided.")
 
-    check_token = data_store.ACLToken(username=self.token.username,
-                                      reason=self.token.reason,
-                                      requested_access="x")
+    check_token = access_control.ACLToken(username=self.token.username,
+                                          reason=self.token.reason,
+                                          requested_access="x")
     data_store.DB.security_manager.CheckAccess(
         check_token, [aff4.ROOT_URN.Add("hunts").Add(self.hunt_id)], "x")
 
@@ -150,7 +148,7 @@ class SampleHunt(implementation.GRRHunt):
   > hunt = hunts.SampleHunt()
 
   # We want to schedule on clients that run windows and OS_RELEASE 7.
-  > int_rule = jobs_pb2.ForemanAttributeInteger(
+  > int_rule = rdfvalue.ForemanAttributeInteger(
                    attribute_name=client.Schema.OS_RELEASE.name,
                    operator=rdfvalue.ForemanAttributeInteger.Enum("EQUAL"),
                    value=7)
@@ -571,7 +569,7 @@ class FetchFilesHunt(implementation.GRRHunt):
   # For now, we also want to limit ourselves to Windows *servers*.
   # TODO(user): This needs to be expressed here.
 
-  > int_rule = jobs_pb2.ForemanAttributeInteger(
+  > int_rule = rdfvalue.ForemanAttributeInteger(
                    attribute_name=client.Schema.OS_RELEASE.name,
                    operator=rdfvalue.ForemanAttributeInteger.Enum("EQUAL"),
                    value=7)
@@ -761,7 +759,6 @@ class GenericHunt(implementation.GRRHunt):
 
   def Stop(self):
     super(GenericHunt, self).Stop()
-    self.collection.Close()
 
 
 class VariableGenericHunt(implementation.GRRHunt):
@@ -773,22 +770,47 @@ class VariableGenericHunt(implementation.GRRHunt):
            the generic hunt above.
   """
 
-  def __init__(self, flows, **kw):
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.GenericProtoDictType(
+          name="flows",
+          description=("A dictionary where the keys are the client_ids to start"
+                       " flows on and the values are lists of pairs (flow_name,"
+                       " dict of args)"),
+          ),
+      type_info.Bool(
+          name="collect_replies",
+          description="Collect hunt's replies into collection.",
+          default=False,
+          ),
+      )
+
+  def __init__(self, **kw):
+    super(VariableGenericHunt, self).__init__(**kw)
 
     client_id_re = aff4_grr.VFSGRRClient.CLIENT_ID_RE
-    for client_id in flows:
+    for client_id in self.flows:
       if not client_id_re.match(client_id):
         raise RuntimeError("%s is not a valid client_id." % client_id)
 
-    self.flows_by_client = flows
-    super(VariableGenericHunt, self).__init__(**kw)
+    # Our results will be written inside this collection.
+    self.collection = aff4.FACTORY.Create(
+        self.urn.Add("Results"), "RDFValueCollection",
+        token=self.token)
+
+  def Save(self):
+    if self.collect_replies:
+      with self.lock:
+        # Flush results frequently so users can monitor them as they come in.
+        self.collection.Flush()
+
+    super(VariableGenericHunt, self).Save()
 
   @flow.StateHandler(next_state=["MarkDone"])
   def Start(self, responses):
     client_id = responses.request.client_id
 
     try:
-      flow_list = self.flows_by_client[client_id]
+      flow_list = self.flows[client_id]
     except KeyError:
       self.LogClientError(client_id, "No flow found for client %s." % client_id)
       self.MarkClientDone(client_id)
@@ -807,6 +829,14 @@ class VariableGenericHunt(implementation.GRRHunt):
     else:
       msg = "Flow %s completed." % responses.request.flow_name
       self.LogResult(client_id, msg)
+
+      if self.collect_replies:
+        with self.lock:
+          for response in responses:
+            msg = rdfvalue.GRRMessage(payload=response)
+            msg.source = client_id
+            self.collection.Add(msg)
+
     # This is not entirely accurate since it will mark the client as done as
     # soon as the first flow is done.
     self.MarkClientDone(client_id)
@@ -818,7 +848,7 @@ class VariableGenericHunt(implementation.GRRHunt):
     all the flows and wait for the results.
     """
 
-    for client_id in self.flows_by_client:
+    for client_id in self.flows:
       self.StartClient(self.session_id, client_id, self.client_limit)
 
 

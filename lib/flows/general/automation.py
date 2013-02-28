@@ -1,18 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 """Automation flows to do the the normal case initialization work in one go."""
 
 
@@ -39,16 +25,15 @@ class WinUserActivityInvestigation(flow.GRRFlow):
           name="get_browser_history",
           description="Call each of the browser history flows.",
           default=True),
-      type_info.Number(
+      type_info.Integer(
           name="recursive_list_homedir",
           description="Recursively list the users homedir to this depth.",
           default=5),
-      type_info.Number(
+      type_info.Integer(
           name="recursive_list_user_registry",
           description="Recursively list the users registry hive.",
           default=5),
-      type_info.List(
-          type_info.String(),
+      type_info.MultiSelectList(
           name="artifact_list",
           description="A list of Artifact names.",
           default=[],
@@ -142,8 +127,7 @@ class WinSystemActivityInvestigation(flow.GRRFlow):
           description="Call the Netstat flow.",
           default=True,
           ),
-      type_info.List(
-          type_info.String(),
+      type_info.MultiSelectList(
           name="artifact_list",
           description="A list of Artifact names.",
           default=["ApplicationEventLog", "SystemEventLog", "SecurityEventLog",
@@ -254,8 +238,7 @@ class LinSystemActivityInvestigation(flow.GRRFlow):
           description="Call the Netstat flow.",
           default=True,
           ),
-      type_info.List(
-          type_info.String(),
+      type_info.MultiSelectList(
           name="artifact_list",
           description="A list of Artifact names.",
           default=["AuthLog", "Wtmp"],

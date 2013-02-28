@@ -17,9 +17,6 @@
 
 
 from grr.client import actions
-from grr.client import conf
-
-FLAGS = conf.PARSER.flags
 
 
 class SaveCert(actions.ActionPlugin):

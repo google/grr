@@ -17,11 +17,16 @@
 
 
 
+import math
 import time
 
 
 from grr.client import conf
 import logging
+
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import aff4
 from grr.lib import flow
@@ -30,11 +35,6 @@ from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-
-# pylint: disable=W0611
-# These imports populate the flow registry.
-from grr.lib.flows import general
-# pylint: enable=W0611
 
 
 class BrokenSampleHunt(hunts.SampleHunt):
@@ -271,11 +271,17 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
       self.responses += 1
 
+      # Create status message to report sample resource usage
+      status = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.Enum("OK"))
+      status.cpu_time_used.user_cpu_time = self.responses
+      status.cpu_time_used.system_cpu_time = self.responses * 2
+      status.network_bytes_sent = self.responses * 3
+
       # Every second client does not have this file.
       if self.responses % 2:
-        return []
+        return [status]
 
-      return [response]
+      return [response, status]
 
     def TransferBuffer(self, args):
 
@@ -537,7 +543,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     self.assertAlmostEqual(a, c)
     self.assertAlmostEqual(b, d)
 
-  def testResourceUsageStats(self):
+  def testResourceUsage(self):
 
     hunt = hunts.SampleHunt(token=self.token)
     hunt_obj = hunt.GetAFF4Object(mode="w", token=self.token)
@@ -601,6 +607,57 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     self.CheckTuple(res["client1"], (0.8, 1.5))
     self.CheckTuple(res["client2"], (1.9, 1.5))
     self.CheckTuple(res["client3"], (0.2, 1.0))
+
+  def testResourceUsageStats(self):
+    client_ids = self.SetupClients(10)
+
+    hunt = hunts.SampleHunt(token=self.token)
+    regex_rule = rdfvalue.ForemanAttributeRegex(
+        attribute_name="GRR client",
+        attribute_regex="GRR")
+    hunt.AddRule([regex_rule])
+    hunt.Run()
+
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    for client_id in client_ids:
+      foreman.AssignTasksToClient(client_id)
+
+    client_mock = self.SampleHuntMock()
+    test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
+
+    # Just in case - unserializing hunt object stored in AFF4 hunt object
+    hunt = hunt.GetAFF4Object(token=self.token).GetFlowObj()
+    self.assertEqual(hunt.usage_stats.user_cpu_stats.num, 10)
+    self.assertTrue(math.fabs(hunt.usage_stats.user_cpu_stats.mean -
+                              5.5) < 1e-7)
+    self.assertTrue(math.fabs(hunt.usage_stats.user_cpu_stats.std -
+                              2.872281323) < 1e-7)
+
+    self.assertEqual(hunt.usage_stats.system_cpu_stats.num, 10)
+    self.assertTrue(math.fabs(hunt.usage_stats.system_cpu_stats.mean -
+                              11) < 1e-7)
+    self.assertTrue(math.fabs(hunt.usage_stats.system_cpu_stats.std -
+                              5.7445626465) < 1e-7)
+
+    self.assertEqual(hunt.usage_stats.network_bytes_sent_stats.num, 10)
+    self.assertTrue(math.fabs(hunt.usage_stats.network_bytes_sent_stats.mean -
+                              16.5) < 1e-7)
+    self.assertTrue(math.fabs(hunt.usage_stats.network_bytes_sent_stats.std -
+                              8.616843969) < 1e-7)
+
+    # NOTE: Not checking histograms here. RunningStatsTest tests that mean,
+    # standard deviation and histograms are calculated correctly. Therefore
+    # if mean/stdev values are correct histograms should be ok as well.
+
+    self.assertEqual(len(hunt.usage_stats.worst_performers), 10)
+
+    prev = hunt.usage_stats.worst_performers[0]
+    for p in hunt.usage_stats.worst_performers[1:]:
+      self.assertTrue(prev.cpu_usage.user_cpu_time +
+                      prev.cpu_usage.system_cpu_time >
+                      p.cpu_usage.user_cpu_time +
+                      p.cpu_usage.system_cpu_time)
+      prev = p
 
 
 class FlowTestLoader(test_lib.GRRTestLoader):

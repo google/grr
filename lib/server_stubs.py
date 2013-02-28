@@ -22,10 +22,15 @@ server.)
 
 from grr.client import actions
 from grr.lib import rdfvalue
-from grr.proto import jobs_pb2
 
 
 class WmiQuery(actions.ActionPlugin):
   """Runs a WMI query and returns the results to a server callback."""
   in_rdfvalue = rdfvalue.WMIRequest
   out_rdfvalue = rdfvalue.RDFProtoDict
+
+
+# The following are deprecated client actions which have been removed.
+class GetConfig(actions.ActionPlugin):
+  """Get configuration - DEPRECATED."""
+  out_rdfvalue = rdfvalue.GRRConfig

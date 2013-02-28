@@ -21,6 +21,7 @@ import stat
 import logging
 
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import threadpool
 
 
@@ -117,10 +118,25 @@ def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
   tp = threadpool.ThreadPool.Factory("Downloader", max_threads)
   tp.Start()
 
-  for aff4object_summary in coll:
-    args = (aff4object_summary.urn, target_path, token, overwrite)
+  logging.info("Expecting to download %s files", coll.size)
+
+  # Collections can include anything they want, but we only handle RDFURN and
+  # StatEntry entries in this function.
+  for grr_message in coll:
+    real_rdf_type = getattr(rdfvalue, grr_message.args_rdf_name)
+    rdf_obj = real_rdf_type.FromSerializedProtobuf(grr_message.args)
+    if real_rdf_type == rdfvalue.RDFURN:
+      urn = rdf_obj.urn
+    elif real_rdf_type == rdfvalue.StatEntry:
+      urn = rdf_obj.aff4path
+    else:
+      continue
+
+    args = (urn, target_path, token, overwrite)
     tp.AddTask(target=CopyAFF4ToLocal, args=args,
                name="Downloader")
+
+  tp.Join()
 
 
 def CopyAFF4ToLocal(aff4_urn, target_dir, token=None, overwrite=False):

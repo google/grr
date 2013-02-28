@@ -1,17 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """This is the GRR class registry.
 
 A central place responsible for registring plugins. Any class can have plugins
@@ -25,20 +12,12 @@ and class as value.
 import abc
 import threading
 
-from grr.client import conf as flags
 import logging
 
 # This is required to monkey patch various older libraries so
 # pylint: disable=W0611
 from grr.lib import compatibility
 # pylint: enable=W0611
-
-flags.DEFINE_bool("debug", default=False,
-                  help="Print debugging statements to the console.")
-
-flags.DEFINE_bool("verbose", default=False,
-                  help="Enable debugging. This will enable file logging "
-                  "for the service and increase verbosity.")
 
 
 class MetaclassRegistry(abc.ABCMeta):
@@ -59,6 +38,7 @@ class MetaclassRegistry(abc.ABCMeta):
       for base in bases:
         try:
           cls.classes = base.classes
+          cls.classes_by_name = base.classes_by_name
           cls.plugin_feature = base.plugin_feature
           cls.top_level_class = base.top_level_class
           break
@@ -71,9 +51,11 @@ class MetaclassRegistry(abc.ABCMeta):
                        cls, cls.classes[cls.__name__])
 
         cls.classes[cls.__name__] = cls
+        cls.classes_by_name[getattr(cls, "name", None)] = cls
         cls.class_list.append(cls)
       except AttributeError:
         cls.classes = {cls.__name__: cls}
+        cls.classes_by_name = {getattr(cls, "name", None): cls}
         cls.class_list = [cls]
         cls.plugin_feature = cls.__name__
         # Keep a reference to the top level class
@@ -115,52 +97,83 @@ class InitHook(object):
   # A list of class names that have to be initialized before this hook.
   pre = []
 
+  # A rough order that can be imposed on init hook. Lower number runs earlier.
+  order = 100
+
   # Already run hooks
   already_run_once = set()
 
+  # If false this hook is disabled.
+  active = True
+
   lock = threading.RLock()
+
+  def _RunSingleHook(self, hook_cls, executed_set, required=None):
+    """Run the single hook specified by resolving all its prerequisites."""
+    # If we already ran do nothing.
+    if hook_cls in executed_set:
+      return
+
+    # Ensure all the pre execution hooks are run.
+    for pre_hook in hook_cls.pre:
+      pre_hook_cls = self.classes.get(pre_hook)
+      if pre_hook_cls is None:
+        raise RuntimeError("Pre Init Hook %s in %s could not"
+                           " be found. Missing import?" % (pre_hook, hook_cls))
+
+      self._RunSingleHook(self.classes[pre_hook], executed_set,
+                          required=hook_cls.__name__)
+
+    if hook_cls.active:
+      # Now run this hook.
+      cls_instance = hook_cls()
+      if required:
+        logging.info("Initializing %s (order %s), required by %s",
+                     hook_cls.__name__, hook_cls.order, required)
+      else:
+        logging.info("Initializing %s (order %s)", hook_cls.__name__,
+                     hook_cls.order)
+
+      # Always call the Run hook.
+      cls_instance.Run()
+      executed_set.add(hook_cls)
+
+      # Only call the RunOnce() hook if not already called.
+      if hook_cls not in self.already_run_once:
+        cls_instance.RunOnce()
+        self.already_run_once.add(hook_cls)
+    else:
+      logging.info("Skipping %s (order %s) since its disabled.",
+                   hook_cls.__name__, hook_cls.order)
+      executed_set.add(hook_cls)
+
+  def _RunAllHooks(self, executed_hooks):
+    for hook_cls in sorted(self.__class__.classes.values(),
+                           key=lambda x: x.order):
+      self._RunSingleHook(hook_cls, executed_hooks)
 
   def Init(self):
     with InitHook.lock:
-      executed_hooks = []
-      while True:
-        hooks = []
-        for cl in self.__class__.classes.itervalues():
-          if cl.__name__ not in executed_hooks:
-            # We only care about classes that are actually imported.
-            pre = []
-            for c in cl.pre:
-              if c in self.__class__.classes:
-                pre.append(c)
-              else:
-                raise RuntimeError("Pre Init Hook %s c in %s could not"
-                                   " be found. Missing import?" % (c, cl))
-
-            pre = [x for x in cl.pre if x in self.__class__.classes]
-            if all([hook in executed_hooks for hook in pre]):
-              hooks.append(cl)
-
-        if not hooks:
+      executed_hooks = set()
+      while 1:
+        # This code allows init hooks to import modules which have more hooks
+        # defined - We ensure we only run each hook only once.
+        last_run_hooks = len(executed_hooks)
+        self._RunAllHooks(executed_hooks)
+        if last_run_hooks == len(executed_hooks):
           break
-
-        for cls in hooks:
-          executed_hooks.append(cls.__name__)
-
-          cls_instance = cls()
-          logging.info("Initializing %s", cls.__name__)
-          # Always call the Run hook.
-          cls_instance.Run()
-
-          # Call the RunOnce hook if it has not been called.
-          if cls.__name__ not in InitHook.already_run_once:
-            cls_instance.RunOnce()
-            InitHook.already_run_once.add(cls.__name__)
 
   def RunOnce(self):
     """Hooks which only want to be run once."""
 
   def Run(self):
     """Hooks that can be called more than once."""
+
+  @staticmethod
+  def OverrideInitHook(new_cls, hook_cls):
+    """Override an existing hook with a new one."""
+    hook_cls.pre = hook_cls.pre[:] + [new_cls.__name__]
+    hook_cls.active = False
 
 
 # This method is only used in tests and will rerun all the hooks to create a
@@ -172,5 +185,6 @@ def TestInit():
 def Init():
   if InitHook.already_run_once:
     return
+
   # This initializes any class which inherits from InitHook.
   InitHook().Init()

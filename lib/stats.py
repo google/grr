@@ -36,8 +36,6 @@ from grr.lib import registry
 
 
 
-FLAGS = flags.FLAGS
-
 
 class CountingExceptionMixin(object):
   """Each time this exception is raised we increment the counter."""

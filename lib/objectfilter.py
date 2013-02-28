@@ -231,6 +231,7 @@ class BinaryOperator(Operator):
     self.left_operand = self.args[0]
     self.right_operand = self.args[1]
 
+
 class GenericBinaryOperator(BinaryOperator):
   """Allows easy implementations of operators."""
 
@@ -611,6 +612,11 @@ class BinaryExpression(lexer.BinaryExpression):
     return filter_implemention.FILTERS[method](arguments=args)
 
 
+class IdentityExpression(lexer.Expression):
+  def Compile(self, filter_implementation):
+    return filter_implementation.FILTERS["IdentityFilter"]()
+
+
 class Parser(lexer.SearchParser):
   """Parses and generates an AST for a query written in the described language.
 
@@ -622,6 +628,7 @@ class Parser(lexer.SearchParser):
   expression_cls = BasicExpression
   binary_expression_cls = BinaryExpression
   context_cls = ContextExpression
+  identity_expression_cls = IdentityExpression
 
   tokens = [
       # Operators and related tokens

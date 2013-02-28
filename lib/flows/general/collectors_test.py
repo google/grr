@@ -18,13 +18,9 @@
 
 import os
 
-from grr.client import conf as flags
-
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import test_lib
-
-FLAGS = flags.FLAGS
 
 
 class FakeArtifact(artifact.GenericArtifact):

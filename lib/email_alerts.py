@@ -30,8 +30,6 @@ flags.DEFINE_string("smtp_server", "localhost",
 flags.DEFINE_integer("smtp_port", 25,
                      "The smtp server port.")
 
-FLAGS = flags.FLAGS
-
 
 def RemoveHtmlTags(data):
   p = re.compile(r"<.*?>")
@@ -55,7 +53,7 @@ def SendEmail(to_addresses, from_address, subject, message, is_html=True):
   msg["From"] = from_address
   msg["To"] = to_addresses
 
-  s = smtplib.SMTP(FLAGS.smtp_server, FLAGS.smtp_port)
+  s = smtplib.SMTP(flags.FLAGS.smtp_server, flags.FLAGS.smtp_port)
   s.sendmail(from_address, [to_addresses], msg.as_string())
   s.quit()
 

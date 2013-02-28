@@ -16,17 +16,14 @@
 
 """Test the collection viewer interface."""
 
-from grr.client import conf as flags
 
 from grr.client import vfs
+
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
-from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-
-FLAGS = flags.FLAGS
-CONFIG = config_lib.CONFIG
 
 
 class TestContainerViewer(test_lib.GRRSeleniumTest):
@@ -37,11 +34,10 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
     """Creates a new collection we can play with."""
     # Create a client for testing
     client_id = "C.0000000000000004"
-    token = data_store.ACLToken("test", "Fixture")
+    token = access_control.ACLToken("test", "Fixture")
 
     fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=token)
-    fd.Set(fd.Schema.CERT, aff4.FACTORY.RDFValue("RDFX509Cert")(
-        CONFIG["Test.Test_Client_Cert"]))
+    fd.Set(fd.Schema.CERT(config_lib.CONFIG["Client.certificate"]))
     fd.Close()
 
     # Install the mock
@@ -74,9 +70,9 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
     sel = self.selenium
     sel.open("/")
 
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
-    sel.type("css=input[name=q]", "0004")
-    sel.click("css=input[type=submit]")
+    self.WaitUntil(sel.is_element_present, "client_query")
+    sel.type("client_query", "0004")
+    sel.click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000004",
                         sel.get_text, "css=span[type=subject]")
@@ -129,32 +125,33 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
                      sel.get_value("query"))
 
     # We should have exactly 4 files
-    self.WaitUntilEqual(4, sel.get_css_count, "css=.tableContainer  tbody > tr")
+    self.WaitUntilEqual(4, sel.get_css_count,
+                        "css=.containerFileTable tbody > tr")
 
     # Check the rows
     self.assertEqual(
         "C.0000000000000004/fs/os/c/bin %(client_id)s/bash",
-        sel.get_text("css=.tableContainer  tbody > tr:nth(0) td:nth(1)"))
+        sel.get_text("css=.containerFileTable  tbody > tr:nth(0) td:nth(1)"))
 
     self.assertEqual(
         "C.0000000000000004/fs/os/c/bin %(client_id)s/rbash",
-        sel.get_text("css=.tableContainer  tbody > tr:nth(1) td:nth(1)"))
+        sel.get_text("css=.containerFileTable  tbody > tr:nth(1) td:nth(1)"))
 
     self.assertEqual(
         "C.0000000000000004/fs/os/c/bin/bash",
-        sel.get_text("css=.tableContainer  tbody > tr:nth(2) td:nth(1)"))
+        sel.get_text("css=.containerFileTable  tbody > tr:nth(2) td:nth(1)"))
 
     self.assertEqual(
         "C.0000000000000004/fs/os/c/bin/rbash",
-        sel.get_text("css=.tableContainer  tbody > tr:nth(3) td:nth(1)"))
+        sel.get_text("css=.containerFileTable  tbody > tr:nth(3) td:nth(1)"))
 
     # Check that query filtering works (Pressing enter)
     sel.type("query", "stat.st_size < 5000")
-    sel.click("css=form:contains('Query') input[type=submit]")
+    sel.click("css=form[name=query_form] button[type=submit]")
 
     # This should be fixed eventually and the test turned back on.
     self.WaitUntilContains("Filtering by subfields is not implemented yet.",
-                           sel.get_text, "css=#footer")
+                           sel.get_text, "css=#footer_message")
 
     # self.WaitUntilEqual("4874", sel.get_text,
     #                    "css=.tableContainer  tbody > tr:nth(0) td:nth(4)")

@@ -145,8 +145,7 @@ function splitterImpl(splitter, args) {
   }
 
   //reset size to default.
-  var perc = (((C.position()[opts.moving] - splitter.offset()[opts.moving]) /
-               splitter[opts.sizing]()) * 100).toFixed(1);
+  var perc = (A[opts.sizing]() / splitter[opts.sizing]() * 100).toFixed(1);
 
   splitTo(perc, false, true);
 

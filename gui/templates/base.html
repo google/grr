@@ -1,5 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 
@@ -8,7 +7,7 @@
 <link rel="stylesheet" type="text/css" href="/static/javascript/jquery_splitter/splitter.css" />
 <link rel="stylesheet" type="text/css" href="/static/javascript/jquery_multiselect/jquery.multiselect.css" />
 
-<script src="/static/javascript/jquery/jquery-1.6.1.js"></script>
+<script src="/static/javascript/jquery/jquery_1_7_2_readable_do_not_compile.js"></script>
 <script src="/static/javascript/jquery_ui/jquery-ui-1.8.1.custom.js"></script>
 <script src="/static/javascript/jquery_template/jquery.tmpl.js"></script>
 <script src="/static/javascript/jstree/jquery.jstree.js"></script>
@@ -18,10 +17,11 @@
 <script src="/static/javascript/flot/jquery.flot.pie.js"></script>
 <script src="/static/javascript/flot/jquery.flot.navigate.js"></script>
 <script src="/static/javascript/jquery_multiselect/jquery.multiselect.min.js"></script>
+<script src="/static/javascript/bootstrap.js"></script>
 
+<link rel="stylesheet" type="text/css" href="/static/css/bootstrap.css" media="screen"/>
 <link rel="stylesheet" href="/static/css/grr.css" type="text/css" media="screen" />
 <link rel="shortcut icon" href="/static/images/favicon.png" />
-
 
 
 {% endblock %}
@@ -32,48 +32,72 @@
 <title>{% block title %}{{title}}{% endblock %}</title>
 </head>
 <body id="body">
-<div id="ACL"></div>
-<form id="csrf_form" method="POST"></form>
-  <div class="grr-topbar">
-    <a class="grr-topbar-entry" href="http://grr.googlecode.com/git/docs/index.html" target="_blank">Help</a> |
-    <a class="grr-topbar-entry" href="http://code.google.com/p/grr/issues/list" target="_blank">Report a problem</a> |
-    <div id="notifications" class="grr-topbar-right"></div>
-  </div>
-  <div id="grr-grrbar">
-    <div id="grr-appswitcher">
-      <a href="/">
-        <span class="logo"></span>
-      </a>
+  <div id="ACL"></div>
+  <div class="navbar navbar-fixed-top" id="header">
+    <div class="navbar-inner">
+      <div class="container-fluid">
+        <a class="brand" href="/">GRR Response Rig</a>
+
+        <div id="notifications"></div>
+        <form id="search_host" class="navbar-form form-search pull-right">
+          <div class="input-append">
+            <input type="text" id="client_query" name="q" class="span4 search-query" placeholder="Client Name/Regexp" />
+            <button type="submit" id="client_query_submit" class="btn">Search</button>
+          </div>
+        </form>
+
+      </div>
     </div>
-    <div id="grr-search"></div>
   </div>
-  <div id="content"></div>
-  <div id="footer" class="ui-widget-header toolbar">
-    <button id='show_backtrace' style='display: none'>
-      <img src='/static/images/stock_dialog_question.png' class='grr-icon'>
-    </button>
-    <div id="backtrace" style="display: none"></div>
-    <div id="footer_message"></div>
+  <script>
+    $("#search_host").submit(function () {
+    grr.layout("HostTable", "main", {q: $('input[name="q"]').val()});
+    return false;
+    }).find("input[name=q]").focus();
+  </script>
+
+  <div style="position: absolute; left: 0; top: 41px; bottom: 40px; right: 0" id="content">
   </div>
-  <div id="error_action" style="display: none" />
+
+  <div class="navbar navbar-fixed-bottom" id="footer">
+    <div class="navbar-inner">
+      <a class="brand"></a>
+      <ul class="nav pull-left">
+        <li>
+          <button id="show_backtrace" class="nav-btn btn btn-danger" style="display: none">
+            <img src="/static/images/stock_dialog_question.png" class="grr-icon" />
+          </button>
+        </li>
+        <li class="divider-vertical"></li>
+        <li>
+          <div class="navbar-text" id="footer_message"></div>
+        </li>
+      </ul>
+
+      <ul class="nav pull-right">
+        <li><a href="http://grr.googlecode.com/git/docs/index.html" target="_blank">Help</a></li>
+        <li><a href="http://code.google.com/p/grr/issues/list" target="_blank">Report a problem</a></li>
+      </ul>
+
+    </div>
   </div>
+  <div id="error_action" style="display: none"></div>
+  <div id="backtrace" class="modal wide-modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+      <h3>Modal header</h3>
+    </div>
+    <div class="modal-body"><pre></pre></div>
+    <div class="modal-footer">
+      <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    </div>
+  </div>
+
   <script src="/static/javascript/grr.js"></script>
   <script type="text/javascript">
     grr.layout("ContentView", "content");
-    grr.layout("SearchHostView", "grr-search");
     grr.layout("NotificationBar", "notifications");
     grr.layout("ACLDialog", "ACL");
-
-    $(window).bind("resize", function (event) {
-      grr.publish("DelayedResize", "content");
-      event.stopPropagation();
-    }).resize();
-
-    grr.subscribe("GeometryChange", function (id) {
-      if(id != "content") return;
-
-      grr.fixHeight($("#content"));
-    }, "content");
   </script>
-  </body>
+</body>
 </html>

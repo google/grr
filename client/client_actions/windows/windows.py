@@ -32,22 +32,19 @@ import win32service
 import win32serviceutil
 import wmi
 
-from grr.client import conf as flags
 from grr.client import actions
-from grr.client import client_config
 from grr.client import client_utils_common
 from grr.client import client_utils_windows
-from grr.client import conf
 from grr.client.client_actions import standard
+
+from grr.lib import config_lib
 from grr.lib import constants
 from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.proto import jobs_pb2
 
-flags.DEFINE_string("service_name", client_config.SERVICE_NAME,
-                    "The name of the nanny service")
 
-FLAGS = conf.PARSER.flags
+config_lib.DEFINE_string("Nanny.service_name", "GRR Service",
+                         "The name of the GRR nanny service")
+
 
 # Properties to remove from results sent to the server.
 # These properties are included with nearly every WMI object and use space.
@@ -154,7 +151,7 @@ class EnumerateUsers(actions.ActionPlugin):
           response[pb_field] = folder
       except exceptions.WindowsError:
         pass
-    return jobs_pb2.FolderInformation(**response)
+    return rdfvalue.FolderInformation(**response)
 
   def Run(self, unused_args):
     """Enumerate all users on this machine."""
@@ -193,7 +190,7 @@ class EnumerateUsers(actions.ActionPlugin):
               folders_found[field] = path
             except exceptions.WindowsError:
               pass
-          profile_folders = jobs_pb2.FolderInformation(**folders_found)
+          profile_folders = rdfvalue.FolderInformation(**folders_found)
 
         response["special_folders"] = profile_folders
 
@@ -213,12 +210,12 @@ class EnumerateInterfaces(actions.ActionPlugin):
       for ip_address in interface.IPAddress:
         if ":" in ip_address:
           # IPv6
-          address_type = jobs_pb2.NetworkAddress.INET6
+          address_type = rdfvalue.NetworkAddress.Enum("INET6")
         else:
           # IPv4
-          address_type = jobs_pb2.NetworkAddress.INET
+          address_type = rdfvalue.NetworkAddress.Enum("INET")
 
-        addresses.append(jobs_pb2.NetworkAddress(human_readable=ip_address,
+        addresses.append(rdfvalue.NetworkAddress(human_readable=ip_address,
                                                  address_type=address_type))
 
       args = {"ifname": interface.Description}
@@ -258,9 +255,9 @@ class Uninstall(actions.ActionPlugin):
     logging.debug("Disabling service")
 
     win32serviceutil.ChangeServiceConfig(
-        None, client_config.SERVICE_NAME,
+        None, config_lib.CONFIG["Nanny.service_name"],
         startType=win32service.SERVICE_DISABLED)
-    svc_config = QueryService(client_config.SERVICE_NAME)
+    svc_config = QueryService(config_lib.CONFIG["Nanny.service_name"])
     if svc_config[1] == win32service.SERVICE_DISABLED:
       logging.info("Disabled service successfully")
       self.SendReply(string="Service disabled.")

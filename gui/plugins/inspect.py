@@ -23,25 +23,12 @@ progress of existing flows.
 
 
 
-from grr.client import actions
 from grr.gui import renderers
+from grr.gui.plugins import fileview
 from grr.lib import data_store
 from grr.lib import flow_context
 from grr.lib import rdfvalue
 from grr.lib import scheduler
-from grr.proto import jobs_pb2
-
-
-class TaskRenderer(renderers.RDFProtoRenderer):
-  """Render a Task Scheduler Task."""
-  classname = "TaskSchedulerTask"
-  name = "Task Scheduler Task"
-
-  def RenderAsRequest(self, *args):
-    return self.RDFProtoRenderer(
-        *args, proto_renderer_name="GrrRequestRenderer")
-
-  translator = dict(value=RenderAsRequest, eta=renderers.RDFProtoRenderer.Time)
 
 
 class InspectView(renderers.Splitter2Way):
@@ -81,13 +68,13 @@ class RequestTable(renderers.TableRenderer):
   def __init__(self, **kwargs):
     super(RequestTable, self).__init__(**kwargs)
     self.AddColumn(renderers.RDFValueColumn(
-        "Status", renderer=renderers.IconRenderer, width=0))
+        "Status", renderer=renderers.IconRenderer, width="40px"))
 
     self.AddColumn(renderers.RDFValueColumn(
         "ID", renderer=renderers.ValueRenderer))
     self.AddColumn(renderers.RDFValueColumn("Due"))
-    self.AddColumn(renderers.RDFValueColumn("Flow", width=20))
-    self.AddColumn(renderers.RDFValueColumn("Client Action"))
+    self.AddColumn(renderers.RDFValueColumn("Flow", width="70%"))
+    self.AddColumn(renderers.RDFValueColumn("Client Action", width="30%"))
 
   def BuildTable(self, start_row, end_row, request):
     client_id = request.REQ.get("client_id")
@@ -101,8 +88,7 @@ class RequestTable(renderers.TableRenderer):
       if i < start_row:
         continue
 
-      request = jobs_pb2.GrrMessage()
-      request.ParseFromString(task.value)
+      request = task.payload
 
       difference = now - task.eta
       if difference > 0:
@@ -131,24 +117,24 @@ class ResponsesTable(renderers.TableRenderer):
 
   def __init__(self, **kwargs):
     super(ResponsesTable, self).__init__(**kwargs)
-    self.AddColumn(renderers.RDFValueColumn("Task ID", width=10))
+    self.AddColumn(renderers.RDFValueColumn("Task ID"))
     self.AddColumn(renderers.RDFValueColumn(
-        "Response", renderer=GrrResponseRenderer))
+        "Response", renderer=fileview.GRRMessageRenderer, width="100%"))
 
   def BuildTable(self, start_row, end_row, request):
     """Builds the table."""
-    client_id = request.REQ.get("client_id")
-    task_id = request.REQ.get("task_id")
+    client_id = request.REQ.get("client_id", "")
+    task_id = "task:" + request.REQ.get("task_id")
 
     # This is the request.
     scheduler_obj = scheduler.TaskScheduler()
+
     request_messages = scheduler_obj.Query(
-        client_id, task_id=task_id, token=request.token,
-        decoder=jobs_pb2.GrrMessage)
+        client_id, task_id=task_id, token=request.token)
 
     if not request_messages: return
 
-    request_message = request_messages[0].value
+    request_message = request_messages[0].payload
 
     state_queue = (flow_context.FlowManager.FLOW_STATE_TEMPLATE %
                    request_message.session_id)
@@ -158,7 +144,7 @@ class ResponsesTable(renderers.TableRenderer):
 
     # Get all the responses for this request.
     for i, (predicate, message, _) in enumerate(data_store.DB.ResolveRegex(
-        state_queue, predicate_re, decoder=jobs_pb2.GrrMessage, limit=end_row,
+        state_queue, predicate_re, decoder=rdfvalue.GRRMessage, limit=end_row,
         token=request.token)):
 
       if i < start_row:
@@ -192,7 +178,7 @@ class RequestTabs(renderers.TabLayout):
 <script>
 grr.subscribe('request_table_select', function (task_id) {
     $("#{{unique|escapejs}}").data().state.task_id = task_id;
-    $("#{{unique|escapejs}} li.ui-state-active a").click();
+    $("#{{unique|escapejs}} li.active a").click();
 }, '{{unique|escapejs}}');
 </script>
 """
@@ -207,11 +193,11 @@ class RequestRenderer(renderers.TemplateRenderer):
   """
 
   layout_template = renderers.Template("""
-{%if this.task %}
+{%if this.msg %}
 <div id="{{unique|escape}}" class="{{this.css_class}}">
- <h3>Request {{this.task.task_id|escape}}</h3>
+ <h3>Request {{this.msg.task_id|escape}}</h3>
 
-<table id='{{ unique|escape }}' class="display">
+<table id='{{ unique|escape }}' class="table table-condensed table-bordered">
 <thead>
 <tr>
   <th class="ui-state-default">Task</th>
@@ -232,67 +218,17 @@ class RequestRenderer(renderers.TemplateRenderer):
 
   def Layout(self, request, response):
     """Layout."""
+    if request.REQ.get("task_id") is None:
+      return
     client_id = request.REQ.get("client_id")
-    task_id = request.REQ.get("task_id")
+    task_id = "task:" + request.REQ.get("task_id")
 
     # Make a local scheduler.
     scheduler_obj = scheduler.TaskScheduler()
-    tasks = scheduler_obj.Query(client_id, task_id=task_id, token=request.token)
-
-    if tasks:
-      self.task = tasks[0]
-
-      # Make an RDFValue from the task.
-      rdf_task = rdfvalue.TaskSchedulerTask(self.task.SerializeToString())
-      self.view = renderers.FindRendererForObject(rdf_task).RawHTML(request)
+    msgs = scheduler_obj.Query(client_id, task_id=task_id, token=request.token)
+    if msgs:
+      self.msg = msgs[0].payload
+      self.view = renderers.FindRendererForObject(
+          self.msg).RawHTML(request)
 
     return super(RequestRenderer, self).Layout(request, response)
-
-
-class GrrRequestRenderer(renderers.RDFProtoRenderer):
-  """Render a GRR Message."""
-  classname = "GRRMessage"
-  name = "GRR Request"
-
-  def ArgRenderer(self, description, value):
-    """Render the args field intelligently."""
-    # The args field is a serialized rdfvalue destined for a client action.
-    client_action = actions.ActionPlugin.classes.get(self.proxy.name)
-    if client_action is None:
-      return self.Pre(description, value)
-
-    renderer = renderers.RDFProtoRenderer(client_action.in_rdfvalue(value))
-
-    return renderer.RawHTML()
-
-  translator = dict(args=ArgRenderer)
-
-
-class GrrResponseRenderer(GrrRequestRenderer):
-  """A renderer for responses."""
-
-  # This makes sure this renderer is not used for GrrMessages.
-  classname = "GrrResponse"
-
-  def ArgRenderer(self, description, value):
-    """Render the args field intelligently."""
-    # Status messages are special.
-    if self.proxy.type == self.proxy.STATUS:
-      rdfclass = rdfvalue.GrrStatus
-    else:
-      client_action = actions.ActionPlugin.classes.get(self.proxy.request.name)
-      if client_action is None:
-        return self.Pre(description, value)
-
-      rdfclass = client_action.out_rdfvalue
-
-    renderer = renderers.RDFProtoRenderer(rdfclass(value))
-    return renderer.RawHTML()
-
-  translator = dict(args=ArgRenderer)
-
-
-class StatusProtoRenderer(renderers.RDFProtoRenderer):
-  """Render the status Proto."""
-
-  translator = dict(status=renderers.RDFProtoRenderer.Enum)

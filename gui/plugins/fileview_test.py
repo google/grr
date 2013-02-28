@@ -18,8 +18,8 @@
 
 import time
 
+from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import data_store
 from grr.lib import test_lib
 
 
@@ -35,7 +35,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
     # Create another file at 2012-04-07 08:53:53.
     time.time = lambda: 1333788833
 
-    token = data_store.ACLToken()
+    token = access_control.ACLToken()
     # This file already exists in the fixture, and we overwrite it with a new
     # version at 2012-04-07 08:53:53.
     fd = aff4.FACTORY.Create(
@@ -63,9 +63,9 @@ class TestFileView(test_lib.GRRSeleniumTest):
     sel = self.selenium
     sel.open("/")
 
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
-    sel.type("css=input[name=q]", "0001")
-    sel.click("css=input[type=submit]")
+    self.WaitUntil(sel.is_element_present, "client_query")
+    sel.type("client_query", "0001")
+    sel.click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",
                         sel.get_text, "css=span[type=subject]")
@@ -173,21 +173,21 @@ class TestFileView(test_lib.GRRSeleniumTest):
 
     self.WaitUntilContains(
         "aff4:/C.0000000000000001/fs/os/c/bin C.0000000000000001/cat",
-        sel.get_text, "css=div h3")
+        sel.get_text, "css=.tab-content h3")
     self.WaitUntil(sel.is_text_present, "1026267")
 
     # Lets download it.
-    sel.click("css=span:contains(\"Download\")")
+    sel.click("Download")
     self.WaitUntil(sel.is_element_present,
-                   "css=span:contains(\"Get a new Version\")")
-    sel.click("css=span:contains(\"Get a new Version\")")
+                   "css=button:contains(\"Get a new Version\")")
+    sel.click("css=button:contains(\"Get a new Version\")")
 
     sel.click("path_0")
     self.WaitUntilEqual("fs", sel.get_text, "css=tr:nth(2) span")
 
-    sel.click("css=span:contains(\"Stats\")")
+    sel.click("Stats")
     self.WaitUntilContains(
-        "aff4:/C.0000000000000001", sel.get_text, "css=div h3")
+        "aff4:/C.0000000000000001", sel.get_text, "css=.tab-content h3")
 
     # Grab the root directory again - should produce an Interrogate flow.
     sel.click("css=button[id^=refresh]")

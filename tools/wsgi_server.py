@@ -56,11 +56,11 @@ from grr.client import conf as flags
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flow
-from grr.lib import key_utils
-from grr.lib import log
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import server_plugins  # pylint: disable=W0611
+from grr.tools import http_server  # pylint: disable=W0611
+
 
 flags.DEFINE_integer("max_queue_size", 500,
                      "Maximum number of messages to queue for the client.")
@@ -78,9 +78,6 @@ flags.DEFINE_integer("message_expiry_time", 600,
 
 
 
-CONFIG = config_lib.CONFIG
-
-
 class GrrWSGIServer(object):
   """A WSGI based GRR HTTP server."""
 
@@ -88,13 +85,14 @@ class GrrWSGIServer(object):
 
   def __init__(self):
     registry.Init()
-    self.server_pem = key_utils.GetCert("Server_Public_Cert")
-    self.logger = log.GrrLogger(component="WSGI server")
+    self.server_pem = config_lib.CONFIG["Frontend.certificate"]
     self.front_end = flow.FrontEndServer(
-        "Server_Private_Key", self.logger,
-        max_queue_size=FLAGS.max_queue_size,
-        message_expiry_time=FLAGS.message_expiry_time,
-        max_retransmission_time=FLAGS.max_retransmission_time)
+        certificate=config_lib.CONFIG["Frontend.certificate"],
+        private_key=config_lib.CONFIG["PrivateKeys.server_key"],
+        max_queue_size=config_lib.CONFIG["Frontend.max_queue_size"],
+        message_expiry_time=config_lib.CONFIG["Frontend.message_expiry_time"],
+        max_retransmission_time=config_lib.CONFIG[
+            "Frontend.max_retransmission_time"])
 
   def handle(self, environ, start_response):
     """The request handler."""
@@ -138,9 +136,7 @@ def application(environ, start_response):
   # We cannot continue without a config file so we don't try/catch.
   parser = flags.PARSER
   parser.parse_args(["--config", environ["configuration"]])
-  global FLAGS
-  FLAGS = parser.values
-
   if not WSGISERVER:
     WSGISERVER.append(GrrWSGIServer())
+
   return WSGISERVER[0].handle(environ, start_response)

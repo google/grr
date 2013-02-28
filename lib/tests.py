@@ -39,5 +39,6 @@ from grr.lib import type_info_test
 from grr.lib import utils_test
 
 from grr.lib.data_stores import tests
+from grr.lib.flows import tests
 from grr.lib.rdfvalues import tests
 # pylint: enable=W0611

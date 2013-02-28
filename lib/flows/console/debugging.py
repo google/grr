@@ -21,39 +21,38 @@ import pickle
 import tempfile
 
 from grr.lib import flow
+from grr.lib import rdfvalue
+from grr.lib import type_info
 
 
 class ClientAction(flow.GRRFlow):
   """A Simple flow to execute any client action."""
 
-  # TODO(user): add flow_typeinfo definition.
-
-  def __init__(self, action=None, save_to="/tmp",
-               break_pdb=False, args=None, **kwargs):
-    """Launch the action on the client.
-
-    Args:
-       action: The name of the action on the client.
-       save_to: If not None, interpreted as an path to write pickle
-           dumps of responses to.
-       break_pdb: If True run pdb.set_trace when the responses come back.
-       args: passthrough.
-    """
-    if not action:
-      raise flow.FlowError("No action supplied.")
-    self.save_to = save_to
-    if self.save_to:
-      if not os.path.isdir(save_to):
-        os.makedirs(save_to, 0700)
-    self.break_pdb = break_pdb
-    self.action = action
-    self.args = args
-
-    super(ClientAction, self).__init__(**kwargs)
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.String(
+          name="action",
+          description="The action to execute."),
+      type_info.String(
+          name="save_to",
+          default="/tmp",
+          description=("If not None, interpreted as an path to write pickle "
+                       "dumps of responses to.")),
+      type_info.Bool(
+          name="break_pdb",
+          description="If True, run pdb.set_trace when responses come back.",
+          default=False),
+      type_info.RDFValueType(
+          description="Client action arguments.",
+          name="args",
+          rdfclass=rdfvalue.RDFValue),
+      )
 
   @flow.StateHandler(next_state="Print")
   def Start(self):
-    self.CallClient(self.action, self.args, next_state="Print")
+    if self.save_to:
+      if not os.path.isdir(self.save_to):
+        os.makedirs(self.save_to, 0700)
+    self.CallClient(self.action, request=self.args, next_state="Print")
     self.args = None
 
   @flow.StateHandler()

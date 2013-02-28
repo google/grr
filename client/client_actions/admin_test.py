@@ -1,18 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 """Tests client actions related to administrating the client."""
 
 
@@ -20,58 +6,49 @@
 import os
 import StringIO
 
-import mox
 import psutil
-
-from grr.client import conf as flags
-import logging
 
 from grr.client import actions
 from grr.client import comms
-from grr.client import conf
-from grr.client import vfs
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
 
-FLAGS = flags.FLAGS
-
 
 class ConfigActionTest(test_lib.EmptyActionTest):
-  """Tests the client actions UpdateConfig and GetConfig."""
+  """Tests the client actions UpdateConfiguration and GetConfiguration."""
 
-  def setUp(self):
-    vfs.VFSInit()
-
-    super(ConfigActionTest, self).setUp()
-    FLAGS.config = FLAGS.test_tmpdir + "/config.ini"
-
-  def testUpdateConfig(self):
+  def testUpdateConfiguration(self):
     """Test that we can update the config."""
     # Make sure the config file is not already there
     try:
-      os.unlink(FLAGS.config)
+      os.unlink(self.config_file)
     except OSError:
       pass
 
     # Make sure the file is gone
-    self.assertRaises(IOError, open, FLAGS.config)
+    self.assertRaises(IOError, open, self.config_file)
+
     location = "http://www.example.com"
-    request = rdfvalue.GRRConfig(location=location,
-                                 foreman_check_frequency=3600)
-    result = self.RunAction("UpdateConfig", request)
+    request = rdfvalue.RDFProtoDict()
+    request["Client.location"] = location
+    request["Client.foreman_check_frequency"] = 3600
+
+    result = self.RunAction("UpdateConfiguration", request)
 
     self.assertEqual(result, [])
-    self.assertEqual(conf.FLAGS.foreman_check_frequency, 3600)
+    self.assertEqual(config_lib.CONFIG["Client.foreman_check_frequency"], 3600)
 
     # Test the config file got written.
-    data = open(conf.FLAGS.config).read()
+    data = open(self.config_file).read()
     self.assert_("location = {0}".format(location) in data)
 
     # Now test that our location was actually updated.
     def FakeUrlOpen(req):
       self.fake_url = req.get_full_url()
       return StringIO.StringIO()
+
     comms.urllib2.urlopen = FakeUrlOpen
     client_context = comms.GRRHTTPClient()
     client_context.MakeRequest("", comms.Status())
@@ -79,38 +56,37 @@ class ConfigActionTest(test_lib.EmptyActionTest):
 
   def testUpdateConfigBlacklist(self):
     """Tests that disallowed fields are not getting updated."""
-    self.mox = mox.Mox()
-    self.mox.StubOutWithMock(logging, "warning")
 
-    logging.warning(mox.StrContains("restricted field(s)"), mox.And(
-        mox.StrContains("camode"),
-        mox.StrContains("debug"),
-        mox.Not(mox.StrContains("location"))))
-
-    self.mox.ReplayAll()
+    config_lib.CONFIG.Set("Client.location", "http://something.com/")
+    config_lib.CONFIG.Set("Client.server_serial_number", 1)
 
     location = "http://www.example.com"
-    request = rdfvalue.GRRConfig(location=location,
-                                 camode="test",
-                                 debug=True)
-    result = self.RunAction("UpdateConfig", request)
+    request = rdfvalue.RDFProtoDict()
+    request["Client.location"] = location
+    request["Client.server_serial_number"] = 10
 
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
+    self.RunAction("UpdateConfiguration", request)
 
-    self.assertEqual(result, [])
+    # Location can be set.
+    self.assertEqual(config_lib.CONFIG["Client.location"], location)
+
+    # But the server serial number can not be updated.
+    self.assertEqual(config_lib.CONFIG["Client.server_serial_number"], 1)
 
   def testGetConfig(self):
     """Check GetConfig client action works."""
     # Use UpdateConfig to generate a config.
     location = "http://example.com"
-    request = rdfvalue.GRRConfig(location=location,
-                                 foreman_check_frequency=3600)
-    self.RunAction("UpdateConfig", request)
+    request = rdfvalue.RDFProtoDict()
+    request["Client.location"] = location
+    request["Client.foreman_check_frequency"] = 3600
+
+    self.RunAction("UpdateConfiguration", request)
     # Check that our GetConfig actually gets the real data.
-    result = self.RunAction("GetConfig")[0]
-    self.assertEqual(result.foreman_check_frequency, 3600)
-    self.assertEqual(result.location, location)
+    self.RunAction("GetConfiguration")
+
+    self.assertEqual(config_lib.CONFIG["Client.foreman_check_frequency"], 3600)
+    self.assertEqual(config_lib.CONFIG["Client.location"], location)
 
   def VerifyResponse(self, response):
 

@@ -21,11 +21,8 @@ import os
 import StringIO
 
 from grr.client import conf
-from grr.client import conf as flags
 from grr.lib import test_lib
 from grr.parsers import sqlite_file
-
-FLAGS = flags.FLAGS
 
 
 # pylint: disable=C6409
@@ -64,4 +61,3 @@ def main(argv):
 
 if __name__ == "__main__":
   conf.StartMain(main)
-

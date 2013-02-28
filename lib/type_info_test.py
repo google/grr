@@ -24,7 +24,6 @@ from grr.artifacts import win_artifacts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
-from grr.proto import jobs_pb2
 
 
 class TypeInfoTest(test_lib.GRRBaseTest):
@@ -49,11 +48,6 @@ class TypeInfoTest(test_lib.GRRBaseTest):
 
   def testTypeInfoEnumObjects(self):
     """Test the type info objects behave as expected."""
-    a = type_info.ProtoEnum(jobs_pb2.Path, "PathType")
-    self.assertRaises(type_info.TypeValueError, a.Validate, 9999)
-    self.assertRaises(type_info.TypeValueError, a.Validate, None)
-    a.Validate(jobs_pb2.Path.OS)
-
     a = type_info.RDFEnum(rdfvalue.RDFPathSpec, "PathType")
     self.assertRaises(type_info.TypeValueError, a.Validate, 9999)
     self.assertRaises(type_info.TypeValueError, a.Validate, None)
@@ -61,7 +55,7 @@ class TypeInfoTest(test_lib.GRRBaseTest):
 
   def testTypeInfoNumberObjects(self):
     """Test the type info objects behave as expected."""
-    a = type_info.Number()
+    a = type_info.Integer()
     self.assertRaises(type_info.TypeValueError, a.Validate, "1")
     self.assertRaises(type_info.TypeValueError, a.Validate, None)
     a.Validate(1231232)
@@ -69,7 +63,7 @@ class TypeInfoTest(test_lib.GRRBaseTest):
 
   def testTypeInfoListObjects(self):
     """Test List objects."""
-    a = type_info.List(type_info.Number())
+    a = type_info.List(type_info.Integer())
     self.assertRaises(type_info.TypeValueError, a.Validate, 1)
     self.assertRaises(type_info.TypeValueError, a.Validate, "test")
     self.assertRaises(type_info.TypeValueError, a.Validate, None)
@@ -148,6 +142,13 @@ class TypeInfoTest(test_lib.GRRBaseTest):
 
     self.assertFalse(type_infos[3] in removed_info)
     self.assertFalse("plugins" in removed_info.descriptor_map)
+
+  def testTypeFilterString(self):
+    valid_query = "name is 'Bond'"
+    invalid_query = "$!?%"
+    a = type_info.FilterString()
+    self.assertEqual(valid_query, a.Validate(valid_query))
+    self.assertRaises(type_info.TypeValueError, a.Validate, invalid_query)
 
 
 def main(args):

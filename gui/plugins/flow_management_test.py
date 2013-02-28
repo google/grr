@@ -44,9 +44,9 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     sel = self.selenium
     sel.open("/")
 
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
-    sel.type("css=input[name=q]", "0001")
-    sel.click("css=input[type=submit]")
+    self.WaitUntil(sel.is_element_present, "client_query")
+    sel.type("client_query", "0001")
+    sel.click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",
                         sel.get_text, "css=span[type=subject]")
@@ -73,11 +73,12 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     sel.click("css=input[value=Launch]")
     self.WaitUntil(sel.is_element_present, "css=input[value=Back]")
     self.WaitUntil(sel.is_text_present, "Launched flow ListProcesses")
-    self.WaitUntil(sel.is_text_present, "client_id = 'C.0000000000000001'")
+    self.WaitUntil(sel.is_text_present, "client_id 'C.0000000000000001'")
 
     sel.click("css=input[value=Back]")
     self.WaitUntil(sel.is_element_present, "css=input[value=Launch]")
-    self.assertEqual("Client ID", sel.get_text("css=td.proto_key"))
+    self.assertEqual("C.0000000000000001",
+                     sel.get_text("css=.FormBody .uneditable-input"))
     sel.click("css=#_Network > ins.jstree-icon")
     self.WaitUntil(sel.is_element_present, "link=Netstat")
     self.assertEqual("Netstat", sel.get_text("link=Netstat"))
@@ -118,7 +119,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
                         "//table/tbody/tr[2]/td[3]")
 
     # Select the requests tab
-    sel.click("css=div.ui-tabs a:contains(Requests)")
+    sel.click("Requests")
     sel.click("css=td:contains(GetFile)")
 
     self.WaitUntil(sel.is_element_present,
@@ -127,4 +128,4 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     # Check that a StatFile client action was issued as part of the GetFile
     # flow.
     self.WaitUntil(sel.is_element_present,
-                   "css=div.ui-tabs td.proto_value:contains(StatFile)")
+                   "css=.tab-content td.proto_value:contains(StatFile)")

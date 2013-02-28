@@ -1,22 +1,8 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """Test for client."""
 
 
 from hashlib import sha256
-import os
 import pdb
 import StringIO
 import time
@@ -31,41 +17,30 @@ from grr.client import conf as flags
 import logging
 
 from grr.client import actions
-# pylint: disable=W0611
-# This is needed to define the flags used here.
-from grr.client import client
-# pylint: enable=W0611
-from grr.client import client_config
 from grr.client import comms
 from grr.lib import aff4
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import flow_context
-from grr.lib import key_utils
 from grr.lib import rdfvalue
+# pylint: disable=W0611
+from grr.lib import server_plugins
+# pylint: enable=W0611
 from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
 
-# pylint: disable=W0611
-from grr.lib.flows import general
-# pylint: enable=W0611
 
 from grr.lib.flows.caenroll import ca_enroller
-
-
-FLAGS = flags.FLAGS
-CONFIG = config_lib.CONFIG
 
 
 class ServerCommunicatorFake(flow.ServerCommunicator):
   """A fake communicator to initialize the ServerCommunicator."""
 
   # For tests we bypass loading of the server certificate.
-  def _LoadOurCertificate(self, certificate):
-    return communicator.Communicator._LoadOurCertificate(
-        self, certificate)
+  def _LoadOurCertificate(self):
+    return communicator.Communicator._LoadOurCertificate(self)
 
 
 class ClientCommsTest(test_lib.GRRBaseTest):
@@ -75,21 +50,23 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     """Set up communicator tests."""
     test_lib.GRRBaseTest.setUp(self)
 
-    self.options = flags.FLAGS
+    self.client_certificate = config_lib.CONFIG["Client.certificate"]
+    self.client_private_key = config_lib.CONFIG["Client.private_key"]
 
-    self.options.certificate = CONFIG["Test.Test_Client_Cert"]
-    self.options.server_serial_number = 0
-    self.options.config = os.path.join(FLAGS.test_tmpdir, "testconf")
-    self.server_certificate = key_utils.GetCert("Server_Private_Key")
-
+    self.server_serial_number = 0
+    self.server_certificate = config_lib.CONFIG["Frontend.certificate"]
+    self.server_private_key = config_lib.CONFIG["PrivateKeys.server_key"]
     self.client_communicator = comms.ClientCommunicator(
-        self.options.certificate)
+        private_key=self.client_private_key)
+
     self.client_communicator.LoadServerCertificate(
-        self.server_certificate,
-        client_config.CACERTS["TEST"])
+        server_certificate=self.server_certificate,
+        ca_certificate=config_lib.CONFIG["CA.certificate"])
 
     self.server_communicator = ServerCommunicatorFake(
-        self.server_certificate, token=self.token)
+        certificate=self.server_certificate,
+        private_key=self.server_private_key,
+        token=self.token)
 
   def ClientServerCommunicate(self, timestamp=None):
     """Tests the end to end encrypted communicators."""
@@ -102,9 +79,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
                                                         timestamp=timestamp)
     self.cipher_text = result.SerializeToString()
 
-    # Line too long:
-    _ = self.server_communicator.DecryptMessage(self.cipher_text)
-    (decoded_messages, source, client_timestamp) = _
+    (decoded_messages, source, client_timestamp) = (
+        self.server_communicator.DecryptMessage(self.cipher_text))
 
     self.assertEqual(source, self.client_communicator.common_name)
     self.assertEqual(client_timestamp, timestamp)
@@ -123,7 +99,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
   def MakeClientAFF4Record(self):
     """Make a client in the data store."""
-    client_cert = rdfvalue.RDFX509Cert(self.options.certificate)
+    client_cert = rdfvalue.RDFX509Cert(self.client_certificate)
     new_client = aff4.FACTORY.Create(client_cert.common_name, "VFSGRRClient",
                                      token=self.token)
     new_client.Set(new_client.Schema.CERT, client_cert)
@@ -132,6 +108,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
   def testKnownClient(self):
     """Test that messages from known clients are authenticated."""
     self.MakeClientAFF4Record()
+
     # Now the server should know about it
     decoded_messages = self.ClientServerCommunicate()
 
@@ -159,29 +136,25 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
   def testCompression(self):
     """Tests that the compression works."""
-    compression_state = FLAGS.compression
-    try:
-      FLAGS.compression = "UNCOMPRESSED"
-      self.testCommunications()
-      uncompressed_len = len(self.cipher_text)
+    config_lib.CONFIG.Set("Network.compression", "UNCOMPRESSED")
+    self.testCommunications()
+    uncompressed_len = len(self.cipher_text)
 
-      # If the client compresses, the server should still be able to
-      # parse it:
-      FLAGS.compression = "ZCOMPRESS"
-      self.testCommunications()
-      compressed_len = len(self.cipher_text)
+    # If the client compresses, the server should still be able to
+    # parse it:
+    config_lib.CONFIG.Set("Network.compression", "ZCOMPRESS")
+    self.testCommunications()
+    compressed_len = len(self.cipher_text)
 
-      self.assert_(compressed_len < uncompressed_len)
+    self.assert_(compressed_len < uncompressed_len)
 
-      # If we chose a crazy compression scheme, the client should not
-      # compress.
-      FLAGS.compression = "SOMECRAZYCOMPRESSION"
-      self.testCommunications()
-      compressed_len = len(self.cipher_text)
+    # If we chose a crazy compression scheme, the client should not
+    # compress.
+    config_lib.CONFIG.Set("Network.compression", "SOMECRAZYCOMPRESSION")
+    self.testCommunications()
+    compressed_len = len(self.cipher_text)
 
-      self.assertEqual(compressed_len, uncompressed_len)
-    finally:
-      FLAGS.compression = compression_state
+    self.assertEqual(compressed_len, uncompressed_len)
 
   def testX509Verify(self):
     """X509 Verify can have several failure paths."""
@@ -191,19 +164,19 @@ class ClientCommsTest(test_lib.GRRBaseTest):
       # This is a successful verify.
       X509.X509.verify = lambda self, pkey=None: 1
       self.client_communicator.LoadServerCertificate(
-          self.server_certificate, client_config.CACERTS["TEST"])
+          self.server_certificate, config_lib.CONFIG["CA.certificate"])
 
       # Mock the verify function to simulate certificate failures.
       X509.X509.verify = lambda self, pkey=None: 0
       self.assertRaises(
           IOError, self.client_communicator.LoadServerCertificate,
-          self.server_certificate, client_config.CACERTS["TEST"])
+          self.server_certificate, config_lib.CONFIG["CA.certificate"])
 
       # Verification can also fail with a -1 error.
       X509.X509.verify = lambda self, pkey=None: -1
       self.assertRaises(
           IOError, self.client_communicator.LoadServerCertificate,
-          self.server_certificate, client_config.CACERTS["TEST"])
+          self.server_certificate, config_lib.CONFIG["CA.certificate"])
 
     finally:
       X509.X509.verify = x509_verify
@@ -228,7 +201,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
                    cipher_text[101:])
 
     # This signature should not match
-    self.assertRaises(communicator.DecryptionError,
+    self.assertRaises(communicator.DecodingError,
                       self.server_communicator.DecryptMessage,
                       cipher_text)
 
@@ -238,8 +211,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
         certificate="")
 
     self.client_communicator.LoadServerCertificate(
-        self.server_certificate,
-        client_config.CACERTS["TEST"])
+        self.server_certificate, config_lib.CONFIG["CA.certificate"])
 
     req = X509.load_request_string(self.client_communicator.GetCSR())
 
@@ -257,14 +229,13 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     """Set up communicator tests."""
     super(HTTPClientTests, self).setUp()
 
-    self.options = flags.FLAGS
-    self.options.certificate = CONFIG["Test.Test_Client_Cert"]
-    self.options.server_serial_number = 0
-    self.options.config = os.path.join(FLAGS.test_tmpdir, "testconf")
+    self.certificate = config_lib.CONFIG["Client.certificate"]
+    self.server_serial_number = 0
 
-    self.server_certificate = key_utils.GetCert("Server_Private_Key")
-    self.client_cn = comms.ClientCommunicator(
-        self.options.certificate).common_name
+    self.server_private_key = config_lib.CONFIG["PrivateKeys.server_key"]
+    self.server_certificate = config_lib.CONFIG["Frontend.certificate"]
+
+    self.client_cn = rdfvalue.RDFX509Cert(self.certificate).common_name
 
     # Make a new client
     self.CreateNewClientObject()
@@ -278,11 +249,11 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # Make a client mock
     self.client = aff4.FACTORY.Create(self.client_cn, "VFSGRRClient", mode="rw",
                                       token=self.token)
-    self.client.Set(self.client.Schema.CERT(self.options.certificate))
+    self.client.Set(self.client.Schema.CERT(self.certificate))
     self.client.Close()
 
     # Stop the client from actually processing anything
-    flags.FLAGS.max_out_queue = 0
+    config_lib.CONFIG.Set("Client.max_out_queue", 0)
 
     # And cache it in the server
     self.CreateNewServerCommunicator()
@@ -293,11 +264,11 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     ca_enroller.enrolment_cache.Flush()
 
-    super(HTTPClientTests, self).setUp()
-
   def CreateNewServerCommunicator(self):
     self.server_communicator = ServerCommunicatorFake(
-        self.server_certificate, token=self.token)
+        certificate=self.server_certificate,
+        private_key=self.server_private_key,
+        token=self.token)
 
     self.server_communicator.client_cache.Put(
         self.client_cn, self.client)
@@ -308,21 +279,20 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
   def CreateNewClientObject(self):
     self.client_communicator = comms.GRRHTTPClient(
-        self.options.certificate, worker=comms.GRRClientWorker)
+        self.certificate, worker=comms.GRRClientWorker)
 
     # Disable stats collection for tests.
     stats.STATS.Set("grr_client_last_stats_sent_time", time.time() + 3600)
 
     # Build a client context with preloaded server certificates
     self.client_communicator.communicator.LoadServerCertificate(
-        self.server_certificate, client_config.CACERTS["TEST"])
+        self.server_certificate, config_lib.CONFIG["CA.certificate"])
 
   def UrlMock(self, req, **kwargs):
     """A mock for url handler processing from the server's POV."""
     _ = kwargs
     try:
-      self.client_communication = rdfvalue.ClientCommunication()
-      self.client_communication.ParseFromString(req.data)
+      self.client_communication = rdfvalue.ClientCommunication(req.data)
 
       # Decrypt incoming messages
       self.messages, source, ts = self.server_communicator.DecodeMessages(
@@ -341,7 +311,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       response_comms = rdfvalue.ClientCommunication()
       message_list = rdfvalue.MessageList()
       for i in range(0, 10):
-        message_list.job.Append(session_id="session",
+        message_list.job.Append(session_id="session", name="Echo",
                                 response_id=2, request_id=i)
 
       # Preserve the timestamp as a nonce
@@ -356,7 +326,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       raise urllib2.HTTPError(url=None, code=406, msg=None, hdrs=None, fp=None)
     except Exception as e:
       logging.info("Exception in mock urllib2.Open: %s.", e)
-      if FLAGS.debug:
+      if flags.FLAGS.debug:
         pdb.post_mortem()
 
       raise urllib2.HTTPError(url=None, code=500, msg=None, hdrs=None, fp=None)
@@ -389,31 +359,27 @@ class HTTPClientTests(test_lib.GRRBaseTest):
   def testInitialEnrollment(self):
     """If the client has no certificate initially it should enroll."""
 
-    old_cert, FLAGS.certificate = FLAGS.certificate, ""
-    old_cn = self.client_cn
-    try:
-      self.CreateNewClientObject()
+    # Clear the certificate so we can generate a new one.
+    config_lib.CONFIG.Set("Client.private_key", None)
+    self.CreateNewClientObject()
 
-      # Client should get a new Common Name.
-      self.assertNotEqual(self.client_cn,
-                          self.client_communicator.communicator.common_name)
+    # Client should get a new Common Name.
+    self.assertNotEqual(self.client_cn,
+                        self.client_communicator.communicator.common_name)
 
-      self.client_cn = self.client_communicator.communicator.common_name
+    self.client_cn = self.client_communicator.communicator.common_name
 
-      # Now communicate with the server.
-      status = self.client_communicator.RunOnce()
+    # Now communicate with the server.
+    status = self.client_communicator.RunOnce()
 
-      self.assertEqual(status.code, 406)
+    self.assertEqual(status.code, 406)
 
-      # The client should now send an enrollment request.
-      status = self.client_communicator.RunOnce()
+    # The client should now send an enrollment request.
+    status = self.client_communicator.RunOnce()
 
-      # Client should generate enrollment message by itself.
-      self.assertEqual(len(self.messages), 1)
-      self.assertEqual("CA:Enrol", self.messages[0].session_id)
-    finally:
-      FLAGS.certificate = old_cert
-      self.client_cn = old_cn
+    # Client should generate enrollment message by itself.
+    self.assertEqual(len(self.messages), 1)
+    self.assertEqual("CA:Enrol", self.messages[0].session_id)
 
   def testEnrollment(self):
     """Test the http response to unknown clients."""
@@ -627,26 +593,17 @@ class BackwardsCompatibleClientCommsTest(ClientCommsTest):
   """Test that we can talk using the old protocol still (version 2)."""
 
   def setUp(self):
-    self.current_api = client_config.NETWORK_API
-    client_config.NETWORK_API = 2
+    self.current_api = config_lib.CONFIG["Network.api"]
+    config_lib.CONFIG.Set("Network.api", 2)
     super(BackwardsCompatibleClientCommsTest, self).setUp()
-
-  def tearDown(self):
-    client_config.NETWORK_API = self.current_api
-    super(BackwardsCompatibleClientCommsTest, self).tearDown()
 
 
 class BackwardsCompatibleHTTPClientTests(HTTPClientTests):
   """Test that we can talk using the old protocol still (version 2)."""
 
   def setUp(self):
-    self.current_api = client_config.NETWORK_API
-    client_config.NETWORK_API = 2
     super(BackwardsCompatibleHTTPClientTests, self).setUp()
-
-  def tearDown(self):
-    client_config.NETWORK_API = self.current_api
-    super(BackwardsCompatibleHTTPClientTests, self).tearDown()
+    config_lib.CONFIG.Set("Network.api", 2)
 
   def testCachedRSAOperations(self):
     """With the old protocol there should be many RSA operations."""
@@ -675,7 +632,6 @@ class BackwardsCompatibleHTTPClientTests(HTTPClientTests):
 
 
 def main(argv):
-  FLAGS.rss_max = 1e9
   test_lib.main(argv)
 
 if __name__ == "__main__":

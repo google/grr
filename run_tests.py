@@ -1,18 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 """A test runner based on multiprocessing.
 
 This program will run all the tests in separate processes to speed things up.
@@ -158,13 +144,14 @@ def ReportTestResult(name, metadata):
     result = colorizer.Render("GREEN", "PASSED")
   else:
     result = colorizer.Render("RED", "FAILED")
+    result += open(metadata["output_path"], "rb").read()
 
   print "\t{0: <40} {1} in {2: >6.2f}s".format(
       name, result, now - metadata["start"])
 
 
 def main(argv=None):
-  if FLAGS.tests:
+  if FLAGS.tests or FLAGS.processes == 1:
     stream = sys.stderr
 
     if FLAGS.output:
@@ -181,9 +168,12 @@ def main(argv=None):
     if FLAGS.debug:
       sys.argv.append("--debug")
 
-    for test_suite in FLAGS.tests:
-      RunTest(test_suite, stream=stream)
-
+    suites = FLAGS.tests or test_lib.GRRBaseTest.classes
+    for test_suite in suites:
+      try:
+        RunTest(test_suite, stream=stream)
+      except SystemExit:
+        pass
   else:
     processes = {}
 
@@ -201,7 +191,7 @@ def main(argv=None):
 
         # Maintain metadata about each test.
         processes[name] = dict(pipe=subprocess.Popen(argv),
-                               start=time.time())
+                               start=time.time(), output_path=result_filename)
 
         WaitForAvailableProcesses(
             processes, max_processes=FLAGS.processes,

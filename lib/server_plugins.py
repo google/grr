@@ -13,15 +13,17 @@ modules that have been customized for your deployment.
 
 # pylint: disable=W0611
 
-from grr.client import client_config
-
 from grr import artifacts
+
+# Server code needs to know about client actions as well.
+from grr.client import client_plugins  # pylint: disable=W0611
+
 from grr.lib import access_control
 from grr.lib import aff4_objects
 from grr.lib import config_lib
 from grr.lib import data_stores
 from grr.lib import flow
 from grr.lib import hunts
-from grr.lib import server_flags
+from grr.lib import local
 from grr.lib import stats
 from grr.lib.flows import general

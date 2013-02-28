@@ -86,5 +86,5 @@ class Grep(flow.GRRFlow):
       self.Notify("ViewObject", out_urn,
                   u"Grep completed. %d hits" % hit_count)
     else:
-      self.Notify("HostInformation", self.client_id,
+      self.Notify("FlowStatus", self.session_id,
                   "Error grepping file: %s." % responses.status)

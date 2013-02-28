@@ -17,7 +17,7 @@
 """Test the fileview interface."""
 
 
-from grr.lib import data_store
+from grr.lib import access_control
 from grr.lib import flow
 from grr.lib import test_lib
 
@@ -28,17 +28,17 @@ class TestNotifications(test_lib.GRRSeleniumTest):
   @classmethod
   def GenerateNotifications(cls):
     """Generate some fake notifications."""
-    token = data_store.ACLToken("test", "test fixture")
+    token = access_control.ACLToken("test", "test fixture")
     cls.session_id = flow.FACTORY.StartFlow("aff4:/C.0000000000000001",
                                             "Interrogate", token=token)
-    flow_pb = flow.FACTORY.FetchFlow(cls.session_id, token=token)
-    flow_obj = flow.FACTORY.LoadFlow(flow_pb)
+    rdf_flow = flow.FACTORY.FetchFlow(cls.session_id, token=token)
+    flow_obj = flow.FACTORY.LoadFlow(rdf_flow)
     flow_obj.Notify("ViewObject", "aff4:/C.0000000000000001/fs/os/proc/10/exe",
                     "File fetch completed.")
 
     # Generate an error for this flow.
-    flow_obj.Error()
-    flow.FACTORY.ReturnFlow(flow_pb, token=token)
+    flow_obj.Error("not a real backtrace")
+    flow.FACTORY.ReturnFlow(rdf_flow, token=token)
 
   def testNotifications(self):
     """Test the notifications interface."""
@@ -48,7 +48,7 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     sel = self.selenium
     sel.open("/")
 
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    self.WaitUntil(sel.is_element_present, "client_query")
 
     # There should be 2 notifications ready
     self.WaitUntilEqual(
@@ -71,7 +71,7 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     # The navigation bar should browse the vfs
     self.WaitUntilEqual(
         "Browse Virtual Filesystem",
-        sel.get_text, "css=li[class='selected']")
+        sel.get_text, "css=li[class='active']")
 
     # The tree is opened to the correct place
     self.WaitUntil(sel.is_element_present,
@@ -80,7 +80,7 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     # The stats pane shows the target file
     self.WaitUntilContains(
         "aff4:/C.0000000000000001/fs/os/proc/10/exe",
-        sel.get_text, "css=h3")
+        sel.get_text, "css=.tab-content h3")
 
     # Now select a FlowStatus notification - should navigate to the broken flow.
     sel.click("css=button[id=notification_button]")
@@ -93,8 +93,8 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     # The navigation bar should manage the flows
     self.WaitUntilEqual(
         "Manage launched flows",
-        sel.get_text, "css=li[class='selected']")
+        sel.get_text, "css=li[class='active']")
 
     # The stats pane shows the relevant flow
     self.WaitUntilContains(
-        self.session_id, sel.get_text, "css=h3")
+        self.session_id, sel.get_text, "css=.tab-content h3")

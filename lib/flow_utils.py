@@ -34,7 +34,7 @@ def GetUserInfo(client, user):
     client: A VFSGRRClient object.
     user: Username as string. May contain domain like DOMAIN\\user.
   Returns:
-    A jobs_pb2.User protobuf or None
+    A User rdfvalue or None
   """
   if "\\" in user:
     domain, user = user.split("\\", 1)

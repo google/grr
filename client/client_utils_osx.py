@@ -25,9 +25,10 @@ import platform
 
 import logging
 
-from grr.client import client_config
 from grr.client import client_utils_linux
 from grr.client.osx import objc
+
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import utils
 
@@ -53,7 +54,7 @@ def OSXFindProxies():
         proxy = sc.CFStringToPystring(cfproxy)
         port = sc.CFNumToInt32(cfport)
         result = ["http://%s:%d/" % (proxy, port)]
-        result.extend(client_config.PROXY_SERVERS)
+        result.extend(config_lib["Client.proxy_servers"])
         return result
 
     cf_auto_enabled = sc.CFDictRetrieve(
@@ -69,11 +70,11 @@ def OSXFindProxies():
         # correct proxy for a given URL, browsers call a Javascript function
         # that returns the correct proxy URL. The question is now, do we really
         # want to start running downloaded js on the client?
-        return client_config.PROXY_SERVERS
+        return config_lib["Client.proxy_servers"]
 
   finally:
     sc.dll.CFRelease(settings)
-  return client_config.PROXY_SERVERS
+  return config_lib["Client.proxy_servers"]
 
 
 def GetMountpoints():

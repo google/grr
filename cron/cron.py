@@ -21,20 +21,18 @@ import re
 import sys
 
 from grr.client import conf
-from grr.client import conf as flags
 
+from grr.lib import config_lib
 # pylint: disable=W0611
-from grr.lib import data_stores
 from grr.lib import registry
+from grr.lib import server_plugins
 # pylint: enable=W0611
 
 from grr.lib.aff4_objects import cronjobs
 
-flags.DEFINE_integer("override_frequency", None,
-                     "Force the cron to run at this frequency. None "
-                     "means use the default.")
-
-FLAGS = flags.FLAGS
+config_lib.DEFINE_integer("Cron.override_frequency", None,
+                          "Force the cron to run at this frequency. None "
+                          "means use the default.")
 
 
 def ConsoleMain():
@@ -43,11 +41,13 @@ def ConsoleMain():
 
 
 def main(unused_argv):
-  # Initialise everything
+  config_lib.CONFIG.SetEnv("Environment.component", "Cron")
+
+  # Initialize everything
   registry.Init()
 
-  cronjobs.RunAllCronJobs(override_frequency=FLAGS.override_frequency)
+  cronjobs.RunAllCronJobs(
+      override_frequency=config_lib.CONFIG["Cron.override_frequency"])
 
 if __name__ == "__main__":
   ConsoleMain()
-

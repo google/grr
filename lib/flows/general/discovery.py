@@ -53,7 +53,7 @@ class Interrogate(flow.GRRFlow):
                                  "InstallDate", "EnumerateUsers",
                                  "EnumerateInterfaces", "EnumerateFilesystems",
                                  "ClientInfo", "ClientConfig",
-                                 "VerifyUsers"])
+                                 "ClientConfiguration", "VerifyUsers"])
   def Start(self):
     """Start off all the tests."""
     # Create the objects we need to exist.
@@ -65,7 +65,10 @@ class Interrogate(flow.GRRFlow):
     self.CallClient("GetPlatformInfo", next_state="Platform")
     self.CallClient("GetInstallDate", next_state="InstallDate")
     self.CallClient("GetClientInfo", next_state="ClientInfo")
+
+    # Support both new and old clients.
     self.CallClient("GetConfig", next_state="ClientConfig")
+    self.CallClient("GetConfiguration", next_state="ClientConfiguration")
 
     if not self.lightweight:
       self.sid_data = {}
@@ -190,7 +193,7 @@ class Interrogate(flow.GRRFlow):
       data = self.sid_data[responses.request_data["SID"]]
       folder = rdfvalue.FolderInformation(**profile_folders)
       try:
-        data["special_folders"].MergeFrom(folder)
+        data["special_folders"].MergeFrom(folder.ToProto())
       except KeyError:
         data["special_folders"] = folder
 
@@ -366,8 +369,13 @@ class Interrogate(flow.GRRFlow):
     if responses.success:
       response = responses.First()
       self.client.Set(self.client.Schema.GRR_CONFIG(response))
-    else:
-      self.Log("Could not get client config.")
+
+  @flow.StateHandler()
+  def ClientConfiguration(self, responses):
+    """Process client config."""
+    if responses.success:
+      response = responses.First()
+      self.client.Set(self.client.Schema.GRR_CONFIGURATION(response))
 
   @flow.StateHandler()
   def End(self):

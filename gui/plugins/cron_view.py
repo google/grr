@@ -21,8 +21,9 @@
 import logging
 
 from grr.gui import renderers
+
+from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import data_store
 from grr.lib.aff4_objects import cronjobs
 
 
@@ -54,16 +55,16 @@ class CronTable(renderers.TableRenderer):
   def __init__(self, **kwargs):
     super(CronTable, self).__init__(**kwargs)
     self.AddColumn(renderers.RDFValueColumn(
-        "Name", width=10, renderer=renderers.SubjectRenderer))
-    self.AddColumn(renderers.RDFValueColumn("Last Run", width=10))
-    self.AddColumn(renderers.RDFValueColumn("Frequency", width=10))
-    self.AddColumn(renderers.RDFValueColumn("Description", width=60))
+        "Name", width="10%", renderer=renderers.SubjectRenderer))
+    self.AddColumn(renderers.RDFValueColumn("Last Run", width="10%"))
+    self.AddColumn(renderers.RDFValueColumn("Frequency", width="10%"))
+    self.AddColumn(renderers.RDFValueColumn("Description", width="70%"))
 
   def RenderAjax(self, request, response):
     """Renders the table."""
     for cls_name, cls in aff4.AFF4Object.classes.iteritems():
-      if (issubclass(cls, cronjobs.AbstractScheduledCronJob) or
-          issubclass(cls, cronjobs.AbstractCronTask)):
+      if aff4.issubclass(
+          cls, (cronjobs.AbstractScheduledCronJob, cronjobs.AbstractCronTask)):
         try:
           fd = aff4.FACTORY.Open("cron:/%s" % cls_name, required_type=cls_name,
                                  mode="r", token=request.token)
@@ -75,7 +76,7 @@ class CronTable(renderers.TableRenderer):
                        "Description": cls.__doc__})
         except IOError:
           logging.error("Bad cron %s", cls)
-        except data_store.UnauthorizedAccess:
+        except access_control.UnauthorizedAccess:
           pass
 
     # Call our baseclass to actually do the rendering

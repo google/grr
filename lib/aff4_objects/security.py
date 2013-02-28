@@ -16,9 +16,9 @@
 
 import urllib
 
-from grr.client import conf as flags
-
+from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import flow
@@ -26,16 +26,15 @@ from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
 
-flags.DEFINE_integer("acl_approvers_required", 2,
-                     "The number of approvers required for access.")
-flags.DEFINE_string("ui_url", "http://localhost:8000/",
-                    "The direct URL for the user interface.")
+config_lib.DEFINE_integer("ACL.approvers_required", 2,
+                          "The number of approvers required for access.")
 
-flags.DEFINE_string("grr_emergency_email_address",
-                    "emergency@nowhere.com",
-                    "The email address to notify in an emergency.")
+config_lib.DEFINE_string("AdminUI.url", "http://localhost:8000/",
+                         "The direct URL for the user interface.")
 
-FLAGS = flags.FLAGS
+config_lib.DEFINE_string("Monitoring.emergency_access_email",
+                         "emergency@nowhere.com",
+                         "The email address to notify in an emergency.")
 
 
 class Approval(aff4.AFF4Object):
@@ -62,6 +61,69 @@ class Approval(aff4.AFF4Object):
     """Check that this approval applies to the given token."""
     _ = token
     raise RuntimeError("Not implemented.")
+
+  @staticmethod
+  def GetApprovalForObject(namespace, object_name, token, username=""):
+    """Looks for approvals for an object and returns available valid tokens.
+
+    Args:
+      namespace: Namespace to look in, generally "clients" or "hunts"
+
+      object_name: Name of object we want access to, e.g. hunt_id or a
+        client_id.
+
+      token: The token to use to lookup the ACLs.
+
+      username: The user to get the approval for, if "" we get it from the
+        token.
+
+    Returns:
+      A token for access to the object on success, otherwise raises.
+
+    Raises:
+      TypeError: If invalid namespace requested.
+      UnauthorizedAccess: If there are no valid tokens available.
+
+    """
+    if namespace == "hunts":
+      requested_object = "%s/%s" % (namespace, object_name)
+    elif namespace == "clients":
+      requested_object = object_name
+    else:
+      raise TypeError("Invalid object namespace requested")
+
+    if not username:
+      username = token.username
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(requested_object).Add(
+        username)
+
+    error = "No approvals available"
+    fd = aff4.FACTORY.Open(approval_urn, mode="r", token=token)
+    for auth_request in fd.OpenChildren():
+      try:
+        reason = utils.DecodeReasonString(auth_request.urn.Basename())
+      except TypeError:
+        continue
+
+      # Check authorization using the data_store for an authoritative source.
+      test_token = access_control.ACLToken(username, reason)
+      try:
+        if namespace == "hunts":
+          # Hunts are special as they require execute permissions. These aren't
+          # in the ACL model for objects yet, so we work around by scheduling a
+          # fake flow to do the check for us.
+          flow.FACTORY.StartFlow(None, "CheckHuntAccessFlow", token=test_token,
+                                 hunt_id=object_name)
+        else:
+          # Check if we can access a non-existent path under this one.
+          aff4.FACTORY.Open(rdfvalue.RDFURN(requested_object).Add("acl_chk"),
+                            mode="r", token=test_token)
+        return test_token
+      except access_control.UnauthorizedAccess as e:
+        error = e
+
+    # We tried all auth_requests, but got no usable results.
+    raise access_control.UnauthorizedAccess(error)
 
 
 class ClientApproval(Approval):
@@ -97,18 +159,18 @@ class ClientApproval(Approval):
     namespace, client_id, user, _ = self.urn.Split(4)
 
     if namespace != "ACL":
-      raise data_store.UnauthorizedAccess(
+      raise access_control.UnauthorizedAccess(
           "Approval object has invalid urn %s.", self.urn,
           requested_access=token.requested_access)
 
     if user != token.username:
-      raise data_store.UnauthorizedAccess(
+      raise access_control.UnauthorizedAccess(
           "Approval object is not for user %s." % token.username,
           requested_access=token.requested_access)
 
     # This approval can only apply for a client.
     if not self.classes["VFSGRRClient"].CLIENT_ID_RE.match(client_id):
-      raise data_store.UnauthorizedAccess(
+      raise access_control.UnauthorizedAccess(
           "Approval can only be granted on clients, not %s" % client_id,
           requested_access=token.requested_access)
 
@@ -128,9 +190,10 @@ class ClientApproval(Approval):
       if approver.age + lifetime > now:
         approvers.add(utils.SmartStr(approver))
 
-    if len(approvers) < FLAGS.acl_approvers_required:
-      raise data_store.UnauthorizedAccess(
-          "Requires %s approvers for access." % FLAGS.acl_approvers_required,
+    if len(approvers) < config_lib.CONFIG["ACL.approvers_required"]:
+      raise access_control.UnauthorizedAccess(
+          ("Requires %s approvers for access." %
+           config_lib.CONFIG["ACL.approvers_required"]),
           requested_access=token.requested_access)
 
     return True
@@ -163,12 +226,12 @@ class HuntApproval(Approval):
     """Enforce that there are 2 approvers and one of them has "admin" label."""
     namespace, hunts_str, _, user, _ = self.urn.Split(5)
     if namespace != "ACL" or hunts_str != "hunts":
-      raise data_store.UnauthorizedAccess(
+      raise access_control.UnauthorizedAccess(
           "Approval object has invalid urn %s.", self.urn,
           requested_access=token.requested_access)
 
     if user != token.username:
-      raise data_store.UnauthorizedAccess(
+      raise access_control.UnauthorizedAccess(
           "Approval object is not for user %s." % token.username,
           requested_access=token.requested_access)
 
@@ -181,9 +244,10 @@ class HuntApproval(Approval):
       if approver.age + lifetime > now:
         approvers.add(utils.SmartStr(approver))
 
-    if len(approvers) < FLAGS.acl_approvers_required:
-      raise data_store.UnauthorizedAccess(
-          "Requires %s approvers for access." % FLAGS.acl_approvers_required,
+    if len(approvers) < config_lib.CONFIG["ACL.approvers_required"]:
+      raise access_control.UnauthorizedAccess(
+          ("Requires %s approvers for access." %
+           config_lib.CONFIG["ACL.approvers_required"]),
           requested_access=token.requested_access)
 
     # Check that at least one approver has admin label
@@ -192,7 +256,7 @@ class HuntApproval(Approval):
                   approver, ["admin"])]
 
     if not admins:
-      raise data_store.UnauthorizedAccess(
+      raise access_control.UnauthorizedAccess(
           "At least one approver should have 'admin' label.",
           requested_access=token.requested_access)
 
@@ -214,7 +278,7 @@ class RequestClientApprovalFlow(flow.GRRFlow):
   def Start(self):
     """Create the Approval object and notify the Approval Granter."""
     # Make a supervisor token
-    token = data_store.ACLToken()
+    token = access_control.ACLToken()
     token.supervisor = True
 
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.client_id).Add(
@@ -267,7 +331,7 @@ Please click <a href='%(admin_ui)s#%(approval_urn)s'>
                                  username=self.token.username,
                                  hostname=hostname,
                                  reason=utils.SmartStr(self.reason),
-                                 admin_ui=FLAGS.ui_url,
+                                 admin_ui=config_lib.CONFIG["AdminUI.url"],
                                  approval_urn=url),
                              is_html=True)
 
@@ -289,7 +353,7 @@ class RequestHuntApprovalFlow(flow.GRRFlow):
   def Start(self):
     """Create the Approval object and notify the Approval Granter."""
     # Make a supervisor token
-    token = data_store.ACLToken()
+    token = access_control.ACLToken()
     token.supervisor = True
 
     approval_urn = aff4.ROOT_URN.Add("ACL").Add("hunts").Add(self.hunt_id).Add(
@@ -339,7 +403,7 @@ Please click <a href='%(admin_ui)s#%(approval_urn)s'>
                              template % dict(
                                  username=self.token.username,
                                  reason=utils.SmartStr(self.reason),
-                                 admin_ui=FLAGS.ui_url,
+                                 admin_ui=config_lib.CONFIG["AdminUI.url"],
                                  approval_urn=url),
                              is_html=True)
 
@@ -368,8 +432,8 @@ class GrantClientApprovalFlow(flow.GRRFlow):
                                            required_type="Approval",
                                            token=self.token)
     except IOError:
-      raise data_store.UnauthorizedAccess("Approval object does not exist.",
-                                          requested_access="rw")
+      raise access_control.UnauthorizedAccess("Approval object does not exist.",
+                                              requested_access="rw")
 
     # We are now an approver for this request.
     approval_request.AddAttribute(
@@ -407,7 +471,7 @@ Please click <a href='%(admin_ui)s#%(urn)s'>
                            template % dict(
                                username=self.token.username,
                                reason=utils.SmartStr(self.reason),
-                               admin_ui=FLAGS.ui_url,
+                               admin_ui=config_lib.CONFIG["AdminUI.url"],
                                urn=url),
                            is_html=True)
 
@@ -459,16 +523,17 @@ This access has been logged and granted for 24 hours.
 </body></html>"""
 
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    email_alerts.SendEmail(FLAGS.grr_emergency_email_address,
-                           self.token.username,
-                           "Emergency Access Required for machine.",
-                           template % dict(
-                               client_id=self.client_id,
-                               hostname=client.Get(client.Schema.HOSTNAME,
-                                                   "Unknown"),
-                               username=self.token.username,
-                               reason=utils.SmartStr(self.reason)),
-                           is_html=True)
+    email_alerts.SendEmail(
+        config_lib.CONFIG["Monitoring.emergency_access_email"],
+        self.token.username,
+        "Emergency Access Required for machine.",
+        template % dict(
+            client_id=self.client_id,
+            hostname=client.Get(client.Schema.HOSTNAME,
+                                "Unknown"),
+            username=self.token.username,
+            reason=utils.SmartStr(self.reason)),
+        is_html=True)
 
 
 class GrantHuntApprovalFlow(flow.GRRFlow):
@@ -500,8 +565,8 @@ class GrantHuntApprovalFlow(flow.GRRFlow):
                                            required_type="Approval",
                                            token=self.token)
     except IOError:
-      raise data_store.UnauthorizedAccess("Approval object does not exist.",
-                                          requested_access="rw")
+      raise access_control.UnauthorizedAccess("Approval object does not exist.",
+                                              requested_access="rw")
 
     # We are now an approver for this request.
     approval_request.AddAttribute(
@@ -539,6 +604,6 @@ Please click <a href='%(admin_ui)s#%(urn)s'>
                            template % dict(
                                username=self.token.username,
                                reason=utils.SmartStr(self.reason),
-                               admin_ui=FLAGS.ui_url,
+                               admin_ui=config_lib.CONFIG["AdminUI.url"],
                                urn=url),
                            is_html=True)

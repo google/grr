@@ -21,11 +21,8 @@ import datetime
 import os
 
 from grr.client import conf
-from grr.client import conf as flags
 from grr.lib import test_lib
 from grr.parsers import firefox3_history
-
-FLAGS = flags.FLAGS
 
 
 class Firefox3HistoryTest(test_lib.GRRBaseTest):

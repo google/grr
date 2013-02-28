@@ -21,7 +21,6 @@ import struct
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
-from grr.proto import jobs_pb2
 
 
 class RDFValueCollection(aff4.AFF4Object):
@@ -73,11 +72,7 @@ class RDFValueCollection(aff4.AFF4Object):
       raise RuntimeError("This collection only accepts values of type %s" %
                          self._rdf_type.__name__)
 
-    serialized_rdf_value = jobs_pb2.RDFValue(age=int(rdf_value.age),
-                                             name=rdf_value.__class__.__name__,
-                                             data=rdf_value.SerializeToString())
-
-    data = serialized_rdf_value.SerializeToString()
+    data = rdfvalue.RDFValueObject(rdf_value).SerializeToString()
     self.fd.Write(struct.pack("<i", len(data)))
     self.fd.Write(data)
     self.size += 1
@@ -105,31 +100,7 @@ class RDFValueCollection(aff4.AFF4Object):
       except struct.error:
         break
 
-      rdf_value_proto = jobs_pb2.RDFValue()
-      rdf_value_proto.ParseFromString(serialized_event)
-
-      result_cls = aff4.FACTORY.RDFValue(rdf_value_proto.name)
-      if result_cls is None:
-        result_cls = rdfvalue.RDFString
-
-      yield result_cls(initializer=rdf_value_proto.data,
-                       age=rdf_value_proto.age)
-
-
-class AFF4ObjectSummary(rdfvalue.RDFProto):
-  """A summary of an AFF4 object.
-
-  AFF4Collection objects maintain a list of AFF4 objects. To make it easier to
-  filter and search these collections, we need to store a summary of each AFF4
-  object inside the collection (so we do not need to open every object for
-  filtering).
-
-  This summary is maintained in the RDFProto instance.
-  """
-  _proto = jobs_pb2.AFF4ObjectSummary
-
-  rdf_map = dict(urn=rdfvalue.RDFURN,
-                 stat=rdfvalue.StatEntry)
+      yield rdfvalue.RDFValueObject(serialized_event).Payload()
 
 
 class AFF4Collection(aff4.AFF4Volume, RDFValueCollection):
@@ -139,7 +110,7 @@ class AFF4Collection(aff4.AFF4Volume, RDFValueCollection):
   collection simply stores the RDFURNs of all aff4 objects in the collection.
   """
 
-  _rdf_type = AFF4ObjectSummary
+  _rdf_type = rdfvalue.AFF4ObjectSummary
 
   _behaviours = frozenset(["Collection"])
 

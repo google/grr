@@ -1,8 +1,8 @@
 // Copyright 2012 Google Inc
 // All Rights Reserved.
 
-#ifndef OPS_SECURITY_GRR_CLIENT_NANNY_EVENT_LOGGER_H_
-#define OPS_SECURITY_GRR_CLIENT_NANNY_EVENT_LOGGER_H_
+#ifndef GRR_CLIENT_NANNY_EVENT_LOGGER_H_
+#define GRR_CLIENT_NANNY_EVENT_LOGGER_H_
 
 #include <string>                       // for string
 
@@ -60,4 +60,4 @@ class EventLogger {
 
 }  // namespace grr
 
-#endif  // OPS_SECURITY_GRR_CLIENT_NANNY_EVENT_LOGGER_H_
+#endif  // GRR_CLIENT_NANNY_EVENT_LOGGER_H_

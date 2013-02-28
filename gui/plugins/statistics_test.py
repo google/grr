@@ -18,8 +18,9 @@
 
 
 from google.protobuf import text_format
+
+from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import data_store
 from grr.lib import test_lib
 from grr.proto import analysis_pb2
 
@@ -41,13 +42,13 @@ data {
   y_value: %(lin)s
 }
 """
-    token = data_store.ACLToken("test", "fixture")
+    token = access_control.ACLToken("test", "fixture")
 
     fd = aff4.FACTORY.Create("cron:/OSBreakDown", "OSBreakDown", token=token)
     now = 1321057655
 
     for i in range(10, 15):
-      histogram = fd.Schema.VERSION_HISTOGRAM(
+      histogram = fd.Schema.OS_HISTOGRAM(
           age=int((now + i*60*60*24) * 1e6))
 
       for number in [1, 7, 14, 30]:
@@ -68,7 +69,7 @@ data {
     sel = self.selenium
     sel.open("/")
 
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    self.WaitUntil(sel.is_element_present, "client_query")
 
     # Make sure the foreman is not there (we are not admin yet)
     self.assert_(not sel.is_element_present("css=a[grrtarget=ManageForeman]"))
@@ -78,7 +79,7 @@ data {
 
     sel.open("/")
 
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    self.WaitUntil(sel.is_element_present, "client_query")
 
     # Make sure that now we can see this option.
     self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageForeman]")
@@ -90,18 +91,18 @@ data {
     self.WaitUntil(sel.is_element_present, "css=#_Clients")
     sel.click("css=#_Clients ins.jstree-icon")
 
-    self.WaitUntil(sel.is_element_present, "css=#_Clients-Last_20Active")
-    sel.click("css=#_Clients-Last_20Active ins.jstree-icon")
+    self.WaitUntil(sel.is_element_present, "css=#_Clients-OS_20Breakdown")
+    sel.click("css=#_Clients-OS_20Breakdown ins.jstree-icon")
 
     self.WaitUntil(sel.is_element_present,
-                   "css=#_Clients-Last_20Active-_201_20Day")
-    sel.click("css=li[path='/Clients/Last Active/ 1 Day'] a")
+                   "css=#_Clients-OS_20Breakdown-_207_20Day_20Active")
+    sel.click("css=li[path='/Clients/OS Breakdown/ 7 Day Active'] a")
 
     self.WaitUntilEqual(u"No data Available",
-                        sel.get_text, "css=h1")
+                        sel.get_text, "css=#main_rightPane h3")
 
     self.PopulateData()
-    sel.click("css=li[path='/Clients/Last Active/ 1 Day'] a")
+    sel.click("css=li[path='/Clients/OS Breakdown/ 7 Day Active'] a")
 
-    self.WaitUntilEqual(u"One day Active Clients.",
-                        sel.get_text, "css=h1")
+    self.WaitUntilEqual(u"Operating system break down.",
+                        sel.get_text, "css=#main_rightPane h3")

@@ -30,4 +30,5 @@ from grr.lib.aff4_objects import processes
 from grr.lib.aff4_objects import security
 from grr.lib.aff4_objects import standard
 from grr.lib.aff4_objects import timeline
+from grr.lib.aff4_objects import user_managers
 from grr.lib.aff4_objects import users

@@ -23,14 +23,11 @@ of key properties about the artifact:
   Storage: How to store the processed data.
 """
 
-from grr.client import conf as flags
 import logging
 
 from grr.lib import rdfvalue
 from grr.lib import registry
-
-
-FLAGS = flags.FLAGS
+from grr.lib import type_info
 
 
 class Error(Exception):
@@ -250,3 +247,25 @@ SUPPORTED_OS_MAP = {
     "Linux": IsLinux,
     "Darwin": IsDarwin
 }
+
+
+class ArtifactList(type_info.TypeInfoObject):
+  """A list of Artifacts names."""
+
+  renderer = "ArtifactListRenderer"
+
+  def Validate(self, value):
+    """Value must be a list of artifact names."""
+    try:
+      iter(value)
+    except TypeError:
+      raise type_info.TypeValueError(
+          "%s not a valid iterable for ArtifactList" % value)
+    for val in value:
+      if not isinstance(val, basestring):
+        raise type_info.TypeValueError("%s not a valid instance string." % val)
+      artifact_cls = Artifact.classes.get(val)
+      if not artifact_cls or not issubclass(artifact_cls, Artifact):
+        raise type_info.TypeValueError("%s not a valid Artifact class." % val)
+
+    return value

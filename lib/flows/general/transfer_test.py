@@ -19,16 +19,14 @@
 import os
 import re
 
-from grr.client import conf as flags
 
 from grr.client.client_actions import standard
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.general import transfer
-
-FLAGS = flags.FLAGS
 
 
 class TestTransfer(test_lib.FlowTestsBaseclass):
@@ -230,7 +228,8 @@ class TestCollector(transfer.FileCollector):
 
   def __init__(self, **kwargs):
     """Define what we collect."""
-    base_path = os.path.join(FLAGS.test_srcdir, FLAGS.test_datadir)
+    base_path = config_lib.CONFIG["Test.datadir"]
+
     findspec = rdfvalue.RDFFindSpec(
         path_regex="(ntfs_img.dd|sqlite)$", max_depth=4)
 

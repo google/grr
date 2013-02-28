@@ -19,6 +19,7 @@ from google.protobuf import message
 from google.protobuf import text_format
 
 from grr.lib import rdfvalue
+from grr.lib import type_info
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
@@ -30,7 +31,8 @@ class DataBlob(rdfvalue.RDFProto):
   def SetValue(self, value):
     """Receives a value and fills it into a DataBlob."""
     type_mappings = [(unicode, "string"), (str, "data"), (bool, "boolean"),
-                     (int, "integer"), (long, "integer"), (dict, "dict")]
+                     (int, "integer"), (long, "integer"), (dict, "dict"),
+                     (float, "float")]
 
     if value is None:
       self._data.none = "None"
@@ -69,7 +71,7 @@ class DataBlob(rdfvalue.RDFProto):
       return None
 
     field_names = ["integer", "string", "data", "boolean", "list", "dict",
-                   "rdf_value"]
+                   "rdf_value", "float"]
     values = [getattr(self._data, x) for x in field_names
               if self._data.HasField(x)]
 
@@ -327,3 +329,13 @@ class RDFValueArray(rdfvalue.RDFProto):
         result.append(value)
 
     return result
+
+
+class GenericProtoDictType(type_info.RDFValueType):
+
+  def __init__(self, **kwargs):
+    defaults = dict(default=rdfvalue.RDFProtoDict(),
+                    rdfclass=rdfvalue.RDFProtoDict)
+
+    defaults.update(kwargs)
+    super(GenericProtoDictType, self).__init__(**defaults)

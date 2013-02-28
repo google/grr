@@ -99,6 +99,7 @@ class ContainerFileTable(renderers.TableRenderer):
 
   content_cache = None
   max_items = 10000
+  custom_class = "containerFileTable"
 
   def __init__(self, **kwargs):
     if ContainerFileTable.content_cache is None:
@@ -107,8 +108,8 @@ class ContainerFileTable(renderers.TableRenderer):
     super(ContainerFileTable, self).__init__(**kwargs)
 
     self.AddColumn(renderers.RDFValueColumn(
-        "Icon", renderer=renderers.IconRenderer, width=0))
-    self.AddColumn(renderers.AttributeColumn("subject"))
+        "Icon", renderer=renderers.IconRenderer, width="40px"))
+    self.AddColumn(renderers.AttributeColumn("subject", width="100%"))
 
   def Layout(self, request, response):
     """The table lists files in the directory and allow file selection."""
@@ -264,21 +265,30 @@ class ContainerToolbar(renderers.TemplateRenderer):
   """
 
   layout_template = renderers.Template("""
+<li>
 <form id="csv_{{unique|escape}}" action="/render/Download/ContainerFileTable"
    METHOD=post target='_blank'>
 <input type="hidden" name='container' value='{{this.container|escape}}' />
 <input type="hidden" id="csv_query" name="query" />
-<button id='export' title="Export to CSV">
-<img src="/static/images/stock-save.png">
+<button id='export' title="Export to CSV" class="btn">
+<img src="/static/images/stock-save.png" class="toolbar_icon" />
 </button>
+</form>
+</li>
+<li class="active">
 {{this.container|escape}}
-</form>
-<form id="form_{{unique|escape}}" name="query_form">
-Query
-<input type="text" id="query" name="query"
+</li>
+
+<li class="pull-right">
+<form id="form_{{unique|escape}}" name="query_form" class="form-search">
+<div class="input-append">
+
+<input class="input-medium search-query" type="text" id="query" name="query"
   value="{{this.query|escape}}" size=180></input>
-<input type="submit" style="display: none" />
+<button type="submit" class="btn">Query</button>
+</div>
 </form>
+</li>
 <script>
 $('#export').button().click(function () {
   $("input#csv_query").val($("input#query").val());
@@ -312,19 +322,14 @@ class ContainerViewer(renderers.TemplateRenderer):
   """This is the main view to browse files."""
 
   layout_template = renderers.Template("""
-<div id='toolbar_{{id|escape}}' class=toolbar></div>
-<div id='{{unique|escape}}'></div>
+<div id='toolbar_{{id|escape}}' class="breadcrumb"></div>
+<div id='{{unique|escape}}' class="fill-parent no-margins toolbar-margin"></div>
 <script>
   grr.state.container = grr.hash.container;
   grr.state.query = grr.hash.query || "";
 
   grr.layout("ContainerToolbar", "toolbar_{{id|escapejs}}");
   grr.layout("ContainerViewerSplitter", "{{unique|escapejs}}");
-  grr.subscribe("GeometryChange", function (id) {
-    if(id != "{{id|escapejs}}") return;
-    grr.fixHeight($("#{{unique|escapejs}}"));
-    grr.publish("GeometryChange", "{{unique|escapejs}}");
-  }, "{{unique|escapejs}}");
 </script>
 """)
 

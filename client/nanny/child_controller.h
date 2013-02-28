@@ -19,8 +19,8 @@
 // child process (i.e. methods for killing and restarting the process).
 
 
-#ifndef OPS_SECURITY_GRR_CLIENT_NANNY_CHILD_CONTROLLER_H_
-#define OPS_SECURITY_GRR_CLIENT_NANNY_CHILD_CONTROLLER_H_
+#ifndef GRR_CLIENT_NANNY_CHILD_CONTROLLER_H_
+#define GRR_CLIENT_NANNY_CHILD_CONTROLLER_H_
 
 #include <ctime>
 #include "grr/client/nanny/event_logger.h"
@@ -157,4 +157,4 @@ class ChildController {
 
 
 }  // namespace grr
-#endif  // OPS_SECURITY_GRR_CLIENT_NANNY_CHILD_CONTROLLER_H_
+#endif  // GRR_CLIENT_NANNY_CHILD_CONTROLLER_H_

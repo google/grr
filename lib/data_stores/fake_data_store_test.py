@@ -15,16 +15,15 @@
 """Tests the fake data store - in memory implementation."""
 
 
-import os
 
 from grr.client import conf
-from grr.client import conf as flags
+
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import data_store_test
-from grr.lib import registry
 from grr.lib import test_lib
-
-FLAGS = flags.FLAGS
 
 
 class FakeDataStoreTest(data_store_test.DataStoreTest):
@@ -32,9 +31,6 @@ class FakeDataStoreTest(data_store_test.DataStoreTest):
 
 
 def main(args):
-  FLAGS.storage = "FakeDataStore"
-  FLAGS.config = os.path.join(FLAGS.test_srcdir, FLAGS.test_config)
-  registry.Init()
   test_lib.main(args)
 
 if __name__ == "__main__":

@@ -1,78 +1,64 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 """Functions for audit and logging."""
 
 
 
 import logging
+from logging import handlers
 import os
 import socket
 import time
 
-from grr.client import conf
-
-try:
-  LOGFILE_PATH = "%s/system32/logfiles/GRRlog.txt" % os.environ["WINDIR"]
-except KeyError:
-  LOGFILE_PATH = "/tmp/GRRlog.txt"
-
-conf.PARSER.add_option("", "--grrlog", default=LOGFILE_PATH,
-                       help="Path to log file.")
-
-FLAGS = conf.PARSER.flags
+from grr.client import conf as flags
+from grr.lib import config_lib
+from grr.lib import registry
 
 
-class GrrLogger(object):
-  """Code to emit DataAccessLogProto records."""
+config_lib.DEFINE_list("Logging.engines", ["stderr", "file"],
+                       "Enabled logging engines. Valid values are "
+                       "combinations of stderr,file,syslog,event_log.")
 
-  def __init__(self, component):
-    """Initialize a logging object.
+config_lib.DEFINE_bool("Logging.verbose", False,
+                       help="If true log more verbosely.")
 
-    Args:
-      component: Identifier for the component doing the logging, string.
-    """
-    path = FLAGS.grrlog
-    logger = logging.getLogger()
-    logger.handlers = []         # Disable all current loggers.
-    formatter = logging.Formatter("%(asctime)s - " + component +
-                                  " - %(levelname)s - %(message)s")
-    log_level = logging.INFO
-    if FLAGS.verbose:
-      log_level = logging.DEBUG
-      logger.setLevel(log_level)
+config_lib.DEFINE_string("Logging.path", "%(TEMP|env)/tmp/",
+                         help="Path to log file directory.")
 
-    # Also log to stderr.
-    handler = logging.StreamHandler()
-    handler.setLevel(log_level)
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+config_lib.DEFINE_string("Logging.syslog_path", "localhost:514",
+                         help="Path to syslog socket. This can be a unix "
+                         "domain socket or in a UDP host:port notation.")
 
-    # Create a logfile.
-    filehandler = logging.FileHandler(path, mode="ab")
-    filehandler.setLevel(log_level)
-    filehandler.setFormatter(formatter)
-    logger.addHandler(filehandler)
+config_lib.DEFINE_string("Logging.filename", "%(Logging.path)/GRRlog.txt",
+                         help="Filename of the grr log file.")
 
-    self._hostname = socket.gethostname()
-    self._ip = socket.gethostbyname(self._hostname)
-    self._port = getattr(FLAGS, "port", 0)
-    self._component = component
-    self._epid = os.getpid()
+config_lib.DEFINE_string(
+    "Logging.format",
+    # Use a literal block here to prevent config system expansion as this should
+    # be a python format string.
+    "%{%(levelname)s %(module)s:%(lineno)s] %(message)s}",
+    help="Log line format (using python's standard logging expansions).")
 
-    logging.info("GrrLogger will save logs to %s", path)
+config_lib.DEFINE_string("Logging.service_name", "GRR",
+                         help="The service name that will be logged with the "
+                         "event log engine.")
+
+
+# Flag sets the verbosity of logging.
+flags.DEFINE_bool("verbose", default=False,
+                  help="Enable debugging. This will enable file logging "
+                  "for the service and increase verbosity.")
+
+flags.DEFINE_bool("debug", default=False,
+                  help="When an unhandled exception occurs break in the "
+                  "debugger.")
+
+
+class GrrApplicationLogger(object):
+  """Code to emit DataAccessLogProto records.
+
+  These records are used for machine readable authentication logging of security
+  critical events.
+  """
 
   def WriteFrontendLogEntry(self, event_id, request, response):
     """Write a log entry for a Frontend or UI Request.
@@ -92,4 +78,197 @@ class GrrLogger(object):
     """Return a unique Event ID string."""
     if event_time is None:
       event_time = long(time.time() * 1e6)
-    return "%s:%s:%s" % (event_time, self._hostname, self._epid)
+
+    return "%s:%s:%s" % (event_time, socket.gethostname(), os.getpid())
+
+
+def SetLogLevels():
+  """This sets the correct log levels for all the client loggers."""
+
+  levels = {
+      "FileHandler": logging.ERROR,
+      "NTEventLogHandler": logging.CRITICAL,
+      "StreamHandler": logging.ERROR,
+      "SysLogHandler": logging.CRITICAL,
+      }
+
+  verbose_levels = {
+      "FileHandler": logging.DEBUG,
+      "NTEventLogHandler": logging.INFO,
+      "StreamHandler": logging.DEBUG,
+      "SysLogHandler": logging.INFO,
+      }
+
+  logger = logging.getLogger()
+
+  act_levels = levels
+
+  # Allow the command line flag to override the verbose logging setting.
+  if flags.FLAGS.verbose:
+    config_lib.CONFIG.SetEnv("Logging.verbose", True)
+
+  if config_lib.CONFIG["Logging.verbose"]:
+    act_levels = verbose_levels
+
+    if "FileHandler" not in [handler.__class__.__name__
+                             for handler in logger.handlers]:
+
+      # Create a logfile.
+      path = config_lib.CONFIG["Logging.filename"]
+      if not os.path.isdir(os.path.dirname(path)):
+        os.makedirs(os.path.dirname(path))
+      filehandler = logging.FileHandler(path, mode="ab")
+      logger.addHandler(filehandler)
+
+  for handler in logger.handlers:
+    handler.setLevel(act_levels[handler.__class__.__name__])
+
+
+LOGGER = None
+
+
+class SetUpApplicationLogging(registry.InitHook):
+  """Initialize the authorization and audit logging subsystem."""
+
+  def RunOnce(self):
+    logging.debug("Initializing Application Logger.")
+    global LOGGER
+
+    LOGGER = GrrApplicationLogger()
+
+
+class MemoryHandler(handlers.MemoryHandler):
+  def shouldFlush(self, record):
+    return len(self.buffer) >= self.capacity
+
+  def flush(self):
+    """Flush the buffer.
+
+    This is called when the buffer is really full, we just just drop one oldest
+    message.
+    """
+    if self.buffer and self.target:
+      message = self.buffer.pop(0)
+      self.target.handle(message)
+
+
+class RobustSysLogHandler(handlers.SysLogHandler):
+  """A handler which does not raise if it fails to connect."""
+
+  def __init__(self, *args, **kwargs):
+    self.formatter = None
+    try:
+      super(RobustSysLogHandler, self).__init__(*args, **kwargs)
+    except socket.error:
+      pass
+
+  def handleError(self, record):
+    """Just ignore socket errors - the syslog server might come back."""
+
+
+# There is a catch 22 here: We need to start logging right away but we will only
+# configure the logging system once the config is read. Therefore we set up a
+# memory logger now and then when the log destination is configured we replay
+# the logs into that. This ensures we do not lose any log messages during early
+# program start up.
+root_logger = logging.root
+root_logger.handlers = [MemoryHandler(capacity=1000)]
+root_logger.setLevel(logging.DEBUG)
+
+logging.info("Starting GRR Prelogging buffer.")
+
+
+class SetUpLogging(registry.InitHook):
+  """Initialize the logging subsystem."""
+
+  # Logging is configured in the config file.
+  pre = ["ConfigLibInit"]
+
+  levels = {
+      "FileHandler": logging.ERROR,
+      "NTEventLogHandler": logging.CRITICAL,
+      "StreamHandler": logging.ERROR,
+      "RobustSysLogHandler": logging.CRITICAL,
+      }
+
+  verbose_levels = {
+      "FileHandler": logging.DEBUG,
+      "NTEventLogHandler": logging.INFO,
+      "StreamHandler": logging.DEBUG,
+      "RobustSysLogHandler": logging.INFO,
+      }
+
+  @classmethod
+  def SetLogLevels(cls):
+    logger = logging.getLogger()
+
+    if config_lib.CONFIG["Logging.verbose"]:
+      levels = cls.verbose_levels
+    else:
+      levels = cls.levels
+
+    for handler in logger.handlers:
+      handler.setLevel(levels[handler.__class__.__name__])
+
+  def GetLogHandlers(self):
+    formatter = logging.Formatter(config_lib.CONFIG["Logging.format"])
+    engines = config_lib.CONFIG["Logging.engines"]
+    logging.debug("Will use logging engines %s", engines)
+
+    for engine in engines:
+      if engine == "stderr":
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+        yield handler
+
+      elif engine == "event_log":
+        handler = handlers.NTEventLogHandler(
+            config_lib.CONFIG["Logging.service_name"])
+        handler.setFormatter(formatter)
+        yield handler
+
+      elif engine == "syslog":
+        # Allow the specification of UDP sockets.
+        socket_name = config_lib.CONFIG["Logging.syslog_path"]
+        if ":" in socket_name:
+          addr, port = socket_name.split(":", 1)
+          handler = RobustSysLogHandler((addr, int(port)))
+        else:
+          handler = RobustSysLogHandler(socket_name)
+
+        handler.setFormatter(formatter)
+        yield handler
+
+      elif engine == "file":
+        # Create a logfile if needed.
+        path = config_lib.CONFIG["Logging.filename"]
+        logging.info("Writing log file to %s", path)
+
+        if not os.path.isdir(os.path.dirname(path)):
+          os.makedirs(os.path.dirname(path))
+        handler = logging.FileHandler(path, mode="ab")
+        handler.setFormatter(formatter)
+        yield handler
+
+      else:
+        logging.error("Unknown logging engine %s", engine)
+
+  def RunOnce(self):
+    """Configure the logging subsystem."""
+    logging.debug("Initializing Logging subsystem.")
+
+    # verbose flag just sets the logging verbosity level.
+    if flags.FLAGS.verbose:
+      config_lib.CONFIG.SetEnv("Logging.verbose", True)
+
+    # The root logger.
+    logger = logging.getLogger()
+    memory_handler = logger.handlers[0]
+
+    # Clear all handers.
+    logger.handlers = list(self.GetLogHandlers())
+    self.SetLogLevels()
+
+    # Now flush the old messages into the log files.
+    for record in memory_handler.buffer:
+      logger.handle(record)

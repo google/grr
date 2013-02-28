@@ -26,7 +26,6 @@ import _winreg
 from grr.client import vfs
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 # Difference between 1 Jan 1601 and 1 Jan 1970.
@@ -411,12 +410,12 @@ class RegistryFile(vfs.VFSHandler):
     if self.hive is None:
       for name in dir(_winreg):
         if name.startswith("HKEY_"):
-          response = jobs_pb2.StatResponse()
+          response = rdfvalue.StatEntry(
+              st_mode=stat.S_IFDIR)
           response_pathspec = self.pathspec.Copy()
           response_pathspec.last.path = utils.JoinPath(
               response_pathspec.last.path, name)
-          response_pathspec.ToProto(response.pathspec)
-          response.st_mode = stat.S_IFDIR
+          response.pathspec = response_pathspec
 
           yield response
       return
@@ -432,15 +431,14 @@ class RegistryFile(vfs.VFSHandler):
         for i in range(self.number_of_keys):
           try:
             name = EnumKey(key, i)
-            response = jobs_pb2.StatResponse()
+            response = rdfvalue.StatResponse(
+                # Keys look like Directories in the VFS.
+                st_mode=stat.S_IFDIR,
+                st_mtime=self.last_modified)
             response_pathspec = self.pathspec.Copy()
             response_pathspec.last.path = utils.JoinPath(
                 response_pathspec.last.path, name)
-            response_pathspec.ToProto(response.pathspec)
-
-            # Keys look like Directories in the VFS.
-            response.st_mode = stat.S_IFDIR
-            response.st_mtime = self.last_modified
+            response.pathspec = response_pathspec
 
             yield response
           except exceptions.WindowsError:

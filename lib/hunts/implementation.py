@@ -14,8 +14,8 @@ import time
 
 import logging
 
+from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import flow_context
 from grr.lib import rdfvalue
@@ -64,6 +64,7 @@ class GRRHunt(flow.GRRFlow):
     self.next_request_id = 0
     self.client_limit = client_limit
     self.notification_event = notification_event
+    self.usage_stats = rdfvalue.ClientResourcesStats()
 
     # This is the URN for the Hunt object we use.
     self.urn = aff4.ROOT_URN.Add("hunts").Add(self.session_id)
@@ -208,8 +209,8 @@ class GRRHunt(flow.GRRFlow):
     hunt_obj.Close()
 
     # Push the new flow onto the queue.
-    task = scheduler.SCHEDULER.Task(queue=self.session_id, id=1,
-                                    value=self.Dump())
+    task = rdfvalue.GRRMessage(queue=self.session_id, task_id=1,
+                               payload=rdfvalue.Flow(self.Dump()))
 
     # There is a potential race here where we write the client requests first
     # and pickle the flow later. To avoid this, we have to keep the order and
@@ -278,7 +279,7 @@ class GRRHunt(flow.GRRFlow):
   def StartClient(hunt_id, client_id, client_limit=None):
     """This method is called by the foreman for each client it discovers."""
 
-    token = data_store.ACLToken("Hunt", "hunting")
+    token = access_control.ACLToken("Hunt", "hunting")
 
     if client_limit:
       hunt_obj = aff4.FACTORY.Open(hunt_id, mode="rw",
@@ -352,7 +353,7 @@ class GRRHunt(flow.GRRFlow):
   def LogClientError(self, client_id, log_message=None, backtrace=None):
     """Logs an error for a client."""
 
-    token = data_store.ACLToken("Hunt", "hunting")
+    token = access_control.ACLToken("Hunt", "hunting")
     hunt_obj = self.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME, token=token)
 
     error = hunt_obj.Schema.ERRORS()
@@ -368,7 +369,7 @@ class GRRHunt(flow.GRRFlow):
   def LogResult(self, client_id, log_message=None, urn=None):
     """Logs a message for a client."""
 
-    token = data_store.ACLToken("Hunt", "hunting")
+    token = access_control.ACLToken("Hunt", "hunting")
     hunt_obj = self.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME, token=token)
 
     log_entry = hunt_obj.Schema.LOG()
@@ -382,12 +383,33 @@ class GRRHunt(flow.GRRFlow):
 
   def MarkClient(self, client_id, attribute):
     """Adds a client to the list indicated by attribute."""
-    token = data_store.ACLToken("Hunt", "hunting")
+    token = access_control.ACLToken("Hunt", "hunting")
     hunt_obj = self.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME, token=token)
 
     client_urn = attribute(client_id)
     hunt_obj.AddAttribute(client_urn)
     hunt_obj.Close()
+
+  def ProcessClientResourcesStats(self, client_id, status):
+    """Process status message from a client and update the stats."""
+    if not status.child_session_id:
+      return
+
+    user_cpu = status.cpu_time_used.user_cpu_time
+    system_cpu = status.cpu_time_used.system_cpu_time
+
+    fd = self.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME,
+                            token=self.token)
+    resources = fd.Schema.RESOURCES()
+    resources.client_id = client_id
+    resources.session_id = status.child_session_id
+    resources.cpu_usage.user_cpu_time = user_cpu
+    resources.cpu_usage.system_cpu_time = system_cpu
+    resources.network_bytes_sent = status.network_bytes_sent
+    fd.AddAttribute(resources)
+    fd.Close(sync=False)
+
+    self.usage_stats.RegisterResources(resources)
 
   def Save(self):
     self.lock = None

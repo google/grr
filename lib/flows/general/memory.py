@@ -21,7 +21,6 @@ performing basic analysis.
 
 
 
-from grr.client import conf as flags
 import logging
 from grr.lib import aff4
 from grr.lib import flow
@@ -30,9 +29,6 @@ from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.flows.general import grep
 from grr.lib.flows.general import transfer
-
-FLAGS = flags.FLAGS
-
 
 # File names for memory drivers.
 WIN_MEM = "winpmem.{arch}.sys"
@@ -222,7 +218,7 @@ class LoadMemoryDriver(flow.GRRFlow):
 
   @flow.StateHandler()
   def End(self):
-    if self.flow_pb.state != rdfvalue.Flow.Enum("ERROR"):
+    if self.rdf_flow.state != rdfvalue.Flow.Enum("ERROR"):
       self.Notify("ViewObject", self._device_urn,
                   "Driver successfully initialized.")
 

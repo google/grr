@@ -7,3 +7,4 @@ GRR is an Incident Response Framework focused on Remote Live Forensics.
 1. link:user_manual.html[User Manual]
 2. link:admin.html[Administration Documentation (Setup and Configuration)]
 3. link:implementation.html[Developer and Implementation Documentation]
+4. link:configuration.html[The GRR Configuration system]

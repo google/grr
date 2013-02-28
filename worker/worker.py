@@ -23,31 +23,36 @@ import re
 import sys
 
 from grr.client import conf
-from grr.client import conf as flags
 
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import,g-bad-import-order
+
+from grr.lib import access_control
 from grr.lib import config_lib
-from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import registry
-from grr.lib import server_plugins  # pylint: disable=W0611
 
 
-flags.DEFINE_string("worker_queue_name", "W",
-                    "The name of the queue for this worker.")
-
-FLAGS = flags.FLAGS
-CONFIG = config_lib.CONFIG
-CONFIG.flag_sections.append("ServerFlags")
+config_lib.DEFINE_string("Worker.queue_name", "W",
+                         "The name of the queue for this worker.")
 
 
 def main(unused_argv):
   """Main."""
+  config_lib.CONFIG.SetEnv("Environment.component", "Worker")
+
   # Initialise flows
   registry.Init()
 
+  # Make the worker section override all others.
+  config_lib.CONFIG.ExecuteSection("Worker")
+
   # Start a worker
-  token = data_store.ACLToken("GRRWorker", "Implied.")
-  worker = flow.GRRWorker(queue_name=FLAGS.worker_queue_name, token=token)
+  token = access_control.ACLToken("GRRWorker", "Implied.")
+  worker = flow.GRRWorker(
+      queue_name=config_lib.CONFIG["Worker.queue_name"], token=token)
+
   worker.Run()
 
 if __name__ == "__main__":

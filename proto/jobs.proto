@@ -92,6 +92,22 @@ message GrrMessage {
 
   // The rdfvalue class of the args.
   optional string args_rdf_name = 14;
+
+  // The id of this message in the scheduler.
+  optional uint64 task_id = 15;
+
+  // The ttl used in the task scheduler.
+  optional int32 task_ttl = 16 [ default = 5 ];
+
+  // The scheduler queue this message is in.
+  optional string queue = 17;
+
+  // The time when this message is becoming available for leasing.
+  optional uint64 eta = 18;
+
+  // Human readable info about the last process leasing this message.
+  optional string last_lease = 19;
+
 };
 
 // This is a list of messages
@@ -237,6 +253,7 @@ message ClientInformation {
 }
 
 // This is used to store a task in task scheduler
+// DEPRECATED. The task scheduler now directly supports GRRMessages.
 message Task {
   optional uint64 id = 1;
   optional bytes value = 2;
@@ -264,6 +281,7 @@ message DataBlob {
   optional BlobArray list = 8;  // For storing lists.
   optional Dict dict = 9; // Stores a dictionary
   optional RDFValue rdf_value = 10; // Store an RDFValue.
+  optional float float = 11;
 
   enum CompressionType {
     UNCOMPRESSED = 0;
@@ -685,6 +703,10 @@ message MemoryInformation {
 
 // Updates the client configuration. We deliberately only allow to update a few
 // options. Setting these should take effect immediately.
+
+// This message is deprecated ... Client configuration is now set via an
+// RDFProtoDict. Those fields which are allowed to be modified remotely are
+// described in their TypeInfo description.
 message GRRConfig {
   optional int32 foreman_check_frequency = 1;
   optional string location = 2;
@@ -942,6 +964,12 @@ message Find {
   optional uint64 max_data = 10 [default = 1024000];
 }
 
+message PlistRequest {
+  optional Path pathspec = 1;
+  optional string context = 2;
+  optional string query = 3;
+}
+
 // The Foreman schedules flows based on these rules firing.
 message ForemanAttributeRegex {
   // A relative path under the client which the attribute applies to
@@ -995,6 +1023,30 @@ message ClientResources {
   optional string session_id = 2;
   optional CpuSeconds cpu_usage = 3;
   optional uint64 network_bytes_sent = 4;
+}
+
+message StatsHistogram {
+  repeated StatsHistogramBin bins = 3;
+}
+
+message StatsHistogramBin {
+  optional float range_max_value = 1;
+  optional uint64 num = 2;
+}
+
+message RunningStats {
+  optional StatsHistogram histogram = 1;
+
+  optional uint64 num = 2;
+  optional double sum = 3;
+  optional double sum_sq = 4;
+}
+
+message ClientResourcesStats {
+  optional RunningStats user_cpu_stats = 1;
+  optional RunningStats system_cpu_stats = 2;
+  optional RunningStats network_bytes_sent_stats = 3;
+  repeated ClientResources worst_performers = 4;
 }
 
 message ForemanRule {

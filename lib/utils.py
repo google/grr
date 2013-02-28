@@ -17,15 +17,14 @@
 
 
 import base64
+import random
 import re
 import socket
 import struct
 import threading
 import time
 
-from google.protobuf import message
 from grr.lib import stats
-from grr.proto import jobs_pb2
 
 
 class IPInfo(object):
@@ -693,3 +692,10 @@ def EscapeRegex(string):
   return re.sub(disallowed_chars,
                 lambda x: "\\" + x.group(0),
                 SmartUnicode(string))
+
+
+def GeneratePassphrase(length=20):
+  """Create a 20 char passphrase with easily typeable chars."""
+  valid_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  valid_chars += "0123456789 ,-_()&$#"
+  return "".join(random.choice(valid_chars) for i in range(length))

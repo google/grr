@@ -28,16 +28,17 @@ from grr.lib import test_lib
 
 class SampleHuntMock(object):
 
-  def __init__(self):
+  def __init__(self, failrate=2):
     self.responses = 0
     self.data = "Hello World!"
+    self.failrate = failrate
+    self.count = 0
 
   def StatFile(self, args):
     return self._StatFile(args)
 
   def _StatFile(self, args):
-    req = rdfvalue.ListDirRequest()
-    req.ParseFromString(args)
+    req = rdfvalue.ListDirRequest(args)
     response = rdfvalue.StatEntry(
         pathspec=req.pathspec,
         st_mode=33184,
@@ -53,16 +54,16 @@ class SampleHuntMock(object):
 
     self.responses += 1
 
-    # Every second client does not have this file.
-    if self.responses % 2:
+    self.count += 1
+    if self.count == self.failrate:
+      self.count = 0
       raise IOError("File does not exist")
 
     return [response]
 
   def TransferBuffer(self, args):
 
-    response = rdfvalue.BufferReference()
-    response.ParseFromString(args)
+    response = rdfvalue.BufferReference(args)
 
     response.data = self.data
     response.length = len(self.data)
@@ -114,6 +115,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
     # Stop the hunt now.
     hunt.Stop()
+    hunt.Save()
 
     hunt_obj = hunt.GetAFF4Object(token=self.token)
 
@@ -126,9 +128,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(set(errors)), 5)
 
     # We shouldn't receive any entries as send_replies is set to False.
-    collection = aff4.FACTORY.Open(hunt.collection.urn, mode="r",
-                                   token=self.token)
-    self.assertEqual(len(list(collection)), 0)
+    self.assertRaises(IOError, aff4.FACTORY.Open, hunt.collection.urn,
+                      "RDFValueCollection", "r", False, self.token)
 
   def testGenericHunt(self):
     """This tests running the hunt on some clients."""
@@ -160,6 +161,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
     # Stop the hunt now.
     hunt.Stop()
+    hunt.Save()
 
     hunt_obj = hunt.GetAFF4Object(token=self.token)
 
@@ -181,6 +183,70 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       self.assertTrue(x.payload.aff4path.endswith("/fs/os/tmp/evil.txt"))
 
     self.assertEqual(i, 4)
+
+  def testVariableGenericHunt(self):
+    """This tests running the hunt on some clients."""
+
+    flows = {
+        "C.1%015d" % 1: [
+            ("GetFile", dict(
+                pathspec=rdfvalue.RDFPathSpec(
+                    path="/tmp/evil1.txt",
+                    pathtype=rdfvalue.RDFPathSpec.Enum("OS")),
+                ))],
+        "C.1%015d" % 2: [
+            ("GetFile", dict(
+                pathspec=rdfvalue.RDFPathSpec(
+                    path="/tmp/evil2.txt",
+                    pathtype=rdfvalue.RDFPathSpec.Enum("OS")),
+                )),
+            ("GetFile", dict(
+                pathspec=rdfvalue.RDFPathSpec(
+                    path="/tmp/evil3.txt",
+                    pathtype=rdfvalue.RDFPathSpec.Enum("OS")),
+                ))],
+        }
+
+    hunt = hunts.VariableGenericHunt(flows=flows, collect_replies=True,
+                                     token=self.token)
+    hunt.Run()
+    hunt.ManuallyScheduleClients()
+
+    # Run the hunt.
+    client_mock = SampleHuntMock(failrate=100)
+    test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
+
+    # Stop the hunt now.
+    hunt.Stop()
+    hunt.Save()
+
+    hunt_obj = hunt.GetAFF4Object(token=self.token)
+
+    started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
+    finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
+    errors = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.ERRORS)
+
+    self.assertEqual(len(set(started)), 2)
+    self.assertEqual(len(set(finished)), 2)
+    self.assertEqual(len(set(errors)), 0)
+
+    collection = aff4.FACTORY.Open(hunt.collection.urn, mode="r",
+                                   token=self.token)
+
+    # We should receive stat entries.
+    self.assertEqual(len(collection), 3)
+    collection = sorted([x for x in collection],
+                        key=lambda x: x.payload.aff4path)
+    stats = [x.payload for x in collection]
+    self.assertEqual(stats[0].__class__, rdfvalue.StatEntry)
+    self.assertTrue(stats[0].aff4path.endswith("/fs/os/tmp/evil1.txt"))
+    self.assertEqual(collection[0].source, "C.1%015d" % 1)
+    self.assertEqual(stats[1].__class__, rdfvalue.StatEntry)
+    self.assertTrue(stats[1].aff4path.endswith("/fs/os/tmp/evil2.txt"))
+    self.assertEqual(collection[1].source, "C.1%015d" % 2)
+    self.assertEqual(stats[2].__class__, rdfvalue.StatEntry)
+    self.assertTrue(stats[2].aff4path.endswith("/fs/os/tmp/evil3.txt"))
+    self.assertEqual(collection[2].source, "C.1%015d" % 2)
 
   def testHuntTermination(self):
     """This tests that hunts with a client limit terminate correctly."""
@@ -224,7 +290,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
       self.assertEqual(len(set(started)), 5)
       self.assertEqual(len(set(finished)), 5)
-      self.assertEqual(len(set(errors)), 3)
+      self.assertEqual(len(set(errors)), 2)
 
       # Now advance the time such that the hunt expires.
       time.time = lambda: 5000
@@ -246,7 +312,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
       hunt_obj = aff4.FACTORY.Open(hunt.session_id, token=self.token)
       flow_obj = hunt_obj.GetFlowObj()
-      self.assertEqual(flow_obj.flow_pb.state, rdfvalue.Flow.Enum("TERMINATED"))
+      self.assertEqual(flow_obj.rdf_flow.state,
+                       rdfvalue.Flow.Enum("TERMINATED"))
 
     finally:
       time.time = old_time

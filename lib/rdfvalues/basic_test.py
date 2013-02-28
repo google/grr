@@ -90,6 +90,18 @@ class RDFDatetimeTest(test_base.RDFValueTestCase):
     # We always stringify the date in UTC timezone.
     self.assertEqual(str(date1), time_string)
 
+  def testInitFromEmptyString(self):
+    orig_time = time.time
+    time.time = lambda: 1000
+    try:
+      # Init from an empty string should generate a DateTime object with the
+      # current time.
+      date = rdfvalue.RDFDatetime("")
+      self.assertEqual(int(date), int(1000 * 1e6))
+
+    finally:
+      time.time = orig_time
+
 
 class RDFDatetimeSecondsTest(RDFDatetimeTest):
   rdfvalue_class = rdfvalue.RDFDatetimeSeconds

@@ -33,7 +33,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
     sel = self.selenium
     sel.open("/")
 
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    self.WaitUntil(sel.is_element_present, "client_query")
     self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageCron]")
     sel.click("css=a[grrtarget=ManageCron]")
 

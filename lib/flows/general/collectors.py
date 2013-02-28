@@ -33,10 +33,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   """
 
   flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.List(
+      type_info.MultiSelectList(
           description="A list of Artifact class names.",
           name="artifact_list",
-          validator=type_info.String(),
+          default=[],
           ),
       type_info.Bool(
           description="Whether raw filesystem access should be used.",

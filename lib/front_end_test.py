@@ -19,15 +19,15 @@
 
 
 from grr.client import conf
-from grr.client import conf as flags
+
 from grr.lib import communicator
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import flow_context
 from grr.lib import rdfvalue
 from grr.lib import scheduler
 from grr.lib import test_lib
-from grr.proto import jobs_pb2
 
 
 class SendingTestFlow(flow.GRRFlow):
@@ -51,18 +51,16 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     super(GRRFEServerTest, self).setUp()
 
     # Whitelist test flow.
-    self.prev_frontend_well_known_flows = flags.FLAGS.frontend_well_known_flows
-    flags.FLAGS.frontend_well_known_flows = ["WellKnownSessionTest"]
+    config_lib.CONFIG.Set("Frontend.well_known_flows", ["WellKnownSessionTest"])
 
     # For tests, small pools are ok.
-    flags.FLAGS.threadpool_size = 10
-    prefix = "pool-%s" % self._testMethodName
-    self.server = flow.FrontEndServer("Server_Private_Key",
-                                      None, threadpool_prefix=prefix)
+    config_lib.CONFIG.Set("Threadpool.size", 10)
 
-  def tearDown(self):
-    super(GRRFEServerTest, self).tearDown()
-    flags.FLAGS.frontend_well_known_flows = self.prev_frontend_well_known_flows
+    prefix = "pool-%s" % self._testMethodName
+    self.server = flow.FrontEndServer(
+        certificate=config_lib.CONFIG["Frontend.certificate"],
+        private_key=config_lib.CONFIG["PrivateKeys.server_key"],
+        threadpool_prefix=prefix)
 
   def CheckMessages(self, left, right):
     """Compares two lists of messages for equality.
@@ -107,9 +105,9 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
           flow_context.FlowManager.FLOW_STATE_TEMPLATE % session_id,
           flow_context.FlowManager.FLOW_RESPONSE_TEMPLATE % (
               1, message.response_id),
-          decoder=jobs_pb2.GrrMessage, token=self.token)
+          decoder=rdfvalue.GRRMessage, token=self.token)
 
-      self.assertProto2Equal(stored_message, message.ToProto())
+      self.assertProto2Equal(stored_message.ToProto(), message.ToProto())
 
     flow.FACTORY.ReturnFlow(flow_obj, token=self.token)
     return messages
@@ -196,24 +194,23 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
     # There should be 10 messages in the client's task queue
     tasks = scheduler.SCHEDULER.Query(self.client_id, 100,
-                                      decoder=jobs_pb2.GrrMessage,
                                       token=self.token)
     self.assertEqual(len(tasks), 10)
 
     # Check that the response state objects have the correct ts_id set
     # in the client_queue:
     for task in tasks:
-      request_id = task.value.request_id
+      request_id = task.payload.request_id
 
       # Retrieve the request state for this request_id
       request_state, _ = data_store.DB.Resolve(
           flow_context.FlowManager.FLOW_STATE_TEMPLATE % session_id,
           flow_context.FlowManager.FLOW_REQUEST_TEMPLATE % request_id,
-          decoder=jobs_pb2.RequestState, token=self.token)
+          decoder=rdfvalue.RequestState, token=self.token)
 
       # Check that ts_id for the client message is correctly set in
       # request_state
-      self.assertEqual(request_state.ts_id, task.id)
+      self.assertEqual(request_state.ts_id, task.task_id)
 
     # Now ask the server to drain the outbound messages into the
     # message list.
@@ -346,7 +343,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     self.assert_(lease_time < 1)
 
     # Since the server tried to send it, the ttl must be decremented
-    self.assertEqual(tasks[0].ttl - new_tasks[0].ttl, 1)
+    self.assertEqual(tasks[0].task_ttl - new_tasks[0].task_ttl, 1)
 
 
 def main(args):

@@ -236,3 +236,85 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     self.assertRaises(AttributeError, list, test_lib.TestFlowHelper(
         "Glob", client_mock, client_id=self.client_id,
         paths=[path], token=self.token))
+
+  def testGlobAndDownload(self):
+
+    pattern = "test_data/*.log"
+
+    client_mock = test_lib.ActionMock("ListDirectory", "TransferBuffer",
+                                      "StatFile")
+    path = os.path.join(os.path.dirname(self.base_path), pattern)
+
+    # Run the flow.
+    for _ in test_lib.TestFlowHelper(
+        "GlobAndDownload", client_mock, client_id=self.client_id,
+        paths=[path], token=self.token):
+      pass
+
+    for f in "auth.log dpkg.log dpkg_false.log".split():
+      fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(
+          os.path.join(os.path.dirname(self.base_path), "test_data", f)),
+                             token=self.token)
+      # Make sure that some data was downloaded.
+      self.assertTrue(fd.Get(fd.Schema.SIZE) > 100)
+
+  def testGlobAndGrep(self):
+    pattern = "test_data/*.log"
+
+    client_mock = test_lib.ActionMock("ListDirectory", "Grep", "StatFile")
+    path = os.path.join(os.path.dirname(self.base_path), pattern)
+
+    args = {"request": rdfvalue.GrepSpec(
+        target=rdfvalue.RDFPathSpec(),
+        literal="session opened for user dearjohn",
+        mode=rdfvalue.GrepSpec.Enum("ALL_HITS")
+        ),
+            "output": "analysis/grep/testing"}
+
+    # Run the flow.
+    for _ in test_lib.TestFlowHelper(
+        "GlobAndGrep", client_mock, client_id=self.client_id,
+        paths=[path], token=self.token, **args):
+      pass
+
+    fd = aff4.FACTORY.Open(
+        rdfvalue.RDFURN(self.client_id).Add("/analysis/grep/testing"),
+        token=self.token)
+    # Make sure that there is a hit.
+    hits = fd.Get(fd.Schema.HITS)
+    self.assertTrue(hits is not None)
+    hits = list(hits)
+    self.assertEqual(len(hits), 1)
+    self.assertEqual(hits[0].offset, 350)
+    self.assertEqual(hits[0].data,
+                     "session): session opened for user dearjohn by (uid=0")
+
+  def testGlobAndListDirectory(self):
+
+    fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(
+        os.path.join(os.path.dirname(self.base_path), "test_data")),
+                           token=self.token)
+    self.assertEqual(len(list(fd.ListChildren())), 0)
+
+    pattern = "test_*"
+
+    client_mock = test_lib.ActionMock("ListDirectory", "TransferBuffer",
+                                      "StatFile")
+    path = os.path.join(os.path.dirname(self.base_path), pattern)
+
+    # Run the flow.
+    for _ in test_lib.TestFlowHelper(
+        "GlobAndListDirectory", client_mock, client_id=self.client_id,
+        paths=[path], token=self.token):
+      pass
+
+    fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(
+        os.path.join(os.path.dirname(self.base_path), "test_data")),
+                           token=self.token)
+
+    children = list(fd.ListChildren())
+    self.assertGreater(len(children), 30)
+    filenames = [os.path.basename(str(f)) for f in children]
+
+    for f in "auth.log dpkg.log dpkg_false.log".split():
+      self.assertIn(f, filenames)

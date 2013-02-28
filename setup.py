@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Setup configuration for the python grr modules."""
 
 # pylint: disable=W0612
 # pylint: disable=C6201
@@ -146,8 +147,8 @@ grr_gui_data_files_spec = ('grr.gui',
                             '*.jpg', '*.MF', '*.png'])
 
 grr_client_data_files_spec = ('grr.client',
-                              [''],
-                              ['*.txt'])
+                              ['local'],
+                              ['*.txt', '*.py'])
 
 grr_test_data_files_spec = ('grr.test_data',
                             [''],
@@ -167,11 +168,11 @@ setup(name='grr',
                                      grr_client_data_files_spec,
                                      grr_test_data_files_spec,
                                      grr_config_files_spec]),
-      entry_points = {
+      entry_points={
           'console_scripts': [
               'grr_console = grr.tools.console:ConsoleMain',
               'grr_config_updater = grr.tools.config_updater:ConsoleMain',
               'grr_server = grr.tools.grr_server:ConsoleMain',
               'grr_cron = grr.cron.cron:ConsoleMain',
           ]
-     })
+      })

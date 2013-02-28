@@ -1,18 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 """Typing information for flow arguments.
 
 This contains objects that are used to provide type annotations for flow
@@ -26,19 +12,11 @@ import re
 
 import logging
 
-# pylint: disable=W0611
-from grr import artifacts
-# pylint: enable=W0611
-
-from grr.lib import artifact
+from grr.lib import lexer
+from grr.lib import objectfilter
 from grr.lib import rdfvalue
-
-# Populate the rdfvalues so pylint: disable=W0611
-from grr.lib import rdfvalues
-# pylint: enable=W0611
-
+from grr.lib import registry
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 class Error(Exception):
@@ -57,11 +35,12 @@ class TypeInfoObject(object):
   """Definition of the interface for flow arg typing information."""
 
   renderer = ""        # The renderer that should be used to render the arg.
-  allow_none = False   # Is None allowed as a value.
 
   # Some descriptors can delegate to child descriptors to define types of
   # members.
   child_descriptor = None
+
+  __metaclass__ = registry.MetaclassRegistry
 
   def __init__(self, name="", default=None, description="", friendly_name="",
                hidden=False):
@@ -85,6 +64,10 @@ class TypeInfoObject(object):
 
     self.friendly_name = friendly_name
 
+    # Validate that the default value itself is valid.
+    if default is not None:
+      self.Validate(default)
+
   def GetDefault(self):
     return self.default
 
@@ -103,9 +86,29 @@ class TypeInfoObject(object):
     """
     return value
 
+  def FromString(self, string):
+    return string
+
+  def ToString(self, value):
+    return utils.SmartStr(value)
+
+  def Help(self):
+    """Returns a helpful string describing this type info."""
+    return "%s = %s\n   %s" % (self.name, self.GetDefault(),
+                               self.description)
+
+
+# This will register all classes into this modules's namespace regardless of
+# where they are defined. This allows us to decouple the place of definition of
+# a class (which might be in a plugin) from its use which will reference this
+# module.
+TypeInfoObject.classes = globals()
+
 
 class RDFValueType(TypeInfoObject):
   """An arg which must be an RDFValue."""
+
+  rdfclass = rdfvalue.RDFValue
 
   def __init__(self, rdfclass=None, **kwargs):
     """An arg which must be an RDFValue.
@@ -151,6 +154,9 @@ class RDFValueType(TypeInfoObject):
 
     return value
 
+  def FromString(self, string):
+    return self.rdfclass(string)
+
 
 # TODO(user): Deprecate this.
 class Any(TypeInfoObject):
@@ -171,22 +177,15 @@ class Bool(TypeInfoObject):
 
     return value
 
+  def FromString(self, string):
+    """Parse a bool from a string."""
+    if string.lower() in ("false", "no", "n"):
+      return False
 
-class ProtoEnum(TypeInfoObject):
-  """A ProtoBuf Enum field."""
+    if string.lower() in ("true", "yes", "y"):
+      return True
 
-  renderer = "ProtoEnumFormRenderer"
-
-  def __init__(self, proto=None, enum_name=None, **kwargs):
-    super(ProtoEnum, self).__init__(**kwargs)
-    self.enum_descriptor = proto.DESCRIPTOR.enum_types_by_name[enum_name]
-
-  def Validate(self, value):
-    if value not in self.enum_descriptor.values_by_number:
-      raise TypeValueError("%s not a valid value for %s" % (
-          value, self.enum_descriptor.name))
-
-    return value
+    raise TypeValueError("%s is not recognized as a boolean value." % string)
 
 
 class RDFEnum(TypeInfoObject):
@@ -195,9 +194,9 @@ class RDFEnum(TypeInfoObject):
   renderer = "RDFEnumFormRenderer"
 
   def __init__(self, rdfclass=None, enum_name=None, **kwargs):
-    super(RDFEnum, self).__init__(**kwargs)
     desc = rdfclass._proto.DESCRIPTOR  # pylint: disable=protected-access
     self.enum_descriptor = desc.enum_types_by_name[enum_name]
+    super(RDFEnum, self).__init__(**kwargs)
 
   def Validate(self, value):
     if value not in self.enum_descriptor.values_by_number:
@@ -211,11 +210,16 @@ class List(TypeInfoObject):
   """A list type. Turns another type into a list of those types."""
 
   def __init__(self, validator=None, **kwargs):
-    super(List, self).__init__(**kwargs)
     self.validator = validator
+    super(List, self).__init__(**kwargs)
+    self.default = kwargs.get("default", "")
 
   def Validate(self, value):
-    if not isinstance(value, (list, tuple)):
+    """Validate a potential list."""
+    if isinstance(value, basestring):
+      raise TypeValueError("Value must be an iterable not a string.")
+
+    elif not isinstance(value, (list, tuple)):
       raise TypeValueError("%s not a valid List" % utils.SmartStr(value))
     else:
       for val in value:
@@ -224,9 +228,21 @@ class List(TypeInfoObject):
 
     return value
 
+  def FromString(self, string):
+    result = []
+    for x in string.split(","):
+      x = x.strip()
+      result.append(self.validator.FromString(x))
+
+    return result
+
+  def ToString(self, value):
+    return ",".join([self.validator.ToString(x) for x in value])
+
 
 class String(TypeInfoObject):
   """A String type."""
+
   renderer = "StringFormRenderer"
 
   def __init__(self, **kwargs):
@@ -267,7 +283,7 @@ class RegularExpression(String):
     return value
 
 
-class EncryptionKey(String):
+class EncryptionKey(TypeInfoObject):
 
   renderer = "EncryptionKeyFormRenderer"
 
@@ -287,38 +303,35 @@ class EncryptionKey(String):
     return value
 
 
-class Number(TypeInfoObject):
-  """A Number type."""
-
-  allow_none = False
+class Integer(TypeInfoObject):
+  """An Integer number type."""
   renderer = "StringFormRenderer"
 
   def Validate(self, value):
     if not isinstance(value, (int, long)):
-      raise TypeValueError("Invalid value %s for Number" % value)
+      raise TypeValueError("Invalid value %s for Integer" % value)
 
     return value
 
-
-class ArtifactList(TypeInfoObject):
-  """A list of Artifacts names."""
-
-  renderer = "ArtifactListRenderer"
-
-  def Validate(self, value):
-    """Value must be a list of artifact names."""
+  def FromString(self, string):
     try:
-      iter(value)
-    except TypeError:
-      raise TypeValueError("%s not a valid iterable for ArtifactList" % value)
-    for val in value:
-      if not isinstance(val, basestring):
-        raise TypeValueError("%s not a valid instance string." % val)
-      artifact_cls = artifact.Artifact.classes.get(val)
-      if not artifact_cls or not issubclass(artifact_cls, artifact.Artifact):
-        raise TypeValueError("%s not a valid Artifact class." % val)
+      return long(string)
+    except ValueError:
+      raise TypeValueError("Invalid value %s for Integer" % string)
+
+
+class Float(Integer):
+  def Validate(self, value):
+    if not isinstance(value, (float, int, long)):
+      raise TypeValueError("Invalid value %s for Float" % value)
 
     return value
+
+  def FromString(self, string):
+    try:
+      return float(string)
+    except ValueError:
+      raise TypeValueError("Invalid value %s for Float" % string)
 
 
 class MultiSelectList(TypeInfoObject):
@@ -355,6 +368,9 @@ class TypeDescriptorSet(object):
   def __getitem__(self, item):
     return self.descriptor_map[item]
 
+  def get(self, item):  # pylint: disable=g-bad-name
+    return self.descriptor_map.get(item)
+
   def __iter__(self):
     return iter(self.descriptors)
 
@@ -380,7 +396,13 @@ class TypeDescriptorSet(object):
     for desc in self.descriptors + other.descriptors:
       if desc not in new_descriptors:
         new_descriptors.append(desc)
+
     return TypeDescriptorSet(*new_descriptors)
+
+  def Append(self, desc):
+    """Append the descriptor to this set."""
+    self.descriptors.append(desc)
+    self.descriptor_map[desc.name] = desc
 
   def HasDescriptor(self, descriptor_name):
     """Checks wheter this set has an element with the given name."""
@@ -429,27 +451,6 @@ class TypeDescriptorSet(object):
       yield descriptor.name, value
 
 
-class PathTypeEnum(ProtoEnum):
-  """Represent pathspec's pathtypes enum especially."""
-
-  def __init__(self, **kwargs):
-    defaults = dict(name="pathtype",
-                    description="The type of access for this path.",
-                    default=rdfvalue.RDFPathSpec.Enum("OS"),
-                    friendly_name="Type",
-                    proto=jobs_pb2.Path,
-                    enum_name="PathType")
-
-    defaults.update(kwargs)
-    super(PathTypeEnum, self).__init__(**defaults)
-
-  def Validate(self, value):
-    if value < 0:
-      raise ValueError("Path type must be set")
-
-    return super(PathTypeEnum, self).Validate(value)
-
-
 class RDFURNType(RDFValueType):
   """A URN type."""
 
@@ -459,153 +460,6 @@ class RDFURNType(RDFValueType):
 
     defaults.update(kwargs)
     super(RDFURNType, self).__init__(**defaults)
-
-
-class PathspecType(RDFValueType):
-  """A Type for handling pathspecs."""
-
-  # These specify the child descriptors of a pathspec.
-  child_descriptor = TypeDescriptorSet(
-      String(description="Path to the file.",
-             name="path",
-             friendly_name="Path",
-             default="/"),
-      PathTypeEnum())
-
-  def __init__(self, **kwargs):
-    defaults = dict(
-        default=rdfvalue.RDFPathSpec(
-            path="/",
-            pathtype=rdfvalue.RDFPathSpec.Enum("OS")),
-        name="pathspec",
-        rdfclass=rdfvalue.RDFPathSpec)
-
-    defaults.update(kwargs)
-    super(PathspecType, self).__init__(**defaults)
-
-  def GetDefault(self):
-    if not self.default:
-      return None
-    return self.default.Copy()
-
-
-class MemoryPathspecType(PathspecType):
-  child_descriptor = TypeDescriptorSet(
-      String(description="Path to the memory device file.",
-             name="path",
-             friendly_name="Memory device path",
-             default=r"\\.\pmem"),
-      PathTypeEnum(default=rdfvalue.RDFPathSpec.Enum("MEMORY")))
-
-
-class GrepspecType(RDFValueType):
-  """A Type for handling Grep specifications."""
-
-  child_descriptor = TypeDescriptorSet(
-      PathspecType(name="target"),
-      String(
-          description="Search for this regular expression.",
-          name="regex",
-          friendly_name="Regular Expression",
-          default=""),
-      Bytes(
-          description="Search for this literal expression.",
-          name="literal",
-          friendly_name="Literal Match",
-          default=""),
-      Number(
-          description="Offset to start searching from.",
-          name="start_offset",
-          friendly_name="Start",
-          default=0),
-      Number(
-          description="Length to search.",
-          name="length",
-          friendly_name="Length",
-          default=10737418240),
-      ProtoEnum(
-          description="How many results should be returned?",
-          name="mode",
-          friendly_name="Search Mode",
-          proto=jobs_pb2.GrepRequest,
-          enum_name="Mode",
-          default=jobs_pb2.GrepRequest.FIRST_HIT),
-      Number(
-          description="Snippet returns these many bytes before the hit.",
-          name="bytes_before",
-          friendly_name="Preamble",
-          default=0),
-      Number(
-          description="Snippet returns these many bytes after the hit.",
-          name="bytes_after",
-          friendly_name="Context",
-          default=0),
-      )
-
-  def __init__(self, **kwargs):
-    defaults = dict(default=rdfvalue.GrepSpec(),
-                    name="grepspec",
-                    rdfclass=rdfvalue.GrepSpec)
-
-    defaults.update(kwargs)
-    super(GrepspecType, self).__init__(**defaults)
-
-  def Validate(self, value):
-    if value.target.pathtype < 0:
-      raise TypeValueError("GrepSpec has an invalid target PathSpec.")
-
-    return super(GrepspecType, self).Validate(value)
-
-
-class FindSpecType(RDFValueType):
-  """A Find spec type."""
-
-  child_descriptor = TypeDescriptorSet(
-      PathspecType(),
-      String(
-          description="Search for this regular expression.",
-          name="path_regex",
-          friendly_name="Path Regular Expression",
-          default=""),
-      String(
-          description="Search for this regular expression in the data.",
-          name="data_regex",
-          friendly_name="Data Regular Expression",
-          default=""),
-      Bool(
-          description="Should we cross devices?",
-          name="cross_devs",
-          friendly_name="Cross Devices",
-          default=False),
-      Number(
-          description="Maximum recursion depth.",
-          name="max_depth",
-          friendly_name="Depth",
-          default=5),
-      )
-
-  def __init__(self, **kwargs):
-    defaults = dict(name="findspec",
-                    rdfclass=rdfvalue.RDFFindSpec)
-
-    defaults.update(kwargs)
-    super(FindSpecType, self).__init__(**defaults)
-
-  def Validate(self, value):
-    """Validates the passed in protobuf for sanity."""
-    value = super(FindSpecType, self).Validate(value)
-
-    # Check the regexes are valid.
-    try:
-      if value.data_regex:
-        re.compile(value.data_regex)
-
-      if value.path_regex:
-        re.compile(value.path_regex)
-    except re.error, e:
-      raise TypeValueError("Invalid regex for FindFiles. Err: {0}".format(e))
-
-    return value
 
 
 class InstallDriverRequestType(RDFValueType):
@@ -628,110 +482,27 @@ class InstallDriverRequestType(RDFValueType):
     return self.default.Copy()
 
 
-class GenericProtoDictType(RDFValueType):
+class FilterString(String):
+  """An argument that is a valid filter string parsed by query_parser_cls.
+
+  The class member query_parser_cls should be overriden by derived classes.
+  """
+
+  renderer = "StringFormRenderer"
+
+  # A subclass of lexer.Searchparser able to parse textual queries.a
+  query_parser_cls = lexer.SearchParser
 
   def __init__(self, **kwargs):
-    defaults = dict(default=rdfvalue.RDFProtoDict(),
-                    rdfclass=rdfvalue.RDFProtoDict)
+    if not self.query_parser_cls:
+      raise Error("Undefined query parsing class for type %s."
+                  % self.__class__.__name__)
+    super(FilterString, self).__init__(**kwargs)
 
-    defaults.update(kwargs)
-    super(GenericProtoDictType, self).__init__(**defaults)
-
-
-class VolatilityRequestType(RDFValueType):
-  """A type for the Volatility request."""
-
-  child_descriptor = TypeDescriptorSet(
-      String(
-          description="Profile to use.",
-          name="profile",
-          friendly_name="Volatility profile",
-          default=""),
-      GenericProtoDictType(
-          description="Volatility Arguments.",
-          name="args"),
-      MemoryPathspecType(
-          description="Path to the device.",
-          default=rdfvalue.RDFPathSpec(
-              path=r"\\.\pmem",
-              pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY")),
-          name="device",
-          )
-      )
-
-  def __init__(self, **kwargs):
-    default_request = rdfvalue.VolatilityRequest()
-    default_request.device.path = r"\\.\pmem"
-    default_request.device.pathtype = rdfvalue.RDFPathSpec.Enum("MEMORY")
-
-    defaults = dict(name="request",
-                    default=default_request,
-                    rdfclass=rdfvalue.VolatilityRequest)
-
-    defaults.update(kwargs)
-    super(VolatilityRequestType, self).__init__(**defaults)
-
-
-class ForemanAttributeRegexType(RDFValueType):
-  """A Type for handling the ForemanAttributeRegex."""
-
-  child_descriptor = TypeDescriptorSet(
-      String(
-          name="path",
-          description=("A relative path under the client for which "
-                       "the attribute applies"),
-          default="/"),
-
-      String(
-          name="attribute_name",
-          description="The attribute to match",
-          default="System"),
-
-      RegularExpression(
-          name="attribute_regex",
-          description="Regular expression to apply to an attribute",
-          default=".*"),
-      )
-
-  def __init__(self, **kwargs):
-    defaults = dict(name="foreman_attributes",
-                    rdfclass=rdfvalue.ForemanAttributeRegex)
-
-    defaults.update(kwargs)
-    super(ForemanAttributeRegexType, self).__init__(**defaults)
-
-
-class ForemanAttributeIntegerType(RDFValueType):
-  """A type for handling the ForemanAttributeInteger."""
-
-  child_descriptor = TypeDescriptorSet(
-      String(
-          name="path",
-          description=("A relative path under the client for which "
-                       "the attribute applies"),
-          default="/"),
-
-      String(
-          name="attribute_name",
-          description="The attribute to match.",
-          default="Version"),
-
-      ProtoEnum(
-          name="operator",
-          description="Comparison operator to apply to integer value",
-          proto=jobs_pb2.ForemanAttributeInteger,
-          enum_name="Operator",
-          default=rdfvalue.ForemanAttributeInteger.Enum("EQUAL")),
-
-      Number(
-          name="value",
-          description="Value to compare to",
-          default=0),
-      )
-
-  def __init__(self, **kwargs):
-    defaults = dict(name="foreman_attributes",
-                    rdfclass=rdfvalue.ForemanAttributeInteger)
-
-    defaults.update(kwargs)
-    super(ForemanAttributeIntegerType, self).__init__(**defaults)
+  def Validate(self, value):
+    query = str(value)
+    try:
+      self.query_parser_cls(query).Parse()
+    except (lexer.ParseError, objectfilter.ParseError), e:
+      raise TypeValueError("Malformed filter %s: %s" % (self.name, e))
+    return query

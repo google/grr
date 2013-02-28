@@ -9,7 +9,7 @@ modules that have been customized for your deployment.
 """
 
 # pylint: disable=W0611
+
 from grr.gui import plugins
 from grr.gui import renderers
 from grr.gui import views
-

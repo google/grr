@@ -16,6 +16,7 @@
 
 
 from grr.lib import rdfvalue
+from grr.lib import type_info
 from grr.proto import jobs_pb2
 
 
@@ -67,3 +68,37 @@ class VolatilityResult(rdfvalue.RDFProto):
   _proto = jobs_pb2.VolatilityResponse
 
   rdf_map = dict(sections=VolatilitySection)
+
+
+class VolatilityRequestType(type_info.RDFValueType):
+  """A type for the Volatility request."""
+
+  child_descriptor = type_info.TypeDescriptorSet(
+      type_info.String(
+          description="Profile to use.",
+          name="profile",
+          friendly_name="Volatility profile",
+          default=""),
+      type_info.GenericProtoDictType(
+          description="Volatility Arguments.",
+          name="args"),
+      type_info.MemoryPathspecType(
+          description="Path to the device.",
+          default=rdfvalue.RDFPathSpec(
+              path=r"\\.\pmem",
+              pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY")),
+          name="device",
+          )
+      )
+
+  def __init__(self, **kwargs):
+    default_request = rdfvalue.VolatilityRequest()
+    default_request.device.path = r"\\.\pmem"
+    default_request.device.pathtype = rdfvalue.RDFPathSpec.Enum("MEMORY")
+
+    defaults = dict(name="request",
+                    default=default_request,
+                    rdfclass=rdfvalue.VolatilityRequest)
+
+    defaults.update(kwargs)
+    super(VolatilityRequestType, self).__init__(**defaults)

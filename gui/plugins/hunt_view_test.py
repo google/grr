@@ -79,6 +79,24 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     return hunt
 
+  def CreateGenericHuntWithCollection(self):
+    self.client_ids = self.hunts.SetupClients(10)
+
+    hunt = hunts.GenericHunt(collect_replies=True, token=self.token)
+    regex_rule = rdfvalue.ForemanAttributeRegex(
+        attribute_name="GRR client",
+        attribute_regex="GRR")
+    hunt.AddRule([regex_rule])
+
+    hunt.collection.Add(rdfvalue.RDFURN("aff4:/sample/1"))
+    hunt.collection.Add(rdfvalue.RDFURN(
+        "aff4:/C.0000000000000001/fs/os/c/bin/bash"))
+    hunt.collection.Add(rdfvalue.RDFURN("aff4:/sample/3"))
+
+    hunt.WriteToDataStore()
+
+    return hunt
+
   def SetupTestHuntView(self):
     # Create some clients and a hunt to view.
     hunt = self.CreateSampleHunt()
@@ -103,7 +121,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # Open up and click on View Hunts.
     sel = self.selenium
     sel.open("/")
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    self.WaitUntil(sel.is_element_present, "client_query")
     self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
     sel.click("css=a[grrtarget=ManageHunts]")
     self.WaitUntil(sel.is_text_present, "SampleHunt")
@@ -112,7 +130,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     sel.click("css=td:contains('SampleHunt')")
 
     # Check we can now see the details.
-    self.WaitUntil(sel.is_element_present, "css=table[class=proto_table]")
+    self.WaitUntil(sel.is_element_present, "css=dl.dl-hunt")
     self.WaitUntil(sel.is_text_present, "Client Count")
     self.WaitUntil(sel.is_text_present, "Hunt URN")
 
@@ -136,7 +154,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     sel = self.selenium
 
     sel.open("/")
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    self.WaitUntil(sel.is_element_present, "client_query")
     self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
     sel.click("css=a[grrtarget=ManageHunts]")
     self.WaitUntil(sel.is_text_present, "SampleHunt")
@@ -145,7 +163,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     sel.click("css=td:contains('SampleHunt')")
 
      # Check we can now see the details.
-    self.WaitUntil(sel.is_element_present, "css=table[class=proto_table]")
+    self.WaitUntil(sel.is_element_present, "css=dl.dl-hunt")
     self.WaitUntil(sel.is_text_present, "Client Count")
     self.WaitUntil(sel.is_text_present, "Hunt URN")
 
@@ -156,7 +174,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     sel = self.selenium
 
     sel.open("/")
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    self.WaitUntil(sel.is_element_present, "client_query")
     self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
     sel.click("css=a[grrtarget=ManageHunts]")
     self.WaitUntil(sel.is_text_present, "SampleHunt")
@@ -165,7 +183,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     sel.click("css=td:contains('SampleHunt')")
 
      # Check we can now see the details.
-    self.WaitUntil(sel.is_element_present, "css=table[class=proto_table]")
+    self.WaitUntil(sel.is_element_present, "css=dl.dl-hunt")
     self.WaitUntil(sel.is_text_present, "Client Count")
     self.WaitUntil(sel.is_text_present, "Hunt URN")
 
@@ -188,7 +206,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # Open up and click on View Hunts then the first Hunt.
     sel = self.selenium
     sel.open("/")
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    self.WaitUntil(sel.is_element_present, "client_query")
     sel.click("css=a[grrtarget=ManageHunts]")
 
     self.WaitUntil(sel.is_text_present, "SampleHunt")
@@ -227,3 +245,67 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.WaitUntil(sel.is_text_present, "CLIENT_INFO")
     self.WaitUntil(sel.is_text_present, "VFSGRRClient")
+
+  def testHuntResultsView(self):
+    self.CreateGenericHuntWithCollection()
+
+    sel = self.selenium
+    sel.open("/")
+    self.WaitUntil(sel.is_element_present, "client_query")
+    sel.click("css=a[grrtarget=ManageHunts]")
+
+    self.WaitUntil(sel.is_text_present, "GenericHunt")
+    sel.click("css=td:contains('GenericHunt')")
+
+    self.WaitUntil(sel.is_element_present,
+                   "css=a[renderer=HuntResultsRenderer]")
+    # Click the Results tab.
+    sel.click("css=a[renderer=HuntResultsRenderer]")
+    self.WaitUntil(sel.is_element_present, "css=div[id^=HuntResultsRenderer_]")
+
+    self.assertTrue(sel.is_text_present("aff4:/sample/1"))
+    self.assertTrue(sel.is_text_present(
+        "aff4:/C.0000000000000001/fs/os/c/bin/bash"))
+    self.assertTrue(sel.is_text_present("aff4:/sample/3"))
+
+    sel.click("link=aff4:/C.0000000000000001/fs/os/c/bin/bash")
+    self.WaitUntil(sel.is_element_present,
+                   "css=li.active a:contains('Browse Virtual Filesystem'")
+
+  def testHuntStatsView(self):
+    self.SetupTestHuntView()
+
+    sel = self.selenium
+    sel.open("/")
+    self.WaitUntil(sel.is_element_present, "client_query")
+    sel.click("css=a[grrtarget=ManageHunts]")
+
+    self.WaitUntil(sel.is_text_present, "SampleHunt")
+    sel.click("css=td:contains('SampleHunt')")
+
+    self.WaitUntil(sel.is_element_present,
+                   "css=a[renderer=HuntStatsRenderer]")
+    # Click the Stats tab.
+    sel.click("css=a[renderer=HuntStatsRenderer]")
+    self.WaitUntil(sel.is_element_present, "css=div[id^=HuntStatsRenderer_]")
+
+    self.assertTrue(sel.is_text_present("Total number of clients"))
+    self.assertTrue(sel.is_text_present("10"))
+
+    self.assertTrue(sel.is_text_present("User CPU mean"))
+    self.assertTrue(sel.is_text_present("5.5"))
+
+    self.assertTrue(sel.is_text_present("User CPU stdev"))
+    self.assertTrue(sel.is_text_present("2.9"))
+
+    self.assertTrue(sel.is_text_present("System CPU mean"))
+    self.assertTrue(sel.is_text_present("11"))
+
+    self.assertTrue(sel.is_text_present("User CPU stdev"))
+    self.assertTrue(sel.is_text_present("5.7"))
+
+    self.assertTrue(sel.is_text_present("Network bytes sent mean"))
+    self.assertTrue(sel.is_text_present("16.5"))
+
+    self.assertTrue(sel.is_text_present("Network bytes sent stdev"))
+    self.assertTrue(sel.is_text_present("8.6"))

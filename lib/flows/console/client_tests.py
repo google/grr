@@ -64,13 +64,14 @@ class ClientTestBase(unittest.TestCase):
                                         cpu_limit=self.cpu_limit, **kwargs)
     while 1:
       time.sleep(1)
-      flow_pb = flow.FACTORY.FetchFlow(session_id, lock=False, token=self.token)
-      if flow_pb is None:
+      rdf_flow = flow.FACTORY.FetchFlow(session_id, lock=False,
+                                        token=self.token)
+      if rdf_flow is None:
         continue
-      if flow_pb.state != rdfvalue.Flow.Enum("RUNNING"):
+      if rdf_flow.state != rdfvalue.Flow.Enum("RUNNING"):
         break
 
-    return flow.FACTORY.LoadFlow(flow_pb)
+    return flow.FACTORY.LoadFlow(rdf_flow)
 
   def CheckFlow(self):
     pass
@@ -362,7 +363,8 @@ class TestCPULimit(ClientTestBase):
   cpu_limit = 7
 
   def CheckFlow(self):
-    self.assertTrue("CPU quota exceeded." in self.session_id.flow_pb.backtrace)
+    self.assertTrue("CPU quota exceeded." in
+                    str(self.session_id.rdf_flow.backtrace))
 
 
 class CPULimitTestFlow(flow.GRRFlow):

@@ -17,11 +17,12 @@
 
 # pylint: disable=W0611
 # These imports populate the GRRHunt registry
+from grr.lib import aff4
 from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
 
 
 # Add shortcuts to hunts into this module.
 for name, cls in implementation.GRRHunt.classes.items():
-  if issubclass(cls, implementation.GRRHunt):
+  if aff4.issubclass(cls, implementation.GRRHunt):
     globals()[name] = cls

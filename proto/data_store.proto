@@ -87,6 +87,7 @@ message DataStoreQuery {
 message ResultSet {
   optional string subject = 1;
   repeated Value values = 2;
+  optional bytes serialized_result = 3;
 }
 
 // Although we can relay exceptions they mess up the logs so we

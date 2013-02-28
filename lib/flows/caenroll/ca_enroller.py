@@ -1,17 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """A flow to enrol new clients."""
 
 
@@ -26,13 +13,18 @@ from M2Crypto import X509
 
 import logging
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import flow
-from grr.lib import key_utils
 from grr.lib import rdfvalue
 from grr.lib import scheduler
 from grr.lib import type_info
 from grr.lib import utils
 
+
+config_lib.DEFINE_option(type_info.PEMPrivateKey(
+    name="PrivateKeys.ca_key",
+    description="CA private key. Used to sign for client enrollment.",
+    ))
 
 # Store the CA key as a global for reuse.
 CA_KEY = None
@@ -124,12 +116,12 @@ class CAEnroler(flow.GRRFlow):
     cert.set_not_after(now_plus_year)
 
     # Get the CA issuer:
-    ca_data = key_utils.GetCert("CA_Private_Key")
+    ca_data = config_lib.CONFIG["CA.certificate"]
     ca_cert = X509.load_cert_string(ca_data)
     cert.set_issuer(ca_cert.get_issuer())
     cert.set_pubkey(req.get_pubkey())
 
-    ca_key = RSA.load_key_string(ca_data)
+    ca_key = RSA.load_key_string(config_lib.CONFIG["PrivateKeys.ca_key"])
     key_pair = EVP.PKey(md="sha256")
     key_pair.assign_rsa(ca_key)
 

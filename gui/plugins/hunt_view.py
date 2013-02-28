@@ -18,6 +18,8 @@
 """This is the interface for managing hunts."""
 
 
+import collections as py_collections
+import json
 import operator
 import StringIO
 import sys
@@ -50,7 +52,7 @@ collections.GRRRDFValueCollection = collections.RDFValueCollection
 
 class ManageHunts(renderers.Splitter2Way):
   """Manages Hunts GUI Screen."""
-  description = "Hunt Viewer"
+  description = "Hunt Manager"
   behaviours = frozenset(["General"])
   top_renderer = "HuntTable"
   bottom_renderer = "HuntViewTabs"
@@ -65,7 +67,9 @@ class HuntStateIcon(renderers.RDFValueRenderer):
   """
 
   layout_template = renderers.Template("""
+<div class="centered">
 <img class='grr-icon grr-flow-icon' src='/static/images/{{icon|escape}}' />
+</div>
 """)
 
   # Maps the flow states to icons we can show
@@ -85,37 +89,39 @@ class HuntTable(fileview.AbstractFileTable):
   selection_publish_queue = "hunt_select"
 
   layout_template = """
-<div id="toolbar_{{unique|escape}}" class="toolbar">
+<div id="launch_hunt_dialog_{{unique|escape}}"
+  class="modal wide-modal high-modal hide fade" update_on_show="true"
+  tabindex="-1" role="dialog" aria-hidden="true">
+</div>
+
+<ul class="breadcrumb">
+  <li>
   <button id='launch_hunt_{{unique|escape}}' title='Launch Hunt'
-    name="LaunchHunt">
+    class="btn" name="LaunchHunt" data-toggle="modal"
+    data-target="#launch_hunt_dialog_{{unique|escape}}">
     <img src='/static/images/new.png' class='toolbar_icon'>
   </button>
   <div class="new_hunt_dialog" id="new_hunt_dialog_{{unique|escape}}" />
-</div>
+  </li>
+</ul>
 """ + fileview.AbstractFileTable.layout_template + """
 <script>
-  $(".new_hunt_dialog[id!='new_hunt_dialog_{{unique|escape}}'").remove();
-
-  grr.dialog("LaunchHunts", "new_hunt_dialog_{{unique|escape}}",
-    "launch_hunt_{{unique|escape}}",
-    { modal: true,
-      width: Math.min(parseInt($('body').css('width')) * 0.9, 1000),
-      height: Math.min(parseInt($('body').css('height')) * 0.9, 700),
-      title: "Launch New Hunt",
-      open: function() {
-        grr.layout("LaunchHunts", "new_hunt_dialog_{{unique|escape}}");
-      },
-      close: function() {
-        $("#new_hunt_dialog_{{unique|escape}}").remove();
-      }
+  $("#launch_hunt_dialog_{{unique|escapejs}}").on("shown", function () {
+     if ($(this).attr("update_on_show") == "true") {
+       grr.layout("LaunchHunts", "launch_hunt_dialog_{{unique|escapejs}}");
+     }
+     $(this).attr("update_on_show", "true");
     });
+
   grr.subscribe("WizardComplete", function(wizardStateName) {
-    $("#new_hunt_dialog_{{unique|escape}}").dialog("close");
-  }, "new_hunt_dialog_{{unique|escape}}");
+    $("#launch_hunt_dialog_{{unique|escape}}").modal("hide");
+  }, "launch_hunt_dialog_{{unique|escape}}");
 
   // If hunt_id in hash, click that row.
   if (grr.hash.hunt_id) {
-    $("#{{this.id}}").find("td:contains('" + grr.hash.hunt_id + "')").click();
+    $("#{{this.id}}").find("td:contains('" +
+      grr.hash.hunt_id.split("/").reverse()[0] +
+      "')").click();
   };
 </script>
 """
@@ -125,17 +131,17 @@ class HuntTable(fileview.AbstractFileTable):
   def __init__(self, **kwargs):
     super(HuntTable, self).__init__(**kwargs)
     self.AddColumn(renderers.RDFValueColumn(
-        "Status", renderer=HuntStateIcon, width=0))
+        "Status", renderer=HuntStateIcon, width="40px"))
 
     # The hunt id is the AFF4 URN for the hunt object.
     self.AddColumn(renderers.RDFValueColumn(
-        "Hunt ID", renderer=renderers.SubjectRenderer, width=10))
-    self.AddColumn(renderers.RDFValueColumn("Name", width=10))
-    self.AddColumn(renderers.RDFValueColumn("Start Time", width=10))
-    self.AddColumn(renderers.RDFValueColumn("Expires", width=10))
-    self.AddColumn(renderers.RDFValueColumn("Client Limit", width=5))
-    self.AddColumn(renderers.RDFValueColumn("Creator", width=10))
-    self.AddColumn(renderers.RDFValueColumn("Description", width=60))
+        "Hunt ID", renderer=renderers.SubjectRenderer))
+    self.AddColumn(renderers.RDFValueColumn("Name"))
+    self.AddColumn(renderers.RDFValueColumn("Start Time", width="16em"))
+    self.AddColumn(renderers.RDFValueColumn("Expires", width="16em"))
+    self.AddColumn(renderers.RDFValueColumn("Client Limit"))
+    self.AddColumn(renderers.RDFValueColumn("Creator"))
+    self.AddColumn(renderers.RDFValueColumn("Description", width="100%"))
 
   def BuildTable(self, start_row, end_row, request):
     fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=request.token)
@@ -165,7 +171,7 @@ class HuntTable(fileview.AbstractFileTable):
         if aff4_hunt.Get(aff4_hunt.Schema.STATE) == aff4_hunt.STATE_STOPPED:
           hunt_state = aff4_hunt.STATE_STOPPED
         else:
-          hunt_state = aff4_hunt.flow_pb.state
+          hunt_state = aff4_hunt.rdf_flow.state
 
         self.AddRow({"Hunt ID": aff4_hunt.urn,
                      "Name": hunt_obj.__class__.__name__,
@@ -202,11 +208,12 @@ class HuntViewTabs(renderers.TabLayout):
 
   """
 
-  names = ["Overview", "Log", "Errors", "Rules", "Graph"]
+  names = ["Overview", "Log", "Errors", "Rules", "Graph", "Results", "Stats"]
   # TODO(user): Add Renderer for Hunt Resource Usage (CPU/IO etc).
   delegated_renderers = ["HuntOverviewRenderer", "HuntLogRenderer",
                          "HuntErrorRenderer", "HuntRuleRenderer",
-                         "HuntClientGraphRenderer"]
+                         "HuntClientGraphRenderer", "HuntResultsRenderer",
+                         "HuntStatsRenderer"]
 
   layout_template = renderers.TabLayout.layout_template + """
 <script>
@@ -284,19 +291,21 @@ back to hunt view</a>
   def __init__(self, **kwargs):
     super(HuntClientTableRenderer, self).__init__(**kwargs)
     self.AddColumn(renderers.RDFValueColumn(
-        "Client ID", width=10, renderer=renderers.SubjectRenderer))
-    self.AddColumn(renderers.RDFValueColumn("Hostname", width=10))
-    self.AddColumn(renderers.RDFValueColumn("Status", width=10))
-    self.AddColumn(renderers.RDFValueColumn("User CPU seconds", width=10,
+        "Client ID", width="20%", renderer=renderers.SubjectRenderer))
+    self.AddColumn(renderers.RDFValueColumn("Hostname", width="10%"))
+    self.AddColumn(renderers.RDFValueColumn("Status", width="10%"))
+    self.AddColumn(renderers.RDFValueColumn("User CPU seconds", width="10%",
                                             renderer=FloatRenderer))
-    self.AddColumn(renderers.RDFValueColumn("System CPU seconds", width=10,
+    self.AddColumn(renderers.RDFValueColumn("System CPU seconds", width="10%",
                                             renderer=FloatRenderer))
     self.AddColumn(renderers.RDFValueColumn("CPU",
-                                            renderer=ResourceRenderer))
-    self.AddColumn(renderers.RDFValueColumn("Network bytes sent", width=10))
+                                            renderer=ResourceRenderer,
+                                            width="10%"))
+    self.AddColumn(renderers.RDFValueColumn("Network bytes sent", width="10%"))
     self.AddColumn(renderers.RDFValueColumn("Network",
-                                            renderer=ResourceRenderer))
-    self.AddColumn(renderers.RDFValueColumn("Last Checkin", width=10))
+                                            renderer=ResourceRenderer,
+                                            width="10%"))
+    self.AddColumn(renderers.RDFValueColumn("Last Checkin", width="10%"))
 
   def Layout(self, request, response):
     """Ensure our hunt is in our state for HTML layout."""
@@ -402,50 +411,39 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
 
 <a id="ViewHuntDetails_{{unique}}" href='#{{this.hash|escape}}'
     onclick='grr.loadFromHash("{{this.hash|escape}}");'
-    class="grr-button grr-button-red">
+    class="btn btn-info">
   View hunt details
 </a>
 {% if this.allow_run %}
 <br/><br/>
 <div id="RunHunt_{{unique|escape}}">
 <a id="RunHuntButton_{{unique|escape}}" name="RunHunt"
-    href='#{{this.hash|escape}}' class="grr-button grr-button-red">
+    href='#{{this.hash|escape}}' class="btn btn-danger">
   Run Hunt
 </a>
 </div>
 {% endif %}
-<br/><br/>
-<table class="proto_table">
+<br/>
+<dl class="dl-horizontal dl-hunt">
 {% for key, val in this.data.items %}
-  <tr><td class="proto_key">{{ key|escape }}</td><td>{{ val|escape }}</td>
+  <dt>{{ key|escape }}</dt><dd>{{ val|escape }}</dd>
 {% endfor %}
 
-  <tr><td class="proto_key">Name</td>
-      <td>{{ this.hunt_name|escape }}</td>
-  <tr><td class="proto_key">Hunt ID</td>
-      <td>{{ this.hunt.urn.Basename|escape }}</td>
-  <tr><td class="proto_key">Hunt URN</td>
-      <td>{{ this.hunt.urn|escape }}</td>
-  <tr><td class="proto_key">Creator</td>
-      <td>{{ this.hunt_creator|escape }}</td>
-  <tr><td class="proto_key">Client Limit</td>
-      <td>{{ this.client_limit|escape }}</td>
-  <tr><td class="proto_key">Client Count</td>
-      <td>{{ this.hunt.NumClients|escape }}</td>
-  <tr><td class="proto_key">Outstanding</td>
-      <td>{{ this.hunt.NumOutstanding|escape }}</td>
-  <tr><td class="proto_key">Completed</td>
-      <td>{{ this.hunt.NumCompleted|escape }}</td>
-  <tr><td class="proto_key">Findings</td>
-      <td>{{ this.hunt.NumResults|escape }}</td>
-  <tr><td class="proto_key">Total CPU seconds used</td>
-      <td>{{ this.cpu_sum|escape }}</td>
-  <tr><td class="proto_key">Total network traffic</td>
-      <td>{{ this.net_sum|filesizeformat }}</td>
-  <tr><td class="proto_key">Arguments</td>
-      <td><pre>{{ this.args_str|safe }}</pre></td>
+  <dt>Name</dt><dd>{{ this.hunt_name|escape }}</dd>
+  <dt>Hunt ID</dt><dd>{{ this.hunt.urn.Basename|escape }}</dd>
+  <dt>Hunt URN</dt><dd>{{ this.hunt.urn|escape }}</dd>
+  <dt>Hunt Results URN</dt><dd>{{ this.hunt.urn|escape }}/Results</dd>
+  <dt>Creator</dt><dd>{{ this.hunt_creator|escape }}</dd>
+  <dt>Client Limit</dt><dd>{{ this.client_limit|escape }}</dd>
+  <dt>Client Count</dt><dd>{{ this.hunt.NumClients|escape }}</dd>
+  <dt>Outstanding</dt><dd>{{ this.hunt.NumOutstanding|escape }}</dd>
+  <dt>Completed</dt><dd>{{ this.hunt.NumCompleted|escape }}</dd>
+  <dt>Findings</dt><dd>{{ this.hunt.NumResults|escape }}</dd>
+  <dt>Total CPU seconds used</dt><dd>{{ this.cpu_sum|escape }}</dd>
+  <dt>Total network traffic</dt><dd>{{ this.net_sum|filesizeformat }}</dd>
+  <dt>Arguments</dt><dd>{{ this.args_str|safe }}</dd>
 
-</table>
+</dl>
 
 <script>
 (function() {
@@ -516,15 +514,19 @@ $("#RunHuntButton_{{unique|escapejs}}").click(function() {
         self.hunt_creator = self.hunt.Get(self.hunt.Schema.CREATOR)
         self.flow = self.hunt.GetFlowObj()
         if self.flow:
-          fpb = self.flow.flow_pb
+          rdf_flow = self.flow.rdf_flow
 
-          enum_types = fpb.DESCRIPTOR.enum_types_by_name["FlowState"]
-          self.data = {
-              "Start Time": rdfvalue.RDFDatetime(self.flow.start_time * 1e6),
-              "Status": enum_types.values[fpb.state].name}
+          enum_types = rdf_flow.DESCRIPTOR.enum_types_by_name["FlowState"]
+          self.data = py_collections.OrderedDict()
+          self.data["Start Time"] = rdfvalue.RDFDatetime(
+              self.flow.start_time * 1e6)
+          self.data["Expiry Time"] = rdfvalue.RDFDatetime(
+              (self.flow.start_time + self.flow.expiry_time) * 1e6)
+          self.data["Status"] = enum_types.values[rdf_flow.state].name
 
           self.client_limit = self.flow.client_limit
-          self.args_str = renderers.RDFProtoDictRenderer(fpb.args).RawHTML()
+          self.args_str = renderers.RDFProtoDictRenderer(
+              rdf_flow.args).RawHTML()
 
         # The hunt is allowed to run if it's stopped. Also, if allow_run
         # is set by the subclass, we don't override it
@@ -649,7 +651,7 @@ class HuntClientOverviewRenderer(renderers.TemplateRenderer):
     """Display the overview."""
     hunt_id = request.REQ.get("hunt_id")
     hunt_client = request.REQ.get("hunt_client")
-    if hunt_id is not None:
+    if hunt_id is not None and hunt_client is not None:
       try:
         self.client = aff4.FACTORY.Open(hunt_client, token=request.token,
                                         required_type="VFSGRRClient")
@@ -800,3 +802,192 @@ class HuntHostInformationRenderer(fileview.AFF4Stats):
         request, response, client_id=client_id,
         aff4_path=rdfvalue.RDFURN(client_id),
         age=aff4.ALL_TIMES)
+
+
+class HuntResultsRenderer(renderers.RDFValueCollectionRenderer):
+  """Displays a collection of hunt's results."""
+
+  error_template = renderers.Template("""
+<p>This hunt didn't store any results.</p>
+""")
+
+  def Layout(self, request, response):
+    hunt_id = request.REQ.get("hunt_id")
+    hunt = aff4.FACTORY.Open(hunt_id, age=aff4.ALL_TIMES, token=request.token)
+    hunt_obj = hunt.GetFlowObj()
+
+    if hasattr(hunt_obj, "collection"):
+      return super(HuntResultsRenderer, self).Layout(
+          request, response, aff4_path=hunt_obj.collection.urn)
+    else:
+      return self.RenderFromTemplate(self.error_template, response)
+
+
+class HuntStatsRenderer(renderers.TemplateRenderer):
+  """Display hunt's resources usage stats."""
+
+  layout_template = renderers.Template("""
+<h3>Total number of clients: {{this.stats.user_cpu_stats.num|escape}}</h3>
+
+<h3>User CPU</h3>
+<dl class="dl-horizontal">
+  <dt>User CPU mean</dt>
+  <dd>{{this.stats.user_cpu_stats.mean|floatformat}}</dd>
+
+  <dt>User CPU stdev</dt>
+  <dd>{{this.stats.user_cpu_stats.std|floatformat}}</dd>
+
+  <dt>Clients Histogram</dt>
+  <dd class="histogram">
+    <div id="user_cpu_{{unique|escape}}"></div>
+  </dd>
+</dl>
+
+<h3>System CPU</h3>
+<dl class="dl-horizontal">
+  <dt>System CPU mean</dt>
+  <dd>{{this.stats.system_cpu_stats.mean|floatformat}}</dd>
+
+  <dt>System CPU stdev</dt>
+  <dd>{{this.stats.system_cpu_stats.std|floatformat}}</dd>
+
+  <dt>Clients Hisogram</dt>
+  <dd class="histogram">
+    <div id="system_cpu_{{unique|escape}}"></div>
+  </dd>
+</dl>
+
+<h3>Network bytes sent</h3>
+<dl class="dl-horizontal">
+  <dt>Network bytes sent mean</dt>
+  <dd>{{this.stats.network_bytes_sent_stats.mean|floatformat}}</dd>
+
+  <dt>Network bytes sent stdev</dt>
+  <dd>{{this.stats.network_bytes_sent_stats.std|floatformat}}</dd>
+
+  <dt>Clients Hisogram</dt>
+  <dd class="histogram">
+    <div id="network_bytes_sent_{{unique|escape}}"></div>
+  </dd>
+</dl>
+
+<h3>Worst performers</h3>
+<div class="row">
+<div class="span8">
+<table id="performers_{{unique|escape}}"
+  class="table table-condensed table-striped table-bordered">
+  <thead>
+    <th>Client Id</th>
+    <th>User CPU</th>
+    <th>System CPU</th>
+    <th>Network bytes sent</th>
+  </thead>
+  <tbody>
+  {% for r in this.stats.worst_performers %}
+    <tr>
+      <td><a client_id="{{r.client_id|escape}}">{{r.client_id|escape}}</a></td>
+      <td>{{r.cpu_usage.user_cpu_time|floatformat}}</td>
+      <td>{{r.cpu_usage.system_cpu_time|floatformat}}</td>
+      <td>{{r.network_bytes_sent|escape}}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+
+<script>
+(function() {
+  $("#performers_{{unique|escapejs}} a[client_id!='']").click(function () {
+    client_id = $(this).attr("client_id");
+    grr.state.client_id = client_id;
+    grr.publish("hash_state", "c", client_id);
+
+    // Clear the authorization for new clients.
+    grr.publish("hash_state", "reason", "");
+    grr.state.reason = "";
+
+    grr.publish("hash_state", "main", null);
+    grr.publish("client_selection", client_id);
+  });
+
+  function formatTimeTick(tick) {
+    if (Math.abs(Math.floor(tick) - tick) > 1e-7) {
+      return tick.toFixed(1);
+    } else {
+      return Math.floor(tick);
+    }
+  }
+
+  function formatBytesTick(tick) {
+    if (tick < 1024) {
+      return tick + "B";
+    } else {
+      return Math.round(tick / 1024) + "K";
+    }
+  }
+
+  function plotStats(statName, jsonString, formatTickFn) {
+    var srcData = $.parseJSON(jsonString);
+    var data = [];
+    var ticks = [];
+    for (var i = 0; i < srcData.length; ++i) {
+      data.push([i, srcData[i][1]]);
+      ticks.push([i + 0.5, formatTickFn(srcData[i][0])]);
+    }
+
+    $.plot("#" + statName + "_{{unique|escapejs}}", [data], {
+      series: {
+        bars: {
+          show: true,
+          lineWidth: 1
+        }
+      },
+      xaxis: {
+        tickLength: 0,
+        ticks: ticks,
+      },
+      yaxis: {
+        minTickSize: 1,
+        tickDecimals: 0,
+      }
+    });
+  }
+
+  plotStats("user_cpu",
+    "{{this.user_cpu_json_data|escapejs}}", formatTimeTick);
+  plotStats("system_cpu",
+    "{{this.system_cpu_json_data|escapejs}}", formatTimeTick);
+  plotStats("network_bytes_sent",
+    "{{this.network_bytes_sent_json_data|escapejs}}", formatBytesTick);
+})();
+</script>
+""")
+  error_template = renderers.Template(
+      "No information available for this Hunt.")
+
+  def _HistogramToJSON(self, histogram):
+    return json.dumps([(b.range_max_value, b.num) for b in histogram.bins])
+
+  def Layout(self, request, response):
+    """Layout the HuntStatsRenderer data."""
+    hunt_id = request.REQ.get("hunt_id")
+
+    if hunt_id:
+      try:
+        hunt = aff4.FACTORY.Open(hunt_id,
+                                 required_type="VFSHunt",
+                                 token=request.token, age=aff4.ALL_TIMES)
+        hunt_obj = hunt.GetFlowObj()
+        self.stats = hunt_obj.usage_stats
+
+        self.user_cpu_json_data = self._HistogramToJSON(
+            hunt_obj.usage_stats.user_cpu_stats.histogram)
+        self.system_cpu_json_data = self._HistogramToJSON(
+            hunt_obj.usage_stats.user_cpu_stats.histogram)
+        self.network_bytes_sent_json_data = self._HistogramToJSON(
+            hunt_obj.usage_stats.network_bytes_sent_stats.histogram)
+      except IOError:
+        self.layout_template = self.error_template
+
+    return super(HuntStatsRenderer, self).Layout(request, response)

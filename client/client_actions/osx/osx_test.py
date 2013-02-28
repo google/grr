@@ -24,22 +24,17 @@ import os
 import mox
 
 from grr.client import conf
-from grr.client import conf as flags
 
 # Populate the action registry
 # pylint: disable=W0611
 from grr.client import client_actions
+# pylint: enable=W0611
 from grr.client import client_utils_osx
-from grr.client import conf
 from grr.client import vfs
 from grr.client.client_actions.osx import osx
 from grr.lib import test_lib
-from grr.lib import utils
-from grr.proto import jobs_pb2
 
 from grr.test_data import osx_launchd as testdata
-
-FLAGS = flags.FLAGS
 
 
 class OsxClientTests(test_lib.EmptyActionTest):

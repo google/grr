@@ -19,20 +19,16 @@
 
 
 from grr.client import conf
-from grr.client import conf as flags
 
 from grr.lib import test_lib
 from grr.parsers import osx_launchd
 from grr.test_data import osx_launchd as testdata
 
 
-FLAGS = flags.FLAGS
-
-
 class OSXLaunchdJobDictTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-
+    super(OSXLaunchdJobDictTest, self).setUp()
     self.jobdict = testdata.JOBS
     self.parser = osx_launchd.OSXLaunchdJobDict(self.jobdict)
 

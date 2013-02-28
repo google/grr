@@ -16,8 +16,8 @@
 
 """Tests for Interrogate."""
 
-from grr.client import client_config
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -63,10 +63,10 @@ class InterrogatedClient(object):
 
   def GetClientInfo(self, _):
     return [rdfvalue.ClientInformation(
-        client_name=client_config.GRR_CLIENT_NAME,
-        client_version=client_config.GRR_CLIENT_VERSION,
-        revision=client_config.GRR_CLIENT_REVISION,
-        build_time=client_config.GRR_CLIENT_BUILDTIME)]
+        client_name=config_lib.CONFIG["Client.name"],
+        client_version=config_lib.CONFIG["Client.version_numeric"],
+        build_time=config_lib.CONFIG["Client.build_time"],
+        )]
 
   def GetConfig(self, _):
     return [rdfvalue.GRRConfig(
@@ -96,10 +96,10 @@ class TestInterrogate(test_lib.FlowTestsBaseclass):
     # Check the client info
     info = fd.Get(fd.Schema.CLIENT_INFO)
 
-    self.assertEqual(info.client_name, client_config.GRR_CLIENT_NAME)
-    self.assertEqual(info.client_version, client_config.GRR_CLIENT_VERSION)
-    self.assertEqual(info.revision, client_config.GRR_CLIENT_REVISION)
-    self.assertEqual(info.build_time, client_config.GRR_CLIENT_BUILDTIME)
+    self.assertEqual(info.client_name, config_lib.CONFIG["Client.name"])
+    self.assertEqual(info.client_version,
+                     config_lib.CONFIG["Client.version_numeric"])
+    self.assertEqual(info.build_time, config_lib.CONFIG["Client.build_time"])
 
     # Check the client config
     config_info = fd.Get(fd.Schema.GRR_CONFIG)

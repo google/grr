@@ -5,11 +5,13 @@
 import copy
 import csv
 import functools
+import itertools
 import json
 import os
 import re
 import StringIO
 import traceback
+import urllib
 
 
 from django import http
@@ -19,6 +21,7 @@ from M2Crypto import BN
 
 import logging
 
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import data_store
@@ -26,6 +29,8 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import type_info
 from grr.lib import utils
+
+from grr.lib.aff4_objects import aff4_grr
 
 # Global counter for ids
 COUNTER = 1
@@ -40,7 +45,7 @@ class VerifyRenderers(registry.InitHook):
     renderers = {}
 
     for candidate in RDFValueRenderer.classes.values():
-      if issubclass(candidate, RDFValueRenderer) and candidate.classname:
+      if aff4.issubclass(candidate, RDFValueRenderer) and candidate.classname:
         renderers.setdefault(candidate.classname, []).append(candidate)
 
     for r in renderers:
@@ -133,9 +138,11 @@ class RDFValueColumn(object):
 
     # Intantiate the renderer and return the HTML
     if renderer:
-      return renderer.RawHTML(request)
+      result = renderer.RawHTML(request)
     else:
-      return utils.SmartStr(value)
+      result = utils.SmartStr(value)
+
+    return result
 
 
 class AttributeColumn(RDFValueColumn):
@@ -150,6 +157,11 @@ class AttributeColumn(RDFValueColumn):
   def AddRowFromFd(self, index, fd):
     """Add a new value from the fd."""
     value = fd.Get(self.attribute)
+    try:
+      # Unpack flows that are stored inside tasks.
+      value = value.Payload()
+    except AttributeError:
+      pass
     if value is not None:
       self.rows[index] = value
 
@@ -179,8 +191,8 @@ class Renderer(object):
   # maximum, but will be used as a guide).
   max_execution_time = 60
 
-  def __init__(self, id=None):
-    self.state = {}
+  def __init__(self, id=None, state=None):
+    self.state = state or {}
     self.id = id
 
   def RenderAjax(self, request, response):
@@ -261,7 +273,7 @@ class Renderer(object):
       request: A request object.
 
     Raises:
-      data_store.UnauthorizedAccess if the user is not permitted.
+      access_control.UnauthorizedAccess if the user is not permitted.
     """
 
 
@@ -277,8 +289,8 @@ class UserLabelCheckMixin(object):
     if data_store.DB.security_manager.CheckUserLabels(
         request.token.username, cls.AUTHORIZED_LABELS):
       return
-    raise data_store.UnauthorizedAccess("User %s not allowed." %
-                                        request.token.username)
+    raise access_control.UnauthorizedAccess("User %s not allowed." %
+                                            request.token.username)
 
 
 class ErrorHandler(Renderer):
@@ -344,10 +356,10 @@ class TemplateRenderer(Renderer):
                                    this=self, id=self.id, unique=self.unique,
                                    renderer=self.__class__.__name__)
 
-  def RawHTML(self, request=None):
+  def RawHTML(self, request=None, **kwargs):
     """This returns raw HTML, after sanitization by Layout()."""
     result = http.HttpResponse(mimetype="text/html")
-    self.Layout(request, result)
+    self.Layout(request, result, **kwargs)
     return result.content
 
 
@@ -367,6 +379,9 @@ class TableRenderer(TemplateRenderer):
   this class in a plugin. Requests to the URL table/classname are then
   handled by this class.
   """
+
+  fixed_columns = False
+  custom_class = ""
 
   # We receive change path events from this queue
   event_queue = "tree_select"
@@ -448,9 +463,20 @@ class TableRenderer(TemplateRenderer):
   # The following should be safe: {{this.headers}} comes from the column's
   # LayoutHeader().
   layout_template = Template("""
-<div class="tableContainer" id="{{unique|escape}}">
-<table id="table_{{ id|escape }}" class="scrollTable">
-    <thead class="fixedHeader">
+<div id="{{unique|escape}}">
+<table id="table_{{ id|escape }}" class="table table-striped table-condensed
+  table-hover table-bordered full-width
+  {% if this.fixed_columns %} fixed-columns{% endif %} {{ this.custom_class }}">
+  <colgroup>
+  {% for column in this.columns %}
+    {% if column.width %}
+    <col style="width: {{column.width|escape}}" />
+    {% else %}
+    <col></col>
+    {% endif %}
+  {% endfor %}
+  </colgroup>
+    <thead>
 <tr> {{ this.headers|safe }} </tr>
     </thead>
     <tbody id="body_{{id|escape}}" class="scrollContent">
@@ -461,15 +487,6 @@ class TableRenderer(TemplateRenderer):
 <script>
   grr.table.newTable("{{renderer|escapejs}}", "table_{{id|escapejs}}",
     "{{unique|escapejs}}", {{this.state_json|safe}});
-
-  grr.subscribe("GeometryChange", function (id) {
-    if (id == "{{id|escapejs}}") {
-      grr.fixHeight($("#table_wrapper_{{unique|escapejs}}"));
-      $("#{{id|escapejs}}").find(".TableBody").each(function () {
-         grr.fixHeight($(this));
-      });
-    };
-  }, "{{unique|escapejs}}");
 
   grr.publish("grr_messages", "{{this.message|escapejs}}");
   $("#table_{{id|escapejs}}").attr({{this.state_json|safe}});
@@ -498,11 +515,7 @@ class TableRenderer(TemplateRenderer):
 <script>
   var table = $('#{{id}}');
 
-  grr.publish("GeometryChange", "main");
   grr.publish("grr_messages", "{{this.message|escapejs}}");
-
-  grr.table.colorTable(table);
-  grr.table.setHeaderWidths(table);
 </script>
 """)
 
@@ -527,8 +540,6 @@ class TableRenderer(TemplateRenderer):
     headers = StringIO.StringIO()
     for i in self.columns:
       opts = ""
-      if i.width is not None:
-        opts += "header_width='%s' " % i.width
 
       if i.sortable:
         opts += "sortable=1 "
@@ -542,7 +553,7 @@ class TableRenderer(TemplateRenderer):
 
     # Populate the table with the initial view.
     tmp = http.HttpResponse(mimetype="text/html")
-    delegate_renderer = self.__class__(id=self.id)
+    delegate_renderer = self.__class__(id=self.id, state=self.state.copy())
     self.table_contents = delegate_renderer.RenderAjax(request, tmp).content
 
     return super(TableRenderer, self).Layout(request, response)
@@ -734,27 +745,25 @@ class TabLayout(TemplateRenderer):
   # a post rendering function so we can resize the canvas. We implement our own
   # tabs here from scratch.
   layout_template = Template("""
-<div class="ui-tabs ui-widget ui-widget-content ui-corner-all">
-<ul id="{{unique|escape}}" class="ui-tabs-nav ui-helper-reset ui-helper-clearfix
-  ui-widget-header ui-corner-all">
- {% for child, name in this.indexes %}
-  <li class="ui-state-default ui-corner-top">
-   <a id="{{name|escape}}" renderer="{{ child|escape }}">
-   <span>{{ name|escape }}</span></a>
-  </li>
- {% endfor %}
-</ul>
-<div id="tab_contents_{{unique|escape}}" class="ui-tabs-panel
-   ui-widget-content ui-corner-bottom">
+<div class="fill-parent">
+  <ul id="{{unique|escape}}" class="nav nav-tabs">
+    {% for child, name in this.indexes %}
+    <li renderer="{{ child|escape }}">
+      <a id="{{name|escape}}" renderer="{{ child|escape }}">{{name|escape}}</a>
+    </li>
+    {% endfor %}
+  </ul>
+  <div id="tab_contents_{{unique|escape}}" class="tab-content"></div>
 </div>
-</div>
+
 <script>
   // Store the state of this widget.
   $("#{{unique|escapejs}}").data().state = {{this.state_json|safe}};
 
   // Add click handlers to switch tabs.
-  $("#{{unique|escapejs}} li a").click(function () {
-    if($(this).hasClass("ui-state-disabled")) return false;
+  $("#{{unique|escapejs}} li a").click(function (e) {
+    e.preventDefault();
+    if ($(this).hasClass("disabled")) return false;
 
     var renderer = this.attributes["renderer"].value;
 
@@ -769,46 +778,16 @@ class TabLayout(TemplateRenderer):
     content_area.html('<div id="' + renderer + '_{{unique|escapejs}}">')
     update_area = $("#" + renderer + "_{{unique|escapejs}}");
 
-    // Ensure that new div's dimensions are explicitly set to match content's
-    // dimensions. Otherwise we can get weird bugs if dimensions of the content
-    // areas of different tabs are different.
-    update_area.width(content_area.width());
-    update_area.height(content_area.height());
-
     // We append the state of this widget which is stored on the unique element.
     grr.layout(renderer, renderer + "_{{unique|escapejs}}",
-       $("#{{unique|escapejs}}").data().state, function () {
-        grr.publish("GeometryChange", "{{id|escapejs}}");
-       });
+       $("#{{unique|escapejs}}").data().state);
 
     // Clear previously selected tab.
-    $("#{{unique|escapejs}}").find("li").removeClass(
-       "ui-tabs-selected ui-state-active");
+    $("#{{unique|escapejs}}").find("li").removeClass("active");
 
     // Select the new one.
-    $(this).parent().addClass("ui-tabs-selected ui-state-active");
+    $(this).parent().addClass("active");
   });
-
-  //Fix up the height of the tab container when our height changes.
-  grr.subscribe("GeometryChange", function (id) {
-    if(id == "{{id|escapejs}}") {
-      // Expanding content_area on the width of its' parent.
-      content_area = $("#tab_contents_{{unique|escapejs}}");
-      content_area.width(content_area.parent().innerWidth());
-      grr.fixWidth($("#tab_contents_{{unique|escapejs}} > div"));
-
-      // Fixing content area and its' inner divs to fill the height of the
-      // parent.
-      grr.fixHeight($("#tab_contents_{{unique|escapejs}}"));
-      grr.fixHeight($("#tab_contents_{{unique|escapejs}} > div"));
-
-      // Propagate the signal along.
-      $("#tab_contents_{{unique|escapejs}} > div").each(function () {
-         var id = this.attributes["id"].value;
-         grr.publish("GeometryChange", id);
-      });
-    };
-   }, "tab_contents_{{unique|escapejs}}");
 
   // Select the first tab at first.
   {% if this.tab_hash %}
@@ -860,6 +839,7 @@ class Splitter(TemplateRenderer):
 
   # Override to change minimum allowed width of the left pane.
   min_left_pane_width = 0
+  max_left_pane_width = 3000
 
   # This ensures that many Splitters can be placed in the same page by
   # making ids unique.
@@ -867,11 +847,11 @@ class Splitter(TemplateRenderer):
 <div id="{{id|escape}}_leftPane" class="leftPane">
   {{this.left_pane|safe}}
 </div>
-<div id="{{id|escape}}_rightPane" class="rightPane">
+<div id="{{id|escape}}_rightPane" class="rightPane no-overflow">
   <div id="{{ id|escape }}_rightSplitterContainer"
    class="rightSplitterContainer">
     <div id="{{id|escape}}_rightTopPane"
-      class="rightTopPane">
+      class="rightTopPane ">
       {{this.top_right_pane|safe}}
     </div>
     <div id="{{id|escape}}_rightBottomPane"
@@ -884,16 +864,12 @@ class Splitter(TemplateRenderer):
       $("#{{ id|escapejs }}")
           .splitter({
               minAsize: {{ this.min_left_pane_width }},
-              maxAsize: 3000,
+              maxAsize: {{ this.max_left_pane_width }},
               splitVertical: true,
               A: $('#{{id|escapejs}}_leftPane'),
               B: $('#{{id|escapejs}}_rightPane'),
               animSpeed: 50,
-              closeableto: 0})
-          .bind("resize", function (event) {
-            grr.publish("GeometryChange", "{{id|escapejs}}_leftPane");
-            event.stopPropagation();
-           });
+              closeableto: 0});
 
       $("#{{id|escapejs}}_rightSplitterContainer")
           .splitter({
@@ -901,25 +877,14 @@ class Splitter(TemplateRenderer):
               A: $('#{{id|escapejs}}_rightTopPane'),
               B: $('#{{id|escapejs}}_rightBottomPane'),
               animSpeed: 50,
-              closeableto: 100})
-          .bind("resize", function (event) {
-            grr.publish("GeometryChange", "{{id|escapejs}}_rightTopPane");
-            grr.publish("GeometryChange", "{{id|escapejs}}_rightBottomPane");
-            event.stopPropagation();
-           });
+              closeableto: 100});
+
+      // Triggering resize event here to ensure that splitters will position
+      // themselves correctly.
+      $("#{{ id|escapejs }}").resize();
 
 // Pass our state to our children.
 var state = $.extend({}, grr.state, {{this.state_json|safe}});
-
-// Propagate geometry change events to all our subpanes.
-grr.subscribe("GeometryChange", function(id) {
-  if (id == "{{id|escapejs}}") {
-    grr.publish("GeometryChange", '{{id|escapejs}}_rightBottomPane');
-    grr.publish("GeometryChange", '{{id|escapejs}}_rightTopPane');
-    grr.publish("GeometryChange", '{{id|escapejs}}_leftPane');
-  };
-}, "{{id|escapejs}}_leftPane");
-
 </script>
 """)
 
@@ -959,13 +924,7 @@ class Splitter2Way(TemplateRenderer):
               A: $('#{{id|escapejs}}_topPane'),
               B: $('#{{id|escapejs}}_bottomPane'),
               animSpeed: 50,
-              closeableto: 100})
-          .bind("resize", function (event) {
-            grr.log("splitter resize event");
-            grr.publish("GeometryChange", "{{id|escapejs}}_topPane");
-            grr.publish("GeometryChange", "{{id|escapejs}}_bottomPane");
-            event.stopPropagation();
-          });
+              closeableto: 100});
 
 var state = $.extend({}, grr.state, {{this.state_json|safe}});
 </script>
@@ -990,6 +949,10 @@ class Splitter2WayVertical(TemplateRenderer):
   left_renderer = ""
   right_renderer = ""
 
+  # Override to change minimum allowed width of the left pane.
+  min_left_pane_width = 0
+  max_left_pane_width = 3000
+
   layout_template = Template("""
 <div id="{{id|escape}}_leftPane" class="leftPane">
   {{this.left_pane|safe}}
@@ -1001,26 +964,13 @@ class Splitter2WayVertical(TemplateRenderer):
 <script>
       $("#{{id|escapejs}}")
           .splitter({
-              minAsize: 0,
-              maxAsize: 3000,
+              minAsize: {{ this.min_left_pane_width }},
+              maxAsize: {{ this.max_left_pane_width }},
               splitVertical: true,
               A: $('#{{id|escapejs}}_leftPane'),
               B: $('#{{id|escapejs}}_rightPane'),
               animSpeed: 50,
-              closeableto: 0})
-          .bind("resize", function (event) {
-            grr.publish("GeometryChange", "{{id|escapejs}}_leftPane");
-            grr.publish("GeometryChange", "{{id|escapejs}}_rightPane");
-            event.stopPropagation();
-           });
-
-grr.subscribe("GeometryChange", function (id) {
-  if (id == "{{id|escapejs}}") {
-    grr.fixWidth($("#{{id|escapejs}}_leftPane"));
-    grr.fixWidth($("#{{id|escapejs}}_rightPane"));
-  };
-}, "{{id|escapejs}}_leftPane");
-
+              closeableto: 0});
 
 </script>
 """)
@@ -1105,7 +1055,7 @@ class RDFValueRenderer(TemplateRenderer):
   def RendererForRDFValue(cls, rdfvalue_cls_name):
     """Returns the class of the RDFValueRenderer which renders rdfvalue_cls."""
     for candidate in cls.classes.values():
-      if (issubclass(candidate, RDFValueRenderer) and
+      if (aff4.issubclass(candidate, RDFValueRenderer) and
           candidate.classname == rdfvalue_cls_name):
         return candidate
 
@@ -1147,6 +1097,34 @@ class SubjectRenderer(RDFValueRenderer):
     self.aff4_path = self.proxy
 
     return super(SubjectRenderer, self).Layout(request, response)
+
+
+class RDFURNRenderer(RDFValueRenderer):
+  """A special renderer for RDFURNs."""
+
+  classname = "RDFURN"
+
+  layout_template = Template("""
+{% if this.href %}
+<a href='#{{this.href|escape}}'
+  onclick='grr.loadFromHash("{{this.href|escape}}");'>
+  {{this.proxy|escape}}
+</a>
+{% else %}
+{{this.proxy|escape}}
+{% endif %}
+""")
+
+  def Layout(self, request, response):
+    client, rest = self.proxy.Split(2)
+    if aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(client):
+      h = dict(main="VirtualFileSystemView",
+               c=client,
+               tab="AFF4Stats",
+               t=DeriveIDFromPath(rest))
+      self.href = urllib.urlencode(sorted(h.items()))
+
+    super(RDFURNRenderer, self).Layout(request, response)
 
 
 class RDFProtoRenderer(RDFValueRenderer):
@@ -1280,7 +1258,11 @@ class RDFValueArrayRenderer(RDFValueRenderer):
     for element in self.proxy:
       renderer = FindRendererForObject(element)
       if renderer:
-        self.data.append(renderer.RawHTML(request))
+        try:
+          self.data.append(renderer.RawHTML(request))
+        except Exception as e:
+          raise RuntimeError(
+              "Unable to render %s with %s: %s" % (type(element), renderer, e))
 
     return super(RDFValueArrayRenderer, self).Layout(request, response)
 
@@ -1334,6 +1316,10 @@ class DictRenderer(RDFValueRenderer):
     return super(DictRenderer, self).Layout(request, response)
 
 
+class ListRenderer(RDFValueArrayRenderer):
+  classname = "list"
+
+
 class RDFProtoDictRenderer(DictRenderer):
   """Renders RFDProtoDicts."""
 
@@ -1375,9 +1361,10 @@ class AbstractLogRenderer(TemplateRenderer):
 class IconRenderer(RDFValueRenderer):
   width = 0
   layout_template = Template("""
+<div class="centered">
 <img class='grr-icon' src='/static/images/{{this.proxy.icon}}.png'
  alt='{{this.proxy.description}}' title='{{this.proxy.description}}'
- />""")
+ /></div>""")
 
 
 def DeriveIDFromPath(path):
@@ -1456,11 +1443,11 @@ class TypeInfoFormRenderer(TemplateRenderer):
 
   # This is the default view of the description.
   default_description_view = Template("""
-<td>
-  <abbr title='{{this.type.description|escape}}'>
-    {{this.type.friendly_name}}
-  </abbr>
-</td>
+  <label class="control-label">
+    <abbr title='{{this.type.description|escape}}'>
+      {{this.type.friendly_name}}
+    </abbr>
+  </label>
 """)
 
   @classmethod
@@ -1469,7 +1456,7 @@ class TypeInfoFormRenderer(TemplateRenderer):
     if cls.type_map is None:
       cls.type_map = dict(
           [(x.type_info_cls, x) for x in cls.classes.values()
-           if issubclass(x, TypeInfoFormRenderer)])
+           if aff4.issubclass(x, TypeInfoFormRenderer)])
     try:
       return cls.type_map[type_info_cls]
     except KeyError:
@@ -1494,7 +1481,7 @@ class TypeDescriptorSetRenderer(TemplateRenderer):
 
   form_template = Template("""
   {% for form_element in this.form_elements %}
-    <tr>{{form_element|escape}}</tr>
+    {{form_element|escape}}
   {% endfor %}
 """)
 
@@ -1582,10 +1569,16 @@ class DelegatedTypeInfoRenderer(TypeInfoFormRenderer):
 
 
 class GenericProtoDictTypeRenderer(TypeInfoFormRenderer):
+  """Renderer for generic ProtoDict type."""
   type_info_cls = type_info.GenericProtoDictType
 
-  form_template = TypeInfoFormRenderer.default_description_view + """
-<td>Specifying {{ this.type.name|escape }} not yet supported in the GUI.</td>
+  form_template = """<div class="control-group">
+""" + TypeInfoFormRenderer.default_description_view + """
+<div class="controls">
+  <span class="uneditable-input">
+    Specifying {{ this.type.name|escape }} not yet supported in the GUI.</span>
+</div>
+</div> <!-- control-group -->
 """
 
   def ParseArgs(self, type_descriptor, request, **kwargs):
@@ -1593,11 +1586,14 @@ class GenericProtoDictTypeRenderer(TypeInfoFormRenderer):
 
 
 class StringFormRenderer(TypeInfoFormRenderer):
+  """String form element renderer."""
   type_info_cls = type_info.String
 
-  form_template = TypeInfoFormRenderer.default_description_view + """
-<td><input name='{{prefix}}{{ this.type.name|escape }}'
-    type=text value='{{ this.value|escape }}'/></td>
+  form_template = """<div class="control-group">
+""" + TypeInfoFormRenderer.default_description_view + """
+<div class="controls"><input name='{{prefix}}{{ this.type.name|escape }}'
+    type=text value='{{ this.value|escape }}'/></div>
+</div>
 """
 
   def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
@@ -1614,6 +1610,13 @@ class ByteStringRenderer(StringFormRenderer):
   def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
     return utils.SmartStr(super(ByteStringRenderer, self).ParseArgs(
         type_descriptor, request, prefix=prefix, **kwargs))
+
+
+class FilterStringFormRenderer(StringFormRenderer):
+  """Renderer for the type FilterString."""
+  type_info_cls = type_info.FilterString
+
+
 
 
 # TODO(user): we only support list of strings at the moment. We should
@@ -1655,7 +1658,7 @@ class RegularExpressionFormRenderer(StringFormRenderer):
 
 
 class NumberFormRenderer(StringFormRenderer):
-  type_info_cls = type_info.Number
+  type_info_cls = type_info.Integer
 
   def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
     return long(request.REQ.get(prefix + type_descriptor.name))
@@ -1666,11 +1669,15 @@ class EncryptionKeyFormRenderer(StringFormRenderer):
 
   type_info_cls = type_info.EncryptionKey
 
-  form_template = TypeInfoFormRenderer.default_description_view + """
-<td><input name='{{prefix}}{{ this.type.name|escape }}'
+  form_template = """<div class="control-group">
+""" + TypeInfoFormRenderer.default_description_view + """
+<div class="controls">
+<input name='{{prefix}}{{ this.type.name|escape }}'
  type=text value='{{ value|escape }}'
  size='{{field_size|escape}}'
- max_size='{{field_size|escape}}'/></td>
+ max_size='{{field_size|escape}}'/></div>
+
+</div>
 """
 
   def Form(self, type_descriptor, request, prefix="v_", **kwargs):
@@ -1686,11 +1693,22 @@ class BoolFormRenderer(TypeInfoFormRenderer):
   """Render Boolean types."""
   type_info_cls = type_info.Bool
 
-  form_template = TypeInfoFormRenderer.default_description_view + """
-<td><input name='{{prefix}}{{ this.type.name|escape }}' type=checkbox
-    {% if this.value %}checked {% endif %} value='{{ this.value|escape }}'/>
-</td>
-"""
+  form_template = Template("""
+<div class="control-group">
+<div class="controls">
+
+<label class="checkbox">
+  <input name='{{prefix}}{{ this.type.name|escape }}' type=checkbox
+      {% if this.value %}checked {% endif %} value='{{ this.value|escape }}'/>
+
+  <abbr title='{{this.type.description|escape}}'>
+    {{this.type.friendly_name}}
+  </abbr>
+</label>
+
+</div>
+</div>
+""")
 
   def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
     value = request.REQ.get(prefix + type_descriptor.name)
@@ -1701,13 +1719,16 @@ class BoolFormRenderer(TypeInfoFormRenderer):
       return False
 
 
-class ProtoEnumFormRenderer(NumberFormRenderer):
-  """Renders protobuf enums."""
+class RDFEnumFormRenderer(NumberFormRenderer):
+  """Renders RDF enums."""
 
-  type_info_cls = type_info.ProtoEnum
+  type_info_cls = type_info.RDFEnum
 
-  form_template = TypeInfoFormRenderer.default_description_view + """
-<td><select name="{{prefix}}{{this.type.name|escape}}">
+  form_template = """<div class="control-group">
+""" + TypeInfoFormRenderer.default_description_view + """
+<div class="controls">
+
+<select name="{{prefix}}{{this.type.name|escape}}">
 {% for enum_name, enum_desc in enum_values %}
  <option {% ifequal enum_desc.number value %}selected{% endifequal %}
    value="{{enum_desc.number|escape}}">
@@ -1715,7 +1736,10 @@ class ProtoEnumFormRenderer(NumberFormRenderer):
    {% ifequal enum_desc.number default %} (default){% endifequal %}
 </option>
 {% endfor %}
-</select></td>
+</select>
+
+</div>
+</div>
 """
 
   def Form(self, type_descriptor, request, prefix=""):
@@ -1733,13 +1757,7 @@ class ProtoEnumFormRenderer(NumberFormRenderer):
         default=type_descriptor.default, value=value)
 
 
-class RDFEnumFormRenderer(ProtoEnumFormRenderer):
-  """Renders RDF enums."""
-
-  type_info_cls = type_info.RDFEnum
-
-
-class PathTypeEnumRenderer(ProtoEnumFormRenderer):
+class PathTypeEnumRenderer(RDFEnumFormRenderer):
   type_info_cls = type_info.PathTypeEnum
 
 
@@ -1777,8 +1795,9 @@ class UserListRenderer(TypeInfoFormRenderer):
 
   type_info_cls = type_info.UserList
 
-  form_template = TypeInfoFormRenderer.default_description_view + """
-<td>
+  form_template = """<div class="control-group">
+""" + TypeInfoFormRenderer.default_description_view + """
+<div class="controls">
 <select id="user_select_{{unique|escape}}"
 name="{{prefix}}{{ this.type.name|escape }}" multiple="multiple">
 {% for user in valid_users %}
@@ -1787,12 +1806,8 @@ name="{{prefix}}{{ this.type.name|escape }}" multiple="multiple">
   </option>
 {% endfor %}
 </select>
-</td>
-<script>
-  $("#user_select_{{unique|escapejs}}").multiselect({
-    header: "Select users",
-    noneSelectedText: "Select users"});
-</script>
+</div>
+</div>
 """
 
   def Form(self, type_descriptor, request, prefix="v_", **kwargs):
@@ -1887,6 +1902,7 @@ class WizardRenderer(TemplateRenderer):
   selected = None
 
   # WizardPage objects that defined this wizard's behaviour.
+  title = ""
   pages = []
 
   # This will be used for identifying the wizard when publishing the events.
@@ -1894,14 +1910,17 @@ class WizardRenderer(TemplateRenderer):
 
   layout_template = Template("""
 <div id="Wizard_{{unique|escape}}" class="Wizard">
-  <div class="WizardBar">
-
-    <input type="button" value="Back" class="Back" style="visibility: hidden"/>
-    <span class="Description"></span>
-    <input type="button" value="Next" class="Next" />
-
+  <div class="WizardBar modal-header">
+    <button type="button" class="close" data-dismiss="modal"
+      aria-hidden="true">x</button>
+    <h3>{{this.title|escape}} - <span class="Description"></span></h3>
   </div>
-  <div id="WizardContent_{{unique|escape}}" class="WizardContent">
+  <div class="modal-body" id="WizardContent_{{unique|escape}}">
+  </div>
+  <div class="modal-footer">
+    <input type="button" value="Back" class="btn Back"
+      style="visibility: hidden"/>
+    <input type="button" value="Next" class="btn btn-primary Next" />
   </div>
 </div>
 
@@ -1912,11 +1931,11 @@ var stateJson = {{this.state_json|safe}};
 var wizardPages = stateJson.pages;
 var selectedWizardTab = 0;
 
-$("#Wizard_{{unique|escapejs}} .WizardBar .Back").button().click(function() {
+$("#Wizard_{{unique|escapejs}} .Back").click(function() {
   selectTab(selectedWizardTab - 1);
 });
 
-$("#Wizard_{{unique|escapejs}} .WizardBar .Next").button().click(function() {
+$("#Wizard_{{unique|escapejs}} .Next").click(function() {
   if (selectedWizardTab + 1 < wizardPages.length) {
     selectTab(selectedWizardTab + 1);
   } else {
@@ -1926,7 +1945,7 @@ $("#Wizard_{{unique|escapejs}} .WizardBar .Next").button().click(function() {
 
 function selectTab(index) {
   selectedWizardTab = index;
-  $("#Wizard_{{unique|escapejs}} .WizardBar .Description").text(
+  $("#Wizard_{{unique|escapejs}} .Description").text(
     wizardPages[index].description);
 
   var wizardStateJson = JSON.stringify(
@@ -1934,22 +1953,22 @@ function selectTab(index) {
   grr.layout(wizardPages[index].renderer, "WizardContent_{{unique|escapejs}}",
     { "{{this.wizard_name|escapejs}}": wizardStateJson });
 
-  $("#Wizard_{{unique|escapejs}} .WizardBar .Back").css("visibility",
+  $("#Wizard_{{unique|escapejs}} .Back").css("visibility",
     index > 0 && wizardPages[index].show_back_button ? "visible" : "hidden");
 
-  var nextButton = $("#Wizard_{{unique|escapejs}} .WizardBar .Next");
-  nextButton.button("option", "label", wizardPages[index].next_button_label);
+  var nextButton = $("#Wizard_{{unique|escapejs}} .Next");
+  nextButton.attr("value", wizardPages[index].next_button_label);
 
   var eventToWait = wizardPages[index].wait_for_event;
   if (eventToWait) {
-    nextButton.button({ disabled: true });
+    nextButton.attr("disabled", "yes");
     grr.subscribe("WizardProceed", function(id) {
       if (id == eventToWait) {
-        nextButton.button({ disabled: false });
+        nextButton.removeAttr("disabled");
       }
     }, "Wizard_{{unique|escapejs}}");
   } else {
-    nextButton.button({ disabled: false });
+    nextButton.removeAttr("disabled");
   }
 }
 
@@ -1966,3 +1985,37 @@ selectTab(0);
     # to the renderer's client side.
     self.state["pages"] = [page.__dict__ for page in self.pages]
     return super(WizardRenderer, self).Layout(request, response)
+
+
+class RDFValueCollectionRenderer(TableRenderer):
+  """Renderer for RDFValueCollection objects."""
+
+  post_parameters = ["aff4_path"]
+  size = 0
+
+  def __init__(self, **kwargs):
+    super(RDFValueCollectionRenderer, self).__init__(**kwargs)
+    self.AddColumn(RDFValueColumn("Value", width="100%"))
+
+  def BuildTable(self, start_row, end_row, request):
+    """Builds a table of rdfvalues."""
+    try:
+      collection = aff4.FACTORY.Open(self.state["aff4_path"],
+                                     required_type="RDFValueCollection",
+                                     token=request.token)
+    except IOError:
+      return
+
+    self.size = len(collection)
+
+    row_index = start_row
+    for value in itertools.islice(collection, start_row, end_row):
+      self.AddCell(row_index, "Value", value)
+      row_index += 1
+
+  def Layout(self, request, response, aff4_path=None):
+    if aff4_path:
+      self.state["aff4_path"] = str(aff4_path)
+
+    return super(RDFValueCollectionRenderer, self).Layout(
+        request, response)

@@ -30,19 +30,16 @@ import tempfile
 
 import pytsk3
 
-from grr.client import conf as flags
-
 from grr.client import actions
-from grr.client import client_config
 from grr.client import client_utils_common
 from grr.client import client_utils_osx
 from grr.client.client_actions import standard
 from grr.client.osx.objc import ServiceManagement
 from grr.client.vfs_handlers import memory
+
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.parsers import osx_launchd
-
-FLAGS = flags.FLAGS
 
 
 class Error(Exception):
@@ -360,7 +357,7 @@ class Uninstall(actions.ActionPlugin):
       msg = "Could not remove binary."
 
     try:
-      os.remove(client_config.LAUNCHCTL_PLIST)
+      os.remove(config_lib.CONFIG["Client.launchctl_plist"])
     except OSError:
       if "Could not" in msg:
         msg += " Could not remove plist file."
@@ -485,5 +482,5 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
                                             stderr=stderr,
                                             exit_status=status,
                                             # We have to return microseconds.
-                                            time_used=(int) (1e6 * time_used))
+                                            time_used=int(1e6 * time_used))
     self.SendReply(result)

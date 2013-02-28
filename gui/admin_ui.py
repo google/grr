@@ -25,30 +25,27 @@ import django
 from django.conf import settings
 from django.core.handlers import wsgi
 
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import,g-bad-import-order
+
 from grr.client import conf
-from grr.client import conf as flags
-# TODO(user): Remove webauth import after change to CONFIG
-from grr.gui import webauth   # pylint: disable=W0611
+
 from grr.lib import config_lib
 from grr.lib import registry
-from grr.lib import server_plugins  # pylint: disable=W0611
 
-flags.DEFINE_integer("port", 8000,
-                     "port to listen on")
 
-flags.DEFINE_string("bind", "::",
-                    "interface to bind to.")
+config_lib.DEFINE_integer("AdminUI.port", 8000, "port to listen on")
 
-flags.DEFINE_bool("django_debug", False,
-                  "Turn on to add django debugging")
+config_lib.DEFINE_string("AdminUI.bind", "::", "interface to bind to.")
 
-flags.DEFINE_string("django_secret_key", "CHANGE_ME",
-                    "This is a secret key that should be set in the server "
-                    "config. It is used in XSRF and session protection.")
+config_lib.DEFINE_bool("AdminUI.django_debug", False,
+                       "Turn on to add django debugging")
 
-FLAGS = flags.FLAGS
-CONFIG = config_lib.CONFIG
-CONFIG.flag_sections.append("ServerFlags")
+config_lib.DEFINE_string(
+    "AdminUI.django_secret_key", "CHANGE_ME",
+    "This is a secret key that should be set in the server "
+    "config. It is used in XSRF and session protection.")
 
 
 class DjangoInit(registry.InitHook):
@@ -56,15 +53,23 @@ class DjangoInit(registry.InitHook):
 
   def RunOnce(self):
     """Configure the Django environment."""
+    if django.VERSION[0] == 1 and django.VERSION[1] < 4:
+      msg = ("The installed Django version is too old. We need 1.4+. You can "
+             "install a new version with 'sudo easy_install Django'.")
+      logging.error(msg)
+      raise RuntimeError(msg)
+
     base_app_path = os.path.normpath(os.path.dirname(__file__))
     # Note that Django settings are immutable once set.
     django_settings = {
-        "DEBUG": FLAGS.django_debug,
-        "TEMPLATE_DEBUG": FLAGS.django_debug,
-        "SECRET_KEY": FLAGS.django_secret_key,       # Used for XSRF protection.
+        "DEBUG": config_lib.CONFIG["AdminUI.django_debug"],
+        "TEMPLATE_DEBUG": config_lib.CONFIG["AdminUI.django_debug"],
+        "SECRET_KEY": config_lib.CONFIG["AdminUI.django_secret_key"],
+
         # Set to default as we don't supply an HTTPS server.
         # "CSRF_COOKIE_SECURE": not FLAGS.django_debug,  # Only send over HTTPS.
-        "ROOT_URLCONF": "grr.gui.urls",           # Where to find url mappings.
+        # Where to find url mappings.
+        "ROOT_URLCONF": "grr.gui.urls",
         "TEMPLATE_DIRS": ("%s/templates" % base_app_path,),
         # Don't use the database for sessions, use a file.
         "SESSION_ENGINE": "django.contrib.sessions.backends.file"
@@ -73,6 +78,10 @@ class DjangoInit(registry.InitHook):
     # The below will use conf/global_settings/py from Django, we need to
     # override every variable we need to set.
     settings.configure(**django_settings)
+
+    if settings.SECRET_KEY == "CHANGE_ME":
+      msg = "Please change the secret key in the settings module."
+      logging.error(msg)
 
 
 class GuiPluginsInit(registry.InitHook):
@@ -95,27 +104,18 @@ def main(_):
   """Run the main test harness."""
   registry.Init()
 
-  if django.VERSION[0] == 1 and django.VERSION[1] < 4:
-    msg = ("The installed Django version is too old. We need 1.4+. You can "
-           "install a new version with 'sudo easy_install Django'.")
-    logging.error(msg)
-    raise RuntimeError(msg)
-
-  if settings.SECRET_KEY == "CHANGE_ME":
-    msg = "Please change the secret key in the settings module."
-    logging.error(msg)
-
   # Start up a server in another thread
-  base_url = "http://%s:%d" % (FLAGS.bind, FLAGS.port)
+  base_url = "http://%s:%d" % (config_lib.CONFIG["AdminUI.bind"],
+                               config_lib.CONFIG["AdminUI.port"])
   logging.info("Base URL is %s", base_url)
 
   # Make a simple reference implementation WSGI server
-  server = simple_server.make_server(FLAGS.bind, FLAGS.port,
+  server = simple_server.make_server(config_lib.CONFIG["AdminUI.bind"],
+                                     config_lib.CONFIG["AdminUI.port"],
                                      wsgi.WSGIHandler(),
                                      server_class=ThreadingDjango)
 
   server.serve_forever()
-
 
 if __name__ == "__main__":
   conf.StartMain(main)

@@ -18,10 +18,10 @@
 import time
 import urllib
 
-from grr.client import conf as flags
 import logging
 
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -30,10 +30,8 @@ from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
 
-flags.DEFINE_string("monitoring_email", None,
-                    "The email address to send events to.")
-
-FLAGS = flags.FLAGS
+config_lib.DEFINE_string("Monitoring.events_email", None,
+                         "The email address to send events to.")
 
 
 class GetClientStats(flow.GRRFlow):
@@ -182,6 +180,9 @@ class ExecutePythonHack(flow.GRRFlow):
       type_info.String(
           name="hack_name",
           description="The name of the hack to execute."),
+      type_info.GenericProtoDictType(
+          description="Python Hack Arguments.",
+          name="py_args")
       )
 
   @flow.StateHandler(next_state=["End"])
@@ -193,7 +194,7 @@ class ExecutePythonHack(flow.GRRFlow):
     if python_blob is None:
       raise RuntimeError("Python hack %s not found." % self.hack_name)
     self.CallClient("ExecutePython", python_code=python_blob,
-                    next_state="End")
+                    py_args=self.py_args, next_state="End")
 
   @flow.StateHandler()
   def End(self, responses):
@@ -220,7 +221,7 @@ class ExecuteCommand(flow.GRRFlow):
       type_info.String(
           name="args",
           description="The arguments to the command, space separated."),
-      type_info.Number(
+      type_info.Integer(
           name="time_limit",
           description="The time limit for this execution, -1 means unlimited.",
           default=-1),
@@ -334,15 +335,16 @@ class OnlineNotification(flow.GRRFlow):
 
       subject = "GRR Client on %s became available." % hostname
 
-      email_alerts.SendEmail(self.email, "grr-noreply",
-                             subject,
-                             self.template % dict(
-                                 client_id=self.client_id,
-                                 admin_ui=FLAGS.ui_url,
-                                 hostname=hostname,
-                                 urn=url,
-                                 creator=self.token.username),
-                             is_html=True)
+      email_alerts.SendEmail(
+          self.email, "grr-noreply",
+          subject,
+          self.template % dict(
+              client_id=self.client_id,
+              admin_ui=config_lib.CONFIG["ServerFlags.ui_url"],
+              hostname=hostname,
+              urn=url,
+              creator=self.token.username),
+          is_html=True)
     else:
       flow.FlowError("Error while pinging client.")
 
@@ -457,20 +459,22 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
     logging.info(self.logline, client_id, message)
 
     # Also send email.
-    if FLAGS.monitoring_email:
+    if config_lib.CONFIG["Monitoring.alert_email"]:
       client = aff4.FACTORY.Open(client_id, token=self.token)
       hostname = client.Get(client.Schema.HOSTNAME)
       url = urllib.urlencode((("c", client_id),
                               ("main", "HostInformation")))
 
-      email_alerts.SendEmail(FLAGS.monitoring_email, "GRR server",
-                             self.subject % client_id,
-                             self.mail_template % dict(
-                                 client_id=client_id,
-                                 admin_ui=FLAGS.ui_url,
-                                 hostname=hostname,
-                                 urn=url, message=message),
-                             is_html=True)
+      email_alerts.SendEmail(
+          config_lib.CONFIG["Monitoring.alert_email"],
+          "GRR server",
+          self.subject % client_id,
+          self.mail_template % dict(
+              client_id=client_id,
+              admin_ui=config_lib.CONFIG["ServerFlags.ui_url"],
+              hostname=hostname,
+              urn=url, message=message),
+          is_html=True)
 
 
 class ClientAlertHandler(NannyMessageHandler):
@@ -526,8 +530,8 @@ P.S. The failing flow was:
     client_id = message.source
     nanny_msg = ""
 
-    flow_pb = flow.FACTORY.FetchFlow(message.session_id, token=self.token,
-                                     lock=False)
+    rdf_flow = flow.FACTORY.FetchFlow(message.session_id, token=self.token,
+                                      lock=False)
 
     # Log.
     logging.info("Client crash reported, client %s.", client_id)
@@ -536,7 +540,7 @@ P.S. The failing flow was:
     stats.STATS.Increment("grr_client_crashes")
 
     # Also send email.
-    if FLAGS.monitoring_email:
+    if config_lib.CONFIG["Monitoring.alert_email"]:
       status = rdfvalue.GrrStatus(message.args)
       if status.nanny_status:
         nanny_msg = "Nanny status: %s" % status.nanny_status
@@ -546,15 +550,17 @@ P.S. The failing flow was:
       url = urllib.urlencode((("c", client_id),
                               ("main", "HostInformation")))
 
-      email_alerts.SendEmail(FLAGS.monitoring_email, "GRR server",
-                             "Client %s reported a crash." % client_id,
-                             self.mail_template % dict(
-                                 client_id=client_id,
-                                 admin_ui=FLAGS.ui_url,
-                                 hostname=hostname,
-                                 flow=utils.SmartStr(flow_pb),
-                                 urn=url, nanny_msg=nanny_msg),
-                             is_html=True)
+      email_alerts.SendEmail(
+          config_lib.CONFIG["Monitoring.alert_email"],
+          "GRR server",
+          "Client %s reported a crash." % client_id,
+          self.mail_template % dict(
+              client_id=client_id,
+              admin_ui=config_lib.CONFIG["ServerFlags.ui_url"],
+              hostname=hostname,
+              flow=utils.SmartStr(rdf_flow),
+              urn=url, nanny_msg=nanny_msg),
+          is_html=True)
 
     if nanny_msg:
       msg = "Client crashed, " + nanny_msg
@@ -621,7 +627,7 @@ class KeepAlive(flow.GRRFlow):
   sleep_time = 60
 
   flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.Number(
+      type_info.Integer(
           name="stayalive_time",
           default=3600,
           description=("How long the client should be kept in the faster poll "

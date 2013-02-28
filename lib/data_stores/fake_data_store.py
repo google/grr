@@ -20,6 +20,7 @@ import re
 import threading
 import time
 
+from grr.lib import access_control
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -128,7 +129,7 @@ class PredicateContainsFilter(Filter):
           if (predicate_value and
               self.regex.search(str(predicate_value))):
             yield utils.SmartUnicode(subject)
-        except data_store.UnauthorizedAccess:
+        except access_control.UnauthorizedAccess:
           pass
 
 
@@ -226,11 +227,14 @@ class FakeTransaction(data_store.Transaction):
     self.data_store = store
     self.subject = subject
     self.token = token
+    self.locked = False
 
-    if subject in store.transactions:
-      raise data_store.TransactionError("Subject is locked")
+    with self.data_store.lock:
+      if subject in store.transactions:
+        raise data_store.TransactionError("Subject is locked")
 
-    store.transactions.add(subject)
+      store.transactions.add(subject)
+      self.locked = True
 
   def DeleteAttribute(self, attribute):
     self.data_store.DeleteAttributes(self.subject, [attribute],
@@ -254,10 +258,16 @@ class FakeTransaction(data_store.Transaction):
   def Abort(self):
     # This is technically wrong - everything is always written. We do not have
     # code that depends on a working Abort right now.
-    self.data_store.transactions.remove(self.subject)
+    self.Unlock()
 
   def Commit(self):
-    self.data_store.transactions.remove(self.subject)
+    self.Unlock()
+
+  def Unlock(self):
+    with self.data_store.lock:
+      if self.locked:
+        self.data_store.transactions.remove(self.subject)
+        self.locked = False
 
   def __del__(self):
     try:
@@ -329,10 +339,6 @@ class FakeDataStore(data_store.DataStore):
 
   def Transaction(self, subject, token=None):
     return FakeTransaction(self, subject, token=token)
-
-  def RetryWrapper(self, subject, callback, token=None, **kwargs):
-    transaction = FakeTransaction(self, subject, token=token)
-    return callback(transaction, **kwargs)
 
   @utils.Synchronized
   def Set(self, subject, attribute, value, timestamp=None, token=None,
@@ -417,16 +423,45 @@ class FakeDataStore(data_store.DataStore):
   def ResolveMulti(self, subject, predicates, decoder=None, token=None,
                    timestamp=None):
     self.security_manager.CheckAccess(token, [subject], "r")
-    if timestamp is not None:
-      raise NotImplementedError("Timestamps not implemented in ResolveMulti")
+    # Does timestamp represent a range?
+    try:
+      start, end = timestamp
+    except (ValueError, TypeError):
+      start, end = -1, 1 << 65
 
-    result = []
+    if isinstance(predicates, str):
+      predicates = [predicates]
+
+    subject = utils.SmartUnicode(subject)
+    try:
+      record = self.subjects[subject]
+    except KeyError:
+      return
+
+    # Holds all the attributes which matched. Keys are attribute names, values
+    # are lists of timestamped data.
+    results = {}
     for predicate in predicates:
-      value, ts = self.Resolve(subject, predicate, decoder=decoder, token=token)
-      if value:
-        result.append((predicate, value, ts))
+      for attribute, values in record.iteritems():
+        if predicate == attribute:
+          for value, ts in values:
+            results_list = results.setdefault(attribute, [])
+            # If we are always after the latest ts we clear older ones.
+            if (results_list and timestamp == self.NEWEST_TIMESTAMP and
+                results_list[0][1] < ts):
+              results_list = []
+              results[attribute] = results_list
 
-    return result
+            # Timestamp outside the range, drop it.
+            elif ts < start or ts > end:
+              continue
+
+            results_list.append((attribute, ts, self.Decode(value, decoder)))
+
+    # Return the results in the same order they requested.
+    for predicate in predicates:
+      for v in sorted(results.get(predicate, [])):
+        yield (predicate, v[2], v[1])
 
   @utils.Synchronized
   def ResolveRegex(self, subject, predicate_regex, decoder=None, token=None,
@@ -514,7 +549,7 @@ class FakeDataStore(data_store.DataStore):
 
     i = -1
 
-    super_token = data_store.ACLToken()
+    super_token = access_control.ACLToken()
     super_token.supervisor = True
     # Grab all the subjects which match the filter
     for subject in sorted(filter_obj.FilterSubjects(
@@ -556,7 +591,7 @@ class FakeDataStore(data_store.DataStore):
         # Skip unauthorized results.
         self.security_manager.CheckAccess(token, [subject], "rq")
         result_set.Append(result)
-      except data_store.UnauthorizedAccess:
+      except access_control.UnauthorizedAccess:
         continue
 
     result_set.total_count = len(result_set)

@@ -63,8 +63,8 @@ class TimelineMain(renderers.TemplateRenderer):
   """
 
   layout_template = renderers.Template("""
-<div id='toolbar_{{id|escape}}' class=toolbar></div>
-<div id='{{unique|escape}}'></div>
+<ul id='toolbar_{{id|escape}}' class="breadcrumb"></ul>
+<div id='{{unique|escape}}' class="fill-parent no-margins toolbar-margin"></div>
 <script>
   var state = {
     container: grr.hash.container,
@@ -73,9 +73,6 @@ class TimelineMain(renderers.TemplateRenderer):
 
   grr.layout("TimelineToolbar", "toolbar_{{id|escapejs}}", state);
   grr.layout("TimelineViewerSplitter", "{{unique|escapejs}}", state);
-  grr.subscribe("GeometryChange", function () {
-    grr.fixHeight($("#{{unique|escapejs}}"));
-  }, "{{unique|escapejs}}");
 </script>
 """)
 
@@ -108,17 +105,23 @@ class TimelineToolbar(renderers.TemplateRenderer):
   """
 
   layout_template = renderers.Template("""
-<button id='export_{{unique|escape}}' title="Export to CSV">
-<img src="/static/images/stock-save.png">
-</button>
-{{this.container|escape}}
-
-<form id="form_{{unique|escape}}" name="query_form">
-Filter Expression
-<input type="text" id="container_query" name="query"
-  value="{{this.query|escape}}" size=180></input>
-<input type="submit" style="display: none" />
-</form>
+<li>
+  <button id='export_{{unique|escape}}' title="Export to CSV" class="btn">
+    <img src="/static/images/stock-save.png" class="toolbar_icon" />
+  </button>
+</li>
+<li class="active">
+  {{this.container|escape}}
+</li>
+<li class="pull-right">
+  <form id="form_{{unique|escape}}" name="query_form" class="form-search">
+    <div class="input-append">
+      <input type="text" id="container_query" name="query"
+        value="{{this.query|escape}}" class="input-medium search-query"></input>
+      <button type="submit" class="btn">Filter</button>
+    </div>
+  </form>
+</li>
 <script>
 var container = "{{this.container|escapejs}}";
 var state = {query: $("input#container_query").val(),
@@ -214,11 +217,11 @@ class EventTable(renderers.TableRenderer):
     if EventTable.content_cache is None:
       EventTable.content_cache = utils.TimeBasedCache()
     super(EventTable, self).__init__(**kwargs)
-    self.AddColumn(renderers.AttributeColumn("event.id", width=0))
-    self.AddColumn(renderers.AttributeColumn("timestamp", width=10))
+    self.AddColumn(renderers.AttributeColumn("event.id"))
+    self.AddColumn(renderers.AttributeColumn("timestamp"))
     self.AddColumn(renderers.AttributeColumn("subject"))
     self.AddColumn(renderers.RDFValueColumn(
-        "Message", renderer=EventMessageRenderer))
+        "Message", renderer=EventMessageRenderer, width="100%"))
 
   def Layout(self, request, response):
     """Render the content of the tab or the container tabset."""

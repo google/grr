@@ -21,11 +21,8 @@ import datetime
 import os
 
 from grr.client import conf
-from grr.client import conf as flags
 from grr.lib import test_lib
 from grr.parsers import chrome_history
-
-FLAGS = flags.FLAGS
 
 
 class ChromeHistoryTest(test_lib.GRRBaseTest):

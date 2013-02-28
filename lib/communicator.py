@@ -1,18 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 """Abstracts encryption and authentication."""
 
 
@@ -27,18 +13,25 @@ from M2Crypto import Rand
 from M2Crypto import RSA
 from M2Crypto import X509
 
-from google.protobuf import message
-from grr.client import conf as flags
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
-flags.DEFINE_string("compression", default="ZCOMPRESS",
-                    help="Type of compression (ZCOMPRESS, UNCOMPRESSED)")
 
-FLAGS = flags.FLAGS
+config_lib.DEFINE_string("CA.certificate", None,
+                         "The CA public certificate used by the client "
+                         "and server.")
+
+
+config_lib.DEFINE_integer("Network.api", 3,
+                          "The version of the network protocol the client "
+                          "uses.")
+
+
+config_lib.DEFINE_string("Network.compression", default="ZCOMPRESS",
+                         help="Type of compression (ZCOMPRESS, UNCOMPRESSED)")
 
 # Constants.
 ENCRYPT = 1
@@ -160,7 +153,7 @@ class Cipher(object):
   def __init__(self, source, destination, private_key, pub_key_cache):
     self.private_key = private_key
 
-    self.cipher = jobs_pb2.CipherProperties(
+    self.cipher = rdfvalue.CipherProperties(
         name=self.cipher_name,
         key=Rand.rand_pseudo_bytes(self.key_size / 8)[0],
         iv=Rand.rand_pseudo_bytes(self.iv_size / 8)[0],
@@ -170,13 +163,15 @@ class Cipher(object):
     self.pub_key_cache = pub_key_cache
     serialized_cipher = self.cipher.SerializeToString()
 
-    self.cipher_metadata = jobs_pb2.CipherMetadata(source=source)
+    self.cipher_metadata = rdfvalue.CipherMetadata(source=source)
 
     # Sign this cipher.
     digest = self.hash_function(serialized_cipher).digest()
 
     # We never want to have a password dialog
-    private_key = RSA.load_key_string(self.private_key, callback=lambda x: "")
+    private_key = RSA.load_key_string(str(self.private_key),
+                                      callback=lambda x: "")
+
     self.cipher_metadata.signature = private_key.sign(
         digest, self.hash_function_name)
 
@@ -207,13 +202,16 @@ class Cipher(object):
     return iv, ctext
 
   def Decrypt(self, data, iv):
-    evp_cipher = EVP.Cipher(alg=self.cipher_name, key=self.cipher.key,
-                            iv=iv, op=DECRYPT)
+    try:
+      evp_cipher = EVP.Cipher(alg=self.cipher_name, key=self.cipher.key,
+                              iv=iv, op=DECRYPT)
 
-    text = evp_cipher.update(data)
-    text += evp_cipher.final()
+      text = evp_cipher.update(data)
+      text += evp_cipher.final()
 
-    return text
+      return text
+    except EVP.EVPError as e:
+      raise DecryptionError(str(e))
 
   def HMAC(self, data):
     hmac = EVP.HMAC(self.cipher.hmac_key, algo="sha1")
@@ -233,14 +231,14 @@ class ReceivedCipher(Cipher):
     self.pub_key_cache = pub_key_cache
 
     # Decrypt the message
-    private_key = RSA.load_key_string(self.private_key, callback=lambda x: "")
+    private_key = RSA.load_key_string(str(self.private_key),
+                                      callback=lambda x: "")
     try:
       self.encrypted_cipher = response_comms.encrypted_cipher
       self.serialized_cipher = private_key.private_decrypt(
           response_comms.encrypted_cipher, self.e_padding)
 
-      self.cipher = jobs_pb2.CipherProperties()
-      self.cipher.ParseFromString(self.serialized_cipher)
+      self.cipher = rdfvalue.CipherProperties(self.serialized_cipher)
 
       # Check the key lengths.
       if (len(self.cipher.key) != self.key_size / 8 or
@@ -255,8 +253,7 @@ class ReceivedCipher(Cipher):
         # Decrypt the metadata symmetrically
         self.encrypted_cipher_metadata = (
             response_comms.encrypted_cipher_metadata)
-        self.cipher_metadata = jobs_pb2.CipherMetadata()
-        self.cipher_metadata.ParseFromString(self.Decrypt(
+        self.cipher_metadata = rdfvalue.CipherMetadata(self.Decrypt(
             response_comms.encrypted_cipher_metadata, self.cipher.iv))
 
         self.VerifyCipherSignature()
@@ -279,7 +276,7 @@ class ReceivedCipher(Cipher):
                                     self.hash_function_name) == 1:
           self.signature_verified = True
 
-      except (UnknownClientCert, X509.X509Error):
+      except (UnknownClientCert, X509.X509Error, RSA.RSAError):
         pass
 
 
@@ -287,31 +284,27 @@ class Communicator(object):
   """A class responsible for encoding and decoding comms."""
   server_name = None
 
-  def __init__(self, certificate):
+  def __init__(self, certificate=None, private_key=None):
     """Creates a communicator.
 
     Args:
-       certificate: Our own certificate and key in string form (as PEM).
+       certificate: Our own certificate in string form (as PEM).
+       private_key: Our own private key in string form (as PEM).
     """
     # A cache of cipher objects.
     self.cipher_cache = utils.TimeBasedCache()
-    self.private_key = certificate
+    self.private_key = private_key
+    self.certificate = certificate
 
     # A cache for encrypted ciphers
     self.encrypted_cipher_cache = utils.FastStore(max_size=50000)
 
     # A cache of public keys
     self.pub_key_cache = PubKeyCache()
-    self._LoadOurCertificate(certificate)
+    self._LoadOurCertificate()
 
-  def _LoadOurCertificate(self, certificate):
-    self.cert = X509.load_cert_string(certificate)
-
-    # This is our private key - make sure it has no password set.
-    self.private_key = certificate
-
-    # Make sure its valid
-    RSA.load_key_string(certificate, callback=lambda x: "")
+  def _LoadOurCertificate(self):
+    self.cert = X509.load_cert_string(str(self.certificate))
 
     # Our common name
     self.common_name = PubKeyCache.GetCNFromCert(self.cert)
@@ -326,7 +319,7 @@ class Communicator(object):
     uncompressed_data = message_list.SerializeToString()
     signed_message_list.message_list = uncompressed_data
 
-    if FLAGS.compression == "ZCOMPRESS":
+    if config_lib.CONFIG["Network.compression"] == "ZCOMPRESS":
       compressed_data = zlib.compress(uncompressed_data)
 
       # Only compress if it buys us something.
@@ -393,7 +386,9 @@ class Communicator(object):
       digest = cipher.hash_function(signed_message_list.message_list).digest()
 
       # We never want to have a password dialog
-      private_key = RSA.load_key_string(self.private_key, callback=lambda x: "")
+      private_key = RSA.load_key_string(str(self.private_key),
+                                        callback=lambda x: "")
+
       signed_message_list.signature = private_key.sign(
           digest, cipher.hash_function_name)
 
@@ -428,7 +423,6 @@ class Communicator(object):
        a Signed_Message_List rdfvalue
     """
     response_comms = rdfvalue.ClientCommunication(encrypted_response)
-
     return self.DecodeMessages(response_comms)
 
   def DecompressMessageList(self, signed_message_list):
@@ -457,7 +451,7 @@ class Communicator(object):
 
     try:
       result = rdfvalue.MessageList(data)
-    except message.DecodeError:
+    except rdfvalue.DecodeError:
       raise DecodingError("RDFValue parsing failed.")
 
     return result
@@ -496,8 +490,12 @@ class Communicator(object):
 
       # Decrypt the messages
       iv = response_comms.iv or cipher.cipher.iv
-      signed_message_list = rdfvalue.SignedMessageList(
-          cipher.Decrypt(response_comms.encrypted, iv))
+
+      plain = cipher.Decrypt(response_comms.encrypted, iv)
+      try:
+        signed_message_list = rdfvalue.SignedMessageList(plain)
+      except rdfvalue.DecodeError as e:
+        raise DecryptionError(str(e))
 
       message_list = self.DecompressMessageList(signed_message_list)
 
@@ -575,7 +573,7 @@ class Communicator(object):
 
     if not cipher.cipher_metadata:
       # Fake the metadata
-      cipher.cipher_metadata = jobs_pb2.CipherMetadata(
+      cipher.cipher_metadata = rdfvalue.CipherMetadata(
           source=signed_message_list.source)
 
     return result

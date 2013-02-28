@@ -32,6 +32,7 @@ as an attribute of the AFF4 object. This module defines this abstraction.
 import posixpath
 
 from grr.lib import rdfvalue
+from grr.lib import type_info
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
@@ -210,3 +211,61 @@ class RDFPathSpec(rdfvalue.RDFProto):
       if basename: return basename
 
     return ""
+
+
+class PathTypeEnum(type_info.RDFEnum):
+  """Represent pathspec's pathtypes enum especially."""
+
+  def __init__(self, **kwargs):
+    defaults = dict(name="pathtype",
+                    description="The type of access for this path.",
+                    default=RDFPathSpec.Enum("OS"),
+                    friendly_name="Type",
+                    rdfclass=RDFPathSpec,
+                    enum_name="PathType")
+
+    defaults.update(kwargs)
+    super(PathTypeEnum, self).__init__(**defaults)
+
+  def Validate(self, value):
+    if value < 0:
+      raise ValueError("Path type must be set")
+
+    return super(PathTypeEnum, self).Validate(value)
+
+
+class PathspecType(type_info.RDFValueType):
+  """A Type for handling pathspecs."""
+
+  # These specify the child descriptors of a pathspec.
+  child_descriptor = type_info.TypeDescriptorSet(
+      type_info.String(description="Path to the file.",
+                       name="path",
+                       friendly_name="Path",
+                       default="/"),
+      PathTypeEnum())
+
+  def __init__(self, **kwargs):
+    defaults = dict(
+        default=rdfvalue.RDFPathSpec(
+            path="/",
+            pathtype=rdfvalue.RDFPathSpec.Enum("OS")),
+        name="pathspec",
+        rdfclass=rdfvalue.RDFPathSpec)
+
+    defaults.update(kwargs)
+    super(PathspecType, self).__init__(**defaults)
+
+  def GetDefault(self):
+    if not self.default:
+      return None
+    return self.default.Copy()
+
+
+class MemoryPathspecType(PathspecType):
+  child_descriptor = type_info.TypeDescriptorSet(
+      type_info.String(description="Path to the memory device file.",
+                       name="path",
+                       friendly_name="Memory device path",
+                       default=r"\\.\pmem"),
+      PathTypeEnum(default=rdfvalue.RDFPathSpec.Enum("MEMORY")))

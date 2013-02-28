@@ -1,55 +1,29 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """This is a selenium test harness used interactively with Selenium IDE."""
+
 import copy
-import os
-import socket
-import sys
 import threading
 import urllib
 from wsgiref import simple_server
 
 
+# pylint: disable=unused-import,g-bad-import-order
+from grr.gui import admin_ui
+# pylint: enable=unused-import,g-bad-import-order
 
-from django.conf import settings
 from django.core.handlers import wsgi
 
 from grr.client import conf
 from grr.client import conf as flags
 import logging
 
-from grr.lib import data_store
 
+from grr.lib import access_control
+from grr.lib import config_lib
+from grr.lib import data_store
 from grr.lib import ipshell
 from grr.lib import registry
-from grr.lib import server_plugins  # pylint: disable=W0611
 from grr.lib import test_lib
-
-
-flags.DEFINE_integer("port", 8000,
-                     "port to listen on for selenium tests.")
-
-FLAGS = flags.FLAGS
-
-DJANGO_SETTINGS = {
-    "SECRET_KEY": "TEST KEY 1234567890",         # Used for XSRF protection.
-    "ROOT_URLCONF": "grr.gui.urls",
-    "TEMPLATE_DIRS": ("grr/gui/templates",),
-    # Don't use the database for sessions, use a file.
-    "SESSION_ENGINE": "django.contrib.sessions.backends.file",
-}
 
 
 class DjangoThread(threading.Thread):
@@ -59,14 +33,15 @@ class DjangoThread(threading.Thread):
 
   def __init__(self, **kwargs):
     super(DjangoThread, self).__init__(**kwargs)
-    self.base_url = "http://%s:%d" % (socket.getfqdn(), FLAGS.port)
+    self.base_url = "http://127.0.0.1:%d" % config_lib.CONFIG["AdminUI.port"]
 
   def run(self):
     """Run the django server in a thread."""
     logging.info("Base URL is %s", self.base_url)
 
     # Make a simple reference implementation WSGI server
-    server = simple_server.make_server("0.0.0.0", FLAGS.port,
+    server = simple_server.make_server("0.0.0.0",
+                                       config_lib.CONFIG["AdminUI.port"],
                                        wsgi.WSGIHandler())
     while self.keep_running:
       server.handle_request()
@@ -80,7 +55,7 @@ class DjangoThread(threading.Thread):
 
 class RunTestsInit(registry.InitHook):
 
-  pre = ["AFF4InitHook", "ViewsInit"]
+  pre = ["AFF4InitHook"]
 
   # We cache all the AFF4 objects created by this fixture so its faster to
   # recreate it between tests.
@@ -91,7 +66,7 @@ class RunTestsInit(registry.InitHook):
     # Install the mock security manager so we can trap errors in interactive
     # mode.
     data_store.DB.security_manager = test_lib.MockSecurityManager()
-    self.token = data_store.ACLToken("Test", "Make fixtures.")
+    self.token = access_control.ACLToken("Test", "Make fixtures.")
     self.token.supervisor = True
 
     if data_store.DB.__class__.__name__ == "FakeDataStore":
@@ -122,22 +97,28 @@ class RunTestsInit(registry.InitHook):
 
 def main(_):
   """Run the main test harness."""
-  # Tests run the fake data store
-  FLAGS.storage = FLAGS.test_data_store
+  # For testing we use the test config file.
+  flags.FLAGS.config = [config_lib.CONFIG["Test.config"]]
+  registry.TestInit()
 
-  # Django does not like to be reconfigured - just ignore it.
-  try:
-    settings.configure(**DJANGO_SETTINGS)
-  except RuntimeError:
-    pass
-
-  # Load up the tests after the environment has been configured.
-  # pylint: disable=C6204,W0612
+  # Tests must be imported after django is initialized.
+  # pylint: disable=g-import-not-at-top,unused-variable
   from grr.gui.plugins import tests
+  # pylint: enable=g-import-not-at-top,unused-variable
 
-  # We cannot import plugins until we have initialized Django, and we cannot
-  # initialize Django until we have the flags. So we do this here.
-  from grr.gui import gui_plugins
-  # pylint: enable=C6204
+  # Start up a server in another thread
+  trd = DjangoThread()
+  trd.start()
+  try:
+    user_ns = dict()
+    user_ns.update(globals())
+    user_ns.update(locals())
 
-  
+    # Wait in the shell so selenium IDE can be used.
+    ipshell.IPShell(argv=[], user_ns=user_ns)
+  finally:
+    # Kill the server thread
+    trd.Stop()
+
+if __name__ == "__main__":
+  conf.StartMain(main)

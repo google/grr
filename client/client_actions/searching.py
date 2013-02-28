@@ -26,7 +26,6 @@ from grr.client import actions
 from grr.client import vfs
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 class Find(actions.IteratedAction):
@@ -185,7 +184,7 @@ class Find(actions.IteratedAction):
         return
 
     # End this iterator
-    request.iterator.state = jobs_pb2.Iterator.FINISHED
+    request.iterator.state = rdfvalue.Iterator.Enum("FINISHED")
 
 
 class Grep(actions.ActionPlugin):
@@ -334,7 +333,7 @@ class Grep(actions.ActionPlugin):
         self.SendReply(offset=base_offset + start - preamble_size,
                        data=out_data, length=len(out_data))
 
-        if args.mode == jobs_pb2.GrepRequest.FIRST_HIT:
+        if args.mode == rdfvalue.GrepSpec.Enum("FIRST_HIT"):
           return
 
         if hits >= self.HIT_LIMIT:

@@ -14,11 +14,9 @@
 
 """Tests for the client."""
 
-import tempfile
-
 
 from grr.client import conf
-from grr.client import conf as flags
+
 # Need to import client to add the flags.
 from grr.client import actions
 
@@ -29,9 +27,6 @@ from grr.client import client_actions
 from grr.client import comms
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-
-
-FLAGS = flags.FLAGS
 
 
 class MockAction(actions.ActionPlugin):
@@ -65,6 +60,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
   to_test_context = TestedContext
 
   def setUp(self):
+    super(BasicContextTests, self).setUp()
     self.context = self.to_test_context()
     self.context.LoadCertificates()
 
@@ -189,7 +185,6 @@ class BasicContextTests(test_lib.GRRBaseTest):
 
 
 def main(argv):
-  _, FLAGS.nanny_logfile = tempfile.mkstemp()
   test_lib.main(argv)
 
 if __name__ == "__main__":

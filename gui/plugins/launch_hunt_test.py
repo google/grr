@@ -2,14 +2,11 @@
 """Test of "Launch Hunt" wizard."""
 
 
-from grr.client import conf as flags
-
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-
-FLAGS = flags.FLAGS
 
 
 class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
@@ -28,7 +25,7 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
 
   @staticmethod
   def CreateHuntFixture():
-    token = data_store.ACLToken(username="test", reason="test")
+    token = access_control.ACLToken(username="test", reason="test")
 
     # Ensure that clients list is empty
     root = aff4.FACTORY.Open(aff4.ROOT_URN, token=token)
@@ -70,7 +67,7 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
     # Open up and click on View Hunts.
     sel = self.selenium
     sel.open("/")
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    self.WaitUntil(sel.is_element_present, "client_query")
     self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
     sel.click("css=a[grrtarget=ManageHunts]")
     self.WaitUntil(sel.is_element_present, "css=button[name=LaunchHunt]")
@@ -101,12 +98,12 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
     sel.click("css=.Wizard .HuntFormBody input[name=ignore_errors]")
 
     # Click on "Next" button
-    sel.click("css=.WizardBar input.Next")
+    sel.click("css=.Wizard input.Next")
     self.WaitUntil(sel.is_text_present, "Step 2. Configure Hunt Rules")
 
     # Click on "Back" button and check that all the values in the form
     # remain intact.
-    sel.click("css=.WizardBar input.Back")
+    sel.click("css=.Wizard input.Back")
     self.WaitUntil(sel.is_element_present,
                    "css=.Wizard .HuntFormBody input[name=pathspec_path]")
     self.assertEqual(
@@ -123,7 +120,7 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
         sel.is_checked("css=.Wizard .HuntFormBody input[name=ignore_errors]"))
 
     # Click on "Next" button again
-    sel.click("css=.WizardBar input.Next")
+    sel.click("css=.Wizard input.Next")
     self.WaitUntil(sel.is_text_present, "Step 2. Configure Hunt Rules")
 
     # Create 2 foreman rules
@@ -147,12 +144,12 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
              "1336650631137737")
 
     # Click on "Back" button
-    sel.click("css=.WizardBar input.Back")
+    sel.click("css=.Wizard input.Back")
     self.WaitUntil(sel.is_text_present, "Step 1. Select And Configure The Flow")
 
     # Click on "Next" button again and check that all the values that we've just
     # entered remain intact.
-    sel.click("css=.WizardBar input.Next")
+    sel.click("css=.Wizard input.Next")
     self.WaitUntil(sel.is_text_present, "Step 2. Configure Hunt Rules")
     self.WaitUntil(
         sel.is_element_present,
@@ -188,9 +185,9 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
         "1336650631137737")
 
     # Click on "Next" button
-    sel.click("css=.WizardBar input.Next")
+    sel.click("css=.Wizard input.Next")
     self.WaitUntil(sel.is_text_present,
-                   "Step 3. Review The Hunt And Test Its' Rules")
+                   "Step 3. Review The Hunt")
 
     # TODO(user): uncomment if we do accurate check for matching client.
     # self.WaitUntil(sel.is_text_present,
@@ -198,12 +195,12 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
     # self.WaitUntil(sel.is_text_present, "aff4:/C.1%015d" % 1)
 
     # Click on "Run" button
-    sel.click("css=.WizardBar input.Next")
+    sel.click("css=.Wizard input.Next")
     self.WaitUntil(sel.is_text_present, "Hunt was scheduled!")
 
     # Click on "Done" button, ensure that wizard is closed after that
-    sel.click("css=.WizardBar input.Next")
-    self.assertFalse(sel.is_text_present("Hunt was scheduled"))
+    sel.click("css=.Wizard input.Next")
+    self.WaitUntil(sel.is_text_present, "Hunt was scheduled")
     self.assertFalse(sel.is_text_present("Launch New Hunt"))
 
     # Check that the hunt object was actually created
@@ -249,7 +246,7 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
     # Open up and click on View Hunts.
     sel = self.selenium
     sel.open("/")
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    self.WaitUntil(sel.is_element_present, "client_query")
     self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
     sel.click("css=a[grrtarget=ManageHunts]")
     self.WaitUntil(sel.is_element_present, "css=button[name=LaunchHunt]")
@@ -280,7 +277,7 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
     sel.click("css=.Wizard .HuntFormBody input[name=ignore_errors]")
 
     # Click on "Next" button
-    sel.click("css=.WizardBar input.Next")
+    sel.click("css=.Wizard input.Next")
     self.WaitUntil(sel.is_text_present, "Step 2. Configure Hunt Rules")
 
     # Create 2 foreman rules
@@ -304,9 +301,9 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
              "1336650631137737")
 
     # Click on "Next" button
-    sel.click("css=.WizardBar input.Next")
+    sel.click("css=.Wizard input.Next")
     self.WaitUntil(sel.is_text_present,
-                   "Step 3. Review The Hunt And Test Its' Rules")
+                   "Step 3. Review The Hunt")
 
     # TODO(user): uncomment if we do accurate check for matching client.
     # self.WaitUntil(sel.is_text_present,
@@ -314,7 +311,7 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
     # self.WaitUntil(sel.is_text_present, "aff4:/C.1%015d" % 1)
 
     # Click on "Run" button
-    sel.click("css=.WizardBar input.Next")
+    sel.click("css=.Wizard input.Next")
 
     # This should be rejected now and a form request is made.
     self.WaitUntil(sel.is_element_present,
@@ -323,7 +320,7 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
     # This asks the user "test" (which is us) to approve the request.
     sel.type("css=input[id=acl_approver]", "test")
     sel.type("css=input[id=acl_reason]", "test reason")
-    sel.click("css=form.acl_form input[type=submit]")
+    sel.click("acl_dialog_submit")
 
     # Both the "Request Approval" dialog and the wizard should go away
     # after the submit button is pressed.

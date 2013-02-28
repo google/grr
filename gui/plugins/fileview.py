@@ -35,7 +35,7 @@ from grr.proto import sysinfo_pb2
 
 
 class StatEntryRenderer(renderers.RDFProtoRenderer):
-  """Nicely format the StatResponse proto."""
+  """Nicely format the StatEntry rdfvalue."""
   classname = "StatEntry"
   name = "Stat Entry"
 
@@ -50,6 +50,30 @@ class StatEntryRenderer(renderers.RDFProtoRenderer):
 
   translator = dict(registry_data=TranslateRegistryData,
                     registry_type=renderers.RDFProtoRenderer.Enum)
+
+
+class TaskRenderer(renderers.RDFProtoRenderer):
+  """Nicely format the deprecated Task rdfvalue."""
+  classname = "Task"
+  name = "Task"
+
+  def RenderPayload(self, _, value):
+    rdf_flow = rdfvalue.Flow(value)
+    return renderers.FindRendererForObject(rdf_flow).RawHTML()
+
+  translator = dict(value=RenderPayload)
+
+
+class GRRMessageRenderer(renderers.RDFProtoRenderer):
+  """Nicely format the GRRMessage rdfvalue."""
+  classname = "GRRMessage"
+  name = "GRRMessage"
+
+  def RenderPayload(self, _, unused_value):
+    rdf_object = self.proxy.payload
+    return renderers.FindRendererForObject(rdf_object).RawHTML()
+
+  translator = dict(args=RenderPayload)
 
 
 class CollectionRenderer(StatEntryRenderer):
@@ -160,7 +184,7 @@ class VolatilityTableRenderer(renderers.RDFProtoRenderer):
   """Formats a volatility result table."""
 
   layout_template = renderers.Template("""
-<table style="width:100%">
+<table class="full-width">
 <thead>
 <tr>
   {% for header in this.headers %}
@@ -531,7 +555,7 @@ class AgeSelector(renderers.RDFValueRenderer):
   """Allows the user to select a different version for viewing objects."""
   layout_template = renderers.Template("""
 <img src=static/images/window-duplicate.png class='grr-icon version-selector'>
-<span age='{{this.int}}'>{{this.proxy|escape}}</span>
+<span age='{{this.int}}'><nobr>{{this.proxy|escape}}</nobr></span>
 """)
 
   def Layout(self, request, response):
@@ -543,7 +567,7 @@ class AgeRenderer(AgeSelector):
   classname = "RDFDatetime"
 
   layout_template = renderers.Template("""
-<span age='{{this.int}}'>{{this.proxy|escape}}</span>
+<span age='{{this.int}}'><nobr>{{this.proxy|escape}}</nobr></span>
 """)
 
 
@@ -765,16 +789,16 @@ class FileTable(AbstractFileTable):
     super(FileTable, self).__init__(**kwargs)
 
     self.AddColumn(renderers.RDFValueColumn(
-        "Icon", renderer=renderers.IconRenderer, width=0))
+        "Icon", renderer=renderers.IconRenderer, width="40px"))
     self.AddColumn(renderers.RDFValueColumn(
-        "Name", renderer=renderers.SubjectRenderer, sortable=True))
-    self.AddColumn(renderers.AttributeColumn("type"))
-    self.AddColumn(renderers.AttributeColumn("size"))
-    self.AddColumn(renderers.AttributeColumn("stat.st_size"))
-    self.AddColumn(renderers.AttributeColumn("stat.st_mtime"))
-    self.AddColumn(renderers.AttributeColumn("stat.st_ctime"))
+        "Name", renderer=renderers.SubjectRenderer, sortable=True, width="20%"))
+    self.AddColumn(renderers.AttributeColumn("type", width="10%"))
+    self.AddColumn(renderers.AttributeColumn("size", width="10%"))
+    self.AddColumn(renderers.AttributeColumn("stat.st_size", width="15%"))
+    self.AddColumn(renderers.AttributeColumn("stat.st_mtime", width="15%"))
+    self.AddColumn(renderers.AttributeColumn("stat.st_ctime", width="15%"))
     self.AddColumn(renderers.RDFValueColumn(
-        "Age", renderer=AgeSelector))
+        "Age", renderer=AgeSelector, width="15%"))
 
   def Layout(self, request, response):
     """Populate the table state with the request."""
@@ -851,34 +875,46 @@ class Toolbar(renderers.TemplateRenderer):
   """
 
   layout_template = renderers.Template("""
-<div id="toolbar_{{unique|escape}}" class="toolbar">
-  <button id='rweowned' title='Is this machine pwned?'>
-    <img src='/static/images/stock_dialog_question.png' class='toolbar_icon'>
-  </button>
-  <div id='rweowned_dialog'></div>
-  <button id='refresh_{{unique|escape}}'
-    title='Refresh this directory listing.'>
-    <img src='/static/images/stock_refresh.png' class='toolbar_icon'>
-  </button>
-  <div id='refresh_action'></div>
 
-  {% for path, fullpath, fullpath_id, i in this.paths %}
-  <button id='path_{{i|escape}}'>{{path|escape}}</button>
-  {% endfor %}
-</div>
+<ul class="breadcrumb">
+  <li class="pull-right">
+    <button class="btn" id='refresh_{{unique|escape}}'
+      title='Refresh this directory listing.'>
+      <img src='/static/images/stock_refresh.png' class="toolbar_icon" />
+    </button>
+  </li>
+  <li class="pull-right">
+    <button class="btn" id='rweowned' title='Is this machine pwned?'>
+      <img src='/static/images/stock_dialog_question.png'
+        class="toolbar_icon" />
+    </button>
+  </li>
+{% for path, fullpath, fullpath_id, i, last in this.paths %}
+  <li {% if forloop.last %}class="active"{% endif %}>
+    {% if forloop.last %}
+      {{path|escape}}
+    {% else %}
+    <a id="path_{{i|escape}}">{{path|escape}}</a>
+    <span class="divider">&gt;</span>
+    {% endif %}
+  </li>
+{% endfor %}
+  <div class="clearfix"></div>
+</ul>
+<div id="refresh_action" class="hide"></div>
 
 <script>
-$('#refresh_{{unique|escapejs}}').button().click(function (){
-  $('#refresh_{{unique|escapejs}}').button('disable');
+$('#refresh_{{unique|escapejs}}').click(function (){
+  $('#refresh_{{unique|escapejs}}').attr('disabled', 'disabled');
   grr.layout("UpdateAttribute", "refresh_action", {
    aff4_path: "{{this.aff4_path|escapejs}}",
    attribute: "aff4:contains"
   });
 });
 
-$('#rweowned').button().click(function (){
+$('#rweowned').click(function (){
   grr.layout("RWeOwned", "rweowned_dialog");
-AttributeUpdated});
+});
 
 grr.dialog("RWeOwned", "rweowned_dialog", "rweowned", {
      width: "500px", height: "auto",
@@ -887,6 +923,7 @@ grr.dialog("RWeOwned", "rweowned_dialog", "rweowned", {
 
 // When the attribute is updated, refresh the views
 grr.subscribe("AttributeUpdated", function(path, attribute) {
+  $('#refresh_{{unique|escapejs}}').attr('disabled', null);
   if (attribute == "aff4:contains") {
     // Update the table
     grr.publish("tree_select", path);
@@ -895,7 +932,7 @@ grr.subscribe("AttributeUpdated", function(path, attribute) {
 }, 'refresh_{{unique|escapejs}}');
 
 {% for path, fullpath, fullpath_id, i in this.paths %}
-$('#path_{{i|escapejs}}').button().click(function () {
+$('#path_{{i|escapejs}}').click(function () {
    grr.publish("tree_select", "{{ fullpath|escapejs }}");
    grr.publish("file_select", "{{ fullpath|escapejs }}");
    grr.publish("hash_state", "t", "{{ fullpath_id|escapejs }}");
@@ -998,10 +1035,10 @@ window.setTimeout(function () {
 
     # Check if the flow is still in flight.
     try:
-      switch = aff4.FACTORY.Open(aff4.FLOW_SWITCH_URN, token=request.token)
-      flow_obj = switch.OpenMember(self.flow_urn)
-      flow_pb = flow_obj.Get(flow_obj.Schema.FLOW_PB)
-      if flow_pb and flow_pb.state != rdfvalue.Flow.Enum("RUNNING"):
+      flow_obj = aff4.FACTORY.Open(self.flow_urn, token=request.token)
+      rdf_flow = flow_obj.Get(flow_obj.Schema.RDF_FLOW)
+      if (rdf_flow and rdf_flow.payload and
+          rdf_flow.payload.state != rdfvalue.Flow.Enum("RUNNING")):
         complete = True
     except IOError:
       # Something went wrong, stop polling.
@@ -1066,8 +1103,8 @@ class DownloadView(renderers.TemplateRenderer):
   max_execution_time = 60 * 15
 
   layout_template = renderers.Template("""
-<h1>{{ this.path|escape }}</h1>
-<div id="{{ unique|escape }}_action"></div>
+<h3>{{ this.path|escape }}</h3>
+<div id="{{ unique|escape }}_action" class="hide"></div>
 {% if this.hash %}
 Hash was {{ this.hash|escape }}.
 {% endif %}
@@ -1075,20 +1112,20 @@ Hash was {{ this.hash|escape }}.
 {% if this.file_exists %}
 As downloaded on {{ this.age|escape }}.<br>
 <p>
-<button id="{{ unique|escape }}_2">
+<button id="{{ unique|escape }}_2" class="btn">
  Download ({{this.size|escape}} bytes)
 </button>
 </p>
 {% endif %}
 
-<button id="{{ unique|escape }}">Get a new Version</button>
+<button id="{{ unique|escape }}" class="btn">Get a new Version</button>
 </div>
 <script>
   var button = $("#{{ unique|escapejs }}").button();
   var download_button = $("#{{ unique|escapejs }}_2").button();
 
   button.click(function () {
-    $('#{{unique|escapejs}}').button('disable');
+    $('#{{unique|escapejs}}').attr('disabled', 'disabled');
     grr.layout("UpdateAttribute", "{{unique|escapejs}}_action", {
       attribute: 'aff4:content',
       aff4_type: 'VFSFile',
@@ -1114,7 +1151,7 @@ As downloaded on {{ this.age|escape }}.<br>
   var state = {aff4_path: '{{this.aff4_path|escapejs}}',
                reason: '{{this.token.reason|escapejs}}',
                client_id: grr.state.client_id,
-               age: '{{this.age.value|escapejs}}'
+               age: '{{this.age_int|escapejs}}'
               }
   grr.downloadHandler(download_button, state, false,
                       '/render/Download/DownloadView');
@@ -1132,6 +1169,7 @@ As downloaded on {{ this.age|escape }}.<br>
     self.client_id = request.REQ.get("client_id")
     self.aff4_path = request.REQ.get("aff4_path", self.client_id)
     self.age = rdfvalue.RDFDatetime(request.REQ.get("age"))
+    self.age_int = int(self.age)
     self.token = request.token
 
     try:
@@ -1203,7 +1241,7 @@ class UploadView(renderers.TemplateRenderer):
 <form id="{{unique|escape}}_form" enctype="multipart/form-data">
 <input id="{{ unique|escape }}_file" type="file" name="uploadFile" />
 </form>
-<button id="{{ unique|escape }}_button">Upload</button>
+<button class="btn" id="{{ unique|escape }}_button">Upload</button>
 <br/><br/>
 <div id="{{ unique|escape }}_upload_results"/>
 <div id="{{ unique|escape }}_upload_progress"/>
@@ -1295,14 +1333,23 @@ class AFF4Stats(renderers.TemplateRenderer):
   filtered_attributes = None
 
   layout_template = renderers.Template("""
+<div class="container-fluid">
+<div class="row-fluid">
+
 <div id="{{unique|escape}}" class="{{this.css_class}}">
 <h3>{{ this.path|escape }} @ {{this.age|escape}}</h3>
-<table id='{{ unique|escape }}' class="display">
+<table id='{{ unique|escape }}'
+  class="table table-condensed table-bordered table-fullwidth fixed-columns">
+<colgroup>
+  <col style="width: 20ex" />
+  <col style="width: 100%" />
+  <col style="width: 20ex" />
+</colgroup>
 <thead>
 <tr>
-  <th class="ui-state-default" style="width: 20ex">Attribute</th>
+  <th class="ui-state-default">Attribute</th>
   <th class="ui-state-default">Value</th>
-  <th class="ui-state-default" style="width: 20ex">Age</th>
+  <th class="ui-state-default">Age</th>
 </tr>
 </thead>
 <tbody>
@@ -1321,7 +1368,7 @@ class AFF4Stats(renderers.TemplateRenderer):
    <td>
      <div class="default_view">{{ value|safe }}</div>
      <div id="content_{{unique|escape}}_{{attribute|escape}}"
-     class="historical_view"></div>
+       class="historical_view"></div>
    </td>
    <td><div class='non-breaking'>{{ age|escape }}</div></td>
  </tr>
@@ -1330,6 +1377,10 @@ class AFF4Stats(renderers.TemplateRenderer):
 </tbody>
 </table>
 </div>
+
+</div>
+</div>
+
 <script>
 $('.attribute_opener').click(function () {
   var jthis = $(this);
@@ -1494,11 +1545,12 @@ class FileViewTabs(renderers.TabLayout):
   layout_template = renderers.TabLayout.layout_template + """
 <script>
 // Disable the tabs which need to be disabled.
-$("li a").addClass("ui-state-enabled").removeClass("ui-state-disabled");
+$("li").removeClass("disabled");
+$("li a").removeClass("disabled");
 
 {% for disabled in this.disabled %}
-$("li a[renderer={{disabled|escapejs}}]").removeClass(
-   "ui-state-enabled").addClass("ui-state-disabled");
+$("li[renderer={{disabled|escapejs}}]").addClass("disabled");
+$("li a[renderer={{disabled|escapejs}}]").addClass("disabled");
 {% endfor %}
 </script>
 """

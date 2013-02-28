@@ -18,17 +18,13 @@
 
 
 
-from grr.client import conf as flags
-
 from grr.client import vfs
+
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
-from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-
-FLAGS = flags.FLAGS
-CONFIG = config_lib.CONFIG
 
 
 class TestTimelineView(test_lib.GRRSeleniumTest):
@@ -40,11 +36,10 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     # Create a client for testing
     client_id = "C.0000000000000001"
 
-    token = data_store.ACLToken("test", "fixture")
+    token = access_control.ACLToken("test", "fixture")
 
     fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=token)
-    fd.Set(fd.Schema.CERT, aff4.FACTORY.RDFValue("RDFX509Cert")(
-        CONFIG["Test.Test_Client_Cert"]))
+    fd.Set(fd.Schema.CERT(config_lib.CONFIG["Client.certificate"]))
     fd.Close()
 
     # Install the mock
@@ -77,9 +72,9 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     # Open the main page
     sel.open("/")
 
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
-    sel.type("css=input[name=q]", "0001")
-    sel.click("css=input[type=submit]")
+    self.WaitUntil(sel.is_element_present, "client_query")
+    sel.type("client_query", "0001")
+    sel.click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",
                         sel.get_text, "css=span[type=subject]")
@@ -108,7 +103,7 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
 
     sel.click("css=a:contains(\"View details\")")
 
-    self.WaitUntilContains("Filter Expression", sel.get_text, "id=toolbar_main")
+    self.WaitUntil(sel.is_element_present, "container_query")
 
     sel.type("css=input#container_query",
              "subject contains bash and timestamp > 2010")
@@ -116,7 +111,7 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     # Use the hidden submit button to issue the query. Ordinarily users have to
     # press enter here as they do not see the submit button. But pressing enter
     # does not work with chrome.
-    sel.click("css=form:contains('Filter') input[type=submit]")
+    sel.click("css=#toolbar_main form[name=query_form] button[type=submit]")
 
     self.WaitUntilContains("2011-03-07 12:50:20",
                            sel.get_text, "css=tbody tr:first")
@@ -124,7 +119,7 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     sel.click("css=tbody tr:first td")
 
     self.WaitUntilContains("2011-03-07 12:50:20", sel.get_text,
-                           "css=h3")
+                           "css=.tab-content h3")
 
     # Check that the embedded stat proto is properly presented
     self.assertTrue("2011-03-07 12:50:20" in sel.get_text(

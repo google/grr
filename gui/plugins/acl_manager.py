@@ -18,6 +18,7 @@
 from grr.gui import renderers
 from grr.gui.plugins import fileview
 from grr.gui.plugins import hunt_view
+
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
@@ -30,18 +31,32 @@ class ACLDialog(renderers.TemplateRenderer):
   """Render the ACL dialogbox."""
 
   layout_template = renderers.Template("""
-<div id="acl_dialog" title="Authorization Required">
- <h1>Authorization Required</h1>
+<div id="acl_dialog" class="modal hide fade" tabindex="-1" role="dialog"
+  aria-hidden="true">
 
- The server requires authorization to access this resource.
- <div id="acl_server_message"></div>
- <div id="acl_form"></div>
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+      x
+    </button>
+    <h3>Authorization Required</h3>
+  </div>
+  <div class="modal-body">
+    <p class="text-info">The server requires authorization to access this
+      resource.</p>
+    <blockquote id="acl_server_message"></blockquote>
+    <div id="acl_form"></div>
+  </div>
+  <div class="modal-footer">
+    <button id="acl_dialog_submit" class="btn btn-success">Submit</button>
+    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+  </div>
+
 </div>
 
 <script>
-$( "#acl_dialog" ).dialog({
-  modal: true
-}).dialog('close');
+$("#acl_dialog_submit").click(function (event) {
+  $("#acl_form form").submit();
+});
 
 grr.subscribe("unauthorized", function(subject, message) {
   $("#acl_server_message").text(message);
@@ -122,7 +137,8 @@ class HuntApprovalDetailsRenderer(hunt_view.HuntOverviewRenderer):
 
   def Layout(self, request, response):
     acl = request.REQ.get("acl", "")
-    _, _, self.hunt_id, _ = rdfvalue.RDFURN(acl).Split(4)
+    _, _, hunt_id, _ = rdfvalue.RDFURN(acl).Split(4)
+    self.hunt_id = aff4.ROOT_URN.Add("hunts").Add(hunt_id)
     self.allow_run = False
     return super(HuntApprovalDetailsRenderer, self).Layout(request, response)
 
@@ -137,19 +153,20 @@ class GrantAccess(fileview.HostInformation):
   behaviours = frozenset([])
 
   layout_template = renderers.Template("""
-<div id="{{unique|escape}}_container" class="TableBody">
- <h1> Grant Access for GRR Use.</h1>
+<div id="{{unique|escape}}_container" class="fill-parent">
+  <h2> Grant Access for GRR Use.</h2>
 
- The user {{this.user|escape}} has requested you to grant them access based on:
- <div class="proto_value">
-  {{this.reason|escape}}
- </div>
+  <p>The user <strong>{{this.user|escape}}</strong> has requested you to grant
+    them access based on:</p>
+  <blockquote>
+    {{this.reason|escape}}
+  </blockquote>
+  <p>Details:</p>
+  <div id="details_{{unique|escape}}" class="well"></div>
 
- <button id="{{unique|escape}}_approve" class="grr-button grr-button-red">
-   Approve
- </button>
- <br/><hr/><br/>
- <div id="details_{{unique|escape}}"></div>
+  <button id="{{unique|escape}}_approve" class="btn btn-success">
+    Approve
+  </button>
 </div>
 
 <script>
@@ -202,11 +219,13 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
     elif aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(namespace):
       self.details_renderer = "ClientApprovalDetailsRenderer"
     else:
-      raise data_store.UnauthorizedAccess("Approval object is not well formed.")
+      raise access_control.UnauthorizedAccess(
+          "Approval object is not well formed.")
 
     approval_request = aff4.FACTORY.Open(approval_urn, mode="r",
                                          token=request.token)
 
+    self.user = request.token.username
     self.reason = approval_request.Get(approval_request.Schema.REASON)
     return renderers.TemplateRenderer.Layout(self, request, response)
 
@@ -236,14 +255,14 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
         self.user = user
         self.reason = utils.DecodeReasonString(reason)
       except (ValueError, TypeError):
-        raise data_store.UnauthorizedAccess(
+        raise access_control.UnauthorizedAccess(
             "Approval object is not well formed.")
 
       flow.FACTORY.StartFlow(client_id, "GrantClientApprovalFlow",
                              reason=self.reason, delegate=self.user,
                              token=request.token)
     else:
-      raise data_store.UnauthorizedAccess(
+      raise access_control.UnauthorizedAccess(
           "Approval object is not well formed.")
 
     return renderers.TemplateRenderer.Layout(self, request, response,
@@ -256,27 +275,32 @@ class CheckAccess(renderers.TemplateRenderer):
   # Allow the user to request access to the client.
   layout_template = renderers.Template("""
 {% if this.error %}
-Existing authorization request ({{this.reason|escape}}) failed:
-<p>
+<p class="text-info">Existing authorization request ({{this.reason|escape}})
+  failed:</p>
+<blockquote>
 {{this.error|escape}}
-</p>
+</blockquote>
 {% endif %}
 <h3>Create a new approval request.</h3>
-<form id="acl_form_{{unique|escape}}" class="acl_form">
- <table>
-  <tr>
-   <td>
-    Approvers (comma separated)</td><td><input type=text id="acl_approver" />
-   </td>
-  </tr>
-  <tr>
-   <td>Reason</td><td><input type=text id="acl_reason" /></td>
-  </tr>
- </table>
- <input type=submit>
+<form id="acl_form_{{unique|escape}}" class="form-horizontal acl-form">
+  <div class="control-group">
+    <label class="control-label" for="acl_approver">Approvers</label>
+    <div class="controls">
+      <input type="text" id="acl_approver"
+        placeholder="approver1,approver2,approver3" />
+    </div>
+  </div>
+  <div class="control-group">
+    <label class="control-label" for="acl_reason">Reason</label>
+    <div class="controls">
+      <input type=text id="acl_reason" />
+    </div>
+  </div>
 </form>
 
 <script>
+(function() {
+
 $("#acl_form_{{unique|escapejs}}").submit(function (event) {
   var state = {
     subject: "{{this.subject|escapejs}}",
@@ -293,8 +317,28 @@ $("#acl_form_{{unique|escapejs}}").submit(function (event) {
   event.preventDefault();
 });
 
+if ($("#acl_dialog[aria-hidden=false]").size() == 0) {
+
+$("#acl_dialog").detach().appendTo('body');
+
+// TODO(mbushkov): cleanup a bit. We use update_on_show attribute in
+// LaunchHunts wizard to avoid reloading the modal when it's hidden and shown
+// again because ACL dialog interrupted the UI flow.
+var openedModal = $(".modal[aria-hidden=false]");
+openedModal.attr("update_on_show", "false");
+openedModal.modal("hide");
+
+var returnModalHandler = function () {
+  openedModal.modal("show");
+  $("#acl_dialog").off("hidden", returnModalHandler);
+};
+$("#acl_dialog").on("hidden", returnModalHandler);
+
 // Allow the user to request access through the dialog.
-$("#acl_dialog").dialog('open');
+$("#acl_dialog").modal('toggle');
+}
+
+})();
 </script>
 """)
 
@@ -321,9 +365,9 @@ Authorization request ({{this.reason|escape}}) failed:
   def CheckObjectAccess(self, namespace, object_name, token):
     """Check if the user has access to the specified hunt."""
     try:
-      approved_token = access_control.GetApprovalForObject(
+      approved_token = aff4.Approval.GetApprovalForObject(
           namespace, object_name, token=token)
-    except data_store.UnauthorizedAccess as e:
+    except access_control.UnauthorizedAccess as e:
       self.error = e
       approved_token = None
 

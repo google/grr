@@ -7,17 +7,17 @@
 import StringIO
 
 from google.protobuf import message
-from grr.client import conf as flags
+import logging
 
 from grr.gui import renderers
 from grr.gui.plugins import fileview
+
+from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import data_store
+from grr.lib import config_lib
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import registry
-
-FLAGS = flags.FLAGS
 
 
 class ConfigManager(renderers.TemplateRenderer):
@@ -27,28 +27,58 @@ class ConfigManager(renderers.TemplateRenderer):
   behaviours = frozenset(["Configuration"])
 
   layout_template = renderers.Template("""
+<div class="container-fluid">
+<div class="row-fluid">
+
 <h2>Configuration</h2>
 <p>This is a read-only view of the frontend configuration.</p>
-<table style="border-spacing: 10px 2px;">
-{% for f in this.flags %}
-  <tr><td>{{ f.name|escape }}</td>
-      <td>{{ f.type|escape }}</td>
-  {% if f.name in this.banned_flags %}
-      <td>&lt;REDACTED&gt;</td>
-  {% else %}
-      <td>{{ f.value|escape }}</td>
-  {% endif %}
-{% empty %}
-  <tr><td>Could not retrieve configuration.</td></tr>
+<table class="table table-condensed table-bordered table-striped full-width">
+<colgroup>
+  <col style="width: 30%" />
+  <col style="width: 10%" />
+  <col style="width: 60%" />
+</colgroup>
+
+<tbody class="TableBody">
+{% for section, data in this.sections %}
+  <tr><td colspan=3>{{ section|escape }}</td></tr>
+  {% for key, value, interpolated in data %}
+  <tr><td>{{ key|escape }}</td>
+      <td>{{ value|escape }}</td>
+      <td>{{ interpolated|escape }}</td>
+  </tr>
+   {% endfor %}
 {% endfor %}
+</tbody>
 <table>
 """)
 
-  banned_flags = ["django_secret_key"]
+  redacted_options = ["django_secret_key"]
+  redacted_sections = ["PrivateKeys"]
 
   def Layout(self, request, response):
     """Fill in the form with the specific fields for the flow requested."""
-    self.flags = sorted(flags.PARSER.FlagDict().values())
+
+    def IsBadSection(section):
+      for bad_section in self.redacted_sections:
+        if section.lower().startswith(bad_section.lower()):
+          return True
+
+    self.sections = []
+    for section, data in config_lib.CONFIG.raw_data.items():
+      info = []
+      is_bad_section = IsBadSection(section)
+      self.sections.append((section, info))
+      for key, value in data.items():
+        try:
+          if key in self.redacted_options or is_bad_section:
+            option_value = value = "<REDACTED>"
+          else:
+            option_value = config_lib.CONFIG["%s.%s" % (section, key)]
+          info.append((key, value, option_value))
+
+        except config_lib.Error as e:
+          logging.info("Bad config option in ConfigManager View %s", e)
 
     return super(ConfigManager, self).Layout(request, response)
 
@@ -118,13 +148,13 @@ class ConfigFileTable(fileview.AbstractFileTable):
     super(ConfigFileTable, self).__init__(**kwargs)
 
     self.AddColumn(renderers.RDFValueColumn(
-        "Icon", renderer=renderers.IconRenderer, width=0))
+        "Icon", renderer=renderers.IconRenderer, width="40px"))
     self.AddColumn(renderers.RDFValueColumn(
-        "Name", renderer=renderers.SubjectRenderer, sortable=True))
-    self.AddColumn(renderers.AttributeColumn("type"))
-    self.AddColumn(ConfigDescriptionColumn())
+        "Name", renderer=renderers.SubjectRenderer, sortable=True, width="25%"))
+    self.AddColumn(renderers.AttributeColumn("type", width="25%"))
+    self.AddColumn(ConfigDescriptionColumn(width="25%"))
     self.AddColumn(renderers.RDFValueColumn(
-        "Age", renderer=fileview.AgeSelector))
+        "Age", renderer=fileview.AgeSelector, width="25%"))
 
 
 class ConfigDescriptionColumn(renderers.AttributeColumn):
@@ -157,14 +187,31 @@ class ConfigFileTableToolbar(renderers.TemplateRenderer):
   event_queue = "file_select"
 
   layout_template = renderers.Template("""
-<div id='toolbar_{{unique|escape}}'' class='toolbar'>
-  <button id='{{unique|escape}}_upload' title='Upload Binary'>
-    <img src='/static/images/upload.png' class='toolbar_icon'>
-  </button>
-  <button id='{{unique|escape}}_download' title='Download Binary'>
-    <img src='/static/images/download.png' class='toolbar_icon'>
-  </button>
-  <div id='{{unique|escape}}_upload_dialog'/>
+<ul id="toolbar_{{unique|escape}}" class="breadcrumb">
+  <li>
+    <button id='{{unique|escape}}_upload' class="btn" title='Upload Binary'
+      data-toggle="modal" data-target="#upload_dialog_{{unique|escape}}">
+      <img src='/static/images/upload.png' class='toolbar_icon'>
+    </button>
+  </li>
+  <li>
+    <button id='{{unique|escape}}_download' title='Download Binary' class="btn">
+      <img src='/static/images/download.png' class='toolbar_icon'>
+    </button>
+  </li>
+</ul>
+
+<div id="upload_dialog_{{unique|escape}}" class="modal hide fade" tabindex="-1"
+  role="dialog" aria-hidden="true">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+      x</button>
+    <h3>Upload File</h3>
+  </div>
+  <div class="modal-body" id="upload_dialog_body_{{unique|escape}}"></div>
+  <div class="modal-footer">
+    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+  </div>
 </div>
 
 <script>
@@ -174,9 +221,10 @@ grr.subscribe('file_select', function(aff4_path, age) {
                       safe_extension=true, '/render/Download/DownloadView');
 }, 'toolbar_{{unique|escapejs}}');
 
-grr.dialog('ConfigBinaryUploadView', '{{unique|escapejs}}_upload_dialog',
-           '{{unique|escapejs}}_upload',
-           { width: '600px', height: 'auto', title: 'Upload file'});
+$("#upload_dialog_{{unique|escapejs}}").on("show", function () {
+  grr.layout("ConfigBinaryUploadView",
+    "upload_dialog_body_{{unique|escapejs}}");
+});
 
 </script>
 """)
@@ -244,5 +292,5 @@ class ConfigurationViewInitHook(registry.InitHook):
 
   def Run(self):
     """Create the necessary directories."""
-    token = data_store.ACLToken("system", "Init")
+    token = access_control.ACLToken("system", "Init")
     maintenance_utils.CreateBinaryConfigPaths(token=token)

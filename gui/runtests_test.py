@@ -14,10 +14,6 @@
 
 """This is a selenium test harness."""
 import socket
-import sys
-
-
-from django.conf import settings
 
 
 from grr.client import conf
@@ -25,14 +21,13 @@ from grr.client import conf as flags
 import selenium
 
 from grr.gui import runtests
-from grr.gui import webauth
+from grr.lib import config_lib
 from grr.lib import registry
 from grr.lib import test_lib
 
-flags.DEFINE_integer("selenium_port", 4444,
-                    help="Port for local selenium server.")
 
-FLAGS = flags.FLAGS
+config_lib.DEFINE_integer("Test.selenium_port", 4444,
+                          "Port for local selenium server.")
 
 
 class SeleniumTestLoader(test_lib.GRRTestLoader):
@@ -53,10 +48,13 @@ class SeleniumTestProgram(test_lib.GrrTestProgram):
   def SetupSelenium(self):
     # This is very expensive to start up - we make it a class attribute so it
     # can be shared with all the classes.
-    test_lib.GRRSeleniumTest.selenium = selenium.selenium("localhost", FLAGS.selenium_port,
-                                      "*googlechrome", "http://localhost:%s/" % FLAGS.port)
+    test_lib.GRRSeleniumTest.selenium = selenium.selenium(
+        "localhost", config_lib.CONFIG["Test.selenium_port"],
+        "*googlechrome",
+        "http://localhost:%s/" % config_lib.CONFIG["AdminUI.port"])
 
     test_lib.GRRSeleniumTest.selenium.start()
+
 
   def TearDownSelenium(self):
     """Tear down the selenium session."""
@@ -64,7 +62,25 @@ class SeleniumTestProgram(test_lib.GrrTestProgram):
 
 
 def main(argv):
-  # Tests run the fake data store
-  FLAGS.storage = "FakeDataStore"
+  # For testing we use the test config file.
+  flags.FLAGS.config = config_lib.CONFIG["Test.config"]
+  registry.TestInit()
 
-  
+
+  # Load up the tests after the environment has been configured.
+  # pylint: disable=C6204,W0612
+  from grr.gui.plugins import tests
+  # pylint: enable=C6204
+
+  # Start up a server in another thread
+  trd = runtests.DjangoThread()
+  trd.start()
+
+  # Run the full test suite
+  try:
+    SeleniumTestProgram(argv=argv)
+  finally:
+    trd.Stop()
+
+if __name__ == "__main__":
+  conf.StartMain(main)

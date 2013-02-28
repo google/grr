@@ -26,7 +26,6 @@ import stat
 import psutil
 
 from grr.client import conf
-from grr.client import conf as flags
 
 # Populate the action registry
 # pylint: disable=W0611
@@ -42,9 +41,7 @@ from grr.lib import registry
 from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
-FLAGS = flags.FLAGS
 
 # pylint: disable=C6409
 
@@ -272,12 +269,13 @@ class ActionTest(test_lib.EmptyActionTest):
     def MockSendReply(unused_self, reply=None, **kwargs):
       results.append(reply or rdfvalue.LogMessage(**kwargs))
 
-    message = jobs_pb2.GrrMessage(name="ProgressAction", cpu_limit=3600)
+    message = rdfvalue.GRRMessage(name="ProgressAction", cpu_limit=3600)
 
     old_proc = psutil.Process
     psutil.Process = FakeProcess
     try:
       action_cls = actions.ActionPlugin.classes[message.name]
+      old_sendreply = action_cls.SendReply
       action_cls.SendReply = MockSendReply
       action_cls._authentication_required = False
       action = action_cls(message=message, grr_worker=MockWorker())
@@ -291,6 +289,7 @@ class ActionTest(test_lib.EmptyActionTest):
       self.assertEqual(received_messages[0], "Cpu limit exceeded.")
     finally:
       psutil.Process = old_proc
+      action_cls.SendReply = old_sendreply
 
 
 class ActionTestLoader(test_lib.GRRTestLoader):

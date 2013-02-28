@@ -22,11 +22,8 @@ import os
 import pytz
 
 from grr.client import conf
-from grr.client import conf as flags
 from grr.lib import test_lib
 from grr.parsers import linux_log_parser
-
-FLAGS = flags.FLAGS
 
 
 # We are intentionally not implementing the class correctly.
@@ -41,10 +38,6 @@ class NewImplementation(linux_log_parser.LogParser):
 
 class LinuxLogParserTest(test_lib.GRRBaseTest):
   """Test parsing of linux log files."""
-
-  def setUp(self):
-    self.base_path = os.path.join(FLAGS.test_srcdir,
-                                  'grr/test_data')
 
   def ReturnLines(self, module, filename):
     """Return the lines of output from a parsed file.

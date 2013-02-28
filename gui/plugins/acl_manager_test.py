@@ -17,16 +17,11 @@
 """Tests the access control authorization workflow."""
 
 
-from grr.client import conf as flags
-
-from grr.lib import data_store
+from grr.lib import access_control
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-
-
-FLAGS = flags.FLAGS
 
 
 class TestACLWorkflow(test_lib.GRRSeleniumTest):
@@ -63,9 +58,9 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     sel = self.selenium
     sel.open("/")
 
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
-    sel.type("css=input[name=q]", "0001")
-    sel.click("css=input[type=submit]")
+    self.WaitUntil(sel.is_element_present, "client_query")
+    sel.type("client_query", "0001")
+    sel.click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",
                         sel.get_text, "css=span[type=subject]")
@@ -80,7 +75,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # This asks the user "test" (which is us) to approve the request.
     sel.type("css=input[id=acl_approver]", "test")
     sel.type("css=input[id=acl_reason]", self.reason)
-    sel.click("css=form.acl_form input[type=submit]")
+    sel.click("acl_dialog_submit")
 
     # User test logs in as an approver.
     sel.open("/")
@@ -92,13 +87,13 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     sel.click("css=td:contains('grant access')")
 
     self.WaitUntilContains("Grant Access for GRR Use",
-                           sel.get_text, "css=h1:contains('Grant')")
+                           sel.get_text, "css=h2:contains('Grant')")
+    self.WaitUntil(sel.is_text_present, "The user test has requested")
 
     sel.click("css=button:contains('Approve')")
 
-    self.WaitUntilContains(
-        "You have granted access for C.0000000000000001 to test",
-        sel.get_text, "css=div.TableBody")
+    self.WaitUntil(sel.is_text_present,
+                   "You have granted access for C.0000000000000001 to test")
 
     # Now test starts up
     sel.open("/")
@@ -117,7 +112,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
                            sel.get_text, "css=div#acl_form")
 
     # Lets add another approver.
-    token = data_store.ACLToken(username="approver")
+    token = access_control.ACLToken(username="approver")
     flow.FACTORY.StartFlow("C.0000000000000001", "GrantClientApprovalFlow",
                            reason=self.reason, delegate="test",
                            token=token)
@@ -147,7 +142,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Open up and click on View Hunts.
     sel = self.selenium
     sel.open("/")
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    self.WaitUntil(sel.is_element_present, "client_query")
     self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
     sel.click("css=a[grrtarget=ManageHunts]")
     self.WaitUntil(sel.is_text_present, "SampleHunt")
@@ -165,7 +160,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # This asks the user "test" (which is us) to approve the request.
     sel.type("css=input[id=acl_approver]", "test")
     sel.type("css=input[id=acl_reason]", self.reason)
-    sel.click("css=form.acl_form input[type=submit]")
+    sel.click("acl_dialog_submit")
 
     # "Request Approval" dialog should go away
     self.WaitUntil(lambda x: not sel.is_element_present(x),
@@ -181,12 +176,18 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     sel.click("css=td:contains('grant permission to run a hunt')")
 
     self.WaitUntilContains("Grant Access for GRR Use",
-                           sel.get_text, "css=h1:contains('Grant')")
+                           sel.get_text, "css=h2:contains('Grant')")
+    self.WaitUntil(sel.is_text_present, "The user test has requested")
+
+    # Hunt overview should be visible
+    self.WaitUntil(sel.is_text_present, "SampleHunt")
+    self.WaitUntil(sel.is_text_present, "Hunt ID")
+    self.WaitUntil(sel.is_text_present, "Hunt URN")
+    self.WaitUntil(sel.is_text_present, "Client Count")
 
     sel.click("css=button:contains('Approve')")
-    self.WaitUntilContains(
-        "You have granted access for %s to test" % hunt.session_id,
-        sel.get_text, "css=div.TableBody")
+    self.WaitUntil(sel.is_text_present,
+                   "You have granted access for %s to test" % hunt.session_id)
 
     # Now test starts up
     sel.open("/")
@@ -197,17 +198,10 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     sel.click("notification_button")
     self.WaitUntil(sel.get_text,
                    "css=td:contains('has approved your permission')")
+    sel.click("css=tr:contains('has approved your permission') a")
 
-    # TODO(user): link in notification area doesn't bring us to a hunt view.
-    # We have to go through "Hunt Viewer" again.
-    sel.open("/")
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
-    self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
-    sel.click("css=a[grrtarget=ManageHunts]")
+    # Run SampleHunt (it should be selected by default).
     self.WaitUntil(sel.is_text_present, "SampleHunt")
-
-    # Select and run SampleHunt.
-    sel.click("css=td:contains('SampleHunt')")
     self.WaitUntil(sel.is_text_present, "Run Hunt")
     sel.click("css=a[name=RunHunt]")
 
@@ -216,7 +210,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
                            sel.get_text, "css=div#acl_form")
 
     # Lets add another approver.
-    token = data_store.ACLToken(username="approver")
+    token = access_control.ACLToken(username="approver")
     flow.FACTORY.StartFlow(None, "GrantHuntApprovalFlow",
                            hunt_urn=hunt.session_id, reason=self.reason,
                            delegate="test",
@@ -231,18 +225,12 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     sel.click("notification_button")
     self.WaitUntil(sel.get_text,
                    "css=td:contains('has approved your permission')")
+    sel.click("css=tr:contains('has approved your permission') a")
 
-    # TODO(user): link in notification area doesn't bring us to a hunt view.
-    # We have to go through "Hunt Viewer" again.
-    sel.open("/")
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
-    self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
-    sel.click("css=a[grrtarget=ManageHunts]")
     self.WaitUntil(sel.is_text_present, "SampleHunt")
-
-    # Select and run SampleHunt.
-    sel.click("css=td:contains('SampleHunt')")
     self.WaitUntil(sel.is_text_present, "Run Hunt")
+
+    # Run SampleHunt (it should be selected by default).
     sel.click("css=a[name=RunHunt]")
 
     # This is still insufficient - one of the approvers should have
@@ -255,7 +243,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # And try again
     sel.open("/")
-    self.WaitUntil(sel.is_element_present, "css=input[name=q]")
+    self.WaitUntil(sel.is_element_present, "client_query")
     self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
     sel.click("css=a[grrtarget=ManageHunts]")
     self.WaitUntil(sel.is_text_present, "SampleHunt")

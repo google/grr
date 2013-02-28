@@ -1,17 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """An LL(1) lexer. This lexer is very tolerant of errors and can resync."""
 
 import logging
@@ -23,6 +10,8 @@ from grr.lib import utils
 
 class Token(object):
   """A token action."""
+
+  state_regex = None
 
   def __init__(self, state_regex, regex, actions, next_state, flags=re.I):
     """Constructor.
@@ -36,9 +25,11 @@ class Token(object):
       next_state: The next state we transition to if this Token matches.
       flags: re flags.
     """
-    self.state_regex = re.compile(state_regex, re.DOTALL | re.M | re.S | re.U |
-                                  flags)
+    if state_regex:
+      self.state_regex = re.compile(state_regex,
+                                    re.DOTALL | re.M | re.S | re.U | flags)
     self.regex = re.compile(regex, re.DOTALL | re.M | re.S | re.U | flags)
+
     self.re_str = regex
     self.actions = []
     if actions:
@@ -87,16 +78,19 @@ class Lexer(object):
     current_state = self.state
     for token in self.tokens:
       # Does the rule apply to us?
-      if not token.state_regex.match(current_state): continue
+      if token.state_regex and not token.state_regex.match(current_state):
+        continue
 
-      logging.debug("%s: Trying to match %r with %r",
-                    self.state, self.buffer[:10], token.re_str)
+      if self.verbose:
+        logging.debug("%s: Trying to match %r with %r",
+                      self.state, self.buffer[:10], token.re_str)
 
       # Try to match the rule
       m = token.regex.match(self.buffer)
       if not m: continue
 
-      logging.debug("%s matched %s", token.re_str, m.group(0))
+      if self.verbose:
+        logging.debug("%s matched %s", token.re_str, m.group(0))
 
       # The match consumes the data off the buffer (the handler can put it back
       # if it likes)
@@ -106,8 +100,9 @@ class Lexer(object):
 
       next_state = token.next_state
       for action in token.actions:
+        if self.verbose:
+          logging.debug("Calling %s with %s", action, m.group(0))
 
-        logging.debug("Calling %s with %s", action, m.group(0))
         # Is there a callback to handle this action?
         cb = getattr(self, action, self.Default)
 
@@ -151,14 +146,16 @@ class Lexer(object):
 
   def PushState(self, **_):
     """Push the current state on the state stack."""
-    logging.debug("Storing state %r", self.state)
+    if self.verbose:
+      logging.debug("Storing state %r", self.state)
     self.state_stack.append(self.state)
 
   def PopState(self, **_):
     """Pop the previous state from the stack."""
     try:
       self.state = self.state_stack.pop()
-      logging.debug("Returned state to %s", self.state)
+      if self.verbose:
+        logging.debug("Returned state to %s", self.state)
 
       return self.state
     except IndexError:
@@ -313,6 +310,7 @@ class SearchParser(Lexer):
 
   expression_cls = Expression
   binary_expression_cls = BinaryExpression
+  identity_expression_cls = IdentityExpression
 
   tokens = [
       # Double quoted string
@@ -327,15 +325,16 @@ class SearchParser(Lexer):
 
       # TODO(user): Implement a unary not operator.
       # The first thing we see in the initial state takes up to the ATTRIBUTE
-      Token("INITIAL", "(and|or|\&\&|\|\|)", "BinaryOperator", None),
+      Token("INITIAL", r"(and|or|\&\&|\|\|)", "BinaryOperator", None),
       Token("INITIAL", r"[^\s\(\)]", "PushState,PushBack", "ATTRIBUTE"),
-      Token("INITIAL", "\(", "BracketOpen", None),
+      Token("INITIAL", r"\(", "BracketOpen", None),
       Token("INITIAL", r"\)", "BracketClose", None),
 
-      Token("ATTRIBUTE", "[\w._0-9]+", "StoreAttribute", "OPERATOR"),
-      Token("OPERATOR", "[a-z0-9<>=\-\+\!\^\&%]+", "StoreOperator", "ARG_LIST"),
+      Token("ATTRIBUTE", r"[\w._0-9]+", "StoreAttribute", "OPERATOR"),
+      Token("OPERATOR",
+            r"[a-z0-9<>=\-\+\!\^\&%]+", "StoreOperator", "ARG_LIST"),
       Token("OPERATOR", "(!=|[<>=])", "StoreSpecialOperator", "ARG_LIST"),
-      Token("ARG_LIST", "[^\s'\"]+", "InsertArg", None),
+      Token("ARG_LIST", r"[^\s'\"]+", "InsertArg", None),
 
       # Start a string.
       Token(".", "\"", "PushState,StringStart", "STRING"),
@@ -469,7 +468,7 @@ class SearchParser(Lexer):
 
   def Parse(self):
     if not self.filter_string:
-      return IdentityExpression()
+      return self.identity_expression_cls()
 
     self.Close()
     return self.Reduce()

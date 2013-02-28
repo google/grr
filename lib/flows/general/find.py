@@ -49,7 +49,7 @@ class FindFiles(flow.GRRFlow):
           name="output",
           default="analysis/find/{u}-{t}"),
 
-      type_info.Number(
+      type_info.Integer(
           description="Maximum number of results to get.",
           name="max_results",
           default=500),

@@ -38,16 +38,11 @@ from grr.client import conf
 from grr.client import conf as flags
 
 from grr.gui import admin_ui
-from grr.lib import config_lib
 from grr.lib import registry
 from grr.lib import server_plugins  # pylint: disable=W0611
 from grr.tools import http_server
 from grr.worker import enroller
 from grr.worker import worker
-
-
-FLAGS = flags.FLAGS
-CONFIG = config_lib.CONFIG
 
 
 flags.DEFINE_bool("start_enroller", False,
@@ -70,36 +65,36 @@ def main(argv):
   registry.Init()
 
   # If no start preferences were provided start everything
-  if (not FLAGS.start_worker and not FLAGS.start_enroller and
-      not FLAGS.start_http_server and not FLAGS.start_ui):
-    FLAGS.start_worker = True
-    FLAGS.start_enroller = True
-    FLAGS.start_http_server = True
-    FLAGS.start_ui = True
+  if (not flags.FLAGS.start_worker and not flags.FLAGS.start_enroller and
+      not flags.FLAGS.start_http_server and not flags.FLAGS.start_ui):
+    flags.FLAGS.start_worker = True
+    flags.FLAGS.start_enroller = True
+    flags.FLAGS.start_http_server = True
+    flags.FLAGS.start_ui = True
 
   # Start the worker thread if necessary.
-  if FLAGS.start_worker:
+  if flags.FLAGS.start_worker:
     worker_thread = threading.Thread(target=worker.main, args=[argv],
                                      name="Worker")
     worker_thread.daemon = True
     worker_thread.start()
 
   # Start the enroller thread if necessary.
-  if FLAGS.start_enroller:
+  if flags.FLAGS.start_enroller:
     enroller_thread = threading.Thread(target=enroller.main, args=[argv],
                                        name="Enroller")
     enroller_thread.daemon = True
     enroller_thread.start()
 
   # Start the HTTP server thread, that clients communicate with, if necessary.
-  if FLAGS.start_http_server:
+  if flags.FLAGS.start_http_server:
     http_thread = threading.Thread(target=http_server.main, args=[argv],
                                    name="HTTP Server")
     http_thread.daemon = True
     http_thread.start()
 
   # Start the UI thread if necessary.
-  if FLAGS.start_ui:
+  if flags.FLAGS.start_ui:
     ui_thread = threading.Thread(target=admin_ui.main, args=[argv],
                                  name="GUI")
     ui_thread.daemon = True

@@ -1,55 +1,14 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """This file abstracts the loading of the private key."""
 
 
-import random
-import string
 import time
-
-from grr.client import conf as flags
-from grr.lib import config_lib
 
 from M2Crypto import ASN1
 from M2Crypto import BIO
 from M2Crypto import EVP
 from M2Crypto import RSA
 from M2Crypto import X509
-
-
-FLAGS = flags.FLAGS
-CONFIG = config_lib.CONFIG
-
-
-# Modify the part below to implement any reasonable way of storing keys.
-def GetCert(key_name):
-  """Load a private key or cert from a PEM file.
-
-  Args:
-    key_name: Name of the key to load.
-
-  Returns:
-    String containing the key or cert.
-
-  Raises:
-    IOError: On failure to read key.
-  """
-  if not CONFIG.has_option("ServerKeys", key_name):
-    raise IOError("Key %s not available in %s" % (key_name, FLAGS.config))
-  data = CONFIG.get("ServerKeys", key_name)
-  return data.strip()
 
 
 def GenerateRSAKey(passphrase=None, key_length=2048):
@@ -145,11 +104,5 @@ def MakeCACert(common_name="grr", issuer_cn="grr_test", issuer_c="US"):
                                   cert.get_fingerprint()))
   cert.sign(pk, "sha256")
   return cert, pk, pkey
-
-
-def GeneratePassphrase(length=20):
-  """Create a 20 char passphrase with easily typeable chars."""
-  valid_chars = string.ascii_letters + string.digits + " ,-_()&$#"
-  return "".join(random.choice(valid_chars) for i in range(length))
 
 

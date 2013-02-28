@@ -15,41 +15,35 @@
 """This is the CherryPy based version of the GRR HTTP Server."""
 
 
-import sys
-
 
 import cherrypy
 
 from grr.client import conf
-from grr.client import conf as flags
 
 from grr.lib import communicator
+from grr.lib import config_lib
 from grr.lib import flow
-from grr.lib import key_utils
-from grr.lib import log
 from grr.lib import rdfvalue
 from grr.lib import registry
-# pylint: disable=W0611
-from grr.lib import server_plugins
-# pylint: enable=W0611
 
-FLAGS = flags.FLAGS
-
-# pylint: disable=C6409
+from grr.lib import server_plugins  # pylint: disable=W0611
+from grr.tools import http_server  # pylint: disable=W0611
+# pylint: disable=g-bad-name
 
 
 class GrrCherryServer(object):
   """The CherryPy version of the GRR http server."""
 
   def __init__(self):
-    self.serverpem = key_utils.GetCert("Server_Public_Cert")
+    self.serverpem = config_lib.CONFIG["Frontend.certificate"]
     registry.Init()
-    self.logger = log.GrrLogger(component="Cherryserver")
     self.front_end = flow.FrontEndServer(
-        "Server_Private_Key", self.logger,
-        max_queue_size=FLAGS.max_queue_size,
-        message_expiry_time=FLAGS.message_expiry_time,
-        max_retransmission_time=FLAGS.max_retransmission_time)
+        certificate=config_lib.CONFIG["Frontend.certificate"],
+        private_key=config_lib.CONFIG["PrivateKeys.server_key"],
+        max_queue_size=config_lib.CONFIG["Frontend.max_queue_size"],
+        message_expiry_time=config_lib.CONFIG["Frontend.message_expiry_time"],
+        max_retransmission_time=config_lib.CONFIG[
+            "Frontend.max_retransmission_time"])
 
   @cherrypy.expose
   def server_pem(self):
@@ -80,5 +74,4 @@ def main(unused_argv):
   cherrypy.quickstart(GrrCherryServer())
 
 if __name__ == "__main__":
-  if sys.stderr.isatty(): FLAGS.logtostderr = True
   conf.StartMain(main)

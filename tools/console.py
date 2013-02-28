@@ -1,17 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """This is the GRR Console.
 
 We can schedule a new flow for a specific client.
@@ -30,8 +17,10 @@ import sys
 import time
 
 
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=g-bad-import-order
 
-from google.protobuf import descriptor
 from grr.client import conf
 from grr.client import conf as flags
 import logging
@@ -43,7 +32,6 @@ from grr.lib import artifact
 
 from grr.lib import config_lib
 from grr.lib import data_store
-from grr.lib import data_stores
 from grr.lib import flow
 from grr.lib import flow_context
 from grr.lib import flow_utils
@@ -51,7 +39,6 @@ from grr.lib import hunts
 from grr.lib import ipshell
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
-from grr.lib import rdfvalues
 from grr.lib import registry
 from grr.lib import type_info
 
@@ -59,21 +46,14 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import reports
 
-# Make sure we load the enroller module
 from grr.lib.flows import console
-from grr.lib.flows import general
 from grr.lib.flows.general import memory
+# pylint: enable=unused-import,g-bad-import-order
 
-from grr.proto import jobs_pb2
-from grr.proto import sysinfo_pb2
-# pylint: enable=W0611
 
 flags.DEFINE_string("client", None,
                     "Initialise the console with this client id "
                     "(e.g. C.1234345).")
-FLAGS = flags.FLAGS
-CONFIG = config_lib.CONFIG
-CONFIG.flag_sections.append("ServerFlags")
 
 
 def FormatISOTime(t):
@@ -156,33 +136,6 @@ def DownloadDir(aff4_path, output_dir, bufsize=8192, preserve_path=True):
         logging.error("Failed to read %s. Err: %s", child.urn, e)
 
 
-def GetFlows(client_id, limit=100):
-  """Retrieve flows for a given client_id, return dict of dicts."""
-  client = aff4.FACTORY.Open(client_id)
-  results = {}
-  for flow_obj in client.GetFlows(0, limit):
-    flow_pb = flow_obj.Get(flow_obj.Schema.FLOW_PB)
-    pb_dict = FlowPBToDict(flow_pb)
-    results[pb_dict["session_id"]] = pb_dict
-
-  return results
-
-
-def FlowPBToDict(flow_pb, skip_attrs="pickle"):
-  """Take a flow protobuf and return a formatted dict."""
-  # TODO(user): This is pretty general really, where should it live?
-  attrs = {}
-  for f, v in flow_pb.ListFields():
-    if f.name not in skip_attrs.split(","):
-      if f.cpp_type == descriptor.FieldDescriptor.CPPTYPE_ENUM:
-        attrs[f.name] = f.enum_type.values_by_number[v].name
-      elif f.name.endswith("time"):
-        attrs[f.name] = FormatISOTime(v)
-      else:
-        attrs[f.name] = v
-  return attrs
-
-
 def StartFlowAndWait(client_id, flow_name, **kwargs):
   """Launches the flow and waits for it to complete.
 
@@ -197,11 +150,11 @@ def StartFlowAndWait(client_id, flow_name, **kwargs):
   session_id = flow.FACTORY.StartFlow(client_id, flow_name, **kwargs)
   while 1:
     time.sleep(1)
-    flow_pb = flow.FACTORY.FetchFlow(session_id, lock=False)
-    if flow_pb.state != rdfvalue.Flow.Enum("RUNNING"):
+    rdf_flow = flow.FACTORY.FetchFlow(session_id, lock=False)
+    if rdf_flow.state != rdfvalue.Flow.Enum("RUNNING"):
       break
 
-  return flow.FACTORY.LoadFlow(flow_pb)
+  return flow.FACTORY.LoadFlow(rdf_flow)
 
 
 def StartFlowAndWorker(client_id, flow_name, **kwargs):
@@ -230,14 +183,14 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
       print "exiting"
       worker_thrd.thread_pool.Join()
     time.sleep(2)
-    flow_pb = flow.FACTORY.FetchFlow(session_id, lock=False)
-    if flow_pb.state != rdfvalue.Flow.Enum("RUNNING"):
+    rdf_flow = flow.FACTORY.FetchFlow(session_id, lock=False)
+    if rdf_flow.state != rdfvalue.Flow.Enum("RUNNING"):
       break
 
   # Terminate the worker threads
   worker_thrd.thread_pool.Stop()
   worker_thrd.thread_pool.Join()
-  return flow.FACTORY.LoadFlow(flow_pb)
+  return flow.FACTORY.LoadFlow(rdf_flow)
 
 
 def GetNotifications(user=None, token=None):
@@ -258,7 +211,7 @@ def ApprovalRequest(client_id, reason, approvers, token=None):
 def ApprovalGrant(token=None):
   """Iterate through requested access approving or not."""
   user = getpass.getuser()
-  notifications = GetNotifications(user, token=token)
+  notifications = GetNotifications(user=user, token=token)
   requests = [n for n in notifications if n.type == "GrantAccess"]
   for request in requests:
     _, client_id, user, reason = aff4.RDFURN(request.subject).Split()
@@ -283,7 +236,7 @@ def ApprovalFind(object_id, token=None):
   else:
     namespace = "hunts"
   try:
-    approved_token = access_control.GetApprovalForObject(
+    approved_token = aff4.Approval.GetApprovalForObject(
         namespace, object_id, token=token, username=user)
     print "Found token %s" % str(approved_token)
     return approved_token
@@ -306,7 +259,7 @@ def TestFlows(client_id, platform, testname=None):
                                 testname=testname, token=token)
 
 
-def CreateApproval(client_id, token, approval_type="ClientApproval"):
+def ApprovalCreateRaw(client_id, token, approval_type="ClientApproval"):
   """Creates an approval for a given token.
 
   This method doesn't work through the Gatekeeper for obvious reasons. To use
@@ -316,7 +269,12 @@ def CreateApproval(client_id, token, approval_type="ClientApproval"):
     client_id: The client id the approval should be created for.
     token: The token that will be used later for access.
     approval_type: The type of the approval to create.
+
+  Raises:
+    RuntimeError: On bad token.
   """
+  if not token.reason:
+    raise RuntimeError("Cannot create approval with empty reason")
   approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
       token.username).Add(utils.EncodeReasonString(token.reason))
 
@@ -325,12 +283,17 @@ def CreateApproval(client_id, token, approval_type="ClientApproval"):
 
   approval_request = aff4.FACTORY.Create(approval_urn, approval_type,
                                          mode="rw", token=super_token)
-  approval_request.AddAttribute(approval_request.Schema.APPROVER("Approver1"))
-  approval_request.AddAttribute(approval_request.Schema.APPROVER("Approver2"))
+
+  # Add approvals indicating they were approved by fake "raw" mode users.
+  user = getpass.getuser()
+  approval_request.AddAttribute(
+      approval_request.Schema.APPROVER("%s1-raw" % user))
+  approval_request.AddAttribute(
+      approval_request.Schema.APPROVER("%s-raw2" % user))
   approval_request.Close()
 
 
-def RevokeApproval(client_id, token, remove_from_cache=False):
+def ApprovalRevokeRaw(client_id, token, remove_from_cache=False):
   """Revokes an approval for a given token.
 
   This method doesn't work through the Gatekeeper for obvious reasons. To use
@@ -409,17 +372,15 @@ def main(unused_argv):
 
   registry.Init()
 
-  if FLAGS.verbose and hasattr(logging, "root"):
-    logging.root.setLevel(logging.INFO)  # Allow for logging.
-
   locals_vars = {"hilfe": Help,
                  "help": Help,
                  "__name__": "GRR Console",
                  "l": Lister,
                 }
   locals_vars.update(globals())   # add global variables to console
-  if FLAGS.client is not None:
-    locals_vars["client"], locals_vars["token"] = OpenClient(FLAGS.client)
+  if flags.FLAGS.client is not None:
+    locals_vars["client"], locals_vars["token"] = OpenClient(
+        client_id=flags.FLAGS.client)
 
   ipshell.IPShell(argv=[], user_ns=locals_vars, banner=banner)
 

@@ -52,6 +52,7 @@ class GetFile(flow.GRRFlow):
   max_chunk_number = 2
 
   fd = None
+  urn = None
 
   def Init(self):
     pass
@@ -146,7 +147,7 @@ class GetFile(flow.GRRFlow):
 
       self.Log("Finished reading %s", self.urn)
       self.Log("Flow Completed in %s seconds",
-               time.time() - self.flow_pb.create_time/1e6)
+               time.time() - self.rdf_flow.create_time/1e6)
 
       stat_response = self.fd.Get(self.fd.Schema.STAT)
       self.fd.Close(sync=True)
@@ -273,7 +274,7 @@ class GetMBR(flow.GRRFlow):
   category = "/Filesystem/"
 
   flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.Number(
+      type_info.Integer(
           description="The length of the MBR buffer to read.",
           name="length",
           default=4096,
@@ -359,12 +360,6 @@ class FileDownloader(flow.GRRFlow):
   This class contains the logic to automatically collect and store a set
   of files and directories.
 
-  Classes that want to implement this functionality for a specific
-  set of files should inherit from it and override __init__ and set
-  self.findspecs and/or self.pathspecs to something appropriate.
-
-  Alternatively they can override GetFindSpecs for simple cases.
-
   Returns to parent flow:
     A StatResponse protobuf for each downloaded file.
   """
@@ -388,10 +383,6 @@ class FileDownloader(flow.GRRFlow):
     if self.findspecs is None:
       # Call GetFindSpecs, should be overridden by inheriting classes.
       self.findspecs = self.GetFindSpecs()
-
-    if self.pathspecs is None:
-      # Call GetPathSpecs, should be overridden by inheriting classes.
-      self.pathspecs = self.GetPathSpecs()
 
     if not self.findspecs and not self.pathspecs:
       self.Error("No usable specs found.")
@@ -523,7 +514,7 @@ class SendFile(flow.GRRFlow):
           name="host",
           description="Hostname or IP to send the file to.",
           default=None),
-      type_info.Number(
+      type_info.Integer(
           name="port",
           description="Port number on the listening server.",
           default=12345),
@@ -536,12 +527,10 @@ class SendFile(flow.GRRFlow):
       type_info.EncryptionKey(
           name="key",
           description="An encryption key given in hex representation.",
-          default="",
           length=16),
       type_info.EncryptionKey(
           name="iv",
           description="The iv for AES, also given in hex representation.",
-          default="",
           length=16)
       )
 

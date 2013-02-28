@@ -34,8 +34,9 @@ class CollectRunKeys(flow.GRRFlow):
     """Issue the find request for each user and the system."""
     fd = aff4.FACTORY.Open(self.client_id, mode="r", token=self.token)
     self.numrunkeys = 0
+    users = fd.Get(fd.Schema.USER, [])
     # Iterate through all the users and trigger flows for Run and RunOnce keys.
-    for user in fd.Get(fd.Schema.USER):
+    for user in users:
       for key in ["Run", "RunOnce"]:
         run_path = ("HKEY_USERS/%s/Software/Microsoft/Windows/CurrentVersion"
                     "/%s" % (user.sid, key))

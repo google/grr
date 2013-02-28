@@ -178,7 +178,7 @@ class ClientStatsCronJob(AbstractScheduledCronJob):
     jobs = []
     self.Log("Collecting ClientStatsCollectors that are due to run.")
     for cls_name, cls in self.classes.items():
-      if issubclass(cls, AbstractClientStatsCollector):
+      if aff4.issubclass(cls, AbstractClientStatsCollector):
         job = aff4.FACTORY.Create("cron:/%s" % cls_name, cls_name, mode="rw",
                                   token=self.token)
         if job.DueToRun():
@@ -280,17 +280,19 @@ class OSBreakDown(AbstractClientStatsCollector):
   def ProcessClient(self, client):
     """Update counters for system, version and release attributes."""
     ping = client.Get(client.Schema.PING)
-    system = client.Get(client.Schema.SYSTEM)
-    if system:
-      self.counters[0].Add(system, ping)
+    if not ping:
+      return
+    system = client.Get(client.Schema.SYSTEM, "Unknown")
+    # Windows, Linux, Darwin
+    self.counters[0].Add(system, ping)
 
-    version = client.Get(client.Schema.VERSION)
-    if version:
-      self.counters[1].Add(version, ping)
+    version = client.Get(client.Schema.VERSION, "Unknown")
+    # Windows XP, Linux Ubuntu, Darwin OSX
+    self.counters[1].Add("%s %s" % (system, version), ping)
 
-    release = client.Get(client.Schema.OS_RELEASE)
-    if release:
-      self.counters[2].Add(release, ping)
+    release = client.Get(client.Schema.OS_RELEASE, "Unknown")
+    # Windows XP 5.1.2600 SP3, Linux Ubuntu 12.04, Darwin OSX 10.8.2
+    self.counters[2].Add("%s %s %s" % (system, version, release), ping)
 
 
 class LastAccessStats(AbstractClientStatsCollector):
@@ -352,11 +354,11 @@ def RunAllCronJobs(token=None, override_frequency=None):
     # Go through the ClientStatsCollectors changing them so they will run
     # on the override_frequency instead of default.
     for cls_name, cls in aff4.AFF4Object.classes.items():
-      if issubclass(cls, AbstractClientStatsCollector):
+      if aff4.issubclass(cls, AbstractClientStatsCollector):
         cls.frequency = int(override_frequency)
 
   for cls_name, cls in aff4.AFF4Object.classes.iteritems():
-    if issubclass(cls, AbstractScheduledCronJob):
+    if aff4.issubclass(cls, AbstractScheduledCronJob):
       # Create the job if it does not already exist.
       try:
         fd = aff4.FACTORY.Create("cron:/%s" % cls_name, cls_name, mode="rw",

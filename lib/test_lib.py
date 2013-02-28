@@ -1,17 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """A library for tests."""
 
 
@@ -35,57 +22,48 @@ import unittest
 from grr.client import actions
 from grr.client import conf
 from grr.client import vfs
-# pylint: disable=unused-import
-from grr.lib import access_control
-# pylint: enable=unused-import
 
+from grr.lib import access_control
 from grr.lib import aff4
-# pylint: disable=unused-import
-from grr.lib import aff4_objects
 from grr.lib import config_lib
+
 from grr.lib import data_store
-from grr.lib import data_stores
 from grr.lib import email_alerts
-# pylint: enable=unused-import
 
 from grr.lib import flow
 from grr.lib import flow_context
+
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import scheduler
+
+# Server components must also be imported even when the client code is tested.
+from grr.lib import server_plugins  # pylint: disable=W0611
 from grr.lib import utils
-from grr.proto import jobs_pb2
 from grr.test_data import client_fixture
 
 # Default for running in the current directory
-flags.DEFINE_string("test_srcdir",
-                    default=os.getcwd(),
-                    help="The directory where tests are built.")
-flags.DEFINE_string("test_tmpdir", "/tmp/",
-                    help="Somewhere to write temporary files.")
+config_lib.DEFINE_string("Test.srcdir",
+                         os.path.normpath(os.path.dirname(__file__) + "/../.."),
+                         "The directory where tests are built.")
 
-flags.DEFINE_string("test_datadir",
-                    default="grr/test_data",
-                    help="The directory relative to the srcdir "
-                    "where test data exist.")
+config_lib.DEFINE_string("Test.tmpdir", "/tmp/",
+                         help="Somewhere to write temporary files.")
 
-flags.DEFINE_string("test_config",
-                    default="grr/config/grr_test.conf",
-                    help="The path relative to the srcdir "
-                    "where configuration file exists.")
+config_lib.DEFINE_string("Test.datadir",
+                         default="%(Test.srcdir)/grr/test_data",
+                         help="The directory where test data exist.")
 
-flags.DEFINE_string("test_data_store", "FakeDataStore",
-                    "The data store to run the tests against.")
+config_lib.DEFINE_string("Test.config",
+                         default="%(Test.datadir)/grr_test.conf",
+                         help="The path where the configuration file exists.")
 
-flags.DEFINE_integer("remote_pdb_port", 2525,
-                     "Remote debugger port.")
+config_lib.DEFINE_string("Test.data_store", "FakeDataStore",
+                         "The data store to run the tests against.")
 
+config_lib.DEFINE_integer("Test.remote_pdb_port", 2525,
+                          "Remote debugger port.")
 
-FLAGS = flags.FLAGS
-CONFIG = config_lib.CONFIG
-
-#  Since GRRFlow is an abstract class we have some concrete
-#  implementations here for testing.
 
 
 class FlowOrderTest(flow.GRRFlow):
@@ -200,24 +178,34 @@ class GRRBaseTest(unittest.TestCase):
     super(GRRBaseTest, self).__init__(methodName=methodName or "__init__")
 
   def setUp(self):
-    # We want to use the fake usually
-    FLAGS.storage = FLAGS.test_data_store
+    super(GRRBaseTest, self).setUp()
 
-    # Ensure the config is set to our test config file.
-    FLAGS.config = os.path.join(FLAGS.test_srcdir, FLAGS.test_config)
+    # Make a temporary directory for test files.
+    self.temp_dir = tempfile.mkdtemp(dir=config_lib.CONFIG["Test.tmpdir"])
+
+    self.config_file = os.path.join(self.temp_dir, "test.conf")
+    config_path = config_lib.CONFIG["Test.config"]
+
+    shutil.copyfile(config_path, self.config_file)
 
     # Recreate a new data store each time.
     registry.TestInit()
-    vfs.VFSInit()
 
-    self.base_path = os.path.join(FLAGS.test_srcdir, FLAGS.test_datadir)
+    # Parse the config as our copy.
+    config_lib.CONFIG.Initialize(filename=self.config_file, reset=True,
+                                 validate=False)
+    config_lib.CONFIG.ExecuteSection("Test")
 
-    self.token = data_store.ACLToken("test", "Running tests")
+    self.base_path = config_lib.CONFIG["Test.datadir"]
+    self.token = access_control.ACLToken("test", "Running tests")
 
     if self.install_mock_acl:
       # Enforce checking that security tokens are propagated to the data store
       # but no actual ACLs.
       data_store.DB.security_manager = MockSecurityManager()
+
+  def tearDown(self):
+    shutil.rmtree(self.temp_dir, True)
 
   def shortDescription(self):
     doc = self._testMethodDoc or ""
@@ -243,15 +231,15 @@ class GRRBaseTest(unittest.TestCase):
     try:
       try:
         self.setUp()
-      except KeyboardInterrupt:
-        raise
       except:
         # Break into interactive debugger on test failure.
-        if FLAGS.debug:
+        if flags.FLAGS.debug:
           pdb.post_mortem()
 
         result.addError(self, sys.exc_info())
-        return
+        # If the setup step failed we stop the entire test suite
+        # immediately. This helps catch errors in the setUp() function.
+        raise
 
       ok = False
       try:
@@ -259,7 +247,7 @@ class GRRBaseTest(unittest.TestCase):
         ok = True
       except self.failureException:
         # Break into interactive debugger on test failure.
-        if FLAGS.debug:
+        if flags.FLAGS.debug:
           pdb.post_mortem()
 
         result.addFailure(self, sys.exc_info())
@@ -267,7 +255,7 @@ class GRRBaseTest(unittest.TestCase):
         raise
       except Exception:
         # Break into interactive debugger on test failure.
-        if FLAGS.debug:
+        if flags.FLAGS.debug:
           pdb.post_mortem()
 
         result.addError(self, sys.exc_info())
@@ -278,7 +266,7 @@ class GRRBaseTest(unittest.TestCase):
         raise
       except Exception:
         # Break into interactive debugger on test failure.
-        if FLAGS.debug:
+        if flags.FLAGS.debug:
           pdb.post_mortem()
 
         result.addError(self, sys.exc_info())
@@ -324,10 +312,14 @@ class EmptyActionTest(GRRBaseTest):
 
       results.append(reply)
 
-    action_cls.SendReply = MockSendReply
+    old_sendreply = action_cls.SendReply
+    try:
+      action_cls.SendReply = MockSendReply
 
-    action = action_cls(message=message)
-    action.Run(arg)
+      action = action_cls(message=message)
+      action.Run(arg)
+    finally:
+      action_cls.SendReply = old_sendreply
 
     return results
 
@@ -344,7 +336,8 @@ class FlowTestsBaseclass(GRRBaseTest):
       client_ids.append(client_id)
       fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=self.token)
       fd.Set(fd.Schema.CERT, rdfvalue.RDFX509Cert(
-          CONFIG["Test.Test_Client_Cert"]))
+          config_lib.CONFIG["Client.certificate"]))
+
       info = fd.Schema.CLIENT_INFO()
       info.client_name = "GRR Monitor"
       fd.Set(fd.Schema.CLIENT_INFO, info)
@@ -369,9 +362,9 @@ class FlowTestsBaseclass(GRRBaseTest):
 
   def FlowSetup(self, name):
     session_id = flow.FACTORY.StartFlow(self.client_id, name, token=self.token)
-    flow_pb = flow.FACTORY.FetchFlow(session_id, token=self.token)
+    rdf_flow = flow.FACTORY.FetchFlow(session_id, token=self.token)
 
-    return flow_pb
+    return rdf_flow
 
 
 class GRRSeleniumTest(GRRBaseTest):
@@ -529,11 +522,10 @@ class MockClient(object):
   def Next(self):
     # Grab tasks for us from the queue.
     request_tasks = scheduler.SCHEDULER.QueryAndOwn(self.client_id, limit=1,
-                                                    token=self.token,
-                                                    decoder=jobs_pb2.GrrMessage)
+                                                    token=self.token)
 
     for task in request_tasks:
-      message = task.value
+      message = task.payload
       response_id = 1
       # Collect all responses for this message from the client mock
       try:
@@ -581,7 +573,7 @@ class MockClient(object):
 
       # Add a Status message to the end
       self.PushToStateQueue(message, response_id=response_id,
-                            args=status.SerializeToString(),
+                            payload=status,
                             type=rdfvalue.GRRMessage.Enum("STATUS"))
 
       # Additionally schedule a task for the worker
@@ -624,7 +616,7 @@ class MockWorker(flow.GRRWorker):
     # Collect all the well known flows.
     self.well_known_flows = {}
     for name, cls in flow.GRRFlow.classes.items():
-      if issubclass(cls, flow.WellKnownFlow) and cls.well_known_session_id:
+      if aff4.issubclass(cls, flow.WellKnownFlow) and cls.well_known_session_id:
         context = flow_context.FlowContext(flow_name=name, token=self.token)
         self.well_known_flows[
             cls.well_known_session_id] = cls(context)
@@ -660,27 +652,27 @@ class MockWorker(flow.GRRWorker):
         continue
 
       # Unpack the flow
-      flow_pb = flow.FACTORY.FetchFlow(session_id, lock=True, sync=False,
-                                       token=self.token)
+      rdf_flow = flow.FACTORY.FetchFlow(session_id, lock=True, sync=False,
+                                        token=self.token)
       try:
-        flow_obj = flow.FACTORY.LoadFlow(flow_pb)
+        flow_obj = flow.FACTORY.LoadFlow(rdf_flow)
 
         # Run it
         flow_obj.ProcessCompletedRequests(self.pool)
         # Pack it back up
-        flow_pb = flow_obj.Dump()
+        rdf_flow = flow_obj.Dump()
         flow_obj.FlushMessages()
 
         logging.info("Flow pickle is %s bytes",
-                     len(flow_pb.SerializeToString()))
+                     len(rdf_flow.SerializeToString()))
         if (self.check_flow_errors and
-            flow_pb.state == rdfvalue.Flow.Enum("ERROR")):
+            rdf_flow.state == rdfvalue.Flow.Enum("ERROR")):
           logging.exception("Flow terminated in state %s with an error: %s",
-                            flow_obj.context.current_state, flow_pb.backtrace)
-          raise RuntimeError(flow_pb.backtrace)
+                            flow_obj.context.current_state, rdf_flow.backtrace)
+          raise RuntimeError(rdf_flow.backtrace)
 
       finally:
-        flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
+        flow.FACTORY.ReturnFlow(rdf_flow, token=self.token)
 
     return run_sessions
 
@@ -747,14 +739,14 @@ class Test(actions.ActionPlugin):
 def CheckFlowErrors(total_flows, token=None):
   # Check that all the flows are complete.
   for session_id in total_flows:
-    flow_pb = flow.FACTORY.FetchFlow(session_id, token=token)
-    if flow_pb.state != rdfvalue.Flow.Enum("TERMINATED"):
-      if FLAGS.debug:
+    rdf_flow = flow.FACTORY.FetchFlow(session_id, token=token)
+    if rdf_flow.state != rdfvalue.Flow.Enum("TERMINATED"):
+      if flags.FLAGS.debug:
         pdb.set_trace()
 
       raise RuntimeError("Flow %s completed in state %s" % (
-          flow_pb.name, flow_pb.state))
-    flow.FACTORY.ReturnFlow(flow_pb, token=token)
+          rdf_flow.name, rdf_flow.state))
+    flow.FACTORY.ReturnFlow(rdf_flow, token=token)
 
 
 def TestFlowHelper(flow_class_name, client_mock, client_id=None,
@@ -851,7 +843,7 @@ class ClientFixture(object):
 
     Args:
       client_id: The unique id for the new client.
-      token: An instance of data_store.ACLToken security token.
+      token: An instance of access_control.ACLToken security token.
       fixture: An optional fixture to install. If not provided we use
         client_fixture.VFS.
       age: Create the fixture at this timestamp. If None we use FIXTURE_TIME.
@@ -886,7 +878,7 @@ class ClientFixture(object):
             value = utils.SmartUnicode(value) % self.args
 
           # Is this supposed to be an RDFValue array?
-          if issubclass(attribute.attribute_type, rdfvalue.RDFValueArray):
+          if aff4.issubclass(attribute.attribute_type, rdfvalue.RDFValueArray):
             rdfvalue_object = attribute()
             for item in value:
               new_object = rdfvalue_object.rdf_type.FromTextProtobuf(
@@ -894,7 +886,7 @@ class ClientFixture(object):
               rdfvalue_object.Append(new_object)
 
           # It is a text serialized protobuf.
-          elif issubclass(attribute.attribute_type, rdfvalue.RDFProto):
+          elif aff4.issubclass(attribute.attribute_type, rdfvalue.RDFProto):
             # Use the alternate constructor - we always write protobufs in
             # textual form:
             rdfvalue_object = attribute.attribute_type.FromTextProtobuf(
@@ -1020,16 +1012,21 @@ class GrrTestProgram(unittest.TestProgram):
   """A Unit test program which is compatible with conf based args parsing."""
 
   def __init__(self, **kw):
+    conf.PARSER.add_argument("module", nargs="*", help="Test module to run.")
     conf.PARSER.parse_args()
-    # Ensure the config is set to our test config file.
-    FLAGS.config = os.path.join(FLAGS.test_srcdir, FLAGS.test_config)
-    CONFIG.Initialize(FLAGS.config)
+
+    # Force the test config to be read in
+    flags.FLAGS.config = config_lib.CONFIG["Test.config"]
+
+    # Recreate a new data store each time.
     registry.TestInit()
+    vfs.VFSInit()
+
     super(GrrTestProgram, self).__init__(**kw)
 
   def parseArgs(self, argv):
     """Delegate arg parsing to the conf subsystem."""
-    if FLAGS.verbose:
+    if flags.FLAGS.verbose:
       self.verbosity = 2
       logging.getLogger().setLevel(logging.DEBUG)
 
@@ -1079,14 +1076,14 @@ class RemotePDB(pdb.Pdb):
   def ListenForConnection(self):
     """Listens and accepts a single connection."""
     logging.warn("Remote debugger waiting for connection on %s",
-                 FLAGS.remote_pdb_port)
+                 config_lib.CONFIG["Test.remote_pdb_port"])
 
     RemotePDB.old_stdout = sys.stdout
     RemotePDB.old_stdin = sys.stdin
     RemotePDB.skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     RemotePDB.skt.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    RemotePDB.skt.bind(("127.0.0.1", FLAGS.remote_pdb_port))
+    RemotePDB.skt.bind(("127.0.0.1", config_lib.CONFIG["Test.remote_pdb_port"]))
     RemotePDB.skt.listen(1)
 
     (clientsocket, address) = RemotePDB.skt.accept()

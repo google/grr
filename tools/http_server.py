@@ -23,7 +23,6 @@ from multiprocessing import Process
 import pdb
 import socket
 import SocketServer
-import sys
 
 
 import ipaddr
@@ -32,27 +31,46 @@ from grr.client import conf
 from grr.client import conf as flags
 import logging
 
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=g-bad-import-order
+
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flow
-from grr.lib import key_utils
-from grr.lib import log
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import server_plugins  # pylint: disable=W0611
+from grr.lib import type_info
 from grr.lib import utils
 
 
-flags.DEFINE_string("http_bind_address", "::", "The ip address to bind.")
+config_lib.DEFINE_string("Frontend.bind_address", "::",
+                         "The ip address to bind.")
 
-flags.DEFINE_integer("http_bind_port", 8080, "The port to bind.")
+config_lib.DEFINE_integer("Frontend.bind_port", 8080, "The port to bind.")
 
-flags.DEFINE_integer("processes", 1,
-                     "Number of processes to use for the HTTP server")
+config_lib.DEFINE_integer("Frontend.processes", 1,
+                          "Number of processes to use for the HTTP server")
 
-FLAGS = flags.FLAGS
-CONFIG = config_lib.CONFIG
-CONFIG.flag_sections.append("ServerFlags")
+config_lib.DEFINE_integer("Frontend.max_queue_size", 500,
+                          "Maximum number of messages to queue for the client.")
+
+config_lib.DEFINE_integer("Frontend.max_receiver_threads", 10,
+                          "Maximum number of threads to use for receivers.")
+
+config_lib.DEFINE_integer("Frontend.max_retransmission_time", 10,
+                          "Maximum number of times we are allowed to "
+                          "retransmit a request until it fails.")
+
+config_lib.DEFINE_integer(
+    "Frontend.message_expiry_time", 600,
+    "Maximum time messages remain valid within the system.")
+
+config_lib.CONFIG.AddOption(type_info.X509CertificateType(
+    name="Frontend.certificate",
+    description="Server certificate in X509 pem format"
+    ))
+
 
 # pylint: disable=C6409
 
@@ -137,7 +155,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       return self.Send("Enrollment required", status=406)
 
     except Exception as e:
-      if FLAGS.debug:
+      if flags.FLAGS.debug:
         pdb.post_mortem()
 
       logging.error("Had to respond with status 500: %s.", e)
@@ -157,17 +175,16 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     if frontend:
       if logger is None:
         raise RuntimeError("No logger provided.")
-      self._logger = logger
       self.frontend = frontend
     else:
-      self._logger = log.GrrLogger(component=self.__class__.__name__)
       self.frontend = flow.FrontEndServer(
-          "Server_Private_Key", self._logger,
-          max_queue_size=FLAGS.max_queue_size,
-          message_expiry_time=FLAGS.message_expiry_time,
-          max_retransmission_time=FLAGS.max_retransmission_time)
-
-    self.server_cert = key_utils.GetCert("Server_Public_Cert")
+          certificate=config_lib.CONFIG["Frontend.certificate"],
+          private_key=config_lib.CONFIG["PrivateKeys.server_key"],
+          max_queue_size=config_lib.CONFIG["Frontend.max_queue_size"],
+          message_expiry_time=config_lib.CONFIG["Frontend.message_expiry_time"],
+          max_retransmission_time=config_lib.CONFIG[
+              "Frontend.max_retransmission_time"])
+    self.server_cert = config_lib.CONFIG["Frontend.certificate"]
 
     (address, _) = server_address
     version = ipaddr.IPAddress(address).version
@@ -189,17 +206,19 @@ def serve_forever(server):
 
 def main(unused_argv):
   """Main."""
+  config_lib.CONFIG.SetEnv("Environment.component", "FrontendHttpServer")
   registry.Init()
 
-  server_address = (FLAGS.http_bind_address, FLAGS.http_bind_port)
+  server_address = (config_lib.CONFIG["Frontend.bind_address"],
+                    config_lib.CONFIG["Frontend.bind_port"])
   httpd = GRRHTTPServer(server_address, GRRHTTPServerHandler)
 
   sa = httpd.socket.getsockname()
   logging.info("Serving HTTP on %s port %d ...", sa[0], sa[1])
 
-  if FLAGS.processes > 1:
+  if config_lib.CONFIG["Frontend.processes"] > 1:
     # Multiprocessing
-    for _ in range(FLAGS.processes - 1):
+    for _ in range(config_lib.CONFIG["Frontend.processes"] - 1):
       Process(target=serve_forever, args=(httpd,)).start()
 
   try:
@@ -209,5 +228,4 @@ def main(unused_argv):
 
 if __name__ == "__main__":
   freeze_support()
-  if sys.stderr.isatty(): FLAGS.logtostderr = True
   conf.StartMain(main)

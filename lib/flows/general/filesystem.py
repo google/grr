@@ -25,6 +25,9 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.flows.general import grep
+from grr.lib.flows.general import transfer
+from grr.lib.flows.general import utilities
 
 
 def CreateAFF4Object(stat_response, client_id, token, sync=False):
@@ -181,7 +184,7 @@ class RecursiveListDirectory(flow.GRRFlow):
   flow_typeinfo = type_info.TypeDescriptorSet(
       type_info.PathspecType(
           description="The pathspec for the directory to list."),
-      type_info.Number(
+      type_info.Integer(
           name="max_depth",
           description="Maximum depth to recurse",
           default=5),
@@ -265,7 +268,7 @@ class SlowGetFile(flow.GRRFlow):
       type_info.PathspecType(
           description="The pathspec for the directory to list."),
 
-      type_info.Number(
+      type_info.Integer(
           description=("Specifies how much data is saved in each AFF4Stream "
                        "chunk"),
           name="aff4_chunk_size",
@@ -441,7 +444,7 @@ class Glob(flow.GRRFlow):
       type_info.List(
           description="A list of glob path descriptions.",
           name="paths",
-          validator=type_info.String(),
+          validator=type_info.String()
           ),
       type_info.PathTypeEnum(
           description="Type of access to glob in."),
@@ -640,7 +643,7 @@ class Glob(flow.GRRFlow):
 
         self.Notify("ViewObject", urn, u"Glob matched")
         self.Status("Glob Matched %s", urn)
-        self.SendReply(urn)
+        self.SendReply(response)
         CreateAFF4Object(response, self.client_id, self.token)
 
       else:
@@ -651,3 +654,111 @@ class Glob(flow.GRRFlow):
                           next_state="ProcessDirectory",
                           request_data=dict(component_index=component_index+1,
                                             pathspec_index=pathspec_index))
+
+
+class Flow(type_info.String):
+  """A flow name type."""
+
+  def Validate(self, value):
+    super(Flow, self).Validate(value)
+    flow_cls = flow.GRRFlow.classes.get(value, None)
+    if not flow_cls:
+      raise type_info.TypeValueError("%s is not a valid flow name." % value)
+    return flow_cls
+
+
+class GlobAndRunFlow(flow.GRRFlow):
+  """Baseclass for flows that run a glob and use the results in another flow."""
+
+  flow_class = None  # The flow to run.
+  flow_typeinfo = Glob.flow_typeinfo
+
+  def InjectPathspec(self, args=None, new_pathspec=None):
+    """Injects the pathspec returned into the subflow parameter dict."""
+
+    args["pathspec"] = new_pathspec
+
+  @flow.StateHandler(next_state=["StartSubFlow"])
+  def Start(self):
+    """Run the glob first."""
+
+    glob_args = {}
+    for parameter in Glob.flow_typeinfo:
+      glob_args[parameter.name] = getattr(self, parameter.name)
+
+    self.CallFlow("Glob", next_state="StartSubFlow", **glob_args)
+
+  @flow.StateHandler(next_state=["Done"])
+  def StartSubFlow(self, responses):
+    if not responses.success:
+      self.Log("Error while running Glob.")
+    elif not responses:
+      self.Log("Glob did not return any results.")
+    else:
+      self.Log("Glob returned %d results." % len(responses))
+
+      for response in responses:
+
+        args = {}
+        for parameter in self.flow_class.flow_typeinfo:
+          args[parameter.name] = getattr(self, parameter.name)
+
+        self.InjectPathspec(args, response.pathspec)
+
+        self.CallFlow(self.flow_class.__name__, next_state="Done", **args)
+
+  @flow.StateHandler()
+  def Done(self, responses):
+    # Just send the results to the parent.
+    if responses.success:
+      for response in responses:
+        self.SendReply(response)
+
+
+class GlobAndDownload(GlobAndRunFlow):
+  category = "/Filesystem/Glob/"
+
+  flow_class = transfer.GetFile
+
+  flow_typeinfo = (GlobAndRunFlow.flow_typeinfo +
+                   transfer.GetFile.flow_typeinfo)
+
+
+class GlobAndGrep(GlobAndRunFlow):
+  """A flow that runs a glob first and then issues a grep on the results."""
+  category = "/Filesystem/Glob/"
+
+  flow_class = grep.Grep
+  flow_typeinfo = (GlobAndRunFlow.flow_typeinfo +
+                   grep.Grep.flow_typeinfo.Remove("request") +
+                   type_info.TypeDescriptorSet(
+                       type_info.EmptyTargetGrepspecType(name="request")))
+
+  def InjectPathspec(self, args=None, new_pathspec=None):
+    """Injects the pathspec returned into the subflow parameter dict."""
+    grep_request = args.setdefault("request", rdfvalue.GrepSpec())
+    grep_request.target = new_pathspec
+
+
+class GlobAndDownloadDirectory(GlobAndRunFlow):
+  category = "/Filesystem/Glob/"
+
+  flow_class = utilities.DownloadDirectory
+  flow_typeinfo = (GlobAndRunFlow.flow_typeinfo +
+                   utilities.DownloadDirectory.flow_typeinfo)
+
+
+class GlobAndListDirectory(GlobAndRunFlow):
+  category = "/Filesystem/Glob/"
+
+  flow_class = ListDirectory
+  flow_typeinfo = (GlobAndRunFlow.flow_typeinfo +
+                   ListDirectory.flow_typeinfo)
+
+
+class GlobAndListDirectoryRecursive(GlobAndRunFlow):
+  category = "/Filesystem/Glob/"
+
+  flow_class = RecursiveListDirectory
+  flow_typeinfo = (GlobAndRunFlow.flow_typeinfo +
+                   RecursiveListDirectory.flow_typeinfo)

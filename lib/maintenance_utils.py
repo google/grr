@@ -24,8 +24,9 @@ import ipaddr
 
 import logging
 
+from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import data_store
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 
 DIGEST_ALGORITHM = hashlib.sha256
@@ -35,7 +36,7 @@ SUPPORTED_PLATFORMS = ["windows", "linux", "darwin"]
 
 
 def UploadSignedConfigBlob(
-    content, file_name, config, platform,
+    content, file_name, platform,
     aff4_path="/config/executables/{platform}/installers/{file_name}",
     token=None):
   """Upload a signed blob into the datastore.
@@ -43,7 +44,6 @@ def UploadSignedConfigBlob(
   Args:
     content: File content to upload.
     file_name: Unique name for file to upload.
-    config: A ConfigManager object which contains the signing keys.
     platform: Which client platform to sign for. This determines which signing
         keys to use.
     aff4_path: aff4 path to upload to. Note this can handle platform and
@@ -56,9 +56,11 @@ def UploadSignedConfigBlob(
   Raises:
     IOError: On failure to write.
   """
-  section = "ClientSigningKeys%s" % platform.title()
-  sig_key = config["%s.executable_signing_private_key" % section]
-  ver_key = config["%s.executable_signing_public_key" % section]
+  sig_key = config_lib.CONFIG["PrivateKeys%s.executable_signing_private_key" %
+                              platform.title()]
+  ver_key = config_lib.CONFIG["Client%s.executable_signing_public_key" %
+                              platform.title()]
+
   blob_rdf = rdfvalue.SignedBlob()
   blob_rdf.Sign(content, sig_key, ver_key, prompt=True)
   aff4_path = rdfvalue.RDFURN(aff4_path.format(platform=platform.lower(),
@@ -70,7 +72,7 @@ def UploadSignedConfigBlob(
   return str(fd.urn)
 
 
-def UploadSignedDriverBlob(content, file_name, config, platform,
+def UploadSignedDriverBlob(content, file_name, platform,
                            aff4_path="/config/drivers/{platform}/memory/"
                            "{file_name}", install_request=None, token=None):
   """Upload a signed blob into the datastore.
@@ -78,7 +80,6 @@ def UploadSignedDriverBlob(content, file_name, config, platform,
   Args:
     content: Content of the driver file to upload.
     file_name: Unique name for file to upload.
-    config: A ConfigManager object which contains the signing keys.
     platform: Which client platform to sign for. This determines which signing
         keys to use. If you don't have per platform signing keys. The standard
         keys will be used.
@@ -94,10 +95,11 @@ def UploadSignedDriverBlob(content, file_name, config, platform,
   Raises:
     IOError: On failure to write.
   """
-  sig_key = config["ClientSigningKeys%s.driver_signing_private_key" %
-                   platform.title()]
-  ver_key = config["ClientSigningKeys%s.driver_signing_public_key" %
-                   platform.title()]
+  sig_key = config_lib.CONFIG["PrivateKeys%s.driver_signing_private_key" %
+                              platform.title()]
+  ver_key = config_lib.CONFIG["Client%s.driver_signing_public_key" %
+                              platform.title()]
+
   blob_rdf = rdfvalue.SignedBlob()
   blob_rdf.Sign(content, sig_key, ver_key, prompt=True)
   aff4_path = rdfvalue.RDFURN(aff4_path.format(platform=platform.lower(),
@@ -108,11 +110,13 @@ def UploadSignedDriverBlob(content, file_name, config, platform,
     installer = rdfvalue.DriverInstallTemplate()
     # Create install_request from the configuration.
     section = "MemoryDriver%s" % platform.title()
-    installer.device_path = config["%s.device_path" % section]
-    installer.write_path = config["%s.install_write_path" % section]
+    installer.device_path = config_lib.CONFIG["%s.device_path" % section]
+    installer.write_path = config_lib.CONFIG["%s.install_write_path" % section]
     if platform == "Windows":
-      installer.driver_display_name = config["%s.driver_display_name" % section]
-      installer.driver_name = config["%s.driver_service_name" % section]
+      installer.driver_display_name = config_lib.CONFIG[
+          "%s.driver_display_name" % section]
+      installer.driver_name = config_lib.CONFIG[
+          "%s.driver_service_name" % section]
   else:
     installer = install_request
 
@@ -168,7 +172,7 @@ def CreateBinaryConfigPaths(token=None):
     for urn in missing_urns:
       aff4.FACTORY.Create(urn, "AFF4Volume", token=token).Flush()
 
-  except data_store.UnauthorizedAccess:
+  except access_control.UnauthorizedAccess:
     logging.info("User is not admin, cannot check configuration tree.")
     return
 
@@ -183,6 +187,3 @@ def GuessPublicHostname():
   else:
     # Our local host does not resolve attempt to retreive it externally.
     raise OSError("Could not detect public hostname for this machine")
-
-
-

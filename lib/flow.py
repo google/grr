@@ -34,22 +34,19 @@ import time
 import traceback
 
 
-from M2Crypto import BIO
 from M2Crypto import RSA
 from M2Crypto import X509
 
 from grr.client import conf as flags
 import logging
 from grr.client import actions
-# pylint: disable=W0611
-from grr.client import client_actions
-# pylint: enable=W0611
+
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import communicator
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow_context
-from grr.lib import key_utils
-from grr.lib import log
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import scheduler
@@ -60,25 +57,31 @@ from grr.lib import stats
 from grr.lib import threadpool
 from grr.lib import type_info
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 # Note: Each thread adds about 8mb for stack space.
-flags.DEFINE_integer("threadpool_size", 50,
-                     "Number of threads in the shared thread pool.")
+config_lib.DEFINE_integer("Threadpool.size", 50,
+                          "Number of threads in the shared thread pool.")
 
-flags.DEFINE_integer("worker_task_limit", 2000,
-                     "Limits the number of tasks a worker retrieves every poll")
+config_lib.DEFINE_integer("Worker.task_limit", 2000,
+                          "Limits the number of tasks a worker retrieves "
+                          "every poll")
 
-flags.DEFINE_integer("throttle_average_interval", 60,
-                     "Time interval over which average request rate is "
-                     "calculated when throttling is enabled.")
+config_lib.DEFINE_integer("Frontend.throttle_average_interval", 60,
+                          "Time interval over which average request rate is "
+                          "calculated when throttling is enabled.")
 
-flags.DEFINE_list("frontend_well_known_flows", "TransferStore",
-                  "Allow these well known flows to run directly on the"
-                  "frontend.")
+config_lib.DEFINE_list("Frontend.well_known_flows",
+                       ["TransferStore", "GetClientStatsAuto"],
+                       "Allow these well known flows to run directly on the "
+                       "frontend. Other flows are scheduled as normal.")
 
-FLAGS = flags.FLAGS
+config_lib.CONFIG.AddOption(type_info.X509PrivateKey(
+    name="PrivateKeys.server_key",
+    description="Private key for the front end server."))
 
+config_lib.CONFIG.AddOption(type_info.X509CertificateType(
+    name="Frontend.certificate",
+    description="An X509 certificate for the frontend server."))
 
 
 class FlowError(Exception):
@@ -435,11 +438,11 @@ class GRRFlow(object):
   def OutstandingRequests(self):
     return self.context.OutstandingRequests()
 
-  def SendReply(self, response_proto):
-    return self.context.SendReply(response_proto)
+  def SendReply(self, response):
+    return self.context.SendReply(response)
 
-  def Error(self, backtrace=None):
-    return self.context.Error(backtrace)
+  def Error(self, backtrace, client_id=None):
+    return self.context.Error(backtrace, client_id=client_id)
 
   def SetState(self, state):
     return self.context.SetState(state)
@@ -465,7 +468,7 @@ class GRRFlow(object):
   @session_id.setter
   def session_id(self, session_id):
     self.context.session_id = session_id
-    self.context.flow_pb.session_id = session_id
+    self.context.rdf_flow.session_id = session_id
 
   @property
   def client_id(self):
@@ -484,12 +487,12 @@ class GRRFlow(object):
     self.context.user = user
 
   @property
-  def flow_pb(self):
-    return self.context.flow_pb
+  def rdf_flow(self):
+    return self.context.rdf_flow
 
-  @flow_pb.setter
-  def flow_pb(self, flow_pb):
-    self.context.flow_pb = flow_pb
+  @rdf_flow.setter
+  def rdf_flow(self, rdf_flow):
+    self.context.rdf_flow = rdf_flow
 
   @property
   def token(self):
@@ -532,15 +535,15 @@ class GRRFlow(object):
     """
 
   def Dump(self):
-    """Returns a FlowPB protobuf with ourselves in it.
+    """Returns an rdfvalue Flow object with ourselves in it.
 
     Returns:
-      a FlowPB protobuf.
+      an rdfvalue.Flow object.
     """
     # Allow the flow author to hook this
     self.Save()
 
-    result = self.flow_pb
+    result = self.rdf_flow
     result.pickle = ""
     result.pickle = pickle.dumps(self)
 
@@ -603,7 +606,7 @@ class GRRFlow(object):
       fd.Close()
 
       # Add notifications to the flow.
-      notification = jobs_pb2.Notification(
+      notification = rdfvalue.Notification(
           type=message_type, subject=utils.SmartUnicode(subject),
           message=utils.SmartUnicode(msg),
           source=utils.SmartUnicode(self.session_id),
@@ -617,7 +620,7 @@ class GRRFlow(object):
 
     # TODO(user): This should be using PublishEvent()
     if self.notification_event:
-      if self.flow_pb.state == rdfvalue.Flow.Enum("ERROR"):
+      if self.rdf_flow.state == rdfvalue.Flow.Enum("ERROR"):
         status = rdfvalue.FlowNotification.Enum("ERROR")
       else:
         status = rdfvalue.FlowNotification.Enum("OK")
@@ -631,9 +634,9 @@ class GRRFlow(object):
           payload=event,
           session_id=self.notification_event,
           auth_state=rdfvalue.GRRMessage.Enum("AUTHENTICATED"),
-          source=self.__class__.__name__,
-          # Randomize the response id or events will get overwritten.
-          response_id=scheduler.SCHEDULER.Task().id)
+          source=self.__class__.__name__)
+      # Randomize the response id or events will get overwritten.
+      msg.response_id = msg.task_id
 
       with flow_context.WellKnownFlowManager(
           self.notification_event, token=self.token) as flow_manager:
@@ -779,11 +782,11 @@ def PublishEvent(event_name, msg, token=None):
     raise ValueError("Can only publish RDFValue instances.")
 
   # Randomize the response id or events will get overwritten.
-  msg.response_id = scheduler.SCHEDULER.Task().id
+  msg.response_id = msg.task_id = rdfvalue.GRRMessage().task_id
 
   sessions_queued = []
   for event_cls in EventListener.classes.values():
-    if (issubclass(event_cls, EventListener) and
+    if (aff4.issubclass(event_cls, EventListener) and
         event_name in getattr(event_cls, "EVENTS", [])):
 
       if event_cls.well_known_session_id is None:
@@ -911,7 +914,7 @@ class FlowFactory(object):
       flow_obj.Terminate()
 
     # Flows always have task id 1.
-    flow_obj.flow_pb.ts_id = 1
+    flow_obj.rdf_flow.ts_id = 1
     aff4_flow_obj.SetFlowObj(flow_obj)
 
     if _parent_request_queue is not None:
@@ -937,10 +940,9 @@ class FlowFactory(object):
     Returns:
       A list of flow protobufs.
     """
-    tasks = scheduler.SCHEDULER.Query(queue=client_id, limit=limit,
-                                      decoder=jobs_pb2.FlowPB, token=token)
+    tasks = scheduler.SCHEDULER.Query(queue=client_id, limit=limit, token=token)
     return [t for t in tasks
-            if t.value.state != rdfvalue.Flow.Enum("TERMINATED")]
+            if t.payload.state != rdfvalue.Flow.Enum("TERMINATED")]
 
   def FetchFlow(self, session_id, sync=True, lock=True, token=None):
     """Fetches the flow based on session_id.
@@ -956,7 +958,7 @@ class FlowFactory(object):
       token: The access token to be used for this request.
 
     Returns:
-      A flow protobuf.
+      A flow rdfvalue.
 
     Raises:
       LockError: If we are asynchronous and can not obtain the lock.
@@ -965,24 +967,21 @@ class FlowFactory(object):
     while True:
       # Does the flow exist? Fail early if it doesn't
       flow_tasks = scheduler.SCHEDULER.Query(queue=session_id,
-                                             decoder=jobs_pb2.FlowPB,
                                              limit=1, token=token)
 
-      if not flow_tasks:
+      if not flow_tasks or not flow_tasks[0].payload:
         logging.error("Flow %s does not exist", session_id)
         return None
 
       # Flow is terminated do not lock it
-      if flow_tasks[0].value.state == rdfvalue.Flow.Enum("TERMINATED"):
-        return flow_tasks[0].value
+      if flow_tasks[0].payload.state == rdfvalue.Flow.Enum("TERMINATED"):
+        return flow_tasks[0].payload
 
       # If we dont need to lock it - we are done
       if not lock: break
 
       flow_tasks = scheduler.SCHEDULER.QueryAndOwn(
-          queue=session_id,
-          limit=1,
-          decoder=jobs_pb2.FlowPB,
+          queue=session_id, limit=1,
           lease_seconds=1200, token=token)
 
       self.outstanding_flows.add(session_id)
@@ -994,35 +993,35 @@ class FlowFactory(object):
       logging.info("Waiting for flow %s", session_id)
       time.sleep(1)
 
-    flow_pb = flow_tasks[0].value
-    logging.info("Got flow %s %s", session_id, flow_pb.name)
-    flow_pb.ts_id = flow_tasks[0].id
+    rdf_flow = flow_tasks[0].payload
+    logging.info("Got flow %s %s", session_id, rdf_flow.name)
+    rdf_flow.ts_id = flow_tasks[0].task_id
 
-    return flow_pb
+    return rdf_flow
 
-  def ReturnFlow(self, flow_pb, token=None):
+  def ReturnFlow(self, rdf_flow, token=None):
     """Returns the flow when we are done with it.
 
     If the flow is marked as terminated we can delete it now.
 
     Args:
-      flow_pb: flow proto
+      rdf_flow: An rdfvalue flow object.
       token: The access token to be used for this request.
     """
-    self.outstanding_flows.discard(flow_pb.session_id)
+    self.outstanding_flows.discard(rdf_flow.session_id)
 
     # Is this flow still alive?
-    if flow_pb.state != rdfvalue.Flow.Enum("TERMINATED"):
-      logging.info("Returning flow %s", flow_pb.session_id)
+    if rdf_flow.state != rdfvalue.Flow.Enum("TERMINATED"):
+      logging.info("Returning flow %s", rdf_flow.session_id)
 
       # Re-insert it into the Task Scheduler
-      flow_task = scheduler.SCHEDULER.Task(queue=flow_pb.session_id,
-                                           id=1, value=flow_pb)
+      flow_task = rdfvalue.GRRMessage(queue=rdf_flow.session_id,
+                                      task_id=1, payload=rdf_flow)
 
       scheduler.SCHEDULER.Schedule([flow_task], token=token, sync=True)
     else:
-      logging.info("Deleting flow %s", flow_pb.session_id)
-      self.DeleteFlow(flow_pb, token=token)
+      logging.info("Deleting flow %s", rdf_flow.session_id)
+      self.DeleteFlow(rdf_flow, token=token)
 
   def TerminateFlow(self, flow_id, reason=None, token=None, force=False,
                     _store=None):
@@ -1039,13 +1038,13 @@ class FlowFactory(object):
     Raises:
       FlowError: If the flow can not be found.
     """
-    flow_pb = self.FetchFlow(flow_id, sync=False,
-                             lock=not force, token=token)
+    rdf_flow = self.FetchFlow(flow_id, sync=False,
+                              lock=not force, token=token)
 
-    if flow_pb.state != rdfvalue.Flow.Enum("RUNNING"):
+    if rdf_flow.state != rdfvalue.Flow.Enum("RUNNING"):
       return
 
-    flow_obj = self.LoadFlow(flow_pb)
+    flow_obj = self.LoadFlow(rdf_flow)
     if not flow_obj:
       raise FlowError("Could not terminate flow %s" % flow_id)
 
@@ -1054,7 +1053,7 @@ class FlowFactory(object):
       flow_obj.data_store = _store
 
     if token is None:
-      token = data_store.ACLToken()
+      token = access_control.ACLToken()
 
     if reason is None:
       reason = "Manual termination by console."
@@ -1068,30 +1067,30 @@ class FlowFactory(object):
         flow_obj.client_id).Add(flow_obj.__class__.__name__)], "x")
 
     # From now on we run with supervisor access
-    super_token = data_store.ACLToken()
+    super_token = access_control.ACLToken()
     super_token.supervisor = True
 
     # Also terminate its children
-    for child in flow_pb.children:
+    for child in rdf_flow.children:
       self.TerminateFlow(child, reason=None, token=super_token, force=force)
 
-    self.ReturnFlow(flow_obj.flow_pb, token=super_token)
+    self.ReturnFlow(flow_obj.rdf_flow, token=super_token)
 
-  def DeleteFlow(self, flow_pb, token=None):
+  def DeleteFlow(self, rdf_flow, token=None):
     """Deletes the flow from the Task Scheduler."""
-    flow_pb.state = rdfvalue.Flow.Enum("TERMINATED")
-    flow_task = scheduler.SCHEDULER.Task(
-        queue=flow_pb.session_id, id=flow_pb.ts_id, value=flow_pb)
+    rdf_flow.state = rdfvalue.Flow.Enum("TERMINATED")
+    flow_task = rdfvalue.GRRMessage(
+        queue=rdf_flow.session_id, task_id=1, payload=rdf_flow)
     scheduler.SCHEDULER.Schedule([flow_task], token=token, sync=True)
 
-  def LoadFlow(self, flow_pb, forced_token=None):
-    """Restores the flow stored in flow_pb.
+  def LoadFlow(self, rdf_flow, forced_token=None):
+    """Restores the flow stored in rdf_flow.
 
     We might want to make this more flexible down the track
     (e.g. autoload new flows to avoid having to restart workers.)
 
     Args:
-      flow_pb: The flow protobuf
+      rdf_flow: The flow rdfvalue.
       forced_token: If not None, this token will override the previously
                     pickled flow's token
     Returns:
@@ -1100,10 +1099,10 @@ class FlowFactory(object):
     Raises:
       FlowError: if we are unable to restore this flow.
     """
-    if flow_pb is None: return
+    if rdf_flow is None: return
 
     try:
-      result = pickle.loads(flow_pb.pickle)
+      result = pickle.loads(rdf_flow.pickle)
       result.data_store = data_store.DB
       result.context.outbound_lock = threading.Lock()
       if forced_token:
@@ -1115,12 +1114,12 @@ class FlowFactory(object):
     # it - just convert all exceptions to a FlowError and let our callers deal
     # with it..
     except Exception as e:
-      msg = "Unable to handle Flow %s: %s" % (flow_pb.name, e)
+      msg = "Unable to handle Flow %s: %s" % (rdf_flow.name, e)
       logging.error(msg)
       raise FlowError(msg)
 
-    # Restore the flow_pb here
-    result.flow_pb = flow_pb
+    # Restore the rdf_flow here
+    result.rdf_flow = rdf_flow
 
     return result
 
@@ -1139,17 +1138,16 @@ class FlowFactory(object):
       session_ids: A list of session ids to get.
       token: The access token to be used for this request.
     Returns:
-      A flow protobuf.
+      A list of rdfvalue flow objects.
     """
     result = scheduler.SCHEDULER.MultiQuery(session_ids,
-                                            decoder=jobs_pb2.FlowPB,
                                             token=token)
-    return [r[0][1].value for r in result.values()]
+    return [r[0][1].payload for r in result.values()]
 
   def GetFlowObjs(self, session_ids, token=None):
-    flow_pbs = self.QueryFlows(session_ids, token=token)
+    rdf_flows = self.QueryFlows(session_ids, token=token)
     result = []
-    for pb in flow_pbs:
+    for pb in rdf_flows:
       try:
         result.append(self.LoadFlow(pb, forced_token=token))
       except FlowError as e:
@@ -1209,10 +1207,11 @@ class ServerPubKeyCache(communicator.PubKeyCache):
 class ServerCommunicator(communicator.Communicator):
   """A communicator which stores certificates using AFF4."""
 
-  def __init__(self, certificate, token=None):
+  def __init__(self, certificate, private_key, token=None):
     self.client_cache = utils.FastStore(1000)
     self.token = token
-    super(ServerCommunicator, self).__init__(certificate)
+    super(ServerCommunicator, self).__init__(certificate=certificate,
+                                             private_key=private_key)
     self.pub_key_cache = ServerPubKeyCache(self.client_cache, token=token)
 
   def GetCipher(self, common_name="Server"):
@@ -1235,19 +1234,9 @@ class ServerCommunicator(communicator.Communicator):
 
     client.Set(client.Schema.CIPHER(cipher))
 
-  def _LoadOurCertificate(self, certificate_name):
+  def _LoadOurCertificate(self):
     """Loads the server certificate."""
-    server_pem = key_utils.GetCert(certificate_name)
-    self.cert = X509.load_cert_string(server_pem)
-
-    # Make sure its valid
-    private_key = RSA.load_key_string(server_pem)
-
-    # We must store it encoded in pem format due to M2Crypto referencing bugs,
-    # so we just encode it with no password.
-    bio = BIO.MemoryBuffer()
-    private_key.save_key_bio(bio, None)
-    self.private_key = bio.getvalue()
+    self.cert = X509.load_cert_string(str(self.certificate))
 
     # Our common name
     self.common_name = self.pub_key_cache.GetCNFromCert(self.cert)
@@ -1261,13 +1250,13 @@ class ServerCommunicator(communicator.Communicator):
     replayed.
 
     Args:
-       response_comms: The raw response_comms protobuf.
+       response_comms: The raw response_comms rdfvalue.
        signed_message_list: The SignedMessageList rdfvalue from the server.
        cipher: The cipher object that should be used to verify the message.
        api_version: The api version we should use.
 
     Returns:
-       a rdfvalue.GRRMessage.Enum("A")uthorizationState.
+       a rdfvalue.GRRMessage.AuthorizationState.
     """
     result = rdfvalue.GRRMessage.Enum("UNAUTHENTICATED")
     try:
@@ -1281,7 +1270,7 @@ class ServerCommunicator(communicator.Communicator):
 
       else:
         # Fake the metadata
-        cipher.cipher_metadata = jobs_pb2.CipherMetadata(
+        cipher.cipher_metadata = rdfvalue.CipherMetadata(
             source=signed_message_list.source)
 
         # Verify the incoming message.
@@ -1356,33 +1345,34 @@ class FrontEndServer(object):
   - Bundles and encrypts the messages for the client.
   """
 
-  def __init__(self, certificate, logger, max_queue_size=50,
+  def __init__(self, certificate, private_key, max_queue_size=50,
                message_expiry_time=120, max_retransmission_time=10, store=None,
                threadpool_prefix="grr_threadpool"):
     # Identify ourselves as the server.
-    self.token = data_store.ACLToken("FrontEndServer", "Implied.")
+    self.token = access_control.ACLToken("FrontEndServer", "Implied.")
     self.token.supervisor = True
 
     self.SetThrottleBundlesRatio(None)
 
-    # This object manages our crypto
-    self._communicator = ServerCommunicator(certificate, token=self.token)
+    # This object manages our crypto.
+    self._communicator = ServerCommunicator(
+        certificate=certificate, private_key=private_key, token=self.token)
+
     self.data_store = store or data_store.DB
     self.receive_thread_pool = {}
-    self._logger = logger
     self.message_expiry_time = message_expiry_time
     self.max_retransmission_time = max_retransmission_time
     self.max_queue_size = max_queue_size
-    self.thread_pool = threadpool.ThreadPool.Factory(threadpool_prefix,
-                                                     FLAGS.threadpool_size)
+    self.thread_pool = threadpool.ThreadPool.Factory(
+        threadpool_prefix, config_lib.CONFIG["Threadpool.size"])
     self.thread_pool.Start()
 
     # Well known flows are run on the front end.
     self.well_known_flows = {}
     for name, cls in GRRFlow.classes.items():
-      if (issubclass(cls, WellKnownFlow) and
+      if (aff4.issubclass(cls, WellKnownFlow) and
           cls.well_known_session_id and
-          name in FLAGS.frontend_well_known_flows):
+          name in config_lib.CONFIG["Frontend.well_known_flows"]):
         context = flow_context.FlowContext(flow_name=name, token=self.token)
         self.well_known_flows[
             cls.well_known_session_id] = cls(context)
@@ -1426,7 +1416,9 @@ class FrontEndServer(object):
       return False
 
     self.handled_bundles.append(bundle_time)
-    oldest_limit = bundle_time - FLAGS.throttle_average_interval
+    oldest_limit = bundle_time - config_lib.CONFIG[
+        "Frontend.throttle_average_interval"]
+
     try:
       oldest_index = next(i for i, v in enumerate(self.handled_bundles)
                           if v > oldest_limit)
@@ -1463,10 +1455,10 @@ class FrontEndServer(object):
     for this client.
 
     Args:
-       request_comms: A ClientCommunication protobuf with messages sent by the
+       request_comms: A ClientCommunication rdfvalue with messages sent by the
        client. source should be set to the client CN.
 
-       response_comms: A ClientCommunication protobuf of jobs destined to this
+       response_comms: A ClientCommunication rdfvalue of jobs destined to this
        client.
 
     Returns:
@@ -1532,11 +1524,10 @@ class FrontEndServer(object):
     new_tasks = scheduler.SCHEDULER.QueryAndOwn(
         queue=client_name,
         limit=max_count, token=self.token,
-        lease_seconds=self.message_expiry_time,
-        decoder=jobs_pb2.GrrMessage)
+        lease_seconds=self.message_expiry_time)
 
     for task in new_tasks:
-      response_message.job.Append(task.value)
+      response_message.job.Append(task.payload)
     stats.STATS.Add("grr_messages_sent", len(new_tasks))
     return new_tasks
 
@@ -1688,28 +1679,24 @@ class GRRWorker(object):
     # Make the thread pool a global so it can be reused for all workers.
     if GRRWorker.thread_pool is None:
       if threadpool_size == 0:
-        threadpool_size = FLAGS.threadpool_size
+        threadpool_size = config_lib.CONFIG["Threadpool.size"]
 
       GRRWorker.thread_pool = threadpool.ThreadPool.Factory(threadpool_prefix,
                                                             threadpool_size)
       GRRWorker.thread_pool.Start()
 
     self.token = token
-
-    # Initialize the logging component.
-    self._logger = log.GrrLogger(component=self.__class__.__name__)
-
     self.last_active = 0
 
     # Well known flows are just instantiated.
     self.well_known_flows = {}
     for name, cls in GRRFlow.classes.items():
-      if issubclass(cls, WellKnownFlow) and cls.well_known_session_id:
+      if aff4.issubclass(cls, WellKnownFlow) and cls.well_known_session_id:
         context = flow_context.FlowContext(flow_name=name, token=self.token)
         well_known_flow = self.well_known_flows[
             cls.well_known_session_id] = cls(context=context)
 
-        FACTORY.ReturnFlow(well_known_flow.flow_pb, token=self.token)
+        FACTORY.ReturnFlow(well_known_flow.rdf_flow, token=self.token)
 
   def Run(self):
     """Event loop."""
@@ -1756,7 +1743,7 @@ class GRRWorker(object):
       logging.error("Error processing message %s. %s.", e,
                     traceback.format_exc())
 
-      if FLAGS.debug:
+      if flags.FLAGS.debug:
         pdb.post_mortem()
 
     return processed
@@ -1789,11 +1776,11 @@ class GRRWorker(object):
   def _ProcessMessages(self, session_id):
     """Does the real work with a single flow."""
 
-    flow_pb = None
+    rdf_flow = None
     # Take a lease on the flow:
     try:
-      flow_pb = FACTORY.FetchFlow(session_id, lock=True, sync=False,
-                                  token=self.token)
+      rdf_flow = FACTORY.FetchFlow(session_id, lock=True, sync=False,
+                                   token=self.token)
 
       # If we get here, we now own the flow, so we can remove the notification
       # for it from the worker queue.
@@ -1814,11 +1801,11 @@ class GRRWorker(object):
 
       else:
         # Flow did not exist.
-        if flow_pb is None:
+        if rdf_flow is None:
           return
 
         # Unpickle the flow and have it process its messages.
-        flow_obj = FACTORY.LoadFlow(flow_pb)
+        flow_obj = FACTORY.LoadFlow(rdf_flow)
         flow_obj.ProcessCompletedRequests(self.thread_pool)
 
         # Re-serialize the flow
@@ -1830,17 +1817,17 @@ class GRRWorker(object):
 
     except FlowError as e:
       # Something went wrong - log it
-      if flow_pb:
-        flow_pb.state = rdfvalue.Flow.Enum("ERROR")
-        if not flow_pb.backtrace:
-          flow_pb.backtrace = traceback.format_exc()
+      if rdf_flow:
+        rdf_flow.state = rdfvalue.Flow.Enum("ERROR")
+        if not rdf_flow.backtrace:
+          rdf_flow.backtrace = traceback.format_exc()
 
       logging.error("Flow %s: %s", flow_obj, e)
 
     finally:
-      if flow_pb:
+      if rdf_flow:
         # Unlock this flow
-        FACTORY.ReturnFlow(flow_pb, token=self.token)
+        FACTORY.ReturnFlow(rdf_flow, token=self.token)
 
 
 class GRREnroler(GRRWorker):

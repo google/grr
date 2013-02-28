@@ -25,7 +25,6 @@ from grr.lib import rdfvalue
 from grr.lib import scheduler
 from grr.lib import server_plugins  # pylint: disable=W0611
 from grr.lib import test_lib
-from grr.proto import jobs_pb2
 
 
 # A global collector for test results
@@ -74,7 +73,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     request_state, _ = data_store.DB.Resolve(
         flow_context.FlowManager.FLOW_STATE_TEMPLATE % message.session_id,
         flow_context.FlowManager.FLOW_REQUEST_TEMPLATE % message.request_id,
-        decoder=jobs_pb2.RequestState, token=self.token)
+        decoder=rdfvalue.RequestState, token=self.token)
 
     request_state.response_count += 1
     if message.type == rdfvalue.GRRMessage.Enum("STATUS"):
@@ -125,7 +124,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     # Check that client queue has messages
     tasks_on_client_queue = scheduler.SCHEDULER.Query(
-        self.client_id, 100, decoder=jobs_pb2.GrrMessage, token=self.token)
+        self.client_id, 100, token=self.token)
 
     # should have 10 requests from WorkerSendingTestFlow and 1 from
     # SendingTestFlow2
@@ -154,7 +153,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     # Check that client queue is cleared - should have 2 less messages (since
     # two were completed).
     tasks_on_client_queue = scheduler.SCHEDULER.Query(
-        self.client_id, 100, decoder=jobs_pb2.GrrMessage, token=self.token)
+        self.client_id, 100, token=self.token)
 
     self.assertEqual(len(tasks_on_client_queue), 9)
 
@@ -164,13 +163,13 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         flow_context.FlowManager.FLOW_REQUEST_TEMPLATE % 1,
         token=self.token))
 
-    flow_pb = flow.FACTORY.FetchFlow(session_id_1, token=self.token)
-    self.assert_(flow_pb.state != rdfvalue.Flow.Enum("TERMINATED"))
-    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
+    rdf_flow = flow.FACTORY.FetchFlow(session_id_1, token=self.token)
+    self.assert_(rdf_flow.state != rdfvalue.Flow.Enum("TERMINATED"))
+    flow.FACTORY.ReturnFlow(rdf_flow, token=self.token)
 
-    flow_pb = flow.FACTORY.FetchFlow(session_id_2, token=self.token)
-    self.assertEqual(flow_pb.state, rdfvalue.Flow.Enum("TERMINATED"))
-    flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
+    rdf_flow = flow.FACTORY.FetchFlow(session_id_2, token=self.token)
+    self.assertEqual(rdf_flow.state, rdfvalue.Flow.Enum("TERMINATED"))
+    flow.FACTORY.ReturnFlow(rdf_flow, token=self.token)
 
 
 def main(_):

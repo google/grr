@@ -18,18 +18,12 @@
 
 import os
 
-from grr.client import conf as flags
 import logging
 
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-
-
-FLAGS = flags.FLAGS
-CONFIG = config_lib.CONFIG
 
 
 class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
@@ -57,7 +51,7 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
   def CreateSignedDriver(self):
     # Make sure there is a signed driver for our client.
     driver_path = maintenance_utils.UploadSignedDriverBlob(
-        "MZ Driveeerrrrrr", file_name="winpmem.64.sys", config=CONFIG,
+        "MZ Driveeerrrrrr", file_name="winpmem.64.sys",
         platform="Windows",
         aff4_path="/config/drivers/windows/memory/{file_name}",
         token=self.token)
@@ -112,7 +106,7 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
                 path=image_path,
                 pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
 
-        reply.runs.add(offset=0, length=1000000000)
+        reply.runs.Append(offset=0, length=1000000000)
 
         return [reply]
 

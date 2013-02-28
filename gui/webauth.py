@@ -5,17 +5,17 @@ import collections
 
 
 from django import http
-from grr.client import conf as flags
+import logging
 
 from grr.lib import access_control
-from grr.lib import data_store
+from grr.lib import config_lib
+from grr.lib import log
 from grr.lib import registry
 
 
-FLAGS = flags.FLAGS
-
-flags.DEFINE_string("webauth_manager", "NullWebAuthManager",
-                    "The web auth manager for controlling access to the UI.")
+config_lib.DEFINE_string(
+    "AdminUI.webauth_manager", "NullWebAuthManager",
+    "The web auth manager for controlling access to the UI.")
 
 
 class BaseWebAuthManager(object):
@@ -29,9 +29,6 @@ class BaseWebAuthManager(object):
   """
 
   __metaclass__ = registry.MetaclassRegistry
-
-  def __init__(self, logger):
-    self.logger = logger
 
   def SecurityCheck(self, func, request, *args, **kwargs):
     """A decorator applied to protected web handlers.
@@ -49,21 +46,21 @@ class BaseWebAuthManager(object):
 
   def RedirectBase(self):
     """Return a redirect to the main GRR page."""
-    return http.HttpResponsePermanentRedirect(FLAGS.ui_url)
+    return http.HttpResponsePermanentRedirect(config_lib.CONFIG["AdminUI.url"])
 
 
 class BasicWebAuthManager(BaseWebAuthManager):
   """Manager using basic auth using the config file."""
 
-  def __init__(self, logger):
+  def __init__(self):
     """Constructor."""
     # Reuse the basic ACL manager functions for accessing the config.
     self._aclmanager = access_control.BasicAccessControlManager()
-    super(BasicWebAuthManager, self).__init__(logger=logger)
+    super(BasicWebAuthManager, self).__init__()
 
   def SecurityCheck(self, func, request, *args, **kwargs):
     """Wrapping function."""
-    event_id = self.logger.GetNewEventId()
+    event_id = log.LOGGER.GetNewEventId()
 
     # Modify request adding an event_id attribute to track the event
     request.event_id = event_id
@@ -110,6 +107,36 @@ class NullWebAuthManager(BaseWebAuthManager):
     """A decorator applied to protected web handlers."""
     request.event_id = "1"
     request.user = self.username
-    request.token = data_store.ACLToken("Testing", "Just a test")
+    request.token = access_control.ACLToken("Testing", "Just a test")
     return func(request, *args, **kwargs)
 
+
+# Global to store the configured web auth manager.
+WEBAUTH_MANAGER = None
+
+
+def SecurityCheck(func):
+  """A decorator applied to protected web handlers."""
+
+  def Wrapper(request, *args, **kwargs):
+    """Wrapping function."""
+    if WEBAUTH_MANAGER is None:
+      raise RuntimeError("Attempt to initialize before WEBAUTH_MANAGER set.")
+    return WEBAUTH_MANAGER.SecurityCheck(func, request, *args, **kwargs)
+
+  return Wrapper
+
+
+class WebAuthInit(registry.InitHook):
+  pre = ["GuiPluginsInit"]
+
+  def RunOnce(self):
+    """Run this once on init."""
+    global WEBAUTH_MANAGER  # pylint: disable=global-statement
+
+    # pylint: disable=g-bad-name
+    WEBAUTH_MANAGER = BaseWebAuthManager.NewPlugin(
+        config_lib.CONFIG["AdminUI.webauth_manager"])()
+
+    # pylint: enable=g-bad-name
+    logging.info("Using webauth manager %s", WEBAUTH_MANAGER)

@@ -15,30 +15,13 @@ import logging
 
 from grr.gui import renderers
 from grr.gui import webauth
-from grr.lib import data_store
-from grr.lib import log
+
+from grr.lib import access_control
 from grr.lib import registry
 from grr.lib import stats
 
 
 SERVER_NAME = "GRR Admin Console"
-FLAGS = flags.FLAGS
-
-# Global to store the configured web auth manager.
-WEBAUTH_MANAGER = None
-LOGGER = log.GrrLogger(component="AdminUI")
-
-
-def SecurityCheck(func):
-  """A decorator applied to protected web handlers."""
-
-  def Wrapper(request, *args, **kwargs):
-    """Wrapping function."""
-    if WEBAUTH_MANAGER is None:
-      raise RuntimeError("Attempt to initialize before WEBAUTH_MANAGER set.")
-    return WEBAUTH_MANAGER.SecurityCheck(func, request, *args, **kwargs)
-
-  return Wrapper
 
 
 class ViewsInit(registry.InitHook):
@@ -47,19 +30,14 @@ class ViewsInit(registry.InitHook):
   def RunOnce(self):
     """Run this once on init."""
     # Counters used here
-    stats.STATS.RegisterVar("grr_admin_ui_unknown_renderer")
-    stats.STATS.RegisterVar("grr_admin_ui_renderer_called")
     stats.STATS.RegisterVar("grr_admin_ui_access_denied")
+    stats.STATS.RegisterVar("grr_admin_ui_slave_response")
+    stats.STATS.RegisterVar("grr_admin_ui_renderer_called")
     stats.STATS.RegisterVar("grr_admin_ui_renderer_failed")
-    global WEBAUTH_MANAGER  # pylint: disable=global-statement
-    # pylint: disable=g-bad-name
-    WEBAUTH_MANAGER = webauth.BaseWebAuthManager.NewPlugin(
-        FLAGS.webauth_manager)(logger=LOGGER)
-    # pylint: enable=g-bad-name
-    logging.info("Using webauth manager %s", WEBAUTH_MANAGER)
+    stats.STATS.RegisterVar("grr_admin_ui_unknown_renderer")
 
 
-@SecurityCheck
+@webauth.SecurityCheck
 @csrf.ensure_csrf_cookie     # Set the csrf cookie on the homepage.
 def Homepage(request):
   """Basic handler to render the index page."""
@@ -68,7 +46,7 @@ def Homepage(request):
       "base.html", context, context_instance=template.RequestContext(request))
 
 
-@SecurityCheck
+@webauth.SecurityCheck
 @renderers.ErrorHandler()
 def RenderGenericRenderer(request):
   """Django handler for rendering registered GUI Elements."""
@@ -87,7 +65,7 @@ def RenderGenericRenderer(request):
   result = http.HttpResponse(mimetype="text/html")
 
   # Pass the request only from POST parameters
-  if FLAGS.debug:
+  if flags.FLAGS.debug:
     # Allow both for debugging
     request.REQ = request.REQUEST
   else:
@@ -95,7 +73,7 @@ def RenderGenericRenderer(request):
     request.REQ = request.POST
 
   # Build the security token for this request
-  request.token = data_store.ACLToken(
+  request.token = access_control.ACLToken(
       request.user, request.REQ.get("reason", ""),
       process="GRRAdminUI",
       expiry=time.time() + renderer.max_execution_time)
@@ -112,7 +90,7 @@ def RenderGenericRenderer(request):
     # Does this renderer support this action?
     method = getattr(renderer, action)
     result = method(request, result) or result
-  except data_store.UnauthorizedAccess, e:
+  except access_control.UnauthorizedAccess, e:
     result = http.HttpResponse(mimetype="text/html")
     result = renderers.Renderer.NewPlugin("UnauthorizedRenderer")().Layout(
         request, result, exception=e)

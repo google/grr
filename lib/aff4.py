@@ -1,49 +1,33 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """AFF4 interface implementation.
 
 This contains an AFF4 data model implementation.
 """
 
-
+import __builtin__
 import abc
 import StringIO
 import time
 import zlib
 
 
-from google.protobuf import message
-from grr.client import conf as flags
 import logging
+
+from grr.lib import access_control
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import lexer
 from grr.lib import rdfvalue
-# pylint:disable=unused-import
-from grr.lib import rdfvalues
-# pylint:enable=unused-import
 from grr.lib import registry
 from grr.lib import utils
 
-flags.DEFINE_integer("aff4_cache_age", 5,
-                     "The number of seconds AFF4 objects live in the cache.")
+config_lib.DEFINE_integer(
+    "AFF4.cache_age", 5,
+    "The number of seconds AFF4 objects live in the cache.")
 
-flags.DEFINE_integer("notification_rules_cache_age", 60,
-                     "The number of seconds AFF4 notification rules "
-                     "are cached.")
-
-FLAGS = flags.FLAGS
+config_lib.DEFINE_integer(
+    "AFF4.notification_rules_cache_age", 60,
+    "The number of seconds AFF4 notification rules are cached.")
 
 
 # Factor to convert from seconds to microseconds
@@ -65,18 +49,22 @@ RDFBytes = rdfvalue.RDFBytes  # pylint: disable=g-bad-name
 RDFString = rdfvalue.RDFString  # pylint: disable=g-bad-name
 
 
+AFF4_PREFIXES = ["aff4:.*", "metadata:.*", "task:.*"]
+
+
 class Factory(object):
   """A central factory for AFF4 objects."""
 
   def __init__(self):
     # This is a relatively short lived cache of objects.
-    self.cache = utils.AgeBasedCache(max_size=10000,
-                                     max_age=FLAGS.aff4_cache_age)
+    self.cache = utils.AgeBasedCache(
+        max_size=10000,
+        max_age=config_lib.CONFIG["AFF4.cache_age"])
     self.intermediate_cache = utils.FastStore(2000)
 
     # Create a token for system level actions:
-    self.root_token = data_store.ACLToken(username="system",
-                                          reason="Maintainance")
+    self.root_token = access_control.ACLToken(username="system",
+                                              reason="Maintainance")
     self.root_token.supervisor = True
 
     self.notification_rules = []
@@ -119,7 +107,7 @@ class Factory(object):
     # might as well just re-fetch all the urns again in a single data store
     # round trip.
     for subject, values in data_store.DB.MultiResolveRegex(
-        urns, [".*"],
+        urns, AFF4_PREFIXES,
         timestamp=self.ParseAgeSpecification(age),
         token=token, limit=None).items():
 
@@ -206,7 +194,7 @@ class Factory(object):
 
           urn = dirname
 
-    except data_store.UnauthorizedAccess:
+    except access_control.UnauthorizedAccess:
       pass
 
   def _ExpandURNComponents(self, urn, unique_urns):
@@ -284,7 +272,6 @@ class Factory(object):
       IOError: If the object is not of the required type.
       AttributeError: If the requested mode is incorrect.
     """
-
     if mode not in ["w", "r", "rw"]:
       raise AttributeError("Invalid mode %s" % mode)
 
@@ -497,7 +484,7 @@ class Factory(object):
   def NotifyWriteObject(self, aff4_object):
     current_time = time.time()
     if (current_time - self.notification_rules_timestamp >
-        FLAGS.notification_rules_cache_age):
+        config_lib.CONFIG["AFF4.notification_rules_cache_age"]):
       self.notification_rules_timestamp = current_time
       self.UpdateNotificationRules()
 
@@ -758,8 +745,11 @@ class AFF4Object(object):
       """Return a list of AFF4 Object classes which use us as a Schema."""
       result = []
       for aff4cls in AFF4Object.classes.values():
-        if aff4cls.SchemaCls is cls:
-          result.append(aff4cls)
+        try:
+          if aff4cls.SchemaCls is cls:
+            result.append(aff4cls)
+        except AttributeError:
+          pass
 
       return result
 
@@ -849,12 +839,12 @@ class AFF4Object(object):
       # Get the Attribute object from our schema
       attribute = Attribute.PREDICATES[attribute_name]
       cls = attribute.attribute_type
-      self._AddAttributeToCache(attribute, cls(value, ts),
+      self._AddAttributeToCache(attribute, cls(initializer=value, age=ts),
                                 self.synced_attributes)
     except KeyError:
       if not attribute_name.startswith("index:"):
         logging.debug("Attribute %s not defined, skipping.", attribute_name)
-    except (ValueError, message.DecodeError):
+    except (ValueError, rdfvalue.DecodeError):
       logging.debug("%s: %s invalid encoding. Skipping.",
                     self.urn, attribute_name)
 
@@ -1099,13 +1089,16 @@ class AFF4Object(object):
     Raises:
        AttributeError: When the new object can not accept some of the old
        attributes.
+       IOError: When we cannot instantiate the object type class.
     """
     # We are already of the required type
     if self.__class__.__name__ == aff4_class:
       return self
 
     # Instantiate the right type
-    cls = self.classes[str(aff4_class)]
+    cls = self.classes.get(str(aff4_class))
+    if cls is None:
+      raise IOError("Could not instantiate %s" % aff4_class)
 
     # It's not allowed to downgrade the object
     if isinstance(self, cls):
@@ -1145,6 +1138,13 @@ class AFF4Object(object):
 
   def __lt__(self, other):
     return self.urn < other
+
+
+# This will register all classes into this modules's namespace regardless of
+# where they are defined. This allows us to decouple the place of definition of
+# a class (which might be in a plugin) from its use which will reference this
+# module.
+AFF4Object.classes = globals()
 
 
 class AttributeExpression(lexer.Expression):
@@ -1498,7 +1498,8 @@ class AFF4MemoryStream(AFF4Stream):
         pass
 
     self.fd = StringIO.StringIO(contents)
-    self.size = rdfvalue.RDFInteger(0)
+    self.size = rdfvalue.RDFInteger(len(contents))
+    self.offset = 0
 
   def Truncate(self, offset=None):
     if offset is None:
@@ -1514,7 +1515,7 @@ class AFF4MemoryStream(AFF4Stream):
       raise IOError("Cannot write unencoded string.")
     self.dirty = True
     self.fd.write(data)
-    self.size += len(data)
+    self.size = self.fd.len
 
   def Tell(self):
     return self.fd.tell()
@@ -1557,13 +1558,8 @@ class AFF4Image(AFF4Stream):
     super(AFF4Image, self).Initialize()
 
     self.offset = 0
-    # A cache for reading segments - When we get pickled we want to discard
-    # these read only segments.
-    self.read_chunk_cache = utils.FastStore(100)
-
-    # For writing we want to hold onto these when pickled so we can continue
-    # writing from where we left off - hence we use a pickleable store.
-    self.write_chunk_cache = AFF4ObjectCache(10)
+    # A cache for segments - When we get pickled we want to discard them.
+    self.chunk_cache = AFF4ObjectCache(100)
 
     if "r" in self.mode:
       self.size = int(self.Get(self.Schema.SIZE))
@@ -1598,23 +1594,23 @@ class AFF4Image(AFF4Stream):
 
     self.size = offset
     self.offset = offset
-    self.write_chunk_cache.Flush()
+    self.chunk_cache.Flush()
 
   def _GetChunkForWriting(self, chunk):
     chunk_name = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk)
     try:
-      fd = self.write_chunk_cache.Get(chunk_name)
+      fd = self.chunk_cache.Get(chunk_name)
     except KeyError:
-      fd = FACTORY.Create(chunk_name, "AFF4MemoryStream", mode="w",
+      fd = FACTORY.Create(chunk_name, "AFF4MemoryStream", mode="rw",
                           token=self.token)
-      self.write_chunk_cache.Put(chunk_name, fd)
+      self.chunk_cache.Put(chunk_name, fd)
 
     return fd
 
   def _GetChunkForReading(self, chunk):
     chunk_name = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk)
     try:
-      fd = self.read_chunk_cache.Get(chunk_name)
+      fd = self.chunk_cache.Get(chunk_name)
     except KeyError:
       # The most common read access pattern is contiguous reading. Here we
       # readahead to reduce round trips.
@@ -1622,18 +1618,18 @@ class AFF4Image(AFF4Stream):
       for chunk_number in range(chunk, chunk + 10):
         new_chunk_name = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number)
         try:
-          self.read_chunk_cache.Get(new_chunk_name)
+          self.chunk_cache.Get(new_chunk_name)
         except KeyError:
           missing_chunks.append(new_chunk_name)
 
       for child in FACTORY.MultiOpen(
-          missing_chunks, mode="r", token=self.token, age=self.age_policy):
+          missing_chunks, mode="rw", token=self.token, age=self.age_policy):
         if isinstance(child, AFF4Stream):
-          self.read_chunk_cache.Put(child.urn, child)
+          self.chunk_cache.Put(child.urn, child)
 
       # This should work now - otherwise we just give up.
       try:
-        fd = self.read_chunk_cache.Get(chunk_name)
+        fd = self.chunk_cache.Get(chunk_name)
       except KeyError:
         raise IOError("Cannot open chunk %s" % chunk_name)
 
@@ -1727,18 +1723,18 @@ class AFF4Image(AFF4Stream):
 
       cache_key = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk)
       try:
-        fd = self.write_chunk_cache[cache_key]
+        fd = self.chunk_cache[cache_key]
       except KeyError:
         pass
 
       # Flush the cache
-      self.write_chunk_cache.Flush()
+      self.chunk_cache.Flush()
       self.Set(self.Schema.SIZE(self.size))
 
     super(AFF4Image, self).Flush(sync=sync)
 
     if fd:
-      self.write_chunk_cache.Put(cache_key, fd)
+      self.chunk_cache.Put(cache_key, fd)
 
 
 class AFF4NotificationRule(AFF4Object):
@@ -1788,5 +1784,20 @@ class AFF4Filter(object):
 FACTORY = None
 ROOT_URN = rdfvalue.RDFURN("aff4:/")
 
-# The FlowSwitch lives here.
-FLOW_SWITCH_URN = ROOT_URN.Add("flows")
+
+def issubclass(obj, cls):    # pylint: disable=redefined-builtin,g-bad-name
+  """A sane implementation of issubclass.
+
+  See http://bugs.python.org/issue10569
+
+  Python bare issubclass must be protected by an isinstance test first since it
+  can only work on types and raises when provided something which is not a type.
+
+  Args:
+    obj: Any object or class.
+    cls: The class to check against.
+
+  Returns:
+    True if obj is a subclass of cls and False otherwise.
+  """
+  return isinstance(obj, type) and __builtin__.issubclass(obj, cls)

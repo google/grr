@@ -11,33 +11,41 @@ import sys
 
 
 from grr.client import conf
-from grr.client import conf as flags
+
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=g-bad-import-order,unused-import
+
+from grr.client import conf
 
 from grr.lib import aff4
 from grr.lib import build
 from grr.lib import config_lib
 from grr.lib import data_store
-from grr.lib import key_utils
+
+# pylint: disable=g-import-not-at-top,no-name-in-module
+try:
+  # FIXME(dbilby): Temporary hack until key_utils is deprecated.
+  from grr.lib import key_utils
+except ImportError:
+  pass
+
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import server_plugins  # pylint: disable=W0611
+from grr.lib import utils
 
-
-parser = argparse.ArgumentParser(
-    description="Set configuration parameters for the GRR Server.\nThis script "
-    "has numerous subcommands to perform various actions. When you are first "
-    "setting up, you probably only care about 'initialize'.")
+parser = conf.PARSER
+parser.description = ("Set configuration parameters for the GRR Server."
+                      "\nThis script has numerous subcommands to perform "
+                      "various actions. When you are first setting up, you "
+                      "probably only care about 'initialize'.")
 
 # Generic arguments.
 
 parser.add_argument(
     "--share_dir", default="/usr/share/grr",
     help="Path to the directory containing grr data.")
-
-# Allow arguments we need from FLAGS to pass through argparse unhindered.
-# TODO(user): Clean this up once we deprecate most of flags.
-parser.add_argument("--config")
 
 subparsers = parser.add_subparsers(
     title="subcommands", dest="subparser_name", description="valid subcommands")
@@ -125,45 +133,41 @@ parser_upload_memory_driver = subparsers.add_parser(
     help="Sign and upload a memory driver for a specific platform.")
 
 
-FLAGS = flags.FLAGS
-CONFIG = config_lib.CONFIG
-CONFIG.flag_sections.append("ServerFlags")
-
-args = parser.parse_args()
+args = None
 
 
 def LoadMemoryDrivers(grr_dir):
   """Load memory drivers from disk to database."""
 
-  f_path = os.path.join(grr_dir, CONFIG["MemoryDriverDarwin.driver_file_64"])
+  f_path = os.path.join(
+      grr_dir, config_lib.CONFIG["MemoryDriverDarwin.driver_file_64"])
   up_path = maintenance_utils.UploadSignedDriverBlob(
-      open(f_path).read(), config=CONFIG, platform="Darwin",
-      file_name="osxpmem")
+      open(f_path).read(), platform="Darwin", file_name="osxpmem")
   print "uploaded %s" % up_path
 
-  f_path = os.path.join(grr_dir, CONFIG["MemoryDriverWindows.driver_file_32"])
+  f_path = os.path.join(
+      grr_dir, config_lib.CONFIG["MemoryDriverWindows.driver_file_32"])
   up_path = maintenance_utils.UploadSignedDriverBlob(
-      open(f_path).read(), config=CONFIG, platform="Windows",
-      file_name="winpmem.32.sys")
+      open(f_path).read(), platform="Windows", file_name="winpmem.32.sys")
   print "uploaded %s" % up_path
 
-  f_path = os.path.join(grr_dir, CONFIG["MemoryDriverWindows.driver_file_64"])
+  f_path = os.path.join(
+      grr_dir, config_lib.CONFIG["MemoryDriverWindows.driver_file_64"])
   up_path = maintenance_utils.UploadSignedDriverBlob(
-      open(f_path).read(), config=CONFIG, platform="Windows",
-      file_name="winpmem.64.sys")
+      open(f_path).read(), platform="Windows", file_name="winpmem.64.sys")
   print "uploaded %s" % up_path
 
 
 def GenerateDjangoKey(config):
   """Update a config with a random django key."""
   try:
-    secret_key = config["ServerFlags.django_secret_key"]
+    secret_key = config["AdminUI.django_secret_key"]
   except ConfigParser.NoOptionError:
     secret_key = "CHANGE_ME"  # This is the config file default.
 
-  if secret_key.strip().upper() == "CHANGE_ME":
-    key = key_utils.GeneratePassphrase(length=100)
-    config["ServerFlags.django_secret_key"] = key
+  if not secret_key or secret_key.strip().upper() == "CHANGE_ME":
+    key = utils.GeneratePassphrase(length=100)
+    config.Set("AdminUI.django_secret_key", key)
   else:
     print "Not updating django_secret_key as it is already set."
 
@@ -172,44 +176,36 @@ def GenerateKeys(config):
   """Generate the keys we need for a GRR server."""
   if not hasattr(key_utils, "MakeCACert"):
     parser.error("Generate keys can only run with open source key_utils.")
-  if (config.has_option("ServerKeys", "server_private_key")
-      and not args.overwrite):
+  if config["PrivateKeys.server_key"] and not args.overwrite:
     raise RuntimeError("Config %s already has keys, use --overwrite to "
-                       "override." % config.config_filename)
-
-  required_sections = ["ClientSigningKeys", "ClientSigningKeysWindows",
-                       "ClientSigningKeysDarwin", "ClientSigningKeysLinux",
-                       "ServerKeys"]
-  for section in required_sections:
-    if not config.has_section(section):
-      config.add_section(section)
+                       "override." % config.parser)
 
   print "Generating executable signing key"
   priv_key, pub_key = key_utils.GenerateRSAKey()
-  config.set("ClientSigningKeys", "executable_signing_private_key", priv_key)
-  config.set("ClientSigningKeys", "executable_signing_public_key", pub_key)
+  config.Set("PrivateKeys.executable_signing_private_key", priv_key)
+  config.Set("Client.executable_signing_public_key", pub_key)
 
   print "Generating driver signing key"
   priv_key, pub_key = key_utils.GenerateRSAKey()
-  section = "ClientSigningKeys"
-  config.set(section, "driver_signing_private_key", priv_key)
-  config.set(section, "driver_signing_public_key", pub_key)
+  config.Set("PrivateKeys.driver_signing_private_key", priv_key)
+  config.Set("Client.driver_signing_public_key", pub_key)
+
   # Add OS specific inherit sections.
-  config.set("ClientSigningKeysWindows", "@inherit_from_section", section)
-  config.set("ClientSigningKeysLinux", "@inherit_from_section", section)
-  config.set("ClientSigningKeysDarwin", "@inherit_from_section", section)
+  config.Set("PrivateKeysWindows.@inherit_from_section", "PrivateKeys")
+  config.Set("PrivateKeysLinux.@inherit_from_section", "PrivateKeys")
+  config.Set("PrivateKeysDarwin.@inherit_from_section", "PrivateKeys")
 
   print "Generating CA keys"
   ca_cert, ca_pk, _ = key_utils.MakeCACert()
   cipher = None
-  config.set("ServerKeys", "ca_public_cert", ca_cert.as_pem())
-  config.set("ServerKeys", "ca_private_key", ca_pk.as_pem(cipher) +
+  config.Set("CA.certificate", ca_cert.as_pem())
+  config.Set("PrivateKeys.ca_key", ca_pk.as_pem(cipher) +
              ca_cert.as_pem())
 
   print "Generating Server keys"
   server_cert, server_key = key_utils.MakeCASignedCert("grr", ca_pk, bits=2048)
-  config.set("ServerKeys", "server_public_cert", server_cert.as_pem())
-  config.set("ServerKeys", "server_private_key", server_key.as_pem(cipher) +
+  config.Set("Frontend.certificate", server_cert.as_pem())
+  config.Set("PrivateKeys.server_key", server_key.as_pem(cipher) +
              server_cert.as_pem())
 
   print "Generating Django Secret key (used for xsrf protection etc)"
@@ -218,9 +214,6 @@ def GenerateKeys(config):
 
 def ConfigureBaseOptions(config):
   """Configure the basic options required to run the server."""
-
-  # TODO(user): Many of these use the ServerFlags section but need to be moved
-  # when the next config refactor happens.
 
   print "We are now going to configure the server using a bunch of questions.\n"
 
@@ -244,14 +237,14 @@ this will be port 8080 with the URL ending in /control.
 """
   def_location = "http://%s:8080/control" % hostname
   location = raw_input("Server URL [%s]: " % def_location) or def_location
-  config["ClientBuild.location"] = location
+  config.Set("ClientBuild.location", location)
 
   print """\nUI URL:
 The UI URL specifies where the Administrative Web Interface can be found.
 """
   def_url = "http://%s:8000" % hostname
-  ui_url = raw_input("UI URL [%s]: " % def_url) or def_url
-  config["ServerFlags.ui_url"] = ui_url
+  ui_url = raw_input("AdminUI URL [%s]: " % def_url) or def_url
+  config.Set("ServerFlags.ui_url", ui_url)
 
   print """\nMonitoring email address
 Address where monitoring events get sent, e.g. crashed clients, broken server
@@ -259,14 +252,14 @@ etc.
 """
   def_email = "grr-emergency@example.com"
   email = raw_input("Monitoring email [%s]: " % def_email) or def_email
-  config["ServerFlags.monitoring_email"] = email
+  config.Set("Monitoring.emergency_access_email", email)
 
   print """\nEmergency email address
 Address where high priority events such as an emergency ACL bypass are sent.
 """
   def_email = "grr-emergency@example.com"
   emergency_email = raw_input("Emergency email [%s]: " % email) or email
-  config["ServerFlags.grr_emergency_email_address"] = emergency_email
+  config.Set("Monitoring.emergency_access_email", emergency_email)
 
   print "\nConfiguration completed"
   print_config = ((raw_input("Would you like to review the config before"
@@ -274,18 +267,18 @@ Address where high priority events such as an emergency ACL bypass are sent.
   if print_config:
     print config.FormattedAsString(truncate_len=80)
 
-  config.WriteConfig()
+  config.Write()
   print ("Configuration parameters set. You can edit these in %s" %
-         config.config_filename)
+         config.parser)
 
 
 def Initialize(config):
   """Initialize or update a GRR configuration."""
-  print "Checking read access on config %s" % config.config_filename
-  if not os.access(config.config_filename, os.W_OK):
+  print "Checking read access on config %s" % config.parser
+  if not os.access(config.parser.filename, os.W_OK):
     raise IOError("Config not writeable (need sudo?)")
   print "\nStep 1: Key Generation"
-  if config.has_option("ServerKeys", "server_private_key"):
+  if config["PrivateKeys.server_key"]:
     if ((raw_input("You already have keys in your config, do you want to"
                    " overwrite them? [yN]: ").upper() or "N") == "Y"):
       args.overwrite = True
@@ -303,19 +296,19 @@ def Initialize(config):
   LoadMemoryDrivers(args.share_dir)
 
   print "\nStep 3: Setting Basic Configuration Parameters"
-  ConfigureBaseOptions(CONFIG)
+  ConfigureBaseOptions(config_lib.CONFIG)
 
   print "\nStep 4: Repackaging clients with new configuration."
-  RepackAndUpload(CONFIG, args.share_dir, upload=True)
+  RepackAndUpload(args.share_dir, upload=True)
 
 
-def RepackAndUpload(config, share_dir, upload=True):
+def RepackAndUpload(share_dir, upload=True):
   """Repack all clients and upload them."""
   py_dir = os.path.dirname(os.path.realpath(__file__))
   build_files_dir = os.path.join(os.path.dirname(py_dir), "config")
   exe_dir = os.path.join(share_dir, "executables")
   built = build.RepackAllBinaries(build_files_dir=build_files_dir,
-                                  config=config, exe_dir=exe_dir)
+                                  config=config_lib.CONFIG, exe_dir=exe_dir)
   if upload:
     print "\n## Uploading"
     for file_path, platform, arch in built:
@@ -326,15 +319,8 @@ def RepackAndUpload(config, share_dir, upload=True):
       elif platform == "Windows":
         up = maintenance_utils.UploadSignedConfigBlob(
             open(file_path).read(1024*1024*30), platform=platform,
-            file_name=os.path.basename(file_path), config=CONFIG)
+            file_name=os.path.basename(file_path))
       print "Uploaded to %s" % up
-
-
-def UploadSigned(file_path, platform, config):
-  """Sign an executable file and upload it to the datastore."""
-  return maintenance_utils.UploadSignedConfigBlob(
-      open(file_path).read(1024*1024*30), file_name=os.path.basename(file_path),
-      config=config, platform=platform)
 
 
 def UploadRaw(file_path, aff4_path):
@@ -346,33 +332,28 @@ def UploadRaw(file_path, aff4_path):
   return str(fd.urn)
 
 
-def UpdateConfig():
-  """Write the current config out to the config file."""
-  with open(args.config, "w") as conf_fd:
-    CONFIG.write(conf_fd)
-    print "Wrote updated configuration to %s" % args.config
-
-
 def main(unused_argv):
   """Main."""
   registry.Init()
+  global args  # pylint: disable=global-statement
+  args=conf.FLAGS
 
-  print "Using configuration %s" % CONFIG.config_filename
+  print "Using configuration %s" % config_lib.CONFIG.parser
 
   if args.subparser_name == "load_memory_drivers":
     LoadMemoryDrivers(args.share_dir)
 
   elif args.subparser_name == "generate_keys":
     try:
-      GenerateKeys(CONFIG)
+      GenerateKeys(config_lib.CONFIG)
     except RuntimeError, e:
       # GenerateKeys will raise if keys exist and --overwrite is not set.
       print "ERROR: %s" % e
       sys.exit(1)
-    CONFIG.WriteConfig()
+    config_lib.CONFIG.Write()
 
   elif args.subparser_name == "repack_clients":
-    RepackAndUpload(CONFIG, args.share_dir, upload=args.upload)
+    RepackAndUpload(args.share_dir, upload=args.upload)
 
   if args.subparser_name == "add_user":
     if args.password:
@@ -392,24 +373,24 @@ def main(unused_argv):
         labels=args.label)
 
   elif args.subparser_name == "initialize":
-    Initialize(CONFIG)
+    Initialize(config_lib.CONFIG)
 
   elif args.subparser_name == "upload_python":
     uploaded = maintenance_utils.UploadSignedConfigBlob(
-        open(args.file).read(1024*1024*30), config=CONFIG,
+        open(args.file).read(1024*1024*30),
         file_name=os.path.basename(args.file), platform=args.platform,
         aff4_path="/config/python_hacks/{file_name}")
     print "Uploaded to %s" % uploaded
 
   elif args.subparser_name == "upload_exe":
     uploaded = maintenance_utils.UploadSignedConfigBlob(
-        open(args.file).read(1024*1024*30), config=CONFIG,
+        open(args.file).read(1024*1024*30),
         file_name=os.path.basename(args.file), platform=args.platform)
     print "Uploaded to %s" % uploaded
 
   elif args.subparser_name == "upload_memory_driver":
     uploaded = maintenance_utils.UploadSignedDriverBlob(
-        open(args.file).read(1024*1024*30), config=CONFIG,
+        open(args.file).read(1024*1024*30),
         platform=args.platform, file_name=os.path.basename(args.file))
     print "Uploaded to %s" % uploaded
 

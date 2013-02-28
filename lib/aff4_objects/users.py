@@ -19,7 +19,6 @@ import time
 
 from grr.lib import aff4
 from grr.lib import rdfvalue
-from grr.proto import jobs_pb2
 
 
 class GRRUser(aff4.AFF4Object):

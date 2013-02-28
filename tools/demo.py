@@ -15,19 +15,19 @@
 """This is a single binary demo program."""
 
 
-import sys
 import threading
 
 
-
-from django.conf import settings as django_settings
-from django.core.handlers import wsgi
+# pylint: disable=unused-import,g-bad-import-order
+from grr.gui import admin_ui
+# pylint: enable=unused-import,g-bad-import-order
 
 from grr.client import conf
 from grr.client import conf as flags
 
 from grr.client import client
 from grr.gui import runtests
+from grr.lib import config_lib
 from grr.lib import registry
 from grr.tools import http_server
 from grr.worker import enroller
@@ -36,28 +36,21 @@ from grr.worker import worker
 
 BASE_DIR = "grr/"
 
-FLAGS = flags.FLAGS
-
 
 def main(argv):
   """Sets up all the component in their own threads."""
-  FLAGS.storage = "FakeDataStore"
+  # For testing we use the test config file.
+  flags.FLAGS.config = [config_lib.CONFIG["Test.config"]]
 
+  config_lib.CONFIG.SetEnv("Environment.component", "Demo")
 
-  # The below will use conf/global_settings/py from Django, we need to override
-  # every variable we need to set.
-  django_settings.configure(**runtests.DJANGO_SETTINGS)
+  config_lib.ReloadConfig()
 
-  # pylint: disable=W0612
-  from grr.gui import plugins
-  from grr.gui import views
-  # pylint: enable=W0612
+  registry.TestInit()
 
-  # Get everything initialized.
-  registry.Init()
-
-  # Increase the memory limit to 4GB.
-  FLAGS.rss_max = 4000
+  # pylint: disable=unused-import,unused-variable
+  from grr.gui import gui_plugins
+  # pylint: enable=unused-import,unused-variable
 
   # This is the worker thread.
   worker_thread = threading.Thread(target=worker.main, args=[argv],
@@ -65,26 +58,17 @@ def main(argv):
   worker_thread.daemon = True
   worker_thread.start()
 
-  FLAGS.ca = BASE_DIR + "keys/test/ca-priv.pem"
   # This is the enroller thread.
   enroller_thread = threading.Thread(target=enroller.main, args=[argv],
                                      name="Enroller")
   enroller_thread.daemon = True
   enroller_thread.start()
 
-  # This is the http server that clients communicate with.
-  FLAGS.http_bind_address = "127.0.0.1"
-  FLAGS.http_bind_port = 8001
+  # This is the http server Frontend that clients communicate with.
   http_thread = threading.Thread(target=http_server.main, args=[argv],
                                  name="HTTP Server")
   http_thread.daemon = True
   http_thread.start()
-
-  # Finally we start up a client too.
-  FLAGS.location = "http://localhost:8001/control"
-  FLAGS.camode = "test"
-  FLAGS.client_config = "/tmp/grr_config.txt"
-  FLAGS.poll_max = 5
 
   client_thread = threading.Thread(target=client.main, args=[argv],
                                    name="Client")

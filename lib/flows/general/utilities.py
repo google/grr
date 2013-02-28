@@ -33,7 +33,7 @@ class DownloadDirectory(flow.GRRFlow):
   flow_typeinfo = type_info.TypeDescriptorSet(
       type_info.PathspecType(
           description="The pathspec for the directory to list."),
-      type_info.Number(
+      type_info.Integer(
           name="depth",
           description="Maximum recursion depth.",
           default=10),

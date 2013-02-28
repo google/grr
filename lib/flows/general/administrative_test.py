@@ -18,8 +18,6 @@
 
 import sys
 
-from grr.client import conf as flags
-
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
@@ -27,9 +25,6 @@ from grr.lib import flow
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-
-FLAGS = flags.FLAGS
-CONFIG = config_lib.CONFIG
 
 
 class TestClientConfigHandling(test_lib.FlowTestsBaseclass):
@@ -106,7 +101,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
                                        title=title, message=message))
 
       email_alerts.SendEmail = SendEmail
-      FLAGS.monitoring_email = "admin@nowhere.com"
+      config_lib.CONFIG.Set("Monitoring.alert_email", "admin@nowhere.com")
 
       client = ClientMock()
       for _ in test_lib.TestFlowHelper(
@@ -116,25 +111,23 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
         pass
 
       # We expect the email to be sent.
-      self.assertEqual(self.email_message["address"], FLAGS.monitoring_email)
+      self.assertEqual(self.email_message.get("address", ""),
+                       config_lib.CONFIG["Monitoring.alert_email"])
       self.assertTrue(self.client_id in self.email_message["title"])
 
       # Make sure the flow protobuf dump is included in the email message.
       for s in ["name: \"ListDirectory\"", "state:", "pickle:"]:
         self.assertTrue(s in self.email_message["message"])
 
-      flow_pb = flow.FACTORY.FetchFlow(client.flow_id, token=self.token)
-      self.assertEqual(flow_pb.state, rdfvalue.Flow.Enum("ERROR"))
-      flow.FACTORY.ReturnFlow(flow_pb, token=self.token)
+      rdf_flow = flow.FACTORY.FetchFlow(client.flow_id, token=self.token)
+      self.assertEqual(rdf_flow.state, rdfvalue.Flow.Enum("ERROR"))
+      flow.FACTORY.ReturnFlow(rdf_flow, token=self.token)
 
     finally:
       email_alerts.SendEmail = old_send_email
 
   def testExecutePythonHack(self):
     client_mock = test_lib.ActionMock("ExecutePython")
-
-    FLAGS.camode = "test"
-
     # This is the code we test. If this runs on the client mock we can check for
     # this attribute.
     sys.test_code_ran_here = False
@@ -143,9 +136,8 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
 import sys
 sys.test_code_ran_here = True
 """
-
     maintenance_utils.UploadSignedConfigBlob(
-        code, file_name="", config=CONFIG, platform="Windows",
+        code, file_name="", platform="Windows",
         aff4_path="aff4:/config/python_hacks/test", token=self.token)
 
     for _ in test_lib.TestFlowHelper(
@@ -154,6 +146,24 @@ sys.test_code_ran_here = True
       pass
 
     self.assertTrue(sys.test_code_ran_here)
+
+  def testExecutePythonHackWithArgs(self):
+    client_mock = test_lib.ActionMock("ExecutePython")
+    sys.test_code_ran_here = 1234
+    code = """
+import sys
+sys.test_code_ran_here = py_args['value']
+"""
+    maintenance_utils.UploadSignedConfigBlob(
+        code, file_name="", platform="Windows",
+        aff4_path="aff4:/config/python_hacks/test", token=self.token)
+
+    for _ in test_lib.TestFlowHelper(
+        "ExecutePythonHack", client_mock, client_id=self.client_id,
+        hack_name="test", py_args=dict(value=5678), token=self.token):
+      pass
+
+    self.assertEqual(sys.test_code_ran_here, 5678)
 
   def testGetClientStats(self):
 

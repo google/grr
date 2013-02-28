@@ -77,35 +77,24 @@ grr.init = function() {
   grr.subscribe('grr_messages', function(message) {
     if (message) {
       $('#footer_message').text(message).show().delay(5000).fadeOut('fast');
-      $('#footer #backtrace').text('');
+      $('#backtrace h3').text(message);
+      $('#backtrace pre').text('');
       $('#show_backtrace').hide();
     }
-  }, 'footer');
+  }, 'body');
 
   grr.subscribe('grr_traceback', function(message) {
     if (message) {
-      $('#footer #backtrace').text(message);
+      $('#backtrace pre').text(message);
       $('#show_backtrace').show();
     }
-  }, 'footer');
+  }, 'body');
 
+  $('#backtrace').on('hidden', function() {
+    grr.publish('grr_messages', ' ');
+  });
   $('#show_backtrace').unbind('click').click(function() {
-    var node = $('<div><h3/><pre/></div>');
-
-    node.find('h3').text($('#footer_message').text());
-    node.find('pre').text($('#backtrace').text());
-    node.dialog({
-      width: $(document).width() * 0.7,
-      height: $(document).height() * 0.9,
-      modal: true,
-      buttons: {
-        Ok: function() {
-          $(this).dialog('close');
-          // Clear the backtrace.
-          grr.publish('grr_messages', ' ');
-        }
-      }
-    });
+    $('#backtrace').modal('toggle');
   });
 
   /**
@@ -160,16 +149,9 @@ grr.init = function() {
     }
   });
 
-  $('html').ajaxError(function(e, jqxhr, settings, exception) {
-    grr.publish('grr_messages', 'Server Error');
-    grr.publish('grr_traceback', exception + jqxhr.responseText);
-  });
-
-  // When the window is resized, resize all the elements in them.
-  $('window').bind('resize', function() {
-    grr.publish('GeometryChange', 'main');
-  });
-
+  window.setInterval(function() {
+    grr.publish('timer', 'timer');
+  }, 500);
 
   /**
    * This object holds the current url location hash state.
@@ -178,21 +160,6 @@ grr.init = function() {
 
   /* Initialize the reason from the hash. */
   grr.state.reason = grr.hash.reason;
-
-  /**
-   * We create a DelayedResize queue for debouncing resize events (e.g. from
-   * window resize).
-   */
-  grr.subscribe('DelayedResize', function(id) {
-    var timer = grr.timers[id];
-
-    if (!timer) {
-      grr.timers[id] = window.setTimeout(function() {
-        grr.timers[id] = null;
-        grr.publish('GeometryChange', id);
-      }, 100);
-    }
-  }, 'body');
 };
 
 
@@ -323,20 +290,28 @@ grr.openTree = function(tree, nodeId) {
   var parts = nodeId.split('-');
   var i = 1;
 
-  var cb = function(i) {
+  var cb = function(i, prev_node) {
     var id_to_open = parts.slice(0, i + 1).join('-');
     var node = $('#' + id_to_open);
 
-    if (node.length && parts[i + 1]) {
-      tree.jstree('open_node', node, function() { cb(i + 1);}, 'no_hash');
-    } else {
-      // Ultimate node, when its done we want to select it
-      tree.jstree('select_node', node, 'no_hash');
-      grr.publish('hash_state', 't', node.attr('id'));
+    if (node.length) {
+      // There are more nodes to go, proceed recursively.
+      if (parts[i + 1]) {
+        tree.jstree('open_node', node, function() { cb(i + 1, node) },
+            'no_hash');
+      } else {
+        // Ultimate node, when its done we want to select it
+        tree.jstree('select_node', node, 'no_hash');
+        grr.publish('hash_state', 't', node.attr('id'));
+      }
+    } else if (prev_node) {
+      // If node can't be found, finish by selecting previous successful one
+      tree.jstree('select_node', prev_node, 'no_hash');
+      grr.publish('hash_state', 't', prev_node.attr('id'));
     }
   };
 
-  cb(0);
+  cb(0, null);
 };
 
 
@@ -441,49 +416,6 @@ grr.publish = function(name, value, event, data) {
 
     grr.queue_[queue_name] = new_queue;
   }
-};
-
-
-/**
- * Lays out a GRR object by rendering the object into a div.
- *
- * @param {string} renderer The renderer name to call via ajax.
- * @param {string} domId The element which will host the html.
- * @param {Object=} opt_state A data object which will be serialiased into
- *     the AJAX request (as query parameters).
- * @param {Function=} on_success If provided this function will be called on
- *     completion.
- */
-grr.layout = function(renderer, domId, opt_state, on_success) {
-  // Use global state by default
-  var state = $.extend({}, opt_state || grr.state);
-
-  state.id = domId;
-  state.reason = state.reason || grr.state.reason;
-  state.client_id = state.client_id || grr.state.client_id;
-
-  $.ajax({
-    dataType: 'html',
-    data: state,
-    type: grr.ajax_method,
-    url: 'render/Layout/' + renderer,
-    error: function(jqXHR) {
-      $('#error_action').html(jqXHR.response);
-    },
-    success: function(data) {
-      // Load the new table DOM
-      var node = $('#' + domId);
-
-      if (node) {
-        node.html(data);
-        grr.publish('GeometryChange', domId);
-
-        if (on_success) {
-          on_success(domId);
-        }
-      }
-    }
-  });
 };
 
 /**
@@ -649,52 +581,54 @@ grr.table.scrollHandler = function(renderer, tbody, opt_state) {
   var value = loading.attr('data');
   var depth = loading.attr('depth');
 
-  // Fire when the table loading element is visible.
-  if (loading.length &&
-    (bottom > loading[0].offsetTop - loading[0].offsetHeight)) {
-    var previous_row_id = (tbody.find('tr[row_id]').last().attr('row_id') ||
-        -1);
-    var next_row = parseInt(previous_row_id) + 1;
-    var state = $.extend({start_row: next_row}, grr.state, opt_state);
-    var filter = tbody.parent().find('th[filter]');
-    var sort = tbody.parent().find('th[sort]');
+  if ($('.table_loading', tbody).size() == 1) {
+    loading_offset = $('.table_loading', tbody).offset();
+    elem = document.elementFromPoint(loading_offset.left, loading_offset.top);
+    if ($(elem).hasClass('table_loading')) {
+      var previous_row_id = (tbody.find('tr[row_id]').last().attr('row_id') ||
+          -1);
+      var next_row = parseInt(previous_row_id) + 1;
+      var state = $.extend({start_row: next_row}, grr.state, opt_state);
+      var filter = tbody.parent().find('th[filter]');
+      var sort = tbody.parent().find('th[sort]');
 
-    if (filter.length && filter.attr('filter')) {
-      state.filter = filter.text() + ':' + filter.attr('filter');
+      if (filter.length && filter.attr('filter')) {
+        state.filter = filter.text() + ':' + filter.attr('filter');
+      }
+
+      if (sort.length && sort.attr('sort')) {
+        state.sort = sort.text() + ':' + sort.attr('sort');
+      }
+
+      state['value'] = value;
+      state['depth'] = depth;
+
+      // Insert the new data after the table loading message, and wipe it.
+      grr.update(renderer, loading_id, state,
+        function(data) {
+          // Make sure to insert this data only after its corresponding
+          // loading placer.
+          var table_loading;
+
+          if (loading_id) {
+            table_loading = tbody.find('#' + loading_id);
+          } else {
+            table_loading = tbody.find('.table_loading');
+          }
+
+          var loading_row = table_loading.parent('tr');
+
+          // Prevent a possible race: a scroll event can fire here after
+          // inserting the data, but before being able to remove the loading
+          // row. We remove the loading td first to prevent this.
+          loading_row.find('.table_loading').remove();
+
+          loading_row.after(data);
+          loading_row.remove();
+
+          tbody.scroll();
+        }, loading_id + previous_row_id);
     }
-
-    if (sort.length && sort.attr('sort')) {
-      state.sort = sort.text() + ':' + sort.attr('sort');
-    }
-
-    state['value'] = value;
-    state['depth'] = depth;
-
-    // Insert the new data after the table loading message, and wipe it.
-    grr.update(renderer, loading_id, state,
-      function(data) {
-        // Make sure to insert this data only after its corresponding
-        // loading placer.
-        var table_loading;
-
-        if (loading_id) {
-          table_loading = tbody.find('#' + loading_id);
-        } else {
-          table_loading = tbody.find('.table_loading');
-        }
-
-        var loading_row = table_loading.parent('tr');
-
-        // Prevent a possible race: a scroll event can fire here after
-        // inserting the data, but before being able to remove the loading
-        // row. We remove the loading td first to prevent this.
-        loading_row.find('.table_loading').remove();
-
-        loading_row.after(data);
-        loading_row.remove();
-
-        tbody.scroll();
-      }, loading_id + previous_row_id);
   }
 };
 
@@ -794,26 +728,9 @@ grr.table.newTable = function(renderer, domId, unique, opt_state) {
     }
   });
 
-  grr.subscribe('GeometryChange', function(id) {
-    var us = $('#' + id + ' div.tableContainer').first();
-    if (us.length == 0) return;
-
-    // Fix the height of the tbody area.
-    grr.fixHeight(us);
-    us.find('tbody').height(us.innerHeight() -
-        us.find('thead').innerHeight());
-
-    // Fix the width of the tbody area
-    us.width(us.parent().innerWidth());
-    grr.table.setHeaderWidths(us);
-
-    // Fill in the table if needed.
-    us.find('tbody').scroll();
-  }, unique);
-
-  me.find('tbody').scroll(function() {
-    grr.table.scrollHandler(renderer, $(this), opt_state);
-  }).scroll();
+  grr.subscribe('timer', function() {
+    grr.table.scrollHandler(renderer, me, opt_state);
+  }, domId);
 };
 
 /**
@@ -888,55 +805,114 @@ grr.poll = function(renderer, domId, callback, timeout, state, opt_datatype,
  *     we use the domId.
  * @param {Function=} on_error If provided this function will be called on
  *     errors.
+ * @param {string} method Method used for rendering (i.e. RenderAjax or Layout).
  */
-grr.update = function(renderer, domId, opt_state, on_success, inflight_key,
-                      on_error) {
+grr._update = function(renderer, domId, opt_state, on_success, inflight_key,
+                      on_error, method) {
   var state = opt_state || grr.state;
   var inflight_key = inflight_key || domId;
-
-  if (!on_success) {
-    on_success = function(data) {
-      $('#' + domId).html(data);
-    };
-  }
 
   state.id = domId;
   state.reason = state.reason || grr.state.reason;
   state.client_id = state.client_id || grr.state.client_id;
 
   // If there is already an in flight request for this domId, drop this one.
-  if (grr.inFlightQueue[inflight_key]) {
-    return;
+  var concurrentRequest = grr.inFlightQueue[inflight_key];
+  if (concurrentRequest) {
+    grr.inFlightQueue[inflight_key] = null;
+    concurrentRequest.abort();
   }
 
   // Create a lock on this domId to prevent another ajax call while
   // this one is inflight.
-  grr.inFlightQueue[inflight_key] = renderer;
-  $.ajax({
+  var xhr = $.ajax({
     data: (state || grr.state),
     type: grr.ajax_method,
-    url: 'render/RenderAjax/' + renderer,
+    url: 'render/' + method + '/' + renderer,
     complete: function(jqXHR) {
-      // Remove the lock for this domId
-      grr.inFlightQueue[inflight_key] = null;
+      if (grr.inFlightQueue[inflight_key] === jqXHR) {
+        // Remove the lock for this domId
+        grr.inFlightQueue[inflight_key] = null;
+      }
     },
     error: function(jqXHR) {
-      if (!on_error) {
-        grr.publish('grr_messages', 'Server Error');
-        grr.publish('grr_traceback', jqXHR.response);
-      }
-      else {
-        on_error(jqXHR);
+      if (grr.inFlightQueue[inflight_key] === jqXHR) {
+        if (!on_error) {
+          grr.publish('grr_messages', 'Server Error');
+          grr.publish('grr_traceback', jqXHR.response);
+        }
+        else {
+          on_error(jqXHR);
+        }
       }
     },
-    success: function(data) {
-      // Remove the lock for this domId
-      grr.inFlightQueue[inflight_key] = null;
+    success: function(data, status, jqXHR) {
+      if (grr.inFlightQueue[inflight_key] === jqXHR) {
+        // Remove the lock for this domId
+        grr.inFlightQueue[inflight_key] = null;
 
-      // Load the new table DOM
-      on_success(data);
+        // Load the new table DOM
+        on_success(data);
+      }
     }
   });
+  grr.inFlightQueue[inflight_key] = xhr;
+};
+
+/**
+ * Function to update a dom node via an AJAX call to a renderer. Please note
+ * that if on_success handler is specified, AJAX response is not htmled into
+ * the container div.
+ *
+ * This is similar to the grr.layout() method but it calls the RenderAjax method
+ * and is suitable to repeatedly being applied to the same element.
+ *
+ * @param {string} renderer The rernderer name to call via ajax.
+ * @param {string} domId The element which will host the html.
+ * @param {Object=} opt_state A data object which will be serialiased into the
+ *     AJAX request (as query parameters).
+ * @param {Function=} on_success If provided this function will be called on
+ *     completion.
+ * @param {string} inflight_key The key to use for the inflight queue. If null,
+ *     we use the domId.
+ * @param {Function=} on_error If provided this function will be called on
+ *     errors.
+ */
+grr.update = function(renderer, domId, opt_state, on_success, inflight_key,
+                      on_error) {
+  if (!on_success) {
+    on_success = function(data) {
+      $('#' + domId).html(data);
+    };
+  }
+
+  grr._update(renderer, domId, opt_state, on_success, inflight_key,
+              on_error, 'RenderAjax');
+};
+
+/**
+ * Lays out a GRR object by rendering the object into a div. Please note that
+ * layout() always puts received html into a container div, no matter if
+ * on_success handler is specified or not.
+ *
+ * @param {string} renderer The renderer name to call via ajax.
+ * @param {string} domId The element which will host the html.
+ * @param {Object=} opt_state A data object which will be serialiased into
+ *     the AJAX request (as query parameters).
+ * @param {Function=} on_success If provided this function will be called on
+ *     completion.
+ */
+grr.layout = function(renderer, domId, opt_state, on_success) {
+  success_handler = function(data) {
+    $('#' + domId).html(data);
+    if (on_success) {
+      on_success(domId);
+    }
+  };
+
+  $('#' + domId).html("<p class='muted'>Loading...</p>");
+  grr._update(renderer, domId, opt_state, success_handler, null, null,
+              'Layout');
 };
 
 /**
@@ -976,21 +952,14 @@ grr.installEventsForText = function(domId, queue) {
  */
 grr.dialog = function(renderer, domId, openerId, opt_options) {
   // Create the dialog
-  $('#' + domId).dialog($.extend(
-    { autoOpen: false,
-      width: parseInt($('body').css('width')) * 0.90,
-      maxHeight: parseInt($('body').css('height')) * 0.90,
-      minHeight: 400
-    }, opt_options));
-
   $('#' + openerId).click(function() {
     var dialog = $('#' + domId);
 
-    if (dialog.dialog('isOpen')) {
-       dialog.dialog('close');
+    if (dialog.is(':visible')) {
+      dialog.modal('hide');
     } else {
       grr.layout(renderer, domId);
-      dialog.dialog('open');
+      dialog.modal('show');
     }
 
     return false;
@@ -1062,63 +1031,6 @@ grr.update_form = function(formId, state) {
 };
 
 /**
- * Updates the height of the element so it and all its siblings fit within their
- * parent.
- *
- * @param {Object} element A JQuery selected object for the element to fix.
- *
- */
-grr.fixHeight = function(element) {
-  var height = element.parent().height();
-  var calculate_height = function() {
-    var tag_name = this.tagName;
-
-    // Dialog boxes need to be excluded since the are absolutely positioned
-    if ($(this).attr('role') == 'dialog') return;
-
-    // For some reason script tags report a non zero height in chrome.
-    if (tag_name != 'SCRIPT') {
-      height -= $(this).outerHeight();
-    }
-  };
-
-  element.prevAll(':visible').each(calculate_height);
-  element.nextAll(':visible').each(calculate_height);
-
-  height -= parseInt(element.css('padding-top'));
-  height -= parseInt(element.css('padding-bottom'));
-
-  element.height(height + 'px');
-};
-
-/**
- * Updates the width of the element so it and all its siblings fit within their
- * parent.
- *
- * @param {Object} element A JQuery selected object for the element to fix.
- *
- */
-grr.fixWidth = function(element) {
-  var width = element.parent().width();
-  var calculate_width = function() {
-    var tag_name = this.tagName;
-
-    // For some reason script tags report a non zero height in chrome.
-    if (tag_name != 'SCRIPT') {
-      width -= $(this).outerWidth();
-    }
-  };
-
-  element.prevAll(':visible').each(calculate_width);
-  element.nextAll(':visible').each(calculate_width);
-
-  width -= parseInt(element.css('padding-top'));
-  width -= parseInt(element.css('padding-bottom'));
-
-  element.width(width + 'px');
-};
-
-/**
  * Parses the location bar's #hash value into an object.
  *
  * @return {Object} an associative array of encoded values.
@@ -1141,7 +1053,7 @@ grr.parseHashState = function() {
  * Install the navigation actions on all items in the navigator.
  */
 grr.installNavigationActions = function() {
-  $('#navigator ul.iconlist li a').each(function() {
+  $('#navigator li a').each(function() {
   var renderer = $(this).attr('grrtarget');
 
   $(this).click(function() {
@@ -1149,12 +1061,11 @@ grr.installNavigationActions = function() {
     grr.publish('hash_state', 'main', renderer);
 
     // Clear all the other selected links
-    $('#navigator li').removeClass('selected');
+    $('#navigator li').removeClass('active');
 
     // Make this element selected
-    $(this).parent().addClass('selected');
+    $(this).parent().addClass('active');
 
-    grr.publish('GeometryChange', 'navigator');
     return false;
   });
  });
@@ -1167,7 +1078,7 @@ grr.installNavigationActions = function() {
  */
 grr.loadFromHash = function(hash) {
   /* Close the notification dialog. */
-  $('#notification_dialog').dialog('close');
+  $('#notification_dialog').modal('hide');
 
   if (hash) {
     window.location.hash = hash;
@@ -1423,10 +1334,10 @@ grr.hexview.HexViewer = function(renderer, domId, width, state) {
     header_height = $('#hex_header').outerHeight();
   }
 
-  var view_port_height = $('#' + domId).parents('.ui-tabs-panel').height();
+  var view_port_height = $('#' + domId).height();
 
   // Ensure a minimum of 2 rows.
-  var height = Math.max(Math.floor(view_port_height / header_height) - 2,
+  var height = Math.max(Math.floor(view_port_height / header_height),
     2);
 
   state.hex_row_count = height;
@@ -1566,9 +1477,6 @@ grr.versionSelector = function(node) {
     width: $('html').width() * 0.7,
     height: $('html').height() * 0.7,
     modal: true,
-    resize: function() {
-      grr.publish('GeometryChange', 'version-dialog');
-    },
     close: function() {
         $('#version-dialog').remove();
     },
@@ -1579,9 +1487,7 @@ grr.versionSelector = function(node) {
     }
   });
 
-  grr.layout('VersionSelectorDialog', 'version-dialog', state, function() {
-    grr.publish('GeometryChange', 'version-dialog');
-  });
+  grr.layout('VersionSelectorDialog', 'version-dialog', state);
 };
 
 

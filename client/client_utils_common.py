@@ -28,12 +28,15 @@ from M2Crypto import BIO
 from M2Crypto import RSA
 
 import logging
-from grr.client import client_config
-from grr.client import conf
+
+from grr.lib import config_lib
 from grr.lib import utils
 
 
-FLAGS = conf.PARSER.flags
+# TODO(user): This should be moved into the osx only files.
+config_lib.DEFINE_string("Client.launchctl_plist",
+                         "/Library/LaunchDaemons/com.google.code.grrd.plist",
+                         "Location of our launchctl plist.")
 
 
 def HandleAlarm(process):
@@ -143,7 +146,8 @@ def IsExecutionWhitelisted(cmd, args):
         ]
   elif platform.system() == "Darwin":
     whitelist = [
-        ("/bin/launchctl", ["unload", client_config.LAUNCHCTL_PLIST]),
+        ("/bin/launchctl", ["unload",
+                            config_lib.CONFIG["Client.launchctl_plist"]]),
         ("/bin/echo", ["1"]),
         ("/usr/sbin/screencapture", ["-x", "-t", "jpg", "/tmp/ss.dat"]),
         ("/bin/rm", ["-f", "/tmp/ss.dat"])
@@ -195,11 +199,8 @@ def VerifySignedBlob(blob_pb, pub_key=None, verify_data=True):
     True if verification succeeded.
   """
   if pub_key is None:
-    try:
-      pub_key = client_config.DRIVER_SIGNING_KEY.get(FLAGS.camode.upper())
-    except KeyError:
-      logging.error("Cannot verify blob due to invalid mode for signing key.")
-      return False
+    pub_key = config_lib["Client.driver_signing_key"]
+
   bio = BIO.MemoryBuffer(pub_key)
   rsa = RSA.load_pub_key_bio(bio)
   result = 0

@@ -14,13 +14,10 @@
 
 """This is the main task scheduler."""
 
-import functools
 import logging
 import os
 import random
 import socket
-import struct
-import threading
 import time
 
 from grr.lib import data_store
@@ -28,7 +25,6 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 class TaskScheduler(object):
@@ -65,6 +61,8 @@ class TaskScheduler(object):
 
   def _TaskIdToColumn(self, task_id):
     """Return a predicate representing this task."""
+    if task_id == 1:
+      return self.PREDICATE_PREFIX % "flow"
     return self.PREDICATE_PREFIX % ("%08d" % task_id)
 
   @classmethod
@@ -98,7 +96,7 @@ class TaskScheduler(object):
   def _Delete(self, transaction, tasks=None):
     for task in tasks:
       try:
-        ts_id = task.id
+        ts_id = task.task_id
       except AttributeError:
         ts_id = int(task)
 
@@ -106,11 +104,10 @@ class TaskScheduler(object):
 
   def Schedule(self, tasks, sync=False, timestamp=None, token=None):
     """Schedule a set of Task() instances."""
-
     for queue, queued_tasks in utils.GroupBy(tasks, lambda x: x.queue):
       if queue:
         to_schedule = dict(
-            [(self._TaskIdToColumn(task.id), [task.SerializeToString()])
+            [(self._TaskIdToColumn(task.task_id), [task.SerializeToString()])
              for task in queued_tasks])
 
         self.data_store.MultiSet(
@@ -161,7 +158,7 @@ class TaskScheduler(object):
     """
     data_store.DB.MultiSet(
         queue,
-        dict([(self.PREDICATE_PREFIX % session_id, str(priority))
+        dict([(self.PREDICATE_PREFIX % session_id, str(int(priority)))
               for session_id, priority in zip(session_ids, priorities)]),
         sync=True, replace=True, token=token, timestamp=timestamp)
 
@@ -171,7 +168,7 @@ class TaskScheduler(object):
         queue, [self.PREDICATE_PREFIX % session_id],
         token=token)
 
-  def Query(self, queue, limit=1, decoder=None, token=None, task_id=None):
+  def Query(self, queue, limit=1, token=None, task_id=None):
     """Retrieves tasks from a queue without leasing them.
 
     This is good for a read only snapshot of the tasks.
@@ -179,7 +176,6 @@ class TaskScheduler(object):
     Args:
        queue: The task queue that this task belongs to.
        limit: Number of values to fetch.
-       decoder: An decoder to be used to decode the value.
        token: An access token to access the data store.
        task_id: If an id is provided we only query for this id.
 
@@ -194,15 +190,13 @@ class TaskScheduler(object):
       regex = utils.SmartStr(task_id)
 
     all_tasks = list(self.data_store.ResolveRegex(
-        queue, regex, decoder=functools.partial(self.Task, decoder=decoder),
+        queue, regex, decoder=rdfvalue.GRRMessage,
         timestamp=self.data_store.ALL_TIMESTAMPS, token=token))
-
     all_tasks.sort(key=lambda task: task[1].priority, reverse=True)
 
     # This function should return all tasks - even those which are
     # currently leased (These will have timestamps in the future).
     for task_id, task, timestamp in all_tasks:
-      task.task_id = task_id
       task.eta = timestamp
       tasks.append(task)
 
@@ -211,12 +205,12 @@ class TaskScheduler(object):
 
     return tasks
 
-  def MultiQuery(self, queues, decoder=None, limit=100000, token=None):
+  def MultiQuery(self, queues, limit=100000, token=None):
     """Like Query above but opens multiple tasks at once."""
 
     return self.data_store.MultiResolveRegex(
         queues, self.PREDICATE_PREFIX % ".*",
-        decoder=functools.partial(self.Task, decoder=decoder),
+        decoder=rdfvalue.GRRMessage,
         timestamp=self.data_store.ALL_TIMESTAMPS,
         limit=limit, token=token)
 
@@ -224,7 +218,7 @@ class TaskScheduler(object):
     """Deletes a queue - all tasks will be lost."""
     data_store.DB.DeleteSubject(queue, token=token)
 
-  def QueryAndOwn(self, queue, lease_seconds=10, limit=1, decoder=None,
+  def QueryAndOwn(self, queue, lease_seconds=10, limit=1,
                   token=None):
     """Returns a list of Tasks leased for a certain time.
 
@@ -232,7 +226,6 @@ class TaskScheduler(object):
       queue: The queue to query from.
       lease_seconds: The tasks will be leased for this long.
       limit: Number of values to fetch.
-      decoder: A decoder to be used to decode the value.
       token: An access token to access the data store.
     Returns:
         A list of Task() objects leased.
@@ -243,9 +236,8 @@ class TaskScheduler(object):
     # Do the real work in a transaction
     try:
       res = self.data_store.RetryWrapper(
-          queue, self._QueryAndOwn, decoder=decoder,
-          lease_seconds=lease_seconds, limit=limit, token=token,
-          user=user)
+          queue, self._QueryAndOwn, lease_seconds=lease_seconds, limit=limit,
+          token=token, user=user)
 
       return res
     except data_store.TransactionError:
@@ -258,7 +250,7 @@ class TaskScheduler(object):
       return []
 
   def _QueryAndOwn(self, transaction, lease_seconds=100,
-                   limit=1, decoder=None, user=""):
+                   limit=1, user=""):
     """Does the real work of self.QueryAndOwn()."""
     tasks = []
 
@@ -267,8 +259,9 @@ class TaskScheduler(object):
 
     all_tasks = list(transaction.ResolveRegex(
         self.PREDICATE_PREFIX % ".*",
-        decoder=functools.partial(self.Task, decoder=decoder),
+        decoder=rdfvalue.GRRMessage,
         timestamp=(0, now)))
+
     all_tasks.sort(key=lambda task: task[1].priority, reverse=True)
 
     # Only grab attributes with timestamps in the past
@@ -278,15 +271,15 @@ class TaskScheduler(object):
                                       socket.gethostname(),
                                       os.getpid())
       # Decrement the ttl
-      task.ttl -= 1
-      if task.ttl <= 0:
+      task.task_ttl -= 1
+      if task.task_ttl <= 0:
         # Remove the task if ttl is exhausted.
         transaction.DeleteAttribute(predicate)
         logging.info("TTL exceeded on task %s:%s, dequeueing", task.queue,
-                     task.id)
+                     task.task_id)
         stats.STATS.Increment("grr_task_ttl_expired_count")
       else:
-        if task.ttl != self.Task.max_ttl - 1:
+        if task.task_ttl != rdfvalue.GRRMessage.max_ttl - 1:
           stats.STATS.Increment("grr_task_retransmission_count")
 
         # Update the timestamp on the value to be in the future
@@ -297,115 +290,6 @@ class TaskScheduler(object):
       if len(tasks) >= limit:
         break
     return tasks
-
-  class Task(object):
-    """Tasks are scheduled on the TaskScheduler."""
-
-    lock = threading.Lock()
-    next_id_base = 0
-    max_ttl = jobs_pb2.Task().ttl
-
-    def __init__(self, decoder=None, value="", **kwargs):
-      """Constructor.
-
-      Args:
-        decoder: An decoder to be used to decode the value when
-             parsing. (Can be a protobuf class).
-        value: Something to populate the value field with.
-        **kwargs: passthrough to Task protobuf.
-      """
-      self.proto = jobs_pb2.Task(**kwargs)
-      self.decoder = decoder
-      self.value = value
-      self.eta = 0
-
-      if self.proto.id:
-        self.id = self.proto.id
-      else:
-        # 16 bit random numbers
-        random_number = struct.unpack("H", os.urandom(2))[0]
-        while random_number == 0:
-          random_number = struct.unpack("H", os.urandom(2))[0]
-
-        with TaskScheduler.Task.lock:
-          next_id_base = TaskScheduler.Task.next_id_base
-
-          id_base = (next_id_base + random_number) & 0xFFFFFFFF
-          if id_base < next_id_base:
-            time.sleep(0.001)
-
-          TaskScheduler.Task.next_id_base = id_base
-
-        # 32 bit timestamp (in 1/1000 second resolution)
-        time_base = (long(time.time() * 1000) & 0xFFFFFFFF) << 32
-
-        self.id = time_base + id_base
-
-      try:
-        self.proto.priority = self.value.priority
-      except AttributeError:
-        pass
-
-    def __getattr__(self, attr):
-      return getattr(self.proto, attr)
-
-    def __setattr__(self, attr, value):
-      try:
-        if attr != "proto":
-          return setattr(self.proto, attr, value)
-      except (AttributeError, TypeError):
-        pass
-
-      object.__setattr__(self, attr, value)
-
-    def SerializeToString(self):
-      try:
-        self.proto.value = self.value.SerializeToString()
-      except AttributeError:
-        pass
-
-      return self.proto.SerializeToString()
-
-    def ParseFromString(self, string):
-      self.proto.ParseFromString(string)
-      self.value = self.proto.value
-
-      if self.decoder:
-        value = self.decoder()
-        value.ParseFromString(self.value)
-        self.value = value
-
-    def __str__(self):
-      result = ""
-      for field in ["id", "value", "ttl", "eta", "queue", "priority"]:
-        value = getattr(self, field)
-        if field == "eta":
-          value = time.ctime(self.eta / 1e6)
-          lease = (self.eta / 1e6) - time.time()
-          if lease < 0:
-            value += ", available for leasing"
-          else:
-            value += ", leased for another %d seconds" % int(lease)
-
-        result += u"%s: %s\n" % (field, utils.SmartUnicode(value))
-
-      return result
-
-    def __repr__(self):
-      result = []
-      for field in ["id", "ttl", "eta", "queue", "priority"]:
-        value = getattr(self, field)
-        if field == "eta":
-          value = time.ctime(self.eta / 1e6)
-          lease = (self.eta / 1e6) - time.time()
-          if lease < 0:
-            value += ", available for leasing."
-          else:
-            value += ", leased for another %d seconds." % int(lease)
-
-        result.append(u"%s: %s" % (field, utils.SmartUnicode(value)))
-
-      return u"<Task %s>" % u",". join(result)
 
 # These are globally available handles to factories
 # pylint: disable=W0603

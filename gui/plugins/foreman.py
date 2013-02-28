@@ -54,11 +54,11 @@ class ReadOnlyForemanRuleTable(renderers.TableRenderer):
 
   def __init__(self, **kwargs):
     super(ReadOnlyForemanRuleTable, self).__init__(**kwargs)
-    self.AddColumn(renderers.RDFValueColumn("Created", width=10))
-    self.AddColumn(renderers.RDFValueColumn("Expires", width=10))
-    self.AddColumn(renderers.RDFValueColumn("Description", width=10))
+    self.AddColumn(renderers.RDFValueColumn("Created"))
+    self.AddColumn(renderers.RDFValueColumn("Expires"))
+    self.AddColumn(renderers.RDFValueColumn("Description"))
     self.AddColumn(renderers.RDFValueColumn(
-        "Rules", renderer=RegexRuleArray))
+        "Rules", renderer=RegexRuleArray, width="100%"))
 
   def RenderAjax(self, request, response):
     """Renders the table."""
@@ -253,11 +253,6 @@ Delete Rule
   };
 
   grr.update_form('form', defaults);
-  grr.subscribe('GeometryChange', function (id) {
-    if(id != "{{id|escapejs}}") return;
-
-    grr.fixHeight($('#form_{{unique|escapejs}}'));
-  }, 'form_{{unique|escapejs}}');
 </script>
 """)))
 

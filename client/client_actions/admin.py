@@ -1,18 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 """Client actions related to administrating the client and its configuration."""
 
 
@@ -27,10 +13,39 @@ import psutil
 import logging
 
 from grr.client import actions
-from grr.client import client_config
-from grr.client import conf
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import stats
+
+config_lib.DEFINE_string("Client.name", "GRR", "The name of the client.")
+config_lib.DEFINE_string("Client.company_name", "GRR Project",
+                         "The name of the company which made the client.")
+
+config_lib.DEFINE_string("Client.description", "GRR Rapid Response Framework",
+                         "A description of this specific client build.")
+
+config_lib.DEFINE_string("Client.build_time", "Unknown",
+                         "The time the client was built.")
+
+config_lib.DEFINE_integer("Client.version_major", 0,
+                          "Major version number of client binary.")
+
+config_lib.DEFINE_integer("Client.version_minor", 0,
+                          "Minor version number of client binary.")
+
+config_lib.DEFINE_integer("Client.version_revision", 0,
+                          "Revision number of client binary.")
+
+config_lib.DEFINE_integer("Client.version_release", 0,
+                          "Release number of client binary.")
+
+config_lib.DEFINE_string("Client.version_string",
+                         "%(version_major).%(version_minor)."
+                         "%(version_revision).%(version_release)",
+                         "Version string of the client.")
+
+config_lib.DEFINE_integer("Client.version_numeric", 0,
+                          "Version string of the client as an integer.")
 
 
 class Echo(actions.ActionPlugin):
@@ -141,51 +156,50 @@ class Bloat(actions.ActionPlugin):
     time.sleep(60)
 
 
-class GetConfig(actions.ActionPlugin):
+class GetConfiguration(actions.ActionPlugin):
   """Retrieves the running configuration parameters."""
   in_rdfvalue = None
-  out_rdfvalue = rdfvalue.GRRConfig
+  out_rdfvalue = rdfvalue.RDFProtoDict
 
   def Run(self, unused_arg):
-    out = rdfvalue.GRRConfig()
-    for field in out.DESCRIPTOR.fields_by_name:
-      if hasattr(conf.FLAGS, field):
-        setattr(out, field, getattr(conf.FLAGS, field))
+    out = self.out_rdfvalue()
+    for descriptor in config_lib.CONFIG.type_infos:
+      out[descriptor.name] = config_lib.CONFIG[descriptor.name]
+
     self.SendReply(out)
 
 
-class UpdateConfig(actions.ActionPlugin):
+class UpdateConfiguration(actions.ActionPlugin):
   """Updates configuration parameters on the client."""
-  in_rdfvalue = rdfvalue.GRRConfig
+  in_rdfvalue = rdfvalue.RDFProtoDict
 
-  UPDATEABLE_FIELDS = ["compression",
-                       "foreman_check_frequency",
-                       "location",
-                       "max_post_size",
-                       "max_out_queue",
-                       "poll_min",
-                       "poll_max",
-                       "poll_slew",
-                       "rss_max",
-                       "verbose"]
+  UPDATEABLE_FIELDS = ["Client.compression",
+                       "Client.foreman_check_frequency",
+                       "Client.location",
+                       "Client.max_post_size",
+                       "Client.max_out_queue",
+                       "Client.poll_min",
+                       "Client.poll_max",
+                       "Client.poll_slew",
+                       "Client.rss_max"]
 
   def Run(self, arg):
     """Does the actual work."""
-    updated_keys = []
     disallowed_fields = []
 
-    for field, value in arg.ListFields():
+    for field, value in arg.items():
       if field in self.UPDATEABLE_FIELDS:
-        setattr(conf.FLAGS, field, value)
-        updated_keys.append(field)
+        config_lib.CONFIG.Set(field, value)
+
       else:
         disallowed_fields.append(field)
 
     if disallowed_fields:
       logging.warning("Received an update request for restricted field(s) %s.",
                       ",".join(disallowed_fields))
+
     try:
-      conf.PARSER.UpdateConfig(updated_keys)
+      config_lib.CONFIG.Write()
     except (IOError, OSError):
       pass
 
@@ -197,9 +211,9 @@ class GetClientInfo(actions.ActionPlugin):
   def Run(self, unused_args):
 
     self.SendReply(
-        client_name=client_config.GRR_CLIENT_NAME,
-        client_version=client_config.GRR_CLIENT_VERSION,
-        build_time=client_config.GRR_CLIENT_BUILDTIME,
+        client_name=config_lib["Client.name"],
+        client_version=config_lib["Client.version_numeric"],
+        build_time=config_lib["Client.build_time"],
         )
 
 
@@ -270,9 +284,9 @@ class SendStartupInfo(actions.ActionPlugin):
     response = rdfvalue.StartupInfo(
         boot_time=long(psutil.BOOT_TIME * 1e6),
         client_info=rdfvalue.ClientInformation(
-            client_name=client_config.GRR_CLIENT_NAME,
-            client_version=client_config.GRR_CLIENT_VERSION,
-            build_time=client_config.GRR_CLIENT_BUILDTIME))
+            client_name=config_lib.CONFIG["Client.name"],
+            client_version=config_lib.CONFIG["Client.version_numeric"],
+            build_time=config_lib.CONFIG["Client.build_time"]))
 
     self.grr_worker.SendReply(response,
                               session_id=self.well_known_session_id,

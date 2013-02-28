@@ -21,15 +21,14 @@ import time
 
 
 import logging
+from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import scheduler
 from grr.lib import utils
 from grr.lib.aff4_objects import standard
-from grr.proto import jobs_pb2
 
 
 class SpaceSeparatedStringArray(rdfvalue.RDFString):
@@ -99,9 +98,14 @@ class VFSGRRClient(standard.VFSDirectory):
                           "Architecture.", "Architecture")
     INSTALL_DATE = aff4.Attribute("metadata:install_date", rdfvalue.RDFDatetime,
                                   "Install Date.", "Install")
+
+    # Deprecated for new clients - DO NOT USE.
     GRR_CONFIG = aff4.Attribute("aff4:client_config", rdfvalue.GRRConfig,
-                                "Running configuration for the GRR client.",
-                                "Config")
+                                "Running configuration for the GRR client.")
+
+    GRR_CONFIGURATION = aff4.Attribute(
+        "aff4:client_configuration", rdfvalue.RDFProtoDict,
+        "Running configuration for the GRR client.", "Config")
 
     USER = aff4.Attribute("aff4:users", rdfvalue.Users,
                           "A user of the system.", "Users")
@@ -270,8 +274,11 @@ class VFSFile(aff4.AFF4Image):
       # Is this flow still active?
       if currently_running:
         flow_obj = aff4.FACTORY.Open(currently_running, token=self.token)
-        flow_pb = flow_obj.Get(flow_obj.Schema.FLOW_PB)
-        if flow_pb.state == flow_pb.RUNNING:
+        if flow_obj.Get(flow_obj.Schema.FLOW_PB):
+          rdf_flow = rdfvalue.Flow(flow_obj.Get(flow_obj.Schema.FLOW_PB).value)
+        else:
+          rdf_flow = flow_obj.Get(flow_obj.Schema.RDF_FLOW).payload
+        if rdf_flow.state == rdf_flow.RUNNING:
           return
 
     # The client_id is the first element of the URN
@@ -279,11 +286,9 @@ class VFSFile(aff4.AFF4Image):
 
     # Get the pathspec for this object
     pathspec = self.Get(self.Schema.STAT).pathspec
-    session_id = flow.FACTORY.StartFlow(client_id, "GetFile", token=self.token,
-                                        pathspec=pathspec)
-
-    flow_urn = aff4.FLOW_SWITCH_URN.Add(session_id)
-    self.Set(self.Schema.CONTENT_LOCK, flow_urn)
+    flow_urn = flow.FACTORY.StartFlow(client_id, "GetFile", token=self.token,
+                                      pathspec=pathspec)
+    self.Set(self.Schema.CONTENT_LOCK(flow_urn))
     self.Flush()
 
     return flow_urn
@@ -332,8 +337,14 @@ class GRRFlow(aff4.AFF4Volume):
   class SchemaCls(aff4.AFF4Volume.SchemaCls):
     """Attributes specific to VFSDirectory."""
 
-    FLOW_PB = aff4.Attribute("task:00000001", rdfvalue.Flow,
-                             "The Flow protobuf.", "Flow", versioned=False)
+    FLOW_PB = aff4.Attribute(
+        "task:00000001", rdfvalue.Task,
+        "DEPRECATED, use RDF_FLOW instead.",
+        "Flow", versioned=False)
+
+    RDF_FLOW = aff4.Attribute("task:flow", rdfvalue.GRRMessage,
+                              "The GRRMessage object containing the Flow.",
+                              "RDFFlow", versioned=False)
 
     LOG = aff4.Attribute("aff4:log", rdfvalue.RDFString,
                          "Log messages related to the progress of this flow.")
@@ -342,27 +353,35 @@ class GRRFlow(aff4.AFF4Volume):
                                   "Notifications for the flow.")
 
   create_time = 0
-  flow_pb = None
+  rdf_flow = None
 
   def Initialize(self):
+    """The initialization method."""
     if "r" in self.mode:
       try:
         self.flow_obj = self.GetFlowObj()
       except flow.FlowError, e:
         raise IOError(e)
       if self.flow_obj:
-        self.flow_pb = self.flow_obj.flow_pb
-        self.create_time = self.flow_pb.create_time
+        self.rdf_flow = self.flow_obj.rdf_flow
+        self.create_time = self.rdf_flow.create_time
     else:
       self.flow_obj = None
 
     self.session_id = self.urn
 
+  def GetRDFFlow(self):
+    task = self.Get(self.Schema.FLOW_PB)
+    if task:
+      return rdfvalue.Flow(task.value)
+    else:
+      msg = self.Get(self.Schema.RDF_FLOW)
+      if msg:
+        return msg.payload
+
   def GetFlowObj(self, forced_token=None):
     # This does not lock the flow - only read only.
-    flow_pb = self.Get(self.Schema.FLOW_PB)
-    if flow_pb:
-      return flow.FACTORY.LoadFlow(flow_pb, forced_token=forced_token)
+    return flow.FACTORY.LoadFlow(self.GetRDFFlow(), forced_token=forced_token)
 
   def SetFlowObj(self, flow_obj):
     """Sets the flow state attribute."""
@@ -373,7 +392,8 @@ class GRRFlow(aff4.AFF4Volume):
       self.urn = rdfvalue.RDFURN(self.flow_obj.session_id)
       self.flow_obj.FlushMessages()
 
-      self.Set(self.Schema.FLOW_PB(self.flow_obj.Dump()))
+      task = self.Schema.RDF_FLOW(payload=rdfvalue.Flow(self.flow_obj.Dump()))
+      self.Set(task)
     super(GRRFlow, self).Flush(sync=sync)
 
 
@@ -405,62 +425,8 @@ class GRRMemoryDriver(GRRSignedBlob):
     INSTALLATION = aff4.Attribute(
         "aff4:driver/installation", rdfvalue.DriverInstallTemplate,
         "The driver installation control protobuf.", "installation",
-        default=jobs_pb2.InstallDriverRequest(
+        default=rdfvalue.DriverInstallTemplate(
             driver_name="pmem", device_path=r"\\.\pmem"))
-
-
-# DEPRECATED: Not needed as flows are first class AFF4 objects.
-class GRRFlowSwitch(aff4.AFF4Volume):
-  """A VFS Container for flows.
-
-  The idea here is to present a virtual view of flows so they can be dealt with
-  using the AFF4 subsystem. This way we can place references to flows at various
-  places.
-  """
-
-  def ListChildren(self):
-    """There are usually too many flows to make sense listing."""
-    return {}, 0
-
-  def OpenMember(self, child, mode="r"):
-    # Allow the child to be specified as a full URN relative to us.
-    for result in self.OpenChildren([child], mode=mode):
-      return result
-
-    raise IOError("Flow %s not found" % child)
-
-  def OpenChildren(self, children=None, mode="r"):
-    """Efficiently return a bunch of flows at once."""
-    if not children: return
-
-    flow_names = []
-    for child in children:
-      session_id = child
-      if isinstance(child, rdfvalue.RDFURN):
-        session_id = child.RelativeName(self.urn)
-
-      if session_id and "/" not in session_id:
-        flow_names.append(scheduler.TaskScheduler.QueueToSubject(session_id))
-
-    results = {}
-    for child, attributes in aff4.FACTORY.GetAttributes(
-        flow_names, token=self.token, age=self.age_policy):
-      try:
-        result = GRRFlow(rdfvalue.RDFURN(child), mode, clone={}, parent=self,
-                         token=self.token, age=self.age_policy)
-        # Decode the attributes for the new object from existing data
-        for attribute, value, ts in attributes:
-          result.DecodeValueFromAttribute(attribute, value, ts)
-
-        result.Initialize()
-        results[child] = result
-      except IOError:
-        pass
-
-    # Order the results in the same order they were requested.
-    for f in flow_names:
-      if f in results:
-        yield results[f]
 
 
 class GRRForeman(aff4.AFF4Object):
@@ -658,7 +624,7 @@ class GRRAFF4Init(registry.InitHook):
       fd = aff4.FACTORY.Create("aff4:/foreman", "GRRForeman",
                                token=aff4.FACTORY.root_token)
       fd.Close()
-    except data_store.UnauthorizedAccess:
+    except access_control.UnauthorizedAccess:
       pass
 
 # We add these attributes to all objects. This means that every object we create

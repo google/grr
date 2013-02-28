@@ -15,6 +15,11 @@ from grr.client import conf
 # We want to test linux and mac.
 old_platform = sys.platform
 sys.platform = "darwin, linux"
+
+# pylint: disable=unused-import,g-bad-import-order
+from grr.client import client_plugins
+# pylint: enable=unused-import,g-bad-import-order
+
 from grr.client.vfs_handlers import memory
 sys.platform = old_platform
 

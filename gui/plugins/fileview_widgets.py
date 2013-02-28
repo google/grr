@@ -68,15 +68,14 @@ class HexView(renderers.TemplateRenderer):
 """
 
   layout_template = renderers.Template("""
-<div id="{{unique|escape}}"></div> """ + table_jquery_template + """
+<div id="{{unique|escape}}" style="position: absolute; top: 45px;
+right: 0; bottom: 0; left: 0"></div> """ + table_jquery_template + """
 <script>
- grr.subscribe("GeometryChange", function(id) {
-   if(id == "{{id|escapejs}}") {
+  $("#{{unique|escapejs}}").resize(function() {
      grr.hexview.HexViewer("{{renderer|escapejs}}", "{{unique|escapejs}}",
        {{this.table_width|escapejs}}, {{this.state_json|safe}});
-   };
- }, "{{unique|escapejs}}");
-
+  });
+  $("#{{unique|escapejs}}").resize();
 </script>
 """)
 
@@ -160,13 +159,9 @@ class TextView(renderers.TemplateRenderer):
   <div id="text_viewer_data_content" total_size=0></div>
 </div>
 <script>
-  grr.subscribe("GeometryChange", function(id) {
-    if(id == "{{id|escapejs}}") {
-      grr.textview.TextViewer("{{renderer|escapejs}}", "{{unique|escapejs}}",
-                             '{{this.default_codec|escapejs}}',
-                             {{this.state_json|safe}});
-    };
-  }, "{{unique|escapejs}}");
+  grr.textview.TextViewer("{{renderer|escapejs}}", "{{unique|escapejs}}",
+                          "{{this.default_codec|escapejs}}",
+                          {{this.state_json|safe}});
 </script>
 </div>
 </div>

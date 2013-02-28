@@ -22,11 +22,8 @@ import os
 import StringIO
 
 from grr.client import conf
-from grr.client import conf as flags
 from grr.lib import test_lib
 from grr.parsers import ie_history
-
-FLAGS = flags.FLAGS
 
 
 # pylint: disable=C6409

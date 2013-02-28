@@ -20,6 +20,7 @@ class LaunchHunts(renderers.WizardRenderer):
   """Launches a new hunt."""
 
   wizard_name = "hunt_run"
+  title = "Launch Hunt"
   pages = [
       renderers.WizardPage(
           name="ConfigureFlow",
@@ -31,7 +32,7 @@ class LaunchHunts(renderers.WizardRenderer):
           renderer="HuntConfigureRules"),
       renderers.WizardPage(
           name="ReviewAndTest",
-          description="Step 3. Review The Hunt And Test Its' Rules",
+          description="Step 3. Review The Hunt",
           renderer="HuntReviewAndTest",
           next_button_label="Run",
           wait_for_event="HuntTestPerformed"),
@@ -66,8 +67,7 @@ class HuntConfigureFlow(renderers.Splitter):
 
   min_left_pane_width = 200
 
-  layout_template = """
-<div id="HuntConfigureFlow_{{unique|escape}}"></div>
+  layout_template = renderers.Splitter.layout_template + """
 <script>
   // Attaching subscribe('flow_select') to the div with unique id to avoid
   // multiple listeners being subscribed at the same time. When this div
@@ -78,9 +78,9 @@ class HuntConfigureFlow(renderers.Splitter):
     grr.layout("HuntFlowForm",
       "{{id|escapejs}}_rightTopPane",
       { flow_name: path });
-  }, "HuntConfigureFlow_{{unique|escapejs}}");
+  }, "{{id|escapejs}}");
 </script>
-""" + renderers.Splitter.layout_template
+"""
 
 
 class HuntFlowForm(flow_management.FlowForm):
@@ -95,29 +95,32 @@ class HuntFlowForm(flow_management.FlowForm):
   ignore_flow_args = ["notify_to_user"]
 
   layout_template = renderers.Template("""
-<div class="HuntFormBody" id="FormBody_{{unique|escape}}">
-<h1>{{this.flow_name|escape}}</h1>
+<div class="HuntFormBody padded" id="FormBody_{{unique|escape}}">
+<form id='form_{{unique|escape}}' class="form-horizontal">
+<legend>{{this.flow_name|escape}}</legend>
 
-<table><tbody>
 {% if this.flow_name %}
 
   {{this.flow_args|safe}}
 
 {% else %}
-  <tr><td>Nothing to configure for the Flow.</td></tr>
+  <p class="text-info">Nothing to configure for the Flow.</p>
 {% endif %}
-<tr class="HuntParameters"><td><h1>Hunt Parameters</h1></td></tr>
-<tr>
-  <td> Client Limit </td>
-  <td> <input name='client_limit' type=text value=''/> </td>
-</tr>
+<legend>Hunt Parameters</legend>
+<div class="control-group">
+  <label class="control-label">Client Limit</label>
+  <div class="controls">
+    <input type="text" name="client_limit" value="" />
+  </div>
+</div>
+<div class="control-group">
+  <label class="control-label">Expiration Time (try s,m,h,d)</label>
+  <div class="controls">
+    <input type="text" name="expiry_time" value="31d" />
+  </div>
+</div>
+</form>
 
-<tr>
-  <td> Expiration Time (in seconds, try s,m,h,d)</td>
-  <td> <input name='expiry_time' type=text value='31d'/> </td>
-</tr>
-
-</tbody></table>
 </div>
 
 {% if this.flow_name %}
@@ -183,14 +186,14 @@ class HuntConfigureRules(renderers.TemplateRenderer):
 {{this.hunt_form|safe}}
 
 <script id="HuntsRulesModels_{{unique|escape}}" type="text/x-jquery-tmpl">
-  <div class="Rule">
+  <div class="Rule well well-large">
     {% for form_name, form in this.forms.items %}
       {% templatetag openvariable %}if rule_type == "{{form_name}}"
         {% templatetag closevariable %}
-        <table name="{{form_name|escape}}"><tbody>
-          <tr>
-             <td>rule type</td>
-             <td>
+        <form name="{{form_name|escape}}" class="form-horizontal">
+          <div class="control-group">
+            <label class="control-label">Rule Type</label>
+            <div class="controls">
                <select name="rule_type">
                  {% for fn in this.forms.iterkeys %}
                    <option value="{{fn|escape}}"
@@ -199,20 +202,25 @@ class HuntConfigureRules(renderers.TemplateRenderer):
                    </option>
                  {% endfor %}
                </select>
-             </td>
-          </tr>
-        {{form|safe}}
-        </tbody></table>
+            </div>
+          </div>
+          {{form|safe}}
+          <div class="control-group">
+            <div class="controls">
+              <input name="remove" class="btn" type="button" value="Remove" />
+           </div>
+         </div>
+        </form>
       {% templatetag openvariable %}/if{% templatetag closevariable %}
     {% endfor %}
-    <input name="remove" type="button" value="Remove" />
   </div>
 </script>
 
-<div class="HuntConfigureRules">
+<div class="HuntConfigureRules padded">
   <div id="HuntsRules_{{unique|escape}}" class="RulesList"></div>
   <div class="AddButton">
-    <input type="button" id="AddHuntRule_{{unique|escape}}" value="Add Rule" />
+    <input type="button" class="btn" id="AddHuntRule_{{unique|escape}}"
+      value="Add Rule" />
   </div>
 </div>
 
@@ -422,30 +430,27 @@ class HuntInformation(renderers.TemplateRenderer, HuntRequestParsingMixin):
 
   failure_reason = None
   failure_template = renderers.Template("""
-<div class="Failure">
-Failure due: <span class="Reason">{{this.failure_reason|escape}}</span>
+<div class="Failure padded">
+<p class="text-error">Failure due: <span class="Reason">
+  {{this.failure_reason|escape}}</span></p>
 </div>
 """)
 
   layout_template = renderers.Template("""
-<div class="HuntInformation" id="HuntInformation_{{unique|escape}}">
+<div class="HuntInformation padded" id="HuntInformation_{{unique|escape}}">
   <div class="Flow">
-    <h1>{{this.hunt.flow_name|escape}}</h1>
+    <h3>{{this.hunt.flow_name|escape}}</h3>
 
     {% if this.hunt.flow_args %}
-      <h2>Settings</h2>
-      <table class="attributesTable">
-        <thead class="attributesTableHeader">
-          <tr><th>Attribue</th><th>Value</th></tr>
-        </thead>
-        <tbody class="attributesTableContent">
-          {% for key,value in this.hunt.flow_args.iteritems %}
-          <tr>
-            <td>{{key|escape}}</td><td>{{value|escape}}</td>
-          </tr>
+      <h4>Settings</h4>
+      <dl class="dl-horizontal">
+        {% for key,value in this.hunt.flow_args.iteritems %}
+        <dt>{{key|escape}}</dt>
+        <dd>{{value|escape}}</dd>
         {% endfor %}
-        </tbody>
-      </table>
+      </dl>
+    {% else %}
+       No arguments.
     {% endif %}
   </div>
 
@@ -453,7 +458,7 @@ Failure due: <span class="Reason">{{this.failure_reason|escape}}</span>
   something. -->
   <div class="Misc"></div>
 
-  <h2>Rules</h2>
+  <h3>Rules</h3>
   <div id="HuntRuleInformation_{{unique|escape}}" class="Rules"></div>
 </div>
 
@@ -464,13 +469,7 @@ Failure due: <span class="Reason">{{this.failure_reason|escape}}</span>
 
   grr.layout("HuntRuleInformation",
     "HuntRuleInformation_{{unique|escapejs}}",
-    {"hunt_run": JSON.stringify(wizardState)},
-    function() {
-      // Hack - delete all explicitly set "height" values - we want the table
-      // to be flexible and to expand automatically
-      $("#HuntRuleInformation_{{unique|escapejs}} *").css("height", "auto");
-    }
-  );
+    {"hunt_run": JSON.stringify(wizardState)});
 })();
 </script>
 """)
@@ -520,7 +519,8 @@ Example matches:
 """)
 
   rules_testing_template = renderers.Template("""
-Hunt's rules were tested successfully.
+<!-- TODO(mbushkov): implement hunt rules' testing. !-->
+<!-- Hunt's rules were tested successfully. -->
 
 <script>
   grr.publish("WizardProceed", "HuntTestPerformed");
@@ -594,8 +594,8 @@ class HuntRunStatus(HuntInformation):
   """Launches the hunt and displays status summary."""
 
   layout_template = renderers.Template("""
-<div class="HuntLaunchSummary">
-  <h1>Hunt was scheduled!</h1>
+<div class="HuntLaunchSummary padded">
+  <p class="text-success">Hunt was scheduled!</p>
 </div>
 </script>
 """)

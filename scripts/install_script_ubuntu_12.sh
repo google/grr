@@ -84,7 +84,7 @@ function run_cmd_confirm()
 header "Updating APT and Installing dependencies"
 run_cmd_confirm sudo apt-get --yes update;
 run_cmd_confirm sudo apt-get --yes upgrade;
-run_cmd_confirm sudo apt-get --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil python-matplotlib;
+run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil python-matplotlib;
 
 
 header "Getting the right version of M2Crypto installed"
@@ -94,21 +94,21 @@ run_cmd_confirm tar zxfv ${DEB_DEPENDENCIES};
 run_cmd_confirm sudo dpkg -i ${DEB_DEPENDENCIES_DIR}/${M2CRYPTO_DEB};
 
 header "Installing Protobuf"
-run_cmd_confirm sudo apt-get --yes install libprotobuf-dev python-protobuf;
+run_cmd_confirm sudo apt-get --yes --force-yes install libprotobuf-dev python-protobuf;
 
 header "Installing Sleuthkit and Pytsk"
 run_cmd_confirm sudo apt-get --yes remove libtsk3* sleuthkit
 run_cmd_confirm sudo dpkg -i ${DEB_DEPENDENCIES_DIR}/${SLEUTHKIT_DEB} ${DEB_DEPENDENCIES_DIR}/${PYTSK_DEB};
 
 header "Installing Mongodb"
-run_cmd_confirm sudo apt-get --yes install mongodb python-pymongo;
+run_cmd_confirm sudo apt-get --yes --force-yes install mongodb python-pymongo;
 
 header "Getting correct psutil version (we require 0.6 or newer)"
 PSUTIL_VERSION=`dpkg-query -W python-psutil | cut -f 2`
 if [[ "$PSUTIL_VERSION" == 0.5* ]]; then
   echo "Unsupported psutil version ${PSUTIL_VERSION}. Upgrading with pip."
   run_cmd_confirm sudo apt-get --yes remove python-psutil;
-  run_cmd_confirm sudo apt-get --yes install python-pip build-essential python-dev;
+  run_cmd_confirm sudo apt-get --yes --force-yes install python-pip build-essential python-dev;
   run_cmd_confirm sudo easy_install psutil;
 fi
 

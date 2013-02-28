@@ -20,8 +20,9 @@ import time
 from django.utils import datastructures
 
 from grr.gui import renderers
+
+from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
@@ -41,6 +42,9 @@ class ContentView(renderers.Splitter2WayVertical):
   """The content view has a navigator and the main panel."""
   left_renderer = "Navigator"
   right_renderer = "FrontPage"
+
+  min_left_pane_width = 210
+  max_left_pane_width = 210
 
   layout_template = """
 <script>
@@ -117,13 +121,12 @@ class Navigator(renderers.TemplateRenderer):
   poll_time = 30000
 
   layout_template = renderers.Template("""
-<div id="navigator" class="grr-content-sidebar grr-sidebar-search">
-
 <div id="{{unique|escape}}"></div>
-{% for client_id, host in this.hosts %}
-  <div class="headline">
-  {{host|escape}}</div>
+<div id="navigator">
+  <ul class="nav nav-list">
 
+{% for client_id, host in this.hosts %}
+  <div class="text-success">{{host|escape}}</div>
   {% if this.unauthorized %}
   <div class="ACL_reason">
    Searching for authorization...
@@ -137,7 +140,8 @@ class Navigator(renderers.TemplateRenderer):
     {% endif %}
     <div class="infoline" id="infoline_{{unique|escape}}">
     </div>
-     <ul class="iconlist">
+
+
       {% for renderer, name in this.host_headings %}
        <li>
          <a grrtarget="{{name|escape}}"
@@ -145,13 +149,14 @@ class Navigator(renderers.TemplateRenderer):
            {{ renderer.description|escape }}</a>
        </li>
       {% endfor %}
-    </ul>
+
   {% endif %}
 {% endfor %}
 
-{% for heading, data in this.general_headings.items %}
-<div class="headline">{{ data.0|escape }}</div>
-<ul class="iconlist">
+
+
+  {% for heading, data in this.general_headings.items %}
+  <li class="nav-header">{{ data.0|escape }}</li>
   {% for renderer, name in data.1 %}
    <li>
      <a grrtarget="{{name|escape}}"
@@ -159,8 +164,11 @@ class Navigator(renderers.TemplateRenderer):
        {{ renderer.description|escape }}</a>
    </li>
   {% endfor %}
-</ul></li>
 {% endfor %}
+  </ul>
+</div>
+
+
 
 </div>
 <script>
@@ -199,15 +207,15 @@ class Navigator(renderers.TemplateRenderer):
 
     self.host_headings = []
     self.general_headings = datastructures.SortedDict([
-        ("General", ("GRR Management", [])),
-        ("Configuration", ("GRR Configuration", []))
+        ("General", ("Management", [])),
+        ("Configuration", ("Configuration", []))
     ])
 
     # Introspect all the categories
     for cls in self.classes.values():
       try:
         cls.CheckAccess(request)
-      except data_store.UnauthorizedAccess:
+      except access_control.UnauthorizedAccess:
         continue
 
       for behaviour in self.general_headings:
@@ -235,7 +243,7 @@ class Navigator(renderers.TemplateRenderer):
         # Also check for proper access.
         aff4.FACTORY.Open(client.urn.Add("acl_check"), token=request.token)
 
-      except data_store.UnauthorizedAccess as e:
+      except access_control.UnauthorizedAccess as e:
         self.unauthorized = True
         self.unauthorized_exception = e
 
@@ -303,11 +311,13 @@ class CenteredOnlineStateIcon(OnlineStateIcon):
 class HostTable(renderers.TableRenderer):
   """Render a table for searching hosts."""
 
+  fixed_columns = False
+
   # Update the table if any messages appear in these queues:
   vfs_table_template = renderers.Template("""<script>
      //Receive the selection event and emit a client_id
      grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
-          var aff4_path = node.find("span[aff4_path]").attr("aff4_path");
+          var aff4_path = $("span[aff4_path]", node).attr("aff4_path");
           var cn = aff4_path.replace("aff4:/", "");
           grr.state.client_id = cn;
           grr.publish("hash_state", "c", cn);
@@ -323,15 +333,15 @@ class HostTable(renderers.TableRenderer):
 
   def __init__(self, **kwargs):
     renderers.TableRenderer.__init__(self, **kwargs)
-    self.AddColumn(renderers.RDFValueColumn("Online", width=0,
+    self.AddColumn(renderers.RDFValueColumn("Online", width="40px",
                                             renderer=CenteredOnlineStateIcon))
-    self.AddColumn(renderers.AttributeColumn("subject"))
-    self.AddColumn(renderers.AttributeColumn("Host"))
-    self.AddColumn(renderers.AttributeColumn("Version"))
-    self.AddColumn(renderers.AttributeColumn("MAC"))
-    self.AddColumn(renderers.AttributeColumn("Usernames"))
-    self.AddColumn(renderers.AttributeColumn("Install"))
-    self.AddColumn(renderers.AttributeColumn("Clock"))
+    self.AddColumn(renderers.AttributeColumn("subject", width="13em"))
+    self.AddColumn(renderers.AttributeColumn("Host", width="13em"))
+    self.AddColumn(renderers.AttributeColumn("Version", width="20%"))
+    self.AddColumn(renderers.AttributeColumn("MAC", width="10%"))
+    self.AddColumn(renderers.AttributeColumn("Usernames", width="20%"))
+    self.AddColumn(renderers.AttributeColumn("Install", width="15%"))
+    self.AddColumn(renderers.AttributeColumn("Clock", width="15%"))
 
   @renderers.ErrorHandler()
   def Layout(self, request, response):
@@ -415,13 +425,10 @@ class SearchHostView(renderers.Renderer):
   title = "Search Client"
 
   template = renderers.Template("""
-<form id='search_host' method='POST'>
-<input type=text name='q' class="grr-searchfield" />
-<input type="submit" id="grr-searchbutton" title="Search"
-  value="Search" class="grr-button grr-button-submit">
-  Search
-</input>
+<form id="search_host" class="navbar-search pull-left">
+  <input type="text" name="q" class="search-query" placeholder="Search">
 </form>
+
 <script>
  $("#search_host").submit(function () {
    grr.layout("HostTable", "main", {q: $('input[name="q"]').val()});
@@ -443,28 +450,28 @@ class FrontPage(renderers.TemplateRenderer):
   """The front page of the GRR application."""
 
   layout_template = renderers.Template("""
-<div id="main" >
-  <div id='front'><h1>Welcome to GRR</h1></div>
+  <div id="main">
+
+   <div class="container-fluid">
+     <div class="row-fluid">
+  <div id='front'><h2>Welcome to GRR</h2></div>
   Query for a system to view in the search box above.
 
-  <div>
+  <p>
   A bare search term searches for a hostname. Prefix the term with "version:" to
   search for the OS version, "mac:" to search for a mac address, "id:" for a
   client id. Terms may also be combined by using and, or and parenthesis.
-  </div>
-</div>
-<script>
- $("#content").resize();
+  </p>
+     </div>  <!-- row -->
+   </div>  <!-- container -->
 
+  </div>
+
+<script>
  // Update main's state from the hash
  if (grr.hash.main) {
    grr.layout(grr.hash.main, "main");
  };
-
- grr.subscribe("GeometryChange", function (id) {
-   if(id != "{{id|escapejs}}") return;
-   grr.publish("GeometryChange", "main");
- }, "main");
 
 </script>
 """)

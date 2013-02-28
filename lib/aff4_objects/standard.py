@@ -139,7 +139,7 @@ class HashImage(aff4.AFF4Image):
 
     chunk_name = self.index.Read(self._HASH_SIZE)
     try:
-      result = self.read_chunk_cache.Get(chunk_name)
+      result = self.chunk_cache.Get(chunk_name)
     except KeyError:
       # Read ahead a few chunks.
       self.index.Seek(-self._HASH_SIZE, whence=1)
@@ -147,7 +147,7 @@ class HashImage(aff4.AFF4Image):
 
       for _ in range(self._READAHEAD):
         name = self.index.Read(self._HASH_SIZE)
-        if name and name not in self.read_chunk_cache:
+        if name and name not in self.chunk_cache:
           urn = aff4.ROOT_URN.Add("blobs").Add(name.encode("hex"))
           readahead[urn] = name
 
@@ -160,7 +160,7 @@ class HashImage(aff4.AFF4Image):
           result = fd
 
         # Put back into the cache
-        self.read_chunk_cache.Put(readahead[fd.urn], fd)
+        self.chunk_cache.Put(readahead[fd.urn], fd)
 
     return result
 

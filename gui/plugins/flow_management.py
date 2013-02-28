@@ -29,7 +29,6 @@ from grr.lib import flow_context
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 
 class LaunchFlows(renderers.Splitter):
@@ -107,7 +106,7 @@ class FlowManagementTabs(renderers.TabLayout):
 <script>
 grr.subscribe('flow_select', function (path) {
     $("#{{unique|escapejs}}").data().state.flow_path = path;
-    $("#{{unique|escapejs}} li.ui-state-active a").click();
+    $("#{{unique|escapejs}} li.active a").click();
 }, "{{unique|escapejs}}");
 </script>"""
 
@@ -125,14 +124,19 @@ class FlowInformation(renderers.TemplateRenderer):
   """
 
   layout_template = renderers.Template("""
-<h2>{{ this.flow_name|escape }}</h2>
-<h3>{{ this.flow_doc|linebreaks }}</h3>
-<p>
+<h3>{{ this.flow_name|escape }}</h2>
+<p>{{ this.flow_doc|linebreaks }}</p>
+
+<pre>
 Prototype: {{ this.prototype|escape }}
-<br>
-{{ this.prototype_doc|linebreaks }}
-</p>
-<table class="display">
+{{ this.prototype_doc|escape }}
+</pre>
+<table class="table table-condensed table-bordered full-width fixed-columns">
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 60%" />
+<col style="width: 20%" />
+</colgroup>
 <thead>
 <tr>
 <th class="ui-state-default">State</th>
@@ -208,24 +212,31 @@ class FlowForm(FlowInformation):
 
   layout_template = renderers.Template("""
 <div class="FormBody" id="FormBody_{{unique|escape}}">
-<form id='form_{{unique|escape}}' method='POST'>
+<form id='form_{{unique|escape}}' method='POST' class="form-horizontal">
 {% if this.flow_name %}
   <input type=hidden name='FlowName' value='{{ this.flow_name|escape }}'/>
-  <table><tbody><tr>
-  <td class='proto_key'>Client ID</td><td>
-  <div class="proto_value" id="client_id_{{unique|escape}}">
-    {{this.client_id|escape}}</div></td>
+  <div class="control-group">
+    <label class="control-label">Client ID</label>
+    <div class="controls">
+      <span class="uneditable-input" id="client_id_{{unique|escape}}">
+        {{this.client_id|escape}}
+      </span>
+    </div>
+  </div>
 
   {{this.flow_args|safe}}
 
-  </tbody></table>
-  <input id='submit_{{unique|escape}}' type="submit" value="Launch"/>
+  <div class="control-group">
+    <div class="controls">
+      <input id='submit_{{unique|escape}}' type="submit" class="btn btn-success"
+        value="Launch"/>
+    </div>
+  </div>
 {% endif %}
 </form>
 </div>
 <script>
-  $("#submit_{{unique|escapejs}}").button()
-    .click(function () {
+  $("#submit_{{unique|escapejs}}").click(function () {
       return grr.submit('FlowFormAction', 'form_{{unique|escapejs}}',
                         '{{id|escapejs}}', false);
     });
@@ -281,7 +292,7 @@ class FlowForm(FlowInformation):
 class FlowFormAction(FlowInformation):
   """Execute a flow and show status."""
 
-  back_button = """
+  buttons = """
 <form id='form_{{unique|escape}}'>
   <input type=hidden name='flow_name' value='{{this.flow_name|escape}}' />
 {% for desc, value in args_sent %}
@@ -289,7 +300,8 @@ class FlowFormAction(FlowInformation):
    value='{{ value|escape }}'/>
 {% endfor %}
 
-<input id='submit' type="submit" value="Back"/>
+<input id='submit' type="submit" value="Back" class="btn" />
+<input id='gotoflow' type='submit' value='View' class="btn" />
 </form>
 <script>
   $("#submit").button()
@@ -298,40 +310,47 @@ class FlowFormAction(FlowInformation):
                         '{{id|escapejs}}', false);
     });
 
-  // Still respond if the tree is selected.
-  grr.subscribe('tree_select', function() {
-         grr.layout("FlowForm", "{{id|escapejs}}");
-  }, 'form_{{unique|escapejs}}');
-</script>
-"""
-
-  view_button = """
-<form id='form2_{{unique|escape}}'>
-  <input id='gotoflow' type='submit' value='View'>
-</form>
-<script>
   $('#gotoflow').button().click(function () {
       grr.publish('hash_state', 'flow', '{{this.flow_id|escapejs}}');
       grr.publish('hash_state', 'main', 'ManageFlows');
       grr.loadFromHash();
   });
+
+  // Still respond if the flow is selected.
+  grr.subscribe('flow_select', function(path) {
+     grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}", {
+       flow_name: path,
+       client_id: grr.state.client_id,
+       reason: grr.state.reason
+     });
+  }, 'form_{{unique|escapejs}}');
+</script>
+"""
+
+  hide_view_button = """
+<script>
+$('#gotoflow').hide();
 </script>
 """
 
   layout_template = renderers.Template("""
-Launched flow <b>{{this.flow_name|escape}}</b><br/>
-{{this.flow_id|escape}}<br/>
-parameters: <p>
-client_id = '{{ this.client_id|escape }}'
+<div class="fill-parent no-top-margin">
+<h3>Launched flow {{this.flow_name|escape}}</h3>
+<p><small>{{this.flow_id|escape}}</small></p>
+<dl class="dl-horizontal">
+  <dt>client_id</dt>
+  <dd>'{{ this.client_id|escape }}'</dd>
 {% for desc, arg in this.args_sent %}
-<br>  {{ desc|escape }} = {{ arg|escape }}
+  <dt>{{ desc|escape }}</dt>
+  <dd>{{ arg|escape }}</dd>
 {% endfor %}
+</dl>
 <div class='button_row'>
-""" + back_button + view_button + "</div>")
+""" + buttons + "</div>")
 
   error_template = renderers.Template("""
 <h2>Error: Flow '{{ name|escape }}' : </h2> {{ error|escape }}
-""" + back_button)
+""" + buttons + hide_view_button)
 
   def Layout(self, request, response):
     """Launch the flow."""
@@ -407,8 +426,10 @@ class FlowStateIcon(renderers.RDFValueRenderer):
   """Render the flow state by using an icon."""
 
   layout_template = renderers.Template("""
-<img class='grr-icon grr-flow-icon'
-  src='/static/images/{{this.icon|escape}}' />""")
+<div class="centered">
+  <img class='grr-icon grr-flow-icon'
+    src='/static/images/{{this.icon|escape}}' />
+</div>""")
 
   # Maps the flow states to icons we can show
   state_map = {"TERMINATED": "stock_yes.png",
@@ -461,8 +482,14 @@ grr.subscribe('flow_table_select', function (path) {
 </script>"""
 
   def Layout(self, request, response):
-    self.state = dict(flow=request.REQ.get("flow"),
-                      client_id=request.REQ.get("client_id"))
+    req_flow = request.REQ.get("flow")
+    if req_flow:
+      self.state["flow"] = req_flow
+
+    client_id = request.REQ.get("client_id")
+    if client_id:
+      self.state["client_id"] = client_id
+
     return super(FlowTabView, self).Layout(request, response)
 
 
@@ -478,8 +505,8 @@ class FlowRequestView(renderers.TableRenderer):
 
   def __init__(self, **kwargs):
     super(FlowRequestView, self).__init__(**kwargs)
-    self.AddColumn(renderers.RDFValueColumn("ID", width=10))
-    self.AddColumn(renderers.RDFValueColumn("Request"))
+    self.AddColumn(renderers.RDFValueColumn("ID"))
+    self.AddColumn(renderers.RDFValueColumn("Request", width="100%"))
 
   def BuildTable(self, start_row, end_row, request):
     session_id = request.REQ.get("flow", "")
@@ -489,7 +516,7 @@ class FlowRequestView(renderers.TableRenderer):
 
     # Get all the responses for this request.
     for i, (predicate, req_state, _) in enumerate(data_store.DB.ResolveRegex(
-        state_queue, predicate_re, decoder=jobs_pb2.RequestState,
+        state_queue, predicate_re, decoder=rdfvalue.RequestState,
         limit=end_row, token=request.token)):
 
       if i < start_row:
@@ -566,10 +593,13 @@ class ListFlowsTable(renderers.TableRenderer):
   selection_publish_queue = "flow_table_select"
 
   layout_template = """
-<div id="toolbar_{{unique|escape}}" class="toolbar">
-  <button id='cancel_flow_{{unique|escape}}' title='Cancel Selected Flows'>
-    <img src='/static/images/editdelete.png' class='toolbar_icon'>
-  </button> <div id="cancel" />
+<div id="toolbar_{{unique|escape}}" class="breadcrumb">
+  <li>
+    <button id="cancel_flow_{{unique|escape}}" title="Cancel Selected Flows"
+      class="btn">
+      <img src="/static/images/editdelete.png" class="toolbar_icon">
+    </button>
+  </li>
 </div>
 """ + renderers.TableRenderer.layout_template + """
 <script>
@@ -605,9 +635,15 @@ class ListFlowsTable(renderers.TableRenderer):
 
   /* Update the flow view from the hash. */
   if(grr.hash.flow) {
-    grr.publish("{{ this.selection_publish_queue|escapejs }}",
-                grr.hash.flow);
-  };
+    // NOTE(mbushkov): delay is needed for cases when flow list and flow
+    // information are rendered as parts of the same renderer. In that
+    // case the ShowFlowInformation renderer won't be able to react on the
+    // click because it subscribes for the flow_table_select event after
+    // the code below is executed.
+    window.setTimeout(function () {
+      $('div[flow_id="' + grr.hash.flow +'"]').parents('tr').click();
+    }, 1);
+  }
 </script>
 """
 
@@ -623,13 +659,14 @@ class ListFlowsTable(renderers.TableRenderer):
 
   def __init__(self, **kwargs):
     super(ListFlowsTable, self).__init__(**kwargs)
-    self.AddColumn(renderers.AttributeColumn(
-        "Flow.state", renderer=FlowStateIcon, width=0))
-    self.AddColumn(FlowColumn("Path", renderer=renderers.SubjectRenderer))
-    self.AddColumn(renderers.AttributeColumn("Flow.name"))
-    self.AddColumn(renderers.AttributeColumn("Flow.create_time"))
-    self.AddColumn(renderers.RDFValueColumn("Last Active"))
-    self.AddColumn(renderers.AttributeColumn("Flow.creator"))
+    self.AddColumn(renderers.RDFValueColumn(
+        "State", renderer=FlowStateIcon, width="40px"))
+    self.AddColumn(FlowColumn("Path", renderer=renderers.SubjectRenderer,
+                              width="20%"))
+    self.AddColumn(renderers.RDFValueColumn("Flow Name", width="20%"))
+    self.AddColumn(renderers.RDFValueColumn("Creation Time", width="20%"))
+    self.AddColumn(renderers.RDFValueColumn("Last Active", width="20%"))
+    self.AddColumn(renderers.RDFValueColumn("Creator", width="20%"))
 
   def BuildTable(self, start, _, request):
     """Renders the table."""
@@ -649,6 +686,7 @@ class ListFlowsTable(renderers.TableRenderer):
     for flow_obj in sorted(self._ExpandVolumes(flow_root.OpenChildren()),
                            key=lambda x: x.create_time,
                            reverse=True):
+      # TODO(user): This is *really* slow. We have to improve this.
       if list(flow_obj.ListChildren()):
         row_type = "branch"
       else:
@@ -656,7 +694,22 @@ class ListFlowsTable(renderers.TableRenderer):
 
       self.columns[1].AddElement(row_index, flow_obj.urn, depth, row_type)
 
-      self.AddRowFromFd(row_index, flow_obj)
+      row = {}
+
+      try:
+        rdf_flow = flow_obj.GetRDFFlow()
+
+        row["State"] = rdf_flow.state
+        row["Flow Name"] = rdf_flow.name
+        row["Creation Time"] = rdf_flow.create_time
+        row["Creator"] = rdf_flow.creator
+        last = flow_obj.Get(flow_obj.Schema.LAST)
+        if last:
+          row["Last Active"] = last
+      except AttributeError:
+        row["Flow Name"] = "Failed to open flow."
+
+      self.AddRow(row, row_index)
       row_index += 1
 
     # The last row we wrote.
@@ -723,11 +776,9 @@ class HistoricalFlowView(fileview.HistoricalView):
       return
 
     self.AddColumn(renderers.RDFValueColumn(attribute_name))
-    fd = aff4.FACTORY.Open(aff4.FLOW_SWITCH_URN, token=request.token,
-                           age=aff4.ALL_TIMES)
+    fd = aff4.FACTORY.Open(flow_name, token=request.token, age=aff4.ALL_TIMES)
 
-    self.BuildTableFromAttribute(attribute_name, fd.OpenMember(flow_name),
-                                 start_row, end_row)
+    self.BuildTableFromAttribute(attribute_name, fd, start_row, end_row)
 
 
 class FlowPBRenderer(renderers.RDFProtoRenderer):

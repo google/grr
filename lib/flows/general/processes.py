@@ -79,7 +79,7 @@ class GetProcessesBinaries(flow.GRRFlow):
     exe attribute and initiates FastGetFile flows for all others.
 
     Args:
-      responses: jobs_pb2.URN pointing at ProcessListing file.
+      responses: rdfvalue.URN pointing at ProcessListing file.
     """
     if not responses or not responses.success:
       raise flow.FlowErrow("ListProcesses flow failed %s", responses.status)
