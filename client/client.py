@@ -21,11 +21,11 @@ class GRRClient(object):
 
   stop = False
 
-  def __init__(self):
+  def __init__(self, ca_cert=None, private_key=None):
     super(GRRClient, self).__init__()
-    self.client = comms.GRRHTTPClient(
-        ca_cert=config_lib.CONFIG["CA.certificate"],
-        private_key=config_lib.CONFIG["Client.private_key"])
+    ca_cert = ca_cert or config_lib.CONFIG["CA.certificate"]
+    private_key = private_key or config_lib.CONFIG["Client.private_key"]
+    self.client = comms.GRRHTTPClient(ca_cert=ca_cert, private_key=private_key)
 
   def Run(self):
     """The client main loop - never exits."""
@@ -39,6 +39,8 @@ def main(unused_args):
   config_lib.CONFIG.SetEnv("Environment.component",
                            "Client%s" % platform.system().title())
   registry.Init()
+
+  config_lib.CONFIG.Validate(["Client", "CA", "Logging"])
 
   client = GRRClient()
   client.Run()

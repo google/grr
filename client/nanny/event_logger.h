@@ -14,6 +14,11 @@
 #include "base/macros.h"                // for DISALLOW_COPY_AND_ASSIGN
 #endif
 
+// Windows uses evil macros which interfer with proper C++.
+#ifdef GetCurrentTime
+#undef GetCurrentTime
+#endif
+
 namespace grr {
 
 // A class which manages logging to a suitable event log. The specific event log
@@ -38,13 +43,14 @@ class EventLogger {
     message_suppression_time_ = suppression_time;
   }
 
- private:
+ protected:
   // Write the message to the appropriate platform-specific log.
   virtual void WriteLog(std::string message) = 0;
 
   // Gets the current wall clock time in seconds since the epoch.
   virtual time_t GetCurrentTime() = 0;
 
+ private:
   // The last message we wrote to the log.
   std::string last_message_;
 

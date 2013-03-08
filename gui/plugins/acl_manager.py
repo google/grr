@@ -47,8 +47,10 @@ class ACLDialog(renderers.TemplateRenderer):
     <div id="acl_form"></div>
   </div>
   <div class="modal-footer">
-    <button id="acl_dialog_submit" class="btn btn-success">Submit</button>
-    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    <button id="acl_dialog_submit" name="Submit" class="btn btn-success">
+      Submit</button>
+    <button class="btn" data-dismiss="modal" name="Close" aria-hidden="true">
+      Close</button>
   </div>
 
 </div>
@@ -139,7 +141,6 @@ class HuntApprovalDetailsRenderer(hunt_view.HuntOverviewRenderer):
     acl = request.REQ.get("acl", "")
     _, _, hunt_id, _ = rdfvalue.RDFURN(acl).Split(4)
     self.hunt_id = aff4.ROOT_URN.Add("hunts").Add(hunt_id)
-    self.allow_run = False
     return super(HuntApprovalDetailsRenderer, self).Layout(request, response)
 
 
@@ -329,7 +330,9 @@ openedModal.attr("update_on_show", "false");
 openedModal.modal("hide");
 
 var returnModalHandler = function () {
-  openedModal.modal("show");
+  if (openedModal.attr("restore_after_acl") != "false") {
+    openedModal.modal("show");
+  }
   $("#acl_dialog").off("hidden", returnModalHandler);
 };
 $("#acl_dialog").on("hidden", returnModalHandler);

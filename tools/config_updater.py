@@ -199,14 +199,12 @@ def GenerateKeys(config):
   ca_cert, ca_pk, _ = key_utils.MakeCACert()
   cipher = None
   config.Set("CA.certificate", ca_cert.as_pem())
-  config.Set("PrivateKeys.ca_key", ca_pk.as_pem(cipher) +
-             ca_cert.as_pem())
+  config.Set("PrivateKeys.ca_key", ca_pk.as_pem(cipher))
 
   print "Generating Server keys"
   server_cert, server_key = key_utils.MakeCASignedCert("grr", ca_pk, bits=2048)
   config.Set("Frontend.certificate", server_cert.as_pem())
-  config.Set("PrivateKeys.server_key", server_key.as_pem(cipher) +
-             server_cert.as_pem())
+  config.Set("PrivateKeys.server_key", server_key.as_pem(cipher))
 
   print "Generating Django Secret key (used for xsrf protection etc)"
   GenerateDjangoKey(config)
@@ -244,7 +242,7 @@ The UI URL specifies where the Administrative Web Interface can be found.
 """
   def_url = "http://%s:8000" % hostname
   ui_url = raw_input("AdminUI URL [%s]: " % def_url) or def_url
-  config.Set("ServerFlags.ui_url", ui_url)
+  config.Set("AdminUI.url", ui_url)
 
   print """\nMonitoring email address
 Address where monitoring events get sent, e.g. crashed clients, broken server
@@ -261,11 +259,12 @@ Address where high priority events such as an emergency ACL bypass are sent.
   emergency_email = raw_input("Emergency email [%s]: " % email) or email
   config.Set("Monitoring.emergency_access_email", emergency_email)
 
-  print "\nConfiguration completed"
-  print_config = ((raw_input("Would you like to review the config before"
-                             " writing it? [Yn]: ") or "Y").upper() == "Y")
-  if print_config:
-    print config.FormattedAsString(truncate_len=80)
+  # TODO(user): Readd once new client build is in place.
+  # print "\nConfiguration completed"
+  # print_config = ((raw_input("Would you like to review the config before"
+  #                           " writing it? [Yn]: ") or "Y").upper() == "Y")
+  # if print_config:
+  #   print config.FormattedAsString(truncate_len=80)
 
   config.Write()
   print ("Configuration parameters set. You can edit these in %s" %
@@ -299,7 +298,10 @@ def Initialize(config):
   ConfigureBaseOptions(config_lib.CONFIG)
 
   print "\nStep 4: Repackaging clients with new configuration."
-  RepackAndUpload(args.share_dir, upload=True)
+  print "TODO"
+
+  # TODO(user): Readd once new client build is in place.
+  # RepackAndUpload(args.share_dir, upload=True)
 
 
 def RepackAndUpload(share_dir, upload=True):

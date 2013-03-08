@@ -17,6 +17,7 @@
 
 
 import pickle
+import platform
 import threading
 import time
 
@@ -32,8 +33,8 @@ from grr.client import client
 from grr.client import client_actions
 # pylint: enable=W0611
 
-from grr.client import conf
 from grr.client import vfs
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
 
@@ -51,9 +52,9 @@ flags.DEFINE_bool("enroll_only", False,
 class PoolGRRClient(client.GRRClient, threading.Thread):
   """A GRR client for running in pool mode."""
 
-  def __init__(self):
+  def __init__(self, *args, **kw):
     """Constructor."""
-    super(PoolGRRClient, self).__init__()
+    super(PoolGRRClient, self).__init__(*args, **kw)
     self.daemon = True
     self.stop = False
 
@@ -91,14 +92,14 @@ def CreateClientPool(n):
     fd.close()
 
     for certificate in certificates:
-      clients.append(PoolGRRClient(certificate=certificate))
+      clients.append(PoolGRRClient(private_key=certificate))
 
   except (IOError, EOFError):
     pass
 
   while len(clients) < n:
     # Force the client to regenerate the RSA key pair each time.
-    clients.append(PoolGRRClient("Invalid"))
+    clients.append(PoolGRRClient(private_key="Invalid"))
 
   # Start all the clients now.
   for c in clients:
@@ -141,17 +142,19 @@ def CreateClientPool(n):
 
 
 def main(unused_argv):
-  conf.PARSER.parse_args()
 
-  # Make sure that we do not update the config file when we create new clients.
-  flags.FLAGS.client_config = "/dev/null"
-
-  if ("staging" not in flags.FLAGS.location and
-      "localhost" not in flags.FLAGS.location):
-    logging.error("Poolclient should only be run against test or staging.")
-    exit()
+  config_lib.CONFIG.SetEnv("Environment.component",
+                           "PoolClient%s" % platform.system().title())
 
   registry.Init()
+
+  # Make sure that we do not update the config file when we create new clients.
+  config_lib.CONFIG.parser.filename = "/dev/null"
+
+  if ("staging" not in config_lib.CONFIG["Client.location"] and
+      "localhost" not in config_lib.CONFIG["Client.location"]):
+    logging.error("Poolclient should only be run against test or staging.")
+    exit()
 
   # Let the OS handler also handle sleuthkit requests since sleuthkit is not
   # thread safe.

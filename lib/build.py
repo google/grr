@@ -4,188 +4,374 @@
 This handles invocations for the build across the supported platforms including
 handling Visual Studio, pyinstaller and other packaging mechanisms.
 """
-
-import glob
+import cStringIO
+import logging
 import os
 import shutil
-import StringIO
 import subprocess
 import sys
+import tempfile
 import zipfile
+
+from grr.lib import config_lib
+from grr.lib import type_info
+
+
+class PathTypeInfo(type_info.String):
+  """A path to a file or a directory."""
+
+  def __init__(self, must_exist=True, **kwargs):
+    self.must_exist = must_exist
+    super(PathTypeInfo, self).__init__(**kwargs)
+
+  def Validate(self, value):
+    value = super(PathTypeInfo, self).Validate(value)
+    if self.must_exist and not os.access(value, os.R_OK):
+      raise type_info.TypeValueError(
+          "Path %s does not exist for %s" % (value, self.name))
+
+    return value
+
+  def FromString(self, string):
+    return os.path.normpath(string)
+
+
+# PyInstaller build configuration.
+config_lib.DEFINE_option(PathTypeInfo(
+    name="PyInstaller.path", must_exist=True,
+    default="c:/build/pyinstaller/pyinstaller.py",
+    help="Path to the main pyinstaller.py file."))
+
+config_lib.DEFINE_option(PathTypeInfo(
+    name="PyInstaller.support_path", must_exist=True,
+    default="%(ClientBuilder.source)/grr/config/pyinstaller/client",
+    help="Path that contains pyinstaller support files."))
+
+config_lib.DEFINE_string(
+    name="PyInstaller.spec",
+    help="The spec file contents to use for building the client.",
+    default=r"""
+# By default build in one dir mode.
+a = Analysis\(
+    ["%(ClientBuilder.source)/grr/client/client.py"],
+    pathex=%(PyInstaller.pathex),
+    hiddenimports=[],
+    hookspath=None\)
+pyz = PYZ\(
+    a.pure\)
+exe = EXE\(
+    pyz,
+    a.scripts,
+    exclude_binaries=1,
+    name='build/%(Client.binary_name)',
+    debug=False,
+    strip=False,
+    upx=True,
+    console=True,
+    version='%(PyInstaller.build_dir)/version.txt',
+    icon='%(PyInstaller.build_dir)/grr.ico'\)
+
+coll = COLLECT\(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    name='%(PyInstaller.output_basename)'\)
+""")
+
+config_lib.DEFINE_string(
+    name="PyInstaller.version",
+    help="The version.txt file contents to use for building the client.",
+    default=r"""
+VSVersionInfo\(
+  ffi=FixedFileInfo\(
+    filevers=\(%(Client.version_major), %(Client.version_minor),
+               %(Client.version_revision), %(Client.version_release)\),
+    prodvers=\(%(Client.version_major), %(Client.version_minor),
+               %(Client.version_revision), %(Client.version_release)\),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=\(0, 0\)
+    \),
+  kids=[
+    StringFileInfo\(
+      [
+      StringTable\(
+        '040904B0',
+        [StringStruct\('CompanyName', "%(Client.company_name)"\),
+        StringStruct\('FileDescription', "%(Client.description)"\),
+        StringStruct\('FileVersion', '%(Client.version_string)'\),
+        StringStruct\('InternalName', '%(Client.description)' \),
+        StringStruct\('OriginalFilename', '%(Client.name)' \)]\),
+      ]\),
+  VarFileInfo\([VarStruct\('Translation', [1033, 1200]\)]\)
+  ]
+\)
+""")
+
+config_lib.DEFINE_string(
+    "PyInstaller.icon",
+    "%(%(ClientBuilder.source)/grr/gui/static/images/grr.ico|file)",
+    "The icon file contents to use for building the client.")
+
+config_lib.DEFINE_string(
+    "PyInstaller.build_dir",
+    "./build",
+    "The path to the build directory.")
+
+config_lib.DEFINE_string(
+    name="PyInstaller.output_basename",
+    default="%(Client.name)_%(Client.version_string)_%(ClientBuilder.arch)",
+    help="The base name of the output package.")
+
+
+config_lib.DEFINE_option(type_info.PathTypeInfo(
+    name="ClientBuildWindows.nanny_source_dir", must_exist=True,
+    default="%(ClientBuilder.source)/grr/client/nanny/",
+    help="Path to the windows nanny VS solution file."))
+
+config_lib.DEFINE_choice(
+    name="ClientBuildWindows.build_type",
+    default="Release",
+    choices=["Release", "Debug"],
+    help="Type of build (Debug, Release)")
+
+
+config_lib.DEFINE_option(type_info.PathTypeInfo(
+    name="ClientBuilder.template_path", must_exist=False,
+    default=(
+        "%(ClientBuilder.source)/grr/executables/%(ClientBuilder.platform)"
+        "/templates/%(ClientBuilder.arch)/%(Client.version_string)/"
+        "%(Client.name)_%(Client.version_string)_%(ClientBuilder.arch).zip"),
+    help="The full path to the executable template zip file."))
+
+
+config_lib.DEFINE_option(type_info.PathTypeInfo(
+    name="ClientBuilder.unzipsfx_stub", must_exist=True,
+    default=("%(ClientBuilder.source)/grr/executables/%(ClientBuilder.platform)"
+             "/templates/unzipsfx/unzipsfx-%(ClientBuilder.arch).exe"),
+    help="The full path to the zip self extracting stub."))
+
+config_lib.DEFINE_string(
+    name="ClientBuilder.config_filename",
+    default="%(Client.binary_name).conf",
+    help=("The name of the configuration file which will be embedded in the "
+          "deployable binary."))
+
+config_lib.DEFINE_string(
+    name="ClientBuilder.autorun_command_line",
+    default=("%(Client.binary_name) --install "
+             "--config %(ClientBuilder.config_filename)"),
+    help=("The command that the installer will execute after "
+          "unpacking the package."))
+
+config_lib.DEFINE_string(
+    name="ClientBuilder.output",
+    default="%(Client.name)_%(Client.version_string)_%(ClientBuilder.arch).exe",
+    help="The filename to write the deployable binary.")
 
 
 class ClientBuilder(object):
   """Abstract client builder class, used by the OS specific implementations."""
 
-  def __init__(self, source, build_files_dir, build_dir, build_time,
-               pyinstaller, config, architecture):
-    """Initialize the client builder.
+  COMPONENT_NAME = "ClientBuilder"
 
-    Args:
-      source: the path to the source directory.
-      build_files_dir: the (root) directory that contains the (input) build
-                       file.
-      build_dir: the build (root) directory.
-      build_time: string containing the build time.
-      pyinstaller: the location of the pyinstaller.py script.
-      config: the configuration (config_lib.ConfigManager).
-      architecture: string containing the architecture to build for, e.g. i386
-                    or amd64.
-    """
-    self.build_files_dir = build_files_dir
-    self.pyinstaller = pyinstaller
-    self.conf = config
+  CONFIG_SECTIONS = ["CA", "Client", "Nanny", "Logging", "ClientBuilder"]
 
-    # Add temporary section to the config. This is not written to the config
-    # file, but instead kept at runtime to ease interpolation with configs.
-    if not config.has_section("Temp"):
-      config.add_section("Temp")
-    config["Temp.arch"] = architecture
-    config["Temp.build_dir"] = build_dir
-    config["Temp.build_time"] = build_time
-    config["Temp.source"] = source
+  def __init__(self):
+    config_lib.CONFIG.ExecuteSection(self.COMPONENT_NAME)
 
-    # Set dist_dir in the config so we can use it in the templates
-    config["dist_dir"] = os.path.join(build_dir, "dist")
-
-    config["PyInstaller.Sources"] = (
-        "os.path.join('%s', 'client', 'client.py')" % source)
-
-  def CopyGlob(self, source, dest_path):
-    for filename in glob.glob(source):
-      print "Copying %s to %s" % (filename, dest_path)
-      shutil.copy(filename, dest_path)
-
-  def GenerateFile(self, filename):
-    """Generates a file using the builder configuration and a template file.
-
-    Args:
-      filename: the name of the template file without the .in suffix.
-    """
-    data = open(filename + ".in", "rb").read()
-    print "Generating file: %s" % filename
-    with open(filename, "wb") as fd:
-      fd.write(data % self.conf)
-
-  def BuildPyInstaller(self, output_basename, build_dir):
-    """Builds the client using PyInstaller.
-
-    Args:
-      output_basename: the client output directory basename.
-      build_dir: the PyInstaller build directory.
-
-    Returns:
-      The name of the client directory created by PyInstaller.
-    """
-    # Figure out where distorm is so PyInstaller can find it.
+  def FindLibraryPaths(self):
+    """Figure out where distorm is so PyInstaller can find it."""
+    logging.info("Searching for external libraries.")
     librarypaths = ["."]
     try:
       import distorm3  # pylint: disable=g-import-not-at-top
       librarypaths.append(os.path.dirname(distorm3.__file__))
     except ImportError:
+      logging.warn("Distorm not found - expect reduced functionality.")
+
+    config_lib.CONFIG.SetEnv("PyInstaller.pathex", repr(librarypaths))
+
+    try:
+      from volatility import session  # pylint: disable=g-import-not-at-top
+      _ = session
+    except ImportError:
+      logging.warn("Volatility Tech Preview was not found. "
+                   "Client side Memory Analysis will not be available.")
+
+  def MakeBuildDirectory(self):
+    """Prepares the build directory."""
+    # Create the build directory and let pyinstaller loose on it.
+    self.build_dir = config_lib.CONFIG["PyInstaller.build_dir"]
+
+    logging.info("Clearing build directory %s", self.build_dir)
+    try:
+      shutil.rmtree(self.build_dir)
+    except OSError:
       pass
 
-    output_dir = os.path.join(self.conf["Temp.dist_dir"], output_basename)
-    build_files_dir = os.path.join(
-        self.build_files_dir, "pyinstaller", "client")
-    icon_file = os.path.join(build_files_dir, "grr.ico")
-    spec_file = os.path.join(build_files_dir, "grr.spec")
-    version_file = os.path.join(build_files_dir, "version.txt")
+    self.EnsureDirExists(self.build_dir)
 
-    self.conf["PyInstaller.Pathex"] = repr(librarypaths)
-    self.conf["PyInstaller.Build_Directory"] = build_dir
-    self.conf["PyInstaller.Output_Directory"] = output_dir
-    self.conf["PyInstaller.Version_File"] = version_file
-    self.conf["PyInstaller.Icon_File"] = icon_file
+  def EnsureDirExists(self, path):
+    try:
+      os.makedirs(path)
+    except OSError:
+      pass
 
-    self.GenerateFile(spec_file)
+  def BuildWithPyInstaller(self):
+    """Use pyinstaller to build a client package."""
+    self.FindLibraryPaths()
 
-    self.GenerateFile(
-        os.path.join(self.conf["Temp.source"], "client", "client_config.py"))
-    self.GenerateFile(
-        os.path.join(self.conf["Temp.source"], "client", "client_keys.py"))
+    logging.info("Copying pyinstaller support files")
+    self.spec_file = os.path.join(self.build_dir, "grr.spec")
 
-    # PyInstaller uses version.txt to generate the VERSION resource
-    # in the Windows PE/COFF executable
-    self.GenerateFile(version_file)
+    with open(self.spec_file, "wb") as fd:
+      fd.write(config_lib.CONFIG["PyInstaller.spec"])
 
-    # Need shell=True here otherwise /usr/bin/env python is not expanded
-    subprocess.call(
-        "%s %s %s" % (sys.executable, self.pyinstaller, spec_file), shell=True)
+    with open(os.path.join(self.build_dir, "version.txt"), "wb") as fd:
+      fd.write(config_lib.CONFIG["PyInstaller.version"])
 
-    return os.path.join(self.conf["Temp.dist_dir"], output_basename)
+    with open(os.path.join(self.build_dir, "grr.ico"), "wb") as fd:
+      fd.write(config_lib.CONFIG["PyInstaller.icon"])
 
-  def WriteConfig(self, output_dir):
-    """Writes the client config file in the output directory.
+    # We expect the onedir output at this location.
+    self.output_dir = os.path.join(
+        config_lib.CONFIG["PyInstaller.build_dir"],
+        config_lib.CONFIG["PyInstaller.output_basename"])
 
-    The output directory is created when necessary.
+    subprocess.check_call([sys.executable,
+                           config_lib.CONFIG["PyInstaller.path"],
+                           self.spec_file])
+
+  def MakeExecutableTemplate(self):
+    """Create the executable template.
+
+    The client is build in two phases. First an executable template is created
+    with the client binaries contained inside a zip file. Then the installation
+    package is created by appending the SFX extractor to this template and
+    writing a config file into the zip file.
+
+    This technique allows the client build to be carried out once on the
+    supported platform (e.g. windows with MSVS), but the deployable installer
+    can be build on any platform which supports python.
+    """
+    self.MakeBuildDirectory()
+    self.BuildWithPyInstaller()
+
+    self.EnsureDirExists(os.path.dirname(
+        config_lib.CONFIG["ClientBuilder.template_path"]))
+
+    output_file = config_lib.CONFIG["ClientBuilder.template_path"]
+    logging.info("Generating zip template file at %s", output_file)
+    self.MakeZip(self.output_dir, output_file)
+
+  def MakeDeployableBinary(self, output):
+    """Repackage the template zip with the installer."""
+    template_path = config_lib.CONFIG["ClientBuilder.template_path"]
+
+    zip_data = cStringIO.StringIO()
+    zip_data.write(open(template_path, "rb").read())
+
+    z = zipfile.ZipFile(zip_data, mode="a")
+
+    # The zip file comment is used by the self extractor to run
+    # the installation script
+    z.comment = "$AUTORUN$>%s" % config_lib.CONFIG[
+        "ClientBuilder.autorun_command_line"]
+
+    # Add any additional plugins to the deployment binary.
+    for plugin in config_lib.CONFIG["ClientBuilder.plugins"]:
+      z.writestr(os.path.basename(plugin),
+                 open(plugin, "rb").read(), zipfile.ZIP_STORED)
+
+    z.writestr(config_lib.CONFIG["ClientBuilder.config_filename"],
+               self.GetClientConfig(), compress_type=zipfile.ZIP_STORED)
+
+    z.close()
+
+    with open(output, "wb") as fd:
+      # First write the installer stub
+      stub_data = open(
+          config_lib.CONFIG["ClientBuilder.unzipsfx_stub"], "rb").read()
+
+      fd.write(stub_data)
+
+      # Then append the payload zip file.
+      fd.write(zip_data.getvalue())
+
+  def GetClientConfig(self):
+    """Generates the client config file for inclusion in deployable binaries."""
+    fd, new_config_filename = tempfile.mkstemp()
+    os.close(fd)
+
+    new_config = config_lib.GrrConfigManager()
+    new_config.Initialize(new_config_filename)
+
+    # Only copy certain sections to the client.
+    for section, data in config_lib.CONFIG.raw_data.items():
+      if section not in self.CONFIG_SECTIONS:
+        continue
+
+      new_config.raw_data[section] = data
+
+    new_config.Write()
+
+    try:
+      with open(new_config_filename, "rb") as fd:
+        return fd.read()
+
+    finally:
+      os.unlink(new_config_filename)
+
+  def MakeZip(self, input_dir, output_file):
+    """Creates a ZIP archive of the files in the input directory.
 
     Args:
-      output_dir: the name of the directory to copy the client config to.
-
-    Returns:
-      The filename of the newly written client config.
+      input_dir: the name of the input directory.
+      output_file: the name of the output ZIP archive without extension.
     """
-    if not os.path.isdir(output_dir):
-      os.makedirs(output_dir)
-    out_file = os.path.join(output_dir, "%(Nanny.Name)s.conf" % self.conf)
-    self.conf.WriteClientConfigCopy(out_file)
-    return out_file
+    basename, _ = os.path.splitext(output_file)
+    shutil.make_archive(basename, "zip",
+                        base_dir=".",
+                        root_dir=input_dir,
+                        verbose=True)
 
 
 class WindowsClientBuilder(ClientBuilder):
   """Builder class for the Windows client."""
 
-  def __init__(self, source, build_files_dir, build_dir, build_time,
-               pyinstaller, config, architecture, executables_dir,
-               vs_dir, installer_type="vbs"):
-    """Initialize the Windows client builder.
+  COMPONENT_NAME = "ClientBuildWindows"
 
-    Args:
-      source: the path to the source directory.
-      build_files_dir: the (root) directory that contains the (input) build
-                       file.
-      build_dir: the build (root) directory.
-      build_time: string containing the build time.
-      pyinstaller: the location of the pyinstaller.py script.
-      config: the configuration (config_lib.ConfigManager).
-      architecture: string containing the architecture to build for,
-                    e.g. i386 or amd64.
-      executables_dir: the directory containing prebuilt executables
-                       (for unzipsfx).
-      vs_dir: the location of the Visual Studio directory.
-      installer_type: the installer type, either "bat" or "vbs"
-    """
-    super(WindowsClientBuilder, self).__init__(
-        source, build_files_dir, build_dir, build_time, pyinstaller, config,
-        architecture)
-    self.executables_dir = executables_dir
-    self.vs_dir = vs_dir
-    self.installer_type = installer_type
-    self.output_basename = (
-        "%(ClientBuildWindows.name)s_" % self.conf +
-        "%(ClientBuildWindows.version_string)s_%(Temp.arch)s" % self.conf)
+  # Additional sections to be copied to the windows client configuration file.
+  CONFIG_SECTIONS = (ClientBuilder.CONFIG_SECTIONS +
+                     ["NannyWindows", "ClientBuildWindows"])
 
-  def BuildVSProject(self, vs_solution_dir, vs_solution_conf="Release"):
-    """Builds the Visual Studio (VS) project specified in path.
+  def BuildNanny(self):
+    """Use VS2010 to build the windows Nanny service."""
+    logging.info("Copying Nanny build files.")
+    self.nanny_dir = os.path.join(self.build_dir, "grr/client/nanny")
 
-    Args:
-      vs_solution_dir: the location of the VS solution (project).
-      vs_solution_conf: the name of the VS solution configuration e.g. Release.
+    shutil.copytree(config_lib.CONFIG["ClientBuildWindows.nanny_source_dir"],
+                    self.nanny_dir)
 
-    Returns:
-      The location of the directory that contains the built files.
-
-    Raises:
-      RuntimeError: if architecture defined by the config is not supported.
-    """
-    if self.conf["Temp.arch"] == "i386":
+    if config_lib.CONFIG["ClientBuilder.arch"] == "i386":
       vs_arch = "Win32"
-      env_script = os.path.join(self.vs_dir, "VC", "bin", "vcvars32.bat")
-    elif self.conf["Temp.arch"] == "amd64":
+      env_script = os.path.join(
+          config_lib.CONFIG["ClientBuildWindows.vs_dir"],
+          "VC", "bin", "vcvars32.bat")
+
+    elif config_lib.CONFIG["ClientBuilder.arch"] == "amd64":
       vs_arch = "x64"
       env_script = os.path.join(
-          self.vs_dir, "VC", "bin", "amd64", "vcvars64.bat")
+          config_lib.CONFIG["ClientBuildWindows.vs_dir"],
+          "VC", "bin", "amd64", "vcvars64.bat")
+
     else:
       raise RuntimeError("unsupported architecture: %s" %
                          self.conf["Temp.arch"])
@@ -195,177 +381,31 @@ class WindowsClientBuilder(ClientBuilder):
     if not os.path.exists(env_script):
       raise RuntimeError("no such Visual Studio script: %s" % env_script)
 
-    self.GenerateFile(os.path.join(self.conf["Temp.source"], "client", "nanny",
-                                   "windows_nanny.h"))
+    build_type = config_lib.CONFIG["ClientBuildWindows.build_type"]
+    subprocess.check_call(
+        "cmd /c \"\"%s\" && cd \"%s\" && msbuild /p:Configuration=%s\"" % (
+            env_script, self.nanny_dir, build_type))
 
-    subprocess.call("cmd /c \"%s\" && cd %s && msbuild /p:Configuration=%s" % (
-        env_script, vs_solution_dir, vs_solution_conf))
+    shutil.copy(
+        os.path.join(self.nanny_dir, vs_arch, build_type, "GRRNanny.exe"),
+        os.path.join(self.output_dir,
+                     config_lib.CONFIG["NannyWindows.service_binary_name"]))
 
-    return os.path.join(vs_solution_dir, vs_arch, vs_solution_conf)
+  def MakeExecutableTemplate(self):
+    """Windows templates also include the nanny."""
+    self.MakeBuildDirectory()
+    self.BuildWithPyInstaller()
+    self.BuildNanny()
 
-  def BuildInstallerBatZipSfx(self, sfx_file, zip_file):
-    """Builds an installer that uses install.bat and config.reg.
+    self.EnsureDirExists(os.path.dirname(
+        config_lib.CONFIG["ClientBuilder.template_path"]))
 
-    Args:
-      sfx_file: the name of the resulting ZIP SFX file.
-      zip_file: the location of the prebuilt ZIP file.
-    """
-    build_files_dir = os.path.join(self.build_files_dir, "windows", "client")
-
-    bat_file = os.path.join(build_files_dir, "install.bat")
-    reg_file = os.path.join(build_files_dir, "config.reg")
-
-    self.GenerateFile(bat_file)
-    self.GenerateFile(reg_file)
-
-    self.BuildInstallerZipSfx(
-        sfx_file, zip_file, "install.bat", [bat_file, reg_file])
-
-  def BuildInstallerVbsZipSfx(self, sfx_file, zip_file):
-    """Builds an installer that uses installer.vbs.
-
-    Args:
-      sfx_file: the name of the resulting ZIP SFX file.
-      zip_file: the location of the prebuilt ZIP file.
-    """
-    build_files_dir = os.path.join(self.build_files_dir, "windows", "client")
-
-    vbs_file = os.path.join(build_files_dir, "installer.vbs")
-
-    self.GenerateFile(vbs_file)
-
-    self.BuildInstallerZipSfx(
-        sfx_file, zip_file, "wscript installer.vbs", [vbs_file])
-
-  def BuildInstallerZipSfx(self, sfx_file, zip_file, autorun_command,
-                           additional_files):
-    """Builds a self extracting ZIP that autoruns an installation script.
-
-    Args:
-      sfx_file: the name of the resulting ZIP SFX file.
-      zip_file: the location of the prebuilt ZIP file.
-      autorun_command: the autorun command to add to the ZIP SFX.
-      additional_files: additional files to add to the ZIP ZFX.
-
-    Raises:
-      RuntimeError: if architecture defined by the config is not supported.
-    """
-    if self.conf["Temp.arch"] == "i386":
-      sfx_bits = "32"
-    elif self.conf["Temp.arch"] == "amd64":
-      sfx_bits = "64"
-    else:
-      raise RuntimeError("unsupported architecture: %s" %
-                         self.conf["Temp.arch"])
-
-    unzip_sfx_exe_file = os.path.join(
-        self.executables_dir, "windows", "templates", "unzipsfx",
-        "unzipsfx-%s.exe" % sfx_bits)
-
-    zip_data = StringIO.StringIO(open(zip_file, "rb").read())
-    z = zipfile.ZipFile(zip_data, mode="a")
-
-    # The zip file comment is used by the self extractor to run
-    # the installation script
-    z.comment = "$AUTORUN$>%s" % autorun_command
-
-    for filename in additional_files:
-      z.write(filename, os.path.basename(filename))
-    z.close()
-
-    with open(sfx_file, "wb") as fd:
-      # First write the installer stub.
-      fd.write(open(unzip_sfx_exe_file, "rb").read())
-
-      # Then append the payload zip file.
-      fd.write(zip_data.getvalue())
-
-  def Build(self):
-    """Builds the client."""
-    output_dir = os.path.join(self.conf["Temp.dist_dir"], self.output_basename)
-
-    self.conf["PyInstaller.Sources"] = (
-        "os.path.join(HOMEPATH, 'support', '_mountzlib.py'), "
-        "os.path.join(HOMEPATH, 'support', 'useUnicode.py'), "
-        "os.path.join('%s', 'client', 'client.py')" % self.conf["Temp.source"])
-
-    # TODO(user): why does Windows needs a binary name? Check if we
-    # can simplify this and move this (largely) into BuildPyInstaller()
-    build_dir = os.path.join(
-        self.conf["Temp.build_dir"], "build", "pyi.win32", self.output_basename,
-        "%(ClientBuildWindows.binary_name)s" % self.conf)
-
-    self.BuildPyInstaller(self.output_basename, build_dir)
-
-    # Builds the Nanny service executable.
-    vs_solution_dir = os.path.join(self.conf["Temp.source"], "client", "nanny")
-    nanny_build_dir = self.BuildVSProject(vs_solution_dir)
-
-    if self.conf["Temp.arch"] == "i386":
-      vc_arch = "x86"
-    elif self.conf["Temp.arch"] == "amd64":
-      vc_arch = "x64"
-    else:
-      raise RuntimeError("unsupported architecture: %s" %
-                         self.conf["Temp.arch"])
-
-    # Copy the nanny binaries and Visual Studio C runtime DLLs to the
-    # output directory
-    self.CopyGlob(
-        os.path.join(nanny_build_dir, "*.exe"),
-        os.path.join(output_dir, self.conf["ClientBuildWindows.service_name"]))
-
-    self.CopyGlob(os.path.join(self.vs_dir, "VC", "redist", vc_arch,
-                               "Microsoft.VC*CRT/*"), output_dir)
-
-    # TODO(user): after the rewrite do we still need to keep a copy of the
-    # config?
-    # self.WriteConfig(output_dir)
-
-    # Make a zip file of everything.
-    self.MakeZip(output_dir, output_dir)
-
-    zip_file = "%s.zip" % output_dir
-    sfx_file = "%s.exe" % output_dir
-
-    if self.installer_type == "bat":
-      self.BuildInstallerBatZipSfx(sfx_file, zip_file)
-    else:
-      self.BuildInstallerVbsZipSfx(sfx_file, zip_file)
-
-  def MakeZip(self, input_dir, output_file):
-    """Creates a ZIP archive of the files in the input directory.
-
-    Args:
-      input_dir: the name of the input directory.
-      output_file: the name of the output ZIP archive without extension.
-    """
-    shutil.make_archive(output_file, "zip",
-                        base_dir=".",
-                        root_dir=input_dir,
-                        verbose=True)
-
-  def RepackZipSfxClient(self, input_dir, output_dir):
-    """Take an executable directory and repack found executable templates."""
-
-    # TODO(user): after the rewrite do we still need to keep a copy of the
-    # config?
-    # self.WriteConfig(output_dir)
-
-    output_file = os.path.join(output_dir, self.output_basename)
-    self.MakeZip(input_dir, output_file)
-
-    zip_file = os.path.join(output_dir, "%s.zip" % self.output_basename)
-    sfx_file = os.path.join(output_dir, "%s.exe" % self.output_basename)
-
-    if self.installer_type == "bat":
-      self.BuildInstallerBatZipSfx(sfx_file, zip_file)
-    else:
-      self.BuildInstallerVbsZipSfx(sfx_file, zip_file)
-
-    return sfx_file
+    output_file = config_lib.CONFIG["ClientBuilder.template_path"]
+    logging.info("Generating zip template file at %s", output_file)
+    self.MakeZip(self.output_dir, output_file)
 
 
+# TODO(user): Make this work again
 class DarwinClientBuilder(ClientBuilder):
   """Builder class for the Mac OS X (Darwin) client."""
 
@@ -477,79 +517,3 @@ class DarwinClientBuilder(ClientBuilder):
     subprocess.call(
         "hdiutil create %s -srcfolder %s -fs HFS+" % (
             disk_image_path, package_dir), shell=True)
-
-  def Build(self):
-    """Builds the client."""
-    output_basename = "%(ClientBuildDarwin.plist_binary_directory)s" % self.conf
-    output_dir = os.path.join(self.conf["Temp.dist_dir"], output_basename)
-
-    build_dir = os.path.join(
-        self.conf["Temp.build_dir"], "build", "pyi.darwin", output_basename)
-
-    self.BuildPyInstaller(output_basename, build_dir)
-
-    package_dir = os.path.join(self.conf["Temp.dist_dir"],
-                               "%(ClientBuildDarwin.packageMaker_name)s.pkg"
-                               % (self.conf))
-    disk_image_path = os.path.join(self.conf["Temp.dist_dir"],
-                                   "%(ClientBuildDarwin.packagemaker_name)s.dmg"
-                                   % (self.conf))
-
-    self.BuildInstallerLaunchDaemonsPlist()
-    self.BuildInstallerPkg(package_dir, output_dir)
-    self.BuildInstallerDmg(disk_image_path, package_dir)
-
-    # TODO(user): create a zip file
-
-
-def RepackAllBinaries(build_files_dir, config, exe_dir):
-  """Repack binaries based on the configuration.
-
-  Args:
-    build_files_dir: The (root) directory that contains the (input) build
-                     file.
-    config: The configuration (config_lib.ConfigManager).
-    exe_dir: Directory containing the executables used in the build.
-
-  Returns:
-    A list of tuples containing (output_file, platform, architecture)
-  """
-  built = []
-  print "\n## Repacking i386 Windows client with bat installer"
-  output_dir = os.path.join(exe_dir, "windows", "installers")
-
-  # A number of args are not required to do a repack, so we fake some of these.
-  base_args = dict(source="source", build_files_dir=build_files_dir,
-                   build_dir="", build_time="", pyinstaller="", config=config,
-                   executables_dir=exe_dir, vs_dir="")
-  template_dir = os.path.join(exe_dir, "windows", "templates")
-
-  builder = WindowsClientBuilder(architecture="i386", installer_type="bat",
-                                 **base_args)
-  out = builder.RepackZipSfxClient(
-      input_dir=os.path.join(template_dir, "win32"), output_dir=output_dir)
-  built.append((out, "Windows", "i386"))
-  print "Packed to %s" % out
-
-  print "\n## Repacking amd64 Windows client with vbs installer"
-  builder = WindowsClientBuilder(architecture="amd64", installer_type="vbs",
-                                 **base_args)
-  out = builder.RepackZipSfxClient(
-      input_dir=os.path.join(template_dir, "win64"), output_dir=output_dir)
-  built.append((out, "Windows", "amd64"))
-  print "Packed to %s" % out
-
-  # TODO(user): This is disabled until the Darwin builder supports the output
-  # we need.
-  #
-  # print "\n## Repacking Mac OS X client"
-  # print "NOTE: Currently this just generates a compatible conf file"
-  # builder = DarwinClientBuilder(architecture="amd64",
-  #    packagemaker=args.packagemaker)
-
-  # output_dir = os.path.join(exe_dir, "darwin", "installers")
-  # new_file = builder.WriteConfig(output_dir)
-  # built.append((out, "Darwin", "amd64"))
-  # print "Packed to %s" % out
-
-  return built

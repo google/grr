@@ -977,13 +977,12 @@ http://www.gnu.org/software/src-highlite -->
 <span style="font-weight: bold"><span style="color: #000000">[NannyWindows]</span></span>
 <span style="color: #009900">service_name </span><span style="color: #990000">=</span> <span style="color: #990000">%(</span>Client<span style="color: #990000">.</span>name<span style="color: #990000">)</span>service<span style="color: #990000">.</span>exe
 <span style="color: #009900">service_key_hive </span><span style="color: #990000">=</span> HKEY_LOCAL_MACHINE
-<span style="color: #009900">service_key_path </span><span style="color: #990000">=</span> Software<span style="color: #990000">\\%(</span>Client<span style="color: #990000">.</span>name<span style="color: #990000">)</span>
-<span style="color: #009900">service_key </span><span style="color: #990000">=</span> <span style="color: #990000">%(</span>service_key_hive<span style="color: #990000">)\\%(</span>service_key_path<span style="color: #990000">)</span>
+<span style="color: #009900">service_key </span><span style="color: #990000">=</span> Software<span style="color: #990000">\\%(</span>Client<span style="color: #990000">.</span>name<span style="color: #990000">)</span>
 <span style="color: #009900">initial_commandline </span><span style="color: #990000">=</span></tt></pre></div></div>
 <div class="paragraph"><p>The expansion sequence <em>%(parameter_name)</em> substitutes or expands the parameter
 into the string. This allows us to build values automatically based on other
-values. For example above, the <em>NannyWindows.service_name</em> will be <em>GRRservice.exe</em> and
-the service_key will be set to <em>HKEY_LOCAL_MACHINE\Software\GRR</em></p></div>
+values. For example above, the <em>NannyWindows.service_name</em> will be
+<em>GRRservice.exe</em> and the service_key will be set to <em>Software\GRR</em></p></div>
 <div class="paragraph"><p>Expansion is very useful, but sometimes it gets in the way. For example, if we
 need to pass literal % escape sequences. Consider the Logging.format parameter
 which is actually a python format string:</p></div>
@@ -1072,7 +1071,7 @@ http://www.gnu.org/software/src-highlite -->
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-02-28 18:38:58 CET
+Last updated 2013-03-08 13:37:14 CET
 </div>
 </div>
 </body>

@@ -7,9 +7,11 @@ This handles opening and parsing of config files.
 import collections
 import ConfigParser
 import os
+import re
 import StringIO
 import sys
 import urlparse
+import zipfile
 
 from grr.client import conf as flags
 import logging
@@ -31,6 +33,9 @@ flags.DEFINE_bool("config_help", False,
 
 flags.DEFINE_list("config_execute", "",
                   "Execute these sections after initializing.")
+
+flags.DEFINE_list("plugins", [],
+                  "Load these files as additional plugins.")
 
 
 class Error(Exception):
@@ -95,6 +100,22 @@ class Env(ConfigFilter):
 
   def Filter(self, data):
     return os.environ.get(data.upper(), "")
+
+
+class Expand(ConfigFilter):
+  """Expands the input as a configuration parameter."""
+  name = "expand"
+
+  def Filter(self, data):
+    return CONFIG.InterpolateValue(data)
+
+
+class Flags(ConfigFilter):
+  """Get the parameter from the flags."""
+  name = "flags"
+
+  def Filter(self, data):
+    return getattr(flags.FLAGS, data)
 
 
 # Inherit from object required because RawConfigParser is an old style class.
@@ -164,9 +185,8 @@ class ConfigFileParser(GRRConfigParser):
       with os.fdopen(fd, "wb") as config_file:
         self.SaveDataToFD(raw_data, config_file)
 
-      os.close(fd)
-    except OSError:
-      logging.warn("Unable to write config file %s.", self.filename)
+    except OSError as e:
+      logging.warn("Unable to write config file %s: %s.", self.filename, e)
 
   def SaveDataToFD(self, raw_data, fd):
     """Merge the raw data with the config file and store it."""
@@ -177,8 +197,7 @@ class ConfigFileParser(GRRConfigParser):
         pass
 
       for key, value in data.items():
-
-        self.set(section, key, value)
+        self.set(section, key, value=value)
 
     self.write(fd)
 
@@ -210,6 +229,9 @@ class StringInterpolator(lexer.Lexer):
   """
 
   tokens = [
+      # When in literal mode, only allow to escape }
+      lexer.Token("Literal", r"\\[^}]", "AppendArg", None),
+
       # Allow escaping of special characters
       lexer.Token(None, r"\\(.)", "Escape", None),
 
@@ -217,7 +239,7 @@ class StringInterpolator(lexer.Lexer):
       # i.e. we include anything until the next }. It is still possible to
       # escape } if this character needs to be inserted literally.
       lexer.Token("Literal", r"\}", "EndLiteralExpression,PopState", None),
-      lexer.Token("Literal", r".", "AppendArg", None),
+      lexer.Token("Literal", r"[^}]+", "AppendArg", None),
       lexer.Token(None, r"\%\{", "StartExpression,PushState", "Literal"),
 
       # Expansion sequence is %(....)
@@ -243,7 +265,6 @@ class StringInterpolator(lexer.Lexer):
     self.default_section = default_section
     self.parameter = parameter
     self.config = config
-    self.section_docs = {}
     super(StringInterpolator, self).__init__(data)
 
   def Escape(self, string="", **_):
@@ -271,12 +292,17 @@ class StringInterpolator(lexer.Lexer):
 
   def Filter(self, match=None, **_):
     """Filter the current expression."""
-    filter_object = ConfigFilter.classes_by_name.get(match.group(1))
-    if filter_object is None:
-      raise RuntimeError("Unknown filter function %r" % match.group(1))
-
     arg = self.stack.pop(-1)
-    self.stack[-1] += filter_object().Filter(arg)
+
+    # Filters can be specified as a comma separated list.
+    for filter_name in match.group(1).split(","):
+      filter_object = ConfigFilter.classes_by_name.get(filter_name)
+      if filter_object is None:
+        raise RuntimeError("Unknown filter function %r" % filter_name)
+
+      arg = filter_object().Filter(arg)
+
+    self.stack[-1] += arg
 
   def ExpandArg(self, **_):
     """Expand the args as a section.parameter from the config."""
@@ -313,6 +339,14 @@ class StringInterpolator(lexer.Lexer):
 class GrrConfigManager(object):
   """Manage configuration system in GRR."""
 
+  # This is the type info set describing all configuration
+  # parameters. It is a global shared between all configuration instances,
+  type_infos = type_info.TypeDescriptorSet()
+
+  # We store the defaults here. They too are global. Since they are
+  # declared by DEFINE_*() calls.
+  defaults = {}
+
   def __init__(self, environment=None):
     """Initialize the configuration manager.
 
@@ -323,12 +357,36 @@ class GrrConfigManager(object):
     """
     self.environment = environment or {}
 
-    # This is the type info set describing all configuration parameters.
-    self.type_infos = type_info.TypeDescriptorSet()
+    self.raw_data = {}
+    self.validated = set()
 
-    self.defaults = {}           # We store the defaults here.
-    self.raw_data = {}           # A dictionary storing the config values.
-    self.section_docs = {}       # Storage for the section documentation.
+  def Validate(self, parameters):
+    """Validate sections or individual parameters.
+
+    The GRR configuration file contains several sections, used by different
+    components. Many of these components don't care about other sections. This
+    method allows a component to declare in advance what sections and parameters
+    it cares about, and have these validated.
+
+    Args:
+      parameters: A list of section names or specific parameters (in the format
+        section.name) to validate.
+
+    Raises:
+      ConfigFormatError: if a parameter fails to validate.
+    """
+    if isinstance(parameters, basestring):
+      parameters = [parameters]
+
+    for parameter in parameters:
+      for descriptor in self.type_infos:
+        if (("." in parameter and descriptor.name == parameter) or
+            (parameter == descriptor.section)):
+          value = self.Get(descriptor.name)
+          try:
+            descriptor.Validate(value)
+          except type_info.TypeValueError as e:
+            raise ConfigFormatError(e)
 
   def SetEnv(self, key=None, value=None, **env):
     """Update the environment with new data.
@@ -349,46 +407,53 @@ class GrrConfigManager(object):
     Args:
       key: The key to set (e.g. Environment.component).
       value: The value.
+      **env: Additional parameters to incorporate into the environment.
     """
     if key is not None:
       self.environment[key] = value
     else:
       self.environment.update(env)
 
-  def Set(self, name, value):
+  def SetRaw(self, name, value):
+    """Set the raw string without verification or escaping."""
+    section, key = self._GetSectionName(name)
+    section_data = self.raw_data.setdefault(section, {})
+
+    type_info_obj = (self._FindTypeInfo(section, key) or
+                     type_info.String(name=name))
+
+    section_data[key] = type_info_obj.ToString(value)
+
+  def Set(self, name, value, verify=True):
     """Update the configuration option with a new value."""
     section, key = self._GetSectionName(name)
 
     # Check if the new value conforms with the type_info.
     type_info_obj = self._FindTypeInfo(section, key)
     if type_info_obj is None:
-      logging.warn("Setting new value for undefined config parameter %s", name)
+      if verify:
+        logging.warn("Setting new value for undefined config parameter %s",
+                     name)
+
       type_info_obj = type_info.String(name=name)
 
     section_data = self.raw_data.setdefault(section, {})
     if value is None:
       section_data.pop(key, None)
-    else:
-      if self.validate:
-        type_info_obj.Validate(value)
-      section_data[key] = type_info_obj.ToString(value)
+
+    elif verify:
+      type_info_obj.Validate(value)
+
+    value = type_info_obj.ToString(value)
+    section_data[key] = self.EscapeString(value)
+
+  def EscapeString(self, string):
+    """Escape special characters when encoding to a string."""
+    return re.sub(r"([\\%){}])", r"\\\1", string)
 
   def Write(self):
     """Write out the updated configuration to the fd."""
     self.parser.SaveData(self.raw_data)
-
-  def DefineSection(self, name, doc):
-    """Define a section and give it documentation.
-
-    Args:
-      name: Name of the section.
-      doc: Documentation for the section.
-
-    Note that sections don't need to be defined to be used, but defining them
-    ensures that when they are written that the docstring will be added to the
-    section.
-    """
-    self.section_docs[name] = doc
 
   def _GetSectionName(self, name):
     """Break the name into section and key."""
@@ -396,8 +461,7 @@ class GrrConfigManager(object):
       section, key = name.split(".", 1)
       return section, key
     except ValueError:
-      # If a section was not specified it goes in the default section.
-      return "DEFAULT", name
+      raise RuntimeError("Section not specified")
 
   def AddOption(self, descriptor):
     """Registers an option with the configuration system.
@@ -409,11 +473,12 @@ class GrrConfigManager(object):
       RuntimeError: The descriptor's name must contain a . to denote the section
          name, otherwise we raise.
     """
-    section, key = self._GetSectionName(descriptor.name)
+    descriptor.section, key = self._GetSectionName(descriptor.name)
     self.type_infos.Append(descriptor)
 
     # Register this option's default value.
-    self.defaults.setdefault(section, {})[key] = descriptor.GetDefault()
+    self.defaults.setdefault(
+        descriptor.section, {})[key] = descriptor.GetDefault()
 
   def PrintHelp(self):
     for descriptor in sorted(self.type_infos, key=lambda x: x.name):
@@ -428,13 +493,17 @@ class GrrConfigManager(object):
       for k, v in data.items():
         section_dict[k] = v
 
-  def _GetParserFromFilename(self, url):
+  def _GetParserFromFilename(self, path):
     """Returns the appropriate parser class from the filename url."""
     # Find the configuration parser.
-    url = urlparse.urlparse(url, scheme="file")
+    url = urlparse.urlparse(path, scheme="file")
     for parser_cls in GRRConfigParser.classes.values():
       if parser_cls.name == url.scheme:
         return parser_cls
+
+    # If url is a filename:
+    if os.access(path, os.R_OK):
+      return ConfigFileParser
 
   def LoadSecondaryConfig(self, url):
     """Loads an additional configuration file.
@@ -460,8 +529,6 @@ class GrrConfigManager(object):
     logging.info("Loading configuration from %s", url)
 
     self._MergeData(parser.RawData())
-    if self.validate:
-      self._VerifyParameters()
 
     return parser
 
@@ -490,8 +557,6 @@ class GrrConfigManager(object):
     if fd is not None:
       self.parser = ConfigFileParser(fd=fd)
       self._MergeData(self.parser.RawData())
-      if self.validate:
-        self._VerifyParameters()
 
     elif filename is not None:
       self.parser = self.LoadSecondaryConfig(filename)
@@ -499,65 +564,58 @@ class GrrConfigManager(object):
     elif data is not None:
       self.parser = ConfigFileParser(data=data)
       self._MergeData(self.parser.RawData())
-      if self.validate:
-        self._VerifyParameters()
+
     else:
       raise RuntimeError("Registry path not provided.")
 
-  def _VerifyParameters(self):
-    """Verify all the parameters as given in the config file.
-
-    We do this so we can catch errors in the config file very early at config
-    parsing time.
-    """
-    for descriptor in self.type_infos:
-      value = self[descriptor.name]
-      if value is not None:
-        descriptor.Validate(value)
-
   def __getitem__(self, name):
     """Retrieve a configuration value after suitable interpolations."""
+    return self.Get(name)
+
+  def GetRaw(self, name):
+    """Get the raw value without interpolations."""
     if name in self.environment:
       return self.environment[name]
 
-    try:
-      section_name, key = name.split(".", 1)
-    except ValueError:
-      raise RuntimeError("Section not specified")
+    section_name, key = self._GetSectionName(name)
+    return self._GetValue(section_name, key)
 
+  def Get(self, name, verify=True):
+    """Get the value contained  by the named parameter.
+
+    This method applies interpolation/escaping of the named parameter and
+    retrieves the interpolated value.
+
+    Args:
+      name: The name of the parameter to retrieve. This should be in the format
+        of "Section.name"
+      verify: The retrieved parameter will also be verified for sanity according
+        to its type info descriptor.
+
+    Returns:
+      The value of the parameter.
+    """
+    if name in self.environment:
+      return self.environment[name]
+
+    section_name, key = self._GetSectionName(name)
     type_info_obj = self._FindTypeInfo(section_name, key)
-    if type_info_obj is None and not name.startswith("__"):
-      logging.debug("No config declaration for %s - assuming String",
-                    name)
+    if type_info_obj is None:
+      # Only warn for real looking parameters.
+      if verify and not key.startswith("__"):
+        logging.debug("No config declaration for %s - assuming String",
+                      name)
+
       type_info_obj = type_info.String(name=name, default="")
 
     value = self.NewlineFixup(self._GetValue(section_name, key))
     try:
-      return self.InterpolateValue(value, type_info_obj, section_name)
+      return self.InterpolateValue(
+          value, type_info_obj=type_info_obj,
+          default_section=section_name)
+
     except (lexer.ParseError, type_info.TypeValueError) as e:
       raise ConfigFormatError("While parsing %s: %s" % (name, e))
-
-  def GetSections(self):
-    """Return a dict with section names as keys and documentation as values."""
-    results = {}
-    sections = self.raw_data.keys()
-    for section in sections:
-      results[section] = self.section_docs.get(section, "")
-    return results
-
-  def GetItems(self, section):
-    """Retrieve a list of (item,value) tuples for the given section."""
-    results = []
-    for item in self.raw_data[section]:
-      if "." in item:   # skip assignments to other sections.
-        continue
-      full_name = "%s.%s" % (section, item)
-      try:
-        value = self[full_name]
-      except (Error, IndexError):
-        pass
-      results.append((full_name, value))
-    return results
 
   def _GetValue(self, section_name, key):
     """Search for the value based on section inheritance."""
@@ -581,7 +639,11 @@ class GrrConfigManager(object):
     return value
 
   def FindTypeInfo(self, parameter_name):
-    return self._FindTypeInfo(*parameter_name.split("."))
+    try:
+      section, parameter = parameter_name.split(".", 1)
+      return self._FindTypeInfo(section, parameter)
+    except ValueError:
+      pass
 
   def _FindTypeInfo(self, section_name, key):
     """Search for a type_info instance which describes this key."""
@@ -605,7 +667,8 @@ class GrrConfigManager(object):
 
     return result
 
-  def InterpolateValue(self, value, type_info_obj, default_section):
+  def InterpolateValue(self, value, type_info_obj=type_info.String(),
+                       default_section=None):
     """Interpolate the value and parse it with the appropriate type."""
     # It is only possible to interpolate strings.
     if isinstance(value, basestring):
@@ -664,7 +727,13 @@ class GrrConfigManager(object):
     if section:
       for key in section:
         if "." in key:
-          self.Set(key, self["%s.%s" % (section_name, key)])
+          # Keys which are marked with ! will be written as raw to the
+          # new section. The means any special escape sequences will
+          # remain.
+          if key.endswith("!"):
+            self.SetRaw(key[:-1], self.GetRaw("%s.%s" % (section_name, key)))
+          else:
+            self.Set(key, self.Get("%s.%s" % (section_name, key)))
 
   # pylint: disable=g-bad-name,redefined-builtin
   def DEFINE_bool(self, name, default, help):
@@ -731,6 +800,13 @@ def DEFINE_string(name, default, help):
                                     description=help))
 
 
+def DEFINE_choice(name, default, choices, help):
+  """A helper for defining choice string options."""
+  CONFIG.AddOption(type_info.Choice(
+      name=name, default=default, choices=choices,
+      description=help))
+
+
 def DEFINE_list(name, default, help):
   """A helper for defining lists of strings options."""
   CONFIG.AddOption(type_info.List(name=name, default=default,
@@ -740,12 +816,6 @@ def DEFINE_list(name, default, help):
 
 def DEFINE_option(type_descriptor):
   CONFIG.AddOption(type_descriptor)
-
-
-def DEFINE_section(name, help):
-  """A helper for defining string options."""
-  CONFIG.DefineSection(name, help)
-
 
 # pylint: enable=g-bad-name
 
@@ -795,3 +865,65 @@ class ConfigLibInit(registry.InitHook):
       print "Configuration overview."
       CONFIG.PrintHelp()
       sys.exit(0)
+
+
+class PluginLoader(registry.InitHook):
+  """Loads additional plugins specified by the user."""
+
+  pre = ["ConfigLibInit"]
+
+  PYTHON_EXTENSIONS = [".py", ".pyo", ".pyc"]
+
+  def RunOnce(self):
+    for path in flags.FLAGS.plugins:
+      self.LoadPlugin(path)
+
+  @classmethod
+  def LoadPlugin(cls, path):
+    """Load (import) the plugin at the path."""
+    if not os.access(path, os.R_OK):
+      logging.error("Unable to find %s", path)
+      return
+
+    path = os.path.abspath(path)
+    directory, filename = os.path.split(path)
+    module_name, ext = os.path.splitext(filename)
+
+    # Its a python file.
+    if ext in cls.PYTHON_EXTENSIONS:
+      # Make sure python can find the file.
+      sys.path.insert(0, directory)
+
+      try:
+        logging.info("Loading user plugin %s", path)
+        __import__(module_name)
+      except Exception, e:  # pylint: disable=broad-except
+        logging.error("Error loading user plugin %s: %s", path, e)
+      finally:
+        sys.path.pop(0)
+
+    elif ext == ".zip":
+      zfile = zipfile.ZipFile(path)
+
+      # Make sure python can find the file.
+      sys.path.insert(0, path)
+      try:
+        logging.info("Loading user plugin archive %s", path)
+        for name in zfile.namelist():
+          # Change from filename to python package name.
+          module_name, ext = os.path.splitext(name)
+          if ext in cls.PYTHON_EXTENSIONS:
+            module_name = module_name.replace("/", ".").replace(
+                "\\", ".")
+
+            try:
+              __import__(module_name.strip("\\/"))
+            except Exception as e:  # pylint: disable=broad-except
+              logging.error("Error loading user plugin %s: %s",
+                            path, e)
+
+      finally:
+        sys.path.pop(0)
+
+    else:
+      logging.error("Plugin %s has incorrect extension.", path)

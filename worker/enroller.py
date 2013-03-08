@@ -50,9 +50,8 @@ def main(unused_argv):
   registry.Init()
 
   # Try to load the CA key.
-  ca_pem = config_lib.CONFIG["PrivateKeys.ca_key"]
-  registry.CA_KEY = RSA.load_key_string(ca_pem)
-  registry.CA_CERT = X509.load_cert_string(ca_pem)
+  registry.CA_KEY = RSA.load_key_string(config_lib.CONFIG["PrivateKeys.ca_key"])
+  registry.CA_CERT = X509.load_cert_string(config_lib.CONFIG["CA.certificate"])
 
   # Start an Enroler.
   token = access_control.ACLToken("GRREnroller", "Implied.")

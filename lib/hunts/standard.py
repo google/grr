@@ -56,9 +56,9 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
           description="Foreman rules for the hunt.",
           name="hunt_rules"),
 
-      type_info.Integer(
+      type_info.Duration(
           description="Expiration time for this hunt in seconds.",
-          default=None,
+          default=rdfvalue.Duration("31d"),
           name="expiry_time"),
 
       type_info.Integer(
@@ -116,6 +116,69 @@ class RunHuntFlow(flow.GRRFlow):
     # Make the hunt token a supervisor so it can be started.
     hunt.token.supervisor = True
     hunt.Run()
+
+
+class PauseHuntFlow(flow.GRRFlow):
+  """Run already created hunt with given id."""
+  # This flow can run on any client without ACL enforcement (an SUID flow).
+  ACL_ENFORCED = False
+
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.RDFURNType(
+          description="The URN of the hunt to pause.",
+          name="hunt_urn"),
+      )
+
+  @flow.StateHandler()
+  def Start(self):
+    """Find a hunt, perform a permissions check and pause it."""
+    aff4_hunt = aff4.FACTORY.Open(self.hunt_urn, age=aff4.ALL_TIMES,
+                                  token=self.token)
+    hunt = aff4_hunt.GetFlowObj()
+
+    # We have to create special token here, because within the flow
+    # token has supervisor access.
+    check_token = access_control.ACLToken(username=self.token.username,
+                                          reason=self.token.reason)
+    data_store.DB.security_manager.CheckAccess(
+        check_token, [aff4.ROOT_URN.Add("hunts").Add(hunt.session_id)], "x")
+
+    # Make the hunt token a supervisor so it can be started.
+    hunt.token.supervisor = True
+    hunt.Pause()
+
+
+class ModifyHuntFlow(flow.GRRFlow):
+  """Modify hunt with a given id."""
+  # This flow can run on any client without ACL enforcement (an SUID flow).
+  ACL_ENFORCED = False
+
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.RDFURNType(
+          description="The URN of the hunt to modify.",
+          name="hunt_urn"),
+      type_info.Duration(
+          description="Expiration time for this hunt in seconds.",
+          default=None,
+          name="expiry_time"),
+
+      type_info.Integer(
+          description="A client limit.",
+          default=None,
+          name="client_limit"),
+      )
+
+  @flow.StateHandler()
+  def Start(self):
+    aff4_hunt = aff4.FACTORY.Create(self.hunt_urn, "VFSHunt", mode="w",
+                                    token=self.token)
+
+    aff4_hunt.Set(aff4_hunt.Schema.EXPIRY_TIME(self.expiry_time))
+    aff4_hunt.Set(aff4_hunt.Schema.CLIENT_LIMIT(self.client_limit))
+
+    # Make the hunt token a supervisor so it can be started.
+    aff4_hunt.token_supervisor = True
+    aff4_hunt.Close()
 
 
 class CheckHuntAccessFlow(flow.GRRFlow):

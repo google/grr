@@ -277,9 +277,9 @@ def EventHandler(source_restriction=None, auth_required=True,
   Returns:
     A decorator which injects the following keyword args to the handler:
 
-     message: The original raw message protobuf (useful for checking the
+     message: The original raw message RDFValue (useful for checking the
        source).
-     event: The decoded protobuf.
+     event: The decoded RDFValue.
   """
 
   def Decorator(f):
@@ -485,6 +485,10 @@ class GRRFlow(object):
   @user.setter
   def user(self, user):
     self.context.user = user
+
+  @property
+  def aff4_object(self):
+    return self.rdf_flow.aff4_object
 
   @property
   def rdf_flow(self):
@@ -700,6 +704,8 @@ class WellKnownFlow(GRRFlow):
     # Tag this flow as well known
     self.SetState(rdfvalue.Flow.Enum("WELL_KNOWN"))
     self.session_id = self.well_known_session_id
+    # Well known flows are not user initiated so the default is no notification.
+    self.notify_to_user = False
 
   def CallState(self, messages=None, next_state=None, delay=0):
     """Well known flows have no states to call."""
@@ -876,7 +882,7 @@ class FlowFactory(object):
     # Only the supervisor can create the containing AFF4 object.
     aff4_flow_obj = aff4.FACTORY.Create(None, "GRRFlow", token=token)
 
-    # Strip out any private args so they do not get converted to a protodict.
+    # Strip out any private args so they do not get converted.
     args = dict([(k, v) for k, v in kw.items() if not k.startswith("_")])
 
     context = flow_context.FlowContext(client_id=client_id,
@@ -938,7 +944,7 @@ class FlowFactory(object):
       token: The access token to be used for this request.
 
     Returns:
-      A list of flow protobufs.
+      A list of flow RDFValues.
     """
     tasks = scheduler.SCHEDULER.Query(queue=client_id, limit=limit, token=token)
     return [t for t in tasks
@@ -963,27 +969,26 @@ class FlowFactory(object):
     Raises:
       LockError: If we are asynchronous and can not obtain the lock.
     """
+    try:
+      aff4_flow = aff4.FACTORY.Open(session_id, required_type="GRRFlow",
+                                    age=aff4.NEWEST_TIME, token=token,
+                                    ignore_cache=True)
+    except IOError as e:
+      logging.error("Flow %s can not be opened: %s", session_id, str(e))
+      return None
+
+    rdf_flow = aff4_flow.Get(aff4_flow.Schema.RDF_FLOW).payload
+    rdf_flow.aff4_object = aff4_flow
+    rdf_flow.ts_id = 1
+    # NOTE: If flow is terminated do not lock it.
+    if not lock or rdf_flow.state == rdfvalue.Flow.Enum("TERMINATED"):
+      return rdf_flow
+
     # Try to grab the lock on the flow
     while True:
-      # Does the flow exist? Fail early if it doesn't
-      flow_tasks = scheduler.SCHEDULER.Query(queue=session_id,
-                                             limit=1, token=token)
-
-      if not flow_tasks or not flow_tasks[0].payload:
-        logging.error("Flow %s does not exist", session_id)
-        return None
-
-      # Flow is terminated do not lock it
-      if flow_tasks[0].payload.state == rdfvalue.Flow.Enum("TERMINATED"):
-        return flow_tasks[0].payload
-
-      # If we dont need to lock it - we are done
-      if not lock: break
-
       flow_tasks = scheduler.SCHEDULER.QueryAndOwn(
           queue=session_id, limit=1,
           lease_seconds=1200, token=token)
-
       self.outstanding_flows.add(session_id)
 
       if flow_tasks: break
@@ -993,9 +998,20 @@ class FlowFactory(object):
       logging.info("Waiting for flow %s", session_id)
       time.sleep(1)
 
-    rdf_flow = flow_tasks[0].payload
+    # We have to fetch the flow once more, because it could change while
+    # we were waiting for the lock.
+    try:
+      aff4_flow = aff4.FACTORY.Open(session_id, required_type="GRRFlow",
+                                    age=aff4.NEWEST_TIME, token=token,
+                                    ignore_cache=True)
+    except IOError as e:
+      logging.error("Flow %s can not be opened: %s", session_id, str(e))
+      return None
+
+    rdf_flow = aff4_flow.Get(aff4_flow.Schema.RDF_FLOW).payload
+    rdf_flow.aff4_object = aff4_flow
+    rdf_flow.ts_id = 1
     logging.info("Got flow %s %s", session_id, rdf_flow.name)
-    rdf_flow.ts_id = flow_tasks[0].task_id
 
     return rdf_flow
 
@@ -1014,11 +1030,21 @@ class FlowFactory(object):
     if rdf_flow.state != rdfvalue.Flow.Enum("TERMINATED"):
       logging.info("Returning flow %s", rdf_flow.session_id)
 
-      # Re-insert it into the Task Scheduler
-      flow_task = rdfvalue.GRRMessage(queue=rdf_flow.session_id,
-                                      task_id=1, payload=rdf_flow)
+      if rdf_flow.aff4_object:
+        aff4_type = rdf_flow.aff4_object.Get(rdf_flow.aff4_object.Schema.TYPE)
+      else:
+        aff4_type = "GRRFlow"
 
-      scheduler.SCHEDULER.Schedule([flow_task], token=token, sync=True)
+      aff4_flow = aff4.FACTORY.Create(rdf_flow.session_id, aff4_type, mode="w",
+                                      token=token)
+      # TODO(user): this is a hack. We're doing this because we do know
+      # that the flow object already exists (as it was started by StartFlow).
+      # Therefore there's no need for Create() to add TYPE attribute.
+      setattr(aff4_flow, "_new_version", False)
+      aff4_flow.Set(aff4_flow.Schema.RDF_FLOW,
+                    rdfvalue.GRRMessage(queue=rdf_flow.session_id,
+                                        task_id=1, payload=rdf_flow))
+      aff4_flow.Close()
     else:
       logging.info("Deleting flow %s", rdf_flow.session_id)
       self.DeleteFlow(rdf_flow, token=token)
@@ -1079,9 +1105,22 @@ class FlowFactory(object):
   def DeleteFlow(self, rdf_flow, token=None):
     """Deletes the flow from the Task Scheduler."""
     rdf_flow.state = rdfvalue.Flow.Enum("TERMINATED")
-    flow_task = rdfvalue.GRRMessage(
-        queue=rdf_flow.session_id, task_id=1, payload=rdf_flow)
-    scheduler.SCHEDULER.Schedule([flow_task], token=token, sync=True)
+
+    if rdf_flow.aff4_object:
+      aff4_type = rdf_flow.aff4_object.Get(rdf_flow.aff4_object.Schema.TYPE)
+    else:
+      aff4_type = "GRRFlow"
+
+    aff4_flow = aff4.FACTORY.Create(rdf_flow.session_id, aff4_type, mode="w",
+                                    token=token)
+    # TODO(user): this is a hack. We're doing this because we do know
+    # that the flow object already exists (as it was started by StartFlow).
+    # Therefore there's no need for Create() to add TYPE attribute.
+    setattr(aff4_flow, "_new_version", False)
+    aff4_flow.Set(aff4_flow.Schema.RDF_FLOW,
+                  rdfvalue.GRRMessage(queue=rdf_flow.session_id,
+                                      task_id=1, payload=rdf_flow))
+    aff4_flow.Close()
 
   def LoadFlow(self, rdf_flow, forced_token=None):
     """Restores the flow stored in rdf_flow.
@@ -1108,6 +1147,9 @@ class FlowFactory(object):
       if forced_token:
         result.context.token = forced_token
 
+      # Restore the rdf_flow here
+      result.rdf_flow = rdf_flow
+
       # Allow the flow to hook the load operation.
       result.Load()
     # If we can not unpickle this for whatever reason we cant do anything about
@@ -1117,9 +1159,6 @@ class FlowFactory(object):
       msg = "Unable to handle Flow %s: %s" % (rdf_flow.name, e)
       logging.error(msg)
       raise FlowError(msg)
-
-    # Restore the rdf_flow here
-    result.rdf_flow = rdf_flow
 
     return result
 
@@ -1539,7 +1578,7 @@ class FrontEndServer(object):
     send a message to the worker.
 
     Args:
-      messages: A list of GrrMessage protos.
+      messages: A list of GrrMessage RDFValues.
     """
 
     for msg in messages:
@@ -1756,7 +1795,7 @@ class GRRWorker(object):
     Note that the server actually completes the requests in the
     flow when receiving the messages from the client. We do not really
     look at the messages here at all any more - we just work from the
-    completed messages in the flow proto.
+    completed messages in the flow RDFValue.
 
     Args:
         active_sessions: The list of sessions which had messages received.

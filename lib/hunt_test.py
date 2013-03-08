@@ -320,8 +320,9 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client_mock = self.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
-    hunt_obj = aff4.FACTORY.Open(hunt.session_id, mode="rw",
-                                 age=aff4.ALL_TIMES, token=self.token)
+    hunt_obj = aff4.FACTORY.Open(
+        hunt.session_id, mode="r", age=aff4.ALL_TIMES, required_type="VFSHunt",
+        token=self.token)
 
     started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
     finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
@@ -545,8 +546,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
   def testResourceUsage(self):
 
-    hunt = hunts.SampleHunt(token=self.token)
-    hunt_obj = hunt.GetAFF4Object(mode="w", token=self.token)
+    hunt_urn = aff4.ROOT_URN.Add("hunts").Add("SampleHunt")
+    hunt_obj = aff4.FACTORY.Create(hunt_urn, "VFSHunt", token=self.token)
 
     usages = [("client1", "flow1", 0.5, 0.5),
               ("client1", "flow2", 0.1, 0.5),
@@ -569,7 +570,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     hunt_obj.Close()
 
-    hunt_obj = hunt.GetAFF4Object(mode="r", token=self.token)
+    hunt_obj = aff4.FACTORY.Open(hunt_urn, age=aff4.ALL_TIMES, token=self.token)
 
     # Just for one client.
     res = hunt_obj.GetResourceUsage(client_id="client1", group_by_client=False)
@@ -612,6 +613,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client_ids = self.SetupClients(10)
 
     hunt = hunts.SampleHunt(token=self.token)
+    hunt_urn = hunt.session_id
+
     regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="GRR client",
         attribute_regex="GRR")
@@ -626,7 +629,10 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
     # Just in case - unserializing hunt object stored in AFF4 hunt object
-    hunt = hunt.GetAFF4Object(token=self.token).GetFlowObj()
+    aff4_hunt = aff4.FACTORY.Open(hunt_urn, required_type="VFSHunt",
+                                  token=self.token)
+    hunt = aff4_hunt.GetFlowObj()
+
     self.assertEqual(hunt.usage_stats.user_cpu_stats.num, 10)
     self.assertTrue(math.fabs(hunt.usage_stats.user_cpu_stats.mean -
                               5.5) < 1e-7)

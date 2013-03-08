@@ -165,5 +165,5 @@ def CopyAFF4ToLocal(aff4_urn, target_dir, token=None, overwrite=False):
     else:
       logging.info("File %s exists, skipping", filepath)
   except IOError as e:
-    logging.error("Failed to read %s due to %s", filepath, e)
+    logging.error("Failed to read %s due to %s", aff4_urn, e)
     raise

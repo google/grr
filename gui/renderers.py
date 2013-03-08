@@ -640,7 +640,7 @@ class TableRenderer(TemplateRenderer):
         if i % 1000 == 0:
           # Flush the buffer
           yield fd.getvalue()
-          fd.truncate(0)
+          fd.truncate(size=0)
 
         writer.writerow(
             [RemoveTags(c.RenderRow(i, request)) for c in self.columns])
@@ -1476,6 +1476,11 @@ class TypeInfoFormRenderer(TemplateRenderer):
                               "args." % self.__class__.__name__)
 
 
+class EmptyRequest(object):
+  """Class used to create fake request objects."""
+  pass
+
+
 class TypeDescriptorSetRenderer(TemplateRenderer):
   """A Renderer for a type descriptor set."""
 
@@ -1489,6 +1494,13 @@ class TypeDescriptorSetRenderer(TemplateRenderer):
     """Render the form for this type descriptor set."""
     self.form_elements = []
 
+    # This allows us to pass dictionary instead of a proper request object.
+    if not hasattr(request, "REQ"):
+      req = EmptyRequest()
+      req.REQ = request  # pylint: disable=g-bad-name
+    else:
+      req = request
+
     for type_descriptor in type_descriptor_set:
       if not type_descriptor.hidden:
         try:
@@ -1501,12 +1513,19 @@ class TypeDescriptorSetRenderer(TemplateRenderer):
 
         # Allow the type renderer to draw the form.
         self.form_elements.append(type_renderer.Form(
-            type_descriptor, request, **kwargs))
+            type_descriptor, req, **kwargs))
 
     return self.FormatFromTemplate(self.form_template)
 
   def ParseArgs(self, type_descriptor_set, request, **kwargs):
     """Given the type descriptor, construct the args from the request."""
+
+    # This allows us to pass dictionary instead of a proper request object.
+    if not hasattr(request, "REQ"):
+      req = EmptyRequest()
+      req.REQ = request
+    else:
+      req = request
 
     for type_descriptor in type_descriptor_set:
       if not type_descriptor.hidden:
@@ -1520,7 +1539,7 @@ class TypeDescriptorSetRenderer(TemplateRenderer):
 
         # Allow the type renderer to construct its own object.
         yield type_descriptor.name, type_renderer.ParseArgs(
-            type_descriptor, request, **kwargs)
+            type_descriptor, req, **kwargs)
 
 
 class DelegatedTypeInfoRenderer(TypeInfoFormRenderer):
@@ -1662,6 +1681,24 @@ class NumberFormRenderer(StringFormRenderer):
 
   def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
     return long(request.REQ.get(prefix + type_descriptor.name))
+
+
+class DurationFormRenderer(StringFormRenderer):
+  """Form elements renderer for DurationSeconds."""
+  type_info_cls = type_info.Duration
+
+  def Form(self, type_descriptor, request, prefix="v_", **kwargs):
+    """Produce a string to render a form element from the type_descriptor."""
+    self.type = type_descriptor
+    value = (request.REQ.get(prefix + type_descriptor.name) or
+             type_descriptor.default)
+    self.value = str(rdfvalue.Duration(value))
+
+    return self.FormatFromTemplate(self.form_template, prefix=prefix, **kwargs)
+
+  def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
+    return rdfvalue.Duration.ParseFromHumanReadable(
+        request.REQ.get(prefix + type_descriptor.name))
 
 
 class EncryptionKeyFormRenderer(StringFormRenderer):
@@ -2019,3 +2056,49 @@ class RDFValueCollectionRenderer(TableRenderer):
 
     return super(RDFValueCollectionRenderer, self).Layout(
         request, response)
+
+
+class ConfirmationDialogRenderer(TemplateRenderer):
+  """Renderer used to render confirmation dialogs."""
+
+  header = None
+  cancel_button_title = "Close"
+  proceed_button_title = "Proceed"
+
+  # This is supplied by subclasses.
+  content_template = Template("")
+
+  layout_template = Template("""
+  {% if this.header %}
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+      x</button>
+    <h3>{{this.header|escape}}</h3>
+  </div>
+  {% endif %}
+
+  <div class="modal-body">
+    {{this.content|safe}}
+    <div id="results_{{unique|escape}}"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn" data-dismiss="modal" name="Cancel"
+      aria-hidden="true">
+      {{this.cancel_button_title|escape}}</button>
+    <button id="proceed_{{unique|escape}}" name="Proceed"
+      class="btn btn-primary">
+      {{this.proceed_button_title|escape}}</button>
+  </div>
+
+  <script>
+    $("#proceed_{{unique|escape}}").click(function() {
+      $(this).attr("disabled", true);
+      grr.update("{{renderer|escapejs}}", "results_{{unique|escapejs}}",
+        {{this.state_json|safe}});
+    });
+  </script>
+""")
+
+  def Layout(self, request, response):
+    self.content = self.FormatFromTemplate(self.content_template)
+    return super(ConfirmationDialogRenderer, self).Layout(request, response)

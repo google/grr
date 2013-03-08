@@ -1,17 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """This is a single binary demo program."""
 
 
@@ -19,6 +6,7 @@ import threading
 
 
 # pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
 from grr.gui import admin_ui
 # pylint: enable=unused-import,g-bad-import-order
 
@@ -40,7 +28,7 @@ BASE_DIR = "grr/"
 def main(argv):
   """Sets up all the component in their own threads."""
   # For testing we use the test config file.
-  flags.FLAGS.config = [config_lib.CONFIG["Test.config"]]
+  flags.FLAGS.config = config_lib.CONFIG["Test.config"]
 
   config_lib.CONFIG.SetEnv("Environment.component", "Demo")
 
@@ -48,9 +36,9 @@ def main(argv):
 
   registry.TestInit()
 
-  # pylint: disable=unused-import,unused-variable
+  # pylint: disable=unused-import,unused-variable,g-import-not-at-top
   from grr.gui import gui_plugins
-  # pylint: enable=unused-import,unused-variable
+  # pylint: enable=unused-import,unused-variable,g-import-not-at-top
 
   # This is the worker thread.
   worker_thread = threading.Thread(target=worker.main, args=[argv],

@@ -117,7 +117,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     hunt.Stop()
     hunt.Save()
 
-    hunt_obj = hunt.GetAFF4Object(token=self.token)
+    hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
+                                 token=self.token)
 
     started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
     finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
@@ -163,7 +164,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     hunt.Stop()
     hunt.Save()
 
-    hunt_obj = hunt.GetAFF4Object(token=self.token)
+    hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
+                                 token=self.token)
 
     started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
     finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
@@ -220,7 +222,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     hunt.Stop()
     hunt.Save()
 
-    hunt_obj = hunt.GetAFF4Object(token=self.token)
+    hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
+                                 token=self.token)
 
     started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
     finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
@@ -263,7 +266,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
       hunt = hunts.GenericHunt(flow_name="GetFile", args=args,
                                collect_replies=False, client_limit=5,
-                               expiry_time=1000, token=self.token)
+                               expiry_time=rdfvalue.Duration("1000s"),
+                               token=self.token)
 
       regex_rule = rdfvalue.ForemanAttributeRegex(
           attribute_name="GRR client",
@@ -282,7 +286,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       test_lib.TestHuntHelper(client_mock, self.client_ids,
                               check_flow_errors=False, token=self.token)
 
-      hunt_obj = hunt.GetAFF4Object(token=self.token)
+      hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
+                                   token=self.token)
 
       started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
       finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
@@ -310,7 +315,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
         pass
       worker.pool.Join()
 
-      hunt_obj = aff4.FACTORY.Open(hunt.session_id, token=self.token)
+      hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
+                                   token=self.token)
       flow_obj = hunt_obj.GetFlowObj()
       self.assertEqual(flow_obj.rdf_flow.state,
                        rdfvalue.Flow.Enum("TERMINATED"))

@@ -6,4 +6,5 @@ used to "bootstap" the config system. WARNING: This file will be overwritten by
 the installer/builder.
 """
 
-CONFIG = "grr/config/grr_test.conf"
+
+CONFIG = "/etc/grr/grr-server.conf"

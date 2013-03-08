@@ -54,7 +54,7 @@ time_t ChildController::Run() {
       // There is a very unlikely race condition if the machine gets suspended
       // for longer than unresponsive_kill_period seconds so we give the client
       // some time to catch up.
-      child_->Sleep(2000);
+      child_->ChildSleep(2000);
       heartbeat = std::max(child_->GetHeartbeat(), last_heartbeat_time_);
       if (now - heartbeat > config_.unresponsive_kill_period) {
         // We have not received a heartbeat in a while, kill the child.

@@ -8,7 +8,6 @@ import hashlib
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib import type_info
 from grr.lib.rdfvalues import test_base
 
 
@@ -60,8 +59,7 @@ class TestCryptoTypeInfos(test_lib.GRRBaseTest):
 
   def testX509Certificates(self):
     """Deliberately try to parse an invalid certificate."""
-    self.assertRaises(type_info.TypeValueError, config_lib.CONFIG.Initialize,
-                      data="""
+    config_lib.CONFIG.Initialize(data="""
 [Frontend]
 certificate = -----BEGIN CERTIFICATE-----
         MIIDczCCAVugAwIBAgIJANdK3LO+9qOIMA0GCSqGSIb3DQEBCwUAMFkxCzAJBgNV
@@ -69,10 +67,12 @@ certificate = -----BEGIN CERTIFICATE-----
         -----END CERTIFICATE-----
 """)
 
+    self.assertRaises(config_lib.Error, config_lib.CONFIG.Validate,
+                      "Frontend")
+
   def testX509PrivateKey(self):
     """Deliberately try to parse an invalid private key."""
-    self.assertRaises(type_info.TypeValueError, config_lib.CONFIG.Initialize,
-                      data="""
+    config_lib.CONFIG.Initialize(data="""
 [PrivateKeys]
 server_key = -----BEGIN PRIVATE KEY-----
         MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAMdgLNxyvDnQsuqp
@@ -80,22 +80,28 @@ server_key = -----BEGIN PRIVATE KEY-----
         -----END PRIVATE KEY-----
 """)
 
+    self.assertRaises(config_lib.Error, config_lib.CONFIG.Validate,
+                      "PrivateKeys")
+
   def testPEMPublicKey(self):
     """Deliberately try to parse an invalid public key."""
-    self.assertRaises(type_info.TypeValueError, config_lib.CONFIG.Initialize,
-                      data="""
+    config_lib.CONFIG.Initialize(data="""
 [Client]
 executable_signing_public_key = -----BEGIN PUBLIC KEY-----
         GpJgTFkTIAgX0Ih5lxoFB5TUjUfJFbBkSmKQPRA/IyuLBtCLQgwkTNkCAwEAAQ==
         -----END PUBLIC KEY-----
 """)
+    self.assertRaises(config_lib.Error, config_lib.CONFIG.Validate,
+                      "Client")
 
   def testPEMPrivate(self):
     """Deliberately try to parse an invalid public key."""
-    self.assertRaises(type_info.TypeValueError, config_lib.CONFIG.Initialize,
-                      data="""
+    config_lib.CONFIG.Initialize(data="""
 [PrivateKeys]
 driver_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
         MIIBOgIBAAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCODQAI3WluLh0sW7/ro93eo
         -----END RSA PRIVATE KEY-----
 """)
+
+    self.assertRaises(config_lib.Error, config_lib.CONFIG.Validate,
+                      "PrivateKeys")

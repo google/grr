@@ -84,15 +84,13 @@ class MetaclassRegistry(abc.ABCMeta):
 
 
 # Utility functions
-class InitHook(object):
+class HookRegistry(object):
   """An initializer that can be extended by plugins.
 
   Any classes which extend this will be instantiated exactly once when the
   system is initialized. This allows plugin modules to register initialization
   routines.
   """
-
-  __metaclass__ = MetaclassRegistry
 
   # A list of class names that have to be initialized before this hook.
   pre = []
@@ -156,12 +154,16 @@ class InitHook(object):
     with InitHook.lock:
       executed_hooks = set()
       while 1:
-        # This code allows init hooks to import modules which have more hooks
-        # defined - We ensure we only run each hook only once.
-        last_run_hooks = len(executed_hooks)
-        self._RunAllHooks(executed_hooks)
-        if last_run_hooks == len(executed_hooks):
-          break
+        try:
+          # This code allows init hooks to import modules which have more hooks
+          # defined - We ensure we only run each hook only once.
+          last_run_hooks = len(executed_hooks)
+          self._RunAllHooks(executed_hooks)
+          if last_run_hooks == len(executed_hooks):
+            break
+
+        except StopIteration:
+          logging.debug("Recalculating Hook dependency.")
 
   def RunOnce(self):
     """Hooks which only want to be run once."""
@@ -174,6 +176,16 @@ class InitHook(object):
     """Override an existing hook with a new one."""
     hook_cls.pre = hook_cls.pre[:] + [new_cls.__name__]
     hook_cls.active = False
+
+
+class InitHook(HookRegistry):
+  """Global GRR init registry.
+
+  Any classes which extend this class will be instantiated exactly
+  once when the system is initialized. This allows plugin modules to
+  register initialization routines.
+  """
+  __metaclass__ = MetaclassRegistry
 
 
 # This method is only used in tests and will rerun all the hooks to create a

@@ -697,6 +697,8 @@ class AFF4Object(object):
   # SchemaCls.
   class SchemaCls(object):
     """The standard AFF4 schema."""
+    # NOTE: we don't version the type in order not to accumulate its versions
+    # during blind write operations.
     TYPE = Attribute("aff4:type", rdfvalue.RDFString,
                      "The name of the AFF4Object derived class.", "type")
 

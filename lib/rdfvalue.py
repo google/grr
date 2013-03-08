@@ -415,6 +415,83 @@ class RDFDatetimeSeconds(RDFDatetime):
   converter = 1
 
 
+class Duration(RDFString):
+  """Duration value that's stored as microseconds internally."""
+  DIVIDERS = ((60*60*24, "d"), (60*60, "h"), (60, "m"), (1, "s"))
+  CONVERTER = MICROSECONDS
+
+  data_store_type = "integer"
+
+  _value = 0
+
+  def __init__(self, initializer=None, age=None):
+    super(Duration, self).__init__(None, age)
+    if isinstance(initializer, Duration):
+      self._value = initializer._value  # pylint: disable=protected-access
+    elif isinstance(initializer, basestring):
+      parsed = self.ParseFromHumanReadable(initializer)
+      self._value = parsed._value  # pylint: disable=protected-access
+    elif isinstance(initializer, (int, long, float)):
+      self._value = initializer
+    elif isinstance(initializer, RDFInteger):
+      self._value = int(initializer)
+    elif initializer is None:
+      self._value = 0
+    else:
+      raise RuntimeError("Unknown initializer for Duration: %s." %
+                         type(initializer))
+
+  def ParseFromString(self, string):
+    self._value = 0
+    if string:
+      self._value = int(string)
+
+  def SerializeToDataStore(self):
+    """Use varint to store the integer."""
+    return int(self._value)
+
+  @property
+  def seconds(self):
+    return self._value / self.CONVERTER
+
+  def __str__(self):
+    time_secs = int(self._value / self.CONVERTER)
+    for divider, label in self.DIVIDERS:
+      if time_secs % divider == 0:
+        return "%d%s" % (time_secs / divider, label)
+
+  @classmethod
+  def ParseFromHumanReadable(cls, timestring):
+    """Parse a human readable string of a duration.
+
+    Args:
+      timestring: The string to parse.
+    Returns:
+      The parsed duration.
+    """
+    if not timestring:
+      return None
+    orig_string = timestring
+
+    multiplicator = 1
+    if timestring[-1].isdigit():
+      pass
+    else:
+      if timestring[-1] == "s":
+        pass
+      elif timestring[-1] == "m":
+        multiplicator = 60
+      elif timestring[-1] == "h":
+        multiplicator = 60*60
+      elif timestring[-1] == "d":
+        multiplicator = 60*60*24
+      timestring = timestring[:-1]
+    try:
+      return Duration(int(timestring) * multiplicator * cls.CONVERTER)
+    except ValueError:
+      raise RuntimeError("Could not parse expiration time '%s'." % orig_string)
+
+
 class RepeatedFieldHelper(object):
   """A helper for the RDFProto to handle repeated fields.
 

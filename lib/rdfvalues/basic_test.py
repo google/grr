@@ -44,6 +44,19 @@ class RDFIntegerTest(test_base.RDFValueTestCase):
     return rdfvalue.RDFInteger(number)
 
 
+class DurationTest(test_base.RDFValueTestCase):
+  rdfvalue_class = rdfvalue.Duration
+
+  def GenerateSample(self, number=0):
+    return rdfvalue.Duration(number)
+
+  def testStringRepresentationIsTransitive(self):
+    t = rdfvalue.Duration("5m")
+    self.assertEqual(t.seconds, 300)
+    self.assertEqual(t, rdfvalue.Duration(300 * 1000000))
+    self.assertEqual(str(t), "5m")
+
+
 class RDFURNTest(test_base.RDFValueTestCase):
   rdfvalue_class = rdfvalue.RDFURN
 

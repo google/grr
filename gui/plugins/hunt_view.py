@@ -34,6 +34,7 @@ import logging
 from grr.gui import renderers
 from grr.gui.plugins import fileview
 from grr.gui.plugins import foreman
+from grr.gui.plugins import launch_hunt
 from grr.gui.plugins import searchclient
 from grr.lib import aff4
 from grr.lib import flow
@@ -67,7 +68,7 @@ class HuntStateIcon(renderers.RDFValueRenderer):
   """
 
   layout_template = renderers.Template("""
-<div class="centered">
+<div class="centered hunt-state-icon" state="{{state_str|escape}}">
 <img class='grr-icon grr-flow-icon' src='/static/images/{{icon|escape}}' />
 </div>
 """)
@@ -79,9 +80,183 @@ class HuntStateIcon(renderers.RDFValueRenderer):
                aff4.AFF4Object.VFSHunt.STATE_STOPPED: "pause.png"}
 
   def Layout(self, _, response):
+    self.state_str = str(self.proxy)
     return self.RenderFromTemplate(
         self.layout_template, response,
+        state_str=str(self.proxy),
         icon=self.state_map.get(self.proxy, "question-red.png"))
+
+
+class RunHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
+  """Dialog that asks confirmation to run a hunt and actually runs it."""
+  post_parameters = ["hunt_id"]
+
+  header = "Run a hunt?"
+
+  content_template = renderers.Template("""
+<p>Are you sure you want to <strong>run</strong> this hunt?</p>
+""")
+
+  # We execute CheckAccess renderer with silent=true. Therefore it searches
+  # for an approval and sets correct reason if approval is found. When
+  # CheckAccess completes, we execute HuntViewRunHunt renderer, which
+  # tries to run an actual hunt. If the approval wasn't found on CheckAccess
+  # stage, it will fail due to unauthorized access and proper ACLDialog will
+  # be displayed.
+  ajax_template = renderers.Template("""
+<div id="result_{{unique|escape}}"></div>
+<script>
+  grr.layout("CheckAccess", "result_{{unique|escapejs}}",
+    {silent: true, subject: "{{hunt_id|escapejs}}" },
+    function() {
+      grr.layout("HuntViewRunHunt", "result_{{unique|escapejs}}",
+        {hunt_id: "{{hunt_id|escapejs}}"});
+    });
+</script>
+""")
+
+  def RenderAjax(self, request, response):
+    super(RunHuntConfirmationDialog, self).RenderAjax(request, response)
+    return self.RenderFromTemplate(self.ajax_template, response,
+                                   hunt_id=request.REQ.get("hunt_id"))
+
+
+class HuntViewRunHunt(renderers.TemplateRenderer):
+  """Runs a hunt when "Run Hunt" button is pressed and permissions checked."""
+
+  layout_template = renderers.Template("""
+<p class="text-info">Done!</p>
+""")
+
+  def Layout(self, request, response):
+    flow.FACTORY.StartFlow(None, "RunHuntFlow", token=request.token,
+                           hunt_urn=request.REQ.get("hunt_id"))
+
+    return super(HuntViewRunHunt, self).Layout(request, response)
+
+
+class PauseHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
+  """Dialog that asks confirmation to pause a hunt and actually runs it."""
+  post_parameters = ["hunt_id"]
+
+  header = "Pause a hunt?"
+
+  content_template = renderers.Template("""
+<p>Are you sure you want to <strong>pause</strong> this hunt?</p>
+""")
+
+  ajax_template = renderers.Template("""
+<div id="result_{{unique|escape}}"></div>
+<script>
+  // We execute CheckAccess renderer with silent=true. Therefore it searches
+  // for an approval and sets correct reason if approval is found. When
+  // CheckAccess completes, we execute HuntViewPauseHunt renderer, which
+  // tries to pause an actual hunt. If the approval wasn't found on CheckAccess
+  // stage, it will fail due to unauthorized access and proper ACLDialog will
+  // be displayed.
+  grr.layout("CheckAccess", "result_{{unique|escapejs}}",
+    {silent: true, subject: "{{hunt_id|escapejs}}"},
+    function() {
+      grr.layout("HuntViewPauseHunt", "result_{{unique|escapejs}}",
+        {hunt_id: "{{hunt_id|escapejs}}"});
+    });
+</script>
+""")
+
+  def RenderAjax(self, request, response):
+    super(PauseHuntConfirmationDialog, self).RenderAjax(request, response)
+    return self.RenderFromTemplate(self.ajax_template, response,
+                                   hunt_id=request.REQ.get("hunt_id"))
+
+
+class HuntViewPauseHunt(renderers.TemplateRenderer):
+  """Pauses a hunt when button is pressed and permissions checked."""
+
+  layout_template = renderers.Template("""
+<p class="text-info">Done!</p>
+""")
+
+  def Layout(self, request, response):
+    flow.FACTORY.StartFlow(None, "PauseHuntFlow", token=request.token,
+                           hunt_urn=request.REQ.get("hunt_id"))
+
+    return super(HuntViewPauseHunt, self).Layout(request, response)
+
+
+class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
+  """Dialog that allows user to modify certain hunt parameters."""
+  post_parameters = ["hunt_id"]
+
+  header = "Modify a hunt"
+  proceed_button_title = "Modify!"
+
+  expiry_time_dividers = ((60*60*24, "d"), (60*60, "h"), (60, "m"), (1, "s"))
+
+  content_template = renderers.Template("""
+<form id="form_{{unique|escape}}" class="form-horizontal">
+{{this.hunt_params_form|safe}}
+</form>
+""")
+
+  ajax_template = renderers.Template("""
+<div id="result_{{unique|escape}}"></div>
+<script>
+  // We execute CheckAccess renderer with silent=true. Therefore it searches
+  // for an approval and sets correct reason if approval is found. When
+  // CheckAccess completes, we execute HuntViewModifyHunt renderer, which
+  // tries to pause an actual hunt. If the approval wasn't found on CheckAccess
+  // stage, it will fail due to unauthorized access and proper ACLDialog will
+  // be displayed.
+  grr.layout("CheckAccess", "result_{{unique|escapejs}}",
+    {silent: true, subject: "{{hunt_id|escapejs}}" },
+    function() {
+      grr.submit("HuntViewModifyHunt", "form_{{unique|escape}}",
+        "result_{{unique|escapejs}}", {hunt_id: "{{hunt_id|escapejs}}"});
+    });
+</script>
+""")
+
+  def RenderAjax(self, request, response):
+    """RenderAjax handler."""
+    super(ModifyHuntDialog, self).RenderAjax(request, response)
+    return self.RenderFromTemplate(self.ajax_template, response,
+                                   hunt_id=request.REQ.get("hunt_id"))
+
+  def Layout(self, request, response):
+    """Layout handler."""
+    hunt_urn = request.REQ.get("hunt_id")
+    hunt_obj = aff4.FACTORY.Open(hunt_urn, required_type="VFSHunt",
+                                 token=request.token)
+
+    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
+    req = dict()
+    req["client_limit"] = hunt_obj.Get(hunt_obj.Schema.CLIENT_LIMIT)
+    req["expiry_time"] = hunt_obj.Get(hunt_obj.Schema.EXPIRY_TIME)
+    self.hunt_params_form = type_descriptor_renderer.Form(
+        hunts.GRRHunt.hunt_typeinfo, req, prefix="")
+
+    return super(ModifyHuntDialog, self).Layout(request, response)
+
+
+class HuntViewModifyHunt(renderers.TemplateRenderer,
+                         launch_hunt.HuntRequestParsingMixin):
+  """Modifies a hunt when "Modify" dialog's form is submitted."""
+
+  layout_template = renderers.Template("""
+<p class="text-info">Done!</p>
+""")
+
+  def Layout(self, request, response):
+    """Layout handler."""
+    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
+    hunt_args = dict(type_descriptor_renderer.ParseArgs(
+        hunts.GRRHunt.hunt_typeinfo, request, prefix=""))
+
+    flow.FACTORY.StartFlow(None, "ModifyHuntFlow", token=request.token,
+                           hunt_urn=request.REQ.get("hunt_id"),
+                           **hunt_args)
+
+    return super(HuntViewModifyHunt, self).Layout(request, response)
 
 
 class HuntTable(fileview.AbstractFileTable):
@@ -94,6 +269,21 @@ class HuntTable(fileview.AbstractFileTable):
   tabindex="-1" role="dialog" aria-hidden="true">
 </div>
 
+<div id="run_hunt_dialog_{{unique|escape}}"
+  class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true"
+  restore_after_acl="false">
+</div>
+
+<div id="pause_hunt_dialog_{{unique|escape}}"
+  class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true"
+  restore_after_acl="false">
+</div>
+
+<div id="modify_hunt_dialog_{{unique|escape}}"
+  class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true"
+  restore_after_acl="false">
+</div>
+
 <ul class="breadcrumb">
   <li>
   <button id='launch_hunt_{{unique|escape}}' title='Launch Hunt'
@@ -101,11 +291,36 @@ class HuntTable(fileview.AbstractFileTable):
     data-target="#launch_hunt_dialog_{{unique|escape}}">
     <img src='/static/images/new.png' class='toolbar_icon'>
   </button>
-  <div class="new_hunt_dialog" id="new_hunt_dialog_{{unique|escape}}" />
+
+  <div class="btn-group">
+  <button id='run_hunt_{{unique|escape}}' title='Run Hunt'
+    class="btn" disabled="yes" name="RunHunt" data-toggle="modal"
+    data-target="#run_hunt_dialog_{{unique|escape}}">
+    <img src='/static/images/play_button.png' class='toolbar_icon'>
+  </button>
+  <button id='pause_hunt_{{unique|escape}}' title='Pause Hunt'
+    class="btn" disabled="yes" name="PauseHunt" data-toggle="modal"
+    data-target="#pause_hunt_dialog_{{unique|escape}}">
+    <img src='/static/images/pause_button.png' class='toolbar_icon'>
+  </button>
+  <button id='modify_hunt_{{unique|escape}}' title='Modify Hunt'
+    class="btn" disabled="yes" name="ModifyHunt" data-toggle="modal"
+    data-target="#modify_hunt_dialog_{{unique|escape}}">
+    <img src='/static/images/modify.png' class='toolbar_icon'>
+  </button>
+  </div>
+
+  <div class="new_hunt_dialog" id="new_hunt_dialog_{{unique|escape}}"
+    class="hide" />
   </li>
 </ul>
 """ + fileview.AbstractFileTable.layout_template + """
 <script>
+(function() {
+  // Store currently selected hunt_id in this variable. Event listeners
+  // will use it (see grr.subscribe("file_select"), for example).
+  var hunt_id;
+
   $("#launch_hunt_dialog_{{unique|escapejs}}").on("shown", function () {
      if ($(this).attr("update_on_show") == "true") {
        grr.layout("LaunchHunts", "launch_hunt_dialog_{{unique|escapejs}}");
@@ -113,16 +328,51 @@ class HuntTable(fileview.AbstractFileTable):
      $(this).attr("update_on_show", "true");
     });
 
+  $("#run_hunt_dialog_{{unique|escape}}").on("show", function() {
+    grr.layout("RunHuntConfirmationDialog",
+      "run_hunt_dialog_{{unique|escape}}", {hunt_id: hunt_id});
+  });
+
+  $("#pause_hunt_dialog_{{unique|escape}}").on("show", function() {
+    grr.layout("PauseHuntConfirmationDialog",
+      "pause_hunt_dialog_{{unique|escape}}", {hunt_id: hunt_id});
+  });
+
+  $("#modify_hunt_dialog_{{unique|escape}}").on("show", function() {
+    grr.layout("ModifyHuntDialog", "modify_hunt_dialog_{{unique|escape}}",
+      {hunt_id: hunt_id});
+  });
+
   grr.subscribe("WizardComplete", function(wizardStateName) {
     $("#launch_hunt_dialog_{{unique|escape}}").modal("hide");
   }, "launch_hunt_dialog_{{unique|escape}}");
 
+  grr.subscribe("file_select", function(_hunt_id) {
+    hunt_id = _hunt_id;
+
+    $("#modify_hunt_{{unique|escape}}").removeAttr("disabled");
+
+    var row = $("span[aff4_path='" + hunt_id + "']",
+      "#{{this.id|escapejs}}").closest("tr");
+    $(".hunt-state-icon", row).each(function() {
+      var state = $(this).attr("state");
+      if (state == "RUNNING") {
+        $("#run_hunt_{{unique|escape}}").attr("disabled", "true");
+        $("#pause_hunt_{{unique|escape}}").removeAttr("disabled");
+      } else if (state == "stopped") {
+        $("#run_hunt_{{unique|escape}}").removeAttr("disabled");
+        $("#pause_hunt_{{unique|escape}}").attr("disabled", "true");
+      }
+    });
+  }, "run_hunt_{{unique|escapejs}}");
+
   // If hunt_id in hash, click that row.
   if (grr.hash.hunt_id) {
-    $("#{{this.id}}").find("td:contains('" +
+    $("#{{this.id|escapejs}}").find("td:contains('" +
       grr.hash.hunt_id.split("/").reverse()[0] +
       "')").click();
   };
+})();
 </script>
 """
 
@@ -163,7 +413,7 @@ class HuntTable(fileview.AbstractFileTable):
           continue
 
         expire_time = (hunt_obj.start_time +
-                       hunt_obj.expiry_time) * 1e6
+                       hunt_obj.expiry_time.seconds) * 1e6
 
         description = (aff4_hunt.Get(aff4_hunt.Schema.DESCRIPTION) or
                        hunt_obj.__class__.__doc__.split("\n", 1)[0])
@@ -389,21 +639,6 @@ back to hunt view</a>
     self.size = len(results)
 
 
-class HuntViewRunHunt(renderers.TemplateRenderer):
-  """Runs a hunt when "Run Hunt" button is pressed and permissions checked."""
-
-  layout_template = renderers.Template("""
-  Hunt was started!
-""")
-
-  def Layout(self, request, response):
-    hunt_urn = request.REQ.get("hunt_id")
-    flow.FACTORY.StartFlow(None, "RunHuntFlow", token=request.token,
-                           hunt_urn=hunt_urn)
-
-    return super(HuntViewRunHunt, self).Layout(request, response)
-
-
 class HuntOverviewRenderer(renderers.AbstractLogRenderer):
   """Renders the overview tab."""
 
@@ -414,15 +649,6 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
     class="btn btn-info">
   View hunt details
 </a>
-{% if this.allow_run %}
-<br/><br/>
-<div id="RunHunt_{{unique|escape}}">
-<a id="RunHuntButton_{{unique|escape}}" name="RunHunt"
-    href='#{{this.hash|escape}}' class="btn btn-danger">
-  Run Hunt
-</a>
-</div>
-{% endif %}
 <br/>
 <dl class="dl-horizontal dl-hunt">
 {% for key, val in this.data.items %}
@@ -444,17 +670,6 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
   <dt>Arguments</dt><dd>{{ this.args_str|safe }}</dd>
 
 </dl>
-
-<script>
-(function() {
-
-$("#RunHuntButton_{{unique|escapejs}}").click(function() {
-  grr.update("HuntOverviewRenderer", "RunHunt_{{unique|escapejs}}",
-    { hunt_id: "{{this.hunt_id|escapejs}}" });
-});
-
-})();
-</script>
 """)
 
   error_template = renderers.Template(
@@ -521,18 +736,15 @@ $("#RunHuntButton_{{unique|escapejs}}").click(function() {
           self.data["Start Time"] = rdfvalue.RDFDatetime(
               self.flow.start_time * 1e6)
           self.data["Expiry Time"] = rdfvalue.RDFDatetime(
-              (self.flow.start_time + self.flow.expiry_time) * 1e6)
-          self.data["Status"] = enum_types.values[rdf_flow.state].name
+              (self.flow.start_time + self.flow.expiry_time.seconds) * 1e6)
+          if self.hunt.Get(self.hunt.Schema.STATE) == self.hunt.STATE_STOPPED:
+            self.data["Status"] = self.hunt.STATE_STOPPED
+          else:
+            self.data["Status"] = enum_types.values[rdf_flow.state].name
 
           self.client_limit = self.flow.client_limit
           self.args_str = renderers.RDFProtoDictRenderer(
               rdf_flow.args).RawHTML()
-
-        # The hunt is allowed to run if it's stopped. Also, if allow_run
-        # is set by the subclass, we don't override it
-        if not hasattr(self, "allow_run"):
-          self.allow_run = (self.hunt.Get(self.hunt.Schema.STATE) ==
-                            self.hunt.STATE_STOPPED)
 
       except IOError:
         self.layout_template = self.error_template

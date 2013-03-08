@@ -123,7 +123,7 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
     sel.click("css=.Wizard input.Next")
     self.WaitUntil(sel.is_text_present, "Step 2. Configure Hunt Rules")
 
-    # Create 2 foreman rules
+    # Create 3 foreman rules
     self.WaitUntil(
         sel.is_element_present,
         "css=.Wizard .Rule:nth-of-type(1) input[name=attribute_name]")
@@ -142,6 +142,10 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
                "label=GREATER_THAN")
     sel.type("css=.Wizard .Rule:nth-of-type(2) input[name=value]",
              "1336650631137737")
+
+    sel.click("css=.Wizard input[value='Add Rule']")
+    sel.select("css=.Wizard .Rule:nth-of-type(3) select[name=rule_type]",
+               "label=MatchDarwin")
 
     # Click on "Back" button
     sel.click("css=.Wizard input.Back")
@@ -184,6 +188,11 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
         sel.get_value("css=.Wizard .Rule:nth-of-type(2) input[name=value]"),
         "1336650631137737")
 
+    self.assertEqual(
+        sel.get_selected_label(
+            "css=.Wizard .Rule:nth-of-type(3) select[name=rule_type]"),
+        "MatchDarwin")
+
     # Click on "Next" button
     sel.click("css=.Wizard input.Next")
     self.WaitUntil(sel.is_text_present,
@@ -221,11 +230,18 @@ class TestLaunchHuntWizard(test_lib.GRRSeleniumTest):
     # Check that the hunt was created with correct rules
     hunt_rules = self.FindForemanRules(hunt, token=self.token)
     self.assertEquals(len(hunt_rules), 1)
+    self.assertTrue(
+        abs(int((hunt_rules[0].expires - hunt_rules[0].created) * 1e-6) -
+            31 * 24 * 60 * 60) <= 1)
 
-    self.assertEquals(len(hunt_rules[0].regex_rules), 1)
+    self.assertEquals(len(hunt_rules[0].regex_rules), 2)
     self.assertEquals(hunt_rules[0].regex_rules[0].path, "/")
     self.assertEquals(hunt_rules[0].regex_rules[0].attribute_name, "System")
     self.assertEquals(hunt_rules[0].regex_rules[0].attribute_regex, "Linux")
+
+    self.assertEquals(hunt_rules[0].regex_rules[1].path, "/")
+    self.assertEquals(hunt_rules[0].regex_rules[1].attribute_name, "System")
+    self.assertEquals(hunt_rules[0].regex_rules[1].attribute_regex, "Darwin")
 
     self.assertEquals(len(hunt_rules[0].integer_rules), 1)
     self.assertEquals(hunt_rules[0].integer_rules[0].path, "/")

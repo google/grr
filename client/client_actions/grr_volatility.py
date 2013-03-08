@@ -188,7 +188,6 @@ class VolatilityAction(actions.ActionPlugin):
 
   def Run(self, request):
     """Run a volatility plugin and return the result."""
-    # Recover the volatility session.
 
     def Progress(message=None, **_):
       """Allow volatility to heartbeat us so we do not die."""

@@ -697,5 +697,5 @@ def EscapeRegex(string):
 def GeneratePassphrase(length=20):
   """Create a 20 char passphrase with easily typeable chars."""
   valid_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-  valid_chars += "0123456789 ,-_()&$#"
+  valid_chars += "0123456789 ,-_&$#"
   return "".join(random.choice(valid_chars) for i in range(length))

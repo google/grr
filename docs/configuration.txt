@@ -199,15 +199,14 @@ name = GRR
 [NannyWindows]
 service_name = %(Client.name)service.exe
 service_key_hive = HKEY_LOCAL_MACHINE
-service_key_path = Software\\%(Client.name)
-service_key = %(service_key_hive)\\%(service_key_path)
+service_key = Software\\%(Client.name)
 initial_commandline =
 --------------------------------------------------------------------
 
 The expansion sequence '%(parameter_name)' substitutes or expands the parameter
 into the string. This allows us to build values automatically based on other
-values. For example above, the 'NannyWindows.service_name' will be 'GRRservice.exe' and
-the service_key will be set to 'HKEY_LOCAL_MACHINE\Software\GRR'
+values. For example above, the 'NannyWindows.service_name' will be
+'GRRservice.exe' and the service_key will be set to 'Software\GRR'
 
 Expansion is very useful, but sometimes it gets in the way. For example, if we
 need to pass literal % escape sequences. Consider the Logging.format parameter

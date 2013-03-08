@@ -124,7 +124,7 @@ class FlowInformation(renderers.TemplateRenderer):
   """
 
   layout_template = renderers.Template("""
-<h3>{{ this.flow_name|escape }}</h2>
+<h3>{{ this.flow_name|escape }}</h3>
 <p>{{ this.flow_doc|linebreaks }}</p>
 
 <pre>

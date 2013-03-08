@@ -133,7 +133,7 @@ run_cmd_confirm wget --no-verbose ${SERVER_DEB_URL} -O ${SERVER_DEB};
 run_cmd_confirm sudo dpkg -i ${SERVER_DEB};
 
 header "Initialize the configuration, building clients and setting options."
-run_cmd_confirm grr_config_updater.py initialize
+run_cmd_confirm grr_config_updater initialize
 
 header "Enable grr-single-server to start automatically on boot"
 SERVER_DEFAULT=/etc/default/grr-single-server

@@ -20,7 +20,9 @@
 
 import traceback
 
+from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import flow
 from grr.lib import hunt_test
 from grr.lib import hunts
 from grr.lib import rdfvalue
@@ -37,6 +39,8 @@ def CreateHunts():
 class TestHuntView(test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
+  reason = "Felt like it!"
+
   @staticmethod
   def SetUp():
     result = TestHuntView(methodName="run")
@@ -50,6 +54,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.hunts = CreateHunts()
 
   def tearDown(self):
+    self.UninstallACLChecks()
+
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw",
                                 token=self.token)
     foreman.Set(foreman.Schema.RULES())
@@ -149,7 +155,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(sel.is_element_present, "css=div[id^=HuntRuleRenderer_]")
     self.WaitUntil(sel.is_text_present, "GRR client")
 
-  def testRunButtonIsVisibleOnStoppedHunt(self):
+  def testToolbarStateForStoppedHunt(self):
     self.CreateSampleHunt(stopped=True)
     sel = self.selenium
 
@@ -159,17 +165,22 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     sel.click("css=a[grrtarget=ManageHunts]")
     self.WaitUntil(sel.is_text_present, "SampleHunt")
 
-     # Select a Hunt.
+    # Select a Hunt.
     sel.click("css=td:contains('SampleHunt')")
 
-     # Check we can now see the details.
+    # Check we can now see the details.
     self.WaitUntil(sel.is_element_present, "css=dl.dl-hunt")
     self.WaitUntil(sel.is_text_present, "Client Count")
     self.WaitUntil(sel.is_text_present, "Hunt URN")
 
-    self.assertTrue(sel.is_text_present("Run Hunt"))
+    self.assertTrue(sel.is_element_present,
+                    "css=button[name=RunHunt][disabled!='']")
+    self.assertTrue(sel.is_element_present,
+                    "css=button[name=PauseHunt][disabled='']")
+    self.assertTrue(sel.is_element_present,
+                    "css=button[name=ModifyHunt][disabled='']")
 
-  def testRunButtonIsInvisibleOnRunningHunt(self):
+  def testToolbarStateForRunningHunt(self):
     self.CreateSampleHunt(stopped=False)
     sel = self.selenium
 
@@ -179,15 +190,324 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     sel.click("css=a[grrtarget=ManageHunts]")
     self.WaitUntil(sel.is_text_present, "SampleHunt")
 
-     # Select a Hunt.
+    # Select a Hunt.
     sel.click("css=td:contains('SampleHunt')")
 
-     # Check we can now see the details.
+    # Check we can now see the details.
     self.WaitUntil(sel.is_element_present, "css=dl.dl-hunt")
     self.WaitUntil(sel.is_text_present, "Client Count")
     self.WaitUntil(sel.is_text_present, "Hunt URN")
 
-    self.assertFalse(sel.is_text_present("Run Hunt"))
+    self.assertTrue(sel.is_element_present,
+                    "css=button[name=RunHunt][disabled='']")
+    self.assertTrue(sel.is_element_present,
+                    "css=button[name=PauseHunt][disabled!='']")
+    self.assertTrue(sel.is_element_present,
+                    "css=button[name=ModifyHunt][disabled='']")
+
+  def testRunHuntWithoutACLChecks(self):
+    self.CreateSampleHunt(stopped=True)
+    sel = self.selenium
+
+    sel.open("/")
+    self.WaitUntil(sel.is_element_present, "client_query")
+    self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
+    sel.click("css=a[grrtarget=ManageHunts]")
+    self.WaitUntil(sel.is_text_present, "SampleHunt")
+
+    # Select a Hunt.
+    sel.click("css=td:contains('SampleHunt')")
+
+    # Check the hunt is not in a running state.
+    self.WaitUntil(sel.is_text_present, "stopped")
+
+    # Check we can now see the details.
+    self.WaitUntil(sel.is_element_present, "css=dl.dl-hunt")
+    self.WaitUntil(sel.is_text_present, "Client Count")
+    self.WaitUntil(sel.is_text_present, "Hunt URN")
+
+    # Click on Run button and check that dialog appears.
+    sel.click("css=button[name=RunHunt]")
+    self.WaitUntil(sel.is_text_present,
+                   "Are you sure you want to run this hunt?")
+
+    # Click Cancel and check that dialog disappears.
+    sel.click("css=button[name=Cancel]")
+    self.WaitUntil(lambda x: not sel.is_element_present(x),
+                   "css=.modal-backdrop")
+
+    # Click on Run and wait for dialog again.
+    sel.click("css=button[name=RunHunt]")
+    self.WaitUntil(sel.is_text_present,
+                   "Are you sure you want to run this hunt?")
+
+    # Click on "Proceed" and wait for "Done!" label to appear.
+    # Also check that "Proceed" button gets disabled.
+    sel.click("css=button[name=Proceed]")
+    self.WaitUntil(sel.is_text_present, "Done!")
+    self.assertTrue(sel.is_element_present,
+                    "css=button[name=Proceed][disabled!='']")
+
+    # Click on "Cancel" and check that dialog disappears.
+    sel.click("css=button[name=Cancel]")
+    self.WaitUntil(lambda x: not sel.is_element_present(x),
+                   "css=.modal-backdrop")
+
+    # TODO(user): make the refresh automatic.
+    # Refresh the view.
+    sel.click("css=a[grrtarget=ManageHunts]")
+    self.WaitUntil(sel.is_text_present, "SampleHunt")
+
+    # Check the hunt is in a running state.
+    sel.click("css=td:contains('SampleHunt')")
+    self.WaitUntil(sel.is_text_present, "RUNNING")
+
+  def testRunHuntWithACLChecks(self):
+    hunt = self.CreateSampleHunt(stopped=True)
+    self.InstallACLChecks()
+
+    sel = self.selenium
+
+    sel.open("/")
+    self.WaitUntil(sel.is_element_present, "client_query")
+    self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
+    sel.click("css=a[grrtarget=ManageHunts]")
+    self.WaitUntil(sel.is_text_present, "SampleHunt")
+
+    # Select a Hunt.
+    sel.click("css=td:contains('SampleHunt')")
+
+    # Click on Run button and check that dialog appears.
+    sel.click("css=button[name=RunHunt]")
+    self.WaitUntil(sel.is_text_present,
+                   "Are you sure you want to run this hunt?")
+
+    # Click on "Proceed" and wait for authorization dialog to appear.
+    sel.click("css=button[name=Proceed]")
+
+    # This should be rejected now and a form request is made.
+    self.WaitUntil(sel.is_text_present,
+                   "Create a new approval")
+    sel.click("css=#acl_dialog button[name=Close]")
+    # Wait for dialog to disappear.
+    self.WaitUntil(lambda x: not sel.is_element_present(x),
+                   "css=.modal-backdrop")
+
+    # Create the approval and approve it.
+    token = access_control.ACLToken(username="test")
+    token.supervisor = True
+    flow.FACTORY.StartFlow(None, "RequestHuntApprovalFlow",
+                           hunt_id=rdfvalue.RDFURN(hunt.session_id).Basename(),
+                           reason=self.reason,
+                           approver="approver",
+                           token=token)
+
+    self.MakeUserAdmin("approver")
+    token = access_control.ACLToken(username="approver")
+    token.supervisor = True
+    flow.FACTORY.StartFlow(None, "GrantHuntApprovalFlow",
+                           hunt_urn=hunt.session_id, reason=self.reason,
+                           delegate="test",
+                           token=token)
+
+    # Click on Run and wait for dialog again.
+    sel.click("css=button[name=RunHunt]")
+    self.WaitUntil(sel.is_text_present,
+                   "Are you sure you want to run this hunt?")
+
+    # Click on "Proceed" and wait for "Done!" label to appear.
+    # Also check that "Proceed" button gets disabled.
+    sel.click("css=button[name=Proceed]")
+
+    self.WaitUntil(sel.is_text_present, "Done!")
+    self.assertTrue(sel.is_element_present,
+                    "css=button[name=Proceed][disabled!='']")
+
+    # Click on "Cancel" and check that dialog disappears.
+    sel.click("css=button[name=Cancel]")
+    self.WaitUntil(lambda x: not sel.is_element_present(x),
+                   "css=.modal-backdrop")
+
+    # TODO(user): make the refresh automatic.
+    # Refresh the view.
+    sel.click("css=a[grrtarget=ManageHunts]")
+    self.WaitUntil(sel.is_text_present, "SampleHunt")
+
+    # Check the hunt is in a running state.
+    sel.click("css=td:contains('SampleHunt')")
+    self.WaitUntil(sel.is_text_present, "RUNNING")
+
+  def testPauseHuntWithoutACLChecks(self):
+    self.CreateSampleHunt(stopped=False)
+    sel = self.selenium
+
+    sel.open("/")
+    self.WaitUntil(sel.is_element_present, "client_query")
+    self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
+    sel.click("css=a[grrtarget=ManageHunts]")
+    self.WaitUntil(sel.is_text_present, "SampleHunt")
+
+    # Select a Hunt.
+    sel.click("css=td:contains('SampleHunt')")
+
+    # Check the hunt is in a running state.
+    self.WaitUntil(sel.is_text_present, "RUNNING")
+
+    # Check we can now see the details.
+    self.WaitUntil(sel.is_element_present, "css=dl.dl-hunt")
+    self.WaitUntil(sel.is_text_present, "Client Count")
+    self.WaitUntil(sel.is_text_present, "Hunt URN")
+
+    # Click on Pause button and check that dialog appears.
+    sel.click("css=button[name=PauseHunt]")
+    self.WaitUntil(sel.is_text_present,
+                   "Are you sure you want to pause this hunt?")
+
+    # Click Cancel and check that dialog disappears.
+    sel.click("css=button[name=Cancel]")
+    self.WaitUntil(lambda x: not sel.is_element_present(x),
+                   "css=.modal-backdrop")
+
+    # Click on Pause and wait for dialog again.
+    sel.click("css=button[name=PauseHunt]")
+    self.WaitUntil(sel.is_text_present,
+                   "Are you sure you want to pause this hunt?")
+
+    # Click on "Proceed" and wait for "Done!" label to appear.
+    # Also check that "Proceed" button gets disabled.
+    sel.click("css=button[name=Proceed]")
+    self.WaitUntil(sel.is_text_present, "Done!")
+    self.assertTrue(sel.is_element_present,
+                    "css=button[name=Proceed][disabled!='']")
+
+    # Click on "Cancel" and check that dialog disappears.
+    sel.click("css=button[name=Cancel]")
+    self.WaitUntil(lambda x: not sel.is_element_present(x),
+                   "css=.modal-backdrop")
+
+    # TODO(user): make the refresh automatic.
+    # Refresh the view.
+    sel.click("css=a[grrtarget=ManageHunts]")
+    self.WaitUntil(sel.is_text_present, "SampleHunt")
+
+    # Check the hunt is in a running state.
+    sel.click("css=td:contains('SampleHunt')")
+    self.WaitUntil(sel.is_text_present, "stopped")
+
+  def testPauseHuntWithACLChecks(self):
+    hunt = self.CreateSampleHunt(stopped=False)
+    self.InstallACLChecks()
+
+    sel = self.selenium
+
+    sel.open("/")
+    self.WaitUntil(sel.is_element_present, "client_query")
+    self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
+    sel.click("css=a[grrtarget=ManageHunts]")
+    self.WaitUntil(sel.is_text_present, "SampleHunt")
+
+    # Select a Hunt.
+    sel.click("css=td:contains('SampleHunt')")
+
+    # Click on Pause button and check that dialog appears.
+    sel.click("css=button[name=PauseHunt]")
+    self.WaitUntil(sel.is_text_present,
+                   "Are you sure you want to pause this hunt?")
+
+    # Click on "Proceed" and wait for authorization dialog to appear.
+    sel.click("css=button[name=Proceed]")
+
+    # This should be rejected now and a form request is made.
+    self.WaitUntil(sel.is_text_present,
+                   "Create a new approval")
+    sel.click("css=#acl_dialog button[name=Close]")
+    # Wait for dialog to disappear.
+    self.WaitUntil(lambda x: not sel.is_element_present(x),
+                   "css=.modal-backdrop")
+
+    # Create the approval.
+    token = access_control.ACLToken(username="test")
+    token.supervisor = True
+    flow.FACTORY.StartFlow(None, "RequestHuntApprovalFlow",
+                           hunt_id=rdfvalue.RDFURN(hunt.session_id).Basename(),
+                           reason=self.reason,
+                           approver="approver",
+                           token=token)
+
+    self.MakeUserAdmin("approver")
+    token = access_control.ACLToken(username="approver")
+    token.supervisor = True
+    flow.FACTORY.StartFlow(None, "GrantHuntApprovalFlow",
+                           hunt_urn=hunt.session_id, reason=self.reason,
+                           delegate="test",
+                           token=token)
+
+    # Click on Pause and wait for dialog again.
+    sel.click("css=button[name=PauseHunt]")
+    self.WaitUntil(sel.is_text_present,
+                   "Are you sure you want to pause this hunt?")
+
+    # Click on "Proceed" and wait for "Done!" label to appear.
+    # Also check that "Proceed" button gets disabled.
+    sel.click("css=button[name=Proceed]")
+    self.WaitUntil(sel.is_text_present, "Done!")
+    self.assertTrue(sel.is_element_present,
+                    "css=button[name=Proceed][disabled!='']")
+
+    # Click on "Cancel" and check that dialog disappears.
+    sel.click("css=button[name=Cancel]")
+    self.WaitUntil(lambda x: not sel.is_element_present(x),
+                   "css=.modal-backdrop")
+
+    # TODO(user): make the refresh automatic.
+    # Refresh the view.
+    sel.click("css=a[grrtarget=ManageHunts]")
+    self.WaitUntil(sel.is_text_present, "SampleHunt")
+
+    # Check the hunt is in a running state.
+    sel.click("css=td:contains('SampleHunt')")
+    self.WaitUntil(sel.is_text_present, "stopped")
+
+  def testModifyHuntWithACLChecks(self):
+    self.CreateSampleHunt(stopped=True)
+    self.InstallACLChecks()
+
+    sel = self.selenium
+
+    sel.open("/")
+    self.WaitUntil(sel.is_element_present, "client_query")
+    self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageHunts]")
+    sel.click("css=a[grrtarget=ManageHunts]")
+    self.WaitUntil(sel.is_text_present, "SampleHunt")
+
+    # Select a Hunt.
+    sel.click("css=td:contains('SampleHunt')")
+
+    # Click on Pause button and check that dialog appears.
+    sel.click("css=button[name=ModifyHunt]")
+    self.WaitUntil(sel.is_text_present,
+                   "Modify a hunt")
+
+    sel.type("css=input[name=client_limit]", "4483")
+    sel.type("css=input[name=expiry_time]", "5m")
+
+    # Click on "Proceed" and wait for "Done!" label to appear.
+    # Also check that "Proceed" button gets disabled.
+    sel.click("css=button[name=Proceed]")
+    self.WaitUntil(sel.is_text_present, "Done!")
+    self.assertTrue(sel.is_element_present,
+                    "css=button[name=Proceed][disabled!='']")
+
+    # Click on "Cancel" and check that dialog disappears.
+    sel.click("css=button[name=Cancel]")
+    self.WaitUntil(lambda x: not sel.is_element_present(x),
+                   "css=.modal-backdrop")
+
+    # TODO(user): make the refresh automatic.
+    # Refresh the view.
+    sel.click("css=a[grrtarget=ManageHunts]")
+    self.WaitUntil(sel.is_text_present, "SampleHunt")
+    self.WaitUntil(sel.is_text_present, "4483")
 
   def SetupHuntDetailView(self):
     """Create some clients and a hunt to view."""

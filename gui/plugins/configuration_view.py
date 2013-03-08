@@ -41,20 +41,24 @@ class ConfigManager(renderers.TemplateRenderer):
 
 <tbody class="TableBody">
 {% for section, data in this.sections %}
-  <tr><td colspan=3>{{ section|escape }}</td></tr>
+  <tr><th colspan=2>{{ section|escape }}</th></tr>
   {% for key, value, interpolated in data %}
-  <tr><td>{{ key|escape }}</td>
-      <td>{{ value|escape }}</td>
+    <tr><td>{{ key|escape }}</td>
+    {% if value|escape != interpolated|escape %}
+      <td>{{ interpolated|escape }}
+      (<i>expanded from: {{ value|escape}}</i>)</td>
+    {% else %}
       <td>{{ interpolated|escape }}</td>
-  </tr>
-   {% endfor %}
+    {% endif %}
+    </tr>
+  {% endfor %}
 {% endfor %}
 </tbody>
 <table>
 """)
 
   redacted_options = ["django_secret_key"]
-  redacted_sections = ["PrivateKeys"]
+  redacted_sections = ["PrivateKeys", "Users"]
 
   def Layout(self, request, response):
     """Fill in the form with the specific fields for the flow requested."""

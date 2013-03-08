@@ -6,7 +6,7 @@
 // http://msdn.microsoft.com/en-us/library/windows/desktop/bb540475(v=vs.85).aspx
 
 #include "grr/client/nanny/windows_nanny.h"
-
+#include <shellapi.h>
 #include <psapi.h>
 #include <stdio.h>
 #include <tchar.h>
@@ -23,45 +23,28 @@
 #include <memory>
 #include <string>
 
+// Windows uses evil macros which interfere with proper C++.
+#ifdef GetCurrentTime
+#undef GetCurrentTime
+#endif
+
 #include "grr/client/nanny/child_controller.h"
 #include "grr/client/nanny/event_logger.h"
 
 using ::grr::EventLogger;
 
-namespace {
+namespace grr {
 
 // Global objects for synchronization.
 SERVICE_STATUS g_service_status;
 SERVICE_STATUS_HANDLE g_service_status_handler;
 HANDLE g_service_stop_event = NULL;
 
-// ---------------------------------------------------------
-// WindowsEventLogger: Implementation of the windows event logger.
-// ---------------------------------------------------------
-class WindowsEventLogger : public grr::EventLogger {
- public:
-  WindowsEventLogger();
-
-  // An optional message can be passed to the constructor to log a single
-  // message upon construction. This is useful for one-time log messages to be
-  // written to the event log.
-  explicit WindowsEventLogger(const char *message);
-  virtual ~WindowsEventLogger();
-
- private:
-  HANDLE event_source;
-  // Actually write the log file - to be implemented by extensions.
-  virtual void WriteLog(std::string message);
-  virtual time_t GetCurrentTime();
-
-  DISALLOW_COPY_AND_ASSIGN(WindowsEventLogger);
-};
-
 // Open initial connection with event log.
-WindowsEventLogger::WindowsEventLogger(const char *message) : EventLogger() {
+WindowsEventLogger::WindowsEventLogger(const char *message) : StdOutLogger() {
   // If this fails, we do not log anything. There is nothing else we could do if
   // we cannot log to the event log.
-  event_source = RegisterEventSource(NULL, kGrrServiceName);
+  event_source = RegisterEventSource(NULL, kNannyConfig->service_name);
   if (message) {
     Log(message);
   }
@@ -70,7 +53,7 @@ WindowsEventLogger::WindowsEventLogger(const char *message) : EventLogger() {
 WindowsEventLogger::WindowsEventLogger() {
   // If this fails, we do not log anything. There is nothing else we could do if
   // we cannot log to the event log.
-  event_source = RegisterEventSource(NULL, kGrrServiceName);
+  event_source = RegisterEventSource(NULL, kNannyConfig->service_name);
 }
 
 // Unregister with the event log.
@@ -80,16 +63,11 @@ WindowsEventLogger::~WindowsEventLogger() {
   }
 }
 
-// Gets the current epoch time..
-time_t WindowsEventLogger::GetCurrentTime() {
-  return time(NULL);
-}
-
 // Write the log message to the event log.
 void WindowsEventLogger::WriteLog(std::string message) {
   const TCHAR *strings[2];
 
-  strings[0] = kGrrServiceName;
+  strings[0] = kNannyConfig->service_name;
   strings[1] = message.c_str();
 
   // TODO(user): change this into overwriting % with place holder chars
@@ -112,57 +90,21 @@ void WindowsEventLogger::WriteLog(std::string message) {
 };
 
 // ---------------------------------------------------------
-// ServiceKey: A scoped object to manage access to the nanny
-// registry keys.
+// StdOutLogger: A logger to stdout.
 // ---------------------------------------------------------
-class ServiceKey {
- public:
-  ServiceKey();
-  ~ServiceKey();
-
-  // Returns the service key or NULL if key could not be opened.
-  HKEY GetServiceKey();
-
- private:
-  HKEY key;
-  WindowsEventLogger logger_;
-
-  DISALLOW_COPY_AND_ASSIGN(ServiceKey);
-};
-
-ServiceKey::ServiceKey()
-    : key(NULL),
-      logger_(NULL) {}
-
-// Opens the service key.
-HKEY ServiceKey::GetServiceKey() {
-  if (key) {
-    return key;
-  }
-  // Do not define KEY_WOW64_64KEY here as part of the access flags
-  // it will break on WINVER < 0x501
-  HRESULT result = RegOpenKeyEx(GRR_SERVICE_REGISTRY_HIVE,
-                                kGrrServiceRegistry,
-                                0,
-                                KEY_READ | KEY_WRITE,
-                                &key);
-  if (result != ERROR_SUCCESS) {
-    key = 0;
-    TCHAR errormsg[1024];
-    FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, result, 0, errormsg,
-                  1024, NULL);
-    logger_.Log("Unable to open service key (%s): %s", kGrrServiceRegistry,
-                errormsg);
-    return NULL;
-  }
-
-  return key;
+StdOutLogger::StdOutLogger() {}
+StdOutLogger::~StdOutLogger() {}
+StdOutLogger::StdOutLogger(const char *message) {
+  printf("%s\n", message);
 }
 
-ServiceKey::~ServiceKey() {
-  if (key) {
-    RegCloseKey(key);
-  }
+// Gets the current epoch time..
+time_t StdOutLogger::GetCurrentTime() {
+  return time(NULL);
+}
+
+void StdOutLogger::WriteLog(std::string message) {
+  printf("%s\n", message.c_str());
 }
 
 
@@ -205,7 +147,7 @@ class WindowsChildProcess : public grr::ChildProcess {
 
   virtual bool Started();
 
-  virtual void Sleep(unsigned int milliseconds);
+  virtual void ChildSleep(unsigned int milliseconds);
 
  private:
   PROCESS_INFORMATION child_process;
@@ -241,17 +183,12 @@ void WindowsChildProcess::KillChild(std::string msg) {
 
 // Returns the last time the child produced a heartbeat.
 time_t WindowsChildProcess::GetHeartbeat() {
-  ServiceKey key;
-
-  if (!key.GetServiceKey()) {
-    return -1;
-  }
-
   DWORD last_heartbeat = 0;
   DWORD data_len = sizeof(last_heartbeat);
   DWORD type;
 
-  if (RegQueryValueEx(key.GetServiceKey(), kGrrServiceHeartbeatTime,
+  if (RegQueryValueEx(kNannyConfig->service_key,
+                      kGrrServiceHeartbeatTimeKey,
                       0, &type, reinterpret_cast<BYTE*>(&last_heartbeat),
                       &data_len) != ERROR_SUCCESS ||
       type != REG_DWORD || data_len != sizeof(last_heartbeat)) {
@@ -268,21 +205,15 @@ void WindowsChildProcess::ClearHeartbeat() {
 
 // Sets the heartbeat to the current time.
 void WindowsChildProcess::Heartbeat() {
-  SetHeartbeat(GetCurrentTime());
+  SetHeartbeat((unsigned int)GetCurrentTime());
 }
 
 void WindowsChildProcess::SetHeartbeat(unsigned int value) {
-  ServiceKey key;
-
-  if (!key.GetServiceKey()) {
-    return;
-  }
-
   DWORD v = value;
   HRESULT result = 0;
 
-  result = RegSetValueEx(key.GetServiceKey(),
-                         kGrrServiceHeartbeatTime,
+  result = RegSetValueEx(kNannyConfig->service_key,
+                         kGrrServiceHeartbeatTimeKey,
                          0,
                          REG_DWORD,
                          reinterpret_cast<BYTE*>(&v),
@@ -297,15 +228,10 @@ void WindowsChildProcess::SetHeartbeat(unsigned int value) {
 
 // This sends a status message back to the server in case of a child kill.
 void WindowsChildProcess::SetNannyStatus(std::string msg) {
-  ServiceKey key;
-
-  if (!key.GetServiceKey()) {
-    return;
-  }
-
-  if (RegSetValueExA(key.GetServiceKey(), kGrrServiceNannyStatus, 0, REG_SZ,
+  if (RegSetValueExA(kNannyConfig->service_key,
+                     kGrrServiceNannyStatusKey, 0, REG_SZ,
                      reinterpret_cast<const BYTE*>(msg.c_str()),
-                     msg.size() + 1) != ERROR_SUCCESS) {
+                     (DWORD)(msg.size() + 1)) != ERROR_SUCCESS) {
     logger_.Log("Unable to set Nanny status (%s).", msg.c_str());
   }
 };
@@ -316,15 +242,10 @@ void WindowsChildProcess::SetPendingNannyMessage(std::string msg) {
 
 // This sends a message back to the server.
 void WindowsChildProcess::SetNannyMessage(std::string msg) {
-  ServiceKey key;
-
-  if (!key.GetServiceKey()) {
-    return;
-  }
-
-  if (RegSetValueExA(key.GetServiceKey(), kGrrServiceNannyMessage, 0, REG_SZ,
+  if (RegSetValueExA(kNannyConfig->service_key,
+                     kGrrServiceNannyMessageKey, 0, REG_SZ,
                      reinterpret_cast<const BYTE*>(msg.c_str()),
-                     msg.size() + 1) != ERROR_SUCCESS) {
+                     (DWORD)(msg.size() + 1)) != ERROR_SUCCESS) {
     logger_.Log("Unable to set Nanny message (%s).", msg.c_str());
   }
 };
@@ -333,65 +254,11 @@ void WindowsChildProcess::SetNannyMessage(std::string msg) {
 
 // Launch the child process.
 bool WindowsChildProcess::CreateChildProcess() {
-  // Get the binary location from our registry key.
-  ServiceKey key;
-  TCHAR command_line[MAX_PATH];
-  TCHAR expanded_command_line[MAX_PATH];
-  TCHAR expanded_process_name[MAX_PATH];
-  TCHAR process_name[MAX_PATH];
-  DWORD command_line_len = MAX_PATH - 1;
-  DWORD expanded_command_line_len = 0;
-  DWORD expanded_process_name_len = 0;
-  DWORD process_name_len = MAX_PATH - 1;
   DWORD creation_flags = 0;
-  DWORD type;
 
   if (pendingNannyMsg_ != "") {
     SetNannyMessage(pendingNannyMsg_);
     pendingNannyMsg_ = "";
-  }
-
-  if (!key.GetServiceKey()) {
-    return false;
-  }
-
-  if (RegQueryValueEx(key.GetServiceKey(), kGrrServiceBinaryChild,
-                      0, &type, reinterpret_cast<BYTE*>(process_name),
-                      &process_name_len) != ERROR_SUCCESS ||
-      type != REG_SZ || process_name_len >= MAX_PATH) {
-    logger_.Log("Unable to open kGrrServiceBinaryChild value.");
-    return false;
-  }
-
-  // Ensure it is null terminated.
-  process_name[process_name_len] = '\0';
-
-  expanded_process_name_len = ExpandEnvironmentStrings(
-      process_name, expanded_process_name, MAX_PATH);
-
-  if ((expanded_process_name_len == 0) ||
-      (expanded_process_name_len > MAX_PATH)) {
-    logger_.Log("Unable to expand kGrrServiceBinaryChild value.");
-    return false;
-  }
-
-  if (RegQueryValueEx(key.GetServiceKey(), kGrrServiceBinaryCommandLine,
-                      0, &type, reinterpret_cast<BYTE*>(command_line),
-                      &command_line_len) != ERROR_SUCCESS ||
-      type != REG_SZ || command_line_len >= MAX_PATH) {
-    logger_.Log("Unable to open kGrrServiceBinaryCommandLine value.");
-    return false;
-  }
-
-  command_line[command_line_len] = '\0';
-
-  expanded_command_line_len = ExpandEnvironmentStrings(
-      command_line, expanded_command_line, MAX_PATH);
-
-  if ((expanded_command_line_len == 0) ||
-      (expanded_command_line_len > MAX_PATH)) {
-    logger_.Log("Unable to expand kGrrServiceBinaryCommandLine value.");
-    return false;
   }
 
   // If the child is already running or we have a handle to it, try to kill it.
@@ -413,8 +280,8 @@ bool WindowsChildProcess::CreateChildProcess() {
 
   // Now try to start it.
   if (!CreateProcess(
-          expanded_process_name,  // Application Name
-          expanded_command_line,  // Command line
+          kNannyConfig->child_process_name,  // Application Name
+          kNannyConfig->child_command_line,  // Command line
           NULL,  // Process attributes
           NULL,  //  lpThreadAttributes
           0,  // bInheritHandles
@@ -423,7 +290,8 @@ bool WindowsChildProcess::CreateChildProcess() {
           NULL,  // lpCurrentDirectory
           &startup_info,  // lpStartupInfo
           &child_process)) {
-    logger_.Log("Unable to launch child process: %s %u.", expanded_process_name,
+    logger_.Log("Unable to launch child process: %s %u.",
+                kNannyConfig->child_process_name,
                 GetLastError());
     return false;
   }
@@ -437,7 +305,7 @@ time_t WindowsChildProcess::GetCurrentTime() {
   return time(NULL);
 };
 
-void WindowsChildProcess::Sleep(unsigned int milliseconds) {
+void WindowsChildProcess::ChildSleep(unsigned int milliseconds) {
   Sleep(milliseconds);
 };
 
@@ -481,6 +349,128 @@ WindowsChildProcess::WindowsChildProcess()
 WindowsChildProcess::~WindowsChildProcess() {
   KillChild("Shutting down.");
 };
+
+// -----------------------------------------------------------
+// Implementation of the WindowsControllerConfig configuration
+// manager.
+// -----------------------------------------------------------
+WindowsControllerConfig::WindowsControllerConfig()
+  : logger_(NULL) {
+  // Child must stay dead for this many seconds.
+  controller_config.resurrection_period = 60;
+
+  // If we receive no heartbeats from the client in this long, child
+  // is killed.
+  controller_config.unresponsive_kill_period = 180;
+
+  controller_config.event_log_message_suppression = 60 * 60 * 24;
+
+  controller_config.failure_count_to_revert = 0;
+  controller_config.client_memory_limit = 1024 * 1024 * 1024;
+
+  service_hive = HKEY_LOCAL_MACHINE;
+  service_key = NULL;
+  service_key_name = NULL;
+
+  action = TEXT("");
+};
+
+WindowsControllerConfig::~WindowsControllerConfig() {
+  if (service_key) {
+    RegCloseKey(service_key);
+  };
+}
+
+
+  // Read a value from the service key and store in dest.
+DWORD WindowsControllerConfig::ReadValue(const TCHAR *value_name,
+                                         TCHAR *dest, DWORD len) {
+  DWORD type;
+
+  if (RegQueryValueEx(service_key,
+                      value_name, 0, &type,
+                      reinterpret_cast<BYTE*>(dest),
+                      &len) != ERROR_SUCCESS ||
+      type != REG_SZ || len >= MAX_PATH) {
+    logger_.Log("Unable to open value %s.", value_name);
+    return ERROR_INVALID_DATA;
+  }
+
+  // Ensure it is null terminated.
+  dest[len] = '\0';
+
+  return ERROR_SUCCESS;
+};
+
+
+// Parses configuration parameters from __argv.
+DWORD WindowsControllerConfig::ParseConfiguration(void) {
+  int i;
+
+  for (i = 1; i < __argc; i++) {
+    char * parameter = __argv[i];
+
+    if (!strcmp(__argv[i], "--service_key") && i + 1 < __argc) {
+      i++;
+      service_key_name = __argv[i];
+      continue;
+    };
+
+    if (!strcmp(__argv[i], "install")) {
+      action = __argv[i];
+      continue;
+    }
+
+    logger_.Log("Unable to parse command line parameter %s", __argv[i]);
+    return ERROR_INVALID_DATA;
+  };
+
+  if (!service_key_name) {
+    logger_.Log("No service key set. Please ensure --service_key is "
+                "specified.");
+    return ERROR_INVALID_DATA;
+  };
+
+  // Try to open the service key now.
+  HRESULT result = RegOpenKeyEx(service_hive,
+                                service_key_name,
+                                0,
+                                KEY_READ | KEY_WRITE,
+                                &service_key);
+  if (result != ERROR_SUCCESS) {
+    service_key = 0;
+    TCHAR errormsg[1024];
+
+    FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, result, 0, errormsg,
+                  1024, NULL);
+
+    logger_.Log("Unable to open service key (%s): %s", service_key_name,
+                errormsg);
+    return result;
+  }
+
+
+  // Get the child command line from the service key. The installer
+  // should pre-populate this key for us. We fail if we can not find
+  // it
+  result = ReadValue(kGrrServiceBinaryChildKey, child_process_name,
+                     sizeof(child_process_name));
+  if (result != ERROR_SUCCESS)
+    return result;
+
+  result = ReadValue(kGrrServiceBinaryCommandLineKey, child_command_line,
+                     sizeof(child_command_line));
+  if (result != ERROR_SUCCESS)
+    return result;
+
+  result = ReadValue(kGrrServiceNameKey, service_name, sizeof(service_name));
+  if (result != ERROR_SUCCESS)
+    return result;
+
+  return ERROR_SUCCESS;
+};
+
+
 
 
 // ---------------------------------------------------------
@@ -644,7 +634,6 @@ bool InstallService() {
   // http://blogs.msdn.com/b/david.wang/archive/2006/03/26/
   // howto-detect-process-bitness.aspx
   result = windows_nanny_IsWow64Process(GetCurrentProcess(), &f64);
-
   if (result && f64) {
     printf("32 bit installer should not be run on a 64 bit machine!\n");
     return false;
@@ -662,11 +651,17 @@ bool InstallService() {
     return false;
   }
 
+  std::string command_line(module_name);
+
+  command_line += " --service_key \"";
+  command_line += kNannyConfig->service_key_name;
+  command_line += "\"";
+
   // Try to stop and delete an existing service.
   service_handle = OpenService(
-      service_control_manager,  // SCM database
-      kGrrServiceName,          // name of service
-      SERVICE_ALL_ACCESS);      // need delete access
+      service_control_manager,      // SCM database
+      kNannyConfig->service_name,   // name of service
+      SERVICE_ALL_ACCESS);          // need delete access
 
   // Service already exists.
   if (service_handle) {
@@ -675,21 +670,24 @@ bool InstallService() {
              "service is not already started.\n");
     }
 
-    if (!ChangeServiceConfig(service_handle, SERVICE_NO_CHANGE,
-                             SERVICE_NO_CHANGE, SERVICE_NO_CHANGE, module_name,
-                             NULL, NULL, NULL, NULL, NULL, NULL)) {
+    if (!ChangeServiceConfig(
+            service_handle, SERVICE_NO_CHANGE,
+            SERVICE_NO_CHANGE, SERVICE_NO_CHANGE, command_line.c_str(),
+            NULL, NULL, NULL, NULL, NULL, NULL)) {
       printf("Service could not be reconfigured (%d). Will use the existing "
              "nanny binary.", GetLastError());
     }
   } else {
     // Create the service control entry so we can get started.
     service_handle = CreateService(
-      service_control_manager, kGrrServiceName, kGrrServiceName,
+                service_control_manager, kNannyConfig->service_name,
+                kNannyConfig->service_name,
       SERVICE_ALL_ACCESS,
       SERVICE_WIN32_OWN_PROCESS,  // Run in our own process.
       SERVICE_AUTO_START,  // Come up on regular startup.
       SERVICE_ERROR_NORMAL,  // If we fail to start, log it and move on.
-      module_name, NULL, NULL, NULL,
+      command_line.c_str(),  // Command line for the service.
+          NULL, NULL, NULL,
       // Run as LocalSystem so no username and password.
       NULL, NULL);
 
@@ -707,7 +705,7 @@ bool InstallService() {
   printf("Service successfully installed.\nExecutable: %s\n", module_name);
 
   // Set the service description.
-  service_descriptor.lpDescription = kGrrServiceDesc;
+  service_descriptor.lpDescription = kNannyConfig->service_description;
   if (!ChangeServiceConfig2(service_handle, SERVICE_CONFIG_DESCRIPTION,
                             &service_descriptor))
     logger.Log("Could not set service description.\n");
@@ -761,16 +759,30 @@ VOID WINAPI SvcCtrlHandler(DWORD control) {
     default:
       break;
   }
-}
+};
 
 // The main function for the service.
-VOID WINAPI ServiceMain(DWORD argc, TCHAR *argv) {
+VOID WINAPI ServiceMain(int argc, LPTSTR *argv) {
+  WindowsControllerConfig global_config;
+  WindowsEventLogger logger;
+
+  // Parse the configuration and set the global object.
+  if (global_config.ParseConfiguration() == ERROR_SUCCESS) {
+    kNannyConfig = &global_config;
+  } else {
+    printf("Unable to parse command line.");
+    return;
+  };
+
+  logger.Log("Running nanny with service key %s",
+             kNannyConfig->service_key_name);
+
   // Registers the handler function for the service.
-  g_service_status_handler = RegisterServiceCtrlHandler(kGrrServiceName,
-                                                        SvcCtrlHandler);
+  g_service_status_handler = RegisterServiceCtrlHandler(
+    kNannyConfig->service_name, SvcCtrlHandler);
 
   if (!g_service_status_handler) {
-    WindowsEventLogger("RegisterServiceCtrlHandler");
+          logger.Log("RegisterServiceCtrlHandler failed.");
     return;
   }
 
@@ -796,7 +808,8 @@ VOID WINAPI ServiceMain(DWORD argc, TCHAR *argv) {
 
   // Create a new child to control.
   WindowsChildProcess child;
-  grr::ChildController child_controller(kNannyConfig, &child);
+  grr::ChildController child_controller(kNannyConfig->controller_config,
+                                        &child);
 
   // Report running status when initialization is complete.
   ReportSvcStatus(SERVICE_RUNNING, NO_ERROR, 0);
@@ -816,7 +829,8 @@ VOID WINAPI ServiceMain(DWORD argc, TCHAR *argv) {
         ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
         return;
       }
-      if (child.GetMemoryUsage() > kNannyConfig.client_memory_limit) {
+      if (child.GetMemoryUsage() >
+          kNannyConfig->controller_config.client_memory_limit) {
         child.KillChild("Child process exceeded memory limit.");
         break;
       }
@@ -838,14 +852,24 @@ VOID WINAPI ServiceMain(DWORD argc, TCHAR *argv) {
 int _cdecl real_main(int argc, TCHAR *argv[]) {
   // If command-line parameter is "install", install the service.
   // Otherwise, the service is probably being started by the SCM.
+  WindowsControllerConfig global_config;
 
-  if (argc > 0 && lstrcmpi(argv[1], TEXT("install")) == 0) {
+  // Parse the configuration and set the global object.
+  if (global_config.ParseConfiguration() == ERROR_SUCCESS) {
+    kNannyConfig = &global_config;
+  } else {
+    printf("Unable to parse command line.\n");
+    return -1;
+  };
+
+  if (lstrcmpi(global_config.action, TEXT("install")) == 0) {
     return InstallService() ? 0 : -1;
   }
 
   // This table contains all the services provided by this binary.
   SERVICE_TABLE_ENTRY kDispatchTable[] = {
-    { kGrrServiceName, reinterpret_cast<LPSERVICE_MAIN_FUNCTION>(ServiceMain) },
+    { kNannyConfig->service_name,
+      reinterpret_cast<LPSERVICE_MAIN_FUNCTION>(ServiceMain) },
     { NULL, NULL }
   };
 
@@ -857,15 +881,15 @@ int _cdecl real_main(int argc, TCHAR *argv[]) {
   return 0;
 }
 
-}  // namespace
+}  // namespace grr
 
 // Main entry point when built as a windows application.
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    char *lpCmdLine, int nCmdShow) {
-  return real_main(__argc, __argv);
+  return grr::real_main(__argc, __argv);
 }
 
 // Main entry point when build as a console application.
 int _tmain(int argc, char *argv[]) {
-  return real_main(argc, argv);
+  return grr::real_main(argc, argv);
 };

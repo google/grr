@@ -13,43 +13,127 @@
 // child_controller.h).
 #include <windows.h>
 
+// Windows uses evil macros which interfer with proper C++.
+#ifdef GetCurrentTime
+#undef GetCurrentTime
+#endif
+
 #include "grr/client/nanny/child_controller.h"
 
-TCHAR kGrrServiceName[] = TEXT("GRR");
-TCHAR kGrrServiceDesc[] = TEXT("The GRR Monitoring Service");
+namespace grr {
 
-// A registry key that holds GRR service configuration.
-#define GRR_SERVICE_REGISTRY_HIVE HKEY_LOCAL_MACHINE
+const TCHAR *kGrrServiceNameKey = TEXT("service_name");
+const TCHAR *kGrrServiceDescKey = TEXT("service_description");
 
-const TCHAR* kGrrServiceRegistry = TEXT("SOFTWARE\\Google\\GRR");
+// This is the root of the service configuration branch in the
+// registry. It is normally passed through the --service_key command
+// line arg.
+TCHAR* kGrrServiceRegistry = NULL;
+
 
 // A registry value specifying the child that will be run.
-const TCHAR* kGrrServiceBinaryChild = TEXT("ChildBinary");
-const TCHAR* kGrrServiceBinaryCommandLine = TEXT("ChildCommandLine");
+const TCHAR* kGrrServiceBinaryChildKey = TEXT("child_binary");
+const TCHAR* kGrrServiceBinaryCommandLineKey = TEXT("child_command_line");
 
 // A backup binary location, in case the primary binary failed to start.
-const TCHAR* kGrrServiceBinaryChildAlternate = TEXT("ChildBinaryLastKnownGood");
+const TCHAR* kGrrServiceBinaryChildAlternate = TEXT("child_last_known_good");
 
 // The registry value which is updated for each heartbeat. It is a REG_DWORD and
 // stores a unix epoch time.
-const TCHAR* kGrrServiceHeartbeatTime = TEXT("Heartbeat");
+const TCHAR* kGrrServiceHeartbeatTimeKey = TEXT("heartbeat");
 
 // The registry value which is updated for the nanny messages.
-const TCHAR* kGrrServiceNannyMessage = TEXT("NannyMessage");
+const TCHAR* kGrrServiceNannyMessageKey = TEXT("nanny_message");
 
 // The registry value which is updated for the nanny status.
-const TCHAR* kGrrServiceNannyStatus = TEXT("NannyStatus");
+const TCHAR* kGrrServiceNannyStatusKey = TEXT("nanny_status");
 
-// Configuration of nanny policies.
-const struct grr::ControllerConfig kNannyConfig = {
-  // Child must stay dead for this many seconds.
-  60,  // resurrection_period
 
-  // If we receive no heartbeats from the client in this long, child is killed.
-  180,  // unresponsive_kill_period
-  60 * 60 * 24,  // event_log_message_suppression
-  0,  // failure_count, not yet used
-  1024 * 1024 * 1024,  // client memory limit
+// ---------------------------------------------------------
+// StdOutLogger: A logger to stdout.
+// ---------------------------------------------------------
+class StdOutLogger : public grr::EventLogger {
+ public:
+  StdOutLogger();
+
+  // An optional message can be passed to the constructor to log a single
+  // message upon construction. This is useful for one-time log messages to be
+  // written to the event log.
+  explicit StdOutLogger(const char *message);
+  virtual ~StdOutLogger();
+
+ protected:
+  void WriteLog(std::string message);
+  virtual time_t GetCurrentTime();
+
+ private:
+  DISALLOW_COPY_AND_ASSIGN(StdOutLogger);
 };
+
+
+// ---------------------------------------------------------
+// WindowsEventLogger: Implementation of the windows event logger.
+// ---------------------------------------------------------
+class WindowsEventLogger : public grr::StdOutLogger {
+ public:
+  WindowsEventLogger();
+
+  // An optional message can be passed to the constructor to log a single
+  // message upon construction. This is useful for one-time log messages to be
+  // written to the event log.
+  explicit WindowsEventLogger(const char *message);
+  virtual ~WindowsEventLogger();
+
+ protected:
+  virtual void WriteLog(std::string message);
+
+ private:
+  HANDLE event_source;
+
+  DISALLOW_COPY_AND_ASSIGN(WindowsEventLogger);
+};
+
+
+
+
+// We store all configuration specific to the windows nanny in this
+// global struct.
+class WindowsControllerConfig {
+ public:
+  WindowsControllerConfig();
+  virtual ~WindowsControllerConfig();
+
+  struct grr::ControllerConfig controller_config;
+
+  // A registry key that holds GRR service configuration.
+  HKEY service_hive;
+  HKEY service_key;
+
+  // The main service key name.
+  TCHAR *service_key_name;
+
+  TCHAR service_name[MAX_PATH];
+  TCHAR service_description[MAX_PATH];
+
+  // The action to perform. Currently "install".
+  TCHAR *action;
+
+  TCHAR child_process_name[MAX_PATH];
+  TCHAR child_command_line[MAX_PATH];
+
+  DWORD ParseConfiguration(void);
+
+ private:
+  StdOutLogger logger_;
+  DWORD ReadValue(const TCHAR *value, TCHAR *dest, DWORD len);
+
+  DISALLOW_COPY_AND_ASSIGN(WindowsControllerConfig);
+};
+
+// The global configuration object. Will be initialized by the main()
+// function.
+WindowsControllerConfig *kNannyConfig = NULL;
+
+}  // namespace grr
 
 #endif  // GRR_CLIENT_NANNY_WINDOWS_NANNY_H_

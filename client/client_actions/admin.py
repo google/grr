@@ -18,6 +18,9 @@ from grr.lib import rdfvalue
 from grr.lib import stats
 
 config_lib.DEFINE_string("Client.name", "GRR", "The name of the client.")
+config_lib.DEFINE_string("Client.binary_name", "%(Client.name)",
+                         "The name of the client binary.")
+
 config_lib.DEFINE_string("Client.company_name", "GRR Project",
                          "The name of the company which made the client.")
 
@@ -211,9 +214,9 @@ class GetClientInfo(actions.ActionPlugin):
   def Run(self, unused_args):
 
     self.SendReply(
-        client_name=config_lib["Client.name"],
-        client_version=config_lib["Client.version_numeric"],
-        build_time=config_lib["Client.build_time"],
+        client_name=config_lib.CONFIG["Client.name"],
+        client_version=config_lib.CONFIG["Client.version_numeric"],
+        build_time=config_lib.CONFIG["Client.build_time"],
         )
 
 

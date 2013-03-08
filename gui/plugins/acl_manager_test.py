@@ -149,9 +149,13 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Select a Hunt.
     sel.click("css=td:contains('SampleHunt')")
-    self.WaitUntil(sel.is_text_present, "Run Hunt")
 
-    sel.click("css=a[name=RunHunt]")
+    # Click on Run and wait for dialog again.
+    sel.click("css=button[name=RunHunt]")
+    self.WaitUntil(sel.is_text_present,
+                   "Are you sure you want to run this hunt?")
+    # Click on "Proceed" and wait for authorization dialog to appear.
+    sel.click("css=button[name=Proceed]")
 
     # This should be rejected now and a form request is made.
     self.WaitUntil(sel.is_element_present,
@@ -164,7 +168,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # "Request Approval" dialog should go away
     self.WaitUntil(lambda x: not sel.is_element_present(x),
-                   "css=h3:contains('Create a new approval')")
+                   "css=.modal-backdrop")
 
     sel.open("/")
     self.WaitUntilEqual("1",
@@ -202,8 +206,14 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Run SampleHunt (it should be selected by default).
     self.WaitUntil(sel.is_text_present, "SampleHunt")
-    self.WaitUntil(sel.is_text_present, "Run Hunt")
-    sel.click("css=a[name=RunHunt]")
+    self.WaitUntil(sel.is_element_present, "css=button[name=RunHunt]")
+
+    # Click on Run and wait for dialog again.
+    sel.click("css=button[name=RunHunt]")
+    self.WaitUntil(sel.is_text_present,
+                   "Are you sure you want to run this hunt?")
+    # Click on "Proceed" and wait for authorization dialog to appear.
+    sel.click("css=button[name=Proceed]")
 
     # This is insufficient - we need 2 approvers.
     self.WaitUntilContains("Requires 2 approvers for access.",
@@ -228,10 +238,14 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     sel.click("css=tr:contains('has approved your permission') a")
 
     self.WaitUntil(sel.is_text_present, "SampleHunt")
-    self.WaitUntil(sel.is_text_present, "Run Hunt")
+    self.WaitUntil(sel.is_element_present, "css=button[name=RunHunt]")
 
     # Run SampleHunt (it should be selected by default).
-    sel.click("css=a[name=RunHunt]")
+    sel.click("css=button[name=RunHunt]")
+    self.WaitUntil(sel.is_text_present,
+                   "Are you sure you want to run this hunt?")
+    # Click on "Proceed" and wait for authorization dialog to appear.
+    sel.click("css=button[name=Proceed]")
 
     # This is still insufficient - one of the approvers should have
     # "admin" label.
@@ -250,7 +264,14 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Select and run SampleHunt.
     sel.click("css=td:contains('SampleHunt')")
-    self.WaitUntil(sel.is_text_present, "Run Hunt")
-    sel.click("css=a[name=RunHunt]")
 
-    self.WaitUntil(sel.is_text_present, "Hunt was started!")
+    # Run SampleHunt (it should be selected by default).
+    self.WaitUntil(sel.is_text_present, "SampleHunt")
+    self.WaitUntil(sel.is_element_present, "css=button[name=RunHunt]")
+    sel.click("css=button[name=RunHunt]")
+    self.WaitUntil(sel.is_text_present,
+                   "Are you sure you want to run this hunt?")
+    # Click on "Proceed" and wait for the success status message.
+    sel.click("css=button[name=Proceed]")
+
+    self.WaitUntil(sel.is_text_present, "Done!")

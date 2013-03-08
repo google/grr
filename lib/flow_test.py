@@ -78,6 +78,36 @@ class FlowFactoryTest(test_lib.FlowTestsBaseclass):
                       self.client_id, "FlowOrderTest", token=self.token,
                       foobar=1)
 
+  def testHasAff4ObjectAttribute(self):
+    """Check that fetched flow has aff4_object attribute initialized."""
+    session_id = flow.FACTORY.StartFlow(self.client_id, "FlowOrderTest",
+                                        token=self.token)
+
+    rdf_flow = flow.FACTORY.FetchFlow(session_id, sync=False, token=self.token)
+    self.assertTrue(rdf_flow.aff4_object)
+
+    flow_obj = flow.FACTORY.LoadFlow(rdf_flow)
+    self.assertTrue(flow_obj.aff4_object)
+
+    flow.FACTORY.ReturnFlow(rdf_flow, token=self.token)
+
+  def testTypeAttributeIsNotAppendedWhenFlowIsReturned(self):
+    session_id = flow.FACTORY.StartFlow(self.client_id, "FlowOrderTest",
+                                        token=self.token)
+
+    rdf_flow = flow.FACTORY.FetchFlow(session_id, sync=False, token=self.token)
+    self.assertTrue(rdf_flow.aff4_object)
+
+    flow_obj = flow.FACTORY.LoadFlow(rdf_flow)
+    self.assertTrue(flow_obj.aff4_object)
+
+    flow.FACTORY.ReturnFlow(rdf_flow, token=self.token)
+
+    rdf_flow = aff4.FACTORY.Open(session_id, required_type="GRRFlow",
+                                 age=aff4.ALL_TIMES, token=self.token)
+    types = rdf_flow.GetValuesForAttribute(rdf_flow.Schema.TYPE)
+    self.assertEqual(len(types), 1)
+
   def testFetchReturn(self):
     """Check that we can Fetch and Return a flow."""
     session_id = flow.FACTORY.StartFlow(self.client_id, "FlowOrderTest",

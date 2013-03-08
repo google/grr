@@ -54,6 +54,7 @@ class DjangoThread(threading.Thread):
 
 
 class RunTestsInit(registry.InitHook):
+  """Init hook that sets up test fixtures."""
 
   pre = ["AFF4InitHook"]
 
@@ -82,6 +83,7 @@ class RunTestsInit(registry.InitHook):
       test_lib.ClientFixture("C.%016X" % i, token=self.token)
 
   def RestoreFixtureFromCache(self):
+    """Restores test fixture (by building it or using a cached version)."""
     if RunTestsInit.fixture_cache is None:
       # Make a data store snapshot.
       db = data_store.DB.subjects
@@ -98,7 +100,7 @@ class RunTestsInit(registry.InitHook):
 def main(_):
   """Run the main test harness."""
   # For testing we use the test config file.
-  flags.FLAGS.config = [config_lib.CONFIG["Test.config"]]
+  flags.FLAGS.config = config_lib.CONFIG["Test.config"]
   registry.TestInit()
 
   # Tests must be imported after django is initialized.

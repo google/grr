@@ -130,6 +130,10 @@ class Flow(rdfvalue.RDFProto):
                  backtrace=Backtrace,
                  args=rdfvalue.RDFProtoDict)
 
+  # Reference to an AFF4 object where this flow was read from. Note that this
+  # is a runtime-only attribute and is not serialized.
+  aff4_object = None
+
 
 class Notification(rdfvalue.RDFProto):
   """A notification is used in the GUI to alert users.

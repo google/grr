@@ -30,7 +30,7 @@ class MockChildProcess : public ChildProcess {
   MOCK_METHOD1(SetNannyMessage, void(std::string msg));
   MOCK_METHOD1(SetNannyStatus, void(std::string msg));
   MOCK_METHOD1(SetPendingNannyMessage, void(std::string msg));
-  MOCK_METHOD1(Sleep, void(unsigned int));
+  MOCK_METHOD1(ChildSleep, void(unsigned int));
 };
 
 class ChildTest : public ::testing::Test {};
@@ -283,7 +283,7 @@ TEST_F(ChildTest, TestSuspendingWhenNannyWakesUpEarlier) {
   current_epoch = 100000;
 
   // While the nanny sleeps there should be a heartbeat.
-  ON_CALL(child, Sleep(2000))
+  ON_CALL(child, ChildSleep(2000))
       .WillByDefault(Assign(&current_hb, *p_epoch));
 
   // Scan the time line, child should not be killed.

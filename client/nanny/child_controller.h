@@ -113,7 +113,7 @@ class ChildProcess {
   virtual void SetNannyStatus(std::string msg) = 0;
 
   // Just sleeps for the indicated time.
-  virtual void Sleep(unsigned int milliseconds) = 0;
+  virtual void ChildSleep(unsigned int milliseconds) = 0;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(ChildProcess);

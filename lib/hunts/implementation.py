@@ -20,6 +20,7 @@ from grr.lib import flow
 from grr.lib import flow_context
 from grr.lib import rdfvalue
 from grr.lib import scheduler
+from grr.lib import type_info
 from grr.lib import utils
 
 
@@ -34,35 +35,53 @@ class GRRHunt(flow.GRRFlow):
   MATCH_DARWIN = rdfvalue.ForemanAttributeRegex(attribute_name="System",
                                                 attribute_regex="Darwin")
 
-  def __init__(self, token=None, expiry_time=31*24*3600, client_limit=None,
-               notification_event=None, **kw):
+  # The following args are standard for all hunts.
+  hunt_typeinfo = type_info.TypeDescriptorSet(
+      type_info.Integer(
+          description="Maximum number of clients participating in the hunt.",
+          name="client_limit",
+          friendly_name="Client Limit",
+          default=0),
+      type_info.Duration(
+          description="Expiry time for the hunt.",
+          name="expiry_time",
+          friendly_name="Expiry Time",
+          default=rdfvalue.Duration("31d")))
 
+  def _GetAFF4Object(self, mode="rw", age=aff4.ALL_TIMES, token=None):
+    if mode == "r" and age == aff4.NEWEST_TIME:
+      return self.aff4_object
+    else:
+      return aff4.FACTORY.Create(self.session_id,
+                                 "VFSHunt", mode=mode, age=age, token=token)
+
+  def __init__(self, token=None, notification_event=None, **kwargs):
     queue_name = flow_context.DEFAULT_WORKER_QUEUE_NAME
 
     if token is None:
       raise RuntimeError("You need to supply a token.")
-
-    if client_limit > 1000:
-      # For large hunts, checking client limits creates a high load on the
-      # foreman when loading the hunt as rw and therefore we don't allow setting
-      # it for large hunts.
-      raise RuntimeError("Please specify client_limit <= 1000.")
 
     context = flow_context.HuntFlowContext(client_id=None,
                                            flow_name=self.__class__.__name__,
                                            queue_name=queue_name,
                                            event_id=None,
                                            state=None, token=token,
-                                           args=rdfvalue.RDFProtoDict(kw))
+                                           args=rdfvalue.RDFProtoDict(kwargs))
 
-    super(GRRHunt, self).__init__(context=context, notify_to_user=False, **kw)
+    self._SetTypedArgs(self.hunt_typeinfo, kwargs)
+    super(GRRHunt, self).__init__(context=context, notify_to_user=False,
+                                  **kwargs)
+
+    if self.client_limit > 1000:
+      # For large hunts, checking client limits creates a high load on the
+      # foreman when loading the hunt as rw and therefore we don't allow setting
+      # it for large hunts.
+      raise RuntimeError("Please specify client_limit <= 1000.")
 
     self.rules = []
-    self.expiry_time = expiry_time
     self.start_time = time.time()
     self.started = False
     self.next_request_id = 0
-    self.client_limit = client_limit
     self.notification_event = notification_event
     self.usage_stats = rdfvalue.ClientResourcesStats()
 
@@ -84,9 +103,10 @@ class GRRHunt(flow.GRRFlow):
     Raises:
       RuntimeError: When an invalid attribute name was given in a rule.
     """
+    timestamp = int(time.time())
     result = rdfvalue.ForemanRule(
-        created=int(time.time() * 1e6),
-        expires=(time.time() + self.expiry_time) * 1e6,
+        created=timestamp * 1e6,
+        expires=(timestamp + self.expiry_time.seconds) * 1e6,
         description="Hunt %s %s" % (self.context.session_id,
                                     self.__class__.__name__))
 
@@ -189,16 +209,17 @@ class GRRHunt(flow.GRRFlow):
     if matching_clients:
       logging.info("Example matches: %s", str(matching_clients[:3]))
 
-  def WriteToDataStore(self, description=None, active=False):
+  def WriteToDataStore(self, description=None):
     """Save current hunt object and hunt flow object states."""
     # Write the hunt object. It will be overwritten if the hunt is restarted
     # (Stop() and then Run() are called).
-    hunt_obj = self.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME,
-                                  token=self.token)
+    hunt_obj = self._GetAFF4Object(mode="w", token=self.token)
     hunt_obj.Set(hunt_obj.Schema.CREATOR(self.token.username))
     hunt_obj.Set(hunt_obj.Schema.HUNT_NAME(self.__class__.__name__))
+    hunt_obj.Set(hunt_obj.Schema.EXPIRY_TIME(self.expiry_time))
+    hunt_obj.Set(hunt_obj.Schema.CLIENT_LIMIT(self.client_limit))
 
-    if active:
+    if self.started:
       hunt_obj.Set(hunt_obj.Schema.STATE(hunt_obj.STATE_STARTED))
     else:
       hunt_obj.Set(hunt_obj.Schema.STATE(hunt_obj.STATE_STOPPED))
@@ -206,16 +227,12 @@ class GRRHunt(flow.GRRFlow):
     if description:
       hunt_obj.Set(hunt_obj.Schema.DESCRIPTION(description))
 
-    hunt_obj.Close()
-
-    # Push the new flow onto the queue.
-    task = rdfvalue.GRRMessage(queue=self.session_id, task_id=1,
-                               payload=rdfvalue.Flow(self.Dump()))
-
+    hunt_obj.Set(hunt_obj.Schema.RDF_FLOW(queue=self.session_id, task_id=1,
+                                          payload=rdfvalue.Flow(self.Dump())))
     # There is a potential race here where we write the client requests first
     # and pickle the flow later. To avoid this, we have to keep the order and
     # schedule the tasks synchronously.
-    scheduler.SCHEDULER.Schedule([task], sync=True, token=self.token)
+    hunt_obj.Close(sync=True)
 
     self.FlushMessages()
 
@@ -224,7 +241,8 @@ class GRRHunt(flow.GRRFlow):
     if self.started:
       return
 
-    self.WriteToDataStore(description=description, active=True)
+    self.started = True
+    self.WriteToDataStore(description=description)
 
     for rule in self.rules:
       # Updating created timestamp of the hunt's rules. This will force Foreman
@@ -232,7 +250,8 @@ class GRRHunt(flow.GRRFlow):
       # client.
       rule.created = int(time.time() * 1e6)
 
-    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token,
+                                ignore_cache=True)
 
     foreman_rules = foreman.Get(foreman.Schema.RULES,
                                 default=foreman.Schema.RULES())
@@ -241,36 +260,31 @@ class GRRHunt(flow.GRRFlow):
     foreman.Set(foreman_rules)
     foreman.Close()
 
-    # Hunt is now active.
-    self.started = True
-
   def Pause(self):
     """Pauses the hunt (removes Foreman rules, does not touch expiry time)."""
     if not self.started:
       return
 
-    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token,
+                                ignore_cache=True)
     aff4_rules = foreman.Get(foreman.Schema.RULES)
     aff4_rules = foreman.Schema.RULES(
         # Remove those rules which fire off this hunt id.
-        [r for r in aff4_rules if r.hunt_id != self.context.session_id])
+        [r for r in aff4_rules if r.hunt_id != self.session_id])
     foreman.Set(aff4_rules)
     foreman.Close()
 
-    self.WriteToDataStore(active=False)
     self.started = False
+    self.WriteToDataStore()
 
   def Stop(self):
     """Cancels the hunt (removes Foreman rules, resets expiry time to 0)."""
-    if not self.started:
-      return
-
     # Expire the hunt so the worker can destroy it.
-    self.expiry_time = 0
+    self.expiry_time = rdfvalue.Duration()
     self.Pause()
 
   def OutstandingRequests(self):
-    if self.start_time + self.expiry_time > time.time():
+    if self.start_time + self.expiry_time.seconds > time.time():
       # Lie about it to prevent us from being destroyed.
       return 1
     return 0
@@ -327,10 +341,6 @@ class GRRHunt(flow.GRRFlow):
     # And notify the worker about it.
     scheduler.SCHEDULER.NotifyQueue("W", hunt_id, token=token)
 
-  def GetAFF4Object(self, mode="rw", age=aff4.ALL_TIMES, token=None):
-    return aff4.FACTORY.Create(self.session_id,
-                               "VFSHunt", mode=mode, age=age, token=token)
-
   def Start(self, responses):
     """Do the real work here."""
 
@@ -354,7 +364,7 @@ class GRRHunt(flow.GRRFlow):
     """Logs an error for a client."""
 
     token = access_control.ACLToken("Hunt", "hunting")
-    hunt_obj = self.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME, token=token)
+    hunt_obj = self._GetAFF4Object(mode="w", age=aff4.NEWEST_TIME, token=token)
 
     error = hunt_obj.Schema.ERRORS()
     if client_id:
@@ -370,7 +380,7 @@ class GRRHunt(flow.GRRFlow):
     """Logs a message for a client."""
 
     token = access_control.ACLToken("Hunt", "hunting")
-    hunt_obj = self.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME, token=token)
+    hunt_obj = self._GetAFF4Object(mode="w", age=aff4.NEWEST_TIME, token=token)
 
     log_entry = hunt_obj.Schema.LOG()
     log_entry.client_id = client_id
@@ -384,7 +394,7 @@ class GRRHunt(flow.GRRFlow):
   def MarkClient(self, client_id, attribute):
     """Adds a client to the list indicated by attribute."""
     token = access_control.ACLToken("Hunt", "hunting")
-    hunt_obj = self.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME, token=token)
+    hunt_obj = self._GetAFF4Object(mode="w", age=aff4.NEWEST_TIME, token=token)
 
     client_urn = attribute(client_id)
     hunt_obj.AddAttribute(client_urn)
@@ -398,8 +408,7 @@ class GRRHunt(flow.GRRFlow):
     user_cpu = status.cpu_time_used.user_cpu_time
     system_cpu = status.cpu_time_used.system_cpu_time
 
-    fd = self.GetAFF4Object(mode="w", age=aff4.NEWEST_TIME,
-                            token=self.token)
+    fd = self._GetAFF4Object(mode="w", token=self.token)
     resources = fd.Schema.RESOURCES()
     resources.client_id = client_id
     resources.session_id = status.child_session_id
@@ -418,3 +427,17 @@ class GRRHunt(flow.GRRFlow):
   def Load(self):
     self.lock = threading.RLock()
     super(GRRHunt, self).Load()
+
+    if self.aff4_object:
+      # Old hunts do not have EXPIRY_TIME and CLIENT_LIMIT set. We have
+      # to handle such cases carefully.
+      self.expiry_time = self.aff4_object.Get(
+          self.aff4_object.Schema.EXPIRY_TIME,
+          rdfvalue.Duration(self.expiry_time))
+      self.client_limit = self.aff4_object.Get(
+          self.aff4_object.Schema.CLIENT_LIMIT,
+          rdfvalue.Duration(self.client_limit))
+
+      state = self.aff4_object.Get(self.aff4_object.Schema.STATE)
+      if state:
+        self.started = (state == self.aff4_object.STATE_STARTED)

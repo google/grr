@@ -373,11 +373,15 @@ class GRRFlow(aff4.AFF4Volume):
   def GetRDFFlow(self):
     task = self.Get(self.Schema.FLOW_PB)
     if task:
-      return rdfvalue.Flow(task.value)
+      result = rdfvalue.Flow(task.value)
+      result.aff4_object = self
+      return result
     else:
       msg = self.Get(self.Schema.RDF_FLOW)
       if msg:
-        return msg.payload
+        result = msg.payload
+        result.aff4_object = self
+        return result
 
   def GetFlowObj(self, forced_token=None):
     # This does not lock the flow - only read only.
@@ -685,6 +689,13 @@ class VFSHunt(GRRFlow):
 
     HUNT_NAME = aff4.Attribute("aff4:hunt_name", rdfvalue.RDFString,
                                "Name of this hunt.")
+
+    EXPIRY_TIME = aff4.Attribute("aff4:hunt_expiry_time",
+                                 rdfvalue.Duration,
+                                 "Expiry time for the hunt.")
+
+    CLIENT_LIMIT = aff4.Attribute("aff4:hunt_client_limit", rdfvalue.RDFInteger,
+                                  "Client number limit for the hunt.")
 
     STATE = aff4.Attribute("aff4:hunt_state", rdfvalue.RDFString,
                            "State of this hunt.")

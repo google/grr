@@ -2,6 +2,7 @@
 """Implementation of "Launch Hunt" wizard."""
 
 
+import collections
 import json
 
 
@@ -58,16 +59,15 @@ class LaunchHunts(renderers.WizardRenderer):
 """
 
 
-class HuntConfigureFlow(renderers.Splitter):
+class HuntConfigureFlow(renderers.Splitter2WayVertical):
   """Configure hunt's flow."""
 
   left_renderer = "FlowTree"
-  top_right_renderer = "HuntFlowForm"
-  bottom_right_renderer = "FlowManagementTabs"
+  right_renderer = "HuntFlowForm"
 
   min_left_pane_width = 200
 
-  layout_template = renderers.Splitter.layout_template + """
+  layout_template = renderers.Splitter2WayVertical.layout_template + """
 <script>
   // Attaching subscribe('flow_select') to the div with unique id to avoid
   // multiple listeners being subscribed at the same time. When this div
@@ -76,7 +76,7 @@ class HuntConfigureFlow(renderers.Splitter):
   // with the same id, but with different unique id.
   grr.subscribe('flow_select', function(path) {
     grr.layout("HuntFlowForm",
-      "{{id|escapejs}}_rightTopPane",
+      "{{id|escapejs}}_rightPane",
       { flow_name: path });
   }, "{{id|escapejs}}");
 </script>
@@ -94,6 +94,10 @@ class HuntFlowForm(flow_management.FlowForm):
   # configuring hunts
   ignore_flow_args = ["notify_to_user"]
 
+  nothing_selected_template = renderers.Template("""
+<div class="padded">Please select a flow.</div>
+""")
+
   layout_template = renderers.Template("""
 <div class="HuntFormBody padded" id="FormBody_{{unique|escape}}">
 <form id='form_{{unique|escape}}' class="form-horizontal">
@@ -107,25 +111,21 @@ class HuntFlowForm(flow_management.FlowForm):
   <p class="text-info">Nothing to configure for the Flow.</p>
 {% endif %}
 <legend>Hunt Parameters</legend>
-<div class="control-group">
-  <label class="control-label">Client Limit</label>
-  <div class="controls">
-    <input type="text" name="client_limit" value="" />
-  </div>
-</div>
-<div class="control-group">
-  <label class="control-label">Expiration Time (try s,m,h,d)</label>
-  <div class="controls">
-    <input type="text" name="expiry_time" value="31d" />
-  </div>
-</div>
-</form>
+{{this.hunt_params_form|safe}}
+
+<legend>Description</legend>
+<div id="FlowDescription_{{unique|escape}}"></div>
 
 </div>
+
 
 {% if this.flow_name %}
 <script>
 (function() {
+  // Show flow description via AJAX call.
+  grr.layout("FlowInformation", "FlowDescription_{{unique|escapejs}}",
+    {flow_path: "{{this.flow_path|escapejs}}", no_heder: true});
+
   var wizardState = $("#FormBody_{{unique|escapejs}}").
     closest(".Wizard").data()
 
@@ -170,12 +170,29 @@ class HuntFlowForm(flow_management.FlowForm):
 {% endif %}
 """)
 
+  def Layout(self, request, response):
+    self.flow_path = request.REQ.get("flow_name", "")
+    self.flow_name = self.flow_path.split("/")[-1]
+
+    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
+    self.hunt_params_form = type_descriptor_renderer.Form(
+        hunts.GRRHunt.hunt_typeinfo, request, prefix="")
+
+    if self.flow_name in flow.GRRFlow.classes:
+      return super(HuntFlowForm, self).Layout(request, response)
+    else:
+      return self.RenderFromTemplate(self.nothing_selected_template, response)
+
 
 # TODO(user): we should have RDFProtoEditableRenderer or the likes to have
 # a generic way of displaying forms for editing protobufs. Maybe it should be
 # based on RDFProtoRenderer code.
 class HuntConfigureRules(renderers.TemplateRenderer):
   """Configure hunt's rules."""
+
+  match_system_template = renderers.Template("""
+This rule will match all <strong>{{system}}</strong> systems.
+""")
 
   # We generate jQuery template for different kind of rules that we have (i.e.
   # ForemanAttributeInteger, ForemanAttributeRegex). For every
@@ -288,25 +305,29 @@ updateRules();
     """Layout hunt rules."""
     type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
 
-    regex_form = type_descriptor_renderer.Form(
+    self.forms = collections.OrderedDict()
+    self.forms["MatchWindows"] = self.FormatFromTemplate(
+        self.match_system_template, system="Windows")
+    self.forms["MatchLinux"] = self.FormatFromTemplate(
+        self.match_system_template, system="Linux")
+    self.forms["MatchDarwin"] = self.FormatFromTemplate(
+        self.match_system_template, system="Darwin")
+    self.forms["ForemanAttributeRegex"] = type_descriptor_renderer.Form(
         type_info.TypeDescriptorSet(type_info.ForemanAttributeRegexType()),
         request, prefix="")
-    int_form = type_descriptor_renderer.Form(
+    self.forms["ForemanAttributeInteger"] = type_descriptor_renderer.Form(
         type_info.TypeDescriptorSet(type_info.ForemanAttributeIntegerType()),
         request, prefix="")
-
-    self.forms = {"ForemanAttributeRegex": regex_form,
-                  "ForemanAttributeInteger": int_form}
 
     return super(HuntConfigureRules, self).Layout(request, response)
 
 
-class EmptyRequest(object):
-  pass
-
-
 class HuntRequestParsingMixin(object):
   """Mixin with hunt's JSON configuration parsing methods."""
+
+  PREDEFINED_RULES = {"MatchWindows": hunts.GRRHunt.MATCH_WINDOWS,
+                      "MatchLinux": hunts.GRRHunt.MATCH_LINUX,
+                      "MatchDarwin": hunts.GRRHunt.MATCH_DARWIN}
 
   def ParseFlowConfig(self, flow_class, flow_args_json):
     """Parse flow config JSON."""
@@ -321,11 +342,9 @@ class HuntRequestParsingMixin(object):
       except KeyError:
         pass  # this flow_arg was not part of the request
 
-    request = EmptyRequest()
-    request.REQ = flow_args_json  # pylint: disable=g-bad-name
     flow_config = rdfvalue.RDFProtoDict(
         initializer=dict(type_descriptor_renderer.ParseArgs(
-            tinfo, request, prefix="")))
+            tinfo, flow_args_json, prefix="")))
     return flow_config
 
   def ParseHuntRules(self, hunt_rules_json):
@@ -334,19 +353,23 @@ class HuntRequestParsingMixin(object):
     type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
     result = []
     for rule_json in hunt_rules_json:
-      if rule_json["rule_type"] == "ForemanAttributeRegex":
+      rule_type = rule_json["rule_type"]
+
+      if rule_type in self.PREDEFINED_RULES:
+        result.append(self.PREDEFINED_RULES[rule_type])
+        continue
+
+      if rule_type == "ForemanAttributeRegex":
         tinfo = type_info.TypeDescriptorSet(
             type_info.ForemanAttributeRegexType())
-      elif rule_json["rule_type"] == "ForemanAttributeInteger":
+      elif rule_type == "ForemanAttributeInteger":
         tinfo = type_info.TypeDescriptorSet(
             type_info.ForemanAttributeIntegerType())
       else:
-        raise RuntimeError("Unknown rule type: " + rule_json["rule_type"])
+        raise RuntimeError("Unknown rule type: " + rule_type)
 
-      request = EmptyRequest()
-      request.REQ = rule_json
       parse_result = dict(type_descriptor_renderer.ParseArgs(
-          tinfo, request, prefix=""))
+          tinfo, rule_json, prefix=""))
 
       rdf_rule = parse_result["foreman_attributes"]
       result.append(rdf_rule)
@@ -388,19 +411,16 @@ class HuntRequestParsingMixin(object):
     flow_config_json = hunt_config.get("hunt_flow_config", {})
     rules_config_json = hunt_config["hunt_rules_config"]
 
-    expiry_time = self.ParseExpiryTime(flow_config_json["expiry_time"])
-    client_limit = None
-    if flow_config_json["client_limit"]:
-      client_limit = int(flow_config_json["client_limit"])
+    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
+    hunt_args = dict(type_descriptor_renderer.ParseArgs(
+        hunts.GRRHunt.hunt_typeinfo, flow_config_json, prefix=""))
 
     flow_class = flow.GRRFlow.classes[flow_name]
     flow_config = self.ParseFlowConfig(flow_class, flow_config_json or {})
     rules_config = self.ParseHuntRules(rules_config_json)
 
     generic_hunt = hunts.GenericHunt(flow_name=flow_name, args=flow_config,
-                                     client_limit=client_limit,
-                                     expiry_time=expiry_time,
-                                     token=request.token)
+                                     token=request.token, **hunt_args)
 
     generic_hunt.AddRule(rules=rules_config)
 

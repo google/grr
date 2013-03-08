@@ -13,6 +13,7 @@ import sys
 # pylint: disable=W0611
 from grr.client import client_actions
 from grr.client import comms
+from grr.client import local
 from grr.client import vfs_handlers
 from grr.lib import log
 from grr.lib import rdfvalues

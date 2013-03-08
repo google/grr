@@ -56,7 +56,6 @@ class GetClientStats(flow.GRRFlow):
 
   def ProcessResponse(self, response):
     """Actually processes the contents of the response."""
-
     urn = aff4.ROOT_URN.Add(self.client_id).Add("stats")
     stats_fd = aff4.FACTORY.Create(urn, "ClientStats", token=self.token,
                                    mode="rw")
@@ -471,7 +470,7 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
           self.subject % client_id,
           self.mail_template % dict(
               client_id=client_id,
-              admin_ui=config_lib.CONFIG["ServerFlags.ui_url"],
+              admin_ui=config_lib.CONFIG["AdminUI.url"],
               hostname=hostname,
               urn=url, message=message),
           is_html=True)
@@ -556,7 +555,7 @@ P.S. The failing flow was:
           "Client %s reported a crash." % client_id,
           self.mail_template % dict(
               client_id=client_id,
-              admin_ui=config_lib.CONFIG["ServerFlags.ui_url"],
+              admin_ui=config_lib.CONFIG["AdminUI.url"],
               hostname=hostname,
               flow=utils.SmartStr(rdf_flow),
               urn=url, nanny_msg=nanny_msg),

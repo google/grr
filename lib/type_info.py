@@ -43,7 +43,7 @@ class TypeInfoObject(object):
   __metaclass__ = registry.MetaclassRegistry
 
   def __init__(self, name="", default=None, description="", friendly_name="",
-               hidden=False):
+               hidden=False, help=""):
     """Build a TypeInfo type descriptor.
 
     Args:
@@ -53,10 +53,11 @@ class TypeInfoObject(object):
       description: A string describing this flow argument.
       friendly_name: A human readable name which may be provided.
       hidden: Should the argument be hidden from the UI.
+      help: A synonym for 'description'.
     """
     self.name = name
     self.default = default
-    self.description = description
+    self.description = description or help
     self.hidden = hidden
 
     if not friendly_name:
@@ -64,9 +65,11 @@ class TypeInfoObject(object):
 
     self.friendly_name = friendly_name
 
-    # Validate that the default value itself is valid.
-    if default is not None:
-      self.Validate(default)
+    # It is generally impossible to check the default value here
+    # because this happens before any configuration is loaded (i.e. at
+    # import time). Hence default values which depend on the config
+    # system cant be tested. We just assume that the default value is
+    # sensible.
 
   def GetDefault(self):
     return self.default
@@ -115,6 +118,7 @@ class RDFValueType(TypeInfoObject):
 
     Args:
       rdfclass: The RDFValue class that this arg must be.
+      **kwargs: Passthrough to base class.
     """
     super(RDFValueType, self).__init__(**kwargs)
     self.rdfclass = rdfclass
@@ -212,7 +216,6 @@ class List(TypeInfoObject):
   def __init__(self, validator=None, **kwargs):
     self.validator = validator
     super(List, self).__init__(**kwargs)
-    self.default = kwargs.get("default", "")
 
   def Validate(self, value):
     """Validate a potential list."""
@@ -334,14 +337,55 @@ class Float(Integer):
       raise TypeValueError("Invalid value %s for Float" % string)
 
 
+class Duration(RDFValueType):
+  """Duration in microseconds."""
+
+  def __init__(self, **kwargs):
+    defaults = dict(rdfclass=rdfvalue.Duration)
+
+    defaults.update(kwargs)
+    super(Duration, self).__init__(**defaults)
+
+  def Validate(self, value):
+    if not isinstance(value, rdfvalue.Duration):
+      raise TypeValueError("Invalid value %s for Duration" % value)
+
+    return value
+
+  def FromString(self, string):
+    try:
+      return rdfvalue.Duration(string)
+    except ValueError:
+      raise TypeValueError("Invalid value %s for Duration" % string)
+
+
+class Choice(TypeInfoObject):
+  """A choice from a set of allowed values."""
+
+  def __init__(self, choices=None, validator=None, **kwargs):
+    self.choices = choices
+    self.validator = validator or String()
+    super(Choice, self).__init__(**kwargs)
+
+  def Validate(self, value):
+    self.validator.Validate(value)
+
+    if value not in self.choices:
+      raise TypeValueError("%s not a valid instance string." % value)
+
+    return value
+
+
 class MultiSelectList(TypeInfoObject):
   """Abstract type that select from a list of values."""
 
   def Validate(self, value):
+    """Check that this is a list of strings."""
     try:
       iter(value)
     except TypeError:
       raise TypeValueError("%s not a valid iterable" % value)
+
     for val in value:
       if not isinstance(val, basestring):
         raise TypeValueError("%s not a valid instance string." % val)
@@ -444,9 +488,9 @@ class TypeDescriptorSet(object):
           # Validate this value - this should raise if the value provided is not
           # acceptable to the type descriptor.
           value = descriptor.Validate(value)
-        except Exception as e:
+        except Exception:
           logging.error("Invalid value %s for arg %s", value, descriptor.name)
-          raise e
+          raise
 
       yield descriptor.name, value
 

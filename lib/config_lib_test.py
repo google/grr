@@ -6,7 +6,6 @@ from grr.client import conf
 
 from grr.lib import config_lib
 from grr.lib import test_lib
-from grr.lib import type_info
 
 
 class ConfigLibTest(test_lib.GRRBaseTest):
@@ -56,9 +55,11 @@ test = val2"""
     # Define test as an integer.
     conf.DEFINE_integer("Section1.test", 54, "A test integer.")
 
+    conf.Initialize(data=test_conf)
+
     # This should raise since the config file is incorrect.
     self.assertRaises(config_lib.ConfigFormatError,
-                      conf.Initialize, data=test_conf)
+                      conf.Validate, ["Section1.test"])
 
   def testAddOption(self):
     """Test that we can add options."""
@@ -68,18 +69,19 @@ test = val2"""
     conf.DEFINE_string("Environment.os", "Linux",
                        "A parameter set by the environment.")
 
-    conf.DEFINE_string("Environment.filename", None,
+    conf.DEFINE_string("Environment.filename", "",
                        "Filename set by the environment.")
 
     conf.DEFINE_string("Section1.foobar", "test", "A test string.")
     conf.DEFINE_string("Section1.test", "test", "A test string.")
 
-    conf.DEFINE_string("Section1.interpolated", None, "An interpolated string.")
+    conf.DEFINE_string("Section1.interpolated", "", "An interpolated string.")
 
-    # The default value is not suitable.
-    self.assertRaises(type_info.TypeValueError,
-                      conf.DEFINE_integer,
-                      "Section1.test_int", "string", "A test integer.")
+    # This entry is not correct - the default is invalid.
+    conf.DEFINE_integer("Section1.test_int", "string", "A test integer.")
+
+    # The default value is invalid.
+    self.assertRaises(config_lib.Error, conf.Validate, ["Section1"])
 
     conf.DEFINE_string("Section1.system", None, "The basic operating system.")
     conf.DEFINE_integer("Section1.test_int", 54, "A test integer.")
@@ -217,6 +219,10 @@ interpolation1 = %(section%(foobar)|env)
 
 # But this means literally section%(foo):
 interpolation2 = %(section%{%(foo)}|env)
+
+[Execute]
+Section1.foo4! = %(Section1.foobar)
+Section1.foo5 = %(Section1.foobar)
 """)
 
     # Test direct access.
@@ -243,6 +249,26 @@ interpolation2 = %(section%{%(foo)}|env)
 
     self.assertEquals(conf["Section1.interpolation1"], "1")
     self.assertEquals(conf["Section1.interpolation2"], "2")
+
+    # Test that Set() escapes - i.e. reading the value back will return exactly
+    # the same as we wrote:
+    conf.Set("Section1.foo6", "%(Section1.foo3)")
+    self.assertEquals(conf["Section1.foo6"], "%(Section1.foo3)")
+    self.assertEquals(conf.GetRaw("Section1.foo6"), r"\%(Section1.foo3\)")
+
+    # OTOH when we write it raw, reading it back will interpolate:
+    conf.SetRaw("Section1.foo6", "%(Section1.foo3)")
+    self.assertEquals(conf["Section1.foo6"], "foo)")
+
+    # This affects execution of sections:
+    conf.ExecuteSection("Execute")
+    # The raw value in Section1.foo5 has already been interpolated when the
+    # Execute section was executed.
+    self.assertEquals(conf.GetRaw("Section1.foo5"), "X")
+
+    # However, parameters which end with ! are not evaluated at execution time -
+    # they are written raw to their sections.
+    self.assertEquals(conf.GetRaw("Section1.foo4"), "%(Section1.foobar)")
 
 
 def main(argv):
