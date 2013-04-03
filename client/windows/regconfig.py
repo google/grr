@@ -36,6 +36,7 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
       self.root_key = _winreg.CreateKeyEx(getattr(_winreg, self.hive),
                                           self.path, 0,
                                           _winreg.KEY_ALL_ACCESS)
+      self.parsed = self.path
     except exceptions.WindowsError as e:
       logging.debug("Unable to open config registry key: %s", e)
       return

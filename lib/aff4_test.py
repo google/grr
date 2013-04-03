@@ -17,6 +17,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 
 
 class MockNotificationRule(aff4.AFF4NotificationRule):
@@ -41,10 +42,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     # We update the client hostname twice - Since hostname is versioned we
     # expect two versions of this object.
     client.Set(client.Schema.HOSTNAME("client1"))
-    client.Close()
+    client.Flush()
 
     client.Set(client.Schema.HOSTNAME("client1"))
-    client.Close()
+    client.Flush()
 
     client_fd = aff4.FACTORY.Open(self.client_id, age=aff4.ALL_TIMES,
                                   token=self.token)
@@ -56,16 +57,17 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     # Now update the CLOCK attribute twice. Since CLOCK is not versioned, this
     # should not add newer versions to this object.
     client.Set(client.Schema.CLOCK())
-    client.Close()
+    client.Flush()
 
     client.Set(client.Schema.CLOCK())
-    client.Close()
+    client.Flush()
 
     client_fd = aff4.FACTORY.Open(self.client_id, age=aff4.ALL_TIMES,
                                   token=self.token)
 
     # Versions are represented by the TYPE attribute.
     new_versions = list(client_fd.GetValuesForAttribute(client_fd.Schema.TYPE))
+
     self.assertEqual(versions, new_versions)
 
     # There should also only be once clock attribute
@@ -74,13 +76,41 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(clocks[0].age, 0)
 
     fd = aff4.FACTORY.Create("aff4:/foobar", "AFF4Image", token=self.token)
-    fd.Set(fd.Schema.CHUNKSIZE(1))
-    fd.Set(fd.Schema.CHUNKSIZE(200))
-    fd.Set(fd.Schema.CHUNKSIZE(30))
+    fd.Set(fd.Schema._CHUNKSIZE(1))
+    fd.Set(fd.Schema._CHUNKSIZE(200))
+    fd.Set(fd.Schema._CHUNKSIZE(30))
+
     fd.Flush()
 
     fd = aff4.FACTORY.Open("aff4:/foobar", mode="rw", token=self.token)
-    self.assertEqual(fd.Get(fd.Schema.CHUNKSIZE), 30)
+    self.assertEqual(fd.Get(fd.Schema._CHUNKSIZE), 30)
+
+  def testGetVersions(self):
+    """Test we can retrieve versions."""
+    client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
+                                 token=self.token)
+    # Update the hostname twice, expect two versions of this object.
+    client.Set(client.Schema.HOSTNAME("client1"))
+    client.Flush()
+    client.Set(client.Schema.HOSTNAME("client2"))
+    client.Flush()
+
+    # Now create as a different type.
+    vfsfile = aff4.FACTORY.Create(self.client_id, "VFSFile", mode="w",
+                                  token=self.token)
+    vfsfile.Flush()
+
+    ver_list = list(aff4.FACTORY.OpenDiscreteVersions(self.client_id,
+                                                      token=self.token))
+    self.assertEqual(len(ver_list), 3)
+    v1, v2, v3 = ver_list
+
+    self.assertTrue(isinstance(v1, aff4_grr.VFSFile))
+    self.assertTrue(isinstance(v3, aff4_grr.VFSGRRClient))
+    self.assertTrue(int(v1.Get(v1.Schema.TYPE).age) >
+                    int(v2.Get(v2.Schema.TYPE).age))
+    self.assertEqual(v2.Get(v2.Schema.TYPE), "VFSGRRClient")
+    self.assertEqual(str(v2.Get(v2.Schema.HOSTNAME)), "client2")
 
   def testAppendAttribute(self):
     """Test that append attribute works."""
@@ -185,7 +215,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     path = "/C.12345/aff4image"
 
     fd = aff4.FACTORY.Create(path, "AFF4Image", token=self.token)
-    fd.Set(fd.Schema.CHUNKSIZE(10))
+    fd.SetChunksize(10)
 
     # Make lots of small writes - The length of this string and the chunk size
     # are relative primes for worst case.
@@ -201,7 +231,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     fd.Close()
 
     fd = aff4.FACTORY.Create(path, "AFF4Image", mode="rw", token=self.token)
-    fd.Set(fd.Schema.CHUNKSIZE(10))
+    fd.Set(fd.Schema._CHUNKSIZE(10))
 
     # Overflow the cache.
     fd.Write("X" * 10000)
@@ -225,7 +255,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     path = "/C.12345/aff4imagesize"
 
     fd = aff4.FACTORY.Create(path, "AFF4Image", token=self.token)
-    fd.Set(fd.Schema.CHUNKSIZE(10))
+    fd.SetChunksize(10)
 
     size = 0
     for i in range(99):
@@ -281,22 +311,24 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertEqual(fd.Read(13), "Test%08X\n" % i)
 
   def WriteImage(self, path, prefix="Test", timestamp=0):
-
     old_time = time.time
     try:
       time.time = lambda: timestamp
       fd = aff4.FACTORY.Create(path, "AFF4Image", mode="w", token=self.token)
       timestamp += 1
-      fd.Set(fd.Schema.CHUNKSIZE(10))
+      fd.SetChunksize(10)
 
       # Make lots of small writes - The length of this string and the chunk size
       # are relative primes for worst case.
       for i in range(100):
         fd.Write("%s%08X\n" % (prefix, i))
+
         # Flush after every write.
         fd.Flush()
+
         # And advance the time.
         timestamp += 1
+
       fd.Close()
 
     finally:
@@ -567,6 +599,81 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertEquals(len(MockNotificationRule.OBJECTS_WRITTEN), 1)
     finally:
       time.time = old_time
+
+  def testListChildren(self):
+    root_urn = aff4.ROOT_URN.Add("path")
+
+    f = aff4.FACTORY.Create(root_urn.Add("some1"), "AFF4Volume",
+                            token=self.token)
+    f.Close()
+
+    f = aff4.FACTORY.Create(root_urn.Add("some2"), "AFF4Volume",
+                            token=self.token)
+    f.Close()
+
+    root = aff4.FACTORY.Open(root_urn, token=self.token)
+    all_children = sorted(list(root.ListChildren()))
+
+    self.assertListEqual(sorted(all_children),
+                         [root_urn.Add("some1"), root_urn.Add("some2")])
+
+  def testMultiListChildren(self):
+    client1 = "C.%016X" % 0
+    client2 = "C.%016X" % 1
+    client1_urn = rdfvalue.RDFURN(client1)
+    client2_urn = rdfvalue.RDFURN(client2)
+
+    f = aff4.FACTORY.Create(client1_urn.Add("some1"), "AFF4Volume",
+                            token=self.token)
+    f.Close()
+
+    f = aff4.FACTORY.Create(client2_urn.Add("some2"), "AFF4Volume",
+                            token=self.token)
+    f.Close()
+
+    children = aff4.FACTORY.MultiListChildren([client1_urn, client2_urn],
+                                              token=self.token)
+
+    self.assertListEqual(sorted(children.keys()),
+                         [client1_urn, client2_urn])
+    self.assertListEqual(children[client1_urn],
+                         [client1_urn.Add("some1")])
+    self.assertListEqual(children[client2_urn],
+                         [client2_urn.Add("some2")])
+
+  def testClose(self):
+    """Ensure that closed objects can not be used again."""
+    client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
+                                 token=self.token)
+    client.Close()
+
+    self.assertRaises(IOError, client.Get, client.Schema.HOSTNAME)
+    self.assertRaises(IOError, client.Set, client.Schema.HOSTNAME("hello"))
+
+  def testVersionOrder(self):
+    """Test that GetValuesForAttribute returns versions in the right order."""
+    client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
+                                 token=self.token)
+
+    client.Set(client.Schema.HOSTNAME("Host1"))
+    client.Flush()
+
+    client.Set(client.Schema.HOSTNAME("Host2"))
+    client.Flush()
+
+    # Get() returns the most recent version.
+    self.assertEquals(client.Get(client.Schema.HOSTNAME), "Host2")
+
+    client = aff4.FACTORY.Open(self.client_id, token=self.token,
+                               age=aff4.ALL_TIMES)
+
+    # Versioned attributes must be returned in most recent order first.
+    self.assertEquals(list(
+        client.GetValuesForAttribute(client.Schema.HOSTNAME)),
+                      ["Host2", "Host1"])
+
+    # Get() returns the most recent version.
+    self.assertEquals(client.Get(client.Schema.HOSTNAME), "Host2")
 
 
 class AFF4SymlinkTestSubject(aff4.AFF4Volume):

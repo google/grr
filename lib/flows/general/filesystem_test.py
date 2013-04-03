@@ -1,19 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """Test the filesystem related flows."""
 
 import os
@@ -27,18 +13,14 @@ from grr.lib import utils
 class TestFilesystem(test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
-  def testListDirectory(self):
-    """Test that the ListDirectory flow works."""
+  def testListDirectoryOfTSKFile(self):
+    """Test that the TSK VFS containers are opened automatically."""
     client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
 
     # Deliberately specify incorrect casing for the image name.
     pb = rdfvalue.RDFPathSpec(
         path=os.path.join(self.base_path, "test_img.dd"),
         pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
-
-    # Nest inside the image using TSK.
-    pb.Append(path="test directory",
-              pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
 
     for _ in test_lib.TestFlowHelper(
         "ListDirectory", client_mock, client_id=self.client_id,
@@ -51,18 +33,46 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     children = list(fd.OpenChildren())
-    self.assertEqual(len(children), 1)
-    child = children[0]
+    self.assertEqual(len(children), 6)
+
     # Check that the object is stored with the correct casing.
-    self.assertEqual(
-        os.path.basename(utils.SmartUnicode(child.urn)), "Test Directory")
+    self.assertTrue("lost+found" in [x.urn.Basename() for x in children])
 
     # And the wrong object is not there
-    self.assertRaises(IOError, fd.OpenMember,
-                      output_path.Add("test directory"))
+    self.assertRaises(IOError, aff4.FACTORY.Open,
+                      output_path.Add("test directory"),
+                      required_type="VFSDirectory", token=self.token)
 
-    # This directory does exist
-    aff4.FACTORY.Open(output_path.Add("Test Directory"), token=self.token)
+  def testListDirectory(self):
+    """Test that the ListDirectory flow works."""
+    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+
+    # Deliberately specify incorrect casing for the image name.
+    pb = rdfvalue.RDFPathSpec(
+        path=os.path.join(self.base_path, "test_img.dd/test directory"),
+        pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+
+    for _ in test_lib.TestFlowHelper(
+        "ListDirectory", client_mock, client_id=self.client_id,
+        pathspec=pb, token=self.token):
+      pass
+
+    # Check the output file is created
+    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
+        "fs/tsk").Add(os.path.dirname(pb.first.path))
+
+    fd = aff4.FACTORY.Open(output_path.Add("Test Directory"), token=self.token)
+    children = list(fd.OpenChildren())
+    self.assertEqual(len(children), 1)
+    child = children[0]
+
+    # Check that the object is stored with the correct casing.
+    self.assertEqual(child.urn.Basename(), "numbers.txt")
+
+    # And the wrong object is not there
+    self.assertRaises(IOError, aff4.FACTORY.Open,
+                      output_path.Add("test directory"),
+                      required_type="VFSDirectory", token=self.token)
 
   def testUnicodeListDirectory(self):
     """Test that the ListDirectory flow works on unicode directories."""
@@ -161,6 +171,52 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # We should find some files.
     self.assertTrue(count >= 6)
+
+  def testGlobWithWildcardsInsideTSKFile(self):
+    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+
+    # This glob should find this file in test data: glob_test/a/b/foo.
+    path = os.path.join(self.base_path, "test_img.dd", "*", "a", "b", "*")
+
+    # Run the flow.
+    for _ in test_lib.TestFlowHelper(
+        "Glob", client_mock, client_id=self.client_id,
+        paths=[path], pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+        token=self.token):
+      pass
+
+    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
+        "fs/tsk").Add(os.path.join(
+            self.base_path, "test_img.dd", "glob_test", "a", "b"))
+
+    fd = aff4.FACTORY.Open(output_path, token=self.token)
+    children = list(fd.ListChildren())
+
+    self.assertEqual(len(children), 1)
+    self.assertEqual(children[0].Basename(), "foo")
+
+  def testGlobWithWildcardInTSKFilename(self):
+    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+
+    # This glob should find this file in test data: glob_test/a/b/foo.
+    path = os.path.join(self.base_path, "test_img.*", "*", "a", "b", "*")
+
+    # Run the flow.
+    for _ in test_lib.TestFlowHelper(
+        "Glob", client_mock, client_id=self.client_id,
+        paths=[path], pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+        token=self.token):
+      pass
+
+    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
+        "fs/tsk").Add(os.path.join(
+            self.base_path, "test_img.dd", "glob_test", "a", "b"))
+
+    fd = aff4.FACTORY.Open(output_path, token=self.token)
+    children = list(fd.ListChildren())
+
+    self.assertEqual(len(children), 1)
+    self.assertEqual(children[0].Basename(), "foo")
 
   def testGlobDirectory(self):
     """Test that glob expands directories."""

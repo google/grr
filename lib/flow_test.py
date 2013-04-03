@@ -1,17 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """Tests for the flow."""
 
 
@@ -64,6 +51,39 @@ class FlowResponseSerialization(flow.GRRFlow):
       raise RuntimeError("Messages not serialized")
 
 
+class NoRequestChildFlow(flow.GRRFlow):
+  """This flow just returns and does not generate any requests."""
+
+  @flow.StateHandler()
+  def Start(self, unused_message):
+    return
+
+
+class CallClientChildFlow(flow.GRRFlow):
+  """This flow just returns and does not generate any requests."""
+
+  @flow.StateHandler()
+  def Start(self, unused_message):
+    self.CallClient("GetClientStats", next_state="End")
+
+
+class NoRequestParentFlow(flow.GRRFlow):
+
+  child_flow = "NoRequestChildFlow"
+
+  @flow.StateHandler(next_state="End")
+  def Start(self, unused_message):
+    self.CallFlow(self.child_flow)
+
+  @flow.StateHandler()
+  def End(self, unused_message):
+    pass
+
+
+class CallClientParentFlow(NoRequestParentFlow):
+  child_flow = "CallClientChildFlow"
+
+
 class FlowFactoryTest(test_lib.FlowTestsBaseclass):
   """Test the flow factory."""
 
@@ -105,7 +125,8 @@ class FlowFactoryTest(test_lib.FlowTestsBaseclass):
 
     rdf_flow = aff4.FACTORY.Open(session_id, required_type="GRRFlow",
                                  age=aff4.ALL_TIMES, token=self.token)
-    types = rdf_flow.GetValuesForAttribute(rdf_flow.Schema.TYPE)
+
+    types = list(rdf_flow.GetValuesForAttribute(rdf_flow.Schema.TYPE))
     self.assertEqual(len(types), 1)
 
   def testFetchReturn(self):
@@ -231,6 +252,52 @@ class FlowFactoryTest(test_lib.FlowTestsBaseclass):
       pass
 
     self.assertEqual(ParentFlowWithoutResponses.success, True)
+
+  notifications = {}
+
+  def CollectNotifications(self, queue, session_ids, priorities, **kwargs):
+
+    now = time.time()
+    for session_id in session_ids:
+      self.notifications.setdefault(session_id, []).append(now)
+    self.old_notify(queue, session_ids, priorities, **kwargs)
+
+  def testNoRequestChildFlowRace(self):
+
+    self.old_notify = scheduler.SCHEDULER.MultiNotifyQueue
+    scheduler.SCHEDULER.MultiNotifyQueue = self.CollectNotifications
+    try:
+      session_id = flow.FACTORY.StartFlow(self.client_id, "NoRequestParentFlow",
+                                          token=self.token)
+    finally:
+      scheduler.SCHEDULER.MultiNotifyQueue = self.old_notify
+
+    self.assertIn(session_id, self.notifications)
+
+    f = aff4.FACTORY.Open(session_id, token=self.token)
+
+    # Check that the first notification came in after the flow was created.
+    self.assertLess(int(f.Get(f.Schema.TYPE).age),
+                    1e6 * min(self.notifications[session_id]),
+                    "There was a notification for a flow before "
+                    "the flow was created.")
+
+  def testCallClientChildFlowRace(self):
+    session_id = flow.FACTORY.StartFlow(self.client_id,
+                                        "CallClientParentFlow",
+                                        token=self.token)
+
+    client_requests = data_store.DB.ResolveRegex(self.client_id, ".*",
+                                                 token=self.token)
+    self.assertEqual(len(client_requests), 1)
+
+    f = aff4.FACTORY.Open(session_id, token=self.token)
+
+    for (_, _, timestamp) in client_requests:
+      # Check that the client request was written after the flow was created.
+      self.assertLess(int(f.Get(f.Schema.TYPE).age), timestamp,
+                      "The client request was issued before "
+                      "the flow was created.")
 
 
 class FlowTest(test_lib.FlowTestsBaseclass):

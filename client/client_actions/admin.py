@@ -24,8 +24,14 @@ config_lib.DEFINE_string("Client.binary_name", "%(Client.name)",
 config_lib.DEFINE_string("Client.company_name", "GRR Project",
                          "The name of the company which made the client.")
 
-config_lib.DEFINE_string("Client.description", "GRR Rapid Response Framework",
+config_lib.DEFINE_string("Client.description", "%(name) %(system) %(platform)",
                          "A description of this specific client build.")
+
+config_lib.DEFINE_string("Client.platform", platform.machine(),
+                         "The platform we are running on.")
+
+config_lib.DEFINE_string("Client.system", platform.system(),
+                         "The platform we are running on.")
 
 config_lib.DEFINE_string("Client.build_time", "Unknown",
                          "The time the client was built.")
@@ -47,8 +53,10 @@ config_lib.DEFINE_string("Client.version_string",
                          "%(version_revision).%(version_release)",
                          "Version string of the client.")
 
-config_lib.DEFINE_integer("Client.version_numeric", 0,
-                          "Version string of the client as an integer.")
+config_lib.DEFINE_string("Client.version_numeric",
+                         "%(version_major)%(version_minor)"
+                         "%(version_revision)%(version_release)",
+                         "Version string of the client as an integer.")
 
 
 class Echo(actions.ActionPlugin):
@@ -164,10 +172,19 @@ class GetConfiguration(actions.ActionPlugin):
   in_rdfvalue = None
   out_rdfvalue = rdfvalue.RDFProtoDict
 
+  BLOCKED_PARAMETERS = ["Client.private_key"]
+
   def Run(self, unused_arg):
+    """Retrieve the configuration except for the blocked parameters."""
+
     out = self.out_rdfvalue()
     for descriptor in config_lib.CONFIG.type_infos:
-      out[descriptor.name] = config_lib.CONFIG[descriptor.name]
+      if descriptor.name in self.BLOCKED_PARAMETERS:
+        value = "[Redacted]"
+      else:
+        value = config_lib.CONFIG[descriptor.name]
+
+      out[descriptor.name] = value
 
     self.SendReply(out)
 
@@ -215,6 +232,7 @@ class GetClientInfo(actions.ActionPlugin):
 
     self.SendReply(
         client_name=config_lib.CONFIG["Client.name"],
+        client_description=config_lib.CONFIG["Client.description"],
         client_version=config_lib.CONFIG["Client.version_numeric"],
         build_time=config_lib.CONFIG["Client.build_time"],
         )
@@ -283,11 +301,12 @@ class SendStartupInfo(actions.ActionPlugin):
 
   def Run(self, unused_arg, ttl=None):
     """Returns the startup information."""
-
+    logging.debug("Sending startup information.")
     response = rdfvalue.StartupInfo(
         boot_time=long(psutil.BOOT_TIME * 1e6),
         client_info=rdfvalue.ClientInformation(
             client_name=config_lib.CONFIG["Client.name"],
+            client_description=config_lib.CONFIG["Client.description"],
             client_version=config_lib.CONFIG["Client.version_numeric"],
             build_time=config_lib.CONFIG["Client.build_time"]))
 

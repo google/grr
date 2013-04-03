@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 """This is the main task scheduler."""
 
 import logging
@@ -145,7 +133,7 @@ class TaskScheduler(object):
     return sessions_available
 
   def MultiNotifyQueue(self, queue, session_ids, priorities, timestamp=None,
-                       token=None):
+                       sync=True, token=None):
     """This is the same as NotifyQueue but for several session_ids at once.
 
     Args:
@@ -154,13 +142,14 @@ class TaskScheduler(object):
       priorities: A list of priorities, one for each session_id in the
                   session_id list.
       timestamp: An optional timestamp for this notification.
+      sync: If True, sync to the data_store immediately.
       token: An access token to access the data store.
     """
     data_store.DB.MultiSet(
         queue,
         dict([(self.PREDICATE_PREFIX % session_id, str(int(priority)))
               for session_id, priority in zip(session_ids, priorities)]),
-        sync=True, replace=True, token=token, timestamp=timestamp)
+        sync=sync, replace=True, token=token, timestamp=timestamp)
 
   def DeleteNotification(self, queue, session_id, token=None):
     """This deletes the notification when all messages have been processed."""

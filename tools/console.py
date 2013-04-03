@@ -65,9 +65,26 @@ def FormatISOTime(t):
 CWD = "/"
 
 
+def FindClient(query_str, token=None, limit=1000):
+  """Search indexes for clients. Returns list (client, hostname, os version)."""
+  client_schema = aff4.AFF4Object.classes["VFSGRRClient"].SchemaCls
+  index_urn = client_schema.client_index
+  index = aff4.FACTORY.Create(index_urn, "AFF4Index", mode="r", token=token)
+  result_set = index.Query(
+      [client_schema.HOSTNAME, client_schema.USERNAMES],
+      query_str.lower(), limit=(0, limit))
+  results = []
+  for result in result_set:
+    results.append((result,
+                    str(result.Get(client_schema.HOSTNAME)),
+                    str(result.Get(client_schema.OS_VERSION)),
+                   ))
+  return results
+
+
 def SearchClient(hostname_regex=None, os_regex=None, mac_regex=None, limit=100):
   """Search for clients and return as a list of dicts."""
-  schema = aff4_grr.VFSGRRClient.Schema
+  schema = aff4_grr.VFSGRRClient.SchemaCls
   filters = [
       data_store.DB.filter.HasPredicateFilter(schema.HOSTNAME),
       data_store.DB.filter.SubjectContainsFilter("aff4:/C.[^/]+")
@@ -174,8 +191,8 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
   session_id = flow.FACTORY.StartFlow(client_id, flow_name, queue_name=queue,
                                       **kwargs)
   # Empty token, only works with raw access.
-  worker_thrd = flow.GRRWorker(queue_name=queue, token=data_store.ACLToken(),
-                               threadpool_size=1)
+  worker_thrd = flow.GRRWorker(
+      queue_name=queue, token=access_control.ACLToken(), threadpool_size=1)
   while True:
     try:
       worker_thrd.RunOnce()
@@ -231,16 +248,13 @@ def ApprovalGrant(token=None):
 def ApprovalFind(object_id, token=None):
   """Find approvals issued for a specific client."""
   user = getpass.getuser()
-  if aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(object_id):
-    namespace = "clients"
-  else:
-    namespace = "hunts"
+  object_id = aff4.RDFURN(object_id)
   try:
     approved_token = aff4.Approval.GetApprovalForObject(
-        namespace, object_id, token=token, username=user)
+        object_id, token=token, username=user)
     print "Found token %s" % str(approved_token)
     return approved_token
-  except data_store.UnauthorizedAccess:
+  except access_control.UnauthorizedAccess:
     print "No token available for access to %s" % object_id
 
 
@@ -253,7 +267,7 @@ def TestFlows(client_id, platform, testname=None):
   # This token is not really used since there is no approval for the
   # tested client - these tests are designed for raw access - but we send it
   # anyways to have an access reason.
-  token = data_store.ACLToken("test", "client testing")
+  token = access_control.ACLToken("test", "client testing")
 
   console.client_tests.RunTests(client_id, platform=platform,
                                 testname=testname, token=token)
@@ -278,7 +292,7 @@ def ApprovalCreateRaw(client_id, token, approval_type="ClientApproval"):
   approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
       token.username).Add(utils.EncodeReasonString(token.reason))
 
-  super_token = data_store.ACLToken()
+  super_token = access_control.ACLToken()
   super_token.supervisor = True
 
   approval_request = aff4.FACTORY.Create(approval_urn, approval_type,
@@ -308,7 +322,7 @@ def ApprovalRevokeRaw(client_id, token, remove_from_cache=False):
   approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
       token.username).Add(utils.EncodeReasonString(token.reason))
 
-  super_token = data_store.ACLToken()
+  super_token = access_control.ACLToken()
   super_token.supervisor = True
 
   approval_request = aff4.FACTORY.Open(approval_urn, mode="rw",
@@ -336,25 +350,35 @@ def OpenClient(client_id=None):
     tuple containing (client, token) objects or (None, None) on if
     no appropriate aproval tokens were found.
   """
-  token = data_store.ACLToken()
+  token = access_control.ACLToken()
   try:
     token = ApprovalFind(client_id, token=token)
-  except data_store.AuthorizationError as e:
+  except access_control.UnauthorizedAccess as e:
     logging.warn("No authorization found for access to client: %s", e)
 
   try:
     # Try and open with the token we managed to retrieve or the default.
     client = aff4.FACTORY.Open(aff4.RDFURN(client_id), mode="r", token=token)
     return client, token
-  except data_store.UnauthorizedAccess:
+  except access_control.UnauthorizedAccess:
     logging.warning("Unable to find a valid reason for client %s. You may need "
                     "to request approval.", client_id)
     return None, None
 
 
+def SetLabels(urn, labels, token=None):
+  """Set the labels on an object."""
+  fd = aff4.FACTORY.Open(urn, mode="rw", token=token)
+  current_labels = fd.Get(fd.Schema.LABEL, fd.Schema.LABEL())
+  for l in labels:
+    current_labels.Append(l)
+  fd.Set(current_labels)
+  fd.Close()
+
+
 def ListDrivers():
   urn = aff4.ROOT_URN.Add(memory.DRIVER_BASE)
-  token = data_store.ACLToken()
+  token = access_control.ACLToken()
   fd = aff4.FACTORY.Open(urn, mode="r", token=token)
 
   return list(fd.Query())

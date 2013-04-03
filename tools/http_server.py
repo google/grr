@@ -42,9 +42,6 @@ config_lib.DEFINE_integer("Frontend.processes", 1,
 config_lib.DEFINE_integer("Frontend.max_queue_size", 500,
                           "Maximum number of messages to queue for the client.")
 
-config_lib.DEFINE_integer("Frontend.max_receiver_threads", 10,
-                          "Maximum number of threads to use for receivers.")
-
 config_lib.DEFINE_integer("Frontend.max_retransmission_time", 10,
                           "Maximum number of times we are allowed to "
                           "retransmit a request until it fails.")

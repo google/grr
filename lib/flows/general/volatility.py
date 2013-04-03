@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2012 Google Inc. All Rights Reserved.
 
 """A general flow to run Volatility plugins."""
 
@@ -76,9 +64,12 @@ user, plugin and time. E.g. /analysis/{p}/{u}-{t}.""",
     system = client.Get(client.Schema.SYSTEM)
     version = str(client.Get(client.Schema.OS_VERSION))
 
-    if self.plugins not in self.plugin_whitelist:
+    # If not all requested plugins are whitelisted...
+    if not set(plugin_list) <= set(self.plugin_whitelist):
       if system != "Windows":
-        raise flow.FlowError("Volatility not supported on non-Windows.")
+        raise flow.FlowError(
+            "Volatility on non-Windows only supports plugins %s." %
+            self.plugin_whitelist)
       else:
         # For Windows
         if version[0:3] <= "5.0":
@@ -115,7 +106,7 @@ user, plugin and time. E.g. /analysis/{p}/{u}-{t}.""",
     if not self.output_urn:
       self.output_urn = aff4.ROOT_URN.Add(self.client_id)
     self.Notify("ViewObject", self.output_urn,
-                "Ran volatility modules %s" % self.plugins)
+                "Ran volatility modules %s" % self.GetPlugins())
 
 
 class Mutexes(VolatilityPlugins):

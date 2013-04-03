@@ -1,22 +1,13 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 """Tests for administrative flows."""
 
 
+
 import sys
+import time
+
+
+import psutil
 
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -25,6 +16,7 @@ from grr.lib import flow
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import type_info
 
 
 class TestClientConfigHandling(test_lib.FlowTestsBaseclass):
@@ -61,35 +53,28 @@ class TestClientConfigHandling(test_lib.FlowTestsBaseclass):
     # self.assertEqual(config_dat.data.poll_min, 1)
 
 
+class ClientActionRunner(flow.GRRFlow):
+  """Just call the specified client action directly.
+  """
+
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.String(
+          name="action",
+          description="Action to run."
+          )
+      )
+
+  args = {}
+
+  @flow.StateHandler(next_state="End")
+  def Start(self):
+    self.CallClient(self.action, next_state="End", **self.args)
+
+
 class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
 
   def testClientKilled(self):
     """Test that client killed messages are handled correctly."""
-
-    client_id = self.client_id
-    token = self.token
-
-    class ClientMock(object):
-
-      def HandleMessage(self, message):
-        status = rdfvalue.GrrStatus(
-            status=rdfvalue.GrrStatus.Enum("CLIENT_KILLED"),
-            error_message="Client killed during transaction")
-
-        msg = rdfvalue.GRRMessage(
-            request_id=message.request_id, response_id=1,
-            session_id=message.session_id,
-            type=rdfvalue.GRRMessage.Enum("STATUS"),
-            args=status.SerializeToString(), source=client_id,
-            auth_state=rdfvalue.GRRMessage.Enum("AUTHENTICATED"))
-
-        self.flow_id = message.session_id
-
-        # This is normally done by the FrontEnd when a CLIENT_KILLED message is
-        # received.
-        flow.PublishEvent("ClientCrash", msg, token=token)
-
-        return [status]
 
     try:
       old_send_email = email_alerts.SendEmail
@@ -103,7 +88,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       email_alerts.SendEmail = SendEmail
       config_lib.CONFIG.Set("Monitoring.alert_email", "admin@nowhere.com")
 
-      client = ClientMock()
+      client = test_lib.CrashClientMock(self.client_id, self.token)
       for _ in test_lib.TestFlowHelper(
           "ListDirectory", client, client_id=self.client_id,
           pathspec=rdfvalue.RDFPathSpec(path="/"), token=self.token,
@@ -123,8 +108,160 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       self.assertEqual(rdf_flow.state, rdfvalue.Flow.Enum("ERROR"))
       flow.FACTORY.ReturnFlow(rdf_flow, token=self.token)
 
+      # Make sure crashes RDFValueCollections are created and written
+      # into proper locations. First check the per-client crashes collection.
+      client_crashes = aff4.FACTORY.Open(
+          aff4.ROOT_URN.Add(self.client_id).Add("crashes"),
+          required_type="RDFValueCollection", token=self.token)
+      self.assertEqual(len(client_crashes), 1)
+      crash = list(client_crashes)[0]
+      self.assertEqual(crash.client_id, self.client_id)
+      self.assertEqual(crash.session_id, rdf_flow.session_id)
+      self.assertEqual(crash.client_info.client_name, "GRR Monitor")
+      self.assertEqual(crash.crash_type, "aff4:/flows/W:CrashHandler")
+      self.assertEqual(crash.crash_message, "Client killed during transaction")
+
+      # Check per-flow crash collection. Check that crash written there is
+      # equal to per-client crash.
+      aff4_flow = aff4.FACTORY.Open(rdf_flow.session_id, token=self.token)
+      flow_crash = aff4_flow.Get(aff4_flow.Schema.CLIENT_CRASH)
+      self.assertEqual(flow_crash, crash)
+
+      # Check global crash collection. Check that crash written there is
+      # equal to per-client crash.
+      global_crashes = aff4.FACTORY.Open(aff4.ROOT_URN.Add("crashes"),
+                                         required_type="RDFValueCollection",
+                                         token=self.token)
+      self.assertEqual(len(global_crashes), 1)
+      self.assertEqual(list(global_crashes)[0], crash)
+
     finally:
       email_alerts.SendEmail = old_send_email
+
+  def testNannyMessage(self):
+    nanny_message = "Oh no!"
+    try:
+      old_send_email = email_alerts.SendEmail
+
+      self.email_message = {}
+
+      def SendEmail(address, sender, title, message, **_):
+        self.email_message.update(dict(address=address, sender=sender,
+                                       title=title, message=message))
+
+      email_alerts.SendEmail = SendEmail
+      config_lib.CONFIG.Set("Monitoring.alert_email", "admin@nowhere.com")
+
+      msg = rdfvalue.GRRMessage(
+          session_id="W:NannyMessage",
+          args=rdfvalue.DataBlob(string=nanny_message).SerializeToString(),
+          source=self.client_id,
+          auth_state=rdfvalue.GRRMessage.Enum("AUTHENTICATED"))
+
+      # This is normally done by the FrontEnd when a CLIENT_KILLED message is
+      # received.
+      flow.PublishEvent("NannyMessage", msg, token=self.token)
+
+      # Now emulate a worker to process the event.
+      worker = test_lib.MockWorker(queue_name="W", token=self.token)
+      while worker.Next():
+        pass
+      worker.pool.Join()
+
+      # We expect the email to be sent.
+      self.assertEqual(self.email_message.get("address", ""),
+                       config_lib.CONFIG["Monitoring.alert_email"])
+      self.assertTrue(self.client_id in self.email_message["title"])
+
+      # Make sure the message is included in the email message.
+      self.assertTrue(nanny_message in self.email_message["message"])
+
+      # Make sure crashes RDFValueCollections are created and written
+      # into proper locations. First check the per-client crashes collection.
+      client_crashes = aff4.FACTORY.Open(
+          aff4.ROOT_URN.Add(self.client_id).Add("crashes"),
+          required_type="RDFValueCollection", token=self.token)
+      self.assertEqual(len(client_crashes), 1)
+      crash = list(client_crashes)[0]
+      self.assertEqual(crash.client_id, self.client_id)
+      self.assertEqual(crash.client_info.client_name, "GRR Monitor")
+      self.assertEqual(crash.crash_type, "aff4:/flows/W:NannyMessage")
+      self.assertEqual(crash.crash_message, nanny_message)
+
+      # Check global crash collection. Check that crash written there is
+      # equal to per-client crash.
+      global_crashes = aff4.FACTORY.Open(aff4.ROOT_URN.Add("crashes"),
+                                         required_type="RDFValueCollection",
+                                         token=self.token)
+      self.assertEqual(len(global_crashes), 1)
+      self.assertEqual(list(global_crashes)[0], crash)
+
+    finally:
+      email_alerts.SendEmail = old_send_email
+
+  def testStartupHandler(self):
+    # Clean the client records.
+    aff4.FACTORY.Delete(self.client_id, token=self.token)
+
+    client_mock = test_lib.ActionMock("SendStartupInfo")
+    for _ in test_lib.TestFlowHelper(
+        "ClientActionRunner", client_mock, client_id=self.client_id,
+        action="SendStartupInfo", token=self.token):
+      pass
+
+    # Check the client's boot time and info.
+    fd = aff4.FACTORY.Open(self.client_id, token=self.token)
+    client_info = fd.Get(fd.Schema.CLIENT_INFO)
+    boot_time = fd.Get(fd.Schema.LAST_BOOT_TIME)
+
+    self.assertEqual(client_info.client_name,
+                     config_lib.CONFIG["Client.name"])
+    self.assertEqual(client_info.client_description,
+                     config_lib.CONFIG["Client.description"])
+
+    # Check that the boot time is accurate.
+    self.assertAlmostEqual(psutil.BOOT_TIME, boot_time.AsSecondsFromEpoch())
+
+    # Run it again - this should not update any record.
+    for _ in test_lib.TestFlowHelper(
+        "ClientActionRunner", client_mock, client_id=self.client_id,
+        action="SendStartupInfo", token=self.token):
+      pass
+
+    fd = aff4.FACTORY.Open(self.client_id, token=self.token)
+    self.assertEqual(boot_time.age, fd.Get(fd.Schema.LAST_BOOT_TIME).age)
+    self.assertEqual(client_info.age, fd.Get(fd.Schema.CLIENT_INFO).age)
+
+    # Simulate a reboot in 10 minutes.
+    psutil.BOOT_TIME += 600
+
+    # Run it again - this should now update the boot time.
+    for _ in test_lib.TestFlowHelper(
+        "ClientActionRunner", client_mock, client_id=self.client_id,
+        action="SendStartupInfo", token=self.token):
+      pass
+
+    # Ensure only this attribute is updated.
+    fd = aff4.FACTORY.Open(self.client_id, token=self.token)
+    self.assertNotEqual(int(boot_time.age),
+                        int(fd.Get(fd.Schema.LAST_BOOT_TIME).age))
+
+    self.assertEqual(int(client_info.age),
+                     int(fd.Get(fd.Schema.CLIENT_INFO).age))
+
+    # Now set a new client build time.
+    config_lib.CONFIG.Set("Client.build_time", time.ctime())
+
+    # Run it again - this should now update the client info.
+    for _ in test_lib.TestFlowHelper(
+        "ClientActionRunner", client_mock, client_id=self.client_id,
+        action="SendStartupInfo", token=self.token):
+      pass
+
+    # Ensure the client info attribute is updated.
+    fd = aff4.FACTORY.Open(self.client_id, token=self.token)
+    self.assertNotEqual(int(client_info.age),
+                        int(fd.Get(fd.Schema.CLIENT_INFO).age))
 
   def testExecutePythonHack(self):
     client_mock = test_lib.ActionMock("ExecutePython")

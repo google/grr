@@ -97,6 +97,16 @@ class RunTestsInit(registry.InitHook):
     data_store.DB.subjects.update(copy.deepcopy(RunTestsInit.fixture_cache))
 
 
+class TestPluginInit(registry.InitHook):
+  """Load the test plugins after django is initialized."""
+  pre = ["DjangoInit"]
+
+  def RunOnce(self):
+    # pylint: disable=unused-variable,C6204
+    from grr.gui.plugins import tests
+    # pylint: enable=unused-variable,C6204
+
+
 def main(_):
   """Run the main test harness."""
   # For testing we use the test config file.

@@ -774,9 +774,6 @@ VOID WINAPI ServiceMain(int argc, LPTSTR *argv) {
     return;
   };
 
-  logger.Log("Running nanny with service key %s",
-             kNannyConfig->service_key_name);
-
   // Registers the handler function for the service.
   g_service_status_handler = RegisterServiceCtrlHandler(
     kNannyConfig->service_name, SvcCtrlHandler);

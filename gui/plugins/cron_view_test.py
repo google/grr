@@ -1,19 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2012 Google Inc. All Rights Reserved.
 """Test the cron_view interface."""
 
 
@@ -30,20 +18,17 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
   def testCronView(self):
     """Test that scheduling flows works."""
-    sel = self.selenium
-    sel.open("/")
+    self.Open("/")
 
-    self.WaitUntil(sel.is_element_present, "client_query")
-    self.WaitUntil(sel.is_element_present, "css=a[grrtarget=ManageCron]")
-    sel.click("css=a[grrtarget=ManageCron]")
+    self.WaitUntil(self.IsElementPresent, "client_query")
+    self.Click("css=a[grrtarget=ManageCron]")
 
     # Table should contain Last Run
-    self.WaitUntil(sel.is_text_present, "Last Run")
+    self.WaitUntil(self.IsTextPresent, "Last Run")
 
     # Select a Cron.
-    self.WaitUntil(sel.is_element_present, "css=td:contains('OSBreakDown')")
-    sel.click("css=td:contains('OSBreakDown')")
+    self.Click("css=td:contains('OSBreakDown')")
 
     # Check we can now see the log.
-    self.WaitUntil(sel.is_element_present, "css=table[class=proto_table]")
-    self.WaitUntil(sel.is_text_present, "Successfully ran cron job OSBreakDown")
+    self.WaitUntil(self.IsElementPresent, "css=table[class=proto_table]")
+    self.WaitUntil(self.IsTextPresent, "Successfully ran cron job OSBreakDown")

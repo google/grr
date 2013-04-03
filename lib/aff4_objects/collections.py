@@ -1,17 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """Implementations of various collections."""
 
 
@@ -38,7 +25,7 @@ class RDFValueCollection(aff4.AFF4Object):
     DESCRIPTION = aff4.Attribute("aff4:description", rdfvalue.RDFString,
                                  "This collection's description", "description")
 
-    VIEW = aff4.Attribute("aff4:view", rdfvalue.View,
+    VIEW = aff4.Attribute("aff4:rdfview", rdfvalue.RDFValueCollectionView,
                           "The list of attributes which will show up in "
                           "the table.", default="")
 
@@ -55,13 +42,17 @@ class RDFValueCollection(aff4.AFF4Object):
       if self.fd is None:
         self.fd = aff4.FACTORY.Open(self.urn.Add("Stream"),
                                     required_type="AFF4Image", token=self.token)
-
       self.size = self.Get(self.Schema.SIZE)
 
   def Flush(self, sync=False):
-    self.fd.Flush(sync=sync)
-    self.Set(self.Schema.SIZE, self.size)
+    if self._dirty:
+      self.fd.Flush(sync=sync)
+      self.Set(self.Schema.SIZE, self.size)
+
     super(RDFValueCollection, self).Flush(sync=sync)
+
+  def Close(self, sync=False):
+    self.Flush(sync=sync)
 
   def Add(self, rdf_value=None, **kwargs):
     """Add the rdf value to the collection."""
@@ -76,6 +67,7 @@ class RDFValueCollection(aff4.AFF4Object):
     self.fd.Write(struct.pack("<i", len(data)))
     self.fd.Write(data)
     self.size += 1
+    self._dirty = True
 
   def __len__(self):
     return int(self.Get(self.Schema.SIZE))
@@ -114,6 +106,11 @@ class AFF4Collection(aff4.AFF4Volume, RDFValueCollection):
 
   _behaviours = frozenset(["Collection"])
 
+  class SchemaCls(aff4.AFF4Volume.SchemaCls, RDFValueCollection.SchemaCls):
+    VIEW = aff4.Attribute("aff4:view", rdfvalue.AFF4CollectionView,
+                          "The list of attributes which will show up in "
+                          "the table.", default="")
+
   def CreateView(self, attributes):
     """Given a list of attributes, update our view.
 
@@ -145,6 +142,3 @@ class AFF4Collection(aff4.AFF4Volume, RDFValueCollection):
   def ListChildren(self, **_):
     for aff4object_summary in self:
       yield aff4object_summary.urn
-
-  class SchemaCls(aff4.AFF4Volume.SchemaCls, RDFValueCollection.SchemaCls):
-    """The schema for the AFF4Collection."""

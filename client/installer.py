@@ -17,13 +17,18 @@ from grr.client import comms
 from grr.client import conf as flags
 
 from grr.lib import config_lib
-from grr.lib import log
 from grr.lib import rdfvalue
 from grr.lib import registry
 
 
 flags.DEFINE_bool("install", False,
                   "Specify this to install the client.")
+
+config_lib.DEFINE_string(
+    name="ClientBuilder.logfile",
+    default="%(Logging.path)/%(Client.name)_installer.txt",
+    help=("A specific log file which is used for logging the "
+          "installation process."))
 
 
 class Installer(registry.HookRegistry):
@@ -46,7 +51,8 @@ class InstallerInit(registry.InitHook):
     """An emergency function Invoked when the client installation failed."""
 
     try:
-      log_data = open(config_lib.CONFIG["Logging.filename"], "rb").read()
+      log_data = open(
+          config_lib.CONFIG["ClientBuilder.logfile"], "rb").read()
     except (IOError, OSError):
       log_data = ""
 
@@ -54,6 +60,8 @@ class InstallerInit(registry.InitHook):
     # private key may be empty if we did not install properly yet. In this case,
     # the client will automatically generate a random client ID and private key
     # (and the message will be unauthenticated since we never enrolled.).
+    comms.CommsInit().RunOnce()
+
     client = comms.GRRHTTPClient(
         ca_cert=config_lib.CONFIG["CA.certificate"],
         private_key=config_lib.CONFIG["Client.private_key"])
@@ -77,9 +85,15 @@ class InstallerInit(registry.InitHook):
     then exit the process.
     """
     if flags.FLAGS.install:
-      # Start to log verbosely.
-      flags.FLAGS.verbose = True
-      log.SetLogLevels()
+      # Always log to the installer logfile at debug level. This way if our
+      # installer fails we can send detailed diagnostics.
+      handler = logging.FileHandler(
+          config_lib.CONFIG["ClientBuilder.logfile"], mode="wb")
+
+      handler.setLevel(logging.DEBUG)
+
+      # Add this to the root logger.
+      logging.getLogger().addHandler(handler)
 
       logging.warn("Starting installation procedure for GRR client.")
       try:
@@ -92,11 +106,14 @@ class InstallerInit(registry.InitHook):
         # Let the server know about this just in case.
         self.NotifyServer()
 
+        # Error return status.
+        sys.exit(-1)
+
       # Exit successfully.
       sys.exit(0)
 
 
-config_lib.DEFINE_list("ClientBuilder.plugins", [],
+config_lib.DEFINE_list("Client.installer_plugins", [],
                        "Plugins that will be loaded during installation.")
 
 
@@ -112,7 +129,7 @@ class InstallerPlugins(Installer):
 
   def RunOnce(self):
     """Load plugins relative to our current binary location."""
-    for plugin in config_lib.CONFIG["ClientBuilder.plugins"]:
+    for plugin in config_lib.CONFIG["Client.installer_plugins"]:
       config_lib.PluginLoader.LoadPlugin(
           os.path.join(os.path.dirname(sys.executable),
                        plugin))

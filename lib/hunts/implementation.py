@@ -19,7 +19,6 @@ from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import flow_context
 from grr.lib import rdfvalue
-from grr.lib import scheduler
 from grr.lib import type_info
 from grr.lib import utils
 
@@ -81,6 +80,7 @@ class GRRHunt(flow.GRRFlow):
     self.rules = []
     self.start_time = time.time()
     self.started = False
+    self.written_to_datastore = False
     self.next_request_id = 0
     self.notification_event = notification_event
     self.usage_stats = rdfvalue.ClientResourcesStats()
@@ -106,7 +106,6 @@ class GRRHunt(flow.GRRFlow):
     timestamp = int(time.time())
     result = rdfvalue.ForemanRule(
         created=timestamp * 1e6,
-        expires=(timestamp + self.expiry_time.seconds) * 1e6,
         description="Hunt %s %s" % (self.context.session_id,
                                     self.__class__.__name__))
 
@@ -126,9 +125,6 @@ class GRRHunt(flow.GRRFlow):
 
     result.actions.Append(hunt_id=self.context.session_id,
                           hunt_name=self.__class__.__name__)
-
-    if self.client_limit:
-      result.actions[0].client_limit = self.client_limit
 
     self.rules.append(result)
 
@@ -227,8 +223,13 @@ class GRRHunt(flow.GRRFlow):
     if description:
       hunt_obj.Set(hunt_obj.Schema.DESCRIPTION(description))
 
-    hunt_obj.Set(hunt_obj.Schema.RDF_FLOW(queue=self.session_id, task_id=1,
-                                          payload=rdfvalue.Flow(self.Dump())))
+    # We don't want to overwrite RDF_FLOW everytime we run/pause the hunt (or
+    # we may lose data stored in the overwritten pickled RDF_FLOW object).
+    if not self.written_to_datastore:
+      self.written_to_datastore = True
+      hunt_obj.Set(hunt_obj.Schema.RDF_FLOW(queue=self.session_id, task_id=1,
+                                            payload=rdfvalue.Flow(self.Dump())))
+
     # There is a potential race here where we write the client requests first
     # and pickle the flow later. To avoid this, we have to keep the order and
     # schedule the tasks synchronously.
@@ -248,11 +249,18 @@ class GRRHunt(flow.GRRFlow):
       # Updating created timestamp of the hunt's rules. This will force Foreman
       # to apply the rules and run corresponding actions once more for every
       # client.
+      # Updating rules' "expires" and "client_limit" attributes to current
+      # values.
+      timestamp = time.time()
       rule.created = int(time.time() * 1e6)
+      rule.expires = (timestamp + self.expiry_time.seconds) * 1e6
+      if self.client_limit:
+        rule.actions[0].client_limit = self.client_limit
+      else:
+        rule.actions[0].client_limit = None
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token,
                                 ignore_cache=True)
-
     foreman_rules = foreman.Get(foreman.Schema.RULES,
                                 default=foreman.Schema.RULES())
     foreman_rules.Extend(self.rules)
@@ -298,8 +306,8 @@ class GRRHunt(flow.GRRFlow):
     if client_limit:
       hunt_obj = aff4.FACTORY.Open(hunt_id, mode="rw",
                                    age=aff4.ALL_TIMES, token=token)
-      clients = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
 
+      clients = list(hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS))
       if len(clients) >= client_limit:
         return
 
@@ -325,8 +333,8 @@ class GRRHunt(flow.GRRFlow):
                                   next_state="Start")
 
     # Queue the new request.
-    with flow_context.FlowManager(hunt_id, token=token) as flow_manager:
-      flow_manager.QueueRequest(state)
+    with flow_context.FlowManager(token=token) as flow_manager:
+      flow_manager.QueueRequest(hunt_id, state)
 
       # Send a response.
       msg = rdfvalue.GRRMessage(
@@ -336,10 +344,10 @@ class GRRHunt(flow.GRRFlow):
           type=rdfvalue.GRRMessage.Enum("STATUS"),
           payload=rdfvalue.GrrStatus())
 
-      flow_manager.QueueResponse(msg)
+      flow_manager.QueueResponse(hunt_id, msg)
 
-    # And notify the worker about it.
-    scheduler.SCHEDULER.NotifyQueue("W", hunt_id, token=token)
+      # And notify the worker about it.
+      flow_manager.QueueNotification("W", hunt_id)
 
   def Start(self, responses):
     """Do the real work here."""
@@ -436,7 +444,7 @@ class GRRHunt(flow.GRRFlow):
           rdfvalue.Duration(self.expiry_time))
       self.client_limit = self.aff4_object.Get(
           self.aff4_object.Schema.CLIENT_LIMIT,
-          rdfvalue.Duration(self.client_limit))
+          rdfvalue.RDFInteger(self.client_limit))
 
       state = self.aff4_object.Get(self.aff4_object.Schema.STATE)
       if state:

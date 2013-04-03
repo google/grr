@@ -1,22 +1,11 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2010 Google Inc. All Rights Reserved.
 """This file contains various utility classes used by GRR."""
 
 
 
 import base64
+import os
 import random
 import re
 import socket
@@ -118,7 +107,7 @@ class InterruptableThread(threading.Thread):
           else:
             self.exit = True
             break
-        except AttributeError:
+        except (AttributeError, TypeError):
           # When the main thread exits, time might be already None. We should
           # just ignore that and exit as well.
           self.exit = True
@@ -287,6 +276,16 @@ class FastStore(object):
     for key in list(self._hash):
       if key.startswith(prefix):
         self.ExpireObject(key)
+
+  @Synchronized
+  def Pop(self, key):
+    """Remove the object from the cache completely."""
+    node = self._hash.get(key)
+
+    if node:
+      self._age.Unlink(node)
+
+      return node.data
 
   @Synchronized
   def Get(self, key):
@@ -699,3 +698,26 @@ def GeneratePassphrase(length=20):
   valid_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
   valid_chars += "0123456789 ,-_&$#"
   return "".join(random.choice(valid_chars) for i in range(length))
+
+
+class PRNG(object):
+  """An optimized PRNG."""
+
+  random_list = None
+
+  @classmethod
+  def GetShort(cls):
+    if not cls.random_list:
+      PRNG.random_list = list(
+          struct.unpack("H" * 1000, os.urandom(2000)))
+
+    return cls.random_list.pop()
+
+
+def FormatNumberAsString(num):
+  """Return a large number in human readable form."""
+  for suffix in ["b", "KB", "MB", "GB"]:
+    if num < 1024.0:
+      return "%3.2f%s" % (num, suffix)
+    num /= 1024.0
+  return "%3.1f%s" % (num, "TB")

@@ -797,7 +797,7 @@ Token generation is done using the data_store.ACLToken.
 
 [source, python]
 ------------------------------------------------------------------
-token = data_store.ACLToken()
+token = access_control.ACLToken()
 fd = aff4.FACTORY.Open("aff4:/C.12345/", token=token)
 ------------------------------------------------------------------
 
@@ -946,6 +946,31 @@ sel.click("css=a:contains(\"View details\")")
 
 When the test hits this point it will break into a pdb shell for you to step
 through.
+
+
+=== Debugging Client Actions ===
+
+Client actions can be run manually without a flow by using the console. The
+following example shows using the ExecutePython client action without a flow.
+
+[source,python]
+------------------------------------------------------------------------
+client_id = "C.XXXXXXXXXXX"
+token = access_control.ACLToken()
+fd = aff4.FACTORY.Open("aff4:/config/python_hacks/myfile.py")
+request = rdfvalue.ExecutePythonRequest(python_code=fd.Read(100000))
+StartFlowAndWorker(client_id, "ClientAction", action="ExecutePython",
+    args=request, break_pdb=False, save_to="/tmp/grrdebug")
+------------------------------------------------------------------------
+
+A few points about the above code:
+- This runs a worker on a separate queue called DEBUG which means production
+  workers won't attempt to process them.
+- StartFlowAndWorker will create the flow, send the requests to the client, and
+  start a worker to process the returned results.
+- break_pdb and save_to are special args to the ClientAction flow to help you
+  debug interactively.
+
 
 
 Key Libraries.

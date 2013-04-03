@@ -250,7 +250,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.client = aff4.FACTORY.Create(self.client_cn, "VFSGRRClient", mode="rw",
                                       token=self.token)
     self.client.Set(self.client.Schema.CERT(self.certificate))
-    self.client.Close()
+    self.client.Flush()
 
     # Stop the client from actually processing anything
     config_lib.CONFIG.Set("Client.max_out_queue", 0)
@@ -390,7 +390,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.client = aff4.FACTORY.Create(self.client_cn, "VFSGRRClient", mode="rw",
                                       token=self.token)
     self.client.DeleteAttribute(self.client.Schema.CERT)
-    self.client.Close()
+    self.client.Flush()
 
     # Now communicate with the server.
     self.SendToServer()

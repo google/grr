@@ -1,19 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 """Tests for the Timeline viewer flow."""
 
 
@@ -68,59 +56,58 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     self.CreateTimelineFixture()
 
   def testTimelineViewer(self):
-    sel = self.selenium
     # Open the main page
-    sel.open("/")
+    self.Open("/")
 
-    self.WaitUntil(sel.is_element_present, "client_query")
-    sel.type("client_query", "0001")
-    sel.click("client_query_submit")
+    self.WaitUntil(self.IsElementPresent, "client_query")
+    self.Type("client_query", "0001")
+    self.Click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",
-                        sel.get_text, "css=span[type=subject]")
+                        self.GetText, "css=span[type=subject]")
 
     # Choose client 1
-    sel.click("css=td:contains('0001')")
+    self.Click("css=td:contains('0001')")
 
     # Go to Browse VFS
-    self.WaitUntil(sel.is_element_present,
+    self.WaitUntil(self.IsElementPresent,
                    "css=a:contains('Browse Virtual Filesystem')")
-    sel.click("css=a:contains('Browse Virtual Filesystem')")
+    self.Click("css=a:contains('Browse Virtual Filesystem')")
 
     # Navigate to the analysis directory
-    self.WaitUntil(sel.is_element_present, "css=#_analysis")
-    sel.click("css=#_analysis ins.jstree-icon")
+    self.WaitUntil(self.IsElementPresent, "css=#_analysis")
+    self.Click("css=#_analysis ins.jstree-icon")
 
-    self.WaitUntil(sel.is_element_present, "link=Timeline")
-    sel.click("link=Timeline")
+    self.WaitUntil(self.IsElementPresent, "link=Timeline")
+    self.Click("link=Timeline")
 
-    self.WaitUntil(sel.is_element_present,
+    self.WaitUntil(self.IsElementPresent,
                    "css=span[type=subject]:contains(\"MAC\")")
-    sel.click("css=span[type=subject]:contains(\"MAC\")")
+    self.Click("css=span[type=subject]:contains(\"MAC\")")
 
-    self.WaitUntil(sel.is_element_present, "css=td:contains(\"TIMELINE\")")
-    self.assert_("View details" in sel.get_text("css=td div.default_view a"))
+    self.WaitUntil(self.IsElementPresent, "css=td:contains(\"TIMELINE\")")
+    self.assert_("View details" in self.GetText("css=td div.default_view a"))
 
-    sel.click("css=a:contains(\"View details\")")
+    self.Click("css=a:contains(\"View details\")")
 
-    self.WaitUntil(sel.is_element_present, "container_query")
+    self.WaitUntil(self.IsElementPresent, "container_query")
 
-    sel.type("css=input#container_query",
-             "subject contains bash and timestamp > 2010")
+    self.Type("css=input#container_query",
+              "subject contains bash and timestamp > 2010")
 
     # Use the hidden submit button to issue the query. Ordinarily users have to
     # press enter here as they do not see the submit button. But pressing enter
     # does not work with chrome.
-    sel.click("css=#toolbar_main form[name=query_form] button[type=submit]")
+    self.Click("css=#toolbar_main form[name=query_form] button[type=submit]")
 
     self.WaitUntilContains("2011-03-07 12:50:20",
-                           sel.get_text, "css=tbody tr:first")
+                           self.GetText, "css=tbody tr:first")
 
-    sel.click("css=tbody tr:first td")
+    self.Click("css=tbody tr:first td")
 
-    self.WaitUntilContains("2011-03-07 12:50:20", sel.get_text,
+    self.WaitUntilContains("2011-03-07 12:50:20", self.GetText,
                            "css=.tab-content h3")
 
     # Check that the embedded stat proto is properly presented
-    self.assertTrue("2011-03-07 12:50:20" in sel.get_text(
+    self.assertTrue("2011-03-07 12:50:20" in self.GetText(
         "css=td.proto_value tr:contains(st_atime) td.proto_value"))

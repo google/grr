@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 """Administrative flows for managing the clients state."""
 
 
@@ -32,6 +20,38 @@ from grr.lib import utils
 
 config_lib.DEFINE_string("Monitoring.events_email", None,
                          "The email address to send events to.")
+
+
+class ClientCrashEventListener(flow.EventListener):
+  """EventListener with additional helper methods to save crash details."""
+
+  def _AppendCrashDetails(self, path, crash_details):
+    collection = aff4.FACTORY.Create(path, "RDFValueCollection", mode="rw",
+                                     token=self.token)
+    collection.Add(crash_details)
+    collection.Close(sync=False)
+
+  def WriteAllCrashDetails(self, client_id, crash_details,
+                           flow_session_id=None, hunt_session_id=None):
+    self._AppendCrashDetails(aff4.ROOT_URN.Add(client_id).Add("crashes"),
+                             crash_details)
+    self._AppendCrashDetails(aff4.ROOT_URN.Add("crashes"),
+                             crash_details)
+    if flow_session_id:
+      # TODO(user): we're using mode="rw" here because otherwise (in case of
+      # blind write) we'll overwrite TYPE. We need to have an AFF4 operation
+      # "blind write to an object that we're sure that is already existing".
+      aff4_flow = aff4.FACTORY.Open(rdfvalue.RDFURN(flow_session_id), mode="rw",
+                                    age=aff4.NEWEST_TIME, token=self.token)
+      aff4_flow.Set(aff4_flow.Schema.CLIENT_CRASH(crash_details))
+      aff4_flow.Close(sync=False)
+
+      hunt_str, hunt_id, _ = rdfvalue.RDFURN(flow_session_id).Split(3)
+      if hunt_str == "hunts":
+        hunt_session_id = aff4.ROOT_URN.Add("hunts").Add(hunt_id)
+        if hunt_session_id != flow_session_id:
+          self._AppendCrashDetails(
+              rdfvalue.RDFURN(hunt_session_id).Add("crashes"), crash_details)
 
 
 class GetClientStats(flow.GRRFlow):
@@ -366,7 +386,7 @@ class UpdateClient(flow.GRRFlow):
   AUTHORIZED_LABELS = ["admin"]
 
   system_platform_mapping = {
-      "Darwin": "osx",
+      "Darwin": "darwin",
       "Linux": "linux",
       "Windows": "windows"}
 
@@ -401,7 +421,7 @@ class UpdateClient(flow.GRRFlow):
     blob = aff4_blob.Get(aff4_blob.Schema.BINARY)
 
     if ("windows" in utils.SmartStr(self.blob_path) or
-        "osx" in utils.SmartStr(self.blob_path)):
+        "darwin" in utils.SmartStr(self.blob_path)):
       self.CallClient("UpdateAgent", executable=blob, next_state="Interrogate")
 
     else:
@@ -423,7 +443,7 @@ class UpdateClient(flow.GRRFlow):
              info.client_version)
 
 
-class NannyMessageHandler(flow.EventListener):
+class NannyMessageHandler(ClientCrashEventListener):
   """A listener for nanny messages."""
   EVENTS = ["NannyMessage"]
 
@@ -456,6 +476,17 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
     message = rdfvalue.DataBlob(message.args).string
 
     logging.info(self.logline, client_id, message)
+
+    # Write crash data to AFF4.
+    client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id), token=self.token)
+    client_info = client.Get(client.Schema.CLIENT_INFO)
+
+    crash_details = rdfvalue.ClientCrash(
+        client_id=client_id, client_info=client_info,
+        crash_message=message, timestamp=long(time.time() * 1e6),
+        crash_type=self.well_known_session_id)
+
+    self.WriteAllCrashDetails(client_id, crash_details)
 
     # Also send email.
     if config_lib.CONFIG["Monitoring.alert_email"]:
@@ -500,7 +531,7 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
   logline = "Client message from %s: %s"
 
 
-class ClientCrashHandler(flow.EventListener):
+class ClientCrashHandler(ClientCrashEventListener):
   """A listener for client crashes."""
   EVENTS = ["ClientCrash"]
 
@@ -525,6 +556,7 @@ P.S. The failing flow was:
   @flow.EventHandler(allow_client_access=True)
   def ProcessMessage(self, message=None, event=None):
     """Processes this event."""
+
     _ = event
     client_id = message.source
     nanny_msg = ""
@@ -538,9 +570,22 @@ P.S. The failing flow was:
     # Export.
     stats.STATS.Increment("grr_client_crashes")
 
+    # Write crash data to AFF4.
+    client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id), token=self.token)
+    client_info = client.Get(client.Schema.CLIENT_INFO)
+
+    status = rdfvalue.GrrStatus(message.args)
+    crash_details = rdfvalue.ClientCrash(
+        client_id=client_id, session_id=message.session_id,
+        client_info=client_info, crash_message=status.error_message,
+        timestamp=long(time.time() * 1e6),
+        crash_type=self.well_known_session_id)
+
+    self.WriteAllCrashDetails(client_id, crash_details,
+                              flow_session_id=message.session_id)
+
     # Also send email.
     if config_lib.CONFIG["Monitoring.alert_email"]:
-      status = rdfvalue.GrrStatus(message.args)
       if status.nanny_status:
         nanny_msg = "Nanny status: %s" % status.nanny_status
 
@@ -594,19 +639,20 @@ class ClientStartupHandler(flow.EventListener):
     startup_info = rdfvalue.StartupInfo(message.args)
     info = startup_info.client_info
 
-    if old_info:
-      # Only write to the datastore if we have new information.
-      new_data = (info.client_name, info.client_version, info.revision,
-                  startup_info.boot_time)
-      old_data = (old_info.client_name, old_info.client_version,
-                  old_info.revision, old_boot)
+    # Only write to the datastore if we have new information.
+    new_data = (info.client_name, info.client_version, info.revision,
+                info.build_time, info.client_description)
+    old_data = (old_info.client_name, old_info.client_version,
+                old_info.revision, old_info.build_time,
+                old_info.client_description)
 
-      if new_data == old_data:
-        # Information has not changed, we save the write.
-        return
+    if new_data != old_data:
+      client.Set(client.Schema.CLIENT_INFO(info))
 
-    client.Set(client.Schema.CLIENT_INFO(info))
-    client.Set(client.Schema.LAST_BOOT_TIME(startup_info.boot_time))
+    # Allow for some drift in the boot times (5 minutes).
+    if abs(int(old_boot) - int(startup_info.boot_time)) > 300 * 1e6:
+      client.Set(client.Schema.LAST_BOOT_TIME(startup_info.boot_time))
+
     client.Close()
 
 

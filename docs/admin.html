@@ -791,7 +791,7 @@ covered in the wiki here:
 </div>
 </div>
 <div class="sect1">
-<h2 id="_key_management">Key management</h2>
+<h2 id="_key_management">Key Management</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>GRR requires multiple key pairs. These are used to:</p></div>
 <div class="ulist"><ul>
@@ -811,33 +811,80 @@ Sign code and drivers sent to the client.
 </p>
 </li>
 </ul></div>
-<div class="paragraph"><p>In the scripts directory is a file called generate_keys.sh which can be used to
-generate the relevant keys.</p></div>
+<div class="paragraph"><p>These keys can be generated using the config_updater script normally installed
+in the path as grr_config_updater using the generate_keys command.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>db@host:/usr/share/grr$ sudo ./grr/scripts/generate_keys.sh
-[sudo] password for db:
-Generating keys
-Generating passphrase
-Generating CA
-Generating server key
-Generating server certificate
-Exporting CA key
-writing RSA key
+<pre><tt>db@host:$ sudo grr_config_updater generate_keys
+Using configuration &lt;ConfigFileParser filename="/etc/grr/grr-server.conf"&gt;
+Generating executable signing key
+..............+++
+.....+++
 Generating driver signing key
-writing RSA key
-Generating executable code signing key
-writing RSA key
-All done, cleaning up
-The generated keys are in /etc/grr/keys
-db@host:/usr/share/grr$</tt></pre>
+..................................................................+++
+.............................................................+++
+Generating CA keys
+Generating Server keys
+Generating Django Secret key (used for xsrf protection etc)
+db@host:$</tt></pre>
 </div></div>
-<div class="paragraph"><p>To generate keys in a different directory, pass the environment variable KEYDIR
-e.g.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_user_management">User Management</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_security_managers_and_user_managers">Security Managers and User Managers.</h3>
+<div class="paragraph"><p>GRR supports the ideas of a User Manager and a separate Security Manager.
+The User Manager handles authentication, setting passwords and managing labels
+for those users.
+The Security Manager (Datastore.security_manager config option) handles
+authorizing those users to resources based on a set of rules.</p></div>
+<div class="paragraph"><p>By default GRR will use the ConfigBasedUserManager which manages the users in a
+basic format inside the ["Users"] section of the configuration file.</p></div>
+<div class="paragraph"><p>The default Security Manager is the BasicAccessControlManager. This manager
+provides rudimentary Admin/Non-Admin functionality, but very little else. See
+the Auditing section for a discussion on the FullAccessControlManager.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_adding_and_updating_users">Adding and Updating Users.</h3>
+<div class="paragraph"><p>If you are using the ConfigBasedUserManager (default) then you can add users
+with config updater.</p></div>
+<div class="paragraph"><p>To add the user joe as an admin:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>db@host:/usr/share/grr$ sudo KEYDIR=grr/keys/test ./grr/scripts/generate_keys.sh</tt></pre>
+<pre><tt>db@host:~$ sudo grr_config_updater add_user --username joe
+Using configuration &lt;ConfigFileParser filename="/etc/grr/grr-server.conf"&gt;
+Please enter password for user joe:
+db@host:~$</tt></pre>
 </div></div>
+<div class="paragraph"><p>To add the user bob as a non-admin, with password test1234 and with the
+additional labels label1,label2:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>db@host:~$ sudo grr_config_updater add_user --username bob --noadmin --password
+test1234 --label label1 --label label2
+Using configuration &lt;ConfigFileParser filename="/etc/grr/grr-server.conf"&gt;
+db@host:~$</tt></pre>
+</div></div>
+<div class="paragraph"><p>To then update bob to an admin and set the labels to just label1</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>db@host:~$ sudo grr_config_updater update_user --username bob --label label1
+Using configuration &lt;ConfigFileParser filename="/etc/grr/grr-server.conf"&gt;
+db@host:~$</tt></pre>
+</div></div>
+</div>
+<div class="sect2">
+<h3 id="_authentication_to_the_admin_ui">Authentication to the Admin UI.</h3>
+<div class="paragraph"><p>Given the sensitivity of the data that GRR ends up holding, it is important to
+protect access to it. The AdminUI by default uses weak digest authentication,
+based on the users stored in the config file.
+However, we support the idea of a Webauth Manager
+(AdminUI.webauth_manager config option). This allows for customization to use an
+SSO or SAML based authentication mechanism. However, while we try and make it
+easy to integrate, this kind of auth is not currently built into GRR.</p></div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -858,7 +905,7 @@ packets.</p></div>
 install. The CA public key is deployed to the client so that it can ensure it
 is communicating with the correct server. If these keys are not kept secure,
 anyone with MITM capability can intercept communications and take control of
-your clients. Additionally, if you lose these keys, you lose ability to
+your clients. Additionally, if you lose these keys, you lose the ability to
 communicate with your clients.</p></div>
 <div class="paragraph"><p>Full details of this protocol and the security properties can be found in the
 <a href="implementation.html">Implementation document</a>.</p></div>
@@ -882,20 +929,13 @@ For a driver to be loaded, or binary to be run the code has to be signed by
 the specific key, the client will confirm this signature before execution.</p></div>
 <div class="paragraph"><p>In the default install, the driver and code signing private keys are not
 passphrase protected. In a secure environment we strongly recommended
-generating and storing these keys off the GRR server, and doing offline
-signing every time this functionality is required.</p></div>
-</div>
-<div class="sect2">
-<h3 id="_testing_staging_production">Testing, Staging, Production.</h3>
-<div class="paragraph"><p>GRR is designed to be able to be deployed in multiple environments to allow
-for staged rollout. By default a client is deployed with three sets of keys so
-that the same, well tested agent can be used across the different environments
-and can be changed to talk to different backends by changing the commandline
-parameters via --camode.</p></div>
+generating and storing these keys off the GRR server and doing offline
+signing every time this functionality is required, or at a minimum setting
+passphrases which are required on every use.</p></div>
 </div>
 <div class="sect2">
 <h3 id="_agent_protection">Agent Protection.</h3>
-<div class="paragraph"><p>The open source agent contains no protections against being disabled by
+<div class="paragraph"><p>The open source agent does not contain protection against being disabled by
 administrator/root on the machine. E.g. on Windows, if an attacker stops the
 service, the agent will stop and will no longer be reachable.
 Currently, it is up to the deployer of GRR to provide more protection for the
@@ -913,13 +953,43 @@ of the client and server is easy, and completely within your control.</p></div>
 <div class="paragraph"><p>For a test, or low security deployment, using the defaults open source agents
 is fine. However, in a secure environment we strongly recommend using some
 form of obfuscation.</p></div>
-<div class="paragraph"><p>This can come in many forms, but to give some examples:
-- Changing service, and binary names
-- Changing registry keys
-- Obfuscating the underlying python code
-- Using a packer to obfuscate the resulting binary.
-- Implementing advanced protective or obfuscation functionality such as those used in rootkits.</p></div>
-<div class="paragraph"><p>GRR does include any obfuscation mechanisms by default.</p></div>
+<div class="paragraph"><p>This can come in many forms, but to give some examples:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+Changing service, and binary names
+</p>
+</li>
+<li>
+<p>
+Changing registry keys
+</p>
+</li>
+<li>
+<p>
+Obfuscating the underlying python code
+</p>
+</li>
+<li>
+<p>
+Using a packer to obfuscate the resulting binary
+</p>
+</li>
+<li>
+<p>
+Implementing advanced protective or obfuscation functionality such as those
+ used in rootkits
+</p>
+</li>
+<li>
+<p>
+Implementing watchers to monitor for failure of the client
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>GRR does not include any obfuscation mechanisms by default. But we attempt to
+make this relatively easy by controlling the build process through the
+configuration file.</p></div>
 </div>
 <div class="sect2">
 <h3 id="_enrollment">Enrollment.</h3>
@@ -937,7 +1007,9 @@ prompting, these are called Well Known flows. By default these can be used
 to send log messages, or errors. A malicious client using these could fill up
 logs and disk space.
 - If you have custom Well Known Flows that perform interesting actions. You need
- to be aware that untrusted clients can call them.</p></div>
+ to be aware that untrusted clients can call them. Most often this could result
+ in a DoS condition, e.g. through a client sending multiple install failure or
+ client crash messages.</p></div>
 <div class="paragraph"><p>In many environments this risk is unwarranted, so we suggest implementing
 further authorization in the Enrollment Flow using some information that only
 your client knows, to authenticate it before allowing it to become a
@@ -952,7 +1024,7 @@ reason for the other components in the GRR system to be.</p></div>
 <div class="paragraph"><p>The Administration UI by default listens on all interfaces, and is protected by
 only basic authentication configured via the --htpasswd parameter. We strongly
 recommend putting the UI on SSL and IP limiting the clients that can connect.
-The best way to do this normally is by hosting it inside Apache via wsgi as
+The best way to do this normally is by hosting it inside Apache via wsgi,
 using Apache to provide the SSL and other protection measures.</p></div>
 </div>
 <div class="sect2">
@@ -960,7 +1032,16 @@ using Apache to provide the SSL and other protection measures.</p></div>
 <div class="paragraph"><p>By default GRR currently only offers limited audit logs in the /var/log/
 directory. However, the system is designed to allow for deployment of extensive
 auditing capabilities through the Security Manager.</p></div>
-<div class="paragraph"><p>These capabilities will be built out in future versions.</p></div>
+<div class="paragraph"><p>The idea is that we have a gateway process, and the Admin UI and any console
+access is brokered through the gateway. The gateway is the only access to the
+datastore and it audits all access and can provide intelligent access control.
+This is implemented in the FullAccessControlManager.</p></div>
+<div class="paragraph"><p>Using this allows for sensible access control, e.g. another user must authorize
+access before someone is given access to a machine, or an admin must authorize
+before a hunt is run.</p></div>
+<div class="paragraph"><p>These capabilities are powerful but add significant complexity to deployment so
+they are not currently released  (Mar 2013). If you are interested in this
+functionality please just email the devs and we can release it.</p></div>
 </div>
 <div class="sect2">
 <h3 id="_grr_security_checklist">GRR Security Checklist.</h3>
@@ -992,9 +1073,7 @@ Produce obfuscated clients.
 </li>
 <li>
 <p>
-Regenerate code and driver signing keys off the GRR server and give them
-appropriate protection. Only put the public keys on the server (and in the
-client config).
+Regenerate code and driver signing keys with passphrases.
 </p>
 </li>
 <li>
@@ -1004,8 +1083,13 @@ Run the http server serving clients on a separate machine to the workers.
 </li>
 <li>
 <p>
-Ensure strong passwords are enabled on the Administrative UI and it is SSL
-protected.
+Introduce a stronger AdminUI sign in mechanism and use the
+FullAccessControlManager.
+</p>
+</li>
+<li>
+<p>
+Ensure the Administrative UI and it is SSL protected.
 </p>
 </li>
 <li>
@@ -1032,19 +1116,87 @@ in lib/aff4_objects/cronjobs.py</p></div>
 <div class="sect1">
 <h2 id="_customizing_the_client">Customizing the client</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>The client can be customized for deployment.</p></div>
+<div class="paragraph"><p>The client can be customized for deployment. There are two keys ways of doing
+this:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Repack the released client with a new configuration.
+</p>
+</li>
+<li>
+<p>
+Rebuild the client from scratch (advanced users, set aside a few days the
+first time)
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>Doing a rebuild allows full reconfiguration, changing names and everything else.
+A repack on the other hand limits what you can change. Each approach is
+described below.</p></div>
 <div class="sect2">
-<h3 id="_modifying_the_configuration">Modifying the configuration.</h3>
-<div class="paragraph"><p>The client configuration controls the behaviour of the client.</p></div>
+<h3 id="_repacking_the_client_with_a_new_configuration">Repacking the Client with a New Configuration.</h3>
+<div class="paragraph"><p>Changing basic configuration parameters can be done by editing the config file
+(default /etc/grr/grr-server.conf) and then using the config_updater or
+client_build script to repack the binaries.
+This allows for changing basic configuration parameters such as the URL
+the client reports back to.</p></div>
+<div class="paragraph"><p>To repack all clients with a new config and upload them to the datastore use
+config_updater repack_clients.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>db@host:$ sudo grr_config_updater repack_clients
+Using configuration &lt;ConfigFileParser filename="/etc/grr/grr-server.conf"&gt;
+
+## Repacking GRR windows amd64 2.5.0.4 client
+Packed to /usr/share/grr/executables/windows/installers/GRR_2.5.0.4_amd64.exe
+
+## Uploading
+Uploading Windows amd64 binary from /usr/share/grr/executables/windows/installer
+s/GRR_2.5.0.4_amd64.exe
+Uploaded to aff4:/config/executables/windows/installers/GRR_2.5.0.4_amd64.exe
+db@host:$</tt></pre>
+</div></div>
+<div class="paragraph"><p>You can also repack a single client with a new config using the client_build.py
+script. This is described in the section for building clients.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<img src="./images/icons/note.png" alt="Note" />
+</td>
+<td class="content">This builds by taking the template zip file, adding relevant configuration
+files to the zip, then modifying the zip into a special self extracting zip
+archive.</td>
+</tr></table>
+</div>
 </div>
 <div class="sect2">
-<h3 id="_how_to_build_the_client">How to build the client.</h3>
-<div class="paragraph"><p>Discussion of Windows client components - bat files/vbs files</p></div>
+<h3 id="_building_the_client">Building the Client.</h3>
+<div class="paragraph"><p>Doing this is much harder than it should be due to a lot of dependencies and
+moving parts. It is also a bit of a moving target so we keep the docs for this
+on the wiki. See:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<a href="https://code.google.com/p/grr/wiki/BuildingWindowsClient">https://code.google.com/p/grr/wiki/BuildingWindowsClient</a>
+</p>
+</li>
+<li>
+<p>
+<a href="https://code.google.com/p/grr/wiki/BuildingOSXClient">https://code.google.com/p/grr/wiki/BuildingOSXClient</a>
+</p>
+</li>
+<li>
+<p>
+<a href="https://code.google.com/p/grr/wiki/BuildingLinuxClient">https://code.google.com/p/grr/wiki/BuildingLinuxClient</a>
+</p>
+</li>
+</ul></div>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_deploying_custom_drivers_and_code">Deploying custom drivers and code.</h2>
+<h2 id="_deploying_custom_drivers_and_code">Deploying Custom Drivers and Code.</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>Drivers, binaries or python code can be pushed from the server to the clients
 to enable new functionality. This has a number of use cases, such as:</p></div>
@@ -1070,19 +1222,20 @@ Protected functionality. If you have code that you want to deploy to deal with
 </p>
 </li>
 </ul></div>
-<div class="paragraph"><p>The code that is pushed from the server must be signed by the exe_sign key for
-python and binaries, and by the driver_sign key for drivers. These signatures
+<div class="paragraph"><p>The code that is pushed from the server must be signed by the
+executable_signing_private_key for python and binaries or the
+driver_signing_private_key for drivers. These signatures
 will be checked by the client to ensure they match before the code is used.</p></div>
 <div class="paragraph"><p>What is actually sent to the client is the code or binary wrapped in a protobuf
 which will contain a hash, a signature and some other configuration data.</p></div>
 <div class="paragraph"><p>To sign code requires use of config_updater utility. In a secure environment the
-signing will occur on a different box from the server, so examples will be given
-for that.</p></div>
+signing may occur on a different box from the server, but the examples below
+show the basic example.</p></div>
 <div class="sect2">
 <h3 id="_deploying_arbitrary_python_code">Deploying Arbitrary Python Code.</h3>
 <div class="paragraph"><p>To execute an arbitrary python blob, you need to create a file with python code
 that has the following attributes:
-- Code in the file must work when executed by exec().
+- Code in the file must work when executed by exec() in the context of GRR.
 - Any return data that you want sent back to the server should be stored string
 encoded in a variable called "magic_return_str".</p></div>
 <div class="paragraph"><p>E.g. as a simple example. The following code modifies the clients poll_max
@@ -1098,10 +1251,10 @@ FLAGS<span style="color: #990000">.</span>poll_max <span style="color: #990000">
 magic_return_str <span style="color: #990000">=</span> <span style="color: #FF0000">"poll_max successfully set. ping output %s"</span> <span style="color: #990000">%</span> output</tt></pre></div></div>
 <div class="paragraph"><p>This file then needs to be signed and converted into the protobuf format
 required, and then needs to be uploaded to the data store. You can do this using
-the following command line and accepting the defaults in the interactive prompt.</p></div>
+the following command line.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>tools/config_updater.py --interactive --file=myfile.py --type=PYTHON</tt></pre>
+<pre><tt>grr_config_updater upload_python --file=myfile.py --platform=windows</tt></pre>
 </div></div>
 <div class="paragraph"><p>At the end of this you should see something like:</p></div>
 <div class="listingblock">
@@ -1110,23 +1263,17 @@ the following command line and accepting the defaults in the interactive prompt.
 </div></div>
 <div class="paragraph"><p>The uploaded files live by convention in aff4:/config/python_hacks and are
 viewable in the Manage Binaries section of the Admin UI.</p></div>
-<div class="paragraph"><p>At the moment there are no flows provided to execute these python blobs, but it
-can be done from the GRR Console using the ClientAction debugging flow.</p></div>
-<div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>client_id <span style="color: #990000">=</span> <span style="color: #FF0000">"C.XXXXXXXXXXX"</span>
-token <span style="color: #990000">=</span> data_store<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ACLToken</span></span><span style="color: #990000">()</span>
-fd <span style="color: #990000">=</span> aff4<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Open</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"aff4:/config/python_hacks/myfile.py"</span><span style="color: #990000">)</span>
-signed_python_pb <span style="color: #990000">=</span> fd<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Get</span></span><span style="color: #990000">(</span>fd<span style="color: #990000">.</span>Schema<span style="color: #990000">.</span>SIGNED_BLOB<span style="color: #990000">)</span>
-argspb <span style="color: #990000">=</span> jobs_pb2<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ExecutePythonRequest</span></span><span style="color: #990000">(</span>python_code<span style="color: #990000">=</span>signed_python_pb<span style="color: #990000">.</span>data<span style="color: #990000">)</span>
-worker_thrd <span style="color: #990000">=</span> flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">GRRWorker</span></span><span style="color: #990000">(</span>queue_name<span style="color: #990000">=</span><span style="color: #FF0000">"DEBUG"</span><span style="color: #990000">,</span> token<span style="color: #990000">=</span>token<span style="color: #990000">)</span>
-flow<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StartFlow</span></span><span style="color: #990000">(</span>client_id<span style="color: #990000">,</span> <span style="color: #FF0000">"ClientAction"</span><span style="color: #990000">,</span> queue_name<span style="color: #990000">=</span><span style="color: #FF0000">"DEBUG"</span><span style="color: #990000">,</span> args<span style="color: #990000">=</span>argspb<span style="color: #990000">,</span> action<span style="color: #990000">=</span><span style="color: #FF0000">"ExecutePython"</span><span style="color: #990000">,</span> break_pdb<span style="color: #990000">=</span>False<span style="color: #990000">,</span> save_to<span style="color: #990000">=</span><span style="color: #FF0000">"/tmp/grrdebug"</span><span style="color: #990000">)</span>
-worker_thrd<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Run</span></span><span style="color: #990000">()</span></tt></pre></div></div>
-<div class="paragraph"><p>If you need to sign offline, the same process can be followed, but with stating
-SIGN on the signing machine. And then using UPLOAD on the connected machine.</p></div>
+<div class="paragraph"><p>The ExecutePythonHack Flow is provided for executing the file on a client.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<img src="./images/icons/note.png" alt="Note" />
+</td>
+<td class="content">Specifying arguments to a PythonHack is possible as well through the
+py_args argument on the commandline, this can be useful for making them more
+useful.</td>
+</tr></table>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_deploying_drivers">Deploying Drivers</h3>
@@ -1135,10 +1282,21 @@ developed and released by the GRR team named "pmem". We currently have Apache
 Licensed, tested drivers for OSX, Linux and Windows.</p></div>
 <div class="paragraph"><p>The drivers are distributed with GRR but are also available from the Volatility
 project in binary form at <a href="http://code.google.com/p/volatility/downloads/list">http://code.google.com/p/volatility/downloads/list</a>,
-the source is stored in the scudette branch at <a href="http://code.google.com/p/volatility/source/browse/#svn%2Fbranches%2Fscudette%2Ftools">http://code.google.com/p/volatility/source/browse/#svn%2Fbranches%2Fscudette%2Ftools</a>.</p></div>
+the source is stored in the scudette branch at
+<a href="http://code.google.com/p/volatility/source/browse/#svn%2Fbranches%2Fscudette%2Ftools">http://code.google.com/p/volatility/source/browse/#svn%2Fbranches%2Fscudette%2Ftools</a>.</p></div>
 <div class="paragraph"><p>Deploying a driver works much the same as deploying python code. We sign the
 file, encode it in a protobuf and upload it to a specific place in the GRR
-datastore.</p></div>
+datastore. There is a shortcut to upload the existing memory drivers using
+config updater.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>db@host: ~$ sudo grr_config_updater load_memory_drivers
+Using configuration &lt;ConfigFileParser filename="/etc/grr/grr-server.conf"&gt;
+uploaded aff4:/config/drivers/darwin/memory/osxpmem
+uploaded aff4:/config/drivers/windows/memory/winpmem.32.sys
+uploaded aff4:/config/drivers/windows/memory/winpmem.64.sys
+db@host:$</tt></pre>
+</div></div>
 <div class="admonitionblock">
 <table><tr>
 <td class="icon">
@@ -1148,81 +1306,24 @@ datastore.</p></div>
 which is also required by modern 64 bit Windows distributions.</td>
 </tr></table>
 </div>
-<div class="listingblock">
-<div class="content">
-<pre><tt>tools/config_updater.py --interactive --file=/tmp/winpmem-0.1rc1/drivers/amd64/winpmem.sys --type=DRIVER
-Do you want to SIGN or UPLOAD a file? or BOTH? [BOTH]
-&gt;
-Which is the file you want to sign? [/tmp/winpmem-0.1rc1/drivers/amd64/winpmem.sys]
-&gt;
-Is this a DRIVER, BINARY or PYTHON file? [DRIVER]
-&gt;
-What is the name of the driver? [None]
-&gt; pmem
-What is the driver object name? [None]
-&gt; \\.\pmem
-What is the driver rewrite mode? DISABLE, ENABLE or FORCE [None]
-&gt; FORCE
-Which key is being used for signing? [grr/keys/test/driver_sign.pem]
-&gt;
-Which key is being used for verification? [grr/keys/test/driver_sign_pub.pem]
-&gt;
-Which platform is it for? WINDOWS, OSX or LINUX [WINDOWS]
-&gt;
-Which name should the file have on the server? [winpmem.sys]
-&gt; winpmem64.sys
-Which path should the file be uploaded to? [/config/drivers/windows/memory]
-&gt;
-Uploaded successfully to /config/drivers/windows/memory</tt></pre>
-</div></div>
 <div class="paragraph"><p>Deploying this driver would normally be done using the LoadMemoryDriver flow.</p></div>
 </div>
 <div class="sect2">
 <h3 id="_deploying_executables">Deploying Executables.</h3>
 <div class="paragraph"><p>The GRR Agent provides an ExecuteBinaryCommand Client Action which allows us to
 send a binary and set of command line arguments to be executed. The binary must
-be signed using the exec_sign key.</p></div>
-<div class="paragraph"><p>To sign an exe for execution use the config_updater.py script.</p></div>
+be signed using the executable signing key (config option
+PrivateKeys.executable_signing_private_key).</p></div>
+<div class="paragraph"><p>To sign an exe for execution use the config updater script.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>config_updater.py --interactive --file=/tmp/bazinga.exe --type=EXE
-Do you want to SIGN or UPLOAD a file? or BOTH? [BOTH]
-&gt;
-Which is the file you want to sign? [/tmp/bazinga.exe]
-&gt;
-Is this a DRIVER, EXE or PYTHON file? [EXE]
-&gt;
-Which directory are your signing keys in? [grr/keys/test]
-&gt;
-Which key is being used for signing? [grr/keys/test/exe_sign.pem]
-&gt;
-Which key is being used for verification? [grr/keys/test/exe_sign_pub.pem]
-&gt;
-Which platform is it for? WINDOWS, OSX or LINUX [WINDOWS]
-&gt;
-Which name should the file have on the server? [bazinga.exe]
-&gt;
-Which path should the file be uploaded to? [/config/executables/windows/installers]
-&gt;
-Uploaded successfully to /config/executables/windows/installers</tt></pre>
+<pre><tt>db@host:$ grr_config_updater upload_exe --file=/tmp/bazinga.exe -platform=windows
+Using configuration &lt;ConfigFileParser filename="/etc/grr/grr-server.conf"&gt;
+Uploaded successfully to /config/executables/windows/installers/bazinga.exe
+db@host:$</tt></pre>
 </div></div>
-<div class="paragraph"><p>At the moment (Aug 2012) there are no flows provided to execute these binaries,
-but it can be done from the GRR Console using the ClientAction debugging flow.</p></div>
-<div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>client_id <span style="color: #990000">=</span> <span style="color: #FF0000">"C.XXXXXXXXXXX"</span>
-token <span style="color: #990000">=</span> data_store<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ACLToken</span></span><span style="color: #990000">()</span>
-fd <span style="color: #990000">=</span> aff4<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Open</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"aff4:/config/executables/windows/bazinga.exe"</span><span style="color: #990000">)</span>
-signed_exe_pb <span style="color: #990000">=</span> fd<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Get</span></span><span style="color: #990000">(</span>fd<span style="color: #990000">.</span>Schema<span style="color: #990000">.</span>SIGNED_BLOB<span style="color: #990000">)</span>
-argspb <span style="color: #990000">=</span> jobs_pb2<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ExecuteBinaryRequest</span></span><span style="color: #990000">(</span>executable<span style="color: #990000">=</span>signed_exe_pb<span style="color: #990000">.</span>data<span style="color: #990000">)</span>
-worker_thrd <span style="color: #990000">=</span> flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">GRRWorker</span></span><span style="color: #990000">(</span>queue_name<span style="color: #990000">=</span><span style="color: #FF0000">"DEBUG"</span><span style="color: #990000">,</span> token<span style="color: #990000">=</span>token<span style="color: #990000">)</span>
-flow<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StartFlow</span></span><span style="color: #990000">(</span>client_id<span style="color: #990000">,</span> <span style="color: #FF0000">"ClientAction"</span><span style="color: #990000">,</span> queue_name<span style="color: #990000">=</span><span style="color: #FF0000">"DEBUG"</span><span style="color: #990000">,</span>
-                       args<span style="color: #990000">=</span>argspb<span style="color: #990000">,</span> action<span style="color: #990000">=</span><span style="color: #FF0000">"ExecutePython"</span><span style="color: #990000">,</span>
-                       break_pdb<span style="color: #990000">=</span>True<span style="color: #990000">,</span> save_to<span style="color: #990000">=</span><span style="color: #FF0000">"/tmp/grrdebug"</span><span style="color: #990000">)</span>
-worker_thrd<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Run</span></span><span style="color: #990000">()</span></tt></pre></div></div>
+<div class="paragraph"><p>This uploads to the installers directory by default. But you can override with
+the --dest_path option.</p></div>
 </div>
 </div>
 </div>
@@ -1230,7 +1331,7 @@ worker_thrd<span style="color: #990000">.</span><span style="font-weight: bold">
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-02-28 18:38:58 CET
+Last updated 2013-04-03 16:23:41 CEST
 </div>
 </div>
 </body>

@@ -264,8 +264,7 @@ class GRRClientWorker(object):
 
     serialized_message = message.SerializeToString()
 
-    self.sent_bytes_per_flow.setdefault(session_id, 0)
-    self.sent_bytes_per_flow[session_id] += len(serialized_message)
+    self.ChargeBytesToSession(session_id, len(serialized_message))
 
     if message.type == rdfvalue.GRRMessage.Enum("STATUS"):
       rdf_value.network_bytes_sent = self.sent_bytes_per_flow[session_id]
@@ -273,7 +272,16 @@ class GRRClientWorker(object):
       message.args = rdf_value.SerializeToString()
       serialized_message = message.SerializeToString()
 
-    self.QueueResponse(serialized_message, message.priority)
+    try:
+      self.QueueResponse(serialized_message, message.priority)
+    except Queue.Full:
+      # There is nothing we can do about it here - we just lose the message and
+      # keep going.
+      logging.info("Queue is full, dropping messages.")
+
+  def ChargeBytesToSession(self, session_id, length):
+    self.sent_bytes_per_flow.setdefault(session_id, 0)
+    self.sent_bytes_per_flow[session_id] += length
 
   def QueueResponse(self, serialized_message,
                     priority=rdfvalue.GRRMessage.Enum("MEDIUM_PRIORITY")):
@@ -599,7 +607,8 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
                      response_id=1,
                      session_id=last_request.session_id,
                      message_type=rdfvalue.GRRMessage.Enum("STATUS"))
-      self.nanny_controller.CleanTransactionLog()
+
+    self.nanny_controller.CleanTransactionLog()
 
     # Inform the server that we started.
     action_cls = actions.ActionPlugin.classes.get(

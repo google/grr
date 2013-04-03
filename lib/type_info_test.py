@@ -1,18 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2012 Google Inc. All Rights Reserved.
 
 """Tests for grr.lib.type_info."""
 
@@ -132,16 +120,16 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     self.assertEqual(info.descriptor_map, updated_info.descriptor_map)
     self.assertEqual(sorted(info.descriptors), sorted(updated_info.descriptors))
 
-    self.assertTrue(type_infos[3] in updated_info)
-    self.assertTrue("plugins" in updated_info.descriptor_map)
+    self.assertTrue(type_infos[3] in updated_info.descriptors)
+    self.assertTrue("plugins" in updated_info)
 
     removed_info = updated_info.Remove("plugins")
 
-    self.assertTrue(type_infos[3] in updated_info)
-    self.assertTrue("plugins" in updated_info.descriptor_map)
+    self.assertTrue(type_infos[3] in updated_info.descriptors)
+    self.assertTrue("plugins" in updated_info)
 
-    self.assertFalse(type_infos[3] in removed_info)
-    self.assertFalse("plugins" in removed_info.descriptor_map)
+    self.assertFalse(type_infos[3] in removed_info.descriptors)
+    self.assertFalse("plugins" in removed_info)
 
   def testTypeFilterString(self):
     valid_query = "name is 'Bond'"

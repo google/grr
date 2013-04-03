@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2012 Google Inc. All Rights Reserved.
 
 """Tests for the hunt."""
 
@@ -222,7 +210,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client = aff4.FACTORY.Open("aff4:/%s" % self.client_id, token=self.token,
                                age=aff4.ALL_TIMES)
 
-    flows = client.GetValuesForAttribute(client.Schema.FLOW)
+    flows = list(client.GetValuesForAttribute(client.Schema.FLOW))
 
     self.assertEqual(flows, [])
 
@@ -233,7 +221,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client = aff4.FACTORY.Open("aff4:/%s" % self.client_id, token=self.token,
                                age=aff4.ALL_TIMES)
 
-    flows = client.GetValuesForAttribute(client.Schema.FLOW)
+    flows = list(client.GetValuesForAttribute(client.Schema.FLOW))
 
     # One flow should have been started.
     self.assertEqual(len(flows), 1)

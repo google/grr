@@ -916,12 +916,24 @@ the user USERNAME on that share or by using an Anonymous share.</p></div>
 </div>
 <div class="sect3">
 <h4 id="_linux_macos_x_deployment">Linux / MacOS X deployment</h4>
-<div class="paragraph"><p><em>TODO</em></p></div>
+<div class="paragraph"><p>On linux, the process depends on your environment, if you have a mechanism such
+as puppet, then building as a Deb package and deploying that way makes the most
+sense.
+Alternatively you can deploy using ssh:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>scp agent_version.deb host:/tmp/
+ssh host sudo dpkg -i /tmp/agent_version.deb</tt></pre>
+</div></div>
+<div class="paragraph"><p>On MacOS X, the same process applies, use puppet or equivalent if you have, or
+use ssh.</p></div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_deploying_at_scale">Deploying at scale</h3>
-<div class="paragraph"><p><em>TODO</em></p></div>
+<div class="paragraph"><p>There shouldn&#8217;t be any special considerations for deploying GRR clients at
+scale. If the server can&#8217;t handle the load, the clients should happily back off
+and wait their turn. However, we recommend a staged rollout if possible.</p></div>
 </div>
 </div>
 </div>
@@ -2417,9 +2429,64 @@ the client or it will fail.</p></div>
 </div>
 </div>
 <div class="sect1">
+<h2 id="_exporting_data_from_grr">Exporting Data From GRR</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Extracting bulk data from the GRR datastore using the UI is slow and cumbersome.
+It is possible to use the console to extract any data you wish, but we also
+provide a tool called file_exporter.</p></div>
+<div class="sect3">
+<h4 id="_exporting_a_single_file">Exporting a Single File</h4>
+<div class="listingblock">
+<div class="content">
+<pre><tt>db@grrhost: ~$ grr_file_exporter --file=aff4:/C.123456890ABCDEF/fs/os/boot.ini --output=/tmp
+Using configuration &lt;ConfigFileParser filename="/etc/grr/grr-server.conf"&gt;
+Downloading: aff4:/C.123456890abcdef/fs/os/boot.ini to: /tmp/C.123456890abcdef/fs/os/boot.ini
+
+db@grrhost: ~$</tt></pre>
+</div></div>
+</div>
+<div class="sect3">
+<h4 id="_exporting_a_directory">Exporting a Directory</h4>
+<div class="paragraph"><p>Directories can be exported recursively</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>db@grrhost: ~$ grr_file_exporter --directory=aff4:/C.123456890ABCDEF/fs/os/ --output=/tmp --overwrite --depth=4
+Downloading: aff4:/C.123456890abcdef/fs/os/boot.ini to: /tmp/C.123456890abcdef/fs/os/boot.ini
+Downloading: aff4:/C.123456890abcdef/fs/os/tmp1 to: /tmp/C.123456890abcdef/fs/os/tmp1
+
+db@grrhost: ~$</tt></pre>
+</div></div>
+</div>
+<div class="sect3">
+<h4 id="_exporting_a_collection">Exporting a Collection</h4>
+<div class="paragraph"><p>An RDFValueCollection is a collection of objects, often URNs or StatEntry
+objects which reference files that have been downloaded. These are often created
+as the output of hunts and it is common to want to download all these files to
+disk so you can work with them easily.</p></div>
+<div class="paragraph"><p>You need to pass in a URN, and by default we will download files from the
+collection to the directory you specify under the full aff4 path.</p></div>
+<div class="paragraph"><p>For collections we support downloading multithreaded, which speeds things up
+significantly.
+In addition, for collections, by default dump a yaml file of the client data to
+the root of the client directory, e.g. C.123456890abcdef/client_info.yaml.
+This is useful for identifying which machine the files came from when working on
+the filesystem.</p></div>
+<div class="paragraph"><p><em>TODO</em> Add example</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>db@grrhost: ~$ grr_file_exporter --collection=aff4:/hunts/W:123456/Results --output=/tmp
+
+db@grrhost: ~$</tt></pre>
+</div></div>
+</div>
+</div>
+</div>
+<div class="sect1">
 <h2 id="_the_console">The console</h2>
 <div class="sectionbody">
-<div class="paragraph"><p><em>TODO</em></p></div>
+<div class="paragraph"><p>You can access the console via grr_console. This gives you an interactive
+ipython shell with all the right imports to do pretty much whatever you want.</p></div>
+<div class="paragraph"><p><em>TODO</em> Add examples.</p></div>
 </div>
 </div>
 <div class="sect1">
@@ -2549,7 +2616,7 @@ requested its results and execute it.
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-02-28 18:38:58 CET
+Last updated 2013-04-03 16:23:41 CEST
 </div>
 </div>
 </body>

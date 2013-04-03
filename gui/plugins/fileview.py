@@ -1,19 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 #
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2010 Google Inc. All Rights Reserved.
 
 """This plugin renders the filesystem in a tree and a table."""
 
@@ -167,10 +155,7 @@ class VolatilityFormatstringRenderer(renderers.RDFProtoRenderer):
 
   def GenerateLine(self, formatted_value):
     format_string = formatted_value.formatstring.replace("\n", "<br>")
-    values = []
-    for value in formatted_value.values:
-      values.append(value.svalue or value.value)
-    return format_string.format(*values)
+    return format_string.format(*formatted_value.data.values)
 
   def Layout(self, request, response):
     """Prepare the data."""
@@ -640,11 +625,26 @@ class AbstractFileTable(renderers.TableRenderer):
                      tree_event_template)
 
   ajax_template = (renderers.TableRenderer.ajax_template + """
+<div id="version_selector_dialog_{{unique|escape}}"
+  class="version-selector-dialog modal wide-modal high-modal hide fade"></div>
 <script>
+(function () {
   $("img.version-selector").unbind("click").click(function (event) {
-    grr.versionSelector($(this));
+    $("#version_selector_{{unique|escapejs}}").modal("show");
+
+    var aff4_path =
+      $(this).parents('tr').find('span[aff4_path]').attr('aff4_path');
+    var state = $.extend({
+      aff4_path: aff4_path
+    }, grr.state);
+
+    grr.layout('VersionSelectorDialog',
+      'version_selector_dialog_{{unique|escapejs}}', state);
+    $('#version_selector_dialog_{{unique|escapejs}}').modal('show');
+
     event.stopPropagation();
   });
+})();
 </script>
 """)
 
@@ -1016,14 +1016,17 @@ window.setTimeout(function () {
     self.ParseRequest(request)
 
     fd = aff4.FACTORY.Open(self.aff4_path, mode="rw", token=request.token)
-    if self.aff4_type:
-      fd = fd.Upgrade(self.aff4_type)
 
     # Account for implicit directories.
     if fd.Get(fd.Schema.TYPE) is None:
       self.aff4_type = "VFSDirectory"
 
-    self.flow_urn = fd.Update(self.attribute_to_refresh)
+    if self.aff4_type:
+      fd = fd.Upgrade(self.aff4_type)
+
+    self.flow_urn = fd.Update(
+        self.attribute_to_refresh,
+        priority=rdfvalue.GRRMessage.Enum("HIGH_PRIORITY"))
     if self.flow_urn:
       return super(UpdateAttribute, self).Layout(request, response)
 
@@ -1036,9 +1039,9 @@ window.setTimeout(function () {
     # Check if the flow is still in flight.
     try:
       flow_obj = aff4.FACTORY.Open(self.flow_urn, token=request.token)
-      rdf_flow = flow_obj.Get(flow_obj.Schema.RDF_FLOW)
-      if (rdf_flow and rdf_flow.payload and
-          rdf_flow.payload.state != rdfvalue.Flow.Enum("RUNNING")):
+      rdf_flow = flow_obj.GetRDFFlow()
+      if (rdf_flow and
+          rdf_flow.state != rdfvalue.Flow.Enum("RUNNING")):
         complete = True
     except IOError:
       # Something went wrong, stop polling.
@@ -1469,7 +1472,8 @@ class HostInformation(AFF4Stats):
   order = 0
   css_class = "TableBody"
   filtered_attributes = ["USERNAMES", "HOSTNAME", "MAC_ADDRESS", "INSTALL_DATE",
-                         "SYSTEM", "CLOCK", "CLIENT_INFO", "UNAME", "ARCH"]
+                         "SYSTEM", "CLOCK", "CLIENT_INFO", "UNAME", "ARCH",
+                         "FIRST_SEEN"]
 
   def Layout(self, request, response, client_id=None):
     client_id = client_id or request.REQ.get("client_id")
@@ -1678,15 +1682,29 @@ class VersionSelectorDialog(renderers.TableRenderer):
       var age = node.find("span[age]").attr('age');
       var age_string = node.find("span[age]").text();
       grr.publish("update_age", aff4_path, age, age_string);
-      $("#version-dialog").dialog("close");
+      $(".version-selector-dialog").modal("hide");
     };
   }, '{{ unique|escapejs }}');
 </script>
 """)
 
-  layout_template = table_selection_template + """
-<h3> Versions of {{this.state.aff4_path}}</h3>
-""" + renderers.TableRenderer.layout_template
+  layout_template = renderers.Template("""
+<div class="modal-header">
+  <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+    x</button>
+  <h4>Versions of {{this.state.aff4_path}}</h4>
+</div>
+<div class="modal-body">
+  <div class="padded">
+""") + table_selection_template + """
+""" + renderers.TableRenderer.layout_template + """
+  </div>
+</div>
+<div class="modal-footer">
+  <button class="btn" data-dismiss="modal" name="Ok"
+    aria-hidden="true">Ok</button>
+</div>
+"""
 
   def __init__(self, **kwargs):
     super(VersionSelectorDialog, self).__init__(**kwargs)

@@ -13,6 +13,7 @@ import pymongo
 from pymongo import errors
 from google.protobuf import message
 
+from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import registry
@@ -599,7 +600,7 @@ class MongoDataStoreV1(data_store.DataStore):
               result.setdefault(key, []).append((Decode(v["v"]), v["t"]))
 
         result_subjects.append(result)
-      except data_store.UnauthorizedAccess:
+      except access_control.UnauthorizedAccess:
         pass
 
     result_subjects.sort()

@@ -1,19 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 #
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2012 Google Inc. All Rights Reserved.
 
 """This is the interface for managing hunts."""
 
@@ -32,9 +20,10 @@ import matplotlib.pyplot as plt
 import logging
 
 from grr.gui import renderers
+from grr.gui.plugins import crash_view
 from grr.gui.plugins import fileview
 from grr.gui.plugins import foreman
-from grr.gui.plugins import launch_hunt
+from grr.gui.plugins import new_hunt
 from grr.gui.plugins import searchclient
 from grr.lib import aff4
 from grr.lib import flow
@@ -118,6 +107,7 @@ class RunHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
   def RenderAjax(self, request, response):
     super(RunHuntConfirmationDialog, self).RenderAjax(request, response)
     return self.RenderFromTemplate(self.ajax_template, response,
+                                   unique=self.unique,
                                    hunt_id=request.REQ.get("hunt_id"))
 
 
@@ -125,12 +115,12 @@ class HuntViewRunHunt(renderers.TemplateRenderer):
   """Runs a hunt when "Run Hunt" button is pressed and permissions checked."""
 
   layout_template = renderers.Template("""
-<p class="text-info">Done!</p>
+<p class="text-info">Hunt started successfully!</p>
 """)
 
   def Layout(self, request, response):
     flow.FACTORY.StartFlow(None, "RunHuntFlow", token=request.token,
-                           hunt_urn=request.REQ.get("hunt_id"))
+                           hunt_urn=rdfvalue.RDFURN(request.REQ.get("hunt_id")))
 
     return super(HuntViewRunHunt, self).Layout(request, response)
 
@@ -166,6 +156,7 @@ class PauseHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
   def RenderAjax(self, request, response):
     super(PauseHuntConfirmationDialog, self).RenderAjax(request, response)
     return self.RenderFromTemplate(self.ajax_template, response,
+                                   unique=self.unique,
                                    hunt_id=request.REQ.get("hunt_id"))
 
 
@@ -173,7 +164,7 @@ class HuntViewPauseHunt(renderers.TemplateRenderer):
   """Pauses a hunt when button is pressed and permissions checked."""
 
   layout_template = renderers.Template("""
-<p class="text-info">Done!</p>
+<p class="text-info">Hunt paused successfully!</p>
 """)
 
   def Layout(self, request, response):
@@ -193,7 +184,7 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
   expiry_time_dividers = ((60*60*24, "d"), (60*60, "h"), (60, "m"), (1, "s"))
 
   content_template = renderers.Template("""
-<form id="form_{{unique|escape}}" class="form-horizontal">
+<form id="{{this.form_id|escape}}" class="form-horizontal">
 {{this.hunt_params_form|safe}}
 </form>
 """)
@@ -201,6 +192,7 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
   ajax_template = renderers.Template("""
 <div id="result_{{unique|escape}}"></div>
 <script>
+(function() {
   // We execute CheckAccess renderer with silent=true. Therefore it searches
   // for an approval and sets correct reason if approval is found. When
   // CheckAccess completes, we execute HuntViewModifyHunt renderer, which
@@ -208,19 +200,23 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
   // stage, it will fail due to unauthorized access and proper ACLDialog will
   // be displayed.
   grr.layout("CheckAccess", "result_{{unique|escapejs}}",
-    {silent: true, subject: "{{hunt_id|escapejs}}" },
+    {silent: true, subject: "{{this.hunt_id|escapejs}}"},
     function() {
-      grr.submit("HuntViewModifyHunt", "form_{{unique|escape}}",
-        "result_{{unique|escapejs}}", {hunt_id: "{{hunt_id|escapejs}}"});
+      grr.submit("HuntViewModifyHunt", "{{this.form_id|escapejs}}",
+        "result_{{unique|escapejs}}", {hunt_id: "{{this.hunt_id|escapejs}}"});
     });
+})();
 </script>
 """)
 
   def RenderAjax(self, request, response):
     """RenderAjax handler."""
     super(ModifyHuntDialog, self).RenderAjax(request, response)
+    self.form_id = request.REQ.get("form_id")
+    self.hunt_id = request.REQ.get("hunt_id")
     return self.RenderFromTemplate(self.ajax_template, response,
-                                   hunt_id=request.REQ.get("hunt_id"))
+                                   unique=self.unique,
+                                   this=self)
 
   def Layout(self, request, response):
     """Layout handler."""
@@ -235,26 +231,32 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
     self.hunt_params_form = type_descriptor_renderer.Form(
         hunts.GRRHunt.hunt_typeinfo, req, prefix="")
 
+    self.form_id = "form_%d" % renderers.GetNextId()
+    self.state["form_id"] = self.form_id
     return super(ModifyHuntDialog, self).Layout(request, response)
 
 
 class HuntViewModifyHunt(renderers.TemplateRenderer,
-                         launch_hunt.HuntRequestParsingMixin):
+                         new_hunt.HuntRequestParsingMixin):
   """Modifies a hunt when "Modify" dialog's form is submitted."""
 
   layout_template = renderers.Template("""
-<p class="text-info">Done!</p>
+<p class="text-info">Hunt modified successfully!</p>
 """)
 
   def Layout(self, request, response):
     """Layout handler."""
+    hunt_urn = request.REQ.get("hunt_id")
+
     type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
     hunt_args = dict(type_descriptor_renderer.ParseArgs(
         hunts.GRRHunt.hunt_typeinfo, request, prefix=""))
 
-    flow.FACTORY.StartFlow(None, "ModifyHuntFlow", token=request.token,
-                           hunt_urn=request.REQ.get("hunt_id"),
-                           **hunt_args)
+    aff4_hunt = aff4.FACTORY.Create(hunt_urn, "VFSHunt", mode="w",
+                                    token=request.token)
+    aff4_hunt.Set(aff4_hunt.Schema.EXPIRY_TIME(hunt_args["expiry_time"]))
+    aff4_hunt.Set(aff4_hunt.Schema.CLIENT_LIMIT(hunt_args["client_limit"]))
+    aff4_hunt.Close()
 
     return super(HuntViewModifyHunt, self).Layout(request, response)
 
@@ -264,31 +266,28 @@ class HuntTable(fileview.AbstractFileTable):
   selection_publish_queue = "hunt_select"
 
   layout_template = """
-<div id="launch_hunt_dialog_{{unique|escape}}"
+<div id="new_hunt_dialog_{{unique|escape}}"
   class="modal wide-modal high-modal hide fade" update_on_show="true"
   tabindex="-1" role="dialog" aria-hidden="true">
 </div>
 
 <div id="run_hunt_dialog_{{unique|escape}}"
-  class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true"
-  restore_after_acl="false">
+  class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
 </div>
 
 <div id="pause_hunt_dialog_{{unique|escape}}"
-  class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true"
-  restore_after_acl="false">
+  class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
 </div>
 
 <div id="modify_hunt_dialog_{{unique|escape}}"
-  class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true"
-  restore_after_acl="false">
+  class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
 </div>
 
 <ul class="breadcrumb">
   <li>
-  <button id='launch_hunt_{{unique|escape}}' title='Launch Hunt'
-    class="btn" name="LaunchHunt" data-toggle="modal"
-    data-target="#launch_hunt_dialog_{{unique|escape}}">
+  <button id='new_hunt_{{unique|escape}}' title='New Hunt'
+    class="btn" name="NewHunt" data-toggle="modal"
+    data-target="#new_hunt_dialog_{{unique|escape}}">
     <img src='/static/images/new.png' class='toolbar_icon'>
   </button>
 
@@ -321,36 +320,43 @@ class HuntTable(fileview.AbstractFileTable):
   // will use it (see grr.subscribe("file_select"), for example).
   var hunt_id;
 
-  $("#launch_hunt_dialog_{{unique|escapejs}}").on("shown", function () {
-     if ($(this).attr("update_on_show") == "true") {
-       grr.layout("LaunchHunts", "launch_hunt_dialog_{{unique|escapejs}}");
-     }
-     $(this).attr("update_on_show", "true");
-    });
+  $("#new_hunt_dialog_{{unique|escapejs}}").on("shown", function () {
+    grr.layout("NewHunt", "new_hunt_dialog_{{unique|escapejs}}");
+  }).on("hidden", function () {
+    $("#{{unique|escapejs}}").trigger("refresh");
+    $(this).html("");
+  });
 
   $("#run_hunt_dialog_{{unique|escape}}").on("show", function() {
     grr.layout("RunHuntConfirmationDialog",
       "run_hunt_dialog_{{unique|escape}}", {hunt_id: hunt_id});
+  }).on("hidden", function () {
+    $("#{{unique|escapejs}}").trigger("refresh");
+    $(this).html("");
   });
 
   $("#pause_hunt_dialog_{{unique|escape}}").on("show", function() {
     grr.layout("PauseHuntConfirmationDialog",
       "pause_hunt_dialog_{{unique|escape}}", {hunt_id: hunt_id});
+  }).on("hidden", function () {
+    $("#{{unique|escapejs}}").trigger("refresh");
+    $(this).html("");
   });
 
   $("#modify_hunt_dialog_{{unique|escape}}").on("show", function() {
     grr.layout("ModifyHuntDialog", "modify_hunt_dialog_{{unique|escape}}",
       {hunt_id: hunt_id});
+  }).on("hidden", function () {
+    $("#{{unique|escapejs}}").trigger("refresh");
+    $(this).html("");
   });
 
   grr.subscribe("WizardComplete", function(wizardStateName) {
-    $("#launch_hunt_dialog_{{unique|escape}}").modal("hide");
-  }, "launch_hunt_dialog_{{unique|escape}}");
+    $("#new_hunt_dialog_{{unique|escape}}").modal("hide");
+  }, "new_hunt_dialog_{{unique|escape}}");
 
   grr.subscribe("file_select", function(_hunt_id) {
     hunt_id = _hunt_id;
-
-    $("#modify_hunt_{{unique|escape}}").removeAttr("disabled");
 
     var row = $("span[aff4_path='" + hunt_id + "']",
       "#{{this.id|escapejs}}").closest("tr");
@@ -358,9 +364,11 @@ class HuntTable(fileview.AbstractFileTable):
       var state = $(this).attr("state");
       if (state == "RUNNING") {
         $("#run_hunt_{{unique|escape}}").attr("disabled", "true");
+        $("#modify_hunt_{{unique|escape}}").attr("disabled", "true");
         $("#pause_hunt_{{unique|escape}}").removeAttr("disabled");
       } else if (state == "stopped") {
         $("#run_hunt_{{unique|escape}}").removeAttr("disabled");
+        $("#modify_hunt_{{unique|escape}}").removeAttr("disabled");
         $("#pause_hunt_{{unique|escape}}").attr("disabled", "true");
       }
     });
@@ -458,23 +466,40 @@ class HuntViewTabs(renderers.TabLayout):
 
   """
 
-  names = ["Overview", "Log", "Errors", "Rules", "Graph", "Results", "Stats"]
+  names = ["Overview", "Log", "Errors", "Rules", "Graph", "Results", "Stats",
+           "Crashes"]
   # TODO(user): Add Renderer for Hunt Resource Usage (CPU/IO etc).
   delegated_renderers = ["HuntOverviewRenderer", "HuntLogRenderer",
                          "HuntErrorRenderer", "HuntRuleRenderer",
                          "HuntClientGraphRenderer", "HuntResultsRenderer",
-                         "HuntStatsRenderer"]
+                         "HuntStatsRenderer", "HuntCrashesRenderer"]
 
-  layout_template = renderers.TabLayout.layout_template + """
+  subscribe_script_template = renderers.Template("""
 <script>
   // When the hunt id is selected, redraw the tabs below.
   grr.subscribe("file_select", function(hunt_id) {
     grr.layout("HuntViewTabs", "main_bottomPane", {hunt_id: hunt_id});
   }, "{{unique|escapejs}}");
 </script>
-"""
+""")
+
+  empty_template = renderers.Template("""
+<div class="padded" id="{{unique|escape}}">
+<p>Please select a hunt to see its details here.</p>
+</div>
+""") + subscribe_script_template
+  layout_template = (renderers.TabLayout.layout_template +
+                     subscribe_script_template)
 
   post_parameters = ["hunt_id"]
+
+  def Layout(self, request, response):
+    hunt_id = request.REQ.get("hunt_id")
+    if hunt_id:
+      super(HuntViewTabs, self).Layout(request, response)
+    else:
+      super(HuntViewTabs, self).Layout(request, response,
+                                       apply_template=self.empty_template)
 
 
 class ManageHuntsClientView(renderers.Splitter2Way):
@@ -651,24 +676,47 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
 </a>
 <br/>
 <dl class="dl-horizontal dl-hunt">
+  <!-- TODO: remove .clearfix class from dd after Bootstrap upgrade -->
+
+  <dt>Name</dt><dd class="clearfix">{{ this.hunt_name|escape }}</dd>
+  <dt>Arguments</dt><dd class="clearfix">{{ this.args_str|safe }}</dd>
+
 {% for key, val in this.data.items %}
   <dt>{{ key|escape }}</dt><dd>{{ val|escape }}</dd>
 {% endfor %}
 
-  <dt>Name</dt><dd>{{ this.hunt_name|escape }}</dd>
-  <dt>Hunt ID</dt><dd>{{ this.hunt.urn.Basename|escape }}</dd>
-  <dt>Hunt URN</dt><dd>{{ this.hunt.urn|escape }}</dd>
-  <dt>Hunt Results URN</dt><dd>{{ this.hunt.urn|escape }}/Results</dd>
-  <dt>Creator</dt><dd>{{ this.hunt_creator|escape }}</dd>
-  <dt>Client Limit</dt><dd>{{ this.client_limit|escape }}</dd>
-  <dt>Client Count</dt><dd>{{ this.hunt.NumClients|escape }}</dd>
-  <dt>Outstanding</dt><dd>{{ this.hunt.NumOutstanding|escape }}</dd>
-  <dt>Completed</dt><dd>{{ this.hunt.NumCompleted|escape }}</dd>
-  <dt>Findings</dt><dd>{{ this.hunt.NumResults|escape }}</dd>
-  <dt>Total CPU seconds used</dt><dd>{{ this.cpu_sum|escape }}</dd>
-  <dt>Total network traffic</dt><dd>{{ this.net_sum|filesizeformat }}</dd>
-  <dt>Arguments</dt><dd>{{ this.args_str|safe }}</dd>
+  <dt>Hunt ID</dt>
+  <dd class="clearfix">{{ this.hunt.urn.Basename|escape }}</dd>
 
+  <dt>Hunt URN</dt>
+  <dd class="clearfix">{{ this.hunt.urn|escape }}</dd>
+
+  <dt>Hunt Results URN</dt>
+  <dd class="clearfix">{{ this.hunt.urn|escape }}/Results</dd>
+
+  <dt>Creator</dt>
+  <dd class="clearfix">{{ this.hunt_creator|escape }}</dd>
+
+  <dt>Client Limit</dt>
+  <dd class="clearfix">{{ this.client_limit|escape }}</dd>
+
+  <dt>Client Count</dt>
+  <dd class="clearfix">{{ this.hunt.NumClients|escape }}</dd>
+
+  <dt>Outstanding</dt>
+  <dd class="clearfix">{{ this.hunt.NumOutstanding|escape }}</dd>
+
+  <dt>Completed</dt>
+  <dd class="clearfix">{{ this.hunt.NumCompleted|escape }}</dd>
+
+  <dt>Findings</dt>
+  <dd class="clearfix">{{ this.hunt.NumResults|escape }}</dd>
+
+  <dt>Total CPU seconds used</dt>
+  <dd class="clearfix">{{ this.cpu_sum|escape }}</dd>
+
+  <dt>Total network traffic</dt>
+  <dd class="clearfix">{{ this.net_sum|filesizeformat }}</dd>
 </dl>
 """)
 
@@ -1203,3 +1251,12 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
         self.layout_template = self.error_template
 
     return super(HuntStatsRenderer, self).Layout(request, response)
+
+
+class HuntCrashesRenderer(crash_view.ClientCrashCollectionRenderer):
+  """View launched flows in a tree."""
+
+  def Layout(self, request, response):
+    hunt_id = request.REQ.get("hunt_id")
+    self.crashes_urn = rdfvalue.RDFURN(hunt_id).Add("crashes")
+    super(HuntCrashesRenderer, self).Layout(request, response)

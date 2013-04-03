@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2012 Google Inc. All Rights Reserved.
 """Renderers to implement ACL control workflow."""
 
 
@@ -21,7 +9,6 @@ from grr.gui.plugins import hunt_view
 
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -42,8 +29,7 @@ class ACLDialog(renderers.TemplateRenderer):
   </div>
   <div class="modal-body">
     <p class="text-info">The server requires authorization to access this
-      resource.</p>
-    <blockquote id="acl_server_message"></blockquote>
+      resource
     <div id="acl_form"></div>
   </div>
   <div class="modal-footer">
@@ -61,7 +47,6 @@ $("#acl_dialog_submit").click(function (event) {
 });
 
 grr.subscribe("unauthorized", function(subject, message) {
-  $("#acl_server_message").text(message);
   grr.layout("CheckAccess", "acl_form", {subject: subject});
 }, "acl_dialog");
 
@@ -106,14 +91,12 @@ Hunt Access Request created. Please try again once an approval is granted.
     reason = request.REQ.get("reason")
     approver = request.REQ.get("approver")
 
-    _, hunt_id, _ = rdfvalue.RDFURN(subject).Split(3)
-
     if approver and reason:
       # Request approval for this client
       flow.FACTORY.StartFlow(None, "RequestHuntApprovalFlow",
                              reason=reason, approver=approver,
                              token=request.token,
-                             hunt_id=hunt_id)
+                             hunt_id=subject)
 
     super(HuntApprovalRequestRenderer, self).Layout(request, response)
 
@@ -213,12 +196,17 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
 
     # TODO(user): This makes assumptions about the approval URL.
     approval_urn = rdfvalue.RDFURN(self.acl or "/")
-    _, namespace, _ = approval_urn.Split(3)
+    components = approval_urn.Split()
+    username = components[-2]
+    namespace = components[1]
 
+    _, namespace, _ = approval_urn.Split(3)
     if namespace == "hunts":
       self.details_renderer = "HuntApprovalDetailsRenderer"
+      self.user = components[3]
     elif aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(namespace):
       self.details_renderer = "ClientApprovalDetailsRenderer"
+      self.user = components[2]
     else:
       raise access_control.UnauthorizedAccess(
           "Approval object is not well formed.")
@@ -226,7 +214,7 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
     approval_request = aff4.FACTORY.Open(approval_urn, mode="r",
                                          token=request.token)
 
-    self.user = request.token.username
+    self.user = username
     self.reason = approval_request.Get(approval_request.Schema.REASON)
     return renderers.TemplateRenderer.Layout(self, request, response)
 
@@ -242,7 +230,7 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
         self.user = user
         self.reason = utils.DecodeReasonString(reason)
       except (ValueError, TypeError):
-        raise data_store.UnauthorizedAccess(
+        raise access_control.UnauthorizedAccess(
             "Approval object is not well formed.")
 
       flow.FACTORY.StartFlow(None, "GrantHuntApprovalFlow",
@@ -276,7 +264,8 @@ class CheckAccess(renderers.TemplateRenderer):
   # Allow the user to request access to the client.
   layout_template = renderers.Template("""
 {% if this.error %}
-<p class="text-info">Existing authorization request ({{this.reason|escape}})
+<p class="text-info">Existing authorization request
+  {% if this.reason %}(reason: <em>{{this.reason|escape}}</em>){% endif %}
   failed:</p>
 <blockquote>
 {{this.error|escape}}
@@ -312,7 +301,11 @@ $("#acl_form_{{unique|escapejs}}").submit(function (event) {
   // When we complete the request refresh to the main screen.
   grr.layout("{{this.approval_renderer|escapejs}}", "acl_server_message", state,
     function () {
-      window.location = "/";
+      {% if this.refresh_after_form_submit %}
+        window.location = "/";
+      {% else %}
+        $("#acl_dialog").modal("hide");
+      {% endif %}
     });
 
   event.preventDefault();
@@ -323,19 +316,11 @@ if ($("#acl_dialog[aria-hidden=false]").size() == 0) {
 $("#acl_dialog").detach().appendTo('body');
 
 // TODO(mbushkov): cleanup a bit. We use update_on_show attribute in
-// LaunchHunts wizard to avoid reloading the modal when it's hidden and shown
+// NewHunt wizard to avoid reloading the modal when it's hidden and shown
 // again because ACL dialog interrupted the UI flow.
 var openedModal = $(".modal[aria-hidden=false]");
 openedModal.attr("update_on_show", "false");
 openedModal.modal("hide");
-
-var returnModalHandler = function () {
-  if (openedModal.attr("restore_after_acl") != "false") {
-    openedModal.modal("show");
-  }
-  $("#acl_dialog").off("hidden", returnModalHandler);
-};
-$("#acl_dialog").on("hidden", returnModalHandler);
 
 // Allow the user to request access through the dialog.
 $("#acl_dialog").modal('toggle');
@@ -365,11 +350,11 @@ Authorization request ({{this.reason|escape}}) failed:
 </script>
 """)
 
-  def CheckObjectAccess(self, namespace, object_name, token):
+  def CheckObjectAccess(self, object_urn, token):
     """Check if the user has access to the specified hunt."""
     try:
-      approved_token = aff4.Approval.GetApprovalForObject(
-          namespace, object_name, token=token)
+      approved_token = aff4.Approval.GetApprovalForObject(object_urn,
+                                                          token=token)
     except access_control.UnauthorizedAccess as e:
       self.error = e
       approved_token = None
@@ -382,7 +367,6 @@ Authorization request ({{this.reason|escape}}) failed:
     """Checks the level of access the user has to this client."""
     self.subject = request.REQ.get("subject", "")
     self.silent = request.REQ.get("silent", "")
-    namespace, path_part, _ = rdfvalue.RDFURN(self.subject).Split(3)
 
     token = request.token
 
@@ -392,11 +376,16 @@ Authorization request ({{this.reason|escape}}) failed:
     if self.silent:
       self.layout_template = self.silent_template
 
+    self.refresh_after_form_submit = True
+
+    subject_urn = rdfvalue.RDFURN(self.subject)
+    namespace, _ = subject_urn.Split(2)
+    self.CheckObjectAccess(subject_urn, token)
+
     if namespace == "hunts":
       self.approval_renderer = "HuntApprovalRequestRenderer"
-      self.CheckObjectAccess(namespace, path_part, token)
+      self.refresh_after_form_submit = False
     elif aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(namespace):
-      self.CheckObjectAccess("clients", namespace, token)
       self.approval_renderer = "ClientApprovalRequestRenderer"
     else:
       raise RuntimeError("Unexpected namespace for access check: %s." %

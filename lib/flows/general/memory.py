@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2012 Google Inc. All Rights Reserved.
 
 """Flows for controlling access to memory.
 
@@ -231,7 +219,7 @@ def GetMemoryModule(client_id, token):
     token: Token to use for access.
 
   Returns:
-    A tuple of GRRSignedDriver, InstallDriverRequest or None, None
+    A GRRSignedDriver or None
 
   Raises:
     IOError: on inability to get driver.
@@ -258,7 +246,7 @@ def GetMemoryModule(client_id, token):
     inst_path = WIN_DRV_PATH
   elif system == "Darwin":
     path = OSX_MEM
-    sys_os = "osx"
+    sys_os = "darwin"
     inst_path = OSX_DRV_PATH
   elif system == "Linux":
     sys_os = "linux"
@@ -341,7 +329,7 @@ user, plugin and time. E.g. /analysis/{p}/{u}-{t}.""",
     self.CallFlow("LoadMemoryDriver", next_state="RunVolatilityPlugins",
                   driver_installer=self.driver_installer)
 
-  @flow.StateHandler(next_state=["ProcessVolatilityPlugins", "Done"])
+  @flow.StateHandler(next_state=["Done"])
   def RunVolatilityPlugins(self, responses):
     """Run all the plugins and process the responses."""
     if responses.success:
@@ -392,16 +380,12 @@ class UnloadMemoryDriver(LoadMemoryDriver):
   def Start(self):
     """Start processing."""
     if not self.driver_installer:
-      module, self.driver_installer = GetMemoryModule(self.client_id,
-                                                      self.token)
-      if not module:
+      self.driver_installer = GetMemoryModule(self.client_id, self.token)
+
+      if not self.driver_installer:
         raise IOError("No memory driver currently available for this system.")
 
-      # Create a protobuf containing the request.
-      self.driver_installer.driver = module.data
-
-    self.CallClient("UninstallDriver", self.driver_installer,
-                    next_state="Done")
+    self.CallClient("UninstallDriver", self.driver_installer, next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):

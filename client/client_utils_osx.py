@@ -1,19 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 """OSX specific utils."""
 
 
@@ -54,7 +42,7 @@ def OSXFindProxies():
         proxy = sc.CFStringToPystring(cfproxy)
         port = sc.CFNumToInt32(cfport)
         result = ["http://%s:%d/" % (proxy, port)]
-        result.extend(config_lib["Client.proxy_servers"])
+        result.extend(config_lib.CONFIG["Client.proxy_servers"])
         return result
 
     cf_auto_enabled = sc.CFDictRetrieve(
@@ -70,11 +58,11 @@ def OSXFindProxies():
         # correct proxy for a given URL, browsers call a Javascript function
         # that returns the correct proxy URL. The question is now, do we really
         # want to start running downloaded js on the client?
-        return config_lib["Client.proxy_servers"]
+        return config_lib.CONFIG["Client.proxy_servers"]
 
   finally:
     sc.dll.CFRelease(settings)
-  return config_lib["Client.proxy_servers"]
+  return config_lib.CONFIG["Client.proxy_servers"]
 
 
 def GetMountpoints():

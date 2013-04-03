@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 """A timeline AFF4 object implementation."""
 
 
@@ -60,7 +48,7 @@ class AFF4Event(aff4.AFF4Object):
     pass
 
 
-class TimelineView(aff4_grr.View):
+class TimelineView(aff4_grr.AFF4CollectionView):
   """A timeline view."""
 
 
@@ -164,8 +152,7 @@ class GRRTimeSeries(standard.VFSDirectory):
     if not self.dirty: return
     storage = aff4.FACTORY.Create(self.urn.Add("Storage"), "AFF4Image",
                                   token=self.token)
-    storage.Set(storage.Schema.CHUNKSIZE(1024 * 1024))
-    storage.Truncate(0)
+    storage.SetChunksize(1024 * 1024)
 
     if self.heap:
       first = last = self.heap[0][0]

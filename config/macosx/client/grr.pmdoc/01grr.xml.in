@@ -1,12 +1,12 @@
 <pkgref spec="1.12" uuid="2853FED5-660E-47FD-8144-B5C2D54BED62">
   <config>
-    <identifier>%(ClientBuildDarwin.package_maker_organization)s.%(ClientBuildDarwin.plist_binary_directory)s.pkg</identifier>
-    <version>%(ClientBuildDarwin.version_string)s</version>
+    <identifier>%(ClientBuildDarwin.package_maker_organization).%(ClientBuildDarwin.plist_binary_directory).%(PyInstaller.output_version_dir).pkg</identifier>
+    <version>%(Client.version_string)</version>
     <description/>
     <post-install type="none"/>
     <requireAuthorization/>
-    <installFrom includeRoot="true">%(Temp.dist_dir)s/%(ClientBuildDarwin.plist_binary_directory)s</installFrom>
-    <installTo mod="true">%(ClientBuildDarwin.plist_binary_prefix)s/lib</installTo>
+    <installFrom includeRoot="true">%(PyInstaller.build_dir)/%(PyInstaller.output_basename)</installFrom>
+    <installTo mod="true">%(ClientBuildDarwin.plist_binary_prefix)/%(PyInstaller.output_root)</installTo>
     <flags>
       <followSymbolicLinks/>
     </flags>

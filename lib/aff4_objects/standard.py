@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 """These are standard aff4 objects."""
 
 
@@ -51,7 +39,7 @@ class VFSDirectory(aff4.AFF4Volume):
     return super(VFSDirectory, self).Query(filter_obj=filter_obj, limit=limit,
                                            age=age)
 
-  def Update(self, attribute=None):
+  def Update(self, attribute=None, priority=None):
     """Refresh an old attribute.
 
     Note that refreshing the attribute is asynchronous. It does not change
@@ -63,6 +51,7 @@ class VFSDirectory(aff4.AFF4Volume):
 
     Args:
        attribute: An attribute object as listed above.
+       priority: Priority to set for updating flow, None for default.
 
     Returns:
        The Flow ID that is pending
@@ -70,15 +59,34 @@ class VFSDirectory(aff4.AFF4Volume):
     Raises:
        IOError: If there has been an error starting the flow.
     """
+    # client id is the first path element
+    client_id = self.urn.Split()[0]
+
     if attribute == self.Schema.CONTAINS:
       # Get the pathspec for this object
       pathspec = self.Get(self.Schema.PATHSPEC)
+
+      stripped_components = []
+      parent = self
+      while not pathspec or parent.urn.Split()[0] == client_id:
+        # We try to recurse up the tree to get a real pathspec.
+        # These directories are created automatically without pathspecs when a
+        # deep directory is listed without listing the parents.
+        stripped_components.append(parent.urn.Basename())
+        pathspec = parent.Get(parent.Schema.PATHSPEC)
+        parent = aff4.FACTORY.Open(parent.urn.Dirname(), token=self.token)
+
+      if stripped_components:
+        # We stripped pieces of the URL, time to add them back at the deepest
+        # nested path.
+        new_path = utils.JoinPath(pathspec.last.path, *stripped_components[:-1])
+        pathspec.last.path = new_path
+
       if pathspec:
-        # client id is the first path element
-        client_id = self.urn.Path().split("/", 2)[1]
         flow_id = flow.FACTORY.StartFlow(client_id, "ListDirectory",
-                                         pathspec=pathspec,
-                                         notify_to_user=False, token=self.token)
+                                         pathspec=pathspec, priority=priority,
+                                         notify_to_user=False,
+                                         token=self.token)
       else:
         raise IOError("Item has no pathspec.")
 
@@ -205,7 +213,7 @@ class AFF4Index(aff4.AFF4Object):
     # We collect index data here until we flush.
     self.to_set = {}
 
-  def Flush(self):
+  def Close(self):
     """Flush the data to the index."""
     if self.to_set:
       data_store.DB.MultiSet(self.urn, self.to_set, token=self.token,

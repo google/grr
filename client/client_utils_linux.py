@@ -1,19 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 """Linux specific utils."""
 
 
@@ -40,13 +28,10 @@ config_lib.DEFINE_string("Nanny.statusfile", "%(Logging.path)/nanny.status",
 config_lib.DEFINE_integer("Nanny.unresponsive_kill_period", 60,
                           "The time in seconds after which the nanny kills us.")
 
-config_lib.DEFINE_list("Network.proxy_servers", [],
-                       "A list of proxy servers to try to connect through.")
-
 
 # TODO(user): Find reliable ways to do this for different OSes
 def LinFindProxies():
-  return config_lib.CONFIG["Network.proxy_servers"]
+  return config_lib.CONFIG["Client.proxy_servers"]
 
 MOUNTPOINT_CACHE = [0, None]
 
@@ -198,6 +183,8 @@ class NannyController(object):
   # Nanny should be a global singleton thread.
   nanny = None
 
+  max_log_size = 100000000
+
   def StartNanny(self, unresponsive_kill_period=None, nanny_logfile=None):
     # The nanny thread is a singleton.
     if NannyController.nanny is None:
@@ -249,14 +236,14 @@ class NannyController(object):
     """Return a GrrMessage instance from the transaction log or None."""
     try:
       with open(self.nanny_logfile, "r") as fd:
-        data = fd.read(10000000)
+        data = fd.read(self.max_log_size)
     except (IOError, OSError):
       return
 
     try:
       if data:
         return rdfvalue.GRRMessage(data)
-    except message.Error:
+    except (message.Error, rdfvalue.Error):
       return
 
   def GetNannyMessage(self):
@@ -270,7 +257,7 @@ class NannyController(object):
   def GetNannyStatus(self):
     try:
       with open(config_lib.CONFIG["Nanny.statusfile"], "r") as fd:
-        return fd.read(100000000)
+        return fd.read(self.max_log_size)
     except (IOError, OSError):
       return None
 

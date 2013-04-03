@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2010 Google Inc. All Rights Reserved.
 """Standard actions that happen on the client."""
 
 
@@ -120,6 +108,9 @@ class TransferBuffer(actions.ActionPlugin):
     # Now return the data to the server into the special TransferStore well
     # known flow.
     self.grr_worker.SendReply(result, session_id="W:TransferStore")
+
+    # Ensure that the buffer is counted against this response.
+    self.grr_worker.ChargeBytesToSession(self.message.session_id, len(data))
 
     # Now report the hash of this blob to our flow as well as the offset and
     # length.
@@ -493,9 +484,9 @@ class ListProcesses(actions.ActionPlugin):
 
       try:
         for c in proc.get_connections():
-          conn = response.connections.add()
-          conn.family = c.family
-          conn.type = c.type
+          conn = response.connections.Append(family=c.family,
+                                             type=c.type)
+
           if c.status in self.states:
             conn.state = self.states[c.status]
           elif c.status:
@@ -506,8 +497,8 @@ class ListProcesses(actions.ActionPlugin):
 
           # Could be in state LISTEN.
           if c.remote_address:
-            (conn.remote_address.ip,
-             conn.remote_address.port) = c.remote_address
+            conn.remote_address.ip, conn.remote_address.port = c.remote_address
+
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 

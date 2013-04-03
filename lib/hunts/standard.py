@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2012 Google Inc. All Rights Reserved.
 
 """Some multiclient flows aka hunts."""
 
@@ -65,6 +53,13 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
           description="A client limit.",
           default=None,
           name="client_limit"),
+
+      type_info.Bool(
+          description=("Store replies from the clients in a collection. Be "
+                       "careful, this can potentially collect huge amounts of "
+                       "data!"),
+          default=False,
+          name="collect_replies"),
       )
 
   @flow.StateHandler()
@@ -74,6 +69,7 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
                        args=self.hunt_flow_args,
                        expiry_time=self.expiry_time,
                        client_limit=self.client_limit,
+                       collect_replies=self.collect_replies,
                        token=self.token)
 
     hunt.AddRule(rules=self.hunt_rules)
@@ -84,7 +80,7 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
     check_token = access_control.ACLToken(username=self.token.username,
                                           reason=self.token.reason)
     data_store.DB.security_manager.CheckAccess(
-        check_token, [aff4.ROOT_URN.Add("hunts").Add(hunt.session_id)], "x")
+        check_token, [rdfvalue.RDFURN(hunt.session_id)], "x")
     hunt.Run()
 
 
@@ -111,7 +107,7 @@ class RunHuntFlow(flow.GRRFlow):
     check_token = access_control.ACLToken(username=self.token.username,
                                           reason=self.token.reason)
     data_store.DB.security_manager.CheckAccess(
-        check_token, [aff4.ROOT_URN.Add("hunts").Add(hunt.session_id)], "x")
+        check_token, [rdfvalue.RDFURN(hunt.session_id)], "x")
 
     # Make the hunt token a supervisor so it can be started.
     hunt.token.supervisor = True
@@ -141,44 +137,11 @@ class PauseHuntFlow(flow.GRRFlow):
     check_token = access_control.ACLToken(username=self.token.username,
                                           reason=self.token.reason)
     data_store.DB.security_manager.CheckAccess(
-        check_token, [aff4.ROOT_URN.Add("hunts").Add(hunt.session_id)], "x")
+        check_token, [self.hunt_urn], "x")
 
     # Make the hunt token a supervisor so it can be started.
     hunt.token.supervisor = True
     hunt.Pause()
-
-
-class ModifyHuntFlow(flow.GRRFlow):
-  """Modify hunt with a given id."""
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.RDFURNType(
-          description="The URN of the hunt to modify.",
-          name="hunt_urn"),
-      type_info.Duration(
-          description="Expiration time for this hunt in seconds.",
-          default=None,
-          name="expiry_time"),
-
-      type_info.Integer(
-          description="A client limit.",
-          default=None,
-          name="client_limit"),
-      )
-
-  @flow.StateHandler()
-  def Start(self):
-    aff4_hunt = aff4.FACTORY.Create(self.hunt_urn, "VFSHunt", mode="w",
-                                    token=self.token)
-
-    aff4_hunt.Set(aff4_hunt.Schema.EXPIRY_TIME(self.expiry_time))
-    aff4_hunt.Set(aff4_hunt.Schema.CLIENT_LIMIT(self.client_limit))
-
-    # Make the hunt token a supervisor so it can be started.
-    aff4_hunt.token_supervisor = True
-    aff4_hunt.Close()
 
 
 class CheckHuntAccessFlow(flow.GRRFlow):
@@ -186,21 +149,23 @@ class CheckHuntAccessFlow(flow.GRRFlow):
   ACL_ENFORCED = False
 
   flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.String(
-          description="Hunt id.",
-          name="hunt_id"),
+      type_info.RDFURNType(
+          description="Hunt urn.",
+          name="hunt_urn"),
       )
 
   @flow.StateHandler()
   def Start(self):
-    if not self.hunt_id:
-      raise RuntimeError("hunt_id was not provided.")
+    if not self.hunt_urn:
+      raise RuntimeError("hunt_urn was not provided.")
+    if self.hunt_urn.Split()[0] != "hunts":
+      raise RuntimeError("invalid namespace in the hunt urn")
 
     check_token = access_control.ACLToken(username=self.token.username,
                                           reason=self.token.reason,
                                           requested_access="x")
     data_store.DB.security_manager.CheckAccess(
-        check_token, [aff4.ROOT_URN.Add("hunts").Add(self.hunt_id)], "x")
+        check_token, [self.hunt_urn], "x")
 
 
 class SampleHunt(implementation.GRRHunt):
@@ -772,14 +737,14 @@ class GenericHunt(implementation.GRRHunt):
         self.urn.Add("Results"), "RDFValueCollection",
         token=self.token)
 
-  def Run(self, description=None):
+  def WriteToDataStore(self, description=None):
     if description is None:
       desc = []
       for k, v in sorted(self.args.ToDict().items()):
-        desc.append("%s: %s" % (utils.SmartStr(k), utils.SmartStr(v)))
-      description = "%s with args { %s }." % (
-          self.flow_name, ",".join(desc))
-    super(GenericHunt, self).Run(description=description)
+        desc.append("%s=%s" % (utils.SmartStr(k), utils.SmartStr(v)))
+      description = "%s { %s }." % (
+          self.flow_name, ", ".join(desc))
+    super(GenericHunt, self).WriteToDataStore(description=description)
 
   @flow.StateHandler(next_state=["MarkDone"])
   def Start(self, responses):

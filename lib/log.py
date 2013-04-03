@@ -90,6 +90,7 @@ def SetLogLevels():
       "NTEventLogHandler": logging.CRITICAL,
       "StreamHandler": logging.ERROR,
       "SysLogHandler": logging.CRITICAL,
+      "RobustSysLogHandler": logging.CRITICAL,
       }
 
   verbose_levels = {
@@ -97,6 +98,7 @@ def SetLogLevels():
       "NTEventLogHandler": logging.INFO,
       "StreamHandler": logging.DEBUG,
       "SysLogHandler": logging.INFO,
+      "RobustSysLogHandler": logging.INFO,
       }
 
   logger = logging.getLogger()

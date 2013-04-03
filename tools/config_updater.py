@@ -7,12 +7,17 @@ import argparse
 import ConfigParser
 import getpass
 import os
+# importing readline enables the raw_input calls to have history etc.
+import readline  # pylint: disable=unused-import
 import sys
 
 
 from grr.client import conf
 
 # pylint: disable=unused-import,g-bad-import-order
+# Client pieces need to be imported and registered for repack_clients command.
+from grr.client import client_plugins
+from grr.client import installer
 from grr.lib import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
@@ -105,31 +110,41 @@ parser_repack_clients.add_argument(
 
 # Parent parser used in other upload based parsers.
 parser_upload_args = argparse.ArgumentParser(add_help=False)
-
+parser_upload_signed_args = argparse.ArgumentParser(add_help=False)
 
 # Upload arguments.
 parser_upload_args.add_argument(
     "--file", help="The file to upload", required=True)
 
 parser_upload_args.add_argument(
+    "--dest_path", required=False, default=None,
+    help="The destination path to upload the file to, specified in aff4: form,"
+    "e.g. aff4:/config/test.raw")
+
+parser_upload_signed_args.add_argument(
     "--platform", required=True, choices=maintenance_utils.SUPPORTED_PLATFORMS,
     default="windows",
     help="The platform the file will be used on. This determines which signing"
     " keys to use, and the path on the server the file will be uploaded to.")
 
 # Upload parsers.
+parser_upload_raw = subparsers.add_parser(
+    "upload_raw", parents=[parser_upload_args],
+    help="Upload a raw file to an aff4 path.")
+
 parser_upload_python = subparsers.add_parser(
-    "upload_python", parents=[parser_upload_args],
+    "upload_python", parents=[parser_upload_args, parser_upload_signed_args],
     help="Sign and upload a 'python hack' which can be used to execute code on "
     "a client.")
 
 parser_upload_exe = subparsers.add_parser(
-    "upload_exe", parents=[parser_upload_args],
+    "upload_exe", parents=[parser_upload_args, parser_upload_signed_args],
     help="Sign and upload an executable which can be used to execute code on "
     "a client.")
 
 parser_upload_memory_driver = subparsers.add_parser(
-    "upload_memory_driver", parents=[parser_upload_args],
+    "upload_memory_driver",
+    parents=[parser_upload_args, parser_upload_signed_args],
     help="Sign and upload a memory driver for a specific platform.")
 
 
@@ -235,7 +250,7 @@ this will be port 8080 with the URL ending in /control.
 """
   def_location = "http://%s:8080/control" % hostname
   location = raw_input("Server URL [%s]: " % def_location) or def_location
-  config.Set("ClientBuild.location", location)
+  config.Set("Client.location", location)
 
   print """\nUI URL:
 The UI URL specifies where the Administrative Web Interface can be found.
@@ -258,13 +273,6 @@ Address where high priority events such as an emergency ACL bypass are sent.
   def_email = "grr-emergency@example.com"
   emergency_email = raw_input("Emergency email [%s]: " % email) or email
   config.Set("Monitoring.emergency_access_email", emergency_email)
-
-  # TODO(user): Readd once new client build is in place.
-  # print "\nConfiguration completed"
-  # print_config = ((raw_input("Would you like to review the config before"
-  #                           " writing it? [Yn]: ") or "Y").upper() == "Y")
-  # if print_config:
-  #   print config.FormattedAsString(truncate_len=80)
 
   config.Write()
   print ("Configuration parameters set. You can edit these in %s" %
@@ -298,19 +306,12 @@ def Initialize(config):
   ConfigureBaseOptions(config_lib.CONFIG)
 
   print "\nStep 4: Repackaging clients with new configuration."
-  print "TODO"
-
-  # TODO(user): Readd once new client build is in place.
-  # RepackAndUpload(args.share_dir, upload=True)
+  RepackAndUpload(os.path.join(args.share_dir, "executables"), upload=True)
 
 
-def RepackAndUpload(share_dir, upload=True):
+def RepackAndUpload(executables_dir, upload=True):
   """Repack all clients and upload them."""
-  py_dir = os.path.dirname(os.path.realpath(__file__))
-  build_files_dir = os.path.join(os.path.dirname(py_dir), "config")
-  exe_dir = os.path.join(share_dir, "executables")
-  built = build.RepackAllBinaries(build_files_dir=build_files_dir,
-                                  config=config_lib.CONFIG, exe_dir=exe_dir)
+  built = build.RepackAllBinaries(executables_dir=executables_dir)
   if upload:
     print "\n## Uploading"
     for file_path, platform, arch in built:
@@ -355,7 +356,8 @@ def main(unused_argv):
     config_lib.CONFIG.Write()
 
   elif args.subparser_name == "repack_clients":
-    RepackAndUpload(args.share_dir, upload=args.upload)
+    RepackAndUpload(os.path.join(args.share_dir, "executables"),
+                    upload=args.upload)
 
   if args.subparser_name == "add_user":
     if args.password:
@@ -378,22 +380,42 @@ def main(unused_argv):
     Initialize(config_lib.CONFIG)
 
   elif args.subparser_name == "upload_python":
-    uploaded = maintenance_utils.UploadSignedConfigBlob(
-        open(args.file).read(1024*1024*30),
-        file_name=os.path.basename(args.file), platform=args.platform,
-        aff4_path="/config/python_hacks/{file_name}")
+    content = open(args.file).read(1024*1024*30)
+    if args.dest_path:
+      uploaded = maintenance_utils.UploadSignedConfigBlob(
+          content, platform=args.platform, aff4_path=args.dest_path)
+    else:
+      uploaded = maintenance_utils.UploadSignedConfigBlob(
+          content, file_name=os.path.basename(args.file),
+          platform=args.platform, aff4_path="/config/python_hacks/{file_name}")
     print "Uploaded to %s" % uploaded
 
   elif args.subparser_name == "upload_exe":
-    uploaded = maintenance_utils.UploadSignedConfigBlob(
-        open(args.file).read(1024*1024*30),
-        file_name=os.path.basename(args.file), platform=args.platform)
+    content = open(args.file).read(1024*1024*30)
+    if args.dest_path:
+      uploaded = maintenance_utils.UploadSignedConfigBlob(
+          content, aff4_path=args.dest_path, platform=args.platform)
+    else:
+      uploaded = maintenance_utils.UploadSignedConfigBlob(
+          content, file_name=os.path.basename(args.file),
+          platform=args.platform)
     print "Uploaded to %s" % uploaded
 
   elif args.subparser_name == "upload_memory_driver":
-    uploaded = maintenance_utils.UploadSignedDriverBlob(
-        open(args.file).read(1024*1024*30),
-        platform=args.platform, file_name=os.path.basename(args.file))
+    content = open(args.file).read(1024*1024*30)
+    if args.dest_path:
+      uploaded = maintenance_utils.UploadSignedDriverBlob(
+          content, platform=args.platform, aff4_path=args.dest_path)
+    else:
+      uploaded = maintenance_utils.UploadSignedDriverBlob(
+          content, platform=args.platform,
+          file_name=os.path.basename(args.file))
+    print "Uploaded to %s" % uploaded
+
+  elif args.subparser_name == "upload_raw":
+    if not args.dest_path:
+      args.dest_path = aff4.ROOT_URN.Add("config").Add("raw")
+    uploaded = UploadRaw(args.file, args.dest_path)
     print "Uploaded to %s" % uploaded
 
 

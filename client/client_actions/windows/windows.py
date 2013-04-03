@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2010 Google Inc. All Rights Reserved.
 """Windows specific actions."""
 
 
@@ -25,16 +13,16 @@ import tempfile
 import _winreg
 
 import pythoncom
+import pywintypes
 import win32api
 import win32com.client
 import win32file
 import win32service
 import win32serviceutil
+import winerror
 import wmi
 
 from grr.client import actions
-from grr.client import client_utils_common
-from grr.client import client_utils_windows
 from grr.client.client_actions import standard
 
 from grr.lib import config_lib
@@ -399,47 +387,100 @@ class UninstallDriver(actions.ActionPlugin):
   """Unloads and deletes a memory driver.
 
   Note that only drivers with a signature that validates with
-  client_config.DRIVER_SIGNING_CERT can be uninstalled.
+  Client.driver_signing_public_key can be uninstalled.
   """
 
   in_rdfvalue = rdfvalue.DriverInstallTemplate
 
-  def VerifyAndUninstall(self, args):
-    """Do the verification and uninstall the driver."""
+  @staticmethod
+  def UninstallDriver(driver_path, service_name, delete_file=False):
+    """Unloads the driver and delete the driver file.
 
-    # First check the driver they sent us validates.
-    client_utils_common.VerifySignedBlob(args.driver, verify_data=False)
+    Args:
+      driver_path: Full path name to the driver file.
+      service_name: Name of the service the driver is loaded as.
+      delete_file: Should we delete the driver file after removing the service.
 
-    # Do the unload.
-    client_utils_windows.UninstallDriver(
-        None, args.driver_name, delete_file=False)
+    Raises:
+      OSError: On failure to uninstall or delete.
+    """
+
+    try:
+      win32serviceutil.StopService(service_name)
+    except pywintypes.error as e:
+      if e[0] not in [winerror.ERROR_SERVICE_NOT_ACTIVE,
+                      winerror.ERROR_SERVICE_DOES_NOT_EXIST]:
+        raise OSError("Could not stop service: {0}".format(e))
+
+    try:
+      win32serviceutil.RemoveService(service_name)
+    except pywintypes.error as e:
+      if e[0] != winerror.ERROR_SERVICE_DOES_NOT_EXIST:
+        raise OSError("Could not remove service: {0}".format(e))
+
+    if delete_file:
+      try:
+        if os.path.exists(driver_path):
+          os.remove(driver_path)
+      except (OSError, IOError) as e:
+        raise OSError("Driver deletion failed: " + str(e))
 
   def Run(self, args):
     """Unloads a driver."""
-    self.VerifyAndUninstall(args)
+    # This is kind of lame because we dont really check the driver is
+    # the same as the one that we are going to uninstall.
+    args.driver.Verify(config_lib.CONFIG["Client.driver_signing_public_key"])
+
+    self.UninstallDriver(driver_path=None, service_name=args.driver_name,
+                         delete_file=False)
 
 
 class InstallDriver(UninstallDriver):
   """Installs a driver.
 
   Note that only drivers with a signature that validates with
-  client_config.DRIVER_SIGNING_CERT can be loaded.
+  Client.driver_signing_public_key can be loaded.
   """
   in_rdfvalue = rdfvalue.DriverInstallTemplate
 
+  @staticmethod
+  def InstallDriver(driver_path, service_name, driver_display_name):
+    """Loads a driver and start it."""
+    hscm = win32service.OpenSCManager(None, None,
+                                      win32service.SC_MANAGER_ALL_ACCESS)
+    try:
+      win32service.CreateService(hscm,
+                                 service_name,
+                                 driver_display_name,
+                                 win32service.SERVICE_ALL_ACCESS,
+                                 win32service.SERVICE_KERNEL_DRIVER,
+                                 win32service.SERVICE_DEMAND_START,
+                                 win32service.SERVICE_ERROR_IGNORE,
+                                 driver_path,
+                                 None,  # No load ordering
+                                 0,     # No Tag identifier
+                                 None,  # Service deps
+                                 None,  # User name
+                                 None)  # Password
+      win32serviceutil.StartService(service_name)
+    except pywintypes.error as e:
+      # The following errors are expected:
+      if e[0] not in [winerror.ERROR_SERVICE_EXISTS,
+                      winerror.ERROR_SERVICE_MARKED_FOR_DELETE]:
+        raise RuntimeError("StartService failure: {0}".format(e))
+
   def Run(self, args):
     """Initializes the driver."""
-    if not args.driver:
-      raise IOError("No driver supplied.")
+    self.SyncTransactionLog()
 
-    if not client_utils_common.VerifySignedBlob(args.driver):
-      raise OSError("Driver signature verification error.")
+    # This will raise if the signature is bad.
+    args.driver.Verify(config_lib.CONFIG["Client.driver_signing_public_key"])
 
     if args.force_reload:
       try:
-        self.VerifyAndUninstall(args)
-      except Exception:  # pylint: disable=broad-except
-        pass
+        self.UninstallDriver(None, args.driver_name, delete_file=False)
+      except Exception as e:  # pylint: disable=broad-except
+        logging.debug("Error uninstalling driver: %s", e)
 
     path_handle, path_name = tempfile.mkstemp(suffix=".sys")
     try:
@@ -448,12 +489,11 @@ class InstallDriver(UninstallDriver):
 
       # Note permissions default to global read, user only write.
       try:
-        os.write(path_handle, args.driver)
+        os.write(path_handle, args.driver.data)
       finally:
         os.close(path_handle)
 
-      client_utils_windows.InstallDriver(path_name, args.driver_name,
-                                         args.driver_display_name)
+      self.InstallDriver(path_name, args.driver_name, args.driver_display_name)
 
     finally:
       os.unlink(path_name)

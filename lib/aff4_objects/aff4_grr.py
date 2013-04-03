@@ -1,17 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """GRR specific AFF4 objects."""
 
 
@@ -69,7 +56,7 @@ class VFSGRRClient(standard.VFSDirectory):
 
     CLIENT_INFO = aff4.Attribute(
         "metadata:ClientInfo", rdfvalue.ClientInformation,
-        "GRR client information", "GRR client")
+        "GRR client information", "GRR client", default="")
 
     LAST_BOOT_TIME = aff4.Attribute("metadata:LastBootTime",
                                     rdfvalue.RDFDatetime,
@@ -149,10 +136,10 @@ class VFSGRRClient(standard.VFSDirectory):
     if not self.CLIENT_ID_RE.match(self.client_id):
       raise IOError("Client id is invalid")
 
-  def Update(self, attribute=None):
+  def Update(self, attribute=None, priority=None):
     if attribute == self.Schema.CONTAINS:
       flow_id = flow.FACTORY.StartFlow(self.client_id, "Interrogate",
-                                       token=self.token)
+                                       token=self.token, priority=priority)
 
       return flow_id
 
@@ -265,7 +252,7 @@ class VFSFile(aff4.AFF4Image):
                                  rdfvalue.FingerprintResponse,
                                  "Protodict containing arrays of hashes.")
 
-  def Update(self, attribute=None):
+  def Update(self, attribute=None, priority=None):
     """Update an attribute from the client."""
     if attribute == self.Schema.CONTENT:
       # List the directory on the client
@@ -287,9 +274,9 @@ class VFSFile(aff4.AFF4Image):
     # Get the pathspec for this object
     pathspec = self.Get(self.Schema.STAT).pathspec
     flow_urn = flow.FACTORY.StartFlow(client_id, "GetFile", token=self.token,
-                                      pathspec=pathspec)
+                                      pathspec=pathspec, priority=priority)
     self.Set(self.Schema.CONTENT_LOCK(flow_urn))
-    self.Flush()
+    self.Close()
 
     return flow_urn
 
@@ -352,6 +339,10 @@ class GRRFlow(aff4.AFF4Volume):
     NOTIFICATION = aff4.Attribute("aff4:notification", rdfvalue.Notification,
                                   "Notifications for the flow.")
 
+    CLIENT_CRASH = aff4.Attribute("aff4:client_crash", rdfvalue.ClientCrash,
+                                  "Client crash details in case of a crash.",
+                                  default=None)
+
   create_time = 0
   rdf_flow = None
 
@@ -360,7 +351,7 @@ class GRRFlow(aff4.AFF4Volume):
     if "r" in self.mode:
       try:
         self.flow_obj = self.GetFlowObj()
-      except flow.FlowError, e:
+      except flow.FlowError as e:
         raise IOError(e)
       if self.flow_obj:
         self.rdf_flow = self.flow_obj.rdf_flow
@@ -391,14 +382,24 @@ class GRRFlow(aff4.AFF4Volume):
     """Sets the flow state attribute."""
     self.flow_obj = flow_obj
 
-  def Flush(self, sync=True):
+  def Close(self, sync=True):
+    """Flushes the flow and all its requests to the data_store."""
+    flow_manager = None
     if self.flow_obj:
       self.urn = rdfvalue.RDFURN(self.flow_obj.session_id)
-      self.flow_obj.FlushMessages()
+      # If its a parent flow manager, we skip flushing here.
+      if self.flow_obj.context.parent_context is None:
+        flow_manager = self.flow_obj.context.flow_manager
 
       task = self.Schema.RDF_FLOW(payload=rdfvalue.Flow(self.flow_obj.Dump()))
       self.Set(task)
-    super(GRRFlow, self).Flush(sync=sync)
+
+    super(GRRFlow, self).Close(sync=sync)
+
+    # Now that the flow is written we can also schedule all the requests.
+    # If we have a parent flow manager though, we skip flushing here.
+    if flow_manager:
+      flow_manager.Flush()
 
 
 class GRRSignedBlob(aff4.AFF4MemoryStream):
@@ -417,7 +418,7 @@ class GRRSignedBlob(aff4.AFF4MemoryStream):
     if "r" in self.mode:
       contents = self.Get(self.Schema.BINARY)
       if contents:
-        contents = contents.SerializeToString()
+        contents = contents.data
     self.fd = StringIO.StringIO(contents)
     self.size = rdfvalue.RDFInteger(self.fd.len)
 
@@ -478,7 +479,7 @@ class GRRForeman(aff4.AFF4Object):
         fd = objects[path]
         attribute = aff4.Attribute.NAMES[regex_rule.attribute_name]
         value = utils.SmartStr(fd.Get(attribute))
-        if not re.search(regex_rule.attribute_regex, value, re.S):
+        if not re.search(regex_rule.attribute_regex, value, flags=re.S):
           return False
 
       # Now the integer rules.
@@ -575,7 +576,7 @@ class GRRForeman(aff4.AFF4Object):
 
     # Update the latest checked rule on the client.
     client.Set(client.Schema.LAST_FOREMAN_TIME(latest_rule))
-    client.Flush()
+    client.Close()
 
     # For efficiency we collect all the objects we want to open first and then
     # open them all in one round trip.
@@ -637,8 +638,12 @@ aff4.AFF4Object.SchemaCls.FLOW = aff4.Attribute(
     "aff4:flow", rdfvalue.RDFURN, "A currently scheduled flow.")
 
 
-class View(rdfvalue.RDFValueArray):
-  """A view specifies how a collection is seen."""
+class AFF4CollectionView(rdfvalue.RDFValueArray):
+  """A view specifies how an AFF4Collection is seen."""
+
+
+class RDFValueCollectionView(rdfvalue.RDFValueArray):
+  """A view specifies how an RDFValueCollection is seen."""
 
 
 class GrepResultList(rdfvalue.RDFValueArray):
@@ -794,7 +799,7 @@ class VFSHunt(GRRFlow):
                                        required_type="VFSGRRClient",
                                        token=self.token):
         result = {}
-        result["age"] = fd.Get(fd.Schema.CLOCK)
+        result["age"] = fd.Get(fd.Schema.PING)
         result["hostname"] = fd.Get(fd.Schema.HOSTNAME)
         yield (fd.urn, result)
 
@@ -886,7 +891,7 @@ class VFSFileSymlink(aff4.AFF4Stream):
     return self.delegate.Tell()
 
   def Close(self, sync):
-    self.Flush(sync=sync)
+    super(VFSFileSymlink, self).Close(sync=sync)
     if self.delegate:
       return self.delegate.Close(sync)
 
@@ -941,7 +946,7 @@ class AFF4RegexNotificationRule(aff4.AFF4NotificationRule):
           self.Get(self.Schema.NOTIFY_ONLY_IF_NEW)):
         fd = aff4.FACTORY.Open(aff4_object.urn, age=aff4.ALL_TIMES,
                                token=self.token)
-        stored_vals = fd.GetValuesForAttribute(fd.Schema.TYPE)
+        stored_vals = list(fd.GetValuesForAttribute(fd.Schema.TYPE))
         if len(stored_vals) > 1:
           return
 

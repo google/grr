@@ -36,14 +36,14 @@ override_dh_installinit:
 	mkdir -p debian/grr-server/usr/share/grr/executables/darwin/installers/
 	mkdir -p debian/grr-server/usr/share/grr/executables/windows/installers/
 	mkdir -p debian/grr-server/usr/share/grr/executables/windows/templates/unzipsfx/
-	mkdir -p debian/grr-server/usr/share/grr/executables/windows/templates/win32/$(shell cd executables/windows/templates/win32 && ls -d ????)
-	mkdir -p debian/grr-server/usr/share/grr/executables/windows/templates/win64/$(shell cd executables/windows/templates/win64 && ls -d ????)
-	mkdir -p debian/grr-server/usr/share/grr/executables/darwin/templates/$(shell cd executables/darwin/templates && ls -d ????)
+	# mkdir -p debian/grr-server/usr/share/grr/executables/windows/templates/i386/$(shell cd executables/windows/templates/i386 && ls -d ?.?.?.?)
+	mkdir -p debian/grr-server/usr/share/grr/executables/windows/templates/amd64/$(shell cd executables/windows/templates/amd64 && ls -d ?.?.?.?)
+	mkdir -p debian/grr-server/usr/share/grr/executables/darwin/templates/$(shell cd executables/darwin/templates && ls -d ?.?.?.?)
 	install -p -m755 scripts/* debian/grr-server/usr/share/grr/scripts
 	install -p -m755 executables/windows/templates/unzipsfx/*.* debian/grr-server/usr/share/grr/executables/windows/templates/unzipsfx/
-	install -p -m755 executables/windows/templates/win32/????/*.* debian/grr-server/usr/share/grr/executables/windows/templates/win32/????/
-	install -p -m755 executables/windows/templates/win64/????/*.* debian/grr-server/usr/share/grr/executables/windows/templates/win64/????/
-	install -p -m755 executables/darwin/templates/????/*.* debian/grr-server/usr/share/grr/executables/darwin/templates/????/
+	# install -p -m755 executables/windows/templates/i386/?.?.?.?/*.* debian/grr-server/usr/share/grr/executables/windows/templates/i386/?.?.?.?/
+	install -p -m755 executables/windows/templates/amd64/?.?.?.?/*.* debian/grr-server/usr/share/grr/executables/windows/templates/amd64/?.?.?.?/
+	# install -p -m755 executables/darwin/templates/?.?.?.?/*.* debian/grr-server/usr/share/grr/executables/darwin/templates/?.?.?.?/
 	install -p -m755 binaries/*.* debian/grr-server/usr/share/grr/binaries/
 	# Set up log directory
 	mkdir -p debian/grr-server/var/log/grr

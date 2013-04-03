@@ -1,3 +1,14 @@
+grr-server (0.2-6) unstable; urgency=low
+
+  * New Bootstrap UI
+  * Expanded Hunt UI for scheduling
+  * Config system complete overhaul
+  * Additional mysql datastore option (currently low performance)
+  * New client builds for OSX and Windows
+  * New pmem memory drivers
+
+ -- GRR development team <grr-dev@googlegroups.com>  Sun, 31 Mar 2013 12:00:00 +0200
+
 grr-server (0.2-5) unstable; urgency=low
 
   * Numerous bug fixes

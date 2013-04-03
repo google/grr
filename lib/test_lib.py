@@ -3,6 +3,7 @@
 
 
 import codecs
+import functools
 import os
 import pdb
 import re
@@ -13,6 +14,10 @@ import tempfile
 import time
 import unittest
 
+
+from selenium.common import exceptions
+from selenium.webdriver.common import keys
+from selenium.webdriver.support import select
 
 from google.protobuf import text_format
 from grr.client import conf as flags
@@ -42,6 +47,7 @@ from grr.lib import server_plugins  # pylint: disable=W0611
 from grr.lib import utils
 from grr.test_data import client_fixture
 
+
 # Default for running in the current directory
 config_lib.DEFINE_string("Test.srcdir",
                          os.path.normpath(os.path.dirname(__file__) + "/../.."),
@@ -64,6 +70,10 @@ config_lib.DEFINE_string("Test.data_store", "FakeDataStore",
 config_lib.DEFINE_integer("Test.remote_pdb_port", 2525,
                           "Remote debugger port.")
 
+
+flags.DEFINE_list("tests", None,
+                  help=("Test module to run. If not specified we run"
+                        "All modules in the test suite."))
 
 
 class FlowOrderTest(flow.GRRFlow):
@@ -367,14 +377,39 @@ class FlowTestsBaseclass(GRRBaseTest):
     return rdf_flow
 
 
+def SeleniumAction(f):
+  """Decorator to do multiple attempts in case of WebDriverException."""
+  @functools.wraps(f)
+  def Decorator(*args, **kwargs):
+    delay = 0.5
+    num_attempts = 5
+    cur_attempt = 0
+    while True:
+      try:
+        return f(*args, **kwargs)
+      except exceptions.WebDriverException as e:
+        logging.warn("Selenium raised %s", e)
+
+        cur_attempt += 1
+        if cur_attempt == num_attempts:
+          raise
+
+        time.sleep(delay)
+
+  return Decorator
+
+
 class GRRSeleniumTest(GRRBaseTest):
   """Baseclass for selenium UI tests."""
 
-  # Default duration for WaitUntil.
-  duration = 10
+  # Default duration (in seconds) for WaitUntil.
+  duration = 5
 
   # This is the global selenium handle.
-  selenium = None
+  driver = None
+
+  # Base url of the Admin UI
+  base_url = None
 
   # Whether InstallACLChecks() was called during the test
   acl_checks_installed = False
@@ -407,7 +442,8 @@ class GRRSeleniumTest(GRRBaseTest):
     self.acl_checks_installed = False
 
   def WaitUntil(self, condition_cb, *args):
-    for _ in range(self.duration):
+    delay = 0.5
+    for _ in range(int(self.duration / delay)):
       try:
         if condition_cb(*args): return True
 
@@ -416,9 +452,111 @@ class GRRSeleniumTest(GRRBaseTest):
       except Exception as e:  # pylint: disable=W0703
         logging.warn("Selenium raised %s", e)
 
-      time.sleep(0.5)
+      time.sleep(delay)
 
     raise RuntimeError("condition not met.")
+
+  def _FindElement(self, selector):
+    try:
+      selector_type, effective_selector = selector.split("=", 1)
+    except ValueError:
+      effective_selector = selector
+      selector_type = None
+
+    if selector_type == "css":
+      elems = self.driver.execute_script(
+          "return $(\"" + effective_selector.replace("\"", "\\\"") + "\");")
+      if not elems:
+        raise exceptions.NoSuchElementException()
+      else:
+        return elems[0]
+
+    elif selector_type == "link":
+      links = self.driver.find_elements_by_tag_name("a")
+      for l in links:
+        if l.text.strip() == effective_selector:
+          return l
+      raise exceptions.NoSuchElementException()
+
+    elif selector_type == "xpath":
+      return self.driver.find_element_by_xpath(effective_selector)
+
+    elif selector_type == "id":
+      return self.driver.find_element_by_id(effective_selector)
+
+    elif selector_type == "name":
+      return self.driver.find_element_by_name(effective_selector)
+
+    elif selector_type is None:
+      if effective_selector.startswith("//"):
+        return self.driver.find_element_by_xpath(effective_selector)
+      else:
+        return self.driver.find_element_by_id(effective_selector)
+    else:
+      raise RuntimeError("unknown selector type %s" % selector_type)
+
+  @SeleniumAction
+  def Open(self, url):
+    self.driver.get(self.base_url + url)
+
+  def WaitUntilNot(self, condition_cb, *args):
+    self.WaitUntil(lambda: not condition_cb(*args))
+
+  def IsElementPresent(self, target):
+    try:
+      self._FindElement(target)
+      return True
+    except exceptions.NoSuchElementException:
+      return False
+
+  def IsTextPresent(self, text):
+    return text in self.driver.find_element_by_tag_name("body").text
+
+  def IsVisible(self, target):
+    return (self.IsElementPresent(target) and
+            self._FindElement(target).is_displayed())
+
+  def GetText(self, target):
+    self.WaitUntil(self.IsVisible, target)
+    return self._FindElement(target).text.strip()
+
+  def GetValue(self, target):
+    self.WaitUntil(self.IsVisible, target)
+    return self._FindElement(target).get_attribute("value")
+
+  @SeleniumAction
+  def Type(self, target, text, end_with_enter=False):
+    self.WaitUntil(self.IsVisible, target)
+    elem = self._FindElement(target)
+    elem.clear()
+    elem.send_keys(text)
+    if end_with_enter:
+      elem.send_keys(keys.Keys.ENTER)
+
+  @SeleniumAction
+  def Click(self, target):
+    self.WaitUntil(self.IsVisible, target)
+    self._FindElement(target).click()
+
+  @SeleniumAction
+  def Select(self, target, label):
+    self.WaitUntil(self.IsVisible, target)
+    select.Select(self._FindElement(target)).select_by_visible_text(label)
+
+  def GetSelectedLabel(self, target):
+    self.WaitUntil(self.IsVisible, target)
+    return select.Select(
+        self._FindElement(target)).first_selected_option.text.strip()
+
+  def IsChecked(self, target):
+    self.WaitUntil(self.IsVisible, target)
+    return self._FindElement(target).is_selected()
+
+  def GetCssCount(self, target):
+    if not target.startswith("css="):
+      raise ValueError("invalid target for GetCssCount: " + target)
+
+    return len(self.driver.find_elements_by_css_selector(target[4:]))
 
   def WaitUntilEqual(self, target, condition_cb, *args):
     for _ in range(self.duration):
@@ -459,6 +597,47 @@ class AFF4ObjectTest(GRRBaseTest):
   client_id = "C." + "B" * 16
 
 
+class MicroBenchmarks(GRRBaseTest):
+  """This base class created the GRR benchmarks."""
+  __metaclass__ = registry.MetaclassRegistry
+
+  # Increase this for more accurate timing information.
+  REPEATS = 1000
+
+  def setUp(self):
+    super(MicroBenchmarks, self).setUp()
+
+    # We use this to store temporary benchmark results.
+    self.benchmark_scratchpad = [("Benchmark", "Time (us)", "Iterations"),
+                                 ("---------", "---------", "----------")]
+
+  def tearDown(self):
+    for row in self.benchmark_scratchpad:
+      if len(row) == 4 and isinstance(row[-1], (basestring, int, float)):
+        print "{0:40} {1:<20} {2:<20} ({3})".format(*row)
+      else:
+        print "{0:40} {1:<20} {2:<20}".format(*row)
+
+  def TimeIt(self, callback, name=None, repetitions=None, pre=None, **kwargs):
+    """Runs the callback repetitively and returns the average time."""
+    if repetitions is None:
+      repetitions = self.REPEATS
+
+    if name is None:
+      name = callback.__name__
+
+    if pre is not None:
+      pre()
+
+    start = time.time()
+    for _ in range(repetitions):
+      v = callback(**kwargs)
+
+    time_taken = ((time.time() - start) * 1e6)/repetitions
+    self.benchmark_scratchpad.append(
+        [name, time_taken, repetitions, v])
+
+
 class GRRTestLoader(unittest.TestLoader):
   """A test suite loader which searches for tests in all the plugins."""
 
@@ -491,6 +670,15 @@ class MockClient(object):
     self.client_mock = client_mock
     self.token = token
 
+    # Well known flows are run on the front end.
+    self.well_known_flows = {}
+    for name, cls in flow.GRRFlow.classes.items():
+      if (aff4.issubclass(cls, flow.WellKnownFlow) and
+          cls.well_known_session_id):
+        context = flow_context.FlowContext(flow_name=name, token=self.token)
+        self.well_known_flows[
+            cls.well_known_session_id] = cls(context)
+
   def PushToStateQueue(self, message, **kw):
     # Handle well known flows
     if message.request_id == 0:
@@ -498,9 +686,10 @@ class MockClient(object):
       message.source = self.client_id
       message.auth_state = rdfvalue.GRRMessage.Enum("AUTHENTICATED")
 
-      flow_name = scheduler.SCHEDULER.QueueNameFromURN(message.session_id)
-      context = flow_context.FlowContext(flow_name=flow_name, token=self.token)
-      flow.GRRFlow.classes[flow_name](context=context).ProcessMessage(message)
+      session_id = aff4.RDFURN("aff4:/flows/").Add(message.session_id)
+
+      logging.info("Running well known flow: %s", session_id)
+      self.well_known_flows[str(session_id)].ProcessMessage(message)
       return
 
     # Assume the client is authorized
@@ -722,6 +911,9 @@ class ActionMock(object):
     def __init__(self):
       self.responses = []
 
+    def ChargeBytesToSession(self, session_id, length):
+      pass
+
     def SendReply(self, rdf_value,
                   message_type=rdfvalue.GRRMessage.Enum("MESSAGE"), **kw):
       message = rdfvalue.GRRMessage(
@@ -783,12 +975,40 @@ def TestFlowHelper(flow_class_name, client_mock, client_id=None,
     CheckFlowErrors(total_flows, token=token)
 
 
-def TestHuntHelper(client_mock, client_ids, check_flow_errors=False,
-                   token=None):
+class CrashClientMock(object):
+
+  def __init__(self, client_id, token):
+    self.client_id = client_id
+    self.token = token
+
+  def HandleMessage(self, message):
+    status = rdfvalue.GrrStatus(
+        status=rdfvalue.GrrStatus.Enum("CLIENT_KILLED"),
+        error_message="Client killed during transaction")
+
+    msg = rdfvalue.GRRMessage(
+        request_id=message.request_id, response_id=1,
+        session_id=message.session_id,
+        type=rdfvalue.GRRMessage.Enum("STATUS"),
+        args=status.SerializeToString(),
+        source=self.client_id,
+        auth_state=rdfvalue.GRRMessage.Enum("AUTHENTICATED"))
+
+    self.flow_id = message.session_id
+
+    # This is normally done by the FrontEnd when a CLIENT_KILLED message is
+    # received.
+    flow.PublishEvent("ClientCrash", msg, token=self.token)
+
+    return [status]
+
+
+def TestHuntHelperWithMultipleMocks(client_mocks, check_flow_errors=False,
+                                    token=None):
   total_flows = set()
 
   client_mocks = [MockClient(client_id, client_mock, token=token)
-                  for client_id in client_ids]
+                  for client_id, client_mock in client_mocks.iteritems()]
   worker_mock = MockWorker(check_flow_errors=check_flow_errors, token=token)
 
   # Run the clients and worker until nothing changes any more.
@@ -808,6 +1028,13 @@ def TestHuntHelper(client_mock, client_ids, check_flow_errors=False,
 
   if check_flow_errors:
     CheckFlowErrors(total_flows, token=token)
+
+
+def TestHuntHelper(client_mock, client_ids, check_flow_errors=False,
+                   token=None):
+  return TestHuntHelperWithMultipleMocks(
+      dict([(client_id, client_mock) for client_id in client_ids]),
+      check_flow_errors=check_flow_errors, token=token)
 
 
 # Default fixture age is (Mon Mar 26 14:07:13 2012).
@@ -1012,32 +1239,33 @@ class GrrTestProgram(unittest.TestProgram):
   """A Unit test program which is compatible with conf based args parsing."""
 
   def __init__(self, **kw):
-    conf.PARSER.add_argument("module", nargs="*", help="Test module to run.")
-    conf.PARSER.parse_args()
-
     # Force the test config to be read in
     flags.FLAGS.config = config_lib.CONFIG["Test.config"]
-
-    # Recreate a new data store each time.
     registry.TestInit()
-    vfs.VFSInit()
 
-    super(GrrTestProgram, self).__init__(**kw)
+    self.setUp()
+    try:
+      super(GrrTestProgram, self).__init__(**kw)
+    finally:
+      try:
+        self.tearDown()
+      except Exception as e:  # pylint: disable=broad-except
+        logging.exception(e)
+
+  def setUp(self):
+    """Any global initialization goes here."""
+
+  def tearDown(self):
+    """Global teardown code goes here."""
 
   def parseArgs(self, argv):
     """Delegate arg parsing to the conf subsystem."""
-    if flags.FLAGS.verbose:
-      self.verbosity = 2
-      logging.getLogger().setLevel(logging.DEBUG)
-
-    argv = argv[1:]
-
     # Give the same behaviour as regular unittest
-    if not argv:
+    if not flags.FLAGS.tests:
       self.test = self.testLoader.loadTestsFromModule(self.module)
       return
 
-    self.testNames = argv
+    self.testNames = flags.FLAGS.tests
     self.createTests()
 
 

@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 
 """OSX specific actions."""
 
@@ -280,7 +268,7 @@ class EnumerateRunningServices(actions.ActionPlugin):
     """Get running launchd jobs from objc ServiceManagement framework."""
 
     sm = ServiceManagement()
-    return sm.SMGetAllJobDictionaries("kSMDomainSystemLaunchd")
+    return sm.SMGetJobDictionaries("kSMDomainSystemLaunchd")
 
   def Run(self, unused_arg):
     """Get running launchd jobs.
@@ -390,7 +378,8 @@ class InstallDriver(actions.ActionPlugin):
     if not args.driver:
       raise IOError("No driver supplied.")
 
-    if not client_utils_common.VerifySignedBlob(args.driver):
+    pub_key = config_lib.CONFIG["ClientDarwin.driver_signing_public_key"]
+    if not args.driver.Verify(pub_key):
       raise OSError("Driver signature signing failure.")
 
     if args.force_reload:
@@ -432,7 +421,7 @@ class GetMemoryInformation(actions.ActionPlugin):
             path=args.path,
             pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY")))
     for start, length in memory.OSXMemory.GetMemoryMap(mem_dev):
-      result.runs.add(offset=start, length=length)
+      result.runs.Append(offset=start, length=length)
     self.SendReply(result)
 
 
@@ -446,7 +435,8 @@ class UninstallDriver(actions.ActionPlugin):
 
   def Run(self, args):
     """Unloads a driver."""
-    if not client_utils_common.VerifySignedBlob(args.driver, verify_data=False):
+    pub_key = config_lib.CONFIG["ClientDarwin.driver_signing_public_key"]
+    if not args.driver.Verify(pub_key):
       raise OSError("Driver signature signing failure.")
     # Unload the driver and pass exceptions through
     client_utils_osx.UninstallDriver(args.driver_name)
@@ -460,7 +450,9 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
 
   def Run(self, args):
     """Run."""
-    self.VerifyBlob(args.executable)
+    pub_key = config_lib.CONFIG["ClientDarwin.executable_signing_public_key"]
+    if not args.executable.Verify(pub_key):
+      raise OSError("Executable signing failure.")
 
     path = self.WriteBlobToFile(args.executable, args.write_path, ".pkg")
 

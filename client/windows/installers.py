@@ -1,6 +1,18 @@
 #!/usr/bin/env python
-"""These are windows specific installers."""
+"""These are windows specific installers.
 
+NOTE: Subprocess module is broken on windows in that pipes are not handled
+correctly. See for example:
+
+http://bugs.python.org/issue3905
+
+This problem seems to go away when we use pipes for all standard handles:
+https://launchpadlibrarian.net/134750748/pyqtgraph_subprocess.patch
+
+We also set shell=True because that seems to avoid having an extra cmd.exe
+window pop up.
+"""
+import ctypes
 import os
 import re
 import shutil
@@ -23,7 +35,7 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_list(
     "ClientBuildWindows.old_key_map", [
-        "HKEY_LOCAL_MACHINE\\Software\\GRR\\certificate->Client.certificate",
+        "HKEY_LOCAL_MACHINE\\Software\\GRR\\certificate->Client.private_key",
         "HKEY_LOCAL_MACHINE\\Software\\GRR\\server_serial_number"
         "->Client.server_serial_number",
         ],
@@ -39,20 +51,43 @@ For example:
 """)
 
 
+class CheckForWow64(installer.Installer):
+  """Check to ensure we are not running on a Wow64 system."""
+
+  def RunOnce(self):
+    i = ctypes.c_int()
+    kernel32 = ctypes.windll.kernel32
+    process = kernel32.GetCurrentProcess()
+
+    if kernel32.IsWow64Process(process, ctypes.byref(i)):
+      raise RuntimeError("Will not install a 32 bit client on a 64 bit system. "
+                         "Please use the correct client.")
+
+
 class CopyToSystemDir(installer.Installer):
   """Copy the distribution from the temp directory to the target."""
+
+  pre = ["CheckForWow64"]
 
   def StopPreviousService(self):
     """Wait until the service can be stopped."""
     service = config_lib.CONFIG["NannyWindows.service_name"]
     try:
       logging.info("Attempting to stop service %s", service)
-      output = subprocess.check_output(["sc", "stop", service])
+      output = subprocess.check_output(["sc", "stop", service],
+                                       shell=True,
+                                       stdin=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+
       logging.debug("%s", output)
 
       for _ in range(20):
         try:
-          output = subprocess.check_output(["sc", "query", service])
+          output = subprocess.check_output(["sc", "query", service],
+                                           shell=True,
+                                           stdin=subprocess.PIPE,
+                                           stderr=subprocess.PIPE)
+
           logging.debug(output)
           if "STOPPED" in output:
             break
@@ -67,7 +102,13 @@ class CopyToSystemDir(installer.Installer):
                    "exist yet.", e)
 
       # Try to kill  the processes forcefully.
-      subprocess.call(["taskkill", "/im", "%s*" % service, "/f"])
+      subprocess.call(["taskkill", "/im", "%s*" %
+                       config_lib.CONFIG["NannyWindows.service_binary_name"],
+                       "/f"],
+                      shell=True,
+                      stdout=subprocess.PIPE,
+                      stdin=subprocess.PIPE,
+                      stderr=subprocess.PIPE)
 
     # Sleep a bit to ensure that process really quits.
     time.sleep(2)
@@ -150,7 +191,7 @@ class WindowsInstaller(installer.Installer):
         parameter = "%s.%s" % (section, key)
 
         # Get the value and encode it appropriately.
-        value = config_lib.CONFIG.Get(parameter, verify=False)
+        value = config_lib.CONFIG.Get(parameter, verify=False, environ=False)
         new_config.Set(parameter, value, verify=False)
 
     new_config.Write()
@@ -163,7 +204,11 @@ class WindowsInstaller(installer.Installer):
             "install"]
 
     logging.debug("Calling %s", (args,))
-    subprocess.call(args)
+    subprocess.call(args,
+                    shell=True,
+                    stdout=subprocess.PIPE,
+                    stdin=subprocess.PIPE,
+                    stderr=subprocess.PIPE)
 
   def Run(self):
     self.CopyConfigToRegistry()

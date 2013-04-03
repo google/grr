@@ -14,6 +14,11 @@ else
   echo "Running with Beta test versions"
 fi
 
+if [ -z "${GRR_LOCAL_TEST}" ];
+then
+  GRR_LOCAL_TEST=0;
+fi
+
 PREFIX=/usr
 
 # URL to read the latest version URLs from
@@ -84,7 +89,7 @@ function run_cmd_confirm()
 header "Updating APT and Installing dependencies"
 run_cmd_confirm sudo apt-get --yes update;
 run_cmd_confirm sudo apt-get --yes upgrade;
-run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil python-matplotlib;
+run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil python-matplotlib hfsprogs;
 
 
 header "Getting the right version of M2Crypto installed"
@@ -122,18 +127,23 @@ if [[ "$DJANGO_VERSION" == 1.3* ]]; then
 fi
 
 header "Getting latest package information from repo"
-VERSION_FILE=$(basename ${VERSION_URL});
-run_cmd_confirm wget --no-verbose ${VERSION_URL} -O ${VERSION_FILE};
-SERVER_DEB_URL=$(grep grr-server ${VERSION_FILE} | grep $PLAT | cut -f 2);
-SERVER_DEB=$(basename ${SERVER_DEB_URL});
-run_cmd_confirm rm -f ${VERSION_FILE}
+if [ $GRR_LOCAL_TEST = 0 ]; then
+  VERSION_FILE=$(basename ${VERSION_URL});
+  run_cmd_confirm wget --no-verbose ${VERSION_URL} -O ${VERSION_FILE};
+  SERVER_DEB_URL=$(grep grr-server ${VERSION_FILE} | grep $PLAT | cut -f 2);
+  SERVER_DEB=$(basename ${SERVER_DEB_URL});
+  run_cmd_confirm rm -f ${VERSION_FILE}
 
-header "Installing GRR from prebuilt package"
-run_cmd_confirm wget --no-verbose ${SERVER_DEB_URL} -O ${SERVER_DEB};
-run_cmd_confirm sudo dpkg -i ${SERVER_DEB};
+  header "Installing GRR from prebuilt package"
+  run_cmd_confirm wget --no-verbose ${SERVER_DEB_URL} -O ${SERVER_DEB};
+  run_cmd_confirm sudo dpkg -i ${SERVER_DEB};
+else
+SERVER_DEB=grr-server_0.2-6_amd64.deb;
+  run_cmd_confirm sudo dpkg -i ${SERVER_DEB};
+fi
 
 header "Initialize the configuration, building clients and setting options."
-run_cmd_confirm grr_config_updater initialize
+run_cmd_confirm sudo grr_config_updater initialize
 
 header "Enable grr-single-server to start automatically on boot"
 SERVER_DEFAULT=/etc/default/grr-single-server

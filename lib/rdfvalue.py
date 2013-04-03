@@ -60,6 +60,8 @@ class RDFValue(object):
   # ParseFromDataStore()
   data_store_type = "bytes"
 
+  _age = 0
+
   def __init__(self, initializer=None, age=None):
     """Constructor must be able to take no args.
 
@@ -87,7 +89,10 @@ class RDFValue(object):
 
   @property
   def age(self):
-    return RDFDatetime(self._age, age=0)
+    if self._age.__class__ is not RDFDatetime:
+      self._age = RDFDatetime(self._age, age=0)
+
+    return self._age
 
   @age.setter
   def age(self, value):
@@ -233,6 +238,11 @@ class RDFInteger(RDFString):
     if string:
       self._value = int(string)
 
+  def ParseFromDataStore(self, data_store_obj):
+    self._value = 0
+    if data_store_obj:
+      self._value = int(data_store_obj)
+
   def SerializeToDataStore(self):
     """Use varint to store the integer."""
     return int(self._value)
@@ -312,7 +322,11 @@ class RDFDatetime(RDFInteger):
 
   def __init__(self, initializer=None, age=None):
     super(RDFDatetime, self).__init__(None, age)
-    if isinstance(initializer, RDFDatetime):
+
+    if initializer is None:
+      self.Now()
+
+    elif isinstance(initializer, RDFDatetime):
       self._value = initializer._value  # pylint: disable=protected-access
 
     elif isinstance(initializer, (int, long, float)):
@@ -328,10 +342,6 @@ class RDFDatetime(RDFInteger):
           self._value = self.ParseFromHumanReadable(initializer)
         else:
           self.Now()
-
-    elif initializer is None:
-      self.Now()
-
     else:
       raise RuntimeError("Unknown initializer for RDFDateTime: %s." %
                          type(initializer))
@@ -354,6 +364,11 @@ class RDFDatetime(RDFInteger):
 
   def AsSecondsFromEpoch(self):
     return self._value / self.converter
+
+  def FromSecondsFromEpoch(self, value):
+    self._value = value * self.converter
+
+    return self
 
   @classmethod
   def ParseFromHumanReadable(cls, string, eoy=False):
@@ -415,22 +430,16 @@ class RDFDatetimeSeconds(RDFDatetime):
   converter = 1
 
 
-class Duration(RDFString):
-  """Duration value that's stored as microseconds internally."""
+class Duration(RDFInteger):
+  """Duration value stored in seconds internally."""
   DIVIDERS = ((60*60*24, "d"), (60*60, "h"), (60, "m"), (1, "s"))
-  CONVERTER = MICROSECONDS
-
-  data_store_type = "integer"
-
-  _value = 0
 
   def __init__(self, initializer=None, age=None):
     super(Duration, self).__init__(None, age)
     if isinstance(initializer, Duration):
       self._value = initializer._value  # pylint: disable=protected-access
     elif isinstance(initializer, basestring):
-      parsed = self.ParseFromHumanReadable(initializer)
-      self._value = parsed._value  # pylint: disable=protected-access
+      self.ParseFromHumanReadable(initializer)
     elif isinstance(initializer, (int, long, float)):
       self._value = initializer
     elif isinstance(initializer, RDFInteger):
@@ -442,26 +451,19 @@ class Duration(RDFString):
                          type(initializer))
 
   def ParseFromString(self, string):
-    self._value = 0
-    if string:
-      self._value = int(string)
-
-  def SerializeToDataStore(self):
-    """Use varint to store the integer."""
-    return int(self._value)
+    self.ParseFromHumanReadable(string)
 
   @property
   def seconds(self):
-    return self._value / self.CONVERTER
+    return self._value
 
   def __str__(self):
-    time_secs = int(self._value / self.CONVERTER)
+    time_secs = self._value
     for divider, label in self.DIVIDERS:
       if time_secs % divider == 0:
         return "%d%s" % (time_secs / divider, label)
 
-  @classmethod
-  def ParseFromHumanReadable(cls, timestring):
+  def ParseFromHumanReadable(self, timestring):
     """Parse a human readable string of a duration.
 
     Args:
@@ -474,6 +476,7 @@ class Duration(RDFString):
     orig_string = timestring
 
     multiplicator = 1
+
     if timestring[-1].isdigit():
       pass
     else:
@@ -487,7 +490,7 @@ class Duration(RDFString):
         multiplicator = 60*60*24
       timestring = timestring[:-1]
     try:
-      return Duration(int(timestring) * multiplicator * cls.CONVERTER)
+      self._value = int(timestring) * multiplicator
     except ValueError:
       raise RuntimeError("Could not parse expiration time '%s'." % orig_string)
 
@@ -504,13 +507,29 @@ class RepeatedFieldHelper(object):
     Args:
       proto_list: The list within the protobuf which we wrap.
       converter: An RDFProto class, or a converter function which will be
-        used to coerce valued into the list.
+        used to coerce values into the list.
     """
     self.proto_list = proto_list
     self.converter = converter
 
   def Append(self, rdf_value=None, **kwargs):
     """Append the value to our internal list."""
+    # Fast path - try the easy solution first.
+    if rdf_value is None:
+      # pylint: disable=protected-access
+      natural_kwargs = dict(x for x in kwargs.iteritems()
+                            if x[0] in self.converter._natural_fields)
+
+      special_kwargs = dict(x for x in kwargs.iteritems()
+                            if x[0] not in self.converter._natural_fields)
+      # pylint: enable=protected-access
+
+      try:
+        result = self.proto_list.add(**natural_kwargs)
+        return self.converter(result, **special_kwargs)
+      except ValueError:
+        pass
+
     # Coerce the value to the required type.
     try:
       rdf_value = self.converter(rdf_value, **kwargs)
@@ -568,8 +587,40 @@ class Enum(int):
     return unicode(self.name)
 
 
+class ProtoMetaclassRegistry(registry.MetaclassRegistry):
+  """An optimized metaclass registry for RDFProto.
+
+  This metaclass helps to speed protobuf lookups by pre-calculating sets of the
+  different field types. This pre-calculation is only done once, when the class
+  is defined, but is used for all class instances.
+  """
+
+  def __init__(self, name, bases, env_dict):
+    super(ProtoMetaclassRegistry, self).__init__(name, bases, env_dict)
+    self._fields = set()
+    self._natural_fields = set()
+    self._repeated_fields = set()
+    self._nested_fields = set()
+    self._enum_fields = set()
+    self._delegate_methods = set(dir(self._proto()))
+
+    for field, field_desc in self._proto.DESCRIPTOR.fields_by_name.items():
+      if field_desc.label == field_desc.LABEL_REPEATED:
+        self._repeated_fields.add(field)
+      elif field_desc.type == descriptor.FieldDescriptor.TYPE_MESSAGE:
+        self._nested_fields.add(field)
+      elif field_desc.type == field_desc.TYPE_ENUM:
+        self._enum_fields.add(field)
+      else:
+        self._natural_fields.add(field)
+
+      self._fields.add(field)
+
+
 class RDFProto(RDFValue):
   """A baseclass for using a protobuff as a RDFValue."""
+  __metaclass__ = ProtoMetaclassRegistry
+
   # This should be overriden with a suitable protobuf class
   _proto = jobs_pb2.EmptyMessage
 
@@ -606,12 +657,22 @@ class RDFProto(RDFValue):
       descriptor.FieldDescriptor.TYPE_SINT64: int,
       }
 
+  # pylint: disable=super-init-not-called
   def __init__(self, initializer=None, age=None, **kwargs):
-    super(RDFProto, self).__init__(initializer=None, age=age)
+    # Its ok in this case to not call the base class constructor to save some
+    # cycles.
     self._data = self._proto()
+    if age is None:
+      age = RDFDatetime(age=0)
 
-    # We can be initialized from another RDFProto instance the same as us.
-    if self.__class__ == initializer.__class__:
+    self._age = age
+
+    # We can be initialized from another RDFProto instance the same as us. Test
+    # first because it the most common case.
+    if initializer is None:
+      pass
+
+    elif self.__class__ == initializer.__class__:
       self._data = initializer._data  # pylint: disable=protected-access
       self.age = initializer.age
 
@@ -623,13 +684,13 @@ class RDFProto(RDFValue):
     elif isinstance(initializer, str):
       self.ParseFromString(initializer)
 
-    elif initializer is not None:
+    else:
       raise ValueError("%s can not be initialized from %s" % (
           self.__class__.__name__, type(initializer)))
 
     # Update the protobuf fields from the keywords.
-    for k, v in kwargs.items():
-      if hasattr(self._data, k):
+    for k, v in kwargs.iteritems():
+      if k in self._fields:
         setattr(self, k, v)
       else:
         raise ValueError("Keyword arg %s not known." % k)
@@ -704,12 +765,10 @@ class RDFProto(RDFValue):
     return cls._proto.DESCRIPTOR.enum_values_by_name[value_name].number
 
   def __getattr__(self, attr):
-    # Handle repeated fields especially by wrapping them in a helper.
-    field_descriptor = self._proto.DESCRIPTOR.fields_by_name
-    if attr in field_descriptor:
-      field_descriptor = field_descriptor[attr]
-
-      if field_descriptor.label == field_descriptor.LABEL_REPEATED:
+    if attr in self._fields:
+      # Handle repeated fields especially by wrapping them in a helper.
+      if attr in self._repeated_fields:
+        field_descriptor = self._proto.DESCRIPTOR.fields_by_name[attr]
         converter = (self.rdf_map.get(attr) or
                      self.CONVERTERS[field_descriptor.type])
 
@@ -719,7 +778,9 @@ class RDFProto(RDFValue):
         return self.rdf_map[attr](getattr(self._data, attr))
 
       # Wrap Enums using the Enum class.
-      if field_descriptor.type == field_descriptor.TYPE_ENUM:
+      if attr in self._enum_fields:
+        field_descriptor = self._proto.DESCRIPTOR.fields_by_name[attr]
+
         # Resolve the name of the Enum.
         value = getattr(self._data, attr)
         value_desc = field_descriptor.enum_type.values_by_number.get(value)
@@ -730,7 +791,7 @@ class RDFProto(RDFValue):
         return Enum(getattr(self._data, attr), value_desc.name)
 
     # Delegate to the protobuf if possible, but do not proxy private methods.
-    if not attr.startswith("_"):
+    if attr[0] != "_":
       return getattr(self._data, attr)
 
     raise AttributeError(attr)
@@ -747,16 +808,14 @@ class RDFProto(RDFValue):
       ValueError: If the value is not of the correct type.
     """
     # This is a regular field in the proxied protobuf.
-    if hasattr(self._data, attr) and not hasattr(self.__class__, attr):
+    if attr in self._fields:
       # Assigning None means to clear the protobuf field.
       if value is None:
         self._data.ClearField(attr)
 
       else:
-        field_descriptor = self.DESCRIPTOR.fields_by_name[attr]
-
         # This is a repeated protobuf we need to assign it especially.
-        if field_descriptor.label == field_descriptor.LABEL_REPEATED:
+        if attr in self._repeated_fields:
           self._data.ClearField(attr)
           helper = getattr(self, attr)
 
@@ -764,7 +823,7 @@ class RDFProto(RDFValue):
             helper.Append(item)
 
         # This is a nested protobuf - we can not just assign it.
-        elif field_descriptor.type == descriptor.FieldDescriptor.TYPE_MESSAGE:
+        elif attr in self._nested_fields:
 
           # Convert the target to a protobuf so we can merge it.
           try:
@@ -778,6 +837,7 @@ class RDFProto(RDFValue):
                              getattr(self, attr).__class__.__name__)
 
         else:
+          field_descriptor = self._proto.DESCRIPTOR.fields_by_name[attr]
           converter = self.CONVERTERS[field_descriptor.type]
 
           # Coerce the value to the required type.
@@ -843,6 +903,9 @@ class RDFURN(RDFValue):
 
   def SerializeToString(self):
     return str(self)
+
+  def SerializeToDataStore(self):
+    return utils.SmartUnicode(self._string_urn)
 
   def Dirname(self):
     return posixpath.dirname(self.SerializeToString())

@@ -130,12 +130,24 @@ xref:_searching_for_a_client[search for the client in the GUI].
 
 Linux / MacOS X deployment
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-_TODO_
+On linux, the process depends on your environment, if you have a mechanism such
+as puppet, then building as a Deb package and deploying that way makes the most
+sense.
+Alternatively you can deploy using ssh:
+------------------------------------------------------------------
+scp agent_version.deb host:/tmp/
+ssh host sudo dpkg -i /tmp/agent_version.deb
+------------------------------------------------------------------
+
+On MacOS X, the same process applies, use puppet or equivalent if you have, or
+use ssh.
 
 Deploying at scale
 ~~~~~~~~~~~~~~~~~~
 
-_TODO_
+There shouldn't be any special considerations for deploying GRR clients at
+scale. If the server can't handle the load, the clients should happily back off
+and wait their turn. However, we recommend a staged rollout if possible. 
 
 The GRR GUI
 -----------
@@ -1130,9 +1142,67 @@ Arguments
   and time. E.g. /analysis/{p}/{u}-{t}.
 
 
+Exporting Data From GRR
+-----------------------
+Extracting bulk data from the GRR datastore using the UI is slow and cumbersome.
+It is possible to use the console to extract any data you wish, but we also
+provide a tool called file_exporter.
+
+Exporting a Single File
+^^^^^^^^^^^^^^^^^^^^^^^
+
+--------------------------------------------------------------------------
+db@grrhost: ~$ grr_file_exporter --file=aff4:/C.123456890ABCDEF/fs/os/boot.ini --output=/tmp
+Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
+Downloading: aff4:/C.123456890abcdef/fs/os/boot.ini to: /tmp/C.123456890abcdef/fs/os/boot.ini
+
+db@grrhost: ~$ 
+--------------------------------------------------------------------------
+
+Exporting a Directory
+^^^^^^^^^^^^^^^^^^^^^
+Directories can be exported recursively
+--------------------------------------------------------------------------
+db@grrhost: ~$ grr_file_exporter --directory=aff4:/C.123456890ABCDEF/fs/os/ --output=/tmp --overwrite --depth=4
+Downloading: aff4:/C.123456890abcdef/fs/os/boot.ini to: /tmp/C.123456890abcdef/fs/os/boot.ini
+Downloading: aff4:/C.123456890abcdef/fs/os/tmp1 to: /tmp/C.123456890abcdef/fs/os/tmp1
+
+db@grrhost: ~$
+--------------------------------------------------------------------------
+
+
+Exporting a Collection
+^^^^^^^^^^^^^^^^^^^^^^
+An RDFValueCollection is a collection of objects, often URNs or StatEntry
+objects which reference files that have been downloaded. These are often created
+as the output of hunts and it is common to want to download all these files to
+disk so you can work with them easily.
+
+You need to pass in a URN, and by default we will download files from the
+collection to the directory you specify under the full aff4 path.
+
+For collections we support downloading multithreaded, which speeds things up
+significantly.
+In addition, for collections, by default dump a yaml file of the client data to
+the root of the client directory, e.g. C.123456890abcdef/client_info.yaml.
+This is useful for identifying which machine the files came from when working on
+the filesystem.
+
+_TODO_ Add example
+--------------------------------------------------------------------------
+db@grrhost: ~$ grr_file_exporter --collection=aff4:/hunts/W:123456/Results --output=/tmp
+
+db@grrhost: ~$
+--------------------------------------------------------------------------
+
+
 The console
 -----------
-_TODO_
+
+You can access the console via grr_console. This gives you an interactive
+ipython shell with all the right imports to do pretty much whatever you want.
+
+_TODO_ Add examples.
 
 
 Glossary

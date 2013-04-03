@@ -163,7 +163,7 @@ class ConfigBasedUserManager(access_control.BaseUserManager):
     elif not update:
       raise RuntimeError("Can't create user without password")
 
-    if labels:
+    if labels or admin:
       # Labels will be added to config. On load of the Users section when the
       # Admin UI starts, these labels will be set on the users.
       labels = labels or []
@@ -521,10 +521,9 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
 
     # Accept either a client_id or a URN.
     client_urn = rdfvalue.RDFURN(client_id)
-    client_id, _ = client_urn.Split(2)
 
     # Build the approval URN.
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_urn.Path()).Add(
         token.username).Add(utils.EncodeReasonString(token.reason))
 
     try:
@@ -545,18 +544,17 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
 
         raise access_control.UnauthorizedAccess(
             "Approval %s was rejected." % approval_urn,
-            subject=client_id, requested_access=requested_access)
+            subject=client_urn, requested_access=requested_access)
 
       except IOError:
         # No Approval found, reject this request.
         raise access_control.UnauthorizedAccess(
-            "No approval found for client %s." % client_id,
+            "No approval found for client %s." % client_urn,
             subject=client_urn, requested_access=requested_access)
 
-  def CheckHuntApproval(self, hunt_id, token, requested_access):
+  def CheckHuntApproval(self, subject, token, requested_access):
     """Find the approval for for this token and CheckAccess()."""
-    logging.debug("Checking approval for hunt %s, %s", hunt_id, token)
-    subject = aff4.ROOT_URN.Add("hunts").Add(hunt_id)
+    logging.debug("Checking approval for hunt %s, %s", subject, token)
 
     if not token.username:
       raise access_control.UnauthorizedAccess(
@@ -569,8 +567,8 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
           subject=subject, requested_access=requested_access)
 
      # Build the approval URN.
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add("hunts").Add(
-        hunt_id).Add(token.username).Add(utils.EncodeReasonString(token.reason))
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(subject.Path()).Add(
+        token.username).Add(utils.EncodeReasonString(token.reason))
 
     try:
       approval_request = aff4.FACTORY.Open(
@@ -579,7 +577,7 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
     except IOError:
       # No Approval found, reject this request.
       raise access_control.UnauthorizedAccess(
-          "No approval found for hunt %s." % hunt_id,
+          "No approval found for hunt %s." % subject,
           subject=subject, requested_access=requested_access)
 
     if approval_request.CheckAccess(token):
@@ -592,23 +590,20 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
   def CheckHuntAccess(self, subject, token, requested_access):
     """Check whether hunt object (or anything below it) may be accessed."""
 
-    _, hunt_id, _ = subject.Split(3)
-    if not hunt_id:
+    if subject == aff4.ROOT_URN.Add("hunts"):
       return self.AccessLowerThan(requested_access, "rq")
 
-    hunt_urn = aff4.ROOT_URN.Add("hunts").Add(hunt_id)
-    hunt_metadata = aff4.FACTORY.Stat(hunt_urn, token=self.super_token)
+    hunt_metadata = aff4.FACTORY.Stat(subject, token=self.super_token)
     if not hunt_metadata:
       return True
 
     if "x" in requested_access:
-      return self.CheckHuntApproval(hunt_id, token, requested_access)
+      return self.CheckHuntApproval(subject, token, requested_access)
 
     if "w" in requested_access:
-      hunt = aff4.FACTORY.Open(hunt_urn, token=self.super_token,
-                               age=aff4.ALL_TIMES)
+      hunt = aff4.FACTORY.Open(subject, token=self.super_token)
       return (token.username == hunt.Get(hunt.Schema.CREATOR) or
-              self.CheckHuntApproval(hunt_id, token, requested_access))
+              self.CheckHuntApproval(subject, token, requested_access))
 
     return True
 

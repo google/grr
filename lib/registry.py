@@ -126,11 +126,11 @@ class HookRegistry(object):
       # Now run this hook.
       cls_instance = hook_cls()
       if required:
-        logging.info("Initializing %s (order %s), required by %s",
-                     hook_cls.__name__, hook_cls.order, required)
+        logging.debug("Initializing %s (order %s), required by %s",
+                      hook_cls.__name__, hook_cls.order, required)
       else:
-        logging.info("Initializing %s (order %s)", hook_cls.__name__,
-                     hook_cls.order)
+        logging.debug("Initializing %s (order %s)", hook_cls.__name__,
+                      hook_cls.order)
 
       # Always call the Run hook.
       cls_instance.Run()
@@ -141,8 +141,8 @@ class HookRegistry(object):
         cls_instance.RunOnce()
         self.already_run_once.add(hook_cls)
     else:
-      logging.info("Skipping %s (order %s) since its disabled.",
-                   hook_cls.__name__, hook_cls.order)
+      logging.debug("Skipping %s (order %s) since its disabled.",
+                    hook_cls.__name__, hook_cls.order)
       executed_set.add(hook_cls)
 
   def _RunAllHooks(self, executed_hooks):

@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2012 Google Inc. All Rights Reserved.
 
 """Tests for the standard hunts."""
 
@@ -84,7 +72,6 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
   def testGenericHuntWithSendRepliesSetToFalse(self):
     """This tests running the hunt on some clients."""
-
     hunt = hunts.GenericHunt(
         flow_name="GetFile",
         args=rdfvalue.RDFProtoDict(
@@ -134,7 +121,6 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
   def testGenericHunt(self):
     """This tests running the hunt on some clients."""
-
     hunt = hunts.GenericHunt(flow_name="GetFile",
                              args=rdfvalue.RDFProtoDict(
                                  pathspec=rdfvalue.RDFPathSpec(
@@ -234,10 +220,11 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(set(errors)), 0)
 
     collection = aff4.FACTORY.Open(hunt.collection.urn, mode="r",
-                                   token=self.token)
+                                   token=self.token, age=aff4.ALL_TIMES)
 
     # We should receive stat entries.
     self.assertEqual(len(collection), 3)
+
     collection = sorted([x for x in collection],
                         key=lambda x: x.payload.aff4path)
     stats = [x.payload for x in collection]
@@ -323,3 +310,64 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
     finally:
       time.time = old_time
+
+  def testHuntModificationWorksCorrectly(self):
+    """This tests running the hunt on some clients."""
+    hunt = hunts.GenericHunt(flow_name="GetFile",
+                             args=rdfvalue.RDFProtoDict(
+                                 pathspec=rdfvalue.RDFPathSpec(
+                                     path="/tmp/evil.txt",
+                                     pathtype=rdfvalue.RDFPathSpec.Enum("OS")),
+                                 ),
+                             collect_replies=True,
+                             client_limit=1,
+                             token=self.token)
+
+    regex_rule = rdfvalue.ForemanAttributeRegex(
+        attribute_name="GRR client",
+        attribute_regex="GRR")
+    hunt.AddRule([regex_rule])
+    hunt.Run()
+
+    # Forget about hunt object, we'll use AFF4 for everything.
+    hunt_session_id = hunt.session_id
+    hunt = None
+
+    # Pretend to be the foreman now and dish out hunting jobs to all the
+    # client..
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    for client_id in self.client_ids:
+      foreman.AssignTasksToClient(client_id)
+
+    # Run the hunt.
+    client_mock = SampleHuntMock()
+    test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
+
+    hunt_obj = aff4.FACTORY.Open(hunt_session_id, age=aff4.ALL_TIMES,
+                                 token=self.token)
+
+    started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
+    # There should be only one client, due to the limit
+    self.assertEqual(len(set(started)), 1)
+
+    hunt_obj = aff4.FACTORY.Open(hunt_session_id, mode="rw", token=self.token)
+    hunt_obj.Set(hunt_obj.Schema.CLIENT_LIMIT(10))
+    hunt_obj.Close()
+
+    # Read the hunt we've just written.
+    hunt_obj = aff4.FACTORY.Open(hunt_session_id, mode="r", token=self.token)
+    hunt = hunt_obj.GetFlowObj()
+    hunt.Pause()
+    hunt.Run()
+
+    # Pretend to be the foreman now and dish out hunting jobs to all the
+    # client..
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    for client_id in self.client_ids:
+      foreman.AssignTasksToClient(client_id)
+
+    hunt_obj = aff4.FACTORY.Open(hunt_session_id, age=aff4.ALL_TIMES,
+                                 token=self.token)
+    started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
+    # There should be only one client, due to the limit
+    self.assertEqual(len(set(started)), 10)

@@ -805,7 +805,7 @@ class TabLayout(TemplateRenderer):
 
 """)
 
-  def Layout(self, request, response):
+  def Layout(self, request, response, apply_template=None):
     """Render the content of the tab or the container tabset."""
     if not self.selected:
       self.selected = self.delegated_renderers[0]
@@ -813,7 +813,7 @@ class TabLayout(TemplateRenderer):
     self.indexes = [(self.delegated_renderers[i], self.names[i])
                     for i in range(len(self.names))]
 
-    return super(TabLayout, self).Layout(request, response)
+    return super(TabLayout, self).Layout(request, response, apply_template)
 
 
 class Splitter(TemplateRenderer):
@@ -1657,7 +1657,7 @@ class ListFormRenderer(TypeInfoFormRenderer):
       items = self.ParseArgs(type_descriptor, request, **kwargs)
     else:
       items = type_descriptor.default
-    self.value = ",".join(items)
+    self.value = ",".join(items or [])
 
     return self.FormatFromTemplate(self.form_template, prefix=prefix, **kwargs)
 
@@ -1697,8 +1697,8 @@ class DurationFormRenderer(StringFormRenderer):
     return self.FormatFromTemplate(self.form_template, prefix=prefix, **kwargs)
 
   def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
-    return rdfvalue.Duration.ParseFromHumanReadable(
-        request.REQ.get(prefix + type_descriptor.name))
+    return rdfvalue.Duration(utils.SmartStr(
+        request.REQ.get(prefix + type_descriptor.name)))
 
 
 class EncryptionKeyFormRenderer(StringFormRenderer):
@@ -2037,7 +2037,8 @@ class RDFValueCollectionRenderer(TableRenderer):
   def BuildTable(self, start_row, end_row, request):
     """Builds a table of rdfvalues."""
     try:
-      collection = aff4.FACTORY.Open(self.state["aff4_path"],
+      aff4_path = self.state.get("aff4_path") or request.REQ.get("aff4_path")
+      collection = aff4.FACTORY.Open(aff4_path,
                                      required_type="RDFValueCollection",
                                      token=request.token)
     except IOError:
@@ -2078,7 +2079,7 @@ class ConfirmationDialogRenderer(TemplateRenderer):
   {% endif %}
 
   <div class="modal-body">
-    {{this.content|safe}}
+    {{this.rendered_content|safe}}
     <div id="results_{{unique|escape}}"></div>
   </div>
   <div class="modal-footer">
@@ -2099,6 +2100,7 @@ class ConfirmationDialogRenderer(TemplateRenderer):
   </script>
 """)
 
-  def Layout(self, request, response):
-    self.content = self.FormatFromTemplate(self.content_template)
-    return super(ConfirmationDialogRenderer, self).Layout(request, response)
+  @property
+  def rendered_content(self):
+    return self.FormatFromTemplate(self.content_template,
+                                   unique=self.unique)

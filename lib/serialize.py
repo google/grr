@@ -4,6 +4,7 @@
 
 import yaml
 from grr.lib import aff4
+from grr.lib import rdfvalue
 
 
 def YamlDumper(aff4object):
@@ -16,7 +17,7 @@ def YamlDumper(aff4object):
     for value in values:
       result[attribute.predicate].append(
           [value.__class__.__name__,
-           value.SerializeToString(),
+           value.ToRDFValue().SerializeToString(),
            str(value.age)])
 
   return yaml.dump(dict(
@@ -38,8 +39,16 @@ def YamlLoader(string):
 
     for rdfvalue_cls_name, value, age in values:
       rdfvalue_cls = aff4.FACTORY.RDFValue(rdfvalue_cls_name)
-      tmp.append(rdfvalue_cls(value, age=aff4.RDFDatetime(age)))
+      tmp.append(rdfvalue_cls(value, age=rdfvalue.RDFDatetime(age)))
 
-  return result_cls(urn=representation["_urn"],
-                    clone=aff4_attributes, mode="rw",
-                    age=representation["age_policy"])
+  # Ensure the object is dirty so when we save it, it can be written to the data
+  # store.
+  result = result_cls(urn=representation["_urn"],
+                      clone=aff4_attributes, mode="rw",
+                      age=representation["age_policy"])
+
+  result.new_attributes, result.synced_attributes = result.synced_attributes, {}
+
+  result._dirty = True  # pylint: disable=protected-access
+
+  return result

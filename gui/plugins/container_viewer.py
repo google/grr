@@ -1,19 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 #
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 
 """This plugin renders AFF4 objects contained within a container."""
 
@@ -32,9 +20,9 @@ from grr.lib import utils
 locale.setlocale(locale.LC_ALL, "")
 
 
-class ViewRenderer(renderers.RDFValueRenderer):
-  """Render a container View."""
-  classname = "View"
+class RDFValueCollectionViewRenderer(renderers.RDFValueRenderer):
+  """Render an RDFView."""
+  classname = "RDFValueCollectionView"
   name = "Array"
 
   layout_template = renderers.Template("""
@@ -44,16 +32,33 @@ class ViewRenderer(renderers.RDFValueRenderer):
 </a>
 """)
 
-  def Layout(self, request, response):
-    client_id = request.REQ.get("client_id")
-    self.container = rdfvalue.RDFURN(request.REQ.get("aff4_path", client_id))
-
-    h = dict(container=self.container, main="ContainerViewer", c=client_id,
-             reason=request.token.reason)
+  def GenerateHash(self, aff4_path, client_id, token):
+    h = dict(aff4_path=aff4_path, main="RDFValueCollectionRenderer",
+             c=client_id, reason=token.reason)
 
     self.hash = urllib.urlencode(sorted(h.items()))
 
-    return super(ViewRenderer, self).Layout(request, response)
+  def Layout(self, request, response):
+    """Layout method for the View attribtue."""
+    client_id = request.REQ.get("client_id")
+    aff4_path = request.REQ.get("aff4_path", client_id)
+
+    self.GenerateHash(aff4_path, client_id, request.token)
+
+    return super(RDFValueCollectionViewRenderer, self).Layout(request, response)
+
+
+class AFF4ValueCollectionViewRenderer(RDFValueCollectionViewRenderer):
+  """Render a container View."""
+  classname = "AFF4CollectionView"
+
+  def GenerateHash(self, aff4_path, client_id, token):
+
+    self.container = aff4_path
+    h = dict(container=self.container, main="ContainerViewer", c=client_id,
+             reason=token.reason)
+
+    self.hash = urllib.urlencode(sorted(h.items()))
 
 
 class ContainerAFF4Stats(fileview.AFF4Stats):

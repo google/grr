@@ -4,7 +4,6 @@
 This program will run all the tests in separate processes to speed things up.
 """
 
-import argparse
 import curses
 import os
 import StringIO
@@ -12,6 +11,9 @@ import subprocess
 import sys
 import time
 import unittest
+
+from grr.client import conf
+from grr.client import conf as flags
 
 # These need to register plugins so, pylint: disable=W0611
 
@@ -25,29 +27,11 @@ from grr.parsers import tests
 from grr.worker import worker_test
 
 
-def ParseArgs(argv=None):
-  """Parse command line args and return a FLAGS object."""
-  parser = argparse.ArgumentParser()
+flags.DEFINE_string("output", None,
+                    "The name of the file we write on (default stderr).")
 
-  parser.add_argument("tests", metavar="N", type=str, nargs="*",
-                      help="A list of test suites to run.")
-
-  parser.add_argument("--output",
-                      help="The name of the file we write on (default stderr).")
-
-  parser.add_argument("--verbose", action="store_true", default=False,
-                      help="Verbose output")
-
-  parser.add_argument("--debug", action="store_true", default=False,
-                      help="Debug tests.")
-
-  parser.add_argument("--processes", type=int, default=5,
-                      help="Total number of simultaneous tests to run.")
-
-  return parser.parse_args(argv)
-
-
-FLAGS = ParseArgs()
+flags.DEFINE_integer("processes", 5,
+                     "Total number of simultaneous tests to run.")
 
 
 class Colorizer(object):
@@ -151,50 +135,48 @@ def ReportTestResult(name, metadata):
 
 
 def main(argv=None):
-  if FLAGS.tests or FLAGS.processes == 1:
+  if flags.FLAGS.tests or flags.FLAGS.processes == 1:
     stream = sys.stderr
 
-    if FLAGS.output:
-      stream = open(FLAGS.output, "ab")
+    if flags.FLAGS.output:
+      stream = open(flags.FLAGS.output, "ab")
       os.close(sys.stderr.fileno())
       os.close(sys.stdout.fileno())
       sys.stderr = stream
       sys.stdout = stream
 
     sys.argv = [""]
-    if FLAGS.verbose:
+    if flags.FLAGS.verbose:
       sys.argv.append("--verbose")
 
-    if FLAGS.debug:
+    if flags.FLAGS.debug:
       sys.argv.append("--debug")
 
-    suites = FLAGS.tests or test_lib.GRRBaseTest.classes
+    suites = flags.FLAGS.tests or test_lib.GRRBaseTest.classes
     for test_suite in suites:
-      try:
-        RunTest(test_suite, stream=stream)
-      except SystemExit:
-        pass
+      RunTest(test_suite, stream=stream)
+
   else:
     processes = {}
 
-    with test_lib.TempDirectory() as FLAGS.temp_dir:
+    with test_lib.TempDirectory() as flags.FLAGS.temp_dir:
       start = time.time()
 
       for name in test_lib.GRRBaseTest.classes:
-        result_filename = os.path.join(FLAGS.temp_dir, name)
+        result_filename = os.path.join(flags.FLAGS.temp_dir, name)
 
         argv = [sys.executable] + sys.argv[:]
         if "--output" not in argv:
           argv.extend(["--output", result_filename])
 
-        argv.append(name)
+        argv.extend(["--tests", name])
 
         # Maintain metadata about each test.
         processes[name] = dict(pipe=subprocess.Popen(argv),
                                start=time.time(), output_path=result_filename)
 
         WaitForAvailableProcesses(
-            processes, max_processes=FLAGS.processes,
+            processes, max_processes=flags.FLAGS.processes,
             completion_cb=ReportTestResult)
 
       # Wait for all jobs to finish.
@@ -211,4 +193,4 @@ def main(argv=None):
         sys.exit(-1)
 
 if __name__ == "__main__":
-  main(sys.argv)
+  conf.StartMain(main)

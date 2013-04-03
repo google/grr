@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """The base classes for RDFValue tests."""
+import time
 
 from google.protobuf import message
 from grr.lib import aff4
@@ -103,17 +104,26 @@ class GenericRDFProtoTest(test_lib.AFF4ObjectTest):
     self.assertRaises(AttributeError, obj.Set, "aff4:stored", url)
     self.assertRaises(ValueError, obj.Set, obj.Schema.STORED, str_url)
 
-    obj.Set(obj.Schema.STORED, url)
-    obj.Close()
+    old_time = time.time
+    try:
+      time.time = lambda: 100
 
-    # Check that its ok
-    obj = aff4.FACTORY.Open("foobar", token=self.token)
-    url = obj.Get(obj.Schema.STORED)
+      obj.Set(obj.Schema.STORED, url)
+      obj.Close()
 
-    # It must be a real RDFURN and be the same as the original string
-    self.assertEqual(url.__class__, rdfvalue.RDFURN)
-    self.assertEqual(str(url), str_url)
-    self.assertEqual(url.age, 1)
+      # Check that its ok
+      obj = aff4.FACTORY.Open("foobar", token=self.token)
+      url = obj.Get(obj.Schema.STORED)
+
+      # It must be a real RDFURN and be the same as the original string
+      self.assertEqual(url.__class__, rdfvalue.RDFURN)
+      self.assertEqual(str(url), str_url)
+
+      # The time of the stored property reflects the time of the Set() call.
+      self.assertEqual(url.age, 100 * 1e6)
+
+    finally:
+      time.time = old_time
 
   def testRDFProto(self):
     """Tests that the RDFProto RDFValue serialization works."""
@@ -219,6 +229,40 @@ class RDFValueTestCase(test_lib.GRRBaseTest):
 
     self.CheckRDFValue(self.rdfvalue_class(sample), sample)
 
+  def testSerialization(self):
+    """Make sure the RDFValue instance can be serialized."""
+    sample = self.GenerateSample()
+
+    # Serializing to a string must produce a string.
+    serialized = sample.SerializeToString()
+    self.assertIsInstance(serialized, str)
+
+    # Ensure we can parse it again.
+    rdfvalue_object = self.rdfvalue_class()
+    rdfvalue_object.ParseFromString(serialized)
+    self.CheckRDFValue(rdfvalue_object, sample)
+
+    # Also by initialization.
+    self.CheckRDFValue(self.rdfvalue_class(serialized), sample)
+
+    # Serializing to data store must produce something the data store can
+    # handle.
+    serialized = sample.SerializeToDataStore()
+
+    if self.rdfvalue_class.data_store_type == "bytes":
+      self.assertIsInstance(serialized, str)
+    elif self.rdfvalue_class.data_store_type == "string":
+      self.assertIsInstance(serialized, unicode)
+    elif self.rdfvalue_class.data_store_type == "integer":
+      self.assertIsInstance(serialized, (int, long))
+    else:
+      self.fail("%s has no valid data_store_type" % self.rdfvalue_class)
+
+    # Ensure we can parse it again.
+    rdfvalue_object = self.rdfvalue_class()
+    rdfvalue_object.ParseFromDataStore(serialized)
+    self.CheckRDFValue(rdfvalue_object, sample)
+
 
 class RDFProtoTestCase(RDFValueTestCase):
   """A harness for testing RDFProto implementations."""
@@ -259,37 +303,3 @@ class RDFProtoTestCase(RDFValueTestCase):
 
     # In this case the ages should be identical
     self.assertEqual(int(new_rdfvalue_sample.age), int(rdfvalue_sample.age))
-
-  def testSerialization(self):
-    """Make sure the RDFValue instance can be serialized."""
-    sample = self.GenerateSample()
-
-    # Serializing to a string must produce a string.
-    serialized = sample.SerializeToString()
-    self.assertIsInstance(serialized, str)
-
-    # Ensure we can parse it again.
-    rdfvalue_object = self.rdfvalue_class()
-    rdfvalue_object.ParseFromString(serialized)
-    self.CheckRDFValue(rdfvalue_object, sample)
-
-    # Also by initialization.
-    self.CheckRDFValue(self.rdfvalue_class(serialized), sample)
-
-    # Serializing to data store must produce something the data store can
-    # handle.
-    serialized = sample.SerializeToDataStore()
-
-    if self.rdfvalue_class.data_store_type == "bytes":
-      self.assertIsInstance(serialized, str)
-    elif self.rdfvalue_class.data_store_type == "string":
-      self.assertIsInstance(serialized, unicode)
-    elif self.rdfvalue_class.data_store_type == "integer":
-      self.assertIsInstance(serialized, (int, long))
-    else:
-      self.fail("%s has no valid data_store_type" % self.rdfvalue_class)
-
-    # Ensure we can parse it again.
-    rdfvalue_object = self.rdfvalue_class()
-    rdfvalue_object.ParseFromDataStore(serialized)
-    self.CheckRDFValue(rdfvalue_object, sample)

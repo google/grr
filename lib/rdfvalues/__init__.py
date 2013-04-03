@@ -15,4 +15,5 @@ from grr.lib.rdfvalues import hunts
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import stats
+from grr.lib.rdfvalues import structs
 from grr.lib.rdfvalues import volatility_types

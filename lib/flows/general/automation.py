@@ -171,7 +171,7 @@ class WinSystemActivityInvestigation(flow.GRRFlow):
   @flow.StateHandler(next_state="FinishFlow")
   def Start(self):
     """Start."""
-    self.client = aff4.FACTORY.Open(self.client_id)
+    self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
     self.system = str(self.client.Get(self.client.Schema.SYSTEM))
     self.os_version = str(self.client.Get(self.client.Schema.OS_VERSION))
     self.os_major_version = self.os_version.split(".")[0]
@@ -258,7 +258,7 @@ class LinSystemActivityInvestigation(flow.GRRFlow):
   @flow.StateHandler(next_state="FinishFlow")
   def Start(self):
     """Start."""
-    self.client = aff4.FACTORY.Open(self.client_id)
+    self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
     self.system = str(self.client.Get(self.client.Schema.SYSTEM))
     self.os_version = str(self.client.Get(self.client.Schema.OS_VERSION))
     self.os_major_version = self.os_version.split(".")[0]

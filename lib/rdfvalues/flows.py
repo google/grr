@@ -1,22 +1,8 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 """RDFValue implementations related to flow scheduling."""
 
 
-import os
-import struct
 import threading
 import time
 
@@ -51,11 +37,10 @@ class GRRMessage(rdfvalue.RDFProto):
 
   def GenerateTaskID(self):
     """Generates a new, unique task_id."""
-    # 16 bit random numbers
-    random_number = struct.unpack("H", os.urandom(2))[0]
-    while random_number == 0:
-      random_number = struct.unpack("H", os.urandom(2))[0]
+    # Random number can not be zero since next_id_base must increment.
+    random_number = utils.PRNG.GetShort() + 1
 
+    # 16 bit random numbers
     with Task.lock:
       next_id_base = Task.next_id_base
 
@@ -89,7 +74,12 @@ class GRRMessage(rdfvalue.RDFProto):
       raise RuntimeError("Payload must be an RDFValue.")
 
     self.args = value.SerializeToString()
-    self.args_age = int(value.age)
+
+    # pylint: disable=protected-access
+    if value._age is not None:
+      self.args_age = value._age
+    # pylint: enable=protected-access
+
     self.args_rdf_name = value.__class__.__name__
 
 
@@ -223,8 +213,6 @@ class Task(rdfvalue.RDFProto):
       *args: passthrough.
       **kwargs: passthrough.
     """
-    self.eta = 0
-
     if payload:
       self.payload = payload
     elif (isinstance(initializer, rdfvalue.RDFValue) and
@@ -234,6 +222,8 @@ class Task(rdfvalue.RDFProto):
       initializer = None
 
     super(Task, self).__init__(initializer=initializer, *args, **kwargs)
+
+    self.eta = 0
 
      # self.value now contains a serialized RDFValue protobuf.
     self.payload = rdfvalue.RDFValueObject(self.value).Payload()
@@ -245,10 +235,7 @@ class Task(rdfvalue.RDFProto):
       pass
 
     if not self.id:
-      # 16 bit random numbers
-      random_number = struct.unpack("H", os.urandom(2))[0]
-      while random_number == 0:
-        random_number = struct.unpack("H", os.urandom(2))[0]
+      random_number = utils.PRNG.GetShort() + 1
 
       with Task.lock:
         next_id_base = Task.next_id_base

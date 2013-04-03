@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 
 """GUI elements allowing launching and management of flows."""
 
@@ -21,6 +9,7 @@ import urllib
 
 import logging
 from grr.gui import renderers
+from grr.gui.plugins import crash_view
 from grr.gui.plugins import fileview
 from grr.lib import aff4
 from grr.lib import data_store
@@ -434,7 +423,8 @@ class FlowStateIcon(renderers.RDFValueRenderer):
   # Maps the flow states to icons we can show
   state_map = {"TERMINATED": "stock_yes.png",
                "RUNNING": "clock.png",
-               "ERROR": "nuke.png"}
+               "ERROR": "nuke.png",
+               "CLIENT_CRASHED": "skull-icon.png"}
 
   icon = "question-red.png"
 
@@ -577,8 +567,20 @@ class FlowColumn(TreeColumn):
 <div id='cancel_{{this.index|escape}}' flow_id="{{this.value|escape}}"
   style='float: left'>
 </div>""" + TreeColumn.template + """
-{{this.value.Basename|safe}}
+{{this.row_name|safe}}
 """
+
+  def __init__(self, *args, **kwargs):
+    super(FlowColumn, self).__init__(*args, **kwargs)
+    self.rows_names = {}
+
+  def AddElement(self, index, element, depth, row_type, row_name):
+    self.rows_names[index] = row_name
+    super(FlowColumn, self).AddElement(index, element, depth, row_type)
+
+  def RenderRow(self, index, request, row_options):
+    self.row_name = self.rows_names.get(index, "")
+    return super(FlowColumn, self).RenderRow(index, request, row_options)
 
 
 class ListFlowsTable(renderers.TableRenderer):
@@ -647,15 +649,11 @@ class ListFlowsTable(renderers.TableRenderer):
 </script>
 """
 
-  def _ExpandVolumes(self, flows):
-    """Recursively flattens mixed list of GRRFlow and AFF4Volume objects."""
-    result = []
-    for f in flows:
-      if not isinstance(f, aff4.AFF4Object.GRRFlow):
-        result.extend(self._ExpandVolumes(f.OpenChildren()))
-      else:
-        result.append(f)
-    return result
+  def _GetCreationTime(self, obj):
+    if hasattr(obj, "create_time"):
+      return obj.create_time
+    else:
+      return obj.Get(obj.Schema.LAST)
 
   def __init__(self, **kwargs):
     super(ListFlowsTable, self).__init__(**kwargs)
@@ -679,35 +677,47 @@ class ListFlowsTable(renderers.TableRenderer):
       flow_urn = rdfvalue.RDFURN(client_id).Add("flows")
 
     flow_root = aff4.FACTORY.Open(flow_urn, mode="r", token=request.token)
+    root_children = list(flow_root.OpenChildren())
+    self.size = len(root_children)
+
+    level2_children = aff4.FACTORY.MultiListChildren(
+        [f.urn for f in root_children], token=request.token)
 
     row_index = start
-    # Using _ExpandVolumes to get a list of all the flows, including the ones
-    # which are stored in "[hunt_id]:hunt" volumes inside "[client_id]/flows".
-    for flow_obj in sorted(self._ExpandVolumes(flow_root.OpenChildren()),
-                           key=lambda x: x.create_time,
+    for flow_obj in sorted(root_children,
+                           key=self._GetCreationTime,
                            reverse=True):
-      # TODO(user): This is *really* slow. We have to improve this.
-      if list(flow_obj.ListChildren()):
+      if level2_children.get(flow_obj.urn, None):
         row_type = "branch"
       else:
         row_type = "leaf"
 
-      self.columns[1].AddElement(row_index, flow_obj.urn, depth, row_type)
-
       row = {}
+      last = flow_obj.Get(flow_obj.Schema.LAST)
+      if last:
+        row["Last Active"] = last
 
-      try:
-        rdf_flow = flow_obj.GetRDFFlow()
+      if isinstance(flow_obj, aff4.AFF4Object.GRRFlow):
+        row_name = flow_obj.urn.Basename()
 
-        row["State"] = rdf_flow.state
-        row["Flow Name"] = rdf_flow.name
-        row["Creation Time"] = rdf_flow.create_time
-        row["Creator"] = rdf_flow.creator
-        last = flow_obj.Get(flow_obj.Schema.LAST)
-        if last:
-          row["Last Active"] = last
-      except AttributeError:
-        row["Flow Name"] = "Failed to open flow."
+        try:
+          rdf_flow = flow_obj.GetRDFFlow()
+          if flow_obj.Get(flow_obj.Schema.CLIENT_CRASH):
+            row["State"] = "CLIENT_CRASHED"
+          else:
+            row["State"] = rdf_flow.state
+          row["Flow Name"] = rdf_flow.name
+          row["Creation Time"] = rdf_flow.create_time
+          row["Creator"] = rdf_flow.creator
+        except AttributeError:
+          row["Flow Name"] = "Failed to open flow."
+      else:
+        # We're dealing with a hunt here.
+        row_name = flow_obj.urn.Dirname()
+        row["Flow Name"] = "Hunt"
+
+      self.columns[1].AddElement(row_index, flow_obj.urn, depth, row_type,
+                                 row_name)
 
       self.AddRow(row, row_index)
       row_index += 1
@@ -859,3 +869,15 @@ class GrepspecFormRenderer(renderers.DelegatedTypeInfoRenderer):
 
 class FindspecFormRenderer(renderers.DelegatedTypeInfoRenderer):
   type_info_cls = type_info.FindSpecType
+
+
+class ClientCrashesRenderer(crash_view.ClientCrashCollectionRenderer):
+  """View launched flows in a tree."""
+  description = "Crashes"
+  behaviours = frozenset(["HostAdvanced"])
+  order = 50
+
+  def Layout(self, request, response):
+    client_id = request.REQ.get("client_id")
+    self.crashes_urn = aff4.ROOT_URN.Add(client_id).Add("crashes")
+    super(ClientCrashesRenderer, self).Layout(request, response)

@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2010 Google Inc. All Rights Reserved.
 
 """Linux specific actions."""
 
@@ -22,13 +10,13 @@ import logging
 import os
 import pwd
 import stat
+import subprocess
 import tempfile
 
 from grr.client import actions
-from grr.client import client_utils_common
-from grr.client import client_utils_linux
 from grr.client.client_actions import standard
 from grr.client.client_actions.linux import ko_patcher
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import utils
 
@@ -298,28 +286,77 @@ class EnumerateRunningServices(actions.ActionPlugin):
     raise RuntimeError("Not implemented")
 
 
-class InstallDriver(actions.ActionPlugin):
+class UninstallDriver(actions.ActionPlugin):
+  """Unloads a memory driver.
+
+  Note that only drivers with a signature that validates with
+  client_config.DRIVER_SIGNING_CERT can be uninstalled.
+  """
+
+  in_rdfvalue = rdfvalue.DriverInstallTemplate
+
+  @staticmethod
+  def UninstallDriver(driver_name):
+    """Unloads the driver.
+
+    Args:
+      driver_name: Name of the driver.
+
+    Raises:
+      OSError: On failure to uninstall.
+    """
+    cmd = ["/sbin/rmmod", driver_name]
+
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p.communicate()
+    exit_status = p.returncode
+    logging.info("Unloading driver finished, status: %d.", exit_status)
+    if exit_status != 0:
+      raise OSError("Failed to unload driver.")
+
+  def Run(self, args):
+    """Unloads a driver."""
+    self.SyncTransactionLog()
+
+    # This will raise if the signature is bad.
+    args.driver.Verify(config_lib.CONFIG["Client.driver_signing_public_key"])
+
+    # Do the unload and let exceptions pass through.
+    self.UninstallDriver(args.driver_name)
+
+
+class InstallDriver(UninstallDriver):
   """Installs a driver.
 
   Note that only drivers with a signature that validates with
   client_config.DRIVER_SIGNING_CERT can be loaded.
   """
-  in_rdfvalue = rdfvalue.DriverInstallTemplate
+
+  @staticmethod
+  def InstallDriver(driver_path):
+    """Loads a driver and starts it."""
+
+    cmd = ["/sbin/insmod", driver_path]
+
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p.communicate()
+    exit_status = p.returncode
+    logging.info("Loading driver finished, status: %d.", exit_status)
+    if exit_status != 0:
+      raise OSError("Failed to load driver, may already be installed.")
 
   def Run(self, args):
     """Initializes the driver."""
-    # This action might crash the box so we need to flush the transaction log.
+    # This action might crash the box so we need to flush the
+    # transaction log.
     self.SyncTransactionLog()
 
-    if not args.driver:
-      raise IOError("No driver supplied.")
-
-    if not client_utils_common.VerifySignedBlob(args.driver):
-      raise OSError("Driver signature signing failure.")
+    # This will raise if the signature is bad.
+    args.driver.Verify(config_lib.CONFIG["Client.driver_signing_public_key"])
 
     if args.force_reload:
       try:
-        client_utils_linux.UninstallDriver(args.driver_name)
+        self.UninstallDriver(args.driver_name)
       except OSError:
         logging.warning("Failed to unload driver.")
 
@@ -336,7 +373,7 @@ class InstallDriver(actions.ActionPlugin):
 
     try:
       # Let exceptions pass through.
-      client_utils_linux.InstallDriver(fd.name)
+      self.InstallDriver(fd.name)
 
       try:
         line = open("/sys/class/misc/%s/dev" % args.driver_name, "r").read(
@@ -370,25 +407,6 @@ class GetMemoryInformation(actions.ActionPlugin):
         pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY"))
 
     self.SendReply(result)
-
-
-class UninstallDriver(actions.ActionPlugin):
-  """Unloads a memory driver.
-
-  Note that only drivers with a signature that validates with
-  client_config.DRIVER_SIGNING_CERT can be uninstalled.
-  """
-
-  in_rdfvalue = rdfvalue.DriverInstallTemplate
-
-  def Run(self, args):
-    """Unloads a driver."""
-
-    # First check the drver they sent us validates.
-    client_utils_common.VerifySignedBlob(args.driver, verify_data=False)
-
-    # Do the unload and let exceptions pass through.
-    client_utils_linux.UninstallDriver(args.driver_name)
 
 
 class UpdateAgent(standard.ExecuteBinaryCommand):

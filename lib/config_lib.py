@@ -84,7 +84,7 @@ class Filename(ConfigFilter):
   name = "file"
 
   def Filter(self, data):
-    return open(data).read(1024000)
+    return open(data, "rb").read(1024000)
 
 
 class Base64(ConfigFilter):
@@ -127,6 +127,9 @@ class GRRConfigParser(ConfigParser.RawConfigParser, object):
   # parser from the --config parameter which is interpreted as a url.
   name = None
 
+  # Set to True by the parsers if the file exists.
+  parsed = None
+
   def RawData(self):
     """Convert the file to a more suitable data structure."""
     raw_data = collections.OrderedDict()
@@ -148,16 +151,16 @@ class ConfigFileParser(GRRConfigParser):
     self.optionxform = str
 
     if fd:
-      self.readfp(fd)
+      self.parsed = self.readfp(fd)
       self.filename = filename or fd.name
 
     elif filename:
-      self.read(filename)
+      self.parsed = self.read(filename)
       self.filename = filename
 
     elif data is not None:
       fd = StringIO.StringIO(data)
-      self.readfp(fd)
+      self.parsed = self.readfp(fd)
       self.filename = filename
     else:
       raise RuntimeError("Filename not specified.")
@@ -317,7 +320,9 @@ class StringInterpolator(lexer.Lexer):
     if "." not in parameter_name:
       parameter_name = "%s.%s" % (self.default_section, parameter_name)
 
-    final_value = self.config[parameter_name] or ""
+    final_value = self.config[parameter_name]
+    if final_value is None:
+      final_value = ""
 
     type_info_obj = (self.config.FindTypeInfo(parameter_name) or
                      type_info.String())
@@ -386,7 +391,8 @@ class GrrConfigManager(object):
           try:
             descriptor.Validate(value)
           except type_info.TypeValueError as e:
-            raise ConfigFormatError(e)
+            raise ConfigFormatError("Error while parsing %s: %s." % (
+                descriptor.name, str(e)))
 
   def SetEnv(self, key=None, value=None, **env):
     """Update the environment with new data.
@@ -533,7 +539,7 @@ class GrrConfigManager(object):
     return parser
 
   def Initialize(self, filename=None, data=None, fd=None, reset=True,
-                 validate=True):
+                 validate=True, must_exist=False):
     """Initializes the config manager.
 
     This method is used to add more config options to the manager. The config
@@ -541,13 +547,24 @@ class GrrConfigManager(object):
 
     Args:
       filename: The name of the configuration file to use.
+
       data: The configuration given directly as a long string of data.
+
       fd: A file descriptor of a configuration file.
+
       reset: If true, the previous configuration will be erased.
+
       validate: If true, new values are checked for their type. Can be disabled
-                to speed up testing.
+        to speed up testing.
+
+      must_exist: If true the data source must exist and be a valid
+        configuration file, or we raise an exception.
+
     Raises:
       RuntimeError: No configuration was passed in any of the parameters.
+
+      ConfigFormatError: Raised when the configuration file is invalid or does
+        not exist..
     """
     self.validate = validate
     if reset:
@@ -560,6 +577,9 @@ class GrrConfigManager(object):
 
     elif filename is not None:
       self.parser = self.LoadSecondaryConfig(filename)
+      if must_exist and not self.parser.parsed:
+        raise ConfigFormatError(
+            "Unable to parse config file %s" % filename)
 
     elif data is not None:
       self.parser = ConfigFileParser(data=data)
@@ -580,7 +600,7 @@ class GrrConfigManager(object):
     section_name, key = self._GetSectionName(name)
     return self._GetValue(section_name, key)
 
-  def Get(self, name, verify=True):
+  def Get(self, name, verify=True, environ=True):
     """Get the value contained  by the named parameter.
 
     This method applies interpolation/escaping of the named parameter and
@@ -591,11 +611,13 @@ class GrrConfigManager(object):
         of "Section.name"
       verify: The retrieved parameter will also be verified for sanity according
         to its type info descriptor.
+      environ: If True we consider the configuration environment in resolving
+        this.
 
     Returns:
       The value of the parameter.
     """
-    if name in self.environment:
+    if environ and name in self.environment:
       return self.environment[name]
 
     section_name, key = self._GetSectionName(name)
@@ -833,7 +855,7 @@ DEFINE_list("Environment.execute_sections", [],
 def ReloadConfig():
   """Reload the config from the command line flag."""
   # Try to find the correct configuration parser.
-  CONFIG.Initialize(filename=flags.FLAGS.config)
+  CONFIG.Initialize(filename=flags.FLAGS.config, must_exist=True)
 
   # Load all secondary files.
   for config_url in flags.FLAGS.secondary_configs:

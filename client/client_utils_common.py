@@ -1,31 +1,15 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 
 """Client utilities common to all platforms."""
 
 
 
-import hashlib
 import platform
 import subprocess
 import threading
 import time
 
-
-from M2Crypto import BIO
-from M2Crypto import RSA
 
 import logging
 
@@ -37,6 +21,11 @@ from grr.lib import utils
 config_lib.DEFINE_string("Client.launchctl_plist",
                          "/Library/LaunchDaemons/com.google.code.grrd.plist",
                          "Location of our launchctl plist.")
+
+config_lib.DEFINE_list(
+    name="Client.proxy_servers",
+    help="List of valid proxy servers the client should try.",
+    default=[])
 
 
 def HandleAlarm(process):
@@ -50,7 +39,7 @@ def HandleAlarm(process):
     pass
 
 
-class Alarm (threading.Thread):
+class Alarm(threading.Thread):
   """A simple timeout to stop subprocess execution."""
 
   def __init__(self, timeout, callback, args=()):
@@ -170,6 +159,8 @@ def ErrorOnceAnHour(msg, *args, **kwargs):
 
   Args:
     msg: The message.
+    *args: Passthrough to logging function.
+    **kwargs: Passthrough to logging function.
 
   Note:
     The same msg will only be logged once per hour. Note that args will be
@@ -182,36 +173,3 @@ def ErrorOnceAnHour(msg, *args, **kwargs):
   except KeyError:
     logging.error(msg, *args, **kwargs)
     LOG_THROTTLE_CACHE.Put(msg, msg)
-
-
-def VerifySignedBlob(blob_pb, pub_key=None, verify_data=True):
-  """Verifies a key, returns True or False.
-
-  Args:
-    blob_pb: A SignedBlob protobuf.
-    pub_key: Pub key in PEM format we are verifying against. Defaults to the
-        one stored in client_config.DRIVER_SIGNING_KEY.
-    verify_data: If set to false, the reported digest is checked not the actual
-        data. This is useful to disable for uninstalls where we want to remove
-        a driver but don't want to send the full binary content.
-
-  Returns:
-    True if verification succeeded.
-  """
-  if pub_key is None:
-    pub_key = config_lib["Client.driver_signing_key"]
-
-  bio = BIO.MemoryBuffer(pub_key)
-  rsa = RSA.load_pub_key_bio(bio)
-  result = 0
-  try:
-    result = rsa.verify(blob_pb.digest, blob_pb.signature, "sha256")
-  except RSA.RSAError, e:
-    logging.warn("Could not verify blob. Error: %s", e)
-    return False
-  if verify_data:
-    digest = hashlib.sha256(blob_pb.data).digest()
-    if digest != blob_pb.digest:
-      logging.warn("Blob digest sent in proto did not match actual data.")
-      return False
-  return result == 1

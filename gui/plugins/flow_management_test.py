@@ -1,23 +1,15 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 """Test the flow_management interface."""
 
 
+from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import hunt_test
+from grr.lib import hunts
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
@@ -41,91 +33,105 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
   def testFlowManagement(self):
     """Test that scheduling flows works."""
-    sel = self.selenium
-    sel.open("/")
+    self.Open("/")
 
-    self.WaitUntil(sel.is_element_present, "client_query")
-    sel.type("client_query", "0001")
-    sel.click("client_query_submit")
+    self.WaitUntil(self.IsElementPresent, "client_query")
+    self.Type("client_query", "0001")
+    self.Click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",
-                        sel.get_text, "css=span[type=subject]")
+                        self.GetText, "css=span[type=subject]")
 
     # Choose client 1
-    sel.click("css=td:contains('0001')")
+    self.Click("css=td:contains('0001')")
 
     # First screen should be the Host Information already.
-    self.WaitUntil(sel.is_text_present, "VFSGRRClient")
+    self.WaitUntil(self.IsTextPresent, "VFSGRRClient")
 
-    sel.click("css=a[grrtarget=LaunchFlows]")
-    self.WaitUntil(sel.is_element_present, "id=_Processes")
-    sel.click("css=#_Processes > ins.jstree-icon")
+    self.Click("css=a[grrtarget=LaunchFlows]")
+    self.WaitUntil(self.IsElementPresent, "id=_Processes")
+    self.Click("css=#_Processes")
 
-    self.WaitUntil(sel.is_element_present, "link=ListProcesses")
+    self.WaitUntil(self.IsElementPresent, "link=ListProcesses")
 
-    self.assertEqual("ListProcesses", sel.get_text("link=ListProcesses"))
-    sel.click("link=ListProcesses")
-    self.WaitUntil(sel.is_element_present, "css=input[value=Launch]")
-    self.WaitUntil(sel.is_text_present, "C.0000000000000001")
+    self.assertEqual("ListProcesses", self.GetText("link=ListProcesses"))
+    self.Click("link=ListProcesses")
+    self.WaitUntil(self.IsElementPresent, "css=input[value=Launch]")
+    self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
 
-    self.WaitUntil(sel.is_text_present, "Prototype: ListProcesses")
+    self.WaitUntil(self.IsTextPresent, "Prototype: ListProcesses")
 
-    sel.click("css=input[value=Launch]")
-    self.WaitUntil(sel.is_element_present, "css=input[value=Back]")
-    self.WaitUntil(sel.is_text_present, "Launched flow ListProcesses")
-    self.WaitUntil(sel.is_text_present, "client_id 'C.0000000000000001'")
+    self.Click("css=input[value=Launch]")
+    self.WaitUntil(self.IsElementPresent, "css=input[value=Back]")
+    self.WaitUntil(self.IsTextPresent, "Launched flow ListProcesses")
+    self.WaitUntil(self.IsTextPresent, "aff4:/C.0000000000000001/flows/")
 
-    sel.click("css=input[value=Back]")
-    self.WaitUntil(sel.is_element_present, "css=input[value=Launch]")
+    self.Click("css=input[value=Back]")
+    self.WaitUntil(self.IsElementPresent, "css=input[value=Launch]")
     self.assertEqual("C.0000000000000001",
-                     sel.get_text("css=.FormBody .uneditable-input"))
-    sel.click("css=#_Network > ins.jstree-icon")
-    self.WaitUntil(sel.is_element_present, "link=Netstat")
-    self.assertEqual("Netstat", sel.get_text("link=Netstat"))
-    sel.click("css=#_Browser > ins.jstree-icon")
+                     self.GetText("css=.FormBody .uneditable-input"))
+    self.Click("css=#_Network")
+    self.WaitUntil(self.IsElementPresent, "link=Netstat")
+    self.assertEqual("Netstat", self.GetText("link=Netstat"))
+    self.Click("css=#_Browser")
 
     # Check that we can get a file in chinese
-    sel.click("css=#_Filesystem > ins.jstree-icon")
-    self.WaitUntil(sel.is_element_present, "link=GetFile")
-    sel.click("link=GetFile")
-    self.WaitUntil(sel.is_element_present, "css=input[name=v_pathspec_path]")
-    sel.type("css=input[name=v_pathspec_path]", u"/dev/c/msn升级程序[1].exe")
-    sel.click("css=input[value=Launch]")
+    self.Click("css=#_Filesystem")
+    self.Click("link=GetFile")
+    self.WaitUntil(self.IsElementPresent, "css=input[name=v_pathspec_path]")
+    self.Type("css=input[name=v_pathspec_path]", u"/dev/c/msn升级程序[1].exe")
+    self.Click("css=input[value=Launch]")
 
-    self.WaitUntil(sel.is_text_present, "Launched flow GetFile")
+    self.WaitUntil(self.IsTextPresent, "Launched flow GetFile")
 
     # Test that recursive tests are shown in a tree table.
     flow.FACTORY.StartFlow(
         "aff4:/C.0000000000000001", "RecursiveTestFlow", token=self.token)
 
-    sel.click("css=a:contains('Manage launched flows')")
+    self.Click("css=a:contains('Manage launched flows')")
 
-    self.WaitUntilEqual("RecursiveTestFlow", sel.get_text,
+    self.WaitUntilEqual("RecursiveTestFlow", self.GetText,
                         "//table/tbody/tr[1]/td[3]")
 
-    self.WaitUntilEqual("GetFile", sel.get_text,
+    self.WaitUntilEqual("GetFile", self.GetText,
                         "//table/tbody/tr[2]/td[3]")
 
     # There should only be 3 rows (since the child flows are not shown).
-    self.assertRaises(Exception, sel.is_visible, "//table/tbody/tr[4]")
+    self.assertFalse(self.IsElementPresent("//table/tbody/tr[4]"))
 
     # Click on the first tree_closed to open it.
-    sel.click("css=.tree_closed")
+    self.Click("css=.tree_closed")
 
-    self.WaitUntilEqual("RecursiveTestFlow", sel.get_text,
+    self.WaitUntilEqual("RecursiveTestFlow", self.GetText,
                         "//table/tbody/tr[1]/td[3]")
 
-    self.WaitUntilEqual("RecursiveTestFlow", sel.get_text,
+    self.WaitUntilEqual("RecursiveTestFlow", self.GetText,
                         "//table/tbody/tr[2]/td[3]")
 
     # Select the requests tab
-    sel.click("Requests")
-    sel.click("css=td:contains(GetFile)")
+    self.Click("Requests")
+    self.Click("css=td:contains(GetFile)")
 
-    self.WaitUntil(sel.is_element_present,
+    self.WaitUntil(self.IsElementPresent,
                    "css=td:contains(flow:request:00000001)")
 
     # Check that a StatFile client action was issued as part of the GetFile
     # flow.
-    self.WaitUntil(sel.is_element_present,
+    self.WaitUntil(self.IsElementPresent,
                    "css=.tab-content td.proto_value:contains(StatFile)")
+
+  def SetUpHunt(self):
+    hunt = hunts.SampleHunt(token=self.token)
+    regex_rule = rdfvalue.ForemanAttributeRegex(
+        attribute_name="GRR client",
+        attribute_regex="GRR")
+    hunt.AddRule([regex_rule])
+    hunt.Run()
+
+    client_ids = ["C.0000000000000001"]
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    foreman.AssignTasksToClient(client_ids[0])
+
+    # Run the hunt.
+    client_mock = hunt_test.HuntTest.SampleHuntMock()
+    test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)

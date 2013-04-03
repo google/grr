@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2010 Google Inc. All Rights Reserved.
 """Tests for the worker."""
 
 
@@ -83,14 +71,14 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def SendResponse(self, session_id, data, client_id=None, send_status=True):
     if not isinstance(data, rdfvalue.RDFValue):
       data = rdfvalue.DataBlob(string=data)
-    with flow_context.FlowManager(session_id, token=self.token) as flow_manager:
-      flow_manager.QueueResponse(rdfvalue.GRRMessage(
+    with flow_context.FlowManager(token=self.token) as flow_manager:
+      flow_manager.QueueResponse(session_id, rdfvalue.GRRMessage(
           source=client_id,
           session_id=session_id,
           payload=data,
           request_id=1, response_id=1))
       if send_status:
-        flow_manager.QueueResponse(rdfvalue.GRRMessage(
+        flow_manager.QueueResponse(session_id, rdfvalue.GRRMessage(
             source=client_id,
             session_id=session_id,
             payload=rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.Enum("OK")),

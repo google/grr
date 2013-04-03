@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2012 Google Inc. All Rights Reserved.
 """AFF4 Objects to enforce ACL policies."""
 
 import urllib
@@ -63,14 +51,11 @@ class Approval(aff4.AFF4Object):
     raise RuntimeError("Not implemented.")
 
   @staticmethod
-  def GetApprovalForObject(namespace, object_name, token, username=""):
+  def GetApprovalForObject(object_urn, token, username=""):
     """Looks for approvals for an object and returns available valid tokens.
 
     Args:
-      namespace: Namespace to look in, generally "clients" or "hunts"
-
-      object_name: Name of object we want access to, e.g. hunt_id or a
-        client_id.
+      object_urn: Urn of the object we want access to.
 
       token: The token to use to lookup the ACLs.
 
@@ -81,20 +66,12 @@ class Approval(aff4.AFF4Object):
       A token for access to the object on success, otherwise raises.
 
     Raises:
-      TypeError: If invalid namespace requested.
       UnauthorizedAccess: If there are no valid tokens available.
 
     """
-    if namespace == "hunts":
-      requested_object = "%s/%s" % (namespace, object_name)
-    elif namespace == "clients":
-      requested_object = object_name
-    else:
-      raise TypeError("Invalid object namespace requested")
-
     if not username:
       username = token.username
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(requested_object).Add(
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(object_urn.Path()).Add(
         username)
 
     error = "No approvals available"
@@ -108,22 +85,25 @@ class Approval(aff4.AFF4Object):
       # Check authorization using the data_store for an authoritative source.
       test_token = access_control.ACLToken(username, reason)
       try:
-        if namespace == "hunts":
+        # TODO(user): making assumptions about URNs, no easy way to check
+        # for "x" access.
+        if object_urn.Split()[0] == "hunts":
           # Hunts are special as they require execute permissions. These aren't
           # in the ACL model for objects yet, so we work around by scheduling a
           # fake flow to do the check for us.
           flow.FACTORY.StartFlow(None, "CheckHuntAccessFlow", token=test_token,
-                                 hunt_id=object_name)
+                                 hunt_urn=object_urn)
         else:
           # Check if we can access a non-existent path under this one.
-          aff4.FACTORY.Open(rdfvalue.RDFURN(requested_object).Add("acl_chk"),
+          aff4.FACTORY.Open(rdfvalue.RDFURN(object_urn).Add("acl_chk"),
                             mode="r", token=test_token)
         return test_token
       except access_control.UnauthorizedAccess as e:
         error = e
 
     # We tried all auth_requests, but got no usable results.
-    raise access_control.UnauthorizedAccess(error)
+    raise access_control.UnauthorizedAccess(
+        error, subject=object_urn)
 
 
 class ClientApproval(Approval):
@@ -160,19 +140,19 @@ class ClientApproval(Approval):
 
     if namespace != "ACL":
       raise access_control.UnauthorizedAccess(
-          "Approval object has invalid urn %s.", self.urn,
+          "Approval object has invalid urn %s.", subject=self.urn,
           requested_access=token.requested_access)
 
     if user != token.username:
       raise access_control.UnauthorizedAccess(
           "Approval object is not for user %s." % token.username,
-          requested_access=token.requested_access)
+          subject=self.urn, requested_access=token.requested_access)
 
     # This approval can only apply for a client.
     if not self.classes["VFSGRRClient"].CLIENT_ID_RE.match(client_id):
       raise access_control.UnauthorizedAccess(
           "Approval can only be granted on clients, not %s" % client_id,
-          requested_access=token.requested_access)
+          subject=self.urn, requested_access=token.requested_access)
 
     now = rdfvalue.RDFDatetime()
 
@@ -194,6 +174,7 @@ class ClientApproval(Approval):
       raise access_control.UnauthorizedAccess(
           ("Requires %s approvers for access." %
            config_lib.CONFIG["ACL.approvers_required"]),
+          subject=rdfvalue.RDFURN(client_id),
           requested_access=token.requested_access)
 
     return True
@@ -224,16 +205,18 @@ class HuntApproval(Approval):
 
   def CheckAccess(self, token):
     """Enforce that there are 2 approvers and one of them has "admin" label."""
-    namespace, hunts_str, _, user, _ = self.urn.Split(5)
+    namespace, hunts_str, hunt_id, user, _ = self.urn.Split(5)
     if namespace != "ACL" or hunts_str != "hunts":
       raise access_control.UnauthorizedAccess(
-          "Approval object has invalid urn %s.", self.urn,
+          "Approval object has invalid urn %s." % self.urn,
           requested_access=token.requested_access)
+
+    hunt_urn = aff4.ROOT_URN.Add("hunts").Add(hunt_id)
 
     if user != token.username:
       raise access_control.UnauthorizedAccess(
           "Approval object is not for user %s." % token.username,
-          requested_access=token.requested_access)
+          subject=hunt_urn, requested_access=token.requested_access)
 
     now = rdfvalue.RDFDatetime()
 
@@ -248,7 +231,7 @@ class HuntApproval(Approval):
       raise access_control.UnauthorizedAccess(
           ("Requires %s approvers for access." %
            config_lib.CONFIG["ACL.approvers_required"]),
-          requested_access=token.requested_access)
+          subject=hunt_urn, requested_access=token.requested_access)
 
     # Check that at least one approver has admin label
     admins = [approver for approver in approvers
@@ -258,7 +241,7 @@ class HuntApproval(Approval):
     if not admins:
       raise access_control.UnauthorizedAccess(
           "At least one approver should have 'admin' label.",
-          requested_access=token.requested_access)
+          subject=hunt_urn, requested_access=token.requested_access)
 
     return True
 
@@ -269,10 +252,16 @@ class RequestClientApprovalFlow(flow.GRRFlow):
   # This flow can run on any client without ACL enforcement (an SUID flow).
   ACL_ENFORCED = False
 
-  def __init__(self, reason="Unspecified", approver="", **kwargs):
-    self.reason = reason
-    self.approver = approver
-    super(RequestClientApprovalFlow, self).__init__(**kwargs)
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.String(
+          description="Reason for approval",
+          name="reason",
+          default="Unspecified"),
+      type_info.String(
+          description="Approver username",
+          name="approver",
+          default=""),
+      )
 
   @flow.StateHandler()
   def Start(self):
@@ -281,8 +270,11 @@ class RequestClientApprovalFlow(flow.GRRFlow):
     token = access_control.ACLToken()
     token.supervisor = True
 
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.client_id).Add(
-        self.token.username).Add(utils.EncodeReasonString(self.reason))
+    # TODO(user): remove explicit conversion to RDFURN when all cient_ids
+    # are RDFURNs by default
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(
+        rdfvalue.RDFURN(self.client_id).Path()).Add(
+            self.token.username).Add(utils.EncodeReasonString(self.reason))
 
     approval_request = aff4.FACTORY.Create(approval_urn, "ClientApproval",
                                            mode="w", token=token)
@@ -342,12 +334,19 @@ class RequestHuntApprovalFlow(flow.GRRFlow):
   # This flow can run on any client without ACL enforcement (an SUID flow).
   ACL_ENFORCED = False
 
-  def __init__(self, reason="Unspecified", approver="", hunt_id="",
-               **kwargs):
-    self.reason = reason
-    self.approver = approver
-    self.hunt_id = hunt_id
-    super(RequestHuntApprovalFlow, self).__init__(**kwargs)
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.String(
+          description="Reason for approval",
+          name="reason",
+          default="Unspecified"),
+      type_info.String(
+          description="Approver username",
+          name="approver",
+          default=""),
+      type_info.RDFURNType(
+          description="Hunt id.",
+          name="hunt_id"),
+      )
 
   @flow.StateHandler()
   def Start(self):
@@ -356,7 +355,7 @@ class RequestHuntApprovalFlow(flow.GRRFlow):
     token = access_control.ACLToken()
     token.supervisor = True
 
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add("hunts").Add(self.hunt_id).Add(
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.hunt_id.Path()).Add(
         self.token.username).Add(utils.EncodeReasonString(self.reason))
     approval_request = aff4.FACTORY.Create(approval_urn, "HuntApproval",
                                            mode="rw", token=token)
@@ -413,18 +412,27 @@ class GrantClientApprovalFlow(flow.GRRFlow):
   # This flow can run on any client without ACL enforcement (an SUID flow).
   ACL_ENFORCED = False
 
-  def __init__(self, reason="Unspecified", delegate="", **kwargs):
-    self.reason = reason
-    self.delegate = delegate
-    super(GrantClientApprovalFlow, self).__init__(**kwargs)
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.String(
+          description="Reason for approval",
+          name="reason",
+          default="Unspecified"),
+      type_info.String(
+          description="Delegate username",
+          name="delegate",
+          default=""),
+      )
 
   @flow.StateHandler()
   def Start(self):
     """Create the Approval object and notify the Approval Granter."""
     # TODO(user): Right now anyone can approve anything. We may want to
     # refine this policy in future.
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.client_id).Add(
-        self.delegate).Add(utils.EncodeReasonString(self.reason))
+    # TODO(user): remove explicit conversion to RDFURN when all cient_ids
+    # are RDFURNs by default
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(
+        rdfvalue.RDFURN(self.client_id).Path()).Add(
+            self.delegate).Add(utils.EncodeReasonString(self.reason))
 
     # This object must already exist.
     try:
@@ -482,8 +490,11 @@ class BreakGlassGrantClientApprovalFlow(GrantClientApprovalFlow):
   @flow.StateHandler()
   def Start(self):
     """Create the Approval object and notify the Approval Granter."""
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.client_id).Add(
-        self.token.username).Add(utils.EncodeReasonString(self.reason))
+    # TODO(user): remove explicit conversion to RDFURN when all cient_ids
+    # are RDFURNs by default
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(
+        rdfvalue.RDFURN(self.client_id).Path()).Add(
+            self.token.username).Add(utils.EncodeReasonString(self.reason))
 
     # Create a new Approval object.
     approval_request = aff4.FACTORY.Create(approval_urn, "ClientApproval",

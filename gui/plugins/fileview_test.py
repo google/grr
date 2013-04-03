@@ -1,19 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 """Test the fileview interface."""
 
 import time
@@ -60,150 +48,138 @@ class TestFileView(test_lib.GRRSeleniumTest):
     # Prepare our fixture.
     self.CreateFileVersions()
 
-    sel = self.selenium
-    sel.open("/")
+    self.Open("/")
 
-    self.WaitUntil(sel.is_element_present, "client_query")
-    sel.type("client_query", "0001")
-    sel.click("client_query_submit")
+    self.WaitUntil(self.IsElementPresent, "client_query")
+    self.Type("client_query", "0001")
+    self.Click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",
-                        sel.get_text, "css=span[type=subject]")
+                        self.GetText, "css=span[type=subject]")
 
     # Choose client 1
-    sel.click("css=td:contains('0001')")
+    self.Click("css=td:contains('0001')")
 
     # Go to Browse VFS
-    self.WaitUntil(sel.is_element_present,
-                   "css=a:contains('Browse Virtual Filesystem')")
-    sel.click("css=a:contains('Browse Virtual Filesystem')")
-
-    self.WaitUntil(sel.is_element_present, "css=#_fs")
-    sel.click("css=#_fs ins.jstree-icon")
-
-    self.WaitUntil(sel.is_element_present, "css=#_fs-os")
-    sel.click("css=#_fs-os ins.jstree-icon")
-
-    self.WaitUntil(sel.is_element_present, "css=#_fs-os-c")
-    sel.click("css=#_fs-os-c ins.jstree-icon")
+    self.Click("css=a:contains('Browse Virtual Filesystem')")
+    self.Click("css=#_fs ins.jstree-icon")
+    self.Click("css=#_fs-os ins.jstree-icon")
+    self.Click("css=#_fs-os-c ins.jstree-icon")
 
     # Test file versioning.
-    self.WaitUntil(sel.is_element_present, "css=#_fs-os-c-Downloads")
-    sel.click("link=Downloads")
+    self.WaitUntil(self.IsElementPresent, "css=#_fs-os-c-Downloads")
+    self.Click("link=Downloads")
 
     # Verify that we have the latest version in the table by default
-    self.WaitUntil(sel.is_element_present, "css=tr:contains(\"a.txt\")")
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains(\"a.txt\")")
     self.assert_(
-        "2012-04-09 16:27:13" in sel.get_text("css=tr:contains(\"a.txt\")"))
+        "2012-04-09 16:27:13" in self.GetText("css=tr:contains(\"a.txt\")"))
 
     # Click on the row.
-    sel.click("css=tr:contains(\"a.txt\")")
-    self.WaitUntilContains("a.txt @ 2012-04-09", sel.get_text,
+    self.Click("css=tr:contains(\"a.txt\")")
+    self.WaitUntilContains("a.txt @ 2012-04-09", self.GetText,
                            "css=div#main_rightBottomPane h3")
 
     # Check the data in this file.
-    sel.click("css=#TextView")
-    self.WaitUntilContains("Goodbye World", sel.get_text,
+    self.Click("css=#TextView")
+    self.WaitUntilContains("Goodbye World", self.GetText,
                            "css=div#text_viewer_data_content")
 
     # Click on the version selector.
-    sel.click("css=tr:contains(\"a.txt\") img.version-selector")
-    self.WaitUntilContains("Versions of", sel.get_text,
-                           "css=div#version-dialog h3")
+    self.Click("css=tr:contains(\"a.txt\") img.version-selector")
+    self.WaitUntilContains("Versions of", self.GetText,
+                           "css=.version-selector-dialog h4")
 
     # Select the previous version.
-    self.WaitUntil(sel.is_element_present, "css=td:contains(\"2012-04-07\")")
-    sel.click("css=td:contains(\"2012-04-07\")")
+    self.Click("css=td:contains(\"2012-04-07\")")
 
     # Make sure the file content has changed. This version has "Hello World" in
     # it.
-    self.WaitUntilContains("Hello World", sel.get_text,
+    self.WaitUntilContains("Hello World", self.GetText,
                            "css=div#text_viewer_data_content")
 
     # Test the hex viewer.
-    self.WaitUntil(sel.is_element_present, "css=#_fs-os-proc")
-    sel.click("css=#_fs-os-proc ins.jstree-icon")
+    self.Click("css=#_fs-os-proc ins.jstree-icon")
+    self.Click("css=#_fs-os-proc-10 a")
 
-    self.WaitUntil(sel.is_element_present, "css=#_fs-os-proc-10")
-    sel.click("css=#_fs-os-proc-10 a")
-
-    self.WaitUntil(sel.is_element_present,
+    self.WaitUntil(self.IsElementPresent,
                    "css=span[type=subject]:contains(\"cmdline\")")
 
-    sel.click("css=span[type=subject]:contains(\"cmdline\")")
+    self.Click("css=span[type=subject]:contains(\"cmdline\")")
 
-    sel.click("css=#HexView")
+    self.Click("css=#HexView")
 
-    self.WaitUntilContains("6c730068656c6c6f20776f726c6427002d6c",
-                           sel.get_text, "hex_area")
+    # TODO(user): Using GetText() this way doesn't seem to be a great idea
+    # because #hex_area contains a table and we're actually aggregating text
+    # across multiple cells.
+    self.WaitUntilContains(
+        "6c 73 00 68 65 6c 6c 6f 20 77 6f 72 6c 64 27 00 2d 6c",
+        self.GetText, "hex_area")
 
-    self.WaitUntilContains("ls.hello world'.-l", sel.get_text, "data_area")
+    # TODO(user): same here - see the GetText() todo item above.
+    self.WaitUntilContains("l s . h e l l o w o r l d ' . - l",
+                           self.GetText, "data_area")
 
-    sel.click("css=a:contains(\"Stats\")")
+    self.Click("css=a:contains(\"Stats\")")
 
     # Navigate to the bin C.0000000000000001 directory
-    self.WaitUntil(sel.is_element_present, "link=bin C.0000000000000001")
-    sel.click("link=bin C.0000000000000001")
+    self.Click("link=bin C.0000000000000001")
 
     # Filter the table for bash (should match both bash and rbash)
-    self.WaitUntil(sel.is_element_present, "css=td:contains('bash')")
-    sel.click("css=th:contains('Name') img")
+    self.WaitUntil(self.IsElementPresent, "css=td:contains('bash')")
+    self.Click("css=th:contains('Name') img")
 
-    sel.type("css=.sort-dialog input[type=text]", "bash")
-    sel.click("css=.sort-dialog input[type=submit]")
+    self.Type("css=.sort-dialog input[type=text]", "bash", end_with_enter=True)
 
-    self.WaitUntilEqual("rbash", sel.get_text, "css=tr:nth(2) span")
+    self.WaitUntilEqual("rbash", self.GetText, "css=tr:nth(2) span")
     self.assertEqual(
-        2, sel.get_css_count("css=#main_rightTopPane  tbody > tr"))
-    self.assertEqual("bash", sel.get_text("css=tr:nth(1) span"))
-    self.assertEqual("rbash", sel.get_text("css=tr:nth(2) span"))
+        2, self.GetCssCount("css=#main_rightTopPane  tbody > tr"))
+    self.assertEqual("bash", self.GetText("css=tr:nth(1) span"))
+    self.assertEqual("rbash", self.GetText("css=tr:nth(2) span"))
 
     # Check that the previous search test is still available in the form.
-    sel.click("css=th:contains('Name') img")
-    self.assertEqual("bash", sel.get_value("css=.sort-dialog input"))
+    self.Click("css=th:contains('Name') img")
+    self.assertEqual("bash", self.GetValue("css=.sort-dialog input"))
 
     # If we anchor cat at the start should only filter one.
-    sel.type("css=.sort-dialog input[type=text]", "^cat")
-    sel.click("css=.sort-dialog input[type=submit]")
+    self.Type("css=.sort-dialog input[type=text]", "^cat", end_with_enter=True)
 
-    self.WaitUntilEqual("cat", sel.get_text, "css=tr:nth(1) span")
+    self.WaitUntilEqual("cat", self.GetText, "css=tr:nth(1) span")
     self.assertEqual(
-        1, sel.get_css_count("css=#main_rightTopPane  tbody > tr"))
-    sel.click("css=tr:nth(1)")
+        1, self.GetCssCount("css=#main_rightTopPane  tbody > tr"))
+    self.Click("css=tr:nth(1)")
 
     self.WaitUntilContains(
         "aff4:/C.0000000000000001/fs/os/c/bin C.0000000000000001/cat",
-        sel.get_text, "css=.tab-content h3")
-    self.WaitUntil(sel.is_text_present, "1026267")
+        self.GetText, "css=.tab-content h3")
+    self.WaitUntil(self.IsTextPresent, "1026267")
 
     # Lets download it.
-    sel.click("Download")
-    self.WaitUntil(sel.is_element_present,
-                   "css=button:contains(\"Get a new Version\")")
-    sel.click("css=button:contains(\"Get a new Version\")")
+    self.Click("Download")
+    self.Click("css=button:contains(\"Get a new Version\")")
 
-    sel.click("path_0")
-    self.WaitUntilEqual("fs", sel.get_text, "css=tr:nth(2) span")
+    self.Click("path_0")
+    self.WaitUntilEqual("fs", self.GetText, "css=tr:nth(2) span")
 
-    sel.click("Stats")
+    self.Click("Stats")
     self.WaitUntilContains(
-        "aff4:/C.0000000000000001", sel.get_text, "css=.tab-content h3")
+        "aff4:/C.0000000000000001", self.GetText, "css=.tab-content h3")
 
     # Grab the root directory again - should produce an Interrogate flow.
-    sel.click("css=button[id^=refresh]")
+    self.Click("css=button[id^=refresh]")
 
     # Go to the flow management screen.
-    sel.click("css=a:contains('Manage launched flows')")
+    self.Click("css=a:contains('Manage launched flows')")
 
     # Check that GetFile is for the cat file.
-    self.WaitUntilEqual("GetFile", sel.get_text,
+    self.WaitUntilEqual("GetFile", self.GetText,
                         "//table/tbody/tr[2]/td[3]")
-    sel.click("//table/tbody/tr[2]/td[3]")
+    self.Click("//table/tbody/tr[2]/td[3]")
 
     self.WaitUntilContains(
         "cat",
-        sel.get_text, "css=table > tbody td.proto_value:contains(\"path\")")
+        self.GetText, "css=table > tbody td.proto_value:contains(\"path\")")
 
     # Check that the older event is Interrogate
     self.assertEqual("Interrogate",
-                     sel.get_text("//table/tbody/tr[1]/td[3]"))
+                     self.GetText("//table/tbody/tr[1]/td[3]"))

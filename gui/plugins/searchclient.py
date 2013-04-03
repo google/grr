@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2010 Google Inc. All Rights Reserved.
 
 """This plugin renders the client search page."""
 import re
@@ -132,28 +120,38 @@ class Navigator(renderers.TemplateRenderer):
    Searching for authorization...
   </div>
   {% else %}
-
-    {% if this.reason %}
-    <div class="ACL_reason">
+  {% if this.reason %}
+  <div class="ACL_reason">
      Access reason: {{this.reason|escape}}
-    </div>
-    {% endif %}
-    <div class="infoline" id="infoline_{{unique|escape}}">
-    </div>
+  </div>
+  {% endif %}
+  <div class="infoline" id="infoline_{{unique|escape}}"></div>
 
+  {% for renderer, name in this.host_headings %}
+   <li>
+     <a grrtarget="{{name|escape}}"
+        href="#c={{client_id|escape}}&main={{name|escape}}">
+       {{ renderer.description|escape }}</a>
+   </li>
+  {% endfor %}
 
-      {% for renderer, name in this.host_headings %}
-       <li>
-         <a grrtarget="{{name|escape}}"
-            href="#c={{client_id|escape}}&main={{name|escape}}">
-           {{ renderer.description|escape }}</a>
-       </li>
+  <li>
+    <a class="dropdown-toggle" data-toggle="collapse"
+      href="#HostAdvanced">Advanced <b class="caret"></b></a>
+  </li>
+  <div id="HostAdvanced" class="collapse out">
+    <ul class="nav nav-list">
+      {% for renderer, name in this.host_advanced_headings %}
+      <li>
+        <a tabindex="-1" grrtarget="{{name|escape}}"
+          href="#"> {{ renderer.description|escape }}</a>
+      </li>
       {% endfor %}
+    </ul>
+  </div>
 
   {% endif %}
 {% endfor %}
-
-
 
   {% for heading, data in this.general_headings.items %}
   <li class="nav-header">{{ data.0|escape }}</li>
@@ -164,11 +162,27 @@ class Navigator(renderers.TemplateRenderer):
        {{ renderer.description|escape }}</a>
    </li>
   {% endfor %}
+
+  {% if data.2 %}
+  <li>
+    <a class="dropdown-toggle" data-toggle="collapse"
+      href="#{{ data.0|escape }}Advanced">Advanced <b class="caret"></b></a>
+  </li>
+  <div id="{{ data.0|escape }}Advanced" class="collapse out">
+    <ul class="nav nav-list">
+      {% for renderer, name in data.2 %}
+      <li>
+        <a tabindex="-1" grrtarget="{{name|escape}}"
+          href="#"> {{ renderer.description|escape }}</a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
 {% endfor %}
   </ul>
 </div>
-
-
 
 </div>
 <script>
@@ -205,10 +219,11 @@ class Navigator(renderers.TemplateRenderer):
     """Manage content pane depending on passed in query parameter."""
     self.reason = request.REQ.get("reason", "")
 
+    self.host_advanced_headings = []
     self.host_headings = []
     self.general_headings = datastructures.SortedDict([
-        ("General", ("Management", [])),
-        ("Configuration", ("Configuration", []))
+        ("General", ("Management", [], [])),
+        ("Configuration", ("Configuration", [], []))
     ])
 
     # Introspect all the categories
@@ -221,8 +236,13 @@ class Navigator(renderers.TemplateRenderer):
       for behaviour in self.general_headings:
         if behaviour in cls.behaviours:
           self.general_headings[behaviour][1].append((cls, cls.__name__))
+        if behaviour + "Advanced" in cls.behaviours:
+          self.general_headings[behaviour][2].append((cls, cls.__name__))
+
       if "Host" in cls.behaviours:
         self.host_headings.append((cls, cls.__name__))
+      if "HostAdvanced" in cls.behaviours:
+        self.host_advanced_headings.append((cls, cls.__name__))
 
     # Sort the output so they are in order.
     for heading in self.general_headings:

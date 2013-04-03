@@ -125,7 +125,7 @@ class Lexer(object):
 
     # Check that we are making progress - if we are too full, we assume we are
     # stuck.
-    self.Error("Expected %s" % (self.state))
+    self.Error("Lexer stuck at state %s" % (self.state))
     self.processed_buffer += self.buffer[:1]
     self.buffer = self.buffer[1:]
     return "Error"

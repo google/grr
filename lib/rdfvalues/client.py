@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2012 Google Inc. All Rights Reserved.
 """AFF4 RDFValue implementations for client information.
 
 This module contains the RDFValue implementations used to communicate with the
@@ -455,11 +443,18 @@ class AFF4ObjectSummary(rdfvalue.RDFProto):
                  stat=rdfvalue.StatEntry)
 
 
-class EmptyTargetGrepspecType(type_info.RDFValueType):
-  """A Type for handling Grep specifications with a yet undefined target."""
+class ClientCrash(rdfvalue.RDFProto):
+  """Details of a client crash."""
+  _proto = jobs_pb2.ClientCrash
+
+  rdf_map = dict(client_info=ClientInformation,
+                 timestamp=rdfvalue.RDFDatetime)
+
+
+class NoTargetGrepspecType(type_info.RDFValueType):
+  """A Grep spec with no target."""
 
   child_descriptor = type_info.TypeDescriptorSet(
-      type_info.PathspecType(name="target"),
       type_info.String(
           description="Search for this regular expression.",
           name="regex",
@@ -504,11 +499,18 @@ class EmptyTargetGrepspecType(type_info.RDFValueType):
                     rdfclass=rdfvalue.GrepSpec)
 
     defaults.update(kwargs)
-    super(EmptyTargetGrepspecType, self).__init__(**defaults)
+    super(NoTargetGrepspecType, self).__init__(**defaults)
 
 
-class GrepspecType(EmptyTargetGrepspecType):
+class GrepspecType(NoTargetGrepspecType):
   """A Type for handling Grep specifications."""
+
+  child_descriptor = (
+      NoTargetGrepspecType.child_descriptor +
+      type_info.TypeDescriptorSet(
+          type_info.PathspecType(name="target")
+          )
+      )
 
   def Validate(self, value):
     if value.target.pathtype < 0:

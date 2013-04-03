@@ -9,6 +9,7 @@ import time
 import MySQLdb
 from MySQLdb import cursors
 
+from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
@@ -531,7 +532,7 @@ value_integer, value_binary) values (md5(%s), %s, %s, %s, %s, %s, %s, %s)"""
           self.security_manager.CheckAccess(token, [subject], "rq")
 
           result_set.Append(result)
-        except data_store.UnauthorizedAccess:
+        except access_control.UnauthorizedAccess:
           continue
 
       result_set.total_count = len(total_hits)

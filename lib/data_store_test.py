@@ -804,7 +804,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
     # Now create the image containing the blob.
     fd = aff4.FACTORY.Create("aff4:/C.1235/image", "HashImage",
                              token=self.token)
-    fd.Set(fd.Schema.CHUNKSIZE(512*1024))
+    fd.SetChunksize(512*1024)
     fd.Set(fd.Schema.STAT())
 
     fd.AddBlob(digest, len(data))

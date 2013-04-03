@@ -1,8 +1,8 @@
 <pkmkdoc spec="1.12">
   <properties>
-    <title>%(PackageMaker.Name)s</title>
-    <build>%(.dist_dir)s/%(Plist.Binary_Directory)s.pkg</build>
-    <organization>%(PackageMaker.Organization)s</organization>
+    <title>%(ClientBuildDarwin.package_maker_name)</title>
+    <build>%(ClientBuildDarwin.build_root_dir)/%(Client.name).pkg</build>
+    <organization>%(ClientBuildDarwin.package_maker_organization)</organization>
     <userSees ui="both"/>
     <min-target os="3"/>
     <domain system="true"/>
@@ -12,19 +12,19 @@
     <scripts></scripts>
   </distribution>
   <contents>
-    <choice title="binaries" id="choice%(Plist.Binary_Directory)s" starts_selected="true" starts_enabled="false" starts_hidden="false">
-      <pkgref id="%(PackageMaker.Organization)s.%(PackageMaker.Name|lower)s.%(Plist.Binary_Directory)s.pkg"/>
+    <choice title="binaries" id="choice%(ClientBuildDarwin.plist_binary_directory)" starts_selected="true" starts_enabled="false" starts_hidden="false">
+      <pkgref id="%(ClientBuildDarwin.package_maker_organization).%(ClientBuildDarwin.plist_binary_directory).%(PyInstaller.output_version_dir).pkg"/>
     </choice>
     <choice title="plist" id="choicecom" starts_selected="true" starts_enabled="false" starts_hidden="false">
-      <pkgref id="%(PackageMaker.Organization)s.%(PackageMaker.Name|lower)s.%(Plist.Label)s.pkg"/>
+      <pkgref id="%(ClientBuildDarwin.package_maker_organization).%(ClientBuildDarwin.plist_binary_directory).%(ClientBuildDarwin.package_maker_organization).%(ClientBuildDarwin.plist_binary_name).pkg"/>
     </choice>
   </contents>
   <resources bg-scale="none" bg-align="topleft">
     <locale lang="en"/>
   </resources>
   <flags/>
-  <item type="file">01%(Plist.Binary_Directory)s.xml</item>
-  <item type="file">02%(Plist.Label_Prefix)s.xml</item>
+  <item type="file">01%(ClientBuildDarwin.plist_binary_directory).xml</item>
+  <item type="file">02%(ClientBuildDarwin.plist_label_prefix).xml</item>
   <mod>properties.title</mod>
   <mod>properties.anywhereDomain</mod>
   <mod>properties.systemDomain</mod>

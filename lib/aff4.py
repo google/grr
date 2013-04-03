@@ -111,6 +111,9 @@ class Factory(object):
         timestamp=self.ParseAgeSpecification(age),
         token=token, limit=None).items():
 
+      # Ensure the values are sorted.
+      values.sort(key=lambda x: x[-1], reverse=True)
+
       key = self._MakeCacheInvariant(subject, token, age)
       self.cache.Put(key, values)
       result[subject] = values
@@ -151,7 +154,7 @@ class Factory(object):
         aff4index = self.Create(index_urn, "AFF4Index", mode="w", token=token)
         for attribute, value in index_data:
           aff4index.Add(urn, attribute, value)
-        aff4index.Flush()
+        aff4index.Close()
 
     self._UpdateChildIndex(urn, token)
 
@@ -234,7 +237,7 @@ class Factory(object):
                          self.ParseAgeSpecification(age))
 
   def Open(self, urn, required_type=None, mode="r", ignore_cache=False,
-           token=None, local_cache=None, age=NEWEST_TIME):
+           token=None, local_cache=None, age=NEWEST_TIME, follow_symlinks=True):
     """Opens the named object.
 
     This instantiates the object from the AFF4 data store.
@@ -264,6 +267,8 @@ class Factory(object):
       age: The age policy used to build this object. Should be one of
          NEWEST_TIME, ALL_TIMES or a time range given as a tuple (start, end) in
          microseconds since Jan 1st, 1970.
+
+      follow_symlinks: If object opened is a symlink, follow it.
 
     Returns:
       An AFF4Object instance.
@@ -295,7 +300,7 @@ class Factory(object):
 
     # Read the row from the table.
     result = AFF4Object(urn, mode=mode, token=token, local_cache=local_cache,
-                        age=age)
+                        age=age, follow_symlinks=follow_symlinks)
 
     # Get the correct type.
     aff4_type = result.Get(result.Schema.TYPE, default="AFF4Volume")
@@ -327,13 +332,94 @@ class Factory(object):
 
     cache = dict(self.GetAttributes(unique_urn, token=token, age=age))
 
+    symlinks = []
     for urn in urns:
       try:
         if urn in cache:
-          yield self.Open(urn, mode=mode, token=token, local_cache=cache,
-                          required_type=required_type, age=age)
+          obj = self.Open(urn, mode=mode, token=token, local_cache=cache,
+                          required_type=required_type, age=age,
+                          follow_symlinks=False)
+          target = obj.Get(obj.Schema.SYMLINK_TARGET)
+          if target is not None:
+            symlinks.append(target)
+          else:
+            yield obj
+
       except IOError:
         pass
+
+    if symlinks:
+      for obj in self.MultiOpen(symlinks, mode=mode, token=token,
+                                required_type=required_type, age=age):
+        yield obj
+
+  def OpenDiscreteVersions(self, urn, mode="r", ignore_cache=False, token=None,
+                           local_cache=None, age=ALL_TIMES,
+                           follow_symlinks=True):
+    """Returns all the versions of the object as AFF4 objects.
+
+    Args:
+      urn: The urn to open.
+      mode: The mode to open the file with.
+      ignore_cache: Forces a data store read.
+      token: The Security Token to use for opening this item.
+      local_cache: A dict containing a cache as returned by GetAttributes. If
+                   set, this bypasses the factory cache.
+
+      age: The age policy used to build this object. Should be one of
+         ALL_TIMES or a time range
+      follow_symlinks: If object opened is a symlink, follow it.
+
+    Yields:
+      An AFF4Object for each version.
+
+    Raises:
+      IOError: On bad open or wrong time range specified.
+
+    This iterates through versions of an object, returning the newest version
+    first, then each older version until the beginning of time.
+
+    Note that versions are defined by changes to the TYPE attribute, and this
+    takes the version between two TYPE attributes.
+    In many cases as a user you don't want this, as you want to be returned an
+    object with as many attributes as possible, instead of the subset of them
+    that were Set between these two times.
+    """
+    if age == NEWEST_TIME or len(age) == 1:
+      raise IOError("Bad age policy NEWEST_TIME for OpenDiscreteVersions.")
+    if len(age) == 2:
+      oldest_age = age[1]
+    else:
+      oldest_age = 0
+    aff4object = FACTORY.Open(urn, mode=mode, ignore_cache=ignore_cache,
+                              token=token, local_cache=local_cache, age=age,
+                              follow_symlinks=follow_symlinks)
+
+    # TYPE is always written last so we trust it to bound the version.
+    # Iterate from newest to oldest.
+    type_iter = aff4object.GetValuesForAttribute(aff4object.Schema.TYPE)
+    version_list = [(t.age, str(t)) for t in type_iter]
+    version_list.append((oldest_age, None))
+
+    for i in range(0, len(version_list)-1):
+      age_range = (version_list[i+1][0], version_list[i][0])
+      # Create a subset of attributes for use in the new object that represents
+      # this version.
+      clone_attrs = {}
+      for k, values in aff4object.synced_attributes.iteritems():
+        reduced_v = []
+        for v in values:
+          if v.age > age_range[0] and v.age <= age_range[1]:
+            reduced_v.append(v)
+        clone_attrs.setdefault(k, []).extend(reduced_v)
+
+      obj_cls = AFF4Object.classes[version_list[i][1]]
+      new_obj = obj_cls(urn, mode=mode, parent=aff4object.parent,
+                        clone=clone_attrs, token=token, age=age_range,
+                        local_cache=local_cache,
+                        follow_symlinks=follow_symlinks)
+      new_obj.Initialize()  # This is required to set local attributes.
+      yield new_obj
 
   def Stat(self, urns, token=None):
     """Returns metadata about all urns.
@@ -437,6 +523,9 @@ class Factory(object):
     logging.info("Removed %s objects", count)
     data_store.DB.DeleteSubject(fd.urn, token=token)
 
+    # Ensure this is removed from the cache as well.
+    self.Flush()
+
   def RDFValue(self, name):
     return rdfvalue.RDFValue.classes.get(name)
 
@@ -469,6 +558,37 @@ class Factory(object):
       first.new_attributes.setdefault(k, []).extend(v)
 
     return first
+
+  def MultiListChildren(self, urns, token=None, limit=None, age=NEWEST_TIME):
+    """Lists bunch of directories efficiently.
+
+    Args:
+      urns: List of urns to list children.
+      token: Security token.
+      limit: Max number of children to list (NOTE: this is per urn).
+      age: The age of the items to retrieve. Should be one of ALL_TIMES,
+           NEWEST_TIME or a range.
+
+    Returns:
+       A dict keyed by subjects, with values being a list of children urns of a
+       given subject.
+    """
+    index_prefix = "index:dir/"
+    result = {}
+    for subject, values in data_store.DB.MultiResolveRegex(
+        urns, index_prefix + ".+", token=token,
+        timestamp=Factory.ParseAgeSpecification(age),
+        limit=limit).iteritems():
+
+      subject_result = []
+      for predicate, _, timestamp in values:
+        urn = rdfvalue.RDFURN(subject).Add(predicate[len(index_prefix):])
+        urn.age = rdfvalue.RDFDatetime(timestamp)
+        subject_result.append(urn)
+
+      result[subject] = subject_result
+
+    return result
 
   def Flush(self):
     data_store.DB.Flush()
@@ -544,11 +664,11 @@ class Attribute(object):
       try:
         old_attribute = Attribute.PREDICATES[predicate]
         if old_attribute.attribute_type != attribute_type:
-          logging.error(
-              "Attribute %s defined with conflicting types (%s, %s)",
+          msg = "Attribute %s defined with conflicting types (%s, %s)" % (
               predicate, old_attribute.attribute_type.__class__.__name__,
               attribute_type.__class__.__name__)
-          raise RuntimeError
+          logging.error(msg)
+          raise RuntimeError(msg)
       except KeyError:
         pass
 
@@ -614,22 +734,31 @@ class Attribute(object):
 
   def GetValues(self, fd):
     """Return the values for this attribute as stored in an AFF4Object."""
-    results = []
-    for result in (fd.synced_attributes.get(self, []) +
-                   fd.new_attributes.get(self, [])):
-
-      # We need to interpolate sub fields in this protobuf.
+    result = False
+    for result in fd.new_attributes.get(self, []):
+      # We need to interpolate sub fields in this rdfvalue.
       if self.field_names:
-        results.extend(result.GetFields(self.field_names))
-      else:
-        results.append(result)
+        for x in result.GetFields(self.field_names):
+          yield x
 
-    if not results:
+      else:
+        yield result
+
+    for result in fd.synced_attributes.get(self, []):
+      result = result.ToRDFValue()
+
+      # We need to interpolate sub fields in this rdfvalue.
+      if self.field_names:
+        for x in result.GetFields(self.field_names):
+          yield x
+
+      else:
+        yield result
+
+    if not result:
       default = self.GetDefault(fd)
       if default is not None:
-        results.append(default)
-
-    return results
+        yield default
 
   def GetDefault(self, fd=None, default=None):
     """Returns a default attribute if it is not set."""
@@ -670,6 +799,30 @@ class ClassInstantiator(property):
 
   def __get__(self, _, owner):
     return self.fget()
+
+
+class LazyDecoder(object):
+  """An object which delays serialize and unserialize as late as possible.
+
+  The current implementation requires the proxied object to be immutable.
+  """
+
+  def __init__(self, rdfvalue_cls=None, serialized=None, age=None,
+               decoded=None):
+    self.rdfvalue_cls = rdfvalue_cls
+    self.serialized = serialized
+    self.age = age
+    self.decoded = decoded
+
+  def ToRDFValue(self):
+    if self.decoded is None:
+      self.decoded = self.rdfvalue_cls(initializer=self.serialized,
+                                       age=self.age)
+
+    return self.decoded
+
+  def FromRDFValue(self):
+    return self.serialized
 
 
 class AFF4Object(object):
@@ -762,7 +915,7 @@ class AFF4Object(object):
     return self.SchemaCls()
 
   def __init__(self, urn, mode="r", parent=None, clone=None, token=None,
-               local_cache=None, age=NEWEST_TIME):
+               local_cache=None, age=NEWEST_TIME, follow_symlinks=True):
     if urn is not None:
       urn = rdfvalue.RDFURN(urn)
     self.urn = urn
@@ -770,6 +923,7 @@ class AFF4Object(object):
     self.parent = parent
     self.token = token
     self.age_policy = age
+    self.follow_symlinks = follow_symlinks
 
     # This flag will be set whenever a versioned attribute is changed.
     self._new_version = False
@@ -782,18 +936,21 @@ class AFF4Object(object):
     # are new attributes which still need to be flushed to the data_store. When
     # this object is instantiated we populate self.synced_attributes with the
     # data_store, while the finish method flushes new changes.
-    if isinstance(clone, dict):
-      # Just use these as the attributes - do not go to the data store. This is
-      # a quick way of creating an object with data which was already fetched.
-      self.new_attributes = {}
-      self.synced_attributes = clone
+    if clone is not None:
+      if isinstance(clone, dict):
+        # Just use these as the attributes, do not go to the data store. This is
+        # a quick way of creating an object with data which was already fetched.
+        self.new_attributes = {}
+        self.synced_attributes = clone
 
-    elif isinstance(clone, AFF4Object):
-      # We were given another object to clone - we do not need to access the
-      # data_store now.
-      self.new_attributes = clone.new_attributes.copy()
-      self.synced_attributes = clone.synced_attributes.copy()
+      elif isinstance(clone, AFF4Object):
+        # We were given another object to clone - we do not need to access the
+        # data_store now.
+        self.new_attributes = clone.new_attributes.copy()
+        self.synced_attributes = clone.synced_attributes.copy()
 
+      else:
+        raise RuntimeError("Cannot clone from %s." % clone)
     else:
       self.new_attributes = {}
       self.synced_attributes = {}
@@ -812,7 +969,6 @@ class AFF4Object(object):
             for attribute_name, value, ts in values:
               self.DecodeValueFromAttribute(attribute_name, value, ts)
 
-    # We do not initialize when we need to clone from another object.
     if clone is None:
       self.Initialize()
 
@@ -838,10 +994,10 @@ class AFF4Object(object):
        ts: The timestamp of this attribute.
     """
     try:
-      # Get the Attribute object from our schema
+      # Get the Attribute object from our schema.
       attribute = Attribute.PREDICATES[attribute_name]
       cls = attribute.attribute_type
-      self._AddAttributeToCache(attribute, cls(initializer=value, age=ts),
+      self._AddAttributeToCache(attribute, LazyDecoder(cls, value, ts),
                                 self.synced_attributes)
     except KeyError:
       if not attribute_name.startswith("index:"):
@@ -855,7 +1011,34 @@ class AFF4Object(object):
     cache.setdefault(attribute_name, []).append(value)
 
   def Flush(self, sync=True):
-    """Syncs this object with the data store."""
+    """Syncs this object with the data store, maintaining object validity."""
+    self._WriteAttributes(sync=sync)
+    self._SyncAttributes()
+
+    if self.parent:
+      self.parent.Flush(sync=sync)
+
+  def Close(self, sync=True):
+    """Close and destroy the object.
+
+    This is similar to Flush, but does not maintain object validity. Hence the
+    object should not be interacted with after Close().
+
+    Args:
+       sync: Write the attributes synchronously to the data store.
+    """
+    self._WriteAttributes(sync=sync)
+
+    if self.parent:
+      self.parent.Close(sync=sync)
+
+    # Interacting with a closed object is a bug. We need to catch this ASAP so
+    # we remove all mode permissions from this object.
+    self.mode = ""
+
+  def _WriteAttributes(self, sync=True):
+    """Write the dirty attributes to the data store."""
+
     # If the object is not opened for writing we do not need to flush it to the
     # data_store.
     if "w" not in self.mode:
@@ -883,22 +1066,28 @@ class AFF4Object(object):
       # Write the attributes to the Factory cache.
       FACTORY.SetAttributes(self.urn, to_set, self._to_delete, sync=sync,
                             token=self.token)
-      # Notify factory that the object got updated.
+
+      # Notify the factory that this object got updated.
       FACTORY.NotifyWriteObject(self)
 
+  def _SyncAttributes(self):
+    """Sync the new attributes to the synced attribute cache.
+
+    This maintains object validity.
+    """
     # This effectively moves all the values from the new_attributes to the
     # _attributes caches.
     for attribute_name, value_array in self.new_attributes.iteritems():
-      self.synced_attributes.setdefault(attribute_name, []).extend(value_array)
+      synced_value_array = self.synced_attributes.setdefault(attribute_name, [])
+      for value in value_array:
+        synced_value_array.append(LazyDecoder(decoded=value, age=value.age))
+
+      synced_value_array.sort(key=lambda x: x.age, reverse=True)
 
     self.new_attributes = {}
     self._to_delete.clear()
     self._dirty = False
     self._new_version = False
-
-    # Recurse back to all our parents and flush them
-    if self.parent:
-      self.parent.Flush(sync=sync)
 
   def _CheckAttribute(self, attribute, value):
     """Check that the value is of the expected type.
@@ -921,31 +1110,9 @@ class AFF4Object(object):
   def Set(self, attribute, value=None):
     """Set an attribute on this object.
 
-    If the attribute is already set, it is cleared first. If value is None,
-    attribute is expected to be already initialized with a value. For example:
-
-    fd.Set(fd.Schema.CONTAINS("some data"))
-
-    Args:
-       attribute: The attribute name.
-       value: The value the attribute will be set to.
-
-    Raises:
-       IOError: If this object is read only.
+    Set() is now a synonym for AddAttribute() since attributes are never
+    deleted.
     """
-    if "w" not in self.mode:
-      raise IOError("Writing attribute %s to read only object." % attribute)
-
-    # Support an alternate calling style
-    if value is None:
-      value = attribute
-      attribute = value.attribute_instance
-
-    # Does this represent a new version?
-    if attribute.versioned:
-      self._new_version = True
-
-    self._CheckAttribute(attribute, value)
     self.AddAttribute(attribute, value)
 
   def AddAttribute(self, attribute, value=None):
@@ -1034,16 +1201,11 @@ class AFF4Object(object):
       raise IOError(
           "Fetching %s from object not opened for reading." % attribute)
 
-    result = list(self.GetValuesForAttribute(attribute, only_one=True))
-    if not result:
-      return attribute.GetDefault(self, default)
+    for result in self.GetValuesForAttribute(attribute, only_one=True):
+      result.attribute_instance = attribute
+      return result
 
-    # Get latest result
-    result.sort(key=lambda x: x.age)
-    result = result[-1]
-    result.attribute_instance = attribute
-
-    return result
+    return attribute.GetDefault(self, default)
 
   def GetValuesForAttribute(self, attribute, only_one=False):
     """Returns a list of values from this attribute."""
@@ -1060,12 +1222,7 @@ class AFF4Object(object):
 
     return attribute.GetValues(self)
 
-  def Close(self, sync=True):
-    """Close and destroy the object."""
-    # Sync the attributes
-    self.Flush(sync=sync)
-
-  def Update(self, attribute=None, user=None):
+  def Update(self, attribute=None, user=None, priority=None):
     """Requests the object refresh an attribute from the Schema."""
 
   def Upgrade(self, aff4_class):
@@ -1121,7 +1278,8 @@ class AFF4Object(object):
 
     # Instantiate the class
     result = cls(self.urn, mode=self.mode, clone=self, parent=self.parent,
-                 token=self.token, age=self.age_policy)
+                 token=self.token, age=self.age_policy,
+                 follow_symlinks=self.follow_symlinks)
     result.Initialize()
     # pylint: disable=protected-access
     result._dirty = True
@@ -1377,9 +1535,9 @@ class AFF4Symlink(AFF4Object):
                                "The target of this link.")
 
   def __new__(cls, urn, mode="r", clone=None, token=None, local_cache=None,
-              age=NEWEST_TIME, parent=None):
+              age=NEWEST_TIME, parent=None, follow_symlinks=True):
     # When first created, the symlink object is exposed.
-    if mode == "w":
+    if mode == "w" or not follow_symlinks:
       return super(AFF4Symlink, cls).__new__(
           cls, urn, mode=mode, clone=clone, token=token, parent=parent,
           local_cache=local_cache, age=age)
@@ -1525,6 +1683,14 @@ class AFF4MemoryStream(AFF4Stream):
   def Seek(self, offset, whence=0):
     self.fd.seek(offset, whence)
 
+  def Flush(self, sync=True):
+    if self.dirty:
+      compressed_content = zlib.compress(self.fd.getvalue())
+      self.Set(self.Schema.CONTENT(compressed_content))
+      self.Set(self.Schema.SIZE(self.size))
+
+    super(AFF4MemoryStream, self).Flush(sync=sync)
+
   def Close(self, sync=True):
     if self.dirty:
       compressed_content = zlib.compress(self.fd.getvalue())
@@ -1551,9 +1717,13 @@ class AFF4Image(AFF4Stream):
   NUM_RETRIES = 10
   CHUNK_ID_TEMPLATE = "%010X"
 
+  # This is the chunk size of each chunk. The chunksize can not be changed once
+  # the object is created.
+  chunksize = 64 * 1024
+
   class SchemaCls(AFF4Stream.SchemaCls):
-    CHUNKSIZE = Attribute("aff4:chunksize", rdfvalue.RDFInteger,
-                          "Total size of each chunk.", default=64*1024)
+    _CHUNKSIZE = Attribute("aff4:chunksize", rdfvalue.RDFInteger,
+                           "Total size of each chunk.", default=64*1024)
 
   def Initialize(self):
     """Build a cache for our chunks."""
@@ -1565,9 +1735,14 @@ class AFF4Image(AFF4Stream):
 
     if "r" in self.mode:
       self.size = int(self.Get(self.Schema.SIZE))
+      self.chunksize = int(self.Get(self.Schema._CHUNKSIZE))
     else:
       self.size = 0
-      self.Set(self.Schema.CHUNKSIZE.GetDefault())
+
+  def SetChunksize(self, chunksize):
+    self.Set(self.Schema._CHUNKSIZE(chunksize))
+    self.chunksize = int(chunksize)
+    self.Truncate(0)
 
   def Seek(self, offset, whence=0):
     # This stream does not support random writing in "w" mode. When the stream
@@ -1589,11 +1764,8 @@ class AFF4Image(AFF4Stream):
   def Tell(self):
     return self.offset
 
-  def Truncate(self, offset=None):
+  def Truncate(self, offset=0):
     self._dirty = True
-    if offset is None:
-      offset = self.offset
-
     self.size = offset
     self.offset = offset
     self.chunk_cache.Flush()
@@ -1639,11 +1811,10 @@ class AFF4Image(AFF4Stream):
 
   def _ReadPartial(self, length):
     """Read as much as possible, but not more than length."""
-    chunksize = int(self.Get(self.Schema.CHUNKSIZE))
-    chunk = self.offset / chunksize
-    chunk_offset = self.offset % chunksize
+    chunk = self.offset / self.chunksize
+    chunk_offset = self.offset % self.chunksize
 
-    available_to_read = min(length, chunksize - chunk_offset)
+    available_to_read = min(length, self.chunksize - chunk_offset)
 
     retries = 0
     while retries < self.NUM_RETRIES:
@@ -1685,12 +1856,11 @@ class AFF4Image(AFF4Stream):
     return result
 
   def _WritePartial(self, data):
-    chunksize = int(self.Get(self.Schema.CHUNKSIZE))
-    chunk = self.offset / chunksize
-    chunk_offset = self.offset % chunksize
+    chunk = self.offset / self.chunksize
+    chunk_offset = self.offset % self.chunksize
     data = utils.SmartStr(data)
 
-    available_to_write = min(len(data), chunksize - chunk_offset)
+    available_to_write = min(len(data), self.chunksize - chunk_offset)
 
     fd = self._GetChunkForWriting(chunk)
     fd.Seek(chunk_offset)
@@ -1710,33 +1880,31 @@ class AFF4Image(AFF4Stream):
     self.size = max(self.size, self.offset)
 
   def Flush(self, sync=True):
-    """This method is called to sync our data into storage.
-
-    We must flush all the chunks in the chunk cache, but we leave the one chunk
-    we still have at the moment, so that subsequent writes can add data to it.
-
-    Args:
-      sync: Should flushing be synchronous.
-    """
-    fd = None
+    """Sync the chunk cache to storage."""
     if self._dirty:
-      chunksize = int(self.Get(self.Schema.CHUNKSIZE))
-      chunk = self.offset / chunksize
+      chunk_id = self.offset / self.chunksize
+      chunk_name = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_id)
 
-      cache_key = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk)
-      try:
-        fd = self.chunk_cache[cache_key]
-      except KeyError:
-        pass
+      current_chunk = self.chunk_cache.Pop(chunk_name)
 
-      # Flush the cache
+      # Flushing the cache will call Close() on all the chunks. We hold on to
+      # the current chunk to ensure it does not get closed.
       self.chunk_cache.Flush()
+      if current_chunk:
+        current_chunk.Flush(sync=sync)
+        self.chunk_cache.Put(chunk_name, current_chunk)
+
       self.Set(self.Schema.SIZE(self.size))
 
     super(AFF4Image, self).Flush(sync=sync)
 
-    if fd:
-      self.chunk_cache.Put(cache_key, fd)
+  def Close(self, sync=True):
+    """This method is called to sync our data into storage.
+
+    Args:
+      sync: Should flushing be synchronous.
+    """
+    self.Flush(sync=sync)
 
 
 class AFF4NotificationRule(AFF4Object):

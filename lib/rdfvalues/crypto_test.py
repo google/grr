@@ -45,7 +45,7 @@ class SignedBlobTest(test_base.RDFValueTestCase):
 
     # If we change the digest verification should fail.
     sample = self.GenerateSample()
-    sample.digest_type = 555
+    sample.digest_type = sample.Enum("MD5")
 
     self.assertRaises(rdfvalue.DecodeError, sample.Verify, self.public_key)
 

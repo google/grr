@@ -42,6 +42,9 @@ class TypeInfoObject(object):
 
   __metaclass__ = registry.MetaclassRegistry
 
+  # The delegate type this TypeInfoObject manages.
+  _type = None
+
   def __init__(self, name="", default=None, description="", friendly_name="",
                hidden=False, help=""):
     """Build a TypeInfo type descriptor.
@@ -69,9 +72,14 @@ class TypeInfoObject(object):
     # because this happens before any configuration is loaded (i.e. at
     # import time). Hence default values which depend on the config
     # system cant be tested. We just assume that the default value is
-    # sensible.
+    # sensible since its hard coded in the code.
+
+  def GetType(self):
+    """Returns the type class described by this type info."""
+    return self._type
 
   def GetDefault(self):
+    """Return the default value for this TypeInfoObject."""
     return self.default
 
   def Validate(self, value):
@@ -121,7 +129,7 @@ class RDFValueType(TypeInfoObject):
       **kwargs: Passthrough to base class.
     """
     super(RDFValueType, self).__init__(**kwargs)
-    self.rdfclass = rdfclass
+    self._type = self.rdfclass = rdfclass
 
   def GetDefault(self):
     if self.default is None:
@@ -162,18 +170,12 @@ class RDFValueType(TypeInfoObject):
     return self.rdfclass(string)
 
 
-# TODO(user): Deprecate this.
-class Any(TypeInfoObject):
-  """Any type. No checks are performed."""
-
-  def Validate(self, value):
-    return value
-
-
 class Bool(TypeInfoObject):
   """A True or False value."""
 
   renderer = "BoolFormRenderer"
+
+  _type = bool
 
   def Validate(self, value):
     if value not in [True, False]:
@@ -213,6 +215,8 @@ class RDFEnum(TypeInfoObject):
 class List(TypeInfoObject):
   """A list type. Turns another type into a list of those types."""
 
+  _type = list
+
   def __init__(self, validator=None, **kwargs):
     self.validator = validator
     super(List, self).__init__(**kwargs)
@@ -224,6 +228,7 @@ class List(TypeInfoObject):
 
     elif not isinstance(value, (list, tuple)):
       raise TypeValueError("%s not a valid List" % utils.SmartStr(value))
+
     else:
       for val in value:
         # Validate each value in the list validates against our type.
@@ -248,6 +253,8 @@ class String(TypeInfoObject):
 
   renderer = "StringFormRenderer"
 
+  _type = unicode
+
   def __init__(self, **kwargs):
     defaults = dict(default="")
     defaults.update(kwargs)
@@ -256,11 +263,19 @@ class String(TypeInfoObject):
   def Validate(self, value):
     if not isinstance(value, basestring):
       raise TypeValueError("%s not a valid string" % value)
-    return value
+
+    # A String means a unicode String. We must be dealing with unicode strings
+    # here and the input must be encodable as a unicode object.
+    try:
+      return unicode(value)
+    except UnicodeError:
+      raise TypeValueError("Not a valid unicode string")
 
 
 class Bytes(String):
   """A Bytes type."""
+
+  _type = str
 
 
 class NotEmptyString(String):
@@ -310,6 +325,8 @@ class Integer(TypeInfoObject):
   """An Integer number type."""
   renderer = "StringFormRenderer"
 
+  _type = long
+
   def Validate(self, value):
     if not isinstance(value, (int, long)):
       raise TypeValueError("Invalid value %s for Integer" % value)
@@ -324,6 +341,9 @@ class Integer(TypeInfoObject):
 
 
 class Float(Integer):
+
+  _type = float
+
   def Validate(self, value):
     if not isinstance(value, (float, int, long)):
       raise TypeValueError("Invalid value %s for Float" % value)
@@ -412,6 +432,9 @@ class TypeDescriptorSet(object):
   def __getitem__(self, item):
     return self.descriptor_map[item]
 
+  def __contains__(self, item):
+    return item in self.descriptor_map
+
   def get(self, item):  # pylint: disable=g-bad-name
     return self.descriptor_map.get(item)
 
@@ -445,8 +468,9 @@ class TypeDescriptorSet(object):
 
   def Append(self, desc):
     """Append the descriptor to this set."""
-    self.descriptors.append(desc)
-    self.descriptor_map[desc.name] = desc
+    if desc not in self.descriptors:
+      self.descriptors.append(desc)
+      self.descriptor_map[desc.name] = desc
 
   def HasDescriptor(self, descriptor_name):
     """Checks wheter this set has an element with the given name."""
@@ -550,3 +574,11 @@ class FilterString(String):
     except (lexer.ParseError, objectfilter.ParseError), e:
       raise TypeValueError("Malformed filter %s: %s" % (self.name, e))
     return query
+
+
+# TODO(user): Deprecate this.
+class Any(TypeInfoObject):
+  """Any type. No checks are performed."""
+
+  def Validate(self, value):
+    return value

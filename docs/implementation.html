@@ -1720,7 +1720,7 @@ used.</p></div>
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
-<pre><tt>token <span style="color: #990000">=</span> data_store<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ACLToken</span></span><span style="color: #990000">()</span>
+<pre><tt>token <span style="color: #990000">=</span> access_control<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ACLToken</span></span><span style="color: #990000">()</span>
 fd <span style="color: #990000">=</span> aff4<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Open</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"aff4:/C.12345/"</span><span style="color: #990000">,</span> token<span style="color: #990000">=</span>token<span style="color: #990000">)</span></tt></pre></div></div>
 </div>
 </div>
@@ -1877,6 +1877,29 @@ sel<span style="color: #990000">.</span><span style="font-weight: bold"><span st
 through.</p></div>
 </div>
 </div>
+<div class="sect2">
+<h3 id="_debugging_client_actions">Debugging Client Actions</h3>
+<div class="paragraph"><p>Client actions can be run manually without a flow by using the console. The
+following example shows using the ExecutePython client action without a flow.</p></div>
+<div class="listingblock">
+<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>client_id <span style="color: #990000">=</span> <span style="color: #FF0000">"C.XXXXXXXXXXX"</span>
+token <span style="color: #990000">=</span> access_control<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ACLToken</span></span><span style="color: #990000">()</span>
+fd <span style="color: #990000">=</span> aff4<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Open</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"aff4:/config/python_hacks/myfile.py"</span><span style="color: #990000">)</span>
+request <span style="color: #990000">=</span> rdfvalue<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ExecutePythonRequest</span></span><span style="color: #990000">(</span>python_code<span style="color: #990000">=</span>fd<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Read</span></span><span style="color: #990000">(</span><span style="color: #993399">100000</span><span style="color: #990000">))</span>
+<span style="font-weight: bold"><span style="color: #000000">StartFlowAndWorker</span></span><span style="color: #990000">(</span>client_id<span style="color: #990000">,</span> <span style="color: #FF0000">"ClientAction"</span><span style="color: #990000">,</span> action<span style="color: #990000">=</span><span style="color: #FF0000">"ExecutePython"</span><span style="color: #990000">,</span>
+    args<span style="color: #990000">=</span>request<span style="color: #990000">,</span> break_pdb<span style="color: #990000">=</span>False<span style="color: #990000">,</span> save_to<span style="color: #990000">=</span><span style="color: #FF0000">"/tmp/grrdebug"</span><span style="color: #990000">)</span></tt></pre></div></div>
+<div class="paragraph"><p>A few points about the above code:
+- This runs a worker on a separate queue called DEBUG which means production
+  workers won&#8217;t attempt to process them.
+- StartFlowAndWorker will create the flow, send the requests to the client, and
+  start a worker to process the returned results.
+- break_pdb and save_to are special args to the ClientAction flow to help you
+  debug interactively.</p></div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -1957,7 +1980,7 @@ capabilities)
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-02-28 18:38:58 CET
+Last updated 2013-04-03 16:23:41 CEST
 </div>
 </div>
 </body>

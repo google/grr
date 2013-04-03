@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 """Tests for the ThreadPool class."""
 
 
@@ -27,12 +15,12 @@ from grr.lib import test_lib
 from grr.lib import threadpool
 
 
-class ThreadPoolTest(mox.MoxTestBase):
+class ThreadPoolTest(test_lib.GRRBaseTest):
   """Tests for the ThreadPool class."""
 
   def setUp(self):
     super(ThreadPoolTest, self).setUp()
-
+    self.mox = mox.Mox()
     self.base_thread_count = threading.active_count()
 
     prefix = "pool-%s" % self._testMethodName
@@ -41,6 +29,9 @@ class ThreadPoolTest(mox.MoxTestBase):
 
   def tearDown(self):
     self.test_pool.Stop()
+    self.mox.UnsetStubs()
+    self.mox.VerifyAll()
+    super(ThreadPoolTest, self).tearDown()
 
   def Count(self, thread_name):
     worker_threads = [thread for thread in threading.enumerate()

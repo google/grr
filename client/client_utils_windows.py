@@ -1,43 +1,22 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# Copyright 2011 Google Inc. All Rights Reserved.
 """Windows specific utils."""
 
 
 import ctypes
 import exceptions
 import logging
-import os
 import re
 import time
 import _winreg
 import pywintypes
 import win32file
-import win32service
-import win32serviceutil
-import winerror
 
 from google.protobuf import message
 
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import utils
-
-config_lib.DEFINE_list(
-    name="Client.proxy_servers",
-    help="List of valid proxy servers the client should try.",
-    default=[])
 
 config_lib.DEFINE_string("NannyWindows.service_key_hive", "HKEY_LOCAL_MACHINE",
                          help="The hive which carries the service key.")
@@ -198,65 +177,6 @@ def WinGetRawDevice(path):
                                 mount_point=mount_point.rstrip("\\"))
 
   return result, corrected_path
-
-
-def InstallDriver(driver_path, service_name, driver_display_name):
-  """Loads a driver and start it."""
-  hscm = win32service.OpenSCManager(None, None,
-                                    win32service.SC_MANAGER_ALL_ACCESS)
-  try:
-    win32service.CreateService(hscm,
-                               service_name,
-                               driver_display_name,
-                               win32service.SERVICE_ALL_ACCESS,
-                               win32service.SERVICE_KERNEL_DRIVER,
-                               win32service.SERVICE_DEMAND_START,
-                               win32service.SERVICE_ERROR_IGNORE,
-                               driver_path,
-                               None,  # No load ordering
-                               0,     # No Tag identifier
-                               None,  # Service deps
-                               None,  # User name
-                               None)  # Password
-    win32serviceutil.StartService(service_name)
-  except pywintypes.error as e:
-    # The following errors are expected:
-    if e[0] not in [winerror.ERROR_SERVICE_EXISTS,
-                    winerror.ERROR_SERVICE_MARKED_FOR_DELETE]:
-      raise RuntimeError("StartService failure: {0}".format(e))
-
-
-def UninstallDriver(driver_path, service_name, delete_file=False):
-  """Unloads the driver and delete the driver file.
-
-  Args:
-    driver_path: Full path name to the driver file.
-    service_name: Name of the service the driver is loaded as.
-    delete_file: Should we delete the driver file after removing the service.
-
-  Raises:
-    OSError: On failure to uninstall or delete.
-  """
-
-  try:
-    win32serviceutil.StopService(service_name)
-  except pywintypes.error as e:
-    if e[0] not in [winerror.ERROR_SERVICE_NOT_ACTIVE,
-                    winerror.ERROR_SERVICE_DOES_NOT_EXIST]:
-      raise OSError("Could not stop service: {0}".format(e))
-
-  try:
-    win32serviceutil.RemoveService(service_name)
-  except pywintypes.error as e:
-    if e[0] != winerror.ERROR_SERVICE_DOES_NOT_EXIST:
-      raise OSError("Could not remove service: {0}".format(e))
-
-  if delete_file:
-    try:
-      if os.path.exists(driver_path):
-        os.remove(driver_path)
-    except (OSError, IOError) as e:
-      raise OSError("Driver deletion failed: " + str(e))
 
 
 class NannyController(object):

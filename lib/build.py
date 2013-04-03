@@ -7,13 +7,17 @@ handling Visual Studio, pyinstaller and other packaging mechanisms.
 import cStringIO
 import logging
 import os
+import re
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
 import zipfile
 
 from grr.lib import config_lib
+from grr.lib import maintenance_utils
+from grr.lib import rdfvalue
 from grr.lib import type_info
 
 
@@ -42,6 +46,10 @@ config_lib.DEFINE_option(PathTypeInfo(
     default="c:/build/pyinstaller/pyinstaller.py",
     help="Path to the main pyinstaller.py file."))
 
+config_lib.DEFINE_bool(
+    "PyInstaller.console", default=True,
+    help="Should the application be built as a console program.")
+
 config_lib.DEFINE_option(PathTypeInfo(
     name="PyInstaller.support_path", must_exist=True,
     default="%(ClientBuilder.source)/grr/config/pyinstaller/client",
@@ -67,7 +75,7 @@ exe = EXE\(
     debug=False,
     strip=False,
     upx=True,
-    console=True,
+    console=%(PyInstaller.console),
     version='%(PyInstaller.build_dir)/version.txt',
     icon='%(PyInstaller.build_dir)/grr.ico'\)
 
@@ -175,13 +183,25 @@ config_lib.DEFINE_string(
     default="%(Client.name)_%(Client.version_string)_%(ClientBuilder.arch).exe",
     help="The filename to write the deployable binary.")
 
+config_lib.DEFINE_list(
+    name="ClientBuilder.installer_plugins",
+    default=[],
+    help="Plugins that will copied to the client installation file and run "
+    "at install time.")
+
+config_lib.DEFINE_list(
+    name="ClientBuilder.plugins",
+    default=[],
+    help="Plugins that will copied to the client installation file and run when"
+    "the client is running.")
+
 
 class ClientBuilder(object):
   """Abstract client builder class, used by the OS specific implementations."""
 
   COMPONENT_NAME = "ClientBuilder"
 
-  CONFIG_SECTIONS = ["CA", "Client", "Nanny", "Logging", "ClientBuilder"]
+  CONFIG_SECTIONS = ["CA", "Client", "Logging"]
 
   def __init__(self):
     config_lib.CONFIG.ExecuteSection(self.COMPONENT_NAME)
@@ -286,6 +306,14 @@ class ClientBuilder(object):
         "ClientBuilder.autorun_command_line"]
 
     # Add any additional plugins to the deployment binary.
+    plugins = (config_lib.CONFIG["ClientBuilder.plugins"] +
+               config_lib.CONFIG["ClientBuilder.installer_plugins"])
+
+    for plugin in plugins:
+      z.writestr(os.path.basename(plugin),
+                 open(plugin, "rb").read(), zipfile.ZIP_STORED)
+
+    # Add any additional plugins to the deployment binary.
     for plugin in config_lib.CONFIG["ClientBuilder.plugins"]:
       z.writestr(os.path.basename(plugin),
                  open(plugin, "rb").read(), zipfile.ZIP_STORED)
@@ -297,13 +325,34 @@ class ClientBuilder(object):
 
     with open(output, "wb") as fd:
       # First write the installer stub
-      stub_data = open(
-          config_lib.CONFIG["ClientBuilder.unzipsfx_stub"], "rb").read()
+      stub_data = cStringIO.StringIO()
+      stub_data.write(open(
+          config_lib.CONFIG["ClientBuilder.unzipsfx_stub"], "rb").read())
 
-      fd.write(stub_data)
+      # Now patch up the .rsrc section to contain the payload.
+      end_of_file = zip_data.tell() + stub_data.tell()
+
+      # This is the IMAGE_SECTION_HEADER.Name which is also the start of
+      # IMAGE_SECTION_HEADER.
+      offset_to_rsrc = stub_data.getvalue().find(".rsrc")
+
+      # IMAGE_SECTION_HEADER.PointerToRawData is a 32 bit int.
+      stub_data.seek(offset_to_rsrc + 20)
+      start_of_rsrc_section = struct.unpack("<I", stub_data.read(4))[0]
+
+      # Adjust IMAGE_SECTION_HEADER.SizeOfRawData to span from the old start to
+      # the end of file.
+      stub_data.seek(offset_to_rsrc + 16)
+      stub_data.write(struct.pack("<I", end_of_file - start_of_rsrc_section))
+
+      # Now write the file out. Stub data first.
+      fd.write(stub_data.getvalue())
 
       # Then append the payload zip file.
       fd.write(zip_data.getvalue())
+
+    logging.info("Deployable binary generated at %s", output)
+    return output
 
   def GetClientConfig(self):
     """Generates the client config file for inclusion in deployable binaries."""
@@ -312,6 +361,12 @@ class ClientBuilder(object):
 
     new_config = config_lib.GrrConfigManager()
     new_config.Initialize(new_config_filename)
+
+    config_lib.CONFIG.Set("Client.build_time", str(rdfvalue.RDFDatetime()))
+    config_lib.CONFIG.Set("Client.installer_plugins",
+                          config_lib.CONFIG["ClientBuilder.installer_plugins"])
+    config_lib.CONFIG.Set("Client.plugins",
+                          config_lib.CONFIG["ClientBuilder.plugins"])
 
     # Only copy certain sections to the client.
     for section, data in config_lib.CONFIG.raw_data.items():
@@ -350,7 +405,7 @@ class WindowsClientBuilder(ClientBuilder):
 
   # Additional sections to be copied to the windows client configuration file.
   CONFIG_SECTIONS = (ClientBuilder.CONFIG_SECTIONS +
-                     ["NannyWindows", "ClientBuildWindows"])
+                     ["NannyWindows", "ClientBuilder", "ClientBuildWindows"])
 
   def BuildNanny(self):
     """Use VS2010 to build the windows Nanny service."""
@@ -405,115 +460,190 @@ class WindowsClientBuilder(ClientBuilder):
     self.MakeZip(self.output_dir, output_file)
 
 
-# TODO(user): Make this work again
 class DarwinClientBuilder(ClientBuilder):
   """Builder class for the Mac OS X (Darwin) client."""
 
-  def __init__(self, source, build_files_dir, build_dir, build_time,
-               pyinstaller, config, architecture, packagemaker):
-    """Initialize the Mac OS X client builder.
+  COMPONENT_NAME = "ClientBuildDarwin"
 
-    Args:
-      source: the path to the source directory.
-      build_files_dir: the (root) directory that contains the (input) build
-                       file.
-      build_dir: the build (root) directory.
-      build_time: string containing the build time.
-      pyinstaller: the location of the pyinstaller.py script.
-      config: the configuration (config_lib.ConfigManager).
-      architecture: string containing the architecture to build for,
-                    e.g. i386 or amd64.
-      packagemaker: string containing the location of the PackageMaker
-                    executable.
+  # Only these sections will be copied to the deployable binary.
+  CONFIG_SECTIONS = (ClientBuilder.CONFIG_SECTIONS +
+                     ["ClientDarwin", "Nanny"])
+
+  def __init__(self):
+    """Initialize the Mac OS X client builder."""
+    super(DarwinClientBuilder, self).__init__()
+    self.build_dir = config_lib.CONFIG["ClientBuildDarwin.build_dest_dir"]
+    self.src_dir = config_lib.CONFIG["ClientBuildDarwin.build_src_dir"]
+
+  def GenerateFile(self, input_filename=None, output_filename=None):
+    """Generates a file from a template, interpolating config values."""
+    if input_filename is None:
+      input_filename = output_filename + ".in"
+    data = open(input_filename, "rb").read()
+    print "Generating file %s from %s" % (output_filename, input_filename)
+
+    with open(output_filename, "wb") as fd:
+      fd.write(config_lib.CONFIG.InterpolateValue(data))
+
+  def MakeExecutableTemplate(self):
+    """Create the executable template.
+
+    This technique allows the client build to be carried out once on the
+    supported platform (e.g. windows with MSVS), but the deployable installer
+    can be build on any platform which supports python.
     """
-    super(DarwinClientBuilder, self).__init__(
-        source, build_files_dir, build_dir, build_time, pyinstaller, config,
-        architecture)
-
-    self.installers = os.path.join(
-        self.conf["Temp.source"], "executables", "macosx", "templates",
-        "packagemaker")
-
-    self.packagemaker = packagemaker
-
-  def BuildInstallerLaunchDaemonsPlist(self):
-    """Builds a LaunchDaemons plist."""
-    build_files_dir = os.path.join(self.build_files_dir, "macosx", "client")
-
-    plist_file = os.path.join(build_files_dir, "grr.plist")
-    self.GenerateFile(plist_file)
-    plist_dest = "%(ClientBuildDarwin.plist_filename)s" % self.conf
-    shutil.copy(plist_file, os.path.join(self.conf["Temp.dist_dir"],
-                                         plist_dest))
+    self.MakeBuildDirectory()
+    self.BuildWithPyInstaller()
+    self.BuildInstallerPkg()
+    self.BuildInstallerDmg()
 
   # WARNING: change with care since the PackageMaker files are fragile!
-  def BuildInstallerPkg(self, package_dir, output_dir):
+  def BuildInstallerPkg(self):
     """Builds a package (.pkg) using PackageMaker."""
-    build_files_dir = os.path.join(self.build_files_dir, "macosx", "client")
-
+    build_files_dir = os.path.join(self.src_dir, "config", "macosx", "client")
     pmdoc_dir = os.path.join(build_files_dir, "grr.pmdoc")
 
-    self.GenerateFile(os.path.join(pmdoc_dir, "index.xml"))
-    self.GenerateFile(os.path.join(pmdoc_dir, "01grr.xml"))
-    self.GenerateFile(os.path.join(pmdoc_dir, "02com.xml"))
+    plist_dir = config_lib.CONFIG["ClientBuildDarwin.plist_binary_directory"]
+    plist_name = config_lib.CONFIG["ClientBuildDarwin.plist_filename"]
 
-    self.GenerateFile(os.path.join(build_files_dir, "preinstall.sh"))
-    self.GenerateFile(os.path.join(build_files_dir, "postinstall.sh"))
+    out_build_files_dir = build_files_dir.replace(self.src_dir, self.build_dir)
+    out_pmdoc_dir = os.path.join(self.build_dir, "%s.pmdoc" % plist_dir)
 
-    filename = os.path.join(pmdoc_dir,
-                            "01%(ClientBuildDarwin.plist_binary_directory)s.xml"
-                            % self.conf)
-    if not os.path.exists(filename):
-      shutil.copy(os.path.join(pmdoc_dir, "01grr.xml"), filename)
+    self.EnsureDirExists(out_build_files_dir)
+    self.EnsureDirExists(out_pmdoc_dir)
+    self.EnsureDirExists(config_lib.CONFIG["ClientBuildDarwin.package_dir"])
 
-    filename = os.path.join(
-        pmdoc_dir, "01%(ClientBuildDarwin.plist_binary_directory)s-contents.xml"
-        % self.conf)
-    if not os.path.exists(filename):
-      shutil.copy(os.path.join(pmdoc_dir, "01grr-contents.xml"), filename)
+    self.GenerateFile(
+        input_filename=os.path.join(build_files_dir, "grr.plist.in"),
+        output_filename=os.path.join(self.build_dir, plist_name))
+    self.GenerateFile(
+        input_filename=os.path.join(pmdoc_dir, "index.xml.in"),
+        output_filename=os.path.join(out_pmdoc_dir, "index.xml"))
+    self.GenerateFile(
+        input_filename=os.path.join(pmdoc_dir, "01grr.xml.in"),
+        output_filename=os.path.join(out_pmdoc_dir, "01%s.xml" % plist_dir))
+    self.GenerateFile(
+        input_filename=os.path.join(pmdoc_dir, "01grr-contents.xml"),
+        output_filename=os.path.join(out_pmdoc_dir,
+                                     "01%s-contents.xml" % plist_dir))
+    self.GenerateFile(
+        input_filename=os.path.join(pmdoc_dir, "02com.xml.in"),
+        output_filename=os.path.join(out_pmdoc_dir, "02com.xml"))
+    self.GenerateFile(
+        input_filename=os.path.join(pmdoc_dir, "02com-contents.xml"),
+        output_filename=os.path.join(out_pmdoc_dir, "02com-contents.xml"))
 
-    filename = os.path.join(
-        pmdoc_dir, "02%(ClientBuildDarwin.plist_label_prefix)s.xml" % self.conf)
-    if not os.path.exists(filename):
-      shutil.copy(os.path.join(pmdoc_dir, "02com.xml"), filename)
+    self.GenerateFile(
+        input_filename=os.path.join(build_files_dir, "preinstall.sh.in"),
+        output_filename=os.path.join(self.build_dir, "preinstall.sh"))
+    self.GenerateFile(
+        input_filename=os.path.join(build_files_dir, "postinstall.sh.in"),
+        output_filename=os.path.join(self.build_dir, "postinstall.sh"))
 
-    filename = os.path.join(
-        pmdoc_dir, "02%(ClientBuildDarwin.plist_label_prefix)s-contents.xml"
-        % self.conf)
-    if not os.path.exists(filename):
-      shutil.copy(os.path.join(pmdoc_dir, "02com-contents.xml"), filename)
+    # Generate a config file.
+    with open(os.path.join(
+        config_lib.CONFIG["PyInstaller.build_dir"],
+        config_lib.CONFIG["PyInstaller.output_basename"],
+        config_lib.CONFIG["PyInstaller.config_name"]), "wb") as fd:
+      fd.write(self.GetClientConfig())
 
     print "Fixing file ownership and permissions"
-    command_prefix = "sudo chown -R root:wheel"
-
-    # Change the owner and group of the launctl plist
-    command = "%s %s" % (command_prefix, os.path.join(
-        self.conf["Temp.dist_dir"], "%(ClientBuildDarwin.plist_filename)s"
-        % self.conf))
-    print "Running: %s" %(command)
-    subprocess.call(command, shell=True)
+    command = ["sudo", "chown", "-R", "root:wheel", self.build_dir]
 
     # Change the owner, group and permissions of the binaries
-    command = "%s %s" % (command_prefix, output_dir)
-    print "Running: %s" %(command)
-    subprocess.call(command, shell=True)
+    print "Running: %s" % " ".join(command)
+    subprocess.call(command)
 
-    command_prefix = "sudo chmod -R 755"
+    command = ["sudo", "chmod", "-R", "755", self.build_dir]
 
-    command = "%s %s" % (command_prefix, output_dir)
-    print "Running: %s" %(command)
-    subprocess.call(command, shell=True)
+    print "Running: %s" % " ".join(command)
+    subprocess.call(command)
 
-    print "Creating: %(ClientBuildDarwin.packagemaker_name)s.pkg" % self.conf
-    # Need shell=True here
-    subprocess.call(
-        "%s --doc %s --out %s" % (self.packagemaker, pmdoc_dir, package_dir),
-        shell=True)
+    pkg = "%s-%s.pkg" % (
+        config_lib.CONFIG["ClientBuildDarwin.package_maker_name"],
+        config_lib.CONFIG["Client.version_string"])
 
-  def BuildInstallerDmg(self, disk_image_path, package_dir):
+    command = [
+        config_lib.CONFIG["ClientBuildDarwin.package_maker_path"],
+        "--doc", out_pmdoc_dir, "--out",
+        os.path.join(config_lib.CONFIG["ClientBuildDarwin.package_dir"], pkg)]
+    subprocess.call(command)
+
+  def BuildInstallerDmg(self):
     """Builds a disk image (.dmg) using hdiutil."""
-    print "Creating: %(ClientBuildDarwin.packagemaker_name)s.dmg" % (self.conf)
-    # Need shell=True here
-    subprocess.call(
-        "hdiutil create %s -srcfolder %s -fs HFS+" % (
-            disk_image_path, package_dir), shell=True)
+    dmgfile = ("%s-%s.dmg" %
+               (config_lib.CONFIG["ClientBuildDarwin.package_maker_name"],
+                config_lib.CONFIG["Client.version_string"]))
+    print "Creating: %s" % (dmgfile)
+    command = ["hdiutil", "create", dmgfile, "-srcfolder",
+               config_lib.CONFIG["ClientBuildDarwin.package_dir"],
+               "-fs", "HFS+"]
+    subprocess.call(command)
+
+
+def GetTemplateVersions(executables_dir="./executables"):
+  """Yields a list of templates based on filename regex.
+
+  Args:
+    executables_dir: Directory containing template directory structure.
+
+  Yields:
+    Tuples of template_path, platform, name, version, arch
+  """
+  template_re = re.compile("^(?P<name>.*)_(?P<version>.*)_"
+                           r"(?P<arch>amd64|i386)\.(zip|dmg)$")
+  for plat in maintenance_utils.SUPPORTED_PLATFORMS:
+    tmpl_dir = os.path.join(executables_dir, plat.lower())
+    for dirpath, _, filenames in os.walk(tmpl_dir):
+      for filename in filenames:
+        full_path = os.path.join(dirpath, filename)
+        tmatch = template_re.match(filename)
+        if tmatch:
+          name, version, arch, _ = tmatch.groups()
+          yield (full_path, plat, name, version, arch)
+
+
+def RepackAllBinaries(executables_dir="./executables"):
+  """Repack binaries based on the configuration.
+
+  Args:
+    executables_dir: Base directory where templates are kept.
+
+  Returns:
+    A list of tuples containing (output_file, platform, architecture)
+  """
+  built = []
+  for dat in GetTemplateVersions(executables_dir):
+    tmpl_path, plat, name, version, arch = dat
+    print "\n## Repacking %s %s %s %s client" % (name, plat, arch, version)
+
+    # Setup the config for the build.
+    config_lib.CONFIG.Set("ClientBuilder.platform", plat)
+    config_lib.CONFIG.Set("ClientBuilder.arch", arch)
+    config_lib.CONFIG.Set("ClientBuilder.template_path", tmpl_path)
+    filename = os.path.basename(tmpl_path)
+
+    plat = plat.title()
+    if plat == "Windows":
+      builder = WindowsClientBuilder()
+      final_filename = os.path.splitext(filename)[0] + ".exe"   # s/zip/exe
+    elif plat == "Darwin":
+      # TODO(user): Fix this once we are ready.
+      print "Skipping. Not implemented yet."
+      continue
+      builder = DarwinClientBuilder()
+      final_filename = os.path.splitext(filename)[0] + ".dmg"  # s/zip/dmg
+    else:
+      logging.error("No currently supported builder for platform %s", plat)
+      continue
+
+    installer_path = os.path.join(executables_dir, plat.lower(), "installers")
+    if not os.path.exists(installer_path):
+      os.makedirs(installer_path)
+    installer_path = os.path.join(installer_path, final_filename)
+
+    out = builder.MakeDeployableBinary(installer_path)
+    built.append((out, plat, arch))
+    print "Packed to %s" % out
+
+  return built

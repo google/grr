@@ -1,16 +1,4 @@
-/* Copyright 2011 Google Inc.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+/* Copyright 2011 Google Inc. All Rights Reserved.
 */
 
 /**
@@ -441,61 +429,6 @@ grr.refresh = function(domId, opt_state) {
 grr.table = {};
 
 /**
- * Sync the header widths with the table content widths.
- *
- * @param {Object} jtable - a jquery object of the table.
- */
-grr.table.setHeaderWidths = function(jtable) {
-  // Account for the scrollbar.
-  var our_width = jtable.innerWidth();
-  var remaining_width = our_width;
-  var header_widths = (jtable.attr('header_widths') || '').split(',');
-  var th_elements = jtable.find('th');
-  var actual_widths = [];
-
-  th_elements.each(function(i) {
-    // Set the width as requested, or as an even proportion of the width.
-    var ratio = $(this).attr('header_width');
-    var width;
-
-    if (!ratio) {
-      width = remaining_width / (th_elements.length - i);
-    } else {
-      width = ratio * our_width / 100;
-    }
-
-    actual_widths.push(width);
-    remaining_width -= width;
-  });
-
-  // Set the width of each td element in all the following rows the same as the
-  // headers.
-  th_elements.each(function(i) {
-    $(this).width(actual_widths[i]);
-  });
-
-  th_elements.each(function(i) {
-    actual_widths[i] = $(this).width();
-  });
-
-  jtable.children('table').children('tbody').children('tr').each(function() {
-    $(this).children('td').each(function(i) {
-      $(this).width(actual_widths[i] || 0);
-    });
-  });
-
-  jtable.find('tbody tr:first').children('td').each(function(i) {
-    if (!$(this).hasClass('table_loading')) {
-      actual_widths[i] = $(this).width();
-    }
-  });
-
-  jtable.find('thead tr th').each(function(i) {
-    $(this).width(actual_widths[i]);
-  });
-};
-
-/**
  * Adjust the alternate colored rows in the table.
  *
  * @param {Object} jtable is a jqueried table node.
@@ -581,10 +514,14 @@ grr.table.scrollHandler = function(renderer, tbody, opt_state) {
   var value = loading.attr('data');
   var depth = loading.attr('depth');
 
-  if ($('.table_loading', tbody).size() == 1) {
-    loading_offset = $('.table_loading', tbody).offset();
+  $('.table_loading', tbody).each(function() {
+    loading_offset = $(this).offset();
     elem = document.elementFromPoint(loading_offset.left, loading_offset.top);
     if ($(elem).hasClass('table_loading')) {
+      // Prevent scrollHandler from being called again for this "Loading..."
+      // row.
+      $(elem).removeClass('table_loading');
+
       var previous_row_id = (tbody.find('tr[row_id]').last().attr('row_id') ||
           -1);
       var next_row = parseInt(previous_row_id) + 1;
@@ -629,7 +566,7 @@ grr.table.scrollHandler = function(renderer, tbody, opt_state) {
           tbody.scroll();
         }, loading_id + previous_row_id);
     }
-  }
+  });
 };
 
 /**
@@ -715,6 +652,26 @@ grr.table.newTable = function(renderer, domId, unique, opt_state) {
       grr.publish('select_' + domId, node);
     }
     event.stopPropagation();
+  });
+
+  $('#' + unique).on('refresh', function() {
+    var selected_row = $('tr.row_selected', me).first();
+    var selected_row_id = selected_row.attr('row_id');
+
+    var tbody = $('tbody', me).first();
+    var tbody_id = tbody.attr('id');
+    grr.update(renderer, tbody_id, null, function(data) { /* on_success */
+      $('#' + tbody_id, me).html(data);
+
+      // If we can select previously selected row, select it.
+      // Otherwise - select the first one.
+      $('tr[row_id=' + selected_row_id + ']', me).each(function() {
+        $(this).click();
+      });
+      if ($('tr.selected', me).length == 0) {
+        $('tr', me).first().click();
+      }
+    });
   });
 
   // Add search buttons for columns.
@@ -1053,7 +1010,7 @@ grr.parseHashState = function() {
  * Install the navigation actions on all items in the navigator.
  */
 grr.installNavigationActions = function() {
-  $('#navigator li a').each(function() {
+  $('#navigator li a[grrtarget]').each(function() {
   var renderer = $(this).attr('grrtarget');
 
   $(this).click(function() {
@@ -1462,36 +1419,6 @@ grr.textview.TextViewer = function(renderer, domId, default_codec, state) {
 grr.inFlightQueue = {};
 
 /**
- * Builds a version selector UI into a node.
- * @param {Object} node is a JQuery DOM node for an icon in the table.
- */
-grr.versionSelector = function(node) {
-  var dialog = $('<div id="version-dialog">');
-  var table_state = node.parents('table[aff4_path]');
-  var aff4_path = node.parents('tr').find('span[aff4_path]').attr('aff4_path');
-  var state = $.extend({
-    aff4_path: aff4_path
-  }, grr.state);
-
-  dialog.dialog({
-    width: $('html').width() * 0.7,
-    height: $('html').height() * 0.7,
-    modal: true,
-    close: function() {
-        $('#version-dialog').remove();
-    },
-    buttons: {
-      Ok: function() {
-        $(this).dialog('close');
-      }
-    }
-  });
-
-  grr.layout('VersionSelectorDialog', 'version-dialog', state);
-};
-
-
-/**
  * Add onclick and onchange handlers to an input form field to handle the None
  * or Auto automatic value. This is used in the Start new flows UI.
  * @param {Object} node The node to apply the handlers to.
@@ -1581,7 +1508,8 @@ grr.downloadHandler = function(clickNode, state, safe_extension, url, target) {
   if (target == null) {
     target = '_blank';
   }
-  var tmpform = $('<form target="' + target + '" />').appendTo(clickNode);
+  var tmpform = $('<form class="hide" target="' +
+    target + '" />').appendTo(clickNode);
   tmpform.attr({action: url, method: 'post'});
   $.each(state, function(key, val) {
     $('<input type=hidden />').attr({name: key, value: val}).appendTo(tmpform);

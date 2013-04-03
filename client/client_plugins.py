@@ -10,18 +10,17 @@ modules that have been customized for your deployment.
 """
 import sys
 
-# pylint: disable=W0611
-from grr.client import client_actions
-from grr.client import comms
-from grr.client import local
-from grr.client import vfs_handlers
-from grr.lib import log
-from grr.lib import rdfvalues
-
-# pylint: disable=g-import-not-at-top
+# pylint: disable=g-import-not-at-top,unused-import
 # Load the os specific modules.
 if sys.platform == "win32":
   from grr.client import windows
 
 elif sys.platform == "darwin":
   from grr.client import osx
+
+from grr.client import client_actions
+from grr.client import comms
+from grr.client import local
+from grr.client import vfs_handlers
+from grr.lib import log
+from grr.lib import rdfvalues
