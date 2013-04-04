@@ -1099,6 +1099,102 @@ Ensure the database server is using strong passwords and is well protected.
 </li>
 </ul></div>
 </div>
+<div class="sect2">
+<h3 id="_managing_the_datastore">Managing the Datastore</h3>
+<div class="paragraph"><p>GRR currently ships with two usable datastores, MongoDB and MySQL, and an extra
+in memory only test datastore FakeDataStore.</p></div>
+<div class="paragraph"><p>By default GRR will use the MongoDataStore and expect to find it on localhost.
+You can configure it in the config file, e.g.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>[MongoDataStore]
+server = mongodb.host.example.com
+port = 27017
+db_name = grr</tt></pre>
+</div></div>
+<div class="paragraph"><p>We also provide a useful script [scripts/database_reset.sh] to drop the Mongo
+database which is handy while testing things.</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_performance">Performance</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>GRR is designed to scale linearly, which it mostly does. It has been run in test
+environments wtih with greater than 100,000 clients reporting and hunting
+without problems. However, this depends significantly on the datastore
+implementation, how it is being run, and the hardware it is running on.</p></div>
+<div class="paragraph"><p>As of April 2013, we don&#8217;t have a clear set of metrics on performance in the
+main release, however there is work being done to create these.</p></div>
+<div class="sect2">
+<h3 id="_deployment_performance_factors">Deployment Performance Factors</h3>
+<div class="paragraph"><p>The key issue with performance generally relates to how the server is deployed.</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+If you are running from the prepackaged release you are likely running the
+  grr_server.py binary. This binary runs all components in a single process,
+  which means you are using a single core and it will perform badly. We do this
+  to make life easy for first time users. In production you need to run each
+  component separately (see /etc/init/grr*) in its own process (this will also
+  help with more intelligent logging).
+</p>
+</li>
+<li>
+<p>
+Additionally, you will probably want to run more than one worker. In a large
+  deployment where you are running numerous hunts it makes sense to run 20+
+  workers. As long as the datastore scales, the more workers you have the faster
+  things get done. Each worker will use 1 core maximum, so running up multiple
+  on the same box can make sense.
+</p>
+</li>
+<li>
+<p>
+Also, the frontend http server can be a significant bottleneck. By default we
+  ship with a simple http server, but this is single process, written in python
+  which means it may have thread lock issues. To get better performance you will
+  need to run the http server with the wsgi_server in the tools directory from
+  inside a faster web server such as Apache. See section below for how.
+</p>
+</li>
+<li>
+<p>
+As well as having a better performing http server, if you are moving a lot of
+  traffic you probably want to run multiple http servers. Again, assuming your
+  datastore handles it, these should scale linearly.
+</p>
+</li>
+<li>
+<p>
+The admin UI and enroller components should have less load on them, depending
+  on your use case, but you can run as many as you want for redundancy.
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect2">
+<h3 id="_datastore_performance">Datastore Performance</h3>
+<div class="paragraph"><p>If you are not CPU bound on the individual components (workers, http server)
+then the key performance differentiator will be the datastore. At the moment
+we ship with a Mysql and a Mongo datastore.</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+The Mongo datastore is currently unoptimized (Mar 2013). This means there are
+  a number of hotspots causing performance issues. It is worth noting that the
+  primary developers work with a proprietary datastore so Mongo performance has
+  not been made a high priority up until recently. Patches welcome :)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect2">
+<h3 id="_running_the_grr_http_server_in_apache">Running the GRR HTTP Server In Apache</h3>
+<div class="paragraph"><p>TBD. User contributions welcome.
+Using the wsgi hasn&#8217;t been thoroughly tested. If you test, please send feedback
+to the dev list and we can try and fix things.</p></div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -1331,7 +1427,7 @@ the --dest_path option.</p></div>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-04-03 16:23:41 CEST
+Last updated 2013-04-04 14:18:08 CEST
 </div>
 </div>
 </body>

@@ -89,7 +89,7 @@ function run_cmd_confirm()
 header "Updating APT and Installing dependencies"
 run_cmd_confirm sudo apt-get --yes update;
 run_cmd_confirm sudo apt-get --yes upgrade;
-run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil python-matplotlib hfsprogs;
+run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil python-matplotlib hfsprogs python-mox python-yaml python-pip;
 
 
 header "Getting the right version of M2Crypto installed"
@@ -113,9 +113,13 @@ PSUTIL_VERSION=`dpkg-query -W python-psutil | cut -f 2`
 if [[ "$PSUTIL_VERSION" == 0.5* ]]; then
   echo "Unsupported psutil version ${PSUTIL_VERSION}. Upgrading with pip."
   run_cmd_confirm sudo apt-get --yes remove python-psutil;
-  run_cmd_confirm sudo apt-get --yes --force-yes install python-pip build-essential python-dev;
+  run_cmd_confirm sudo apt-get --yes --force-yes install build-essential python-dev;
   run_cmd_confirm sudo easy_install psutil;
 fi
+
+header "Installing Selenium test framework for Tests"
+run_cmd_confirm sudo easy_install selenium
+
 
 header "Checking Django version is > 1.4 and fixing up"
 # We need 1.4, 12.04 ships with 1.3

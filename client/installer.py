@@ -25,7 +25,7 @@ flags.DEFINE_bool("install", False,
                   "Specify this to install the client.")
 
 config_lib.DEFINE_string(
-    name="ClientBuilder.logfile",
+    name="Installer.logfile",
     default="%(Logging.path)/%(Client.name)_installer.txt",
     help=("A specific log file which is used for logging the "
           "installation process."))
@@ -113,7 +113,7 @@ class InstallerInit(registry.InitHook):
       sys.exit(0)
 
 
-config_lib.DEFINE_list("Client.installer_plugins", [],
+config_lib.DEFINE_list("Installer.plugins", [],
                        "Plugins that will be loaded during installation.")
 
 

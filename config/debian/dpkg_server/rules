@@ -35,6 +35,9 @@ override_dh_installinit:
 	mkdir -p debian/grr-server/usr/share/grr/executables/linux/installers/
 	mkdir -p debian/grr-server/usr/share/grr/executables/darwin/installers/
 	mkdir -p debian/grr-server/usr/share/grr/executables/windows/installers/
+	mkdir -p debian/grr-server/usr/share/grr/executables/linux/config/
+	mkdir -p debian/grr-server/usr/share/grr/executables/darwin/config/
+	mkdir -p debian/grr-server/usr/share/grr/executables/windows/config/
 	mkdir -p debian/grr-server/usr/share/grr/executables/windows/templates/unzipsfx/
 	# mkdir -p debian/grr-server/usr/share/grr/executables/windows/templates/i386/$(shell cd executables/windows/templates/i386 && ls -d ?.?.?.?)
 	mkdir -p debian/grr-server/usr/share/grr/executables/windows/templates/amd64/$(shell cd executables/windows/templates/amd64 && ls -d ?.?.?.?)

@@ -68,6 +68,12 @@ class RDFURNTest(test_base.RDFValueTestCase):
     self.assertEqual(url._urn.netloc, "www.google.com")
     self.assertEqual(url._urn.scheme, "http")
 
+    # Test that we can handle urns with a '?' and do not interpret them as
+    # a delimiter between url and parameter list.
+    str_url = "aff4:/C.0000000000000000/fs/os/c/regex.*?]&[+{}--"
+    url = rdfvalue.RDFURN(str_url, age=1)
+    self.assertEqual(url.Path(), str_url[5:])
+
 
 class RDFDatetimeTest(test_base.RDFValueTestCase):
   rdfvalue_class = rdfvalue.RDFDatetime

@@ -158,6 +158,13 @@ config_lib.DEFINE_option(type_info.PathTypeInfo(
         "%(Client.name)_%(Client.version_string)_%(ClientBuilder.arch).zip"),
     help="The full path to the executable template zip file."))
 
+config_lib.DEFINE_option(type_info.PathTypeInfo(
+    name="ClientBuilder.generated_config_path", must_exist=False,
+    default=(
+        "%(ClientBuilder.source)/grr/executables/%(ClientBuilder.platform)"
+        "/config/%(Client.name)_%(Client.version_string)_"
+        "%(ClientBuilder.arch).conf"),
+    help="The full path to where we write a generated config."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.unzipsfx_stub", must_exist=True,
@@ -363,8 +370,12 @@ class ClientBuilder(object):
     new_config.Initialize(new_config_filename)
 
     config_lib.CONFIG.Set("Client.build_time", str(rdfvalue.RDFDatetime()))
-    config_lib.CONFIG.Set("Client.installer_plugins",
+
+    # Copy relevant parameters into the associated client sections.
+    config_lib.CONFIG.Set("Installer.plugins",
                           config_lib.CONFIG["ClientBuilder.installer_plugins"])
+    config_lib.CONFIG.Set("Installer.logfile",
+                          config_lib.CONFIG["ClientBuilder.installer_logfile"])
     config_lib.CONFIG.Set("Client.plugins",
                           config_lib.CONFIG["ClientBuilder.plugins"])
 
@@ -382,7 +393,13 @@ class ClientBuilder(object):
         return fd.read()
 
     finally:
-      os.unlink(new_config_filename)
+      config_path = config_lib.CONFIG["ClientBuilder.generated_config_path"]
+      if config_path:
+        if not os.path.exists(os.path.dirname(config_path)):
+          os.makedirs(os.path.dirname(config_path))
+        os.rename(new_config_filename, config_path)
+      else:
+        os.unlink(new_config_filename)
 
   def MakeZip(self, input_dir, output_file):
     """Creates a ZIP archive of the files in the input directory.

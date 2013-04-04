@@ -711,6 +711,7 @@ class MockClient(object):
   def Next(self):
     # Grab tasks for us from the queue.
     request_tasks = scheduler.SCHEDULER.QueryAndOwn(self.client_id, limit=1,
+                                                    lease_seconds=10000,
                                                     token=self.token)
 
     for task in request_tasks:

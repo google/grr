@@ -266,6 +266,84 @@ FullAccessControlManager.
 - Ensure the database server is using strong passwords and is well protected.
 
 
+Managing the Datastore
+~~~~~~~~~~~~~~~~~~~~~~
+GRR currently ships with two usable datastores, MongoDB and MySQL, and an extra
+in memory only test datastore FakeDataStore.
+
+By default GRR will use the MongoDataStore and expect to find it on localhost.
+You can configure it in the config file, e.g. 
+
+-----------------------------------------
+[MongoDataStore]
+server = mongodb.host.example.com
+port = 27017
+db_name = grr
+-----------------------------------------
+
+We also provide a useful script [scripts/database_reset.sh] to drop the Mongo
+database which is handy while testing things.
+
+
+Performance
+-----------
+
+GRR is designed to scale linearly, which it mostly does. It has been run in test
+environments wtih with greater than 100,000 clients reporting and hunting
+without problems. However, this depends significantly on the datastore
+implementation, how it is being run, and the hardware it is running on. 
+
+As of April 2013, we don't have a clear set of metrics on performance in the
+main release, however there is work being done to create these. 
+
+Deployment Performance Factors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The key issue with performance generally relates to how the server is deployed. 
+
+- If you are running from the prepackaged release you are likely running the
+  grr_server.py binary. This binary runs all components in a single process,
+  which means you are using a single core and it will perform badly. We do this
+  to make life easy for first time users. In production you need to run each
+  component separately (see /etc/init/grr*) in its own process (this will also
+  help with more intelligent logging).
+- Additionally, you will probably want to run more than one worker. In a large
+  deployment where you are running numerous hunts it makes sense to run 20+
+  workers. As long as the datastore scales, the more workers you have the faster
+  things get done. Each worker will use 1 core maximum, so running up multiple
+  on the same box can make sense.
+- Also, the frontend http server can be a significant bottleneck. By default we
+  ship with a simple http server, but this is single process, written in python
+  which means it may have thread lock issues. To get better performance you will
+  need to run the http server with the wsgi_server in the tools directory from
+  inside a faster web server such as Apache. See section below for how.
+- As well as having a better performing http server, if you are moving a lot of
+  traffic you probably want to run multiple http servers. Again, assuming your
+  datastore handles it, these should scale linearly.
+- The admin UI and enroller components should have less load on them, depending
+  on your use case, but you can run as many as you want for redundancy. 
+
+
+Datastore Performance
+~~~~~~~~~~~~~~~~~~~~~
+
+If you are not CPU bound on the individual components (workers, http server)
+then the key performance differentiator will be the datastore. At the moment
+we ship with a Mysql and a Mongo datastore.
+
+- The Mongo datastore is currently unoptimized (Mar 2013). This means there are
+  a number of hotspots causing performance issues. It is worth noting that the
+  primary developers work with a proprietary datastore so Mongo performance has
+  not been made a high priority up until recently. Patches welcome :)
+
+
+Running the GRR HTTP Server In Apache
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+TBD. User contributions welcome.
+Using the wsgi hasn't been thoroughly tested. If you test, please send feedback
+to the dev list and we can try and fix things.
+
+
 Scheduling Flows with Cron
 --------------------------
 The cron allows for scheduling actions to run regularly on the GRR server.
@@ -277,6 +355,8 @@ to run.
 
 The jobs that run are defined by CronJob classes, these are currently defined
 in lib/aff4_objects/cronjobs.py
+
+
 
 
 Customizing the client

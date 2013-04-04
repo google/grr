@@ -865,6 +865,20 @@ are tested to different levels of rigour, but generally new functionality
 should not go in without a test.
 
 === Running the Tests ===
+To run the tests there are a few dependencies you'll need to make sure are
+sorted.
+
+Testing the admin interface requires the webdriver/selenium framework.
+First you need to install the framework and chrome driver, we recommend using:
+------------------------------------------------------------------
+apt-get install python-pip    # if you don't have it already
+sudo pip install selenium
+sudo apt-get install libnss3 chromium-browser   # dependency of chromedriver
+wget https://chromedriver.googlecode.com/files/chromedriver_linux64_26.0.1383.0.zip
+unzip chromedriver*
+sudo mv chromedriver /usr/bin/
+------------------------------------------------------------------
+
 Use the run_tests.py script to run the unit tests.
 
 ------------------------------------------------------------------
@@ -895,33 +909,11 @@ joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/run_tests.py TestAdministrativeFl
 
 === Testing the UI. ===
 
-Testing the admin interface requires the selenium framework.
-
-First you need to download selenium from http://seleniumhq.org/download/.
-This will come in a jar file which you can run in one window.
-
 Note: If you are doing this on a remote machine over SSH you need to make
 sure your X display is forwarded for Selenium, it will spawn a Firefox window
 during the tests.
 
-------------------------------------------------------------------
-$ java -jar selenium-server-standalone-2.5.0.jar
-Aug 30, 2012 4:02:21 PM org.openqa.grid.selenium.GridLauncher main
-INFO: Launching a standalone server
-16:02:22.093 INFO - Java: Sun Microsystems Inc. 19.0-b09
-16:02:22.094 INFO - OS: Linux 2.6.38.8-gg868 i386
-16:02:22.130 INFO - v2.5.0, with Core v2.5.0. Built from revision 13516
-16:02:22.348 INFO - RemoteWebDriver instances should connect to: http://127.0.0.1:4444/wd/hub
-16:02:22.349 INFO - Version Jetty/5.1.x
-16:02:22.350 INFO - Started HttpContext[/selenium-server/driver,/selenium-server/driver]
-16:02:22.350 INFO - Started HttpContext[/selenium-server,/selenium-server]
-16:02:22.351 INFO - Started HttpContext[/,/]
-16:02:22.375 INFO - Started org.openqa.jetty.jetty.servlet.ServletHandler@ef2c60
-16:02:22.376 INFO - Started HttpContext[/wd,/wd]
-16:02:22.379 INFO - Started SocketListener on 0.0.0.0:4444
-------------------------------------------------------------------
-
-Then run the run_tests.py script
+Then run the runtests_test.py script
 
 ------------------------------------------------------------------
 joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/gui/runtests_test.py

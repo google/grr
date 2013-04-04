@@ -26,6 +26,7 @@ from grr.client import conf
 from grr.client import conf as flags
 
 from grr.gui import admin_ui
+from grr.lib import config_lib
 from grr.lib import registry
 from grr.lib import server_plugins  # pylint: disable=W0611
 from grr.tools import http_server
@@ -50,6 +51,7 @@ def main(argv):
   """Sets up all the component in their own threads."""
 
   # Get everything initialized.
+  config_lib.CONFIG.SetEnv("Environment.component", "SingleServer")
   registry.Init()
 
   # If no start preferences were provided start everything
