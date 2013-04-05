@@ -461,6 +461,10 @@ class GrrConfigManager(object):
     """Write out the updated configuration to the fd."""
     self.parser.SaveData(self.raw_data)
 
+  def WriteToFD(self, fd):
+    """Write out the updated configuration to the fd."""
+    self.parser.SaveDataToFD(self.raw_data, fd)
+
   def _GetSectionName(self, name):
     """Break the name into section and key."""
     try:
@@ -491,7 +495,7 @@ class GrrConfigManager(object):
       print descriptor.Help()
       print "* Value = %s\n" % self[descriptor.name]
 
-  def _MergeData(self, raw_data):
+  def MergeData(self, raw_data):
     for section, data in raw_data.items():
       section_dict = self.raw_data.setdefault(
           section, collections.OrderedDict())
@@ -534,7 +538,7 @@ class GrrConfigManager(object):
     parser = parser_cls(filename=url)
     logging.info("Loading configuration from %s", url)
 
-    self._MergeData(parser.RawData())
+    self.MergeData(parser.RawData())
 
     return parser
 
@@ -573,7 +577,7 @@ class GrrConfigManager(object):
 
     if fd is not None:
       self.parser = ConfigFileParser(fd=fd)
-      self._MergeData(self.parser.RawData())
+      self.MergeData(self.parser.RawData())
 
     elif filename is not None:
       self.parser = self.LoadSecondaryConfig(filename)
@@ -583,7 +587,7 @@ class GrrConfigManager(object):
 
     elif data is not None:
       self.parser = ConfigFileParser(data=data)
-      self._MergeData(self.parser.RawData())
+      self.MergeData(self.parser.RawData())
 
     else:
       raise RuntimeError("Registry path not provided.")

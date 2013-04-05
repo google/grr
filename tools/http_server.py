@@ -190,7 +190,7 @@ def serve_forever(server):
 
 def main(unused_argv):
   """Main."""
-  config_lib.CONFIG.SetEnv("Environment.component", "FrontendHttpServer")
+  config_lib.CONFIG.SetEnv("Environment.component", "Frontend")
   registry.Init()
 
   server_address = (config_lib.CONFIG["Frontend.bind_address"],

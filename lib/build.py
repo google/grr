@@ -12,11 +12,9 @@ import shutil
 import struct
 import subprocess
 import sys
-import tempfile
 import zipfile
 
 from grr.lib import config_lib
-from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import type_info
 
@@ -42,7 +40,7 @@ class PathTypeInfo(type_info.String):
 
 # PyInstaller build configuration.
 config_lib.DEFINE_option(PathTypeInfo(
-    name="PyInstaller.path", must_exist=True,
+    name="PyInstaller.path", must_exist=False,
     default="c:/build/pyinstaller/pyinstaller.py",
     help="Path to the main pyinstaller.py file."))
 
@@ -155,8 +153,18 @@ config_lib.DEFINE_option(type_info.PathTypeInfo(
     default=(
         "%(ClientBuilder.source)/grr/executables/%(ClientBuilder.platform)"
         "/templates/%(ClientBuilder.arch)/%(Client.version_string)/"
-        "%(Client.name)_%(Client.version_string)_%(ClientBuilder.arch).zip"),
-    help="The full path to the executable template zip file."))
+        "%(Client.name)_%(Client.version_string)_%(ClientBuilder.arch)."
+        "%(ClientBuilder.template_extension)"),
+    help="The full path to the executable template file."))
+
+config_lib.DEFINE_option(type_info.PathTypeInfo(
+    name="ClientBuilder.output_path", must_exist=False,
+    default=(
+        "%(ClientBuilder.source)/grr/executables/%(ClientBuilder.platform)"
+        "/installers/%(ClientBuilder.arch)/%(Client.version_string)/"
+        "%(Client.name)_%(Client.version_string)_%(ClientBuilder.arch)."
+        "%(ClientBuilder.output_extension)"),
+    help="The full path to the executable template file."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.generated_config_path", must_exist=False,
@@ -167,7 +175,7 @@ config_lib.DEFINE_option(type_info.PathTypeInfo(
     help="The full path to where we write a generated config."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
-    name="ClientBuilder.unzipsfx_stub", must_exist=True,
+    name="ClientBuilder.unzipsfx_stub", must_exist=False,
     default=("%(ClientBuilder.source)/grr/executables/%(ClientBuilder.platform)"
              "/templates/unzipsfx/unzipsfx-%(ClientBuilder.arch).exe"),
     help="The full path to the zip self extracting stub."))
@@ -184,11 +192,6 @@ config_lib.DEFINE_string(
              "--config %(ClientBuilder.config_filename)"),
     help=("The command that the installer will execute after "
           "unpacking the package."))
-
-config_lib.DEFINE_string(
-    name="ClientBuilder.output",
-    default="%(Client.name)_%(Client.version_string)_%(ClientBuilder.arch).exe",
-    help="The filename to write the deployable binary.")
 
 config_lib.DEFINE_list(
     name="ClientBuilder.installer_plugins",
@@ -298,86 +301,22 @@ class ClientBuilder(object):
     logging.info("Generating zip template file at %s", output_file)
     self.MakeZip(self.output_dir, output_file)
 
-  def MakeDeployableBinary(self, output):
-    """Repackage the template zip with the installer."""
-    template_path = config_lib.CONFIG["ClientBuilder.template_path"]
-
-    zip_data = cStringIO.StringIO()
-    zip_data.write(open(template_path, "rb").read())
-
-    z = zipfile.ZipFile(zip_data, mode="a")
-
-    # The zip file comment is used by the self extractor to run
-    # the installation script
-    z.comment = "$AUTORUN$>%s" % config_lib.CONFIG[
-        "ClientBuilder.autorun_command_line"]
-
-    # Add any additional plugins to the deployment binary.
-    plugins = (config_lib.CONFIG["ClientBuilder.plugins"] +
-               config_lib.CONFIG["ClientBuilder.installer_plugins"])
-
-    for plugin in plugins:
-      z.writestr(os.path.basename(plugin),
-                 open(plugin, "rb").read(), zipfile.ZIP_STORED)
-
-    # Add any additional plugins to the deployment binary.
-    for plugin in config_lib.CONFIG["ClientBuilder.plugins"]:
-      z.writestr(os.path.basename(plugin),
-                 open(plugin, "rb").read(), zipfile.ZIP_STORED)
-
-    z.writestr(config_lib.CONFIG["ClientBuilder.config_filename"],
-               self.GetClientConfig(), compress_type=zipfile.ZIP_STORED)
-
-    z.close()
-
-    with open(output, "wb") as fd:
-      # First write the installer stub
-      stub_data = cStringIO.StringIO()
-      stub_data.write(open(
-          config_lib.CONFIG["ClientBuilder.unzipsfx_stub"], "rb").read())
-
-      # Now patch up the .rsrc section to contain the payload.
-      end_of_file = zip_data.tell() + stub_data.tell()
-
-      # This is the IMAGE_SECTION_HEADER.Name which is also the start of
-      # IMAGE_SECTION_HEADER.
-      offset_to_rsrc = stub_data.getvalue().find(".rsrc")
-
-      # IMAGE_SECTION_HEADER.PointerToRawData is a 32 bit int.
-      stub_data.seek(offset_to_rsrc + 20)
-      start_of_rsrc_section = struct.unpack("<I", stub_data.read(4))[0]
-
-      # Adjust IMAGE_SECTION_HEADER.SizeOfRawData to span from the old start to
-      # the end of file.
-      stub_data.seek(offset_to_rsrc + 16)
-      stub_data.write(struct.pack("<I", end_of_file - start_of_rsrc_section))
-
-      # Now write the file out. Stub data first.
-      fd.write(stub_data.getvalue())
-
-      # Then append the payload zip file.
-      fd.write(zip_data.getvalue())
-
-    logging.info("Deployable binary generated at %s", output)
-    return output
-
   def GetClientConfig(self):
     """Generates the client config file for inclusion in deployable binaries."""
-    fd, new_config_filename = tempfile.mkstemp()
-    os.close(fd)
-
     new_config = config_lib.GrrConfigManager()
-    new_config.Initialize(new_config_filename)
+    new_config.Initialize(data="")
 
     config_lib.CONFIG.Set("Client.build_time", str(rdfvalue.RDFDatetime()))
 
-    # Copy relevant parameters into the associated client sections.
-    config_lib.CONFIG.Set("Installer.plugins",
-                          config_lib.CONFIG["ClientBuilder.installer_plugins"])
-    config_lib.CONFIG.Set("Installer.logfile",
-                          config_lib.CONFIG["ClientBuilder.installer_logfile"])
-    config_lib.CONFIG.Set("Client.plugins",
-                          config_lib.CONFIG["ClientBuilder.plugins"])
+    for src_option, target_option in [
+        ("ClientBuilder.installer_plugins", "Installer.plugins"),
+        ("ClientBuilder.installer_logfile", "Installer.logfile"),
+        ("ClientBuilder.client_logging_path", "Logging.path"),
+        ("ClientBuilder.client_logging_file", "Logging.filename"),
+        ("ClientBuilder.plugins", "Client.plugins")]:
+      if config_lib.CONFIG[src_option]:
+        config_lib.CONFIG.Set(target_option,
+                              config_lib.CONFIG[src_option])
 
     # Only copy certain sections to the client.
     for section, data in config_lib.CONFIG.raw_data.items():
@@ -386,20 +325,21 @@ class ClientBuilder(object):
 
       new_config.raw_data[section] = data
 
-    new_config.Write()
+    fd = cStringIO.StringIO()
+    new_config.WriteToFD(fd)
+    fd.seek(0)
+    return fd.read()
 
-    try:
-      with open(new_config_filename, "rb") as fd:
-        return fd.read()
+  def BackupClientConfig(self, new_config_data=None):
+    new_config_data = new_config_data or self.GetClientConfig()
 
-    finally:
-      config_path = config_lib.CONFIG["ClientBuilder.generated_config_path"]
-      if config_path:
-        if not os.path.exists(os.path.dirname(config_path)):
-          os.makedirs(os.path.dirname(config_path))
-        os.rename(new_config_filename, config_path)
-      else:
-        os.unlink(new_config_filename)
+    config_path = config_lib.CONFIG["ClientBuilder.generated_config_path"]
+    if config_path:
+      if not os.path.exists(os.path.dirname(config_path)):
+        os.makedirs(os.path.dirname(config_path))
+      with open(config_path, mode="wb") as fd:
+        fd.write(new_config_data)
+    return config_path
 
   def MakeZip(self, input_dir, output_file):
     """Creates a ZIP archive of the files in the input directory.
@@ -476,6 +416,68 @@ class WindowsClientBuilder(ClientBuilder):
     logging.info("Generating zip template file at %s", output_file)
     self.MakeZip(self.output_dir, output_file)
 
+  def MakeDeployableBinary(self, template_path, output_path):
+    """Repackage the template zip with the installer."""
+    zip_data = cStringIO.StringIO()
+    zip_data.write(open(template_path, "rb").read())
+
+    z = zipfile.ZipFile(zip_data, mode="a")
+
+    # The zip file comment is used by the self extractor to run
+    # the installation script
+    z.comment = "$AUTORUN$>%s" % config_lib.CONFIG[
+        "ClientBuilder.autorun_command_line"]
+
+    # Add any additional plugins to the deployment binary.
+    plugins = (config_lib.CONFIG["ClientBuilder.plugins"] +
+               config_lib.CONFIG["ClientBuilder.installer_plugins"])
+
+    for plugin in plugins:
+      z.writestr(os.path.basename(plugin),
+                 open(plugin, "rb").read(), zipfile.ZIP_STORED)
+
+    # Add any additional plugins to the deployment binary.
+    for plugin in config_lib.CONFIG["ClientBuilder.plugins"]:
+      z.writestr(os.path.basename(plugin),
+                 open(plugin, "rb").read(), zipfile.ZIP_STORED)
+
+    z.writestr(config_lib.CONFIG["ClientBuilder.config_filename"],
+               self.GetClientConfig(), compress_type=zipfile.ZIP_STORED)
+
+    z.close()
+
+    self.EnsureDirExists(os.path.dirname(output_path))
+    with open(output_path, "wb") as fd:
+      # First write the installer stub
+      stub_data = cStringIO.StringIO()
+      stub_data.write(open(
+          config_lib.CONFIG["ClientBuilder.unzipsfx_stub"], "rb").read())
+
+      # Now patch up the .rsrc section to contain the payload.
+      end_of_file = zip_data.tell() + stub_data.tell()
+
+      # This is the IMAGE_SECTION_HEADER.Name which is also the start of
+      # IMAGE_SECTION_HEADER.
+      offset_to_rsrc = stub_data.getvalue().find(".rsrc")
+
+      # IMAGE_SECTION_HEADER.PointerToRawData is a 32 bit int.
+      stub_data.seek(offset_to_rsrc + 20)
+      start_of_rsrc_section = struct.unpack("<I", stub_data.read(4))[0]
+
+      # Adjust IMAGE_SECTION_HEADER.SizeOfRawData to span from the old start to
+      # the end of file.
+      stub_data.seek(offset_to_rsrc + 16)
+      stub_data.write(struct.pack("<I", end_of_file - start_of_rsrc_section))
+
+      # Now write the file out. Stub data first.
+      fd.write(stub_data.getvalue())
+
+      # Then append the payload zip file.
+      fd.write(zip_data.getvalue())
+
+    logging.info("Deployable binary generated at %s", output_path)
+    return output_path
+
 
 class DarwinClientBuilder(ClientBuilder):
   """Builder class for the Mac OS X (Darwin) client."""
@@ -512,7 +514,6 @@ class DarwinClientBuilder(ClientBuilder):
     self.MakeBuildDirectory()
     self.BuildWithPyInstaller()
     self.BuildInstallerPkg()
-    self.BuildInstallerDmg()
 
   # WARNING: change with care since the PackageMaker files are fragile!
   def BuildInstallerPkg(self):
@@ -586,16 +587,16 @@ class DarwinClientBuilder(ClientBuilder):
         os.path.join(config_lib.CONFIG["ClientBuildDarwin.package_dir"], pkg)]
     subprocess.call(command)
 
-  def BuildInstallerDmg(self):
-    """Builds a disk image (.dmg) using hdiutil."""
-    dmgfile = ("%s-%s.dmg" %
-               (config_lib.CONFIG["ClientBuildDarwin.package_maker_name"],
-                config_lib.CONFIG["Client.version_string"]))
-    print "Creating: %s" % (dmgfile)
-    command = ["hdiutil", "create", dmgfile, "-srcfolder",
-               config_lib.CONFIG["ClientBuildDarwin.package_dir"],
-               "-fs", "HFS+"]
-    subprocess.call(command)
+  def MakeDeployableBinary(self, template_path, output_path):
+    """This will add the config to the client template."""
+    self.EnsureDirExists(os.path.dirname(output_path))
+    client_config_data = self.GetClientConfig()
+    shutil.copyfile(template_path, output_path)
+    zip_file = zipfile.ZipFile(output_path, mode="a")
+    zip_info = zipfile.ZipInfo(filename="config.txt")
+    zip_file.writestr(zip_info, client_config_data)
+    zip_file.close()
+    return output_path
 
 
 def GetTemplateVersions(executables_dir="./executables"):
@@ -608,8 +609,9 @@ def GetTemplateVersions(executables_dir="./executables"):
     Tuples of template_path, platform, name, version, arch
   """
   template_re = re.compile("^(?P<name>.*)_(?P<version>.*)_"
-                           r"(?P<arch>amd64|i386)\.(zip|dmg)$")
-  for plat in maintenance_utils.SUPPORTED_PLATFORMS:
+                           r"(?P<arch>amd64|i386)\.(zip|template)$")
+
+  for plat in ["windows", "linux", "darwin"]:
     tmpl_dir = os.path.join(executables_dir, plat.lower())
     for dirpath, _, filenames in os.walk(tmpl_dir):
       for filename in filenames:
@@ -631,13 +633,16 @@ def RepackAllBinaries(executables_dir="./executables"):
   """
   built = []
   for dat in GetTemplateVersions(executables_dir):
+    # Clean out the config in case others have polluted it.
+    config_lib.ReloadConfig()
     tmpl_path, plat, name, version, arch = dat
     print "\n## Repacking %s %s %s %s client" % (name, plat, arch, version)
 
     # Setup the config for the build.
-    config_lib.CONFIG.Set("ClientBuilder.platform", plat)
+    config_lib.CONFIG.Set("ClientBuilder.platform", plat.lower())
     config_lib.CONFIG.Set("ClientBuilder.arch", arch)
     config_lib.CONFIG.Set("ClientBuilder.template_path", tmpl_path)
+    config_lib.CONFIG.Set("Client.version_string", version)
     filename = os.path.basename(tmpl_path)
 
     plat = plat.title()
@@ -645,22 +650,25 @@ def RepackAllBinaries(executables_dir="./executables"):
       builder = WindowsClientBuilder()
       final_filename = os.path.splitext(filename)[0] + ".exe"   # s/zip/exe
     elif plat == "Darwin":
-      # TODO(user): Fix this once we are ready.
-      print "Skipping. Not implemented yet."
-      continue
       builder = DarwinClientBuilder()
-      final_filename = os.path.splitext(filename)[0] + ".dmg"  # s/zip/dmg
+      final_filename = os.path.splitext(filename)[0] + ".pkg"  # s/zip/pkg
     else:
       logging.error("No currently supported builder for platform %s", plat)
       continue
 
-    installer_path = os.path.join(executables_dir, plat.lower(), "installers")
+    plat = plat.lower()
+    installer_path = os.path.join(executables_dir, plat, "installers")
     if not os.path.exists(installer_path):
       os.makedirs(installer_path)
     installer_path = os.path.join(installer_path, final_filename)
 
-    out = builder.MakeDeployableBinary(installer_path)
-    built.append((out, plat, arch))
+    template_path = config_lib.CONFIG["ClientBuilder.template_path"]
+    config_out = builder.BackupClientConfig()
+    out = builder.MakeDeployableBinary(template_path, installer_path)
+    built.append((out, config_out, plat, arch))
     print "Packed to %s" % out
+
+  # Ensure we don't pollute things if we're long running.
+  config_lib.ReloadConfig()
 
   return built

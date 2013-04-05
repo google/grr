@@ -1,3 +1,16 @@
+grr-server (0.2-7) unstable; urgency=low
+
+  * Bugfixes for build and deployment
+  * Fixed tests
+  * Added OSX client automatic packaging
+  * Resolved bad log paths for packaged Windows 64 bit client
+  * Fixed mongo index error
+  * Improved logging
+  * Added initctl_switch.sh helper script
+  * Updated winpmem drivers
+
+ -- GRR development team <grr-dev@googlegroups.com>  Thu, 4 Apr 2013 12:00:00 +0200
+
 grr-server (0.2-6) unstable; urgency=low
 
   * New Bootstrap UI

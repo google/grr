@@ -90,6 +90,7 @@ class ThreadingDjango(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
 
 def main(_):
   """Run the main test harness."""
+  config_lib.CONFIG.SetEnv("Environment.component", "AdminUI")
   registry.Init()
 
   # Start up a server in another thread

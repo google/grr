@@ -49,18 +49,23 @@ flags.DEFINE_bool("start_ui", False,
 
 def main(argv):
   """Sets up all the component in their own threads."""
+  flag_list = [flags.FLAGS.start_worker, flags.FLAGS.start_ui,
+               flags.FLAGS.start_http_server, flags.FLAGS.start_enroller]
+  enabled_flags = [f for f in flag_list if f]
 
-  # Get everything initialized.
-  config_lib.CONFIG.SetEnv("Environment.component", "SingleServer")
-  registry.Init()
-
-  # If no start preferences were provided start everything
-  if (not flags.FLAGS.start_worker and not flags.FLAGS.start_enroller and
-      not flags.FLAGS.start_http_server and not flags.FLAGS.start_ui):
+  # If no start preferences were provided start everything.
+  if not enabled_flags:
     flags.FLAGS.start_worker = True
     flags.FLAGS.start_enroller = True
     flags.FLAGS.start_http_server = True
     flags.FLAGS.start_ui = True
+
+  if len(enabled_flags) != 1:
+    # If we only have one flag, we are running in single component mode and we
+    # want the component to do the initialization. Otherwise we initialize as
+    # a SingleServer.
+    config_lib.CONFIG.SetEnv("Environment.component", "SingleServer")
+    registry.Init()
 
   # Start the worker thread if necessary.
   if flags.FLAGS.start_worker:

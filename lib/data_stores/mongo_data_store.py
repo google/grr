@@ -215,6 +215,9 @@ class MongoDataStore(data_store.DataStore):
     self.latest_collection.ensure_index("subject")
     self.versioned_collection.ensure_index("subject")
 
+    self.latest_collection.ensure_index("timestamp")
+    self.versioned_collection.ensure_index("timestamp")
+
   def _GetCursor(self, spec, timestamp, limit):
     """Create a mongo cursor based on the timestamp restriction."""
 

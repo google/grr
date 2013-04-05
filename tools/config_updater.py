@@ -155,21 +155,21 @@ def LoadMemoryDrivers(grr_dir):
   """Load memory drivers from disk to database."""
 
   f_path = os.path.join(
-      grr_dir, config_lib.CONFIG["MemoryDriverDarwin.driver_file_64"])
+      grr_dir, config_lib.CONFIG["MemoryDriverDarwin.driver_file_amd64"])
   up_path = maintenance_utils.UploadSignedDriverBlob(
       open(f_path).read(), platform="Darwin", file_name="osxpmem")
   print "uploaded %s" % up_path
 
   f_path = os.path.join(
-      grr_dir, config_lib.CONFIG["MemoryDriverWindows.driver_file_32"])
+      grr_dir, config_lib.CONFIG["MemoryDriverWindows.driver_file_i386"])
   up_path = maintenance_utils.UploadSignedDriverBlob(
-      open(f_path).read(), platform="Windows", file_name="winpmem.32.sys")
+      open(f_path).read(), platform="Windows", file_name="winpmem.i386.sys")
   print "uploaded %s" % up_path
 
   f_path = os.path.join(
-      grr_dir, config_lib.CONFIG["MemoryDriverWindows.driver_file_64"])
+      grr_dir, config_lib.CONFIG["MemoryDriverWindows.driver_file_amd64"])
   up_path = maintenance_utils.UploadSignedDriverBlob(
-      open(f_path).read(), platform="Windows", file_name="winpmem.64.sys")
+      open(f_path).read(), platform="Windows", file_name="winpmem.amd64.sys")
   print "uploaded %s" % up_path
 
 
@@ -314,16 +314,17 @@ def RepackAndUpload(executables_dir, upload=True):
   built = build.RepackAllBinaries(executables_dir=executables_dir)
   if upload:
     print "\n## Uploading"
-    for file_path, platform, arch in built:
+    for file_path, config_path, platform, arch in built:
       print "Uploading %s %s binary from %s" % (platform, arch, file_path)
-      if platform == "Darwin":
-        # Darwin currently doesn't do a full repack, just the config.
-        up = UploadRaw(file_path, "/config/executables/darwin/installers")
-      elif platform == "Windows":
-        up = maintenance_utils.UploadSignedConfigBlob(
-            open(file_path).read(1024*1024*30), platform=platform,
-            file_name=os.path.basename(file_path))
+      up = maintenance_utils.UploadSignedConfigBlob(
+          open(file_path).read(1024*1024*30), platform=platform,
+          file_name=os.path.basename(file_path))
       print "Uploaded to %s" % up
+
+      up_conf = UploadRaw(
+          config_path, "/config/executables/%s/installers" % platform)
+      print "Uploaded config file to %s" % up_conf
+      print ""
 
 
 def UploadRaw(file_path, aff4_path):
@@ -337,6 +338,7 @@ def UploadRaw(file_path, aff4_path):
 
 def main(unused_argv):
   """Main."""
+  config_lib.CONFIG.SetEnv("Environment.component", "CommandLineTools")
   registry.Init()
   global args  # pylint: disable=global-statement
   args=conf.FLAGS

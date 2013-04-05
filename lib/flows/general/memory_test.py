@@ -39,7 +39,7 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
   def CreateSignedDriver(self):
     # Make sure there is a signed driver for our client.
     driver_path = maintenance_utils.UploadSignedDriverBlob(
-        "MZ Driveeerrrrrr", file_name="winpmem.64.sys",
+        "MZ Driveeerrrrrr", file_name="winpmem.amd64.sys",
         platform="Windows",
         aff4_path="/config/drivers/windows/memory/{file_name}",
         token=self.token)

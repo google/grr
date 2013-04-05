@@ -306,7 +306,8 @@ The key issue with performance generally relates to how the server is deployed.
   which means you are using a single core and it will perform badly. We do this
   to make life easy for first time users. In production you need to run each
   component separately (see /etc/init/grr*) in its own process (this will also
-  help with more intelligent logging).
+  help with more intelligent logging). You can switch on upstart based systems
+  easily using the script in scripts/initctl_switch.sh.
 - Additionally, you will probably want to run more than one worker. In a large
   deployment where you are running numerous hunts it makes sense to run 20+
   workers. As long as the datastore scales, the more workers you have the faster

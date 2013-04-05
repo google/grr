@@ -14,6 +14,7 @@ from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import export_utils
 from grr.lib import registry
 
@@ -61,6 +62,7 @@ def main(unused_argv):
     Usage()
     sys.exit(1)
 
+  config_lib.CONFIG.SetEnv("Environment.component", "CommandLineTools")
   registry.Init()
   if FLAGS.collection:
     export_utils.DownloadCollection(FLAGS.collection, FLAGS.output,

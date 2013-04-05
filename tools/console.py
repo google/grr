@@ -394,6 +394,7 @@ def main(unused_argv):
   banner = ("\nWelcome to the GRR console\n"
             "Type help<enter> to get help\n\n")
 
+  config_lib.CONFIG.SetEnv("Environment.component", "CommandLineTools")
   registry.Init()
 
   locals_vars = {"hilfe": Help,

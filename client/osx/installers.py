@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """These are osx specific installers."""
+import os
 import re
+import zipfile
 
 import logging
 
@@ -36,5 +38,22 @@ class OSXInstaller(installer.Installer):
       config_lib.CONFIG.Set("Client.private_key", cert)
       config_lib.CONFIG.Write()
 
+  def ExtractConfig(self):
+    """This installer extracts a config file from the .pkg file."""
+    logging.info("Extracting config file from .pkg.")
+    pkg_path = os.environ.get("PACKAGE_PATH", None)
+    if pkg_path is None:
+      logging.error("Could not locate package, giving up.")
+      return
+
+    zf = zipfile.ZipFile(pkg_path, mode="r")
+    fd = zf.open("config.txt")
+
+    parser = config_lib.ConfigFileParser(fd=fd)
+    config_lib.CONFIG.MergeData(parser.RawData())
+    config_lib.CONFIG.Write()
+    logging.info("Config file extracted successfully.")
+
   def Run(self):
+    self.ExtractConfig()
     self.CopySystemCert()

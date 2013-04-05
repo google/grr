@@ -52,7 +52,7 @@ class InstallerInit(registry.InitHook):
 
     try:
       log_data = open(
-          config_lib.CONFIG["ClientBuilder.logfile"], "rb").read()
+          config_lib.CONFIG["Installer.logfile"], "rb").read()
     except (IOError, OSError):
       log_data = ""
 
@@ -88,7 +88,7 @@ class InstallerInit(registry.InitHook):
       # Always log to the installer logfile at debug level. This way if our
       # installer fails we can send detailed diagnostics.
       handler = logging.FileHandler(
-          config_lib.CONFIG["ClientBuilder.logfile"], mode="wb")
+          config_lib.CONFIG["Installer.logfile"], mode="wb")
 
       handler.setLevel(logging.DEBUG)
 
@@ -129,7 +129,7 @@ class InstallerPlugins(Installer):
 
   def RunOnce(self):
     """Load plugins relative to our current binary location."""
-    for plugin in config_lib.CONFIG["Client.installer_plugins"]:
+    for plugin in config_lib.CONFIG["Installer.plugins"]:
       config_lib.PluginLoader.LoadPlugin(
           os.path.join(os.path.dirname(sys.executable),
                        plugin))

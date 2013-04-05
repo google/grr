@@ -39,7 +39,7 @@ parser.add_argument(
     "the current platform: %s." % platform.system())
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
-    name="ClientBuilder.source", must_exist=True,
+    name="ClientBuilder.source", must_exist=False,
     default=os.path.normpath(__file__ + "/../../.."),
     help="The location of the source files."))
 
@@ -100,7 +100,9 @@ def main(_):
     builder.MakeExecutableTemplate()
 
   elif args.subparser_name == "deploy":
-    builder.MakeDeployableBinary(config_lib.CONFIG["ClientBuilder.output"])
+    builder.MakeDeployableBinary(
+        config_lib.CONFIG["ClientBuilder.template_path"],
+        config_lib.CONFIG["ClientBuilder.output_path"])
 
   else:
     parser.error("Unsupported build platform: %s" % args.platform)

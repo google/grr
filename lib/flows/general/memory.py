@@ -237,9 +237,9 @@ def GetMemoryModule(client_id, token):
   if system == "Windows":
     arch = client.Get(client.Schema.ARCH)
     if arch == "AMD64":
-      path = WIN_MEM.format(arch="64")
+      path = WIN_MEM.format(arch="amd64")
     elif arch == "x86":
-      path = WIN_MEM.format(arch="32")
+      path = WIN_MEM.format(arch="i386")
     else:
       raise IOError("No memory driver for the architecture %s" % arch)
     sys_os = "windows"
