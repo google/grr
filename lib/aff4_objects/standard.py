@@ -68,21 +68,24 @@ class VFSDirectory(aff4.AFF4Volume):
 
       stripped_components = []
       parent = self
-      while not pathspec or parent.urn.Split()[0] == client_id:
+
+      while not pathspec and not len(parent.urn.Split()) <= 1:
         # We try to recurse up the tree to get a real pathspec.
         # These directories are created automatically without pathspecs when a
         # deep directory is listed without listing the parents.
+        # Note we /fs/os or /fs/tsk won't be Updateable so we will raise IOError
+        # if we try.
         stripped_components.append(parent.urn.Basename())
         pathspec = parent.Get(parent.Schema.PATHSPEC)
         parent = aff4.FACTORY.Open(parent.urn.Dirname(), token=self.token)
 
-      if stripped_components:
-        # We stripped pieces of the URL, time to add them back at the deepest
-        # nested path.
-        new_path = utils.JoinPath(pathspec.last.path, *stripped_components[:-1])
-        pathspec.last.path = new_path
-
       if pathspec:
+        if stripped_components:
+          # We stripped pieces of the URL, time to add them back at the deepest
+          # nested path.
+          new_path = utils.JoinPath(pathspec.last.path, *stripped_components[:-1])
+          pathspec.last.path = new_path
+
         flow_id = flow.FACTORY.StartFlow(client_id, "ListDirectory",
                                          pathspec=pathspec, priority=priority,
                                          notify_to_user=False,

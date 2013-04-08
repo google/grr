@@ -5,28 +5,7 @@
 # By default this will install into /usr and set the config in
 # /etc/grr/grr-server.conf
 #
-
-if [ -z "${GRR_TEST_VERSIONS}" ];
-then
-  GRR_TEST_VERSIONS=0;
-else
-  GRR_TEST_VERSIONS=1;
-  echo "Running with Beta test versions"
-fi
-
-if [ -z "${GRR_LOCAL_TEST}" ];
-then
-  GRR_LOCAL_TEST=0;
-fi
-
 PREFIX=/usr
-
-# URL to read the latest version URLs from
-if [ $GRR_TEST_VERSIONS = 0 ]; then
-  VERSION_URL=https://grr.googlecode.com/files/latest_versions.txt
-else
-  VERSION_URL=https://grr.googlecode.com/files/latest_versions_test.txt
-fi
 
 # Variables to control the install versions etc. Made for changing this to
 # support other platforms more easily.
@@ -37,6 +16,30 @@ DEB_DEPENDENCIES_DIR=ubuntu-12.04-${PLAT}-debs;
 SLEUTHKIT_DEB=sleuthkit-lib_3.2.3-1_${PLAT}.deb
 PYTSK_DEB=pytsk3_3.2.3-1_${PLAT}.deb
 M2CRYPTO_DEB=m2crypto_0.21.1-1_${PLAT}.deb
+
+GRR_STABLE_VERSION=0.2-6
+GRR_TEST_VERSION=0.2-7
+SERVER_DEB_STABLE_BASE_URL=https://grr.googlecode.com/files/grr-server_
+SERVER_DEB_TEST_BASE_URL=https://grr.googlecode.com/files/test-grr-server_
+
+
+if [ -z "${GRR_TESTING}" ];
+then
+  SERVER_DEB_URL=${SERVER_DEB_STABLE_BASE_URL}${GRR_STABLE_VERSION}_${PLAT}.deb
+else
+  echo "#########################################"
+  echo "#### Running with Beta test versions ####"
+  echo "#########################################"
+  SERVER_DEB_URL=${SERVER_DEB_TEST_BASE_URL}${GRR_TEST_VERSION}_${PLAT}.deb
+fi
+
+# Used for local testing, if set it will assume the deb is in the current path
+# instead of attempting wget for it.
+if [ -z "${GRR_LOCAL_TEST}" ];
+then
+  GRR_LOCAL_TEST=0;
+fi
+
 
 # Variable to store if the user has answered "Yes to All"
 ALL_YES=0;
@@ -130,19 +133,13 @@ if [[ "$DJANGO_VERSION" == 1.3* ]]; then
   run_cmd_confirm sudo easy_install django
 fi
 
-header "Getting latest package information from repo"
-if [ $GRR_LOCAL_TEST = 0 ]; then
-  VERSION_FILE=$(basename ${VERSION_URL});
-  run_cmd_confirm wget --no-verbose ${VERSION_URL} -O ${VERSION_FILE};
-  SERVER_DEB_URL=$(grep grr-server ${VERSION_FILE} | grep $PLAT | cut -f 2);
-  SERVER_DEB=$(basename ${SERVER_DEB_URL});
-  run_cmd_confirm rm -f ${VERSION_FILE}
 
-  header "Installing GRR from prebuilt package"
+header "Installing GRR from prebuilt package"
+SERVER_DEB=$(basename ${SERVER_DEB_URL});
+if [ $GRR_LOCAL_TEST = 0 ]; then
   run_cmd_confirm wget --no-verbose ${SERVER_DEB_URL} -O ${SERVER_DEB};
   run_cmd_confirm sudo dpkg -i ${SERVER_DEB};
 else
-SERVER_DEB=grr-server_0.2-6_amd64.deb;
   run_cmd_confirm sudo dpkg -i ${SERVER_DEB};
 fi
 

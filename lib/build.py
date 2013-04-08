@@ -205,16 +205,18 @@ config_lib.DEFINE_list(
     help="Plugins that will copied to the client installation file and run when"
     "the client is running.")
 
+config_lib.DEFINE_bool(
+    name="ClientBuilder.zip_sfx_console_enabled",
+    default=False,
+    help="If true, when repacking we will modify the sfx zip binary to be a "
+    "console mode application so it will output its progress.")
+
 
 class ClientBuilder(object):
   """Abstract client builder class, used by the OS specific implementations."""
 
   COMPONENT_NAME = "ClientBuilder"
-
   CONFIG_SECTIONS = ["CA", "Client", "Logging"]
-
-  def __init__(self):
-    config_lib.CONFIG.ExecuteSection(self.COMPONENT_NAME)
 
   def FindLibraryPaths(self):
     """Figure out where distorm is so PyInstaller can find it."""
@@ -450,8 +452,21 @@ class WindowsClientBuilder(ClientBuilder):
     with open(output_path, "wb") as fd:
       # First write the installer stub
       stub_data = cStringIO.StringIO()
-      stub_data.write(open(
-          config_lib.CONFIG["ClientBuilder.unzipsfx_stub"], "rb").read())
+      stub_raw = open(
+          config_lib.CONFIG["ClientBuilder.unzipsfx_stub"], "rb").read()
+
+      # Check stub has been compiled with the requireAdministrator manifest.
+      if "level=\"requireAdministrator" not in stub_raw:
+        raise RuntimeError("Bad unzip binary in use. Not compiled with the"
+                           "requireAdministrator manifest option.")
+
+      stub_data.write(stub_raw)
+
+      # If in verbose mode, modify the unzip bins PE header to run in console
+      # mode for easier debugging.
+      SetPeSubsystem(
+          stub_data,
+          console=config_lib.CONFIG["ClientBuilder.zip_sfx_console_enabled"])
 
       # Now patch up the .rsrc section to contain the payload.
       end_of_file = zip_data.tell() + stub_data.tell()
@@ -599,6 +614,21 @@ class DarwinClientBuilder(ClientBuilder):
     return output_path
 
 
+def SetPeSubsystem(fd, console=True):
+  """Takes file like obj and returns (offset, value) for the PE subsystem."""
+  current_pos = fd.tell()
+  fd.seek(0x3c)  # _IMAGE_DOS_HEADER.e_lfanew
+  header_offset = struct.unpack("<I", fd.read(4))[0]
+  # _IMAGE_NT_HEADERS.OptionalHeader.Subsystem ( 0x18 + 0x44)
+  subsystem_offset = header_offset + 0x5c
+  fd.seek(subsystem_offset)
+  if console:
+    fd.write("\x03")
+  else:
+    fd.write("\x02")
+  fd.seek(current_pos)
+
+
 def GetTemplateVersions(executables_dir="./executables"):
   """Yields a list of templates based on filename regex.
 
@@ -632,19 +662,15 @@ def RepackAllBinaries(executables_dir="./executables"):
     A list of tuples containing (output_file, platform, architecture)
   """
   built = []
+  saved_environment_component = config_lib.CONFIG.GetEnv("component")
+
   for dat in GetTemplateVersions(executables_dir):
     # Clean out the config in case others have polluted it.
-    config_lib.ReloadConfig()
+
     tmpl_path, plat, name, version, arch = dat
     print "\n## Repacking %s %s %s %s client" % (name, plat, arch, version)
 
-    # Setup the config for the build.
-    config_lib.CONFIG.Set("ClientBuilder.platform", plat.lower())
-    config_lib.CONFIG.Set("ClientBuilder.arch", arch)
-    config_lib.CONFIG.Set("ClientBuilder.template_path", tmpl_path)
-    config_lib.CONFIG.Set("Client.version_string", version)
     filename = os.path.basename(tmpl_path)
-
     plat = plat.title()
     if plat == "Windows":
       builder = WindowsClientBuilder()
@@ -655,6 +681,15 @@ def RepackAllBinaries(executables_dir="./executables"):
     else:
       logging.error("No currently supported builder for platform %s", plat)
       continue
+
+    config_lib.CONFIG.SetEnv("Environment.component", builder.COMPONENT_NAME)
+    config_lib.ReloadConfig()
+
+    # Setup the config for the build.
+    config_lib.CONFIG.Set("ClientBuilder.platform", plat.lower())
+    config_lib.CONFIG.Set("ClientBuilder.arch", arch)
+    config_lib.CONFIG.Set("ClientBuilder.template_path", tmpl_path)
+    config_lib.CONFIG.Set("Client.version_string", version)
 
     plat = plat.lower()
     installer_path = os.path.join(executables_dir, plat, "installers")
@@ -668,7 +703,8 @@ def RepackAllBinaries(executables_dir="./executables"):
     built.append((out, config_out, plat, arch))
     print "Packed to %s" % out
 
-  # Ensure we don't pollute things if we're long running.
+  # Restore the config back to its previous state.
+  config_lib.CONFIG.SetEnv("Environment.component", saved_environment_component)
   config_lib.ReloadConfig()
 
   return built

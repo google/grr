@@ -420,6 +420,10 @@ class GrrConfigManager(object):
     else:
       self.environment.update(env)
 
+  def GetEnv(self, key):
+    """Get an environment variable."""
+    return self.environment[key]
+
   def SetRaw(self, name, value):
     """Set the raw string without verification or escaping."""
     section, key = self._GetSectionName(name)

@@ -1024,9 +1024,13 @@ window.setTimeout(function () {
     if self.aff4_type:
       fd = fd.Upgrade(self.aff4_type)
 
-    self.flow_urn = fd.Update(
-        self.attribute_to_refresh,
-        priority=rdfvalue.GRRMessage.Enum("HIGH_PRIORITY"))
+    try:
+      self.flow_urn = fd.Update(
+          self.attribute_to_refresh,
+          priority=rdfvalue.GRRMessage.Enum("HIGH_PRIORITY"))
+    except IOError as e:
+      raise IOError("Sorry. This path cannot be refreshed due to %s" % e)
+
     if self.flow_urn:
       return super(UpdateAttribute, self).Layout(request, response)
 
