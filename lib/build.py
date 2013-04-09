@@ -704,7 +704,9 @@ def RepackAllBinaries(executables_dir="./executables"):
     print "Packed to %s" % out
 
   # Restore the config back to its previous state.
-  config_lib.CONFIG.SetEnv("Environment.component", saved_environment_component)
+  if saved_environment_component:
+    config_lib.CONFIG.SetEnv("Environment.component",
+                             saved_environment_component)
   config_lib.ReloadConfig()
 
   return built

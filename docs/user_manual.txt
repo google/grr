@@ -3,10 +3,6 @@ GRR User manual
 :toc2:
 :icons:
 
-The GRR response model
-----------------------
-_TODO_
-
 High-level overview
 -------------------
 
@@ -28,6 +24,10 @@ so, he probably used the web-based Graphical User Interface (GUI), which allows
 a GRR user to start flows for clients and review the results. Or he could also
 have used the text-based <<_the_console,_console_>> to do the same.
 
+Any flow that can be run on a single machine can also be run as a Hunt. A hunt
+allows running a flow on all, or any subset of machines talking to the GRR
+server.
+
 
 Getting started
 ---------------
@@ -43,8 +43,31 @@ To do so we'll need to:
 
 3. Perform the deployment and verify the results.
 
-For instructions on how to find/build the agents, please refer to
-http://code.google.com/p/grr/wiki/InstallingGRR.
+Downloading Agents
+~~~~~~~~~~~~~~~~~~
+If your install went successfully, the agents should have been uploaded to the
+server with working configurations, and should be available in the Admin UI.
+
+Look on the left for "Manage Binaries", the files should be in the executables
+directory, under installers. The download button is the down arrown in the
+toolbar.
+
+If your server configuration has changed your agents will need to be repacked
+with an updated config. For details see: 
+link:admin.html#_repacking_the_client_with_a_new_configuration[the GRR server
+installed and running]
+
+Installing the Agent
+~~~~~~~~~~~~~~~~~~~~
+This differs significantly depending on the operating system.
+
+Windows
+^^^^^^^
+The Windows agents are special self extracting zipfiles. Just double click or
+otherwise execute the binary. If you are not an administrator it will prompt
+you for credentials.
+It should then install silently in the background, unless you enabled the
+ link:user_manual.html#_debugging_the_agent_install[verbose build]
 
 
 Deployment methods
@@ -148,6 +171,78 @@ Deploying at scale
 There shouldn't be any special considerations for deploying GRR clients at
 scale. If the server can't handle the load, the clients should happily back off
 and wait their turn. However, we recommend a staged rollout if possible. 
+
+
+Debugging the Agent Install
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If the installer is failing to run, it should output a log file which will help
+you debug. The location of the logfile is configurable, but by default should
+be:
+
+- Windows: c:\windows\system32\logfiles\GRR_installer.txt
+- Linux/Mac OSX: /tmp/grr_installer.txt
+
+To make debugging easier, we also support repacking the client with verbosity
+enabled. This is particularly handy on Windows. To repack with this enabled, on
+the server do:
+--------------------------------------------------------------------------------
+db@host:~ sudo grr_config_updater --verbose --config_execute=VerboseClientBuilder
+repack_clients
+--------------------------------------------------------------------------------
+Then download the new binary. It should have the same configuration, but will
+output detailed progress to the console, making it easier to debug.
+
+Interactively Debugging the Client
+++++++++++++++++++++++++++++++++++
+On each platform, the agent binary should support the following options:
+--verbose::
+  This will set higher logging allowing you to see what is going on.
+--debug::
+  If set, and an unhandled error occurs in the client, the client will break
+  into a pdb debugging shell.
+
+--------------------------------------------------------------------------------
+C:\Windows\system32>net stop "grr monitor"
+The GRR Monitor service is stopping.
+The GRR Monitor service was stopped successfully.
+
+C:\Windows\system32>c:\windows\system32\grr\2.5.0.5\grr.exe --config reg://HKEY_
+LOCAL_MACHINE/Software\GRR --verbose
+--------------------------------------------------------------------------------
+
+Configuration Changes to Ease Debugging
++++++++++++++++++++++++++++++++++++++++
+If you are finding that it is slow to debug because the agent starts backed
+off to 10 minutes and you have to wait, you should change the configuration.
+In windows, set the registry key poll_max to 10, then restart the service. You
+can do this with regedit or via the Windows command line:
+---------------------------------------------------------------------------
+C:\Windows\system32>reg add HKLM\Software\GRR\Client /v poll_max /d 10
+The operation completed successfully.
+
+C:\Windows\system32>net stop "grr monitor"
+The GRR Monitor service is stopping.
+The GRR Monitor service was stopped successfully.
+
+C:\Windows\system32>net start "grr monitor"
+The GRR Monitor service is starting.
+The GRR Monitor service was started successfully.
+---------------------------------------------------------------------------
+
+Uninstalling the Agent
+~~~~~~~~~~~~~~~~~~~~~~
+On Windows the agent does not have an uninstaller. It is designed to have
+minimal impact on the system and leave limited traces of itself such that it
+can be hidden reasonably easily. Thus it was designed to install silently
+without an uninstall.
+
+Uninstalling the agent is a matter of deleting the service and the install
+directory, then optionally removing the registry keys and install log if one
+was created. 
+
+On Linux and MacOSX the standard system packaging (deb, pkg) is used by default.
+Use the standard uninstall mechanisms for these.
+
 
 The GRR GUI
 -----------
@@ -1141,6 +1236,47 @@ Arguments
   under the client. supports format variables {u}, {p} and {t} for user, plugin
   and time. E.g. /analysis/{p}/{u}-{t}.
 
+
+Hunting
+-------
+Hunting is one of the key features of GRR. Anything you can do on a single
+client, should be able to be done on thousands of clients just as easily.
+
+A hunt specifies a Flow, the Flow parameters, and a set of rules for which
+machines to run the Flow on.
+
+Creating a Hunt
+~~~~~~~~~~~~~~~
+You can create a new Hunt in the Hunt Manager section of the UI. To create a
+Hunt:
+
+. Click the + button
+. Fill out the details of the flow you want to run
+. Set Hunt parameters
+.. Client Limit - The maximum number of clients to run on (note this number
+   is considered a soft limit for technical reasons, we may slightly overshoot)
+.. Expiry Time - Stop queuing flows for new clients that appear after this
+   amount of time.
+. Select rules.
+.. By default you'll want to choose a specific platform, e.g. Windows
+.. You can however make arbitrary rules based on attributes of the client. E.g.
+   a regex match to ensure to check the that the Version attribute at / matches
+   2.5.2.*
+. Click Run
+
+Unless approvals are required, the hunt should begin running immediately.
+
+
+Why Is My Hunt Doing Nothing?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- There are caches involved in the frontend server, you may need to wait a
+couple of minutes before the first client picks up the flow.
+- Hunting is currently optimised for very large numbers of clients, so by
+default the client Foreman poll time is set to only check if hunts are scheduled
+every 50 minutes. If you only have one client you may need to wait up to 50
+minutes for it to start. (Note: this is planned to change in the future).
+
+TODO
 
 Exporting Data From GRR
 -----------------------

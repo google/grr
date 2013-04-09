@@ -777,12 +777,6 @@ asciidoc.install(2);
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="_the_grr_response_model">The GRR response model</h2>
-<div class="sectionbody">
-<div class="paragraph"><p><em>TODO</em></p></div>
-</div>
-</div>
-<div class="sect1">
 <h2 id="_high_level_overview">High-level overview</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>To function, an <a href="#agent"><em>agent</em></a> is deployed on systems that one might want to
@@ -800,6 +794,9 @@ to do based on the call results.</p></div>
 so, he probably used the web-based Graphical User Interface (GUI), which allows
 a GRR user to start flows for clients and review the results. Or he could also
 have used the text-based <a href="#_the_console"><em>console</em></a> to do the same.</p></div>
+<div class="paragraph"><p>Any flow that can be run on a single machine can also be run as a Hunt. A hunt
+allows running a flow on all, or any subset of machines talking to the GRR
+server.</p></div>
 </div>
 </div>
 <div class="sect1">
@@ -825,8 +822,30 @@ Perform the deployment and verify the results.
 </p>
 </li>
 </ol></div>
-<div class="paragraph"><p>For instructions on how to find/build the agents, please refer to
-<a href="http://code.google.com/p/grr/wiki/InstallingGRR">http://code.google.com/p/grr/wiki/InstallingGRR</a>.</p></div>
+<div class="sect2">
+<h3 id="_downloading_agents">Downloading Agents</h3>
+<div class="paragraph"><p>If your install went successfully, the agents should have been uploaded to the
+server with working configurations, and should be available in the Admin UI.</p></div>
+<div class="paragraph"><p>Look on the left for "Manage Binaries", the files should be in the executables
+directory, under installers. The download button is the down arrown in the
+toolbar.</p></div>
+<div class="paragraph"><p>If your server configuration has changed your agents will need to be repacked
+with an updated config. For details see:
+<a href="admin.html#_repacking_the_client_with_a_new_configuration">the GRR server
+installed and running</a></p></div>
+</div>
+<div class="sect2">
+<h3 id="_installing_the_agent">Installing the Agent</h3>
+<div class="paragraph"><p>This differs significantly depending on the operating system.</p></div>
+<div class="sect3">
+<h4 id="_windows">Windows</h4>
+<div class="paragraph"><p>The Windows agents are special self extracting zipfiles. Just double click or
+otherwise execute the binary. If you are not an administrator it will prompt
+you for credentials.
+It should then install silently in the background, unless you enabled the
+ <a href="user_manual.html#_debugging_the_agent_install">verbose build</a></p></div>
+</div>
+</div>
 <div class="sect2">
 <h3 id="_deployment_methods">Deployment methods</h3>
 <div class="paragraph"><p>There are as many deployment methods as code execution paths exist. We&#8217;ll
@@ -934,6 +953,84 @@ use ssh.</p></div>
 <div class="paragraph"><p>There shouldn&#8217;t be any special considerations for deploying GRR clients at
 scale. If the server can&#8217;t handle the load, the clients should happily back off
 and wait their turn. However, we recommend a staged rollout if possible.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_debugging_the_agent_install">Debugging the Agent Install</h3>
+<div class="paragraph"><p>If the installer is failing to run, it should output a log file which will help
+you debug. The location of the logfile is configurable, but by default should
+be:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+Windows: c:\windows\system32\logfiles\GRR_installer.txt
+</p>
+</li>
+<li>
+<p>
+Linux/Mac OSX: /tmp/grr_installer.txt
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>To make debugging easier, we also support repacking the client with verbosity
+enabled. This is particularly handy on Windows. To repack with this enabled, on
+the server do:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>db@host:~ sudo grr_config_updater --verbose --config_execute=VerboseClientBuilder
+repack_clients</tt></pre>
+</div></div>
+<div class="paragraph"><p>Then download the new binary. It should have the same configuration, but will
+output detailed progress to the console, making it easier to debug.</p></div>
+<div class="sect4">
+<h5 id="_interactively_debugging_the_client">Interactively Debugging the Client</h5>
+<div class="paragraph"><p>On each platform, the agent binary should support the following options:
+--verbose::
+  This will set higher logging allowing you to see what is going on.
+--debug::
+  If set, and an unhandled error occurs in the client, the client will break
+  into a pdb debugging shell.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>C:\Windows\system32&gt;net stop "grr monitor"
+The GRR Monitor service is stopping.
+The GRR Monitor service was stopped successfully.
+
+C:\Windows\system32&gt;c:\windows\system32\grr\2.5.0.5\grr.exe --config reg://HKEY_
+LOCAL_MACHINE/Software\GRR --verbose</tt></pre>
+</div></div>
+</div>
+<div class="sect4">
+<h5 id="_configuration_changes_to_ease_debugging">Configuration Changes to Ease Debugging</h5>
+<div class="paragraph"><p>If you are finding that it is slow to debug because the agent starts backed
+off to 10 minutes and you have to wait, you should change the configuration.
+In windows, set the registry key poll_max to 10, then restart the service. You
+can do this with regedit or via the Windows command line:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>C:\Windows\system32&gt;reg add HKLM\Software\GRR\Client /v poll_max /d 10
+The operation completed successfully.
+
+C:\Windows\system32&gt;net stop "grr monitor"
+The GRR Monitor service is stopping.
+The GRR Monitor service was stopped successfully.
+
+C:\Windows\system32&gt;net start "grr monitor"
+The GRR Monitor service is starting.
+The GRR Monitor service was started successfully.</tt></pre>
+</div></div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_uninstalling_the_agent">Uninstalling the Agent</h3>
+<div class="paragraph"><p>On Windows the agent does not have an uninstaller. It is designed to have
+minimal impact on the system and leave limited traces of itself such that it
+can be hidden reasonably easily. Thus it was designed to install silently
+without an uninstall.</p></div>
+<div class="paragraph"><p>Uninstalling the agent is a matter of deleting the service and the install
+directory, then optionally removing the registry keys and install log if one
+was created.</p></div>
+<div class="paragraph"><p>On Linux and MacOSX the standard system packaging (deb, pkg) is used by default.
+Use the standard uninstall mechanisms for these.</p></div>
 </div>
 </div>
 </div>
@@ -2429,6 +2526,96 @@ the client or it will fail.</p></div>
 </div>
 </div>
 <div class="sect1">
+<h2 id="_hunting">Hunting</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Hunting is one of the key features of GRR. Anything you can do on a single
+client, should be able to be done on thousands of clients just as easily.</p></div>
+<div class="paragraph"><p>A hunt specifies a Flow, the Flow parameters, and a set of rules for which
+machines to run the Flow on.</p></div>
+<div class="sect2">
+<h3 id="_creating_a_hunt">Creating a Hunt</h3>
+<div class="paragraph"><p>You can create a new Hunt in the Hunt Manager section of the UI. To create a
+Hunt:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Click the + button
+</p>
+</li>
+<li>
+<p>
+Fill out the details of the flow you want to run
+</p>
+</li>
+<li>
+<p>
+Set Hunt parameters
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+Client Limit - The maximum number of clients to run on (note this number
+   is considered a soft limit for technical reasons, we may slightly overshoot)
+</p>
+</li>
+<li>
+<p>
+Expiry Time - Stop queuing flows for new clients that appear after this
+   amount of time.
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+Select rules.
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+By default you&#8217;ll want to choose a specific platform, e.g. Windows
+</p>
+</li>
+<li>
+<p>
+You can however make arbitrary rules based on attributes of the client. E.g.
+   a regex match to ensure to check the that the Version attribute at / matches
+   2.5.2.*
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+Click Run
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>Unless approvals are required, the hunt should begin running immediately.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_why_is_my_hunt_doing_nothing">Why Is My Hunt Doing Nothing?</h3>
+<div class="ulist"><ul>
+<li>
+<p>
+There are caches involved in the frontend server, you may need to wait a
+couple of minutes before the first client picks up the flow.
+</p>
+</li>
+<li>
+<p>
+Hunting is currently optimised for very large numbers of clients, so by
+default the client Foreman poll time is set to only check if hunts are scheduled
+every 50 minutes. If you only have one client you may need to wait up to 50
+minutes for it to start. (Note: this is planned to change in the future).
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>TODO</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
 <h2 id="_exporting_data_from_grr">Exporting Data From GRR</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>Extracting bulk data from the GRR datastore using the UI is slow and cumbersome.
@@ -2616,7 +2803,7 @@ requested its results and execute it.
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-04-03 16:23:41 CEST
+Last updated 2013-04-09 09:08:56 CEST
 </div>
 </div>
 </body>

@@ -422,7 +422,7 @@ class GrrConfigManager(object):
 
   def GetEnv(self, key):
     """Get an environment variable."""
-    return self.environment[key]
+    return self.environment.get(key)
 
   def SetRaw(self, name, value):
     """Set the raw string without verification or escaping."""
