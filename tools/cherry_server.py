@@ -12,9 +12,8 @@ from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import registry
-
 from grr.lib import server_plugins  # pylint: disable=W0611
+from grr.lib import startup
 from grr.tools import http_server  # pylint: disable=W0611
 # pylint: disable=g-bad-name
 
@@ -24,7 +23,7 @@ class GrrCherryServer(object):
 
   def __init__(self):
     self.serverpem = config_lib.CONFIG["Frontend.certificate"]
-    registry.Init()
+    startup.Init()
     self.front_end = flow.FrontEndServer(
         certificate=config_lib.CONFIG["Frontend.certificate"],
         private_key=config_lib.CONFIG["PrivateKeys.server_key"],

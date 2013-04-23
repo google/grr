@@ -405,7 +405,9 @@ class MongoDataStore(data_store.DataStore):
       subject_prefix: Only consider those URNs with this subject prefix.
       token: The security token.
       subjects: Only consider the subjects from this list of URNs.
-      limit: Only return these many subjects.
+      limit: A (start, length) tuple of integers representing subjects to
+          return. Useful for paging. If its a single integer we take
+          it as the length limit (start=0).
       timestamp: The timestamp policy to use.
 
     Returns:

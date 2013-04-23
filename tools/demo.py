@@ -16,7 +16,7 @@ from grr.client import conf as flags
 from grr.client import client
 from grr.gui import runtests
 from grr.lib import config_lib
-from grr.lib import registry
+from grr.lib import startup
 from grr.tools import http_server
 from grr.worker import enroller
 from grr.worker import worker
@@ -31,10 +31,7 @@ def main(argv):
   flags.FLAGS.config = config_lib.CONFIG["Test.config"]
 
   config_lib.CONFIG.SetEnv("Environment.component", "Demo")
-
-  config_lib.ReloadConfig()
-
-  registry.TestInit()
+  startup.TestInit()
 
   # pylint: disable=unused-import,unused-variable,g-import-not-at-top
   from grr.gui import gui_plugins

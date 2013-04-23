@@ -62,15 +62,16 @@ class OSXEnumerateRunningServices(test_lib.EmptyActionTest):
   def ValidResponseProtoSingle(self, proto):
     td = testdata.JOB[0]
     self.assertEqual(proto.label, td["Label"])
-    self.assertEqual(proto.osx_launchd.lastexitstatus, td["LastExitStatus"])
+    self.assertEqual(proto.osx_launchd.lastexitstatus,
+                     td["LastExitStatus"].value)
     self.assertEqual(proto.osx_launchd.sessiontype,
                      td["LimitLoadToSessionType"])
     self.assertEqual(len(proto.osx_launchd.machservice),
                      len(td["MachServices"]))
-    self.assertEqual(proto.osx_launchd.ondemand, td["OnDemand"])
+    self.assertEqual(proto.osx_launchd.ondemand, td["OnDemand"].value)
     self.assertEqual(len(proto.args.split(" ")),
                      len(td["ProgramArguments"]))
-    self.assertEqual(proto.osx_launchd.timeout, td["TimeOut"])
+    self.assertEqual(proto.osx_launchd.timeout, td["TimeOut"].value)
     return True
 
   def testEnumerateRunningServicesAll(self):

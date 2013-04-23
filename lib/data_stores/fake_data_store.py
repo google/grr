@@ -373,7 +373,8 @@ class FakeDataStore(data_store.DataStore):
 
   @utils.Synchronized
   def DeleteAttributes(self, subject, attributes, start=None, end=None,
-                       token=None):
+                       token=None, sync=None):
+    _ = sync  # Unimplemented.
     self.security_manager.CheckAccess(token, [subject], "w")
     subject = utils.SmartUnicode(subject)
     try:

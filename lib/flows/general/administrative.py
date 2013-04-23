@@ -359,7 +359,7 @@ class OnlineNotification(flow.GRRFlow):
           subject,
           self.template % dict(
               client_id=self.client_id,
-              admin_ui=config_lib.CONFIG["ServerFlags.ui_url"],
+              admin_ui=config_lib.CONFIG["AdminUI.url"],
               hostname=hostname,
               urn=url,
               creator=self.token.username),

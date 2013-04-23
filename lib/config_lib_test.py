@@ -33,6 +33,8 @@ class ConfigLibTest(test_lib.GRRBaseTest):
 
     self.assertEquals(conf["NewSection1.new_option1"], "New Value1")
 
+    self.assertTrue("NewSection1" in conf.GetSections())
+
   def testSave(self):
     """Save the config and ensure it still works."""
     conf = config_lib.GrrConfigManager()

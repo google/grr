@@ -27,8 +27,8 @@ from grr.client import conf as flags
 
 from grr.gui import admin_ui
 from grr.lib import config_lib
-from grr.lib import registry
 from grr.lib import server_plugins  # pylint: disable=W0611
+from grr.lib import startup
 from grr.tools import http_server
 from grr.worker import enroller
 from grr.worker import worker
@@ -65,7 +65,7 @@ def main(argv):
     # want the component to do the initialization. Otherwise we initialize as
     # a SingleServer.
     config_lib.CONFIG.SetEnv("Environment.component", "SingleServer")
-    registry.Init()
+    startup.Init()
 
   # Start the worker thread if necessary.
   if flags.FLAGS.start_worker:

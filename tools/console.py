@@ -32,6 +32,7 @@ from grr.lib import artifact
 
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import export_utils
 from grr.lib import flow
 from grr.lib import flow_context
 from grr.lib import flow_utils
@@ -39,7 +40,8 @@ from grr.lib import hunts
 from grr.lib import ipshell
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
-from grr.lib import registry
+from grr.lib import search
+from grr.lib import startup
 from grr.lib import type_info
 
 from grr.lib import utils
@@ -48,7 +50,7 @@ from grr.lib.aff4_objects import reports
 
 from grr.lib.flows import console
 from grr.lib.flows.general import memory
-# pylint: enable=unused-import,g-bad-import-order
+# pylint: enable=unused-import
 
 
 flags.DEFINE_string("client", None,
@@ -65,52 +67,17 @@ def FormatISOTime(t):
 CWD = "/"
 
 
-def FindClient(query_str, token=None, limit=1000):
+def SearchClients(query_str, token=None, limit=1000):
   """Search indexes for clients. Returns list (client, hostname, os version)."""
   client_schema = aff4.AFF4Object.classes["VFSGRRClient"].SchemaCls
-  index_urn = client_schema.client_index
-  index = aff4.FACTORY.Create(index_urn, "AFF4Index", mode="r", token=token)
-  result_set = index.Query(
-      [client_schema.HOSTNAME, client_schema.USERNAMES],
-      query_str.lower(), limit=(0, limit))
   results = []
+  result_set = search.SearchClients(query_str, max_results=limit, token=token)
   for result in result_set:
     results.append((result,
                     str(result.Get(client_schema.HOSTNAME)),
                     str(result.Get(client_schema.OS_VERSION)),
+                    str(result.Get(client_schema.PING)),
                    ))
-  return results
-
-
-def SearchClient(hostname_regex=None, os_regex=None, mac_regex=None, limit=100):
-  """Search for clients and return as a list of dicts."""
-  schema = aff4_grr.VFSGRRClient.SchemaCls
-  filters = [
-      data_store.DB.filter.HasPredicateFilter(schema.HOSTNAME),
-      data_store.DB.filter.SubjectContainsFilter("aff4:/C.[^/]+")
-  ]
-  if hostname_regex:
-    filters.append(data_store.DB.filter.PredicateContainsFilter(
-        schema.HOSTNAME, hostname_regex))
-  if os_regex:
-    filters.append(data_store.DB.filter.PredicateContainsFilter(
-        schema.UNAME, os_regex))
-  if mac_regex:
-    filters.append(data_store.DB.filter.PredicateContainsFilter(
-        schema.MAC_ADDRES, mac_regex))
-  cols = [schema.HOSTNAME, schema.UNAME, schema.MAC_ADDRESS,
-          schema.INSTALL_DATE, schema.PING]
-
-  results = {}
-  for row in data_store.DB.Query(cols,
-                                 data_store.DB.filter.AndFilter(*filters),
-                                 limit=(0, limit),
-                                 subject_prefix="aff4:/"):
-    c_id = row["subject"][0][0]
-    results[c_id] = {}
-    for k, v in row.items():
-      if k.startswith("metadata:"):
-        results[c_id][k] = v[0]
   return results
 
 
@@ -395,7 +362,7 @@ def main(unused_argv):
             "Type help<enter> to get help\n\n")
 
   config_lib.CONFIG.SetEnv("Environment.component", "CommandLineTools")
-  registry.Init()
+  startup.Init()
 
   locals_vars = {"hilfe": Help,
                  "help": Help,

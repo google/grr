@@ -44,6 +44,7 @@ from grr.lib import scheduler
 
 # Server components must also be imported even when the client code is tested.
 from grr.lib import server_plugins  # pylint: disable=W0611
+from grr.lib import startup
 from grr.lib import utils
 from grr.test_data import client_fixture
 
@@ -199,13 +200,17 @@ class GRRBaseTest(unittest.TestCase):
     shutil.copyfile(config_path, self.config_file)
 
     # Recreate a new data store each time.
-    registry.TestInit()
+    startup.TestInit()
 
     # Parse the config as our copy.
     config_lib.CONFIG.Initialize(filename=self.config_file, reset=True,
                                  validate=False)
-    config_lib.CONFIG.ExecuteSection("Test")
 
+    # Set the flag as well in case someone wants to reload the config.
+    self.real_config = flags.FLAGS.config
+    flags.FLAGS.config = self.config_file
+
+    config_lib.CONFIG.ExecuteSection("Test")
     self.base_path = config_lib.CONFIG["Test.datadir"]
     self.token = access_control.ACLToken("test", "Running tests")
 
@@ -216,6 +221,7 @@ class GRRBaseTest(unittest.TestCase):
 
   def tearDown(self):
     shutil.rmtree(self.temp_dir, True)
+    flags.FLAGS.config = self.real_config
 
   def shortDescription(self):
     doc = self._testMethodDoc or ""
@@ -351,6 +357,10 @@ class FlowTestsBaseclass(GRRBaseTest):
       info = fd.Schema.CLIENT_INFO()
       info.client_name = "GRR Monitor"
       fd.Set(fd.Schema.CLIENT_INFO, info)
+      fd.Set(fd.Schema.PING, rdfvalue.RDFDatetime().Now())
+      fd.Set(fd.Schema.HOSTNAME("Host-%s" % i))
+      fd.Set(fd.Schema.FQDN("Host-%s.example.com" % i))
+      fd.Set(fd.Schema.MAC_ADDRESS("aabbccddee%02x" % i))
       fd.Close()
     return client_ids
 
@@ -1242,7 +1252,7 @@ class GrrTestProgram(unittest.TestProgram):
   def __init__(self, **kw):
     # Force the test config to be read in
     flags.FLAGS.config = config_lib.CONFIG["Test.config"]
-    registry.TestInit()
+    startup.TestInit()
 
     self.setUp()
     try:

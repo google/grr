@@ -2,7 +2,6 @@
 # Copyright 2010 Google Inc. All Rights Reserved.
 
 """This plugin renders the client search page."""
-import re
 import time
 
 from django.utils import datastructures
@@ -13,6 +12,7 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import search
 from grr.lib import stats
 from grr.lib import utils
 
@@ -373,53 +373,18 @@ class HostTable(renderers.TableRenderer):
         event_queue=self.event_queue,
         unique=self.unique, id=self.id)
 
-  def QueryWithDataStore(self, query_string, token, start, length):
-    """Query using the data store Query mechanism."""
-    for (pattern,
-         replacement) in [(r"host:([^\ ]+)", "Host contains '\\1'"),
-                          (r"id:([^\ ]+)", "( subject contains '\\1' and "
-                           "type = VFSGRRClient )"),
-                          (r"version:([^\ ]+)", "Version contains '\\1'"),
-                          (r"mac:([^\ ]+)", "MAC contains '\\1'"),
-                          (r"user:([^\ ]+)", "Usernames contains '\\1'")]:
-      query_string = re.sub(pattern, replacement, query_string)
-
-    root = aff4.FACTORY.Create(aff4.ROOT_URN, "AFF4Volume", "r",
-                               token=token)
-    return root.Query(query_string, limit=(start, length))
-
   @stats.Timed("grr_gui_search_host_time")
   def BuildTable(self, start, end, request):
     """Draw table cells."""
-    length = end - start
     row_count = 0
 
     query_string = request.REQ.get("q", "")
     if not query_string:
       raise RuntimeError("A query string must be provided.")
 
-    match = re.search(r"(C\.[0-9a-f]{16})", query_string)
-    if match:
-      client_id = match.group(1)
-      result_set = [aff4.FACTORY.Open("aff4:/%s" % client_id,
-                                      token=request.token)]
-
-    # More complex searches are done through the data_store.Query()
-    elif ":" in query_string:
-      result_set = self.QueryWithDataStore(query_string, request.token,
-                                           start, length)
-
-    # Default to searching host names through the index which is much faster.
-    else:
-      client_schema = aff4.AFF4Object.classes["VFSGRRClient"].SchemaCls
-      index_urn = client_schema.client_index
-      index = aff4.FACTORY.Create(index_urn, "AFF4Index", mode="r",
-                                  token=request.token)
-
-      result_set = index.Query(
-          [client_schema.HOSTNAME, client_schema.USERNAMES],
-          query_string.lower(), limit=(start, end))
-
+    result_set = search.SearchClients(query_string, start=start,
+                                      max_results=end-start,
+                                      token=request.token)
     self.message = "Searched for %s" % query_string
 
     for child in result_set:

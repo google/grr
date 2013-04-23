@@ -16,7 +16,7 @@ from grr.lib import server_plugins
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import export_utils
-from grr.lib import registry
+from grr.lib import startup
 
 
 flags.DEFINE_string("collection", None,
@@ -63,7 +63,7 @@ def main(unused_argv):
     sys.exit(1)
 
   config_lib.CONFIG.SetEnv("Environment.component", "CommandLineTools")
-  registry.Init()
+  startup.Init()
   if FLAGS.collection:
     export_utils.DownloadCollection(FLAGS.collection, FLAGS.output,
                                     overwrite=FLAGS.overwrite,

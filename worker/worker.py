@@ -19,7 +19,7 @@ from grr.lib import server_plugins
 from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import flow
-from grr.lib import registry
+from grr.lib import startup
 
 
 config_lib.DEFINE_string("Worker.queue_name", "W",
@@ -31,10 +31,7 @@ def main(unused_argv):
   config_lib.CONFIG.SetEnv("Environment.component", "Worker")
 
   # Initialise flows
-  registry.Init()
-
-  # Make the worker section override all others.
-  config_lib.CONFIG.ExecuteSection("Worker")
+  startup.Init()
 
   # Start a worker
   token = access_control.ACLToken("GRRWorker", "Implied.")

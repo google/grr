@@ -8,4 +8,5 @@
 from grr.lib.aff4_objects import aff4_grr_test
 from grr.lib.aff4_objects import benchmark_test
 from grr.lib.aff4_objects import cronjobs_test
+from grr.lib.aff4_objects import reports_test
 from grr.lib.aff4_objects import timeline_test

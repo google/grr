@@ -24,7 +24,7 @@ from grr.client import client_actions
 from grr.client import vfs
 from grr.lib import config_lib
 from grr.lib import rdfvalue
-from grr.lib import registry
+from grr.lib import startup
 
 flags.DEFINE_integer("nrclients", 1,
                      "Number of clients to start")
@@ -134,7 +134,7 @@ def main(unused_argv):
   config_lib.CONFIG.SetEnv("Environment.component",
                            "PoolClient%s" % platform.system().title())
 
-  registry.Init()
+  startup.Init()
 
   # Make sure that we do not update the config file when we create new clients.
   config_lib.CONFIG.parser.filename = "/dev/null"

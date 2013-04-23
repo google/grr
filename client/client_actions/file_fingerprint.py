@@ -34,6 +34,7 @@ class FingerprintFile(standard.ReadBuffer):
     with vfs.VFSOpen(args.pathspec) as file_obj:
       fingerprinter = fingerprint.Fingerprinter(file_obj)
       response = rdfvalue.FingerprintResponse()
+      response.pathspec = file_obj.pathspec
       if args.tuples:
         tuples = args.tuples
       else:

@@ -4,6 +4,8 @@
 # Copyright 2011 Google Inc. All Rights Reserved.
 """Tests for Interrogate."""
 
+import socket
+
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import rdfvalue
@@ -41,7 +43,8 @@ class InterrogatedClient(object):
         addresses=[
             rdfvalue.NetworkAddress(
                 address_type=rdfvalue.NetworkAddress.Enum("INET"),
-                human_readable="127.0.0.1"
+                human_readable="127.0.0.1",
+                packed_bytes=socket.inet_aton("127.0.0.1")
                 )]
         )]
 
@@ -159,11 +162,13 @@ class TestInterrogate(test_lib.FlowTestsBaseclass):
     net_fd = fd.OpenMember("network")
     interfaces = list(net_fd.Get(net_fd.Schema.INTERFACES))
     self.assertEqual(interfaces[0].mac_address, "123456")
-    self.assertEqual(interfaces[0].ip4_addresses, ["127.0.0.1"])
+    self.assertEqual(interfaces[0].addresses[0].human_readable, "127.0.0.1")
+    self.assertEqual(socket.inet_ntoa(interfaces[0].addresses[0].packed_bytes),
+                     "127.0.0.1")
 
     # Mac addresses should be available as hex for searching
     mac_addresses = fd.Get(fd.Schema.MAC_ADDRESS)
-    self.assert_("123456".encode("hex") in str(mac_addresses))
+    self.assertTrue("123456".encode("hex") in str(mac_addresses))
 
     # Check that virtual directories exist for the mount points
     fd = aff4.FACTORY.Open(self.client_id + "/fs/os/mnt/data", token=self.token)

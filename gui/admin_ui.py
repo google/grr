@@ -21,6 +21,7 @@ from grr.client import conf
 
 from grr.lib import config_lib
 from grr.lib import registry
+from grr.lib import startup
 
 
 config_lib.DEFINE_integer("AdminUI.port", 8000, "port to listen on")
@@ -91,7 +92,7 @@ class ThreadingDjango(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
 def main(_):
   """Run the main test harness."""
   config_lib.CONFIG.SetEnv("Environment.component", "AdminUI")
-  registry.Init()
+  startup.Init()
 
   # Start up a server in another thread
   base_url = "http://%s:%d" % (config_lib.CONFIG["AdminUI.bind"],

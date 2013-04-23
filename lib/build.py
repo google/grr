@@ -12,10 +12,14 @@ import shutil
 import struct
 import subprocess
 import sys
+import tempfile
 import zipfile
+
+from grr.client import conf as flags
 
 from grr.lib import config_lib
 from grr.lib import rdfvalue
+from grr.lib import startup
 from grr.lib import type_info
 
 
@@ -205,6 +209,30 @@ config_lib.DEFINE_list(
     help="Plugins that will copied to the client installation file and run when"
     "the client is running.")
 
+config_lib.DEFINE_string(
+    name="ClientBuilder.client_logging_filename",
+    default="%(Logging.path)/GRRlog.txt",
+    help="Filename for logging, to be copied to Client section in the client "
+    "that gets built.")
+
+config_lib.DEFINE_string(
+    name="ClientBuilder.client_logging_path",
+    default="/tmp",
+    help="Filename for logging, to be copied to Client section in the client "
+    "that gets built.")
+
+config_lib.DEFINE_list(
+    name="ClientBuilder.client_logging_engines",
+    default=["stderr", "file"],
+    help="Enabled logging engines, to be copied to Logging.engines in client "
+    "configuration.")
+
+config_lib.DEFINE_string(
+    name="ClientBuilder.client_installer_logfile",
+    default="%(Logging.path)/%(Client.name)_installer.txt",
+    help="Logfile for logging the client installation process, to be copied to"
+    " Installer.logfile in client built.")
+
 config_lib.DEFINE_bool(
     name="ClientBuilder.zip_sfx_console_enabled",
     default=False,
@@ -217,6 +245,17 @@ class ClientBuilder(object):
 
   COMPONENT_NAME = "ClientBuilder"
   CONFIG_SECTIONS = ["CA", "Client", "Logging"]
+
+  BUILD_OPTION_MAP = [
+      ("ClientBuilder.installer_plugins", "Installer.plugins"),
+      ("ClientBuilder.installer_logfile", "Installer.logfile"),
+      ("ClientBuilder.client_logging_path", "Logging.path"),
+      ("ClientBuilder.client_logging_filename", "Logging.filename"),
+      ("ClientBuilder.client_logging_engines", "Logging.engines"),
+      ("ClientBuilder.plugins", "Client.plugins")]
+
+  # Config options that should never make it to a deployable binary.
+  SKIP_OPTION_LIST = ["Client.certificate", "Client.private_key"]
 
   def FindLibraryPaths(self):
     """Figure out where distorm is so PyInstaller can find it."""
@@ -236,6 +275,34 @@ class ClientBuilder(object):
     except ImportError:
       logging.warn("Volatility Tech Preview was not found. "
                    "Client side Memory Analysis will not be available.")
+
+  def ValidateEndConfig(self, config, errors_fatal=True):
+    """Given a generated client config, attempt to check for common errors."""
+    errors = []
+    if not config["Client.location"].startswith("http"):
+      errors.append("Bad Client.location specified %s" %
+                    config["Client.location"])
+
+    keys = ["Client.executable_signing_public_key",
+            "Client.driver_signing_public_key"]
+    for key in keys:
+      if not config[key].startswith("-----BEGIN PUBLIC"):
+        errors.append("Missing or corrupt private %s" % key)
+
+    if not config["CA.certificate"].startswith("-----BEGIN CERTIF"):
+      errors.append("CA certificate missing from config.")
+
+    for bad_opt in ["Client.certificate", "Client.private_key"]:
+      if config[bad_opt] is not None:
+        errors.append("Client cert in conf, this should be empty at deployment"
+                      " %s" % bad_opt)
+
+    if errors_fatal and errors:
+      for error in errors:
+        print "Build Config Error: %s" % error
+      raise RuntimeError("Bad configuration generated. Terminating.")
+    else:
+      return errors
 
   def MakeBuildDirectory(self):
     """Prepares the build directory."""
@@ -310,38 +377,39 @@ class ClientBuilder(object):
 
     config_lib.CONFIG.Set("Client.build_time", str(rdfvalue.RDFDatetime()))
 
-    for src_option, target_option in [
-        ("ClientBuilder.installer_plugins", "Installer.plugins"),
-        ("ClientBuilder.installer_logfile", "Installer.logfile"),
-        ("ClientBuilder.client_logging_path", "Logging.path"),
-        ("ClientBuilder.client_logging_file", "Logging.filename"),
-        ("ClientBuilder.plugins", "Client.plugins")]:
-      if config_lib.CONFIG[src_option]:
-        config_lib.CONFIG.Set(target_option,
-                              config_lib.CONFIG[src_option])
-
     # Only copy certain sections to the client.
     for section, data in config_lib.CONFIG.raw_data.items():
       if section not in self.CONFIG_SECTIONS:
         continue
-
       new_config.raw_data[section] = data
+
+    # Copy config options from the ClientBuilder to the resulting config.
+    for src_option, target_option in self.BUILD_OPTION_MAP:
+      if config_lib.CONFIG[src_option]:
+        config_lib.CONFIG.SetRaw(target_option,
+                                 config_lib.CONFIG.GetRaw(src_option))
+
+    # Remove any unwanted options as the last thing we do.
+    for item in self.SKIP_OPTION_LIST:
+      section, option = item.split(".", 1)
+      if section in new_config.raw_data:
+        if option in new_config.raw_data[section]:
+          del new_config.raw_data[section][option]
 
     fd = cStringIO.StringIO()
     new_config.WriteToFD(fd)
     fd.seek(0)
     return fd.read()
 
-  def BackupClientConfig(self, new_config_data=None):
-    new_config_data = new_config_data or self.GetClientConfig()
+  def BackupClientConfig(self, output_path):
+    new_config_data = self.GetClientConfig()
 
-    config_path = config_lib.CONFIG["ClientBuilder.generated_config_path"]
-    if config_path:
-      if not os.path.exists(os.path.dirname(config_path)):
-        os.makedirs(os.path.dirname(config_path))
-      with open(config_path, mode="wb") as fd:
+    if output_path:
+      if not os.path.exists(os.path.dirname(output_path)):
+        os.makedirs(os.path.dirname(output_path))
+      with open(output_path, mode="wb") as fd:
         fd.write(new_config_data)
-    return config_path
+    return output_path
 
   def MakeZip(self, input_dir, output_file):
     """Creates a ZIP archive of the files in the input directory.
@@ -363,8 +431,7 @@ class WindowsClientBuilder(ClientBuilder):
   COMPONENT_NAME = "ClientBuildWindows"
 
   # Additional sections to be copied to the windows client configuration file.
-  CONFIG_SECTIONS = (ClientBuilder.CONFIG_SECTIONS +
-                     ["NannyWindows", "ClientBuilder", "ClientBuildWindows"])
+  CONFIG_SECTIONS = (ClientBuilder.CONFIG_SECTIONS + ["NannyWindows"])
 
   def BuildNanny(self):
     """Use VS2010 to build the windows Nanny service."""
@@ -418,12 +485,80 @@ class WindowsClientBuilder(ClientBuilder):
     logging.info("Generating zip template file at %s", output_file)
     self.MakeZip(self.output_dir, output_file)
 
+  def ValidateEndConfig(self, config, errors_fatal=True):
+    """Windows specific config validations."""
+    errors = super(WindowsClientBuilder, self).ValidateEndConfig(
+        config, errors_fatal=errors_fatal)
+
+    if config.GetRaw("Logging.path").startswith("/"):
+      errors.append("Logging.path starts with /, probably has Unix path. %s" %
+                    config["Logging.path"])
+    if "Windows\\" in config["Logging.path"]:
+      errors.append("Windows in Logging.path, you probably want "
+                    "%(WINDIR|env) instead")
+    if not config["Client.binary_name"].endswith(".exe"):
+      errors.append("Missing .exe extension on binary_name %s" %
+                    config["Client.binary_name"])
+    if not config["NannyWindows.nanny_binary"].endswith(".exe"):
+      errors.append("Missing .exe extension on nanny_binary")
+
+    if errors_fatal and errors:
+      for error in errors:
+        print "Build Config Error: %s" % error
+      raise RuntimeError("Bad configuration generated. Terminating.")
+    else:
+      return errors
+
   def MakeDeployableBinary(self, template_path, output_path):
     """Repackage the template zip with the installer."""
-    zip_data = cStringIO.StringIO()
-    zip_data.write(open(template_path, "rb").read())
+    client_config_content = self.GetClientConfig()
 
-    z = zipfile.ZipFile(zip_data, mode="a")
+    # Attempt to load and validate our generated config to detect any errors.
+    tmp_conf = tempfile.mkstemp(suffix="conf")[1]
+    config_out = self.BackupClientConfig(output_path=tmp_conf)
+    tmp_client_config = config_lib.LoadConfig(config_obj=None,
+                                              config_file=config_out)
+    errors = self.ValidateEndConfig(tmp_client_config, errors_fatal=True)
+    os.unlink(tmp_conf)
+    for error in errors:
+      logging.error(error)
+
+    zip_data = cStringIO.StringIO()
+    z = zipfile.ZipFile(zip_data, mode="w", compression=zipfile.ZIP_DEFLATED)
+
+    z_template = zipfile.ZipFile(open(template_path, "rb"))
+
+    completed_files = []  # Track which files we've copied already.
+
+    # Change the name of the main binary to the configured name.
+    client_bin_name = config_lib.CONFIG["Client.binary_name"]
+    try:
+      bin_name = z_template.getinfo(client_bin_name)
+    except KeyError:
+      bin_name = z_template.getinfo("GRR.exe")
+    bin_dat = cStringIO.StringIO()
+    bin_dat.write(z_template.read(bin_name))
+    # Set output to console on binary if needed.
+    SetPeSubsystem(bin_dat, console=config_lib.CONFIG["PyInstaller.console"])
+    z.writestr(client_bin_name, bin_dat.getvalue())
+    CopyFileInZip(z_template, "%s.manifest" % bin_name.filename, z,
+                  "%s.manifest" % client_bin_name)
+    completed_files.append(bin_name.filename)
+    completed_files.append("%s.manifest" % bin_name.filename)
+
+    # Change the name of the service binary to the configured name.
+    service_bin_name = config_lib.CONFIG["NannyWindows.service_binary_name"]
+    try:
+      bin_name = z_template.getinfo(service_bin_name)
+    except KeyError:
+      bin_name = z_template.getinfo("GRRservice.exe")
+    CopyFileInZip(z_template, bin_name, z, service_bin_name)
+    completed_files.append(bin_name.filename)
+
+    # Copy the rest of the files from the template to the new zip.
+    for template_file in z_template.namelist():
+      if template_file not in completed_files:
+        CopyFileInZip(z_template, template_file, z)
 
     # The zip file comment is used by the self extractor to run
     # the installation script
@@ -444,7 +579,7 @@ class WindowsClientBuilder(ClientBuilder):
                  open(plugin, "rb").read(), zipfile.ZIP_STORED)
 
     z.writestr(config_lib.CONFIG["ClientBuilder.config_filename"],
-               self.GetClientConfig(), compress_type=zipfile.ZIP_STORED)
+               client_config_content, compress_type=zipfile.ZIP_STORED)
 
     z.close()
 
@@ -614,6 +749,14 @@ class DarwinClientBuilder(ClientBuilder):
     return output_path
 
 
+def CopyFileInZip(from_zip, from_name, to_zip, to_name=None):
+  """Read a file from a ZipFile and write it to a new ZipFile."""
+  data = from_zip.read(from_name)
+  if to_name is None:
+    to_name = from_name
+  to_zip.writestr(to_name, data)
+
+
 def SetPeSubsystem(fd, console=True):
   """Takes file like obj and returns (offset, value) for the PE subsystem."""
   current_pos = fd.tell()
@@ -662,28 +805,29 @@ def RepackAllBinaries(executables_dir="./executables"):
     A list of tuples containing (output_file, platform, architecture)
   """
   built = []
-  saved_environment_component = config_lib.CONFIG.GetEnv("component")
-
   for dat in GetTemplateVersions(executables_dir):
     # Clean out the config in case others have polluted it.
 
     tmpl_path, plat, name, version, arch = dat
     print "\n## Repacking %s %s %s %s client" % (name, plat, arch, version)
 
-    filename = os.path.basename(tmpl_path)
+    n_name = config_lib.CONFIG["Client.name"]
     plat = plat.title()
     if plat == "Windows":
       builder = WindowsClientBuilder()
-      final_filename = os.path.splitext(filename)[0] + ".exe"   # s/zip/exe
+      final_filename = "%s_%s_%s.exe" % (n_name, version, arch)
     elif plat == "Darwin":
       builder = DarwinClientBuilder()
-      final_filename = os.path.splitext(filename)[0] + ".pkg"  # s/zip/pkg
+      final_filename = "%s_%s_%s.pkg" % (n_name, version, arch)
     else:
       logging.error("No currently supported builder for platform %s", plat)
       continue
 
-    config_lib.CONFIG.SetEnv("Environment.component", builder.COMPONENT_NAME)
-    config_lib.ReloadConfig()
+    # Modify the running config to be clean, and use the builders environment.
+    config_lib.LoadConfig(config_lib.CONFIG, config_file=flags.FLAGS.config,
+                          secondary_configs=flags.FLAGS.secondary_configs,
+                          component_section=builder.COMPONENT_NAME,
+                          execute_sections=flags.FLAGS.config_execute)
 
     # Setup the config for the build.
     config_lib.CONFIG.Set("ClientBuilder.platform", plat.lower())
@@ -698,15 +842,13 @@ def RepackAllBinaries(executables_dir="./executables"):
     installer_path = os.path.join(installer_path, final_filename)
 
     template_path = config_lib.CONFIG["ClientBuilder.template_path"]
-    config_out = builder.BackupClientConfig()
+    config_out = builder.BackupClientConfig(
+        output_path=config_lib.CONFIG["ClientBuilder.generated_config_path"])
     out = builder.MakeDeployableBinary(template_path, installer_path)
     built.append((out, config_out, plat, arch))
     print "Packed to %s" % out
 
-  # Restore the config back to its previous state.
-  if saved_environment_component:
-    config_lib.CONFIG.SetEnv("Environment.component",
-                             saved_environment_component)
-  config_lib.ReloadConfig()
+    # Restore the config back to its previous state.
+    startup.ConfigInit()
 
   return built

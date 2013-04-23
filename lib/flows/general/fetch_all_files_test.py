@@ -63,7 +63,10 @@ class TestFetchAllFilesFlow(test_lib.FlowTestsBaseclass):
     fd2 = aff4.FACTORY.Open(delegate, token=self.token)
     self.assertEqual(fd2.__class__, standard.HashImage)
     fingerprint2 = fd2.Get(fd2.Schema.FINGERPRINT)
-    self.assertProto2Equal(fingerprint._data, fingerprint2._data)
+    self.assertEqual(fingerprint.matching_types,
+                     fingerprint2.matching_types)
+    self.assertEqual(fingerprint.fingerprint_results,
+                     fingerprint2.fingerprint_results)
 
   def testPresenceOfSignedData(self):
     inspect_path = self.findspec.pathspec

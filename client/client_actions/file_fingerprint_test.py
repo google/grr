@@ -47,6 +47,8 @@ class FilehashTest(test_lib.EmptyActionTest):
     for f in fingers:
       self.assertTrue(ti_map[f] in types)
 
+    self.assertEquals(result[0].pathspec.path, path)
+
   def testMissingFile(self):
     """Fail on missing file?"""
     path = os.path.join(self.base_path, "this file does not exist")

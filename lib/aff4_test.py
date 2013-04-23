@@ -9,6 +9,8 @@ from grr.client import conf
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
+# Import this so the aff4 tests will be run.
+from grr.lib.aff4_objects import tests
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import aff4

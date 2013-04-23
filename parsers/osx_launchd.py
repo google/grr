@@ -34,8 +34,8 @@ class OSXLaunchdJobDict(object):
     self.launchdjobs = launchdjobs
 
     self.blacklist_regex = [
-        re.compile('^0x[a-z0-9]+\.anonymous\..+$'),
-        re.compile('^0x[a-z0-9]+\.mach_init\.(crash_inspector|Inspector)$'),
+        re.compile(r'^0x[a-z0-9]+\.anonymous\..+$'),
+        re.compile(r'^0x[a-z0-9]+\.mach_init\.(crash_inspector|Inspector)$'),
         ]
 
   def Parse(self):

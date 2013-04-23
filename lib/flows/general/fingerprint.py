@@ -52,10 +52,7 @@ class FingerprintFile(flow.GRRFlow):
 
     response = responses.First()
 
-    # TODO(user): This is a bug - the fingerprinter client action should
-    # return the pathspec it actually created to access the file - this corrects
-    # for file casing etc.
-    self.urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(self.pathspec,
+    self.urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(response.pathspec,
                                                           self.client_id)
     fd = aff4.FACTORY.Create(self.urn, "VFSFile", mode="w", token=self.token)
     fingerprint = fd.Schema.FINGERPRINT(response)

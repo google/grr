@@ -13,11 +13,9 @@ import sys
 
 
 from grr.client import conf
+from grr.client import conf as flags
 
 # pylint: disable=unused-import,g-bad-import-order
-# Client pieces need to be imported and registered for repack_clients command.
-from grr.client import client_plugins
-from grr.client import installer
 from grr.lib import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
@@ -37,7 +35,7 @@ except ImportError:
 
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
-from grr.lib import registry
+from grr.lib import startup
 from grr.lib import utils
 
 parser = conf.PARSER
@@ -156,18 +154,21 @@ def LoadMemoryDrivers(grr_dir):
 
   f_path = os.path.join(
       grr_dir, config_lib.CONFIG["MemoryDriverDarwin.driver_file_amd64"])
+  print "Signing and uploading %s" % f_path
   up_path = maintenance_utils.UploadSignedDriverBlob(
       open(f_path).read(), platform="Darwin", file_name="osxpmem")
   print "uploaded %s" % up_path
 
   f_path = os.path.join(
       grr_dir, config_lib.CONFIG["MemoryDriverWindows.driver_file_i386"])
+  print "Signing and uploading %s" % f_path
   up_path = maintenance_utils.UploadSignedDriverBlob(
       open(f_path).read(), platform="Windows", file_name="winpmem.i386.sys")
   print "uploaded %s" % up_path
 
   f_path = os.path.join(
       grr_dir, config_lib.CONFIG["MemoryDriverWindows.driver_file_amd64"])
+  print "Signing and uploading %s" % f_path
   up_path = maintenance_utils.UploadSignedDriverBlob(
       open(f_path).read(), platform="Windows", file_name="winpmem.amd64.sys")
   print "uploaded %s" % up_path
@@ -279,8 +280,14 @@ Address where high priority events such as an emergency ACL bypass are sent.
          config.parser)
 
 
-def Initialize(config):
+def Initialize(config=None):
   """Initialize or update a GRR configuration."""
+
+  # Start with a clean config ignoring anything the user sent us apart from
+  # the file we are parsing. Make sure we set it back afterwards.
+  config_lib.LoadConfig(config,
+                        config_file=flags.FLAGS.config)
+
   print "Checking read access on config %s" % config.parser
   if not os.access(config.parser.filename, os.W_OK):
     raise IOError("Config not writeable (need sudo?)")
@@ -293,6 +300,12 @@ def Initialize(config):
   else:
     GenerateKeys(config)
 
+  print "\nStep 3: Setting Basic Configuration Parameters"
+  ConfigureBaseOptions(config)
+
+  # Now load our modified config.
+  startup.ConfigInit()
+
   print "\nStep 2: Adding Admin User"
   password = getpass.getpass(prompt="Please enter password for user 'admin': ")
   data_store.DB.security_manager.user_manager.UpdateUser(
@@ -302,15 +315,23 @@ def Initialize(config):
   print "\nStep 3: Uploading Memory Drivers to the Database"
   LoadMemoryDrivers(args.share_dir)
 
-  print "\nStep 3: Setting Basic Configuration Parameters"
-  ConfigureBaseOptions(config_lib.CONFIG)
-
   print "\nStep 4: Repackaging clients with new configuration."
   RepackAndUpload(os.path.join(args.share_dir, "executables"), upload=True)
+
+  print "\nInitialization complete."
+  print "Please restart the service for it to take effect.\n\n"
 
 
 def RepackAndUpload(executables_dir, upload=True):
   """Repack all clients and upload them."""
+  # Client pieces need to be imported and registered for running the
+  # build and repack, but are not required for other plugins. Importing here
+  # reduces confusion and dependencies.
+  # pylint: disable=unused-variable
+  from grr.client import client_plugins
+  from grr.client import installer
+  # pylint: disable=unused-variable
+
   built = build.RepackAllBinaries(executables_dir=executables_dir)
   if upload:
     print "\n## Uploading"
@@ -339,7 +360,7 @@ def UploadRaw(file_path, aff4_path):
 def main(unused_argv):
   """Main."""
   config_lib.CONFIG.SetEnv("Environment.component", "CommandLineTools")
-  registry.Init()
+  startup.Init()
   global args  # pylint: disable=global-statement
   args=conf.FLAGS
 

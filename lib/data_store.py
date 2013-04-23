@@ -222,7 +222,7 @@ class DataStore(object):
 
   @abc.abstractmethod
   def DeleteAttributes(self, subject, predicates, start=None, end=None,
-                       token=None):
+                       sync=False, token=None):
     """Remove all specified predicates.
 
     Args:
@@ -230,6 +230,7 @@ class DataStore(object):
       predicates: A list of predicate URN.
       start: A timestamp, attributes older than start will not be deleted.
       end: A timestamp, attributes newer than end will not be deleted.
+      sync: If true we block until the operation completes.
       token: An ACL token.
     """
 
@@ -344,9 +345,9 @@ class DataStore(object):
      subject_prefix: A prefix restriction for subjects.
      token: An ACL token.
      subjects: A list of subject names which the query applies to.
-     limit: A (start, end) tuple of integers representing subjects to
+     limit: A (start, length) tuple of integers representing subjects to
             return. Useful for paging. If its a single integer we take
-            it as the end limit (start=0).
+            it as the length limit (start=0).
      timestamp: A range of times for consideration (In
                 microseconds). Can be a constant such as ALL_TIMESTAMPS or
                 NEWEST_TIMESTAMP or a tuple of ints (start, end).

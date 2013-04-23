@@ -172,6 +172,7 @@ class Factory(object):
 
     Args:
       urn: The AFF4 object for which we update the index.
+
       token: The token to use.
     """
     try:
@@ -924,6 +925,7 @@ class AFF4Object(object):
     self.token = token
     self.age_policy = age
     self.follow_symlinks = follow_symlinks
+    self.lock = utils.PickleableLock()
 
     # This flag will be set whenever a versioned attribute is changed.
     self._new_version = False
@@ -1036,6 +1038,7 @@ class AFF4Object(object):
     # we remove all mode permissions from this object.
     self.mode = ""
 
+  @utils.Synchronized
   def _WriteAttributes(self, sync=True):
     """Write the dirty attributes to the data store."""
 
@@ -1070,6 +1073,7 @@ class AFF4Object(object):
       # Notify the factory that this object got updated.
       FACTORY.NotifyWriteObject(self)
 
+  @utils.Synchronized
   def _SyncAttributes(self):
     """Sync the new attributes to the synced attribute cache.
 
@@ -1155,6 +1159,7 @@ class AFF4Object(object):
     self._AddAttributeToCache(attribute, value, self.new_attributes)
     self._dirty = True
 
+  @utils.Synchronized
   def DeleteAttribute(self, attribute):
     """Clears the attribute from this object."""
     if attribute in self.synced_attributes:

@@ -61,6 +61,16 @@ class TestExecutePython(test_lib.EmptyActionTest):
     # Make sure the code never ran.
     self.assertEqual(utils.TEST_VAL, "original")
 
+  def testExecuteBrokenPython(self):
+    """Test broken code raises back to the original flow."""
+    python_code = "raise ValueError"
+    signed_blob = rdfvalue.SignedBlob()
+    signed_blob.Sign(python_code, self.signing_key)
+    request = rdfvalue.ExecutePythonRequest(python_code=signed_blob)
+
+    self.assertRaises(ValueError,
+                      self.RunAction, "ExecutePython", request)
+
   def testExecuteBinary(self):
     """Test the basic ExecuteBinaryCommand action."""
     signed_blob = rdfvalue.SignedBlob()

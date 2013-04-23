@@ -10,6 +10,8 @@ import platform
 import sys
 import time
 
+from grr.client import conf as flags
+
 # pylint: disable=W0611
 from grr.client import client_plugins
 # pylint: enable=W0611
@@ -18,7 +20,7 @@ from grr.client import conf
 
 from grr.lib import build
 from grr.lib import config_lib
-from grr.lib import registry
+from grr.lib import startup
 from grr.lib import type_info
 
 parser = conf.PARSER
@@ -87,7 +89,7 @@ def main(_):
   """Launch the appropriate builder."""
   config_lib.CONFIG.SetEnv("Environment.component", "ClientBuilder")
 
-  registry.Init()
+  startup.Init()
 
   if args.platform == "darwin":
     builder = build.DarwinClientBuilder()
@@ -95,6 +97,12 @@ def main(_):
     builder = build.WindowsClientBuilder()
   elif args.platform == "linux":
     builder = build.LinuxClientbuilder()
+
+  # Modify the running config to be clean, and use the builders environment.
+  config_lib.LoadConfig(config_lib.CONFIG, config_file=flags.FLAGS.config,
+                        secondary_configs=flags.FLAGS.secondary_configs,
+                        component_section=builder.COMPONENT_NAME,
+                        execute_sections=flags.FLAGS.config_execute)
 
   if args.subparser_name == "build":
     builder.MakeExecutableTemplate()

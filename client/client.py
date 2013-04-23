@@ -13,7 +13,7 @@ from grr.client import client_plugins
 
 from grr.client import comms
 from grr.lib import config_lib
-from grr.lib import registry
+from grr.lib import startup
 
 
 class GRRClient(object):
@@ -38,7 +38,7 @@ def main(unused_args):
   # Allow per platform configuration.
   config_lib.CONFIG.SetEnv("Environment.component",
                            "Client%s" % platform.system().title())
-  registry.Init()
+  startup.Init()
 
   config_lib.CONFIG.Validate(["Client", "CA", "Logging"])
 

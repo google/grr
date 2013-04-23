@@ -314,9 +314,20 @@ class UsersRenderer(renderers.RDFValueArrayRenderer):
   name = "Users"
 
 
-class InterfaceRenderer(renderers.RDFValueArrayRenderer):
+class NetworkAddressRenderer(renderers.RDFValueRenderer):
+  classname = "NetworkAddress"
+  name = "Network Address"
+  layout_template = renderers.Template("{{result|escape}}")
+
+  def Layout(self, request, response):
+    _ = request, response
+    return self.RenderFromTemplate(self.layout_template, response,
+                                   result=self.proxy.HumanReadableAddress())
+
+
+class InterfaceRenderer(renderers.RDFProtoRenderer):
   """Render a machine's interfaces."""
-  classname = "Interfaces"
+  classname = "Interface"
   name = "Interface Record"
 
   def TranslateIp4Addresses(self, _, value):
@@ -328,25 +339,9 @@ class InterfaceRenderer(renderers.RDFValueArrayRenderer):
   def TranslateIp6Addresses(self, _, value):
     return " ".join([socket.inet_ntop(socket.AF_INET6, x) for x in value])
 
-  def TranslateNetworkAddresses(self, _, addresses):
-    """Renders the Interface probobuf."""
-    output_strings = []
-    for address in addresses:
-      if address.human_readable:
-        output_strings.append(address.human_readable)
-      else:
-        if address.address_type == rdfvalue.NetworkAddress.Enum("INET"):
-          output_strings.append(socket.inet_ntop(socket.AF_INET,
-                                                 address.packed_bytes))
-        else:
-          output_strings.append(socket.inet_ntop(socket.AF_INET6,
-                                                 address.packed_bytes))
-    return "<br>".join(output_strings)
-
   translator = dict(ip4_addresses=TranslateIp4Addresses,
                     ip6_addresses=TranslateIp6Addresses,
-                    mac_address=TranslateMacAddress,
-                    addresses=TranslateNetworkAddresses)
+                    mac_address=TranslateMacAddress)
 
 
 class ConfigRenderer(renderers.RDFProtoRenderer):

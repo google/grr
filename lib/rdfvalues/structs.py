@@ -466,10 +466,11 @@ class RepeatedFieldHelper(object):
     return len(self.wrapped_list)
 
   def __eq__(self, other):
+    if len(self) != len(other):
+      return False
     for x, y in zip(self, other):
       if x != y:
         return False
-
     return True
 
   def __str__(self):

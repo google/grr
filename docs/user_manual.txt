@@ -179,7 +179,7 @@ If the installer is failing to run, it should output a log file which will help
 you debug. The location of the logfile is configurable, but by default should
 be:
 
-- Windows: c:\windows\system32\logfiles\GRR_installer.txt
+- Windows: %WinDir%\system32\logfiles\GRR_installer.txt
 - Linux/Mac OSX: /tmp/grr_installer.txt
 
 To make debugging easier, we also support repacking the client with verbosity
@@ -191,6 +191,11 @@ repack_clients
 --------------------------------------------------------------------------------
 Then download the new binary. It should have the same configuration, but will
 output detailed progress to the console, making it easier to debug.
+
+Note that the binary is also a zipfile, you can open it in any capable zip
+reader. Unfortunately this doesn't include the built in Windows zip file handler
+but does include winzip or 7-zip. Opening the zip is useful for reading the
+config or checking that the right dependencies have been included.
 
 Interactively Debugging the Client
 ++++++++++++++++++++++++++++++++++

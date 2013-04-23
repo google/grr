@@ -12,10 +12,9 @@ from grr.client import conf
 
 from grr.lib import config_lib
 # pylint: disable=W0611
-from grr.lib import registry
 from grr.lib import server_plugins
 # pylint: enable=W0611
-
+from grr.lib import startup
 from grr.lib.aff4_objects import cronjobs
 
 config_lib.DEFINE_integer("Cron.override_frequency", None,
@@ -32,7 +31,7 @@ def main(unused_argv):
   config_lib.CONFIG.SetEnv("Environment.component", "Cron")
 
   # Initialize everything
-  registry.Init()
+  startup.Init()
 
   cronjobs.RunAllCronJobs(
       override_frequency=config_lib.CONFIG["Cron.override_frequency"])

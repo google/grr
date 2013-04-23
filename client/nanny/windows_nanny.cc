@@ -372,6 +372,9 @@ WindowsControllerConfig::WindowsControllerConfig()
   service_key = NULL;
   service_key_name = NULL;
 
+  service_name[0] = '\0';
+  service_description[0] = '\0';
+
   action = TEXT("");
 };
 
@@ -466,6 +469,11 @@ DWORD WindowsControllerConfig::ParseConfiguration(void) {
   result = ReadValue(kGrrServiceNameKey, service_name, sizeof(service_name));
   if (result != ERROR_SUCCESS)
     return result;
+
+  result = ReadValue(kGrrServiceDescKey, service_description,
+                     sizeof(service_description));
+  if (result != ERROR_SUCCESS)
+    service_description[0] = '\0';
 
   return ERROR_SUCCESS;
 };
@@ -623,13 +631,14 @@ bool InstallService() {
   SERVICE_DESCRIPTION service_descriptor;
   WindowsEventLogger logger(NULL);
   unsigned int tries = 0;
+  DWORD error_code = 0;
 
 #if defined(_WIN32)
   BOOL f64 = FALSE;
   BOOL result = FALSE;
 
   // Using dynamic late binding here to support WINVER < 0x501
-  // TODO(user): remove this function make sure to have installer
+  // TODO(user): remove this function make sure to have the installer
   // detect right platform also see:
   // http://blogs.msdn.com/b/david.wang/archive/2006/03/26/
   // howto-detect-process-bitness.aspx
@@ -647,76 +656,99 @@ bool InstallService() {
 
   service_control_manager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
   if (service_control_manager == NULL) {
-    logger.Log("Unable to open the Service Control Manager.\n");
+    error_code = GetLastError();
+    logger.Log("Unable to open Service Control Manager - error code: "
+               "0x%08x.\n", error_code);
     return false;
   }
 
+  // module_name contains the path to the service binary and is used in the
+  // service command line. kNannyConfig->service_name contains the name of the
+  // service.
   std::string command_line(module_name);
 
   command_line += " --service_key \"";
   command_line += kNannyConfig->service_key_name;
   command_line += "\"";
 
-  // Try to stop and delete an existing service.
   service_handle = OpenService(
       service_control_manager,      // SCM database
       kNannyConfig->service_name,   // name of service
       SERVICE_ALL_ACCESS);          // need delete access
 
-  // Service already exists.
-  if (service_handle) {
-    if (!StopService(service_handle, 60000)) {
-      printf("Service could not be stopped. This is ok if the "
-             "service is not already started.\n");
+  if (service_handle == NULL) {
+    error_code = GetLastError();
+    if (error_code != ERROR_SERVICE_DOES_NOT_EXIST) {
+      printf("Unable to open service: %s unexpected error - error code: "
+             "0x%08x.\n", kNannyConfig->service_name, error_code);
+      goto on_error;
     }
-
-    if (!ChangeServiceConfig(
-            service_handle, SERVICE_NO_CHANGE,
-            SERVICE_NO_CHANGE, SERVICE_NO_CHANGE, command_line.c_str(),
-            NULL, NULL, NULL, NULL, NULL, NULL)) {
-      printf("Service could not be reconfigured (%d). Will use the existing "
-             "nanny binary.", GetLastError());
-    }
-  } else {
-    // Create the service control entry so we can get started.
+    // If the service does not exists, create it.
     service_handle = CreateService(
-                service_control_manager, kNannyConfig->service_name,
-                kNannyConfig->service_name,
-      SERVICE_ALL_ACCESS,
-      SERVICE_WIN32_OWN_PROCESS,  // Run in our own process.
-      SERVICE_AUTO_START,  // Come up on regular startup.
-      SERVICE_ERROR_NORMAL,  // If we fail to start, log it and move on.
-      command_line.c_str(),  // Command line for the service.
-          NULL, NULL, NULL,
-      // Run as LocalSystem so no username and password.
-      NULL, NULL);
+       service_control_manager, kNannyConfig->service_name,
+       kNannyConfig->service_name,
+       SERVICE_ALL_ACCESS,
+       SERVICE_WIN32_OWN_PROCESS,  // Run in our own process.
+       SERVICE_AUTO_START,  // Come up on regular startup.
+       SERVICE_ERROR_NORMAL,  // If we fail to start, log it and move on.
+       command_line.c_str(),  // Command line for the service.
+       NULL, NULL, NULL,
+       NULL, NULL);  // Run as LocalSystem so no username and password.
 
     if (service_handle == NULL) {
-      printf("CreateService failed (%s)\n", module_name);
-      CloseServiceHandle(service_control_manager);
-      return false;
+      error_code = GetLastError();
+      printf("Unable to create service: %s - error code: 0x%08x.\n",
+             kNannyConfig->service_name, error_code);
+        goto on_error;
+    }
+  } else {
+    if (!StopService(service_handle, 60000)) {
+      printf("Service could not be stopped. This is ok if the service is not "
+             "already started.\n");
+    }
+    // Set the path to the service binary.
+    if (ChangeServiceConfig(
+            service_handle, SERVICE_NO_CHANGE,
+            SERVICE_NO_CHANGE, SERVICE_NO_CHANGE, command_line.c_str(),
+            NULL, NULL, NULL, NULL, NULL, NULL) == 0) {
+      error_code = GetLastError();
+      printf("Unable to change service: %s configuration - error code: "
+             "0x%08x.\n", kNannyConfig->service_name, error_code);
     }
   }
-
-  if (StartService(service_handle, 0, NULL) == 0) {
-    printf("Starting service failed (%d).\n", GetLastError());
-  }
-
-  printf("Service successfully installed.\nExecutable: %s\n", module_name);
 
   // Set the service description.
   service_descriptor.lpDescription = kNannyConfig->service_description;
   if (!ChangeServiceConfig2(service_handle, SERVICE_CONFIG_DESCRIPTION,
-                            &service_descriptor))
-    logger.Log("Could not set service description.\n");
+                            &service_descriptor)) {
+    error_code = GetLastError();
+    logger.Log("Unable to set service: %s description - error code: 0x%08x.\n",
+               kNannyConfig->service_name, error_code);
+  }
 
   // Start the service.
-  StartService(service_handle, 0, NULL);
+  if (!StartService(service_handle, 0, NULL)) {
+    error_code = GetLastError();
+    printf("Unable to start service: %s - error code: 0x%08x.\n",
+           kNannyConfig->service_name, error_code);
+  } else {
+    printf("Service: %s started as: %s\n",
+           kNannyConfig->service_name, module_name);
+  }
 
   CloseServiceHandle(service_handle);
   CloseServiceHandle(service_control_manager);
 
   return true;
+
+on_error:
+  if (service_handle != NULL) {
+    CloseServiceHandle(service_handle);
+  }
+  if (service_control_manager != NULL) {
+    CloseServiceHandle(service_control_manager);
+  }
+  return false;
 }
 
 // Send a status report to the service event manager.

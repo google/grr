@@ -7,6 +7,7 @@ client.
 """
 
 import re
+import socket
 
 from grr.lib import rdfvalue
 from grr.lib import type_info
@@ -83,6 +84,15 @@ class NetworkAddress(rdfvalue.RDFProto):
   """A network address."""
   _proto = jobs_pb2.NetworkAddress
 
+  def HumanReadableAddress(self):
+    if self.human_readable:
+      return self.human_readable
+    else:
+      if self.address_type == rdfvalue.NetworkAddress.Enum("INET"):
+        return socket.inet_ntop(socket.AF_INET, self.packed_bytes)
+      else:
+        return socket.inet_ntop(socket.AF_INET6, self.packed_bytes)
+
 
 class Interface(rdfvalue.RDFProto):
   """A network interface on the client system."""
@@ -90,10 +100,32 @@ class Interface(rdfvalue.RDFProto):
 
   rdf_map = dict(addresses=NetworkAddress)
 
+  def GetIPAddresses(self):
+    """Return a list of IP addresses."""
+    results = []
+    for address in self.addresses:
+      if address.human_readable:
+        results.append(address.human_readable)
+      else:
+        if address.address_type == rdfvalue.NetworkAddress.Enum("INET"):
+          results.append(socket.inet_ntop(socket.AF_INET,
+                                          address.packed_bytes))
+        else:
+          results.append(socket.inet_ntop(socket.AF_INET6,
+                                          address.packed_bytes))
+    return results
+
 
 class Interfaces(protodict.RDFValueArray):
   """The list of interfaces on a host."""
   rdf_type = Interface
+
+  def GetIPAddresses(self):
+    """Return the list of IP addresses."""
+    results = []
+    for interface in self:
+      results += interface.GetIPAddresses()
+    return results
 
 
 # DEPRECATED - do not use.
@@ -359,7 +391,8 @@ class FingerprintResponse(rdfvalue.RDFProto):
   """Proto containing dicts with hashes."""
   _proto = jobs_pb2.FingerprintResponse
 
-  rdf_map = dict(fingerprint_results=rdfvalue.RDFProtoDict)
+  rdf_map = dict(fingerprint_results=rdfvalue.RDFProtoDict,
+                 pathspec=rdfvalue.RDFPathSpec)
 
   # TODO(user): Add reasonable accessors for UI/console integration.
   # This includes parsing out the SignatureBlob for windows binaries.

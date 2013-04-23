@@ -275,7 +275,8 @@ class MySQLDataStore(data_store.DataStore):
     self.filter = Filter
     self.pool = ConnectionPool()
 
-  def DeleteAttributes(self, subject, attributes, token=None):
+  def DeleteAttributes(self, subject, attributes, sync=None, token=None):
+    _ = sync  # Unused
     self.security_manager.CheckAccess(token, [subject], "w")
     with self.pool.GetConnection() as cursor:
       query = ("delete from aff4 where hash=md5(%%s) and "

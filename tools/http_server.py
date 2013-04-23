@@ -26,7 +26,7 @@ from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import registry
+from grr.lib import startup
 from grr.lib import type_info
 from grr.lib import utils
 
@@ -191,7 +191,7 @@ def serve_forever(server):
 def main(unused_argv):
   """Main."""
   config_lib.CONFIG.SetEnv("Environment.component", "Frontend")
-  registry.Init()
+  startup.Init()
 
   server_address = (config_lib.CONFIG["Frontend.bind_address"],
                     config_lib.CONFIG["Frontend.bind_port"])

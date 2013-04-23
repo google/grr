@@ -45,8 +45,8 @@ from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import registry
 from grr.lib import server_plugins  # pylint: disable=W0611
+from grr.lib import startup
 from grr.tools import http_server  # pylint: disable=W0611
 
 
@@ -69,7 +69,7 @@ class GrrWSGIServer(object):
   server_pem = ""
 
   def __init__(self):
-    registry.Init()
+    startup.Init()
     self.server_pem = config_lib.CONFIG["Frontend.certificate"]
     self.front_end = flow.FrontEndServer(
         certificate=config_lib.CONFIG["Frontend.certificate"],

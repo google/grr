@@ -1,9 +1,11 @@
 grr-server (0.2-8) unstable; urgency=low
 
   * Added Windows 32 bit client
-  * Updated documentation
+  * Updated deployment documentation
   * Fix for TSK URN escaping issues
-  * ...
+  * Added support for renaming Windows executables during repacking
+  * Added verbose repacking to make debugging clients easier
+  * Bugfixes
 
  -- GRR development team <grr-dev@googlegroups.com>  Thu, 4 Apr 2013 12:00:00 +0200
 

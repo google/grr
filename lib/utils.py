@@ -408,6 +408,30 @@ class TimeBasedCache(FastStore):
     self.__init__(max_size=state["max_size"], max_age=state["max_age"])
 
 
+class PickleableLock(object):
+  """A lock which is safe to pickle."""
+
+  lock = None
+
+  def __getstate__(self):
+    return {}
+
+  def __setstate__(self, _):
+    pass
+
+  def __enter__(self):
+    if self.lock is None:
+      self.lock = threading.RLock()
+
+    return self.lock.__enter__()
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    if self.lock is None:
+      self.lock = threading.RLock()
+
+    return self.lock.__exit__(exc_type, exc_value, traceback)
+
+
 class AgeBasedCache(TimeBasedCache):
   """A cache which holds objects for a maximum length of time.
 

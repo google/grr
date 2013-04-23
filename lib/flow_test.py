@@ -227,7 +227,7 @@ class FlowFactoryTest(test_lib.FlowTestsBaseclass):
     notifications = user_fd.ShowNotifications(reset=False)
     self.assertEqual(len(notifications), 1)
     for notification in notifications:
-      self.assertEqual(notification.message, ": " + msg)
+      self.assertTrue(notification.message.endswith(": " + msg))
       self.assertEqual(notification.subject, rdfvalue.RDFURN(session_id))
 
   def testFormatstringNotification(self):

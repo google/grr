@@ -20,6 +20,10 @@ import subprocess
 import sys
 import time
 import _winreg
+import pywintypes
+import win32process
+import win32service
+import win32serviceutil
 
 import logging
 
@@ -34,7 +38,7 @@ config_lib.DEFINE_string(
     help="Where the client binaries are installed.")
 
 config_lib.DEFINE_list(
-    "ClientBuildWindows.old_key_map", [
+    "Client.installer_old_key_map", [
         "HKEY_LOCAL_MACHINE\\Software\\GRR\\certificate->Client.private_key",
         "HKEY_LOCAL_MACHINE\\Software\\GRR\\server_serial_number"
         "->Client.server_serial_number",
@@ -55,13 +59,10 @@ class CheckForWow64(installer.Installer):
   """Check to ensure we are not running on a Wow64 system."""
 
   def RunOnce(self):
-    i = ctypes.c_int()
-    kernel32 = ctypes.windll.kernel32
-    process = kernel32.GetCurrentProcess()
-
-    if kernel32.IsWow64Process(process, ctypes.byref(i)):
-      raise RuntimeError("Will not install a 32 bit client on a 64 bit system. "
-                         "Please use the correct client.")
+    if win32process.IsWow64Process():
+      raise RuntimeError(
+          "Will not install a 32 bit client on a 64 bit system. "
+          "Please use the correct client.")
 
 
 class CopyToSystemDir(installer.Installer):
@@ -72,46 +73,42 @@ class CopyToSystemDir(installer.Installer):
   def StopPreviousService(self):
     """Wait until the service can be stopped."""
     service = config_lib.CONFIG["NannyWindows.service_name"]
+
+    # QueryServiceStatus returns: scvType, svcState, svcControls, err,
+    # svcErr, svcCP, svcWH
     try:
-      logging.info("Attempting to stop service %s", service)
-      output = subprocess.check_output(["sc", "stop", service],
-                                       shell=True,
-                                       stdin=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
+      status = win32serviceutil.QueryServiceStatus(service)[1]
+    except pywintypes.error, e:
+      logging.info("Unable to query status of service: %s with error: %s",
+                   service, e)
+      return
+
+    for _ in range(20):
+      if status == win32service.SERVICE_STOPPED:
+        break
+      elif status != win32service.SERVICE_STOP_PENDING:
+        logging.info("Attempting to stop service %s", service)
+        try:
+          win32serviceutil.StopService(service)
+        except pywintypes.error, e:
+          logging.info("Unable to stop service: %s with error: %s",
+                       service, e)
+      time.sleep(1)
+      status = win32serviceutil.QueryServiceStatus(service)[1]
+
+    if status != win32service.SERVICE_STOPPED:
+      service_binary = config_lib.CONFIG["NannyWindows.service_binary_name"]
+
+      # Taskkill will fail on systems predating Windows XP, this is a best
+      # effort fallback solution.
+      output = subprocess.check_output(
+          ["taskkill", "/im", "%s*" % service_binary, "/f"], shell=True,
+          stdin=subprocess.PIPE, stderr=subprocess.PIPE)
 
       logging.debug("%s", output)
 
-      for _ in range(20):
-        try:
-          output = subprocess.check_output(["sc", "query", service],
-                                           shell=True,
-                                           stdin=subprocess.PIPE,
-                                           stderr=subprocess.PIPE)
-
-          logging.debug(output)
-          if "STOPPED" in output:
-            break
-        except subprocess.CalledProcessError as e:
-          pass
-
-        time.sleep(1)
-
-    except subprocess.CalledProcessError as e:
-      # Hopefully we can keep going here.
-      logging.info("Failed to call sc: %s. Maybe the service does not "
-                   "exist yet.", e)
-
-      # Try to kill  the processes forcefully.
-      subprocess.call(["taskkill", "/im", "%s*" %
-                       config_lib.CONFIG["NannyWindows.service_binary_name"],
-                       "/f"],
-                      shell=True,
-                      stdout=subprocess.PIPE,
-                      stdin=subprocess.PIPE,
-                      stderr=subprocess.PIPE)
-
-    # Sleep a bit to ensure that process really quits.
-    time.sleep(2)
+      # Sleep a bit to ensure that process really quits.
+      time.sleep(2)
 
   def RunOnce(self):
     """Copy the binaries from the temporary unpack location.
@@ -204,11 +201,9 @@ class WindowsInstaller(installer.Installer):
             "install"]
 
     logging.debug("Calling %s", (args,))
-    subprocess.call(args,
-                    shell=True,
-                    stdout=subprocess.PIPE,
-                    stdin=subprocess.PIPE,
-                    stderr=subprocess.PIPE)
+    output = subprocess.check_output(
+        args, shell=True, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+    logging.debug("%s", output)
 
   def Run(self):
     self.CopyConfigToRegistry()
@@ -219,7 +214,7 @@ class UpdateClients(installer.Installer):
   """Copy configuration from old clients."""
 
   def Run(self):
-    for mapping in config_lib.CONFIG["ClientBuildWindows.old_key_map"]:
+    for mapping in config_lib.CONFIG["Installer.old_key_map"]:
       try:
         src, parameter_name = mapping.split("->")
         src_components = re.split(r"[/\\]", src.strip())

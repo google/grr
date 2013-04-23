@@ -23,6 +23,7 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import ipshell
 from grr.lib import registry
+from grr.lib import startup
 from grr.lib import test_lib
 
 
@@ -111,7 +112,7 @@ def main(_):
   """Run the main test harness."""
   # For testing we use the test config file.
   flags.FLAGS.config = config_lib.CONFIG["Test.config"]
-  registry.TestInit()
+  startup.TestInit()
 
   # Tests must be imported after django is initialized.
   # pylint: disable=g-import-not-at-top,unused-variable

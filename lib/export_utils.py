@@ -4,7 +4,9 @@
 """Utils exporting data from AFF4 to the rest of the world."""
 
 import os
+import Queue
 import stat
+import time
 
 import logging
 
@@ -13,37 +15,110 @@ from grr.lib import rdfvalue
 from grr.lib import serialize
 from grr.lib import threadpool
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 
 
 BUFFER_SIZE = 16 * 1024 * 1024
 
 
-def GetAllClients():
+def GetAllClients(token=None):
   """Return a list of all client urns."""
-  return [str(x) for x in aff4.FACTORY.Open(aff4.ROOT_URN).ListChildren() if
-          aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(str(x)[6:])]
+  children = aff4.FACTORY.Open(aff4.ROOT_URN, token=token).ListChildren()
+  client_id_re = aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE
+  return [utils.SmartStr(x) for x in children if
+          client_id_re.match(utils.SmartStr(x)[6:])]
 
 
-def IterateAllClients(func, threads=10, token=None):
-  """Iterate over all clients in a threadpool.
+class IterateAllClientUrns(object):
+  """Class to iterate over all URNs."""
 
-  Args:
-    func: A function to call with each client urn.
-    threads: Number of threads to use.
-    token: Auth token.
-  """
+  THREAD_POOL_NAME = "ClientUrnIter"
+  QUEUE_TIMEOUT = 30
 
-  tp = threadpool.ThreadPool.Factory("ClientIter", threads)
-  tp.Start()
-  clients = GetAllClients()
-  logging.info("Got %d clients", len(clients))
+  def __init__(self, func=None, max_threads=10, token=None):
+    """Iterate over all clients in a threadpool.
 
-  for count, client in enumerate(clients):
-    if count % 2000 == 0:
-      logging.info("%d clients processed.", count)
-    args = (client, token)
-    tp.AddTask(target=func, args=args,
-               name="ClientIter")
+    Args:
+      func: A function to call with each client urn.
+      max_threads: Number of threads to use.
+      token: Auth token.
+
+    Raises:
+      RuntimeError: If function not specified.
+    """
+    self.thread_pool = threadpool.ThreadPool.Factory(self.THREAD_POOL_NAME,
+                                                     max_threads)
+    self.thread_pool.Start()
+    self.token = token
+    self.func = func
+
+    self.out_queue = Queue.Queue()
+
+  def GetInput(self):
+    """Yield client urns."""
+    clients = GetAllClients(token=self.token)
+    logging.info("Got %d clients", len(clients))
+    for client in clients:
+      yield client
+
+  def Run(self):
+    """Run the iteration."""
+    count = 0
+    for count, input_data in enumerate(self.GetInput()):
+      if count % 2000 == 0:
+        logging.info("%d processed.", count)
+      args = (input_data, self.out_queue, self.token)
+      self.thread_pool.AddTask(target=self.IterFunction, args=args,
+                               name=self.THREAD_POOL_NAME)
+
+    yield_count = 0
+    while count >= yield_count:
+      try:
+        # We only use the timeout to wait if we got to the end of the Queue but
+        # didn't process everything yet.
+        out = self.out_queue.get(timeout=self.QUEUE_TIMEOUT, block=True)
+        if out:
+          yield out
+          yield_count += 1
+      except Queue.Empty:
+        break
+
+    # Join and stop to clean up the threadpool.
+    self.thread_pool.Stop()
+
+  def IterFunction(self, *args):
+    """Function to run on each input. This can be overridden."""
+    self.func(*args)
+
+
+class IterateAllClients(IterateAllClientUrns):
+  """Class to iterate over all GRR Client objects."""
+
+  def __init__(self, max_age, client_chunksize=25, **kwargs):
+    """Iterate over all clients in a threadpool.
+
+    Args:
+      max_age: Maximum age in seconds of clients to check.
+      client_chunksize: A function to call with each client urn.
+      **kwargs: Arguments passed to init.
+    """
+    super(IterateAllClients, self).__init__(**kwargs)
+    self.client_chunksize = client_chunksize
+    self.max_age = max_age
+
+  def GetInput(self):
+    """Yield client urns."""
+    client_list = GetAllClients(token=self.token)
+    logging.info("Got %d clients", len(client_list))
+    for client_group in utils.Grouper(client_list, self.client_chunksize):
+      for fd in aff4.FACTORY.MultiOpen(client_group, mode="r",
+                                       required_type="VFSGRRClient",
+                                       token=self.token):
+        if isinstance(fd, aff4_grr.VFSGRRClient):
+          # Skip if older than max_age
+          oldest_time = (time.time() - self.max_age) * 1e6
+        if fd.Get(aff4.VFSGRRClient.SchemaCls.PING) >= oldest_time:
+          yield fd
 
 
 def DownloadFile(file_obj, target_path, buffer_size=BUFFER_SIZE):
@@ -125,8 +200,8 @@ def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
     logging.error("%s is not a valid collection. Typo? "
                   "Are you sure something was written to it?", coll_path)
     return
-  tp = threadpool.ThreadPool.Factory("Downloader", max_threads)
-  tp.Start()
+  thread_pool = threadpool.ThreadPool.Factory("Downloader", max_threads)
+  thread_pool.Start()
 
   logging.info("Expecting to download %s files", coll.size)
 
@@ -149,15 +224,17 @@ def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
     re_match = aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(client_id)
     if dump_client_info and re_match and not client_id in completed_clients:
       args = (rdfvalue.RDFURN(client_id), target_path, token, overwrite)
-      tp.AddTask(target=DumpClientYaml, args=args, name="ClientYamlDownloader")
+      thread_pool.AddTask(target=DumpClientYaml, args=args,
+                          name="ClientYamlDownloader")
       completed_clients.add(client_id)
 
     # Now queue downloading the actual files.
     args = (urn, target_path, token, overwrite)
-    tp.AddTask(target=CopyAFF4ToLocal, args=args,
-               name="Downloader")
+    thread_pool.AddTask(target=CopyAFF4ToLocal, args=args,
+                        name="Downloader")
 
-  tp.Join()
+  # Join and stop the threadpool.
+  thread_pool.Stop()
 
 
 def CopyAFF4ToLocal(aff4_urn, target_dir, token=None, overwrite=False):
@@ -195,8 +272,11 @@ def DumpClientYaml(client_urn, target_dir, token=None, overwrite=False):
   """Dump a yaml file containing client info."""
   fd = aff4.FACTORY.Open(client_urn, "VFSGRRClient", token=token)
   dirpath = os.path.join(target_dir, fd.urn.Split()[0])
-  if not os.path.exists(dirpath):
+  try:
+    # Due to threading this can actually be created by another thread.
     os.makedirs(dirpath)
+  except OSError:
+    pass
   filepath = os.path.join(dirpath, "client_info.yaml")
   if not os.path.isfile(filepath) or overwrite:
     with open(filepath, "w") as out_file:

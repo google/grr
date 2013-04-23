@@ -386,6 +386,10 @@ class CFDictionary(CFType):
     super(CFDictionary, self).__init__(ptr)
     self.dll.CFRetain(ptr)
 
+  def __contains__(self, key):
+    value = self.__getitem__(key)
+    return value is not None
+
   def __len__(self):
     return self.dll.CFArrayGetCount(self)
 
@@ -403,21 +407,37 @@ class CFDictionary(CFType):
           'CFDictionary wrapper only supports string, int and objc values')
     obj = ctypes.c_void_p(
         self.dll.CFDictionaryGetValue(self, cftype_key))
-    try:
-      obj = self.WrapCFTypeInPython(obj)
-    except TypeError:
+
+    # Detect null pointers and avoid crashing WrapCFTypeInPython
+    if not obj:
       obj = None
+    else:
+      try:
+        obj = self.WrapCFTypeInPython(obj)
+      except TypeError:
+        obj = None
     return obj
 
-  def get(self, key, default=''):
-    """For compability reasons this methods returns stringified values."""
+  # pylint: disable=g-bad-name
+  def get(self, key, default='', stringify=True):
+    """Returns dictionary values or default.
+
+    Args:
+      key: string. Dictionary key to look up.
+      default: string. Return this value if key not found.
+      stringify: bool. Force all return values to string for compatibility
+                 reasons.
+    Returns:
+      python-wrapped CF object or default if not found.
+    """
     obj = self.__getitem__(key)
     if obj is None:
       obj = default
-    return str(obj)
+    elif stringify:
+      obj = str(obj)
+    return obj
 
-  def __repr__(self):
-    representation = '{'
+  def iteritems(self):
     size = len(self)
     keys = (ctypes.c_void_p * size)()
     values = (ctypes.c_void_p * size)()
@@ -425,6 +445,12 @@ class CFDictionary(CFType):
     for index in xrange(size):
       key = self.WrapCFTypeInPython(keys[index])
       value = self.WrapCFTypeInPython(values[index])
+      yield key, value
+  # pylint: enable=g-bad-name
+
+  def __repr__(self):
+    representation = '{'
+    for key, value in self.iteritems():
       representation += '{0}:{1},'.format(str(key), str(value))
     representation += '}'
     return representation

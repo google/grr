@@ -240,6 +240,15 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     pool2 = threadpool.ThreadPool.Factory(prefix, 10)
     self.assertEqual(pool2.started, True)
 
+  def testAnonymousThreadpool(self):
+    """Tests that we can starts anonymous threadpools."""
+    prefix = None
+    pool = threadpool.ThreadPool.Factory(prefix, 10)
+    self.assertEqual(pool.started, False)
+    pool.Start()
+    self.assertEqual(pool.started, True)
+    pool.Stop()
+
 
 def main(argv):
   test_lib.main(argv)

@@ -45,7 +45,7 @@ class Installer(registry.HookRegistry):
 
 class InstallerInit(registry.InitHook):
   """Run all installer plugins in their specific dependency list."""
-  pre = ["SetUpLogging", "ConfigLibInit", "ClientPlugins"]
+  pre = ["SetUpLogging", "ClientPlugins"]
 
   def NotifyServer(self):
     """An emergency function Invoked when the client installation failed."""

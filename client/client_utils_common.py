@@ -75,7 +75,7 @@ def Execute(cmd, args, time_limit=-1, bypass_whitelist=False):
         VerifySignedBlob check.
 
   Returns:
-    A tuple of stdout, stderr and return value.
+    A tuple of stdout, stderr, return value and time taken.
   """
   if not IsExecutionWhitelisted(cmd, args) and not bypass_whitelist:
     # Whitelist doesn't contain this cmd/arg pair

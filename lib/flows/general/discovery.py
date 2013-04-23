@@ -213,6 +213,7 @@ class Interrogate(flow.GRRFlow):
       self.client.Set(self.client.Schema.SYSTEM(response.system))
       self.client.Set(self.client.Schema.OS_RELEASE(response.release))
       self.client.Set(self.client.Schema.OS_VERSION(response.version))
+      self.client.Set(self.client.Schema.FQDN(response.fqdn))
 
       # response.machine is the machine value of platform.uname()
       # On Windows this is the value of:

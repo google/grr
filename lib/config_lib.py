@@ -2,6 +2,9 @@
 """This is the GRR config management code.
 
 This handles opening and parsing of config files.
+
+Config documentation is at:
+http://grr.googlecode.com/git/docs/configuration.html
 """
 
 import collections
@@ -31,7 +34,7 @@ flags.DEFINE_list("secondary_configs", [],
 flags.DEFINE_bool("config_help", False,
                   "Print help about the configuration.")
 
-flags.DEFINE_list("config_execute", "",
+flags.DEFINE_list("config_execute", [],
                   "Execute these sections after initializing.")
 
 flags.DEFINE_list("plugins", [],
@@ -48,6 +51,10 @@ class ConfigFormatError(Error):
 
 class ConfigWriteError(Error):
   """Raised when we failed to update the config."""
+
+
+class FilterError(Error):
+  """Raised when a filter fails to perform its function."""
 
 
 class ConfigFilter(object):
@@ -84,7 +91,10 @@ class Filename(ConfigFilter):
   name = "file"
 
   def Filter(self, data):
-    return open(data, "rb").read(1024000)
+    try:
+      return open(data, "rb").read(1024000)
+    except IOError as e:
+      raise FilterError(e)
 
 
 class Base64(ConfigFilter):
@@ -578,6 +588,7 @@ class GrrConfigManager(object):
     if reset:
       # Clear previous configuration.
       self.raw_data = {}
+      self.environment = {}
 
     if fd is not None:
       self.parser = ConfigFileParser(fd=fd)
@@ -738,6 +749,10 @@ class GrrConfigManager(object):
           result_lines.append("")
     return "\n".join(result_lines)
 
+  def GetSections(self):
+    """Get a list of sections."""
+    return self.raw_data.keys()
+
   def ExecuteSection(self, section_name):
     """Uses properties set in section_name to override other properties.
 
@@ -860,47 +875,78 @@ DEFINE_list("Environment.execute_sections", [],
             "to tune configuration to the correct component.")
 
 
-def ReloadConfig():
-  """Reload the config from the command line flag."""
-  # Try to find the correct configuration parser.
-  CONFIG.Initialize(filename=flags.FLAGS.config, must_exist=True)
+def LoadConfig(config_obj, config_file, secondary_configs=None,
+               component_section=None, execute_sections=None, reset=False):
+  """Initialize a ConfigManager with the specified options.
+
+  Args:
+    config_obj: The ConfigManager object to use and update. If None, one will
+        be created.
+    config_file: Filename, url or file like object to read the config from.
+    secondary_configs: A list of secondary config URLs to load.
+    component_section: A section of the config to execute. Executes before
+        execute_section sections.
+    execute_sections: Additional sections to execute.
+    reset: Completely wipe previous config before doing the load.
+
+  Returns:
+    The resulting config object. The one passed in, unless None was specified.
+
+  See the following for extra details on how this works:
+  http://grr.googlecode.com/git/docs/configuration.html
+  """
+  if config_obj is None or reset:
+    # Create a new config object.
+    config_obj = GrrConfigManager()
+
+  # Initialize the config with a filename or file like object.
+  if isinstance(config_file, basestring):
+    config_obj.Initialize(filename=config_file, must_exist=True)
+  elif hasattr(config_file, "read"):
+    config_obj.Initialize(fd=config_file)
 
   # Load all secondary files.
-  for config_url in flags.FLAGS.secondary_configs:
-    CONFIG.LoadSecondaryConfig(config_url)
+  if secondary_configs:
+    for config_url in secondary_configs:
+      config_obj.LoadSecondaryConfig(config_url)
 
   # Execute the component section. This allows a component to specify a section
   # to execute for component specific configuration.
-  CONFIG.ExecuteSection(CONFIG["Environment.component"])
-
-  # Execute configuration sections specified by the current component.
-  for section_name in CONFIG["Environment.execute_sections"]:
-    CONFIG.ExecuteSection(section_name)
+  if component_section:
+    config_obj.ExecuteSection(component_section)
 
   # Execute configuration sections specified on the command line.
-  for section_name in flags.FLAGS.config_execute:
-    CONFIG.ExecuteSection(section_name)
+  if execute_sections:
+    for section_name in execute_sections:
+      config_obj.ExecuteSection(section_name)
+
+  return config_obj
 
 
-class ConfigLibInit(registry.InitHook):
-  """Initializer for the config, reads in the config file."""
+def ConfigLibInit():
+  """Initializer for the config, reads in the config file.
 
-  order = 1
+  This will be called by startup.Init() unless it is overridden by
+  lib/local/config.py
+  """
 
-  def RunOnce(self):
-    ReloadConfig()
+  LoadConfig(
+      CONFIG, config_file=flags.FLAGS.config,
+      secondary_configs=flags.FLAGS.secondary_configs,
+      component_section=CONFIG["Environment.component"],
+      execute_sections=CONFIG["Environment.execute_sections"] +
+      flags.FLAGS.config_execute
+  )
 
-    # Does the user want to dump help?
-    if flags.FLAGS.config_help:
-      print "Configuration overview."
-      CONFIG.PrintHelp()
-      sys.exit(0)
+  # Does the user want to dump help?
+  if flags.FLAGS.config_help:
+    print "Configuration overview."
+    CONFIG.PrintHelp()
+    sys.exit(0)
 
 
 class PluginLoader(registry.InitHook):
   """Loads additional plugins specified by the user."""
-
-  pre = ["ConfigLibInit"]
 
   PYTHON_EXTENSIONS = [".py", ".pyo", ".pyc"]
 

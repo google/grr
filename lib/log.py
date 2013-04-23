@@ -183,9 +183,6 @@ logging.info("Starting GRR Prelogging buffer.")
 class SetUpLogging(registry.InitHook):
   """Initialize the logging subsystem."""
 
-  # Logging is configured in the config file.
-  pre = ["ConfigLibInit"]
-
   levels = {
       "FileHandler": logging.ERROR,
       "NTEventLogHandler": logging.CRITICAL,

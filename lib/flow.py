@@ -1579,7 +1579,8 @@ class FrontEndServer(object):
         status = rdfvalue.GrrStatus(msg.args)
         if status.status == rdfvalue.GrrStatus.Enum("CLIENT_KILLED"):
           # A client crashed while performing an action, fire an event.
-          PublishEvent("ClientCrash", rdfvalue.GRRMessage(msg))
+          PublishEvent("ClientCrash", rdfvalue.GRRMessage(msg),
+                       token=self.token)
 
     sessions_handled = []
     priorities = {}

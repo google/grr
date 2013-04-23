@@ -564,6 +564,8 @@ class RepeatedFieldHelper(object):
     return len(self.proto_list)
 
   def __eq__(self, other):
+    if len(self) != len(other):
+      return False
     for x, y in zip(self, other):
       if x != y:
         return False

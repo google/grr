@@ -71,6 +71,10 @@ class VFSGRRClient(standard.VFSDirectory):
     HOSTNAME = aff4.Attribute("metadata:hostname", rdfvalue.RDFString,
                               "Hostname of the host.", "Host",
                               index=client_index)
+    FQDN = aff4.Attribute("metadata:fqdn", rdfvalue.RDFString,
+                          "Fully qualified hostname of the host.", "FQDN",
+                          index=client_index)
+
     SYSTEM = aff4.Attribute("metadata:system", rdfvalue.RDFString,
                             "Operating System class.", "System")
     UNAME = aff4.Attribute("metadata:uname", rdfvalue.RDFString,
@@ -105,11 +109,12 @@ class VFSGRRClient(standard.VFSDirectory):
     # This information is duplicated from the INTERFACES attribute but is done
     # to allow for fast searching by mac address.
     MAC_ADDRESS = aff4.Attribute("aff4:mac_addresses", rdfvalue.RDFString,
-                                 "A hex encoded MAC address.", "MAC")
+                                 "A hex encoded MAC address.", "MAC",
+                                 index=client_index)
 
     PING = aff4.Attribute("metadata:ping", rdfvalue.RDFDatetime,
                           "The last time the server heard from this client.",
-                          versioned=False, default=0)
+                          "LastCheckin", versioned=False, default=0)
 
     CLOCK = aff4.Attribute("metadata:clock", rdfvalue.RDFDatetime,
                            "The last clock read on the client "

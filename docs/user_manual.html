@@ -962,7 +962,7 @@ be:</p></div>
 <div class="ulist"><ul>
 <li>
 <p>
-Windows: c:\windows\system32\logfiles\GRR_installer.txt
+Windows: %WinDir%\system32\logfiles\GRR_installer.txt
 </p>
 </li>
 <li>
@@ -981,6 +981,10 @@ repack_clients</tt></pre>
 </div></div>
 <div class="paragraph"><p>Then download the new binary. It should have the same configuration, but will
 output detailed progress to the console, making it easier to debug.</p></div>
+<div class="paragraph"><p>Note that the binary is also a zipfile, you can open it in any capable zip
+reader. Unfortunately this doesn&#8217;t include the built in Windows zip file handler
+but does include winzip or 7-zip. Opening the zip is useful for reading the
+config or checking that the right dependencies have been included.</p></div>
 <div class="sect4">
 <h5 id="_interactively_debugging_the_client">Interactively Debugging the Client</h5>
 <div class="paragraph"><p>On each platform, the agent binary should support the following options:
@@ -2803,7 +2807,7 @@ requested its results and execute it.
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-04-09 09:08:56 CEST
+Last updated 2013-04-23 22:33:32 CEST
 </div>
 </div>
 </body>

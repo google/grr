@@ -19,7 +19,7 @@ from grr.lib import server_plugins
 from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import flow
-from grr.lib import registry
+from grr.lib import startup
 
 # Make sure we also load the enroller module
 from grr.lib.flows.caenroll import ca_enroller
@@ -35,7 +35,7 @@ def main(unused_argv):
   config_lib.CONFIG.SetEnv("Environment.component", "Enroller")
 
   # Initialise everything.
-  registry.Init()
+  startup.Init()
 
   # Try to load the CA key.
   registry.CA_KEY = RSA.load_key_string(config_lib.CONFIG["PrivateKeys.ca_key"])

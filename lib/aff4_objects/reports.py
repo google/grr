@@ -13,7 +13,7 @@ import logging
 
 from grr.lib import aff4
 from grr.lib import email_alerts
-from grr.lib.aff4_objects import aff4_grr
+from grr.lib import export_utils
 
 
 class ClientReport(object):
@@ -28,11 +28,18 @@ class ClientReport(object):
   </body></html>"""
   EMAIL_FROM = "noreply"
 
-  def __init__(self, token):
+  # List of attributes to add to the report from the / path in the client.
+  REPORT_ATTRS = []
+  # List of tuples of (path, attribute) to add to the report.
+  EXTENDED_REPORT_ATTRS = []
+
+  def __init__(self, token=None, thread_num=20):
     self.token = token
     self.results = []
     self.broken_subjects = []  #  Database entries that are broken.
     self.fields = [f.name for f in self.REPORT_ATTRS]
+    self.fields += [f[1].name for f in self.EXTENDED_REPORT_ATTRS]
+    self.thread_num = thread_num
 
   def AsDict(self):
     """Give the report as a list of dicts."""
@@ -102,48 +109,27 @@ class ClientReport(object):
 
   def _QueryResults(self, max_age):
     """Query each record in the client database."""
-    root = aff4.FACTORY.Open(aff4.ROOT_URN, token=self.token)
-    for count, child in enumerate(root.OpenChildren(chunk_limit=1000000)):
-      if count % 2000 == 0:
-        logging.info("%s %d clients processed.", self.REPORT_NAME, count)
-
-      if isinstance(child, aff4_grr.VFSGRRClient):
-        # Skip if older than max_age
-        oldest_time = (time.time() - max_age) * 1e6
-        if child.Get(aff4.Attribute.GetAttributeByName("Clock")) < oldest_time:
-          continue
-
-        result = {}
-        for attr in self.REPORT_ATTRS:
-          # Do some special formatting for certain fields.
-          if attr.name == "subject":
-            result[attr.name] = child.Get(attr).Basename()
-          elif attr.name == "GRR client":
-            c_info = child.Get(attr)
-            if not c_info:
-              self.broken_subjects.append(child.client_id)
-              result[attr.name] = None
-              continue
-
-            result[attr.name] = "%s %s" % (c_info.client_name,
-                                           str(c_info.client_version))
-          else:
-            result[attr.name] = child.Get(attr)
-
-        yield result
+    report_iter = ClientReportIterator(
+        max_age=max_age, token=self.token, report_attrs=self.REPORT_ATTRS,
+        extended_report_attrs=self.EXTENDED_REPORT_ATTRS)
+    return report_iter.Run()
 
 
 class ClientListReport(ClientReport):
   """Returns a list of clients with their version."""
 
   REPORT_ATTRS = [
-      aff4.Attribute.GetAttributeByName("Clock"),
+      aff4.Attribute.GetAttributeByName("LastCheckin"),
       aff4.Attribute.GetAttributeByName("subject"),
       aff4.Attribute.GetAttributeByName("Host"),
       aff4.Attribute.GetAttributeByName("System"),
       aff4.Attribute.GetAttributeByName("Architecture"),
       aff4.Attribute.GetAttributeByName("Uname"),
       aff4.Attribute.GetAttributeByName("GRR client"),
+  ]
+
+  EXTENDED_REPORT_ATTRS = [
+      ("network", aff4.Attribute.GetAttributeByName("Interfaces"))
   ]
 
   REPORT_NAME = "GRR Client List Report"
@@ -183,3 +169,54 @@ class VersionBreakdownReport(ClientReport):
     for version, count in counts.iteritems():
       self.results.append({"GRR client": version, "count": count})
     self.SortResults("count")
+
+
+class ClientReportIterator(export_utils.IterateAllClients):
+  """Iterate through all clients generating basic client information."""
+
+  def __init__(self, report_attrs, extended_report_attrs, **kwargs):
+    """Initialize.
+
+    Args:
+      report_attrs: Attributes to retrieve.
+      extended_report_attrs: Path, Attribute tuples to retrieve.
+      **kwargs: Additional args to fall through to client iterator.
+    """
+    super(ClientReportIterator, self).__init__(**kwargs)
+    self.report_attrs = report_attrs
+    self.extended_report_attrs = extended_report_attrs
+
+  def IterFunction(self, client, out_queue, unused_token):
+    """Extract report attributes."""
+    result = {}
+    for attr in self.report_attrs:
+      # Do some special formatting for certain fields.
+      if attr.name == "subject":
+        result[attr.name] = client.Get(attr).Basename()
+      elif attr.name == "GRR client":
+        c_info = client.Get(attr)
+        if not c_info:
+          self.broken_subjects.append(client.client_id)
+          result[attr.name] = None
+          continue
+
+        result[attr.name] = "%s %s" % (c_info.client_name,
+                                       str(c_info.client_version))
+      else:
+        result[attr.name] = client.Get(attr)
+
+    for sub_path, attr in self.extended_report_attrs:
+      try:
+        client_sub = client.OpenMember(sub_path)
+      except IOError:
+        # If the path is not found, just continue.
+        continue
+      # Special case formatting for some attributes.
+      if attr.name == "Interfaces":
+        interfaces = client_sub.Get(attr)
+        if interfaces:
+          result[attr.name] = ",".join(interfaces.GetIPAddresses())
+      else:
+        result[attr.name] = client_sub.Get(attr)
+
+    out_queue.put(result)

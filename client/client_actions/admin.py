@@ -83,6 +83,7 @@ class GetPlatformInfo(actions.ActionPlugin):
   def Run(self, unused_args):
     """Populate platform information into a Uname response."""
     uname = platform.uname()
+    fqdn = socket.getfqdn()
     system = uname[0]
     if system == "Windows":
       service_pack = platform.win32_ver()[2]
@@ -103,7 +104,8 @@ class GetPlatformInfo(actions.ActionPlugin):
                    release=release,
                    version=version,
                    machine=uname[4],              # x86, x86_64
-                   kernel=kernel)
+                   kernel=kernel,
+                   fqdn=fqdn)
 
 
 class Kill(actions.ActionPlugin):
@@ -182,7 +184,10 @@ class GetConfiguration(actions.ActionPlugin):
       if descriptor.name in self.BLOCKED_PARAMETERS:
         value = "[Redacted]"
       else:
-        value = config_lib.CONFIG[descriptor.name]
+        try:
+          value = config_lib.CONFIG[descriptor.name]
+        except config_lib.Error as e:
+          logging.info("Config reading error: %s", e)
 
       out[descriptor.name] = value
 

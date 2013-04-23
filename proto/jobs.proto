@@ -643,6 +643,7 @@ message Uname {
   optional string version = 4;
   optional string machine = 5;
   optional string kernel = 6;
+  optional string fqdn = 7;
 };
 
 message FolderInformation {
@@ -688,9 +689,7 @@ message NetworkAddress {
   }
   optional NetworkFamily address_type = 1;
   optional string human_readable = 2;
-
-  // This does not seem to be used?
-  optional string packed_bytes = 3;
+  optional bytes packed_bytes = 3;
 };
 
 // Information about a network interface.
@@ -769,6 +768,7 @@ message FingerprintRequest {
 message FingerprintResponse {
   repeated FingerprintTuple.FingerprintType matching_types = 1;
   repeated Dict fingerprint_results = 2;
+  optional Path pathspec = 3;
 };
 
 // Specialized binary blob for client.

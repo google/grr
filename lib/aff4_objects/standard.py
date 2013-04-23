@@ -73,7 +73,7 @@ class VFSDirectory(aff4.AFF4Volume):
         # We try to recurse up the tree to get a real pathspec.
         # These directories are created automatically without pathspecs when a
         # deep directory is listed without listing the parents.
-        # Note we /fs/os or /fs/tsk won't be Updateable so we will raise IOError
+        # Note /fs/os or /fs/tsk won't be updateable so we will raise IOError
         # if we try.
         stripped_components.append(parent.urn.Basename())
         pathspec = parent.Get(parent.Schema.PATHSPEC)
@@ -83,7 +83,8 @@ class VFSDirectory(aff4.AFF4Volume):
         if stripped_components:
           # We stripped pieces of the URL, time to add them back at the deepest
           # nested path.
-          new_path = utils.JoinPath(pathspec.last.path, *stripped_components[:-1])
+          new_path = utils.JoinPath(pathspec.last.path,
+                                    *stripped_components[:-1])
           pathspec.last.path = new_path
 
         flow_id = flow.FACTORY.StartFlow(client_id, "ListDirectory",
@@ -240,7 +241,9 @@ class AFF4Index(aff4.AFF4Object):
     Args:
       attributes: A list of attributes to query for.
       regex: The regex to search this attribute.
-      limit: Total number of objects to retrieve.
+      limit: A (start, length) tuple of integers representing subjects to
+             return. Useful for paging. If its a single integer we take
+             it as the length limit (start=0).
 
     Returns:
       A list of AFF4 objects which match the index search.
@@ -250,21 +253,20 @@ class AFF4Index(aff4.AFF4Object):
              for a in attributes]
     start = 0
     try:
-      start, end = limit
+      start, length = limit
     except TypeError:
-      end = limit
+      length = limit
 
     # Get all the unique hits
     index_hits = set([x for (_, x, _) in data_store.DB.ResolveRegex(
         self.urn, regex, token=self.token,
         timestamp=data_store.DB.ALL_TIMESTAMPS)])
-
     hits = []
-    for i, x in enumerate(index_hits):
+    for i, hit in enumerate(index_hits):
       if i < start: continue
+      hits.append(hit)
 
-      hits.append(x)
-      if i > end:
+      if i >= start + length - 1:
         break
 
     return aff4.FACTORY.MultiOpen(hits, mode=self.mode, token=self.token)

@@ -301,26 +301,34 @@ class EnumerateRunningServices(actions.ActionPlugin):
     """
     rdf_job = rdfvalue.LaunchdJob(sessiontype=
                                   job.get("LimitLoadToSessionType", ""),
-                                  lastexitstatus=job["LastExitStatus"],
-                                  timeout=job["TimeOut"],
-                                  ondemand=job["OnDemand"])
+                                  lastexitstatus=job["LastExitStatus"].value,
+                                  timeout=job["TimeOut"].value,
+                                  ondemand=job["OnDemand"].value)
 
-    args = map(str, job.get("ProgramArguments", ""))
-    args_str = " ".join(args)
+    # Returns CFArray of CFStrings
+    args = job.get("ProgramArguments", "", stringify=False)
+    arg_values = []
+    if args:
+      for arg in args:
+        # Need to get .value so unicode is handled properly
+        arg_values.append(arg.value)
+      args = " ".join(arg_values)
 
-    for j in job.get("MachServices", []):
-      rdf_job.machservice.Append(j)
+    mach_dict = job.get("MachServices", {}, stringify=False)
+    for key, value in mach_dict.iteritems():
+      rdf_job.machservice.Append("%s:%s" % (key, value))
 
-    for j in job.get("PerJobMachServices", []):
-      rdf_job.perjobmachservice.Append(j)
+    job_mach_dict = job.get("PerJobMachServices", {}, stringify=False)
+    for key, value in job_mach_dict.iteritems():
+      rdf_job.perjobmachservice.Append("%s:%s" % (key, value))
 
     service = rdfvalue.Service(label=job.get("Label", ""),
                                program=job.get("Program", ""),
-                               args=args_str,
+                               args=args,
                                osx_launchd=rdf_job)
 
     if "PID" in job:
-      service.pid = job["PID"]
+      service.pid = job["PID"].value
 
     return service
 
