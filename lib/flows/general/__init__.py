@@ -29,3 +29,4 @@ from grr.lib.flows.general import utilities
 from grr.lib.flows.general import volatility
 from grr.lib.flows.general import webhistory
 from grr.lib.flows.general import webplugins
+from grr.lib.flows.general import windows_vsc

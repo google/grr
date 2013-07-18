@@ -7,9 +7,6 @@ import re
 import sys
 
 
-from M2Crypto import RSA
-from M2Crypto import X509
-
 from grr.client import conf
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -18,8 +15,8 @@ from grr.lib import server_plugins
 
 from grr.lib import access_control
 from grr.lib import config_lib
-from grr.lib import flow
 from grr.lib import startup
+from grr.lib import worker
 
 # Make sure we also load the enroller module
 from grr.lib.flows.caenroll import ca_enroller
@@ -37,16 +34,12 @@ def main(unused_argv):
   # Initialise everything.
   startup.Init()
 
-  # Try to load the CA key.
-  registry.CA_KEY = RSA.load_key_string(config_lib.CONFIG["PrivateKeys.ca_key"])
-  registry.CA_CERT = X509.load_cert_string(config_lib.CONFIG["CA.certificate"])
-
   # Start an Enroler.
   token = access_control.ACLToken("GRREnroller", "Implied.")
-  worker = flow.GRREnroler(
+  enroller = worker.GRREnroler(
       queue_name=config_lib.CONFIG["Enroller.queue_name"], token=token)
 
-  worker.Run()
+  enroller.Run()
 
 
 if __name__ == "__main__":

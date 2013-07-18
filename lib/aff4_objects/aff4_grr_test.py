@@ -19,7 +19,8 @@ class MockChangeEvent(flow.EventListener):
   @flow.EventHandler(allow_client_access=True)
   def ProcessMessage(self, message=None, event=None):
     _ = event
-    if message.auth_state != rdfvalue.GRRMessage.Enum("AUTHENTICATED"):
+    if (message.auth_state !=
+        rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED):
       return
 
     urn = rdfvalue.RDFURN()
@@ -36,30 +37,34 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
   def testPathspecToURN(self):
     """Test the pathspec to URN conversion function."""
-    pathspec = rdfvalue.RDFPathSpec(
-        path="\\\\.\\Volume{1234}\\", pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+    pathspec = rdfvalue.PathSpec(
+        path="\\\\.\\Volume{1234}\\", pathtype=rdfvalue.PathSpec.PathType.OS,
         mount_point="/c:/").Append(
             path="/windows",
-            pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+            pathtype=rdfvalue.PathSpec.PathType.TSK)
 
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, "C.1234")
+    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+        pathspec, "C.1234567812345678")
     self.assertEqual(
-        urn, rdfvalue.RDFURN(r"aff4:/C.1234/fs/tsk/\\.\Volume{1234}\/windows"))
+        urn, rdfvalue.RDFURN(
+            r"aff4:/C.1234567812345678/fs/tsk/\\.\Volume{1234}\/windows"))
 
     # Test an ADS
-    pathspec = rdfvalue.RDFPathSpec(
-        path="\\\\.\\Volume{1234}\\", pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+    pathspec = rdfvalue.PathSpec(
+        path="\\\\.\\Volume{1234}\\", pathtype=rdfvalue.PathSpec.PathType.OS,
         mount_point="/c:/").Append(
-            pathtype=rdfvalue.RDFPathSpec.Enum("TSK"),
+            pathtype=rdfvalue.PathSpec.PathType.TSK,
             path="/Test Directory/notes.txt:ads",
             inode=66,
             ntfs_type=128,
             ntfs_id=2)
 
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, "C.1234")
+    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+        pathspec, "C.1234567812345678")
     self.assertEqual(
-        urn, rdfvalue.RDFURN(r"aff4:/C.1234/fs/tsk/\\.\Volume{1234}\/"
-                             "Test Directory/notes.txt:ads"))
+        urn, rdfvalue.RDFURN(
+            r"aff4:/C.1234567812345678/fs/tsk/\\.\Volume{1234}\/"
+            "Test Directory/notes.txt:ads"))
 
   def testClientSubfieldGet(self):
     """Test we can get subfields of the client."""
@@ -70,8 +75,9 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     users = fd.Schema.USER()
     for i in range(5):
       folder = "C:/Users/user%s" % i
-      user = users.Append(username="user%s" % i)
+      user = rdfvalue.User(username="user%s" % i)
       user.special_folders.app_data = folder
+      users.Append(user)
 
     fd.AddAttribute(users)
     fd.Close()
@@ -89,10 +95,9 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     rule_fd = aff4.FACTORY.Create("aff4:/config/aff4_rules/new_rule",
                                   aff4_type="AFF4RegexNotificationRule",
                                   token=self.token)
-    rule_fd.Set(rule_fd.Schema.CLIENT_PATH_REGEX, rdfvalue.RDFString("b.*"))
-    rule_fd.Set(rule_fd.Schema.EVENT_NAME,
-                rdfvalue.RDFString("MockChangeEvent"))
-    rule_fd.Set(rule_fd.Schema.NOTIFY_ONLY_IF_NEW, rdfvalue.RDFInteger(0))
+    rule_fd.Set(rule_fd.Schema.CLIENT_PATH_REGEX("b.*"))
+    rule_fd.Set(rule_fd.Schema.EVENT_NAME("MockChangeEvent"))
+    rule_fd.Set(rule_fd.Schema.NOTIFY_ONLY_IF_NEW(0))
     rule_fd.Close()
 
     # Force notification rules to be reloaded.

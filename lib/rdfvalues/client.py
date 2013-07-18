@@ -6,26 +6,70 @@ This module contains the RDFValue implementations used to communicate with the
 client.
 """
 
+from hashlib import sha256
+
 import re
 import socket
 
 from grr.lib import rdfvalue
 from grr.lib import type_info
-from grr.lib.rdfvalues import crypto
+
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import protodict
-from grr.proto import analysis_pb2
+from grr.lib.rdfvalues import standard
+from grr.lib.rdfvalues import structs
+
 from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
 
 
+class ClientURN(rdfvalue.RDFURN):
+  """A client urn has to have a specific form."""
+
+  # Valid client urns must match this expression.
+  CLIENT_ID_RE = re.compile(r"^(aff4:/)?C\.[0-9a-fA-F]{16}$")
+
+  def __init__(self, initializer=None, age=None):
+    """Constructor.
+
+    Args:
+      initializer: A string or another RDFURN.
+      age: The age of this entry.
+    """
+    # If we are initialized from another URN we need to validate it.
+    if isinstance(initializer, rdfvalue.RDFURN):
+      self.ParseFromString(initializer.SerializeToString())
+      super(ClientURN, self).__init__(initializer=None, age=age)
+    else:
+      super(ClientURN, self).__init__(initializer=initializer, age=age)
+
+  def ParseFromString(self, value):
+    if not self.Validate(value):
+      raise type_info.TypeValueError("Client urn malformed.")
+
+    return super(ClientURN, self).ParseFromString(value)
+
+  @classmethod
+  def Validate(cls, value):
+    if not value:
+      return True
+
+    return bool(cls.CLIENT_ID_RE.match(str(value)))
+
+  @classmethod
+  def FromPublicKey(cls, public_key):
+    """An alternate constructor which generates a new client id."""
+    return cls("C.%s" % (
+        sha256(public_key).digest()[:8].encode("hex")))
+
+
 # These are objects we store as attributes of the client.
-class Filesystem(rdfvalue.RDFProto):
+class Filesystem(structs.RDFProtoStruct):
   """A filesystem on the client.
 
   This class describes a filesystem mounted on the client.
   """
-  _proto = sysinfo_pb2.Filesystem
+  protobuf = sysinfo_pb2.Filesystem
 
 
 class Filesystems(protodict.RDFValueArray):
@@ -36,7 +80,7 @@ class Filesystems(protodict.RDFValueArray):
   rdf_type = Filesystem
 
 
-class FolderInformation(rdfvalue.RDFProto):
+class FolderInformation(rdfvalue.RDFProtoStruct):
   """Representation of Window's special folders information for a User.
 
   Windows maintains a list of "Special Folders" which are used to organize a
@@ -44,35 +88,29 @@ class FolderInformation(rdfvalue.RDFProto):
   the location of user specific items, e.g. the Temporary folder, or the
   Internet cache.
   """
-  _proto = jobs_pb2.FolderInformation
+  protobuf = jobs_pb2.FolderInformation
 
 
-class User(rdfvalue.RDFProto):
+class User(rdfvalue.RDFProtoStruct):
   """A user of the client system.
 
   This stores information related to a specific user of the client system.
   """
-  _proto = jobs_pb2.UserAccount
-
-  rdf_map = dict(special_folders=FolderInformation,
-                 last_logon=rdfvalue.RDFDatetime)
+  protobuf = jobs_pb2.UserAccount
 
 
 class Users(protodict.RDFValueArray):
-  """A list of user account on the client system."""
+  """A list of user accounts on the client system."""
   rdf_type = User
 
 
-class NetworkEndpoint(rdfvalue.RDFProto):
-  _proto = sysinfo_pb2.NetworkEndpoint
+class NetworkEndpoint(rdfvalue.RDFProtoStruct):
+  protobuf = sysinfo_pb2.NetworkEndpoint
 
 
-class NetworkConnection(rdfvalue.RDFProto):
+class NetworkConnection(rdfvalue.RDFProtoStruct):
   """Information about a single network connection."""
-  _proto = sysinfo_pb2.NetworkConnection
-
-  rdf_map = dict(local_address=NetworkEndpoint,
-                 remote_address=NetworkEndpoint)
+  protobuf = sysinfo_pb2.NetworkConnection
 
 
 class Connections(protodict.RDFValueArray):
@@ -80,9 +118,9 @@ class Connections(protodict.RDFValueArray):
   rdf_type = NetworkConnection
 
 
-class NetworkAddress(rdfvalue.RDFProto):
+class NetworkAddress(rdfvalue.RDFProtoStruct):
   """A network address."""
-  _proto = jobs_pb2.NetworkAddress
+  protobuf = jobs_pb2.NetworkAddress
 
   def HumanReadableAddress(self):
     if self.human_readable:
@@ -94,11 +132,9 @@ class NetworkAddress(rdfvalue.RDFProto):
         return socket.inet_ntop(socket.AF_INET6, self.packed_bytes)
 
 
-class Interface(rdfvalue.RDFProto):
+class Interface(rdfvalue.RDFProtoStruct):
   """A network interface on the client system."""
-  _proto = jobs_pb2.Interface
-
-  rdf_map = dict(addresses=NetworkAddress)
+  protobuf = jobs_pb2.Interface
 
   def GetIPAddresses(self):
     """Return a list of IP addresses."""
@@ -129,23 +165,23 @@ class Interfaces(protodict.RDFValueArray):
 
 
 # DEPRECATED - do not use.
-class GRRConfig(rdfvalue.RDFProto):
+class GRRConfig(rdfvalue.RDFProtoStruct):
   """The configuration of a GRR Client."""
-  _proto = jobs_pb2.GRRConfig
+  protobuf = jobs_pb2.GRRConfig
 
 
-class ClientInformation(rdfvalue.RDFProto):
+class ClientInformation(rdfvalue.RDFProtoStruct):
   """The GRR client information."""
-  _proto = jobs_pb2.ClientInformation
+  protobuf = jobs_pb2.ClientInformation
 
 
-class CpuSeconds(rdfvalue.RDFProto):
+class CpuSeconds(rdfvalue.RDFProtoStruct):
   """CPU usage is reported as both a system and user components."""
-  _proto = jobs_pb2.CpuSeconds
+  protobuf = jobs_pb2.CpuSeconds
 
 
-class CpuSample(rdfvalue.RDFProto):
-  _proto = jobs_pb2.CpuSample
+class CpuSample(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.CpuSample
 
   # The total number of samples this sample represents - used for running
   # averages.
@@ -166,8 +202,8 @@ class CpuSample(rdfvalue.RDFProto):
     self._total_samples += 1
 
 
-class IOSample(rdfvalue.RDFProto):
-  _proto = jobs_pb2.IOSample
+class IOSample(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.IOSample
 
   def Average(self, sample):
     """Updates this sample from the new sample."""
@@ -177,12 +213,9 @@ class IOSample(rdfvalue.RDFProto):
     self.write_bytes = sample.write_bytes
 
 
-class ClientStats(rdfvalue.RDFProto):
+class ClientStats(rdfvalue.RDFProtoStruct):
   """A client stat object."""
-  _proto = jobs_pb2.ClientStats
-
-  rdf_map = dict(cpu_samples=CpuSample,
-                 io_samples=IOSample)
+  protobuf = jobs_pb2.ClientStats
 
   def DownsampleList(self, samples, interval):
     """Reduces samples at different timestamps into interval time bins."""
@@ -194,8 +227,10 @@ class ClientStats(rdfvalue.RDFProto):
     last_sample_seen = None
 
     for sample in samples:
+      timestamp = sample.timestamp.AsSecondsFromEpoch()
+
       # The time bin this sample belongs to.
-      time_bin = sample.timestamp - (sample.timestamp % interval)
+      time_bin = timestamp - (timestamp % interval)
 
       # Initialize to the first bin, but do not emit anything yet until we
       # switch bins.
@@ -221,37 +256,35 @@ class ClientStats(rdfvalue.RDFProto):
     if last_sample_seen:
       yield last_sample_seen
 
-  def DownSample(self, sampling_interval=int(60 * 1e6)):
-    """Downsamples the data to save space."""
+  def DownSample(self, sampling_interval=60):
+    """Downsamples the data to save space.
+
+    Args:
+      sampling_interval: The sampling interval in seconds.
+    """
     self.cpu_samples = self.DownsampleList(self.cpu_samples, sampling_interval)
     self.io_samples = self.DownsampleList(self.io_samples, sampling_interval)
 
 
-class DriverInstallTemplate(rdfvalue.RDFProto):
+class DriverInstallTemplate(rdfvalue.RDFProtoStruct):
   """Driver specific information controlling default installation.
 
   This is sent to the client to instruct the client how to install this driver.
   """
-  _proto = jobs_pb2.InstallDriverRequest
-
-  rdf_map = dict(driver=crypto.SignedBlob)
+  protobuf = jobs_pb2.InstallDriverRequest
 
 
-class BufferReference(rdfvalue.RDFProto):
+class BufferReference(rdfvalue.RDFProtoStruct):
   """Stores information about a buffer in a file on the client."""
-  _proto = jobs_pb2.BufferReadMessage
+  protobuf = jobs_pb2.BufferReference
 
   def __eq__(self, other):
-    return self._data.data == other
-
-  rdf_map = dict(pathspec=rdfvalue.RDFPathSpec)
+    return self.data == other
 
 
-class Process(rdfvalue.RDFProto):
+class Process(rdfvalue.RDFProtoStruct):
   """Represent a process on the client."""
-  _proto = sysinfo_pb2.Process
-
-  rdf_map = dict(connections=NetworkConnection)
+  protobuf = sysinfo_pb2.Process
 
 
 class Processes(protodict.RDFValueArray):
@@ -279,148 +312,113 @@ class StatMode(rdfvalue.RDFInteger):
     return "".join(bits)
 
 
-class Iterator(rdfvalue.RDFProto):
+class Iterator(rdfvalue.RDFProtoStruct):
   """An Iterated client action is one which can be resumed on the client."""
-  _proto = jobs_pb2.Iterator
-
-  rdf_map = dict(client_state=rdfvalue.RDFProtoDict)
+  protobuf = jobs_pb2.Iterator
 
 
-class StatEntry(rdfvalue.RDFProto):
+class StatEntry(rdfvalue.RDFProtoStruct):
   """Represent an extended stat response."""
-  _proto = jobs_pb2.StatResponse
-
-  # Translate these fields as RDFValue objects.
-  rdf_map = dict(st_mtime=rdfvalue.RDFDatetimeSeconds,
-                 st_atime=rdfvalue.RDFDatetimeSeconds,
-                 st_ctime=rdfvalue.RDFDatetimeSeconds,
-                 st_inode=rdfvalue.RDFInteger,
-                 st_mode=StatMode,
-                 st_dev=rdfvalue.RDFInteger,
-                 st_nlink=rdfvalue.RDFInteger,
-                 st_size=rdfvalue.RDFInteger,
-                 pathspec=paths.RDFPathSpec,
-                 registry_data=rdfvalue.DataBlob)
+  protobuf = jobs_pb2.StatEntry
 
 
-class RDFFindSpec(rdfvalue.RDFProto):
+class RDFFindSpec(rdfvalue.RDFProtoStruct):
   """A find specification."""
-  _proto = jobs_pb2.Find
+  protobuf = jobs_pb2.Find
 
-  rdf_map = dict(pathspec=rdfvalue.RDFPathSpec,
-                 hit=StatEntry,
-                 iterator=Iterator)
+  dependencies = dict(RegularExpression=standard.RegularExpression)
 
 
-class LogMessage(rdfvalue.RDFProto):
+class LogMessage(rdfvalue.RDFProtoStruct):
   """A log message sent from the client to the server."""
-  _proto = jobs_pb2.PrintStr
+  protobuf = jobs_pb2.PrintStr
 
 
-class EchoRequest(rdfvalue.RDFProto):
-  _proto = jobs_pb2.PrintStr
+class EchoRequest(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.PrintStr
 
 
-class ExecuteBinaryRequest(rdfvalue.RDFProto):
-  _proto = jobs_pb2.ExecuteBinaryRequest
-
-  rdf_map = dict(executable=crypto.SignedBlob)
+class ExecuteBinaryRequest(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.ExecuteBinaryRequest
 
 
-class ExecuteBinaryResponse(rdfvalue.RDFProto):
-  _proto = jobs_pb2.ExecuteBinaryResponse
+class ExecuteBinaryResponse(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.ExecuteBinaryResponse
 
 
-class ExecutePythonRequest(rdfvalue.RDFProto):
-  _proto = jobs_pb2.ExecutePythonRequest
-
-  rdf_map = dict(python_code=crypto.SignedBlob,
-                 py_args=rdfvalue.RDFProtoDict)
+class ExecutePythonRequest(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.ExecutePythonRequest
 
 
-class ExecutePythonResponse(rdfvalue.RDFProto):
-  _proto = jobs_pb2.ExecutePythonResponse
+class ExecutePythonResponse(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.ExecutePythonResponse
 
 
-class ExecuteRequest(rdfvalue.RDFProto):
-  _proto = jobs_pb2.ExecuteRequest
+class ExecuteRequest(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.ExecuteRequest
 
 
-class ExecuteResponse(rdfvalue.RDFProto):
-  _proto = jobs_pb2.ExecuteResponse
+class CopyPathToFileRequest(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.CopyPathToFile
 
 
-class Uname(rdfvalue.RDFProto):
-  _proto = jobs_pb2.Uname
+class ExecuteResponse(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.ExecuteResponse
 
 
-class StartupInfo(rdfvalue.RDFProto):
-  _proto = jobs_pb2.StartupInfo
-
-  rdf_map = dict(client_info=ClientInformation)
+class Uname(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.Uname
 
 
-class SendFileRequest(rdfvalue.RDFProto):
-  _proto = jobs_pb2.SendFileRequest
-
-  rdf_map = dict(pathspec=rdfvalue.RDFPathSpec)
+class StartupInfo(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.StartupInfo
 
 
-class ListDirRequest(rdfvalue.RDFProto):
-  _proto = jobs_pb2.ListDirRequest
-
-  rdf_map = dict(pathspec=rdfvalue.RDFPathSpec,
-                 iterator=Iterator)
+class SendFileRequest(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.SendFileRequest
 
 
-class FingerprintTuple(rdfvalue.RDFProto):
-  _proto = jobs_pb2.FingerprintTuple
+class ListDirRequest(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.ListDirRequest
 
 
-class FingerprintRequest(rdfvalue.RDFProto):
-  _proto = jobs_pb2.FingerprintRequest
+class FingerprintTuple(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.FingerprintTuple
 
-  rdf_map = dict(pathspec=rdfvalue.RDFPathSpec,
-                 tuples=FingerprintTuple)
+
+class FingerprintRequest(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.FingerprintRequest
 
   def AddRequest(self, *args, **kw):
     self.tuples.Append(*args, **kw)
 
 
-class FingerprintResponse(rdfvalue.RDFProto):
+class FingerprintResponse(rdfvalue.RDFProtoStruct):
   """Proto containing dicts with hashes."""
-  _proto = jobs_pb2.FingerprintResponse
+  protobuf = jobs_pb2.FingerprintResponse
 
-  rdf_map = dict(fingerprint_results=rdfvalue.RDFProtoDict,
-                 pathspec=rdfvalue.RDFPathSpec)
-
-  # TODO(user): Add reasonable accessors for UI/console integration.
-  # This includes parsing out the SignatureBlob for windows binaries.
-
-  def Get(self, name):
+  def GetFingerprint(self, name):
     """Gets the first fingerprint type from the protobuf."""
-    for result in self.fingerprint_results:
-      if result.Get("name") == name:
+    for result in self.results:
+      if result.GetItem("name") == name:
         return result
 
 
-class GrepSpec(rdfvalue.RDFProto):
-  _proto = jobs_pb2.GrepRequest
-
-  rdf_map = dict(target=rdfvalue.RDFPathSpec)
+class GrepSpec(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.GrepSpec
 
 
-class WMIRequest(rdfvalue.RDFProto):
-  _proto = jobs_pb2.WmiRequest
+class WMIRequest(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.WmiRequest
 
 
-class LaunchdJob(rdfvalue.RDFProto):
-  _proto = sysinfo_pb2.LaunchdJob
+class LaunchdJob(rdfvalue.RDFProtoStruct):
+  protobuf = sysinfo_pb2.LaunchdJob
 
 
-class Service(rdfvalue.RDFProto):
+class Service(rdfvalue.RDFProtoStruct):
   """Structure of a running service."""
-  _proto = sysinfo_pb2.Service
+  protobuf = sysinfo_pb2.Service
 
   rdf_map = dict(osx_launchd=LaunchdJob)
 
@@ -430,14 +428,17 @@ class Services(protodict.RDFValueArray):
   rdf_type = Service
 
 
-class ClientResources(rdfvalue.RDFProto):
+class ClientResources(rdfvalue.RDFProtoStruct):
   """An RDFValue class representing the client resource usage."""
-  _proto = jobs_pb2.ClientResources
+  protobuf = jobs_pb2.ClientResources
+
+  dependencies = dict(ClientURN=ClientURN,
+                      RDFURN=rdfvalue.RDFURN)
 
 
 # Start of the Registry Specific Data types
-class RunKey(rdfvalue.RDFProto):
-  _proto = sysinfo_pb2.RunKey
+class RunKey(rdfvalue.RDFProtoStruct):
+  protobuf = sysinfo_pb2.RunKey
 
 
 class RunKeyEntry(protodict.RDFValueArray):
@@ -445,8 +446,8 @@ class RunKeyEntry(protodict.RDFValueArray):
   rdf_type = RunKey
 
 
-class MRUFile(rdfvalue.RDFProto):
-  _proto = sysinfo_pb2.MRUFile
+class MRUFile(rdfvalue.RDFProtoStruct):
+  protobuf = sysinfo_pb2.MRUFile
 
 
 class MRUFolder(protodict.RDFValueArray):
@@ -454,13 +455,7 @@ class MRUFolder(protodict.RDFValueArray):
   rdf_type = MRUFile
 
 
-class Event(rdfvalue.RDFProto):
-  _proto = analysis_pb2.Event
-
-  rdf_type = dict(stat=StatEntry)
-
-
-class AFF4ObjectSummary(rdfvalue.RDFProto):
+class AFF4ObjectSummary(rdfvalue.RDFProtoStruct):
   """A summary of an AFF4 object.
 
   AFF4Collection objects maintain a list of AFF4 objects. To make it easier to
@@ -470,18 +465,12 @@ class AFF4ObjectSummary(rdfvalue.RDFProto):
 
   This summary is maintained in the RDFProto instance.
   """
-  _proto = jobs_pb2.AFF4ObjectSummary
-
-  rdf_map = dict(urn=rdfvalue.RDFURN,
-                 stat=rdfvalue.StatEntry)
+  protobuf = jobs_pb2.AFF4ObjectSummary
 
 
-class ClientCrash(rdfvalue.RDFProto):
+class ClientCrash(rdfvalue.RDFProtoStruct):
   """Details of a client crash."""
-  _proto = jobs_pb2.ClientCrash
-
-  rdf_map = dict(client_info=ClientInformation,
-                 timestamp=rdfvalue.RDFDatetime)
+  protobuf = jobs_pb2.ClientCrash
 
 
 class NoTargetGrepspecType(type_info.RDFValueType):
@@ -508,13 +497,11 @@ class NoTargetGrepspecType(type_info.RDFValueType):
           name="length",
           friendly_name="Length",
           default=10737418240),
-      type_info.RDFEnum(
+      type_info.SemanticEnum(
           description="How many results should be returned?",
           name="mode",
           friendly_name="Search Mode",
-          rdfclass=rdfvalue.GrepSpec,
-          enum_name="Mode",
-          default=rdfvalue.GrepSpec.Enum("FIRST_HIT")),
+          enum_container=rdfvalue.GrepSpec.Mode),
       type_info.Integer(
           description="Snippet returns these many bytes before the hit.",
           name="bytes_before",
@@ -541,7 +528,7 @@ class GrepspecType(NoTargetGrepspecType):
   child_descriptor = (
       NoTargetGrepspecType.child_descriptor +
       type_info.TypeDescriptorSet(
-          type_info.PathspecType(name="target")
+          paths.PathspecType(name="target")
           )
       )
 
@@ -556,7 +543,7 @@ class FindSpecType(type_info.RDFValueType):
   """A Find spec type."""
 
   child_descriptor = type_info.TypeDescriptorSet(
-      type_info.PathspecType(),
+      paths.PathspecType(),
       type_info.String(
           description="Search for this regular expression.",
           name="path_regex",
@@ -585,20 +572,3 @@ class FindSpecType(type_info.RDFValueType):
 
     defaults.update(kwargs)
     super(FindSpecType, self).__init__(**defaults)
-
-  def Validate(self, value):
-    """Validates the passed in protobuf for sanity."""
-    value = super(FindSpecType, self).Validate(value)
-
-    # Check the regexes are valid.
-    try:
-      if value.data_regex:
-        re.compile(value.data_regex)
-
-      if value.path_regex:
-        re.compile(value.path_regex)
-    except re.error, e:
-      raise type_info.TypeValueError(
-          "Invalid regex for FindFiles. Err: {0}".format(e))
-
-    return value

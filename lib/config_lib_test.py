@@ -63,6 +63,39 @@ test = val2"""
     self.assertRaises(config_lib.ConfigFormatError,
                       conf.Validate, ["Section1.test"])
 
+  def testEmptyClientPrivateKey(self):
+    """Check an empty client private_key passes."""
+    conf = config_lib.GrrConfigManager()
+    conf.Initialize(data="""
+[Client]
+private_key =
+driver_signing_public_key = -----BEGIN PUBLIC KEY-----
+    MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCOD
+    QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
+    -----END PUBLIC KEY-----
+executable_signing_public_key = -----BEGIN PUBLIC KEY-----
+    MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCOD
+    QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
+    -----END PUBLIC KEY-----
+""")
+    errors = conf.Validate(["Client"])
+    self.assertEqual(errors.keys(), ["Client.private_key"])
+
+  def testEmptyClientKeys(self):
+    """Check an empty other keys fail."""
+    conf = config_lib.GrrConfigManager()
+    conf.Initialize(data="""
+[Client]
+private_key =
+driver_signing_public_key =
+executable_signing_public_key =
+""")
+    errors = conf.Validate(["Client"])
+    self.assertItemsEqual(errors.keys(),
+                          ["Client.private_key",
+                           "Client.driver_signing_public_key",
+                           "Client.executable_signing_public_key"])
+
   def testAddOption(self):
     """Test that we can add options."""
     conf = config_lib.GrrConfigManager()

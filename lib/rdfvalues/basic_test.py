@@ -79,14 +79,16 @@ class RDFDatetimeTest(test_base.RDFValueTestCase):
   rdfvalue_class = rdfvalue.RDFDatetime
 
   def GenerateSample(self, number=0):
-    return self.rdfvalue_class("2011/11/%02d" % (number+1))
+    result = self.rdfvalue_class()
+    result.ParseFromHumanReadable("2011/11/%02d" % (number+1))
+    return result
 
   def testTimeZoneConversions(self):
     time_string = "2011-11-01 10:23:00"
 
     # Human readable strings are assumed to always be in UTC
     # timezone. Initialize from the human readable string.
-    date1 = rdfvalue.RDFDatetime(time_string)
+    date1 = rdfvalue.RDFDatetime().ParseFromHumanReadable(time_string)
 
     self.assertEqual(int(date1), 1320142980000000)
 
@@ -101,10 +103,12 @@ class RDFDatetimeTest(test_base.RDFValueTestCase):
     orig_time = time.time
     time.time = lambda: 1000
     try:
-      # Init from an empty string should generate a DateTime object with the
-      # current time.
+      # Init from an empty string should generate a DateTime object with a zero
+      # time.
       date = rdfvalue.RDFDatetime("")
-      self.assertEqual(int(date), int(1000 * 1e6))
+      self.assertEqual(int(date), 0)
+
+      self.assertEqual(int(date.Now()), int(1000 * 1e6))
 
     finally:
       time.time = orig_time

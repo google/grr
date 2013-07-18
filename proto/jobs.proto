@@ -1,8 +1,10 @@
 // Copyright 2011 Google Inc. All Rights Reserved
 
 // These are the messages used in GRR
-
 syntax = "proto2";
+
+import "grr/proto/semantic.proto";
+
 
 
 message HttpRequest {
@@ -11,35 +13,50 @@ message HttpRequest {
   optional string source_ip = 3;
   optional string url = 4;
   optional string user = 5 [default = "anonymous"];
-  // Timestamp in microseconds - unique identifier for the request
-  optional uint64 timestamp = 6;
+  optional uint64 timestamp = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp: unique identifier for the request",
+    }];
   optional string method = 7 [default = "GET"];  // Method e.g. GET/POST/PUT
   optional string referrer = 8;
-  optional uint64 size = 9;  // Size of the request in bytes
+  optional uint64 size = 9 [(sem_type) = {
+      description: "Size of the request in bytes",
+    }];
 }
 
 // This message is sent between the client and the server.
 message GrrMessage {
-  // Every flow has a unique session ID
-  optional string session_id = 1;
+  optional string session_id = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The session id of the flow that this message belongs to."
+    }];
 
-  // The message is in response to this request number (requests increment from
-  // 1).
-  optional uint64 request_id = 2;
+  optional uint64 request_id = 2 [(sem_type) = {
+      description: "The message is in response to this request number "
+      "(requests increment from 1)."
+    }];
 
-  // Responses for each request are also numbered from 1.
-  optional uint64 response_id = 3;
+  optional uint64 response_id = 3 [(sem_type) = {
+      description: "Responses for each request are also numbered from 1."
+    }];
 
-  // This is the name of the client action that will be executed. It
-  // is set by the flow and is executed by the client.
-  optional string name = 4;
+  optional string name = 4 [(sem_type) = {
+      description: "This is the name of the client action that will be "
+      "executed. It is set by the flow and is executed by the client."
+    }];
 
   // This field contains an encoded rdfvalue.
   optional bytes args = 5;
 
-  // Client name where the message came from (This is copied from the
-  // MessageList)
-  optional string source = 6;
+  // Due to superceed the args field (not yet implemented). Contains the
+  // arguement to the client action, or the response from the client action.
+  optional EmbeddedRDFValue arg = 20;
+
+  optional string source = 6  [(sem_type) = {
+      type: "RDFURN",
+      description: "Client name where the message came from "
+      "(Filled in by the frontend)."
+    }];
 
   // A Flag to indicate if the message is authenticated. Note that the client
   // does not get to decide this - the_server will verify the message and tag it
@@ -76,19 +93,29 @@ message GrrMessage {
     HIGH_PRIORITY = 2;
   };
 
-  // The priority of this message - allows higher priority messages to leap
-  // queues.
-  optional Priority priority = 9 [ default = MEDIUM_PRIORITY ];
-  optional uint32 ttl = 10 [default = 10];
+  optional Priority priority = 9 [ default = MEDIUM_PRIORITY, (sem_type) = {
+      description: "The priority of this message - allows higher priority "
+      "messages to leap to the front of queues."
+    }];
 
-  // If this is true, the client will enter fast poll mode after processing.
-  optional bool require_fastpoll = 11 [ default = true ];
+  optional uint32 ttl = 10 [default = 10, (sem_type) = {
+      description: "Time to live - each time a request is retransmitted this "
+      "decrement until it expires."
+    }];
 
-  // Maximum number of CPU seconds to be used by this action.
-  optional uint64 cpu_limit = 12 [ default = 3600 ];
+  optional bool require_fastpoll = 11 [ default = true, (sem_type) = {
+      description: "If this is true, the client will enter fast poll mode "
+      "after processing."
+    }];
 
-  // The age of the args rdfvalue.
-  optional uint64 args_age = 13;
+  optional uint64 cpu_limit = 12 [ default = 3600, (sem_type) = {
+      description: "Maximum number of CPU seconds to be used by this action."
+    }];
+
+  optional uint64 args_age = 13 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The age of the args rdfvalue.",
+    }];
 
   // The rdfvalue class of the args.
   optional string args_rdf_name = 14;
@@ -98,9 +125,10 @@ message GrrMessage {
 
   // The ttl used in the task scheduler.
   optional int32 task_ttl = 16 [ default = 5 ];
-
-  // The scheduler queue this message is in.
-  optional string queue = 17;
+  optional string queue = 17  [(sem_type) = {
+      // TODO(user) This should be changed to a RDFURN.
+      description: "The scheduler queue this message is in."
+    }];
 
   // The time when this message is becoming available for leasing.
   optional uint64 eta = 18;
@@ -130,13 +158,17 @@ message SignedMessageList {
   optional bytes signature = 2;
   // END DEPRECATED
 
-  optional string source = 3;
+  optional string source = 3 [(sem_type) = {
+      type: "RDFURN",
+      description: "The client id where this message came frome."
+    }];
 
   // How the message_list element is compressed
   optional CompressionType compression = 4 [ default = UNCOMPRESSED ];
-
-  // The client sends its timestamp
-  optional uint64 timestamp = 6;
+  optional uint64 timestamp = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The client sends its timestamp to prevent replay attacks."
+    }];
 };
 
 message CipherProperties {
@@ -152,8 +184,10 @@ message CipherProperties {
 };
 
 message CipherMetadata {
-  // The common name this cipher should be used to communicate with.
-  optional string source = 1;
+  optional string source = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The common name this cipher should be used to communicate with."
+    }];
 
   // The signature of the encrypted cipher block.
   optional bytes signature = 2;
@@ -178,12 +212,12 @@ message ClientCommunication {
   optional uint32 queue_size = 4 [default = 0];
 
   // This status code applies for the entire communication.
-  enum CommunicationStatus {
+  enum Status {
     OK = 200;
     BAD_REQUEST = 400;
     CIPHER_ERROR = 406;
   };
-  optional CommunicationStatus status = 5 [default = OK];
+  optional Status status = 5 [default = OK];
 
   optional uint32 api_version = 6;
 
@@ -212,7 +246,10 @@ message GrrStatus {
 
   optional CpuSeconds cpu_time_used = 4;
 
-  optional string child_session_id = 5;
+  optional string child_session_id = 5 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of a subflow.",
+    }];
 
   optional uint64 network_bytes_sent = 6;
 
@@ -220,19 +257,30 @@ message GrrStatus {
 };
 
 message ClientCrash {
-  optional string client_id = 1;
-  optional string session_id = 2;
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN"
+    }];
+  optional string session_id = 2 [(sem_type) = {
+      type: "RDFURN"
+    }];
   optional ClientInformation client_info = 3;
 
-  optional uint64 timestamp = 4;
+  optional uint64 timestamp = 4 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When the client crashed."
+    }];
   optional string crash_type = 5;
   optional string crash_message = 6;
   optional string backtrace = 7;
 }
 
 message HuntNotification {
-  optional string session_id = 1;
-  optional string client_id = 2;
+  optional string session_id = 1 [(sem_type) = {
+      type: "RDFURN"
+    }];
+  optional string client_id = 2 [(sem_type) = {
+      type: "ClientURN"
+    }];
 
   enum Status {
     UNKNOWN = 0;
@@ -244,9 +292,13 @@ message HuntNotification {
 }
 
 message FlowNotification {
-  optional string session_id = 1;
+  optional string session_id = 1 [(sem_type) = {
+      type: "RDFURN"
+    }];
   optional string flow_name = 2;
-  optional string client_id = 3;
+  optional string client_id = 3 [(sem_type) = {
+      type: "ClientURN"
+    }];
   enum Status {
     UNKNOWN = 0;
     OK = 1;
@@ -292,7 +344,9 @@ message DataBlob {
   optional bool boolean = 6; // If set data contains a boolean value
   optional BlobArray list = 8;  // For storing lists.
   optional Dict dict = 9; // Stores a dictionary
-  optional RDFValue rdf_value = 10; // Store an RDFValue.
+  optional EmbeddedRDFValue rdf_value = 10 [(sem_type) = {
+      description: "Store an embedded arbitrary RDFValue."
+    }];
   optional float float = 11;
 
   enum CompressionType {
@@ -316,6 +370,34 @@ message PrintStr {
   optional string data = 2;
 };
 
+// CopyPathToFile request and response.
+// Request:
+//  - offset: byte offset inside src file to start copying from
+//  - length: total number of bytes to copy (default 0 will copy whole file)
+//  - block_size: how many bytes to copy at a time (default 10 MB)
+//  - src_path: source pathspec to copy from
+//  - dest_dir: destination directory to copy to
+//  - dest_path: unset (GRRTempfile will create a random filename in dest_dir)
+//  - gzip_output: if true, output file will be gzipped (default true)
+//
+// Response:
+//  - offset: byte offset from request
+//  - length: total bytes copied
+//  - block_size: unused
+//  - src_path: source pathspec from request
+//  - dest_dir: destination dir from request
+//  - dest_path: on-disk output pathspec
+//  - gzip_output: if true, output file is gzipped
+//
+message CopyPathToFile {
+  optional uint64 offset = 1 [ default = 0 ];
+  optional uint64 length = 2 [ default = 0 ];
+  optional PathSpec src_path = 3;
+  optional string dest_dir = 4;
+  optional PathSpec dest_path = 5;
+  optional bool gzip_output = 6 [ default = true ];
+};
+
 // Pass a buffer back.
 
 //   This protobuf is used for both the request and response.
@@ -331,12 +413,12 @@ message PrintStr {
 //     - offset, length indicate the actual buffer returned (e.g. in
 //       case of truncated buffers).
 
-message BufferReadMessage {
+message BufferReference {
   optional uint64 offset = 1 [ default = 0 ];
   optional uint64 length = 2 [ default = 0 ];
   optional string callback = 3;
   optional bytes  data = 4;
-  optional Path pathspec = 6;
+  optional PathSpec pathspec = 6;
 };
 
 // Information for each request. Note that we are keeping all the
@@ -352,8 +434,10 @@ message RequestState {
   optional string next_state = 3;
   optional GrrStatus status = 4;
 
-  // This can contain any data we want to associate with the request
-  optional Dict data = 5;
+  optional Dict data = 5 [(sem_type) = {
+      description: "This can contain any data we want to associate with the "
+      "request.",
+    }];
 
   // Responses are kept in the datastore now. This just tells us the
   // total number of responses we have for this request.
@@ -362,12 +446,15 @@ message RequestState {
   // A count of request retransmits
   optional uint32 transmission_count = 7 [default = 0];
 
-  // The client id where the request was heading - we only receive
-  // responses from this client:
-  optional string client_id = 8;
-
-  // This is the session_id of the flow this request belongs to.
-  optional string session_id = 9;
+  optional string client_id = 8  [(sem_type) = {
+      type: "ClientURN",
+      description: "The client id where the request was heading - we only receive"
+      "responses from this client."
+    }];
+  optional string session_id = 9 [(sem_type) = {
+      type: "RDFURN",
+      description: "This is the session_id of the flow this request belongs to."
+    }];
 
   // The original message request.
   optional GrrMessage request = 10;
@@ -376,11 +463,11 @@ message RequestState {
 };
 
 // Flows are pickled in the data store:
-message FlowPB {
+message Flow {
   optional string name = 1;
   optional bytes pickle = 2;
   optional uint64 ts_id = 3;
-  enum FlowState {
+  enum State {
     RUNNING = 0;
     TERMINATED = 1;
     ERROR = 3;   // Flows which raise are marked as having an error.
@@ -390,19 +477,25 @@ message FlowPB {
     WELL_KNOWN = 2;
   };
 
-  optional FlowState state = 4 [default = RUNNING];
-  optional string session_id = 5;
+  optional State state = 4 [default = RUNNING];
+  optional string session_id = 5  [(sem_type) = {
+      type: "RDFURN"
+    }];
 
   // The number of outstanding requests in this flow
   optional uint32 outstanding_requests = 6 [default = 0];
 
   optional string creator = 7;
 
-  // Flows terminated with an error include this backtrace.
-  optional string backtrace = 8;
+  optional string backtrace = 8 [(sem_type) = {
+      type: "RDFString",
+      description: "Flows terminated with an error include this backtrace.",
+    }];
 
-  // When this flow was created
-  optional uint64 create_time = 9 [default = 0];
+  optional uint64 create_time = 9 [default = 0, (sem_type) = {
+      type: "RDFDatetime",
+      description: "When this flow was created.",
+    }];
 
   // A progress indicator from 0-100.
   optional int32 progress = 10 [default = 0];
@@ -423,7 +516,9 @@ message FlowPB {
   repeated string children = 16;
 
   // The client id for this flow.
-  optional string client_id = 17;
+  optional string client_id = 17 [(sem_type) = {
+      type: "ClientURN"
+    }];
 
   // The cpu seconds used on the client to complete this flow.
   optional CpuSeconds cpu_used = 18;
@@ -450,7 +545,10 @@ message CpuSample {
   optional float user_cpu_time = 1;
   optional float system_cpu_time = 2;
   optional float cpu_percent = 3;
-  optional uint64 timestamp = 4;
+  optional uint64 timestamp = 4 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The time of this sample."
+    }];
 }
 
 message IOSample {
@@ -458,7 +556,10 @@ message IOSample {
   optional uint64 write_count = 2;
   optional uint64 read_bytes = 3;
   optional uint64 write_bytes = 4;
-  optional uint64 timestamp = 5;
+  optional uint64 timestamp = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The time of this sample."
+    }];
 }
 
 message ClientStats {
@@ -495,7 +596,7 @@ message ExecuteResponse {
 }
 
 // A message to encode a filesystem path (maybe for raw access)
-message Path {
+message PathSpec {
   enum PathType {
     UNSET = -1;
     OS = 0;
@@ -507,7 +608,7 @@ message Path {
 
   optional string path = 2;
   optional string mount_point = 3;
-  optional Path nested_path = 5;
+  optional PathSpec nested_path = 5;
 
   // Offset for split images
   optional uint64 offset = 6;
@@ -550,26 +651,45 @@ message Path {
   optional uint64 ntfs_id = 10;
 };
 
-// Ask the ListDir action to list all files in path (returns StatResponse)
+// Ask the ListDir action to list all files in path (returns StatEntry)
 message ListDirRequest {
-  optional Path pathspec = 1;
+  optional PathSpec pathspec = 1;
   optional Iterator iterator = 2;
 };
 
 // A stat() record for a given path
-message StatResponse {
+message StatEntry {
   // This contains the URN of the aff4 object represented by this protobuf.
-  optional string aff4path = 1;
-  optional uint32 st_mode = 2;
+  optional string aff4path = 1[(sem_type) = {
+      type: "RDFURN",
+      description: "The location of this file in the AFF4 space."
+    }];
+  optional uint32 st_mode = 2 [(sem_type) = {
+      type: "StatMode",
+      description: "A unix file permission mode."
+    }];
+
   optional uint32 st_ino = 3;
   optional uint32 st_dev = 4;
   optional uint32 st_nlink = 5;
   optional uint32 st_uid = 6;
   optional uint32 st_gid = 7;
   optional uint64 st_size = 8;
-  optional uint64 st_atime = 9;
-  optional uint64 st_mtime = 10;
-  optional uint64 st_ctime = 11;
+  optional uint64 st_atime = 9 [(sem_type) = {
+      type: "RDFDatetimeSeconds",
+      description: "Last access time."
+    }];
+
+  optional uint64 st_mtime = 10 [(sem_type) = {
+      type: "RDFDatetimeSeconds",
+      description: "Last modified time."
+    }];
+
+  optional uint64 st_ctime = 11 [(sem_type) = {
+      type: "RDFDatetimeSeconds",
+      description: "Last inode change time."
+    }];
+
   optional uint32 st_blocks = 12;
   optional uint32 st_blksize = 13;
   optional uint32 st_rdev = 14;
@@ -589,19 +709,30 @@ message StatResponse {
     REG_MULTI_SZ = 0x07;
     REG_QWORD = 0x0B;
   }
-  optional RegistryType registry_type = 16;
-  // For very small files their data is stored in this record.
+
+  optional RegistryType registry_type = 16 [(sem_type) = {
+      description: "If this is a stat of a registry value, this field "
+      "contains the type of this value. The content will also be encoded "
+      "in residet."
+    }];
+
+ // For very small files their data is stored in this record.
   optional bytes resident = 17;
 
   // The pathspec which the client can use to re-reach this file.
-  optional Path pathspec = 18;
+  optional PathSpec pathspec = 18 [(sem_type) = {
+      description: "The path specification to this file on the client."
+    }];
 
-  optional DataBlob registry_data = 19;
+  optional DataBlob registry_data = 19 [(sem_type) = {
+      description: "If this entry represents a registry value, this field will "
+      "contain that value encoded according to the correct type.";
+    }];
 };
 
 // This stores collection entries.
 message Collection {
-  repeated StatResponse items = 1;
+  repeated StatEntry items = 1;
 };
 
 
@@ -624,13 +755,13 @@ message Dict {
 
 // Certificates are exchanged with this.
 message Certificate {
-  enum CertificateType {
+  enum Type {
     CSR = 0;
     CRT = 1;
     CA  = 2;
   };
 
-  optional CertificateType type = 1;
+  optional Type type = 1;
   optional bytes pem = 2;
   optional string cn = 3;
 };
@@ -674,7 +805,10 @@ message UserAccount {
   optional string username = 1;
   optional string full_name = 2;
   optional string comment = 3;
-  optional uint64 last_logon = 4;
+  optional uint64 last_logon = 4 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The last logon time for this user."
+    }];
   optional string domain = 5;
   optional string homedir = 6;
   optional string sid = 7;
@@ -683,11 +817,11 @@ message UserAccount {
 
 // A protobuf to encode network addresses.
 message NetworkAddress {
-  enum NetworkFamily {
+  enum Family {
     INET = 0;
     INET6 = 1;
   }
-  optional NetworkFamily address_type = 1;
+  optional Family address_type = 1;
   optional string human_readable = 2;
   optional bytes packed_bytes = 3;
 };
@@ -706,8 +840,8 @@ message Interface {
 
 // This returns information about the memory geometry.
 message MemoryInformation {
-  optional Path device = 1;
-  repeated BufferReadMessage runs = 2;
+  optional PathSpec device = 1;
+  repeated BufferReference runs = 2;
   optional uint64 cr3 = 3;
 }
 
@@ -743,32 +877,32 @@ message GRRConfig {
 message FingerprintTuple {
   // The fingerprinting methods the fingerprinter can be asked to perform.
   // If none is given, all are applied.
-  enum FingerprintType {
+  enum Type {
     FPT_GENERIC = 0;
     FPT_PE_COFF = 1;
   };
   // The hash functions that a fingerprinting method may employ.
   // If none is given, all applicable ones are used.
-  enum FingerprintHash {
+  enum Hash {
     MD5 = 0;
     SHA1 = 1;
     SHA256 = 2;
   };
-  required FingerprintType fp_type = 1;
-  repeated FingerprintHash hashers = 2;
+  required Type fp_type = 1;
+  repeated Hash hashers = 2;
 };
 
 // Request fingerprints for a file.
 message FingerprintRequest {
-  optional Path pathspec = 1;
+  optional PathSpec pathspec = 1;
   repeated FingerprintTuple tuples = 2;
 };
 
 // Response data for file hashes and signature blobs.
 message FingerprintResponse {
-  repeated FingerprintTuple.FingerprintType matching_types = 1;
-  repeated Dict fingerprint_results = 2;
-  optional Path pathspec = 3;
+  repeated FingerprintTuple.Type matching_types = 1;
+  repeated Dict results = 2;
+  optional PathSpec pathspec = 3;
 };
 
 // Specialized binary blob for client.
@@ -811,7 +945,7 @@ message VolatilityRequest {
   optional string profile = 3;
 
   // The raw device to use.
-  optional Path device = 4;
+  optional PathSpec device = 4;
 
   // These parameters are used to initialize the session.
   optional Dict session = 5;
@@ -902,9 +1036,9 @@ message InstallDriverRequest {
 // This requests the client to encrypt a file and send it to a specified server.
 message SendFileRequest {
   // The file to send.
-  optional Path pathspec = 1;
+  optional PathSpec pathspec = 1;
   // Connect to the receiver using IPv4 or IPv6.
-  optional NetworkAddress.NetworkFamily address_family = 2;
+  optional NetworkAddress.Family address_family = 2;
   // Receiving host.
   optional string host = 3;
   // Receiving port.
@@ -915,16 +1049,21 @@ message SendFileRequest {
 }
 
 // Grep searches the content of files for a hit and returns several
-// BufferReadMessage.
-message GrepRequest {
+// BufferReference.
+message GrepSpec {
   // The target of this search.
-  optional Path target = 1;
+  optional PathSpec target = 1 [(sem_type) = {
+      description: "This file will be searched."
+    }];
 
   // The search only covers this buffer.
   optional uint64 start_offset = 2 [default = 0];
   optional uint64 length = 3 [default = 1024000];
 
-  optional string regex = 4;
+  optional string regex = 4 [(sem_type) = {
+      type: "RegularExpression",
+      description: "The regular expression which will be used to search."
+    }];
 
   // A literal search.
   optional bytes literal = 5;
@@ -951,17 +1090,26 @@ message Find {
   optional Iterator iterator = 1;
 
   // The base path to recursive search from
-  optional Path pathspec = 2;
+  optional PathSpec pathspec = 2;
 
-  // This matches the filename
-  optional string path_regex = 3 [default = "."];
+  optional string path_regex = 3 [(sem_type) = {
+      type: "RegularExpression",
+      description: "This matches the filename (not the directory name)."
+    }];
 
-  // This matches the content of the file
-  optional string data_regex = 4 [default = "."];
+  optional string data_regex = 4 [(sem_type) = {
+      type: "RegularExpression",
+      description: "This matches the content of the file."
+    }];
 
-  // Specify a time range
-  optional uint64 start_time = 5;
-  optional uint64 end_time = 6;
+  optional uint64 start_time = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "File must be modified after this time."
+    }];
+  optional uint64 end_time = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "File must be modified before this time."
+    }];
 
   // Should we cross filesystems? Default is no.
   optional int32 cross_devs = 7 [default = 0];
@@ -969,15 +1117,16 @@ message Find {
   // How deep to search?
   optional int32 max_depth = 8 [ default = 15 ];
 
-  // Responses come in this proto
-  optional StatResponse hit = 9;
+  optional StatEntry hit = 9 [(sem_type) = {
+      description: "Responses come in this field."
+    }];
 
   // The maximum amount of data from this file to search for data_regex.
   optional uint64 max_data = 10 [default = 1024000];
 }
 
 message PlistRequest {
-  optional Path pathspec = 1;
+  optional PathSpec pathspec = 1;
   optional string context = 2;
   optional string query = 3;
 }
@@ -986,11 +1135,12 @@ message PlistRequest {
 message ForemanAttributeRegex {
   // A relative path under the client which the attribute applies to
   optional string path = 1 [default = "/"];
-
-  // If these are specified we fire when the attribute's str() representation
-  // matches the regex:
   optional string attribute_name = 2;
-  optional string attribute_regex = 3;
+  optional string attribute_regex = 3 [(sem_type) = {
+      type: "RegularExpression",
+      description: "If these are specified we fire when the attribute's str() "
+      "representation matches the regex."
+    }];
 }
 
 // This rule will fire if the expression operator(attribute, value) is true.
@@ -1019,20 +1169,28 @@ message ForemanRuleAction {
 };
 
 message HuntError {
-  optional string client_id = 1;
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN"
+    }];
   optional string log_message = 2;
   optional string backtrace = 3;
 }
 
 message HuntLog {
-  optional string client_id = 1;
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN"
+    }];
   optional string log_message = 2;
   optional string urn = 3;
 }
 
 message ClientResources {
-  optional string client_id = 1;
-  optional string session_id = 2;
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN"
+    }];
+  optional string session_id = 2 [(sem_type) = {
+      type: "RDFURN"
+    }];
   optional CpuSeconds cpu_usage = 3;
   optional uint64 network_bytes_sent = 4;
 }
@@ -1069,9 +1227,14 @@ message ForemanRule {
   // These will all run in case this rule fires
   repeated ForemanRuleAction actions = 3;
 
-  // When this rule was created and will expire
-  optional uint64 created = 4;
-  optional uint64 expires = 5;
+  optional uint64 created = 4 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When this rule was created."
+    }];
+  optional uint64 expires = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When this rule will expire."
+    }];
 
   // A Human readable description of what this is supposed to do
   optional string description = 6;
@@ -1099,13 +1262,8 @@ message Iterator {
 
 // FindAction returns these protobufs.
 message IteratedStatResponse {
-  optional StatResponse stat = 1;
+  optional StatEntry stat = 1;
   optional Iterator iterator = 2;
-}
-
-// URN for an aff4 URN
-message URN {
-  optional string urn = 1;
 }
 
 // A notification is used in the GUI to alert users that some operation is
@@ -1115,18 +1273,30 @@ message Notification {
   // message. For example in the GUI this is used to choose the view which is
   // displayed when the notification is clicked on.
   optional string type = 1;
-  optional string subject = 2;
-  optional string message = 3;
+  optional string subject = 2 [(sem_type) = {
+      type: "RDFURN",
+      description: "The subject which this notification is about."
+    }];
 
-  // The user or service which generated this notification.
-  optional string source = 4;
-  optional uint64 timestamp = 5;  // Time the notification was added.
+  optional string message = 3;
+  optional string source = 4 [(sem_type) = {
+      type: "RDFURN",
+      description: "The user or service which generated this notification."
+    }];
+
+  optional uint64 timestamp = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Time the notification was added."
+    }];
 }
 
 
 // This is a way to serialize an arbitrary RDFValue.
-message RDFValue {
-  optional uint64 age = 1;   // The age of this RDFValue.
+message EmbeddedRDFValue {
+  optional uint64 age = 1 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The age of this RDFValue."
+    }];
   optional string name = 2;  // The type name of this RDFValue - used to
                              // retrieve the class for it.
   optional bytes data = 3;   // The serialized data of the RDFValue.
@@ -1140,8 +1310,11 @@ message RDFValue {
 message AFF4ObjectSummary {
   // The TYPE attribute.
   optional string type = 1;
-  optional string urn = 2;
-  optional StatResponse stat = 3;
+  optional string urn = 2 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of this AFF4 object.",
+    }];
+  optional StatEntry stat = 3;
 }
 
 

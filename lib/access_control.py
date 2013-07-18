@@ -264,18 +264,6 @@ class ACLToken(object):
                     source_ips=self.source_ips, process=self.process,
                     expiry=self.expiry)
 
-  def ToProto(self, proto):
-    """Copy ourselves into the proto."""
-    # Only bother with valid tokens.
-    self.CheckExpiry()
-    proto.username = self.username
-    proto.reason = self.reason
-    proto.requested_access = self.requested_access
-    proto.expiry = long(self.expiry)
-    proto.source_ips.extend(self.source_ips)
-    if self.process:
-      proto.process = self.process
-
   def ToRDFToken(self):
     result = rdfvalue.AccessToken(
         username=self.username,

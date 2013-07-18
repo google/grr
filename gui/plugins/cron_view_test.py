@@ -5,8 +5,8 @@
 """Test the cron_view interface."""
 
 
+from grr.lib import cron
 from grr.lib import test_lib
-from grr.lib.aff4_objects import cronjobs
 
 
 class TestCronView(test_lib.GRRSeleniumTest):
@@ -14,7 +14,8 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(TestCronView, self).setUp()
-    cronjobs.RunAllCronJobs(token=self.token)
+    cron.ScheduleSystemCronFlows(token=self.token)
+    cron.CRON_MANAGER.RunOnce(token=self.token)
 
   def testCronView(self):
     """Test that scheduling flows works."""
@@ -26,9 +27,14 @@ class TestCronView(test_lib.GRRSeleniumTest):
     # Table should contain Last Run
     self.WaitUntil(self.IsTextPresent, "Last Run")
 
+    # Table should contain system cron jobs
+    self.WaitUntil(self.IsTextPresent, "GRRVersionBreakDown")
+    self.WaitUntil(self.IsTextPresent, "LastAccessStats")
+    self.WaitUntil(self.IsTextPresent, "OSBreakDown")
+
     # Select a Cron.
     self.Click("css=td:contains('OSBreakDown')")
 
-    # Check we can now see the log.
-    self.WaitUntil(self.IsElementPresent, "css=table[class=proto_table]")
-    self.WaitUntil(self.IsTextPresent, "Successfully ran cron job OSBreakDown")
+    # Check that there's one flow in the list.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=#main_bottomPane td:contains('OSBreakDown')")

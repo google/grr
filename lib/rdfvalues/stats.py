@@ -10,15 +10,13 @@ from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
-class StatsHistogramBin(rdfvalue.RDFProto):
-  _proto = jobs_pb2.StatsHistogramBin
+class StatsHistogramBin(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.StatsHistogramBin
 
 
-class StatsHistogram(rdfvalue.RDFProto):
+class StatsHistogram(rdfvalue.RDFProtoStruct):
   """Histogram with a user-provided set of bins."""
-  _proto = jobs_pb2.StatsHistogram
-
-  rdf_map = dict(bins=StatsHistogramBin)
+  protobuf = jobs_pb2.StatsHistogram
 
   def __init__(self, initializer=None, **kwargs):
     if isinstance(initializer, (list, tuple)):
@@ -39,11 +37,9 @@ class StatsHistogram(rdfvalue.RDFProto):
       self.bins[-1].num += 1
 
 
-class RunningStats(rdfvalue.RDFProto):
+class RunningStats(rdfvalue.RDFProtoStruct):
   """Class for collecting running stats: mean, stdev and histogram data."""
-  _proto = jobs_pb2.RunningStats
-
-  rdf_map = dict(histogram=StatsHistogram)
+  protobuf = jobs_pb2.RunningStats
 
   def RegisterValue(self, value):
     self.num += 1
@@ -67,14 +63,9 @@ class RunningStats(rdfvalue.RDFProto):
       return math.sqrt(self.sum_sq / float(self.num) - self.mean**2)
 
 
-class ClientResourcesStats(rdfvalue.RDFProto):
+class ClientResourcesStats(rdfvalue.RDFProtoStruct):
   """RDF value representing clients' resources usage statistics for hunts."""
-  _proto = jobs_pb2.ClientResourcesStats
-
-  rdf_map = dict(user_cpu_stats=RunningStats,
-                 system_cpu_stats=RunningStats,
-                 network_bytes_sent_stats=RunningStats,
-                 worst_performers=rdfvalue.ClientResources)
+  protobuf = jobs_pb2.ClientResourcesStats
 
   CPU_STATS_BINS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5,
                     6, 7, 8, 9, 10, 15, 20]
@@ -87,12 +78,9 @@ class ClientResourcesStats(rdfvalue.RDFProto):
     super(ClientResourcesStats, self).__init__(initializer=initializer,
                                                **kwargs)
 
-    self.user_cpu_stats.histogram = StatsHistogram(
-        initializer=self.CPU_STATS_BINS)
-    self.system_cpu_stats.histogram = StatsHistogram(
-        initializer=self.CPU_STATS_BINS)
-    self.network_bytes_sent_stats.histogram = StatsHistogram(
-        initializer=self.NETWORK_STATS_BINS)
+    self.user_cpu_stats.histogram = self.CPU_STATS_BINS
+    self.system_cpu_stats.histogram = self.CPU_STATS_BINS
+    self.network_bytes_sent_stats.histogram = self.NETWORK_STATS_BINS
 
     self.lock = threading.RLock()
 

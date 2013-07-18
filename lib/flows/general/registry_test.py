@@ -13,7 +13,7 @@ from grr.lib import test_lib
 class ClientRegistryVFSFixture(test_lib.ClientVFSHandlerFixture):
   """Special client VFS mock that will emulate the registry."""
   prefix = "/registry"
-  supported_pathtype = rdfvalue.RDFPathSpec.Enum("REGISTRY")
+  supported_pathtype = rdfvalue.PathSpec.PathType.REGISTRY
 
 
 class TestRegistry(test_lib.FlowTestsBaseclass):
@@ -23,7 +23,7 @@ class TestRegistry(test_lib.FlowTestsBaseclass):
     """Test that the MRU discovery flow. Flow is a work in Progress."""
     # Install the mock
     vfs.VFS_HANDLERS[
-        rdfvalue.RDFPathSpec.Enum("REGISTRY")] = ClientRegistryVFSFixture
+        rdfvalue.PathSpec.PathType.REGISTRY] = ClientRegistryVFSFixture
 
     # Mock out the Find client action.
     client_mock = test_lib.ActionMock("Find")
@@ -37,6 +37,7 @@ class TestRegistry(test_lib.FlowTestsBaseclass):
         "1487428992-1001"))
     fd.Set(users)
     fd.Close()
+
     # Run the flow in the emulated way.
     for _ in test_lib.TestFlowHelper("FindMRU", client_mock,
                                      client_id=self.client_id,
@@ -58,7 +59,7 @@ class TestRegistry(test_lib.FlowTestsBaseclass):
     """Read Run key from the client_fixtures to test parsing and storage."""
     # Install the mock.
     vfs.VFS_HANDLERS[
-        rdfvalue.RDFPathSpec.Enum("REGISTRY")] = ClientRegistryVFSFixture
+        rdfvalue.PathSpec.PathType.REGISTRY] = ClientRegistryVFSFixture
 
     # Mock out the Find client action.
     client_mock = test_lib.ActionMock("Find")

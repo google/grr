@@ -14,6 +14,7 @@ from grr.lib import build_test
 from grr.lib import communicator_test
 from grr.lib import config_lib_test
 from grr.lib import config_validation_test
+from grr.lib import cron_test
 from grr.lib import data_store_test
 from grr.lib import export_utils_test
 from grr.lib import flow_test
@@ -34,4 +35,5 @@ from grr.lib.aff4_objects import tests
 from grr.lib.data_stores import tests
 from grr.lib.flows import tests
 from grr.lib.rdfvalues import tests
+from grr.tools import entry_point_test
 # pylint: enable=W0611

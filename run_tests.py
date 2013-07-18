@@ -23,6 +23,7 @@ from grr.client import client_vfs_test
 from grr.client.client_actions import action_test
 from grr.lib import test_lib
 from grr.lib import tests
+from grr.lib import utils
 from grr.parsers import tests
 from grr.worker import worker_test
 
@@ -102,6 +103,7 @@ def WaitForAvailableProcesses(processes, max_processes=5, completion_cb=None):
         continue
 
       exit_code = metadata["pipe"].poll()
+
       if exit_code is None:
         pending_processes += 1
       else:
@@ -159,7 +161,7 @@ def main(argv=None):
   else:
     processes = {}
 
-    with test_lib.TempDirectory() as flags.FLAGS.temp_dir:
+    with utils.TempDirectory() as flags.FLAGS.temp_dir:
       start = time.time()
 
       for name in test_lib.GRRBaseTest.classes:

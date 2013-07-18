@@ -9,5 +9,5 @@ from grr.lib import rdfvalue
 from grr.proto import jobs_pb2
 
 
-class HuntNotification(rdfvalue.RDFProto):
-  _proto = jobs_pb2.HuntNotification
+class HuntNotification(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.HuntNotification

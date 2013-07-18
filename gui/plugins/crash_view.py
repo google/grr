@@ -69,7 +69,7 @@ class ClientCrashCollectionRenderer(renderers.TableRenderer):
     crashes_urn = self.state["crashes_urn"]
     try:
       collection = aff4.FACTORY.Open(crashes_urn,
-                                     required_type="RDFValueCollection",
+                                     aff4_type="RDFValueCollection",
                                      token=request.token)
     except IOError:
       return

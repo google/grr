@@ -22,7 +22,7 @@ class FetchAllFiles(flow.GRRFlow):
   """
 
   category = "/Filesystem/"
-  _CHUNK_SIZE = 512 * 1024
+  CHUNK_SIZE = 512 * 1024
   _MAX_FETCHABLE_SIZE = 100 * 1024 * 1024
 
   flow_typeinfo = type_info.TypeDescriptorSet(
@@ -38,9 +38,9 @@ class FetchAllFiles(flow.GRRFlow):
                        "extension."),
           name="findspec",
           default=rdfvalue.RDFFindSpec(
-              pathspec=rdfvalue.RDFPathSpec(
+              pathspec=rdfvalue.PathSpec(
                   path="/",
-                  pathtype=rdfvalue.RDFPathSpec.Enum("OS")),
+                  pathtype=rdfvalue.PathSpec.PathType.OS),
               path_regex=r"\.(exe|com|bat|dll|msi|sys|scr|pif)$")
           ),
       )
@@ -48,13 +48,13 @@ class FetchAllFiles(flow.GRRFlow):
   @flow.StateHandler(next_state="IterateFind")
   def Start(self):
     """Issue the find request."""
-    self.files_found = 0
-    self.files_hashed = 0
-    self.files_to_fetch = 0
-    self.files_fetched = 0
-    self.fd_store = {}
+    self.state.Register("files_found", 0)
+    self.state.Register("files_hashed", 0)
+    self.state.Register("files_to_fetch", 0)
+    self.state.Register("files_fetched", 0)
+    self.state.Register("fd_store", {})
 
-    self.CallClient("Find", self.findspec, next_state="IterateFind")
+    self.CallClient("Find", self.state.findspec, next_state="IterateFind")
 
   @flow.StateHandler(next_state=["IterateFind", "CheckFingerprint"])
   def IterateFind(self, responses):
@@ -71,18 +71,18 @@ class FetchAllFiles(flow.GRRFlow):
       response.hit.aff4path = utils.SmartUnicode(vfs_urn)
 
       if stat.S_ISREG(response.hit.st_mode):
-        self.files_found += 1
+        self.state.files_found += 1
 
         tuples = []
         tuples.append(rdfvalue.FingerprintTuple(
-            fp_type=rdfvalue.FingerprintTuple.Enum("FPT_GENERIC"),
-            hashers=[rdfvalue.FingerprintTuple.Enum("SHA256")]))
+            fp_type=rdfvalue.FingerprintTuple.Type.FPT_GENERIC,
+            hashers=[rdfvalue.FingerprintTuple.Hash.SHA256]))
 
-        if self.pecoff:
+        if self.state.pecoff:
           tuples.append(rdfvalue.FingerprintTuple(
-              fp_type=rdfvalue.FingerprintTuple.Enum("FPT_PE_COFF"),
-              hashers=[rdfvalue.FingerprintTuple.Enum("MD5"),
-                       rdfvalue.FingerprintTuple.Enum("SHA1")]))
+              fp_type=rdfvalue.FingerprintTuple.Type.FPT_PE_COFF,
+              hashers=[rdfvalue.FingerprintTuple.Hash.MD5,
+                       rdfvalue.FingerprintTuple.Hash.SHA1]))
 
         fingerspec = rdfvalue.FingerprintRequest(pathspec=response.hit.pathspec,
                                                  tuples=tuples)
@@ -93,11 +93,12 @@ class FetchAllFiles(flow.GRRFlow):
 
     # In the future, might talk to parent to tell number of file stated / bytes
     # hashed / bytes fetched, so that the hunt knows what's going on?
-    if responses.iterator.state != rdfvalue.Iterator.Enum("FINISHED"):
-      self.findspec.iterator.CopyFrom(responses.iterator)
-      self.CallClient("Find", self.findspec, next_state="IterateFind")
+    if responses.iterator.state != rdfvalue.Iterator.State.FINISHED:
+      self.state.findspec.iterator.CopyFrom(responses.iterator)
+      self.CallClient("Find", self.state.findspec, next_state="IterateFind")
+
     else:
-      self.Log("Found %d files.", self.files_found)
+      self.Log("Found %d files.", self.state.files_found)
 
   @flow.StateHandler(next_state="WriteBuffer")
   def CheckFingerprint(self, responses):
@@ -108,7 +109,7 @@ class FetchAllFiles(flow.GRRFlow):
       return
 
     # There is only one element ever.
-    self.files_hashed += 1
+    self.state.files_hashed += 1
     response = responses.First()
     hit = responses.request_data["hit"]
     vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
@@ -124,9 +125,9 @@ class FetchAllFiles(flow.GRRFlow):
     fd.Set(fingerprint)
 
     for fp_type, hash_type in [("pecoff", "sha1"), ("generic", "sha256")]:
-      fp = fingerprint.Get(fp_type)
+      fp = fingerprint.GetFingerprint(fp_type)
       if fp is not None:
-        fp_hash = fp.Get(hash_type)
+        fp_hash = fp.GetItem(hash_type)
         if fp_hash is None:
           continue
 
@@ -141,12 +142,11 @@ class FetchAllFiles(flow.GRRFlow):
     # Let's see if the fingerprint (with content) already exists.
     # If yes, we are done.
     try:
-      aff4.FACTORY.Open(urn, required_type="HashImage", mode="r",
-                        token=self.token)
+      aff4.FACTORY.Open(urn, aff4_type="HashImage", mode="r", token=self.token)
     except IOError:
       fd = aff4.FACTORY.Create(urn, "HashImage", mode="w", token=self.token)
       fd.Set(fd.Schema.CONTENT_LOCK(self.session_id))
-      fd.SetChunksize(self._CHUNK_SIZE)
+      fd.SetChunksize(self.CHUNK_SIZE)
       fd.Set(fingerprint)
 
       # Ensure we flush here as a lock on the object. There is a small race here
@@ -155,7 +155,7 @@ class FetchAllFiles(flow.GRRFlow):
       fd.Flush(sync=True)
 
       fd_key = utils.SmartStr(urn)
-      self.fd_store[fd_key] = fd
+      self.state.fd_store[fd_key] = fd
 
       # If the binary is too large we just ignore it.
       file_size = hit.st_size
@@ -164,16 +164,16 @@ class FetchAllFiles(flow.GRRFlow):
         return
 
       # We just fetch ALL the chunks now.
-      self.files_to_fetch += 1
+      self.state.files_to_fetch += 1
       offset = 0
       while offset < file_size:
         self.CallClient("TransferBuffer", pathspec=hit.pathspec, offset=offset,
-                        length=self._CHUNK_SIZE, next_state="WriteBuffer",
+                        length=self.CHUNK_SIZE, next_state="WriteBuffer",
                         request_data=dict(fd_key=fd_key, size=file_size))
-        offset += self._CHUNK_SIZE
+        offset += self.CHUNK_SIZE
 
-    if not int(self.files_hashed % 100):
-      self.Log("Hashed %d files.", self.files_hashed)
+    if not int(self.state.files_hashed % 100):
+      self.Log("Hashed %d files.", self.state.files_hashed)
 
   @flow.StateHandler()
   def WriteBuffer(self, responses):
@@ -184,7 +184,7 @@ class FetchAllFiles(flow.GRRFlow):
 
     response = responses.First()
     fd_key = responses.request_data["fd_key"]
-    fd = self.fd_store.get(fd_key)
+    fd = self.state.fd_store.get(fd_key)
     if not fd:
       self.Log("Missing fd_key from store: %s", fd_key)
     else:
@@ -193,12 +193,12 @@ class FetchAllFiles(flow.GRRFlow):
       fd.AddBlob(response.data, response.length)
       if response.offset + response.length >= size:
         # File done.
-        del self.fd_store[fd_key]
+        del self.state.fd_store[fd_key]
         fd.Close(sync=False)
-        self.files_fetched += 1
-        if not int(self.files_fetched % 100):
-          self.Log("Fetched %d of %d files.", self.files_fetched,
-                   self.files_to_fetch)
+        self.state.files_fetched += 1
+        if not int(self.state.files_fetched % 100):
+          self.Log("Fetched %d of %d files.", self.state.files_fetched,
+                   self.state.files_to_fetch)
 
 # A cron job should check on these symlinks, and make sure the file content
 # actually matches the advertised hash. Also true for hashImage files?

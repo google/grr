@@ -83,8 +83,8 @@ class AccessControlTest(test_lib.GRRBaseTest):
     super_token = access_control.ACLToken()
     super_token.supervisor = True
 
-    hunt = hunts.SampleHunt(token=super_token)
-    hunt.WriteToDataStore()
+    hunt = hunts.GRRHunt.StartHunt("SampleHunt", token=super_token)
+    hunt.Flush()
 
     return rdfvalue.RDFURN(hunt.session_id)
 
@@ -218,11 +218,10 @@ class AccessControlTest(test_lib.GRRBaseTest):
     """Tests that we can create an approval object to run hunts."""
     token = access_control.ACLToken("test", "For testing")
     hunt_urn = self.CreateSampleHunt()
-
     self.assertRaisesRegexp(
         access_control.UnauthorizedAccess,
         "No approval found for hunt",
-        flow.FACTORY.StartFlow,
+        flow.GRRFlow.StartFlow,
         None, "RunHuntFlow", token=token, hunt_urn=hunt_urn)
 
     self.CreateHuntApproval(hunt_urn, token)
@@ -230,11 +229,11 @@ class AccessControlTest(test_lib.GRRBaseTest):
     self.assertRaisesRegexp(
         access_control.UnauthorizedAccess,
         "At least one approver should have 'admin' label",
-        flow.FACTORY.StartFlow,
+        flow.GRRFlow.StartFlow,
         None, "RunHuntFlow", token=token, hunt_urn=hunt_urn)
 
     self.CreateHuntApproval(hunt_urn, token, admin=True)
-    flow.FACTORY.StartFlow(None, "RunHuntFlow", token=token, hunt_urn=hunt_urn)
+    flow.GRRFlow.StartFlow(None, "RunHuntFlow", token=token, hunt_urn=hunt_urn)
 
   def testUserAccess(self):
     """Tests access to user objects."""
@@ -291,16 +290,40 @@ class AccessControlTest(test_lib.GRRBaseTest):
     # Now we are allowed.
     aff4.FACTORY.Open("aff4:/foreman", token=token)
 
+  def testCrashesAccess(self):
+    # We need a supervisor to manipulate a user's ACL token:
+    super_token = access_control.ACLToken()
+    super_token.supervisor = True
+
+    path = rdfvalue.RDFURN("aff4:/crashes")
+
+    crashes = aff4.FACTORY.Create(path, "RDFValueCollection", token=self.token)
+    self.assertRaises(access_control.UnauthorizedAccess, crashes.Close)
+
+    # This shouldn't raise as we're using supervisor token.
+    crashes = aff4.FACTORY.Create(path, "RDFValueCollection",
+                                  token=super_token)
+    crashes.Close()
+
+    crashes = aff4.FACTORY.Open(path, aff4_type="RDFValueCollection",
+                                mode="rw", token=self.token)
+    crashes.Set(crashes.Schema.DESCRIPTION("Some description"))
+    self.assertRaises(access_control.UnauthorizedAccess, crashes.Close)
+
+    crashes = aff4.FACTORY.Open(path, aff4_type="RDFValueCollection",
+                                mode="r", token=self.token)
+    crashes.Close()
+
   def testFlowAccess(self):
     """Tests access to flows."""
     token = access_control.ACLToken("test", "For testing")
     client_id = "C." + "A" * 16
 
-    self.assertRaises(access_control.UnauthorizedAccess, flow.FACTORY.StartFlow,
+    self.assertRaises(access_control.UnauthorizedAccess, flow.GRRFlow.StartFlow,
                       client_id, "SendingFlow", message_count=1, token=token)
 
     self.CreateClientApproval(client_id, token)
-    sid = flow.FACTORY.StartFlow(client_id, "SendingFlow", message_count=1,
+    sid = flow.GRRFlow.StartFlow(client_id, "SendingFlow", message_count=1,
                                  token=token)
 
     # Check we can open the flow object.
@@ -309,8 +332,8 @@ class AccessControlTest(test_lib.GRRBaseTest):
     # Check that we can not write to it.
     flow_obj.mode = "rw"
 
-    rdf_flow = flow_obj.Get(flow_obj.Schema.RDF_FLOW)
-    flow_obj.Set(rdf_flow)
+    state = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
+    flow_obj.Set(state)
 
     # This is not allowed - Users can not write to flows.
     self.assertRaises(access_control.UnauthorizedAccess,
@@ -333,7 +356,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
 
     self.CreateClientApproval(client_id, token)
 
-    sid = flow.FACTORY.StartFlow(client_id, "SendingFlow", message_count=1,
+    sid = flow.GRRFlow.StartFlow(client_id, "SendingFlow", message_count=1,
                                  token=token)
 
     # Fill all the caches.
@@ -381,7 +404,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     email_alerts.SendEmail = SendEmail
 
     try:
-      flow.FACTORY.StartFlow(client_id, "BreakGlassGrantClientApprovalFlow",
+      flow.GRRFlow.StartFlow(client_id, "BreakGlassGrantClientApprovalFlow",
                              token=self.token, reason=self.token.reason)
 
       # Reset the emergency state of the token.

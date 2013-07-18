@@ -102,7 +102,7 @@ class TaskScheduler(object):
             queue, to_schedule, timestamp=timestamp, sync=sync, token=token)
 
   def NotifyQueue(self, queue, session_id,
-                  priority=rdfvalue.GRRMessage.Enum("MEDIUM_PRIORITY"),
+                  priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY,
                   **kwargs):
     """This signals that there are new messages available in a queue."""
     self.MultiNotifyQueue(queue, [session_id], [priority], **kwargs)
@@ -179,7 +179,7 @@ class TaskScheduler(object):
       regex = utils.SmartStr(task_id)
 
     all_tasks = list(self.data_store.ResolveRegex(
-        queue, regex, decoder=rdfvalue.GRRMessage,
+        queue, regex, decoder=rdfvalue.GrrMessage,
         timestamp=self.data_store.ALL_TIMESTAMPS, token=token))
     all_tasks.sort(key=lambda task: task[1].priority, reverse=True)
 
@@ -199,7 +199,7 @@ class TaskScheduler(object):
 
     return self.data_store.MultiResolveRegex(
         queues, self.PREDICATE_PREFIX % ".*",
-        decoder=rdfvalue.GRRMessage,
+        decoder=rdfvalue.GrrMessage,
         timestamp=self.data_store.ALL_TIMESTAMPS,
         limit=limit, token=token)
 
@@ -248,7 +248,7 @@ class TaskScheduler(object):
 
     all_tasks = list(transaction.ResolveRegex(
         self.PREDICATE_PREFIX % ".*",
-        decoder=rdfvalue.GRRMessage,
+        decoder=rdfvalue.GrrMessage,
         timestamp=(0, now)))
 
     all_tasks.sort(key=lambda task: task[1].priority, reverse=True)
@@ -268,7 +268,7 @@ class TaskScheduler(object):
                      task.task_id)
         stats.STATS.Increment("grr_task_ttl_expired_count")
       else:
-        if task.task_ttl != rdfvalue.GRRMessage.max_ttl - 1:
+        if task.task_ttl != rdfvalue.GrrMessage.max_ttl - 1:
           stats.STATS.Increment("grr_task_retransmission_count")
 
         # Update the timestamp on the value to be in the future

@@ -68,14 +68,13 @@ class ClientActionRunner(flow.GRRFlow):
 
   @flow.StateHandler(next_state="End")
   def Start(self):
-    self.CallClient(self.action, next_state="End", **self.args)
+    self.CallClient(self.state.action, next_state="End", **self.args)
 
 
 class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
 
   def testClientKilled(self):
     """Test that client killed messages are handled correctly."""
-
     try:
       old_send_email = email_alerts.SendEmail
 
@@ -91,49 +90,58 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       client = test_lib.CrashClientMock(self.client_id, self.token)
       for _ in test_lib.TestFlowHelper(
           "ListDirectory", client, client_id=self.client_id,
-          pathspec=rdfvalue.RDFPathSpec(path="/"), token=self.token,
+          pathspec=rdfvalue.PathSpec(path="/"), token=self.token,
           check_flow_errors=False):
         pass
 
       # We expect the email to be sent.
       self.assertEqual(self.email_message.get("address", ""),
                        config_lib.CONFIG["Monitoring.alert_email"])
-      self.assertTrue(self.client_id in self.email_message["title"])
+      self.assertTrue(str(self.client_id) in self.email_message["title"])
 
-      # Make sure the flow protobuf dump is included in the email message.
-      for s in ["name: \"ListDirectory\"", "state:", "pickle:"]:
+      # Make sure the flow state is included in the email message.
+      for s in ["flow_name", "ListDirectory", "current_state", "Start"]:
         self.assertTrue(s in self.email_message["message"])
 
-      rdf_flow = flow.FACTORY.FetchFlow(client.flow_id, token=self.token)
-      self.assertEqual(rdf_flow.state, rdfvalue.Flow.Enum("ERROR"))
-      flow.FACTORY.ReturnFlow(rdf_flow, token=self.token)
+      flow_obj = aff4.FACTORY.Open(client.flow_id, age=aff4.ALL_TIMES,
+                                   token=self.token)
+      self.assertEqual(flow_obj.state.context.state, rdfvalue.Flow.State.ERROR)
 
       # Make sure crashes RDFValueCollections are created and written
       # into proper locations. First check the per-client crashes collection.
-      client_crashes = aff4.FACTORY.Open(
-          aff4.ROOT_URN.Add(self.client_id).Add("crashes"),
-          required_type="RDFValueCollection", token=self.token)
-      self.assertEqual(len(client_crashes), 1)
+      client_crashes = sorted(
+          list(aff4.FACTORY.Open(self.client_id.Add("crashes"),
+                                 aff4_type="RDFValueCollection",
+                                 token=self.token)),
+          key=lambda x: x.timestamp)
+
+      self.assertTrue(len(client_crashes) >= 1)
       crash = list(client_crashes)[0]
       self.assertEqual(crash.client_id, self.client_id)
-      self.assertEqual(crash.session_id, rdf_flow.session_id)
+      self.assertEqual(crash.session_id, flow_obj.session_id)
       self.assertEqual(crash.client_info.client_name, "GRR Monitor")
       self.assertEqual(crash.crash_type, "aff4:/flows/W:CrashHandler")
       self.assertEqual(crash.crash_message, "Client killed during transaction")
 
       # Check per-flow crash collection. Check that crash written there is
       # equal to per-client crash.
-      aff4_flow = aff4.FACTORY.Open(rdf_flow.session_id, token=self.token)
-      flow_crash = aff4_flow.Get(aff4_flow.Schema.CLIENT_CRASH)
-      self.assertEqual(flow_crash, crash)
+      flow_crashes = sorted(
+          list(flow_obj.GetValuesForAttribute(flow_obj.Schema.CLIENT_CRASH)),
+          key=lambda x: x.timestamp)
+      self.assertEqual(len(flow_crashes), len(client_crashes))
+      for a, b in zip(flow_crashes, client_crashes):
+        self.assertEqual(a, b)
 
       # Check global crash collection. Check that crash written there is
       # equal to per-client crash.
-      global_crashes = aff4.FACTORY.Open(aff4.ROOT_URN.Add("crashes"),
-                                         required_type="RDFValueCollection",
-                                         token=self.token)
-      self.assertEqual(len(global_crashes), 1)
-      self.assertEqual(list(global_crashes)[0], crash)
+      global_crashes = sorted(
+          aff4.FACTORY.Open(aff4.ROOT_URN.Add("crashes"),
+                            aff4_type="RDFValueCollection",
+                            token=self.token),
+          key=lambda x: x.timestamp)
+      self.assertEqual(len(global_crashes), len(client_crashes))
+      for a, b in zip(global_crashes, client_crashes):
+        self.assertEqual(a, b)
 
     finally:
       email_alerts.SendEmail = old_send_email
@@ -152,11 +160,11 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       email_alerts.SendEmail = SendEmail
       config_lib.CONFIG.Set("Monitoring.alert_email", "admin@nowhere.com")
 
-      msg = rdfvalue.GRRMessage(
+      msg = rdfvalue.GrrMessage(
           session_id="W:NannyMessage",
           args=rdfvalue.DataBlob(string=nanny_message).SerializeToString(),
           source=self.client_id,
-          auth_state=rdfvalue.GRRMessage.Enum("AUTHENTICATED"))
+          auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)
 
       # This is normally done by the FrontEnd when a CLIENT_KILLED message is
       # received.
@@ -171,16 +179,16 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       # We expect the email to be sent.
       self.assertEqual(self.email_message.get("address", ""),
                        config_lib.CONFIG["Monitoring.alert_email"])
-      self.assertTrue(self.client_id in self.email_message["title"])
+      self.assertTrue(str(self.client_id) in self.email_message["title"])
 
       # Make sure the message is included in the email message.
       self.assertTrue(nanny_message in self.email_message["message"])
 
       # Make sure crashes RDFValueCollections are created and written
       # into proper locations. First check the per-client crashes collection.
-      client_crashes = aff4.FACTORY.Open(
-          aff4.ROOT_URN.Add(self.client_id).Add("crashes"),
-          required_type="RDFValueCollection", token=self.token)
+      client_crashes = aff4.FACTORY.Open(self.client_id.Add("crashes"),
+                                         aff4_type="RDFValueCollection",
+                                         token=self.token)
       self.assertEqual(len(client_crashes), 1)
       crash = list(client_crashes)[0]
       self.assertEqual(crash.client_id, self.client_id)
@@ -191,7 +199,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       # Check global crash collection. Check that crash written there is
       # equal to per-client crash.
       global_crashes = aff4.FACTORY.Open(aff4.ROOT_URN.Add("crashes"),
-                                         required_type="RDFValueCollection",
+                                         aff4_type="RDFValueCollection",
                                          token=self.token)
       self.assertEqual(len(global_crashes), 1)
       self.assertEqual(list(global_crashes)[0], crash)
@@ -328,7 +336,7 @@ sys.test_code_ran_here = py_args['value']
                                      client_id=self.client_id):
       pass
 
-    urn = aff4.ROOT_URN.Add(self.client_id).Add("stats")
+    urn = self.client_id.Add("stats")
     stats_fd = aff4.FACTORY.Create(urn, "ClientStats", token=self.token,
                                    mode="rw")
     sample = stats_fd.Get(stats_fd.Schema.STATS)

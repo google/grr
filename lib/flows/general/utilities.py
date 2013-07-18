@@ -35,18 +35,18 @@ class DownloadDirectory(flow.GRRFlow):
   @flow.StateHandler(next_state="DownloadDir")
   def Start(self, unused_response):
     """Issue a request to list the directory."""
-    self.urn = aff4.ROOT_URN.Add(self.client_id)
-    self.out_urn = None
-    self.CallClient("ListDirectory", pathspec=self.pathspec,
+    self.state.urn = self.client_id
+    self.state.Register("out_urn", None)
+    self.CallClient("ListDirectory", pathspec=self.state.pathspec,
                     next_state="DownloadDir",
-                    request_data=dict(depth=self.depth))
+                    request_data=dict(depth=self.state.depth))
 
   @flow.StateHandler(next_state=["DownloadDir", "Done"])
   def DownloadDir(self, responses):
     """Download all files in a given directory recursively."""
 
     if not responses.success:
-      if not self.ignore_errors:
+      if not self.state.ignore_errors:
         err = "Error downloading directory: %s" % responses.status
         logging.error(err)
         raise flow.FlowError(err)
@@ -55,8 +55,8 @@ class DownloadDirectory(flow.GRRFlow):
 
       for stat_response in responses:
         # Retrieve where the files are being stored in the VFS.
-        if not self.out_urn:
-          self.out_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+        if not self.state.out_urn:
+          self.state.out_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
               stat_response.pathspec, self.client_id).Dirname()
 
         if stat.S_ISDIR(stat_response.st_mode):
@@ -73,12 +73,13 @@ class DownloadDirectory(flow.GRRFlow):
   @flow.StateHandler()
   def Done(self, responses):
     if not responses.success:
-      if not self.ignore_errors:
+      if not self.state.ignore_errors:
         err = "Error downloading file %s" % responses.status
         logging.error(err)
         raise flow.FlowError(err)
 
   @flow.StateHandler()
   def End(self):
-    if self.out_urn:
-      self.Notify("ViewObject", self.out_urn, "Completed DownloadDirectory")
+    if self.state.out_urn:
+      self.Notify("ViewObject", self.state.out_urn,
+                  "Completed DownloadDirectory")

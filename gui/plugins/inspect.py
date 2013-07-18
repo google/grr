@@ -14,7 +14,7 @@ progress of existing flows.
 from grr.gui import renderers
 from grr.gui.plugins import fileview
 from grr.lib import data_store
-from grr.lib import flow_context
+from grr.lib import flow_runner
 from grr.lib import rdfvalue
 from grr.lib import scheduler
 
@@ -65,8 +65,8 @@ class RequestTable(renderers.TableRenderer):
     self.AddColumn(renderers.RDFValueColumn("Client Action", width="30%"))
 
   def BuildTable(self, start_row, end_row, request):
-    client_id = request.REQ.get("client_id")
-    now = rdfvalue.RDFDatetime()
+    client_id = rdfvalue.ClientURN(request.REQ.get("client_id"))
+    now = rdfvalue.RDFDatetime().Now()
 
     # Make a local scheduler.
     scheduler_obj = scheduler.TaskScheduler()
@@ -107,12 +107,13 @@ class ResponsesTable(renderers.TableRenderer):
     super(ResponsesTable, self).__init__(**kwargs)
     self.AddColumn(renderers.RDFValueColumn("Task ID"))
     self.AddColumn(renderers.RDFValueColumn(
-        "Response", renderer=fileview.GRRMessageRenderer, width="100%"))
+        "Response", renderer=fileview.GrrMessageRenderer, width="100%"))
 
   def BuildTable(self, start_row, end_row, request):
     """Builds the table."""
-    client_id = request.REQ.get("client_id", "")
-    task_id = "task:" + request.REQ.get("task_id")
+    client_id = rdfvalue.ClientURN(request.REQ.get("client_id"))
+
+    task_id = "task:%s" % request.REQ.get("task_id", "")
 
     # This is the request.
     scheduler_obj = scheduler.TaskScheduler()
@@ -124,15 +125,15 @@ class ResponsesTable(renderers.TableRenderer):
 
     request_message = request_messages[0].payload
 
-    state_queue = (flow_context.FlowManager.FLOW_STATE_TEMPLATE %
+    state_queue = (flow_runner.FlowManager.FLOW_STATE_TEMPLATE %
                    request_message.session_id)
 
-    predicate_re = (flow_context.FlowManager.FLOW_RESPONSE_PREFIX %
+    predicate_re = (flow_runner.FlowManager.FLOW_RESPONSE_PREFIX %
                     request_message.request_id) + ".*"
 
     # Get all the responses for this request.
     for i, (predicate, message, _) in enumerate(data_store.DB.ResolveRegex(
-        state_queue, predicate_re, decoder=rdfvalue.GRRMessage, limit=end_row,
+        state_queue, predicate_re, decoder=rdfvalue.GrrMessage, limit=end_row,
         token=request.token)):
 
       if i < start_row:
@@ -141,7 +142,7 @@ class ResponsesTable(renderers.TableRenderer):
         break
 
       # Tie up the request to each response to make it easier to render.
-      rdf_response_message = rdfvalue.GRRMessage(message)
+      rdf_response_message = rdfvalue.GrrMessage(message)
       rdf_response_message.request = request_message
 
       self.AddCell(i, "Task ID", predicate)
@@ -208,7 +209,8 @@ class RequestRenderer(renderers.TemplateRenderer):
     """Layout."""
     if request.REQ.get("task_id") is None:
       return
-    client_id = request.REQ.get("client_id")
+
+    client_id = rdfvalue.ClientURN(request.REQ.get("client_id"))
     task_id = "task:" + request.REQ.get("task_id")
 
     # Make a local scheduler.

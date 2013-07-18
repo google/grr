@@ -1201,13 +1201,9 @@ to the dev list and we can try and fix things.</p></div>
 <div class="sect1">
 <h2 id="_scheduling_flows_with_cron">Scheduling Flows with Cron</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>The cron allows for scheduling actions to run regularly on the GRR server.
-This is currently used to collect statistics and do cleanup on the database.</p></div>
-<div class="paragraph"><p>The cron runs as a separate process cron.py. You can run it as often as you
-like, e.g. every five minutes. It maintains internally how often each job needs
-to run.</p></div>
-<div class="paragraph"><p>The jobs that run are defined by CronJob classes, these are currently defined
-in lib/aff4_objects/cronjobs.py</p></div>
+<div class="paragraph"><p>The cron allows for scheduling flows to run regularly on the GRR server.
+This is currently used to collect statistics and do cleanup on the database.
+The cron runs as part of the workers.</p></div>
 </div>
 </div>
 <div class="sect1">
@@ -1338,14 +1334,7 @@ encoded in a variable called "magic_return_str".</p></div>
 <div class="paragraph"><p>E.g. as a simple example. The following code modifies the clients poll_max
 setting and pings test.com.</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt><span style="font-weight: bold"><span style="color: #000080">import</span></span> commands
-status<span style="color: #990000">,</span> output <span style="color: #990000">=</span> commands<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">getstatusoutput</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"ping -c 3 test.com"</span><span style="color: #990000">)</span>
-FLAGS<span style="color: #990000">.</span>poll_max <span style="color: #990000">=</span> <span style="color: #993399">100</span>
-magic_return_str <span style="color: #990000">=</span> <span style="color: #FF0000">"poll_max successfully set. ping output %s"</span> <span style="color: #990000">%</span> output</tt></pre></div></div>
+<div class="content"></div></div>
 <div class="paragraph"><p>This file then needs to be signed and converted into the protobuf format
 required, and then needs to be uploaded to the data store. You can do this using
 the following command line.</p></div>
@@ -1428,7 +1417,7 @@ the --dest_path option.</p></div>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-04-06 00:55:09 CEST
+Last updated 2013-07-18 13:17:07 EST
 </div>
 </div>
 </body>

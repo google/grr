@@ -5,7 +5,7 @@ We can schedule a new flow for a specific client.
 """
 
 
-# pylint: disable=W0611
+# pylint: disable=unused-import
 # Import things that are useful from the console.
 import collections
 import csv
@@ -34,7 +34,7 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import export_utils
 from grr.lib import flow
-from grr.lib import flow_context
+from grr.lib import flow_runner
 from grr.lib import flow_utils
 from grr.lib import hunts
 from grr.lib import ipshell
@@ -43,8 +43,9 @@ from grr.lib import rdfvalue
 from grr.lib import search
 from grr.lib import startup
 from grr.lib import type_info
-
 from grr.lib import utils
+from grr.lib import worker
+
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import reports
 
@@ -56,6 +57,12 @@ from grr.lib.flows.general import memory
 flags.DEFINE_string("client", None,
                     "Initialise the console with this client id "
                     "(e.g. C.1234345).")
+
+flags.DEFINE_string("code_to_execute", None,
+                    "If present, no console is started but the code given in "
+                    "the flag is run instead (comparable to the -c option of "
+                    "IPython).")
+
 
 
 def FormatISOTime(t):
@@ -131,14 +138,14 @@ def StartFlowAndWait(client_id, flow_name, **kwargs):
   Returns:
      A GRRFlow object.
   """
-  session_id = flow.FACTORY.StartFlow(client_id, flow_name, **kwargs)
+  session_id = flow.GRRFlow.StartFlow(client_id, flow_name, **kwargs)
   while 1:
     time.sleep(1)
-    rdf_flow = flow.FACTORY.FetchFlow(session_id, lock=False)
-    if rdf_flow.state != rdfvalue.Flow.Enum("RUNNING"):
+    flow_obj = aff4.FACTORY.Open(session_id)
+    if not flow_obj.IsRunning():
       break
 
-  return flow.FACTORY.LoadFlow(rdf_flow)
+  return flow_obj
 
 
 def StartFlowAndWorker(client_id, flow_name, **kwargs):
@@ -155,10 +162,10 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
   Note: you need raw access to run this flow as it requires running a worker.
   """
   queue = "DEBUG-%s-" % getpass.getuser()
-  session_id = flow.FACTORY.StartFlow(client_id, flow_name, queue_name=queue,
+  session_id = flow.GRRFlow.StartFlow(client_id, flow_name, queue_name=queue,
                                       **kwargs)
   # Empty token, only works with raw access.
-  worker_thrd = flow.GRRWorker(
+  worker_thrd = worker.GRRWorker(
       queue_name=queue, token=access_control.ACLToken(), threadpool_size=1)
   while True:
     try:
@@ -167,14 +174,14 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
       print "exiting"
       worker_thrd.thread_pool.Join()
     time.sleep(2)
-    rdf_flow = flow.FACTORY.FetchFlow(session_id, lock=False)
-    if rdf_flow.state != rdfvalue.Flow.Enum("RUNNING"):
+    flow_obj = aff4.FACTORY.Open(session_id)
+    if not flow_obj.IsRunning():
       break
 
   # Terminate the worker threads
   worker_thrd.thread_pool.Stop()
   worker_thrd.thread_pool.Join()
-  return flow.FACTORY.LoadFlow(rdf_flow)
+  return flow_obj
 
 
 def GetNotifications(user=None, token=None):
@@ -188,7 +195,7 @@ def GetNotifications(user=None, token=None):
 
 def ApprovalRequest(client_id, reason, approvers, token=None):
   """Request approval to access a host."""
-  return flow.FACTORY.StartFlow(client_id, "RequestClientApprovalFlow",
+  return flow.GRRFlow.StartFlow(client_id, "RequestClientApprovalFlow",
                                 reason=reason, approver=approvers, token=token)
 
 
@@ -203,7 +210,7 @@ def ApprovalGrant(token=None):
     print request
     print "Reason: %s" % reason
     if raw_input("Do you approve this request? [y/N] ").lower() == "y":
-      flow_id = flow.FACTORY.StartFlow(client_id, "GrantClientApprovalFlow",
+      flow_id = flow.GRRFlow.StartFlow(client_id, "GrantClientApprovalFlow",
                                        reason=reason, delegate=user,
                                        token=token)
       # TODO(user): Remove the notification.
@@ -374,7 +381,11 @@ def main(unused_argv):
     locals_vars["client"], locals_vars["token"] = OpenClient(
         client_id=flags.FLAGS.client)
 
-  ipshell.IPShell(argv=[], user_ns=locals_vars, banner=banner)
+  if flags.FLAGS.code_to_execute:
+    logging.info("Running code from flag: %s", flags.FLAGS.code_to_execute)
+    exec(flags.FLAGS.code_to_execute)  # pylint: disable=exec-statement
+  else:
+    ipshell.IPShell(argv=[], user_ns=locals_vars, banner=banner)
 
 
 def ConsoleMain():

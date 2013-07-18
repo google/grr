@@ -17,7 +17,7 @@ import logging
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import flow_context
+from grr.lib import flow_runner
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
@@ -34,6 +34,41 @@ class GRRHunt(flow.GRRFlow):
   MATCH_DARWIN = rdfvalue.ForemanAttributeRegex(attribute_name="System",
                                                 attribute_regex="Darwin")
 
+  STATE_STARTED = "started"
+  STATE_STOPPED = "stopped"
+
+  class SchemaCls(flow.GRRFlow.SchemaCls):
+    """The schema for hunts.
+
+    This object stores the persistent information for the hunt.
+    """
+
+    CLIENTS = aff4.Attribute("aff4:clients", rdfvalue.RDFURN,
+                             "The list of clients this hunt was run against.",
+                             creates_new_object_version=False)
+
+    FINISHED = aff4.Attribute("aff4:finished", rdfvalue.RDFURN,
+                              "The list of clients the hunt has completed on.",
+                              creates_new_object_version=False)
+
+    BADNESS = aff4.Attribute("aff4:badness", rdfvalue.RDFURN,
+                             ("A list of clients this hunt has found something "
+                              "worth investigating on."),
+                             creates_new_object_version=False)
+
+    ERRORS = aff4.Attribute("aff4:errors", rdfvalue.HuntError,
+                            "The list of clients that returned an error.",
+                            creates_new_object_version=False)
+
+    LOG = aff4.Attribute("aff4:result_log", rdfvalue.HuntLog,
+                         "The log entries.",
+                         creates_new_object_version=False)
+
+    RESOURCES = aff4.Attribute("aff4:client_resources",
+                               rdfvalue.ClientResources,
+                               "The client resource usage for subflows.",
+                               creates_new_object_version=False)
+
   # The following args are standard for all hunts.
   hunt_typeinfo = type_info.TypeDescriptorSet(
       type_info.Integer(
@@ -47,49 +82,120 @@ class GRRHunt(flow.GRRFlow):
           friendly_name="Expiry Time",
           default=rdfvalue.Duration("31d")))
 
-  def _GetAFF4Object(self, mode="rw", age=aff4.ALL_TIMES, token=None):
-    if mode == "r" and age == aff4.NEWEST_TIME:
-      return self.aff4_object
-    else:
-      return aff4.FACTORY.Create(self.session_id,
-                                 "VFSHunt", mode=mode, age=age, token=token)
+  def Initialize(self):
+    super(GRRHunt, self).Initialize()
+    # Hunts run in multiple threads so we need to protect access.
+    self.lock = threading.RLock()
 
-  def __init__(self, token=None, notification_event=None, **kwargs):
-    queue_name = flow_context.DEFAULT_WORKER_QUEUE_NAME
+  def InitFromArguments(self, notification_event=None, description=None,
+                        **kwargs):
+    self.InitializeContext(notification_event=notification_event,
+                           description=description)
 
-    if token is None:
-      raise RuntimeError("You need to supply a token.")
+    self._SetTypedArgs(self.state.context, GRRHunt.hunt_typeinfo, kwargs)
+    if GRRHunt.hunt_typeinfo != self.hunt_typeinfo:
+      self._SetTypedArgs(self.state, self.hunt_typeinfo, kwargs)
 
-    context = flow_context.HuntFlowContext(client_id=None,
-                                           flow_name=self.__class__.__name__,
-                                           queue_name=queue_name,
-                                           event_id=None,
-                                           state=None, token=token,
-                                           args=rdfvalue.RDFProtoDict(kwargs))
-
-    self._SetTypedArgs(self.hunt_typeinfo, kwargs)
-    super(GRRHunt, self).__init__(context=context, notify_to_user=False,
-                                  **kwargs)
-
-    if self.client_limit > 1000:
+    if self.state.context.client_limit > 1000:
       # For large hunts, checking client limits creates a high load on the
       # foreman when loading the hunt as rw and therefore we don't allow setting
       # it for large hunts.
       raise RuntimeError("Please specify client_limit <= 1000.")
 
-    self.rules = []
-    self.start_time = time.time()
-    self.started = False
-    self.written_to_datastore = False
-    self.next_request_id = 0
-    self.notification_event = notification_event
-    self.usage_stats = rdfvalue.ClientResourcesStats()
+  def InitializeContext(self, notification_event=None,
+                        description=None):
+    """Initializes the context of this hunt."""
 
-    # This is the URN for the Hunt object we use.
-    self.urn = aff4.ROOT_URN.Add("hunts").Add(self.session_id)
+    self.state.context.update({
+        "client_resources": rdfvalue.ClientResources(),
+        "create_time": long(time.time() * 1e6),
+        "creator": self.token.username,
+        "description": description,
+        "hunt_name": self.__class__.__name__,
+        "hunt_state": self.STATE_STOPPED,
+        "network_bytes_sent": 0,
+        "next_outbound_id": 1,
+        "next_processed_request": 1,
+        "notification_event": notification_event,
+        "notify_to_user": False,
+        "outstanding_requests": 0,
+        "queue_name": flow_runner.DEFAULT_WORKER_QUEUE_NAME,
+        "rules": [],
+        "start_time": time.time(),
+        "session_id": self.urn,
+        "state": rdfvalue.Flow.State.RUNNING,
+        "usage_stats": rdfvalue.ClientResourcesStats(),
+        "user": self.token.username,
+        })
 
-    # Hunts run in multiple threads so we need to protect access.
-    self.lock = threading.RLock()
+  def GenerateParentFlowURN(self, client_id=None):
+    """Returns a urn which will be used as a parent for the hunts flows URNs.
+
+    Flows executed from HuntFlowContext (i.e. flows issued by a hunt) have
+    following urn pattern: aff4:/hunts/[hunt_id]/[client_id]/[flow_id].
+
+    aff4:/hunts/[hunt_id]/[client_id] (an AFF4Volume) is symlinked to
+    aff4:/[client_id]/flows/[hunt_id]:hunt/[flow_id].  Therefore it's easy
+    to check whether hunt has been already scheduled on a given client
+    (by doing Stat on a symlink).
+
+    Args:
+      client_id: The client_id this hunt will be run on.
+
+    Returns:
+      An RDFURN built using this pattern: aff4:/hunts/[hunt_id]/[client_id] or
+      this context's session id if self.client_id is None.
+    """
+    if client_id:
+      hunt_urn = rdfvalue.RDFURN(self.session_id)
+      parent_flow_urn = hunt_urn.Add(client_id.Basename())
+
+      hunt_link_urn = client_id.Add("flows").Add(
+          "%s:hunt" % (hunt_urn.Basename()))
+      hunt_link = aff4.FACTORY.Create(hunt_link_urn, "AFF4Symlink",
+                                      token=self.token)
+      hunt_link.Set(hunt_link.Schema.SYMLINK_TARGET(parent_flow_urn))
+      hunt_link.Close()
+
+      return parent_flow_urn
+    else:
+      return self.session_id
+
+  def CreateRunner(self, *args, **kw):
+    kw["token"] = self.token
+    return flow_runner.HuntRunner(self, *args, **kw)
+
+  @classmethod
+  def GetNewSessionID(cls):
+    """Returns a random integer session ID for this flow.
+
+    Returns:
+      a formatted session id string
+    """
+    rand_number = utils.PRNG.GetULong()
+    queue_name = flow_runner.DEFAULT_WORKER_QUEUE_NAME
+    return rdfvalue.RDFURN("aff4:/hunts").Add(
+        "%s:%X" % (queue_name, rand_number))
+
+  @classmethod
+  def StartHunt(cls, hunt_name, token=None, **args):
+    """This class method starts new hunts."""
+    try:
+      hunt_cls = GRRHunt.classes[hunt_name]
+    except KeyError:
+      raise RuntimeError("Unable to locate hunt %s" % hunt_name)
+
+    hunt_urn = hunt_cls.GetNewSessionID()
+    if "hunt" not in str(hunt_urn):
+      raise RuntimeError("%s is not a hunt." % hunt_name)
+    hunt_obj = aff4.FACTORY.Create(hunt_urn, hunt_name, mode="rw", token=token)
+    hunt_obj.InitializeContext()
+    hunt_obj.InitFromArguments(**args)
+    hunt_obj.Flush()
+    return hunt_obj
+
+  def Name(self):
+    return self.state.context.hunt_name
 
   def AddRule(self, rules=None):
     """Adds one more rule for clients that trigger the hunt.
@@ -98,16 +204,21 @@ class GRRHunt(flow.GRRFlow):
 
     Args:
       rules: A list of ForemanAttributeInteger and ForemanAttributeRegex
-             protobufs.
+             objects.
 
     Raises:
       RuntimeError: When an invalid attribute name was given in a rule.
     """
-    timestamp = int(time.time())
+    self.state.context.rules.append(
+        self.CreateForemanRule(rules, self.session_id))
+
+  @classmethod
+  def CreateForemanRule(cls, rules, session_id):
+    """Creates a ForemanRule object from a list of ForemanAttributes."""
     result = rdfvalue.ForemanRule(
-        created=timestamp * 1e6,
-        description="Hunt %s %s" % (self.context.session_id,
-                                    self.__class__.__name__))
+        created=rdfvalue.RDFDatetime().Now(),
+        description="Hunt %s %s" % (utils.SmartUnicode(session_id),
+                                    cls.__name__))
 
     for rule in rules:
       if rule.attribute_name not in aff4.Attribute.NAMES:
@@ -123,18 +234,22 @@ class GRRHunt(flow.GRRFlow):
       else:
         raise RuntimeError("Unsupported rules type.")
 
-    result.actions.Append(hunt_id=self.context.session_id,
-                          hunt_name=self.__class__.__name__)
-
-    self.rules.append(result)
+    result.actions.Append(hunt_id=utils.SmartUnicode(session_id),
+                          hunt_name=cls.__name__)
+    return result
 
   def CheckClient(self, client):
-    for rule in self.rules:
-      if self.CheckRule(client, rule):
+    return self.CheckRulesForClient(client, self.state.context.rules)
+
+  @classmethod
+  def CheckRulesForClient(cls, client, rules):
+    for rule in rules:
+      if cls.CheckRule(client, rule):
         return True
     return False
 
-  def CheckRule(self, client, rule):
+  @classmethod
+  def CheckRule(cls, client, rule):
     try:
       for r in rule.regex_rules:
         if r.path != "/":
@@ -152,13 +267,13 @@ class GRRHunt(flow.GRRFlow):
 
         value = int(client.Get(aff4.Attribute.NAMES[i.attribute_name]))
         op = i.operator
-        if op == rdfvalue.ForemanAttributeInteger.Enum("LESS_THAN"):
+        if op == rdfvalue.ForemanAttributeInteger.Operator.LESS_THAN:
           if not value < i.value:
             return False
-        elif op == rdfvalue.ForemanAttributeInteger.Enum("GREATER_THAN"):
+        elif op == rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN:
           if not value > i.value:
             return False
-        elif op == rdfvalue.ForemanAttributeInteger.Enum("EQUAL"):
+        elif op == rdfvalue.ForemanAttributeInteger.Operator.EQUAL:
           if not value == i.value:
             return False
         else:
@@ -205,47 +320,19 @@ class GRRHunt(flow.GRRFlow):
     if matching_clients:
       logging.info("Example matches: %s", str(matching_clients[:3]))
 
-  def WriteToDataStore(self, description=None):
+  def WriteToDataStore(self):
     """Save current hunt object and hunt flow object states."""
-    # Write the hunt object. It will be overwritten if the hunt is restarted
-    # (Stop() and then Run() are called).
-    hunt_obj = self._GetAFF4Object(mode="w", token=self.token)
-    hunt_obj.Set(hunt_obj.Schema.CREATOR(self.token.username))
-    hunt_obj.Set(hunt_obj.Schema.HUNT_NAME(self.__class__.__name__))
-    hunt_obj.Set(hunt_obj.Schema.EXPIRY_TIME(self.expiry_time))
-    hunt_obj.Set(hunt_obj.Schema.CLIENT_LIMIT(self.client_limit))
+    self.Flush(sync=True)
 
-    if self.started:
-      hunt_obj.Set(hunt_obj.Schema.STATE(hunt_obj.STATE_STARTED))
-    else:
-      hunt_obj.Set(hunt_obj.Schema.STATE(hunt_obj.STATE_STOPPED))
-
-    if description:
-      hunt_obj.Set(hunt_obj.Schema.DESCRIPTION(description))
-
-    # We don't want to overwrite RDF_FLOW everytime we run/pause the hunt (or
-    # we may lose data stored in the overwritten pickled RDF_FLOW object).
-    if not self.written_to_datastore:
-      self.written_to_datastore = True
-      hunt_obj.Set(hunt_obj.Schema.RDF_FLOW(queue=self.session_id, task_id=1,
-                                            payload=rdfvalue.Flow(self.Dump())))
-
-    # There is a potential race here where we write the client requests first
-    # and pickle the flow later. To avoid this, we have to keep the order and
-    # schedule the tasks synchronously.
-    hunt_obj.Close(sync=True)
-
-    self.FlushMessages()
-
-  def Run(self, description=None):
+  def Run(self):
     """This uploads the rules to the foreman and, thus, starts the hunt."""
-    if self.started:
+    if self.state.context.hunt_state == self.STATE_STARTED:
       return
 
-    self.started = True
-    self.WriteToDataStore(description=description)
+    self.state.context.hunt_state = self.STATE_STARTED
+    self.WriteToDataStore()
 
-    for rule in self.rules:
+    for rule in self.state.context.rules:
       # Updating created timestamp of the hunt's rules. This will force Foreman
       # to apply the rules and run corresponding actions once more for every
       # client.
@@ -253,24 +340,22 @@ class GRRHunt(flow.GRRFlow):
       # values.
       timestamp = time.time()
       rule.created = int(time.time() * 1e6)
-      rule.expires = (timestamp + self.expiry_time.seconds) * 1e6
-      if self.client_limit:
-        rule.actions[0].client_limit = self.client_limit
-      else:
-        rule.actions[0].client_limit = None
+      rule.expires = (timestamp +
+                      self.state.context.expiry_time.seconds) * 1e6
+      rule.actions[0].client_limit = self.state.context.client_limit or None
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token,
                                 ignore_cache=True)
     foreman_rules = foreman.Get(foreman.Schema.RULES,
                                 default=foreman.Schema.RULES())
-    foreman_rules.Extend(self.rules)
+    foreman_rules.Extend(self.state.context.rules)
 
     foreman.Set(foreman_rules)
     foreman.Close()
 
   def Pause(self):
     """Pauses the hunt (removes Foreman rules, does not touch expiry time)."""
-    if not self.started:
+    if self.state.context.hunt_state != self.STATE_STARTED:
       return
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token,
@@ -282,17 +367,18 @@ class GRRHunt(flow.GRRFlow):
     foreman.Set(aff4_rules)
     foreman.Close()
 
-    self.started = False
+    self.state.context.hunt_state = self.STATE_STOPPED
     self.WriteToDataStore()
 
   def Stop(self):
     """Cancels the hunt (removes Foreman rules, resets expiry time to 0)."""
     # Expire the hunt so the worker can destroy it.
-    self.expiry_time = rdfvalue.Duration()
+    self.state.context.expiry_time = rdfvalue.Duration()
     self.Pause()
 
   def OutstandingRequests(self):
-    if self.start_time + self.expiry_time.seconds > time.time():
+    if (self.state.context.start_time +
+        self.state.context.expiry_time.seconds) > time.time():
       # Lie about it to prevent us from being destroyed.
       return 1
     return 0
@@ -317,13 +403,13 @@ class GRRHunt(flow.GRRFlow):
         logging.info("This hunt was already scheduled on %s.", client_id)
         return
     else:
-      hunt_obj = aff4.FACTORY.Create(hunt_id, "VFSHunt",
-                                     mode="w", token=token)
+      hunt_obj = aff4.FACTORY.Open(hunt_id, "GRRHunt", mode="w",
+                                   ignore_cache=True, token=token)
 
-    client_urn = hunt_obj.Schema.CLIENTS(client_id)
+      client_urn = hunt_obj.Schema.CLIENTS(client_id)
 
     hunt_obj.AddAttribute(client_urn)
-    hunt_obj.Close()
+    hunt_obj.Flush()
 
     request_id = struct.unpack("l", os.urandom(struct.calcsize("l")))[0] % 2**32
 
@@ -333,15 +419,15 @@ class GRRHunt(flow.GRRFlow):
                                   next_state="Start")
 
     # Queue the new request.
-    with flow_context.FlowManager(token=token) as flow_manager:
+    with flow_runner.FlowManager(token=token) as flow_manager:
       flow_manager.QueueRequest(hunt_id, state)
 
       # Send a response.
-      msg = rdfvalue.GRRMessage(
+      msg = rdfvalue.GrrMessage(
           session_id=hunt_id,
           request_id=state.id, response_id=1,
-          auth_state=rdfvalue.GRRMessage.Enum("AUTHENTICATED"),
-          type=rdfvalue.GRRMessage.Enum("STATUS"),
+          auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
+          type=rdfvalue.GrrMessage.Type.STATUS,
           payload=rdfvalue.GrrStatus())
 
       flow_manager.QueueResponse(hunt_id, msg)
@@ -349,64 +435,56 @@ class GRRHunt(flow.GRRFlow):
       # And notify the worker about it.
       flow_manager.QueueNotification("W", hunt_id)
 
+  @flow.StateHandler()
   def Start(self, responses):
     """Do the real work here."""
+
+  @flow.StateHandler()
+  def End(self):
+    """Final state."""
 
   def MarkClientDone(self, client_id):
     """Adds a client_id to the list of completed tasks."""
     self.MarkClient(client_id,
-                    aff4.FACTORY.AFF4Object("VFSHunt").SchemaCls.FINISHED)
+                    aff4.FACTORY.AFF4Object("GRRHunt").SchemaCls.FINISHED)
 
-    if self.notification_event:
+    if self.state.context.notification_event:
       status = rdfvalue.HuntNotification(session_id=self.session_id,
                                          client_id=client_id)
-      self.Publish(self.notification_event, status)
+      self.Publish(self.state.context.notification_event, status)
 
   def MarkClientBad(self, client_id):
     """Marks a client as worth investigating."""
 
     self.MarkClient(client_id,
-                    aff4.AFF4Object.classes["VFSHunt"].SchemaCls.BADNESS)
+                    aff4.FACTORY.AFF4Object("GRRHunt").SchemaCls.BADNESS)
 
   def LogClientError(self, client_id, log_message=None, backtrace=None):
     """Logs an error for a client."""
 
-    token = access_control.ACLToken("Hunt", "hunting")
-    hunt_obj = self._GetAFF4Object(mode="w", age=aff4.NEWEST_TIME, token=token)
-
-    error = hunt_obj.Schema.ERRORS()
+    error = self.Schema.ERRORS()
     if client_id:
       error.client_id = client_id
     if log_message:
       error.log_message = utils.SmartUnicode(log_message)
     if backtrace:
       error.backtrace = backtrace
-    hunt_obj.AddAttribute(error)
-    hunt_obj.Close()
+    self.AddAttribute(error)
 
   def LogResult(self, client_id, log_message=None, urn=None):
     """Logs a message for a client."""
-
-    token = access_control.ACLToken("Hunt", "hunting")
-    hunt_obj = self._GetAFF4Object(mode="w", age=aff4.NEWEST_TIME, token=token)
-
-    log_entry = hunt_obj.Schema.LOG()
+    log_entry = self.Schema.LOG()
     log_entry.client_id = client_id
     if log_message:
       log_entry.log_message = utils.SmartUnicode(log_message)
     if urn:
       log_entry.urn = utils.SmartUnicode(urn)
-    hunt_obj.AddAttribute(log_entry)
-    hunt_obj.Close()
+    self.AddAttribute(log_entry)
 
   def MarkClient(self, client_id, attribute):
     """Adds a client to the list indicated by attribute."""
-    token = access_control.ACLToken("Hunt", "hunting")
-    hunt_obj = self._GetAFF4Object(mode="w", age=aff4.NEWEST_TIME, token=token)
-
     client_urn = attribute(client_id)
-    hunt_obj.AddAttribute(client_urn)
-    hunt_obj.Close()
+    self.AddAttribute(client_urn)
 
   def ProcessClientResourcesStats(self, client_id, status):
     """Process status message from a client and update the stats."""
@@ -416,36 +494,133 @@ class GRRHunt(flow.GRRFlow):
     user_cpu = status.cpu_time_used.user_cpu_time
     system_cpu = status.cpu_time_used.system_cpu_time
 
-    fd = self._GetAFF4Object(mode="w", token=self.token)
-    resources = fd.Schema.RESOURCES()
+    resources = self.Schema.RESOURCES()
     resources.client_id = client_id
     resources.session_id = status.child_session_id
     resources.cpu_usage.user_cpu_time = user_cpu
     resources.cpu_usage.system_cpu_time = system_cpu
     resources.network_bytes_sent = status.network_bytes_sent
-    fd.AddAttribute(resources)
-    fd.Close(sync=False)
+    # TODO(user): Do we want to save all the resource usage stats?
+    self.AddAttribute(resources)
+    self.state.context.usage_stats.RegisterResources(resources)
 
-    self.usage_stats.RegisterResources(resources)
+  def GetResourceUsage(self, client_id=None, group_by_client=True):
+    """Returns the cpu resource usage for subflows."""
+    usages = {}
+    for usage in self.GetValuesForAttribute(self.Schema.RESOURCES):
+      if client_id and usage.client_id != client_id:
+        continue
 
-  def Save(self):
-    self.lock = None
-    super(GRRHunt, self).Save()
+      if usage.client_id not in usages:
+        usages[usage.client_id] = {
+            usage.session_id: (usage.cpu_usage.user_cpu_time,
+                               usage.cpu_usage.system_cpu_time)}
+      else:
+        client_usage = usages[usage.client_id]
+        (user_cpu, sys_cpu) = client_usage.setdefault(usage.session_id,
+                                                      (0.0, 0.0))
+        client_usage[usage.session_id] = (
+            user_cpu + usage.cpu_usage.user_cpu_time,
+            sys_cpu + usage.cpu_usage.system_cpu_time)
 
-  def Load(self):
-    self.lock = threading.RLock()
-    super(GRRHunt, self).Load()
+    if group_by_client:
+      grouped = {}
+      for (client_id, usage) in usages.items():
+        total_user, total_sys = 0.0, 0.0
+        for (_, (user_cpu, sys_cpu)) in usage.items():
+          total_user += user_cpu
+          total_sys += sys_cpu
+        grouped[client_id] = (total_user, total_sys)
+      return grouped
+    else:
+      return usages
 
-    if self.aff4_object:
-      # Old hunts do not have EXPIRY_TIME and CLIENT_LIMIT set. We have
-      # to handle such cases carefully.
-      self.expiry_time = self.aff4_object.Get(
-          self.aff4_object.Schema.EXPIRY_TIME,
-          rdfvalue.Duration(self.expiry_time))
-      self.client_limit = self.aff4_object.Get(
-          self.aff4_object.Schema.CLIENT_LIMIT,
-          rdfvalue.RDFInteger(self.client_limit))
+  def _Num(self, attribute):
+    return len(set(self.GetValuesForAttribute(attribute)))
 
-      state = self.aff4_object.Get(self.aff4_object.Schema.STATE)
-      if state:
-        self.started = (state == self.aff4_object.STATE_STARTED)
+  def NumClients(self):
+    return self._Num(self.Schema.CLIENTS)
+
+  def NumCompleted(self):
+    return self._Num(self.Schema.FINISHED)
+
+  def NumOutstanding(self):
+    return self.NumClients() - self.NumCompleted()
+
+  def NumResults(self):
+    return self._Num(self.Schema.BADNESS)
+
+  def _List(self, attribute):
+    items = self.GetValuesForAttribute(attribute)
+    if items:
+      print len(items), "items:"
+      for item in items:
+        print item
+    else:
+      print "Nothing found."
+
+  def ListClients(self):
+    self._List(self.Schema.CLIENTS)
+
+  def GetBadClients(self):
+    return sorted(self.GetValuesForAttribute(self.Schema.BADNESS))
+
+  def GetCompletedClients(self):
+    return sorted(self.GetValuesForAttribute(self.Schema.FINISHED))
+
+  def ListCompletedClients(self):
+    self._List(self.Schema.FINISHED)
+
+  def GetOutstandingClients(self):
+    started = self.GetValuesForAttribute(self.Schema.CLIENTS)
+    done = self.GetValuesForAttribute(self.Schema.FINISHED)
+    return sorted(list(set(started) - set(done)))
+
+  def ListOutstandingClients(self):
+    outstanding = self.GetOutstandingClients()
+    if not outstanding:
+      print "No outstanding clients."
+      return
+
+    print len(outstanding), "outstanding clients:"
+    for client in outstanding:
+      print client
+
+  def GetClientsByStatus(self):
+    """Get all the clients in a dict of {status: [client_list]}."""
+    completed = set(self.GetCompletedClients())
+    bad = set(self.GetBadClients())
+    completed -= bad
+
+    return {"COMPLETED": sorted(completed),
+            "OUTSTANDING": self.GetOutstandingClients(),
+            "BAD": sorted(bad)}
+
+  def GetClientStates(self, client_list, client_chunk=50):
+    """Take in a client list and return dicts with their age and hostname."""
+    for client_group in utils.Grouper(client_list, client_chunk):
+      for fd in aff4.FACTORY.MultiOpen(client_group, mode="r",
+                                       aff4_type="VFSGRRClient",
+                                       token=self.token):
+        result = {}
+        result["age"] = fd.Get(fd.Schema.PING)
+        result["hostname"] = fd.Get(fd.Schema.HOSTNAME)
+        yield (fd.urn, result)
+
+  def PrintLog(self, client_id=None):
+    if not client_id:
+      self._List(self.Schema.LOG)
+      return
+
+    for log in self.GetValuesForAttribute(self.Schema.LOG):
+      if log.client_id == client_id:
+        print log
+
+  def PrintErrors(self, client_id=None):
+    if not client_id:
+      self._List(self.Schema.ERRORS)
+      return
+
+    for error in self.GetValuesForAttribute(self.Schema.ERRORS):
+      if error.client_id == client_id:
+        print error

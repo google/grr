@@ -35,31 +35,32 @@ class Grep(flow.GRRFlow):
   @flow.StateHandler(next_state=["StoreResults"])
   def Start(self):
     """Start Grep flow."""
-    self.request.xor_in_key = self.XOR_IN_KEY
-    self.request.xor_out_key = self.XOR_OUT_KEY
+    self.state.request.xor_in_key = self.XOR_IN_KEY
+    self.state.request.xor_out_key = self.XOR_OUT_KEY
 
     # For literal matches we xor the search term. In the event we search the
     # memory this stops us matching the GRR client itself.
-    if self.request.literal:
-      self.request.literal = utils.Xor(self.request.literal,
-                                       self.XOR_IN_KEY)
+    if self.state.request.literal:
+      self.state.request.literal = utils.Xor(self.state.request.literal,
+                                             self.XOR_IN_KEY)
 
-    self.CallClient("Grep", self.request, next_state="StoreResults")
+    self.CallClient("Grep", self.state.request, next_state="StoreResults")
 
   @flow.StateHandler()
   def StoreResults(self, responses):
     if responses.success:
-      output = self.output.format(t=time.time(), u=self.user)
-      out_urn = aff4.ROOT_URN.Add(self.client_id).Add(output)
+      output = self.state.output.format(t=time.time(),
+                                        u=self.state.context.user)
+      out_urn = self.client_id.Add(output)
 
       fd = aff4.FACTORY.Create(out_urn, "GrepResults", mode="rw",
                                token=self.token)
 
-      if self.request.HasField("literal"):
-        self.request.literal = utils.Xor(self.request.literal,
-                                         self.XOR_IN_KEY)
+      if self.state.request.HasField("literal"):
+        self.state.request.literal = utils.Xor(self.state.request.literal,
+                                               self.XOR_IN_KEY)
       fd.Set(fd.Schema.DESCRIPTION("Grep by %s: %s" % (
-          self.user, str(self.request))))
+          self.state.context.user, str(self.state.request))))
       hits = fd.Get(fd.Schema.HITS)
 
       for response in responses:

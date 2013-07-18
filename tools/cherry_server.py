@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # Copyright 2011 Google Inc. All Rights Reserved.
-"""This is the CherryPy based version of the GRR HTTP Server."""
+"""This is the CherryPy based version of the GRR HTTP Server.
+
+Note that this is unmaintained and untested, but left here as it may be useful
+for others in the future.
+"""
 
 
 

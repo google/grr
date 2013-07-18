@@ -15,7 +15,7 @@ from grr.lib import rdfvalue
 class WmiQuery(actions.ActionPlugin):
   """Runs a WMI query and returns the results to a server callback."""
   in_rdfvalue = rdfvalue.WMIRequest
-  out_rdfvalue = rdfvalue.RDFProtoDict
+  out_rdfvalue = rdfvalue.Dict
 
 
 # The following are deprecated client actions which have been removed.

@@ -8,23 +8,21 @@ from grr.lib import type_info
 from grr.proto import jobs_pb2
 
 
-class ForemanRuleAction(rdfvalue.RDFProto):
-  _proto = jobs_pb2.ForemanRuleAction
-
-  rdf_map = dict(argv=rdfvalue.RDFProtoDict)
+class ForemanRuleAction(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.ForemanRuleAction
 
 
-class ForemanAttributeRegex(rdfvalue.RDFProto):
-  _proto = jobs_pb2.ForemanAttributeRegex
+class ForemanAttributeRegex(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.ForemanAttributeRegex
 
 
-class ForemanAttributeInteger(rdfvalue.RDFProto):
-  _proto = jobs_pb2.ForemanAttributeInteger
+class ForemanAttributeInteger(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.ForemanAttributeInteger
 
 
-class ForemanRule(rdfvalue.RDFProto):
+class ForemanRule(rdfvalue.RDFProtoStruct):
   """A Foreman rule RDF value."""
-  _proto = jobs_pb2.ForemanRule
+  protobuf = jobs_pb2.ForemanRule
 
   rdf_map = dict(regex_rules=ForemanAttributeRegex,
                  integer_rules=ForemanAttributeInteger,
@@ -90,12 +88,11 @@ class ForemanAttributeIntegerType(type_info.RDFValueType):
           description="The attribute to match.",
           default="Version"),
 
-      type_info.RDFEnum(
+      type_info.SemanticEnum(
           name="operator",
           description="Comparison operator to apply to integer value",
-          rdfclass=rdfvalue.ForemanAttributeInteger,
-          enum_name="Operator",
-          default=rdfvalue.ForemanAttributeInteger.Enum("EQUAL")),
+          enum_container=rdfvalue.ForemanAttributeInteger.Operator,
+          default=rdfvalue.ForemanAttributeInteger.Operator.EQUAL),
 
       type_info.Integer(
           name="value",

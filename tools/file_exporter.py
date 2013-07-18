@@ -32,51 +32,56 @@ flags.DEFINE_integer("depth", 5,
                      "Depth for recursion on directory. Use 1 for just the "
                      "directory itself.")
 
-flags.DEFINE_boolean("overwrite", False,
-                     "If true, overwrite files if they exist.")
+flags.DEFINE_bool("overwrite", False,
+                  "If true, overwrite files if they exist.")
 
 flags.DEFINE_string("output", None,
                     "Path to dump the data to.")
 
-flags.DEFINE_boolean("export_client_data", True,
-                     "Export a yaml file containing client data in the root "
-                     "directory of the client output dir for collections. This "
-                     "is useful for identifying the client that the files "
-                     "belong to.")
+flags.DEFINE_bool("export_client_data", True,
+                  "Export a yaml file containing client data in the root "
+                  "directory of the client output dir for collections. This "
+                  "is useful for identifying the client that the files "
+                  "belong to.")
 
 flags.DEFINE_integer("threads", 10,
                      "Number of threads to use for export.")
 
-FLAGS = flags.FLAGS
-
 
 def Usage():
-  print "Needs --collection or --file and --output args."
+  print "Needs --output and one of --collection --directory or --file."
   print "e.g. --collection=aff4:/hunts/W:123456/Results --output=/tmp/foo"
 
 
 def main(unused_argv):
   """Main."""
-  if not FLAGS.output or not (FLAGS.collection or FLAGS.file or
-                              FLAGS.directory):
+  config_lib.CONFIG.SetEnv("Environment.component", "CommandLineTools")
+  startup.Init()
+
+  if not flags.FLAGS.output or not (flags.FLAGS.collection or flags.FLAGS.file
+                                    or flags.FLAGS.directory):
     Usage()
     sys.exit(1)
 
-  config_lib.CONFIG.SetEnv("Environment.component", "CommandLineTools")
-  startup.Init()
-  if FLAGS.collection:
-    export_utils.DownloadCollection(FLAGS.collection, FLAGS.output,
-                                    overwrite=FLAGS.overwrite,
-                                    max_threads=FLAGS.threads,
-                                    dump_client_info=FLAGS.export_client_data)
-  elif FLAGS.file:
-    export_utils.CopyAFF4ToLocal(FLAGS.file, FLAGS.output,
-                                 overwrite=FLAGS.overwrite)
+  if flags.FLAGS.collection:
+    export_utils.DownloadCollection(flags.FLAGS.collection, flags.FLAGS.output,
+                                    overwrite=flags.FLAGS.overwrite,
+                                    max_threads=flags.FLAGS.threads,
+                                    dump_client_info=
+                                    flags.FLAGS.export_client_data)
+  elif flags.FLAGS.file:
+    export_utils.CopyAFF4ToLocal(flags.FLAGS.file, flags.FLAGS.output,
+                                 overwrite=flags.FLAGS.overwrite)
 
-  elif FLAGS.directory:
-    directory = aff4.FACTORY.Open(FLAGS.directory)
-    export_utils.RecursiveDownload(directory, FLAGS.output,
-                                   overwrite=FLAGS.overwrite, depth=FLAGS.depth)
+  elif flags.FLAGS.directory:
+    directory = aff4.FACTORY.Open(flags.FLAGS.directory)
+    if not list(directory.ListChildren()):
+      print "%s contains no children." % directory.urn
+      sys.exit(1)
+
+    export_utils.RecursiveDownload(directory, flags.FLAGS.output,
+                                   overwrite=flags.FLAGS.overwrite,
+                                   depth=flags.FLAGS.depth)
 
 
 def ConsoleMain():

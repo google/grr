@@ -23,11 +23,11 @@ class Error(Exception):
   """Base error class."""
 
 
-class TypeValueError(Error):
+class TypeValueError(Error, ValueError):
   """Value is not valid."""
 
 
-class UnknownArg(Error):
+class UnknownArg(TypeValueError):
   """Raised for unknown flow args."""
 
 
@@ -160,7 +160,7 @@ class RDFValueType(TypeInfoObject):
       # Try to coerce the type to the correct rdf_class.
       try:
         return self.rdfclass(value)
-      except (RuntimeError, TypeError):
+      except rdfvalue.InitializeError:
         raise TypeValueError("Value for arg %s should be an %s" % (
             self.name, self.rdfclass.__class__.__name__))
 
@@ -194,20 +194,18 @@ class Bool(TypeInfoObject):
     raise TypeValueError("%s is not recognized as a boolean value." % string)
 
 
-class RDFEnum(TypeInfoObject):
-  """An RDFValue Enum field."""
+class SemanticEnum(TypeInfoObject):
+  """Describe an enum for a Semantic Protobuf."""
 
-  renderer = "RDFEnumFormRenderer"
-
-  def __init__(self, rdfclass=None, enum_name=None, **kwargs):
-    desc = rdfclass._proto.DESCRIPTOR  # pylint: disable=protected-access
-    self.enum_descriptor = desc.enum_types_by_name[enum_name]
-    super(RDFEnum, self).__init__(**kwargs)
+  def __init__(self, enum_container=None, **kwargs):
+    super(SemanticEnum, self).__init__(**kwargs)
+    self.enum_container = enum_container
 
   def Validate(self, value):
-    if value not in self.enum_descriptor.values_by_number:
+    if (value not in self.enum_container.reverse_enum and
+        value not in self.enum_container.enum_dict):
       raise TypeValueError("%s not a valid value for %s" % (
-          value, self.enum_descriptor.name))
+          value, self.enum_container.name))
 
     return value
 
@@ -246,6 +244,11 @@ class List(TypeInfoObject):
 
   def ToString(self, value):
     return ",".join([self.validator.ToString(x) for x in value])
+
+
+class InterpolatedList(List):
+  """A list of path strings that can contain %% expansions."""
+  renderer = "InterpolatedPathRenderer"
 
 
 class String(TypeInfoObject):
@@ -427,6 +430,7 @@ class TypeDescriptorSet(object):
 
   def __init__(self, *descriptors):
     self.descriptors = list(descriptors)
+    self.descriptor_names = [x.name for x in descriptors]
     self.descriptor_map = dict([(desc.name, desc) for desc in descriptors])
 
   def __getitem__(self, item):
@@ -435,8 +439,8 @@ class TypeDescriptorSet(object):
   def __contains__(self, item):
     return item in self.descriptor_map
 
-  def get(self, item):  # pylint: disable=g-bad-name
-    return self.descriptor_map.get(item)
+  def get(self, item, default=None):  # pylint: disable=g-bad-name
+    return self.descriptor_map.get(item, default)
 
   def __iter__(self):
     return iter(self.descriptors)
@@ -471,6 +475,7 @@ class TypeDescriptorSet(object):
     if desc not in self.descriptors:
       self.descriptors.append(desc)
       self.descriptor_map[desc.name] = desc
+      self.descriptor_names.append(desc.name)
 
   def HasDescriptor(self, descriptor_name):
     """Checks wheter this set has an element with the given name."""
@@ -547,7 +552,10 @@ class InstallDriverRequestType(RDFValueType):
   def GetDefault(self):
     if not self.default:
       return None
-    return self.default.Copy()
+
+    result = self.default.Copy()
+
+    return result
 
 
 class FilterString(String):

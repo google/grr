@@ -9,20 +9,21 @@
 from grr.client import conf
 
 # Need to import artifacts so they get registered
-# pylint: disable=W0611
+# pylint: disable=unused-import
 from grr.artifacts import win_artifacts
-
+# pylint: enable=unused-import
 from grr.lib import artifact
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.flows.general import collectors
 
 
 class FakeFlow(collectors.ArtifactCollectorFlow):
   """Fake flow object."""
-  client = None
 
   def __init__(self):
-    """Do Nothing."""
+    self.state = rdfvalue.FlowState()
+    self.state.Register("client", None)
 
 
 class ArtifactTest(test_lib.GRRBaseTest):

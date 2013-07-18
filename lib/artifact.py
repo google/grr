@@ -122,13 +122,12 @@ class GenericArtifact(Artifact):
     in that flow.
     """
     super(GenericArtifact, self).__init__()
-    if hasattr(parent_flow, "client"):
-      self.client = parent_flow.client
+    self.client = parent_flow.state.get("client")
     self.parent_flow = parent_flow
     if use_tsk:
-      self.path_type = rdfvalue.RDFPathSpec.Enum("TSK")
+      self.path_type = rdfvalue.PathSpec.PathType.TSK
     else:
-      self.path_type = rdfvalue.RDFPathSpec.Enum("OS")
+      self.path_type = rdfvalue.PathSpec.PathType.OS
 
     # Ensure we've been written sanely.
     # Note that this could be removed if it turns out to be expensive. The

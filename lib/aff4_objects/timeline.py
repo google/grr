@@ -14,11 +14,8 @@ from grr.lib.aff4_objects import standard
 from grr.proto import analysis_pb2
 
 
-class RDFEvent(rdfvalue.RDFProto):
-  _proto = analysis_pb2.Event
-
-  rdf_map = dict(timestamp=rdfvalue.RDFDatetime,
-                 stat=rdfvalue.StatEntry)
+class Event(rdfvalue.RDFProtoStruct):
+  protobuf = analysis_pb2.Event
 
 
 class AFF4Event(aff4.AFF4Object):
@@ -29,7 +26,7 @@ class AFF4Event(aff4.AFF4Object):
                                "The time of this event.", "timestamp")
 
     # The actual event protobuf
-    EVENT = aff4.Attribute("aff4:timeline/event", RDFEvent,
+    EVENT = aff4.Attribute("aff4:timeline/event", Event,
                            "The event protobuf", "event")
 
   def __init__(self, event):
@@ -126,8 +123,7 @@ class GRRTimeSeries(standard.VFSDirectory):
       except struct.error:
         break
 
-      event = analysis_pb2.Event()
-      event.ParseFromString(serialized_event)
+      event = Event(serialized_event)
       event.id = count
       count += 1
 

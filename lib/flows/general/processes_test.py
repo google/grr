@@ -30,8 +30,7 @@ class ProcessListTest(test_lib.FlowTestsBaseclass):
       pass
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(
-        self.client_id).Add("processes"), token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add("processes"), token=self.token)
     processes = fd.Get(fd.Schema.PROCESSES)
 
     self.assertEqual(len(processes), 1)
@@ -69,7 +68,7 @@ class GetProcessesBinariesTest(test_lib.FlowTestsBaseclass):
         token=self.token, output=output_path):
       pass
 
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
                            token=self.token)
     self.assertEqual(len(fd), 0)
 
@@ -89,7 +88,7 @@ class GetProcessesBinariesTest(test_lib.FlowTestsBaseclass):
         token=self.token, output=output_path):
       pass
 
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
                            token=self.token)
     summaries = list(fd)
     self.assertEqual(len(summaries), 1)
@@ -119,7 +118,7 @@ class GetProcessesBinariesTest(test_lib.FlowTestsBaseclass):
         token=self.token, output=output_path):
       pass
 
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
                            token=self.token)
     self.assertEqual(len(fd), 1)
 
@@ -146,7 +145,7 @@ class GetProcessesBinariesTest(test_lib.FlowTestsBaseclass):
         token=self.token, check_flow_errors=False, output=output_path):
       pass
 
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
                            token=self.token)
     summaries = list(fd)
     self.assertEqual(len(summaries), 1)
@@ -165,41 +164,26 @@ class VolatilityActionMock(test_lib.ActionMock):
     volatility_response = rdfvalue.VolatilityResult()
 
     section = rdfvalue.VolatilitySection()
-
-    header = section.table.headers.add()
-    header.print_name = "Protection"
-    header.name = "protection"
-
-    header = section.table.headers.add()
-    header.print_name = "start"
-    header.name = "start_pfn"
-
-    header = section.table.headers.add()
-    header.print_name = "Filename"
-    header.name = "filename"
+    section.table.headers.Append(print_name="Protection", name="protection")
+    section.table.headers.Append(print_name="start", name="start_pfn")
+    section.table.headers.Append(print_name="Filename", name="filename")
 
     for proc in self.processes_list:
-      row = section.table.rows.add()
+      section.table.rows.Append(values=[
+          rdfvalue.VolatilityValue(
+              type="__MMVAD_FLAGS", name="VadFlags",
+              offset=0, vm="None", value=7,
+              svalue="EXECUTE_WRITECOPY"),
 
-      value = row.values.add()
-      value.type = "__MMVAD_FLAGS"
-      value.name = "VadFlags"
-      value.offset = 0
-      value.vm = "None"
-      value.value = 7
-      value.svalue = "EXECUTE_WRITECOPY"
+          rdfvalue.VolatilityValue(
+              value=42),
 
-      value = row.values.add()
-      value.value = 42
-
-      value = row.values.add()
-      value.type = "_UNICODE_STRING"
-      value.name = "FileName"
-      value.offset = 275427702111096
-      value.vm = "AMD64PagedMemory@0x00187000 (Kernel AS@0x187000)"
-      value.value = 275427702111096
-      value.svalue = proc
-
+          rdfvalue.VolatilityValue(
+              type="_UNICODE_STRING", name="FileName",
+              offset=275427702111096,
+              vm="AMD64PagedMemory@0x00187000 (Kernel AS@0x187000)",
+              value=275427702111096, svalue=proc)
+          ])
     volatility_response.sections.Append(section)
 
     return [volatility_response]
@@ -223,7 +207,7 @@ class GetProcessesBinariesVolatilityTest(test_lib.FlowTestsBaseclass):
         output=output_path):
       pass
 
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
                            token=self.token)
     # Sorting output collection to make the test deterministic
     summaries = sorted(fd, key=lambda x: x.urn)
@@ -249,7 +233,7 @@ class GetProcessesBinariesVolatilityTest(test_lib.FlowTestsBaseclass):
         output=output_path):
       pass
 
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
                            token=self.token)
     summaries = list(fd)
 
@@ -273,7 +257,7 @@ class GetProcessesBinariesVolatilityTest(test_lib.FlowTestsBaseclass):
         filename_regex=".*\\.dd$"):
       pass
 
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
                            token=self.token)
     summaries = list(fd)
 
@@ -297,7 +281,7 @@ class GetProcessesBinariesVolatilityTest(test_lib.FlowTestsBaseclass):
         output=output_path):
       pass
 
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(output_path),
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
                            token=self.token)
     summaries = list(fd)
     self.assertEqual(len(summaries), 1)

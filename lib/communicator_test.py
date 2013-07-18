@@ -2,7 +2,6 @@
 """Test for client."""
 
 
-from hashlib import sha256
 import pdb
 import StringIO
 import time
@@ -22,7 +21,6 @@ from grr.lib import aff4
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flow
-from grr.lib import flow_context
 from grr.lib import rdfvalue
 # pylint: disable=W0611
 from grr.lib import server_plugins
@@ -86,7 +84,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.assertEqual(client_timestamp, timestamp)
     self.assertEqual(len(decoded_messages), 10)
     for i in range(0, 10):
-      self.assertEqual(decoded_messages[i].session_id, str(i))
+      self.assertEqual(decoded_messages[i].session_id, "aff4:/%s" % i)
 
     return decoded_messages
 
@@ -95,7 +93,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     decoded_messages = self.ClientServerCommunicate()
     for i in range(len(decoded_messages)):
       self.assertEqual(decoded_messages[i].auth_state,
-                       rdfvalue.GRRMessage.Enum("UNAUTHENTICATED"))
+                       rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED)
 
   def MakeClientAFF4Record(self):
     """Make a client in the data store."""
@@ -114,7 +112,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
     for i in range(len(decoded_messages)):
       self.assertEqual(decoded_messages[i].auth_state,
-                       rdfvalue.GRRMessage.Enum("AUTHENTICATED"))
+                       rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)
 
   def testServerReplayAttack(self):
     """Test that replaying encrypted messages to the server invalidates them."""
@@ -124,7 +122,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     decoded_messages = self.ClientServerCommunicate()
 
     self.assertEqual(decoded_messages[0].auth_state,
-                     rdfvalue.GRRMessage.Enum("AUTHENTICATED"))
+                     rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)
 
     # Now replay the last message to the server
     (decoded_messages, _, _) = self.server_communicator.DecryptMessage(
@@ -132,7 +130,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
     # Messages should now be tagged as desynced
     self.assertEqual(decoded_messages[0].auth_state,
-                     rdfvalue.GRRMessage.Enum("DESYNCHRONIZED"))
+                     rdfvalue.GrrMessage.AuthorizationState.DESYNCHRONIZED)
 
   def testCompression(self):
     """Tests that the compression works."""
@@ -195,15 +193,37 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.client_communicator.EncodeMessages(message_list, result)
     cipher_text = result.SerializeToString()
 
-    # Futz with the cipher text (Make sure it's really changed)
-    cipher_text = (cipher_text[:100] +
-                   chr((ord(cipher_text[100]) % 250)+1) +
-                   cipher_text[101:])
+    # Depending on this modification several things may happen:
+    # 1) The padding may not match which will cause a decryption exception.
+    # 2) The protobuf may fail to decode causing a decoding exception.
+    # 3) The modification may affect the signature resulting in UNAUTHENTICATED
+    #    messages.
+    # 4) The modification may have no effect on the data at all.
+    for x in range(0, len(cipher_text), 50):
+      # Futz with the cipher text (Make sure it's really changed)
+      mod_cipher_text = (cipher_text[:x] +
+                         chr((ord(cipher_text[x]) % 250)+1) +
+                         cipher_text[x+1:])
 
-    # This signature should not match
-    self.assertRaises(communicator.DecodingError,
-                      self.server_communicator.DecryptMessage,
-                      cipher_text)
+      try:
+        decoded, client_id, _ = self.server_communicator.DecryptMessage(
+            mod_cipher_text)
+
+        for i, message in enumerate(decoded):
+          # If the message is actually authenticated it must not be changed!
+          if message.auth_state == message.AuthorizationState.AUTHENTICATED:
+            self.assertEqual(message.source, client_id)
+
+            # These fields are set by the decoder and are not present in the
+            # original message - so we clear them before comparison.
+            message.auth_state = None
+            message.source = None
+            self.assertProtoEqual(message, message_list.job[i])
+          else:
+            logging.debug("Message %s: Authstate: %s", i, message.auth_state)
+
+      except communicator.DecodingError as e:
+        logging.debug("Detected alteration at %s: %s", x, e)
 
   def testEnrollingCommunicator(self):
     """Test that the ClientCommunicator generates good keys."""
@@ -217,8 +237,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
     # Verify that the CN is of the correct form
     public_key = req.get_pubkey().get_rsa().pub()[1]
-    cn = "C.%s" % (
-        sha256(public_key).digest()[:8].encode("hex"))
+    cn = rdfvalue.ClientURN.FromPublicKey(public_key)
+
     self.assertEqual(cn, req.get_subject().CN)
 
 
@@ -305,13 +325,13 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         if message.request_id:
           self.assertEqual(message.response_id, i)
           self.assertEqual(message.request_id, 1)
-          self.assertEqual(message.session_id, "session")
+          self.assertEqual(message.session_id, "aff4:/session")
 
       # Now prepare a response
       response_comms = rdfvalue.ClientCommunication()
       message_list = rdfvalue.MessageList()
       for i in range(0, 10):
-        message_list.job.Append(session_id="session", name="Echo",
+        message_list.job.Append(session_id="aff4:/session", name="Echo",
                                 response_id=2, request_id=i)
 
       # Preserve the timestamp as a nonce
@@ -338,12 +358,13 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     for i, message in enumerate(
         self.client_communicator.client_worker._in_queue):
-      self.assertEqual(message.source, "GRR Test Server")
+      # This is the common name embedded in the certificate.
+      self.assertEqual(message.source, "aff4:/GRR Test Server")
       self.assertEqual(message.response_id, 2)
       self.assertEqual(message.request_id, i)
-      self.assertEqual(message.session_id, "session")
+      self.assertEqual(message.session_id, "aff4:/session")
       self.assertEqual(message.auth_state,
-                       rdfvalue.GRRMessage.Enum("AUTHENTICATED"))
+                       rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)
 
     # Clear the queue
     self.client_communicator.client_worker._in_queue = []
@@ -379,7 +400,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     # Client should generate enrollment message by itself.
     self.assertEqual(len(self.messages), 1)
-    self.assertEqual("CA:Enrol", self.messages[0].session_id)
+    self.assertEqual("aff4:/flows/CA:Enrol", self.messages[0].session_id)
 
   def testEnrollment(self):
     """Test the http response to unknown clients."""
@@ -401,21 +422,21 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.assertEqual(status.code, 406)
     self.assertEqual(len(self.messages), 10)
     self.assertEqual(self.messages[0].auth_state,
-                     rdfvalue.GRRMessage.Enum("UNAUTHENTICATED"))
+                     rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED)
 
     # The next request should be an enrolling request.
     status = self.client_communicator.RunOnce()
 
     self.assertEqual(len(self.messages), 11)
-    self.assertEqual("CA:Enrol", self.messages[-1].session_id)
+    self.assertEqual("aff4:/flows/CA:Enrol", self.messages[-1].session_id)
 
     # Now we manually run the enroll well known flow with the enrollment request
     # - in reality this will be run on the Enroller.
     # This will start a new flow for enrolling the client, sign the cert and
     # add it to the data store.
-    context = flow_context.FlowContext()
-    enrol_flow = ca_enroller.Enroler(context)
-    enrol_flow.ProcessMessage(self.messages[-1])
+    flow_obj = aff4.Enroler(aff4.Enroler.well_known_session_id, mode="rw",
+                            token=self.token)
+    flow_obj.ProcessMessage(self.messages[-1])
 
     # The next client communication should be enrolled now.
     status = self.client_communicator.RunOnce()

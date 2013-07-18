@@ -9,7 +9,6 @@ from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.proto import sysinfo_pb2
 
 
 class CollectRunKeys(flow.GRRFlow):
@@ -32,7 +31,7 @@ class CollectRunKeys(flow.GRRFlow):
         findspec_run = rdfvalue.RDFFindSpec(max_depth=2)
         findspec_run.iterator.number = 1000
         findspec_run.pathspec.path = run_path
-        findspec_run.pathspec.pathtype = rdfvalue.RDFPathSpec.Enum("REGISTRY")
+        findspec_run.pathspec.pathtype = rdfvalue.PathSpec.PathType.REGISTRY
 
         self.CallFlow("FindFiles", findspec=findspec_run,
                       next_state="StoreRunKeys",
@@ -46,7 +45,7 @@ class CollectRunKeys(flow.GRRFlow):
       findspec_run = rdfvalue.RDFFindSpec(max_depth=2)
       findspec_run.iterator.number = 1000
       findspec_run.pathspec.path = run_path
-      findspec_run.pathspec.pathtype = rdfvalue.RDFPathSpec.Enum("REGISTRY")
+      findspec_run.pathspec.pathtype = rdfvalue.PathSpec.PathType.REGISTRY
 
       self.CallFlow("FindFiles", findspec=findspec_run,
                     next_state="StoreRunKeys",
@@ -82,7 +81,7 @@ class CollectRunKeys(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     self.Log("Successfully wrote %d RunKeys.", self.numrunkeys)
-    urn = aff4.ROOT_URN.Add(self.client_id).Add("analysis/RunKeys")
+    urn = self.client_id.Add("analysis/RunKeys")
     self.Notify("ViewObject", urn, "Collected the User and System Run Keys")
 
 
@@ -103,7 +102,7 @@ class FindMRU(flow.GRRFlow):
       findspec = rdfvalue.RDFFindSpec(max_depth=2)
       findspec.iterator.number = 1000
       findspec.pathspec.path = mru_path
-      findspec.pathspec.pathtype = rdfvalue.RDFPathSpec.Enum("REGISTRY")
+      findspec.pathspec.pathtype = rdfvalue.PathSpec.PathType.REGISTRY
 
       self.CallFlow("FindFiles", findspec=findspec, output=None,
                     next_state="StoreMRUs",
@@ -112,7 +111,6 @@ class FindMRU(flow.GRRFlow):
   @flow.StateHandler()
   def StoreMRUs(self, responses):
     """Store the MRU data for each user in a special structure."""
-
     for response in responses:
       urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
           response.pathspec, self.client_id)
@@ -141,7 +139,7 @@ class FindMRU(flow.GRRFlow):
 
         # TODO(user): Implement the actual parsing of the MRU.
         mrus = fd.Get(fd.Schema.LAST_USED_FOLDER)
-        mrus.Append(sysinfo_pb2.MRUFile(filename="Foo"))
+        mrus.Append(filename="Foo")
 
-        fd.Set(fd.Schema.LAST_USED_FOLDER, mrus)
+        fd.Set(mrus)
         fd.Close()

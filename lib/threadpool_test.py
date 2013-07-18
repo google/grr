@@ -17,6 +17,8 @@ from grr.lib import threadpool
 
 class ThreadPoolTest(test_lib.GRRBaseTest):
   """Tests for the ThreadPool class."""
+  NUMBER_OF_THREADS = 250
+  NUMBER_OF_TASKS = 1500
 
   def setUp(self):
     super(ThreadPoolTest, self).setUp()
@@ -24,7 +26,8 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     self.base_thread_count = threading.active_count()
 
     prefix = "pool-%s" % self._testMethodName
-    self.test_pool = threadpool.ThreadPool.Factory(prefix, 500)
+    self.test_pool = threadpool.ThreadPool.Factory(
+        prefix, self.NUMBER_OF_THREADS)
     self.test_pool.Start()
 
   def tearDown(self):
@@ -47,16 +50,19 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     settings here.
     """
 
-    self.assertEqual(self.Count("pool-testThreadCreation_worker"), 500)
+    self.assertEqual(
+        self.Count("pool-testThreadCreation_worker"), self.NUMBER_OF_THREADS)
 
   def testStopping(self):
     """Tests if all worker threads terminate if the thread pool is stopped."""
 
-    self.assertEqual(self.Count("pool-testStopping_worker"), 500)
+    self.assertEqual(
+        self.Count("pool-testStopping_worker"), self.NUMBER_OF_THREADS)
     self.test_pool.Stop()
     self.assertEqual(self.Count("pool-testStopping_worker"), 0)
     self.test_pool.Start()
-    self.assertEqual(self.Count("pool-testStopping_worker"), 500)
+    self.assertEqual(
+        self.Count("pool-testStopping_worker"), self.NUMBER_OF_THREADS)
     self.test_pool.Stop()
     self.assertEqual(self.Count("pool-testStopping_worker"), 0)
 
@@ -84,12 +90,12 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     # we can schedule more tasks than fit into the queue.
 
     test_list = []
-    for i in range(1500):
+    for i in range(self.NUMBER_OF_TASKS):
       self.test_pool.AddTask(Insert, (test_list, i,))
 
     self.test_pool.Join()
     test_list.sort()
-    self.assertEqual(range(1500), test_list)
+    self.assertEqual(range(self.NUMBER_OF_TASKS), test_list)
 
   def testRunRaisingTask(self):
     """Tests the behavior of the pool if a task throws an exception."""

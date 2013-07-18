@@ -18,8 +18,11 @@
 <script src="/static/javascript/flot/jquery.flot.navigate.js"></script>
 <script src="/static/javascript/jquery_multiselect/jquery.multiselect.min.js"></script>
 <script src="/static/javascript/bootstrap.js"></script>
+<script src="/static/javascript/select2.js"></script>
+<script src="/static/javascript/rangyinputs_jquery.js"></script>
 
 <link rel="stylesheet" type="text/css" href="/static/css/bootstrap.css" media="screen"/>
+<link rel="stylesheet" type="text/css" href="/static/css/select2.css" media="screen"/>
 <link rel="stylesheet" href="/static/css/grr.css" type="text/css" media="screen" />
 <link rel="shortcut icon" href="/static/images/favicon.png" />
 
@@ -94,6 +97,10 @@
   </div>
 
   <script src="/static/javascript/grr.js"></script>
+  <script src="/static/javascript/renderers.js"></script>
+  {% for renderer in renderers_js %}
+  <script src="/static/javascript/plugins/{{renderer|escape}}"></script>
+  {% endfor %}
   <script type="text/javascript">
     grr.layout("ContentView", "content");
     grr.layout("NotificationBar", "notifications");

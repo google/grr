@@ -59,23 +59,22 @@ class TestWebHistory(test_lib.FlowTestsBaseclass):
     for _ in test_lib.TestFlowHelper(
         "ChromeHistory", self.client_mock, check_flow_errors=False,
         client_id=self.client_id, username="test", token=self.token,
-        output="analysis/testfoo", pathtype=rdfvalue.RDFPathSpec.Enum("TSK")):
+        output="analysis/testfoo", pathtype=rdfvalue.PathSpec.PathType.TSK):
       pass
 
     # Now check that the right files were downloaded.
     fs_path = "/home/test/.config/google-chrome/Default/History"
 
     # Check if the History file is created.
-    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/tsk").Add(self.base_path.replace("\\", "/")).Add(
+    output_path = self.client_id.Add("fs/tsk").Add(
+        self.base_path.replace("\\", "/")).Add(
             "test_img.dd").Add(fs_path.replace("\\", "/"))
 
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     self.assertTrue(fd.size > 20000)
 
     # Check for analysis file.
-    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "analysis/testfoo")
+    output_path = self.client_id.Add("analysis/testfoo")
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     self.assertTrue(fd.size > 20000)
     self.assertTrue(fd.Read(5000).find("funnycats.exe") != -1)
@@ -86,22 +85,21 @@ class TestWebHistory(test_lib.FlowTestsBaseclass):
     for _ in test_lib.TestFlowHelper(
         "FirefoxHistory", self.client_mock, check_flow_errors=False,
         client_id=self.client_id, username="test", token=self.token,
-        output="analysis/ff_out", pathtype=rdfvalue.RDFPathSpec.Enum("TSK")):
+        output="analysis/ff_out", pathtype=rdfvalue.PathSpec.PathType.TSK):
       pass
 
     # Now check that the right files were downloaded.
     fs_path = "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"
     # Check if the History file is created.
-    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/tsk").Add("/".join([self.base_path.replace("\\", "/"),
-                                "test_img.dd"])).Add(fs_path.replace("\\", "/"))
+    output_path = self.client_id.Add("fs/tsk").Add(
+        "/".join([self.base_path.replace("\\", "/"),
+                  "test_img.dd"])).Add(fs_path.replace("\\", "/"))
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     self.assertTrue(fd.size > 20000)
     self.assertEquals(fd.read(15), "SQLite format 3")
 
     # Check for analysis file.
-    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "analysis/ff_out")
+    output_path = self.client_id.Add("analysis/ff_out")
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     self.assertTrue(fd.size > 400)
     data = fd.Read(1000)
@@ -115,14 +113,13 @@ class TestWebHistory(test_lib.FlowTestsBaseclass):
         "CacheGrep", self.client_mock, check_flow_errors=False,
         client_id=self.client_id, grep_users=["test"],
         data_regex="ENIAC", output="analysis/cachegrep/{u}",
-        pathtype=rdfvalue.RDFPathSpec.Enum("TSK"), token=self.token):
+        pathtype=rdfvalue.PathSpec.PathType.TSK, token=self.token):
       pass
 
     # Check if the collection file was created.
-    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "analysis/cachegrep").Add("test")
+    output_path = self.client_id.Add("analysis/cachegrep").Add("test")
 
-    fd = aff4.FACTORY.Open(output_path, required_type="RDFValueCollection",
+    fd = aff4.FACTORY.Open(output_path, aff4_type="RDFValueCollection",
                            token=self.token)
 
     # There should be one hit.

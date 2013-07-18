@@ -4,6 +4,8 @@
 
 syntax = "proto2";
 
+import "grr/proto/semantic.proto";
+
 
 // A Process record describing a system process.
 message Process {
@@ -41,20 +43,20 @@ message NetworkEndpoint {
 }
 
 message NetworkConnection {
-  enum NetworkFamily {
+  enum Family {
     INET = 2;
     INET6 = 10;
     INET6_WIN = 23;
     INET6_OSX = 30;
   };
-  enum NetworkType {
+  enum Type {
     UNKNOWN_SOCKET = 0;
     SOCK_STREAM = 1;
     SOCK_DGRAM = 2;
   };
 
-  optional NetworkFamily family = 1;
-  optional NetworkType type = 2 [default = UNKNOWN_SOCKET];
+  optional Family family = 1;
+  optional Type type = 2 [default = UNKNOWN_SOCKET];
   optional NetworkEndpoint local_address = 3;
   optional NetworkEndpoint remote_address = 4;
 

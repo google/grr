@@ -3,18 +3,20 @@
 """A generic serializer for python dictionaries."""
 
 
-from google.protobuf import message
-from google.protobuf import text_format
-
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.rdfvalues import structs
 from grr.proto import jobs_pb2
 
 
-class DataBlob(rdfvalue.RDFProto):
+class KeyValue(structs.RDFProtoStruct):
+  protobuf = jobs_pb2.KeyValue
+
+
+class DataBlob(structs.RDFProtoStruct):
   """Wrapper class for DataBlob protobuf."""
-  _proto = jobs_pb2.DataBlob
+  protobuf = jobs_pb2.DataBlob
 
   def SetValue(self, value):
     """Receives a value and fills it into a DataBlob."""
@@ -23,177 +25,157 @@ class DataBlob(rdfvalue.RDFProto):
                      (float, "float")]
 
     if value is None:
-      self._data.none = "None"
+      self.none = "None"
 
     elif isinstance(value, rdfvalue.RDFValue):
-      self._data.rdf_value.data = value.SerializeToString()
-      self._data.rdf_value.age = int(value.age)
-      self._data.rdf_value.name = value.__class__.__name__
-
-    elif isinstance(value, message.Message):
-      # If we have a protobuf save the type and serialized data.
-      self._data.data = value.SerializeToString()
-      self._data.proto_name = value.__class__.__name__
+      self.rdf_value.data = value.SerializeToString()
+      self.rdf_value.age = int(value.age)
+      self.rdf_value.name = value.__class__.__name__
 
     elif isinstance(value, (list, tuple)):
-      self._data.list.content.extend([DataBlob().SetValue(v) for v in value])
+      self.list.content.Extend([DataBlob().SetValue(v) for v in value])
 
     elif isinstance(value, dict):
-      pdict = RDFProtoDict()
-      pdict.FromDict(value)
-      self._data.dict.MergeFrom(pdict.ToProto())
+      self.dict.FromDict(value)
 
     else:
       for type_mapping, member in type_mappings:
         if isinstance(value, type_mapping):
-          setattr(self._data, member, value)
-          return self._data
+          setattr(self, member, value)
 
-      raise RuntimeError("Unsupported type for ProtoDict: %s" % type(value))
+          return self
 
-    return self._data
+      raise TypeError("Unsupported type for ProtoDict: %s" % type(value))
+
+    return self
 
   def GetValue(self):
     """Extracts and returns a single value from a DataBlob."""
-    if self._data.HasField("none"):
+    if self.HasField("none"):
       return None
 
     field_names = ["integer", "string", "data", "boolean", "list", "dict",
                    "rdf_value", "float"]
-    values = [getattr(self._data, x) for x in field_names
-              if self._data.HasField(x)]
+
+    values = [getattr(self, x) for x in field_names if self.HasField(x)]
 
     if len(values) != 1:
-      raise RuntimeError("DataBlob must contain exactly one entry.")
+      return None
 
     # Unpack RDFValues.
-    if self._data.rdf_value.name:
-      return rdfvalue.RDFValue.classes[self._data.rdf_value.name](
-          initializer=self._data.rdf_value.data,
-          age=self._data.rdf_value.age)
+    if self.HasField("rdf_value"):
+      return rdfvalue.RDFValue.classes[self.rdf_value.name](
+          initializer=self.rdf_value.data,
+          age=self.rdf_value.age)
 
-    elif self._data.HasField("proto_name"):
-      try:
-        pb = getattr(jobs_pb2, self._data.proto_name)()
-        pb.ParseFromString(self._data.data)
-
-        return pb
-      except AttributeError:
-        raise RuntimeError("Datablob has unknown protobuf.")
-
-    elif self._data.HasField("list"):
-      return [DataBlob(x).GetValue() for x in self._data.list.content]
-
-    elif self._data.HasField("dict"):
-      return RDFProtoDict(values[0]).ToDict()
+    elif self.HasField("list"):
+      return [x.GetValue() for x in self.list.content]
 
     else:
       return values[0]
 
 
-class RDFProtoDict(rdfvalue.RDFProto):
+class Dict(rdfvalue.RDFProtoStruct):
   """A high level interface for protobuf Dict objects.
 
   This effectively converts from a dict to a proto and back.
   The dict may contain strings (python unicode objects), int64,
   or binary blobs (python string objects) as keys and values.
   """
-  _proto = jobs_pb2.Dict
+  protobuf = jobs_pb2.Dict
 
   def __init__(self, initializer=None, age=None, **kwarg):
-    super(RDFProtoDict, self).__init__(initializer=None, age=age)
+    super(Dict, self).__init__(initializer=None, age=age)
 
     # Support initializing from a mapping
     if isinstance(initializer, dict):
-      self._data = self._proto()
-      for key in initializer:
-        new_proto = self._data.dat.add()
-        DataBlob(new_proto.k).SetValue(key)
-        DataBlob(new_proto.v).SetValue(initializer[key])
-
-    # Initialize from a protobuf by taking a reference.
-    elif isinstance(initializer, message.Message):
-      self._data = initializer
+      self.FromDict(initializer)
 
     # Initialize from a serialized string.
     elif isinstance(initializer, str):
-      self._data = self._proto()
       self.ParseFromString(initializer)
 
     # Can be initialized from kwargs (like a dict).
     elif initializer is None:
-      self._data = self._proto()
       self.FromDict(kwarg)
 
-    # Initialize from another RDFProtoDict.
-    elif isinstance(initializer, RDFProtoDict):
-      self._data = initializer._data  # pylint: disable=protected-access
+    # Initialize from another Dict.
+    elif isinstance(initializer, Dict):
+      self.SetRawData(initializer.GetRawData())
       self.age = initializer.age
 
     else:
-      raise RuntimeError("Invalid initializer for ProtoDict.")
+      raise rdfvalue.InitializeError("Invalid initializer for ProtoDict.")
 
   def ToDict(self):
     result = {}
-    for x in self._data.dat:
-      value = DataBlob(x.v).GetValue()
-      result[DataBlob(x.k).GetValue()] = value
+    for x in self.dat:
+      result[x.k.GetValue()] = x.v.GetValue()
 
     return result
 
   def FromDict(self, dictionary):
-    for k, v in dictionary.items():
-      self[k] = v
-
-  def ToProto(self):
-    return self._data
+    # First clear and then set the dictionary.
+    self.dat = None
+    for key, value in dictionary.iteritems():
+      self.dat.Append(k=rdfvalue.DataBlob().SetValue(key),
+                      v=rdfvalue.DataBlob().SetValue(value))
 
   def __getitem__(self, key):
-    for kv in self._data.dat:
-      if DataBlob(kv.k).GetValue() == key:
-        return DataBlob(kv.v).GetValue()
+    for x in self.dat:
+      if x.k.GetValue() == key:
+        return x.v.GetValue()
 
     raise KeyError("%s not found" % key)
 
-  def Get(self, key, default=None):
+  def GetItem(self, key, default=None):
     try:
       return self[key]
     except KeyError:
       return default
 
   def Items(self):
-    for kv in self._data.dat:
-      yield DataBlob(kv.k).GetValue(), DataBlob(kv.v).GetValue()
+    for x in self.dat:
+      yield x.k.GetValue(), x.v.GetValue()
 
   get = utils.Proxy("Get")
   items = utils.Proxy("Items")
 
   def __delitem__(self, key):
-    proto = jobs_pb2.Dict()
-    for kv in self._data.dat:
-      if DataBlob(kv.k).GetValue() != key:
-        proto.dat.add(k=kv.k, v=kv.v)
+    for i, x in enumerate(self.dat):
+      if x.k.GetValue() == key:
+        self.dat.Pop(i)
 
-    self._data.ClearField("dat")
-    self._data.MergeFrom(proto)
+  def __len__(self):
+    return len(self.dat)
 
   def __setitem__(self, key, value):
     del self[key]
-    new_proto = self._data.dat.add()
-    DataBlob(new_proto.k).SetValue(key)
-    DataBlob(new_proto.v).SetValue(value)
-
-  def __str__(self):
-    return utils.SmartStr(self.ToDict())
+    self.dat.Append(k=DataBlob().SetValue(key), v=DataBlob().SetValue(value))
 
   def __iter__(self):
-    for kv in self._data.dat:
-      yield DataBlob(kv.k).GetValue()
+    for x in self.dat:
+      yield x.k.GetValue()
+
+  def __eq__(self, other):
+    if isinstance(other, dict):
+      return self.ToDict() == other
+
+    return super(Dict, self).__eq__(other)
 
 
-class RDFValueArray(rdfvalue.RDFProto):
-  """A type which serializes a list of RDFValue instances."""
-  _proto = jobs_pb2.BlobArray
+class BlobArray(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.BlobArray
+
+
+class RDFValueArray(rdfvalue.RDFProtoStruct):
+  """A type which serializes a list of RDFValue instances.
+
+  TODO(user): This needs to be deprecated in favor of just defining a
+  protobuf with a repeated field (This can be now done dynamically, which is the
+  main reason we used this in the past).
+  """
+  protobuf = jobs_pb2.BlobArray
 
   # Set this to an RDFValue class to ensure all members adhere to this type.
   rdf_type = None
@@ -201,14 +183,9 @@ class RDFValueArray(rdfvalue.RDFProto):
   def __init__(self, initializer=None, age=None):
     super(RDFValueArray, self).__init__(age=age)
 
-    self._data = []
     if self.__class__ == initializer.__class__:
-      self._data = initializer._data[:]  # pylint: disable=protected-access
+      self.content = initializer.Copy().content
       self.age = initializer.age
-
-    # Allow ourselves to be instantiated from a protobuf
-    elif isinstance(initializer, self._proto):
-      self._data = [DataBlob(x).GetValue() for x in initializer.content]
 
     # Initialize from a serialized protobuf.
     elif isinstance(initializer, str):
@@ -220,20 +197,16 @@ class RDFValueArray(rdfvalue.RDFProto):
           self.Append(item)
       except TypeError:
         if initializer is not None:
-          raise ValueError("%s can not be initialized from %s" % (
-              self.__class__.__name__, type(initializer)))
-
-  def ParseFromTextDump(self, dump):
-    new_object = self._proto()
-    text_format.Merge(dump, new_object)
-    for item in new_object.content:
-      self.Append(DataBlob(item).GetValue())
+          raise rdfvalue.InitializeError(
+              "%s can not be initialized from %s" % (
+                  self.__class__.__name__, type(initializer)))
 
   def Append(self, value=None, **kwarg):
     """Add another member to the array.
 
     Args:
       value: The new data to append to the array.
+      **kwarg:  Create a new element from these keywords.
 
     Returns:
       The value which was added. This can be modified further by the caller and
@@ -254,63 +227,39 @@ class RDFValueArray(rdfvalue.RDFProto):
         raise ValueError("Unable to initialize %s from type %s" % (
             self.__class__.__name__, type(value)))
 
-    self._data.append(value)
-
-    return value
+    self.content.Append(DataBlob().SetValue(value))
 
   def Extend(self, values):
     for v in values:
       self.Append(v)
 
   def __getitem__(self, item):
-    return self._data[item]
+    return self.content[item].GetValue()
 
   def __len__(self):
-    return len(self._data)
+    return len(self.content)
 
   def __iter__(self):
-    return iter(self._data)
-
-  def ToProto(self):
-    result = jobs_pb2.BlobArray()
-    for member in self._data:
-      DataBlob(result.content.add()).SetValue(member)
-
-    return result
-
-  def SerializeToString(self):
-    return self.ToProto().SerializeToString()
-
-  def ParseFromString(self, string):
-    data = jobs_pb2.BlobArray()
-    data.ParseFromString(string)
-
-    # Parse the protobuf into a list of RDFValues and return that.
-    self._data = [DataBlob(x).GetValue() for x in data.content]
-
-    if self.rdf_type:
-      # pylint: disable=not-callable
-      self._data = [self.rdf_type(x) for x in self._data]
-      # pylint: enable=not-callable
+    for blob in self.content:
+      yield blob.GetValue()
 
   def __nonzero__(self):
-    return bool(self._data)
+    return bool(self.content)
 
   def Pop(self, index=0):
-    self._data.pop(index)
-
-  def __str__(self):
-    results = [str(x) for x in self._data]
-    return "\n\n".join(results)
+    return self.content.Pop(index).GetValue()
 
   def GetFields(self, field_names):
     """Recurse into an attribute to get sub fields by name."""
     result = []
 
-    for value in self._data:
+    for value in self.content:
+      value = value.GetValue()
       for field_name in field_names:
-        value = getattr(value, field_name, None)
-        if value is None:
+        if value.HasField(field_name):
+          value = getattr(value, field_name, None)
+        else:
+          value = None
           break
 
       if value is not None:
@@ -322,8 +271,45 @@ class RDFValueArray(rdfvalue.RDFProto):
 class GenericProtoDictType(type_info.RDFValueType):
 
   def __init__(self, **kwargs):
-    defaults = dict(default=rdfvalue.RDFProtoDict(),
-                    rdfclass=rdfvalue.RDFProtoDict)
+    defaults = dict(default=rdfvalue.Dict(),
+                    rdfclass=rdfvalue.Dict)
 
     defaults.update(kwargs)
     super(GenericProtoDictType, self).__init__(**defaults)
+
+
+class EmbeddedRDFValue(rdfvalue.RDFProtoStruct):
+  """An object that contains a serialized RDFValue."""
+
+  protobuf = jobs_pb2.EmbeddedRDFValue
+
+  def __init__(self, initializer=None, payload=None, *args, **kwargs):
+    if (not payload and
+        isinstance(initializer, rdfvalue.RDFValue) and
+        not isinstance(initializer, EmbeddedRDFValue)):
+      # The initializer is an RDFValue object that we can use as payload.
+      payload = initializer
+      initializer = None
+
+    super(EmbeddedRDFValue, self).__init__(initializer=initializer, *args,
+                                           **kwargs)
+    if payload:
+      self.payload = payload
+
+  @property
+  def payload(self):
+    """Extracts and returns the serialized object."""
+    try:
+      rdf_cls = self.classes.get(self.name)
+      value = rdf_cls(self.data)
+      value.age = self.age
+
+      return value
+    except TypeError:
+      return None
+
+  @payload.setter
+  def payload(self, payload):
+    self.name = payload.__class__.__name__
+    self.age = payload.age
+    self.data = payload.SerializeToString()

@@ -95,7 +95,7 @@ class VFSGRRClient(standard.VFSDirectory):
                                 "Running configuration for the GRR client.")
 
     GRR_CONFIGURATION = aff4.Attribute(
-        "aff4:client_configuration", rdfvalue.RDFProtoDict,
+        "aff4:client_configuration", rdfvalue.Dict,
         "Running configuration for the GRR client.", "Config")
 
     USER = aff4.Attribute("aff4:users", rdfvalue.Users,
@@ -134,16 +134,12 @@ class VFSGRRClient(standard.VFSDirectory):
   CLIENT_ID_RE = re.compile(r"^C\.[0-9a-fA-F]{16}$")
 
   def Initialize(self):
-    # The client_id is the first element of the URN
-    self.client_id = self.urn.Path().split("/")[1]
-
-    # This object is invalid if the client_id does not conform to this scheme:
-    if not self.CLIENT_ID_RE.match(self.client_id):
-      raise IOError("Client id is invalid")
+    # Our URN must be a valid client.id.
+    self.client_id = rdfvalue.ClientURN(self.urn)
 
   def Update(self, attribute=None, priority=None):
     if attribute == self.Schema.CONTAINS:
-      flow_id = flow.FACTORY.StartFlow(self.client_id, "Interrogate",
+      flow_id = flow.GRRFlow.StartFlow(self.client_id, "Interrogate",
                                        token=self.token, priority=priority)
 
       return flow_id
@@ -151,33 +147,17 @@ class VFSGRRClient(standard.VFSDirectory):
   def OpenMember(self, path, mode="rw"):
     return aff4.AFF4Volume.OpenMember(self, path, mode=mode)
 
-  # TODO(user): DEPRECATED - remove.
-  def GetFlows(self, start=0, length=None, age_policy=aff4.ALL_TIMES):
-    """A generator of all flows run on this client."""
-    _ = age_policy
-
-    flows = list(self.GetValuesForAttribute(self.Schema.FLOW))
-
-    # Sort in descending order (more recent first)
-    flows.sort(key=lambda x: x.age, reverse=True)
-
-    if length is None:
-      length = len(flows)
-
-    return aff4.FACTORY.MultiOpen(flows[start:start+length],
-                                  token=self.token)
-
-  AFF4_PREFIXES = {rdfvalue.RDFPathSpec.Enum("OS"): "/fs/os",
-                   rdfvalue.RDFPathSpec.Enum("TSK"): "/fs/tsk",
-                   rdfvalue.RDFPathSpec.Enum("REGISTRY"): "/registry",
-                   rdfvalue.RDFPathSpec.Enum("MEMORY"): "/devices/memory"}
+  AFF4_PREFIXES = {rdfvalue.PathSpec.PathType.OS: "/fs/os",
+                   rdfvalue.PathSpec.PathType.TSK: "/fs/tsk",
+                   rdfvalue.PathSpec.PathType.REGISTRY: "/registry",
+                   rdfvalue.PathSpec.PathType.MEMORY: "/devices/memory"}
 
   @staticmethod
   def PathspecToURN(pathspec, client_urn):
     """Returns a mapping between a pathspec and an AFF4 URN.
 
     Args:
-      pathspec: The RDFPathSpec instance to convert.
+      pathspec: The PathSpec instance to convert.
       client_urn: A URN of any object within the client. We use it to find the
           client id.
 
@@ -187,8 +167,7 @@ class VFSGRRClient(standard.VFSDirectory):
     Raises:
       ValueError: If pathspec is not of the correct type.
     """
-    client_urn = rdfvalue.RDFURN(client_urn)
-    client_id = client_urn.Path().split("/")[1]
+    client_urn = rdfvalue.ClientURN(client_urn)
 
     if not isinstance(pathspec, rdfvalue.RDFValue):
       raise ValueError("Pathspec should be an rdfvalue.")
@@ -207,14 +186,14 @@ class VFSGRRClient(standard.VFSDirectory):
     # }
     # We map this to aff4://client_id/fs/tsk/\\\\.\\Volume{1234}\\/windows/
     dev = pathspec[0].path
-    if pathspec[0].offset > 0:
+    if pathspec[0].HasField("offset"):
       # We divide here just to get prettier numbers in the GUI
       dev += ":" + str(pathspec[0].offset / 512)
 
     if (len(pathspec) > 1 and
-        pathspec[0].pathtype == rdfvalue.RDFPathSpec.Enum("OS") and
-        pathspec[1].pathtype == rdfvalue.RDFPathSpec.Enum("TSK")):
-      result = [VFSGRRClient.AFF4_PREFIXES[rdfvalue.RDFPathSpec.Enum("TSK")],
+        pathspec[0].pathtype == rdfvalue.PathSpec.PathType.OS and
+        pathspec[1].pathtype == rdfvalue.PathSpec.PathType.TSK):
+      result = [VFSGRRClient.AFF4_PREFIXES[rdfvalue.PathSpec.PathType.TSK],
                 dev]
 
       # Skip the top level pathspec.
@@ -229,9 +208,7 @@ class VFSGRRClient(standard.VFSDirectory):
       else:
         result.append(p.path)
 
-    result_urn = aff4.ROOT_URN.Add(client_id).Add("/".join(result))
-
-    return result_urn
+    return client_urn.Add("/".join(result))
 
 
 class VFSFile(aff4.AFF4Image):
@@ -247,7 +224,7 @@ class VFSFile(aff4.AFF4Image):
         "updating this flow.")
 
     PATHSPEC = aff4.Attribute(
-        "aff4:pathspec", rdfvalue.RDFPathSpec,
+        "aff4:pathspec", rdfvalue.PathSpec,
         "The pathspec used to retrieve this object from the client.")
 
     HASH = aff4.Attribute("aff4:sha256", rdfvalue.RDFSHAValue,
@@ -266,11 +243,7 @@ class VFSFile(aff4.AFF4Image):
       # Is this flow still active?
       if currently_running:
         flow_obj = aff4.FACTORY.Open(currently_running, token=self.token)
-        if flow_obj.Get(flow_obj.Schema.FLOW_PB):
-          rdf_flow = rdfvalue.Flow(flow_obj.Get(flow_obj.Schema.FLOW_PB).value)
-        else:
-          rdf_flow = flow_obj.Get(flow_obj.Schema.RDF_FLOW).payload
-        if rdf_flow.state == rdf_flow.RUNNING:
+        if flow_obj.IsRunning():
           return
 
     # The client_id is the first element of the URN
@@ -278,7 +251,7 @@ class VFSFile(aff4.AFF4Image):
 
     # Get the pathspec for this object
     pathspec = self.Get(self.Schema.STAT).pathspec
-    flow_urn = flow.FACTORY.StartFlow(client_id, "GetFile", token=self.token,
+    flow_urn = flow.GRRFlow.StartFlow(client_id, "GetFile", token=self.token,
                                       pathspec=pathspec, priority=priority)
     self.Set(self.Schema.CONTENT_LOCK(flow_urn))
     self.Close()
@@ -299,9 +272,14 @@ class MemoryImage(VFSFile):
 class VFSMemoryFile(aff4.AFF4MemoryStream):
   """A VFS file under a VFSDirectory node which does not have storage."""
 
-  # Support both sets of attributes.
-  class SchemaCls(VFSFile.SchemaCls, aff4.AFF4MemoryStream.SchemaCls):
+  class SchemaCls(aff4.AFF4MemoryStream.SchemaCls):
     """The schema for AFF4 files in the GRR VFS."""
+    # Support also VFSFile attributes.
+    STAT = VFSFile.SchemaCls.STAT
+    HASH = VFSFile.SchemaCls.HASH
+    PATHSPEC = VFSFile.SchemaCls.PATHSPEC
+    CONTENT_LOCK = VFSFile.SchemaCls.CONTENT_LOCK
+    FINGERPRINT = VFSFile.SchemaCls.FINGERPRINT
 
 
 class VFSAnalysisFile(VFSFile):
@@ -309,102 +287,6 @@ class VFSAnalysisFile(VFSFile):
 
   def Update(self, attribute=None):
     pass
-
-
-class GRRFlow(aff4.AFF4Volume):
-  """A container aff4 object to maintain a flow.
-
-  Flow objects are executed and scheduled by the workers, and extend
-  grr.flow.GRRFlow. This object contains the flows object within an AFF4
-  container.
-
-  Note: Usually this object can not be created by the regular
-  aff4.FACTORY.Create() method since it required elevated permissions. This
-  object can instead be created using the flow.FACTORY.StartFlow() method.
-
-  After creation, read access to the flow object can still be obtained through
-  the usual aff4.FACTORY.Open() method.
-  """
-
-  class SchemaCls(aff4.AFF4Volume.SchemaCls):
-    """Attributes specific to VFSDirectory."""
-
-    FLOW_PB = aff4.Attribute(
-        "task:00000001", rdfvalue.Task,
-        "DEPRECATED, use RDF_FLOW instead.",
-        "Flow", versioned=False)
-
-    RDF_FLOW = aff4.Attribute("task:flow", rdfvalue.GRRMessage,
-                              "The GRRMessage object containing the Flow.",
-                              "RDFFlow", versioned=False)
-
-    LOG = aff4.Attribute("aff4:log", rdfvalue.RDFString,
-                         "Log messages related to the progress of this flow.")
-
-    NOTIFICATION = aff4.Attribute("aff4:notification", rdfvalue.Notification,
-                                  "Notifications for the flow.")
-
-    CLIENT_CRASH = aff4.Attribute("aff4:client_crash", rdfvalue.ClientCrash,
-                                  "Client crash details in case of a crash.",
-                                  default=None)
-
-  create_time = 0
-  rdf_flow = None
-
-  def Initialize(self):
-    """The initialization method."""
-    if "r" in self.mode:
-      try:
-        self.flow_obj = self.GetFlowObj()
-      except flow.FlowError as e:
-        raise IOError(e)
-      if self.flow_obj:
-        self.rdf_flow = self.flow_obj.rdf_flow
-        self.create_time = self.rdf_flow.create_time
-    else:
-      self.flow_obj = None
-
-    self.session_id = self.urn
-
-  def GetRDFFlow(self):
-    task = self.Get(self.Schema.FLOW_PB)
-    if task:
-      result = rdfvalue.Flow(task.value)
-      result.aff4_object = self
-      return result
-    else:
-      msg = self.Get(self.Schema.RDF_FLOW)
-      if msg:
-        result = msg.payload
-        result.aff4_object = self
-        return result
-
-  def GetFlowObj(self, forced_token=None):
-    # This does not lock the flow - only read only.
-    return flow.FACTORY.LoadFlow(self.GetRDFFlow(), forced_token=forced_token)
-
-  def SetFlowObj(self, flow_obj):
-    """Sets the flow state attribute."""
-    self.flow_obj = flow_obj
-
-  def Close(self, sync=True):
-    """Flushes the flow and all its requests to the data_store."""
-    flow_manager = None
-    if self.flow_obj:
-      self.urn = rdfvalue.RDFURN(self.flow_obj.session_id)
-      # If its a parent flow manager, we skip flushing here.
-      if self.flow_obj.context.parent_context is None:
-        flow_manager = self.flow_obj.context.flow_manager
-
-      task = self.Schema.RDF_FLOW(payload=rdfvalue.Flow(self.flow_obj.Dump()))
-      self.Set(task)
-
-    super(GRRFlow, self).Close(sync=sync)
-
-    # Now that the flow is written we can also schedule all the requests.
-    # If we have a parent flow manager though, we skip flushing here.
-    if flow_manager:
-      flow_manager.Flush()
 
 
 class GRRSignedBlob(aff4.AFF4MemoryStream):
@@ -468,8 +350,8 @@ class GRRForeman(aff4.AFF4Object):
   def _CheckIfHuntTaskWasAssigned(self, client_id, hunt_id):
     """Will return True if hunt's task was assigned to this client before."""
     for _ in aff4.FACTORY.Stat(
-        ["aff4:/%s/flows/%s:hunt" % (client_id,
-                                     rdfvalue.RDFURN(hunt_id).Basename())],
+        [client_id.Add("flows/%s:hunt" %
+                       rdfvalue.RDFURN(hunt_id).Basename())],
         token=self.token):
       return True
 
@@ -480,16 +362,16 @@ class GRRForeman(aff4.AFF4Object):
     try:
       # Do the attribute regex first.
       for regex_rule in rule.regex_rules:
-        path = aff4.ROOT_URN.Add(client_id).Add(regex_rule.path)
+        path = client_id.Add(regex_rule.path)
         fd = objects[path]
         attribute = aff4.Attribute.NAMES[regex_rule.attribute_name]
         value = utils.SmartStr(fd.Get(attribute))
-        if not re.search(regex_rule.attribute_regex, value, flags=re.S):
+        if not regex_rule.attribute_regex.Search(value):
           return False
 
       # Now the integer rules.
       for integer_rule in rule.integer_rules:
-        path = aff4.ROOT_URN.Add(client_id).Add(integer_rule.path)
+        path = client_id.Add(integer_rule.path)
         fd = objects[path]
         attribute = aff4.Attribute.NAMES[integer_rule.attribute_name]
         try:
@@ -498,13 +380,13 @@ class GRRForeman(aff4.AFF4Object):
           # Not an integer attribute.
           return False
         op = integer_rule.operator
-        if op == rdfvalue.ForemanAttributeInteger.Enum("LESS_THAN"):
+        if op == rdfvalue.ForemanAttributeInteger.Operator.LESS_THAN:
           if not value < integer_rule.value:
             return False
-        elif op == rdfvalue.ForemanAttributeInteger.Enum("GREATER_THAN"):
+        elif op == rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN:
           if not value > integer_rule.value:
             return False
-        elif op == rdfvalue.ForemanAttributeInteger.Enum("EQUAL"):
+        elif op == rdfvalue.ForemanAttributeInteger.Operator.EQUAL:
           if not value == integer_rule.value:
             return False
         else:
@@ -528,6 +410,7 @@ class GRRForeman(aff4.AFF4Object):
       Number of actions started.
     """
     actions_count = 0
+
     for action in rule.actions:
       try:
         # Say this flow came from the foreman.
@@ -545,14 +428,14 @@ class GRRForeman(aff4.AFF4Object):
             flow_cls.StartClient(action.hunt_id, client_id, action.client_limit)
             actions_count += 1
         else:
-          flow.FACTORY.StartFlow(client_id, action.flow_name, token=token,
+          flow.GRRFlow.StartFlow(client_id, action.flow_name, token=token,
                                  **action.argv.ToDict())
           actions_count += 1
       # There could be all kinds of errors we don't know about when starting the
       # flow/hunt so we catch everything here.
       except Exception as e:  # pylint: disable=W0703
-        logging.error("Failure running foreman action on client %s: %s",
-                      action.hunt_id, e)
+        logging.exception("Failure running foreman action on client %s: %s",
+                          action.hunt_id, e)
 
     return actions_count
 
@@ -565,6 +448,8 @@ class GRRForeman(aff4.AFF4Object):
     Returns:
       Number of assigned tasks.
     """
+    client_id = rdfvalue.ClientURN(client_id)
+
     rules = self.Get(self.Schema.RULES)
     if not rules: return 0
 
@@ -600,10 +485,10 @@ class GRRForeman(aff4.AFF4Object):
 
       relevant_rules.append(rule)
       for regex in rule.regex_rules:
-        aff4_object = aff4.ROOT_URN.Add(client_id).Add(regex.path)
+        aff4_object = client_id.Add(regex.path)
         object_urns[str(aff4_object)] = aff4_object
       for int_rule in rule.integer_rules:
-        aff4_object = aff4.ROOT_URN.Add(client_id).Add(int_rule.path)
+        aff4_object = client_id.Add(int_rule.path)
         object_urns[str(aff4_object)] = aff4_object
 
     # Retrieve all aff4 objects we need.
@@ -652,7 +537,7 @@ class RDFValueCollectionView(rdfvalue.RDFValueArray):
 
 
 class GrepResultList(rdfvalue.RDFValueArray):
-  """This wraps the BufferReadMessage pb."""
+  """A list of BufferReferences."""
   rdf_type = rdfvalue.BufferReference
 
 
@@ -667,7 +552,7 @@ class GrepResults(aff4.AFF4Volume):
 
     HITS = aff4.Attribute(
         "aff4:grep_hits", GrepResultList,
-        "A list of BufferReadMessages.", "hits",
+        "A list of BufferReferences.", "hits",
         default="")
 
 
@@ -682,180 +567,6 @@ class VolatilityResponse(aff4.AFF4Volume):
     RESULT = aff4.Attribute("aff4:volatility_result",
                             rdfvalue.VolatilityResult,
                             "The result returned by the flow.")
-
-
-class VFSHunt(GRRFlow):
-  """The aff4 object for hunting."""
-
-  STATE_STARTED = "started"
-  STATE_STOPPED = "stopped"
-
-  class SchemaCls(GRRFlow.SchemaCls):
-    """The schema for hunts.
-
-    This object stores the persistent information for the hunt.  See lib/flow.py
-    for the GRRHunt implementation which does the Hunt processing.
-    """
-
-    HUNT_NAME = aff4.Attribute("aff4:hunt_name", rdfvalue.RDFString,
-                               "Name of this hunt.")
-
-    EXPIRY_TIME = aff4.Attribute("aff4:hunt_expiry_time",
-                                 rdfvalue.Duration,
-                                 "Expiry time for the hunt.")
-
-    CLIENT_LIMIT = aff4.Attribute("aff4:hunt_client_limit", rdfvalue.RDFInteger,
-                                  "Client number limit for the hunt.")
-
-    STATE = aff4.Attribute("aff4:hunt_state", rdfvalue.RDFString,
-                           "State of this hunt.")
-
-    DESCRIPTION = aff4.Attribute("aff4:hunt_description", rdfvalue.RDFString,
-                                 "Description of this hunt.")
-
-    CREATOR = aff4.Attribute("aff4:creator_name", rdfvalue.RDFString,
-                             "Creator of this hunt.")
-
-    CLIENTS = aff4.Attribute("aff4:clients", rdfvalue.RDFURN,
-                             "The list of clients this hunt was run against.")
-
-    FINISHED = aff4.Attribute("aff4:finished", rdfvalue.RDFURN,
-                              "The list of clients the hunt has completed on.")
-
-    BADNESS = aff4.Attribute("aff4:badness", rdfvalue.RDFURN,
-                             ("A list of clients this hunt has found something "
-                              "worth investigating on."))
-
-    ERRORS = aff4.Attribute("aff4:errors", rdfvalue.HuntError,
-                            "The list of clients that returned an error.")
-
-    LOG = aff4.Attribute("aff4:result_log", rdfvalue.HuntLog,
-                         "The log entries.")
-
-    RESOURCES = aff4.Attribute("aff4:client_resources",
-                               rdfvalue.ClientResources,
-                               "The client resource usage for subflows.")
-
-  def _Num(self, attribute):
-    return len(set(self.GetValuesForAttribute(attribute)))
-
-  def NumClients(self):
-    return self._Num(self.Schema.CLIENTS)
-
-  def NumCompleted(self):
-    return self._Num(self.Schema.FINISHED)
-
-  def NumOutstanding(self):
-    return self.NumClients() - self.NumCompleted()
-
-  def NumResults(self):
-    return self._Num(self.Schema.BADNESS)
-
-  def _List(self, attribute):
-    items = self.GetValuesForAttribute(attribute)
-    if items:
-      print len(items), "items:"
-      for item in items:
-        print item
-    else:
-      print "Nothing found."
-
-  def ListClients(self):
-    self._List(self.Schema.CLIENTS)
-
-  def GetBadClients(self):
-    return sorted(self.GetValuesForAttribute(self.Schema.BADNESS))
-
-  def GetCompletedClients(self):
-    return sorted(self.GetValuesForAttribute(self.Schema.FINISHED))
-
-  def ListCompletedClients(self):
-    self._List(self.Schema.FINISHED)
-
-  def GetOutstandingClients(self):
-    started = self.GetValuesForAttribute(self.Schema.CLIENTS)
-    done = self.GetValuesForAttribute(self.Schema.FINISHED)
-    return sorted(list(set(started) - set(done)))
-
-  def ListOutstandingClients(self):
-    outstanding = self.GetOutstandingClients()
-    if not outstanding:
-      print "No outstanding clients."
-      return
-
-    print len(outstanding), "outstanding clients:"
-    for client in outstanding:
-      print client
-
-  def GetClientsByStatus(self):
-    """Get all the clients in a dict of {status: [client_list]}."""
-    completed = set(self.GetCompletedClients())
-    bad = set(self.GetBadClients())
-    completed -= bad
-
-    return {"COMPLETED": sorted(completed),
-            "OUTSTANDING": self.GetOutstandingClients(),
-            "BAD": sorted(bad)}
-
-  def GetClientStates(self, client_list, client_chunk=50):
-    """Take in a client list and return dicts with their age and hostname."""
-    for client_group in utils.Grouper(client_list, client_chunk):
-      for fd in aff4.FACTORY.MultiOpen(client_group, mode="r",
-                                       required_type="VFSGRRClient",
-                                       token=self.token):
-        result = {}
-        result["age"] = fd.Get(fd.Schema.PING)
-        result["hostname"] = fd.Get(fd.Schema.HOSTNAME)
-        yield (fd.urn, result)
-
-  def PrintLog(self, client_id=None):
-    if not client_id:
-      self._List(self.Schema.LOG)
-      return
-
-    for log in self.GetValuesForAttribute(self.Schema.LOG):
-      if log.client_id == client_id:
-        print log
-
-  def PrintErrors(self, client_id=None):
-    if not client_id:
-      self._List(self.Schema.ERRORS)
-      return
-
-    for error in self.GetValuesForAttribute(self.Schema.ERRORS):
-      if error.client_id == client_id:
-        print error
-
-  def GetResourceUsage(self, client_id=None, group_by_client=True):
-    """Returns the cpu resource usage for subflows."""
-    usages = {}
-    for usage in self.GetValuesForAttribute(self.Schema.RESOURCES):
-      if client_id and usage.client_id != client_id:
-        continue
-
-      if usage.client_id not in usages:
-        usages[usage.client_id] = {
-            usage.session_id: (usage.cpu_usage.user_cpu_time,
-                               usage.cpu_usage.system_cpu_time)}
-      else:
-        client_usage = usages[usage.client_id]
-        (user_cpu, sys_cpu) = client_usage.setdefault(usage.session_id,
-                                                      (0.0, 0.0))
-        client_usage[usage.session_id] = (
-            user_cpu + usage.cpu_usage.user_cpu_time,
-            sys_cpu + usage.cpu_usage.system_cpu_time)
-
-    if group_by_client:
-      grouped = {}
-      for (client_id, usage) in usages.items():
-        total_user, total_sys = 0.0, 0.0
-        for (_, (user_cpu, sys_cpu)) in usage.items():
-          total_user += user_cpu
-          total_sys += sys_cpu
-        grouped[client_id] = (total_user, total_sys)
-      return grouped
-    else:
-      return usages
 
 
 class MRUCollection(aff4.AFF4Object):
@@ -955,10 +666,10 @@ class AFF4RegexNotificationRule(aff4.AFF4NotificationRule):
         if len(stored_vals) > 1:
           return
 
-      event = rdfvalue.GRRMessage(
+      event = rdfvalue.GrrMessage(
           name="AFF4RegexNotificationRuleMatch",
           args=aff4_object.urn.SerializeToString(),
-          auth_state=rdfvalue.GRRMessage.Enum("AUTHENTICATED"),
+          auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
           source=client_name)
       flow.PublishEvent(utils.SmartStr(self.event_name), event,
                         token=self.token)

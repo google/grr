@@ -168,7 +168,7 @@ config_lib.DEFINE_option(type_info.PathTypeInfo(
         "/installers/%(ClientBuilder.arch)/%(Client.version_string)/"
         "%(Client.name)_%(Client.version_string)_%(ClientBuilder.arch)."
         "%(ClientBuilder.output_extension)"),
-    help="The full path to the executable template file."))
+    help="The full path to the generated installer file."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.generated_config_path", must_exist=False,

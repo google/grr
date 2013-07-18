@@ -21,9 +21,9 @@ class BuildConfigTests(test_lib.GRRBaseTest):
     validate_sections = ["AdminUI", "Datastore", "Frontend", "Logging",
                          "Frontend"]
 
-    configs = glob.glob(
-        os.path.join(config_lib.CONFIG["Test.srcdir"], "grr", "config",
-                     "*.conf"))
+    configs = [os.path.join(config_lib.CONFIG["Test.srcdir"], "grr", "config",
+                            "grr_test.conf")]
+
     configs.append(os.path.join(config_lib.CONFIG["Test.config"]))
     self.assertGreater(len(configs), 1)
     for config_file in configs:

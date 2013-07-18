@@ -28,8 +28,8 @@ class Netstat(flow.GRRFlow):
     Raises:
       flow.FlowError: On failure to get retrieve the connections.
     """
-    self.urn = aff4.ROOT_URN.Add(self.client_id).Add("network")
-    net_fd = aff4.FACTORY.Create(self.urn, "Network", token=self.token)
+    self.state.Register("urn", self.client_id.Add("network"))
+    net_fd = aff4.FACTORY.Create(self.state.urn, "Network", token=self.token)
     if responses.success:
       conns = net_fd.Schema.CONNECTIONS()
       for response in responses:
@@ -37,12 +37,12 @@ class Netstat(flow.GRRFlow):
     else:
       raise flow.FlowError("Failed to get connections. Err: {0}".format(
           responses.status))
-    self.conn_count = len(conns)
+    self.state.Register("conn_count", len(conns))
 
     net_fd.Set(conns)
     net_fd.Close()
 
   @flow.StateHandler()
   def End(self):
-    self.Log("Successfully wrote %d connections.", self.conn_count)
-    self.Notify("ViewObject", self.urn, "Listed Connections")
+    self.Log("Successfully wrote %d connections.", self.state.conn_count)
+    self.Notify("ViewObject", self.state.urn, "Listed Connections")

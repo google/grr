@@ -12,28 +12,23 @@ import cPickle as pickle
 import functools
 import operator
 import os
-import pdb
-import re
 import struct
 import sys
-import threading
 import time
-import traceback
 
 
 from M2Crypto import RSA
 from M2Crypto import X509
 
-from grr.client import conf as flags
 import logging
-from grr.client import actions
 
+from grr.client import actions
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import data_store
-from grr.lib import flow_context
+from grr.lib import flow_runner
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import scheduler
@@ -88,7 +83,7 @@ class Responses(object):
     self.request = request
     self._auth_required = auth_required
     if request:
-      self.request_data = rdfvalue.RDFProtoDict(request.data)
+      self.request_data = rdfvalue.Dict(request.data)
     self._responses = []
 
     if responses:
@@ -103,9 +98,9 @@ class Responses(object):
       # Filter the responses by authorized states
       for msg in responses:
         # Check if the message is authenticated correctly.
-        if msg.auth_state == msg.DESYNCHRONIZED or (
+        if msg.auth_state == msg.AuthorizationState.DESYNCHRONIZED or (
             self._auth_required and
-            msg.auth_state != msg.AUTHENTICATED):
+            msg.auth_state != msg.AuthorizationState.AUTHENTICATED):
           logging.info("%s: Messages must be authenticated (Auth state %s)",
                        msg.session_id, msg.auth_state)
 
@@ -113,18 +108,18 @@ class Responses(object):
           continue
 
         # Check for iterators
-        if msg.type == msg.ITERATOR:
+        if msg.type == msg.Type.ITERATOR:
           self.iterator.ParseFromString(msg.args)
           continue
 
         # Look for a status message
-        if msg.type == msg.STATUS:
+        if msg.type == msg.Type.STATUS:
           # Our status is set to the first status message that we see in
           # the responses. We ignore all other messages after that.
           self.status = rdfvalue.GrrStatus(msg.args)
 
           # Check this to see if the call succeeded
-          self.success = self.status.status == self.status.OK
+          self.success = self.status.status == self.status.ReturnedStatus.OK
 
           # Ignore all other messages
           break
@@ -142,7 +137,7 @@ class Responses(object):
     """An iterator which returns all the responses in order."""
     old_response_id = None
     for message in self._responses:
-      self.message = rdfvalue.GRRMessage(message)
+      self.message = rdfvalue.GrrMessage(message)
 
       # Handle retransmissions
       if self.message.response_id == old_response_id:
@@ -151,7 +146,7 @@ class Responses(object):
       else:
         old_response_id = self.message.response_id
 
-      if self.message.type == self.message.MESSAGE:
+      if self.message.type == self.message.Type.MESSAGE:
         # FIXME(scudette): Deprecate this once the client returns rdfvalue
         # messages.
         if not self.message.args_rdf_name:
@@ -215,20 +210,34 @@ def StateHandler(next_state="End", auth_required=True):
       next_states = next_state
 
     @functools.wraps(f)
-    def Decorated(self, direct_response, request=None, responses=None):
-      """A decorator that defines allowed follow up states for a method."""
+    def Decorated(self, runner, direct_response, request=None,
+                  responses=None):
+      """A decorator that defines allowed follow up states for a method.
+
+      Args:
+        runner: A flowrunner object used to run this flow.
+        direct_response: A final responses object that does not need wrapping
+                         again. If given, neither request nor responses is used.
+        request: The request sent out originally.
+        responses: The responses for this state.
+      Returns:
+        This calls the state and returns the obtained result.
+      """
+      self.runner = runner
+      self.runner.SetAllowedFollowUpStates(next_states)
+
       if direct_response is not None:
         return f(self, *direct_response)
 
       # Record the permitted next states so CallClient() can check.
-      self.context.next_states = next_states
+      self.state.context.next_states = next_states
       # Prepare a responses object for the state method to use:
       responses = Responses(request=request,
                             responses=responses,
                             auth_required=auth_required)
 
       if responses.status:
-        self.context.SaveResourceUsage(request, responses)
+        self.runner.SaveResourceUsage(request, responses)
 
       stats.STATS.Increment("grr_worker_states_run")
       # Run the state method (Allow for flexibility in prototypes)
@@ -246,66 +255,39 @@ def StateHandler(next_state="End", auth_required=True):
   return Decorator
 
 
-def EventHandler(source_restriction=None, auth_required=True,
-                 allow_client_access=False):
-  """A convenience decorator for Event Handlers.
+class GRRFlow(aff4.AFF4Volume):
+  """A container aff4 object to maintain a flow.
 
-  Args:
-    source_restriction: A regex which will be applied to the source. The source
-      of this message indicates who sent the message (e.g. if a client sent it,
-      the client_id while if a flow sent it, the flow name).
+  Flow objects are executed and scheduled by the workers, and extend
+  grr.flow.GRRFlow. This object contains the flows object within an AFF4
+  container.
 
-    auth_required: Do we require messages to be authenticated? If the
-                message is not authenticated we raise.
+  Note: Usually this object can not be created by the regular
+  aff4.FACTORY.Create() method since it requires elevated permissions. This
+  object can instead be created using the flow.GRRFlow.StartFlow() method.
 
-    allow_client_access: If True this event is allowed to handle published
-      events from clients.
-
-  Returns:
-    A decorator which injects the following keyword args to the handler:
-
-     message: The original raw message RDFValue (useful for checking the
-       source).
-     event: The decoded RDFValue.
+  After creation, access to the flow object can still be obtained through
+  the usual aff4.FACTORY.Open() method.
   """
 
-  def Decorator(f):
-    """Initialised Decorator."""
+  class SchemaCls(aff4.AFF4Volume.SchemaCls):
+    """Attributes specific to GRRFlow."""
 
-    @functools.wraps(f)
-    def Decorated(self, msg):
-      """A decorator that assists in enforcing EventListener restrictions."""
-      if auth_required and msg.auth_state != msg.AUTHENTICATED:
-        raise RuntimeError("Message from %s not authenticated." % msg.source)
+    FLOW_STATE = aff4.Attribute("aff4:flow_state", rdfvalue.FlowState,
+                                "The current state of this flow.",
+                                "FlowState", versioned=False,
+                                creates_new_object_version=False)
 
-      if (not allow_client_access and
-          aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(msg.source)):
-        raise RuntimeError("Event does not support clients.")
+    LOG = aff4.Attribute("aff4:log", rdfvalue.RDFString,
+                         "Log messages related to the progress of this flow.",
+                         creates_new_object_version=False)
 
-      if (source_restriction and
-          not re.match(source_restriction, msg.source)):
-        raise RuntimeError("Message source invalid.")
+    NOTIFICATION = aff4.Attribute("aff4:notification", rdfvalue.Notification,
+                                  "Notifications for the flow.")
 
-      stats.STATS.Increment("grr_worker_states_run")
-      rdf_msg = rdfvalue.GRRMessage(msg)
-      res = f(self, message=rdf_msg, event=rdf_msg.payload)
-      return res
-
-    return Decorated
-
-  return Decorator
-
-
-class GRRFlow(object):
-  """A GRRFlow class.
-
-  Flows exist on the server to maintain session state. A flow is a
-  state machine with each state being called when a new message is
-  received.
-
-  Do not instantiate flows directly. Flows are usually launched from
-  FACTORY.StartFlow().
-  """
+    CLIENT_CRASH = aff4.Attribute("aff4:client_crash", rdfvalue.ClientCrash,
+                                  "Client crash details in case of a crash.",
+                                  default=None)
 
   # This is used to arrange flows into a tree view
   category = ""
@@ -328,12 +310,11 @@ class GRRFlow(object):
 
   # The following args are standard for all flows.
   flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.RDFEnum(
+      type_info.SemanticEnum(
           description="The priority used for this flow.",
           name="priority",
-          rdfclass=rdfvalue.GRRMessage,
-          enum_name="Priority",
-          default=rdfvalue.GRRMessage.Enum("MEDIUM_PRIORITY")),
+          enum_container=rdfvalue.GrrMessage.Priority,
+          default=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY),
 
       type_info.Bool(
           description="Should a notification be sent to the initiator.",
@@ -358,28 +339,19 @@ class GRRFlow(object):
           default=None),
       )
 
-  # Should we notify to the user about the progress of this flow?
-  def __init__(self, context=None, **kwargs):
-    """Constructor for the Flow.
+  def Initialize(self):
+    """The initialization method."""
+    if "r" in self.mode:
+      self.state, success = self.ReadState()
+      if success:
+        self.Load()
+    else:
+      self.state = self.Schema.FLOW_STATE()
 
-    Args:
-      context: A FlowContext object that will save the state for this flow.
-
-    Raises:
-      RuntimeError: No context object was passed to this flow.
-      AttributeError: If some of the args are invalid.
-    """
-    if context is None:
-      raise RuntimeError("No context given for flow %s." %
-                         self.__class__.__name__)
-
-    self.context = context
-    self.context.SetFlowObj(self)
-    self._user_notified = False   # Have we sent a notification to the user.
-
-    self._SetTypedArgs(self.flow_typeinfo, kwargs)
+  def InitFromArguments(self, **kwargs):
+    self._SetTypedArgs(self.state.context, GRRFlow.flow_typeinfo, kwargs)
     if GRRFlow.flow_typeinfo != self.flow_typeinfo:
-      self._SetTypedArgs(GRRFlow.flow_typeinfo, kwargs)
+      self._SetTypedArgs(self.state, self.flow_typeinfo, kwargs)
 
     if kwargs:
       raise type_info.UnknownArg("%s: Args %s not known" % (
@@ -387,111 +359,125 @@ class GRRFlow(object):
 
     stats.STATS.Increment("grr_flows_created")
 
-  def _SetTypedArgs(self, type_descriptor, kwargs):
+  def InitializeContext(self, client_id=None,
+                        queue_name=flow_runner.DEFAULT_WORKER_QUEUE_NAME,
+                        event_id=None, cpu_limit=None, request_state=None):
+    """Initializes the context of this flow.
+
+    Args:
+      client_id: The name of the client we are working with.
+      queue_name: The name of the queue that the messages will run
+                  with (default is W for general purpose workers).
+      event_id: A logging event id for issuing further logs.
+      cpu_limit: A limit for the cpu seconds used on the client for this flow.
+      request_state: A request state in case this flow has a parent.
+    """
+    if event_id is None:
+      event_id = "%s:console" % self.token.username
+
+    self.state.context.update({
+        "client_id": client_id,
+        "client_resources": rdfvalue.ClientResources(),
+        "cpu_limit": cpu_limit,
+        "create_time": rdfvalue.RDFDatetime().Now(),
+        "creator": self.token.username,
+        "current_state": "Start",
+        "event_id": event_id,
+        "flow_name": self.__class__.__name__,
+        "network_bytes_sent": 0,
+        "next_outbound_id": 1,
+        "next_processed_request": 1,
+        "next_states": [],
+        "outstanding_requests": 0,
+        "queue_name": queue_name,
+        "remaining_cpu_quota": cpu_limit,
+        "request_state": request_state,
+        "session_id": self.urn,
+        "state": rdfvalue.Flow.State.RUNNING,
+        # Have we sent a notification to the user.
+        "user_notified": False,
+        "user": self.token.username,
+        })
+
+  def GenerateParentFlowURN(self, client_id=None):
+    _ = client_id
+    return self.session_id
+
+  @classmethod
+  def GetNewSessionID(cls, queue_name, client_id=None, parent_flow_urn=None):
+    """Returns a random session ID for this flow.
+
+    Args:
+      queue_name: The queue for this flow.
+      client_id: The id of the client this flow should run on.
+      parent_flow_urn: This flow's parent's urn if it has one.
+
+    Returns:
+      A formatted session id URN.
+    """
+    random_number = utils.PRNG.GetULong()
+
+    if parent_flow_urn:
+      result = parent_flow_urn
+    else:
+      result = client_id or aff4.ROOT_URN
+      result = result.Add("flows")
+
+    return result.Add("%s:%X" % (queue_name, random_number))
+
+  def _SetTypedArgs(self, target, type_descriptor, kwargs):
     """Sets our attributes from the type_descriptor."""
     # Parse and validate the args to this flow. This will raise if the args are
     # invalid.
     for name, value in type_descriptor.ParseArgs(kwargs):
       # Make sure we dont trash an internal name.
-      if getattr(self, name, None) is not None:
-        raise AttributeError("Flow arg name can not be the same "
-                             "as an internal flow attribute: %s" % name)
+      if name in target:
+        raise AttributeError("Flow arg name already set: %s" % name)
 
-      setattr(self, name, value)
+      target.Register(name, value)
 
-  # Set up some proxy methods to allow easy access to the context.
-  def GetFlowArgs(self):
-    return self.context.GetFlowArgs()
+  def ReadState(self):
+    """Reads the state from the database.
 
-  def CallClient(self, action_name, request=None, next_state=None,
-                 request_data=None, **kwargs):
-    return self.context.CallClient(action_name, request, next_state,
-                                   request_data, **kwargs)
+    This returns the stored or a new state and indicates if reading was
+    successful by returning an additional flag which can be used to determine
+    if the state has to be initialized.
 
-  def CallState(self, messages=None, next_state="", delay=0):
-    return self.context.CallState(messages=messages, next_state=next_state,
-                                  delay=delay)
+    Returns:
+      The state read and a flag indicating success.
+    """
+    state = self.Get(self.Schema.FLOW_STATE)
+    if not state:
+      # TODO(user): Maybe we should warn here?
+      return self.Schema.FLOW_STATE(), False
+    return state, True
 
-  def CallFlow(self, flow_name, next_state=None, request_data=None, **kwargs):
-    return self.context.CallFlow(FACTORY, flow_name, next_state, request_data,
-                                 **kwargs)
+  def WriteState(self):
+    if not self.state.Empty():
+      self.Set(self.Schema.FLOW_STATE(self.state))
 
-  def FlushMessages(self):
-    return self.context.FlushMessages()
+  def GetContext(self):
+    return self.state.context
 
-  def ProcessCompletedRequests(self, unused_thread_pool):
-    return self.context.ProcessCompletedRequests(unused_thread_pool)
+  def Flush(self, sync=True):
+    """Flushes the flow and all its requests to the data_store."""
+    # Check for Lock expiration first.
+    self.CheckLease()
+    self.Save()
+    self.WriteState()
+    super(GRRFlow, self).Flush(sync=sync)
 
-  def OutstandingRequests(self):
-    return self.context.OutstandingRequests()
+  def Close(self, sync=True):
+    """Flushes the flow and all its requests to the data_store."""
+    # Check for Lock expiration first.
+    self.CheckLease()
+    self.Save()
+    self.WriteState()
+    super(GRRFlow, self).Close(sync=sync)
 
-  def SendReply(self, response):
-    return self.context.SendReply(response)
-
-  def Error(self, backtrace, client_id=None):
-    return self.context.Error(backtrace, client_id=client_id)
-
-  def SetState(self, state):
-    return self.context.SetState(state)
-
-  def Terminate(self):
-    return self.context.Terminate()
-
-  def IsRunning(self):
-    return self.context.IsRunning()
-
-  @property
-  def data_store(self):
-    return self.context.data_store
-
-  @data_store.setter
-  def data_store(self, datastore):
-    self.context.data_store = datastore
-
-  @property
-  def session_id(self):
-    return self.context.session_id
-
-  @session_id.setter
-  def session_id(self, session_id):
-    self.context.session_id = session_id
-    self.context.rdf_flow.session_id = session_id
-
-  @property
-  def client_id(self):
-    return self.context.client_id
-
-  @client_id.setter
-  def client_id(self, client_id):
-    self.context.client_id = client_id
-
-  @property
-  def user(self):
-    return self.context.user
-
-  @user.setter
-  def user(self, user):
-    self.context.user = user
-
-  @property
-  def aff4_object(self):
-    return self.rdf_flow.aff4_object
-
-  @property
-  def rdf_flow(self):
-    return self.context.rdf_flow
-
-  @rdf_flow.setter
-  def rdf_flow(self, rdf_flow):
-    self.context.rdf_flow = rdf_flow
-
-  @property
-  def token(self):
-    return self.context.token
-
-  def Start(self, unused_message=None):
-    """The first state of the flow."""
-    pass
+  def CreateRunner(self, *args, **kw):
+    kw["token"] = self.token
+    return flow_runner.FlowRunner(self, *args, **kw)
 
   @StateHandler()
   def End(self):
@@ -500,10 +486,15 @@ class GRRFlow(object):
     This method is called prior to destruction of the flow to give
     the flow a chance to clean up.
     """
-    if not self._user_notified:
+    if not self.state.context.user_notified:
       # Only send a notification if one hasn't already been sent in this flow.
       self.Notify("FlowStatus", self.client_id,
                   "Flow %s completed" % self.__class__.__name__)
+
+  @StateHandler()
+  def Start(self, unused_message=None):
+    """The first state of the flow."""
+    pass
 
   def Load(self):
     """Loads the flow from storage.
@@ -526,20 +517,15 @@ class GRRFlow(object):
     """
 
   def Dump(self):
-    """Returns an rdfvalue Flow object with ourselves in it.
+    """Returns an RDFBytes object containing the pickled internal state.
 
     Returns:
-      an rdfvalue.Flow object.
+      An RDFBytes object containing the state.
     """
     # Allow the flow author to hook this
     self.Save()
-
-    result = self.rdf_flow
-    result.pickle = ""
-    result.pickle = pickle.dumps(self)
-
+    result = rdfvalue.RDFBytes(pickle.dumps(self.state))
     self.Load()
-
     return result
 
   def Log(self, format_str, *args):
@@ -559,12 +545,12 @@ class GRRFlow(object):
                     "of arguments: %s", format_str)
       status = format_str
 
-    self.context.SetStatus(utils.SmartUnicode(status))
+    self.SetStatus(utils.SmartUnicode(status))
 
     # Add the message to the flow's log attribute
-    self.data_store.Set(self.session_id,
-                        aff4.AFF4Object.GRRFlow.SchemaCls.LOG,
-                        status, replace=False, sync=False, token=self.token)
+    data_store.DB.Set(self.session_id,
+                      aff4.AFF4Object.GRRFlow.SchemaCls.LOG,
+                      status, replace=False, sync=False, token=self.token)
 
   def Status(self, format_str, *args):
     """Flows can call this method to set a status message visible to users."""
@@ -579,7 +565,7 @@ class GRRFlow(object):
        subject: The urn of the AFF4 object of interest in this link.
        msg: A free form textual message.
     """
-    if self.notify_to_user:
+    if self.state.context.notify_to_user:
       # Prefix the message with the hostname of the client we are running
       # against.
       if self.client_id:
@@ -587,6 +573,8 @@ class GRRFlow(object):
                                       token=self.token)
         hostname = client_fd.Get(client_fd.Schema.HOSTNAME) or ""
         client_msg = "%s: %s" % (hostname, msg)
+      else:
+        client_msg = msg
 
       # Add notification to the User object.
       fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(
@@ -603,39 +591,41 @@ class GRRFlow(object):
           source=utils.SmartUnicode(self.session_id),
           timestamp=long(time.time() * 1e6))
 
-      self.data_store.Set(self.session_id,
-                          aff4.AFF4Object.GRRFlow.SchemaCls.NOTIFICATION,
-                          notification, replace=False, sync=False,
-                          token=self.token)
-      self._user_notified = True
+      data_store.DB.Set(self.session_id,
+                        aff4.AFF4Object.GRRFlow.SchemaCls.NOTIFICATION,
+                        notification, replace=False, sync=False,
+                        token=self.token)
+      self.state.user_notified = True
 
     # TODO(user): This should be using PublishEvent()
-    if self.notification_event:
-      if self.rdf_flow.state == rdfvalue.Flow.Enum("ERROR"):
-        status = rdfvalue.FlowNotification.Enum("ERROR")
+    notification_event = self.state.context.get("notification_event")
+    if notification_event:
+      if self.state.context.state == rdfvalue.Flow.State.ERROR:
+        status = rdfvalue.FlowNotification.State.ERROR
+
       else:
-        status = rdfvalue.FlowNotification.Enum("OK")
+        status = rdfvalue.FlowNotification.Status.OK
 
       event = rdfvalue.FlowNotification(
           session_id=utils.SmartUnicode(self.session_id),
-          flow_name=self.__class__.__name__,
+          flow_name=self.state.context.flow_name,
           client_id=self.client_id,
           status=status)
-      msg = rdfvalue.GRRMessage(
+      msg = rdfvalue.GrrMessage(
           payload=event,
-          session_id=self.notification_event,
-          auth_state=rdfvalue.GRRMessage.Enum("AUTHENTICATED"),
+          session_id=notification_event,
+          auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
           source=self.__class__.__name__)
       # Randomize the response id or events will get overwritten.
       msg.response_id = msg.task_id
 
-      with flow_context.WellKnownFlowManager(
+      with flow_runner.WellKnownFlowManager(
           token=self.token) as flow_manager:
-        flow_manager.QueueResponse(self.notification_event, msg)
+        flow_manager.QueueResponse(notification_event, msg)
 
       # Notify the worker of the pending sessions.
-      queue = scheduler.SCHEDULER.QueueNameFromURN(self.notification_event)
-      scheduler.SCHEDULER.NotifyQueue(queue, self.notification_event,
+      queue = scheduler.SCHEDULER.QueueNameFromURN(notification_event)
+      scheduler.SCHEDULER.NotifyQueue(queue, notification_event,
                                       token=self.token)
 
   def Publish(self, event_name, message=None, session_id=None):
@@ -650,14 +640,249 @@ class GRRFlow(object):
 
     # TODO(user): Lets not support publishing of protobufs since we
     # want to deprecate them.
-    if not isinstance(message, rdfvalue.GRRMessage):
-      result = rdfvalue.GRRMessage(payload=message)
+    if not isinstance(message, rdfvalue.GrrMessage):
+      result = rdfvalue.GrrMessage(payload=message)
 
     result.session_id = session_id or self.session_id
-    result.auth_state = rdfvalue.GRRMessage.Enum("AUTHENTICATED")
+    result.auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
     result.source = self.__class__.__name__
 
     PublishEvent(event_name, result, token=self.token)
+
+  def CallClient(self, action_name, request=None, next_state=None,
+                 request_data=None, **kwargs):
+    return self.runner.CallClient(action_name, request, next_state,
+                                  request_data, **kwargs)
+
+  def CallState(self, messages=None, next_state="", delay=0):
+    return self.runner.CallState(messages=messages, next_state=next_state,
+                                 delay=delay)
+
+  def CallFlow(self, flow_name, next_state=None, request_data=None, **kwargs):
+    return self.runner.CallFlow(GRRFlow, flow_name, next_state=next_state,
+                                request_data=request_data, **kwargs)
+
+  def ProcessCompletedRequests(self, runner, thread_pool):
+    return runner.ProcessCompletedRequests(thread_pool)
+
+  def OutstandingRequests(self):
+    return self.state.context.outstanding_requests
+
+  def SendReply(self, response):
+    return self.runner.SendReply(response)
+
+  def Error(self, backtrace, client_id=None):
+    return self.runner.Error(backtrace, client_id=client_id)
+
+  def SetState(self, state):
+    self.state.context.state = state
+
+  def SetStatus(self, status):
+    self.state.context.status = status
+
+  def Terminate(self):
+    return self.runner.Terminate()
+
+  def IsRunning(self):
+    return self.state.context.state == rdfvalue.Flow.State.RUNNING
+
+  @property
+  def session_id(self):
+    return self.state.context.get("session_id", None)
+
+  @session_id.setter
+  def session_id(self, session_id):
+    self.state.context.session_id = session_id
+
+  @property
+  def client_id(self):
+    return self.state.context.get("client_id", None)
+
+  @client_id.setter
+  def client_id(self, client_id):
+    self.state.context.client_id = client_id
+
+  @property
+  def backtrace(self):
+    return self.state.context.get("backtrace", None)
+
+  @backtrace.setter
+  def backtrace(self, bt):
+    self.state.context.backtrace = bt
+
+  def Name(self):
+    return self.state.context.flow_name
+
+  @classmethod
+  def StartFlow(cls, client_id, flow_name,  # pylint: disable=g-bad-name
+                queue_name=flow_runner.DEFAULT_WORKER_QUEUE_NAME,
+                event_id=None, token=None, cpu_limit=None,
+                parent_flow=None, _request_state=None,
+                _store=None, **kw):
+    """Creates and executes a new flow.
+
+    Args:
+      client_id: The URL of an existing client or None for well known flows.
+      flow_name: The name of the flow to start (from the registry).
+      queue_name: The name of the queue to invoke the flow.
+      event_id: A logging event id for issuing further logs.
+      token: The access token to be used for this request.
+      cpu_limit: A limit on the client cpu seconds used by this flow.
+      parent_flow: A parent flow or None if this is a top level flow.
+      _request_state: A parent flow's request state (Used internally only).
+      _store: The data store to use for running this flow (only used for
+              testing).
+      **kw: flow specific keywords to be passed to the constructor.
+
+    Returns:
+      the session id of the flow.
+
+    Raises:
+      IOError: If the client_id is invalid.
+    """
+    try:
+      flow_cls = GRRFlow.classes[flow_name]
+    except KeyError:
+      stats.STATS.Increment("grr_flow_invalid_flow_count")
+      raise RuntimeError("Unable to locate flow %s" % flow_name)
+
+    if client_id:
+      # Ensure the client_id is valid.
+      client_id = rdfvalue.ClientURN(client_id)
+
+    # Make sure we are allowed to run this flow.
+    data_store.DB.security_manager.CheckAccess(
+        token, [rdfvalue.RDFURN(client_id or "aff4:/").Add(flow_name)], "x")
+
+    # From now on we run with supervisor access
+    if token is None:
+      token = data_store.default_token.Copy()
+    else:
+      token = token.Copy()
+
+    token.supervisor = True
+
+    # Extend the expiry time of this token indefinitely.
+    token.expiry = sys.maxint
+
+    # Strip out any private args so they do not get converted.
+    args = dict([(k, v) for k, v in kw.items() if not k.startswith("_")])
+
+    if parent_flow:
+      parent_flow_urn = parent_flow.GenerateParentFlowURN(client_id)
+    else:
+      parent_flow_urn = None
+
+    flow_urn = flow_cls.GetNewSessionID(queue_name, client_id,
+                                        parent_flow_urn)
+
+    # Only the supervisor can create the containing AFF4 object.
+    flow_obj = aff4.FACTORY.Create(flow_urn, flow_name, token=token)
+
+    flow_obj.InitializeContext(client_id=client_id, queue_name=queue_name,
+                               event_id=event_id, cpu_limit=cpu_limit,
+                               request_state=_request_state)
+
+    flow_obj.InitFromArguments(**args)
+
+    if client_id:
+      # Ensure the client is a valid client.
+      client_id = rdfvalue.ClientURN(client_id)
+
+      # Add this flow to the client
+      client = aff4.FACTORY.Create(client_id, "VFSGRRClient", mode="w",
+                                   token=token, force_new_version=False)
+      client.AddAttribute(client.Schema.FLOW(flow_obj.session_id))
+      client.Flush()
+
+    logging.info("Scheduling %s(%s) on %s: %s", flow_obj.session_id,
+                 flow_name, client_id, kw)
+
+    # A flow manager maintains an atomic transaction of all messages to be sent
+    # as part of a flow state execution. If this flow calls child flows, we
+    # still use the same flow manager while running the child flows. However,
+    # each flow has its own flow runner. Therefore when we are a child flow we
+    # must inherit our parent's flow manager.
+    if parent_flow:
+      flow_manager = parent_flow.runner.flow_manager
+    else:
+      flow_manager = None
+
+    runner = flow_runner.FlowRunner(flow_obj, flow_manager=flow_manager,
+                                    _store=_store or data_store.DB)
+    # Just run the first state. NOTE: The Start method always runs on the thread
+    # that starts the flow so it must be very fast, basically just CallClient()
+    # CallFlow() or CallState(). If a long delay is needed, this should call
+    # CallState() and put the heavy lifting in another state. Similarly it is
+    # preferred that any sanity checking of parameters etc be done by the
+    # Start() method so the flow invocation can be aborted immediately.
+    flow_obj.Start(runner, None)
+
+    # The flow does not need to actually remain running.
+    if not flow_obj.OutstandingRequests():
+      flow_obj.Terminate()
+
+    flow_obj.Close()
+
+    if parent_flow is None:
+      runner.FlushMessages()
+
+    # TODO(user): This needs to return an RDFURN object not a string.
+    return flow_obj.urn
+
+  @classmethod
+  def TerminateFlow(cls, flow_id, reason=None,  # pylint: disable=g-bad-name
+                    token=None, force=False, _store=None):
+    """Terminate a flow.
+
+    Args:
+      flow_id: The flow session_id to terminate.
+      reason: A reason to log.
+      token: The access token to be used for this request.
+      force: If True then terminate locked flows hard.
+      _store: The data store to use for running this flow (only used for
+         testing)
+
+    Raises:
+      FlowError: If the flow can not be found.
+    """
+    if not force:
+      lock_manager = aff4.FACTORY.OpenWithLock(flow_id, blocking=True,
+                                               token=token)
+    else:
+      lock_manager = aff4.LockContextManager(
+          aff4.FACTORY.Open(flow_id, mode="rw", token=token), sync=True)
+
+    with lock_manager as flow_obj:
+      if not flow_obj.IsRunning():
+        return
+      if not flow_obj:
+        raise FlowError("Could not terminate flow %s" % flow_id)
+
+      if token is None:
+        token = access_control.ACLToken()
+
+      if reason is None:
+        reason = "Manual termination by console."
+
+      runner = flow_obj.CreateRunner(token=token, _store=_store)
+      runner.Error(reason)
+      flow_obj.Log("Terminated by user {0}. Reason: {1}".format(token.username,
+                                                                reason))
+      # Make sure we are only allowed to terminate this flow, if we are allowed
+      # to run it.
+      if flow_obj.client_id:
+        data_store.DB.security_manager.CheckAccess(token, [
+            flow_obj.client_id.Add(flow_obj.__class__.__name__)], "x")
+
+      # From now on we run with supervisor access
+      super_token = token.Copy()
+      super_token.supervisor = True
+
+      # Also terminate its children
+      for child in flow_obj.ListChildren():
+        cls.TerminateFlow(child, reason="Parent flow terminated.",
+                          token=super_token, force=force)
 
 
 class WellKnownFlow(GRRFlow):
@@ -682,31 +907,51 @@ class WellKnownFlow(GRRFlow):
   # This is the session_id that will be used to register these flows
   well_known_session_id = None
 
-  # Well known flows are not browsable
+  # Well known flows are not browsable.
   category = None
+
+  @classmethod
+  def GetAllWellKnownFlows(cls, token=None):
+    well_known_flows = {}
+    for cls in GRRFlow.classes.values():
+      if aff4.issubclass(cls, WellKnownFlow) and cls.well_known_session_id:
+        well_known_flow = cls(cls.well_known_session_id,
+                              mode="rw", token=token)
+        well_known_flows[cls.well_known_session_id] = well_known_flow
+        well_known_flow.Close()
+    return well_known_flows
 
   def _SafeProcessMessage(self, *args, **kwargs):
     try:
       self.ProcessMessage(*args, **kwargs)
     except Exception as e:  # pylint: disable=broad-except
-      logging.error("Error in WellKnownFlow.ProcessMessage: %s", e)
+      logging.exception("Error in WellKnownFlow.ProcessMessage: %s", e)
 
-  def __init__(self, *args, **kwargs):
-    GRRFlow.__init__(self, *args, **kwargs)
+  def InitFromArguments(self, **kwargs):
+    super(WellKnownFlow, self).InitFromArguments(**kwargs)
 
     # Tag this flow as well known
-    self.SetState(rdfvalue.Flow.Enum("WELL_KNOWN"))
-    self.session_id = self.well_known_session_id
+    self.state.context.state = rdfvalue.Flow.State.WELL_KNOWN
     # Well known flows are not user initiated so the default is no notification.
-    self.notify_to_user = False
+    self.state.context.notify_to_user = False
 
   def CallState(self, messages=None, next_state=None, delay=0):
     """Well known flows have no states to call."""
     pass
 
-  def _GetNewSessionID(self, unused_queue_name):
+  @classmethod
+  def GetNewSessionID(cls, queue_name, client_id=None,
+                      parent_flow_urn=None):
     # Always return a well known session id for this flow:
+    return cls.well_known_session_id
+
+  @property
+  def session_id(self):
     return self.well_known_session_id
+
+  @session_id.setter
+  def session_id(self, session_id):
+    self.well_known_session_id = session_id
 
   def OutstandingRequests(self):
     # Lie about it to prevent us from being destroyed
@@ -715,9 +960,9 @@ class WellKnownFlow(GRRFlow):
   def ProcessCompletedRequests(self, thread_pool):
     """For WellKnownFlows we receive these messages directly."""
     try:
-      priority = rdfvalue.GRRMessage.Enum("MEDIUM_PRIORITY")
-      with flow_context.WellKnownFlowManager(
-          token=self.token, store=self.data_store) as flow_manager:
+      priority = rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY
+      with flow_runner.WellKnownFlowManager(
+          token=self.token) as flow_manager:
         for request, responses in flow_manager.FetchRequestsAndResponses(
             self.session_id):
           for msg in responses:
@@ -727,10 +972,11 @@ class WellKnownFlow(GRRFlow):
 
           flow_manager.DeleteFlowRequestStates(self.session_id, request,
                                                responses)
-    except flow_context.MoreDataException:
+    except flow_runner.MoreDataException:
       # There is more data for this flow so we have to tell the worker to
       # fetch more messages later.
-      scheduler.SCHEDULER.NotifyQueue(self.context.queue_name, self.session_id,
+      scheduler.SCHEDULER.NotifyQueue(self.state.context.queue_name,
+                                      self.state.context.session_id,
                                       priority=priority, token=self.token)
 
   def ProcessMessage(self, msg):
@@ -742,6 +988,55 @@ class WellKnownFlow(GRRFlow):
        msg: The GrrMessage sent by the client. Note that this
             message is not authenticated.
     """
+
+
+def EventHandler(source_restriction=None, auth_required=True,
+                 allow_client_access=False):
+  """A convenience decorator for Event Handlers.
+
+  Args:
+    source_restriction: A function which will be passed the message's source. If
+      the function returns True we permit processing, otherwise the message is
+      rejected.
+
+    auth_required: Do we require messages to be authenticated? If the
+                message is not authenticated we raise.
+
+    allow_client_access: If True this event is allowed to handle published
+      events from clients.
+
+  Returns:
+    A decorator which injects the following keyword args to the handler:
+
+     message: The original raw message RDFValue (useful for checking the
+       source).
+     event: The decoded RDFValue.
+  """
+
+  def Decorator(f):
+    """Initialised Decorator."""
+
+    @functools.wraps(f)
+    def Decorated(self, msg):
+      """A decorator that assists in enforcing EventListener restrictions."""
+      if (auth_required and
+          msg.auth_state != msg.AuthorizationState.AUTHENTICATED):
+        raise RuntimeError("Message from %s not authenticated." % msg.source)
+
+      if not allow_client_access and rdfvalue.ClientURN.Validate(msg.source):
+        raise RuntimeError("Event does not support clients.")
+
+      if source_restriction and not source_restriction(msg.source):
+        raise RuntimeError("Message source invalid.")
+
+      stats.STATS.Increment("grr_worker_states_run")
+      rdf_msg = rdfvalue.GrrMessage(msg)
+      res = f(self, message=rdf_msg, event=rdf_msg.payload)
+      return res
+
+    return Decorated
+
+  return Decorator
 
 
 class EventListener(WellKnownFlow):
@@ -775,14 +1070,14 @@ class EventListener(WellKnownFlow):
 
 def PublishEvent(event_name, msg, token=None):
   """Publish the message into all listeners of the event."""
-  if not msg.source:
+  if msg.source == rdfvalue.RDFURN("/"):
     raise RuntimeError("Message must have a valid source.")
 
   if not isinstance(msg, rdfvalue.RDFValue):
     raise ValueError("Can only publish RDFValue instances.")
 
   # Randomize the response id or events will get overwritten.
-  msg.response_id = msg.task_id = rdfvalue.GRRMessage().task_id
+  msg.response_id = msg.task_id = rdfvalue.GrrMessage().task_id
 
   sessions_queued = []
   for event_cls in EventListener.classes.values():
@@ -796,7 +1091,7 @@ def PublishEvent(event_name, msg, token=None):
         sessions_queued.append(event_cls.well_known_session_id)
 
       # Forward the message to the well known flow's queue.
-      with flow_context.WellKnownFlowManager(token=token) as flow_manager:
+      with flow_runner.WellKnownFlowManager(token=token) as flow_manager:
         flow_manager.QueueResponse(event_cls.well_known_session_id, msg)
 
   # Notify all the workers of their pending sessions.
@@ -804,384 +1099,6 @@ def PublishEvent(event_name, msg, token=None):
       sessions_queued, scheduler.SCHEDULER.QueueNameFromURN):
     scheduler.SCHEDULER.MultiNotifyQueue(
         queue, session_ids, [msg.priority] * len(session_ids), token=token)
-
-
-class FlowFactory(object):
-  """A factory for flow objects.
-
-  This class also presents some useful utility functions for managing
-  flows.
-  """
-
-  def __init__(self):
-    self.outstanding_flows = set()
-
-  #  _parameters are private so pylint: disable=C6409
-  def StartFlow(self, client_id, flow_name,
-                queue_name=flow_context.DEFAULT_WORKER_QUEUE_NAME,
-                event_id=None, token=None, priority=None, cpu_limit=None,
-                notification_event=None, parent_context=None,
-                _request_state=None, _store=None, **kw):
-    """Creates and executes a new flow.
-
-    Args:
-      client_id: The URL of an existing client or None for well known flows.
-      flow_name: The name of the flow to start (from the registry).
-      queue_name: The name of the queue to invoke the flow.
-      event_id: A logging event id for issuing further logs.
-      token: The access token to be used for this request.
-      priority: The priority of the started flow.
-      cpu_limit: A limit on the client cpu seconds used by this flow.
-      notification_event: The session_id of an event to be published when the
-                          flow completes.
-      parent_context: The context of the parent flow or None if this is a top
-                      level flow.
-      _request_state: A parent flow's request state (Used internally only).
-      _store: The data store to use for running this flow (only used for
-              testing).
-      **kw: flow specific keywords to be passed to the constructor.
-
-    Returns:
-      the session id of the flow.
-
-    Raises:
-      IOError: If the client_id is invalid.
-    """
-    try:
-      flow_cls = GRRFlow.classes[flow_name]
-    except KeyError:
-      stats.STATS.Increment("grr_flow_invalid_flow_count")
-      raise RuntimeError("Unable to locate flow %s" % flow_name)
-
-    # Make sure we are allowed to run this flow.
-    data_store.DB.security_manager.CheckAccess(token, [aff4.ROOT_URN.Add(
-        client_id or "").Add(flow_name)], "x")
-
-    # From now on we run with supervisor access
-    if token is None:
-      token = data_store.default_token.Copy()
-    else:
-      token = token.Copy()
-
-    token.supervisor = True
-
-    # Extend the expiry time of this token indefinitely.
-    token.expiry = sys.maxint
-
-    # Only the supervisor can create the containing AFF4 object.
-    aff4_flow_obj = aff4.FACTORY.Create(None, "GRRFlow", token=token)
-
-    # Strip out any private args so they do not get converted.
-    args = dict([(k, v) for k, v in kw.items() if not k.startswith("_")])
-
-    context = flow_context.FlowContext(client_id=client_id,
-                                       flow_name=flow_cls.__name__,
-                                       queue_name=queue_name, args=args,
-                                       parent_context=parent_context,
-                                       event_id=event_id, _store=_store,
-                                       state=_request_state, token=token,
-                                       priority=priority, cpu_limit=cpu_limit)
-
-    flow_obj = flow_cls(context=context, notification_event=notification_event,
-                        **kw)
-
-    if client_id:
-      # This client may exist already but we create it anyway.
-      client = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=token)
-
-      # Add this flow to the client
-      client.AddAttribute(client.Schema.FLOW(flow_obj.session_id))
-      client.Flush()
-
-    logging.info("Scheduling %s(%s) on %s: %s", flow_obj.session_id,
-                 flow_name, client_id, kw)
-    # Just run the first state. NOTE: The Start method always runs on the thread
-    # that starts the flow so it must be very fast, basically just CallClient()
-    # CallFlow() or CallState(). If a long delay is needed, this should call
-    # CallState() and put the heavy lifting in another state. Similarly it is
-    # preferred that any sanity checking of parameters etc be done by the
-    # Start() method so the flow invocation can be aborted immediately.
-    flow_obj.Start(None)
-
-    # The flow does not need to actually remain running.
-    if not flow_obj.OutstandingRequests():
-      flow_obj.Terminate()
-
-    # Flows always have task id 1.
-    flow_obj.rdf_flow.ts_id = 1
-    aff4_flow_obj.SetFlowObj(flow_obj)
-
-    aff4_flow_obj.Close()
-
-    # TODO(user): This needs to return an RDFURN object not a string.
-    return str(aff4_flow_obj.urn)
-
-  def ListFlow(self, client_id, limit=1000, token=None):
-    """Fetches the flow based on session_id.
-
-    Args:
-      client_id: Id of the client to retrieve tasks for.
-      limit: Max number of flows to retrieve.
-      token: The access token to be used for this request.
-
-    Returns:
-      A list of flow RDFValues.
-    """
-    tasks = scheduler.SCHEDULER.Query(queue=client_id, limit=limit, token=token)
-    return [t for t in tasks
-            if t.payload.state != rdfvalue.Flow.Enum("TERMINATED")]
-
-  def FetchFlow(self, session_id, sync=True, lock=True, token=None):
-    """Fetches the flow based on session_id.
-
-    This also grabs a lock on the flow. We might block here for some
-    time.
-
-    Args:
-      session_id: Session id for the flow.
-      sync: be synchronous - if we cant get the lock on a flow we wait
-            until we do. If False we raise a LockError()
-      lock: Should we lock the flow.
-      token: The access token to be used for this request.
-
-    Returns:
-      A flow rdfvalue.
-
-    Raises:
-      LockError: If we are asynchronous and can not obtain the lock.
-    """
-    try:
-      aff4_flow = aff4.FACTORY.Open(session_id, required_type="GRRFlow",
-                                    age=aff4.NEWEST_TIME, token=token,
-                                    ignore_cache=True)
-    except IOError as e:
-      logging.error("Flow %s can not be opened: %s", session_id, str(e))
-      if lock:
-        raise LockError(session_id)
-      return None
-
-    rdf_flow = aff4_flow.GetRDFFlow()
-    if rdf_flow is None:
-      logging.error("Flow %s has no pickled object.", session_id)
-      return None
-    rdf_flow.aff4_object = aff4_flow
-    rdf_flow.ts_id = 1
-    # NOTE: If flow is terminated do not lock it.
-    if not lock or rdf_flow.state == rdfvalue.Flow.Enum("TERMINATED"):
-      return rdf_flow
-
-    # Try to grab the lock on the flow
-    while True:
-      flow_tasks = scheduler.SCHEDULER.QueryAndOwn(
-          queue=session_id, limit=1,
-          lease_seconds=1200, token=token)
-      self.outstanding_flows.add(session_id)
-
-      if flow_tasks: break
-
-      # We can not wait - just raise now
-      if not sync: raise LockError(session_id)
-      logging.info("Waiting for flow %s", session_id)
-      time.sleep(1)
-
-    # We have to fetch the flow once more, because it could change while
-    # we were waiting for the lock.
-    try:
-      aff4_flow = aff4.FACTORY.Open(session_id, required_type="GRRFlow",
-                                    age=aff4.NEWEST_TIME, token=token,
-                                    ignore_cache=True)
-    except IOError as e:
-      logging.error("Flow %s can not be opened: %s", session_id, str(e))
-      return None
-
-    rdf_flow = aff4_flow.GetRDFFlow()
-    rdf_flow.aff4_object = aff4_flow
-    rdf_flow.ts_id = 1
-    logging.info("Got flow %s %s", session_id, rdf_flow.name)
-
-    return rdf_flow
-
-  def ReturnFlow(self, rdf_flow, token=None):
-    """Returns the flow when we are done with it.
-
-    If the flow is marked as terminated we can delete it now.
-
-    Args:
-      rdf_flow: An rdfvalue flow object.
-      token: The access token to be used for this request.
-    """
-    self.outstanding_flows.discard(rdf_flow.session_id)
-
-    # Is this flow still alive?
-    if rdf_flow.state != rdfvalue.Flow.Enum("TERMINATED"):
-      logging.info("Returning flow %s", rdf_flow.session_id)
-
-      if rdf_flow.aff4_object:
-        aff4_type = rdf_flow.aff4_object.Get(rdf_flow.aff4_object.Schema.TYPE)
-      else:
-        aff4_type = "GRRFlow"
-
-      aff4_flow = aff4.FACTORY.Create(rdf_flow.session_id, aff4_type, mode="w",
-                                      token=token)
-      # TODO(user): this is a hack. We're doing this because we do know
-      # that the flow object already exists (as it was started by StartFlow).
-      # Therefore there's no need for Create() to add TYPE attribute.
-      setattr(aff4_flow, "_new_version", False)
-      aff4_flow.Set(aff4_flow.Schema.RDF_FLOW,
-                    rdfvalue.GRRMessage(queue=rdf_flow.session_id,
-                                        task_id=1, payload=rdf_flow))
-      aff4_flow.Close()
-    else:
-      logging.info("Deleting flow %s", rdf_flow.session_id)
-      self.DeleteFlow(rdf_flow, token=token)
-
-  def TerminateFlow(self, flow_id, reason=None, token=None, force=False,
-                    _store=None):
-    """Terminate a flow.
-
-    Args:
-      flow_id: The flow session_id to terminate.
-      reason: A reason to log.
-      token: The access token to be used for this request.
-      force: If True then terminate locked flows hard.
-      _store: The data store to use for running this flow (only used for
-         testing)
-
-    Raises:
-      FlowError: If the flow can not be found.
-    """
-    rdf_flow = self.FetchFlow(flow_id, sync=False,
-                              lock=not force, token=token)
-
-    if rdf_flow.state != rdfvalue.Flow.Enum("RUNNING"):
-      return
-
-    flow_obj = self.LoadFlow(rdf_flow)
-    if not flow_obj:
-      raise FlowError("Could not terminate flow %s" % flow_id)
-
-    # Override the data store for testing.
-    if _store:
-      flow_obj.data_store = _store
-
-    if token is None:
-      token = access_control.ACLToken()
-
-    if reason is None:
-      reason = "Manual termination by console."
-
-    flow_obj.Error(reason)
-    flow_obj.Log("Terminated by user {0}. Reason: {1}".format(token.username,
-                                                              reason))
-    # Make sure we are only allowed to terminate this flow, if we are allowed to
-    # run it.
-    data_store.DB.security_manager.CheckAccess(token, [aff4.ROOT_URN.Add(
-        flow_obj.client_id).Add(flow_obj.__class__.__name__)], "x")
-
-    # From now on we run with supervisor access
-    super_token = access_control.ACLToken()
-    super_token.supervisor = True
-
-    # Also terminate its children
-    for child in rdf_flow.children:
-      self.TerminateFlow(child, reason=None, token=super_token, force=force)
-
-    self.ReturnFlow(flow_obj.rdf_flow, token=super_token)
-
-  def DeleteFlow(self, rdf_flow, token=None):
-    """Deletes the flow from the Task Scheduler."""
-    rdf_flow.state = rdfvalue.Flow.Enum("TERMINATED")
-
-    if rdf_flow.aff4_object:
-      aff4_type = rdf_flow.aff4_object.Get(rdf_flow.aff4_object.Schema.TYPE)
-    else:
-      aff4_type = "GRRFlow"
-
-    aff4_flow = aff4.FACTORY.Create(rdf_flow.session_id, aff4_type, mode="w",
-                                    token=token)
-    # TODO(user): this is a hack. We're doing this because we do know
-    # that the flow object already exists (as it was started by StartFlow).
-    # Therefore there's no need for Create() to add TYPE attribute.
-    setattr(aff4_flow, "_new_version", False)
-    aff4_flow.Set(aff4_flow.Schema.RDF_FLOW,
-                  rdfvalue.GRRMessage(queue=rdf_flow.session_id,
-                                      task_id=1, payload=rdf_flow))
-    aff4_flow.Close()
-
-  def LoadFlow(self, rdf_flow, forced_token=None):
-    """Restores the flow stored in rdf_flow.
-
-    We might want to make this more flexible down the track
-    (e.g. autoload new flows to avoid having to restart workers.)
-
-    Args:
-      rdf_flow: The flow rdfvalue.
-      forced_token: If not None, this token will override the previously
-                    pickled flow's token
-    Returns:
-      A complete flow object.
-
-    Raises:
-      FlowError: if we are unable to restore this flow.
-    """
-    if rdf_flow is None: return
-
-    try:
-      result = pickle.loads(rdf_flow.pickle)
-      result.data_store = data_store.DB
-      result.context.outbound_lock = threading.Lock()
-      result.context.flow_manager = flow_context.FlowManager(
-          token=result.context.token,
-          store=data_store.DB)
-      if forced_token:
-        result.context.token = forced_token
-
-      # Restore the rdf_flow here
-      result.rdf_flow = rdf_flow
-
-      # Allow the flow to hook the load operation.
-      result.Load()
-    # If we can not unpickle this for whatever reason we cant do anything about
-    # it - just convert all exceptions to a FlowError and let our callers deal
-    # with it..
-    except Exception as e:
-      msg = "Unable to handle Flow %s: %s" % (rdf_flow.name, e)
-      logging.error(msg)
-      raise FlowError(msg)
-
-    return result
-
-  def GetFlowObj(self, session_id, token=None):
-    return self.LoadFlow(self.FetchFlow(
-        session_id, lock=False, token=token), forced_token=token)
-
-  def QueryFlows(self, session_ids, token=None):
-    """This queries multiple flows at once.
-
-    This method works like FetchFlow above but there is no locking.
-    That means that you can open multiple flows at once for reading but
-    you cannot lease them with this function.
-
-    Args:
-      session_ids: A list of session ids to get.
-      token: The access token to be used for this request.
-    Returns:
-      A list of rdfvalue flow objects.
-    """
-    result = scheduler.SCHEDULER.MultiQuery(session_ids,
-                                            token=token)
-    return [r[0][1].payload for r in result.values()]
-
-  def GetFlowObjs(self, session_ids, token=None):
-    rdf_flows = self.QueryFlows(session_ids, token=token)
-    result = []
-    for pb in rdf_flows:
-      try:
-        result.append(self.LoadFlow(pb, forced_token=token))
-      except FlowError as e:
-        logging.error("Can't load Flow %s: %s", pb.name, e)
-
-    return result
 
 
 class ServerPubKeyCache(communicator.PubKeyCache):
@@ -1255,8 +1172,8 @@ class ServerCommunicator(communicator.Communicator):
     try:
       client = self.client_cache.Get(common_name)
     except KeyError:
-      # Fetch the client's cert
-      client = aff4.FACTORY.Create(common_name, "VFSGRRClient",
+      # Set the client's cert
+      client = aff4.FACTORY.Create(common_name, "VFSGRRClient", mode="w",
                                    token=self.token, ignore_cache=True)
       self.client_cache.Put(common_name, client)
 
@@ -1284,9 +1201,9 @@ class ServerCommunicator(communicator.Communicator):
        api_version: The api version we should use.
 
     Returns:
-       a rdfvalue.GRRMessage.AuthorizationState.
+       a rdfvalue.GrrMessage.AuthorizationState.
     """
-    result = rdfvalue.GRRMessage.Enum("UNAUTHENTICATED")
+    result = rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED
     try:
       if api_version >= 3:
         # New version:
@@ -1294,7 +1211,7 @@ class ServerCommunicator(communicator.Communicator):
           raise communicator.DecryptionError("HMAC does not match.")
 
         if cipher.signature_verified:
-          result = rdfvalue.GRRMessage.Enum("AUTHENTICATED")
+          result = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
 
       else:
         # Fake the metadata
@@ -1313,14 +1230,14 @@ class ServerCommunicator(communicator.Communicator):
           # Signature is not verified, we consider the message unauthenticated.
           if remote_public_key.verify(digest, signed_message_list.signature,
                                       cipher.hash_function_name) != 1:
-            return rdfvalue.GRRMessage.Enum("UNAUTHENTICATED")
+            return rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED
 
         except RSA.RSAError as e:
           raise communicator.DecryptionError(e)
 
-        result = rdfvalue.GRRMessage.Enum("AUTHENTICATED")
+        result = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
 
-      if result == rdfvalue.GRRMessage.Enum("AUTHENTICATED"):
+      if result == rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED:
         try:
           client = self.client_cache.Get(cipher.cipher_metadata.source)
         except KeyError:
@@ -1340,11 +1257,11 @@ class ServerCommunicator(communicator.Communicator):
 
           # Update the client and server timestamps.
           client.Set(client.Schema.CLOCK, rdfvalue.RDFDatetime(client_time))
-          client.Set(client.Schema.PING, rdfvalue.RDFDatetime())
+          client.Set(client.Schema.PING, rdfvalue.RDFDatetime().Now())
 
         else:
           # This is likely an old message
-          return rdfvalue.GRRMessage.Enum("DESYNCHRONIZED")
+          return rdfvalue.GrrMessage.AuthorizationState.DESYNCHRONIZED
 
         # If we are prepared to live with a slight risk of replay we can
         # remove this.
@@ -1353,7 +1270,7 @@ class ServerCommunicator(communicator.Communicator):
     except communicator.UnknownClientCert:
       pass
 
-    if result != rdfvalue.GRRMessage.Enum("AUTHENTICATED"):
+    if result != rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED:
       stats.STATS.Increment("grr_unauthenticated_messages")
 
     return result
@@ -1396,14 +1313,11 @@ class FrontEndServer(object):
     self.thread_pool.Start()
 
     # Well known flows are run on the front end.
-    self.well_known_flows = {}
-    for name, cls in GRRFlow.classes.items():
-      if (aff4.issubclass(cls, WellKnownFlow) and
-          cls.well_known_session_id and
-          name in config_lib.CONFIG["Frontend.well_known_flows"]):
-        context = flow_context.FlowContext(flow_name=name, token=self.token)
-        self.well_known_flows[
-            cls.well_known_session_id] = cls(context)
+    self.well_known_flows = WellKnownFlow.GetAllWellKnownFlows(token=self.token)
+    well_known_flow_names = self.well_known_flows.keys()
+    for well_known_flow in well_known_flow_names:
+      if well_known_flow not in config_lib.CONFIG["Frontend.well_known_flows"]:
+        del self.well_known_flows[well_known_flow]
 
   def SetThrottleBundlesRatio(self, throttle_bundles_ratio):
     """Sets throttling ration.
@@ -1571,15 +1485,11 @@ class FrontEndServer(object):
     """
 
     for msg in messages:
-      # Support old clients without fully qualified session ids.
-      if not msg.session_id.startswith("aff4"):
-        msg.session_id = "aff4:/flows/" + msg.session_id
-
-      if msg.type == rdfvalue.GRRMessage.Enum("STATUS"):
+      if msg.type == rdfvalue.GrrMessage.Type.STATUS:
         status = rdfvalue.GrrStatus(msg.args)
-        if status.status == rdfvalue.GrrStatus.Enum("CLIENT_KILLED"):
+        if status.status == rdfvalue.GrrStatus.ReturnedStatus.CLIENT_KILLED:
           # A client crashed while performing an action, fire an event.
-          PublishEvent("ClientCrash", rdfvalue.GRRMessage(msg),
+          PublishEvent("ClientCrash", rdfvalue.GrrMessage(msg),
                        token=self.token)
 
     sessions_handled = []
@@ -1594,8 +1504,8 @@ class FrontEndServer(object):
       # Keep track of all the flows we handled in this request.
       sessions_handled.append(session_id)
 
-      with flow_context.FlowManager(token=self.token,
-                                    store=self.data_store) as flow_manager:
+      with flow_runner.FlowManager(token=self.token,
+                                   store=self.data_store) as flow_manager:
         for msg in messages:
           priorities[session_id] = max(priorities.setdefault(session_id, 0),
                                        msg.priority)
@@ -1661,237 +1571,14 @@ class FrontEndServer(object):
     return queue_name
 
 
-class LockError(FlowError):
-  """Raised when we fail to grab a lock on the flow object."""
-
-
 def ProcessCompletedRequests(flow_obj, thread_pool, reqs):
   flow_obj.ProcessCompletedRequests(thread_pool, reqs)
-
-
-class GRRWorker(object):
-  """A GRR worker."""
-
-  # time to wait before polling when no jobs are currently in the
-  # task scheduler (sec)
-  POLLING_INTERVAL = 2
-  SHORT_POLLING_INTERVAL = 0.3
-  SHORT_POLL_TIME = 30
-
-  # A class global threadpool to be used for all workers.
-  thread_pool = None
-
-  # This is a timed cache of locked flows. If this worker encounters a lock
-  # failure on a flow, it will not attempt to grab this flow until the timeout.
-  queued_flows = None
-
-  def __init__(self, queue_name=None, threadpool_prefix="grr_threadpool",
-               threadpool_size=0, token=None):
-    """Constructor.
-
-    Args:
-      queue_name: The name of the queue we use to fetch new messages
-      from.
-      threadpool_prefix: A name for the thread pool used by this worker.
-      threadpool_size: The number of workers to start in this thread pool.
-      token: The token to use for the worker.
-
-    Raises:
-      RuntimeError: If the token is not provided.
-    """
-    self.queue_name = queue_name
-    self.queued_flows = utils.TimeBasedCache(max_size=1000)
-
-    if token is None:
-      raise RuntimeError("A valid ACLToken is required.")
-
-    # Make the thread pool a global so it can be reused for all workers.
-    if GRRWorker.thread_pool is None:
-      if threadpool_size == 0:
-        threadpool_size = config_lib.CONFIG["Threadpool.size"]
-
-      GRRWorker.thread_pool = threadpool.ThreadPool.Factory(threadpool_prefix,
-                                                            threadpool_size)
-      GRRWorker.thread_pool.Start()
-
-    self.token = token
-    self.last_active = 0
-
-    # Well known flows are just instantiated.
-    self.well_known_flows = {}
-    for name, cls in GRRFlow.classes.items():
-      if aff4.issubclass(cls, WellKnownFlow) and cls.well_known_session_id:
-        context = flow_context.FlowContext(flow_name=name, token=self.token)
-        well_known_flow = self.well_known_flows[
-            cls.well_known_session_id] = cls(context=context)
-
-        rdf_flow = well_known_flow.Dump()
-        aff4_flow = aff4.FACTORY.Create(rdf_flow.session_id, "GRRFlow",
-                                        mode="w", token=token)
-        aff4_flow.Set(aff4_flow.Schema.RDF_FLOW,
-                      rdfvalue.GRRMessage(queue=rdf_flow.session_id,
-                                          task_id=1, payload=rdf_flow))
-        aff4_flow.Close()
-
-  def Run(self):
-    """Event loop."""
-    try:
-      while 1:
-        processed = self.RunOnce()
-
-        if processed == 0:
-
-          if time.time() - self.last_active > self.SHORT_POLL_TIME:
-            interval = self.POLLING_INTERVAL
-          else:
-            interval = self.SHORT_POLLING_INTERVAL
-
-          logging.debug("Waiting for new jobs %s Secs", interval)
-          time.sleep(interval)
-        else:
-          self.last_active = time.time()
-
-    except KeyboardInterrupt:
-      logging.info("Caught interrupt, exiting.")
-      self.thread_pool.Join()
-
-  def RunOnce(self):
-    """Processes one set of messages from Task Scheduler.
-
-    The worker processes new jobs from the task master. For each job
-    we retrieve the session from the Task Scheduler.
-
-    Returns:
-        Total number of messages processed by this call.
-    """
-    sessions_available = scheduler.SCHEDULER.GetSessionsFromQueue(
-        self.queue_name, self.token)
-
-    # Filter out session ids we already tried to lock but failed.
-    sessions_available = [session for session in sessions_available
-                          if session not in self.queued_flows]
-
-    try:
-      processed = self.ProcessMessages(sessions_available)
-    # We need to keep going no matter what.
-    except Exception as e:    # pylint: disable=W0703
-      logging.error("Error processing message %s. %s.", e,
-                    traceback.format_exc())
-
-      if flags.FLAGS.debug:
-        pdb.post_mortem()
-
-    return processed
-
-  def ProcessMessages(self, active_sessions):
-    """Processes all the flows in the messages.
-
-    Precondition: All tasks come from the same queue (self.queue_name).
-
-    Note that the server actually completes the requests in the
-    flow when receiving the messages from the client. We do not really
-    look at the messages here at all any more - we just work from the
-    completed messages in the flow RDFValue.
-
-    Args:
-        active_sessions: The list of sessions which had messages received.
-    Returns:
-        The number of processed flows.
-    """
-    processed = 0
-    for session_id in active_sessions:
-      if session_id not in self.queued_flows:
-        processed += 1
-        self.queued_flows.Put(session_id, 1)
-        self.thread_pool.AddTask(target=self._ProcessMessages,
-                                 args=(session_id,),
-                                 name=self.__class__.__name__)
-    return processed
-
-  def _ProcessMessages(self, session_id):
-    """Does the real work with a single flow."""
-
-    rdf_flow = None
-    # Take a lease on the flow:
-    try:
-      rdf_flow = FACTORY.FetchFlow(session_id, lock=True, sync=False,
-                                   token=self.token)
-
-      # If we get here, we now own the flow, so we can remove the notification
-      # for it from the worker queue.
-      scheduler.SCHEDULER.DeleteNotification(
-          scheduler.SCHEDULER.QueueNameFromURN(session_id),
-          session_id, token=self.token)
-
-    except LockError:
-      # Another worker is dealing with this flow right now, we just skip it.
-      return
-
-    try:
-      flow_obj = None
-
-      # We still need to take a lock on the well known flow in the datastore,
-      # but we can run a local instance.
-      if session_id in self.well_known_flows:
-        self.well_known_flows[session_id].ProcessCompletedRequests(
-            self.thread_pool)
-
-      else:
-        # Flow did not exist.
-        if rdf_flow is None:
-          return
-
-        # Unpickle the flow and have it process its messages.
-        flow_obj = FACTORY.LoadFlow(rdf_flow)
-        flow_obj.ProcessCompletedRequests(self.thread_pool)
-
-        # Re-serialize the flow
-        flow_obj.Dump()
-        flow_obj.FlushMessages()
-
-      # Everything went well -> session can be run again.
-      self.queued_flows.ExpireObject(session_id)
-
-    except FlowError as e:
-      # Something went wrong - log it
-      if rdf_flow:
-        rdf_flow.state = rdfvalue.Flow.Enum("ERROR")
-        if not rdf_flow.backtrace:
-          rdf_flow.backtrace = traceback.format_exc()
-
-      if flow_obj:
-        logging.error("Flow %s: %s", flow_obj, e)
-      else:
-        logging.error("Flow %s: %s", session_id, e)
-
-    finally:
-      if rdf_flow:
-        # Unlock this flow
-        FACTORY.ReturnFlow(rdf_flow, token=self.token)
-
-
-class GRREnroler(GRRWorker):
-  """A GRR enroler.
-
-  Subclassed here so that log messages arrive from the right class.
-  """
-
-
-# These are globally available handles to factories
-# pylint: disable=W0603
-# pylint: disable=C6409
 
 
 class FlowInit(registry.InitHook):
   """Ensures that the Well known flows exist."""
 
   pre = ["AFF4InitHook", "StatsInit"]
-
-  def Run(self):
-    # Make global handlers
-    global FACTORY
-
-    FACTORY = FlowFactory()
 
   def RunOnce(self):
     """Exports our vars."""
@@ -1905,12 +1592,11 @@ class FlowInit(registry.InitHook):
     stats.STATS.RegisterTimespanAvg(
         "grr_frontendserver_handle_time_running_avg", 60)
     stats.STATS.RegisterVar("grr_messages_sent")
-    stats.STATS.RegisterVar("grr_request_retransmissions_count")
+    stats.STATS.RegisterVar("grr_request_retransmission_count")
     stats.STATS.RegisterVar("grr_response_out_of_order")
     stats.STATS.RegisterVar("grr_unique_clients")
     stats.STATS.RegisterVar("grr_unknown_clients")
     stats.STATS.RegisterVar("grr_well_known_flow_requests")
-    stats.STATS.RegisterVar("grr_worker_flows_pickled")
     stats.STATS.RegisterVar("grr_worker_requests_complete")
     stats.STATS.RegisterVar("grr_worker_requests_issued")
     stats.STATS.RegisterVar("grr_worker_states_run")
@@ -1918,9 +1604,3 @@ class FlowInit(registry.InitHook):
     stats.STATS.RegisterVar("grr_frontendserver_handle_num")
     stats.STATS.RegisterVar("grr_frontendserver_handle_throttled_num")
     stats.STATS.RegisterVar("grr_frontendserver_throttle_setting")
-
-# A global factory that can be used to create new flows
-FACTORY = None
-
-# pylint: enable=W0603
-# pylint: enable=C6409

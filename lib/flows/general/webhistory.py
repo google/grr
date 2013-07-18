@@ -65,34 +65,36 @@ class ChromeHistory(flow.GRRFlow):
   @flow.StateHandler(next_state="ParseFiles")
   def Start(self):
     """Determine the Chrome directory."""
-    self.hist_count = 0
-    self.history_paths = []   # List of paths where history files are located
-    if self.history_path:
-      self.history_paths = [self.history_path]
+    self.state.Register("hist_count", 0)
+    # List of paths where history files are located
+    self.state.Register("history_paths", [])
+    if self.state.history_path:
+      self.state.history_paths.append(self.state.history_path)
 
-    self.output = self.output.format(t=time.time(), u=self.username)
+    self.state.output = self.state.output.format(t=time.time(),
+                                                 u=self.state.context.user)
 
-    self.urn = aff4.ROOT_URN.Add(self.client_id)
-    self.out_urn = self.urn.Add(self.output)
+    self.state.Register("urn", self.client_id)
+    self.state.Register("out_urn", self.state.urn.Add(self.state.output))
 
-    if not self.history_paths:
-      self.history_paths = self.GuessHistoryPaths(self.username)
+    if not self.state.history_paths:
+      self.state.history_paths = self.GuessHistoryPaths(self.state.username)
 
-    if not self.history_paths:
+    if not self.state.history_paths:
       raise flow.FlowError("Could not find valid History paths.")
 
     filenames = ["History"]
-    if self.get_archive:
+    if self.state.get_archive:
       filenames.append("Archived History")
 
     findspecs = []
-    for path in self.history_paths:
+    for path in self.state.history_paths:
       for fname in filenames:
         findspec = rdfvalue.RDFFindSpec(
             max_depth=1,
             path_regex="^{0}$".format(fname),
-            pathspec=rdfvalue.RDFPathSpec(pathtype=self.pathtype,
-                                          path=path))
+            pathspec=rdfvalue.PathSpec(pathtype=self.state.pathtype,
+                                       path=path))
 
         findspecs.append(findspec)
 
@@ -105,7 +107,7 @@ class ChromeHistory(flow.GRRFlow):
     # Note that some of these Find requests will fail because some paths don't
     # exist, e.g. Chromium on most machines, so we don't check for success.
     if responses:
-      outfile = aff4.FACTORY.Create(self.out_urn, "VFSAnalysisFile",
+      outfile = aff4.FACTORY.Create(self.state.out_urn, "VFSAnalysisFile",
                                     token=self.token)
       for response in responses:
         fd = aff4.FACTORY.Open(response.aff4path, token=self.token)
@@ -118,8 +120,8 @@ class ChromeHistory(flow.GRRFlow):
               dat1, dat2, dat3, dtype)
           outfile.write(utils.SmartStr(str_entry) + "\n")
         self.Log("Wrote %d Chrome History entries for user %s from %s", count,
-                 self.user, response.pathspec.Basename())
-        self.hist_count += count
+                 self.state.username, response.pathspec.Basename())
+        self.state.hist_count += count
       outfile.Close()
 
   def GuessHistoryPaths(self, username):
@@ -136,8 +138,8 @@ class ChromeHistory(flow.GRRFlow):
     """
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     system = client.Get(client.Schema.SYSTEM)
-    user_pb = flow_utils.GetUserInfo(client, username)
-    if not user_pb:
+    user_info = flow_utils.GetUserInfo(client, username)
+    if not user_info:
       self.Error("Could not find homedir for user {0}".format(username))
       return
 
@@ -146,23 +148,23 @@ class ChromeHistory(flow.GRRFlow):
       path = ("{app_data}\\{sw}\\User Data\\Default")
       for sw_path in ["Google\\Chrome", "Chromium"]:
         paths.append(path.format(
-            app_data=user_pb.special_folders.local_app_data, sw=sw_path))
+            app_data=user_info.special_folders.local_app_data, sw=sw_path))
     elif system == "Linux":
       path = "{homedir}/.config/{sw}/Default"
       for sw_path in ["google-chrome", "chromium"]:
-        paths.append(path.format(homedir=user_pb.homedir, sw=sw_path))
+        paths.append(path.format(homedir=user_info.homedir, sw=sw_path))
     elif system == "Darwin":
       path = "{homedir}/Library/Application Support/{sw}/Default"
       for sw_path in ["Google/Chrome", "Chromium"]:
-        paths.append(path.format(homedir=user_pb.homedir, sw=sw_path))
+        paths.append(path.format(homedir=user_info.homedir, sw=sw_path))
     else:
       raise OSError("Invalid OS for Chrome History")
     return paths
 
   @flow.StateHandler()
   def End(self):
-    self.SendReply(self.out_urn)
-    self.Notify("ViewObject", self.out_urn,
+    self.SendReply(self.state.out_urn)
+    self.Notify("ViewObject", self.state.out_urn,
                 "Completed retrieval of Chrome History")
 
 
@@ -216,27 +218,28 @@ class FirefoxHistory(flow.GRRFlow):
   @flow.StateHandler(next_state="ParseFiles")
   def Start(self):
     """Determine the Firefox history directory."""
-    self.hist_count = 0
-    if self.history_path:
-      self.history_paths = [self.history_path]
+    self.state.Register("hist_count", 0)
+    if self.state.history_path:
+      self.state.history_paths.append(self.state.history_path)
     else:
-      self.history_paths = self.GuessHistoryPaths(self.username)
+      self.state.history_paths = self.GuessHistoryPaths(self.state.username)
 
-      if not self.history_paths:
+      if not self.state.history_paths:
         raise flow.FlowError("Could not find valid History paths.")
 
-    self.output = self.output.format(t=time.time(), u=self.username)
+    self.state.output = self.state.output.format(t=time.time(),
+                                                 u=self.state.context.user)
 
-    self.urn = aff4.ROOT_URN.Add(self.client_id)
-    self.out_urn = self.urn.Add(self.output)
+    self.state.Register("urn", self.client_id)
+    self.state.Register("out_urn", self.state.urn.Add(self.state.output))
 
     filename = "places.sqlite"
     findspecs = []
-    for path in self.history_paths:
+    for path in self.state.history_paths:
       findspec = rdfvalue.RDFFindSpec(max_depth=2, path_regex="^%s$" % filename)
 
       findspec.pathspec.path = path
-      findspec.pathspec.pathtype = self.pathtype
+      findspec.pathspec.pathtype = self.state.pathtype
 
       findspecs.append(findspec)
 
@@ -247,7 +250,7 @@ class FirefoxHistory(flow.GRRFlow):
   def ParseFiles(self, responses):
     """Take each file we retrieved and get the history from it."""
     if responses:
-      outfile = aff4.FACTORY.Create(self.out_urn, "VFSAnalysisFile",
+      outfile = aff4.FACTORY.Create(self.state.out_urn, "VFSAnalysisFile",
                                     token=self.token)
       for response in responses:
         fd = aff4.FACTORY.Open(response.aff4path, token=self.token)
@@ -260,8 +263,8 @@ class FirefoxHistory(flow.GRRFlow):
               dat1, dtype)
           outfile.write(utils.SmartStr(str_entry) + "\n")
         self.Log("Wrote %d Firefox History entries for user %s from %s", count,
-                 self.user, response.pathspec.Basename())
-        self.hist_count += count
+                 self.state.username, response.pathspec.Basename())
+        self.state.hist_count += count
       outfile.Close()
 
   def GuessHistoryPaths(self, username):
@@ -278,8 +281,8 @@ class FirefoxHistory(flow.GRRFlow):
     """
     fd = aff4.FACTORY.Open(self.client_id, token=self.token)
     system = fd.Get(fd.Schema.SYSTEM)
-    user_pb = flow_utils.GetUserInfo(fd, username)
-    if not user_pb:
+    user_info = flow_utils.GetUserInfo(fd, username)
+    if not user_info:
       self.Error("Could not find homedir for user {0}".format(username))
       return
 
@@ -287,22 +290,22 @@ class FirefoxHistory(flow.GRRFlow):
     if system == "Windows":
       path = "{app_data}\\Mozilla\\Firefox\\Profiles"
       paths.append(path.format(
-          app_data=user_pb.special_folders.app_data))
+          app_data=user_info.special_folders.app_data))
     elif system == "Linux":
       path = "{homedir}/.mozilla/firefox"
-      paths.append(path.format(homedir=user_pb.homedir))
+      paths.append(path.format(homedir=user_info.homedir))
     elif system == "Darwin":
       path = ("{homedir}/Library/Application Support/"
               "Firefox/Profiles")
-      paths.append(path.format(homedir=user_pb.homedir))
+      paths.append(path.format(homedir=user_info.homedir))
     else:
       raise OSError("Invalid OS for Chrome History")
     return paths
 
   @flow.StateHandler()
   def End(self):
-    self.SendReply(self.out_urn)
-    self.Notify("ViewObject", self.out_urn,
+    self.SendReply(self.state.out_urn)
+    self.Notify("ViewObject", self.state.out_urn,
                 "Completed retrieval of Firefox History")
 
 
@@ -380,24 +383,25 @@ class CacheGrep(flow.GRRFlow):
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     system = client.Get(client.Schema.SYSTEM)
     paths = BROWSER_PATHS.get(system)
-    self.all_paths = []
-    if self.check_chrome:
-      self.all_paths += paths.get("Chrome", [])
-    if self.check_ie:
-      self.all_paths += paths.get("IE", [])
-    if self.check_firefox:
-      self.all_paths += paths.get("Firefox", [])
-    if not self.all_paths:
+    self.state.Register("all_paths", [])
+    if self.state.check_chrome:
+      self.state.all_paths += paths.get("Chrome", [])
+    if self.state.check_ie:
+      self.state.all_paths += paths.get("IE", [])
+    if self.state.check_firefox:
+      self.state.all_paths += paths.get("Firefox", [])
+    if not self.state.all_paths:
       raise flow.FlowError("Unsupported system %s for CacheGrep" % system)
 
-    self.output = self.output.format(u=self.user, t=time.time())
+    self.state.output = self.state.output.format(u=self.state.context.user,
+                                                 t=time.time())
 
-    self.users = []
-    for user in self.grep_users:
+    self.state.Register("users", [])
+    for user in self.state.grep_users:
       user_info = flow_utils.GetUserInfo(client, user)
       if not user_info:
-        raise flow.FlowError("No such user %s" % self.username)
-      self.users.append(user_info)
+        raise flow.FlowError("No such user %s" % self.state.username)
+      self.state.users.append(user_info)
 
     self.CallState(next_state="StartRequests")
 
@@ -405,26 +409,24 @@ class CacheGrep(flow.GRRFlow):
   def StartRequests(self):
     """Generate and send the Find requests."""
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.urn = aff4.ROOT_URN.Add(self.client_id)
-    self.out_urn = self.urn.Add(self.output)
+    self.state.Register("urn", self.client_id)
+    self.state.Register("out_urn", self.state.urn.Add(self.state.output))
+    self.state.Register("fd", aff4.FACTORY.Create(
+        self.state.out_urn, "RDFValueCollection", mode="w", token=self.token))
+    self.state.fd.Set(
+        self.state.fd.Schema.DESCRIPTION("CacheGrep for {0}".format(
+            self.state.data_regex)))
 
-    # Prepare the output collection.
-    self.out_urn = aff4.ROOT_URN.Add(self.client_id).Add(self.output)
-    self.fd = aff4.FACTORY.Create(self.out_urn, "RDFValueCollection",
-                                  mode="w", token=self.token)
-    self.fd.Set(self.fd.Schema.DESCRIPTION("CacheGrep for {0}".format(
-        self.data_regex)))
-
-    usernames = ["%s\\%s" % (u.domain, u.username) for u in self.users]
+    usernames = ["%s\\%s" % (u.domain, u.username) for u in self.state.users]
     usernames = [u.lstrip("\\") for u in usernames]  # Strip \\ if no domain.
 
-    for path in self.all_paths:
+    for path in self.state.all_paths:
       full_paths = flow_utils.InterpolatePath(path, client, users=usernames)
       for full_path in full_paths:
-        findspec = rdfvalue.RDFFindSpec(data_regex=self.data_regex)
+        findspec = rdfvalue.RDFFindSpec(data_regex=self.state.data_regex)
         findspec.iterator.number = 800
         findspec.pathspec.path = full_path
-        findspec.pathspec.pathtype = self.pathtype
+        findspec.pathspec.pathtype = self.state.pathtype
 
         self.CallFlow("FindFiles", findspec=findspec, max_results=200,
                       next_state="HandleResults", output=None)
@@ -435,11 +437,11 @@ class CacheGrep(flow.GRRFlow):
     # Note that some of these Find requests will fail because some paths don't
     # exist, e.g. Chromium on most machines, so we don't check for success.
     for response in responses:
-      self.fd.Add(response)
+      self.state.fd.Add(response)
 
   @flow.StateHandler()
   def End(self):
-    self.fd.Close()
-    self.Notify("ViewObject", self.out_urn,
-                u"CacheGrep completed. %d hits" % self.fd.Get("size"))
-    self.SendReply(self.out_urn)
+    self.state.fd.Close()
+    self.Notify("ViewObject", self.state.out_urn,
+                u"CacheGrep completed. %d hits" % self.state.fd.Get("size"))
+    self.SendReply(self.state.out_urn)

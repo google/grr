@@ -19,11 +19,11 @@ class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
 
   def testFingerprintPresence(self):
     path = os.path.join(self.base_path, "winexec_img.dd")
-    pathspec = rdfvalue.RDFPathSpec(
-        pathtype=rdfvalue.RDFPathSpec.Enum("OS"), path=path)
+    pathspec = rdfvalue.PathSpec(
+        pathtype=rdfvalue.PathSpec.PathType.OS, path=path)
 
     pathspec.Append(path="/Ext2IFS_1_10b.exe",
-                    pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+                    pathtype=rdfvalue.PathSpec.PathType.TSK)
 
     client_mock = test_lib.ActionMock("FingerprintFile")
     for _ in test_lib.TestFlowHelper(
@@ -35,5 +35,5 @@ class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(urn, token=self.token)
     self.assertEqual(fd.__class__, aff4_grr.VFSFile)
     fingerprint = fd.Get(fd.Schema.FINGERPRINT)
-    pecoff = fingerprint.Get("pecoff")["sha1"].encode("hex")
+    pecoff = fingerprint.GetFingerprint("pecoff")["sha1"].encode("hex")
     self.assertEqual(pecoff, "019bddad9cac09f37f3941a7f285c79d3c7e7801")

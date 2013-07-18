@@ -8,14 +8,13 @@
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib.rdfvalues import structs
-from grr.lib.rdfvalues import structs_parser
 from grr.lib.rdfvalues import test_base
 
 
 class TestStruct(structs.RDFProtoStruct):
   """A test struct object."""
 
-  type_infos = type_info.TypeDescriptorSet(
+  type_description = type_info.TypeDescriptorSet(
       type_info.ProtoString(name="foobar", field_number=1,
                             description="A string value"),
 
@@ -37,6 +36,8 @@ class TestStruct(structs.RDFProtoStruct):
                           enum=dict(FIRST=1, SECOND=2, THIRD=3),
                           description="An enum field"),
 
+      type_info.ProtoFloat(name="float", field_number=8,
+                           description="A float number", default=1.1),
       )
 
 
@@ -57,29 +58,9 @@ TestStruct.AddDescriptor(
 
 class PartialTest1(structs.RDFProtoStruct):
   """This is a protobuf with fewer fields than TestStruct."""
-  type_infos = type_info.TypeDescriptorSet(
+  type_description = type_info.TypeDescriptorSet(
       type_info.ProtoUnsignedInteger(name="int", field_number=2),
       )
-
-
-class ProtoInitializedTest(structs.RDFProtoStruct):
-  """An RDFStruct class initialized from a .proto file."""
-
-  # This will be used to initialize this class. Only the message with the same
-  # name as this class will be parsed.
-  definition = """
-message ProtoInitializedTest {
-  // An integer field.
-  optional uint64 foo = 1;
-
-  // A string with defaults.
-  optional string name = 2 [default = "Hello"];
-};
-
-message IgnoredMessage {
-  optional uint64 baz = 1;
-};
-"""
 
 
 class RDFStructsTest(test_base.RDFValueTestCase):
@@ -89,7 +70,8 @@ class RDFStructsTest(test_base.RDFValueTestCase):
 
   def GenerateSample(self, number=1):
     return self.rdfvalue_class(int=number, foobar="foo%s" % number,
-                               urn="http://www.example.com")
+                               urn="http://www.example.com",
+                               float=2.3+number)
 
   def testStructDefinition(self):
     """Ensure that errors in struct definitions are raised."""
@@ -116,18 +98,26 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     tested.repeated.Append("Good")
     tested.repeated.Append("Bye")
 
-    tested.repeat_nested.Append(foobar="Nest1")
-    tested.repeat_nested.Append(foobar="Nest2")
+    for i in range(10):
+      tested.repeat_nested.Append(foobar="Nest%s" % i)
 
     data = tested.SerializeToString()
 
-    new_tested = TestStruct()
-    new_tested.ParseFromString(data)
+    # Parse it again.
+    new_tested = TestStruct(data)
 
-    tested._serializer = structs.JsonSerlializer()
-    new_tested._serializer = structs.JsonSerlializer()
-    print new_tested.SerializeToString()
-    print tested.SerializeToString()
+    # Test the repeated field.
+    self.assertEqual(len(new_tested.repeat_nested), 10)
+    self.assertEqual(new_tested.repeat_nested[1].foobar, "Nest1")
+
+    # Check that slicing works.
+    sliced = new_tested.repeat_nested[3:5]
+    self.assertEqual(sliced.__class__, new_tested.repeat_nested.__class__)
+    self.assertEqual(sliced.type_descriptor,
+                     new_tested.repeat_nested.type_descriptor)
+
+    self.assertEqual(len(sliced), 2)
+    self.assertEqual(sliced[0].foobar, "Nest3")
 
   def testUnknownFields(self):
     """Test that unknown fields are preserved across decode/encode cycle."""
@@ -155,41 +145,6 @@ class RDFStructsTest(test_base.RDFValueTestCase):
 
     # Check that nested fields are also preserved.
     self.assertEqual(decoded_tested.nested.foobar, "goodbye")
-
-  def testProtoDefinitionParser(self):
-    """Test that RDFStruct can be initialized from a .proto file."""
-    data = """
-message ProtoTestStruct {
-
-  // A string value
-  optional string foobar = 1;
-
-  // An integer value
-  optional uint64 int = 2;
-  optional ProtoTestStruct nested = 4;
-
-  // An arbitrary RDFValue field.
-  optional bytes urn = 6;
-
-  // An enum field
-  enum Type {
-    FIRST = 1;
-    SECOND = 2;
-    THIRD = 3;
-  }
-  optional Type type = 7;
-}
-"""
-
-    proto_test_struct_cls = structs_parser.ParseFromProto(data)[0]
-
-    # The new class auto-registers by itself.
-    self.assertEqual(proto_test_struct_cls, rdfvalue.ProtoTestStruct)
-
-    # Parsing the new class should produce identical proto serialization other
-    # than whitespace.
-    self.assertEqual(proto_test_struct_cls.EmitProto().strip(),
-                     data.strip())
 
   def testRDFStruct(self):
     tested = TestStruct()
@@ -235,11 +190,22 @@ message ProtoTestStruct {
     # Non-valid types are rejected.
     self.assertRaises(type_info.TypeValueError, setattr, tested, "type", "Foo")
 
-  def testProtoParsedRDFStruct(self):
-    """Test that we can create an RDFProtoStruct from a proto file."""
-    tested = ProtoInitializedTest(foo=5)
-    self.assertEqual(tested.name, "Hello")
-    self.assertEqual(tested.foo, 5)
+    print tested
 
-    # baz is not a known field because its in the IgnoredMessage.
-    self.assertRaises(AttributeError, ProtoInitializedTest, baz=2)
+  def testCacheInvalidation(self):
+    path = rdfvalue.PathSpec(path="/", pathtype=rdfvalue.PathSpec.PathType.OS)
+    for x in "01234":
+      path.last.Append(path=x, pathtype=rdfvalue.PathSpec.PathType.OS)
+
+    serialized = path.SerializeToString()
+
+    path = rdfvalue.PathSpec(serialized)
+
+    # At this point the wire format cache is fully populated (since the proto
+    # had been parsed). We change a deeply nested member.
+    path.last.path = "booo"
+
+    # When we serialize the modified proto we should get the new field
+    # serialized. If the cache is not properly invalidated, we will return the
+    # old result instead.
+    self.assertTrue("booo" in path.SerializeToString())

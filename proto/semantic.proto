@@ -1,0 +1,16 @@
+syntax = "proto2";
+
+import "google/protobuf/descriptor.proto";  // for FieldOptions
+
+
+message SemanticDescriptor {
+  // The class name of the SemanticValue contained in this field.
+  optional string type = 1;
+  optional string description = 2;
+}
+
+
+extend google.protobuf.FieldOptions {
+  optional SemanticDescriptor sem_type = 1001;
+}
+

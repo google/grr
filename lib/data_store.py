@@ -105,6 +105,9 @@ class DataStore(object):
     self.security_manager = security_manager
     logging.info("Using security manager %s", security_manager)
 
+  def Initialize(self):
+    """Initialization of the datastore."""
+
   @abc.abstractmethod
   def DeleteSubject(self, subject, token=None):
     """Completely deletes all information about this subject."""
@@ -166,7 +169,7 @@ class DataStore(object):
         return result
       except TransactionError:
         time.sleep(retrywrap_timeout)
-        timeout += 1
+        timeout += retrywrap_timeout
 
     raise TransactionError("Retry number exceeded.")
 
@@ -366,7 +369,10 @@ class DataStore(object):
     """Flushes the DataStore."""
 
   def __del__(self):
-    self.Flush()
+    try:
+      self.Flush()
+    except Exception:  # pylint: disable=broad-except
+      pass
 
 
 class Transaction(object):
@@ -519,6 +525,7 @@ class DataStoreInit(registry.InitHook):
                          config_lib.CONFIG["Datastore.implementation"])
 
     DB = cls()  # pylint: disable=C6409
+    DB.Initialize()
 
   def RunOnce(self):
     """Initialize some Varz."""

@@ -31,15 +31,17 @@ class MACTimes(flow.GRRFlow):
   @flow.StateHandler(next_state="CreateTimeline")
   def Start(self):
     """This could take a while so we just schedule for the worker."""
-    self.urn = aff4.ROOT_URN.Add(self.client_id).Add(self.path)
+    self.state.Register("urn", self.client_id.Add(self.state.path))
 
     # Create the output collection and get it ready.
-    output = self.output.format(t=time.time(), u=self.user)
-    self.output = aff4.ROOT_URN.Add(self.client_id).Add(output)
-    self.timeline_fd = aff4.FACTORY.Create(self.output, "GRRTimeSeries",
-                                           token=self.token)
-    self.timeline_fd.Set(
-        self.timeline_fd.Schema.DESCRIPTION("Timeline {0}".format(self.path)))
+    output = self.state.output.format(t=time.time(), u=self.state.context.user)
+    self.state.output = self.client_id.Add(output)
+    self.state.Register("timeline_fd",
+                        aff4.FACTORY.Create(self.state.output, "GRRTimeSeries",
+                                            token=self.token))
+    self.state.timeline_fd.Set(
+        self.state.timeline_fd.Schema.DESCRIPTION(
+            "Timeline {0}".format(self.state.path)))
 
     # Main work done in another process.
     self.CallState(next_state="CreateTimeline")
@@ -51,9 +53,10 @@ class MACTimes(flow.GRRFlow):
     attribute = aff4.Attribute.GetAttributeByName("stat")
     filter_obj = data_store.DB.filter.HasPredicateFilter(attribute)
 
-    for row in data_store.DB.Query([attribute], filter_obj,
-                                   subject_prefix=self.urn, token=self.token,
-                                   limit=10000000):
+    for row in data_store.DB.Query(
+        [attribute], filter_obj,
+        subject_prefix=self.state.urn, token=self.token,
+        limit=10000000):
 
       # The source of this event is the directory inode.
       source = rdfvalue.RDFURN(row["subject"][0][0])
@@ -69,11 +72,11 @@ class MACTimes(flow.GRRFlow):
 
         # We are taking about the file which is a direct child of the source.
         event.subject = utils.SmartUnicode(source)
-        self.timeline_fd.AddEvent(event)
+        self.state.timeline_fd.AddEvent(event)
 
   @flow.StateHandler()
   def End(self, unused_responses):
     # Flush the time line object.
-    self.timeline_fd.Close()
-    self.Notify("ViewObject", self.output,
+    self.state.timeline_fd.Close()
+    self.Notify("ViewObject", self.state.output,
                 "Completed timeline generation.")

@@ -91,7 +91,7 @@ class Approval(aff4.AFF4Object):
           # Hunts are special as they require execute permissions. These aren't
           # in the ACL model for objects yet, so we work around by scheduling a
           # fake flow to do the check for us.
-          flow.FACTORY.StartFlow(None, "CheckHuntAccessFlow", token=test_token,
+          flow.GRRFlow.StartFlow(None, "CheckHuntAccessFlow", token=test_token,
                                  hunt_urn=object_urn)
         else:
           # Check if we can access a non-existent path under this one.
@@ -154,7 +154,7 @@ class ClientApproval(Approval):
           "Approval can only be granted on clients, not %s" % client_id,
           subject=self.urn, requested_access=token.requested_access)
 
-    now = rdfvalue.RDFDatetime()
+    now = rdfvalue.RDFDatetime().Now()
 
     # Is this an emergency access?
     break_glass = self.Get(self.Schema.BREAK_GLASS)
@@ -218,7 +218,7 @@ class HuntApproval(Approval):
           "Approval object is not for user %s." % token.username,
           subject=hunt_urn, requested_access=token.requested_access)
 
-    now = rdfvalue.RDFDatetime()
+    now = rdfvalue.RDFDatetime().Now()
 
     # Check that there are enough approvers.
     lifetime = self.Get(self.Schema.LIFETIME)
@@ -274,11 +274,12 @@ class RequestClientApprovalFlow(flow.GRRFlow):
     # are RDFURNs by default
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(
         rdfvalue.RDFURN(self.client_id).Path()).Add(
-            self.token.username).Add(utils.EncodeReasonString(self.reason))
+            self.token.username).Add(utils.EncodeReasonString(
+                self.state.reason))
 
     approval_request = aff4.FACTORY.Create(approval_urn, "ClientApproval",
                                            mode="w", token=token)
-    approval_request.Set(approval_request.Schema.REASON(self.reason))
+    approval_request.Set(approval_request.Schema.REASON(self.state.reason))
 
     # We add ourselves as an approver as well (The requirement is that we have 2
     # approvers, so the requester is automatically an approver).
@@ -288,7 +289,7 @@ class RequestClientApprovalFlow(flow.GRRFlow):
     approval_request.Close()
 
     # Notify to the users.
-    for user in self.approver.split(","):
+    for user in self.state.approver.split(","):
       user = user.strip()
       fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(user),
                                "GRRUser", mode="rw", token=token)
@@ -322,7 +323,7 @@ Please click <a href='%(admin_ui)s#%(approval_urn)s'>
                              template % dict(
                                  username=self.token.username,
                                  hostname=hostname,
-                                 reason=utils.SmartStr(self.reason),
+                                 reason=utils.SmartStr(self.state.reason),
                                  admin_ui=config_lib.CONFIG["AdminUI.url"],
                                  approval_urn=url),
                              is_html=True)
@@ -355,11 +356,12 @@ class RequestHuntApprovalFlow(flow.GRRFlow):
     token = access_control.ACLToken()
     token.supervisor = True
 
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.hunt_id.Path()).Add(
-        self.token.username).Add(utils.EncodeReasonString(self.reason))
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.state.hunt_id.Path()).Add(
+        self.token.username).Add(utils.EncodeReasonString(
+            self.state.reason))
     approval_request = aff4.FACTORY.Create(approval_urn, "HuntApproval",
                                            mode="rw", token=token)
-    approval_request.Set(approval_request.Schema.REASON(self.reason))
+    approval_request.Set(approval_request.Schema.REASON(self.state.reason))
 
     # We add ourselves as an approver as well (The requirement is that we have 2
     # approvers, so the requester is automatically an approver). For hunts also,
@@ -370,7 +372,7 @@ class RequestHuntApprovalFlow(flow.GRRFlow):
     approval_request.Close()
 
     # Notify to the users.
-    for user in self.approver.split(","):
+    for user in self.state.approver.split(","):
       user = user.strip()
       fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(user),
                                "GRRUser", mode="rw", token=token)
@@ -401,7 +403,7 @@ Please click <a href='%(admin_ui)s#%(approval_urn)s'>
                              "Please grant %s access." % self.token.username,
                              template % dict(
                                  username=self.token.username,
-                                 reason=utils.SmartStr(self.reason),
+                                 reason=utils.SmartStr(self.state.reason),
                                  admin_ui=config_lib.CONFIG["AdminUI.url"],
                                  approval_urn=url),
                              is_html=True)
@@ -432,12 +434,13 @@ class GrantClientApprovalFlow(flow.GRRFlow):
     # are RDFURNs by default
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(
         rdfvalue.RDFURN(self.client_id).Path()).Add(
-            self.delegate).Add(utils.EncodeReasonString(self.reason))
+            self.state.delegate).Add(utils.EncodeReasonString(
+                self.state.reason))
 
     # This object must already exist.
     try:
       approval_request = aff4.FACTORY.Open(approval_urn, mode="rw",
-                                           required_type="Approval",
+                                           aff4_type="Approval",
                                            token=self.token)
     except IOError:
       raise access_control.UnauthorizedAccess("Approval object does not exist.",
@@ -449,8 +452,9 @@ class GrantClientApprovalFlow(flow.GRRFlow):
     approval_request.Close(sync=True)
 
     # Notify to the user.
-    fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(self.delegate),
-                             "GRRUser", mode="rw", token=self.token)
+    fd = aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users").Add(self.state.delegate),
+        "GRRUser", mode="rw", token=self.token)
 
     fd.Notify("ViewObject", rdfvalue.RDFURN(self.client_id),
               "%s has approved your request to this "
@@ -474,11 +478,11 @@ Please click <a href='%(admin_ui)s#%(urn)s'>
     url = urllib.urlencode((("c", self.client_id),
                             ("main", "HostInformation")))
 
-    email_alerts.SendEmail(self.delegate, self.token.username,
+    email_alerts.SendEmail(self.state.delegate, self.token.username,
                            "Access granted for machine.",
                            template % dict(
                                username=self.token.username,
-                               reason=utils.SmartStr(self.reason),
+                               reason=utils.SmartStr(self.state.reason),
                                admin_ui=config_lib.CONFIG["AdminUI.url"],
                                urn=url),
                            is_html=True)
@@ -493,19 +497,19 @@ class BreakGlassGrantClientApprovalFlow(GrantClientApprovalFlow):
     # TODO(user): remove explicit conversion to RDFURN when all cient_ids
     # are RDFURNs by default
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(
-        rdfvalue.RDFURN(self.client_id).Path()).Add(
-            self.token.username).Add(utils.EncodeReasonString(self.reason))
+        rdfvalue.RDFURN(self.client_id).Path()).Add(self.token.username).Add(
+            utils.EncodeReasonString(self.state.reason))
 
     # Create a new Approval object.
     approval_request = aff4.FACTORY.Create(approval_urn, "ClientApproval",
                                            token=self.token)
 
-    approval_request.Set(approval_request.Schema.REASON(self.reason))
+    approval_request.Set(approval_request.Schema.REASON(self.state.reason))
     approval_request.AddAttribute(
         approval_request.Schema.APPROVER(self.token.username))
 
     # This is a break glass approval.
-    break_glass = approval_request.Schema.BREAK_GLASS()
+    break_glass = approval_request.Schema.BREAK_GLASS().Now()
 
     # By default a break_glass approval only lasts 24 hours.
     break_glass += 60 * 60 * 24 * 1e6
@@ -543,7 +547,7 @@ This access has been logged and granted for 24 hours.
             hostname=client.Get(client.Schema.HOSTNAME,
                                 "Unknown"),
             username=self.token.username,
-            reason=utils.SmartStr(self.reason)),
+            reason=utils.SmartStr(self.state.reason)),
         is_html=True)
 
 
@@ -567,13 +571,14 @@ class GrantHuntApprovalFlow(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Create the Approval object and notify the Approval Granter."""
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.hunt_urn.Path()).Add(
-        self.delegate).Add(utils.EncodeReasonString(self.reason))
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.state.hunt_urn.Path()).Add(
+        self.state.delegate).Add(
+            utils.EncodeReasonString(self.state.reason))
 
     # This object must already exist.
     try:
       approval_request = aff4.FACTORY.Open(approval_urn, mode="rw",
-                                           required_type="Approval",
+                                           aff4_type="Approval",
                                            token=self.token)
     except IOError:
       raise access_control.UnauthorizedAccess("Approval object does not exist.",
@@ -585,10 +590,11 @@ class GrantHuntApprovalFlow(flow.GRRFlow):
     approval_request.Close(sync=True)
 
     # Notify to the user.
-    fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(self.delegate),
-                             "GRRUser", mode="rw", token=self.token)
+    fd = aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users").Add(self.state.delegate),
+        "GRRUser", mode="rw", token=self.token)
 
-    fd.Notify("ViewObject", self.hunt_urn,
+    fd.Notify("ViewObject", self.state.hunt_urn,
               "%s has approved your permission to this hunt" %
               self.token.username, self.session_id)
     fd.Close()
@@ -608,13 +614,13 @@ Please click <a href='%(admin_ui)s#%(urn)s'>
 </body></html>"""
 
     url = urllib.urlencode((("main", "ManageHunts"),
-                            ("hunt", utils.SmartStr(self.hunt_urn))))
+                            ("hunt", utils.SmartStr(self.state.hunt_urn))))
 
-    email_alerts.SendEmail(self.delegate, self.token.username,
+    email_alerts.SendEmail(self.state.delegate, self.token.username,
                            "Running permission granted for hunt.",
                            template % dict(
                                username=self.token.username,
-                               reason=utils.SmartStr(self.reason),
+                               reason=utils.SmartStr(self.state.reason),
                                admin_ui=config_lib.CONFIG["AdminUI.url"],
                                urn=url),
                            is_html=True)

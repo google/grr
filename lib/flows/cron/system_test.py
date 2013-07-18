@@ -1,21 +1,19 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
-"""AFF4 Cron object tests."""
+"""System cron flows tests."""
 
 
 import time
 
 from grr.lib import aff4
 from grr.lib import test_lib
-from grr.lib.aff4_objects import cronjobs
 from grr.test_data import client_fixture
 
 
-class CronJobTest(test_lib.AFF4ObjectTest):
-  """Test the cron implementation."""
+class SystemCronFlowTest(test_lib.AFF4ObjectTest):
+  """Test system cron flows."""
 
   def setUp(self):
-    super(CronJobTest, self).setUp()
+    super(SystemCronFlowTest, self).setUp()
 
     # Mock today's time to be 8 days after the fixture date.
     self.old_time = time.time
@@ -37,11 +35,12 @@ class CronJobTest(test_lib.AFF4ObjectTest):
   def tearDown(self):
     time.time = self.old_time
 
-  def testClientStatsCronJobs(self):
+  def testGRRVersionBreakDown(self):
     """Check that all client stats cron jobs are run."""
-    cronjobs.RunAllCronJobs(token=self.token)
+    for _ in test_lib.TestFlowHelper("GRRVersionBreakDown", token=self.token):
+      pass
 
-    fd = aff4.FACTORY.Open("cron:/GRRVersionBreakDown", token=self.token)
+    fd = aff4.FACTORY.Open("aff4:/stats/ClientFleetStats", token=self.token)
     histogram = fd.Get(fd.Schema.GRRVERSION_HISTOGRAM)
 
     # There should be 0 instances in 1 day actives.
@@ -62,25 +61,12 @@ class CronJobTest(test_lib.AFF4ObjectTest):
     self.assertEqual(histogram[3][0].label, "GRR Monitor 1")
     self.assertEqual(histogram[3][0].y_value, 20)
 
-    # Make sure that we only run once. We try to run all the crons after 20
-    # minutes.
-    self.now += 20 * 60
-
-    cronjobs.RunAllCronJobs(token=self.token)
-
-    fd = aff4.FACTORY.Open("cron:/GRRVersionBreakDown", token=self.token,
-                           age=aff4.ALL_TIMES)
-
-    histograms = list(fd.GetValuesForAttribute(
-        fd.Schema.GRRVERSION_HISTOGRAM))
-
-    self.assertEqual(len(histograms), 1)
-
   def testOSBreakdown(self):
     """Check that all client stats cron jobs are run."""
-    cronjobs.RunAllCronJobs(token=self.token)
+    for _ in test_lib.TestFlowHelper("OSBreakDown", token=self.token):
+      pass
 
-    fd = aff4.FACTORY.Open("cron:/OSBreakDown", token=self.token)
+    fd = aff4.FACTORY.Open("aff4:/stats/ClientFleetStats", token=self.token)
 
     histogram = fd.Get(fd.Schema.OS_HISTOGRAM)
 
@@ -108,11 +94,12 @@ class CronJobTest(test_lib.AFF4ObjectTest):
 
   def testLastAccessStats(self):
     """Check that all client stats cron jobs are run."""
-    cronjobs.RunAllCronJobs(token=self.token)
+    for _ in test_lib.TestFlowHelper("LastAccessStats", token=self.token):
+      pass
 
-    fd = aff4.FACTORY.Open("cron:/LastAccessStats", token=self.token)
+    fd = aff4.FACTORY.Open("aff4:/stats/ClientFleetStats", token=self.token)
 
-    histogram = fd.Get(fd.Schema.HISTOGRAM)
+    histogram = fd.Get(fd.Schema.LAST_CONTACTED_HISTOGRAM)
 
     data = [(x.x_value, x.y_value) for x in histogram]
     self.assertEqual(data, [

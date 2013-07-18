@@ -14,10 +14,11 @@ from grr.lib import server_plugins
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
-from grr.lib import flow_context
+from grr.lib import flow_runner
 from grr.lib import rdfvalue
 from grr.lib import scheduler
 from grr.lib import test_lib
+from grr.lib import worker
 
 
 # A global collector for test results
@@ -71,35 +72,36 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def SendResponse(self, session_id, data, client_id=None, send_status=True):
     if not isinstance(data, rdfvalue.RDFValue):
       data = rdfvalue.DataBlob(string=data)
-    with flow_context.FlowManager(token=self.token) as flow_manager:
-      flow_manager.QueueResponse(session_id, rdfvalue.GRRMessage(
+    with flow_runner.FlowManager(token=self.token) as flow_manager:
+      flow_manager.QueueResponse(session_id, rdfvalue.GrrMessage(
           source=client_id,
           session_id=session_id,
           payload=data,
           request_id=1, response_id=1))
       if send_status:
-        flow_manager.QueueResponse(session_id, rdfvalue.GRRMessage(
+        flow_manager.QueueResponse(session_id, rdfvalue.GrrMessage(
             source=client_id,
             session_id=session_id,
-            payload=rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.Enum("OK")),
+            payload=rdfvalue.GrrStatus(
+                status=rdfvalue.GrrStatus.ReturnedStatus.OK),
             request_id=1, response_id=2,
-            type=rdfvalue.GRRMessage.Enum("STATUS")))
+            type=rdfvalue.GrrMessage.Type.STATUS))
 
     # Signal on the worker queue that this flow is ready.
     data_store.DB.Set("W", "task:%s" % session_id, "X", token=self.token)
 
   def testProcessMessages(self):
     """Test processing of several inbound messages."""
-    worker = flow.GRRWorker("W", token=self.token)
+    worker_obj = worker.GRRWorker("W", run_cron=False, token=self.token)
 
     # Create a couple of flows
     flow_obj = self.FlowSetup("WorkerSendingTestFlow")
     session_id_1 = flow_obj.session_id
-    flow.FACTORY.ReturnFlow(flow_obj, token=self.token)
+    flow_obj.Close()
 
     flow_obj = self.FlowSetup("WorkerSendingTestFlow2")
     session_id_2 = flow_obj.session_id
-    flow.FACTORY.ReturnFlow(flow_obj, token=self.token)
+    flow_obj.Close()
 
     # Check that client queue has messages
     tasks_on_client_queue = scheduler.SCHEDULER.Query(
@@ -119,9 +121,9 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     del RESULTS[:]
 
     # Process all messages
-    worker.RunOnce()
+    worker_obj.RunOnce()
 
-    worker.thread_pool.Join()
+    worker_obj.thread_pool.Join()
 
     # Ensure both requests ran exactly once
     RESULTS.sort()
@@ -138,34 +140,32 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     # Ensure that processed requests are removed from state subject
     self.assertEqual((None, 0), data_store.DB.Resolve(
-        flow_context.FlowManager.FLOW_STATE_TEMPLATE % session_id_1,
-        flow_context.FlowManager.FLOW_REQUEST_TEMPLATE % 1,
+        flow_runner.FlowManager.FLOW_STATE_TEMPLATE % session_id_1,
+        flow_runner.FlowManager.FLOW_REQUEST_TEMPLATE % 1,
         token=self.token))
 
-    rdf_flow = flow.FACTORY.FetchFlow(session_id_1, token=self.token)
-    self.assert_(rdf_flow.state != rdfvalue.Flow.Enum("TERMINATED"))
-    flow.FACTORY.ReturnFlow(rdf_flow, token=self.token)
-
-    rdf_flow = flow.FACTORY.FetchFlow(session_id_2, token=self.token)
-    self.assertEqual(rdf_flow.state, rdfvalue.Flow.Enum("TERMINATED"))
-    flow.FACTORY.ReturnFlow(rdf_flow, token=self.token)
+    flow_obj = aff4.FACTORY.Open(session_id_1, token=self.token)
+    self.assertTrue(flow_obj.state.context.state !=
+                    rdfvalue.Flow.State.TERMINATED)
+    flow_obj = aff4.FACTORY.Open(session_id_2, token=self.token)
+    self.assertTrue(flow_obj.state.context.state ==
+                    rdfvalue.Flow.State.TERMINATED)
 
   def testProcessMessagesWellKnown(self):
-
-    worker = flow.GRRWorker("W", token=self.token)
+    worker_obj = worker.GRRWorker("W", run_cron=False, token=self.token)
 
     # Send a message to a WellKnownFlow - ClientStatsAuto.
-    client_id = "C.1100110011001100"
+    client_id = rdfvalue.ClientURN("C.1100110011001100")
     self.SendResponse("aff4:/flows/W:Stats",
                       data=rdfvalue.ClientStats(RSS_size=1234),
                       client_id=client_id,
                       send_status=False)
 
     # Process all messages
-    worker.RunOnce()
-    worker.thread_pool.Join()
+    worker_obj.RunOnce()
+    worker_obj.thread_pool.Join()
 
-    client = aff4.FACTORY.Open("aff4:/%s/stats" % client_id, token=self.token)
+    client = aff4.FACTORY.Open(client_id.Add("stats"), token=self.token)
     stats = client.Get(client.Schema.STATS)
     self.assertEqual(stats.RSS_size, 1234)
 

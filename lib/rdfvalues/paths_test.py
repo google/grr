@@ -2,7 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 
 # Copyright 2012 Google Inc. All Rights Reserved.
-"""These are tests for the RDFPathSpec implementation."""
+"""These are tests for the PathSpec implementation."""
 
 
 
@@ -12,37 +12,37 @@ from grr.lib.rdfvalues import test_base
 from grr.proto import jobs_pb2
 
 
-class RDFPathSpecTest(test_base.RDFProtoTestCase):
-  """Test the RDFPathSpec implementation."""
+class PathSpecTest(test_base.RDFProtoTestCase):
+  """Test the PathSpec implementation."""
 
-  rdfvalue_class = rdfvalue.RDFPathSpec
+  rdfvalue_class = rdfvalue.PathSpec
 
   def CheckRDFValue(self, rdfproto, sample):
     """Check that the rdfproto is the same as the sample."""
-    super(RDFPathSpecTest, self).CheckRDFValue(rdfproto, sample)
+    super(PathSpecTest, self).CheckRDFValue(rdfproto, sample)
 
     self.assertEqual(rdfproto.path, sample.path)
     self.assertEqual(rdfproto.pathtype, sample.pathtype)
 
   def GenerateSample(self, number=0):
-    """Make a sample RDFPathSpec instance."""
-    return rdfvalue.RDFPathSpec(path="/%s/" % number, pathtype=number)
+    """Make a sample PathSpec instance."""
+    return rdfvalue.PathSpec(path="/%s/" % number, pathtype=number)
 
   def testPop(self):
     """Test we can pop arbitrary elements from the pathspec."""
-    sample = rdfvalue.RDFPathSpec(
-        path="/", pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    sample = rdfvalue.PathSpec(
+        path="/", pathtype=rdfvalue.PathSpec.PathType.OS)
 
     for i in range(5):
       sample.Append(
-          path=str(i), pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+          path=str(i), pathtype=rdfvalue.PathSpec.PathType.OS)
 
     self.assertEqual([x.path for x in sample],
                      list("/01234"))
 
     # Check we pop the right element.
     popped = sample.Pop(2)
-    self.assertIsInstance(popped, rdfvalue.RDFPathSpec)
+    self.assertIsInstance(popped, rdfvalue.PathSpec)
     self.assertEqual(popped.path, "1")
     self.assertEqual([x.path for x in sample],
                      list("/0234"))
@@ -52,54 +52,44 @@ class RDFPathSpecTest(test_base.RDFProtoTestCase):
     self.assertEqual([x.path for x in sample],
                      list("0234"))
 
-  def testRDFPathSpec(self):
-    """Test that RDFPathSpec works."""
+  def testPathSpec(self):
+    """Test that PathSpec works."""
     # Make a template pathspec using a protobuf the hard way.
-    pathspec_pb = jobs_pb2.Path(path="/", pathtype=1)
+    pathspec_pb = jobs_pb2.PathSpec(path="/", pathtype=1)
     pathspec_pb.nested_path.path = "foo"
     pathspec_pb.nested_path.pathtype = 2
 
     # Create a new RDFPathspec from scratch.
-    pathspec = rdfvalue.RDFPathSpec()
+    pathspec = rdfvalue.PathSpec()
     pathspec.path = "/"
     pathspec.pathtype = 1
     pathspec.Append(path="foo", pathtype=2)
 
-    self.assertEqual(pathspec_pb.SerializeToString(),
-                     pathspec.SerializeToString())
+    self.assertProtoEqual(pathspec_pb, pathspec)
 
     # Create a new RDFPathspec from keywords.
-    pathspec = rdfvalue.RDFPathSpec(path="/", pathtype=1)
+    pathspec = rdfvalue.PathSpec(path="/", pathtype=1)
     pathspec.Append(path="foo", pathtype=2)
 
-    self.assertEqual(pathspec_pb.SerializeToString(),
-                     pathspec.SerializeToString())
+    self.assertProtoEqual(pathspec_pb, pathspec)
 
     # Check that copies are ok
     pathspec = pathspec.Copy()
 
-    self.assertEqual(pathspec_pb.SerializeToString(),
-                     pathspec.SerializeToString())
+    self.assertProtoEqual(pathspec_pb, pathspec)
 
     # Accessors:
     self.assertEqual(pathspec.path, "/")
     self.assertEqual(pathspec.last.path, "foo")
 
     # Initialize from a protobuf.
-    pathspec_pb_copy = jobs_pb2.Path()
+    pathspec_pb_copy = jobs_pb2.PathSpec()
     pathspec_pb_copy.CopyFrom(pathspec_pb)
 
-    pathspec = rdfvalue.RDFPathSpec(pathspec_pb_copy)
-    self.assertEqual(pathspec_pb.SerializeToString(),
-                     pathspec.SerializeToString())
+    pathspec = rdfvalue.PathSpec(pathspec_pb_copy)
+    self.assertProtoEqual(pathspec_pb, pathspec)
 
-    # Modifying the protobuf in place. An RDFPathSpec which is instantiated
-    # using a protobuf simply wraps it rather than making a copy. Any
-    # modifications to the RDFPathSpec object are reflected in the underlying
-    # protobuf.
     pathspec.first.path = "test"
-    self.assertEqual(pathspec.path, pathspec_pb_copy.path)
-
     self.assertEqual(pathspec.last.path, "foo")
 
     # Test Pathspec iterator.
@@ -108,28 +98,40 @@ class RDFPathSpecTest(test_base.RDFProtoTestCase):
     # Length.
     self.assertEqual(len(pathspec), 2)
 
-    pathspec = rdfvalue.RDFPathSpec(path="/foo", pathtype=1)
+    pathspec = rdfvalue.PathSpec(path="/foo", pathtype=1)
     pathspec.Append(path="/", pathtype=0)
     self.assertEqual(pathspec.Dirname().CollapsePath(), "/")
     pathspec.Append(path="sdasda", pathtype=0)
     self.assertEqual(pathspec.Dirname().CollapsePath(), "/foo")
 
-    pathspec = rdfvalue.RDFPathSpec(path="/foo", pathtype=1)
-    pathspec_base = rdfvalue.RDFPathSpec()
+    pathspec = rdfvalue.PathSpec(path="/foo", pathtype=1)
+    pathspec_base = rdfvalue.PathSpec()
     pathspec_base.Append(pathspec)
 
     self.assertEqual(pathspec_base.CollapsePath(), "/foo")
 
-    pathspec_base = rdfvalue.RDFPathSpec()
+    pathspec_base = rdfvalue.PathSpec()
     pathspec_base.Insert(0, path="/foo", pathtype=1)
 
     self.assertEqual(pathspec_base.CollapsePath(), "/foo")
 
   def testUnicodePaths(self):
     """Test that we can manipulate paths in unicode."""
-    sample = rdfvalue.RDFPathSpec(pathtype=1,
+    sample = rdfvalue.PathSpec(pathtype=1,
                                   path=u"/dev/c/msn升级程序[1].exe")
 
     # Ensure we can convert to a string.
     str(sample)
     unicode(sample)
+
+  def testCopy(self):
+    sample = rdfvalue.PathSpec(
+        path="/", pathtype=rdfvalue.PathSpec.PathType.OS)
+    sample.Append(path="foo", pathtype=rdfvalue.PathSpec.PathType.TSK)
+
+    # Make a copy of the original and change it.
+    sample_copy = sample.Copy()
+    sample_copy.last.path = "bar"
+
+    # This should not change the original.
+    self.assertEqual(sample.last.path, "foo")

@@ -8,6 +8,9 @@ import urllib
 
 import logging
 
+# pylint: disable=unused-import
+from grr.gui import django_lib
+# pylint: enable=unused-import
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
@@ -21,6 +24,24 @@ from grr.lib import utils
 config_lib.DEFINE_string("Monitoring.events_email", None,
                          "The email address to send events to.")
 
+renderers = None  # Will be imported at initialization time.
+
+
+class AdministrativeInit(registry.InitHook):
+  """Initialize the Django environment."""
+
+  pre = ["DjangoInit", "StatsInit"]
+
+  def RunOnce(self):
+    stats.STATS.RegisterVar("grr_client_crashes")
+    # TODO(user): This is a huge hack but necessary because getting django
+    # importing correct is very hard. We really should think about decoupling
+    # the templating system better.
+    global renderers  # pylint: disable=global-variable-not-assigned
+    # pylint: disable=g-import-not-at-top, unused-variable, redefined-outer-name
+    from grr.gui import renderers
+    # pylint: enable=g-import-not-at-top, unused-variable, redefined-outer-name
+
 
 class ClientCrashEventListener(flow.EventListener):
   """EventListener with additional helper methods to save crash details."""
@@ -33,16 +54,13 @@ class ClientCrashEventListener(flow.EventListener):
 
   def WriteAllCrashDetails(self, client_id, crash_details,
                            flow_session_id=None, hunt_session_id=None):
-    self._AppendCrashDetails(aff4.ROOT_URN.Add(client_id).Add("crashes"),
-                             crash_details)
-    self._AppendCrashDetails(aff4.ROOT_URN.Add("crashes"),
-                             crash_details)
+    self._AppendCrashDetails(client_id.Add("crashes"), crash_details)
+    self._AppendCrashDetails(aff4.ROOT_URN.Add("crashes"), crash_details)
+
     if flow_session_id:
-      # TODO(user): we're using mode="rw" here because otherwise (in case of
-      # blind write) we'll overwrite TYPE. We need to have an AFF4 operation
-      # "blind write to an object that we're sure that is already existing".
-      aff4_flow = aff4.FACTORY.Open(rdfvalue.RDFURN(flow_session_id), mode="rw",
-                                    age=aff4.NEWEST_TIME, token=self.token)
+      aff4_flow = aff4.FACTORY.Create(
+          rdfvalue.RDFURN(flow_session_id), "GRRFlow", mode="w",
+          age=aff4.NEWEST_TIME, token=self.token)
       aff4_flow.Set(aff4_flow.Schema.CLIENT_CRASH(crash_details))
       aff4_flow.Close(sync=False)
 
@@ -76,7 +94,7 @@ class GetClientStats(flow.GRRFlow):
 
   def ProcessResponse(self, response):
     """Actually processes the contents of the response."""
-    urn = aff4.ROOT_URN.Add(self.client_id).Add("stats")
+    urn = self.client_id.Add("stats")
     stats_fd = aff4.FACTORY.Create(urn, "ClientStats", token=self.token,
                                    mode="rw")
 
@@ -85,8 +103,6 @@ class GetClientStats(flow.GRRFlow):
     stats_fd.AddAttribute(stats_fd.Schema.STATS(response))
 
     stats_fd.Close()
-
-    self.Notify("ViewObject", urn, "Client Stats")
 
 
 class GetClientStatsAuto(GetClientStats, flow.WellKnownFlow):
@@ -180,7 +196,8 @@ class UpdateConfig(flow.GRRFlow):
   @flow.StateHandler(next_state=["Confirmation"])
   def Start(self):
     """Call the GetConfig function on the client."""
-    self.CallClient("UpdateConfig", self.grr_config, next_state="Confirmation")
+    self.CallClient("UpdateConfig", self.state.config,
+                    next_state="Confirmation")
 
   @flow.StateHandler(next_state="End")
   def Confirmation(self, responses):
@@ -207,13 +224,13 @@ class ExecutePythonHack(flow.GRRFlow):
   @flow.StateHandler(next_state=["End"])
   def Start(self):
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("config").Add(
-        "python_hacks").Add(self.hack_name), token=self.token)
+        "python_hacks").Add(self.state.hack_name), token=self.token)
 
     python_blob = fd.Get(fd.Schema.BINARY)
     if python_blob is None:
-      raise RuntimeError("Python hack %s not found." % self.hack_name)
+      raise RuntimeError("Python hack %s not found." % self.state.hack_name)
     self.CallClient("ExecutePython", python_code=python_blob,
-                    py_args=self.py_args, next_state="End")
+                    py_args=self.state.py_args, next_state="End")
 
   @flow.StateHandler()
   def End(self, responses):
@@ -249,8 +266,9 @@ class ExecuteCommand(flow.GRRFlow):
   @flow.StateHandler(next_state=["Confirmation"])
   def Start(self):
     """Call the execute function on the client."""
-    self.CallClient("ExecuteCommand", cmd=self.cmd, args=self.args.split(" "),
-                    time_limit=self.time_limit, next_state="Confirmation")
+    self.CallClient("ExecuteCommand", cmd=self.state.cmd,
+                    args=self.state.args.split(" "),
+                    time_limit=self.state.time_limit, next_state="Confirmation")
 
   @flow.StateHandler(next_state="End")
   def Confirmation(self, responses):
@@ -296,7 +314,9 @@ class Foreman(flow.WellKnownFlow):
   def ProcessMessage(self, message):
     """Run the foreman on the client."""
     # Only accept authenticated messages
-    if message.auth_state != rdfvalue.GRRMessage.Enum("AUTHENTICATED"): return
+    if (message.auth_state !=
+        rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED):
+      return
 
     now = time.time()
 
@@ -339,7 +359,7 @@ class OnlineNotification(flow.GRRFlow):
   @flow.StateHandler(next_state="SendMail")
   def Start(self):
     """Starts processing."""
-    self.email = self.email or self.token.username
+    self.state.email = self.state.email or self.token.username
     self.CallClient("Echo", data="Ping", next_state="SendMail")
 
   @flow.StateHandler()
@@ -355,7 +375,7 @@ class OnlineNotification(flow.GRRFlow):
       subject = "GRR Client on %s became available." % hostname
 
       email_alerts.SendEmail(
-          self.email, "grr-noreply",
+          self.state.email, "grr-noreply",
           subject,
           self.template % dict(
               client_id=self.client_id,
@@ -400,9 +420,8 @@ class UpdateClient(flow.GRRFlow):
   @flow.StateHandler(next_state="Interrogate")
   def Start(self):
     """Start."""
-    if not self.blob_path:
-      client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(
-          self.client_id), token=self.token)
+    if not self.state.blob_path:
+      client = aff4.FACTORY.Open(self.client_id, token=self.token)
       client_platform = client.Get(client.Schema.SYSTEM)
       if not client_platform:
         raise RuntimeError("Can't determine client platform, please specify.")
@@ -414,14 +433,14 @@ class UpdateClient(flow.GRRFlow):
         raise RuntimeError(
             "No matching updates found, please specify one manually.")
       aff4_blob = updates[-1]
-      self.blob_path = aff4_blob.urn
+      self.state.blob_path = aff4_blob.urn
     else:
-      aff4_blob = aff4.FACTORY.Open(self.blob_path, token=self.token)
+      aff4_blob = aff4.FACTORY.Open(self.state.blob_path, token=self.token)
 
     blob = aff4_blob.Get(aff4_blob.Schema.BINARY)
 
-    if ("windows" in utils.SmartStr(self.blob_path) or
-        "darwin" in utils.SmartStr(self.blob_path)):
+    if ("windows" in utils.SmartStr(self.state.blob_path) or
+        "darwin" in utils.SmartStr(self.state.blob_path)):
       self.CallClient("UpdateAgent", executable=blob, next_state="Interrogate")
 
     else:
@@ -436,8 +455,7 @@ class UpdateClient(flow.GRRFlow):
 
   @flow.StateHandler()
   def Done(self):
-    client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(
-        self.client_id), token=self.token)
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
     info = client.Get(client.Schema.CLIENT_INFO)
     self.Log("Client update completed, new version: %s" %
              info.client_version)
@@ -478,7 +496,7 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
     logging.info(self.logline, client_id, message)
 
     # Write crash data to AFF4.
-    client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id), token=self.token)
+    client = aff4.FACTORY.Open(client_id, token=self.token)
     client_info = client.Get(client.Schema.CLIENT_INFO)
 
     crash_details = rdfvalue.ClientCrash(
@@ -546,8 +564,8 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
 <p>Thanks,</p>
 <p>The GRR team.
 <p>
-P.S. The failing flow was:
-%(flow)s
+P.S. The state of the failing flow was:
+%(state)s
 
 %(nanny_msg)s
 
@@ -556,13 +574,11 @@ P.S. The failing flow was:
   @flow.EventHandler(allow_client_access=True)
   def ProcessMessage(self, message=None, event=None):
     """Processes this event."""
-
     _ = event
     client_id = message.source
     nanny_msg = ""
 
-    rdf_flow = flow.FACTORY.FetchFlow(message.session_id, token=self.token,
-                                      lock=False)
+    flow_obj = aff4.FACTORY.Open(message.session_id, token=self.token)
 
     # Log.
     logging.info("Client crash reported, client %s.", client_id)
@@ -571,7 +587,7 @@ P.S. The failing flow was:
     stats.STATS.Increment("grr_client_crashes")
 
     # Write crash data to AFF4.
-    client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id), token=self.token)
+    client = aff4.FACTORY.Open(client_id, token=self.token)
     client_info = client.Get(client.Schema.CLIENT_INFO)
 
     status = rdfvalue.GrrStatus(message.args)
@@ -594,6 +610,8 @@ P.S. The failing flow was:
       url = urllib.urlencode((("c", client_id),
                               ("main", "HostInformation")))
 
+      state_html = renderers.FindRendererForObject(flow_obj.state).RawHTML()
+
       email_alerts.SendEmail(
           config_lib.CONFIG["Monitoring.alert_email"],
           "GRR server",
@@ -602,7 +620,7 @@ P.S. The failing flow was:
               client_id=client_id,
               admin_ui=config_lib.CONFIG["AdminUI.url"],
               hostname=hostname,
-              flow=utils.SmartStr(rdf_flow),
+              state=state_html,
               urn=url, nanny_msg=nanny_msg),
           is_html=True)
 
@@ -610,8 +628,9 @@ P.S. The failing flow was:
       msg = "Client crashed, " + nanny_msg
     else:
       msg = "Client crashed."
+
     # Now terminate the flow.
-    flow.FACTORY.TerminateFlow(message.session_id, reason=msg,
+    flow.GRRFlow.TerminateFlow(message.session_id, reason=msg,
                                token=self.token, force=True)
 
 
@@ -627,13 +646,14 @@ class ClientStartupHandler(flow.EventListener):
 
     # We accept unauthenticated messages so there are no errors but we don't
     # store the results.
-    if message.auth_state != rdfvalue.GRRMessage.Enum("AUTHENTICATED"):
+    if (message.auth_state !=
+        rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED):
       return
 
     client_id = message.source
 
-    client = aff4.FACTORY.Create(aff4.ROOT_URN.Add(client_id),
-                                 "VFSGRRClient", mode="rw", token=self.token)
+    client = aff4.FACTORY.Create(client_id, "VFSGRRClient", mode="rw",
+                                 token=self.token)
     old_info = client.Get(client.Schema.CLIENT_INFO)
     old_boot = client.Get(client.Schema.LAST_BOOT_TIME, 0)
     startup_info = rdfvalue.StartupInfo(message.args)
@@ -656,14 +676,6 @@ class ClientStartupHandler(flow.EventListener):
     client.Close()
 
 
-class AdministrativeInit(registry.InitHook):
-
-  pre = ["StatsInit"]
-
-  def RunOnce(self):
-    stats.STATS.RegisterVar("grr_client_crashes")
-
-
 class KeepAlive(flow.GRRFlow):
   """Requests that the clients stays alive for a period of time."""
 
@@ -681,7 +693,7 @@ class KeepAlive(flow.GRRFlow):
 
   @flow.StateHandler(next_state="SendMessage")
   def Start(self):
-    self.end_time = time.time() + self.stayalive_time
+    self.state.Register("end_time", time.time() + self.stayalive_time)
     self.CallState(next_state="SendMessage")
 
   @flow.StateHandler(next_state="Sleep")
@@ -698,5 +710,5 @@ class KeepAlive(flow.GRRFlow):
       self.Log(responses.status.error_message)
       raise flow.FlowError(responses.status.error_message)
 
-    if time.time() < self.end_time - self.sleep_time:
+    if time.time() < self.state.end_time - self.sleep_time:
       self.CallState(next_state="SendMessage", delay=self.sleep_time)

@@ -8,28 +8,19 @@ from grr.lib import type_info
 from grr.proto import jobs_pb2
 
 
-class InstallDriverRequest(rdfvalue.RDFProto):
+class InstallDriverRequest(rdfvalue.RDFProtoStruct):
   """A request to the client to install a driver."""
-  _proto = jobs_pb2.InstallDriverRequest
-
-  rdf_map = dict(driver=rdfvalue.SignedBlob)
+  protobuf = jobs_pb2.InstallDriverRequest
 
 
-class VolatilityRequest(rdfvalue.RDFProto):
+class VolatilityRequest(rdfvalue.RDFProtoStruct):
   """A request to the volatility subsystem on the client."""
-  _proto = jobs_pb2.VolatilityRequest
-
-  rdf_map = dict(args=rdfvalue.RDFProtoDict,
-                 device=rdfvalue.RDFPathSpec,
-                 session=rdfvalue.RDFProtoDict)
+  protobuf = jobs_pb2.VolatilityRequest
 
 
-class MemoryInformation(rdfvalue.RDFProto):
+class MemoryInformation(rdfvalue.RDFProtoStruct):
   """Information about the client's memory geometry."""
-  _proto = jobs_pb2.MemoryInformation
-
-  rdf_map = dict(device=rdfvalue.RDFPathSpec,
-                 runs=rdfvalue.BufferReference)
+  protobuf = jobs_pb2.MemoryInformation
 
 
 # The following define the data returned by Volatility plugins in a structured
@@ -43,29 +34,41 @@ class MemoryInformation(rdfvalue.RDFProto):
 # values.
 
 
-class VolatilityValue(rdfvalue.RDFProto):
-  _proto = jobs_pb2.VolatilityValue
+class VolatilityFormattedValue(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.VolatilityFormattedValue
 
 
-class VolatilityValues(rdfvalue.RDFProto):
-  _proto = jobs_pb2.VolatilityValues
-
-  rdf_map = dict(values=VolatilityValue)
+class VolatilityFormattedValues(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.VolatilityFormattedValues
 
 
-class VolatilitySection(rdfvalue.RDFProto):
+class VolatilityValue(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.VolatilityValue
+
+
+class VolatilityValues(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.VolatilityValues
+
+
+class VolatilityTable(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.VolatilityTable
+
+
+class VolatilityHeader(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.VolatilityHeader
+
+
+class VolatilitySection(rdfvalue.RDFProtoStruct):
   """A Volatility response returns multiple sections.
 
   Each section typically covers a single object (e.g. a PID).
   """
-  _proto = jobs_pb2.VolatilitySection
+  protobuf = jobs_pb2.VolatilitySection
 
 
-class VolatilityResult(rdfvalue.RDFProto):
+class VolatilityResult(rdfvalue.RDFProtoStruct):
   """The result of running a plugin."""
-  _proto = jobs_pb2.VolatilityResponse
-
-  rdf_map = dict(sections=VolatilitySection)
+  protobuf = jobs_pb2.VolatilityResponse
 
 
 class VolatilityRequestType(type_info.RDFValueType):
@@ -82,9 +85,9 @@ class VolatilityRequestType(type_info.RDFValueType):
           name="args"),
       type_info.MemoryPathspecType(
           description="Path to the device.",
-          default=rdfvalue.RDFPathSpec(
+          default=rdfvalue.PathSpec(
               path=r"\\.\pmem",
-              pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY")),
+              pathtype=rdfvalue.PathSpec.PathType.MEMORY),
           name="device",
           )
       )
@@ -92,7 +95,7 @@ class VolatilityRequestType(type_info.RDFValueType):
   def __init__(self, **kwargs):
     default_request = rdfvalue.VolatilityRequest()
     default_request.device.path = r"\\.\pmem"
-    default_request.device.pathtype = rdfvalue.RDFPathSpec.Enum("MEMORY")
+    default_request.device.pathtype = rdfvalue.PathSpec.PathType.MEMORY
 
     defaults = dict(name="request",
                     default=default_request,

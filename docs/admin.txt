@@ -347,15 +347,9 @@ to the dev list and we can try and fix things.
 
 Scheduling Flows with Cron
 --------------------------
-The cron allows for scheduling actions to run regularly on the GRR server.
+The cron allows for scheduling flows to run regularly on the GRR server.
 This is currently used to collect statistics and do cleanup on the database.
-
-The cron runs as a separate process cron.py. You can run it as often as you
-like, e.g. every five minutes. It maintains internally how often each job needs
-to run.
-
-The jobs that run are defined by CronJob classes, these are currently defined
-in lib/aff4_objects/cronjobs.py
+The cron runs as part of the workers. 
 
 
 

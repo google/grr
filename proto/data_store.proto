@@ -4,6 +4,7 @@
 
 syntax = "proto2";
 import "grr/proto/jobs.proto";
+import "grr/proto/semantic.proto";
 
 
 
@@ -32,12 +33,36 @@ message AccessToken {
   optional bool is_emergency = 8;
 }
 
+// Represent a timestamp specification.
+message TimestampSpec {
+  enum Type {
+    SPECIFIC_TIME = 0;
+    RANGED_TIME = 1;
+    ALL_TIMESTAMPS = 2;
+    NEWEST_TIMESTAMP = 3;
+  }
 
-message Value {
+  optional Type type = 1 [default = NEWEST_TIMESTAMP];
+
+  optional uint64 start = 2 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Start of the timestamp range if type is RANGED_TIME."
+    }];
+
+  optional uint64 end = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "End of the timestamp range if type is RANGED_TIME."
+    }];
+}
+
+
+message DataStoreValue {
   optional string predicate = 1;
   optional DataBlob value = 2;
-  optional int64 timestamp = 3;
-  // Options specific to the Value.
+
+  optional TimestampSpec timestamp = 5;
+
+ // Options specific to the Value.
   enum Option {
     DEFAULT = 0;
 
@@ -49,14 +74,13 @@ message Value {
 }
 
 message DataStoreRequest {
-  repeated string subject = 1;
-  repeated Value values = 2;
-  optional int64 timestamp = 3;
+  repeated string subject = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The AFF4 object we interact with."
+    }];
 
-  // Alternatively the timestamp can be a range.
-  optional int64 timestamp_start = 4;
-  optional int64 timestamp_end = 5;
-
+  repeated DataStoreValue values = 2;
+  optional TimestampSpec timestamp = 5;
   optional AccessToken token = 6;
 
   optional bool sync = 7;
@@ -75,32 +99,41 @@ message DataStoreQuery {
   repeated string attributes = 1;
   optional QueryASTNode filter = 2;
   optional string subject_prefix = 3;
-  repeated string subjects = 4;
+  repeated string subjects = 4  [(sem_type) = {
+      type: "RDFURN",
+      description: "The AFF4 objects we query for."
+    }];
+
   optional uint32 limit = 5;
   optional uint32 limit_start = 6;
   optional AccessToken token = 7;
-  optional int64 timestamp = 8;
-  optional int64 timestamp_start = 9;
-  optional int64 timestamp_end = 10;
+
+  optional TimestampSpec timestamp = 8;
 }
 
 message ResultSet {
-  optional string subject = 1;
-  repeated Value values = 2;
-  optional bytes serialized_result = 3;
+  optional string subject = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The AFF4 object we interact with."
+    }];
+  repeated DataStoreValue values = 2;
+  optional bytes serialized_result = 3 [(sem_type) = {
+      description: "Raw field which holds the data serialized in json format."
+      "This data will be available using the payload attribute."
+    }];
 }
 
-// Although we can relay exceptions they mess up the logs so we
-// explicitly return them here.
-enum Status {
-  OK = 0;
-  AUTHORIZATION_DENIED = 1;
-  DATA_STORE_ERROR = 2;
-  FLOW_ERROR = 3;
-  TIMEOUT_ERROR = 4;
-};
-
 message DataStoreResponse {
+  // Although we can relay exceptions they mess up the logs so we
+  // explicitly return them here.
+  enum Status {
+    OK = 0;
+    AUTHORIZATION_DENIED = 1;
+    DATA_STORE_ERROR = 2;
+    FLOW_ERROR = 3;
+    TIMEOUT_ERROR = 4;
+  };
+
   repeated ResultSet results = 1;
 
   // Total number of results on the server (Can be more than len(results)).
@@ -116,21 +149,35 @@ message DataStoreResponse {
 };
 
 message StartFlowRequest {
-  optional string client_id = 1;
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+    }];
   optional string flow_name = 2;
   optional Dict args = 3;
   optional AccessToken token = 4;
 };
 
 message TerminateFlowRequest {
-  optional string session_id = 1;
+  optional string session_id = 1 [(sem_type) = {
+      type: "RDFURN"
+    }];
   optional string reason = 2;  //Why is this flow terminated?
   optional bool force = 3;
   optional AccessToken token = 4;
 };
 
 message StartFlowResponse {
-  optional string session_id = 1;
+  enum Status {
+    OK = 0;
+    AUTHORIZATION_DENIED = 1;
+    DATA_STORE_ERROR = 2;
+    FLOW_ERROR = 3;
+    TIMEOUT_ERROR = 4;
+  };
+
+  optional string session_id = 1 [(sem_type) = {
+      type: "RDFURN"
+    }];
 
   optional Status status = 2 [default = OK];
 

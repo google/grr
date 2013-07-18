@@ -243,7 +243,7 @@ class EnrolmentInterrogateEvent(flow.EventListener):                  # <1>
   EVENTS = ["ClientEnrollment"]                                       # <2>
   well_known_session_id = "W:Interrogate"
 
-  @flow.EventHandler(source_restriction="CA")
+  @flow.EventHandler(source_restriction=lambda x: x=="CA")
   def ProcessMessage(self, message=None, event=None):
     flow.FACTORY.StartFlow(event.cn, "Interrogate", token=self.token) # <3>
 ------------------------------------------------------------------------
@@ -756,7 +756,7 @@ used and serve as examples for extension. There is no UI for these components
 currently, but they can be run from the Console.
 
 ------------------------------------------------------------------
-r = reports.ClientListReport(data_store.ACLToken())                <1>
+r = reports.ClientListReport(access_control.ACLToken())            <1>
 r.Run()                                                            <2>
 r.MailReport("joe@mailinator.com")                                 <3>
 open("client_list.csv", "w").write(r.AsCsv())                      <4>
@@ -793,7 +793,7 @@ By default, GRR should use data_store.default_token if one is not provided. To
 ease use this variable is automatically populated by the console if --client is
 used.
 
-Token generation is done using the data_store.ACLToken.
+Token generation is done using the access_control.ACLToken.
 
 [source, python]
 ------------------------------------------------------------------
@@ -808,7 +808,7 @@ Developer Information
 The following examples detail how developers can extend the GRR framework for
 implementing new features.
 
-=== Adding Flows. ===
+=== Adding Flows ===
 
 The most common task is to add a new flow. The following is an example of a
 non-trivial flow from the GRR source code:
@@ -855,6 +855,70 @@ specifies all the possible other states that can be transitioned from this
 state.
 <4> The 'CallFlow' method delegates execution to another flow. The responses
 from this flows will be fed back into the End state.
+
+==== Adding a new flow source file ====
+To add a new flow source file:
+1. Create the source file in lib/flows/general/, e.g. my_flow.py
+2. Add an import statement to lib/flows/general/__init__.py, e.g
+[source,python]
+------------------------------------------------------------------
+from grr.lib.flows.general import my_flow
+------------------------------------------------------------------
+
+==== Writing a new flow ====
+1. Create the flow class:
+
+[source,python]
+------------------------------------------------------------------
+class MyFlow(flow.GRRFlow):
+  """List the Volume Shadow Copies on the client."""
+------------------------------------------------------------------
+
+2. Define the category the flow is part of:
+
+[source,python]
+------------------------------------------------------------------
+  category = "/Filesystem/"
+------------------------------------------------------------------
+
+3. Define the flow type information. The web-based UI will generate
+the necessary flow parameters input files based on the flow type
+information.
+
+[source,python]
+------------------------------------------------------------------
+flow_typeinfo = type_info.TypeDescriptorSet(
+  ...
+)
+------------------------------------------------------------------
+
+4. Define the Start state handler.
+
+[source,python]
+------------------------------------------------------------------
+  @flow.StateHandler()
+  def Start(self, unused_response):
+------------------------------------------------------------------
+
+In the example above the flow only consists of the Start state handler
+and therefore only state handler is defined. As you can see in the
+AnalyzeClientMemory example provided earlier is it possible to chain
+state handlers with next_state="MyNextState". The name of the first
+state handler is Start. Multiple states can be defined as a list e.g.
+["MyNextState1", "MyNextState2", ...]. Results from one state to
+another are passed via the response argument.
+
+[source,python]
+------------------------------------------------------------------
+  @flow.StateHandler()
+  def MyNextState(self, response):
+------------------------------------------------------------------
+
+The last state handler called that is always called is the End state
+handler, by default it return a generic "Flow completed" response.
+The End state handler can be overwritten to return more detailed status
+information. The End state handler does not need to be explicitly defined
+as a next state.
 
 
 == Testing ==
@@ -907,7 +971,7 @@ joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/run_tests.py TestAdministrativeFl
 ------------------------------------------------------------------
 
 
-=== Testing the UI. ===
+=== Testing the UI ===
 
 Note: If you are doing this on a remote machine over SSH you need to make
 sure your X display is forwarded for Selenium, it will spawn a Firefox window

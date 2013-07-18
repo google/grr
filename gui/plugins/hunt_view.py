@@ -10,7 +10,6 @@ import collections as py_collections
 import json
 import operator
 import StringIO
-import sys
 import urllib
 
 
@@ -29,15 +28,6 @@ from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
-from grr.lib.aff4_objects import collections
-
-# TODO(user): This is needed to load existing hunts into the gui. When
-# unpickling stored hunts, python issues an import command for the module
-# the pickled class is located. We moved some of the files during the last
-# refactor so we make this work again using this hack. Hunts expire after
-# three months anyways so we can remove this soon.
-sys.modules["grr.lib.flows.general.hunts"] = hunts
-collections.GRRRDFValueCollection = collections.RDFValueCollection
 
 
 class ManageHunts(renderers.Splitter2Way):
@@ -63,10 +53,10 @@ class HuntStateIcon(renderers.RDFValueRenderer):
 """)
 
   # Maps the flow states to icons we can show
-  state_map = {rdfvalue.Flow.Enum("TERMINATED"): "stock_yes.png",
-               rdfvalue.Flow.Enum("RUNNING"): "clock.png",
-               rdfvalue.Flow.Enum("ERROR"): "nuke.png",
-               aff4.AFF4Object.VFSHunt.STATE_STOPPED: "pause.png"}
+  state_map = {rdfvalue.Flow.State.TERMINATED: "stock_yes.png",
+               rdfvalue.Flow.State.RUNNING: "clock.png",
+               rdfvalue.Flow.State.ERROR: "nuke.png",
+               hunts.GRRHunt.STATE_STOPPED: "pause.png"}
 
   def Layout(self, _, response):
     self.state_str = str(self.proxy)
@@ -119,7 +109,7 @@ class HuntViewRunHunt(renderers.TemplateRenderer):
 """)
 
   def Layout(self, request, response):
-    flow.FACTORY.StartFlow(None, "RunHuntFlow", token=request.token,
+    flow.GRRFlow.StartFlow(None, "RunHuntFlow", token=request.token,
                            hunt_urn=rdfvalue.RDFURN(request.REQ.get("hunt_id")))
 
     return super(HuntViewRunHunt, self).Layout(request, response)
@@ -168,7 +158,7 @@ class HuntViewPauseHunt(renderers.TemplateRenderer):
 """)
 
   def Layout(self, request, response):
-    flow.FACTORY.StartFlow(None, "PauseHuntFlow", token=request.token,
+    flow.GRRFlow.StartFlow(None, "PauseHuntFlow", token=request.token,
                            hunt_urn=request.REQ.get("hunt_id"))
 
     return super(HuntViewPauseHunt, self).Layout(request, response)
@@ -221,13 +211,13 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
   def Layout(self, request, response):
     """Layout handler."""
     hunt_urn = request.REQ.get("hunt_id")
-    hunt_obj = aff4.FACTORY.Open(hunt_urn, required_type="VFSHunt",
+    hunt_obj = aff4.FACTORY.Open(hunt_urn, aff4_type="GRRHunt",
                                  token=request.token)
 
     type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
     req = dict()
-    req["client_limit"] = hunt_obj.Get(hunt_obj.Schema.CLIENT_LIMIT)
-    req["expiry_time"] = hunt_obj.Get(hunt_obj.Schema.EXPIRY_TIME)
+    req["client_limit"] = hunt_obj.state.context.client_limit
+    req["expiry_time"] = hunt_obj.state.context.expiry_time
     self.hunt_params_form = type_descriptor_renderer.Form(
         hunts.GRRHunt.hunt_typeinfo, req, prefix="")
 
@@ -252,11 +242,11 @@ class HuntViewModifyHunt(renderers.TemplateRenderer,
     hunt_args = dict(type_descriptor_renderer.ParseArgs(
         hunts.GRRHunt.hunt_typeinfo, request, prefix=""))
 
-    aff4_hunt = aff4.FACTORY.Create(hunt_urn, "VFSHunt", mode="w",
-                                    token=request.token)
-    aff4_hunt.Set(aff4_hunt.Schema.EXPIRY_TIME(hunt_args["expiry_time"]))
-    aff4_hunt.Set(aff4_hunt.Schema.CLIENT_LIMIT(hunt_args["client_limit"]))
-    aff4_hunt.Close()
+    hunt = aff4.FACTORY.Open(hunt_urn, "GRRHunt", mode="rw",
+                             token=request.token)
+    hunt.state.context.expiry_time = hunt_args["expiry_time"]
+    hunt.state.context.client_limit = hunt_args["client_limit"]
+    hunt.Close()
 
     return super(HuntViewModifyHunt, self).Layout(request, response)
 
@@ -411,42 +401,47 @@ class HuntTable(fileview.AbstractFileTable):
       children = children[start_row:end_row]
 
       hunt_list = list(fd.OpenChildren(children=children))
-      hunt_list.sort(key=lambda x: x.create_time, reverse=True)
+      hunt_list = [h for h in hunt_list if isinstance(h, hunts.GRRHunt)]
+      valid_hunts = [h for h in hunt_list if not h.state.Empty()]
+      if len(valid_hunts) != len(hunt_list):
+        for h in set(hunt_list) - set(valid_hunts):
+          logging.error("Hunt without a valid state found: %s", h)
+      hunt_list = valid_hunts
+      hunt_list.sort(key=lambda x: x.state.context.create_time, reverse=True)
 
       row_index = start_row
-      for aff4_hunt in hunt_list:
-        hunt_obj = aff4_hunt.flow_obj
-
-        if not hunt_obj:
+      for hunt_obj in hunt_list:
+        if not isinstance(hunt_obj, hunts.GRRHunt):
           continue
 
-        expire_time = (hunt_obj.start_time +
-                       hunt_obj.expiry_time.seconds) * 1e6
+        context = hunt_obj.state.context
+        expire_time = (context.start_time +
+                       context.expiry_time.seconds) * 1e6
 
-        description = (aff4_hunt.Get(aff4_hunt.Schema.DESCRIPTION) or
+        description = (context.description or
                        hunt_obj.__class__.__doc__.split("\n", 1)[0])
 
-        if aff4_hunt.Get(aff4_hunt.Schema.STATE) == aff4_hunt.STATE_STOPPED:
-          hunt_state = aff4_hunt.STATE_STOPPED
+        if context.hunt_state == hunts.GRRHunt.STATE_STOPPED:
+          hunt_state = hunts.GRRHunt.STATE_STOPPED
         else:
-          hunt_state = aff4_hunt.rdf_flow.state
+          hunt_state = context.state
 
-        self.AddRow({"Hunt ID": aff4_hunt.urn,
+        self.AddRow({"Hunt ID": hunt_obj.urn,
                      "Name": hunt_obj.__class__.__name__,
                      "Status": hunt_state,
                      "Start Time": rdfvalue.RDFDatetime(
-                         hunt_obj.start_time * 1e6),
+                         context.start_time * 1e6),
                      "Expires": rdfvalue.RDFDatetime(expire_time),
-                     "Client Limit": hunt_obj.client_limit,
-                     "Creator": hunt_obj.user,
+                     "Client Limit": context.client_limit,
+                     "Creator": context.user,
                      "Description": description},
                     row_index=row_index)
         row_index += 1
 
-      for aff4_hunt in hunt_list:
-        if not aff4_hunt.flow_obj:
-          self.AddRow({"Hunt ID": aff4_hunt.urn,
-                       "Description": "Hunt too old, no information available"},
+      for hunt_obj in hunt_list:
+        if not isinstance(hunt_obj, hunts.GRRHunt):
+          self.AddRow({"Hunt ID": hunt_obj.urn,
+                       "Description": "No information available"},
                       row_index=row_index)
           row_index += 1
 
@@ -596,9 +591,8 @@ back to hunt view</a>
     if hunt_id is None:
       return
     try:
-      self.hunt = aff4.FACTORY.Open(hunt_id,
-                                    required_type="VFSHunt",
-                                    token=request.token, age=aff4.ALL_TIMES)
+      self.hunt = aff4.FACTORY.Open(hunt_id, token=request.token,
+                                    aff4_type="GRRHunt", age=aff4.ALL_TIMES)
     except IOError:
       logging.error("Invalid hunt %s", hunt_id)
       return
@@ -676,47 +670,45 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
 </a>
 <br/>
 <dl class="dl-horizontal dl-hunt">
-  <!-- TODO: remove .clearfix class from dd after Bootstrap upgrade -->
-
-  <dt>Name</dt><dd class="clearfix">{{ this.hunt_name|escape }}</dd>
-  <dt>Arguments</dt><dd class="clearfix">{{ this.args_str|safe }}</dd>
+  <dt>Name</dt><dd>{{ this.hunt_name|escape }}</dd>
+  <dt>Arguments</dt><dd>{{ this.args_str|safe }}</dd>
 
 {% for key, val in this.data.items %}
   <dt>{{ key|escape }}</dt><dd>{{ val|escape }}</dd>
 {% endfor %}
 
   <dt>Hunt ID</dt>
-  <dd class="clearfix">{{ this.hunt.urn.Basename|escape }}</dd>
+  <dd>{{ this.hunt.urn.Basename|escape }}</dd>
 
   <dt>Hunt URN</dt>
-  <dd class="clearfix">{{ this.hunt.urn|escape }}</dd>
+  <dd>{{ this.hunt.urn|escape }}</dd>
 
   <dt>Hunt Results URN</dt>
-  <dd class="clearfix">{{ this.hunt.urn|escape }}/Results</dd>
+  <dd>{{ this.hunt.urn|escape }}/Results</dd>
 
   <dt>Creator</dt>
-  <dd class="clearfix">{{ this.hunt_creator|escape }}</dd>
+  <dd>{{ this.hunt_creator|escape }}</dd>
 
   <dt>Client Limit</dt>
-  <dd class="clearfix">{{ this.client_limit|escape }}</dd>
+  <dd>{{ this.client_limit|escape }}</dd>
 
   <dt>Client Count</dt>
-  <dd class="clearfix">{{ this.hunt.NumClients|escape }}</dd>
+  <dd>{{ this.hunt.NumClients|escape }}</dd>
 
   <dt>Outstanding</dt>
-  <dd class="clearfix">{{ this.hunt.NumOutstanding|escape }}</dd>
+  <dd>{{ this.hunt.NumOutstanding|escape }}</dd>
 
   <dt>Completed</dt>
-  <dd class="clearfix">{{ this.hunt.NumCompleted|escape }}</dd>
+  <dd>{{ this.hunt.NumCompleted|escape }}</dd>
 
   <dt>Findings</dt>
-  <dd class="clearfix">{{ this.hunt.NumResults|escape }}</dd>
+  <dd>{{ this.hunt.NumResults|escape }}</dd>
 
   <dt>Total CPU seconds used</dt>
-  <dd class="clearfix">{{ this.cpu_sum|escape }}</dd>
+  <dd>{{ this.cpu_sum|escape }}</dd>
 
   <dt>Total network traffic</dt>
-  <dd class="clearfix">{{ this.net_sum|filesizeformat }}</dd>
+  <dd>{{ this.net_sum|filesizeformat }}</dd>
 </dl>
 """)
 
@@ -762,10 +754,10 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
 
     if self.hunt_id:
       try:
-        self.hunt = aff4.FACTORY.Open(self.hunt_id,
-                                      required_type="VFSHunt",
+        self.hunt = aff4.FACTORY.Open(self.hunt_id, aff4_type="GRRHunt",
                                       token=request.token, age=aff4.ALL_TIMES)
-        resources = self.hunt.GetValuesForAttribute(self.hunt.Schema.RESOURCES)
+        resources = self.hunt.GetValuesForAttribute(
+            self.hunt.Schema.RESOURCES)
         self.cpu_sum, self.net_sum = 0, 0
         for resource in resources:
           self.cpu_sum += resource.cpu_usage.user_cpu_time
@@ -773,27 +765,25 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
 
         self.cpu_sum = "%.2f" % self.cpu_sum
 
-        self.hunt_name = self.hunt.Get(self.hunt.Schema.HUNT_NAME)
-        self.hunt_creator = self.hunt.Get(self.hunt.Schema.CREATOR)
-        self.flow = self.hunt.GetFlowObj()
-        if self.flow:
-          rdf_flow = self.flow.rdf_flow
+        self.hunt_name = self.hunt.state.context.hunt_name
+        self.hunt_creator = self.hunt.state.context.creator
 
-          enum_types = rdf_flow.DESCRIPTOR.enum_types_by_name["FlowState"]
-          self.data = py_collections.OrderedDict()
-          self.data["Start Time"] = rdfvalue.RDFDatetime(
-              self.flow.start_time * 1e6)
-          self.data["Expiry Time"] = rdfvalue.RDFDatetime(
-              (self.flow.start_time + self.flow.expiry_time.seconds) * 1e6)
-          if self.hunt.Get(self.hunt.Schema.STATE) == self.hunt.STATE_STOPPED:
-            self.data["Status"] = self.hunt.STATE_STOPPED
-          else:
-            self.data["Status"] = enum_types.values[rdf_flow.state].name
+        self.data = py_collections.OrderedDict()
+        self.data["Start Time"] = rdfvalue.RDFDatetime(
+            self.hunt.state.context.start_time * 1e6)
+        self.data["Expiry Time"] = rdfvalue.RDFDatetime(
+            (self.hunt.state.context.start_time +
+             self.hunt.state.context.expiry_time.seconds) * 1e6)
 
-          self.client_limit = self.flow.client_limit
-          self.args_str = renderers.RDFProtoDictRenderer(
-              rdf_flow.args).RawHTML()
+        if self.hunt.state.context.hunt_state == self.hunt.STATE_STOPPED:
+          self.data["Status"] = self.hunt.STATE_STOPPED
+        else:
+          self.data["Status"] = self.hunt.state.context.state
 
+        self.client_limit = self.hunt.state.context.client_limit
+        args_dict = self.hunt.state.Copy()
+
+        self.args_str = renderers.DictRenderer(args_dict).RawHTML()
       except IOError:
         self.layout_template = self.error_template
 
@@ -849,18 +839,12 @@ class HuntRuleRenderer(foreman.ReadOnlyForemanRuleTable):
     """Renders the table."""
     hunt_id = request.REQ.get("hunt_id")
     if hunt_id is not None:
-      hunt = aff4.FACTORY.Open(hunt_id, required_type="VFSHunt",
+      hunt = aff4.FACTORY.Open(hunt_id, aff4_type="GRRHunt",
                                age=aff4.ALL_TIMES, token=request.token)
 
       # Getting list of rules from hunt object: this doesn't require us to
       # have admin privileges (which we need to go through foreman rules).
-      hunt_obj = hunt.GetFlowObj()
-
-      for rule in hunt_obj.rules:
-        self.AddRow(Created=rule.created,
-                    Expires=rule.expires,
-                    Description=rule.description)
-
+      for rule in hunt.state.context.rules:
         self.AddRow(Created=rule.created,
                     Expires=rule.expires,
                     Description=rule.description,
@@ -914,7 +898,7 @@ class HuntClientOverviewRenderer(renderers.TemplateRenderer):
     if hunt_id is not None and hunt_client is not None:
       try:
         self.client = aff4.FACTORY.Open(hunt_client, token=request.token,
-                                        required_type="VFSGRRClient")
+                                        aff4_type="VFSGRRClient")
         self.last_checkin = rdfvalue.RDFDatetime(
             self.client.Get(self.client.Schema.PING))
 
@@ -1074,11 +1058,11 @@ class HuntResultsRenderer(renderers.RDFValueCollectionRenderer):
   def Layout(self, request, response):
     hunt_id = request.REQ.get("hunt_id")
     hunt = aff4.FACTORY.Open(hunt_id, age=aff4.ALL_TIMES, token=request.token)
-    hunt_obj = hunt.GetFlowObj()
 
-    if hasattr(hunt_obj, "collection"):
+    collection = hunt.state.get("collection")
+    if collection is not None:
       return super(HuntResultsRenderer, self).Layout(
-          request, response, aff4_path=hunt_obj.collection.urn)
+          request, response, aff4_path=collection.urn)
     else:
       return self.RenderFromTemplate(self.error_template, response)
 
@@ -1111,7 +1095,7 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
   <dt>System CPU stdev</dt>
   <dd>{{this.stats.system_cpu_stats.std|floatformat}}</dd>
 
-  <dt>Clients Hisogram</dt>
+  <dt>Clients Histogram</dt>
   <dd class="histogram">
     <div id="system_cpu_{{unique|escape}}"></div>
   </dd>
@@ -1236,17 +1220,16 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
     if hunt_id:
       try:
         hunt = aff4.FACTORY.Open(hunt_id,
-                                 required_type="VFSHunt",
+                                 aff4_type="GRRHunt",
                                  token=request.token, age=aff4.ALL_TIMES)
-        hunt_obj = hunt.GetFlowObj()
-        self.stats = hunt_obj.usage_stats
+        self.stats = hunt.state.context.usage_stats
 
         self.user_cpu_json_data = self._HistogramToJSON(
-            hunt_obj.usage_stats.user_cpu_stats.histogram)
+            self.stats.user_cpu_stats.histogram)
         self.system_cpu_json_data = self._HistogramToJSON(
-            hunt_obj.usage_stats.user_cpu_stats.histogram)
+            self.stats.user_cpu_stats.histogram)
         self.network_bytes_sent_json_data = self._HistogramToJSON(
-            hunt_obj.usage_stats.network_bytes_sent_stats.histogram)
+            self.stats.network_bytes_sent_stats.histogram)
       except IOError:
         self.layout_template = self.error_template
 

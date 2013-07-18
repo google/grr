@@ -392,21 +392,12 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
           pass
 
         try:
-          aff4_flow = aff4.FACTORY.Open(session_id, required_type="GRRFlow",
-                                        token=self.super_token)
+          flow_obj = aff4.FACTORY.Open(session_id, aff4_type="GRRFlow",
+                                       token=self.super_token)
         except (IOError, flow.FlowError):
           # The flow was not loadable so we allow access to the urn here. This
           # is a race condition but if someone can access a flow it's not a
           # big deal, so we just allow access.
-          return True
-
-        try:
-          flow_obj = aff4_flow.GetFlowObj()
-        except flow.FlowError:
-          # This happens because we fail to unpickle the flow - this is not
-          # going to change in future, so we just mark it as invalid and cache
-          # that.
-          self.flow_cache.Put(session_id, "Invalid")
           return True
 
         client_id = flow_obj.client_id
@@ -459,6 +450,10 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
     if namespace == "FP" and self.AccessLowerThan(requested_access, "r"):
       return True
 
+    # Crashes information can only be read. It shouldn't be modified.
+    if namespace == "crashes" and self.AccessLowerThan(requested_access, "r"):
+      return True
+
     # Anyone can open the users container so they can list all the users.
     if namespace == "users" and not path:
       return True
@@ -468,9 +463,7 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
       return True
 
     # Anyone can read stats.
-    stat_namespaces = ["OSBreakDown", "GRRVersionBreakDown", "LastAccessStats",
-                       "ClientStatsCronJob"]
-    if namespace in stat_namespaces and self.AccessLowerThan(
+    if namespace == "stats" and self.AccessLowerThan(
         requested_access, "r"):
       return True
 
@@ -479,7 +472,10 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
       return True
 
     # Anyone can read cron.
-    if namespace == "cron:" and self.AccessLowerThan(requested_access, "r"):
+    if namespace == "cron" and self.AccessLowerThan(requested_access, "rq"):
+      return True
+
+    if namespace == "flows" and self.AccessLowerThan(requested_access, "rq"):
       return True
 
     if self.client_id_re.match(namespace):
@@ -513,7 +509,6 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
       raise access_control.UnauthorizedAccess(
           "Must specify a username for access.",
           subject=client_id, requested_access=requested_access)
-
     if not token.reason:
       raise access_control.UnauthorizedAccess(
           "Must specify a reason for access.",
@@ -534,7 +529,7 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
         # Retrieve the approval object with superuser privileges so we can check
         # it.
         approval_request = aff4.FACTORY.Open(
-            approval_urn, required_type="Approval", mode="r",
+            approval_urn, aff4_type="Approval", mode="r",
             token=self.super_token, age=aff4.ALL_TIMES)
 
         if approval_request.CheckAccess(token):
@@ -572,7 +567,7 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
 
     try:
       approval_request = aff4.FACTORY.Open(
-          approval_urn, required_type="Approval", mode="r",
+          approval_urn, aff4_type="Approval", mode="r",
           token=self.super_token, age=aff4.ALL_TIMES)
     except IOError:
       # No Approval found, reject this request.

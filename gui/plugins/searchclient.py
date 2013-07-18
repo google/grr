@@ -48,7 +48,7 @@ def FormatLastSeenTime(age):
   if int(age) == 0:
     return "Never"
 
-  time_last_seen = (rdfvalue.RDFDatetime() - int(age)) / 1e6
+  time_last_seen = (rdfvalue.RDFDatetime().Now() - int(age)) / 1e6
 
   if time_last_seen < 60:
     return "%d seconds ago" % int(time_last_seen)
@@ -122,7 +122,7 @@ class Navigator(renderers.TemplateRenderer):
   {% else %}
   {% if this.reason %}
   <div class="ACL_reason">
-     Access reason: {{this.reason|escape}}
+     Access reason: {{this.reason|escape|urlize}}
   </div>
   {% endif %}
   <div class="infoline" id="infoline_{{unique|escape}}"></div>
@@ -218,6 +218,8 @@ class Navigator(renderers.TemplateRenderer):
   def Layout(self, request, response):
     """Manage content pane depending on passed in query parameter."""
     self.reason = request.REQ.get("reason", "")
+    if "/" in self.reason and not self.reason.startswith("http"):
+      self.reason = "http://%s" % self.reason
 
     self.host_advanced_headings = []
     self.host_headings = []

@@ -13,6 +13,7 @@ from grr.lib import aff4
 from grr.lib import export_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 
 
 class TestExports(test_lib.FlowTestsBaseclass):
@@ -21,7 +22,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(TestExports, self).setUp()
 
-    self.out = aff4.ROOT_URN.Add(self.client_id).Add("fs/os")
+    self.out = self.client_id.Add("fs/os")
     self.CreateFile("testfile1")
     self.CreateFile("testfile2")
     self.CreateDir("testdir1")
@@ -42,7 +43,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
 
   def testExportFile(self):
     """Check we can export a file without errors."""
-    with test_lib.TempDirectory() as tmpdir:
+    with utils.TempDirectory() as tmpdir:
       export_utils.CopyAFF4ToLocal(
           self.out.Add("testfile1"), tmpdir,
           overwrite=True, token=self.token)
@@ -58,7 +59,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
     fd.Add(rdfvalue.StatEntry(aff4path=self.out.Add("testfile2")))
     fd.Close()
 
-    with test_lib.TempDirectory() as tmpdir:
+    with utils.TempDirectory() as tmpdir:
       export_utils.DownloadCollection("aff4:/testcoll", tmpdir, overwrite=True,
                                       dump_client_info=True, token=self.token,
                                       max_threads=2)
@@ -69,12 +70,12 @@ class TestExports(test_lib.FlowTestsBaseclass):
       self.assertTrue("testfile2" in os.listdir(expected_outdir))
 
       # Check we dumped a YAML file to the root of the client.
-      expected_rootdir = os.path.join(tmpdir, self.client_id)
+      expected_rootdir = os.path.join(tmpdir, self.client_id.Basename())
       self.assertTrue("client_info.yaml" in os.listdir(expected_rootdir))
 
   def testRecursiveDownload(self):
     """Check we can export a file without errors."""
-    with test_lib.TempDirectory() as tmpdir:
+    with utils.TempDirectory() as tmpdir:
       export_utils.RecursiveDownload(
           aff4.FACTORY.Open(self.out, token=self.token),
           tmpdir, overwrite=True)

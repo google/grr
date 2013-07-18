@@ -17,8 +17,8 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
     class ClientMock(object):
       def Netstat(self, _):
         conn1 = rdfvalue.NetworkConnection(
-            state=rdfvalue.NetworkConnection.Enum("LISTEN"),
-            type=rdfvalue.NetworkConnection.Enum("SOCK_STREAM"),
+            state=rdfvalue.NetworkConnection.State.LISTEN,
+            type=rdfvalue.NetworkConnection.Type.SOCK_STREAM,
             local_address=rdfvalue.NetworkEndpoint(
                 ip="0.0.0.0",
                 port=22),
@@ -28,8 +28,8 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
             pid=2136,
             ctime=0)
         conn2 = rdfvalue.NetworkConnection(
-            state=rdfvalue.NetworkConnection.Enum("LISTEN"),
-            type=rdfvalue.NetworkConnection.Enum("SOCK_STREAM"),
+            state=rdfvalue.NetworkConnection.State.LISTEN,
+            type=rdfvalue.NetworkConnection.Type.SOCK_STREAM,
             local_address=rdfvalue.NetworkEndpoint(
                 ip="192.168.1.1",
                 port=31337),
@@ -38,11 +38,12 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
                 port=6667),
             pid=1,
             ctime=0)
+
         return [conn1, conn2]
 
     # Set the system to Windows so the netstat flow will run as its the only
     # one that works at the moment.
-    fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add(self.client_id), "VFSGRRClient",
+    fd = aff4.FACTORY.Create(self.client_id, "VFSGRRClient",
                              token=self.token)
     fd.Set(fd.Schema.SYSTEM("Windows"))
     fd.Close()
@@ -52,8 +53,7 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
       pass
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add("network"),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add("network"), token=self.token)
     conns = fd.Get(fd.Schema.CONNECTIONS)
 
     self.assertEqual(len(conns), 2)

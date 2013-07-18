@@ -157,12 +157,13 @@ class OSBreakdown(PieChart):
   title = "Operating system break down."
   description = "OS breakdown for clients that were active in the last day."
   active_day = 1
-  attribute = aff4.OSBreakDown.SchemaCls.OS_HISTOGRAM
+  attribute = aff4.ClientFleetStats.SchemaCls.OS_HISTOGRAM
 
   def Layout(self, request, response):
     """Extract only the operating system type from the active histogram."""
     try:
-      fd = aff4.FACTORY.Open("cron:/OSBreakDown", token=request.token)
+      fd = aff4.FACTORY.Open("aff4:/stats/ClientFleetStats",
+                             token=request.token)
       self.graph = rdfvalue.Graph(title="Operating system break down.")
       for graph in fd.Get(self.attribute):
         # Find the correct graph and merge the OS categories together
@@ -193,7 +194,7 @@ class ReleaseBreakdown(OSBreakdown):
   title = "Operating system version break down."
   description = "This plot shows what OS clients active within the last day."
   active_day = 1
-  attribute = aff4.OSBreakDown.SchemaCls.VERSION_HISTOGRAM
+  attribute = aff4.ClientFleetStats.SchemaCls.VERSION_HISTOGRAM
 
 
 class ReleaseBreakdown7(ReleaseBreakdown):
@@ -217,8 +218,8 @@ This plot shows the number of clients active in the last day and how that number
 evolves over time.
 """
   active_days_display = [1, 3, 7, 30, 60]
-  attribute = aff4.LastAccessStats.SchemaCls.HISTOGRAM
-  DATA_URN = "cron:/LastAccessStats"
+  attribute = aff4.ClientFleetStats.SchemaCls.LAST_CONTACTED_HISTOGRAM
+  DATA_URN = "aff4:/stats/ClientFleetStats"
 
   layout_template = renderers.Template("""
 <div class="padded">
@@ -314,8 +315,8 @@ class LastDayGRRVersionReport(LastActiveReport):
   description = """This shows the number of clients active in the last day based
 on the GRR version.
 """
-  DATA_URN = "cron:/GRRVersionBreakDown"
-  attribute = aff4.GRRVersionBreakDown.SchemaCls.GRRVERSION_HISTOGRAM
+  DATA_URN = "aff4:/stats/ClientFleetStats"
+  attribute = aff4.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM
 
   def Layout(self, request, response):
     """Show how the last active breakdown evolves over time."""
@@ -475,7 +476,7 @@ selectTab = function (tabid) {
 
     self.client_id = request.REQ.get("client_id")
 
-    fd = aff4.FACTORY.Open("aff4:/%s/stats" % self.client_id,
+    fd = aff4.FACTORY.Open(self.client_id.Add("stats"),
                            token=request.token, age=aff4.ALL_TIMES)
 
     self.graphs = []

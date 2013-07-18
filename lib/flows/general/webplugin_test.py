@@ -57,7 +57,7 @@ class TestChromePlugins(test_lib.FlowTestsBaseclass):
       for _ in test_lib.TestFlowHelper(
           "ChromePlugins", client_mock, client_id=self.client_id,
           username="test", download_files=True, output="analysis/plugins",
-          token=self.token, pathtype=rdfvalue.RDFPathSpec.Enum("TSK")):
+          token=self.token, pathtype=rdfvalue.PathSpec.PathType.TSK):
         pass
 
       # Now check that the right files were downloaded.
@@ -65,16 +65,16 @@ class TestChromePlugins(test_lib.FlowTestsBaseclass):
                  "nlbjncdgjeocebhnmkbbbdekmmmcbfjd/2.1.3_0")
 
       # Check if the output VFile is created
-      output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-          "fs/tsk").Add("/".join([self.base_path.replace("\\", "/"),
-                                  "test_img.dd"])).Add(fs_path)
+      output_path = self.client_id.Add("fs/tsk").Add(
+          "/".join([self.base_path.replace("\\", "/"),
+                    "test_img.dd"])).Add(fs_path)
 
       fd = aff4.FACTORY.Open(output_path, token=self.token)
       children = list(fd.OpenChildren())
       self.assertEqual(len(children), 3)
 
       # Check for Analysis dir
-      output_path = aff4.ROOT_URN.Add(self.client_id).Add(
+      output_path = self.client_id.Add(
           "analysis/plugins/RSS Subscription Extension (by Google)/2.1.3")
 
       fd = aff4.FACTORY.Open(output_path, token=self.token)

@@ -41,7 +41,7 @@ class TakeScreenshot(flow.GRRFlow):
     if not responses.success or responses.First().exit_status != 0:
       raise flow.FlowError("Capture failed to run." % responses.status)
 
-    pathspec = rdfvalue.RDFPathSpec(pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+    pathspec = rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.OS,
                                     path=self._sspath)
     self.CallFlow("GetFile", next_state="ProcessFile",
                   pathspec=pathspec)
@@ -56,7 +56,7 @@ class TakeScreenshot(flow.GRRFlow):
     ss_file = responses.First()
     ss_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(ss_file.pathspec,
                                                         self.client_id)
-    ss_fd = aff4.FACTORY.Open(ss_urn, required_type="HashImage")
+    ss_fd = aff4.FACTORY.Open(ss_urn, aff4_type="HashImage")
     content = ss_fd.Read(10000000)
 
     curr_time = time.asctime(time.gmtime())

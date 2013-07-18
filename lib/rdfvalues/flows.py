@@ -3,6 +3,7 @@
 """RDFValue implementations related to flow scheduling."""
 
 
+import cPickle as pickle
 import threading
 import time
 
@@ -11,22 +12,20 @@ from grr.lib import utils
 from grr.proto import jobs_pb2
 
 
-class GRRMessage(rdfvalue.RDFProto):
+class GrrMessage(rdfvalue.RDFProtoStruct):
   """An RDFValue class to manage GRR messages."""
-  _proto = jobs_pb2.GrrMessage
-
-  rdf_map = dict(args_age=rdfvalue.RDFDatetime)
+  protobuf = jobs_pb2.GrrMessage
 
   lock = threading.Lock()
   next_id_base = 0
-  max_ttl = _proto().task_ttl
+  max_ttl = 5
 
   def __init__(self, initializer=None, age=None, payload=None, **kwarg):
-    super(GRRMessage, self).__init__(initializer=initializer, age=age, **kwarg)
+    super(GrrMessage, self).__init__(initializer=initializer, age=age, **kwarg)
     if payload:
       self.payload = payload
 
-      # If the payload has a priority, the GRRMessage inherits it.
+      # If the payload has a priority, the GrrMessage inherits it.
       try:
         self.priority = payload.priority
       except AttributeError:
@@ -38,7 +37,7 @@ class GRRMessage(rdfvalue.RDFProto):
   def GenerateTaskID(self):
     """Generates a new, unique task_id."""
     # Random number can not be zero since next_id_base must increment.
-    random_number = utils.PRNG.GetShort() + 1
+    random_number = utils.PRNG.GetUShort() + 1
 
     # 16 bit random numbers
     with Task.lock:
@@ -83,14 +82,14 @@ class GRRMessage(rdfvalue.RDFProto):
     self.args_rdf_name = value.__class__.__name__
 
 
-class GrrStatus(rdfvalue.RDFProto):
+class GrrStatus(rdfvalue.RDFProtoStruct):
   """The client status message.
 
   When the client responds to a request, it sends a series of response messages,
   followed by a single status message. The GrrStatus message contains error and
   traceback information for any failures on the client.
   """
-  _proto = jobs_pb2.GrrStatus
+  protobuf = jobs_pb2.GrrStatus
 
   rdf_map = dict(cpu_used=rdfvalue.CpuSeconds)
 
@@ -99,51 +98,157 @@ class Backtrace(rdfvalue.RDFString):
   """A special type representing a backtrace."""
 
 
-class RequestState(rdfvalue.RDFProto):
-  _proto = jobs_pb2.RequestState
-
-  rdf_map = dict(request=rdfvalue.GRRMessage,
-                 status=rdfvalue.GrrStatus,
-                 data=rdfvalue.RDFProtoDict)
+class RequestState(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.RequestState
 
 
-class Flow(rdfvalue.RDFProto):
+class Flow(rdfvalue.RDFProtoStruct):
   """A Flow protobuf.
 
   The flow protobuf holds metadata about the flow, as well as the pickled flow
   itself.
   """
-  _proto = jobs_pb2.FlowPB
-
-  rdf_map = dict(create_time=rdfvalue.RDFDatetime,
-                 request_state=RequestState,
-                 backtrace=Backtrace,
-                 args=rdfvalue.RDFProtoDict)
+  protobuf = jobs_pb2.Flow
 
   # Reference to an AFF4 object where this flow was read from. Note that this
   # is a runtime-only attribute and is not serialized.
   aff4_object = None
 
 
-class Notification(rdfvalue.RDFProto):
+class DataObject(object):
+  """This class wraps a dict and provides easier access functions."""
+  data = None
+
+  def __init__(self, **kwargs):
+    object.__setattr__(self, "data", kwargs)
+
+  def Register(self, item, value=None):
+    self.data[item] = value
+
+  def __setattr__(self, item, value):
+    self.data[item] = value
+
+  def __getattr__(self, item):
+    if item in self.__dict__:
+      return object.__getattr__(self, item)
+    if self.data is None:
+      raise AttributeError()
+    if item in self.data:
+      return self.data[item]
+    return getattr(self.data, item)
+
+  def __len__(self):
+    return len(self.data)
+
+  def __iter__(self):
+    return iter(self.data)
+
+  def AsDict(self):
+    return self.data
+
+  def __str__(self):
+    result = []
+    for k, v in self.data.items():
+      tmp = "  %s = " % k
+      for line in utils.SmartUnicode(v).splitlines():
+        tmp += "    %s\n" % line
+
+      result.append(tmp)
+
+    return "{\n%s}\n" % "".join(result)
+
+
+class FlowState(rdfvalue.RDFValue):
+  """The state of a running flow."""
+  data_store_type = "bytes"
+  data = None
+
+  def __init__(self, initializer=None, age=None):
+    object.__setattr__(self, "data", DataObject())
+    self.data.context = DataObject()
+    super(FlowState, self).__init__(initializer=initializer, age=age)
+
+  def ParseFromString(self, string):
+    self.data = pickle.loads(string)
+
+  def SerializeToString(self):
+    return pickle.dumps(self.data)
+
+  def AsDict(self):
+    result = self.data.AsDict().copy()
+    try:
+      result["context"] = result["context"].AsDict()
+    except AttributeError:
+      pass
+
+    return result
+
+  @property
+  def context(self):
+    return self.data.context
+
+  @context.setter
+  def context(self, context):
+    self.data.context = context
+
+  def Empty(self):
+    return len(self.data) == 1 and not self.data.context
+
+  def __len__(self):
+    return len(self.data)
+
+  def get(self, item, default=None):  # pylint: disable=g-bad-name
+    return self.data.get(item, default)
+
+  def Register(self, item, value=None):
+    setattr(self.data, item, value)
+
+  def __setattr__(self, item, value):
+    if item in self.data:
+      setattr(self.data, item, value)
+    else:
+      object.__setattr__(self, item, value)
+
+  def __getattr__(self, item):
+    if item in self.__dict__:
+      return object.__getattr__(self, item)
+    if self.data is None:
+      raise AttributeError()
+    return getattr(self.data, item)
+
+  def __str__(self):
+    result = []
+    for k, v in self.AsDict().items():
+      tmp = "  %s = " % k
+      for line in utils.SmartUnicode(v).splitlines():
+        tmp += "    %s\n" % line
+
+      result.append(tmp)
+
+    return "{\n%s}\n" % "".join(result)
+
+  def __eq__(self, other):
+    """Implement equality operator."""
+    return (isinstance(other, self.__class__) and
+            self.SerializeToString() == other.SerializeToString())
+
+
+class Notification(rdfvalue.RDFProtoStruct):
   """A notification is used in the GUI to alert users.
 
   Usually the notification means that some operation is completed, and provides
   a link to view the results.
   """
-  _proto = jobs_pb2.Notification
+  protobuf = jobs_pb2.Notification
 
-  rdf_map = dict(timestamp=rdfvalue.RDFDatetime,
-                 subject=rdfvalue.RDFURN)
-
-  notification_types = ["Discovery",  # Link to the client object
+  notification_types = ["Discovery",        # Link to the client object
                         "ViewObject",       # Link to any URN
                         "FlowStatus",       # Link to a flow
                         "GrantAccess"]      # Link to an access grant page
 
 
-class FlowNotification(rdfvalue.RDFProto):
-  _proto = jobs_pb2.FlowNotification
+class FlowNotification(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.FlowNotification
 
 
 class NotificationList(rdfvalue.RDFValueArray):
@@ -151,57 +256,58 @@ class NotificationList(rdfvalue.RDFValueArray):
   rdf_type = Notification
 
 
-class SignedMessageList(rdfvalue.RDFProto):
-  _proto = jobs_pb2.SignedMessageList
+class SignedMessageList(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.SignedMessageList
 
 
-class MessageList(rdfvalue.RDFProto):
-  _proto = jobs_pb2.MessageList
+class MessageList(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.MessageList
 
-  rdf_map = dict(job=GRRMessage)
-
-
-class CipherProperties(rdfvalue.RDFProto):
-  _proto = jobs_pb2.CipherProperties
+  def __len__(self):
+    return len(self.job)
 
 
-class CipherMetadata(rdfvalue.RDFProto):
-  _proto = jobs_pb2.CipherMetadata
+class CipherProperties(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.CipherProperties
 
 
-class HuntError(rdfvalue.RDFProto):
+class CipherMetadata(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.CipherMetadata
+
+
+class HuntError(rdfvalue.RDFProtoStruct):
   """An RDFValue class representing a hunt error."""
-  _proto = jobs_pb2.HuntError
+  protobuf = jobs_pb2.HuntError
 
 
-class HuntLog(rdfvalue.RDFProto):
+class HuntLog(rdfvalue.RDFProtoStruct):
   """An RDFValue class representing the hunt log entries."""
-  _proto = jobs_pb2.HuntLog
+  protobuf = jobs_pb2.HuntLog
 
 
-class HttpRequest(rdfvalue.RDFProto):
-  _proto = jobs_pb2.HttpRequest
+class HttpRequest(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.HttpRequest
 
 
-class ClientCommunication(rdfvalue.RDFProto):
-  _proto = jobs_pb2.ClientCommunication
+class ClientCommunication(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.ClientCommunication
 
-  rdf_map = dict(orig_request=HttpRequest)
+  num_messages = 0
 
 
-class Task(rdfvalue.RDFProto):
+class Task(rdfvalue.RDFProtoStruct):
   """Tasks are scheduled on the TaskScheduler.
 
   This class is DEPRECATED! It only exists here so we can render flows stored
-  in the old format in the GUI. Do not use this anymore, GRRMessage now contains
+  in the old format in the GUI. Do not use this anymore, GrrMessage now contains
   all the fields necessary for scheduling already.
   """
 
-  _proto = jobs_pb2.Task
+  protobuf = jobs_pb2.Task
 
   lock = threading.Lock()
   next_id_base = 0
-  max_ttl = _proto().ttl
+  max_ttl = 5
   payload = None
 
   def __init__(self, initializer=None, payload=None, *args, **kwargs):
@@ -235,7 +341,7 @@ class Task(rdfvalue.RDFProto):
       pass
 
     if not self.id:
-      random_number = utils.PRNG.GetShort() + 1
+      random_number = utils.PRNG.GetUShort() + 1
 
       with Task.lock:
         next_id_base = Task.next_id_base

@@ -2,8 +2,6 @@
 """This module tests the RDFValue implementation for performance."""
 
 
-import time
-import zlib
 
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -14,7 +12,7 @@ from grr.proto import jobs_pb2
 class StructGrrMessage(rdfvalue.RDFProtoStruct):
   """A serialization agnostic GrrMessage."""
 
-  type_infos = type_info.TypeDescriptorSet(
+  type_description = type_info.TypeDescriptorSet(
       type_info.ProtoString(
           name="session_id", field_number=1,
           description="Every Flow has a unique session id."),
@@ -45,7 +43,7 @@ class StructGrrMessage(rdfvalue.RDFProtoStruct):
 
 
 class FastVolatilityValue(rdfvalue.RDFProtoStruct):
-  type_infos = type_info.TypeDescriptorSet(
+  type_description = type_info.TypeDescriptorSet(
       type_info.ProtoString(
           name="type", field_number=1),
 
@@ -73,8 +71,8 @@ class FastVolatilityValue(rdfvalue.RDFProtoStruct):
 class FastVolatilityValues(rdfvalue.RDFProtoStruct):
   """A Faster implementation of VolatilityValues."""
 
-  type_infos = type_info.TypeDescriptorSet(
-      type_info.ProtoList(type_info.ProtoNested(
+  type_description = type_info.TypeDescriptorSet(
+      type_info.ProtoList(type_info.ProtoEmbedded(
           name="values", field_number=1,
           nested=FastVolatilityValue))
       )
@@ -83,41 +81,70 @@ class FastVolatilityValues(rdfvalue.RDFProtoStruct):
 class RDFValueBenchmark(test_lib.MicroBenchmarks):
   """Microbenchmark tests for RDFProtos."""
 
+  REPEATS = 1000
+
+  USER_ACCOUNT = dict(
+      username=u"user", full_name=u"John Smith",
+      comment=u"This is a user", last_logon=10000,
+      domain=u"Some domain name",
+      homedir=u"/home/user",
+      sid=u"some sid")
+
   def testObjectCreation(self):
     """Compare the speed of object creation to raw protobufs."""
-    test_proto = jobs_pb2.StatResponse(aff4path="aff4:/foo/bar")
+    test_proto = jobs_pb2.UserAccount(**self.USER_ACCOUNT)
+    test_proto = test_proto.SerializeToString()
 
-    def RDFValueCreateAndSerialize():
-      s = rdfvalue.StatEntry(aff4path="aff4:/foo/bar")
+    def RDFStructCreateAndSerialize():
+      s = rdfvalue.User(**self.USER_ACCOUNT)
       s.SerializeToString()
 
-    def RDFValueCreateAndSerializeFromProto():
-      s = rdfvalue.StatEntry(test_proto)
+    def RDFStructCreateAndSerializeSetValue():
+      s = rdfvalue.User()
+      for k, v in self.USER_ACCOUNT.iteritems():
+        setattr(s, k, v)
+
+      s.SerializeToString()
+
+    def RDFStructCreateAndSerializeFromProto():
+      s = rdfvalue.User(test_proto)
       s.SerializeToString()
 
     def ProtoCreateAndSerialize():
-      s = jobs_pb2.StatResponse(aff4path="aff4:/foo/bar")
+      s = jobs_pb2.UserAccount(**self.USER_ACCOUNT)
       s.SerializeToString()
 
     def ProtoCreateAndSerializeSetValue():
-      s = jobs_pb2.StatResponse()
-      s.aff4path = "aff4:/foo/bar"
+      s = jobs_pb2.UserAccount()
+      for k, v in self.USER_ACCOUNT.iteritems():
+        setattr(s, k, v)
+
       s.SerializeToString()
 
-      self.TimeIt(RDFValueCreateAndSerialize)
+    def ProtoCreateAndSerializeFromProto():
+      s = jobs_pb2.UserAccount()
+      s.ParseFromString(test_proto)
+      self.assertEqual(s.SerializeToString(), test_proto)
 
-      self.TimeIt(RDFValueCreateAndSerializeFromProto)
-      self.TimeIt(ProtoCreateAndSerialize, "Protobuf from keywords")
+    self.TimeIt(RDFStructCreateAndSerialize,
+                "SProto Create from keywords and serialize.")
 
-      self.TimeIt(ProtoCreateAndSerializeSetValue,
-                  "Protobuf by value setting")
+    self.TimeIt(RDFStructCreateAndSerializeSetValue,
+                "SProto Create, Set And Serialize")
+
+    self.TimeIt(RDFStructCreateAndSerializeFromProto,
+                "SProto from serialized and serialize.")
+
+    self.TimeIt(ProtoCreateAndSerialize,
+                "Protobuf from keywords and serialize.")
+
+    self.TimeIt(ProtoCreateAndSerializeSetValue,
+                "Protobuf Create, Set and serialize")
+
+    self.TimeIt(ProtoCreateAndSerializeFromProto,
+                "Protobuf from serialized and serialize.")
 
   def testObjectCreation2(self):
-
-    def RDFValueCreateAndSerialize():
-      s = rdfvalue.GRRMessage(name=u"foo", request_id=1, response_id=1,
-                              session_id=u"session")
-      s.SerializeToString()
 
     def ProtoCreateAndSerialize():
       s = jobs_pb2.GrrMessage(name=u"foo", request_id=1, response_id=1,
@@ -130,33 +157,49 @@ class RDFValueBenchmark(test_lib.MicroBenchmarks):
 
       return len(s.SerializeToString())
 
-    self.TimeIt(RDFValueCreateAndSerialize,
-                "RDFValue from keywords")
-
     self.TimeIt(ProtoCreateAndSerialize,
                 "Protobuf from keywords")
 
     self.TimeIt(RDFStructCreateAndSerialize,
                 "RDFStruct from keywords")
 
+  def testDecodeRepeatedFields(self):
+    """Test decoding of repeated fields."""
+
+    repeats = self.REPEATS / 50
+    s = jobs_pb2.VolatilityValues()
+    for i in range(self.REPEATS):
+      s.values.add(type="test", name="foobar", value=i)
+
+    test_data = s.SerializeToString()
+
+    def ProtoDecode():
+      s = jobs_pb2.VolatilityValues()
+      s.ParseFromString(test_data)
+
+      self.assertEqual(s.values[100].value, 100)
+
+    def SProtoDecode():
+      s = FastVolatilityValues(test_data)
+      self.assertEqual(s.values[100].value, 100)
+
+    self.TimeIt(SProtoDecode, "SProto Repeated Decode",
+                repetitions=repeats)
+
+    self.TimeIt(ProtoDecode, "Protobuf Repeated Decode",
+                repetitions=repeats)
+
   def testRepeatedFields(self):
     """Test serialization and construction of repeated fields."""
 
-    repeats = self.REPEATS / 100
-
-    def RDFValueCreateAndSerialize():
-      s = rdfvalue.VolatilityValues()
-      for i in range(self.REPEATS):
-        s.values.Append(type="test", name="foobar", value=i)
-
-      return len(zlib.compress(s.SerializeToString()))
+    repeats = self.REPEATS / 50
 
     def ProtoCreateAndSerialize():
       s = jobs_pb2.VolatilityValues()
       for i in range(self.REPEATS):
         s.values.add(type="test", name="foobar", value=i)
 
-      return len(zlib.compress(s.SerializeToString()))
+      return len(s.SerializeToString())
 
     def RDFStructCreateAndSerialize():
       s = FastVolatilityValues()
@@ -164,42 +207,26 @@ class RDFValueBenchmark(test_lib.MicroBenchmarks):
       for i in range(self.REPEATS):
         s.values.Append(type="test", name="foobar", value=i)
 
-      return len(zlib.compress(s.SerializeToString()))
+      return len(s.SerializeToString())
 
-    self.TimeIt(RDFStructCreateAndSerialize, repetitions=repeats)
+    self.TimeIt(RDFStructCreateAndSerialize, "RDFStruct Repeated Fields",
+                repetitions=repeats)
 
-    self.TimeIt(RDFValueCreateAndSerialize, repetitions=repeats)
+    self.TimeIt(ProtoCreateAndSerialize, "Protobuf Repeated Fields",
+                repetitions=repeats)
 
-    self.TimeIt(ProtoCreateAndSerialize, repetitions=repeats)
+    # Check that we can unserialize a protobuf encoded using the standard
+    # library.
+    s = jobs_pb2.VolatilityValues()
+    for i in range(self.REPEATS):
+      s.values.add(type="test", name="foobar", value=i)
 
-  def testRepeatedFields2(self):
-    """Test serialization and construction of repeated fields."""
+    serialized = s.SerializeToString()
+    unserialized = FastVolatilityValues(serialized)
+    self.assertEqual(len(unserialized.values), len(s.values))
 
-    repeats = self.REPEATS / 100
-
-    def RDFValueCreateAndSerialize():
-      s = rdfvalue.MessageList()
-      for i in range(self.REPEATS):
-        s.job.Append(session_id="test", name="foobar", request_id=i,
-                     payload=rdfvalue.GrrStatus())
-
-      s.SerializeToString()
-
-    def ProtoCreateAndSerialize():
-      s = jobs_pb2.MessageList()
-      for i in range(self.REPEATS):
-        payload = jobs_pb2.GrrStatus()
-
-        s.job.add(session_id="test", name="foobar", request_id=i,
-                  args=payload.SerializeToString(), args_age=int(time.time()),
-                  args_rdf_name=payload.__class__.__name__,
-                  task_id=0)
-
-      s.SerializeToString()
-
-    self.TimeIt(RDFValueCreateAndSerialize, repetitions=repeats)
-
-    self.TimeIt(ProtoCreateAndSerialize, repetitions=repeats)
+    self.assertEqual(unserialized.values[134].type, "test")
+    self.assertEqual(unserialized.values[100].value, 100)
 
   def testDecode(self):
     """Test decoding performance."""
@@ -213,16 +240,67 @@ class RDFValueBenchmark(test_lib.MicroBenchmarks):
       new_s.ParseFromString(data)
 
       self.assertEqual(new_s.session_id, "session")
+      self.assertEqual(new_s.session_id.__class__, unicode)
 
     def RDFStructDecode():
       new_s = StructGrrMessage()
       new_s.ParseFromString(data)
 
       self.assertEqual(new_s.session_id, "session")
+      self.assertEqual(new_s.session_id.__class__, unicode)
 
-      self.TimeIt(RDFStructDecode)
+    self.TimeIt(RDFStructDecode)
+    self.TimeIt(ProtoDecode)
 
-      self.TimeIt(ProtoDecode)
+  def testDecode2(self):
+    """Test decoding performance.
+
+    This benchmarks the lazy decoding feature where a large protobuf is decoded
+    but only a few fields are examined.
+    """
+
+    s = jobs_pb2.UserAccount(**self.USER_ACCOUNT)
+
+    data = s.SerializeToString()
+
+    def ProtoDecode():
+      new_s = jobs_pb2.UserAccount()
+      new_s.ParseFromString(data)
+
+      self.assertEqual(new_s.username, "user")
+      self.assertEqual(new_s.username.__class__, unicode)
+
+    def RDFStructDecode():
+      new_s = rdfvalue.User()
+      new_s.ParseFromString(data)
+
+      self.assertEqual(new_s.username, "user")
+      self.assertEqual(new_s.username.__class__, unicode)
+
+    self.TimeIt(RDFStructDecode)
+    self.TimeIt(ProtoDecode)
+
+  def testEncode(self):
+    """Comparing encoding speed of a typical protobuf."""
+    s = jobs_pb2.GrrMessage(name=u"foo", request_id=1, response_id=1,
+                            session_id=u"session")
+    serialized = s.SerializeToString()
+
+    def ProtoEncode():
+      s = jobs_pb2.GrrMessage(name=u"foo", request_id=1, response_id=1,
+                              session_id=u"session")
+      test = s.SerializeToString()
+      self.assertEqual(len(serialized), len(test))
+
+    def RDFStructEncode():
+      s = StructGrrMessage(name=u"foo", request_id=1, response_id=1,
+                           session_id=u"session")
+
+      test = s.SerializeToString()
+      self.assertEqual(len(serialized), len(test))
+
+    self.TimeIt(RDFStructEncode)
+    self.TimeIt(ProtoEncode)
 
   def testEncodeDecode(self):
     """Test performance of encode/decode cycle."""

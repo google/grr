@@ -23,7 +23,7 @@ class SophosCollector(flow.GRRFlow):
       type_info.PathTypeEnum(
           description="The requested path type.",
           name="pathtype",
-          default=rdfvalue.RDFPathSpec.Enum("OS")),
+          default=rdfvalue.PathSpec.PathType.OS),
       type_info.String(
           name="output",
           default="analysis/sophos/{u}-{t}",
@@ -132,7 +132,7 @@ class SophosCollector(flow.GRRFlow):
     Raises:
       OSError: If the client operating system is not supported.
     """
-    path_spec = rdfvalue.RDFPathSpec(
+    path_spec = rdfvalue.PathSpec(
         path=self.GetSophosAVInfectedPath(),
         pathtype=int(self.pathtype))
 
@@ -141,7 +141,7 @@ class SophosCollector(flow.GRRFlow):
         path_regex=".*",
         max_depth=1)
 
-    path_spec = rdfvalue.RDFPathSpec(
+    path_spec = rdfvalue.PathSpec(
         path=self.GetSophosAVLogsPath(),
         pathtype=int(self.pathtype))
 

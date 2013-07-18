@@ -8,6 +8,7 @@ __program__ = "chrome_history.py"
 
 import datetime
 import glob
+import itertools
 import locale
 import sys
 
@@ -33,26 +34,42 @@ class ChromeParser(sqlite_file.SQLiteFile):
                      "downloads.total_bytes "
                      "FROM downloads;")
 
+  # This is the newer form of downloads, introduced circa Mar 2013.
+  DOWNLOADS_QUERY_2 = ("SELECT downloads.start_time, downloads_url_chains.url,"
+                       "downloads.target_path, downloads.received_bytes,"
+                       "downloads.total_bytes "
+                       "FROM downloads, downloads_url_chains "
+                       "WHERE downloads.id = downloads_url_chains.id;")
+
+  # Time diff to convert microseconds since Jan 1, 1601 00:00:00 to
+  # microseconds since Jan 1, 1970 00:00:00
+  TIME_CONV_CONST = 11644473600000000
+
   def Parse(self):
     """Iterator returning dict for each entry in history."""
     for timestamp, url, title, typed_count in self.Query(self.VISITS_QUERY):
       if not isinstance(timestamp, long) or timestamp < 11644473600000000:
         timestamp = 0
       else:
-        # convert microseconds since Jan 1, 1601 00:00:00 to
-        # microseconds since Jan 1, 1970 00:00:00
-        timestamp -= 11644473600000000
+
+        timestamp -= self.TIME_CONV_CONST
 
       yield [timestamp, "CHROME_VISIT", url, title, typed_count, ""]
 
-    for timestamp, url, path, received_bytes, total_bytes in self.Query(
-        self.DOWNLOADS_QUERY):
-      if not isinstance(timestamp, int):
-        timestamp = 0
-      else:
+    # Query for old style and newstyle downloads storage.
+    query_iter = itertools.chain(self.Query(self.DOWNLOADS_QUERY),
+                                 self.Query(self.DOWNLOADS_QUERY_2))
+
+    for timestamp, url, path, received_bytes, total_bytes in query_iter:
+
+      if isinstance(timestamp, int):
         # convert seconds since Jan 1, 1970 00:00:00 to
         # microseconds since Jan 1, 1970 00:00:00
         timestamp *= 1000000
+      elif isinstance(timestamp, long):
+        timestamp -= self.TIME_CONV_CONST
+      else:
+        timestamp = 0
 
       yield [timestamp, "CHROME_DOWNLOAD", url, path, received_bytes,
              total_bytes]

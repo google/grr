@@ -18,6 +18,7 @@ class RunningStatsTest(test_base.RDFValueTestCase):
     value = rdfvalue.RunningStats()
     value.RegisterValue(number)
     value.RegisterValue(number * 2)
+    value.histogram = [2.0, number, 10.0]
     return value
 
   def testMeanIsCalculatedCorrectly(self):

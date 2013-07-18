@@ -21,7 +21,7 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
   def CreateCollectionFixture():
     """Creates a new collection we can play with."""
     # Create a client for testing
-    client_id = "C.0000000000000004"
+    client_id = rdfvalue.ClientURN("C.0000000000000004")
     token = access_control.ACLToken("test", "Fixture")
 
     fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=token)
@@ -30,13 +30,14 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
 
     # Install the mock
     vfs.VFS_HANDLERS[
-        rdfvalue.RDFPathSpec.Enum("OS")] = test_lib.ClientVFSHandlerFixture
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
     client_mock = test_lib.ActionMock("Find")
-    output_path = "aff4:/%s/analysis/FindFlowTest" % client_id
+
+    output_path = "analysis/FindFlowTest"
 
     findspec = rdfvalue.RDFFindSpec(path_regex="bash")
     findspec.pathspec.path = "/"
-    findspec.pathspec.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+    findspec.pathspec.pathtype = rdfvalue.PathSpec.PathType.OS
 
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=client_id,
@@ -44,7 +45,7 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
       pass
 
     # Make the view a bit more interesting
-    fd = aff4.FACTORY.Open(output_path, mode="rw", token=token)
+    fd = aff4.FACTORY.Open(client_id.Add(output_path), mode="rw", token=token)
     fd.CreateView(["stat.st_mtime", "type", "stat.st_size", "size", "Age"])
     fd.Close()
 

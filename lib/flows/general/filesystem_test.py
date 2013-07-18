@@ -18,9 +18,9 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
 
     # Deliberately specify incorrect casing for the image name.
-    pb = rdfvalue.RDFPathSpec(
+    pb = rdfvalue.PathSpec(
         path=os.path.join(self.base_path, "test_img.dd"),
-        pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+        pathtype=rdfvalue.PathSpec.PathType.OS)
 
     for _ in test_lib.TestFlowHelper(
         "ListDirectory", client_mock, client_id=self.client_id,
@@ -28,8 +28,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
       pass
 
     # Check the output file is created
-    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/tsk").Add(pb.first.path)
+    output_path = self.client_id.Add("fs/tsk").Add(pb.first.path)
 
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     children = list(fd.OpenChildren())
@@ -41,16 +40,16 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # And the wrong object is not there
     self.assertRaises(IOError, aff4.FACTORY.Open,
                       output_path.Add("test directory"),
-                      required_type="VFSDirectory", token=self.token)
+                      aff4_type="VFSDirectory", token=self.token)
 
   def testListDirectory(self):
     """Test that the ListDirectory flow works."""
     client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
 
     # Deliberately specify incorrect casing for the image name.
-    pb = rdfvalue.RDFPathSpec(
+    pb = rdfvalue.PathSpec(
         path=os.path.join(self.base_path, "test_img.dd/test directory"),
-        pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+        pathtype=rdfvalue.PathSpec.PathType.OS)
 
     for _ in test_lib.TestFlowHelper(
         "ListDirectory", client_mock, client_id=self.client_id,
@@ -58,8 +57,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
       pass
 
     # Check the output file is created
-    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/tsk").Add(os.path.dirname(pb.first.path))
+    output_path = self.client_id.Add("fs/tsk").Add(os.path.dirname(pb.first.path))
 
     fd = aff4.FACTORY.Open(output_path.Add("Test Directory"), token=self.token)
     children = list(fd.OpenChildren())
@@ -72,7 +70,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # And the wrong object is not there
     self.assertRaises(IOError, aff4.FACTORY.Open,
                       output_path.Add("test directory"),
-                      required_type="VFSDirectory", token=self.token)
+                      aff4_type="VFSDirectory", token=self.token)
 
   def testUnicodeListDirectory(self):
     """Test that the ListDirectory flow works on unicode directories."""
@@ -80,12 +78,12 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
 
     # Deliberately specify incorrect casing
-    pb = rdfvalue.RDFPathSpec(
+    pb = rdfvalue.PathSpec(
         path=os.path.join(self.base_path, "test_img.dd"),
-        pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+        pathtype=rdfvalue.PathSpec.PathType.OS)
 
     pb.Append(path=u"入乡随俗 海外春节别样过法",
-              pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+              pathtype=rdfvalue.PathSpec.PathType.TSK)
 
     for _ in test_lib.TestFlowHelper(
         "ListDirectory", client_mock, client_id=self.client_id,
@@ -93,8 +91,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
       pass
 
     # Check the output file is created
-    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/tsk").Add(pb.CollapsePath())
+    output_path = self.client_id.Add("fs/tsk").Add(pb.CollapsePath())
 
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     children = list(fd.OpenChildren())
@@ -108,12 +105,12 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     client_mock = test_lib.ActionMock("ReadBuffer", "HashFile", "StatFile")
 
     # Deliberately specify incorrect casing
-    pb = rdfvalue.RDFPathSpec(
+    pb = rdfvalue.PathSpec(
         path=os.path.join(self.base_path, "test_img.dd"),
-        pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+        pathtype=rdfvalue.PathSpec.PathType.OS)
 
     pb.Append(path="test directory/NumBers.txt",
-              pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+              pathtype=rdfvalue.PathSpec.PathType.TSK)
 
     for _ in test_lib.TestFlowHelper(
         "SlowGetFile", client_mock, client_id=self.client_id,
@@ -121,8 +118,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
       pass
 
     # Check the output file is created
-    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/tsk").Add(pb.first.path.replace("\\", "/")).Add(
+    output_path = self.client_id.Add("fs/tsk").Add(
+        pb.first.path.replace("\\", "/")).Add(
             "Test Directory").Add("numbers.txt")
 
     fd = aff4.FACTORY.Open(output_path, token=self.token)
@@ -154,12 +151,12 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
         "Glob", client_mock, client_id=self.client_id,
-        paths=[path], pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+        paths=[path], pathtype=rdfvalue.PathSpec.PathType.OS,
         token=self.token):
       pass
 
-    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/os").Add(self.base_path.replace("\\", "/"))
+    output_path = self.client_id.Add("fs/os").Add(
+        self.base_path.replace("\\", "/"))
 
     count = 0
     fd = aff4.FACTORY.Open(output_path, token=self.token)
@@ -181,13 +178,12 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
         "Glob", client_mock, client_id=self.client_id,
-        paths=[path], pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+        paths=[path], pathtype=rdfvalue.PathSpec.PathType.OS,
         token=self.token):
       pass
 
-    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/tsk").Add(os.path.join(
-            self.base_path, "test_img.dd", "glob_test", "a", "b"))
+    output_path = self.client_id.Add("fs/tsk").Add(os.path.join(
+        self.base_path, "test_img.dd", "glob_test", "a", "b"))
 
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     children = list(fd.ListChildren())
@@ -204,12 +200,11 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
         "Glob", client_mock, client_id=self.client_id,
-        paths=[path], pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+        paths=[path], pathtype=rdfvalue.PathSpec.PathType.OS,
         token=self.token):
       pass
 
-    output_path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/tsk").Add(os.path.join(
+    output_path = self.client_id.Add("fs/tsk").Add(os.path.join(
             self.base_path, "test_img.dd", "glob_test", "a", "b"))
 
     fd = aff4.FACTORY.Open(output_path, token=self.token)
@@ -255,15 +250,13 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         paths=[path], token=self.token):
       pass
 
-    path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/os").Add(self.base_path).Add("index.dat")
+    path = self.client_id.Add("fs/os").Add(self.base_path).Add("index.dat")
 
-    aff4.FACTORY.Open(path, required_type="VFSFile", token=self.token)
+    aff4.FACTORY.Open(path, aff4_type="VFSFile", token=self.token)
 
-    path = aff4.ROOT_URN.Add(self.client_id).Add(
-        "fs/os").Add(self.base_path).Add("index.dat")
+    path = self.client_id.Add("fs/os").Add(self.base_path).Add("index.dat")
 
-    aff4.FACTORY.Open(path, required_type="VFSFile", token=self.token)
+    aff4.FACTORY.Open(path, aff4_type="VFSFile", token=self.token)
 
   def testGlobGrouping(self):
     """Test that glob expands directories."""
@@ -321,9 +314,9 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     path = os.path.join(os.path.dirname(self.base_path), pattern)
 
     args = {"request": rdfvalue.GrepSpec(
-        target=rdfvalue.RDFPathSpec(),
+        target=rdfvalue.PathSpec(),
         literal="session opened for user dearjohn",
-        mode=rdfvalue.GrepSpec.Enum("ALL_HITS")
+        mode=rdfvalue.GrepSpec.Mode.ALL_HITS
         ),
             "output": "analysis/grep/testing"}
 

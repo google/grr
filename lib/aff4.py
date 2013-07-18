@@ -41,15 +41,27 @@ ALL_TIMES = "ALL_TIMES"
 # Just something to write on an index attribute to make it exist.
 EMPTY_DATA = "X"
 
-# TODO(user): this is a temporary hack to allow proper unpickling of old hunts.
-# Remove this as soon as we don't care about them.
-RDFInteger = rdfvalue.RDFInteger  # pylint: disable=g-bad-name
-RDFURN = rdfvalue.RDFURN
-RDFBytes = rdfvalue.RDFBytes  # pylint: disable=g-bad-name
-RDFString = rdfvalue.RDFString  # pylint: disable=g-bad-name
+AFF4_PREFIXES = ["aff4:.*", "metadata:.*"]
 
 
-AFF4_PREFIXES = ["aff4:.*", "metadata:.*", "task:.*"]
+class Error(Exception):
+  pass
+
+
+class LockError(Error):
+  pass
+
+
+class LockContextManager(object):
+  def __init__(self, aff4_obj, sync):
+    self.aff4_obj = aff4_obj
+    self.sync = sync
+
+  def __enter__(self):
+    return self.aff4_obj
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    self.aff4_obj.Close(sync=self.sync)
 
 
 class Factory(object):
@@ -73,12 +85,15 @@ class Factory(object):
   @classmethod
   def ParseAgeSpecification(cls, age):
     """Parses an aff4 age and returns a datastore age specification."""
+    try:
+      return (0, int(age))
+    except (ValueError, TypeError):
+      pass
+
     if age == NEWEST_TIME:
       return data_store.DB.NEWEST_TIMESTAMP
     elif age == ALL_TIMES:
       return data_store.DB.ALL_TIMESTAMPS
-    elif isinstance(age, (int, long, rdfvalue.RDFDatetime)):
-      return (0, int(age))
     elif len(age) == 2:
       start, end = age
 
@@ -132,7 +147,7 @@ class Factory(object):
       pass
 
     attributes[AFF4Object.SchemaCls.LAST] = [
-        rdfvalue.RDFDatetime().SerializeToDataStore()]
+        rdfvalue.RDFDatetime().Now().SerializeToDataStore()]
     to_delete.add(AFF4Object.SchemaCls.LAST)
     data_store.DB.MultiSet(urn, attributes, token=token,
                            replace=False, sync=sync, to_delete=to_delete)
@@ -187,7 +202,7 @@ class Factory(object):
         except KeyError:
           data_store.DB.MultiSet(dirname, {
               AFF4Object.SchemaCls.LAST: [
-                  rdfvalue.RDFDatetime().SerializeToDataStore()],
+                  rdfvalue.RDFDatetime().Now().SerializeToDataStore()],
 
               # This updates the directory index.
               "index:dir/%s" % utils.SmartStr(basename): [EMPTY_DATA],
@@ -197,6 +212,28 @@ class Factory(object):
           self.intermediate_cache.Put(urn.Path(), 1)
 
           urn = dirname
+
+    except access_control.UnauthorizedAccess:
+      pass
+
+  def _DeleteChildFromIndex(self, urn, token):
+    try:
+      # Create navigation aids by touching intermediate subject names.
+      basename = urn.Basename()
+      dirname = rdfvalue.RDFURN(urn.Dirname())
+
+      try:
+        self.intermediate_cache.ExpireObject(urn.Path())
+      except KeyError:
+        pass
+
+      data_store.DB.DeleteAttributes(
+          dirname, ["index:dir/%s" % utils.SmartStr(basename)], token=token,
+          sync=False)
+      data_store.DB.MultiSet(dirname, {
+          AFF4Object.SchemaCls.LAST: [
+              rdfvalue.RDFDatetime().Now().SerializeToDataStore()],
+          }, token=token, replace=True, sync=False)
 
     except access_control.UnauthorizedAccess:
       pass
@@ -237,7 +274,93 @@ class Factory(object):
     return "%s:%s:%s" % (utils.SmartStr(urn), utils.SmartStr(token),
                          self.ParseAgeSpecification(age))
 
-  def Open(self, urn, required_type=None, mode="r", ignore_cache=False,
+  def _OpenWithLock(self, transaction, aff4_type=None, age=NEWEST_TIME,
+                    lease_time=100):
+    values = list(transaction.ResolveRegex(
+        AFF4_PREFIXES, timestamp=self.ParseAgeSpecification(age)))
+    local_cache = {rdfvalue.RDFURN(transaction.subject): values}
+
+    # TODO(user): We should have a test here that open does not access the
+    # data store.
+    aff4_obj = self.Open(transaction.subject, aff4_type=aff4_type,
+                         local_cache=local_cache, age=age,
+                         mode="rw", follow_symlinks=False,
+                         token=transaction.token)
+
+    leased_until = aff4_obj.Get(aff4_obj.Schema.LEASED_UNTIL)
+    if leased_until and leased_until > rdfvalue.RDFDatetime().Now():
+      raise LockError(transaction.subject)
+
+    # Force a data_store lookup next.
+    try:
+      # Expire all entries in the cache for this urn (for all tokens, and
+      # timestamps)
+      self.cache.ExpirePrefix(utils.SmartStr(transaction.subject) + ":")
+    except KeyError:
+      pass
+
+    new_lease_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(
+        time.time() + lease_time)
+    transaction.Set(aff4_obj.Schema.LEASED_UNTIL.predicate,
+                    new_lease_time.SerializeToDataStore())
+
+    aff4_obj.Set(aff4_obj.Schema.LEASED_UNTIL, new_lease_time)
+    # We don't want the object to be dirty.
+    aff4_obj._SyncAttributes()  # pylint: disable=protected-access
+    aff4_obj.locked = True
+
+    return aff4_obj
+
+  def OpenWithLock(self, urn, aff4_type=None, token=None,
+                   age=NEWEST_TIME, blocking=True, blocking_lock_timeout=10,
+                   blocking_sleep_interval=1, lease_time=100):
+    """Open given urn and locks it.
+
+    Opens an object and locks it for 'lease_time' seconds. OpenWithLock can
+    only be used in 'with ...' statement. The lock is released when code
+    execution leaves 'with ...' block.
+
+    The urn is always opened in "rw" mode. Symlinks are not followed in
+    OpenWithLock() due to possible race conditions.
+
+    Args:
+      urn: The urn to open.
+      aff4_type: If this optional parameter is set, we raise an IOError if
+          the object exists and is not an instance of this type. This check is
+          important when a different object can be stored in this location.
+      token: The Security Token to use for opening this item.
+      age: The age policy used to build this object. Should be one of
+         NEWEST_TIME, ALL_TIMES or a time range given as a tuple (start, end) in
+         microseconds since Jan 1st, 1970.
+      blocking: When True, wait and repeatedly try to grab the lock.
+      blocking_lock_timeout: Maximum wait time when sync is True.
+      blocking_sleep_interval: Sleep time between lock grabbing attempts. Used
+          when blocking is True.
+      lease_time: Maximum time the object stays locked. Lock will be considered
+          released when this time expires.
+
+    Returns:
+      Context manager to be used in 'with ...' statement.
+    """
+    timestamp = time.time()
+
+    if urn is not None:
+      urn = rdfvalue.RDFURN(urn)
+
+    while True:
+      try:
+        obj = data_store.DB.RetryWrapper(
+            urn, self._OpenWithLock, aff4_type=aff4_type, token=token,
+            age=age, lease_time=lease_time)
+        # When we open with lock, we should always use sync.
+        return LockContextManager(obj, sync=True)
+      except (data_store.TransactionError, LockError) as e:
+        if not blocking or time.time() - timestamp > blocking_lock_timeout:
+          raise LockError(e)
+        else:
+          time.sleep(blocking_sleep_interval)
+
+  def Open(self, urn, aff4_type=None, mode="r", ignore_cache=False,
            token=None, local_cache=None, age=NEWEST_TIME, follow_symlinks=True):
     """Opens the named object.
 
@@ -255,9 +378,11 @@ class Factory(object):
     Args:
       urn: The urn to open.
 
-      required_type: If this optional parameter is set, we raise an IOError if
+      aff4_type: If this parameter is set, we raise an IOError if
           the object is not an instance of this type. This check is important
-          when a different object can be stored in this location.
+          when a different object can be stored in this location. If mode is
+          "w", this parameter will determine the type of the object and is
+          mandatory.
 
       mode: The mode to open the file with.
       ignore_cache: Forces a data store read.
@@ -282,8 +407,10 @@ class Factory(object):
       raise AttributeError("Invalid mode %s" % mode)
 
     if mode == "w":
-      raise AttributeError("Can not open an object in write mode. "
-                           "Use Create() instead.")
+      if aff4_type is None:
+        raise AttributeError("Need a type to open in write only mode.")
+      return self.Create(urn, aff4_type, mode=mode, token=token, age=age,
+                         ignore_cache=ignore_cache, force_new_version=False)
 
     urn = rdfvalue.RDFURN(urn)
 
@@ -304,27 +431,26 @@ class Factory(object):
                         age=age, follow_symlinks=follow_symlinks)
 
     # Get the correct type.
-    aff4_type = result.Get(result.Schema.TYPE, default="AFF4Volume")
-    if aff4_type:
-      result = result.Upgrade(aff4_type)
-      # This is the same type that was already stored so we don't have to
-      # rewrite it.
-      setattr(result, "_dirty", False)
-      setattr(result, "_new_version", False)
+    existing_type = result.Get(result.Schema.TYPE, default="AFF4Volume")
+    if existing_type:
+      result = result.Upgrade(existing_type)
 
-    if (required_type is not None and
-        not isinstance(result, AFF4Object.classes[required_type])):
+    if (aff4_type is not None and
+        not isinstance(result, AFF4Object.classes[aff4_type])):
       raise IOError("Object of type %s, but required_type is %s" % (
-          result.__class__.__name__, required_type))
+          result.__class__.__name__, aff4_type))
 
     return result
 
-  def MultiOpen(self, urns, mode="rw", token=None, required_type=None,
+  def MultiOpen(self, urns, mode="rw", token=None, aff4_type=None,
                 age=NEWEST_TIME):
     """Opens a bunch of urns efficiently."""
 
     if mode not in ["w", "r", "rw"]:
       raise RuntimeError("Invalid mode %s" % mode)
+
+    # We accept both lists and generators of urns
+    urns = list(urns)
 
     # Fill up the cache with all the urns
     unique_urn = set()
@@ -332,13 +458,12 @@ class Factory(object):
       self._ExpandURNComponents(urn, unique_urn)
 
     cache = dict(self.GetAttributes(unique_urn, token=token, age=age))
-
     symlinks = []
     for urn in urns:
       try:
         if urn in cache:
           obj = self.Open(urn, mode=mode, token=token, local_cache=cache,
-                          required_type=required_type, age=age,
+                          aff4_type=aff4_type, age=age,
                           follow_symlinks=False)
           target = obj.Get(obj.Schema.SYMLINK_TARGET)
           if target is not None:
@@ -351,7 +476,7 @@ class Factory(object):
 
     if symlinks:
       for obj in self.MultiOpen(symlinks, mode=mode, token=token,
-                                required_type=required_type, age=age):
+                                aff4_type=aff4_type, age=age):
         yield obj
 
   def OpenDiscreteVersions(self, urn, mode="r", ignore_cache=False, token=None,
@@ -445,7 +570,7 @@ class Factory(object):
       yield dict(urn=rdfvalue.RDFURN(subject), type=values[0])
 
   def Create(self, urn, aff4_type, mode="w", token=None, age=NEWEST_TIME,
-             ignore_cache=False):
+             ignore_cache=False, force_new_version=True):
     """Creates the urn if it does not already exist, otherwise opens it.
 
     If the urn exists and is of a different type, this will also promote it to
@@ -459,6 +584,7 @@ class Factory(object):
        age: The age policy used to build this object. Only makes sense when mode
             has "r".
        ignore_cache: Bypass the aff4 cache.
+       force_new_version: Forces the creation of a new object in the data_store.
 
     Returns:
       An AFF4 object of the desired type and mode.
@@ -466,7 +592,6 @@ class Factory(object):
     Raises:
       AttributeError: If the mode is invalid.
     """
-
     if mode not in ["w", "r", "rw"]:
       raise AttributeError("Invalid mode %s" % mode)
 
@@ -476,8 +601,13 @@ class Factory(object):
     if "r" in mode:
       # Check to see if an object already exists.
       try:
-        return self.Open(urn, mode=mode, token=token, age=age,
-                         ignore_cache=ignore_cache).Upgrade(aff4_type)
+        existing = self.Open(
+            urn, mode=mode, token=token, age=age,
+            ignore_cache=ignore_cache)
+        result = existing.Upgrade(aff4_type)
+        if force_new_version and existing.Get(result.Schema.TYPE) != aff4_type:
+          result.ForceNewVersion()
+        return result
       except IOError:
         pass
 
@@ -485,8 +615,8 @@ class Factory(object):
     cls = AFF4Object.classes[str(aff4_type)]
     result = cls(urn, mode=mode, token=token, age=age)
     result.Initialize()
-    setattr(result, "_new_version", True)
-    setattr(result, "_dirty", True)
+    if force_new_version:
+      result.ForceNewVersion()
 
     return result
 
@@ -523,6 +653,7 @@ class Factory(object):
 
     logging.info("Removed %s objects", count)
     data_store.DB.DeleteSubject(fd.urn, token=token)
+    self._DeleteChildFromIndex(fd.urn, token)
 
     # Ensure this is removed from the cache as well.
     self.Flush()
@@ -630,7 +761,8 @@ class Attribute(object):
 
   def __init__(self, predicate, attribute_type=rdfvalue.RDFString,
                description="", name=None, _copy=False, default=None, index=None,
-               versioned=True):
+               versioned=True, lock_protected=False,
+               creates_new_object_version=True):
     """Constructor.
 
     Args:
@@ -648,6 +780,11 @@ class Attribute(object):
           attribute will not be indexed.
        versioned: Should this attribute be versioned? Non-versioned attributes
           always overwrite other versions of the same attribute.
+       lock_protected: If True, this attribute may only be set if the object was
+          opened via OpenWithLock().
+       creates_new_object_version: If this is set, a write to this attribute
+          will also write a new version of the parent attribute. This should be
+          False for attributes where lots of entries are collected like logs.
     """
     self.name = name
     self.predicate = predicate
@@ -656,6 +793,8 @@ class Attribute(object):
     self.default = default
     self.index = index
     self.versioned = versioned
+    self.lock_protected = lock_protected
+    self.creates_new_object_version = creates_new_object_version
 
     # Field names can refer to a specific component of an attribute
     self.field_names = []
@@ -710,8 +849,8 @@ class Attribute(object):
 
     return result
 
-  def Fields(self, name):
-    return self.attribute_type.Fields(name)
+  def Fields(self):
+    return self.attribute_type.Fields()
 
   @classmethod
   def GetAttributeByName(cls, name):
@@ -729,7 +868,13 @@ class Attribute(object):
     """Returns this attribute's RDFValue class."""
     result = self.attribute_type
     for field_name in self.field_names:
-      result = result.rdf_map.get(field_name, rdfvalue.RDFString)
+      # Support the new semantic protobufs.
+      if issubclass(result, rdfvalue.RDFProtoStruct):
+        result = result.type_infos.get(field_name, rdfvalue.RDFString).type
+      else:
+        # TODO(user): Remove and deprecate.
+        # Support for the old RDFProto.
+        result = result.rdf_map.get(field_name, rdfvalue.RDFString)
 
     return result
 
@@ -840,6 +985,9 @@ class AFF4Object(object):
   # Should this object be synced back to the data store.
   _dirty = False
 
+  # Is this object currently locked.
+  locked = False
+
   @ClassProperty
   @classmethod
   def behaviours(cls):  # pylint: disable=C6409
@@ -862,10 +1010,16 @@ class AFF4Object(object):
                        "The AFF4 container inwhich this object is stored.")
 
     LAST = Attribute("metadata:last", rdfvalue.RDFDatetime,
-                     "The last time any attribute of this object was written.")
+                     "The last time any attribute of this object was written.",
+                     creates_new_object_version=False)
 
     LABEL = Attribute("aff4:labels", rdfvalue.LabelList,
                       "Any object can have labels applied to it.")
+
+    LEASED_UNTIL = Attribute("aff4:lease", rdfvalue.RDFDatetime,
+                             "The time until which the object is leased by a "
+                             "particular caller.", versioned=False,
+                             creates_new_object_version=False)
 
     def ListAttributes(self):
       for attr in dir(self):
@@ -896,19 +1050,6 @@ class AFF4Object(object):
       """
       return None
 
-    @classmethod
-    def FindAFF4Class(cls):
-      """Return a list of AFF4 Object classes which use us as a Schema."""
-      result = []
-      for aff4cls in AFF4Object.classes.values():
-        try:
-          if aff4cls.SchemaCls is cls:
-            result.append(aff4cls)
-        except AttributeError:
-          pass
-
-      return result
-
   # Make sure that when someone references the schema, they receive an instance
   # of the class.
   @property
@@ -927,7 +1068,8 @@ class AFF4Object(object):
     self.follow_symlinks = follow_symlinks
     self.lock = utils.PickleableLock()
 
-    # This flag will be set whenever a versioned attribute is changed.
+    # This flag will be set whenever an attribute is changed that has the
+    # creates_new_object_version flag set.
     self._new_version = False
 
     # Mark out attributes to delete when Flushing()
@@ -1012,8 +1154,14 @@ class AFF4Object(object):
     """Helper to add a new attribute to a cache."""
     cache.setdefault(attribute_name, []).append(value)
 
+  def CheckLease(self):
+    if self.locked:
+      if self.Get(self.Schema.LEASED_UNTIL) < rdfvalue.RDFDatetime().Now():
+        raise LockError("Lease for this object is expired!")
+
   def Flush(self, sync=True):
     """Syncs this object with the data store, maintaining object validity."""
+    self.CheckLease()
     self._WriteAttributes(sync=sync)
     self._SyncAttributes()
 
@@ -1028,8 +1176,13 @@ class AFF4Object(object):
 
     Args:
        sync: Write the attributes synchronously to the data store.
+    Raises:
+       LockError: The lease for this object has expired.
     """
-    self._WriteAttributes(sync=sync)
+    self.CheckLease()
+    if self.locked:
+      self.Set(self.Schema.LEASED_UNTIL, rdfvalue.RDFDatetime(0))
+    self._WriteAttributes(sync=self.locked or sync)
 
     if self.parent:
       self.parent.Close(sync=sync)
@@ -1048,7 +1201,7 @@ class AFF4Object(object):
       return
 
     if self.urn is None:
-      raise RuntimeError("Storing of anonymouse AFF4 objects not supported.")
+      raise RuntimeError("Storing of anonymous AFF4 objects not supported.")
 
     to_set = {}
     for attribute_name, value_array in self.new_attributes.iteritems():
@@ -1064,7 +1217,7 @@ class AFF4Object(object):
       if self._new_version:
         to_set[self.Schema.TYPE] = [
             (rdfvalue.RDFString(self.__class__.__name__).SerializeToDataStore(),
-             rdfvalue.RDFDatetime())]
+             rdfvalue.RDFDatetime().Now())]
 
       # Write the attributes to the Factory cache.
       FACTORY.SetAttributes(self.urn, to_set, self._to_delete, sync=sync,
@@ -1081,12 +1234,17 @@ class AFF4Object(object):
     """
     # This effectively moves all the values from the new_attributes to the
     # _attributes caches.
-    for attribute_name, value_array in self.new_attributes.iteritems():
-      synced_value_array = self.synced_attributes.setdefault(attribute_name, [])
-      for value in value_array:
-        synced_value_array.append(LazyDecoder(decoded=value, age=value.age))
+    for attribute, value_array in self.new_attributes.iteritems():
+      if not attribute.versioned:
+        value = value_array[0]
+        self.synced_attributes[attribute] = [LazyDecoder(decoded=value,
+                                                         age=value.age)]
+      else:
+        synced_value_array = self.synced_attributes.setdefault(attribute, [])
+        for value in value_array:
+          synced_value_array.append(LazyDecoder(decoded=value, age=value.age))
 
-      synced_value_array.sort(key=lambda x: x.age, reverse=True)
+        synced_value_array.sort(key=lambda x: x.age, reverse=True)
 
     self.new_attributes = {}
     self._to_delete.clear()
@@ -1111,15 +1269,24 @@ class AFF4Object(object):
       raise ValueError("Value for attribute %s must be of type %s()",
                        attribute, attribute.attribute_type.__name__)
 
+  def Copy(self, to_attribute, from_fd, from_attribute):
+    values = from_fd.GetValuesForAttribute(from_attribute)
+    for v in values:
+      self.AddAttribute(to_attribute, v, age=v.age)
+
   def Set(self, attribute, value=None):
     """Set an attribute on this object.
 
     Set() is now a synonym for AddAttribute() since attributes are never
     deleted.
+
+    Args:
+      attribute: The attribute to set.
+      value: The new value for this attribute.
     """
     self.AddAttribute(attribute, value)
 
-  def AddAttribute(self, attribute, value=None):
+  def AddAttribute(self, attribute, value=None, age=None):
     """Add an additional attribute to this object.
 
     If value is None, attribute is expected to be already initialized with a
@@ -1130,6 +1297,7 @@ class AFF4Object(object):
     Args:
        attribute: The attribute name or an RDFValue derived from the attribute.
        value: The value the attribute will be set to.
+       age: Age (timestamp) of the attribute. If None, current time is used.
 
     Raises:
        IOError: If this object is read only.
@@ -1141,14 +1309,23 @@ class AFF4Object(object):
       value = attribute
       attribute = value.attribute_instance
 
+    # Check if this object should be locked in order to add the attribute.
+    # NOTE: We don't care about locking when doing blind writes.
+    if self.mode != "w" and attribute.lock_protected and not self.locked:
+      raise IOError("Object must be locked to write attribute %s." % attribute)
+
     self._CheckAttribute(attribute, value)
 
     # Does this represent a new version?
     if attribute.versioned:
-      self._new_version = True
+      if attribute.creates_new_object_version:
+        self._new_version = True
 
       # Update the time of this new attribute.
-      value.age.Now()
+      if age:
+        value.age = age
+      else:
+        value.age.Now()
 
     # Non-versioned attributes always replace previous versions and get written
     # at the earliest timestamp (so they appear in all objects).
@@ -1162,6 +1339,14 @@ class AFF4Object(object):
   @utils.Synchronized
   def DeleteAttribute(self, attribute):
     """Clears the attribute from this object."""
+    if "w" not in self.mode:
+      raise IOError("Deleting attribute %s from read only object." % attribute)
+
+    # Check if this object should be locked in order to delete the attribute.
+    # NOTE: We don't care about locking when doing blind writes.
+    if self.mode != "w" and attribute.lock_protected and not self.locked:
+      raise IOError("Object must be locked to delete attribute %s." % attribute)
+
     if attribute in self.synced_attributes:
       self._to_delete.add(attribute)
       del self.synced_attributes[attribute]
@@ -1170,7 +1355,7 @@ class AFF4Object(object):
       del self.new_attributes[attribute]
 
     # Does this represent a new version?
-    if attribute.versioned:
+    if attribute.versioned and attribute.creates_new_object_version:
       self._new_version = True
 
     self._dirty = True
@@ -1207,7 +1392,13 @@ class AFF4Object(object):
           "Fetching %s from object not opened for reading." % attribute)
 
     for result in self.GetValuesForAttribute(attribute, only_one=True):
-      result.attribute_instance = attribute
+      try:
+        # The attribute may be a naked string or int - i.e. not an RDFValue at
+        # all.
+        result.attribute_instance = attribute
+      except AttributeError:
+        pass
+
       return result
 
     return attribute.GetDefault(self, default)
@@ -1286,12 +1477,12 @@ class AFF4Object(object):
                  token=self.token, age=self.age_policy,
                  follow_symlinks=self.follow_symlinks)
     result.Initialize()
-    # pylint: disable=protected-access
-    result._dirty = True
-    result._new_version = True
-    # pylint: disable=protected-access
 
     return result
+
+  def ForceNewVersion(self):
+    self._dirty = True
+    self._new_version = True
 
   def __repr__(self):
     return "<%s@%X = %s>" % (self.__class__.__name__, hash(self), self.urn)
@@ -1430,10 +1621,6 @@ class AFF4Volume(AFF4Object):
       return result.Upgrade(aff4_type)
 
     raise IOError("Path %s not found" % path)
-
-  def CreateMember(self, path, aff4_type, mode="w"):
-    return FACTORY.Create(self.urn.Add(path), aff4_type, mode=mode,
-                          token=self.token)
 
   def ListChildren(self, limit=1000000, age=NEWEST_TIME):
     """Yields RDFURNs of all the children of this object.
@@ -1740,12 +1927,16 @@ class AFF4Image(AFF4Stream):
 
     if "r" in self.mode:
       self.size = int(self.Get(self.Schema.SIZE))
+      # pylint: disable=protected-access
       self.chunksize = int(self.Get(self.Schema._CHUNKSIZE))
+      # pylint: enable=protected-access
     else:
       self.size = 0
 
   def SetChunksize(self, chunksize):
+    # pylint: disable=protected-access
     self.Set(self.Schema._CHUNKSIZE(chunksize))
+    # pylint: enable=protected-access
     self.chunksize = int(chunksize)
     self.Truncate(0)
 

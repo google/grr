@@ -58,8 +58,7 @@ class IterateAllClientUrns(object):
     """Yield client urns."""
     clients = GetAllClients(token=self.token)
     logging.info("Got %d clients", len(clients))
-    for client in clients:
-      yield client
+    return clients
 
   def Run(self):
     """Run the iteration."""
@@ -71,15 +70,14 @@ class IterateAllClientUrns(object):
       self.thread_pool.AddTask(target=self.IterFunction, args=args,
                                name=self.THREAD_POOL_NAME)
 
-    yield_count = 0
-    while count >= yield_count:
+    while count >= 0:
       try:
         # We only use the timeout to wait if we got to the end of the Queue but
         # didn't process everything yet.
         out = self.out_queue.get(timeout=self.QUEUE_TIMEOUT, block=True)
         if out:
           yield out
-          yield_count += 1
+          count -= 1
       except Queue.Empty:
         break
 
@@ -112,7 +110,7 @@ class IterateAllClients(IterateAllClientUrns):
     logging.info("Got %d clients", len(client_list))
     for client_group in utils.Grouper(client_list, self.client_chunksize):
       for fd in aff4.FACTORY.MultiOpen(client_group, mode="r",
-                                       required_type="VFSGRRClient",
+                                       aff4_type="VFSGRRClient",
                                        token=self.token):
         if isinstance(fd, aff4_grr.VFSGRRClient):
           # Skip if older than max_age
@@ -146,36 +144,53 @@ def DownloadFile(file_obj, target_path, buffer_size=BUFFER_SIZE):
   target_file.close()
 
 
-def RecursiveDownload(dir_obj, target_dir, depth=10, overwrite=False):
+def RecursiveDownload(dir_obj, target_dir, max_depth=10, depth=1,
+                      overwrite=False, max_threads=10):
   """Recursively downloads a file entry to the target path.
 
   Args:
     dir_obj: An aff4 object that contains children.
     target_dir: Full path of the directory to write to.
-    depth: Depth to download to. 1 means just the directory itself.
+    max_depth: Depth to download to. 1 means just the directory itself.
+    depth: Current depth of recursion.
     overwrite: Should we overwrite files that exist.
+    max_threads: Use this many threads to do the downloads.
   """
-  if not isinstance(dir_obj, aff4.AFF4Volume):
+  if (not isinstance(dir_obj, aff4.AFF4Volume) or
+      isinstance(dir_obj, aff4.HashImage)):
     return
+
+  # Reuse the same threadpool as we call recursively.
+  thread_pool = threadpool.ThreadPool.Factory("Downloader", max_threads)
+  thread_pool.Start()
+
   for sub_file_entry in dir_obj.OpenChildren():
     path_elements = [target_dir]
     sub_target_dir = u"/".join(path_elements)
     try:
       # Any file-like object with data in AFF4 should inherit AFF4Stream.
       if isinstance(sub_file_entry, aff4.AFF4Stream):
-        CopyAFF4ToLocal(sub_file_entry.urn, sub_target_dir,
-                        overwrite=overwrite, token=sub_file_entry.token)
+        args = (sub_file_entry.urn, sub_target_dir, sub_file_entry.token,
+                overwrite)
+        thread_pool.AddTask(target=CopyAFF4ToLocal, args=args,
+                            name="Downloader")
       elif "Container" in sub_file_entry.behaviours:
-        if depth <= 1:  # Don't go any deeper.
+        if depth >= max_depth:  # Don't go any deeper.
           continue
-        if not os.path.isdir(sub_target_dir):
+        try:
           os.makedirs(sub_target_dir)
+        except OSError:
+          pass
         RecursiveDownload(sub_file_entry, sub_target_dir, overwrite=overwrite,
-                          depth=depth-1)
+                          depth=depth+1)
     except IOError:
       logging.exception("Unable to download %s", sub_file_entry.urn)
     finally:
       sub_file_entry.Close()
+
+  # Join and stop the threadpool.
+  if depth <= 1:
+    thread_pool.Stop()
 
 
 def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
@@ -194,7 +209,7 @@ def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
   """
   completed_clients = set()
   try:
-    coll = aff4.FACTORY.Open(coll_path, required_type="RDFValueCollection",
+    coll = aff4.FACTORY.Open(coll_path, aff4_type="RDFValueCollection",
                              token=token)
   except IOError:
     logging.error("%s is not a valid collection. Typo? "
@@ -209,7 +224,7 @@ def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
   # StatEntry entries in this function.
   for grr_message in coll:
     # If a raw message, work out the type.
-    if isinstance(grr_message, rdfvalue.GRRMessage):
+    if isinstance(grr_message, rdfvalue.GrrMessage):
       grr_message = grr_message.payload
 
     if isinstance(grr_message, rdfvalue.RDFURN):
@@ -252,9 +267,11 @@ def CopyAFF4ToLocal(aff4_urn, target_dir, token=None, overwrite=False):
     fd = aff4.FACTORY.Open(aff4_urn, "AFF4Stream", token=token)
     filepath = os.path.join(target_dir, fd.urn.Path()[1:])
     if not os.path.isfile(filepath):
-      if not os.path.isdir(os.path.dirname(filepath)):
+      try:
         # Ensure directory exists.
         os.makedirs(os.path.dirname(filepath))
+      except OSError:
+        pass
       DownloadFile(fd, filepath)
     elif (os.stat(filepath)[stat.ST_SIZE] != fd.Get(fd.Schema.SIZE) or
           overwrite):

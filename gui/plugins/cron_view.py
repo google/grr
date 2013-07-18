@@ -6,13 +6,11 @@
 """This is the interface for managing cron jobs."""
 
 
-import logging
-
 from grr.gui import renderers
+from grr.gui.plugins import flow_management
 
-from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib.aff4_objects import cronjobs
+from grr.lib import cron
 
 
 class ManageCron(renderers.Splitter2Way):
@@ -20,7 +18,15 @@ class ManageCron(renderers.Splitter2Way):
   description = "Cron Job Viewer"
   behaviours = frozenset(["General"])
   top_renderer = "CronTable"
-  bottom_renderer = "ViewCronDetail"
+  bottom_renderer = "CronJobView"
+
+  layout_template = renderers.Splitter2Way.layout_template + """
+<script>
+grr.subscribe("cron_select", function(cron_urn) {
+  grr.layout("CronJobView", "{{id|escapejs}}_bottomPane", {value: cron_urn});
+}, "{{id|escapejs}}_bottomPane");
+</script>
+"""
 
 
 class CronTable(renderers.TableRenderer):
@@ -50,54 +56,31 @@ class CronTable(renderers.TableRenderer):
 
   def RenderAjax(self, request, response):
     """Renders the table."""
-    for cls_name, cls in aff4.AFF4Object.classes.iteritems():
-      if aff4.issubclass(
-          cls, (cronjobs.AbstractScheduledCronJob, cronjobs.AbstractCronTask)):
-        try:
-          fd = aff4.FACTORY.Open("cron:/%s" % cls_name, required_type=cls_name,
-                                 mode="r", token=request.token)
-          last_run_time = fd.Get(fd.Schema.LAST_RUN_TIME)
-
-          self.AddRow({"Name": fd.urn,
-                       "Last Run": last_run_time,
-                       "Frequency": "%sH" % int(fd.frequency),
-                       "Description": cls.__doc__})
-        except IOError:
-          logging.error("Bad cron %s", cls)
-        except access_control.UnauthorizedAccess:
-          pass
+    cron_jobs_urns = cron.CRON_MANAGER.ListJobs(token=request.token)
+    cron_jobs = aff4.FACTORY.MultiOpen(
+        cron_jobs_urns, mode="r", aff4_type="CronJob", token=request.token)
+    for cron_job in cron_jobs:
+      self.AddRow({"Name": cron_job.urn,
+                   "Last Run": cron_job.Get(cron_job.Schema.LAST_RUN_TIME),
+                   "Frequency": cron_job.Get(cron_job.Schema.FREQUENCY),
+                   "Description": cron_job.Get(cron_job.Schema.DESCRIPTION)})
 
     # Call our baseclass to actually do the rendering
     return super(CronTable, self).RenderAjax(request, response)
 
 
-class ViewCronDetail(renderers.TemplateRenderer):
+class CronJobView(flow_management.ManageFlows):
   """Render a customized form for a foreman action."""
 
-  layout_template = renderers.Template("""
-<div id="{{unique}}">
-  <h3>Cron Log</h3>
-  <table class="proto_table">
-  {% for val in this.log %}
-    <tr><td class="proto_key">{{ val.age }}</td><td>{{ val|escape }}</td>
-  {% empty %}
-    <tr><td>No logs</td></tr>
-  {% endfor %}
-  <table>
-</div>
-<script>
-grr.subscribe("cron_select", function(cron_urn) {
-  $("#{{unique|escapejs}}").html("<em>Loading&#8230;</em>");
-  grr.layout("ViewCronDetail", "{{unique|escapejs}}", {cron_urn: cron_urn});
-}, "{{unique}}");
-</script>
+  # Don't show the link to this view in the sidebar,
+  behaviours = frozenset()
+
+  empty_template = renderers.Template("""
+<div class="padded">Please select a cron job to see the details.</div>
 """)
 
   def Layout(self, request, response):
-    """Fill in the form with the specific fields for the flow requested."""
-    cron_urn = request.REQ.get("cron_urn")
-    if cron_urn:
-      fd = aff4.FACTORY.Open(cron_urn, token=request.token,
-                             age=aff4.ALL_TIMES)
-      self.log = fd.GetValuesForAttribute(fd.Schema.LOG)
-    return super(ViewCronDetail, self).Layout(request, response)
+    if not request.REQ.get("value"):
+      return self.RenderFromTemplate(self.empty_template, response)
+    else:
+      super(CronJobView, self).Layout(request, response)

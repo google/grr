@@ -3,7 +3,9 @@
 // These are protobufs used in various analysis jobs.
 
 syntax = "proto2";
+
 import "grr/proto/jobs.proto";
+import "grr/proto/semantic.proto";
 
 
 // A graph is a way to represent data.
@@ -25,17 +27,22 @@ message Graph {
 
 // The following relate to the timelining functionality.
 message Event {
-  optional uint64 timestamp = 1;
+  optional uint64 timestamp = 1 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The event timestamp."
+    }];
 
-  // The urn of the originating object for this event.
-  optional string source = 2;
+  optional string source = 2 [(sem_type) = {
+      type: "RDFURN",
+      description: "The urn of the originating object for this event.",
+    }];
 
   // The name of the object which this event is talking about.
   optional string subject = 3;
 
   // The type of this event.
   optional string type = 4;
-  optional StatResponse stat = 5;
+  optional StatEntry stat = 5;
 
   // The sequential number of this event as stored in the time series.
   optional uint32 id = 6;

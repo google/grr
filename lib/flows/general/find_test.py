@@ -7,6 +7,7 @@ from grr.client import vfs
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import type_info
 from grr.lib import utils
 
 
@@ -16,8 +17,14 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(TestFindFlow, self).setUp()
     # Install the mock
-    vfs_type = rdfvalue.RDFPathSpec.Enum("OS")
+    vfs_type = rdfvalue.PathSpec.PathType.OS
     vfs.VFS_HANDLERS[vfs_type] = test_lib.ClientVFSHandlerFixture
+
+  def testInvalidFindSpec(self):
+    """Test that its impossible to produce an invalid findspec."""
+    # The regular expression is not valid.
+    self.assertRaises(type_info.TypeValueError, rdfvalue.RDFFindSpec,
+                      path_regex="[")
 
   def testFindFiles(self):
     """Test that the Find flow works with files."""
@@ -27,8 +34,8 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     # Prepare a findspec.
     findspec = rdfvalue.RDFFindSpec(
         path_regex="bash",
-        pathspec=rdfvalue.RDFPathSpec(path="/",
-                                      pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
+        pathspec=rdfvalue.PathSpec(
+            path="/", pathtype=rdfvalue.PathSpec.PathType.OS))
 
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=self.client_id,
@@ -36,9 +43,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
       pass
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open("aff4:/{0}/{1}".format(self.client_id,
-                                                  output_path),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
 
     # Make sure that bash is a file.
     children = list(fd.OpenChildren())
@@ -58,8 +63,8 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     # Prepare a findspec.
     findspec = rdfvalue.RDFFindSpec(
         path_regex="bin",
-        pathspec=rdfvalue.RDFPathSpec(path="/",
-                                      pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
+        pathspec=rdfvalue.PathSpec(path="/",
+                                   pathtype=rdfvalue.PathSpec.PathType.OS))
 
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=self.client_id,
@@ -67,9 +72,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
       pass
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open(
-        "aff4:/{0}/{1}".format(self.client_id, output_path),
-        token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
 
     # Make sure that bin is a directory
     children = list(fd.OpenChildren())
@@ -88,8 +91,8 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     # Prepare a findspec.
     findspec = rdfvalue.RDFFindSpec(
         path_regex=".*",
-        pathspec=rdfvalue.RDFPathSpec(path="/",
-                                      pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
+        pathspec=rdfvalue.PathSpec(path="/",
+                                   pathtype=rdfvalue.PathSpec.PathType.OS))
 
     # Come back to the flow every 3 hits.
     findspec.iterator.number = 3
@@ -100,9 +103,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
       pass
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open(
-        "aff4:/{0}/{1}".format(self.client_id, output_path),
-        token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
 
     # Make sure we got the right number of results.
     children = list(fd.OpenChildren())
@@ -118,17 +119,17 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     findspec = rdfvalue.RDFFindSpec()
     findspec.path_regex = "bin"
     findspec.pathspec.path = "/"
-    findspec.pathspec.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+    findspec.pathspec.pathtype = rdfvalue.PathSpec.PathType.OS
 
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=self.client_id, token=self.token,
         findspec=findspec, output=output_path):
       pass
 
-    output_path = "aff4:/{0}/{1}".format(self.client_id, output_path)
     # Check the output file with the right number of results.
     children = list(
-        aff4.FACTORY.Open(output_path, token=self.token).OpenChildren())
+        aff4.FACTORY.Open(self.client_id.Add(output_path),
+                          token=self.token).OpenChildren())
     self.assertEqual(len(children), 2)
 
     # Now find a new result, should overwrite the collection
@@ -138,6 +139,6 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         findspec=findspec, output=output_path, max_results=1):
       pass
 
-    children = list(aff4.FACTORY.Open(
-        output_path, token=self.token).OpenChildren())
+    children = list(aff4.FACTORY.Open(self.client_id.Add(output_path),
+                                      token=self.token).OpenChildren())
     self.assertEqual(len(children), 1)

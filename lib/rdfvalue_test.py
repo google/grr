@@ -10,6 +10,7 @@ from grr.lib import test_lib
 from grr.lib.rdfvalues import test_base
 # pylint: disable=unused-import
 from grr.lib.rdfvalues import tests
+from grr.lib.flows.caenroll import ca_enroller
 # pylint: enable=unused-import
 
 

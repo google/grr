@@ -412,7 +412,7 @@ Error: {{ message|escape }}
         request.REQ["expires_text"])
     self.foreman_rule = rdfvalue.ForemanRule(
         description=request.REQ.get("description", ""),
-        created=rdfvalue.RDFDatetime(),
+        created=rdfvalue.RDFDatetime().Now(),
         expires=expire_date)
 
     # Check for sanity

@@ -387,12 +387,13 @@ class GrrConfigManager(object):
       parameters: A list of section names or specific parameters (in the format
         section.name) to validate.
 
-    Raises:
-      ConfigFormatError: if a parameter fails to validate.
+    Returns:
+      dict of {parameter: Exception}, where parameter is a section.name string.
     """
     if isinstance(parameters, basestring):
       parameters = [parameters]
 
+    validation_errors = {}
     for parameter in parameters:
       for descriptor in self.type_infos:
         if (("." in parameter and descriptor.name == parameter) or
@@ -401,8 +402,8 @@ class GrrConfigManager(object):
           try:
             descriptor.Validate(value)
           except type_info.TypeValueError as e:
-            raise ConfigFormatError("Error while parsing %s: %s." % (
-                descriptor.name, str(e)))
+            validation_errors[descriptor.name] = e
+    return validation_errors
 
   def SetEnv(self, key=None, value=None, **env):
     """Update the environment with new data.
@@ -447,6 +448,8 @@ class GrrConfigManager(object):
   def Set(self, name, value, verify=True):
     """Update the configuration option with a new value."""
     section, key = self._GetSectionName(name)
+    if section.lower() == "environment":
+      raise RuntimeError("Use SetEnv for setting environment variables.")
 
     # Check if the new value conforms with the type_info.
     type_info_obj = self._FindTypeInfo(section, key)
@@ -588,7 +591,6 @@ class GrrConfigManager(object):
     if reset:
       # Clear previous configuration.
       self.raw_data = {}
-      self.environment = {}
 
     if fd is not None:
       self.parser = ConfigFileParser(fd=fd)
@@ -619,7 +621,7 @@ class GrrConfigManager(object):
     section_name, key = self._GetSectionName(name)
     return self._GetValue(section_name, key)
 
-  def Get(self, name, verify=True, environ=True):
+  def Get(self, name, verify=False, environ=True):
     """Get the value contained  by the named parameter.
 
     This method applies interpolation/escaping of the named parameter and
@@ -635,28 +637,36 @@ class GrrConfigManager(object):
 
     Returns:
       The value of the parameter.
+    Raises:
+      ConfigFormatError: if verify=True and the config doesn't validate.
     """
     if environ and name in self.environment:
-      return self.environment[name]
+      return_value = self.environment[name]
 
-    section_name, key = self._GetSectionName(name)
-    type_info_obj = self._FindTypeInfo(section_name, key)
-    if type_info_obj is None:
-      # Only warn for real looking parameters.
-      if verify and not key.startswith("__"):
-        logging.debug("No config declaration for %s - assuming String",
-                      name)
+    else:
+      section_name, key = self._GetSectionName(name)
+      type_info_obj = self._FindTypeInfo(section_name, key)
+      if type_info_obj is None:
+        # Only warn for real looking parameters.
+        if verify and not key.startswith("__"):
+          logging.debug("No config declaration for %s - assuming String",
+                        name)
 
-      type_info_obj = type_info.String(name=name, default="")
+        type_info_obj = type_info.String(name=name, default="")
 
-    value = self.NewlineFixup(self._GetValue(section_name, key))
-    try:
-      return self.InterpolateValue(
-          value, type_info_obj=type_info_obj,
-          default_section=section_name)
+      value = self.NewlineFixup(self._GetValue(section_name, key))
+      try:
+        return_value = self.InterpolateValue(
+            value, type_info_obj=type_info_obj,
+            default_section=section_name)
 
-    except (lexer.ParseError, type_info.TypeValueError) as e:
-      raise ConfigFormatError("While parsing %s: %s" % (name, e))
+        if verify and not key.startswith("__"):
+          type_info_obj.Validate(return_value)
+
+      except (lexer.ParseError, type_info.TypeValueError) as e:
+        raise ConfigFormatError("While parsing %s: %s" % (name, e))
+
+    return return_value
 
   def _GetValue(self, section_name, key):
     """Search for the value based on section inheritance."""

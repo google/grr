@@ -14,7 +14,7 @@ from grr.gui.plugins import fileview
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
-from grr.lib import flow_context
+from grr.lib import flow_runner
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
@@ -49,7 +49,7 @@ class FlowTree(renderers.TreeRenderer):
     path = rdfvalue.RDFURN(path)
 
     for name, cls in flow.GRRFlow.classes.items():
-      if not cls.category:
+      if not hasattr(cls, "category") or not cls.category:
         continue
       if cls.AUTHORIZED_LABELS:
         if not data_store.DB.security_manager.CheckUserLabels(
@@ -151,6 +151,8 @@ Prototype: {{ this.prototype|escape }}
 
     try:
       flow_class = flow.GRRFlow.classes[self.flow_name]
+      if not aff4.issubclass(flow_class, flow.GRRFlow):
+        return response
     except KeyError:
       return response
 
@@ -261,19 +263,20 @@ class FlowForm(FlowInformation):
     # Fill in the form elements
     if self.flow_name in flow.GRRFlow.classes:
       flow_class = flow.GRRFlow.classes[self.flow_name]
-      flow_typeinfo = flow_class.flow_typeinfo
+      if aff4.issubclass(flow_class, flow.GRRFlow):
+        flow_typeinfo = flow_class.flow_typeinfo
 
-      # Merge standard flow args if needed
-      if flow_typeinfo is not flow.GRRFlow.flow_typeinfo:
-        flow_typeinfo = flow_typeinfo.Add(flow.GRRFlow.flow_typeinfo)
+        # Merge standard flow args if needed
+        if flow_typeinfo is not flow.GRRFlow.flow_typeinfo:
+          flow_typeinfo = flow_typeinfo.Add(flow.GRRFlow.flow_typeinfo)
 
-      # Filter out ignored args so that they do not get rendered
-      flow_typeinfo = flow_typeinfo.Remove(
-          *[arg for arg in self.ignore_flow_args
-            if flow_typeinfo.HasDescriptor(arg)])
+        # Filter out ignored args so that they do not get rendered
+        flow_typeinfo = flow_typeinfo.Remove(
+            *[arg for arg in self.ignore_flow_args
+              if flow_typeinfo.HasDescriptor(arg)])
 
-      self.flow_args = type_descriptor_renderer.Form(
-          flow_typeinfo, request, prefix=self.prefix)
+        self.flow_args = type_descriptor_renderer.Form(
+            flow_typeinfo, request, prefix=self.prefix)
 
     return renderers.TemplateRenderer.Layout(self, request, response)
 
@@ -305,9 +308,8 @@ class FlowFormAction(FlowInformation):
       grr.loadFromHash();
   });
 
-  // Still respond if the flow is selected.
   grr.subscribe('flow_select', function(path) {
-     grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}", {
+     grr.layout("FlowForm", "{{id|escapejs}}", {
        flow_name: path,
        client_id: grr.state.client_id,
        reason: grr.state.reason
@@ -381,7 +383,7 @@ $('#gotoflow').hide();
           value = "'" + value + "'"
         self.args_sent.append((utils.SmartUnicode(k), value))
 
-      self.flow_id = flow.FACTORY.StartFlow(self.client_id, self.flow_name,
+      self.flow_id = flow.GRRFlow.StartFlow(self.client_id, self.flow_name,
                                             token=request.token, **self.args)
 
       return renderers.TemplateRenderer.Layout(self, request, response)
@@ -406,7 +408,7 @@ class FlowFormCancelAction(renderers.TemplateRenderer):
 
   def Layout(self, request, response):
     self.flow_id = request.REQ.get("flow_id", "")
-    flow.FACTORY.TerminateFlow(self.flow_id, reason="Cancelled in GUI",
+    flow.GRRFlow.TerminateFlow(self.flow_id, reason="Cancelled in GUI",
                                token=request.token, force=True)
     super(FlowFormCancelAction, self).Layout(request, response)
 
@@ -501,8 +503,8 @@ class FlowRequestView(renderers.TableRenderer):
   def BuildTable(self, start_row, end_row, request):
     session_id = request.REQ.get("flow", "")
 
-    state_queue = flow_context.FlowManager.FLOW_STATE_TEMPLATE % session_id
-    predicate_re = flow_context.FlowManager.FLOW_REQUEST_PREFIX + ".*"
+    state_queue = flow_runner.FlowManager.FLOW_STATE_TEMPLATE % session_id
+    predicate_re = flow_runner.FlowManager.FLOW_REQUEST_PREFIX + ".*"
 
     # Get all the responses for this request.
     for i, (predicate, req_state, _) in enumerate(data_store.DB.ResolveRegex(
@@ -650,10 +652,10 @@ class ListFlowsTable(renderers.TableRenderer):
 """
 
   def _GetCreationTime(self, obj):
-    if hasattr(obj, "create_time"):
-      return obj.create_time
+    if isinstance(obj, aff4.AFF4Object.GRRFlow):
+      return obj.state.context.get("create_time") or obj.Get(obj.Schema.LAST)
     else:
-      return obj.Get(obj.Schema.LAST)
+      return 0
 
   def __init__(self, **kwargs):
     super(ListFlowsTable, self).__init__(**kwargs)
@@ -701,14 +703,14 @@ class ListFlowsTable(renderers.TableRenderer):
         row_name = flow_obj.urn.Basename()
 
         try:
-          rdf_flow = flow_obj.GetRDFFlow()
           if flow_obj.Get(flow_obj.Schema.CLIENT_CRASH):
             row["State"] = "CLIENT_CRASHED"
           else:
-            row["State"] = rdf_flow.state
-          row["Flow Name"] = rdf_flow.name
-          row["Creation Time"] = rdf_flow.create_time
-          row["Creator"] = rdf_flow.creator
+            row["State"] = flow_obj.state.context.state
+
+          row["Flow Name"] = flow_obj.state.context.flow_name
+          row["Creation Time"] = flow_obj.state.context.create_time
+          row["Creator"] = flow_obj.state.context.creator
         except AttributeError:
           row["Flow Name"] = "Failed to open flow."
       else:
@@ -881,3 +883,13 @@ class ClientCrashesRenderer(crash_view.ClientCrashCollectionRenderer):
     client_id = request.REQ.get("client_id")
     self.crashes_urn = aff4.ROOT_URN.Add(client_id).Add("crashes")
     super(ClientCrashesRenderer, self).Layout(request, response)
+
+
+class FlowStateRenderer(renderers.DictRenderer):
+  """A Flow state is similar to a dict."""
+  classname = "FlowState"
+
+
+class DataObjectRenderer(renderers.DictRenderer):
+  """A flow data object is also similar to a dict."""
+  classname = "DataObject"

@@ -60,42 +60,14 @@ class NotificationBar(renderers.TemplateRenderer):
   <li><button id="notification_button" class="nav-btn btn btn-info span1"
          data-toggle="modal" data-target="#notification_dialog"/></li>
 </ul>
-
-<script>
-  grr.subscribe("NotificationCount", function (number) {
-    var button;
-
-    if(parseInt(number) > 0) {
-      button = $('#notification_button').removeClass("btn-info");
-      button = $('#notification_button').addClass("btn-danger");
-    } else {
-      button = $('#notification_button').addClass("btn-info");
-      button = $('#notification_button').removeClass("btn-danger");
-    };
-    button.text(number);
-  }, "notification_button");
-
-  grr.poll("NotificationCount", "notification_button", function (data) {
-    if(data) {
-      grr.publish("NotificationCount", data.number);
-    };
-
-    return true;
-  }, 60000, grr.state, 'json');
-
-  $("#notification_dialog").detach().appendTo("body");
-  $("#notification_dialog").on("show", function () {
-    grr.layout("ViewNotifications", "notification_dialog_body");
-    grr.publish("NotificationCount", 0);
-  });
-</script>
 """)
 
   def Layout(self, request, response):
     """Show the number of notifications outstanding for the user."""
     self.user = request.user
 
-    return super(NotificationBar, self).Layout(request, response)
+    response = super(NotificationBar, self).Layout(request, response)
+    return self.CallJavascript(response, "NotificationBar.Layout")
 
 
 class ViewNotifications(renderers.TableRenderer):
@@ -104,19 +76,7 @@ class ViewNotifications(renderers.TableRenderer):
   target_template = renderers.Template("""
 <a href="/#{{hash|escape}}" target_hash="{{hash|escape}}">{{target}}</span>""")
 
-  layout_template = renderers.TableRenderer.layout_template + """
-<script>
-  //Receive the selection event and emit a path
-  grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
-    if (node) {
-    var element = node.find("a");
-      if(element) {
-        grr.loadFromHash(element.attr("target_hash"));
-      };
-    };
-  }, '{{ unique|escapejs }}');
-</script>
-  """
+  layout_template = renderers.TableRenderer.layout_template
 
   def __init__(self, **kwargs):
     renderers.TableRenderer.__init__(self, **kwargs)
@@ -124,6 +84,10 @@ class ViewNotifications(renderers.TableRenderer):
     self.AddColumn(renderers.RDFValueColumn("Timestamp"))
     self.AddColumn(renderers.RDFValueColumn("Message", width="100%"))
     self.AddColumn(renderers.RDFValueColumn("Target"))
+
+  def Layout(self, request, response):
+    response = super(ViewNotifications, self).Layout(request, response)
+    return self.CallJavascript(response, "ViewNotifications.Layout")
 
   def BuildTable(self, start_row, end_row, request):
     """Add all the notifications to this table."""

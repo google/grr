@@ -39,6 +39,13 @@ COUNTER = 1
 MAX_ROW_LIMIT = 1000000
 
 
+def GetNextId():
+  """Generate a unique id."""
+  global COUNTER  # pylint: disable=W0603
+  COUNTER += 1  # pylint: disable=C6409
+  return COUNTER
+
+
 class VerifyRenderers(registry.InitHook):
 
   def RunOnce(self):
@@ -191,9 +198,41 @@ class Renderer(object):
   # maximum, but will be used as a guide).
   max_execution_time = 60
 
-  def __init__(self, id=None, state=None):
+  js_call_template = Template("""
+<script>
+  grr.ExecuteRenderer("{{method|escapejs}}", {{js_state_json|safe}});
+</script>
+""")
+
+  def __init__(self, id=None, state=None):  # pylint: disable=redefined-builtin
     self.state = state or {}
     self.id = id
+    self.unique = GetNextId()
+
+  def CallJavascript(self, response, method, **kwargs):
+    """Inserts javascript call into the response.
+
+    Args:
+      response: Response object where the <script>...</script> code will be
+                written.
+      method: Javascript method to be executed. For example,
+              "SomeRenderer.Layout". For details on how to register these
+              methods, please see gui/static/javascript/renderers.js.
+      **kwargs: Dictionary arguments that will be passed to the javascript
+                functions in JSON-encoded 'state' argument. self.unique
+                and self.id are included into 'state' by default.
+
+    Returns:
+      Response object.
+    """
+    js_state = {"unique": self.unique,
+                "id": self.id}
+    js_state.update(kwargs)
+
+    self.RenderFromTemplate(self.js_call_template, response,
+                            method=method,
+                            js_state_json=json.dumps(js_state))
+    return response
 
   def RenderAjax(self, request, response):
     """Responds to an AJAX request.
@@ -207,8 +246,6 @@ class Renderer(object):
     """
     if request and self.id is None:
       self.id = request.REQ.get("id", hash(self))
-
-    self.unique = GetNextId()
 
     return response
 
@@ -224,8 +261,6 @@ class Renderer(object):
     """
     if request and self.id is None:
       self.id = request.REQ.get("id", hash(self))
-
-    self.unique = GetNextId()
 
     # Make the encoded state available for our template.
     encoder = json.JSONEncoder()
@@ -756,6 +791,17 @@ class TabLayout(TemplateRenderer):
   <div id="tab_contents_{{unique|escape}}" class="tab-content"></div>
 </div>
 
+<!-- TODO: rewrite. it's bad to generate JS code in a loop -->
+<script>
+// Disable the tabs which need to be disabled.
+$("li").removeClass("disabled");
+$("li a").removeClass("disabled");
+
+{% for disabled in this.disabled %}
+$("li[renderer={{disabled|escapejs}}]").addClass("disabled");
+$("li a[renderer={{disabled|escapejs}}]").addClass("disabled");
+{% endfor %}
+</script>
 <script>
   // Store the state of this widget.
   $("#{{unique|escapejs}}").data().state = {{this.state_json|safe}};
@@ -789,6 +835,14 @@ class TabLayout(TemplateRenderer):
     $(this).parent().addClass("active");
   });
 
+  // Find first enabled tab (the default selection).
+  var enabledTabs = $.map(
+    $("#{{unique|escapejs}} > li:not(.disabled)"),
+    function(val) {
+      return $(val).attr("renderer");
+    }
+  );
+
   // Select the first tab at first.
   {% if this.tab_hash %}
     var selected = grr.hash.{{this.tab_hash|safe}} ||
@@ -796,14 +850,21 @@ class TabLayout(TemplateRenderer):
   {% else %}
     var selected = "{{this.selected|escapejs}}";
   {% endif %}
-  // Check that tab exists and fall back to default if not.
-  if (! $("#{{unique|escapejs}} li a[renderer='" + selected + "']")) {
-    selected = "{{this.selected|escapejs}}";
+
+  if (enabledTabs.indexOf(selected) == -1) {
+    selected = enabledTabs.length > 0 ? enabledTabs[0] : null;
   }
-  $($("#{{unique|escapejs}} li a[renderer='" + selected + "']")).click();
+  if (selected) {
+    $($("#{{unique|escapejs}} li a[renderer='" + selected + "']")).click();
+  }
 </script>
 
 """)
+
+  def __init__(self, *args, **kwargs):
+    super(TabLayout, self).__init__(*args, **kwargs)
+    # This can be overriden by child classes.
+    self.disabled = []
 
   def Layout(self, request, response, apply_template=None):
     """Render the content of the tab or the container tabset."""
@@ -932,7 +993,7 @@ var state = $.extend({}, grr.state, {{this.state_json|safe}});
 
   def Layout(self, request, response):
     """Layout."""
-    self.id = request.REQ.get("id", hash(self))
+    self.id = self.id or request.REQ.get("id", hash(self))
 
     # Pre-render the top and bottom layout contents to avoid extra round trips.
     self.top_pane = self.classes[self.top_renderer](
@@ -1021,13 +1082,6 @@ class Button(TemplateRenderer):
  $('#{{ unique|escape }}_button').button()
 </script>
 """)
-
-
-def GetNextId():
-  """Generate a unique id."""
-  global COUNTER  # pylint: disable=W0603
-  COUNTER += 1  # pylint: disable=C6409
-  return COUNTER
 
 
 class RDFValueRenderer(TemplateRenderer):
@@ -1196,7 +1250,7 @@ class RDFProtoRenderer(RDFValueRenderer):
 
   def ProtoDict(self, _, protodict):
     """Render a ProtoDict as a string of values."""
-    protodict = rdfvalue.RDFProtoDict(initializer=protodict)
+    protodict = rdfvalue.Dict(initializer=protodict)
     return self.FormatFromTemplate(self.proto_template,
                                    data=protodict.ToDict().items())
 
@@ -1209,7 +1263,8 @@ class RDFProtoRenderer(RDFValueRenderer):
   def Layout(self, request, response):
     """Render the protobuf as a table."""
     self.result = []
-    for name, value in self.proxy.ListFields():
+    for descriptor, value in self.proxy.ListFields():
+      name = descriptor.name
       # Try to translate the value if there is a special translator for it.
       if name in self.translator:
         try:
@@ -1270,7 +1325,7 @@ class RDFValueArrayRenderer(RDFValueRenderer):
 class DictRenderer(RDFValueRenderer):
   """Renders dicts."""
 
-  classname = "dict"
+  classname = "Dict"
 
   # {{value}} comes from the translator so its assumed to be safe.
   layout_template = Template("""
@@ -1318,12 +1373,6 @@ class DictRenderer(RDFValueRenderer):
 
 class ListRenderer(RDFValueArrayRenderer):
   classname = "list"
-
-
-class RDFProtoDictRenderer(DictRenderer):
-  """Renders RFDProtoDicts."""
-
-  classname = "RDFProtoDict"
 
 
 class AbstractLogRenderer(TemplateRenderer):
@@ -1577,12 +1626,8 @@ class DelegatedTypeInfoRenderer(TypeInfoFormRenderer):
               raise ValueError("Could not get default for type %s" %
                                type_descriptor)
             result = result_cls()
-          try:
-            # We have to merge nested protobufs rather than assign them.
-            getattr(result, name).MergeFrom(value.ToProto())
-          except AttributeError:
-            # For simple field types we just assign them.
-            setattr(result, name, value)
+
+          setattr(result, name, value)
 
     return result
 
@@ -1665,11 +1710,115 @@ class ListFormRenderer(TypeInfoFormRenderer):
     if isinstance(type_descriptor.validator, type_info.String):
       str_val = request.REQ.get(prefix + type_descriptor.name)
       if str_val:
-        return str_val.split(",")
+        return [x.strip() for x in str_val.split(",")]
       else:
         return []
     else:
       return ""
+
+
+class InterpolatedPathRenderer(ListFormRenderer):
+  """Renderer for paths that contain variable expansions."""
+  type_info_cls = type_info.InterpolatedList
+  form_template = """<div class="control-group">
+""" + TypeInfoFormRenderer.default_description_view + """
+  <script>
+(function() {
+  var select2_id="";
+
+  function SetFormText(text) {
+    $("#{{unique|escape}}_inputpath").focus();
+    $("#{{unique|escape}}_inputpath").replaceSelectedText(text,
+        "collapseToEnd");
+    // Need to call change here, to notify new hunt's wizard when this
+    // renderer is used there.
+    $("#{{unique|escape}}_inputpath").change();
+  }
+
+  function HideDropdown() {
+    $(select2_id).hide();
+  }
+
+  function ShowDropdown() {
+    $(select2_id).show();
+    $("#{{unique|escape}}_select").select2("open");
+  }
+
+  function SetEventHandlers() {
+    $("#{{unique|escape}}_select").on("change", function(e) {
+      // Note: Hunt's wizards triggers "change" event in all the controls of the
+      // form every time the form is displayed. We can detect that by checking
+      // if the e.val object is empty or not.
+      if (e.val) {
+        SetFormText(e.val);
+      }
+    });
+    $("#{{unique|escape}}_select").on("close", function () { HideDropdown() });
+    $("#{{unique|escape}}_caret").click(function () { ShowDropdown() });
+  }
+
+  $("#{{unique|escape}}_select").select2();
+
+  // select2 injects HTML so we need to find the element ID again to hide it
+  // until the dropdown is clicked.
+  select2_id = "#"+$("#{{unique|escape}}_select").select2("container")[0].id;
+
+  SetEventHandlers();
+  HideDropdown();
+})();
+  </script>
+
+  <div class="controls">
+    <input name='{{prefix}}{{this.type.name|escape}}'
+    id='{{unique|escape}}_inputpath' type=text value='{{ this.value|escape }}'/>
+
+    <a class="btn dropdown-toggle" id='{{unique|escape}}_caret' href="#">
+      <span class="caret"></span>
+    </a>
+
+    <select id='{{unique|escape}}_select'>
+      {% for key, value in this.interpolated_paths.items %}
+        <option value='{{value|escape}}'>{{key|escape}}</option>
+      {% endfor %}
+    </select>
+
+  </div>
+</div>
+"""
+
+  def GetInterpolatedPaths(self):
+    """Get the list of path expansions from the User object.
+
+    Returns:
+      dictionary of path expansions: dict[label] = expansion
+    """
+    interpolated_paths = {}
+    for attribute in rdfvalue.User().special_folders.Fields():
+      expansion = "%%%%Users.special_folders.%s%%%%" % attribute
+      interpolated_paths["%%%s%%" % attribute] = expansion
+
+    interpolated_paths["%homedir%"] = "%%Users.homedir%%"
+    interpolated_paths["%username%"] = "%%Users.username%%"
+
+    return interpolated_paths
+
+  def Form(self, type_descriptor, request, prefix="v_", **kwargs):
+    """Produce a string to render a form element from the type_descriptor."""
+    if not isinstance(type_descriptor.validator, type_info.String):
+      return ""
+
+    self.type = type_descriptor
+    self.interpolated_paths = self.GetInterpolatedPaths()
+
+    if request.REQ.get(prefix + type_descriptor.name) is not None:
+      items = self.ParseArgs(type_descriptor, request, **kwargs)
+    else:
+      items = type_descriptor.default
+    self.value = ",".join(items or [])
+
+    return self.FormatFromTemplate(
+        self.form_template, unique=self.unique, this=self,
+        prefix=prefix, **kwargs)
 
 
 class RegularExpressionFormRenderer(StringFormRenderer):
@@ -1759,18 +1908,18 @@ class BoolFormRenderer(TypeInfoFormRenderer):
 class RDFEnumFormRenderer(NumberFormRenderer):
   """Renders RDF enums."""
 
-  type_info_cls = type_info.RDFEnum
+  type_info_cls = type_info.SemanticEnum
 
   form_template = """<div class="control-group">
 """ + TypeInfoFormRenderer.default_description_view + """
 <div class="controls">
 
 <select name="{{prefix}}{{this.type.name|escape}}">
-{% for enum_name, enum_desc in enum_values %}
- <option {% ifequal enum_desc.number value %}selected{% endifequal %}
-   value="{{enum_desc.number|escape}}">
+{% for enum_name, enum_value in enum_values %}
+ <option {% ifequal enum_value value %}selected{% endifequal %}
+   value="{{enum_value|escape}}">
    {{enum_name|escape}}
-   {% ifequal enum_desc.number default %} (default){% endifequal %}
+   {% ifequal enum_value default %} (default){% endifequal %}
 </option>
 {% endfor %}
 </select>
@@ -1782,16 +1931,15 @@ class RDFEnumFormRenderer(NumberFormRenderer):
   def Form(self, type_descriptor, request, prefix=""):
     # We want enums to be sorted by their numerical value.
     self.type = type_descriptor
-
-    value = type_descriptor.default
+    value = type_descriptor.GetDefault()
 
     enum_values = sorted(
-        type_descriptor.enum_descriptor.values_by_name.items(),
+        type_descriptor.enum_container.enum_dict.items(),
         key=lambda (k, v): v)
 
     return self.FormatFromTemplate(
         self.form_template, enum_values=enum_values, prefix=prefix,
-        default=type_descriptor.default, value=value)
+        default=type_descriptor.GetDefault(), value=value)
 
 
 class PathTypeEnumRenderer(RDFEnumFormRenderer):
@@ -1850,7 +1998,8 @@ name="{{prefix}}{{ this.type.name|escape }}" multiple="multiple">
   def Form(self, type_descriptor, request, prefix="v_", **kwargs):
     client_id = request.REQ.get("client_id", None)
     if client_id:
-      client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id))
+      client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id), mode="r",
+                                 token=request.token)
       valid_users = sorted(list(client.Get(client.Schema.USER, [])))
     else:
       valid_users = []
@@ -1882,11 +2031,10 @@ def FindRendererForObject(rdf_obj):
     except AttributeError:
       pass
 
-  if isinstance(rdf_obj, (rdfvalue.RDFValueArray,
-                          rdfvalue.RepeatedFieldHelper)):
+  if isinstance(rdf_obj, (rdfvalue.RDFValueArray)):
     return RDFValueArrayRenderer(rdf_obj)
 
-  elif isinstance(rdf_obj, rdfvalue.RDFProto):
+  elif isinstance(rdf_obj, rdfvalue.RDFProtoStruct):
     return RDFProtoRenderer(rdf_obj)
 
   # Default renderer.
@@ -2039,7 +2187,7 @@ class RDFValueCollectionRenderer(TableRenderer):
     try:
       aff4_path = self.state.get("aff4_path") or request.REQ.get("aff4_path")
       collection = aff4.FACTORY.Open(aff4_path,
-                                     required_type="RDFValueCollection",
+                                     aff4_type="RDFValueCollection",
                                      token=request.token)
     except IOError:
       return

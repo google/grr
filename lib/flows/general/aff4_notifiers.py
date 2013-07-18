@@ -31,7 +31,8 @@ Following path got modified: %(path)s"
     """Process an event message."""
 
     # Only accept authenticated messages
-    if message.auth_state != rdfvalue.GRRMessage.Enum("AUTHENTICATED"):
+    auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
+    if message.auth_state != auth_state:
       return
 
     if not flags.FLAGS.aff4_change_email:

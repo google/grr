@@ -3,28 +3,26 @@
 """The base classes for RDFValue tests."""
 import time
 
-from google.protobuf import message
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-
-from grr.proto import jobs_pb2
+from grr.lib import type_info
 
 
 class GenericRDFProtoTest(test_lib.AFF4ObjectTest):
   def testNestedProtobufAssignment(self):
     """Check that we can assign a nested protobuf."""
     container = rdfvalue.VolatilityRequest()
-    pathspec = rdfvalue.RDFPathSpec(path=r"\\.\pmem", pathtype=1)
+    pathspec = rdfvalue.PathSpec(path=r"\\.\pmem", pathtype=1)
 
     # Should raise - incompatible RDFType.
     self.assertRaises(
-        ValueError,
+        type_info.TypeValueError,
         setattr, container, "device", rdfvalue.RDFString("hello"))
 
     # Should raise - incompatible RDFProto type.
     self.assertRaises(
-        ValueError,
+        type_info.TypeValueError,
         setattr, container, "device", rdfvalue.StatEntry(st_size=5))
 
     # Assign directly.
@@ -36,44 +34,51 @@ class GenericRDFProtoTest(test_lib.AFF4ObjectTest):
     container.device = None
 
     # Check the protobuf does not have the field set at all.
-    self.assertFalse(container.ToProto().HasField("device"))
+    self.assertFalse(container.HasField("device"))
 
   def testSimpleTypeAssignment(self):
     sample = rdfvalue.StatEntry()
+    sample.AddDescriptor(type_info.ProtoRDFValue(
+        name="test", field_number=45,
+        rdf_type=rdfvalue.RDFInteger))
 
     # Ensure there is an rdf_map so we know that st_size is an RDFInteger:
-    self.assertIsInstance(sample.st_size, rdfvalue.RDFInteger)
+    self.assertIsInstance(sample.test, rdfvalue.RDFInteger)
 
     # Can we assign an RDFValue instance?
-    sample.st_size = rdfvalue.RDFInteger(5)
+    sample.test = rdfvalue.RDFInteger(5)
 
-    self.assertEqual(sample.st_size, 5)
+    self.assertEqual(sample.test, 5)
 
     # Check that bare values can be coerced.
-    sample.st_size = 6
-    self.assertIsInstance(sample.st_size, rdfvalue.RDFInteger)
-    self.assertEqual(sample.st_size, 6)
+    sample.test = 6
+    self.assertIsInstance(sample.test, rdfvalue.RDFInteger)
+    self.assertEqual(sample.test, 6)
 
     # Assign an enum.
-    sample.registry_type = sample.REG_DWORD
-    self.assertEqual(sample.registry_type, sample.REG_DWORD)
+    sample.registry_type = sample.RegistryType.REG_DWORD
+    self.assertEqual(sample.registry_type, sample.RegistryType.REG_DWORD)
 
-    sample.registry_type = rdfvalue.StatEntry.Enum("REG_SZ")
-    self.assertEqual(sample.registry_type, sample.REG_SZ)
+    sample.registry_type = rdfvalue.StatEntry.RegistryType.REG_SZ
+    self.assertEqual(sample.registry_type, sample.RegistryType.REG_SZ)
+
+    # We can also assign the string value.
+    sample.registry_type = "REG_QWORD"
+    self.assertEqual(sample.registry_type, sample.RegistryType.REG_QWORD)
 
     # Check that coercing works.
-    sample.st_size = "10"
-    self.assertEqual(sample.st_size, 10)
+    sample.test = "10"
+    self.assertEqual(sample.test, 10)
 
     # Assign an RDFValue which can not be coerced.
     self.assertRaises(
-        ValueError,
-        setattr, sample, "st_size", rdfvalue.RDFString("hello"))
+        type_info.TypeValueError,
+        setattr, sample, "test", rdfvalue.RDFString("hello"))
 
   def testComplexConstruction(self):
     """Test that we can construct RDFProtos with nested fields."""
-    pathspec = rdfvalue.RDFPathSpec(path="/foobar",
-                                    pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+    pathspec = rdfvalue.PathSpec(path="/foobar",
+                                 pathtype=rdfvalue.PathSpec.PathType.TSK)
     sample = rdfvalue.StatEntry(pathspec=pathspec,
                                 st_size=5)
 
@@ -81,11 +86,11 @@ class GenericRDFProtoTest(test_lib.AFF4ObjectTest):
     self.assertEqual(sample.st_size, 5)
 
     self.assertRaises(
-        ValueError, rdfvalue.StatEntry, foobar=1)
+        AttributeError, rdfvalue.StatEntry, foobar=1)
 
   def testUnicodeSupport(self):
-    pathspec = rdfvalue.RDFPathSpec(path="/foobar",
-                                    pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+    pathspec = rdfvalue.PathSpec(path="/foobar",
+                                 pathtype=rdfvalue.PathSpec.PathType.TSK)
     pathspec.path = u"Grüezi"
 
     self.assertEqual(pathspec.path, u"Grüezi")
@@ -125,32 +130,6 @@ class GenericRDFProtoTest(test_lib.AFF4ObjectTest):
     finally:
       time.time = old_time
 
-  def testRDFProto(self):
-    """Tests that the RDFProto RDFValue serialization works."""
-
-    class RDFProtoTest(rdfvalue.RDFProto):
-      _proto = jobs_pb2.GrrMessage
-
-    # Check that we can initialize from a serialized proto
-    my_proto = jobs_pb2.GrrMessage(session_id="test1",
-                                   request_id=123,
-                                   args="hello",
-                                   source="foobar")
-
-    test_obj = RDFProtoTest(my_proto.SerializeToString())
-
-    self.assertProto2Equal(test_obj._data, my_proto)
-    self.assertEqual(test_obj._data.args, "hello")
-
-    self.assertEqual(test_obj.SerializeToString(), my_proto.SerializeToString())
-
-    test_obj = RDFProtoTest()
-    test_obj.ParseFromString(my_proto.SerializeToString())
-
-    self.assertEqual(test_obj._data.SerializeToString(),
-                     my_proto.SerializeToString())
-    self.assertEqual(test_obj._data, my_proto)
-
   def testRepeatedFields(self):
     """Test handling of protobuf repeated fields."""
     sample = rdfvalue.Interface()
@@ -161,7 +140,7 @@ class GenericRDFProtoTest(test_lib.AFF4ObjectTest):
     self.assertEqual(sample.ip4_addresses[0], "127.0.0.1")
 
     # Add an invalid type.
-    self.assertRaises(ValueError, sample.addresses.Append, 2)
+    self.assertRaises(type_info.TypeValueError, sample.addresses.Append, 2)
 
     # Add a protobuf
     sample.addresses.Append(human_readable="127.0.0.1")
@@ -198,8 +177,8 @@ class RDFValueTestCase(test_lib.GRRBaseTest):
     self.assertIsInstance(sample, self.rdfvalue_class)
     self.assertIsInstance(value, self.rdfvalue_class)
 
-    self.assertEqual(value.SerializeToString(),
-                     sample.SerializeToString())
+    if hasattr(value, "ListFields"):
+      self.assertProtoEqual(value, sample)
 
   def testComparisons(self):
     """Checks that object comparisons work."""
@@ -272,29 +251,14 @@ class RDFProtoTestCase(RDFValueTestCase):
   def CheckRDFValue(self, rdfproto, sample):
     """Check that the rdfproto is the same as the sample."""
     super(RDFProtoTestCase, self).CheckRDFValue(rdfproto, sample)
-
-    # The serialization for protobufs and RDFProto is the same.
-    self.assertEqual(rdfproto.SerializeToString(), sample.SerializeToString())
+    self.assertProtoEqual(rdfproto, sample)
 
   def testInitializationEx(self):
     """Check we can initialize from additional parts."""
-
-    # Can we initialize from a protobuf?
     sample = self.GenerateSample()
-    sample_pb = sample.ToProto()
-    self.assertIsInstance(sample_pb, message.Message)
-
-    rdfvalue_sample = self.rdfvalue_class(sample_pb)
-
-    self.CheckRDFValue(rdfvalue_sample, sample)
 
     # RDFProto can be initialized from a serialized protobuf.
-    rdfvalue_sample = self.rdfvalue_class.FromSerializedProtobuf(
-        sample_pb.SerializeToString())
-    self.CheckRDFValue(rdfvalue_sample, sample)
-
-    # RDFProto can also be parsed from a unicode string.
-    rdfvalue_sample = self.rdfvalue_class.FromTextProtobuf(unicode(sample_pb))
+    rdfvalue_sample = self.rdfvalue_class(sample.SerializeToString())
     self.CheckRDFValue(rdfvalue_sample, sample)
 
     # RDFProto can be initialized from another RDFProto.

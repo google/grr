@@ -28,9 +28,9 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
 
     def GetMemoryInformation(self, _):
       reply = rdfvalue.MemoryInformation(
-          device=rdfvalue.RDFPathSpec(
+          device=rdfvalue.PathSpec(
               path=r"\\.\pmem",
-              pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY")))
+              pathtype=rdfvalue.PathSpec.PathType.MEMORY))
       reply.runs.Append(offset=0x1000, length=0x10000)
       reply.runs.Append(offset=0x20000, length=0x10000)
 
@@ -47,7 +47,7 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
     logging.info("Wrote signed driver to %s", driver_path)
 
   def CreateClient(self):
-    client = aff4.FACTORY.Create(aff4.ROOT_URN.Add(self.client_id),
+    client = aff4.FACTORY.Create(self.client_id,
                                  "VFSGRRClient", token=self.token)
     client.Set(client.Schema.ARCH("AMD64"))
     client.Set(client.Schema.OS_RELEASE("7"))
@@ -65,7 +65,7 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
                                      client_id=self.client_id):
       pass
 
-    device_urn = aff4.ROOT_URN.Add(self.client_id).Add("devices/memory")
+    device_urn = self.client_id.Add("devices/memory")
     fd = aff4.FACTORY.Open(device_urn, mode="r", token=self.token)
     runs = fd.Get(fd.Schema.LAYOUT).runs
 
@@ -90,9 +90,9 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
       def GetMemoryInformation(self, _):
         """Mock out the driver loading code to pass the memory image."""
         reply = rdfvalue.MemoryInformation(
-            device=rdfvalue.RDFPathSpec(
+            device=rdfvalue.PathSpec(
                 path=image_path,
-                pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
+                pathtype=rdfvalue.PathSpec.PathType.OS))
 
         reply.runs.Append(offset=0, length=1000000000)
 
@@ -104,7 +104,7 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
 
     # To speed up the test we provide these values. In real life these values
     # will be provided by the kernel driver.
-    request.session = rdfvalue.RDFProtoDict(
+    request.session = rdfvalue.Dict(
         dtb=0x187000, kdbg=0xF80002803070)
 
     # Allow the real VolatilityAction to run against the image.
@@ -114,7 +114,7 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
         request=request, output="analysis/memory/{p}"):
       pass
 
-    fd = aff4.FACTORY.Open("aff4:/%s/analysis/memory/pslist" % self.client_id,
+    fd = aff4.FACTORY.Open(self.client_id.Add("analysis/memory/pslist"),
                            token=self.token)
 
     result = fd.Get(fd.Schema.RESULT)
@@ -125,7 +125,7 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
     # And should include the DumpIt binary.
     self.assert_("DumpIt.exe" in str(result))
 
-    fd = aff4.FACTORY.Open("aff4:/%s/analysis/memory/modules" % self.client_id,
+    fd = aff4.FACTORY.Open(self.client_id.Add("analysis/memory/modules"),
                            token=self.token)
     result = fd.Get(fd.Schema.RESULT)
 

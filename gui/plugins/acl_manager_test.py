@@ -20,7 +20,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
   reason = "Felt like it!"
 
   def CreateSampleHunt(self, token=None):
-    hunt = hunts.SampleHunt(token=token or self.token)
+    hunt = hunts.GRRHunt.StartHunt("SampleHunt", token=token or self.token)
 
     regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="GRR client",
@@ -66,6 +66,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # User test logs in as an approver.
     self.Open("/")
+
     self.WaitUntilEqual("1", self.GetText, "notification_button")
 
     self.Click("notification_button")
@@ -97,7 +98,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Lets add another approver.
     token = access_control.ACLToken(username="approver")
-    flow.FACTORY.StartFlow("C.0000000000000001", "GrantClientApprovalFlow",
+    flow.GRRFlow.StartFlow("C.0000000000000001", "GrantClientApprovalFlow",
                            reason=self.reason, delegate="test",
                            token=token)
 
@@ -194,7 +195,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Lets add another approver.
     token = access_control.ACLToken(username="approver")
-    flow.FACTORY.StartFlow(None, "GrantHuntApprovalFlow",
+    flow.GRRFlow.StartFlow(None, "GrantHuntApprovalFlow",
                            hunt_urn=hunt.session_id, reason=self.reason,
                            delegate="test",
                            token=token)
@@ -257,25 +258,25 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.MakeUserAdmin("approver")
 
     token = access_control.ACLToken(username="otheruser")
-    flow.FACTORY.StartFlow(None, "RequestHuntApprovalFlow",
+    flow.GRRFlow.StartFlow(None, "RequestHuntApprovalFlow",
                            hunt_id=hunt1.session_id,
                            reason=self.reason,
                            approver="approver",
                            token=token)
     token = access_control.ACLToken(username="test")
-    flow.FACTORY.StartFlow(None, "RequestHuntApprovalFlow",
+    flow.GRRFlow.StartFlow(None, "RequestHuntApprovalFlow",
                            hunt_id=hunt2.session_id,
                            reason=self.reason,
                            approver="approver",
                            token=token)
 
     token = access_control.ACLToken(username="approver")
-    flow.FACTORY.StartFlow(None, "GrantHuntApprovalFlow",
+    flow.GRRFlow.StartFlow(None, "GrantHuntApprovalFlow",
                            hunt_urn=hunt1.session_id, reason=self.reason,
                            delegate="otheruser",
                            token=token)
     token = access_control.ACLToken(username="approver")
-    flow.FACTORY.StartFlow(None, "GrantHuntApprovalFlow",
+    flow.GRRFlow.StartFlow(None, "GrantHuntApprovalFlow",
                            hunt_urn=hunt2.session_id, reason=self.reason,
                            delegate="test",
                            token=token)

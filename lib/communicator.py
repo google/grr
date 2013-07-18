@@ -17,6 +17,7 @@ from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
+from grr.lib import type_info
 from grr.lib import utils
 
 
@@ -97,7 +98,8 @@ class PubKeyCache(object):
     except IndexError:
       raise IOError("Cert has no CN")
 
-    return cn.get_data().as_text()
+    # Common names are always URNs.
+    return rdfvalue.RDFURN(cn.get_data().as_text())
 
   @staticmethod
   def PubKeyFromCert(cert):
@@ -275,8 +277,13 @@ class ReceivedCipher(Cipher):
         if remote_public_key.verify(digest, self.cipher_metadata.signature,
                                     self.hash_function_name) == 1:
           self.signature_verified = True
+        else:
+          raise DecryptionError("Signature not verified by remote public key.")
 
-      except (UnknownClientCert, X509.X509Error, RSA.RSAError):
+      except (X509.X509Error, RSA.RSAError) as e:
+        raise DecryptionError(e)
+
+      except UnknownClientCert:
         pass
 
 
@@ -325,7 +332,7 @@ class Communicator(object):
       # Only compress if it buys us something.
       if len(compressed_data) < len(uncompressed_data):
         signed_message_list.compression = (
-            rdfvalue.SignedMessageList.Enum("ZCOMPRESSION"))
+            rdfvalue.SignedMessageList.CompressionType.ZCOMPRESSION)
         signed_message_list.message_list = compressed_data
 
   def EncodeMessages(self, message_list, result, destination=None,
@@ -411,6 +418,10 @@ class Communicator(object):
 
     result.api_version = api_version
 
+    if isinstance(result, rdfvalue.RDFValue):
+      # Store the number of messages contained.
+      result.num_messages = len(message_list)
+
     return timestamp
 
   def DecryptMessage(self, encrypted_response):
@@ -422,8 +433,11 @@ class Communicator(object):
     Returns:
        a Signed_Message_List rdfvalue
     """
-    response_comms = rdfvalue.ClientCommunication(encrypted_response)
-    return self.DecodeMessages(response_comms)
+    try:
+      response_comms = rdfvalue.ClientCommunication(encrypted_response)
+      return self.DecodeMessages(response_comms)
+    except (rdfvalue.DecodeError, type_info.TypeValueError) as e:
+      raise DecodingError("Protobuf parsing error: %s" % e)
 
   def DecompressMessageList(self, signed_message_list):
     """Decompress the message data from signed_message_list.
@@ -438,10 +452,10 @@ class Communicator(object):
       DecodingError: If decompression fails.
     """
     compression = signed_message_list.compression
-    if compression == rdfvalue.SignedMessageList.Enum("UNCOMPRESSED"):
+    if compression == rdfvalue.SignedMessageList.CompressionType.UNCOMPRESSED:
       data = signed_message_list.message_list
 
-    elif compression == rdfvalue.SignedMessageList.Enum("ZCOMPRESSION"):
+    elif compression == rdfvalue.SignedMessageList.CompressionType.ZCOMPRESSION:
       try:
         data = zlib.decompress(signed_message_list.message_list)
       except zlib.error as e:
@@ -534,12 +548,12 @@ class Communicator(object):
        api_version: The api version we should use.
 
     Returns:
-       a rdfvalue.GRRMessage.AuthorizationState.
+       a rdfvalue.GrrMessage.AuthorizationState.
 
     Raises:
        DecryptionError: if the message is corrupt.
     """
-    result = rdfvalue.GRRMessage.Enum("UNAUTHENTICATED")
+    result = rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED
     if api_version < 3:
       # Old version: signature is on the message_list
       digest = cipher.hash_function(
@@ -552,7 +566,7 @@ class Communicator(object):
       if remote_public_key.verify(digest, signed_message_list.signature,
                                   cipher.hash_function_name) == 1:
         stats.STATS.Increment("grr_authenticated_messages")
-        result = rdfvalue.GRRMessage.Enum("AUTHENTICATED")
+        result = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
 
     else:
       if cipher.HMAC(response_comms.encrypted) != response_comms.hmac:
@@ -564,12 +578,12 @@ class Communicator(object):
 
       if cipher.signature_verified:
         stats.STATS.Increment("grr_authenticated_messages")
-        result = rdfvalue.GRRMessage.Enum("AUTHENTICATED")
+        result = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
 
     # Check for replay attacks. We expect the server to return the same
     # timestamp nonce we sent.
     if signed_message_list.timestamp != self.timestamp:
-      result = rdfvalue.GRRMessage.Enum("UNAUTHENTICATED")
+      result = rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED
 
     if not cipher.cipher_metadata:
       # Fake the metadata

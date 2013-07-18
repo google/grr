@@ -10,7 +10,7 @@ from grr.lib import test_lib
 
 
 class TestCrashView(test_lib.GRRSeleniumTest):
-  client_id = "C.0000000000000001"
+  client_id = rdfvalue.ClientURN("C.0000000000000001")
 
   def setUp(self):
     super(TestCrashView, self).setUp()
@@ -29,7 +29,7 @@ class TestCrashView(test_lib.GRRSeleniumTest):
     client = test_lib.CrashClientMock(self.client_id, self.token)
     for _ in test_lib.TestFlowHelper(
         "ListDirectory", client, client_id=self.client_id,
-        pathspec=rdfvalue.RDFPathSpec(path="/"), token=self.token,
+        pathspec=rdfvalue.PathSpec(path="/", pathtype=1), token=self.token,
         check_flow_errors=False):
       pass
 
@@ -85,13 +85,13 @@ class TestCrashView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Flow Information")
 
   def SetUpCrashedFlowInHunt(self):
-    client_ids = ["C.%016X" % i for i in range(0, 10)]
+    client_ids = [rdfvalue.ClientURN("C.%016X" % i) for i in range(0, 10)]
     for client_id in client_ids:
       test_lib.ClientFixture(client_id, token=self.token)
     client_mocks = dict([(client_id, test_lib.CrashClientMock(
         client_id, self.token)) for client_id in client_ids])
 
-    hunt = hunts.SampleHunt(token=self.token)
+    hunt = hunts.GRRHunt.StartHunt("SampleHunt", token=self.token)
     regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="GRR client",
         attribute_regex="GRR")
@@ -128,6 +128,7 @@ class TestCrashView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=a[renderer=HuntCrashesRenderer]")
     self.Click("css=a[renderer=HuntCrashesRenderer]")
+
     # Check that all crashes were registered for this hunt.
     for client_id in client_ids:
       self.WaitUntil(self.IsTextPresent, client_id)

@@ -13,10 +13,29 @@ from grr.lib import utils
 class FindFiles(flow.GRRFlow):
   """Find files on the client.
 
+    The logic is:
+    - Find files under 'Path'
+    - Filter for files with os.path.basename matching 'Path Regular Expression'
+    - Filter for files that contain 'Data Regular Expression' in the first 1MB
+        of file data
+    - Return AFF4Collection of the results
+
+    Path and data regexes are optional. Don't encode path information in the
+    regex e.g. r'usr\/local\/bin'.  See correct usage below.
+
+    Example:
+
+    Path='/usr/local'
+    Path Regular Expression='admin'
+
+    Match: '/usr/local/bin/admin'      (file)
+    Match: '/usr/local/admin'          (directory)
+    No Match: '/usr/admin/local/blah'
+
     The result from this flow is an AFF4Collection which will be created on the
     output path, containing all aff4 objects on the client which match the
-    criteria. Note that these files will not be downloaded by this flow, only
-    the metadata of the file in fetched.
+    criteria. These files will not be downloaded by this flow, only the metadata
+    of the file is fetched.
 
     Note: This flow is inefficient for collecting a large number of files.
 
@@ -46,27 +65,29 @@ class FindFiles(flow.GRRFlow):
   @flow.StateHandler(next_state="IterateFind")
   def Start(self, unused_response):
     """Issue the find request to the client."""
-    self.path = self.findspec.pathspec.path
-    self.received_count = 0
+    self.state.Register("path", self.state.findspec.pathspec.path)
+    self.state.Register("received_count", 0)
+    self.state.Register("collection", None)
+    self.state.Register("urn", self.client_id)
 
-    if self.output:
+    if self.state.output:
       # Create the output collection and get it ready.
-      output = self.output.format(t=time.time(), u=self.user)
-      self.output = aff4.ROOT_URN.Add(self.client_id).Add(output)
-      self.collection = aff4.FACTORY.Create(self.output, "AFF4Collection",
-                                            mode="w", token=self.token)
+      output = self.state.output.format(t=time.time(),
+                                        u=self.state.context.user)
+      self.state.output = self.client_id.Add(output)
+      self.state.collection = aff4.FACTORY.Create(self.state.output,
+                                                  "AFF4Collection",
+                                                  mode="w", token=self.token)
 
-      self.collection.Set(self.collection.Schema.DESCRIPTION("Find {0}".format(
-          self.findspec)))
+      self.state.collection.Set(self.state.collection.Schema.DESCRIPTION(
+          "Find {0}".format(self.state.findspec)))
 
     else:
-      self.output = None
-
-    self.urn = aff4.ROOT_URN.Add(self.client_id)
+      self.state.output = None
 
     # Build up the request protobuf.
     # Call the client with it
-    self.CallClient("Find", self.findspec, next_state="IterateFind")
+    self.CallClient("Find", self.state.findspec, next_state="IterateFind")
 
   @flow.StateHandler(next_state="IterateFind")
   def IterateFind(self, responses):
@@ -77,7 +98,7 @@ class FindFiles(flow.GRRFlow):
     for response in responses:
       # Create the file in the VFS
       vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-          response.hit.pathspec, self.urn)
+          response.hit.pathspec, self.state.urn)
 
       response.hit.aff4path = utils.SmartUnicode(vfs_urn)
 
@@ -93,34 +114,36 @@ class FindFiles(flow.GRRFlow):
       fd.Set(fd.Schema.PATHSPEC(response.hit.pathspec))
       fd.Close(sync=False)
 
-      if self.output:
+      if self.state.output:
         # Add the new objects URN to the collection.
-        self.collection.Add(stat=stat_response, urn=vfs_urn)
+        self.state.collection.Add(stat=stat_response, urn=vfs_urn)
 
       # Send the stat to the parent flow.
       self.SendReply(stat_response)
 
-    self.received_count += len(responses)
+    self.state.received_count += len(responses)
 
     # Exit if we hit the max result count we wanted or we're finished.
-    if (self.received_count < self.max_results and
-        responses.iterator.state != responses.iterator.FINISHED):
+    if (self.state.received_count < self.state.max_results and
+        responses.iterator.state != responses.iterator.State.FINISHED):
 
-      self.findspec.iterator = responses.iterator
+      self.state.findspec.iterator = responses.iterator
 
       # If we are close to max_results reduce the iterator.
-      self.findspec.iterator.number = min(
-          self.findspec.iterator.number, self.max_results - self.received_count)
+      self.state.findspec.iterator.number = min(
+          self.state.findspec.iterator.number,
+          self.state.max_results - self.state.received_count)
 
-      self.CallClient("Find", self.findspec, next_state="IterateFind")
-      self.Log("%d files processed.", self.received_count)
+      self.CallClient("Find", self.state.findspec, next_state="IterateFind")
+      self.Log("%d files processed.", self.state.received_count)
 
   @flow.StateHandler()
   def End(self):
     """Save the collection and notification if output is enabled."""
-    if self.output:
-      self.collection.Close()
+    if self.state.output:
+      self.state.collection.Close()
 
       self.Notify(
-          "ViewObject", self.output, u"Found on {0} completed {1} hits".format(
-              len(self.collection), self.path))
+          "ViewObject", self.state.output,
+          u"Found on {0} completed {1} hits".format(
+              len(self.state.collection), self.state.path))

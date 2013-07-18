@@ -44,10 +44,11 @@ def UploadSignedConfigBlob(
   Raises:
     IOError: On failure to write.
   """
-  sig_key = config_lib.CONFIG["PrivateKeys%s.executable_signing_private_key" %
-                              platform.title()]
-  ver_key = config_lib.CONFIG["Client%s.executable_signing_public_key" %
-                              platform.title()]
+  sig_key = config_lib.CONFIG.Get(
+      "PrivateKeys%s.executable_signing_private_key" % platform.title(),
+      verify=True)
+  ver_key = config_lib.CONFIG.Get(
+      "Client%s.executable_signing_public_key" % platform.title(), verify=True)
 
   blob_rdf = rdfvalue.SignedBlob()
   blob_rdf.Sign(content, sig_key, ver_key, prompt=True)
@@ -83,10 +84,10 @@ def UploadSignedDriverBlob(content, file_name, platform,
   Raises:
     IOError: On failure to write.
   """
-  sig_key = config_lib.CONFIG["PrivateKeys%s.driver_signing_private_key" %
-                              platform.title()]
-  ver_key = config_lib.CONFIG["Client%s.driver_signing_public_key" %
-                              platform.title()]
+  sig_key = config_lib.CONFIG.Get("PrivateKeys%s.driver_signing_private_key" %
+                                  platform.title(), verify=True)
+  ver_key = config_lib.CONFIG.Get("Client%s.driver_signing_public_key" %
+                                  platform.title(), verify=True)
 
   blob_rdf = rdfvalue.SignedBlob()
   blob_rdf.Sign(content, sig_key, ver_key, prompt=True)

@@ -36,10 +36,10 @@ class TypeInfoTest(test_lib.GRRBaseTest):
 
   def testTypeInfoEnumObjects(self):
     """Test the type info objects behave as expected."""
-    a = type_info.RDFEnum(rdfvalue.RDFPathSpec, "PathType")
+    a = type_info.SemanticEnum(rdfvalue.PathSpec.PathType)
     self.assertRaises(type_info.TypeValueError, a.Validate, 9999)
     self.assertRaises(type_info.TypeValueError, a.Validate, None)
-    a.Validate(rdfvalue.RDFPathSpec.Enum("OS"))
+    a.Validate(rdfvalue.PathSpec.PathType.OS)
 
   def testTypeInfoNumberObjects(self):
     """Test the type info objects behave as expected."""
@@ -57,7 +57,7 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     self.assertRaises(type_info.TypeValueError, a.Validate, None)
     self.assertRaises(type_info.TypeValueError, a.Validate, ["test"])
     self.assertRaises(type_info.TypeValueError, a.Validate, [
-        rdfvalue.RDFPathSpec()])
+        rdfvalue.PathSpec()])
     a.Validate([1, 2, 3])
 
   def testTypeInfoArtifactObjects(self):

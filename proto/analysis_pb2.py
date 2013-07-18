@@ -9,12 +9,13 @@ from google.protobuf import descriptor_pb2
 
 
 import grr.proto.jobs_pb2
+import grr.proto.semantic_pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='grr/proto/analysis.proto',
   package='',
-  serialized_pb='\n\x18grr/proto/analysis.proto\x1a\x14grr/proto/jobs.proto\"9\n\x06Sample\x12\r\n\x05label\x18\x01 \x01(\t\x12\x0f\n\x07x_value\x18\x02 \x01(\x04\x12\x0f\n\x07y_value\x18\x03 \x01(\x04\"u\n\x05Graph\x12\r\n\x05title\x18\x01 \x01(\t\x12\x0e\n\x06xtitle\x18\x02 \x01(\t\x12\x0e\n\x06ytitle\x18\x03 \x01(\t\x12\x15\n\x04\x64\x61ta\x18\x04 \x03(\x0b\x32\x07.Sample\x12\x12\n\x07x_scale\x18\x05 \x01(\r:\x01\x31\x12\x12\n\x07y_scale\x18\x06 \x01(\r:\x01\x31\"r\n\x05\x45vent\x12\x11\n\ttimestamp\x18\x01 \x01(\x04\x12\x0e\n\x06source\x18\x02 \x01(\t\x12\x0f\n\x07subject\x18\x03 \x01(\t\x12\x0c\n\x04type\x18\x04 \x01(\t\x12\x1b\n\x04stat\x18\x05 \x01(\x0b\x32\r.StatResponse\x12\n\n\x02id\x18\x06 \x01(\r')
+  serialized_pb='\n\x18grr/proto/analysis.proto\x1a\x14grr/proto/jobs.proto\x1a\x18grr/proto/semantic.proto\"9\n\x06Sample\x12\r\n\x05label\x18\x01 \x01(\t\x12\x0f\n\x07x_value\x18\x02 \x01(\x04\x12\x0f\n\x07y_value\x18\x03 \x01(\x04\"u\n\x05Graph\x12\r\n\x05title\x18\x01 \x01(\t\x12\x0e\n\x06xtitle\x18\x02 \x01(\t\x12\x0e\n\x06ytitle\x18\x03 \x01(\t\x12\x15\n\x04\x64\x61ta\x18\x04 \x03(\x0b\x32\x07.Sample\x12\x12\n\x07x_scale\x18\x05 \x01(\r:\x01\x31\x12\x12\n\x07y_scale\x18\x06 \x01(\r:\x01\x31\"\xd7\x01\n\x05\x45vent\x12\x39\n\ttimestamp\x18\x01 \x01(\x04\x42&\xca>#\n\x0bRDFDatetime\x12\x14The event timestamp.\x12N\n\x06source\x18\x02 \x01(\tB>\xca>;\n\x06RDFURN\x12\x31The urn of the originating object for this event.\x12\x0f\n\x07subject\x18\x03 \x01(\t\x12\x0c\n\x04type\x18\x04 \x01(\t\x12\x18\n\x04stat\x18\x05 \x01(\x0b\x32\n.StatEntry\x12\n\n\x02id\x18\x06 \x01(\r')
 
 
 
@@ -56,8 +57,8 @@ _SAMPLE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=50,
-  serialized_end=107,
+  serialized_start=76,
+  serialized_end=133,
 )
 
 
@@ -119,8 +120,8 @@ _GRAPH = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=109,
-  serialized_end=226,
+  serialized_start=135,
+  serialized_end=252,
 )
 
 
@@ -137,14 +138,14 @@ _EVENT = _descriptor.Descriptor(
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>#\n\013RDFDatetime\022\024The event timestamp.')),
     _descriptor.FieldDescriptor(
       name='source', full_name='Event.source', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>;\n\006RDFURN\0221The urn of the originating object for this event.')),
     _descriptor.FieldDescriptor(
       name='subject', full_name='Event.subject', index=2,
       number=3, type=9, cpp_type=9, label=1,
@@ -182,12 +183,12 @@ _EVENT = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=228,
-  serialized_end=342,
+  serialized_start=255,
+  serialized_end=470,
 )
 
 _GRAPH.fields_by_name['data'].message_type = _SAMPLE
-_EVENT.fields_by_name['stat'].message_type = grr.proto.jobs_pb2._STATRESPONSE
+_EVENT.fields_by_name['stat'].message_type = grr.proto.jobs_pb2._STATENTRY
 DESCRIPTOR.message_types_by_name['Sample'] = _SAMPLE
 DESCRIPTOR.message_types_by_name['Graph'] = _GRAPH
 DESCRIPTOR.message_types_by_name['Event'] = _EVENT
@@ -211,4 +212,8 @@ class Event(_message.Message):
   # @@protoc_insertion_point(class_scope:Event)
 
 
+_EVENT.fields_by_name['timestamp'].has_options = True
+_EVENT.fields_by_name['timestamp']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>#\n\013RDFDatetime\022\024The event timestamp.')
+_EVENT.fields_by_name['source'].has_options = True
+_EVENT.fields_by_name['source']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>;\n\006RDFURN\0221The urn of the originating object for this event.')
 # @@protoc_insertion_point(module_scope)

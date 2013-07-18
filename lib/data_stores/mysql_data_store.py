@@ -5,6 +5,7 @@
 
 
 import Queue
+import threading
 import time
 import MySQLdb
 from MySQLdb import cursors
@@ -18,7 +19,10 @@ from grr.lib import utils
 
 
 config_lib.DEFINE_string("Mysql.database_name", default="grr",
-                         help="Name of database to use.")
+                         help="Name of the database to use.")
+
+config_lib.DEFINE_string("Mysql.table_name", default="aff4",
+                         help="Name of the table to use.")
 
 config_lib.DEFINE_string("Mysql.database_username", default="root",
                          help="The user to connect to the database.")
@@ -28,6 +32,11 @@ config_lib.DEFINE_string("Mysql.database_password", default="",
 
 config_lib.DEFINE_integer("Mysql.transaction_timeout", default=60,
                           help="How long do we wait for a transaction lock.")
+
+
+# pylint: disable=nonstandard-exception
+class Error(data_store.Error):
+  """Base class for all exceptions in this module."""
 
 
 class Filter(object):
@@ -58,7 +67,7 @@ class AndFilter(Filter):
       subqueries.append(subquery)
       parameters.extend(subparams)
 
-    query = "select subject from aff4 where "
+    query = "select subject from `%s` where " % data_store.DB.table_name
     query += " and ".join(["subject in (%s)" % x for x in subqueries])
     query += " group by subject"
 
@@ -78,15 +87,16 @@ class SubjectContainsFilter(Filter):
     super(SubjectContainsFilter, self).__init__()
 
   def Query(self):
-    return ("select subject from aff4 where subject rlike %s "
-            "group by subject", [self.regex])
+    return ("select subject from `%s` where subject rlike %%s "
+            "group by subject" % data_store.DB.table_name, [self.regex])
 
 
 class OrFilter(AndFilter):
   """A Logical Or operator."""
 
   def Query(self):
-    return ("select subject from aff4 where subject in " +
+    return (("select subject from `%s` where subject in " %
+             data_store.DB.table_name) +
             " or ".join(["(%s)" % part.Query() for part in self.parts]) +
             "group by subject")
 
@@ -98,9 +108,8 @@ class HasPredicateFilter(Filter):
     Filter.__init__(self)
 
   def Query(self):
-    return ("select subject from aff4 where "
-            "attribute = %s group by subject",
-            [self.attribute_name])
+    return ("select subject from `%s` where attribute = %%s group by subject" %
+            data_store.DB.table_name, [self.attribute_name])
 
 
 class PredicateContainsFilter(Filter):
@@ -112,8 +121,8 @@ class PredicateContainsFilter(Filter):
     super(PredicateContainsFilter, self).__init__()
 
   def Query(self):
-    return ("select subject from aff4 where attribute = %s "
-            "and value_string rlike %s group by subject",
+    return ("select subject from `%s` where attribute = %%s and value_string "
+            "rlike %%s group by subject" % data_store.DB.table_name,
             [self.attribute_name, self.regex])
 
 
@@ -138,8 +147,8 @@ class PredicateGreaterThanFilter(Filter):
     super(PredicateGreaterThanFilter, self).__init__()
 
   def Query(self):
-    return ("select subject from aff4 where attribute=%%s and "
-            "value_integer %s %%s" % self.operator,
+    return ("select subject from `%s` where attribute=%%s and "
+            "value_integer %s %%s" % (data_store.DB.table_name, self.operator),
             [self.attribute_name, self.value])
 
 
@@ -160,40 +169,6 @@ class PredicateLessEqualFilter(PredicateGreaterThanFilter):
   operator = "<="
 
 
-class MySQLEnsureDatabase(registry.InitHook):
-  """Ensures the correct database and tables is created."""
-
-  def Run(self):
-    with MySQLConnection() as connection:
-      try:
-        connection.Execute("desc aff4")
-      except MySQLdb.Error:
-        self.RecreateDataBase(connection)
-
-  @classmethod
-  def RecreateDataBase(cls, connection):
-    try:
-      connection.Execute("drop table aff4")
-    except MySQLdb.OperationalError:
-      pass
-
-    connection.Execute("""
-CREATE TABLE aff4 (
-  hash BINARY(32) DEFAULT NULL,
-  subject VARCHAR(4096) CHARACTER SET utf8 DEFAULT NULL,
-  prefix VARCHAR(256) CHARACTER SET utf8 DEFAULT NULL,
-  attribute VARCHAR(4096) CHARACTER SET utf8 DEFAULT NULL,
-  age BIGINT(22) UNSIGNED DEFAULT NULL,
-  value_string TEXT CHARACTER SET utf8 NULL,
-  value_binary BLOB NULL,
-  value_integer BIGINT(22) UNSIGNED DEFAULT NULL,
-
-  KEY `hash` (`hash`),
-  KEY `prefix` (`prefix`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT ='Table representing AFF4 objects';
-""")
-
-
 class MySQLConnection(object):
   """A Class to manage MySQL database connections."""
 
@@ -211,18 +186,26 @@ class MySQLConnection(object):
         dbh.commit()
 
         self._MakeConnection(database=config_lib.CONFIG["Mysql.database_name"])
+      else:
+        raise
 
   def _MakeConnection(self, database=""):
-    self.dbh = MySQLdb.connect(
-        user=config_lib.CONFIG["Mysql.database_username"],
-        db=database, charset="utf8",
-        passwd=config_lib.CONFIG["Mysql.database_password"],
-        cursorclass=cursors.DictCursor)
+    try:
+      self.dbh = MySQLdb.connect(
+          user=config_lib.CONFIG["Mysql.database_username"],
+          db=database, charset="utf8",
+          passwd=config_lib.CONFIG["Mysql.database_password"],
+          cursorclass=cursors.DictCursor)
 
-    self.cursor = self.dbh.cursor()
-    self.cursor.connection.autocommit(False)
+      self.cursor = self.dbh.cursor()
+      self.cursor.connection.autocommit(False)
 
-    return self.dbh
+      return self.dbh
+    except MySQLdb.OperationalError as e:
+      # This is a fatal error, we just raise the top level exception here.
+      if "Access denied" in str(e):
+        raise Error(str(e))
+      raise
 
   def __enter__(self):
     return self
@@ -274,13 +257,50 @@ class MySQLDataStore(data_store.DataStore):
     super(MySQLDataStore, self).__init__()
     self.filter = Filter
     self.pool = ConnectionPool()
+    self.lock = threading.Lock()
+    self.to_set = []
+    self.table_name = config_lib.CONFIG["Mysql.table_name"]
+
+  def Initialize(self):
+    with MySQLConnection() as connection:
+      try:
+        connection.Execute("desc `%s`" % self.table_name)
+      except MySQLdb.Error:
+        self.RecreateDataBase(connection)
+
+  def RecreateDataBase(self, connection):
+    """Drops the table and creates a new one."""
+    try:
+      connection.Execute("drop table `%s`" % self.table_name)
+    except MySQLdb.OperationalError:
+      pass
+    connection.Execute("""
+CREATE TABLE `%s` (
+  hash BINARY(32) DEFAULT NULL,
+  subject VARCHAR(4096) CHARACTER SET utf8 DEFAULT NULL,
+  prefix VARCHAR(256) CHARACTER SET utf8 DEFAULT NULL,
+  attribute VARCHAR(4096) CHARACTER SET utf8 DEFAULT NULL,
+  age BIGINT(22) UNSIGNED DEFAULT NULL,
+  value_string TEXT CHARACTER SET utf8 NULL,
+  value_binary LONGBLOB NULL,
+  value_integer BIGINT(22) UNSIGNED DEFAULT NULL,
+
+  KEY `hash` (`hash`),
+  KEY `prefix` (`prefix`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT ='Table representing AFF4 objects';
+""" % config_lib.CONFIG["Mysql.table_name"])
+    connection.Execute("CREATE INDEX attribute ON `%s` (attribute(300));" %
+                       config_lib.CONFIG["Mysql.table_name"])
 
   def DeleteAttributes(self, subject, attributes, sync=None, token=None):
+    """Remove some attributes from a subject."""
     _ = sync  # Unused
+
     self.security_manager.CheckAccess(token, [subject], "w")
     with self.pool.GetConnection() as cursor:
-      query = ("delete from aff4 where hash=md5(%%s) and "
+      query = ("delete from `%s` where hash=md5(%%s) and "
                "subject=%%s and attribute in (%s) " % (
+                   self.table_name,
                    ",".join(["%s"] * len(attributes))))
 
       args = [subject, subject] + list(attributes)
@@ -289,13 +309,18 @@ class MySQLDataStore(data_store.DataStore):
   def DeleteSubject(self, subject, token=None):
     self.security_manager.CheckAccess(token, [subject], "w")
     with self.pool.GetConnection() as cursor:
-      query = "delete from aff4 where hash=md5(%%s) and subject=%%s  "
+      query = ("delete from `%s` where hash=md5(%%s) and subject=%%s  " %
+               self.table_name)
       args = [subject, subject]
 
       cursor.Execute(query, args)
 
   def Flush(self):
-    pass
+    with self.lock:
+      to_set = self.to_set
+      self.to_set = []
+
+    self._MultiSet(to_set)
 
   def Escape(self, string):
     """Escape the string so it can be interpolated into an sql statement."""
@@ -310,8 +335,9 @@ class MySQLDataStore(data_store.DataStore):
     self.security_manager.CheckAccess(token, [subject], "r")
 
     with self.pool.GetConnection() as cursor:
-      query = ("select * from aff4 where hash = md5(%%s) and "
+      query = ("select * from `%s` where hash = md5(%%s) and "
                "subject = %%s  and attribute in (%s) " % (
+                   self.table_name,
                    ",".join(["%s"] * len(predicates)),
                    ))
 
@@ -319,11 +345,13 @@ class MySQLDataStore(data_store.DataStore):
 
       query += self._TimestampToQuery(timestamp, args)
 
-      for row in cursor.Execute(query, args):
-        subject = row["subject"]
-        value = self.DecodeValue(row, decoder=decoder)
+      result = cursor.Execute(query, args)
 
-        yield row["attribute"], value, rdfvalue.RDFDatetime(row["age"])
+    for row in result:
+      subject = row["subject"]
+      value = self.DecodeValue(row, decoder=decoder)
+
+      yield row["attribute"], value, rdfvalue.RDFDatetime(row["age"])
 
   def _TimestampToQuery(self, timestamp, args):
     """Convert the timestamp to a query fragment and add args."""
@@ -345,8 +373,8 @@ class MySQLDataStore(data_store.DataStore):
       return {}
 
     with self.pool.GetConnection() as cursor:
-      query = "select * from aff4 where hash in (%s) and subject in (%s) " % (
-          ",".join(["md5(%s)"] * len(subjects)),
+      query = "select * from `%s` where hash in (%s) and subject in (%s) " % (
+          self.table_name, ",".join(["md5(%s)"] * len(subjects)),
           ",".join(["%s"] * len(subjects)),
           )
 
@@ -388,7 +416,6 @@ class MySQLDataStore(data_store.DataStore):
                sync=True, to_delete=None):
     """Set multiple predicates' values for this subject in one operation."""
     self.security_manager.CheckAccess(token, [subject], "w")
-    _ = sync  # All operations are synchronous at the moment.
 
     if timestamp is None:
       timestamp = time.time() * 1e6
@@ -398,30 +425,46 @@ class MySQLDataStore(data_store.DataStore):
     if to_delete:
       self.DeleteAttributes(subject, to_delete, token=token)
 
-    query = """
-insert into aff4 (hash, subject, age, attribute, prefix, value_string,
-value_integer, value_binary) values (md5(%s), %s, %s, %s, %s, %s, %s, %s)"""
+    to_set = []
+
+    # Build a document for each unique timestamp.
+    for attribute, sequence in values.items():
+      for value in sequence:
+        if isinstance(value, tuple):
+          value, entry_timestamp = value
+        else:
+          entry_timestamp = timestamp
+
+        predicate = utils.SmartUnicode(attribute)
+        prefix = predicate.split(":", 1)[0]
+
+        # Replacing means to delete all versions of the attribute first.
+        if replace:
+          self.DeleteAttributes(subject, [attribute], token=token)
+
+        to_set.extend(
+            [subject, subject, int(entry_timestamp), predicate, prefix] +
+            self._Encode(attribute, value))
+
+    if to_set:
+      if sync:
+        self._MultiSet(to_set)
+      else:
+        with self.lock:
+          self.to_set.extend(to_set)
+
+  def _MultiSet(self, values):
+    if not values:
+      return
+    query = ("insert into `%s` (hash, subject, age, attribute, prefix, "
+             "value_string, value_integer, value_binary) values " %
+             self.table_name)
+
+    nr_items = len(values) / 8
+    query += ", ".join(["(md5(%s), %s, %s, %s, %s, %s, %s, %s)"] * nr_items)
 
     with self.pool.GetConnection() as cursor:
-      # Build a document for each unique timestamp.
-      for attribute, sequence in values.items():
-        for value in sequence:
-          if isinstance(value, tuple):
-            value, entry_timestamp = value
-          else:
-            entry_timestamp = timestamp
-
-          predicate = utils.SmartUnicode(attribute)
-          prefix = predicate.split(":", 1)[0]
-
-          # Replacing means to delete all versions of the attribute first.
-          if replace:
-            self.DeleteAttributes(subject, [attribute], token=token)
-
-          cursor.Execute(
-              query,
-              [subject, subject, int(entry_timestamp), predicate, prefix] +
-              self._Encode(attribute, value))
+      cursor.Execute(query, values)
 
   def _Encode(self, attribute, value):
     """Return a list encoding this value."""
@@ -495,7 +538,7 @@ value_integer, value_binary) values (md5(%s), %s, %s, %s, %s, %s, %s, %s)"""
       filter_obj = Filter()
 
     with self.pool.GetConnection() as cursor:
-      query = "select subject from aff4 where "
+      query = "select subject from `%s` where " % self.table_name
       parameters = []
 
       subquery, subparams = filter_obj.Query()
@@ -522,9 +565,9 @@ value_integer, value_binary) values (md5(%s), %s, %s, %s, %s, %s, %s, %s)"""
           (row["subject"] for row in cursor.Execute(query, parameters)))
 
       result_set = data_store.ResultSet()
-      for subject, data in self.MultiResolveRegex(
+      for subject, data in sorted(self.MultiResolveRegex(
           total_hits, attributes, token=token,
-          timestamp=timestamp).items():
+          timestamp=timestamp).items()):
         result = dict(subject=[(subject, 0)])
         for predicate, value, ts in data:
           result.setdefault(predicate, []).append((value, ts))
@@ -562,35 +605,42 @@ class MySQLTransaction(data_store.Transaction):
     self.store = store
     self.token = token
     self.subject = utils.SmartUnicode(subject)
+    self.table_name = store.table_name
     with store.pool.GetConnection() as connection:
       self.current_lock = int(time.time() * 1e6)
 
       # This will take over the lock if the lock is too old.
       connection.Execute(
-          "update aff4 set value_integer=%s where "
-          "attribute='transaction' and subject=%s and hash=md5(%s) and "
-          "(value_integer < %s)",
+          "update `%s` set value_integer=%%s where "
+          "attribute='transaction' and subject=%%s and hash=md5(%%s) and "
+          "(value_integer < %%s)" % self.table_name,
           (self.current_lock, subject, subject,
            (time.time()-config_lib.CONFIG["Mysql.transaction_timeout"]) * 1e6))
 
-      # Check that the lock has stuck.
-      for row in connection.Execute(
-          "select * from aff4 where subject=%s and hash=md5(%s) and "
-          "attribute='transaction'", (subject, subject)):
+      self.CheckForLock(connection, subject)
 
-        # We own this lock now.
-        if row["value_integer"] == self.current_lock:
-          return
+  def CheckForLock(self, connection, subject):
+    """Checks that the lock has stuck."""
 
-        # Someone else ones this lock.
-        else:
-          raise data_store.TransactionError("Subject %s is locked" % subject)
+    for row in connection.Execute(
+        "select * from `%s` where subject=%%s and hash=md5(%%s) and "
+        "attribute='transaction'" % self.table_name, (subject, subject)):
 
-      # If we get here the row does not exist:
-      connection.Execute(
-          "insert into aff4 set value_integer=%s, "
-          "attribute='transaction', subject=%s, hash=md5(%s) ",
-          (self.current_lock, self.subject, self.subject))
+      # We own this lock now.
+      if row["value_integer"] == self.current_lock:
+        return
+
+      # Someone else owns this lock.
+      else:
+        raise data_store.TransactionError("Subject %s is locked" % subject)
+
+    # If we get here the row does not exist:
+    connection.Execute(
+        "insert ignore into `%s` set value_integer=%%s, "
+        "attribute='transaction', subject=%%s, hash=md5(%%s) " %
+        self.table_name, (self.current_lock, self.subject, self.subject))
+
+    self.CheckForLock(connection, subject)
 
   def DeleteAttribute(self, predicate):
     self.store.DeleteAttributes(self.subject, [predicate], sync=True,
@@ -617,9 +667,10 @@ class MySQLTransaction(data_store.Transaction):
     # we actually hold it (value_integer == self.current_lock).
     with self.store.pool.GetConnection() as connection:
       connection.Execute(
-          "update aff4 set value_integer=0 where "
-          "attribute='transaction' and value_integer=%s and hash=md5(%s) and "
-          "subject=%s", (self.current_lock, self.subject, self.subject))
+          "update `%s` set value_integer=0 where "
+          "attribute='transaction' and value_integer=%%s and hash=md5(%%s) and "
+          "subject=%%s" % self.table_name,
+          (self.current_lock, self.subject, self.subject))
 
   def __del__(self):
     try:

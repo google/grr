@@ -21,13 +21,12 @@ class TestFetchAllFilesFlow(test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestFetchAllFilesFlow, self).setUp()
-
     path = os.path.join(self.base_path, "winexec_img.dd")
     self.findspec = rdfvalue.RDFFindSpec()
     self.findspec.pathspec.path = path
-    self.findspec.pathspec.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+    self.findspec.pathspec.pathtype = rdfvalue.PathSpec.PathType.OS
     self.findspec.pathspec.Append(path="/",
-                                  pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+                                  pathtype=rdfvalue.PathSpec.PathType.TSK)
 
     client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
                                       "FingerprintFile")
@@ -40,7 +39,7 @@ class TestFetchAllFilesFlow(test_lib.FlowTestsBaseclass):
     pass
 
   def testFindExeFiles(self):
-    inspect_path = self.findspec.pathspec
+    inspect_path = self.findspec.pathspec.Copy()
     inspect_path.AppendPath("Ext2IFS_1_10b.exe")
 
     urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
@@ -52,8 +51,8 @@ class TestFetchAllFilesFlow(test_lib.FlowTestsBaseclass):
     stat = fd.Get(fd.Schema.STAT)
     self.assertEqual(stat.st_size, 471040)
     fingerprint = fd.Get(fd.Schema.FINGERPRINT)
-    generic = fingerprint.Get("generic")["sha256"]
-    pecoff = fingerprint.Get("pecoff")["sha1"].encode("hex")
+    generic = fingerprint.GetFingerprint("generic")["sha256"]
+    pecoff = fingerprint.GetFingerprint("pecoff")["sha1"].encode("hex")
     delegate = fd.Get(fd.Schema.DELEGATE)
     self.assertEqual(delegate.Path(), "/FP/pecoff/sha1/" + pecoff)
     read_through = fd.Read(500000)
@@ -63,10 +62,8 @@ class TestFetchAllFilesFlow(test_lib.FlowTestsBaseclass):
     fd2 = aff4.FACTORY.Open(delegate, token=self.token)
     self.assertEqual(fd2.__class__, standard.HashImage)
     fingerprint2 = fd2.Get(fd2.Schema.FINGERPRINT)
-    self.assertEqual(fingerprint.matching_types,
-                     fingerprint2.matching_types)
-    self.assertEqual(fingerprint.fingerprint_results,
-                     fingerprint2.fingerprint_results)
+
+    self.assertEqual(fingerprint.results, fingerprint2.results)
 
   def testPresenceOfSignedData(self):
     inspect_path = self.findspec.pathspec
@@ -76,6 +73,6 @@ class TestFetchAllFilesFlow(test_lib.FlowTestsBaseclass):
                                                      self.client_id)
     fd = aff4.FACTORY.Open(urn, token=self.token)
     fingerprint = fd.Get(fd.Schema.FINGERPRINT)
-    self.assert_(fingerprint.Get("pecoff")["SignedData"])
+    self.assertTrue(fingerprint.GetFingerprint("pecoff")["SignedData"])
 
   # TODO(user): Check the numbers in the flow for files_* ops.

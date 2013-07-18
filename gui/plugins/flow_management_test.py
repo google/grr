@@ -11,20 +11,22 @@ from grr.lib import hunt_test
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import type_info
 
 
 class RecursiveTestFlow(flow.GRRFlow):
   """A test flow which starts some subflows."""
 
-  def __init__(self, depth=0, **kwargs):
-    self.depth = depth
-    super(RecursiveTestFlow, self).__init__(**kwargs)
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.Integer(
+          name="depth",
+          default=0))
 
   @flow.StateHandler(next_state="End")
   def Start(self):
-    if self.depth < 2:
+    if self.state.depth < 2:
       for _ in range(2):
-        self.CallFlow("RecursiveTestFlow", depth=self.depth+1,
+        self.CallFlow("RecursiveTestFlow", depth=self.state.depth+1,
                       next_state="End")
 
 
@@ -78,6 +80,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     # Check that we can get a file in chinese
     self.Click("css=#_Filesystem")
     self.Click("link=GetFile")
+
     self.WaitUntil(self.IsElementPresent, "css=input[name=v_pathspec_path]")
     self.Type("css=input[name=v_pathspec_path]", u"/dev/c/msn升级程序[1].exe")
     self.Click("css=input[value=Launch]")
@@ -85,7 +88,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Launched flow GetFile")
 
     # Test that recursive tests are shown in a tree table.
-    flow.FACTORY.StartFlow(
+    flow.GRRFlow.StartFlow(
         "aff4:/C.0000000000000001", "RecursiveTestFlow", token=self.token)
 
     self.Click("css=a:contains('Manage launched flows')")

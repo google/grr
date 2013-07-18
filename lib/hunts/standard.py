@@ -65,14 +65,16 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Create the hunt, perform permissions check and run it."""
-    hunt = GenericHunt(flow_name=self.hunt_flow_name,
-                       args=self.hunt_flow_args,
-                       expiry_time=self.expiry_time,
-                       client_limit=self.client_limit,
-                       collect_replies=self.collect_replies,
-                       token=self.token)
+    hunt = implementation.GRRHunt.StartHunt(
+        "GenericHunt",
+        flow_name=self.state.hunt_flow_name,
+        args=self.state.hunt_flow_args,
+        expiry_time=self.state.expiry_time,
+        client_limit=self.state.client_limit,
+        collect_replies=self.state.collect_replies,
+        token=self.token)
 
-    hunt.AddRule(rules=self.hunt_rules)
+    hunt.AddRule(rules=self.state.hunt_rules)
     hunt.WriteToDataStore()
 
     # We have to create special token here, because within the flow
@@ -98,9 +100,8 @@ class RunHuntFlow(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Find a hunt, perform a permissions check and run it."""
-    aff4_hunt = aff4.FACTORY.Open(self.hunt_urn, age=aff4.ALL_TIMES,
-                                  token=self.token)
-    hunt = aff4_hunt.GetFlowObj()
+    hunt = aff4.FACTORY.Open(self.state.hunt_urn, age=aff4.ALL_TIMES,
+                             mode="rw", token=self.token)
 
     # We have to create special token here, because within the flow
     # token has supervisor access.
@@ -128,16 +129,15 @@ class PauseHuntFlow(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Find a hunt, perform a permissions check and pause it."""
-    aff4_hunt = aff4.FACTORY.Open(self.hunt_urn, age=aff4.ALL_TIMES,
-                                  token=self.token)
-    hunt = aff4_hunt.GetFlowObj()
+    hunt = aff4.FACTORY.Open(self.state.hunt_urn, age=aff4.ALL_TIMES,
+                             mode="rw", token=self.token)
 
     # We have to create special token here, because within the flow
     # token has supervisor access.
     check_token = access_control.ACLToken(username=self.token.username,
                                           reason=self.token.reason)
     data_store.DB.security_manager.CheckAccess(
-        check_token, [self.hunt_urn], "x")
+        check_token, [self.state.hunt_urn], "x")
 
     # Make the hunt token a supervisor so it can be started.
     hunt.token.supervisor = True
@@ -156,16 +156,16 @@ class CheckHuntAccessFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    if not self.hunt_urn:
+    if not self.state.hunt_urn:
       raise RuntimeError("hunt_urn was not provided.")
-    if self.hunt_urn.Split()[0] != "hunts":
+    if self.state.hunt_urn.Split()[0] != "hunts":
       raise RuntimeError("invalid namespace in the hunt urn")
 
     check_token = access_control.ACLToken(username=self.token.username,
                                           reason=self.token.reason,
                                           requested_access="x")
     data_store.DB.security_manager.CheckAccess(
-        check_token, [self.hunt_urn], "x")
+        check_token, [self.state.hunt_urn], "x")
 
 
 class SampleHunt(implementation.GRRHunt):
@@ -178,7 +178,7 @@ class SampleHunt(implementation.GRRHunt):
   # We want to schedule on clients that run windows and OS_RELEASE 7.
   > int_rule = rdfvalue.ForemanAttributeInteger(
                    attribute_name=client.Schema.OS_RELEASE.name,
-                   operator=rdfvalue.ForemanAttributeInteger.Enum("EQUAL"),
+                   operator=rdfvalue.ForemanAttributeInteger.Operator.EQUAL,
                    value=7)
   > regex_rule = hunts.GRRHunt.MATCH_WINDOWS
 
@@ -199,7 +199,7 @@ class SampleHunt(implementation.GRRHunt):
 
   """
 
-  flow_typeinfo = type_info.TypeDescriptorSet(
+  hunt_typeinfo = type_info.TypeDescriptorSet(
       type_info.String(
           description="evil filename to search for.",
           name="filename",
@@ -209,8 +209,8 @@ class SampleHunt(implementation.GRRHunt):
   @flow.StateHandler(next_state=["StoreResults"])
   def Start(self, responses):
     client_id = responses.request.client_id
-    pathspec = rdfvalue.RDFPathSpec(pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
-                                    path=self.filename)
+    pathspec = rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.OS,
+                                 path=self.state.filename)
 
     self.CallFlow("GetFile", pathspec=pathspec, next_state="StoreResults",
                   client_id=client_id)
@@ -221,9 +221,11 @@ class SampleHunt(implementation.GRRHunt):
     client_id = responses.request.client_id
 
     if not responses.success:
-      logging.info("Client %s has no file %s.", client_id, self.filename)
+      logging.info("Client %s has no file %s.", client_id,
+                   self.state.filename)
     else:
-      logging.info("Client %s has a file %s.", client_id, self.filename)
+      logging.info("Client %s has a file %s.", client_id,
+                   self.state.filename)
       self.MarkClientBad(client_id)
 
     self.MarkClientDone(client_id)
@@ -241,16 +243,16 @@ class RegistryFileHunt(implementation.GRRHunt):
     """Start."""
     client_id = responses.request.client_id
 
-    if not self.files:
-      self.files = {}
+    if not self.state.files:
+      self.state.files = {}
 
-    self.files[client_id] = 0
+    self.state.files[client_id] = 0
     for filename in self.registry_files:
-      pathspec = rdfvalue.RDFPathSpec(
-          pathtype=rdfvalue.RDFPathSpec.Enum("TSK"),
+      pathspec = rdfvalue.PathSpec(
+          pathtype=rdfvalue.PathSpec.PathType.TSK,
           path=r"C:\windows\system32\config\%s" % filename)
 
-      self.files[client_id] += 1
+      self.state.files[client_id] += 1
       self.CallFlow("GetFile", pathspec=pathspec, next_state="StoreResults",
                     client_id=client_id)
 
@@ -258,10 +260,10 @@ class RegistryFileHunt(implementation.GRRHunt):
                                token=self.token)
     users = client.Get(client.Schema.USER) or []
     for user in users:
-      pathspec = rdfvalue.RDFPathSpec(
-          pathtype=rdfvalue.RDFPathSpec.Enum("TSK"),
+      pathspec = rdfvalue.PathSpec(
+          pathtype=rdfvalue.PathSpec.PathType.TSK,
           path=user.homedir + r"\NTUSER.DAT")
-      self.files[client_id] += 1
+      self.state.files[client_id] += 1
       self.CallFlow("GetFile", pathspec=pathspec, next_state="StoreResults",
                     client_id=client_id)
 
@@ -277,8 +279,8 @@ class RegistryFileHunt(implementation.GRRHunt):
     else:
       self.LogClientError(client_id, log_message=responses.status)
 
-    self.files[client_id] -= 1
-    if self.files[client_id] == 0:
+    self.state.files[client_id] -= 1
+    if self.state.files[client_id] == 0:
       self.MarkClientDone(client_id)
 
 
@@ -308,7 +310,7 @@ class ProcessesHunt(implementation.GRRHunt):
   def FindProcess(self, process_name):
     """This finds processes that contain process_name."""
 
-    hunt = aff4.FACTORY.Open(self.urn,
+    hunt = aff4.FACTORY.Open(self.state.urn,
                              age=aff4.ALL_TIMES, token=self.token)
     log = hunt.GetValuesForAttribute(hunt.Schema.LOG)
 
@@ -326,7 +328,7 @@ class ProcessesHunt(implementation.GRRHunt):
 
     hist = {}
 
-    hunt = aff4.FACTORY.Open(self.urn,
+    hunt = aff4.FACTORY.Open(self.state.urn,
                              age=aff4.ALL_TIMES, token=self.token)
     log = hunt.GetValuesForAttribute(hunt.Schema.LOG)
 
@@ -352,16 +354,18 @@ class ProcessesHunt(implementation.GRRHunt):
 class MBRHunt(implementation.GRRHunt):
   """A hunt that downloads MBRs."""
 
-  def __init__(self, length=4096, **kw):
-    self.length = length
-    super(MBRHunt, self).__init__(**kw)
+  hunt_typeinfo = type_info.TypeDescriptorSet(
+      type_info.Integer(
+          name="length",
+          default=4096,
+          description="Number of bytes to retrieve."))
 
   @flow.StateHandler(next_state=["StoreResults"])
   def Start(self, responses):
     """Start."""
     client_id = responses.request.client_id
 
-    self.CallFlow("GetMBR", length=self.length, next_state="StoreResults",
+    self.CallFlow("GetMBR", length=self.state.length, next_state="StoreResults",
                   client_id=client_id)
 
   @flow.StateHandler()
@@ -382,7 +386,7 @@ class MBRHunt(implementation.GRRHunt):
 
     hist = {}
 
-    hunt = aff4.FACTORY.Open(self.urn,
+    hunt = aff4.FACTORY.Open(self.state.urn,
                              age=aff4.ALL_TIMES, token=self.token)
 
     log = hunt.GetValuesForAttribute(hunt.Schema.LOG)
@@ -421,12 +425,12 @@ class MatchRegistryHunt(implementation.GRRHunt):
       match_case: The match has to be case sensitive.
     """
 
-    self.paths = paths
-    self.max_depth = max_depth
-    self.match_case = match_case
-    self.search_string = search_string
-    if not self.match_case:
-      self.search_string = search_string.lower()
+    self.state.paths = paths
+    self.state.max_depth = max_depth
+    self.state.match_case = match_case
+    self.state.search_string = search_string
+    if not self.state.match_case:
+      self.state.search_string = search_string.lower()
 
     super(MatchRegistryHunt, self).__init__(**kw)
 
@@ -435,13 +439,13 @@ class MatchRegistryHunt(implementation.GRRHunt):
     """Start."""
     client_id = responses.request.client_id
 
-    for path in self.paths:
+    for path in self.state.paths:
       request = rdfvalue.RDFFindSpec()
       request.pathspec.path = path
-      request.pathspec.pathtype = rdfvalue.RDFPathSpec.Enum("REGISTRY")
+      request.pathspec.pathtype = rdfvalue.PathSpec.PathType.REGISTRY
 
-      if self.max_depth:
-        request.max_depth = self.max_depth
+      if self.state.max_depth:
+        request.max_depth = self.state.max_depth
 
       # Hard coded limit so this does not get too big.
       request.iterator.number = 10000
@@ -449,9 +453,9 @@ class MatchRegistryHunt(implementation.GRRHunt):
                       next_state="StoreResults")
 
   def Match(self, s):
-    if not self.match_case:
+    if not self.state.match_case:
       s = s.lower()
-    return self.search_string in s
+    return self.state.search_string in s
 
   @flow.StateHandler()
   def StoreResults(self, responses):
@@ -469,7 +473,7 @@ class MatchRegistryHunt(implementation.GRRHunt):
         fd.Set(fd.Schema.STAT(response.hit))
         fd.Set(fd.Schema.PATHSPEC(response.hit.pathspec))
         fd.Close(sync=False)
-        if not self.search_string:
+        if not self.state.search_string:
           self.LogResult(client_id, "Registry key downloaded.", vfs_urn)
         else:
           if self.Match(data):
@@ -599,7 +603,7 @@ class FetchFilesHunt(implementation.GRRHunt):
 
   > int_rule = rdfvalue.ForemanAttributeInteger(
                    attribute_name=client.Schema.OS_RELEASE.name,
-                   operator=rdfvalue.ForemanAttributeInteger.Enum("EQUAL"),
+                   operator=rdfvalue.ForemanAttributeInteger.Operator.EQUAL,
                    value=7)
   > regex_rule = hunts.GRRHunt.MATCH_WINDOWS
 
@@ -615,9 +619,6 @@ class FetchFilesHunt(implementation.GRRHunt):
   > hunt.Run()
 
   """
-
-  def __init__(self, **kw):
-    super(FetchFilesHunt, self).__init__(**kw)
 
   @flow.StateHandler(next_state=["MarkDone"])
   def Start(self, responses):
@@ -679,8 +680,8 @@ class MemoryHunt(implementation.GRRHunt):
           responses.status))
       return
 
-    self.CallFlow("Grep", output=self.output,
-                  request=self.request, client_id=client_id,
+    self.CallFlow("Grep", output=self.state.output,
+                  request=self.state.request, client_id=client_id,
                   next_state="Unload")
 
   @flow.StateHandler(next_state=["MarkDone"])
@@ -690,7 +691,7 @@ class MemoryHunt(implementation.GRRHunt):
     if responses.success:
       self.LogResult(client_id, "Memory grep completed, found %d hits." %
                      len(responses),
-                     aff4.ROOT_URN.Add(client_id).Add(self.output))
+                     aff4.ROOT_URN.Add(client_id).Add(self.state.output))
     else:
       self.LogClientError(client_id, log_message=utils.SmartStr(
           responses.status))
@@ -713,7 +714,7 @@ class GenericHunt(implementation.GRRHunt):
     args: A dict containing the parameters for the flow.
   """
 
-  flow_typeinfo = type_info.TypeDescriptorSet(
+  hunt_typeinfo = type_info.TypeDescriptorSet(
       type_info.String(
           description="Name of flow to run.",
           name="flow_name",
@@ -729,39 +730,38 @@ class GenericHunt(implementation.GRRHunt):
           ),
       )
 
-  def __init__(self, **kw):
-    super(GenericHunt, self).__init__(**kw)
+  def InitFromArguments(self, **kw):
+    """Initializes this hunt from arguments."""
+    super(GenericHunt, self).InitFromArguments(**kw)
 
     # Our results will be written inside this collection.
-    self.collection = aff4.FACTORY.Create(
+    self.state.Register("collection", aff4.FACTORY.Create(
         self.urn.Add("Results"), "RDFValueCollection",
-        token=self.token)
+        token=self.token))
 
-  def WriteToDataStore(self, description=None):
-    if description is None:
-      desc = []
-      for k, v in sorted(self.args.ToDict().items()):
-        desc.append("%s=%s" % (utils.SmartStr(k), utils.SmartStr(v)))
-      description = "%s { %s }." % (
-          self.flow_name, ", ".join(desc))
-    super(GenericHunt, self).WriteToDataStore(description=description)
+    desc = []
+    for k, v in sorted(self.state.args.ToDict().items()):
+      desc.append("%s=%s" % (utils.SmartStr(k), utils.SmartStr(v)))
+    description = "%s { %s }." % (
+        self.state.flow_name, ", ".join(desc))
+    self.state.context.description = description
 
   @flow.StateHandler(next_state=["MarkDone"])
   def Start(self, responses):
     client_id = responses.request.client_id
 
-    args = self.args.ToDict()
-    if not self.collect_replies:
+    args = self.state.args.ToDict()
+    if not self.state.collect_replies:
       args["send_replies"] = False
 
-    self.CallFlow(self.flow_name, next_state="MarkDone", client_id=client_id,
-                  **args)
+    self.CallFlow(self.state.flow_name, next_state="MarkDone",
+                  client_id=client_id, **args)
 
   def Save(self):
-    if self.collect_replies:
+    if self.state.collect_replies:
       with self.lock:
         # Flush results frequently so users can monitor them as they come in.
-        self.collection.Flush()
+        self.state.collection.Flush()
 
     super(GenericHunt, self).Save()
 
@@ -771,14 +771,14 @@ class GenericHunt(implementation.GRRHunt):
     client_id = responses.request.client_id
 
     if responses.success:
-      self.LogResult(client_id, "Flow %s completed." % self.flow_name)
+      self.LogResult(client_id, "Flow %s completed." % self.state.flow_name)
 
-      if self.collect_replies:
+      if self.state.collect_replies:
         with self.lock:
           for response in responses:
-            msg = rdfvalue.GRRMessage(payload=response)
+            msg = rdfvalue.GrrMessage(payload=response)
             msg.source = client_id
-            self.collection.Add(msg)
+            self.state.collection.Add(msg)
     else:
       self.LogClientError(client_id, log_message=utils.SmartStr(
           responses.status))
@@ -798,7 +798,7 @@ class VariableGenericHunt(implementation.GRRHunt):
            the generic hunt above.
   """
 
-  flow_typeinfo = type_info.TypeDescriptorSet(
+  hunt_typeinfo = type_info.TypeDescriptorSet(
       type_info.GenericProtoDictType(
           name="flows",
           description=("A dictionary where the keys are the client_ids to start"
@@ -812,24 +812,24 @@ class VariableGenericHunt(implementation.GRRHunt):
           ),
       )
 
-  def __init__(self, **kw):
-    super(VariableGenericHunt, self).__init__(**kw)
+  def InitFromArguments(self, **kw):
+    super(VariableGenericHunt, self).InitFromArguments(**kw)
 
     client_id_re = aff4_grr.VFSGRRClient.CLIENT_ID_RE
-    for client_id in self.flows:
-      if not client_id_re.match(client_id):
+    for client_id in self.state.flows:
+      if not client_id_re.match(client_id.Basename()):
         raise RuntimeError("%s is not a valid client_id." % client_id)
 
     # Our results will be written inside this collection.
-    self.collection = aff4.FACTORY.Create(
+    self.state.Register("collection", aff4.FACTORY.Create(
         self.urn.Add("Results"), "RDFValueCollection",
-        token=self.token)
+        token=self.token))
 
   def Save(self):
-    if self.collect_replies:
+    if self.state.collect_replies:
       with self.lock:
         # Flush results frequently so users can monitor them as they come in.
-        self.collection.Flush()
+        self.state.collection.Flush()
 
     super(VariableGenericHunt, self).Save()
 
@@ -838,14 +838,14 @@ class VariableGenericHunt(implementation.GRRHunt):
     client_id = responses.request.client_id
 
     try:
-      flow_list = self.flows[client_id]
+      flow_list = self.state.flows[client_id]
     except KeyError:
       self.LogClientError(client_id, "No flow found for client %s." % client_id)
       self.MarkClientDone(client_id)
       return
     for flow_name, args in flow_list:
       self.CallFlow(flow_name, next_state="MarkDone", client_id=client_id,
-                    **args)
+                    **args.ToDict())
 
   @flow.StateHandler()
   def MarkDone(self, responses):
@@ -858,12 +858,12 @@ class VariableGenericHunt(implementation.GRRHunt):
       msg = "Flow %s completed." % responses.request.flow_name
       self.LogResult(client_id, msg)
 
-      if self.collect_replies:
+      if self.state.collect_replies:
         with self.lock:
           for response in responses:
-            msg = rdfvalue.GRRMessage(payload=response)
+            msg = rdfvalue.GrrMessage(payload=response)
             msg.source = client_id
-            self.collection.Add(msg)
+            self.state.collection.Add(msg)
 
     # This is not entirely accurate since it will mark the client as done as
     # soon as the first flow is done.
@@ -876,8 +876,9 @@ class VariableGenericHunt(implementation.GRRHunt):
     all the flows and wait for the results.
     """
 
-    for client_id in self.flows:
-      self.StartClient(self.session_id, client_id, self.client_limit)
+    for client_id in self.state.flows:
+      self.StartClient(self.session_id, client_id,
+                       self.state.context.client_limit)
 
 
 class CollectFilesHunt(implementation.GRRHunt):
@@ -889,23 +890,23 @@ class CollectFilesHunt(implementation.GRRHunt):
       the values are lists of Pathspecs to get from this client.
   """
 
-  def __init__(self, files_by_client, **kw):
+  hunt_typeinfo = type_info.TypeDescriptorSet(
+      type_info.Any(
+          name="files_by_client",
+          default={}))
 
-    client_id_re = aff4_grr.VFSGRRClient.CLIENT_ID_RE
-    for client_id in files_by_client:
-      if not client_id_re.match(client_id):
-        raise RuntimeError("%s is not a valid client_id." % client_id)
+  def InitFromArguments(self, **kw):
+    super(CollectFilesHunt, self).InitFromArguments(**kw)
 
-    self.files_by_client = files_by_client
-    super(CollectFilesHunt, self).__init__(**kw)
+    for client_id in self.state.files_by_client:
+      rdfvalue.ClientURN.Validate(client_id)
 
   @flow.StateHandler(next_state=["MarkDone"])
   def Start(self, responses):
     """Start."""
     client_id = responses.request.client_id
-
     try:
-      file_list = self.files_by_client[client_id]
+      file_list = self.state.files_by_client[client_id]
     except KeyError:
       self.LogClientError(client_id,
                           "No files found for client %s." % client_id)
@@ -938,5 +939,6 @@ class CollectFilesHunt(implementation.GRRHunt):
     all the flows and wait for the results.
     """
 
-    for client_id in self.files_by_client:
-      self.StartClient(self.session_id, client_id, self.client_limit)
+    for client_id in self.state.files_by_client:
+      self.StartClient(self.session_id, client_id,
+                       self.state.context.client_limit)

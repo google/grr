@@ -33,8 +33,8 @@ class ClientTestBase(unittest.TestCase):
     unittest.TestCase.__init__(self)
 
   def runTest(self):
-    self.session_id = self.StartFlowAndWait(self.client_id, self.flow,
-                                            **self.args)
+    self.flow_obj = self.StartFlowAndWait(self.client_id, self.flow,
+                                          **self.args)
     self.CheckFlow()
 
   def StartFlowAndWait(self, client_id, flow_name, **kwargs):
@@ -48,18 +48,18 @@ class ClientTestBase(unittest.TestCase):
     Returns:
       A GRRFlow object.
     """
-    session_id = flow.FACTORY.StartFlow(client_id, flow_name, token=self.token,
+    session_id = flow.GRRFlow.StartFlow(client_id, flow_name, token=self.token,
                                         cpu_limit=self.cpu_limit, **kwargs)
     while 1:
       time.sleep(1)
-      rdf_flow = flow.FACTORY.FetchFlow(session_id, lock=False,
-                                        token=self.token)
-      if rdf_flow is None:
+      try:
+        flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
+        if not flow_obj.IsRunning():
+          break
+      except (IOError, AttributeError):
         continue
-      if rdf_flow.state != rdfvalue.Flow.Enum("RUNNING"):
-        break
 
-    return flow.FACTORY.LoadFlow(rdf_flow)
+    return flow_obj
 
   def CheckFlow(self):
     pass
@@ -70,9 +70,9 @@ class TestGetFileTSKLinux(ClientTestBase):
   platforms = ["linux"]
 
   flow = "GetFile"
-  args = {"pathspec": rdfvalue.RDFPathSpec(
+  args = {"pathspec": rdfvalue.PathSpec(
       path="/bin/ls",
-      pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))}
+      pathtype=rdfvalue.PathSpec.PathType.TSK)}
 
   output_path = "/fs/tsk/bin/ls"
 
@@ -102,9 +102,9 @@ class TestGetFileTSKMac(TestGetFileTSKLinux):
 
 class TestGetFileOSLinux(TestGetFileTSKLinux):
   """Tests if GetFile works on Linux."""
-  args = {"pathspec": rdfvalue.RDFPathSpec(
+  args = {"pathspec": rdfvalue.PathSpec(
       path="/bin/ls",
-      pathtype=rdfvalue.RDFPathSpec.Enum("OS"))}
+      pathtype=rdfvalue.PathSpec.PathType.OS)}
   output_path = "/fs/os/bin/ls"
 
 
@@ -112,9 +112,9 @@ class TestListDirectoryOSLinux(ClientTestBase):
   """Tests if ListDirectory works on Linux."""
   platforms = ["linux", "darwin"]
   flow = "ListDirectory"
-  args = {"pathspec": rdfvalue.RDFPathSpec(
+  args = {"pathspec": rdfvalue.PathSpec(
       path="/bin",
-      pathtype=rdfvalue.RDFPathSpec.Enum("OS"))}
+      pathtype=rdfvalue.PathSpec.PathType.OS)}
 
   output_path = "/fs/os/bin"
   file_to_find = "ls"
@@ -136,9 +136,9 @@ class TestListDirectoryOSLinux(ClientTestBase):
 
 class TestListDirectoryTSKLinux(TestListDirectoryOSLinux):
   """Tests if ListDirectory works on Linux using Sleuthkit."""
-  args = {"pathspec": rdfvalue.RDFPathSpec(
+  args = {"pathspec": rdfvalue.PathSpec(
       path="/bin",
-      pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))}
+      pathtype=rdfvalue.PathSpec.PathType.TSK)}
   output_path = "/fs/tsk/bin"
 
 
@@ -147,9 +147,9 @@ class TestFindTSKLinux(TestListDirectoryTSKLinux):
   flow = "FindFiles"
 
   args = {"findspec": rdfvalue.RDFFindSpec(
-      pathspec=rdfvalue.RDFPathSpec(
+      pathspec=rdfvalue.PathSpec(
           path="/bin",
-          pathtype=rdfvalue.RDFPathSpec.Enum("TSK")))}
+          pathtype=rdfvalue.PathSpec.PathType.TSK))}
 
 
 class TestFindOSLinux(TestListDirectoryOSLinux):
@@ -157,9 +157,9 @@ class TestFindOSLinux(TestListDirectoryOSLinux):
   flow = "FindFiles"
 
   args = {"findspec": rdfvalue.RDFFindSpec(
-      pathspec=rdfvalue.RDFPathSpec(
+      pathspec=rdfvalue.PathSpec(
           path="/bin",
-          pathtype=rdfvalue.RDFPathSpec.Enum("OS")))}
+          pathtype=rdfvalue.PathSpec.PathType.OS))}
 
 
 class TestInterrogateWindows(ClientTestBase):
@@ -179,9 +179,9 @@ class TestInterrogateWindows(ClientTestBase):
 class TestListDirectoryOSWindows(TestListDirectoryOSLinux):
   """Tests if ListDirectory works on Linux."""
   platforms = ["windows"]
-  args = {"pathspec": rdfvalue.RDFPathSpec(
+  args = {"pathspec": rdfvalue.PathSpec(
       path="C:\\Windows",
-      pathtype=rdfvalue.RDFPathSpec.Enum("OS"))}
+      pathtype=rdfvalue.PathSpec.PathType.OS)}
   file_to_find = "System32"
   output_path = "/fs/os/C:/Windows"
 
@@ -189,9 +189,9 @@ class TestListDirectoryOSWindows(TestListDirectoryOSLinux):
 class TestListDirectoryTSKWindows(TestListDirectoryTSKLinux):
   """Tests if ListDirectory works on Windows using Sleuthkit."""
   platforms = ["windows"]
-  args = {"pathspec": rdfvalue.RDFPathSpec(
+  args = {"pathspec": rdfvalue.PathSpec(
       path="C:\\Windows",
-      pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))}
+      pathtype=rdfvalue.PathSpec.PathType.TSK)}
   file_to_find = "System32"
 
   def CheckFlow(self):
@@ -213,9 +213,9 @@ class TestListDirectoryTSKWindows(TestListDirectoryTSKLinux):
 
 class TestRecursiveListDirectoryOSWindows(TestListDirectoryOSWindows):
   flow = "RecursiveListDirectory"
-  args = {"pathspec": rdfvalue.RDFPathSpec(
+  args = {"pathspec": rdfvalue.PathSpec(
       path="C:\\",
-      pathtype=rdfvalue.RDFPathSpec.Enum("OS")),
+      pathtype=rdfvalue.PathSpec.PathType.OS),
           "max_depth": 1}
   file_to_find = "System32"
   output_path = "/fs/os/C:/Windows"
@@ -236,16 +236,16 @@ class TestFindWindowsRegistry(ClientTestBase):
   def runTest(self):
     """Launch our flows."""
     self.StartFlowAndWait(self.client_id, "ListDirectory",
-                          pathspec=rdfvalue.RDFPathSpec(
-                              pathtype=rdfvalue.RDFPathSpec.Enum("REGISTRY"),
+                          pathspec=rdfvalue.PathSpec(
+                              pathtype=rdfvalue.PathSpec.PathType.REGISTRY,
                               path=self.reg_path))
 
     self.StartFlowAndWait(
         self.client_id, "FindFiles",
         findspec=rdfvalue.RDFFindSpec(
-            pathspec=rdfvalue.RDFPathSpec(
+            pathspec=rdfvalue.PathSpec(
                 path=self.reg_path,
-                pathtype=rdfvalue.RDFPathSpec.Enum("REGISTRY")),
+                pathtype=rdfvalue.PathSpec.PathType.REGISTRY),
             path_regex="ProfileImagePath"),
         output=self.output_path)
 
@@ -273,9 +273,9 @@ class TestFindWindowsRegistry(ClientTestBase):
 class TestGetFileOSWindows(TestGetFileOSLinux):
   """Tests if GetFile works on Windows."""
   platforms = ["windows"]
-  args = {"pathspec": rdfvalue.RDFPathSpec(
+  args = {"pathspec": rdfvalue.PathSpec(
       path="C:\\Windows\\regedit.exe",
-      pathtype=rdfvalue.RDFPathSpec.Enum("OS"))}
+      pathtype=rdfvalue.PathSpec.PathType.OS)}
   output_path = "/fs/os/C:/Windows/regedit.exe"
 
   def CheckFile(self, fd):
@@ -285,9 +285,9 @@ class TestGetFileOSWindows(TestGetFileOSLinux):
 
 class TestGetFileTSKWindows(TestGetFileOSWindows):
   """Tests if GetFile works on Windows using TSK."""
-  args = {"pathspec": rdfvalue.RDFPathSpec(
+  args = {"pathspec": rdfvalue.PathSpec(
       path="C:\\Windows\\regedit.exe",
-      pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))}
+      pathtype=rdfvalue.PathSpec.PathType.TSK)}
 
   def CheckFlow(self):
     urn = aff4.ROOT_URN.Add(self.client_id).Add("/fs/tsk")
@@ -314,9 +314,9 @@ class TestRegistry(ClientTestBase):
   platforms = ["windows"]
   flow = "ListDirectory"
 
-  args = {"pathspec": rdfvalue.RDFPathSpec(
+  args = {"pathspec": rdfvalue.PathSpec(
       path="HKEY_LOCAL_MACHINE",
-      pathtype=rdfvalue.RDFPathSpec.Enum("REGISTRY"))}
+      pathtype=rdfvalue.PathSpec.PathType.REGISTRY)}
   output_path = "/registry/HKEY_LOCAL_MACHINE"
 
   def CheckFlow(self):
@@ -352,7 +352,7 @@ class TestCPULimit(ClientTestBase):
 
   def CheckFlow(self):
     self.assertTrue("CPU quota exceeded." in
-                    str(self.session_id.rdf_flow.backtrace))
+                    str(self.flow_obj.state.context.backtrace))
 
 
 class CPULimitTestFlow(flow.GRRFlow):

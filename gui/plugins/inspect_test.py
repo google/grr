@@ -5,6 +5,7 @@
 """Test the inspect interface."""
 
 
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
@@ -62,7 +63,8 @@ class TestInspectView(test_lib.GRRSeleniumTest):
 
     # Here we emulate a mock client with no actions (None) this should produce
     # an error.
-    mock = test_lib.MockClient("C.0000000000000001", None, token=self.token)
+    mock = test_lib.MockClient(rdfvalue.ClientURN("C.0000000000000001"),
+                               None, token=self.token)
     while mock.Next():
       pass
 

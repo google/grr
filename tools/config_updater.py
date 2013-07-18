@@ -156,7 +156,7 @@ def LoadMemoryDrivers(grr_dir):
       grr_dir, config_lib.CONFIG["MemoryDriverDarwin.driver_file_amd64"])
   print "Signing and uploading %s" % f_path
   up_path = maintenance_utils.UploadSignedDriverBlob(
-      open(f_path).read(), platform="Darwin", file_name="osxpmem")
+      open(f_path).read(), platform="Darwin", file_name="pmem")
   print "uploaded %s" % up_path
 
   f_path = os.path.join(

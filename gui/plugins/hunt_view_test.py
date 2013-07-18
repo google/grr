@@ -54,7 +54,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
   def CreateSampleHunt(self, stopped=False):
     self.client_ids = self.hunts.SetupClients(10)
 
-    hunt = hunts.SampleHunt(token=self.token)
+    hunt = hunts.GRRHunt.StartHunt("SampleHunt", token=self.token)
     regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="GRR client",
         attribute_regex="GRR")
@@ -76,16 +76,17 @@ class TestHuntView(test_lib.GRRSeleniumTest):
   def CreateGenericHuntWithCollection(self):
     self.client_ids = self.hunts.SetupClients(10)
 
-    hunt = hunts.GenericHunt(collect_replies=True, token=self.token)
+    hunt = hunts.GRRHunt.StartHunt("GenericHunt", collect_replies=True,
+                                   token=self.token)
     regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="GRR client",
         attribute_regex="GRR")
     hunt.AddRule([regex_rule])
 
-    hunt.collection.Add(rdfvalue.RDFURN("aff4:/sample/1"))
-    hunt.collection.Add(rdfvalue.RDFURN(
+    hunt.state.collection.Add(rdfvalue.RDFURN("aff4:/sample/1"))
+    hunt.state.collection.Add(rdfvalue.RDFURN(
         "aff4:/C.0000000000000001/fs/os/c/bin/bash"))
-    hunt.collection.Add(rdfvalue.RDFURN("aff4:/sample/3"))
+    hunt.state.collection.Add(rdfvalue.RDFURN("aff4:/sample/3"))
 
     hunt.WriteToDataStore()
 
@@ -94,19 +95,26 @@ class TestHuntView(test_lib.GRRSeleniumTest):
   def SetupTestHuntView(self):
     # Create some clients and a hunt to view.
     hunt = self.CreateSampleHunt()
+    hunt.Close()
+
     # Run the hunt.
     client_mock = self.hunts.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
-    hunt.LogResult(self.client_ids[2], "Result 1")
 
+    hunt = aff4.FACTORY.Open(hunt.session_id, token=self.token, mode="rw",
+                             age=aff4.ALL_TIMES)
+
+    hunt.LogResult(self.client_ids[2], "Result 1")
     # Log an error just with some random traceback.
     hunt.LogClientError(self.client_ids[1], "Client Error 1",
                         traceback.format_exc())
 
-    hunt_obj = aff4.FACTORY.Open(hunt.session_id, mode="rw",
-                                 age=aff4.ALL_TIMES, token=self.token)
-    started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
+    started = hunt.GetValuesForAttribute(hunt.Schema.CLIENTS)
     self.assertEqual(len(set(started)), 10)
+    hunt.Close()
+
+  def CheckState(self, state):
+    self.WaitUntil(self.IsElementPresent, "css=div[state=\"%s\"]" % state)
 
   def testHuntView(self):
     """Test that we can see all the hunt data."""
@@ -199,7 +207,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('SampleHunt')")
 
     # Check the hunt is not in a running state.
-    self.WaitUntil(self.IsTextPresent, "stopped")
+    self.CheckState("stopped")
 
     # Check we can now see the details.
     self.WaitUntil(self.IsElementPresent, "css=dl.dl-hunt")
@@ -236,7 +244,25 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
     # Check the hunt is in a running state.
-    self.WaitUntil(self.IsTextPresent, "RUNNING")
+    self.CheckState("RUNNING")
+
+  def CreateApproval(self, session_id):
+    # Create the approval and approve it.
+    token = access_control.ACLToken(username="test")
+    token.supervisor = True
+    flow.GRRFlow.StartFlow(None, "RequestHuntApprovalFlow",
+                           hunt_id=rdfvalue.RDFURN(session_id),
+                           reason=self.reason,
+                           approver="approver",
+                           token=token)
+
+    self.MakeUserAdmin("approver")
+    token = access_control.ACLToken(username="approver")
+    token.supervisor = True
+    flow.GRRFlow.StartFlow(None, "GrantHuntApprovalFlow",
+                           hunt_urn=session_id, reason=self.reason,
+                           delegate="test",
+                           token=token)
 
   def testRunHuntWithACLChecks(self):
     hunt = self.CreateSampleHunt(stopped=True)
@@ -266,22 +292,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsVisible,
                       "css=.modal-backdrop")
 
-    # Create the approval and approve it.
-    token = access_control.ACLToken(username="test")
-    token.supervisor = True
-    flow.FACTORY.StartFlow(None, "RequestHuntApprovalFlow",
-                           hunt_id=rdfvalue.RDFURN(hunt.session_id),
-                           reason=self.reason,
-                           approver="approver",
-                           token=token)
-
-    self.MakeUserAdmin("approver")
-    token = access_control.ACLToken(username="approver")
-    token.supervisor = True
-    flow.FACTORY.StartFlow(None, "GrantHuntApprovalFlow",
-                           hunt_urn=hunt.session_id, reason=self.reason,
-                           delegate="test",
-                           token=token)
+    self.CreateApproval(hunt.session_id)
 
     # Click on Run and wait for dialog again.
     self.Click("css=button[name=RunHunt]")
@@ -304,7 +315,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
     # Check the hunt is in a running state.
-    self.WaitUntil(self.IsTextPresent, "RUNNING")
+    self.CheckState("RUNNING")
 
   def testPauseHuntWithoutACLChecks(self):
     self.CreateSampleHunt(stopped=False)
@@ -318,7 +329,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('SampleHunt')")
 
     # Check the hunt is in a running state.
-    self.WaitUntil(self.IsTextPresent, "RUNNING")
+    self.CheckState("RUNNING")
 
     # Check we can now see the details.
     self.WaitUntil(self.IsElementPresent, "css=dl.dl-hunt")
@@ -355,7 +366,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
     # Check the hunt is in a running state.
-    self.WaitUntil(self.IsTextPresent, "stopped")
+    self.CheckState("stopped")
 
   def testPauseHuntWithACLChecks(self):
     hunt = self.CreateSampleHunt(stopped=False)
@@ -385,22 +396,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsVisible,
                       "css=.modal-backdrop")
 
-    # Create the approval.
-    token = access_control.ACLToken(username="test")
-    token.supervisor = True
-    flow.FACTORY.StartFlow(None, "RequestHuntApprovalFlow",
-                           hunt_id=rdfvalue.RDFURN(hunt.session_id),
-                           reason=self.reason,
-                           approver="approver",
-                           token=token)
-
-    self.MakeUserAdmin("approver")
-    token = access_control.ACLToken(username="approver")
-    token.supervisor = True
-    flow.FACTORY.StartFlow(None, "GrantHuntApprovalFlow",
-                           hunt_urn=hunt.session_id, reason=self.reason,
-                           delegate="test",
-                           token=token)
+    self.CreateApproval(hunt.session_id)
 
     # Click on Pause and wait for dialog again.
     self.Click("css=button[name=PauseHunt]")
@@ -422,10 +418,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
     # Check the hunt is in a running state.
-    self.WaitUntil(self.IsTextPresent, "stopped")
+    self.CheckState("stopped")
 
   def testModifyHuntWithACLChecks(self):
-    self.CreateSampleHunt(stopped=True)
+    hunt = self.CreateSampleHunt(stopped=True)
     self.InstallACLChecks()
 
     self.Open("/")
@@ -438,8 +434,26 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # Click on Modify button and check that dialog appears.
     self.Click("css=button[name=ModifyHunt]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Modify a hunt")
+    self.WaitUntil(self.IsTextPresent, "Modify a hunt")
+
+    self.Type("css=input[name=client_limit]", "4483")
+    self.Type("css=input[name=expiry_time]", "5m")
+
+    # Click on Proceed.
+    self.Click("css=button[name=Proceed]")
+
+    # This should be rejected now and a form request is made.
+    self.WaitUntil(self.IsTextPresent, "Create a new approval")
+    self.Click("css=#acl_dialog button[name=Close]")
+    # Wait for dialog to disappear.
+    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+
+    # Now create an approval.
+    self.CreateApproval(hunt.session_id)
+
+    # Click on Modify button and check that dialog appears.
+    self.Click("css=button[name=ModifyHunt]")
+    self.WaitUntil(self.IsTextPresent, "Modify a hunt")
 
     self.Type("css=input[name=client_limit]", "4483")
     self.Type("css=input[name=expiry_time]", "5m")
@@ -447,6 +461,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.
     self.Click("css=button[name=Proceed]")
+
     self.WaitUntil(self.IsTextPresent, "Hunt modified successfully!")
     self.assertTrue(self.IsElementPresent,
                     "css=button[name=Proceed][disabled!='']")
@@ -468,6 +483,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     hunt.LogClientError(self.client_ids[1], "Client Error 1",
                         traceback.format_exc())
+    hunt.Flush()
 
   def testHuntDetailView(self):
     """Test the detailed client view works."""
@@ -492,7 +508,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "BAD")
 
     # Select the first client which should have errors.
-    self.Click("css=td:contains('%s')" % self.client_ids[1])
+    self.Click("css=td:contains('%s')" % self.client_ids[1].Basename())
     self.WaitUntil(self.IsElementPresent,
                    "css=div[id^=HuntClientOverviewRenderer_]")
     self.WaitUntil(self.IsTextPresent, "Last Checkin")
@@ -552,22 +568,22 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntStatsRenderer_]")
 
     self.assertTrue(self.IsTextPresent("Total number of clients"))
-    self.assertTrue(self.IsTextPresent("10"))
+    self.assertTrue(self.IsTextPresent("20"))
 
     self.assertTrue(self.IsTextPresent("User CPU mean"))
-    self.assertTrue(self.IsTextPresent("5.5"))
+    self.assertTrue(self.IsTextPresent("2.8"))
 
     self.assertTrue(self.IsTextPresent("User CPU stdev"))
-    self.assertTrue(self.IsTextPresent("2.9"))
+    self.assertTrue(self.IsTextPresent("3.4"))
 
     self.assertTrue(self.IsTextPresent("System CPU mean"))
-    self.assertTrue(self.IsTextPresent("11"))
+    self.assertTrue(self.IsTextPresent("5.5"))
 
-    self.assertTrue(self.IsTextPresent("User CPU stdev"))
-    self.assertTrue(self.IsTextPresent("5.7"))
+    self.assertTrue(self.IsTextPresent("System CPU stdev"))
+    self.assertTrue(self.IsTextPresent("6.8"))
 
     self.assertTrue(self.IsTextPresent("Network bytes sent mean"))
-    self.assertTrue(self.IsTextPresent("16.5"))
+    self.assertTrue(self.IsTextPresent("8.3"))
 
     self.assertTrue(self.IsTextPresent("Network bytes sent stdev"))
-    self.assertTrue(self.IsTextPresent("8.6"))
+    self.assertTrue(self.IsTextPresent("10.3"))

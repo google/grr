@@ -63,18 +63,18 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
 
     # Install the mock
     vfs.VFS_HANDLERS[
-        rdfvalue.RDFPathSpec.Enum("OS")] = test_lib.ClientVFSHandlerFixture
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
     self.client_mock = test_lib.ActionMock("Grep")
 
   def testNormalGrep(self):
 
     output_path = "analysis/grep1"
 
-    grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Enum("FIRST_HIT"),
+    grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
                                  literal="hello")
 
     grepspec.target.path = "/proc/10/cmdline"
-    grepspec.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+    grepspec.target.pathtype = rdfvalue.PathSpec.PathType.OS
 
     for _ in test_lib.TestFlowHelper(
         "Grep", self.client_mock, client_id=self.client_id,
@@ -82,9 +82,7 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
       pass
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open("aff4:/{0}/{1}".format(self.client_id,
-                                                  output_path),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
     hits = fd.Get(fd.Schema.HITS)
 
     self.assertEqual(len(hits), 1)
@@ -100,11 +98,11 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
 
     output_path = "analysis/grep2"
 
-    grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Enum("ALL_HITS"),
+    grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Mode.ALL_HITS,
                                  literal="HIT")
 
     grepspec.target.path = "/c/Downloads/grepfile.txt"
-    grepspec.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+    grepspec.target.pathtype = rdfvalue.PathSpec.PathType.OS
 
     for _ in test_lib.TestFlowHelper(
         "Grep", self.client_mock, client_id=self.client_id,
@@ -112,9 +110,7 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
       pass
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open("aff4:/{0}/{1}".format(self.client_id,
-                                                  output_path),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
     hits = fd.Get(fd.Schema.HITS)
 
     self.assertEqual(len(hits), 100)
@@ -134,14 +130,14 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
       self.CreateFile(filename, data)
 
       output_path = "analysis/grep"
-      output_urn = "aff4:/{0}/{1}".format(self.client_id, output_path)
+      output_urn = self.client_id.Add(output_path)
       data_store.DB.DeleteSubject(output_urn, token=self.token)
 
-      grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Enum("FIRST_HIT"),
+      grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
                                    literal="HIT")
 
       grepspec.target.path = "/c/Downloads/grepfile.txt"
-      grepspec.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+      grepspec.target.pathtype = rdfvalue.PathSpec.PathType.OS
 
       for _ in test_lib.TestFlowHelper(
           "Grep", self.client_mock, client_id=self.client_id,
@@ -163,7 +159,7 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
   def testInvalidArg(self):
     """Check that the Grep flow raises if the GrepSpec is invlaid."""
     # No target set.
-    grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Enum("FIRST_HIT"),
+    grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
                                  literal="hello")
 
     self.assertRaises(

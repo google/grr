@@ -127,8 +127,10 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       source, nr_messages = self.server.frontend.HandleMessageBundles(
           request_comms, responses_comms)
 
-      logging.info("HTTP request from %s (%s), %d bytes - %d messages.",
-                   source, utils.SmartStr(source_ip), length, nr_messages)
+      logging.info("HTTP request from %s (%s), %d bytes - %d messages received,"
+                   " %d messages sent.",
+                   source, utils.SmartStr(source_ip), length, nr_messages,
+                   responses_comms.num_messages)
 
       self.Send(responses_comms.SerializeToString())
 

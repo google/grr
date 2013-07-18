@@ -121,7 +121,7 @@ def GRRFindPackages():
 
 
 grr_data_files_spec = ('grr',
-                       ['tools', 'worker', 'cron'],
+                       ['tools', 'worker'],
                        ['*.py'])
 
 grr_config_files_spec = ('grr',
@@ -161,7 +161,6 @@ setup(name='grr',
               'grr_console = grr.tools.console:ConsoleMain',
               'grr_config_updater = grr.tools.config_updater:ConsoleMain',
               'grr_server = grr.tools.grr_server:ConsoleMain',
-              'grr_cron = grr.cron.cron:ConsoleMain',
               'grr_file_exporter = grr.tools.file_exporter:ConsoleMain',
           ]
       })

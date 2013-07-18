@@ -35,8 +35,8 @@ class SchedulerTest(test_lib.GRRBaseTest):
   def testSchedule(self):
     """Test the ability to schedule a task."""
     test_queue = "fooSchedule"
-    task = rdfvalue.GRRMessage(queue=test_queue, ttl=5,
-                               session_id="Test")
+    task = rdfvalue.GrrMessage(queue=test_queue, ttl=5,
+                               session_id="aff4:/Test")
 
     scheduler.SCHEDULER.Schedule([task], token=self.token)
 
@@ -49,7 +49,8 @@ class SchedulerTest(test_lib.GRRBaseTest):
                                       "task:%08d" % task.task_id,
                                       token=self.token)
 
-    self.assertEqual(value, task.SerializeToString())
+    decoded = rdfvalue.GrrMessage(value, task_ttl=5)
+    self.assertProtoEqual(decoded, task)
     self.assert_(ts > 0)
 
     # Get a lease on the task
@@ -60,7 +61,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
     self.assertEqual(len(tasks), 1)
     self.assertEqual(tasks[0].task_ttl, 4)
 
-    self.assertEqual(tasks[0].session_id, "Test")
+    self.assertEqual(tasks[0].session_id, "aff4:/Test")
 
     # If we try to get another lease on it we should fail
     self._current_mock_time += 10
@@ -96,8 +97,8 @@ class SchedulerTest(test_lib.GRRBaseTest):
 
   def testTaskRetransmissionsAreCorrectlyAccounted(self):
     test_queue = "fooSchedule"
-    task = rdfvalue.GRRMessage(queue=test_queue,
-                               session_id="Test")
+    task = rdfvalue.GrrMessage(queue=test_queue,
+                               session_id="aff4:/Test")
 
     scheduler.SCHEDULER.Schedule([task], token=self.token)
 
@@ -126,8 +127,8 @@ class SchedulerTest(test_lib.GRRBaseTest):
     """Test that we can delete tasks."""
 
     test_queue = "fooDelete"
-    task = rdfvalue.GRRMessage(queue=test_queue,
-                               session_id="Test")
+    task = rdfvalue.GrrMessage(queue=test_queue,
+                               session_id="aff4:/Test")
 
     scheduler.SCHEDULER.Schedule([task], token=self.token)
 
@@ -138,7 +139,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(tasks), 1)
 
-    self.assertEqual(tasks[0].session_id, "Test")
+    self.assertEqual(tasks[0].session_id, "aff4:/Test")
 
     # Now delete the task
     scheduler.SCHEDULER.Delete(test_queue, tasks, token=self.token)
@@ -163,8 +164,8 @@ class SchedulerTest(test_lib.GRRBaseTest):
   def testReSchedule(self):
     """Test the ability to re-schedule a task."""
     test_queue = "fooReschedule"
-    task = rdfvalue.GRRMessage(queue=test_queue,
-                               session_id="Test")
+    task = rdfvalue.GrrMessage(queue=test_queue,
+                               session_id="aff4:/Test")
 
     scheduler.SCHEDULER.Schedule([task], token=self.token)
 
@@ -206,7 +207,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
 
     tasks = []
     for i in range(10):
-      msg = rdfvalue.GRRMessage(
+      msg = rdfvalue.GrrMessage(
           session_id="Test%d" % i,
           priority=i%3,
           queue=test_queue)

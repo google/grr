@@ -57,9 +57,9 @@ class WinUserActivityInvestigation(flow.GRRFlow):
       raise RuntimeError("Please supply a valid user name.")
 
     if self.use_tsk:
-      self.path_type = rdfvalue.RDFPathSpec.Enum("TSK")
+      self.path_type = rdfvalue.PathSpec.PathType.TSK
     else:
-      self.path_type = rdfvalue.RDFPathSpec.Enum("OS")
+      self.path_type = rdfvalue.PathSpec.PathType.OS
 
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
 
@@ -84,7 +84,7 @@ class WinUserActivityInvestigation(flow.GRRFlow):
       regdir = "HKEY_USERS/%s" % self.user_pb.sid
       max_depth = int(self.recursive_list_user_registry)
       self.CallFlow("RecursiveListDirectory",
-                    pathtype=rdfvalue.RDFPathSpec.Enum("REGISTRY"),
+                    pathtype=rdfvalue.PathSpec.PathType.REGISTRY,
                     path=regdir, max_depth=max_depth, next_state="FinishFlow")
 
     if self.artifact_list:
@@ -177,9 +177,9 @@ class WinSystemActivityInvestigation(flow.GRRFlow):
     self.os_major_version = self.os_version.split(".")[0]
 
     if self.use_tsk:
-      self.path_type = rdfvalue.RDFPathSpec.Enum("TSK")
+      self.path_type = rdfvalue.PathSpec.PathType.TSK
     else:
-      self.path_type = rdfvalue.RDFPathSpec.Enum("OS")
+      self.path_type = rdfvalue.PathSpec.PathType.OS
 
     if self.collect_av_data:
       self.CallFlow("SophosCollector", pathtype=self.path_type,
@@ -264,9 +264,9 @@ class LinSystemActivityInvestigation(flow.GRRFlow):
     self.os_major_version = self.os_version.split(".")[0]
 
     if self.use_tsk:
-      self.path_type = rdfvalue.RDFPathSpec.Enum("TSK")
+      self.path_type = rdfvalue.PathSpec.PathType.TSK
     else:
-      self.path_type = rdfvalue.RDFPathSpec.Enum("OS")
+      self.path_type = rdfvalue.PathSpec.PathType.OS
 
     if self.list_processes:
       self.CallFlow("ListProcesses", next_state="FinishFlow")

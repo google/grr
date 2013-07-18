@@ -95,14 +95,8 @@ class HookRegistry(object):
   # A list of class names that have to be initialized before this hook.
   pre = []
 
-  # A rough order that can be imposed on init hook. Lower number runs earlier.
-  order = 100
-
   # Already run hooks
   already_run_once = set()
-
-  # If false this hook is disabled.
-  active = True
 
   lock = threading.RLock()
 
@@ -122,32 +116,25 @@ class HookRegistry(object):
       self._RunSingleHook(self.classes[pre_hook], executed_set,
                           required=hook_cls.__name__)
 
-    if hook_cls.active:
-      # Now run this hook.
-      cls_instance = hook_cls()
-      if required:
-        logging.debug("Initializing %s (order %s), required by %s",
-                      hook_cls.__name__, hook_cls.order, required)
-      else:
-        logging.debug("Initializing %s (order %s)", hook_cls.__name__,
-                      hook_cls.order)
-
-      # Always call the Run hook.
-      cls_instance.Run()
-      executed_set.add(hook_cls)
-
-      # Only call the RunOnce() hook if not already called.
-      if hook_cls not in self.already_run_once:
-        cls_instance.RunOnce()
-        self.already_run_once.add(hook_cls)
+    # Now run this hook.
+    cls_instance = hook_cls()
+    if required:
+      logging.debug("Initializing %s, required by %s",
+                    hook_cls.__name__, required)
     else:
-      logging.debug("Skipping %s (order %s) since its disabled.",
-                    hook_cls.__name__, hook_cls.order)
-      executed_set.add(hook_cls)
+      logging.debug("Initializing %s", hook_cls.__name__)
+
+    # Always call the Run hook.
+    cls_instance.Run()
+    executed_set.add(hook_cls)
+
+    # Only call the RunOnce() hook if not already called.
+    if hook_cls not in self.already_run_once:
+      cls_instance.RunOnce()
+      self.already_run_once.add(hook_cls)
 
   def _RunAllHooks(self, executed_hooks):
-    for hook_cls in sorted(self.__class__.classes.values(),
-                           key=lambda x: x.order):
+    for hook_cls in self.__class__.classes.values():
       self._RunSingleHook(hook_cls, executed_hooks)
 
   def Init(self):
@@ -170,12 +157,6 @@ class HookRegistry(object):
 
   def Run(self):
     """Hooks that can be called more than once."""
-
-  @staticmethod
-  def OverrideInitHook(new_cls, hook_cls):
-    """Override an existing hook with a new one."""
-    hook_cls.pre = hook_cls.pre[:] + [new_cls.__name__]
-    hook_cls.active = False
 
 
 class InitHook(HookRegistry):

@@ -22,7 +22,7 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
   def CreateTimelineFixture():
     """Creates a new timeline fixture we can play with."""
     # Create a client for testing
-    client_id = "C.0000000000000001"
+    client_id = rdfvalue.ClientURN("C.0000000000000001")
 
     token = access_control.ACLToken("test", "fixture")
 
@@ -32,21 +32,21 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
 
     # Install the mock
     vfs.VFS_HANDLERS[
-        rdfvalue.RDFPathSpec.Enum("OS")] = test_lib.ClientVFSHandlerFixture
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
     client_mock = test_lib.ActionMock("ListDirectory")
     output_path = "analysis/Timeline/MAC"
 
     for _ in test_lib.TestFlowHelper(
         "RecursiveListDirectory", client_mock, client_id=client_id,
-        pathspec=rdfvalue.RDFPathSpec(
-            path="/", pathtype=rdfvalue.RDFPathSpec.Enum("OS")),
+        pathspec=rdfvalue.PathSpec(
+            path="/", pathtype=rdfvalue.PathSpec.PathType.OS),
         token=token):
       pass
 
     # Now make a timeline
     for _ in test_lib.TestFlowHelper(
         "MACTimes", client_mock, client_id=client_id, token=token,
-        path="aff4:/%s/" % client_id, output=output_path):
+        path="/", output=output_path):
       pass
 
   def setUp(self):

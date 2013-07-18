@@ -72,7 +72,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
 
     # Verify that we have the latest version in the table by default
     self.WaitUntil(self.IsElementPresent, "css=tr:contains(\"a.txt\")")
-    self.assert_(
+    self.assertTrue(
         "2012-04-09 16:27:13" in self.GetText("css=tr:contains(\"a.txt\")"))
 
     # Click on the row.

@@ -9,11 +9,12 @@ import os
 import random
 import re
 import socket
+import shutil
 import struct
+import tempfile
 import threading
 import time
 
-from grr.lib import stats
 
 
 class IPInfo(object):
@@ -53,6 +54,18 @@ def Proxy(f):
   def Wrapped(self, *args):
     return getattr(self, f)(*args)
   return Wrapped
+
+
+class TempDirectory(object):
+  """A self cleaning temporary directory."""
+
+  def __enter__(self):
+    self.name = tempfile.mkdtemp()
+
+    return self.name
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    shutil.rmtree(self.name, True)
 
 
 # This is a synchronize decorator.
@@ -703,10 +716,6 @@ def DecodeReasonString(reason):
   return base64.urlsafe_b64decode(SmartStr(reason))
 
 
-def ToProtoString(string):
-  return SmartUnicode(string)
-
-
 # Regex chars that should not be in a regex
 disallowed_chars = re.compile(r"[[\](){}+*?.$^\\]")
 
@@ -727,15 +736,26 @@ def GeneratePassphrase(length=20):
 class PRNG(object):
   """An optimized PRNG."""
 
-  random_list = None
+  random_list_ushort = None
+  random_list_ulong = None
 
   @classmethod
-  def GetShort(cls):
-    if not cls.random_list:
-      PRNG.random_list = list(
-          struct.unpack("H" * 1000, os.urandom(2000)))
+  def GetUShort(cls):
+    if not cls.random_list_ushort:
+      PRNG.random_list_ushort = list(
+          struct.unpack("=" + "H" * 1000,
+                        os.urandom(struct.calcsize("=H") * 1000)))
 
-    return cls.random_list.pop()
+    return cls.random_list_ushort.pop()
+
+  @classmethod
+  def GetULong(cls):
+    if not cls.random_list_ulong:
+      PRNG.random_list_ulong = list(
+          struct.unpack("=" + "L" * 1000,
+                        os.urandom(struct.calcsize("=L") * 1000)))
+
+    return cls.random_list_ulong.pop()
 
 
 def FormatNumberAsString(num):

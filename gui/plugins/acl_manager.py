@@ -71,7 +71,7 @@ Client Access Request created. Please try again once an approval is granted.
 
     if approver and reason:
       # Request approval for this client
-      flow.FACTORY.StartFlow(client_id, "RequestClientApprovalFlow",
+      flow.GRRFlow.StartFlow(client_id, "RequestClientApprovalFlow",
                              reason=reason, approver=approver,
                              token=request.token)
 
@@ -93,7 +93,7 @@ Hunt Access Request created. Please try again once an approval is granted.
 
     if approver and reason:
       # Request approval for this client
-      flow.FACTORY.StartFlow(None, "RequestHuntApprovalFlow",
+      flow.GRRFlow.StartFlow(None, "RequestHuntApprovalFlow",
                              reason=reason, approver=approver,
                              token=request.token,
                              hunt_id=subject)
@@ -233,7 +233,7 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
         raise access_control.UnauthorizedAccess(
             "Approval object is not well formed.")
 
-      flow.FACTORY.StartFlow(None, "GrantHuntApprovalFlow",
+      flow.GRRFlow.StartFlow(None, "GrantHuntApprovalFlow",
                              hunt_urn=self.subject, reason=self.reason,
                              delegate=self.user, token=request.token)
 
@@ -247,7 +247,7 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
         raise access_control.UnauthorizedAccess(
             "Approval object is not well formed.")
 
-      flow.FACTORY.StartFlow(client_id, "GrantClientApprovalFlow",
+      flow.GRRFlow.StartFlow(client_id, "GrantClientApprovalFlow",
                              reason=self.reason, delegate=self.user,
                              token=request.token)
     else:
@@ -286,12 +286,21 @@ class CheckAccess(renderers.TemplateRenderer):
       <input type=text id="acl_reason" />
     </div>
   </div>
+  <div id="acl_reason_warning" class="alert alert-error fade in hide">
+    Please enter the reason.
+  </div>
 </form>
 
 <script>
 (function() {
 
 $("#acl_form_{{unique|escapejs}}").submit(function (event) {
+  if ($.trim($("#acl_reason").val()) == "") {
+    $("#acl_reason_warning").show();
+    event.preventDefault();
+    return;
+  }
+
   var state = {
     subject: "{{this.subject|escapejs}}",
     approver: $("#acl_approver").val(),

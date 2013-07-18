@@ -41,7 +41,7 @@ class RDFValueCollection(aff4.AFF4Object):
     if "r" in self.mode:
       if self.fd is None:
         self.fd = aff4.FACTORY.Open(self.urn.Add("Stream"),
-                                    required_type="AFF4Image", token=self.token)
+                                    aff4_type="AFF4Image", token=self.token)
       self.size = self.Get(self.Schema.SIZE)
 
   def Flush(self, sync=False):
@@ -63,7 +63,7 @@ class RDFValueCollection(aff4.AFF4Object):
       raise RuntimeError("This collection only accepts values of type %s" %
                          self._rdf_type.__name__)
 
-    data = rdfvalue.RDFValueObject(rdf_value).SerializeToString()
+    data = rdfvalue.EmbeddedRDFValue(payload=rdf_value).SerializeToString()
     self.fd.Write(struct.pack("<i", len(data)))
     self.fd.Write(data)
     self.size += 1
@@ -92,7 +92,7 @@ class RDFValueCollection(aff4.AFF4Object):
       except struct.error:
         break
 
-      yield rdfvalue.RDFValueObject(serialized_event).Payload()
+      yield rdfvalue.EmbeddedRDFValue(serialized_event).payload
 
 
 class AFF4Collection(aff4.AFF4Volume, RDFValueCollection):

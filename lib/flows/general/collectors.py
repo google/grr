@@ -35,20 +35,20 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   @flow.StateHandler(next_state="ProcessCollected")
   def Start(self):
     """For each artifact, create subflows for each collector."""
-    self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.system = self.client.Get(self.client.Schema.SYSTEM)
+    # TODO(user): This is potentially huge.
+    self.state.Register("client",
+                        aff4.FACTORY.Open(self.client_id, token=self.token))
 
-    self.artifact_class_names = self.artifact_list
-    self.collected_count = 0
-    self.failed_count = 0
+    self.state.Register("collected_count", 0)
+    self.state.Register("failed_count", 0)
 
-    for cls_name in self.artifact_class_names:
+    for cls_name in self.state.artifact_list:
       artifact_cls = self._GetArtifactClassFromName(cls_name)
-      artifact_obj = artifact_cls(self, use_tsk=self.use_tsk)
+      artifact_obj = artifact_cls(self, use_tsk=self.state.use_tsk)
 
-      self._current_artifact = cls_name
+      self.state.Register("current_artifact", cls_name)
       artifact_obj.Collect()
-      self._current_artifact = None
+      self.state.current_artifact = None
 
   @flow.StateHandler()
   def ProcessCollected(self, responses):
@@ -58,16 +58,16 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     if responses.success:
       self.Log("Artifact %s completed successfully in flow %s",
                artifact_cls_name, flow_name)
-      self.collected_count += 1
+      self.state.collected_count += 1
     else:
       self.Log("Artifact %s collection failed. Flow %s failed to complete",
                artifact_cls_name, flow_name)
-      self.failed_count += 1
+      self.state.failed_count += 1
       return
 
     # Now we've finished collection process the results.
     artifact_cls = self._GetArtifactClassFromName(artifact_cls_name)
-    artifact_obj = artifact_cls(self, use_tsk=self.use_tsk)
+    artifact_obj = artifact_cls(self, use_tsk=self.state.use_tsk)
     artifact_obj.Process(responses)
 
   def _GetArtifactClassFromName(self, name):
@@ -79,15 +79,15 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def GetFiles(self, path_list, path_type):
     """Get a set of files."""
     for path in path_list:
-      artifact_cls = self._GetArtifactClassFromName(self._current_artifact)
+      artifact_cls = self._GetArtifactClassFromName(self.state.current_artifact)
       path_args = artifact_cls.PATH_ARGS
-      new_path = flow_utils.InterpolatePath(path, self.client,
+      new_path = flow_utils.InterpolatePath(path, self.state.client,
                                             path_args=path_args)
 
       self.CallFlow(
-          "GetFile", pathspec=rdfvalue.RDFPathSpec(
+          "GetFile", pathspec=rdfvalue.PathSpec(
               path=new_path, pathtype=path_type),
-          request_data={"artifact_name": self._current_artifact},
+          request_data={"artifact_name": self.state.current_artifact},
           next_state="ProcessCollected"
           )
 
@@ -99,5 +99,5 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def End(self):
     self.Notify("FlowStatus", self.client_id,
                 "Completed artifact collection of %s. Collected %d. Errors %d."
-                % (self.artifact_class_names, self.collected_count,
-                   self.failed_count))
+                % (self.state.artifact_list, self.state.collected_count,
+                   self.state.failed_count))

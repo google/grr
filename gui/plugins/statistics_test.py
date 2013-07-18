@@ -5,12 +5,10 @@
 """Test the statistics viewer."""
 
 
-from google.protobuf import text_format
-
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import analysis_pb2
 
 
 class TestStats(test_lib.GRRSeleniumTest):
@@ -19,20 +17,10 @@ class TestStats(test_lib.GRRSeleniumTest):
   @staticmethod
   def PopulateData():
     """Populates data into the stats object."""
-    data = """
-title: "%(number)s day actives"
-data {
-  label: "Windows"
-  y_value: %(win)s
-}
-data {
-  label: "Linux"
-  y_value: %(lin)s
-}
-"""
     token = access_control.ACLToken("test", "fixture")
 
-    fd = aff4.FACTORY.Create("cron:/OSBreakDown", "OSBreakDown", token=token)
+    fd = aff4.FACTORY.Create(
+        "aff4:/stats/ClientFleetStats", "ClientFleetStats", token=token)
     now = 1321057655
 
     for i in range(10, 15):
@@ -40,9 +28,10 @@ data {
           age=int((now + i*60*60*24) * 1e6))
 
       for number in [1, 7, 14, 30]:
-        d = data % dict(win=i+number, lin=i*2+number, number=number)
-        graph = analysis_pb2.Graph()
-        text_format.Merge(d, graph)
+        graph = rdfvalue.Graph(title="%s day actives" % number)
+        graph.Append(label="Windows", y_value=i+number)
+        graph.Append(label="Linux", y_value=i*2+number)
+
         histogram.Append(graph)
 
       fd.AddAttribute(histogram)

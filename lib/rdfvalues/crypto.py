@@ -3,7 +3,6 @@
 
 
 import hashlib
-
 from M2Crypto import BIO
 from M2Crypto import RSA
 from M2Crypto import util
@@ -13,6 +12,7 @@ import logging
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.rdfvalues import structs
 
 from grr.proto import jobs_pb2
 
@@ -20,8 +20,8 @@ DIGEST_ALGORITHM = hashlib.sha256
 DIGEST_ALGORITHM_STR = "sha256"
 
 
-class Certificate(rdfvalue.RDFProto):
-  _proto = jobs_pb2.Certificate
+class Certificate(structs.RDFProtoStruct):
+  protobuf = jobs_pb2.Certificate
 
 
 class RDFX509Cert(rdfvalue.RDFString):
@@ -35,7 +35,7 @@ class RDFX509Cert(rdfvalue.RDFString):
     except IndexError:
       raise rdfvalue.DecodeError("Cert has no CN")
 
-    self.common_name = cn.get_data().as_text()
+    self.common_name = rdfvalue.RDFURN(cn.get_data().as_text())
 
   def GetX509Cert(self):
     return X509.load_cert_string(str(self))
@@ -51,13 +51,13 @@ class RDFX509Cert(rdfvalue.RDFString):
       raise rdfvalue.DecodeError("Cert invalid")
 
 
-class SignedBlob(rdfvalue.RDFProto):
+class SignedBlob(rdfvalue.RDFProtoStruct):
   """A signed blob.
 
   The client can receive and verify a signed blob (e.g. driver or executable
   binary). Once verified, the client may execute this.
   """
-  _proto = jobs_pb2.SignedBlob
+  protobuf = jobs_pb2.SignedBlob
 
   def Verify(self, pub_key):
     """Verify the data in this blob.
@@ -71,7 +71,7 @@ class SignedBlob(rdfvalue.RDFProto):
     Raises:
       rdfvalue.DecodeError if the data is not suitable verified.
     """
-    if self.digest_type != self.SHA256:
+    if self.digest_type != self.HashType.SHA256:
       raise rdfvalue.DecodeError("Unsupported digest.")
 
     bio = BIO.MemoryBuffer(pub_key)
@@ -86,7 +86,7 @@ class SignedBlob(rdfvalue.RDFProto):
     except RSA.RSAError, e:
       raise rdfvalue.DecodeError("Could not verify blob. Error: %s" % e)
 
-    digest = hashlib.sha256(self._data.data).digest()
+    digest = hashlib.sha256(self.data).digest()
     if digest != self.digest:
       raise rdfvalue.DecodeError(
           "SignedBlob: Digest did not match actual data.")
@@ -122,11 +122,11 @@ class SignedBlob(rdfvalue.RDFProto):
 
     sig = rsa.sign(digest, DIGEST_ALGORITHM_STR)
     self.signature = sig
-    self.signature_type = self.RSA_2048
+    self.signature_type = self.SignatureType.RSA_2048
 
     self.digest = digest
-    self.digest_type = self.SHA256
-    self._data.data = data
+    self.digest_type = self.HashType.SHA256
+    self.data = data
 
     # Test we can verify before we send it off.
     if verify_key is None:
@@ -147,6 +147,8 @@ class X509CertificateType(type_info.TypeInfoObject):
     # config files with no certs filled in.
     if value:
       return self.ParseFromString(value)
+
+    raise type_info.TypeValueError("No value set for %s" % self.name)
 
   def ParseFromString(self, cert_string):
     try:

@@ -24,10 +24,10 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     super(TestTransfer, self).setUp()
 
     # Set suitable defaults for testing
-    self.old_window_size = transfer.GetFile._WINDOW_SIZE
-    self.old_chunk_size = transfer.GetFile._CHUNK_SIZE
-    transfer.GetFile._WINDOW_SIZE = 10
-    transfer.GetFile._CHUNK_SIZE = 600 * 1024
+    self.old_window_size = transfer.GetFile.WINDOW_SIZE
+    self.old_chunk_size = transfer.GetFile.CHUNK_SIZE
+    transfer.GetFile.WINDOW_SIZE = 10
+    transfer.GetFile.CHUNK_SIZE = 600 * 1024
 
     # We wiped the data_store so we have to retransmit all blobs.
     standard.HASH_CACHE = utils.FastStore(100)
@@ -35,8 +35,8 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
   def tearDown(self):
     super(TestTransfer, self).tearDown()
 
-    transfer.GetFile._WINDOW_SIZE = self.old_window_size
-    transfer.GetFile._CHUNK_SIZE = self.old_chunk_size
+    transfer.GetFile.WINDOW_SIZE = self.old_window_size
+    transfer.GetFile.CHUNK_SIZE = self.old_chunk_size
 
   def testGetMBR(self):
     """Test that the GetMBR flow works."""
@@ -55,16 +55,15 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
                                      client_id=self.client_id):
       pass
 
-    fd = aff4.FACTORY.Open("aff4:/%s/mbr" % self.client_id,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add("mbr"), token=self.token)
     self.assertEqual(fd.Read(4096), mbr)
 
   def testGetFile(self):
     """Test that the GetFile flow works."""
 
     client_mock = test_lib.ActionMock("TransferBuffer", "StatFile")
-    pathspec = rdfvalue.RDFPathSpec(
-        pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+    pathspec = rdfvalue.PathSpec(
+        pathtype=rdfvalue.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"))
 
     for _ in test_lib.TestFlowHelper("GetFile", client_mock, token=self.token,
@@ -108,8 +107,8 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
     client_mock = test_lib.ActionMock("TransferBuffer", "StatFile",
                                       "HashBuffer")
-    pathspec = rdfvalue.RDFPathSpec(
-        pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
+    pathspec = rdfvalue.PathSpec(
+        pathtype=rdfvalue.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"))
 
     for _ in test_lib.TestFlowHelper("FastGetFile", client_mock,
@@ -168,10 +167,10 @@ class TestFileCollector(test_lib.FlowTestsBaseclass):
     super(TestFileCollector, self).setUp()
 
     # Set suitable defaults for testing
-    self.old_window_size = transfer.GetFile._WINDOW_SIZE
-    self.old_chunk_size = transfer.GetFile._CHUNK_SIZE
-    transfer.GetFile._WINDOW_SIZE = 10
-    transfer.GetFile._CHUNK_SIZE = 100 * 1024
+    self.old_window_size = transfer.GetFile.WINDOW_SIZE
+    self.old_chunk_size = transfer.GetFile.CHUNK_SIZE
+    transfer.GetFile.WINDOW_SIZE = 10
+    transfer.GetFile.CHUNK_SIZE = 100 * 1024
 
     # We wiped the data_store so we have to retransmit all blobs.
     standard.HASH_CACHE = utils.FastStore(100)
@@ -179,8 +178,8 @@ class TestFileCollector(test_lib.FlowTestsBaseclass):
   def tearDown(self):
     super(TestFileCollector, self).tearDown()
 
-    transfer.GetFile._WINDOW_SIZE = self.old_window_size
-    transfer.GetFile._CHUNK_SIZE = self.old_chunk_size
+    transfer.GetFile.WINDOW_SIZE = self.old_window_size
+    transfer.GetFile.CHUNK_SIZE = self.old_chunk_size
 
   def testCollectFiles(self):
     """Test that files are collected."""
@@ -195,9 +194,7 @@ class TestFileCollector(test_lib.FlowTestsBaseclass):
       pass
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open(
-        "aff4:/{0}/{1}".format(self.client_id, output_path),
-        token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
     file_re = re.compile("(ntfs_img.dd|sqlite)$")
     # Make sure that it is a file.
     actual_children = [c for c in os.listdir(self.base_path) if
@@ -214,7 +211,7 @@ class TestFileCollector(test_lib.FlowTestsBaseclass):
 class TestCollector(transfer.FileCollector):
   """Test Inherited Collector Flow."""
 
-  def __init__(self, **kwargs):
+  def InitFromArguments(self, **kwargs):
     """Define what we collect."""
     base_path = config_lib.CONFIG["Test.datadir"]
 
@@ -222,6 +219,7 @@ class TestCollector(transfer.FileCollector):
         path_regex="(ntfs_img.dd|sqlite)$", max_depth=4)
 
     findspec.pathspec.path = base_path
-    findspec.pathspec.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+    findspec.pathspec.pathtype = rdfvalue.PathSpec.PathType.OS
+    kwargs["findspecs"] = [findspec]
 
-    super(TestCollector, self).__init__(findspecs=[findspec], **kwargs)
+    super(TestCollector, self).InitFromArguments(**kwargs)

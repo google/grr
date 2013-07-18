@@ -42,9 +42,9 @@ class InterrogatedClient(object):
         mac_address="123456",
         addresses=[
             rdfvalue.NetworkAddress(
-                address_type=rdfvalue.NetworkAddress.Enum("INET"),
+                address_type=rdfvalue.NetworkAddress.Family.INET,
                 human_readable="127.0.0.1",
-                packed_bytes=socket.inet_aton("127.0.0.1")
+                packed_bytes=socket.inet_aton("127.0.0.1"),
                 )]
         )]
 
@@ -55,7 +55,7 @@ class InterrogatedClient(object):
   def GetClientInfo(self, _):
     return [rdfvalue.ClientInformation(
         client_name=config_lib.CONFIG["Client.name"],
-        client_version=config_lib.CONFIG["Client.version_numeric"],
+        client_version=int(config_lib.CONFIG["Client.version_numeric"]),
         build_time=config_lib.CONFIG["Client.build_time"],
         )]
 
@@ -171,19 +171,21 @@ class TestInterrogate(test_lib.FlowTestsBaseclass):
     self.assertTrue("123456".encode("hex") in str(mac_addresses))
 
     # Check that virtual directories exist for the mount points
-    fd = aff4.FACTORY.Open(self.client_id + "/fs/os/mnt/data", token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add("fs/os/mnt/data"),
+                           token=self.token)
     # But no directory listing exists yet - we will need to fetch a new one
     self.assertEqual(len(list(fd.OpenChildren())), 0)
 
-    fd = aff4.FACTORY.Open(self.client_id + "/fs/tsk/dev/sda", token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add("fs/tsk/dev/sda"),
+                           token=self.token)
     # But no directory listing exists yet - we will need to fetch a new one
     self.assertEqual(len(list(fd.OpenChildren())), 0)
 
-    fd = aff4.FACTORY.Open(self.client_id + "/devices/dev/sda",
+    fd = aff4.FACTORY.Open(self.client_id.Add("devices/dev/sda"),
                            token=self.token)
     # But no directory listing exists yet - we will need to fetch a new one
     self.assertEqual(len(list(fd.OpenChildren())), 0)
 
     # Check the empty process branch exists
-    fd = aff4.FACTORY.Open(self.client_id + "/processes", token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add("processes"), token=self.token)
     self.assertEqual(fd.__class__.__name__, "ProcessListing")

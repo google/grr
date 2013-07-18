@@ -37,22 +37,23 @@ class ClientAction(flow.GRRFlow):
 
   @flow.StateHandler(next_state="Print")
   def Start(self):
-    if self.save_to:
-      if not os.path.isdir(self.save_to):
-        os.makedirs(self.save_to, 0700)
-    self.CallClient(self.action, request=self.args, next_state="Print")
-    self.args = None
+    if self.state.save_to:
+      if not os.path.isdir(self.state.save_to):
+        os.makedirs(self.state.save_to, 0700)
+    self.CallClient(self.state.action, request=self.state.args,
+                    next_state="Print")
+    self.state.args = None
 
   @flow.StateHandler()
   def Print(self, responses):
     """Dump the responses to a pickle file or allow for breaking."""
     if not responses.success:
-      self.Log("ClientAction %s failed. Staus: %s" % (self.action,
+      self.Log("ClientAction %s failed. Staus: %s" % (self.state.action,
                                                       responses.status))
 
-    if self.break_pdb:
+    if self.state.break_pdb:
       pdb.set_trace()
-    if self.save_to:
+    if self.state.save_to:
       self._SaveResponses(responses)
 
   def _SaveResponses(self, responses):
@@ -60,7 +61,8 @@ class ClientAction(flow.GRRFlow):
     if responses:
       fd = None
       try:
-        fdint, fname = tempfile.mkstemp(prefix="responses-", dir=self.save_to)
+        fdint, fname = tempfile.mkstemp(prefix="responses-",
+                                        dir=self.state.save_to)
         fd = os.fdopen(fdint, "wb")
         pickle.dump(responses, fd)
         self.Log("Wrote %d responses to %s", len(responses), fname)

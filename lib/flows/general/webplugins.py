@@ -67,22 +67,24 @@ class ChromePlugins(flow.GRRFlow):
   @flow.StateHandler(next_state=["EnumerateExtensionDirs"])
   def Start(self):
     """Determine the Chrome directory."""
-    self.urn = aff4.ROOT_URN.Add(self.client_id)
-    self.output = self.output.format(t=time.time(), u=self.username)
-    self.out_urn = self.urn.Add(self.output)
-    self._storage = {}
+    self.state.Register("urn", self.client_id)
+    self.state.output = self.state.output.format(t=time.time(),
+                                                 u=self.state.context.user)
+    self.state.Register("out_urn", self.state.urn.Add(self.state.output))
+    self.state.Register("storage", {})
 
-    if self.path:
-      self._paths = [self.path]
-    elif self.username:
-      self._paths = self.GuessExtensionPaths(self.username)
+    if self.state.path:
+      paths = [self.state.path]
+    elif self.state.username:
+      paths = self.GuessExtensionPaths(self.state.username)
 
-    if not self._paths:
+    if not paths:
       raise flow.FlowError("No valid extension paths found.")
 
-    for path in self._paths:
+    for path in paths:
       rel_path = utils.JoinPath(path, "Extensions")
-      pathspec = rdfvalue.RDFPathSpec(path=rel_path, pathtype=self.pathtype)
+      pathspec = rdfvalue.PathSpec(path=rel_path,
+                                   pathtype=self.state.pathtype)
       self.CallClient("ListDirectory", next_state="EnumerateExtensionDirs",
                       pathspec=pathspec)
 
@@ -93,7 +95,7 @@ class ChromePlugins(flow.GRRFlow):
       for response in responses:
         chromeid = os.path.basename(response.pathspec.last.path)
 
-        self._storage[chromeid] = {}
+        self.state.storage[chromeid] = {}
         self.CallClient("ListDirectory", next_state="EnumerateVersions",
                         pathspec=response.pathspec)
 
@@ -104,7 +106,7 @@ class ChromePlugins(flow.GRRFlow):
       for response in responses:
         # Get the json manifest.
         pathspec = response.pathspec
-        pathspec.Append(pathtype=self.pathtype, path="manifest.json")
+        pathspec.Append(pathtype=self.state.pathtype, path="manifest.json")
 
         self.CallFlow("GetFile", next_state="GetExtensionName",
                       pathspec=pathspec)
@@ -132,7 +134,7 @@ class ChromePlugins(flow.GRRFlow):
         # Extension has a localized name
         if "default_locale" in manifest:
           msg_path = extension_directory.Copy().Append(
-              pathtype=self.pathtype,
+              pathtype=self.state.pathtype,
               path="_locales/" + manifest["default_locale"] + "/messages.json")
 
           request_data = dict(
@@ -149,7 +151,7 @@ class ChromePlugins(flow.GRRFlow):
 
       self.CreateAnalysisVFile(extension_directory, manifest)
 
-      if self.download_files:
+      if self.state.download_files:
         self.CallFlow("DownloadDirectory", next_state="Done",
                       pathspec=extension_directory)
 
@@ -181,7 +183,7 @@ class ChromePlugins(flow.GRRFlow):
 
     self.CreateAnalysisVFile(extension_directory, manifest)
 
-    if self.download_files:
+    if self.state.download_files:
       self.CallFlow("DownloadDirectory", next_state="Done",
                     pathspec=extension_directory)
 
@@ -191,7 +193,7 @@ class ChromePlugins(flow.GRRFlow):
     chromeid = extension_directory.Dirname().Basename()
     name = manifest.get("name", "unknown_" + chromeid)
 
-    ext_urn = self.out_urn.Add(name).Add(version)
+    ext_urn = self.state.out_urn.Add(name).Add(version)
 
     fd = aff4.FACTORY.Create(ext_urn, "VFSBrowserExtension",
                              token=self.token)
@@ -214,7 +216,7 @@ class ChromePlugins(flow.GRRFlow):
 
   @flow.StateHandler()
   def End(self):
-    self.Notify("ViewObject", self.out_urn,
+    self.Notify("ViewObject", self.state.out_urn,
                 "Completed retrieval of Chrome Plugins")
 
   def GuessExtensionPaths(self, user):
@@ -229,8 +231,7 @@ class ChromePlugins(flow.GRRFlow):
     Raises:
       OSError: On invalid system in the Schema.
     """
-    client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id),
-                               token=self.token)
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
     system = client.Get(client.Schema.SYSTEM)
     paths = []
     profile_path = "Default"

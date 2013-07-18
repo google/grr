@@ -52,10 +52,10 @@ class TaskRenderer(renderers.RDFProtoRenderer):
   translator = dict(value=RenderPayload)
 
 
-class GRRMessageRenderer(renderers.RDFProtoRenderer):
-  """Nicely format the GRRMessage rdfvalue."""
-  classname = "GRRMessage"
-  name = "GRRMessage"
+class GrrMessageRenderer(renderers.RDFProtoRenderer):
+  """Nicely format the GrrMessage rdfvalue."""
+  classname = "GrrMessage"
+  name = "GrrMessage"
 
   def RenderPayload(self, _, unused_value):
     rdf_object = self.proxy.payload
@@ -942,12 +942,12 @@ $('#path_{{i|escapejs}}').click(function () {
     self.state["aff4_path"] = self.aff4_path = request.REQ.get(
         "aff4_path", client_id)
 
-    client_urn = rdfvalue.RDFURN(client_id)
+    client_urn = rdfvalue.ClientURN(client_id)
 
     self.paths = [("/", client_urn, "_", 0)]
     for path in rdfvalue.RDFURN(self.aff4_path).Split()[1:]:
       previous = self.paths[-1]
-      fullpath = client_urn.Add(previous[1].Add(path))
+      fullpath = previous[1].Add(path)
 
       self.paths.append((path, fullpath,
                          renderers.DeriveIDFromPath(
@@ -1022,7 +1022,7 @@ window.setTimeout(function () {
     try:
       self.flow_urn = fd.Update(
           self.attribute_to_refresh,
-          priority=rdfvalue.GRRMessage.Enum("HIGH_PRIORITY"))
+          priority=rdfvalue.GrrMessage.Priority.HIGH_PRIORITY)
     except IOError as e:
       raise IOError("Sorry. This path cannot be refreshed due to %s" % e)
 
@@ -1038,9 +1038,7 @@ window.setTimeout(function () {
     # Check if the flow is still in flight.
     try:
       flow_obj = aff4.FACTORY.Open(self.flow_urn, token=request.token)
-      rdf_flow = flow_obj.GetRDFFlow()
-      if (rdf_flow and
-          rdf_flow.state != rdfvalue.Flow.Enum("RUNNING")):
+      if not flow_obj.IsRunning():
         complete = True
     except IOError:
       # Something went wrong, stop polling.
@@ -1413,13 +1411,17 @@ $('.attribute_opener').click(function () {
     # Allow derived classes to just set the client_id/aff4_path/age directly
     self.client_id = client_id or request.REQ.get("client_id")
     self.aff4_path = aff4_path or request.REQ.get("aff4_path")
-    self.age = age or rdfvalue.RDFDatetime(request.REQ.get("age"))
+    self.age = request.REQ.get("age")
+    if self.age is None:
+      self.age = rdfvalue.RDFDatetime().Now()
+    else:
+      self.age = rdfvalue.RDFDatetime(self.age)
 
     if not self.aff4_path: return
 
     try:
       self.fd = aff4.FACTORY.Open(self.aff4_path, token=request.token,
-                                  age=self.age)
+                                  age=age or self.age)
       self.classes = self.RenderAFF4Attributes(self.fd, request)
       self.state["path"] = self.path = utils.SmartStr(self.fd.urn)
     except IOError:
@@ -1433,7 +1435,12 @@ $('.attribute_opener').click(function () {
     classes = []
     attribute_names = set()
 
-    for schema in fd.SchemaCls.__mro__:
+    for flow_cls in fd.__class__.__mro__:
+
+      if not hasattr(flow_cls, "SchemaCls"):
+        continue
+
+      schema = flow_cls.SchemaCls
       attributes = []
 
       for name, attribute in sorted(schema.__dict__.items()):
@@ -1444,6 +1451,7 @@ $('.attribute_opener').click(function () {
 
         values = list(fd.GetValuesForAttribute(attribute))
         multi = len(values) > 1
+
         if values:
           attribute_names.add(attribute.predicate)
           value_renderer = renderers.FindRendererForObject(values[0])
@@ -1458,8 +1466,7 @@ $('.attribute_opener').click(function () {
                              rdfvalue.RDFDatetime(values[0].age), multi))
 
       if attributes:
-        name = ", ".join([cls.__name__ for cls in schema.FindAFF4Class()])
-        classes.append((name, attributes))
+        classes.append((flow_cls.__name__, attributes))
 
     return classes
 
@@ -1542,21 +1549,6 @@ class FileViewTabs(renderers.TabLayout):
   names = ["Stats", "Download", "TextView", "HexView"]
   delegated_renderers = ["AFF4Stats", "DownloadView", "FileTextViewer",
                          "FileHexViewer"]
-  disabled = []
-
-  # When a new file is selected we switch to the first tab.
-  layout_template = renderers.TabLayout.layout_template + """
-<script>
-// Disable the tabs which need to be disabled.
-$("li").removeClass("disabled");
-$("li a").removeClass("disabled");
-
-{% for disabled in this.disabled %}
-$("li[renderer={{disabled|escapejs}}]").addClass("disabled");
-$("li a[renderer={{disabled|escapejs}}]").addClass("disabled");
-{% endfor %}
-</script>
-"""
 
   def __init__(self, fd=None, **kwargs):
     if fd:
@@ -1567,7 +1559,7 @@ $("li a[renderer={{disabled|escapejs}}]").addClass("disabled");
     """Check if the file is a readable and disable the tabs."""
     client_id = request.REQ.get("client_id")
     self.aff4_path = request.REQ.get("aff4_path", client_id)
-    self.age = request.REQ.get("age", rdfvalue.RDFDatetime())
+    self.age = request.REQ.get("age", rdfvalue.RDFDatetime().Now())
     self.state = dict(aff4_path=self.aff4_path, age=int(self.age))
 
     try:
@@ -1638,20 +1630,17 @@ class HistoricalView(renderers.TableRenderer):
 
   def BuildTable(self, start_row, end_row, request):
     """Populate the table with attribute values."""
-
     attribute_name = request.REQ.get("attribute")
     if attribute_name is None:
       return
 
     urn = request.REQ.get("urn")
-    if urn is None:
-      client_id = request.REQ.get("client_id")
-      client_urn = rdfvalue.RDFURN(client_id)
-      path = request.REQ.get("path", "/")
-      urn = client_urn.Add(path)
+    client_id = request.REQ.get("client_id")
+    path = request.REQ.get("path")
 
     self.AddColumn(renderers.RDFValueColumn(attribute_name))
-    fd = aff4.FACTORY.Open(urn, token=request.token, age=aff4.ALL_TIMES)
+    fd = aff4.FACTORY.Open(urn or client_id or path,
+                           token=request.token, age=aff4.ALL_TIMES)
     self.BuildTableFromAttribute(attribute_name, fd, start_row, end_row)
 
   def BuildTableFromAttribute(self, attribute_name, fd, start_row, end_row):

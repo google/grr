@@ -87,7 +87,7 @@ class VFSDirectory(aff4.AFF4Volume):
                                     *stripped_components[:-1])
           pathspec.last.path = new_path
 
-        flow_id = flow.FACTORY.StartFlow(client_id, "ListDirectory",
+        flow_id = flow.GRRFlow.StartFlow(client_id, "ListDirectory",
                                          pathspec=pathspec, priority=priority,
                                          notify_to_user=False,
                                          token=self.token)
@@ -103,7 +103,7 @@ class VFSDirectory(aff4.AFF4Volume):
                           "stat")
 
     PATHSPEC = aff4.Attribute(
-        "aff4:pathspec", rdfvalue.RDFPathSpec,
+        "aff4:pathspec", rdfvalue.PathSpec,
         "The pathspec used to retrieve this object from the client.",
         "pathspec")
 

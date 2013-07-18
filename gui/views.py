@@ -2,6 +2,7 @@
 """Main Django renderer."""
 
 
+import os
 import time
 
 
@@ -13,6 +14,7 @@ from django.views.decorators import csrf
 from grr.client import conf as flags
 import logging
 
+from grr import gui
 from grr.gui import renderers
 from grr.gui import webauth
 
@@ -22,6 +24,7 @@ from grr.lib import stats
 
 
 SERVER_NAME = "GRR Admin Console"
+DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
 
 
 class ViewsInit(registry.InitHook):
@@ -41,7 +44,17 @@ class ViewsInit(registry.InitHook):
 @csrf.ensure_csrf_cookie     # Set the csrf cookie on the homepage.
 def Homepage(request):
   """Basic handler to render the index page."""
-  context = {"title": SERVER_NAME}
+  # We build a list of all js files to include by looking at the list
+  # of renderers modules. JS files are always named in accordance with
+  # renderers modules names. I.e. if there's a renderers package called
+  # grr.gui.plugins.acl_manager, we expect a js files called acl_manager.js.
+  renderers_js_files = set()
+  for cls in renderers.Renderer.classes.values():
+    if cls.__module__:
+      renderers_js_files.add(cls.__module__.split(".")[-1] + ".js")
+
+  context = {"title": SERVER_NAME,
+             "renderers_js": renderers_js_files}
   return shortcuts.render_to_response(
       "base.html", context, context_instance=template.RequestContext(request))
 

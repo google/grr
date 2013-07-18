@@ -338,7 +338,7 @@ class FakeDataStore(data_store.DataStore):
     subject = utils.SmartUnicode(subject)
     attribute = utils.SmartUnicode(attribute)
 
-    if timestamp is None:
+    if timestamp is None or timestamp == self.NEWEST_TIMESTAMP:
       timestamp = time.time() * 1000000
 
     if subject not in self.subjects:
@@ -364,9 +364,6 @@ class FakeDataStore(data_store.DataStore):
           v, element_timestamp = v
         except (TypeError, ValueError):
           element_timestamp = timestamp
-
-        if element_timestamp is None:
-          element_timestamp = time.time() * 1e6
 
         self.Set(subject, k, v, timestamp=element_timestamp, token=token,
                  replace=replace, sync=sync)

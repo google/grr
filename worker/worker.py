@@ -18,8 +18,8 @@ from grr.lib import server_plugins
 
 from grr.lib import access_control
 from grr.lib import config_lib
-from grr.lib import flow
 from grr.lib import startup
+from grr.lib import worker
 
 
 config_lib.DEFINE_string("Worker.queue_name", "W",
@@ -35,10 +35,10 @@ def main(unused_argv):
 
   # Start a worker
   token = access_control.ACLToken("GRRWorker", "Implied.")
-  worker = flow.GRRWorker(
+  worker_obj = worker.GRRWorker(
       queue_name=config_lib.CONFIG["Worker.queue_name"], token=token)
 
-  worker.Run()
+  worker_obj.Run()
 
 if __name__ == "__main__":
   conf.StartMain(main)

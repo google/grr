@@ -14,9 +14,9 @@ class TestDebugFlows(test_lib.FlowTestsBaseclass):
 
   def testClientAction(self):
     client_mock = test_lib.ActionMock("ListDirectory")
-    pathspec = rdfvalue.RDFPathSpec(
+    pathspec = rdfvalue.PathSpec(
         path=os.path.join(self.base_path, "test_img.dd"),
-        pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+        pathtype=rdfvalue.PathSpec.PathType.OS)
 
     request = rdfvalue.ListDirRequest(pathspec=pathspec)
 
@@ -25,4 +25,3 @@ class TestDebugFlows(test_lib.FlowTestsBaseclass):
         action="ListDirectory", break_pdb=False,
         args=request, token=self.token):
       pass
-

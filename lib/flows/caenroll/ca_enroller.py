@@ -2,7 +2,6 @@
 """A flow to enrol new clients."""
 
 
-from hashlib import sha256
 import time
 
 
@@ -26,9 +25,6 @@ config_lib.DEFINE_option(type_info.PEMPrivateKey(
     description="CA private key. Used to sign for client enrollment.",
     ))
 
-# Store the CA key as a global for reuse.
-CA_KEY = None
-
 
 class CAEnroler(flow.GRRFlow):
   """Enrol new clients."""
@@ -41,22 +37,22 @@ class CAEnroler(flow.GRRFlow):
           default=None),
       )
 
-  def __init__(self, _client=None, **kwargs):  # pylint: disable=g-bad-name
-    super(CAEnroler, self).__init__(**kwargs)
-    self.client = _client
+  def InitFromArguments(self, client=None, *args, **kwargs):
+    self.client = client
+    super(CAEnroler, self).InitFromArguments(*args, **kwargs)
 
   @flow.StateHandler(next_state="End")
   def Start(self):
     """Sign the CSR from the client."""
-    if self.csr.type != rdfvalue.Certificate.Enum("CSR"):
+    if self.state.csr.type != rdfvalue.Certificate.Type.CSR:
       raise IOError("Must be called with CSR")
 
-    req = X509.load_request_string(self.csr.pem)
+    req = X509.load_request_string(self.state.csr.pem)
 
-    # Verify that the CN is of the correct form
+    # Verify that the CN is of the correct form. The common name should refer to
+    # a client URN.
     public_key = req.get_pubkey().get_rsa().pub()[1]
-    self.cn = "C.%s" % (
-        sha256(public_key).digest()[:8].encode("hex"))
+    self.cn = rdfvalue.ClientURN.FromPublicKey(public_key)
     if self.cn != req.get_subject().CN:
       raise IOError("CSR CN does not match public key.")
 
@@ -66,7 +62,8 @@ class CAEnroler(flow.GRRFlow):
 
     # This check is important to ensure that the client id reported in the
     # source of the enrollment request is the same as the one in the
-    # certificate.
+    # certificate. We use the ClientURN to ensure this is also of the correct
+    # form for a client name.
     if self.cn != self.client_id:
       raise flow.FlowError("Certificate name %s mismatch for client %s",
                            self.cn, self.client_id)
@@ -89,10 +86,7 @@ class CAEnroler(flow.GRRFlow):
     # This is needed for backwards compatibility.
     # TODO(user): Remove this once all clients are > 2200.
     self.CallClient("SaveCert", pem=cert.as_pem(),
-                    type=rdfvalue.Certificate.Enum("CRT"), next_state="End")
-
-    # We can not pickle protobufs
-    self.csr = None
+                    type=rdfvalue.Certificate.Type.CRT, next_state="End")
 
   def MakeCert(self, req):
     """Make new cert for the client."""
@@ -101,7 +95,7 @@ class CAEnroler(flow.GRRFlow):
     cert = X509.X509()
     # Use the client CN for a cert serial_id. This will ensure we do
     # not have clashing cert id.
-    cert.set_serial_number(int(self.cn.split(".")[1], 16))
+    cert.set_serial_number(int(self.cn.Basename().split(".")[1], 16))
     cert.set_version(2)
     cert.set_subject(req.get_subject())
     t = long(time.time()) - 10
@@ -167,6 +161,6 @@ class Enroler(flow.WellKnownFlow):
     # Only enroll this client if it has no certificate yet.
     if not client.Get(client.Schema.CERT):
       # Start the enrollment flow for this client.
-      flow.FACTORY.StartFlow(client_id=client_id, flow_name="CAEnroler",
+      flow.GRRFlow.StartFlow(client_id=client_id, flow_name="CAEnroler",
                              csr=cert, queue_name=queue,
-                             _client=client, token=self.token)
+                             client=client, token=self.token)

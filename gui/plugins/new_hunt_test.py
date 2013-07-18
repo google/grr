@@ -231,14 +231,13 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     # Check that the hunt was created with a correct flow
     hunt = hunts_list[0]
-    flow = hunt.GetFlowObj()
-    self.assertEqual(flow.flow_name, "DownloadDirectory")
-    self.assertEqual(flow.args["pathspec"].path, "/tmp")
-    self.assertEqual(flow.args["pathspec"].pathtype,
-                     rdfvalue.RDFPathSpec.Enum("TSK"))
-    self.assertEqual(flow.args["depth"], 42)
-    self.assertEqual(flow.args["ignore_errors"], True)
-    self.assertEqual(flow.collect_replies, True)
+    self.assertEqual(hunt.state.flow_name, "DownloadDirectory")
+    self.assertEqual(hunt.state.args["pathspec"].path, "/tmp")
+    self.assertEqual(hunt.state.args["pathspec"].pathtype,
+                     rdfvalue.PathSpec.PathType.TSK)
+    self.assertEqual(hunt.state.args["depth"], 42)
+    self.assertEqual(hunt.state.args["ignore_errors"], True)
+    self.assertEqual(hunt.state.collect_replies, True)
 
     # Check that the hunt was created with correct rules
     hunt_rules = self.FindForemanRules(hunt, token=self.token)
@@ -260,7 +259,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.assertEquals(hunt_rules[0].integer_rules[0].path, "/")
     self.assertEquals(hunt_rules[0].integer_rules[0].attribute_name, "Clock")
     self.assertEquals(hunt_rules[0].integer_rules[0].operator,
-                      rdfvalue.ForemanAttributeInteger.Enum("GREATER_THAN"))
+                      rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN)
     self.assertEquals(hunt_rules[0].integer_rules[0].value, 1336650631137737)
 
   def testNewHuntWizardWithACLChecks(self):
@@ -364,17 +363,16 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     # Check that the hunt was created with a correct flow
     hunt = hunts_list[0]
-    flow = hunt.GetFlowObj()
-    self.assertEqual(flow.flow_name, "DownloadDirectory")
-    self.assertEqual(flow.args["pathspec"].path, "/tmp")
-    self.assertEqual(flow.args["pathspec"].pathtype,
-                     rdfvalue.RDFPathSpec.Enum("TSK"))
-    self.assertEqual(flow.args["depth"], 42)
-    self.assertEqual(flow.args["ignore_errors"], True)
-    self.assertEqual(flow.collect_replies, True)
+    self.assertEqual(hunt.state.flow_name, "DownloadDirectory")
+    self.assertEqual(hunt.state.args["pathspec"].path, "/tmp")
+    self.assertEqual(hunt.state.args["pathspec"].pathtype,
+                     rdfvalue.PathSpec.PathType.TSK)
+    self.assertEqual(hunt.state.args["depth"], 42)
+    self.assertEqual(hunt.state.args["ignore_errors"], True)
+    self.assertEqual(hunt.state.collect_replies, True)
 
     # Check that hunt was not started
-    self.assertEqual(hunt.Get(hunt.Schema.STATE), hunt.STATE_STOPPED)
+    self.assertEqual(hunt.state.context.hunt_state, hunt.STATE_STOPPED)
 
     # Check that there are no foreman rules installed for this hunt
     self.UninstallACLChecks()

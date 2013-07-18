@@ -4,6 +4,7 @@
 """An implementation of a data store based on mongo."""
 
 
+import threading
 import time
 from bson import binary
 import pymongo
@@ -212,11 +213,9 @@ class MongoDataStore(data_store.DataStore):
     self.filter = Filter
 
     # Ensure we have the correct indexes.
-    self.latest_collection.ensure_index("subject")
-    self.versioned_collection.ensure_index("subject")
-
-    self.latest_collection.ensure_index("timestamp")
-    self.versioned_collection.ensure_index("timestamp")
+    for idx in ["subject", "predicate", "timestamp"]:
+      self.latest_collection.ensure_index(idx)
+      self.versioned_collection.ensure_index(idx)
 
   def _GetCursor(self, spec, timestamp, limit):
     """Create a mongo cursor based on the timestamp restriction."""
@@ -364,8 +363,13 @@ class MongoDataStore(data_store.DataStore):
     for document in self._GetCursor(spec, timestamp, limit):
       subject = document["subject"]
       value = Decode(document, decoder)
+      predicate = document.get("predicate")
+      if predicate is None:
+        # This might not be a normal aff4 attribute - transactions are one
+        # example for this.
+        continue
       result.setdefault(subject, []).append(
-          (document["predicate"], value, document["timestamp"]))
+          (predicate, value, document["timestamp"]))
 
     return result
 
@@ -443,9 +447,9 @@ class MongoDataStore(data_store.DataStore):
 
     total_hits = sorted(filter_obj.GetMatches(spec, self.versioned_collection))
     result_set = data_store.ResultSet()
-    for subject, data in self.MultiResolveLiteral(
+    for subject, data in sorted(self.MultiResolveLiteral(
         total_hits[skip:skip+limit], attributes, token=token,
-        timestamp=timestamp).items():
+        timestamp=timestamp).items()):
       result = dict(subject=[(subject, 0)])
       for predicate, value, ts in data:
         result.setdefault(predicate, []).append((value, ts))
@@ -481,6 +485,8 @@ class MongoTransaction(data_store.Transaction):
   # The maximum time the lock remains active in seconds.
   LOCK_TIME = 60
 
+  lock_creation_lock = threading.Lock()
+
   locked = False
 
   def __init__(self, store, subject, token=None):
@@ -488,10 +494,13 @@ class MongoTransaction(data_store.Transaction):
     self.store = store
     self.token = token
     self.subject = utils.SmartUnicode(subject)
-    self.document = store.latest_collection.find_and_modify(
-        query=dict(subject=self.subject, type="transaction", lock_time=0),
+    self.current_lock = time.time()
+
+    self.document = self.store.latest_collection.find_and_modify(
+        query={"subject": self.subject, "type": "transaction",
+               "lock_time": {"$lt": time.time() - self.LOCK_TIME}},
         update=dict(subject=self.subject, type="transaction",
-                    lock_time=time.time()),
+                    lock_time=self.current_lock),
         upsert=False, new=True)
 
     if self.document:
@@ -499,21 +508,22 @@ class MongoTransaction(data_store.Transaction):
       self.locked = True
       return
 
-    self.document = store.latest_collection.find_one(
-        dict(subject=self.subject, type="transaction"))
+    # Maybe the lock did not exist yet. To create it, we use a lock to reduce
+    # the chance of deleting some other lock created at the same time. Note that
+    # there still exists a very small race if this happens in multiple processes
+    # at the same time.
+    with self.lock_creation_lock:
+      document = self.store.latest_collection.find(
+          {"subject": self.subject, "type": "transaction"})
+      if not document.count():
+        # There is no lock yet for this row, lets create one.
+        self.document = dict(subject=self.subject, type="transaction",
+                             lock_time=self.current_lock)
+        store.latest_collection.save(self.document)
 
-    # The document does not exist yet - we create it:
-    if (not self.document or
-        # Lock expired - take over the lock.
-        self.document["lock_time"] + self.LOCK_TIME < time.time()):
-
-      # This is a very small race which can occur when the data store is
-      # initially empty and there is no transaction record for this subject.
-      self.document = dict(subject=self.subject, type="transaction",
-                           lock_time=time.time())
-      store.latest_collection.save(self.document)
-      self.locked = True
-      return
+        # We hold a lock now:
+        self.locked = True
+        return
 
     raise data_store.TransactionError("Subject %s is locked" % subject)
 
@@ -540,9 +550,12 @@ class MongoTransaction(data_store.Transaction):
   def Commit(self):
     if self.locked:
       # Remove the lock on the document:
-      self.store.latest_collection.find_and_modify(
+      if not self.store.latest_collection.find_and_modify(
           query=self.document,
-          update=dict(subject=self.subject, type="transaction", lock_time=0))
+          update=dict(subject=self.subject, type="transaction", lock_time=0)):
+        raise data_store.TransactionError("Lock was overridden for %s." %
+                                          self.subject)
+      self.locked = False
 
   def __del__(self):
     try:

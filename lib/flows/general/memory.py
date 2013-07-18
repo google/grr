@@ -56,9 +56,9 @@ class ImageMemory(flow.GRRFlow):
     if not responses.success:
       raise flow.FlowError("Failed due to no memory driver.")
     memory_information = responses.First()
-    pathspec = rdfvalue.RDFPathSpec(
+    pathspec = rdfvalue.PathSpec(
         path=memory_information.device.path,
-        pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY"))
+        pathtype=rdfvalue.PathSpec.PathType.MEMORY)
     self.CallFlow("GetFile", pathspec=pathspec, next_state="Done")
 
   @flow.StateHandler()
@@ -101,14 +101,15 @@ class ImageMemoryToSocket(transfer.SendFile):
     if not responses.success:
       raise flow.FlowError("Failed due to no memory driver.")
     memory_information = responses.First()
-    pathspec = rdfvalue.RDFPathSpec(
+    pathspec = rdfvalue.PathSpec(
         path=memory_information.device.path,
-        pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY"))
-    self.CallClient("SendFile", key=utils.SmartStr(self.key),
-                    iv=utils.SmartStr(self.iv),
+        pathtype=rdfvalue.PathSpec.PathType.MEMORY)
+
+    self.CallClient("SendFile", key=utils.SmartStr(self.state.key),
+                    iv=utils.SmartStr(self.state.iv),
                     pathspec=pathspec,
-                    address_family=self.family,
-                    host=self.host, port=self.port,
+                    address_family=self.state.family,
+                    host=self.state.host, port=self.state.port,
                     next_state="Done")
 
 
@@ -135,24 +136,25 @@ class LoadMemoryDriver(flow.GRRFlow):
   @flow.StateHandler(next_state=["LoadDriver", "CheckMemoryInformation"])
   def Start(self):
     """Check if driver is already loaded."""
-    self._device_urn = aff4.ROOT_URN.Add(self.client_id).Add("devices/memory")
+    self.state.Register("device_urn", self.client_id.Add("devices/memory"))
 
-    if self.driver_installer is None:
+    if self.state.driver_installer is None:
       # Fetch the driver installer from the data store.
-      self.driver_installer = GetMemoryModule(self.client_id, token=self.token)
+      self.state.driver_installer = GetMemoryModule(self.client_id,
+                                                    token=self.token)
 
       # Create a protobuf containing the request.
-      if not self.driver_installer:
+      if not self.state.driver_installer:
         raise IOError("Could not determine path for memory driver. No module "
                       "available for this platform.")
 
-    if self.reload_if_loaded:
+    if self.state.reload_if_loaded:
       self.CallState(next_state="LoadDriver")
     else:
       self.CallClient("GetMemoryInformation",
-                      rdfvalue.RDFPathSpec(
-                          path=self.driver_installer.device_path,
-                          pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY")),
+                      rdfvalue.PathSpec(
+                          path=self.state.driver_installer.device_path,
+                          pathtype=rdfvalue.PathSpec.PathType.MEMORY),
                       next_state="CheckMemoryInformation")
 
   @flow.StateHandler(next_state=["LoadDriver", "GotMemoryInformation"])
@@ -169,8 +171,8 @@ class LoadMemoryDriver(flow.GRRFlow):
   @flow.StateHandler(next_state=["InstalledDriver"])
   def LoadDriver(self, _):
     # We want to force unload old driver and reload the current one.
-    self.driver_installer.force_reload = 1
-    self.CallClient("InstallDriver", self.driver_installer,
+    self.state.driver_installer.force_reload = 1
+    self.CallClient("InstallDriver", self.state.driver_installer,
                     next_state="InstalledDriver")
 
   @flow.StateHandler(next_state="GotMemoryInformation")
@@ -180,9 +182,9 @@ class LoadMemoryDriver(flow.GRRFlow):
                            responses.status.error_message)
 
     self.CallClient("GetMemoryInformation",
-                    rdfvalue.RDFPathSpec(
-                        path=self.driver_installer.device_path,
-                        pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY")),
+                    rdfvalue.PathSpec(
+                        path=self.state.driver_installer.device_path,
+                        pathtype=rdfvalue.PathSpec.PathType.MEMORY),
                     next_state="GotMemoryInformation")
 
   @flow.StateHandler()
@@ -191,7 +193,7 @@ class LoadMemoryDriver(flow.GRRFlow):
     if responses.success:
       response = responses.First()
 
-      fd = aff4.FACTORY.Create(self._device_urn, "MemoryImage",
+      fd = aff4.FACTORY.Create(self.state.device_urn, "MemoryImage",
                                token=self.token)
       layout = fd.Schema.LAYOUT(response)
       fd.Set(fd.Schema.PATHSPEC(response.device))
@@ -202,12 +204,12 @@ class LoadMemoryDriver(flow.GRRFlow):
       self.SendReply(layout)
     else:
       raise flow.FlowError("Failed to query device %s" %
-                           self.driver_installer.device_path)
+                           self.state.driver_installer.device_path)
 
   @flow.StateHandler()
   def End(self):
-    if self.rdf_flow.state != rdfvalue.Flow.Enum("ERROR"):
-      self.Notify("ViewObject", self._device_urn,
+    if self.state.context.state != rdfvalue.Flow.State.ERROR:
+      self.Notify("ViewObject", self.state.device_urn,
                   "Driver successfully initialized.")
 
 
@@ -327,7 +329,7 @@ user, plugin and time. E.g. /analysis/{p}/{u}-{t}.""",
   @flow.StateHandler(next_state=["RunVolatilityPlugins"])
   def Start(self, _):
     self.CallFlow("LoadMemoryDriver", next_state="RunVolatilityPlugins",
-                  driver_installer=self.driver_installer)
+                  driver_installer=self.state.driver_installer)
 
   @flow.StateHandler(next_state=["Done"])
   def RunVolatilityPlugins(self, responses):
@@ -336,19 +338,20 @@ user, plugin and time. E.g. /analysis/{p}/{u}-{t}.""",
       memory_information = responses.First()
 
       if memory_information:
-        self.request.device = memory_information.device
+        self.state.request.device = memory_information.device
 
       else:
         # We loaded the driver previously and stored the path in the AFF4 VFS -
         # we try to use that instead.
-        device_urn = aff4.ROOT_URN.Add(self.client_id).Add("devices/memory")
+        device_urn = self.client_id.Add("devices/memory")
         fd = aff4.FACTORY.Open(device_urn, "MemoryImage", token=self.token)
         device = fd.Get(fd.Schema.LAYOUT)
         if device:
-          self.request.device = device
+          self.state.request.device = device
 
-      self.CallFlow("VolatilityPlugins", request=self.request,
-                    plugins=self.plugins, next_state="Done", output=self.output)
+      self.CallFlow("VolatilityPlugins", request=self.state.request,
+                    plugins=self.state.plugins, next_state="Done",
+                    output=self.state.output)
     else:
       raise flow.FlowError("Failed to Load driver: %s" % responses.status)
 
@@ -358,7 +361,7 @@ user, plugin and time. E.g. /analysis/{p}/{u}-{t}.""",
 
   @flow.StateHandler()
   def End(self):
-    out_urn = aff4.ROOT_URN.Add(self.client_id).Add("analysis")
+    out_urn = self.client_id.Add("analysis")
     self.Notify("ViewObject", out_urn,
                 "Completed execution of volatility plugins.")
 
@@ -379,13 +382,14 @@ class UnloadMemoryDriver(LoadMemoryDriver):
   @flow.StateHandler(next_state=["Done"])
   def Start(self):
     """Start processing."""
-    if not self.driver_installer:
-      self.driver_installer = GetMemoryModule(self.client_id, self.token)
+    if not self.state.driver_installer:
+      self.state.driver_installer = GetMemoryModule(self.client_id, self.token)
 
-      if not self.driver_installer:
+      if not self.state.driver_installer:
         raise IOError("No memory driver currently available for this system.")
 
-    self.CallClient("UninstallDriver", self.driver_installer, next_state="Done")
+    self.CallClient("UninstallDriver", self.state.driver_installer,
+                    next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -399,22 +403,21 @@ class UnloadMemoryDriver(LoadMemoryDriver):
 
 
 class GrepAndDownload(grep.Grep):
-  """Downloads client memory if a signature is found."""
-
-  category = "/Memory/"
-
-  def __init__(self, load_driver=True, **kwargs):
-    """Downloads client memory if a signature is found.
+  """Downloads client memory if a signature is found.
 
     This flow greps memory or a file on the client for a pattern or a regex
     and, if the pattern is found, downloads the file/memory.
+  """
 
-    Args:
-      load_driver: Load the memory driver before grepping.
-    """
+  category = "/Memory/"
 
-    self.load_driver = load_driver
-    super(GrepAndDownload, self).__init__(**kwargs)
+  flow_typeinfo = (
+      grep.Grep.flow_typeinfo +
+      type_info.TypeDescriptorSet(
+          type_info.Bool(
+              name="loaddriver",
+              default=True,
+              description="Load the memory driver before grepping.")))
 
   @flow.StateHandler(next_state=["Start", "StoreResults"])
   def Start(self, responses):
@@ -423,8 +426,8 @@ class GrepAndDownload(grep.Grep):
                responses.status.error_message)
       return
 
-    if self.load_driver:
-      self.load_driver = False
+    if self.state.load_driver:
+      self.state.load_driver = False
       self.CallFlow("LoadMemoryDriver", next_state="Start")
     else:
       super(GrepAndDownload, self).Start()
@@ -438,7 +441,7 @@ class GrepAndDownload(grep.Grep):
     super(GrepAndDownload, self).StoreResults(responses)
 
     if responses:
-      self.CallFlow("GetFile", pathspec=self.request.target,
+      self.CallFlow("GetFile", pathspec=self.state.request.target,
                     next_state="Done")
     else:
       self.Log("Grep did not yield any results.")

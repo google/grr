@@ -8,18 +8,19 @@ from google.protobuf import descriptor_pb2
 # @@protoc_insertion_point(imports)
 
 
+import grr.proto.semantic_pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='grr/proto/sysinfo.proto',
   package='',
-  serialized_pb='\n\x17grr/proto/sysinfo.proto\"\xf9\x03\n\x07Process\x12\x0b\n\x03pid\x18\x01 \x01(\r\x12\x0c\n\x04ppid\x18\x02 \x01(\r\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0b\n\x03\x65xe\x18\x04 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x05 \x03(\t\x12\r\n\x05\x63time\x18\x06 \x01(\x04\x12\x10\n\x08real_uid\x18\x07 \x01(\r\x12\x15\n\reffective_uid\x18\x08 \x01(\r\x12\x11\n\tsaved_uid\x18\t \x01(\r\x12\x10\n\x08real_gid\x18\n \x01(\r\x12\x15\n\reffective_gid\x18\x0b \x01(\r\x12\x11\n\tsaved_gid\x18\x0c \x01(\r\x12\x10\n\x08username\x18\r \x01(\t\x12\x10\n\x08terminal\x18\x0e \x01(\t\x12\x0e\n\x06status\x18\x0f \x01(\t\x12\x0c\n\x04nice\x18\x10 \x01(\x05\x12\x0b\n\x03\x63wd\x18\x11 \x01(\t\x12\x13\n\x0bnum_threads\x18\x12 \x01(\r\x12\x15\n\ruser_cpu_time\x18\x13 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x14 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x15 \x01(\x02\x12\x10\n\x08RSS_size\x18\x16 \x01(\x04\x12\x10\n\x08VMS_size\x18\x17 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x18 \x01(\x02\x12\x12\n\nopen_files\x18\x19 \x03(\t\x12\'\n\x0b\x63onnections\x18\x1a \x03(\x0b\x32\x12.NetworkConnection\"+\n\x0fNetworkEndpoint\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x0c\n\x04port\x18\x02 \x01(\x05\"\xea\x04\n\x11NetworkConnection\x12\x30\n\x06\x66\x61mily\x18\x01 \x01(\x0e\x32 .NetworkConnection.NetworkFamily\x12<\n\x04type\x18\x02 \x01(\x0e\x32\x1e.NetworkConnection.NetworkType:\x0eUNKNOWN_SOCKET\x12\'\n\rlocal_address\x18\x03 \x01(\x0b\x32\x10.NetworkEndpoint\x12(\n\x0eremote_address\x18\x04 \x01(\x0b\x32\x10.NetworkEndpoint\x12\x30\n\x05state\x18\x05 \x01(\x0e\x32\x18.NetworkConnection.State:\x07UNKNOWN\x12\x0b\n\x03pid\x18\x06 \x01(\r\x12\r\n\x05\x63time\x18\x07 \x01(\x04\"B\n\rNetworkFamily\x12\x08\n\x04INET\x10\x02\x12\t\n\x05INET6\x10\n\x12\r\n\tINET6_WIN\x10\x17\x12\r\n\tINET6_OSX\x10\x1e\"B\n\x0bNetworkType\x12\x12\n\x0eUNKNOWN_SOCKET\x10\x00\x12\x0f\n\x0bSOCK_STREAM\x10\x01\x12\x0e\n\nSOCK_DGRAM\x10\x02\"\xbb\x01\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\n\n\x06\x43LOSED\x10\x01\x12\n\n\x06LISTEN\x10\x02\x12\x0c\n\x08SYN_SENT\x10\x03\x12\x0c\n\x08SYN_RCVD\x10\x04\x12\t\n\x05\x45STAB\x10\x05\x12\r\n\tFIN_WAIT1\x10\x06\x12\r\n\tFIN_WAIT2\x10\x07\x12\x0e\n\nCLOSE_WAIT\x10\x08\x12\x0b\n\x07\x43LOSING\x10\t\x12\x0c\n\x08LAST_ACK\x10\n\x12\r\n\tTIME_WAIT\x10\x0b\x12\x0e\n\nDELETE_TCB\x10\x0c\"N\n\nFilesystem\x12\x0e\n\x06\x64\x65vice\x18\x01 \x01(\t\x12\x13\n\x0bmount_point\x18\x02 \x01(\t\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\r\n\x05label\x18\x04 \x01(\t\"1\n\x07MRUFile\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x14\n\ttimestamp\x18\x02 \x01(\x04:\x01\x30\"C\n\x06RunKey\x12\x0f\n\x07keyname\x18\x01 \x01(\t\x12\x10\n\x08\x66ilepath\x18\x02 \x01(\t\x12\x16\n\x0blastwritten\x18\x03 \x01(\x04:\x01\x30\"\x9c\x01\n\nLaunchdJob\x12\x13\n\x0bsessiontype\x18\x01 \x01(\t\x12\x16\n\x0elastexitstatus\x18\x02 \x01(\x04\x12\x0f\n\x07timeout\x18\x03 \x01(\x04\x12\x10\n\x08ondemand\x18\x04 \x01(\x08\x12\x13\n\x0bmachservice\x18\x05 \x03(\t\x12\x19\n\x11perjobmachservice\x18\x06 \x03(\t\x12\x0e\n\x06socket\x18\x07 \x03(\t\"f\n\x07Service\x12\r\n\x05label\x18\x01 \x01(\t\x12\x0f\n\x07program\x18\x02 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x03 \x01(\t\x12\x0b\n\x03pid\x18\x04 \x01(\x04\x12 \n\x0bosx_launchd\x18\x05 \x01(\x0b\x32\x0b.LaunchdJob')
+  serialized_pb='\n\x17grr/proto/sysinfo.proto\x1a\x18grr/proto/semantic.proto\"\xf9\x03\n\x07Process\x12\x0b\n\x03pid\x18\x01 \x01(\r\x12\x0c\n\x04ppid\x18\x02 \x01(\r\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0b\n\x03\x65xe\x18\x04 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x05 \x03(\t\x12\r\n\x05\x63time\x18\x06 \x01(\x04\x12\x10\n\x08real_uid\x18\x07 \x01(\r\x12\x15\n\reffective_uid\x18\x08 \x01(\r\x12\x11\n\tsaved_uid\x18\t \x01(\r\x12\x10\n\x08real_gid\x18\n \x01(\r\x12\x15\n\reffective_gid\x18\x0b \x01(\r\x12\x11\n\tsaved_gid\x18\x0c \x01(\r\x12\x10\n\x08username\x18\r \x01(\t\x12\x10\n\x08terminal\x18\x0e \x01(\t\x12\x0e\n\x06status\x18\x0f \x01(\t\x12\x0c\n\x04nice\x18\x10 \x01(\x05\x12\x0b\n\x03\x63wd\x18\x11 \x01(\t\x12\x13\n\x0bnum_threads\x18\x12 \x01(\r\x12\x15\n\ruser_cpu_time\x18\x13 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x14 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x15 \x01(\x02\x12\x10\n\x08RSS_size\x18\x16 \x01(\x04\x12\x10\n\x08VMS_size\x18\x17 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x18 \x01(\x02\x12\x12\n\nopen_files\x18\x19 \x03(\t\x12\'\n\x0b\x63onnections\x18\x1a \x03(\x0b\x32\x12.NetworkConnection\"+\n\x0fNetworkEndpoint\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x0c\n\x04port\x18\x02 \x01(\x05\"\xce\x04\n\x11NetworkConnection\x12)\n\x06\x66\x61mily\x18\x01 \x01(\x0e\x32\x19.NetworkConnection.Family\x12\x35\n\x04type\x18\x02 \x01(\x0e\x32\x17.NetworkConnection.Type:\x0eUNKNOWN_SOCKET\x12\'\n\rlocal_address\x18\x03 \x01(\x0b\x32\x10.NetworkEndpoint\x12(\n\x0eremote_address\x18\x04 \x01(\x0b\x32\x10.NetworkEndpoint\x12\x30\n\x05state\x18\x05 \x01(\x0e\x32\x18.NetworkConnection.State:\x07UNKNOWN\x12\x0b\n\x03pid\x18\x06 \x01(\r\x12\r\n\x05\x63time\x18\x07 \x01(\x04\";\n\x06\x46\x61mily\x12\x08\n\x04INET\x10\x02\x12\t\n\x05INET6\x10\n\x12\r\n\tINET6_WIN\x10\x17\x12\r\n\tINET6_OSX\x10\x1e\";\n\x04Type\x12\x12\n\x0eUNKNOWN_SOCKET\x10\x00\x12\x0f\n\x0bSOCK_STREAM\x10\x01\x12\x0e\n\nSOCK_DGRAM\x10\x02\"\xbb\x01\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\n\n\x06\x43LOSED\x10\x01\x12\n\n\x06LISTEN\x10\x02\x12\x0c\n\x08SYN_SENT\x10\x03\x12\x0c\n\x08SYN_RCVD\x10\x04\x12\t\n\x05\x45STAB\x10\x05\x12\r\n\tFIN_WAIT1\x10\x06\x12\r\n\tFIN_WAIT2\x10\x07\x12\x0e\n\nCLOSE_WAIT\x10\x08\x12\x0b\n\x07\x43LOSING\x10\t\x12\x0c\n\x08LAST_ACK\x10\n\x12\r\n\tTIME_WAIT\x10\x0b\x12\x0e\n\nDELETE_TCB\x10\x0c\"N\n\nFilesystem\x12\x0e\n\x06\x64\x65vice\x18\x01 \x01(\t\x12\x13\n\x0bmount_point\x18\x02 \x01(\t\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\r\n\x05label\x18\x04 \x01(\t\"1\n\x07MRUFile\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x14\n\ttimestamp\x18\x02 \x01(\x04:\x01\x30\"C\n\x06RunKey\x12\x0f\n\x07keyname\x18\x01 \x01(\t\x12\x10\n\x08\x66ilepath\x18\x02 \x01(\t\x12\x16\n\x0blastwritten\x18\x03 \x01(\x04:\x01\x30\"\x9c\x01\n\nLaunchdJob\x12\x13\n\x0bsessiontype\x18\x01 \x01(\t\x12\x16\n\x0elastexitstatus\x18\x02 \x01(\x04\x12\x0f\n\x07timeout\x18\x03 \x01(\x04\x12\x10\n\x08ondemand\x18\x04 \x01(\x08\x12\x13\n\x0bmachservice\x18\x05 \x03(\t\x12\x19\n\x11perjobmachservice\x18\x06 \x03(\t\x12\x0e\n\x06socket\x18\x07 \x03(\t\"f\n\x07Service\x12\r\n\x05label\x18\x01 \x01(\t\x12\x0f\n\x07program\x18\x02 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x03 \x01(\t\x12\x0b\n\x03pid\x18\x04 \x01(\x04\x12 \n\x0bosx_launchd\x18\x05 \x01(\x0b\x32\x0b.LaunchdJob')
 
 
 
-_NETWORKCONNECTION_NETWORKFAMILY = _descriptor.EnumDescriptor(
-  name='NetworkFamily',
-  full_name='NetworkConnection.NetworkFamily',
+_NETWORKCONNECTION_FAMILY = _descriptor.EnumDescriptor(
+  name='Family',
+  full_name='NetworkConnection.Family',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -42,13 +43,13 @@ _NETWORKCONNECTION_NETWORKFAMILY = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=875,
-  serialized_end=941,
+  serialized_start=887,
+  serialized_end=946,
 )
 
-_NETWORKCONNECTION_NETWORKTYPE = _descriptor.EnumDescriptor(
-  name='NetworkType',
-  full_name='NetworkConnection.NetworkType',
+_NETWORKCONNECTION_TYPE = _descriptor.EnumDescriptor(
+  name='Type',
+  full_name='NetworkConnection.Type',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -67,8 +68,8 @@ _NETWORKCONNECTION_NETWORKTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=943,
-  serialized_end=1009,
+  serialized_start=948,
+  serialized_end=1007,
 )
 
 _NETWORKCONNECTION_STATE = _descriptor.EnumDescriptor(
@@ -132,8 +133,8 @@ _NETWORKCONNECTION_STATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1012,
-  serialized_end=1199,
+  serialized_start=1010,
+  serialized_end=1197,
 )
 
 
@@ -335,8 +336,8 @@ _PROCESS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=28,
-  serialized_end=533,
+  serialized_start=54,
+  serialized_end=559,
 )
 
 
@@ -370,8 +371,8 @@ _NETWORKENDPOINT = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=535,
-  serialized_end=578,
+  serialized_start=561,
+  serialized_end=604,
 )
 
 
@@ -436,15 +437,15 @@ _NETWORKCONNECTION = _descriptor.Descriptor(
   ],
   nested_types=[],
   enum_types=[
-    _NETWORKCONNECTION_NETWORKFAMILY,
-    _NETWORKCONNECTION_NETWORKTYPE,
+    _NETWORKCONNECTION_FAMILY,
+    _NETWORKCONNECTION_TYPE,
     _NETWORKCONNECTION_STATE,
   ],
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=581,
-  serialized_end=1199,
+  serialized_start=607,
+  serialized_end=1197,
 )
 
 
@@ -492,8 +493,8 @@ _FILESYSTEM = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1201,
-  serialized_end=1279,
+  serialized_start=1199,
+  serialized_end=1277,
 )
 
 
@@ -527,8 +528,8 @@ _MRUFILE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1281,
-  serialized_end=1330,
+  serialized_start=1279,
+  serialized_end=1328,
 )
 
 
@@ -569,8 +570,8 @@ _RUNKEY = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1332,
-  serialized_end=1399,
+  serialized_start=1330,
+  serialized_end=1397,
 )
 
 
@@ -639,8 +640,8 @@ _LAUNCHDJOB = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1402,
-  serialized_end=1558,
+  serialized_start=1400,
+  serialized_end=1556,
 )
 
 
@@ -695,18 +696,18 @@ _SERVICE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1560,
-  serialized_end=1662,
+  serialized_start=1558,
+  serialized_end=1660,
 )
 
 _PROCESS.fields_by_name['connections'].message_type = _NETWORKCONNECTION
-_NETWORKCONNECTION.fields_by_name['family'].enum_type = _NETWORKCONNECTION_NETWORKFAMILY
-_NETWORKCONNECTION.fields_by_name['type'].enum_type = _NETWORKCONNECTION_NETWORKTYPE
+_NETWORKCONNECTION.fields_by_name['family'].enum_type = _NETWORKCONNECTION_FAMILY
+_NETWORKCONNECTION.fields_by_name['type'].enum_type = _NETWORKCONNECTION_TYPE
 _NETWORKCONNECTION.fields_by_name['local_address'].message_type = _NETWORKENDPOINT
 _NETWORKCONNECTION.fields_by_name['remote_address'].message_type = _NETWORKENDPOINT
 _NETWORKCONNECTION.fields_by_name['state'].enum_type = _NETWORKCONNECTION_STATE
-_NETWORKCONNECTION_NETWORKFAMILY.containing_type = _NETWORKCONNECTION;
-_NETWORKCONNECTION_NETWORKTYPE.containing_type = _NETWORKCONNECTION;
+_NETWORKCONNECTION_FAMILY.containing_type = _NETWORKCONNECTION;
+_NETWORKCONNECTION_TYPE.containing_type = _NETWORKCONNECTION;
 _NETWORKCONNECTION_STATE.containing_type = _NETWORKCONNECTION;
 _SERVICE.fields_by_name['osx_launchd'].message_type = _LAUNCHDJOB
 DESCRIPTOR.message_types_by_name['Process'] = _PROCESS

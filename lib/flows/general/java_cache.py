@@ -24,7 +24,7 @@ class JavaCacheCollector(flow.GRRFlow):
       type_info.PathTypeEnum(
           description="The requested path type.",
           name="pathtype",
-          default=rdfvalue.RDFPathSpec.Enum("OS")),
+          default=rdfvalue.PathSpec.PathType.OS),
       type_info.String(
           name="username",
           description="A string containing the username."),
@@ -127,8 +127,8 @@ class JavaCacheCollector(flow.GRRFlow):
     """
     cache_directory = self.cache_dir or self.GetJavaCachePath()
 
-    pathspec = rdfvalue.RDFPathSpec(path=cache_directory,
-                                    pathtype=self.pathtype)
+    pathspec = rdfvalue.PathSpec(path=cache_directory,
+                                 pathtype=self.pathtype)
 
     yield rdfvalue.RDFFindSpec(
         pathspec=pathspec,

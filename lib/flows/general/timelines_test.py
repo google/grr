@@ -19,13 +19,13 @@ class TestTimelines(test_lib.FlowTestsBaseclass):
     """Test that the timelining works with files."""
     # Install the mock
     vfs.VFS_HANDLERS[
-        rdfvalue.RDFPathSpec.Enum("OS")] = test_lib.ClientVFSHandlerFixture
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
 
     client_mock = test_lib.ActionMock("ListDirectory")
     output_path = "analysis/Timeline/MAC"
 
-    pathspec = rdfvalue.RDFPathSpec(path="/",
-                                    pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    pathspec = rdfvalue.PathSpec(path="/",
+                                 pathtype=rdfvalue.PathSpec.PathType.OS)
 
     for _ in test_lib.TestFlowHelper(
         "RecursiveListDirectory", client_mock, client_id=self.client_id,
@@ -35,11 +35,10 @@ class TestTimelines(test_lib.FlowTestsBaseclass):
     # Now make a timeline
     for _ in test_lib.TestFlowHelper(
         "MACTimes", client_mock, client_id=self.client_id, token=self.token,
-        path="aff4:/%s/" % self.client_id, output=output_path):
+        path="/", output=output_path):
       pass
 
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(self.client_id).Add(
-        output_path), token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
 
     timestamp = 0
     events = list(fd.Query("event.stat.pathspec.path contains grep"))

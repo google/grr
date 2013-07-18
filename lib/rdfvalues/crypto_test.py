@@ -45,7 +45,7 @@ class SignedBlobTest(test_base.RDFValueTestCase):
 
     # If we change the digest verification should fail.
     sample = self.GenerateSample()
-    sample.digest_type = sample.Enum("MD5")
+    sample.digest_type = sample.HashType.MD5
 
     self.assertRaises(rdfvalue.DecodeError, sample.Verify, self.public_key)
 
@@ -67,21 +67,33 @@ certificate = -----BEGIN CERTIFICATE-----
         -----END CERTIFICATE-----
 """)
 
-    self.assertRaises(config_lib.Error, config_lib.CONFIG.Validate,
-                      "Frontend")
+    errors = config_lib.CONFIG.Validate("Frontend")
+    self.assertItemsEqual(errors.keys(), ["Frontend.certificate"])
 
   def testX509PrivateKey(self):
-    """Deliberately try to parse an invalid private key."""
+    """Deliberately try to parse an invalid server key."""
     config_lib.CONFIG.Initialize(data="""
 [PrivateKeys]
 server_key = -----BEGIN PRIVATE KEY-----
         MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAMdgLNxyvDnQsuqp
         jzITFeE6mjs3k1I=
         -----END PRIVATE KEY-----
+driver_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
+    MIIBOgIBAAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCODQAI3WluLh0sW7/ro93eo
+    IZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQJAfg37HBZK7bxGB+jOjvrT
+    XzI2Vu7dhqAWouojT357DMKjGvkO+w7r6BmToZkgHRL4Nvh1KJ/APYdWWR+jTwJ3
+    4QIhAOhY/Gx8xs1ngrQLfSK9AWzPeegZK0I9W1UQuLWt7MjHAiEAzMrr2huBFrM0
+    NgTOlWdrKnI/DPDpR3jGfSoUTsAeT9kCIQCzgxzzjKvkQtb+1+mEj1ashNgA9IEx
+    mkoYPOUYqRnKPQIgUV+8UcEmDRgOAfzs/U7HtWkKBqFfgGfMLwXeZeBO6xkCIHGq
+    wDcAa2GW9htKHmv9/Rzg05iAD+FYTsp8Gi2r4icV
+    -----END RSA PRIVATE KEY-----
 """)
 
-    self.assertRaises(config_lib.Error, config_lib.CONFIG.Validate,
-                      "PrivateKeys")
+    errors = config_lib.CONFIG.Validate("PrivateKeys")
+    self.assertItemsEqual(errors.keys(),
+                          ["PrivateKeys.executable_signing_private_key",
+                           "PrivateKeys.server_key",
+                           "PrivateKeys.ca_key"])
 
   def testPEMPublicKey(self):
     """Deliberately try to parse an invalid public key."""
@@ -90,9 +102,15 @@ server_key = -----BEGIN PRIVATE KEY-----
 executable_signing_public_key = -----BEGIN PUBLIC KEY-----
         GpJgTFkTIAgX0Ih5lxoFB5TUjUfJFbBkSmKQPRA/IyuLBtCLQgwkTNkCAwEAAQ==
         -----END PUBLIC KEY-----
+driver_signing_public_key = -----BEGIN PUBLIC KEY-----
+    MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCOD
+    QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
+    -----END PUBLIC KEY-----
 """)
-    self.assertRaises(config_lib.Error, config_lib.CONFIG.Validate,
-                      "Client")
+    errors = config_lib.CONFIG.Validate("Client")
+    self.assertItemsEqual(errors.keys(),
+                          ["Client.executable_signing_public_key",
+                           "Client.private_key"])
 
   def testPEMPrivate(self):
     """Deliberately try to parse an invalid public key."""
@@ -103,5 +121,11 @@ driver_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
         -----END RSA PRIVATE KEY-----
 """)
 
-    self.assertRaises(config_lib.Error, config_lib.CONFIG.Validate,
-                      "PrivateKeys")
+    errors = config_lib.CONFIG.Validate("PrivateKeys")
+    self.assertItemsEqual(errors.keys(),
+                          ["PrivateKeys.driver_signing_private_key",
+                           "PrivateKeys.executable_signing_private_key",
+                           "PrivateKeys.server_key",
+                           "PrivateKeys.ca_key"])
+
+

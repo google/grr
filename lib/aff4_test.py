@@ -4,6 +4,7 @@
 """Tests for the flow."""
 
 
+import threading
 import time
 from grr.client import conf
 
@@ -29,11 +30,27 @@ class MockNotificationRule(aff4.AFF4NotificationRule):
     MockNotificationRule.OBJECTS_WRITTEN.append(aff4_object)
 
 
+class ObjectWithLockProtectedAttribute(aff4.AFF4Volume):
+  """Test object with a lock-protected attribute."""
+
+  class SchemaCls(aff4.AFF4Object.SchemaCls):
+    LOCK_PROTECTED_ATTR = aff4.Attribute("aff4:protected_attr",
+                                         rdfvalue.RDFString,
+                                         "SomeString",
+                                         lock_protected=True)
+    UNPROTECTED_ATTR = aff4.Attribute("aff4:unprotected_attr",
+                                      rdfvalue.RDFString,
+                                      "SomeString",
+                                      lock_protected=False)
+
+
 class AFF4Tests(test_lib.AFF4ObjectTest):
   """Test the AFF4 abstraction."""
 
   def setUp(self):
     super(AFF4Tests, self).setUp()
+    # TODO(user): remove when everything is URN.
+    self.client_id = rdfvalue.RDFURN(self.client_id)
     MockNotificationRule.OBJECTS_WRITTEN = []
 
   def testNonVersionedAttribute(self):
@@ -136,6 +153,29 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     # Check that when read back from the data_store we stored them all
     obj = aff4.FACTORY.Open("foobar", token=self.token, age=aff4.ALL_TIMES)
     self.assertEqual(6, len(list(obj.GetValuesForAttribute(obj.Schema.STORED))))
+
+  def testCopyAttributes(self):
+    # Create an object to carry attributes
+    obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
+    # Add a bunch of attributes now.
+    for i in range(5):
+      obj.AddAttribute(obj.Schema.STORED("http://example.com/%s" % i))
+    obj.Close()
+
+    obj = aff4.FACTORY.Open("foobar", mode="r", token=self.token,
+                            age=aff4.ALL_TIMES)
+    # There should be 5 attributes now
+    self.assertEqual(5, len(list(obj.GetValuesForAttribute(obj.Schema.STORED))))
+
+    new_obj = aff4.FACTORY.Create("new_foobar", "AFF4Object", token=self.token)
+    new_obj.Copy(new_obj.Schema.STORED, obj, obj.Schema.STORED)
+    new_obj.Close()
+
+    new_obj = aff4.FACTORY.Open("new_foobar", mode="r", token=self.token,
+                                age=aff4.ALL_TIMES)
+    # Check that attribute got copied properly
+    self.assertListEqual(list(obj.GetValuesForAttribute(obj.Schema.STORED)),
+                         list(new_obj.GetValuesForAttribute(obj.Schema.STORED)))
 
   def testAttributeSet(self):
     obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
@@ -363,27 +403,25 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     client.Close()
 
     # Start some new flows on it
-    session_ids = [flow.FACTORY.StartFlow(self.client_id, "FlowOrderTest",
+    session_ids = [flow.GRRFlow.StartFlow(self.client_id, "FlowOrderTest",
                                           token=self.token)
                    for _ in range(10)]
 
     # Try to open a single flow.
     flow_obj = aff4.FACTORY.Open(session_ids[0], mode="r", token=self.token)
-    rdf_flow = flow_obj.Get(flow_obj.Schema.RDF_FLOW).payload
 
-    self.assertEqual(rdf_flow.name, "FlowOrderTest")
-    self.assertEqual(rdf_flow.session_id, session_ids[0])
+    self.assertEqual(flow_obj.state.context.flow_name, "FlowOrderTest")
+    self.assertEqual(flow_obj.session_id, session_ids[0])
 
-    grr_flow_obj = flow_obj.GetFlowObj()
-    self.assertEqual(grr_flow_obj.session_id, session_ids[0])
-    self.assertEqual(grr_flow_obj.__class__.__name__, "FlowOrderTest")
+    self.assertEqual(flow_obj.__class__.__name__, "FlowOrderTest")
 
     # Now load multiple flows at once
     client = aff4.FACTORY.Open(self.client_id, token=self.token,
                                age=aff4.ALL_TIMES)
 
-    for f in client.GetFlows():
-      del session_ids[session_ids.index(f.urn)]
+    # This was removed...
+    for f in client.GetValuesForAttribute(client.Schema.FLOW):
+      session_ids.remove(f)
 
     # Did we get them all?
     self.assertEqual(session_ids, [])
@@ -403,6 +441,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(utils.SmartUnicode(matched[0].urn),
                      u"aff4:/C.0000000000000000/"
                      u"fs/os/c/中国新闻网新闻中")
+
     # Test that we can match a unicode char
     matched = list(fd.Query(ur"subject matches '\]\['"))
     self.assertEqual(len(matched), 1)
@@ -481,7 +520,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       for t in [1000, 1500, 2000, 2500]:
         time.time = lambda: t
 
-        f = aff4.FACTORY.Create(aff4.RDFURN(file_url), "VFSFile",
+        f = aff4.FACTORY.Create(rdfvalue.RDFURN(file_url), "VFSFile",
                                 token=self.token)
         f.write(str(t))
         f.Close()
@@ -677,6 +716,155 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     # Get() returns the most recent version.
     self.assertEquals(client.Get(client.Schema.HOSTNAME), "Host2")
 
+  def testAsynchronousOpenWithLockWorksCorrectly(self):
+    self.client_id = rdfvalue.RDFURN(self.client_id)
+
+    client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
+                                 token=self.token)
+    client.Set(client.Schema.HOSTNAME("client1"))
+    client.Close()
+
+    with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token) as obj1:
+      # Check that the object is correctly opened by reading the attribute
+      self.assertEqual(obj1.Get(obj1.Schema.HOSTNAME), "client1")
+
+      def TryOpen():
+        with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                       blocking=False):
+          pass
+
+      # This should raise, because obj1 is holding the lock
+      self.assertRaises(aff4.LockError, TryOpen)
+
+    # This shouldn't raise now, as previous Close() call has released the lock.
+    with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                   blocking=False):
+      pass
+
+  def testSynchronousOpenWithLockWorksCorrectly(self):
+    client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
+                                 token=self.token)
+    client.Set(client.Schema.HOSTNAME("client1"))
+    client.Close()
+
+    t_state = {"parallel_thread_got_lock": False,
+               "parallel_thread_raised": False}
+
+    def ParallelThread():
+      try:
+        # Using blocking_lock_timeout of 10 minutes to avoid possible
+        # timeouts when running tests on slow hardware.
+        with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                       blocking=True, blocking_sleep_interval=0,
+                                       blocking_lock_timeout=600):
+          pass
+        t_state["parallel_thread_got_lock"] = True
+      except Exception:  # pylint: disable=broad-except
+        # Catching all the exceptions, because exceptions raised in threads
+        # do not cause the test to fail - threads just die silently.
+        t_state["parallel_thread_raised"] = True
+
+    t = threading.Thread(target=ParallelThread)
+
+    with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token) as obj1:
+      # Check that the object is correctly opened by reading the attribute
+      self.assertEqual(obj1.Get(obj1.Schema.HOSTNAME), "client1")
+
+      t.start()
+      time.sleep(0.1)
+      # At this point, the thread should be attemting getting the lock.
+      self.assertFalse(t_state["parallel_thread_got_lock"])
+      self.assertFalse(t_state["parallel_thread_raised"])
+
+    # We released the lock, so now the thread should finally get it,
+    # release it, and die.
+    t.join()
+    self.assertTrue(t_state["parallel_thread_got_lock"])
+    self.assertFalse(t_state["parallel_thread_raised"])
+
+  def testSynchronousOpenWithLockTimesOutCorrectly(self):
+    client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
+                                 token=self.token)
+    client.Set(client.Schema.HOSTNAME("client1"))
+    client.Close()
+
+    with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token) as obj1:
+      # Check that the object is correctly opened by reading the attribute
+      self.assertEqual(obj1.Get(obj1.Schema.HOSTNAME), "client1")
+
+      def TryOpen():
+        with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                       blocking=True, blocking_lock_timeout=1):
+          pass
+
+      self.assertRaises(aff4.LockError, TryOpen)
+
+  def testLockHasLimitedLeaseTime(self):
+    original_time = time.time
+    try:
+      time.time = lambda: 100
+
+      client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
+                                   token=self.token)
+      client.Set(client.Schema.HOSTNAME("client1"))
+      client.Close()
+
+      lock_error_catched = False
+      try:
+        with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                       lease_time=100) as fd:
+
+          def TryOpen():
+            with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                           blocking=False):
+              pass
+
+          time.time = lambda: 150
+          self.assertRaises(aff4.LockError, TryOpen)
+
+          # This shouldn't raise, because previous lock's lease has expired
+          time.time = lambda: 201
+          TryOpen()
+          self.assertRaises(aff4.LockError, fd.Close)
+          self.assertRaises(aff4.LockError, fd.Flush)
+          # Now disable the lock so the implicit close call does not raise.
+          fd._locked = False
+
+      except aff4.LockError:
+        # We expect a lock error here, because it's raised when Close() is
+        # called after the lease has expired.
+        lock_error_catched = True
+
+      self.assertTrue(lock_error_catched)
+
+    finally:
+      time.time = original_time
+
+  def testLockProtectedAttributesWorkCorrectly(self):
+    obj = aff4.FACTORY.Create("aff4:/obj", "ObjectWithLockProtectedAttribute",
+                              token=self.token)
+    obj.Close()
+
+    # Lock-protected attribute can't be set when plain Open() is used.
+    obj = aff4.FACTORY.Open("aff4:/obj", mode="rw", token=self.token)
+    obj.Set(obj.Schema.UNPROTECTED_ATTR("value"))
+    self.assertRaises(IOError, obj.Set,
+                      obj.Schema.LOCK_PROTECTED_ATTR("value"))
+    obj.Close()
+
+    # Lock-protected attribute is successfully set, because the object is
+    # locked with OpenWithLock().
+    with aff4.FACTORY.OpenWithLock("aff4:/obj", token=self.token) as obj:
+      obj.Set(obj.Schema.UNPROTECTED_ATTR("value"))
+      obj.Set(obj.Schema.LOCK_PROTECTED_ATTR("value"))
+
+    # We can't respect locks during blind-write operations.
+    obj = aff4.FACTORY.Create("aff4:/obj", "ObjectWithLockProtectedAttribute",
+                              token=self.token)
+    obj.Set(obj.Schema.UNPROTECTED_ATTR("value"))
+    obj.Set(obj.Schema.LOCK_PROTECTED_ATTR("value"))
+    obj.Close()
+
 
 class AFF4SymlinkTestSubject(aff4.AFF4Volume):
   """A test subject for AFF4SymlinkTest."""
@@ -730,6 +918,18 @@ class AFF4SymlinkTest(test_lib.AFF4ObjectTest):
 class ForemanTests(test_lib.AFF4ObjectTest):
   """Tests the Foreman."""
 
+  clients_launched = []
+
+  def StartFlow(self, client_id, flow_name, token=None, **kw):
+    # Make sure the foreman is launching these
+    self.assertEqual(token.username, "Foreman")
+
+    # Make sure we pass the argv along
+    self.assertEqual(kw["foo"], "bar")
+
+    # Keep a record of all the clients
+    self.clients_launched.append((client_id, flow_name))
+
   def testOperatingSystemSelection(self):
     """Tests that we can distinguish based on operating system."""
     fd = aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
@@ -747,68 +947,57 @@ class ForemanTests(test_lib.AFF4ObjectTest):
     fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows 7"))
     fd.Close()
 
-    # Set up the filters
-    clients_launched = []
-
-    def StartFlow(client_id, flow_name, token=None, **kw):
-      # Make sure the foreman is launching these
-      self.assertEqual(token.username, "Foreman")
-
-      # Make sure we pass the argv along
-      self.assertEqual(kw["foo"], "bar")
-
-      # Keep a record of all the clients
-      clients_launched.append((client_id, flow_name))
-
-    old_start_flow = flow.FACTORY.StartFlow
+    old_start_flow = flow.GRRFlow.StartFlow
     # Mock the StartFlow
-    flow.FACTORY.StartFlow = StartFlow
+    flow.GRRFlow.StartFlow = self.StartFlow
+    try:
+      # Now setup the filters
+      now = time.time() * 1e6
+      expires = (time.time() + 3600) * 1e6
+      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
 
-    # Now setup the filters
-    now = time.time() * 1e6
-    expires = (time.time() + 3600) * 1e6
-    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+      # Make a new rule
+      rule = rdfvalue.ForemanRule(created=int(now), expires=int(expires),
+                                  description="Test rule")
 
-    # Make a new rule
-    rule = rdfvalue.ForemanRule(created=int(now), expires=int(expires),
-                                description="Test rule")
+      # Matches Windows boxes
+      rule.regex_rules.Append(attribute_name=fd.Schema.SYSTEM.name,
+                              attribute_regex="Windows")
 
-    # Matches Windows boxes
-    rule.regex_rules.Append(attribute_name=fd.Schema.SYSTEM.name,
-                            attribute_regex="Windows")
+      # Will run Test Flow
+      rule.actions.Append(flow_name="Test Flow",
+                          argv=rdfvalue.Dict(foo="bar"))
 
-    # Will run Test Flow
-    rule.actions.Append(flow_name="Test Flow",
-                        argv=rdfvalue.RDFProtoDict(dict(foo="bar")))
+      # Clear the rule set and add the new rule to it.
+      rule_set = foreman.Schema.RULES()
+      rule_set.Append(rule)
 
-    # Clear the rule set and add the new rule to it.
-    rule_set = foreman.Schema.RULES()
-    rule_set.Append(rule)
+      # Assign it to the foreman
+      foreman.Set(foreman.Schema.RULES, rule_set)
+      foreman.Close()
 
-    # Assign it to the foreman
-    foreman.Set(foreman.Schema.RULES, rule_set)
-    foreman.Close()
+      self.clients_launched = []
+      foreman.AssignTasksToClient("C.0000000000000001")
+      foreman.AssignTasksToClient("C.0000000000000002")
+      foreman.AssignTasksToClient("C.0000000000000003")
 
-    clients_launched = []
-    foreman.AssignTasksToClient("C.0000000000000001")
-    foreman.AssignTasksToClient("C.0000000000000002")
-    foreman.AssignTasksToClient("C.0000000000000003")
+      # Make sure that only the windows machines ran
+      self.assertEqual(len(self.clients_launched), 2)
+      self.assertEqual(self.clients_launched[0][0],
+                       rdfvalue.ClientURN("C.0000000000000001"))
+      self.assertEqual(self.clients_launched[1][0],
+                       rdfvalue.ClientURN("C.0000000000000003"))
 
-    # Make sure that only the windows machines ran
-    self.assertEqual(len(clients_launched), 2)
-    self.assertEqual(clients_launched[0][0], "C.0000000000000001")
-    self.assertEqual(clients_launched[1][0], "C.0000000000000003")
+      self.clients_launched = []
 
-    clients_launched = []
+      # Run again - This should not fire since it did already
+      foreman.AssignTasksToClient("C.0000000000000001")
+      foreman.AssignTasksToClient("C.0000000000000002")
+      foreman.AssignTasksToClient("C.0000000000000003")
 
-    # Run again - This should not fire since it did already
-    foreman.AssignTasksToClient("C.0000000000000001")
-    foreman.AssignTasksToClient("C.0000000000000002")
-    foreman.AssignTasksToClient("C.0000000000000003")
-
-    self.assertEqual(len(clients_launched), 0)
-
-    flow.FACTORY.StartFlow = old_start_flow
+      self.assertEqual(len(self.clients_launched), 0)
+    finally:
+      flow.GRRFlow.StartFlow = old_start_flow
 
   def testIntegerComparisons(self):
     """Tests that we can use integer matching rules on the foreman."""
@@ -838,22 +1027,9 @@ class ForemanTests(test_lib.AFF4ObjectTest):
     fd.Set(fd.Schema.LAST_BOOT_TIME(1336300000000000))
     fd.Close()
 
-    # Set up the filters
-    clients_launched = []
-
-    def StartFlow(client_id, flow_name, token=None, **kw):
-      # Make sure the foreman is launching these
-      self.assertEqual(token.username, "Foreman")
-
-      # Make sure we pass the argv along
-      self.assertEqual(kw["foo"], "bar")
-
-      # Keep a record of all the clients
-      clients_launched.append((client_id, flow_name))
-
     # Mock the StartFlow
-    old_start_flow = flow.FACTORY.StartFlow
-    flow.FACTORY.StartFlow = StartFlow
+    old_start_flow = flow.GRRFlow.StartFlow
+    flow.GRRFlow.StartFlow = self.StartFlow
 
     try:
 
@@ -869,13 +1045,13 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       # Matches the old client
       rule.integer_rules.Append(
           attribute_name=fd.Schema.INSTALL_DATE.name,
-          operator=rdfvalue.ForemanAttributeInteger.Enum("LESS_THAN"),
+          operator=rdfvalue.ForemanAttributeInteger.Operator.LESS_THAN,
           value=int(1336480583077736-3600*1e6))
 
       old_flow = "Test flow for old clients"
       # Will run Test Flow
       rule.actions.Append(flow_name=old_flow,
-                          argv=rdfvalue.RDFProtoDict(dict(foo="bar")))
+                          argv=rdfvalue.Dict(dict(foo="bar")))
 
       # Clear the rule set and add the new rule to it.
       rule_set = foreman.Schema.RULES()
@@ -888,14 +1064,14 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       # Matches the newer clients
       rule.integer_rules.Append(
           attribute_name=fd.Schema.INSTALL_DATE.name,
-          operator=rdfvalue.ForemanAttributeInteger.Enum("GREATER_THAN"),
+          operator=rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN,
           value=int(1336480583077736-3600*1e6))
 
       new_flow = "Test flow for newer clients"
 
       # Will run Test Flow
       rule.actions.Append(flow_name=new_flow,
-                          argv=rdfvalue.RDFProtoDict(dict(foo="bar")))
+                          argv=rdfvalue.Dict(dict(foo="bar")))
 
       rule_set.Append(rule)
 
@@ -906,13 +1082,13 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       # Note that this also tests the handling of nonexistent attributes.
       rule.integer_rules.Append(
           attribute_name=fd.Schema.LAST_BOOT_TIME.name,
-          operator=rdfvalue.ForemanAttributeInteger.Enum("EQUAL"),
+          operator=rdfvalue.ForemanAttributeInteger.Operator.EQUAL,
           value=1336300000000000)
 
       eq_flow = "Test flow for LAST_BOOT_TIME"
 
       rule.actions.Append(flow_name=eq_flow,
-                          argv=rdfvalue.RDFProtoDict(dict(foo="bar")))
+                          argv=rdfvalue.Dict(dict(foo="bar")))
 
       rule_set.Append(rule)
 
@@ -920,25 +1096,29 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       foreman.Set(foreman.Schema.RULES, rule_set)
       foreman.Close()
 
-      clients_launched = []
+      self.clients_launched = []
       foreman.AssignTasksToClient("C.0000000000000011")
       foreman.AssignTasksToClient("C.0000000000000012")
       foreman.AssignTasksToClient("C.0000000000000013")
       foreman.AssignTasksToClient("C.0000000000000014")
 
       # Make sure that the clients ran the correct flows.
-      self.assertEqual(len(clients_launched), 4)
-      self.assertEqual(clients_launched[0][0], "C.0000000000000011")
-      self.assertEqual(clients_launched[0][1], new_flow)
-      self.assertEqual(clients_launched[1][0], "C.0000000000000012")
-      self.assertEqual(clients_launched[1][1], new_flow)
-      self.assertEqual(clients_launched[2][0], "C.0000000000000013")
-      self.assertEqual(clients_launched[2][1], old_flow)
-      self.assertEqual(clients_launched[3][0], "C.0000000000000014")
-      self.assertEqual(clients_launched[3][1], eq_flow)
+      self.assertEqual(len(self.clients_launched), 4)
+      self.assertEqual(self.clients_launched[0][0],
+                       rdfvalue.ClientURN("C.0000000000000011"))
+      self.assertEqual(self.clients_launched[0][1], new_flow)
+      self.assertEqual(self.clients_launched[1][0],
+                       rdfvalue.ClientURN("C.0000000000000012"))
+      self.assertEqual(self.clients_launched[1][1], new_flow)
+      self.assertEqual(self.clients_launched[2][0],
+                       rdfvalue.ClientURN("C.0000000000000013"))
+      self.assertEqual(self.clients_launched[2][1], old_flow)
+      self.assertEqual(self.clients_launched[3][0],
+                       rdfvalue.ClientURN("C.0000000000000014"))
+      self.assertEqual(self.clients_launched[3][1], eq_flow)
 
     finally:
-      flow.FACTORY.StartFlow = old_start_flow
+      flow.GRRFlow.StartFlow = old_start_flow
 
   def MockTime(self):
     return self.mock_time

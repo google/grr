@@ -11,12 +11,12 @@ modules that have been customized for your deployment.
 # Note for gui specific plugins see gui/gui_plugins.py
 """
 
-# pylint: disable=W0611
+# pylint: disable=unused-import,g-import-not-at-top
 
 from grr import artifacts
 
 # Server code needs to know about client actions as well.
-from grr.client import client_plugins  # pylint: disable=W0611
+from grr.client import client_plugins
 
 from grr.lib import access_control
 from grr.lib import aff4_objects
@@ -27,3 +27,7 @@ from grr.lib import hunts
 from grr.lib import local
 from grr.lib import stats
 from grr.lib.flows import general
+try:
+  from grr.lib.flows.console import client_tests
+except ImportError:
+  pass
