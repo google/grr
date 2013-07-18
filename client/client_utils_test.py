@@ -17,6 +17,7 @@ from grr.client import conf
 from grr.client import client_utils_common
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -62,13 +63,13 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
 
     for filename, expected_device, expected_path, device_type in [
         ("/etc/passwd", "/dev/mapper/root", "/etc/passwd",
-         rdfvalue.RDFPathSpec.Enum("OS")),
+         rdfvalue.PathSpec.PathType.OS),
         ("/usr/local/bin/ls", "/dev/mapper/usr", "/bin/ls",
-         rdfvalue.RDFPathSpec.Enum("OS")),
+         rdfvalue.PathSpec.PathType.OS),
         ("/proc/net/sys", "none", "/net/sys",
-         rdfvalue.RDFPathSpec.Enum("UNSET")),
+         rdfvalue.PathSpec.PathType.UNSET),
         ("/home/user/test.txt", "server.nfs:/vol/home", "/test.txt",
-         rdfvalue.RDFPathSpec.Enum("UNSET"))]:
+         rdfvalue.PathSpec.PathType.UNSET)]:
       raw_pathspec, path = client_utils_linux.LinGetRawDevice(
           filename)
 
@@ -106,6 +107,9 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     winreg.error = exceptions.Exception
     sys.modules["_winreg"] = winreg
 
+    ntsecuritycon = imp.new_module("ntsecuritycon")
+    sys.modules["ntsecuritycon"] = ntsecuritycon
+
     pywintypes = imp.new_module("pywintypes")
     pywintypes.error = Exception
     sys.modules["pywintypes"] = pywintypes
@@ -114,6 +118,9 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     winfile.GetVolumeNameForVolumeMountPoint = GetVolumeNameForVolumeMountPoint
     winfile.GetVolumePathName = GetVolumePathName
     sys.modules["win32file"] = winfile
+
+    win32security = imp.new_module("win32security")
+    sys.modules["win32security"] = win32security
 
     win32service = imp.new_module("win32service")
     sys.modules["win32service"] = win32service
@@ -219,16 +226,71 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     with tempfile.NamedTemporaryFile() as fd:
       nanny_controller = client_utils_linux.NannyController()
       nanny_controller.StartNanny(nanny_logfile=fd.name)
-      grr_message = rdfvalue.GRRMessage(session_id="W:test")
+      grr_message = rdfvalue.GrrMessage(session_id="W:test")
 
       nanny_controller.WriteTransactionLog(grr_message)
-      self.assertProto2Equal(grr_message.ToProto(),
-                             nanny_controller.GetTransactionLog().ToProto())
+      self.assertProtoEqual(grr_message, nanny_controller.GetTransactionLog())
       nanny_controller.CleanTransactionLog()
 
       self.assert_(nanny_controller.GetTransactionLog() is None)
 
       nanny_controller.StopNanny()
+
+
+class UtilsFSTest(test_lib.GRRBaseTest):
+  """Tests for GRR temp file utils."""
+
+  def setUp(self):
+    """Create fake filesystem."""
+    super(UtilsFSTest, self).setUp()
+    self.prefix = config_lib.CONFIG.Get("Client.tempfile_prefix")
+    self.existsdir = os.path.join(self.temp_dir, "this/exists/")
+    os.makedirs(self.existsdir)
+    self.not_exists = os.path.join(self.temp_dir, "does/not/exist/")
+    self.new_temp_file = os.path.join(self.not_exists, self.prefix)
+
+  def _CheckPermissions(self, filename, expected):
+    # Just look at the last 3 octets.
+    file_mode = os.stat(filename).st_mode & 0777
+    self.assertEqual(file_mode, expected)
+
+  def testCreateGRRTempFile(self):
+    fd = client_utils_common.CreateGRRTempFile(self.not_exists, suffix=".exe")
+    self.assertTrue(fd.name.startswith(self.new_temp_file))
+    self.assertTrue(fd.name.endswith(".exe"))
+    self.assertTrue(os.path.exists(fd.name))
+    self._CheckPermissions(fd.name, 0700)
+    self._CheckPermissions(os.path.dirname(fd.name), 0700)
+
+  def testCreateGRRTempFileNoDir(self):
+    fd = client_utils_common.CreateGRRTempFile()
+    self.assertTrue(os.path.basename(fd.name).startswith(self.prefix))
+    self.assertTrue(os.path.exists(fd.name))
+    self._CheckPermissions(fd.name, 0700)
+
+  def testCreateGRRTempFileRelativePath(self):
+    self.assertRaises(RuntimeError,
+                      client_utils_common.CreateGRRTempFile, "../../blah")
+
+  def testDeleteGRRTempFile(self):
+    grr_tempfile = os.path.join(self.existsdir, self.prefix)
+    open(grr_tempfile, "w").write("something")
+    client_utils_common.DeleteGRRTempFile(grr_tempfile)
+    self.assertFalse(os.path.exists(grr_tempfile))
+
+  def testDeleteGRRTempFileDoesNotExist(self):
+    self.assertRaises(OSError,
+                      client_utils_common.DeleteGRRTempFile,
+                      self.new_temp_file)
+
+  def testDeleteGRRTempFileBadPrefix(self):
+    self.assertRaises(RuntimeError,
+                      client_utils_common.DeleteGRRTempFile,
+                      os.path.join(self.existsdir, "/blah"))
+
+  def testDeleteGRRTempFileRelativePath(self):
+    self.assertRaises(RuntimeError,
+                      client_utils_common.DeleteGRRTempFile, "../../blah")
 
 
 class OSXVersionTests(test_lib.GRRBaseTest):

@@ -5,7 +5,10 @@
 
 """Loads up all client action tests."""
 
-# pylint: disable=W0611
+import platform
+
+# pylint: disable=unused-import
+# pylint: disable=g-import-not-at-top
 # These import populate the action test registry
 from grr.client.client_actions import admin_test
 from grr.client.client_actions import file_fingerprint_test
@@ -18,3 +21,6 @@ try:
   from grr.client.client_actions import grr_volatility_test
 except ImportError:
   pass
+
+if platform.system() == "Darwin":
+  from grr.client.client_actions.osx import osx_test

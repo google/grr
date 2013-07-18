@@ -48,7 +48,7 @@ class VFSHandler(object):
     _ = pathspec
     self.base_fd = base_fd
     if base_fd is None:
-      self.pathspec = rdfvalue.RDFPathSpec()
+      self.pathspec = rdfvalue.PathSpec()
     else:
       # Make a copy of the base pathspec.
       self.pathspec = base_fd.pathspec.Copy()
@@ -97,9 +97,9 @@ class VFSHandler(object):
     # TODO(user): Add support for more container here (e.g. registries, zip
     # files etc).
     else:  # For now just guess TSK.
-      return VFS_HANDLERS[rdfvalue.RDFPathSpec.Enum("TSK")](
-          self, rdfvalue.RDFPathSpec(path="/",
-                                     pathtype=rdfvalue.RDFPathSpec.Enum("TSK")))
+      return VFS_HANDLERS[rdfvalue.PathSpec.PathType.TSK](
+          self, rdfvalue.PathSpec(path="/",
+                                  pathtype=rdfvalue.PathSpec.PathType.TSK))
 
   def MatchBestComponentName(self, component):
     """Returns the name of the component which matches best our base listing.
@@ -127,8 +127,8 @@ class VFSHandler(object):
           component = x
           break
 
-    new_pathspec = rdfvalue.RDFPathSpec(path=component,
-                                        pathtype=fd.supported_pathtype)
+    new_pathspec = rdfvalue.PathSpec(path=component,
+                                     pathtype=fd.supported_pathtype)
 
     return new_pathspec
 
@@ -182,7 +182,7 @@ class VFSHandler(object):
           "VFS handler %d not supported." % component.pathtype)
 
     # We will not do any case folding unless requested.
-    if component.path_options == rdfvalue.RDFPathSpec.Enum("CASE_LITERAL"):
+    if component.path_options == rdfvalue.PathSpec.Options.CASE_LITERAL:
       return handler(base_fd=fd, pathspec=component)
 
     path_components = client_utils.LocalPathToCanonicalPath(component.path)
@@ -210,7 +210,7 @@ class VFSHandler(object):
 
         # Insert the remaining path at the front of the pathspec.
         pathspec.Insert(0, path=utils.JoinPath(*path_components[i:]),
-                        pathtype=rdfvalue.RDFPathSpec.Enum("TSK"))
+                        pathtype=rdfvalue.PathSpec.PathType.TSK)
         break
 
     return fd

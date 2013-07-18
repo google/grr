@@ -5,14 +5,19 @@
 
 
 
+import os
 import platform
+import stat
 import subprocess
+import sys
+import tempfile
 import threading
 import time
 
 
 import logging
 
+from grr.client import client_utils
 from grr.lib import config_lib
 from grr.lib import utils
 
@@ -26,6 +31,11 @@ config_lib.DEFINE_list(
     name="Client.proxy_servers",
     help="List of valid proxy servers the client should try.",
     default=[])
+
+config_lib.DEFINE_string(
+    name="Client.tempfile_prefix",
+    help="Prefix to use for temp files created by GRR.",
+    default="%(Client.name)")
 
 
 def HandleAlarm(process):
@@ -173,3 +183,85 @@ def ErrorOnceAnHour(msg, *args, **kwargs):
   except KeyError:
     logging.error(msg, *args, **kwargs)
     LOG_THROTTLE_CACHE.Put(msg, msg)
+
+
+def CreateGRRTempFile(directory=None, suffix=""):
+  """Open file with GRR prefix in directory to allow easy deletion.
+
+  Missing parent dirs will be created. If an existing directory is specified
+  its permissions won't be modified to avoid breaking system functionality.
+  Permissions on the destination file will be set to root/SYSTEM rw.
+
+  On windows the file is created, then permissions are set.  So there is
+  potentially a race condition where the file is readable by other users.  If
+  the caller doesn't specify a directory on windows we use the directory we are
+  executing from as a safe default.
+
+  Args:
+    directory: string representing absolute directory where file should be
+               written. If None, use mkstemp platform-dependent defaults.
+    suffix: optional suffix to use for the temp file
+  Returns:
+    Python file object
+  Raises:
+    OSError: on permission denied
+    RuntimeError: if path is not absolute
+    ValueError: if Client.tempfile_prefix is undefined in the config.
+  """
+  if directory:
+    if not os.path.isabs(directory):
+      raise RuntimeError("Directory %s is not absolute" % directory)
+
+    if not os.path.isdir(directory):
+      os.makedirs(directory)
+
+      # Make directory 700 before we write the file
+      if sys.platform == "win32":
+        client_utils.WinChmod(directory,
+                              ["FILE_GENERIC_READ", "FILE_GENERIC_WRITE"])
+      else:
+        os.chmod(directory, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
+  else:
+    if sys.platform == "win32":
+      # Wherever we are being run from will have good perms. Note that mkstemp
+      # on windows is not secure since it creates a world readable file when run
+      # as system.
+      directory = os.path.dirname(sys.executable)
+
+  prefix = config_lib.CONFIG.Get("Client.tempfile_prefix")
+  outfile = tempfile.NamedTemporaryFile(prefix=prefix, suffix=suffix,
+                                        dir=directory, delete=False)
+
+  # Fix perms on the file, since this code is used for writing executable blobs
+  # we apply RWX.
+  if sys.platform == "win32":
+    client_utils.WinChmod(outfile.name, ["FILE_ALL_ACCESS"],
+                          user="SYSTEM")
+  else:
+    os.chmod(outfile.name, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
+
+  return outfile
+
+
+def DeleteGRRTempFile(path):
+  """Delete a GRR temp file.
+
+  To limit possible damage the path must be absolute and only files beginning
+  with GRR_FILE_PREFIX can be deleted.
+
+  Args:
+    path: path string to file to be deleted.
+
+  Raises:
+    OSError: Permission denied, or file not found.
+    RuntimeError: Path doesn't start with GRR_FILE_PREFIX
+  """
+  if not os.path.isabs(path):
+    raise RuntimeError("Path must be absolute")
+
+  prefix = config_lib.CONFIG.Get("Client.tempfile_prefix")
+  if not os.path.basename(path).startswith(prefix):
+    msg = "Can't delete %s, filename must start with %s"
+    raise RuntimeError(msg % (path, prefix))
+
+  os.remove(path)

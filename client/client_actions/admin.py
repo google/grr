@@ -113,15 +113,15 @@ class Kill(actions.ActionPlugin):
 
   Used for testing process respawn.
   """
-  out_rdfvalue = rdfvalue.GRRMessage
+  out_rdfvalue = rdfvalue.GrrMessage
 
   def Run(self, unused_arg):
     """Run the kill."""
     # Send a message back to the service to say that we are about to shutdown.
-    reply = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.Enum("OK"))
+    reply = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.ReturnedStatus.OK)
     # Queue up the response message, jump the queue.
-    self.SendReply(reply, message_type=rdfvalue.GRRMessage.Enum("STATUS"),
-                   priority=rdfvalue.GRRMessage.Enum("HIGH_PRIORITY") + 1)
+    self.SendReply(reply, message_type=rdfvalue.GrrMessage.Type.STATUS,
+                   priority=rdfvalue.GrrMessage.Priority.HIGH_PRIORITY + 1)
 
     # Give the http thread some time to send the reply.
     self.grr_worker.Sleep(10)
@@ -172,7 +172,7 @@ class Bloat(actions.ActionPlugin):
 class GetConfiguration(actions.ActionPlugin):
   """Retrieves the running configuration parameters."""
   in_rdfvalue = None
-  out_rdfvalue = rdfvalue.RDFProtoDict
+  out_rdfvalue = rdfvalue.Dict
 
   BLOCKED_PARAMETERS = ["Client.private_key"]
 
@@ -196,7 +196,7 @@ class GetConfiguration(actions.ActionPlugin):
 
 class UpdateConfiguration(actions.ActionPlugin):
   """Updates configuration parameters on the client."""
-  in_rdfvalue = rdfvalue.RDFProtoDict
+  in_rdfvalue = rdfvalue.Dict
 
   UPDATEABLE_FIELDS = ["Client.compression",
                        "Client.foreman_check_frequency",
@@ -288,13 +288,14 @@ class GetClientStatsAuto(GetClientStats):
   """This class is used to send the reply to a well known flow on the server."""
 
   def Send(self, response):
-    self.grr_worker.SendReply(response,
-                              session_id="W:Stats",
-                              response_id=0,
-                              request_id=0,
-                              priority=rdfvalue.GRRMessage.Enum("LOW_PRIORITY"),
-                              message_type=rdfvalue.GRRMessage.Enum("MESSAGE"),
-                              require_fastpoll=False)
+    self.grr_worker.SendReply(
+        response,
+        session_id="aff4:/flows/W:Stats",
+        response_id=0,
+        request_id=0,
+        priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
+        message_type=rdfvalue.GrrMessage.Type.MESSAGE,
+        require_fastpoll=False)
 
 
 class SendStartupInfo(actions.ActionPlugin):
@@ -312,14 +313,15 @@ class SendStartupInfo(actions.ActionPlugin):
         client_info=rdfvalue.ClientInformation(
             client_name=config_lib.CONFIG["Client.name"],
             client_description=config_lib.CONFIG["Client.description"],
-            client_version=config_lib.CONFIG["Client.version_numeric"],
+            client_version=int(config_lib.CONFIG["Client.version_numeric"]),
             build_time=config_lib.CONFIG["Client.build_time"]))
 
-    self.grr_worker.SendReply(response,
-                              session_id=self.well_known_session_id,
-                              response_id=0,
-                              request_id=0,
-                              priority=rdfvalue.GRRMessage.Enum("LOW_PRIORITY"),
-                              message_type=rdfvalue.GRRMessage.Enum("MESSAGE"),
-                              require_fastpoll=False,
-                              ttl=ttl)
+    self.grr_worker.SendReply(
+        response,
+        session_id=self.well_known_session_id,
+        response_id=0,
+        request_id=0,
+        priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
+        message_type=rdfvalue.GrrMessage.Type.MESSAGE,
+        require_fastpoll=False,
+        ttl=ttl)

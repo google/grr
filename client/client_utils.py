@@ -20,6 +20,7 @@ if sys.platform == "win32":
   NannyController = client_utils_windows.NannyController
 
   KeepAlive = client_utils_windows.KeepAlive
+  WinChmod = client_utils_windows.WinChmod
 
 elif sys.platform == "darwin":
   from grr.client import client_utils_osx

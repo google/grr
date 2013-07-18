@@ -4,7 +4,7 @@
 """Client actions related to searching files and directories."""
 
 
-import re
+import functools
 import stat
 import time
 
@@ -43,7 +43,7 @@ class Find(actions.IteratedAction):
         # We failed to open the directory the server asked for because dir
         # doesn't exist or some other reason. So we set status and return
         # back to the caller ending the Iterator.
-        self.SetStatus(rdfvalue.GrrStatus.Enum("IOERROR"), e)
+        self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.IOERROR, e)
       else:
         # Can't open the directory we're searching, ignore the directory.
         logging.info("Find failed to ListDirectory for %s. Err: %s",
@@ -100,7 +100,7 @@ class Find(actions.IteratedAction):
       pass
 
     # Filename regex test
-    if not self.filter_expression["filename_regex"].search(
+    if not self.filter_expression["filename_regex"].Search(
         file_stat.pathspec.Basename()):
       return False
 
@@ -127,7 +127,7 @@ class Find(actions.IteratedAction):
           data += data_read
 
           # Got it.
-          if data_regex.search(data):
+          if data_regex.Search(data):
             return True
 
           # Keep a bit of context from the last buffer to ensure we dont miss a
@@ -142,10 +142,10 @@ class Find(actions.IteratedAction):
 
   def Iterate(self, request, client_state):
     """Restores its way through the directory using an Iterator."""
-    self.filter_expression = dict(filename_regex=re.compile(request.path_regex))
+    self.filter_expression = dict(filename_regex=request.path_regex)
 
     if request.HasField("data_regex"):
-      self.filter_expression["data_regex"] = re.compile(request.data_regex)
+      self.filter_expression["data_regex"] = request.data_regex
 
     if request.HasField("end_time") or request.HasField("start_time"):
       self.filter_expression["end_time"] = request.end_time or time.time() * 1e6
@@ -172,7 +172,7 @@ class Find(actions.IteratedAction):
         return
 
     # End this iterator
-    request.iterator.state = rdfvalue.Iterator.Enum("FINISHED")
+    request.iterator.state = rdfvalue.Iterator.State.FINISHED
 
 
 class Grep(actions.ActionPlugin):
@@ -180,9 +180,9 @@ class Grep(actions.ActionPlugin):
   in_rdfvalue = rdfvalue.GrepSpec
   out_rdfvalue = rdfvalue.BufferReference
 
-  def FindRegex(self, pattern, data):
+  def FindRegex(self, regex, data):
     """Search the data for a hit."""
-    for match in pattern.finditer(data):
+    for match in regex.FindIter(data):
       yield (match.start(), match.end())
 
   def FindLiteral(self, pattern, data):
@@ -271,11 +271,9 @@ class Grep(actions.ActionPlugin):
     self.xor_out_key = args.xor_out_key
 
     if args.regex:
-      find_func = self.FindRegex
-      f_arg = re.compile(args.regex, flags=re.I | re.S | re.M)
+      find_func = functools.partial(self.FindRegex, args.regex)
     elif args.literal:
-      find_func = self.FindLiteral
-      f_arg = bytearray(args.literal)
+      find_func = functools.partial(self.FindLiteral, bytearray(args.literal))
     else:
       raise RuntimeError("Grep needs a regex or a literal.")
 
@@ -299,7 +297,7 @@ class Grep(actions.ActionPlugin):
 
       if data_size == 0 and postscript_size == 0: break
 
-      for (start, end) in find_func(f_arg, data):
+      for (start, end) in find_func(data):
         # Ignore hits in the preamble.
         if end <= preamble_size:
           continue
@@ -321,7 +319,7 @@ class Grep(actions.ActionPlugin):
         self.SendReply(offset=base_offset + start - preamble_size,
                        data=out_data, length=len(out_data))
 
-        if args.mode == rdfvalue.GrepSpec.Enum("FIRST_HIT"):
+        if args.mode == rdfvalue.GrepSpec.Mode.FIRST_HIT:
           return
 
         if hits >= self.HIT_LIMIT:

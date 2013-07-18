@@ -6,11 +6,14 @@
 import ctypes
 import exceptions
 import logging
+import os
 import re
 import time
 import _winreg
+import ntsecuritycon
 import pywintypes
 import win32file
+import win32security
 
 from google.protobuf import message
 
@@ -26,6 +29,9 @@ config_lib.DEFINE_string("NannyWindows.service_name", "GRR Service",
 
 config_lib.DEFINE_string("NannyWindows.service_key", "Software\\GRR",
                          help="The registry key of the nanny service.")
+
+DACL_PRESENT = 1
+DACL_DEFAULT = 0
 
 
 def CanonicalPathToLocalPath(path):
@@ -70,6 +76,47 @@ def LocalPathToCanonicalPath(path):
     result.append(component)
 
   return utils.JoinPath(*result)
+
+
+def WinChmod(filename, acl_list, user="SYSTEM"):
+  """Provide chmod-like functionality for windows.
+
+  Doco links:
+    goo.gl/n7YR1
+    goo.gl/rDv81
+    goo.gl/hDobb
+
+  Args:
+    filename: target filename for acl
+    acl_list: list of ntsecuritycon acl strings to be applied with bitwise OR.
+              e.g. ["FILE_GENERIC_READ", "FILE_GENERIC_WRITE"]
+    user: username string
+  Raises:
+    AttributeError: if a bad permission is passed
+    RuntimeError: if filename doesn't exist
+  """
+  if not os.path.exists(filename):
+    raise RuntimeError("filename %s does not exist" % filename)
+
+  acl_bitmask = 0
+  for acl in acl_list:
+    acl_bitmask |= getattr(ntsecuritycon, acl)
+
+  dacl = win32security.ACL()
+  win_user, _, _ = win32security.LookupAccountName("", user)
+
+  dacl.AddAccessAllowedAce(win32security.ACL_REVISION,
+                           acl_bitmask, win_user)
+
+  security_descriptor = win32security.GetFileSecurity(
+      filename, win32security.DACL_SECURITY_INFORMATION)
+
+  # Tell windows to set the acl and mark it as explicitly set
+  security_descriptor.SetSecurityDescriptorDacl(DACL_PRESENT, dacl,
+                                                DACL_DEFAULT)
+  win32security.SetFileSecurity(filename,
+                                win32security.DACL_SECURITY_INFORMATION,
+                                security_descriptor)
 
 
 def WinFindProxies():
@@ -172,9 +219,9 @@ def WinGetRawDevice(path):
   volume = LocalPathToCanonicalPath(volume)
 
   # The pathspec for the raw volume
-  result = rdfvalue.RDFPathSpec(path=volume,
-                                pathtype=rdfvalue.RDFPathSpec.Enum("OS"),
-                                mount_point=mount_point.rstrip("\\"))
+  result = rdfvalue.PathSpec(path=volume,
+                             pathtype=rdfvalue.PathSpec.PathType.OS,
+                             mount_point=mount_point.rstrip("\\"))
 
   return result, corrected_path
 
@@ -248,7 +295,7 @@ class NannyController(object):
       return
 
     try:
-      return rdfvalue.GRRMessage(value)
+      return rdfvalue.GrrMessage(value)
     except message.Error:
       return
 

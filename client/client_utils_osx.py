@@ -221,7 +221,7 @@ def OSXGetRawDevice(path):
   path = utils.SmartUnicode(path)
   mount_point = path = utils.NormalizePath(path, "/")
 
-  result = rdfvalue.RDFPathSpec(pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+  result = rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.OS)
 
   # Assign the most specific mount point to the result
   while mount_point:
@@ -230,9 +230,9 @@ def OSXGetRawDevice(path):
       if fs_type in ["ext2", "ext3", "ext4", "vfat", "ntfs",
                      "Apple_HFS", "hfs", "msdos"]:
         # These are read filesystems
-        result.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+        result.pathtype = rdfvalue.PathSpec.PathType.OS
       else:
-        result.pathtype = rdfvalue.RDFPathSpec.Enum("UNSET")
+        result.pathtype = rdfvalue.PathSpec.PathType.UNSET
 
       # Drop the mount point
       path = utils.NormalizePath(path[len(mount_point):])
@@ -254,6 +254,10 @@ def LocalPathToCanonicalPath(path):
 
 def InstallDriver(kext_path):
   """Calls into the IOKit to load a kext by file-system path.
+
+  Apple kext API doco here:
+    http://developer.apple.com/library/mac/#documentation/IOKit/Reference/
+      KextManager_header_reference/Reference/reference.html
 
   Args:
     kext_path: Absolute or relative POSIX path to the kext.

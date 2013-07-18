@@ -31,7 +31,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     self.assertRaises(IOError, open, self.config_file)
 
     location = "http://www.example.com"
-    request = rdfvalue.RDFProtoDict()
+    request = rdfvalue.Dict()
     request["Client.location"] = location
     request["Client.foreman_check_frequency"] = 3600
 
@@ -61,7 +61,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     config_lib.CONFIG.Set("Client.server_serial_number", 1)
 
     location = "http://www.example.com"
-    request = rdfvalue.RDFProtoDict()
+    request = rdfvalue.Dict()
     request["Client.location"] = location
     request["Client.server_serial_number"] = 10
 
@@ -77,7 +77,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     """Check GetConfig client action works."""
     # Use UpdateConfig to generate a config.
     location = "http://example.com"
-    request = rdfvalue.RDFProtoDict()
+    request = rdfvalue.Dict()
     request["Client.location"] = location
     request["Client.foreman_check_frequency"] = 3600
 

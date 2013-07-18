@@ -134,7 +134,7 @@ def main(unused_argv):
   config_lib.CONFIG.SetEnv("Environment.component",
                            "PoolClient%s" % platform.system().title())
 
-  startup.Init()
+  startup.ClientInit()
 
   # Make sure that we do not update the config file when we create new clients.
   config_lib.CONFIG.parser.filename = "/dev/null"
@@ -146,8 +146,8 @@ def main(unused_argv):
 
   # Let the OS handler also handle sleuthkit requests since sleuthkit is not
   # thread safe.
-  tsk = rdfvalue.RDFPathSpec.Enum("TSK")
-  os = rdfvalue.RDFPathSpec.Enum("OS")
+  tsk = rdfvalue.PathSpec.PathType.TSK
+  os = rdfvalue.PathSpec.PathType.OS
   vfs.VFS_HANDLERS[tsk] = vfs.VFS_HANDLERS[os]
 
   CreateClientPool(flags.FLAGS.nrclients)

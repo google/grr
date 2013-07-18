@@ -21,7 +21,7 @@ class MockVFSHandlerFind(vfs.VFSHandler):
   This is used to create the /mock2/ client vfs branch which is utilized in the
   below tests.
   """
-  supported_pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+  supported_pathtype = rdfvalue.PathSpec.PathType.OS
 
   filesystem = {"/": ["mock2"],
                 "/mock2": ["directory1", "directory3"],
@@ -74,6 +74,7 @@ class MockVFSHandlerFind(vfs.VFSHandler):
     else:
       result.st_mode = 040775
     result.st_size = len(f)
+
     return result
 
   def ListFiles(self):
@@ -84,7 +85,7 @@ class MockVFSHandlerFind(vfs.VFSHandler):
       result = self.DoStat(path)
       ps = self.pathspec.Copy()
       ps.Append(path=child, pathtype=self.supported_pathtype)
-      result.pathspec.MergeFrom(ps.ToProto())
+      result.pathspec = ps
       yield result
 
   def IsDirectory(self):
@@ -92,7 +93,7 @@ class MockVFSHandlerFind(vfs.VFSHandler):
 
   def Stat(self):
     result = self.DoStat(self.path)
-    result.pathspec.MergeFrom(self.pathspec.ToProto())
+    result.pathspec = self.pathspec
     return result
 
 
@@ -124,13 +125,13 @@ class FindTest(test_lib.EmptyActionTest):
     super(FindTest, self).setUp()
 
     # Install the mock
-    vfs.VFS_HANDLERS[rdfvalue.RDFPathSpec.Enum("OS")] = MockVFSHandlerFind
+    vfs.VFS_HANDLERS[rdfvalue.PathSpec.PathType.OS] = MockVFSHandlerFind
 
   def testFindAction(self):
     """Test the find action."""
     # First get all the files at once
-    pathspec = rdfvalue.RDFPathSpec(path="/mock2/",
-                                    pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    pathspec = rdfvalue.PathSpec(path="/mock2/",
+                                 pathtype=rdfvalue.PathSpec.PathType.OS)
     request = rdfvalue.RDFFindSpec(pathspec=pathspec, path_regex=".")
     request.iterator.number = 200
     result = self.RunAction("Find", request)
@@ -143,7 +144,7 @@ class FindTest(test_lib.EmptyActionTest):
 
     while True:
       result = self.RunAction("Find", request)
-      if request.iterator.state == rdfvalue.Iterator.Enum("FINISHED"):
+      if request.iterator.state == rdfvalue.Iterator.State.FINISHED:
         break
 
       self.assertEqual(len(result), 2)
@@ -154,18 +155,18 @@ class FindTest(test_lib.EmptyActionTest):
       request.iterator = result[1].Copy()
 
     for x, y in zip(all_files, files):
-      self.assertProto2Equal(x._data, y._data)
+      self.assertProtoEqual(x, y)
 
     # Make sure the iterator is finished
-    self.assertEqual(request.iterator.state, rdfvalue.Iterator.Enum("FINISHED"))
+    self.assertEqual(request.iterator.state, rdfvalue.Iterator.State.FINISHED)
 
     # Ensure we remove old states from client_state
     self.assertEqual(len(request.iterator.client_state.dat), 0)
 
   def testFindAction2(self):
     """Test the find action path regex."""
-    pathspec = rdfvalue.RDFPathSpec(path="/mock2/",
-                                    pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    pathspec = rdfvalue.PathSpec(path="/mock2/",
+                                 pathtype=rdfvalue.PathSpec.PathType.OS)
     request = rdfvalue.RDFFindSpec(pathspec=pathspec, path_regex=".*mp3")
     request.iterator.number = 200
     result = self.RunAction("Find", request)
@@ -178,8 +179,8 @@ class FindTest(test_lib.EmptyActionTest):
   def testFindAction3(self):
     """Test the find action data regex."""
     # First get all the files at once
-    pathspec = rdfvalue.RDFPathSpec(path="/mock2/",
-                                    pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    pathspec = rdfvalue.PathSpec(path="/mock2/",
+                                 pathtype=rdfvalue.PathSpec.PathType.OS)
     request = rdfvalue.RDFFindSpec(pathspec=pathspec, data_regex="Secret",
                                    cross_devs=True)
     request.iterator.number = 200
@@ -193,8 +194,8 @@ class FindTest(test_lib.EmptyActionTest):
 
   def testFindActionCrossDev(self):
     """Test that devices boundaries don't get crossed, also by default."""
-    pathspec = rdfvalue.RDFPathSpec(path="/mock2/",
-                                    pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    pathspec = rdfvalue.PathSpec(path="/mock2/",
+                                 pathtype=rdfvalue.PathSpec.PathType.OS)
     request = rdfvalue.RDFFindSpec(pathspec=pathspec, cross_devs=True)
     request.iterator.number = 200
     results = self.RunAction("Find", request)
@@ -224,7 +225,7 @@ class GrepTest(test_lib.EmptyActionTest):
     super(GrepTest, self).setUp()
 
     # Install the mock
-    vfs.VFS_HANDLERS[rdfvalue.RDFPathSpec.Enum("OS")] = MockVFSHandlerFind
+    vfs.VFS_HANDLERS[rdfvalue.PathSpec.PathType.OS] = MockVFSHandlerFind
     self.filename = "/mock2/directory1/grepfile.txt"
 
   def testGrep(self):
@@ -236,7 +237,7 @@ class GrepTest(test_lib.EmptyActionTest):
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = os.path.join(self.base_path, "numbers.txt")
-    request.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+    request.target.pathtype = rdfvalue.PathSpec.PathType.OS
     request.start_offset = 0
 
     result = self.RunAction("Grep", request)
@@ -253,9 +254,9 @@ class GrepTest(test_lib.EmptyActionTest):
 
     request = rdfvalue.GrepSpec(
         regex="1[0]", xor_out_key=self.XOR_OUT_KEY, start_offset=0,
-        target=rdfvalue.RDFPathSpec(
+        target=rdfvalue.PathSpec(
             path=os.path.join(self.base_path, "numbers.txt"),
-            pathtype=rdfvalue.RDFPathSpec.Enum("OS")))
+            pathtype=rdfvalue.PathSpec.PathType.OS))
 
     result = self.RunAction("Grep", request)
     hits = [x.offset for x in result]
@@ -275,7 +276,7 @@ class GrepTest(test_lib.EmptyActionTest):
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
-    request.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+    request.target.pathtype = rdfvalue.PathSpec.PathType.OS
     request.start_offset = 0
 
     result = self.RunAction("Grep", request)
@@ -287,7 +288,7 @@ class GrepTest(test_lib.EmptyActionTest):
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
-    request.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+    request.target.pathtype = rdfvalue.PathSpec.PathType.OS
     request.start_offset = 0
     request.length = 100
 
@@ -304,7 +305,7 @@ class GrepTest(test_lib.EmptyActionTest):
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
-    request.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+    request.target.pathtype = rdfvalue.PathSpec.PathType.OS
     request.start_offset = 0
 
     result = self.RunAction("Grep", request)
@@ -316,7 +317,7 @@ class GrepTest(test_lib.EmptyActionTest):
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
-    request.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+    request.target.pathtype = rdfvalue.PathSpec.PathType.OS
     request.start_offset = 5
 
     result = self.RunAction("Grep", request)
@@ -329,7 +330,7 @@ class GrepTest(test_lib.EmptyActionTest):
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
-    request.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+    request.target.pathtype = rdfvalue.PathSpec.PathType.OS
     request.start_offset = 11
 
     result = self.RunAction("Grep", request)
@@ -345,7 +346,7 @@ class GrepTest(test_lib.EmptyActionTest):
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
-    request.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+    request.target.pathtype = rdfvalue.PathSpec.PathType.OS
     request.start_offset = 11
     request.length = 100
 
@@ -363,7 +364,7 @@ class GrepTest(test_lib.EmptyActionTest):
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
-    request.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+    request.target.pathtype = rdfvalue.PathSpec.PathType.OS
     request.start_offset = 0
 
     result = self.RunAction("Grep", request)
@@ -383,7 +384,7 @@ class GrepTest(test_lib.EmptyActionTest):
           xor_in_key=self.XOR_IN_KEY,
           xor_out_key=self.XOR_OUT_KEY)
       request.target.path = self.filename
-      request.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+      request.target.pathtype = rdfvalue.PathSpec.PathType.OS
       request.start_offset = 0
 
       result = self.RunAction("Grep", request)
@@ -406,7 +407,7 @@ class GrepTest(test_lib.EmptyActionTest):
             xor_in_key=self.XOR_IN_KEY,
             xor_out_key=self.XOR_OUT_KEY)
         request.target.path = self.filename
-        request.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+        request.target.pathtype = rdfvalue.PathSpec.PathType.OS
         request.start_offset = 0
         request.bytes_before = before
         request.bytes_after = after
@@ -431,7 +432,7 @@ class GrepTest(test_lib.EmptyActionTest):
           xor_in_key=self.XOR_IN_KEY,
           xor_out_key=self.XOR_OUT_KEY)
       request.target.path = self.filename
-      request.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+      request.target.pathtype = rdfvalue.PathSpec.PathType.OS
       request.start_offset = 0
       request.bytes_before = 10
       request.bytes_after = 10
@@ -456,7 +457,7 @@ class GrepTest(test_lib.EmptyActionTest):
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
-    request.target.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+    request.target.pathtype = rdfvalue.PathSpec.PathType.OS
     request.start_offset = 0
     request.bytes_before = 10
     request.bytes_after = 10

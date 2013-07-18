@@ -22,11 +22,11 @@ class GrrVolatilityTest(test_lib.EmptyActionTest):
       return False
 
     self.request = rdfvalue.VolatilityRequest(
-        device=rdfvalue.RDFPathSpec(path=image_path,
-                                    pathtype=rdfvalue.RDFPathSpec.Enum("OS")),
+        device=rdfvalue.PathSpec(path=image_path,
+                                 pathtype=rdfvalue.PathSpec.PathType.OS),
         # To speed up the test we provide these values. In real life these
         # values will be provided by the kernel driver.
-        session=rdfvalue.RDFProtoDict(
+        session=rdfvalue.Dict(
             dtb=0x187000, kdbg=0xF80002803070))
 
     # In this test we explicitly do not set the profile to use so we can see if
@@ -66,7 +66,7 @@ class GrrVolatilityTest(test_lib.EmptyActionTest):
 
     args = {"pslist": {"pid": 2860}}
 
-    self.request.args = rdfvalue.RDFProtoDict(args)
+    self.request.args = rdfvalue.Dict(args)
 
     result = self.RunAction("VolatilityAction", self.request)
 

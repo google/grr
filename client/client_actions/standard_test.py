@@ -3,10 +3,13 @@
 
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Test client standard actions."""
+import gzip
 import hashlib
+import os
 
 
 from M2Crypto import RSA
+from grr.client import conf
 
 from grr.lib import config_lib
 from grr.lib import rdfvalue
@@ -115,10 +118,76 @@ utils.TEST_VAL = py_args[43]
 """
     signed_blob = rdfvalue.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)
-    pdict = rdfvalue.RDFProtoDict({"test": "dict_arg",
-                                   43: "dict_arg2"})
+    pdict = rdfvalue.Dict({"test": "dict_arg",
+                           43: "dict_arg2"})
     request = rdfvalue.ExecutePythonRequest(python_code=signed_blob,
                                             py_args=pdict)
     result = self.RunAction("ExecutePython", request)[0]
     self.assertEqual(result.return_val, "dict_arg")
     self.assertEqual(utils.TEST_VAL, "dict_arg2")
+
+
+class TestCopyPathToFile(test_lib.EmptyActionTest):
+  """Test CopyPathToFile client actions."""
+
+  def setUp(self):
+    super(TestCopyPathToFile, self).setUp()
+    self.path_in = os.path.join(self.base_path, "morenumbers.txt")
+    self.hash_in = hashlib.sha1(open(self.path_in).read()).hexdigest()
+    self.pathspec = rdfvalue.PathSpec(
+        path=self.path_in, pathtype=rdfvalue.PathSpec.PathType.OS)
+
+  def testCopyPathToFile(self):
+    request = rdfvalue.CopyPathToFileRequest(offset=0,
+                                             length=0,
+                                             src_path=self.pathspec,
+                                             dest_dir=self.temp_dir,
+                                             gzip_output=False)
+    result = self.RunAction("CopyPathToFile", request)[0]
+    hash_out = hashlib.sha1(open(result.dest_path.path).read()).hexdigest()
+    self.assertEqual(self.hash_in, hash_out)
+
+  def testCopyPathToFileLimitLength(self):
+    request = rdfvalue.CopyPathToFileRequest(offset=0,
+                                             length=23,
+                                             src_path=self.pathspec,
+                                             dest_dir=self.temp_dir,
+                                             gzip_output=False)
+    result = self.RunAction("CopyPathToFile", request)[0]
+    output = open(result.dest_path.path).read()
+    self.assertEqual(len(output), 23)
+
+  def testCopyPathToFileOffsetandLimit(self):
+
+    with open(self.path_in) as f:
+      f.seek(38)
+      out = f.read(25)
+      hash_in = hashlib.sha1(out).hexdigest()
+
+    request = rdfvalue.CopyPathToFileRequest(offset=38,
+                                             length=25,
+                                             src_path=self.pathspec,
+                                             dest_dir=self.temp_dir,
+                                             gzip_output=False)
+    result = self.RunAction("CopyPathToFile", request)[0]
+    output = open(result.dest_path.path).read()
+    self.assertEqual(len(output), 25)
+    hash_out = hashlib.sha1(output).hexdigest()
+    self.assertEqual(hash_in, hash_out)
+
+  def testCopyPathToFileGzip(self):
+    request = rdfvalue.CopyPathToFileRequest(offset=0,
+                                             length=0,
+                                             src_path=self.pathspec,
+                                             dest_dir=self.temp_dir,
+                                             gzip_output=True)
+    result = self.RunAction("CopyPathToFile", request)[0]
+    self.assertEqual(hashlib.sha1(
+        gzip.open(result.dest_path.path).read()).hexdigest(), self.hash_in)
+
+
+def main(argv):
+  test_lib.main(argv)
+
+if __name__ == "__main__":
+  conf.StartMain(main)

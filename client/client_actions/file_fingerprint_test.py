@@ -26,21 +26,21 @@ class FilehashTest(test_lib.EmptyActionTest):
   def testHashFile(self):
     """Can we hash a file?"""
     path = os.path.join(self.base_path, "numbers.txt")
-    p = rdfvalue.RDFPathSpec(path=path,
-                             pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    p = rdfvalue.PathSpec(path=path,
+                          pathtype=rdfvalue.PathSpec.PathType.OS)
     result = self.RunAction("FingerprintFile",
                             rdfvalue.FingerprintRequest(pathspec=p))
     types = result[0].matching_types
     fingers = {}
-    for f in result[0].fingerprint_results:
+    for f in result[0].results:
       fingers[f["name"]] = f
     generic_sha256 = fingers["generic"]["sha256"]
     self.assertEqual(generic_sha256,
                      hashlib.sha256(open(path).read()).digest())
 
     # Make sure all fingers are listed in types and vice versa.
-    t_map = {rdfvalue.FingerprintTuple.Enum("FPT_GENERIC"): "generic",
-             rdfvalue.FingerprintTuple.Enum("FPT_PE_COFF"): "pecoff"}
+    t_map = {rdfvalue.FingerprintTuple.Type.FPT_GENERIC: "generic",
+             rdfvalue.FingerprintTuple.Type.FPT_PE_COFF: "pecoff"}
     ti_map = dict((v, k) for k, v in t_map.iteritems())
     for t in types:
       self.assertTrue(t_map[t] in fingers)
@@ -52,8 +52,8 @@ class FilehashTest(test_lib.EmptyActionTest):
   def testMissingFile(self):
     """Fail on missing file?"""
     path = os.path.join(self.base_path, "this file does not exist")
-    p = rdfvalue.RDFPathSpec(path=path,
-                             pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    p = rdfvalue.PathSpec(path=path,
+                          pathtype=rdfvalue.PathSpec.PathType.OS)
     self.assertRaises(IOError, self.RunAction, "FingerprintFile",
                       rdfvalue.FingerprintRequest(pathspec=p))
 

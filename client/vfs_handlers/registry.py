@@ -250,7 +250,7 @@ def Reg2Py(data, size, data_type):
 class RegistryFile(vfs.VFSHandler):
   """Emulate registry access through the VFS."""
 
-  supported_pathtype = rdfvalue.RDFPathSpec.Enum("REGISTRY")
+  supported_pathtype = rdfvalue.PathSpec.PathType.REGISTRY
   auto_register = True
 
   value = None
@@ -261,17 +261,17 @@ class RegistryFile(vfs.VFSHandler):
 
   # Maps the registry types to protobuf enums
   registry_map = {
-      _winreg.REG_NONE: rdfvalue.StatEntry.Enum("REG_NONE"),
-      _winreg.REG_SZ: rdfvalue.StatEntry.Enum("REG_SZ"),
-      _winreg.REG_EXPAND_SZ: rdfvalue.StatEntry.Enum("REG_EXPAND_SZ"),
-      _winreg.REG_BINARY: rdfvalue.StatEntry.Enum("REG_BINARY"),
-      _winreg.REG_DWORD: rdfvalue.StatEntry.Enum("REG_DWORD"),
+      _winreg.REG_NONE: rdfvalue.StatEntry.RegistryType.REG_NONE,
+      _winreg.REG_SZ: rdfvalue.StatEntry.RegistryType.REG_SZ,
+      _winreg.REG_EXPAND_SZ: rdfvalue.StatEntry.RegistryType.REG_EXPAND_SZ,
+      _winreg.REG_BINARY: rdfvalue.StatEntry.RegistryType.REG_BINARY,
+      _winreg.REG_DWORD: rdfvalue.StatEntry.RegistryType.REG_DWORD,
       _winreg.REG_DWORD_LITTLE_ENDIAN: (
-          rdfvalue.StatEntry.Enum("REG_DWORD_LITTLE_ENDIAN")),
+          rdfvalue.StatEntry.RegistryType.REG_DWORD_LITTLE_ENDIAN),
       _winreg.REG_DWORD_BIG_ENDIAN: (
-          rdfvalue.StatEntry.Enum("REG_DWORD_BIG_ENDIAN")),
-      _winreg.REG_LINK: rdfvalue.StatEntry.Enum("REG_LINK"),
-      _winreg.REG_MULTI_SZ: rdfvalue.StatEntry.Enum("REG_MULTI_SZ"),
+          rdfvalue.StatEntry.RegistryType.REG_DWORD_BIG_ENDIAN),
+      _winreg.REG_LINK: rdfvalue.StatEntry.RegistryType.REG_LINK,
+      _winreg.REG_MULTI_SZ: rdfvalue.StatEntry.RegistryType.REG_MULTI_SZ,
       }
 
   def __init__(self, base_fd, pathspec=None):
@@ -336,7 +336,7 @@ class RegistryFile(vfs.VFSHandler):
 
     # No matter how we got here, there is no need to do case folding from now on
     # since this is the exact filename casing.
-    response_pathspec.path_options = rdfvalue.RDFPathSpec.Enum("CASE_LITERAL")
+    response_pathspec.path_options = rdfvalue.PathSpec.Options.CASE_LITERAL
 
     response_pathspec.last.path = utils.JoinPath(
         response_pathspec.last.path, name)

@@ -198,10 +198,10 @@ class EnumerateInterfaces(actions.ActionPlugin):
       for ip_address in interface.IPAddress:
         if ":" in ip_address:
           # IPv6
-          address_type = rdfvalue.NetworkAddress.Enum("INET6")
+          address_type = rdfvalue.NetworkAddress.Family.INET6
         else:
           # IPv4
-          address_type = rdfvalue.NetworkAddress.Enum("INET")
+          address_type = rdfvalue.NetworkAddress.Family.INET
 
         addresses.append(rdfvalue.NetworkAddress(human_readable=ip_address,
                                                  address_type=address_type))
@@ -272,15 +272,18 @@ def QueryService(svc_name):
 class WmiQuery(actions.ActionPlugin):
   """Runs a WMI query and returns the results to a server callback."""
   in_rdfvalue = rdfvalue.WMIRequest
-  out_rdfvalue = rdfvalue.RDFProtoDict
+  out_rdfvalue = rdfvalue.Dict
 
   def Run(self, args):
     """Run the WMI query and return the data."""
     query = args.query
 
+    if not query.upper().startswith("SELECT "):
+      raise RuntimeError("Only SELECT WMI queries allowed.")
+
     # Now return the data to the server
     for response_dict in RunWMIQuery(query):
-      self.SendReply(rdfvalue.RDFProtoDict(response_dict))
+      self.SendReply(rdfvalue.Dict(response_dict))
 
 
 def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
@@ -291,7 +294,8 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
     baseobj: the base object for the WMI query.
 
   Yields:
-    A dict containing a list of key value pairs.
+    Dicts containing key value pairs from the resulting COM objects.
+    Every value is converted into a Unicode string representation.
   """
   pythoncom.CoInitialize()   # Needs to be called if using com from a thread.
   wmi_obj = win32com.client.GetObject(baseobj)
@@ -345,7 +349,7 @@ CTRL_IOCTRL = CtlCode(0x22, 0x101, 0, 3)  # Set acquisition modes.
 class GetMemoryInformation(actions.ActionPlugin):
   """Loads the driver for memory access and returns a Stat for the device."""
 
-  in_rdfvalue = rdfvalue.RDFPathSpec
+  in_rdfvalue = rdfvalue.PathSpec
   out_rdfvalue = rdfvalue.MemoryInformation
 
   def Run(self, args):
@@ -371,9 +375,9 @@ class GetMemoryInformation(actions.ActionPlugin):
 
     result = rdfvalue.MemoryInformation(
         cr3=cr3,
-        device=rdfvalue.RDFPathSpec(
+        device=rdfvalue.PathSpec(
             path=args.path,
-            pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY")))
+            pathtype=rdfvalue.PathSpec.PathType.MEMORY))
 
     offset = struct.calcsize(fmt_string)
     for x in range(number_of_runs):

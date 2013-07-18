@@ -14,15 +14,16 @@ import sys
 
 
 from grr.client import comms
-from grr.client import conf as flags
 
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
 
 
-flags.DEFINE_bool("install", False,
-                  "Specify this to install the client.")
+config_lib.DEFINE_list(
+    name="Installer.plugins",
+    default=[],
+    help="Plugins that will be loaded during installation.")
 
 config_lib.DEFINE_string(
     name="Installer.logfile",
@@ -43,99 +44,73 @@ class Installer(registry.HookRegistry):
   __metaclass__ = registry.MetaclassRegistry
 
 
-class InstallerInit(registry.InitHook):
-  """Run all installer plugins in their specific dependency list."""
-  pre = ["SetUpLogging", "ClientPlugins"]
+def InstallerNotifyServer():
+  """An emergency function Invoked when the client installation failed."""
 
-  def NotifyServer(self):
-    """An emergency function Invoked when the client installation failed."""
+  try:
+    log_data = open(config_lib.CONFIG["Installer.logfile"], "rb").read()
+  except (IOError, OSError):
+    log_data = ""
 
-    try:
-      log_data = open(
-          config_lib.CONFIG["Installer.logfile"], "rb").read()
-    except (IOError, OSError):
-      log_data = ""
+  # Start the client and send the server a message, then terminate. The
+  # private key may be empty if we did not install properly yet. In this case,
+  # the client will automatically generate a random client ID and private key
+  # (and the message will be unauthenticated since we never enrolled.).
+  comms.CommsInit().RunOnce()
 
-    # Start the client and send the server a message, then terminate. The
-    # private key may be empty if we did not install properly yet. In this case,
-    # the client will automatically generate a random client ID and private key
-    # (and the message will be unauthenticated since we never enrolled.).
-    comms.CommsInit().RunOnce()
+  client = comms.GRRHTTPClient(
+      ca_cert=config_lib.CONFIG["CA.certificate"],
+      private_key=config_lib.CONFIG["Client.private_key"])
 
-    client = comms.GRRHTTPClient(
-        ca_cert=config_lib.CONFIG["CA.certificate"],
-        private_key=config_lib.CONFIG["Client.private_key"])
+  client.GetServerCert()
+  client.client_worker.SendReply(
+      session_id="W:InstallationFailed",
+      message_type=rdfvalue.GRRMessage.Enum("STATUS"),
+      request_id=0, response_id=0,
+      rdf_value=rdfvalue.GrrStatus(
+          status=rdfvalue.GrrStatus.Enum("GENERIC_ERROR"),
+          error_message="Installation failed.",
+          backtrace=log_data[-10000:]))
 
-    client.GetServerCert()
-    client.client_worker.SendReply(
-        session_id="W:InstallationFailed",
-        message_type=rdfvalue.GRRMessage.Enum("STATUS"),
-        request_id=0, response_id=0,
-        rdf_value=rdfvalue.GrrStatus(
-            status=rdfvalue.GrrStatus.Enum("GENERIC_ERROR"),
-            error_message="Installation failed.",
-            backtrace=log_data[-10000:]))
-
-    client.RunOnce()
-
-  def RunOnce(self):
-    """Run all installers.
-
-    If the flag --install is provided, we run all the current installers and
-    then exit the process.
-    """
-    if flags.FLAGS.install:
-      # Always log to the installer logfile at debug level. This way if our
-      # installer fails we can send detailed diagnostics.
-      handler = logging.FileHandler(
-          config_lib.CONFIG["Installer.logfile"], mode="wb")
-
-      handler.setLevel(logging.DEBUG)
-
-      # Add this to the root logger.
-      logging.getLogger().addHandler(handler)
-
-      logging.warn("Starting installation procedure for GRR client.")
-      try:
-        Installer().Init()
-      except Exception as e:  # pylint: disable=broad-except
-        # Ouch! we failed to install... Not a lot we can do
-        # here - just log the error and give up.
-        logging.exception("Installation failed: %s", e)
-
-        # Let the server know about this just in case.
-        self.NotifyServer()
-
-        # Error return status.
-        sys.exit(-1)
-
-      # Exit successfully.
-      sys.exit(0)
+  client.RunOnce()
 
 
-config_lib.DEFINE_list("Installer.plugins", [],
-                       "Plugins that will be loaded during installation.")
+def InstallerPluginInit():
+  """Register any installer plugins."""
+  for plugin in config_lib.CONFIG["Installer.plugins"]:
+    # Load from path relative to our executable.
+    config_lib.PluginLoader.LoadPlugin(
+        os.path.join(os.path.dirname(sys.executable), plugin))
 
 
-class InstallerPlugins(Installer):
-  """Load installer plugins on the client.
+def RunInstaller():
+  """Run all registered installers.
 
-  These plugins are only loaded during installation. We load very
-  early to allow plugins to run at arbitrary points in the
-  installation process.
+  Run all the current installers and then exit the process.
   """
+  # Always log to the installer logfile at debug level. This way if our
+  # installer fails we can send detailed diagnostics.
+  handler = logging.FileHandler(
+      config_lib.CONFIG["Installer.logfile"], mode="wb")
 
-  order = 10
+  handler.setLevel(logging.DEBUG)
 
-  def RunOnce(self):
-    """Load plugins relative to our current binary location."""
-    for plugin in config_lib.CONFIG["Installer.plugins"]:
-      config_lib.PluginLoader.LoadPlugin(
-          os.path.join(os.path.dirname(sys.executable),
-                       plugin))
+  # Add this to the root logger.
+  logging.getLogger().addHandler(handler)
 
-    # Force the Hook registry to re-calculate hook ordering. Without this, it
-    # will be impossible to introduce a new hook through a plugin which honours
-    # the normal ordering logic, because the ordering for this run has already
-    # been determined before we got called.
-    raise StopIteration()
+  logging.warn("Starting installation procedure for GRR client.")
+  try:
+    Installer().Init()
+  except Exception as e:  # pylint: disable=broad-except
+    # Ouch! we failed to install... Not a lot we can do
+    # here - just log the error and give up.
+    logging.exception("Installation failed: %s", e)
+
+    # Let the server know about this just in case.
+    InstallerNotifyServer()
+
+    # Error return status.
+    sys.exit(-1)
+
+  # Exit successfully.
+  sys.exit(0)

@@ -41,7 +41,7 @@ if "linux" in sys.platform:
   class LinuxMemory(MemoryVFS):
     """A Linux memory VFS driver."""
 
-    supported_pathtype = rdfvalue.RDFPathSpec.Enum("MEMORY")
+    supported_pathtype = rdfvalue.PathSpec.PathType.MEMORY
     auto_register = True
 
     def __init__(self, base_fd, pathspec=None):
@@ -82,7 +82,7 @@ elif sys.platform.startswith("win"):
 
   class WindowsMemory(MemoryVFS):
     """Read the raw memory."""
-    supported_pathtype = rdfvalue.RDFPathSpec.Enum("MEMORY")
+    supported_pathtype = rdfvalue.PathSpec.PathType.MEMORY
     auto_register = True
 
     # This is the dtb and kdbg if available
@@ -203,7 +203,7 @@ if "darwin" in sys.platform:
                           13,  # Pal Code
                           14)  # Max Memory Type
 
-    supported_pathtype = rdfvalue.RDFPathSpec.Enum("MEMORY")
+    supported_pathtype = rdfvalue.PathSpec.PathType.MEMORY
     auto_register = True
 
     def __init__(self, base_fd, pathspec=None):

@@ -17,16 +17,16 @@ class FingerprintFile(standard.ReadBuffer):
   out_rdfvalue = rdfvalue.FingerprintResponse
 
   _hash_types = {
-      rdfvalue.FingerprintTuple.Enum("MD5"): hashlib.md5,
-      rdfvalue.FingerprintTuple.Enum("SHA1"): hashlib.sha1,
-      rdfvalue.FingerprintTuple.Enum("SHA256"): hashlib.sha256,
+      rdfvalue.FingerprintTuple.Hash.MD5: hashlib.md5,
+      rdfvalue.FingerprintTuple.Hash.SHA1: hashlib.sha1,
+      rdfvalue.FingerprintTuple.Hash.SHA256: hashlib.sha256,
   }
 
   _fingerprint_types = {
-      rdfvalue.FingerprintTuple.Enum("FPT_GENERIC"):
-      fingerprint.Fingerprinter.EvalGeneric,
-      rdfvalue.FingerprintTuple.Enum("FPT_PE_COFF"):
-      fingerprint.Fingerprinter.EvalPecoff,
+      rdfvalue.FingerprintTuple.Type.FPT_GENERIC: (
+          fingerprint.Fingerprinter.EvalGeneric),
+      rdfvalue.FingerprintTuple.Type.FPT_PE_COFF: (
+          fingerprint.Fingerprinter.EvalPecoff),
   }
 
   def Run(self, args):
@@ -58,5 +58,5 @@ class FingerprintFile(standard.ReadBuffer):
       # name of the hashing method, hashes for enabled hash algorithms,
       # and auxilliary data where present (e.g. signature blobs).
       # Also see Fingerprint:HashIt()
-      response.fingerprint_results = fingerprinter.HashIt()
+      response.results = fingerprinter.HashIt()
       self.SendReply(response)

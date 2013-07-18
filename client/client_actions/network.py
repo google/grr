@@ -20,11 +20,11 @@ class Netstat(actions.ActionPlugin):
   out_rdfvalue = rdfvalue.NetworkConnection
 
   states = {
-      "UNKNOWN": rdfvalue.NetworkConnection.Enum("UNKNOWN"),
-      "LISTEN": rdfvalue.NetworkConnection.Enum("LISTEN"),
-      "ESTABLISHED": rdfvalue.NetworkConnection.Enum("ESTAB"),
-      "TIME_WAIT": rdfvalue.NetworkConnection.Enum("TIME_WAIT"),
-      "CLOSE_WAIT": rdfvalue.NetworkConnection.Enum("CLOSE_WAIT"),
+      "UNKNOWN": rdfvalue.NetworkConnection.State.UNKNOWN,
+      "LISTEN": rdfvalue.NetworkConnection.State.LISTEN,
+      "ESTABLISHED": rdfvalue.NetworkConnection.State.ESTAB,
+      "TIME_WAIT": rdfvalue.NetworkConnection.State.TIME_WAIT,
+      "CLOSE_WAIT": rdfvalue.NetworkConnection.State.CLOSE_WAIT,
       }
 
   def Run(self, unused_args):

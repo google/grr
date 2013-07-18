@@ -13,7 +13,6 @@ import shutil
 import StringIO
 import sys
 import tarfile
-import tempfile
 
 
 import pytsk3
@@ -27,6 +26,7 @@ from grr.client.vfs_handlers import memory
 
 from grr.lib import config_lib
 from grr.lib import rdfvalue
+from grr.lib import utils
 from grr.parsers import osx_launchd
 
 
@@ -158,7 +158,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0x2:     # AF_INET
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
           ip4 = "".join(map(chr, data.contents.sin_addr))
-          address_type = rdfvalue.NetworkAddress.Enum("INET")
+          address_type = rdfvalue.NetworkAddress.Family.INET
           address = rdfvalue.NetworkAddress(address_type=address_type,
                                             packed_bytes=ip4)
           addresses.setdefault(ifname, []).append(address)
@@ -172,7 +172,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0x1E:     # AF_INET6
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
           ip6 = "".join(map(chr, data.contents.sin6_addr))
-          address_type = rdfvalue.NetworkAddress.Enum("INET6")
+          address_type = rdfvalue.NetworkAddress.Family.INET6
           address = rdfvalue.NetworkAddress(address_type=address_type,
                                             packed_bytes=ip6)
           addresses.setdefault(ifname, []).append(address)
@@ -378,6 +378,21 @@ class InstallDriver(actions.ActionPlugin):
   """
   in_rdfvalue = rdfvalue.DriverInstallTemplate
 
+  def _FindKext(self, path):
+    """Find the .kext directory under path.
+
+    Args:
+      path: path string to search
+    Returns:
+      kext directory path string or raises if not found.
+    Raises:
+      RuntimeError: if there is no kext under the path.
+    """
+    for directory, _, _ in os.walk(path):
+      if directory.endswith(".kext"):
+        return directory
+    raise RuntimeError("No .kext directory under %s" % path)
+
   def Run(self, args):
     """Initializes the driver."""
     # This action might crash the box so we need to flush the transaction log.
@@ -386,7 +401,8 @@ class InstallDriver(actions.ActionPlugin):
     if not args.driver:
       raise IOError("No driver supplied.")
 
-    pub_key = config_lib.CONFIG["ClientDarwin.driver_signing_public_key"]
+    pub_key = config_lib.CONFIG.Get("ClientDarwin.driver_signing_public_key",
+                                    verify=True)
     if not args.driver.Verify(pub_key):
       raise OSError("Driver signature signing failure.")
 
@@ -395,23 +411,19 @@ class InstallDriver(actions.ActionPlugin):
     # Wrap the tarball in a file like object for tarfile to handle it.
     driver_buf = StringIO.StringIO(args.driver.data)
     # Unpack it to a temporary directory.
-    kext_tmp_dir = tempfile.mkdtemp(prefix="osxpmem")
-    driver_archive = tarfile.open(fileobj=driver_buf, mode="r:gz")
-    driver_archive.extractall(kext_tmp_dir)
-    driver_archive.close()
-    driver_buf.close()
-    # Now load it.
-    kext_path = os.path.join(kext_tmp_dir, args.write_path)
-    logging.debug("Loading kext {0}".format(kext_path))
-    client_utils_osx.InstallDriver(kext_path)
-    # Finally clean up.
-    shutil.rmtree(kext_tmp_dir)
+    with utils.TempDirectory() as kext_tmp_dir:
+      driver_archive = tarfile.open(fileobj=driver_buf, mode="r:gz")
+      driver_archive.extractall(kext_tmp_dir)
+      # Now load it.
+      kext_path = self._FindKext(kext_tmp_dir)
+      logging.debug("Loading kext {0}".format(kext_path))
+      client_utils_osx.InstallDriver(kext_path)
 
 
 class GetMemoryInformation(actions.ActionPlugin):
   """Loads the driver for memory access and returns a Stat for the device."""
 
-  in_rdfvalue = rdfvalue.RDFPathSpec
+  in_rdfvalue = rdfvalue.PathSpec
   out_rdfvalue = rdfvalue.MemoryInformation
 
   def Run(self, args):
@@ -425,9 +437,9 @@ class GetMemoryInformation(actions.ActionPlugin):
 
     result = rdfvalue.MemoryInformation(
         cr3=memory.OSXMemory.GetCR3(mem_dev),
-        device=rdfvalue.RDFPathSpec(
+        device=rdfvalue.PathSpec(
             path=args.path,
-            pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY")))
+            pathtype=rdfvalue.PathSpec.PathType.MEMORY))
     for start, length in memory.OSXMemory.GetMemoryMap(mem_dev):
       result.runs.Append(offset=start, length=length)
     self.SendReply(result)

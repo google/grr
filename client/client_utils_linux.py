@@ -73,7 +73,7 @@ def LinGetRawDevice(path):
   path = utils.SmartUnicode(path)
   mount_point = path = utils.NormalizePath(path, "/")
 
-  result = rdfvalue.RDFPathSpec(pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+  result = rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.OS)
 
   # Assign the most specific mount point to the result
   while mount_point:
@@ -81,9 +81,9 @@ def LinGetRawDevice(path):
       result.path, fs_type = device_map[mount_point]
       if fs_type in ["ext2", "ext3", "ext4", "vfat", "ntfs"]:
         # These are read filesystems
-        result.pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+        result.pathtype = rdfvalue.PathSpec.PathType.OS
       else:
-        result.pathtype = rdfvalue.RDFPathSpec.Enum("UNSET")
+        result.pathtype = rdfvalue.PathSpec.PathType.UNSET
 
       # Drop the mount point
       path = utils.NormalizePath(path[len(mount_point):])
@@ -242,7 +242,7 @@ class NannyController(object):
 
     try:
       if data:
-        return rdfvalue.GRRMessage(data)
+        return rdfvalue.GrrMessage(data)
     except (message.Error, rdfvalue.Error):
       return
 

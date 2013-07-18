@@ -54,7 +54,7 @@ class ActionPlugin(object):
 
   __metaclass__ = registry.MetaclassRegistry
 
-  priority = rdfvalue.GRRMessage.Enum("MEDIUM_PRIORITY")
+  priority = rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY
 
   require_fastpoll = True
 
@@ -98,14 +98,16 @@ class ActionPlugin(object):
                            self.in_rdfvalue.__name__)
 
       # TODO(user): should be args = self.message.payload
-      args = rdfvalue.GRRMessage(self.message).payload
+      args = rdfvalue.GrrMessage(self.message).payload
 
-    self.status = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.Enum("OK"))
+    self.status = rdfvalue.GrrStatus(
+        status=rdfvalue.GrrStatus.ReturnedStatus.OK)
 
     try:
       # Only allow authenticated messages in the client
       if (self._authentication_required and
-          self.message.auth_state != rdfvalue.GRRMessage.Enum("AUTHENTICATED")):
+          self.message.auth_state !=
+          rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED):
         raise RuntimeError("Message for %s was not Authenticated." %
                            self.message.name)
 
@@ -127,13 +129,13 @@ class ActionPlugin(object):
     # We want to report back all errors and map Python exceptions to
     # Grr Errors.
     except Exception as e:  # pylint: disable=W0703
-      self.SetStatus(rdfvalue.GrrStatus.Enum("GENERIC_ERROR"),
+      self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR,
                      "%r: %s" % (e, e),
                      traceback.format_exc())
       if flags.FLAGS.debug:
         pdb.post_mortem()
 
-    if self.status.status != rdfvalue.GrrStatus.Enum("OK"):
+    if self.status.status != rdfvalue.GrrStatus.ReturnedStatus.OK:
       logging.info("Job Error (%s): %s", self.__class__.__name__,
                    self.status.error_message)
       if self.status.backtrace:
@@ -144,7 +146,7 @@ class ActionPlugin(object):
       self.status.cpu_time_used.system_cpu_time = self.cpu_used[1]
 
     # This returns the error status of the Actions to the flow.
-    self.SendReply(self.status, message_type=rdfvalue.GRRMessage.Enum("STATUS"))
+    self.SendReply(self.status, message_type=rdfvalue.GrrMessage.Type.STATUS)
 
   def Run(self, unused_args):
     """Main plugin entry point.
@@ -168,7 +170,7 @@ class ActionPlugin(object):
       self.status.backtrace = utils.SmartUnicode(backtrace)
 
   def SendReply(self, rdf_value=None,
-                message_type=rdfvalue.GRRMessage.Enum("MESSAGE"), **kw):
+                message_type=rdfvalue.GrrMessage.Type.MESSAGE, **kw):
     """Send response back to the server."""
     if rdf_value is None:
       rdf_value = self.out_rdfvalue(**kw)  # pylint: disable=E1102
@@ -247,11 +249,11 @@ class IteratedAction(ActionPlugin):
     self.Iterate(request, client_state)
 
     # Update the iterator client_state from the dict.
-    request.iterator.client_state = rdfvalue.RDFProtoDict(client_state)
+    request.iterator.client_state = rdfvalue.Dict(client_state)
 
     # Return the iterator
     self.SendReply(request.iterator,
-                   message_type=rdfvalue.GRRMessage.Enum("ITERATOR"))
+                   message_type=rdfvalue.GrrMessage.Type.ITERATOR)
 
   def Iterate(self, request, client_state):
     """Actions should override this."""

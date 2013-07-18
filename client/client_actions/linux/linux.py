@@ -133,7 +133,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0x2:     # AF_INET
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
           ip4 = "".join(map(chr, data.contents.sin_addr))
-          address_type = rdfvalue.NetworkAddress.Enum("INET")
+          address_type = rdfvalue.NetworkAddress.Family.INET
           address = rdfvalue.NetworkAddress(address_type=address_type,
                                             packed_bytes=ip4)
           addresses.setdefault(ifname, []).append(address)
@@ -146,7 +146,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0xA:     # AF_INET6
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
           ip6 = "".join(map(chr, data.contents.sin6_addr))
-          address_type = rdfvalue.NetworkAddress.Enum("INET6")
+          address_type = rdfvalue.NetworkAddress.Family.INET6
           address = rdfvalue.NetworkAddress(address_type=address_type,
                                             packed_bytes=ip6)
           addresses.setdefault(ifname, []).append(address)
@@ -363,8 +363,8 @@ class InstallDriver(UninstallDriver):
     try:
       fd = tempfile.NamedTemporaryFile()
       data = args.driver.data
-      if args.mode >= rdfvalue.InstallDriverRequest.Enum("ENABLE"):
-        force = args.mode == rdfvalue.InstallDriverRequest.Enum("FORCE")
+      if args.mode >= rdfvalue.InstallDriverRequest.RewriteMode.ENABLE:
+        force = args.mode == rdfvalue.InstallDriverRequest.RewriteMode.FORCE
         data = ko_patcher.KernelObjectPatcher().Patch(data, force_patch=force)
       fd.write(data)
       fd.flush()
@@ -391,7 +391,7 @@ class InstallDriver(UninstallDriver):
 class GetMemoryInformation(actions.ActionPlugin):
   """Loads the driver for memory access and returns a Stat for the device."""
 
-  in_rdfvalue = rdfvalue.RDFPathSpec
+  in_rdfvalue = rdfvalue.PathSpec
   out_rdfvalue = rdfvalue.MemoryInformation
 
   def Run(self, args):
@@ -402,9 +402,9 @@ class GetMemoryInformation(actions.ActionPlugin):
     with open(args.path, "rb") as fd:
       fd.read(5)
 
-    result.device = rdfvalue.RDFPathSpec(
+    result.device = rdfvalue.PathSpec(
         path=args.path,
-        pathtype=rdfvalue.RDFPathSpec.Enum("MEMORY"))
+        pathtype=rdfvalue.PathSpec.PathType.MEMORY)
 
     self.SendReply(result)
 

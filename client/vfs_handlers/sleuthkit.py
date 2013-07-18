@@ -43,7 +43,7 @@ class MyImgInfo(pytsk3.Img_Info):
 class TSKFile(vfs.VFSHandler):
   """Read a regular file."""
 
-  supported_pathtype = rdfvalue.RDFPathSpec.Enum("TSK")
+  supported_pathtype = rdfvalue.PathSpec.PathType.TSK
   auto_register = True
 
   # A mapping to encode TSK types to a stat.st_mode
@@ -117,7 +117,7 @@ class TSKFile(vfs.VFSHandler):
 
     # If we are successful in opening this path below the path casing is
     # correct.
-    self.pathspec.last.path_options = rdfvalue.RDFPathSpec.Enum("CASE_LITERAL")
+    self.pathspec.last.path_options = rdfvalue.PathSpec.Options.CASE_LITERAL
 
     fd_hash = self.tsk_raw_device.pathspec.SerializeToString()
 
@@ -293,7 +293,7 @@ class TSKFile(vfs.VFSHandler):
   def Open(cls, fd, component, pathspec):
     # A Pathspec which starts with TSK means we need to resolve the mount point
     # at runtime.
-    if fd is None and component.pathtype == rdfvalue.RDFPathSpec.Enum("TSK"):
+    if fd is None and component.pathtype == rdfvalue.PathSpec.PathType.TSK:
       # We are the top level handler. This means we need to check the system
       # mounts to work out the exact mount point and device we need to
       # open. We then modify the pathspec so we get nested in the raw
@@ -318,7 +318,7 @@ class TSKFile(vfs.VFSHandler):
       return fd
 
     # If an inode is specified, just use it directly.
-    elif component.inode:
+    elif component.HasField("inode"):
       return TSKFile(fd, component)
 
     # Otherwise do the usual case folding.

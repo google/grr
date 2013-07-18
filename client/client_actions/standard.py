@@ -4,13 +4,12 @@
 
 
 import ctypes
+import gzip
 import hashlib
 import os
 import platform
 import socket
-import stat
 import sys
-import tempfile
 import time
 import zlib
 
@@ -46,6 +45,10 @@ config_lib.CONFIG.AddOption(type_info.PEMPublicKey(
     name="Client.driver_signing_public_key",
     description="public key for verifying driver signing."))
 
+config_lib.CONFIG.AddOption(type_info.PEMPublicKey(
+    name="ClientWindows.driver_signing_public_key",
+    description="public key for verifying driver signing."))
+
 config_lib.CONFIG.AddOption(type_info.PEMPrivateKey(
     name="PrivateKeys.driver_signing_private_key",
     description="Private keys for signing drivers. NOTE: This "
@@ -73,12 +76,12 @@ class ReadBuffer(actions.ActionPlugin):
       data = fd.Read(args.length)
 
     except (IOError, OSError), e:
-      self.SetStatus(rdfvalue.GrrStatus.Enum("IOERROR"), e)
+      self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.IOERROR, e)
       return
 
     # Now return the data to the server
     self.SendReply(offset=offset, data=data,
-                   length=len(data), pathspec=fd.pathspec.ToProto())
+                   length=len(data), pathspec=fd.pathspec)
 
 
 HASH_CACHE = utils.FastStore(100)
@@ -101,13 +104,13 @@ class TransferBuffer(actions.ActionPlugin):
     data = fd.Read(args.length)
     result = rdfvalue.DataBlob(
         data=zlib.compress(data),
-        compression=rdfvalue.DataBlob.Enum("ZCOMPRESSION"))
+        compression=rdfvalue.DataBlob.CompressionType.ZCOMPRESSION)
 
     digest = hashlib.sha256(data).digest()
 
     # Now return the data to the server into the special TransferStore well
     # known flow.
-    self.grr_worker.SendReply(result, session_id="W:TransferStore")
+    self.grr_worker.SendReply(result, session_id="aff4:/flows/W:TransferStore")
 
     # Ensure that the buffer is counted against this response.
     self.grr_worker.ChargeBytesToSession(self.message.session_id, len(data))
@@ -142,6 +145,69 @@ class HashBuffer(actions.ActionPlugin):
                    data=digest)
 
 
+class CopyPathToFile(actions.ActionPlugin):
+  """Copy contents of a pathspec to a file on disk."""
+  in_rdfvalue = rdfvalue.CopyPathToFileRequest
+  out_rdfvalue = rdfvalue.CopyPathToFileRequest
+
+  BLOCK_SIZE = 10 * 1024 * 1024
+
+  def _Copy(self, dest_fd):
+    """Copy from VFS to file until no more data or self.length is reached.
+
+    Args:
+      dest_fd: file object to write to
+    Returns:
+      self.written: bytes written
+    """
+    while self.written < self.length:
+      to_read = min(self.length - self.written, self.BLOCK_SIZE)
+      data = self.src_fd.read(to_read)
+      if not data:
+        break
+
+      dest_fd.write(data)
+      self.written += len(data)
+
+      # Send heartbeats for long files.
+      self.Progress()
+    return self.written
+
+  def Run(self, args):
+    """Read from a VFS file and write to a GRRTempFile on disk.
+
+    If file writing doesn't complete files won't be cleaned up.
+
+    Args:
+      args: see CopyPathToFile in jobs.proto
+    """
+    self.src_fd = vfs.VFSOpen(args.src_path)
+    self.src_fd.Seek(args.offset)
+    offset = self.src_fd.Tell()
+
+    self.length = args.length or sys.maxint
+
+    self.written = 0
+    self.dest_fd = client_utils_common.CreateGRRTempFile(args.dest_dir)
+    self.dest_file = self.dest_fd.name
+    with self.dest_fd:
+
+      if args.gzip_output:
+        gzip_fd = gzip.GzipFile(self.dest_file, "wb", 9, self.dest_fd)
+
+        # Gzip filehandle needs its own close method called
+        with gzip_fd:
+          self._Copy(gzip_fd)
+      else:
+        self._Copy(self.dest_fd)
+
+    pathspec_out = rdfvalue.PathSpec(
+        path=self.dest_file, pathtype=rdfvalue.PathSpec.PathType.OS)
+    self.SendReply(offset=offset, length=self.written, src_path=args.src_path,
+                   dest_dir=args.dest_dir, dest_path=pathspec_out,
+                   gzip_output=args.gzip_output)
+
+
 class ListDirectory(ReadBuffer):
   """Lists all the files in a directory."""
   in_rdfvalue = rdfvalue.ListDirRequest
@@ -152,7 +218,7 @@ class ListDirectory(ReadBuffer):
     try:
       directory = vfs.VFSOpen(args.pathspec)
     except (IOError, OSError), e:
-      self.SetStatus(rdfvalue.GrrStatus.Enum("IOERROR"), e)
+      self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.IOERROR, e)
       return
 
     files = list(directory.ListFiles())
@@ -172,7 +238,7 @@ class IteratedListDirectory(actions.IteratedAction):
     try:
       fd = vfs.VFSOpen(request.pathspec)
     except (IOError, OSError), e:
-      self.SetStatus(rdfvalue.GrrStatus.Enum("IOERROR"), e)
+      self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.IOERROR, e)
       return
     files = list(fd.ListFiles())
     files.sort(key=lambda x: x.pathspec.path)
@@ -199,7 +265,7 @@ class StatFile(ListDirectory):
 
       self.SendReply(res)
     except (IOError, OSError), e:
-      self.SetStatus(rdfvalue.GrrStatus.Enum("IOERROR"), e)
+      self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.IOERROR, e)
       return
 
 
@@ -220,7 +286,7 @@ class HashFile(ListDirectory):
         hasher.update(data)
 
     except (IOError, OSError), e:
-      self.SetStatus(rdfvalue.GrrStatus.Enum("IOERROR"), e)
+      self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.IOERROR, e)
       return
 
     self.SendReply(data=hasher.digest())
@@ -277,23 +343,10 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
         fd.write(signed_pb.data)
       path = write_path
     else:
-      # Need to make a path to use. Want to put it somewhere we know we get
-      # good perms.
-      if sys.platform == "win32":
-        # Wherever we are being run from will have good perms. Note that mkstemp
-        # on windows is not secure since it creates a world writable files when
-        # run as system.
-        write_dir = os.path.dirname(sys.executable)
-      else:
-        # We trust mkstemp on other platforms.
-        write_dir = None
-      handle, path = tempfile.mkstemp(suffix=suffix, prefix="tmp",
-                                      dir=write_dir)
-      fd = os.fdopen(handle, "wb")
-      try:
-        fd.write(signed_pb.data)
-      finally:
-        fd.close()
+      temp_file = client_utils_common.CreateGRRTempFile(suffix=suffix)
+      with temp_file:
+        path = temp_file.name
+        temp_file.write(signed_pb.data)
 
     return path
 
@@ -316,7 +369,6 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
     else:
       suffix = ""
     path = self.WriteBlobToFile(args.executable, args.write_path, suffix)
-    os.chmod(path, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
 
     cmd = path
     cmd_args = args.args
@@ -395,11 +447,11 @@ class ListProcesses(actions.ActionPlugin):
   out_rdfvalue = rdfvalue.Process
 
   states = {
-      "UNKNOWN": rdfvalue.NetworkConnection.Enum("UNKNOWN"),
-      "LISTEN": rdfvalue.NetworkConnection.Enum("LISTEN"),
-      "ESTABLISHED": rdfvalue.NetworkConnection.Enum("ESTAB"),
-      "TIME_WAIT": rdfvalue.NetworkConnection.Enum("TIME_WAIT"),
-      "CLOSE_WAIT": rdfvalue.NetworkConnection.Enum("CLOSE_WAIT"),
+      "UNKNOWN": rdfvalue.NetworkConnection.State.UNKNOWN,
+      "LISTEN": rdfvalue.NetworkConnection.State.LISTEN,
+      "ESTABLISHED": rdfvalue.NetworkConnection.State.ESTAB,
+      "TIME_WAIT": rdfvalue.NetworkConnection.State.TIME_WAIT,
+      "CLOSE_WAIT": rdfvalue.NetworkConnection.State.CLOSE_WAIT,
       }
 
   def Run(self, unused_arg):
@@ -538,9 +590,9 @@ class SendFile(actions.ActionPlugin):
     if len(iv) != 16:
       raise RuntimeError("Invalid iv length (%d)." % len(iv))
 
-    if args.address_family == rdfvalue.NetworkAddress.Enum("INET"):
+    if args.address_family == rdfvalue.NetworkAddress.Family.INET:
       family = socket.AF_INET
-    elif args.address_family == rdfvalue.NetworkAddress.Enum("INET6"):
+    elif args.address_family == rdfvalue.NetworkAddress.Family.INET6:
       family = socket.AF_INET6
     else:
       raise RuntimeError("Socket address family not supported.")

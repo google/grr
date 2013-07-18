@@ -64,7 +64,7 @@ class ProtobufRenderer(renderer.RendererBaseClass):
 
     self.InitSection(self.Modes.STRING)
     active_list = self.active_section.formatted_value_list
-    formatted_value = active_list.formatted_values.add()
+    formatted_value = active_list.formatted_values.Append()
     formatted_value.formatstring = formatstring
     values = formatted_value.data
 
@@ -85,13 +85,12 @@ class ProtobufRenderer(renderer.RendererBaseClass):
     self.InitSection(self.Modes.TABLE)
 
     for (print_name, name, format_hint) in title_format_list:
-      header_pb = self.active_section.table.headers.add()
-      header_pb.print_name = print_name
-      header_pb.name = name
-      header_pb.format_hint = format_hint
+      self.active_section.table.headers.Append(print_name=print_name,
+                                               name=name,
+                                               format_hint=format_hint)
 
   def AddValue(self, row, value):
-    response = row.values.add()
+    response = row.values.Append()
     if isinstance(value, obj.BaseObject):
       response.type = value.obj_type
       response.name = value.obj_name
@@ -139,7 +138,7 @@ class ProtobufRenderer(renderer.RendererBaseClass):
 
     self.InitSection(self.Modes.TABLE)
 
-    row = self.active_section.table.rows.add()
+    row = self.active_section.table.rows.Append()
     for value in args:
       self.AddValue(row, value)
 
@@ -231,7 +230,10 @@ class VolatilityAction(actions.ActionPlugin):
         vol_session.progress(message="Running plugin %s" % plugin)
 
         ui_renderer = ProtobufRenderer(session=vol_session)
-        plugin_args = plugin_args or {}
+        if plugin_args is None:
+          plugin_args = {}
+        else:
+          plugin_args = plugin_args.ToDict()
 
         try:
           vol_session.vol(plugin, renderer=ui_renderer, **plugin_args)

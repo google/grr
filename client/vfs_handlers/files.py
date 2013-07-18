@@ -100,7 +100,7 @@ def MakeStatResponse(st, pathspec):
 class File(vfs.VFSHandler):
   """Read a regular file."""
 
-  supported_pathtype = rdfvalue.RDFPathSpec.Enum("OS")
+  supported_pathtype = rdfvalue.PathSpec.PathType.OS
   auto_register = True
 
   # The file descriptor of the OS file.
@@ -112,6 +112,7 @@ class File(vfs.VFSHandler):
 
   # On windows reading devices must have an alignment.
   alignment = 1
+  file_offset = 0
 
   def __init__(self, base_fd, pathspec=None):
     super(File, self).__init__(base_fd, pathspec=pathspec)
@@ -130,8 +131,10 @@ class File(vfs.VFSHandler):
     self.path = self.pathspec.last.path
 
     # We can optionally apply a global offset to the file.
-    self.file_offset = self.pathspec[0].offset
-    self.pathspec.last.path_options = rdfvalue.RDFPathSpec.Enum("CASE_LITERAL")
+    if self.pathspec[0].HasField("offset"):
+      self.file_offset = self.pathspec[0].offset
+
+    self.pathspec.last.path_options = rdfvalue.PathSpec.Options.CASE_LITERAL
 
     self.WindowsHacks()
     self.filename = client_utils.CanonicalPathToLocalPath(self.path)

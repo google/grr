@@ -96,8 +96,8 @@ class ActionTest(test_lib.EmptyActionTest):
   def testReadBuffer(self):
     """Test reading a buffer."""
     path = os.path.join(self.base_path, "morenumbers.txt")
-    p = rdfvalue.RDFPathSpec(path=path,
-                             pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    p = rdfvalue.PathSpec(path=path,
+                          pathtype=rdfvalue.PathSpec.PathType.OS)
     result = self.RunAction("ReadBuffer",
                             rdfvalue.BufferReference(
                                 pathspec=p, offset=100, length=10))[0]
@@ -108,7 +108,7 @@ class ActionTest(test_lib.EmptyActionTest):
 
   def testListDirectory(self):
     """Tests listing directories."""
-    p = rdfvalue.RDFPathSpec(path=self.base_path, pathtype=0)
+    p = rdfvalue.PathSpec(path=self.base_path, pathtype=0)
     results = self.RunAction("ListDirectory",
                              rdfvalue.ListDirRequest(
                                  pathspec=p))
@@ -126,8 +126,8 @@ class ActionTest(test_lib.EmptyActionTest):
 
   def testIteratedListDirectory(self):
     """Tests iterated listing of directories."""
-    p = rdfvalue.RDFPathSpec(path=self.base_path,
-                             pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    p = rdfvalue.PathSpec(path=self.base_path,
+                          pathtype=rdfvalue.PathSpec.PathType.OS)
     non_iterated_results = self.RunAction(
         "ListDirectory", rdfvalue.ListDirRequest(pathspec=p))
 
@@ -150,13 +150,13 @@ class ActionTest(test_lib.EmptyActionTest):
       # Reset the st_atime in the results to avoid potential flakiness.
       x.st_atime = y.st_atime = 0
 
-      self.assertProto2Equal(x._data, y._data)
+      self.assertProtoEqual(x, y)
 
   def testHashFile(self):
     """Can we hash a file?"""
     path = os.path.join(self.base_path, "morenumbers.txt")
-    p = rdfvalue.RDFPathSpec(path=path,
-                             pathtype=rdfvalue.RDFPathSpec.Enum("OS"))
+    p = rdfvalue.PathSpec(path=path,
+                          pathtype=rdfvalue.PathSpec.PathType.OS)
 
     # The action returns a DataBlob object.
     result = self.RunAction("HashFile",
@@ -257,7 +257,7 @@ class ActionTest(test_lib.EmptyActionTest):
     def MockSendReply(unused_self, reply=None, **kwargs):
       results.append(reply or rdfvalue.LogMessage(**kwargs))
 
-    message = rdfvalue.GRRMessage(name="ProgressAction", cpu_limit=3600)
+    message = rdfvalue.GrrMessage(name="ProgressAction", cpu_limit=3600)
 
     old_proc = psutil.Process
     psutil.Process = FakeProcess
