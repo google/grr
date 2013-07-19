@@ -1,5 +1,5 @@
-grr-client (1.0-1) unstable; urgency=low
+%(Client.name) \(%(ClientBuilder.debian_version)\) unstable; urgency=low
 
   * Initial release
 
- -- GRR <grr-dev@googlegroups.com>  Mon, 24 Oct 2011 12:00:00 +0000
+ -- %(ClientBuilder.maintainer)  %(ClientBuilder.debian_build_time)

@@ -164,6 +164,11 @@ class Dict(rdfvalue.RDFProtoStruct):
     return super(Dict, self).__eq__(other)
 
 
+# Old clients still send back "RDFProtoDicts" so we need to keep this around.
+class RDFProtoDict(Dict):
+  pass
+
+
 class BlobArray(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.BlobArray
 

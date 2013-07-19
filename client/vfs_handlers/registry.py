@@ -49,36 +49,36 @@ class FileTime(ctypes.Structure):
               ("dwHighDateTime", ctypes.wintypes.DWORD)]
 
 
-RegCloseKey = advapi32.RegCloseKey  # pylint: disable=C6409
+RegCloseKey = advapi32.RegCloseKey  # pylint: disable=g-bad-name
 RegCloseKey.restype = ctypes.c_long
 RegCloseKey.argtypes = [ctypes.c_void_p]
 
-RegEnumKeyEx = advapi32.RegEnumKeyExW  # pylint: disable=C6409
+RegEnumKeyEx = advapi32.RegEnumKeyExW  # pylint: disable=g-bad-name
 RegEnumKeyEx.restype = ctypes.c_long
 RegEnumKeyEx.argtypes = [ctypes.c_void_p, ctypes.wintypes.DWORD,
                          ctypes.c_wchar_p, LPDWORD,
                          LPDWORD, ctypes.c_wchar_p, LPDWORD,
                          ctypes.POINTER(FileTime)]
 
-RegEnumValue = advapi32.RegEnumValueW  # pylint: disable=C6409
+RegEnumValue = advapi32.RegEnumValueW  # pylint: disable=g-bad-name
 RegEnumValue.restype = ctypes.c_long
 RegEnumValue.argtypes = [ctypes.c_void_p, ctypes.wintypes.DWORD,
                          ctypes.c_wchar_p, LPDWORD, LPDWORD, LPDWORD, LPBYTE,
                          LPDWORD]
 
-RegOpenKeyEx = advapi32.RegOpenKeyExW  # pylint: disable=C6409
+RegOpenKeyEx = advapi32.RegOpenKeyExW  # pylint: disable=g-bad-name
 RegOpenKeyEx.restype = ctypes.c_long
 RegOpenKeyEx.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_ulong,
                          ctypes.c_ulong, ctypes.POINTER(ctypes.c_void_p)]
 
-RegQueryInfoKey = advapi32.RegQueryInfoKeyW  # pylint: disable=C6409
+RegQueryInfoKey = advapi32.RegQueryInfoKeyW  # pylint: disable=g-bad-name
 RegQueryInfoKey.restype = ctypes.c_long
 RegQueryInfoKey.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD, LPDWORD,
                             LPDWORD, LPDWORD, LPDWORD, LPDWORD,
                             LPDWORD, LPDWORD, LPDWORD,
                             ctypes.POINTER(FileTime)]
 
-RegQueryValueEx = advapi32.RegQueryValueExW  # pylint: disable=C6409
+RegQueryValueEx = advapi32.RegQueryValueExW  # pylint: disable=g-bad-name
 RegQueryValueEx.restype = ctypes.c_long
 RegQueryValueEx.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD, LPDWORD,
                             LPBYTE, LPDWORD]

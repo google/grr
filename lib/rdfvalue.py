@@ -326,6 +326,10 @@ class RDFInteger(RDFString):
                "=": (1, "Equal")}
 
 
+class RDFBool(RDFInteger):
+  """Boolean value."""
+
+
 class RDFDatetime(RDFInteger):
   """A date and time internally stored in MICROSECONDS."""
   converter = MICROSECONDS
@@ -546,10 +550,19 @@ class RDFURN(RDFValue):
     super(RDFURN, self).__init__(initializer=initializer, age=age)
 
   def ParseFromString(self, initializer=None):
+    """Create RDFRUN from string.
+
+    Args:
+      initializer: url string
+    """
     self._urn = urlparse.urlparse(initializer, scheme="aff4")
+    # TODO(user): This is another ugly hack but we need to support legacy
+    # clients that still send plain strings in their responses.
+    if self._urn.scheme != "aff4":
+      self._urn = urlparse.urlparse("aff4:/" + initializer, scheme="aff4")
     # Normalize the URN path component
     # namedtuple _replace() is not really private.
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     self._urn = self._urn._replace(path=utils.NormalizePath(self._urn.path))
     if not self._urn.scheme:
       self._urn = self._urn._replace(scheme="aff4")
@@ -600,7 +613,7 @@ class RDFURN(RDFValue):
     """
     if url: self.ParseFromString(url)
 
-    self._urn = self._urn._replace(**kwargs)  # pylint: disable=W0212
+    self._urn = self._urn._replace(**kwargs)  # pylint: disable=protected-access
     self._string_urn = self._urn.geturl()
     self.dirty = True
 
@@ -608,7 +621,7 @@ class RDFURN(RDFValue):
     """Make a copy of ourselves."""
     if age is None:
       age = int(time.time() * MICROSECONDS)
-    return RDFURN(str(self), age=age)
+    return self.__class__(str(self), age=age)
 
   def __str__(self):
     return utils.SmartStr(self._string_urn)
@@ -706,3 +719,46 @@ class Subject(RDFURN):
                    contains=(1, "ContainsMatch"),
                    startswith=(1, "Startswith"),
                    has=(1, "HasAttribute"))
+
+
+class SessionID(RDFURN):
+  """An rdfvalue object that represents a session_id."""
+
+  def __init__(self, initializer=None, age=None, base=None, queue=None,
+               flow_name=None):
+    """Constructor.
+
+    Args:
+      initializer: A string or another RDFURN.
+      age: The age of this entry.
+      base: The base namespace this session id lives in.
+      queue: The queue to use.
+      flow_name: The name of this flow or its random id.
+    Raises:
+      InitializeError: The given URN cannot be converted to a SessionID.
+    """
+    if base:
+      # This SessionID is being constructed from scratch.
+      if not flow_name:
+        flow_name = utils.PRNG.GetULong()
+
+      initializer = RDFURN(base).Add("%s:%X" % (queue.Basename(), flow_name))
+    elif isinstance(initializer, RDFURN):
+      if initializer.Basename().count(":") != 1:
+        raise InitializeError("Invalid URN for SesionID: %s" % initializer)
+
+    super(SessionID, self).__init__(initializer=initializer, age=age)
+
+  def Queue(self):
+    return RDFURN(self.Basename().split(":")[0])
+
+
+class FlowSessionID(SessionID):
+
+  # TODO(user): This is code to fix some legacy issues. Remove this when all
+  # clients are built after Jan, 2013.
+  def ParseFromString(self, initializer=None):
+    # Old clients sometimes send bare well known flow ids e.g., CA:Enrol.
+    if not utils.SmartStr(initializer).startswith("aff4"):
+      initializer = "aff4:/flows/" + initializer
+    super(FlowSessionID, self).ParseFromString(initializer)

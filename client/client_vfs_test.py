@@ -15,10 +15,10 @@ import psutil
 from grr.client import client_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
-from grr.client import conf
 import logging
 from grr.client import vfs
 from grr.client.vfs_handlers import files
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
@@ -415,7 +415,7 @@ class VFSTest(test_lib.GRRBaseTest):
       return
 
     # Make a value we can test for
-    import _winreg  # pylint: disable=C6204
+    import _winreg  # pylint: disable=g-import-not-at-top
 
     key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER,
                           "Software",
@@ -466,4 +466,4 @@ def main(argv):
   test_lib.main(argv)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

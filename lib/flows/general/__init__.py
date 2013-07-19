@@ -3,7 +3,7 @@
 """General purpose flows."""
 
 
-# pylint: disable=W0611
+# pylint: disable=unused-import
 # These imports populate the Flow registry
 from grr.lib.flows.general import administrative
 from grr.lib.flows.general import aff4_notifiers

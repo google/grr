@@ -47,7 +47,6 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
 
     # Make sure that bash is a file.
     children = list(fd.OpenChildren())
-
     self.assertEqual(len(children), 4)
     for child in children:
       path = utils.SmartStr(child.urn)

@@ -1,10 +1,10 @@
 # The PyInstaller build binary should not be stripped otherwise it stops
 # working.
-grr-client binary: unstripped-binary-or-object
+%(Client.name) binary: unstripped-binary-or-object
 
 # The PyInstaller build package directory contains all its dependencies.
 # We cannot rely on the versions available on the system.
-grr-client binary: embedded-library
+%(Client.name) binary: embedded-library
 
 # No bug to close.
-grr-client binary: new-package-should-close-itp-bug
+%(Client.name) binary: new-package-should-close-itp-bug

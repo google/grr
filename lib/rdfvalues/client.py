@@ -10,9 +10,11 @@ from hashlib import sha256
 
 import re
 import socket
+import sys
 
 from grr.lib import rdfvalue
 from grr.lib import type_info
+from grr.lib import utils
 
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import protodict
@@ -45,7 +47,7 @@ class ClientURN(rdfvalue.RDFURN):
 
   def ParseFromString(self, value):
     if not self.Validate(value):
-      raise type_info.TypeValueError("Client urn malformed.")
+      raise type_info.TypeValueError("Client urn malformed: %s" % value)
 
     return super(ClientURN, self).ParseFromString(value)
 
@@ -61,6 +63,30 @@ class ClientURN(rdfvalue.RDFURN):
     """An alternate constructor which generates a new client id."""
     return cls("C.%s" % (
         sha256(public_key).digest()[:8].encode("hex")))
+
+  def Add(self, path, age=None):
+    """Add a relative stem to the current value and return a new RDFURN.
+
+    Note that this returns an RDFURN, not a ClientURN since the resulting object
+    would not pass validation.
+
+    Args:
+      path: A string containing a relative path.
+      age: The age of the object. If None set to current time.
+
+    Returns:
+       A new RDFURN that can be chained.
+
+    Raises:
+       ValueError: if the path component is not a string.
+    """
+    if not isinstance(path, basestring):
+      raise ValueError("Only strings should be added to a URN.")
+
+    result = rdfvalue.RDFURN(self.Copy(age))
+    result.Update(path=utils.JoinPath(self._urn.path, path))
+
+    return result
 
 
 # These are objects we store as attributes of the client.
@@ -505,12 +531,12 @@ class NoTargetGrepspecType(type_info.RDFValueType):
       type_info.Integer(
           description="Snippet returns these many bytes before the hit.",
           name="bytes_before",
-          friendly_name="Preamble",
+          friendly_name="Bytes Before",
           default=0),
       type_info.Integer(
           description="Snippet returns these many bytes after the hit.",
           name="bytes_after",
-          friendly_name="Context",
+          friendly_name="Bytes After",
           default=0),
       )
 
@@ -564,6 +590,16 @@ class FindSpecType(type_info.RDFValueType):
           name="max_depth",
           friendly_name="Depth",
           default=5),
+      type_info.Integer(
+          description="Minimum file size in bytes.",
+          name="min_file_size",
+          friendly_name="Minimum File Size (Bytes)",
+          default=0),
+      type_info.Integer(
+          description="Maximum file size in bytes.",
+          name="max_file_size",
+          friendly_name="Maximum File Size (Bytes)",
+          default=sys.maxint),
       )
 
   def __init__(self, **kwargs):

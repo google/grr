@@ -16,9 +16,11 @@ from grr.lib import utils
 class EnrolmentInterrogateEvent(flow.EventListener):
   """An event handler which will schedule interrogation on client enrollment."""
   EVENTS = ["ClientEnrollment"]
-  well_known_session_id = "aff4:/flows/W:Interrogate"
+  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:Interrogate")
 
-  @flow.EventHandler(source_restriction=lambda x: x=="CA")
+  sourcecheck = lambda source: source == "aff4:/CAEnroler"
+
+  @flow.EventHandler(source_restriction=sourcecheck)
   def ProcessMessage(self, message=None, event=None):
     _ = message
     flow.GRRFlow.StartFlow(event.common_name, "Interrogate", token=self.token)

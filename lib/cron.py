@@ -9,9 +9,11 @@ import logging
 
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import type_info
 from grr.lib import utils
 
 from grr.lib.flows.cron import system
@@ -27,7 +29,7 @@ class CronManager(object):
 
   def ScheduleFlow(self, flow_name, flow_args=None,
                    frequency=rdfvalue.Duration("1d"), allow_overruns=False,
-                   job_name=None, token=None):
+                   job_name=None, token=None, disabled=False):
     """Creates a cron job that runs given flow with a given frequency.
 
     Args:
@@ -41,6 +43,7 @@ class CronManager(object):
                 for system cron jobs - we want them to have well-defined
                 persistent name).
       token: Security token used for data store access.
+      disabled: If True, the job object will be created, but will be disabled.
 
     Returns:
       URN of the cron job created.
@@ -56,6 +59,7 @@ class CronManager(object):
     cron_job.Set(cron_job.Schema.FLOW_ARGS(flow_args or {}))
     cron_job.Set(cron_job.Schema.FREQUENCY(frequency))
     cron_job.Set(cron_job.Schema.ALLOW_OVERRUNS(allow_overruns))
+    cron_job.Set(cron_job.Schema.DISABLED(disabled))
 
     cron_job.Close()
 
@@ -64,6 +68,20 @@ class CronManager(object):
   def ListJobs(self, token=None):
     """Returns a generator of URNs of all currently running cron jobs."""
     return aff4.FACTORY.Open(self.CRON_JOBS_PATH, token=token).ListChildren()
+
+  def EnableJob(self, job_urn, token=None):
+    """Enable cron job with the given URN."""
+    cron_job = aff4.FACTORY.Open(job_urn, mode="rw", aff4_type="CronJob",
+                                 token=token)
+    cron_job.Set(cron_job.Schema.DISABLED(0))
+    cron_job.Close()
+
+  def DisableJob(self, job_urn, token=None):
+    """Disable cron job with the given URN."""
+    cron_job = aff4.FACTORY.Open(job_urn, mode="rw", aff4_type="CronJob",
+                                 token=token)
+    cron_job.Set(cron_job.Schema.DISABLED(1))
+    cron_job.Close()
 
   def DeleteJob(self, job_urn, token=None):
     """Deletes cron job with the given URN."""
@@ -75,8 +93,8 @@ class CronManager(object):
       try:
 
         with aff4.FACTORY.OpenWithLock(
-            cron_job_urn, blocking=False,
-            lease_time=3600, token=token) as cron_job:
+            cron_job_urn, blocking=False, token=token,
+            lease_time=600) as cron_job:
           try:
             logging.info("Running cron job: %s", cron_job.urn)
             cron_job.Run()
@@ -94,7 +112,7 @@ class CronManagerInit(registry.InitHook):
 
   def Run(self):
     """Initialize the cron manager."""
-    global CRON_MANAGER  # pylint: disable=W0603
+    global CRON_MANAGER  # pylint: disable=global-statement
 
     CRON_MANAGER = CronManager()
 
@@ -138,3 +156,143 @@ class CronWorker(object):
     self.running_thread.daemon = True
     self.running_thread.start()
     return self.running_thread
+
+
+class CronJobManagingFlow(flow.GRRFlow):
+  """Base class for flows that manager cron job."""
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.RDFURNType(
+          description="The URN of the cron job to disable.",
+          name="cron_job_urn"),
+      )
+
+  def CheckPermissions(self):
+    """Find the approval for for this token and CheckAccess()."""
+    logging.debug("Checking approval for cron job %s, %s",
+                  self.state.cron_job_urn, self.token)
+
+    if not self.token.username:
+      raise access_control.UnauthorizedAccess(
+          "Must specify a username for access.",
+          subject=self.state.cron_job_urn)
+
+    if not self.token.reason:
+      raise access_control.UnauthorizedAccess(
+          "Must specify a reason for access.",
+          subject=self.state.cron_job_urn)
+
+     # Build the approval URN.
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(
+        self.state.cron_job_urn.Path()).Add(self.token.username).Add(
+            utils.EncodeReasonString(self.token.reason))
+
+    try:
+      approval_request = aff4.FACTORY.Open(
+          approval_urn, aff4_type="Approval", mode="r",
+          token=self.token, age=aff4.ALL_TIMES)
+    except IOError:
+      # No Approval found, reject this request.
+      raise access_control.UnauthorizedAccess(
+          "No approval found for cron job %s." % self.state.cron_job_urn,
+          subject=self.state.cron_job_urn)
+
+    if approval_request.CheckAccess(self.token):
+      return True
+    else:
+      raise access_control.UnauthorizedAccess(
+          "Approval %s was rejected." % approval_urn,
+          subject=self.state.cron_job_urn)
+
+
+class DisableCronJobFlow(flow.GRRFlow):
+  """Disable a cron job with a given URN."""
+  # This flow can run on any client without ACL enforcement (an SUID flow).
+  ACL_ENFORCED = False
+
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.RDFURNType(
+          description="The URN of the cron job to disable.",
+          name="cron_job_urn"),
+      )
+
+  @flow.StateHandler()
+  def Start(self):
+    """Disables a cron job. Only admins are allowed to do this."""
+    # We have to create special token here, because within the flow
+    # token has supervisor access.
+    check_token = access_control.ACLToken(username=self.token.username,
+                                          reason=self.token.reason)
+    data_store.DB.security_manager.CheckCronJobAccess(check_token,
+                                                      self.state.cron_job_urn)
+
+    CRON_MANAGER.DisableJob(self.state.cron_job_urn, token=self.token)
+
+
+class EnableCronJobFlow(flow.GRRFlow):
+  """Enable a cron job with a given URN."""
+  # This flow can run on any client without ACL enforcement (an SUID flow).
+  ACL_ENFORCED = False
+
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.RDFURNType(
+          description="The URN of the cron job to disable.",
+          name="cron_job_urn"),
+      )
+
+  @flow.StateHandler()
+  def Start(self):
+    """Enables a cron job. Only admins are allowed to do this."""
+    # We have to create special token here, because within the flow
+    # token has supervisor access.
+    check_token = access_control.ACLToken(username=self.token.username,
+                                          reason=self.token.reason)
+    data_store.DB.security_manager.CheckCronJobAccess(check_token,
+                                                      self.state.cron_job_urn)
+
+    CRON_MANAGER.EnableJob(self.state.cron_job_urn, token=self.token)
+
+
+class DeleteCronJobFlow(CronJobManagingFlow):
+  """Enable a cron job with a given URN."""
+  # This flow can run on any client without ACL enforcement (an SUID flow).
+  ACL_ENFORCED = False
+
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.RDFURNType(
+          description="The URN of the cron job to disable.",
+          name="cron_job_urn"),
+      )
+
+  @flow.StateHandler()
+  def Start(self):
+    """Deletes a cron job. Only admins are allowed to do this."""
+    # We have to create special token here, because within the flow
+    # token has supervisor access.
+    check_token = access_control.ACLToken(username=self.token.username,
+                                          reason=self.token.reason)
+    data_store.DB.security_manager.CheckCronJobAccess(check_token,
+                                                      self.state.cron_job_urn)
+
+    CRON_MANAGER.DeleteJob(self.state.cron_job_urn, token=self.token)
+
+
+class CheckCronJobAccessFlow(CronJobManagingFlow):
+  """Checks access to a cron job with a given URN."""
+  # This flow can run on any client without ACL enforcement (an SUID flow).
+  ACL_ENFORCED = False
+
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.RDFURNType(
+          description="The URN of the cron job to disable.",
+          name="cron_job_urn"),
+      )
+
+  @flow.StateHandler()
+  def Start(self):
+    """Deletes a cron job. Only admins are allowed to do this."""
+    # We have to create special token here, because within the flow
+    # token has supervisor access.
+    check_token = access_control.ACLToken(username=self.token.username,
+                                          reason=self.token.reason)
+    data_store.DB.security_manager.CheckCronJobAccess(check_token,
+                                                      self.state.cron_job_urn)

@@ -21,14 +21,6 @@ from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import utils
 
-config_lib.DEFINE_string("NannyWindows.service_key_hive", "HKEY_LOCAL_MACHINE",
-                         help="The hive which carries the service key.")
-
-config_lib.DEFINE_string("NannyWindows.service_name", "GRR Service",
-                         help="The name of the nanny.")
-
-config_lib.DEFINE_string("NannyWindows.service_key", "Software\\GRR",
-                         help="The registry key of the nanny service.")
 
 DACL_PRESENT = 1
 DACL_DEFAULT = 0
@@ -179,7 +171,6 @@ def WinFindProxies():
 
   logging.debug("Found proxy servers: %s", proxies)
 
-  proxies.extend(config_lib.CONFIG["Client.proxy_servers"])
   return proxies
 
 
@@ -236,11 +227,11 @@ class NannyController(object):
     """Returns the service key."""
     if self._service_key is None:
       hive = getattr(_winreg,
-                     config_lib.CONFIG["NannyWindows.service_key_hive"])
-      path = config_lib.CONFIG["NannyWindows.service_key"]
+                     config_lib.CONFIG["Nanny.service_key_hive"])
+      path = config_lib.CONFIG["Nanny.service_key"]
 
       # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
-      self._service_key = _winreg.OpenKeyEx(
+      self._service_key = _winreg.CreateKeyEx(
           hive, path, 0, _winreg.KEY_ALL_ACCESS)
 
     return self._service_key
@@ -248,10 +239,11 @@ class NannyController(object):
   def Heartbeat(self):
     """Writes a heartbeat to the registry."""
     try:
-      _winreg.SetValueEx(self._GetKey(), "HeartBeat", 0, _winreg.REG_DWORD,
-                         int(time.time()))
+      _winreg.SetValueEx(self._GetKey(), "Nanny.heartbeat", 0,
+                         _winreg.REG_DWORD, int(time.time()))
     except exceptions.WindowsError, e:
-      logging.debug("Failed to heartbeat nanny: %s", e)
+      logging.debug("Failed to heartbeat nanny at %s: %s",
+                    config_lib.CONFIG["Nanny.service_key"], e)
 
   def WriteTransactionLog(self, grr_message):
     """Write the message into the transaction log.
@@ -301,7 +293,7 @@ class NannyController(object):
 
   def GetNannyStatus(self):
     try:
-      value, _ = _winreg.QueryValueEx(self._GetKey(), "NannyStatus")
+      value, _ = _winreg.QueryValueEx(self._GetKey(), "Nanny.status")
     except exceptions.WindowsError:
       return None
 
@@ -309,7 +301,7 @@ class NannyController(object):
 
   def GetNannyMessage(self):
     try:
-      value, _ = _winreg.QueryValueEx(self._GetKey(), "NannyMessage")
+      value, _ = _winreg.QueryValueEx(self._GetKey(), "Nanny.message")
     except exceptions.WindowsError:
       return None
 
@@ -318,7 +310,7 @@ class NannyController(object):
   def ClearNannyMessage(self):
     """Wipes the nanny message."""
     try:
-      _winreg.DeleteValue(self._GetKey(), "NannyMessage")
+      _winreg.DeleteValue(self._GetKey(), "Nanny.message")
       NannyController.synced = False
     except exceptions.WindowsError:
       pass

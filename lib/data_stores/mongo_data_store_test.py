@@ -3,13 +3,11 @@
 
 
 
-from grr.client import conf
-
 from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import data_store_test
-
+from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.data_stores import mongo_data_store
 
@@ -56,4 +54,4 @@ def main(args):
   test_lib.main(args)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

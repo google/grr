@@ -13,25 +13,22 @@ import stat
 
 import psutil
 
-from grr.client import conf
 
 # Populate the action registry
-# pylint: disable=W0611
+# pylint: disable=unused-import
 from grr.client import actions
 from grr.client import client_actions
 from grr.client import comms
-from grr.client import conf
 from grr.client import vfs
 from grr.client.client_actions import tests
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
-
-
-# pylint: disable=C6409
+# pylint: disable=g-bad-name
 
 
 class MockWindowsProcess(object):
@@ -173,17 +170,20 @@ class ActionTest(test_lib.EmptyActionTest):
 
     path = os.path.join(self.base_path, "wtmp")
     old_open = __builtin__.open
+    old_listdir = os.listdir
 
     # Mock the open call
     def MockedOpen(_):
       return old_open(path)
 
     __builtin__.open = MockedOpen
+    os.listdir = lambda x: ["wtmp"]
     try:
       results = self.RunAction("EnumerateUsers")
     finally:
-      # Restore the mock
+      # Restore the original methods.
       __builtin__.open = old_open
+      os.listdir = old_listdir
 
     found = 0
     for result in results:
@@ -288,4 +288,4 @@ def main(argv):
   test_lib.GrrTestProgram(argv=argv, testLoader=ActionTestLoader())
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

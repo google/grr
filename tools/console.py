@@ -21,18 +21,16 @@ import time
 from grr.lib import server_plugins
 # pylint: enable=g-bad-import-order
 
-from grr.client import conf
-from grr.client import conf as flags
 import logging
 
 from grr import artifacts
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import artifact
-
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import export_utils
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import flow_runner
 from grr.lib import flow_utils
@@ -50,6 +48,8 @@ from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import reports
 
 from grr.lib.flows import console
+from grr.lib.flows.console import client_tests
+from grr.lib.flows.console import debugging
 from grr.lib.flows.general import memory
 # pylint: enable=unused-import
 
@@ -62,7 +62,6 @@ flags.DEFINE_string("code_to_execute", None,
                     "If present, no console is started but the code given in "
                     "the flag is run instead (comparable to the -c option of "
                     "IPython).")
-
 
 
 def FormatISOTime(t):
@@ -127,63 +126,6 @@ def DownloadDir(aff4_path, output_dir, bufsize=8192, preserve_path=True):
         logging.error("Failed to read %s. Err: %s", child.urn, e)
 
 
-def StartFlowAndWait(client_id, flow_name, **kwargs):
-  """Launches the flow and waits for it to complete.
-
-  Args:
-     client_id: The client common name we issue the request.
-     flow_name: The name of the flow to launch.
-     **kwargs: passthrough to flow.
-
-  Returns:
-     A GRRFlow object.
-  """
-  session_id = flow.GRRFlow.StartFlow(client_id, flow_name, **kwargs)
-  while 1:
-    time.sleep(1)
-    flow_obj = aff4.FACTORY.Open(session_id)
-    if not flow_obj.IsRunning():
-      break
-
-  return flow_obj
-
-
-def StartFlowAndWorker(client_id, flow_name, **kwargs):
-  """Launches the flow and worker and waits for it to finish.
-
-  Args:
-     client_id: The client common name we issue the request.
-     flow_name: The name of the flow to launch.
-     **kwargs: passthrough to flow.
-
-  Returns:
-     A GRRFlow object.
-
-  Note: you need raw access to run this flow as it requires running a worker.
-  """
-  queue = "DEBUG-%s-" % getpass.getuser()
-  session_id = flow.GRRFlow.StartFlow(client_id, flow_name, queue_name=queue,
-                                      **kwargs)
-  # Empty token, only works with raw access.
-  worker_thrd = worker.GRRWorker(
-      queue_name=queue, token=access_control.ACLToken(), threadpool_size=1)
-  while True:
-    try:
-      worker_thrd.RunOnce()
-    except KeyboardInterrupt:
-      print "exiting"
-      worker_thrd.thread_pool.Join()
-    time.sleep(2)
-    flow_obj = aff4.FACTORY.Open(session_id)
-    if not flow_obj.IsRunning():
-      break
-
-  # Terminate the worker threads
-  worker_thrd.thread_pool.Stop()
-  worker_thrd.thread_pool.Join()
-  return flow_obj
-
-
 def GetNotifications(user=None, token=None):
   """Show pending notifications for a user."""
   if not user:
@@ -230,21 +172,6 @@ def ApprovalFind(object_id, token=None):
     return approved_token
   except access_control.UnauthorizedAccess:
     print "No token available for access to %s" % object_id
-
-
-def TestFlows(client_id, platform, testname=None):
-  """Test a bunch of flows."""
-
-  if platform not in ["windows", "linux", "darwin"]:
-    raise RuntimeError("Requested operating system not supported.")
-
-  # This token is not really used since there is no approval for the
-  # tested client - these tests are designed for raw access - but we send it
-  # anyways to have an access reason.
-  token = access_control.ACLToken("test", "client testing")
-
-  console.client_tests.RunTests(client_id, platform=platform,
-                                testname=testname, token=token)
 
 
 def ApprovalCreateRaw(client_id, token, approval_type="ClientApproval"):
@@ -368,14 +295,25 @@ def main(unused_argv):
   banner = ("\nWelcome to the GRR console\n"
             "Type help<enter> to get help\n\n")
 
-  config_lib.CONFIG.SetEnv("Environment.component", "CommandLineTools")
+  config_lib.CONFIG.AddContext("Commandline Context")
+  config_lib.CONFIG.AddContext(
+      "Console Context",
+      "Context applied when running the console binary.")
   startup.Init()
 
-  locals_vars = {"hilfe": Help,
-                 "help": Help,
-                 "__name__": "GRR Console",
-                 "l": Lister,
-                }
+  locals_vars = {
+      "hilfe": Help,
+      "help": Help,
+      "__name__": "GRR Console",
+      "l": Lister,
+
+      # Bring some symbols from other modules into the console's
+      # namespace.
+      "StartFlowAndWait": debugging.StartFlowAndWait,
+      "StartFlowAndWorker": debugging.StartFlowAndWorker,
+      "TestFlows": client_tests.TestFlows,
+      }
+
   locals_vars.update(globals())   # add global variables to console
   if flags.FLAGS.client is not None:
     locals_vars["client"], locals_vars["token"] = OpenClient(
@@ -390,7 +328,7 @@ def main(unused_argv):
 
 def ConsoleMain():
   """Helper function for calling with setup tools entry points."""
-  conf.StartMain(main)
+  flags.StartMain(main)
 
 
 if __name__ == "__main__":

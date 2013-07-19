@@ -4,6 +4,6 @@
 
 
 
-# pylint: disable=W0611
+# pylint: disable=unused-import
 # These import populate the Action registry
 from grr.client.client_actions.osx import osx

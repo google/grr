@@ -1,13 +1,13 @@
-Source: grr-client
-Section: unknown
+Source: %(Client.name)
+Section: misc
 Priority: extra
-Maintainer: GRR <grr-dev@googlegroups.com>
-Build-Depends: debhelper (>= 7.0.0)
+Maintainer: %(ClientBuilder.maintainer)
+Build-Depends: debhelper \(>= 7.0.0\)
 Standards-Version: 3.9.2
 Homepage: http://code.google.com/p/grr/
 
-Package: grr-client
+Package: %(Client.name)
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: GRR Rapid Response Client
- The GRR Rapid Response Client
+Description: %(Client.name) Rapid Response Client
+ The %(Client.name) Rapid Response Client

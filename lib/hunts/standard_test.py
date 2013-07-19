@@ -9,10 +9,11 @@ import time
 
 
 from grr.lib import aff4
+from grr.lib import email_alerts
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-
+from grr.lib.hunts import output_plugins
 
 class SampleHuntMock(object):
 
@@ -69,7 +70,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     super(StandardHuntTest, self).tearDown()
     self.DeleteClients(10)
 
-  def testGenericHuntWithSendRepliesSetToFalse(self):
+  def testGenericHuntWithoutOutputPlugins(self):
     """This tests running the hunt on some clients."""
     hunt = hunts.GRRHunt.StartHunt(
         "GenericHunt",
@@ -80,7 +81,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
                 pathtype=rdfvalue.PathSpec.PathType.OS,
                 )
             ),
-        collect_replies=False,
+        output_plugins=[],
         token=self.token)
 
     regex_rule = rdfvalue.ForemanAttributeRegex(
@@ -115,9 +116,83 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(set(finished)), 10)
     self.assertEqual(len(set(errors)), 5)
 
-    # We shouldn't receive any entries as send_replies is set to False.
-    self.assertRaises(IOError, aff4.FACTORY.Open, hunt.state.collection.urn,
+    # We shouldn't receive any entries as no output plugin was specified.
+    self.assertRaises(IOError, aff4.FACTORY.Open,
+                      hunt.session_id.Add("Results"),
                       "RDFValueCollection", "r", False, self.token)
+
+  def testEmailPlugin(self):
+    try:
+      old_send_email = email_alerts.SendEmail
+
+      self.email_messages = []
+
+      def SendEmail(address, sender, title, message, **_):
+        self.email_messages.append(dict(address=address, sender=sender,
+                                        title=title, message=message))
+
+      email_alerts.SendEmail = SendEmail
+
+      hunt = hunts.GRRHunt.StartHunt(
+          "GenericHunt",
+          flow_name="GetFile",
+          args=rdfvalue.Dict(
+              pathspec=rdfvalue.PathSpec(
+                  path="/tmp/evil.txt",
+                  pathtype=rdfvalue.PathSpec.PathType.OS,
+                  )
+              ),
+          output_plugins=[("CollectionPlugin", {}),
+                          ("EmailPlugin", {"email": "notify@grrserver.com"})],
+          token=self.token)
+
+      email_plugin = hunt.GetOutputObjects(
+          output_cls=output_plugins.EmailPlugin)[0]
+      email_plugin.email_limit = 10
+      hunt.Run()
+
+      self.client_ids = self.SetupClients(40)
+      for client_id in self.client_ids:
+        hunt.StartClient(hunt.session_id, client_id)
+
+      # Run the hunt.
+      client_mock = SampleHuntMock()
+      test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
+
+      # Stop the hunt now.
+      hunt.Stop()
+      hunt.Save()
+
+      hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
+                                   token=self.token)
+
+      started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
+      finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
+      errors = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.ERRORS)
+
+      self.assertEqual(len(set(started)), 40)
+      self.assertEqual(len(set(finished)), 40)
+      self.assertEqual(len(set(errors)), 20)
+
+      collection = aff4.FACTORY.Open(hunt.urn.Add("Results"),
+                                     mode="r", token=self.token)
+
+      self.assertEqual(len(collection), 20)
+
+      # Due to the limit there should only by 10 messages.
+      self.assertEqual(len(self.email_messages), 10)
+
+      for msg in self.email_messages:
+        self.assertEqual(msg["address"], "notify@grrserver.com")
+        self.assertTrue(
+            "%s produced a new result" % hunt_obj.session_id in msg["title"])
+        self.assertTrue("fs/os/tmp/evil.txt" in msg["message"])
+
+      self.assertTrue("sending of emails will be disabled now"
+                      in self.email_messages[-1]["message"])
+
+    finally:
+      email_alerts.SendEmail = old_send_email
 
   def testGenericHunt(self):
     """This tests running the hunt on some clients."""
@@ -127,7 +202,6 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
         args=rdfvalue.Dict(
             pathspec=rdfvalue.PathSpec(
                 path="/tmp/evil.txt", pathtype=rdfvalue.PathSpec.PathType.OS)),
-        collect_replies=True,
         token=self.token)
 
     regex_rule = rdfvalue.ForemanAttributeRegex(
@@ -137,7 +211,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     hunt.Run()
 
     # Pretend to be the foreman now and dish out hunting jobs to all the
-    # client..
+    # clients..
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in self.client_ids:
       foreman.AssignTasksToClient(client_id)
@@ -161,8 +235,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(set(finished)), 10)
     self.assertEqual(len(set(errors)), 5)
 
-    collection = aff4.FACTORY.Open(hunt.state.collection.urn, mode="r",
-                                   token=self.token)
+    collection = aff4.FACTORY.Open(hunt.state.output_objects[0].collection.urn,
+                                   mode="r", token=self.token)
 
     # We should receive stat entries.
     i = 0
@@ -172,9 +246,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(i, 4)
 
-  def testVariableGenericHunt(self):
-    """This tests running the hunt on some clients."""
-
+  def RunVariableGenericHunt(self):
     flows = {
         rdfvalue.ClientURN("C.1%015d" % 1): [
             ("GetFile", dict(
@@ -196,7 +268,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
         }
 
     hunt = hunts.GRRHunt.StartHunt("VariableGenericHunt", flows=flows,
-                                   collect_replies=True, token=self.token)
+                                   token=self.token)
     hunt.Run()
     hunt.ManuallyScheduleClients()
 
@@ -207,6 +279,11 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     # Stop the hunt now.
     hunt.Stop()
     hunt.Save()
+    return hunt
+
+  def testVariableGenericHunt(self):
+    """This tests running the hunt on some clients."""
+    hunt = self.RunVariableGenericHunt()
 
     hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
                                  token=self.token)
@@ -219,8 +296,13 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(set(finished)), 2)
     self.assertEqual(len(set(errors)), 0)
 
-    collection = aff4.FACTORY.Open(hunt.state.collection.urn, mode="r",
-                                   token=self.token, age=aff4.ALL_TIMES)
+  def testCollectionPlugin(self):
+    """Tests the output collection."""
+    hunt = self.RunVariableGenericHunt()
+
+    collection = aff4.FACTORY.Open(
+        hunt.state.output_objects[0].collection.urn,
+        mode="r", token=self.token, age=aff4.ALL_TIMES)
 
     # We should receive stat entries.
     self.assertEqual(len(collection), 3)
@@ -254,7 +336,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
       hunt = hunts.GRRHunt.StartHunt(
           "GenericHunt", flow_name="GetFile", args=args,
-          collect_replies=False, client_limit=5,
+          client_limit=5,
           expiry_time=rdfvalue.Duration("1000s"),
           token=self.token)
 
@@ -299,7 +381,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       foreman.AssignTasksToClient(self.client_ids[0])
 
       # Now emulate a worker.
-      worker = test_lib.MockWorker(queue_name="W", token=self.token)
+      worker = test_lib.MockWorker(token=self.token)
       while worker.Next():
         pass
       worker.pool.Join()
@@ -321,7 +403,6 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
                 path="/tmp/evil.txt",
                 pathtype=rdfvalue.PathSpec.PathType.OS),
             ),
-        collect_replies=True,
         client_limit=1,
         token=self.token)
 
@@ -385,7 +466,6 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
   def testMBRHunt(self):
     hunt = hunts.GRRHunt.StartHunt(
         "MBRHunt", length=3333,
-        collect_replies=True,
         client_limit=1,
         token=self.token)
     hunt.Run()

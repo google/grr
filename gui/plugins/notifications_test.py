@@ -27,18 +27,23 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     runner = flow_obj.CreateRunner()
     runner.Error("not a real backtrace")
 
+  def setUp(self):
+    super(TestNotifications, self).setUp()
+
+    # Have something for us to look at.
+    with self.ACLChecksDisabled():
+      self.GenerateNotifications()
+      self.GrantClientApproval("C.0000000000000001")
+
   def testNotifications(self):
     """Test the notifications interface."""
-    # Have something for us to look at.
-    self.GenerateNotifications()
-
     self.Open("/")
-
     self.WaitUntil(self.IsElementPresent, "client_query")
 
-    # There should be 2 notifications ready
+    # There should be 3 notifications ready (2 that we generate + 1 about
+    # approval).
     self.WaitUntilEqual(
-        "2", self.GetText, "css=button[id=notification_button]")
+        "3", self.GetText, "css=button[id=notification_button]")
 
     # Clicking on this should show the table
     self.Click("css=button[id=notification_button]")
@@ -47,21 +52,27 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     self.WaitUntilEqual(
         "0", self.GetText, "css=button[id=notification_button]")
 
+    # Notifications should be clear even after we reload the page.
+    self.Open("/")
+    self.WaitUntil(self.IsElementPresent, "client_query")
+    self.WaitUntilEqual("0", self.GetText, "css=button[id=notification_button]")
+
+    # Clicking on this should show the table
+    self.Click("css=button[id=notification_button]")
+
     # Select a ViewObject notification - should navigate to the object.
     self.WaitUntilEqual(
         "aff4:/C.0000000000000001/fs/os/proc/10/exe",
         self.GetText, "css=a[target_hash]:contains('exe')")
 
-    self.Click("css=td:contains('exe')")
+    self.ClickUntil("css=td:contains('File fetch completed')",
+                    self.IsElementPresent, "css=li[id=_fs-os-proc-10]")
 
-    # The navigation bar should browse the vfs
-    self.WaitUntilEqual(
-        "Browse Virtual Filesystem",
-        self.GetText, "css=li[class='active']")
+    self.WaitUntilEqual("Browse Virtual Filesystem",
+                        self.GetText, "css=li[class='active']")
 
     # The tree is opened to the correct place
-    self.WaitUntil(self.IsElementPresent,
-                   "css=li[id=_fs-os-proc-10]")
+    self.WaitUntil(self.IsElementPresent, "css=li[id=_fs-os-proc-10]")
 
     # The stats pane shows the target file
     self.WaitUntilContains(
@@ -74,7 +85,8 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     self.WaitUntilContains("terminated due to error",
                            self.GetText, "css=td:contains('error')")
 
-    self.Click("css=td:contains('error')")
+    self.ClickUntil("css=td:contains('terminated due to error')",
+                    self.IsTextPresent, "Flow Information")
 
     # The navigation bar should manage the flows
     self.WaitUntilEqual(

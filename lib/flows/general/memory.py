@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """Flows for controlling access to memory.
 
 These flows allow for distributing memory access modules to clients and
@@ -9,31 +7,42 @@ performing basic analysis.
 
 
 
+import time
+
 import logging
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
-from grr.lib.flows.general import grep
 from grr.lib.flows.general import transfer
 
-# File names for memory drivers.
-WIN_MEM = "winpmem.{arch}.sys"
-LIN_MEM = "pmem-{kernel}.ko"
-OSX_MEM = "pmem"
 
-DRIVER_BASE = "/config/drivers/{os}/memory/"
+config_lib.DEFINE_string("MemoryDriver.aff4_path", "",
+                         "The AFF4 path to the driver object.")
 
-WIN_DRV_PATH = "c:\\windows\\system32\\drivers\\{name}.sys"
-LIN_DRV_PATH = "/tmp/{name}"
-OSX_DRV_PATH = "/tmp/{name}"
+config_lib.DEFINE_string("MemoryDriver.device_path", r"\\.\pmem",
+                         "The device path which the client will open after "
+                         "installing this driver.")
+
+config_lib.DEFINE_string("MemoryDriver.service_name", "pmem",
+                         "The name of the service created for "
+                         "the driver (Windows).")
+
+config_lib.DEFINE_string("MemoryDriver.display_name", "%(service_name)",
+                         "The display name of the service created for "
+                         "the driver (Windows).")
 
 
 class ImageMemory(flow.GRRFlow):
-  """Load a memory driver on the client.
+  """Image a client's memory.
 
-  Note that AnalyzeClientMemory will do this for you if you call it.
+  This flow loads a memory driver on the client and uploads a memory image
+  to the grr server. Note that this flow will take some time depending on the
+  connection speed to the server so there might be substantial memory smear. If
+  this is a problem, consider using the DownloadMemoryImage flow which makes a
+  local copy of the image first to circumvent this problem.
   """
 
   category = "/Memory/"
@@ -111,6 +120,93 @@ class ImageMemoryToSocket(transfer.SendFile):
                     address_family=self.state.family,
                     host=self.state.host, port=self.state.port,
                     next_state="Done")
+
+
+class DownloadMemoryImage(flow.GRRFlow):
+  """Copy memory image to local disk then retrieve the file.
+
+  If the file transfer fails you can attempt to download again using the GetFile
+  flow without needing to copy all of memory to disk again.  Note that if the
+  flow fails, you'll need to run Administrative/DeleteGRRTempFiles to clean up
+  the disk.
+
+  Returns to parent flow:
+    A rdfvalue.CopyPathToFileRequest.
+  """
+
+  category = "/Memory/"
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.String(
+          description=("Destination directory for the memory image. Leave blank"
+                       " to use defaults.  Parent directories will be created "
+                       "if necessary."),
+          name="destdir"),
+      type_info.Integer(
+          description="Memory offset in bytes",
+          name="offset",
+          default=0),
+      type_info.Integer(
+          description="Number of bytes to copy (default 0 copies all memory)",
+          name="length",
+          default=0),
+      type_info.Bool(
+          description="Gzip output file",
+          name="gzip",
+          default=True),
+      )
+
+  @flow.StateHandler(next_state="CopyFile")
+  def Start(self):
+    self.CallFlow("LoadMemoryDriver", next_state="CopyFile")
+
+  @flow.StateHandler(next_state="DownloadFile")
+  def CopyFile(self, responses):
+    """Copy the memory image if the driver loaded."""
+    if not responses.success:
+      raise flow.FlowError("Failed due to no memory driver.")
+
+    memory_information = responses.First()
+    self.CallClient("CopyPathToFile",
+                    offset=self.state.offset,
+                    length=self.state.length,
+                    src_path=memory_information.device,
+                    dest_dir=self.state.destdir,
+                    gzip_output=self.state.gzip,
+                    next_state="DownloadFile")
+
+  @flow.StateHandler(next_state="DeleteFile")
+  def DownloadFile(self, responses):
+    if not responses.success:
+      raise flow.FlowError(
+          "Error copying memory to file: %s." % responses.status)
+
+    self.state.Register("dest_path", responses.First().dest_path)
+    self.CallFlow("GetFile", pathspec=self.state.dest_path,
+                  next_state="DeleteFile")
+
+  @flow.StateHandler(next_state="End")
+  def DeleteFile(self, responses):
+    """Delete the temporary file from disk."""
+    if not responses.success:
+      # Leave file on disk to allow the user to retry GetFile without having to
+      # copy the whole memory image again.
+      raise flow.FlowError("Transfer of %s failed %s" % (self.state.dest_path,
+                                                         responses.status))
+
+    stat = responses.First()
+    self.SendReply(stat)
+    self.state.Register("downloaded_file", stat.aff4path)
+    self.Status("Downloaded %s successfully" % self.state.downloaded_file)
+    self.CallClient("DeleteGRRTempFiles",
+                    self.state.dest_path, next_state="End")
+
+  @flow.StateHandler()
+  def End(self, responses):
+    if not responses.success:
+      raise flow.FlowError("Delete of %s failed %s" % (self.state.dest_path,
+                                                       responses.status))
+    self.Notify("ViewObject", self.state.downloaded_file,
+                "Memory image transferred successfully")
 
 
 class LoadMemoryDriver(flow.GRRFlow):
@@ -221,70 +317,82 @@ def GetMemoryModule(client_id, token):
     token: Token to use for access.
 
   Returns:
-    A GRRSignedDriver or None
+    A GRRSignedDriver.
 
   Raises:
     IOError: on inability to get driver.
 
-  The driver we are sending should have a signature associated
-  This would get verified by the client (independently of OS driver signing).
-  Having this mechanism will allow for offline signing of drivers to reduce
-  the risk of the system being used to deploy evil things.
-  """
+  The driver is retrieved from the AFF4 configuration space according to the
+  client's known attributes. The exact layout of the driver's configuration
+  space structure is determined by the configuration system.
 
+  The driver we are sending should have a signature associated with it. This
+  would get verified by the client (independently of OS driver signing).  Having
+  this mechanism will allow for offline signing of drivers to reduce the risk of
+  the system being used to deploy evil things.
+
+  Since the client itself will verify the signature of the client, on the server
+  we must retrieve the corresponding private keys to the public key that the
+  client has. If the keys depend on the client's architecture, and operating
+  system, the configuration system will give the client different keys depending
+  on its operating system or architecture. In this case we need to match these
+  keys, and retrieve the correct keys.
+
+  For example, the configuration file can specify different keys for windows and
+  OSX clients:
+
+  Platform:Windows:
+    PrivateKeys.driver_signing_private_key: |
+      .... Key 1 .... (Private)
+
+    Client.driver_signing_public_key:  |
+      .... Key 1 .... (Public)
+
+    Arch:amd64:
+      MemoryDriver.aff4_path:  |
+          aff4:/config/drivers/windows/pmem_amd64.sys
+
+    Arch:i386:
+      MemoryDriver.aff4_path:  |
+          aff4:/config/drivers/windows/pmem_x86.sys
+  """
+  client_context = []
   client = aff4.FACTORY.Open(client_id, token=token)
   system = client.Get(client.Schema.SYSTEM)
+  if system:
+    client_context.append("Platform:%s" % system)
+
   release = client.Get(client.Schema.OS_RELEASE)
+  if release:
+    client_context.append(utils.SmartStr(release))
 
-  if system == "Windows":
-    arch = client.Get(client.Schema.ARCH)
-    if arch == "AMD64":
-      path = WIN_MEM.format(arch="amd64")
-    elif arch == "x86":
-      path = WIN_MEM.format(arch="i386")
-    else:
-      raise IOError("No memory driver for the architecture %s" % arch)
-    sys_os = "windows"
-    inst_path = WIN_DRV_PATH
-  elif system == "Darwin":
-    path = OSX_MEM
-    sys_os = "darwin"
-    inst_path = OSX_DRV_PATH
-  elif system == "Linux":
-    sys_os = "linux"
-    path = LIN_MEM.format(kernel=release)
-    inst_path = LIN_DRV_PATH
-  else:
-    raise IOError("No OS Memory support for platform %s" % system)
+  arch = client.Get(client.Schema.ARCH)
+  if arch:
+    client_context.append("Arch:%s" % utils.SmartStr(arch).lower())
 
-  driver_path = utils.JoinPath(DRIVER_BASE.format(os=sys_os), path)
-  fd = aff4.FACTORY.Create(driver_path, "GRRMemoryDriver",
+  # Now query the configuration system for the driver.
+  aff4_path = config_lib.CONFIG.Get("MemoryDriver.aff4_path",
+                                    context=client_context)
+
+  if aff4_path:
+    logging.debug("Will fetch driver at %s for client %s",
+                  aff4_path, client_id)
+    fd = aff4.FACTORY.Open(aff4_path, aff4_type="GRRMemoryDriver",
                            mode="r", token=token)
 
-  # Get the signed driver.
-  driver_blob = fd.Get(fd.Schema.BINARY)
-  if not driver_blob:
-    msg = "No OS Memory module available for %s %s" % (system, release)
-    logging.info(msg)
-    raise IOError(msg)
+    # Get the signed driver.
+    driver_blob = fd.Get(fd.Schema.BINARY)
+    if driver_blob:
+      # How should this driver be installed?
+      driver_installer = fd.Get(fd.Schema.INSTALLATION)
 
-  logging.info("Found driver %s", driver_path)
+      if driver_installer:
+        # Add the driver to the installer.
+        driver_installer.driver = driver_blob
 
-  # How should this driver be installed?
-  driver_installer = fd.Get(fd.Schema.INSTALLATION)
+        return driver_installer
 
-  # If we didn't get a write path, we make one.
-  if not driver_installer.write_path:
-    if driver_installer.driver_name:
-      driver_installer.write_path = inst_path.format(
-          name=driver_installer.driver_name)
-    else:
-      driver_installer.write_path = inst_path.format(name="pmem")
-
-  # Add the driver to the installer.
-  driver_installer.driver = driver_blob
-
-  return driver_installer
+  raise IOError("Unable to find a driver for client.")
 
 
 class AnalyzeClientMemory(flow.GRRFlow):
@@ -402,54 +510,105 @@ class UnloadMemoryDriver(LoadMemoryDriver):
     pass
 
 
-class GrepAndDownload(grep.Grep):
-  """Downloads client memory if a signature is found.
+class GrepMemory(flow.GRRFlow):
+  """Grep client memory for a signature.
 
-    This flow greps memory or a file on the client for a pattern or a regex
-    and, if the pattern is found, downloads the file/memory.
+  This flow greps memory on the client for a pattern or a regex.
+
+  Returns to parent flow:
+      RDFValueArray of BufferReference objects.
   """
 
   category = "/Memory/"
 
-  flow_typeinfo = (
-      grep.Grep.flow_typeinfo +
-      type_info.TypeDescriptorSet(
-          type_info.Bool(
-              name="loaddriver",
-              default=True,
-              description="Load the memory driver before grepping.")))
+  flow_typeinfo = type_info.TypeDescriptorSet(
 
-  @flow.StateHandler(next_state=["Start", "StoreResults"])
-  def Start(self, responses):
+      type_info.NoTargetGrepspecType(name="request"),
+
+      type_info.String(
+          description="The output collection.",
+          name="output",
+          default="analysis/grep/{u}-{t}"),
+      )
+
+  @flow.StateHandler(next_state="Grep")
+  def Start(self):
+    self.CallFlow("LoadMemoryDriver", next_state="Grep")
+    self.state.Register("output_urn", None)
+
+  @flow.StateHandler(next_state="Done")
+  def Grep(self, responses):
+    """Run Grep on memory device pathspec."""
     if not responses.success:
-      self.Log("Error while loading memory driver: %s" %
-               responses.status.error_message)
-      return
+      raise flow.FlowError("Error while loading memory driver: %s" %
+                           responses.status.error_message)
 
-    if self.state.load_driver:
-      self.state.load_driver = False
-      self.CallFlow("LoadMemoryDriver", next_state="Start")
+    memory_information = responses.First()
+    self.state.request.target = memory_information.device
+
+    output = self.state.output.format(t=time.time(),
+                                      u=self.state.context.user)
+    self.state.output_urn = self.client_id.Add(output)
+
+    self.CallFlow("Grep", request=self.state.request,
+                  output=output, next_state="Done")
+
+  @flow.StateHandler()
+  def Done(self, responses):
+    if responses.success:
+      for response in responses:
+        self.SendReply(response)
+      self.state.Register("hits", len(responses))
     else:
-      super(GrepAndDownload, self).Start()
+      raise flow.FlowError("Error grepping memory: %s.", responses.status)
 
-  @flow.StateHandler(next_state=["Done"])
-  def StoreResults(self, responses):
-    if not responses.success:
-      self.Log("Error grepping file: %s.", responses.status)
-      return
+  @flow.StateHandler()
+  def End(self):
+    self.Notify("ViewObject", self.state.output_urn,
+                u"Grep completed, %d hits." % self.state.hits)
 
-    super(GrepAndDownload, self).StoreResults(responses)
 
+class GrepAndDownloadMemory(flow.GRRFlow):
+  """Downloads client memory if a signature is found.
+
+  This flow greps memory on the client for a pattern or a regex
+  and, if the pattern is found, downloads the memory image.
+  """
+
+  category = "/Memory/"
+
+  flow_typeinfo = type_info.TypeDescriptorSet(
+
+      type_info.NoTargetGrepspecType(name="request"),
+
+      type_info.String(
+          description="The output collection.",
+          name="output",
+          default="analysis/grep/{u}-{t}"),
+      )
+
+  @flow.StateHandler(next_state="Download")
+  def Start(self):
+    output = self.state.output.format(t=time.time(),
+                                      u=self.state.context.user)
+
+    self.CallFlow("GrepMemory", request=self.state.request,
+                  output=output, next_state="Download")
+
+  @flow.StateHandler(next_state=["DownloadComplete", "End"])
+  def Download(self, responses):
     if responses:
-      self.CallFlow("GetFile", pathspec=self.state.request.target,
-                    next_state="Done")
+      self.Log("Grep found results: %s, downloading memory image." %
+               responses.First())
+      self.CallFlow("DownloadMemoryImage", next_state="DownloadComplete")
     else:
       self.Log("Grep did not yield any results.")
 
   @flow.StateHandler()
-  def Done(self, responses):
+  def DownloadComplete(self, responses):
     if not responses.success:
-      self.Log("Error while downloading memory image: %s" %
-               responses.status.error_message)
+      raise flow.FlowError("Error while downloading memory image: %s" %
+                           responses.status)
     else:
-      self.Log("Memory image successfully downloaded.")
+      self.Notify("ViewObject", responses.First().aff4path,
+                  "Memory image transferred successfully")

@@ -31,11 +31,11 @@ import os
 import struct
 
 
-# pylint: disable=C6409
+# pylint: disable=g-bad-name
 # Two classes given named tupes for ranges and relative ranges.
 Range = collections.namedtuple('Range', 'start end')
 RelRange = collections.namedtuple('RelRange', 'start len')
-# pylint: enable=C6409
+# pylint: enable=g-bad-name
 
 
 class Finger(object):

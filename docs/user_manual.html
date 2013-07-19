@@ -1142,6 +1142,8 @@ each of attribute. Effectively, each attribute value stores both the value and
 the time when this value was seen. When different values have been gathered over
 time for a specific attribute, a <em>+</em> sign will appear before it in the GUI.
 Click on it and it will display a table with all the known values over time.</p></div>
+<div class="paragraph"><p>Additionally, in the listing view, the Age column has a clickable icon that
+will show you the different versions of the file that have been collected.</p></div>
 <div class="imageblock" style="text-align:center;">
 <div class="content">
 <img src="images/grr-gui-client-versionedmac.png" alt="images/grr-gui-client-versionedmac.png" width="850" />
@@ -1318,6 +1320,23 @@ download the file from the GRR datastore to your computer.</p></div>
 </div>
 <div class="title">Figure 9. Downloaded file</div>
 </div>
+</div>
+<div class="sect2">
+<h3 id="_file_versions">File Versions</h3>
+<div class="paragraph"><p>One interesting property of GRR that may not be immediately obvious, is that
+every object is versioned with it&#8217;s age, and for the most part, we keep old
+versions instead of overwriting them. This means that if you Schedule listing of
+a directory once a day, you will end up with a historical daily record of that
+directory. You can click on the icon in the Age column to show a list of all
+the versions of a file we have collected.</p></div>
+<div class="paragraph"><p>In some cases, different versions of the object may have different types
+depending on how it was retrieved. A common case of this is for files. If you
+list a directory, the file entry will be a Stat, but if you download the same
+file, you will get a HashImage.</p></div>
+<div class="paragraph"><p>This can lead to confusion. If you download a file, then list the directory,
+the downloadable HashImage may seem to disappeared due to the default view only
+showing latest version of the file. You will need to click the Age icon to
+access the previous version.</p></div>
 <div class="admonitionblock">
 <table><tr>
 <td class="icon">
@@ -2807,7 +2826,7 @@ requested its results and execute it.
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-04-23 22:33:32 CEST
+Last updated 2013-07-19 14:52:48 EST
 </div>
 </div>
 </body>

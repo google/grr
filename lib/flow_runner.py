@@ -14,14 +14,15 @@ import traceback
 
 import logging
 from grr.client import actions
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import scheduler
 from grr.lib import stats
 from grr.lib import utils
 
-
-DEFAULT_WORKER_QUEUE_NAME = "W"
+config_lib.DEFINE_integer("Worker.hunt_ping_interval", 60,
+                          "Time interval between hunt's lease extensions.")
 
 
 class FlowRunnerError(Exception):
@@ -121,8 +122,7 @@ class HuntRunner(object):
     timestamp = None
     if delay:
       timestamp = int((time.time() + delay) * 1e6)
-    self.QueueNotification(self.context.queue_name,
-                           self.session_id,
+    self.QueueNotification(self.session_id,
                            timestamp=timestamp)
 
   def ProcessCompletedRequests(self, thread_pool):
@@ -176,7 +176,7 @@ class HuntRunner(object):
               continue
 
             if request.id != self.context.next_processed_request:
-              stats.STATS.Increment("grr_response_out_of_order")
+              stats.STATS.IncrementCounter("grr_response_out_of_order")
               break
 
           # Check if the responses are complete (Last response must be a
@@ -195,7 +195,7 @@ class HuntRunner(object):
             # automatic retransmission facilitated by the task scheduler (the
             # Task.task_ttl field) which would happen regardless of these.
             if request.transmission_count < 5:
-              stats.STATS.Increment("grr_request_retransmission_count")
+              stats.STATS.IncrementCounter("grr_request_retransmission_count")
               request.transmission_count += 1
               self.ReQueueRequest(request)
             break
@@ -217,15 +217,15 @@ class HuntRunner(object):
             try:
               if self.context.get("current_state") != "End":
                 self.flow_obj.End(self, None)
-            except Exception:   # pylint: disable=W0703
+            except Exception:   # pylint: disable=broad-except
               # This flow will terminate now
-              stats.STATS.Increment("grr_flow_errors")
+              stats.STATS.IncrementCounter("grr_flow_errors")
               self.Error(traceback.format_exc())
 
         # This allows the End state to issue further client requests - hence
         # postpone termination.
         if not self.flow_obj.OutstandingRequests():
-          stats.STATS.Increment("grr_flow_completed_count")
+          stats.STATS.IncrementCounter("grr_flow_completed_count")
           logging.info(
               "Destroying session %s(%s) for client %s",
               self.session_id, self.flow_obj.Name(),
@@ -236,13 +236,24 @@ class HuntRunner(object):
     except MoreDataException:
       # We did not read all the requests/responses in this run in order to
       # keep a low memory footprint and have to make another pass.
-      self.QueueNotification(self.queue_name, self.session_id)
+      self.QueueNotification(self.session_id)
 
     finally:
       # We wait here until all threads are done processing and we can safely
       # pickle the flow object.
+      # We have to Ping() the hunt to extend its' lock lease time. Otherwise
+      # if ProcessCompletedRequests() takes too long, the hunt may run out of
+      # lease.
+      ping_interval = config_lib.CONFIG["Worker.hunt_ping_interval"]
+      prev_time = time.time()
       for event in processing:
-        event.wait()
+        while True:
+          if time.time() - prev_time > ping_interval:
+            self.flow_obj.Ping()
+            prev_time = time.time()
+
+          if event.wait(ping_interval):
+            break
 
   def _Process(self, request, responses, thread_pool, events=None):
     event = threading.Event()
@@ -276,9 +287,9 @@ class HuntRunner(object):
                                                  responses=responses)
     # We don't know here what exceptions can be thrown in the flow but we have
     # to continue. Thus, we catch everything.
-    except Exception:  # pylint: disable=W0703
+    except Exception:  # pylint: disable=broad-except
       # This flow will terminate now
-      stats.STATS.Increment("grr_flow_errors")
+      stats.STATS.IncrementCounter("grr_flow_errors")
       logging.exception("Flow raised.")
 
       self.Error(traceback.format_exc(), client_id=client_id)
@@ -385,10 +396,24 @@ class HuntRunner(object):
         session_id=utils.SmartUnicode(self.session_id), name=action_name,
         request_id=outbound_id,
         priority=self.context.priority,
+        queue=utils.SmartUnicode(client_id),
         **request_kw)
-    if self.context.get("remaining_cpu_quota"):
-      msg.cpu_limit = int(self.context.remaining_cpu_quota)
+
+    cpu_usage = self.context.client_resources.cpu_usage
+    if self.context.cpu_limit:
+      msg.cpu_limit = max(self.context.cpu_limit - cpu_usage.user_cpu_time -
+                          cpu_usage.system_cpu_time, 0)
+      if msg.cpu_limit == 0:
+        raise FlowRunnerError("CPU limit exceeded.")
+
+    if self.context.network_bytes_limit:
+      msg.network_bytes_limit = max(self.context.network_bytes_limit -
+                                    self.context.network_bytes_sent, 0)
+      if msg.network_bytes_limit == 0:
+        raise FlowRunnerError("Network limit exceeded.")
+
     state.request = msg
+    state.ts_id = msg.task_id
 
     self.QueueRequest(state)
 
@@ -445,14 +470,16 @@ class HuntRunner(object):
     if request_data:
       state.data = rdfvalue.Dict(request_data)
 
-    cpu_limit = self.context.get("remaining_cpu_quota", None)
+    cpu_limit = self.context.cpu_limit
+    network_bytes_limit = self.context.network_bytes_limit
 
     # Create the new child flow but do not notify the user about it.
     flow_base_cls.StartFlow(
-        client_id, flow_name, event_id=self.context.get("event_id", None),
+        client_id, flow_name, event_id=self.context.get("event_id"),
         _request_state=state, token=self.token, notify_to_user=False,
         parent_flow=self.flow_obj, _store=self.data_store,
-        queue_name=self.context.queue_name, cpu_limit=cpu_limit, **kwargs)
+        queue=self.context.queue, cpu_limit=cpu_limit,
+        network_bytes_limit=network_bytes_limit, **kwargs)
 
     self.QueueRequest(state)
 
@@ -479,9 +506,6 @@ class HuntRunner(object):
 
       request_state.response_count += 1
 
-      worker_queue = scheduler.SCHEDULER.QueueNameFromURN(
-          request_state.session_id)
-
       # Make a response message
       msg = rdfvalue.GrrMessage(
           session_id=request_state.session_id,
@@ -503,7 +527,7 @@ class HuntRunner(object):
         pass
 
       finally:
-        self.QueueNotification(worker_queue, request_state.session_id)
+        self.QueueNotification(request_state.session_id)
 
   def FlushMessages(self):
     """Flushes the messages that were queued."""
@@ -559,9 +583,6 @@ class HuntRunner(object):
           type=rdfvalue.GrrMessage.Type.STATUS,
           args=response.SerializeToString())
 
-      worker_queue = scheduler.SCHEDULER.QueueNameFromURN(
-          request_state.session_id)
-
       try:
         # queue the response message to the parent flow
         with FlowManager(token=self.token,
@@ -569,7 +590,7 @@ class HuntRunner(object):
           # Queue the response now
           flow_manager.QueueResponse(request_state.session_id, msg)
       finally:
-        self.QueueNotification(worker_queue, request_state.session_id)
+        self.QueueNotification(request_state.session_id)
 
     # Mark as terminated.
     self.context.state = rdfvalue.Flow.State.TERMINATED
@@ -586,25 +607,33 @@ class HuntRunner(object):
     return self.flow_obj.OutstandingRequests()
 
   def UpdateProtoResources(self, status):
+    """Save cpu and network stats, check limits."""
     user_cpu = status.cpu_time_used.user_cpu_time
     system_cpu = status.cpu_time_used.system_cpu_time
     self.context.client_resources.cpu_usage.user_cpu_time += user_cpu
     self.context.client_resources.cpu_usage.system_cpu_time += system_cpu
+
+    user_cpu_total = self.context.client_resources.cpu_usage.user_cpu_time
+    system_cpu_total = self.context.client_resources.cpu_usage.system_cpu_time
+
     self.context.network_bytes_sent += status.network_bytes_sent
 
-    if self.context.get("remaining_cpu_quota", None):
-      self.context.remaining_cpu_quota -= user_cpu
-      self.context.remaining_cpu_quota -= system_cpu
-      if self.context.remaining_cpu_quota < 0:
-        # We have exceeded our quota, stop this flow.
-        raise FlowRunnerError("CPU quota exceeded.")
+    if self.context.cpu_limit:
+      if self.context.cpu_limit < (user_cpu_total + system_cpu_total):
+        # We have exceeded our limit, stop this flow.
+        raise FlowRunnerError("CPU limit exceeded.")
+
+    if self.context.network_bytes_limit:
+      if self.context.network_bytes_limit < self.context.network_bytes_sent:
+        # We have exceeded our byte limit, stop this flow.
+        raise FlowRunnerError("Network bytes limit exceeded.")
 
   def SaveResourceUsage(self, request, responses):
     """Update the resource usage of the flow."""
     self.flow_obj.ProcessClientResourcesStats(request.client_id,
                                               responses.status)
 
-    # Do this last since it may raise "CPU quota exceeded".
+    # Do this last since it may raise "CPU limit exceeded".
     self.UpdateProtoResources(responses.status)
 
   def QueueClientMessage(self, msg):
@@ -613,12 +642,7 @@ class HuntRunner(object):
   def _QueueRequest(self, request):
     if request.request.name:
       # This message contains a client request as well.
-      task = rdfvalue.GrrMessage(queue=utils.SmartUnicode(request.client_id),
-                                 payload=request.request)
-      stats.STATS.Increment("grr_worker_requests_issued")
-      request.ts_id = task.task_id
-
-      self.QueueClientMessage(task)
+      self.QueueClientMessage(request.request)
 
     self.flow_manager.QueueRequest(self.session_id, request)
 
@@ -641,9 +665,8 @@ class HuntRunner(object):
   def QueueResponse(self, response):
     self.flow_manager.QueueResponse(self.session_id, response)
 
-  def QueueNotification(self, queue_name, session_id, timestamp=None):
-    self.flow_manager.QueueNotification(
-        queue_name, session_id, timestamp=timestamp)
+  def QueueNotification(self, session_id, timestamp=None):
+    self.flow_manager.QueueNotification(session_id, timestamp=timestamp)
 
 
 class FlowRunner(HuntRunner):
@@ -865,10 +888,9 @@ class FlowManager(object):
 
     scheduler.SCHEDULER.Schedule(self.new_client_messages, token=self.token)
 
-    for queue_name, session_id, timestamp in self.notifications:
+    for session_id, timestamp in self.notifications:
       scheduler.SCHEDULER.NotifyQueue(
-          queue_name, session_id, timestamp=timestamp, sync=False,
-          token=self.token)
+          session_id, timestamp=timestamp, sync=False, token=self.token)
 
     if self.sync:
       self.data_store.Flush()
@@ -904,8 +926,8 @@ class FlowManager(object):
   def QueueClientMessage(self, msg):
     self.new_client_messages.append(msg)
 
-  def QueueNotification(self, queue, session_id, timestamp=None):
-    self.notifications.append((queue, session_id, timestamp))
+  def QueueNotification(self, session_id, timestamp=None):
+    self.notifications.append((session_id, timestamp))
 
 
 class WellKnownFlowManager(FlowManager):

@@ -15,10 +15,12 @@ def YamlDumper(aff4object):
   for attribute, values in aff4object.synced_attributes.items():
     result[attribute.predicate] = []
     for value in values:
+      # This value is really a LazyDecoder() instance. We need to get at the
+      # real data here.
+      value = value.ToRDFValue()
+
       result[attribute.predicate].append(
-          [value.__class__.__name__,
-           value.ToRDFValue().SerializeToString(),
-           str(value.age)])
+          [value.__class__.__name__, value.SerializeToString(), str(value.age)])
 
   return yaml.dump(dict(
       aff4_class=aff4object.__class__.__name__,
@@ -39,7 +41,8 @@ def YamlLoader(string):
 
     for rdfvalue_cls_name, value, age in values:
       rdfvalue_cls = aff4.FACTORY.RDFValue(rdfvalue_cls_name)
-      tmp.append(rdfvalue_cls(value, age=rdfvalue.RDFDatetime(age)))
+      value = rdfvalue_cls(value, age=rdfvalue.RDFDatetime(age))
+      tmp.append(value)
 
   # Ensure the object is dirty so when we save it, it can be written to the data
   # store.

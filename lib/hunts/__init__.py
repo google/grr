@@ -3,7 +3,7 @@
 """Hunts and hunt implementations."""
 
 
-# pylint: disable=W0611
+# pylint: disable=unused-import
 # These imports populate the GRRHunt registry
 from grr.lib import aff4
 from grr.lib.hunts import implementation

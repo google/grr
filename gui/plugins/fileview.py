@@ -5,6 +5,7 @@
 
 """This plugin renders the filesystem in a tree and a table."""
 
+import cgi
 import os
 import random
 import socket
@@ -15,11 +16,43 @@ from M2Crypto import X509
 from grr.gui import renderers
 from grr.gui.plugins import fileview_widgets
 from grr.lib import aff4
+from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.proto import sysinfo_pb2
 
-# pylint: disable=C6409
+
+# pylint: disable=g-bad-name
+class BufferReferenceRenderer(renderers.RDFProtoRenderer):
+  """Render the buffer reference."""
+  classname = "BufferReference"
+  name = "Buffer Reference"
+
+  def Hexify(self, _, data):
+    """Render a hexdump of the data."""
+    results = []
+    idx = 0
+    while idx < len(data):
+      raw = ""
+      result = ""
+      for _ in range(16):
+        ord_value = ord(data[idx])
+        result += "%02X " % ord_value
+        if ord_value > 32 and ord_value < 127:
+          raw += cgi.escape(data[idx])
+        else:
+          raw += "."
+
+        idx += 1
+
+        if idx >= len(data):
+          break
+
+      results.append(result + " " * (16 * 3 - len(result)) + raw)
+
+    return "<pre>%s</pre>" % "\n".join(results)
+
+  translator = dict(data=Hexify)
 
 
 class StatEntryRenderer(renderers.RDFProtoRenderer):
@@ -101,7 +134,7 @@ class CollectionRenderer(StatEntryRenderer):
           value = self.translator[name](self, None, value)
 
         # Regardless of what the error is, we need to escape the value.
-        except StandardError:  # pylint: disable=W0703
+        except StandardError:  # pylint: disable=broad-except
           value = self.FormatFromTemplate(self.translator_error_template,
                                           value=value)
 
@@ -621,7 +654,7 @@ class AbstractFileTable(renderers.TableRenderer):
 
   ajax_template = (renderers.TableRenderer.ajax_template + """
 <div id="version_selector_dialog_{{unique|escape}}"
-  class="version-selector-dialog modal wide-modal high-modal hide fade"></div>
+  class="version-selector-dialog modal wide-modal high-modal hide"></div>
 <script>
 (function () {
   $("img.version-selector").unbind("click").click(function (event) {
@@ -897,6 +930,7 @@ class Toolbar(renderers.TemplateRenderer):
   <div class="clearfix"></div>
 </ul>
 <div id="refresh_action" class="hide"></div>
+<div id="rweowned_dialog" class="modal hide"></div>
 
 <script>
 $('#refresh_{{unique|escapejs}}').click(function (){
@@ -1000,7 +1034,6 @@ window.setTimeout(function () {
   def ParseRequest(self, request):
     """Parses parameters from the request."""
     self.aff4_path = request.REQ.get("aff4_path")
-    self.aff4_type = request.REQ.get("aff4_type")
     self.flow_urn = request.REQ.get("flow_urn")
     # Refresh the contains attribute
     self.attribute_to_refresh = request.REQ.get(
@@ -1010,19 +1043,16 @@ window.setTimeout(function () {
     """Render the toolbar."""
     self.ParseRequest(request)
 
-    fd = aff4.FACTORY.Open(self.aff4_path, mode="rw", token=request.token)
-
-    # Account for implicit directories.
-    if fd.Get(fd.Schema.TYPE) is None:
-      self.aff4_type = "VFSDirectory"
-
-    if self.aff4_type:
-      fd = fd.Upgrade(self.aff4_type)
-
     try:
-      self.flow_urn = fd.Update(
-          self.attribute_to_refresh,
-          priority=rdfvalue.GrrMessage.Priority.HIGH_PRIORITY)
+      client_id = rdfvalue.RDFURN(self.aff4_path).Split(2)[0]
+      update_flow_urn = flow.GRRFlow.StartFlow(
+          client_id, "UpdateVFSFile", token=request.token,
+          vfs_file_urn=rdfvalue.RDFURN(self.aff4_path),
+          attribute=self.attribute_to_refresh)
+
+      update_flow = aff4.FACTORY.Open(
+          update_flow_urn, aff4_type="UpdateVFSFile", token=request.token)
+      self.flow_urn = update_flow.state.get_file_flow_urn
     except IOError as e:
       raise IOError("Sorry. This path cannot be refreshed due to %s" % e)
 
@@ -1576,7 +1606,18 @@ class FileViewTabs(renderers.TabLayout):
 class RWeOwned(renderers.TemplateRenderer):
   """A magic 8 ball reply to the question - Are we Owned?"""
 
-  layout_template = renderers.Template("<h1>{{this.choice|escape}}</h1>")
+  layout_template = renderers.Template("""
+  <div class="modal-header">
+<button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+   x
+</button>
+<h3>Are we owned?</h3>
+</div>
+  <div class="modal-body">
+    <p class="text-info">
+{{this.choice|escape}}
+</div>
+""")
 
   def Layout(self, request, response):
     """Render a magic 8 ball easter-egg."""
@@ -1620,10 +1661,6 @@ class HistoricalView(renderers.TableRenderer):
 
   def Layout(self, request, response):
     """Add the columns to the table."""
-    client_id = request.REQ.get("client_id")
-    if client_id is None:
-      raise RuntimeError("Expected client_id")
-
     self.AddColumn(renderers.RDFValueColumn(request.REQ.get("attribute")))
 
     return super(HistoricalView, self).Layout(request, response)

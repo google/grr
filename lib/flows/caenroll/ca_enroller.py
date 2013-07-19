@@ -15,7 +15,6 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import scheduler
 from grr.lib import type_info
 from grr.lib import utils
 
@@ -53,7 +52,7 @@ class CAEnroler(flow.GRRFlow):
     # a client URN.
     public_key = req.get_pubkey().get_rsa().pub()[1]
     self.cn = rdfvalue.ClientURN.FromPublicKey(public_key)
-    if self.cn != req.get_subject().CN:
+    if self.cn != rdfvalue.ClientURN(req.get_subject().CN):
       raise IOError("CSR CN does not match public key.")
 
     logging.info("Will sign CSR for: %s", self.cn)
@@ -130,7 +129,7 @@ enrolment_cache = utils.FastStore(5000)
 
 class Enroler(flow.WellKnownFlow):
   """Manage enrolment requests."""
-  well_known_session_id = "aff4:/flows/CA:Enrol"
+  well_known_session_id = rdfvalue.SessionID("aff4:/flows/CA:Enrol")
 
   def ProcessMessage(self, message):
     """Begins an enrollment flow for this client.
@@ -141,7 +140,7 @@ class Enroler(flow.WellKnownFlow):
     """
     cert = rdfvalue.Certificate(message.args)
 
-    queue = scheduler.SCHEDULER.QueueNameFromURN(self.well_known_session_id)
+    queue = self.well_known_session_id.Queue()
 
     client_id = message.source
 
@@ -162,5 +161,5 @@ class Enroler(flow.WellKnownFlow):
     if not client.Get(client.Schema.CERT):
       # Start the enrollment flow for this client.
       flow.GRRFlow.StartFlow(client_id=client_id, flow_name="CAEnroler",
-                             csr=cert, queue_name=queue,
+                             csr=cert, queue=queue,
                              client=client, token=self.token)

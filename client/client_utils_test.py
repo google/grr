@@ -12,12 +12,11 @@ import sys
 import tempfile
 import time
 import mox
-from grr.client import conf
 
 from grr.client import client_utils_common
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
-from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -84,9 +83,9 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     self.SetupWinEnvironment()
 
     # We need to import after SetupWinEnvironment or this will fail
-    # pylint: disable=C6204
+    # pylint: disable=g-import-not-at-top
     from grr.client import client_utils_windows
-    # pylint: enable=C6204
+    # pylint: enable=g-import-not-at-top
 
     testdata = [(r"C:\Windows", "\\\\?\\Volume{11111}", "/Windows"),
                 (r"C:\\Windows\\", "\\\\?\\Volume{11111}", "/Windows"),
@@ -156,29 +155,6 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
   def AppendTo(self, list_obj, element):
     list_obj.append(element)
 
-  def testAlarm(self):
-    """Test if the alarm really fires."""
-
-    sleep_orig = time.sleep
-    time.sleep = lambda _: None
-
-    l = []
-    alarm = client_utils_common.Alarm(10, self.AppendTo, (l, 1,))
-    # Disable alarm, don't really do anything.
-    alarm.Disable()
-    alarm.start()
-    alarm.join()
-
-    self.assertEqual(l, [])
-
-    alarm = client_utils_common.Alarm(10, self.AppendTo, (l, 1,))
-    alarm.start()
-    alarm.join()
-
-    self.assertEqual(l, [1])
-
-    time.sleep = sleep_orig
-
   def testExecutionTimeLimit(self):
     """Test if the time limit works."""
 
@@ -237,62 +213,6 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
       nanny_controller.StopNanny()
 
 
-class UtilsFSTest(test_lib.GRRBaseTest):
-  """Tests for GRR temp file utils."""
-
-  def setUp(self):
-    """Create fake filesystem."""
-    super(UtilsFSTest, self).setUp()
-    self.prefix = config_lib.CONFIG.Get("Client.tempfile_prefix")
-    self.existsdir = os.path.join(self.temp_dir, "this/exists/")
-    os.makedirs(self.existsdir)
-    self.not_exists = os.path.join(self.temp_dir, "does/not/exist/")
-    self.new_temp_file = os.path.join(self.not_exists, self.prefix)
-
-  def _CheckPermissions(self, filename, expected):
-    # Just look at the last 3 octets.
-    file_mode = os.stat(filename).st_mode & 0777
-    self.assertEqual(file_mode, expected)
-
-  def testCreateGRRTempFile(self):
-    fd = client_utils_common.CreateGRRTempFile(self.not_exists, suffix=".exe")
-    self.assertTrue(fd.name.startswith(self.new_temp_file))
-    self.assertTrue(fd.name.endswith(".exe"))
-    self.assertTrue(os.path.exists(fd.name))
-    self._CheckPermissions(fd.name, 0700)
-    self._CheckPermissions(os.path.dirname(fd.name), 0700)
-
-  def testCreateGRRTempFileNoDir(self):
-    fd = client_utils_common.CreateGRRTempFile()
-    self.assertTrue(os.path.basename(fd.name).startswith(self.prefix))
-    self.assertTrue(os.path.exists(fd.name))
-    self._CheckPermissions(fd.name, 0700)
-
-  def testCreateGRRTempFileRelativePath(self):
-    self.assertRaises(RuntimeError,
-                      client_utils_common.CreateGRRTempFile, "../../blah")
-
-  def testDeleteGRRTempFile(self):
-    grr_tempfile = os.path.join(self.existsdir, self.prefix)
-    open(grr_tempfile, "w").write("something")
-    client_utils_common.DeleteGRRTempFile(grr_tempfile)
-    self.assertFalse(os.path.exists(grr_tempfile))
-
-  def testDeleteGRRTempFileDoesNotExist(self):
-    self.assertRaises(OSError,
-                      client_utils_common.DeleteGRRTempFile,
-                      self.new_temp_file)
-
-  def testDeleteGRRTempFileBadPrefix(self):
-    self.assertRaises(RuntimeError,
-                      client_utils_common.DeleteGRRTempFile,
-                      os.path.join(self.existsdir, "/blah"))
-
-  def testDeleteGRRTempFileRelativePath(self):
-    self.assertRaises(RuntimeError,
-                      client_utils_common.DeleteGRRTempFile, "../../blah")
-
-
 class OSXVersionTests(test_lib.GRRBaseTest):
 
   def setUp(self):
@@ -330,4 +250,4 @@ def main(argv):
   test_lib.main(argv)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

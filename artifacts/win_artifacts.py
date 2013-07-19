@@ -11,8 +11,8 @@ from grr.lib import constants
 from grr.lib import utils
 
 # Shorcut to make things cleaner.
-Artifact = artifact.GenericArtifact   # pylint: disable=C6409
-Collector = artifact.Collector        # pylint: disable=C6409
+Artifact = artifact.GenericArtifact   # pylint: disable=g-bad-name
+Collector = artifact.Collector        # pylint: disable=g-bad-name
 
 
 ################################################################################

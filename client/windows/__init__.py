@@ -3,6 +3,6 @@
 
 
 
-# These need to register plugins so, pylint: disable=W0611
+# These need to register plugins so, pylint: disable=unused-import
 from grr.client.windows import installers
 from grr.client.windows import regconfig

@@ -4,13 +4,13 @@
 
 
 
-from grr.client import conf
-
+from grr.lib import flags
 from grr.lib import test_lib
-from grr.lib.rdfvalues import test_base
+
 # pylint: disable=unused-import
-from grr.lib.rdfvalues import tests
 from grr.lib.flows.caenroll import ca_enroller
+from grr.lib.rdfvalues import test_base
+from grr.lib.rdfvalues import tests
 # pylint: enable=unused-import
 
 
@@ -23,4 +23,4 @@ def main(argv):
   test_lib.GrrTestProgram(argv=argv, testLoader=RDFValueTestLoader())
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

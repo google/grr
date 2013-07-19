@@ -169,7 +169,7 @@ class MongoTransactionV1(data_store.Transaction):
   """Implement transactions in mongo."""
 
   def __init__(self, ds, subject, token=None):
-    ds.security_manager.CheckAccess(token, [subject], "w")
+    ds.security_manager.CheckDataStoreAccess(token, [subject], "w")
     self.collection = ds.collection
     self.subject = subject
     self.token = token
@@ -358,7 +358,7 @@ class MongoDataStoreV1(data_store.DataStore):
 
   def Resolve(self, subject, attribute, decoder=None, token=None):
     """Retrieves a value set for a subject's predicate."""
-    self.security_manager.CheckAccess(token, [subject], "r")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "r")
     attribute = EscapeKey(attribute)
     subject = EscapeKey(subject)
 
@@ -375,7 +375,7 @@ class MongoDataStoreV1(data_store.DataStore):
   def ResolveMulti(self, subject, predicates, decoder=None, token=None):
     """Resolves multiple predicates at once for one subject."""
     subject = utils.SmartUnicode(subject)
-    self.security_manager.CheckAccess(token, [subject], "r")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "r")
     subject = EscapeKey(subject)
 
     predicates = [EscapeKey(s) for s in predicates]
@@ -391,14 +391,14 @@ class MongoDataStoreV1(data_store.DataStore):
 
   def DeleteSubject(self, subject, token=None):
     """Completely deletes all information about the subject."""
-    self.security_manager.CheckAccess(token, [subject], "w")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     self.collection.remove(EscapeKey(subject))
 
   def MultiSet(self, subject, values, timestamp=None, token=None,
                replace=True, sync=True, to_delete=None):
     """Set multiple predicates' values for this subject in one operation."""
     _ = sync
-    self.security_manager.CheckAccess(token, [subject], "w")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     subject = utils.SmartUnicode(subject)
 
     # TODO(user): This could probably be combined with setting.
@@ -458,7 +458,7 @@ class MongoDataStoreV1(data_store.DataStore):
     if start or end:
       raise NotImplementedError("Mongo data store does not support timestamp "
                                 "based deletion yet.")
-    self.security_manager.CheckAccess(token, [subject], "w")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     to_del = dict([(EscapeKey(x), 1) for x in attributes])
     self.collection.update(dict(_id=URNEncode(EscapeKey(subject))),
@@ -479,7 +479,7 @@ class MongoDataStoreV1(data_store.DataStore):
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
                         decoder=None, timestamp=None, limit=None):
     """Retrieves a bunch of subjects in one round trip."""
-    self.security_manager.CheckAccess(token, subjects, "r")
+    self.security_manager.CheckDataStoreAccess(token, subjects, "r")
 
     if not subjects:
       return {}
@@ -578,7 +578,7 @@ class MongoDataStoreV1(data_store.DataStore):
       try:
         subject = DecodeKey(document["_id"])
         # Only yield those subjects which we are allowed to view.
-        self.security_manager.CheckAccess(token, [subject], "r")
+        self.security_manager.CheckDataStoreAccess(token, [subject], "r")
 
         result = dict(subject=[(subject, 0)])
         for key, values in document.items():

@@ -40,21 +40,17 @@ import abc
 import sys
 import time
 
-from grr.client import conf as flags
 import logging
 
 from grr.lib import access_control
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 
 config_lib.DEFINE_string("Datastore.implementation", "FakeDataStore",
                          "Storage subsystem to use.")
-
-config_lib.DEFINE_string("Datastore.security_manager",
-                         "NullAccessControlManager",
-                         "Security manager for data store access.")
 
 flags.DEFINE_bool("list_storage", False,
                   "List all storage subsystems present.")
@@ -64,7 +60,7 @@ flags.DEFINE_bool("list_storage", False,
 DB = None
 
 # There are stub methods that don't return/yield as indicated by the docstring.
-# pylint: disable=C6112
+# pylint: disable=g-doc-return-or-yield
 
 
 class Error(stats.CountingExceptionMixin, Exception):
@@ -510,7 +506,7 @@ class DataStoreInit(registry.InitHook):
 
   def Run(self):
     """Initialize the data_store."""
-    global DB  # pylint: disable=W0603
+    global DB  # pylint: disable=global-statement
 
     if flags.FLAGS.list_storage:
       for name, cls in DataStore.classes.items():
@@ -524,9 +520,9 @@ class DataStoreInit(registry.InitHook):
       raise RuntimeError("No Storage System %s found." %
                          config_lib.CONFIG["Datastore.implementation"])
 
-    DB = cls()  # pylint: disable=C6409
+    DB = cls()  # pylint: disable=g-bad-name
     DB.Initialize()
 
   def RunOnce(self):
     """Initialize some Varz."""
-    stats.STATS.RegisterVar("grr_commit_failure")
+    stats.STATS.RegisterCounterMetric("grr_commit_failure")

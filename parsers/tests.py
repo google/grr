@@ -2,7 +2,7 @@
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Tests for the grr parsers."""
 
-# These need to register plugins so, pylint: disable=W0611
+# These need to register plugins so, pylint: disable=unused-import
 
 from grr.parsers import chrome_history_test
 from grr.parsers import firefox3_history_test

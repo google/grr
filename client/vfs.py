@@ -312,3 +312,19 @@ def VFSOpen(pathspec):
       raise IOError("%s: %s" % (e, component))
 
   return fd
+
+
+def ReadVFS(pathspec, offset, length):
+  """Read from the VFS and return the contents.
+
+  Args:
+    pathspec: path to read from
+    offset: number of bytes to skip
+    length: number of bytes to read
+  Returns:
+    VFS file contents
+  """
+  fd = VFSOpen(pathspec)
+  fd.Seek(offset)
+  return fd.Read(length)
+

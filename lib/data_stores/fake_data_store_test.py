@@ -3,13 +3,12 @@
 
 
 
-from grr.client import conf
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import data_store_test
+from grr.lib import flags
 from grr.lib import test_lib
 
 
@@ -21,4 +20,4 @@ def main(args):
   test_lib.main(args)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

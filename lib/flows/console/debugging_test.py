@@ -7,7 +7,7 @@ import os
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
-from grr.lib.flows import console  # pylint: disable=W0611
+from grr.lib.flows import console  # pylint: disable=unused-import
 
 
 class TestDebugFlows(test_lib.FlowTestsBaseclass):

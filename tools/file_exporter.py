@@ -6,9 +6,6 @@
 import sys
 
 
-from grr.client import conf
-from grr.client import conf as flags
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
@@ -16,6 +13,7 @@ from grr.lib import server_plugins
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import export_utils
+from grr.lib import flags
 from grr.lib import startup
 
 
@@ -55,7 +53,9 @@ def Usage():
 
 def main(unused_argv):
   """Main."""
-  config_lib.CONFIG.SetEnv("Environment.component", "CommandLineTools")
+  config_lib.CONFIG.AddContext(
+      "Commandline Context",
+      "Context applied for all command line tools")
   startup.Init()
 
   if not flags.FLAGS.output or not (flags.FLAGS.collection or flags.FLAGS.file
@@ -86,7 +86,7 @@ def main(unused_argv):
 
 def ConsoleMain():
   """Helper function for calling with setup tools entry points."""
-  conf.StartMain(main)
+  flags.StartMain(main)
 
 if __name__ == "__main__":
   ConsoleMain()

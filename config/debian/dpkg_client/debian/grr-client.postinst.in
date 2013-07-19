@@ -1,0 +1,9 @@
+
+DAEMON="%(ClientBuilder.target_dir)/%(Client.binary_name)"
+DAEMON_ARGS="--config=%(ClientBuilder.target_dir)/%(ClientBuilder.config_filename)"
+
+${DAEMON} ${DAEMON_ARGS} "--install"
+
+if [ -e "/etc/init/%(Client.name).conf" ]; then
+	service %(Client.name) start || exit $?
+fi

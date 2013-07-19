@@ -98,7 +98,7 @@ class BaseUserManager(object):
 
   def AddUserLabels(self, username, labels):
     """Add the labels to the specified user."""
-    self.SetUserLabels(username, self.GetUserLabels(username) + labels)
+    self.SetUserLabels(username, list(self.GetUserLabels(username)) + labels)
 
   def SetUserLabels(self, username, labels):
     """Overwrite the current set of labels with a list of labels."""
@@ -164,8 +164,59 @@ class BaseAccessControlManager(object):
     elif user_manager_cls:
       self.user_manager = user_manager_cls()
 
-  def CheckAccess(self, token, subjects, requested_access="r"):
-    """The main entry point for checking access to resources.
+  def CheckHuntAccess(self, token, hunt_urn):
+    """Checks access to the given hunt.
+
+    Args:
+      token: User credentials token.
+      hunt_urn: URN of the hunt to check.
+
+    Returns:
+      True if access is allowed, raises otherwise.
+
+    Raises:
+      access_control.UnauthorizedAccess if access is rejected.
+    """
+    logging.debug("Checking %s for hunt %s access.", token, hunt_urn)
+    raise NotImplementedError()
+
+  def CheckCronJobAccess(self, token, cron_job_urn):
+    """Checks access to a given cron job.
+
+    Args:
+      token: User credentials token.
+      cron_job_urn: URN of the cron job to check.
+
+    Returns:
+      True if access is allowed, raises otherwise.
+
+    Raises:
+      access_control.UnauthorizedAccess if access is rejected.
+    """
+    logging.debug("Checking %s for cron job %s access.", token, cron_job_urn)
+    raise NotImplementedError()
+
+  def CheckFlowAccess(self, token, flow_name, client_id=None):
+    """Checks access to the given flow.
+
+    Args:
+      token: User credentials token.
+      flow_name: Name of the flow to check.
+      client_id: Client id of the client where the flow is going to be
+                 started. Defaults to None.
+
+    Returns:
+      True if access is allowed, raises otherwise.
+
+    Raises:
+      access_control.UnauthorizedAccess if access is rejected.
+    """
+    logging.debug("Checking %s for flow %s access (client: %s).", token,
+                  flow_name, client_id)
+    raise NotImplementedError()
+
+  def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
+    """The main entry point for checking access to AFF4 resources.
 
     Args:
       token: An instance of ACLToken security token.
@@ -174,13 +225,14 @@ class BaseAccessControlManager(object):
          to. If any of these fail, the whole request is denied.
 
       requested_access: A string specifying the desired level of access ("r" for
-         read and "w" for write).
+         read and "w" for write, "q" for query).
 
     Raises:
        UnauthorizedAccess: If the user is not authorized to perform the action
        on any of the subject URNs.
     """
     logging.debug("Checking %s: %s for %s", token, subjects, requested_access)
+    raise NotImplementedError()
 
   def CheckUserLabels(self, username, authorized_labels):
     """Verify that the username has the authorized_labels set."""
@@ -197,9 +249,9 @@ class ACLInit(registry.InitHook):
   pre = ["StatsInit", "AFF4InitHook"]
 
   def RunOnce(self):
-    stats.STATS.RegisterMap("acl_check_time", "times", precision=0)
-    stats.STATS.RegisterVar("grr_expired_tokens")
-    stats.STATS.RegisterVar("grr_unauthorised_requests")
+    stats.STATS.RegisterEventMetric("acl_check_time")
+    stats.STATS.RegisterCounterMetric("grr_expired_tokens")
+    stats.STATS.RegisterCounterMetric("grr_unauthorised_requests")
 
 # This will register all classes into this modules's namespace regardless of
 # where they are defined. This allows us to decouple the place of definition of

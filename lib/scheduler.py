@@ -53,18 +53,6 @@ class TaskScheduler(object):
       return self.PREDICATE_PREFIX % "flow"
     return self.PREDICATE_PREFIX % ("%08d" % task_id)
 
-  @classmethod
-  def QueueNameFromURN(cls, urn):
-    """Returns the queue name from a flow URN.
-
-    Args:
-      urn: The Flow urn. Normally of the format: aff4:/client_id/flows/W:12345/
-
-    Returns:
-      The Queue name.
-    """
-    return rdfvalue.RDFURN(urn).Basename().split(":")[0]
-
   def Delete(self, queue, tasks, token=None):
     """Removes the tasks from the queue.
 
@@ -101,12 +89,6 @@ class TaskScheduler(object):
         self.data_store.MultiSet(
             queue, to_schedule, timestamp=timestamp, sync=sync, token=token)
 
-  def NotifyQueue(self, queue, session_id,
-                  priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY,
-                  **kwargs):
-    """This signals that there are new messages available in a queue."""
-    self.MultiNotifyQueue(queue, [session_id], [priority], **kwargs)
-
   def GetSessionsFromQueue(self, queue, token=None):
     """Retrieves candidate session ids for processing from the datastore."""
 
@@ -132,29 +114,54 @@ class TaskScheduler(object):
 
     return sessions_available
 
-  def MultiNotifyQueue(self, queue, session_ids, priorities, timestamp=None,
+  def NotifyQueue(self, session_id,
+                  priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY,
+                  **kwargs):
+    """This signals that there are new messages available in a queue."""
+    self._MultiNotifyQueue(session_id.Queue(), [session_id],
+                           {session_id: priority}, **kwargs)
+
+  def MultiNotifyQueue(self, session_ids, priorities, timestamp=None,
                        sync=True, token=None):
     """This is the same as NotifyQueue but for several session_ids at once.
 
     Args:
-      queue: The queue to notify.
       session_ids: A list of session_ids with new messages to process.
-      priorities: A list of priorities, one for each session_id in the
+      priorities: A dict of priorities, one for each session_id in the
                   session_id list.
       timestamp: An optional timestamp for this notification.
       sync: If True, sync to the data_store immediately.
       token: An access token to access the data store.
+    Raises:
+      RuntimeError: An invalid session_id was passed.
     """
+    for session_id in session_ids:
+      if not isinstance(session_id, rdfvalue.SessionID):
+        raise RuntimeError("Can only notify on rdfvalue.SessionIDs.")
+
+    for queue, ids in utils.GroupBy(
+        session_ids, lambda session_id: session_id.Queue()):
+
+      self._MultiNotifyQueue(queue, ids, priorities, timestamp=timestamp,
+                             sync=sync, token=token)
+
+  def _MultiNotifyQueue(self, queue, session_ids, priorities, timestamp=None,
+                        sync=True, token=None):
     data_store.DB.MultiSet(
         queue,
-        dict([(self.PREDICATE_PREFIX % session_id, str(int(priority)))
-              for session_id, priority in zip(session_ids, priorities)]),
+        dict([(self.PREDICATE_PREFIX % session_id,
+               str(int(priorities[session_id])))
+              for session_id in session_ids]),
         sync=sync, replace=True, token=token, timestamp=timestamp)
 
-  def DeleteNotification(self, queue, session_id, token=None):
+  def DeleteNotification(self, session_id, token=None):
     """This deletes the notification when all messages have been processed."""
+    if not isinstance(session_id, rdfvalue.SessionID):
+      raise RuntimeError(
+          "Can only delete notifications for rdfvalue.SessionIDs.")
+
     data_store.DB.DeleteAttributes(
-        queue, [self.PREDICATE_PREFIX % session_id],
+        session_id.Queue(), [self.PREDICATE_PREFIX % session_id],
         token=token)
 
   def Query(self, queue, limit=1, token=None, task_id=None):
@@ -266,10 +273,10 @@ class TaskScheduler(object):
         transaction.DeleteAttribute(predicate)
         logging.info("TTL exceeded on task %s:%s, dequeueing", task.queue,
                      task.task_id)
-        stats.STATS.Increment("grr_task_ttl_expired_count")
+        stats.STATS.IncrementCounter("grr_task_ttl_expired_count")
       else:
         if task.task_ttl != rdfvalue.GrrMessage.max_ttl - 1:
-          stats.STATS.Increment("grr_task_retransmission_count")
+          stats.STATS.IncrementCounter("grr_task_retransmission_count")
 
         # Update the timestamp on the value to be in the future
         transaction.Set(predicate, task.SerializeToString(), replace=True,
@@ -281,8 +288,8 @@ class TaskScheduler(object):
     return tasks
 
 # These are globally available handles to factories
-# pylint: disable=W0603
-# pylint: disable=C6409
+# pylint: disable=global-statement
+# pylint: disable=g-bad-name
 
 
 class SchedulerInit(registry.InitHook):
@@ -292,8 +299,8 @@ class SchedulerInit(registry.InitHook):
 
   def Run(self):
     # Counters used by Scheduler.
-    stats.STATS.RegisterVar("grr_task_retransmission_count")
-    stats.STATS.RegisterVar("grr_task_ttl_expired_count")
+    stats.STATS.RegisterCounterMetric("grr_task_retransmission_count")
+    stats.STATS.RegisterCounterMetric("grr_task_ttl_expired_count")
     # Make global handlers
     global SCHEDULER
 
@@ -301,5 +308,5 @@ class SchedulerInit(registry.InitHook):
 
 SCHEDULER = None
 
-# pylint: enable=W0603
-# pylint: enable=C6409
+# pylint: enable=global-statement
+# pylint: enable=g-bad-name

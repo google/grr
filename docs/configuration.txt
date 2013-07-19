@@ -5,38 +5,24 @@ The GRR Configuration system
 
 The GRR configuration system is the main way users can control and customize the
 behavior of GRR components. Previous versions of GRR used command line flags to
-configure component, however that became unwieldy with a lot of confusing and
+configure components, however that became unwieldy with a lot of confusing and
 often contradictory command line options embedded in various shell scripts. We
-decided to replace the configuration system with an ini file based system.
+decided to replace the configuration system with a new file based system.
 
-General configuration file structure.
--------------------------------------
-
-The GRR configuration file is based around the concept of an INI file. The file
-is broken up into sections, and configuration parameters specific to each
-section are given with that. For example:
-
-[source,ini]
---------------------------------------------------------------------
-[Client]
-location = http://www.example.com/
-
-[NannyWindows]
-service_key = HKEY_LOCAL_MACHINE\\Software\\GRR
---------------------------------------------------------------------
-
-All configuration parameters in GRR referred to by their section name followed
-by a dot followed by the parameter name. For example above we have
-Client.location and 'NannyWindows.service_key' defined.
-
-
-Parameter Typing
-----------------
+Overview.
+---------
 
 When software is written with the GRR configuration system, it can define
-parameters that it is going to use. This declares the sections, the parameter name
-and a helpful message. In addition, the parameter's type is also declared. For
-example we can find the following code:
+parameters that it is going to use. Parameters have the general form
+'Section.parameter_name' where 'Section' corresponds to the component which
+defines related parameters. For example, the 'Logging' subsystem can define
+several parameters: 'Logging.path', 'Logging.verbose' etc. The use of section
+names ensures that different components can safely reuse the same parameter name
+without clashes.
+
+In addition to the parameter name, it is possible to declare a helpful message,
+to assist the user in understanding the purpose of this parameter. Parameters
+are also strongly typed. For example we can find the following code:
 
 [source,python]
 --------------------------------------------------------------------
@@ -50,17 +36,17 @@ config_lib.DEFINE_option(type_info.PEMPrivateKey(
     ))
 --------------------------------------------------------------------
 
-The first definition declares the parameter Client.rss_max to be a float, with a
-default value of 500.
+The first definition declares the parameter 'Client.rss_max' to be a float, with
+a default value of 500.
 
-The second definition is more complex. It defines the Client.private_key
-parameter as a PEMPrivateKey type info declaration. This declaration allows the
-configuration system itself to verify that the parameter is a valid private key
-in PEM format. There is now no need for the code to specifically test for sanity
-of the private key. If the user provides an invalid or corrupt PEM encoded key,
-it is caught immediately by the config system and the program aborts. For
-example the following happens after removing a random character from the
-CA.certificate PEM string:
+The second definition is more complex. It defines the 'Client.private_key'
+parameter as a 'PEMPrivateKey' type info declaration. This declaration allows
+the configuration system itself to verify that the parameter is a valid private
+key in PEM format. There is now no need for the code to specifically test for
+sanity of the private key. If the user provides an invalid or corrupt PEM
+encoded key, it is caught immediately by the config system and the program
+aborts. For example the following happens after removing a random character from
+the 'CA.certificate' PEM string:
 
 --------------------------------------------------------------------
 Traceback (most recent call last):
@@ -78,11 +64,11 @@ Traceback (most recent call last):
 grr.lib.type_info.TypeValueError: Certificate CA.certificate is invalid.
 --------------------------------------------------------------------
 
-Since every parameter is defined in advance and has a default value, the config
-file does not need to specify every parameter - only those which should be
-changed from the default value. In order to see all declared parameters and
-their default values, we can issue the --config_help command line flag. This is
-analogous to the --help flag:
+Since every parameter is defined in advance and has a default value, the
+configuration file does not need to specify every parameter - only those which
+should be changed from the default value. In order to see all declared
+parameters and their default values, we can issue the '--config_help' command
+line flag. This is analogous to the '--help' flag:
 
 --------------------------------------------------------------------
 Client.location = http://www.example.com/control
@@ -94,95 +80,114 @@ Client.max_out_queue = 10240000
 * Value = 10240000
 --------------------------------------------------------------------
 
-We can see that Client.location has a default value of
+We can see that 'Client.location' has a default value of
 http://www.example.com/control, it is used to specify the URL of the controlling
 server, and currently (after reading the configuration files), the value is set
 to http://localhost:8080/control. We can also see that Client.max_out_queue is
 not changed from its default value.
 
 
-Executable sections.
---------------------
+Configuration file organization.
+--------------------------------
 
-GRR contains many different components, each component having its own
-configuration parameters. For example, the Client component refers to the client
-binary, the Nanny component is used by the Nanny program etc.
+When GRR is installed on a system, a system wide, distribution specific,
+configuration file is also installed (by default
+'/etc/grr/grr_server.yaml'). This specifies the basic configuration of the GRR
+service (i.e. various distribution specific locations). However, the
+configuration typically needs to be updated with site specific parameters (for
+example new crypto keys, the 'Client.location' setting to allow the client to
+connect to the server etc.)
 
-When a main component program is run, it is desirable to apply specific
-configuration for it, which may be different from other main components. For
-example, the parameter Logging.path describes the filename for log files to be
-written to. When running the client we might want this to be different than when
-running the server.
+In order to avoid having to trash the user customized configuration files when
+GRR is updated in future, we write site specific configuration files into the
+'Config.writeback' location (by default '/etc/grr/grr.local.yaml'). This local
+file only contains those parameters which are changed from the defaults, or the
+system configuration file.
 
-We could solve this problem by having multiple configuration files - one for the
-client and one for the server. But this can make is hard to manage and
-synchronize.
+[NOTE]
+==============================================================================
+The system configuration file is never modified, all updated configurations are
+always written to the writeback location. Do not edit the system configuration
+file as changes in this file will be lost when GRR is upgraded.
+==============================================================================
 
-In GRR we have executable sections. When a section is executed, it assigns
-configuration directives to other sections, thereby updating their
-configuration. For example:
 
-[source,ini]
+Using the '--config_help' option will print all the supported options. This
+allows users to figure out what parameters can be changed in the writeback
+configuration file to override the system configuration, or the
+defaults. Generally it is not required for users to edit many configuration
+parameters. The most important parameters will be automatically set upon
+installation.
+
+
+Configuration Contexts.
+-----------------------
+
+The next important concept to understand is that of configuration contexts. GRR
+consists of many components, which share more of their configuration. Often,
+however, we want to specify slight differences between each component. If we
+were to write a separate configuration file say for each client version
+(Currently, 3 operating systems, and 2 architectures) as well as for each
+component (e.g. worker, enroller, frontend etc), we would end up with an
+unmaintainable mess of many configuration files. It would make more sense to put
+most of the common configuration parameters in the same file, and only specify
+the different ones, depending on the component which is running.
+
+GRR introduces the concept of running context. The context is a list of
+attributes about the currently running component. When the code accesses the
+configuration system, the configuration system considers the currently running
+context and returns the appropriate value of the required parameter.
+
+For example, consider the parameter 'Logging.path' which specifies the location
+of the log file. In a full GRR installation, we wish the admin UI to log to
+'/var/log/grr/adminui.log' while the frontend should log to
+'/var/log/grr/frontend.log'. We can therefore specify in the YAML config file:
+
 --------------------------------------------------------------------
-[Client]
-location = http://www.example.com/
+Logging.path: /var/log/grr/grr_server.log
 
-[Logging]
-path = /var/log/grr.log                                        # <1>
+AdminUI Context:
+  Logging.path: /var/log/grr/adminui.log
 
-[NannyWindows]
-service_key = HKEY_LOCAL_MACHINE\\Software\\GRR
-Logging.path = /var/log/grr_nanny.log                          # <2>
---------------------------------------------------------------------
+Frontend Context:
+  Logging.path: /var/log/grr/frontend.log
 
-<1> This configuration parameter specifies the name of the log file that is used
-normally.
+Client Context:
+  Logging.path: /var/log/grr/grr_client.log
 
-<2> When the nanny main program is run, it executes its section (called
-Nanny). This causes this parameter to assign a different value to the
-Logging.path parameter. The overall result is that the nanny program will now log
-to a different path than everyone else.
+  Platform:Windows:
+    Logging.path: c:\\windows\\system32\\grr.log
 
 
-This technique can be used to create a single configuration file, which causes
-different behaviors in different components. For example, we can use this to
-configure different parameters for different OS versions of the client. For
-example the following causes windows clients and Linux clients to talk to
-different front ends:
-
-[source,ini]
---------------------------------------------------------------------
-[Client]
-location = http://www.example.com/
-
-[ClientWindows]
-Client.location = http://www.example.com/windows/
-
-[ClientLinux]
-Client.location = http://www.example.com/linux/
---------------------------------------------------------------------
-
-In addition to components executing sections, it is possible to specify that
-sections be executed from the command line. This allows the same config file to
-specify a number of 'roles', which are fairly similar except for some small
-number of parameters which differ. For example, one might want to test the
-client on a test server prior to deployment:
-
-[source,ini]
---------------------------------------------------------------------
-[Client]
-location = http://www.example.com/frontend/
-
-
-[TestClient]
-Client.location = http://www.example.com/test_frontend/
 --------------------------------------------------------------------
 
-Then launching the client will override the Client's location temporarily:
-[source,sh]
---------------------------------------------------------------------
-client.py --config_execute TestClient
---------------------------------------------------------------------
+When the 'adminui.py' program starts up, it populates its context with 'AdminUI
+Context'. This forces the configuration system to return the value specific to
+this context. Note that other components, such as the worker will set a context
+of 'Worker Context', which will not match any of the above overrides. Therefore
+the worker will simply log to the default of '/var/log/grr/grr_server.log'.
+
+Note that it is possible to have multiple contexts defined at the same time. So
+for example, the client running under windows will have the contexts, 'Client
+Context' and 'Platform:Windows', while a client running under Linux will have
+the context 'Client Context' and 'Platform:Linux'. When several possibilities
+can apply, the option which matches the most context parameters will be
+selected. So in the above example, linux and osx clients will have a context
+like 'Client Context' and will select '/var/log/grr/grr_client.log'. On the
+other hand, a windows client will also match the 'Platform:Windows' context, and
+will therefore select 'c:\windows\system32\grr.log'.
+
+The following is a non-exhaustive list of available contexts:
+
+- 'Client Context', 'Worker Context', 'Console Context' etc. Are defined when
+  running one of the main programs.
+- 'Test Context' is defined when running unit tests.
+- 'Arch:i386' and 'Arch:amd64' are set when running a 32 or 64 bit binary.
+- 'Installer Context' is defined when the windows installer is active
+  (i.e. during installation)
+- 'Platform:Windwos', 'Platform:Linux', 'Platform:Darwin' are set when running
+  under these platforms.
+
 
 Parameter Expansions
 --------------------
@@ -191,32 +196,30 @@ The GRR configuration file format allows for expansion of configuration
 parameters inside other parameters. For example consider the following
 configuration file:
 
-[source,ini]
+[source,conf]
 --------------------------------------------------------------------
-[Client]
-name = GRR
+Client.name: GRR
 
-[NannyWindows]
-service_name = %(Client.name)service.exe
-service_key_hive = HKEY_LOCAL_MACHINE
-service_key = Software\\%(Client.name)
-initial_commandline =
+Nanny.service_name: "%(Client.name)service.exe"
+Nanny.service_key_hive: HKEY_LOCAL_MACHINE
+Nanny.service_key: Software\\%(Client.name)
+Nanny.child_command_line: |
+  %(child_binary) --config "%(Client.install_path)\\%(Client.binary_name).yaml"
 --------------------------------------------------------------------
 
 The expansion sequence '%(parameter_name)' substitutes or expands the parameter
 into the string. This allows us to build values automatically based on other
-values. For example above, the 'NannyWindows.service_name' will be
+values. For example above, the 'Nanny.service_name' will be
 'GRRservice.exe' and the service_key will be set to 'Software\GRR'
 
 Expansion is very useful, but sometimes it gets in the way. For example, if we
 need to pass literal % escape sequences. Consider the Logging.format parameter
 which is actually a python format string:
 
-[source,ini]
+[source,conf]
 --------------------------------------------------------------------
-[Logging]
-format = \%(levelname\)s \%(module\)s:\%(lineno\)s] \%(message\)s  # <1>
-format = %{%(levelname)s %(module)s:%(lineno)s] %(message)s}       # <2>
+Logging.format: \%(levelname\)s \%(module\)s:\%(lineno\)s] \%(message\)s  # <1>
+Logging.format: %{%(levelname)s %(module)s:%(lineno)s] %(message)s}       # <2>
 --------------------------------------------------------------------
 
 <1> This form escapes GRR's special escaping sequence by preceding both opening
@@ -232,10 +235,9 @@ The configuration system may be extended to provide additional functionality
 accessible from the configuration file. For example consider the following
 configuration file:
 
-[source,ini]
+[source,conf]
 --------------------------------------------------------------------
-[Logging]
-path = %(HOME|env)/grr.log                             # <1>
+Logging.path: "%(HOME|env)/grr.log"                             # <1>
 --------------------------------------------------------------------
 
 <1> This expansion sequence uses the 'env' filter which expands a value from the
@@ -247,26 +249,24 @@ including other files from the filesystem into the configuration file. For
 example, some people prefer to keep their certificates in separate files rather
 than paste them into the config file:
 
-[source,ini]
+[source,conf]
 --------------------------------------------------------------------
-[CA]
-certificate = %(/etc/certificates/ca.pem|file)
+CA.certificate: "%(/etc/certificates/ca.pem|file)"
 --------------------------------------------------------------------
 
 It is even possible to nest expansion sequences. For example this retrieves the
 client's private key from a location which depends on the client name:
 
-[source,ini]
+[source,conf]
 --------------------------------------------------------------------
-[Client]
-private_key = %(/etc/grr/client/%(Client.name)/private_key.pem|file)
+Client.private_key: "%(/etc/grr/client/%(Client.name)/private_key.pem|file)"
 --------------------------------------------------------------------
 
 
 Configuration parsers
 ---------------------
 
-The above describes the GRR configuration system as an INI file and that is the
+The above describes the GRR configuration system as an yaml file and that is the
 most commonly used format. However, configuration files are parsed using a
 parser implementation which can be switched on demand. Currently there are a few
 configuration parser implementations but additional ones can be added.
@@ -280,4 +280,15 @@ registry base parser is selected by using a URL of the form:
 client.py --config reg://HKEY_LOCAL_MACHINE/Software/GRR
 --------------------------------------------------------------------
 
-In future additional parsers may be implemented.
+Additionally an ini based configuration parser can be selected using a .conf
+extension:
+
+[source,sh]
+--------------------------------------------------------------------
+client.py --config /etc/grr.conf
+--------------------------------------------------------------------
+
+Since ini files can not represent nested sections, it is impossible to specify
+different parameters for different contexts. It is therefore not recommended to
+use ini files for the full system config, but they are sufficient for use as a
+write back location.

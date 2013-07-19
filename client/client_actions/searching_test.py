@@ -74,6 +74,7 @@ class MockVFSHandlerFind(vfs.VFSHandler):
     else:
       result.st_mode = 040775
     result.st_size = len(f)
+    result.st_mtime = 1373185602
 
     return result
 
@@ -191,6 +192,38 @@ class FindTest(test_lib.EmptyActionTest):
                      "file1.txt")
     self.assertEqual(all_files[1].pathspec.Basename(),
                      "long_file.text")
+
+  def testFindSizeLimits(self):
+    """Test the find action size limits."""
+    # First get all the files at once
+    request = rdfvalue.RDFFindSpec(min_file_size=4, max_file_size=15,
+                                   cross_devs=True)
+    request.pathspec.Append(path="/mock2/",
+                            pathtype=rdfvalue.PathSpec.PathType.OS)
+
+    request.iterator.number = 200
+    results = self.RunAction("Find", request)
+    all_files = []
+    for result in results:
+      if isinstance(result, rdfvalue.RDFFindSpec):
+        all_files.append(result.hit.pathspec.Basename())
+    self.assertEqual(len(all_files), 5)
+
+    for filename in all_files:
+      # Our mock filesize is the length of the base filename, check all the
+      # files we got match the size criteria
+      self.assertTrue(4 <= len(filename) <= 15)
+
+  def testNoFilters(self):
+    """Test the we get all files with no filters in place."""
+    # First get all the files at once
+    pathspec = rdfvalue.PathSpec(path="/mock2/",
+                                 pathtype=rdfvalue.PathSpec.PathType.OS)
+    request = rdfvalue.RDFFindSpec(pathspec=pathspec, cross_devs=True)
+    request.iterator.number = 200
+    result = self.RunAction("Find", request)
+    all_files = [x.hit for x in result if isinstance(x, rdfvalue.RDFFindSpec)]
+    self.assertEqual(len(all_files), 9)
 
   def testFindActionCrossDev(self):
     """Test that devices boundaries don't get crossed, also by default."""

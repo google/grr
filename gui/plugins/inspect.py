@@ -76,8 +76,6 @@ class RequestTable(renderers.TableRenderer):
       if i < start_row:
         continue
 
-      request = task.payload
-
       difference = now - task.eta
       if difference > 0:
         self.AddCell(i, "Status", dict(
@@ -88,9 +86,9 @@ class RequestTable(renderers.TableRenderer):
             description="Leased for %s Seconds" % (difference / 1e6)))
 
       self.AddCell(i, "ID", task.task_id)
-      self.AddCell(i, "Flow", request.session_id)
+      self.AddCell(i, "Flow", task.session_id)
       self.AddCell(i, "Due", rdfvalue.RDFDatetime(task.eta))
-      self.AddCell(i, "Client Action", request.name)
+      self.AddCell(i, "Client Action", task.name)
 
 
 class ResponsesTable(renderers.TableRenderer):
@@ -123,7 +121,7 @@ class ResponsesTable(renderers.TableRenderer):
 
     if not request_messages: return
 
-    request_message = request_messages[0].payload
+    request_message = request_messages[0]
 
     state_queue = (flow_runner.FlowManager.FLOW_STATE_TEMPLATE %
                    request_message.session_id)
@@ -217,7 +215,7 @@ class RequestRenderer(renderers.TemplateRenderer):
     scheduler_obj = scheduler.TaskScheduler()
     msgs = scheduler_obj.Query(client_id, task_id=task_id, token=request.token)
     if msgs:
-      self.msg = msgs[0].payload
+      self.msg = msgs[0]
       self.view = renderers.FindRendererForObject(
           self.msg).RawHTML(request)
 

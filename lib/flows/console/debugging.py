@@ -2,15 +2,19 @@
 # Copyright 2011 Google Inc. All Rights Reserved.
 """Debugging flows for the console."""
 
-
+import getpass
 import os
 import pdb
 import pickle
 import tempfile
+import time
 
+from grr.lib import access_control
+from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import type_info
+from grr.lib import worker
 
 
 class ClientAction(flow.GRRFlow):
@@ -68,3 +72,63 @@ class ClientAction(flow.GRRFlow):
         self.Log("Wrote %d responses to %s", len(responses), fname)
       finally:
         if fd: fd.close()
+
+
+def StartFlowAndWait(client_id, flow_name, **kwargs):
+  """Launches the flow and waits for it to complete.
+
+  Args:
+     client_id: The client common name we issue the request.
+     flow_name: The name of the flow to launch.
+     **kwargs: passthrough to flow.
+
+  Returns:
+     A GRRFlow object.
+  """
+  session_id = flow.GRRFlow.StartFlow(client_id, flow_name, **kwargs)
+  while 1:
+    time.sleep(1)
+    flow_obj = aff4.FACTORY.Open(session_id)
+    if not flow_obj.IsRunning():
+      break
+
+  return flow_obj
+
+
+def StartFlowAndWorker(client_id, flow_name, **kwargs):
+  """Launches the flow and worker and waits for it to finish.
+
+  Args:
+     client_id: The client common name we issue the request.
+     flow_name: The name of the flow to launch.
+     **kwargs: passthrough to flow.
+
+  Returns:
+     A GRRFlow object.
+
+  Note: you need raw access to run this flow as it requires running a worker.
+  """
+  queue = rdfvalue.RDFURN("DEBUG-%s-" % getpass.getuser())
+  session_id = flow.GRRFlow.StartFlow(client_id, flow_name, queue=queue,
+                                      **kwargs)
+  # Empty token, only works with raw access.
+  worker_thrd = worker.GRRWorker(
+      queue=queue, token=access_control.ACLToken(), threadpool_size=1,
+      run_cron=False)
+  while True:
+    try:
+      worker_thrd.RunOnce()
+    except KeyboardInterrupt:
+      print "exiting"
+      worker_thrd.thread_pool.Join()
+      break
+
+    time.sleep(2)
+    flow_obj = aff4.FACTORY.Open(session_id)
+    if not flow_obj.IsRunning():
+      break
+
+  # Terminate the worker threads
+  worker_thrd.thread_pool.Join()
+
+  return flow_obj

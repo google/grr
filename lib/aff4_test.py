@@ -6,7 +6,6 @@
 
 import threading
 import time
-from grr.client import conf
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
@@ -16,6 +15,7 @@ from grr.lib.aff4_objects import tests
 
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -840,6 +840,65 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     finally:
       time.time = original_time
 
+  def testUpdateLeaseRaisesIfObjectIsNotLocked(self):
+    client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
+                                 token=self.token)
+    client.Set(client.Schema.HOSTNAME("client1"))
+    client.Close()
+
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    self.assertRaises(aff4.LockError, client.UpdateLease, 100)
+
+  def testUpdateLeaseRaisesIfLeaseHasExpired(self):
+    original_time = time.time
+    try:
+      time.time = lambda: 100
+
+      client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
+                                   token=self.token)
+      client.Set(client.Schema.HOSTNAME("client1"))
+      client.Close()
+
+      try:
+        with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                       lease_time=100) as fd:
+          time.time = lambda: 250
+          self.assertRaises(aff4.LockError, fd.UpdateLease, 100)
+      except aff4.LockError:
+        # LockContextManager.__exit__ calls Close(), which calls Flush(),
+        # which calls CheckLease(), which raises LockError because the lease
+        # time has expired. Ignoring this exception.
+        pass
+
+    finally:
+      time.time = original_time
+
+  def testUpdateLeaseWorksCorrectly(self):
+    original_time = time.time
+    try:
+      time.time = lambda: 100
+
+      client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
+                                   token=self.token)
+      client.Set(client.Schema.HOSTNAME("client1"))
+      client.Close()
+
+      with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                     lease_time=100) as fd:
+        fd.UpdateLease(200)
+        time.time = lambda: 250
+
+        # If lease is updated correctly, object can't be OpenedWithLock again,
+        # because it's already locked and lease hasn't expired.
+        def TryOpen():
+          with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                         blocking=False):
+            pass
+        self.assertRaises(aff4.LockError, TryOpen)
+
+    finally:
+      time.time = original_time
+
   def testLockProtectedAttributesWorkCorrectly(self):
     obj = aff4.FACTORY.Create("aff4:/obj", "ObjectWithLockProtectedAttribute",
                               token=self.token)
@@ -1190,4 +1249,4 @@ def main(argv):
   test_lib.GrrTestProgram(argv=argv, testLoader=AFF4TestLoader())
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

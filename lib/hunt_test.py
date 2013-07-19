@@ -9,7 +9,6 @@ import math
 import time
 
 
-from grr.client import conf
 import logging
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -17,6 +16,7 @@ from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import flow
 
 # These imports populate the GRRHunt registry.
@@ -488,8 +488,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     received_events = []
 
-    class Listener1(flow.EventListener):  # pylint:disable=W0612
-      well_known_session_id = "aff4:/flows/W:TestHuntDone"
+    class Listener1(flow.EventListener):  # pylint: disable=unused-variable
+      well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:TestHuntDone")
       EVENTS = ["TestHuntDone"]
 
       @flow.EventHandler(auth_required=True)
@@ -623,8 +623,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     hunt = aff4.FACTORY.Open(hunt_urn, aff4_type="SampleHunt",
                              token=self.token)
 
-    # This is called once for each state method. Each flow above runs the Start
-    # and the StoreResults methods.
+    # This is called once for each state method. Each flow above runs the
+    # Start and the StoreResults methods.
     usage_stats = hunt.state.context.usage_stats
     self.assertEqual(usage_stats.user_cpu_stats.num, 20)
     self.assertTrue(math.fabs(usage_stats.user_cpu_stats.mean -
@@ -659,26 +659,6 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       prev = p
 
 
-class CPUFlow(flow.GRRFlow):
-  """This flow is used to test the cpu usage stats."""
-
-  @flow.StateHandler(next_state="State1")
-  def Start(self):
-    self.CallClient("Store", string="Hey!", next_state="State1")
-
-  @flow.StateHandler(next_state="Done")
-  def State1(self):
-    # The mock worker doesn't track usage so we add it here.
-    self.state.context.client_resources.cpu_usage.user_cpu_time += 10
-    self.state.context.client_resources.cpu_usage.system_cpu_time += 10
-    self.state.context.remaining_cpu_quota -= 20
-    self.CallClient("Store", string="Hey!", next_state="Done")
-
-  @flow.StateHandler()
-  def Done(self, responses):
-    pass
-
-
 class FlowTestLoader(test_lib.GRRTestLoader):
   base_class = test_lib.FlowTestsBaseclass
 
@@ -688,4 +668,4 @@ def main(argv):
   test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

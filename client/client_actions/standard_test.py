@@ -6,12 +6,14 @@
 import gzip
 import hashlib
 import os
+import time
 
 
 from M2Crypto import RSA
-from grr.client import conf
 
+from grr.client.client_actions import standard
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
@@ -79,8 +81,11 @@ class TestExecutePython(test_lib.EmptyActionTest):
     signed_blob = rdfvalue.SignedBlob()
     signed_blob.Sign(open("/bin/ls").read(), self.signing_key)
 
+    writefile = utils.Join(self.temp_dir, "binexecute", "ablob")
+    os.makedirs(os.path.dirname(writefile))
     request = rdfvalue.ExecuteBinaryRequest(executable=signed_blob,
-                                            args=[__file__])
+                                            args=[__file__],
+                                            write_path=writefile)
 
     result = self.RunAction("ExecuteBinaryCommand", request)[0]
 
@@ -185,9 +190,68 @@ class TestCopyPathToFile(test_lib.EmptyActionTest):
     self.assertEqual(hashlib.sha1(
         gzip.open(result.dest_path.path).read()).hexdigest(), self.hash_in)
 
+  def testCopyPathToFileLifetimeLimit(self):
+    request = rdfvalue.CopyPathToFileRequest(offset=0,
+                                             length=23,
+                                             src_path=self.pathspec,
+                                             dest_dir=self.temp_dir,
+                                             gzip_output=False,
+                                             lifetime=0.1)
+    result = self.RunAction("CopyPathToFile", request)[0]
+    self.assertTrue(os.path.exists(result.dest_path.path))
+    time.sleep(1)
+    self.assertFalse(os.path.exists(result.dest_path.path))
+
+
+class TestNetworkByteLimits(test_lib.EmptyActionTest):
+  """Test CopyPathToFile client actions."""
+
+  def setUp(self):
+    super(TestNetworkByteLimits, self).setUp()
+    pathspec = rdfvalue.PathSpec(path="/nothing",
+                                 pathtype=rdfvalue.PathSpec.PathType.OS)
+    self.buffer_ref = rdfvalue.BufferReference(pathspec=pathspec, length=5000)
+    self.data = "X" * 500
+    self.old_read = standard.vfs.ReadVFS
+    standard.vfs.ReadVFS = lambda x, y, z: self.data
+    self.transfer_buf = test_lib.ActionMock("TransferBuffer")
+
+  def testTransferNetworkByteLimitError(self):
+    message = rdfvalue.GrrMessage(name="TransferBuffer",
+                                  payload=self.buffer_ref,
+                                  network_bytes_limit=300)
+
+    # We just get a client alert and a status message back.
+    responses = self.transfer_buf.HandleMessage(message)
+
+    client_alert = responses[0].payload
+    self.assertTrue("Network limit exceeded" in str(client_alert))
+
+    status = responses[1].payload
+    self.assertTrue("Action exceeded network send limit"
+                    in str(status.backtrace))
+    self.assertEqual(status.status,
+                     rdfvalue.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED)
+
+  def testTransferNetworkByteLimit(self):
+    message = rdfvalue.GrrMessage(name="TransferBuffer",
+                                  payload=self.buffer_ref,
+                                  network_bytes_limit=900)
+
+    responses = self.transfer_buf.HandleMessage(message)
+
+    for response in responses:
+      if isinstance(response, rdfvalue.GrrStatus):
+        self.assertEqual(response.payload.status,
+                         rdfvalue.GrrStatus.ReturnedStatus.OK)
+
+  def tearDown(self):
+    super(TestNetworkByteLimits, self).tearDown()
+    standard.vfs.ReadVFS = self.old_read
+
 
 def main(argv):
   test_lib.main(argv)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

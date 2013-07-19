@@ -139,6 +139,26 @@ dd.histogram > div {
   margin: 0;
 }
 
+.panel {
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+
+  -webkit-border-radius: 6px; 
+  -moz-border-radius: 6px; 
+  border-radius: 6px; 
+
+  -webkit-box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3); 
+  -moz-box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3); 
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3)
+}
+
+.details-right-panel {
+    position: absolute;
+    top: 45px;
+    right: 0px; 
+    left: 150px;
+}
+
 /* Tables styling */
 table.fixed-columns {
     table-layout: fixed;
@@ -215,6 +235,12 @@ div.jstree-default.jstree-focused {
 
 .jstree-loading-failed  {
     background: url("/static/javascript/jstree/themes/default/throbber.gif") center center no-repeat !important;
+}
+
+.ajax_spinner {
+    min-width: 16px;
+    min-height: 16px;
+    display: inline-block;
 }
 
 .grr-icon {

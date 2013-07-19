@@ -14,10 +14,10 @@ class TestInspectView(test_lib.GRRSeleniumTest):
 
   def testInspect(self):
     """Test the inspect UI."""
+    with self.ACLChecksDisabled():
+      self.GrantClientApproval("C.0000000000000001")
 
     self.Open("/")
-
-    self.WaitUntil(self.IsElementPresent, "client_query")
 
     self.Type("client_query", "0001")
     self.Click("client_query_submit")
@@ -27,16 +27,12 @@ class TestInspectView(test_lib.GRRSeleniumTest):
 
     # Choose client 1
     self.Click("css=td:contains('0001')")
-    self.WaitUntil(self.IsElementPresent, "css=a[grrtarget=LaunchFlows]")
 
     self.Click("css=a[grrtarget=LaunchFlows]")
-    self.WaitUntil(self.IsElementPresent, "id=_Administrative")
     self.Click("css=#_Administrative ins")
 
-    self.WaitUntil(self.IsTextPresent, "Interrogate")
     self.Click("css=a:contains(Interrogate)")
 
-    self.WaitUntil(self.IsElementPresent, "css=input[value=Launch]")
     self.Click("css=input[value=Launch]")
 
     # Open the "Advanced" dropdown.
@@ -63,10 +59,11 @@ class TestInspectView(test_lib.GRRSeleniumTest):
 
     # Here we emulate a mock client with no actions (None) this should produce
     # an error.
-    mock = test_lib.MockClient(rdfvalue.ClientURN("C.0000000000000001"),
-                               None, token=self.token)
-    while mock.Next():
-      pass
+    with self.ACLChecksDisabled():
+      mock = test_lib.MockClient(rdfvalue.ClientURN("C.0000000000000001"),
+                                 None, token=self.token)
+      while mock.Next():
+        pass
 
     # Now select the Responses tab:
     self.Click("css=li a:contains(Responses)")

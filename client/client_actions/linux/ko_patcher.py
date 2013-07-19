@@ -15,8 +15,9 @@ import struct
 import sys
 
 
-from grr.client import conf
 import logging
+
+from grr.lib import flags
 
 
 class KernelObjectPatcher(object):
@@ -222,4 +223,4 @@ def main(_):
   logging.info("Kernel Object patched.")
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

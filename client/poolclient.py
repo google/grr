@@ -5,24 +5,23 @@
 
 
 import pickle
-import platform
 import threading
 import time
 
 
-from grr.client import conf
-from grr.client import conf as flags
 import logging
 
 from grr.client import client
 
-# pylint: disable=W0611
+# pylint: disable=unused-import
 # Make sure we load the client plugins
 from grr.client import client_actions
-# pylint: enable=W0611
+from grr.client import client_plugins
+# pylint: enable=unused-import
 
 from grr.client import vfs
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import startup
 
@@ -130,14 +129,13 @@ def CreateClientPool(n):
 
 
 def main(unused_argv):
-
-  config_lib.CONFIG.SetEnv("Environment.component",
-                           "PoolClient%s" % platform.system().title())
+  config_lib.CONFIG.AddContext(
+      "PoolClient Context",
+      "Context applied when we run the pool client.")
 
   startup.ClientInit()
 
-  # Make sure that we do not update the config file when we create new clients.
-  config_lib.CONFIG.parser.filename = "/dev/null"
+  config_lib.CONFIG.SetWriteBack("/dev/null")
 
   if ("staging" not in config_lib.CONFIG["Client.location"] and
       "localhost" not in config_lib.CONFIG["Client.location"]):
@@ -153,4 +151,4 @@ def main(unused_argv):
   CreateClientPool(flags.FLAGS.nrclients)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

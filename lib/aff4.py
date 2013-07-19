@@ -20,6 +20,8 @@ from grr.lib import lexer
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
+from grr.lib.rdfvalues import grr_rdf
+
 
 config_lib.DEFINE_integer(
     "AFF4.cache_age", 5,
@@ -437,8 +439,8 @@ class Factory(object):
 
     if (aff4_type is not None and
         not isinstance(result, AFF4Object.classes[aff4_type])):
-      raise IOError("Object of type %s, but required_type is %s" % (
-          result.__class__.__name__, aff4_type))
+      raise IOError("Object %s is of type %s, but required_type is %s" % (
+          urn, result.__class__.__name__, aff4_type))
 
     return result
 
@@ -651,9 +653,10 @@ class Factory(object):
       logging.info("Object limit reached, there may be further objects "
                    "to delete.")
 
-    logging.info("Removed %s objects", count)
     data_store.DB.DeleteSubject(fd.urn, token=token)
     self._DeleteChildFromIndex(fd.urn, token)
+    count += 1
+    logging.info("Removed %s objects", count)
 
     # Ensure this is removed from the cache as well.
     self.Flush()
@@ -990,7 +993,7 @@ class AFF4Object(object):
 
   @ClassProperty
   @classmethod
-  def behaviours(cls):  # pylint: disable=C6409
+  def behaviours(cls):  # pylint: disable=g-bad-name
     return cls._behaviours
 
   # We define the parts of the schema for each AFF4 Object as an internal
@@ -1013,7 +1016,7 @@ class AFF4Object(object):
                      "The last time any attribute of this object was written.",
                      creates_new_object_version=False)
 
-    LABEL = Attribute("aff4:labels", rdfvalue.LabelList,
+    LABEL = Attribute("aff4:labels", grr_rdf.LabelList,
                       "Any object can have labels applied to it.")
 
     LEASED_UNTIL = Attribute("aff4:lease", rdfvalue.RDFDatetime,
@@ -1156,8 +1159,39 @@ class AFF4Object(object):
 
   def CheckLease(self):
     if self.locked:
-      if self.Get(self.Schema.LEASED_UNTIL) < rdfvalue.RDFDatetime().Now():
-        raise LockError("Lease for this object is expired!")
+      leased_until = self.Get(self.Schema.LEASED_UNTIL)
+      now = rdfvalue.RDFDatetime().Now()
+      if leased_until < now:
+        raise LockError("Lease for this object is expired "
+                        "(leased until %s, now %s)!" % (leased_until, now))
+
+  def UpdateLease(self, duration):
+    """Updates the lease and flushes the object.
+
+    The lease is set to expire after the "duration" time from the present
+    moment.
+    This method is supposed to be used when operation that requires locking
+    may run for a time that exceeds the lease time specified in OpenWithLock().
+    See flows/hunts locking for an example.
+
+    Args:
+      duration: Integer number of seconds. Lease expiry time will be set
+                to "time.time() + duration".
+    Raises:
+      LockError: if the object is not currently locked or the lease has
+                 expired.
+    """
+    if not self.locked:
+      raise LockError(
+          "Object must be locked to update the lease: %s." % self.urn)
+
+    # Check that current lease has not expired yet
+    self.CheckLease()
+
+    self.Set(
+        self.Schema.LEASED_UNTIL,
+        rdfvalue.RDFDatetime().FromSecondsFromEpoch(time.time() + duration))
+    self.Flush()
 
   def Flush(self, sync=True):
     """Syncs this object with the data store, maintaining object validity."""
@@ -1760,7 +1794,7 @@ class AFF4OverlayedVolume(AFF4Volume):
   """
   overlayed_path = ""
 
-  def IsPathOverlayed(self, path):   # pylint: disable=W0613
+  def IsPathOverlayed(self, path):   # pylint: disable=unused-argument
     """Should this path be overlayed.
 
     Args:
@@ -1796,6 +1830,9 @@ class AFF4Stream(AFF4Object):
   # The read pointer offset.
   offset = 0
 
+  # Updated when the object becomes dirty.
+  dirty = False
+
   class SchemaCls(AFF4Object.SchemaCls):
     # Note that a file on the remote system might have stat.st_size > 0 but if
     # we do not have any of the data available to read: size = 0.
@@ -1830,8 +1867,6 @@ class AFF4Stream(AFF4Object):
 
 class AFF4MemoryStream(AFF4Stream):
   """A stream which keeps all data in memory."""
-
-  dirty = False
 
   class SchemaCls(AFF4Stream.SchemaCls):
     CONTENT = Attribute("aff4:content", rdfvalue.RDFBytes,
@@ -2115,13 +2150,13 @@ class AFF4InitHook(registry.InitHook):
 
   def Run(self):
     """Delayed loading of aff4 plugins to break import cycles."""
-    # pylint: disable=W0612,W0603,C6204
+    # pylint: disable=unused-variable,global-statement,g-import-not-at-top
     from grr.lib import aff4_objects
 
     global FACTORY
 
-    FACTORY = Factory()  # pylint: disable=C6409
-    # pylint: enable=W0612,W0603,C6204
+    FACTORY = Factory()  # pylint: disable=g-bad-name
+    # pylint: enable=unused-variable,global-statement,g-import-not-at-top
 
 
 class AFF4Filter(object):

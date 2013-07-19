@@ -14,6 +14,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import scheduler
+from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import standard
 
@@ -211,6 +212,47 @@ class VFSGRRClient(standard.VFSDirectory):
     return client_urn.Add("/".join(result))
 
 
+class UpdateVFSFile(flow.GRRFlow):
+  """A flow to update VFS file."""
+
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.RDFURNType(
+          description="VFSFile urn",
+          name="vfs_file_urn"),
+      type_info.String(
+          description="Attribute to update",
+          name="attribute",
+          default=str(aff4.AFF4Volume.SchemaCls.CONTAINS)),
+      )
+
+  def Init(self):
+    self.state.Register("get_file_flow_urn")
+
+  @flow.StateHandler()
+  def Start(self):
+    """Calls Update() method of a given VFSFile/VFSDirectory object.
+
+    This method uses token with supervisor=True, because we assume that
+    if the user is allowed to run flows on the client, he is priviledged
+    enough to call Update on VFSFiles/VFSDirectories below this client.
+    """
+    self.Init()
+
+    super_token = self.token.Copy()
+    super_token.supervisor = True
+
+    fd = aff4.FACTORY.Open(self.state.vfs_file_urn, mode="rw",
+                           token=super_token)
+
+    # Account for implicit directories.
+    if fd.Get(fd.Schema.TYPE) is None:
+      fd = fd.Upgrade("VFSDirectory")
+
+    self.state.get_file_flow_urn = fd.Update(
+        attribute=self.state.attribute,
+        priority=rdfvalue.GrrMessage.Priority.HIGH_PRIORITY)
+
+
 class VFSFile(aff4.AFF4Image):
   """A VFSFile object."""
 
@@ -342,8 +384,7 @@ class GRRForeman(aff4.AFF4Object):
         for action in rule.actions:
           if action.hunt_id:
             # Notify the worker to mark this hunt as terminated.
-            scheduler.SCHEDULER.NotifyQueue("W", action.hunt_id,
-                                            token=self.token)
+            scheduler.SCHEDULER.NotifyQueue(action.hunt_id, token=self.token)
 
     self.Set(self.Schema.RULES, new_rules)
 
@@ -381,13 +422,13 @@ class GRRForeman(aff4.AFF4Object):
           return False
         op = integer_rule.operator
         if op == rdfvalue.ForemanAttributeInteger.Operator.LESS_THAN:
-          if not value < integer_rule.value:
+          if value >= integer_rule.value:
             return False
         elif op == rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN:
-          if not value > integer_rule.value:
+          if value <= integer_rule.value:
             return False
         elif op == rdfvalue.ForemanAttributeInteger.Operator.EQUAL:
-          if not value == integer_rule.value:
+          if value != integer_rule.value:
             return False
         else:
           # Unknown operator.
@@ -417,7 +458,7 @@ class GRRForeman(aff4.AFF4Object):
         token = self.token.Copy()
         token.username = "Foreman"
 
-        if action.hunt_id:
+        if action.HasField("hunt_id"):
           if self._CheckIfHuntTaskWasAssigned(client_id, action.hunt_id):
             logging.info("Foreman: ignoring hunt %s on client %s: was started "
                          "here before", client_id, action.hunt_id)
@@ -433,7 +474,7 @@ class GRRForeman(aff4.AFF4Object):
           actions_count += 1
       # There could be all kinds of errors we don't know about when starting the
       # flow/hunt so we catch everything here.
-      except Exception as e:  # pylint: disable=W0703
+      except Exception as e:  # pylint: disable=broad-except
         logging.exception("Failure running foreman action on client %s: %s",
                           action.hunt_id, e)
 
@@ -534,26 +575,6 @@ class AFF4CollectionView(rdfvalue.RDFValueArray):
 
 class RDFValueCollectionView(rdfvalue.RDFValueArray):
   """A view specifies how an RDFValueCollection is seen."""
-
-
-class GrepResultList(rdfvalue.RDFValueArray):
-  """A list of BufferReferences."""
-  rdf_type = rdfvalue.BufferReference
-
-
-class GrepResults(aff4.AFF4Volume):
-  """A collection of grep results."""
-
-  _behaviours = frozenset(["Collection"])
-
-  class SchemaCls(standard.VFSDirectory.SchemaCls):
-    DESCRIPTION = aff4.Attribute("aff4:description", rdfvalue.RDFString,
-                                 "This collection's description", "description")
-
-    HITS = aff4.Attribute(
-        "aff4:grep_hits", GrepResultList,
-        "A list of BufferReferences.", "hits",
-        default="")
 
 
 class VolatilityResponse(aff4.AFF4Volume):

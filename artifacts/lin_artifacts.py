@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2012 Google Inc. All Rights Reserved.
 
-"""Artifacts that are specific to Windows."""
+"""Artifacts that are specific to Linux."""
 
 
 
@@ -9,8 +9,8 @@
 from grr.lib import artifact
 
 # Shorcut to make things cleaner.
-Artifact = artifact.GenericArtifact   # pylint: disable=C6409
-Collector = artifact.Collector        # pylint: disable=C6409
+Artifact = artifact.GenericArtifact   # pylint: disable=g-bad-name
+Collector = artifact.Collector        # pylint: disable=g-bad-name
 
 
 ################################################################################

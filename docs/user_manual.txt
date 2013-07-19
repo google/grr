@@ -326,6 +326,9 @@ the time when this value was seen. When different values have been gathered over
 time for a specific attribute, a _+_ sign will appear before it in the GUI.
 Click on it and it will display a table with all the known values over time.
 
+Additionally, in the listing view, the Age column has a clickable icon that
+will show you the different versions of the file that have been collected. 
+
 
 .Versioned MAC address
 image::images/grr-gui-client-versionedmac.png[width=850,align="center"]
@@ -455,6 +458,26 @@ download the file from the GRR datastore to your computer.
 
 .Downloaded file
 image::images/grr-gui-vfs-downloaded.png[align="center"]
+
+
+File Versions
+~~~~~~~~~~~~~
+One interesting property of GRR that may not be immediately obvious, is that
+every object is versioned with it's age, and for the most part, we keep old
+versions instead of overwriting them. This means that if you Schedule listing of
+a directory once a day, you will end up with a historical daily record of that
+directory. You can click on the icon in the Age column to show a list of all
+the versions of a file we have collected.
+
+In some cases, different versions of the object may have different types
+depending on how it was retrieved. A common case of this is for files. If you
+list a directory, the file entry will be a Stat, but if you download the same
+file, you will get a HashImage.
+
+This can lead to confusion. If you download a file, then list the directory,
+the downloadable HashImage may seem to disappeared due to the default view only
+showing latest version of the file. You will need to click the Age icon to
+access the previous version. 
 
 
 [CAUTION]

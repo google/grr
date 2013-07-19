@@ -101,7 +101,7 @@ class GenericRDFProtoTest(test_lib.AFF4ObjectTest):
     obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
 
     # Make a url object
-    str_url = "http://www.google.com/"
+    str_url = "aff4:/users"
     url = rdfvalue.RDFURN(str_url, age=1)
 
     # Store it

@@ -13,7 +13,7 @@ grr_config_updater.py add_user --username=<username>
 then enter a password for the user when prompted.
 
 python grr/tools/grr_server.py \
-    --config grr/config/grr_test.conf
+    --config grr/config/grr_test.yaml
 """
 
 
@@ -22,12 +22,10 @@ import threading
 import time
 
 
-from grr.client import conf
-from grr.client import conf as flags
-
 from grr.gui import admin_ui
 from grr.lib import config_lib
-from grr.lib import server_plugins  # pylint: disable=W0611
+from grr.lib import flags
+from grr.lib import server_plugins  # pylint: disable=unused-import
 from grr.lib import startup
 from grr.tools import http_server
 from grr.worker import enroller
@@ -64,7 +62,9 @@ def main(argv):
     # If we only have one flag, we are running in single component mode and we
     # want the component to do the initialization. Otherwise we initialize as
     # a SingleServer.
-    config_lib.CONFIG.SetEnv("Environment.component", "SingleServer")
+    config_lib.CONFIG.AddContext(
+        "SingleServer Context",
+        "Context applied when running all functions in a single server.")
     startup.Init()
 
   # Start the worker thread if necessary.
@@ -104,7 +104,7 @@ def main(argv):
 
 def ConsoleMain():
   """Helper function for calling with setup tools entry points."""
-  conf.StartMain(main)
+  flags.StartMain(main)
 
 
 if __name__ == "__main__":

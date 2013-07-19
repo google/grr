@@ -29,11 +29,15 @@ class CronJob(aff4.AFF4Volume):
     ALLOW_OVERRUNS = aff4.Attribute(
         "aff4:cron/allow_overruns", rdfvalue.RDFInteger,
         "If True, prevent the job from running again when previous run hasn't "
-        "finished")
+        "finished.")
+
+    DISABLED = aff4.Attribute(
+        "aff4:cron/disabled", rdfvalue.RDFBool,
+        "If True, don't run this job.")
 
     CURRENT_FLOW_URN = aff4.Attribute(
         "aff4:cron/current_flow_urn", rdfvalue.RDFURN,
-        "URN of the currently running flow corresponding to this cron job",
+        "URN of the currently running flow corresponding to this cron job.",
         versioned=False, lock_protected=True)
 
     LAST_RUN_TIME = aff4.Attribute(
@@ -51,6 +55,9 @@ class CronJob(aff4.AFF4Volume):
     Returns:
         True if it is time to run based on the specified frequency.
     """
+    if self.Get(self.Schema.DISABLED):
+      return False
+
     frequency = self.Get(self.Schema.FREQUENCY)
     last_run_time = self.Get(self.Schema.LAST_RUN_TIME)
     now = rdfvalue.RDFDatetime().Now()

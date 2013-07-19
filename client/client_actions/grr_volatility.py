@@ -10,14 +10,14 @@ volatility to operate directly on the client.
 
 
 
-# Initialize the volatility plugins, so pylint: disable=W0611
+# Initialize the volatility plugins, so pylint: disable=unused-import
 from volatility import addrspace
 from volatility import obj
 from volatility import plugins
 from volatility import session
 from volatility.plugins.addrspaces import standard
 from volatility.ui import renderer
-# pylint: enable=W0611
+# pylint: enable=unused-import
 
 from grr.client import actions
 from grr.client import vfs
@@ -25,7 +25,7 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 
 
-# pylint: disable=C6409
+# pylint: disable=g-bad-name
 class ProtobufRenderer(renderer.RendererBaseClass):
   """This stores all the data in a protobuf."""
 
@@ -155,7 +155,7 @@ class UnicodeStringIO(object):
   def __init__(self):
     self.data = u""
 
-  # Have to stick to an interface here so pylint: disable=C6409
+  # Have to stick to an interface here so pylint: disable=g-bad-name
   def write(self, data):
     self.data += utils.SmartUnicode(data)
 
@@ -237,7 +237,7 @@ class VolatilityAction(actions.ActionPlugin):
 
         try:
           vol_session.vol(plugin, renderer=ui_renderer, **plugin_args)
-        except Exception as e:  # pylint: disable=W0703
+        except Exception as e:  # pylint: disable=broad-except
           error = str(e)
 
         response = ui_renderer.GetResponse()

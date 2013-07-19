@@ -6,7 +6,6 @@
 
 import functools
 import stat
-import time
 
 import logging
 
@@ -91,21 +90,23 @@ class Find(actions.IteratedAction):
     Returns:
       True of the file matches all conditions, false otherwise.
     """
-    # Check timestamp if needed
-    try:
-      if (file_stat.st_mtime > self.filter_expression["start_time"] and
-          file_stat.st_mtime < self.filter_expression["end_time"]):
-        return True
-    except KeyError:
-      pass
-
-    # Filename regex test
-    if not self.filter_expression["filename_regex"].Search(
-        file_stat.pathspec.Basename()):
+    # Check timestamp
+    if (file_stat.st_mtime < self.request.start_time or
+        file_stat.st_mtime > self.request.end_time):
       return False
 
-    # Should we test for content? (Key Error skips this check)
-    if ("data_regex" in self.filter_expression and
+    # File size test.
+    if (file_stat.st_size < self.request.min_file_size or
+        file_stat.st_size > self.request.max_file_size):
+      return False
+
+    # Filename regex test
+    if (self.request.HasField("path_regex") and
+        not self.request.path_regex.Search(file_stat.pathspec.Basename())):
+      return False
+
+    # Content regex test.
+    if (self.request.HasField("data_regex") and
         not self.TestFileContent(file_stat)):
       return False
     return True
@@ -114,11 +115,8 @@ class Find(actions.IteratedAction):
     """Checks the file for the presence of the regular expression."""
     # Content regex check
     try:
-      data_regex = self.filter_expression["data_regex"]
 
-      # Search the file
       data = ""
-
       with vfs.VFSOpen(file_stat.pathspec) as fd:
         # Only read this much data from the file.
         while fd.Tell() < self.max_data:
@@ -127,7 +125,7 @@ class Find(actions.IteratedAction):
           data += data_read
 
           # Got it.
-          if data_regex.Search(data):
+          if self.request.data_regex.Search(data):
             return True
 
           # Keep a bit of context from the last buffer to ensure we dont miss a
@@ -142,15 +140,7 @@ class Find(actions.IteratedAction):
 
   def Iterate(self, request, client_state):
     """Restores its way through the directory using an Iterator."""
-    self.filter_expression = dict(filename_regex=request.path_regex)
-
-    if request.HasField("data_regex"):
-      self.filter_expression["data_regex"] = request.data_regex
-
-    if request.HasField("end_time") or request.HasField("start_time"):
-      self.filter_expression["end_time"] = request.end_time or time.time() * 1e6
-      self.filter_expression["start_time"] = request.start_time
-
+    self.request = request
     limit = request.iterator.number
     self.cross_devs = request.cross_devs
     self.max_depth = request.max_depth

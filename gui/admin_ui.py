@@ -14,9 +14,8 @@ from django.core.handlers import wsgi
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
-from grr.client import conf
-
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import startup
 
 
@@ -39,7 +38,9 @@ class ThreadingDjango(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
 
 def main(_):
   """Run the main test harness."""
-  config_lib.CONFIG.SetEnv("Environment.component", "AdminUI")
+  config_lib.CONFIG.AddContext(
+      "AdminUI Context",
+      "Context applied when running the admin user interface GUI.")
   startup.Init()
 
   # Start up a server in another thread
@@ -56,4 +57,4 @@ def main(_):
   server.serve_forever()
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

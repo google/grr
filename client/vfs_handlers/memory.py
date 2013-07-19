@@ -74,7 +74,7 @@ if "linux" in sys.platform:
 
 # The windows driver has special requirements.
 elif sys.platform.startswith("win"):
-  # These imports are needed in windows so pylint: disable=C6204
+  # These imports are needed in windows so pylint: disable=g-import-not-at-top
   import win32file
 
   def CtlCode(device_type, function, method, access):
@@ -177,7 +177,7 @@ elif sys.platform.startswith("win"):
 
 if "darwin" in sys.platform:
   # The OSX driver needs to perform ioctls to obtain the memory map, so:
-  # pylint: disable=C6204
+  # pylint: disable=g-import-not-at-top
   import array
   import fcntl
 

@@ -44,7 +44,7 @@
         <div id="notifications"></div>
         <form id="search_host" class="navbar-form form-search pull-right">
           <div class="input-append">
-            <input type="text" id="client_query" name="q" class="span4 search-query" placeholder="Client Name/Regexp" />
+            <input type="text" id="client_query" name="q" class="span4 search-query" placeholder="Search Box"/>
             <button type="submit" id="client_query_submit" class="btn">Search</button>
           </div>
         </form>
@@ -52,13 +52,6 @@
       </div>
     </div>
   </div>
-  <script>
-    $("#search_host").submit(function () {
-    grr.layout("HostTable", "main", {q: $('input[name="q"]').val()});
-    return false;
-    }).find("input[name=q]").focus();
-  </script>
-
   <div style="position: absolute; left: 0; top: 41px; bottom: 40px; right: 0" id="content">
   </div>
 
@@ -67,6 +60,7 @@
       <a class="brand"></a>
       <ul class="nav pull-left">
         <li>
+          <div id="ajax_spinner" class="ajax_spinner"></div>
           <button id="show_backtrace" class="nav-btn btn btn-danger" style="display: none">
             <img src="/static/images/stock_dialog_question.png" class="grr-icon" />
           </button>
@@ -85,7 +79,7 @@
     </div>
   </div>
   <div id="error_action" style="display: none"></div>
-  <div id="backtrace" class="modal wide-modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
+  <div id="backtrace" class="modal wide-modal hide" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-header">
       <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
       <h3>Modal header</h3>
@@ -105,6 +99,11 @@
     grr.layout("ContentView", "content");
     grr.layout("NotificationBar", "notifications");
     grr.layout("ACLDialog", "ACL");
+    $("#search_host").submit(function () {
+    grr.layout("HostTable", "main", {q: $('input[name="q"]').val()});
+    return false;
+    }).find("input[name=q]").focus();
+    grr.enableSearchHelp($("input#client_query"));
   </script>
 </body>
 </html>

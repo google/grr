@@ -10,15 +10,13 @@ from django import http
 from django import shortcuts
 from django import template
 from django.views.decorators import csrf
-
-from grr.client import conf as flags
 import logging
 
 from grr import gui
 from grr.gui import renderers
 from grr.gui import webauth
-
 from grr.lib import access_control
+from grr.lib import flags
 from grr.lib import registry
 from grr.lib import stats
 
@@ -33,11 +31,11 @@ class ViewsInit(registry.InitHook):
   def RunOnce(self):
     """Run this once on init."""
     # Counters used here
-    stats.STATS.RegisterVar("grr_admin_ui_access_denied")
-    stats.STATS.RegisterVar("grr_admin_ui_slave_response")
-    stats.STATS.RegisterVar("grr_admin_ui_renderer_called")
-    stats.STATS.RegisterVar("grr_admin_ui_renderer_failed")
-    stats.STATS.RegisterVar("grr_admin_ui_unknown_renderer")
+    stats.STATS.RegisterCounterMetric("grr_admin_ui_access_denied")
+    stats.STATS.RegisterCounterMetric("grr_admin_ui_slave_response")
+    stats.STATS.RegisterCounterMetric("grr_admin_ui_renderer_called")
+    stats.STATS.RegisterCounterMetric("grr_admin_ui_renderer_failed")
+    stats.STATS.RegisterCounterMetric("grr_admin_ui_unknown_renderer")
 
 
 @webauth.SecurityCheck
@@ -68,13 +66,13 @@ def RenderGenericRenderer(request):
 
     renderer_cls = renderers.Renderer.NewPlugin(name=renderer_name)
   except KeyError:
-    stats.STATS.Increment("grr_admin_ui_unknown_renderer")
+    stats.STATS.IncrementCounter("grr_admin_ui_unknown_renderer")
     return AccessDenied("Error: Renderer %s not found" % renderer_name)
 
   # Check that the action is valid
   ["Layout", "RenderAjax", "Download"].index(action)
   renderer = renderer_cls()
-  stats.STATS.Increment("grr_admin_ui_renderer_called")
+  stats.STATS.IncrementCounter("grr_admin_ui_renderer_called")
   result = http.HttpResponse(mimetype="text/html")
 
   # Pass the request only from POST parameters
@@ -124,13 +122,13 @@ def AccessDenied(message):
   response = shortcuts.render_to_response("404.html", {"message": message})
   logging.warn(message)
   response.status_code = 403
-  stats.STATS.Increment("grr_admin_ui_access_denied")
+  stats.STATS.IncrementCounter("grr_admin_ui_access_denied")
   return response
 
 
 def ServerError(unused_request, template_name="500.html"):
   """500 Error handler."""
-  stats.STATS.Increment("grr_admin_ui_renderer_failed")
+  stats.STATS.IncrementCounter("grr_admin_ui_renderer_failed")
   response = shortcuts.render_to_response(template_name)
   response.status_code = 500
   return response

@@ -765,3 +765,7 @@ def FormatNumberAsString(num):
       return "%3.2f%s" % (num, suffix)
     num /= 1024.0
   return "%3.1f%s" % (num, "TB")
+
+
+class NotAValue(object):
+  pass

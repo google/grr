@@ -173,12 +173,12 @@ class File(vfs.VFSHandler):
         error = e
 
     if error is not None:
-      raise error  # pylint: disable=E0702
+      raise error  # pylint: disable=raising-bad-type
 
   def WindowsHacks(self):
     """Windows specific hacks to make the filesystem look normal."""
     if sys.platform == "win32":
-      import win32api  # pylint: disable=C6204
+      import win32api  # pylint: disable=g-import-not-at-top
 
       # Make the filesystem look like the topmost level are the drive letters.
       if self.path == "/":

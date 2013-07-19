@@ -10,7 +10,6 @@ modules that have been customized for your deployment.
 
 # Note for gui specific plugins see gui/gui_plugins.py
 """
-
 # pylint: disable=unused-import,g-import-not-at-top
 
 from grr import artifacts
@@ -27,7 +26,5 @@ from grr.lib import hunts
 from grr.lib import local
 from grr.lib import stats
 from grr.lib.flows import general
-try:
-  from grr.lib.flows.console import client_tests
-except ImportError:
-  pass
+
+from grr.server import server_plugins

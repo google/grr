@@ -2,9 +2,8 @@
 """The benchmark tests for the fake data store."""
 
 
-from grr.client import conf
-
 from grr.lib import data_store_test
+from grr.lib import flags
 from grr.lib import test_lib
 
 
@@ -16,4 +15,4 @@ def main(args):
   test_lib.main(args)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

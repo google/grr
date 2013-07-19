@@ -6,7 +6,7 @@
 """This is a test fixture for client objects.."""
 
 
-# This file is mostly data so pylint: disable=C6005,C6310
+# This file is mostly data so pylint: disable=g-continuation-in-parens-misaligned,g-line-too-long
 
 
 LINUX_FIXTURE = [

@@ -3,16 +3,15 @@
 """Tests for the client."""
 
 
-from grr.client import conf
-
 # Need to import client to add the flags.
 from grr.client import actions
 
 # Load all the standard actions.
-# pylint: disable=W0611
+# pylint: disable=unused-import
 from grr.client import client_actions
-# pylint: enable=W0611
+# pylint: enable=unused-import
 from grr.client import comms
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -50,7 +49,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
     super(BasicContextTests, self).setUp()
     self.context = self.to_test_context()
     self.context.LoadCertificates()
-    self.session_id = rdfvalue.RDFURN("1234")
+    self.session_id = rdfvalue.RDFURN("W:1234")
 
   def testHandleMessage(self):
     """Test handling of a normal request with a response."""
@@ -124,7 +123,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
     for i in range(10):
       message = rdfvalue.GrrMessage(
           name="MockAction",
-          session_id=self.session_id.Add(str(i)),
+          session_id=self.session_id.Basename() + str(i),
           auth_state=rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED,
           request_id=1,
           priority=i%3)
@@ -176,4 +175,4 @@ def main(argv):
   test_lib.main(argv)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

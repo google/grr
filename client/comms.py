@@ -22,15 +22,16 @@ from M2Crypto import X509
 import psutil
 
 from google.protobuf import message as proto2_message
-from grr.client import conf as flags
+
 import logging
 
 from grr.client import actions
+from grr.client import client_stats
 from grr.client import client_utils
 from grr.client import client_utils_common
-
 from grr.lib import communicator
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
@@ -89,12 +90,12 @@ class CommsInit(registry.InitHook):
 
   def RunOnce(self):
     # Counters used here
-    stats.STATS.RegisterVar("grr_client_last_stats_sent_time")
-    stats.STATS.RegisterVar("grr_client_received_bytes")
-    stats.STATS.RegisterVar("grr_client_received_messages")
-    stats.STATS.RegisterVar("grr_client_slave_restarts")
-    stats.STATS.RegisterVar("grr_client_sent_bytes")
-    stats.STATS.RegisterVar("grr_client_sent_messages")
+    stats.STATS.RegisterGaugeMetric("grr_client_last_stats_sent_time", long)
+    stats.STATS.RegisterCounterMetric("grr_client_received_bytes")
+    stats.STATS.RegisterCounterMetric("grr_client_received_messages")
+    stats.STATS.RegisterCounterMetric("grr_client_slave_restarts")
+    stats.STATS.RegisterCounterMetric("grr_client_sent_bytes")
+    stats.STATS.RegisterCounterMetric("grr_client_sent_messages")
 
 
 class Status(object):
@@ -149,14 +150,19 @@ class GRRClientWorker(object):
 
     self._is_active = False
 
+    # Last time when we've sent stats back to the server.
+    self.last_stats_sent_time = 0
+
     self.proc = psutil.Process(os.getpid())
 
     # Use this to control the nanny transaction log.
     self.nanny_controller = client_utils.NannyController()
     self.nanny_controller.StartNanny()
     if not GRRClientWorker.stats_collector:
-      GRRClientWorker.stats_collector = stats.StatsCollector(self)
+      GRRClientWorker.stats_collector = client_stats.ClientStatsCollector(self)
       GRRClientWorker.stats_collector.start()
+
+    self.lock = threading.RLock()
 
   def Sleep(self, timeout):
     """Sleeps the calling thread with heartbeat."""
@@ -200,7 +206,7 @@ class GRRClientWorker(object):
     while self._out_queue and length < max_size:
       message = self._out_queue.pop()[1]
       queue.job.Append(message)
-      stats.STATS.Increment("grr_client_sent_messages")
+      stats.STATS.IncrementCounter("grr_client_sent_messages")
 
       # Maintain the output queue tally
       length += len(message.args)
@@ -278,9 +284,18 @@ class GRRClientWorker(object):
       # keep going.
       logging.info("Queue is full, dropping messages.")
 
-  def ChargeBytesToSession(self, session_id, length):
+  @utils.Synchronized
+  def ChargeBytesToSession(self, session_id, length, limit=0):
     self.sent_bytes_per_flow.setdefault(session_id, 0)
     self.sent_bytes_per_flow[session_id] += length
+
+    # Check after incrementing so that sent_bytes_per_flow goes over the limit
+    # even though we don't send those bytes.  This makes sure flow_runner will
+    # die on the flow.
+    if limit and (self.sent_bytes_per_flow[session_id] > limit):
+      self.SendClientAlert("Network limit exceeded.")
+      raise actions.NetworkBytesExceededError(
+          "Action exceeded network send limit.")
 
   def QueueResponse(self, message,
                     priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY):
@@ -336,7 +351,7 @@ class GRRClientWorker(object):
     # Push all the messages to our input queue
     for message in messages:
       self._in_queue.append(message)
-      stats.STATS.Increment("grr_client_received_messages")
+      stats.STATS.IncrementCounter("grr_client_received_messages")
 
     # As long as our output queue has some room we can process some
     # input messages:
@@ -347,7 +362,7 @@ class GRRClientWorker(object):
       try:
         self.HandleMessage(message)
         # Catch any errors and keep going here
-      except Exception as e:  # pylint: disable=W0703
+      except Exception as e:  # pylint: disable=broad-except
         logging.warn("12 %s", e)
         self.SendReply(
             rdfvalue.GrrStatus(
@@ -379,13 +394,17 @@ class GRRClientWorker(object):
 
   def CheckStats(self):
     """Checks if the last transmission of client stats is too long ago."""
-    if not stats.STATS.Get("grr_client_last_stats_sent_time"):
-      stats.STATS.Set("grr_client_last_stats_sent_time", time.time())
+    if not self.last_stats_sent_time:
+      self.last_stats_sent_time = time.time()
+      stats.STATS.SetGaugeValue("grr_client_last_stats_sent_time",
+                                self.last_stats_sent_time)
 
-    last = stats.STATS.Get("grr_client_last_stats_sent_time")
-    if time.time() - last > self.STATS_SEND_INTERVALL:
+    if time.time() - self.last_stats_sent_time > self.STATS_SEND_INTERVALL:
       logging.info("Sending back client statistics to the server.")
-      stats.STATS.Set("grr_client_last_stats_sent_time", time.time())
+      self.last_stats_sent_time = time.time()
+      stats.STATS.SetGaugeValue("grr_client_last_stats_sent_time",
+                                self.last_stats_sent_time)
+
       action_cls = actions.ActionPlugin.classes.get(
           "GetClientStatsAuto", actions.ActionPlugin)
       action = action_cls(None, grr_worker=self)
@@ -413,6 +432,8 @@ class SizeQueue(object):
   The standard Queue implementations uses the total number of elements to block
   on. In the client we want to limit the total memory footprint, hence we need
   to use the total size as a measure of how full the queue is.
+
+  TODO(user): this class needs some attention to ensure it is thread safe.
   """
   total_size = 0
 
@@ -554,7 +575,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
 
     for message in self._out_queue.Get():
       queue.job.Append(message)
-      stats.STATS.Increment("grr_client_sent_messages")
+      stats.STATS.IncrementCounter("grr_client_sent_messages")
       length += len(message)
 
       if length > max_size:
@@ -580,7 +601,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
         except Queue.Full:
           self.nanny_controller.Heartbeat()
 
-      stats.STATS.Increment("grr_client_received_messages")
+      stats.STATS.IncrementCounter("grr_client_received_messages")
 
   def InQueueSize(self):
     """Returns the number of protobufs ready to be sent in the queue."""
@@ -608,7 +629,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
       nanny_status = self.nanny_controller.GetNannyStatus()
       if nanny_status:
         status.nanny_status = nanny_status
-      nanny_status = self.nanny_controller.GetNannyStatus()
+
       self.SendReply(status,
                      request_id=last_request.request_id,
                      response_id=1,
@@ -644,7 +665,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
       try:
         self.HandleMessage(message)
         # Catch any errors and keep going here
-      except Exception as e:  # pylint: disable=W0703
+      except Exception as e:  # pylint: disable=broad-except
         logging.warn("%s", e)
         self.SendReply(
             rdfvalue.GrrStatus(
@@ -701,8 +722,10 @@ class GRRHTTPClient(object):
           config Client.private_key.
     """
     self.ca_cert = ca_cert
-    self.communicator = ClientCommunicator(
-        private_key=private_key or config_lib.CONFIG["Client.private_key"])
+    if private_key is None:
+      private_key = config_lib.CONFIG.Get("Client.private_key", default="")
+
+    self.communicator = ClientCommunicator(private_key=private_key)
     self.active_proxy = None
     self.consecutive_connection_errors = 0
 
@@ -730,10 +753,14 @@ class GRRHTTPClient(object):
     Returns:
       Contents of server.pem.
     """
+    # This gets proxies from the platform specific proxy settings.
     proxies = client_utils.FindProxies()
 
     # Also try to connect directly if all proxies fail.
     proxies.append("")
+
+    # Also try all proxies configured in the config system.
+    proxies.extend(config_lib.CONFIG["Client.proxy_servers"])
 
     for proxy in proxies:
       try:
@@ -774,7 +801,7 @@ class GRRHTTPClient(object):
 
       self.server_certificate = data
     # This has to succeed or we can not go on
-    except Exception as e:  # pylint: disable=W0703
+    except Exception as e:  # pylint: disable=broad-except
       client_utils_common.ErrorOnceAnHour(
           "Unable to verify server certificate at %s: %s", cert_url, e)
       logging.info("Unable to verify server certificate at %s: %s",
@@ -784,14 +811,14 @@ class GRRHTTPClient(object):
   def MakeRequest(self, data, status):
     """Make a HTTP Post request and return the raw results."""
     status.sent_len = len(data)
-    stats.STATS.Add("grr_client_sent_bytes", len(data))
+    stats.STATS.IncrementCounter("grr_client_sent_bytes", len(data))
     try:
       # Now send the request using POST
       start = time.time()
       url = "%s?api=%s" % (config_lib.CONFIG["Client.location"],
                            config_lib.CONFIG["Network.api"])
 
-      req = urllib2.Request(url, data,
+      req = urllib2.Request(utils.SmartStr(url), data,
                             {"Content-Type": "binary/octet-stream"})
       handle = urllib2.urlopen(req)
       data = handle.read()
@@ -799,7 +826,7 @@ class GRRHTTPClient(object):
 
       self.consecutive_connection_errors = 0
 
-      stats.STATS.Add("grr_client_received_bytes", len(data))
+      stats.STATS.IncrementCounter("grr_client_received_bytes", len(data))
       return data
 
     except urllib2.HTTPError as e:
@@ -978,9 +1005,9 @@ class GRRHTTPClient(object):
         logging.warning("Memory exceeded - exiting.")
         self.client_worker.SendClientAlert("Memory limit exceeded, exiting.")
         # Make sure this will return True so we don't get more work.
-        # pylint: disable=C6409
+        # pylint: disable=g-bad-name
         self.client_worker.MemoryExceeded = lambda: True
-        # pylint: enable=C6409
+        # pylint: enable=g-bad-name
         # Now send back the client message.
         self.RunOnce()
         # And done for now.
@@ -1036,7 +1063,7 @@ class GRRHTTPClient(object):
       self.client_worker.SendReply(
           rdfvalue.Certificate(type=rdfvalue.Certificate.Type.CSR,
                                pem=self.communicator.GetCSR()),
-          session_id="aff4:/flows/CA:Enrol")
+          session_id=rdfvalue.SessionID("aff4:/flows/CA:Enrol"))
 
   def Sleep(self, timeout, heartbeat=False):
     if not heartbeat:

@@ -6,9 +6,8 @@
 
 
 
-from grr.client import conf
-
 from grr.artifacts import win_artifacts
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
@@ -138,9 +137,25 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     self.assertEqual(valid_query, a.Validate(valid_query))
     self.assertRaises(type_info.TypeValueError, a.Validate, invalid_query)
 
+  def testTypeRDFURN(self):
+    validator = type_info.RDFURNType()
+    urn_none = rdfvalue.RDFURN(None)
+    plain_str = "aff4:/something"
+    urn_valid = rdfvalue.RDFURN("aff4:/users")
+    no_urn = rdfvalue.RDFURN("aff4:/users")
+    delattr(no_urn, "_urn")
+
+    self.assertRaises(type_info.TypeValueError,
+                      validator.Validate, urn_none)
+    self.assertRaises(type_info.TypeValueError,
+                      validator.Validate, plain_str)
+    self.assertRaises(type_info.TypeValueError,
+                      validator.Validate, no_urn)
+    validator.Validate(urn_valid)
+
 
 def main(args):
   test_lib.main(args)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

@@ -2,9 +2,9 @@
 # Copyright 2011 Google Inc. All Rights Reserved.
 """Setup configuration for the python grr modules."""
 
-# pylint: disable=W0612
-# pylint: disable=C6201
-# pylint: disable=C6204
+# pylint: disable=unused-variable
+# pylint: disable=g-multiple-import
+# pylint: disable=g-import-not-at-top
 
 import glob
 import os

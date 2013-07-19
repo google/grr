@@ -146,7 +146,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
       self.assertEqual(value, 4)
       self.assertEqual(predicate, "aff4:size")
 
-    self.assertEqual(count, 0)  # pylint: disable=W0631
+    self.assertEqual(count, 0)  # pylint: disable=undefined-loop-variable
 
   def testDeleteAttributes(self):
     """Test we can delete an attribute."""
@@ -868,6 +868,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
   OPEN_WITH_LOCK_TRIES_PER_THREAD = 3
   OPEN_WITH_LOCK_SYNC_LOCK_SLEEP = 0.2
 
+  @test_lib.SetLabel("large")
   def testAFF4OpenWithLock(self):
     self.opened = False
     self.client_urn = "aff4:/C.0000000000000001"
@@ -930,7 +931,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
 class DataStoreBenchmarks(test_lib.MicroBenchmarks):
 
-  queue = "BENCHMARK"
+  queue = rdfvalue.RDFURN("BENCHMARK")
   units = "s"
 
   def setUp(self):
@@ -966,7 +967,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
 
   def StartFlow(self, client_id):
     flow_id = flow.GRRFlow.StartFlow(client_id, "RecursiveListDirectory",
-                                     max_depth=5, queue_name=self.queue,
+                                     max_depth=5, queue=self.queue,
                                      token=self.token)
     self.flow_ids.append(flow_id)
 
@@ -992,6 +993,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
   nr_dirs = 4
   files_per_dir = 500
 
+  @test_lib.SetLabel("benchmark")
   def testSimulateFlows(self):
     self.flow_ids = []
     self.units = "s"
@@ -1004,17 +1006,16 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
       self.tp.AddTask(self.StartFlow, (client_id,))
     self.tp.Join()
 
-    scheduler.SCHEDULER.MultiNotifyQueue(self.queue, self.flow_ids,
-                                         [1] * len(self.flow_ids),
-                                         token=self.token)
+    priorities = dict([(f, 1) for f in self.flow_ids])
+    scheduler.SCHEDULER.MultiNotifyQueue(
+        self.flow_ids, priorities, token=self.token)
 
     time_used = time.time() - start_time
 
     self.AddResult("Generate Messages (%d clients, %d files)" % (
         self.nr_clients, self.nr_dirs * self.files_per_dir), time_used, 1)
 
-    my_worker = worker.GRRWorker(queue_name=self.queue,
-                                 token=self.token)
+    my_worker = worker.GRRWorker(queue=self.queue, token=self.token)
 
     start_time = time.time()
 
@@ -1026,6 +1027,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
 
     self.AddResult("Process Messages", time_used, 1)
 
+  @test_lib.SetLabel("benchmark")
   def testMicroBenchmarks(self):
 
     # Tests run in arbitrary order but for the benchmarks, the order makes a

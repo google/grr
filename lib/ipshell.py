@@ -6,7 +6,7 @@
 
 
 
-# pylint: disable=C6204
+# pylint: disable=g-import-not-at-top
 def IPShell(argv=None, user_ns=None, banner=None):
   if argv is None:
     argv = []

@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
-
 """Compatibility mode.
 
 This file defines a bunch of compatibility fixes to ensure we can run on older
@@ -20,12 +18,12 @@ def MonkeyPatch(cls, method_name, method):
 
 
 # Fixup the protobuf implementation.
-# pylint: disable=C6204
+# pylint: disable=g-import-not-at-top
 try:
   from google.protobuf import message
 
   # These are required to make protobufs pickle-able
-  # pylint: disable=C6409
+  # pylint: disable=g-bad-name
   def Message__getstate__(self):
     """Support the pickle protocol."""
     return dict(serialized=self.SerializePartialToString())

@@ -5,6 +5,9 @@ grr.Renderer('NewHunt', {
     $('#Wizard_' + state['unique']).data({
       hunt_flow_name: null,
       hunt_flow_config: {},
+      hunt_output_config: [{
+        output_type: 'CollectionPlugin'
+      }],
       hunt_rules_config: [{
         rule_type: 'Windows systems'
       }]
@@ -34,7 +37,7 @@ grr.Renderer('HuntFlowForm', {
 
     // Show flow description via AJAX call.
     grr.layout('FlowInformation', flowDescriptionId,
-               {flow_path: state['flow_path'], no_heder: true});
+               {flow_path: state['flow_name'], no_header: true});
 
     var wizardState = $('#' + formBodyId).closest('.Wizard').data();
 
@@ -73,6 +76,68 @@ grr.Renderer('HuntFlowForm', {
       wizardState['hunt_flow_config'][$(this).attr('name')] = $(this).val();
     });
     $('#' + formBodyId + ' :input').change();
+  }
+});
+
+// TODO: This is very similar to the rules rendering below. We should
+// make one generic function and reuse it at some point.
+grr.Renderer('HuntConfigureOutput', {
+  Layout: function(state) {
+    var huntsOutputId = '#HuntsOutputs_' + state['unique'];
+    var huntsOutputModelsId = '#HuntsOutputModels_' + state['unique'];
+
+    var wizardState = $(huntsOutputId).closest('.Wizard').data();
+    var outputs = wizardState['hunt_output_config'];
+
+    // This function updates the whole list of outputs. We call it
+    // when an output is added or removed, or when an output's type changes.
+    var updateOutputs = function() {
+      var outputDiv = $(huntsOutputId);
+      outputDiv.html('');
+      $(huntsOutputModelsId).tmpl(outputs).appendTo(outputDiv);
+
+      $(huntsOutputId + ' div.Rule').each(function(index) {
+        // Update wizard's state when input's value changes.
+        $(':input', this).change(function() {
+          var value = $(this).val();
+          var name = $(this).attr('name');
+          outputs[index][name] = value;
+          if (name == 'output_type') {
+            outputs[index] = {output_type: value};
+            updateOutputs();
+          }
+        });
+
+        // Fill input elements for this plugin with the data that we have.
+        // If we don't have the data, then do the reverse thing - put value
+        // from the input element into our data structure.
+        $(':input', this).each(function() {
+          attr_name = $(this).attr('name');
+
+          if (outputs[index][attr_name] != null) {
+            $(this).val(outputs[index][attr_name]);
+          } else {
+            outputs[index][attr_name] = $(this).val();
+          }
+        });
+
+        if (outputs.length > 1) {
+          $(":button[name='remove']", this).click(function() {
+            outputs.splice(index, 1);
+            updateOutputs();
+          });
+        } else {
+          $(":button[name='remove']", this).hide();
+        }
+      });
+    };
+
+    $('#AddHuntOutput_' + state['unique']).click(function() {
+      outputs.push({output_type: 'CollectionPlugin'});
+      updateOutputs();
+    });
+
+    updateOutputs();
   }
 });
 
@@ -144,18 +209,5 @@ grr.Renderer('HuntInformation', {
     grr.layout('HuntRuleInformation',
                'HuntRuleInformation_' + state['unique'],
                {'hunt_run': JSON.stringify(wizardState)});
-  }
-});
-
-grr.Renderer('HuntReviewAndTest', {
-  Layout: function(state) {
-    $('#TestsInProgress_' + state['unique']).appendTo(
-        $('#HuntInformation_' + state['unique'] + ' .Misc'));
-    grr.update('HuntReviewAndTest', 'TestsInProgress_' + state['unique'],
-               state['state_json']);
-  },
-
-  RenderAjax: function(state) {
-    grr.publish('WizardProceed', 'HuntTestPerformed');
   }
 });

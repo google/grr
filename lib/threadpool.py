@@ -30,15 +30,16 @@ import threading
 import time
 
 
-from grr.client import conf as flags
 import logging
 
+from grr.lib import flags
 from grr.lib import registry
 from grr.lib import stats
 
 
 flags.DEFINE_bool("mock_threadpool", False,
                   "Use a single threaded mock for the threadpool.")
+
 
 STOP_MESSAGE = "Stop message"
 
@@ -87,6 +88,7 @@ class _WorkerThread(threading.Thread):
     threading.Thread.__init__(self, name=name)
     self._queue = queue
     self.daemon = True
+    self.idle = True
     self.threadpool_name = threadpool_name
 
   def ProcessTask(self, target, args, name, queueing_time):
@@ -94,8 +96,8 @@ class _WorkerThread(threading.Thread):
 
     if self.threadpool_name:
       time_in_queue = time.time() - queueing_time
-      stats.STATS.ExportTime(self.threadpool_name + "_queueing_time",
-                             time_in_queue)
+      stats.STATS.RecordEvent(self.threadpool_name + "_queueing_time",
+                              time_in_queue)
 
       start_time = time.time()
     try:
@@ -103,18 +105,16 @@ class _WorkerThread(threading.Thread):
     # We can't let a worker die because one of the tasks it has to process
     # throws an exception. Therefore, we catch every error that is
     # raised in the call to target().
-    except Exception as e:  # pylint: disable=W0703
+    except Exception as e:  # pylint: disable=broad-except
       if self.threadpool_name:
-        stats.STATS.Increment(self.threadpool_name + "_task_exceptions")
+        stats.STATS.IncrementCounter(self.threadpool_name + "_task_exceptions")
       logging.exception("Caught exception in worker thread (%s): %s",
                         name, str(e))
 
     if self.threadpool_name:
       total_time = time.time() - start_time
-      stats.STATS.ExportTimespanAvg(self.threadpool_name +
-                                    "_working_time_running_avg", total_time)
-      stats.STATS.ExportTime(self.threadpool_name + "_working_time",
-                             total_time)
+      stats.STATS.RecordEvent(self.threadpool_name + "_working_time",
+                              total_time)
 
   def run(self):
     """This overrides the Thread.run method.
@@ -124,13 +124,13 @@ class _WorkerThread(threading.Thread):
     """
     while True:
       if self.threadpool_name:
-        stats.STATS.Increment(self.threadpool_name + "_idle_threads")
+        self.idle = True
 
       task = self._queue.get()
 
       try:
         if self.threadpool_name:
-          stats.STATS.Decrement(self.threadpool_name + "_idle_threads")
+          self.idle = False
 
         if task == STOP_MESSAGE:
           break
@@ -197,23 +197,25 @@ class ThreadPool(object):
     self.num_threads = num_threads
     self.name = name
     self.started = False
+    self.workers = []
 
     if self.name:
-      if stats.STATS.IsRegistered(self.name + "_idle_threads"):
+      if self.name in self.POOLS:
         raise DuplicateThreadpoolError(
             "A thread pool with the name %s already exists.", name)
 
-      stats.STATS.RegisterFunction(name + "_outstanding_tasks",
+      stats.STATS.RegisterGaugeMetric(self.name + "_outstanding_tasks", int)
+      stats.STATS.SetGaugeCallback(self.name + "_outstanding_tasks",
                                    self._queue.qsize)
-      stats.STATS.RegisterVar(self.name + "_idle_threads")
-      stats.STATS.RegisterVar(self.name + "_outstanding_tasks")
-      stats.STATS.RegisterVar(self.name + "_task_exceptions")
-      stats.STATS.RegisterMap(self.name + "_working_time", "times",
-                              precision=0)
-      stats.STATS.RegisterMap(self.name + "_queueing_time", "times",
-                              precision=0)
-      stats.STATS.RegisterTimespanAvg(self.name + "_working_time_running_avg",
-                                      60)
+
+      stats.STATS.RegisterGaugeMetric(self.name + "_idle_threads", int)
+      stats.STATS.SetGaugeCallback(
+          self.name + "_idle_threads",
+          lambda: len([w for w in self.workers if w.idle]))
+
+      stats.STATS.RegisterCounterMetric(self.name + "_task_exceptions")
+      stats.STATS.RegisterEventMetric(self.name + "_working_time")
+      stats.STATS.RegisterEventMetric(self.name + "_queueing_time")
 
   def __del__(self):
     if self.started:

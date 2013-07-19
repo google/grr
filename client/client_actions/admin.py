@@ -24,14 +24,14 @@ config_lib.DEFINE_string("Client.binary_name", "%(Client.name)",
 config_lib.DEFINE_string("Client.company_name", "GRR Project",
                          "The name of the company which made the client.")
 
-config_lib.DEFINE_string("Client.description", "%(name) %(system) %(platform)",
+config_lib.DEFINE_string("Client.description", "%(name) %(platform) %(arch)",
                          "A description of this specific client build.")
 
-config_lib.DEFINE_string("Client.platform", platform.machine(),
+config_lib.DEFINE_string("Client.platform", "windows",
                          "The platform we are running on.")
 
-config_lib.DEFINE_string("Client.system", platform.system(),
-                         "The platform we are running on.")
+config_lib.DEFINE_string("Client.arch", "amd64",
+                         "The architecture we are running on.")
 
 config_lib.DEFINE_string("Client.build_time", "Unknown",
                          "The time the client was built.")
@@ -53,10 +53,10 @@ config_lib.DEFINE_string("Client.version_string",
                          "%(version_revision).%(version_release)",
                          "Version string of the client.")
 
-config_lib.DEFINE_string("Client.version_numeric",
-                         "%(version_major)%(version_minor)"
-                         "%(version_revision)%(version_release)",
-                         "Version string of the client as an integer.")
+config_lib.DEFINE_integer("Client.version_numeric",
+                          "%(version_major)%(version_minor)"
+                          "%(version_revision)%(version_release)",
+                          "Version string of the client as an integer.")
 
 
 class Echo(actions.ActionPlugin):
@@ -128,7 +128,7 @@ class Kill(actions.ActionPlugin):
 
     # Die ourselves.
     logging.info("Dying on request.")
-    os._exit(242)  # pylint: disable=W0212
+    os._exit(242)  # pylint: disable=protected-access
 
 
 class Hang(actions.ActionPlugin):
@@ -186,7 +186,7 @@ class GetConfiguration(actions.ActionPlugin):
       else:
         try:
           value = config_lib.CONFIG[descriptor.name]
-        except config_lib.Error as e:
+        except (config_lib.Error, KeyError, AttributeError, ValueError) as e:
           logging.info("Config reading error: %s", e)
 
       out[descriptor.name] = value
@@ -238,7 +238,7 @@ class GetClientInfo(actions.ActionPlugin):
     self.SendReply(
         client_name=config_lib.CONFIG["Client.name"],
         client_description=config_lib.CONFIG["Client.description"],
-        client_version=config_lib.CONFIG["Client.version_numeric"],
+        client_version=int(config_lib.CONFIG["Client.version_numeric"]),
         build_time=config_lib.CONFIG["Client.build_time"],
         )
 
@@ -256,8 +256,10 @@ class GetClientStats(actions.ActionPlugin):
         RSS_size=meminfo[0],
         VMS_size=meminfo[1],
         memory_percent=proc.get_memory_percent(),
-        bytes_received=stats.STATS.Get("grr_client_received_bytes"),
-        bytes_sent=stats.STATS.Get("grr_client_sent_bytes"),
+        bytes_received=stats.STATS.GetMetricValue(
+            "grr_client_received_bytes"),
+        bytes_sent=stats.STATS.GetMetricValue(
+            "grr_client_sent_bytes"),
         create_time=long(proc.create_time * 1e6),
         boot_time=long(psutil.BOOT_TIME * 1e6))
 
@@ -290,7 +292,7 @@ class GetClientStatsAuto(GetClientStats):
   def Send(self, response):
     self.grr_worker.SendReply(
         response,
-        session_id="aff4:/flows/W:Stats",
+        session_id=rdfvalue.SessionID("aff4:/flows/W:Stats"),
         response_id=0,
         request_id=0,
         priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
@@ -303,7 +305,7 @@ class SendStartupInfo(actions.ActionPlugin):
   in_rdfvalue = None
   out_rdfvalue = rdfvalue.StartupInfo
 
-  well_known_session_id = "aff4:/flows/W:Startup"
+  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:Startup")
 
   def Run(self, unused_arg, ttl=None):
     """Returns the startup information."""

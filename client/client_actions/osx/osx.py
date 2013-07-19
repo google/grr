@@ -402,7 +402,7 @@ class InstallDriver(actions.ActionPlugin):
       raise IOError("No driver supplied.")
 
     pub_key = config_lib.CONFIG.Get("ClientDarwin.driver_signing_public_key",
-                                    verify=True)
+                                    validate=True)
     if not args.driver.Verify(pub_key):
       raise OSError("Driver signature signing failure.")
 
@@ -455,7 +455,7 @@ class UninstallDriver(actions.ActionPlugin):
 
   def Run(self, args):
     """Unloads a driver."""
-    pub_key = config_lib.CONFIG["ClientDarwin.driver_signing_public_key"]
+    pub_key = config_lib.CONFIG["Client.driver_signing_public_key"]
     if not args.driver.Verify(pub_key):
       raise OSError("Driver signature signing failure.")
     # Unload the driver and pass exceptions through
@@ -470,7 +470,7 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
 
   def Run(self, args):
     """Run."""
-    pub_key = config_lib.CONFIG["ClientDarwin.executable_signing_public_key"]
+    pub_key = config_lib.CONFIG["Client.executable_signing_public_key"]
     if not args.executable.Verify(pub_key):
       raise OSError("Executable signing failure.")
 

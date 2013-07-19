@@ -3,10 +3,9 @@
 """EventListener flows used to notify about AFF4 changes."""
 
 
-from grr.client import conf as flags
-
 from grr.lib import aff4
 from grr.lib import email_alerts
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -20,7 +19,8 @@ class AFF4NotificationEmailListener(flow.EventListener):
   """Email notificator to be used with AFF4 change notifiers."""
   EVENTS = ["AFF4ChangeNotifyByEmail"]
 
-  well_known_session_id = "aff4:/flows/W:AFF4ChangeNotifyByEmailHandler"
+  well_known_session_id = rdfvalue.SessionID(
+      "aff4:/flows/W:AFF4ChangeNotifyByEmailHandler")
 
   mail_template = """<html><body><h1>AFF4 change notification</h1>
 Following path got modified: %(path)s"

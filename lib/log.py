@@ -9,11 +9,11 @@ import os
 import socket
 import time
 
-from grr.client import conf as flags
 from grr.lib import config_lib
+from grr.lib import flags
 
 
-config_lib.DEFINE_list("Logging.engines", ["stderr", "file"],
+config_lib.DEFINE_list("Logging.engines", ["stderr"],
                        "Enabled logging engines. Valid values are "
                        "combinations of stderr,file,syslog,event_log.")
 
@@ -34,22 +34,12 @@ config_lib.DEFINE_string(
     "Logging.format",
     # Use a literal block here to prevent config system expansion as this should
     # be a python format string.
-    "%{%(levelname)s %(module)s:%(lineno)s] %(message)s}",
+    "%{%(levelname)s:%(asctime)s %(module)s:%(lineno)s] %(message)s}",
     help="Log line format (using python's standard logging expansions).")
 
 config_lib.DEFINE_string("Logging.service_name", "GRR",
                          help="The service name that will be logged with the "
                          "event log engine.")
-
-
-# Flag sets the verbosity of logging.
-flags.DEFINE_bool("verbose", default=False,
-                  help="Enable debugging. This will enable file logging "
-                  "for the service and increase verbosity.")
-
-flags.DEFINE_bool("debug", default=False,
-                  help="When an unhandled exception occurs break in the "
-                  "debugger.")
 
 
 # Global Application Logger.
@@ -131,7 +121,7 @@ VERBOSE_LOG_LEVELS = {
 
 def SetLogLevels():
   logger = logging.getLogger()
-  if config_lib.CONFIG["Logging.verbose"]:
+  if config_lib.CONFIG["Logging.verbose"] or flags.FLAGS.verbose:
     levels = VERBOSE_LOG_LEVELS
   else:
     levels = BASE_LOG_LEVELS
@@ -146,51 +136,59 @@ def GetLogHandlers():
   logging.debug("Will use logging engines %s", engines)
 
   for engine in engines:
-    if engine == "stderr":
-      handler = logging.StreamHandler()
-      handler.setFormatter(formatter)
-      yield handler
+    try:
+      if engine == "stderr":
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+        yield handler
 
-    elif engine == "event_log":
-      handler = handlers.NTEventLogHandler(
-          config_lib.CONFIG["Logging.service_name"])
-      handler.setFormatter(formatter)
-      yield handler
+      elif engine == "event_log":
+        handler = handlers.NTEventLogHandler(
+            config_lib.CONFIG["Logging.service_name"])
+        handler.setFormatter(formatter)
+        yield handler
 
-    elif engine == "syslog":
-      # Allow the specification of UDP sockets.
-      socket_name = config_lib.CONFIG["Logging.syslog_path"]
-      if ":" in socket_name:
-        addr, port = socket_name.split(":", 1)
-        handler = RobustSysLogHandler((addr, int(port)))
+      elif engine == "syslog":
+        # Allow the specification of UDP sockets.
+        socket_name = config_lib.CONFIG["Logging.syslog_path"]
+        if ":" in socket_name:
+          addr, port = socket_name.split(":", 1)
+          handler = RobustSysLogHandler((addr, int(port)))
+        else:
+          handler = RobustSysLogHandler(socket_name)
+
+        handler.setFormatter(formatter)
+        yield handler
+
+      elif engine == "file":
+        # Create a logfile if needed.
+        path = config_lib.CONFIG["Logging.filename"]
+        logging.info("Writing log file to %s", path)
+
+        if not os.path.isdir(os.path.dirname(path)):
+          os.makedirs(os.path.dirname(path))
+        handler = logging.FileHandler(path, mode="ab")
+        handler.setFormatter(formatter)
+        yield handler
+
       else:
-        handler = RobustSysLogHandler(socket_name)
+        logging.error("Unknown logging engine %s", engine)
 
-      handler.setFormatter(formatter)
-      yield handler
-
-    elif engine == "file":
-      # Create a logfile if needed.
-      path = config_lib.CONFIG["Logging.filename"]
-      logging.info("Writing log file to %s", path)
-
-      if not os.path.isdir(os.path.dirname(path)):
-        os.makedirs(os.path.dirname(path))
-      handler = logging.FileHandler(path, mode="ab")
-      handler.setFormatter(formatter)
-      yield handler
-
-    else:
-      logging.error("Unknown logging engine %s", engine)
+    except Exception:  # pylint:disable=broad-except
+      # Failure to log should not be fatal.
+      logging.exception("Unable to create logger %s", engine)
 
 
 def LogInit():
   """Configure the logging subsystem."""
   logging.debug("Initializing Logging subsystem.")
 
-  # verbose flag just sets the logging verbosity level.
   if flags.FLAGS.verbose:
-    config_lib.CONFIG.SetEnv("Logging.verbose", True)
+  # verbose flag just sets the logging verbosity level.
+    config_lib.CONFIG.AddContext(
+        "Debug Context",
+        "This context is to allow verbose and debug output from "
+        "the binary.")
 
   # The root logger.
   logger = logging.getLogger()

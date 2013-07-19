@@ -7,11 +7,9 @@ import sys
 
 
 # This has to be done now or it will fail later when sys.platform is changed.
-import psutil  # pylint: disable=W0611
+import psutil  # pylint: disable=unused-import
 
-from grr.client import conf
-
-# pylint: disable=C6204
+# pylint: disable=g-import-not-at-top
 # We want to test linux and mac.
 old_platform = sys.platform
 sys.platform = "darwin, linux"
@@ -23,6 +21,7 @@ from grr.client import client_plugins
 from grr.client.vfs_handlers import memory
 sys.platform = old_platform
 
+from grr.lib import flags
 from grr.lib import test_lib
 
 
@@ -33,7 +32,7 @@ class MockOSXMemory(memory.OSXMemory):
     offset = 0
 
     # Implementing the file interface.
-    # pylint: disable=C6409
+    # pylint: disable=g-bad-name
 
     def read(self, length):
       return "X" * length
@@ -91,4 +90,4 @@ def main(argv):
   test_lib.main(argv)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

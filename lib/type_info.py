@@ -265,7 +265,7 @@ class String(TypeInfoObject):
 
   def Validate(self, value):
     if not isinstance(value, basestring):
-      raise TypeValueError("%s not a valid string" % value)
+      raise TypeValueError("%s: %s not a valid string" % (self.name, value))
 
     # A String means a unicode String. We must be dealing with unicode strings
     # here and the input must be encodable as a unicode object.
@@ -279,6 +279,12 @@ class Bytes(String):
   """A Bytes type."""
 
   _type = str
+
+  def Validate(self, value):
+    if not isinstance(value, str):
+      raise TypeValueError("%s not a valid string" % value)
+
+    return value
 
 
 class NotEmptyString(String):
@@ -334,7 +340,7 @@ class Integer(TypeInfoObject):
     if not isinstance(value, (int, long)):
       raise TypeValueError("Invalid value %s for Integer" % value)
 
-    return value
+    return long(value)
 
   def FromString(self, string):
     try:
@@ -344,11 +350,13 @@ class Integer(TypeInfoObject):
 
 
 class Float(Integer):
-
+  """Type info describing a float."""
   _type = float
 
   def Validate(self, value):
-    if not isinstance(value, (float, int, long)):
+    try:
+      value = float(value)
+    except ValueError:
       raise TypeValueError("Invalid value %s for Float" % value)
 
     return value
@@ -533,6 +541,15 @@ class RDFURNType(RDFValueType):
 
     defaults.update(kwargs)
     super(RDFURNType, self).__init__(**defaults)
+
+  def Validate(self, value):
+    # Check this separately since SerializeToString will modify it.
+    try:
+      if value.scheme != "aff4":
+        raise TypeValueError("Bad URN: %s" % value.SerializeToString())
+    except AttributeError as e:
+      raise TypeValueError("Bad RDFURN: %s" % e)
+    return value
 
 
 class InstallDriverRequestType(RDFValueType):

@@ -16,6 +16,7 @@ import urllib
 
 from django import http
 from django import template
+from django.core import context_processors
 
 from M2Crypto import BN
 
@@ -41,8 +42,8 @@ MAX_ROW_LIMIT = 1000000
 
 def GetNextId():
   """Generate a unique id."""
-  global COUNTER  # pylint: disable=W0603
-  COUNTER += 1  # pylint: disable=C6409
+  global COUNTER  # pylint: disable=global-statement
+  COUNTER += 1  # pylint: disable=g-bad-name
   return COUNTER
 
 
@@ -350,8 +351,8 @@ class ErrorHandler(Renderer):
     def Decorated(*args, **kwargs):
       try:
         return func(*args, **kwargs)
-      except Exception as e:  # pylint: disable=W0703
-        logging.error(utils.SmartUnicode(e))
+      except Exception as e:  # pylint: disable=broad-except
+        logging.exception(utils.SmartUnicode(e))
         if not isinstance(self.message_template, Template):
           self.message_template = Template(self.message_template)
 
@@ -387,9 +388,12 @@ class TemplateRenderer(Renderer):
     if apply_template is None:
       apply_template = self.layout_template
 
+    csrf_token = context_processors.csrf(request)
+
     return self.RenderFromTemplate(apply_template, response,
                                    this=self, id=self.id, unique=self.unique,
-                                   renderer=self.__class__.__name__)
+                                   renderer=self.__class__.__name__,
+                                   **csrf_token)
 
   def RawHTML(self, request=None, **kwargs):
     """This returns raw HTML, after sanitization by Layout()."""
@@ -997,10 +1001,12 @@ var state = $.extend({}, grr.state, {{this.state_json|safe}});
 
     # Pre-render the top and bottom layout contents to avoid extra round trips.
     self.top_pane = self.classes[self.top_renderer](
-        id="%s_topPane" % self.id).RawHTML(request)
+        id="%s_topPane" % self.id,
+        state=self.state.copy()).RawHTML(request)
 
     self.bottom_pane = self.classes[self.bottom_renderer](
-        id="%s_bottomPane" % self.id).RawHTML(request)
+        id="%s_bottomPane" % self.id,
+        state=self.state.copy()).RawHTML(request)
 
     return super(Splitter2Way, self).Layout(request, response)
 
@@ -1042,10 +1048,12 @@ class Splitter2WayVertical(TemplateRenderer):
 
     # Pre-render the top and bottom layout contents to avoid extra round trips.
     self.left_pane = self.classes[self.left_renderer](
-        id="%s_leftPane" % self.id).RawHTML(request)
+        id="%s_leftPane" % self.id,
+        state=self.state.copy()).RawHTML(request)
 
     self.right_pane = self.classes[self.right_renderer](
-        id="%s_rightPane" % self.id).RawHTML(request)
+        id="%s_rightPane" % self.id,
+        state=self.state.copy()).RawHTML(request)
 
     return super(Splitter2WayVertical, self).Layout(request, response)
 
@@ -2214,7 +2222,15 @@ class ConfirmationDialogRenderer(TemplateRenderer):
   cancel_button_title = "Close"
   proceed_button_title = "Proceed"
 
-  # This is supplied by subclasses.
+  # If check_access_subject is None, ConfirmationDialogRenderer will first
+  # do an Ajax call to a CheckAccess renderer to obtain proper token and only
+  # then will do an update.
+  check_access_subject = None
+
+  # This is supplied by subclasses. Contents of this template are rendered
+  # between <form></form> tags and when 'Proceed' button is pressed,
+  # contents of the form get sent with the AJAX request and therefore
+  # can be accessed through request.REQ from RenderAjax method.
   content_template = Template("")
 
   layout_template = Template("""
@@ -2227,8 +2243,11 @@ class ConfirmationDialogRenderer(TemplateRenderer):
   {% endif %}
 
   <div class="modal-body">
-    {{this.rendered_content|safe}}
+    <form id="{{this.form_id|escape}}" class="form-horizontal">
+      {{this.rendered_content|safe}}
+    </form>
     <div id="results_{{unique|escape}}"></div>
+    <div id="check_access_results_{{unique|escape}}" class="hide"></div>
   </div>
   <div class="modal-footer">
     <button class="btn" data-dismiss="modal" name="Cancel"
@@ -2242,8 +2261,26 @@ class ConfirmationDialogRenderer(TemplateRenderer):
   <script>
     $("#proceed_{{unique|escape}}").click(function() {
       $(this).attr("disabled", true);
-      grr.update("{{renderer|escapejs}}", "results_{{unique|escapejs}}",
-        {{this.state_json|safe}});
+      {% if this.check_access_subject %}
+        // We execute CheckAccess renderer with silent=true. Therefore it
+        // searches for an approval and sets correct reason if approval is
+        // found. When CheckAccess completes, we execute specified renderer,
+        // which. If the approval wasn't found on CheckAccess stage, it will
+        // fail due to unauthorized access and proper ACLDialog will be
+        // displayed.
+        grr.layout("CheckAccess", "check_access_results_{{unique|escapejs}}",
+          {silent: true, subject: "{{this.check_access_subject|escapejs}}"},
+          function() {
+            grr.submit("{{renderer}}", "{{this.form_id|escapejs}}",
+                       "results_{{unique|escapejs}}", {{this.state_json|safe}},
+                       grr.update);
+            }
+        );
+      {% else %}
+        grr.submit("{{renderer}}", "{{this.form_id|escapejs}}",
+                   "results_{{unique|escapejs}}", {{this.state_json|safe}},
+                   grr.update);
+      {% endif %}
     });
   </script>
 """)
@@ -2252,3 +2289,7 @@ class ConfirmationDialogRenderer(TemplateRenderer):
   def rendered_content(self):
     return self.FormatFromTemplate(self.content_template,
                                    unique=self.unique)
+
+  def Layout(self, request, response):
+    self.form_id = "form_%d" % GetNextId()
+    return super(ConfirmationDialogRenderer, self).Layout(request, response)

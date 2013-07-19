@@ -40,7 +40,7 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
     # Make sure there is a signed driver for our client.
     driver_path = maintenance_utils.UploadSignedDriverBlob(
         "MZ Driveeerrrrrr", file_name="winpmem.amd64.sys",
-        platform="Windows",
+        platform="Windows", arch="i386",
         aff4_path="/config/drivers/windows/memory/{file_name}",
         token=self.token)
 
@@ -134,3 +134,43 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
 
     # And should include the DumpIt kernel driver.
     self.assert_("DumpIt.sys" in str(result))
+
+  def testGrepMemory(self):
+    # Use a file in place of a memory image for simplicity
+    image_path = os.path.join(self.base_path, "numbers.txt")
+
+    self.CreateClient()
+    self.CreateSignedDriver()
+
+    class ClientMock(self.MockClient):
+      """A mock which returns the image as the driver path."""
+
+      def GetMemoryInformation(self, _):
+        """Mock out the driver loading code to pass the memory image."""
+        reply = rdfvalue.MemoryInformation(
+            device=rdfvalue.PathSpec(
+                path=image_path,
+                pathtype=rdfvalue.PathSpec.PathType.OS))
+
+        reply.runs.Append(offset=0, length=1000000000)
+
+        return [reply]
+
+    args = {"request": rdfvalue.GrepSpec(
+        literal="88",
+        mode=rdfvalue.GrepSpec.Mode.ALL_HITS
+        ),
+            "output": "analysis/grep/testing"}
+
+    # Run the flow.
+    for _ in test_lib.TestFlowHelper(
+        "GrepMemory", ClientMock("Grep"), client_id=self.client_id,
+        token=self.token, **args):
+      pass
+
+    fd = aff4.FACTORY.Open(
+        rdfvalue.RDFURN(self.client_id).Add("/analysis/grep/testing"),
+        token=self.token)
+    self.assertEqual(len(fd), 20)
+    self.assertEqual(fd[0].offset, 252)
+    self.assertEqual(fd[0].data, "\n85\n86\n87\n88\n89\n90\n91\n")

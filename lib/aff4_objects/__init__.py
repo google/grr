@@ -3,7 +3,7 @@
 """AFF4 Implementations."""
 
 
-# pylint: disable=W0611
+# pylint: disable=unused-import
 
 # These import populate the AFF4 registry
 from grr.lib.aff4_objects import aff4_grr

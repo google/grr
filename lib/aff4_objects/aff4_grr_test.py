@@ -12,7 +12,8 @@ from grr.lib import test_lib
 class MockChangeEvent(flow.EventListener):
   EVENTS = ["MockChangeEvent"]
 
-  well_known_session_id = "aff4:/flows/W:MockChangeEventHandler"
+  well_known_session_id = rdfvalue.SessionID(
+      "aff4:/flows/W:MockChangeEventHandler")
 
   CHANGED_URNS = []
 

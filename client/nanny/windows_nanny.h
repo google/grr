@@ -22,8 +22,8 @@
 
 namespace grr {
 
-const TCHAR *kGrrServiceNameKey = TEXT("service_name");
-const TCHAR *kGrrServiceDescKey = TEXT("service_description");
+const TCHAR *kGrrServiceNameKey = TEXT("Nanny.service_name");
+const TCHAR *kGrrServiceDescKey = TEXT("Nanny.service_description");
 
 // This is the root of the service configuration branch in the
 // registry. It is normally passed through the --service_key command
@@ -32,21 +32,22 @@ TCHAR* kGrrServiceRegistry = NULL;
 
 
 // A registry value specifying the child that will be run.
-const TCHAR* kGrrServiceBinaryChildKey = TEXT("child_binary");
-const TCHAR* kGrrServiceBinaryCommandLineKey = TEXT("child_command_line");
+const TCHAR* kGrrServiceBinaryChildKey = TEXT("Nanny.child_binary");
+const TCHAR* kGrrServiceBinaryCommandLineKey = TEXT("Nanny.child_command_line");
 
 // A backup binary location, in case the primary binary failed to start.
-const TCHAR* kGrrServiceBinaryChildAlternate = TEXT("child_last_known_good");
+const TCHAR* kGrrServiceBinaryChildAlternate = TEXT(
+    "Nanny.child_last_known_good");
 
 // The registry value which is updated for each heartbeat. It is a REG_DWORD and
 // stores a unix epoch time.
-const TCHAR* kGrrServiceHeartbeatTimeKey = TEXT("heartbeat");
+const TCHAR* kGrrServiceHeartbeatTimeKey = TEXT("Nanny.heartbeat");
 
 // The registry value which is updated for the nanny messages.
-const TCHAR* kGrrServiceNannyMessageKey = TEXT("nanny_message");
+const TCHAR* kGrrServiceNannyMessageKey = TEXT("Nanny.message");
 
 // The registry value which is updated for the nanny status.
-const TCHAR* kGrrServiceNannyStatusKey = TEXT("nanny_status");
+const TCHAR* kGrrServiceNannyStatusKey = TEXT("Nanny.status");
 
 
 // ---------------------------------------------------------

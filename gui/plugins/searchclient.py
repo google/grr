@@ -23,7 +23,7 @@ class SearchHostInit(registry.InitHook):
 
   def RunOnce(self):
     # Counters used here
-    stats.STATS.RegisterMap("grr_gui_search_host_time", "times", precision=0)
+    stats.STATS.RegisterEventMetric("grr_gui_search_host_time")
 
 
 class ContentView(renderers.Splitter2WayVertical):
@@ -445,9 +445,8 @@ class FrontPage(renderers.TemplateRenderer):
   Query for a system to view in the search box above.
 
   <p>
-  A bare search term searches for a hostname. Prefix the term with "version:" to
-  search for the OS version, "mac:" to search for a mac address, "id:" for a
-  client id. Terms may also be combined by using and, or and parenthesis.
+  Type a search term to search for a machine using either a hostname,
+  mac address or username.
   </p>
      </div>  <!-- row -->
    </div>  <!-- container -->

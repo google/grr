@@ -3,7 +3,7 @@
 
 """Loads up all flow tests."""
 
-# pylint: disable=W0611
+# pylint: disable=unused-import
 # These import populate the Flow test registry
 from grr.lib.flows.console import debugging_test
 

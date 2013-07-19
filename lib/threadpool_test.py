@@ -8,8 +8,8 @@ import threading
 
 import mox
 
-from grr.client import conf
 import logging
+from grr.lib import flags
 from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import threadpool
@@ -120,8 +120,9 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     self.test_pool.Join()
 
     # Make sure that both exceptions have been counted.
-    self.assertEqual(stats.STATS.Get(self.test_pool.name + "_task_exceptions"),
-                     2)
+    self.assertEqual(
+        stats.STATS.GetMetricValue(self.test_pool.name + "_task_exceptions"),
+        2)
 
   def testBlockingTasks(self):
     self.test_pool.Join()
@@ -148,8 +149,8 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
       ev.wait()
 
     try:
-      self.assertEqual(stats.STATS.Get(
-          self.test_pool.name + "_idle_threads"), 0)
+      self.assertEqual(stats.STATS.GetMetricValue(self.test_pool.name +
+                                                  "_idle_threads"), 0)
 
       i = 0
       n = 10
@@ -222,8 +223,9 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     # Do not start but push some tasks on the pool.
     for i in range(10):
       pool.AddTask(lambda: None, ())
-      self.assertEqual(i+1,
-                       stats.STATS.GetFunction("test_pool3_outstanding_tasks"))
+      self.assertEqual(
+          stats.STATS.GetMetricValue("test_pool3_outstanding_tasks"),
+          i + 1)
 
   def testDuplicateNameError(self):
     """Tests that creating two pools with the same name fails."""
@@ -260,4 +262,4 @@ def main(argv):
   test_lib.main(argv)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

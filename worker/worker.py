@@ -7,38 +7,32 @@ it specifies.
 """
 
 
-import re
-import sys
-
-from grr.client import conf
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import access_control
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import startup
 from grr.lib import worker
 
 
-config_lib.DEFINE_string("Worker.queue_name", "W",
-                         "The name of the queue for this worker.")
-
-
 def main(unused_argv):
   """Main."""
-  config_lib.CONFIG.SetEnv("Environment.component", "Worker")
+  config_lib.CONFIG.AddContext(
+      "Worker Context",
+      "Context applied when running a worker.")
 
   # Initialise flows
   startup.Init()
 
   # Start a worker
   token = access_control.ACLToken("GRRWorker", "Implied.")
-  worker_obj = worker.GRRWorker(
-      queue_name=config_lib.CONFIG["Worker.queue_name"], token=token)
+  worker_obj = worker.GRRWorker(queue=worker.DEFAULT_WORKER_QUEUE,
+                                token=token)
 
   worker_obj.Run()
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

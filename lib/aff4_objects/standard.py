@@ -69,7 +69,7 @@ class VFSDirectory(aff4.AFF4Volume):
       stripped_components = []
       parent = self
 
-      while not pathspec and not len(parent.urn.Split()) <= 1:
+      while not pathspec and len(parent.urn.Split()) > 1:
         # We try to recurse up the tree to get a real pathspec.
         # These directories are created automatically without pathspecs when a
         # deep directory is listed without listing the parents.
@@ -177,6 +177,9 @@ class HashImage(aff4.AFF4Image):
     return result
 
   def Close(self, sync=True):
+    if self.dirty:
+      self.Set(self.Schema.SIZE(self.size))
+
     if self.index:
       self.index.Close(sync)
     super(HashImage, self).Close(sync)
@@ -188,7 +191,6 @@ class HashImage(aff4.AFF4Image):
     self.index.Seek(0, 2)
     self.index.Write(blob_hash)
     self.size += length
-    self.Set(self.Schema.SIZE(self.size))
 
   class SchemaCls(aff4.AFF4Image.SchemaCls):
     """The schema for AFF4 files in the GRR VFS."""

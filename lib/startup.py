@@ -3,30 +3,36 @@
 
 Contains the startup routines and Init functions for initializing GRR.
 """
-
 import os
+import platform
 
 import logging
+
 from grr.lib import config_lib
+from grr.lib import local
 from grr.lib import log
 from grr.lib import registry
 
 
 # Disable this warning for this section, we import dynamically a lot in here.
 # pylint: disable=g-import-not-at-top
+def AddConfigContext():
+  """Add the running contexts to the config system."""
+  # Initialize the running platform context:
+  config_lib.CONFIG.AddContext("Platform:%s" % platform.system().title())
+
+  if platform.architecture()[0] == "32bit":
+    config_lib.CONFIG.AddContext("Arch:i386")
+  elif platform.architecture()[0] == "64bit":
+    config_lib.CONFIG.AddContext("Arch:amd64")
 
 
 def ConfigInit():
   """Initialize the configuration manager."""
-  try:
-    # Check for a config init function in the local directory first.
-    # pylint: disable=g-import-not-at-top
-    from grr.lib.local import config as local_config
-    local_config.ConfigLibInit()
-    logging.debug("Using local ConfigLibInit from %s", local_config)
-  except (AttributeError, ImportError):
-    # If it doesn't exist load the default one.
-    config_lib.ConfigLibInit()
+  local.ConfigInit()
+
+  if config_lib.CONFIG["Config.writeback"]:
+    config_lib.CONFIG.SetWriteBack(config_lib.CONFIG["Config.writeback"])
 
 
 def ClientPluginInit():
@@ -74,6 +80,7 @@ def ServerLoggingStartupInit():
 def ClientInit():
   """Run all startup routines for the client."""
   ConfigInit()
+  AddConfigContext()
   ClientLoggingStartupInit()
   ClientPluginInit()
   from grr.client import installer
@@ -81,15 +88,25 @@ def ClientInit():
   registry.Init()
 
 
+# Make sure we do not reinitialize multiple times.
+INIT_RAN = False
+
+
 def Init():
   """Run all required startup routines and initialization hooks."""
+  global INIT_RAN
+  if INIT_RAN:
+    return
+
   ConfigInit()
+  AddConfigContext()
   ServerLoggingStartupInit()
   registry.Init()
+  INIT_RAN = True
 
 
 def TestInit():
   """Only used in tests and will rerun all the hooks to create a clean state."""
-  ConfigInit()
+  AddConfigContext()
   ServerLoggingStartupInit()
   registry.TestInit()

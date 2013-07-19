@@ -16,16 +16,15 @@ import os
 
 import mox
 
-from grr.client import conf
-
 # Populate the action registry
-# pylint: disable=W0611
+# pylint: disable=unused-import
 from grr.client import client_actions
-# pylint: enable=W0611
+# pylint: enable=unused-import
 from grr.client import client_utils_osx
 from grr.client import vfs
 from grr.client.client_actions.osx import osx
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -172,4 +171,4 @@ def main(argv):
   test_lib.main(argv)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

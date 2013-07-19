@@ -27,7 +27,7 @@ message HttpRequest {
 // This message is sent between the client and the server.
 message GrrMessage {
   optional string session_id = 1 [(sem_type) = {
-      type: "RDFURN",
+      type: "FlowSessionID",
       description: "The session id of the flow that this message belongs to."
     }];
 
@@ -108,7 +108,7 @@ message GrrMessage {
       "after processing."
     }];
 
-  optional uint64 cpu_limit = 12 [ default = 3600, (sem_type) = {
+  optional float cpu_limit = 12 [ default = 3600, (sem_type) = {
       description: "Maximum number of CPU seconds to be used by this action."
     }];
 
@@ -136,6 +136,15 @@ message GrrMessage {
   // Human readable info about the last process leasing this message.
   optional string last_lease = 19;
 
+  optional uint64 network_bytes_limit = 21 [ default = 10737418240,
+      (sem_type) = {
+      description: "Maximum number of network bytes to be sent, 10G default. "
+                   "All bytes charged against the flow session ID count "
+                   "towards the limit but only during TransferBuffer is the "
+                   "limit enforced. This means we can blockfile transfers but "
+                   "still communicate after the limit is reached."
+    }];
+
 };
 
 // This is a list of messages
@@ -160,7 +169,7 @@ message SignedMessageList {
 
   optional string source = 3 [(sem_type) = {
       type: "RDFURN",
-      description: "The client id where this message came frome."
+      description: "The source where this message came from."
     }];
 
   // How the message_list element is compressed
@@ -234,6 +243,7 @@ message GrrStatus {
     IOERROR = 1;
     RETRANSMISSION_DETECTED = 2;
     CLIENT_KILLED = 3;
+    NETWORK_LIMIT_EXCEEDED = 4;
 
     GENERIC_ERROR = 10;
   };
@@ -247,7 +257,7 @@ message GrrStatus {
   optional CpuSeconds cpu_time_used = 4;
 
   optional string child_session_id = 5 [(sem_type) = {
-      type: "RDFURN",
+      type: "SessionID",
       description: "The URN of a subflow.",
     }];
 
@@ -261,7 +271,7 @@ message ClientCrash {
       type: "ClientURN"
     }];
   optional string session_id = 2 [(sem_type) = {
-      type: "RDFURN"
+      type: "SessionID"
     }];
   optional ClientInformation client_info = 3;
 
@@ -269,14 +279,16 @@ message ClientCrash {
       type: "RDFDatetime",
       description: "When the client crashed."
     }];
-  optional string crash_type = 5;
+  optional string crash_type = 5 [(sem_type) = {
+      type: "SessionID"
+    }];
   optional string crash_message = 6;
   optional string backtrace = 7;
 }
 
 message HuntNotification {
   optional string session_id = 1 [(sem_type) = {
-      type: "RDFURN"
+      type: "SessionID"
     }];
   optional string client_id = 2 [(sem_type) = {
       type: "ClientURN"
@@ -293,7 +305,7 @@ message HuntNotification {
 
 message FlowNotification {
   optional string session_id = 1 [(sem_type) = {
-      type: "RDFURN"
+      type: "SessionID"
     }];
   optional string flow_name = 2;
   optional string client_id = 3 [(sem_type) = {
@@ -379,6 +391,8 @@ message PrintStr {
 //  - dest_dir: destination directory to copy to
 //  - dest_path: unset (GRRTempfile will create a random filename in dest_dir)
 //  - gzip_output: if true, output file will be gzipped (default true)
+//  - lifetime: number of seconds the file will stay on disk before being
+//  deleted (default of 0 means don't delete)
 //
 // Response:
 //  - offset: byte offset from request
@@ -388,6 +402,7 @@ message PrintStr {
 //  - dest_dir: destination dir from request
 //  - dest_path: on-disk output pathspec
 //  - gzip_output: if true, output file is gzipped
+//  - lifetime: unused
 //
 message CopyPathToFile {
   optional uint64 offset = 1 [ default = 0 ];
@@ -396,6 +411,7 @@ message CopyPathToFile {
   optional string dest_dir = 4;
   optional PathSpec dest_path = 5;
   optional bool gzip_output = 6 [ default = true ];
+  optional float lifetime = 7 [ default = 0 ];
 };
 
 // Pass a buffer back.
@@ -452,7 +468,7 @@ message RequestState {
       "responses from this client."
     }];
   optional string session_id = 9 [(sem_type) = {
-      type: "RDFURN",
+      type: "SessionID",
       description: "This is the session_id of the flow this request belongs to."
     }];
 
@@ -479,7 +495,7 @@ message Flow {
 
   optional State state = 4 [default = RUNNING];
   optional string session_id = 5  [(sem_type) = {
-      type: "RDFURN"
+      type: "SessionID"
     }];
 
   // The number of outstanding requests in this flow
@@ -529,11 +545,6 @@ message Flow {
   // The priority of this flow.
   optional GrrMessage.Priority priority = 20;
 
-  // The cpu quota of this flow.
-  optional float cpu_quota = 21;
-
-  // The remaining cpu quota of this flow.
-  optional float remaining_cpu_quota = 22;
 };
 
 message CpuSeconds {
@@ -1058,7 +1069,7 @@ message GrepSpec {
 
   // The search only covers this buffer.
   optional uint64 start_offset = 2 [default = 0];
-  optional uint64 length = 3 [default = 1024000];
+  optional uint64 length = 3 [default = 10737418240];
 
   optional string regex = 4 [(sem_type) = {
       type: "RegularExpression",
@@ -1102,13 +1113,14 @@ message Find {
       description: "This matches the content of the file."
     }];
 
-  optional uint64 start_time = 5 [(sem_type) = {
+  optional uint64 start_time = 5 [default = 0, (sem_type) = {
       type: "RDFDatetime",
       description: "File must be modified after this time."
     }];
-  optional uint64 end_time = 6 [(sem_type) = {
+  optional uint64 end_time = 6 [default = 9223372036854775807, (sem_type) = {
       type: "RDFDatetime",
-      description: "File must be modified before this time."
+      description: "File must be modified before this time (default=heat "
+                   "death of the universe)."
     }];
 
   // Should we cross filesystems? Default is no.
@@ -1123,6 +1135,16 @@ message Find {
 
   // The maximum amount of data from this file to search for data_regex.
   optional uint64 max_data = 10 [default = 1024000];
+
+  optional uint64 min_file_size = 11 [default = 0, (sem_type) = {
+      description: "Minimum file size in bytes."
+    }];
+
+  optional uint64 max_file_size = 12 [default = 9223372036854775807,
+      (sem_type) = { description: "Maximum file size in bytes "
+                                  "(default=sys.maxint)."
+    }];
+
 }
 
 message PlistRequest {
@@ -1164,7 +1186,10 @@ message ForemanRuleAction {
 
   optional string hunt_name = 3;
   // Hunt session id.
-  optional string hunt_id = 4;
+  optional string hunt_id = 4 [(sem_type) = {
+      type: "SessionID",
+      description: "The id of the hunt to start."
+    }];
   optional uint32 client_limit = 5;
 };
 
@@ -1189,7 +1214,7 @@ message ClientResources {
       type: "ClientURN"
     }];
   optional string session_id = 2 [(sem_type) = {
-      type: "RDFURN"
+      type: "SessionID"
     }];
   optional CpuSeconds cpu_usage = 3;
   optional uint64 network_bytes_sent = 4;

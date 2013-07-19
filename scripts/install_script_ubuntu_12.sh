@@ -11,7 +11,10 @@ PREFIX=/usr
 # support other platforms more easily.
 PLAT=amd64
 INSTALL_DIR=${PREFIX}/share/grr
-DEB_DEPENDENCIES=ubuntu-12.04-${PLAT}-debs.tar.gz;
+
+# We now host files on google drive since code.google.com downloads are
+# deprecated: https://code.google.com/p/support/wiki/DownloadsFAQ
+DEB_DEPENDENCIES_URL=https://googledrive.com/host/0B1wsLqFoT7i2aW5mWXNDX1NtTnc/ubuntu-12.04-${PLAT}-debs.tar.gz;
 DEB_DEPENDENCIES_DIR=ubuntu-12.04-${PLAT}-debs;
 SLEUTHKIT_DEB=sleuthkit-lib_3.2.3-1_${PLAT}.deb
 PYTSK_DEB=pytsk3_3.2.3-1_${PLAT}.deb
@@ -19,9 +22,8 @@ M2CRYPTO_DEB=m2crypto_0.21.1-1_${PLAT}.deb
 
 GRR_STABLE_VERSION=0.2-7
 GRR_TEST_VERSION=0.2-8
-SERVER_DEB_STABLE_BASE_URL=https://grr.googlecode.com/files/grr-server_
-SERVER_DEB_TEST_BASE_URL=https://grr.googlecode.com/files/test-grr-server_
-
+SERVER_DEB_STABLE_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/grr-server_
+SERVER_DEB_TEST_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/test-grr-server_
 
 if [ -z "${GRR_TESTING}" ];
 then
@@ -92,13 +94,14 @@ function run_cmd_confirm()
 header "Updating APT and Installing dependencies"
 run_cmd_confirm sudo apt-get --yes update;
 run_cmd_confirm sudo apt-get --yes upgrade;
-run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil python-matplotlib python-mox python-yaml python-pip;
-
+run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil python-matplotlib python-mox python-yaml python-pip dpkg-dev debhelper;
 
 header "Getting the right version of M2Crypto installed"
 run_cmd_confirm sudo apt-get --yes remove python-m2crypto;
-run_cmd_confirm wget --no-verbose https://grr.googlecode.com/files/${DEB_DEPENDENCIES} -O ${DEB_DEPENDENCIES};
-run_cmd_confirm tar zxfv ${DEB_DEPENDENCIES};
+
+DEB_DEPENDENCIES_TARBALL=$(basename ${DEB_DEPENDENCIES_URL});
+run_cmd_confirm wget --no-verbose ${DEB_DEPENDENCIES_URL} -O ${DEB_DEPENDENCIES_TARBALL};
+run_cmd_confirm tar zxfv ${DEB_DEPENDENCIES_TARBALL};
 run_cmd_confirm sudo dpkg -i ${DEB_DEPENDENCIES_DIR}/${M2CRYPTO_DEB};
 
 header "Installing Protobuf"

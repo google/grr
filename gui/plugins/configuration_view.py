@@ -60,6 +60,12 @@ class ConfigManager(renderers.TemplateRenderer):
   redacted_options = ["django_secret_key"]
   redacted_sections = ["PrivateKeys", "Users"]
 
+  def ListParametersInSection(self, section):
+    for descriptor in sorted(config_lib.CONFIG.type_infos,
+                             key=lambda x: x.name):
+      if descriptor.section == section:
+        yield descriptor.name
+
   def Layout(self, request, response):
     """Fill in the form with the specific fields for the flow requested."""
 
@@ -68,21 +74,27 @@ class ConfigManager(renderers.TemplateRenderer):
         if section.lower().startswith(bad_section.lower()):
           return True
 
-    self.sections = []
-    for section, data in config_lib.CONFIG.raw_data.items():
-      info = []
-      is_bad_section = IsBadSection(section)
-      self.sections.append((section, info))
-      for key, value in data.items():
+    sections = {}
+    for descriptor in config_lib.CONFIG.type_infos:
+      if descriptor.section in sections:
+        continue
+
+      is_bad_section = IsBadSection(descriptor.section)
+      sections[descriptor.section] = info = []
+      for parameter in self.ListParametersInSection(descriptor.section):
         try:
-          if key in self.redacted_options or is_bad_section:
-            option_value = value = "<REDACTED>"
+          if parameter in self.redacted_options or is_bad_section:
+            option_value = raw_value = "<REDACTED>"
           else:
-            option_value = config_lib.CONFIG["%s.%s" % (section, key)]
-          info.append((key, value, option_value))
+            option_value = config_lib.CONFIG.Get(parameter)
+            raw_value = config_lib.CONFIG.GetRaw(parameter)
+
+          info.append((parameter, raw_value, option_value))
 
         except config_lib.Error as e:
           logging.info("Bad config option in ConfigManager View %s", e)
+
+    self.sections = sorted(sections.items())
 
     return super(ConfigManager, self).Layout(request, response)
 
@@ -205,7 +217,7 @@ class ConfigFileTableToolbar(renderers.TemplateRenderer):
   </li>
 </ul>
 
-<div id="upload_dialog_{{unique|escape}}" class="modal hide fade" tabindex="-1"
+<div id="upload_dialog_{{unique|escape}}" class="modal hide" tabindex="-1"
   role="dialog" aria-hidden="true">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">

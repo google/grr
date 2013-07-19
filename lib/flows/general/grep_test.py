@@ -83,12 +83,11 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
 
     # Check the output file is created
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
-    hits = fd.Get(fd.Schema.HITS)
 
-    self.assertEqual(len(hits), 1)
-    self.assertEqual(hits[0].offset, 3)
-    self.assertEqual(hits[0], "ls\x00hello world\'\x00-l")
-    self.assertEqual(hits[0].length, 18)
+    self.assertEqual(len(fd), 1)
+    self.assertEqual(fd[0].offset, 3)
+    self.assertEqual(fd[0], "ls\x00hello world\'\x00-l")
+    self.assertEqual(fd[0].length, 18)
 
   def testMultipleHits(self):
     filename = "/fs/os/c/Downloads/grepfile.txt"
@@ -111,12 +110,11 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
 
     # Check the output file is created
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
-    hits = fd.Get(fd.Schema.HITS)
 
-    self.assertEqual(len(hits), 100)
-    self.assertEqual(hits[15].offset, 523)
-    self.assertEqual(hits[38], "e. I am a HIT!!random c")
-    self.assertEqual(hits[99], "e. I am a HIT!!")
+    self.assertEqual(len(fd), 100)
+    self.assertEqual(fd[15].offset, 523)
+    self.assertEqual(fd[38], "e. I am a HIT!!random c")
+    self.assertEqual(fd[99], "e. I am a HIT!!")
 
     self.DeleteFile(filename)
 
@@ -146,11 +144,9 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
 
       # Check the output file is created
       fd = aff4.FACTORY.Open(output_urn, token=self.token)
-      hits = fd.Get(fd.Schema.HITS)
-
-      self.assertEqual(len(hits), 1)
-      self.assertEqual(hits[0].offset, searching.Grep.BUFF_SIZE - len("HIT"))
-      self.assertEqual(hits[0].length, 23)
+      self.assertEqual(len(fd), 1)
+      self.assertEqual(fd[0].offset, searching.Grep.BUFF_SIZE - len("HIT"))
+      self.assertEqual(fd[0].length, 23)
 
       self.DeleteFile(filename)
     finally:

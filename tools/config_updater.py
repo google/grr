@@ -2,7 +2,6 @@
 """Util for modifying the GRR server configuration."""
 
 
-
 import argparse
 import ConfigParser
 import getpass
@@ -12,19 +11,14 @@ import readline  # pylint: disable=unused-import
 import sys
 
 
-from grr.client import conf
-from grr.client import conf as flags
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
-from grr.client import conf
-
 from grr.lib import aff4
-from grr.lib import build
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import flags
 
 # pylint: disable=g-import-not-at-top,no-name-in-module
 try:
@@ -37,8 +31,10 @@ from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import startup
 from grr.lib import utils
+# pylint: enable=g-import-not-at-top,no-name-in-module
 
-parser = conf.PARSER
+
+parser = flags.PARSER
 parser.description = ("Set configuration parameters for the GRR Server."
                       "\nThis script has numerous subcommands to perform "
                       "various actions. When you are first setting up, you "
@@ -146,28 +142,27 @@ parser_upload_memory_driver = subparsers.add_parser(
     help="Sign and upload a memory driver for a specific platform.")
 
 
-args = None
-
-
 def LoadMemoryDrivers(grr_dir):
   """Load memory drivers from disk to database."""
 
-  f_path = os.path.join(
-      grr_dir, config_lib.CONFIG["MemoryDriverDarwin.driver_file_amd64"])
+  f_path = os.path.join(grr_dir, config_lib.CONFIG.Get(
+      "MemoryDriver.driver_file", context=["Platform:Darwin", "Arch:amd64"]))
+
   print "Signing and uploading %s" % f_path
   up_path = maintenance_utils.UploadSignedDriverBlob(
       open(f_path).read(), platform="Darwin", file_name="pmem")
   print "uploaded %s" % up_path
 
-  f_path = os.path.join(
-      grr_dir, config_lib.CONFIG["MemoryDriverWindows.driver_file_i386"])
+  f_path = os.path.join(grr_dir, config_lib.CONFIG.Get(
+      "MemoryDriver.driver_file", context=["Platform:Windows", "Arch:i386"]))
+
   print "Signing and uploading %s" % f_path
   up_path = maintenance_utils.UploadSignedDriverBlob(
       open(f_path).read(), platform="Windows", file_name="winpmem.i386.sys")
   print "uploaded %s" % up_path
 
-  f_path = os.path.join(
-      grr_dir, config_lib.CONFIG["MemoryDriverWindows.driver_file_amd64"])
+  f_path = os.path.join(grr_dir, config_lib.CONFIG.Get(
+      "MemoryDriver.driver_file", context=["Platform:Windows", "Arch:amd64"]))
   print "Signing and uploading %s" % f_path
   up_path = maintenance_utils.UploadSignedDriverBlob(
       open(f_path).read(), platform="Windows", file_name="winpmem.amd64.sys")
@@ -192,7 +187,7 @@ def GenerateKeys(config):
   """Generate the keys we need for a GRR server."""
   if not hasattr(key_utils, "MakeCACert"):
     parser.error("Generate keys can only run with open source key_utils.")
-  if config["PrivateKeys.server_key"] and not args.overwrite:
+  if config.Get("PrivateKeys.server_key") and not flags.FLAGS.overwrite:
     raise RuntimeError("Config %s already has keys, use --overwrite to "
                        "override." % config.parser)
 
@@ -283,69 +278,38 @@ Address where high priority events such as an emergency ACL bypass are sent.
 def Initialize(config=None):
   """Initialize or update a GRR configuration."""
 
-  # Start with a clean config ignoring anything the user sent us apart from
-  # the file we are parsing. Make sure we set it back afterwards.
-  config_lib.LoadConfig(config,
-                        config_file=flags.FLAGS.config)
-
   print "Checking read access on config %s" % config.parser
   if not os.access(config.parser.filename, os.W_OK):
     raise IOError("Config not writeable (need sudo?)")
   print "\nStep 1: Key Generation"
-  if config["PrivateKeys.server_key"]:
+  if config.Get("PrivateKeys.server_key"):
     if ((raw_input("You already have keys in your config, do you want to"
                    " overwrite them? [yN]: ").upper() or "N") == "Y"):
-      args.overwrite = True
+      flags.FLAGS.overwrite = True
       GenerateKeys(config)
   else:
     GenerateKeys(config)
 
-  print "\nStep 3: Setting Basic Configuration Parameters"
+  print "\nStep 2: Setting Basic Configuration Parameters"
   ConfigureBaseOptions(config)
 
   # Now load our modified config.
   startup.ConfigInit()
 
-  print "\nStep 2: Adding Admin User"
+  print "\nStep 3: Adding Admin User"
   password = getpass.getpass(prompt="Please enter password for user 'admin': ")
   data_store.DB.security_manager.user_manager.UpdateUser(
       "admin", password=password, admin=True)
   print "User admin added."
 
-  print "\nStep 3: Uploading Memory Drivers to the Database"
-  LoadMemoryDrivers(args.share_dir)
+  print "\nStep 4: Uploading Memory Drivers to the Database"
+  LoadMemoryDrivers(flags.FLAGS.share_dir)
 
   print "\nStep 4: Repackaging clients with new configuration."
-  RepackAndUpload(os.path.join(args.share_dir, "executables"), upload=True)
+  maintenance_utils.RepackAllBinaries(upload=True)
 
   print "\nInitialization complete."
   print "Please restart the service for it to take effect.\n\n"
-
-
-def RepackAndUpload(executables_dir, upload=True):
-  """Repack all clients and upload them."""
-  # Client pieces need to be imported and registered for running the
-  # build and repack, but are not required for other plugins. Importing here
-  # reduces confusion and dependencies.
-  # pylint: disable=unused-variable
-  from grr.client import client_plugins
-  from grr.client import installer
-  # pylint: disable=unused-variable
-
-  built = build.RepackAllBinaries(executables_dir=executables_dir)
-  if upload:
-    print "\n## Uploading"
-    for file_path, config_path, platform, arch in built:
-      print "Uploading %s %s binary from %s" % (platform, arch, file_path)
-      up = maintenance_utils.UploadSignedConfigBlob(
-          open(file_path).read(1024*1024*30), platform=platform,
-          file_name=os.path.basename(file_path))
-      print "Uploaded to %s" % up
-
-      up_conf = UploadRaw(
-          config_path, "/config/executables/%s/installers" % platform)
-      print "Uploaded config file to %s" % up_conf
-      print ""
 
 
 def UploadRaw(file_path, aff4_path):
@@ -359,17 +323,16 @@ def UploadRaw(file_path, aff4_path):
 
 def main(unused_argv):
   """Main."""
-  config_lib.CONFIG.SetEnv("Environment.component", "CommandLineTools")
+  config_lib.CONFIG.AddContext("Commandline Context")
+  config_lib.CONFIG.AddContext("ConfigUpdater Context")
   startup.Init()
-  global args  # pylint: disable=global-statement
-  args=conf.FLAGS
 
   print "Using configuration %s" % config_lib.CONFIG.parser
 
-  if args.subparser_name == "load_memory_drivers":
-    LoadMemoryDrivers(args.share_dir)
+  if flags.FLAGS.subparser_name == "load_memory_drivers":
+    LoadMemoryDrivers(flags.FLAGS.share_dir)
 
-  elif args.subparser_name == "generate_keys":
+  elif flags.FLAGS.subparser_name == "generate_keys":
     try:
       GenerateKeys(config_lib.CONFIG)
     except RuntimeError, e:
@@ -378,74 +341,78 @@ def main(unused_argv):
       sys.exit(1)
     config_lib.CONFIG.Write()
 
-  elif args.subparser_name == "repack_clients":
-    RepackAndUpload(os.path.join(args.share_dir, "executables"),
-                    upload=args.upload)
+  elif flags.FLAGS.subparser_name == "repack_clients":
+    maintenance_utils.RepackAllBinaries(upload=flags.FLAGS.upload)
 
-  if args.subparser_name == "add_user":
-    if args.password:
-      password = args.password
+  if flags.FLAGS.subparser_name == "add_user":
+    if flags.FLAGS.password:
+      password = flags.FLAGS.password
     else:
       password = getpass.getpass(prompt="Please enter password for user %s: " %
-                                 args.username)
-    admin = not args.noadmin
+                                 flags.FLAGS.username)
+    admin = not flags.FLAGS.noadmin
     data_store.DB.security_manager.user_manager.AddUser(
-        args.username, password=password, admin=admin,
-        labels=args.label)
+        flags.FLAGS.username, password=password, admin=admin,
+        labels=flags.FLAGS.label)
 
-  elif args.subparser_name == "update_user":
-    admin = not args.noadmin
+  elif flags.FLAGS.subparser_name == "update_user":
+    admin = not flags.FLAGS.noadmin
     data_store.DB.security_manager.user_manager.UpdateUser(
-        args.username, password=args.password, admin=admin,
-        labels=args.label)
+        flags.FLAGS.username, password=flags.FLAGS.password, admin=admin,
+        labels=flags.FLAGS.label)
 
-  elif args.subparser_name == "initialize":
+  elif flags.FLAGS.subparser_name == "initialize":
     Initialize(config_lib.CONFIG)
 
-  elif args.subparser_name == "upload_python":
-    content = open(args.file).read(1024*1024*30)
-    if args.dest_path:
+  elif flags.FLAGS.subparser_name == "upload_python":
+    content = open(flags.FLAGS.file).read(1024*1024*30)
+    if flags.FLAGS.dest_path:
       uploaded = maintenance_utils.UploadSignedConfigBlob(
-          content, platform=args.platform, aff4_path=args.dest_path)
+          content, platform=flags.FLAGS.platform,
+          aff4_path=flags.FLAGS.dest_path)
     else:
       uploaded = maintenance_utils.UploadSignedConfigBlob(
-          content, file_name=os.path.basename(args.file),
-          platform=args.platform, aff4_path="/config/python_hacks/{file_name}")
+          content, file_name=os.path.basename(flags.FLAGS.file),
+          platform=flags.FLAGS.platform,
+          aff4_path="/config/python_hacks/{file_name}")
     print "Uploaded to %s" % uploaded
 
-  elif args.subparser_name == "upload_exe":
-    content = open(args.file).read(1024*1024*30)
-    if args.dest_path:
-      uploaded = maintenance_utils.UploadSignedConfigBlob(
-          content, aff4_path=args.dest_path, platform=args.platform)
+  elif flags.FLAGS.subparser_name == "upload_exe":
+    content = open(flags.FLAGS.file).read(1024*1024*30)
+    context = ["Platform:%s" % flags.FLAGS.platform.title(),
+               "Client"]
+
+    if flags.FLAGS.dest_path:
+      dest_path = rdfvalue.RDFURN(flags.FLAGS.dest_path)
     else:
-      uploaded = maintenance_utils.UploadSignedConfigBlob(
-          content, file_name=os.path.basename(args.file),
-          platform=args.platform)
-    print "Uploaded to %s" % uploaded
+      dest_path = config_lib.CONFIG.Get(
+          "Executables.aff4_path", context=context).Add(
+              os.path.basename(flags.FLAGS.file))
 
-  elif args.subparser_name == "upload_memory_driver":
-    content = open(args.file).read(1024*1024*30)
-    if args.dest_path:
+    # Now upload to the destination.
+    uploaded = maintenance_utils.UploadSignedConfigBlob(
+        content, aff4_path=dest_path, client_context=context)
+
+    print "Uploaded to %s" % dest_path
+
+  elif flags.FLAGS.subparser_name == "upload_memory_driver":
+    content = open(flags.FLAGS.file).read(1024*1024*30)
+    if flags.FLAGS.dest_path:
       uploaded = maintenance_utils.UploadSignedDriverBlob(
-          content, platform=args.platform, aff4_path=args.dest_path)
+          content, platform=flags.FLAGS.platform,
+          aff4_path=flags.FLAGS.dest_path)
     else:
       uploaded = maintenance_utils.UploadSignedDriverBlob(
-          content, platform=args.platform,
-          file_name=os.path.basename(args.file))
+          content, platform=flags.FLAGS.platform,
+          file_name=os.path.basename(flags.FLAGS.file))
     print "Uploaded to %s" % uploaded
 
-  elif args.subparser_name == "upload_raw":
-    if not args.dest_path:
-      args.dest_path = aff4.ROOT_URN.Add("config").Add("raw")
-    uploaded = UploadRaw(args.file, args.dest_path)
+  elif flags.FLAGS.subparser_name == "upload_raw":
+    if not flags.FLAGS.dest_path:
+      flags.FLAGS.dest_path = aff4.ROOT_URN.Add("config").Add("raw")
+    uploaded = UploadRaw(flags.FLAGS.file, flags.FLAGS.dest_path)
     print "Uploaded to %s" % uploaded
-
-
-def ConsoleMain():
-  """Helper function for calling with setup tools entry points."""
-  conf.StartMain(main)
 
 
 if __name__ == "__main__":
-  ConsoleMain()
+  flags.StartMain(main)

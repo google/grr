@@ -21,6 +21,7 @@ from grr.lib import flow_runner
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib import worker
 
 
 class GRRHunt(flow.GRRFlow):
@@ -72,7 +73,10 @@ class GRRHunt(flow.GRRFlow):
   # The following args are standard for all hunts.
   hunt_typeinfo = type_info.TypeDescriptorSet(
       type_info.Integer(
-          description="Maximum number of clients participating in the hunt.",
+          description=("Maximum number of clients participating in the hunt. "
+                       "Note that this limit can be overshot by a small number "
+                       "of clients if there are multiple workers running. Use "
+                       "this only for testing."),
           name="client_limit",
           friendly_name="Client Limit",
           default=0),
@@ -89,6 +93,8 @@ class GRRHunt(flow.GRRFlow):
 
   def InitFromArguments(self, notification_event=None, description=None,
                         **kwargs):
+    """Initializes this hunt object from the arguments given."""
+
     self.InitializeContext(notification_event=notification_event,
                            description=description)
 
@@ -96,33 +102,39 @@ class GRRHunt(flow.GRRFlow):
     if GRRHunt.hunt_typeinfo != self.hunt_typeinfo:
       self._SetTypedArgs(self.state, self.hunt_typeinfo, kwargs)
 
+    if kwargs:
+      raise type_info.UnknownArg("%s: Args %s not known" % (
+          self.__class__.__name__, kwargs.keys()))
+
     if self.state.context.client_limit > 1000:
       # For large hunts, checking client limits creates a high load on the
       # foreman when loading the hunt as rw and therefore we don't allow setting
       # it for large hunts.
       raise RuntimeError("Please specify client_limit <= 1000.")
 
-  def InitializeContext(self, notification_event=None,
-                        description=None):
+  def InitializeContext(self, queue=worker.DEFAULT_WORKER_QUEUE,
+                        notification_event=None, description=None):
     """Initializes the context of this hunt."""
 
     self.state.context.update({
         "client_resources": rdfvalue.ClientResources(),
+        "cpu_limit": None,
         "create_time": long(time.time() * 1e6),
         "creator": self.token.username,
         "description": description,
         "hunt_name": self.__class__.__name__,
         "hunt_state": self.STATE_STOPPED,
+        "network_bytes_limit": None,
         "network_bytes_sent": 0,
         "next_outbound_id": 1,
         "next_processed_request": 1,
         "notification_event": notification_event,
         "notify_to_user": False,
         "outstanding_requests": 0,
-        "queue_name": flow_runner.DEFAULT_WORKER_QUEUE_NAME,
+        "queue": queue,
         "rules": [],
         "start_time": time.time(),
-        "session_id": self.urn,
+        "session_id": rdfvalue.SessionID(self.urn),
         "state": rdfvalue.Flow.State.RUNNING,
         "usage_stats": rdfvalue.ClientResourcesStats(),
         "user": self.token.username,
@@ -166,30 +178,30 @@ class GRRHunt(flow.GRRFlow):
     return flow_runner.HuntRunner(self, *args, **kw)
 
   @classmethod
-  def GetNewSessionID(cls):
+  def GetNewSessionID(cls, queue=worker.DEFAULT_WORKER_QUEUE):
     """Returns a random integer session ID for this flow.
 
+    Args:
+      queue: The queue this hunt should be scheduled on.
     Returns:
       a formatted session id string
     """
-    rand_number = utils.PRNG.GetULong()
-    queue_name = flow_runner.DEFAULT_WORKER_QUEUE_NAME
-    return rdfvalue.RDFURN("aff4:/hunts").Add(
-        "%s:%X" % (queue_name, rand_number))
+    return rdfvalue.SessionID(base="aff4:/hunts", queue=queue)
 
   @classmethod
-  def StartHunt(cls, hunt_name, token=None, **args):
+  def StartHunt(cls, hunt_name, queue=worker.DEFAULT_WORKER_QUEUE,
+                token=None, **args):
     """This class method starts new hunts."""
     try:
       hunt_cls = GRRHunt.classes[hunt_name]
     except KeyError:
       raise RuntimeError("Unable to locate hunt %s" % hunt_name)
 
-    hunt_urn = hunt_cls.GetNewSessionID()
+    hunt_urn = hunt_cls.GetNewSessionID(queue)
     if "hunt" not in str(hunt_urn):
       raise RuntimeError("%s is not a hunt." % hunt_name)
     hunt_obj = aff4.FACTORY.Create(hunt_urn, hunt_name, mode="rw", token=token)
-    hunt_obj.InitializeContext()
+    hunt_obj.InitializeContext(queue=queue)
     hunt_obj.InitFromArguments(**args)
     hunt_obj.Flush()
     return hunt_obj
@@ -268,13 +280,13 @@ class GRRHunt(flow.GRRFlow):
         value = int(client.Get(aff4.Attribute.NAMES[i.attribute_name]))
         op = i.operator
         if op == rdfvalue.ForemanAttributeInteger.Operator.LESS_THAN:
-          if not value < i.value:
+          if value >= i.value:
             return False
         elif op == rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN:
-          if not value > i.value:
+          if value <= i.value:
             return False
         elif op == rdfvalue.ForemanAttributeInteger.Operator.EQUAL:
-          if not value == i.value:
+          if value != i.value:
             return False
         else:
           # Unknown operator.
@@ -345,7 +357,7 @@ class GRRHunt(flow.GRRFlow):
       rule.actions[0].client_limit = self.state.context.client_limit or None
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token,
-                                ignore_cache=True)
+                                aff4_type="GRRForeman", ignore_cache=True)
     foreman_rules = foreman.Get(foreman.Schema.RULES,
                                 default=foreman.Schema.RULES())
     foreman_rules.Extend(self.state.context.rules)
@@ -433,7 +445,7 @@ class GRRHunt(flow.GRRFlow):
       flow_manager.QueueResponse(hunt_id, msg)
 
       # And notify the worker about it.
-      flow_manager.QueueNotification("W", hunt_id)
+      flow_manager.QueueNotification(hunt_id)
 
   @flow.StateHandler()
   def Start(self, responses):

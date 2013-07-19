@@ -275,6 +275,7 @@ class ContainerToolbar(renderers.TemplateRenderer):
    METHOD=post target='_blank'>
 <input type="hidden" name='container' value='{{this.container|escape}}' />
 <input type="hidden" id="csv_query" name="query" />
+{% csrf_token %}
 <button id='export' title="Export to CSV" class="btn">
 <img src="/static/images/stock-save.png" class="toolbar_icon" />
 </button>
@@ -319,7 +320,6 @@ $("#form_{{unique|escapejs}}").submit(function () {
     """Render the toolbar."""
     self.container = request.REQ.get("container")
     self.query = request.REQ.get("query", "")
-
     return super(ContainerToolbar, self).Layout(request, response)
 
 

@@ -10,17 +10,14 @@ from grr.lib import server_plugins
 from grr.gui import admin_ui
 # pylint: enable=unused-import,g-bad-import-order
 
-from grr.client import conf
-from grr.client import conf as flags
-
 from grr.client import client
 from grr.gui import runtests
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import startup
 from grr.tools import http_server
 from grr.worker import enroller
 from grr.worker import worker
-
 
 BASE_DIR = "grr/"
 
@@ -30,7 +27,10 @@ def main(argv):
   # For testing we use the test config file.
   flags.FLAGS.config = config_lib.CONFIG["Test.config"]
 
-  config_lib.CONFIG.SetEnv("Environment.component", "Demo")
+  config_lib.CONFIG.AddContext(
+      "Demo Context",
+      "The demo runs all functions in a single process using the "
+      "in memory data store.")
   startup.TestInit()
 
   # pylint: disable=unused-import,unused-variable,g-import-not-at-top
@@ -64,4 +64,4 @@ def main(argv):
   runtests.main(argv)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

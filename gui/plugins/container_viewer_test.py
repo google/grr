@@ -53,12 +53,13 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
     super(TestContainerViewer, self).setUp()
 
     # Create a new collection
-    self.CreateCollectionFixture()
+    with self.ACLChecksDisabled():
+      self.CreateCollectionFixture()
+      self.GrantClientApproval("C.0000000000000004")
 
   def testContainerViewer(self):
     self.Open("/")
 
-    self.WaitUntil(self.IsElementPresent, "client_query")
     self.Type("client_query", "0004")
     self.Click("client_query_submit")
 
@@ -82,15 +83,21 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
         "c=C.0000000000000004&"
         "container=aff4%3A%2FC.0000000000000004%2Fanalysis%2FFindFlowTest&"
         "main=ContainerViewer&"
-        "reason=\"]"))
+        "reason=Running+tests\"]"))
 
     self.Click("css=a:contains(\"View details\")")
 
     self.WaitUntil(self.IsElementPresent, "css=button[id=export]")
 
-    self.Click("css=#_C_2E0000000000000004 ins.jstree-icon")
-    self.Click("css=#_C_2E0000000000000004-fs ins.jstree-icon")
-    self.Click("css=#_C_2E0000000000000004-fs-os ins.jstree-icon")
+    self.ClickUntil("css=#_C_2E0000000000000004 ins.jstree-icon",
+                    self.IsElementPresent,
+                    "css=#_C_2E0000000000000004-fs ins.jstree-icon")
+    self.ClickUntil("css=#_C_2E0000000000000004-fs ins.jstree-icon",
+                    self.IsElementPresent,
+                    "css=#_C_2E0000000000000004-fs-os ins.jstree-icon")
+    self.ClickUntil("css=#_C_2E0000000000000004-fs-os ins.jstree-icon",
+                    self.IsElementPresent,
+                    "link=c")
 
     # Navigate to the bin C.0000000000000001 directory
     self.Click("link=c")

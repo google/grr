@@ -21,11 +21,6 @@ from grr.lib import type_info
 from grr.lib import utils
 
 
-config_lib.DEFINE_string("CA.certificate", None,
-                         "The CA public certificate used by the client "
-                         "and server.")
-
-
 config_lib.DEFINE_integer("Network.api", 3,
                           "The version of the network protocol the client "
                           "uses.")
@@ -49,13 +44,13 @@ class CommunicatorInit(registry.InitHook):
     Rand.rand_seed(Rand.rand_bytes(1000))
 
     # Counters used here
-    stats.STATS.RegisterVar("grr_client_unknown")
-    stats.STATS.RegisterVar("grr_decoding_error")
-    stats.STATS.RegisterVar("grr_decryption_error")
-    stats.STATS.RegisterVar("grr_rekey_error")
-    stats.STATS.RegisterVar("grr_authenticated_messages")
-    stats.STATS.RegisterVar("grr_unauthenticated_messages")
-    stats.STATS.RegisterVar("grr_rsa_operations")
+    stats.STATS.RegisterCounterMetric("grr_client_unknown")
+    stats.STATS.RegisterCounterMetric("grr_decoding_error")
+    stats.STATS.RegisterCounterMetric("grr_decryption_error")
+    stats.STATS.RegisterCounterMetric("grr_rekey_error")
+    stats.STATS.RegisterCounterMetric("grr_authenticated_messages")
+    stats.STATS.RegisterCounterMetric("grr_unauthenticated_messages")
+    stats.STATS.RegisterCounterMetric("grr_rsa_operations")
 
 
 class Error(stats.CountingExceptionMixin, Exception):
@@ -98,7 +93,6 @@ class PubKeyCache(object):
     except IndexError:
       raise IOError("Cert has no CN")
 
-    # Common names are always URNs.
     return rdfvalue.RDFURN(cn.get_data().as_text())
 
   @staticmethod
@@ -165,7 +159,11 @@ class Cipher(object):
     self.pub_key_cache = pub_key_cache
     serialized_cipher = self.cipher.SerializeToString()
 
-    self.cipher_metadata = rdfvalue.CipherMetadata(source=source)
+    self.cipher_metadata = rdfvalue.CipherMetadata()
+    # Old clients interpret this as a string so we have to omit the "aff4:/"
+    # prefix on the wire. Can be removed after all clients have been updated.
+    self.cipher_metadata.SetWireFormat("source",
+                                       utils.SmartStr(source.Basename()))
 
     # Sign this cipher.
     digest = self.hash_function(serialized_cipher).digest()
@@ -180,7 +178,7 @@ class Cipher(object):
     # Now encrypt the cipher with our key
     rsa_key = pub_key_cache.GetRSAPublicKey(destination)
 
-    stats.STATS.Increment("grr_rsa_operations")
+    stats.STATS.IncrementCounter("grr_rsa_operations")
     self.encrypted_cipher = rsa_key.public_encrypt(
         serialized_cipher, self.e_padding)
 
@@ -227,7 +225,7 @@ class ReceivedCipher(Cipher):
   # Indicates if the cipher contained in the response_comms is verified.
   signature_verified = False
 
-  # pylint: disable=W0231
+  # pylint: disable=super-init-not-called
   def __init__(self, response_comms, private_key, pub_key_cache):
     self.private_key = private_key
     self.pub_key_cache = pub_key_cache
@@ -273,7 +271,7 @@ class ReceivedCipher(Cipher):
         remote_public_key = self.pub_key_cache.GetRSAPublicKey(
             self.cipher_metadata.source)
 
-        stats.STATS.Increment("grr_rsa_operations")
+        stats.STATS.IncrementCounter("grr_rsa_operations")
         if remote_public_key.verify(digest, self.cipher_metadata.signature,
                                     self.hash_function_name) == 1:
           self.signature_verified = True
@@ -387,7 +385,8 @@ class Communicator(object):
     # TODO(user): This is for backwards compatibility. Remove when all
     # clients are moved to new scheme.
     if api_version == 2:
-      signed_message_list.source = self.common_name
+      signed_message_list.SetWireFormat(
+          "source", utils.SmartStr(self.common_name.Basename()))
 
       # Old scheme - message list is signed.
       digest = cipher.hash_function(signed_message_list.message_list).digest()
@@ -526,7 +525,8 @@ class Communicator(object):
     # Mark messages as authenticated and where they came from.
     for msg in message_list.job:
       msg.auth_state = auth_state
-      msg.source = cipher.cipher_metadata.source
+      msg.SetWireFormat("source", utils.SmartStr(
+          cipher.cipher_metadata.source.Basename()))
 
     return (message_list.job, cipher.cipher_metadata.source,
             signed_message_list.timestamp)
@@ -562,10 +562,10 @@ class Communicator(object):
       remote_public_key = self.pub_key_cache.GetRSAPublicKey(
           signed_message_list.source)
 
-      stats.STATS.Increment("grr_rsa_operations")
+      stats.STATS.IncrementCounter("grr_rsa_operations")
       if remote_public_key.verify(digest, signed_message_list.signature,
                                   cipher.hash_function_name) == 1:
-        stats.STATS.Increment("grr_authenticated_messages")
+        stats.STATS.IncrementCounter("grr_authenticated_messages")
         result = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
 
     else:
@@ -577,7 +577,7 @@ class Communicator(object):
         cipher.VerifyCipherSignature()
 
       if cipher.signature_verified:
-        stats.STATS.Increment("grr_authenticated_messages")
+        stats.STATS.IncrementCounter("grr_authenticated_messages")
         result = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
 
     # Check for replay attacks. We expect the server to return the same
@@ -587,7 +587,8 @@ class Communicator(object):
 
     if not cipher.cipher_metadata:
       # Fake the metadata
-      cipher.cipher_metadata = rdfvalue.CipherMetadata(
-          source=signed_message_list.source)
+      cipher.cipher_metadata = rdfvalue.CipherMetadata()
+      cipher.cipher_metadata.SetWireFormat(
+          "source", utils.SmartStr(signed_message_list.source.Basename()))
 
     return result

@@ -11,7 +11,7 @@ can use it to test the parsing code without needing to run on OS X.
 
 
 # Disable some lint warnings to avoid tedious fixing of test data
-# pylint: disable=C6310
+# pylint: disable=g-line-too-long
 
 # Number of entries we expect to be dropped due to filtering
 FILTERED_COUNT = 84
@@ -2304,4 +2304,4 @@ JOBS = [
     })
 ]
 
-# pylint: enable=C6310
+# pylint: enable=g-line-too-long

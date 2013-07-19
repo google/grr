@@ -82,6 +82,43 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
     self.CompareFDs(fd1, fd2)
 
+  def testGetFileWithZeroStat(self):
+    """Test that the GetFile flow works."""
+    pathspec = rdfvalue.PathSpec(
+        pathtype=rdfvalue.PathSpec.PathType.OS,
+        path=os.path.join(self.base_path, "test_img.dd"))
+
+    class ClientMock(test_lib.ActionMock):
+
+      def StatFile(self, _):
+        # Return a stat response with no size.
+        return [rdfvalue.StatEntry(st_size=0, pathspec=pathspec)]
+
+    client_mock = ClientMock("TransferBuffer")
+
+    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+
+    for _ in test_lib.TestFlowHelper("GetFile", client_mock, token=self.token,
+                                     client_id=self.client_id,
+                                     pathspec=pathspec):
+      pass
+
+    # Test the AFF4 file that was created - it should be empty since by default
+    # we judge the file size based on its stat.st_size.
+    fd = aff4.FACTORY.Open(urn, token=self.token)
+    self.assertEqual(fd.size, 0)
+
+    for _ in test_lib.TestFlowHelper("GetFile", client_mock, token=self.token,
+                                     client_id=self.client_id,
+                                     read_length=2*1024*1024 + 5,
+                                     pathspec=pathspec):
+      pass
+
+    # When we explicitly pass the read_length parameter we read more of the
+    # file.
+    fd = aff4.FACTORY.Open(urn, token=self.token)
+    self.assertEqual(fd.size, 2*1024*1024 + 5)
+
   def CompareFDs(self, fd1, fd2):
     ranges = [
         # Start of file
@@ -129,7 +166,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
     self.CompareFDs(fd1, fd2)
 
-    # Should have transferred 21 buffers.
+    # Should have transferred 20 buffers.
     self.assertEqual(client_mock.action_counts["TransferBuffer"], 21)
 
     # Now get the same file again and check that its faster.
@@ -146,7 +183,8 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     for _ in test_lib.TestFlowHelper("FastGetFile", client_mock,
                                      token=self.token,
                                      client_id=self.client_id,
-                                     pathspec=pathspec):
+                                     pathspec=pathspec,
+                                     network_bytes_limit=1000 * 1000):
       pass
 
     # Should have transferred exactly 1 buffer and Hashed 21.
@@ -213,7 +251,7 @@ class TestCollector(transfer.FileCollector):
 
   def InitFromArguments(self, **kwargs):
     """Define what we collect."""
-    base_path = config_lib.CONFIG["Test.datadir"]
+    base_path = config_lib.CONFIG["Test.data_dir"]
 
     findspec = rdfvalue.RDFFindSpec(
         path_regex="(ntfs_img.dd|sqlite)$", max_depth=4)

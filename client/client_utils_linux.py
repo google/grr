@@ -29,9 +29,9 @@ config_lib.DEFINE_integer("Nanny.unresponsive_kill_period", 60,
                           "The time in seconds after which the nanny kills us.")
 
 
-# TODO(user): Find reliable ways to do this for different OSes
+# TODO(user): Find a reliable way to do this for Linux.
 def LinFindProxies():
-  return config_lib.CONFIG["Client.proxy_servers"]
+  return []
 
 MOUNTPOINT_CACHE = [0, None]
 
@@ -156,7 +156,7 @@ class NannyThread(threading.Thread):
         self.WriteNannyStatus(msg)
 
         # Die hard here to prevent hangs due to non daemonized threads.
-        os._exit(-1)  # pylint: disable=W0212
+        os._exit(-1)  # pylint: disable=protected-access
       else:
         # Sleep until the next heartbeat is due.
         time.sleep(check_time - now)

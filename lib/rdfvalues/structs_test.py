@@ -209,3 +209,21 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     # serialized. If the cache is not properly invalidated, we will return the
     # old result instead.
     self.assertTrue("booo" in path.SerializeToString())
+
+  def testWireFormatAccess(self):
+
+    m = rdfvalue.SignedMessageList()
+
+    now = 1369308998000000
+
+    self.assertEqual(m.timestamp, 0)
+
+    m.SetWireFormat("timestamp", now)
+
+    self.assertTrue(isinstance(m.timestamp, rdfvalue.RDFDatetime))
+    self.assertEqual(m.timestamp, now)
+
+    rdf_now = rdfvalue.RDFDatetime().Now()
+
+    m.timestamp = rdf_now
+    self.assertEqual(m.GetWireFormat("timestamp"), int(rdf_now))

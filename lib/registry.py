@@ -15,9 +15,9 @@ import threading
 import logging
 
 # This is required to monkey patch various older libraries so
-# pylint: disable=W0611
+# pylint: disable=unused-import
 from grr.lib import compatibility
-# pylint: enable=W0611
+# pylint: enable=unused-import
 
 
 class MetaclassRegistry(abc.ABCMeta):

@@ -7,7 +7,7 @@ This module loads and registers all the GRR library tests.
 """
 
 
-# These need to register plugins so, pylint: disable=W0611
+# These need to register plugins so, pylint: disable=unused-import
 from grr.lib import access_control_test
 from grr.lib import aff4_test
 from grr.lib import build_test
@@ -36,4 +36,4 @@ from grr.lib.data_stores import tests
 from grr.lib.flows import tests
 from grr.lib.rdfvalues import tests
 from grr.tools import entry_point_test
-# pylint: enable=W0611
+# pylint: enable=unused-import

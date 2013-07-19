@@ -190,6 +190,7 @@ grr.grrTree = function(renderer, domId, opt_publishEvent, opt_state,
         dataType: '*', // Let the server decide on the mime type.
         beforeSend: function(xhr) {
           xhr.setRequestHeader('X-CSRFToken', $('#csrfmiddlewaretoken').val());
+          grr.PushToAjaxQueue('#' + unique_id);
         },
         'data' : function(n) {
           var new_state = $.extend({}, state);
@@ -202,7 +203,11 @@ grr.grrTree = function(renderer, domId, opt_publishEvent, opt_state,
           return new_state;
         },
 
+        'error': function(data, textStatus, jqXHR) {
+          grr.RemoveFromAjaxQueue('#' + unique_id);
+        },
         'success': function(data, textStatus, jqXHR) {
+          grr.RemoveFromAjaxQueue('#' + unique_id);
           var tree = this;
 
           if (opt_success_cb) {
@@ -716,12 +721,13 @@ grr.poll = function(renderer, domId, callback, timeout, state, opt_datatype,
      the server if its too slow.
    */
   function update() {
-    $.ajax({
+    var xhr = $.ajax({
       url: 'render/RenderAjax/' + renderer,
       data: state,
       type: grr.ajax_method,
       dataType: opt_datatype || 'html',
       success: function(data) {
+        grr.RemoveFromAjaxQueue('#' + domId);
         // Load the new table DOM
         var result = callback(data);
 
@@ -733,12 +739,14 @@ grr.poll = function(renderer, domId, callback, timeout, state, opt_datatype,
 
       // In case of error just keep trying
       error: function(jqXHR, textStatus, errorThrown) {
+        grr.RemoveFromAjaxQueue('#' + domId);
         if (on_error) {
           on_error(jqXHR, textStatus, errorThrown);
         }
         window.setTimeout(update, timeout);
       }
     });
+    grr.PushToAjaxQueue('#' + domId, xhr);
   };
 
   // First one to kick off
@@ -774,26 +782,24 @@ grr._update = function(renderer, domId, opt_state, on_success, inflight_key,
   state.client_id = state.client_id || grr.state.client_id;
 
   // If there is already an in flight request for this domId, drop this one.
-  var concurrentRequest = grr.inFlightQueue[inflight_key];
+  var concurrentRequest = grr.GetFromAjaxQueue(inflight_key);
   if (concurrentRequest) {
-    grr.inFlightQueue[inflight_key] = null;
+    grr.RemoveFromAjaxQueue(inflight_key);
     concurrentRequest.abort();
   }
 
-  // Create a lock on this domId to prevent another ajax call while
-  // this one is inflight.
   var xhr = $.ajax({
     data: (state || grr.state),
     type: grr.ajax_method,
     url: 'render/' + method + '/' + renderer,
     complete: function(jqXHR) {
-      if (grr.inFlightQueue[inflight_key] === jqXHR) {
+      if (grr.GetFromAjaxQueue(inflight_key) === jqXHR) {
         // Remove the lock for this domId
-        grr.inFlightQueue[inflight_key] = null;
+        grr.RemoveFromAjaxQueue(inflight_key);
       }
     },
     error: function(jqXHR) {
-      if (grr.inFlightQueue[inflight_key] === jqXHR) {
+      if (grr.GetFromAjaxQueue(inflight_key) === jqXHR) {
         if (!on_error) {
           grr.publish('grr_messages', 'Server Error');
           grr.publish('grr_traceback', jqXHR.response);
@@ -804,16 +810,18 @@ grr._update = function(renderer, domId, opt_state, on_success, inflight_key,
       }
     },
     success: function(data, status, jqXHR) {
-      if (grr.inFlightQueue[inflight_key] === jqXHR) {
+      if (grr.GetFromAjaxQueue(inflight_key) === jqXHR) {
         // Remove the lock for this domId
-        grr.inFlightQueue[inflight_key] = null;
+        grr.RemoveFromAjaxQueue(inflight_key);
 
         // Load the new table DOM
         on_success(data);
       }
     }
   });
-  grr.inFlightQueue[inflight_key] = xhr;
+  // Create a lock on this domId to prevent another ajax call while
+  // this one is inflight.
+  grr.PushToAjaxQueue(inflight_key, xhr);
 };
 
 /**
@@ -868,7 +876,7 @@ grr.layout = function(renderer, domId, opt_state, on_success) {
   };
 
   $('#' + domId).html("<p class='muted'>Loading...</p>");
-  grr._update(renderer, domId, opt_state, success_handler, null, null,
+  grr._update(renderer, domId, opt_state, success_handler, '#' + domId, null,
               'Layout');
 };
 
@@ -1419,6 +1427,46 @@ grr.textview.TextViewer = function(renderer, domId, default_codec, state) {
 grr.inFlightQueue = {};
 
 /**
+ * Push an ajax request to the inflight queue so we can display the spinner icon
+ * until this request has completed.
+ * @param {string} element The key to use for this entry.
+ * @param {Object} value The value to store in the queue.
+ *
+ */
+grr.PushToAjaxQueue = function(element, value) {
+  grr.inFlightQueue[element] = value;
+  if (Object.getOwnPropertyNames(grr.inFlightQueue).length > 0) {
+     $('#ajax_spinner').html('<img src="/static/images/ajax-loader.gif">');
+  } else {
+     $('#ajax_spinner').html('');
+  }
+};
+
+/**
+ * Remove an ajax request from the inflight queue so we can stop displaying the
+ * spinner icon.
+ * @param {string} element The key to delete from the queue.
+ *
+ */
+grr.RemoveFromAjaxQueue = function(element) {
+  delete grr.inFlightQueue[element];
+  if (Object.getOwnPropertyNames(grr.inFlightQueue).length > 0) {
+     $('#ajax_spinner').html('<img src="/static/images/ajax-loader.gif">');
+  } else {
+     $('#ajax_spinner').html('');
+  }
+};
+
+/**
+ * Check if there is an outstanding ajax request in the inflight queue.
+ * @param {string} element The key to retrieve from the queue.
+ * @return {Object} The value stored in the queue for key <element>.
+ */
+grr.GetFromAjaxQueue = function(element) {
+  return grr.inFlightQueue[element];
+};
+
+/**
  * Add onclick and onchange handlers to an input form field to handle the None
  * or Auto automatic value. This is used in the Start new flows UI.
  * @param {Object} node The node to apply the handlers to.
@@ -1559,6 +1607,26 @@ grr.getCookie = function(name) {
   }
   return cookieValue;
 };
+
+
+/**
+ * Set a tooltip on the search box.
+ * @param {string} clickNode DomID that we will attach the tooltip to.
+ */
+grr.enableSearchHelp = function(clickNode) {
+  var help_content = 'Search by hostname, username, id or MAC<br/>' +
+      'Limit scope using mac: host: fqdn: or user:<br/>e.g. user:sham<br/>' +
+      'Regex is supported<br/> e.g. test1[2-5].*\.example.com$';
+  var popover_opts = {'placement': 'bottom',
+                      'title': help_content,
+                      'container': 'body',
+                      'trigger': 'hover',
+                      'html': true
+                     };
+  $(clickNode).tooltip(popover_opts).click(function(e) { e.preventDefault(); });
+
+};
+
 
 /** Initialize the grr object */
 grr.init();

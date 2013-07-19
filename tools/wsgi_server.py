@@ -39,15 +39,18 @@ if grrpath not in sys.path:
   sys.path.append(grrpath)
 
 
-from grr.client import conf as flags
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+from grr.tools import http_server
+from grr.gui import webauth
+# pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import communicator
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import server_plugins  # pylint: disable=W0611
 from grr.lib import startup
-from grr.tools import http_server  # pylint: disable=W0611
 
 
 flags.DEFINE_integer("max_queue_size", 500,

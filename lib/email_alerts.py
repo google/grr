@@ -10,7 +10,7 @@ from email.mime.text import MIMEText
 import re
 import smtplib
 
-from grr.client import conf as flags
+from grr.lib import flags
 
 flags.DEFINE_string("smtp_server", "localhost",
                     "The smpt server for sending email alerts.")

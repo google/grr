@@ -12,15 +12,12 @@ import sys
 import time
 import unittest
 
-from grr.client import conf
-from grr.client import conf as flags
-
-# These need to register plugins so, pylint: disable=W0611
-
+# These need to register plugins so, pylint: disable=unused-import
 from grr.client import client_test
 from grr.client import client_utils_test
 from grr.client import client_vfs_test
 from grr.client.client_actions import action_test
+from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import tests
 from grr.lib import utils
@@ -33,6 +30,9 @@ flags.DEFINE_string("output", None,
 
 flags.DEFINE_integer("processes", 5,
                      "Total number of simultaneous tests to run.")
+
+flags.DEFINE_string("type", "normal",
+                    "The type of the tests to run (normal, benchmarks).")
 
 
 class Colorizer(object):
@@ -82,7 +82,8 @@ def RunTest(test_suite, stream=None):
 
   try:
     test_lib.GrrTestProgram(argv=[sys.argv[0], test_suite],
-                            testLoader=GRREverythingTestLoader(),
+                            testLoader=GRREverythingTestLoader(
+                                labels=flags.FLAGS.labels),
                             testRunner=unittest.TextTestRunner(
                                 stream=out_fd))
   finally:
@@ -136,6 +137,19 @@ def ReportTestResult(name, metadata):
       name, result, now - metadata["start"])
 
 
+def DoesTestHaveLabels(cls, labels):
+  """Returns true if any tests in cls have any of the labels."""
+  labels = set(labels)
+
+  for name in dir(cls):
+    if name.startswith("test"):
+      item = getattr(cls, name, None)
+      if labels.intersection(getattr(item, "labels", set(["small"]))):
+        return True
+
+  return False
+
+
 def main(argv=None):
   if flags.FLAGS.tests or flags.FLAGS.processes == 1:
     stream = sys.stderr
@@ -160,11 +174,16 @@ def main(argv=None):
 
   else:
     processes = {}
+    print "Running tests with labels %s" % ",".join(flags.FLAGS.labels)
 
     with utils.TempDirectory() as flags.FLAGS.temp_dir:
       start = time.time()
+      labels = set(flags.FLAGS.labels)
 
-      for name in test_lib.GRRBaseTest.classes:
+      for name, cls in test_lib.GRRBaseTest.classes.items():
+        if labels and not DoesTestHaveLabels(cls, labels):
+          continue
+
         result_filename = os.path.join(flags.FLAGS.temp_dir, name)
 
         argv = [sys.executable] + sys.argv[:]
@@ -172,6 +191,7 @@ def main(argv=None):
           argv.extend(["--output", result_filename])
 
         argv.extend(["--tests", name])
+        argv.extend(["--labels", ",".join(flags.FLAGS.labels)])
 
         # Maintain metadata about each test.
         processes[name] = dict(pipe=subprocess.Popen(argv),
@@ -195,4 +215,4 @@ def main(argv=None):
         sys.exit(-1)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

@@ -8,6 +8,7 @@ import struct
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
+from grr.lib.aff4_objects import aff4_grr
 
 
 class RDFValueCollection(aff4.AFF4Object):
@@ -25,7 +26,7 @@ class RDFValueCollection(aff4.AFF4Object):
     DESCRIPTION = aff4.Attribute("aff4:description", rdfvalue.RDFString,
                                  "This collection's description", "description")
 
-    VIEW = aff4.Attribute("aff4:rdfview", rdfvalue.RDFValueCollectionView,
+    VIEW = aff4.Attribute("aff4:rdfview", aff4_grr.RDFValueCollectionView,
                           "The list of attributes which will show up in "
                           "the table.", default="")
 
@@ -70,7 +71,7 @@ class RDFValueCollection(aff4.AFF4Object):
     self._dirty = True
 
   def __len__(self):
-    return int(self.Get(self.Schema.SIZE))
+    return self.size
 
   def __iter__(self):
     """Iterate over all contained RDFValues.
@@ -93,6 +94,14 @@ class RDFValueCollection(aff4.AFF4Object):
         break
 
       yield rdfvalue.EmbeddedRDFValue(serialized_event).payload
+
+  def __getitem__(self, index):
+    if index >= 0:
+      for i, item in enumerate(self):
+        if i == index:
+          return item
+    else:
+      raise RuntimeError("Index must be >= 0")
 
 
 class AFF4Collection(aff4.AFF4Volume, RDFValueCollection):
@@ -142,3 +151,9 @@ class AFF4Collection(aff4.AFF4Volume, RDFValueCollection):
   def ListChildren(self, **_):
     for aff4object_summary in self:
       yield aff4object_summary.urn
+
+
+class GrepResultsCollection(RDFValueCollection):
+  """A collection of grep results."""
+  _rdf_type = rdfvalue.BufferReference
+

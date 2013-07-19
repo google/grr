@@ -11,8 +11,6 @@ import urllib2
 from M2Crypto import X509
 import mox
 
-from grr.client import conf
-from grr.client import conf as flags
 import logging
 
 from grr.client import actions
@@ -20,11 +18,12 @@ from grr.client import comms
 from grr.lib import aff4
 from grr.lib import communicator
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-# pylint: disable=W0611
+# pylint: disable=unused-import
 from grr.lib import server_plugins
-# pylint: enable=W0611
+# pylint: enable=unused-import
 from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
@@ -70,7 +69,9 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     """Tests the end to end encrypted communicators."""
     message_list = rdfvalue.MessageList()
     for i in range(0, 10):
-      message_list.job.Append(session_id=str(i), name="OMG it's a string")
+      message_list.job.Append(
+          session_id=rdfvalue.SessionID("aff4:/flows/W:%d" % i),
+          name="OMG it's a string")
 
     result = rdfvalue.ClientCommunication()
     timestamp = self.client_communicator.EncodeMessages(message_list, result,
@@ -84,7 +85,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.assertEqual(client_timestamp, timestamp)
     self.assertEqual(len(decoded_messages), 10)
     for i in range(0, 10):
-      self.assertEqual(decoded_messages[i].session_id, "aff4:/%s" % i)
+      self.assertEqual(decoded_messages[i].session_id,
+                       rdfvalue.SessionID("aff4:/flows/W:%d" % i))
 
     return decoded_messages
 
@@ -302,7 +304,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         self.certificate, worker=comms.GRRClientWorker)
 
     # Disable stats collection for tests.
-    stats.STATS.Set("grr_client_last_stats_sent_time", time.time() + 3600)
+    self.client_communicator.client_worker.last_stats_sent_time = (
+        time.time() + 3600)
 
     # Build a client context with preloaded server certificates
     self.client_communicator.communicator.LoadServerCertificate(
@@ -325,13 +328,13 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         if message.request_id:
           self.assertEqual(message.response_id, i)
           self.assertEqual(message.request_id, 1)
-          self.assertEqual(message.session_id, "aff4:/session")
+          self.assertEqual(message.session_id, "aff4:/W:session")
 
       # Now prepare a response
       response_comms = rdfvalue.ClientCommunication()
       message_list = rdfvalue.MessageList()
       for i in range(0, 10):
-        message_list.job.Append(session_id="aff4:/session", name="Echo",
+        message_list.job.Append(session_id="aff4:/W:session", name="Echo",
                                 response_id=2, request_id=i)
 
       # Preserve the timestamp as a nonce
@@ -354,15 +357,16 @@ class HTTPClientTests(test_lib.GRRBaseTest):
   def CheckClientQueue(self):
     """Checks that the client context received all server messages."""
     # Check the incoming messages
+
     self.assertEqual(self.client_communicator.client_worker.InQueueSize(), 10)
 
     for i, message in enumerate(
         self.client_communicator.client_worker._in_queue):
       # This is the common name embedded in the certificate.
-      self.assertEqual(message.source, "aff4:/GRR Test Server")
+      self.assertEqual(message.GetWireFormat("source"), "GRR Test Server")
       self.assertEqual(message.response_id, 2)
       self.assertEqual(message.request_id, i)
-      self.assertEqual(message.session_id, "aff4:/session")
+      self.assertEqual(message.session_id, "aff4:/W:session")
       self.assertEqual(message.auth_state,
                        rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)
 
@@ -375,7 +379,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     for i in range(0, 10):
       self.client_communicator.client_worker.SendReply(
           rdfvalue.GrrStatus(),
-          session_id="session", response_id=i, request_id=1)
+          session_id=rdfvalue.SessionID("W:session"),
+          response_id=i, request_id=1)
 
   def testInitialEnrollment(self):
     """If the client has no certificate initially it should enroll."""
@@ -400,7 +405,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     # Client should generate enrollment message by itself.
     self.assertEqual(len(self.messages), 1)
-    self.assertEqual("aff4:/flows/CA:Enrol", self.messages[0].session_id)
+    self.assertEqual(self.messages[0].session_id,
+                     rdfvalue.SessionID("aff4:/flows/CA:Enrol"))
 
   def testEnrollment(self):
     """Test the http response to unknown clients."""
@@ -428,7 +434,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     status = self.client_communicator.RunOnce()
 
     self.assertEqual(len(self.messages), 11)
-    self.assertEqual("aff4:/flows/CA:Enrol", self.messages[-1].session_id)
+    self.assertEqual(self.messages[-1].session_id,
+                     rdfvalue.SessionID("aff4:/flows/CA:Enrol"))
 
     # Now we manually run the enroll well known flow with the enrollment request
     # - in reality this will be run on the Enroller.
@@ -484,17 +491,17 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.client_communicator.RunOnce()
     self.CheckClientQueue()
 
-    self.assert_(stats.STATS.Get("grr_rsa_operations") > 0)
+    metric_value = stats.STATS.GetMetricValue("grr_rsa_operations")
+    self.assert_(metric_value > 0)
 
-    # Reset operation count
-    stats.STATS.Set("grr_rsa_operations", 0)
     for _ in range(100):
       self.SendToServer()
       self.client_communicator.RunOnce()
       self.CheckClientQueue()
 
     # There should not have been any expensive operations any more
-    self.assertEqual(stats.STATS.Get("grr_rsa_operations"), 0)
+    self.assertEqual(stats.STATS.GetMetricValue("grr_rsa_operations"),
+                     metric_value)
 
   def testCorruption(self):
     """Simulate corruption of the http payload."""
@@ -558,7 +565,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     now = 1000000
     # Pretend we have already sent stats.
-    stats.STATS.Set("grr_client_last_stats_sent_time", now)
+    self.client_communicator.client_worker.last_stats_sent_time = now
 
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(logging, "info")
@@ -607,7 +614,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       action_cls.Run = old_run
 
     # Disable stats collection again.
-    stats.STATS.Set("grr_client_last_stats_sent_time", time.time() + 3600)
+    self.client_communicator.client_worker.last_stats_sent_time = (
+        time.time() + 3600)
 
 
 class BackwardsCompatibleClientCommsTest(ClientCommsTest):
@@ -633,10 +641,9 @@ class BackwardsCompatibleHTTPClientTests(HTTPClientTests):
     self.client_communicator.RunOnce()
     self.CheckClientQueue()
 
-    self.assert_(stats.STATS.Get("grr_rsa_operations") > 0)
+    metric_value = stats.STATS.GetMetricValue("grr_rsa_operations")
+    self.assert_(metric_value > 0)
 
-    # Reset operation count
-    stats.STATS.Set("grr_rsa_operations", 0)
     for _ in range(5):
       self.SendToServer()
       self.client_communicator.RunOnce()
@@ -649,11 +656,12 @@ class BackwardsCompatibleHTTPClientTests(HTTPClientTests):
     # currently, when running in compatibility mode we cache the same ciphers on
     # each end. The result is that the new code is still faster even when
     # running the old api.
-    self.assertEqual(stats.STATS.Get("grr_rsa_operations"), 10)
+    self.assertEqual(stats.STATS.GetMetricValue("grr_rsa_operations"),
+                     metric_value + 10)
 
 
 def main(argv):
   test_lib.main(argv)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

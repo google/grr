@@ -8,21 +8,24 @@ import traceback
 
 
 
-from grr.client import conf as flags
 import logging
 
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import cron
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import scheduler
-# pylint: disable=W0611
+# pylint: disable=unused-import
 from grr.lib import server_stubs
-# pylint: enable=W0611
-from grr.lib import stats
+# pylint: enable=unused-import
 from grr.lib import threadpool
 from grr.lib import utils
+
+
+DEFAULT_WORKER_QUEUE = rdfvalue.RDFURN("W")
+DEFAULT_ENROLLER_QUEUE = rdfvalue.RDFURN("CA")
 
 
 class GRRWorker(object):
@@ -41,13 +44,12 @@ class GRRWorker(object):
   # failure on a flow, it will not attempt to grab this flow until the timeout.
   queued_flows = None
 
-  def __init__(self, queue_name=None, threadpool_prefix="grr_threadpool",
+  def __init__(self, queue=None, threadpool_prefix="grr_threadpool",
                threadpool_size=0, run_cron=True, token=None):
     """Constructor.
 
     Args:
-      queue_name: The name of the queue we use to fetch new messages
-      from.
+      queue: The queue we use to fetch new messages from.
       threadpool_prefix: A name for the thread pool used by this worker.
       threadpool_size: The number of workers to start in this thread pool.
       run_cron: If True, run a background thread to process cron jobs.
@@ -56,8 +58,8 @@ class GRRWorker(object):
     Raises:
       RuntimeError: If the token is not provided.
     """
-    self.queue_name = queue_name
-    self.queued_flows = utils.TimeBasedCache(max_size=1000)
+    self.queue = queue
+    self.queued_flows = utils.TimeBasedCache(max_size=1000, max_age=60)
 
     if token is None:
       raise RuntimeError("A valid ACLToken is required.")
@@ -114,7 +116,7 @@ class GRRWorker(object):
         Total number of messages processed by this call.
     """
     sessions_available = scheduler.SCHEDULER.GetSessionsFromQueue(
-        self.queue_name, self.token)
+        self.queue, self.token)
 
     # Filter out session ids we already tried to lock but failed.
     sessions_available = [session for session in sessions_available
@@ -123,7 +125,7 @@ class GRRWorker(object):
     try:
       processed = self.ProcessMessages(sessions_available)
     # We need to keep going no matter what.
-    except Exception as e:    # pylint: disable=W0703
+    except Exception as e:    # pylint: disable=broad-except
       logging.error("Error processing message %s. %s.", e,
                     traceback.format_exc())
 
@@ -135,7 +137,7 @@ class GRRWorker(object):
   def ProcessMessages(self, active_sessions):
     """Processes all the flows in the messages.
 
-    Precondition: All tasks come from the same queue (self.queue_name).
+    Precondition: All tasks come from the same queue (self.queue).
 
     Note that the server actually completes the requests in the
     flow when receiving the messages from the client. We do not really
@@ -153,7 +155,7 @@ class GRRWorker(object):
         processed += 1
         self.queued_flows.Put(session_id, 1)
         self.thread_pool.AddTask(target=self._ProcessMessages,
-                                 args=(session_id,),
+                                 args=(rdfvalue.SessionID(session_id),),
                                  name=self.__class__.__name__)
     return processed
 
@@ -163,17 +165,14 @@ class GRRWorker(object):
     flow_obj = None
     # Take a lease on the flow:
     try:
-      # TODO(user): This locks a flow for 600s. If this lock expires while the
-      # flow is still processing, the flow is basically dead. We need a method
-      # to extend the lock for flows that can take very long time (crons).
-      with aff4.FACTORY.OpenWithLock(session_id, lease_time=600, blocking=False,
-                                     token=self.token) as flow_obj:
+
+      with aff4.FACTORY.OpenWithLock(
+          session_id, lease_time=config_lib.CONFIG["Worker.flow_lease_time"],
+          blocking=False, token=self.token) as flow_obj:
 
         # If we get here, we now own the flow, so we can remove the notification
         # for it from the worker queue.
-        scheduler.SCHEDULER.DeleteNotification(
-            scheduler.SCHEDULER.QueueNameFromURN(session_id),
-            session_id, token=self.token)
+        scheduler.SCHEDULER.DeleteNotification(session_id, token=self.token)
 
         # We still need to take a lock on the well known flow in the datastore,
         # but we can run a local instance.
@@ -193,8 +192,8 @@ class GRRWorker(object):
           flow_obj.Flush()
           runner.FlushMessages()
 
-        # Everything went well -> session can be run again.
-        self.queued_flows.ExpireObject(session_id)
+      # Everything went well -> session can be run again.
+      self.queued_flows.ExpireObject(session_id)
 
     except aff4.LockError:
       # Another worker is dealing with this flow right now, we just skip it.

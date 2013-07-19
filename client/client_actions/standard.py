@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc. All Rights Reserved.
 """Standard actions that happen on the client."""
 
 
@@ -17,15 +16,18 @@ import zlib
 from M2Crypto import EVP
 import psutil
 
-from grr.client import conf as flags
 import logging
+
 from grr.client import actions
 from grr.client import client_utils_common
 from grr.client import vfs
+from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
+
 
 # We do not send larger buffers than this:
 MAX_BUFFER_SIZE = 640*1024
@@ -43,10 +45,6 @@ config_lib.CONFIG.AddOption(type_info.PEMPrivateKey(
 
 config_lib.CONFIG.AddOption(type_info.PEMPublicKey(
     name="Client.driver_signing_public_key",
-    description="public key for verifying driver signing."))
-
-config_lib.CONFIG.AddOption(type_info.PEMPublicKey(
-    name="ClientWindows.driver_signing_public_key",
     description="public key for verifying driver signing."))
 
 config_lib.CONFIG.AddOption(type_info.PEMPrivateKey(
@@ -98,22 +96,21 @@ class TransferBuffer(actions.ActionPlugin):
     if args.length > MAX_BUFFER_SIZE:
       raise RuntimeError("Can not read buffers this large.")
 
-    # Grab the buffer
-    fd = vfs.VFSOpen(args.pathspec)
-    fd.Seek(args.offset)
-    data = fd.Read(args.length)
+    data = vfs.ReadVFS(args.pathspec, args.offset, args.length)
     result = rdfvalue.DataBlob(
         data=zlib.compress(data),
         compression=rdfvalue.DataBlob.CompressionType.ZCOMPRESSION)
 
     digest = hashlib.sha256(data).digest()
 
+    # Ensure that the buffer is counted against this response. Check network
+    # send limit.
+    self.ChargeBytesToSession(len(data))
+
     # Now return the data to the server into the special TransferStore well
     # known flow.
-    self.grr_worker.SendReply(result, session_id="aff4:/flows/W:TransferStore")
-
-    # Ensure that the buffer is counted against this response.
-    self.grr_worker.ChargeBytesToSession(self.message.session_id, len(data))
+    self.grr_worker.SendReply(
+        result, session_id=rdfvalue.SessionID("aff4:/flows/W:TransferStore"))
 
     # Now report the hash of this blob to our flow as well as the offset and
     # length.
@@ -132,10 +129,7 @@ class HashBuffer(actions.ActionPlugin):
     if args.length > MAX_BUFFER_SIZE:
       raise RuntimeError("Can not read buffers this large.")
 
-    # Grab the buffer
-    fd = vfs.VFSOpen(args.pathspec)
-    fd.Seek(args.offset)
-    data = fd.Read(args.length)
+    data = vfs.ReadVFS(args.pathspec, args.offset, args.length)
 
     digest = hashlib.sha256(data).digest()
 
@@ -188,7 +182,11 @@ class CopyPathToFile(actions.ActionPlugin):
     self.length = args.length or sys.maxint
 
     self.written = 0
-    self.dest_fd = client_utils_common.CreateGRRTempFile(args.dest_dir)
+    suffix = ".gz" if args.gzip_output else ""
+
+    self.dest_fd = tempfiles.CreateGRRTempFile(directory=args.dest_dir,
+                                               lifetime=args.lifetime,
+                                               suffix=suffix)
     self.dest_file = self.dest_fd.name
     with self.dest_fd:
 
@@ -334,26 +332,21 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
   in_rdfvalue = rdfvalue.ExecuteBinaryRequest
   out_rdfvalue = rdfvalue.ExecuteBinaryResponse
 
-  def WriteBlobToFile(self, signed_pb, write_path, suffix=""):
+  def WriteBlobToFile(self, signed_pb, lifetime, suffix=""):
     """Writes the blob to a file and returns its path."""
 
-    if write_path:
-      # Caller passed in the path to write our file to.
-      with open(write_path, "wb") as fd:
-        fd.write(signed_pb.data)
-      path = write_path
-    else:
-      temp_file = client_utils_common.CreateGRRTempFile(suffix=suffix)
-      with temp_file:
-        path = temp_file.name
-        temp_file.write(signed_pb.data)
+    temp_file = tempfiles.CreateGRRTempFile(suffix=suffix, lifetime=lifetime)
+    with temp_file:
+      path = temp_file.name
+      temp_file.write(signed_pb.data)
 
     return path
 
   def CleanUp(self, path):
     """Removes the temp file."""
     try:
-      os.remove(path)
+      if os.path.exists(path):
+        os.remove(path)
     except (OSError, IOError), e:
       logging.info("Failed to remove temporary file %s. Err: %s", path, e)
 
@@ -368,17 +361,19 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
       suffix = ".exe"
     else:
       suffix = ""
-    path = self.WriteBlobToFile(args.executable, args.write_path, suffix)
 
-    cmd = path
-    cmd_args = args.args
-    time_limit = args.time_limit
+    lifetime = args.time_limit
+    # Keep the file for at least 5 seconds after execution.
+    if lifetime > 0:
+      lifetime += 5
 
-    res = client_utils_common.Execute(cmd, cmd_args, time_limit,
+    path = self.WriteBlobToFile(args.executable, lifetime, suffix)
+
+    res = client_utils_common.Execute(path, args.args, args.time_limit,
                                       bypass_whitelist=True)
     (stdout, stderr, status, time_used) = res
 
-    self.CleanUp(cmd)
+    self.CleanUp(path)
 
     # Limit output to 10MB so our response doesn't get too big.
     stdout = stdout[:10 * 1024 * 1024]
@@ -390,6 +385,7 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
         exit_status=status,
         # We have to return microseconds.
         time_used=int(1e6 * time_used))
+
     self.SendReply(result)
 
 
@@ -415,10 +411,10 @@ class ExecutePython(actions.ActionPlugin):
     # The execed code can assign to this variable if it wants to return data.
     magic_return_str = ""
     logging.debug("exec for python code %s", args.python_code.data[0:100])
-    # pylint: disable=W0122,W0612
+    # pylint: disable=exec-statement,unused-variable
     py_args = args.py_args.ToDict()
     exec(args.python_code.data)
-    # pylint: enable=W0122,W0612
+    # pylint: enable=exec-statement,unused-variable
     time_used = time.time() - time_start
     # We have to return microseconds.
     result = rdfvalue.ExecutePythonResponse(

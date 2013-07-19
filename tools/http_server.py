@@ -14,8 +14,6 @@ import SocketServer
 
 import ipaddr
 
-from grr.client import conf
-from grr.client import conf as flags
 import logging
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -24,6 +22,7 @@ from grr.lib import server_plugins
 
 from grr.lib import communicator
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import startup
@@ -56,7 +55,7 @@ config_lib.CONFIG.AddOption(type_info.X509CertificateType(
     ))
 
 
-# pylint: disable=C6409
+# pylint: disable=g-bad-name
 
 
 class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -179,6 +178,7 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     elif version == 6:
       self.address_family = socket.AF_INET6
 
+    logging.info("Will attempt to listen on %s", server_address)
     BaseHTTPServer.HTTPServer.__init__(self, server_address, handler, *args,
                                        **kwargs)
 
@@ -192,11 +192,17 @@ def serve_forever(server):
 
 def main(unused_argv):
   """Main."""
-  config_lib.CONFIG.SetEnv("Environment.component", "Frontend")
+  config_lib.CONFIG.AddContext(
+      "Frontend Context",
+      "The frontend receives messages from the clients.")
+
+  config_lib.CONFIG.AddContext("HTTPServer Context")
+
   startup.Init()
 
   server_address = (config_lib.CONFIG["Frontend.bind_address"],
                     config_lib.CONFIG["Frontend.bind_port"])
+  logging.info("Will serve requests at %s", server_address)
   httpd = GRRHTTPServer(server_address, GRRHTTPServerHandler)
 
   sa = httpd.socket.getsockname()
@@ -214,4 +220,4 @@ def main(unused_argv):
 
 if __name__ == "__main__":
   freeze_support()
-  conf.StartMain(main)
+  flags.StartMain(main)

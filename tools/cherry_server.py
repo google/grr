@@ -10,15 +10,14 @@ for others in the future.
 
 import cherrypy
 
-from grr.client import conf
-
 from grr.lib import communicator
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import server_plugins  # pylint: disable=W0611
+from grr.lib import server_plugins  # pylint: disable=unused-import
 from grr.lib import startup
-from grr.tools import http_server  # pylint: disable=W0611
+from grr.tools import http_server  # pylint: disable=unused-import
 # pylint: disable=g-bad-name
 
 
@@ -65,4 +64,4 @@ def main(unused_argv):
   cherrypy.quickstart(GrrCherryServer())
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

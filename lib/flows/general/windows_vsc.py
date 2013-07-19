@@ -49,13 +49,14 @@ class ListVolumeShadowCopies(flow.GRRFlow):
         self.state.raw_device = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
             path_spec, self.client_id).Dirname()
 
+        self.state.shadows.append(aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+            path_spec, self.client_id))
+
   @flow.StateHandler()
   def ProcessListDirectory(self, responses):
     for response in responses:
       urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
           response.pathspec, self.client_id)
-      self.state.shadows.append(urn)
-
       fd = aff4.FACTORY.Create(urn, "VFSDirectory", mode="w",
                                token=self.token)
 

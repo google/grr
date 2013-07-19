@@ -3,6 +3,6 @@
 """A module to load all linux client plugins."""
 
 
-# pylint: disable=W0611
+# pylint: disable=unused-import
 # These import populate the Action registry
 from grr.client.client_actions.linux import linux

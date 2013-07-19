@@ -18,6 +18,9 @@ if sys.platform == "win32":
 elif sys.platform == "darwin":
   from grr.client import osx
 
+elif "linux" in sys.platform:
+  from grr.client import linux
+
 from grr.client import client_actions
 from grr.client import comms
 from grr.client import local

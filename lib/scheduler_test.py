@@ -6,8 +6,8 @@
 import time
 
 
-from grr.client import conf
 from grr.lib import data_store
+from grr.lib import flags
 from grr.lib import rdfvalue
 # pylint: disable=unused-import
 from grr.lib import rdfvalues
@@ -22,7 +22,9 @@ class SchedulerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(SchedulerTest, self).setUp()
-    stats.STATS.Set("grr_task_retransmission_count", 0)
+
+    self.retransmission_metric_value = stats.STATS.GetMetricValue(
+        "grr_task_retransmission_count")
 
     test_lib.GRRBaseTest.setUp(self)
     self._current_mock_time = 1000.015
@@ -110,7 +112,9 @@ class SchedulerTest(test_lib.GRRBaseTest):
     self.assertEqual(len(tasks), 1)
     self.assertEqual(tasks[0].task_ttl, 4)
 
-    self.assertEqual(stats.STATS.Get("grr_task_retransmission_count"), 0)
+    self.assertEqual(
+        stats.STATS.GetMetricValue("grr_task_retransmission_count"),
+        self.retransmission_metric_value)
 
     # Get a lease on the task 100 seconds later
     self._current_mock_time += 110
@@ -121,7 +125,9 @@ class SchedulerTest(test_lib.GRRBaseTest):
     self.assertEqual(len(tasks), 1)
     self.assertEqual(tasks[0].task_ttl, 3)
 
-    self.assertEqual(stats.STATS.Get("grr_task_retransmission_count"), 1)
+    self.assertEqual(
+        stats.STATS.GetMetricValue("grr_task_retransmission_count"),
+        self.retransmission_metric_value + 1)
 
   def testDelete(self):
     """Test that we can delete tasks."""
@@ -253,4 +259,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

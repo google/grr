@@ -11,8 +11,6 @@ flow.
 import cPickle as pickle
 import functools
 import operator
-import os
-import struct
 import sys
 import time
 
@@ -32,9 +30,9 @@ from grr.lib import flow_runner
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import scheduler
-# pylint: disable=W0611
+# pylint: disable=unused-import
 from grr.lib import server_stubs
-# pylint: enable=W0611
+# pylint: enable=unused-import
 from grr.lib import stats
 from grr.lib import threadpool
 from grr.lib import type_info
@@ -48,12 +46,15 @@ config_lib.DEFINE_integer("Worker.task_limit", 2000,
                           "Limits the number of tasks a worker retrieves "
                           "every poll")
 
+config_lib.DEFINE_integer("Worker.flow_lease_time", 600,
+                          "Duration of flow lease time in seconds.")
+
 config_lib.DEFINE_integer("Frontend.throttle_average_interval", 60,
                           "Time interval over which average request rate is "
                           "calculated when throttling is enabled.")
 
 config_lib.DEFINE_list("Frontend.well_known_flows",
-                       ["TransferStore", "GetClientStatsAuto"],
+                       ["aff4:/flows/W:TransferStore", "aff4:/flows/W:Stats"],
                        "Allow these well known flows to run directly on the "
                        "frontend. Other flows are scheduled as normal.")
 
@@ -85,6 +86,7 @@ class Responses(object):
     if request:
       self.request_data = rdfvalue.Dict(request.data)
     self._responses = []
+    self._dropped_responses = []
 
     if responses:
       # This may not be needed if we can assume that responses are
@@ -103,7 +105,7 @@ class Responses(object):
             msg.auth_state != msg.AuthorizationState.AUTHENTICATED):
           logging.info("%s: Messages must be authenticated (Auth state %s)",
                        msg.session_id, msg.auth_state)
-
+          self._dropped_responses.append(msg)
           # Skip this message - it is invalid
           continue
 
@@ -128,6 +130,11 @@ class Responses(object):
         self._responses.append(msg)
 
       if self.status is None:
+        # This is a special case of de-synchronized messages.
+        if self._dropped_responses:
+          raise FlowError("De-synchronized messages detected:\n" + "\n".join(
+              [utils.SmartUnicode(x) for x in self._dropped_responses]))
+
         raise FlowError("No valid Status message.")
 
     # This is the raw message accessible while going through the iterator
@@ -239,7 +246,7 @@ def StateHandler(next_state="End", auth_required=True):
       if responses.status:
         self.runner.SaveResourceUsage(request, responses)
 
-      stats.STATS.Increment("grr_worker_states_run")
+      stats.STATS.IncrementCounter("grr_worker_states_run")
       # Run the state method (Allow for flexibility in prototypes)
       args = [self, responses]
       res = f(*args[:f.func_code.co_argcount])
@@ -329,7 +336,7 @@ class GRRFlow(aff4.AFF4Volume):
           hidden=True,
           default=True),
 
-      type_info.String(
+      type_info.RDFURNType(
           description=("A well known flow session_id of an event listener. An "
                        "event will be published to this listener once the "
                        "flow finishes."),
@@ -357,19 +364,20 @@ class GRRFlow(aff4.AFF4Volume):
       raise type_info.UnknownArg("%s: Args %s not known" % (
           self.__class__.__name__, kwargs.keys()))
 
-    stats.STATS.Increment("grr_flows_created")
+    stats.STATS.IncrementCounter("grr_flows_created")
 
-  def InitializeContext(self, client_id=None,
-                        queue_name=flow_runner.DEFAULT_WORKER_QUEUE_NAME,
-                        event_id=None, cpu_limit=None, request_state=None):
+  def InitializeContext(self, client_id=None, queue=None,
+                        event_id=None, cpu_limit=None, network_bytes_limit=None,
+                        request_state=None):
     """Initializes the context of this flow.
 
     Args:
       client_id: The name of the client we are working with.
-      queue_name: The name of the queue that the messages will run
+      queue: The name of the queue that the messages will run
                   with (default is W for general purpose workers).
       event_id: A logging event id for issuing further logs.
       cpu_limit: A limit for the cpu seconds used on the client for this flow.
+      network_bytes_limit: Maximum number of bytes to send for this flow.
       request_state: A request state in case this flow has a parent.
     """
     if event_id is None:
@@ -379,6 +387,7 @@ class GRRFlow(aff4.AFF4Volume):
         "client_id": client_id,
         "client_resources": rdfvalue.ClientResources(),
         "cpu_limit": cpu_limit,
+        "network_bytes_limit": network_bytes_limit,
         "create_time": rdfvalue.RDFDatetime().Now(),
         "creator": self.token.username,
         "current_state": "Start",
@@ -389,10 +398,9 @@ class GRRFlow(aff4.AFF4Volume):
         "next_processed_request": 1,
         "next_states": [],
         "outstanding_requests": 0,
-        "queue_name": queue_name,
-        "remaining_cpu_quota": cpu_limit,
+        "queue": queue,
         "request_state": request_state,
-        "session_id": self.urn,
+        "session_id": rdfvalue.SessionID(self.urn),
         "state": rdfvalue.Flow.State.RUNNING,
         # Have we sent a notification to the user.
         "user_notified": False,
@@ -404,26 +412,24 @@ class GRRFlow(aff4.AFF4Volume):
     return self.session_id
 
   @classmethod
-  def GetNewSessionID(cls, queue_name, client_id=None, parent_flow_urn=None):
+  def GetNewSessionID(cls, queue, client_id=None, parent_flow_urn=None):
     """Returns a random session ID for this flow.
 
     Args:
-      queue_name: The queue for this flow.
+      queue: The queue for this flow.
       client_id: The id of the client this flow should run on.
       parent_flow_urn: This flow's parent's urn if it has one.
 
     Returns:
       A formatted session id URN.
     """
-    random_number = utils.PRNG.GetULong()
-
     if parent_flow_urn:
-      result = parent_flow_urn
+      base = parent_flow_urn
     else:
-      result = client_id or aff4.ROOT_URN
-      result = result.Add("flows")
+      base = client_id or aff4.ROOT_URN
+      base = base.Add("flows")
 
-    return result.Add("%s:%X" % (queue_name, random_number))
+    return rdfvalue.SessionID(base=base, queue=queue)
 
   def _SetTypedArgs(self, target, type_descriptor, kwargs):
     """Sets our attributes from the type_descriptor."""
@@ -474,6 +480,9 @@ class GRRFlow(aff4.AFF4Volume):
     self.Save()
     self.WriteState()
     super(GRRFlow, self).Close(sync=sync)
+
+  def Ping(self):
+    self.UpdateLease(config_lib.CONFIG["Worker.flow_lease_time"])
 
   def CreateRunner(self, *args, **kw):
     kw["token"] = self.token
@@ -535,6 +544,7 @@ class GRRFlow(aff4.AFF4Volume):
       format_str: Format string
       *args: arguments to the format string
     """
+    format_str = utils.SmartUnicode(format_str)
     logging.info(format_str, *args)
 
     try:
@@ -601,7 +611,7 @@ class GRRFlow(aff4.AFF4Volume):
     notification_event = self.state.context.get("notification_event")
     if notification_event:
       if self.state.context.state == rdfvalue.Flow.State.ERROR:
-        status = rdfvalue.FlowNotification.State.ERROR
+        status = rdfvalue.FlowNotification.Status.ERROR
 
       else:
         status = rdfvalue.FlowNotification.Status.OK
@@ -624,9 +634,7 @@ class GRRFlow(aff4.AFF4Volume):
         flow_manager.QueueResponse(notification_event, msg)
 
       # Notify the worker of the pending sessions.
-      queue = scheduler.SCHEDULER.QueueNameFromURN(notification_event)
-      scheduler.SCHEDULER.NotifyQueue(queue, notification_event,
-                                      token=self.token)
+      scheduler.SCHEDULER.NotifyQueue(notification_event, token=self.token)
 
   def Publish(self, event_name, message=None, session_id=None):
     """Publish a message to a queue.
@@ -715,8 +723,9 @@ class GRRFlow(aff4.AFF4Volume):
 
   @classmethod
   def StartFlow(cls, client_id, flow_name,  # pylint: disable=g-bad-name
-                queue_name=flow_runner.DEFAULT_WORKER_QUEUE_NAME,
+                queue=rdfvalue.RDFURN("W"),
                 event_id=None, token=None, cpu_limit=None,
+                network_bytes_limit=None,
                 parent_flow=None, _request_state=None,
                 _store=None, **kw):
     """Creates and executes a new flow.
@@ -724,10 +733,11 @@ class GRRFlow(aff4.AFF4Volume):
     Args:
       client_id: The URL of an existing client or None for well known flows.
       flow_name: The name of the flow to start (from the registry).
-      queue_name: The name of the queue to invoke the flow.
+      queue: The queue to use for the flow.
       event_id: A logging event id for issuing further logs.
       token: The access token to be used for this request.
       cpu_limit: A limit on the client cpu seconds used by this flow.
+      network_bytes_limit: Maximum number of bytes to send for this flow.
       parent_flow: A parent flow or None if this is a top level flow.
       _request_state: A parent flow's request state (Used internally only).
       _store: The data store to use for running this flow (only used for
@@ -743,7 +753,7 @@ class GRRFlow(aff4.AFF4Volume):
     try:
       flow_cls = GRRFlow.classes[flow_name]
     except KeyError:
-      stats.STATS.Increment("grr_flow_invalid_flow_count")
+      stats.STATS.IncrementCounter("grr_flow_invalid_flow_count")
       raise RuntimeError("Unable to locate flow %s" % flow_name)
 
     if client_id:
@@ -751,8 +761,7 @@ class GRRFlow(aff4.AFF4Volume):
       client_id = rdfvalue.ClientURN(client_id)
 
     # Make sure we are allowed to run this flow.
-    data_store.DB.security_manager.CheckAccess(
-        token, [rdfvalue.RDFURN(client_id or "aff4:/").Add(flow_name)], "x")
+    data_store.DB.security_manager.CheckFlowAccess(token, flow_name, client_id)
 
     # From now on we run with supervisor access
     if token is None:
@@ -773,14 +782,15 @@ class GRRFlow(aff4.AFF4Volume):
     else:
       parent_flow_urn = None
 
-    flow_urn = flow_cls.GetNewSessionID(queue_name, client_id,
-                                        parent_flow_urn)
+    session_id = flow_cls.GetNewSessionID(queue, client_id,
+                                          parent_flow_urn)
 
     # Only the supervisor can create the containing AFF4 object.
-    flow_obj = aff4.FACTORY.Create(flow_urn, flow_name, token=token)
+    flow_obj = aff4.FACTORY.Create(session_id, flow_name, token=token)
 
-    flow_obj.InitializeContext(client_id=client_id, queue_name=queue_name,
+    flow_obj.InitializeContext(client_id=client_id, queue=queue,
                                event_id=event_id, cpu_limit=cpu_limit,
+                               network_bytes_limit=network_bytes_limit,
                                request_state=_request_state)
 
     flow_obj.InitFromArguments(**args)
@@ -827,8 +837,7 @@ class GRRFlow(aff4.AFF4Volume):
     if parent_flow is None:
       runner.FlushMessages()
 
-    # TODO(user): This needs to return an RDFURN object not a string.
-    return flow_obj.urn
+    return session_id
 
   @classmethod
   def TerminateFlow(cls, flow_id, reason=None,  # pylint: disable=g-bad-name
@@ -871,9 +880,8 @@ class GRRFlow(aff4.AFF4Volume):
                                                                 reason))
       # Make sure we are only allowed to terminate this flow, if we are allowed
       # to run it.
-      if flow_obj.client_id:
-        data_store.DB.security_manager.CheckAccess(token, [
-            flow_obj.client_id.Add(flow_obj.__class__.__name__)], "x")
+      data_store.DB.security_manager.CheckFlowAccess(
+          token, flow_obj.__class__.__name__, client_id=flow_obj.client_id)
 
       # From now on we run with supervisor access
       super_token = token.Copy()
@@ -940,7 +948,7 @@ class WellKnownFlow(GRRFlow):
     pass
 
   @classmethod
-  def GetNewSessionID(cls, queue_name, client_id=None,
+  def GetNewSessionID(cls, queue, client_id=None,
                       parent_flow_urn=None):
     # Always return a well known session id for this flow:
     return cls.well_known_session_id
@@ -975,8 +983,7 @@ class WellKnownFlow(GRRFlow):
     except flow_runner.MoreDataException:
       # There is more data for this flow so we have to tell the worker to
       # fetch more messages later.
-      scheduler.SCHEDULER.NotifyQueue(self.state.context.queue_name,
-                                      self.state.context.session_id,
+      scheduler.SCHEDULER.NotifyQueue(self.state.context.session_id,
                                       priority=priority, token=self.token)
 
   def ProcessMessage(self, msg):
@@ -1029,7 +1036,7 @@ def EventHandler(source_restriction=None, auth_required=True,
       if source_restriction and not source_restriction(msg.source):
         raise RuntimeError("Message source invalid.")
 
-      stats.STATS.Increment("grr_worker_states_run")
+      stats.STATS.IncrementCounter("grr_worker_states_run")
       rdf_msg = rdfvalue.GrrMessage(msg)
       res = f(self, message=rdf_msg, event=rdf_msg.payload)
       return res
@@ -1095,10 +1102,8 @@ def PublishEvent(event_name, msg, token=None):
         flow_manager.QueueResponse(event_cls.well_known_session_id, msg)
 
   # Notify all the workers of their pending sessions.
-  for queue, session_ids in utils.GroupBy(
-      sessions_queued, scheduler.SCHEDULER.QueueNameFromURN):
-    scheduler.SCHEDULER.MultiNotifyQueue(
-        queue, session_ids, [msg.priority] * len(session_ids), token=token)
+  priorities = dict([(s, msg.priority) for s in sessions_queued])
+  scheduler.SCHEDULER.MultiNotifyQueue(sessions_queued, priorities, token=token)
 
 
 class ServerPubKeyCache(communicator.PubKeyCache):
@@ -1137,10 +1142,10 @@ class ServerPubKeyCache(communicator.PubKeyCache):
                                    token=self.token, ignore_cache=True)
       cert = client.Get(client.Schema.CERT)
       if not cert:
-        stats.STATS.Increment("grr_unique_clients")
+        stats.STATS.IncrementCounter("grr_unique_clients")
         raise communicator.UnknownClientCert("Cert not found")
 
-      if cert.common_name != common_name:
+      if rdfvalue.RDFURN(cert.common_name) != rdfvalue.RDFURN(common_name):
         logging.error("Stored cert mismatch for %s", common_name)
         raise communicator.UnknownClientCert("Stored cert mismatch")
 
@@ -1226,7 +1231,7 @@ class ServerCommunicator(communicator.Communicator):
             common_name=signed_message_list.source)
 
         try:
-          stats.STATS.Increment("grr_rsa_operations")
+          stats.STATS.IncrementCounter("grr_rsa_operations")
           # Signature is not verified, we consider the message unauthenticated.
           if remote_public_key.verify(digest, signed_message_list.signature,
                                       cipher.hash_function_name) != 1:
@@ -1253,7 +1258,7 @@ class ServerCommunicator(communicator.Communicator):
         remote_time = client.Get(client.Schema.CLOCK) or 0
         client_time = signed_message_list.timestamp
         if client_time > long(remote_time):
-          stats.STATS.Increment("grr_authenticated_messages")
+          stats.STATS.IncrementCounter("grr_authenticated_messages")
 
           # Update the client and server timestamps.
           client.Set(client.Schema.CLOCK, rdfvalue.RDFDatetime(client_time))
@@ -1271,7 +1276,7 @@ class ServerCommunicator(communicator.Communicator):
       pass
 
     if result != rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED:
-      stats.STATS.Increment("grr_unauthenticated_messages")
+      stats.STATS.IncrementCounter("grr_unauthenticated_messages")
 
     return result
 
@@ -1335,8 +1340,8 @@ class FrontEndServer(object):
       self.handled_bundles = []
       self.last_not_throttled_bundle_time = 0
 
-    stats.STATS.Set("grr_frontendserver_throttle_setting",
-                    throttle_bundles_ratio)
+    stats.STATS.SetGaugeValue("grr_frontendserver_throttle_setting",
+                              str(throttle_bundles_ratio))
 
   def UpdateAndCheckIfShouldThrottle(self, bundle_time):
     """Update throttling data and check if request should be throttled.
@@ -1388,7 +1393,6 @@ class FrontEndServer(object):
 
   @stats.Counted("grr_frontendserver_handle_num")
   @stats.Timed("grr_frontendserver_handle_time")
-  @stats.TimespanAvg("grr_frontendserver_handle_time_running_avg")
   def HandleMessageBundles(self, request_comms, response_comms):
     """Processes a queue of messages as passed from the client.
 
@@ -1420,7 +1424,7 @@ class FrontEndServer(object):
     message_list = rdfvalue.MessageList()
     if self.UpdateAndCheckIfShouldThrottle(time.time()):
       tasks = []
-      stats.STATS.Increment("grr_frontendserver_handle_throttled_num")
+      stats.STATS.IncrementCounter("grr_frontendserver_handle_throttled_num")
     else:
       tasks = self.DrainTaskSchedulerQueueForClient(source, required_count,
                                                     message_list)
@@ -1469,8 +1473,8 @@ class FrontEndServer(object):
         lease_seconds=self.message_expiry_time)
 
     for task in new_tasks:
-      response_message.job.Append(task.payload)
-    stats.STATS.Add("grr_messages_sent", len(new_tasks))
+      response_message.job.Append(task)
+    stats.STATS.IncrementCounter("grr_messages_sent", len(new_tasks))
     return new_tasks
 
   def ReceiveMessages(self, messages):
@@ -1499,6 +1503,7 @@ class FrontEndServer(object):
 
       # Remove and handle messages to WellKnownFlows
       messages = self.HandleWellKnownFlows(messages)
+
       if not messages: continue
 
       # Keep track of all the flows we handled in this request.
@@ -1509,17 +1514,12 @@ class FrontEndServer(object):
         for msg in messages:
           priorities[session_id] = max(priorities.setdefault(session_id, 0),
                                        msg.priority)
+          logging.debug("Queueing for the backend: %s", session_id)
           flow_manager.QueueResponse(session_id, msg)
 
-    # Write the session ids that we saw to the worker queue. (One round trip per
-    # worker queue).
-    for queue, session_ids in utils.GroupBy(
-        sessions_handled, scheduler.SCHEDULER.QueueNameFromURN):
-
-      scheduler.SCHEDULER.MultiNotifyQueue(
-          queue, session_ids,
-          [priorities[session_id] for session_id in session_ids],
-          token=self.token)
+    # Write the session ids that we saw to the worker queue.
+    scheduler.SCHEDULER.MultiNotifyQueue(
+        sessions_handled, priorities, token=self.token)
 
   def HandleWellKnownFlows(self, messages):
     """Hands off messages to well known flows."""
@@ -1538,17 +1538,16 @@ class FrontEndServer(object):
 
           # Remove the notification from the well known flows.
           scheduler.SCHEDULER.DeleteNotification(
-              scheduler.SCHEDULER.QueueNameFromURN(msg.session_id),
               msg.session_id, token=self.token)
 
-          stats.STATS.Increment("grr_well_known_flow_requests")
+          stats.STATS.IncrementCounter("grr_well_known_flow_requests")
         else:
           # Message should be queued to be processed in the backend.
 
           # Well known flows have a response_id==0, but if we queue up the state
           # as that it will overwrite some other message that is queued. So we
           # change it to a random number here.
-          msg.response_id = struct.unpack("<I", os.urandom(4))[0]
+          msg.response_id = utils.PRNG.GetULong()
 
           # By setting the request ID to increment with time we maintain rough
           # time order in the queue.
@@ -1558,17 +1557,6 @@ class FrontEndServer(object):
           result.append(msg)
 
     return result
-
-  def GetQueueName(self, session_id):
-    # Session id has to be of the form queue_name:number
-    try:
-      queue_name, _ = session_id.split(":", 1)
-    except ValueError:
-      logging.error("Message has invalid session id %s",
-                    session_id)
-      raise RuntimeError("Message has invalid session_id")
-
-    return queue_name
 
 
 def ProcessCompletedRequests(flow_obj, thread_pool, reqs):
@@ -1583,24 +1571,21 @@ class FlowInit(registry.InitHook):
   def RunOnce(self):
     """Exports our vars."""
     # Counters defined here
-    stats.STATS.RegisterVar("grr_flow_completed_count")
-    stats.STATS.RegisterVar("grr_flow_errors")
-    stats.STATS.RegisterVar("grr_flow_invalid_flow_count")
-    stats.STATS.RegisterVar("grr_flows_created")
-    stats.STATS.RegisterMap("grr_frontendserver_handle_time", "times",
-                            precision=0)
-    stats.STATS.RegisterTimespanAvg(
-        "grr_frontendserver_handle_time_running_avg", 60)
-    stats.STATS.RegisterVar("grr_messages_sent")
-    stats.STATS.RegisterVar("grr_request_retransmission_count")
-    stats.STATS.RegisterVar("grr_response_out_of_order")
-    stats.STATS.RegisterVar("grr_unique_clients")
-    stats.STATS.RegisterVar("grr_unknown_clients")
-    stats.STATS.RegisterVar("grr_well_known_flow_requests")
-    stats.STATS.RegisterVar("grr_worker_requests_complete")
-    stats.STATS.RegisterVar("grr_worker_requests_issued")
-    stats.STATS.RegisterVar("grr_worker_states_run")
-    stats.STATS.RegisterVar("grr_worker_well_known_flow_requests")
-    stats.STATS.RegisterVar("grr_frontendserver_handle_num")
-    stats.STATS.RegisterVar("grr_frontendserver_handle_throttled_num")
-    stats.STATS.RegisterVar("grr_frontendserver_throttle_setting")
+    stats.STATS.RegisterCounterMetric("grr_flow_completed_count")
+    stats.STATS.RegisterCounterMetric("grr_flow_errors")
+    stats.STATS.RegisterCounterMetric("grr_flow_invalid_flow_count")
+    stats.STATS.RegisterCounterMetric("grr_flows_created")
+    stats.STATS.RegisterEventMetric("grr_frontendserver_handle_time")
+    stats.STATS.RegisterCounterMetric("grr_messages_sent")
+    stats.STATS.RegisterCounterMetric("grr_request_retransmission_count")
+    stats.STATS.RegisterCounterMetric("grr_response_out_of_order")
+    stats.STATS.RegisterCounterMetric("grr_unique_clients")
+    stats.STATS.RegisterCounterMetric("grr_unknown_clients")
+    stats.STATS.RegisterCounterMetric("grr_well_known_flow_requests")
+    stats.STATS.RegisterCounterMetric("grr_worker_requests_complete")
+    stats.STATS.RegisterCounterMetric("grr_worker_requests_issued")
+    stats.STATS.RegisterCounterMetric("grr_worker_states_run")
+    stats.STATS.RegisterCounterMetric("grr_worker_well_known_flow_requests")
+    stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_num")
+    stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_throttled_num")
+    stats.STATS.RegisterGaugeMetric("grr_frontendserver_throttle_setting", str)

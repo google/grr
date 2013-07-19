@@ -13,14 +13,13 @@ from grr.gui import admin_ui
 
 from django.core.handlers import wsgi
 
-from grr.client import conf
-from grr.client import conf as flags
 import logging
 
 
 from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import flags
 from grr.lib import ipshell
 from grr.lib import registry
 from grr.lib import startup
@@ -112,6 +111,12 @@ def main(_):
   """Run the main test harness."""
   # For testing we use the test config file.
   flags.FLAGS.config = config_lib.CONFIG["Test.config"]
+
+  # We are running a test so let the config system know that.
+  config_lib.CONFIG.AddContext(
+      "Test Context",
+      "Context applied when we run tests.")
+
   startup.TestInit()
 
   # Tests must be imported after django is initialized.
@@ -134,4 +139,4 @@ def main(_):
     trd.Stop()
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

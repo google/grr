@@ -1,6 +1,6 @@
 #! /bin/sh
 ### BEGIN INIT INFO
-# Provides:          grr_client
+# Provides:          %(Client.binary_name)_client
 # Required-Start:    $network $named $local_fs $syslog
 # Required-Stop:     $network $named $local_fs $syslog
 # Should-Start:
@@ -10,38 +10,36 @@
 ### END INIT INFO
 
 PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin"
-DESC="GRR Rapid Response client"
-NAME="grr-client"
-DAEMON="/usr/sbin/grrd"
-DAEMON_ARGS="--config=/etc/grr-client.conf"
+DESC="%(Client.description)"
+NAME="%(Client.name)-client"
+DAEMON="%(ClientBuilder.daemon_link)"
+DAEMON_ARGS="--config=%(ClientBuilder.target_dir)/%(ClientBuilder.config_filename)"
 PIDFILE="/var/run/${NAME}.pid"
 SCRIPTNAME="/etc/init.d/${NAME}"
 
-[ -x "${DAEMON}" ] || DAEMON="/usr/local/sbin/grrd"
-
-[ -x "${DAEMON}" ] || exit 0
+[ -x "${DAEMON}" ] \|\| exit 0
 
 . /lib/init/vars.sh
 
 . /lib/lsb/init-functions
 
-do_start() {
+do_start\(\) {
 	start-stop-daemon --start \
 	--quiet \
 	--test \
 	--make-pidfile \
 	--pidfile ${PIDFILE} \
-	--startas ${DAEMON} -- ${DAEMON_ARGS} || return 1
+	--startas ${DAEMON} -- ${DAEMON_ARGS} \|\| return 1
 
 	start-stop-daemon --start \
 	--quiet \
 	--background \
 	--make-pidfile \
 	--pidfile ${PIDFILE} \
-	--startas ${DAEMON} -- ${DAEMON_ARGS} || return 2
+	--startas ${DAEMON} -- ${DAEMON_ARGS} \|\| return 2
 }
 
-do_stop() {
+do_stop\(\) {
 	start-stop-daemon --stop \
 	--quiet \
 	--oknodo \
@@ -57,7 +55,7 @@ do_stop() {
 	return "${RETVAL}"
 }
 
-do_reload() {
+do_reload\(\) {
 	start-stop-daemon --stop \
 	--quiet \
 	--pidfile ${PIDFILE} \
@@ -67,43 +65,43 @@ do_reload() {
 }
 
 case "$1" in
-	start)
+	start\)
 		[ "${VERBOSE}" != no ] && log_daemon_msg "Starting ${DESC}" "${NAME}"
 
 		do_start
 
 		case "$?" in
-			0|1)
+			0\|1\)
 				[ "${VERBOSE}" != no ] && log_end_msg 0
 				;;
 
-			2)
+			2\)
 				[ "${VERBOSE}" != no ] && log_end_msg 1
 				;;
 		esac
 		;;
 
-	stop)
+	stop\)
 		[ "${VERBOSE}" != no ] && log_daemon_msg "Stopping ${DESC}" "${NAME}"
 
 		do_stop
 
 		case "$?" in
-			0|1)
+			0\|1\)
 				[ "${VERBOSE}" != no ] && log_end_msg 0
 				;;
 
-			2)
+			2\)
 				[ "${VERBOSE}" != no ] && log_end_msg 1
 				;;
 		esac
 		;;
 
-	status)
-		status_of_proc -p "${PIDFILE}" "${DAEMON}" "${NAME}" && exit 0 || exit $?
+	status\)
+		status_of_proc -p "${PIDFILE}" "${DAEMON}" "${NAME}" && exit 0 \|\| exit $?
 		;;
 
-	reload|force-reload)
+	reload\|force-reload\)
 		log_daemon_msg "Reloading ${DESC}" "${NAME}"
 
 		do_reload
@@ -111,36 +109,36 @@ case "$1" in
 		log_end_msg $?
 		;;
 
-	restart)
+	restart\)
 		log_daemon_msg "Restaring ${DESC}" "${NAME}"
 
 		do_stop
 
 		case "$?" in
-			0|1)
+			0\|1\)
 				sleep 1
 
 				do_start
 
 				case "$?" in
-					0)
+					0\)
 						log_end_msg 0
 						;;
 
-					1|2)
+					1\|2\)
 						log_end_msg 1
 						;;
 				esac
 				;;
 
-			2)
+			2\)
 				log_end_msg 1
 				;;
 		esac
 		;;
 
-	*)
-		echo "Usage: ${SCRIPTNAME} {start|stop|status|restart|force-reload|reload}" >&2
+	*\)
+		echo "Usage: ${SCRIPTNAME} {start\|stop\|status\|restart\|force-reload\|reload}" >&2
 
 		exit 3
 		;;

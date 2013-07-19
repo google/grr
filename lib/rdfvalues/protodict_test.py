@@ -44,9 +44,9 @@ class DictTest(test_base.RDFProtoTestCase):
     self.assertEqual(tested["b"], now)
     self.assertEqual(tested["a"], 1)
 
-    tested["b"] = rdfvalue.RDFURN("http://www.google.com/")
+    tested["b"] = rdfvalue.RDFURN("aff4:/users/")
     self.assertEqual(len(tested), 2)
-    self.assertEqual(tested["b"], "http://www.google.com/")
+    self.assertEqual(tested["b"].SerializeToString(), "aff4:/users")
 
   def testSerialization(self):
     test_dict = dict(

@@ -54,19 +54,19 @@ class RDFURNTest(test_base.RDFValueTestCase):
   def testRDFURN(self):
     """Test RDFURN handling."""
     # Make a url object
-    str_url = "http://www.google.com/"
+    str_url = "aff4:/hunts/W:AAAAAAAA/Results"
     url = rdfvalue.RDFURN(str_url, age=1)
     self.assertEqual(url.age, 1)
-    self.assertEqual(url.Path(), "/")
-    self.assertEqual(url._urn.netloc, "www.google.com")
-    self.assertEqual(url._urn.scheme, "http")
+    self.assertEqual(url.Path(), "/hunts/W:AAAAAAAA/Results")
+    self.assertEqual(url._urn.netloc, "")
+    self.assertEqual(url._urn.scheme, "aff4")
 
     # Test the Add() function
     url = url.Add("some", age=2).Add("path", age=3)
     self.assertEqual(url.age, 3)
-    self.assertEqual(url.Path(), "/some/path")
-    self.assertEqual(url._urn.netloc, "www.google.com")
-    self.assertEqual(url._urn.scheme, "http")
+    self.assertEqual(url.Path(), "/hunts/W:AAAAAAAA/Results/some/path")
+    self.assertEqual(url._urn.netloc, "")
+    self.assertEqual(url._urn.scheme, "aff4")
 
     # Test that we can handle urns with a '?' and do not interpret them as
     # a delimiter between url and parameter list.

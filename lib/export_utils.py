@@ -223,21 +223,36 @@ def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
   # Collections can include anything they want, but we only handle RDFURN and
   # StatEntry entries in this function.
   for grr_message in coll:
+    source = None
     # If a raw message, work out the type.
     if isinstance(grr_message, rdfvalue.GrrMessage):
+      source = grr_message.source
       grr_message = grr_message.payload
 
     if isinstance(grr_message, rdfvalue.RDFURN):
       urn = grr_message
     elif isinstance(grr_message, rdfvalue.StatEntry):
       urn = rdfvalue.RDFURN(grr_message.aff4path)
+    elif isinstance(grr_message, rdfvalue.RDFBytes):
+      try:
+        os.makedirs(target_path)
+      except OSError:
+        pass
+      try:
+        # We just dump out bytes and carry on.
+        client_id = source.Split()[0]
+        with open(os.path.join(target_path, client_id), "wb") as fd:
+          fd.write(str(grr_message))
+      except AttributeError:
+        pass
+      continue
     else:
       continue
 
     # Handle dumping client info, but only once per client.
     client_id = urn.Split()[0]
     re_match = aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(client_id)
-    if dump_client_info and re_match and not client_id in completed_clients:
+    if dump_client_info and re_match and client_id not in completed_clients:
       args = (rdfvalue.RDFURN(client_id), target_path, token, overwrite)
       thread_pool.AddTask(target=DumpClientYaml, args=args,
                           name="ClientYamlDownloader")

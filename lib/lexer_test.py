@@ -2,7 +2,7 @@
 # Copyright 2011 Google Inc. All Rights Reserved.
 """Tests the query lexer."""
 
-from grr.client import conf
+from grr.lib import flags
 from grr.lib import lexer
 from grr.lib import test_lib
 
@@ -74,4 +74,4 @@ def main(argv):
   test_lib.main(argv)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

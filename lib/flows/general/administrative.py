@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """Administrative flows for managing the clients state."""
 
 
@@ -11,12 +10,15 @@ import logging
 # pylint: disable=unused-import
 from grr.gui import django_lib
 # pylint: enable=unused-import
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import rendering
 from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
@@ -24,23 +26,28 @@ from grr.lib import utils
 config_lib.DEFINE_string("Monitoring.events_email", None,
                          "The email address to send events to.")
 
+config_lib.DEFINE_option(type_info.RDFURNType(
+    name="Executables.aff4_path",
+    description="The aff4 path to signed executables.",
+    default="%(Config.aff4_root)/executables/%(Client.platform)"))
+
+config_lib.DEFINE_string(
+    name="Executables.installer",
+    default=("%(Executables.aff4_path)/installers/"
+             "%(PyInstaller.output_basename)"),
+    help="The location of the generated installer in the config directory.")
+
+
 renderers = None  # Will be imported at initialization time.
 
 
 class AdministrativeInit(registry.InitHook):
   """Initialize the Django environment."""
 
-  pre = ["DjangoInit", "StatsInit"]
+  pre = ["StatsInit"]
 
   def RunOnce(self):
-    stats.STATS.RegisterVar("grr_client_crashes")
-    # TODO(user): This is a huge hack but necessary because getting django
-    # importing correct is very hard. We really should think about decoupling
-    # the templating system better.
-    global renderers  # pylint: disable=global-variable-not-assigned
-    # pylint: disable=g-import-not-at-top, unused-variable, redefined-outer-name
-    from grr.gui import renderers
-    # pylint: enable=g-import-not-at-top, unused-variable, redefined-outer-name
+    stats.STATS.RegisterCounterMetric("grr_client_crashes")
 
 
 class ClientCrashEventListener(flow.EventListener):
@@ -110,13 +117,48 @@ class GetClientStatsAuto(GetClientStats, flow.WellKnownFlow):
 
   category = None
 
-  well_known_session_id = "aff4:/flows/W:Stats"
+  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:Stats")
 
   def ProcessMessage(self, message):
     """Processes a stats response from the client."""
     client_stats = rdfvalue.ClientStats(message.args)
     self.client_id = message.source
     self.ProcessResponse(client_stats)
+
+
+class DeleteGRRTempFiles(flow.GRRFlow):
+  """Delete all the GRR temp files in path.
+
+  If path is a directory, look in the top level for filenames beginning with
+  Client.tempfile_prefix, and delete them.
+
+  If path is a regular file and starts with Client.tempfile_prefix, delete it.
+  """
+
+  category = "/Administrative/"
+
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.PathspecType(
+          description=("The pathspec target for deletion."),
+          default=rdfvalue.PathSpec(
+              path="/",
+              pathtype=rdfvalue.PathSpec.PathType.OS),
+          ),
+      )
+
+  @flow.StateHandler(next_state="Done")
+  def Start(self):
+    """Issue a request to delete tempfiles in directory."""
+    self.CallClient("DeleteGRRTempFiles", self.state.pathspec,
+                    next_state="Done")
+
+  @flow.StateHandler()
+  def Done(self, responses):
+    if not responses.success:
+      raise flow.FlowError(str(responses.status))
+
+    for response in responses:
+      self.Log(response.data)
 
 
 class Uninstall(flow.GRRFlow):
@@ -305,7 +347,7 @@ class Foreman(flow.WellKnownFlow):
   scheduled for them based on their types. This allows the server to schedule
   flows for entire classes of machines based on certain criteria.
   """
-  well_known_session_id = "aff4:/flows/W:Foreman"
+  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:Foreman")
   foreman_cache = None
 
   # How often we refresh the rule set from the data store.
@@ -440,7 +482,8 @@ class UpdateClient(flow.GRRFlow):
     blob = aff4_blob.Get(aff4_blob.Schema.BINARY)
 
     if ("windows" in utils.SmartStr(self.state.blob_path) or
-        "darwin" in utils.SmartStr(self.state.blob_path)):
+        "darwin" in utils.SmartStr(self.state.blob_path) or
+        "linux" in utils.SmartStr(self.state.blob_path)):
       self.CallClient("UpdateAgent", executable=blob, next_state="Interrogate")
 
     else:
@@ -449,9 +492,11 @@ class UpdateClient(flow.GRRFlow):
 
   @flow.StateHandler(next_state="Done")
   def Interrogate(self, responses):
-    _ = responses
-    self.Log("Installer completed.")
-    self.CallFlow("Interrogate", next_state="Done")
+    if not responses.success:
+      self.Log("Installer reported an error: %s" % responses.status)
+    else:
+      self.Log("Installer completed.")
+      self.CallFlow("Interrogate", next_state="Done")
 
   @flow.StateHandler()
   def Done(self):
@@ -465,7 +510,7 @@ class NannyMessageHandler(ClientCrashEventListener):
   """A listener for nanny messages."""
   EVENTS = ["NannyMessage"]
 
-  well_known_session_id = "aff4:/flows/W:NannyMessage"
+  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:NannyMessage")
 
   mail_template = """
 <html><body><h1>GRR nanny message received.</h1>
@@ -529,7 +574,7 @@ class ClientAlertHandler(NannyMessageHandler):
   """A listener for client messages."""
   EVENTS = ["ClientAlert"]
 
-  well_known_session_id = "aff4:/flows/W:ClientAlert"
+  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:ClientAlert")
 
   mail_template = """
 <html><body><h1>GRR client message received.</h1>
@@ -553,7 +598,7 @@ class ClientCrashHandler(ClientCrashEventListener):
   """A listener for client crashes."""
   EVENTS = ["ClientCrash"]
 
-  well_known_session_id = "aff4:/flows/W:CrashHandler"
+  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:CrashHandler")
 
   mail_template = """
 <html><body><h1>GRR client crash report.</h1>
@@ -584,7 +629,7 @@ P.S. The state of the failing flow was:
     logging.info("Client crash reported, client %s.", client_id)
 
     # Export.
-    stats.STATS.Increment("grr_client_crashes")
+    stats.STATS.IncrementCounter("grr_client_crashes")
 
     # Write crash data to AFF4.
     client = aff4.FACTORY.Open(client_id, token=self.token)
@@ -610,7 +655,7 @@ P.S. The state of the failing flow was:
       url = urllib.urlencode((("c", client_id),
                               ("main", "HostInformation")))
 
-      state_html = renderers.FindRendererForObject(flow_obj.state).RawHTML()
+      renderer = rendering.renderers.FindRendererForObject(flow_obj.state)
 
       email_alerts.SendEmail(
           config_lib.CONFIG["Monitoring.alert_email"],
@@ -620,7 +665,7 @@ P.S. The state of the failing flow was:
               client_id=client_id,
               admin_ui=config_lib.CONFIG["AdminUI.url"],
               hostname=hostname,
-              state=state_html,
+              state=renderer.RawHTML(),
               urn=url, nanny_msg=nanny_msg),
           is_html=True)
 
@@ -637,7 +682,7 @@ P.S. The state of the failing flow was:
 class ClientStartupHandler(flow.EventListener):
   EVENTS = ["ClientStartup"]
 
-  well_known_session_id = "aff4:/flows/W:Startup"
+  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:Startup")
 
   @flow.EventHandler(allow_client_access=True, auth_required=False)
   def ProcessMessage(self, message=None, event=None):
@@ -693,7 +738,7 @@ class KeepAlive(flow.GRRFlow):
 
   @flow.StateHandler(next_state="SendMessage")
   def Start(self):
-    self.state.Register("end_time", time.time() + self.stayalive_time)
+    self.state.Register("end_time", time.time() + self.state.stayalive_time)
     self.CallState(next_state="SendMessage")
 
   @flow.StateHandler(next_state="Sleep")
@@ -712,3 +757,82 @@ class KeepAlive(flow.GRRFlow):
 
     if time.time() < self.state.end_time - self.sleep_time:
       self.CallState(next_state="SendMessage", delay=self.sleep_time)
+
+
+class TerminateFlow(flow.GRRFlow):
+  """Terminate a flow with a given URN."""
+  # This flow can run on any client without ACL enforcement (an SUID flow).
+  ACL_ENFORCED = False
+
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.RDFURNType(
+          description="The URN of the flow to terminate.",
+          name="flow_urn"),
+      type_info.String(
+          description="Reason for termination.",
+          name="reason"),
+      )
+
+  @flow.StateHandler()
+  def Start(self):
+    """Terminate a flow. User has to have access to the flow."""
+    # We have to create special token here, because within the flow
+    # token has supervisor access.
+    check_token = access_control.ACLToken(username=self.token.username,
+                                          reason=self.token.reason)
+    # If we can read the flow, we're allowed to terminate it.
+    data_store.DB.security_manager.CheckDataStoreAccess(
+        check_token, [self.state.flow_urn], "r")
+
+    flow.GRRFlow.TerminateFlow(self.state.flow_urn,
+                               reason=self.state.reason,
+                               token=self.token, force=True)
+
+
+class LaunchBinary(flow.GRRFlow):
+  """Launch a signed binary on a client."""
+
+  category = "/Administrative/"
+
+  AUTHORIZED_LABELS = ["admin"]
+
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.RDFURNType(
+          name="binary",
+          description="The URN of the binary to execute."),
+      type_info.List(
+          validator=type_info.String(),
+          description="Binary Arguments.",
+          name="args"),
+      )
+
+  @flow.StateHandler(next_state=["End"])
+  def Start(self):
+    fd = aff4.FACTORY.Open(self.state.binary, token=self.token)
+
+    blob = fd.Get(fd.Schema.BINARY)
+    if blob is None:
+      raise RuntimeError("Executable binary %s not found." % self.state.binary)
+
+    self.CallClient("ExecuteBinaryCommand", executable=blob,
+                    args=self.state.args, next_state="End")
+
+  def _TruncateResult(self, data):
+    if len(data) > 2000:
+      result = data[:2000] + "... [truncated]"
+    else:
+      result = data
+
+    return result
+
+  @flow.StateHandler()
+  def End(self, responses):
+    if not responses.success:
+      raise IOError(responses.status)
+
+    response = responses.First()
+    if response:
+      self.Log("Stdout: %s" % self._TruncateResult(response.stdout))
+      self.Log("Stderr: %s" % self._TruncateResult(response.stderr))
+
+      self.SendReply(response)

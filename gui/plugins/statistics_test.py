@@ -51,7 +51,8 @@ class TestStats(test_lib.GRRSeleniumTest):
     self.assert_(not self.IsElementPresent("css=a[grrtarget=ManageForeman]"))
 
     # Make "test" user an admin
-    self.MakeUserAdmin("test")
+    with self.ACLChecksDisabled():
+      self.MakeUserAdmin("test")
 
     self.Open("/")
 
@@ -59,15 +60,12 @@ class TestStats(test_lib.GRRSeleniumTest):
 
     # Make sure that now we can see this option.
     self.WaitUntil(self.IsElementPresent, "css=a[grrtarget=ManageForeman]")
-    self.assert_(self.IsElementPresent("css=a[grrtarget=ManageForeman]"))
 
     # Go to Statistics
     self.Click("css=a:contains('Statistics')")
 
-    self.WaitUntil(self.IsElementPresent, "css=#_Clients")
     self.Click("css=#_Clients ins.jstree-icon")
 
-    self.WaitUntil(self.IsElementPresent, "css=#_Clients-OS_20Breakdown")
     self.Click("css=#_Clients-OS_20Breakdown ins.jstree-icon")
 
     self.WaitUntil(self.IsElementPresent,
@@ -77,7 +75,9 @@ class TestStats(test_lib.GRRSeleniumTest):
     self.WaitUntilEqual(u"No data Available",
                         self.GetText, "css=#main_rightPane h3")
 
-    self.PopulateData()
+    with self.ACLChecksDisabled():
+      self.PopulateData()
+
     self.Click("css=li[path='/Clients/OS Breakdown/ 7 Day Active'] a")
 
     self.WaitUntilEqual(u"Operating system break down.",

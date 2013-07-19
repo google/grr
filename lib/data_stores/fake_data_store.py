@@ -34,7 +34,7 @@ class Filter(object):
   include_plugins_as_attributes = True
 
   def FilterSubjects(self, subjects, token=None):
-    data_store.DB.security_manager.CheckAccess(token, subjects, "w")
+    data_store.DB.security_manager.CheckDataStoreAccess(token, subjects, "w")
     return subjects
 
 
@@ -312,7 +312,7 @@ class FakeDataStore(data_store.DataStore):
 
   @utils.Synchronized
   def DeleteSubject(self, subject, token=None):
-    self.security_manager.CheckAccess(token, [subject], "w")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     try:
       del self.subjects[subject]
     except KeyError:
@@ -333,7 +333,7 @@ class FakeDataStore(data_store.DataStore):
           replace=True, sync=True):
     """Set the value into the data store."""
     _ = sync
-    self.security_manager.CheckAccess(token, [subject], "w")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     subject = utils.SmartUnicode(subject)
     attribute = utils.SmartUnicode(attribute)
@@ -353,7 +353,7 @@ class FakeDataStore(data_store.DataStore):
   @utils.Synchronized
   def MultiSet(self, subject, values, timestamp=None, token=None,
                replace=True, sync=True, to_delete=None):
-    self.security_manager.CheckAccess(token, [subject], "w")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     if to_delete:
       self.DeleteAttributes(subject, to_delete, token=token)
@@ -372,7 +372,7 @@ class FakeDataStore(data_store.DataStore):
   def DeleteAttributes(self, subject, attributes, start=None, end=None,
                        token=None, sync=None):
     _ = sync  # Unimplemented.
-    self.security_manager.CheckAccess(token, [subject], "w")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     subject = utils.SmartUnicode(subject)
     try:
       record = self.subjects[subject]
@@ -392,7 +392,7 @@ class FakeDataStore(data_store.DataStore):
     result = {}
     for subject in subjects:
       # If any of the subjects is forbidden we fail the entire request.
-      self.security_manager.CheckAccess(token, [subject], "r")
+      self.security_manager.CheckDataStoreAccess(token, [subject], "r")
 
       values = self.ResolveRegex(subject, predicate_regex, token=token,
                                  decoder=decoder, timestamp=timestamp,
@@ -408,7 +408,7 @@ class FakeDataStore(data_store.DataStore):
   @utils.Synchronized
   def ResolveMulti(self, subject, predicates, decoder=None, token=None,
                    timestamp=None):
-    self.security_manager.CheckAccess(token, [subject], "r")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "r")
     # Does timestamp represent a range?
     try:
       start, end = timestamp
@@ -453,7 +453,7 @@ class FakeDataStore(data_store.DataStore):
   def ResolveRegex(self, subject, predicate_regex, decoder=None, token=None,
                    timestamp=None, limit=None):
     """Resolve all predicates for a subject matching a regex."""
-    self.security_manager.CheckAccess(token, [subject], "r")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "r")
 
     # Does timestamp represent a range?
     try:
@@ -543,7 +543,7 @@ class FakeDataStore(data_store.DataStore):
       if subject_prefix and not subject.startswith(subject_prefix):
         continue
 
-      self.security_manager.CheckAccess(token, [subject], "r")
+      self.security_manager.CheckDataStoreAccess(token, [subject], "r")
 
       i += 1
 
@@ -575,7 +575,7 @@ class FakeDataStore(data_store.DataStore):
                for value in values if value[0]])
 
         # Skip unauthorized results.
-        self.security_manager.CheckAccess(token, [subject], "rq")
+        self.security_manager.CheckDataStoreAccess(token, [subject], "rq")
         result_set.Append(result)
       except access_control.UnauthorizedAccess:
         continue

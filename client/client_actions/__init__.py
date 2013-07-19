@@ -4,7 +4,7 @@
 """A module to load all client plugins."""
 
 
-# pylint: disable=W0611,C6203
+# pylint: disable=unused-import,g-bad-import-order
 import platform
 
 import logging
@@ -19,9 +19,10 @@ from grr.client.client_actions import file_fingerprint
 from grr.client.client_actions import network
 from grr.client.client_actions import searching
 from grr.client.client_actions import standard
+from grr.client.client_actions import tempfiles
 
-# pylint: disable=C6204
-# pylint: disable=C6302
+# pylint: disable=g-import-not-at-top
+# pylint: disable=g-wrong-blank-lines
 
 try:
   from grr.client.client_actions import grr_volatility

@@ -12,10 +12,9 @@ import logging
 import os
 import sys
 
-
 from grr.client import comms
-
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import registry
 
@@ -46,6 +45,10 @@ class Installer(registry.HookRegistry):
 
 def InstallerNotifyServer():
   """An emergency function Invoked when the client installation failed."""
+  # We make a temporary emergency config file to contain the new client id. Note
+  # that the notification callback does not really mean anything to us, since
+  # the client is not installed and we dont have basic interrogate information.
+  config_lib.CONFIG.SetWriteBack("temp.yaml")
 
   try:
     log_data = open(config_lib.CONFIG["Installer.logfile"], "rb").read()
@@ -60,15 +63,15 @@ def InstallerNotifyServer():
 
   client = comms.GRRHTTPClient(
       ca_cert=config_lib.CONFIG["CA.certificate"],
-      private_key=config_lib.CONFIG["Client.private_key"])
+      private_key=config_lib.CONFIG.Get("Client.private_key"))
 
   client.GetServerCert()
   client.client_worker.SendReply(
       session_id="W:InstallationFailed",
-      message_type=rdfvalue.GRRMessage.Enum("STATUS"),
+      message_type=rdfvalue.GrrMessage.Type.STATUS,
       request_id=0, response_id=0,
       rdf_value=rdfvalue.GrrStatus(
-          status=rdfvalue.GrrStatus.Enum("GENERIC_ERROR"),
+          status=rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR,
           error_message="Installation failed.",
           backtrace=log_data[-10000:]))
 
@@ -97,6 +100,17 @@ def RunInstaller():
 
   # Add this to the root logger.
   logging.getLogger().addHandler(handler)
+
+  # Ordinarily when the client starts up, the local volatile
+  # configuration is read. Howevwer, when running the installer, we
+  # need to ensure that only the installer configuration is used so
+  # nothing gets overridden by local settings. We there must reload
+  # the configuration from the flag and ignore the Config.writeback
+  # location.
+  config_lib.CONFIG.Initialize(filename=flags.FLAGS.config, reset=True)
+  config_lib.CONFIG.AddContext(
+      "Installer Context",
+      "Context applied when we run the client installer.")
 
   logging.warn("Starting installation procedure for GRR client.")
   try:

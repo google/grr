@@ -30,10 +30,6 @@ from grr.lib import constants
 from grr.lib import rdfvalue
 
 
-config_lib.DEFINE_string("Nanny.service_name", "GRR Service",
-                         "The name of the GRR nanny service")
-
-
 # Properties to remove from results sent to the server.
 # These properties are included with nearly every WMI object and use space.
 IGNORE_PROPS = ["CSCreationClassName", "CreationClassName", "OSName",

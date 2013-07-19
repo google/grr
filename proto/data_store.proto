@@ -136,16 +136,26 @@ message DataStoreResponse {
 
   repeated ResultSet results = 1;
 
-  // Total number of results on the server (Can be more than len(results)).
-  optional uint32 count = 2;
+  //
+  optional uint32 count = 2 [(sem_type) = {
+      description: "Total number of results on the server "
+        "(Can be more than len(results))."
+    }];
 
   optional Status status = 3 [default = OK];
 
-  // Additional human readable message for the failure.
-  optional string status_desc = 4;
+  optional string status_desc = 4 [(sem_type) = {
+      description: "Additional human readable message for the failure."
+    }];
 
-  // In case of failure, subject that caused the request to fail
-  optional string failed_subject = 5;
+  optional string failed_subject = 5 [(sem_type) = {
+      description: "In case of failure, the subject that caused the "
+      "request to fail."
+    }];
+
+  optional DataStoreRequest request = 6 [(sem_type) = {
+      description: "The request which elicited this response.",
+    }];
 };
 
 message StartFlowRequest {

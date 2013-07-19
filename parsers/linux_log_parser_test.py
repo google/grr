@@ -9,13 +9,13 @@ import cStringIO
 import os
 import pytz
 
-from grr.client import conf
+from grr.lib import flags
 from grr.lib import test_lib
 from grr.parsers import linux_log_parser
 
 
 # We are intentionally not implementing the class correctly.
-# pylint: disable=W0223
+# pylint: disable=abstract-method
 class NewImplementation(linux_log_parser.LogParser):
   """Tries to implement LogParser but is insufficient.
 
@@ -367,4 +367,4 @@ def main(args):
   test_lib.main(args)
 
 if __name__ == '__main__':
-  conf.StartMain(main)
+  flags.StartMain(main)

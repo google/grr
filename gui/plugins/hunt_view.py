@@ -22,12 +22,12 @@ from grr.gui import renderers
 from grr.gui.plugins import crash_view
 from grr.gui.plugins import fileview
 from grr.gui.plugins import foreman
-from grr.gui.plugins import new_hunt
 from grr.gui.plugins import searchclient
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
+from grr.lib.hunts import output_plugins
 
 
 class ManageHunts(renderers.Splitter2Way):
@@ -76,43 +76,19 @@ class RunHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
 <p>Are you sure you want to <strong>run</strong> this hunt?</p>
 """)
 
-  # We execute CheckAccess renderer with silent=true. Therefore it searches
-  # for an approval and sets correct reason if approval is found. When
-  # CheckAccess completes, we execute HuntViewRunHunt renderer, which
-  # tries to run an actual hunt. If the approval wasn't found on CheckAccess
-  # stage, it will fail due to unauthorized access and proper ACLDialog will
-  # be displayed.
   ajax_template = renderers.Template("""
-<div id="result_{{unique|escape}}"></div>
-<script>
-  grr.layout("CheckAccess", "result_{{unique|escapejs}}",
-    {silent: true, subject: "{{hunt_id|escapejs}}" },
-    function() {
-      grr.layout("HuntViewRunHunt", "result_{{unique|escapejs}}",
-        {hunt_id: "{{hunt_id|escapejs}}"});
-    });
-</script>
-""")
-
-  def RenderAjax(self, request, response):
-    super(RunHuntConfirmationDialog, self).RenderAjax(request, response)
-    return self.RenderFromTemplate(self.ajax_template, response,
-                                   unique=self.unique,
-                                   hunt_id=request.REQ.get("hunt_id"))
-
-
-class HuntViewRunHunt(renderers.TemplateRenderer):
-  """Runs a hunt when "Run Hunt" button is pressed and permissions checked."""
-
-  layout_template = renderers.Template("""
 <p class="text-info">Hunt started successfully!</p>
 """)
 
   def Layout(self, request, response):
+    self.check_access_subject = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
+    return super(RunHuntConfirmationDialog, self).Layout(request, response)
+
+  def RenderAjax(self, request, response):
     flow.GRRFlow.StartFlow(None, "RunHuntFlow", token=request.token,
                            hunt_urn=rdfvalue.RDFURN(request.REQ.get("hunt_id")))
-
-    return super(HuntViewRunHunt, self).Layout(request, response)
+    return self.RenderFromTemplate(self.ajax_template, response,
+                                   unique=self.unique)
 
 
 class PauseHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
@@ -126,42 +102,18 @@ class PauseHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
 """)
 
   ajax_template = renderers.Template("""
-<div id="result_{{unique|escape}}"></div>
-<script>
-  // We execute CheckAccess renderer with silent=true. Therefore it searches
-  // for an approval and sets correct reason if approval is found. When
-  // CheckAccess completes, we execute HuntViewPauseHunt renderer, which
-  // tries to pause an actual hunt. If the approval wasn't found on CheckAccess
-  // stage, it will fail due to unauthorized access and proper ACLDialog will
-  // be displayed.
-  grr.layout("CheckAccess", "result_{{unique|escapejs}}",
-    {silent: true, subject: "{{hunt_id|escapejs}}"},
-    function() {
-      grr.layout("HuntViewPauseHunt", "result_{{unique|escapejs}}",
-        {hunt_id: "{{hunt_id|escapejs}}"});
-    });
-</script>
-""")
-
-  def RenderAjax(self, request, response):
-    super(PauseHuntConfirmationDialog, self).RenderAjax(request, response)
-    return self.RenderFromTemplate(self.ajax_template, response,
-                                   unique=self.unique,
-                                   hunt_id=request.REQ.get("hunt_id"))
-
-
-class HuntViewPauseHunt(renderers.TemplateRenderer):
-  """Pauses a hunt when button is pressed and permissions checked."""
-
-  layout_template = renderers.Template("""
 <p class="text-info">Hunt paused successfully!</p>
 """)
 
   def Layout(self, request, response):
-    flow.GRRFlow.StartFlow(None, "PauseHuntFlow", token=request.token,
-                           hunt_urn=request.REQ.get("hunt_id"))
+    self.check_access_subject = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
+    return super(PauseHuntConfirmationDialog, self).Layout(request, response)
 
-    return super(HuntViewPauseHunt, self).Layout(request, response)
+  def RenderAjax(self, request, response):
+    flow.GRRFlow.StartFlow(None, "PauseHuntFlow", token=request.token,
+                           hunt_urn=rdfvalue.RDFURN(request.REQ.get("hunt_id")))
+    return self.RenderFromTemplate(self.ajax_template, response,
+                                   unique=self.unique)
 
 
 class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
@@ -174,43 +126,16 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
   expiry_time_dividers = ((60*60*24, "d"), (60*60, "h"), (60, "m"), (1, "s"))
 
   content_template = renderers.Template("""
-<form id="{{this.form_id|escape}}" class="form-horizontal">
 {{this.hunt_params_form|safe}}
-</form>
 """)
 
   ajax_template = renderers.Template("""
-<div id="result_{{unique|escape}}"></div>
-<script>
-(function() {
-  // We execute CheckAccess renderer with silent=true. Therefore it searches
-  // for an approval and sets correct reason if approval is found. When
-  // CheckAccess completes, we execute HuntViewModifyHunt renderer, which
-  // tries to pause an actual hunt. If the approval wasn't found on CheckAccess
-  // stage, it will fail due to unauthorized access and proper ACLDialog will
-  // be displayed.
-  grr.layout("CheckAccess", "result_{{unique|escapejs}}",
-    {silent: true, subject: "{{this.hunt_id|escapejs}}"},
-    function() {
-      grr.submit("HuntViewModifyHunt", "{{this.form_id|escapejs}}",
-        "result_{{unique|escapejs}}", {hunt_id: "{{this.hunt_id|escapejs}}"});
-    });
-})();
-</script>
+<p class="text-info">Hunt modified successfully!</p>
 """)
-
-  def RenderAjax(self, request, response):
-    """RenderAjax handler."""
-    super(ModifyHuntDialog, self).RenderAjax(request, response)
-    self.form_id = request.REQ.get("form_id")
-    self.hunt_id = request.REQ.get("hunt_id")
-    return self.RenderFromTemplate(self.ajax_template, response,
-                                   unique=self.unique,
-                                   this=self)
 
   def Layout(self, request, response):
     """Layout handler."""
-    hunt_urn = request.REQ.get("hunt_id")
+    hunt_urn = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
     hunt_obj = aff4.FACTORY.Open(hunt_urn, aff4_type="GRRHunt",
                                  token=request.token)
 
@@ -218,37 +143,28 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
     req = dict()
     req["client_limit"] = hunt_obj.state.context.client_limit
     req["expiry_time"] = hunt_obj.state.context.expiry_time
+
     self.hunt_params_form = type_descriptor_renderer.Form(
         hunts.GRRHunt.hunt_typeinfo, req, prefix="")
+    self.check_access_subject = hunt_urn
 
-    self.form_id = "form_%d" % renderers.GetNextId()
-    self.state["form_id"] = self.form_id
     return super(ModifyHuntDialog, self).Layout(request, response)
 
-
-class HuntViewModifyHunt(renderers.TemplateRenderer,
-                         new_hunt.HuntRequestParsingMixin):
-  """Modifies a hunt when "Modify" dialog's form is submitted."""
-
-  layout_template = renderers.Template("""
-<p class="text-info">Hunt modified successfully!</p>
-""")
-
-  def Layout(self, request, response):
-    """Layout handler."""
+  def RenderAjax(self, request, response):
+    """Starts ModifyHuntFlow that actually modifies a hunt."""
     hunt_urn = request.REQ.get("hunt_id")
 
     type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
     hunt_args = dict(type_descriptor_renderer.ParseArgs(
         hunts.GRRHunt.hunt_typeinfo, request, prefix=""))
 
-    hunt = aff4.FACTORY.Open(hunt_urn, "GRRHunt", mode="rw",
-                             token=request.token)
-    hunt.state.context.expiry_time = hunt_args["expiry_time"]
-    hunt.state.context.client_limit = hunt_args["client_limit"]
-    hunt.Close()
+    flow.GRRFlow.StartFlow(None, "ModifyHuntFlow", token=request.token,
+                           hunt_urn=rdfvalue.RDFURN(hunt_urn),
+                           expiry_time=hunt_args["expiry_time"],
+                           client_limit=hunt_args["client_limit"])
 
-    return super(HuntViewModifyHunt, self).Layout(request, response)
+    return self.RenderFromTemplate(self.ajax_template, response,
+                                   unique=self.unique)
 
 
 class HuntTable(fileview.AbstractFileTable):
@@ -257,20 +173,20 @@ class HuntTable(fileview.AbstractFileTable):
 
   layout_template = """
 <div id="new_hunt_dialog_{{unique|escape}}"
-  class="modal wide-modal high-modal hide fade" update_on_show="true"
+  class="modal wide-modal high-modal hide" update_on_show="true"
   tabindex="-1" role="dialog" aria-hidden="true">
 </div>
 
 <div id="run_hunt_dialog_{{unique|escape}}"
-  class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
+  class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
 </div>
 
 <div id="pause_hunt_dialog_{{unique|escape}}"
-  class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
+  class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
 </div>
 
 <div id="modify_hunt_dialog_{{unique|escape}}"
-  class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
+  class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
 </div>
 
 <ul class="breadcrumb">
@@ -369,7 +285,7 @@ class HuntTable(fileview.AbstractFileTable):
     $("#{{this.id|escapejs}}").find("td:contains('" +
       grr.hash.hunt_id.split("/").reverse()[0] +
       "')").click();
-  };
+  }
 })();
 </script>
 """
@@ -395,23 +311,27 @@ class HuntTable(fileview.AbstractFileTable):
     fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=request.token)
     try:
       children = list(fd.ListChildren())
-      total_size = len(children)
 
       children.sort(key=operator.attrgetter("age"), reverse=True)
       children = children[start_row:end_row]
 
-      hunt_list = list(fd.OpenChildren(children=children))
-      hunt_list = [h for h in hunt_list if isinstance(h, hunts.GRRHunt)]
-      valid_hunts = [h for h in hunt_list if not h.state.Empty()]
-      if len(valid_hunts) != len(hunt_list):
-        for h in set(hunt_list) - set(valid_hunts):
-          logging.error("Hunt without a valid state found: %s", h)
-      hunt_list = valid_hunts
-      hunt_list.sort(key=lambda x: x.state.context.create_time, reverse=True)
+      hunt_list = [x for x in fd.OpenChildren(children=children)
+                   if isinstance(x, hunts.GRRHunt)]
+      total_size = len(hunt_list)
 
+      hunt_list.sort(key=lambda x: x.state.context.get("create_time", 0),
+                     reverse=True)
+
+      could_not_display = []
       row_index = start_row
       for hunt_obj in hunt_list:
         if not isinstance(hunt_obj, hunts.GRRHunt):
+          could_not_display.append((hunt_obj, "Object is not a valid hunt."))
+          continue
+        if hunt_obj.state.Empty():
+          logging.error("Hunt without a valid state found: %s", hunt_obj)
+          could_not_display.append((hunt_obj,
+                                    "Hunt doesn't have a valid state."))
           continue
 
         context = hunt_obj.state.context
@@ -438,12 +358,11 @@ class HuntTable(fileview.AbstractFileTable):
                     row_index=row_index)
         row_index += 1
 
-      for hunt_obj in hunt_list:
-        if not isinstance(hunt_obj, hunts.GRRHunt):
-          self.AddRow({"Hunt ID": hunt_obj.urn,
-                       "Description": "No information available"},
-                      row_index=row_index)
-          row_index += 1
+      for hunt_obj, reason in could_not_display:
+        self.AddRow({"Hunt ID": hunt_obj.urn,
+                     "Description": reason},
+                    row_index=row_index)
+        row_index += 1
 
       self.size = total_size
 
@@ -756,6 +675,9 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
       try:
         self.hunt = aff4.FACTORY.Open(self.hunt_id, aff4_type="GRRHunt",
                                       token=request.token, age=aff4.ALL_TIMES)
+        if self.hunt.state.Empty():
+          raise IOError("No valid state could be found.")
+
         resources = self.hunt.GetValuesForAttribute(
             self.hunt.Schema.RESOURCES)
         self.cpu_sum, self.net_sum = 0, 0
@@ -835,6 +757,9 @@ class HuntErrorRenderer(renderers.AbstractLogRenderer):
 class HuntRuleRenderer(foreman.ReadOnlyForemanRuleTable):
   """Rule renderer that only shows our hunts rules."""
 
+  error_template = renderers.Template(
+      "No information available for this Hunt.")
+
   def RenderAjax(self, request, response):
     """Renders the table."""
     hunt_id = request.REQ.get("hunt_id")
@@ -842,14 +767,15 @@ class HuntRuleRenderer(foreman.ReadOnlyForemanRuleTable):
       hunt = aff4.FACTORY.Open(hunt_id, aff4_type="GRRHunt",
                                age=aff4.ALL_TIMES, token=request.token)
 
-      # Getting list of rules from hunt object: this doesn't require us to
-      # have admin privileges (which we need to go through foreman rules).
-      for rule in hunt.state.context.rules:
-        self.AddRow(Created=rule.created,
-                    Expires=rule.expires,
-                    Description=rule.description,
-                    Rules=rule,
-                    Actions=rule)
+      if not hunt.state.Empty():
+        # Getting list of rules from hunt object: this doesn't require us to
+        # have admin privileges (which we need to go through foreman rules).
+        for rule in hunt.state.context.rules:
+          self.AddRow(Created=rule.created,
+                      Expires=rule.expires,
+                      Description=rule.description,
+                      Rules=rule,
+                      Actions=rule)
 
     # Call our raw TableRenderer to actually do the rendering
     return renderers.TableRenderer.RenderAjax(self, request, response)
@@ -1052,15 +978,26 @@ class HuntResultsRenderer(renderers.RDFValueCollectionRenderer):
   """Displays a collection of hunt's results."""
 
   error_template = renderers.Template("""
-<p>This hunt didn't store any results.</p>
+<p>This hunt hasn't stored any results yet.</p>
+""")
+
+  no_plugin_template = renderers.Template("""
+<p>This hunt is not configured to store results in a collection.</p>
 """)
 
   def Layout(self, request, response):
+    """Layout the hunt results."""
     hunt_id = request.REQ.get("hunt_id")
     hunt = aff4.FACTORY.Open(hunt_id, age=aff4.ALL_TIMES, token=request.token)
 
-    collection = hunt.state.get("collection")
-    if collection is not None:
+    # TODO(user): In theory a hunt might choose to store the results in
+    # multiple collections. We only show the first one here.
+    output_objects = hunt.GetOutputObjects(
+        output_cls=output_plugins.CollectionPlugin)
+    if not output_objects:
+      return self.RenderFromTemplate(self.no_plugin_template, response)
+    collection = output_objects[0].GetCollection()
+    if collection:
       return super(HuntResultsRenderer, self).Layout(
           request, response, aff4_path=collection.urn)
     else:
@@ -1222,6 +1159,9 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
         hunt = aff4.FACTORY.Open(hunt_id,
                                  aff4_type="GRRHunt",
                                  token=request.token, age=aff4.ALL_TIMES)
+        if hunt.state.Empty():
+          raise IOError("No valid state could be found.")
+
         self.stats = hunt.state.context.usage_stats
 
         self.user_cpu_json_data = self._HistogramToJSON(

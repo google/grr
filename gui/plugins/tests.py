@@ -5,7 +5,7 @@
 
 
 
-# pylint: disable=W0611
+# pylint: disable=unused-import
 from grr.gui.plugins import acl_manager_test
 from grr.gui.plugins import container_viewer_test
 from grr.gui.plugins import crash_view_test

@@ -6,13 +6,14 @@
 
 
 
-from grr.client import conf
 
 # Need to import artifacts so they get registered
 # pylint: disable=unused-import
 from grr.artifacts import win_artifacts
 # pylint: enable=unused-import
+
 from grr.lib import artifact
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.flows.general import collectors
@@ -50,4 +51,4 @@ def main(args):
   test_lib.main(args)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

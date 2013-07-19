@@ -10,11 +10,11 @@ from grr.lib import server_plugins
 from grr.lib.flows import tests
 # pylint: enable=unused-import,g-bad-import-order
 
-from grr.client import conf
 from grr.client import actions
 from grr.client import vfs
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import flow_runner
 from grr.lib import rdfvalue
@@ -239,7 +239,6 @@ class FlowCreationTest(test_lib.FlowTestsBaseclass):
   notifications = {}
 
   def CollectNotifications(self, queue, session_ids, priorities, **kwargs):
-
     now = time.time()
     for session_id in session_ids:
       self.notifications.setdefault(session_id, []).append(now)
@@ -247,13 +246,13 @@ class FlowCreationTest(test_lib.FlowTestsBaseclass):
 
   def testNoRequestChildFlowRace(self):
 
-    self.old_notify = scheduler.SCHEDULER.MultiNotifyQueue
-    scheduler.SCHEDULER.MultiNotifyQueue = self.CollectNotifications
+    self.old_notify = scheduler.SCHEDULER._MultiNotifyQueue
+    scheduler.SCHEDULER._MultiNotifyQueue = self.CollectNotifications
     try:
       session_id = flow.GRRFlow.StartFlow(self.client_id, "NoRequestParentFlow",
                                           token=self.token)
     finally:
-      scheduler.SCHEDULER.MultiNotifyQueue = self.old_notify
+      scheduler.SCHEDULER._MultiNotifyQueue = self.old_notify
 
     self.assertIn(session_id, self.notifications)
 
@@ -372,7 +371,7 @@ class FlowTest(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(len(tasks), 1)
 
-    message = tasks[0].payload
+    message = tasks[0]
 
     self.assertEqual(message.session_id, flow_obj.session_id)
     self.assertEqual(message.request_id, 1)
@@ -586,8 +585,8 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     """Make sure that client events handled securely."""
     received_events = []
 
-    class Listener1(flow.EventListener):  # pylint:disable=W0612
-      well_known_session_id = "aff4:/flows/W:test2"
+    class Listener1(flow.EventListener):  # pylint: disable=unused-variable
+      well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:test2")
       EVENTS = ["Event2"]
 
       @flow.EventHandler(auth_required=True)
@@ -605,7 +604,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
 
     flow.PublishEvent("Event2", event, token=self.token)
 
-    worker = test_lib.MockWorker(queue_name="W", token=self.token)
+    worker = test_lib.MockWorker(token=self.token)
     while worker.Next():
       pass
     worker.pool.Join()
@@ -613,8 +612,8 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     # This should not work - the event listender does not accept client events.
     self.assertEqual(received_events, [])
 
-    class Listener2(flow.EventListener):  # pylint:disable=W0612
-      well_known_session_id = "aff4:/flows/W:test3"
+    class Listener2(flow.EventListener):  # pylint: disable=unused-variable
+      well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:test3")
       EVENTS = ["Event2"]
 
       @flow.EventHandler(auth_required=True, allow_client_access=True)
@@ -624,7 +623,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
 
     flow.PublishEvent("Event2", event, token=self.token)
 
-    worker = test_lib.MockWorker(queue_name="W", token=self.token)
+    worker = test_lib.MockWorker(token=self.token)
     while worker.Next():
       pass
     worker.pool.Join()
@@ -637,8 +636,9 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
 
     received_events = []
 
-    class FlowDoneListener(flow.EventListener):  # pylint:disable=W0612
-      well_known_session_id = "aff4:/flows/%s:FlowDone" % event_queue
+    class FlowDoneListener(flow.EventListener):  # pylint: disable=unused-variable
+      well_known_session_id = rdfvalue.SessionID(
+          "aff4:/flows/%s:FlowDone" % event_queue)
       EVENTS = ["Not used"]
 
       @flow.EventHandler(auth_required=True)
@@ -656,19 +656,23 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     client_mock = test_lib.ActionMock("IteratedListDirectory")
     for _ in test_lib.TestFlowHelper(
         "IteratedListDirectory", client_mock, client_id=self.client_id,
-        notification_event="aff4:/flows/%s:FlowDone" % event_queue,
+        notification_event=rdfvalue.SessionID(
+            "aff4:/flows/%s:FlowDone" % event_queue),
         pathspec=path, token=self.token):
       pass
 
     # The event goes to an external queue so we need another worker.
-    worker = test_lib.MockWorker(queue_name=event_queue, token=self.token)
+    worker = test_lib.MockWorker(queue=rdfvalue.RDFURN(event_queue),
+                                 token=self.token)
     while worker.Next():
       pass
     worker.pool.Join()
 
     self.assertEqual(len(received_events), 1)
-    self.assertEqual(received_events[0].session_id, "aff4:/flows/EV:FlowDone")
-    self.assertEqual(received_events[0].source, "aff4:/IteratedListDirectory")
+    self.assertEqual(received_events[0].session_id,
+                     rdfvalue.SessionID("aff4:/flows/EV:FlowDone"))
+    self.assertEqual(received_events[0].source,
+                     rdfvalue.RDFURN("IteratedListDirectory"))
 
     flow_event = rdfvalue.FlowNotification(received_events[0].args)
     self.assertEqual(flow_event.flow_name, "IteratedListDirectory")
@@ -679,8 +683,8 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     """Test that events are sent to listeners."""
     received_events = []
 
-    class Listener1(flow.EventListener):  # pylint:disable=W0612
-      well_known_session_id = "aff4:/flows/W:test1"
+    class Listener1(flow.EventListener):  # pylint: disable=unused-variable
+      well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:test1")
       EVENTS = ["Event1"]
 
       @flow.EventHandler(auth_required=True)
@@ -705,7 +709,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     flow.PublishEvent("Event1", event, token=self.token)
 
     # Now emulate a worker.
-    worker = test_lib.MockWorker(queue_name="W", token=self.token)
+    worker = test_lib.MockWorker(token=self.token)
     while worker.Next():
       pass
     worker.pool.Join()
@@ -744,7 +748,8 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(len(received_events), 10)
     for i in range(10):
-      self.assertEqual(received_events[i][0].source, "aff4:/Source%d" % i)
+      self.assertEqual(received_events[i][0].source,
+                       "aff4:/Source%d" % i)
       self.assertEqual(received_events[i][1].path, "foobar")
 
   def testClientPrioritization(self):
@@ -832,19 +837,25 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(sorted(server_result[3:5]),
                      [u"low priority", u"low priority2"])
 
-  def testCPULimit(self):
-    """Tests that the cpu limit works."""
 
-    result = []
+class ResourcedWorker(test_lib.MockWorker):
+  USER_CPU = [1, 20, 5, 16]
+  SYSTEM_CPU = [4, 20, 2, 8]
+  NETWORK_BYTES = [180, 1000, 580, 2000]
+
+
+class FlowLimitTests(test_lib.FlowTestsBaseclass):
+
+  def RunFlow(self, flow_name, **kwargs):
+    result = {}
     client_mock = CPULimitClientMock(result)
     client_mock = test_lib.MockClient(self.client_id, client_mock,
                                       token=self.token)
-    worker_mock = test_lib.MockWorker(check_flow_errors=True,
-                                      token=self.token)
+    worker_mock = ResourcedWorker(check_flow_errors=True,
+                                  token=self.token)
 
-    flow.GRRFlow.StartFlow(
-        self.client_id, "CPULimitFlow",
-        cpu_limit=100, token=self.token)
+    flow.GRRFlow.StartFlow(self.client_id, flow_name,
+                           token=self.token, **kwargs)
 
     while True:
       client_processed = client_mock.Next()
@@ -855,7 +866,17 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
       if client_processed == 0 and not flows_run:
         break
 
-    self.assertEqual(result, [100, 98, 78])
+    return result
+
+  def testNetworkLimit(self):
+    """Tests that the cpu limit works."""
+    result = self.RunFlow("NetworkLimitFlow", network_bytes_limit=10000)
+    self.assertEqual(result["networklimit"], [10000, 9820, 8820, 8240])
+
+  def testCPULimit(self):
+    """Tests that the cpu limit works."""
+    result = self.RunFlow("CPULimitFlow", cpu_limit=300)
+    self.assertEqual(result["cpulimit"], [300, 295, 255])
 
 
 class MockVFSHandler(vfs.VFSHandler):
@@ -925,7 +946,9 @@ class CPULimitClientMock(object):
     self.storage = storage
 
   def HandleMessage(self, message):
-    self.storage.append(message.cpu_limit)
+    self.storage.setdefault("cpulimit", []).append(message.cpu_limit)
+    self.storage.setdefault("networklimit",
+                            []).append(message.network_bytes_limit)
 
 
 class CPULimitFlow(flow.GRRFlow):
@@ -937,18 +960,36 @@ class CPULimitFlow(flow.GRRFlow):
 
   @flow.StateHandler(next_state="State2")
   def State1(self):
-    # The mock worker doesn't track usage so we add it here.
-    self.state.context.client_resources.cpu_usage.user_cpu_time += 1
-    self.state.context.client_resources.cpu_usage.system_cpu_time += 1
-    self.state.context.remaining_cpu_quota -= 2
     self.CallClient("Store", string="Hey!", next_state="State2")
 
   @flow.StateHandler(next_state="Done")
   def State2(self):
-    self.state.context.client_resources.cpu_usage.user_cpu_time += 10
-    self.state.context.client_resources.cpu_usage.system_cpu_time += 10
-    self.state.context.remaining_cpu_quota -= 20
     self.CallClient("Store", string="Hey!", next_state="Done")
+
+  @flow.StateHandler()
+  def Done(self, responses):
+    pass
+
+
+class NetworkLimitFlow(flow.GRRFlow):
+  """This flow is used to test the network bytes limit."""
+
+  @flow.StateHandler(next_state="State1")
+  def Start(self):
+    self.CallClient("Store", next_state="State1")
+
+  @flow.StateHandler(next_state="State2")
+  def State1(self):
+    # The mock worker doesn't track usage so we add it here.
+    self.CallClient("Store", next_state="State2")
+
+  @flow.StateHandler(next_state="State3")
+  def State2(self):
+    self.CallClient("Store", next_state="State3")
+
+  @flow.StateHandler(next_state="Done")
+  def State3(self):
+    self.CallClient("Store", next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -1122,4 +1163,4 @@ def main(argv):
   test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

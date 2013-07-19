@@ -6,16 +6,16 @@
 
 
 
-from grr.client import conf
-
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import flow_runner
 from grr.lib import rdfvalue
 from grr.lib import scheduler
 from grr.lib import test_lib
+from grr.lib import utils
 
 
 class SendingTestFlow(flow.GRRFlow):
@@ -39,8 +39,8 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     super(GRRFEServerTest, self).setUp()
 
     # Whitelist test flow.
-    config_lib.CONFIG.Set("Frontend.well_known_flows", [
-        test_lib.WellKnownSessionTest.well_known_session_id])
+    config_lib.CONFIG.Set("Frontend.well_known_flows", [utils.SmartStr(
+        test_lib.WellKnownSessionTest.well_known_session_id)])
 
     # For tests, small pools are ok.
     config_lib.CONFIG.Set("Threadpool.size", 10)
@@ -190,7 +190,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     # Check that the response state objects have the correct ts_id set
     # in the client_queue:
     for task in tasks:
-      request_id = task.payload.request_id
+      request_id = task.request_id
 
       # Retrieve the request state for this request_id
       request_state, _ = data_store.DB.Resolve(
@@ -339,4 +339,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

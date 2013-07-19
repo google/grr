@@ -10,8 +10,8 @@ import traceback
 
 import psutil
 
-from grr.client import conf as flags
 from grr.client import client_utils
+from grr.lib import flags
 from grr.lib import rdfvalue
 # pylint: disable=unused-import
 from grr.lib import rdfvalues
@@ -29,6 +29,11 @@ class Error(Exception):
 
 
 class CPUExceededError(Error):
+  pass
+
+
+class NetworkBytesExceededError(Error):
+  """Exceeded the maximum number of bytes allowed to be sent for this action."""
   pass
 
 
@@ -116,6 +121,7 @@ class ActionPlugin(object):
       user_start, system_start = self.proc.get_cpu_times()
       self.cpu_start = (user_start, system_start)
       self.cpu_limit = self.message.cpu_limit
+      self.network_bytes_limit = self.message.network_bytes_limit
 
       try:
         self.Run(args)
@@ -126,9 +132,14 @@ class ActionPlugin(object):
 
         self.cpu_used = (user_end - user_start, system_end - system_start)
 
+    except NetworkBytesExceededError as e:
+      self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED,
+                     "%r: %s" % (e, e),
+                     traceback.format_exc())
+
     # We want to report back all errors and map Python exceptions to
     # Grr Errors.
-    except Exception as e:  # pylint: disable=W0703
+    except Exception as e:  # pylint: disable=broad-except
       self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR,
                      "%r: %s" % (e, e),
                      traceback.format_exc())
@@ -173,7 +184,7 @@ class ActionPlugin(object):
                 message_type=rdfvalue.GrrMessage.Type.MESSAGE, **kw):
     """Send response back to the server."""
     if rdf_value is None:
-      rdf_value = self.out_rdfvalue(**kw)  # pylint: disable=E1102
+      rdf_value = self.out_rdfvalue(**kw)  # pylint: disable=not-callable
 
     self.grr_worker.SendReply(rdf_value,
                               # This is not strictly necessary but adds context
@@ -230,6 +241,10 @@ class ActionPlugin(object):
     if self.nanny_controller is None:
       self.nanny_controller = client_utils.NannyController()
     self.nanny_controller.SyncTransactionLog()
+
+  def ChargeBytesToSession(self, length):
+    self.grr_worker.ChargeBytesToSession(self.message.session_id, length,
+                                         limit=self.network_bytes_limit)
 
 
 class IteratedAction(ActionPlugin):

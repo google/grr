@@ -2,10 +2,126 @@
 """Tests for config_lib classes."""
 import os
 
-from grr.client import conf
-
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import test_lib
+
+
+class YamlConfigTest(test_lib.GRRBaseTest):
+  """Test the Yaml config file support."""
+
+  def testParsing(self):
+    conf = config_lib.GrrConfigManager()
+
+    conf.DEFINE_list("Section1.test_list", ["a", "b"], "A test integer.")
+    conf.DEFINE_integer("Section1.test", 0, "An integer")
+    conf.Initialize(parser=config_lib.YamlParser, data="""
+
+# Configuration options can be written as long hand, dot separated parameters.
+Section1.test: 2
+Section1.test_list: x,y
+Section2.test: 3%(Section1.test)
+
+Client Context:
+  Section1.test: 6
+  Section1.test2: 1
+
+  Windows Context:
+    Section1.test: 10
+
+Windows Context:
+  Section1.test: 5
+  Section1.test2: 2
+
+""")
+
+    self.assertEquals(conf["Section1.test"], 2)
+
+    # Test interpolation works.
+    self.assertEquals(conf["Section2.test"], "32")
+    self.assertEquals(conf["Section1.test_list"], ["x", "y"])
+
+    self.assertEquals(conf.Get("Section1.test_list",
+                               context=["Client Context", "Windows Context"]),
+                      ["x", "y"])
+
+    # Test that contexts affect option selection.
+    self.assertEquals(
+        conf.Get("Section1.test", context=["Client Context"]), 6)
+
+    self.assertEquals(
+        conf.Get("Section1.test", context=["Windows Context"]), 5)
+
+    context = ["Client Context", "Windows Context"]
+    self.assertEquals(
+        conf.Get("Section1.test", context=context), 10)
+
+    context = ["Windows Context", "Client Context"]
+    # Order of the context parameters should not matter.
+    self.assertEquals(
+        conf.Get("Section1.test", context=context), 10)
+
+  def testConflictingContexts(self):
+    """Test that conflicting contexts are resolved by precedence."""
+    conf = config_lib.GrrConfigManager()
+
+    conf.DEFINE_integer("Section1.test", 0, "An integer")
+    conf.Initialize(parser=config_lib.YamlParser, data="""
+
+Section1.test: 2
+
+Client Context:
+  Section1.test: 6
+
+Platform:Windows:
+  Section1.test: 10
+
+Extra Context:
+  Section1.test: 15
+""")
+
+    # Without contexts.
+    self.assertEquals(conf.Get("Section1.test"), 2)
+
+    # When running in the client context only.
+    self.assertEquals(conf.Get("Section1.test", context=["Client Context"]), 6)
+
+    # Later defined contexts (i.e. with later calls to AddContext()) are
+    # stronger than earlier contexts. For example, contexts set the command line
+    # --context option are stronger than contexts set by the running binary,
+    # since they are added last.
+    self.assertEquals(
+        conf.Get("Section1.test",
+                 context=["Client Context", "Platform:Windows"]),
+        10)
+
+    self.assertEquals(
+        conf.Get("Section1.test",
+                 context=["Platform:Windows", "Client Context"]),
+        6)
+
+  def testBackslashes(self):
+    conf = config_lib.GrrConfigManager()
+
+    conf.DEFINE_string("Section1.parameter", "", "A test.")
+    conf.DEFINE_string("Section1.parameter2", "", "A test.")
+    conf.DEFINE_string("Section1.parameter3", "", "A test.")
+
+    conf.Initialize(parser=config_lib.YamlParser, data=r"""
+
+Section1.parameter: |
+   a\\b\\c\\d
+
+Section1.parameter2: |
+   %(parameter)\\e
+
+Section1.parameter3: |
+   \%(a\\b\\c\\d\)
+""")
+
+    self.assertEqual(conf.Get("Section1.parameter"), "a\\b\\c\\d")
+    self.assertEqual(conf.Get("Section1.parameter2"), "a\\b\\c\\d\\e")
+    self.assertEqual(conf.Get("Section1.parameter3"), "%(a\\b\\c\\d)")
 
 
 class ConfigLibTest(test_lib.GRRBaseTest):
@@ -20,25 +136,34 @@ class ConfigLibTest(test_lib.GRRBaseTest):
     conf = config_lib.GrrConfigManager()
     conf.Initialize(self.conf_file)
 
-    self.assertEquals(conf["MemoryDriverLinux.device_path"],
+    # Check that the linux client have a different value from the windows
+    # client.
+    self.assertEquals(conf.Get("MemoryDriver.device_path",
+                               context=("Client", "Platform:Linux")),
                       "/dev/pmem")
+
+    self.assertEquals(conf.Get("MemoryDriver.device_path",
+                               context=("Client", "Platform:Windows")),
+                      r"\\.\pmem")
 
   def testSet(self):
     """Test setting options."""
     # Test access methods.
     conf = config_lib.GrrConfigManager()
+    conf.DEFINE_string("NewSection1.new_option1", "Default Value", "Help")
+
     conf.Initialize(self.conf_file)
 
     conf.Set("NewSection1.new_option1", "New Value1")
 
     self.assertEquals(conf["NewSection1.new_option1"], "New Value1")
 
-    self.assertTrue("NewSection1" in conf.GetSections())
-
   def testSave(self):
     """Save the config and ensure it still works."""
     conf = config_lib.GrrConfigManager()
-    conf.Initialize(self.config_file)
+    conf.SetWriteBack(self.config_file)
+    conf.DEFINE_string("NewSection1.new_option1", "Default Value", "Help")
+
     conf.Set("NewSection1.new_option1", "New Value1")
 
     conf.Write()
@@ -60,12 +185,15 @@ test = val2"""
     conf.Initialize(data=test_conf)
 
     # This should raise since the config file is incorrect.
-    self.assertRaises(config_lib.ConfigFormatError,
-                      conf.Validate, ["Section1.test"])
+    errors = conf.Validate("Section1")
+    self.assertTrue(
+        "Invalid value val2 for Integer" in str(errors["Section1.test"]))
 
   def testEmptyClientPrivateKey(self):
     """Check an empty client private_key passes."""
-    conf = config_lib.GrrConfigManager()
+    # Clone a test config object from the global config so it knows about Client
+    # options.
+    conf = config_lib.CONFIG.MakeNewConfig()
     conf.Initialize(data="""
 [Client]
 private_key =
@@ -83,7 +211,7 @@ executable_signing_public_key = -----BEGIN PUBLIC KEY-----
 
   def testEmptyClientKeys(self):
     """Check an empty other keys fail."""
-    conf = config_lib.GrrConfigManager()
+    conf = config_lib.CONFIG.MakeNewConfig()
     conf.Initialize(data="""
 [Client]
 private_key =
@@ -100,13 +228,6 @@ executable_signing_public_key =
     """Test that we can add options."""
     conf = config_lib.GrrConfigManager()
 
-    # The default os is Linux which should read from SectionLinux.
-    conf.DEFINE_string("Environment.os", "Linux",
-                       "A parameter set by the environment.")
-
-    conf.DEFINE_string("Environment.filename", "",
-                       "Filename set by the environment.")
-
     conf.DEFINE_string("Section1.foobar", "test", "A test string.")
     conf.DEFINE_string("Section1.test", "test", "A test string.")
 
@@ -116,7 +237,9 @@ executable_signing_public_key =
     conf.DEFINE_integer("Section1.test_int", "string", "A test integer.")
 
     # The default value is invalid.
-    self.assertRaises(config_lib.Error, conf.Validate, ["Section1"])
+    errors = conf.Validate("Section1")
+    self.assertTrue(
+        "Invalid value string for Integer" in str(errors["Section1.test_int"]))
 
     conf.DEFINE_string("Section1.system", None, "The basic operating system.")
     conf.DEFINE_integer("Section1.test_int", 54, "A test integer.")
@@ -126,36 +249,20 @@ executable_signing_public_key =
     conf.Initialize(data="""
 [Section1]
 foobar = X
-
-# This uses the environment variable to select the correct configuration section
-# to use.
-system = %(Section%(Environment.os).system)
 test_list = x,y
 
 [Section2]
-@inherit_from_section = Section1
 test_int = 34
 interpolated = %(Section1.foobar)Y
 
 [Section3]
-@inherit_from_section = Section2
 test_int = 1
 interpolated = %(%(Section1.foobar)|lower)Y
-
-[SectionWindows]
-@inherit_from_section = Section1
-system = Windows
-interpolated = %(%(Environment.filename)|file)
-
-[SectionLinux]
-@inherit_from_section = Section1
-system = Linux
-interpolated = %(system)
 
 """)
 
     # Section not specified:
-    self.assertRaises(RuntimeError, conf.__getitem__, "a")
+    self.assertRaises(KeyError, conf.__getitem__, "a")
 
     # Test direct access.
     self.assertEquals(conf["Section1.foobar"], "X")
@@ -165,73 +272,21 @@ interpolated = %(system)
     # Test default access.
     self.assertEquals(conf["Section1.test"], "test")
 
-    # Test section inheritance access.
-    self.assertEquals(conf["Section2.test"], "test")
-    self.assertEquals(conf["Section2.foobar"], "X")
-
     # Test interpolation with full section name.
     self.assertEquals(conf["Section2.interpolated"], "XY")
 
     # Check that default values are typed.
     self.assertEquals(conf["Section1.test_int"], 54)
 
-    # Check that default values are parsed from string. Note that the type of
-    # this inferred by inheritance.
-    self.assertEquals(conf["Section2.test_int"], 34)
-    self.assertEquals(conf["Section3.test_int"], 1)
-
     # Test filter functions.
     self.assertEquals(conf["Section3.interpolated"], "xY")
-
-    # If the interpolated parameter does not contain a section name, it refers
-    # to the current section.
-    self.assertEquals(conf["SectionLinux.interpolated"], "Linux")
-
-    # Check that the environment influences the section selection. The default
-    # Environment.os is Linux which forces the Section1.system property to be
-    # read from the SectionLinux section.
-    self.assertEquals(conf["Environment.os"], "Linux")
-    self.assertEquals(conf["Section1.system"], "Linux")
-
-    # If the environment is modified however, the Section1.system parameter is
-    # read from the SectionWindows section.
-    conf.SetEnv(Environment=dict(os="Windows", filename=__file__))
-    self.assertEquals(conf["Environment.os"], "Windows")
-    self.assertEquals(conf["Section1.system"], "Windows")
-
-    # Test the file filter. This reads the current file into the interpolated
-    # parameter.
-    self.assertEquals(conf["Environment.filename"], __file__)
-    self.assertEquals(conf["SectionWindows.interpolated"],
-                      open(__file__, "rb").read())
-
-  def testSectionOverriding(self):
-    conf = config_lib.GrrConfigManager()
-
-    conf.DEFINE_string("Section1.foobar", "test", "A test string.")
-
-    conf.Initialize(data="""
-[Section1]
-foobar = X
-
-[OverridingSection]
-Section1.foobar = Y
-""")
-
-    # Test direct access.
-    self.assertEquals(conf["Section1.foobar"], "X")
-
-    # Now execute the OverridingSection:
-    conf.ExecuteSection("OverridingSection")
-
-    self.assertEquals(conf["Section1.foobar"], "Y")
 
   def testUnbalancedParenthesis(self):
     conf = config_lib.GrrConfigManager()
     conf.Initialize(data=r"""
 [Section1]
 foobar = X
-foo = %(foobar)
+foo = %(Section1.foobar)
 foo1 = %(foo
 
 # Unbalanced parenthesis
@@ -250,14 +305,11 @@ foo5 = %{hello
 # automatic expansions.
 
 # This pull the environment variable "sectionX"
-interpolation1 = %(section%(foobar)|env)
+interpolation1 = %(section%(Section1.foobar)|env)
 
-# But this means literally section%(foo):
-interpolation2 = %(section%{%(foo)}|env)
+# But this means literally section%(Section1.foo):
+interpolation2 = %(section%{%(Section1.foo)}|env)
 
-[Execute]
-Section1.foo4! = %(Section1.foobar)
-Section1.foo5 = %(Section1.foobar)
 """)
 
     # Test direct access.
@@ -280,7 +332,7 @@ Section1.foo5 = %(Section1.foobar)
 
     # The Env filter forces uppercase on args.
     os.environ["sectionX".upper()] = "1"
-    os.environ["section%(foo)".upper()] = "2"
+    os.environ["section%(Section1.foo)".upper()] = "2"
 
     self.assertEquals(conf["Section1.interpolation1"], "1")
     self.assertEquals(conf["Section1.interpolation2"], "2")
@@ -295,15 +347,36 @@ Section1.foo5 = %(Section1.foobar)
     conf.SetRaw("Section1.foo6", "%(Section1.foo3)")
     self.assertEquals(conf["Section1.foo6"], "foo)")
 
-    # This affects execution of sections:
-    conf.ExecuteSection("Execute")
-    # The raw value in Section1.foo5 has already been interpolated when the
-    # Execute section was executed.
-    self.assertEquals(conf.GetRaw("Section1.foo5"), "X")
+  def testDataTypes(self):
+    conf = config_lib.GrrConfigManager()
+    conf.DEFINE_float("Section1.float", 0, "A float")
+    conf.Initialize(parser=config_lib.YamlParser, data="Section1.float: abc")
+    errors = conf.Validate("Section1")
+    self.assertTrue(
+        "Invalid value abc for Float" in str(errors["Section1.float"]))
 
-    # However, parameters which end with ! are not evaluated at execution time -
-    # they are written raw to their sections.
-    self.assertEquals(conf.GetRaw("Section1.foo4"), "%(Section1.foobar)")
+    self.assertRaises(config_lib.ConfigFormatError, conf.Get, "Section1.float")
+    conf.Initialize(parser=config_lib.YamlParser, data="Section1.float: 2")
+
+    # Should have no errors now. Validate should normalize the value to a float.
+    self.assertEquals(conf.Validate("Section1"), {})
+
+    self.assertEquals(type(conf.Get("Section1.float")), float)
+
+    conf.DEFINE_integer("Section1.int", 0, "An integer")
+    conf.Initialize(parser=config_lib.YamlParser, data="Section1.int: 2.0")
+
+    errors = conf.Validate("Section1")
+
+    # Floats can not be coerced to an int because that will lose data.
+    self.assertTrue(
+        "Invalid value 2.0 for Integer" in str(errors["Section1.int"]))
+
+    # A string can be coerced to an int if it makes sense:
+    conf.Initialize(parser=config_lib.YamlParser, data="Section1.int: '2'")
+
+    errors = conf.Validate("Section1")
+    self.assertEquals(type(conf.Get("Section1.int")), long)
 
 
 def main(argv):
@@ -311,4 +384,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

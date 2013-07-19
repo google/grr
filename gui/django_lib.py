@@ -11,6 +11,18 @@ import logging
 from grr.lib import config_lib
 from grr.lib import registry
 
+config_lib.DEFINE_string(
+    "AdminUI.webauth_manager", "NullWebAuthManager",
+    "The web auth manager for controlling access to the UI.")
+
+config_lib.DEFINE_bool("AdminUI.django_debug", True,
+                       "Turn on to add django debugging")
+
+config_lib.DEFINE_string(
+    "AdminUI.django_secret_key", "CHANGE_ME",
+    "This is a secret key that should be set in the server "
+    "config. It is used in XSRF and session protection.")
+
 
 class DjangoInit(registry.InitHook):
   """Initialize the Django environment."""

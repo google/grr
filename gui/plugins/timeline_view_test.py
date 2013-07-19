@@ -53,13 +53,14 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     test_lib.GRRSeleniumTest.setUp(self)
 
     # Create a new collection
-    self.CreateTimelineFixture()
+    with self.ACLChecksDisabled():
+      self.CreateTimelineFixture()
+      self.GrantClientApproval("C.0000000000000001")
 
   def testTimelineViewer(self):
     # Open the main page
     self.Open("/")
 
-    self.WaitUntil(self.IsElementPresent, "client_query")
     self.Type("client_query", "0001")
     self.Click("client_query_submit")
 
@@ -70,19 +71,13 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('0001')")
 
     # Go to Browse VFS
-    self.WaitUntil(self.IsElementPresent,
-                   "css=a:contains('Browse Virtual Filesystem')")
     self.Click("css=a:contains('Browse Virtual Filesystem')")
 
     # Navigate to the analysis directory
-    self.WaitUntil(self.IsElementPresent, "css=#_analysis")
     self.Click("css=#_analysis ins.jstree-icon")
 
-    self.WaitUntil(self.IsElementPresent, "link=Timeline")
     self.Click("link=Timeline")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=span[type=subject]:contains(\"MAC\")")
     self.Click("css=span[type=subject]:contains(\"MAC\")")
 
     self.WaitUntil(self.IsElementPresent, "css=td:contains(\"TIMELINE\")")

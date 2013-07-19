@@ -29,6 +29,13 @@ class GetFile(flow.GRRFlow):
   flow_typeinfo = type_info.TypeDescriptorSet(
       type_info.PathspecType(
           description="The pathspec for the file to retrieve."),
+
+      type_info.Integer(
+          name="read_length",
+          default=0,
+          help=("The amount of data to read from the file. If 0 we use "
+                "the value from a stat call.")
+          )
       )
 
   # We have a maximum of this many chunk reads outstanding (about 10mb)
@@ -36,12 +43,15 @@ class GetFile(flow.GRRFlow):
   CHUNK_SIZE = 512 * 1024
 
   def Init(self):
-    self.state.Register("max_chunk_number", 2)
+    self.state.Register("max_chunk_number",
+                        max(2, self.state.read_length/self.CHUNK_SIZE))
+
     # Read in 512kb chunks
     self.state.Register("chunk_size", self.CHUNK_SIZE)
     self.state.Register("current_chunk_number", 0)
+    self.state.Register("file_size", 0)
 
-  @flow.StateHandler(next_state=["Stat", "ReadBuffer", "CheckHashes"])
+  @flow.StateHandler(next_state=["Stat"])
   def Start(self):
     """Get information about the file from the client."""
     self.Init()
@@ -49,17 +59,29 @@ class GetFile(flow.GRRFlow):
         pathspec=self.state.pathspec),
                     next_state="Stat")
 
-    # Read the first buffer
-    self.FetchWindow(self.state.max_chunk_number)
-
-  @flow.StateHandler()
+  @flow.StateHandler(next_state=["ReadBuffer", "CheckHashes"])
   def Stat(self, responses):
     """Fix up the pathspec of the file."""
-    if responses.success and responses.First():
-      self.state.Register("stat", responses.First())
+    response = responses.First()
+    if responses.success and response:
+      self.state.Register("stat", response)
       self.state.pathspec = self.state.stat.pathspec
     else:
       raise IOError("Error: %s" % responses.status)
+
+    # Adjust the size from st_size if read length is not specified.
+    if self.state.read_length == 0:
+      self.state.file_size = self.state.stat.st_size
+    else:
+      self.state.file_size = self.state.read_length
+
+    self.state.max_chunk_number = (self.state.file_size /
+                                   self.state.chunk_size) + 1
+
+    self.CreateHashImage()
+    self.FetchWindow(min(
+        self.WINDOW_SIZE,
+        self.state.max_chunk_number - self.state.current_chunk_number))
 
   def FetchWindow(self, number_of_chunks_to_readahead):
     """Read ahead a number of buffers to fill the window."""
@@ -94,15 +116,8 @@ class GetFile(flow.GRRFlow):
     # The chunksize must be set to be the same as the transfer chunk size.
     fd.SetChunksize(self.state.chunk_size)
     fd.Set(fd.Schema.STAT(self.state.stat))
-    fd.Set(fd.Schema.CONTENT_LOCK(self.session_id))
 
     self.state.Register("fd", fd)
-
-    self.state.max_chunk_number = (self.state.stat.st_size /
-                                   self.state.chunk_size)
-
-    # Fill up the window with requests
-    self.FetchWindow(self.WINDOW_SIZE)
 
   @flow.StateHandler(next_state=["ReadBuffer", "CheckHashes"])
   def ReadBuffer(self, responses):
@@ -113,17 +128,18 @@ class GetFile(flow.GRRFlow):
       if not response:
         raise IOError("Missing hash for offset %s missing" % response.offset)
 
-      if self.state.get("fd", None) is None:
-        self.CreateHashImage()
+      if response.offset <= self.state.max_chunk_number * self.state.chunk_size:
+        # Write the hash to the index. Note that response.data is the hash of
+        # the block (32 bytes) and response.length is the length of the block.
+        self.state.fd.AddBlob(response.data, response.length)
+        self.Log("Received blob hash %s", response.data.encode("hex"))
+        self.Status("Received %s bytes", self.state.fd.size)
 
-      # Write the hash to the index. Note that response.data is the hash of the
-      # block (32 bytes) and response.length is the length of the block.
-      self.state.fd.AddBlob(response.data, response.length)
-      self.Log("Received blob hash %s", response.data.encode("hex"))
-      self.Status("Received %s bytes", self.state.fd.size)
-
-      # Add one more chunk to the window.
-      self.FetchWindow(1)
+        # Add one more chunk to the window.
+        self.FetchWindow(1)
+    elif (responses.status.status ==
+          responses.status.ReturnedStatus.NETWORK_LIMIT_EXCEEDED):
+      raise flow.FlowError(responses.status)
 
   @flow.StateHandler()
   def End(self):
@@ -139,7 +155,10 @@ class GetFile(flow.GRRFlow):
                time.time() - self.state.context.create_time/1e6)
 
       stat_response = self.state.fd.Get(self.state.fd.Schema.STAT)
-      self.state.fd.Close(sync=True)
+
+      fd = self.state.fd
+      fd.size = min(fd.size, self.state.file_size)
+      fd.Close(sync=True)
 
       # Notify any parent flows the file is ready to be used now.
       self.SendReply(stat_response)
@@ -183,9 +202,18 @@ class FastGetFile(GetFile):
 
   @flow.StateHandler(next_state=["CheckHashes"])
   def CheckHashes(self, responses):
-    """Check if the hashes are already in the data store."""
-    # In order to minimize the round trips we only actually check the hashes
-    # periodically.
+    """Check if the hashes are already in the data store.
+
+    In order to minimize the round trips we only actually check the hashes
+    periodically.
+
+    Args:
+      responses: client responses.
+    """
+    if (responses.status.status ==
+        responses.status.ReturnedStatus.NETWORK_LIMIT_EXCEEDED):
+      raise flow.FlowError(responses.status)
+
     for response in responses:
       if response.offset not in self.state.hash_map:
         tracker = HashTracker(response)
@@ -218,9 +246,6 @@ class FastGetFile(GetFile):
     i = 0
     for i in range(len(self.state.hash_queue)):
       hash_blob = self.state.hash_queue[i]
-
-      if self.state.get("fd") is None:
-        self.CreateHashImage()
 
       if hash_blob.blob_urn not in matched_urns:
         # We can not keep writing until this buffer comes back from the client
@@ -305,7 +330,7 @@ class GetMBR(flow.GRRFlow):
 
 class TransferStore(flow.WellKnownFlow):
   """Store a buffer into a determined location."""
-  well_known_session_id = "aff4:/flows/W:TransferStore"
+  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:TransferStore")
 
   def ProcessMessage(self, message):
     """Write the blob into the AFF4 blob storage area."""

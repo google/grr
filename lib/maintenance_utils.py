@@ -6,6 +6,7 @@
 
 
 import hashlib
+import os
 import socket
 
 import ipaddr
@@ -14,6 +15,7 @@ import logging
 
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import build
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 
@@ -23,45 +25,53 @@ DIGEST_ALGORITHM_STR = "sha256"
 SUPPORTED_PLATFORMS = ["windows", "linux", "darwin"]
 
 
-def UploadSignedConfigBlob(
-    content, file_name, platform,
-    aff4_path="/config/executables/{platform}/installers/{file_name}",
-    token=None):
+config_lib.DEFINE_string("MemoryDriver.driver_service_name",
+                         "Pmem",
+                         "The SCCM service name for the driver.")
+
+config_lib.DEFINE_string("MemoryDriver.driver_display_name",
+                         "%(Client.name) Pmem",
+                         "The SCCM display name for the driver.")
+
+
+def UploadSignedConfigBlob(content, aff4_path, client_context=None, token=None):
   """Upload a signed blob into the datastore.
 
   Args:
     content: File content to upload.
-    file_name: Unique name for file to upload.
-    platform: Which client platform to sign for. This determines which signing
-        keys to use.
-    aff4_path: aff4 path to upload to. Note this can handle platform and
-        file_name interpolation.
+    aff4_path: aff4 path to upload to.
+    client_context: The configuration contexts to use.
     token: A security token.
-
-  Returns:
-    String containing path the file was written to.
 
   Raises:
     IOError: On failure to write.
   """
-  sig_key = config_lib.CONFIG.Get(
-      "PrivateKeys%s.executable_signing_private_key" % platform.title(),
-      verify=True)
-  ver_key = config_lib.CONFIG.Get(
-      "Client%s.executable_signing_public_key" % platform.title(), verify=True)
+  # Get the values of these parameters which apply to the client running on the
+  # trarget platform.
+  if client_context is None:
+    # Default to the windows client.
+    client_context = ["Platform:Windows", "Client"]
+
+  config_lib.CONFIG.Validate(
+      parameters="PrivateKeys.executable_signing_private_key")
+
+  sig_key = config_lib.CONFIG.Get("PrivateKeys.executable_signing_private_key",
+                                  context=client_context)
+
+  ver_key = config_lib.CONFIG.Get("Client.executable_signing_public_key",
+                                  context=client_context)
 
   blob_rdf = rdfvalue.SignedBlob()
   blob_rdf.Sign(content, sig_key, ver_key, prompt=True)
-  aff4_path = rdfvalue.RDFURN(aff4_path.format(platform=platform.lower(),
-                                               file_name=file_name))
+
   fd = aff4.FACTORY.Create(aff4_path, "GRRSignedBlob", mode="w", token=token)
   fd.Set(fd.Schema.BINARY(blob_rdf))
   fd.Close()
+
   logging.info("Uploaded to %s", fd.urn)
-  return str(fd.urn)
 
 
-def UploadSignedDriverBlob(content, file_name, platform,
+def UploadSignedDriverBlob(content, file_name, platform, arch="i386",
                            aff4_path="/config/drivers/{platform}/memory/"
                            "{file_name}", install_request=None, token=None):
   """Upload a signed blob into the datastore.
@@ -72,6 +82,7 @@ def UploadSignedDriverBlob(content, file_name, platform,
     platform: Which client platform to sign for. This determines which signing
         keys to use. If you don't have per platform signing keys. The standard
         keys will be used.
+    arch: The architecture of the platform (e.g. i386, amd64).
     aff4_path: aff4 path to upload to. Note this can handle platform and
         file_name interpolation.
     install_request: A DriverInstallRequest rdfvalue describing the installation
@@ -84,10 +95,18 @@ def UploadSignedDriverBlob(content, file_name, platform,
   Raises:
     IOError: On failure to write.
   """
-  sig_key = config_lib.CONFIG.Get("PrivateKeys%s.driver_signing_private_key" %
-                                  platform.title(), verify=True)
-  ver_key = config_lib.CONFIG.Get("Client%s.driver_signing_public_key" %
-                                  platform.title(), verify=True)
+  # We create a client context to emulate the specific client's
+  # environment. This allows us to configure different values for the same
+  # parameters for different client architectures in the same configuration
+  # file.
+  client_context = ["Platform:%s" % platform.title(),
+                    "Arch:%s" % arch,
+                    "Client"]
+  sig_key = config_lib.CONFIG.Get("PrivateKeys.driver_signing_private_key",
+                                  context=client_context)
+
+  ver_key = config_lib.CONFIG.Get("Client.driver_signing_public_key",
+                                  context=client_context)
 
   blob_rdf = rdfvalue.SignedBlob()
   blob_rdf.Sign(content, sig_key, ver_key, prompt=True)
@@ -95,17 +114,20 @@ def UploadSignedDriverBlob(content, file_name, platform,
                                                file_name=file_name))
   fd = aff4.FACTORY.Create(aff4_path, "GRRMemoryDriver", mode="w", token=token)
   fd.Set(fd.Schema.BINARY(blob_rdf))
+
   if not install_request:
     installer = rdfvalue.DriverInstallTemplate()
     # Create install_request from the configuration.
-    section = "MemoryDriver%s" % platform.title()
-    installer.device_path = config_lib.CONFIG["%s.device_path" % section]
-    installer.write_path = config_lib.CONFIG["%s.install_write_path" % section]
+    installer.device_path = config_lib.CONFIG.Get(
+        "MemoryDriver.device_path", context=client_context)
+
     if platform == "Windows":
-      installer.driver_display_name = config_lib.CONFIG[
-          "%s.driver_display_name" % section]
-      installer.driver_name = config_lib.CONFIG[
-          "%s.driver_service_name" % section]
+      installer.driver_display_name = config_lib.CONFIG.Get(
+          "MemoryDriver.driver_display_name", context=client_context)
+
+      installer.driver_name = config_lib.CONFIG.Get(
+          "MemoryDriver.driver_service_name", context=client_context)
+
   else:
     installer = install_request
 
@@ -176,3 +198,54 @@ def GuessPublicHostname():
   else:
     # Our local host does not resolve attempt to retreive it externally.
     raise OSError("Could not detect public hostname for this machine")
+
+
+def _RepackBinary(context, builder_cls):
+  # Check for the presence of the template.
+  template_path = config_lib.CONFIG.Get("ClientBuilder.template_path",
+                                        context=context)
+
+  if os.path.exists(template_path):
+    builder = builder_cls(context=context)
+    return builder.MakeDeployableBinary(template_path)
+  else:
+    print "Template %s missing - will not repack." % template_path
+
+
+def RepackAllBinaries(upload=False):
+  """Repack binaries based on the configuration.
+
+  NOTE: The configuration file specifies the location of the binaries
+  templates. These usually depend on the client version which is also specified
+  in the configuration file. This simple function simply runs through all the
+  supported architectures looking for available templates for the configured
+  client version, architecture and operating system.
+
+  We do not repack all the binaries that are found in the template directories,
+  only the ones that are valid for the current configuration. It is not an error
+  to have a template missing, we simply ignore it and move on.
+
+  Args:
+    upload: If specified we also upload the repacked binary into the datastore.
+
+  Returns:
+    A list of output installers generated.
+  """
+  built = []
+
+  # First build the windows binaries.
+  for context, builder in (
+      (["Platform:Windows", "Arch:amd64"], build.WindowsClientBuilder),
+      (["Platform:Windows", "Arch:i386"], build.WindowsClientBuilder),
+      (["Platform:Linux", "Arch:amd64"], build.LinuxClientBuilder),
+      (["Platform:Darwin", "Arch:amd64"], build.DarwinClientBuilder)):
+
+    output_path = _RepackBinary(context, builder)
+    built.append(output_path)
+    if upload:
+      dest = config_lib.CONFIG.Get("Executables.installer", context=context)
+      print "Uploaded config file to %s" % dest
+      UploadSignedConfigBlob(open(output_path).read(100*1024*1024),
+                             dest, client_context=context)
+
+  return built

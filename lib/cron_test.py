@@ -2,14 +2,13 @@
 import time
 
 
-from grr.client import conf
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import aff4
 from grr.lib import cron
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -77,6 +76,30 @@ class CronTest(test_lib.GRRBaseTest):
     # Check that the link points to the correct flow.
     cron_job_flow = aff4.FACTORY.Open(cron_job_flows[0], token=self.token)
     self.assertEqual(cron_job_flow.state.context.flow_name, "FakeCronJob")
+
+  def testDisabledCronJobDoesNotScheduleFlows(self):
+    cron_manager = cron.CronManager()
+    cron_job_urn1 = cron_manager.ScheduleFlow("FakeCronJob", flow_args={},
+                                              token=self.token)
+    cron_job_urn2 = cron_manager.ScheduleFlow("FakeCronJob", flow_args={},
+                                              token=self.token)
+
+    cron_job1 = aff4.FACTORY.Open(cron_job_urn1, aff4_type="CronJob",
+                                  mode="rw", token=self.token)
+    cron_job1.Set(cron_job1.Schema.DISABLED(1))
+    cron_job1.Close()
+
+    cron_manager.RunOnce(token=self.token)
+
+    cron_job1 = aff4.FACTORY.Open(cron_job_urn1, aff4_type="CronJob",
+                                  token=self.token)
+    cron_job2 = aff4.FACTORY.Open(cron_job_urn2, aff4_type="CronJob",
+                                  token=self.token)
+
+    # Disabled flow shouldn't be running, while not-disabled flow should run
+    # as usual.
+    self.assertFalse(cron_job1.IsRunning())
+    self.assertTrue(cron_job2.IsRunning())
 
   def testCronJobRunMonitorsRunningFlowState(self):
     cron_manager = cron.CronManager()
@@ -261,4 +284,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

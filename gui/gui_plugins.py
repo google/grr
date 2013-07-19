@@ -8,7 +8,7 @@ This also acts as a sensible single place to add deployment specific gui plugin
 modules that have been customized for your deployment.
 """
 
-# pylint: disable=W0611
+# pylint: disable=unused-import
 
 from grr.gui import plugins
 from grr.gui import renderers

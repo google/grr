@@ -120,8 +120,7 @@ class SignedBlob(rdfvalue.RDFProtoStruct):
     if len(rsa) < 2048:
       logging.warn("signing key is too short.")
 
-    sig = rsa.sign(digest, DIGEST_ALGORITHM_STR)
-    self.signature = sig
+    self.signature = rsa.sign(digest, DIGEST_ALGORITHM_STR)
     self.signature_type = self.SignatureType.RSA_2048
 
     self.digest = digest
@@ -174,7 +173,7 @@ class PEMPrivateKey(X509CertificateType):
 
   def ParseFromString(self, pem_string):
     try:
-      rsa = RSA.load_key_string(pem_string)
+      rsa = RSA.load_key_string(pem_string, callback=lambda x: "")
       rsa.check_key()
     except RSA.RSAError:
       raise type_info.TypeValueError("Private key %s is invalid." % self.name)

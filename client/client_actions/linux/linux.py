@@ -12,8 +12,10 @@ import pwd
 import stat
 import subprocess
 import tempfile
+import time
 
 from grr.client import actions
+from grr.client import client_utils_common
 from grr.client.client_actions import standard
 from grr.client.client_actions.linux import ko_patcher
 from grr.lib import config_lib
@@ -203,20 +205,27 @@ class EnumerateUsers(actions.ActionPlugin):
   def ParseWtmp(self):
     """Parse wtmp and extract the last logon time."""
     users = {}
-    wtmp = open("/var/log/wtmp").read()
-    while wtmp:
-      try:
-        record = UtmpStruct(wtmp)
-      except RuntimeError:
-        break
 
-      wtmp = wtmp[record.size:]
+    for filename in sorted(os.listdir("/var/log")):
+      if filename.startswith("wtmp"):
+        try:
+          wtmp = open(os.path.join("/var/log", filename)).read()
+        except IOError:
+          continue
 
-      try:
-        if users[record.ut_user] < record.tv_sec:
-          users[record.ut_user] = record.tv_sec
-      except KeyError:
-        users[record.ut_user] = record.tv_sec
+        while wtmp:
+          try:
+            record = UtmpStruct(wtmp)
+          except RuntimeError:
+            break
+
+          wtmp = wtmp[record.size:]
+
+          try:
+            if users[record.ut_user] < record.tv_sec:
+              users[record.ut_user] = record.tv_sec
+          except KeyError:
+            users[record.ut_user] = record.tv_sec
 
     return users
 
@@ -415,5 +424,22 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
   in_rdfvalue = rdfvalue.ExecuteBinaryRequest
   out_rdfvalue = rdfvalue.ExecuteBinaryResponse
 
-  # This is not yet supported but we need this stub here so the worker can
-  # determine the correct rdfvalues.
+  def Run(self, args):
+    """Run."""
+    pub_key = config_lib.CONFIG["Client.executable_signing_public_key"]
+    if not args.executable.Verify(pub_key):
+      raise OSError("Executable signing failure.")
+
+    path = self.WriteBlobToFile(args.executable, args.write_path, ".deb")
+
+    cmd = "/usr/bin/dpkg"
+    cmd_args = ["-i", path]
+    time_limit = args.time_limit
+
+    client_utils_common.Execute(cmd, cmd_args, time_limit=time_limit,
+                                bypass_whitelist=True, daemon=True)
+
+    # The installer will run in the background and kill the main process
+    # so we just wait. If something goes wrong, the nanny will restart the
+    # service after a short while and the client will come back to life.
+    time.sleep(1000)

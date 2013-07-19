@@ -9,12 +9,12 @@ import datetime
 import os
 import StringIO
 
-from grr.client import conf
+from grr.lib import flags
 from grr.lib import test_lib
 from grr.parsers import ie_history
 
 
-# pylint: disable=C6409
+# pylint: disable=g-bad-name
 
 
 class IEHistoryTest(test_lib.GRRBaseTest):
@@ -48,4 +48,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

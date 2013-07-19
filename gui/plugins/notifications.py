@@ -6,8 +6,10 @@ import json
 import urllib
 
 from django import http
+
 from grr.gui import renderers
 from grr.lib import aff4
+from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 
@@ -38,7 +40,7 @@ class NotificationBar(renderers.TemplateRenderer):
   """Render a notification bar for the user."""
 
   layout_template = renderers.Template("""
-<div id="notification_dialog" class="modal wide-modal hide fade" tabindex="-1"
+<div id="notification_dialog" class="modal wide-modal hide" tabindex="-1"
   role="dialog" aria-hidden="true">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal"
@@ -70,6 +72,19 @@ class NotificationBar(renderers.TemplateRenderer):
     return self.CallJavascript(response, "NotificationBar.Layout")
 
 
+class ResetUserNotifications(flow.GRRFlow):
+  """A flow to reset user's notifications."""
+
+  # This flow can run without ACL enforcement (an SUID flow).
+  ACL_ENFORCED = False
+
+  @flow.StateHandler()
+  def Start(self):
+    user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add(
+        self.token.username), aff4_type="GRRUser", mode="rw", token=self.token)
+    user_fd.ShowNotifications(reset=True)
+
+
 class ViewNotifications(renderers.TableRenderer):
   """Render the notifications for the user."""
 
@@ -91,38 +106,37 @@ class ViewNotifications(renderers.TableRenderer):
 
   def BuildTable(self, start_row, end_row, request):
     """Add all the notifications to this table."""
-    try:
-      row_index = 0
-      search_term = request.REQ.get("sSearch")
+    row_index = 0
+    search_term = request.REQ.get("sSearch")
 
-      # We modify this object by changing the notification from pending to
-      # shown.
-      user_fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(
-          request.user), "GRRUser", mode="rw", token=request.token)
+    # We modify this object by changing the notification from pending to
+    # shown.
+    user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add(
+        request.user), aff4_type="GRRUser", token=request.token)
 
-      # Hack for sorting. Requires retrieval of all notifications.
-      notifications = list(user_fd.ShowNotifications(reset=True))
-      for notification in sorted(notifications, key=lambda x: x.timestamp,
-                                 reverse=True):
-        if row_index < start_row: continue
-        if row_index > end_row: break
+    # Hack for sorting. Requires retrieval of all notifications.
+    notifications = list(user_fd.ShowNotifications(reset=False))
+    for notification in sorted(notifications, key=lambda x: x.timestamp,
+                               reverse=True):
+      if row_index < start_row: continue
+      if row_index > end_row: break
 
-        if (search_term and
-            search_term.lower() not in notification.message.lower()):
-          continue
+      if (search_term and
+          search_term.lower() not in notification.message.lower()):
+        continue
 
-        row = {"Message": notification.message,
-               "Target": self.FormatFromTemplate(
-                   self.target_template,
-                   hash=self.BuildHashFromNotification(notification),
-                   target=notification.subject),
-               "Timestamp": rdfvalue.RDFDatetime(notification.timestamp),
-              }
-        self.AddRow(row, row_index)
-        row_index += 1
+      row = {"Message": notification.message,
+             "Target": self.FormatFromTemplate(
+                 self.target_template,
+                 hash=self.BuildHashFromNotification(notification),
+                 target=notification.subject),
+             "Timestamp": rdfvalue.RDFDatetime(notification.timestamp),
+            }
+      self.AddRow(row, row_index)
+      row_index += 1
 
-    except IOError:
-      pass
+    flow.GRRFlow.StartFlow(None, "ResetUserNotifications",
+                           token=request.token)
 
   def BuildHashFromNotification(self, notification):
     """Navigate to the most appropriate location for this navigation."""
@@ -142,6 +156,9 @@ class ViewNotifications(renderers.TableRenderer):
       if len(components) == 2 and components[0] == "hunts":
         h["hunt_id"] = notification.subject
         h["main"] = "ManageHunts"
+      elif len(components) == 2 and components[0] == "cron":
+        h["cron_job_urn"] = notification.subject
+        h["main"] = "ManageCron"
       elif len(components) == 3 and components[1] == "flows":
         h["flow"] = notification.subject
         h["c"] = components[0]

@@ -13,11 +13,6 @@ from grr.lib import log
 from grr.lib import registry
 
 
-config_lib.DEFINE_string(
-    "AdminUI.webauth_manager", "NullWebAuthManager",
-    "The web auth manager for controlling access to the UI.")
-
-
 class BaseWebAuthManager(object):
   """A class managing web authentication.
 

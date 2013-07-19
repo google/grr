@@ -3,7 +3,7 @@
 """A module to load all vfs handler plugins."""
 
 
-# pylint: disable=W0611
+# pylint: disable=unused-import
 import platform
 
 # These import populate the VFSHandler registry
@@ -11,6 +11,6 @@ from grr.client.vfs_handlers import files
 from grr.client.vfs_handlers import memory
 from grr.client.vfs_handlers import sleuthkit
 
-# pylint: disable=C6204
+# pylint: disable=g-import-not-at-top
 if platform.system() == "Windows":
   from grr.client.vfs_handlers import registry

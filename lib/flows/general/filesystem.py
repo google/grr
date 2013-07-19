@@ -343,7 +343,7 @@ class SlowGetFile(flow.GRRFlow):
     # Did it work?
     if responses.success and responses:
       self.state.Register("file_hash", responses.First().data)
-      self.Log("File hash is %s", self.state.file_hash)
+      self.Log("File hash is %s", self.state.file_hash.encode("hex"))
 
   @flow.StateHandler(next_state="ReadBuffer")
   def ReadBuffer(self, responses):

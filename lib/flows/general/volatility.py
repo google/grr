@@ -51,7 +51,7 @@ user, plugin and time. E.g. /analysis/{p}/{u}-{t}.""",
     plugin_list = self.GetPlugins()
     for plugin in plugin_list:
       if plugin not in self.state.request.args:
-        self.state.request.args[plugin] = None
+        self.state.request.args[plugin] = {}
 
       # Also support this deprecated request method for old clients.
       self.state.request.plugins.Append(plugin)
@@ -64,16 +64,17 @@ user, plugin and time. E.g. /analysis/{p}/{u}-{t}.""",
     system = client.Get(client.Schema.SYSTEM)
     version = str(client.Get(client.Schema.OS_VERSION))
 
+    plugin_list = set(plugin_list)
+    whitelist = set(self.plugin_whitelist)
     # If not all requested plugins are whitelisted...
-    if not set(plugin_list) <= set(self.plugin_whitelist):
-      if system != "Windows":
+    if not plugin_list.issubset(whitelist):
+      if system == "Windows":
+        if version[0:3] <= "5.0":
+          raise flow.FlowError("Cannot run volatility on versions < Win2K")
+      else:
         raise flow.FlowError(
             "Volatility on non-Windows only supports plugins %s." %
             self.plugin_whitelist)
-      else:
-        # For Windows
-        if version[0:3] <= "5.0":
-          raise flow.FlowError("Cannot run volatility on versions < Win2K")
 
     self.CallClient("VolatilityAction", self.state.request,
                     next_state="StoreResults")
@@ -92,7 +93,8 @@ user, plugin and time. E.g. /analysis/{p}/{u}-{t}.""",
       output = self.state.output.format(t=time.time(),
                                         u=self.state.context.user,
                                         p=response.plugin)
-      self.state.output_urn = aff4.ROOT_URN.Add(self.client_id).Add(output)
+
+      self.state.output_urn = self.client_id.Add(output)
 
       fd = aff4.FACTORY.Create(self.state.output_urn, self.response_obj,
                                mode="rw", token=self.token)
@@ -107,7 +109,7 @@ user, plugin and time. E.g. /analysis/{p}/{u}-{t}.""",
   @flow.StateHandler()
   def End(self):
     if not self.state.output_urn:
-      self.state.output_urn = aff4.ROOT_URN.Add(self.client_id)
+      self.state.output_urn = self.client_id
     self.Notify("ViewObject", self.state.output_urn,
                 "Ran volatility modules %s" % self.GetPlugins())
 

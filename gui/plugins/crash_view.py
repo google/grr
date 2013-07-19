@@ -54,19 +54,20 @@ class ClientCrashDetailsRenderer(renderers.RDFValueRenderer):
 class ClientCrashCollectionRenderer(renderers.TableRenderer):
   """Renderer for RDFValueCollection of ClientCrash."""
 
-  post_parameters = ["crashes_urn"]
   size = 0
+  crashes_urn = None
 
   def __init__(self, **kwargs):
     super(ClientCrashCollectionRenderer, self).__init__(**kwargs)
-    self.crashes_urn = None
     self.AddColumn(renderers.RDFValueColumn("Client Id", width="10%"))
     self.AddColumn(renderers.RDFValueColumn(
         "Crash Details", width="90%", renderer=ClientCrashDetailsRenderer))
 
   def BuildTable(self, start_row, end_row, request):
     """Builds table of ClientCrash'es."""
-    crashes_urn = self.state["crashes_urn"]
+    crashes_urn = str(self.state.get("crashes_urn") or
+                      request.REQ.get("crashes_urn"))
+
     try:
       collection = aff4.FACTORY.Open(crashes_urn,
                                      aff4_type="RDFValueCollection",
@@ -85,8 +86,7 @@ class ClientCrashCollectionRenderer(renderers.TableRenderer):
   def Layout(self, request, response):
     self.state["crashes_urn"] = str(self.crashes_urn or
                                     request.REQ.get("crashes_urn"))
-    return super(ClientCrashCollectionRenderer, self).Layout(
-        request, response)
+    super(ClientCrashCollectionRenderer, self).Layout(request, response)
 
 
 class GlobalCrashesRenderer(ClientCrashCollectionRenderer):
@@ -94,7 +94,4 @@ class GlobalCrashesRenderer(ClientCrashCollectionRenderer):
   description = "All Clients Crashes"
   behaviours = frozenset(["GeneralAdvanced"])
   order = 50
-
-  def Layout(self, request, response):
-    self.crashes_urn = aff4.ROOT_URN.Add("crashes")
-    super(GlobalCrashesRenderer, self).Layout(request, response)
+  crashes_urn = aff4.ROOT_URN.Add("crashes")

@@ -47,12 +47,14 @@ HIGH_CHR_MAP = dict((x, chr(0x80 | x)) for x in range(0, 256))
 # This function is HOT.
 def ReadTag(buf, pos):
   """Read a tag from the buffer, and return a (tag_bytes, new_pos) tuple."""
-  start = pos
-  while ORD_MAP[buf[pos]] & 0x80:
+  try:
+    start = pos
+    while ORD_MAP[buf[pos]] & 0x80:
+      pos += 1
     pos += 1
-  pos += 1
-  return (buf[start:pos], pos)
-
+    return (buf[start:pos], pos)
+  except IndexError:
+    raise ValueError("Invalid tag")
 
 # This function is HOT.
 def VarintWriter(write, value):
@@ -407,7 +409,6 @@ class ProtoSignedInteger(ProtoUnsignedInteger):
   Note: signed VarInts are more expensive than unsigned VarInts.
   """
 
-  wire_type = WIRETYPE_VARINT
   proto_type_name = "int64"
 
   def Write(self, stream, value):
@@ -426,6 +427,7 @@ class ProtoFixed32(ProtoUnsignedInteger):
   _size = 4
 
   proto_type_name = "sfixed32"
+  wire_type = WIRETYPE_FIXED32
 
   def Write(self, stream, value):
     stream.write(self.tag_data)
@@ -445,6 +447,7 @@ class ProtoFixed64(ProtoFixed32):
   _size = 8
 
   proto_type_name = "sfixed64"
+  wire_type = WIRETYPE_FIXED64
 
   def ConvertToWireFormat(self, value):
     return struct.pack("<Q", long(value))
@@ -476,7 +479,7 @@ class ProtoFloat(ProtoFixed32):
 
   def Validate(self, value, **_):
     if not isinstance(value, (int, long, float)):
-      raise type_info.TypeValueError("Invalid value %s for Integer" % value)
+      raise type_info.TypeValueError("Invalid value %s for Float" % value)
 
     return value
 
@@ -1000,9 +1003,10 @@ class ProtoList(ProtoType):
     """Check that value is a list of the required type."""
     # Assigning from same kind can allow us to skip verification since all
     # elements in a RepeatedFieldHelper already are coerced to the delegate
-    # type. In that case we just make a copy.
+    # type. In that case we just make a copy.  This only works when the value
+    # wraps the same type as us.
     if (value.__class__ is RepeatedFieldHelper and
-        value.type_descriptor.__class__ is self.delegate.__class__):
+        value.type_descriptor is self.delegate):
       result = value.Copy()
 
     # Make sure the base class finds the value valid.
@@ -1336,7 +1340,11 @@ class RDFStruct(rdfvalue.RDFValue):
       self.ParseFromString(initializer.SerializeToString())
 
     elif initializer.__class__ is str:
-      self.ParseFromString(initializer)
+      try:
+        self.ParseFromString(initializer)
+      except rdfvalue.DecodeError:
+        logging.error("Unable to parse: %s.", initializer.encode("hex"))
+        raise
 
     else:
       raise ValueError("%s can not be initialized from %s" % (
@@ -1425,7 +1433,7 @@ class RDFStruct(rdfvalue.RDFValue):
         python_format = type_descriptor.ConvertFromWireFormat(wire_format)
 
       # Skip printing of unknown fields.
-      if isinstance(k, str):
+      if isinstance(k, basestring):
         prefix = k + " :"
         for line in type_descriptor.Format(python_format):
           yield " %s %s" % (prefix, line)
@@ -1462,11 +1470,22 @@ class RDFStruct(rdfvalue.RDFValue):
     """Sets the attribute in to the value."""
     type_info_obj = self.type_infos.get(attr)
 
-    # Access to our own object attributes:
     if type_info_obj is None:
       raise AttributeError("Field %s is not known." % attr)
 
     return self._Set(attr, value, type_info_obj)
+
+  def SetWireFormat(self, attr, value):
+    """Sets the attribute providing the serialized representation."""
+    type_info_obj = self.type_infos.get(attr)
+
+    if type_info_obj is None:
+      raise AttributeError("Field %s is not known." % attr)
+
+    self._data[attr] = (None, value, type_info_obj)
+
+    # Make sure to invalidate our parent's cache if needed.
+    self.dirty = True
 
   def Get(self, attr):
     """Retrieve the attribute specified."""
@@ -1495,6 +1514,20 @@ class RDFStruct(rdfvalue.RDFValue):
       self._data[attr] = (python_format, wire_format, type_descriptor)
 
     return python_format
+
+  def GetWireFormat(self, attr):
+    """Retrieve the attribute specified in serialized form."""
+    entry = self._data.get(attr)
+    # We dont have this field, try the defaults.
+    if entry is None:
+      return ""
+
+    python_format, wire_format, type_descriptor = entry
+    if wire_format is None:
+      wire_format = python_format.SerializeToDataStore()
+      self._data[attr] = (python_format, wire_format, type_descriptor)
+
+    return wire_format
 
   @classmethod
   def AddDescriptor(cls, field_desc):

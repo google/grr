@@ -296,7 +296,7 @@ CREATE TABLE `%s` (
     """Remove some attributes from a subject."""
     _ = sync  # Unused
 
-    self.security_manager.CheckAccess(token, [subject], "w")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     with self.pool.GetConnection() as cursor:
       query = ("delete from `%s` where hash=md5(%%s) and "
                "subject=%%s and attribute in (%s) " % (
@@ -307,7 +307,7 @@ CREATE TABLE `%s` (
       cursor.Execute(query, args)
 
   def DeleteSubject(self, subject, token=None):
-    self.security_manager.CheckAccess(token, [subject], "w")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     with self.pool.GetConnection() as cursor:
       query = ("delete from `%s` where hash=md5(%%s) and subject=%%s  " %
                self.table_name)
@@ -332,7 +332,7 @@ CREATE TABLE `%s` (
   def ResolveMulti(self, subject, predicates, decoder=None, token=None,
                    timestamp=None):
     """Resolves multiple predicates at once for one subject."""
-    self.security_manager.CheckAccess(token, [subject], "r")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "r")
 
     with self.pool.GetConnection() as cursor:
       query = ("select * from `%s` where hash = md5(%%s) and "
@@ -368,7 +368,7 @@ CREATE TABLE `%s` (
 
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
                         decoder=None, timestamp=None, limit=None):
-    self.security_manager.CheckAccess(token, subjects, "r")
+    self.security_manager.CheckDataStoreAccess(token, subjects, "r")
     if not subjects:
       return {}
 
@@ -415,7 +415,7 @@ CREATE TABLE `%s` (
   def MultiSet(self, subject, values, timestamp=None, token=None, replace=True,
                sync=True, to_delete=None):
     """Set multiple predicates' values for this subject in one operation."""
-    self.security_manager.CheckAccess(token, [subject], "w")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     if timestamp is None:
       timestamp = time.time() * 1e6
@@ -573,7 +573,7 @@ CREATE TABLE `%s` (
           result.setdefault(predicate, []).append((value, ts))
 
         try:
-          self.security_manager.CheckAccess(token, [subject], "rq")
+          self.security_manager.CheckDataStoreAccess(token, [subject], "rq")
 
           result_set.Append(result)
         except access_control.UnauthorizedAccess:

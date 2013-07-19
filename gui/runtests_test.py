@@ -4,12 +4,11 @@
 
 from selenium import webdriver
 
-
-from grr.client import conf
 import logging
 
 from grr.gui import runtests
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import test_lib
 
 
@@ -57,6 +56,5 @@ def main(argv):
   # Run the full test suite
   SeleniumTestProgram(argv=argv)
 
-
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

@@ -29,11 +29,11 @@ class MyImgInfo(pytsk3.Img_Info):
     pytsk3.Img_Info.__init__(self)
     self.fd = fd
 
-  def read(self, offset, length):  # pylint: disable=C6409
+  def read(self, offset, length):  # pylint: disable=g-bad-name
     self.fd.seek(offset)
     return self.fd.read(length)
 
-  def get_size(self):  # pylint: disable=C6409
+  def get_size(self):  # pylint: disable=g-bad-name
     # Windows is unable to report the true size of the raw device and allows
     # arbitrary reading past the end - so we lie here to force tsk to read it
     # anyway

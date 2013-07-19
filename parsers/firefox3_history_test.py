@@ -8,7 +8,7 @@
 import datetime
 import os
 
-from grr.client import conf
+from grr.lib import flags
 from grr.lib import test_lib
 from grr.parsers import firefox3_history
 
@@ -58,4 +58,4 @@ def main(argv):
   test_lib.main(argv)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

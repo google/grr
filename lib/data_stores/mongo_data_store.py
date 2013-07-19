@@ -18,7 +18,7 @@ from grr.lib import data_store
 from grr.lib import registry
 from grr.lib import utils
 
-config_lib.DEFINE_string("Mongo.server", None,
+config_lib.DEFINE_string("Mongo.server", "localhost",
                          "The mongo server hostname.")
 
 config_lib.DEFINE_integer("Mongo.port", 27017, "The mongo server port..")
@@ -197,8 +197,8 @@ class MongoDataStore(data_store.DataStore):
 
     if config_lib.CONFIG["Mongo.server"]:
       mongo_client = connector(
-          location=config_lib.CONFIG["Mongo.server"],
-          port=config_lib.CONFIG["Mongo.port"])
+          host=config_lib.CONFIG["Mongo.server"],
+          port=int(config_lib.CONFIG["Mongo.port"]))
 
     else:
       mongo_client = connector()
@@ -243,7 +243,7 @@ class MongoDataStore(data_store.DataStore):
   def ResolveMulti(self, subject, predicates, decoder=None, token=None,
                    timestamp=None):
     """Resolves multiple predicates at once for one subject."""
-    self.security_manager.CheckAccess(token, [subject], "r")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "r")
 
     # Build a query spec.
     spec = {"$and": [
@@ -259,14 +259,14 @@ class MongoDataStore(data_store.DataStore):
 
   def DeleteSubject(self, subject, token=None):
     """Completely deletes all information about the subject."""
-    self.security_manager.CheckAccess(token, [subject], "w")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     self.latest_collection.remove(dict(subject=subject))
     self.versioned_collection.remove(dict(subject=subject))
 
   def MultiSet(self, subject, values, timestamp=None, token=None,
                replace=True, sync=True, to_delete=None):
     """Set multiple predicates' values for this subject in one operation."""
-    self.security_manager.CheckAccess(token, [subject], "w")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     if timestamp is None:
       timestamp = time.time() * 1e6
@@ -325,7 +325,7 @@ class MongoDataStore(data_store.DataStore):
     if start or end:
       raise NotImplementedError("Mongo data store does not support timestamp "
                                 "based deletion yet.")
-    self.security_manager.CheckAccess(token, [subject], "w")
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     # Build a spec to select the subject and any of the predicates.
     spec = {"$and": [
@@ -339,7 +339,7 @@ class MongoDataStore(data_store.DataStore):
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
                         decoder=None, timestamp=None, limit=None):
     """Retrieves a bunch of subjects in one round trip."""
-    self.security_manager.CheckAccess(token, subjects, "r")
+    self.security_manager.CheckDataStoreAccess(token, subjects, "r")
     if not subjects:
       return {}
 
@@ -376,7 +376,7 @@ class MongoDataStore(data_store.DataStore):
   def MultiResolveLiteral(self, subjects, predicates, token=None,
                           decoder=None, timestamp=None, limit=None):
     """Retrieves a bunch of subjects in one round trip."""
-    self.security_manager.CheckAccess(token, subjects, "r")
+    self.security_manager.CheckDataStoreAccess(token, subjects, "r")
     if not subjects:
       return {}
 
@@ -455,7 +455,7 @@ class MongoDataStore(data_store.DataStore):
         result.setdefault(predicate, []).append((value, ts))
 
       try:
-        self.security_manager.CheckAccess(token, [subject], "rq")
+        self.security_manager.CheckDataStoreAccess(token, [subject], "rq")
 
         result_set.Append(result)
       except access_control.UnauthorizedAccess:

@@ -18,8 +18,11 @@ from grr.lib import utils
 
 
 class RegistryConfigParser(config_lib.GRRConfigParser):
-  """A registry based configuration parser."""
+  """A registry based configuration parser.
 
+  This config system simply stores all the parameters as values of type REG_SZ
+  in a single key.
+  """
   name = "reg"
   root_key = None
 
@@ -41,48 +44,32 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
       logging.debug("Unable to open config registry key: %s", e)
       return
 
-  def sections(self):
-    """Return a list of the sections in this registry."""
-    i = 0
-    if self.root_key:
-      while True:
-        try:
-          yield _winreg.EnumKey(self.root_key, i)
-        except exceptions.WindowsError:
-          break
-
-        i += 1
-
-  def items(self, section):
+  def RawData(self):
     """Yields the valus in each section."""
-    section = _winreg.OpenKey(self.root_key, section, 0, _winreg.KEY_READ)
+    result = config_lib.OrderedYamlDict()
+
     i = 0
     while True:
       try:
-        name, value, value_type = _winreg.EnumValue(section, i)
+        name, value, value_type = _winreg.EnumValue(self.root_key, i)
         # Only support strings here.
         if value_type == _winreg.REG_SZ:
-          yield name, utils.SmartStr(value)
+          result[name] = utils.SmartStr(value)
       except exceptions.WindowsError:
         break
 
       i += 1
+
+    return result
 
   def SaveData(self, raw_data):
     logging.info("Writing back configuration to key %s", self.filename)
 
     # Ensure intermediate directories exist.
     try:
-      for section, data in raw_data.items():
-        section_key = _winreg.CreateKeyEx(self.root_key, section)
-        try:
-          for config_key, config_value in data.items():
-            if config_key.startswith("__"): continue
-
-            _winreg.SetValueEx(section_key, config_key, 0, _winreg.REG_SZ,
-                               str(config_value))
-        finally:
-          _winreg.CloseKey(section_key)
+      for key, value in raw_data.items():
+        _winreg.SetValueEx(self.root_key, key, 0, _winreg.REG_SZ,
+                           utils.SmartStr(value))
 
     finally:
       # Make sure changes hit the disk.

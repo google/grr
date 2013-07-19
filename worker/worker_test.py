@@ -5,14 +5,13 @@
 
 import time
 
-from grr.client import conf
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import flow_runner
 from grr.lib import rdfvalue
@@ -60,7 +59,8 @@ class WorkerSendingTestFlow2(WorkerSendingTestFlow):
 
 class WorkerSendingWKTestFlow(flow.WellKnownFlow):
 
-  well_known_session_id = "aff4:/flows/WorkerSendingWKTestFlow"
+  well_known_session_id = rdfvalue.SessionID(
+      "aff4:/flows/WorkerSendingWKTestFlow")
 
   def ProcessMessage(self, message):
     RESULTS.append(message)
@@ -88,11 +88,13 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
             type=rdfvalue.GrrMessage.Type.STATUS))
 
     # Signal on the worker queue that this flow is ready.
-    data_store.DB.Set("W", "task:%s" % session_id, "X", token=self.token)
+    data_store.DB.Set(worker.DEFAULT_WORKER_QUEUE,
+                      "task:%s" % session_id, "X", token=self.token)
 
   def testProcessMessages(self):
     """Test processing of several inbound messages."""
-    worker_obj = worker.GRRWorker("W", run_cron=False, token=self.token)
+    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+                                  run_cron=False, token=self.token)
 
     # Create a couple of flows
     flow_obj = self.FlowSetup("WorkerSendingTestFlow")
@@ -152,11 +154,12 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
                     rdfvalue.Flow.State.TERMINATED)
 
   def testProcessMessagesWellKnown(self):
-    worker_obj = worker.GRRWorker("W", run_cron=False, token=self.token)
+    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+                                  run_cron=False, token=self.token)
 
     # Send a message to a WellKnownFlow - ClientStatsAuto.
     client_id = rdfvalue.ClientURN("C.1100110011001100")
-    self.SendResponse("aff4:/flows/W:Stats",
+    self.SendResponse(rdfvalue.SessionID("aff4:/flows/W:Stats"),
                       data=rdfvalue.ClientStats(RSS_size=1234),
                       client_id=client_id,
                       send_status=False)
@@ -180,4 +183,4 @@ def main(_):
   test_lib.main()
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

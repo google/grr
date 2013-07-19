@@ -14,23 +14,24 @@ class FindFiles(flow.GRRFlow):
   """Find files on the client.
 
     The logic is:
-    - Find files under 'Path'
-    - Filter for files with os.path.basename matching 'Path Regular Expression'
-    - Filter for files that contain 'Data Regular Expression' in the first 1MB
+    - Find files under "Path"
+    - Filter for files with os.path.basename matching "Path Regular Expression"
+    - Filter for files with sizes between min and max limits
+    - Filter for files that contain "Data Regular Expression" in the first 1MB
         of file data
     - Return AFF4Collection of the results
 
-    Path and data regexes are optional. Don't encode path information in the
-    regex e.g. r'usr\/local\/bin'.  See correct usage below.
+    Path and data regexes, and file size limits are optional. Don"t encode path
+    information in the regex.  See correct usage below.
 
     Example:
 
-    Path='/usr/local'
-    Path Regular Expression='admin'
+    Path="/usr/local"
+    Path Regular Expression="admin"
 
-    Match: '/usr/local/bin/admin'      (file)
-    Match: '/usr/local/admin'          (directory)
-    No Match: '/usr/admin/local/blah'
+    Match: "/usr/local/bin/admin"      (file)
+    Match: "/usr/local/admin"          (directory)
+    No Match: "/usr/admin/local/blah"
 
     The result from this flow is an AFF4Collection which will be created on the
     output path, containing all aff4 objects on the client which match the
@@ -60,6 +61,11 @@ class FindFiles(flow.GRRFlow):
           description="Maximum number of results to get.",
           name="max_results",
           default=500),
+
+      type_info.Integer(
+          description="Files examined per iteration.",
+          name="iteration_count",
+          default=1000),
       )
 
   @flow.StateHandler(next_state="IterateFind")
@@ -86,6 +92,8 @@ class FindFiles(flow.GRRFlow):
       self.state.output = None
 
     # Build up the request protobuf.
+    self.state.findspec.number = self.state.iteration_count
+
     # Call the client with it
     self.CallClient("Find", self.state.findspec, next_state="IterateFind")
 

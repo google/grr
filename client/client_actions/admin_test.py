@@ -27,6 +27,10 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     except OSError:
       pass
 
+    # In a real client, the writeback location should be set to something real,
+    # but for this test we make it the same as the config file..
+    config_lib.CONFIG.SetWriteBack(self.config_file)
+
     # Make sure the file is gone
     self.assertRaises(IOError, open, self.config_file)
 
@@ -42,7 +46,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
 
     # Test the config file got written.
     data = open(self.config_file).read()
-    self.assert_("location = {0}".format(location) in data)
+    self.assert_("location: {0}".format(location) in data)
 
     # Now test that our location was actually updated.
     def FakeUrlOpen(req):
@@ -88,10 +92,10 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     self.assertEqual(config_lib.CONFIG["Client.foreman_check_frequency"], 3600)
     self.assertEqual(config_lib.CONFIG["Client.location"], location)
 
-  def VerifyResponse(self, response):
+  def VerifyResponse(self, response, bytes_received, bytes_sent):
 
-    self.assertEqual(response.bytes_received, 1566)
-    self.assertEqual(response.bytes_sent, 2000)
+    self.assertEqual(response.bytes_received, bytes_received)
+    self.assertEqual(response.bytes_sent, bytes_sent)
 
     self.assertEqual(len(response.cpu_samples), 2)
     self.assertAlmostEqual(response.cpu_samples[1].user_cpu_time, 0.1)
@@ -120,14 +124,17 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     psutil.BOOT_TIME = 100
     try:
 
-      stats.STATS.Set("grr_client_received_bytes", 1566)
-      stats.STATS.Set("grr_client_sent_bytes", 2000)
+      stats.STATS.IncrementCounter("grr_client_received_bytes", 1566)
+      received_bytes = stats.STATS.GetMetricValue("grr_client_received_bytes")
+
+      stats.STATS.IncrementCounter("grr_client_sent_bytes", 2000)
+      sent_bytes = stats.STATS.GetMetricValue("grr_client_sent_bytes")
 
       action_cls = actions.ActionPlugin.classes.get(
           "GetClientStatsAuto", actions.ActionPlugin)
       action = action_cls(None, grr_worker=self)
       action.grr_worker = MockContext()
-      action.Send = self.VerifyResponse
+      action.Send = lambda r: self.VerifyResponse(r, received_bytes, sent_bytes)
       action.Run(None)
     finally:
       psutil.BOOT_TIME = old_boot_time

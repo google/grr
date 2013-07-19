@@ -46,11 +46,12 @@ class TestFileView(test_lib.GRRSeleniumTest):
   def testFileView(self):
     """Test the fileview interface."""
     # Prepare our fixture.
-    self.CreateFileVersions()
+    with self.ACLChecksDisabled():
+      self.CreateFileVersions()
+      self.GrantClientApproval("C.0000000000000001")
 
     self.Open("/")
 
-    self.WaitUntil(self.IsElementPresent, "client_query")
     self.Type("client_query", "0001")
     self.Click("client_query_submit")
 
@@ -71,7 +72,6 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.Click("link=Downloads")
 
     # Verify that we have the latest version in the table by default
-    self.WaitUntil(self.IsElementPresent, "css=tr:contains(\"a.txt\")")
     self.assertTrue(
         "2012-04-09 16:27:13" in self.GetText("css=tr:contains(\"a.txt\")"))
 
@@ -102,11 +102,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.Click("css=#_fs-os-proc ins.jstree-icon")
     self.Click("css=#_fs-os-proc-10 a")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=span[type=subject]:contains(\"cmdline\")")
-
     self.Click("css=span[type=subject]:contains(\"cmdline\")")
-
     self.Click("css=#HexView")
 
     # TODO(user): Using GetText() this way doesn't seem to be a great idea
@@ -171,15 +167,26 @@ class TestFileView(test_lib.GRRSeleniumTest):
     # Go to the flow management screen.
     self.Click("css=a:contains('Manage launched flows')")
 
-    # Check that GetFile is for the cat file.
-    self.WaitUntilEqual("GetFile", self.GetText,
+    # For the client update, 2 flows have to be issued: UpdateVFSFile and
+    # Interrogate. UpdateVFSFile triggers VFSGRRClient.Update() method which
+    # triggers Interrogate.
+    self.WaitUntilEqual("Interrogate", self.GetText,
+                        "//table/tbody/tr[1]/td[3]")
+    self.WaitUntilEqual("UpdateVFSFile", self.GetText,
                         "//table/tbody/tr[2]/td[3]")
     self.Click("//table/tbody/tr[2]/td[3]")
+    self.WaitUntilEqual(
+        "aff4:/C.0000000000000001", self.GetText,
+        "css=table > tbody td.proto_key:contains(\"vfs_file_urn\") "
+        "~ td.proto_value")
 
+    # Check that UpdateVFSFile is called for the cat file.
+    # During the test this file is VFSMemoryFile, so its' Update method does
+    # nothing, therefore UpdateVFSFile won't issue any other flows.
+    self.WaitUntilEqual("UpdateVFSFile", self.GetText,
+                        "//table/tbody/tr[3]/td[3]")
+    self.Click("//table/tbody/tr[3]/td[3]")
     self.WaitUntilContains(
-        "cat",
-        self.GetText, "css=table > tbody td.proto_value:contains(\"path\")")
-
-    # Check that the older event is Interrogate
-    self.assertEqual("Interrogate",
-                     self.GetText("//table/tbody/tr[1]/td[3]"))
+        "cat", self.GetText,
+        "css=table > tbody td.proto_key:contains(\"vfs_file_urn\") "
+        "~ td.proto_value")

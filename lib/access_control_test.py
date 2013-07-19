@@ -4,8 +4,6 @@
 
 import time
 
-from grr.client import conf
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
@@ -15,6 +13,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import email_alerts
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
@@ -31,19 +30,6 @@ class AccessControlTest(test_lib.GRRBaseTest):
     super(AccessControlTest, self).setUp()
     # We want to test the FullAccessControlManager
     data_store.DB.security_manager = access_control.FullAccessControlManager()
-
-  def CreateClientApproval(self, client_id, token):
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
-        token.username).Add(utils.EncodeReasonString(token.reason))
-
-    super_token = access_control.ACLToken()
-    super_token.supervisor = True
-
-    approval_request = aff4.FACTORY.Create(approval_urn, "ClientApproval",
-                                           mode="rw", token=super_token)
-    approval_request.AddAttribute(approval_request.Schema.APPROVER("Approver1"))
-    approval_request.AddAttribute(approval_request.Schema.APPROVER("Approver2"))
-    approval_request.Close()
 
   def RevokeClientApproval(self, client_id, token, remove_from_cache=True):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
@@ -89,28 +75,28 @@ class AccessControlTest(test_lib.GRRBaseTest):
     return rdfvalue.RDFURN(hunt.session_id)
 
   def testSimpleAccess(self):
-    """Tests that simple access does not need any token."""
+    """Tests that simple access requires a token."""
 
-    client_id = "C.%016X" % 0
-    client_urn = aff4.ROOT_URN.Add(client_id)
+    client_urn = rdfvalue.ClientURN("C.%016X" % 0)
 
+    # These should raise for a lack of token
     for urn, mode in [("aff4:/ACL", "r"),
                       ("aff4:/config/drivers", "r"),
                       ("aff4:/", "rw"),
                       (client_urn, "r")]:
-      fd = aff4.FACTORY.Open(urn, mode=mode)
-      fd.Close()
+      self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open,
+                        urn, mode=mode)
 
-    # Those should raise.
+    # These should raise for trying to get write access.
     for urn, mode in [("aff4:/ACL", "rw"),
                       (client_urn, "rw")]:
-      fd = aff4.FACTORY.Open(urn, mode=mode)
+      fd = aff4.FACTORY.Open(urn, mode=mode, token=self.token)
       # Force cache flush.
       fd._dirty = True
       self.assertRaises(access_control.UnauthorizedAccess, fd.Close)
 
     # These should raise for access without a token:
-    for urn, mode in [(client_urn.Add("flows").Add("W:1234"), "rw"),
+    for urn, mode in [(client_urn.Add("flows").Add("W:1234"), "r"),
                       (client_urn.Add("/fs"), "r")]:
       self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open,
                         urn, mode=mode)
@@ -122,8 +108,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
   def testSupervisorToken(self):
     """Tests that the supervisor token overrides the approvals."""
 
-    client_id = "C.%016X" % 0
-    urn = aff4.ROOT_URN.Add(client_id).Add("/fs/os/c")
+    urn = rdfvalue.ClientURN("C.%016X" % 0).Add("/fs/os/c")
     self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn)
 
     super_token = access_control.ACLToken()
@@ -133,8 +118,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
   def testExpiredTokens(self):
     """Tests that expired tokens are rejected."""
 
-    client_id = "C.%016X" % 0
-    urn = aff4.ROOT_URN.Add(client_id).Add("/fs/os/c")
+    urn = rdfvalue.ClientURN("C.%016X" % 0).Add("/fs/os/c")
     self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn)
 
     old_time = time.time
@@ -160,8 +144,8 @@ class AccessControlTest(test_lib.GRRBaseTest):
   def testApprovalExpiry(self):
     """Tests that approvals expire after the correct time."""
 
-    client_id = "C.%016X" % 1020
-    urn = aff4.ROOT_URN.Add(client_id).Add("/fs/os/c")
+    client_id = "C.%016X" % 0
+    urn = rdfvalue.ClientURN(client_id).Add("/fs/os/c")
     token = access_control.ACLToken("test", "For testing")
     self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn,
                       None, "rw", token)
@@ -169,7 +153,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     old_time = time.time
     try:
       time.time = lambda: 100.0
-      self.CreateClientApproval(client_id, token)
+      self.GrantClientApproval(client_id, token)
 
       # This should work now.
       aff4.FACTORY.Open(urn, mode="rw", token=token)
@@ -198,13 +182,13 @@ class AccessControlTest(test_lib.GRRBaseTest):
     """Tests that we can create an approval object to access clients."""
 
     client_id = "C.%016X" % 0
-    urn = aff4.ROOT_URN.Add(client_id).Add("/fs")
+    urn = rdfvalue.ClientURN(client_id).Add("/fs")
     token = access_control.ACLToken("test", "For testing")
 
     self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn,
                       None, "rw", token=token)
 
-    self.CreateClientApproval(client_id, token)
+    self.GrantClientApproval(client_id, token)
 
     fd = aff4.FACTORY.Open(urn, None, "rw", token=token)
     fd.Close()
@@ -228,7 +212,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
 
     self.assertRaisesRegexp(
         access_control.UnauthorizedAccess,
-        "At least one approver should have 'admin' label",
+        r"At least 1 approver\(s\) should have 'admin' label.",
         flow.GRRFlow.StartFlow,
         None, "RunHuntFlow", token=token, hunt_urn=hunt_urn)
 
@@ -322,7 +306,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     self.assertRaises(access_control.UnauthorizedAccess, flow.GRRFlow.StartFlow,
                       client_id, "SendingFlow", message_count=1, token=token)
 
-    self.CreateClientApproval(client_id, token)
+    self.GrantClientApproval(client_id, token)
     sid = flow.GRRFlow.StartFlow(client_id, "SendingFlow", message_count=1,
                                  token=token)
 
@@ -344,7 +328,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     self.assertRaises(access_control.UnauthorizedAccess,
                       aff4.FACTORY.Open, sid, mode="r", token=token)
 
-    self.CreateClientApproval(client_id, token)
+    self.GrantClientApproval(client_id, token)
 
     aff4.FACTORY.Open(sid, mode="r", token=token)
 
@@ -354,7 +338,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     token = access_control.ACLToken("test", "For testing")
     client_id = "C." + "B" * 16
 
-    self.CreateClientApproval(client_id, token)
+    self.GrantClientApproval(client_id, token)
 
     sid = flow.GRRFlow.StartFlow(client_id, "SendingFlow", message_count=1,
                                  token=token)
@@ -386,7 +370,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     """Test the breakglass mechanism."""
 
     client_id = "C.%016X" % 0
-    urn = aff4.ROOT_URN.Add(client_id).Add("/fs/os/c")
+    urn = rdfvalue.ClientURN("C.%016X" % 0).Add("/fs/os/c")
 
     self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn,
                       token=self.token)
@@ -434,4 +418,4 @@ def main(argv):
   test_lib.GrrTestProgram(argv=argv, testLoader=AccessControlTestLoader())
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

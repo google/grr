@@ -8,13 +8,13 @@
 import datetime
 import os
 
-from grr.client import conf
+from grr.lib import flags
 from grr.lib import test_lib
 from grr.parsers import osx_quarantine
 
 
 
-# pylint: disable=C6409
+# pylint: disable=g-bad-name
 
 
 class OSXQuarantineTest(test_lib.GRRBaseTest):
@@ -57,4 +57,4 @@ def main(argv):
   test_lib.main(argv)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

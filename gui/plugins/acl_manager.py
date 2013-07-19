@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
 """Renderers to implement ACL control workflow."""
 
 
 from grr.gui import renderers
+from grr.gui.plugins import cron_view
 from grr.gui.plugins import fileview
 from grr.gui.plugins import hunt_view
 
@@ -18,7 +18,7 @@ class ACLDialog(renderers.TemplateRenderer):
   """Render the ACL dialogbox."""
 
   layout_template = renderers.Template("""
-<div id="acl_dialog" class="modal hide fade" tabindex="-1" role="dialog"
+<div id="acl_dialog" class="modal hide" tabindex="-1" role="dialog"
   aria-hidden="true">
 
   <div class="modal-header">
@@ -69,11 +69,14 @@ Client Access Request created. Please try again once an approval is granted.
 
     client_id, _ = rdfvalue.RDFURN(subject).Split(2)
 
+    # TODO(user): If something goes wrong here (or in similar renderers below)
+    # we should really provide some feedback for the user.
     if approver and reason:
       # Request approval for this client
       flow.GRRFlow.StartFlow(client_id, "RequestClientApprovalFlow",
                              reason=reason, approver=approver,
-                             token=request.token)
+                             token=request.token,
+                             subject_urn=rdfvalue.ClientURN(client_id))
 
     super(ClientApprovalRequestRenderer, self).Layout(request, response)
 
@@ -87,18 +90,39 @@ Hunt Access Request created. Please try again once an approval is granted.
 
   def Layout(self, request, response):
     """Launch the RequestApproval flow on the backend."""
-    subject = request.REQ.get("subject")
+    subject = rdfvalue.RDFURN(request.REQ.get("subject"))
     reason = request.REQ.get("reason")
     approver = request.REQ.get("approver")
 
     if approver and reason:
-      # Request approval for this client
+      # Request approval for this hunt
       flow.GRRFlow.StartFlow(None, "RequestHuntApprovalFlow",
                              reason=reason, approver=approver,
                              token=request.token,
-                             hunt_id=subject)
-
+                             subject_urn=rdfvalue.RDFURN(subject))
     super(HuntApprovalRequestRenderer, self).Layout(request, response)
+
+
+class CronJobApprovalRequestRenderer(renderers.TemplateRenderer):
+  """Make a new cron job authorization approval request."""
+
+  layout_template = renderers.Template("""
+Cron Job Access Request created. Please try again once an approval is granted.
+""")
+
+  def Layout(self, request, response):
+    """Launch the RequestApproval flow on the backend."""
+    subject = rdfvalue.RDFURN(request.REQ.get("subject"))
+    reason = request.REQ.get("reason")
+    approver = request.REQ.get("approver")
+
+    if approver and reason:
+      # Request approval for this cron job
+      flow.GRRFlow.StartFlow(None, "RequestCronJobApprovalFlow",
+                             reason=reason, approver=approver,
+                             token=request.token,
+                             subject_urn=rdfvalue.RDFURN(subject))
+    super(CronJobApprovalRequestRenderer, self).Layout(request, response)
 
 
 class ClientApprovalDetailsRenderer(fileview.HostInformation):
@@ -125,6 +149,16 @@ class HuntApprovalDetailsRenderer(hunt_view.HuntOverviewRenderer):
     _, _, hunt_id, _ = rdfvalue.RDFURN(acl).Split(4)
     self.hunt_id = aff4.ROOT_URN.Add("hunts").Add(hunt_id)
     return super(HuntApprovalDetailsRenderer, self).Layout(request, response)
+
+
+class CronJobApprovalDetailsRenderer(cron_view.CronJobInformation):
+  """Renders details of the hunt approval."""
+
+  def Layout(self, request, response):
+    acl = request.REQ.get("acl", "")
+    _, _, cron_job_name, _ = rdfvalue.RDFURN(acl).Split(4)
+    self.cron_job_urn = aff4.ROOT_URN.Add("cron").Add(cron_job_name)
+    return super(CronJobApprovalDetailsRenderer, self).Layout(request, response)
 
 
 class GrantAccess(fileview.HostInformation):
@@ -204,6 +238,9 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
     if namespace == "hunts":
       self.details_renderer = "HuntApprovalDetailsRenderer"
       self.user = components[3]
+    elif namespace == "cron":
+      self.details_renderer = "CronJobApprovalDetailsRenderer"
+      self.user = components[3]
     elif aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(namespace):
       self.details_renderer = "ClientApprovalDetailsRenderer"
       self.user = components[2]
@@ -234,9 +271,21 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
             "Approval object is not well formed.")
 
       flow.GRRFlow.StartFlow(None, "GrantHuntApprovalFlow",
-                             hunt_urn=self.subject, reason=self.reason,
+                             subject_urn=self.subject, reason=self.reason,
                              delegate=self.user, token=request.token)
+    elif namespace == "cron":
+      try:
+        _, _, cron_job_name, user, reason = approval_urn.Split()
+        self.subject = rdfvalue.RDFURN(namespace).Add(cron_job_name)
+        self.user = user
+        self.reason = utils.DecodeReasonString(reason)
+      except (ValueError, TypeError):
+        raise access_control.UnauthorizedAccess(
+            "Approval object is not well formed.")
 
+      flow.GRRFlow.StartFlow(None, "GrantCronJobApprovalFlow",
+                             subject_urn=self.subject, reason=self.reason,
+                             delegate=self.user, token=request.token)
     elif aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(namespace):
       try:
         _, client_id, user, reason = approval_urn.Split()
@@ -249,6 +298,7 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
 
       flow.GRRFlow.StartFlow(client_id, "GrantClientApprovalFlow",
                              reason=self.reason, delegate=self.user,
+                             subject_urn=rdfvalue.ClientURN(self.subject),
                              token=request.token)
     else:
       raise access_control.UnauthorizedAccess(
@@ -286,7 +336,7 @@ class CheckAccess(renderers.TemplateRenderer):
       <input type=text id="acl_reason" />
     </div>
   </div>
-  <div id="acl_reason_warning" class="alert alert-error fade in hide">
+  <div id="acl_reason_warning" class="alert alert-error hide">
     Please enter the reason.
   </div>
 </form>
@@ -394,10 +444,14 @@ Authorization request ({{this.reason|escape}}) failed:
     if namespace == "hunts":
       self.approval_renderer = "HuntApprovalRequestRenderer"
       self.refresh_after_form_submit = False
+    elif namespace == "cron":
+      self.approval_renderer = "CronJobApprovalRequestRenderer"
+      self.refresh_after_form_submit = False
     elif aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(namespace):
       self.approval_renderer = "ClientApprovalRequestRenderer"
     else:
-      raise RuntimeError("Unexpected namespace for access check: %s." %
-                         namespace)
+      raise RuntimeError(
+          "Unexpected namespace for access check: %s (subject=%s)." %
+          (namespace, self.subject))
 
     return super(CheckAccess, self).Layout(request, response)

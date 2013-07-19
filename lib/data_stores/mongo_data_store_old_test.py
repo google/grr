@@ -4,19 +4,15 @@
 
 
 
-from grr.client import conf
-from grr.client import conf as flags
-
-# pylint: disable=W0611
+# pylint: disable=unused-import
 # Support mongo storage
 from grr.lib import access_control
 from grr.lib import data_store
 from grr.lib import data_store_test
+from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.data_stores import mongo_data_store_old
-# pylint: enable=W0611
-
-FLAGS = flags.FLAGS
+# pylint: enable=unused-import
 
 
 class MongoDataStoreV1Test(data_store_test.DataStoreTest):
@@ -54,4 +50,4 @@ def main(args):
   test_lib.main(args)
 
 if __name__ == "__main__":
-  conf.StartMain(main)
+  flags.StartMain(main)

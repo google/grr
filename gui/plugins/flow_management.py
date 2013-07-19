@@ -390,7 +390,7 @@ $('#gotoflow').hide();
 
     # Here we catch all exceptions in order to relay potential errors to users
     # (Otherwise they are just hidden by django error page).
-    except Exception as e:  # pylint: disable=W0703
+    except Exception as e:  # pylint: disable=broad-except
       logging.exception("Error: %s", e)
       renderers.Renderer.Layout(self, request, response)
       return self.RenderFromTemplate(
@@ -407,9 +407,14 @@ class FlowFormCancelAction(renderers.TemplateRenderer):
   layout_template = renderers.Template("")
 
   def Layout(self, request, response):
-    self.flow_id = request.REQ.get("flow_id", "")
-    flow.GRRFlow.TerminateFlow(self.flow_id, reason="Cancelled in GUI",
-                               token=request.token, force=True)
+    # We can't terminate flow directly through flow.GRRFlow.TerminateFlow as
+    # it requires writing to the datastore. We're not allowed to do it from
+    # the GUI. Therefore we use dedicated TerminateFlow flow.
+    flow.GRRFlow.StartFlow(
+        None, "TerminateFlow",
+        flow_urn=rdfvalue.RDFURN(request.REQ.get("flow_id")),
+        reason="Cancelled in GUI", token=request.token)
+
     super(FlowFormCancelAction, self).Layout(request, response)
 
 
@@ -596,18 +601,22 @@ class ListFlowsTable(renderers.TableRenderer):
   """
   selection_publish_queue = "flow_table_select"
 
+  with_toolbar = True
+
   layout_template = """
+{% if this.with_toolbar %}
 <div id="toolbar_{{unique|escape}}" class="breadcrumb">
   <li>
     <button id="cancel_flow_{{unique|escape}}" title="Cancel Selected Flows"
-      class="btn">
+      class="btn" name="cancel_flow">
       <img src="/static/images/editdelete.png" class="toolbar_icon">
     </button>
   </li>
 </div>
+{% endif %}
 """ + renderers.TableRenderer.layout_template + """
 <script>
-  $("#cancel_flow_{{unique|escape}}").click(function () {
+  $("#cancel_flow_{{unique|escapejs}}").click(function () {
 
     /* Find all selected rows and cancel them. */
     $("#table_{{id|escape}}")
@@ -619,9 +628,8 @@ class ListFlowsTable(renderers.TableRenderer):
          /* Cancel the flow, and then reset the icon. */
          grr.layout("FlowFormCancelAction", id,
              {flow_id: flow_id}, function () {
-           $('div[flow_id=' + flow_id +']').parents('tr').find(
-             '.grr-flow-icon').attr('src', '/static/images/nuke.png')
-             .click();
+
+           $('#table_{{id|escapejs}}').trigger('refresh');
          });
     });
   });
@@ -671,7 +679,9 @@ class ListFlowsTable(renderers.TableRenderer):
   def BuildTable(self, start, _, request):
     """Renders the table."""
     depth = request.REQ.get("depth", 0)
-    flow_urn = request.REQ.get("value")
+
+    flow_urn = self.state.get("value", request.REQ.get("value"))
+
     if flow_urn is None:
       client_id = request.REQ.get("client_id")
       if not client_id: return
