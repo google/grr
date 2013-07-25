@@ -3,9 +3,12 @@
 """Test of "New Hunt" wizard."""
 
 
+from grr.gui import runtests_test
+
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -319,3 +322,11 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.assertEquals(hunt_rules[0].integer_rules[0].operator,
                       rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN)
     self.assertEquals(hunt_rules[0].integer_rules[0].value, 1336650631137737)
+
+
+def main(argv):
+  # Run the full test suite
+  runtests_test.SeleniumTestProgram(argv=argv)
+
+if __name__ == "__main__":
+  flags.StartMain(main)

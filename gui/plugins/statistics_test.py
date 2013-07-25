@@ -5,8 +5,11 @@
 """Test the statistics viewer."""
 
 
+from grr.gui import runtests_test
+
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -82,3 +85,11 @@ class TestStats(test_lib.GRRSeleniumTest):
 
     self.WaitUntilEqual(u"Operating system break down.",
                         self.GetText, "css=#main_rightPane h3")
+
+
+def main(argv):
+  # Run the full test suite
+  runtests_test.SeleniumTestProgram(argv=argv)
+
+if __name__ == "__main__":
+  flags.StartMain(main)

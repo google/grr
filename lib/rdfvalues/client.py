@@ -318,6 +318,16 @@ class Processes(protodict.RDFValueArray):
   rdf_type = Process
 
 
+class SoftwarePackage(rdfvalue.RDFProtoStruct):
+  """Represent an installed package on the client."""
+  protobuf = sysinfo_pb2.SoftwarePackage
+
+
+class SoftwarePackages(protodict.RDFValueArray):
+  """A list of installed packages on the system."""
+  rdf_type = SoftwarePackage
+
+
 class StatMode(rdfvalue.RDFInteger):
   """The mode of a file."""
 

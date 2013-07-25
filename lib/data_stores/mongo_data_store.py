@@ -259,6 +259,7 @@ class MongoDataStore(data_store.DataStore):
 
   def DeleteSubject(self, subject, token=None):
     """Completely deletes all information about the subject."""
+    subject = utils.SmartUnicode(subject)
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     self.latest_collection.remove(dict(subject=subject))
     self.versioned_collection.remove(dict(subject=subject))
@@ -427,7 +428,8 @@ class MongoDataStore(data_store.DataStore):
           ]}
 
     elif subjects:
-      spec = dict(subject={"$in": subjects})
+      spec = dict(subject={"$in": [
+          utils.SmartUnicode(x) for x in list(subjects)]})
 
     else:
       spec = {}

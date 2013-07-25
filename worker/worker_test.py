@@ -178,6 +178,46 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     notifications = user.Get(user.Schema.PENDING_NOTIFICATIONS)
     self.assertIsNone(notifications)
 
+  def CheckNotificationsDisappear(self, session_id):
+    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+                                  run_cron=False, token=self.token)
+    scheduler.SCHEDULER.NotifyQueue(session_id, token=self.token)
+
+    sessions = scheduler.SCHEDULER.GetSessionsFromQueue("aff4:/W",
+                                                        token=self.token)
+    # Check the notification is there.
+    self.assertEqual(len(sessions), 1)
+    self.assertEqual(sessions[0], session_id)
+
+    # Process all messages
+    worker_obj.RunOnce()
+    worker_obj.thread_pool.Join()
+
+    sessions = scheduler.SCHEDULER.GetSessionsFromQueue("aff4:/W",
+                                                        token=self.token)
+    # Check the notification is now gone.
+    self.assertEqual(len(sessions), 0)
+
+  def testWorkerDeletesNotificationsForBrokenObjects(self):
+    # Test notifications for objects that don't exist.
+    session_id = rdfvalue.SessionID("aff4:/flows/W:123456")
+
+    self.CheckNotificationsDisappear(session_id)
+
+    # Now check objects that are actually broken.
+    session_id = rdfvalue.SessionID("aff4:/flows/W:testobj")
+    obj = aff4.FACTORY.Create(session_id, "GRRFlow", token=self.token)
+    obj.Close()
+    # Overwrite the type of the object such that opening it will now fail.
+    data_store.DB.Set(session_id, "aff4:type", "DeprecatedClass",
+                      token=self.token)
+
+    # Check it really does.
+    with self.assertRaises(aff4.InstanciationError):
+      aff4.FACTORY.Open(session_id, token=self.token)
+
+    self.CheckNotificationsDisappear(session_id)
+
 
 def main(_):
   test_lib.main()

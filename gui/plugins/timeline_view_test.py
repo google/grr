@@ -8,9 +8,12 @@
 
 from grr.client import vfs
 
+from grr.gui import runtests_test
+
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -106,3 +109,11 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     # Check that the embedded stat proto is properly presented
     self.assertTrue("2011-03-07 12:50:20" in self.GetText(
         "css=td.proto_value tr:contains(st_atime) td.proto_value"))
+
+
+def main(argv):
+  # Run the full test suite
+  runtests_test.SeleniumTestProgram(argv=argv)
+
+if __name__ == "__main__":
+  flags.StartMain(main)

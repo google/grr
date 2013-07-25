@@ -1368,6 +1368,57 @@ class CrashClientMock(object):
     return [status]
 
 
+class SampleHuntMock(object):
+
+  def __init__(self, failrate=2):
+    self.responses = 0
+    self.data = "Hello World!"
+    self.failrate = failrate
+    self.count = 0
+
+  def StatFile(self, args):
+    return self._StatFile(args)
+
+  def _StatFile(self, args):
+    req = rdfvalue.ListDirRequest(args)
+
+    response = rdfvalue.StatEntry(
+        pathspec=req.pathspec,
+        st_mode=33184,
+        st_ino=1063090,
+        st_dev=64512L,
+        st_nlink=1,
+        st_uid=139592,
+        st_gid=5000,
+        st_size=len(self.data),
+        st_atime=1336469177,
+        st_mtime=1336129892,
+        st_ctime=1336129892)
+
+    self.responses += 1
+    self.count += 1
+
+    # Create status message to report sample resource usage
+    status = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.ReturnedStatus.OK)
+    status.cpu_time_used.user_cpu_time = self.responses
+    status.cpu_time_used.system_cpu_time = self.responses * 2
+    status.network_bytes_sent = self.responses * 3
+
+    # Every "failrate" client does not have this file.
+    if self.count == self.failrate:
+      self.count = 0
+      return [status]
+
+    return [response, status]
+
+  def TransferBuffer(self, args):
+    response = rdfvalue.BufferReference(args)
+
+    response.data = self.data
+    response.length = len(self.data)
+    return [response]
+
+
 def TestHuntHelperWithMultipleMocks(client_mocks, check_flow_errors=False,
                                     token=None):
   total_flows = set()

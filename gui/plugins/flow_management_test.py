@@ -5,6 +5,9 @@
 """Test the flow_management interface."""
 
 
+from grr.gui import runtests_test
+
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib import type_info
@@ -140,3 +143,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     # The window should be updated now
     self.WaitUntil(self.IsTextPresent, "Cancelled in GUI")
+
+
+def main(argv):
+  # Run the full test suite
+  runtests_test.SeleniumTestProgram(argv=argv)
+
+if __name__ == "__main__":
+  flags.StartMain(main)

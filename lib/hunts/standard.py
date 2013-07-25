@@ -349,13 +349,12 @@ class SampleHunt(implementation.GRRHunt):
     """Stores the responses."""
     client_id = responses.request.client_id
 
-    if not responses.success:
-      logging.info("Client %s has no file %s.", client_id,
-                   self.state.filename)
-    else:
+    if responses.success:
       logging.info("Client %s has a file %s.", client_id,
                    self.state.filename)
-      self.MarkClientBad(client_id)
+    else:
+      logging.info("Client %s has no file %s.", client_id,
+                   self.state.filename)
 
     self.MarkClientDone(client_id)
 
@@ -606,7 +605,6 @@ class MatchRegistryHunt(implementation.GRRHunt):
         else:
           if self.Match(data):
             self.LogResult(client_id, "Matching registry key.", vfs_urn)
-            self.MarkClientBad(client_id)
           else:
             self.LogResult(client_id, "Registry key not matched.", vfs_urn)
     else:
@@ -905,6 +903,19 @@ class GenericHunt(implementation.GRRHunt):
   def MarkDone(self, responses):
     """Mark a client as done."""
     client_id = responses.request.client_id
+
+    # Open child flow and account its' reported resource usage
+    flow_path = responses.status.child_session_id
+    flow_obj = aff4.FACTORY.Open(flow_path, mode="r", token=self.token)
+    client_res = flow_obj.state.context.client_resources
+
+    resources = rdfvalue.ClientResources()
+    resources.client_id = client_id
+    resources.session_id = flow_path
+    resources.cpu_usage.user_cpu_time = client_res.cpu_usage.user_cpu_time
+    resources.cpu_usage.system_cpu_time = client_res.cpu_usage.system_cpu_time
+    resources.network_bytes_sent = flow_obj.state.context.network_bytes_sent
+    self.state.context.usage_stats.RegisterResources(resources)
 
     if responses.success:
       msg = "Flow %s completed." % responses.request.flow_name

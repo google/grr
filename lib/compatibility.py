@@ -4,8 +4,6 @@
 This file defines a bunch of compatibility fixes to ensure we can run on older
 versions of dependencies.
 """
-import re
-import unittest
 
 
 
@@ -38,40 +36,3 @@ try:
 
 except ImportError:
   pass
-
-
-# Fix up python 2.6 unittest is missing some functions.
-def assertItemsEqual(self, x, y):
-  """This method is present in python 2.7 but is here for compatibility."""
-  self.assertEqual(sorted(x), sorted(y))
-
-
-def assertListEqual(self, x, y):
-  self.assertItemsEqual(x, y)
-
-
-def assertIsInstance(self, got_object, expected_class, msg=""):
-  """Checks that got_object is an instance of expected_class or sub-class."""
-  if not isinstance(got_object, expected_class):
-    self.fail("%r is not an instance of %r. %s" % (got_object,
-                                                   expected_class, msg))
-
-
-def assertRaisesRegexp(self, expected_exception, expected_regexp,
-                       callable_obj=None, *args, **kwargs):
-  if isinstance(expected_regexp, basestring):
-    expected_regexp = re.compile(expected_regexp)
-
-  try:
-    callable_obj(*args, **kwargs)
-  except Exception, e:
-    if expected_regexp.search(str(e)):
-      return True
-
-  self.fail("Regex not matched")
-
-
-MonkeyPatch(unittest.TestCase, "assertItemsEqual", assertItemsEqual)
-MonkeyPatch(unittest.TestCase, "assertListEqual", assertListEqual)
-MonkeyPatch(unittest.TestCase, "assertIsInstance", assertIsInstance)
-MonkeyPatch(unittest.TestCase, "assertRaisesRegexp", assertRaisesRegexp)

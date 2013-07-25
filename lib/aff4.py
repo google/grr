@@ -54,6 +54,10 @@ class LockError(Error):
   pass
 
 
+class InstanciationError(Error, IOError):
+  pass
+
+
 class LockContextManager(object):
   def __init__(self, aff4_obj, sync):
     self.aff4_obj = aff4_obj
@@ -133,7 +137,7 @@ class Factory(object):
 
       key = self._MakeCacheInvariant(subject, token, age)
       self.cache.Put(key, values)
-      result[subject] = values
+      result[utils.SmartUnicode(subject)] = values
       subjects.append(subject)
 
     return result.items()
@@ -327,9 +331,10 @@ class Factory(object):
 
     Args:
       urn: The urn to open.
-      aff4_type: If this optional parameter is set, we raise an IOError if
-          the object exists and is not an instance of this type. This check is
-          important when a different object can be stored in this location.
+      aff4_type: If this optional parameter is set, we raise an
+          InstanciationError if the object exists and is not an instance of this
+          type. This check is important when a different object can be stored in
+          this location.
       token: The Security Token to use for opening this item.
       age: The age policy used to build this object. Should be one of
          NEWEST_TIME, ALL_TIMES or a time range given as a tuple (start, end) in
@@ -439,8 +444,9 @@ class Factory(object):
 
     if (aff4_type is not None and
         not isinstance(result, AFF4Object.classes[aff4_type])):
-      raise IOError("Object %s is of type %s, but required_type is %s" % (
-          urn, result.__class__.__name__, aff4_type))
+      raise InstanciationError(
+          "Object %s is of type %s, but required_type is %s" % (
+              urn, result.__class__.__name__, aff4_type))
 
     return result
 
@@ -1478,7 +1484,7 @@ class AFF4Object(object):
     Raises:
        AttributeError: When the new object can not accept some of the old
        attributes.
-       IOError: When we cannot instantiate the object type class.
+       InstanciationError: When we cannot instantiate the object type class.
     """
     # We are already of the required type
     if self.__class__.__name__ == aff4_class:
@@ -1487,7 +1493,7 @@ class AFF4Object(object):
     # Instantiate the right type
     cls = self.classes.get(str(aff4_class))
     if cls is None:
-      raise IOError("Could not instantiate %s" % aff4_class)
+      raise InstanciationError("Could not instantiate %s" % aff4_class)
 
     # It's not allowed to downgrade the object
     if isinstance(self, cls):
@@ -1637,8 +1643,8 @@ class AFF4Volume(AFF4Object):
        an AFF4Object instance.
 
     Raises:
-      IOError: If we are unable to open the member (e.g. it does not already
-      exist.)
+      InstanciationError: If we are unable to open the member (e.g. it does not
+        already exist.)
     """
     if isinstance(path, rdfvalue.RDFURN):
       child_urn = path
@@ -1654,7 +1660,7 @@ class AFF4Volume(AFF4Object):
       # Try to get the container.
       return result.Upgrade(aff4_type)
 
-    raise IOError("Path %s not found" % path)
+    raise InstanciationError("Path %s not found" % path)
 
   def ListChildren(self, limit=1000000, age=NEWEST_TIME):
     """Yields RDFURNs of all the children of this object.

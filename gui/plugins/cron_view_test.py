@@ -5,7 +5,10 @@
 """Test the cron_view interface."""
 
 
+from grr.gui import runtests_test
+
 from grr.lib import cron
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -371,3 +374,11 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.assertTrue(self.IsTextPresent("/tmp"))
     self.assertTrue(self.IsTextPresent("depth"))
     self.assertTrue(self.IsTextPresent("42"))
+
+
+def main(argv):
+  # Run the full test suite
+  runtests_test.SeleniumTestProgram(argv=argv)
+
+if __name__ == "__main__":
+  flags.StartMain(main)

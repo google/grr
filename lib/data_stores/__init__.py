@@ -16,6 +16,6 @@ except ImportError:
 try:
   from grr.lib.data_stores import mysql_data_store
 except ImportError:
-  # Mongo data store not supported.
+  # MySql data store not supported.
   pass
 

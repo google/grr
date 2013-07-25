@@ -42,7 +42,7 @@ class PathTypeInfo(type_info.String):
 # PyInstaller build configuration.
 config_lib.DEFINE_option(PathTypeInfo(
     name="PyInstaller.path", must_exist=False,
-    default="c:/build/pyinstaller/pyinstaller.py",
+    default="c:/grr_build/pyinstaller/pyinstaller.py",
     help="Path to the main pyinstaller.py file."))
 
 config_lib.DEFINE_option(PathTypeInfo(
@@ -120,7 +120,7 @@ VSVersionInfo\(
         StringStruct\('FileDescription', "%(Client.description)"\),
         StringStruct\('FileVersion', '%(Client.version_string)'\),
         StringStruct\('InternalName', '%(Client.description)' \),
-        StringStruct\('OriginalFilename', '%(Client.name)' \)]\),
+        StringStruct\('OriginalFilename', '%(ClientBuilder.package_name)' \)]\),
       ]\),
   VarFileInfo\([VarStruct\('Translation', [1033, 1200]\)]\)
   ]
@@ -271,8 +271,14 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_string(
     name="ClientBuilder.debian_package_base",
-    default="%(Client.name)_%(ClientBuilder.debian_version)_%(Client.arch)",
+    default=("%(ClientBuilder.package_name)_"
+             "%(ClientBuilder.debian_version)_%(Client.arch)"),
     help="The filename of the debian package without extension.")
+
+config_lib.DEFINE_string(
+    name="ClientBuilder.package_name",
+    default="%(Client.name)",
+    help="The debian package name.")
 
 
 class ClientBuilder(object):
@@ -316,14 +322,15 @@ class ClientBuilder(object):
     keys = ["Client.executable_signing_public_key",
             "Client.driver_signing_public_key"]
     for key in keys:
-      key_data = config.Get(key, context=self.context)
+      key_data = config.Get(key, default=None, context=self.context)
       if key_data is None:
         errors.append("Missing private %s." % key)
         continue
       if not key_data.startswith("-----BEGIN PUBLIC"):
         errors.append("Invalid private %s" % key)
 
-    certificate = config.Get("CA.certificate", context=self.context)
+    certificate = config.Get("CA.certificate", default=None,
+                             context=self.context)
     if (certificate is None or
         not certificate.startswith("-----BEGIN CERTIF")):
       errors.append("CA certificate missing from config.")
@@ -516,16 +523,19 @@ class WindowsClientBuilder(ClientBuilder):
     shutil.copytree(config_lib.CONFIG.Get("ClientBuilder.nanny_source_dir",
                                           context=self.context), self.nanny_dir)
 
-    vs_arch = config_lib.CONFIG.Get("ClientBuilder.vs_arch",
+    build_type = config_lib.CONFIG.Get(
+        "ClientBuilder.build_type", context=self.context)
+
+    vs_arch = config_lib.CONFIG.Get("ClientBuilder.vs_arch", default=None,
                                     context=self.context)
+
+    # We have to set up the Visual Studio environment first and then call
+    # msbuild.
     env_script = config_lib.CONFIG.Get("ClientBuilder.vs_env_script",
-                                       context=self.context)
+                                       default=None, context=self.context)
 
     if vs_arch is None or env_script is None or not os.path.exists(env_script):
       raise RuntimeError("no such Visual Studio script: %s" % env_script)
-
-    build_type = config_lib.CONFIG.Get("ClientBuilder.build_type",
-                                       context=self.context)
 
     subprocess.check_call(
         "cmd /c \"\"%s\" && cd \"%s\" && msbuild /p:Configuration=%s\"" % (
@@ -850,18 +860,19 @@ class LinuxClientBuilder(ClientBuilder):
     self.GenerateDirectory(
         os.path.join(src_dir, "grr/config/debian/dpkg_client/"),
         dpkg_dir,
-        [("grr-client", config_lib.CONFIG.Get("Client.name",
+        [("grr-client", config_lib.CONFIG.Get("ClientBuilder.package_name",
                                               context=self.context))])
     # Generate directories for the /usr/sbin link.
     self.EnsureDirExists(os.path.join(
         dpkg_dir, "debian/%s/usr/sbin" %
-        config_lib.CONFIG.Get("Client.name", context=self.context)))
+        config_lib.CONFIG.Get("ClientBuilder.package_name",
+                              context=self.context)))
 
     # Generate the upstart template.
     self.GenerateFile(
         os.path.join(src_dir, "grr/config/debian/upstart/grr-client.conf"),
         os.path.join(dpkg_dir, "debian/%s.upstart" %
-                     config_lib.CONFIG.Get("Client.name",
+                     config_lib.CONFIG.Get("ClientBuilder.package_name",
                                            context=self.context)))
 
     # Now zip up the template.
@@ -904,7 +915,8 @@ class LinuxClientBuilder(ClientBuilder):
                                          context=self.context).lstrip("/")
       agent_dir = os.path.join(
           template_dir, "debian",
-          config_lib.CONFIG.Get("Client.name", context=self.context),
+          config_lib.CONFIG.Get("ClientBuilder.package_name",
+                                context=self.context),
           target_dir)
 
       with open(os.path.join(agent_dir,
@@ -920,9 +932,14 @@ class LinuxClientBuilder(ClientBuilder):
               "Client.binary_name", context=self.context)),
                0755)
 
+      buildpackage_binary = "/usr/bin/dpkg-buildpackage"
+      if not os.path.exists(buildpackage_binary):
+        print "dpkg-buildpackage not found, unable to repack client."
+        return
+
       oldwd = os.getcwd()
       os.chdir(template_dir)
-      command = ["/usr/bin/dpkg-buildpackage", "-b"]
+      command = [buildpackage_binary, "-b"]
       subprocess.call(command)
       os.chdir(oldwd)
 
@@ -933,12 +950,15 @@ class LinuxClientBuilder(ClientBuilder):
               "ClientBuilder.output_extension",
               context=self.context))
       changes = "%s%s" % (filename_base, ".changes")
+      changes_output = "%s.changes" % (config_lib.CONFIG.Get(
+          "PyInstaller.output_basename", context=self.context))
 
       self.EnsureDirExists(os.path.dirname(output_path))
       shutil.move(os.path.join(tmp_dir, package_name), output_path)
       shutil.move(os.path.join(tmp_dir, changes),
-                  os.path.join(os.path.dirname(output_path), changes))
+                  os.path.join(os.path.dirname(output_path), changes_output))
       print "Created package %s" % output_path
+      return output_path
 
 
 def CopyFileInZip(from_zip, from_name, to_zip, to_name=None):

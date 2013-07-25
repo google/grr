@@ -5,8 +5,11 @@
 """Test the fileview interface."""
 
 
+from grr.gui import runtests_test
+
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
 
@@ -96,3 +99,11 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     # The stats pane shows the relevant flow
     self.WaitUntilContains(
         self.session_id, self.GetText, "css=.tab-content h3")
+
+
+def main(argv):
+  # Run the full test suite
+  runtests_test.SeleniumTestProgram(argv=argv)
+
+if __name__ == "__main__":
+  flags.StartMain(main)

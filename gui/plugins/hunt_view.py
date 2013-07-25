@@ -457,6 +457,14 @@ class HuntClientTableRenderer(fileview.AbstractFileTable):
 {{this.title|escape}}
 <a id="backlink_{{unique|escape}}" href='#{{this.hash|escape}}'>
 back to hunt view</a>
+<span class='pull-right'> Filter by State
+<select id='{{unique|escape}}_select'>
+  <option>ALL</option>
+  <option>OUTSTANDING</option>
+  <option>COMPLETED</option>
+  <option>BAD</option>
+</select>
+</span>
 """ + fileview.AbstractFileTable.layout_template + """
 <script>
   if (!grr.state.hunt_id) {
@@ -470,6 +478,11 @@ back to hunt view</a>
     // clean up our state before we jump back to the hunt.
     delete grr.state.client_id;
     grr.loadFromHash("{{this.hunt_hash}}");
+  });
+
+  $("#" + "{{unique|escape}}_select").change(function () {
+    grr.state.completion_status = $("#{{unique|escape}}_select").val();
+    grr.layout('HuntClientTableRenderer', 'main_topPane', grr.state);
   });
 
 </script>
@@ -507,6 +520,7 @@ back to hunt view</a>
   def BuildTable(self, start_row, end_row, request):
     """Called to fill in the data in the table."""
     hunt_id = request.REQ.get("hunt_id")
+    completion_status_filter = request.REQ.get("completion_status", "ALL")
     if hunt_id is None:
       return
     try:
@@ -531,11 +545,12 @@ back to hunt view</a>
         if resource_max[i] < resource[i]:
           resource_max[i] = resource[i]
 
-    # TODO(user): Allow table to be filtered by client status.
     results = {}
     for status, client_list in self.hunt.GetClientsByStatus().items():
-      for client in client_list:
-        results[client] = status
+      if (completion_status_filter == "ALL" or
+          status == completion_status_filter):
+        for client in client_list:
+          results[client] = status
 
     # Get the list of clients and sort so that we can page accurately.
     client_list = results.keys()
@@ -590,12 +605,6 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
 <br/>
 <dl class="dl-horizontal dl-hunt">
   <dt>Name</dt><dd>{{ this.hunt_name|escape }}</dd>
-  <dt>Arguments</dt><dd>{{ this.args_str|safe }}</dd>
-
-{% for key, val in this.data.items %}
-  <dt>{{ key|escape }}</dt><dd>{{ val|escape }}</dd>
-{% endfor %}
-
   <dt>Hunt ID</dt>
   <dd>{{ this.hunt.urn.Basename|escape }}</dd>
 
@@ -620,14 +629,18 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
   <dt>Completed</dt>
   <dd>{{ this.hunt.NumCompleted|escape }}</dd>
 
-  <dt>Findings</dt>
-  <dd>{{ this.hunt.NumResults|escape }}</dd>
-
   <dt>Total CPU seconds used</dt>
   <dd>{{ this.cpu_sum|escape }}</dd>
 
   <dt>Total network traffic</dt>
   <dd>{{ this.net_sum|filesizeformat }}</dd>
+
+  <dt>Arguments</dt><dd>{{ this.args_str|safe }}</dd>
+
+{% for key, val in this.data.items %}
+  <dt>{{ key|escape }}</dt><dd>{{ val|escape }}</dd>
+{% endfor %}
+
 </dl>
 """)
 

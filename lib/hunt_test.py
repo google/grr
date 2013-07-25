@@ -5,7 +5,6 @@
 
 
 
-import math
 import time
 
 
@@ -38,7 +37,6 @@ class BrokenSampleHunt(hunts.SampleHunt):
       raise RuntimeError("Error")
     else:
       logging.info("Client %s has a file /tmp/evil.txt", client_id)
-      self.MarkClientBad(client_id)
 
     self.MarkClientDone(client_id)
 
@@ -233,60 +231,6 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     self.testCallback(100)
 
-  class SampleHuntMock(object):
-
-    def __init__(self):
-      self.responses = 0
-      self.data = "Hello World!"
-
-    def StatFile(self, args):
-      return self._StatFile(args)
-
-    def _StatFile(self, args):
-      req = rdfvalue.ListDirRequest(args)
-
-      response = rdfvalue.StatEntry(
-          pathspec=req.pathspec,
-          st_mode=33184,
-          st_ino=1063090,
-          st_dev=64512L,
-          st_nlink=1,
-          st_uid=139592,
-          st_gid=5000,
-          st_size=len(self.data),
-          st_atime=1336469177,
-          st_mtime=1336129892,
-          st_ctime=1336129892)
-
-      self.responses += 1
-
-      # Create status message to report sample resource usage
-      status = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.ReturnedStatus.OK)
-      status.cpu_time_used.user_cpu_time = self.responses
-      status.cpu_time_used.system_cpu_time = self.responses * 2
-      status.network_bytes_sent = self.responses * 3
-
-      # Every second client does not have this file.
-      if self.responses % 2:
-        return [status]
-      return [response, status]
-
-    def TransferBuffer(self, args):
-
-      response = rdfvalue.BufferReference(args)
-      response.data = self.data
-      response.length = len(self.data)
-      return [response]
-
-  class RaisingSampleHuntMock(SampleHuntMock):
-
-    def StatFile(self, args):
-      if self.responses == 3:
-        self.responses += 1
-        raise RuntimeError("This client fails.")
-
-      return self._StatFile(args)
-
   def testProcessing(self):
     """This tests running the hunt on some clients."""
 
@@ -305,7 +249,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       foreman.AssignTasksToClient(client_id)
 
     # Run the hunt.
-    client_mock = self.SampleHuntMock()
+    client_mock = test_lib.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
     hunt_obj = aff4.FACTORY.Open(
@@ -314,11 +258,9 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
     finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
-    badness = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.BADNESS)
 
     self.assertEqual(len(set(started)), 10)
     self.assertEqual(len(set(finished)), 10)
-    self.assertEqual(len(set(badness)), 5)
 
     # Clean up.
     foreman.Set(foreman.Schema.RULES())
@@ -342,7 +284,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     for client_id in client_ids:
       foreman.AssignTasksToClient(client_id)
 
-    client_mock = self.SampleHuntMock()
+    client_mock = test_lib.SampleHuntMock()
     # Just pass 8 clients to run, the other two went offline.
     test_lib.TestHuntHelper(client_mock, client_ids[1:9], False, self.token)
 
@@ -351,14 +293,11 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
     finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
-    badness = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.BADNESS)
 
     # We started the hunt on 10 clients.
     self.assertEqual(len(set(started)), 10)
     # But only 8 should have finished.
     self.assertEqual(len(set(finished)), 8)
-    # The client that raised should not show up here.
-    self.assertEqual(len(set(badness)), 4)
 
     # Clean up.
     foreman.Set(foreman.Schema.RULES())
@@ -382,7 +321,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       num_tasks = foreman.AssignTasksToClient(client_id)
       self.assertEqual(num_tasks, 1)
 
-    client_mock = self.SampleHuntMock()
+    client_mock = test_lib.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
     # Pausing and running hunt: this leads to the fresh rules being written
@@ -420,7 +359,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       foreman.AssignTasksToClient(client_id)
 
     # Run the hunt.
-    client_mock = self.SampleHuntMock()
+    client_mock = test_lib.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
     hunt_obj = aff4.FACTORY.Open(hunt.session_id, mode="rw",
@@ -428,12 +367,10 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
     finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
-    badness = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.BADNESS)
 
     # We limited here to 5 clients.
     self.assertEqual(len(set(started)), 5)
     self.assertEqual(len(set(finished)), 5)
-    self.assertEqual(len(set(badness)), 2)
 
     # Clean up.
     foreman.Set(foreman.Schema.RULES())
@@ -459,7 +396,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       foreman.AssignTasksToClient(client_id)
 
     # Run the hunt.
-    client_mock = self.SampleHuntMock()
+    client_mock = test_lib.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
     hunt_obj = aff4.FACTORY.Open(hunt.session_id, mode="rw",
@@ -467,7 +404,6 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
     finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
-    badness = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.BADNESS)
     errors = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.ERRORS)
 
     self.assertEqual(len(set(started)), 10)
@@ -475,7 +411,6 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(set(errors)), 5)
     # All of the clients that have the file should still finish eventually.
     self.assertEqual(len(set(finished)), 5)
-    self.assertEqual(len(set(badness)), 5)
 
     # Clean up.
     foreman.Set(foreman.Schema.RULES())
@@ -514,7 +449,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       foreman.AssignTasksToClient(client_id)
 
     # Run the hunt.
-    client_mock = self.SampleHuntMock()
+    client_mock = test_lib.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, client_ids, check_flow_errors=False,
                             token=self.token)
 
@@ -525,138 +460,6 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     foreman.Close()
 
     self.DeleteClients(10)
-
-  def CheckTuple(self, tuple1, tuple2):
-    (a, b) = tuple1
-    (c, d) = tuple2
-
-    self.assertAlmostEqual(a, c)
-    self.assertAlmostEqual(b, d)
-
-  def testResourceUsage(self):
-
-    hunt_urn = aff4.ROOT_URN.Add("hunts").Add("SampleHunt")
-    hunt_obj = aff4.FACTORY.Create(hunt_urn, "GRRHunt", token=self.token)
-    client1 = rdfvalue.RDFURN("C.0000000000000001")
-    client2 = rdfvalue.RDFURN("C.0000000000000002")
-    client3 = rdfvalue.RDFURN("C.0000000000000003")
-
-    usages = [(client1, "flow1", 0.5, 0.5),
-              (client1, "flow2", 0.1, 0.5),
-              (client1, "flow3", 0.2, 0.5),
-              (client2, "flow4", 0.6, 0.5),
-              (client2, "flow5", 0.7, 0.5),
-              (client2, "flow6", 0.6, 0.5),
-              (client3, "flow7", 0.1, 0.5),
-              (client3, "flow8", 0.1, 0.5),
-             ]
-
-    # Add some client stats.
-    for (client_id, session_id, user, sys) in usages:
-      resource = hunt_obj.Schema.RESOURCES()
-      resource.client_id = client_id
-      resource.session_id = session_id
-      resource.cpu_usage.user_cpu_time = user
-      resource.cpu_usage.system_cpu_time = sys
-      hunt_obj.AddAttribute(resource)
-
-    hunt_obj.Close()
-
-    hunt_obj = aff4.FACTORY.Open(hunt_urn, age=aff4.ALL_TIMES, token=self.token)
-
-    # Just for one client.
-    res = hunt_obj.GetResourceUsage(client_id=client1, group_by_client=False)
-
-    self.assertEqual(sorted(res.keys()), [client1])
-    self.assertEqual(sorted(res[client1].keys()),
-                     ["aff4:/flow1", "aff4:/flow2", "aff4:/flow3"])
-    self.CheckTuple(res[client1]["aff4:/flow1"], (0.5, 0.5))
-    self.CheckTuple(res[client1]["aff4:/flow2"], (0.1, 0.5))
-
-    # Group by client_id.
-    res = hunt_obj.GetResourceUsage(client_id=client1, group_by_client=True)
-
-    self.assertEqual(sorted(res.keys()), [client1])
-    self.CheckTuple(res[client1], (0.8, 1.5))
-
-    # Now for all clients.
-    res = hunt_obj.GetResourceUsage(group_by_client=False)
-
-    self.assertEqual(sorted(res.keys()), [client1, client2, client3])
-    self.assertEqual(sorted(res[client1].keys()),
-                     ["aff4:/flow1", "aff4:/flow2", "aff4:/flow3"])
-    self.CheckTuple(res[client1]["aff4:/flow1"], (0.5, 0.5))
-    self.CheckTuple(res[client1]["aff4:/flow2"], (0.1, 0.5))
-
-    self.assertEqual(sorted(res[client2].keys()),
-                     ["aff4:/flow4", "aff4:/flow5", "aff4:/flow6"])
-    self.CheckTuple(res[client2]["aff4:/flow4"], (0.6, 0.5))
-    self.CheckTuple(res[client2]["aff4:/flow5"], (0.7, 0.5))
-
-    # Group by client_id.
-    res = hunt_obj.GetResourceUsage(group_by_client=True)
-
-    self.assertEqual(sorted(res.keys()), [client1, client2, client3])
-    self.CheckTuple(res[client1], (0.8, 1.5))
-    self.CheckTuple(res[client2], (1.9, 1.5))
-    self.CheckTuple(res[client3], (0.2, 1.0))
-
-  def testResourceUsageStats(self):
-    client_ids = self.SetupClients(10)
-
-    hunt = hunts.GRRHunt.StartHunt("SampleHunt", token=self.token)
-    hunt_urn = hunt.session_id
-
-    regex_rule = rdfvalue.ForemanAttributeRegex(
-        attribute_name="GRR client",
-        attribute_regex="GRR")
-    hunt.AddRule([regex_rule])
-    hunt.Run()
-
-    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-    for client_id in client_ids:
-      foreman.AssignTasksToClient(client_id)
-
-    client_mock = self.SampleHuntMock()
-    test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
-
-    hunt = aff4.FACTORY.Open(hunt_urn, aff4_type="SampleHunt",
-                             token=self.token)
-
-    # This is called once for each state method. Each flow above runs the
-    # Start and the StoreResults methods.
-    usage_stats = hunt.state.context.usage_stats
-    self.assertEqual(usage_stats.user_cpu_stats.num, 20)
-    self.assertTrue(math.fabs(usage_stats.user_cpu_stats.mean -
-                              2.75) < 1e-7)
-    self.assertTrue(math.fabs(usage_stats.user_cpu_stats.std -
-                              3.418698582) < 1e-7)
-
-    self.assertEqual(usage_stats.system_cpu_stats.num, 20)
-    self.assertTrue(math.fabs(usage_stats.system_cpu_stats.mean -
-                              5.5) < 1e-7)
-    self.assertTrue(math.fabs(usage_stats.system_cpu_stats.std -
-                              6.8373971) < 1e-7)
-
-    self.assertEqual(usage_stats.network_bytes_sent_stats.num, 20)
-    self.assertTrue(math.fabs(usage_stats.network_bytes_sent_stats.mean -
-                              8.25) < 1e-7)
-    self.assertTrue(math.fabs(usage_stats.network_bytes_sent_stats.std -
-                              10.2560957483) < 1e-7)
-
-    # NOTE: Not checking histograms here. RunningStatsTest tests that mean,
-    # standard deviation and histograms are calculated correctly. Therefore
-    # if mean/stdev values are correct histograms should be ok as well.
-
-    self.assertEqual(len(usage_stats.worst_performers), 10)
-
-    prev = usage_stats.worst_performers[0]
-    for p in usage_stats.worst_performers[1:]:
-      self.assertTrue(prev.cpu_usage.user_cpu_time +
-                      prev.cpu_usage.system_cpu_time >
-                      p.cpu_usage.user_cpu_time +
-                      p.cpu_usage.system_cpu_time)
-      prev = p
 
 
 class FlowTestLoader(test_lib.GRRTestLoader):

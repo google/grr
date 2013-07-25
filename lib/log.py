@@ -121,6 +121,7 @@ VERBOSE_LOG_LEVELS = {
 
 def SetLogLevels():
   logger = logging.getLogger()
+
   if config_lib.CONFIG["Logging.verbose"] or flags.FLAGS.verbose:
     levels = VERBOSE_LOG_LEVELS
   else:

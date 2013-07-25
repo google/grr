@@ -199,6 +199,11 @@ class GRRWorker(object):
       # Another worker is dealing with this flow right now, we just skip it.
       return
 
+    except aff4.InstanciationError:
+      # Something went wrong when creating the aff4 object. In order not to spin
+      # here, we just remove the notification.
+      scheduler.SCHEDULER.DeleteNotification(session_id, token=self.token)
+
     except flow.FlowError as e:
       # Something went wrong - log it
       if isinstance(flow_obj, flow.GRRFlow):

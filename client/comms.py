@@ -37,7 +37,6 @@ from grr.lib import registry
 from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 config_lib.DEFINE_float("Client.poll_min", 0.2,
                         "Minimum time between polls in seconds")
@@ -1070,8 +1069,6 @@ class GRRHTTPClient(object):
       time.sleep(timeout)
     else:
       self.client_worker.Sleep(timeout)
-
-
 
 
 class ClientCommunicator(communicator.Communicator):

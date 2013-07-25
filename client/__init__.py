@@ -27,7 +27,7 @@ config_lib.DEFINE_string("Nanny.service_name", "GRR Service",
 config_lib.DEFINE_string("Nanny.service_description", "GRR Service",
                          help="The description of the nanny service.")
 
-config_lib.DEFINE_string("Nanny.service_key", r"%(Client.config_key)\\Nanny",
+config_lib.DEFINE_string("Nanny.service_key", r"%(Client.config_key)",
                          help="The registry key of the nanny service.")
 
 config_lib.DEFINE_string("Nanny.service_key_hive", r"%(Client.config_hive)",

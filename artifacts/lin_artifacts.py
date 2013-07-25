@@ -23,7 +23,8 @@ class AuthLog(Artifact):
   SUPPORTED_OS = ["Linux"]
   LABELS = ["Logs", "Auth"]
   COLLECTORS = [
-      Collector(action="GetFile", args={"path": "/var/log/auth.log"})
+      Collector(action="GetFile",
+                args={"path": "/var/log/auth.log"})
   ]
 
 
@@ -33,6 +34,20 @@ class Wtmp(Artifact):
   LABELS = ["Logs", "Auth"]
 
   COLLECTORS = [
-      Collector(action="GetFile", args={"path": "/var/log/wtmp"})
+      Collector(action="GetFile",
+                args={"path": "/var/log/wtmp"})
   ]
-  PROCESSORS = ["WtmpParser"]
+
+
+class DebianPackages(Artifact):
+  """Linux output of dpkg --list."""
+  SUPPORTED_OS = ["Linux"]
+  LABELS = ["Software"]
+
+  COLLECTORS = [
+      Collector(action="RunCommand",
+                args={"cmd": "/usr/bin/dpkg", "args": ["--list"]},
+               )
+  ]
+  PROCESSOR = "DpkgCmdParser"
+

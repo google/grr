@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 """A quick script that normalizes a config file."""
+
 import logging
+
+
 import yaml
 
 from grr.lib import flags
 from grr.lib import lexer
-from grr.lib import startup
 
 
 flags.PARSER.add_argument("filename", type=str,
@@ -234,7 +236,6 @@ class YamlConfigLexer(lexer.Lexer):
 
 
 def main(_):
-  startup.Init()
 
   data = open(flags.FLAGS.filename, "rb").read()
   parser = YamlConfigLexer(data)

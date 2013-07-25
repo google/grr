@@ -207,7 +207,10 @@ def _RepackBinary(context, builder_cls):
 
   if os.path.exists(template_path):
     builder = builder_cls(context=context)
-    return builder.MakeDeployableBinary(template_path)
+    try:
+      return builder.MakeDeployableBinary(template_path)
+    except Exception as e:  # pylint: disable=broad-except
+      print "Repacking template %s failed: %s" % (template_path, e)
   else:
     print "Template %s missing - will not repack." % template_path
 
@@ -233,19 +236,25 @@ def RepackAllBinaries(upload=False):
   """
   built = []
 
-  # First build the windows binaries.
+  base_context = ["ClientBuilder Context"]
   for context, builder in (
-      (["Platform:Windows", "Arch:amd64"], build.WindowsClientBuilder),
-      (["Platform:Windows", "Arch:i386"], build.WindowsClientBuilder),
-      (["Platform:Linux", "Arch:amd64"], build.LinuxClientBuilder),
-      (["Platform:Darwin", "Arch:amd64"], build.DarwinClientBuilder)):
+      (["Target:Windows", "Platform:Windows", "Arch:amd64"],
+       build.WindowsClientBuilder),
+      (["Target:Windows", "Platform:Windows", "Arch:i386"],
+       build.WindowsClientBuilder),
+      (["Target:Linux", "Platform:Linux", "Arch:amd64"],
+       build.LinuxClientBuilder),
+      (["Target:Darwin", "Platform:Darwin", "Arch:amd64"],
+       build.DarwinClientBuilder)):
 
+    context = base_context + context
     output_path = _RepackBinary(context, builder)
-    built.append(output_path)
-    if upload:
-      dest = config_lib.CONFIG.Get("Executables.installer", context=context)
-      print "Uploaded config file to %s" % dest
-      UploadSignedConfigBlob(open(output_path).read(100*1024*1024),
-                             dest, client_context=context)
+    if output_path:
+      built.append(output_path)
+      if upload:
+        dest = config_lib.CONFIG.Get("Executables.installer",
+                                     context=context)
+        UploadSignedConfigBlob(open(output_path).read(100*1024*1024),
+                               dest, client_context=context)
 
   return built

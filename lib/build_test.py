@@ -35,10 +35,11 @@ class BuildTests(test_lib.GRRBaseTest):
 
       built = maintenance_utils.RepackAllBinaries()
 
-      # 4 outputs are returned - we have 4 architectures.
-      self.assertEqual(len(built), 4)
       self.assertTrue("amd64.exe" in built[0])
       self.assertTrue("i386.exe" in built[1])
+
+      # TODO(user): Also check for the mac build once we have a template that
+      # works.
 
 
 def main(argv):

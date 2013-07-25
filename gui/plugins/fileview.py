@@ -1228,9 +1228,8 @@ As downloaded on {{ this.age|escape }}.<br>
     # Open the client
     client_id = request.REQ.get("client_id")
     self.aff4_path = request.REQ.get("aff4_path", client_id)
-    self.age = rdfvalue.RDFDatetime(request.REQ.get("age"))
+    self.age = rdfvalue.RDFDatetime(request.REQ.get("age")) or aff4.NEWEST_TIME
     self.token = request.token
-
     # If set, we don't append .noexec to dangerous extensions.
     safe_extension = bool(request.REQ.get("safe_extension", 0))
 
@@ -1676,7 +1675,7 @@ class HistoricalView(renderers.TableRenderer):
     path = request.REQ.get("path")
 
     self.AddColumn(renderers.RDFValueColumn(attribute_name))
-    fd = aff4.FACTORY.Open(urn or client_id or path,
+    fd = aff4.FACTORY.Open(urn or path or client_id,
                            token=request.token, age=aff4.ALL_TIMES)
     self.BuildTableFromAttribute(attribute_name, fd, start_row, end_row)
 

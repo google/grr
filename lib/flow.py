@@ -806,7 +806,7 @@ class GRRFlow(aff4.AFF4Volume):
       client.Flush()
 
     logging.info("Scheduling %s(%s) on %s: %s", flow_obj.session_id,
-                 flow_name, client_id, kw)
+                 flow_name, client_id, utils.SmartUnicode(kw))
 
     # A flow manager maintains an atomic transaction of all messages to be sent
     # as part of a flow state execution. If this flow calls child flows, we

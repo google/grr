@@ -15,7 +15,6 @@ from django.core.handlers import wsgi
 
 import logging
 
-
 from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store

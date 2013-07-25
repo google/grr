@@ -5,6 +5,7 @@
 
 
 
+import math
 import time
 
 
@@ -14,48 +15,6 @@ from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.hunts import output_plugins
-
-class SampleHuntMock(object):
-
-  def __init__(self, failrate=2):
-    self.responses = 0
-    self.data = "Hello World!"
-    self.failrate = failrate
-    self.count = 0
-
-  def StatFile(self, args):
-    return self._StatFile(args)
-
-  def _StatFile(self, args):
-    req = rdfvalue.ListDirRequest(args)
-    response = rdfvalue.StatEntry(
-        pathspec=req.pathspec,
-        st_mode=33184,
-        st_ino=1063090,
-        st_dev=64512L,
-        st_nlink=1,
-        st_uid=139592,
-        st_gid=5000,
-        st_size=len(self.data),
-        st_atime=1336469177,
-        st_mtime=1336129892,
-        st_ctime=1336129892)
-
-    self.responses += 1
-
-    self.count += 1
-    if self.count == self.failrate:
-      self.count = 0
-      raise IOError("File does not exist")
-
-    return [response]
-
-  def TransferBuffer(self, args):
-    response = rdfvalue.BufferReference(args)
-
-    response.data = self.data
-    response.length = len(self.data)
-    return [response]
 
 
 class StandardHuntTest(test_lib.FlowTestsBaseclass):
@@ -97,7 +56,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       foreman.AssignTasksToClient(client_id)
 
     # Run the hunt.
-    client_mock = SampleHuntMock()
+    client_mock = test_lib.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, self.client_ids,
                             check_flow_errors=False, token=self.token)
 
@@ -156,7 +115,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
         hunt.StartClient(hunt.session_id, client_id)
 
       # Run the hunt.
-      client_mock = SampleHuntMock()
+      client_mock = test_lib.SampleHuntMock()
       test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
       # Stop the hunt now.
@@ -217,7 +176,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       foreman.AssignTasksToClient(client_id)
 
     # Run the hunt.
-    client_mock = SampleHuntMock()
+    client_mock = test_lib.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
     # Stop the hunt now.
@@ -273,7 +232,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     hunt.ManuallyScheduleClients()
 
     # Run the hunt.
-    client_mock = SampleHuntMock(failrate=100)
+    client_mock = test_lib.SampleHuntMock(failrate=100)
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
     # Stop the hunt now.
@@ -353,7 +312,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
         foreman.AssignTasksToClient(client_id)
 
       # Run the hunt.
-      client_mock = SampleHuntMock()
+      client_mock = test_lib.SampleHuntMock()
       test_lib.TestHuntHelper(client_mock, self.client_ids,
                               check_flow_errors=False, token=self.token)
 
@@ -423,7 +382,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       foreman.AssignTasksToClient(client_id)
 
     # Run the hunt.
-    client_mock = SampleHuntMock()
+    client_mock = test_lib.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
     hunt_obj = aff4.FACTORY.Open(hunt_session_id, age=aff4.ALL_TIMES,
@@ -453,6 +412,72 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
     # There should be only one client, due to the limit
     self.assertEqual(len(set(started)), 10)
+
+  def testResourceUsageStats(self):
+    client_ids = self.SetupClients(10)
+
+    hunt = hunts.GRRHunt.StartHunt(
+        "GenericHunt",
+        flow_name="GetFile",
+        args=rdfvalue.Dict(
+            pathspec=rdfvalue.PathSpec(
+                path="/tmp/evil.txt",
+                pathtype=rdfvalue.PathSpec.PathType.OS,
+                )
+            ),
+        output_plugins=[],
+        token=self.token)
+
+    regex_rule = rdfvalue.ForemanAttributeRegex(
+        attribute_name="GRR client",
+        attribute_regex="GRR")
+    hunt.AddRule([regex_rule])
+    hunt.Run()
+
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    for client_id in client_ids:
+      foreman.AssignTasksToClient(client_id)
+
+    client_mock = test_lib.SampleHuntMock()
+    test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
+
+    hunt = aff4.FACTORY.Open(hunt.urn, aff4_type="GenericHunt",
+                             token=self.token)
+
+    # This is called once for each state method. Each flow above runs the
+    # Start and the StoreResults methods.
+    usage_stats = hunt.state.context.usage_stats
+    self.assertEqual(usage_stats.user_cpu_stats.num, 10)
+    self.assertTrue(math.fabs(usage_stats.user_cpu_stats.mean -
+                              5.5) < 1e-7)
+    self.assertTrue(math.fabs(usage_stats.user_cpu_stats.std -
+                              2.8722813) < 1e-7)
+
+    self.assertEqual(usage_stats.system_cpu_stats.num, 10)
+    self.assertTrue(math.fabs(usage_stats.system_cpu_stats.mean -
+                              11) < 1e-7)
+    self.assertTrue(math.fabs(usage_stats.system_cpu_stats.std -
+                              5.7445626) < 1e-7)
+
+    self.assertEqual(usage_stats.network_bytes_sent_stats.num, 10)
+    self.assertTrue(math.fabs(usage_stats.network_bytes_sent_stats.mean -
+                              16.5) < 1e-7)
+    self.assertTrue(math.fabs(usage_stats.network_bytes_sent_stats.std -
+                              8.61684396) < 1e-7)
+
+    # NOTE: Not checking histograms here. RunningStatsTest tests that mean,
+    # standard deviation and histograms are calculated correctly. Therefore
+    # if mean/stdev values are correct histograms should be ok as well.
+
+    self.assertEqual(len(usage_stats.worst_performers), 10)
+
+    prev = usage_stats.worst_performers[0]
+    for p in usage_stats.worst_performers[1:]:
+      self.assertTrue(prev.cpu_usage.user_cpu_time +
+                      prev.cpu_usage.system_cpu_time >
+                      p.cpu_usage.user_cpu_time +
+                      p.cpu_usage.system_cpu_time)
+      prev = p
 
   class MBRHuntMock(object):
 
@@ -491,7 +516,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     hunt.ManuallyScheduleClients()
 
     # Run the hunt.
-    client_mock = SampleHuntMock(failrate=len(self.client_ids))
+    client_mock = test_lib.SampleHuntMock(failrate=len(self.client_ids))
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
     for i, c in enumerate(self.client_ids[:5]):

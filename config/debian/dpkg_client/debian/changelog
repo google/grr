@@ -1,4 +1,4 @@
-%(Client.name) \(%(ClientBuilder.debian_version)\) unstable; urgency=low
+%(ClientBuilder.package_name) \(%(ClientBuilder.debian_version)\) unstable; urgency=low
 
   * Initial release
 

@@ -34,7 +34,8 @@ class GRRClient(object):
   def __init__(self, ca_cert=None, private_key=None):
     super(GRRClient, self).__init__()
     ca_cert = ca_cert or config_lib.CONFIG["CA.certificate"]
-    private_key = private_key or config_lib.CONFIG.Get("Client.private_key")
+    private_key = private_key or config_lib.CONFIG.Get("Client.private_key",
+                                                       default=None)
     self.client = comms.GRRHTTPClient(ca_cert=ca_cert, private_key=private_key)
 
   def Run(self):

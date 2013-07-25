@@ -13,6 +13,7 @@ modules that have been customized for your deployment.
 # pylint: disable=unused-import,g-import-not-at-top
 
 from grr import artifacts
+from grr import parsers
 
 # Server code needs to know about client actions as well.
 from grr.client import client_plugins

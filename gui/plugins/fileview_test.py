@@ -6,8 +6,11 @@
 
 import time
 
+from grr.gui import runtests_test
+
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import test_lib
 
 
@@ -190,3 +193,11 @@ class TestFileView(test_lib.GRRSeleniumTest):
         "cat", self.GetText,
         "css=table > tbody td.proto_key:contains(\"vfs_file_urn\") "
         "~ td.proto_value")
+
+
+def main(argv):
+  # Run the full test suite
+  runtests_test.SeleniumTestProgram(argv=argv)
+
+if __name__ == "__main__":
+  flags.StartMain(main)

@@ -61,7 +61,7 @@ class ClientTestBase(test_lib.GRRBaseTest):
     pass
 
   def tearDown(self):
-    # Disable setUp since the cleanup between unit tests does not make sense
+    # Disable tearDown since the cleanup between unit tests does not make sense
     # here.
     pass
 
@@ -246,7 +246,7 @@ class TestFindOSLinux(TestListDirectoryOSLinux):
           pathtype=rdfvalue.PathSpec.PathType.OS))}
 
 
-class ClientTestInterrogate(ClientTestBase):
+class TestInterrogate(ClientTestBase):
   """Tests the Interrogate flow on windows."""
   platforms = ["windows", "linux", "darwin"]
   flow = "Interrogate"
@@ -261,7 +261,7 @@ class ClientTestInterrogate(ClientTestBase):
                 aff4.VFSGRRClient.SchemaCls.USERNAMES]
 
   def setUp(self):
-    super(ClientTestInterrogate, self).setUp()
+    super(TestInterrogate, self).setUp()
     data_store.DB.DeleteAttributes(self.client_id, [
         str(attribute) for attribute in self.attributes], sync=True)
 
@@ -295,20 +295,22 @@ class TestListDirectoryTSKWindows(TestListDirectoryTSKLinux):
   file_to_find = "regedit.exe"
 
   def CheckFlow(self):
-    urn = self.client_id.Add("/fs/tsk")
-    fd = aff4.FACTORY.Open(urn, mode="r", token=self.token)
-    volumes = list(fd.OpenChildren())
-    found = False
-    for volume in volumes:
-      fd = aff4.FACTORY.Open(volume.urn.Add("Windows"), mode="r",
-                             token=self.token)
-      children = list(fd.OpenChildren())
-      for child in children:
-        if self.file_to_find == child.urn.Basename():
-          # We found what we were looking for.
-          found = True
-          self.to_delete = child.urn
-          break
+    # XP has uppercase...
+    for windir in ["Windows", "WINDOWS"]:
+      urn = self.client_id.Add("/fs/tsk")
+      fd = aff4.FACTORY.Open(urn, mode="r", token=self.token)
+      volumes = list(fd.OpenChildren())
+      found = False
+      for volume in volumes:
+        fd = aff4.FACTORY.Open(volume.urn.Add(windir), mode="r",
+                               token=self.token)
+        children = list(fd.OpenChildren())
+        for child in children:
+          if self.file_to_find == child.urn.Basename():
+            # We found what we were looking for.
+            found = True
+            self.to_delete = child.urn
+            break
     self.assertTrue(found)
 
 
@@ -412,7 +414,7 @@ class TestGetFileTSKWindows(TestGetFileOSWindows):
     self.assertTrue(found)
 
 
-class ClientTestRegistry(ClientTestBase):
+class TestRegistry(ClientTestBase):
   """Tests if listing registry keys works on Windows."""
   platforms = ["windows"]
   flow = "ListDirectory"

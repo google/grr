@@ -52,11 +52,6 @@ class GRRHunt(flow.GRRFlow):
                               "The list of clients the hunt has completed on.",
                               creates_new_object_version=False)
 
-    BADNESS = aff4.Attribute("aff4:badness", rdfvalue.RDFURN,
-                             ("A list of clients this hunt has found something "
-                              "worth investigating on."),
-                             creates_new_object_version=False)
-
     ERRORS = aff4.Attribute("aff4:errors", rdfvalue.HuntError,
                             "The list of clients that returned an error.",
                             creates_new_object_version=False)
@@ -64,11 +59,6 @@ class GRRHunt(flow.GRRFlow):
     LOG = aff4.Attribute("aff4:result_log", rdfvalue.HuntLog,
                          "The log entries.",
                          creates_new_object_version=False)
-
-    RESOURCES = aff4.Attribute("aff4:client_resources",
-                               rdfvalue.ClientResources,
-                               "The client resource usage for subflows.",
-                               creates_new_object_version=False)
 
   # The following args are standard for all hunts.
   hunt_typeinfo = type_info.TypeDescriptorSet(
@@ -465,12 +455,6 @@ class GRRHunt(flow.GRRFlow):
                                          client_id=client_id)
       self.Publish(self.state.context.notification_event, status)
 
-  def MarkClientBad(self, client_id):
-    """Marks a client as worth investigating."""
-
-    self.MarkClient(client_id,
-                    aff4.FACTORY.AFF4Object("GRRHunt").SchemaCls.BADNESS)
-
   def LogClientError(self, client_id, log_message=None, backtrace=None):
     """Logs an error for a client."""
 
@@ -499,53 +483,15 @@ class GRRHunt(flow.GRRFlow):
     self.AddAttribute(client_urn)
 
   def ProcessClientResourcesStats(self, client_id, status):
-    """Process status message from a client and update the stats."""
-    if not status.child_session_id:
-      return
+    """Process status message from a client and update the stats.
 
-    user_cpu = status.cpu_time_used.user_cpu_time
-    system_cpu = status.cpu_time_used.system_cpu_time
+    Args:
+      client_id: Client id.
+      status: Status returned from the client.
 
-    resources = self.Schema.RESOURCES()
-    resources.client_id = client_id
-    resources.session_id = status.child_session_id
-    resources.cpu_usage.user_cpu_time = user_cpu
-    resources.cpu_usage.system_cpu_time = system_cpu
-    resources.network_bytes_sent = status.network_bytes_sent
-    # TODO(user): Do we want to save all the resource usage stats?
-    self.AddAttribute(resources)
-    self.state.context.usage_stats.RegisterResources(resources)
-
-  def GetResourceUsage(self, client_id=None, group_by_client=True):
-    """Returns the cpu resource usage for subflows."""
-    usages = {}
-    for usage in self.GetValuesForAttribute(self.Schema.RESOURCES):
-      if client_id and usage.client_id != client_id:
-        continue
-
-      if usage.client_id not in usages:
-        usages[usage.client_id] = {
-            usage.session_id: (usage.cpu_usage.user_cpu_time,
-                               usage.cpu_usage.system_cpu_time)}
-      else:
-        client_usage = usages[usage.client_id]
-        (user_cpu, sys_cpu) = client_usage.setdefault(usage.session_id,
-                                                      (0.0, 0.0))
-        client_usage[usage.session_id] = (
-            user_cpu + usage.cpu_usage.user_cpu_time,
-            sys_cpu + usage.cpu_usage.system_cpu_time)
-
-    if group_by_client:
-      grouped = {}
-      for (client_id, usage) in usages.items():
-        total_user, total_sys = 0.0, 0.0
-        for (_, (user_cpu, sys_cpu)) in usage.items():
-          total_user += user_cpu
-          total_sys += sys_cpu
-        grouped[client_id] = (total_user, total_sys)
-      return grouped
-    else:
-      return usages
+    This method may be implemented in the subclasses. It's called
+    once *per every hunt's state per every client*.
+    """
 
   def _Num(self, attribute):
     return len(set(self.GetValuesForAttribute(attribute)))
@@ -559,9 +505,6 @@ class GRRHunt(flow.GRRFlow):
   def NumOutstanding(self):
     return self.NumClients() - self.NumCompleted()
 
-  def NumResults(self):
-    return self._Num(self.Schema.BADNESS)
-
   def _List(self, attribute):
     items = self.GetValuesForAttribute(attribute)
     if items:
@@ -573,9 +516,6 @@ class GRRHunt(flow.GRRFlow):
 
   def ListClients(self):
     self._List(self.Schema.CLIENTS)
-
-  def GetBadClients(self):
-    return sorted(self.GetValuesForAttribute(self.Schema.BADNESS))
 
   def GetCompletedClients(self):
     return sorted(self.GetValuesForAttribute(self.Schema.FINISHED))
@@ -601,12 +541,9 @@ class GRRHunt(flow.GRRFlow):
   def GetClientsByStatus(self):
     """Get all the clients in a dict of {status: [client_list]}."""
     completed = set(self.GetCompletedClients())
-    bad = set(self.GetBadClients())
-    completed -= bad
 
     return {"COMPLETED": sorted(completed),
-            "OUTSTANDING": self.GetOutstandingClients(),
-            "BAD": sorted(bad)}
+            "OUTSTANDING": self.GetOutstandingClients()}
 
   def GetClientStates(self, client_list, client_chunk=50):
     """Take in a client list and return dicts with their age and hostname."""

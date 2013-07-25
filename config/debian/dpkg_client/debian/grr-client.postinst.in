@@ -4,6 +4,6 @@ DAEMON_ARGS="--config=%(ClientBuilder.target_dir)/%(ClientBuilder.config_filenam
 
 ${DAEMON} ${DAEMON_ARGS} "--install"
 
-if [ -e "/etc/init/%(Client.name).conf" ]; then
-	service %(Client.name) start || exit $?
+if [ -e "/etc/init/%(ClientBuilder.package_name).conf" ]; then
+	service %(ClientBuilder.package_name) start || exit $?
 fi

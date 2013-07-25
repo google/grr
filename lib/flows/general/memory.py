@@ -299,8 +299,9 @@ class LoadMemoryDriver(flow.GRRFlow):
       # Let a parent flow know which driver was installed.
       self.SendReply(layout)
     else:
-      raise flow.FlowError("Failed to query device %s" %
-                           self.state.driver_installer.device_path)
+      raise flow.FlowError("Failed to query device %s (%s)" %
+                           self.state.driver_installer.device_path,
+                           responses.status)
 
   @flow.StateHandler()
   def End(self):

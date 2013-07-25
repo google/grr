@@ -11,9 +11,7 @@ of key properties about the artifact:
   Storage: How to store the processed data.
 """
 
-import logging
-
-from grr.lib import rdfvalue
+from grr.lib import parsers
 from grr.lib import registry
 from grr.lib import type_info
 
@@ -30,6 +28,10 @@ class ConditionError(Error):
   """A condition was called that cannot be decided."""
 
 
+class ArtifactProcessingError(Error):
+  """An artifact could not be processed."""
+
+
 # These labels represent the full set of labels that an Artifact can have.
 # This set is tested on creation to ensure our list of labels doesn't get out
 # of hand.
@@ -41,6 +43,7 @@ ARTIFACT_LABELS = [
     "Ext Media",       # Contain external media data or events e.g. (USB drives)
     "Network",         # Describe networking state.
     "Auth",            # Authentication artifacts.
+    "Software"         # Installed software.
     ]
 
 
@@ -51,6 +54,16 @@ class Collector(object):
     self.action = action
     self.args = args or {}
     self.conditions = conditions or []
+
+
+class AFF4ResultWriter(object):
+  """A wrapper class to allow writing objects to the AFF4 space."""
+
+  def __init__(self, path, aff4_type, aff4_attribute, mode):
+    self.path = path
+    self.aff4_type = aff4_type
+    self.aff4_attribute = aff4_attribute
+    self.mode = mode
 
 
 class Artifact(object):
@@ -108,71 +121,6 @@ class GenericArtifact(Artifact):
   # A dict to use for path interpolation.
   PATH_ARGS = {}
 
-  def __init__(self, parent_flow, use_tsk=True, validate=True):
-    """Initialize an artifact.
-
-    Args:
-      parent_flow: The flow requesting the artifact.
-      use_tsk: Use raw access to access the filesystem.
-      validate: Run validation checks.
-
-    The parent flow will be the ArtifactCollectorFlow which will handle the
-    download of the artifact. Any flows needed to collect the artifact will
-    be children of this flow and any functions required will be implemented
-    in that flow.
-    """
-    super(GenericArtifact, self).__init__()
-    self.client = parent_flow.state.get("client")
-    self.parent_flow = parent_flow
-    if use_tsk:
-      self.path_type = rdfvalue.PathSpec.PathType.TSK
-    else:
-      self.path_type = rdfvalue.PathSpec.PathType.OS
-
-    # Ensure we've been written sanely.
-    # Note that this could be removed if it turns out to be expensive. The
-    # artifact tests catch anything that this would.
-    if validate:
-      self.Validate()
-
-  def Collect(self):
-    """Collect the raw data from the client for this artifact."""
-
-    # Turn SUPPORTED_OS into a condition.
-    for supported_os in self.SUPPORTED_OS:
-      self.CONDITIONS.append(SUPPORTED_OS_MAP[supported_os])
-
-    # Check each of the conditions match our target.
-    for condition in self.CONDITIONS:
-      if not condition(self.client):
-        logging.debug("Artifact %s condition %s failed on %s",
-                      self.__class__.__name__, condition.func_name,
-                      self.client.client_id)
-        return
-
-    # Call the collector defined action for each collector.
-    for collector in self.COLLECTORS:
-      for condition in collector.conditions:
-        if not condition(self.client):
-          logging.debug("Artifact Collector %s condition %s failed on %s",
-                        self.__class__.__name__, condition.func_name,
-                        self.client.client_id)
-          continue
-
-      action_name = collector.action
-      action = getattr(self.parent_flow, action_name)
-      action(path_type=self.path_type, **collector.args)
-
-  def Process(self, responses):
-    """Process the collected data.
-
-    Args:
-      responses: A flow responses object.
-
-    """
-    # By default do no processing.
-    pass
-
   def Validate(self):
     """Attempt to validate the artifact has been well defined.
 
@@ -198,19 +146,30 @@ class GenericArtifact(Artifact):
                                       (cls_name, condition))
 
     for collector in self.COLLECTORS:
-      if not hasattr(self.parent_flow, collector.action):
-        raise ArtifactDefinitionError("Artifact %s collector has invalid action"
-                                      " %s" % (cls_name, collector.action))
       if not hasattr(collector.conditions, "__iter__"):
         raise ArtifactDefinitionError("Artifact %s collector has invalid"
-                                      "conditions %s" % (cls_name,
-                                                         collector.conditions))
+                                      " conditions %s" %
+                                      (cls_name, collector.conditions))
 
     for label in self.LABELS:
       if label not in ARTIFACT_LABELS:
         raise ArtifactDefinitionError("Artifact %s has an invalid label %s."
-                                      "Please use one from ARTIFACT_LABELS."
+                                      " Please use one from ARTIFACT_LABELS."
                                       % (cls_name, label))
+
+    if hasattr(self, "PROCESSOR"):
+      processor = parsers.Parser.classes.get(self.PROCESSOR)
+      if not processor:
+        raise ArtifactDefinitionError("Artifact %s has an invalid processor %s."
+                                      " The processor must be registered as a"
+                                      " parser."
+                                      % (cls_name, self.PROCESSOR))
+      if (not hasattr(processor, "out_type")
+          or processor.out_type not in GRRArtifactMappings.rdf_map):
+        raise ArtifactDefinitionError("Artifact %s has a a process with an"
+                                      " output_type %s which is not in the "
+                                      " GRRArtifactMappings."
+                                      % (cls_name, processor.out_type))
 
   @classmethod
   def GetDescription(cls):
@@ -256,3 +215,22 @@ class ArtifactList(type_info.TypeInfoObject):
         raise type_info.TypeValueError("%s not a valid Artifact class." % val)
 
     return value
+
+
+class GRRArtifactMappings(object):
+  """SemanticProto to AFF4 storage mappings.
+
+  Class defining mappings between RDFValues collected by Artifacts, and the
+  location they are stored in the AFF4 hierarchy.
+
+  Each entry in the map contains:
+    1. Location stored relative to the client.
+    2. Name of the AFF4 type.
+    3. Name of the attribute to be changed.
+    4. Method for adding the RDFValue to the Attribute (Set, Append)
+  """
+
+  rdf_map = {
+      "SoftwarePackage": ("info/software", "InstalledSoftwarePackages",
+                          "INSTALLED_PACKAGES", "Append")
+      }

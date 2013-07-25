@@ -13,7 +13,7 @@ from grr.gui.plugins import fileview
 from grr.gui.plugins import flow_management
 from grr.gui.plugins import foreman
 from grr.gui.plugins import hunt_view
-from grr.gui.plugins import inspect
+from grr.gui.plugins import inspect_view
 from grr.gui.plugins import new_hunt
 from grr.gui.plugins import notifications
 from grr.gui.plugins import searchclient

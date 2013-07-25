@@ -31,6 +31,7 @@ from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import startup
 from grr.lib import utils
+from grr.lib.aff4_objects import user_managers
 # pylint: enable=g-import-not-at-top,no-name-in-module
 
 
@@ -169,6 +170,37 @@ def LoadMemoryDrivers(grr_dir):
   print "uploaded %s" % up_path
 
 
+def ImportConfig(filename, config):
+  """Reads an old config file and imports keys and user accounts."""
+  sections_to_import = ["PrivateKeys"]
+  entries_to_import = ["Client.driver_signing_public_key",
+                       "Client.executable_signing_public_key",
+                       "CA.certificate",
+                       "Frontend.certificate"]
+  options_imported = 0
+  old_config = config_lib.CONFIG.MakeNewConfig()
+  old_config.Initialize(filename)
+  user_manager = None
+  for entry in old_config.raw_data.keys():
+    try:
+      section = entry.split(".")[0]
+      if section in sections_to_import or entry in entries_to_import:
+        config.Set(entry, old_config.Get(entry))
+        print "Imported %s." % entry
+        options_imported += 1
+      elif section == "Users":
+        if user_manager is None:
+          user_manager = user_managers.ConfigBasedUserManager()
+        user = entry.split(".", 1)[1]
+        hash_str, labels = old_config.Get(entry).split(":")
+        user_manager.SetRaw(user, hash_str, labels.split(","))
+        print "Imported user %s." % user
+        options_imported += 1
+    except Exception as e:  # pylint: disable=broad-except
+      print "Exception during import of %s: %s" % (entry, e)
+  return options_imported
+
+
 def GenerateDjangoKey(config):
   """Update a config with a random django key."""
   try:
@@ -187,7 +219,8 @@ def GenerateKeys(config):
   """Generate the keys we need for a GRR server."""
   if not hasattr(key_utils, "MakeCACert"):
     parser.error("Generate keys can only run with open source key_utils.")
-  if config.Get("PrivateKeys.server_key") and not flags.FLAGS.overwrite:
+  if (config.Get("PrivateKeys.server_key", default=None) and
+      not flags.FLAGS.overwrite):
     raise RuntimeError("Config %s already has keys, use --overwrite to "
                        "override." % config.parser)
 
@@ -200,11 +233,6 @@ def GenerateKeys(config):
   priv_key, pub_key = key_utils.GenerateRSAKey()
   config.Set("PrivateKeys.driver_signing_private_key", priv_key)
   config.Set("Client.driver_signing_public_key", pub_key)
-
-  # Add OS specific inherit sections.
-  config.Set("PrivateKeysWindows.@inherit_from_section", "PrivateKeys")
-  config.Set("PrivateKeysLinux.@inherit_from_section", "PrivateKeys")
-  config.Set("PrivateKeysDarwin.@inherit_from_section", "PrivateKeys")
 
   print "Generating CA keys"
   ca_cert, ca_pk, _ = key_utils.MakeCACert()
@@ -278,11 +306,26 @@ Address where high priority events such as an emergency ACL bypass are sent.
 def Initialize(config=None):
   """Initialize or update a GRR configuration."""
 
-  print "Checking read access on config %s" % config.parser
+  print "Checking write access on config %s" % config.parser
   if not os.access(config.parser.filename, os.W_OK):
     raise IOError("Config not writeable (need sudo?)")
+
+  print "\nStep 0: Importing Configuration from previous installation."
+  options_imported = 0
+  prev_config_file = config.Get("ConfigUpdater.old_config", default=None)
+  if prev_config_file and os.access(prev_config_file, os.R_OK):
+    print "Found config file %s." % prev_config_file
+    if raw_input("Do you want to import this configuration?"
+                 " [yN]: ").upper() == "Y":
+      options_imported = ImportConfig(prev_config_file, config)
+  else:
+    print "No old config file found."
+
   print "\nStep 1: Key Generation"
-  if config.Get("PrivateKeys.server_key"):
+  if config.Get("PrivateKeys.server_key", default=None):
+    if options_imported > 0:
+      print ("Since you have imported keys from another installation in the "
+             "last step,\nyou probably do not want to generate new keys now.")
     if ((raw_input("You already have keys in your config, do you want to"
                    " overwrite them? [yN]: ").upper() or "N") == "Y"):
       flags.FLAGS.overwrite = True
@@ -305,10 +348,14 @@ def Initialize(config=None):
   print "\nStep 4: Uploading Memory Drivers to the Database"
   LoadMemoryDrivers(flags.FLAGS.share_dir)
 
-  print "\nStep 4: Repackaging clients with new configuration."
+  print "\nStep 5: Repackaging clients with new configuration."
+  # We need to update the config to point to the installed templates now.
+  config.Set("ClientBuilder.executables_path", os.path.join(
+      flags.FLAGS.share_dir, "executables"))
   maintenance_utils.RepackAllBinaries(upload=True)
 
-  print "\nInitialization complete."
+  print "\nInitialization complete, writing configuration."
+  config.Write()
   print "Please restart the service for it to take effect.\n\n"
 
 
@@ -414,5 +461,9 @@ def main(unused_argv):
     print "Uploaded to %s" % uploaded
 
 
-if __name__ == "__main__":
+def ConsoleMain():
+  """Helper function for calling with setup tools entry points."""
   flags.StartMain(main)
+
+if __name__ == "__main__":
+  ConsoleMain()

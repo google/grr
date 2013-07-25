@@ -38,6 +38,6 @@ override_dh_makeshlibs:
 	dh_makeshlibs -n
 
 override_dh_shlibdeps:
-	# Point debhelper to the locally included shared libraries
-	dh_shlibdeps
+	# Point debhelper to the locally included shared libraries.
+	dh_shlibdeps -l %(ClientBuilder.target_dir)
 

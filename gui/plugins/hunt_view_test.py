@@ -8,8 +8,10 @@
 
 import traceback
 
+from grr.gui import runtests_test
+
 from grr.lib import aff4
-from grr.lib import hunt_test
+from grr.lib import flags
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -23,7 +25,18 @@ class TestHuntView(test_lib.GRRSeleniumTest):
   def CreateSampleHunt(self, stopped=False):
     self.client_ids = self.SetupClients(10)
 
-    hunt = hunts.GRRHunt.StartHunt("SampleHunt", token=self.token)
+    hunt = hunts.GRRHunt.StartHunt(
+        "GenericHunt",
+        flow_name="GetFile",
+        args=rdfvalue.Dict(
+            pathspec=rdfvalue.PathSpec(
+                path="/tmp/evil.txt",
+                pathtype=rdfvalue.PathSpec.PathType.OS,
+                )
+            ),
+        output_plugins=[],
+        token=self.token)
+
     regex_rule = rdfvalue.ForemanAttributeRegex(
         attribute_name="GRR client",
         attribute_regex="GRR")
@@ -69,7 +82,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     hunt.Close()
 
     # Run the hunt.
-    client_mock = hunt_test.HuntTest.SampleHuntMock()
+    client_mock = test_lib.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
     hunt = aff4.FACTORY.Open(hunt.session_id, token=self.token, mode="rw",
@@ -96,10 +109,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=ManageHunts]")
-    self.WaitUntil(self.IsTextPresent, "SampleHunt")
+    self.WaitUntil(self.IsTextPresent, "GenericHunt")
 
     # Select a Hunt.
-    self.Click("css=td:contains('SampleHunt')")
+    self.Click("css=td:contains('GenericHunt')")
 
     # Check we can now see the details.
     self.WaitUntil(self.IsElementPresent, "css=dl.dl-hunt")
@@ -128,10 +141,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=ManageHunts]")
-    self.WaitUntil(self.IsTextPresent, "SampleHunt")
+    self.WaitUntil(self.IsTextPresent, "GenericHunt")
 
     # Select a Hunt.
-    self.Click("css=td:contains('SampleHunt')")
+    self.Click("css=td:contains('GenericHunt')")
 
     # Check we can now see the details.
     self.WaitUntil(self.IsElementPresent, "css=dl.dl-hunt")
@@ -152,10 +165,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=ManageHunts]")
-    self.WaitUntil(self.IsTextPresent, "SampleHunt")
+    self.WaitUntil(self.IsTextPresent, "GenericHunt")
 
     # Select a Hunt.
-    self.Click("css=td:contains('SampleHunt')")
+    self.Click("css=td:contains('GenericHunt')")
 
     # Check we can now see the details.
     self.WaitUntil(self.IsElementPresent, "css=dl.dl-hunt")
@@ -176,10 +189,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=ManageHunts]")
-    self.WaitUntil(self.IsTextPresent, "SampleHunt")
+    self.WaitUntil(self.IsTextPresent, "GenericHunt")
 
     # Select a Hunt.
-    self.Click("css=td:contains('SampleHunt')")
+    self.Click("css=td:contains('GenericHunt')")
 
     # Click on Run button and check that dialog appears.
     self.Click("css=button[name=RunHunt]")
@@ -218,7 +231,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
                       "css=.modal-backdrop")
 
     # View should be refreshed automatically.
-    self.WaitUntil(self.IsTextPresent, "SampleHunt")
+    self.WaitUntil(self.IsTextPresent, "GenericHunt")
     # Check the hunt is in a running state.
     self.CheckState("RUNNING")
 
@@ -229,10 +242,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=ManageHunts]")
-    self.WaitUntil(self.IsTextPresent, "SampleHunt")
+    self.WaitUntil(self.IsTextPresent, "GenericHunt")
 
     # Select a Hunt.
-    self.Click("css=td:contains('SampleHunt')")
+    self.Click("css=td:contains('GenericHunt')")
 
     # Click on Pause button and check that dialog appears.
     self.Click("css=button[name=PauseHunt]")
@@ -271,7 +284,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
                       "css=.modal-backdrop")
 
     # View should be refreshed automatically.
-    self.WaitUntil(self.IsTextPresent, "SampleHunt")
+    self.WaitUntil(self.IsTextPresent, "GenericHunt")
     # Check the hunt is in a running state.
     self.CheckState("stopped")
 
@@ -282,10 +295,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=ManageHunts]")
-    self.WaitUntil(self.IsTextPresent, "SampleHunt")
+    self.WaitUntil(self.IsTextPresent, "GenericHunt")
 
     # Select a Hunt.
-    self.Click("css=td:contains('SampleHunt')")
+    self.Click("css=td:contains('GenericHunt')")
 
     # Click on Modify button and check that dialog appears.
     self.Click("css=button[name=ModifyHunt]")
@@ -326,14 +339,14 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
     # View should be refreshed automatically.
-    self.WaitUntil(self.IsTextPresent, "SampleHunt")
+    self.WaitUntil(self.IsTextPresent, "GenericHunt")
     self.WaitUntil(self.IsTextPresent, "4483")
 
-  def SetupHuntDetailView(self):
+  def SetupHuntDetailView(self, failrate=2):
     """Create some clients and a hunt to view."""
     hunt = self.CreateSampleHunt()
     # Run the hunt.
-    client_mock = hunt_test.HuntTest.SampleHuntMock()
+    client_mock = test_lib.SampleHuntMock(failrate=failrate)
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
     hunt.LogClientError(self.client_ids[1], "Client Error 1",
@@ -343,15 +356,15 @@ class TestHuntView(test_lib.GRRSeleniumTest):
   def testHuntDetailView(self):
     """Test the detailed client view works."""
     with self.ACLChecksDisabled():
-      self.SetupHuntDetailView()
+      self.SetupHuntDetailView(failrate=-1)
 
     # Open up and click on View Hunts then the first Hunt.
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=ManageHunts]")
 
-    self.WaitUntil(self.IsTextPresent, "SampleHunt")
-    self.Click("css=td:contains('SampleHunt')")
+    self.WaitUntil(self.IsTextPresent, "GenericHunt")
+    self.Click("css=td:contains('GenericHunt')")
 
     # Click the Overview Tab then the Details Link.
     self.Click("css=a[renderer=HuntOverviewRenderer]")
@@ -361,7 +374,6 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Viewing Hunt aff4:/hunts/")
 
     self.WaitUntil(self.IsTextPresent, "COMPLETED")
-    self.WaitUntil(self.IsTextPresent, "BAD")
 
     # Select the first client which should have errors.
     self.Click("css=td:contains('%s')" % self.client_ids[1].Basename())
@@ -371,7 +383,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.Click("css=a:[renderer=HuntLogRenderer]")
     self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntLogRenderer_]")
-    self.WaitUntil(self.IsTextPresent, "No entries")
+    self.WaitUntil(self.IsTextPresent, "Flow GetFile completed.")
 
     self.Click("css=a:[renderer=HuntErrorRenderer]")
     self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntErrorRenderer_]")
@@ -399,10 +411,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=a[renderer=HuntResultsRenderer]")
     self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntResultsRenderer_]")
 
-    self.assertTrue(self.IsTextPresent("aff4:/sample/1"))
-    self.assertTrue(self.IsTextPresent(
-        "aff4:/C.0000000000000001/fs/os/c/bin/bash"))
-    self.assertTrue(self.IsTextPresent("aff4:/sample/3"))
+    self.WaitUntil(self.IsTextPresent, "aff4:/sample/1")
+    self.WaitUntil(self.IsTextPresent,
+                   "aff4:/C.0000000000000001/fs/os/c/bin/bash")
+    self.WaitUntil(self.IsTextPresent, "aff4:/sample/3")
 
     with self.ACLChecksDisabled():
       self.GrantClientApproval("C.0000000000000001")
@@ -419,8 +431,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=ManageHunts]")
 
-    self.WaitUntil(self.IsTextPresent, "SampleHunt")
-    self.Click("css=td:contains('SampleHunt')")
+    self.WaitUntil(self.IsTextPresent, "GenericHunt")
+    self.Click("css=td:contains('GenericHunt')")
 
     self.WaitUntil(self.IsElementPresent,
                    "css=a[renderer=HuntStatsRenderer]")
@@ -429,22 +441,30 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntStatsRenderer_]")
 
     self.assertTrue(self.IsTextPresent("Total number of clients"))
-    self.assertTrue(self.IsTextPresent("20"))
+    self.assertTrue(self.IsTextPresent("10"))
 
     self.assertTrue(self.IsTextPresent("User CPU mean"))
-    self.assertTrue(self.IsTextPresent("2.8"))
-
-    self.assertTrue(self.IsTextPresent("User CPU stdev"))
-    self.assertTrue(self.IsTextPresent("3.4"))
-
-    self.assertTrue(self.IsTextPresent("System CPU mean"))
     self.assertTrue(self.IsTextPresent("5.5"))
 
+    self.assertTrue(self.IsTextPresent("User CPU stdev"))
+    self.assertTrue(self.IsTextPresent("2.9"))
+
+    self.assertTrue(self.IsTextPresent("System CPU mean"))
+    self.assertTrue(self.IsTextPresent("11"))
+
     self.assertTrue(self.IsTextPresent("System CPU stdev"))
-    self.assertTrue(self.IsTextPresent("6.8"))
+    self.assertTrue(self.IsTextPresent("5.7"))
 
     self.assertTrue(self.IsTextPresent("Network bytes sent mean"))
-    self.assertTrue(self.IsTextPresent("8.3"))
+    self.assertTrue(self.IsTextPresent("16.5"))
 
     self.assertTrue(self.IsTextPresent("Network bytes sent stdev"))
-    self.assertTrue(self.IsTextPresent("10.3"))
+    self.assertTrue(self.IsTextPresent("8.6"))
+
+
+def main(argv):
+  # Run the full test suite
+  runtests_test.SeleniumTestProgram(argv=argv)
+
+if __name__ == "__main__":
+  flags.StartMain(main)

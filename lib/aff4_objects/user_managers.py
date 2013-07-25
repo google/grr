@@ -94,33 +94,35 @@ class DataStoreUserManager(access_control.BaseUserManager):
 
 
 class ConfigBasedUserManager(access_control.BaseUserManager):
-  """User manager that uses the [Users] section of the config file.
+  """User manager that uses the Users.authentication entry of the config file.
 
-  This reads all user labels out of the configuration file which has a section
-  [Users]. Each user has a set of labels associated with it.
+  This reads all user labels out of the configuration file which are in the
+  Users.authentication entry. Each user has a set of labels associated with it.
 
   e.g.
-  [Users]
-  admin = GfiE1JZd9GJVs:admin,label2
-  joe = Up9jbksBgt/W.:label1,label2
+  Users.authentication = |
+    admin:GfiE1JZd9GJVs:admin,label2
+    joe:Up9jbksBgt/W.:label1,label2
+
   """
 
   def __init__(self, *args, **kwargs):
     super(ConfigBasedUserManager, self).__init__(*args, **kwargs)
+    self.UpdateCache()
+
+  def UpdateCache(self):
     self._user_cache = self.ReadUsersFromConfig()
 
   def ReadUsersFromConfig(self):
     """Return the users from the config file as a dict."""
     results = {}
-    section = config_lib.CONFIG.raw_data.get("Users")
-    if section is None:
-      return {}
-
-    for username, data_str in section.items():
+    users = config_lib.CONFIG.Get("Users.authentication", default="")
+    entries = [user for user in users.split("\n") if user]
+    for entry in entries:
       try:
-        hash_val, labels = data_str.strip().split(":", 1)
+        username, hash_val, labels = entry.split(":")
       except ValueError:
-        hash_val = data_str.rstrip(":")
+        username, hash_val = entry.rstrip(":").split(":")
         labels = ""
       labels = [l.strip().lower() for l in labels.strip().split(",")]
       results[username] = {"hash": hash_val, "labels": labels}
@@ -132,8 +134,17 @@ class ConfigBasedUserManager(access_control.BaseUserManager):
     salt = crypt_hash[:2]
     return crypt.crypt(auth_obj.user_provided_hash, salt) == crypt_hash
 
-  def AddUser(self, username, password=None, admin=True, labels=None,
-              update=False):
+  def FlushCache(self):
+    user_strings = []
+    for user in self._user_cache:
+      hash_str = self._user_cache[user]["hash"]
+      labels = ",".join(self._user_cache[user]["labels"])
+      user_strings.append("%s:%s:%s" % (user, hash_str, labels))
+
+    config_lib.CONFIG.Set("Users.authentication", "\n".join(user_strings))
+    config_lib.CONFIG.Write()
+
+  def AddUser(self, username, password=None, admin=True, labels=None):
     """Add a user.
 
     Args:
@@ -141,40 +152,36 @@ class ConfigBasedUserManager(access_control.BaseUserManager):
       password: Password to set.
       admin: Should the user be made an admin.
       labels: List of additional labels to add to the user.
-      update: Are we creating a new user (overwrite if exists) or updating one.
 
     Raises:
       RuntimeError: On invalid arguments.
     """
-    pwhash, label_str = None, ""
-    if update:
-      # Get the current values.
-      try:
-        current_record = config_lib.CONFIG.Get("Users.%s" % username)
-        pwhash, label_str = current_record.split(":", 1)
-      except (ValueError, AttributeError):
-        pass
+    self.UpdateCache()
 
+    pwhash = None
     if password:
       # Note: As of python 3.3. there is a function to do this, but we do our
       # own for backwards compatibility.
       valid_salt_chars = string.ascii_letters + string.digits + "./"
       salt = "".join(random.choice(valid_salt_chars) for i in range(2))
       pwhash = crypt.crypt(password, salt)
-    elif not update:
+    elif username not in self._user_cache:
       raise RuntimeError("Can't create user without password")
 
     if labels or admin:
       # Labels will be added to config. On load of the Users section when the
       # Admin UI starts, these labels will be set on the users.
-      labels = labels or []
-      labels = set(labels)
+      labels = set(labels or [])
       if admin:
         labels.add("admin")
-      label_str = ",".join(labels)
+      labels = sorted(list(labels))
 
-    config_lib.CONFIG.Set("Users.%s" % username, "%s:%s" % (pwhash, label_str))
-    config_lib.CONFIG.Write()
+    user_dict = self._user_cache.setdefault(username, {})
+    if pwhash:
+      user_dict["hash"] = pwhash
+    if labels:
+      user_dict["labels"] = labels
+    self.FlushCache()
 
   def GetUserLabels(self, username):
     """Get a list of labels for a user."""
@@ -183,6 +190,11 @@ class ConfigBasedUserManager(access_control.BaseUserManager):
       return labels
     except KeyError:
       raise access_control.InvalidUserError("No such user %s" % username)
+
+  def SetRaw(self, username, hash_str, labels):
+    d = self._user_cache.setdefault(username, {})
+    d["hash"] = hash_str
+    d["labels"] = labels
 
 
 class BasicAccessControlManager(access_control.BaseAccessControlManager):

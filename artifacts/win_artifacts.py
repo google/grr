@@ -44,7 +44,7 @@ class AbstractEventLogEvtx(Artifact):
   CONDITIONS = [VistaOrNewer]
   SUPPORTED_OS = ["Windows"]
   LABELS = ["Logs"]
-  PATH_VARS = {"log_path": "{systemroot}\\System32\\winevt\\Logs"}
+  PATH_VARS = {"log_path": "%%systemroot%%\\System32\\winevt\\Logs"}
   PROCESSORS = ["EvtxLogParser"]
 
 
@@ -89,23 +89,63 @@ class AbstractEventLog(Artifact):
   SUPPORTED_OS = ["Windows"]
   CONDITIONS = [NotVistaOrNewer]
   LABELS = ["Logs"]
-  PATH_VARS = {"log_path": "{systemroot}\\System32\\winevt\\Logs"}
-  PROCESSORS = ["EvtLogParser"]
+
+
+class AbstractWMIArtifact(Artifact):
+  SUPPORTED_OS = ["Windows"]
+  CONDITIONS = [VistaOrNewer]
 
 
 class ApplicationEventLog(AbstractEventLog):
   """Windows Application Event Log."""
   COLLECTORS = [
-      Collector(action="GetFile", args={"path": "{log_path}\\AppEvent.evt"})]
+      Collector(
+          action="GetFile",
+          args={"path": "%%systemroot%%\\System32\\winevt\\Logs\\AppEvent.evt"}
+          )]
 
 
 class SystemEventLog(AbstractEventLog):
   """Windows System Event Log."""
   COLLECTORS = [
-      Collector(action="GetFile", args={"path": "{log_path}\\SysEvent.evt"})]
+      Collector(
+          action="GetFile",
+          args={"path": "%%systemroot%%\\System32\\winevt\\Logs\\SysEvent.evt"}
+          )]
 
 
 class SecurityEventLog(AbstractEventLog):
   """Windows Security Event Log."""
   COLLECTORS = [
-      Collector(action="GetFile", args={"path": "{log_path}\\SecEvent.evt"})]
+      Collector(
+          action="GetFile",
+          args={"path": "%%systemroot%%\\System32\\winevt\\Logs\\SecEvent.evt"}
+          )]
+
+
+class WindowsInstalledSoftware(AbstractWMIArtifact):
+  """Extract the installed software on Windows via WMI."""
+  LABELS = ["Software"]
+
+  COLLECTORS = [
+      Collector(action="WMIQuery",
+                args={"query": "SELECT Name, Vendor, Description, InstallDate,"
+                      " InstallDate2, Version"
+                      " from Win32_Product"}
+               )
+  ]
+  PROCESSOR = "WMIInstalledSoftwareParser"
+
+
+class WindowsDrivers(AbstractWMIArtifact):
+  """Extract the installed drivers on Windows via WMI."""
+  LABELS = ["Software"]
+
+  COLLECTORS = [
+      Collector(action="WMIQuery",
+                args={"query": "SELECT DisplayName, Description, InstallDate,"
+                      " Name, PathName, Status, State, ServiceType"
+                      " from Win32_SystemDriver"}
+               )
+  ]
+

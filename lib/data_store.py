@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """The main data store abstraction.
 
 The data store is responsible for storing AFF4 objects permanently. This file
@@ -321,6 +320,9 @@ class DataStore(object):
         timestamp=timestamp, token=token, limit=limit).get(subject, [])
     result.sort(key=lambda a: a[0])
     return result
+
+  def ResolveRow(self, subject, **kw):
+    return self.ResolveRegex(subject, ".*", **kw)
 
   @abc.abstractmethod
   def Query(self, attributes=None, filter_obj="", subject_prefix="", token=None,

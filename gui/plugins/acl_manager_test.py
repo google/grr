@@ -6,9 +6,12 @@
 
 import time
 
+from grr.gui import runtests_test
+
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import cron
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
@@ -538,3 +541,11 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=Proceed]")
 
     self.WaitUntil(self.IsTextPresent, "Cron job was enabled successfully!")
+
+
+def main(argv):
+  # Run the full test suite
+  runtests_test.SeleniumTestProgram(argv=argv)
+
+if __name__ == "__main__":
+  flags.StartMain(main)

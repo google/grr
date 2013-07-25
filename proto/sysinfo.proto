@@ -122,3 +122,19 @@ message Service {
   optional uint64 pid = 4;
   optional LaunchdJob osx_launchd = 5;
 }
+
+// Describe an installed software package. Cross platform.
+message SoftwarePackage {
+  optional string name = 1;
+  optional string version = 2;
+  optional string architecture = 3;
+  optional string publisher = 4;
+  enum InstallState {
+    INSTALLED = 0;
+    PENDING = 1;
+    UNINSTALLED = 2;
+    UNKNOWN = 3;
+  };
+  optional InstallState install_state = 5 [default = UNKNOWN];
+  optional string description = 6;
+}

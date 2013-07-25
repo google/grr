@@ -6,11 +6,8 @@ Contains the startup routines and Init functions for initializing GRR.
 import os
 import platform
 
-import logging
-
 from grr.lib import config_lib
 from grr.lib import local
-from grr.lib import log
 from grr.lib import registry
 
 
@@ -44,37 +41,12 @@ def ClientPluginInit():
 
 def ClientLoggingStartupInit():
   """Initialize client logging."""
-  try:
-    from grr.client.local import log as local_log
-    local_log.LogInit()
-    logging.debug("Using local LogInit from %s", local_log)
-  except (AttributeError, ImportError):
-    # If it doesn't exist load the default one.
-    log.LogInit()
+  local.ClientLogInit()
 
 
 def ServerLoggingStartupInit():
   """Initialize the logging configuration."""
-  # First initialize the main logging features. These control the logging.xxxx
-  # functions.
-  try:
-    # Check for a LogInit function in the local directory first.
-    from grr.lib.local import log as local_log
-    local_log.LogInit()
-    logging.debug("Using local LogInit from %s", local_log)
-  except (AttributeError, ImportError):
-    # If it doesn't exist load the default one.
-    log.LogInit()
-
-  # Now setup the server side advanced application logging.
-  try:
-    # Check for a AppLogInit function in the local directory first.
-    from grr.lib.local import log as local_log
-    local_log.AppLogInit()
-    logging.debug("Using local AppLogInit from %s", local_log)
-  except (AttributeError, ImportError):
-    # If it doesn't exist load the default one.
-    log.AppLogInit()
+  local.ServerLogInit()
 
 
 def ClientInit():

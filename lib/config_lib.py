@@ -27,7 +27,7 @@ from grr.lib import type_info
 from grr.lib import utils
 
 
-flags.DEFINE_string("config", None,
+flags.DEFINE_string("config", "/etc/grr/grr-server.yaml",
                     "Primary Configuration file to use.")
 
 flags.DEFINE_list("secondary_configs", [],
@@ -128,6 +128,7 @@ class Flags(ConfigFilter):
 
   def Filter(self, data):
     try:
+      logging.debug("Overriding config option with flags.FLAGS.%s", data)
       return getattr(flags.FLAGS, data)
     except AttributeError as e:
       raise FilterError(e)
@@ -1182,7 +1183,13 @@ def ConfigLibInit():
 
   This will be called by startup.Init() unless it is overridden by
   lib/local/config.py
+
+  Raises:
+    RuntimeError: No configuration file specified.
   """
+  if flags.FLAGS.config is None:
+    raise RuntimeError("No configuration file specified.")
+
   LoadConfig(
       CONFIG, config_file=flags.FLAGS.config,
       secondary_configs=flags.FLAGS.secondary_configs,

@@ -377,16 +377,27 @@ class GRRForeman(aff4.AFF4Object):
     rules = self.Get(self.Schema.RULES)
     new_rules = self.Schema.RULES()
     now = time.time() * 1e6
+    expired_session_ids = set()
     for rule in rules:
       if rule.expires > now:
         new_rules.Append(rule)
       else:
         for action in rule.actions:
           if action.hunt_id:
-            # Notify the worker to mark this hunt as terminated.
-            scheduler.SCHEDULER.NotifyQueue(action.hunt_id, token=self.token)
+            expired_session_ids.add(action.hunt_id)
 
-    self.Set(self.Schema.RULES, new_rules)
+    if expired_session_ids:
+      # Notify the worker to mark this hunt as terminated.
+      priorities = dict()
+      for session_id in expired_session_ids:
+        priorities[session_id] = rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY
+
+      scheduler.SCHEDULER.MultiNotifyQueue(list(expired_session_ids),
+                                           priorities, token=self.token)
+
+    if len(new_rules) < len(rules):
+      self.Set(self.Schema.RULES, new_rules)
+      self.Flush()
 
   def _CheckIfHuntTaskWasAssigned(self, client_id, hunt_id):
     """Will return True if hunt's task was assigned to this client before."""

@@ -108,8 +108,7 @@ class BaseUserManager(object):
     self.AddUserLabels(username, ["admin"])
 
   # pylint: disable=unused-argument
-  def AddUser(self, username, password=None, admin=True, labels=None,
-              update=False):
+  def AddUser(self, username, password=None, admin=True, labels=None):
     """Add a user.
 
     Args:
@@ -117,7 +116,6 @@ class BaseUserManager(object):
       password: Password to set.
       admin: Should the user be made an admin.
       labels: List of additional labels to add to the user.
-      update: Are we creating a new user (overwrite if exists) or updating one.
 
     Raises:
       RuntimeError: On invalid arguments.
@@ -128,8 +126,7 @@ class BaseUserManager(object):
 
   def UpdateUser(self, username, password=None, admin=True, labels=None):
     """Update the properties of an existing user."""
-    self.AddUser(username, password=password, admin=admin, labels=labels,
-                 update=True)
+    self.AddUser(username, password=password, admin=admin, labels=labels)
 
   def CheckUserAuth(self, username, auth_obj):
     """Update the properties of an existing user."""

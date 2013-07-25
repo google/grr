@@ -560,6 +560,18 @@ class RDFURN(RDFValue):
     # clients that still send plain strings in their responses.
     if self._urn.scheme != "aff4":
       self._urn = urlparse.urlparse("aff4:/" + initializer, scheme="aff4")
+
+    # TODO(user): Another hack. Urlparse behaves differently in different
+    # Python versions. We have to make sure the URL is not split at '?' chars.
+    # At this point I think we should just give up on urlparse and roll our
+    # own parsing...
+    if self._urn.query:
+      scheme = self._urn.scheme
+      url = "%s?%s" % (self._urn.path, self._urn.query)
+      netloc, params, query, fragment = "", "", "", ""
+      self._urn = urlparse.ParseResult(
+          scheme, netloc, url, params, query, fragment)
+
     # Normalize the URN path component
     # namedtuple _replace() is not really private.
     # pylint: disable=protected-access
