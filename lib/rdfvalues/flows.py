@@ -295,6 +295,10 @@ class ClientCommunication(rdfvalue.RDFProtoStruct):
   num_messages = 0
 
 
+class ProgressGraph(rdfvalue.RDFString):
+  """A class that renders a button to show a progress graph."""
+
+
 class Task(rdfvalue.RDFProtoStruct):
   """Tasks are scheduled on the TaskScheduler.
 

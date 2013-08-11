@@ -29,7 +29,8 @@ class CronManager(object):
 
   def ScheduleFlow(self, flow_name, flow_args=None,
                    frequency=rdfvalue.Duration("1d"), allow_overruns=False,
-                   job_name=None, token=None, disabled=False):
+                   job_name=None, token=None, disabled=False,
+                   lifetime=rdfvalue.Duration("1d")):
     """Creates a cron job that runs given flow with a given frequency.
 
     Args:
@@ -44,6 +45,8 @@ class CronManager(object):
                 persistent name).
       token: Security token used for data store access.
       disabled: If True, the job object will be created, but will be disabled.
+      lifetime: rdfvalue.Duration before this run of the cron will be killed if
+                running.
 
     Returns:
       URN of the cron job created.
@@ -60,6 +63,7 @@ class CronManager(object):
     cron_job.Set(cron_job.Schema.FREQUENCY(frequency))
     cron_job.Set(cron_job.Schema.ALLOW_OVERRUNS(allow_overruns))
     cron_job.Set(cron_job.Schema.DISABLED(disabled))
+    cron_job.Set(cron_job.Schema.LIFETIME(lifetime))
 
     cron_job.Close()
 
@@ -95,6 +99,7 @@ class CronManager(object):
         with aff4.FACTORY.OpenWithLock(
             cron_job_urn, blocking=False, token=token,
             lease_time=600) as cron_job:
+
           try:
             logging.info("Running cron job: %s", cron_job.urn)
             cron_job.Run()
@@ -121,7 +126,7 @@ def ScheduleSystemCronFlows(token=None):
   for name, cls in flow.GRRFlow.classes.items():
     if aff4.issubclass(cls, system.SystemCronFlow):
       CRON_MANAGER.ScheduleFlow(name, frequency=cls.frequency, job_name=name,
-                                token=token)
+                                token=token, lifetime=cls.lifetime)
 
 
 class CronWorker(object):

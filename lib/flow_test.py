@@ -1106,12 +1106,16 @@ class CallStateFlow(flow.GRRFlow):
   def Start(self):
     # Call the receive state.
     self.CallState([rdfvalue.RDFString("Hello")],
-                   next_state="ReceiveHello")
+                   next_state="ReceiveHello",
+                   request_data={"test_req_data": 2})
 
   @flow.StateHandler()
   def ReceiveHello(self, responses):
     if responses.First() != "Hello":
       raise RuntimeError("Did not receive hello.")
+
+    if responses.request_data["test_req_data"] != 2:
+      raise RuntimeError("request_data did not propagate.")
 
     CallStateFlow.success = True
 

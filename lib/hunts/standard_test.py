@@ -522,4 +522,4 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     for i, c in enumerate(self.client_ids[:5]):
       fd = aff4.FACTORY.Open(rdfvalue.RDFURN(c).Add("fs/os/dir/file%d" % i),
                              token=self.token)
-      self.assertTrue(isinstance(fd, aff4.HashImage))
+      self.assertTrue(isinstance(fd, aff4.BlobImage))

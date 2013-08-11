@@ -1949,6 +1949,10 @@ class RDFEnumFormRenderer(NumberFormRenderer):
         self.form_template, enum_values=enum_values, prefix=prefix,
         default=type_descriptor.GetDefault(), value=value)
 
+  def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
+    return type_descriptor.Validate(
+        long(request.REQ.get(prefix + type_descriptor.name)))
+
 
 class PathTypeEnumRenderer(RDFEnumFormRenderer):
   type_info_cls = type_info.PathTypeEnum
@@ -2293,3 +2297,44 @@ class ConfirmationDialogRenderer(TemplateRenderer):
   def Layout(self, request, response):
     self.form_id = "form_%d" % GetNextId()
     return super(ConfirmationDialogRenderer, self).Layout(request, response)
+
+
+class ImageDownloadRenderer(TemplateRenderer):
+
+  mimetype = "image/png"
+
+  def Content(self, request, response):
+    _ = request, response
+    return ""
+
+  def Download(self, request, response):
+
+    response = http.HttpResponse(content=self.Content(request, response),
+                                 mimetype=self.mimetype)
+
+    return response
+
+
+class ProgressButtonRenderer(RDFValueRenderer):
+  """Renders a button that shows a progress graph."""
+
+  # This specifies the name of the RDFValue object we will render.
+  classname = "ProgressGraph"
+
+  layout_template = Template("""
+Open a graph showing the download progress in a new window:
+<button id="{{ unique|escape }}">
+ Generate
+</button>
+<script>
+  var button = $("#{{ unique|escapejs }}").button();
+
+  var state = {flow_id: '{{this.flow_id|escapejs}}'};
+  grr.downloadHandler(button, state, false,
+                      '/render/Download/ProgressGraphRenderer');
+</script>
+""")
+
+  def Layout(self, request, response):
+    self.flow_id = request.REQ.get("flow")
+    return super(ProgressButtonRenderer, self).Layout(request, response)

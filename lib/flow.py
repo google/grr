@@ -294,7 +294,8 @@ class GRRFlow(aff4.AFF4Volume):
 
     CLIENT_CRASH = aff4.Attribute("aff4:client_crash", rdfvalue.ClientCrash,
                                   "Client crash details in case of a crash.",
-                                  default=None)
+                                  default=None,
+                                  creates_new_object_version=False)
 
   # This is used to arrange flows into a tree view
   category = ""
@@ -662,9 +663,9 @@ class GRRFlow(aff4.AFF4Volume):
     return self.runner.CallClient(action_name, request, next_state,
                                   request_data, **kwargs)
 
-  def CallState(self, messages=None, next_state="", delay=0):
+  def CallState(self, messages=None, next_state="", request_data=None, delay=0):
     return self.runner.CallState(messages=messages, next_state=next_state,
-                                 delay=delay)
+                                 request_data=request_data, delay=delay)
 
   def CallFlow(self, flow_name, next_state=None, request_data=None, **kwargs):
     return self.runner.CallFlow(GRRFlow, flow_name, next_state=next_state,

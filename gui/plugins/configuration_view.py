@@ -18,6 +18,7 @@ from grr.lib import config_lib
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import type_info
 
 
 class ConfigManager(renderers.TemplateRenderer):
@@ -91,7 +92,7 @@ class ConfigManager(renderers.TemplateRenderer):
 
           info.append((parameter, raw_value, option_value))
 
-        except config_lib.Error as e:
+        except (config_lib.Error, type_info.TypeValueError) as e:
           logging.info("Bad config option in ConfigManager View %s", e)
 
     self.sections = sorted(sections.items())

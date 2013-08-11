@@ -16,6 +16,7 @@ from grr.client import client_plugins
 # pylint: enable=unused-import
 
 from grr.lib import build
+from grr.lib import builders
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import startup
@@ -57,8 +58,18 @@ subparsers = parser.add_subparsers(
 parser_build = subparsers.add_parser(
     "build", help="Build a client from source.")
 
+parser_repack = subparsers.add_parser(
+    "repack", help="Repack a zip file into an installer (Only useful when "
+    "signing).")
+
+parser_repack.add_argument("--package", default=None,
+                           help="The package zip file to repack.")
+
+parser_repack.add_argument("--output", default=None,
+                           help="The path to write the output installer.")
+
 parser_deploy = subparsers.add_parser(
-    "deploy", help="Build a deployable self installer from a template.")
+    "deploy", help="Build a deployable self installer from a package.")
 
 parser_deploy.add_argument("--template", default=None,
                            help="The template file to deploy.")
@@ -97,24 +108,49 @@ def main(_):
   else:
     context.append("Arch:i386")
 
-  if args.platform == "darwin":
-    context.append("Platform:Darwin")
-    builder = build.DarwinClientBuilder(context=context)
-  elif args.platform == "windows":
-    context.append("Platform:Windows")
-    builder = build.WindowsClientBuilder(context=context)
-  elif args.platform == "linux":
-    context.append("Platform:Linux")
-    builder = build.LinuxClientBuilder(context=context)
-
   if args.subparser_name == "build":
-    builder.MakeExecutableTemplate()
+    if args.platform == "darwin":
+      context.append("Platform:Darwin")
+      builder_obj = builders.DarwinClientBuilder(context=context)
+    elif args.platform == "windows":
+      context.append("Platform:Windows")
+      builder_obj = builders.WindowsClientBuilder(context=context)
+    elif args.platform == "linux":
+      context.append("Platform:Linux")
+      builder_obj = builders.LinuxClientBuilder(context=context)
+
+    builder_obj.MakeExecutableTemplate()
+
+  if args.subparser_name == "repack":
+    if args.platform == "darwin":
+      context.append("Platform:Darwin")
+      deployer = build.DarwinClientDeployer(context=context)
+    elif args.platform == "windows":
+      context.append("Platform:Windows")
+      deployer = build.WindowsClientDeployer(context=context)
+    elif args.platform == "linux":
+      context.append("Platform:Linux")
+      deployer = build.LinuxClientDeployer(context=context)
+
+    deployer.RepackInstaller(open(args.package, "rb").read(), args.output)
 
   elif args.subparser_name == "deploy":
-    template_path = args.template or config_lib.CONFIG.Get(
-        "ClientBuilder.template_path", context=builder.context)
+    if args.platform == "darwin":
+      context.append("Platform:Darwin")
+      deployer = build.DarwinClientDeployer(context=context)
 
-    builder.MakeDeployableBinary(template_path, args.output)
+    elif args.platform == "windows":
+      context.append("Platform:Windows")
+      deployer = build.WindowsClientDeployer(context=context)
+
+    elif args.platform == "linux":
+      context.append("Platform:Linux")
+      deployer = build.LinuxClientDeployer(context=context)
+
+    template_path = args.template or config_lib.CONFIG.Get(
+        "ClientBuilder.template_path", context=deployer.context)
+
+    deployer.MakeDeployableBinary(template_path, args.output)
 
   else:
     parser.error("Unsupported build platform: %s" % args.platform)

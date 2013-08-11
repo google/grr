@@ -44,7 +44,7 @@ class Sockaddrll(ctypes.Structure):
       ("sll_hatype", ctypes.c_ushort),
       ("sll_pkttype", ctypes.c_ubyte),
       ("sll_halen", ctypes.c_ubyte),
-      ("sll_addr", ctypes.c_char * 8),
+      ("sll_addr", ctypes.c_ubyte * 8),
       ]
 
 # struct sockaddr_in {
@@ -143,7 +143,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0x11:    # AF_PACKET
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrll))
           addlen = data.contents.sll_halen
-          macs[ifname] = data.contents.sll_addr[:addlen]
+          macs[ifname] = "".join(map(chr, data.contents.sll_addr[:addlen]))
 
         if iffamily == 0xA:     # AF_INET6
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))

@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """Tests for grr.client.client_actions.grr_volatility."""
 
 
@@ -54,7 +52,7 @@ class GrrVolatilityTest(test_lib.EmptyActionTest):
     # Pslist should have 32 results.
     self.assertEqual(len(rows), 32)
 
-    names = [row.values[1].svalue for row in rows]
+    names = [row.values[1].GetValue() for row in rows]
 
     # And should include the DumpIt binary.
     self.assertTrue("DumpIt.exe" in names)
@@ -80,7 +78,7 @@ class GrrVolatilityTest(test_lib.EmptyActionTest):
     # Pslist should now have 1 result.
     self.assertEqual(len(rows), 1)
 
-    name = rows[0].values[1].svalue
+    name = rows[0].values[1].GetValue()
 
     self.assertTrue("DumpIt.exe" in name)
 
@@ -99,12 +97,12 @@ class GrrVolatilityTest(test_lib.EmptyActionTest):
     dumpitheader = dumpit.formatted_value_list.formatted_values[1]
 
     self.assertEqual(dumpitheader.formatstring, "{0} pid: {1:6}\n")
-    self.assertEqual(dumpitheader.data.values[0].svalue, "DumpIt.exe")
-    self.assertEqual(dumpitheader.data.values[1].value, 2860)
+    self.assertEqual(dumpitheader.data.values[0].GetValue(), "DumpIt.exe")
+    self.assertEqual(dumpitheader.data.values[1].GetValue(), 2860)
 
     dumpitdlls = result[0].sections[-3]
 
-    dlls = [entry.values[2].svalue for entry in dumpitdlls.table.rows]
+    dlls = [entry.values[2].GetValue() for entry in dumpitdlls.table.rows]
 
     self.assertTrue(any(["DumpIt.exe" in name for name in dlls]))
     self.assertTrue(any(["ntdll.dll" in name for name in dlls]))

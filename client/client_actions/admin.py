@@ -188,6 +188,7 @@ class GetConfiguration(actions.ActionPlugin):
           value = config_lib.CONFIG[descriptor.name]
         except (config_lib.Error, KeyError, AttributeError, ValueError) as e:
           logging.info("Config reading error: %s", e)
+          continue
 
       out[descriptor.name] = value
 

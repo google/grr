@@ -4,8 +4,11 @@
 """GUI elements allowing launching and management of flows."""
 
 
+import StringIO
 import urllib
 
+
+import matplotlib.pyplot as plt
 
 import logging
 from grr.gui import renderers
@@ -370,11 +373,12 @@ $('#gotoflow').hide();
       self.args = dict(type_descriptor_renderer.ParseArgs(
           flow_class.flow_typeinfo, request))
 
-      self.args["event_id"] = request.event_id
+      # Also parse standard flow parameters like priority and notify_to_user.
+      if flow_class.flow_typeinfo != flow.GRRFlow.flow_typeinfo:
+        self.args.update(dict(type_descriptor_renderer.ParseArgs(
+            flow.GRRFlow.flow_typeinfo, request)))
 
-      priority = request.REQ.get("priority")
-      if priority:
-        self.args["priority"] = int(priority)
+      self.args["event_id"] = request.event_id
 
       self.args_sent = []
       for (k, v) in self.args.items():
@@ -903,3 +907,42 @@ class FlowStateRenderer(renderers.DictRenderer):
 class DataObjectRenderer(renderers.DictRenderer):
   """A flow data object is also similar to a dict."""
   classname = "DataObject"
+
+
+class ProgressGraphRenderer(renderers.ImageDownloadRenderer):
+
+  def Content(self, request, _):
+    """Generates the actual image to display."""
+    flow_id = request.REQ.get("flow_id")
+    flow_obj = aff4.FACTORY.Open(flow_id, age=aff4.ALL_TIMES)
+
+    log = list(flow_obj.GetValuesForAttribute(flow_obj.Schema.LOG))
+
+    create_time = flow_obj.state.context.create_time / 1000000
+
+    plot_data = [(int(x.age) / 1000000, int(str(x).split(" ")[1]))
+                 for x in log if "bytes" in str(x)]
+    plot_data.append((create_time, 0))
+
+    plot_data = sorted([(x - create_time, y) for (x, y) in plot_data])
+
+    x = [a for (a, b) in plot_data]
+    y = [b for (a, b) in plot_data]
+
+    params = {"backend": "png"}
+
+    plt.rcParams.update(params)
+    plt.figure(1)
+    plt.clf()
+
+    plt.plot(x, y)
+    plt.title("Progress for flow %s" % flow_id)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Bytes downloaded")
+    plt.grid(True)
+
+    buf = StringIO.StringIO()
+    plt.savefig(buf)
+    buf.seek(0)
+
+    return buf.read()

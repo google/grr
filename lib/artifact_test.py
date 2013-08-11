@@ -198,7 +198,7 @@ class ArtifactFlowTest(test_lib.FlowTestsBaseclass):
         artifact_list=["TestFileArtifact"], use_tsk=False, token=self.token):
       pass
     urn = self.client_id.Add("fs/os/").Add(self.base_path).Add("auth.log")
-    fd = aff4.FACTORY.Open(urn, aff4_type="HashImage", token=self.token)
+    fd = aff4.FACTORY.Open(urn, aff4_type="BlobImage", token=self.token)
 
 
 def main(argv):

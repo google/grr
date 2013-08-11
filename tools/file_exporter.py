@@ -33,6 +33,7 @@ flags.DEFINE_integer("depth", 5,
 flags.DEFINE_bool("overwrite", False,
                   "If true, overwrite files if they exist.")
 
+
 flags.DEFINE_string("output", None,
                     "Path to dump the data to.")
 
@@ -64,7 +65,8 @@ def main(unused_argv):
     sys.exit(1)
 
   if flags.FLAGS.collection:
-    export_utils.DownloadCollection(flags.FLAGS.collection, flags.FLAGS.output,
+    export_utils.DownloadCollection(flags.FLAGS.collection,
+                                    flags.FLAGS.output,
                                     overwrite=flags.FLAGS.overwrite,
                                     max_threads=flags.FLAGS.threads,
                                     dump_client_info=

@@ -1334,7 +1334,14 @@ encoded in a variable called "magic_return_str".</p></div>
 <div class="paragraph"><p>E.g. as a simple example. The following code modifies the clients poll_max
 setting and pings test.com.</p></div>
 <div class="listingblock">
-<div class="content"></div></div>
+<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><span style="font-weight: bold"><span style="color: #000080">import</span></span> commands
+status<span style="color: #990000">,</span> output <span style="color: #990000">=</span> commands<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">getstatusoutput</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"ping -c 3 test.com"</span><span style="color: #990000">)</span>
+FLAGS<span style="color: #990000">.</span>poll_max <span style="color: #990000">=</span> <span style="color: #993399">100</span>
+magic_return_str <span style="color: #990000">=</span> <span style="color: #FF0000">"poll_max successfully set. ping output %s"</span> <span style="color: #990000">%</span> output</tt></pre></div></div>
 <div class="paragraph"><p>This file then needs to be signed and converted into the protobuf format
 required, and then needs to be uploaded to the data store. You can do this using
 the following command line.</p></div>
@@ -1417,7 +1424,7 @@ the --dest_path option.</p></div>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-07-18 13:17:07 EST
+Last updated 2013-08-11 21:40:38 EST
 </div>
 </div>
 </body>

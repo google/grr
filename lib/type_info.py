@@ -202,12 +202,15 @@ class SemanticEnum(TypeInfoObject):
     self.enum_container = enum_container
 
   def Validate(self, value):
-    if (value not in self.enum_container.reverse_enum and
-        value not in self.enum_container.enum_dict):
+    if value in self.enum_container.reverse_enum:
+      enum_name = self.enum_container.reverse_enum[value]
+    elif value in self.enum_container.enum_dict:
+      enum_name = value
+    else:
       raise TypeValueError("%s not a valid value for %s" % (
           value, self.enum_container.name))
 
-    return value
+    return getattr(self.enum_container, enum_name)
 
 
 class List(TypeInfoObject):

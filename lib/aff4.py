@@ -367,6 +367,21 @@ class Factory(object):
         else:
           time.sleep(blocking_sleep_interval)
 
+  def Copy(self, old_urn, new_urn, age=NEWEST_TIME, token=None, limit=None,
+           sync=False):
+    """Make a copy of one AFF4 object to a different URN."""
+    values = {}
+    for predicate, value, ts in data_store.DB.ResolveRegex(
+        old_urn, AFF4_PREFIXES,
+        timestamp=self.ParseAgeSpecification(age),
+        token=token, limit=limit):
+      values.setdefault(predicate, []).append((value, ts))
+
+    if values:
+      data_store.DB.MultiSet(new_urn, values,
+                             token=token, replace=False,
+                             sync=sync)
+
   def Open(self, urn, aff4_type=None, mode="r", ignore_cache=False,
            token=None, local_cache=None, age=NEWEST_TIME, follow_symlinks=True):
     """Opens the named object.
@@ -1836,15 +1851,15 @@ class AFF4Stream(AFF4Object):
   # The read pointer offset.
   offset = 0
 
-  # Updated when the object becomes dirty.
-  dirty = False
-
   class SchemaCls(AFF4Object.SchemaCls):
     # Note that a file on the remote system might have stat.st_size > 0 but if
     # we do not have any of the data available to read: size = 0.
     SIZE = Attribute("aff4:size", rdfvalue.RDFInteger,
                      "The total size of available data for this stream.",
                      "size", default=0)
+
+    HASH = Attribute("aff4:hash", rdfvalue.RDFSHAValue,
+                     "The hash of the stream")
 
   @abc.abstractmethod
   def Read(self, length):
@@ -1891,7 +1906,7 @@ class AFF4MemoryStream(AFF4Stream):
         pass
 
     self.fd = StringIO.StringIO(contents)
-    self.size = rdfvalue.RDFInteger(len(contents))
+    self.size = len(contents)
     self.offset = 0
 
   def Truncate(self, offset=None):
@@ -1906,7 +1921,8 @@ class AFF4MemoryStream(AFF4Stream):
   def Write(self, data):
     if isinstance(data, unicode):
       raise IOError("Cannot write unencoded string.")
-    self.dirty = True
+
+    self._dirty = True
     self.fd.write(data)
     self.size = self.fd.len
 
@@ -1917,7 +1933,7 @@ class AFF4MemoryStream(AFF4Stream):
     self.fd.seek(offset, whence)
 
   def Flush(self, sync=True):
-    if self.dirty:
+    if self._dirty:
       compressed_content = zlib.compress(self.fd.getvalue())
       self.Set(self.Schema.CONTENT(compressed_content))
       self.Set(self.Schema.SIZE(self.size))
@@ -1925,7 +1941,7 @@ class AFF4MemoryStream(AFF4Stream):
     super(AFF4MemoryStream, self).Flush(sync=sync)
 
   def Close(self, sync=True):
-    if self.dirty:
+    if self._dirty:
       compressed_content = zlib.compress(self.fd.getvalue())
       self.Set(self.Schema.CONTENT(compressed_content))
       self.Set(self.Schema.SIZE(self.size))

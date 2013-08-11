@@ -136,6 +136,7 @@ class DataStore(object):
       token: An ACL token.
       retrywrap_max_timeout: The maximum time to wait for a retry until we
          raise.
+      **kw: Args passed to the callback.
 
     Returns:
       The result from the callback.

@@ -32,7 +32,9 @@ class SophosCollector(flow.GRRFlow):
                        "exist.")),
       )
 
-  @flow.StateHandler(next_state="End")
+  collector_flow = "FileCollector"
+
+  @flow.StateHandler(next_state="Done")
   def Start(self):
     fd = aff4.FACTORY.Open(self.client_id, token=self.token)
     self.system = fd.Get(fd.Schema.SYSTEM)
@@ -41,22 +43,26 @@ class SophosCollector(flow.GRRFlow):
     # Set our findspecs.
     self.findspecs = list(self.GetFindSpecs())
 
-    self.CallFlow("FileCollector", output=self.output,
-                  findspecs=self.findspecs, next_state="End")
+    self.CallFlow(self.collector_flow, output=self.state.output,
+                  findspecs=self.findspecs, next_state="Done")
 
   @flow.StateHandler()
-  def End(self, responses):
+  def Done(self, responses):
     """Notify the user if we were successful."""
     response = responses.First()
     if response:
-      fd = aff4.FACTORY.Open(response.aff4path, mode="r", token=self.token)
-      collection_list = fd.Get(fd.Schema.COLLECTION)
+      fd = aff4.FACTORY.Open(response, mode="r", token=self.token)
+      collection_list = list(fd)
       if collection_list:
-        self.Notify("ViewObject", response.aff4path,
+        self.Notify("ViewObject", response,
                     "Retrieved %s sophos files." % len(collection_list))
         return
 
     raise flow.FlowError("No Sophos related files were downloaded.")
+
+  @flow.StateHandler()
+  def End(self, responses):
+    pass
 
   def GetSophosAVInfectedPath(self):
     """Determines the platform specific Sophos AV infected path.
@@ -134,7 +140,7 @@ class SophosCollector(flow.GRRFlow):
     """
     path_spec = rdfvalue.PathSpec(
         path=self.GetSophosAVInfectedPath(),
-        pathtype=int(self.pathtype))
+        pathtype=int(self.state.pathtype))
 
     yield rdfvalue.RDFFindSpec(
         pathspec=path_spec,
@@ -143,7 +149,7 @@ class SophosCollector(flow.GRRFlow):
 
     path_spec = rdfvalue.PathSpec(
         path=self.GetSophosAVLogsPath(),
-        pathtype=int(self.pathtype))
+        pathtype=int(self.state.pathtype))
 
     yield rdfvalue.RDFFindSpec(
         pathspec=path_spec,

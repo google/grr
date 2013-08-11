@@ -19,19 +19,19 @@ override_dh_auto_test:
 
 override_dh_installinit:
 	dh_installinit
-        # Add path for symbolic link
+	# Add path for symbolic link
 	mkdir -p debian/grr-server/usr/sbin
-        # Set up default configuration
+	# Set up default configuration
 	mkdir -p debian/grr-server/etc/grr
 	install -p -m644 config/grr-server.yaml debian/grr-server/etc/grr
-        # Set up upstart scripts
+	# Set up upstart scripts
 	mkdir -p debian/grr-server/etc/default
 	mkdir -p debian/grr-server/etc/init
 	install -p -m644 config/debian/default/grr-* debian/grr-server/etc/default
 	install -p -m644 config/debian/upstart/grr-* debian/grr-server/etc/init
-        # Do not copy the client script across for the server package.
-        rm debian/grr-server/etc/init/grr-client.conf
-        # Set up grr-server shared directories and files
+	# Do not copy the client script across for the server package.
+	rm debian/grr-server/etc/init/grr-client.conf
+	# Set up grr-server shared directories and files
 	mkdir -p debian/grr-server/usr/share/grr/scripts
 	mkdir -p debian/grr-server/usr/share/grr/binaries
 	mkdir -p debian/grr-server/usr/share/grr/executables/linux/installers/
@@ -42,22 +42,22 @@ override_dh_installinit:
 	mkdir -p debian/grr-server/usr/share/grr/executables/windows/config/
 	mkdir -p debian/grr-server/usr/share/grr/executables/windows/templates/unzipsfx/
 
-        # Generate all the template directories.
-	mkdir -p $(shell ls -d executables/*/templates/*/?.?.?.? |sed 's/executables/debian\/grr-server\/usr\/share\/grr\/executables/g')
+	# Generate all the template directories.
+	mkdir -p $(shell ls -d executables/*/templates/ |sed 's/executables/debian\/grr-server\/usr\/share\/grr\/executables/g')
 
 	install -p -m755 scripts/* debian/grr-server/usr/share/grr/scripts
-        # Make a copy of the default config so users can refer to it.
+	# Make a copy of the default config so users can refer to it.
 	install -p -m644 -T config/grr-server.yaml debian/grr-server/usr/share/grr/grr-server.yaml.default
 
-        # Copy all the templates.
-	for template in executables/*/templates/*/?.?.?.?/*; do install -p -m755 $${template} debian/grr-server/usr/share/grr/$${template}; done
+	# Copy all the templates.
+	for template in executables/*/templates/grr-client*; do install -p -m755 $${template} debian/grr-server/usr/share/grr/$${template}; done
 
 	install -p -m755 executables/windows/templates/unzipsfx/*.* debian/grr-server/usr/share/grr/executables/windows/templates/unzipsfx/
 
 	install -p -m755 binaries/*.* debian/grr-server/usr/share/grr/binaries/
-        # Set up log directory
+	# Set up log directory
 	mkdir -p debian/grr-server/var/log/grr
-        # Add post installation actions
+	# Add post installation actions
 	cat debian/grr-server.postinst.in >> debian/grr-server.postinst.debhelper
 
 override_dh_installmenu:

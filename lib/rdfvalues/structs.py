@@ -56,6 +56,7 @@ def ReadTag(buf, pos):
   except IndexError:
     raise ValueError("Invalid tag")
 
+
 # This function is HOT.
 def VarintWriter(write, value):
   """Convert an integer to a varint and write it using the write function."""

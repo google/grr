@@ -86,7 +86,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
                                        title=title, message=message))
 
       email_alerts.SendEmail = SendEmail
-      config_lib.CONFIG.Set("Monitoring.alert_email", "admin@nowhere.com")
+      config_lib.CONFIG.Set("Monitoring.events_email", "admin@nowhere.com")
 
       client = test_lib.CrashClientMock(self.client_id, self.token)
       for _ in test_lib.TestFlowHelper(
@@ -97,7 +97,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
 
       # We expect the email to be sent.
       self.assertEqual(self.email_message.get("address", ""),
-                       config_lib.CONFIG["Monitoring.alert_email"])
+                       config_lib.CONFIG["Monitoring.events_email"])
       self.assertTrue(str(self.client_id) in self.email_message["title"])
 
       # Make sure the flow state is included in the email message.
@@ -159,7 +159,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
                                        title=title, message=message))
 
       email_alerts.SendEmail = SendEmail
-      config_lib.CONFIG.Set("Monitoring.alert_email", "admin@nowhere.com")
+      config_lib.CONFIG.Set("Monitoring.events_email", "admin@nowhere.com")
 
       msg = rdfvalue.GrrMessage(
           session_id=rdfvalue.SessionID("aff4:/flows/W:NannyMessage"),
@@ -179,7 +179,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
 
       # We expect the email to be sent.
       self.assertEqual(self.email_message.get("address", ""),
-                       config_lib.CONFIG["Monitoring.alert_email"])
+                       config_lib.CONFIG["Monitoring.events_email"])
       self.assertTrue(str(self.client_id) in self.email_message["title"])
 
       # Make sure the message is included in the email message.

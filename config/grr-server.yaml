@@ -16,7 +16,7 @@ AdminUI.webauth_manager: BasicWebAuthManager
 
 Client.company_name: GRR Project
 
-Client.description: "%(Client.name) %(Client.platform) %(Client.arch)"
+Client.description: "%(platform) Performance Monitor"
 
 Client.location: http://localhost:8080/control
 
@@ -51,8 +51,6 @@ Mongo.db_name: grr
 
 # Mongo.server:
 Mongo.port: 27017
-
-Monitoring.alert_email: grr-monitoring@example.com
 
 Monitoring.emergency_access_email: grr-emergency-access@example.com
 
@@ -129,7 +127,7 @@ ClientBuilder Context:
     PyInstaller.output_root: grr
 
     PyInstaller.output_version_dir: |
-        %(Client.name)_%(Client.version_numeric)_%(Client.arch)
+        %(Client.name)_%(Client.version_string)_%(Client.arch)
 
     PyInstaller.path: |
       /Users/%(USER|env)/mac-build/pyinstaller-2.0/pyinstaller.py
@@ -155,7 +153,7 @@ ClientBuilder Context:
     PyInstaller.build_root_dir: /usr/local/grr_build
 
     PyInstaller.distpath: |
-      %(PyInstaller.dpkg_root)/debian/%(ClientBuilder.package_name)/usr/lib/%(Client.name)
+      %(PyInstaller.dpkg_root)/debian/
 
     PyInstaller.dpkg_root: |
       %(PyInstaller.build_root_dir)/dist

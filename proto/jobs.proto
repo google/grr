@@ -885,6 +885,13 @@ message GRRConfig {
 };
 
 
+message AuthenticodeSignedData {
+  optional uint64 revision = 1;
+  optional uint64 cert_type = 2;
+  optional bytes certificate = 3;
+}
+
+
 message FingerprintTuple {
   // The fingerprinting methods the fingerprinter can be asked to perform.
   // If none is given, all are applied.

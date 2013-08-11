@@ -17,6 +17,7 @@ from grr.proto import analysis_pb2
 
 class SystemCronFlow(flow.GRRFlow):
   frequency = rdfvalue.Duration("1d")
+  lifetime = rdfvalue.Duration("20h")
 
   __abstract = True  # pylint: disable=g-bad-name
 
@@ -178,7 +179,7 @@ class AbstractClientStatsCronFlow(SystemCronFlow):
 class GRRVersionBreakDown(AbstractClientStatsCronFlow):
   """Records relative ratios of GRR versions in 7 day actives."""
 
-  frequency = "4h"
+  frequency = rdfvalue.Duration("4h")
 
   def BeginProcessing(self):
     self.counter = _ActiveCounter(self.stats.Schema.GRRVERSION_HISTOGRAM)

@@ -188,7 +188,9 @@ class VolatilityFormatstringRenderer(renderers.RDFProtoRenderer):
 
   def GenerateLine(self, formatted_value):
     format_string = formatted_value.formatstring.replace("\n", "<br>")
-    return format_string.format(*formatted_value.data.values)
+    values = [VolatilityValue.GetValue()
+              for VolatilityValue in formatted_value.data.values]
+    return format_string.format(*values)
 
   def Layout(self, request, response):
     """Prepare the data."""

@@ -45,6 +45,14 @@ class VolatilityFormattedValues(rdfvalue.RDFProtoStruct):
 class VolatilityValue(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.VolatilityValue
 
+  def GetValue(self):
+    if self.HasField("svalue"):
+      return self.svalue
+    elif self.HasField("value"):
+      return self.value
+    else:
+      raise RuntimeError("VolatilityValue without data.")
+
 
 class VolatilityValues(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.VolatilityValues

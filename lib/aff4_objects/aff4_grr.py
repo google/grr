@@ -334,7 +334,7 @@ class VFSAnalysisFile(VFSFile):
 class GRRSignedBlob(aff4.AFF4MemoryStream):
   """A container for storing a signed binary blob such as a driver."""
 
-  class SchemaCls(aff4.AFF4Object.SchemaCls):
+  class SchemaCls(aff4.AFF4MemoryStream.SchemaCls):
     """Signed blob attributes."""
 
     BINARY = aff4.Attribute("aff4:signed_blob", rdfvalue.SignedBlob,
@@ -348,8 +348,9 @@ class GRRSignedBlob(aff4.AFF4MemoryStream):
       contents = self.Get(self.Schema.BINARY)
       if contents:
         contents = contents.data
+
     self.fd = StringIO.StringIO(contents)
-    self.size = rdfvalue.RDFInteger(self.fd.len)
+    self.size = self.fd.len
 
 
 class GRRMemoryDriver(GRRSignedBlob):

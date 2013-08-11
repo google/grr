@@ -52,8 +52,8 @@ class TestDownloadDirectory(test_lib.FlowTestsBaseclass):
         break
 
     # Check the AFF4 type of the child, it should have changed
-    # from VFSFile to HashImage
-    self.assertEqual(child.__class__.__name__, "HashImage")
+    # from VFSFile to BlobImage
+    self.assertEqual(child.__class__.__name__, "BlobImage")
 
   def testDownloadDirectorySub(self):
     """Test a DownloadDirectory flow with depth=5."""

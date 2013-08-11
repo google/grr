@@ -206,9 +206,9 @@ def _RepackBinary(context, builder_cls):
                                         context=context)
 
   if os.path.exists(template_path):
-    builder = builder_cls(context=context)
+    builder_obj = builder_cls(context=context)
     try:
-      return builder.MakeDeployableBinary(template_path)
+      return builder_obj.MakeDeployableBinary(template_path)
     except Exception as e:  # pylint: disable=broad-except
       print "Repacking template %s failed: %s" % (template_path, e)
   else:
@@ -237,18 +237,18 @@ def RepackAllBinaries(upload=False):
   built = []
 
   base_context = ["ClientBuilder Context"]
-  for context, builder in (
+  for context, deployer in (
       (["Target:Windows", "Platform:Windows", "Arch:amd64"],
-       build.WindowsClientBuilder),
+       build.WindowsClientDeployer),
       (["Target:Windows", "Platform:Windows", "Arch:i386"],
-       build.WindowsClientBuilder),
+       build.WindowsClientDeployer),
       (["Target:Linux", "Platform:Linux", "Arch:amd64"],
-       build.LinuxClientBuilder),
+       build.LinuxClientDeployer),
       (["Target:Darwin", "Platform:Darwin", "Arch:amd64"],
-       build.DarwinClientBuilder)):
+       build.DarwinClientDeployer)):
 
     context = base_context + context
-    output_path = _RepackBinary(context, builder)
+    output_path = _RepackBinary(context, deployer)
     if output_path:
       built.append(output_path)
       if upload:

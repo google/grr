@@ -120,6 +120,7 @@ class Dict(rdfvalue.RDFProtoStruct):
     for key, value in dictionary.iteritems():
       self.dat.Append(k=rdfvalue.DataBlob().SetValue(key),
                       v=rdfvalue.DataBlob().SetValue(value))
+    return self
 
   def __getitem__(self, key):
     for x in self.dat:

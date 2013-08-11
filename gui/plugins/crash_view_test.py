@@ -51,7 +51,7 @@ class TestCrashView(test_lib.GRRSeleniumTest):
 
     # Check that "Flow Information" tab displays crash data.
     self.WaitUntil(self.AllTextsPresent, [
-        "GRRFlow", "CLIENT_CRASH", "aff4:/flows/W:CrashHandler",
+        "CLIENT_CRASH", "aff4:/flows/W:CrashHandler",
         "Client killed during transaction"])
 
     # Check that client crash is present in global crashes list.

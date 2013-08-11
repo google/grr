@@ -2,6 +2,9 @@
 # Copyright 2010 Google Inc. All Rights Reserved.
 
 """These aff4 objects are periodic cron jobs."""
+
+import time
+
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -45,9 +48,19 @@ class CronJob(aff4.AFF4Volume):
         "The last time this cron job ran.", "last_run",
         versioned=False, lock_protected=True)
 
+    LIFETIME = aff4.Attribute(
+        "aff4:cron/lifetime", rdfvalue.Duration,
+        "How long (in hours) each run of the cron should be allowed to run. "
+        "Runs that exceed lifetime will be killed.")
+
   def IsRunning(self):
     """Returns True if there's a currently running iteration of this job."""
-    return self.Get(self.Schema.CURRENT_FLOW_URN) is not None
+    current_urn = self.Get(self.Schema.CURRENT_FLOW_URN)
+    if current_urn:
+      current_flow = aff4.FACTORY.Open(urn=current_urn,
+                                       token=self.token, mode="r")
+      return current_flow.state.context.state == rdfvalue.Flow.State.RUNNING
+    return False
 
   def DueToRun(self):
     """Called periodically by the cron daemon, if True Run() will be called.
@@ -66,10 +79,31 @@ class CronJob(aff4.AFF4Volume):
         now.AsSecondsFromEpoch() - frequency.seconds >
         last_run_time.AsSecondsFromEpoch()):
 
-      return (self.Get(self.Schema.ALLOW_OVERRUNS) or
-              self.Get(self.Schema.CURRENT_FLOW_URN) is None)
+      return self.Get(self.Schema.ALLOW_OVERRUNS) or not self.IsRunning()
     else:
       return False
+
+  def StopCurrentRun(self, reason="Cron lifetime exceeded.", force=True):
+    current_flow_urn = self.Get(self.Schema.CURRENT_FLOW_URN)
+    if current_flow_urn:
+      flow.GRRFlow.TerminateFlow(current_flow_urn, reason=reason, force=force,
+                                 token=self.token)
+
+  def KillOldFlows(self):
+    """Disable cron flow if it has exceeded LIFETIME.
+
+    Returns:
+      bool: True if the flow is was killed, False if it is still alive
+    """
+    if self.IsRunning():
+      start_time = self.Get(self.Schema.LAST_RUN_TIME)
+      lifetime = self.Get(self.Schema.LIFETIME)
+      elapsed = time.time() - start_time.AsSecondsFromEpoch()
+
+      if elapsed > lifetime.seconds:
+        self.StopCurrentRun()
+        return True
+    return False
 
   def Run(self, force=False):
     """Do the actual work of the Cron. Will first check if DueToRun is True.
@@ -87,13 +121,8 @@ class CronJob(aff4.AFF4Volume):
     if not self.locked:
       raise aff4.LockError("CronJob must be locked for Run() to be called.")
 
-    # If currently running flow has finished, update our state.
-    current_flow_urn = self.Get(self.Schema.CURRENT_FLOW_URN)
-    if current_flow_urn:
-      current_flow = aff4.FACTORY.Open(current_flow_urn, token=self.token)
-      if not current_flow.IsRunning():
-        self.DeleteAttribute(self.Schema.CURRENT_FLOW_URN)
-        self.Flush()
+    if self.KillOldFlows():
+      return
 
     if not force and not self.DueToRun():
       return

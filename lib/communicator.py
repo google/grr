@@ -435,7 +435,7 @@ class Communicator(object):
     try:
       response_comms = rdfvalue.ClientCommunication(encrypted_response)
       return self.DecodeMessages(response_comms)
-    except (rdfvalue.DecodeError, type_info.TypeValueError) as e:
+    except (rdfvalue.DecodeError, type_info.TypeValueError, ValueError) as e:
       raise DecodingError("Protobuf parsing error: %s" % e)
 
   def DecompressMessageList(self, signed_message_list):

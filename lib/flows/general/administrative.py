@@ -65,9 +65,8 @@ class ClientCrashEventListener(flow.EventListener):
     self._AppendCrashDetails(aff4.ROOT_URN.Add("crashes"), crash_details)
 
     if flow_session_id:
-      aff4_flow = aff4.FACTORY.Create(
-          rdfvalue.RDFURN(flow_session_id), "GRRFlow", mode="w",
-          age=aff4.NEWEST_TIME, token=self.token)
+      aff4_flow = aff4.FACTORY.Open(rdfvalue.RDFURN(flow_session_id), mode="rw",
+                                    age=aff4.NEWEST_TIME, token=self.token)
       aff4_flow.Set(aff4_flow.Schema.CLIENT_CRASH(crash_details))
       aff4_flow.Close(sync=False)
 
@@ -552,14 +551,14 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
     self.WriteAllCrashDetails(client_id, crash_details)
 
     # Also send email.
-    if config_lib.CONFIG["Monitoring.alert_email"]:
+    if config_lib.CONFIG["Monitoring.events_email"]:
       client = aff4.FACTORY.Open(client_id, token=self.token)
       hostname = client.Get(client.Schema.HOSTNAME)
       url = urllib.urlencode((("c", client_id),
                               ("main", "HostInformation")))
 
       email_alerts.SendEmail(
-          config_lib.CONFIG["Monitoring.alert_email"],
+          config_lib.CONFIG["Monitoring.events_email"],
           "GRR server",
           self.subject % client_id,
           self.mail_template % dict(
@@ -646,7 +645,7 @@ P.S. The state of the failing flow was:
                               flow_session_id=message.session_id)
 
     # Also send email.
-    if config_lib.CONFIG["Monitoring.alert_email"]:
+    if config_lib.CONFIG["Monitoring.events_email"]:
       if status.nanny_status:
         nanny_msg = "Nanny status: %s" % status.nanny_status
 
@@ -658,7 +657,7 @@ P.S. The state of the failing flow was:
       renderer = rendering.renderers.FindRendererForObject(flow_obj.state)
 
       email_alerts.SendEmail(
-          config_lib.CONFIG["Monitoring.alert_email"],
+          config_lib.CONFIG["Monitoring.events_email"],
           "GRR server",
           "Client %s reported a crash." % client_id,
           self.mail_template % dict(

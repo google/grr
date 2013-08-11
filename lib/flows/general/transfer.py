@@ -38,6 +38,12 @@ class GetFile(flow.GRRFlow):
           )
       )
 
+  class SchemaCls(flow.GRRFlow.SchemaCls):
+    PROGRESS_GRAPH = aff4.Attribute(
+        "aff4:progress", rdfvalue.ProgressGraph,
+        "Show a button to generate a progress graph for this flow.",
+        default="")
+
   # We have a maximum of this many chunk reads outstanding (about 10mb)
   WINDOW_SIZE = 200
   CHUNK_SIZE = 512 * 1024
@@ -78,7 +84,7 @@ class GetFile(flow.GRRFlow):
     self.state.max_chunk_number = (self.state.file_size /
                                    self.state.chunk_size) + 1
 
-    self.CreateHashImage()
+    self.CreateBlobImage()
     self.FetchWindow(min(
         self.WINDOW_SIZE,
         self.state.max_chunk_number - self.state.current_chunk_number))
@@ -98,7 +104,7 @@ class GetFile(flow.GRRFlow):
       self.CallClient("TransferBuffer", request, next_state="ReadBuffer")
       self.state.current_chunk_number += 1
 
-  def CreateHashImage(self):
+  def CreateBlobImage(self):
     """Force creation of the new AFF4 object.
 
     Note that this is pinned on the client id - i.e. the client can not change
@@ -111,8 +117,8 @@ class GetFile(flow.GRRFlow):
 
     # Create a new Hash image for the data. Note that this object is pickled
     # with this flow between states.
-    fd = aff4.FACTORY.Create(self.state.urn, "HashImage",
-                             token=self.token)
+    fd = aff4.FACTORY.Create(self.state.urn, "BlobImage", token=self.token)
+
     # The chunksize must be set to be the same as the transfer chunk size.
     fd.SetChunksize(self.state.chunk_size)
     fd.Set(fd.Schema.STAT(self.state.stat))
@@ -180,18 +186,16 @@ class FastGetFile(GetFile):
   WINDOW_SIZE = 400
 
   def Init(self):
-    self.state.Register("hash_queue", [])
-    self.state.Register("hash_map", {})
-    self.state.Register("in_flight", set())
+    self.state.Register("queue", [])
     super(FastGetFile, self).Init()
 
   def FetchWindow(self, number_of_chunks_to_readahead):
     """Read ahead a number of buffers to fill the window."""
-    for _ in range(number_of_chunks_to_readahead):
-      # Do not read past the end of file
-      if self.state.current_chunk_number > self.state.max_chunk_number:
-        return
+    number_of_chunks_to_readahead = min(
+        number_of_chunks_to_readahead,
+        self.state.max_chunk_number - self.state.current_chunk_number)
 
+    for _ in range(number_of_chunks_to_readahead):
       offset = self.state.current_chunk_number * self.state.chunk_size
       request = rdfvalue.BufferReference(pathspec=self.state.pathspec,
                                          offset=offset,
@@ -200,7 +204,7 @@ class FastGetFile(GetFile):
 
       self.state.current_chunk_number += 1
 
-  @flow.StateHandler(next_state=["CheckHashes"])
+  @flow.StateHandler(next_state=["CheckHashes", "WriteHash"])
   def CheckHashes(self, responses):
     """Check if the hashes are already in the data store.
 
@@ -215,16 +219,16 @@ class FastGetFile(GetFile):
       raise flow.FlowError(responses.status)
 
     for response in responses:
-      if response.offset not in self.state.hash_map:
-        tracker = HashTracker(response)
-        self.state.hash_queue.append(tracker)
-        self.state.hash_map[response.offset] = tracker
+      self.state.queue.append(HashTracker(response))
 
-    self.CheckQueuedHashes()
+    if len(self.state.queue) > self.WINDOW_SIZE:
+      check_hashes = self.state.queue[:self.WINDOW_SIZE]
+      self.state.queue = self.state.queue[self.WINDOW_SIZE:]
+      self.CheckQueuedHashes(check_hashes)
 
-  def CheckQueuedHashes(self):
+  def CheckQueuedHashes(self, hash_list):
     """Check which of the hashes in the queue we already have."""
-    urns = [x.blob_urn for x in self.state.hash_queue]
+    urns = [x.blob_urn for x in hash_list]
     fds = aff4.FACTORY.Stat(urns, token=self.token)
 
     # These blob urns we have already.
@@ -232,52 +236,42 @@ class FastGetFile(GetFile):
 
     # Fetch all the blob urns we do not have and that are not currently already
     # in flight.
-    for hash_blob in self.state.hash_queue:
-      offset = hash_blob.hash_response.offset
-      if (hash_blob.blob_urn not in matched_urns and
-          offset not in self.state.in_flight):
-        request = rdfvalue.BufferReference(pathspec=self.state.pathspec,
-                                           offset=offset,
-                                           length=self.state.chunk_size)
-        self.CallClient("TransferBuffer", request, next_state="CheckHashes")
-        self.state.in_flight.add(offset)
+    for hash_tracker in hash_list:
+      request = hash_tracker.hash_response
+      request.pathspec = self.state.pathspec
 
-    # Now read the hashes in order and append as many as possible to the image.
-    i = 0
-    for i in range(len(self.state.hash_queue)):
-      hash_blob = self.state.hash_queue[i]
+      if hash_tracker.blob_urn in matched_urns:
+        self.CallState([request], next_state="WriteHash")
+      else:
+        self.CallClient("TransferBuffer", request, next_state="WriteHash")
 
-      if hash_blob.blob_urn not in matched_urns:
-        # We can not keep writing until this buffer comes back from the client
-        # since hash blobs must be written in order.
-        break
+    self.FetchWindow(self.WINDOW_SIZE)
 
-      # We must write the hashes in order to the output.
-      if hash_blob.hash_response.offset < self.state.fd.size:
-        continue
+  @flow.StateHandler()
+  def WriteHash(self, responses):
+    if not responses.success:
+      # Silently ignore failures in block-fetches
+      # Might want to clean up the 'broken' fingerprint file here.
+      return
 
-      elif hash_blob.hash_response.offset > self.state.fd.size:
-        break
+    response = responses.First()
 
-      self.state.fd.AddBlob(hash_blob.hash_response.data,
-                            hash_blob.hash_response.length)
+    self.state.fd.AddBlob(response.data, response.length)
+    self.Status("Received %s bytes", self.state.fd.size)
 
-      self.Log("Received blob hash %s", hash_blob.blob_urn)
-      self.Status("Received %s bytes", self.state.fd.size)
+  @flow.StateHandler(next_state=["CheckHashes", "WriteHash"])
+  def End(self, _):
+    """Flush outstanding hash blobs and retrieve more if needed."""
+    if self.state.queue:
+      self.CheckQueuedHashes(self.state.queue)
+      self.state.queue = []
 
-    if i:
-      self.state.hash_queue = self.state.hash_queue[i:]
-      self.state.hash_map = dict(
-          [(x.hash_response.offset, x) for x in self.state.hash_queue])
+    else:
+      stat_response = self.state.fd.Get(self.state.fd.Schema.STAT)
+      self.state.fd.Close(sync=True)
 
-  @flow.StateHandler(next_state=["CheckHashes"])
-  def End(self, responses):
-    if self.state.hash_queue:
-      self.CheckQueuedHashes()
-
-    # Are we really finished?
-    if not self.OutstandingRequests():
-      super(FastGetFile, self).End(self.runner, responses)
+      # Notify any parent flows the file is ready to be used now.
+      self.SendReply(stat_response)
 
 
 class GetMBR(flow.GRRFlow):
@@ -367,7 +361,7 @@ class TransferStore(flow.WellKnownFlow):
                                token=self.token)
       fd.Set(fd.Schema.CONTENT(cdata))
       fd.Set(fd.Schema.SIZE(len(data)))
-      fd.Close(sync=True)
+      super(aff4.AFF4MemoryStream, fd).Close(sync=True)
 
       logging.info("Got blob %s (length %s)", digest.encode("hex"),
                    len(cdata))

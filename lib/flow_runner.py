@@ -68,7 +68,7 @@ class HuntRunner(object):
   def SetAllowedFollowUpStates(self, next_states):
     self.next_states = next_states
 
-  def CallState(self, messages=None, next_state="", delay=0):
+  def CallState(self, messages=None, next_state="", request_data=None, delay=0):
     """This method is used to schedule a new state on a different worker.
 
     This is basically the same as CallFlow() except we are calling
@@ -79,6 +79,10 @@ class HuntRunner(object):
        messages: A list of rdfvalues to send. If the last one is not a
             GrrStatus, we append an OK Status.
        next_state: The state in this flow to be invoked with the responses.
+       request_data: Any dict provided here will be available in the
+             RequestState protobuf. The Responses object maintains a reference
+             to this protobuf for use in the execution of the state method. (so
+             you can access this data by responses.request).
        delay: Delay the call to the next state by <delay> seconds.
 
     Raises:
@@ -96,6 +100,9 @@ class HuntRunner(object):
                                           session_id=self.session_id,
                                           client_id=self.client_id,
                                           next_state=next_state)
+
+    if request_data:
+      request_state.data = rdfvalue.Dict().FromDict(request_data)
 
     self.QueueRequest(request_state)
 
@@ -432,11 +439,10 @@ class HuntRunner(object):
        next_state: The state in this flow, that responses to this
        message should go to.
 
-       request_data: Any string provided here will be available in the
+       request_data: Any dict provided here will be available in the
              RequestState protobuf. The Responses object maintains a reference
              to this protobuf for use in the execution of the state method. (so
-             you can access this data by responses.request). There is no
-             format mandated on this data but it may be a serialized protobuf.
+             you can access this data by responses.request).
        client_id: If given, the flow is started for this client.
 
        **kwargs: Arguments for the child flow.
@@ -468,7 +474,7 @@ class HuntRunner(object):
         response_count=0)
 
     if request_data:
-      state.data = rdfvalue.Dict(request_data)
+      state.data = rdfvalue.Dict().FromDict(request_data)
 
     cpu_limit = self.context.cpu_limit
     network_bytes_limit = self.context.network_bytes_limit

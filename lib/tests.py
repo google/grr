@@ -10,12 +10,14 @@ This module loads and registers all the GRR library tests.
 # These need to register plugins so, pylint: disable=unused-import
 from grr.lib import access_control_test
 from grr.lib import aff4_test
+from grr.lib import artifact_test
 from grr.lib import build_test
 from grr.lib import communicator_test
 from grr.lib import config_lib_test
 from grr.lib import config_validation_test
 from grr.lib import cron_test
 from grr.lib import data_store_test
+from grr.lib import export_test
 from grr.lib import export_utils_test
 from grr.lib import flow_test
 from grr.lib import flow_utils_test

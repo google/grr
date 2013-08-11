@@ -13,8 +13,6 @@ import os
 import thread
 import threading
 import time
-import zlib
-
 
 # pylint: disable=unused-import, g-bad-import-order
 from grr.lib import server_plugins
@@ -815,13 +813,11 @@ class DataStoreTest(test_lib.GRRBaseTest):
     data = "randomdata" * 50 * 1024
 
     # Create a blob.
-    cdata = zlib.compress(data)
     digest = hashlib.sha256(data).digest()
     urn = aff4.ROOT_URN.Add("blobs").Add(digest.encode("hex"))
     blob_fd = aff4.FACTORY.Create(urn, "AFF4MemoryStream", mode="w",
                                   token=self.token)
-    blob_fd.Set(blob_fd.Schema.CONTENT(cdata))
-    blob_fd.Set(blob_fd.Schema.SIZE(len(data)))
+    blob_fd.Write(data)
     blob_fd.Close(sync=True)
 
     # Now create the image containing the blob.

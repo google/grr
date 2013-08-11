@@ -1291,7 +1291,12 @@ class Test(actions.ActionPlugin):
 def CheckFlowErrors(total_flows, token=None):
   # Check that all the flows are complete.
   for session_id in total_flows:
-    flow_obj = aff4.FACTORY.Open(session_id, mode="r", token=token)
+    try:
+      flow_obj = aff4.FACTORY.Open(session_id, aff4_type="GRRFlow", mode="r",
+                                   token=token)
+    except IOError:
+      continue
+
     if flow_obj.state.context.state != rdfvalue.Flow.State.TERMINATED:
       if flags.FLAGS.debug:
         pdb.set_trace()
@@ -1532,7 +1537,7 @@ class ClientFixture(object):
           attribute = aff4.Attribute.PREDICATES[attribute_name]
           if isinstance(value, (str, unicode)):
             # Interpolate the value
-            value = utils.SmartUnicode(value) % self.args
+            value %= self.args
 
           # Is this supposed to be an RDFValue array?
           if aff4.issubclass(attribute.attribute_type, rdfvalue.RDFValueArray):

@@ -41,11 +41,11 @@ class SeleniumTestProgram(test_lib.GrrTestProgram):
       logging.exception(e)
 
   def setUp(self):
-    self.SetupSelenium()
 
     # Start up a server in another thread
     self.trd = runtests.DjangoThread()
     self.trd.start()
+    self.SetupSelenium()
 
   def tearDown(self):
     self.trd.Stop()

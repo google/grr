@@ -129,18 +129,17 @@ class CronTest(test_lib.GRRBaseTest):
     self.assertTrue(cron_job_flow_urn is not None)
     flow.GRRFlow.TerminateFlow(cron_job_flow_urn, token=self.token)
 
-    # We're still running, becasue Run() wasn't called and therefore
-    # current flow status wasn't checked.
+    # Check we're dead
     cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
                                  token=self.token)
-    self.assertTrue(cron_job.IsRunning())
+    self.assertFalse(cron_job.IsRunning())
 
     # This will understand that current flow has terminated. New flow won't be
     # started, because iterations are supposed to be started once per day
     # (frequency=1d).
     cron_manager.RunOnce(token=self.token)
 
-    # RunOnce was called, so state should be marked as not running now.
+    # Still dead
     cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
                                  token=self.token)
     self.assertFalse(cron_job.IsRunning())
@@ -277,6 +276,42 @@ class CronTest(test_lib.GRRBaseTest):
 
     cron_jobs = list(cron_manager.ListJobs(token=self.token))
     self.assertEqual(len(cron_jobs), 0)
+
+  def testKillOldFlows(self):
+    old_time = time.time
+    try:
+      time.time = lambda: 0
+
+      cron_manager = cron.CronManager()
+      one_day = rdfvalue.Duration("1d")
+      cron_job_urn = cron_manager.ScheduleFlow("FakeCronJob", flow_args={},
+                                               frequency=one_day,
+                                               token=self.token,
+                                               lifetime=one_day)
+
+      cron_manager.RunOnce(token=self.token)
+      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+                                   token=self.token)
+      self.assertTrue(cron_job.IsRunning())
+      self.assertFalse(cron_job.KillOldFlows())
+
+      # Fast foward one day
+      time.time = lambda: 24*60*60 + 1
+
+      cron_manager.RunOnce(token=self.token)
+      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+                                   token=self.token)
+      self.assertFalse(cron_job.IsRunning())
+
+      # Check the termination log
+      flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
+
+      current_flow = aff4.FACTORY.Open(urn=flow_urn,
+                                       token=self.token, mode="r")
+      log = current_flow.Get(current_flow.Schema.LOG)
+      self.assertTrue("lifetime exceeded" in str(log))
+    finally:
+      time.time = old_time
 
 
 def main(argv):

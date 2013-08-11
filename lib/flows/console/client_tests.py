@@ -8,6 +8,7 @@ import re
 import unittest
 
 
+import logging
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -264,6 +265,7 @@ class TestInterrogate(ClientTestBase):
     super(TestInterrogate, self).setUp()
     data_store.DB.DeleteAttributes(self.client_id, [
         str(attribute) for attribute in self.attributes], sync=True)
+    aff4.FACTORY.Flush()
 
     self.assertRaises(AssertionError, self.CheckFlow)
 
@@ -449,8 +451,11 @@ def RunTests(client_id=None, platform=None, testname=None,
 
     if platform in cls.platforms:
       print "Running %s." % cls.__name__
-      runner.run(cls(client_id=client_id, platform=platform,
-                     token=token, local_worker=local_worker))
+      try:
+        runner.run(cls(client_id=client_id, platform=platform,
+                       token=token, local_worker=local_worker))
+      except Exception:  # pylint: disable=broad-except
+        logging.exception("Failed to run test %s", cls)
 
 
 class TestCPULimit(LocalClientTest):
