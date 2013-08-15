@@ -124,6 +124,14 @@ class FetchAllFiles(flow.GRRFlow):
                   pathtype=rdfvalue.PathSpec.PathType.OS),
               path_regex=r"\.(exe|com|bat|dll|msi|sys|scr|pif)$")
           ),
+
+      type_info.Integer(
+          description=("Files examined per iteration before reporting back to"
+                       " the server. Should be large enough to make the"
+                       " roundtrip to the server worthwhile."),
+          name="iteration_count",
+          default=20000),
+
       )
 
   @flow.StateHandler(next_state="IterateFind")
@@ -138,6 +146,7 @@ class FetchAllFiles(flow.GRRFlow):
     # (fd, file_size, pathspec, list of hashes).
     self.state.Register("store", {})
 
+    self.state.findspec.iterator.number = self.state.iteration_count
     self.CallClient("Find", self.state.findspec, next_state="IterateFind")
 
   @flow.StateHandler(next_state=["IterateFind", "CheckFileHash"])
@@ -159,6 +168,10 @@ class FetchAllFiles(flow.GRRFlow):
           self.Log("%s too large to fetch. Size=%d",
                    response.pathspec.CollapsePath(), file_size)
 
+        response.hit.aff4path = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+            response.hit.pathspec, self.client_id)
+
+        self.SendReply(response.hit)
         self.CallClient("HashFile", pathspec=response.hit.pathspec,
                         next_state="CheckFileHash",
                         request_data=dict(hit=response.hit))

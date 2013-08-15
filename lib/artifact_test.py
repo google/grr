@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
 # -*- mode: python; encoding: utf-8 -*-
 
 """Tests for artifacts."""
@@ -9,8 +8,10 @@
 import os
 import subprocess
 
+from grr.client import vfs
 from grr.lib import aff4
 from grr.lib import artifact
+from grr.lib import artifact_lib
 from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import rdfvalue
@@ -18,27 +19,11 @@ from grr.lib import test_lib
 
 
 # Shorcut to make things cleaner.
-Artifact = artifact.GenericArtifact   # pylint: disable=g-bad-name
-Collector = artifact.Collector        # pylint: disable=g-bad-name
+Artifact = artifact_lib.GenericArtifact   # pylint: disable=g-bad-name
+Collector = artifact_lib.Collector        # pylint: disable=g-bad-name
 
 
-class ArtifactTest(test_lib.GRRBaseTest):
-
-  def testArtifactsValidate(self):
-    """Check each artifact we have passes validation."""
-
-    for a_cls in artifact.Artifact.classes:
-      if a_cls == "Artifact":
-        continue    # Skip the base object.
-      art = artifact.Artifact.classes[a_cls]
-      art_obj = art()
-      art_obj.Validate()
-
-    art_cls = artifact.Artifact.classes["ApplicationEventLog"]
-    art_obj = art_cls()
-    art_obj.LABELS.append("BadLabel")
-
-    self.assertRaises(artifact.ArtifactDefinitionError, art_obj.Validate)
+class GRRArtifactTest(test_lib.GRRBaseTest):
 
   def testRDFMaps(self):
     """Validate the RDFMaps."""
@@ -48,19 +33,19 @@ class ArtifactTest(test_lib.GRRBaseTest):
       _, aff4_type, aff4_attribute, operator = dat
 
       if operator not in ["Set", "Append"]:
-        raise artifact.ArtifactDefinitionError(
+        raise artifact_lib.ArtifactDefinitionError(
             "Bad RDFMapping, unknown operator %s in %s" %
             (operator, rdf_name))
 
       if aff4_type not in aff4.AFF4Object.classes:
-        raise artifact.ArtifactDefinitionError(
+        raise artifact_lib.ArtifactDefinitionError(
             "Bad RDFMapping, invalid AFF4 Object %s in %s" %
             (aff4_type, rdf_name))
 
       attr = getattr(aff4.AFF4Object.classes[aff4_type].SchemaCls,
                      aff4_attribute)()
       if not isinstance(attr, rdfvalue.RDFValue):
-        raise artifact.ArtifactDefinitionError(
+        raise artifact_lib.ArtifactDefinitionError(
             "Bad RDFMapping, bad attribute %s for %s" %
             (aff4_attribute, rdf_name))
 
@@ -87,10 +72,12 @@ WMI_SAMPLE = [
 
 class TestCmdProcessor(parsers.CommandParser):
 
-  out_type = "SoftwarePackage"
+  output_types = ["SoftwarePackage"]
+  supported_artifacts = ["TestCmdArtifact"]
 
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken):
-    _ = cmd, args, stdout, stderr, return_val, time_taken
+  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
+            knowledge_base):
+    _ = cmd, args, stdout, stderr, return_val, time_taken, knowledge_base
     installed = rdfvalue.SoftwarePackage.InstallState.INSTALLED
     soft = rdfvalue.SoftwarePackage(name="Package1", description="Desc1",
                                     version="1", architecture="amd64",
@@ -112,13 +99,12 @@ class TestCmdArtifact(Artifact):
                 args={"cmd": "/usr/bin/dpkg", "args": ["--list"]},
                )
   ]
-  PROCESSOR = "TestCmdProcessor"
 
 
 class TestFileArtifact(Artifact):
   """Linux auth log file."""
   SUPPORTED_OS = ["Linux"]
-  LABELS = ["Logs", "Auth"]
+  LABELS = ["Logs", "Authentication"]
   COLLECTORS = [
       Collector(action="GetFile",
                 args={"path": "/var/log/auth.log"})
@@ -167,12 +153,13 @@ class ArtifactFlowTest(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     fd.Set(fd.Schema.SYSTEM("Windows"))
+    fd.Set(fd.Schema.OS_VERSION("6.2"))
     fd.Flush()
 
     for _ in test_lib.TestFlowHelper(
         "ArtifactCollectorFlow", self.MockClient(),
         client_id=self.client_id,
-        artifact_list=["WindowsInstalledSoftware"], token=self.token):
+        artifact_list=["WindowsWMIInstalledSoftware"], token=self.token):
       pass
 
     urn = self.client_id.Add("info/software")
@@ -199,6 +186,90 @@ class ArtifactFlowTest(test_lib.FlowTestsBaseclass):
       pass
     urn = self.client_id.Add("fs/os/").Add(self.base_path).Add("auth.log")
     fd = aff4.FACTORY.Open(urn, aff4_type="BlobImage", token=self.token)
+
+  def testArtifactOutput(self):
+    """Check we can run command based artifacts."""
+    fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    fd.Set(fd.Schema.SYSTEM("Linux"))
+    fd.Flush()
+    output_path = "analysis/MyDownloadedFiles"
+
+    # Update the artifact path to point to the test directory.
+    TestFileArtifact.COLLECTORS[0].args["path"] = (
+        os.path.join(self.base_path, "auth.log"))
+
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile",
+                                      "HashBuffer", "ListDirectory")
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow", client_mock, client_id=self.client_id,
+        artifact_list=["TestFileArtifact"], use_tsk=False, token=self.token,
+        output=output_path):
+      pass
+    urn = self.client_id.Add(output_path)
+    # will raise if it doesn't exist
+    fd = aff4.FACTORY.Open(urn, aff4_type="RDFValueCollection",
+                           token=self.token)
+
+    # Test the writing to the subdir per artifact.
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow", client_mock, client_id=self.client_id,
+        artifact_list=["TestFileArtifact"], use_tsk=False, token=self.token,
+        output=output_path, split_output_by_artifact=True):
+      pass
+    urn = self.client_id.Add(output_path).Add("TestFileArtifact")
+    # will raise if it doesn't exist
+    fd = aff4.FACTORY.Open(urn, aff4_type="RDFValueCollection",
+                           token=self.token)
+
+
+class ClientRegistryVFSFixture(test_lib.ClientVFSHandlerFixture):
+  """Special client VFS mock that will emulate the registry."""
+  prefix = "/registry"
+  supported_pathtype = rdfvalue.PathSpec.PathType.REGISTRY
+
+
+class ClientFullVFSFixture(test_lib.ClientVFSHandlerFixture):
+  """Special client VFS mock that will emulate the registry."""
+  prefix = "/"
+  supported_pathtype = rdfvalue.PathSpec.PathType.OS
+
+
+class GrrKbTest(test_lib.FlowTestsBaseclass):
+
+  def testKnowledgeBaseRetrieval(self):
+    """Check we can retrieve a knowledge base from a client."""
+    test_lib.ClientFixture(self.client_id, token=self.token)
+
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    client.Set(client.Schema.SYSTEM("Windows"))
+    client.Set(client.Schema.OS_VERSION("6.2"))
+    client.Flush()
+
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.REGISTRY] = ClientRegistryVFSFixture
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.OS] = ClientFullVFSFixture
+
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile",
+                                      "HashBuffer", "ListDirectory")
+
+    for _ in test_lib.TestFlowHelper(
+        "KnowledgeBaseInitializationFlow", client_mock,
+        client_id=self.client_id, token=self.token):
+      pass
+
+    # The client should now be populated with the data we care about.
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    kb = artifact.GetArtifactKnowledgeBase(client)
+    self.assertEqual(kb.environ_systemroot, "C:\\Windows")
+    self.assertEqual(kb.time_zone, "US/Alaska")
+    self.assertEqual(kb.code_page, "cp_1252")
+
+    self.assertEqual(kb.environ_windir, "C:\\Windows")
+    self.assertEqual(kb.environ_allusersprofile, "C:\\Users\\All Users")
+    self.assertEqual(kb.environ_allusersappdata, "C:\\ProgramData")
+    self.assertEqual(kb.environ_temp, "C:\\Windows\\TEMP")
+    self.assertEqual(kb.environ_systemdrive, "C:")
 
 
 def main(argv):

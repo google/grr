@@ -100,4 +100,4 @@ class TestRegistry(test_lib.FlowTestsBaseclass):
                      "Windows/CurrentVersion/Run/Sidebar")
     self.assertEqual(runkeys[0].lastwritten, 1247546054L)
     self.assertEqual(runkeys[0].filepath,
-                     "%%ProgramFiles%%/Windows Sidebar/Sidebar.exe /autoRun")
+                     "%ProgramFiles%/Windows Sidebar/Sidebar.exe /autoRun")

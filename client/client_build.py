@@ -118,10 +118,12 @@ def main(_):
     elif args.platform == "linux":
       context.append("Platform:Linux")
       builder_obj = builders.LinuxClientBuilder(context=context)
+    else:
+      parser.error("Unsupported build platform: %s" % args.platform)
 
     builder_obj.MakeExecutableTemplate()
 
-  if args.subparser_name == "repack":
+  elif args.subparser_name == "repack":
     if args.platform == "darwin":
       context.append("Platform:Darwin")
       deployer = build.DarwinClientDeployer(context=context)
@@ -131,6 +133,8 @@ def main(_):
     elif args.platform == "linux":
       context.append("Platform:Linux")
       deployer = build.LinuxClientDeployer(context=context)
+    else:
+      parser.error("Unsupported build platform: %s" % args.platform)
 
     deployer.RepackInstaller(open(args.package, "rb").read(), args.output)
 
@@ -147,13 +151,13 @@ def main(_):
       context.append("Platform:Linux")
       deployer = build.LinuxClientDeployer(context=context)
 
+    else:
+      parser.error("Unsupported build platform: %s" % args.platform)
+
     template_path = args.template or config_lib.CONFIG.Get(
         "ClientBuilder.template_path", context=deployer.context)
 
     deployer.MakeDeployableBinary(template_path, args.output)
-
-  else:
-    parser.error("Unsupported build platform: %s" % args.platform)
 
 
 if __name__ == "__main__":

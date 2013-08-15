@@ -275,7 +275,7 @@ class LoadMemoryDriver(flow.GRRFlow):
   def InstalledDriver(self, responses):
     if not responses.success:
       raise flow.FlowError("Could not install memory driver %s",
-                           responses.status.error_message)
+                           responses.status)
 
     self.CallClient("GetMemoryInformation",
                     rdfvalue.PathSpec(

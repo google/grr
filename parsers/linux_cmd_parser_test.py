@@ -17,7 +17,8 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     """Ensure we can extract packages from dpkg output."""
     parser = linux_cmd_parser.DpkgCmdParser()
     content = open(os.path.join(self.base_path, "dpkg.out")).read()
-    out = list(parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5))
+    out = list(parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5,
+                            None))
     self.assertEquals(len(out), 181)
     self.assertTrue(isinstance(out[1], rdfvalue.SoftwarePackage))
     self.assertTrue(out[0].name, "acpi-support-base")

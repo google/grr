@@ -2,14 +2,9 @@
 #
 # Pre installation script for GRR client MacOS-X package
 
-if [ -f "%(ClientBuildDarwin.old_plist_path)" ];
+if [ -f "%(ClientBuilder.plist_path)" ];
 then
-  sudo launchctl unload "%(ClientBuildDarwin.old_plist_path)";
-  sudo rm "%(ClientBuildDarwin.old_plist_path)";
-fi
-
-if [ -f "%(ClientBuildDarwin.plist_path)" ];
-then
-  sudo launchctl unload "%(ClientBuildDarwin.plist_path)";
+  sudo launchctl unload "%(ClientBuilder.plist_path)";
+  sudo rm -f "%(ClientBuilder.plist_path)";
 fi
 

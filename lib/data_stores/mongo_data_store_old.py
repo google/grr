@@ -334,7 +334,7 @@ def EscapeRegex(regex):
 class MongoDataStoreV1(data_store.DataStore):
   """A Mongo based data store.
 
-  This data store is deprecated - DO NO USE. It uses a single mongo document to
+  This data store is deprecated - DO NOT USE. It uses a single mongo document to
   model the entire AFF4 object with all attributes and their versions. This
   often exceeds mongo's hard limit for document sizes which causes the data
   store to fail.

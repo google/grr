@@ -401,8 +401,8 @@ class InstallDriver(actions.ActionPlugin):
     if not args.driver:
       raise IOError("No driver supplied.")
 
-    pub_key = config_lib.CONFIG.Get("ClientDarwin.driver_signing_public_key",
-                                    validate=True)
+    pub_key = config_lib.CONFIG.Get("Client.driver_signing_public_key")
+
     if not args.driver.Verify(pub_key):
       raise OSError("Driver signature signing failure.")
 

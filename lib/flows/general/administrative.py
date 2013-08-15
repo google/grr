@@ -34,7 +34,7 @@ config_lib.DEFINE_option(type_info.RDFURNType(
 config_lib.DEFINE_string(
     name="Executables.installer",
     default=("%(Executables.aff4_path)/installers/"
-             "%(PyInstaller.output_basename)"),
+             "%(ClientBuilder.output_basename)"),
     help="The location of the generated installer in the config directory.")
 
 

@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
-
 """Tests for flow utils classes."""
 
 
@@ -70,50 +68,6 @@ class TestInterpolatePath(test_lib.FlowTestsBaseclass):
     new_path = flow_utils.InterpolatePath("{does_not_exist}", self.client,
                                           users=["test"])
     self.assertEqual(new_path, [])
-
-
-class TestClientPathHelper(test_lib.GRRBaseTest):
-  """Tests for ClientPathHelper class."""
-
-  def testClientPathHelper(self):
-    """Test ClientPathHelper."""
-    client_id = "C.%016X" % 0
-
-    # Set up a test client
-    root_urn = aff4.ROOT_URN.Add(client_id)
-
-    client = aff4.FACTORY.Create(root_urn, "VFSGRRClient", token=self.token)
-
-    # Set up the operating system information
-    client.Set(client.Schema.SYSTEM("Windows"))
-
-    client.Set(client.Schema.OS_RELEASE("7"))
-
-    client.Set(client.Schema.OS_VERSION("6.1.7600"))
-
-    # Add a user account to the client
-    users_list = client.Schema.USER()
-    users_list.Append(
-        username="Administrator",
-        comment="Built-in account for administering the computer/domain",
-        last_logon=1296205801,
-        domain="MYDOMAIN",
-        homedir="C:\\Users\\Administrator")
-
-    client.AddAttribute(client.Schema.USER, users_list)
-    client.Close()
-
-    # Run tests
-    path_helper = flow_utils.ClientPathHelper(client_id, token=self.token)
-
-    self.assertEqual(path_helper.GetPathSeparator(),
-                     u"\\")
-
-    self.assertEqual(path_helper.GetDefaultUsersPath(),
-                     u"C:\\Users")
-
-    self.assertEqual(path_helper.GetHomeDirectory("Administrator"),
-                     u"C:\\Users\\Administrator")
 
 
 def main(argv):

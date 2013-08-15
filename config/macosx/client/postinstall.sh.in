@@ -3,10 +3,10 @@
 # Post installation script for GRR client MacOS-X package
 
 # Run the installation routines.
-"%(ClientBuildDarwin.plist_binary_path)" --install --config="%(ClientBuildDarwin.plist_binary_prefix)/%(PyInstaller.output_basename)/%(PyInstaller.config_name)"
+"%(ClientBuilder.plist_binary_path)" --install --config="%(ClientBuilder.plist_binary_prefix)/%(ClientBuilder.output_basename)/%(PyInstaller.config_name)"
 
-if [ -f "%(ClientBuildDarwin.plist_path)" ];
+if [ -f "%(ClientBuilder.plist_path)" ];
 then
-  sudo launchctl load "%(ClientBuildDarwin.plist_path)";
+  sudo launchctl load "%(ClientBuilder.plist_path)";
 fi
 

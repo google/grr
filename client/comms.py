@@ -218,7 +218,7 @@ class GRRClientWorker(object):
 
   def SendReply(self, rdf_value=None, request_id=None, response_id=None,
                 priority=None, session_id="W:0", message_type=None, name=None,
-                require_fastpoll=None, ttl=None):
+                require_fastpoll=None, ttl=None, blocking=True):
     """Send the protobuf to the server.
 
     Args:
@@ -233,6 +233,7 @@ class GRRClientWorker(object):
       require_fastpoll: If set, this will set the client to fastpoll mode after
                         sending this message.
       ttl: The time to live of this message.
+      blocking: If the output queue is full, block until there is space.
 
     Raises:
       RuntimeError: An object other than an RDFValue was passed for sending.
@@ -277,8 +278,13 @@ class GRRClientWorker(object):
       message.args = rdf_value.SerializeToString()
 
     try:
-      self.QueueResponse(message, priority=message.priority)
+      self.QueueResponse(message, priority=message.priority, blocking=blocking)
     except Queue.Full:
+      # In the case of a non blocking send, we reraise the exception to notify
+      # the caller that something went wrong.
+      if not blocking:
+        raise
+
       # There is nothing we can do about it here - we just lose the message and
       # keep going.
       logging.info("Queue is full, dropping messages.")
@@ -297,8 +303,12 @@ class GRRClientWorker(object):
           "Action exceeded network send limit.")
 
   def QueueResponse(self, message,
-                    priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY):
+                    priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY,
+                    blocking=True):
     """Push the Serialized Message on the output queue."""
+    # The simple queue has no size restrictions so we never block and ignore
+    # this parameter.
+    _ = blocking
     self._out_queue.append((-1 * priority, message))
 
     # Maintain the tally of the output queue size.  We estimate the size of the
@@ -362,7 +372,6 @@ class GRRClientWorker(object):
         self.HandleMessage(message)
         # Catch any errors and keep going here
       except Exception as e:  # pylint: disable=broad-except
-        logging.warn("12 %s", e)
         self.SendReply(
             rdfvalue.GrrStatus(
                 status=rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR,
@@ -583,9 +592,10 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     return queue
 
   def QueueResponse(self, message,
-                    priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY):
+                    priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY,
+                    blocking=True):
     """Push the Serialized Message on the output queue."""
-    self._out_queue.Put(message, priority=priority)
+    self._out_queue.Put(message, priority=priority, block=blocking)
 
   def QueueMessages(self, messages):
     """Push the message to the input queue."""
@@ -959,6 +969,12 @@ class GRRHTTPClient(object):
 
     return status
 
+  def SendForemanRequest(self):
+    self.client_worker.SendReply(
+        rdfvalue.DataBlob(), session_id="W:Foreman",
+        priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
+        require_fastpoll=False)
+
   def Run(self):
     """A Generator which makes a single request to the GRR server.
 
@@ -986,11 +1002,17 @@ class GRRHTTPClient(object):
       # Check with the foreman if we need to
       if (now > self.last_foreman_check +
           config_lib.CONFIG["Client.foreman_check_frequency"]):
-        self.client_worker.SendReply(
-            rdfvalue.DataBlob(), session_id="W:Foreman",
-            priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
-            require_fastpoll=False)
-        self.last_foreman_check = now
+        # We must not queue messages from the comms thread with blocking=True
+        # or we might deadlock. If the output queue is full, we can't accept
+        # more work from the foreman anyways so it's ok to drop the message.
+        try:
+          self.client_worker.SendReply(
+              rdfvalue.DataBlob(), session_id="W:Foreman",
+              priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
+              require_fastpoll=False, blocking=False)
+          self.last_foreman_check = now
+        except Queue.Full:
+          pass
 
       status = self.RunOnce()
 

@@ -27,6 +27,7 @@ from grr import artifacts
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import artifact
+from grr.lib import artifact_lib
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import export_utils

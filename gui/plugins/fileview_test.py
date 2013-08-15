@@ -158,7 +158,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.Click("css=button:contains(\"Get a new Version\")")
 
     self.Click("path_0")
-    self.WaitUntilEqual("fs", self.GetText, "css=tr:nth(2) span")
+    self.WaitUntilEqual("fs", self.GetText, "css=tr:nth(3) span")
 
     self.Click("Stats")
     self.WaitUntilContains(

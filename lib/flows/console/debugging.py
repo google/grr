@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """Debugging flows for the console."""
 
 import getpass
@@ -8,6 +7,8 @@ import pdb
 import pickle
 import tempfile
 import time
+
+from grr.client.client_actions import actions
 
 from grr.lib import access_control
 from grr.lib import aff4
@@ -55,6 +56,69 @@ class ClientAction(flow.GRRFlow):
       self.Log("ClientAction %s failed. Staus: %s" % (self.state.action,
                                                       responses.status))
 
+    if self.state.break_pdb:
+      pdb.set_trace()
+    if self.state.save_to:
+      self._SaveResponses(responses)
+
+  def _SaveResponses(self, responses):
+    """Save responses to pickle files."""
+    if responses:
+      fd = None
+      try:
+        fdint, fname = tempfile.mkstemp(prefix="responses-",
+                                        dir=self.state.save_to)
+        fd = os.fdopen(fdint, "wb")
+        pickle.dump(responses, fd)
+        self.Log("Wrote %d responses to %s", len(responses), fname)
+      finally:
+        if fd: fd.close()
+
+
+class ConsoleDebugFlow(flow.GRRFlow):
+  """A Simple console flow to execute any flow and recieve back responses."""
+
+  flow_typeinfo = type_info.TypeDescriptorSet(
+      type_info.String(
+          name="flow",
+          description="The flow to execute."),
+      type_info.String(
+          name="save_to",
+          default="/tmp",
+          description=("If not None, interpreted as an path to write pickle "
+                       "dumps of responses to.")),
+      type_info.Bool(
+          name="break_pdb",
+          description="If True, run pdb.set_trace when responses come back.",
+          default=True),
+      type_info.Bool(
+          name="print_responses",
+          description="If True, print each response.",
+          default=True),
+      type_info.RDFValueType(
+          description="Flow arguments.",
+          name="args",
+          rdfclass=rdfvalue.Dict),
+      )
+
+  @flow.StateHandler(next_state="Print")
+  def Start(self):
+    if self.state.save_to:
+      if not os.path.isdir(self.state.save_to):
+        os.makedirs(self.state.save_to, 0700)
+    self.CallFlow(self.state.flow, next_state="Print",
+                  **self.state.args.ToDict())
+
+  @flow.StateHandler()
+  def Print(self, responses):
+    """Dump the responses to a pickle file or allow for breaking."""
+    if not responses.success:
+      self.Log("ConsoleDebugFlow %s failed. Staus: %s" % (self.state.flow,
+                                                          responses.status))
+
+    self.Log("Got %d responses", len(responses))
+    for response in responses:
+      print response
     if self.state.break_pdb:
       pdb.set_trace()
     if self.state.save_to:
@@ -132,3 +196,14 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
   worker_thrd.thread_pool.Join()
 
   return flow_obj
+
+
+def TestClientActionWithWorker(client_id, client_action, print_request=False,
+                               break_pdb=True, **kwargs):
+  """Run a client action on a client and break on return."""
+  action_cls = actions.ActionPlugin.classes[client_action]
+  request = action_cls.in_rdfvalue(**kwargs)
+  if print_request:
+    print str(request)
+  StartFlowAndWorker(client_id, flow_name="ClientAction", action=client_action,
+                     break_pdb=break_pdb, args=request)

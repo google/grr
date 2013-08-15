@@ -1600,7 +1600,7 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
 
     # The cache is attached to the class so it can be shared by all instance.
     self.paths = self.__class__.cache[self.prefix] = {}
-    for path, (_, attributes) in client_fixture.VFS:
+    for path, (vfs_type, attributes) in client_fixture.VFS:
       if not path.startswith(self.prefix): continue
 
       path = utils.NormalizePath(path[len(self.prefix):])
@@ -1608,20 +1608,38 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
         continue
 
       stat = rdfvalue.StatEntry()
-      try:
-        stat = rdfvalue.StatEntry.FromTextFormat(
-            utils.SmartStr(attributes["aff4:stat"]))
-      except KeyError:
-        pass
+      args = {"client_id": "C.1234"}
+      attrs = attributes.get("aff4:stat")
+
+      if attrs:
+        attrs %= args  # Remove any %% and interpolate client_id.
+        stat = rdfvalue.StatEntry.FromTextFormat(utils.SmartStr(attrs))
 
       stat.pathspec = rdfvalue.PathSpec(pathtype=self.supported_pathtype,
                                         path=path)
       # TODO(user): Once we add tests around not crossing device boundaries,
       # we need to be smarter here, especially for the root entry.
       stat.st_dev = 1
-      self.paths[path] = stat
+      path = self._NormalizeCaseForPath(path, vfs_type)
+      self.paths[path] = (vfs_type, stat)
 
     self.BuildIntermediateDirectories()
+
+  def _NormalizeCaseForPath(self, path, vfs_type):
+    """Handle casing differences for different filesystems."""
+    # Special handling for case sensitivity of registry keys.
+    # This mimicks the behavior of the operating system.
+    if self.supported_pathtype == rdfvalue.PathSpec.PathType.REGISTRY:
+      self.path = self.path.replace("\\", "/")
+      parts = path.split("/")
+      if vfs_type == "VFSFile":
+        # If its a file, the last component is a value which is case sensitive.
+        lower_parts = [x.lower() for x in parts[0:-1]]
+        lower_parts.append(parts[-1])
+        path = utils.Join(*lower_parts)
+      else:
+        path = utils.Join(*[x.lower() for x in parts])
+    return path
 
   def BuildIntermediateDirectories(self):
     """Interpolate intermediate directories based on their children.
@@ -1629,24 +1647,24 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
     This avoids us having to put in useless intermediate directories to the
     client fixture.
     """
-    for dirname, stat in self.paths.items():
+    for dirname, (_, stat) in self.paths.items():
       while 1:
         dirname = os.path.dirname(dirname)
         partial_pathspec = stat.pathspec.Dirname()
 
         if dirname == "/" or dirname in self.paths: break
 
-        self.paths[dirname] = rdfvalue.StatEntry(st_mode=16877,
-                                                 st_size=1,
-                                                 st_dev=1,
-                                                 pathspec=partial_pathspec)
+        self.paths[dirname] = ("VFSDirectory",
+                               rdfvalue.StatEntry(st_mode=16877,
+                                                  st_size=1,
+                                                  st_dev=1,
+                                                  pathspec=partial_pathspec))
 
   def ListFiles(self):
     # First return exact matches
-    for k, stat in self.paths.items():
+    for k, (_, stat) in self.paths.items():
       dirname = os.path.dirname(k)
-
-      if dirname == self.path:
+      if dirname == self._NormalizeCaseForPath(self.path, None):
         yield stat
 
   def Read(self, length):
@@ -1654,6 +1672,7 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
     if not result:
       raise IOError("File not found")
 
+    result = result[1]   # We just want the stat.
     data = ""
     if result.HasField("resident"):
       data = result.resident
@@ -1673,11 +1692,27 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
     return bool(self.ListFiles())
 
   def Stat(self):
-    return rdfvalue.StatEntry(pathspec=self.pathspec,
-                              st_mode=16877,
-                              st_size=12288,
-                              st_atime=1319796280,
-                              st_dev=1)
+    """Get Stat for self.path."""
+    stat_data = self.paths.get(self._NormalizeCaseForPath(self.path, None))
+    if (not stat_data and
+        self.supported_pathtype == rdfvalue.PathSpec.PathType.REGISTRY):
+      # Check in case it is a registry value. Unfortunately our API doesn't let
+      # the user specify if they are after a value or a key, so we have to try
+      # both.
+      stat_data = self.paths.get(self._NormalizeCaseForPath(self.path,
+                                                            "VFSFile"))
+    if stat_data:
+      return stat_data[1]   # Strip the vfs_type.
+    else:
+      # We return some fake data, this makes writing tests easier for some
+      # things but we give an error to the tester as it is often not what you
+      # want.
+      logging.warn("Fake value for %s under %s", self.path, self.prefix)
+      return rdfvalue.StatEntry(pathspec=self.pathspec,
+                                st_mode=16877,
+                                st_size=12288,
+                                st_atime=1319796280,
+                                st_dev=1)
 
 
 class GrrTestProgram(unittest.TestProgram):

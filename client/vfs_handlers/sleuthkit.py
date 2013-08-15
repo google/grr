@@ -215,8 +215,7 @@ class TSKFile(vfs.VFSHandler):
     if tsk_attribute is not None:
       child_pathspec.last.ntfs_type = int(tsk_attribute.info.type)
       child_pathspec.last.ntfs_id = int(tsk_attribute.info.id)
-      if tsk_attribute.info.name is not None:
-        child_pathspec.last.path += ":" + tsk_attribute.info.name
+      child_pathspec.last.stream_name = tsk_attribute.info.name
 
       # Update the size with the attribute size.
       response.st_size = tsk_attribute.info.size

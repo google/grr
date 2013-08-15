@@ -65,7 +65,7 @@ class FindFiles(flow.GRRFlow):
       type_info.Integer(
           description="Files examined per iteration.",
           name="iteration_count",
-          default=1000),
+          default=20000),
       )
 
   @flow.StateHandler(next_state="IterateFind")
@@ -92,7 +92,7 @@ class FindFiles(flow.GRRFlow):
       self.state.output = None
 
     # Build up the request protobuf.
-    self.state.findspec.number = self.state.iteration_count
+    self.state.findspec.iterator.number = self.state.iteration_count
 
     # Call the client with it
     self.CallClient("Find", self.state.findspec, next_state="IterateFind")

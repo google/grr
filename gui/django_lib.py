@@ -18,6 +18,12 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_bool("AdminUI.django_debug", True,
                        "Turn on to add django debugging")
 
+config_lib.DEFINE_list(
+    "AdminUI.django_allowed_hosts", ["*"],
+    "Set the django ALLOWED_HOSTS parameter. "
+    "See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts")
+
+
 config_lib.DEFINE_string(
     "AdminUI.django_secret_key", "CHANGE_ME",
     "This is a secret key that should be set in the server "
@@ -48,7 +54,8 @@ class DjangoInit(registry.InitHook):
         "ROOT_URLCONF": "grr.gui.urls",
         "TEMPLATE_DIRS": ("%s/templates" % base_app_path,),
         # Don't use the database for sessions, use a file.
-        "SESSION_ENGINE": "django.contrib.sessions.backends.file"
+        "SESSION_ENGINE": "django.contrib.sessions.backends.file",
+        "ALLOWED_HOSTS": config_lib.CONFIG["AdminUI.django_allowed_hosts"],
     }
 
     # The below will use conf/global_settings/py from Django, we need to

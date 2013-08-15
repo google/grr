@@ -80,7 +80,8 @@ coll = COLLECT\(
     a.datas,
     strip=False,
     upx=False,
-""")
+    name='grr-client'
+\)""")
 
 config_lib.DEFINE_string(
     name="PyInstaller.distpath",
@@ -143,13 +144,8 @@ config_lib.DEFINE_string(
     "The path to the build directory.")
 
 config_lib.DEFINE_string(
-    "PyInstaller.dist_dir",
-    "./dist/",
-    "The path to the build directory.")
-
-config_lib.DEFINE_string(
-    name="PyInstaller.output_basename",
-    default="GRR_%(Client.version_string)_%(Client.arch)",
+    name="ClientBuilder.output_basename",
+    default="%(Client.name)_%(Client.version_string)_%(Client.arch)",
     help="The base name of the output package.")
 
 config_lib.DEFINE_string(
@@ -201,7 +197,7 @@ config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.generated_config_path", must_exist=False,
     default=(
         "%(ClientBuilder.executables_path)/%(Client.platform)"
-        "/config/%(PyInstaller.output_basename).yaml"),
+        "/config/%(ClientBuilder.output_basename).yaml"),
     help="The full path to where we write a generated config."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
@@ -287,95 +283,18 @@ config_lib.DEFINE_string(
     help="The debian package name.")
 
 
-class ClientBuilder(object):
-  """A client builder is responsible for building the binary template.
-
-  This is an abstract client builder class, used by the OS specific
-  implementations. Note that client builders typically run on the target
-  operating system.
-  """
+class BuilderBase(object):
+  """A base class for builder / deployer that provides utility functions."""
 
   def __init__(self, context=None):
     self.context = context or config_lib.CONFIG.context[:]
     self.context = ["ClientBuilder Context"] + self.context
-
-  def MakeBuildDirectory(self):
-    """Prepares the build directory."""
-    # Create the build directory and let pyinstaller loose on it.
-    self.build_dir = config_lib.CONFIG.Get("PyInstaller.build_dir",
-                                           context=self.context)
-    self.CleanDirectory(self.build_dir)
-
-  def CleanDirectory(self, directory):
-    logging.info("Clearing directory %s", directory)
-    try:
-      shutil.rmtree(directory)
-    except OSError:
-      pass
-
-    self.EnsureDirExists(directory)
 
   def EnsureDirExists(self, path):
     try:
       os.makedirs(path)
     except OSError:
       pass
-
-  def BuildWithPyInstaller(self):
-    """Use pyinstaller to build a client package."""
-    self.CleanDirectory(config_lib.CONFIG.Get("PyInstaller.dist_dir",
-                                              context=self.context))
-
-    logging.info("Copying pyinstaller support files")
-    self.spec_file = os.path.join(self.build_dir, "grr.spec")
-
-    with open(self.spec_file, "wb") as fd:
-      fd.write(config_lib.CONFIG.Get("PyInstaller.spec", context=self.context))
-
-    with open(os.path.join(self.build_dir, "version.txt"), "wb") as fd:
-      fd.write(config_lib.CONFIG.Get("PyInstaller.version",
-                                     context=self.context))
-
-    with open(os.path.join(self.build_dir, "grr.ico"), "wb") as fd:
-      fd.write(config_lib.CONFIG.Get("PyInstaller.icon", context=self.context))
-
-    # We expect the onedir output at this location.
-    self.output_dir = os.path.join(
-        config_lib.CONFIG.Get("PyInstaller.dist_dir", context=self.context),
-        "grr-client")
-
-    subprocess.check_call([sys.executable,
-                           config_lib.CONFIG.Get("PyInstaller.path",
-                                                 context=self.context),
-                           "--distpath",
-                           config_lib.CONFIG.Get("PyInstaller.distpath",
-                                                 context=self.context),
-                           self.spec_file,
-                          ])
-
-  def MakeExecutableTemplate(self):
-    """Create the executable template.
-
-    The client is build in two phases. First an executable template is created
-    with the client binaries contained inside a zip file. Then the installation
-    package is created by appending the SFX extractor to this template and
-    writing a config file into the zip file.
-
-    This technique allows the client build to be carried out once on the
-    supported platform (e.g. windows with MSVS), but the deployable installer
-    can be build on any platform which supports python.
-    """
-    self.MakeBuildDirectory()
-    self.BuildWithPyInstaller()
-
-    self.EnsureDirExists(os.path.dirname(
-        config_lib.CONFIG.Get("ClientBuilder.template_path",
-                              context=self.context)))
-
-    output_file = config_lib.CONFIG.Get("ClientBuilder.template_path",
-                                        context=self.context)
-    logging.info("Generating zip template file at %s", output_file)
-    self.MakeZip(self.output_dir, output_file)
 
   def GenerateDirectory(self, input_dir=None, output_dir=None,
                         replacements=None):
@@ -404,6 +323,87 @@ class ClientBuilder(object):
     with open(output_filename, "wb") as fd:
       fd.write(config_lib.CONFIG.InterpolateValue(data, context=self.context))
 
+
+class ClientBuilder(BuilderBase):
+  """A client builder is responsible for building the binary template.
+
+  This is an abstract client builder class, used by the OS specific
+  implementations. Note that client builders typically run on the target
+  operating system.
+  """
+
+  def MakeBuildDirectory(self):
+    """Prepares the build directory."""
+    # Create the build directory and let pyinstaller loose on it.
+    self.build_dir = config_lib.CONFIG.Get("PyInstaller.build_dir",
+                                           context=self.context)
+    self.CleanDirectory(self.build_dir)
+
+  def CleanDirectory(self, directory):
+    logging.info("Clearing directory %s", directory)
+    try:
+      shutil.rmtree(directory)
+    except OSError:
+      pass
+
+    self.EnsureDirExists(directory)
+
+  def BuildWithPyInstaller(self):
+    """Use pyinstaller to build a client package."""
+    self.CleanDirectory(config_lib.CONFIG.Get("PyInstaller.distpath",
+                                              context=self.context))
+
+    logging.info("Copying pyinstaller support files")
+    self.spec_file = os.path.join(self.build_dir, "grr.spec")
+
+    with open(self.spec_file, "wb") as fd:
+      fd.write(config_lib.CONFIG.Get("PyInstaller.spec", context=self.context))
+
+    with open(os.path.join(self.build_dir, "version.txt"), "wb") as fd:
+      fd.write(config_lib.CONFIG.Get("PyInstaller.version",
+                                     context=self.context))
+
+    with open(os.path.join(self.build_dir, "grr.ico"), "wb") as fd:
+      fd.write(config_lib.CONFIG.Get("PyInstaller.icon", context=self.context))
+
+    # We expect the onedir output at this location.
+    self.output_dir = os.path.join(
+        config_lib.CONFIG.Get("PyInstaller.distpath", context=self.context),
+        "grr-client")
+
+    subprocess.check_call([sys.executable,
+                           config_lib.CONFIG.Get("PyInstaller.path",
+                                                 context=self.context),
+                           "--distpath",
+                           config_lib.CONFIG.Get("PyInstaller.build_dir",
+                                                 context=self.context),
+                           self.spec_file,
+                          ])
+
+  def MakeExecutableTemplate(self):
+    """Create the executable template.
+
+    The client is build in two phases. First an executable template is created
+    with the client binaries contained inside a zip file. Then the installation
+    package is created by appending the SFX extractor to this template and
+    writing a config file into the zip file.
+
+    This technique allows the client build to be carried out once on the
+    supported platform (e.g. windows with MSVS), but the deployable installer
+    can be build on any platform which supports python.
+    """
+    self.MakeBuildDirectory()
+    self.BuildWithPyInstaller()
+
+    self.EnsureDirExists(os.path.dirname(
+        config_lib.CONFIG.Get("ClientBuilder.template_path",
+                              context=self.context)))
+
+    output_file = config_lib.CONFIG.Get("ClientBuilder.template_path",
+                                        context=self.context)
+    logging.info("Generating zip template file at %s", output_file)
+    self.MakeZip(self.output_dir, output_file)
+
   def MakeZip(self, input_dir, output_file):
     """Creates a ZIP archive of the files in the input directory.
 
@@ -421,7 +421,7 @@ class ClientBuilder(object):
 ClientBuilder.classes = globals()
 
 
-class ClientDeployer(object):
+class ClientDeployer(BuilderBase):
   """Takes the binary template and producing an installer.
 
   Note that this should be runnable on all operating systems.
@@ -432,17 +432,7 @@ class ClientDeployer(object):
   # Config options that should never make it to a deployable binary.
   SKIP_OPTION_LIST = ["Client.certificate", "Client.private_key"]
 
-  def __init__(self, context=None):
-    self.context = context or config_lib.CONFIG.context[:]
-    self.context = ["ClientBuilder Context"] + self.context
-
-  def EnsureDirExists(self, path):
-    try:
-      os.makedirs(path)
-    except OSError:
-      pass
-
-  def GetClientConfig(self, context):
+  def GetClientConfig(self, context, validate=True):
     """Generates the client config file for inclusion in deployable binaries."""
     with utils.TempDirectory() as tmp_dir:
       # Make sure we write the file in yaml format.
@@ -478,7 +468,8 @@ class ClientDeployer(object):
 
       new_config.Write()
 
-      self.ValidateEndConfig(new_config)
+      if validate:
+        self.ValidateEndConfig(new_config)
 
       return open(filename, "rb").read()
 
@@ -735,6 +726,10 @@ class WindowsClientDeployer(ClientDeployer):
 class DarwinClientDeployer(ClientDeployer):
   """Repackage OSX clients."""
 
+  def __init__(self, context=None):
+    super(DarwinClientDeployer, self).__init__(context=context)
+    self.context.append("Target:Darwin")
+
   def MakeDeployableBinary(self, template_path, output_path=None):
     """This will add the config to the client template."""
     if output_path is None:
@@ -746,7 +741,7 @@ class DarwinClientDeployer(ClientDeployer):
     client_config_data = self.GetClientConfig(context)
     shutil.copyfile(template_path, output_path)
     zip_file = zipfile.ZipFile(output_path, mode="a")
-    zip_info = zipfile.ZipInfo(filename="config.txt")
+    zip_info = zipfile.ZipInfo(filename="config.yaml")
     zip_file.writestr(zip_info, client_config_data)
     zip_file.close()
     return output_path
@@ -754,6 +749,10 @@ class DarwinClientDeployer(ClientDeployer):
 
 class LinuxClientDeployer(ClientDeployer):
   """Repackage Linux templates."""
+
+  def __init__(self, context=None):
+    super(LinuxClientDeployer, self).__init__(context=context)
+    self.context.append("Target:Linux")
 
   def GenerateDPKGFiles(self, template_path):
     """Generates the files needed by dpkg-buildpackage."""
@@ -859,7 +858,7 @@ class LinuxClientDeployer(ClientDeployer):
 
       filename_base = config_lib.CONFIG.Get("ClientBuilder.debian_package_base",
                                             context=self.context)
-      output_base = config_lib.CONFIG.Get("PyInstaller.output_basename",
+      output_base = config_lib.CONFIG.Get("ClientBuilder.output_basename",
                                           context=self.context)
       self.EnsureDirExists(os.path.dirname(output_path))
 

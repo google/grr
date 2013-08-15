@@ -13,7 +13,11 @@ import StringIO
 import urllib
 
 
-import matplotlib.pyplot as plt
+import matplotlib
+# We need to select a non interactive backend for matplotlib.
+matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt  # pylint: disable-msg=g-import-not-at-top
 
 import logging
 

@@ -122,7 +122,9 @@ def main(_):
       "Test Context",
       "Context applied when we run tests.")
 
-  startup.TestInit()
+  # This is a standalone program and might need to use the config
+  # file.
+  startup.Init()
 
   # Tests must be imported after django is initialized.
   # pylint: disable=g-import-not-at-top,unused-variable

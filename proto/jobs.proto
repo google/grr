@@ -618,6 +618,11 @@ message PathSpec {
   optional PathType pathtype = 1 [default = UNSET];
 
   optional string path = 2;
+
+  optional string stream_name = 11 [(sem_type) = {
+      description: "A name for the data stream. For example, an ADS name."
+    }];
+
   optional string mount_point = 3;
   optional PathSpec nested_path = 5;
 

@@ -49,12 +49,13 @@ client_version: 1
 revision: 0
 build_time: "unknown"
 """,
-        "aff4:users": [u"""
+"aff4:users":
+[u"""
 username: "Bert"
 full_name: "Eric Jacobson"
 comment: "A Muppet"
 """,
-                       u"""
+ u"""
 username: "Ernie"
 full_name: "Steve Whitmire"
 comment: "A Muppet"
@@ -76,9 +77,9 @@ comment: "A Muppet"
         "aff4:size": 12,
         "aff4:content": "Hello world",
         })),
-    (u"/fs/os/c/regex\V.*?]xx[{}--", ("VFSDirectory", {
+    (ur"/fs/os/c/regex\V.*?]xx[{}--", ("VFSDirectory", {
         })),
-    (u"/fs/os/c/regex\V.*?]xx[{}--/regexchild", ("VFSDirectory", {
+    (ur"/fs/os/c/regex\V.*?]xx[{}--/regexchild", ("VFSDirectory", {
         })),
     (u"/fs/os/proc/", ("VFSDirectory", {
         })),
@@ -3562,6 +3563,227 @@ pathspec {
 }
 registry_data {
   string: "Sidebar.exe"
+}
+"""
+})),
+(u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/Select/Current", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 1
+st_mtime: 0
+registry_type: REG_DWORD_LITTLE_ENDIAN
+pathspec {
+  pathtype: REGISTRY
+  path: "/HKEY_LOCAL_MACHINE/SYSTEM/Select/Current"
+}
+registry_data {
+  integer: 1
+}
+"""
+})),
+(u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Session Manager/Environment/TEMP", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 1
+st_mtime: 0
+registry_type: REG_EXPAND_SZ
+pathspec {
+  pathtype: REGISTRY
+  path: "/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Session Manager/Environment/TEMP"
+}
+registry_data {
+  string: "%%SystemRoot%%\\TEMP"
+}
+"""
+})),
+(u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Session Manager/Environment/windir", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 1
+st_mtime: 0
+registry_type: REG_EXPAND_SZ
+pathspec {
+  pathtype: REGISTRY
+  path: "/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Session Manager/Environment/windir"
+}
+registry_data {
+  string: "%%SystemRoot%%"
+}
+"""
+})),
+(u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Session Manager/Environment/Path", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 12
+st_mtime: 0
+registry_type: REG_EXPAND_SZ
+pathspec {
+  pathtype: REGISTRY
+  path: "/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Session Manager/Environment/Path"
+}
+registry_data {
+  string: "C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;"
+}
+"""
+})),
+(u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/TimeZoneInformation/TimeZoneKeyName", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 12
+st_mtime: 0
+registry_type: REG_EXPAND_SZ
+pathspec {
+  pathtype: REGISTRY
+  path: "/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/TimeZoneInformation/TimeZoneKeyName"
+}
+registry_data {
+  string: "AlaskanStandardTime"
+}
+"""
+})),
+
+(u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Nls/CodePage/ACP", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 12
+st_mtime: 0
+registry_type: REG_EXPAND_SZ
+pathspec {
+  pathtype: REGISTRY
+  path: "/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Nls/CodePage/ACP"
+}
+registry_data {
+  string: "1252"
+}
+"""
+})),
+(u"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows/CurrentVersion/ProgramFilesDir", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 12
+st_mtime: 0
+registry_type: REG_EXPAND_SZ
+pathspec {
+  pathtype: REGISTRY
+  path: "/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows/CurrentVersion/ProgramFilesDir"
+}
+registry_data {
+  string: "C:\\Program Files"
+}
+"""
+})),
+(u"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows/CurrentVersion/ProgramFilesDir (x86)", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 12
+st_mtime: 0
+registry_type: REG_EXPAND_SZ
+pathspec {
+  pathtype: REGISTRY
+  path: "/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows/CurrentVersion/ProgramFilesDir (x86)"
+}
+registry_data {
+  string: "C:\\Program Files (x86)"
+}
+"""
+})),
+(r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/ProgramData", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 12
+st_mtime: 0
+registry_type: REG_EXPAND_SZ
+pathspec {
+  pathtype: REGISTRY
+  path: "/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/ProgramData"
+}
+registry_data {
+  string: "%%SystemDrive%%\\ProgramData"
+}
+"""
+})),
+(r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/ProfilesDirectory", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 12
+st_mtime: 0
+registry_type: REG_EXPAND_SZ
+pathspec {
+  pathtype: REGISTRY
+  path: "/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/ProfilesDirectory"
+}
+registry_data {
+  string: "%%SystemDrive%%\\Users"
+}
+"""
+})),
+(r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/SystemRoot", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 12
+st_mtime: 0
+registry_type: REG_EXPAND_SZ
+pathspec {
+  pathtype: REGISTRY
+  path: "/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/SystemRoot"
+}
+registry_data {
+  string: "C:\\Windows"
+}
+"""
+})),
+(u"/C:/Windows", ("VFSDirectory", {
+"aff4:stat":
+"""
+st_mode: 16895
+st_ino: 10264
+st_dev: 51713
+st_nlink: 0
+st_uid: 0
+st_gid: 0
+st_size: 4096
+st_atime: 1299502220
+st_mtime: 1284154642
+st_ctime: 1299502221
+st_blocks: 16
+st_blksize: 4096
+st_rdev: 0
+pathspec {
+  pathtype: OS
+  path: "/C:/Windows"
+}
+"""
+})),
+(u"/C:/Windows/foo.exe", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_ino: 10260
+st_dev: 51713
+st_nlink: 0
+st_uid: 0
+st_gid: 0
+st_size: 4096
+st_atime: 1299502220
+st_mtime: 1284154642
+st_ctime: 1299502221
+st_blocks: 16
+st_blksize: 4096
+st_rdev: 0
+pathspec {
+  pathtype: OS
+  path: "/C:/Windows/foo.exe"
 }
 """
 })),

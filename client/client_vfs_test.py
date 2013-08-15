@@ -22,6 +22,7 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 
 
 def setUp():
@@ -307,7 +308,16 @@ class VFSTest(test_lib.GRRBaseTest):
 
     # Check that the name of the ads is consistent.
     self.assertEqual(pathspecs[1].nested_path.path,
-                     "/Test Directory/notes.txt:ads")
+                     "/Test Directory/notes.txt")
+    self.assertEqual(pathspecs[1].nested_path.stream_name,
+                     "ads")
+
+    # Check that the ADS name is encoded correctly in the AFF4 URN for this
+    # file.
+    aff4_urn = aff4_grr.VFSGRRClient.PathspecToURN(
+        pathspecs[1], "C.1234567812345678")
+    self.assertEqual(aff4_urn.Basename(), "notes.txt:ads")
+
     fd = vfs.VFSOpen(pathspecs[1])
     self.assertEqual(fd.read(1000), "I am a real ADS\n")
 

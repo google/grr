@@ -23,8 +23,6 @@ config_lib.DEFINE_integer("AdminUI.port", 8000, "port to listen on")
 
 config_lib.DEFINE_string("AdminUI.bind", "::", "interface to bind to.")
 
-config_lib.DEFINE_bool("AdminUI.django_debug", False,
-                       "Turn on to add django debugging")
 
 config_lib.DEFINE_string(
     "AdminUI.django_secret_key", "CHANGE_ME",

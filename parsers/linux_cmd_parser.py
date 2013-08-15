@@ -11,11 +11,13 @@ from grr.lib import rdfvalue
 class DpkgCmdParser(parsers.CommandParser):
   """Parser for dpkg output. Yields SoftwarePackage rdfvalues."""
 
-  out_type = "SoftwarePackage"
+  output_types = ["SoftwarePackage"]
+  supported_artifacts = ["DebianPackages"]
 
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken):
+  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
+            knowledge_base):
     """Parse the dpkg output."""
-    _, _, _ = stderr, time_taken, args  # Unused.
+    _ = stderr, time_taken, args, knowledge_base  # Unused.
     self.CheckReturn(cmd, return_val)
     column_lengths = []
     i = 0

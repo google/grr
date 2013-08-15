@@ -3,15 +3,15 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>%(ClientBuildDarwin.plist_label)</string>
+	<string>%(ClientBuilder.plist_label)</string>
 	<key>UserName</key>
 	<string>root</string>
 	<key>GroupName</key>
 	<string>daemon</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>%(ClientBuildDarwin.plist_binary_path)</string>
-		<string>--config=%(ClientBuildDarwin.plist_binary_prefix)/%(PyInstaller.output_basename)/%(PyInstaller.config_name)</string>
+		<string>%(ClientBuilder.plist_binary_path)</string>
+		<string>--config=%(ClientBuilder.plist_binary_prefix)/%(ClientBuilder.output_basename)/%(PyInstaller.config_name)</string>
 	</array>
 	<key>KeepAlive</key>
 	<true/>

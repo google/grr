@@ -153,61 +153,73 @@ message KnowledgeBase {
       description: "The minor version of the OS, e.g. 7",
     }];
 
+  optional string environ_path = 7 [(sem_type) = {
+      description: "The system configured path variable.",
+    }];
+
+  optional string environ_temp = 8 [(sem_type) = {
+      description: "The system temporary directory.",
+    }];
 
   //
   // Windows specific system level parameters.
   //
-  optional string systemroot = 20 [(sem_type) = {
-      description: "The value of the %SystemRoot% parameter.",
+  optional string environ_systemroot = 20 [(sem_type) = {
+      description: "The value of the %SystemRoot% parameter, E.g. c:\\Windows",
     }];
 
-  optional string windir = 21 [(sem_type) = {
+  optional string environ_windir = 21 [(sem_type) = {
       description: "The value of the %WINDIR% parameter. As returned by "
         "the system, e.g. C:",
     }];
 
-  optional string programfiles = 22 [(sem_type) = {
+  optional string environ_programfiles = 22 [(sem_type) = {
       description: "The value of the %PROGRAMFILES% parameter as returned by "
         "the system, e.g. C:\\Program Files",
     }];
 
-  optional string programfilesx86 = 23 [(sem_type) = {
+  optional string environ_programfilesx86 = 23 [(sem_type) = {
       description: "The value of the %PROGRAMFILES(X86)% parameter as returned"
         " by the system, e.g. C:\\Program Files (x86)",
     }];
 
-  optional string systemdrive = 24 [(sem_type) = {
+  optional string environ_systemdrive = 24 [(sem_type) = {
       description: "The value of the %SystemDrive% parameter. As returned by "
         "the system, e.g. C:",
     }];
 
-  optional string allusersprofile = 25 [(sem_type) = {
+  optional string environ_system = 25 [(sem_type) = {
+      description: "The value of the %System% parameter. As returned by "
+        "the system, e.g. C:\\windows\\system32",
+    }];
+
+  optional string environ_allusersprofile = 26 [(sem_type) = {
       description: "The value of the %AllUsersProfile% parameter. As returned "
         "by the system, e.g. c:\\Documents and Settings\\All Users",
     }];
 
-  optional string allusersappdata = 26 [(sem_type) = {
+  optional string environ_allusersappdata = 27 [(sem_type) = {
       description: "The value of the %AllUsersAppData% parameter. As returned "
         "by the system, e.g. c:\\Documents and Settings\\All Users\\Application"
         " Data.",
     }];
 
-  optional string current_control_set = 27 [(sem_type) = {
+  optional string current_control_set = 28 [(sem_type) = {
       description: "The current value of the system CurrentControlSet "
         "e.g. ControlSet001",
     }];
 
-  optional string sys_registry = 28 [(sem_type) = {
+  optional string sys_registry = 29 [(sem_type) = {
       description: "The directory containing the system registry files. "
         "E.g. c:\\windows\\system32\\config.",
     }];
 
-  optional string code_page = 29 [(sem_type) = {
+  optional string code_page = 30 [(sem_type) = {
       description: "The current code page of the system. Comes from "
         "HKLM\\CurrentControlSet\\Control\\Nls\\CodePage e.g. cp1252.",
     }];
 
-  optional string domain = 30 [(sem_type) = {
+  optional string domain = 31 [(sem_type) = {
       description: "The domain the machine is connected to. E.g. MICROSOFT.",
     }];
 }

@@ -1,20 +1,18 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """Test the collector flows."""
 
 
 import os
 
 from grr.lib import aff4
-from grr.lib import artifact
+from grr.lib import artifact_lib
 from grr.lib import test_lib
 
 
-class FakeArtifact(artifact.GenericArtifact):
+class FakeArtifact(artifact_lib.GenericArtifact):
   """My first artifact."""
   SUPPORTED_OS = ["Linux"]
-  LABELS = ["Logs", "Auth"]
+  LABELS = ["Logs", "Authentication"]
   COLLECTORS = []
   PATH_VARS = {}
 
@@ -36,7 +34,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
 
     # Dynamically add a Collector specifying the base path.
     file_path = os.path.join(self.base_path, "test_img.dd")
-    coll1 = artifact.Collector(action="GetFile", args={"path": file_path})
+    coll1 = artifact_lib.Collector(action="GetFile", args={"path": file_path})
     FakeArtifact.COLLECTORS.append(coll1)
     artifact_list = ["FakeArtifact"]
     for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,

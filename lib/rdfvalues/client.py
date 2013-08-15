@@ -22,6 +22,7 @@ from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs
 
 from grr.proto import jobs_pb2
+from grr.proto import knowledge_base_pb2
 from grr.proto import sysinfo_pb2
 
 
@@ -128,6 +129,16 @@ class User(rdfvalue.RDFProtoStruct):
 class Users(protodict.RDFValueArray):
   """A list of user accounts on the client system."""
   rdf_type = User
+
+
+class KnowledgeBase(rdfvalue.RDFProtoStruct):
+  """Information about the system and users."""
+  protobuf = knowledge_base_pb2.KnowledgeBase
+
+
+class KnowledgeBaseUser(rdfvalue.RDFProtoStruct):
+  """Information about the users."""
+  protobuf = knowledge_base_pb2.KnowledgeBaseUser
 
 
 class NetworkEndpoint(rdfvalue.RDFProtoStruct):

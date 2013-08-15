@@ -555,8 +555,9 @@ CREATE TABLE `%s` (
 
       elif subject_prefix:
         query += " and substring(subject, 1, %s) = %s"
-        parameters.append(len(subject_prefix))
-        parameters.append(subject_prefix)
+        prefix = utils.SmartUnicode(subject_prefix)
+        parameters.append(len(prefix))
+        parameters.append(prefix)
 
       query += " group by subject order by subject limit %s, %s"
       parameters.extend((skip, limit))

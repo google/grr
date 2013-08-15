@@ -4,6 +4,7 @@
 
 import BaseHTTPServer
 import cgi
+import cStringIO
 
 from multiprocessing import freeze_support
 from multiprocessing import Process
@@ -90,6 +91,23 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                      (self.statustext[status], ctype, len(data),
                       self.date_time_string(last_modified), data))
 
+  RECV_BLOCK_SIZE = 8192
+
+  def _GetPOSTData(self, length):
+    # During our tests we have encountered some issue with the socket library
+    # that would stall for a long time when calling socket.recv(n) with a large
+    # n. rfile.read() passes the length down to socket.recv() so it's much
+    # faster to read the data in small 8k chunks.
+    input_data = cStringIO.StringIO()
+    while length >= 0:
+      read_size = min(self.RECV_BLOCK_SIZE, length)
+      data = self.rfile.read(read_size)
+      if not data:
+        break
+      input_data.write(data)
+      length -= len(data)
+    return input_data.getvalue()
+
   def do_POST(self):
     """Process encrypted message bundles."""
     # Get the api version
@@ -101,9 +119,8 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     try:
       length = int(self.headers.getheader("content-length"))
-      input_data = self.rfile.read(length)
 
-      request_comms = rdfvalue.ClientCommunication(input_data)
+      request_comms = rdfvalue.ClientCommunication(self._GetPOSTData(length))
 
       # If the client did not supply the version in the protobuf we use the get
       # parameter.

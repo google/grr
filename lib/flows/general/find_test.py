@@ -93,12 +93,10 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         pathspec=rdfvalue.PathSpec(path="/",
                                    pathtype=rdfvalue.PathSpec.PathType.OS))
 
-    # Come back to the flow every 3 hits.
-    findspec.iterator.number = 3
-
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=self.client_id, token=self.token,
-        findspec=findspec, output=output_path, max_results=7):
+        findspec=findspec, iteration_count=3, output=output_path,
+        max_results=7):
       pass
 
     # Check the output file is created

@@ -73,6 +73,10 @@ class WindowsClientBuilder(build.ClientBuilder):
 
   def BuildNanny(self):
     """Use VS2010 to build the windows Nanny service."""
+    # When running under cygwin, the following environment variables are not set
+    # (since they contain invalid chars). Visual Studio requires these or it
+    # will fail.
+    os.environ["ProgramFiles(x86)"] = r"C:\Program Files (x86)"
     logging.info("Copying Nanny build files.")
     self.nanny_dir = os.path.join(self.build_dir, "grr/client/nanny")
 

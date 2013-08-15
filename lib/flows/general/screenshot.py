@@ -11,6 +11,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 
 
+# TODO(user): This needs a test...
 class TakeScreenshot(flow.GRRFlow):
   """Take a screenshot from a running system."""
 
@@ -19,18 +20,19 @@ class TakeScreenshot(flow.GRRFlow):
   @flow.StateHandler(next_state=["RetrieveFile"])
   def Start(self):
     """Start processing."""
-    self.urn = aff4.ROOT_URN.Add(self.client_id)
-    fd = aff4.FACTORY.Open(self.urn, token=self.token)
-    self.hostname = fd.Get(fd.Schema.HOSTNAME)
+    fd = aff4.FACTORY.Open(self.client_id, token=self.token)
     system = fd.Get(fd.Schema.SYSTEM)
     if system != "Darwin":
       raise flow.FlowError("Only OSX is supported for screen capture.")
 
-    self._sspath = "/tmp/ss.dat"
+    self.state.Register("hostname", fd.Get(fd.Schema.HOSTNAME))
+    self.state.Register("sspath", "/tmp/ss.dat")
+    self.state.Register("filename", "")
+    self.state.Register("new_urn", "")
     # TODO(user): Add support for non-constrained parameters so file can be
     # random/hidden.
     cmd = rdfvalue.ExecuteRequest(cmd="/usr/sbin/screencapture",
-                                  args=["-x", "-t", "jpg", self._sspath],
+                                  args=["-x", "-t", "jpg", self.state.sspath],
                                   time_limit=15)
     self.CallClient("ExecuteCommand", cmd, next_state="RetrieveFile")
 
@@ -42,7 +44,7 @@ class TakeScreenshot(flow.GRRFlow):
       raise flow.FlowError("Capture failed to run." % responses.status)
 
     pathspec = rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.OS,
-                                    path=self._sspath)
+                                 path=self.state.sspath)
     self.CallFlow("GetFile", next_state="ProcessFile",
                   pathspec=pathspec)
 
@@ -60,14 +62,15 @@ class TakeScreenshot(flow.GRRFlow):
     content = ss_fd.Read(10000000)
 
     curr_time = time.asctime(time.gmtime())
-    self.filename = "%s.screencap.%s" % (self.hostname, curr_time)
-    self.new_urn = self.urn.Add("analysis").Add("screencaps").Add(self.filename)
-    fd = aff4.FACTORY.Create(self.new_urn, "VFSFile", token=self.token)
+    self.state.filename = "%s.screencap.%s" % (self.state.hostname, curr_time)
+    self.state.new_urn = self.client_id.Add("analysis").Add(
+        "screencaps").Add(self.state.filename)
+    fd = aff4.FACTORY.Create(self.state.new_urn, "VFSFile", token=self.token)
     fd.Write(content)
     fd.Close()
 
     cmd = rdfvalue.ExecuteRequest(cmd="/bin/rm",
-                                  args=["-f", self._sspath],
+                                  args=["-f", self.state.sspath],
                                   time_limit=15)
     self.CallClient("ExecuteCommand", cmd, next_state="FinishedRemove")
 
@@ -79,4 +82,5 @@ class TakeScreenshot(flow.GRRFlow):
 
   @flow.StateHandler()
   def End(self):
-    self.Notify("ViewObject", self.new_urn, "Got screencap %s" % self.filename)
+    self.Notify("ViewObject", self.state.new_urn,
+                "Got screencap %s" % self.state.filename)

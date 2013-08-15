@@ -1,17 +1,11 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """Artifacts that are specific to Linux."""
 
-
-
-
-from grr.lib import artifact
+from grr.lib import artifact_lib
 
 # Shorcut to make things cleaner.
-Artifact = artifact.GenericArtifact   # pylint: disable=g-bad-name
-Collector = artifact.Collector        # pylint: disable=g-bad-name
-
+Artifact = artifact_lib.GenericArtifact   # pylint: disable=g-bad-name
+Collector = artifact_lib.Collector        # pylint: disable=g-bad-name
 
 ################################################################################
 #  Linux Log Artifacts
@@ -21,7 +15,7 @@ Collector = artifact.Collector        # pylint: disable=g-bad-name
 class AuthLog(Artifact):
   """Linux auth log file."""
   SUPPORTED_OS = ["Linux"]
-  LABELS = ["Logs", "Auth"]
+  LABELS = ["Logs", "Authentication"]
   COLLECTORS = [
       Collector(action="GetFile",
                 args={"path": "/var/log/auth.log"})
@@ -31,7 +25,7 @@ class AuthLog(Artifact):
 class Wtmp(Artifact):
   """Linux wtmp file."""
   SUPPORTED_OS = ["Linux"]
-  LABELS = ["Logs", "Auth"]
+  LABELS = ["Logs", "Authentication"]
 
   COLLECTORS = [
       Collector(action="GetFile",
@@ -49,5 +43,15 @@ class DebianPackages(Artifact):
                 args={"cmd": "/usr/bin/dpkg", "args": ["--list"]},
                )
   ]
-  PROCESSOR = "DpkgCmdParser"
 
+
+class LinuxPasswd(Artifact):
+  """Linux passwd file."""
+  SUPPORTED_OS = ["Linux"]
+  LABELS = ["Authentication"]
+
+  COLLECTORS = [
+      Collector(action="GetFile",
+                args={"path": "/etc/passwd"},
+               )
+  ]

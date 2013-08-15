@@ -64,6 +64,8 @@ Monitoring.events_email: grr-monitoring@example.com
 AdminUI Context:
   Logging.filename: "%(Logging.path)/grr-ui.log"
 
+  Monitoring.stats_server_http_port: 44444
+
 # The client's reported architecture string depends on the Arch context
 Arch:amd64:
   Client.arch: amd64
@@ -93,7 +95,7 @@ ClientBuilder Context:
 
     ClientBuilder.package_maker_name: grr
 
-    ClientBuilder.package_maker_organization: com.google.corp
+    ClientBuilder.package_maker_organization: com.google.code
 
     ClientBuilder.package_maker_path: |
         /Applications/PackageMaker.app/Contents/MacOS/PackageMaker
@@ -103,14 +105,14 @@ ClientBuilder Context:
     ClientBuilder.plist_binary_name: grr
 
     ClientBuilder.plist_binary_path: |
-        %(ClientBuilder.plist_binary_prefix)/%(PyInstaller.output_basename)/%(ClientBuilder.plist_binary_name)
+        %(ClientBuilder.plist_binary_prefix)/%(ClientBuilder.output_basename)/%(ClientBuilder.plist_binary_name)
 
     ClientBuilder.plist_binary_prefix: /usr/lib
 
     ClientBuilder.plist_filename: "%(ClientBuilder.plist_label).plist"
 
     ClientBuilder.plist_label: |
-        %(ClientBuilder.plist_label_prefix).google.corp.%(ClientBuilder.plist_binary_name)
+        %(ClientBuilder.plist_label_prefix).google.code.%(ClientBuilder.plist_binary_name)
 
     ClientBuilder.plist_label_prefix: com
 
@@ -121,16 +123,17 @@ ClientBuilder Context:
 
     PyInstaller.config_name: grr.yaml
 
-    PyInstaller.output_basename: |
+    ClientBuilder.output_basename: |
         %(PyInstaller.output_root)/%(PyInstaller.output_version_dir)
 
-    PyInstaller.output_root: grr
+    PyInstaller.output_root: |
+        %(Client.name)
 
     PyInstaller.output_version_dir: |
         %(Client.name)_%(Client.version_string)_%(Client.arch)
 
     PyInstaller.path: |
-      /Users/%(USER|env)/mac-build/pyinstaller-2.0/pyinstaller.py
+        /Users/%(USER|env)/mac-build/pyinstaller/pyinstaller.py
 
   Target:Linux:
     Client.binary_name: grrd
@@ -150,7 +153,7 @@ ClientBuilder Context:
     PyInstaller.build_dir: |
       %(PyInstaller.build_root_dir)/build
 
-    PyInstaller.build_root_dir: /usr/local/grr_build
+    PyInstaller.build_root_dir: /grr-build
 
     PyInstaller.distpath: |
       %(PyInstaller.dpkg_root)/debian/
@@ -165,33 +168,12 @@ ClientBuilder Context:
       %(PyInstaller.build_root_dir)/pyinstaller/pyinstaller.py
 
   Target:Windows:
-    Client.binary_name: "%(Client.name).exe"
-
-    Client.config: reg://%(Client.config_hive)/%(Client.config_key)
-
-    Client.config_hive: HKEY_LOCAL_MACHINE
-
-    Client.config_key: Software\\%(Client.name)
-
-    Client.install_path: |
-      %(SystemRoot|env)\\System32\\%(Client.name)\\%(Client.version_string)
-
-    ClientBuilder.client_installer_logfile!: "%(WINDIR|env)/System32/logfiles/%(Client.name)_installer.txt"
-
-    ClientBuilder.client_logging_engines: file,stderr,event_log
-
-    ClientBuilder.client_logging_filename!: "%(WINDIR|env)/System32/logfiles/%(Client.name).log"
-
-    ClientBuilder.client_logging_path!: "%(WINDIR|env)/System32/logfiles"
-
     ClientBuilder.output_extension: .exe
 
     ClientBuilder.template_extension: .zip
 
     ClientBuilder.vs_dir: |
       %{C:\Program Files (x86)\Microsoft Visual Studio 10.0}
-
-    Logging.verbose: False
 
     PyInstaller.path: C:\\grr_build\\pyinstaller\\pyinstaller.py
 
@@ -221,11 +203,15 @@ Demo Context:
 Enroller Context:
   Logging.filename: "%(Logging.path)/grr-enroller.log"
 
+  Monitoring.stats_server_http_port: 44442
+
 Frontend Context:
   Logging.filename: "%(Logging.path)/grr-http-server.log"
 
 Platform:Darwin:
-  Client.config_file_name: grr.ini
+  Client.name: grr
+
+  Client.config_file_name: grr.yaml
 
   Client.config_file_path_prefix: /etc
 
@@ -238,14 +224,14 @@ Platform:Darwin:
   Client.plist_binary_name: grrd
 
   Client.plist_binary_path: |
-    %(plist_binary_prefix)/%(plist_binary_directory)/%(plist_binary_name)
+    %(ClientBuilder.plist_binary_prefix)/%(ClientBuilder.plist_binary_directory)/%(ClientBuilder.plist_binary_name)
 
   Client.plist_binary_prefix: /usr
 
   Client.plist_filename: "%(plist_label).plist"
 
   Client.plist_label: |
-    %(plist_label_prefix).google.code.%(plist_binary_name)
+    %(ClientBuilder.plist_label_prefix).google.code.%(ClientBuilder.plist_binary_name)
 
   Client.plist_label_prefix: com
 
@@ -346,7 +332,11 @@ Platform:Windows:
 SingleServer Context:
   Logging.filename: "%(Logging.path)/grr-single-server.log"
 
+  Monitoring.stats_server_http_port: 44441
+
 Worker Context:
   Logging.filename: "%(Logging.path)/grr-worker.log"
+
+  Monitoring.stats_server_http_port: 44441
 
 
