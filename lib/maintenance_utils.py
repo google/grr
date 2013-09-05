@@ -23,6 +23,7 @@ DIGEST_ALGORITHM = hashlib.sha256
 DIGEST_ALGORITHM_STR = "sha256"
 
 SUPPORTED_PLATFORMS = ["windows", "linux", "darwin"]
+SUPPORTED_ARCHICTECTURES = ["i386", "amd64"]
 
 
 config_lib.DEFINE_string("MemoryDriver.driver_service_name",
@@ -71,22 +72,21 @@ def UploadSignedConfigBlob(content, aff4_path, client_context=None, token=None):
   logging.info("Uploaded to %s", fd.urn)
 
 
-def UploadSignedDriverBlob(content, file_name, platform, arch="i386",
-                           aff4_path="/config/drivers/{platform}/memory/"
-                           "{file_name}", install_request=None, token=None):
+def UploadSignedDriverBlob(content, aff4_path=None, client_context=None,
+                           install_request=None, token=None):
   """Upload a signed blob into the datastore.
 
   Args:
     content: Content of the driver file to upload.
-    file_name: Unique name for file to upload.
-    platform: Which client platform to sign for. This determines which signing
-        keys to use. If you don't have per platform signing keys. The standard
-        keys will be used.
-    arch: The architecture of the platform (e.g. i386, amd64).
-    aff4_path: aff4 path to upload to. Note this can handle platform and
-        file_name interpolation.
+
+    aff4_path: aff4 path to upload to. If not specified, we use the config to
+      figure out where it goes.
+
+    client_context: The configuration contexts to use.
+
     install_request: A DriverInstallRequest rdfvalue describing the installation
       parameters for this driver. If None these are read from the config.
+
     token: A security token.
 
   Returns:
@@ -95,46 +95,36 @@ def UploadSignedDriverBlob(content, file_name, platform, arch="i386",
   Raises:
     IOError: On failure to write.
   """
-  # We create a client context to emulate the specific client's
-  # environment. This allows us to configure different values for the same
-  # parameters for different client architectures in the same configuration
-  # file.
-  client_context = ["Platform:%s" % platform.title(),
-                    "Arch:%s" % arch,
-                    "Client"]
   sig_key = config_lib.CONFIG.Get("PrivateKeys.driver_signing_private_key",
                                   context=client_context)
 
   ver_key = config_lib.CONFIG.Get("Client.driver_signing_public_key",
                                   context=client_context)
 
+  if aff4_path is None:
+    aff4_path = config_lib.CONFIG.Get("MemoryDriver.aff4_path",
+                                      context=client_context)
+
   blob_rdf = rdfvalue.SignedBlob()
   blob_rdf.Sign(content, sig_key, ver_key, prompt=True)
-  aff4_path = rdfvalue.RDFURN(aff4_path.format(platform=platform.lower(),
-                                               file_name=file_name))
+
   fd = aff4.FACTORY.Create(aff4_path, "GRRMemoryDriver", mode="w", token=token)
   fd.Set(fd.Schema.BINARY(blob_rdf))
 
-  if not install_request:
-    installer = rdfvalue.DriverInstallTemplate()
+  if install_request is None:
     # Create install_request from the configuration.
-    installer.device_path = config_lib.CONFIG.Get(
-        "MemoryDriver.device_path", context=client_context)
+    install_request = rdfvalue.DriverInstallTemplate(
+        device_path=config_lib.CONFIG.Get(
+            "MemoryDriver.device_path", context=client_context),
+        driver_display_name=config_lib.CONFIG.Get(
+            "MemoryDriver.driver_display_name", context=client_context),
+        driver_name=config_lib.CONFIG.Get(
+            "MemoryDriver.driver_service_name", context=client_context))
 
-    if platform == "Windows":
-      installer.driver_display_name = config_lib.CONFIG.Get(
-          "MemoryDriver.driver_display_name", context=client_context)
-
-      installer.driver_name = config_lib.CONFIG.Get(
-          "MemoryDriver.driver_service_name", context=client_context)
-
-  else:
-    installer = install_request
-
-  fd.Set(fd.Schema.INSTALLATION(installer))
+  fd.Set(fd.Schema.INSTALLATION(install_request))
   fd.Close()
   logging.info("Uploaded to %s", fd.urn)
-  return str(fd.urn)
+  return fd.urn
 
 
 def GetConfigBinaryPathType(aff4_path):
@@ -161,16 +151,21 @@ def GetConfigBinaryPathType(aff4_path):
 
 def CreateBinaryConfigPaths(token=None):
   """Create the paths required for binary configs."""
-  required_dirs = set(["drivers", "executables", "python_hacks"])
   required_urns = set()
 
   try:
-    for req_dir in required_dirs:
-      required_urns.add("aff4:/config/%s" % req_dir)
-
-    # We weren't already initialized, create all directories.
+    # We weren't already initialized, create all directories we will need.
     for platform in SUPPORTED_PLATFORMS:
-      required_urns.add("aff4:/config/drivers/%s/memory" % platform)
+      for arch in SUPPORTED_ARCHICTECTURES:
+        client_context = ["Platform:%s" % platform.title(),
+                          "Arch:%s" % arch]
+
+        aff4_path = rdfvalue.RDFURN(
+            config_lib.CONFIG.Get("MemoryDriver.aff4_path",
+                                  context=client_context))
+
+        required_urns.add(aff4_path.Basename())
+
       required_urns.add("aff4:/config/executables/%s/agentupdates" % platform)
       required_urns.add("aff4:/config/executables/%s/installers" % platform)
 
@@ -211,6 +206,7 @@ def _RepackBinary(context, builder_cls):
       return builder_obj.MakeDeployableBinary(template_path)
     except Exception as e:  # pylint: disable=broad-except
       print "Repacking template %s failed: %s" % (template_path, e)
+      raise
   else:
     print "Template %s missing - will not repack." % template_path
 

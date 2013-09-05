@@ -245,8 +245,10 @@ class EnumerateUsers(actions.ActionPlugin):
           homedir = ""
           full_name = ""
 
-        self.SendReply(username=username, homedir=homedir,
-                       full_name=full_name, last_logon=last_login*1000000)
+        self.SendReply(username=utils.SmartUnicode(username),
+                       homedir=utils.SmartUnicode(homedir),
+                       full_name=utils.SmartUnicode(full_name),
+                       last_logon=last_login*1000000)
 
 
 class EnumerateFilesystems(actions.ActionPlugin):
@@ -372,8 +374,8 @@ class InstallDriver(UninstallDriver):
     try:
       fd = tempfile.NamedTemporaryFile()
       data = args.driver.data
-      if args.mode >= rdfvalue.InstallDriverRequest.RewriteMode.ENABLE:
-        force = args.mode == rdfvalue.InstallDriverRequest.RewriteMode.FORCE
+      if args.mode >= rdfvalue.DriverInstallTemplate.RewriteMode.ENABLE:
+        force = args.mode == rdfvalue.DriverInstallTemplate.RewriteMode.FORCE
         data = ko_patcher.KernelObjectPatcher().Patch(data, force_patch=force)
       fd.write(data)
       fd.flush()

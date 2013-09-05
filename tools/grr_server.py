@@ -22,10 +22,13 @@ import threading
 import time
 
 
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import,g-bad-import-order
+
 from grr.gui import admin_ui
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import server_plugins  # pylint: disable=unused-import
 from grr.lib import startup
 from grr.tools import http_server
 from grr.worker import enroller

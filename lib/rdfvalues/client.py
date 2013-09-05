@@ -10,13 +10,11 @@ from hashlib import sha256
 
 import re
 import socket
-import sys
 
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
 
-from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs
@@ -41,8 +39,9 @@ class ClientURN(rdfvalue.RDFURN):
     """
     # If we are initialized from another URN we need to validate it.
     if isinstance(initializer, rdfvalue.RDFURN):
-      self.ParseFromString(initializer.SerializeToString())
       super(ClientURN, self).__init__(initializer=None, age=age)
+      self.ParseFromString(initializer.SerializeToString())
+
     else:
       super(ClientURN, self).__init__(initializer=initializer, age=age)
 
@@ -54,10 +53,10 @@ class ClientURN(rdfvalue.RDFURN):
 
   @classmethod
   def Validate(cls, value):
-    if not value:
-      return True
+    if value:
+      return bool(cls.CLIENT_ID_RE.match(str(value)))
 
-    return bool(cls.CLIENT_ID_RE.match(str(value)))
+    return False
 
   @classmethod
   def FromPublicKey(cls, public_key):
@@ -180,7 +179,7 @@ class Interface(rdfvalue.RDFProtoStruct):
       if address.human_readable:
         results.append(address.human_readable)
       else:
-        if address.address_type == rdfvalue.NetworkAddress.Enum("INET"):
+        if address.address_type == rdfvalue.NetworkAddress.Family.INET:
           results.append(socket.inet_ntop(socket.AF_INET,
                                           address.packed_bytes))
         else:
@@ -308,7 +307,7 @@ class DriverInstallTemplate(rdfvalue.RDFProtoStruct):
 
   This is sent to the client to instruct the client how to install this driver.
   """
-  protobuf = jobs_pb2.InstallDriverRequest
+  protobuf = jobs_pb2.DriverInstallTemplate
 
 
 class BufferReference(rdfvalue.RDFProtoStruct):
@@ -369,11 +368,30 @@ class StatEntry(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.StatEntry
 
 
-class RDFFindSpec(rdfvalue.RDFProtoStruct):
+class FindSpec(rdfvalue.RDFProtoStruct):
   """A find specification."""
-  protobuf = jobs_pb2.Find
+  protobuf = jobs_pb2.FindSpec
 
   dependencies = dict(RegularExpression=standard.RegularExpression)
+
+  def Validate(self):
+    """Ensure the pathspec is valid."""
+    self.pathspec.Validate()
+
+    # When using OS and TSK we must only perform find on directories.
+    if (self.pathspec.last.pathtype in [self.pathspec.PathType.OS,
+                                        self.pathspec.PathType.TSK] and
+        self.pathspec.last.path[-1] not in ("/", "\\")):
+      raise ValueError("Find can only operate on directories "
+                       "(There must be a final /)")
+
+    if (self.HasField("start_time") and self.HasField("end_time") and
+        self.start_time > self.end_time):
+      raise ValueError("Start time must be before end time.")
+
+    if not self.path_regex and not self.data_regex:
+      raise ValueError("A Find specification can not contain both an empty "
+                       "path regex and an empty data regex")
 
 
 class LogMessage(rdfvalue.RDFProtoStruct):
@@ -454,6 +472,14 @@ class FingerprintResponse(rdfvalue.RDFProtoStruct):
 class GrepSpec(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.GrepSpec
 
+  def Validate(self):
+    self.target.Validate()
+
+
+class BareGrepSpec(GrepSpec):
+  """A GrepSpec without a target."""
+  suppressions = ["target"]
+
 
 class WMIRequest(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.WmiRequest
@@ -518,114 +544,3 @@ class AFF4ObjectSummary(rdfvalue.RDFProtoStruct):
 class ClientCrash(rdfvalue.RDFProtoStruct):
   """Details of a client crash."""
   protobuf = jobs_pb2.ClientCrash
-
-
-class NoTargetGrepspecType(type_info.RDFValueType):
-  """A Grep spec with no target."""
-
-  child_descriptor = type_info.TypeDescriptorSet(
-      type_info.String(
-          description="Search for this regular expression.",
-          name="regex",
-          friendly_name="Regular Expression",
-          default=""),
-      type_info.Bytes(
-          description="Search for this literal expression.",
-          name="literal",
-          friendly_name="Literal Match",
-          default=""),
-      type_info.Integer(
-          description="Offset to start searching from.",
-          name="start_offset",
-          friendly_name="Start",
-          default=0),
-      type_info.Integer(
-          description="Length to search.",
-          name="length",
-          friendly_name="Length",
-          default=10737418240),
-      type_info.SemanticEnum(
-          description="How many results should be returned?",
-          name="mode",
-          friendly_name="Search Mode",
-          enum_container=rdfvalue.GrepSpec.Mode),
-      type_info.Integer(
-          description="Snippet returns these many bytes before the hit.",
-          name="bytes_before",
-          friendly_name="Bytes Before",
-          default=0),
-      type_info.Integer(
-          description="Snippet returns these many bytes after the hit.",
-          name="bytes_after",
-          friendly_name="Bytes After",
-          default=0),
-      )
-
-  def __init__(self, **kwargs):
-    defaults = dict(name="grepspec",
-                    rdfclass=rdfvalue.GrepSpec)
-
-    defaults.update(kwargs)
-    super(NoTargetGrepspecType, self).__init__(**defaults)
-
-
-class GrepspecType(NoTargetGrepspecType):
-  """A Type for handling Grep specifications."""
-
-  child_descriptor = (
-      NoTargetGrepspecType.child_descriptor +
-      type_info.TypeDescriptorSet(
-          paths.PathspecType(name="target")
-          )
-      )
-
-  def Validate(self, value):
-    if value.target.pathtype < 0:
-      raise type_info.TypeValueError("GrepSpec has an invalid target PathSpec.")
-
-    return super(GrepspecType, self).Validate(value)
-
-
-class FindSpecType(type_info.RDFValueType):
-  """A Find spec type."""
-
-  child_descriptor = type_info.TypeDescriptorSet(
-      paths.PathspecType(),
-      type_info.String(
-          description="Search for this regular expression.",
-          name="path_regex",
-          friendly_name="Path Regular Expression",
-          default=""),
-      type_info.String(
-          description="Search for this regular expression in the data.",
-          name="data_regex",
-          friendly_name="Data Regular Expression",
-          default=""),
-      type_info.Bool(
-          description="Should we cross devices?",
-          name="cross_devs",
-          friendly_name="Cross Devices",
-          default=False),
-      type_info.Integer(
-          description="Maximum recursion depth.",
-          name="max_depth",
-          friendly_name="Depth",
-          default=5),
-      type_info.Integer(
-          description="Minimum file size in bytes.",
-          name="min_file_size",
-          friendly_name="Minimum File Size (Bytes)",
-          default=0),
-      type_info.Integer(
-          description="Maximum file size in bytes.",
-          name="max_file_size",
-          friendly_name="Maximum File Size (Bytes)",
-          default=sys.maxint),
-      )
-
-  def __init__(self, **kwargs):
-    defaults = dict(name="findspec",
-                    rdfclass=rdfvalue.RDFFindSpec)
-
-    defaults.update(kwargs)
-    super(FindSpecType, self).__init__(**defaults)

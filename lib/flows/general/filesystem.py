@@ -1,19 +1,15 @@
 #!/usr/bin/env python
 """These are filesystem related flows."""
 
-
+import fnmatch
 import re
 import stat
+import time
 
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import flow_utils
 from grr.lib import rdfvalue
-from grr.lib import type_info
-from grr.lib import utils
-from grr.lib.flows.general import grep
-from grr.lib.flows.general import transfer
-from grr.lib.flows.general import utilities
+from grr.proto import flows_pb2
 
 
 def CreateAFF4Object(stat_response, client_id, token, sync=False):
@@ -31,23 +27,24 @@ def CreateAFF4Object(stat_response, client_id, token, sync=False):
   fd.Close(sync=sync)
 
 
+class ListDirectoryArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.ListDirectoryArgs
+
+
 class ListDirectory(flow.GRRFlow):
   """List files in a directory."""
 
   category = "/Filesystem/"
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.PathspecType(
-          description="The pathspec for the directory to list."),
-      )
+  args_type = ListDirectoryArgs
 
   @flow.StateHandler(next_state=["List", "Stat"])
   def Start(self):
     """Issue a request to list the directory."""
-    self.CallClient("StatFile", pathspec=self.state.pathspec, next_state="Stat")
+    self.CallClient("StatFile", pathspec=self.state.args.pathspec,
+                    next_state="Stat")
 
     # We use data to pass the path to the callback:
-    self.CallClient("ListDirectory", pathspec=self.state.pathspec,
+    self.CallClient("ListDirectory", pathspec=self.state.args.pathspec,
                     next_state="List")
 
   @flow.StateHandler()
@@ -95,7 +92,7 @@ class ListDirectory(flow.GRRFlow):
   def End(self):
     if self.state.urn:
       self.Notify("ViewObject", self.state.urn,
-                  u"Listed {0}".format(self.state.pathspec))
+                  u"Listed {0}".format(self.state.args.pathspec))
 
 
 class IteratedListDirectory(ListDirectory):
@@ -115,7 +112,7 @@ class IteratedListDirectory(ListDirectory):
 
     # We use data to pass the path to the callback:
     self.state.Register("request", rdfvalue.ListDirRequest(
-        pathspec=self.state.pathspec))
+        pathspec=self.state.args.pathspec))
 
     # For this example we will use a really small number to force many round
     # trips with the client. This is a performance killer.
@@ -165,7 +162,11 @@ class IteratedListDirectory(ListDirectory):
   @flow.StateHandler()
   def End(self):
     self.Notify("ViewObject", self.state.urn, "List of {0} completed.".format(
-        self.state.pathspec))
+        self.state.args.pathspec))
+
+
+class RecursiveListDirectoryArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.RecursiveListDirectoryArgs
 
 
 class RecursiveListDirectory(flow.GRRFlow):
@@ -173,14 +174,7 @@ class RecursiveListDirectory(flow.GRRFlow):
 
   category = "/Filesystem/"
 
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.PathspecType(
-          description="The pathspec for the directory to list."),
-      type_info.Integer(
-          name="max_depth",
-          description="Maximum depth to recurse",
-          default=5),
-      )
+  args_type = RecursiveListDirectoryArgs
 
   @flow.StateHandler(next_state="ProcessDirectory")
   def Start(self):
@@ -191,7 +185,7 @@ class RecursiveListDirectory(flow.GRRFlow):
     self.state.Register("dir_count", 0)
     self.state.Register("file_count", 0)
 
-    self.CallClient("ListDirectory", pathspec=self.state.pathspec,
+    self.CallClient("ListDirectory", pathspec=self.state.args.pathspec,
                     next_state="ProcessDirectory")
 
   @flow.StateHandler(next_state="ProcessDirectory")
@@ -216,7 +210,7 @@ class RecursiveListDirectory(flow.GRRFlow):
 
       else:
         relative_name = urn.RelativeName(self.state.first_directory) or ""
-        if len(relative_name.split("/")) >= self.state.max_depth:
+        if len(relative_name.split("/")) >= self.state.args.max_depth:
           self.Log("Exceeded maximum path depth at %s.",
                    urn.RelativeName(self.state.first_directory))
           return
@@ -251,22 +245,15 @@ class RecursiveListDirectory(flow.GRRFlow):
     self.Status(status_text, self.state.file_count, self.state.dir_count)
 
 
+class SlowGetFileArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.SlowGetFileArgs
+
+
 class SlowGetFile(flow.GRRFlow):
   """Simple file retrieval."""
 
   category = "/Filesystem/"
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.PathspecType(
-          description="The pathspec for the directory to list."),
-
-      type_info.Integer(
-          description=("Specifies how much data is saved in each AFF4Stream "
-                       "chunk"),
-          name="aff4_chunk_size",
-          default=2**20,
-          )
-      )
+  args_type = SlowGetFileArgs
 
   # Read in 32kb chunks
   CHUNK_SIZE = 1024 * 32
@@ -277,20 +264,20 @@ class SlowGetFile(flow.GRRFlow):
   @flow.StateHandler(next_state=["Hash", "Stat", "ReadBuffer"])
   def Start(self):
     """Get information about the file from the client."""
-
+    self.state.Register("urn")
     self.state.Register("current_chunk_number", 0)
 
     # We first obtain information about how large the file is
-    self.CallClient("StatFile", pathspec=self.state.pathspec,
+    self.CallClient("StatFile", pathspec=self.state.args.pathspec,
                     next_state="Stat")
 
     # This flow relies on the fact that responses are always returned
     # in order:
-    self.CallClient("HashFile", pathspec=self.state.pathspec,
+    self.CallClient("HashFile", pathspec=self.state.args.pathspec,
                     next_state="Hash")
 
     # Read the first buffer
-    self.CallClient("ReadBuffer", pathspec=self.state.pathspec, offset=0,
+    self.CallClient("ReadBuffer", pathspec=self.state.args.pathspec, offset=0,
                     length=self.CHUNK_SIZE, next_state="ReadBuffer")
 
   @flow.StateHandler(next_state="ReadBuffer")
@@ -315,7 +302,7 @@ class SlowGetFile(flow.GRRFlow):
     self.state.Register("stat", rdfvalue.StatEntry(responses.First()))
 
     # Update the pathspec from the client.
-    self.state.pathspec = self.state.stat.pathspec
+    self.state.args.pathspec = self.state.stat.pathspec
 
   def FetchWindow(self):
     """Read ahead a number of buffers to fill the window."""
@@ -329,7 +316,7 @@ class SlowGetFile(flow.GRRFlow):
       bytes_needed_to_read = (self.state.file_size -
                               self.CHUNK_SIZE * self.state.current_chunk_number)
 
-      self.CallClient("ReadBuffer", pathspec=self.state.pathspec,
+      self.CallClient("ReadBuffer", pathspec=self.state.args.pathspec,
                       offset=self.state.current_chunk_number * self.CHUNK_SIZE,
                       length=min(self.CHUNK_SIZE, bytes_needed_to_read),
                       next_state="ReadBuffer")
@@ -358,7 +345,7 @@ class SlowGetFile(flow.GRRFlow):
     if response.offset == 0:
       # Force creation of the new AFF4 object
       self.state.urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-          self.state.pathspec, self.client_id)
+          self.state.args.pathspec, self.client_id)
 
       self.state.Register("file_size", self.state.stat.st_size)
 
@@ -366,9 +353,12 @@ class SlowGetFile(flow.GRRFlow):
       fd = aff4.FACTORY.Create(self.state.urn, "VFSFile", mode="w",
                                token=self.token)
 
-      fd.SetChunksize(self.state.aff4_chunk_size)
-      fd.Set(fd.Schema.HASH(self.state.file_hash))
+      fd.SetChunksize(self.state.args.aff4_chunk_size)
+      hash_value = fd.Schema.HASH()
+      hash_value.sha256 = self.state.file_hash
+      fd.Set(hash_value)
       fd.Set(fd.Schema.STAT(self.state.stat))
+
       self.state.Register("fd", fd)
 
       # Now we know how large the file is we can fill the window
@@ -393,7 +383,7 @@ class SlowGetFile(flow.GRRFlow):
 
     # Dont read past the end of file
     if offset_to_read < self.state.file_size:
-      self.CallClient("ReadBuffer", pathspec=self.state.pathspec,
+      self.CallClient("ReadBuffer", pathspec=self.state.args.pathspec,
                       offset=offset_to_read,
                       length=min(bytes_needed_to_read, self.CHUNK_SIZE),
                       next_state="ReadBuffer")
@@ -405,7 +395,7 @@ class SlowGetFile(flow.GRRFlow):
     """Finalize reading the file."""
     self.Notify("ViewObject", self.state.urn, "File transferred successfully")
 
-    self.Status("Finished reading %s", self.state.pathspec.CollapsePath())
+    self.Status("Finished reading %s", self.state.args.pathspec.CollapsePath())
 
     # Notify any parent flows.
     self.SendReply(self.state.stat)
@@ -418,6 +408,10 @@ class SlowGetFile(flow.GRRFlow):
       self.state.fd.Flush()
 
 
+class GlobArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.GlobArgs
+
+
 class Glob(flow.GRRFlow):
   """Glob the filesystem for patterns.
 
@@ -425,36 +419,45 @@ class Glob(flow.GRRFlow):
     StatResponse messages, one for each matching file.
   """
 
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.InterpolatedList(
-          description=("A list of paths to glob that can contain %% "
-                       "expansions"),
-          name="paths",
-          validator=type_info.String()
-          ),
-      type_info.PathTypeEnum(
-          description="Type of access to glob in."),
-      )
+  args_type = GlobArgs
 
   def ReportMatch(self, stat_response):
-    """Called when we've found a matching a pathspec."""
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(stat_response.pathspec,
-                                                     self.client_id)
-    self.Notify("ViewObject", urn, u"Glob matched")
-    self.Status("Glob Matched %s", urn)
-    self.SendReply(stat_response)
+    """Called when we've found a matching a StatEntry."""
     CreateAFF4Object(stat_response, self.client_id, self.token)
+    self.SendReply(stat_response)
 
-  def ProceedIntoDirectory(self, stat_response, component_index,
-                           pathspec_index):
-    """Called when we want to apply next pathspec component to a directory."""
-    self.CallClient("ListDirectory", pathspec=stat_response.pathspec,
-                    next_state="ProcessDirectory",
-                    request_data=dict(
-                        component_index=component_index,
-                        pathspec_index=pathspec_index))
+  # A regex indicating if there are shell globs in this path.
+  GLOB_MAGIC_CHECK = re.compile("[*?[]")
 
-  @flow.StateHandler(next_state="ProcessStatFile")
+  def ConvertGlobIntoPathComponents(self, pattern):
+    """Converts a glob pattern into a list of pathspec components.
+
+    Wildcards are also converted to regular expressions. The pathspec components
+    do not span directories, and are marked as a regex or a literal component.
+
+    Example:
+     /home/test/* -> ['home', 'test', '.*\\Z(?ms)']
+
+    Args:
+      pattern: A glob expression with wildcards.
+
+    Returns:
+      A list of PathSpec instances for each component.
+    """
+    components = []
+    for path_component in pattern.split("/"):
+      if self.GLOB_MAGIC_CHECK.search(path_component):
+        components.append(rdfvalue.PathSpec(
+            path="^" + fnmatch.translate(path_component),
+            path_options=rdfvalue.PathSpec.Options.REGEX))
+      else:
+        components.append(rdfvalue.PathSpec(
+            path=path_component,
+            path_options=rdfvalue.PathSpec.Options.CASE_INSENSITIVE))
+
+    return components
+
+  @flow.StateHandler(next_state="ProcessEntry")
   def Start(self):
     """Starts the Glob.
 
@@ -462,203 +465,193 @@ class Glob(flow.GRRFlow):
     interpolate each component. Finally, we generate a cartesian product of all
     combinations.
     """
-    self.state.Register("patterns", set())
+    self.state.Register("component_tree", {})
+    patterns = []
 
-    # Expand the glob into a list of paths.
-    # e.g. /usr/lib/*.exe -> ['/usr/lib', '.*.exe']
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
 
-    # Transform the patterns by substitution:
-    for path in self.state.paths:
-      for pattern in flow_utils.InterpolateClientAttributes(path, client):
-        # Normalize the component path (this allows us to resolve ../
-        # sequences).
-        norm_pattern = utils.NormalizePath(pattern.replace("\\", "/"))
+    # Transform the patterns by substitution of client attributes. When the
+    # client has multiple values for an attribute, this generates multiple
+    # copies of the pattern, one for each variation. e.g.:
+    # /home/%%Usernames%%/* -> [ /home/user1/*, /home/user2/* ]
+    for path in self.state.args.paths:
+      patterns.extend(path.Interpolate(client=client))
 
-        for p in flow_utils.InterpolateGrouping(norm_pattern):
-          self.state.patterns.add(p)
+    # Expand each glob pattern into a list of components. A component is either
+    # a wildcard or a literal component.
+    # e.g. /usr/lib/*.exe -> ['/usr/lib', '.*.exe']
 
-    # Now prepare a pathspec for each pattern.
-    self.state.Register("pathspecs", [])
+    # We build a tree for each component such that duplicated components are
+    # merged. We do not need to reissue the same client requests for the same
+    # components. For example, the patterns:
+    # '/home/%%Usernames%%*' -> {'/home/': {
+    #      'syslog.*\\Z(?ms)': {}, 'test.*\\Z(?ms)': {}}}
+    # Note: The component tree contains serialized pathspecs in dicts.
+    for pattern in patterns:
+      # The root node.
+      node = self.state.component_tree
 
-    for pattern in self.state.patterns:
-      pathspec_components = []
-      self.state.pathspecs.append(pathspec_components)
+      for component in self.ConvertGlobIntoPathComponents(pattern):
+        node = node.setdefault(component.SerializeToString(), {})
 
-      for component in flow_utils.GlobPath(pattern):
-        component = rdfvalue.PathSpec(
-            path=component, pathtype=int(self.state.pathtype))
+    # Process the component tree from the root.
+    root = rdfvalue.StatEntry()
+    root.pathspec.path = "/"
+    root.pathspec.pathtype = self.state.args.pathtype
+    self.CallStateInline([root], next_state="ProcessEntry",
+                         request_data=dict(component_path=[]))
 
-        pathspec_components.append(component)
+  def FindNode(self, component_path):
+    """Find the node in the component_tree from component_path.
 
-    # At this point self.pathspecs is a list of pathspec components we need to
-    # search - issue a Stat on each to see if it exists.
-    for i, pathspec in enumerate(self.state.pathspecs):
-      if pathspec:
-        self.CallClient("StatFile",
-                        # Only look for the first component.
-                        pathspec=pathspec[0],
-                        next_state="ProcessStatFile",
-                        request_data=dict(component_index=0,
-                                          pathspec_index=i))
+    Args:
+      component_path: A list of components which reference a node in the
+        component tree. This allows us to resume processing in the tree.
 
-  @flow.StateHandler(next_state="ProcessDirectory")
-  def ProcessStatFile(self, responses):
-    """ProcessStatFile is used for glob pathspec components without stars."""
-    # If response is successful, we may safely proceed to the next component
-    # in glob pathspec, or report a match if we're at the last component.
+    Returns:
+      A node in the component_tree.
+    """
+    # Find the node that the component path is referring to.
+    node = self.state.component_tree
+    for component in component_path:
+      node = node[component]
+
+    return node
+
+  @flow.StateHandler(next_state="ProcessEntry")
+  def ProcessEntry(self, responses):
+    """Process the responses from the client."""
     if not responses.success:
       return
 
-    component_index = responses.request_data["component_index"]
-
-    pathspec_index = responses.request_data["pathspec_index"]
-    pathspec = self.state.pathspecs[pathspec_index]
+    component_path = responses.request_data["component_path"]
+    node = self.FindNode(component_path)
 
     for response in responses:
-      response = rdfvalue.StatEntry(response)
+      # The Find client action does not return a StatEntry but an
+      # FindSpec. Normalize to a StatEntry.
+      if isinstance(response, rdfvalue.FindSpec):
+        response = response.hit
 
-      # We are at the final component - report the hit.
-      if len(pathspec) <= component_index + 1:
+      if node:
+        # There are further components in the tree - iterate over them.
+        for component_str, next_node in node.items():
+          component = rdfvalue.PathSpec(component_str)
+          next_component = component_path + [component_str]
+
+          # Use the pathtype from the flow args.
+          component.pathtype = self.state.args.pathtype
+
+          if component.path_options == component.Options.REGEX:
+            findspec = rdfvalue.FindSpec(pathspec=response.pathspec,
+                                         max_depth=1,
+                                         path_regex=component.path)
+            # We don't really support iteration here, so we make sure we will
+            # check all the files in this directory.
+            findspec.iterator.number = 100000
+            self.CallClient("Find", findspec,
+                            next_state="ProcessEntry",
+                            request_data=dict(component_path=next_component))
+
+          elif component.path_options == component.Options.CASE_INSENSITIVE:
+            pathspec = response.pathspec.Copy().Append(component)
+            if not next_node:
+              # If next node is empty, this node is a leaf node, we therefore
+              # must stat it to check that it is there.
+              self.CallClient("StatFile",
+                              pathspec=pathspec,
+                              next_state="ProcessEntry",
+                              request_data=dict(component_path=next_component))
+            else:
+              # There is no need to go back to the client for intermediate paths
+              # in the prefix tree, just emulate this by recursively calling
+              # this state inline.
+              self.CallStateInline(
+                  [rdfvalue.StatEntry(pathspec=pathspec)],
+                  next_state="ProcessEntry",
+                  request_data=dict(component_path=next_component))
+
+      else:
+        # Node is empty representing a leaf node - we found a hit - report i.
         self.ReportMatch(response)
-      else:
-        self.ProceedIntoDirectory(response, component_index + 1, pathspec_index)
-
-  @flow.StateHandler(next_state=["ProcessDirectory", "ProcessStatFile"])
-  def ProcessDirectory(self, responses):
-    """Receive the directory contents and match against the regex."""
-    if not responses.success:
-      return
-
-    pathspec_index = responses.request_data["pathspec_index"]
-    component_index = responses.request_data["component_index"]
-
-    # This is the current component we are working on.
-    pathspec = self.state.pathspecs[pathspec_index]
-    component = pathspec[component_index]
-    subcomponents = component.path.split("/")
-
-    # Any files matching this glob will be reported. We also recurse into any
-    # directories matching this pattern.
-    regex = re.compile(subcomponents[0], flags=re.I | re.S | re.M)
-
-    for response in responses:
-      response = rdfvalue.StatEntry(response)
-      basename = response.pathspec.Basename()
-
-      if not regex.match(basename):
-        continue
-
-      # If component is something like a/b/c, proceed with a StatFile instead
-      # of ListDirectory.
-      if len(subcomponents) > 1:
-        pathspec = response.pathspec.Dirname().Append(component)
-        self.CallClient("StatFile",
-                        pathspec=pathspec,
-                        next_state="ProcessStatFile",
-                        request_data=dict(component_index=component_index,
-                                          pathspec_index=pathspec_index))
-      else:
-        # We are at the final component - report the hit.
-        if len(pathspec) <= component_index + 1:
-          self.ReportMatch(response)
-        else:
-          self.ProceedIntoDirectory(response, component_index + 1,
-                                    pathspec_index)
 
 
-class GlobAndRunFlow(flow.GRRFlow):
-  """Baseclass for flows that run a glob and use the results in another flow."""
+class GlobAndDownload(flow.GRRFlow):
+  """Run a glob and download all the file."""
+  category = "/Filesystem/Glob/"
 
-  flow_class = None  # The flow to run.
-  flow_typeinfo = Glob.flow_typeinfo
+  args_type = GlobArgs
 
-  def InjectPathspec(self, args=None, new_pathspec=None):
-    """Injects the pathspec returned into the subflow parameter dict."""
-
-    args["pathspec"] = new_pathspec
-
-  @flow.StateHandler(next_state=["StartSubFlow"])
+  @flow.StateHandler(next_state=["Download"])
   def Start(self):
     """Run the glob first."""
 
-    glob_args = {}
-    for parameter in Glob.flow_typeinfo:
-      glob_args[parameter.name] = self.state.get(parameter.name)
+    self.CallFlow("Glob", next_state="Download", args=self.state.args)
 
-    self.CallFlow("Glob", next_state="StartSubFlow", **glob_args)
-
-  @flow.StateHandler(next_state=["Done"])
-  def StartSubFlow(self, responses):
-    if not responses.success:
-      raise flow.FlowError("Error while running the Glob subflow.")
-    elif not responses:
-      self.Log("Glob did not return any results.")
-    else:
-      self.Log("Glob returned %d results." % len(responses))
-
+  @flow.StateHandler(next_state=["End"])
+  def Download(self, responses):
+    if responses.success:
       for response in responses:
-
-        args = {}
-        for parameter in self.flow_class.flow_typeinfo:
-          args[parameter.name] = self.state.get(parameter.name)
-
-        self.InjectPathspec(args=args, new_pathspec=response.pathspec)
-
-        self.CallFlow(self.flow_class.__name__, next_state="Done", **args)
+        # Only fetch regular files with GetFile.
+        if not stat.S_ISDIR(response.st_mode):
+          self.CallFlow("GetFile", pathspec=response.pathspec,
+                        next_state="End")
 
   @flow.StateHandler()
-  def Done(self, responses):
+  def End(self, responses):
     # Just send the results to the parent.
     if responses.success:
       for response in responses:
         self.SendReply(response)
 
 
-class GlobAndDownload(GlobAndRunFlow):
-  category = "/Filesystem/Glob/"
-
-  flow_class = transfer.GetFile
-
-  flow_typeinfo = (GlobAndRunFlow.flow_typeinfo +
-                   transfer.GetFile.flow_typeinfo.Remove("pathspec"))
+class GlobAndGrepArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.GlobAndGrepArgs
 
 
-class GlobAndGrep(GlobAndRunFlow):
+class GlobAndGrep(flow.GRRFlow):
   """A flow that runs a glob first and then issues a grep on the results."""
   category = "/Filesystem/Glob/"
 
-  flow_class = grep.Grep
-  flow_typeinfo = (GlobAndRunFlow.flow_typeinfo +
-                   grep.Grep.flow_typeinfo.Remove("request") +
-                   type_info.TypeDescriptorSet(
-                       type_info.NoTargetGrepspecType(name="request")))
+  args_type = rdfvalue.GlobAndGrepArgs
 
-  def InjectPathspec(self, args=None, new_pathspec=None):
-    """Injects the pathspec returned into the subflow parameter dict."""
-    grep_request = args.setdefault("request", rdfvalue.GrepSpec())
-    grep_request.target = new_pathspec
+  @flow.StateHandler(next_state=["Grep"])
+  def Start(self):
+    """Run the glob first."""
+    output = self.state.args.output.format(t=time.time(),
+                                           u=self.state.context.user)
+    output = self.client_id.Add(output)
+    self.state.Register("fd", aff4.FACTORY.Create(
+        output, "GrepResultsCollection", mode="rw", token=self.token))
 
+    self.Log("Created output collection %s", output)
 
-class GlobAndDownloadDirectory(GlobAndRunFlow):
-  category = "/Filesystem/Glob/"
+    self.state.fd.Set(self.state.fd.Schema.DESCRIPTION(
+        "GlobAndGrep {0}".format(
+            self.__class__.__name__)))
 
-  flow_class = utilities.DownloadDirectory
-  flow_typeinfo = (GlobAndRunFlow.flow_typeinfo +
-                   utilities.DownloadDirectory.flow_typeinfo.Remove("pathspec"))
+    self.CallFlow("Glob", next_state="Grep",
+                  paths=self.state.args.paths,
+                  pathtype=self.state.args.pathtype)
 
+  @flow.StateHandler(next_state=["WriteHits"])
+  def Grep(self, responses):
+    if responses.success:
+      for response in responses:
+        # Only fetch regular files with GetFile.
+        if not stat.S_ISDIR(response.st_mode):
+          # Cast the BareGrepSpec to a GrepSpec type.
+          request = rdfvalue.GrepSpec(target=response.pathspec,
+                                      **self.args.grep.AsDict())
+          self.CallFlow("Grep", request=request, next_state="WriteHits",
+                        request_data=dict(stat=response))
 
-class GlobAndListDirectory(GlobAndRunFlow):
-  category = "/Filesystem/Glob/"
+  @flow.StateHandler()
+  def WriteHits(self, responses):
+    for hit in responses:
+      hit.stat = responses.request_data["stat"]
+      self.state.fd.Add(hit)
 
-  flow_class = ListDirectory
-  flow_typeinfo = (GlobAndRunFlow.flow_typeinfo +
-                   ListDirectory.flow_typeinfo.Remove("pathspec"))
-
-
-class GlobAndListDirectoryRecursive(GlobAndRunFlow):
-  category = "/Filesystem/Glob/"
-
-  flow_class = RecursiveListDirectory
-  flow_typeinfo = (GlobAndRunFlow.flow_typeinfo +
-                   RecursiveListDirectory.flow_typeinfo.Remove("pathspec"))
+  @flow.StateHandler()
+  def End(self):
+    self.state.fd.Close()

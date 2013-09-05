@@ -133,14 +133,14 @@ class FindTest(test_lib.EmptyActionTest):
     # First get all the files at once
     pathspec = rdfvalue.PathSpec(path="/mock2/",
                                  pathtype=rdfvalue.PathSpec.PathType.OS)
-    request = rdfvalue.RDFFindSpec(pathspec=pathspec, path_regex=".")
+    request = rdfvalue.FindSpec(pathspec=pathspec, path_regex=".")
     request.iterator.number = 200
     result = self.RunAction("Find", request)
-    all_files = [x.hit for x in result if isinstance(x, rdfvalue.RDFFindSpec)]
+    all_files = [x.hit for x in result if isinstance(x, rdfvalue.FindSpec)]
 
     # Ask for the files one at the time
     files = []
-    request = rdfvalue.RDFFindSpec(pathspec=pathspec)
+    request = rdfvalue.FindSpec(pathspec=pathspec, path_regex=".")
     request.iterator.number = 1
 
     while True:
@@ -149,7 +149,7 @@ class FindTest(test_lib.EmptyActionTest):
         break
 
       self.assertEqual(len(result), 2)
-      self.assertTrue(isinstance(result[0], rdfvalue.RDFFindSpec))
+      self.assertTrue(isinstance(result[0], rdfvalue.FindSpec))
       self.assertTrue(isinstance(result[1], rdfvalue.Iterator))
       files.append(result[0].hit)
 
@@ -168,10 +168,10 @@ class FindTest(test_lib.EmptyActionTest):
     """Test the find action path regex."""
     pathspec = rdfvalue.PathSpec(path="/mock2/",
                                  pathtype=rdfvalue.PathSpec.PathType.OS)
-    request = rdfvalue.RDFFindSpec(pathspec=pathspec, path_regex=".*mp3")
+    request = rdfvalue.FindSpec(pathspec=pathspec, path_regex=".*mp3")
     request.iterator.number = 200
     result = self.RunAction("Find", request)
-    all_files = [x.hit for x in result if isinstance(x, rdfvalue.RDFFindSpec)]
+    all_files = [x.hit for x in result if isinstance(x, rdfvalue.FindSpec)]
 
     self.assertEqual(len(all_files), 1)
     self.assertEqual(
@@ -182,11 +182,11 @@ class FindTest(test_lib.EmptyActionTest):
     # First get all the files at once
     pathspec = rdfvalue.PathSpec(path="/mock2/",
                                  pathtype=rdfvalue.PathSpec.PathType.OS)
-    request = rdfvalue.RDFFindSpec(pathspec=pathspec, data_regex="Secret",
-                                   cross_devs=True)
+    request = rdfvalue.FindSpec(pathspec=pathspec, data_regex="Secret",
+                                cross_devs=True)
     request.iterator.number = 200
     result = self.RunAction("Find", request)
-    all_files = [x.hit for x in result if isinstance(x, rdfvalue.RDFFindSpec)]
+    all_files = [x.hit for x in result if isinstance(x, rdfvalue.FindSpec)]
     self.assertEqual(len(all_files), 2)
     self.assertEqual(all_files[0].pathspec.Basename(),
                      "file1.txt")
@@ -196,8 +196,8 @@ class FindTest(test_lib.EmptyActionTest):
   def testFindSizeLimits(self):
     """Test the find action size limits."""
     # First get all the files at once
-    request = rdfvalue.RDFFindSpec(min_file_size=4, max_file_size=15,
-                                   cross_devs=True)
+    request = rdfvalue.FindSpec(min_file_size=4, max_file_size=15,
+                                cross_devs=True)
     request.pathspec.Append(path="/mock2/",
                             pathtype=rdfvalue.PathSpec.PathType.OS)
 
@@ -205,7 +205,7 @@ class FindTest(test_lib.EmptyActionTest):
     results = self.RunAction("Find", request)
     all_files = []
     for result in results:
-      if isinstance(result, rdfvalue.RDFFindSpec):
+      if isinstance(result, rdfvalue.FindSpec):
         all_files.append(result.hit.pathspec.Basename())
     self.assertEqual(len(all_files), 5)
 
@@ -219,32 +219,34 @@ class FindTest(test_lib.EmptyActionTest):
     # First get all the files at once
     pathspec = rdfvalue.PathSpec(path="/mock2/",
                                  pathtype=rdfvalue.PathSpec.PathType.OS)
-    request = rdfvalue.RDFFindSpec(pathspec=pathspec, cross_devs=True)
+    request = rdfvalue.FindSpec(pathspec=pathspec, cross_devs=True)
     request.iterator.number = 200
     result = self.RunAction("Find", request)
-    all_files = [x.hit for x in result if isinstance(x, rdfvalue.RDFFindSpec)]
+    all_files = [x.hit for x in result if isinstance(x, rdfvalue.FindSpec)]
     self.assertEqual(len(all_files), 9)
 
   def testFindActionCrossDev(self):
     """Test that devices boundaries don't get crossed, also by default."""
     pathspec = rdfvalue.PathSpec(path="/mock2/",
                                  pathtype=rdfvalue.PathSpec.PathType.OS)
-    request = rdfvalue.RDFFindSpec(pathspec=pathspec, cross_devs=True)
+    request = rdfvalue.FindSpec(pathspec=pathspec, cross_devs=True,
+                                path_regex=".")
     request.iterator.number = 200
     results = self.RunAction("Find", request)
-    all_files = [x.hit for x in results if isinstance(x, rdfvalue.RDFFindSpec)]
+    all_files = [x.hit for x in results if isinstance(x, rdfvalue.FindSpec)]
     self.assertEqual(len(all_files), 9)
 
-    request = rdfvalue.RDFFindSpec(pathspec=pathspec, cross_devs=False)
+    request = rdfvalue.FindSpec(pathspec=pathspec, cross_devs=False,
+                                path_regex=".")
     request.iterator.number = 200
     results = self.RunAction("Find", request)
-    all_files = [x.hit for x in results if isinstance(x, rdfvalue.RDFFindSpec)]
+    all_files = [x.hit for x in results if isinstance(x, rdfvalue.FindSpec)]
     self.assertEqual(len(all_files), 7)
 
-    request = rdfvalue.RDFFindSpec(pathspec=pathspec)
+    request = rdfvalue.FindSpec(pathspec=pathspec, path_regex=".")
     request.iterator.number = 200
     results = self.RunAction("Find", request)
-    all_files = [x.hit for x in results if isinstance(x, rdfvalue.RDFFindSpec)]
+    all_files = [x.hit for x in results if isinstance(x, rdfvalue.FindSpec)]
     self.assertEqual(len(all_files), 7)
 
 

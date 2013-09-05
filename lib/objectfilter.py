@@ -107,7 +107,7 @@ class MalformedQueryError(Error):
   """The provided filter query is malformed."""
 
 
-class ParseError(Error):
+class ParseError(Error, lexer.ParseError):
   """The parser for textual queries returned invalid results."""
 
 

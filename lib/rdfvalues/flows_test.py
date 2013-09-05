@@ -4,6 +4,7 @@
 
 
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import flows
 from grr.lib.rdfvalues import test_base
 
 
@@ -28,6 +29,8 @@ class FlowStateTest(test_base.RDFValueTestCase):
     state = rdfvalue.FlowState()
     state.Register("teststate", 1)
     state.teststate = 100
+
+    state.Register("context", flows.DataObject())
     state.context.testcontext = 50
     s = state.SerializeToString()
 

@@ -11,8 +11,9 @@ from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import type_info
 from grr.lib import utils
+from grr.proto import flows_pb2
+
 
 config_lib.DEFINE_integer("ACL.approvers_required", 2,
                           "The number of approvers required for access.")
@@ -93,17 +94,18 @@ class Approval(aff4.AFF4Object):
         continue
 
       # Check authorization using the data_store for an authoritative source.
-      test_token = access_control.ACLToken(username, reason)
+      test_token = access_control.ACLToken(username=username, reason=reason)
       try:
         # TODO(user): stop making assumptions about URNs
         if object_urn.Split()[0] == "cron":
           # Checking that we can access the cron job
-          flow.GRRFlow.StartFlow(None, "CheckCronJobAccessFlow",
-                                 token=test_token, cron_job_urn=object_urn)
+          flow.GRRFlow.StartFlow(flow_name="ManageCronJobFlow",
+                                 token=test_token, urn=object_urn)
+
         elif object_urn.Split()[0] == "hunts":
           # Checking that we can access the hunt
-          flow.GRRFlow.StartFlow(None, "CheckHuntAccessFlow", token=test_token,
-                                 hunt_urn=object_urn)
+          flow.GRRFlow.StartFlow(flow_name="CheckHuntAccessFlow",
+                                 token=test_token, hunt_urn=object_urn)
         else:
           # Check if we can access a non-existent path under this one.
           aff4.FACTORY.Open(rdfvalue.RDFURN(object_urn).Add("acl_chk"),
@@ -297,22 +299,13 @@ class CronJobApproval(ApprovalWithApproversAndReason):
     return (user, aff4.ROOT_URN.Add("cron").Add(cron_job_name))
 
 
+class RequestApprovalWithReasonFlowArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.RequestApprovalWithReasonFlowArgs
+
+
 class RequestApprovalWithReasonFlow(flow.GRRFlow):
   """Base flow class for flows that request approval of a certain type."""
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.String(
-          description="Reason for approval",
-          name="reason",
-          default="Unspecified"),
-      type_info.String(
-          description="Approver username",
-          name="approver",
-          default=""),
-      type_info.RDFURNType(
-          description="URN of the object that approval is required for.",
-          name="subject_urn"),
-      )
+  args_type = RequestApprovalWithReasonFlowArgs
 
   approval_type = None
 
@@ -332,7 +325,7 @@ class RequestApprovalWithReasonFlow(flow.GRRFlow):
 
     approval_request = aff4.FACTORY.Create(approval_urn, self.approval_type,
                                            mode="w", token=self.token)
-    approval_request.Set(approval_request.Schema.REASON(self.state.reason))
+    approval_request.Set(approval_request.Schema.REASON(self.args.reason))
 
     # We add ourselves as an approver as well (The requirement is that we have 2
     # approvers, so the requester is automatically an approver).
@@ -342,7 +335,7 @@ class RequestApprovalWithReasonFlow(flow.GRRFlow):
     approval_request.Close()
 
     # Notify to the users.
-    for user in self.state.approver.split(","):
+    for user in self.args.approver.split(","):
       user = user.strip()
       fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(user),
                                "GRRUser", mode="rw", token=self.token)
@@ -372,29 +365,20 @@ Please click <a href='%(admin_ui)s#%(approval_urn)s'>
                                  self.token.username, subject_title),
                              template % dict(
                                  username=self.token.username,
-                                 reason=utils.SmartStr(self.state.reason),
+                                 reason=utils.SmartStr(self.args.reason),
                                  admin_ui=config_lib.CONFIG["AdminUI.url"],
                                  subject_title=subject_title,
                                  approval_urn=url),
                              is_html=True)
 
 
+class GrantApprovalWithReasonFlowArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.GrantApprovalWithReasonFlowArgs
+
+
 class GrantApprovalWithReasonFlow(flow.GRRFlow):
   """Base flows class for flows that grant approval of a certain type."""
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.String(
-          description="Reason for approval",
-          name="reason",
-          default="Unspecified"),
-      type_info.String(
-          description="Delegate username",
-          name="delegate",
-          default=""),
-      type_info.RDFURNType(
-          description="URN of the object that approval is required for.",
-          name="subject_urn"),
-      )
+  args_type = GrantApprovalWithReasonFlowArgs
 
   def BuildApprovalUrn(self):
     """Builds approval object urn."""
@@ -431,10 +415,10 @@ class GrantApprovalWithReasonFlow(flow.GRRFlow):
 
     # Notify to the user.
     fd = aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(self.state.delegate),
+        aff4.ROOT_URN.Add("users").Add(self.args.delegate),
         "GRRUser", mode="rw", token=self.token)
 
-    fd.Notify("ViewObject", self.state.subject_urn,
+    fd.Notify("ViewObject", self.args.subject_urn,
               "%s has granted you access to %s."
               % (self.token.username, subject_title), self.session_id)
     fd.Close()
@@ -453,12 +437,12 @@ Please click <a href='%(admin_ui)s#%(subject_urn)s'>
 <p>The GRR team.
 </body></html>"""
 
-    email_alerts.SendEmail(self.state.delegate, self.token.username,
+    email_alerts.SendEmail(self.args.delegate, self.token.username,
                            "Access to %s granted." % subject_title,
                            template % dict(
                                subject_title=subject_title,
                                username=self.token.username,
-                               reason=utils.SmartStr(self.state.reason),
+                               reason=utils.SmartStr(self.args.reason),
                                admin_ui=config_lib.CONFIG["AdminUI.url"],
                                subject_urn=access_urn
                                ),
@@ -479,7 +463,7 @@ class BreakGlassGrantApprovalWithReasonFlow(GrantApprovalWithReasonFlow):
                                            aff4_type=self.approval_type,
                                            token=self.token)
 
-    approval_request.Set(approval_request.Schema.REASON(self.state.reason))
+    approval_request.Set(approval_request.Schema.REASON(self.args.reason))
     approval_request.AddAttribute(
         approval_request.Schema.APPROVER(self.token.username))
 
@@ -495,7 +479,7 @@ class BreakGlassGrantApprovalWithReasonFlow(GrantApprovalWithReasonFlow):
     fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(
         self.token.username), "GRRUser", mode="rw", token=self.token)
 
-    fd.Notify("ViewObject", self.state.subject_urn,
+    fd.Notify("ViewObject", self.args.subject_urn,
               "An Emergency Approval has been granted to access "
               "%s." % subject_title, self.session_id)
     fd.Close()
@@ -520,7 +504,7 @@ This access has been logged and granted for 24 hours.
             client_id=self.client_id,
             username=self.token.username,
             subject_title=subject_title,
-            reason=utils.SmartStr(self.state.reason)),
+            reason=utils.SmartStr(self.args.reason)),
         is_html=True)
 
 
@@ -534,7 +518,7 @@ class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):
   def BuildApprovalUrn(self):
     """Builds approval object urn."""
     return aff4.ROOT_URN.Add("ACL").Add(self.client_id.Path()).Add(
-        self.token.username).Add(utils.EncodeReasonString(self.state.reason))
+        self.token.username).Add(utils.EncodeReasonString(self.args.reason))
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -553,7 +537,7 @@ class GrantClientApprovalFlow(GrantApprovalWithReasonFlow):
   def BuildApprovalUrn(self):
     """Builds approval object urn."""
     return aff4.ROOT_URN.Add("ACL").Add(self.client_id.Path()).Add(
-        self.state.delegate).Add(utils.EncodeReasonString(self.state.reason))
+        self.args.delegate).Add(utils.EncodeReasonString(self.args.reason))
 
   def BuildAccessUrl(self):
     """Builds the urn to access this object."""
@@ -577,7 +561,7 @@ class BreakGlassGrantClientApprovalFlow(BreakGlassGrantApprovalWithReasonFlow):
   def BuildApprovalUrn(self):
     """Builds approval object urn."""
     return aff4.ROOT_URN.Add("ACL").Add(self.client_id.Path()).Add(
-        self.token.username).Add(utils.EncodeReasonString(self.state.reason))
+        self.token.username).Add(utils.EncodeReasonString(self.args.reason))
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -597,12 +581,12 @@ class RequestHuntApprovalFlow(RequestApprovalWithReasonFlow):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
     return aff4.ROOT_URN.Add("ACL").Add(
-        self.state.subject_urn.Path()).Add(self.token.username).Add(
-            utils.EncodeReasonString(self.state.reason))
+        self.args.subject_urn.Path()).Add(self.token.username).Add(
+            utils.EncodeReasonString(self.args.reason))
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
-    return "hunt %s" % self.state.subject_urn.Basename()
+    return "hunt %s" % self.args.subject_urn.Basename()
 
 
 class GrantHuntApprovalFlow(GrantApprovalWithReasonFlow):
@@ -616,17 +600,17 @@ class GrantHuntApprovalFlow(GrantApprovalWithReasonFlow):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
     return aff4.ROOT_URN.Add("ACL").Add(
-        self.state.subject_urn.Path()).Add(self.state.delegate).Add(
-            utils.EncodeReasonString(self.state.reason))
+        self.args.subject_urn.Path()).Add(self.args.delegate).Add(
+            utils.EncodeReasonString(self.args.reason))
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
-    return "hunt %s" % self.state.subject_urn.Basename()
+    return "hunt %s" % self.args.subject_urn.Basename()
 
   def BuildAccessUrl(self):
     """Builds the urn to access this object."""
     return urllib.urlencode((("main", "ManageHunts"),
-                             ("hunt", self.state.subject_urn)))
+                             ("hunt", self.args.subject_urn)))
 
 
 class RequestCronJobApprovalFlow(RequestApprovalWithReasonFlow):
@@ -640,8 +624,8 @@ class RequestCronJobApprovalFlow(RequestApprovalWithReasonFlow):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
     return aff4.ROOT_URN.Add("ACL").Add(
-        self.state.subject_urn.Path()).Add(self.token.username).Add(
-            utils.EncodeReasonString(self.state.reason))
+        self.args.subject_urn.Path()).Add(self.token.username).Add(
+            utils.EncodeReasonString(self.args.reason))
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -659,8 +643,8 @@ class GrantCronJobApprovalFlow(GrantApprovalWithReasonFlow):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
     return aff4.ROOT_URN.Add("ACL").Add(
-        self.state.subject_urn.Path()).Add(self.state.delegate).Add(
-            utils.EncodeReasonString(self.state.reason))
+        self.args.subject_urn.Path()).Add(self.args.delegate).Add(
+            utils.EncodeReasonString(self.args.reason))
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""

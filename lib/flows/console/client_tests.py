@@ -30,7 +30,7 @@ def TestFlows(client_id, platform, testname=None, local_worker=False):
   # This token is not really used since there is no approval for the
   # tested client - these tests are designed for raw access - but we send it
   # anyways to have an access reason.
-  token = access_control.ACLToken("test", "client testing")
+  token = access_control.ACLToken(username="test", reason="client testing")
 
   client_id = rdfvalue.RDFURN(client_id)
   RunTests(client_id, platform=platform, testname=testname,
@@ -231,9 +231,10 @@ class TestFindTSKLinux(TestListDirectoryTSKLinux):
   """Tests if the find flow works on Linux using Sleuthkit."""
   flow = "FindFiles"
 
-  args = {"findspec": rdfvalue.RDFFindSpec(
+  args = {"findspec": rdfvalue.FindSpec(
+      path_regex=".",
       pathspec=rdfvalue.PathSpec(
-          path="/bin",
+          path="/bin/",
           pathtype=rdfvalue.PathSpec.PathType.TSK))}
 
 
@@ -241,13 +242,13 @@ class TestFindOSLinux(TestListDirectoryOSLinux):
   """Tests if the find flow works on Linux."""
   flow = "FindFiles"
 
-  args = {"findspec": rdfvalue.RDFFindSpec(
+  args = {"findspec": rdfvalue.FindSpec(
       pathspec=rdfvalue.PathSpec(
-          path="/bin",
+          path="/bin/",
           pathtype=rdfvalue.PathSpec.PathType.OS))}
 
 
-class TestInterrogate(ClientTestBase):
+class TestClientInterrogate(ClientTestBase):
   """Tests the Interrogate flow on windows."""
   platforms = ["windows", "linux", "darwin"]
   flow = "Interrogate"
@@ -262,7 +263,7 @@ class TestInterrogate(ClientTestBase):
                 aff4.VFSGRRClient.SchemaCls.USERNAMES]
 
   def setUp(self):
-    super(TestInterrogate, self).setUp()
+    super(TestClientInterrogate, self).setUp()
     data_store.DB.DeleteAttributes(self.client_id, [
         str(attribute) for attribute in self.attributes], sync=True)
     aff4.FACTORY.Flush()
@@ -334,7 +335,7 @@ class TestFindWindowsRegistry(ClientTestBase):
   """
   platforms = ["windows"]
   reg_path = ("/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/"
-              "CurrentVersion/ProfileList")
+              "CurrentVersion/ProfileList/")
 
   output_path = "analysis/find/test"
 
@@ -347,7 +348,7 @@ class TestFindWindowsRegistry(ClientTestBase):
 
     debugging.StartFlowAndWait(
         self.client_id, "FindFiles",
-        findspec=rdfvalue.RDFFindSpec(
+        findspec=rdfvalue.FindSpec(
             pathspec=rdfvalue.PathSpec(
                 path=self.reg_path,
                 pathtype=rdfvalue.PathSpec.PathType.REGISTRY),
@@ -416,7 +417,7 @@ class TestGetFileTSKWindows(TestGetFileOSWindows):
     self.assertTrue(found)
 
 
-class TestRegistry(ClientTestBase):
+class TestClientRegistry(ClientTestBase):
   """Tests if listing registry keys works on Windows."""
   platforms = ["windows"]
   flow = "ListDirectory"

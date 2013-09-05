@@ -28,7 +28,7 @@ class CollectRunKeys(flow.GRRFlow):
         run_path = ("HKEY_USERS/%s/Software/Microsoft/Windows/CurrentVersion"
                     "/%s" % (user.sid, key))
 
-        findspec_run = rdfvalue.RDFFindSpec(max_depth=2)
+        findspec_run = rdfvalue.FindSpec(max_depth=2, path_regex=".")
         findspec_run.iterator.number = 1000
         findspec_run.pathspec.path = run_path
         findspec_run.pathspec.pathtype = rdfvalue.PathSpec.PathType.REGISTRY
@@ -42,7 +42,7 @@ class CollectRunKeys(flow.GRRFlow):
       run_path = ("HKEY_LOCAL_MACHINE/Software/Microsoft/Windows/CurrentVersion"
                   "/%s" % key)
 
-      findspec_run = rdfvalue.RDFFindSpec(max_depth=2)
+      findspec_run = rdfvalue.FindSpec(max_depth=2, path_regex=".")
       findspec_run.iterator.number = 1000
       findspec_run.pathspec.path = run_path
       findspec_run.pathspec.pathtype = rdfvalue.PathSpec.PathType.REGISTRY
@@ -99,7 +99,7 @@ class FindMRU(flow.GRRFlow):
                   "/CurrentVersion/Explorer/ComDlg32"
                   "/OpenSavePidlMRU" % user.sid)
 
-      findspec = rdfvalue.RDFFindSpec(max_depth=2)
+      findspec = rdfvalue.FindSpec(max_depth=2, path_regex=".")
       findspec.iterator.number = 1000
       findspec.pathspec.path = mru_path
       findspec.pathspec.pathtype = rdfvalue.PathSpec.PathType.REGISTRY

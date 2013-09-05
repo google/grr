@@ -1,6 +1,8 @@
 #!/usr/bin/env python
-"""Automation flows to do the the normal case initialization work in one go."""
+"""Automation flows to do the the normal case initialization work in one go.
 
+This file is disabled since it has no tests and is broken.
+"""
 
 
 
@@ -9,46 +11,19 @@ from grr.lib import flow
 from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import type_info
+from grr.proto import flows_pb2
 
 
+class WinUserActivityInvestigationArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.WinUserActivityInvestigationArgs
+
+
+# This file is disabled since it has no tests and is broken.
 class WinUserActivityInvestigation(flow.GRRFlow):
   """Do the initial work for a user investigation."""
 
   category = "/Automation/"
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.String(
-          name="username",
-          description="The user to target the actions to.",
-          ),
-      type_info.Bool(
-          name="get_browser_history",
-          description="Call each of the browser history flows.",
-          default=True),
-      type_info.Integer(
-          name="recursive_list_homedir",
-          description="Recursively list the users homedir to this depth.",
-          default=5),
-      type_info.Integer(
-          name="recursive_list_user_registry",
-          description="Recursively list the users registry hive.",
-          default=5),
-      type_info.MultiSelectList(
-          name="artifact_list",
-          description="A list of Artifact names.",
-          default=[],
-          ),
-      type_info.Bool(
-          name="timeline_collected_data",
-          description="Once complete create a timeline for the host.",
-          default=True
-          ),
-      type_info.Bool(
-          name="use_tsk",
-          description="Use raw filesystem access where possible.",
-          default=True
-          ),
-      )
+  args_type = WinUserActivityInvestigation
 
   @flow.StateHandler(next_state="FinishFlow")
   def Start(self):
@@ -109,6 +84,7 @@ class WinUserActivityInvestigation(flow.GRRFlow):
         self.CallFlow("MACTimes", path="/", next_state="End")
 
 
+# This file is disabled since it has no tests and is broken.
 class WinSystemActivityInvestigation(flow.GRRFlow):
   """Do the initial work for a system investigation.
 
@@ -220,6 +196,7 @@ class WinSystemActivityInvestigation(flow.GRRFlow):
         self.CallFlow("MACTimes", path="/", next_state="End")
 
 
+# This file is disabled since it has no tests and is broken.
 class LinSystemActivityInvestigation(flow.GRRFlow):
   """Do the initial work for a Linux system investigation.
 

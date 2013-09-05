@@ -122,6 +122,12 @@ parser_upload_signed_args.add_argument(
     help="The platform the file will be used on. This determines which signing"
     " keys to use, and the path on the server the file will be uploaded to.")
 
+parser_upload_signed_args.add_argument(
+    "--arch", required=True, choices=maintenance_utils.SUPPORTED_ARCHICTECTURES,
+    default="amd64",
+    help="The architecture the file will be used on. This determines "
+    " the path on the server the file will be uploaded to.")
+
 # Upload parsers.
 parser_upload_raw = subparsers.add_parser(
     "upload_raw", parents=[parser_upload_args],
@@ -146,27 +152,30 @@ parser_upload_memory_driver = subparsers.add_parser(
 def LoadMemoryDrivers(grr_dir):
   """Load memory drivers from disk to database."""
 
+  client_context = ["Platform:Darwin", "Arch:amd64"]
   f_path = os.path.join(grr_dir, config_lib.CONFIG.Get(
-      "MemoryDriver.driver_file", context=["Platform:Darwin", "Arch:amd64"]))
+      "MemoryDriver.driver_file", context=client_context))
 
   print "Signing and uploading %s" % f_path
   up_path = maintenance_utils.UploadSignedDriverBlob(
-      open(f_path).read(), platform="Darwin", file_name="pmem")
+      open(f_path).read(), client_context=client_context)
   print "uploaded %s" % up_path
 
+  client_context = ["Platform:Windows", "Arch:i386"]
   f_path = os.path.join(grr_dir, config_lib.CONFIG.Get(
-      "MemoryDriver.driver_file", context=["Platform:Windows", "Arch:i386"]))
+      "MemoryDriver.driver_file", context=client_context))
 
   print "Signing and uploading %s" % f_path
   up_path = maintenance_utils.UploadSignedDriverBlob(
-      open(f_path).read(), platform="Windows", file_name="winpmem.i386.sys")
+      open(f_path).read(), client_context=client_context)
   print "uploaded %s" % up_path
 
+  client_context = ["Platform:Windows", "Arch:amd64"]
   f_path = os.path.join(grr_dir, config_lib.CONFIG.Get(
-      "MemoryDriver.driver_file", context=["Platform:Windows", "Arch:amd64"]))
+      "MemoryDriver.driver_file", context=client_context))
   print "Signing and uploading %s" % f_path
   up_path = maintenance_utils.UploadSignedDriverBlob(
-      open(f_path).read(), platform="Windows", file_name="winpmem.amd64.sys")
+      open(f_path).read(), client_context=client_context)
   print "uploaded %s" % up_path
 
 
@@ -262,7 +271,7 @@ the client facing server and the admin user interface.\n"""
   try:
     hostname = maintenance_utils.GuessPublicHostname()
     print "Using %s as public hostname" % hostname
-  except OSError:
+  except (OSError, IOError):
     print "Sorry, we couldn't guess your public hostname"
     hostname = raw_input(
         "Please enter it manually e.g. grr.example.com: ").strip()
@@ -443,15 +452,19 @@ def main(unused_argv):
     print "Uploaded to %s" % dest_path
 
   elif flags.FLAGS.subparser_name == "upload_memory_driver":
+    client_context = ["Platform:%s" % flags.FLAGS.platform.title(),
+                      "Arch:%s" % flags.FLAGS.arch]
     content = open(flags.FLAGS.file).read(1024*1024*30)
+
     if flags.FLAGS.dest_path:
       uploaded = maintenance_utils.UploadSignedDriverBlob(
-          content, platform=flags.FLAGS.platform,
-          aff4_path=flags.FLAGS.dest_path)
+          content, aff4_path=flags.FLAGS.dest_path,
+          client_context=client_context)
+
     else:
       uploaded = maintenance_utils.UploadSignedDriverBlob(
-          content, platform=flags.FLAGS.platform,
-          file_name=os.path.basename(flags.FLAGS.file))
+          content, client_context=client_context)
+
     print "Uploaded to %s" % uploaded
 
   elif flags.FLAGS.subparser_name == "upload_raw":

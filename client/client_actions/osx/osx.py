@@ -353,7 +353,7 @@ class Uninstall(actions.ActionPlugin):
       msg = "Could not remove binary."
 
     try:
-      os.remove(config_lib.CONFIG["Client.launchctl_plist"])
+      os.remove(config_lib.CONFIG["Client.plist_path"])
     except OSError:
       if "Could not" in msg:
         msg += " Could not remove plist file."

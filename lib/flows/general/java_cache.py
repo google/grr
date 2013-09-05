@@ -130,7 +130,7 @@ class JavaCacheCollector(flow.GRRFlow):
     pathspec = rdfvalue.PathSpec(path=cache_directory,
                                  pathtype=self.pathtype)
 
-    yield rdfvalue.RDFFindSpec(
+    yield rdfvalue.FindSpec(
         pathspec=pathspec,
         path_regex=".*",
         max_depth=2)

@@ -3,35 +3,11 @@
 // These are protobufs used in various analysis jobs.
 
 syntax = "proto2";
+import "grr/proto/flows.proto";
 import "grr/proto/jobs.proto";
 import "grr/proto/semantic.proto";
 
 
-
-// This is the user's access token.
-message AccessToken {
-  optional string username = 1;
-
-  // A reason for access (e.g. case name, investigation id).
-  optional string reason = 2;
-
-  // What kind of access is required? r - read, w - write, x - execute (for
-  // flows)
-  optional string requested_access = 3;
-
-
-  // When does this token expire?
-  optional int64 expiry = 5;
-
-  // The IP this request originated from as well as proxies on the way.
-  repeated string source_ips = 6;
-
-  // The issuing process.
-  optional string process = 7;
-
-  // Is this action an emergency action?
-  optional bool is_emergency = 8;
-}
 
 // Represent a timestamp specification.
 message TimestampSpec {
@@ -81,7 +57,7 @@ message DataStoreRequest {
 
   repeated DataStoreValue values = 2;
   optional TimestampSpec timestamp = 5;
-  optional AccessToken token = 6;
+  optional ACLToken token = 6;
 
   optional bool sync = 7;
 
@@ -106,7 +82,7 @@ message DataStoreQuery {
 
   optional uint32 limit = 5;
   optional uint32 limit_start = 6;
-  optional AccessToken token = 7;
+  optional ACLToken token = 7;
 
   optional TimestampSpec timestamp = 8;
 }
@@ -163,9 +139,11 @@ message StartFlowRequest {
       type: "ClientURN",
     }];
   optional string flow_name = 2;
-  optional Dict args = 3;
-  optional AccessToken token = 4;
-};
+  optional Dict args = 3;   // TODO(user): Aim to deprecate this field.
+  optional ACLToken token = 4;
+  optional EmbeddedRDFValue flow_args = 5;
+  optional EmbeddedRDFValue runner_args = 6;
+}
 
 message TerminateFlowRequest {
   optional string session_id = 1 [(sem_type) = {
@@ -173,7 +151,7 @@ message TerminateFlowRequest {
     }];
   optional string reason = 2;  //Why is this flow terminated?
   optional bool force = 3;
-  optional AccessToken token = 4;
+  optional ACLToken token = 4;
 };
 
 message StartFlowResponse {

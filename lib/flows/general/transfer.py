@@ -13,8 +13,11 @@ import logging
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import type_info
-from grr.lib import utils
+from grr.proto import flows_pb2
+
+
+class GetFileArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.GetFileArgs
 
 
 class GetFile(flow.GRRFlow):
@@ -26,17 +29,7 @@ class GetFile(flow.GRRFlow):
 
   category = "/Filesystem/"
 
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.PathspecType(
-          description="The pathspec for the file to retrieve."),
-
-      type_info.Integer(
-          name="read_length",
-          default=0,
-          help=("The amount of data to read from the file. If 0 we use "
-                "the value from a stat call.")
-          )
-      )
+  args_type = GetFileArgs
 
   class SchemaCls(flow.GRRFlow.SchemaCls):
     PROGRESS_GRAPH = aff4.Attribute(
@@ -48,21 +41,19 @@ class GetFile(flow.GRRFlow):
   WINDOW_SIZE = 200
   CHUNK_SIZE = 512 * 1024
 
-  def Init(self):
-    self.state.Register("max_chunk_number",
-                        max(2, self.state.read_length/self.CHUNK_SIZE))
-
-    # Read in 512kb chunks
-    self.state.Register("chunk_size", self.CHUNK_SIZE)
-    self.state.Register("current_chunk_number", 0)
-    self.state.Register("file_size", 0)
-
   @flow.StateHandler(next_state=["Stat"])
   def Start(self):
     """Get information about the file from the client."""
-    self.Init()
+    self.state.Register("max_chunk_number",
+                        max(2, self.state.args.read_length/self.CHUNK_SIZE))
+
+    self.state.Register("current_chunk_number", 0)
+    self.state.Register("file_size", 0)
+    self.state.Register("fd", None)
+    self.state.Register("stat", None)
+
     self.CallClient("StatFile", rdfvalue.ListDirRequest(
-        pathspec=self.state.pathspec),
+        pathspec=self.state.args.pathspec),
                     next_state="Stat")
 
   @flow.StateHandler(next_state=["ReadBuffer", "CheckHashes"])
@@ -70,19 +61,19 @@ class GetFile(flow.GRRFlow):
     """Fix up the pathspec of the file."""
     response = responses.First()
     if responses.success and response:
-      self.state.Register("stat", response)
-      self.state.pathspec = self.state.stat.pathspec
+      self.state.stat = response
+      self.state.args.pathspec = self.state.stat.pathspec
     else:
       raise IOError("Error: %s" % responses.status)
 
     # Adjust the size from st_size if read length is not specified.
-    if self.state.read_length == 0:
+    if self.state.args.read_length == 0:
       self.state.file_size = self.state.stat.st_size
     else:
-      self.state.file_size = self.state.read_length
+      self.state.file_size = self.state.args.read_length
 
     self.state.max_chunk_number = (self.state.file_size /
-                                   self.state.chunk_size) + 1
+                                   self.CHUNK_SIZE) + 1
 
     self.CreateBlobImage()
     self.FetchWindow(min(
@@ -98,9 +89,9 @@ class GetFile(flow.GRRFlow):
         return
 
       request = rdfvalue.BufferReference(
-          pathspec=self.state.pathspec,
-          offset=self.state.current_chunk_number * self.state.chunk_size,
-          length=self.state.chunk_size)
+          pathspec=self.state.args.pathspec,
+          offset=self.state.current_chunk_number * self.CHUNK_SIZE,
+          length=self.CHUNK_SIZE)
       self.CallClient("TransferBuffer", request, next_state="ReadBuffer")
       self.state.current_chunk_number += 1
 
@@ -110,20 +101,18 @@ class GetFile(flow.GRRFlow):
     Note that this is pinned on the client id - i.e. the client can not change
     aff4 objects outside its tree.
     """
-    self.state.Register("urn", aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-        self.state.pathspec, self.client_id))
+    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+        self.state.args.pathspec, self.client_id)
 
-    self.state.stat.aff4path = utils.SmartUnicode(self.state.urn)
+    self.state.stat.aff4path = urn
 
     # Create a new Hash image for the data. Note that this object is pickled
     # with this flow between states.
-    fd = aff4.FACTORY.Create(self.state.urn, "BlobImage", token=self.token)
+    self.state.fd = aff4.FACTORY.Create(urn, "BlobImage", token=self.token)
 
     # The chunksize must be set to be the same as the transfer chunk size.
-    fd.SetChunksize(self.state.chunk_size)
-    fd.Set(fd.Schema.STAT(self.state.stat))
-
-    self.state.Register("fd", fd)
+    self.state.fd.SetChunksize(self.CHUNK_SIZE)
+    self.state.fd.Set(self.state.fd.Schema.STAT(self.state.stat))
 
   @flow.StateHandler(next_state=["ReadBuffer", "CheckHashes"])
   def ReadBuffer(self, responses):
@@ -134,7 +123,7 @@ class GetFile(flow.GRRFlow):
       if not response:
         raise IOError("Missing hash for offset %s missing" % response.offset)
 
-      if response.offset <= self.state.max_chunk_number * self.state.chunk_size:
+      if response.offset <= self.state.max_chunk_number * self.CHUNK_SIZE:
         # Write the hash to the index. Note that response.data is the hash of
         # the block (32 bytes) and response.length is the length of the block.
         self.state.fd.AddBlob(response.data, response.length)
@@ -150,19 +139,18 @@ class GetFile(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     """Finalize reading the file."""
-    urn = self.state.get("urn")
-    if urn is None:
+    fd = self.state.fd
+    if fd is None:
       self.Notify("ViewObject", self.client_id, "File failed to be transferred")
     else:
-      self.Notify("ViewObject", urn, "File transferred successfully")
+      self.Notify("ViewObject", fd.urn, "File transferred successfully")
 
-      self.Log("Finished reading %s", urn)
+      self.Log("Finished reading %s", fd.urn)
       self.Log("Flow Completed in %s seconds",
                time.time() - self.state.context.create_time/1e6)
 
       stat_response = self.state.fd.Get(self.state.fd.Schema.STAT)
 
-      fd = self.state.fd
       fd.size = min(fd.size, self.state.file_size)
       fd.Close(sync=True)
 
@@ -185,9 +173,10 @@ class FastGetFile(GetFile):
   # We can be much more aggressive here.
   WINDOW_SIZE = 400
 
-  def Init(self):
+  @flow.StateHandler()
+  def Start(self, responses):
+    super(FastGetFile, self).Start(responses)
     self.state.Register("queue", [])
-    super(FastGetFile, self).Init()
 
   def FetchWindow(self, number_of_chunks_to_readahead):
     """Read ahead a number of buffers to fill the window."""
@@ -196,10 +185,10 @@ class FastGetFile(GetFile):
         self.state.max_chunk_number - self.state.current_chunk_number)
 
     for _ in range(number_of_chunks_to_readahead):
-      offset = self.state.current_chunk_number * self.state.chunk_size
-      request = rdfvalue.BufferReference(pathspec=self.state.pathspec,
+      offset = self.state.current_chunk_number * self.CHUNK_SIZE
+      request = rdfvalue.BufferReference(pathspec=self.state.args.pathspec,
                                          offset=offset,
-                                         length=self.state.chunk_size)
+                                         length=self.CHUNK_SIZE)
       self.CallClient("HashBuffer", request, next_state="CheckHashes")
 
       self.state.current_chunk_number += 1
@@ -238,7 +227,7 @@ class FastGetFile(GetFile):
     # in flight.
     for hash_tracker in hash_list:
       request = hash_tracker.hash_response
-      request.pathspec = self.state.pathspec
+      request.pathspec = self.state.args.pathspec
 
       if hash_tracker.blob_urn in matched_urns:
         self.CallState([request], next_state="WriteHash")
@@ -274,6 +263,10 @@ class FastGetFile(GetFile):
       self.SendReply(stat_response)
 
 
+class GetMBRArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.GetMBRArgs
+
+
 class GetMBR(flow.GRRFlow):
   """A flow to retrieve the MBR.
 
@@ -282,14 +275,7 @@ class GetMBR(flow.GRRFlow):
   """
 
   category = "/Filesystem/"
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.Integer(
-          description="The length of the MBR buffer to read.",
-          name="length",
-          default=4096,
-          )
-      )
+  args_type = GetMBRArgs
 
   @flow.StateHandler(next_state=["StoreMBR"])
   def Start(self):
@@ -300,7 +286,7 @@ class GetMBR(flow.GRRFlow):
         path_options=rdfvalue.PathSpec.Options.CASE_LITERAL)
 
     request = rdfvalue.BufferReference(pathspec=pathspec, offset=0,
-                                       length=self.state.length)
+                                       length=self.state.args.length)
     self.CallClient("ReadBuffer", request, next_state="StoreMBR")
 
   @flow.StateHandler()
@@ -367,6 +353,10 @@ class TransferStore(flow.WellKnownFlow):
                    len(cdata))
 
 
+class FileDownloaderArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.FileDownloaderArgs
+
+
 class FileDownloader(flow.GRRFlow):
   """Handle the automated collection of multiple files.
 
@@ -376,35 +366,23 @@ class FileDownloader(flow.GRRFlow):
   Returns to parent flow:
     A StatResponse protobuf for each downloaded file.
   """
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.List(
-          description="A list of Find Specifications.",
-          name="findspecs",
-          validator=type_info.FindSpecType(),
-          default=[]),
-      type_info.List(
-          description="A list of Path specifications to find.",
-          name="pathspecs",
-          validator=type_info.PathspecType(),
-          default=[])
-      )
+  args_type = FileDownloaderArgs
 
   @flow.StateHandler(next_state=["DownloadFiles", "HandleDownloadedFiles"])
   def Start(self):
     """Queue flows for all valid find specs."""
-    if self.state.findspecs is None:
+    if not self.state.args.HasField("findspecs"):
       # Call GetFindSpecs, should be overridden by inheriting classes.
-      self.state.findspecs = self.GetFindSpecs()
+      self.state.args.findspecs = self.GetFindSpecs()
 
-    if not self.state.findspecs and not self.state.pathspecs:
+    if not self.state.args.findspecs and not self.state.pathspecs:
       self.Error("No usable specs found.")
 
-    for findspec in self.state.findspecs:
+    for findspec in self.state.args.findspecs:
       self.CallFlow("FindFiles", next_state="DownloadFiles",
                     findspec=findspec, output=None)
 
-    for pathspec in self.state.pathspecs:
+    for pathspec in self.state.args.pathspecs:
       self.CallFlow("GetFile", next_state="HandleDownloadedFiles",
                     pathspec=pathspec)
 
@@ -448,6 +426,10 @@ class FileDownloader(flow.GRRFlow):
     return []
 
 
+class FileCollectorArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.FileCollectorArgs
+
+
 class FileCollector(flow.GRRFlow):
   """Flow to create a collection from downloaded files.
 
@@ -455,23 +437,13 @@ class FileCollector(flow.GRRFlow):
   Returns to the parent flow:
     A StatResponse protobuf describing the output collection.
   """
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.List(
-          name="findspecs",
-          description="A list of find specifications.",
-          validator=type_info.FindSpecType()),
-      type_info.String(
-          name="output",
-          description="A URN to an AFF4Collection to add each result to.",
-          default="analysis/collect/{u}-{t}")
-      )
+  args_type = FileCollectorArgs
 
   @flow.StateHandler(next_state="WriteCollection")
   def Start(self):
     """Start FileCollector flow."""
-    output = self.state.output.format(t=time.time(), u=self.state.context.user)
-    self.state.output = self.client_id.Add(output)
+    output = self.args.output.format(t=time.time(), u=self.state.context.user)
+    self.state.Register("output", self.client_id.Add(output))
     self.state.Register("fd", aff4.FACTORY.Create(self.state.output,
                                                   "AFF4Collection",
                                                   mode="rw", token=self.token))
@@ -483,7 +455,7 @@ class FileCollector(flow.GRRFlow):
             self.__class__.__name__)))
 
     # Just call the FileDownloader with these findspecs
-    self.CallFlow("FileDownloader", findspecs=self.state.findspecs,
+    self.CallFlow("FileDownloader", findspecs=self.args.findspecs,
                   next_state="WriteCollection")
 
   @flow.StateHandler()
@@ -506,6 +478,10 @@ class FileCollector(flow.GRRFlow):
                 "Completed download of {0:d} files.".format(num_files))
 
 
+class SendFileArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.SendFileArgs
+
+
 class SendFile(flow.GRRFlow):
   """This flow sends a file to remote listener.
 
@@ -520,47 +496,22 @@ class SendFile(flow.GRRFlow):
   """
 
   category = "/Filesystem/"
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.PathspecType(
-          description="The pathspec for the file to retrieve.",
-          default=None),
-      type_info.String(
-          name="host",
-          description="Hostname or IP to send the file to.",
-          default=None),
-      type_info.Integer(
-          name="port",
-          description="Port number on the listening server.",
-          default=12345),
-      type_info.SemanticEnum(
-          enum_container=rdfvalue.NetworkAddress.Family,
-          name="address_family",
-          default=rdfvalue.NetworkAddress.Family.INET,
-          description="AF_INET or AF_INET6."),
-      type_info.EncryptionKey(
-          name="key",
-          description="An encryption key given in hex representation.",
-          length=16),
-      type_info.EncryptionKey(
-          name="iv",
-          description="The iv for AES, also given in hex representation.",
-          length=16)
-      )
+  args_type = SendFileArgs
 
   @flow.StateHandler(next_state="Done")
   def Start(self):
     """This issues the sendfile request."""
 
-    self.state.key = self.state.key.decode("hex")
-    self.state.iv = self.state.iv.decode("hex")
+    self.state.Register("key", self.state.args.key.decode("hex"))
+    self.state.Register("iv", self.state.args.iv.decode("hex"))
 
-    request = rdfvalue.SendFileRequest(key=utils.SmartStr(self.state.key),
-                                       iv=utils.SmartStr(self.state.iv),
-                                       pathspec=self.state.pathspec,
-                                       address_family=self.state.address_family,
-                                       host=self.state.host,
-                                       port=self.state.port)
+    request = rdfvalue.SendFileRequest(
+        key=self.state.key,
+        iv=self.state.iv,
+        pathspec=self.state.args.pathspec,
+        address_family=self.state.args.address_family,
+        host=self.state.args.host,
+        port=self.state.args.port)
     self.CallClient("SendFile", request, next_state="Done")
 
   @flow.StateHandler()

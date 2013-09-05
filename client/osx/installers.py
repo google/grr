@@ -8,11 +8,7 @@ import logging
 
 from grr.client import installer
 from grr.lib import config_lib
-
-
-config_lib.DEFINE_string(
-    name="Client.prev_config_file", default="",
-    help="Where to copy the client certificate from.")
+from grr.lib import type_info
 
 
 class OSXInstaller(installer.Installer):
@@ -29,16 +25,20 @@ class OSXInstaller(installer.Installer):
     new_config = config_lib.CONFIG.MakeNewConfig()
     new_config.SetWriteBack(config_lib.CONFIG["Config.writeback"])
 
-    data = open(old_config_file, "rb").read()
-    m = re.search(
-        ("certificate ?= ?(-----BEGIN PRIVATE KEY-----[^-]*"
-         "-----END PRIVATE KEY-----)"),
-        data, flags=re.DOTALL)
-    if m:
-      cert = m.group(1).replace("\t", "")
-      logging.info("Found a valid private key!")
-      new_config.Set("Client.private_key", cert)
-      new_config.Write()
+    try:
+      data = open(old_config_file, "rb").read()
+      m = re.search(
+          ("certificate ?= ?(-----BEGIN PRIVATE KEY-----[^-]*"
+           "-----END PRIVATE KEY-----)"),
+          data, flags=re.DOTALL)
+      if m:
+        cert = m.group(1).replace("\t", "")
+        logging.info("Found a valid private key!")
+        new_config.Set("Client.private_key", cert)
+        new_config.Write()
+    except IOError:
+      # Nothing we can do here.
+      logging.info("IO Error while opening %s", old_config_file)
 
   def ExtractConfig(self):
     """This installer extracts a config file from the .pkg file."""
@@ -49,11 +49,31 @@ class OSXInstaller(installer.Installer):
       return
 
     zf = zipfile.ZipFile(pkg_path, mode="r")
-    fd = zf.open("config.txt")
+    fd = zf.open("config.yaml")
 
-    parser = config_lib.ConfigFileParser(fd=fd)
-    config_lib.CONFIG.MergeData(parser.RawData())
-    config_lib.CONFIG.Write()
+    packaged_config = config_lib.CONFIG.MakeNewConfig()
+    packaged_config.Initialize(fd=fd, parser=config_lib.YamlParser)
+
+    new_config = config_lib.CONFIG.MakeNewConfig()
+    new_config.SetWriteBack(config_lib.CONFIG["Config.writeback"])
+
+    for info in config_lib.CONFIG.type_infos:
+      try:
+        new_value = packaged_config.GetRaw(info.name, None)
+      except type_info.TypeValueError:
+        continue
+
+      try:
+        old_value = config_lib.CONFIG.GetRaw(info.name, None)
+
+        if not new_value or new_value == old_value:
+          continue
+      except type_info.TypeValueError:
+        pass
+
+      new_config.SetRaw(info.name, new_value)
+
+    new_config.Write()
     logging.info("Config file extracted successfully.")
 
   def Run(self):

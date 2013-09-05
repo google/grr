@@ -21,7 +21,8 @@ class MongoDataStoreV1Test(data_store_test.DataStoreTest):
   def setUp(self):
     super(MongoDataStoreV1Test, self).setUp()
 
-    self.token = access_control.ACLToken("test", "Running tests")
+    self.token = access_control.ACLToken(username="test",
+                                         reason="Running tests")
     data_store.DB = mongo_data_store_old.MongoDataStoreV1()
     data_store.DB.security_manager = test_lib.MockSecurityManager()
 

@@ -339,6 +339,10 @@ grr.subscribe = function(name, handle, domId) {
   new_queue.push(handle);
 
   grr.queue_[queue_name] = new_queue;
+
+  if (new_queue.length > 5) {
+    alert('Queue ' + queue_name + 'seems full');
+  }
 };
 
 /**
@@ -692,7 +696,7 @@ grr.table.newTable = function(renderer, domId, unique, opt_state) {
 
   grr.subscribe('timer', function() {
     grr.table.scrollHandler(renderer, me, opt_state);
-  }, domId);
+  }, unique);
 };
 
 /**
@@ -800,12 +804,20 @@ grr._update = function(renderer, domId, opt_state, on_success, inflight_key,
     },
     error: function(jqXHR) {
       if (grr.GetFromAjaxQueue(inflight_key) === jqXHR) {
+        if (jqXHR.status == 500) {
+          var data = jqXHR.responseText;
+          data = $.parseJSON(data.substring(4, data.length));
+        } else {
+          var data = {message: 'Server Error',
+                      traceback: jqXHR.responseText};
+        }
+
         if (!on_error) {
-          grr.publish('grr_messages', 'Server Error');
-          grr.publish('grr_traceback', jqXHR.response);
+          grr.publish('grr_messages', data.message);
+          grr.publish('grr_traceback', data.traceback);
         }
         else {
-          on_error(jqXHR);
+          on_error(data);
         }
       }
     },
@@ -842,9 +854,11 @@ grr._update = function(renderer, domId, opt_state, on_success, inflight_key,
  *     we use the domId.
  * @param {Function=} on_error If provided this function will be called on
  *     errors.
+ * @param {string} method_name If provided we call this method (default
+ * RenderAjax).
  */
 grr.update = function(renderer, domId, opt_state, on_success, inflight_key,
-                      on_error) {
+                      on_error, method_name) {
   if (!on_success) {
     on_success = function(data) {
       $('#' + domId).html(data);
@@ -852,7 +866,7 @@ grr.update = function(renderer, domId, opt_state, on_success, inflight_key,
   }
 
   grr._update(renderer, domId, opt_state, on_success, inflight_key,
-              on_error, 'RenderAjax');
+              on_error, method_name || 'RenderAjax');
 };
 
 /**
@@ -958,6 +972,9 @@ grr.submit = function(renderer, formId, resultId, opt_state,
     if (name && value) {
 
       if (this.type == 'checkbox') {
+        // Check boxes need to be read like this.
+        value = $(this).attr('checked') ? 'true' : 'false';
+
         // Multiple checkboxes can be concatenated to the same name.
         if (!(name in new_state)) {
           new_state[name] = value;

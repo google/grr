@@ -200,6 +200,16 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(results[0].basename, "Ext2IFS_1_10b.exe")
     self.assertEqual(results[0].urn, urn)
 
+    # Check that by default file contents are not exported
+    self.assertFalse(results[0].content)
+    self.assertFalse(results[0].content_sha256)
+
+    # Convert again, now specifying export_files_contents=True in options.
+    converter = export.StatEntryToExportedFileConverter(
+        options=rdfvalue.ExportOptions(
+            export_files_contents=True))
+    results = list(converter.Convert(rdfvalue.ExportedMetadata(), stat,
+                                     token=self.token))
     self.assertTrue(results[0].content)
     self.assertEqual(
         results[0].content_sha256,

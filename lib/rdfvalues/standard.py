@@ -3,8 +3,15 @@
 
 
 import re
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import type_info
+from grr.proto import jobs_pb2
+
+
+config_lib.DEFINE_string("Logging.domain", "",
+                         "The email domain belonging to this installation. "
+                         "Leave blank to not restrict email to this domain")
 
 
 class RegularExpression(rdfvalue.RDFString):
@@ -15,7 +22,7 @@ class RegularExpression(rdfvalue.RDFString):
 
     # Check that this is a valid regex.
     try:
-      self._regex = re.compile(str(self), flags=re.I | re.S | re.M)
+      self._regex = re.compile(self._value, flags=re.I | re.S | re.M)
     except re.error:
       raise type_info.TypeValueError("Not a valid regular expression.")
 
@@ -28,3 +35,36 @@ class RegularExpression(rdfvalue.RDFString):
 
   def FindIter(self, text):
     return self._regex.finditer(text)
+
+  def __str__(self):
+    return "<RegularExpression: %r/>" % self._value
+
+
+class EmailAddress(rdfvalue.RDFString):
+  """An email address must be well formed."""
+
+  _EMAIL_REGEX = re.compile(r"[^@]+@([^@]+\.[^@]+)$")
+
+  def ParseFromString(self, value):
+    super(EmailAddress, self).ParseFromString(value)
+
+    self._match = self._EMAIL_REGEX.match(self._value)
+    if not self._match:
+      raise ValueError("Email address not well formed.")
+
+
+class DomainEmailAddress(EmailAddress):
+  """A more restricted email address may only address the domain."""
+
+  def ParseFromString(self, value):
+    super(DomainEmailAddress, self).ParseFromString(value)
+
+    domain = config_lib.CONFIG["Logging.domain"]
+    if domain and self._match.group(1) != domain:
+      raise ValueError(
+          "Email address '%s' does not belong to the configured "
+          "domain '%s'" % (self._match.group(1), domain))
+
+
+class AuthenticodeSignedData(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.AuthenticodeSignedData

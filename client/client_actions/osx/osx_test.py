@@ -78,11 +78,12 @@ class OSXDriverTests(test_lib.EmptyActionTest):
   def testInstallDriver(self):
     for driver_path in self.drivers:
       print "Attempting to load %s" % driver_path
-
+      client_context = ["Platform:Darwin"]
       # Make sure there is a signed driver for our client.
       vfs_path = maintenance_utils.UploadSignedDriverBlob(
-          open(driver_path).read(), platform="Darwin", file_name="pmem",
+          open(driver_path).read(), client_context=client_context,
           token=self.token)
+
       fd = aff4.FACTORY.Create(vfs_path, "GRRMemoryDriver",
                                mode="r", token=self.token)
       self.blob = fd.Get(fd.Schema.BINARY)

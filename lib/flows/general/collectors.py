@@ -12,7 +12,7 @@ from grr.lib import artifact_lib
 from grr.lib import flow
 from grr.lib import parsers
 from grr.lib import rdfvalue
-from grr.lib import type_info
+from grr.proto import flows_pb2
 
 
 class BootStrapKnowledgeBaseFlow(flow.GRRFlow):
@@ -95,6 +95,10 @@ class BootStrapKnowledgeBaseFlow(flow.GRRFlow):
       raise flow.FlowError("Could not bootstrap systemroot.")
 
 
+class ArtifactCollectorFlowArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.ArtifactCollectorFlowArgs
+
+
 class ArtifactCollectorFlow(flow.GRRFlow):
   """Flow that takes a list of artifacts and collects them.
 
@@ -126,43 +130,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   """
 
   category = "/Collectors/"
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.ArtifactList(
-          description="A list of Artifact class names.",
-          name="artifact_list",
-          default=[],
-          ),
-
-      # Options for controlling how the collectors work.
-      type_info.Bool(
-          description="Whether raw filesystem access should be used.",
-          name="use_tsk",
-          default=True),
-
-      # Options for controlling output.
-      type_info.Bool(
-          name="store_results_in_aff4",
-          default=True,
-          description=("Should the collected artifacts be written to the GRR "
-                       "AFF4 namespace based on the AFF4->RDF map.")),
-      type_info.String(
-          name="output",
-          default="",
-          description=("If set, a relative URN to write each result to. This "
-                       "will create the collection if it does not exist.")),
-      type_info.Bool(
-          name="split_output_by_artifact",
-          default=False,
-          description=("If True, use output as a directory and write a separate"
-                       " collection for each artifact collected.")),
-      type_info.RDFValueType(
-          name="knowledge_base",
-          default=None,
-          rdfclass=rdfvalue.KnowledgeBase,
-          description=("An optional knowledge base to use, if not specified we "
-                       "retrieve one from the client object.")),
-      )
+  args_type = ArtifactCollectorFlowArgs
 
   @flow.StateHandler(next_state=["ProcessCollected", "ProcessRegistryValue",
                                  "ProcessBootstrap"])
@@ -173,21 +141,21 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.state.Register("collected_count", 0)
     self.state.Register("failed_count", 0)
     self.state.Register("bootstrap_complete", False)
+    self.state.Register("knowledge_base", self.args.knowledge_base)
 
-    if self.state.use_tsk:
+    if self.args.use_tsk:
       self.state.Register("path_type", rdfvalue.PathSpec.PathType.TSK)
     else:
       self.state.Register("path_type", rdfvalue.PathSpec.PathType.OS)
 
-    output = self.state.output.format(t=time.time(), u=self.state.context.user)
+    output = self.args.output.format(t=time.time(), u=self.state.context.user)
     self.state.Register("output_urn", self.client_id.Add(output))
 
     if not self.state.knowledge_base:
       # If not provided, get a knowledge base from the client.
-      self.state.Register("knowledge_base",
-                          artifact.GetArtifactKnowledgeBase(self.client))
+      self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(self.client)
 
-    for cls_name in self.state.artifact_list:
+    for cls_name in self.args.artifact_list:
       artifact_cls = self._GetArtifactClassFromName(cls_name)
       artifact_obj = artifact_cls()
 
@@ -311,11 +279,12 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     # TODO(user): This currently does no transformation.
     message = responses.First()
     if not responses.success or not message.registry_data:
-      raise flow.FlowError("Failed to get registry value %s" %
-                           responses.request_data["artifact_name"])
-    self.CallState(next_state="ProcessCollected",
-                   request_data=responses.request_data.ToDict(),
-                   messages=[message])
+      self.Log("Failed to get registry value %s" %
+               responses.request_data["artifact_name"])
+    else:
+      self.CallState(next_state="ProcessCollected",
+                     request_data=responses.request_data.ToDict(),
+                     messages=[message])
 
   @flow.StateHandler()
   def ProcessCollected(self, responses):
@@ -341,12 +310,12 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       return
 
     # Initialize some local non-state saved variables for processing.
-    if self.state.output:
-      if self.state.split_output_by_artifact:
+    if self.args.output:
+      if self.args.split_output_by_artifact:
         self.output_collection_map = {}
       else:
         self.output_collection = None
-    if self.state.store_results_in_aff4:
+    if self.args.store_results_in_aff4:
       self.aff4_output_map = {}
 
     # Now process the responses.
@@ -367,7 +336,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         # We don't have any defined processors for this artifact, we treat it
         # like a dumb collection and send results back directly.
         self.SendReply(response)
-        if self.state.output:
+        if self.args.output:
           self._WriteResultToCollection(response, artifact_cls_name)
 
     # If we were saving responses, process them now:
@@ -377,9 +346,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                            artifact_cls_name)
 
     # Flush the results to the objects.
-    if self.state.output:
+    if self.args.output:
       self._FinalizeCollection(artifact_cls_name)
-    if self.state.store_results_in_aff4:
+    if self.args.store_results_in_aff4:
       self._FinalizeMappedAFF4Locations(artifact_cls_name)
 
   def _ParseResponses(self, processor_obj, responses, responses_obj,
@@ -397,21 +366,24 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     if not processor_obj.process_together:
       response = responses   # There is a single response.
     if isinstance(processor_obj, parsers.CommandParser):
-      result_parser = processor_obj.Parse(cmd=response.request.cmd,
-                                          args=response.request.args,
-                                          stdout=response.stdout,
-                                          stderr=response.stderr,
-                                          return_val=response.exit_status,
-                                          time_taken=response.time_used,
-                                          knowledge_base=
-                                          self.state.knowledge_base)
+      result_parser = processor_obj.Parse(
+          cmd=response.request.cmd,
+          args=response.request.args,
+          stdout=response.stdout,
+          stderr=response.stderr,
+          return_val=response.exit_status,
+          time_taken=response.time_used,
+          knowledge_base=self.state.knowledge_base)
+
     elif isinstance(processor_obj, parsers.WMIQueryParser):
       result_parser = processor_obj.Parse(responses_obj.request_data["query"],
                                           responses,
                                           self.state.knowledge_base)
+
     elif isinstance(processor_obj, parsers.RegistryValueParser):
       result_parser = processor_obj.Parse(response,
                                           self.state.knowledge_base)
+
     elif isinstance(processor_obj, parsers.RegistryParser):
       if processor_obj.process_together:
         result_parser = processor_obj.ParseMultiple(
@@ -424,16 +396,16 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       # If we have a parser, do something with the results it produces.
       for result in result_parser:
         self.SendReply(result)    # Send to parent.
-        if self.state.output:
+        if self.args.output:
           # Output is set, we need to write to a collection.
           self._WriteResultToCollection(result, artifact_name)
-        if self.state.store_results_in_aff4:
+        if self.args.store_results_in_aff4:
           # Write our result back to a mapped location in AFF4 space.
           self._WriteResultToMappedAFF4Location(result)
 
   def _WriteResultToCollection(self, result, artifact_name):
     """Write any results to the collection."""
-    if self.state.split_output_by_artifact:
+    if self.args.split_output_by_artifact:
       if artifact_name not in self.output_collection_map:
         urn = self.state.output_urn.Add(artifact_name)
         collection = aff4.FACTORY.Create(urn, "RDFValueCollection", mode="rw",
@@ -451,7 +423,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def _FinalizeCollection(self, artifact_name):
     """Finalize writes to the Collection."""
     total = 0
-    if self.state.split_output_by_artifact:
+    if self.args.split_output_by_artifact:
       for collection in self.output_collection_map.values():
         total += len(collection)
         collection.Flush()
@@ -532,11 +504,11 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def End(self):
-    if self.state.output:
+    if self.args.output:
       urn = self.state.output_urn
     else:
       urn = self.client_id
     self.Notify("ViewObject", urn,
                 "Completed artifact collection of %s. Collected %d. Errors %d."
-                % (self.state.artifact_list, self.state.collected_count,
+                % (self.args.artifact_list, self.state.collected_count,
                    self.state.failed_count))

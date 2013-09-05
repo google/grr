@@ -138,7 +138,8 @@ def GetNotifications(user=None, token=None):
 
 def ApprovalRequest(client_id, reason, approvers, token=None):
   """Request approval to access a host."""
-  return flow.GRRFlow.StartFlow(client_id, "RequestClientApprovalFlow",
+  return flow.GRRFlow.StartFlow(client_id=client_id,
+                                flow_name="RequestClientApprovalFlow",
                                 reason=reason, approver=approvers, token=token)
 
 
@@ -153,7 +154,8 @@ def ApprovalGrant(token=None):
     print request
     print "Reason: %s" % reason
     if raw_input("Do you approve this request? [y/N] ").lower() == "y":
-      flow_id = flow.GRRFlow.StartFlow(client_id, "GrantClientApprovalFlow",
+      flow_id = flow.GRRFlow.StartFlow(client_id=client_id,
+                                       flow_name="GrantClientApprovalFlow",
                                        reason=reason, delegate=user,
                                        token=token)
       # TODO(user): Remove the notification.
@@ -194,7 +196,7 @@ def ApprovalCreateRaw(client_id, token, approval_type="ClientApproval"):
   approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
       token.username).Add(utils.EncodeReasonString(token.reason))
 
-  super_token = access_control.ACLToken()
+  super_token = access_control.ACLToken(username="test")
   super_token.supervisor = True
 
   approval_request = aff4.FACTORY.Create(approval_urn, approval_type,
@@ -224,7 +226,7 @@ def ApprovalRevokeRaw(client_id, token, remove_from_cache=False):
   approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
       token.username).Add(utils.EncodeReasonString(token.reason))
 
-  super_token = access_control.ACLToken()
+  super_token = access_control.ACLToken(username="test")
   super_token.supervisor = True
 
   approval_request = aff4.FACTORY.Open(approval_urn, mode="rw",
@@ -252,7 +254,7 @@ def OpenClient(client_id=None):
     tuple containing (client, token) objects or (None, None) on if
     no appropriate aproval tokens were found.
   """
-  token = access_control.ACLToken()
+  token = access_control.ACLToken(username="test")
   try:
     token = ApprovalFind(client_id, token=token)
   except access_control.UnauthorizedAccess as e:
@@ -280,7 +282,7 @@ def SetLabels(urn, labels, token=None):
 
 def ListDrivers():
   urn = aff4.ROOT_URN.Add(memory.DRIVER_BASE)
-  token = access_control.ACLToken()
+  token = access_control.ACLToken(username="test")
   fd = aff4.FACTORY.Open(urn, mode="r", token=token)
 
   return list(fd.Query())

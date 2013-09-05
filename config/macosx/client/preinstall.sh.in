@@ -2,9 +2,9 @@
 #
 # Pre installation script for GRR client MacOS-X package
 
-if [ -f "%(ClientBuilder.plist_path)" ];
+if [ -f "%(Client.plist_path)" ];
 then
-  sudo launchctl unload "%(ClientBuilder.plist_path)";
-  sudo rm -f "%(ClientBuilder.plist_path)";
+  sudo launchctl unload "%(Client.plist_path)";
+  sudo rm -f "%(Client.plist_path)";
 fi
 

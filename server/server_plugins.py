@@ -10,4 +10,6 @@ modules that have been customized for your deployment.
 """
 # pylint: disable=unused-import
 
+from grr.lib import export
+from grr.server import local
 from grr.server import stats_server

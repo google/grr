@@ -135,7 +135,7 @@ class ViewNotifications(renderers.TableRenderer):
       self.AddRow(row, row_index)
       row_index += 1
 
-    flow.GRRFlow.StartFlow(None, "ResetUserNotifications",
+    flow.GRRFlow.StartFlow(flow_name="ResetUserNotifications",
                            token=request.token)
 
   def BuildHashFromNotification(self, notification):

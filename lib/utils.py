@@ -82,17 +82,15 @@ def Synchronized(f):
 class InterruptableThread(threading.Thread):
   """A class which exits once the main thread exits."""
 
-  # Class wide constant
-  exit = False
-  threads = []
-
   def __init__(self, target=None, args=None, kwargs=None, sleep_time=10, **kw):
+    self.exit = False
+    self.last_run = 0
     self.target = target
     self.args = args or ()
     self.kwargs = kwargs or {}
     self.sleep_time = sleep_time
-
     super(InterruptableThread, self).__init__(**kw)
+
     # Do not hold up program exit
     self.daemon = True
 
@@ -100,31 +98,24 @@ class InterruptableThread(threading.Thread):
     """This will be repeatedly called between sleeps."""
 
   def run(self):
+    # When the main thread exits, the time module might disappear and be already
+    # None. We take a local reference to the functions we need.
+    sleep = time.sleep
+    now = time.time
+
     while not self.exit:
       if self.target:
         self.target(*self.args, **self.kwargs)
       else:
         self.Iterate()
 
-      # During shutdown range can disappear leaving ugly error messages.
-      if not range:
-        self.exit = True
-        continue
+      # Implement interruptible sleep here.
+      self.last_run = now()
 
-      for _ in range(self.sleep_time):
-        if self.exit:
-          break
-        try:
-          if time:
-            time.sleep(1)
-          else:
-            self.exit = True
-            break
-        except (AttributeError, TypeError):
-          # When the main thread exits, time might be already None. We should
-          # just ignore that and exit as well.
-          self.exit = True
-          break
+      # Exit if the main thread disappears.
+      while (time and not self.exit and
+             now() < self.last_run + self.sleep_time):
+        sleep(1)
 
 
 class Node(object):
@@ -736,26 +727,20 @@ def GeneratePassphrase(length=20):
 class PRNG(object):
   """An optimized PRNG."""
 
-  random_list_ushort = None
-  random_list_ulong = None
+  random_list = None
 
   @classmethod
   def GetUShort(cls):
-    if not cls.random_list_ushort:
-      PRNG.random_list_ushort = list(
-          struct.unpack("=" + "H" * 1000,
-                        os.urandom(struct.calcsize("=H") * 1000)))
-
-    return cls.random_list_ushort.pop()
+    return cls.GetULong() & 0xFFFF
 
   @classmethod
   def GetULong(cls):
-    if not cls.random_list_ulong:
-      PRNG.random_list_ulong = list(
+    if not cls.random_list:
+      PRNG.random_list = list(
           struct.unpack("=" + "L" * 1000,
                         os.urandom(struct.calcsize("=L") * 1000)))
 
-    return cls.random_list_ulong.pop()
+    return cls.random_list.pop()
 
 
 def FormatNumberAsString(num):

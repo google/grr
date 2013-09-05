@@ -17,7 +17,7 @@ from grr.lib import flow
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib import type_info
+from grr.proto import flows_pb2
 
 
 class TestClientConfigHandling(test_lib.FlowTestsBaseclass):
@@ -54,39 +54,33 @@ class TestClientConfigHandling(test_lib.FlowTestsBaseclass):
     # self.assertEqual(config_dat.data.poll_min, 1)
 
 
+class ClientActionRunnerArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.ClientActionRunnerArgs
+
+
 class ClientActionRunner(flow.GRRFlow):
   """Just call the specified client action directly.
   """
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.String(
-          name="action",
-          description="Action to run."
-          )
-      )
-
-  args = {}
+  args_type = ClientActionRunnerArgs
+  action_args = {}
 
   @flow.StateHandler(next_state="End")
   def Start(self):
-    self.CallClient(self.state.action, next_state="End", **self.args)
+    self.CallClient(self.args.action, next_state="End", **self.action_args)
 
 
 class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
 
   def testClientKilled(self):
     """Test that client killed messages are handled correctly."""
-    try:
-      old_send_email = email_alerts.SendEmail
+    self.email_message = {}
 
-      self.email_message = {}
+    def SendEmail(address, sender, title, message, **_):
+      self.email_message.update(dict(address=address, sender=sender,
+                                     title=title, message=message))
 
-      def SendEmail(address, sender, title, message, **_):
-        self.email_message.update(dict(address=address, sender=sender,
-                                       title=title, message=message))
-
-      email_alerts.SendEmail = SendEmail
-      config_lib.CONFIG.Set("Monitoring.events_email", "admin@nowhere.com")
+    with test_lib.Stubber(email_alerts, "SendEmail", SendEmail):
+      config_lib.CONFIG.Set("Monitoring.alert_email", "admin@nowhere.com")
 
       client = test_lib.CrashClientMock(self.client_id, self.token)
       for _ in test_lib.TestFlowHelper(
@@ -101,7 +95,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       self.assertTrue(str(self.client_id) in self.email_message["title"])
 
       # Make sure the flow state is included in the email message.
-      for s in ["flow_name", "ListDirectory", "current_state", "Start"]:
+      for s in ["Flow name", "ListDirectory", "current_state", "Start"]:
         self.assertTrue(s in self.email_message["message"])
 
       flow_obj = aff4.FACTORY.Open(client.flow_id, age=aff4.ALL_TIMES,
@@ -143,9 +137,6 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       self.assertEqual(len(global_crashes), len(client_crashes))
       for a, b in zip(global_crashes, client_crashes):
         self.assertEqual(a, b)
-
-    finally:
-      email_alerts.SendEmail = old_send_email
 
   def testNannyMessage(self):
     nanny_message = "Oh no!"
@@ -336,7 +327,7 @@ sys.test_code_ran_here = py_args['value']
     with test_lib.Stubber(subprocess, "Popen", Popen):
       for _ in test_lib.TestFlowHelper(
           "LaunchBinary", client_mock, client_id=self.client_id,
-          binary=upload_path, args=["--value", "356"], token=self.token):
+          binary=upload_path, command_line="--value 356", token=self.token):
         pass
 
       # Check that the executable file contains the code string.

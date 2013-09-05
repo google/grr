@@ -23,7 +23,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
   def testInvalidFindSpec(self):
     """Test that its impossible to produce an invalid findspec."""
     # The regular expression is not valid.
-    self.assertRaises(type_info.TypeValueError, rdfvalue.RDFFindSpec,
+    self.assertRaises(type_info.TypeValueError, rdfvalue.FindSpec,
                       path_regex="[")
 
   def testFindFiles(self):
@@ -32,7 +32,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     output_path = "analysis/FindFlowTest1"
 
     # Prepare a findspec.
-    findspec = rdfvalue.RDFFindSpec(
+    findspec = rdfvalue.FindSpec(
         path_regex="bash",
         pathspec=rdfvalue.PathSpec(
             path="/", pathtype=rdfvalue.PathSpec.PathType.OS))
@@ -60,7 +60,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     output_path = "analysis/FindFlowTest2"
 
     # Prepare a findspec.
-    findspec = rdfvalue.RDFFindSpec(
+    findspec = rdfvalue.FindSpec(
         path_regex="bin",
         pathspec=rdfvalue.PathSpec(path="/",
                                    pathtype=rdfvalue.PathSpec.PathType.OS))
@@ -88,7 +88,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     output_path = "analysis/FindFlowTest4"
 
     # Prepare a findspec.
-    findspec = rdfvalue.RDFFindSpec(
+    findspec = rdfvalue.FindSpec(
         path_regex=".*",
         pathspec=rdfvalue.PathSpec(path="/",
                                    pathtype=rdfvalue.PathSpec.PathType.OS))
@@ -113,7 +113,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     output_path = "analysis/FindFlowTest5"
 
     # Prepare a findspec.
-    findspec = rdfvalue.RDFFindSpec()
+    findspec = rdfvalue.FindSpec()
     findspec.path_regex = "bin"
     findspec.pathspec.path = "/"
     findspec.pathspec.pathtype = rdfvalue.PathSpec.PathType.OS

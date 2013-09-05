@@ -123,10 +123,10 @@ class ResponsesTable(renderers.TableRenderer):
 
     request_message = request_messages[0]
 
-    state_queue = (flow_runner.FlowManager.FLOW_STATE_TEMPLATE %
+    state_queue = (flow_runner.QueueManager.FLOW_STATE_TEMPLATE %
                    request_message.session_id)
 
-    predicate_re = (flow_runner.FlowManager.FLOW_RESPONSE_PREFIX %
+    predicate_re = (flow_runner.QueueManager.FLOW_RESPONSE_PREFIX %
                     request_message.request_id) + ".*"
 
     # Get all the responses for this request.

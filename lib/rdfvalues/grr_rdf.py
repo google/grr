@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """Basic GRR rdfvalue definitions."""
-
 from grr.lib import rdfvalue
 
 

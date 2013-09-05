@@ -6,16 +6,16 @@
 """This is the interface for managing cron jobs."""
 
 
-import json
-
 from grr.gui import renderers
 from grr.gui.plugins import fileview
 from grr.gui.plugins import flow_management
+from grr.gui.plugins import forms
 from grr.gui.plugins import new_hunt
+from grr.gui.plugins import wizards
 from grr.lib import aff4
-from grr.lib import cron
 from grr.lib import flow
 from grr.lib import rdfvalue
+from grr.lib.aff4_objects import cronjobs
 
 
 class ManageCron(renderers.Splitter2Way):
@@ -93,8 +93,9 @@ class CronTable(renderers.TableRenderer):
   <div class="btn-group">
   <button id='schedule_hunt_cron_job_{{unique|escape}}' title='Schedule Hunt'
     class="btn" name="ScheduleHuntCronJob" data-toggle="modal"
-    data-target="#schedule_hunt_cron_job_dialog_{{unique|escape}}">
-    <img src='/static/images/new.png' class='toolbar_icon'>
+    data-target="#schedule_hunt_cron_job_dialog_{{unique|escape}}"
+    >
+      <img src='/static/images/new.png' class='toolbar_icon'>
   </button>
   </div>
 
@@ -102,15 +103,17 @@ class CronTable(renderers.TableRenderer):
   <button id='enable_cron_job_{{unique|escape}}' title='Enable Cron Job'
     class="btn" name="EnableCronJob" data-toggle="modal"
     data-target="#enable_cron_job_dialog_{{unique|escape}}"
-    disabled="true">
-    <img src='/static/images/play_button.png' class='toolbar_icon'>
+    disabled="true"
+    >
+      <img src='/static/images/play_button.png' class='toolbar_icon'>
   </button>
 
   <button id='disable_cron_job_{{unique|escape}}' title='Disable Cron Job'
     class="btn" name="DisableCronJob" data-toggle="modal"
     data-target="#disable_cron_job_dialog_{{unique|escape}}"
-    disabled="true">
-    <img src='/static/images/pause_button.png' class='toolbar_icon'>
+    disabled="true"
+    >
+      <img src='/static/images/pause_button.png' class='toolbar_icon'>
   </button>
   </div>
 
@@ -118,8 +121,9 @@ class CronTable(renderers.TableRenderer):
   <button id='delete_cron_job_{{unique|escape}}' title='Delete Cron Job'
     class="btn" name="DeleteCronJob" data-toggle="modal"
     data-target="#delete_cron_job_dialog_{{unique|escape}}"
-    disabled="true">
-    <img src='/static/images/editdelete.png' class='toolbar_icon'>
+    disabled="true"
+    >
+      <img src='/static/images/editdelete.png' class='toolbar_icon'>
   </button>
   </div>
 
@@ -141,20 +145,24 @@ class CronTable(renderers.TableRenderer):
     response = super(CronTable, self).Layout(request, response)
     return self.CallJavascript(response, "CronTable.Layout")
 
-  def RenderAjax(self, request, response):
+  def BuildTable(self, start_row, end_row, request):
     """Renders the table."""
-    cron_jobs_urns = cron.CRON_MANAGER.ListJobs(token=request.token)
+    cron_jobs_urns = list(cronjobs.CRON_MANAGER.ListJobs(token=request.token))
     cron_jobs = aff4.FACTORY.MultiOpen(
-        cron_jobs_urns, mode="r", aff4_type="CronJob", token=request.token)
-    for cron_job in cron_jobs:
-      self.AddRow({"State": cron_job.Get(cron_job.Schema.DISABLED, False),
-                   "Name": cron_job.urn,
-                   "Last Run": cron_job.Get(cron_job.Schema.LAST_RUN_TIME),
-                   "Frequency": cron_job.Get(cron_job.Schema.FREQUENCY),
-                   "Description": cron_job.Get(cron_job.Schema.DESCRIPTION)})
+        cron_jobs_urns[start_row:end_row], aff4_type="CronJob",
+        token=request.token)
 
-    # Call our baseclass to actually do the rendering
-    return super(CronTable, self).RenderAjax(request, response)
+    for i, cron_job in enumerate(cron_jobs):
+      cron_args = cron_job.Get(cron_job.Schema.CRON_ARGS)
+      if cron_args is not None:
+        self.AddCell(i + start_row, "State",
+                     cron_job.Get(cron_job.Schema.DISABLED, False))
+
+        self.AddCell(i+start_row, "Name", cron_job.urn)
+        self.AddCell(i+start_row, "Last Run",
+                     cron_job.Get(cron_job.Schema.LAST_RUN_TIME))
+        self.AddCell(i+start_row, "Frequency", cron_args.periodicity)
+        self.AddCell(i+start_row, "Description", cron_args.description)
 
 
 class CronJobManagementTabs(renderers.TabLayout):
@@ -204,10 +212,9 @@ class CronJobView(flow_management.ListFlowsTable):
 
 class CronJobManagementConfirmationDialog(renderers.ConfirmationDialogRenderer):
   """Dialog that asks confirmation to manage a cron job."""
-  post_parameters = ["cron_job_urn"]
+  post_parameters = ["cron_urn"]
 
-  flow_name = None
-  action_name = None
+  action_name = rdfvalue.ManageCronJobFlowArgs.Action.NOOP
 
   content_template = renderers.Template("""
 <p>Are you sure you want to <strong>{{this.action_name|escape}}</strong>
@@ -224,14 +231,17 @@ successfully!</p>
     return self.action_name.title() + " a cron job?"
 
   def Layout(self, request, response):
-    self.check_access_subject = rdfvalue.RDFURN(request.REQ.get("cron_job_urn"))
+    self.check_access_subject = rdfvalue.RDFURN(request.REQ.get("cron_urn"))
     return super(CronJobManagementConfirmationDialog, self).Layout(
         request, response)
 
   def RenderAjax(self, request, response):
+    cron_urn = rdfvalue.RDFURN(request.REQ.get("cron_urn"))
+
     flow.GRRFlow.StartFlow(
-        None, self.flow_name, token=request.token,
-        cron_job_urn=rdfvalue.RDFURN(request.REQ.get("cron_job_urn")))
+        flow_name="ManageCronJobFlow", action=self.action_name,
+        urn=cron_urn, token=request.token)
+
     return self.RenderFromTemplate(self.ajax_template, response,
                                    unique=self.unique, this=self)
 
@@ -239,150 +249,134 @@ successfully!</p>
 class DisableCronJobConfirmationDialog(CronJobManagementConfirmationDialog):
   """Dialog that asks confirmation to disable a cron job."""
 
-  flow_name = "DisableCronJobFlow"
-  action_name = "disable"
+  action_name = rdfvalue.ManageCronJobFlowArgs.Action.DISABLE
 
 
 class EnableCronJobConfirmationDialog(CronJobManagementConfirmationDialog):
   """Dialog that asks confirmation to enable a cron job."""
 
-  flow_name = "EnableCronJobFlow"
-  action_name = "enable"
+  action_name = rdfvalue.ManageCronJobFlowArgs.Action.ENABLE
 
 
 class DeleteCronJobConfirmationDialog(CronJobManagementConfirmationDialog):
   """Dialog that asks confirmation to delete a cron job."""
-
-  flow_name = "DeleteCronJobFlow"
-  action_name = "delete"
+  action_name = rdfvalue.ManageCronJobFlowArgs.Action.DELETE
 
 
-class ScheduleHuntCronJobDialog(renderers.WizardRenderer):
-  """Schedule new cron job that launches a hunt periodically."""
-
-  wizard_name = "hunt_run"
-  title = "Schedule a Periodic Hunt"
-  pages = [
-      renderers.WizardPage(
-          name="ConfigureFlow",
-          description="What to run?",
-          renderer="HuntConfigureFlow"),
-      renderers.WizardPage(
-          name="ConfigureOutput",
-          description="Output Processing",
-          renderer="HuntConfigureOutputPlugins"),
-      renderers.WizardPage(
-          name="ConfigureRules",
-          description="Where to run?",
-          renderer="HuntConfigureRules"),
-      renderers.WizardPage(
-          name="ConfigureTime",
-          description="When to run?",
-          renderer="CronHuntConfigureSchedule"),
-      renderers.WizardPage(
-          name="ReviewAndTest",
-          description="Review",
-          renderer="CronHuntReview",
-          next_button_label="Schedule"),
-      renderers.WizardPage(
-          name="Done",
-          description="Hunt cron job was created.",
-          renderer="CronHuntSchedule",
-          next_button_label="Ok!",
-          show_back_button=False)
-      ]
-
-  def Layout(self, request, response):
-    response = super(ScheduleHuntCronJobDialog, self).Layout(request, response)
-    return self.CallJavascript(response, "ScheduleHuntCronJobDialog.Layout")
-
-
-class CronHuntConfigureSchedule(renderers.TemplateRenderer):
+class CronConfigureSchedule(renderers.TemplateRenderer):
   """Renderer that allows user to configure how often the hunt will run."""
+  description = "When to run?"
 
   layout_template = renderers.Template("""
 <div id="CronHuntConfigureSchedule_{{unique|escape}}"
   class="CronHuntConfigureSchedule padded">
 <div class="well well-large">
-
-<form class="form-horizontal">
-  <div class="control-group">
-    <label class="control-label">Periodicity</label>
-    <div class="controls">
-      <select name="periodicity">
-        <option value="1">Daily</option>
-        <option value="7">Weekly</option>
-        <option value="14">Every 2 weeks</option>
-      </select>
-    </div>
-  </div>
-</form>
-
+{{this.cron_form|safe}}
 </div>
 </div>
 """)
 
+  cron_suppressions = ["flow_runner_args", "flow_args"]
+
+  def Validate(self, request, response):
+    pass
+
   def Layout(self, request, response):
-    response = super(CronHuntConfigureSchedule, self).Layout(request, response)
-    return self.CallJavascript(response, "CronHuntConfigureSchedule.Layout")
+    cron_args = rdfvalue.CreateCronJobFlowArgs()
+    cron_args.flow_runner_args.flow_name = "CreateGenericHuntFlow"
+
+    self.cron_form = forms.SemanticProtoFormRenderer(
+        cron_args, id=self.id,
+        supressions=self.cron_suppressions,
+        prefix="cron").RawHTML(request)
+
+    return super(CronConfigureSchedule, self).Layout(request, response)
 
 
-class CronHuntReview(new_hunt.HuntInformation):
+class CronHuntParser(new_hunt.HuntArgsParser):
+  def ParseCronParameters(self):
+    cron_parmeters = forms.SemanticProtoFormRenderer(
+        rdfvalue.CreateCronJobFlowArgs(), prefix="cron").ParseArgs(
+            self.request)
+
+    cron_parmeters.flow_runner_args.flow_name = "CreateGenericHuntFlow"
+    cron_parmeters.flow_args.hunt_runner_args = self.ParseHuntRunnerArgs()
+    cron_parmeters.flow_args.hunt_args = self.ParseHuntArgs()
+
+    return cron_parmeters
+
+
+class CronReview(new_hunt.HuntInformation):
   """Shows generic hunt information plus its' cron scheduling settings."""
 
-  hunt_details_template = new_hunt.HuntInformation.hunt_details_template + """
+  ajax_template = renderers.Template("""
 <h3>Hunt Periodicity</h3>
 <div class="HuntPeriodicity">
-  <p>Hunt will run <strong>{{this.periodicity_label|escape}}</strong>.</p>
+  <p>Hunt will run <strong>{{this.cron_arg.periodicity|escape}}</strong>.</p>
 </div>
-"""
+""") + new_hunt.HuntInformation.ajax_template
 
-  def Layout(self, request, response):
+  def RenderAjax(self, request, response):
     """Renders review page of a hunt cron scheduling wizard."""
-    hunt_config_json = request.REQ.get("hunt_run")
-    hunt_config = json.loads(hunt_config_json)
+    parser = CronHuntParser(request)
 
-    periodicity = int(hunt_config["hunt_periodicity"])
-    periodicity_labels = {1: "daily",
-                          7: "weekly",
-                          14: "every 2 weeks"}
+    self.cron_arg = parser.ParseCronParameters()
 
-    self.periodicity_label = periodicity_labels.get(
-        periodicity, "every %d days" % periodicity)
-
-    return super(CronHuntReview, self).Layout(request, response)
+    return super(CronReview, self).RenderAjax(request, response)
 
 
-class CronHuntSchedule(renderers.TemplateRenderer,
-                       new_hunt.HuntRequestParsingMixin):
+class CronSchedule(new_hunt.HuntInformation):
   """Creates a cron job that runs given generic hunt."""
 
-  layout_template = renderers.Template("""
+  ajax_template = renderers.Template("""
 <div class="CronHuntSchedulingSummary padded">
   <p class="text-success">Hunt was successfully scheduled!</p>
 </div>
 """)
 
+  def RenderAjax(self, request, response):
+    """Attempt to schedule the new cron job."""
+    parser = CronHuntParser(request)
+
+    self.cron_arg = parser.ParseCronParameters()
+
+    # Create the cron job through the suid flow.
+    flow.GRRFlow.StartFlow(flow_name="CreateCronJobFlow",
+                           token=request.token, args=self.cron_arg)
+
+    return super(CronSchedule, self).RenderAjax(request, response)
+
+
+class CronConfigureFlow(new_hunt.HuntConfigureFlow):
+  right_renderer = "CronFlowForm"
+
+
+class CronFlowForm(new_hunt.HuntFlowForm):
+  suppressions = ["description"] + new_hunt.HuntFlowForm.suppressions
+
+
+class CronConfigureOutputPlugins(new_hunt.HuntConfigureOutputPlugins):
+  pass
+
+
+class CronConfigureRules(new_hunt.ConfigureHuntRules):
+  pass
+
+
+class ScheduleHuntCronJobDialog(wizards.WizardRenderer):
+  """Schedule new cron job that launches a hunt periodically."""
+
+  wizard_name = "hunt_run"
+  title = "Schedule a Periodic Hunt"
+  pages = [
+      CronConfigureFlow,
+      CronConfigureOutputPlugins,
+      CronConfigureRules,
+      CronConfigureSchedule,
+      CronReview,
+      CronSchedule,
+      ]
+
   def Layout(self, request, response):
-    """Attempt to run ScheduleGenericHuntFlow."""
-    hunt_config_json = request.REQ.get("hunt_run")
-    hunt_config = json.loads(hunt_config_json)
-    periodicity = int(hunt_config["hunt_periodicity"])
-
-    hunt_args = self.GetHuntArgsFromRequest(request)
-
-    try:
-      flow.GRRFlow.StartFlow(
-          None, "ScheduleGenericHuntFlow",
-          token=request.token,
-          expiry_time=hunt_args["hunt_args"]["expiry_time"],
-          client_limit=hunt_args["hunt_args"]["client_limit"],
-          hunt_flow_name=hunt_args["flow_name"],
-          hunt_flow_args=hunt_args["flow_args"],
-          hunt_rules=hunt_args["rules"],
-          output_plugins=hunt_args["output"],
-          hunt_periodicity=periodicity)
-    except RuntimeError as e:
-      return self.Fail(e, request, response)
-
-    return super(CronHuntSchedule, self).Layout(request, response)
+    response = super(ScheduleHuntCronJobDialog, self).Layout(request, response)
+    return self.CallJavascript(response, "ScheduleHuntCronJobDialog.Layout")

@@ -121,6 +121,9 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     win32security = imp.new_module("win32security")
     sys.modules["win32security"] = win32security
 
+    win32api = imp.new_module("win32api")
+    sys.modules["win32api"] = win32api
+
     win32service = imp.new_module("win32service")
     sys.modules["win32service"] = win32service
     win32serviceutil = imp.new_module("win32serviceutil")

@@ -31,11 +31,6 @@ from grr.lib import config_lib
 from grr.lib import utils
 
 
-config_lib.DEFINE_string(
-    name="Client.install_path",
-    default=r"%(SystemRoot|env)\\System32\\%(name)\\%(version_string)",
-    help="Where the client binaries are installed.")
-
 config_lib.DEFINE_list(
     "Installer.old_key_map", [
         "HKEY_LOCAL_MACHINE\\Software\\GRR\\certificate->Client.private_key",

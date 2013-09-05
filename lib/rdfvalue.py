@@ -16,6 +16,7 @@ import collections
 import datetime
 import functools
 import posixpath
+import re
 import time
 import urlparse
 
@@ -31,6 +32,14 @@ from grr.proto import jobs_pb2
 
 # Factor to convert from seconds to microseconds
 MICROSECONDS = 1000000
+
+# Somewhere to keep all the late binding placeholders.
+_LATE_BINDING_STORE = {}
+
+
+def RegisterLateBindingCallback(target_name, callback, **kwargs):
+  """Registers a callback to be invoked when the RDFValue named is declared."""
+  _LATE_BINDING_STORE.setdefault(target_name, []).append((callback, kwargs))
 
 
 class Error(Exception):
@@ -49,12 +58,23 @@ class DecodeError(InitializeError):
     super(DecodeError, self).__init__(msg)
 
 
+class RDFValueMetaclass(registry.MetaclassRegistry):
+  """A metaclass for managing semantic values."""
+
+  def __init__(cls, name, bases, env_dict):  # pylint: disable=no-self-argument
+    super(RDFValueMetaclass, cls).__init__(name, bases, env_dict)
+
+    # Run and clear any late binding callbacks registered for this class.
+    for callback, kwargs in _LATE_BINDING_STORE.pop(name, []):
+      callback(target=cls, **kwargs)
+
+
 class RDFValue(object):
   """Baseclass for values.
 
   RDFValues are serialized to and from the data store.
   """
-  __metaclass__ = registry.MetaclassRegistry
+  __metaclass__ = RDFValueMetaclass
 
   # This is how the attribute will be serialized to the data store. It must
   # indicate both the type emitted by SerializeToDataStore() and expected by
@@ -65,6 +85,10 @@ class RDFValue(object):
 
   # Mark as dirty each time we modify this object.
   dirty = False
+
+  # If this value was created as part of an AFF4 attribute, the attribute is
+  # assigned here.
+  attribute_instance = None
 
   def __init__(self, initializer=None, age=None):
     """Constructor must be able to take no args.
@@ -125,9 +149,9 @@ class RDFValue(object):
 
   def AsProto(self):
     """Serialize into an RDFValue protobuf."""
-    return jobs_pb2.RDFValue(age=int(self.age),
-                             name=self.__class__.__name__,
-                             data=self.SerializeToString())
+    return jobs_pb2.EmbeddedRDFValue(age=int(self.age),
+                                     name=self.__class__.__name__,
+                                     data=self.SerializeToString())
 
   def __iter__(self):
     """This allows every RDFValue to be iterated over."""
@@ -173,6 +197,9 @@ class RDFBytes(RDFValue):
 
   def __str__(self):
     return utils.SmartStr(self._value)
+
+  def __lt__(self, other):
+    return self._value < other
 
   def __eq__(self, other):
     return self._value == other
@@ -220,13 +247,19 @@ class RDFString(RDFBytes):
     return utils.SmartUnicode(self._value)
 
 
-class RDFSHAValue(RDFBytes):
-  """SHA256 hash."""
+class HashDigest(RDFBytes):
+  """Binary hash digest with hex string representation."""
 
   data_store_type = "bytes"
 
   def __str__(self):
     return self._value.encode("hex")
+
+  def __eq__(self, other):
+    return self._value == other or self._value.encode("hex") == other
+
+  def __ne__(self, other):
+    return not self == other  # pylint: disable=g-comparison-negation
 
 
 @functools.total_ordering
@@ -328,11 +361,13 @@ class RDFInteger(RDFString):
 
 class RDFBool(RDFInteger):
   """Boolean value."""
+  data_store_type = "unsigned_integer"
 
 
 class RDFDatetime(RDFInteger):
   """A date and time internally stored in MICROSECONDS."""
   converter = MICROSECONDS
+  data_store_type = "unsigned_integer"
 
   # A value of 0 means this object is not initialized.
   _value = 0
@@ -387,6 +422,12 @@ class RDFDatetime(RDFInteger):
     self._value = self._ParseFromHumanReadable(string, eoy=eoy)
 
     return self
+
+  def __add__(self, other):
+    if isinstance(other, (int, long)):
+      return self.__class__(self._value + other * self.converter)
+
+    return NotImplemented
 
   @classmethod
   def _ParseFromHumanReadable(cls, string, eoy=False):
@@ -451,6 +492,8 @@ class RDFDatetimeSeconds(RDFDatetime):
 
 class Duration(RDFInteger):
   """Duration value stored in seconds internally."""
+  data_store_type = "unsigned_integer"
+
   DIVIDERS = collections.OrderedDict((
       ("w", 60*60*24*7),
       ("d", 60*60*24),
@@ -474,6 +517,9 @@ class Duration(RDFInteger):
       raise InitializeError("Unknown initializer for Duration: %s." %
                             type(initializer))
 
+  def Validate(self, value, **_):
+    self.ParseFromString(value)
+
   def ParseFromString(self, string):
     self.ParseFromHumanReadable(string)
 
@@ -492,6 +538,16 @@ class Duration(RDFInteger):
 
   def __unicode__(self):
     return utils.SmartUnicode(str(self))
+
+  def Expiry(self, base_time=None):
+    if base_time is None:
+      base_time = RDFDatetime().Now()
+    else:
+      base_time = base_time.Copy()
+
+    base_time_sec = base_time.AsSecondsFromEpoch()
+
+    return base_time.FromSecondsFromEpoch(base_time_sec + self._value)
 
   def ParseFromHumanReadable(self, timestring):
     """Parse a human readable string of a duration.
@@ -514,7 +570,7 @@ class Duration(RDFInteger):
         multiplicator = self.DIVIDERS[timestring[-1]]
       except KeyError:
         raise RuntimeError("Invalid duration multiplicator: '%s' ('%s')." %
-                           timestring[-1], orig_string)
+                           (timestring[-1], orig_string))
 
       timestring = timestring[:-1]
 
@@ -549,17 +605,22 @@ class RDFURN(RDFValue):
 
     super(RDFURN, self).__init__(initializer=initializer, age=age)
 
+  # TODO(user): This is another ugly hack but we need to support legacy
+  # clients that still send plain strings in their responses.
+  bare_string_re = re.compile("^[A-Z]{1,3}:[a-zA-Z]+$")
+
   def ParseFromString(self, initializer=None):
     """Create RDFRUN from string.
 
     Args:
       initializer: url string
     """
-    self._urn = urlparse.urlparse(initializer, scheme="aff4")
     # TODO(user): This is another ugly hack but we need to support legacy
     # clients that still send plain strings in their responses.
-    if self._urn.scheme != "aff4":
-      self._urn = urlparse.urlparse("aff4:/" + initializer, scheme="aff4")
+    if self.bare_string_re.match(initializer):
+      initializer = "aff4:/" + initializer
+
+    self._urn = urlparse.urlparse(initializer, scheme="aff4")
 
     # TODO(user): Another hack. Urlparse behaves differently in different
     # Python versions. We have to make sure the URL is not split at '?' chars.
@@ -642,7 +703,13 @@ class RDFURN(RDFValue):
     return utils.SmartUnicode(self._string_urn)
 
   def __eq__(self, other):
-    return self._string_urn == other
+    if isinstance(other, basestring):
+      other = self.__class__(other)
+
+    elif not isinstance(other, self.__class__):
+      return NotImplemented
+
+    return self._string_urn == other._string_urn  # pylint: disable=protected-access
 
   def __ne__(self, other):
     return self._string_urn != other
@@ -697,7 +764,8 @@ class RDFURN(RDFValue):
     if string_url.startswith(volume_url):
       result = string_url[len(volume_url):]
       # Must always return a relative path
-      while result.startswith("/"): result = result[1:]
+      while result.startswith("/"):
+        result = result[1:]
 
       # Should return a unicode string.
       return utils.SmartUnicode(result)

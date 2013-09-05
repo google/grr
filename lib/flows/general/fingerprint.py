@@ -6,25 +6,25 @@
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import type_info
+from grr.proto import flows_pb2
+
+
+class FingerprintFileArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.FingerprintFileArgs
 
 
 class FingerprintFile(flow.GRRFlow):
   """Retrieve all fingerprints of a file."""
 
   category = "/Filesystem/"
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.PathspecType(
-          description="The file path to fingerprint."),
-      )
+  args_type = FingerprintFileArgs
 
   @flow.StateHandler(next_state="Done")
   def Start(self):
     """Issue the fingerprinting request."""
 
     request = rdfvalue.FingerprintRequest(
-        pathspec=self.state.pathspec)
+        pathspec=self.args.pathspec)
 
     # Generic hash.
     request.AddRequest(
@@ -55,7 +55,7 @@ class FingerprintFile(flow.GRRFlow):
       urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(response.pathspec,
                                                        self.client_id)
     else:
-      urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(self.state.pathspec,
+      urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(self.args.pathspec,
                                                        self.client_id)
     self.state.Register("urn", urn)
     fd = aff4.FACTORY.Create(urn, "VFSFile", mode="w", token=self.token)
@@ -67,6 +67,6 @@ class FingerprintFile(flow.GRRFlow):
   def End(self):
     """Finalize the flow."""
     self.Notify("ViewObject", self.state.urn, "Fingerprint retrieved.")
-    self.Status("Finished fingerprinting %s", self.state.pathspec.path)
+    self.Status("Finished fingerprinting %s", self.args.pathspec.path)
     # Notify any parent flows.
     self.SendReply(self.state.urn)

@@ -1048,8 +1048,8 @@ window.setTimeout(function () {
     try:
       client_id = rdfvalue.RDFURN(self.aff4_path).Split(2)[0]
       update_flow_urn = flow.GRRFlow.StartFlow(
-          client_id, "UpdateVFSFile", token=request.token,
-          vfs_file_urn=rdfvalue.RDFURN(self.aff4_path),
+          client_id=client_id, flow_name="UpdateVFSFile",
+          token=request.token, vfs_file_urn=rdfvalue.RDFURN(self.aff4_path),
           attribute=self.attribute_to_refresh)
 
       update_flow = aff4.FACTORY.Open(
@@ -1064,14 +1064,14 @@ window.setTimeout(function () {
   def RenderAjax(self, request, response):
     """Continue polling as long as the flow is in flight."""
     super(UpdateAttribute, self).RenderAjax(request, response)
-    complete = False
     self.ParseRequest(request)
 
     # Check if the flow is still in flight.
     try:
       flow_obj = aff4.FACTORY.Open(self.flow_urn, token=request.token)
-      if not flow_obj.IsRunning():
-        complete = True
+      with flow_obj.GetRunner() as runner:
+        complete = not runner.IsRunning()
+
     except IOError:
       # Something went wrong, stop polling.
       complete = True
@@ -1156,7 +1156,7 @@ As downloaded on {{ this.age|escape }}.<br>
   var button = $("#{{ unique|escapejs }}").button();
   var download_button = $("#{{ unique|escapejs }}_2").button();
 
-  button.click(function () {
+  button.click(function (event) {
     $('#{{unique|escapejs}}').attr('disabled', 'disabled');
     grr.layout("UpdateAttribute", "{{unique|escapejs}}_action", {
       attribute: 'aff4:content',
@@ -1165,6 +1165,8 @@ As downloaded on {{ this.age|escape }}.<br>
       reason: '{{this.token.reason|escapejs}}',
       client_id: grr.state.client_id,
     });
+
+    event.preventDefault();
   });
 
   // When the attribute is updated, refresh the views
@@ -1283,7 +1285,7 @@ class UploadView(renderers.TemplateRenderer):
   var state = {{this.state_json|safe}};
   state.tree_path = grr.state.tree_path;
 
-  u_button.click(function () {
+  u_button.click(function (event) {
     grr.uploadHandler("{{ this.upload_handler|escapejs }}",
       "{{ unique|escapejs }}_form",
       "{{ unique|escapejs }}_upload_progress",
@@ -1292,6 +1294,8 @@ class UploadView(renderers.TemplateRenderer):
       },
       state
     );
+
+    event.preventDefault();
   });
 </script>
 """)

@@ -142,13 +142,33 @@ class ProtoType(type_info.TypeInfoObject):
   # The type name according to the .proto domain specific language.
   proto_type_name = "string"
 
-  def __init__(self, field_number=None, required=False, **kwargs):
+  # A field may be defined but not added to the container immediately. In that
+  # case we wait for late binding to resolve the target and then bind the field
+  # to the protobuf descriptor set only when its target is resolved.
+  late_bound = False
+
+  # The Semantic protobuf class which owns this field descriptor.
+  owner = None
+
+  # This flag indicates if the default should be set into the owner protobuf on
+  # access.
+  set_default_on_access = False
+
+  def __init__(self, field_number=None, required=False, labels=None,
+               set_default_on_access=None, **kwargs):
     super(ProtoType, self).__init__(**kwargs)
     self.field_number = field_number
     self.required = required
+    if set_default_on_access is not None:
+      self.set_default_on_access = set_default_on_access
+
+    self.labels = labels or []
     if field_number is None:
       raise type_info.TypeValueError("No valid field number specified.")
 
+    self.CalculateTags()
+
+  def CalculateTags(self):
     # In python Varint encoding is expensive so we want to move as much of the
     # hard work from the Write() methods which are called frequently to the type
     # descriptor constructor which is only called once (during protobuf
@@ -193,7 +213,7 @@ class ProtoType(type_info.TypeInfoObject):
     """
     raise NotImplementedError()
 
-  def ConvertFromWireFormat(self, value):
+  def ConvertFromWireFormat(self, value, container=None):
     """Convert value from the internal type to the real type.
 
     When data is being parsed, it might be quicker to store it in a different
@@ -207,10 +227,12 @@ class ProtoType(type_info.TypeInfoObject):
 
     Args:
       value: A parameter stored in the wire format for this type.
+      container: The protobuf that contains this field.
 
     Returns:
       The parameter encoded in the python format representation.
     """
+    _ = container
     return value
 
   def ConvertToWireFormat(self, value):
@@ -251,6 +273,23 @@ class ProtoType(type_info.TypeInfoObject):
     """A Generator for display lines representing value."""
     yield str(value)
 
+  def Validate(self, value, container=None):
+    """Validate the value."""
+    _ = container
+    return value
+
+  def GetDefault(self, container=None):
+    _ = container
+    return self.default
+
+  def __str__(self):
+    return "<Field %s (%s) of %s: field_number: %s>" % (
+        self.name, self.__class__.__name__, self.owner.__name__,
+        self.field_number)
+
+  def SetOwner(self, owner):
+    self.owner = owner
+
 
 class ProtoUnknown(ProtoType):
   """A type descriptor for unknown fields.
@@ -278,7 +317,11 @@ class ProtoString(ProtoType):
 
   def __init__(self, default=u"", **kwargs):
     # Strings default to "" if not specified.
-    super(ProtoString, self).__init__(default=default, **kwargs)
+    super(ProtoString, self).__init__(**kwargs)
+
+    # Ensure the default is a unicode object.
+    if default is not None:
+      self.default = utils.SmartUnicode(default)
 
   def Validate(self, value, **_):
     """Validates a python format representation of the value."""
@@ -303,7 +346,7 @@ class ProtoString(ProtoType):
     length, index = VarintReader(buff, index)
     return buff[index:index+length], index+length
 
-  def ConvertFromWireFormat(self, value):
+  def ConvertFromWireFormat(self, value, container=None):
     """Internally strings are utf8 encoded."""
     try:
       return unicode(value, "utf8")
@@ -340,9 +383,13 @@ class ProtoBinary(ProtoType):
 
   def __init__(self, default="", **kwargs):
     # Byte strings default to "" if not specified.
-    super(ProtoBinary, self).__init__(default=default, **kwargs)
+    super(ProtoBinary, self).__init__(**kwargs)
 
-  def Validate(self, value):
+    # Ensure the default is a string object.
+    if default is not None:
+      self.default = utils.SmartStr(default)
+
+  def Validate(self, value, **_):
     if value.__class__ is not str:
       raise type_info.TypeValueError("%s not a valid string" % value)
 
@@ -440,7 +487,7 @@ class ProtoFixed32(ProtoUnsignedInteger):
   def ConvertToWireFormat(self, value):
     return struct.pack("<L", long(value))
 
-  def ConvertFromWireFormat(self, value):
+  def ConvertFromWireFormat(self, value, container=None):
     return struct.unpack("<L", value)[0]
 
 
@@ -453,7 +500,7 @@ class ProtoFixed64(ProtoFixed32):
   def ConvertToWireFormat(self, value):
     return struct.pack("<Q", long(value))
 
-  def ConvertFromWireFormat(self, value):
+  def ConvertFromWireFormat(self, value, container=None):
     return struct.unpack("<Q", value)[0]
 
 
@@ -467,7 +514,7 @@ class ProtoFixedU32(ProtoFixed32):
   def ConvertToWireFormat(self, value):
     return struct.pack("<l", long(value))
 
-  def ConvertFromWireFormat(self, value):
+  def ConvertFromWireFormat(self, value, container=None):
     return struct.unpack("<l", value)[0]
 
 
@@ -487,7 +534,7 @@ class ProtoFloat(ProtoFixed32):
   def ConvertToWireFormat(self, value):
     return struct.pack("<f", float(value))
 
-  def ConvertFromWireFormat(self, value):
+  def ConvertFromWireFormat(self, value, container=None):
     return struct.unpack("<f", value)[0]
 
 
@@ -507,7 +554,7 @@ class ProtoDouble(ProtoFixed64):
   def ConvertToWireFormat(self, value):
     return struct.pack("<d", float(value))
 
-  def ConvertFromWireFormat(self, value):
+  def ConvertFromWireFormat(self, value, container=None):
     return struct.unpack("<d", value)[0]
 
 
@@ -536,7 +583,7 @@ class ProtoEnum(ProtoSignedInteger):
   This is really encoded as an integer but only certain values are allowed.
   """
 
-  def __init__(self, enum_name=None, enum=None, **kwargs):
+  def __init__(self, default=None, enum_name=None, enum=None, **kwargs):
     super(ProtoEnum, self).__init__(**kwargs)
     if enum_name is None:
       raise type_info.TypeValueError("Enum groups must be given a name.")
@@ -553,6 +600,10 @@ class ProtoEnum(ProtoSignedInteger):
         raise type_info.TypeValueError("Enum values must be integers.")
 
       self.reverse_enum[v] = k
+
+    # Ensure the default is a valid enum value.
+    if default is not None:
+      self.default = self.Validate(default)
 
   def Validate(self, value, **_):
     """Check that value is a valid enum."""
@@ -589,7 +640,7 @@ class ProtoEnum(ProtoSignedInteger):
   def ConvertToWireFormat(self, value):
     return int(value)
 
-  def ConvertFromWireFormat(self, value):
+  def ConvertFromWireFormat(self, value, container=None):
     return Enum(value, name=self.reverse_enum.get(value))
 
 
@@ -610,20 +661,35 @@ class ProtoNested(ProtoType):
 
   closing_tag_data = None
 
-  # We need to be able to perform late binding for nested protobufs in case they
-  # refer to a protobuf which is not yet defined.
-  _type = None
+  # When we access a nested protobuf we automatically create it and assign it to
+  # the owner protobuf.
+  set_default_on_access = True
 
-  def __init__(self, nested=None, named_nested_type=None, **kwargs):
+  def __init__(self, nested=None, **kwargs):
     super(ProtoNested, self).__init__(**kwargs)
-    if nested and not issubclass(nested, RDFProtoStruct):
+
+    # Nested can refer to a target RDFProtoStruct by name.
+    if isinstance(nested, basestring):
+      self.proto_type_name = nested
+
+      # Try to resolve the type it names
+      self.type = getattr(rdfvalue, nested, None)
+
+      # We do not know about this type yet. Implement Late Binding.
+      if self.type is None:
+        self.late_bound = True
+
+        # Register a late binding callback.
+        rdfvalue.RegisterLateBindingCallback(nested, self.LateBind)
+
+    # Or it can be an subclass of RDFProtoStruct.
+    elif issubclass(nested, RDFProtoStruct):
+      self.type = nested
+      self.proto_type_name = nested.__name__
+
+    else:
       raise type_info.TypeValueError(
           "Only RDFProtoStructs can be nested, not %s" % nested.__name__)
-
-    self._type = nested
-    self.named_nested_type = named_nested_type
-    if self._type:
-      self.proto_type_name = self.type.__name__
 
     # Pre-calculate the closing tag data.
     self.closing_tag = ((self.field_number << 3) | WIRETYPE_END_GROUP)
@@ -631,17 +697,30 @@ class ProtoNested(ProtoType):
     VarintWriter(tmp.write, self.closing_tag)
     self.closing_tag_data = tmp.getvalue()
 
-  @property
-  def type(self):
-    """If the nested type is not known at definition time, resolve it now."""
-    if self._type is None:
-      self._type = getattr(rdfvalue, self.named_nested_type)
-      self.proto_type_name = self._type.__name__
-      if self._type is None:
-        raise rdfvalue.DecodeError(
-            "Unable to resolve nested member %s" % self.named_nested_type)
+  def LateBind(self, target=None):
+    """Late binding callback.
 
-    return self._type
+    This method is called on this field descriptor when the target RDFValue
+    class is finally defined. It gives the field descriptor an opportunity to
+    initialize after the point of definition.
+
+    Args:
+      target: The target nested class.
+
+    Raises:
+      TypeError: If the target class is not of the expected type.
+    """
+    if not issubclass(target, RDFProtoStruct):
+      raise TypeError("Field %s expects a protobuf, but target is %s" %
+                      self, target)
+
+    self.late_bound = False
+
+    # The target type is now resolved.
+    self.type = target
+
+    # Register us in our owner.
+    self.owner.AddDescriptor(self)
 
   def IsDirty(self, proto):
     """Return and clear the dirty state of the python object."""
@@ -655,11 +734,11 @@ class ProtoNested(ProtoType):
 
     return False
 
-  def GetDefault(self):
+  def GetDefault(self, container=None):
     """When a nested proto is accessed, default to an empty one."""
     return self.type()
 
-  def Validate(self, value):
+  def Validate(self, value, **_):
     # We may coerce it to the correct type.
     if value.__class__ is not self.type:
       try:
@@ -812,7 +891,7 @@ class ProtoEmbedded(ProtoNested):
 
   wire_type = WIRETYPE_LENGTH_DELIMITED
 
-  def ConvertFromWireFormat(self, value):
+  def ConvertFromWireFormat(self, value, container=None):
     """The wire format is simply a string."""
     result = self.type()
     self.ReadIntoObject(value, 0, result)
@@ -844,6 +923,63 @@ class ProtoEmbedded(ProtoNested):
     return buff[index:index+length], index+length
 
 
+class ProtoDynamicEmbedded(ProtoType):
+  """An embedded field which has a dynamic type."""
+
+  wire_type = WIRETYPE_LENGTH_DELIMITED
+
+  set_default_on_access = True
+
+  def __init__(self, dynamic_cb=None, **kwargs):
+    """Initialize the type descriptor.
+
+    We call the dynamic_method to know which type should be used to decode the
+    embedded bytestream.
+
+    Args:
+      dynamic_cb: A callback to be used to return the class to parse the
+      embedded data. We pass the callback our container.
+
+      **kwargs: Passthrough.
+    """
+    super(ProtoDynamicEmbedded, self).__init__(**kwargs)
+    self._type = dynamic_cb
+
+  def ConvertFromWireFormat(self, value, container=None):
+    """The wire format is simply a string."""
+    return self._type(container)(value)
+
+  def ConvertToWireFormat(self, value):
+    """Encode the nested protobuf into wire format."""
+    return value.SerializeToString()
+
+  def Write(self, stream, value):
+    """Serialize this protobuf as an embedded protobuf."""
+    stream.write(self.tag_data)
+    VarintWriter(stream.write, len(value))
+    stream.write(value)
+
+  def Read(self, buff, index):
+    length, index = VarintReader(buff, index)
+    return buff[index:index+length], index+length
+
+  def Validate(self, value, container=None):
+    required_type = self._type(container)
+    if required_type and not isinstance(value, required_type):
+      raise ValueError("Expected value of type %s" % required_type)
+
+    return value
+
+  def GetDefault(self, container=None):
+    cls = self._type(container or self.owner())
+    if cls is not None:
+      return cls()
+
+  def Format(self, value):
+    for line in value.Format():
+      yield "  %s" % line
+
+
 class RepeatedFieldHelper(object):
   """A helper for the RDFProto to handle repeated fields.
 
@@ -854,13 +990,14 @@ class RepeatedFieldHelper(object):
 
   dirty = False
 
-  def __init__(self, wrapped_list=None, type_descriptor=None):
+  def __init__(self, wrapped_list=None, type_descriptor=None, container=None):
     """Constructor.
 
     Args:
       wrapped_list: The list within the protobuf which we wrap.
       type_descriptor: A type descriptor describing the type of the list
         elements..
+      container: The protobuf which contains this repeated field.
 
     Raises:
       AttributeError: If parameters are not valid.
@@ -878,6 +1015,7 @@ class RepeatedFieldHelper(object):
       raise AttributeError("type_descriptor not specified.")
 
     self.type_descriptor = type_descriptor
+    self.container = container
 
   def IsDirty(self):
     """Is this repeated item dirty?
@@ -945,7 +1083,8 @@ class RepeatedFieldHelper(object):
 
     python_format, wire_format = self.wrapped_list[item]
     if python_format is None:
-      python_format = self.type_descriptor.ConvertFromWireFormat(wire_format)
+      python_format = self.type_descriptor.ConvertFromWireFormat(
+          wire_format, container=self.container)
 
       self.wrapped_list[item] = (python_format, wire_format)
 
@@ -976,9 +1115,15 @@ class RepeatedFieldHelper(object):
 
     return "\n".join(result)
 
+  def Validate(self):
+    for x in self:
+      x.Validate()
+
 
 class ProtoList(ProtoType):
   """A repeated type."""
+
+  set_default_on_access = True
 
   def __init__(self, delegate, **kwargs):
     self.delegate = delegate
@@ -986,6 +1131,14 @@ class ProtoList(ProtoType):
       raise AttributeError(
           "Delegate class must derive from ProtoType, not %s" %
           delegate.__class__.__name__)
+
+    # If our delegate is late bound we must also be late bound. This means that
+    # the repeated field is not registered in the owner protobuf just
+    # yet. However, we do not actually need to register a late binding callback
+    # ourselves, since the delegate field descriptor already did this. We simply
+    # wait until the delegate calls our AddDescriptor() method and then we call
+    # our own owner's AddDescriptor() method to ensure we re-register.
+    self.late_bound = delegate.late_bound
 
     self.wire_type = delegate.wire_type
 
@@ -996,15 +1149,16 @@ class ProtoList(ProtoType):
   def IsDirty(self, value):
     return value.IsDirty()
 
-  def GetDefault(self):
+  def GetDefault(self, container=None):
     # By default an empty RepeatedFieldHelper.
-    return RepeatedFieldHelper(type_descriptor=self.delegate)
+    return RepeatedFieldHelper(type_descriptor=self.delegate,
+                               container=container)
 
-  def Validate(self, value):
+  def Validate(self, value, **_):
     """Check that value is a list of the required type."""
     # Assigning from same kind can allow us to skip verification since all
     # elements in a RepeatedFieldHelper already are coerced to the delegate
-    # type. In that case we just make a copy.  This only works when the value
+    # type. In that case we just make a copy. This only works when the value
     # wraps the same type as us.
     if (value.__class__ is RepeatedFieldHelper and
         value.type_descriptor is self.delegate):
@@ -1047,6 +1201,19 @@ class ProtoList(ProtoType):
 
     return result + ";\n"
 
+  def SetOwner(self, owner):
+    self.owner = owner
+    # We are the owner for the delegate field descriptor.
+    self.delegate.SetOwner(self)
+
+  def AddDescriptor(self, field_desc):
+    """This method will be called by our delegate during late binding."""
+    # Just relay it up to our owner.
+    self.late_bound = False
+    self.delegate = field_desc
+    self.wire_type = self.delegate.wire_type
+    self.owner.AddDescriptor(self)
+
 
 class ProtoRDFValue(ProtoBinary):
   """Serialize arbitrary rdfvalue members.
@@ -1069,10 +1236,20 @@ class ProtoRDFValue(ProtoBinary):
 
   2) Use the delegate to obtain the wire format of its own python type
   (i.e. self.delegate.ConvertToWireFormat())
+
+  NOTE: The default value for an RDFValue is None. It is impossible for us to
+  know how to instantiate a valid default value without being told by the
+  user. This is unlike the default value for strings or ints which are "" and 0
+  respectively.
   """
 
-  _type = None
-  _named_type = None
+  # We delegate encoding/decoding to a primitive field descriptor based on the
+  # semantic type's data_store_type attribute.
+  primitive_desc = None
+
+  # We store our args here so we can use the same args to initialize the
+  # delegate descriptor.
+  _kwargs = None
 
   _PROTO_DATA_STORE_LOOKUP = dict(
       bytes=ProtoBinary,
@@ -1081,40 +1258,67 @@ class ProtoRDFValue(ProtoBinary):
       signed_integer=ProtoSignedInteger,
       string=ProtoString)
 
-  def __init__(self, rdf_type=None, **kwargs):
-    if isinstance(rdf_type, basestring):
-      # If this fails to be resolved at this time, we resolve it at runtime
-      # later.
-      self._type = getattr(rdfvalue, rdf_type, None)
-      self._named_type = rdf_type
+  def __init__(self, rdf_type=None, default=None, **kwargs):
+    super(ProtoRDFValue, self).__init__(default=default, **kwargs)
+    self._kwargs = kwargs
 
-    elif rdf_type is not None:
-      self._type = rdf_type
+    if isinstance(rdf_type, basestring):
+      self.proto_type_name = rdf_type
+
+      # Try to resolve the type it names
+      self.type = getattr(rdfvalue, rdf_type, None)
+
+      # We do not know about this type yet. Implement Late Binding.
+      if self.type is None:
+        self.late_bound = True
+
+        # Register a late binding callback.
+        rdfvalue.RegisterLateBindingCallback(rdf_type, self.LateBind)
+
+      else:
+        # The semantic type was found successfully.
+        self._GetPrimitiveEncoder()
+
+    # Or it can be an subclass of RDFValue.
+    elif issubclass(rdf_type, rdfvalue.RDFValue):
+      self.type = rdf_type
+      self.proto_type_name = rdf_type.__name__
+      self._GetPrimitiveEncoder()
 
     else:
       type_info.TypeValueError("An rdf_type must be specified.")
 
-    # Now decide how we pack the rdfvalue into the protobuf and create a
-    # delegate descriptor to control that.
-    delegate_cls = self._PROTO_DATA_STORE_LOOKUP[self.type.data_store_type]
-    self.delegate = delegate_cls(**kwargs)
+  def LateBind(self, target=None):
+    """Bind the field descriptor to the owner once the target is defined."""
+    self.type = target
+    self._GetPrimitiveEncoder()
+
+    # Now re-add the descriptor to the owner protobuf.
+    self.late_bound = False
+    self.owner.AddDescriptor(self)
+
+  def _GetPrimitiveEncoder(self):
+    """Finds the primitive encoder according to the type's data_store_type."""
+    # Decide what should the primitive type be for packing the target rdfvalue
+    # into the protobuf and create a delegate descriptor to control that.
+    primitive_cls = self._PROTO_DATA_STORE_LOOKUP[self.type.data_store_type]
+    self.primitive_desc = primitive_cls(**self._kwargs)
 
     # Our wiretype is the same as the delegate's.
-    self.wire_type = self.delegate.wire_type
-    self.proto_type_name = self.delegate.proto_type_name
+    self.wire_type = self.primitive_desc.wire_type
+    self.proto_type_name = self.primitive_desc.proto_type_name
 
-    super(ProtoRDFValue, self).__init__(**kwargs)
+    # Recalculate our tags.
+    self.CalculateTags()
 
-  @property
-  def type(self):
-    """If the rdfvalue type is not known at definition time, resolve it now."""
-    if self._type is None:
-      self._type = getattr(rdfvalue, self._named_type, None)
-      if self._type is None:
-        raise rdfvalue.DecodeError(
-            "Unable to resolve rdfvalue %s" % self._named_type)
+  def GetDefault(self, container=None):
+    _ = container
+    # We must return an instance of our type. This allows the field to be
+    # initialized with a string default.
+    if self.default is not None and self.default.__class__ is not self.type:
+      self.default = self.Validate(self.default)
 
-    return self._type
+    return self.default
 
   def IsDirty(self, python_format):
     """Return the dirty state of the python object."""
@@ -1122,15 +1326,15 @@ class ProtoRDFValue(ProtoBinary):
 
   def Definition(self):
     return ("\n  // Semantic Type: %s" %
-            self.type.__name__) + self.delegate.Definition()
+            self.type.__name__) + self.primitive_desc.Definition()
 
   def Read(self, buff, index):
-    return self.delegate.Read(buff, index)
+    return self.primitive_desc.Read(buff, index)
 
   def Write(self, buff, index):
-    return self.delegate.Write(buff, index)
+    return self.primitive_desc.Write(buff, index)
 
-  def Validate(self, value):
+  def Validate(self, value, **_):
     # Try to coerce into the correct type:
     if value.__class__ is not self.type:
       try:
@@ -1140,10 +1344,12 @@ class ProtoRDFValue(ProtoBinary):
 
     return value
 
-  def ConvertFromWireFormat(self, value):
+  def ConvertFromWireFormat(self, value, container=None):
     # Wire format should be compatible with the data_store_type for the
-    # rdfvalue. We use the delegate type_info to perform the conversion.
-    value = self.delegate.ConvertFromWireFormat(value)
+    # rdfvalue. We use the delegate primitive descriptor to perform the
+    # conversion.
+    value = self.primitive_desc.ConvertFromWireFormat(
+        value, container=container)
 
     result = self.type()
     result.ParseFromDataStore(value)
@@ -1151,7 +1357,7 @@ class ProtoRDFValue(ProtoBinary):
     return result
 
   def ConvertToWireFormat(self, value):
-    return self.delegate.ConvertToWireFormat(value.SerializeToDataStore())
+    return self.primitive_desc.ConvertToWireFormat(value.SerializeToDataStore())
 
   def _FormatField(self):
     result = "  optional %s %s = %s" % (self.proto_type_name,
@@ -1162,6 +1368,11 @@ class ProtoRDFValue(ProtoBinary):
     yield "%s:" % self.type.__name__
     for line in str(value).splitlines():
       yield "  %s" % line
+
+  def __str__(self):
+    return "<Field %s (Sem Type: %s) of %s: field_number: %s>" % (
+        self.name, self.proto_type_name, self.owner.__name__,
+        self.field_number)
 
 
 class AbstractSerlializer(object):
@@ -1228,6 +1439,7 @@ class JsonSerlializer(AbstractSerlializer):
     return json.dumps(self._SerializedToIntermediateForm(data))
 
   def _ParseFromIntermediateForm(self, data):
+    """Convert from Intermediate JSON form to a python object."""
     result = {}
 
     for k, v in data.iteritems():
@@ -1249,13 +1461,17 @@ class JsonSerlializer(AbstractSerlializer):
     value_obj.SetRawData(self._ParseFromIntermediateForm(json.loads(string)))
 
 
-class RDFStructMetaclass(registry.MetaclassRegistry):
-  """This is a metaclass which registers new RDFProtoStruct instances."""
+class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
+  """A metaclass which registers new RDFProtoStruct instances."""
 
   def __init__(cls, name, bases, env_dict):  # pylint: disable=no-self-argument
     super(RDFStructMetaclass, cls).__init__(name, bases, env_dict)
 
     cls.type_infos = type_info.TypeDescriptorSet()
+
+    # Keep track of the late bound fields.
+    cls.late_bound_type_infos = {}
+
     cls.type_infos_by_field_number = {}
     cls.type_infos_by_encoded_tag = {}
 
@@ -1267,6 +1483,10 @@ class RDFStructMetaclass(registry.MetaclassRegistry):
     if cls.type_description is not None:
       for field_desc in cls.type_description:
         cls.AddDescriptor(field_desc)
+
+    # Allow the class to suppress some fields.
+    if cls.suppressions:
+      cls.type_infos = cls.type_infos.Remove(*cls.suppressions)
 
     cls._class_attributes = set(dir(cls))
 
@@ -1315,11 +1535,18 @@ class RDFStruct(rdfvalue.RDFValue):
   # This is where the type infos are constructed.
   type_infos = None
 
+  # Mark as dirty each time we modify this object.
+  dirty = False
+
   _data = None
 
   # This is the serializer which will be used by this class. It can be
   # interchanged or overriden as required.
   _serializer = JsonSerlializer()
+
+  # A list of fields which will be removed from this class's type descriptor
+  # set.
+  suppressions = []
 
   def __init__(self, initializer=None, age=None, **kwargs):
     # Maintain the order so that parsing and serializing a proto does not change
@@ -1328,16 +1555,23 @@ class RDFStruct(rdfvalue.RDFValue):
     self._age = age
 
     for arg, value in kwargs.iteritems():
-      #  self.Set(arg, value)
       if not hasattr(self.__class__, arg):
+        if arg in self.late_bound_type_infos:
+          raise AttributeError(
+              "Field %s refers to an as yet undefined Semantic Type." %
+              self.late_bound_type_infos[arg])
+
         raise AttributeError(
             "Proto %s has no field %s" % (self.__class__.__name__, arg))
+
+      # Call setattr to allow the class to define @property psuedo fields which
+      # can also be initialized.
       setattr(self, arg, value)
 
     if initializer is None:
       return
 
-    elif initializer.__class__ == self.__class__:
+    elif initializer.__class__ is self.__class__:
       self.ParseFromString(initializer.SerializeToString())
 
     elif initializer.__class__ is str:
@@ -1431,7 +1665,8 @@ class RDFStruct(rdfvalue.RDFValue):
     for k, (python_format, wire_format,
             type_descriptor) in sorted(self.GetRawData().items()):
       if python_format is None:
-        python_format = type_descriptor.ConvertFromWireFormat(wire_format)
+        python_format = type_descriptor.ConvertFromWireFormat(
+            wire_format, container=self)
 
       # Skip printing of unknown fields.
       if isinstance(k, basestring):
@@ -1451,13 +1686,14 @@ class RDFStruct(rdfvalue.RDFValue):
             [x.name for x in self.type_infos])
 
   def _Set(self, attr, value, type_descriptor):
+    """Validate the value and set the attribute with it."""
     # A value of None means we clear the field.
     if value is None:
       self._data.pop(attr, None)
       return
 
     # Validate the value and obtain the python format representation.
-    value = type_descriptor.Validate(value)
+    value = type_descriptor.Validate(value, container=self)
 
     # Store the lazy value object.
     self._data[attr] = (value, None, type_descriptor)
@@ -1493,24 +1729,28 @@ class RDFStruct(rdfvalue.RDFValue):
     entry = self._data.get(attr)
     # We dont have this field, try the defaults.
     if entry is None:
-      type_info_obj = self.type_infos.get(attr)
+      type_descriptor = self.type_infos.get(attr)
 
-      if type_info_obj is None:
+      if type_descriptor is None:
         raise AttributeError("'%s' object has no attribute '%s'" % (
             self.__class__.__name__, attr))
 
       # Assign the default value now.
-      default = type_info_obj.GetDefault()
+      default = type_descriptor.GetDefault(container=self)
       if default is None:
         return
 
-      return self.Set(attr, default)
+      if type_descriptor.set_default_on_access:
+        default = self.Set(attr, default)
+
+      return default
 
     python_format, wire_format, type_descriptor = entry
 
     # Decode on demand and cache for next time.
     if python_format is None:
-      python_format = type_descriptor.ConvertFromWireFormat(wire_format)
+      python_format = type_descriptor.ConvertFromWireFormat(
+          wire_format, container=self)
 
       self._data[attr] = (python_format, wire_format, type_descriptor)
 
@@ -1539,6 +1779,15 @@ class RDFStruct(rdfvalue.RDFValue):
 
     cls.type_infos_by_field_number[field_desc.field_number] = field_desc
     cls.type_infos.Append(field_desc)
+
+  def __getstate__(self):
+    """Support the pickle protocol."""
+    return dict(data=self.SerializeToString())
+
+  def __setstate__(self, data):
+    """Support the pickle protocol."""
+    self._data = {}
+    self.ParseFromString(data["data"])
 
 
 class ProtobufType(ProtoNested):
@@ -1632,6 +1881,24 @@ class RDFProtoStruct(RDFStruct):
 
     return [value]
 
+  def AsProto(self):
+    """Return an old style protocol buffer object."""
+    if self.protobuf:
+      result = self.protobuf()
+      result.ParseFromString(self.SerializeToString())
+      return result
+
+  def AsDict(self):
+    result = {}
+    for descriptor in self.type_infos:
+      if self.HasField(descriptor.name):
+        result[descriptor.name] = getattr(self, descriptor.name)
+
+    return result
+
+  def __nonzero__(self):
+    return bool(self._data)
+
   @classmethod
   def EmitProto(cls):
     """Emits .proto file definitions."""
@@ -1657,6 +1924,14 @@ class RDFProtoStruct(RDFStruct):
       protobuf: A generated protocol buffer class as produced by the protobuf
         compiler.
     """
+    # Parse message level options.
+    message_options = protobuf.DESCRIPTOR.GetOptions()
+    semantic_options = message_options.Extensions[semantic_pb2.semantic]
+
+    # Support message descriptions
+    if semantic_options.description and not cls.__doc__:
+      cls.__doc__ = semantic_options.description
+
     # We search through all the field descriptors and build type info
     # descriptors from them.
     for field in protobuf.DESCRIPTOR.fields:
@@ -1665,7 +1940,7 @@ class RDFProtoStruct(RDFStruct):
       # Does this field have semantic options?
       options = field.GetOptions().Extensions[semantic_pb2.sem_type]
       kwargs = dict(description=options.description, name=field.name,
-                    field_number=field.number)
+                    field_number=field.number, labels=list(options.label))
 
       if field.has_default_value:
         kwargs["default"] = field.default_value
@@ -1705,6 +1980,17 @@ class RDFProtoStruct(RDFStruct):
 
       elif field.type == 12:  # bytes
         type_descriptor = ProtoBinary(**kwargs)
+        if options.dynamic_type:
+          # This may be a dynamic type. In this case the dynamic_type option
+          # names a method (which must exist) which should return the class of
+          # the embedded semantic value.
+          dynamic_cb = getattr(cls, options.dynamic_type, None)
+          if dynamic_cb is not None:
+            type_descriptor = ProtoDynamicEmbedded(dynamic_cb=dynamic_cb,
+                                                   **kwargs)
+          else:
+            logging.warning("Dynamic type specifies a non existant callback %s",
+                            options.dynamic_type)
 
       elif field.type == 13:  # unsigned integer
         type_descriptor = ProtoUnsignedInteger(**kwargs)
@@ -1715,20 +2001,11 @@ class RDFProtoStruct(RDFStruct):
           type_descriptor = ProtoEmbedded(nested=cls, **kwargs)
 
         else:
-          # Make sure that the nested protobuf is already defined as a semantic
-          # proto.
-          nested_class = cls.classes.get(field.message_type.name)
-
-          # If we get here we do not have the message already defined. This can
-          # happen for example if the message refers to another message which is
-          # not yet defined. We therefore create a descriptor with a name only
-          # and allow it to resolve the name to a class later.
-          if nested_class is None:
-            type_descriptor = ProtoEmbedded(
-                named_nested_type=field.message_type.name, **kwargs)
-
-          else:
-            type_descriptor = ProtoEmbedded(nested=nested_class, **kwargs)
+          # Refer to another protobuf. Note that the target does not need to be
+          # known at this time. It will be resolved using the late binding
+          # algorithm.
+          type_descriptor = ProtoEmbedded(nested=field.message_type.name,
+                                          **kwargs)
 
       elif field.enum_type:  # It is an enum.
         enum_desc = field.enum_type
@@ -1759,6 +2036,20 @@ class RDFProtoStruct(RDFStruct):
       else:
         logging.error("Unknown field type for %s - Ignoring.", field.name)
 
+  def Validate(self):
+    """Validates the semantic protobuf for internal consistency.
+
+    Derived classes can override this method to ensure the proto is sane
+    (e.g. required fields, or any arbitrary condition). This method is called
+    prior to serialization. Note that it is not necessary to validate fields
+    against their semantic types - it is impossible to set fields which are
+    invalid. This function is more intended to validate the entire protobuf for
+    internal consistency.
+
+    Raises:
+      type_info.TypeValueError if the proto is invalid.
+    """
+
   @classmethod
   def FromTextFormat(cls, text):
     """Parse this object from a text representation."""
@@ -1775,6 +2066,16 @@ class RDFProtoStruct(RDFStruct):
           "%s field '%s' should be of type ProtoType" % (
               cls.__name__, field_desc.name))
 
+    # Ensure the field descriptor knows the class that owns it.
+    field_desc.SetOwner(cls)
+
+    # If the field is late bound we do not really add it to the descriptor set
+    # yet. We must wait for the LateBindingPlaceHolder() to add it later.
+    if field_desc.late_bound:
+      # Keep track of unbound fields.
+      cls.late_bound_type_infos[field_desc.name] = field_desc
+      return
+
     # Ensure this field number is unique:
     if field_desc.field_number in cls.type_infos_by_field_number:
       raise type_info.TypeValueError(
@@ -1786,10 +2087,18 @@ class RDFProtoStruct(RDFStruct):
     cls.type_infos_by_encoded_tag[field_desc.tag_data] = field_desc
 
     cls.type_infos.Append(field_desc)
+    cls.late_bound_type_infos.pop(field_desc.name, None)
 
-    # This lambda is a class method so pylint: disable=protected-access
-    # This is much faster than __setattr__/__getattr__
-    setattr(cls, field_desc.name, property(
-        lambda self: self.Get(field_desc.name),
-        lambda self, x: self._Set(field_desc.name, x, field_desc),
-        None, field_desc.description))
+    # Add direct accessors only if the class does not already have them.
+    if not hasattr(cls, field_desc.name):
+      # This lambda is a class method so pylint: disable=protected-access
+      # This is much faster than __setattr__/__getattr__
+      setattr(cls, field_desc.name, property(
+          lambda self: self.Get(field_desc.name),
+          lambda self, x: self._Set(field_desc.name, x, field_desc),
+          None, field_desc.description))
+
+
+class SemanticDescriptor(RDFProtoStruct):
+  """A semantic protobuf describing the .proto extension."""
+  protobuf = semantic_pb2.SemanticDescriptor

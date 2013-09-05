@@ -1,22 +1,30 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """Module containing a set of reports for management of GRR."""
 
 import csv
 import datetime
-import operator
 import StringIO
 import time
 
 import logging
 
-from grr.lib import aff4
 from grr.lib import email_alerts
 from grr.lib import export_utils
+from grr.lib import rdfvalue
+from grr.lib import registry
+from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import network
 
 
-class ClientReport(object):
+class Report(object):
+  """The baseclass for all reports."""
+
+  # Register a metaclass registry to track all reports.
+  __metaclass__ = registry.MetaclassRegistry
+
+
+class ClientReport(Report):
   """The baseclass of all client reports."""
 
   EMAIL_TEMPLATE = """
@@ -33,13 +41,15 @@ class ClientReport(object):
   # List of tuples of (path, attribute) to add to the report.
   EXTENDED_REPORT_ATTRS = []
 
+  __abstract = True  # pylint: disable=g-bad-name
+
   def __init__(self, token=None, thread_num=20):
     self.token = token
     self.results = []
-    self.broken_subjects = []  #  Database entries that are broken.
     self.fields = [f.name for f in self.REPORT_ATTRS]
     self.fields += [f[1].name for f in self.EXTENDED_REPORT_ATTRS]
     self.thread_num = thread_num
+    self.broken_clients = []     #  Clients that are broken or fail to run.
 
   def AsDict(self):
     """Give the report as a list of dicts."""
@@ -62,7 +72,7 @@ class ClientReport(object):
   def SortResults(self, field):
     """Sort the result set."""
     logging.debug("Sorting %d results", len(self.results))
-    self.results.sort(key=operator.itemgetter(field))
+    self.results.sort(key=lambda x: str(x.get(field, "")))
 
   def AsHtmlTable(self):
     """Return the results as an HTML table."""
@@ -88,10 +98,23 @@ class ClientReport(object):
 
   def MailReport(self, recipient, subject=None):
     """Mail the HTML report to recipient."""
-    if subject is None:
-      subject = self.REPORT_NAME
+    dt = rdfvalue.RDFDatetime().Now().AsDatetime().strftime("%Y-%m-%dT%H-%MZ")
+    subject = subject or "%s - %s" % (self.REPORT_NAME, dt)
+    csv_data = self.AsCsv()
+    filename = "%s-%s.csv" % (self.REPORT_NAME, dt)
+    email_alerts.SendEmail(utils.SmartStr(recipient), self.EMAIL_FROM,
+                           subject,
+                           "Please find the CSV report file attached",
+                           attachments={filename: csv_data.getvalue()},
+                           is_html=False)
+    logging.info("Report %s mailed to %s", self.REPORT_NAME, recipient)
+
+  def MailHTMLReport(self, recipient, subject=None):
+    """Mail the HTML report to recipient."""
+    dt = rdfvalue.RDFDatetime().Now().AsDatetime().strftime("%Y-%m-%dT%H-%MZ")
+    subject = subject or "%s - %s" % (self.REPORT_NAME, dt)
     report_text = self.AsHtmlTable()
-    email_alerts.SendEmail(recipient, self.EMAIL_FROM,
+    email_alerts.SendEmail(utils.SmartStr(recipient), self.EMAIL_FROM,
                            subject,
                            self.EMAIL_TEMPLATE % dict(
                                report_text=report_text,
@@ -112,6 +135,7 @@ class ClientReport(object):
     report_iter = ClientReportIterator(
         max_age=max_age, token=self.token, report_attrs=self.REPORT_ATTRS,
         extended_report_attrs=self.EXTENDED_REPORT_ATTRS)
+    self.broken_clients = report_iter.broken_subjects
     return report_iter.Run()
 
 
@@ -119,17 +143,17 @@ class ClientListReport(ClientReport):
   """Returns a list of clients with their version."""
 
   REPORT_ATTRS = [
-      aff4.Attribute.GetAttributeByName("LastCheckin"),
-      aff4.Attribute.GetAttributeByName("subject"),
-      aff4.Attribute.GetAttributeByName("Host"),
-      aff4.Attribute.GetAttributeByName("System"),
-      aff4.Attribute.GetAttributeByName("Architecture"),
-      aff4.Attribute.GetAttributeByName("Uname"),
-      aff4.Attribute.GetAttributeByName("GRR client"),
+      aff4_grr.VFSGRRClient.SchemaCls.GetAttribute("LastCheckin"),
+      aff4_grr.VFSGRRClient.SchemaCls.GetAttribute("subject"),
+      aff4_grr.VFSGRRClient.SchemaCls.GetAttribute("Host"),
+      aff4_grr.VFSGRRClient.SchemaCls.GetAttribute("System"),
+      aff4_grr.VFSGRRClient.SchemaCls.GetAttribute("Architecture"),
+      aff4_grr.VFSGRRClient.SchemaCls.GetAttribute("Uname"),
+      aff4_grr.VFSGRRClient.SchemaCls.GetAttribute("GRR client"),
   ]
 
   EXTENDED_REPORT_ATTRS = [
-      ("network", aff4.Attribute.GetAttributeByName("Interfaces"))
+      ("network", network.Network.SchemaCls.GetAttribute("Interfaces"))
   ]
 
   REPORT_NAME = "GRR Client List Report"
@@ -150,7 +174,7 @@ class VersionBreakdownReport(ClientReport):
   """Returns a breakdown of versions."""
 
   REPORT_ATTRS = [
-      aff4.Attribute.GetAttributeByName("GRR client")
+      aff4_grr.VFSGRRClient.SchemaCls.GetAttribute("GRR client")
   ]
   REPORT_NAME = "GRR Client Version Breakdown Report"
 
@@ -159,7 +183,6 @@ class VersionBreakdownReport(ClientReport):
     counts = {}
     self.fields.append("count")
     self.results = []
-    self.broken_subjects = []
     for client in self._QueryResults(max_age):
       version = client.get("GRR client")
       try:
@@ -208,6 +231,7 @@ class ClientReportIterator(export_utils.IterateAllClients):
     for sub_path, attr in self.extended_report_attrs:
       try:
         client_sub = client.OpenMember(sub_path)
+        # TODO(user): Update this to use MultiOpen.
       except IOError:
         # If the path is not found, just continue.
         continue
@@ -215,8 +239,22 @@ class ClientReportIterator(export_utils.IterateAllClients):
       if attr.name == "Interfaces":
         interfaces = client_sub.Get(attr)
         if interfaces:
-          result[attr.name] = ",".join(interfaces.GetIPAddresses())
+          try:
+            result[attr.name] = ",".join(interfaces.GetIPAddresses())
+          except AttributeError:
+            result[attr.name] = ""
       else:
         result[attr.name] = client_sub.Get(attr)
 
     out_queue.put(result)
+
+
+class ReportName(rdfvalue.RDFString):
+  """A class for reports we support."""
+
+  type = "ReportName"
+
+  def ParseFromString(self, value):
+    super(ReportName, self).ParseFromString(value)
+    if value not in Report.classes:
+      raise ValueError("Invalid report %s." % value)

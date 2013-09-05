@@ -78,19 +78,21 @@ def InstallerNotifyServer():
   client.RunOnce()
 
 
-def InstallerPluginInit():
-  """Register any installer plugins."""
-  for plugin in config_lib.CONFIG["Installer.plugins"]:
-    # Load from path relative to our executable.
-    config_lib.PluginLoader.LoadPlugin(
-        os.path.join(os.path.dirname(sys.executable), plugin))
-
-
 def RunInstaller():
   """Run all registered installers.
 
   Run all the current installers and then exit the process.
   """
+  # Register any installer plugins. This allows users to add specialized
+  # functionality to the pre-build client package. Simply add python files to
+  # the pre-built template where installer plugins are defined, and add them to
+  # this config option. The deployed binary will load these installer plugins
+  # and run them as part of the installation.
+  for plugin in config_lib.CONFIG["Installer.plugins"]:
+    # Load from path relative to our executable.
+    config_lib.PluginLoader.LoadPlugin(
+        os.path.join(os.path.dirname(sys.executable), plugin))
+
   # Always log to the installer logfile at debug level. This way if our
   # installer fails we can send detailed diagnostics.
   handler = logging.FileHandler(

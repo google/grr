@@ -26,7 +26,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
     # Create another file at 2012-04-07 08:53:53.
     time.time = lambda: 1333788833
 
-    token = access_control.ACLToken()
+    token = access_control.ACLToken(username="test")
     # This file already exists in the fixture, and we overwrite it with a new
     # version at 2012-04-07 08:53:53.
     fd = aff4.FACTORY.Create(
@@ -180,7 +180,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.Click("//table/tbody/tr[2]/td[3]")
     self.WaitUntilEqual(
         "aff4:/C.0000000000000001", self.GetText,
-        "css=table > tbody td.proto_key:contains(\"vfs_file_urn\") "
+        "css=table > tbody td.proto_key:contains(\"Vfs file urn\") "
         "~ td.proto_value")
 
     # Check that UpdateVFSFile is called for the cat file.
@@ -191,7 +191,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.Click("//table/tbody/tr[3]/td[3]")
     self.WaitUntilContains(
         "cat", self.GetText,
-        "css=table > tbody td.proto_key:contains(\"vfs_file_urn\") "
+        "css=table > tbody td.proto_key:contains(\"Vfs file urn\") "
         "~ td.proto_value")
 
 

@@ -33,13 +33,6 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     a.Validate(u"test")
     a.Validate(u"/test-Îñ铁网åţî[öñåļ(îžåţîờñ")
 
-  def testTypeInfoEnumObjects(self):
-    """Test the type info objects behave as expected."""
-    a = type_info.SemanticEnum(rdfvalue.PathSpec.PathType)
-    self.assertRaises(type_info.TypeValueError, a.Validate, 9999)
-    self.assertRaises(type_info.TypeValueError, a.Validate, None)
-    a.Validate(rdfvalue.PathSpec.PathType.OS)
-
   def testTypeInfoNumberObjects(self):
     """Test the type info objects behave as expected."""
     a = type_info.Integer()
@@ -72,9 +65,6 @@ class TypeInfoTest(test_lib.GRRBaseTest):
   def testTypeDescriptorSet(self):
 
     type_infos = [
-        type_info.VolatilityRequestType(
-            description="A request for the client's volatility subsystem."),
-
         type_info.String(
             name="output",
             default="analysis/{p}/{u}-{t}"),
@@ -99,7 +89,6 @@ class TypeInfoTest(test_lib.GRRBaseTest):
         type_infos[1],
         type_infos[2],
         type_infos[3],
-        type_infos[4],
         )
 
     new_info = type_info.TypeDescriptorSet(
@@ -109,49 +98,25 @@ class TypeInfoTest(test_lib.GRRBaseTest):
 
     updated_info = new_info + type_info.TypeDescriptorSet(
         type_infos[2],
-        type_infos[3],
         )
 
     updated_info += type_info.TypeDescriptorSet(
-        type_infos[4],
+        type_infos[3],
         )
 
     self.assertEqual(info.descriptor_map, updated_info.descriptor_map)
     self.assertEqual(sorted(info.descriptors), sorted(updated_info.descriptors))
 
-    self.assertTrue(type_infos[3] in updated_info.descriptors)
+    self.assertTrue(type_infos[2] in updated_info.descriptors)
     self.assertTrue("plugins" in updated_info)
 
     removed_info = updated_info.Remove("plugins")
 
-    self.assertTrue(type_infos[3] in updated_info.descriptors)
+    self.assertTrue(type_infos[2] in updated_info.descriptors)
     self.assertTrue("plugins" in updated_info)
 
-    self.assertFalse(type_infos[3] in removed_info.descriptors)
+    self.assertFalse(type_infos[2] in removed_info.descriptors)
     self.assertFalse("plugins" in removed_info)
-
-  def testTypeFilterString(self):
-    valid_query = "name is 'Bond'"
-    invalid_query = "$!?%"
-    a = type_info.FilterString()
-    self.assertEqual(valid_query, a.Validate(valid_query))
-    self.assertRaises(type_info.TypeValueError, a.Validate, invalid_query)
-
-  def testTypeRDFURN(self):
-    validator = type_info.RDFURNType()
-    urn_none = rdfvalue.RDFURN(None)
-    plain_str = "aff4:/something"
-    urn_valid = rdfvalue.RDFURN("aff4:/users")
-    no_urn = rdfvalue.RDFURN("aff4:/users")
-    delattr(no_urn, "_urn")
-
-    self.assertRaises(type_info.TypeValueError,
-                      validator.Validate, urn_none)
-    self.assertRaises(type_info.TypeValueError,
-                      validator.Validate, plain_str)
-    self.assertRaises(type_info.TypeValueError,
-                      validator.Validate, no_urn)
-    validator.Validate(urn_valid)
 
 
 def main(args):

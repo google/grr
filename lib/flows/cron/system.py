@@ -37,6 +37,9 @@ class Graph(rdfvalue.RDFProtoStruct):
   def __len__(self):
     return len(self.data)
 
+  def __nonzero__(self):
+    return bool(self.data)
+
   def __getitem__(self, item):
     return Sample(self.data[item])
 

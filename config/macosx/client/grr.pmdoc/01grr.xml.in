@@ -1,12 +1,12 @@
 <pkgref spec="1.12" uuid="2853FED5-660E-47FD-8144-B5C2D54BED62">
   <config>
-    <identifier>%(ClientBuilder.package_maker_organization).%(Client.name).%(PyInstaller.output_version_dir).pkg</identifier>
+    <identifier>%(ClientBuilder.package_maker_organization).%(Client.name).%(ClientBuilder.output_basename).pkg</identifier>
     <version>%(Client.version_string)</version>
     <description/>
     <post-install type="none"/>
     <requireAuthorization/>
-    <installFrom includeRoot="false">%(ClientBuilder.build_dest_dir)/%(ClientBuilder.plist_binary_name)</installFrom>
-    <installTo mod="true">%(ClientBuilder.plist_binary_prefix)/%(ClientBuilder.output_basename)</installTo>
+    <installFrom includeRoot="false">%(PyInstaller.build_dir)/%(ClientBuilder.output_basename)</installFrom>
+    <installTo mod="true">%(ClientBuilder.install_dir)</installTo>
     <flags>
       <followSymbolicLinks/>
     </flags>

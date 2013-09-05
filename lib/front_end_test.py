@@ -6,6 +6,10 @@
 
 
 
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import,g-bad-import-order
+
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -91,8 +95,8 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     # Check that messages were stored correctly
     for message in messages:
       stored_message, _ = data_store.DB.Resolve(
-          flow_runner.FlowManager.FLOW_STATE_TEMPLATE % session_id,
-          flow_runner.FlowManager.FLOW_RESPONSE_TEMPLATE % (
+          flow_runner.QueueManager.FLOW_STATE_TEMPLATE % session_id,
+          flow_runner.QueueManager.FLOW_RESPONSE_TEMPLATE % (
               1, message.response_id),
           decoder=rdfvalue.GrrMessage, token=self.token)
 
@@ -194,8 +198,8 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
       # Retrieve the request state for this request_id
       request_state, _ = data_store.DB.Resolve(
-          flow_runner.FlowManager.FLOW_STATE_TEMPLATE % session_id,
-          flow_runner.FlowManager.FLOW_REQUEST_TEMPLATE % request_id,
+          flow_runner.QueueManager.FLOW_STATE_TEMPLATE % session_id,
+          flow_runner.QueueManager.FLOW_REQUEST_TEMPLATE % request_id,
           decoder=rdfvalue.RequestState, token=self.token)
 
       # Check that ts_id for the client message is correctly set in
@@ -310,8 +314,8 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
                       self.server.HandleMessageBundles, request_comms, 2)
 
     # We can still schedule a flow for it
-    flow.GRRFlow.StartFlow(client_id, "SendingFlow", message_count=1,
-                           token=self.token)
+    flow.GRRFlow.StartFlow(client_id=client_id, flow_name="SendingFlow",
+                           message_count=1, token=self.token)
 
     tasks = scheduler.SCHEDULER.Query(client_id, limit=100,
                                       token=self.token)

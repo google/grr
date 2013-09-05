@@ -143,6 +143,7 @@ class ActionPlugin(object):
       self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR,
                      "%r: %s" % (e, e),
                      traceback.format_exc())
+
       if flags.FLAGS.debug:
         pdb.post_mortem()
 

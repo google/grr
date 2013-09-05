@@ -286,8 +286,8 @@ Test Context:
   Client.tempdir: |
     /tmp/
 
-  Config.writeback: |
-    %(HOME|env)/grr.local.yaml
+  # Disable write back
+  Config.writeback: ""
 
 Users.admin: |
   AAVAZt4jndtZM:admin

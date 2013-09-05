@@ -2,6 +2,8 @@
 # Copyright 2011 Google Inc. All Rights Reserved.
 """These are standard aff4 objects."""
 
+
+import hashlib
 import StringIO
 
 from grr.lib import aff4
@@ -88,7 +90,8 @@ class VFSDirectory(aff4.AFF4Volume):
                                     *stripped_components[:-1])
           pathspec.last.path = new_path
 
-        flow_id = flow.GRRFlow.StartFlow(client_id, "ListDirectory",
+        flow_id = flow.GRRFlow.StartFlow(client_id=client_id,
+                                         flow_name="ListDirectory",
                                          pathspec=pathspec, priority=priority,
                                          notify_to_user=False,
                                          token=self.token)
@@ -122,7 +125,7 @@ class HashList(rdfvalue.RDFBytes):
       yield self[i]
 
   def __getitem__(self, idx):
-    return rdfvalue.RDFSHAValue(
+    return rdfvalue.HashDigest(
         self._value[idx * self.HASH_SIZE: (idx + 1) * self.HASH_SIZE])
 
 
@@ -142,8 +145,10 @@ class BlobImage(aff4.AFF4Image):
     super(BlobImage, self).Initialize()
     if self.mode == "w":
       self.index = StringIO.StringIO("")
+      self.finalized = False
     else:
       self.index = StringIO.StringIO(self.Get(self.Schema.HASHES, ""))
+      self.finalized = self.Get(self.Schema.FINALIZED, False)
 
   def _GetChunkForWriting(self, chunk):
     """Chunks must be added using the AddBlob() method."""
@@ -192,15 +197,62 @@ class BlobImage(aff4.AFF4Image):
     if self._dirty:
       self.Set(self.Schema.SIZE(self.size))
       self.Set(self.Schema.HASHES(self.index.getvalue()))
+      self.Set(self.Schema.FINALIZED(self.finalized))
 
     super(BlobImage, self).Close(sync)
 
+  def AppendContent(self, src_fd):
+    """Create new blob hashes and append to BlobImage.
+
+    We don't support writing at arbitrary file offsets, but this method provides
+    a convenient way to add blobs for a new file, or append content to an
+    existing one.
+
+    Args:
+      src_fd: source file handle open for read
+    Raises:
+      IOError: if blob has already been finalized.
+    """
+    while 1:
+      blob = src_fd.read(self.chunksize)
+      if not blob:
+        break
+      blob_hash = hashlib.sha256(blob).digest()
+      blob_urn = rdfvalue.RDFURN("aff4:/blobs").Add(blob_hash.encode("hex"))
+
+      try:
+        fd = aff4.FACTORY.Open(blob_urn, "AFF4MemoryStream", mode="r",
+                               token=self.token)
+      except aff4.InstanciationError:
+        fd = aff4.FACTORY.Create(blob_urn, "AFF4MemoryStream", mode="w",
+                                 token=self.token)
+        fd.Write(blob)
+        fd.Close(sync=True)
+
+      self.AddBlob(blob_hash, len(blob))
+
   def AddBlob(self, blob_hash, length):
-    """Add another blob to this image using its hash."""
+    """Add another blob to this image using its hash.
+
+    Once a blob is added that is smaller than the chunksize we finalize the
+    file, since handling adding more blobs makes the code much more complex.
+
+    Args:
+      blob_hash: sha256 binary digest
+      length: int length of blob
+    Raises:
+      IOError: if blob has been finalized.
+    """
+    if self.finalized and length > 0:
+      raise IOError("Can't add blobs to finalized BlobImage")
+
     self._dirty = True
     self.index.seek(0, 2)
     self.index.write(blob_hash)
     self.size += length
+
+    if length < self.chunksize:
+      self.finalized = True
 
   class SchemaCls(aff4.AFF4Image.SchemaCls):
     """The schema for Blob Images."""
@@ -212,6 +264,11 @@ class BlobImage(aff4.AFF4Image):
     FINGERPRINT = aff4.Attribute("aff4:fingerprint",
                                  rdfvalue.FingerprintResponse,
                                  "Protodict containing arrays of hashes.")
+
+    FINALIZED = aff4.Attribute("aff4:finalized",
+                               rdfvalue.RDFBool,
+                               "Once a blobimage is finalized, further writes"
+                               " will raise exceptions.")
 
 
 class HashImage(aff4.AFF4Image):

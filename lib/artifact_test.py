@@ -8,6 +8,10 @@
 import os
 import subprocess
 
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import,g-bad-import-order
+
 from grr.client import vfs
 from grr.lib import aff4
 from grr.lib import artifact
@@ -235,9 +239,7 @@ class ClientFullVFSFixture(test_lib.ClientVFSHandlerFixture):
 
 
 class GrrKbTest(test_lib.FlowTestsBaseclass):
-
-  def testKnowledgeBaseRetrieval(self):
-    """Check we can retrieve a knowledge base from a client."""
+  def SetupMocks(self):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
@@ -250,7 +252,11 @@ class GrrKbTest(test_lib.FlowTestsBaseclass):
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.OS] = ClientFullVFSFixture
 
-    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile",
+  def testKnowledgeBaseRetrieval(self):
+    """Check we can retrieve a knowledge base from a client."""
+    self.SetupMocks()
+
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
                                       "HashBuffer", "ListDirectory")
 
     for _ in test_lib.TestFlowHelper(
@@ -270,6 +276,32 @@ class GrrKbTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(kb.environ_allusersappdata, "C:\\ProgramData")
     self.assertEqual(kb.environ_temp, "C:\\Windows\\TEMP")
     self.assertEqual(kb.environ_systemdrive, "C:")
+
+  def testGlobRegistry(self):
+    """Test that glob works on registry."""
+    self.SetupMocks()
+
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
+                                      "HashBuffer", "ListDirectory")
+
+    paths = ["HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT"
+             "\\CurrentVersion\\ProfileList\\ProfilesDirectory",
+             "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT"
+             "\\CurrentVersion\\ProfileList\\AllUsersProfile"]
+
+    for _ in test_lib.TestFlowHelper(
+        "Glob", client_mock, paths=paths,
+        pathtype=rdfvalue.PathSpec.PathType.REGISTRY,
+        client_id=self.client_id, token=self.token):
+      pass
+
+    path = paths[0].replace("\\", "/")
+
+    fd = aff4.FACTORY.Open(self.client_id.Add("registry").Add(path),
+                           token=self.token)
+    self.assertEqual(fd.__class__.__name__, "VFSFile")
+    self.assertEqual(fd.Get(fd.Schema.STAT).registry_data.GetValue(),
+                     "%SystemDrive%\\Users")
 
 
 def main(argv):

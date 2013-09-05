@@ -27,11 +27,12 @@ from grr.lib import type_info
 from grr.lib import utils
 
 
-flags.DEFINE_string("config", "/etc/grr/grr-server.yaml",
+flags.DEFINE_string("config", None,
                     "Primary Configuration file to use.")
 
 flags.DEFINE_list("secondary_configs", [],
-                  "Secondary configuration files to load.")
+                  "Secondary configuration files to load (These override "
+                  "previous configuration files.).")
 
 flags.DEFINE_bool("config_help", False,
                   "Print help about the configuration.")
@@ -41,6 +42,12 @@ flags.DEFINE_list("context", [],
 
 flags.DEFINE_list("plugins", [],
                   "Load these files as additional plugins.")
+
+flags.PARSER.add_argument(
+    "-p", "--parameter", action="append",
+    default=[],
+    help="Global override of config values. "
+    "For example -p DataStore.implementation=MySQLDataStore")
 
 
 class Error(Exception):
@@ -53,6 +60,10 @@ class ConfigFormatError(Error):
 
 class ConfigWriteError(Error):
   """Raised when we failed to update the config."""
+
+
+class UnknownOption(Error):
+  """Raised when an unknown option was requested."""
 
 
 class FilterError(Error):
@@ -534,6 +545,7 @@ class GrrConfigManager(object):
     self.validated = set()
     self.writeback = None
     self.writeback_data = OrderedYamlDict()
+    self.global_override = dict()
     self.context_descriptions = {}
 
     # This is the type info set describing all configuration
@@ -817,7 +829,7 @@ class GrrConfigManager(object):
     return parser
 
   def Initialize(self, filename=None, data=None, fd=None, reset=True,
-                 validate=True, must_exist=False, parser=ConfigFileParser):
+                 must_exist=False, parser=ConfigFileParser):
     """Initializes the config manager.
 
     This method is used to add more config options to the manager. The config
@@ -832,9 +844,6 @@ class GrrConfigManager(object):
 
       reset: If true, the previous configuration will be erased.
 
-      validate: If true, new values are checked for their type. Can be disabled
-        to speed up testing.
-
       must_exist: If true the data source must exist and be a valid
         configuration file, or we raise an exception.
 
@@ -848,7 +857,6 @@ class GrrConfigManager(object):
         not exist..
     """
     self.FlushCache()
-    self.validate = validate
     if reset:
       # Clear previous configuration.
       self.raw_data = OrderedYamlDict()
@@ -976,11 +984,16 @@ class GrrConfigManager(object):
     """Search for the value based on the context."""
     container = self.defaults
 
-    # First we try to find the defaults.
-    if default is utils.NotAValue:
+    # We have a default for this name.
+    if name in self.defaults:
       value = self.defaults[name]
-    else:
+
+    # The caller provided a default value.
+    elif default is not utils.NotAValue:
       value = default
+
+    else:
+      raise UnknownOption("Option %s not defined." % name)
 
     # We resolve the required key with the default raw data, and then iterate
     # over all elements in the context to see if there are overriding context
@@ -1013,6 +1026,10 @@ class GrrConfigManager(object):
       if new_value is not None:
         value = new_value
         container = self.writeback_data
+
+    # Allow the global override to force an option value.
+    if name in self.global_override:
+      return self.global_override, self.global_override[name]
 
     return container, value
 
@@ -1178,24 +1195,33 @@ def LoadConfig(config_obj, config_file, secondary_configs=None,
   return config_obj
 
 
-def ConfigLibInit():
-  """Initializer for the config, reads in the config file.
+def ParseConfigCommandLine():
+  """Parse all the command line options which control the config system."""
+  # The user may specify the primary config file on the command line.
+  if flags.FLAGS.config:
+    CONFIG.Initialize(filename=flags.FLAGS.config, must_exist=True)
 
-  This will be called by startup.Init() unless it is overridden by
-  lib/local/config.py
+  # Allow secondary configuration files to be specified.
+  if flags.FLAGS.secondary_configs:
+    for config_url in flags.FLAGS.secondary_configs:
+      CONFIG.LoadSecondaryConfig(config_url)
 
-  Raises:
-    RuntimeError: No configuration file specified.
-  """
-  if flags.FLAGS.config is None:
-    raise RuntimeError("No configuration file specified.")
+  # Allow individual options to be specified as global overrides.
+  for statement in flags.FLAGS.parameter:
+    if "=" not in statement:
+      raise RuntimeError(
+          "statement %s on command line not valid." % statement)
 
-  LoadConfig(
-      CONFIG, config_file=flags.FLAGS.config,
-      secondary_configs=flags.FLAGS.secondary_configs,
-      contexts=flags.FLAGS.context)
+    name, value = statement.split("=", 1)
+    CONFIG.global_override[name] = value
 
-  # Does the user want to dump help?
+  # Load additional contexts from the command line.
+  for context in flags.FLAGS.context:
+    CONFIG.AddContext(context)
+
+  # Does the user want to dump help? We do this after the config system is
+  # initialized so the user can examine what we think the value of all the
+  # parameters are.
   if flags.FLAGS.config_help:
     print "Configuration overview."
 

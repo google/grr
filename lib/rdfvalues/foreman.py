@@ -2,7 +2,6 @@
 # Copyright 2011 Google Inc. All Rights Reserved.
 """RDFValue instances related to the foreman implementation."""
 
-
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.proto import jobs_pb2
@@ -15,8 +14,15 @@ class ForemanRuleAction(rdfvalue.RDFProtoStruct):
 class ForemanAttributeRegex(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.ForemanAttributeRegex
 
+  def Validate(self):
+    if not self.attribute_name:
+      raise ValueError("ForemanAttributeRegex rule invalid - "
+                       "not attribute set.")
 
-class ForemanAttributeInteger(rdfvalue.RDFProtoStruct):
+    self.attribute_name.Validate()
+
+
+class ForemanAttributeInteger(ForemanAttributeRegex):
   protobuf = jobs_pb2.ForemanAttributeInteger
 
 
@@ -24,12 +30,12 @@ class ForemanRule(rdfvalue.RDFProtoStruct):
   """A Foreman rule RDF value."""
   protobuf = jobs_pb2.ForemanRule
 
-  rdf_map = dict(regex_rules=ForemanAttributeRegex,
-                 integer_rules=ForemanAttributeInteger,
-                 actions=ForemanRuleAction,
-                 created=rdfvalue.RDFDatetime,
-                 expires=rdfvalue.RDFDatetime,
-                 description=rdfvalue.RDFString)
+  def Validate(self):
+    for rule in self.regex_rules:
+      rule.Validate()
+
+    for rule in self.integer_rules:
+      rule.Validate()
 
   @property
   def hunt_id(self):

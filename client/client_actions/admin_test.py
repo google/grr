@@ -21,11 +21,8 @@ class ConfigActionTest(test_lib.EmptyActionTest):
 
   def testUpdateConfiguration(self):
     """Test that we can update the config."""
-    # Make sure the config file is not already there
-    try:
-      os.unlink(self.config_file)
-    except OSError:
-      pass
+    # A unique name on the filesystem for the writeback.
+    self.config_file = os.path.join(self.temp_dir, "ConfigActionTest.yaml")
 
     # In a real client, the writeback location should be set to something real,
     # but for this test we make it the same as the config file..

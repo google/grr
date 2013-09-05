@@ -17,7 +17,7 @@ from grr.lib import utils
 
 
 # TODO(user): This should be moved into the osx only files.
-config_lib.DEFINE_string("Client.launchctl_plist",
+config_lib.DEFINE_string("Client.plist_path",
                          "/Library/LaunchDaemons/com.google.code.grrd.plist",
                          "Location of our launchctl plist.")
 

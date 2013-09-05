@@ -291,7 +291,7 @@ Delete Rule
     return result
 
 
-class RenderFlowForm(AddForemanRule, flow_management.FlowForm):
+class RenderFlowForm(AddForemanRule, flow_management.OldFlowForm):
   """Render a customized form for a foreman action."""
 
   layout_template = renderers.Template("""

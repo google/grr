@@ -87,8 +87,8 @@ class ConfigManager(renderers.TemplateRenderer):
           if parameter in self.redacted_options or is_bad_section:
             option_value = raw_value = "<REDACTED>"
           else:
-            option_value = config_lib.CONFIG.Get(parameter)
-            raw_value = config_lib.CONFIG.GetRaw(parameter)
+            option_value = config_lib.CONFIG.Get(parameter, default=None)
+            raw_value = config_lib.CONFIG.GetRaw(parameter, default=None)
 
           info.append((parameter, raw_value, option_value))
 
@@ -309,5 +309,5 @@ class ConfigurationViewInitHook(registry.InitHook):
 
   def Run(self):
     """Create the necessary directories."""
-    token = access_control.ACLToken("system", "Init")
+    token = access_control.ACLToken(username="system", reason="Init")
     maintenance_utils.CreateBinaryConfigPaths(token=token)

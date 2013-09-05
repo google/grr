@@ -2,13 +2,12 @@
 """These are process related flows."""
 
 
-import re
 import time
 
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import type_info
+from grr.proto import flows_pb2
 
 
 class ListProcesses(flow.GRRFlow):
@@ -36,33 +35,31 @@ class ListProcesses(flow.GRRFlow):
 
     proc_count = len(responses)
     for response in responses:
+      self.SendReply(response)
       plist.Append(response)
 
     process_fd.AddAttribute(plist)
     process_fd.Close()
 
     self.Notify("ViewObject", out_urn, "Listed %d Processes" % proc_count)
-    self.SendReply(out_urn)
+
+
+class GetProcessesBinariesArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.GetProcessesBinariesArgs
 
 
 class GetProcessesBinaries(flow.GRRFlow):
   """Get binaries of all the processes running on a system."""
 
   category = "/Processes/"
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.String(
-          description="A path relative to the client to put the output.",
-          name="output",
-          default="analysis/get-processes-binaries/{u}-{t}")
-      )
+  args_type = GetProcessesBinariesArgs
 
   @flow.StateHandler(next_state="IterateProcesses")
   def Start(self):
     """Start processing, request processes list."""
 
-    output = self.state.output.format(t=time.time(), u=self.state.context.user)
-    self.state.output = self.client_id.Add(output)
+    output = self.args.output.format(t=time.time(), u=self.state.context.user)
+    self.state.Register("output", self.client_id.Add(output))
     self.state.Register("fd", aff4.FACTORY.Create(
         self.state.output, "AFF4Collection", mode="w", token=self.token))
     self.state.fd.Set(self.state.fd.Schema.DESCRIPTION(
@@ -79,36 +76,21 @@ class GetProcessesBinaries(flow.GRRFlow):
     exe attribute and initiates FastGetFile flows for all others.
 
     Args:
-      responses: rdfvalue.URN pointing at ProcessListing file.
+      responses: rdfvalue.Stat pointing at ProcessListing file.
     """
     if not responses or not responses.success:
       raise flow.FlowErrow("ListProcesses flow failed %s", responses.status)
 
-    urn = responses.First()
-    self.Log("Response from ListProcesses flow: %s", urn)
-
-    # Load processes list from the URN returned from the ListProcesses flow.
-    process_fd = aff4.FACTORY.Open(urn, "ProcessListing", token=self.token)
-    plist = process_fd.Get(process_fd.Schema.PROCESSES)
-
     # Filter out processes entries without "exe" attribute and
     # deduplicate the list.
-    paths_to_fetch = sorted(set([p.exe for p in plist if p.exe]))
+    paths_to_fetch = sorted(set([p.exe for p in responses if p.exe]))
 
-    self.Log("Got %d processes, fetching binaries for %d...", len(plist),
+    self.Log("Got %d processes, fetching binaries for %d...", len(responses),
              len(paths_to_fetch))
 
     for p in paths_to_fetch:
       pathspec = rdfvalue.PathSpec(path=p,
                                    pathtype=rdfvalue.PathSpec.PathType.OS)
-
-      # Sending reply with an expected file URN - this may be useful if this
-      # flow is used as a nested flow.
-      file_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-          pathspec, self.client_id)
-
-      self.SendReply(file_urn)
-
       self.CallFlow("FastGetFile",
                     next_state="HandleDownloadedFiles",
                     pathspec=pathspec,
@@ -120,6 +102,7 @@ class GetProcessesBinaries(flow.GRRFlow):
     if responses.success:
       for response_stat in responses:
         self.Log("Downloaded %s", response_stat.pathspec)
+        self.SendReply(response_stat)
         self.state.fd.Add(stat=response_stat, urn=response_stat.aff4path)
     else:
       self.Log("Download of file %s failed %s",
@@ -134,6 +117,10 @@ class GetProcessesBinaries(flow.GRRFlow):
     self.Notify("ViewObject", self.state.output,
                 "GetProcessesBinaries completed. "
                 "Fetched {0:d} files".format(num_files))
+
+
+class GetProcessesBinariesVolatilityArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.GetProcessesBinariesVolatilityArgs
 
 
 class GetProcessesBinariesVolatility(flow.GRRFlow):
@@ -172,34 +159,22 @@ class GetProcessesBinariesVolatility(flow.GRRFlow):
       some debug userland-process-dump API?) and then reading the memory.
   """
   category = "/Processes/"
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.String(
-          description="A path relative to the client to put the output.",
-          name="output",
-          default="analysis/get-processes-binaries/{u}-{t}"),
-      type_info.VolatilityRequestType(),
-      type_info.RegularExpression(
-          description="Regex used to filter the list of binaries to download.",
-          name="filename_regex",
-          default=".",
-          friendly_name="Filename Regex")
-      )
+  args_type = GetProcessesBinariesVolatilityArgs
 
   @flow.StateHandler(next_state="FetchBinaries")
   def Start(self):
     """Request VAD data."""
-    output = self.state.output.format(t=time.time(), u=self.state.context.user)
-    self.state.output = self.client_id.Add(output)
+    output = self.args.output.format(t=time.time(), u=self.state.context.user)
+    self.state.Register("output", self.client_id.Add(output))
     self.state.Register("fd", aff4.FACTORY.Create(
         self.state.output, "AFF4Collection", mode="w", token=self.token))
 
     self.state.fd.Set(self.state.fd.Schema.DESCRIPTION(
         "GetProcessesBinariesVolatility binaries (regex: %s) " %
-        self.state.filename_regex or "None"))
+        self.args.filename_regex or "None"))
 
-    self.state.request.plugins.Append("vad")
-    self.CallClient("VolatilityAction", self.state.request,
+    self.args.request.plugins.Append("vad")
+    self.CallClient("VolatilityAction", self.args.request,
                     next_state="FetchBinaries")
 
   @flow.StateHandler(next_state="HandleDownloadedFiles")
@@ -240,22 +215,14 @@ class GetProcessesBinariesVolatility(flow.GRRFlow):
               binaries.add(filename_attr.svalue)
 
     self.Log("Found %d binaries", len(binaries))
-    if self.state.filename_regex:
-      regex = re.compile(self.state.filename_regex)
-      binaries = filter(regex.match, binaries)
+    if self.args.filename_regex:
+      binaries = filter(self.args.filename_regex.Match, binaries)
       self.Log("Applied filename regex. Will fetch %d files",
                len(binaries))
 
     for path in binaries:
       pathspec = rdfvalue.PathSpec(path=path,
                                    pathtype=rdfvalue.PathSpec.PathType.OS)
-
-      # Sending reply with an expected file URN - this may be useful if this
-      # flow is used as a nested flow.
-      file_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-          pathspec, self.client_id)
-
-      self.SendReply(file_urn)
 
       self.CallFlow("FastGetFile",
                     next_state="HandleDownloadedFiles",
@@ -267,6 +234,7 @@ class GetProcessesBinariesVolatility(flow.GRRFlow):
     """Handle success/failure of the FastGetFile flow."""
     if responses.success:
       for response_stat in responses:
+        self.SendReply(response_stat)
         self.Log("Downloaded %s", responses.request_data["path"])
         self.state.fd.Add(stat=response_stat, urn=response_stat.aff4path)
     else:

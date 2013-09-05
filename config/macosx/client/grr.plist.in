@@ -3,15 +3,15 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>%(ClientBuilder.plist_label)</string>
+	<string>%(Client.plist_label)</string>
 	<key>UserName</key>
 	<string>root</string>
 	<key>GroupName</key>
 	<string>daemon</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>%(ClientBuilder.plist_binary_path)</string>
-		<string>--config=%(ClientBuilder.plist_binary_prefix)/%(ClientBuilder.output_basename)/%(PyInstaller.config_name)</string>
+		<string>%(ClientBuilder.install_dir)/%(Client.binary_name)</string>
+		<string>--config=%(ClientBuilder.install_dir)/%(ClientBuilder.config_filename)</string>
 	</array>
 	<key>KeepAlive</key>
 	<true/>

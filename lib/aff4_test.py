@@ -3,7 +3,7 @@
 
 """Tests for the flow."""
 
-
+import os
 import threading
 import time
 
@@ -89,7 +89,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     self.assertEqual(versions, new_versions)
 
-    # There should also only be once clock attribute
+    # There should also only be one clock attribute
     clocks = list(client_fd.GetValuesForAttribute(client_fd.Schema.CLOCK))
     self.assertEqual(len(clocks), 1)
     self.assertEqual(clocks[0].age, 0)
@@ -208,6 +208,19 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       fd = aff4.FACTORY.Open(path, token=self.token)
       last = fd.Get(fd.Schema.LAST)
       self.assert_(int(last) > 1330354592221974)
+
+  def testDelete(self):
+    """Check that deleting the object works."""
+    path = "/C.0123456789abcdef/foo/bar/hello.txt"
+
+    fd = aff4.FACTORY.Create(path, "AFF4MemoryStream", token=self.token)
+    fd.Write("hello")
+    fd.Close()
+
+    # Delete the directory and check that the file in it is also removed.
+    aff4.FACTORY.Delete(os.path.dirname(path), token=self.token)
+    self.assertRaises(IOError, aff4.FACTORY.Open, path, "AFF4MemoryStream",
+                      token=self.token)
 
   def testClientObject(self):
     fd = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", token=self.token)
@@ -403,14 +416,16 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     client.Close()
 
     # Start some new flows on it
-    session_ids = [flow.GRRFlow.StartFlow(self.client_id, "FlowOrderTest",
-                                          token=self.token)
-                   for _ in range(10)]
+    session_ids = []
+    for _ in range(10):
+      session_ids.append(
+          flow.GRRFlow.StartFlow(client_id=self.client_id,
+                                 flow_name="FlowOrderTest", token=self.token))
 
     # Try to open a single flow.
     flow_obj = aff4.FACTORY.Open(session_ids[0], mode="r", token=self.token)
 
-    self.assertEqual(flow_obj.state.context.flow_name, "FlowOrderTest")
+    self.assertEqual(flow_obj.state.context.args.flow_name, "FlowOrderTest")
     self.assertEqual(flow_obj.session_id, session_ids[0])
 
     self.assertEqual(flow_obj.__class__.__name__, "FlowOrderTest")
@@ -1006,10 +1021,7 @@ class ForemanTests(test_lib.AFF4ObjectTest):
     fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows 7"))
     fd.Close()
 
-    old_start_flow = flow.GRRFlow.StartFlow
-    # Mock the StartFlow
-    flow.GRRFlow.StartFlow = self.StartFlow
-    try:
+    with test_lib.Stubber(flow.GRRFlow, "StartFlow", self.StartFlow):
       # Now setup the filters
       now = time.time() * 1e6
       expires = (time.time() + 3600) * 1e6
@@ -1055,8 +1067,6 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       foreman.AssignTasksToClient("C.0000000000000003")
 
       self.assertEqual(len(self.clients_launched), 0)
-    finally:
-      flow.GRRFlow.StartFlow = old_start_flow
 
   def testIntegerComparisons(self):
     """Tests that we can use integer matching rules on the foreman."""
@@ -1086,12 +1096,7 @@ class ForemanTests(test_lib.AFF4ObjectTest):
     fd.Set(fd.Schema.LAST_BOOT_TIME(1336300000000000))
     fd.Close()
 
-    # Mock the StartFlow
-    old_start_flow = flow.GRRFlow.StartFlow
-    flow.GRRFlow.StartFlow = self.StartFlow
-
-    try:
-
+    with test_lib.Stubber(flow.GRRFlow, "StartFlow", self.StartFlow):
       # Now setup the filters
       now = time.time() * 1e6
       expires = (time.time() + 3600) * 1e6
@@ -1176,19 +1181,10 @@ class ForemanTests(test_lib.AFF4ObjectTest):
                        rdfvalue.ClientURN("C.0000000000000014"))
       self.assertEqual(self.clients_launched[3][1], eq_flow)
 
-    finally:
-      flow.GRRFlow.StartFlow = old_start_flow
-
-  def MockTime(self):
-    return self.mock_time
-
   def testRuleExpiration(self):
-
-    old_time = time.time
     self.mock_time = 1000
-    time.time = self.MockTime
 
-    try:
+    with test_lib.Stubber(time, "time", lambda: self.mock_time):
       foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
 
       rules = []
@@ -1231,13 +1227,6 @@ class ForemanTests(test_lib.AFF4ObjectTest):
         foreman.AssignTasksToClient(client_id)
         rules = foreman.Get(foreman.Schema.RULES)
         self.assertEqual(len(rules), num_rules)
-
-    finally:
-      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-      foreman.Set(foreman.Schema.RULES())
-      foreman.Close()
-
-      time.time = old_time
 
 
 class AFF4TestLoader(test_lib.GRRTestLoader):

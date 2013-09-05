@@ -2,6 +2,7 @@
 """Reporting tests."""
 
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import reports
 
@@ -14,21 +15,38 @@ class ReportsTest(test_lib.FlowTestsBaseclass):
 
     # Create some clients.
     client_ids = self.SetupClients(10)
-    client1 = aff4.FACTORY.Open(client_ids[0], token=self.token, mode="rw")
-    client1.Set(client1.Schema.HOSTNAME("lawman"))
-    client1.Flush()
+    with aff4.FACTORY.Open(client_ids[0], token=self.token,
+                           mode="rw") as client:
+      with aff4.FACTORY.Open(client.urn.Add("network"), aff4_type="Network",
+                             token=self.token, mode="w") as net:
+        interfaces = net.Schema.INTERFACES()
+        interfaces.Append(rdfvalue.Interface(
+            addresses=[rdfvalue.NetworkAddress(human_readable="1.1.1.1",
+                                               address_type="INET")],
+            mac_address="11:11:11:11:11:11", ifname="eth0"))
+        net.Set(interfaces)
+
+      client.Set(client.Schema.HOSTNAME("lawman"))
+
+    # Also initialize a broken client with no hostname.
+    with aff4.FACTORY.Open(client_ids[1], token=self.token,
+                           mode="rw") as client:
+      client.Set(client.Schema.CLIENT_INFO(""))
 
     # Create a report for all clients.
-    rep = reports.ClientListReport(token=self.token)
-    rep.Run()
-    self.assertEqual(len(rep.results), 10)
-    hostnames = [x.get("Host") for x in rep.results]
+    report = reports.ClientListReport(token=self.token)
+    report.Run()
+    self.assertEqual(len(report.results), 10)
+    hostnames = [x.get("Host") for x in report.results]
     self.assertTrue("lawman" in hostnames)
 
-    rep.SortResults("Host")
-    self.assertEqual(len(rep.AsDict()), 10)
-    self.assertEqual(len(rep.AsCsv().getvalue().splitlines()), 11)
-    self.assertEqual(len(rep.AsText().getvalue().splitlines()), 10)
+    report.SortResults("Host")
+    self.assertEqual(len(report.AsDict()), 10)
+    self.assertEqual(len(report.AsCsv().getvalue().splitlines()), 11)
+    self.assertEqual(len(report.AsText().getvalue().splitlines()), 10)
+    self.assertEqual(report.results[-1]["Interfaces"], "1.1.1.1")
+
+    self.assertEqual(len(report.broken_clients), 1)
 
 
 

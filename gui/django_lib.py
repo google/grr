@@ -74,6 +74,6 @@ class GuiPluginsInit(registry.InitHook):
 
   def RunOnce(self):
     """Import the plugins once only."""
-    # pylint: disable=unused-variable,C6204
+    # pylint: disable=unused-variable,g-import-not-at-top
     from grr.gui import gui_plugins
-    # pylint: enable=unused-variable,C6204
+    # pylint: enable=unused-variable,g-import-not-at-top

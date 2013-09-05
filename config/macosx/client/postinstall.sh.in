@@ -3,10 +3,10 @@
 # Post installation script for GRR client MacOS-X package
 
 # Run the installation routines.
-"%(ClientBuilder.plist_binary_path)" --install --config="%(ClientBuilder.plist_binary_prefix)/%(ClientBuilder.output_basename)/%(PyInstaller.config_name)"
+"%(ClientBuilder.install_dir)/%(Client.binary_name)" --install --config="%(ClientBuilder.install_dir)/%(ClientBuilder.config_filename)"
 
-if [ -f "%(ClientBuilder.plist_path)" ];
+if [ -f "%(Client.plist_path)" ];
 then
-  sudo launchctl load "%(ClientBuilder.plist_path)";
+  sudo launchctl load "%(Client.plist_path)";
 fi
 

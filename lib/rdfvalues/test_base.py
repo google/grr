@@ -8,6 +8,8 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
 
+# pylint:mode=test
+
 
 class GenericRDFProtoTest(test_lib.AFF4ObjectTest):
   def testNestedProtobufAssignment(self):
@@ -39,7 +41,7 @@ class GenericRDFProtoTest(test_lib.AFF4ObjectTest):
   def testSimpleTypeAssignment(self):
     sample = rdfvalue.StatEntry()
     sample.AddDescriptor(type_info.ProtoRDFValue(
-        name="test", field_number=45,
+        name="test", field_number=45, default=rdfvalue.RDFInteger(0),
         rdf_type=rdfvalue.RDFInteger))
 
     # Ensure there is an rdf_map so we know that st_size is an RDFInteger:
@@ -232,7 +234,8 @@ class RDFValueTestCase(test_lib.GRRBaseTest):
       self.assertIsInstance(serialized, str)
     elif self.rdfvalue_class.data_store_type == "string":
       self.assertIsInstance(serialized, unicode)
-    elif self.rdfvalue_class.data_store_type == "integer":
+    elif self.rdfvalue_class.data_store_type in [
+        "unsigned_integer", "integer"]:
       self.assertIsInstance(serialized, (int, long))
     else:
       self.fail("%s has no valid data_store_type" % self.rdfvalue_class)

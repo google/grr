@@ -7,89 +7,127 @@ grr.Renderer('ManageCron', {
     grr.subscribe('cron_select', function(cronUrn) {
       grr.layout('CronJobManagementTabs', bottomPaneId,
                  {cron_job_urn: cronUrn});
-    }, bottomPaneId);
+    }, state['unique']);
   }
 });
 
 grr.Renderer('CronTable', {
   Layout: function(state) {
+    var unique = state.unique;
+    var id = state.id;
+
+    // We use this dom node to communicate between the different callbacks.
+    var dom_node = $('#' + id);
+
     //Receive the selection event and emit the detail.
-    grr.subscribe('select_table_' + state['id'], function(node) {
+    grr.subscribe('select_table_' + id, function(node) {
       if (node) {
         var cronUrn = $(node).find('span[aff4_path]').attr('aff4_path');
         grr.publish('cron_select', cronUrn);
       }
-    }, state['unique']);
+    }, unique);
 
-    var selectedCronJobUrn;
-    grr.subscribe('cron_select', function(cronJobUrn) {
-      selectedCronJobUrn = cronJobUrn;
+    grr.subscribe('cron_select', function(cron_urn) {
+      dom_node.data('cron_urn', cron_urn);
+      grr.hash.cron_urn = cron_urn;
 
-      var row = $("span[aff4_path='" + cronJobUrn + "']",
-                  $('#' + state['unique'])).closest('tr');
+      var row = $("span[aff4_path='" + cron_urn + "']",
+          '#' + unique).closest('tr');
+
       $('.cron-job-state-icon', row).each(function() {
-        var cronJobState = $(this).attr('state');
-        if (cronJobState == 'enabled') {
-          $('#enable_cron_job_' + state['unique']).attr('disabled', 'true');
-          $('#delete_cron_job_' + state['unique']).removeAttr('disabled');
-          $('#disable_cron_job_' + state['unique']).removeAttr('disabled');
-        } else if (cronJobState == 'disabled') {
-          $('#enable_cron_job_' + state['unique']).removeAttr('disabled');
-          $('#delete_cron_job_' + state['unique']).removeAttr('disabled');
-          $('#disable_cron_job_' + state['unique']).attr('disabled', 'true');
+        var state = $(this).attr('state');
+        if (state == 'enabled') {
+          $('#enable_cron_job_' + unique).attr('disabled', 'true');
+          $('#delete_cron_job_' + unique).removeAttr('disabled');
+          $('#disable_cron_job_' + unique).removeAttr('disabled');
+        } else if (state == 'disabled') {
+          $('#enable_cron_job_' + unique).removeAttr('disabled');
+          $('#delete_cron_job_' + unique).removeAttr('disabled');
+          $('#disable_cron_job_' + unique).attr('disabled', 'true');
         }
       });
-    }, state['unique']);
+    }, unique);
 
 
-    $('#enable_cron_job_dialog_' + state['unique']).on('show', function() {
+    $('#enable_cron_job_dialog_' + unique).on('show', function(event) {
+      if (event.target != this) return;
+
       grr.layout('EnableCronJobConfirmationDialog',
-                 'enable_cron_job_dialog_' + state['unique'],
-                 {cron_job_urn: selectedCronJobUrn});
-    }).on('hidden', function() {
-      $('#' + state['unique']).trigger('refresh');
+                 'enable_cron_job_dialog_' + unique, dom_node.data());
+    }).on('hidden', function(event) {
+      $('#' + unique).trigger('refresh');
       $(this).html('');
     });
 
-    $('#disable_cron_job_dialog_' + state['unique']).on('show', function() {
+    $('#disable_cron_job_dialog_' + unique).on('show', function(event) {
+      if (event.target != this) return;
+
       grr.layout('DisableCronJobConfirmationDialog',
-                 'disable_cron_job_dialog_' + state['unique'],
-                 {cron_job_urn: selectedCronJobUrn});
-    }).on('hidden', function() {
-      $('#' + state['unique']).trigger('refresh');
+                 'disable_cron_job_dialog_' + unique, dom_node.data());
+
+    }).on('hidden', function(event) {
+      if (event.target != this) return;
+
+      $('#' + unique).trigger('refresh');
       $(this).html('');
     });
 
-    $('#delete_cron_job_dialog_' + state['unique']).on('show', function() {
+    $('#delete_cron_job_dialog_' + unique).on('show', function(event) {
+      if (event.target != this) return;
+
       grr.layout('DeleteCronJobConfirmationDialog',
-                 'delete_cron_job_dialog_' + state['unique'],
-                 {cron_job_urn: selectedCronJobUrn});
-    }).on('hidden', function() {
-      $('#' + state['unique']).trigger('refresh');
+                 'delete_cron_job_dialog_' + unique, dom_node.data());
+
+    }).on('hidden', function(event) {
+      if (event.target != this) return;
+
+      $('#' + unique).trigger('refresh');
       $(this).html('');
     });
 
-    $('#schedule_hunt_cron_job_dialog_' + state['unique']).on(
-        'shown', function() {
+    $('#schedule_hunt_cron_job_dialog_' + unique).on(
+        'shown', function(event) {
+          if (event.target != this) return;
+
           grr.layout('ScheduleHuntCronJobDialog',
-                     'schedule_hunt_cron_job_dialog_' + state['unique']);
-        }).on('hidden', function() {
-          $('#' + state['unique']).trigger('refresh');
+                     'schedule_hunt_cron_job_dialog_' + unique);
+
+        }).on('hidden', function(event) {
+          if (event.target != this) return;
+
+          $('#' + unique).trigger('refresh');
           $(this).html('');
         });
 
     if (grr.hash.cron_job_urn) {
-      $('#' + state['unique']).find("td:contains('" +
-        grr.hash.cron_job_urn.split('/').reverse()[0] +
-        "')").click();
+      $('#' + unique).find("td:contains('" +
+          grr.hash.cron_job_urn.split('/').reverse()[0] +
+              "')").click();
     }
+  }
+});
+
+grr.Renderer('CronConfigureFlow', {
+  Layout: function(state) {
+    var id = state.id;
+    var unique = state.unique;
+
+    grr.subscribe('flow_select', function(path) {
+      var pane_id = id + '_rightPane';
+
+      // Record the flow in the form data.
+      $('#' + pane_id).closest('.FormData').data('flow_path', path);
+      grr.layout('CronFlowForm', pane_id, { flow_path: path });
+
+    }, unique);
   }
 });
 
 grr.Renderer('CronJobView', {
   Layout: function(state) {
-    var detailsPanel = $('#FlowDetails_' + state['unique']);
-    var detailsPanelClose = $('#FlowDetailsClose_' + state['unique']);
+    var unique = state.unique;
+    var detailsPanel = $('#FlowDetails_' + unique);
+    var detailsPanelClose = $('#FlowDetailsClose_' + unique);
 
     detailsPanelClose.click(function() {
       detailsPanel.addClass('hide');
@@ -97,41 +135,23 @@ grr.Renderer('CronJobView', {
 
     grr.subscribe('flow_table_select', function(flow_id) {
       var selectedRow =
-          $('#CronJobView_' + state['unique'] + ' tr.row_selected');
+          $('#CronJobView_' + unique + ' tr.row_selected');
       detailsPanel.css('top', selectedRow.position().top + 'px');
       detailsPanel.removeClass('hide');
 
-      grr.layout('ShowFlowInformation', 'FlowDetailsContent_' + state['unique'],
+      grr.layout('ShowFlowInformation', 'FlowDetailsContent_' + unique,
                  {flow: flow_id});
-    }, state['unique']);
+    }, unique);
   }
 });
 
+
 grr.Renderer('ScheduleHuntCronJobDialog', {
   Layout: function(state) {
-    $('#Wizard_' + state['unique']).data({
-      hunt_periodicity: 7,
-      hunt_flow_name: null,
-      hunt_flow_config: {},
-      hunt_output_config: [{
-        output_type: 'CollectionPlugin'
-      }],
-      hunt_rules_config: [{
-        rule_type: 'Windows systems'
-      }]
-    });
   }
 });
 
 grr.Renderer('CronHuntConfigureSchedule', {
   Layout: function(state) {
-    var containerId = '#CronHuntConfigureSchedule_' + state['unique'];
-    var wizardState = $(containerId).closest('.Wizard').data();
-
-    $('select[name=periodicity]', $(containerId)).change(function() {
-      wizardState['hunt_periodicity'] = parseInt($(this).val());
-    }).each(function() {
-      $(this).val(wizardState['hunt_periodicity']);
-    });
   }
 });

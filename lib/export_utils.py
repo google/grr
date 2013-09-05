@@ -14,6 +14,7 @@ from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import serialize
 from grr.lib import threadpool
+from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 
@@ -23,10 +24,13 @@ BUFFER_SIZE = 16 * 1024 * 1024
 
 def GetAllClients(token=None):
   """Return a list of all client urns."""
-  children = aff4.FACTORY.Open(aff4.ROOT_URN, token=token).ListChildren()
-  client_id_re = aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE
-  return [utils.SmartStr(x) for x in children if
-          client_id_re.match(utils.SmartStr(x)[6:])]
+  results = []
+  for urn in aff4.FACTORY.Open(aff4.ROOT_URN, token=token).ListChildren():
+    try:
+      results.append(rdfvalue.ClientURN(urn))
+    except type_info.TypeValueError:
+      pass
+  return results
 
 
 class IterateAllClientUrns(object):
@@ -51,6 +55,7 @@ class IterateAllClientUrns(object):
     self.thread_pool.Start()
     self.token = token
     self.func = func
+    self.broken_subjects = []  #  Entries that are broken or fail to run.
 
     self.out_queue = Queue.Queue()
 

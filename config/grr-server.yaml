@@ -16,7 +16,7 @@ AdminUI.webauth_manager: BasicWebAuthManager
 
 Client.company_name: GRR Project
 
-Client.description: "%(platform) Performance Monitor"
+Client.description: "%(name) %(platform) %(arch)"
 
 Client.location: http://localhost:8080/control
 
@@ -26,7 +26,7 @@ Client.proxy_servers:
 
 Client.version_major: 2
 
-Client.version_minor: 8
+Client.version_minor: 9
 
 Client.version_release: 0
 
@@ -64,7 +64,7 @@ Monitoring.events_email: grr-monitoring@example.com
 AdminUI Context:
   Logging.filename: "%(Logging.path)/grr-ui.log"
 
-  Monitoring.stats_server_http_port: 44444
+  Monitoring.stats_server_http_port: 44449
 
 # The client's reported architecture string depends on the Arch context
 Arch:amd64:
@@ -81,59 +81,34 @@ ClientBuilder Context:
     %(ClientBuilder.source)/grr/executables
 
   Target:Darwin:
-    ClientBuilder.build_dest: "%(ClientBuilder.plist_binary_directory)-build"
+   ClientBuilder.build_dest: "%(Client.name)-build"
 
-    ClientBuilder.build_dest_dir: "%(ClientBuilder.build_root_dir)/%(ClientBuilder.build_dest)"
+   ClientBuilder.build_root_dir: /Users/%(USER|env)/mac-build
 
-    ClientBuilder.build_root_dir: /Users/%(USER|env)/mac-build
+   ClientBuilder.build_src_dir: "%(ClientBuilder.build_root_dir)/grr"
 
-    ClientBuilder.build_src_dir: "%(ClientBuilder.build_root_dir)/grr"
+   ClientBuilder.install_dir: "/usr/lib/%(Client.name)/%(ClientBuilder.output_basename)"
 
-    ClientBuilder.output_extension: .pkg
+   # Needed for package maker. Do not touch.
+   ClientBuilder.mangled_output_basename: |
+       %(Client.name)_%(Client.version_major).%(Client.version_minor).%(Client.version_revision)
 
-    ClientBuilder.package_dir: "%(ClientBuilder.build_root_dir)/pkg"
+   ClientBuilder.output_extension: .pkg
 
-    ClientBuilder.package_maker_name: grr
+   ClientBuilder.package_dir: "%(ClientBuilder.build_root_dir)/%(Client.name)-pkg"
 
-    ClientBuilder.package_maker_organization: com.google.code
+   ClientBuilder.package_maker_organization: com.google.code
 
-    ClientBuilder.package_maker_path: |
-        /Applications/PackageMaker.app/Contents/MacOS/PackageMaker
+   ClientBuilder.template_extension: .template
 
-    ClientBuilder.plist_binary_directory: grr
+   ClientBuilder.package_maker_path: |
+       /Applications/PackageMaker.app/Contents/MacOS/PackageMaker
 
-    ClientBuilder.plist_binary_name: grr
+   PyInstaller.build_dir: |
+       %(ClientBuilder.build_root_dir)/%(ClientBuilder.build_dest)
 
-    ClientBuilder.plist_binary_path: |
-        %(ClientBuilder.plist_binary_prefix)/%(ClientBuilder.output_basename)/%(ClientBuilder.plist_binary_name)
-
-    ClientBuilder.plist_binary_prefix: /usr/lib
-
-    ClientBuilder.plist_filename: "%(ClientBuilder.plist_label).plist"
-
-    ClientBuilder.plist_label: |
-        %(ClientBuilder.plist_label_prefix).google.code.%(ClientBuilder.plist_binary_name)
-
-    ClientBuilder.plist_label_prefix: com
-
-    ClientBuilder.plist_path: /Library/LaunchDaemons/%(ClientBuilder.plist_filename)
-
-    PyInstaller.build_dir: |
-        %(ClientBuilder.build_dest_dir)
-
-    PyInstaller.config_name: grr.yaml
-
-    ClientBuilder.output_basename: |
-        %(PyInstaller.output_root)/%(PyInstaller.output_version_dir)
-
-    PyInstaller.output_root: |
-        %(Client.name)
-
-    PyInstaller.output_version_dir: |
-        %(Client.name)_%(Client.version_string)_%(Client.arch)
-
-    PyInstaller.path: |
-        /Users/%(USER|env)/mac-build/pyinstaller/pyinstaller.py
+   PyInstaller.path: |
+       /Users/%(USER|env)/mac-build/pyinstaller/pyinstaller.py
 
   Target:Linux:
     Client.binary_name: grrd
@@ -146,7 +121,7 @@ ClientBuilder Context:
     ClientBuilder.output_extension: .deb
 
     ClientBuilder.target_dir: |
-      /usr/lib/%(Client.name)/%(PyInstaller.output_version_dir)
+      /usr/lib/%(Client.name)/%(ClientBuilder.output_basename)
 
     Logging.engines: stderr
 
@@ -160,9 +135,6 @@ ClientBuilder Context:
 
     PyInstaller.dpkg_root: |
       %(PyInstaller.build_root_dir)/dist
-
-    PyInstaller.output_version_dir: |
-      %(Client.name)_%(Client.version_string)_%(Client.arch)
 
     PyInstaller.path: |
       %(PyInstaller.build_root_dir)/pyinstaller/pyinstaller.py
@@ -213,29 +185,17 @@ Platform:Darwin:
 
   Client.config_file_name: grr.yaml
 
-  Client.config_file_path_prefix: /etc
-
   Client.package_maker_organization: com.google.code
 
   Client.platform: darwin
 
-  Client.plist_binary_directory: grr
+  Client.plist_filename: "%(Client.plist_label).plist"
 
-  Client.plist_binary_name: grrd
-
-  Client.plist_binary_path: |
-    %(ClientBuilder.plist_binary_prefix)/%(ClientBuilder.plist_binary_directory)/%(ClientBuilder.plist_binary_name)
-
-  Client.plist_binary_prefix: /usr
-
-  Client.plist_filename: "%(plist_label).plist"
-
-  Client.plist_label: |
-    %(ClientBuilder.plist_label_prefix).google.code.%(ClientBuilder.plist_binary_name)
+  Client.plist_label: "%(Client.plist_label_prefix).google.code.%(Client.name)"
 
   Client.plist_label_prefix: com
 
-  Client.plist_path: /Library/LaunchDaemons/%(plist_filename)
+  Client.plist_path: /Library/LaunchDaemons/%(Client.plist_filename)
 
   Logging.engines: stderr,file,syslog
 
@@ -272,6 +232,8 @@ Platform:Windows:
 
   Client.install_path: |
     %(SystemRoot|env)\\System32\\%(Client.name)\\%(Client.version_string)
+
+  Client.tempdir: "%(TEMP|env)"
 
   Client.platform: windows
 
@@ -335,8 +297,15 @@ SingleServer Context:
   Monitoring.stats_server_http_port: 44441
 
 Worker Context:
+  Cron.active: True
+
   Logging.filename: "%(Logging.path)/grr-worker.log"
 
   Monitoring.stats_server_http_port: 44441
 
+Test Context:
+  Platform:Linux:
 
+    Client.tempdir: /tmp/
+
+    Logging.engines: stderr

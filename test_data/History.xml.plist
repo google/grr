@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>WebHistoryDates</key>
+	<array>
+		<dict>
+			<key></key>
+			<string>http://www.google.com</string>
+			<key>lastVisited</key>
+			<string>374606652.9</string>
+			<key>title</key>
+			<string>Google</string>
+			<key>visitCount</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key></key>
+			<string>http://www.apple.com</string>
+			<key>lastVisited</key>
+			<string>374606652.9</string>
+			<key>title</key>
+			<string>Apple</string>
+			<key>visitCount</key>
+			<string>1</string>
+		</dict>
+	</array>
+	<key>WebHistoryFileVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>

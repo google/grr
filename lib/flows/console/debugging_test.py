@@ -23,5 +23,5 @@ class TestDebugFlows(test_lib.FlowTestsBaseclass):
     for _ in test_lib.TestFlowHelper(
         "ClientAction", client_mock, client_id=self.client_id,
         action="ListDirectory", break_pdb=False,
-        args=request, token=self.token):
+        action_args=request, token=self.token):
       pass

@@ -24,8 +24,8 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
   def CreateCollectionFixture():
     """Creates a new collection we can play with."""
     # Create a client for testing
-    client_id = rdfvalue.ClientURN("C.0000000000000004")
-    token = access_control.ACLToken("test", "Fixture")
+    client_id = rdfvalue.ClientURN("C.0000000000000001")
+    token = access_control.ACLToken(username="test", reason="Fixture")
 
     fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=token)
     fd.Set(fd.Schema.CERT(config_lib.CONFIG["Client.certificate"]))
@@ -38,7 +38,7 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
 
     output_path = "analysis/FindFlowTest"
 
-    findspec = rdfvalue.RDFFindSpec(path_regex="bash")
+    findspec = rdfvalue.FindSpec(path_regex="bash")
     findspec.pathspec.path = "/"
     findspec.pathspec.pathtype = rdfvalue.PathSpec.PathType.OS
 
@@ -58,19 +58,19 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
     # Create a new collection
     with self.ACLChecksDisabled():
       self.CreateCollectionFixture()
-      self.GrantClientApproval("C.0000000000000004")
+      self.GrantClientApproval("C.0000000000000001")
 
   def testContainerViewer(self):
     self.Open("/")
 
-    self.Type("client_query", "0004")
+    self.Type("client_query", "0001")
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000004",
+    self.WaitUntilEqual(u"C.0000000000000001",
                         self.GetText, "css=span[type=subject]")
 
     # Choose client 1
-    self.Click("css=td:contains('0004')")
+    self.Click("css=td:contains('0001')")
 
     # Go to Browse VFS
     self.Click("css=a:contains('Browse Virtual Filesystem')")
@@ -83,8 +83,8 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=td:contains(\"VIEW\")")
     self.assert_("View details" in self.GetText(
         "css=a[href=\"#"
-        "c=C.0000000000000004&"
-        "container=aff4%3A%2FC.0000000000000004%2Fanalysis%2FFindFlowTest&"
+        "c=C.0000000000000001&"
+        "container=aff4%3A%2FC.0000000000000001%2Fanalysis%2FFindFlowTest&"
         "main=ContainerViewer&"
         "reason=Running+tests\"]"))
 
@@ -92,13 +92,13 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
 
     self.WaitUntil(self.IsElementPresent, "css=button[id=export]")
 
-    self.ClickUntil("css=#_C_2E0000000000000004 ins.jstree-icon",
+    self.ClickUntil("css=#_C_2E0000000000000001 ins.jstree-icon",
                     self.IsElementPresent,
-                    "css=#_C_2E0000000000000004-fs ins.jstree-icon")
-    self.ClickUntil("css=#_C_2E0000000000000004-fs ins.jstree-icon",
+                    "css=#_C_2E0000000000000001-fs ins.jstree-icon")
+    self.ClickUntil("css=#_C_2E0000000000000001-fs ins.jstree-icon",
                     self.IsElementPresent,
-                    "css=#_C_2E0000000000000004-fs-os ins.jstree-icon")
-    self.ClickUntil("css=#_C_2E0000000000000004-fs-os ins.jstree-icon",
+                    "css=#_C_2E0000000000000001-fs-os ins.jstree-icon")
+    self.ClickUntil("css=#_C_2E0000000000000001-fs-os ins.jstree-icon",
                     self.IsElementPresent,
                     "link=c")
 
@@ -106,7 +106,7 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
     self.Click("link=c")
 
     # Check the filter string
-    self.assertEqual("subject startswith 'aff4:/C.0000000000000004/fs/os/c/'",
+    self.assertEqual("subject startswith 'aff4:/C.0000000000000001/fs/os/c/'",
                      self.GetValue("query"))
 
     # We should have exactly 4 files
@@ -115,19 +115,19 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
 
     # Check the rows
     self.assertEqual(
-        "C.0000000000000004/fs/os/c/bin %(client_id)s/bash",
+        "C.0000000000000001/fs/os/c/bin %(client_id)s/bash",
         self.GetText("css=.containerFileTable  tbody > tr:nth(0) td:nth(1)"))
 
     self.assertEqual(
-        "C.0000000000000004/fs/os/c/bin %(client_id)s/rbash",
+        "C.0000000000000001/fs/os/c/bin %(client_id)s/rbash",
         self.GetText("css=.containerFileTable  tbody > tr:nth(1) td:nth(1)"))
 
     self.assertEqual(
-        "C.0000000000000004/fs/os/c/bin/bash",
+        "C.0000000000000001/fs/os/c/bin/bash",
         self.GetText("css=.containerFileTable  tbody > tr:nth(2) td:nth(1)"))
 
     self.assertEqual(
-        "C.0000000000000004/fs/os/c/bin/rbash",
+        "C.0000000000000001/fs/os/c/bin/rbash",
         self.GetText("css=.containerFileTable  tbody > tr:nth(3) td:nth(1)"))
 
     # Check that query filtering works (Pressing enter)

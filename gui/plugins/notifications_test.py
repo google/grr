@@ -20,15 +20,19 @@ class TestNotifications(test_lib.GRRSeleniumTest):
   @classmethod
   def GenerateNotifications(cls):
     """Generate some fake notifications."""
-    token = access_control.ACLToken("test", "test fixture")
-    cls.session_id = flow.GRRFlow.StartFlow("aff4:/C.0000000000000001",
-                                            "Interrogate", token=token)
-    flow_obj = aff4.FACTORY.Open(cls.session_id, mode="rw", token=token)
-    flow_obj.Notify("ViewObject", "aff4:/C.0000000000000001/fs/os/proc/10/exe",
-                    "File fetch completed.")
-    # Generate an error for this flow.
-    runner = flow_obj.CreateRunner()
-    runner.Error("not a real backtrace")
+    token = access_control.ACLToken(username="test", reason="test fixture")
+    cls.session_id = flow.GRRFlow.StartFlow(
+        client_id="aff4:/C.0000000000000001", flow_name="Interrogate",
+        token=token)
+
+    with aff4.FACTORY.Open(cls.session_id, mode="rw", token=token) as flow_obj:
+      flow_obj.Notify("ViewObject",
+                      "aff4:/C.0000000000000001/fs/os/proc/10/exe",
+                      "File fetch completed.")
+
+      # Generate an error for this flow.
+      with flow_obj.GetRunner() as runner:
+        runner.Error("not a real backtrace")
 
   def setUp(self):
     super(TestNotifications, self).setUp()

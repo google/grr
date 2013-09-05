@@ -1,0 +1,37 @@
+#!/usr/bin/env python
+"""This plugin adds reporting functionality."""
+
+from grr.gui.plugins import forms
+from grr.lib import rdfvalue
+from grr.lib.aff4_objects import reports
+from grr.lib.aff4_objects import reports
+
+
+class ReportNameRenderer(forms.StringTypeFormRenderer):
+  """Renderer for listing the available reports."""
+
+  type_descriptor = rdfvalue.ReportName
+  default = "ClientListReport"
+
+  layout_template = ("""<div class="control-group">
+""" + forms.TypeDescriptorFormRenderer.default_description_view + """
+  <div class="controls">
+    <select id='{{this.prefix}}' onchange="grr.forms.inputOnChange(this)"
+    class="unset">
+      {% for report_name in this.reports %}
+        <option {% ifequal report_name this.default %}selected{% endifequal %}
+        value='{{report_name|escape}}'>{{report_name|escape}}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+<script>
+ // Force a state update as the default should be usable. Cleaner way?
+ grr.forms.inputOnChange($("#{{this.prefix|escapejs}}"));
+</script>
+""")
+
+  def Layout(self, request, response):
+    self.reports = [r.__name__ for r in reports.Report.class_list
+                    if r is not reports.Report.top_level_class]
+    super(ReportNameRenderer, self).Layout(request, response)

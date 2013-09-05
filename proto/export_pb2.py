@@ -16,9 +16,37 @@ import grr.proto.semantic_pb2
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='grr/proto/export.proto',
   package='',
-  serialized_pb='\n\x16grr/proto/export.proto\x1a\x14grr/proto/jobs.proto\x1a\x17grr/proto/sysinfo.proto\x1a\x18grr/proto/semantic.proto\"\xb4\x03\n\x10\x45xportedMetadata\x12S\n\nclient_urn\x18\x01 \x01(\tB?\xca><\n\tClientURN\x12/Client ID of a client that contains this entry.\x12\x10\n\x08hostname\x18\x02 \x01(\t\x12\n\n\x02os\x18\x03 \x01(\t\x12\x38\n\nclient_age\x18\x04 \x01(\x04\x42$\xca>!\n\x0bRDFDatetime\x12\x12\x41ge of the client.\x12\r\n\x05uname\x18\x05 \x01(\t\x12\x12\n\nos_release\x18\x06 \x01(\t\x12\x12\n\nos_version\x18\x07 \x01(\t\x12\x11\n\tusernames\x18\x08 \x01(\t\x12\x13\n\x0bmac_address\x18\t \x01(\t\x12\x41\n\ttimestamp\x18\n \x01(\x04\x42.\xca>+\n\x0bRDFDatetime\x12\x1cWhen metadata were recorded.\x12Q\n\nsession_id\x18\x0b \x01(\tB=\xca>:\n\tSessionID\x12-Session id of a hunt that collected the data.\"\xb8\x05\n\x0c\x45xportedFile\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x46\n\x03urn\x18\x02 \x01(\tB9\xca>6\n\x06RDFURN\x12,The location of this file in the AFF4 space.\x12,\n\x08\x62\x61sename\x18\x03 \x01(\tB\x1a\xca>\x17\x12\x15\x42\x61sename of the file.\x12<\n\x07st_mode\x18\x04 \x01(\rB+\xca>(\n\x08StatMode\x12\x1c\x41 unix file permission mode.\x12\x0e\n\x06st_ino\x18\x05 \x01(\r\x12\x0e\n\x06st_dev\x18\x06 \x01(\r\x12\x10\n\x08st_nlink\x18\x07 \x01(\r\x12\x0e\n\x06st_uid\x18\x08 \x01(\r\x12\x0e\n\x06st_gid\x18\t \x01(\r\x12\x0f\n\x07st_size\x18\n \x01(\x04\x12<\n\x08st_atime\x18\x0b \x01(\x04\x42*\xca>\'\n\x12RDFDatetimeSeconds\x12\x11Last access time.\x12>\n\x08st_mtime\x18\x0c \x01(\x04\x42,\xca>)\n\x12RDFDatetimeSeconds\x12\x13Last modified time.\x12\x42\n\x08st_ctime\x18\r \x01(\x04\x42\x30\xca>-\n\x12RDFDatetimeSeconds\x12\x17Last inode change time.\x12\x11\n\tst_blocks\x18\x0e \x01(\r\x12\x12\n\nst_blksize\x18\x0f \x01(\r\x12\x0f\n\x07st_rdev\x18\x10 \x01(\r\x12\x0f\n\x07symlink\x18\x11 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x12 \x01(\t\x12\x16\n\x0e\x63ontent_sha256\x18\x13 \x01(\t\x12\x10\n\x08hash_md5\x18\x14 \x01(\t\x12\x11\n\thash_sha1\x18\x15 \x01(\t\x12\x13\n\x0bhash_sha256\x18\x16 \x01(\t\"\xed\x01\n\x13\x45xportedRegistryKey\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x32\n\x03urn\x18\x02 \x01(\tB%\xca>\"\n\x06RDFURN\x12\x18URN of the registry key.\x12H\n\rlast_modified\x18\x03 \x01(\x04\x42\x31\xca>.\n\x12RDFDatetimeSeconds\x12\x18Last modified timestamp.\x12%\n\x04type\x18\x04 \x01(\x0e\x32\x17.StatEntry.RegistryType\x12\x0c\n\x04\x64\x61ta\x18\x05 \x01(\x0c\"\xe9\x03\n\x0f\x45xportedProcess\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0b\n\x03pid\x18\x02 \x01(\r\x12\x0c\n\x04ppid\x18\x03 \x01(\r\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0b\n\x03\x65xe\x18\x05 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x06 \x01(\t\x12\r\n\x05\x63time\x18\x07 \x01(\x04\x12\x10\n\x08real_uid\x18\x08 \x01(\r\x12\x15\n\reffective_uid\x18\t \x01(\r\x12\x11\n\tsaved_uid\x18\n \x01(\r\x12\x10\n\x08real_gid\x18\x0b \x01(\r\x12\x15\n\reffective_gid\x18\x0c \x01(\r\x12\x11\n\tsaved_gid\x18\r \x01(\r\x12\x10\n\x08username\x18\x0e \x01(\t\x12\x10\n\x08terminal\x18\x0f \x01(\t\x12\x0e\n\x06status\x18\x10 \x01(\t\x12\x0c\n\x04nice\x18\x11 \x01(\x05\x12\x0b\n\x03\x63wd\x18\x12 \x01(\t\x12\x13\n\x0bnum_threads\x18\x13 \x01(\r\x12\x15\n\ruser_cpu_time\x18\x14 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x15 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x16 \x01(\x02\x12\x10\n\x08rss_size\x18\x17 \x01(\x04\x12\x10\n\x08vms_size\x18\x18 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x19 \x01(\x02\"\xc3\x02\n\x19\x45xportedNetworkConnection\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12)\n\x06\x66\x61mily\x18\x02 \x01(\x0e\x32\x19.NetworkConnection.Family\x12\x35\n\x04type\x18\x03 \x01(\x0e\x32\x17.NetworkConnection.Type:\x0eUNKNOWN_SOCKET\x12\'\n\rlocal_address\x18\x04 \x01(\x0b\x32\x10.NetworkEndpoint\x12(\n\x0eremote_address\x18\x05 \x01(\x0b\x32\x10.NetworkEndpoint\x12\x30\n\x05state\x18\x06 \x01(\x0e\x32\x18.NetworkConnection.State:\x07UNKNOWN\x12\x0b\n\x03pid\x18\x07 \x01(\r\x12\r\n\x05\x63time\x18\x08 \x01(\x04\"R\n\x10\x45xportedOpenFile\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0b\n\x03pid\x18\x02 \x01(\r\x12\x0c\n\x04path\x18\x03 \x01(\t\"\x98\x01\n\x18\x45xportedVolatilityHandle\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0e\n\x06offset\x18\x02 \x01(\x04\x12\x0b\n\x03pid\x18\x03 \x01(\r\x12\x0e\n\x06handle\x18\x04 \x01(\r\x12\x0e\n\x06\x61\x63\x63\x65ss\x18\x05 \x01(\r\x12\x0c\n\x04type\x18\x06 \x01(\t\x12\x0c\n\x04path\x18\x07 \x01(\t\"\xb3\x01\n\x18\x45xportedVolatilityMutant\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0e\n\x06offset\x18\x02 \x01(\x04\x12\x11\n\tptr_count\x18\x03 \x01(\r\x12\x14\n\x0chandle_count\x18\x04 \x01(\r\x12\x0e\n\x06signal\x18\x05 \x01(\r\x12\x0e\n\x06thread\x18\x06 \x01(\x04\x12\x0b\n\x03\x63id\x18\x07 \x01(\t\x12\x0c\n\x04name\x18\x08 \x01(\t')
+  serialized_pb='\n\x16grr/proto/export.proto\x1a\x14grr/proto/jobs.proto\x1a\x17grr/proto/sysinfo.proto\x1a\x18grr/proto/semantic.proto\"\x85\x01\n\rExportOptions\x12t\n\x15\x65xport_files_contents\x18\x01 \x01(\x08:\x05\x66\x61lseBN\xe2\xfc\xe3\xc4\x01H\x12\x46If this is true, open files and export their full or partial contents.\"\xc0\x03\n\x10\x45xportedMetadata\x12V\n\nclient_urn\x18\x01 \x01(\tBB\xe2\xfc\xe3\xc4\x01<\n\tClientURN\x12/Client ID of a client that contains this entry.\x12\x10\n\x08hostname\x18\x02 \x01(\t\x12\n\n\x02os\x18\x03 \x01(\t\x12;\n\nclient_age\x18\x04 \x01(\x04\x42\'\xe2\xfc\xe3\xc4\x01!\n\x0bRDFDatetime\x12\x12\x41ge of the client.\x12\r\n\x05uname\x18\x05 \x01(\t\x12\x12\n\nos_release\x18\x06 \x01(\t\x12\x12\n\nos_version\x18\x07 \x01(\t\x12\x11\n\tusernames\x18\x08 \x01(\t\x12\x13\n\x0bmac_address\x18\t \x01(\t\x12\x44\n\ttimestamp\x18\n \x01(\x04\x42\x31\xe2\xfc\xe3\xc4\x01+\n\x0bRDFDatetime\x12\x1cWhen metadata were recorded.\x12T\n\nsession_id\x18\x0b \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\tSessionID\x12-Session id of a hunt that collected the data.\"\xca\x05\n\x0c\x45xportedFile\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12I\n\x03urn\x18\x02 \x01(\tB<\xe2\xfc\xe3\xc4\x01\x36\n\x06RDFURN\x12,The location of this file in the AFF4 space.\x12/\n\x08\x62\x61sename\x18\x03 \x01(\tB\x1d\xe2\xfc\xe3\xc4\x01\x17\x12\x15\x42\x61sename of the file.\x12?\n\x07st_mode\x18\x04 \x01(\rB.\xe2\xfc\xe3\xc4\x01(\n\x08StatMode\x12\x1c\x41 unix file permission mode.\x12\x0e\n\x06st_ino\x18\x05 \x01(\r\x12\x0e\n\x06st_dev\x18\x06 \x01(\r\x12\x10\n\x08st_nlink\x18\x07 \x01(\r\x12\x0e\n\x06st_uid\x18\x08 \x01(\r\x12\x0e\n\x06st_gid\x18\t \x01(\r\x12\x0f\n\x07st_size\x18\n \x01(\x04\x12?\n\x08st_atime\x18\x0b \x01(\x04\x42-\xe2\xfc\xe3\xc4\x01\'\n\x12RDFDatetimeSeconds\x12\x11Last access time.\x12\x41\n\x08st_mtime\x18\x0c \x01(\x04\x42/\xe2\xfc\xe3\xc4\x01)\n\x12RDFDatetimeSeconds\x12\x13Last modified time.\x12\x45\n\x08st_ctime\x18\r \x01(\x04\x42\x33\xe2\xfc\xe3\xc4\x01-\n\x12RDFDatetimeSeconds\x12\x17Last inode change time.\x12\x11\n\tst_blocks\x18\x0e \x01(\r\x12\x12\n\nst_blksize\x18\x0f \x01(\r\x12\x0f\n\x07st_rdev\x18\x10 \x01(\r\x12\x0f\n\x07symlink\x18\x11 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x12 \x01(\x0c\x12\x16\n\x0e\x63ontent_sha256\x18\x13 \x01(\t\x12\x10\n\x08hash_md5\x18\x14 \x01(\t\x12\x11\n\thash_sha1\x18\x15 \x01(\t\x12\x13\n\x0bhash_sha256\x18\x16 \x01(\t\"\xf3\x01\n\x13\x45xportedRegistryKey\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x35\n\x03urn\x18\x02 \x01(\tB(\xe2\xfc\xe3\xc4\x01\"\n\x06RDFURN\x12\x18URN of the registry key.\x12K\n\rlast_modified\x18\x03 \x01(\x04\x42\x34\xe2\xfc\xe3\xc4\x01.\n\x12RDFDatetimeSeconds\x12\x18Last modified timestamp.\x12%\n\x04type\x18\x04 \x01(\x0e\x32\x17.StatEntry.RegistryType\x12\x0c\n\x04\x64\x61ta\x18\x05 \x01(\x0c\"\xe9\x03\n\x0f\x45xportedProcess\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0b\n\x03pid\x18\x02 \x01(\r\x12\x0c\n\x04ppid\x18\x03 \x01(\r\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0b\n\x03\x65xe\x18\x05 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x06 \x01(\t\x12\r\n\x05\x63time\x18\x07 \x01(\x04\x12\x10\n\x08real_uid\x18\x08 \x01(\r\x12\x15\n\reffective_uid\x18\t \x01(\r\x12\x11\n\tsaved_uid\x18\n \x01(\r\x12\x10\n\x08real_gid\x18\x0b \x01(\r\x12\x15\n\reffective_gid\x18\x0c \x01(\r\x12\x11\n\tsaved_gid\x18\r \x01(\r\x12\x10\n\x08username\x18\x0e \x01(\t\x12\x10\n\x08terminal\x18\x0f \x01(\t\x12\x0e\n\x06status\x18\x10 \x01(\t\x12\x0c\n\x04nice\x18\x11 \x01(\x05\x12\x0b\n\x03\x63wd\x18\x12 \x01(\t\x12\x13\n\x0bnum_threads\x18\x13 \x01(\r\x12\x15\n\ruser_cpu_time\x18\x14 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x15 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x16 \x01(\x02\x12\x10\n\x08rss_size\x18\x17 \x01(\x04\x12\x10\n\x08vms_size\x18\x18 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x19 \x01(\x02\"\xc3\x02\n\x19\x45xportedNetworkConnection\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12)\n\x06\x66\x61mily\x18\x02 \x01(\x0e\x32\x19.NetworkConnection.Family\x12\x35\n\x04type\x18\x03 \x01(\x0e\x32\x17.NetworkConnection.Type:\x0eUNKNOWN_SOCKET\x12\'\n\rlocal_address\x18\x04 \x01(\x0b\x32\x10.NetworkEndpoint\x12(\n\x0eremote_address\x18\x05 \x01(\x0b\x32\x10.NetworkEndpoint\x12\x30\n\x05state\x18\x06 \x01(\x0e\x32\x18.NetworkConnection.State:\x07UNKNOWN\x12\x0b\n\x03pid\x18\x07 \x01(\r\x12\r\n\x05\x63time\x18\x08 \x01(\x04\"R\n\x10\x45xportedOpenFile\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0b\n\x03pid\x18\x02 \x01(\r\x12\x0c\n\x04path\x18\x03 \x01(\t\"\x98\x01\n\x18\x45xportedVolatilityHandle\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0e\n\x06offset\x18\x02 \x01(\x04\x12\x0b\n\x03pid\x18\x03 \x01(\r\x12\x0e\n\x06handle\x18\x04 \x01(\r\x12\x0e\n\x06\x61\x63\x63\x65ss\x18\x05 \x01(\r\x12\x0c\n\x04type\x18\x06 \x01(\t\x12\x0c\n\x04path\x18\x07 \x01(\t\"\xb3\x01\n\x18\x45xportedVolatilityMutant\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0e\n\x06offset\x18\x02 \x01(\x04\x12\x11\n\tptr_count\x18\x03 \x01(\r\x12\x14\n\x0chandle_count\x18\x04 \x01(\r\x12\x0e\n\x06signal\x18\x05 \x01(\r\x12\x0e\n\x06thread\x18\x06 \x01(\x04\x12\x0b\n\x03\x63id\x18\x07 \x01(\t\x12\x0c\n\x04name\x18\x08 \x01(\t')
 
 
+
+
+_EXPORTOPTIONS = _descriptor.Descriptor(
+  name='ExportOptions',
+  full_name='ExportOptions',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='export_files_contents', full_name='ExportOptions.export_files_contents', index=0,
+      number=1, type=8, cpp_type=7, label=1,
+      has_default_value=True, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001H\022FIf this is true, open files and export their full or partial contents.')),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=100,
+  serialized_end=233,
+)
 
 
 _EXPORTEDMETADATA = _descriptor.Descriptor(
@@ -34,7 +62,7 @@ _EXPORTEDMETADATA = _descriptor.Descriptor(
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312><\n\tClientURN\022/Client ID of a client that contains this entry.')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001<\n\tClientURN\022/Client ID of a client that contains this entry.')),
     _descriptor.FieldDescriptor(
       name='hostname', full_name='ExportedMetadata.hostname', index=1,
       number=2, type=9, cpp_type=9, label=1,
@@ -55,7 +83,7 @@ _EXPORTEDMETADATA = _descriptor.Descriptor(
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>!\n\013RDFDatetime\022\022Age of the client.')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001!\n\013RDFDatetime\022\022Age of the client.')),
     _descriptor.FieldDescriptor(
       name='uname', full_name='ExportedMetadata.uname', index=4,
       number=5, type=9, cpp_type=9, label=1,
@@ -97,14 +125,14 @@ _EXPORTEDMETADATA = _descriptor.Descriptor(
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>+\n\013RDFDatetime\022\034When metadata were recorded.')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\n\013RDFDatetime\022\034When metadata were recorded.')),
     _descriptor.FieldDescriptor(
       name='session_id', full_name='ExportedMetadata.session_id', index=10,
       number=11, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>:\n\tSessionID\022-Session id of a hunt that collected the data.')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001:\n\tSessionID\022-Session id of a hunt that collected the data.')),
   ],
   extensions=[
   ],
@@ -114,8 +142,8 @@ _EXPORTEDMETADATA = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=100,
-  serialized_end=536,
+  serialized_start=236,
+  serialized_end=684,
 )
 
 
@@ -139,21 +167,21 @@ _EXPORTEDFILE = _descriptor.Descriptor(
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>6\n\006RDFURN\022,The location of this file in the AFF4 space.')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0016\n\006RDFURN\022,The location of this file in the AFF4 space.')),
     _descriptor.FieldDescriptor(
       name='basename', full_name='ExportedFile.basename', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>\027\022\025Basename of the file.')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\027\022\025Basename of the file.')),
     _descriptor.FieldDescriptor(
       name='st_mode', full_name='ExportedFile.st_mode', index=3,
       number=4, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>(\n\010StatMode\022\034A unix file permission mode.')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001(\n\010StatMode\022\034A unix file permission mode.')),
     _descriptor.FieldDescriptor(
       name='st_ino', full_name='ExportedFile.st_ino', index=4,
       number=5, type=13, cpp_type=3, label=1,
@@ -202,21 +230,21 @@ _EXPORTEDFILE = _descriptor.Descriptor(
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>\'\n\022RDFDatetimeSeconds\022\021Last access time.')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\'\n\022RDFDatetimeSeconds\022\021Last access time.')),
     _descriptor.FieldDescriptor(
       name='st_mtime', full_name='ExportedFile.st_mtime', index=11,
       number=12, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>)\n\022RDFDatetimeSeconds\022\023Last modified time.')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001)\n\022RDFDatetimeSeconds\022\023Last modified time.')),
     _descriptor.FieldDescriptor(
       name='st_ctime', full_name='ExportedFile.st_ctime', index=12,
       number=13, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>-\n\022RDFDatetimeSeconds\022\027Last inode change time.')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001-\n\022RDFDatetimeSeconds\022\027Last inode change time.')),
     _descriptor.FieldDescriptor(
       name='st_blocks', full_name='ExportedFile.st_blocks', index=13,
       number=14, type=13, cpp_type=3, label=1,
@@ -247,8 +275,8 @@ _EXPORTEDFILE = _descriptor.Descriptor(
       options=None),
     _descriptor.FieldDescriptor(
       name='content', full_name='ExportedFile.content', index=17,
-      number=18, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
+      number=18, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value="",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -289,8 +317,8 @@ _EXPORTEDFILE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=539,
-  serialized_end=1235,
+  serialized_start=687,
+  serialized_end=1401,
 )
 
 
@@ -314,14 +342,14 @@ _EXPORTEDREGISTRYKEY = _descriptor.Descriptor(
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>\"\n\006RDFURN\022\030URN of the registry key.')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\"\n\006RDFURN\022\030URN of the registry key.')),
     _descriptor.FieldDescriptor(
       name='last_modified', full_name='ExportedRegistryKey.last_modified', index=2,
       number=3, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>.\n\022RDFDatetimeSeconds\022\030Last modified timestamp.')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001.\n\022RDFDatetimeSeconds\022\030Last modified timestamp.')),
     _descriptor.FieldDescriptor(
       name='type', full_name='ExportedRegistryKey.type', index=3,
       number=4, type=14, cpp_type=8, label=1,
@@ -345,8 +373,8 @@ _EXPORTEDREGISTRYKEY = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1238,
-  serialized_end=1475,
+  serialized_start=1404,
+  serialized_end=1647,
 )
 
 
@@ -541,8 +569,8 @@ _EXPORTEDPROCESS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1478,
-  serialized_end=1967,
+  serialized_start=1650,
+  serialized_end=2139,
 )
 
 
@@ -618,8 +646,8 @@ _EXPORTEDNETWORKCONNECTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1970,
-  serialized_end=2293,
+  serialized_start=2142,
+  serialized_end=2465,
 )
 
 
@@ -660,8 +688,8 @@ _EXPORTEDOPENFILE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2295,
-  serialized_end=2377,
+  serialized_start=2467,
+  serialized_end=2549,
 )
 
 
@@ -730,8 +758,8 @@ _EXPORTEDVOLATILITYHANDLE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2380,
-  serialized_end=2532,
+  serialized_start=2552,
+  serialized_end=2704,
 )
 
 
@@ -807,8 +835,8 @@ _EXPORTEDVOLATILITYMUTANT = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2535,
-  serialized_end=2714,
+  serialized_start=2707,
+  serialized_end=2886,
 )
 
 _EXPORTEDFILE.fields_by_name['metadata'].message_type = _EXPORTEDMETADATA
@@ -824,6 +852,7 @@ _EXPORTEDNETWORKCONNECTION.fields_by_name['state'].enum_type = grr.proto.sysinfo
 _EXPORTEDOPENFILE.fields_by_name['metadata'].message_type = _EXPORTEDMETADATA
 _EXPORTEDVOLATILITYHANDLE.fields_by_name['metadata'].message_type = _EXPORTEDMETADATA
 _EXPORTEDVOLATILITYMUTANT.fields_by_name['metadata'].message_type = _EXPORTEDMETADATA
+DESCRIPTOR.message_types_by_name['ExportOptions'] = _EXPORTOPTIONS
 DESCRIPTOR.message_types_by_name['ExportedMetadata'] = _EXPORTEDMETADATA
 DESCRIPTOR.message_types_by_name['ExportedFile'] = _EXPORTEDFILE
 DESCRIPTOR.message_types_by_name['ExportedRegistryKey'] = _EXPORTEDREGISTRYKEY
@@ -832,6 +861,12 @@ DESCRIPTOR.message_types_by_name['ExportedNetworkConnection'] = _EXPORTEDNETWORK
 DESCRIPTOR.message_types_by_name['ExportedOpenFile'] = _EXPORTEDOPENFILE
 DESCRIPTOR.message_types_by_name['ExportedVolatilityHandle'] = _EXPORTEDVOLATILITYHANDLE
 DESCRIPTOR.message_types_by_name['ExportedVolatilityMutant'] = _EXPORTEDVOLATILITYMUTANT
+
+class ExportOptions(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _EXPORTOPTIONS
+
+  # @@protoc_insertion_point(class_scope:ExportOptions)
 
 class ExportedMetadata(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
@@ -882,28 +917,30 @@ class ExportedVolatilityMutant(_message.Message):
   # @@protoc_insertion_point(class_scope:ExportedVolatilityMutant)
 
 
+_EXPORTOPTIONS.fields_by_name['export_files_contents'].has_options = True
+_EXPORTOPTIONS.fields_by_name['export_files_contents']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001H\022FIf this is true, open files and export their full or partial contents.')
 _EXPORTEDMETADATA.fields_by_name['client_urn'].has_options = True
-_EXPORTEDMETADATA.fields_by_name['client_urn']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312><\n\tClientURN\022/Client ID of a client that contains this entry.')
+_EXPORTEDMETADATA.fields_by_name['client_urn']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001<\n\tClientURN\022/Client ID of a client that contains this entry.')
 _EXPORTEDMETADATA.fields_by_name['client_age'].has_options = True
-_EXPORTEDMETADATA.fields_by_name['client_age']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>!\n\013RDFDatetime\022\022Age of the client.')
+_EXPORTEDMETADATA.fields_by_name['client_age']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001!\n\013RDFDatetime\022\022Age of the client.')
 _EXPORTEDMETADATA.fields_by_name['timestamp'].has_options = True
-_EXPORTEDMETADATA.fields_by_name['timestamp']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>+\n\013RDFDatetime\022\034When metadata were recorded.')
+_EXPORTEDMETADATA.fields_by_name['timestamp']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\n\013RDFDatetime\022\034When metadata were recorded.')
 _EXPORTEDMETADATA.fields_by_name['session_id'].has_options = True
-_EXPORTEDMETADATA.fields_by_name['session_id']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>:\n\tSessionID\022-Session id of a hunt that collected the data.')
+_EXPORTEDMETADATA.fields_by_name['session_id']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001:\n\tSessionID\022-Session id of a hunt that collected the data.')
 _EXPORTEDFILE.fields_by_name['urn'].has_options = True
-_EXPORTEDFILE.fields_by_name['urn']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>6\n\006RDFURN\022,The location of this file in the AFF4 space.')
+_EXPORTEDFILE.fields_by_name['urn']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0016\n\006RDFURN\022,The location of this file in the AFF4 space.')
 _EXPORTEDFILE.fields_by_name['basename'].has_options = True
-_EXPORTEDFILE.fields_by_name['basename']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>\027\022\025Basename of the file.')
+_EXPORTEDFILE.fields_by_name['basename']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\027\022\025Basename of the file.')
 _EXPORTEDFILE.fields_by_name['st_mode'].has_options = True
-_EXPORTEDFILE.fields_by_name['st_mode']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>(\n\010StatMode\022\034A unix file permission mode.')
+_EXPORTEDFILE.fields_by_name['st_mode']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001(\n\010StatMode\022\034A unix file permission mode.')
 _EXPORTEDFILE.fields_by_name['st_atime'].has_options = True
-_EXPORTEDFILE.fields_by_name['st_atime']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>\'\n\022RDFDatetimeSeconds\022\021Last access time.')
+_EXPORTEDFILE.fields_by_name['st_atime']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\'\n\022RDFDatetimeSeconds\022\021Last access time.')
 _EXPORTEDFILE.fields_by_name['st_mtime'].has_options = True
-_EXPORTEDFILE.fields_by_name['st_mtime']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>)\n\022RDFDatetimeSeconds\022\023Last modified time.')
+_EXPORTEDFILE.fields_by_name['st_mtime']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001)\n\022RDFDatetimeSeconds\022\023Last modified time.')
 _EXPORTEDFILE.fields_by_name['st_ctime'].has_options = True
-_EXPORTEDFILE.fields_by_name['st_ctime']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>-\n\022RDFDatetimeSeconds\022\027Last inode change time.')
+_EXPORTEDFILE.fields_by_name['st_ctime']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001-\n\022RDFDatetimeSeconds\022\027Last inode change time.')
 _EXPORTEDREGISTRYKEY.fields_by_name['urn'].has_options = True
-_EXPORTEDREGISTRYKEY.fields_by_name['urn']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>\"\n\006RDFURN\022\030URN of the registry key.')
+_EXPORTEDREGISTRYKEY.fields_by_name['urn']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\"\n\006RDFURN\022\030URN of the registry key.')
 _EXPORTEDREGISTRYKEY.fields_by_name['last_modified'].has_options = True
-_EXPORTEDREGISTRYKEY.fields_by_name['last_modified']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\312>.\n\022RDFDatetimeSeconds\022\030Last modified timestamp.')
+_EXPORTEDREGISTRYKEY.fields_by_name['last_modified']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001.\n\022RDFDatetimeSeconds\022\030Last modified timestamp.')
 # @@protoc_insertion_point(module_scope)

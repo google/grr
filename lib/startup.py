@@ -3,12 +3,15 @@
 
 Contains the startup routines and Init functions for initializing GRR.
 """
+
 import os
 import platform
 
 from grr.lib import config_lib
-from grr.lib import local
+from grr.lib import flags
+from grr.lib import log
 from grr.lib import registry
+from grr.lib import stats
 
 
 # Disable this warning for this section, we import dynamically a lot in here.
@@ -25,15 +28,22 @@ def AddConfigContext():
 
 
 def ConfigInit():
-  """Initialize the configuration manager."""
-  local.ConfigInit()
+  """Initialize the configuration manager from the command line arg."""
+  # Initialize the config system from the command line options.
+  config_lib.ParseConfigCommandLine()
 
   if config_lib.CONFIG["Config.writeback"]:
     config_lib.CONFIG.SetWriteBack(config_lib.CONFIG["Config.writeback"])
 
 
 def ClientPluginInit():
-  """If we are running as a Client, initialize any client plugins."""
+  """If we are running as a Client, initialize any client plugins.
+
+  This provides the ability to customize the pre-built client. Simply add python
+  files to the binary client template zip file, and specify these in the
+  configuration file as the Client.plugins parameter. The client will import
+  these files (and register any plugins at run time).
+  """
   for plugin in config_lib.CONFIG["Client.plugins"]:
     config_lib.PluginLoader.LoadPlugin(
         os.path.join(config_lib.CONFIG["Client.install_path"], plugin))
@@ -41,24 +51,25 @@ def ClientPluginInit():
 
 def ClientLoggingStartupInit():
   """Initialize client logging."""
-  local.ClientLogInit()
+  log.LogInit()
 
 
 def ServerLoggingStartupInit():
   """Initialize the logging configuration."""
-  local.ServerLogInit()
+  log.LogInit()
+  log.AppLogInit()
 
 
 def ClientInit():
   """Run all startup routines for the client."""
-  ConfigInit()
+  stats.STATS = stats.StatsCollector()
+
   AddConfigContext()
+  ConfigInit()
+
   ClientLoggingStartupInit()
   ClientPluginInit()
-  from grr.client import installer
-  installer.InstallerPluginInit()
   registry.Init()
-
 
 # Make sure we do not reinitialize multiple times.
 INIT_RAN = False
@@ -70,8 +81,11 @@ def Init():
   if INIT_RAN:
     return
 
-  ConfigInit()
+  stats.STATS = stats.StatsCollector()
+
   AddConfigContext()
+  ConfigInit()
+
   ServerLoggingStartupInit()
   registry.Init()
   INIT_RAN = True
@@ -79,6 +93,24 @@ def Init():
 
 def TestInit():
   """Only used in tests and will rerun all the hooks to create a clean state."""
+  if stats.STATS is None:
+    stats.STATS = stats.StatsCollector()
+
+  # Tests use both the server template grr_server.yaml as a primary config file
+  # (this file does not contain all required options, e.g. private keys), and
+  # additional configuration in test_data/grr_test.yaml which contains typical
+  # values for a complete installation.
+  flags.FLAGS.config = config_lib.CONFIG["Test.config"]
+  flags.FLAGS.secondary_configs = [
+      os.path.join(config_lib.CONFIG["Test.data_dir"], "grr_test.yaml")]
+
+  # We are running a test so let the config system know that.
+  config_lib.CONFIG.AddContext(
+      "Test Context", "Context applied when we run tests.")
+
   AddConfigContext()
+  ConfigInit()
+
+  # Tests additionally add a test configuration file.
   ServerLoggingStartupInit()
   registry.TestInit()

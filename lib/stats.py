@@ -11,8 +11,6 @@ import threading
 import time
 
 
-import logging
-
 from grr.lib import registry
 from grr.lib import utils
 
@@ -455,27 +453,9 @@ class StatsCollector(object):
     return self._metrics[varname].Get(fields)
 
 
-# A global store of statistics
+# A global store of statistics.
 STATS = None
 
 
 class StatsInit(registry.InitHook):
-
-  def RunOnce(self):
-    """Main method of this registry hook.
-
-    StatsCollector implementation may be overriden. If there's a "stats" module
-    present in grr/local directory then grr.local.stats.StatsCollector
-    implementation will be used instead of a default one.
-    """
-    # pylint: disable=g-import-not-at-top
-    from grr.lib import local as local_overrides
-    # pylint: enable=g-import-not-at-top
-
-    global STATS
-
-    if "stats" in dir(local_overrides):
-      STATS = local_overrides.stats.StatsCollector()
-      logging.debug("Using local StatsCollector from %s", local_overrides)
-    else:
-      STATS = StatsCollector()
+  pass

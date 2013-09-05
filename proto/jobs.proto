@@ -126,7 +126,7 @@ message GrrMessage {
   // The ttl used in the task scheduler.
   optional int32 task_ttl = 16 [ default = 5 ];
   optional string queue = 17  [(sem_type) = {
-      // TODO(user) This should be changed to a RDFURN.
+      type: "RDFURN",
       description: "The scheduler queue this message is in."
     }];
 
@@ -144,7 +144,6 @@ message GrrMessage {
                    "limit enforced. This means we can blockfile transfers but "
                    "still communicate after the limit is reached."
     }];
-
 };
 
 // This is a list of messages
@@ -474,8 +473,6 @@ message RequestState {
 
   // The original message request.
   optional GrrMessage request = 10;
-
-  optional string flow_name = 11;
 };
 
 // Flows are pickled in the data store:
@@ -618,26 +615,36 @@ message PathSpec {
   optional PathType pathtype = 1 [default = UNSET];
 
   optional string path = 2;
-
-  optional string stream_name = 11 [(sem_type) = {
-      description: "A name for the data stream. For example, an ADS name."
+  optional string mount_point = 3 [(sem_type) = {
+      label: ADVANCED
     }];
 
-  optional string mount_point = 3;
+  optional string stream_name = 11 [(sem_type) = {
+      description: "A name for the data stream. For example, an ADS name.",
+      label: ADVANCED
+    }];
+
   optional PathSpec nested_path = 5;
 
   // Offset for split images
-  optional uint64 offset = 6;
+  optional uint64 offset = 6 [(sem_type) = {
+      label: ADVANCED
+    }];
 
   enum Options {
     CASE_INSENSITIVE = 0;
     CASE_LITERAL = 1;
+    REGEX = 2;
   };
-  optional Options path_options = 7 [default = CASE_INSENSITIVE];
+  optional Options path_options = 7 [(sem_type) = {
+      label: ADVANCED
+      }, default = CASE_INSENSITIVE];
 
   // On NTFS, the sleuthkit uses the inode, type and id to uniquely identify a
   // file - instead of the path.
-  optional uint64 inode = 8;
+  optional uint64 inode = 8  [(sem_type) = {
+      label: ADVANCED
+    }];
 
   enum tsk_fs_attr_type {
 
@@ -663,8 +670,12 @@ message PathSpec {
     TSK_FS_ATTR_TYPE_UNIX_INDIR = 0x1001;   // Indirect blocks for UFS and ExtX
   };
 
-  optional tsk_fs_attr_type ntfs_type = 9 [default = TSK_FS_ATTR_TYPE_DEFAULT];
-  optional uint64 ntfs_id = 10;
+  optional tsk_fs_attr_type ntfs_type = 9  [(sem_type) = {
+      label: ADVANCED
+    }, default = TSK_FS_ATTR_TYPE_DEFAULT];
+  optional uint64 ntfs_id = 10  [(sem_type) = {
+      label: ADVANCED
+    }];
 };
 
 // Ask the ListDir action to list all files in path (returns StatEntry)
@@ -683,7 +694,7 @@ message StatEntry {
   optional uint32 st_mode = 2 [(sem_type) = {
       type: "StatMode",
       description: "A unix file permission mode."
-    }];
+    }, default=0];
 
   optional uint32 st_ino = 3;
   optional uint32 st_dev = 4;
@@ -755,6 +766,7 @@ message Collection {
 // Windows WMI Request.
 message WmiRequest {
   optional string query = 1;
+  optional string base_object = 2;
 };
 
 // A Key Value pair
@@ -816,8 +828,11 @@ message FolderInformation {
   optional string templates = 20;
 };
 
-// User account information.
 message UserAccount {
+  option (semantic) = {
+    description: "User account information."
+  };
+
   optional string username = 1;
   optional string full_name = 2;
   optional string comment = 3;
@@ -831,8 +846,11 @@ message UserAccount {
   optional FolderInformation special_folders = 8;
 };
 
-// A protobuf to encode network addresses.
 message NetworkAddress {
+  option (semantic) = {
+    description: "Network Address information."
+  };
+
   enum Family {
     INET = 0;
     INET6 = 1;
@@ -842,23 +860,58 @@ message NetworkAddress {
   optional bytes packed_bytes = 3;
 };
 
-// Information about a network interface.
 message Interface {
+  option (semantic) = {
+    description: "Information about a network interface."
+  };
+
   optional bytes mac_address = 1;
   // ip4_addresses is deprecated, use addresses.
   repeated bytes ip4_addresses = 2;
   optional string ifname = 3;
   // ip6_addresses is deprecated, use addresses.
   repeated bytes ip6_addresses = 4;
-  repeated NetworkAddress addresses = 5;
+
+  repeated NetworkAddress addresses = 5 [(sem_type) = {
+      description: "A network address attached to an interface.",
+    }];;
 };
 
-
-// This returns information about the memory geometry.
 message MemoryInformation {
+  option (semantic) = {
+    description: "Describe the memory geometry."
+  };
+
   optional PathSpec device = 1;
   repeated BufferReference runs = 2;
   optional uint64 cr3 = 3;
+}
+
+message ServiceInformation {
+  option (semantic) = {
+    description: "Describe a windows service or driver.",
+  };
+
+  optional string name = 1 [(sem_type) = {
+      description: "The name of the service.",
+    }];
+
+  optional string description = 2 [(sem_type) = {
+      description: "The description string of the service.",
+    }];
+
+  optional StatEntry binary = 3 [(sem_type) = {
+      description: "The binary on the client. This may also contain an AFF4 "
+      "urn to the server copy of the same file.",
+    }];
+
+  optional string state = 4 [(sem_type) = {
+      description: "Current state of the service.",
+    }];
+
+  optional Dict wmi_information = 5 [(sem_type) = {
+      description: "Additional information available through WMI.",
+    }];
 }
 
 
@@ -927,6 +980,33 @@ message FingerprintResponse {
   repeated Dict results = 2;
   optional PathSpec pathspec = 3;
 };
+
+message Hash {
+  optional bytes sha256 = 1 [(sem_type) = {
+      type: "HashDigest",
+      description: "SHA256 binary hash digest."
+      }];
+  optional bytes sha1 = 2 [(sem_type) = {
+      type: "HashDigest",
+      description: "SHA1 binary hash digest."
+      }];
+  optional bytes md5 = 3 [(sem_type) = {
+      type: "HashDigest",
+      description: "MD5 binary hash digest."
+      }];
+  optional bytes pecoff_sha1 = 4 [(sem_type) = {
+      type: "HashDigest",
+      description: "Authenticode SHA1 hash digest for signed region of PE file."
+      }];
+  optional bytes pecoff_md5 = 5 [(sem_type) = {
+      type: "HashDigest",
+      description: "Authenticode MD5 hash digest for signed region of PE file."
+      }];
+
+  repeated AuthenticodeSignedData signed_data = 6 [(sem_type) = {
+      description: "Signed data which may be present in PE files.",
+    }];
+}
 
 // Specialized binary blob for client.
 message SignedBlob {
@@ -1037,7 +1117,7 @@ message ExecuteBinaryResponse {
   optional int32 time_used = 4;
 }
 
-message InstallDriverRequest {
+message DriverInstallTemplate {
   optional SignedBlob driver = 1;
   optional string write_path = 2;     // Path to write the driver file to.
   optional uint32 force_reload = 3;   // Unload/Load if driver already loaded.
@@ -1109,8 +1189,10 @@ message GrepSpec {
 
 // Requests and responses to allow a search for files that match all of these
 // conditions.
-message Find {
-  optional Iterator iterator = 1;
+message FindSpec {
+  optional Iterator iterator = 1 [(sem_type) = {
+      label: HIDDEN,
+    }];
 
   // The base path to recursive search from
   optional PathSpec pathspec = 2;
@@ -1125,52 +1207,74 @@ message Find {
       description: "This matches the content of the file."
     }];
 
-  optional uint64 start_time = 5 [default = 0, (sem_type) = {
+  optional uint64 start_time = 5 [(sem_type) = {
       type: "RDFDatetime",
       description: "File must be modified after this time."
-    }];
-  optional uint64 end_time = 6 [default = 9223372036854775807, (sem_type) = {
+    }, default=0];
+
+  optional uint64 end_time = 6 [(sem_type) = {
       type: "RDFDatetime",
       description: "File must be modified before this time (default=heat "
                    "death of the universe)."
-    }];
+    }, default = 9223372036854775807];
 
   // Should we cross filesystems? Default is no.
-  optional int32 cross_devs = 7 [default = 0];
+  optional bool cross_devs = 7 [(sem_type) = {
+      label: ADVANCED
+    }, default = false];
 
   // How deep to search?
-  optional int32 max_depth = 8 [ default = 15 ];
+  optional int32 max_depth = 8 [ (sem_type) = {
+      label: ADVANCED
+    }, default = 15 ];
 
   optional StatEntry hit = 9 [(sem_type) = {
-      description: "Responses come in this field."
+      description: "Responses come in this field.",
+      label: HIDDEN
     }];
 
   // The maximum amount of data from this file to search for data_regex.
-  optional uint64 max_data = 10 [default = 1024000];
+  optional uint64 max_data = 10 [(sem_type) = {
+      label: ADVANCED
+    }, default = 1024000];
 
-  optional uint64 min_file_size = 11 [default = 0, (sem_type) = {
+  optional uint64 min_file_size = 11 [(sem_type) = {
       description: "Minimum file size in bytes."
-    }];
+    }, default = 0];
 
-  optional uint64 max_file_size = 12 [default = 9223372036854775807,
-      (sem_type) = { description: "Maximum file size in bytes "
-                                  "(default=sys.maxint)."
-    }];
-
+  optional uint64 max_file_size = 12 [(sem_type) = {
+      description: "Maximum file size in bytes "
+      "(default=sys.maxint)."
+    }, default = 9223372036854775807];
 }
 
 message PlistRequest {
-  optional PathSpec pathspec = 1;
-  optional string context = 2;
-  optional string query = 3;
+  optional PathSpec pathspec = 1 [(sem_type) = {
+      description: "The pathspec for the plist file to query.",
+    }];
+
+  optional string context = 2 [(sem_type) = {
+      description: "A path into the plist to base the filter on",
+    }];
+
+  optional string query = 3 [(sem_type) = {
+      type: "PlistQuery",
+      description: "A filter query to match the contents of the plist "
+      "at the base_context.",
+    }];
 }
 
 // The Foreman schedules flows based on these rules firing.
 message ForemanAttributeRegex {
   // A relative path under the client which the attribute applies to
   optional string path = 1 [default = "/"];
-  optional string attribute_name = 2;
-  optional string attribute_regex = 3 [(sem_type) = {
+
+  optional string attribute_name = 2 [(sem_type) = {
+      type: "AFF4Attribute",
+      description: "An AFF4 attribute name"
+    }];
+
+  optional bytes attribute_regex = 3 [(sem_type) = {
       type: "RegularExpression",
       description: "If these are specified we fire when the attribute's str() "
       "representation matches the regex."
@@ -1181,7 +1285,12 @@ message ForemanAttributeRegex {
 message ForemanAttributeInteger {
   // A relative path under the client which the attribute applies to
   optional string path = 1 [default = "/"];
-  optional string attribute_name = 2;
+
+  optional string attribute_name = 2 [(sem_type) = {
+      type: "AFF4Attribute",
+      description: "An AFF4 attribute name"
+    }];
+
   enum Operator {
     EQUAL = 0;
     LESS_THAN = 1;
@@ -1196,14 +1305,37 @@ message ForemanRuleAction {
   optional string flow_name = 1;
   optional Dict argv = 2;
 
+  // Hunts are handled specially here.
   optional string hunt_name = 3;
+
   // Hunt session id.
   optional string hunt_id = 4 [(sem_type) = {
       type: "SessionID",
       description: "The id of the hunt to start."
     }];
-  optional uint32 client_limit = 5;
+  optional uint64 client_limit = 5;
 };
+
+message ForemanRule {
+  // We fire when all these rules match
+  repeated ForemanAttributeRegex regex_rules = 1;
+  repeated ForemanAttributeInteger integer_rules = 2;
+
+  // These will all run in case this rule fires
+  repeated ForemanRuleAction actions = 3;
+
+  optional uint64 created = 4 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When this rule was created."
+    }];
+  optional uint64 expires = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When this rule will expire."
+    }];
+
+  // A Human readable description of what this is supposed to do
+  optional string description = 6;
+}
 
 message HuntError {
   optional string client_id = 1 [(sem_type) = {
@@ -1254,27 +1386,6 @@ message ClientResourcesStats {
   optional RunningStats system_cpu_stats = 2;
   optional RunningStats network_bytes_sent_stats = 3;
   repeated ClientResources worst_performers = 4;
-}
-
-message ForemanRule {
-  // We fire when all these rules match
-  repeated ForemanAttributeRegex regex_rules = 1;
-  repeated ForemanAttributeInteger integer_rules = 2;
-
-  // These will all run in case this rule fires
-  repeated ForemanRuleAction actions = 3;
-
-  optional uint64 created = 4 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "When this rule was created."
-    }];
-  optional uint64 expires = 5 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "When this rule will expire."
-    }];
-
-  // A Human readable description of what this is supposed to do
-  optional string description = 6;
 }
 
 // An Iterator is an opaque object which is returned by the client for each
@@ -1352,6 +1463,29 @@ message AFF4ObjectSummary {
       description: "The URN of this AFF4 object.",
     }];
   optional StatEntry stat = 3;
+}
+
+message AuditEvent {
+  optional int32 id = 1;
+  optional string user = 2;
+  enum Action {
+    UNKNOWN = 0;
+    RUN_FLOW = 1;
+  };
+
+  optional Action action = 3 [default=UNKNOWN];
+  optional string flow = 4;
+  optional bytes flow_args = 5;
+
+  optional string client = 6 [(sem_type) = {
+      type: "RDFURN",
+      description: "The client, this action was applied to."
+    }];
+
+  optional uint64 timestamp = 7 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Time event was created.",
+    }];
 }
 
 

@@ -37,11 +37,11 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
       return [reply]
 
   def CreateSignedDriver(self):
+    client_context = ["Platform:Windows", "Arch:amd64"]
+
     # Make sure there is a signed driver for our client.
     driver_path = maintenance_utils.UploadSignedDriverBlob(
-        "MZ Driveeerrrrrr", file_name="winpmem.amd64.sys",
-        platform="Windows", arch="i386",
-        aff4_path="/config/drivers/windows/memory/{file_name}",
+        "MZ Driveeerrrrrr", client_context=client_context,
         token=self.token)
 
     logging.info("Wrote signed driver to %s", driver_path)
@@ -156,9 +156,9 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
 
         return [reply]
 
-    args = {"request": rdfvalue.GrepSpec(
+    args = {"request": rdfvalue.BareGrepSpec(
         literal="88",
-        mode=rdfvalue.GrepSpec.Mode.ALL_HITS
+        mode="ALL_HITS",
         ),
             "output": "analysis/grep/testing"}
 

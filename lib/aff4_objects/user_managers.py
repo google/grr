@@ -49,8 +49,7 @@ class DataStoreUserManager(access_control.BaseUserManager):
     super(DataStoreUserManager, self).__init__(*args, **kwargs)
     self.user_label_cache = utils.AgeBasedCache(
         max_size=1000, max_age=config_lib.CONFIG["ACL.cache_age"])
-    self.super_token = access_control.ACLToken()
-    self.super_token.supervisor = True
+    self.super_token = access_control.ACLToken(username="test").SetUID()
 
   def GetUserLabels(self, username):
     """Verify that the username has the authorized_labels set.
@@ -82,7 +81,7 @@ class DataStoreUserManager(access_control.BaseUserManager):
       username: User to add the labels to.
       labels: List of additional labels to add to the user.
     """
-    labels = set(l.lower() for l in labels)
+    labels = set(utils.SmartStr(l).lower() for l in labels)
     label_urn = rdfvalue.RDFURN("aff4:/users/").Add(username).Add("labels")
     u = aff4.FACTORY.Open(label_urn, mode="rw", token=self.super_token)
     label_obj = u.Schema.LABEL()
@@ -124,7 +123,8 @@ class ConfigBasedUserManager(access_control.BaseUserManager):
       except ValueError:
         username, hash_val = entry.rstrip(":").split(":")
         labels = ""
-      labels = [l.strip().lower() for l in labels.strip().split(",")]
+      labels = [utils.SmartStr(l).strip().lower()
+                for l in labels.strip().split(",")]
       results[username] = {"hash": hash_val, "labels": labels}
     return results
 
@@ -313,7 +313,7 @@ class CheckAccessHelper(object):
     subject_str = subject.SerializeToString()
 
     for check_tuple in self.checks:
-      _, regex, require, require_args, require_kwargs = check_tuple
+      regex_text, regex, require, require_args, require_kwargs = check_tuple
 
       match = regex.match(subject_str)
       if not match:
@@ -326,8 +326,8 @@ class CheckAccessHelper(object):
       logging.debug("Allowing access to %s by pattern: %s "
                     "(require=%s, require_args=%s, require_kwargs=%s, "
                     "helper_name=%s)",
-                    subject_str, regex, require, require_args, require_kwargs,
-                    self.helper_name)
+                    subject_str, regex_text, require, require_args,
+                    require_kwargs, self.helper_name)
       return True
 
     logging.debug("Rejecting access to %s (no matched rules)", subject_str)
@@ -354,8 +354,7 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
         max_size=10000, max_age=config_lib.CONFIG["ACL.cache_age"])
 
     self.flow_cache = utils.FastStore(max_size=10000)
-    self.super_token = access_control.ACLToken()
-    self.super_token.supervisor = True
+    self.super_token = access_control.ACLToken(username="test").SetUID()
 
     self.read_access_helper = self._CreateReadAccessHelper()
     self.query_access_helper = self._CreateQueryAccessHelper()
@@ -397,6 +396,13 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
     h.Allow("aff4:/FP")
     h.Allow("aff4:/FP/*")
 
+    # The files namespace contains hash references to all files downloaded with
+    # GRR, and is extensible via Filestore objects. Users can access files for
+    # which they know the hash.
+    # See lib/aff4_objects/filestore.py
+    h.Allow("aff4:/files")
+    h.Allow("aff4:/files/*")
+
     # Namespace for indexes. Client index is stored there.
     h.Allow("aff4:/index")
     h.Allow("aff4:/index/*")
@@ -430,6 +436,10 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
     # Namespace for crashes data.
     h.Allow("aff4:/crashes")
     h.Allow("aff4:/crashes/*")
+
+    # Namespace for audit data.
+    h.Allow("aff4:/audit")
+    h.Allow("aff4:/audit/*")
 
     # Namespace for clients.
     h.Allow(self.CLIENT_URN_PATTERN)
@@ -528,7 +538,7 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
     if token.supervisor:
       return True
 
-    flow_cls = flow.GRRFlow.NewPlugin(flow_name)
+    flow_cls = flow.GRRFlow.GetPlugin(flow_name)
 
     # Flows which are not enforced can run all the time.
     if not flow_cls.ACL_ENFORCED:
@@ -556,7 +566,6 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
       access_control.UnauthorizedAccess if access is rejected.
     """
     logging.debug("Checking approval for hunt %s, %s", hunt_urn, token)
-
     if token.supervisor:
       return True
 

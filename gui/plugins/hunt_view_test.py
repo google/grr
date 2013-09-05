@@ -25,77 +25,70 @@ class TestHuntView(test_lib.GRRSeleniumTest):
   def CreateSampleHunt(self, stopped=False):
     self.client_ids = self.SetupClients(10)
 
-    hunt = hunts.GRRHunt.StartHunt(
-        "GenericHunt",
-        flow_name="GetFile",
-        args=rdfvalue.Dict(
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        flow_runner_args=rdfvalue.FlowRunnerArgs(
+            flow_name="GetFile"),
+        flow_args=rdfvalue.GetFileArgs(
             pathspec=rdfvalue.PathSpec(
                 path="/tmp/evil.txt",
                 pathtype=rdfvalue.PathSpec.PathType.OS,
                 )
             ),
+        regex_rules=[rdfvalue.ForemanAttributeRegex(
+            attribute_name="GRR client",
+            attribute_regex="GRR")],
         output_plugins=[],
-        token=self.token)
+        token=self.token) as hunt:
+      if not stopped:
+        hunt.Run()
 
-    regex_rule = rdfvalue.ForemanAttributeRegex(
-        attribute_name="GRR client",
-        attribute_regex="GRR")
-    hunt.AddRule([regex_rule])
+    with aff4.FACTORY.Open("aff4:/foreman", mode="rw",
+                           token=self.token) as foreman:
 
-    if stopped:
-      hunt.WriteToDataStore()
-    else:
-      hunt.Run()
-
-      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw",
-                                  token=self.token)
       for client_id in self.client_ids:
         foreman.AssignTasksToClient(client_id)
-      foreman.Close()
 
-    return hunt
+    return aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token,
+                             age=aff4.ALL_TIMES)
 
   def CreateGenericHuntWithCollection(self):
     self.client_ids = self.SetupClients(10)
 
-    hunt = hunts.GRRHunt.StartHunt(
-        "GenericHunt", output_plugins=[("CollectionPlugin", {})],
-        token=self.token)
-    regex_rule = rdfvalue.ForemanAttributeRegex(
-        attribute_name="GRR client",
-        attribute_regex="GRR")
-    hunt.AddRule([regex_rule])
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        regex_rules=[rdfvalue.ForemanAttributeRegex(
+            attribute_name="GRR client",
+            attribute_regex="GRR")],
+        output_plugins=[rdfvalue.OutputPlugin(plugin_name="CollectionPlugin")],
+        token=self.token) as hunt:
 
-    collection = hunt.state.output_objects[0].collection
-    collection.Add(rdfvalue.RDFURN("aff4:/sample/1"))
-    collection.Add(rdfvalue.RDFURN(
-        "aff4:/C.0000000000000001/fs/os/c/bin/bash"))
-    collection.Add(rdfvalue.RDFURN("aff4:/sample/3"))
+      with hunt.GetRunner() as runner:
+        runner.Start()
 
-    hunt.WriteToDataStore()
-
-    return hunt
+        collection = runner.context.output_plugins[0].collection
+        collection.Add(rdfvalue.RDFURN("aff4:/sample/1"))
+        collection.Add(rdfvalue.RDFURN(
+            "aff4:/C.0000000000000001/fs/os/c/bin/bash"))
+        collection.Add(rdfvalue.RDFURN("aff4:/sample/3"))
 
   def SetupTestHuntView(self):
     # Create some clients and a hunt to view.
-    hunt = self.CreateSampleHunt()
-    hunt.Close()
+    with self.CreateSampleHunt() as hunt:
+      hunt.LogResult(self.client_ids[2], "Result 1")
+
+      # Log an error just with some random traceback.
+      hunt.LogClientError(self.client_ids[1], "Client Error 1",
+                          traceback.format_exc())
 
     # Run the hunt.
     client_mock = test_lib.SampleHuntMock()
+
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
-    hunt = aff4.FACTORY.Open(hunt.session_id, token=self.token, mode="rw",
-                             age=aff4.ALL_TIMES)
-
-    hunt.LogResult(self.client_ids[2], "Result 1")
-    # Log an error just with some random traceback.
-    hunt.LogClientError(self.client_ids[1], "Client Error 1",
-                        traceback.format_exc())
-
+    hunt = aff4.FACTORY.Open(hunt.urn, token=self.token, age=aff4.ALL_TIMES)
     started = hunt.GetValuesForAttribute(hunt.Schema.CLIENTS)
     self.assertEqual(len(set(started)), 10)
-    hunt.Close()
 
   def CheckState(self, state):
     self.WaitUntil(self.IsElementPresent, "css=div[state=\"%s\"]" % state)
@@ -211,7 +204,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
                       "css=.modal-backdrop")
 
     with self.ACLChecksDisabled():
-      self.GrantHuntApproval(hunt.session_id)
+      self.GrantHuntApproval(hunt.urn)
 
     # Click on Run and wait for dialog again.
     self.Click("css=button[name=RunHunt]")
@@ -233,7 +226,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
     # Check the hunt is in a running state.
-    self.CheckState("RUNNING")
+    self.CheckState("STARTED")
 
   def testPauseHunt(self):
     with self.ACLChecksDisabled():
@@ -285,8 +278,9 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
-    # Check the hunt is in a running state.
-    self.CheckState("stopped")
+
+    # Check the hunt is not in a running state.
+    self.CheckState("PAUSED")
 
   def testModifyHunt(self):
     with self.ACLChecksDisabled():
@@ -304,8 +298,9 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=ModifyHunt]")
     self.WaitUntil(self.IsTextPresent, "Modify a hunt")
 
-    self.Type("css=input[name=client_limit]", "4483")
-    self.Type("css=input[name=expiry_time]", "5m")
+    self.Type("css=input[id=v_-client_limit]", "4483")
+    self.Type("css=input[id=v_-expiry_time]", str(
+        rdfvalue.Duration("5m").Expiry()))
 
     # Click on Proceed.
     self.Click("css=button[name=Proceed]")
@@ -324,8 +319,9 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=ModifyHunt]")
     self.WaitUntil(self.IsTextPresent, "Modify a hunt")
 
-    self.Type("css=input[name=client_limit]", "4483")
-    self.Type("css=input[name=expiry_time]", "5m")
+    self.Type("css=input[id=v_-client_limit]", "4483")
+    self.Type("css=input[id=v_-expiry_time]", str(
+        rdfvalue.Duration("5m").Expiry()))
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.
@@ -344,14 +340,13 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
   def SetupHuntDetailView(self, failrate=2):
     """Create some clients and a hunt to view."""
-    hunt = self.CreateSampleHunt()
+    with self.CreateSampleHunt() as hunt:
+      hunt.LogClientError(self.client_ids[1], "Client Error 1",
+                          traceback.format_exc())
+
     # Run the hunt.
     client_mock = test_lib.SampleHuntMock(failrate=failrate)
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
-
-    hunt.LogClientError(self.client_ids[1], "Client Error 1",
-                        traceback.format_exc())
-    hunt.Flush()
 
   def testHuntDetailView(self):
     """Test the detailed client view works."""
@@ -409,7 +404,6 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # Click the Results tab.
     self.Click("css=a[renderer=HuntResultsRenderer]")
-    self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntResultsRenderer_]")
 
     self.WaitUntil(self.IsTextPresent, "aff4:/sample/1")
     self.WaitUntil(self.IsTextPresent,

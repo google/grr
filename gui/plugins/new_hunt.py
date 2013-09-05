@@ -2,60 +2,103 @@
 """Implementation of "New Hunt" wizard."""
 
 
-import collections
-import json
-import time
+import logging
+import os
 
 
 from grr.gui import renderers
 from grr.gui.plugins import flow_management
-from grr.gui.plugins import foreman
+from grr.gui.plugins import forms
+from grr.gui.plugins import wizards
 from grr.lib import flow
-from grr.lib import hunts
 from grr.lib import rdfvalue
-from grr.lib import type_info
+
+from grr.lib.hunts import implementation
 from grr.lib.hunts import output_plugins
 
 
-class NewHunt(renderers.WizardRenderer):
-  """Creates new hunt."""
+class HuntArgsParser(object):
+  """A utility class for parsing the hunt parameters."""
 
-  wizard_name = "hunt_run"
-  title = "New Hunt"
-  pages = [
-      renderers.WizardPage(
-          name="ConfigureFlow",
-          description="What to run?",
-          renderer="HuntConfigureFlow"),
-      renderers.WizardPage(
-          name="ConfigureOutput",
-          description="Output Processing",
-          renderer="HuntConfigureOutputPlugins"),
-      renderers.WizardPage(
-          name="ConfigureRules",
-          description="Where to run?",
-          renderer="HuntConfigureRules"),
-      renderers.WizardPage(
-          name="Review",
-          description="Review",
-          renderer="HuntInformation",
-          next_button_label="Run"),
-      renderers.WizardPage(
-          name="Done",
-          description="Hunt was created.",
-          renderer="HuntRunStatus",
-          next_button_label="Ok!",
-          show_back_button=False)
-      ]
+  flow_runner_args = None
+  flow_args = None
+  hunt_args = None
+  hunt_runner_args = None
 
-  def Layout(self, request, response):
-    response = super(NewHunt, self).Layout(request, response)
-    return self.CallJavascript(response, "NewHunt.Layout")
+  def __init__(self, request):
+    self.request = request
+
+  def ParseRules(self, hunt_runner_args):
+    """Parse the rules into the hunt_runner_args."""
+    # Clear all the rules from the hunt runner.
+    hunt_runner_args.regex_rules = hunt_runner_args.integer_rules = None
+
+    for option in ConfigureHuntRules().ParseArgs(self.request):
+      # Options can be either regex or integer rules.
+      if option.__class__ is rdfvalue.ForemanAttributeRegex:
+        hunt_runner_args.regex_rules.Append(option)
+      elif option.__class__ is rdfvalue.ForemanAttributeInteger:
+        hunt_runner_args.integer_rules.Append(option)
+
+  def ParseFlowArgs(self):
+    """Parse the flow and flow_runner args."""
+    if self.flow_runner_args is not None:
+      return self.flow_runner_args, self.flow_args
+
+    flow_path = self.request.REQ.get("flow_path", "")
+    flow_name = os.path.basename(flow_path)
+    if not flow_name:
+      raise ValueError("No flow specified. Please select a flow.")
+
+    flow_cls = flow.GRRFlow.GetPlugin(flow_name)
+    self.flow_args = forms.SemanticProtoFormRenderer(
+        flow_cls.args_type(), prefix="args").ParseArgs(self.request)
+
+    self.flow_runner_args = forms.SemanticProtoFormRenderer(
+        flow.FlowRunnerArgs(), prefix="runner").ParseArgs(self.request)
+
+    self.flow_runner_args.flow_name = flow_name
+
+    return self.flow_runner_args, self.flow_args
+
+  def ParseOutputPlugins(self):
+    return HuntConfigureOutputPlugins().ParseArgs(self.request)
+
+  def ParseHuntRunnerArgs(self):
+    """Parse the hunt runner arguments, rules and output plugins."""
+    if self.hunt_runner_args is not None:
+      return self.hunt_runner_args
+
+    self.hunt_runner_args = forms.SemanticProtoFormRenderer(
+        rdfvalue.HuntRunnerArgs(), prefix="hunt_runner").ParseArgs(
+            self.request)
+
+    self.hunt_runner_args.hunt_name = "GenericHunt"
+
+    # Parse out the rules.
+    self.ParseRules(self.hunt_runner_args)
+
+    return self.hunt_runner_args
+
+  def ParseHuntArgs(self):
+    """Build the hunt args from the self.request."""
+    if self.hunt_args is not None:
+      return self.hunt_args
+
+    flow_runner_args, flow_args = self.ParseFlowArgs()
+
+    self.hunt_args = rdfvalue.GenericHuntArgs(
+        flow_runner_args=flow_runner_args,
+        flow_args=flow_args,
+        output_plugins=self.ParseOutputPlugins())
+
+    return self.hunt_args
 
 
 class HuntConfigureFlow(renderers.Splitter2WayVertical):
-  """Configure hunt's flow."""
+  """Configure the generic hunt's flow."""
 
+  description = "What to run?"
   left_renderer = "FlowTree"
   right_renderer = "HuntFlowForm"
 
@@ -63,19 +106,22 @@ class HuntConfigureFlow(renderers.Splitter2WayVertical):
 
   def Layout(self, request, response):
     response = super(HuntConfigureFlow, self).Layout(request, response)
-    return self.CallJavascript(response, "HuntConfigureFlow.Layout")
+    return self.CallJavascript(response, "Layout")
+
+  def Validate(self, request, _):
+    """Check the flow args are valid."""
+    parser = HuntArgsParser(request)
+
+    flow_runner_args, flow_args = parser.ParseFlowArgs()
+    flow_runner_args.Validate()
+    flow_args.Validate()
+
+    hunt_runner_args = parser.ParseHuntRunnerArgs()
+    hunt_runner_args.Validate()
 
 
-class HuntFlowForm(flow_management.FlowForm):
+class HuntFlowForm(flow_management.SemanticProtoFlowForm):
   """Flow configuration form that stores the data in wizard's DOM data."""
-
-  # No need to avoid clashes, because the form by itself is not submitted, it's
-  # only used by Javascript to form a JSON request.
-  prefix = ""
-
-  # There's no sense in displaying "Notify at Completion" argument when
-  # configuring hunts
-  ignore_flow_args = ["notify_to_user"]
 
   nothing_selected_template = renderers.Template("""
 <div class="padded">Please select a flow.</div>
@@ -88,7 +134,9 @@ class HuntFlowForm(flow_management.FlowForm):
 
 {% if this.flow_name %}
 
-  {{this.flow_args|safe}}
+  {{this.form|safe}}
+  <hr/>
+  {{this.runner_form|safe}}
 
 {% else %}
   <p class="text-info">Nothing to configure for the Flow.</p>
@@ -97,434 +145,262 @@ class HuntFlowForm(flow_management.FlowForm):
 {{this.hunt_params_form|safe}}
 
 <legend>Description</legend>
-<div id="FlowDescription_{{unique|escape}}"></div>
 
+{{this.flow_description|safe}}
 </div>
 """)
 
+  # These rules are filled in separately.
+  suppressions = ["hunt_name", "regex_rules", "integer_rules"]
+
   def Layout(self, request, response):
     """Layout the hunt flow form."""
-    self.flow_path = request.REQ.get("flow_name", "")
-    self.flow_name = self.flow_path.split("/")[-1]
+    self.flow_path = request.REQ.get("flow_path", "")
+    self.flow_name = os.path.basename(self.flow_path)
 
-    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
-    self.hunt_params_form = type_descriptor_renderer.Form(
-        hunts.GRRHunt.hunt_typeinfo, request, prefix="")
+    hunt_runner_form = forms.SemanticProtoFormRenderer(
+        rdfvalue.HuntRunnerArgs(), id=self.id,
+        supressions=self.suppressions, prefix="hunt_runner")
+
+    self.hunt_params_form = hunt_runner_form.RawHTML(request)
+
+    self.flow_description = flow_management.FlowInformation(
+        id=self.id).RawHTML(request)
 
     if self.flow_name in flow.GRRFlow.classes:
-      response = super(HuntFlowForm, self).Layout(request, response)
-      return self.CallJavascript(response, "HuntFlowForm.Layout",
-                                 flow_name=self.flow_name)
+      return super(HuntFlowForm, self).Layout(request, response)
     else:
       return self.RenderFromTemplate(self.nothing_selected_template, response)
 
 
-# TODO(user): This is very similar to the rules renderer below. We should
-# make this more generic and reuse this code below.
-class HuntConfigureOutputPlugins(renderers.TemplateRenderer):
-  """Configure the hunt's output plugins."""
+class OutputPluginsForm(forms.OptionFormRenderer):
+  """Render and parse the form for output plugin selection."""
+  default = "CollectionPlugin"
+  friendly_name = "Output Plugin"
+  help = "Select and output plugin for processing hunt results."
+  option_name = "output"
 
-  layout_template = renderers.Template("""
-<script id="HuntsOutputModels_{{unique|escape}}" type="text/x-jquery-tmpl">
-  <div class="Rule well well-large">
-    {% for plugin_name, plugin_description, plugin_form in this.forms %}
-      {% templatetag openvariable %}if output_type == "{{plugin_name}}"
-        {% templatetag closevariable %}
-        <form name="{{plugin_name|escape}}" class="form-horizontal">
-          <div class="control-group">
-            <label class="control-label">Output processing</label>
-            <div class="controls">
-               <select name="output_type">
-                 {% for name, description, _ in this.forms %}
-                   <option value="{{name|escape}}"
-                     {% if name == plugin_name %}selected{% endif %}>
-                     {{description|escape}}
-                   </option>
-                 {% endfor %}
-               </select>
-            </div>
-          </div>
-          {{plugin_form|safe}}
-          <div class="control-group">
-            <div class="controls">
-              <input name="remove" class="btn" type="button" value="Remove" />
-           </div>
-         </div>
-        </form>
-      {% templatetag openvariable %}/if{% templatetag closevariable %}
-    {% endfor %}
-  </div>
-</script>
+  @property
+  def options(self):
+    """Only include output plugins with descriptions."""
+    for name, cls in output_plugins.HuntOutputPlugin.classes.items():
+      if cls.description:
+        yield name, cls.description
 
-<div class="HuntConfigureOutputs padded">
-  <div id="HuntsOutputs_{{unique|escape}}" class="RulesList"></div>
-  <div class="AddButton">
-    <input type="button" class="btn" id="AddHuntOutput_{{unique|escape}}"
-      value="Add another output plugin" />
-  </div>
-</div>
+  def ParseOption(self, option, request):
+    # Depending on the plugin we parse a different protobuf.
+    plugin = output_plugins.HuntOutputPlugin.classes.get(option)
 
-""")
+    if plugin and plugin.description:
+      result = output_plugins.OutputPlugin(plugin_name=option)
+      result.plugin_args = forms.SemanticProtoFormRenderer(
+          plugin.args_type(), id=self.id, prefix=self.prefix).ParseArgs(request)
+      result.plugin_args.Validate()
 
-  def Layout(self, request, response):
-    """Layout hunt output plugins."""
-    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
+      return result
 
-    self.forms = []
-    self.output_options = []
+  def RenderOption(self, option, request, response):
+    # Depending on the plugin we render a different protobuf.
+    plugin = output_plugins.HuntOutputPlugin.classes.get(option)
 
-    for name, plugin in output_plugins.HuntOutputPlugin.classes.items():
-      if plugin.description:
-        self.forms.append((
-            name, plugin.description, type_descriptor_renderer.Form(
-                plugin.output_typeinfo, request, prefix="")))
-
-    response = super(HuntConfigureOutputPlugins, self).Layout(request, response)
-    return self.CallJavascript(response, "HuntConfigureOutput.Layout")
+    if plugin and plugin.description:
+      return forms.SemanticProtoFormRenderer(
+          plugin.args_type(), id=self.id, prefix=self.prefix).Layout(
+              request, response)
 
 
-# TODO(user): we should have RDFProtoEditableRenderer or the likes to have
-# a generic way of displaying forms for editing protobufs. Maybe it should be
-# based on RDFProtoRenderer code.
-class HuntConfigureRules(renderers.TemplateRenderer):
-  """Configure hunt's rules."""
+class HuntConfigureOutputPlugins(forms.MultiFormRenderer):
+  """Allow multiple output plugins to be specified."""
+
+  child_renderer = OutputPluginsForm
+  option_name = "output"
+  button_text = "Add Output Plugin"
+  description = "Define Output Processing"
+
+  def Validate(self, request, _):
+    # Check each plugin for validity.
+    parser = HuntArgsParser(request)
+    for plugin in parser.ParseOutputPlugins():
+      plugin.Validate()
+
+
+class RuleOptionRenderer(forms.OptionFormRenderer):
+  """Make a rule form based on rule type."""
+  options = (("Windows", "Windows"),
+             ("Linux", "Linux"),
+             ("OSX", "OSX"),
+             ("Regex", "Regular Expressions"),
+             ("Integer", "Integer Rule"))
+
+  option_name = "rule"
+  help = "Rule Type"
+  friendly_name = "Rule Type"
 
   match_system_template = renderers.Template("""
 This rule will match all <strong>{{system}}</strong> systems.
 """)
 
-  # We generate jQuery template for different kind of rules that we have (i.e.
-  # ForemanAttributeInteger, ForemanAttributeRegex). For every
-  # cloned rule form, we register "change" event listener, which updates
-  # wizard's configuration (by convention stored in wizard's DOM by using
-  # jQuery.data()).
-  layout_template = renderers.Template("""
-<script id="HuntsRulesModels_{{unique|escape}}" type="text/x-jquery-tmpl">
-  <div class="Rule well well-large">
-    {% for form_name, form in this.forms.items %}
-      {% templatetag openvariable %}if rule_type == "{{form_name}}"
-        {% templatetag closevariable %}
-        <form name="{{form_name|escape}}" class="form-horizontal">
-          <div class="control-group">
-            <label class="control-label">Rule Type</label>
-            <div class="controls">
-               <select name="rule_type">
-                 {% for fn in this.forms.iterkeys %}
-                   <option value="{{fn|escape}}"
-                     {% if fn == form_name %}selected{% endif %}>
-                     {{fn|escape}}
-                   </option>
-                 {% endfor %}
-               </select>
-            </div>
-          </div>
-          {{form|safe}}
-          <div class="control-group">
-            <div class="controls">
-              <input name="remove" class="btn" type="button" value="Remove" />
-           </div>
-         </div>
-        </form>
-      {% templatetag openvariable %}/if{% templatetag closevariable %}
-    {% endfor %}
-  </div>
-</script>
+  form_template = renderers.Template("""{{form|safe}}""")
 
-<div class="HuntConfigureRules padded">
-  <div id="HuntsRules_{{unique|escape}}" class="RulesList"></div>
-  <div class="AddButton">
-    <input type="button" class="btn" id="AddHuntRule_{{unique|escape}}"
-      value="Add Rule" />
-  </div>
-</div>
+  def RenderOption(self, option, request, response):
+    if option == "Windows":
+      return self.RenderFromTemplate(self.match_system_template, response,
+                                     system="Windows")
 
-""")
+    elif option == "Linux":
+      return self.RenderFromTemplate(self.match_system_template, response,
+                                     system="Linux")
 
-  def Layout(self, request, response):
-    """Layout hunt rules."""
-    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
+    elif option == "OSX":
+      return self.RenderFromTemplate(self.match_system_template, response,
+                                     system="OSX")
 
-    self.forms = collections.OrderedDict()
-    self.forms["Windows systems"] = self.FormatFromTemplate(
-        self.match_system_template, system="Windows")
-    self.forms["Linux systems"] = self.FormatFromTemplate(
-        self.match_system_template, system="Linux")
-    self.forms["Mac OS X systems"] = self.FormatFromTemplate(
-        self.match_system_template, system="Mac OS X")
-    self.forms["Regular expression match"] = type_descriptor_renderer.Form(
-        type_info.TypeDescriptorSet(type_info.ForemanAttributeRegexType()),
-        request, prefix="")
-    self.forms["Integer comparison"] = type_descriptor_renderer.Form(
-        type_info.TypeDescriptorSet(type_info.ForemanAttributeIntegerType()),
-        request, prefix="")
+    elif option == "Regex":
+      return self.RenderFromTemplate(
+          self.form_template, response, form=forms.SemanticProtoFormRenderer(
+              rdfvalue.ForemanAttributeRegex(),
+              prefix=self.prefix).RawHTML(request))
 
-    response = super(HuntConfigureRules, self).Layout(request, response)
-    return self.CallJavascript(response, "HuntConfigureRules.Layout")
+    elif option == "Integer":
+      return self.RenderFromTemplate(
+          self.form_template, response, form=forms.SemanticProtoFormRenderer(
+              rdfvalue.ForemanAttributeInteger(),
+              prefix=self.prefix).RawHTML(request))
+
+  def ParseOption(self, option, request):
+    """Parse the form that is selected by option."""
+    if option == "Windows":
+      return implementation.GRRHunt.MATCH_WINDOWS
+
+    elif option == "Linux":
+      return implementation.GRRHunt.MATCH_LINUX
+
+    elif option == "OSX":
+      return implementation.GRRHunt.MATCH_DARWIN
+
+    elif option == "Regex":
+      return forms.SemanticProtoFormRenderer(
+          rdfvalue.ForemanAttributeRegex(),
+          prefix=self.prefix).ParseArgs(request)
+
+    elif option == "Integer":
+      return forms.SemanticProtoFormRenderer(
+          rdfvalue.ForemanAttributeInteger(),
+          prefix=self.prefix).ParseArgs(request)
 
 
-class HuntRequestParsingMixin(object):
-  """Mixin with hunt's JSON configuration parsing methods."""
+class ConfigureHuntRules(forms.MultiFormRenderer):
+  """Allow configuration of only the rules."""
 
-  PREDEFINED_RULES = {"Windows systems": hunts.GRRHunt.MATCH_WINDOWS,
-                      "Linux systems": hunts.GRRHunt.MATCH_LINUX,
-                      "Mac OS X systems": hunts.GRRHunt.MATCH_DARWIN}
+  option_name = "rule"
+  button_text = "Add Rule"
+  child_renderer = RuleOptionRenderer
+  description = "Where to run?"
 
-  def ParseFlowConfig(self, flow_class, flow_args_json):
-    """Parse flow config JSON."""
-
-    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
-    # We ignore certain args in HuntFlowForm therefore we shouldn't parse
-    # it here.
-    tinfo = flow_class.flow_typeinfo
-    for arg in HuntFlowForm.ignore_flow_args:
-      try:
-        tinfo = tinfo.Remove(arg)
-      except KeyError:
-        pass  # this flow_arg was not part of the request
-
-    flow_config = rdfvalue.Dict(
-        initializer=dict(type_descriptor_renderer.ParseArgs(
-            tinfo, flow_args_json, prefix="")))
-    return flow_config
-
-  def ParseHuntRules(self, hunt_rules_json):
-    """Parse rules config JSON."""
-
-    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
-    result = []
-    for rule_json in hunt_rules_json:
-      rule_type = rule_json["rule_type"]
-
-      if rule_type in self.PREDEFINED_RULES:
-        result.append(self.PREDEFINED_RULES[rule_type])
-        continue
-
-      if rule_type == "Regular expression match":
-        tinfo = type_info.TypeDescriptorSet(
-            type_info.ForemanAttributeRegexType())
-      elif rule_type == "Integer comparison":
-        tinfo = type_info.TypeDescriptorSet(
-            type_info.ForemanAttributeIntegerType())
-      else:
-        raise RuntimeError("Unknown rule type: " + rule_type)
-
-      parse_result = dict(type_descriptor_renderer.ParseArgs(
-          tinfo, rule_json, prefix=""))
-
-      rdf_rule = parse_result["foreman_attributes"]
-      result.append(rdf_rule)
-
-    return result
-
-  def ParseOutputConfig(self, output_config_json):
-    """Parse the output configuration."""
-
-    output_parameters = []
-    for config_set in output_config_json:
-      try:
-        plugin_name = config_set["output_type"]
-      except KeyError:
-        continue
-
-      output_cls = output_plugins.HuntOutputPlugin.classes.get(plugin_name)
-      if output_cls is None:
-        continue
-
-      parse_result = dict(renderers.TypeDescriptorSetRenderer().ParseArgs(
-          output_cls.output_typeinfo, config_set, prefix=""))
-      output_parameters.append((plugin_name, parse_result))
-    return output_parameters
-
-  def ParseExpiryTime(self, timestring):
-    """Parses the expiration time."""
-    multiplicator = 1
-
-    if not timestring:
-      return None
-    orig_string = timestring
-
-    if timestring[-1].isdigit():
-      pass
-    else:
-      if timestring[-1] == "s":
-        pass
-      elif timestring[-1] == "m":
-        multiplicator = 60
-      elif timestring[-1] == "h":
-        multiplicator = 60*60
-      elif timestring[-1] == "d":
-        multiplicator = 60*60*24
-      timestring = timestring[:-1]
-    try:
-      return int(timestring) * multiplicator
-    except ValueError:
-      raise RuntimeError("Could not parse expiration time '%s'." % orig_string)
-
-  def GetHuntArgsFromRequest(self, request):
-    """Parse JSON'ed hunt configuration from request into hunt object."""
-    hunt_config_json = request.REQ.get("hunt_run")
-    hunt_config = json.loads(hunt_config_json)
-
-    flow_name = hunt_config["hunt_flow_name"]
-    flow_config_json = hunt_config.get("hunt_flow_config", {})
-    rules_config_json = hunt_config["hunt_rules_config"]
-    output_config_json = hunt_config["hunt_output_config"]
-
-    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
-    hunt_args = dict(type_descriptor_renderer.ParseArgs(
-        hunts.GRRHunt.hunt_typeinfo, flow_config_json, prefix=""))
-
-    flow_class = flow.GRRFlow.classes[flow_name]
-    flow_config = self.ParseFlowConfig(flow_class, flow_config_json or {})
-    rules_config = self.ParseHuntRules(rules_config_json)
-    output_config = self.ParseOutputConfig(output_config_json)
-
-    return {"hunt_name": "GenericHunt",
-            "hunt_args": hunt_args,
-            "flow_name": flow_name,
-            "flow_args": flow_config,
-            "rules": rules_config,
-            "output": output_config}
+  def Validate(self, request, _):
+    parser = HuntArgsParser(request)
+    hunt_runner_args = parser.ParseHuntRunnerArgs()
+    hunt_runner_args.regex_rules.Validate()
+    hunt_runner_args.integer_rules.Validate()
 
 
-class HuntRuleInformation(foreman.ReadOnlyForemanRuleTable,
-                          HuntRequestParsingMixin):
-  """Renders hunt's rules table, getting rules configuration from request."""
-
-  post_parameters = ["hunt_run"]
-
-  def RenderAjax(self, request, response):
-    """Renders information about the newly created rules."""
-    args = self.GetHuntArgsFromRequest(request)
-    for rule in hunts.GRRHunt.CreateForemanRule(args["rules"],
-                                                "aff4:/hunts/W:TBD"):
-      expiry_time = rdfvalue.RDFDatetime(
-          (time.time() + args["hunt_args"]["expiry_time"].seconds) * 1e6)
-      self.AddRow(dict(Created=rdfvalue.RDFDatetime().Now(),
-                       Expires=expiry_time,
-                       Description=rule.description,
-                       Rules=rule,
-                       Actions=rule))
-
-    return renderers.TableRenderer.RenderAjax(self, request, response)
-
-
-class HuntInformation(renderers.TemplateRenderer, HuntRequestParsingMixin):
+class HuntInformation(renderers.TemplateRenderer):
   """Displays information about a hunt: flow settings and rules."""
 
-  failure_reason = None
-  failure_template = renderers.Template("""
-<div class="Failure padded">
-<p class="text-error">Failure due: <span class="Reason">
-  {{this.failure_reason|escape}}</span></p>
-</div>
-""")
+  description = "Review"
 
   layout_template = renderers.Template("""
-<div class="HuntInformation padded" id="HuntInformation_{{unique|escape}}">
-  {{this.hunt_details|safe}}
+<div class="HuntInformation padded" id="{{unique|escape}}">
+ Loading...
 </div>
+<script>
+$("#{{unique|escapejs}}").closest(".WizardPage").on('show', function () {
+  grr.update("{{renderer}}", "{{unique|escapejs}}",
+              $("#{{unique}}").closest(".FormData").data());
+});
+</script>
 """)
 
-  hunt_details_template = renderers.Template("""
-  <div class="Flow">
-    <h3>{{this.hunt_name|escape}}</h3>
+  ajax_template = renderers.Template("""
+  <h3>Hunt Parameters</h3>
+  {{this.rendered_hunt_runner_args|safe}}
 
-    {% if this.args.items %}
-      <h4>Settings</h4>
-      <dl class="dl-horizontal">
-        {% for key,value in this.args.items %}
-        <dt>{{key|escape}}</dt>
-        <dd>{{value|escape}}</dd>
-        {% endfor %}
-      </dl>
-    {% else %}
-       No arguments.
-    {% endif %}
-  </div>
-
-  <!-- Classes inherited from HuntInformation may fill this div with
-  something. -->
-  <div class="Misc"></div>
-
-  <h3>Output Processing</h3>
-  <div id="HuntOutputInformation_{{unique|escape}}" class="Rules">
-{% for plugin, args in this.output_information %}
-- {{plugin|escape}} {{args|safe}} <br />
-{% endfor %}
-</div>
-
-  <h3>Rules</h3>
-  <div id="HuntRuleInformation_{{unique|escape}}" class="Rules"></div>
+  {{this.rendered_hunt_args|safe}}
 """)
 
-  @property
-  def hunt_details(self):
-    return self.FormatFromTemplate(self.hunt_details_template, this=self,
-                                   unique=self.unique)
+  def Validate(self, request, response):
+    pass
 
-  def Fail(self, reason, request, response):
-    """Render failure_template instead of layout_template."""
-
-    self.failure_reason = reason
-    return renderers.TemplateRenderer.Layout(
-        self, request, response, apply_template=self.failure_template)
-
-  def Layout(self, request, response):
+  def RenderAjax(self, request, response):
     """Layout the hunt information."""
-    try:
-      self.hunt_args = self.GetHuntArgsFromRequest(request)
-      self.hunt_name = self.hunt_args["hunt_name"]
-      self.args = self.hunt_args["hunt_args"]
-      self.args.update(self.hunt_args["flow_args"].ToDict())
-      self.output_information = []
-      for plugin_name, args in self.hunt_args["output"]:
-        try:
-          cls = output_plugins.HuntOutputPlugin.classes[plugin_name]
-        except KeyError:
-          self.output_information.append(
-              ("Unknown plugin: %s" % plugin_name, ""))
-          continue
+    parser = HuntArgsParser(request)
+    self.hunt_runner_args = parser.ParseHuntRunnerArgs()
+    self.hunt_args = parser.ParseHuntArgs()
 
-        if args:
-          args_html = renderers.FindRendererForObject(args).RawHTML()
-        else:
-          args_html = ""
-        self.output_information.append((cls.description, args_html))
+    # Validate the hunt args.
+    self.hunt_args.Validate()
+    self.hunt_runner_args.Validate()
 
-    except RuntimeError, e:
-      return self.Fail(e, request, response)
+    # Render the protobufs nicely.
+    self.rendered_hunt_args = renderers.RDFProtoRenderer(
+        self.hunt_args).RawHTML(request)
 
-    response = renderers.TemplateRenderer.Layout(self, request, response)
-    return self.CallJavascript(response, "HuntInformation.Layout")
+    self.rendered_hunt_runner_args = renderers.RDFProtoRenderer(
+        self.hunt_runner_args).RawHTML(request)
+
+    return super(HuntInformation, self).Layout(
+        request, response, apply_template=self.ajax_template)
 
 
-class HuntRunStatus(renderers.TemplateRenderer, HuntRequestParsingMixin):
+class HuntRunStatus(HuntInformation):
   """Launches the hunt and displays status summary."""
 
-  layout_template = renderers.Template("""
+  description = "Hunt was created."
+
+  ajax_template = renderers.Template("""
 <div class="HuntLaunchSummary padded">
   <p class="text-success">Hunt was created!</p>
 </div>
 """)
 
-  def Layout(self, request, response):
-    """Attempt to run a CreateAndRunGenericHuntFlow."""
-    hunt_args = self.GetHuntArgsFromRequest(request)
+  failure_template = renderers.Template("""
+<div class="Failure padded">
+<p class="text-error">Failure: <span class="Reason">
+  {{reason|escape}}</span></p>
+</div>
+""")
 
+  def RenderAjax(self, request, response):
+    """Attempt to run a CreateGenericHuntFlow."""
+    parser = HuntArgsParser(request)
     try:
-      # This should fail with UnauthorizedAccess error, because the hunt that
-      # was just created doesn't have required number of approvals.
-      flow.GRRFlow.StartFlow(
-          None, "CreateAndRunGenericHuntFlow",
-          token=request.token,
-          expiry_time=hunt_args["hunt_args"]["expiry_time"],
-          client_limit=hunt_args["hunt_args"]["client_limit"],
-          hunt_flow_name=hunt_args["flow_name"],
-          hunt_flow_args=hunt_args["flow_args"],
-          hunt_rules=hunt_args["rules"],
-          output_plugins=hunt_args["output"])
-    except RuntimeError, e:
-      return self.Fail(e, request, response)
+      hunt_runner_args = parser.ParseHuntRunnerArgs()
+      hunt_runner_args.token = request.token
 
-    return super(HuntRunStatus, self).Layout(request, response)
+      hunt_args = parser.ParseHuntArgs()
+
+      flow.GRRFlow.StartFlow(
+          flow_name="CreateGenericHuntFlow",
+          hunt_runner_args=hunt_runner_args,
+          hunt_args=hunt_args)
+
+    except Exception as e:  # pylint: disable=broad-except
+      logging.exception("Failed to create hunt: %s", e)
+      return self.RenderFromTemplate(
+          self.failure_template, response, reason=e)
+
+    return super(HuntRunStatus, self).Layout(
+        request, response, apply_template=self.ajax_template)
+
+
+class NewHunt(wizards.WizardRenderer):
+  """A wizard to create a new hunt."""
+  wizard_name = "hunt_run"
+  title = "New Hunt"
+  pages = [
+      HuntConfigureFlow,
+      HuntConfigureOutputPlugins,
+      ConfigureHuntRules,
+      HuntInformation,
+      HuntRunStatus,
+      ]

@@ -36,6 +36,7 @@ able to filter it directly).
 
 
 import abc
+import atexit
 import sys
 import time
 
@@ -78,7 +79,7 @@ class TransactionError(Error):
 
 
 # This token will be used by default if no token was provided.
-default_token = access_control.ACLToken()
+default_token = access_control.ACLToken(username="default")
 
 
 class DataStore(object):
@@ -95,10 +96,15 @@ class DataStore(object):
   TIMESTAMPS = [ALL_TIMESTAMPS, NEWEST_TIMESTAMP]
 
   def __init__(self):
-    security_manager = access_control.BaseAccessControlManager.NewPlugin(
+    security_manager = access_control.BaseAccessControlManager.GetPlugin(
         config_lib.CONFIG["Datastore.security_manager"])()
     self.security_manager = security_manager
     logging.info("Using security manager %s", security_manager)
+
+    # Start the flusher thread.
+    self.flusher_thread = utils.InterruptableThread(target=self.Flush,
+                                                    sleep_time=0.5)
+    self.flusher_thread.start()
 
   def Initialize(self):
     """Initialization of the datastore."""
@@ -164,6 +170,7 @@ class DataStore(object):
           logging.debug("Transaction took %s tries.", timeout)
         return result
       except TransactionError:
+        stats.STATS.IncrementCounter("datastore_retries")
         time.sleep(retrywrap_timeout)
         timeout += retrywrap_timeout
 
@@ -230,6 +237,17 @@ class DataStore(object):
       start: A timestamp, attributes older than start will not be deleted.
       end: A timestamp, attributes newer than end will not be deleted.
       sync: If true we block until the operation completes.
+      token: An ACL token.
+    """
+
+  @abc.abstractmethod
+  def DeleteAttributesRegex(self, subject, regexes, token=None):
+    """Remove all predicates according to a regex.
+
+    Args:
+      subject: The subject that will have these attributes removed.
+      regexes: A list of regular expressions to match the attributes to be
+        removed.
       token: An ACL token.
     """
 
@@ -518,14 +536,16 @@ class DataStoreInit(registry.InitHook):
       sys.exit(0)
 
     try:
-      cls = DataStore.NewPlugin(config_lib.CONFIG["Datastore.implementation"])
+      cls = DataStore.GetPlugin(config_lib.CONFIG["Datastore.implementation"])
     except KeyError:
       raise RuntimeError("No Storage System %s found." %
                          config_lib.CONFIG["Datastore.implementation"])
 
     DB = cls()  # pylint: disable=g-bad-name
     DB.Initialize()
+    atexit.register(DB.Flush)
 
   def RunOnce(self):
     """Initialize some Varz."""
     stats.STATS.RegisterCounterMetric("grr_commit_failure")
+    stats.STATS.RegisterCounterMetric("datastore_retries")

@@ -127,14 +127,9 @@ Section1.parameter3: |
 class ConfigLibTest(test_lib.GRRBaseTest):
   """Tests for config functionality."""
 
-  def setUp(self):
-    super(ConfigLibTest, self).setUp()
-    self.conf_file = config_lib.CONFIG["Test.config"]
-
   def testInit(self):
     """Testing initialization of a ConfigManager."""
-    conf = config_lib.GrrConfigManager()
-    conf.Initialize(self.conf_file)
+    conf = config_lib.CONFIG
 
     # Check that the linux client have a different value from the windows
     # client.
@@ -152,8 +147,6 @@ class ConfigLibTest(test_lib.GRRBaseTest):
     conf = config_lib.GrrConfigManager()
     conf.DEFINE_string("NewSection1.new_option1", "Default Value", "Help")
 
-    conf.Initialize(self.conf_file)
-
     conf.Set("NewSection1.new_option1", "New Value1")
 
     self.assertEquals(conf["NewSection1.new_option1"], "New Value1")
@@ -161,7 +154,8 @@ class ConfigLibTest(test_lib.GRRBaseTest):
   def testSave(self):
     """Save the config and ensure it still works."""
     conf = config_lib.GrrConfigManager()
-    conf.SetWriteBack(self.config_file)
+    config_file = os.path.join(self.temp_dir, "writeback.yaml")
+    conf.SetWriteBack(config_file)
     conf.DEFINE_string("NewSection1.new_option1", "Default Value", "Help")
 
     conf.Set("NewSection1.new_option1", "New Value1")
@@ -169,7 +163,7 @@ class ConfigLibTest(test_lib.GRRBaseTest):
     conf.Write()
 
     new_conf = config_lib.GrrConfigManager()
-    new_conf.Initialize(self.config_file)
+    new_conf.Initialize(config_file)
 
     self.assertEquals(new_conf["NewSection1.new_option1"], "New Value1")
 
@@ -262,7 +256,7 @@ interpolated = %(%(Section1.foobar)|lower)Y
 """)
 
     # Section not specified:
-    self.assertRaises(KeyError, conf.__getitem__, "a")
+    self.assertRaises(config_lib.UnknownOption, conf.__getitem__, "a")
 
     # Test direct access.
     self.assertEquals(conf["Section1.foobar"], "X")

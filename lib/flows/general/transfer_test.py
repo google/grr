@@ -282,15 +282,16 @@ class TestSophosCollector(sophos.SophosCollector):
 class TestCollector(transfer.FileCollector):
   """Test Inherited Collector Flow."""
 
-  def InitFromArguments(self, **kwargs):
+  def Start(self, *args, **kwargs):
     """Define what we collect."""
     base_path = config_lib.CONFIG["Test.data_dir"]
 
-    findspec = rdfvalue.RDFFindSpec(
+    findspec = rdfvalue.FindSpec(
         path_regex="(ntfs_img.dd|sqlite)$", max_depth=4)
 
     findspec.pathspec.path = base_path
     findspec.pathspec.pathtype = rdfvalue.PathSpec.PathType.OS
-    kwargs["findspecs"] = [findspec]
+    findspec.pathspec.Append(path="/", pathtype=rdfvalue.PathSpec.PathType.TSK)
+    self.args.findspecs = [findspec]
 
-    super(TestCollector, self).InitFromArguments(**kwargs)
+    super(TestCollector, self).Start(*args, **kwargs)

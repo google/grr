@@ -102,7 +102,8 @@ class NullWebAuthManager(BaseWebAuthManager):
     """A decorator applied to protected web handlers."""
     request.event_id = "1"
     request.user = self.username
-    request.token = access_control.ACLToken("Testing", "Just a test")
+    request.token = access_control.ACLToken(username="Testing",
+                                            reason="Just a test")
     return func(request, *args, **kwargs)
 
 
@@ -130,7 +131,7 @@ class WebAuthInit(registry.InitHook):
     global WEBAUTH_MANAGER  # pylint: disable=global-statement
 
     # pylint: disable=g-bad-name
-    WEBAUTH_MANAGER = BaseWebAuthManager.NewPlugin(
+    WEBAUTH_MANAGER = BaseWebAuthManager.GetPlugin(
         config_lib.CONFIG["AdminUI.webauth_manager"])()
 
     # pylint: enable=g-bad-name

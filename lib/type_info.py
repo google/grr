@@ -359,7 +359,7 @@ class Float(Integer):
   def Validate(self, value):
     try:
       value = float(value)
-    except ValueError:
+    except (ValueError, TypeError):
       raise TypeValueError("Invalid value %s for Float" % value)
 
     return value
@@ -367,7 +367,7 @@ class Float(Integer):
   def FromString(self, string):
     try:
       return float(string)
-    except ValueError:
+    except (ValueError, TypeError):
       raise TypeValueError("Invalid value %s for Float" % string)
 
 
@@ -496,7 +496,8 @@ class TypeDescriptorSet(object):
     """Returns a copy of this set without elements with given names."""
     new_descriptor_map = self.descriptor_map.copy()
     for name in descriptor_names:
-      del new_descriptor_map[name]
+      new_descriptor_map.pop(name, None)
+
     new_descriptors = [desc for desc in self.descriptors
                        if desc in new_descriptor_map.values()]
     return TypeDescriptorSet(*new_descriptors)
@@ -555,8 +556,8 @@ class RDFURNType(RDFValueType):
     return value
 
 
-class InstallDriverRequestType(RDFValueType):
-  """A type for the InstallDriverRequest."""
+class DriverInstallTemplateType(RDFValueType):
+  """A type for the DriverInstallTemplate."""
 
   # There is no point showing this in the GUI since the user would have to
   # provide an encrypted blob so we set this to the empty set.
@@ -564,10 +565,10 @@ class InstallDriverRequestType(RDFValueType):
 
   def __init__(self, **kwargs):
     defaults = dict(name="driver_installer",
-                    rdfclass=rdfvalue.InstallDriverRequest)
+                    rdfclass=rdfvalue.DriverInstallTemplate)
 
     defaults.update(kwargs)
-    super(InstallDriverRequestType, self).__init__(**defaults)
+    super(DriverInstallTemplateType, self).__init__(**defaults)
 
   def GetDefault(self):
     if not self.default:

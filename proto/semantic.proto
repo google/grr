@@ -4,13 +4,42 @@ import "google/protobuf/descriptor.proto";  // for FieldOptions
 
 
 message SemanticDescriptor {
-  // The class name of the SemanticValue contained in this field.
+  // The semantic name of the SemanticValue contained in this field.
   optional string type = 1;
+
+  // The type of this field can be specified dynamically. This is the name of
+  // the attribute to use to retrieve the SemanticValue class to be used for
+  // parsing this field.
+  optional string dynamic_type = 5;
   optional string description = 2;
+
+  enum Labels {
+    ADVANCED = 1;  // Field should be offered for modification by advanced users
+                   // only.
+    HIDDEN = 2;    // Field should be hidden from UIs - typically for internally
+                   // generated and used fields.
+  };
+
+  repeated Labels label = 3;
+
+  // A friendly name for this field - to be used in GUIs etc.
+  optional string friendly_name = 4;
 }
 
+
+message SemanticMessageDescriptor {
+  // Describe the purpose of this protobuf.
+  optional string description = 1;
+}
 
 extend google.protobuf.FieldOptions {
-  optional SemanticDescriptor sem_type = 1001;
+  optional SemanticDescriptor sem_type = 51584972;
 }
 
+extend google.protobuf.MessageOptions {
+  optional SemanticMessageDescriptor semantic = 51584971;
+}
+
+extend google.protobuf.EnumValueOptions {
+  optional string description = 48651165;
+}

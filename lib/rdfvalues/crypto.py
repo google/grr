@@ -51,6 +51,11 @@ class RDFX509Cert(rdfvalue.RDFString):
       raise rdfvalue.DecodeError("Cert invalid")
 
 
+class Hash(rdfvalue.RDFProtoStruct):
+  """A hash object containing multiple digests."""
+  protobuf = jobs_pb2.Hash
+
+
 class SignedBlob(rdfvalue.RDFProtoStruct):
   """A signed blob.
 

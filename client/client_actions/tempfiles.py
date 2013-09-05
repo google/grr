@@ -97,8 +97,7 @@ def CreateGRRTempFile(directory=None, lifetime=0, suffix=""):
   # Fix perms on the file, since this code is used for writing executable blobs
   # we apply RWX.
   if sys.platform == "win32":
-    client_utils.WinChmod(outfile.name, ["FILE_ALL_ACCESS"],
-                          user="SYSTEM")
+    client_utils.WinChmod(outfile.name, ["FILE_ALL_ACCESS"])
   else:
     os.chmod(outfile.name, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
 

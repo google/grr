@@ -115,43 +115,33 @@ class Flow(rdfvalue.RDFProtoStruct):
   aff4_object = None
 
 
-class DataObject(object):
+class DataObject(dict):
   """This class wraps a dict and provides easier access functions."""
-  data = None
-
-  def __init__(self, **kwargs):
-    object.__setattr__(self, "data", kwargs)
 
   def Register(self, item, value=None):
-    self.data[item] = value
+    self[item] = value
 
   def __setattr__(self, item, value):
-    self.data[item] = value
+    self[item] = value
 
   def __getattr__(self, item):
-    if item in self.__dict__:
-      return object.__getattr__(self, item)
-    if self.data is None:
-      raise AttributeError()
-    if item in self.data:
-      return self.data[item]
-    return getattr(self.data, item)
+    try:
+      return self[item]
+    except KeyError as e:
+      raise AttributeError(e)
 
-  def __len__(self):
-    return len(self.data)
-
-  def __iter__(self):
-    return iter(self.data)
-
-  def AsDict(self):
-    return self.data
+  def __dir__(self):
+    return sorted(self.keys()) + dir(self.__class__)
 
   def __str__(self):
     result = []
-    for k, v in self.data.items():
+    for k, v in self.items():
       tmp = "  %s = " % k
-      for line in utils.SmartUnicode(v).splitlines():
-        tmp += "    %s\n" % line
+      try:
+        for line in utils.SmartUnicode(v).splitlines():
+          tmp += "    %s\n" % line
+      except Exception as e:  # pylint: disable=broad-except
+        tmp += "Error: %s\n" % e
 
       result.append(tmp)
 
@@ -159,37 +149,32 @@ class DataObject(object):
 
 
 class FlowState(rdfvalue.RDFValue):
-  """The state of a running flow."""
+  """The state of a running flow.
+
+  The Flow object can use the state to persist data structures between state
+  method execution. The FlowState is serialized by the flow machinery when not
+  needed.
+
+  The FlowRunner() also uses the flow's state to persist internal flow state
+  related variables - although the flow itself has no access to these. The
+  runner context is stored in our context parameter.
+
+  """
   data_store_type = "bytes"
   data = None
 
   def __init__(self, initializer=None, age=None):
-    object.__setattr__(self, "data", DataObject())
-    self.data.context = DataObject()
+    self.data = DataObject()
     super(FlowState, self).__init__(initializer=initializer, age=age)
 
   def ParseFromString(self, string):
-    self.data = pickle.loads(string)
+    try:
+      self.data = pickle.loads(string)
+    except Exception as e:
+      raise rdfvalue.DecodeError(e)
 
   def SerializeToString(self):
     return pickle.dumps(self.data)
-
-  def AsDict(self):
-    result = self.data.AsDict().copy()
-    try:
-      result["context"] = result["context"].AsDict()
-    except AttributeError:
-      pass
-
-    return result
-
-  @property
-  def context(self):
-    return self.data.context
-
-  @context.setter
-  def context(self, context):
-    self.data.context = context
 
   def Empty(self):
     return len(self.data) == 1 and not self.data.context
@@ -204,21 +189,22 @@ class FlowState(rdfvalue.RDFValue):
     setattr(self.data, item, value)
 
   def __setattr__(self, item, value):
-    if item in self.data:
-      setattr(self.data, item, value)
-    else:
+    # Existing class or instance members are assigned to normally.
+    if getattr(self.__class__, item, -1) != -1 or item in self.__dict__:
       object.__setattr__(self, item, value)
 
+    elif item in self.data:
+      setattr(self.data, item, value)
+    else:
+      raise AttributeError(
+          "Can not assign to state without calling Register() first")
+
   def __getattr__(self, item):
-    if item in self.__dict__:
-      return object.__getattr__(self, item)
-    if self.data is None:
-      raise AttributeError()
     return getattr(self.data, item)
 
   def __str__(self):
     result = []
-    for k, v in self.AsDict().items():
+    for k, v in self.data.items():
       tmp = "  %s = " % k
       for line in utils.SmartUnicode(v).splitlines():
         tmp += "    %s\n" % line
@@ -231,6 +217,9 @@ class FlowState(rdfvalue.RDFValue):
     """Implement equality operator."""
     return (isinstance(other, self.__class__) and
             self.SerializeToString() == other.SerializeToString())
+
+  def __dir__(self):
+    return dir(self.data) + dir(self.__class__)
 
 
 class Notification(rdfvalue.RDFProtoStruct):

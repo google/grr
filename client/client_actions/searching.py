@@ -17,8 +17,8 @@ from grr.lib import utils
 
 class Find(actions.IteratedAction):
   """Recurses through a directory returning files which match conditions."""
-  in_rdfvalue = rdfvalue.RDFFindSpec
-  out_rdfvalue = rdfvalue.RDFFindSpec
+  in_rdfvalue = rdfvalue.FindSpec
+  out_rdfvalue = rdfvalue.FindSpec
 
   # If this is true we cross filesystem boundaries.
   # This defaults to true so you can see mountpoints with ListDirectory.
@@ -30,9 +30,8 @@ class Find(actions.IteratedAction):
 
   def ListDirectory(self, pathspec, state, depth=0):
     """A Recursive generator of files."""
-
     # Limit recursion depth
-    if depth >= self.max_depth: return
+    if depth >= self.request.max_depth: return
 
     try:
       fd = vfs.VFSOpen(pathspec)
@@ -51,11 +50,11 @@ class Find(actions.IteratedAction):
 
     # If we are not supposed to cross devices, and don't know yet
     # which device we are on, we need to find out.
-    if not self.cross_devs and self.filesystem_id is None:
+    if not self.request.cross_devs and self.filesystem_id is None:
       dir_stat = fd.Stat()
       self.filesystem_id = dir_stat.st_dev
 
-    files.sort(key=lambda x: x.pathspec.SerializeToString())
+    files.sort(key=lambda x: x.pathspec.Basename())
 
     # Recover the start point for this directory from the state dict so we can
     # resume.
@@ -67,7 +66,7 @@ class Find(actions.IteratedAction):
 
       if stat.S_ISDIR(file_stat.st_mode):
         # Do not traverse directories in a different filesystem.
-        if self.cross_devs or self.filesystem_id == file_stat.st_dev:
+        if self.request.cross_devs or self.filesystem_id == file_stat.st_dev:
           for child_stat in self.ListDirectory(file_stat.pathspec,
                                                state, depth + 1):
             yield child_stat
@@ -91,12 +90,14 @@ class Find(actions.IteratedAction):
       True of the file matches all conditions, false otherwise.
     """
     # Check timestamp
-    if (file_stat.st_mtime < self.request.start_time or
+    if file_stat.HasField("st_mtime") and (
+        file_stat.st_mtime < self.request.start_time or
         file_stat.st_mtime > self.request.end_time):
       return False
 
     # File size test.
-    if (file_stat.st_size < self.request.min_file_size or
+    if file_stat.HasField("st_size") and (
+        file_stat.st_size < self.request.min_file_size or
         file_stat.st_size > self.request.max_file_size):
       return False
 
@@ -109,6 +110,7 @@ class Find(actions.IteratedAction):
     if (self.request.HasField("data_regex") and
         not self.TestFileContent(file_stat)):
       return False
+
     return True
 
   def TestFileContent(self, file_stat):
@@ -119,7 +121,7 @@ class Find(actions.IteratedAction):
       data = ""
       with vfs.VFSOpen(file_stat.pathspec) as fd:
         # Only read this much data from the file.
-        while fd.Tell() < self.max_data:
+        while fd.Tell() < self.request.max_data:
           data_read = fd.read(1024000)
           if not data_read: break
           data += data_read
@@ -141,10 +143,8 @@ class Find(actions.IteratedAction):
   def Iterate(self, request, client_state):
     """Restores its way through the directory using an Iterator."""
     self.request = request
+
     limit = request.iterator.number
-    self.cross_devs = request.cross_devs
-    self.max_depth = request.max_depth
-    self.max_data = request.max_data
 
     # TODO(user): What is a reasonable measure of work here?
     for count, f in enumerate(
@@ -152,7 +152,7 @@ class Find(actions.IteratedAction):
 
       # Only send the reply if the file matches all criteria
       if self.FilterFile(f):
-        self.SendReply(rdfvalue.RDFFindSpec(hit=f))
+        self.SendReply(rdfvalue.FindSpec(hit=f))
 
       # We only check a limited number of files in each iteration. This might
       # result in returning an empty response - but the iterator is not yet

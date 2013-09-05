@@ -13,6 +13,7 @@ from grr.lib.rdfvalues import foreman
 from grr.lib.rdfvalues import grr_rdf
 from grr.lib.rdfvalues import hunts
 from grr.lib.rdfvalues import paths
+from grr.lib.rdfvalues import plist
 from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import stats
 from grr.lib.rdfvalues import structs

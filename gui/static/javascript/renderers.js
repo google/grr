@@ -50,3 +50,53 @@ grr.ExecuteRenderer = function(objMethod, state) {
     rendererObj[method](state);
   }
 };
+
+
+grr.Renderer('ConfirmationDialogRenderer', {
+  Layout: function(state) {
+    var unique = state.unique;
+
+    // Present system messages in the dialog box for easy viewing.
+    grr.subscribe('grr_messages', function(message) {
+      if (message) {
+        $('#footer_message_' + unique).text(
+            message).show().delay(5000).fadeOut('fast');
+      }
+    }, 'footer_message_' + unique);
+
+    $('#proceed_' + unique).click(function() {
+      var jthis = $(this);
+      var data = $.extend({}, grr.state, state,
+                          jthis.closest('.FormData').data());
+
+      var submit_function = function() {
+        grr.update(
+          state.renderer, 'results_' + unique, data,
+          function(result) {
+            $('#results_' + unique).html(result);
+            jthis.hide();
+          }, null, function(data) {
+            jthis.attr('disabled', false);
+            grr.publish('grr_messages', data.message);
+            });
+      };
+
+      jthis.attr('disabled', true);
+
+      if (state.check_access_subject) {
+        // We execute CheckAccess renderer with silent=true. Therefore it
+        // searches for an approval and sets correct reason if approval is
+        // found. When CheckAccess completes, we execute specified renderer,
+        // which. If the approval wasn't found on CheckAccess stage, it will
+        // fail due to unauthorized access and proper ACLDialog will be
+        // displayed.
+        grr.layout('CheckAccess', 'check_access_results_' + unique, {
+            silent: true,
+            subject: state.check_access_subject
+          }, submit_function);
+      } else {
+        submit_function();
+      }
+    });
+  }
+});

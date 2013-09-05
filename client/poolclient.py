@@ -15,7 +15,6 @@ from grr.client import client
 
 # pylint: disable=unused-import
 # Make sure we load the client plugins
-from grr.client import client_actions
 from grr.client import client_plugins
 # pylint: enable=unused-import
 

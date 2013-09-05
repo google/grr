@@ -10,7 +10,12 @@ import stat
 
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import type_info
+from grr.lib import rdfvalue
+from grr.proto import flows_pb2
+
+
+class DownloadDirectoryArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.DownloadDirectoryArgs
 
 
 class DownloadDirectory(flow.GRRFlow):
@@ -18,35 +23,22 @@ class DownloadDirectory(flow.GRRFlow):
 
   category = "/Filesystem/"
 
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.PathspecType(
-          description="The pathspec for the directory to list."),
-      type_info.Integer(
-          name="depth",
-          description="Maximum recursion depth.",
-          default=10),
-      type_info.Bool(
-          name="ignore_errors",
-          description=("If True, we do not raise an error in the case"
-                       "that a directory or file cannot be not found."),
-          default=False)
-      )
+  args_type = DownloadDirectoryArgs
 
   @flow.StateHandler(next_state="DownloadDir")
   def Start(self, unused_response):
     """Issue a request to list the directory."""
-    self.state.urn = self.client_id
     self.state.Register("out_urn", None)
-    self.CallClient("ListDirectory", pathspec=self.state.pathspec,
+    self.CallClient("ListDirectory", pathspec=self.state.args.pathspec,
                     next_state="DownloadDir",
-                    request_data=dict(depth=self.state.depth))
+                    request_data=dict(depth=self.state.args.depth))
 
   @flow.StateHandler(next_state=["DownloadDir", "Done"])
   def DownloadDir(self, responses):
     """Download all files in a given directory recursively."""
 
     if not responses.success:
-      if not self.state.ignore_errors:
+      if not self.state.args.ignore_errors:
         err = "Error downloading directory: %s" % responses.status
         logging.error(err)
         raise flow.FlowError(err)
@@ -73,7 +65,7 @@ class DownloadDirectory(flow.GRRFlow):
   @flow.StateHandler()
   def Done(self, responses):
     if not responses.success:
-      if not self.state.ignore_errors:
+      if not self.state.args.ignore_errors:
         err = "Error downloading file %s" % responses.status
         logging.error(err)
         raise flow.FlowError(err)

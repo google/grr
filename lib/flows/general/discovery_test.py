@@ -74,7 +74,7 @@ class InterrogatedClient(object):
                        "use EnumerateUsers.")
 
 
-class TestInterrogate(test_lib.FlowTestsBaseclass):
+class TestClientInterrogate(test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
   def CheckLightweight(self, fd):

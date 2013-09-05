@@ -2694,9 +2694,67 @@ db@grrhost: ~$</tt></pre>
 <div class="sect1">
 <h2 id="_the_console">The console</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>You can access the console via grr_console. This gives you an interactive
-ipython shell with all the right imports to do pretty much whatever you want.</p></div>
-<div class="paragraph"><p><em>TODO</em> Add examples.</p></div>
+<div class="paragraph"><p>The GRR console gives you an interactive ipython shell with all the right
+imports to do pretty much whatever you want.</p></div>
+<div class="paragraph"><p><em>TODO</em> Add more examples.</p></div>
+<div class="sect3">
+<h4 id="_running_a_simple_flow_list_processes">Running a Simple Flow - List Processes</h4>
+<div class="paragraph"><p>Run the ListProcesses flow and look at the output.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<img src="./images/icons/note.png" alt="Note" />
+</td>
+<td class="content">
+<div class="paragraph"><p>"C.93ce669b1b0c76b6" is the client you want to run the flow on (get it from the gui).</p></div>
+</td>
+</tr></table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>PYTHONPATH=. python grr/tools/console.py
+
+In [32]: flow.GRRFlow.StartFlow('C.93ce669b1b0c76b6', "ListProcesses")
+I0814 17:24:38.813689 24346 flow.py:810] Scheduling aff4:/C.93ce669b1b0c76b6/flows/W:52EBD0A7(ListProcesses) on aff4:/C.93ce669b1b0c76b6: {}
+Out[32]: &lt;aff4:/C.93ce669b1b0c76b6/flows/W:52EBD0A7 age=1970-01-01 00:00:00&gt;
+
+### Alternatively you could use StartFlowAndWait to do the same thing but block while the flow is running like this:
+# debugging.StartFlowAndWait('C.93ce669b1b0c76b6', "ListProcesses")
+
+In [33]: processes_fd = aff4.FACTORY.Open("aff4:/C.93ce669b1b0c76b6/processes", mode="r")
+
+In [34]: plist = processes.Get(processes.Schema.PROCESSES)
+
+In [35]: print plist[0].exe
+/sbin/init
+
+In [36]: print plist[0]
+message Process {
+ RSS_size : 2805760
+ VMS_size : 21372928
+ cmdline : [
+   u'/sbin/init'
+  ]
+ ctime : 1376328450160000
+ effective_gid : 0
+ effective_uid : 0
+ exe : u'/sbin/init'
+ memory_percent : 0.0110976351425
+ name : u'init'
+ nice : 0
+ num_threads : 1
+ pid : 1
+ real_gid : 0
+ real_uid : 0
+ saved_gid : 0
+ saved_uid : 0
+ status : u'sleeping'
+ system_cpu_time : 6.65999984741
+ user_cpu_time : 2.36999988556
+ username : u'root'
+}</tt></pre>
+</div></div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -2826,7 +2884,7 @@ requested its results and execute it.
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-07-19 14:52:48 EST
+Last updated 2013-09-05 16:39:03 CEST
 </div>
 </div>
 </body>

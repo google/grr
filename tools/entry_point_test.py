@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib import type_info
 
 
 class EntryPointTest(test_lib.GRRBaseTest):
@@ -26,6 +27,20 @@ class EntryPointTest(test_lib.GRRBaseTest):
   def setUp(self):
     """Sets up the environment for the tests."""
     super(EntryPointTest, self).setUp()
+    self.config_file = os.path.join(self.temp_dir, "writeback.yaml")
+    new_config = config_lib.CONFIG.MakeNewConfig()
+    new_config.SetWriteBack(self.config_file)
+    for info in config_lib.CONFIG.type_infos:
+      try:
+        new_value = config_lib.CONFIG.GetRaw(info.name, None)
+      except type_info.TypeValueError:
+        continue
+
+      if new_value is not None:
+        new_config.SetRaw(info.name, config_lib.CONFIG.GetRaw(info.name))
+
+    new_config.Write()
+
     self.bin_dir = os.path.join(config_lib.CONFIG["Test.srcdir"], "grr")
     self.bin_ext = ".py"
     self.extra_opts = ["--config", self.config_file, "--context",

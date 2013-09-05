@@ -236,7 +236,6 @@ class YamlConfigLexer(lexer.Lexer):
 
 
 def main(_):
-
   data = open(flags.FLAGS.filename, "rb").read()
   parser = YamlConfigLexer(data)
   parser.Close()

@@ -271,7 +271,7 @@ class Navigator(renderers.TemplateRenderer):
 
     super(Navigator, self).Layout(request, response)
     if self.unauthorized:
-      renderers.Renderer.NewPlugin("UnauthorizedRenderer")().Layout(
+      renderers.Renderer.GetPlugin("UnauthorizedRenderer")().Layout(
           request, response, exception=e)
 
     return response

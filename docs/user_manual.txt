@@ -1363,10 +1363,64 @@ db@grrhost: ~$
 The console
 -----------
 
-You can access the console via grr_console. This gives you an interactive
-ipython shell with all the right imports to do pretty much whatever you want.
+The GRR console gives you an interactive ipython shell with all the right
+imports to do pretty much whatever you want.
 
-_TODO_ Add examples.
+_TODO_ Add more examples.
+
+Running a Simple Flow - List Processes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Run the ListProcesses flow and look at the output.
+
+[NOTE]
+=====================================================
+"C.93ce669b1b0c76b6" is the client you want to run the flow on (get it from the gui).
+=====================================================
+
+--------------------------------------------------------------------------
+PYTHONPATH=. python grr/tools/console.py
+
+In [32]: flow.GRRFlow.StartFlow('C.93ce669b1b0c76b6', "ListProcesses")
+I0814 17:24:38.813689 24346 flow.py:810] Scheduling aff4:/C.93ce669b1b0c76b6/flows/W:52EBD0A7(ListProcesses) on aff4:/C.93ce669b1b0c76b6: {}
+Out[32]: <aff4:/C.93ce669b1b0c76b6/flows/W:52EBD0A7 age=1970-01-01 00:00:00>
+
+### Alternatively you could use StartFlowAndWait to do the same thing but block while the flow is running like this:
+# debugging.StartFlowAndWait('C.93ce669b1b0c76b6', "ListProcesses")
+
+In [33]: processes_fd = aff4.FACTORY.Open("aff4:/C.93ce669b1b0c76b6/processes", mode="r")
+
+In [34]: plist = processes.Get(processes.Schema.PROCESSES)
+
+In [35]: print plist[0].exe
+/sbin/init
+
+In [36]: print plist[0]
+message Process {
+ RSS_size : 2805760
+ VMS_size : 21372928
+ cmdline : [
+   u'/sbin/init'
+  ]
+ ctime : 1376328450160000
+ effective_gid : 0
+ effective_uid : 0
+ exe : u'/sbin/init'
+ memory_percent : 0.0110976351425
+ name : u'init'
+ nice : 0
+ num_threads : 1
+ pid : 1
+ real_gid : 0
+ real_uid : 0
+ saved_gid : 0
+ saved_uid : 0
+ status : u'sleeping'
+ system_cpu_time : 6.65999984741
+ user_cpu_time : 2.36999988556
+ username : u'root'
+}
+--------------------------------------------------------------------------
 
 
 Glossary

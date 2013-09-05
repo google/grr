@@ -1,6 +1,6 @@
 <pkmkdoc spec="1.12">
   <properties>
-    <title>%(ClientBuilder.package_maker_name)</title>
+    <title>%(Client.name)</title>
     <build>%(ClientBuilder.build_root_dir)/%(Client.name).pkg</build>
     <organization>%(ClientBuilder.package_maker_organization)</organization>
     <userSees ui="both"/>
@@ -12,19 +12,19 @@
     <scripts></scripts>
   </distribution>
   <contents>
-    <choice title="binaries" id="choice%(ClientBuilder.plist_binary_directory)" starts_selected="true" starts_enabled="false" starts_hidden="false">
-      <pkgref id="%(ClientBuilder.package_maker_organization).%(Client.name).%(ClientBuilder.plist_binary_name).pkg"/>
+    <choice title="binaries" id="choice%(Client.name)" starts_selected="true" starts_enabled="false" starts_hidden="false">
+      <pkgref id="%(ClientBuilder.package_maker_organization).%(Client.name).%(ClientBuilder.mangled_output_basename).pkg"/>
     </choice>
     <choice title="plist" id="choicecom" starts_selected="true" starts_enabled="false" starts_hidden="false">
-      <pkgref id="%(ClientBuilder.package_maker_organization).%(Client.name).%(ClientBuilder.plist_label).pkg"/>
+      <pkgref id="%(ClientBuilder.package_maker_organization).%(Client.name).%(Client.plist_label).pkg"/>
     </choice>
   </contents>
   <resources bg-scale="none" bg-align="topleft">
     <locale lang="en"/>
   </resources>
   <flags/>
-  <item type="file">01%(ClientBuilder.plist_binary_directory).xml</item>
-  <item type="file">02%(ClientBuilder.plist_label_prefix).xml</item>
+  <item type="file">01%(Client.name).xml</item>
+  <item type="file">02%(Client.plist_label_prefix).xml</item>
   <mod>properties.title</mod>
   <mod>properties.anywhereDomain</mod>
   <mod>properties.systemDomain</mod>

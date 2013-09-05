@@ -46,9 +46,25 @@ class Filter(object):
   # Automatically register plugins as class attributes
   include_plugins_as_attributes = True
 
-  def Query(self):
-    """Create a combined query for all our parts."""
-    return ("", [])
+  def SQL(self):
+    """Should return the SQL string.
+
+    Note that this should have a %s for parameter placeholders.
+
+    Returns:
+      A string representing the SQL condition.
+    """
+    return "(1)"
+
+  def Parameters(self):
+    """Returns all the parameters for this condition.
+
+    Parameters must correspond to the placeholders returned in SQL().
+
+    Returns:
+      A list of parameter values.
+    """
+    return []
 
 
 class AndFilter(Filter):
@@ -58,20 +74,15 @@ class AndFilter(Filter):
     self.parts = parts
     super(AndFilter, self).__init__()
 
-  def Query(self):
-    """Create a combined query for all our parts."""
-    subqueries = []
-    parameters = []
-    for part in self.parts:
-      subquery, subparams = part.Query()
-      subqueries.append(subquery)
-      parameters.extend(subparams)
+  def SQL(self):
+    return "(" + " and ".join([x.SQL() for x in self.parts]) + ")"
 
-    query = "select subject from `%s` where " % data_store.DB.table_name
-    query += " and ".join(["subject in (%s)" % x for x in subqueries])
-    query += " group by subject"
+  def Parameters(self):
+    result = []
+    for x in self.parts:
+      result.extend(x.Parameters())
 
-    return (query, parameters)
+    return result
 
 
 class SubjectContainsFilter(Filter):
@@ -86,19 +97,18 @@ class SubjectContainsFilter(Filter):
     self.regex = regex
     super(SubjectContainsFilter, self).__init__()
 
-  def Query(self):
-    return ("select subject from `%s` where subject rlike %%s "
-            "group by subject" % data_store.DB.table_name, [self.regex])
+  def SQL(self):
+    return "(subject rlike %s)"
+
+  def Parameters(self):
+    return [self.regex]
 
 
 class OrFilter(AndFilter):
   """A Logical Or operator."""
 
-  def Query(self):
-    return (("select subject from `%s` where subject in " %
-             data_store.DB.table_name) +
-            " or ".join(["(%s)" % part.Query() for part in self.parts]) +
-            "group by subject")
+  def SQL(self):
+    return "(" + " or ".join([x.SQL() for x in self.parts]) + ")"
 
 
 class HasPredicateFilter(Filter):
@@ -107,9 +117,11 @@ class HasPredicateFilter(Filter):
     self.attribute_name = attribute_name
     Filter.__init__(self)
 
-  def Query(self):
-    return ("select subject from `%s` where attribute = %%s group by subject" %
-            data_store.DB.table_name, [self.attribute_name])
+  def SQL(self):
+    return "(attribute = %s)"
+
+  def Parameters(self):
+    return [self.attribute_name]
 
 
 class PredicateContainsFilter(Filter):
@@ -120,10 +132,11 @@ class PredicateContainsFilter(Filter):
     self.attribute_name = attribute_name
     super(PredicateContainsFilter, self).__init__()
 
-  def Query(self):
-    return ("select subject from `%s` where attribute = %%s and value_string "
-            "rlike %%s group by subject" % data_store.DB.table_name,
-            [self.attribute_name, self.regex])
+  def SQL(self):
+    return "(attribute = %s and value_string rlike %s)"
+
+  def Parameters(self):
+    return [self.attribute_name, self.regex]
 
 
 class PredicateGreaterThanFilter(Filter):
@@ -146,10 +159,11 @@ class PredicateGreaterThanFilter(Filter):
     self.value = value
     super(PredicateGreaterThanFilter, self).__init__()
 
-  def Query(self):
-    return ("select subject from `%s` where attribute=%%s and "
-            "value_integer %s %%s" % (data_store.DB.table_name, self.operator),
-            [self.attribute_name, self.value])
+  def SQL(self):
+    return "(attribute = %%s and value_integer %s %%s)" % self.operator
+
+  def Parameters(self):
+    return [self.attribute_name, self.value]
 
 
 class PredicateGreaterEqualFilter(PredicateGreaterThanFilter):
@@ -253,44 +267,53 @@ class ConnectionPool(object):
 class MySQLDataStore(data_store.DataStore):
   """A mysql based data store."""
 
+  POOL = None
+
   def __init__(self):
-    super(MySQLDataStore, self).__init__()
     self.filter = Filter
-    self.pool = ConnectionPool()
+
+    # Use the global connection pool.
+    if MySQLDataStore.POOL is None:
+      MySQLDataStore.POOL = ConnectionPool()
+
+    self.pool = self.POOL
+
     self.lock = threading.Lock()
     self.to_set = []
     self.table_name = config_lib.CONFIG["Mysql.table_name"]
+    super(MySQLDataStore, self).__init__()
 
   def Initialize(self):
-    with MySQLConnection() as connection:
+    with self.pool.GetConnection() as connection:
       try:
         connection.Execute("desc `%s`" % self.table_name)
       except MySQLdb.Error:
-        self.RecreateDataBase(connection)
+        self.RecreateDataBase()
 
-  def RecreateDataBase(self, connection):
+  def RecreateDataBase(self):
     """Drops the table and creates a new one."""
-    try:
-      connection.Execute("drop table `%s`" % self.table_name)
-    except MySQLdb.OperationalError:
-      pass
-    connection.Execute("""
-CREATE TABLE `%s` (
-  hash BINARY(32) DEFAULT NULL,
-  subject VARCHAR(4096) CHARACTER SET utf8 DEFAULT NULL,
-  prefix VARCHAR(256) CHARACTER SET utf8 DEFAULT NULL,
-  attribute VARCHAR(4096) CHARACTER SET utf8 DEFAULT NULL,
-  age BIGINT(22) UNSIGNED DEFAULT NULL,
-  value_string TEXT CHARACTER SET utf8 NULL,
-  value_binary LONGBLOB NULL,
-  value_integer BIGINT(22) UNSIGNED DEFAULT NULL,
+    with self.pool.GetConnection() as connection:
+      try:
+        connection.Execute("drop table `%s`" % self.table_name)
+      except MySQLdb.OperationalError:
+        pass
+      connection.Execute("""
+  CREATE TABLE `%s` (
+    hash BINARY(32) DEFAULT NULL,
+    subject VARCHAR(4096) CHARACTER SET utf8 DEFAULT NULL,
+    prefix VARCHAR(256) CHARACTER SET utf8 DEFAULT NULL,
+    attribute VARCHAR(4096) CHARACTER SET utf8 DEFAULT NULL,
+    age BIGINT(22) UNSIGNED DEFAULT NULL,
+    value_string TEXT CHARACTER SET utf8 NULL,
+    value_binary LONGBLOB NULL,
+    value_integer BIGINT(22) UNSIGNED DEFAULT NULL,
 
-  KEY `hash` (`hash`),
-  KEY `prefix` (`prefix`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT ='Table representing AFF4 objects';
-""" % config_lib.CONFIG["Mysql.table_name"])
-    connection.Execute("CREATE INDEX attribute ON `%s` (attribute(300));" %
-                       config_lib.CONFIG["Mysql.table_name"])
+    KEY `hash` (`hash`),
+    KEY `prefix` (`prefix`)
+  ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT ='Table representing AFF4 objects';
+  """ % config_lib.CONFIG["Mysql.table_name"])
+      connection.Execute("CREATE INDEX attribute ON `%s` (attribute(300));" %
+                         config_lib.CONFIG["Mysql.table_name"])
 
   def DeleteAttributes(self, subject, attributes, sync=None, token=None):
     """Remove some attributes from a subject."""
@@ -304,6 +327,19 @@ CREATE TABLE `%s` (
                    ",".join(["%s"] * len(attributes))))
 
       args = [subject, subject] + list(attributes)
+      cursor.Execute(query, args)
+
+  def DeleteAttributesRegex(self, subject, regexes, token=None):
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
+
+    conditions = ["attribute rlike (%s)"] * len(regexes)
+
+    with self.pool.GetConnection() as cursor:
+      query = ("delete from `%s` where hash=md5(%%s) and "
+               "subject=%%s and (%s) " % (
+                   self.table_name, " or ".join(conditions)))
+
+      args = [subject, subject] + list(regexes)
       cursor.Execute(query, args)
 
   def DeleteSubject(self, subject, token=None):
@@ -416,15 +452,13 @@ CREATE TABLE `%s` (
                sync=True, to_delete=None):
     """Set multiple predicates' values for this subject in one operation."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
+    to_delete = set(to_delete or [])
 
     if timestamp is None:
       timestamp = time.time() * 1e6
 
     # Prepare a bulk insert operation.
     subject = utils.SmartUnicode(subject)
-    if to_delete:
-      self.DeleteAttributes(subject, to_delete, token=token)
-
     to_set = []
 
     # Build a document for each unique timestamp.
@@ -440,11 +474,14 @@ CREATE TABLE `%s` (
 
         # Replacing means to delete all versions of the attribute first.
         if replace:
-          self.DeleteAttributes(subject, [attribute], token=token)
+          to_delete.add(attribute)
 
         to_set.extend(
             [subject, subject, int(entry_timestamp), predicate, prefix] +
             self._Encode(attribute, value))
+
+    if to_delete:
+      self.DeleteAttributes(subject, to_delete, token=token)
 
     if to_set:
       if sync:
@@ -473,7 +510,8 @@ CREATE TABLE `%s` (
         return [None, value, None]
       elif isinstance(value, unicode):
         return [value, None, None]
-      elif attribute.attribute_type.data_store_type == "integer":
+      elif attribute.attribute_type.data_store_type in (
+          "integer", "unsigned_integer"):
         return [None, int(value), None]
       elif attribute.attribute_type.data_store_type == "string":
         return [utils.SmartUnicode(value), None, None]
@@ -493,7 +531,8 @@ CREATE TABLE `%s` (
         result["value_integer"] = value
       elif isinstance(value, unicode):
         result["value_string"] = value
-      elif attribute.attribute_type.data_store_type == "integer":
+      elif attribute.attribute_type.data_store_type in (
+          "integer", "unsigned_integer"):
         result["value_integer"] = int(value)
       elif attribute.attribute_type.data_store_type == "string":
         result["value_string"] = utils.SmartUnicode(value)
@@ -541,12 +580,8 @@ CREATE TABLE `%s` (
       query = "select subject from `%s` where " % self.table_name
       parameters = []
 
-      subquery, subparams = filter_obj.Query()
-      if subquery:
-        query += "subject in (%s)" % subquery
-        parameters.extend(subparams)
-      else:
-        query += "1"
+      query += filter_obj.SQL()
+      parameters.extend(filter_obj.Parameters())
 
       if subjects:
         query += " and subject in (%s)" % (",".join(
@@ -554,9 +589,8 @@ CREATE TABLE `%s` (
         parameters.extend(subjects)
 
       elif subject_prefix:
-        query += " and substring(subject, 1, %s) = %s"
+        query += " and subject like concat(%s, '%%')"
         prefix = utils.SmartUnicode(subject_prefix)
-        parameters.append(len(prefix))
         parameters.append(prefix)
 
       query += " group by subject order by subject limit %s, %s"
@@ -592,7 +626,7 @@ class MySQLTransaction(data_store.Transaction):
   """The Mysql data store transaction object.
 
   This object does not aim to ensure ACID like consistently. We only ensure that
-  two simultaneous locks can not be held on the same RDF subject.
+  two simultaneous locks can not be held on the same AFF4 subject.
 
   This means that the first thread which grabs the lock is considered the owner
   of the transaction. Any subsequent transactions on the same subject will fail

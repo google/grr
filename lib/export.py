@@ -26,6 +26,10 @@ class NoConverterFound(Error):
   """Raised when no converter is found for particular value."""
 
 
+class ExportOptions(rdfvalue.RDFProtoStruct):
+  protobuf = export_pb2.ExportOptions
+
+
 class ExportedMetadata(rdfvalue.RDFProtoStruct):
   protobuf = export_pb2.ExportedMetadata
 
@@ -65,6 +69,16 @@ class ExportConverter(object):
 
   # Type of values that this converter accepts.
   input_rdf_type = None
+
+  def __init__(self, options=None):
+    """Constructor.
+
+    Args:
+      options: ExportOptions value, which contains settings that may or
+               or may not affect this converter's behavior.
+    """
+    super(ExportConverter, self).__init__()
+    self.options = options or rdfvalue.ExportOptions()
 
   def Convert(self, metadata, value, token=None):
     """Converts given RDFValue to other RDFValues.
@@ -139,12 +153,12 @@ class StatEntryToExportedFileConverter(ExportConverter):
         result.hash_sha1 = generic["sha1"].encode("hex")
         result.hash_sha256 = generic["sha256"].encode("hex")
 
-    try:
-      content = aff4object.Read(self.MAX_CONTENT_SIZE)
-      result.content = utils.SmartUnicode(content)
-      result.content_sha256 = hashlib.sha256(content).hexdigest()
-    except (IOError, AttributeError) as e:
-      logging.warning("Can't read content of %s: %s", stat_entry.aff4path, e)
+    if self.options.export_files_contents:
+      try:
+        result.content = aff4object.Read(self.MAX_CONTENT_SIZE)
+        result.content_sha256 = hashlib.sha256(result.content).hexdigest()
+      except (IOError, AttributeError) as e:
+        logging.warning("Can't read content of %s: %s", stat_entry.aff4path, e)
 
     return [result]
 
@@ -394,7 +408,7 @@ def GetMetadata(client_id, token=None):
   return metadata
 
 
-def ConvertSingleValue(metadata, value, token=None):
+def ConvertSingleValue(metadata, value, token=None, options=None):
   """Finds converters for a single value and converts it."""
 
   converters_classes = ExportConverter.GetConvertersByValue(value)
@@ -402,12 +416,12 @@ def ConvertSingleValue(metadata, value, token=None):
     raise NoConverterFound("No converters found for value: %s" % value)
 
   for converter_cls in converters_classes:
-    converter = converter_cls()
+    converter = converter_cls(options=options)
     for v in converter.Convert(metadata, value, token=token):
       yield v
 
 
-def ConvertHuntRDFValueCollection(collection, start_index=0):
+def ConvertHuntRDFValueCollection(collection, start_index=0, options=None):
   """Converts given hunt results' collection."""
 
   if collection:
@@ -417,7 +431,7 @@ def ConvertHuntRDFValueCollection(collection, start_index=0):
     if not converters_classes:
       raise NoConverterFound("No converters found for value: %s" % first_value)
 
-    converters = [cls() for cls in converters_classes]
+    converters = [cls(options) for cls in converters_classes]
 
     i = 0
     for msg in collection:

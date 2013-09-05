@@ -3,7 +3,7 @@
 
 
 import os
-import time
+import pdb
 
 
 from django import http
@@ -17,6 +17,7 @@ from grr.gui import renderers
 from grr.gui import webauth
 from grr.lib import access_control
 from grr.lib import flags
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 
@@ -64,13 +65,13 @@ def RenderGenericRenderer(request):
   try:
     action, renderer_name = request.path.split("/")[-2:]
 
-    renderer_cls = renderers.Renderer.NewPlugin(name=renderer_name)
+    renderer_cls = renderers.Renderer.GetPlugin(name=renderer_name)
   except KeyError:
     stats.STATS.IncrementCounter("grr_admin_ui_unknown_renderer")
     return AccessDenied("Error: Renderer %s not found" % renderer_name)
 
   # Check that the action is valid
-  ["Layout", "RenderAjax", "Download"].index(action)
+  ["Layout", "RenderAjax", "Download", "Validate"].index(action)
   renderer = renderer_cls()
   stats.STATS.IncrementCounter("grr_admin_ui_renderer_called")
   result = http.HttpResponse(mimetype="text/html")
@@ -85,9 +86,10 @@ def RenderGenericRenderer(request):
 
   # Build the security token for this request
   request.token = access_control.ACLToken(
-      request.user, request.REQ.get("reason", ""),
+      username=request.user,
+      reason=request.REQ.get("reason", ""),
       process="GRRAdminUI",
-      expiry=time.time() + renderer.max_execution_time)
+      expiry=rdfvalue.RDFDatetime().Now() + renderer.max_execution_time)
 
   for field in ["REMOTE_ADDR", "HTTP_X_FORWARDED_FOR"]:
     remote_addr = request.META.get(field, "")
@@ -103,8 +105,14 @@ def RenderGenericRenderer(request):
     result = method(request, result) or result
   except access_control.UnauthorizedAccess, e:
     result = http.HttpResponse(mimetype="text/html")
-    result = renderers.Renderer.NewPlugin("UnauthorizedRenderer")().Layout(
+    result = renderers.Renderer.GetPlugin("UnauthorizedRenderer")().Layout(
         request, result, exception=e)
+
+  except Exception:
+    if flags.FLAGS.debug:
+      pdb.post_mortem()
+
+    raise
 
   if not isinstance(result, http.HttpResponse):
     raise RuntimeError("Renderer returned invalid response %r" % result)

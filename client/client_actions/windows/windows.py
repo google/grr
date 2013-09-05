@@ -273,12 +273,13 @@ class WmiQuery(actions.ActionPlugin):
   def Run(self, args):
     """Run the WMI query and return the data."""
     query = args.query
+    base_object = args.base_object or r"winmgmts:\root\cimv2"
 
     if not query.upper().startswith("SELECT "):
       raise RuntimeError("Only SELECT WMI queries allowed.")
 
     # Now return the data to the server
-    for response_dict in RunWMIQuery(query):
+    for response_dict in RunWMIQuery(query, baseobj=base_object):
       self.SendReply(rdfvalue.Dict(response_dict))
 
 

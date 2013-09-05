@@ -9,23 +9,24 @@ from grr.gui import runtests_test
 
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib import type_info
+from grr.proto import flows_pb2
+
+
+class RecursiveTestFlowArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.RecursiveTestFlowArgs
 
 
 class RecursiveTestFlow(flow.GRRFlow):
   """A test flow which starts some subflows."""
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.Integer(
-          name="depth",
-          default=0))
+  args_type = RecursiveTestFlowArgs
 
   @flow.StateHandler(next_state="End")
   def Start(self):
-    if self.state.depth < 2:
+    if self.args.depth < 2:
       for _ in range(2):
-        self.CallFlow("RecursiveTestFlow", depth=self.state.depth+1,
+        self.CallFlow("RecursiveTestFlow", depth=self.args.depth+1,
                       next_state="End")
 
 
@@ -60,14 +61,9 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     self.WaitUntil(self.IsTextPresent, "Prototype: ListProcesses")
 
-    self.Click("css=input[value=Launch]")
-    self.WaitUntil(self.IsTextPresent, "Launched flow ListProcesses")
-    self.WaitUntil(self.IsTextPresent, "aff4:/C.0000000000000001/flows/")
+    self.Click("css=button.Launch")
+    self.WaitUntil(self.IsTextPresent, "Launched Flow ListProcesses")
 
-    self.Click("css=input[value=Back]")
-    self.WaitUntil(self.IsElementPresent, "css=input[value=Launch]")
-    self.assertEqual("C.0000000000000001",
-                     self.GetText("css=.FormBody .uneditable-input"))
     self.Click("css=#_Network")
     self.assertEqual("Netstat", self.GetText("link=Netstat"))
     self.Click("css=#_Browser")
@@ -76,14 +72,17 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.Click("css=#_Filesystem")
     self.Click("link=GetFile")
 
-    self.Type("css=input[name=v_pathspec_path]", u"/dev/c/msn升级程序[1].exe")
-    self.Click("css=input[value=Launch]")
+    self.Select("css=select#args-pathspec-pathtype", "OS")
+    self.Type("css=input#args-pathspec-path", u"/dev/c/msn升级程序[1].exe")
 
-    self.WaitUntil(self.IsTextPresent, "Launched flow GetFile")
+    self.Click("css=button.Launch")
+
+    self.WaitUntil(self.IsTextPresent, "Launched Flow GetFile")
 
     # Test that recursive tests are shown in a tree table.
     flow.GRRFlow.StartFlow(
-        "aff4:/C.0000000000000001", "RecursiveTestFlow", token=self.token)
+        client_id="aff4:/C.0000000000000001", flow_name="RecursiveTestFlow",
+        token=self.token)
 
     self.Click("css=a:contains('Manage launched flows')")
 
@@ -124,7 +123,8 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     with self.ACLChecksDisabled():
       self.GrantClientApproval("C.0000000000000001")
 
-    flow.GRRFlow.StartFlow("aff4:/C.0000000000000001", "RecursiveTestFlow",
+    flow.GRRFlow.StartFlow(client_id="aff4:/C.0000000000000001",
+                           flow_name="RecursiveTestFlow",
                            token=self.token)
 
     # Open client and find the flow

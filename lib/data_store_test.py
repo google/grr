@@ -43,12 +43,6 @@ class DataStoreTest(test_lib.GRRBaseTest):
       data_store.DB.DeleteSubject(subject["subject"][0][0], token=self.token)
     data_store.DB.Flush()
 
-    # The housekeeper threads of the time based caches also call time.time and
-    # interfere with some tests so we disable them here.
-    utils.InterruptableThread.exit = True
-    # The same also applies to the StatsCollector thread.
-    stats.StatsCollector.exit = True
-
   def testSetResolve(self):
     """Test the Set() and Resolve() methods."""
     predicate = "task:00000001"
@@ -67,7 +61,6 @@ class DataStoreTest(test_lib.GRRBaseTest):
   def testMultiSet(self):
     """Test the MultiSet() methods."""
     unicode_string = u"this is a uñîcödé string"
-
     data_store.DB.MultiSet(self.test_row,
                            {"aff4:size": [1],
                             "aff4:stored": [unicode_string],
@@ -80,6 +73,34 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:stored",
                                         token=self.token)
+    self.assertEqual(stored, unicode_string)
+
+    # Make sure that unknown attributes are stored as bytes.
+    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:unknown_attribute",
+                                        token=self.token)
+    self.assertEqual(stored, "hello")
+    self.assertEqual(type(stored), str)
+
+  def testMultiSetAsync(self):
+    """Test the async MultiSet() methods."""
+    unicode_string = u"this is a uñîcödé string"
+
+    data_store.DB.MultiSet(self.test_row,
+                           {"aff4:size": [3],
+                            "aff4:stored": [unicode_string],
+                            "aff4:unknown_attribute": ["hello"]},
+                           sync=False, token=self.token)
+
+    # Force the flusher thread to flush.
+    data_store.DB.flusher_thread.target()
+
+    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:size",
+                                        token=self.token)
+    self.assertEqual(stored, 3)
+
+    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:stored",
+                                        token=self.token)
+
     self.assertEqual(stored, unicode_string)
 
     # Make sure that unknown attributes are stored as bytes.
@@ -138,13 +159,14 @@ class DataStoreTest(test_lib.GRRBaseTest):
                            token=self.token)
 
     # This should only produce a single result
+    count = 0
     for count, (predicate, value, _) in enumerate(data_store.DB.ResolveRegex(
         self.test_row, "aff4:size", timestamp=data_store.DB.ALL_TIMESTAMPS,
         token=self.token)):
       self.assertEqual(value, 4)
       self.assertEqual(predicate, "aff4:size")
 
-    self.assertEqual(count, 0)  # pylint: disable=undefined-loop-variable
+    self.assertEqual(count, 0)
 
   def testDeleteAttributes(self):
     """Test we can delete an attribute."""
@@ -159,6 +181,25 @@ class DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(stored, "hello")
 
     data_store.DB.DeleteAttributes(self.test_row, [predicate], token=self.token)
+    (stored, _) = data_store.DB.Resolve(self.test_row, predicate,
+                                        token=self.token)
+
+    self.assertEqual(stored, None)
+
+  def testDeleteAttributesRegex(self):
+    """Test we can delete an attribute."""
+    predicate = "metadata:predicate"
+
+    data_store.DB.Set(self.test_row, predicate, "hello", token=self.token)
+
+    # Check its there
+    (stored, _) = data_store.DB.Resolve(self.test_row, predicate,
+                                        token=self.token)
+
+    self.assertEqual(stored, "hello")
+
+    data_store.DB.DeleteAttributesRegex(self.test_row, ["metadata:.+"],
+                                        token=self.token)
     (stored, _) = data_store.DB.Resolve(self.test_row, predicate,
                                         token=self.token)
 
@@ -588,11 +629,10 @@ class DataStoreTest(test_lib.GRRBaseTest):
     t2.Commit()
 
   def testRetryWrapper(self):
-
-    self.call_count = 0
+    call_count = stats.STATS.GetMetricValue("datastore_retries")
 
     def MockSleep(_):
-      self.call_count += 1
+      pass
 
     def Callback(unused_transaction):
       # Now that we have a transaction, lets try to get another one on the same
@@ -603,17 +643,19 @@ class DataStoreTest(test_lib.GRRBaseTest):
         self.fail("Transaction error not raised.")
       except data_store.TransactionError as e:
         self.assertEqual("Retry number exceeded.", str(e))
-        self.assertEqual(self.call_count, 10)
+        self.assertEqual(
+            stats.STATS.GetMetricValue("datastore_retries") - call_count,
+            10)
 
-    old_sleep = time.sleep
-    time.sleep = MockSleep
-    try:
-      data_store.DB.RetryWrapper("aff4:/subject", Callback, token=self.token)
-    except NotImplementedError:
-      # If the data_store does not implement retrying, there is nothing to test.
-      return
-    finally:
-      time.sleep = old_sleep
+    with test_lib.Stubber(time, "sleep", MockSleep):
+      try:
+        data_store.DB.RetryWrapper("aff4:/subject", Callback,
+                                   token=self.token)
+
+      except NotImplementedError:
+        # If the data_store does not implement retrying, there is nothing to
+        # test.
+        return
 
   def testTimestamps(self):
     """Check that timestamps are reasonable."""
@@ -962,7 +1004,8 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
     return res
 
   def StartFlow(self, client_id):
-    flow_id = flow.GRRFlow.StartFlow(client_id, "RecursiveListDirectory",
+    flow_id = flow.GRRFlow.StartFlow(client_id=client_id,
+                                     flow_name="RecursiveListDirectory",
                                      max_depth=5, queue=self.queue,
                                      token=self.token)
     self.flow_ids.append(flow_id)
@@ -974,7 +1017,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
 
     messages.append(rdfvalue.GrrStatus())
 
-    with flow_runner.FlowManager(token=self.token) as flow_manager:
+    with flow_runner.QueueManager(token=self.token) as flow_manager:
       for i, payload in enumerate(messages):
         msg = rdfvalue.GrrMessage(
             session_id=flow_id,

@@ -77,12 +77,13 @@ class TestCrashView(test_lib.GRRSeleniumTest):
     client_mocks = dict([(client_id, test_lib.CrashClientMock(
         client_id, self.token)) for client_id in client_ids])
 
-    hunt = hunts.GRRHunt.StartHunt("SampleHunt", token=self.token)
-    regex_rule = rdfvalue.ForemanAttributeRegex(
-        attribute_name="GRR client",
-        attribute_regex="GRR")
-    hunt.AddRule([regex_rule])
-    hunt.Run()
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="SampleHunt",
+        regex_rules=[rdfvalue.ForemanAttributeRegex(
+            attribute_name="GRR client",
+            attribute_regex="GRR")],
+        token=self.token) as hunt:
+      hunt.Run()
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:

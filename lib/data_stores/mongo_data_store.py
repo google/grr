@@ -188,7 +188,6 @@ class MongoDataStore(data_store.DataStore):
   """A Mongo based data store."""
 
   def __init__(self):
-    super(MongoDataStore, self).__init__()
     # Support various versions on the pymongo connection object.
     try:
       connector = pymongo.MongoClient
@@ -216,6 +215,8 @@ class MongoDataStore(data_store.DataStore):
     for idx in ["subject", "predicate", "timestamp"]:
       self.latest_collection.ensure_index(idx)
       self.versioned_collection.ensure_index(idx)
+
+    super(MongoDataStore, self).__init__()
 
   def _GetCursor(self, spec, timestamp, limit):
     """Create a mongo cursor based on the timestamp restriction."""
@@ -337,6 +338,19 @@ class MongoDataStore(data_store.DataStore):
     self.versioned_collection.remove(spec)
     self.latest_collection.remove(spec)
 
+  def DeleteAttributesRegex(self, subject, regexes, token=None):
+    """Remove the attributes from this subject by regex."""
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
+
+    # Build a spec to select the subject and any of the predicates by the regex.
+    spec = {"$and": [
+        dict(subject=utils.SmartUnicode(subject)),
+        {"$or": [{"predicate": {"$regex": regex}} for regex in regexes]},
+        ]}
+
+    self.versioned_collection.remove(spec)
+    self.latest_collection.remove(spec)
+
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
                         decoder=None, timestamp=None, limit=None):
     """Retrieves a bunch of subjects in one round trip."""
@@ -345,6 +359,7 @@ class MongoDataStore(data_store.DataStore):
       return {}
 
     result = {}
+    dedup_set = set()
 
     # Build a query spec.
     # Subject matches any of the requested subjects.
@@ -369,6 +384,15 @@ class MongoDataStore(data_store.DataStore):
         # This might not be a normal aff4 attribute - transactions are one
         # example for this.
         continue
+
+      # Sometimes due to race conditions in mongodb itself (upsert operation is
+      # not atomic), the latest_collection can contain multiple versions of the
+      # same predicate.
+      if ((timestamp == self.NEWEST_TIMESTAMP or timestamp is None) and
+          (subject, predicate) in dedup_set):
+        continue
+
+      dedup_set.add((subject, predicate))
       result.setdefault(subject, []).append(
           (predicate, value, document["timestamp"]))
 

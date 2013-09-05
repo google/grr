@@ -19,7 +19,8 @@ from grr.lib.data_stores import mysql_data_store
 class MysqlTestMixin(object):
 
   def InitTable(self):
-    self.token = access_control.ACLToken("test", "Running tests")
+    self.token = access_control.ACLToken(username="test",
+                                         reason="Running tests")
     # Use separate tables for benchmarks / tests so they can be run in parallel.
     config_lib.CONFIG.Set("Mysql.database_name", "grr_test_%s" %
                           self.__class__.__name__)
@@ -27,8 +28,7 @@ class MysqlTestMixin(object):
 
     data_store.DB = mysql_data_store.MySQLDataStore()
     data_store.DB.security_manager = test_lib.MockSecurityManager()
-    with mysql_data_store.MySQLConnection() as connection:
-      data_store.DB.RecreateDataBase(connection)
+    data_store.DB.RecreateDataBase()
 
   def testCorrectDataStore(self):
     self.assertTrue(isinstance(data_store.DB, mysql_data_store.MySQLDataStore))

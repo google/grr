@@ -11,7 +11,6 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib import type_info
 
 
 class TestGrepFlow(test_lib.FlowTestsBaseclass):
@@ -159,6 +158,6 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
                                  literal="hello")
 
     self.assertRaises(
-        type_info.Error, list, test_lib.TestFlowHelper(
+        ValueError, list, test_lib.TestFlowHelper(
             "Grep", self.client_mock, client_id=self.client_id,
             token=self.token, request=grepspec))

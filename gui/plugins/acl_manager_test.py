@@ -10,12 +10,12 @@ from grr.gui import runtests_test
 
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import cron
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.aff4_objects import cronjobs
 
 
 class TestACLWorkflow(test_lib.GRRSeleniumTest):
@@ -26,15 +26,14 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
   reason = "Felt like it!"
 
   def CreateSampleHunt(self, token=None):
-    hunt = hunts.GRRHunt.StartHunt("SampleHunt", token=token or self.token)
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="SampleHunt",
+        regex_rules=[rdfvalue.ForemanAttributeRegex(
+            attribute_name="GRR client",
+            attribute_regex="GRR")],
+        token=token or self.token) as hunt:
 
-    regex_rule = rdfvalue.ForemanAttributeRegex(
-        attribute_name="GRR client",
-        attribute_regex="GRR")
-    hunt.AddRule([regex_rule])
-
-    hunt.WriteToDataStore()
-    return hunt
+      return hunt.session_id
 
   def WaitForNotification(self, user):
     sleep_time = 0.2
@@ -108,7 +107,8 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Lets add another approver.
     token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow("C.0000000000000001", "GrantClientApprovalFlow",
+    flow.GRRFlow.StartFlow(client_id="C.0000000000000001",
+                           flow_name="GrantClientApprovalFlow",
                            reason=self.reason, delegate="test",
                            subject_urn=rdfvalue.ClientURN("C.0000000000000001"),
                            token=token)
@@ -129,7 +129,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
   def testHuntACLWorkflow(self):
     with self.ACLChecksDisabled():
-      hunt = self.CreateSampleHunt()
+      hunt_id = self.CreateSampleHunt()
 
     # Open up and click on View Hunts.
     self.Open("/")
@@ -179,7 +179,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     self.Click("css=button:contains('Approve')")
     self.WaitUntil(self.IsTextPresent,
-                   "You have granted access for %s to test" % hunt.session_id)
+                   "You have granted access for %s to test" % hunt_id)
 
     self.WaitForNotification("aff4:/users/test")
     self.Open("/")
@@ -208,8 +208,8 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Lets add another approver.
     token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(None, "GrantHuntApprovalFlow",
-                           subject_urn=hunt.session_id, reason=self.reason,
+    flow.GRRFlow.StartFlow(flow_name="GrantHuntApprovalFlow",
+                           subject_urn=hunt_id, reason=self.reason,
                            delegate="test",
                            token=token)
 
@@ -265,37 +265,35 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Create 2 hunts. Hunt1 by "otheruser" and hunt2 by "test".
     # Both hunts will be approved by user "approver".
     with self.ACLChecksDisabled():
-      hunt1 = self.CreateSampleHunt(
+      hunt1_id = self.CreateSampleHunt(
           token=access_control.ACLToken(username="otheruser"))
-      hunt2 = self.CreateSampleHunt(
+      hunt2_id = self.CreateSampleHunt(
           token=access_control.ACLToken(username="test"))
       self.MakeUserAdmin("approver")
 
     token = access_control.ACLToken(username="otheruser")
-    flow.GRRFlow.StartFlow(None, "RequestHuntApprovalFlow",
-                           subject_urn=hunt1.session_id,
+    flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
+                           subject_urn=hunt1_id,
                            reason=self.reason,
                            approver="approver",
                            token=token)
     token = access_control.ACLToken(username="test")
-    flow.GRRFlow.StartFlow(None, "RequestHuntApprovalFlow",
-                           subject_urn=hunt2.session_id,
+    flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
+                           subject_urn=hunt2_id,
                            reason=self.reason,
                            approver="approver",
                            token=token)
 
     token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(None, "GrantHuntApprovalFlow",
-                           subject_urn=hunt1.session_id, reason=self.reason,
+    flow.GRRFlow.StartFlow(flow_name="GrantHuntApprovalFlow",
+                           subject_urn=hunt1_id, reason=self.reason,
                            delegate="otheruser",
                            token=token)
     token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(None, "GrantHuntApprovalFlow",
-                           subject_urn=hunt2.session_id, reason=self.reason,
+    flow.GRRFlow.StartFlow(flow_name="GrantHuntApprovalFlow",
+                           subject_urn=hunt2_id, reason=self.reason,
                            delegate="test",
                            token=token)
-
-    return (hunt1, hunt2)
 
   def testHuntApprovalsArePerHunt(self):
     with self.ACLChecksDisabled():
@@ -336,7 +334,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Click on Modify button and check that dialog appears.
     self.Click("css=button[name=ModifyHunt]")
     self.WaitUntil(self.IsTextPresent, "Modify a hunt")
-    self.WaitUntil(self.IsElementPresent, "css=input[name=client_limit]")
+    self.WaitUntil(self.IsElementPresent, "css=input[id=v_-client_limit]")
 
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("name=Proceed")
@@ -414,8 +412,9 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
   def testCronJobACLWorkflow(self):
     with self.ACLChecksDisabled():
-      cron.ScheduleSystemCronFlows(token=self.token)
-      cron.CRON_MANAGER.DisableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+      cronjobs.ScheduleSystemCronFlows(token=self.token)
+      cronjobs.CRON_MANAGER.DisableJob(
+          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     # Open up and click on Cron Job Viewer.
     self.Open("/")
@@ -428,7 +427,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Click on Enable button and check that dialog appears.
     self.Click("css=button[name=EnableCronJob]")
     self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to enable this cron job?")
+                   "Are you sure you want to ENABLE this cron job?")
 
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("css=button[name=Proceed]")
@@ -456,9 +455,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Cron job overview should be visible
     self.WaitUntil(self.IsTextPresent, "aff4:/cron/OSBreakDown")
-    self.WaitUntil(self.IsTextPresent, "FLOW_NAME")
-    self.WaitUntil(self.IsTextPresent, "FLOW_ARGS")
-    self.WaitUntil(self.IsTextPresent, "FREQUENCY")
+    self.WaitUntil(self.IsTextPresent, "CRON_ARGS")
 
     self.Click("css=button:contains('Approve')")
     self.WaitUntil(self.IsTextPresent,
@@ -476,12 +473,12 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.Click("css=tr:contains('has granted you access') a")
 
     # Enable OSBreakDown cron job (it should be selected by default).
-    self.WaitUntil(self.IsTextPresent, "OSBreakDown")
+    self.Click("css=td:contains('OSBreakDown')")
 
     # Click on Enable and wait for dialog again.
     self.Click("css=button[name=EnableCronJob]")
     self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to enable this cron job?")
+                   "Are you sure you want to ENABLE this cron job?")
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("css=button[name=Proceed]")
 
@@ -492,7 +489,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Lets add another approver.
     token = access_control.ACLToken(username="approver")
     flow.GRRFlow.StartFlow(
-        None, "GrantCronJobApprovalFlow",
+        flow_name="GrantCronJobApprovalFlow",
         subject_urn=rdfvalue.RDFURN("aff4:/cron/OSBreakDown"),
         reason=self.reason, delegate="test", token=token)
 
@@ -511,7 +508,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Enable OSBreakDown cron job (it should be selected by default).
     self.Click("css=button[name=EnableCronJob]")
     self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to enable this cron job?")
+                   "Are you sure you want to ENABLE this cron job?")
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("css=button[name=Proceed]")
 
@@ -534,13 +531,13 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Click on Enable button and check that dialog appears.
     self.Click("css=button[name=EnableCronJob]")
     self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to enable this cron job?")
+                   "Are you sure you want to ENABLE this cron job?")
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.
     self.Click("css=button[name=Proceed]")
 
-    self.WaitUntil(self.IsTextPresent, "Cron job was enabled successfully!")
+    self.WaitUntil(self.IsTextPresent, "Cron job was ENABLEd successfully!")
 
 
 def main(argv):

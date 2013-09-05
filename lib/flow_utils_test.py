@@ -69,6 +69,16 @@ class TestInterpolatePath(test_lib.FlowTestsBaseclass):
                                           users=["test"])
     self.assertEqual(new_path, [])
 
+  def testInterpolateClientAttributes(self):
+
+    path = rdfvalue.GlobExpression(u"%%Users.homedir%%\\.ssh")
+
+    res = list(path.InterpolateClientAttributes(self.client))
+
+    self.assertEqual(len(res), 2)
+    self.assertTrue("c:\\Users\\test\\.ssh" in res)
+    self.assertTrue("c:\\Users\\test2\\.ssh" in res)
+
 
 def main(argv):
   test_lib.main(argv)

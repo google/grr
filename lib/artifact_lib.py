@@ -50,9 +50,8 @@ ARTIFACT_LABELS = [
 
 
 SUPPORTED_OS_LIST = ["Windows", "Linux", "Darwin"]
-
-
 INTERPOLATED_REGEX = re.compile(r"%%([^%]+?)%%")
+
 # A regex indicating if there are shell globs in this path.
 GLOB_MAGIC_CHECK = re.compile("[*?[]")
 

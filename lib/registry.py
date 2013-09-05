@@ -68,7 +68,7 @@ class MetaclassRegistry(abc.ABCMeta):
       except AttributeError:
         pass
 
-  def NewPlugin(cls, name):
+  def GetPlugin(cls, name):
     """Return the class of the implementation that carries that name.
 
     Args:

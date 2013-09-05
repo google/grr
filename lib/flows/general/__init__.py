@@ -7,15 +7,21 @@
 # These imports populate the Flow registry
 from grr.lib.flows.general import administrative
 from grr.lib.flows.general import aff4_notifiers
-from grr.lib.flows.general import automation
+from grr.lib.flows.general import audit
+
+# Disable these flows since they have no tests and are broken.
+# from grr.lib.flows.general import automation
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import discovery
 from grr.lib.flows.general import fetch_all_files
 from grr.lib.flows.general import filesystem
+from grr.lib.flows.general import filetypes
 from grr.lib.flows.general import find
 from grr.lib.flows.general import fingerprint
 from grr.lib.flows.general import grep
-from grr.lib.flows.general import java_cache
+
+# TODO(user): This file has no test and is broken. Replace with artifacts.
+# from grr.lib.flows.general import java_cache
 from grr.lib.flows.general import memory
 from grr.lib.flows.general import network
 from grr.lib.flows.general import processes

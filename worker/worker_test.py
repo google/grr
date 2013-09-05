@@ -72,7 +72,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def SendResponse(self, session_id, data, client_id=None, send_status=True):
     if not isinstance(data, rdfvalue.RDFValue):
       data = rdfvalue.DataBlob(string=data)
-    with flow_runner.FlowManager(token=self.token) as flow_manager:
+    with flow_runner.QueueManager(token=self.token) as flow_manager:
       flow_manager.QueueResponse(session_id, rdfvalue.GrrMessage(
           source=client_id,
           session_id=session_id,
@@ -94,7 +94,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def testProcessMessages(self):
     """Test processing of several inbound messages."""
     worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
-                                  run_cron=False, token=self.token)
+                                  token=self.token)
 
     # Create a couple of flows
     flow_obj = self.FlowSetup("WorkerSendingTestFlow")
@@ -142,8 +142,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     # Ensure that processed requests are removed from state subject
     self.assertEqual((None, 0), data_store.DB.Resolve(
-        flow_runner.FlowManager.FLOW_STATE_TEMPLATE % session_id_1,
-        flow_runner.FlowManager.FLOW_REQUEST_TEMPLATE % 1,
+        flow_runner.QueueManager.FLOW_STATE_TEMPLATE % session_id_1,
+        flow_runner.QueueManager.FLOW_REQUEST_TEMPLATE % 1,
         token=self.token))
 
     flow_obj = aff4.FACTORY.Open(session_id_1, token=self.token)
@@ -155,7 +155,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
   def testProcessMessagesWellKnown(self):
     worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
-                                  run_cron=False, token=self.token)
+                                  token=self.token)
 
     # Send a message to a WellKnownFlow - ClientStatsAuto.
     client_id = rdfvalue.ClientURN("C.1100110011001100")
@@ -180,7 +180,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
   def CheckNotificationsDisappear(self, session_id):
     worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
-                                  run_cron=False, token=self.token)
+                                  token=self.token)
     scheduler.SCHEDULER.NotifyQueue(session_id, token=self.token)
 
     sessions = scheduler.SCHEDULER.GetSessionsFromQueue("aff4:/W",

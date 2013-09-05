@@ -13,9 +13,7 @@ A UserManager class has the following responsibilities :
 
 
 
-import getpass
 import logging
-import sys
 import time
 
 
@@ -23,7 +21,7 @@ from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
-from grr.lib import utils
+from grr.proto import flows_pb2
 
 config_lib.DEFINE_integer("ACL.cache_age", 600, "The number of seconds "
                           "approval objects live in the cache.")
@@ -258,68 +256,40 @@ BaseUserManager.classes = globals()
 BaseAccessControlManager.classes = globals()
 
 
-class ACLToken(object):
+class ACLToken(rdfvalue.RDFProtoStruct):
   """The access control token."""
+  protobuf = flows_pb2.ACLToken
 
-  is_emergency = False
+  # The supervisor flag enables us to bypass ACL checks. It can not be
+  # serialized or controlled externally.
+  supervisor = False
 
-  def __init__(self, username="", reason="", requested_access="r",
-               source_ips=None, process=None, expiry=None):
-    """Controls access to the data for the user.
-
-    This ACL token should be provided for any access to the data store. This
-    allows the data store to audit all access to data. Note that implementations
-    should implement a mechanism for authenticating tokens, so they can not be
-    forged.
-
-    Args:
-       username: The user which requires access to the data.
-       reason: The stated reason for the access (e.g. case name/id).
-       requested_access: The type of access this token is for.
-       source_ips: Optional list of source IPs of the request.
-       process: Optional name of the process issuing this token.
-       expiry: When does this token expire (seconds since epoch)? Use of this
-          token after this time will raise ExpiryError.
-    """
-    self.username = username or getpass.getuser()
-    self.reason = reason
-    self.requested_access = requested_access
-    self.source_ips = source_ips or []
-    self.process = process
-
-    # This special bit indicates a privileged token for internal use. When this
-    # bit is set, ACLs will be bypassed. There should be no way for an external
-    # user to set this flag. IMPORTANT: This flag does not serialize to the
-    # protobuf for the remote data store!
-    self.supervisor = False
-
-    # By default never expire.
-    if expiry is None:
-      expiry = sys.maxint
-
-    self.expiry = expiry
+  def Copy(self):
+    result = super(ACLToken, self).Copy()
+    result.supervisor = False
+    return result
 
   def CheckExpiry(self):
-    if time.time() > self.expiry:
+    if self.expiry and time.time() > self.expiry:
       raise ExpiryError("Token expired.")
 
   def __str__(self):
-    return "Token(%s:%s)" % (utils.SmartStr(self.username),
-                             utils.SmartStr(self.reason))
+    result = ""
+    if self.supervisor:
+      result = "******* SUID *******\n"
 
-  def Copy(self):
-    return ACLToken(username=self.username, reason=self.reason,
-                    requested_access=self.requested_access,
-                    source_ips=self.source_ips, process=self.process,
-                    expiry=self.expiry)
+    return result + super(ACLToken, self).__str__()
 
-  def ToRDFToken(self):
-    result = rdfvalue.AccessToken(
-        username=self.username,
-        reason=self.reason,
-        requested_access=self.requested_access,
-        expiry=long(self.expiry),
-        source_ips=self.source_ips)
-    if self.process:
-      result.process = self.process
+  def SetUID(self):
+    """Elevates this token to a supervisor token."""
+    result = self.Copy()
+    result.supervisor = True
+
+    return result
+
+  def RealUID(self):
+    """Returns the real token (without SUID) suitable for testing ACLs."""
+    result = self.Copy()
+    result.supervisor = False
+
     return result

@@ -33,6 +33,7 @@ class Netstat(flow.GRRFlow):
     if responses.success:
       conns = net_fd.Schema.CONNECTIONS()
       for response in responses:
+        self.SendReply(response)
         conns.Append(response)
     else:
       raise flow.FlowError("Failed to get connections. Err: {0}".format(

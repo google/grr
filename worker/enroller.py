@@ -18,7 +18,7 @@ from grr.lib import worker
 
 # Make sure we also load the enroller module
 from grr.lib.flows.caenroll import ca_enroller
-# pylint: enable=W0611
+# pylint: enable=unused-import
 
 
 def main(unused_argv):
@@ -31,9 +31,9 @@ def main(unused_argv):
   startup.Init()
 
   # Start an Enroler.
-  token = access_control.ACLToken("GRREnroller", "Implied.")
+  token = access_control.ACLToken(username="GRREnroller", reason="Implied.")
   enroller = worker.GRREnroler(queue=worker.DEFAULT_ENROLLER_QUEUE,
-                               run_cron=False, token=token)
+                               token=token)
 
   enroller.Run()
 

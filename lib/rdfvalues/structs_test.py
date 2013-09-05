@@ -15,10 +15,10 @@ class TestStruct(structs.RDFProtoStruct):
   """A test struct object."""
 
   type_description = type_info.TypeDescriptorSet(
-      type_info.ProtoString(name="foobar", field_number=1,
+      type_info.ProtoString(name="foobar", field_number=1, default="string",
                             description="A string value"),
 
-      type_info.ProtoUnsignedInteger(name="int", field_number=2,
+      type_info.ProtoUnsignedInteger(name="int", field_number=2, default=5,
                                      description="An integer value"),
 
       type_info.ProtoList(type_info.ProtoString(
@@ -28,6 +28,7 @@ class TestStruct(structs.RDFProtoStruct):
       # We can serialize an arbitrary RDFValue. This will be serialized into a
       # binary string and parsed on demand.
       type_info.ProtoRDFValue(name="urn", field_number=6,
+                              default=rdfvalue.RDFURN("http://www.google.com"),
                               rdf_type="RDFURN",
                               description="An arbitrary RDFValue field."),
 
@@ -63,6 +64,43 @@ class PartialTest1(structs.RDFProtoStruct):
       )
 
 
+class DynamicTypeTest(structs.RDFProtoStruct):
+  """A protobuf with dynamic types."""
+
+  type_description = type_info.TypeDescriptorSet(
+      type_info.ProtoString(
+          name="type", field_number=1,
+          # By default return the TestStruct proto.
+          default="TestStruct",
+          description="A string value"),
+
+      type_info.ProtoDynamicEmbedded(
+          name="dynamic",
+          # The callback here returns the type specified by the type member.
+          dynamic_cb=lambda x: structs.RDFProtoStruct.classes.get(x.type),
+          field_number=2,
+          description="A dynamic value based on another field."),
+      )
+
+
+class LateBindingTest(structs.RDFProtoStruct):
+  type_description = type_info.TypeDescriptorSet(
+      # A nested protobuf referring to an undefined type.
+      type_info.ProtoNested(name="nested", field_number=1,
+                            nested="UndefinedYet"),
+
+      type_info.ProtoRDFValue(name="rdfvalue", field_number=6,
+                              rdf_type="UndefinedRDFValue",
+                              description="An undefined RDFValue field."),
+
+      # A repeated late bound field.
+      type_info.ProtoList(
+          type_info.ProtoRDFValue(name="repeated", field_number=7,
+                                  rdf_type="UndefinedRDFValue2",
+                                  description="An undefined RDFValue field.")),
+      )
+
+
 class RDFStructsTest(test_base.RDFValueTestCase):
   """Test the RDFStruct implementation."""
 
@@ -72,6 +110,15 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     return self.rdfvalue_class(int=number, foobar="foo%s" % number,
                                urn="http://www.example.com",
                                float=2.3+number)
+
+  def testDynamicType(self):
+    test_pb = DynamicTypeTest()
+    # We can not assign arbitrary values to the dynamic field.
+    self.assertRaises(ValueError, setattr, test_pb, "dynamic", "hello")
+
+    # Can assign a nested field.
+    test_pb.dynamic.foobar = "Hello"
+    self.assertTrue(isinstance(test_pb.dynamic, TestStruct))
 
   def testStructDefinition(self):
     """Ensure that errors in struct definitions are raised."""
@@ -216,8 +263,10 @@ class RDFStructsTest(test_base.RDFValueTestCase):
 
     now = 1369308998000000
 
-    self.assertEqual(m.timestamp, 0)
+    # An unset RDFDatetime with no defaults will be None.
+    self.assertEqual(m.timestamp, None)
 
+    # Set the wireformat to the integer equivalent.
     m.SetWireFormat("timestamp", now)
 
     self.assertTrue(isinstance(m.timestamp, rdfvalue.RDFDatetime))
@@ -227,3 +276,122 @@ class RDFStructsTest(test_base.RDFValueTestCase):
 
     m.timestamp = rdf_now
     self.assertEqual(m.GetWireFormat("timestamp"), int(rdf_now))
+
+  def testLateBinding(self):
+    # The LateBindingTest protobuf is not fully defined.
+    self.assertRaises(KeyError, LateBindingTest.type_infos.__getitem__,
+                      "nested")
+
+    self.assertTrue("UndefinedYet" in rdfvalue._LATE_BINDING_STORE)
+
+    # We can still use this protobuf
+    tested = LateBindingTest()
+
+    # But it does not know about the field yet.
+    self.assertRaises(AttributeError, tested.Get, "nested")
+    self.assertRaises(AttributeError, LateBindingTest, nested=None)
+
+    # Now define the class. This should resolve the late bound fields and re-add
+    # them to their owner protobufs.
+    class UndefinedYet(structs.RDFProtoStruct):
+      type_description = type_info.TypeDescriptorSet(
+          type_info.ProtoString(name="foobar", field_number=1,
+                                description="A string value"),
+          )
+
+    # The field is now resolved.
+    self.assertFalse("UndefinedYet" in rdfvalue._LATE_BINDING_STORE)
+    nested_field = LateBindingTest.type_infos["nested"]
+    self.assertEqual(nested_field.name, "nested")
+
+    # We can now use the protobuf as normal.
+    tested = LateBindingTest()
+    tested.nested.foobar = "foobar string"
+    self.assertTrue(isinstance(tested.nested, UndefinedYet))
+
+  def testRDFValueLateBinding(self):
+    # The LateBindingTest protobuf is not fully defined.
+    self.assertRaises(KeyError, LateBindingTest.type_infos.__getitem__,
+                      "rdfvalue")
+
+    self.assertTrue("UndefinedRDFValue" in rdfvalue._LATE_BINDING_STORE)
+
+    # We can still use this protobuf
+    tested = LateBindingTest()
+
+    # But it does not know about the field yet.
+    self.assertRaises(AttributeError, tested.Get, "rdfvalue")
+    self.assertRaises(AttributeError, LateBindingTest, rdfvalue="foo")
+
+    # Now define the class. This should resolve the late bound fields and re-add
+    # them to their owner protobufs.
+    class UndefinedRDFValue(rdfvalue.RDFString):
+      pass
+
+    # The field is now resolved.
+    self.assertFalse("UndefinedRDFValue" in rdfvalue._LATE_BINDING_STORE)
+    rdfvalue_field = LateBindingTest.type_infos["rdfvalue"]
+    self.assertEqual(rdfvalue_field.name, "rdfvalue")
+
+    # We can now use the protobuf as normal.
+    tested = LateBindingTest(rdfvalue="foo")
+    self.assertEqual(type(tested.rdfvalue), UndefinedRDFValue)
+
+  def testRepeatedRDFValueLateBinding(self):
+    # The LateBindingTest protobuf is not fully defined.
+    self.assertRaises(KeyError, LateBindingTest.type_infos.__getitem__,
+                      "repeated")
+
+    self.assertTrue("UndefinedRDFValue2" in rdfvalue._LATE_BINDING_STORE)
+
+    # We can still use this protobuf
+    tested = LateBindingTest()
+
+    # But it does not know about the field yet.
+    self.assertRaises(AttributeError, tested.Get, "repeated")
+    self.assertRaises(AttributeError, LateBindingTest, repeated=["foo"])
+
+    # Now define the class. This should resolve the late bound fields and re-add
+    # them to their owner protobufs.
+    class UndefinedRDFValue2(rdfvalue.RDFString):
+      pass
+
+    # The field is now resolved.
+    self.assertFalse("UndefinedRDFValue2" in rdfvalue._LATE_BINDING_STORE)
+    rdfvalue_field = LateBindingTest.type_infos["repeated"]
+    self.assertEqual(rdfvalue_field.name, "repeated")
+
+    # We can now use the protobuf as normal.
+    tested = LateBindingTest(repeated=["foo"])
+    self.assertEqual(len(tested.repeated), 1)
+    self.assertEqual(tested.repeated[0], "foo")
+    self.assertEqual(type(tested.repeated[0]), UndefinedRDFValue2)
+
+  def testRDFValueParsing(self):
+    stat = rdfvalue.StatEntry.protobuf(st_mode=16877)
+    data = stat.SerializeToString()
+
+    result = rdfvalue.StatEntry(data)
+
+    self.assertTrue(isinstance(result.st_mode, rdfvalue.StatMode))
+
+  def testDefaults(self):
+    """Accessing a field which does not exist returns a default."""
+    # An empty protobuf.
+    tested = TestStruct()
+
+    # Simple strings.
+    self.assertFalse(tested.HasField("foobar"))
+    self.assertEqual(tested.foobar, "string")
+    self.assertFalse(tested.HasField("foobar"))
+
+    # RDFValues.
+    self.assertFalse(tested.HasField("urn"))
+    self.assertEqual(tested.urn, "http://www.google.com")
+    self.assertFalse(tested.HasField("urn"))
+
+    # Nested fields: Accessing a nested field will create the nested protobuf.
+    self.assertFalse(tested.HasField("nested"))
+    self.assertEqual(tested.nested.urn, "http://www.google.com")
+    self.assertTrue(tested.HasField("nested"))
+    self.assertFalse(tested.nested.HasField("urn"))

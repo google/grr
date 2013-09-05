@@ -28,7 +28,7 @@ def main(unused_argv):
   startup.Init()
 
   # Start a worker
-  token = access_control.ACLToken("GRRWorker", "Implied.")
+  token = access_control.ACLToken(username="GRRWorker")
   worker_obj = worker.GRRWorker(queue=worker.DEFAULT_WORKER_QUEUE,
                                 token=token)
 

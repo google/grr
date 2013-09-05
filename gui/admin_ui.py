@@ -11,7 +11,9 @@ from wsgiref import simple_server
 from django.core.handlers import wsgi
 
 # pylint: disable=unused-import,g-bad-import-order
+from grr.gui import django_lib
 from grr.lib import server_plugins
+from grr.gui import plot_lib
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import config_lib
@@ -19,7 +21,7 @@ from grr.lib import flags
 from grr.lib import startup
 
 
-config_lib.DEFINE_integer("AdminUI.port", 8000, "port to listen on")
+config_lib.DEFINE_integer("AdminUI.port", 8001, "port to listen on")
 
 config_lib.DEFINE_string("AdminUI.bind", "::", "interface to bind to.")
 

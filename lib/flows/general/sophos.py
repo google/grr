@@ -11,27 +11,18 @@ Collects Logs and Infected files.
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import type_info
+from grr.proto import flows_pb2
+
+
+class SophosCollectorArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.SophosCollectorArgs
 
 
 class SophosCollector(flow.GRRFlow):
   """Collect all files related to Sophos."""
 
   category = "/Collectors/"
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.PathTypeEnum(
-          description="The requested path type.",
-          name="pathtype",
-          default=rdfvalue.PathSpec.PathType.OS),
-      type_info.String(
-          name="output",
-          default="analysis/sophos/{u}-{t}",
-          description=("If set, a URN to an AFF4Collection to add each result "
-                       "to. This will create the collection if it does not "
-                       "exist.")),
-      )
-
+  args_type = SophosCollectorArgs
   collector_flow = "FileCollector"
 
   @flow.StateHandler(next_state="Done")
@@ -43,7 +34,7 @@ class SophosCollector(flow.GRRFlow):
     # Set our findspecs.
     self.findspecs = list(self.GetFindSpecs())
 
-    self.CallFlow(self.collector_flow, output=self.state.output,
+    self.CallFlow(self.collector_flow, output=self.args.output,
                   findspecs=self.findspecs, next_state="Done")
 
   @flow.StateHandler()
@@ -140,18 +131,18 @@ class SophosCollector(flow.GRRFlow):
     """
     path_spec = rdfvalue.PathSpec(
         path=self.GetSophosAVInfectedPath(),
-        pathtype=int(self.state.pathtype))
+        pathtype=self.args.pathtype)
 
-    yield rdfvalue.RDFFindSpec(
+    yield rdfvalue.FindSpec(
         pathspec=path_spec,
         path_regex=".*",
         max_depth=1)
 
     path_spec = rdfvalue.PathSpec(
         path=self.GetSophosAVLogsPath(),
-        pathtype=int(self.state.pathtype))
+        pathtype=self.args.pathtype)
 
-    yield rdfvalue.RDFFindSpec(
+    yield rdfvalue.FindSpec(
         pathspec=path_spec,
         path_regex=self.GetSophosAVLogsPathRegex(),
         max_depth=1)

@@ -9,8 +9,8 @@ from grr.lib import aff4
 from grr.lib import constants
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import type_info
 from grr.lib import utils
+from grr.proto import flows_pb2
 
 
 class EnrolmentInterrogateEvent(flow.EventListener):
@@ -18,12 +18,18 @@ class EnrolmentInterrogateEvent(flow.EventListener):
   EVENTS = ["ClientEnrollment"]
   well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:Interrogate")
 
-  sourcecheck = lambda source: source == "aff4:/CAEnroler"
+  # We only accept messages that came from the CA flows.
+  sourcecheck = lambda source: source.Basename().startswith("CA:")
 
   @flow.EventHandler(source_restriction=sourcecheck)
   def ProcessMessage(self, message=None, event=None):
     _ = message
-    flow.GRRFlow.StartFlow(event.common_name, "Interrogate", token=self.token)
+    flow.GRRFlow.StartFlow(client_id=event,
+                           flow_name="Interrogate", token=self.token)
+
+
+class InterrogateArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.InterrogateArgs
 
 
 class Interrogate(flow.GRRFlow):
@@ -31,13 +37,7 @@ class Interrogate(flow.GRRFlow):
 
   category = "/Administrative/"
   client = None
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.Bool(
-          description="Perform a light weight version of the interrogate.",
-          name="lightweight",
-          default=False)
-      )
+  args_type = InterrogateArgs
 
   @flow.StateHandler(next_state=["Hostname", "Platform",
                                  "InstallDate", "EnumerateUsers",
@@ -47,6 +47,8 @@ class Interrogate(flow.GRRFlow):
                                  "ClientConfiguration", "VerifyUsers"])
   def Start(self):
     """Start off all the tests."""
+    self.state.Register("sid_data", {})
+
     # Create the objects we need to exist.
     self.Load()
     fd = aff4.FACTORY.Create(self.client.urn.Add("network"), "Network",
@@ -61,12 +63,11 @@ class Interrogate(flow.GRRFlow):
     self.CallClient("GetConfig", next_state="ClientConfig")
     self.CallClient("GetConfiguration", next_state="ClientConfiguration")
 
-    if not self.state.lightweight:
-      self.state.Register("sid_data", {})
+    if not self.args.lightweight:
       profiles_key = (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft"
                       r"\Windows NT\CurrentVersion\ProfileList")
 
-      request = rdfvalue.RDFFindSpec(path_regex="ProfileImagePath", max_depth=2)
+      request = rdfvalue.FindSpec(path_regex="ProfileImagePath", max_depth=2)
 
       request.pathspec.path = profiles_key
       request.pathspec.pathtype = request.pathspec.PathType.REGISTRY
@@ -79,7 +80,7 @@ class Interrogate(flow.GRRFlow):
 
   def Load(self):
     # Ensure there is a client object
-    self.client = aff4.FACTORY.Open(self.state.context.client_id,
+    self.client = aff4.FACTORY.Open(self.client_id,
                                     mode="rw", token=self.token)
 
   def Save(self):
@@ -154,10 +155,6 @@ class Interrogate(flow.GRRFlow):
       data = self.state.sid_data[responses.request_data["SID"]]
       data["special_folders"] = rdfvalue.FolderInformation(**profile_folders)
 
-      if self.OutstandingRequests() == 1:
-        # This is the last response -> save all data.
-        self.SaveUsers()
-
     else:
       # Reading from registry failed, we have to guess.
       homedir = self.state.sid_data[responses.request_data["SID"]]["homedir"]
@@ -187,19 +184,15 @@ class Interrogate(flow.GRRFlow):
 
       data["special_folders"] = folder
 
-    if self.OutstandingRequests() == 1:
-      # This is the last response -> save all the data.
-      self.SaveUsers()
-
   def SaveUsers(self):
     """This saves the collected data to the data store."""
     user_list = self.client.Schema.USER()
     usernames = []
-    for sid in self.state.sid_data.iterkeys():
-      data = self.state.sid_data[sid]
+    for data in self.state.sid_data.itervalues():
       usernames.append(data["username"])
       user_list.Append(rdfvalue.User(**data))
       self.client.AddAttribute(self.client.Schema.USER, user_list)
+
     self.client.AddAttribute(self.client.Schema.USERNAMES(
         " ".join(sorted(usernames))))
 
@@ -374,6 +367,9 @@ class Interrogate(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     """Finalize client registration."""
+    if self.state.sid_data:
+      self.SaveUsers()
+
     # Create the bare VFS with empty virtual directories.
     fd = aff4.FACTORY.Create(self.client.urn.Add("processes"), "ProcessListing",
                              token=self.token)

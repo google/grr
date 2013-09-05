@@ -17,6 +17,7 @@ from grr.client.client_actions import admin
 from grr.client.client_actions import enrol
 from grr.client.client_actions import file_fingerprint
 from grr.client.client_actions import network
+from grr.client.client_actions import plist
 from grr.client.client_actions import searching
 from grr.client.client_actions import standard
 from grr.client.client_actions import tempfiles

@@ -19,6 +19,7 @@ from grr.lib import data_store
 from grr.lib import lexer
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import grr_rdf
 
@@ -82,8 +83,7 @@ class Factory(object):
 
     # Create a token for system level actions:
     self.root_token = access_control.ACLToken(username="system",
-                                              reason="Maintainance")
-    self.root_token.supervisor = True
+                                              reason="Maintainance").SetUID()
 
     self.notification_rules = []
     self.notification_rules_timestamp = 0
@@ -674,7 +674,9 @@ class Factory(object):
       logging.info("Object limit reached, there may be further objects "
                    "to delete.")
 
-    data_store.DB.DeleteSubject(fd.urn, token=token)
+    # Do not remove the index or deeper objects may become unnavigable.
+    data_store.DB.DeleteAttributesRegex(fd.urn, AFF4_PREFIXES,
+                                        token=token)
     self._DeleteChildFromIndex(fd.urn, token)
     count += 1
     logging.info("Removed %s objects", count)
@@ -904,7 +906,7 @@ class Attribute(object):
 
   def GetValues(self, fd):
     """Return the values for this attribute as stored in an AFF4Object."""
-    result = False
+    result = None
     for result in fd.new_attributes.get(self, []):
       # We need to interpolate sub fields in this rdfvalue.
       if self.field_names:
@@ -918,14 +920,15 @@ class Attribute(object):
       result = result.ToRDFValue()
 
       # We need to interpolate sub fields in this rdfvalue.
-      if self.field_names:
-        for x in result.GetFields(self.field_names):
-          yield x
+      if result is not None:
+        if self.field_names:
+          for x in result.GetFields(self.field_names):
+            yield x
 
-      else:
-        yield result
+        else:
+          yield result
 
-    if not result:
+    if result is None:
       default = self.GetDefault(fd)
       if default is not None:
         yield default
@@ -957,6 +960,17 @@ class SubjectAttribute(Attribute):
     return [rdfvalue.Subject(fd.urn)]
 
 
+class AFF4Attribute(rdfvalue.RDFString):
+  """An AFF4 attribute name."""
+
+  def Validate(self):
+    try:
+      Attribute.GetAttributeByName(self._value)
+    except (AttributeError, KeyError):
+      raise type_info.TypeValueError(
+          "Value %s is not an AFF4 attribute name" % self._value)
+
+
 class ClassProperty(property):
   """A property which comes from the class object."""
 
@@ -986,8 +1000,11 @@ class LazyDecoder(object):
 
   def ToRDFValue(self):
     if self.decoded is None:
-      self.decoded = self.rdfvalue_cls(initializer=self.serialized,
-                                       age=self.age)
+      try:
+        self.decoded = self.rdfvalue_cls(initializer=self.serialized,
+                                         age=self.age)
+      except rdfvalue.DecodeError:
+        return None
 
     return self.decoded
 
@@ -1023,8 +1040,6 @@ class AFF4Object(object):
   # SchemaCls.
   class SchemaCls(object):
     """The standard AFF4 schema."""
-    # NOTE: we don't version the type in order not to accumulate its versions
-    # during blind write operations.
     TYPE = Attribute("aff4:type", rdfvalue.RDFString,
                      "The name of the AFF4Object derived class.", "type")
 
@@ -1045,14 +1060,16 @@ class AFF4Object(object):
                              "particular caller.", versioned=False,
                              creates_new_object_version=False)
 
-    def ListAttributes(self):
-      for attr in dir(self):
-        attr = getattr(self, attr)
+    @classmethod
+    def ListAttributes(cls):
+      for attr in dir(cls):
+        attr = getattr(cls, attr)
         if isinstance(attr, Attribute):
           yield attr
 
-    def GetAttribute(self, name):
-      for i in self.ListAttributes():
+    @classmethod
+    def GetAttribute(cls, name):
+      for i in cls.ListAttributes():
         # Attributes are accessible by predicate or name
         if i.name == name or i.predicate == name:
           return i
@@ -1339,6 +1356,11 @@ class AFF4Object(object):
       attribute: The attribute to set.
       value: The new value for this attribute.
     """
+    # Specifically ignore None here. This allows us to safely copy attributes
+    # from one object to another: fd.Set(fd2.Get(..))
+    if attribute is None:
+      return
+
     self.AddAttribute(attribute, value)
 
   def AddAttribute(self, attribute, value=None, age=None):
@@ -1386,6 +1408,8 @@ class AFF4Object(object):
     # at the earliest timestamp (so they appear in all objects).
     else:
       self._to_delete.add(attribute)
+      self.synced_attributes.pop(attribute, None)
+      self.new_attributes.pop(attribute, None)
       value.age = 0
 
     self._AddAttributeToCache(attribute, value, self.new_attributes)
@@ -1549,6 +1573,16 @@ class AFF4Object(object):
 
   def __lt__(self, other):
     return self.urn < other
+
+  def __nonzero__(self):
+    return True
+
+  # Support the with protocol.
+  def __enter__(self):
+    return self
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    self.Close()
 
 
 # This will register all classes into this modules's namespace regardless of
@@ -1858,8 +1892,9 @@ class AFF4Stream(AFF4Object):
                      "The total size of available data for this stream.",
                      "size", default=0)
 
-    HASH = Attribute("aff4:hash", rdfvalue.RDFSHAValue,
-                     "The hash of the stream")
+    HASH = Attribute("aff4:hashobject", rdfvalue.Hash,
+                     "Hash object containing all known hash digests for"
+                     " the object.")
 
   @abc.abstractmethod
   def Read(self, length):
@@ -2101,7 +2136,11 @@ class AFF4Image(AFF4Stream):
 
     while length > 0:
       data = self._ReadPartial(length)
-      if not data: break
+      if not data:
+        if length > 0:
+          logging.error("Read error: %s bytes read, %s bytes remaining",
+                        len(result), length)
+        break
 
       length -= len(data)
       result += data

@@ -15,38 +15,29 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import type_info
 from grr.lib import utils
+from grr.proto import flows_pb2
 
 
-config_lib.DEFINE_option(type_info.PEMPrivateKey(
-    name="PrivateKeys.ca_key",
-    description="CA private key. Used to sign for client enrollment.",
-    ))
+class CAEnrolerArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.CAEnrolerArgs
 
 
 class CAEnroler(flow.GRRFlow):
   """Enrol new clients."""
 
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.RDFValueType(
-          name="csr",
-          description="A Certificate RDFValue with the CSR in it.",
-          rdfclass=rdfvalue.Certificate,
-          default=None),
-      )
-
-  def InitFromArguments(self, client=None, *args, **kwargs):
-    self.client = client
-    super(CAEnroler, self).InitFromArguments(*args, **kwargs)
+  args_type = CAEnrolerArgs
 
   @flow.StateHandler(next_state="End")
   def Start(self):
     """Sign the CSR from the client."""
-    if self.state.csr.type != rdfvalue.Certificate.Type.CSR:
+    client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient",
+                                 token=self.token)
+
+    if self.args.csr.type != rdfvalue.Certificate.Type.CSR:
       raise IOError("Must be called with CSR")
 
-    req = X509.load_request_string(self.state.csr.pem)
+    req = X509.load_request_string(self.args.csr.pem)
 
     # Verify that the CN is of the correct form. The common name should refer to
     # a client URN.
@@ -69,16 +60,13 @@ class CAEnroler(flow.GRRFlow):
 
     # Set and write the certificate to the client record.
     certificate_attribute = rdfvalue.RDFX509Cert(cert.as_pem())
-    self.client.Set(self.client.Schema.CERT, certificate_attribute)
+    client.Set(client.Schema.CERT, certificate_attribute)
+    client.Set(client.Schema.FIRST_SEEN, rdfvalue.RDFDatetime().Now())
 
-    first_seen = time.time() * 1e6
-    self.client.Set(self.client.Schema.FIRST_SEEN,
-                    rdfvalue.RDFDatetime(first_seen))
-
-    self.client.Close(sync=True)
+    client.Close(sync=True)
 
     # Publish the client enrollment message.
-    self.Publish("ClientEnrollment", certificate_attribute)
+    self.Publish("ClientEnrollment", certificate_attribute.common_name)
 
     self.Log("Enrolled %s successfully", self.client_id)
 
@@ -161,5 +149,4 @@ class Enroler(flow.WellKnownFlow):
     if not client.Get(client.Schema.CERT):
       # Start the enrollment flow for this client.
       flow.GRRFlow.StartFlow(client_id=client_id, flow_name="CAEnroler",
-                             csr=cert, queue=queue,
-                             client=client, token=self.token)
+                             csr=cert, queue=queue, token=self.token)

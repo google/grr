@@ -9,6 +9,7 @@ import zlib
 
 from M2Crypto import BIO
 from M2Crypto import EVP
+from M2Crypto import m2
 from M2Crypto import Rand
 from M2Crypto import RSA
 from M2Crypto import X509
@@ -20,6 +21,10 @@ from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
 
+config_lib.DEFINE_option(type_info.PEMPrivateKey(
+    name="PrivateKeys.ca_key",
+    description="CA private key. Used to sign for client enrollment.",
+    ))
 
 config_lib.DEFINE_integer("Network.api", 3,
                           "The version of the network protocol the client "
@@ -179,8 +184,10 @@ class Cipher(object):
     rsa_key = pub_key_cache.GetRSAPublicKey(destination)
 
     stats.STATS.IncrementCounter("grr_rsa_operations")
-    self.encrypted_cipher = rsa_key.public_encrypt(
-        serialized_cipher, self.e_padding)
+    # M2Crypto verifies the key on each public_encrypt call which is horribly
+    # slow therefore we just call the swig wrapped method directly.
+    self.encrypted_cipher = m2.rsa_public_encrypt(
+        rsa_key.rsa, serialized_cipher, self.e_padding)
 
     # Encrypt the metadata block symmetrically.
     _, self.encrypted_cipher_metadata = self.Encrypt(
@@ -235,8 +242,10 @@ class ReceivedCipher(Cipher):
                                       callback=lambda x: "")
     try:
       self.encrypted_cipher = response_comms.encrypted_cipher
-      self.serialized_cipher = private_key.private_decrypt(
-          response_comms.encrypted_cipher, self.e_padding)
+      # M2Crypto verifies the key on each private_decrypt call which is horribly
+      # slow therefore we just call the swig wrapped method directly.
+      self.serialized_cipher = m2.rsa_private_decrypt(
+          private_key.rsa, response_comms.encrypted_cipher, self.e_padding)
 
       self.cipher = rdfvalue.CipherProperties(self.serialized_cipher)
 
@@ -334,7 +343,7 @@ class Communicator(object):
         signed_message_list.message_list = compressed_data
 
   def EncodeMessages(self, message_list, result, destination=None,
-                     timestamp=None, api_version=2):
+                     timestamp=None, api_version=3):
     """Accepts a list of messages and encodes for transmission.
 
     This function signs and then encrypts the payload.

@@ -12,6 +12,10 @@ import sys
 import time
 import unittest
 
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import,g-bad-import-order
+
 # These need to register plugins so, pylint: disable=unused-import
 from grr.client import client_test
 from grr.client import client_utils_test

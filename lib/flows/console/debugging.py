@@ -8,57 +8,52 @@ import pickle
 import tempfile
 import time
 
-from grr.client.client_actions import actions
+from grr.client import actions
 
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import type_info
 from grr.lib import worker
+from grr.proto import flows_pb2
+
+
+class ClientActionArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.ClientActionArgs
+
+  def GetActionArgsClass(self):
+    if self.action:
+      action_cls = actions.ActionPlugin.classes.get(self.action)
+      if action_cls is None:
+        raise ValueError("Client Action '%s' not known." % self.action)
+
+      # The required semantic type for this field is in the client action's
+      # in_rdfvalue.
+      return action_cls.in_rdfvalue
 
 
 class ClientAction(flow.GRRFlow):
   """A Simple flow to execute any client action."""
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.String(
-          name="action",
-          description="The action to execute."),
-      type_info.String(
-          name="save_to",
-          default="/tmp",
-          description=("If not None, interpreted as an path to write pickle "
-                       "dumps of responses to.")),
-      type_info.Bool(
-          name="break_pdb",
-          description="If True, run pdb.set_trace when responses come back.",
-          default=False),
-      type_info.RDFValueType(
-          description="Client action arguments.",
-          name="args",
-          rdfclass=rdfvalue.RDFValue),
-      )
+  args_type = ClientActionArgs
 
   @flow.StateHandler(next_state="Print")
   def Start(self):
-    if self.state.save_to:
-      if not os.path.isdir(self.state.save_to):
-        os.makedirs(self.state.save_to, 0700)
-    self.CallClient(self.state.action, request=self.state.args,
+    if self.args.save_to:
+      if not os.path.isdir(self.args.save_to):
+        os.makedirs(self.args.save_to, 0700)
+    self.CallClient(self.args.action, request=self.args.action_args,
                     next_state="Print")
-    self.state.args = None
 
   @flow.StateHandler()
   def Print(self, responses):
     """Dump the responses to a pickle file or allow for breaking."""
     if not responses.success:
-      self.Log("ClientAction %s failed. Staus: %s" % (self.state.action,
+      self.Log("ClientAction %s failed. Staus: %s" % (self.args.action,
                                                       responses.status))
 
-    if self.state.break_pdb:
+    if self.args.break_pdb:
       pdb.set_trace()
-    if self.state.save_to:
+    if self.args.save_to:
       self._SaveResponses(responses)
 
   def _SaveResponses(self, responses):
@@ -67,7 +62,7 @@ class ClientAction(flow.GRRFlow):
       fd = None
       try:
         fdint, fname = tempfile.mkstemp(prefix="responses-",
-                                        dir=self.state.save_to)
+                                        dir=self.args.save_to)
         fd = os.fdopen(fdint, "wb")
         pickle.dump(responses, fd)
         self.Log("Wrote %d responses to %s", len(responses), fname)
@@ -75,53 +70,44 @@ class ClientAction(flow.GRRFlow):
         if fd: fd.close()
 
 
+class ConsoleDebugFlowArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.ConsoleDebugFlowArgs
+
+  def GetFlowArgsClass(self):
+    if self.flow:
+      flow_cls = flow.GRRFlow.classes.get(self.flow)
+      if flow_cls is None:
+        raise ValueError("Flow '%s' not known." % self.flow)
+
+      # The required semantic type for this field is in args_type.
+      return flow_cls.args_type
+
+
 class ConsoleDebugFlow(flow.GRRFlow):
   """A Simple console flow to execute any flow and recieve back responses."""
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.String(
-          name="flow",
-          description="The flow to execute."),
-      type_info.String(
-          name="save_to",
-          default="/tmp",
-          description=("If not None, interpreted as an path to write pickle "
-                       "dumps of responses to.")),
-      type_info.Bool(
-          name="break_pdb",
-          description="If True, run pdb.set_trace when responses come back.",
-          default=True),
-      type_info.Bool(
-          name="print_responses",
-          description="If True, print each response.",
-          default=True),
-      type_info.RDFValueType(
-          description="Flow arguments.",
-          name="args",
-          rdfclass=rdfvalue.Dict),
-      )
+  args_type = ConsoleDebugFlowArgs
 
   @flow.StateHandler(next_state="Print")
   def Start(self):
-    if self.state.save_to:
-      if not os.path.isdir(self.state.save_to):
-        os.makedirs(self.state.save_to, 0700)
-    self.CallFlow(self.state.flow, next_state="Print",
-                  **self.state.args.ToDict())
+    if self.args.save_to:
+      if not os.path.isdir(self.args.save_to):
+        os.makedirs(self.args.save_to, 0700)
+    self.CallFlow(self.args.flow, next_state="Print",
+                  **self.args.args.ToDict())
 
   @flow.StateHandler()
   def Print(self, responses):
     """Dump the responses to a pickle file or allow for breaking."""
     if not responses.success:
-      self.Log("ConsoleDebugFlow %s failed. Staus: %s" % (self.state.flow,
+      self.Log("ConsoleDebugFlow %s failed. Staus: %s" % (self.args.flow,
                                                           responses.status))
 
     self.Log("Got %d responses", len(responses))
     for response in responses:
       print response
-    if self.state.break_pdb:
+    if self.args.break_pdb:
       pdb.set_trace()
-    if self.state.save_to:
+    if self.args.save_to:
       self._SaveResponses(responses)
 
   def _SaveResponses(self, responses):
@@ -130,7 +116,7 @@ class ConsoleDebugFlow(flow.GRRFlow):
       fd = None
       try:
         fdint, fname = tempfile.mkstemp(prefix="responses-",
-                                        dir=self.state.save_to)
+                                        dir=self.args.save_to)
         fd = os.fdopen(fdint, "wb")
         pickle.dump(responses, fd)
         self.Log("Wrote %d responses to %s", len(responses), fname)
@@ -149,12 +135,14 @@ def StartFlowAndWait(client_id, flow_name, **kwargs):
   Returns:
      A GRRFlow object.
   """
-  session_id = flow.GRRFlow.StartFlow(client_id, flow_name, **kwargs)
+  session_id = flow.GRRFlow.StartFlow(client_id=client_id,
+                                      flow_name=flow_name, **kwargs)
   while 1:
     time.sleep(1)
-    flow_obj = aff4.FACTORY.Open(session_id)
-    if not flow_obj.IsRunning():
-      break
+    with aff4.FACTORY.Open(session_id) as flow_obj:
+      with flow_obj.GetRunner() as runner:
+        if not runner.IsRunning():
+          break
 
   return flow_obj
 
@@ -173,12 +161,13 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
   Note: you need raw access to run this flow as it requires running a worker.
   """
   queue = rdfvalue.RDFURN("DEBUG-%s-" % getpass.getuser())
-  session_id = flow.GRRFlow.StartFlow(client_id, flow_name, queue=queue,
+  session_id = flow.GRRFlow.StartFlow(client_id=client_id,
+                                      flow_name=flow_name, queue=queue,
                                       **kwargs)
   # Empty token, only works with raw access.
   worker_thrd = worker.GRRWorker(
-      queue=queue, token=access_control.ACLToken(), threadpool_size=1,
-      run_cron=False)
+      queue=queue, token=access_control.ACLToken(username="test"),
+      threadpool_size=1)
   while True:
     try:
       worker_thrd.RunOnce()
@@ -188,9 +177,10 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
       break
 
     time.sleep(2)
-    flow_obj = aff4.FACTORY.Open(session_id)
-    if not flow_obj.IsRunning():
-      break
+    with aff4.FACTORY.Open(session_id) as flow_obj:
+      with flow_obj.GetRunner() as runner:
+        if not runner.IsRunning():
+          break
 
   # Terminate the worker threads
   worker_thrd.thread_pool.Join()

@@ -13,23 +13,20 @@ import StringIO
 import urllib
 
 
-import matplotlib
-# We need to select a non interactive backend for matplotlib.
-matplotlib.use("Agg")
-
-import matplotlib.pyplot as plt  # pylint: disable-msg=g-import-not-at-top
+import matplotlib.pyplot as plt
 
 import logging
 
 from grr.gui import renderers
 from grr.gui.plugins import crash_view
 from grr.gui.plugins import fileview
-from grr.gui.plugins import foreman
+from grr.gui.plugins import forms
 from grr.gui.plugins import searchclient
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
+from grr.lib.hunts import implementation
 from grr.lib.hunts import output_plugins
 
 
@@ -39,6 +36,16 @@ class ManageHunts(renderers.Splitter2Way):
   behaviours = frozenset(["General"])
   top_renderer = "HuntTable"
   bottom_renderer = "HuntViewTabs"
+
+  layout_template = renderers.Splitter2Way.layout_template + """
+<script>
+  // If hunt_id in hash, click that row.
+  if (grr.hash.hunt_id) {
+    var basename = grr.hash.hunt_id.split("/").reverse()[0];
+    $("table.HuntTable td:contains('" + basename + "')").click();
+  }
+</script>
+"""
 
 
 class HuntStateIcon(renderers.RDFValueRenderer):
@@ -56,10 +63,10 @@ class HuntStateIcon(renderers.RDFValueRenderer):
 """)
 
   # Maps the flow states to icons we can show
-  state_map = {rdfvalue.Flow.State.TERMINATED: "stock_yes.png",
-               rdfvalue.Flow.State.RUNNING: "clock.png",
-               rdfvalue.Flow.State.ERROR: "nuke.png",
-               hunts.GRRHunt.STATE_STOPPED: "pause.png"}
+  state_map = {
+      implementation.HuntRunnerArgs.State.STOPPED: "stock_yes.png",
+      implementation.HuntRunnerArgs.State.STARTED: "clock.png",
+      implementation.HuntRunnerArgs.State.PAUSED: "pause.png"}
 
   def Layout(self, _, response):
     self.state_str = str(self.proxy)
@@ -88,7 +95,7 @@ class RunHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
     return super(RunHuntConfirmationDialog, self).Layout(request, response)
 
   def RenderAjax(self, request, response):
-    flow.GRRFlow.StartFlow(None, "RunHuntFlow", token=request.token,
+    flow.GRRFlow.StartFlow(flow_name="StartHuntFlow", token=request.token,
                            hunt_urn=rdfvalue.RDFURN(request.REQ.get("hunt_id")))
     return self.RenderFromTemplate(self.ajax_template, response,
                                    unique=self.unique)
@@ -113,7 +120,7 @@ class PauseHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
     return super(PauseHuntConfirmationDialog, self).Layout(request, response)
 
   def RenderAjax(self, request, response):
-    flow.GRRFlow.StartFlow(None, "PauseHuntFlow", token=request.token,
+    flow.GRRFlow.StartFlow(flow_name="PauseHuntFlow", token=request.token,
                            hunt_urn=rdfvalue.RDFURN(request.REQ.get("hunt_id")))
     return self.RenderFromTemplate(self.ajax_template, response,
                                    unique=self.unique)
@@ -139,32 +146,31 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
   def Layout(self, request, response):
     """Layout handler."""
     hunt_urn = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
-    hunt_obj = aff4.FACTORY.Open(hunt_urn, aff4_type="GRRHunt",
-                                 token=request.token)
+    with aff4.FACTORY.Open(hunt_urn, aff4_type="GRRHunt",
+                           token=request.token) as hunt:
 
-    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
-    req = dict()
-    req["client_limit"] = hunt_obj.state.context.client_limit
-    req["expiry_time"] = hunt_obj.state.context.expiry_time
+      runner = hunt.GetRunner()
 
-    self.hunt_params_form = type_descriptor_renderer.Form(
-        hunts.GRRHunt.hunt_typeinfo, req, prefix="")
-    self.check_access_subject = hunt_urn
+      self.hunt_params_form = forms.SemanticProtoFormRenderer(
+          rdfvalue.ModifyHuntFlowArgs(
+              client_limit=runner.args.client_limit,
+              expiry_time=runner.context.expires,
+              ),
+          supressions=["hunt_urn"]).RawHTML(request)
 
-    return super(ModifyHuntDialog, self).Layout(request, response)
+      self.check_access_subject = hunt_urn
+
+      return super(ModifyHuntDialog, self).Layout(request, response)
 
   def RenderAjax(self, request, response):
     """Starts ModifyHuntFlow that actually modifies a hunt."""
-    hunt_urn = request.REQ.get("hunt_id")
+    hunt_urn = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
 
-    type_descriptor_renderer = renderers.TypeDescriptorSetRenderer()
-    hunt_args = dict(type_descriptor_renderer.ParseArgs(
-        hunts.GRRHunt.hunt_typeinfo, request, prefix=""))
+    args = forms.SemanticProtoFormRenderer(
+        rdfvalue.ModifyHuntFlowArgs()).ParseArgs(request)
 
-    flow.GRRFlow.StartFlow(None, "ModifyHuntFlow", token=request.token,
-                           hunt_urn=rdfvalue.RDFURN(hunt_urn),
-                           expiry_time=hunt_args["expiry_time"],
-                           client_limit=hunt_args["client_limit"])
+    flow.GRRFlow.StartFlow(flow_name="ModifyHuntFlow", token=request.token,
+                           hunt_urn=hunt_urn, args=args)
 
     return self.RenderFromTemplate(self.ajax_template, response,
                                    unique=self.unique)
@@ -173,7 +179,7 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
 class HuntTable(fileview.AbstractFileTable):
   """Show all hunts."""
   selection_publish_queue = "hunt_select"
-
+  custom_class = "HuntTable"
   layout_template = """
 <div id="new_hunt_dialog_{{unique|escape}}"
   class="modal wide-modal high-modal hide" update_on_show="true"
@@ -201,97 +207,32 @@ class HuntTable(fileview.AbstractFileTable):
   </button>
 
   <div class="btn-group">
+
   <button id='run_hunt_{{unique|escape}}' title='Run Hunt'
     class="btn" disabled="yes" name="RunHunt" data-toggle="modal"
     data-target="#run_hunt_dialog_{{unique|escape}}">
     <img src='/static/images/play_button.png' class='toolbar_icon'>
   </button>
+
   <button id='pause_hunt_{{unique|escape}}' title='Pause Hunt'
     class="btn" disabled="yes" name="PauseHunt" data-toggle="modal"
     data-target="#pause_hunt_dialog_{{unique|escape}}">
     <img src='/static/images/pause_button.png' class='toolbar_icon'>
   </button>
+
   <button id='modify_hunt_{{unique|escape}}' title='Modify Hunt'
     class="btn" disabled="yes" name="ModifyHunt" data-toggle="modal"
     data-target="#modify_hunt_dialog_{{unique|escape}}">
     <img src='/static/images/modify.png' class='toolbar_icon'>
   </button>
+
   </div>
 
   <div class="new_hunt_dialog" id="new_hunt_dialog_{{unique|escape}}"
     class="hide" />
   </li>
 </ul>
-""" + fileview.AbstractFileTable.layout_template + """
-<script>
-(function() {
-  // Store currently selected hunt_id in this variable. Event listeners
-  // will use it (see grr.subscribe("file_select"), for example).
-  var hunt_id;
-
-  $("#new_hunt_dialog_{{unique|escapejs}}").on("shown", function () {
-    grr.layout("NewHunt", "new_hunt_dialog_{{unique|escapejs}}");
-  }).on("hidden", function () {
-    $("#{{unique|escapejs}}").trigger("refresh");
-    $(this).html("");
-  });
-
-  $("#run_hunt_dialog_{{unique|escape}}").on("show", function() {
-    grr.layout("RunHuntConfirmationDialog",
-      "run_hunt_dialog_{{unique|escape}}", {hunt_id: hunt_id});
-  }).on("hidden", function () {
-    $("#{{unique|escapejs}}").trigger("refresh");
-    $(this).html("");
-  });
-
-  $("#pause_hunt_dialog_{{unique|escape}}").on("show", function() {
-    grr.layout("PauseHuntConfirmationDialog",
-      "pause_hunt_dialog_{{unique|escape}}", {hunt_id: hunt_id});
-  }).on("hidden", function () {
-    $("#{{unique|escapejs}}").trigger("refresh");
-    $(this).html("");
-  });
-
-  $("#modify_hunt_dialog_{{unique|escape}}").on("show", function() {
-    grr.layout("ModifyHuntDialog", "modify_hunt_dialog_{{unique|escape}}",
-      {hunt_id: hunt_id});
-  }).on("hidden", function () {
-    $("#{{unique|escapejs}}").trigger("refresh");
-    $(this).html("");
-  });
-
-  grr.subscribe("WizardComplete", function(wizardStateName) {
-    $("#new_hunt_dialog_{{unique|escape}}").modal("hide");
-  }, "new_hunt_dialog_{{unique|escape}}");
-
-  grr.subscribe("file_select", function(_hunt_id) {
-    hunt_id = _hunt_id;
-
-    var row = $("span[aff4_path='" + hunt_id + "']",
-      "#{{this.id|escapejs}}").closest("tr");
-    $(".hunt-state-icon", row).each(function() {
-      var state = $(this).attr("state");
-      if (state == "RUNNING") {
-        $("#run_hunt_{{unique|escape}}").attr("disabled", "true");
-        $("#modify_hunt_{{unique|escape}}").attr("disabled", "true");
-        $("#pause_hunt_{{unique|escape}}").removeAttr("disabled");
-      } else if (state == "stopped") {
-        $("#run_hunt_{{unique|escape}}").removeAttr("disabled");
-        $("#modify_hunt_{{unique|escape}}").removeAttr("disabled");
-        $("#pause_hunt_{{unique|escape}}").attr("disabled", "true");
-      }
-    });
-  }, "run_hunt_{{unique|escapejs}}");
-
-  // If hunt_id in hash, click that row.
-  if (grr.hash.hunt_id) {
-    $("#{{this.id|escapejs}}").find("td:contains('" +
-      grr.hash.hunt_id.split("/").reverse()[0] +
-      "')").click();
-  }
-})();
-</script>
-"""
+""" + fileview.AbstractFileTable.layout_template
 
   root_path = "aff4:/hunts"
 
@@ -310,6 +251,10 @@ class HuntTable(fileview.AbstractFileTable):
     self.AddColumn(renderers.RDFValueColumn("Creator"))
     self.AddColumn(renderers.RDFValueColumn("Description", width="100%"))
 
+  def Layout(self, request, response):
+    super(HuntTable, self).Layout(request, response)
+    return self.CallJavascript(response, "Layout")
+
   def BuildTable(self, start_row, end_row, request):
     fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=request.token)
     try:
@@ -318,12 +263,20 @@ class HuntTable(fileview.AbstractFileTable):
       children.sort(key=operator.attrgetter("age"), reverse=True)
       children = children[start_row:end_row]
 
-      hunt_list = [x for x in fd.OpenChildren(children=children)
-                   if isinstance(x, hunts.GRRHunt)]
+      hunt_list = []
+
+      for hunt in fd.OpenChildren(children=children):
+        # Skip hunts that could not be unpickled.
+        if not isinstance(hunt, hunts.GRRHunt) or not hunt.state:
+          continue
+
+        with hunt.GetRunner() as runner:
+          hunt.create_time = runner.context.create_time
+          hunt_list.append(hunt)
+
       total_size = len(hunt_list)
 
-      hunt_list.sort(key=lambda x: x.state.context.get("create_time", 0),
-                     reverse=True)
+      hunt_list.sort(key=lambda x: x.create_time, reverse=True)
 
       could_not_display = []
       row_index = start_row
@@ -331,32 +284,24 @@ class HuntTable(fileview.AbstractFileTable):
         if not isinstance(hunt_obj, hunts.GRRHunt):
           could_not_display.append((hunt_obj, "Object is not a valid hunt."))
           continue
+
         if hunt_obj.state.Empty():
           logging.error("Hunt without a valid state found: %s", hunt_obj)
           could_not_display.append((hunt_obj,
                                     "Hunt doesn't have a valid state."))
           continue
 
-        context = hunt_obj.state.context
-        expire_time = (context.start_time +
-                       context.expiry_time.seconds) * 1e6
-
-        description = (context.description or
+        runner = hunt_obj.GetRunner()
+        description = (runner.args.description or
                        hunt_obj.__class__.__doc__.split("\n", 1)[0])
-
-        if context.hunt_state == hunts.GRRHunt.STATE_STOPPED:
-          hunt_state = hunts.GRRHunt.STATE_STOPPED
-        else:
-          hunt_state = context.state
 
         self.AddRow({"Hunt ID": hunt_obj.urn,
                      "Name": hunt_obj.__class__.__name__,
-                     "Status": hunt_state,
-                     "Start Time": rdfvalue.RDFDatetime(
-                         context.start_time * 1e6),
-                     "Expires": rdfvalue.RDFDatetime(expire_time),
-                     "Client Limit": context.client_limit,
-                     "Creator": context.user,
+                     "Status": runner.context.args.state,
+                     "Start Time": runner.context.start_time,
+                     "Expires": runner.context.expires,
+                     "Client Limit": runner.args.client_limit,
+                     "Creator": runner.context.creator,
                      "Description": description},
                     row_index=row_index)
         row_index += 1
@@ -691,37 +636,35 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
       try:
         self.hunt = aff4.FACTORY.Open(self.hunt_id, aff4_type="GRRHunt",
                                       token=request.token, age=aff4.ALL_TIMES)
+
         if self.hunt.state.Empty():
           raise IOError("No valid state could be found.")
 
+        # TODO(user): This is too expensive to do here. We should keep
+        # running stats in the hunt itself.
         resources = self.hunt.GetValuesForAttribute(
             self.hunt.Schema.RESOURCES)
         self.cpu_sum, self.net_sum = 0, 0
+
         for resource in resources:
           self.cpu_sum += resource.cpu_usage.user_cpu_time
           self.net_sum += resource.network_bytes_sent
 
         self.cpu_sum = "%.2f" % self.cpu_sum
 
-        self.hunt_name = self.hunt.state.context.hunt_name
-        self.hunt_creator = self.hunt.state.context.creator
+        with self.hunt.GetRunner() as runner:
+          self.hunt_name = runner.args.hunt_name
+          self.hunt_creator = runner.context.creator
 
-        self.data = py_collections.OrderedDict()
-        self.data["Start Time"] = rdfvalue.RDFDatetime(
-            self.hunt.state.context.start_time * 1e6)
-        self.data["Expiry Time"] = rdfvalue.RDFDatetime(
-            (self.hunt.state.context.start_time +
-             self.hunt.state.context.expiry_time.seconds) * 1e6)
+          self.data = py_collections.OrderedDict()
+          self.data["Start Time"] = runner.context.start_time
+          self.data["Expiry Time"] = runner.context.expires
+          self.data["Status"] = runner.context.state
 
-        if self.hunt.state.context.hunt_state == self.hunt.STATE_STOPPED:
-          self.data["Status"] = self.hunt.STATE_STOPPED
-        else:
-          self.data["Status"] = self.hunt.state.context.state
+          self.client_limit = runner.args.client_limit
 
-        self.client_limit = self.hunt.state.context.client_limit
-        args_dict = self.hunt.state.Copy()
-
-        self.args_str = renderers.DictRenderer(args_dict).RawHTML()
+          args_dict = self.hunt.state.Copy()
+          self.args_str = renderers.DictRenderer(args_dict).RawHTML()
       except IOError:
         self.layout_template = self.error_template
 
@@ -770,28 +713,29 @@ class HuntErrorRenderer(renderers.AbstractLogRenderer):
     return log
 
 
-class HuntRuleRenderer(foreman.ReadOnlyForemanRuleTable):
+class HuntRuleRenderer(renderers.TableRenderer):
   """Rule renderer that only shows our hunts rules."""
 
   error_template = renderers.Template(
       "No information available for this Hunt.")
 
+  def __init__(self, **kwargs):
+    super(HuntRuleRenderer, self).__init__(**kwargs)
+    self.AddColumn(renderers.RDFValueColumn("Rules", width="100%"))
+
   def RenderAjax(self, request, response):
     """Renders the table."""
     hunt_id = request.REQ.get("hunt_id")
+
     if hunt_id is not None:
       hunt = aff4.FACTORY.Open(hunt_id, aff4_type="GRRHunt",
-                               age=aff4.ALL_TIMES, token=request.token)
+                               token=request.token)
 
-      if not hunt.state.Empty():
+      with hunt.GetRunner() as runner:
         # Getting list of rules from hunt object: this doesn't require us to
         # have admin privileges (which we need to go through foreman rules).
-        for rule in hunt.state.context.rules:
-          self.AddRow(Created=rule.created,
-                      Expires=rule.expires,
-                      Description=rule.description,
-                      Rules=rule,
-                      Actions=rule)
+        for rule in runner.args.regex_rules:
+          self.AddRow(Rules=rule)
 
     # Call our raw TableRenderer to actually do the rendering
     return renderers.TableRenderer.RenderAjax(self, request, response)
@@ -968,10 +912,11 @@ class HuntHostInformationRenderer(fileview.AFF4Stats):
   def Layout(self, request, response):
     """Produce a summary of the client information."""
     client_id = request.REQ.get("hunt_client")
-    super(HuntHostInformationRenderer, self).Layout(
-        request, response, client_id=client_id,
-        aff4_path=rdfvalue.RDFURN(client_id),
-        age=aff4.ALL_TIMES)
+    if client_id:
+      super(HuntHostInformationRenderer, self).Layout(
+          request, response, client_id=client_id,
+          aff4_path=rdfvalue.RDFURN(client_id),
+          age=aff4.ALL_TIMES)
 
 
 class HuntResultsRenderer(renderers.RDFValueCollectionRenderer):
@@ -988,20 +933,18 @@ class HuntResultsRenderer(renderers.RDFValueCollectionRenderer):
   def Layout(self, request, response):
     """Layout the hunt results."""
     hunt_id = request.REQ.get("hunt_id")
-    hunt = aff4.FACTORY.Open(hunt_id, age=aff4.ALL_TIMES, token=request.token)
+    hunt = aff4.FACTORY.Open(hunt_id, token=request.token)
 
-    # TODO(user): In theory a hunt might choose to store the results in
-    # multiple collections. We only show the first one here.
-    output_objects = hunt.GetOutputObjects(
-        output_cls=output_plugins.CollectionPlugin)
-    if not output_objects:
-      return self.RenderFromTemplate(self.no_plugin_template, response)
-    collection = output_objects[0].GetCollection()
-    if collection:
-      return super(HuntResultsRenderer, self).Layout(
-          request, response, aff4_path=collection.urn)
-    else:
-      return self.RenderFromTemplate(self.error_template, response)
+    # In this renderer we only show the output from the CollectionPlugin output
+    # plugin.
+    with hunt.GetRunner() as runner:
+      for plugin in runner.context.output_plugins:
+        if isinstance(plugin, output_plugins.CollectionPlugin):
+          collection_urn = plugin.collection.urn
+          return super(HuntResultsRenderer, self).Layout(
+              request, response, aff4_path=collection_urn)
+
+    return self.RenderFromTemplate(self.no_plugin_template, response)
 
 
 class HuntStatsRenderer(renderers.TemplateRenderer):

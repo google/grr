@@ -73,7 +73,8 @@ Client Access Request created. Please try again once an approval is granted.
     # we should really provide some feedback for the user.
     if approver and reason:
       # Request approval for this client
-      flow.GRRFlow.StartFlow(client_id, "RequestClientApprovalFlow",
+      flow.GRRFlow.StartFlow(client_id=client_id,
+                             flow_name="RequestClientApprovalFlow",
                              reason=reason, approver=approver,
                              token=request.token,
                              subject_urn=rdfvalue.ClientURN(client_id))
@@ -96,7 +97,7 @@ Hunt Access Request created. Please try again once an approval is granted.
 
     if approver and reason:
       # Request approval for this hunt
-      flow.GRRFlow.StartFlow(None, "RequestHuntApprovalFlow",
+      flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
                              reason=reason, approver=approver,
                              token=request.token,
                              subject_urn=rdfvalue.RDFURN(subject))
@@ -118,7 +119,7 @@ Cron Job Access Request created. Please try again once an approval is granted.
 
     if approver and reason:
       # Request approval for this cron job
-      flow.GRRFlow.StartFlow(None, "RequestCronJobApprovalFlow",
+      flow.GRRFlow.StartFlow(flow_name="RequestCronJobApprovalFlow",
                              reason=reason, approver=approver,
                              token=request.token,
                              subject_urn=rdfvalue.RDFURN(subject))
@@ -270,7 +271,7 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
         raise access_control.UnauthorizedAccess(
             "Approval object is not well formed.")
 
-      flow.GRRFlow.StartFlow(None, "GrantHuntApprovalFlow",
+      flow.GRRFlow.StartFlow(flow_name="GrantHuntApprovalFlow",
                              subject_urn=self.subject, reason=self.reason,
                              delegate=self.user, token=request.token)
     elif namespace == "cron":
@@ -283,7 +284,7 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
         raise access_control.UnauthorizedAccess(
             "Approval object is not well formed.")
 
-      flow.GRRFlow.StartFlow(None, "GrantCronJobApprovalFlow",
+      flow.GRRFlow.StartFlow(flow_name="GrantCronJobApprovalFlow",
                              subject_urn=self.subject, reason=self.reason,
                              delegate=self.user, token=request.token)
     elif aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(namespace):
@@ -296,7 +297,8 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
         raise access_control.UnauthorizedAccess(
             "Approval object is not well formed.")
 
-      flow.GRRFlow.StartFlow(client_id, "GrantClientApprovalFlow",
+      flow.GRRFlow.StartFlow(client_id=client_id,
+                             flow_name="GrantClientApprovalFlow",
                              reason=self.reason, delegate=self.user,
                              subject_urn=rdfvalue.ClientURN(self.subject),
                              token=request.token)

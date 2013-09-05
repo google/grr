@@ -143,19 +143,19 @@ dd.histogram > div {
   background-color: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.3);
 
-  -webkit-border-radius: 6px; 
-  -moz-border-radius: 6px; 
-  border-radius: 6px; 
+  -webkit-border-radius: 6px;
+  -moz-border-radius: 6px;
+  border-radius: 6px;
 
-  -webkit-box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3); 
-  -moz-box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3); 
+  -webkit-box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
+  -moz-box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
   box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3)
 }
 
 .details-right-panel {
     position: absolute;
     top: 45px;
-    right: 0px; 
+    right: 0px;
     left: 150px;
 }
 
@@ -344,7 +344,7 @@ td.lease_available {
 }
 
 .proto_table td {
-    padding: 1px 5px;
+    padding: 0px 0px;
 }
 
 .proto_table tr:odd {
@@ -352,7 +352,7 @@ td.lease_available {
 }
 
 .proto_separator {
-    height: 2ex;
+    height: 0ex;
 }
 
 
@@ -525,4 +525,42 @@ div::-webkit-scrollbar-thumb
     border-right:1px solid transparent;
     border-top:0 solid transparent;
     border-bottom:0 solid transparent;
+}
+
+input.pickerIcon {
+  width: 0px;
+  visibility: hidden;
+}
+
+input.unset, select.unset {
+    background-color:  #FEFFE0;
+}
+
+abbr[title] {
+    cursor: pointer;
+}
+
+.accordion {
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
+.alert {
+    background-color: #FCFBFA;
+}
+
+.ui-autocomplete {
+  max-height: 100px;
+  max-width: 400px;
+  overflow-y: auto;
+
+  /* prevent horizontal scrollbar */
+  overflow-x: hidden;
+}
+
+/* IE 6 doesn't support max-height
+ * we use height instead, but this forces the menu to always be this tall
+ */
+* html .ui-autocomplete {
+    height: 100px;
 }

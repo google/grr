@@ -10,8 +10,15 @@ import time
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import type_info
 from grr.lib import utils
+from grr.proto import flows_pb2
+
+
+class GrepArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.GrepArgs
+
+  def Validate(self):
+    self.request.Validate()
 
 
 class Grep(flow.GRRFlow):
@@ -29,37 +36,28 @@ class Grep(flow.GRRFlow):
   XOR_IN_KEY = 37
   XOR_OUT_KEY = 57
 
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.GrepspecType(
-          description="The file which will be grepped.",
-          name="request"),
-
-      type_info.String(
-          description="The output collection.",
-          name="output",
-          default="analysis/grep/{u}-{t}"),
-      )
+  args_type = GrepArgs
 
   @flow.StateHandler(next_state=["StoreResults"])
   def Start(self):
     """Start Grep flow."""
-    self.state.request.xor_in_key = self.XOR_IN_KEY
-    self.state.request.xor_out_key = self.XOR_OUT_KEY
+    self.state.args.request.xor_in_key = self.XOR_IN_KEY
+    self.state.args.request.xor_out_key = self.XOR_OUT_KEY
 
     # For literal matches we xor the search term. In the event we search the
     # memory this stops us matching the GRR client itself.
-    if self.state.request.literal:
-      self.state.request.literal = utils.Xor(self.state.request.literal,
-                                             self.XOR_IN_KEY)
+    if self.state.args.request.literal:
+      self.state.args.request.literal = utils.Xor(
+          self.state.args.request.literal, self.XOR_IN_KEY)
 
     self.state.Register("output_collection", None)
-    self.CallClient("Grep", self.state.request, next_state="StoreResults")
+    self.CallClient("Grep", self.state.args.request, next_state="StoreResults")
 
   @flow.StateHandler()
   def StoreResults(self, responses):
     if responses.success:
-      output = self.state.output.format(t=time.time(),
-                                        u=self.state.context.user)
+      output = self.state.args.output.format(t=time.time(),
+                                             u=self.state.context.user)
       out_urn = self.client_id.Add(output)
 
       fd = aff4.FACTORY.Create(out_urn, "GrepResultsCollection",
@@ -67,11 +65,8 @@ class Grep(flow.GRRFlow):
 
       self.state.output_collection = fd
 
-      if self.state.request.HasField("literal"):
-        self.state.request.literal = utils.Xor(self.state.request.literal,
-                                               self.XOR_IN_KEY)
       fd.Set(fd.Schema.DESCRIPTION("Grep by %s: %s" % (
-          self.state.context.user, str(self.state.request))))
+          self.state.context.user, str(self.state.args.request))))
 
       for response in responses:
         response.data = utils.Xor(response.data,
@@ -102,7 +97,7 @@ class GrepAndDownload(flow.GRRFlow):
 
   category = "/Filesystem/"
 
-  flow_typeinfo = (Grep.flow_typeinfo)
+  args_type = GrepArgs
 
   @flow.StateHandler(next_state=["DownloadFile"])
   def Start(self):

@@ -15,6 +15,15 @@ if [ "$SWITCHDIR" = "" ] || [ "$SWITCHDIR" = "multi" ]; then
 elif [ "$SWITCHDIR" = "single" ]; then
   ENABLE=${SINGLE_SERVICES}
   DISABLE=${MULTI_SERVICES}
+elif [ "$SWITCHDIR" = "restart" ]; then
+  ENABLE=
+  DISABLE=
+  for SVC in ${MULTI_SERVICES} ${SINGLE_SERVICES}; do
+    if grep -q "yes" /etc/default/${SVC}; then
+      ENABLE="${ENABLE} ${SVC}"
+      DISABLE="${DISABLE} ${SVC}"
+    fi
+  done
 else
   echo "Specify multi or single"
   exit 1;

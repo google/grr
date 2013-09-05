@@ -12,6 +12,7 @@ import time
 import _winreg
 import ntsecuritycon
 import pywintypes
+import win32api
 import win32file
 import win32security
 
@@ -70,7 +71,7 @@ def LocalPathToCanonicalPath(path):
   return utils.JoinPath(*result)
 
 
-def WinChmod(filename, acl_list, user="SYSTEM"):
+def WinChmod(filename, acl_list, user=None):
   """Provide chmod-like functionality for windows.
 
   Doco links:
@@ -80,13 +81,19 @@ def WinChmod(filename, acl_list, user="SYSTEM"):
 
   Args:
     filename: target filename for acl
+
     acl_list: list of ntsecuritycon acl strings to be applied with bitwise OR.
               e.g. ["FILE_GENERIC_READ", "FILE_GENERIC_WRITE"]
-    user: username string
+
+    user: username string. If not specified we use the user we are running as.
+
   Raises:
     AttributeError: if a bad permission is passed
     RuntimeError: if filename doesn't exist
   """
+  if user is None:
+    user = win32api.GetUserName()
+
   if not os.path.exists(filename):
     raise RuntimeError("filename %s does not exist" % filename)
 

@@ -116,3 +116,29 @@ class RDFDatetimeTest(test_base.RDFValueTestCase):
 
 class RDFDatetimeSecondsTest(RDFDatetimeTest):
   rdfvalue_class = rdfvalue.RDFDatetimeSeconds
+
+
+class HashDigestTest(test_base.RDFValueTestCase):
+  rdfvalue_class = rdfvalue.HashDigest
+
+  def GenerateSample(self, number=0):
+    return rdfvalue.HashDigest("\xca\x97\x81\x12\xca\x1b\xbd\xca\xfa\xc21\xb3"
+                               "\x9a#\xdcM\xa7\x86\xef\xf8\x14|Nr\xb9\x80w\x85"
+                               "\xaf\xeeH\xbb%s" % number)
+
+  def testEqNeq(self):
+    binary_digest = ("\xca\x97\x81\x12\xca\x1b\xbd\xca\xfa\xc21\xb3"
+                     "\x9a#\xdcM\xa7\x86\xef\xf8\x14|Nr\xb9\x80w\x85"
+                     "\xaf\xeeH\xbb")
+    sample = rdfvalue.HashDigest(binary_digest)
+    hex_digest = ("ca978112ca1bbdcafac231b39a23dc4da786eff81"
+                  "47c4e72b9807785afee48bb")
+    self.assertEqual(sample, hex_digest)
+    self.assertEqual(sample, binary_digest)
+    self.assertNotEqual(sample, "\xaa\xbb")
+    self.assertNotEqual(sample, "deadbeef")
+
+
+
+
+

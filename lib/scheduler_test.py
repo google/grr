@@ -6,12 +6,13 @@
 import time
 
 
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import,g-bad-import-order
+
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import rdfvalue
-# pylint: disable=unused-import
-from grr.lib import rdfvalues
-# pylint: enable=unused-import
 from grr.lib import scheduler
 from grr.lib import stats
 from grr.lib import test_lib
@@ -36,7 +37,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
 
   def testSchedule(self):
     """Test the ability to schedule a task."""
-    test_queue = "fooSchedule"
+    test_queue = rdfvalue.RDFURN("fooSchedule")
     task = rdfvalue.GrrMessage(queue=test_queue, ttl=5,
                                session_id="aff4:/Test")
 
@@ -51,7 +52,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
                                       "task:%08d" % task.task_id,
                                       token=self.token)
 
-    decoded = rdfvalue.GrrMessage(value, task_ttl=5)
+    decoded = rdfvalue.GrrMessage(value)
     self.assertProtoEqual(decoded, task)
     self.assert_(ts > 0)
 
@@ -98,7 +99,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
     self.assertEqual(len(tasks), 0)
 
   def testTaskRetransmissionsAreCorrectlyAccounted(self):
-    test_queue = "fooSchedule"
+    test_queue = rdfvalue.RDFURN("fooSchedule")
     task = rdfvalue.GrrMessage(queue=test_queue,
                                session_id="aff4:/Test")
 
@@ -132,7 +133,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
   def testDelete(self):
     """Test that we can delete tasks."""
 
-    test_queue = "fooDelete"
+    test_queue = rdfvalue.RDFURN("fooDelete")
     task = rdfvalue.GrrMessage(queue=test_queue,
                                session_id="aff4:/Test")
 
@@ -169,7 +170,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
 
   def testReSchedule(self):
     """Test the ability to re-schedule a task."""
-    test_queue = "fooReschedule"
+    test_queue = rdfvalue.RDFURN("fooReschedule")
     task = rdfvalue.GrrMessage(queue=test_queue,
                                session_id="aff4:/Test")
 
@@ -209,7 +210,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
     self.assertEqual(tasks[0].task_id, original_id)
 
   def testPriorityScheduling(self):
-    test_queue = "fooReschedule"
+    test_queue = rdfvalue.RDFURN("fooReschedule")
 
     tasks = []
     for i in range(10):

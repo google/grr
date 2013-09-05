@@ -41,6 +41,11 @@ config_lib.DEFINE_string("Client.config_key", r"Software\\GRR",
                          help="The registry key where  client configuration "
                          "will be stored.")
 
+config_lib.DEFINE_string(
+    name="Client.install_path",
+    default=r"%(SystemRoot|env)\\System32\\%(name)\\%(version_string)",
+    help="Where the client binaries are installed.")
+
 config_lib.DEFINE_string("Nanny.nanny_binary",
                          r"%(Client.install_path)\\%(service_binary_name)",
                          help="The full location to the nanny binary.")

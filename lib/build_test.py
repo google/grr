@@ -4,6 +4,10 @@ import os
 import shutil
 import stat
 
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import,g-bad-import-order
+
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import maintenance_utils
@@ -33,13 +37,9 @@ class BuildTests(test_lib.GRRBaseTest):
 
       config_lib.CONFIG.Set("ClientBuilder.source", tmp_dir)
 
-      built = maintenance_utils.RepackAllBinaries()
-
-      self.assertTrue("amd64.exe" in built[0])
-      self.assertTrue("i386.exe" in built[1])
-
-      # TODO(user): Also check for the mac build once we have a template that
-      # works.
+      # If this doesn't raise, it means that there were either no templates,
+      # or all of them were repacked successfully.
+      maintenance_utils.RepackAllBinaries()
 
 
 def main(argv):

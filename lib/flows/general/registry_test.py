@@ -16,7 +16,7 @@ class ClientRegistryVFSFixture(test_lib.ClientVFSHandlerFixture):
   supported_pathtype = rdfvalue.PathSpec.PathType.REGISTRY
 
 
-class TestRegistry(test_lib.FlowTestsBaseclass):
+class TestRegistryFlows(test_lib.FlowTestsBaseclass):
   """Test the Run Key and MRU registry flows."""
 
   def testRegistryMRU(self):
@@ -93,11 +93,13 @@ class TestRegistry(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add(
         "analysis/RunKeys/LocalService/Run"), token=self.token)
     self.assertEqual(fd.__class__.__name__, "RDFValueCollection")
-    runkeys = list(fd)
+
+    runkeys = sorted(fd, key=lambda x: x.keyname)
+
     # And that they all have data in them.
-    self.assertEqual(runkeys[0].keyname,
+    self.assertEqual(runkeys[1].keyname,
                      "/HKEY_USERS/S-1-5-20/Software/Microsoft/"
                      "Windows/CurrentVersion/Run/Sidebar")
-    self.assertEqual(runkeys[0].lastwritten, 1247546054L)
-    self.assertEqual(runkeys[0].filepath,
+    self.assertEqual(runkeys[1].lastwritten, 1247546054L)
+    self.assertEqual(runkeys[1].filepath,
                      "%ProgramFiles%/Windows Sidebar/Sidebar.exe /autoRun")

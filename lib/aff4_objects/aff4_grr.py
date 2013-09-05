@@ -14,9 +14,9 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import scheduler
-from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import standard
+from grr.proto import flows_pb2
 
 
 class SpaceSeparatedStringArray(rdfvalue.RDFString):
@@ -148,7 +148,8 @@ class VFSGRRClient(standard.VFSDirectory):
 
   def Update(self, attribute=None, priority=None):
     if attribute == self.Schema.CONTAINS:
-      flow_id = flow.GRRFlow.StartFlow(self.client_id, "Interrogate",
+      flow_id = flow.GRRFlow.StartFlow(client_id=self.client_id,
+                                       flow_name="Interrogate",
                                        token=self.token, priority=priority)
 
       return flow_id
@@ -231,44 +232,31 @@ class VFSGRRClient(standard.VFSDirectory):
     return client_urn.Add("/".join(result))
 
 
+class UpdateVFSFileArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.UpdateVFSFileArgs
+
+
 class UpdateVFSFile(flow.GRRFlow):
   """A flow to update VFS file."""
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-      type_info.RDFURNType(
-          description="VFSFile urn",
-          name="vfs_file_urn"),
-      type_info.String(
-          description="Attribute to update",
-          name="attribute",
-          default=str(aff4.AFF4Volume.SchemaCls.CONTAINS)),
-      )
+  args_type = UpdateVFSFileArgs
 
   def Init(self):
     self.state.Register("get_file_flow_urn")
 
   @flow.StateHandler()
   def Start(self):
-    """Calls Update() method of a given VFSFile/VFSDirectory object.
-
-    This method uses token with supervisor=True, because we assume that
-    if the user is allowed to run flows on the client, he is priviledged
-    enough to call Update on VFSFiles/VFSDirectories below this client.
-    """
+    """Calls the Update() method of a given VFSFile/VFSDirectory object."""
     self.Init()
 
-    super_token = self.token.Copy()
-    super_token.supervisor = True
-
-    fd = aff4.FACTORY.Open(self.state.vfs_file_urn, mode="rw",
-                           token=super_token)
+    fd = aff4.FACTORY.Open(self.args.vfs_file_urn, mode="rw",
+                           token=self.token)
 
     # Account for implicit directories.
     if fd.Get(fd.Schema.TYPE) is None:
       fd = fd.Upgrade("VFSDirectory")
 
     self.state.get_file_flow_urn = fd.Update(
-        attribute=self.state.attribute,
+        attribute=self.args.attribute,
         priority=rdfvalue.GrrMessage.Priority.HIGH_PRIORITY)
 
 
@@ -287,9 +275,6 @@ class VFSFile(aff4.AFF4Image):
     PATHSPEC = aff4.Attribute(
         "aff4:pathspec", rdfvalue.PathSpec,
         "The pathspec used to retrieve this object from the client.")
-
-    HASH = aff4.Attribute("aff4:sha256", rdfvalue.RDFSHAValue,
-                          "SHA256 hash.")
 
     FINGERPRINT = aff4.Attribute("aff4:fingerprint",
                                  rdfvalue.FingerprintResponse,
@@ -312,7 +297,8 @@ class VFSFile(aff4.AFF4Image):
 
     # Get the pathspec for this object
     pathspec = self.Get(self.Schema.STAT).pathspec
-    flow_urn = flow.GRRFlow.StartFlow(client_id, "GetFile", token=self.token,
+    flow_urn = flow.GRRFlow.StartFlow(client_id=client_id,
+                                      flow_name="GetFile", token=self.token,
                                       pathspec=pathspec, priority=priority)
     self.Set(self.Schema.CONTENT_LOCK(flow_urn))
     self.Close()
@@ -496,12 +482,14 @@ class GRRForeman(aff4.AFF4Object):
           else:
             logging.info("Foreman: Starting hunt %s on client %s.",
                          action.hunt_id, client_id)
+
             flow_cls = flow.GRRFlow.classes[action.hunt_name]
-            flow_cls.StartClient(action.hunt_id, client_id, action.client_limit)
+            flow_cls.StartClient(action.hunt_id, client_id)
             actions_count += 1
         else:
-          flow.GRRFlow.StartFlow(client_id, action.flow_name, token=token,
-                                 **action.argv.ToDict())
+          flow.GRRFlow.StartFlow(
+              client_id=client_id, flow_name=action.flow_name, token=token,
+              **action.argv.ToDict())
           actions_count += 1
       # There could be all kinds of errors we don't know about when starting the
       # flow/hunt so we catch everything here.

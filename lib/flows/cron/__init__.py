@@ -4,4 +4,5 @@
 
 # pylint: disable=unused-import
 # These imports populate the Flow registry
+from grr.lib.flows.cron import compactors
 from grr.lib.flows.cron import system

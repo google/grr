@@ -4,13 +4,7 @@
 
 
 from grr.lib import rdfvalue
-from grr.lib import type_info
 from grr.proto import jobs_pb2
-
-
-class InstallDriverRequest(rdfvalue.RDFProtoStruct):
-  """A request to the client to install a driver."""
-  protobuf = jobs_pb2.InstallDriverRequest
 
 
 class VolatilityRequest(rdfvalue.RDFProtoStruct):
@@ -77,37 +71,3 @@ class VolatilitySection(rdfvalue.RDFProtoStruct):
 class VolatilityResult(rdfvalue.RDFProtoStruct):
   """The result of running a plugin."""
   protobuf = jobs_pb2.VolatilityResponse
-
-
-class VolatilityRequestType(type_info.RDFValueType):
-  """A type for the Volatility request."""
-
-  child_descriptor = type_info.TypeDescriptorSet(
-      type_info.String(
-          description="Profile to use.",
-          name="profile",
-          friendly_name="Volatility profile",
-          default=""),
-      type_info.GenericProtoDictType(
-          description="Volatility Arguments.",
-          name="args"),
-      type_info.MemoryPathspecType(
-          description="Path to the device.",
-          default=rdfvalue.PathSpec(
-              path=r"\\.\pmem",
-              pathtype=rdfvalue.PathSpec.PathType.MEMORY),
-          name="device",
-          )
-      )
-
-  def __init__(self, **kwargs):
-    default_request = rdfvalue.VolatilityRequest()
-    default_request.device.path = r"\\.\pmem"
-    default_request.device.pathtype = rdfvalue.PathSpec.PathType.MEMORY
-
-    defaults = dict(name="request",
-                    default=default_request,
-                    rdfclass=rdfvalue.VolatilityRequest)
-
-    defaults.update(kwargs)
-    super(VolatilityRequestType, self).__init__(**defaults)

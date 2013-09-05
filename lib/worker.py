@@ -12,7 +12,6 @@ import logging
 
 from grr.lib import aff4
 from grr.lib import config_lib
-from grr.lib import cron
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -45,14 +44,13 @@ class GRRWorker(object):
   queued_flows = None
 
   def __init__(self, queue=None, threadpool_prefix="grr_threadpool",
-               threadpool_size=0, run_cron=True, token=None):
+               threadpool_size=0, token=None):
     """Constructor.
 
     Args:
       queue: The queue we use to fetch new messages from.
       threadpool_prefix: A name for the thread pool used by this worker.
       threadpool_size: The number of workers to start in this thread pool.
-      run_cron: If True, run a background thread to process cron jobs.
       token: The token to use for the worker.
 
     Raises:
@@ -63,11 +61,6 @@ class GRRWorker(object):
 
     if token is None:
       raise RuntimeError("A valid ACLToken is required.")
-
-    if run_cron:
-      # Start cron worker
-      self.cron_worker = cron.CronWorker()
-      self.cron_worker.RunAsync()
 
     # Make the thread pool a global so it can be reused for all workers.
     if GRRWorker.thread_pool is None:
@@ -97,7 +90,6 @@ class GRRWorker(object):
           else:
             interval = self.SHORT_POLLING_INTERVAL
 
-          logging.debug("Waiting for new jobs %s Secs", interval)
           time.sleep(interval)
         else:
           self.last_active = time.time()
@@ -177,20 +169,30 @@ class GRRWorker(object):
         # We still need to take a lock on the well known flow in the datastore,
         # but we can run a local instance.
         if session_id in self.well_known_flows:
-          self.well_known_flows[session_id].ProcessCompletedRequests(
+          self.well_known_flows[session_id].ProcessRequests(
               self.thread_pool)
 
         else:
           if not isinstance(flow_obj, flow.GRRFlow):
             return
 
-          runner = flow_obj.CreateRunner(token=self.token)
-          # Have the flow process its messages.
-          flow_obj.ProcessCompletedRequests(runner, self.thread_pool)
+          with flow_obj.GetRunner() as runner:
+            try:
+              runner.ProcessCompletedRequests(self.thread_pool)
 
-          # Re-serialize the flow
-          flow_obj.Flush()
-          runner.FlushMessages()
+            # Something went wrong - log it in the flow.
+            except Exception as e:  # pylint: disable=broad-except
+              runner.context.state = rdfvalue.Flow.State.ERROR
+              runner.context.backtrace = traceback.format_exc()
+
+              logging.error("Flow %s: %s", flow_obj, e)
+              return
+
+            # NOTE: Flow object must be flushed _before_ the runner is
+            # flushed. The flow object must exist in the data store before any
+            # messages are queued to go out, otherwise responses might arrive
+            # with no associated flow.
+            flow_obj.Flush(sync=True)
 
       # Everything went well -> session can be run again.
       self.queued_flows.ExpireObject(session_id)

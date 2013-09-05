@@ -189,7 +189,7 @@ config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.output_path", must_exist=False,
     default=(
         "%(ClientBuilder.executables_path)/%(Client.platform)"
-        "/installers/%(Client.name)_%(Client.version_string)_%(Client.arch)"
+        "/installers/%(ClientBuilder.output_basename)"
         "%(ClientBuilder.output_extension)"),
     help="The full path to the generated installer file."))
 
@@ -375,7 +375,7 @@ class ClientBuilder(BuilderBase):
                            config_lib.CONFIG.Get("PyInstaller.path",
                                                  context=self.context),
                            "--distpath",
-                           config_lib.CONFIG.Get("PyInstaller.build_dir",
+                           config_lib.CONFIG.Get("PyInstaller.distpath",
                                                  context=self.context),
                            self.spec_file,
                           ])

@@ -376,15 +376,31 @@ class FakeDataStore(data_store.DataStore):
     subject = utils.SmartUnicode(subject)
     try:
       record = self.subjects[subject]
-
       for attribute in attributes:
         if start and attribute[1] <= start:
           continue
         if end and attribute[1] >= end:
           continue
-        del record[attribute]
+
+        record[attribute] = []
     except KeyError:
       pass
+
+  @utils.Synchronized
+  def DeleteAttributesRegex(self, subject, regexes, token=None):
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
+    for regex in regexes:
+      regex_compiled = re.compile(regex)
+      subject = utils.SmartUnicode(subject)
+      try:
+        record = self.subjects[subject]
+
+        for attribute in list(record):
+          if regex_compiled.match(utils.SmartStr(attribute)):
+            record.pop(attribute)
+
+      except KeyError:
+        pass
 
   @utils.Synchronized
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
@@ -480,7 +496,7 @@ class FakeDataStore(data_store.DataStore):
       for attribute, values in record.iteritems():
         if limit and nr_results >= limit:
           break
-        if regex.match(attribute):
+        if regex.match(utils.SmartStr(attribute)):
           for value, ts in values:
             results_list = results.setdefault(attribute, [])
             # If we are always after the latest ts we clear older ones.
@@ -535,7 +551,7 @@ class FakeDataStore(data_store.DataStore):
 
     i = -1
 
-    super_token = access_control.ACLToken()
+    super_token = access_control.ACLToken(username="test")
     super_token.supervisor = True
     # Grab all the subjects which match the filter
     for subject in sorted(filter_obj.FilterSubjects(

@@ -93,167 +93,146 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     # Wait for flow configuration form to be rendered (just wait for first
     # input field).
     self.WaitUntil(self.IsElementPresent,
-                   "css=.Wizard .HuntFormBody input[name=pathspec_path]")
+                   "css=.Wizard input[id=args-pathspec-path]")
 
     # Change "path", "pathtype", "depth" and "ignore_errors" values
-    self.Type("css=.Wizard .HuntFormBody input[name=pathspec_path]", "/tmp")
-    self.Select("css=.Wizard .HuntFormBody select[name=pathspec_pathtype]",
+    self.Type("css=.Wizard input[id=args-pathspec-path]", "/tmp")
+    self.Select("css=.Wizard select[id=args-pathspec-pathtype]",
                 "TSK")
-    self.Type("css=.Wizard .HuntFormBody input[name=depth]", "42")
-    self.Click("css=.Wizard .HuntFormBody input[name=ignore_errors]")
+    self.Type("css=.Wizard input[id=args-depth]", "42")
+    self.Click("css=.Wizard input[id=args-ignore_errors]")
 
     # Click on "Next" button
-    self.Click("css=.Wizard input.Next")
+    self.Click("css=.Wizard button.Next")
     self.WaitUntil(self.IsTextPresent, "Output Processing")
 
     # Click on "Back" button and check that all the values in the form
     # remain intact.
-    self.Click("css=.Wizard input.Back")
+    self.Click("css=.Wizard button.Back")
     self.WaitUntil(self.IsElementPresent,
-                   "css=.Wizard .HuntFormBody input[name=pathspec_path]")
+                   "css=.Wizard input#args-pathspec-path")
     self.assertEqual(
         "/tmp", self.GetValue(
-            "css=.Wizard .HuntFormBody input[name=pathspec_path]"))
+            "css=.Wizard input#args-pathspec-path"))
     self.assertEqual(
         "TSK",
         self.GetSelectedLabel(
-            "css=.Wizard .HuntFormBody select[name=pathspec_pathtype]"))
+            "css=.Wizard select#args-pathspec-pathtype"))
     self.assertEqual(
         "42",
-        self.GetValue("css=.Wizard .HuntFormBody input[name=depth]"))
+        self.GetValue("css=.Wizard input#args-depth"))
     self.assertTrue(
-        self.IsChecked("css=.Wizard .HuntFormBody input[name=ignore_errors]"))
+        self.IsChecked("css=.Wizard input#args-ignore_errors"))
 
     # Click on "Next" button
-    self.Click("css=.Wizard input.Next")
+    self.Click("css=.Wizard button.Next")
     self.WaitUntil(self.IsTextPresent, "Output Processing")
 
     # Configure the hunt to use a collection and also send an email on results.
-    self.Select("css=.Wizard .Rule:nth-of-type(1) select[name=output_type]",
-                "Send an email")
-    self.Type("css=.Wizard .Rule:nth-of-type(1) input[name=email]",
+    self.Select("css=.Wizard select[id=output_1-option]",
+                "Send an email for each result.")
+    self.Type("css=.Wizard input[id=output_1-email]",
               "test@grrserver.com")
-    self.Click("css=.Wizard input[value='Add another output plugin']")
-    self.Select("css=.Wizard .Rule:nth-of-type(2) select[name=output_type]",
+
+    self.Click("css=.Wizard button:contains('Add Output Plugin')")
+    self.Select("css=.Wizard select[id=output_2-option]",
                 "Store results in a collection")
 
-    # Click on "Next" button again
-    self.Click("css=.Wizard input.Next")
+    # Click on "Next" button
+    self.Click("css=.Wizard button.Next")
     self.WaitUntil(self.IsTextPresent, "Where to run?")
 
     # Create 3 foreman rules
     self.WaitUntil(
         self.IsElementPresent,
-        "css=.Wizard .Rule:nth-of-type(1) select[name=rule_type]")
-    self.Select("css=.Wizard .Rule:nth-of-type(1) select[name=rule_type]",
-                "Regular expression match")
-    self.Type("css=.Wizard .Rule:nth-of-type(1) input[name=attribute_name]",
-              "System")
-    self.Type("css=.Wizard .Rule:nth-of-type(1) input[name=attribute_regex]",
+        "css=.Wizard select[id=rule_1-option]")
+    self.Select("css=.Wizard select[id=rule_1-option]",
+                "Regular Expressions")
+    self.Select("css=.Wizard select[id=rule_1-attribute_name]",
+                "System")
+    self.Type("css=.Wizard input[id=rule_1-attribute_regex]",
               "Linux")
 
-    self.Click("css=.Wizard input[value='Add Rule']")
-    self.Select("css=.Wizard .Rule:nth-of-type(2) select[name=rule_type]",
-                "Integer comparison")
-    self.Type("css=.Wizard .Rule:nth-of-type(2) input[name=attribute_name]",
-              "Clock")
-    self.Select("css=.Wizard .Rule:nth-of-type(2) select[name=operator]",
+    # Make the button visible by scrolling to the bottom.
+    self.driver.execute_script("""
+$("button:contains('Add Rule')").parent().scrollTop(10000)
+""")
+
+    self.Click("css=.Wizard button:contains('Add Rule')")
+    self.Select("css=.Wizard select[id=rule_2-option]",
+                "Integer Rule")
+    self.Select("css=.Wizard select[id=rule_2-attribute_name]",
+                "Clock")
+    self.Select("css=.Wizard select[id=rule_2-operator]",
                 "GREATER_THAN")
-    self.Type("css=.Wizard .Rule:nth-of-type(2) input[name=value]",
+    self.Type("css=.Wizard input[id=rule_2-value]",
               "1336650631137737")
 
-    self.Click("css=.Wizard input[value='Add Rule']")
-    self.Select("css=.Wizard .Rule:nth-of-type(3) select[name=rule_type]",
-                "Mac OS X systems")
+    # Make the button visible by scrolling to the bottom.
+    self.driver.execute_script("""
+$("button:contains('Add Rule')").parent().scrollTop(10000)
+""")
+
+    self.Click("css=.Wizard button:contains('Add Rule')")
+    self.Select("css=.Wizard select[id=rule_3-option]",
+                "OSX")
+
+    # Make the button visible by scrolling to the bottom.
+    self.driver.execute_script("""
+$("button:contains('Add Rule')").parent().scrollTop(10000)
+""")
 
     # Click on "Back" button
-    self.Click("css=.Wizard input.Back")
+    self.Click("css=.Wizard button.Back")
     self.WaitUntil(self.IsTextPresent, "Output Processing")
 
     # Click on "Next" button again and check that all the values that we've just
     # entered remain intact.
-    self.Click("css=.Wizard input.Next")
+    self.Click("css=.Wizard button.Next")
     self.WaitUntil(self.IsTextPresent, "Where to run?")
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=.Wizard .Rule:nth-of-type(1) input[name=attribute_name]")
-
-    self.assertEqual(
-        self.GetSelectedLabel(
-            "css=.Wizard .Rule:nth-of-type(1) select[name=rule_type]"),
-        "Regular expression match")
-    self.assertEqual(
-        self.GetValue(
-            "css=.Wizard .Rule:nth-of-type(1) input[name=attribute_name]"),
-        "System")
-    self.assertEqual(
-        self.GetValue(
-            "css=.Wizard .Rule:nth-of-type(1) input[name=attribute_regex]"),
-        "Linux")
-
-    self.assertEqual(
-        self.GetSelectedLabel(
-            "css=.Wizard .Rule:nth-of-type(2) select[name=rule_type]"),
-        "Integer comparison")
-    self.assertEqual(
-        self.GetValue(
-            "css=.Wizard .Rule:nth-of-type(2) input[name=attribute_name]"),
-        "Clock")
-    self.assertEqual(
-        self.GetSelectedLabel(
-            "css=.Wizard .Rule:nth-of-type(2) select[name=operator]"),
-        "GREATER_THAN")
-    self.assertEqual(
-        self.GetValue("css=.Wizard .Rule:nth-of-type(2) input[name=value]"),
-        "1336650631137737")
-
-    self.assertEqual(
-        self.GetSelectedLabel(
-            "css=.Wizard .Rule:nth-of-type(3) select[name=rule_type]"),
-        "Mac OS X systems")
 
     # Click on "Next" button
-    self.Click("css=.Wizard input.Next")
+    self.Click("css=.Wizard button.Next")
     self.WaitUntil(self.IsTextPresent, "Review")
 
     # Check that the arguments summary is present.
-    self.assertTrue(self.IsTextPresent("Settings"))
-    self.assertTrue(self.IsTextPresent("pathspec"))
+    self.assertTrue(self.IsTextPresent("Pathspec"))
     self.assertTrue(self.IsTextPresent("/tmp"))
-    self.assertTrue(self.IsTextPresent("depth"))
+    self.assertTrue(self.IsTextPresent("Depth"))
     self.assertTrue(self.IsTextPresent("42"))
 
     # Check that output plugins are shown.
-    self.assertTrue(self.IsTextPresent("Send an email"))
+    self.assertTrue(self.IsTextPresent("EmailPlugin"))
     self.assertTrue(self.IsTextPresent("test@grrserver.com"))
-    self.assertTrue(self.IsTextPresent("Store results in a collection."))
+    self.assertTrue(self.IsTextPresent("CollectionPlugin"))
 
     # Check that rules summary is present.
-    self.assertTrue(self.IsTextPresent("Rules"))
-    self.assertTrue(self.IsTextPresent("regex_rules"))
-    self.assertTrue(self.IsTextPresent("actions"))
-
-    # TODO(user): uncomment if we do accurate check for matching client.
-    # self.WaitUntil(self.IsTextPresent,
-    #                "Out of 2 checked clients, 1 matched")
-    # self.WaitUntil(self.IsTextPresent, "aff4:/C.1%015d" % 1)
+    self.assertTrue(self.IsTextPresent("Regex rules"))
 
     # Click on "Run" button
-    self.Click("css=.Wizard input.Next")
+    self.Click("css=.Wizard button.Next")
 
-    # This should be rejected now and a form request is made.
     self.WaitUntil(self.IsTextPresent,
-                   "Create a new approval request")
+                   "Hunt was created!")
 
-    # This asks the user "test" (which is us) to approve the request.
-    self.Type("css=input[id=acl_approver]", "test")
-    self.Type("css=input[id=acl_reason]", "test reason")
-    self.Click("acl_dialog_submit")
+    # Close the window and check that cron job object was created.
+    self.Click("css=button.Finish")
 
-    # Both the "Request Approval" dialog and the wizard should go away
-    # after the submit button is pressed.
-    self.WaitUntilNot(self.IsTextPresent, "Create a new approval request")
-    self.WaitUntilNot(self.IsTextPresent, "Ok!")
+    # Select newly created cron job.
+    self.Click("css=td:contains('GenericHunt')")
+
+    # Check that correct details are displayed in cron job details tab.
+    self.WaitUntil(self.IsTextPresent, "GenericHunt")
+    self.WaitUntil(self.IsTextPresent, "Flow args")
+
+    self.assertTrue(self.IsTextPresent("Pathspec"))
+    self.assertTrue(self.IsTextPresent("/tmp"))
+    self.assertTrue(self.IsTextPresent("Depth"))
+    self.assertTrue(self.IsTextPresent("42"))
+
+    self.assertTrue(self.IsTextPresent("EmailPlugin"))
+    self.assertTrue(self.IsTextPresent("test@grrserver.com"))
+    self.assertTrue(self.IsTextPresent("CollectionPlugin"))
 
     # Check that the hunt object was actually created
     hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
@@ -262,46 +241,34 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     # Check that the hunt was created with a correct flow
     hunt = hunts_list[0]
-    self.assertEqual(hunt.state.flow_name, "DownloadDirectory")
-    self.assertEqual(hunt.state.args["pathspec"].path, "/tmp")
-    self.assertEqual(hunt.state.args["pathspec"].pathtype,
+    self.assertEqual(hunt.state.args.flow_runner_args.flow_name,
+                     "DownloadDirectory")
+    self.assertEqual(hunt.state.args.flow_args.pathspec.path, "/tmp")
+    self.assertEqual(hunt.state.args.flow_args.pathspec.pathtype,
                      rdfvalue.PathSpec.PathType.TSK)
-    self.assertEqual(hunt.state.args["depth"], 42)
-    self.assertEqual(hunt.state.args["ignore_errors"], True)
-    self.assertTrue(("CollectionPlugin", {}) in hunt.state.output_plugins)
-    self.assertTrue(("EmailPlugin", {"email": "test@grrserver.com"})
-                    in hunt.state.output_plugins)
+    self.assertEqual(hunt.state.args.flow_args.depth, 42)
+    # self.assertEqual(hunt.state.args.flow_args.ignore_errors, True)
+    self.assertTrue(hunt.state.args.output_plugins[0].plugin_name,
+                    "EmailPlugin")
 
     # Check that hunt was not started
-    self.assertEqual(hunt.state.context.hunt_state, hunt.STATE_STOPPED)
+    self.assertEqual(hunt.state.context.args.state,
+                     rdfvalue.HuntRunnerArgs.State.PAUSED)
 
-    # Check that the hunt object was actually created
-    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
-    hunts_list = list(hunts_root.OpenChildren())
-    self.assertEqual(len(hunts_list), 1)
+    # Now try to start the hunt.
+    self.Click("css=button[name=RunHunt]")
 
-    # Check that the hunt was created with a correct flow
-    hunt = hunts_list[0]
-    self.assertEqual(hunt.state.flow_name, "DownloadDirectory")
-    self.assertEqual(hunt.state.args["pathspec"].path, "/tmp")
-    self.assertEqual(hunt.state.args["pathspec"].pathtype,
-                     rdfvalue.PathSpec.PathType.TSK)
-    self.assertEqual(hunt.state.args["depth"], 42)
-    self.assertEqual(hunt.state.args["ignore_errors"], True)
-
-    # TODO(user): is readonly access to foreman restricted?
-    with self.ACLChecksDisabled():
-      hunt_rules = self.FindForemanRules(hunt, token=self.token)
-    self.assertEquals(len(hunt_rules), 0)
+    # Note that hunt ACL controls are already tested in acl_manager_test.py.
 
     # Run the hunt.
     with self.ACLChecksDisabled():
-      hunt = aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token)
-      hunt.Run()
+      with aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token) as hunt:
+        hunt.Run()
 
     # Check that the hunt was created with correct rules
     with self.ACLChecksDisabled():
       hunt_rules = self.FindForemanRules(hunt, token=self.token)
+
     self.assertEquals(len(hunt_rules), 1)
     self.assertTrue(
         abs(int((hunt_rules[0].expires - hunt_rules[0].created) * 1e-6) -

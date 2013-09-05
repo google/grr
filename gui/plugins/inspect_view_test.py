@@ -38,7 +38,7 @@ class TestInspectView(test_lib.GRRSeleniumTest):
 
     self.Click("css=a:contains(Interrogate)")
 
-    self.Click("css=input[value=Launch]")
+    self.Click("css=button.Launch")
 
     # Open the "Advanced" dropdown.
     self.Click("css=a[href='#HostAdvanced']")

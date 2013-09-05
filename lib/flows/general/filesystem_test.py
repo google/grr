@@ -5,6 +5,7 @@
 import os
 
 from grr.lib import aff4
+from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
@@ -132,8 +133,9 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     self.assertRaises(IOError, client.OpenMember, pb.first.path)
 
     # Check that the hash is recorded correctly.
+    sha256 = fd.Get(fd.Schema.HASH).sha256
     self.assertEqual(
-        str(fd.Get(fd.Schema.HASH)),
+        sha256,
         "67d4ff71d43921d5739f387da09746f405e425b07d727e4c69d029461d1f051f")
 
   def testGlob(self):
@@ -141,37 +143,41 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Add some usernames we can interpolate later.
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    client.Set(client.Schema.USERNAMES("test syslog"))
+    users = client.Schema.USER()
+    users.Append(username="test")
+    users.Append(username="syslog")
+    client.Set(users)
     client.Close()
 
-    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+    client_mock = test_lib.ActionMock("Find", "StatFile")
 
     # This glob selects all files which start with the username on this system.
-    path = os.path.join(self.base_path, "%%Usernames%%*")
+    paths = [os.path.join(self.base_path, "%%Users.username%%*"),
+             os.path.join(self.base_path, "wtmp")]
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
         "Glob", client_mock, client_id=self.client_id,
-        paths=[path], pathtype=rdfvalue.PathSpec.PathType.OS,
+        paths=paths, pathtype=rdfvalue.PathSpec.PathType.OS,
         token=self.token):
       pass
 
     output_path = self.client_id.Add("fs/os").Add(
         self.base_path.replace("\\", "/"))
 
-    count = 0
+    children = []
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     for child in fd.ListChildren():
-      childname = child.Basename()
-      self.assertTrue(childname.startswith("test") or
-                      childname.startswith("syslog"))
-      count += 1
+      children.append(child.Basename())
 
     # We should find some files.
-    self.assertTrue(count >= 6)
+    self.assertEqual(sorted(children),
+                     sorted(["syslog", "syslog_compress.gz",
+                             "syslog_false.gz", "test_img.dd", "test.plist",
+                             "tests", "tests_long", "wtmp"]))
 
   def testGlobWithWildcardsInsideTSKFile(self):
-    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+    client_mock = test_lib.ActionMock("Find", "StatFile")
 
     # This glob should find this file in test data: glob_test/a/b/foo.
     path = os.path.join(self.base_path, "test_img.dd", "*", "a", "b", "*")
@@ -193,7 +199,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     self.assertEqual(children[0].Basename(), "foo")
 
   def testGlobWithWildcardInTSKFilename(self):
-    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+    client_mock = test_lib.ActionMock("Find", "StatFile")
 
     # This glob should find this file in test data: glob_test/a/b/foo.
     path = os.path.join(self.base_path, "test_img.*", "*", "a", "b", "*")
@@ -239,7 +245,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     client.Close()
 
-    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+    client_mock = test_lib.ActionMock("Find", "StatFile")
 
     # This glob selects all files which start with the username on this system.
     path = os.path.join(os.path.dirname(self.base_path),
@@ -264,7 +270,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     pattern = "test_data/{ntfs_img.dd,*.log,*.raw}"
 
-    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+    client_mock = test_lib.ActionMock("Find", "StatFile")
     path = os.path.join(os.path.dirname(self.base_path), pattern)
 
     # Run the flow.
@@ -276,22 +282,39 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
   def testIllegalGlob(self):
     """Test that illegal globs raise."""
 
-    pattern = "Test/%%Weird_illegal_attribute%%"
-
-    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
-    path = os.path.join(os.path.dirname(self.base_path), pattern)
+    paths = ["Test/%%Weird_illegal_attribute%%"]
 
     # Run the flow - we expect an AttributeError error to be raised from the
     # flow since Weird_illegal_attribute is not a valid client attribute.
-    self.assertRaises(AttributeError, list, test_lib.TestFlowHelper(
-        "Glob", client_mock, client_id=self.client_id,
-        paths=[path], token=self.token))
+    self.assertRaises(AttributeError, flow.GRRFlow.StartFlow,
+                      flow_name="Glob", paths=paths,
+                      client_id=self.client_id, token=self.token)
+
+  def testIllegalGlobAsync(self):
+    # When running the flow asynchronously, we will not receive any errors from
+    # the Start method, but the flow should still fail.
+    paths = ["Test/%%Weird_illegal_attribute%%"]
+    client_mock = test_lib.ActionMock("Find", "StatFile")
+
+    # Run the flow.
+    session_id = None
+
+    # This should not raise here since the flow is run asynchronously.
+    for session_id in test_lib.TestFlowHelper(
+        "Glob", client_mock, client_id=self.client_id, check_flow_errors=False,
+        paths=paths, pathtype=rdfvalue.PathSpec.PathType.OS, token=self.token,
+        sync=False):
+      pass
+
+    fd = aff4.FACTORY.Open(session_id, token=self.token)
+    self.assertTrue("AttributeError" in fd.state.context.backtrace)
+    self.assertEqual("ERROR", str(fd.state.context.state))
 
   def testGlobAndDownload(self):
 
     pattern = "test_data/*.log"
 
-    client_mock = test_lib.ActionMock("ListDirectory", "TransferBuffer",
+    client_mock = test_lib.ActionMock("Find", "TransferBuffer",
                                       "StatFile")
     path = os.path.join(os.path.dirname(self.base_path), pattern)
 
@@ -308,57 +331,54 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
       # Make sure that some data was downloaded.
       self.assertTrue(fd.Get(fd.Schema.SIZE) > 100)
 
-  def BrokenTestGlobAndGrep(self):
-    """Disabled test.
-
-    TODO(user): this test doesn't work because globandrunflow runs
-    multiple greps that all trash each others output collections.
-    """
+  def testGlobAndGrep(self):
     pattern = "test_data/*.log"
 
-    client_mock = test_lib.ActionMock("ListDirectory", "Grep", "StatFile")
+    client_mock = test_lib.ActionMock("Find", "Grep", "StatFile")
     path = os.path.join(os.path.dirname(self.base_path), pattern)
 
-    args = {"request": rdfvalue.GrepSpec(
-        target=rdfvalue.PathSpec(),
+    args = rdfvalue.GlobAndGrepArgs(output="analysis/grep/testing",
+                                    paths=[path])
+
+    args.grep = rdfvalue.BareGrepSpec(
         literal="session opened for user dearjohn",
         mode=rdfvalue.GrepSpec.Mode.ALL_HITS
-        ),
-            "output": "analysis/grep/testing"}
+        )
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
         "GlobAndGrep", client_mock, client_id=self.client_id,
-        paths=[path], token=self.token, **args):
+        args=args, token=self.token):
       pass
 
     fd = aff4.FACTORY.Open(
         rdfvalue.RDFURN(self.client_id).Add("/analysis/grep/testing"),
         token=self.token)
+
     # Make sure that there is a hit.
-    # TODO(user): multiple runs of this test sometimes return 0 results.
     self.assertEqual(len(fd), 1)
     first = fd[0]
+
     self.assertEqual(first.offset, 350)
     self.assertEqual(first.data,
                      "session): session opened for user dearjohn by (uid=0")
 
   def testGlobAndListDirectory(self):
-
+    """Check we can list a directory using the Glob flow."""
     fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(
         os.path.join(os.path.dirname(self.base_path), "test_data")),
                            token=self.token)
     self.assertEqual(len(list(fd.ListChildren())), 0)
 
-    pattern = "test_*"
+    pattern = "test_*/*"
 
-    client_mock = test_lib.ActionMock("ListDirectory", "TransferBuffer",
+    client_mock = test_lib.ActionMock("Find", "ListDirectory",
                                       "StatFile")
     path = os.path.join(os.path.dirname(self.base_path), pattern)
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
-        "GlobAndListDirectory", client_mock, client_id=self.client_id,
+        "Glob", client_mock, client_id=self.client_id,
         paths=[path], token=self.token):
       pass
 
