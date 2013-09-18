@@ -9,11 +9,6 @@ from grr.lib import type_info
 from grr.proto import jobs_pb2
 
 
-config_lib.DEFINE_string("Logging.domain", "",
-                         "The email domain belonging to this installation. "
-                         "Leave blank to not restrict email to this domain")
-
-
 class RegularExpression(rdfvalue.RDFString):
   """A semantic regular expression."""
 

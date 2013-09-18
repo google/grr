@@ -31,28 +31,6 @@ from grr.lib import config_lib
 from grr.lib import utils
 
 
-config_lib.DEFINE_list(
-    "Installer.old_key_map", [
-        "HKEY_LOCAL_MACHINE\\Software\\GRR\\certificate->Client.private_key",
-        "HKEY_LOCAL_MACHINE\\Software\\GRR\\server_serial_number"
-        "->Client.server_serial_number",
-        ],
-    """
-A mapping of old registry values which will be copied to new values. The old
-value location must start with a valid hive name, followed by a key name, and
-end with the value name. The source location must be separated from the new
-parameter name by a -> symbol.
-
-This setting allows to carry over settings from obsolete client installations to
-newer versions of the client which may store the same information in other
-locations.
-
-For example:
-
-  HKEY_LOCAL_MACHINE\\Software\\GRR\\certificate -> Client.private_key
-""")
-
-
 class CheckForWow64(installer.Installer):
   """Check to ensure we are not running on a Wow64 system."""
 
@@ -176,7 +154,7 @@ class WindowsInstaller(installer.Installer):
 
     new_config.Write()
 
-    args = [config_lib.CONFIG["Nanny.nanny_binary"],
+    args = [config_lib.CONFIG["Nanny.binary"],
             "--service_key",
             config_lib.CONFIG["Nanny.service_key"],
             "install"]

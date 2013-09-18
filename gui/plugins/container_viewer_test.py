@@ -20,15 +20,16 @@ from grr.lib import test_lib
 class TestContainerViewer(test_lib.GRRSeleniumTest):
   """Test the collection viewer interface."""
 
-  @staticmethod
-  def CreateCollectionFixture():
+  def CreateCollectionFixture(self):
     """Creates a new collection we can play with."""
     # Create a client for testing
     client_id = rdfvalue.ClientURN("C.0000000000000001")
     token = access_control.ACLToken(username="test", reason="Fixture")
 
     fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=token)
-    fd.Set(fd.Schema.CERT(config_lib.CONFIG["Client.certificate"]))
+    certificate = rdfvalue.RDFX509Cert(self.ClientCertFromPrivateKey(
+        config_lib.CONFIG["Client.private_key"]).as_pem())
+    fd.Set(fd.Schema.CERT(certificate))
     fd.Close()
 
     # Install the mock

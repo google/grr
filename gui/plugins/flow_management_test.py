@@ -144,6 +144,20 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     # The window should be updated now
     self.WaitUntil(self.IsTextPresent, "Cancelled in GUI")
 
+  def testGlobalFlowManagement(self):
+    """Test that scheduling flows works."""
+    with self.ACLChecksDisabled():
+      self.GrantClientApproval("C.0000000000000001")
+
+    self.Open("/")
+
+    self.Click("css=a[grrtarget=GlobalLaunchFlows]")
+    self.Click("css=#_Reporting")
+
+    self.assertEqual("RunReport", self.GetText("link=RunReport"))
+    self.Click("link=RunReport")
+    self.WaitUntil(self.IsTextPresent, "Report name")
+
 
 def main(argv):
   # Run the full test suite

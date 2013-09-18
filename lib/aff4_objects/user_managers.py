@@ -220,24 +220,12 @@ class BasicAccessControlManager(access_control.BaseAccessControlManager):
   # pylint: enable=unused-argument
 
 
-class NullAccessControlManager(access_control.BaseAccessControlManager):
+class NullAccessControlManager(BasicAccessControlManager):
   """An ACL manager which does not enforce any ACLs."""
 
   user_manager_cls = DataStoreUserManager
 
   # pylint: disable=unused-argument
-  def CheckHuntAccess(self, token, hunt_urn):
-    """Allow all access."""
-    return True
-
-  def CheckFlowAccess(self, token, flow_name, client_id=None):
-    """Allow all access."""
-    return True
-
-  def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
-    """Allow all access."""
-    return True
-
   def CheckUserLabels(self, username, authorized_labels):
     """Allow all access."""
     return True

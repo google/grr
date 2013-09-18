@@ -7,6 +7,7 @@ import platform
 if platform.system() == "Linux":
   from grr.lib.builders import linux
   LinuxClientBuilder = linux.LinuxClientBuilder
+  CentosClientBuilder = linux.CentosClientBuilder
 
 elif platform.system() == "Windows":
   from grr.lib.builders import windows

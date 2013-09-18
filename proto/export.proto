@@ -41,6 +41,21 @@ message ExportedMetadata {
     }];
 }
 
+
+message ExportedClient {
+  optional ExportedMetadata metadata = 1;
+}
+
+
+message ExportedNetworkInterface {
+  optional ExportedMetadata metadata = 1;
+
+  optional string mac_address = 2;
+  optional string ifname = 3;
+  optional string ip4_addresses = 4;
+  optional string ip6_addresses = 5;
+}
+
 message ExportedFile {
   optional ExportedMetadata metadata = 1;
 
@@ -53,7 +68,7 @@ message ExportedFile {
       description: "Basename of the file."
     }];
 
-  optional uint32 st_mode = 4 [(sem_type) = {
+  optional uint64 st_mode = 4 [(sem_type) = {
       type: "StatMode",
       description: "A unix file permission mode."
     }];

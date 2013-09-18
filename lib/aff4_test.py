@@ -366,9 +366,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertEqual(fd.Read(13), "Test%08X\n" % i)
 
   def WriteImage(self, path, prefix="Test", timestamp=0):
-    old_time = time.time
-    try:
-      time.time = lambda: timestamp
+    with test_lib.Stubber(time, "time", lambda: timestamp):
       fd = aff4.FACTORY.Create(path, "AFF4Image", mode="w", token=self.token)
       timestamp += 1
       fd.SetChunksize(10)
@@ -385,9 +383,6 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
         timestamp += 1
 
       fd.Close()
-
-    finally:
-      time.time = old_time
 
   def testAFF4ImageWithVersioning(self):
     """Make sure the AFF4Image can do multiple versions."""
@@ -529,17 +524,16 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     client_id = "C.%016X" % 0
     test_lib.ClientFixture(client_id, token=self.token)
 
-    old_time = time.time
-    try:
-      file_url = aff4.ROOT_URN.Add(client_id).Add("/fs/os/c/time/file.txt")
-      for t in [1000, 1500, 2000, 2500]:
-        time.time = lambda: t
-
+    file_url = aff4.ROOT_URN.Add(client_id).Add("/fs/os/c/time/file.txt")
+    for t in [1000, 1500, 2000, 2500]:
+      with test_lib.Stubber(time, "time", lambda: t):
         f = aff4.FACTORY.Create(rdfvalue.RDFURN(file_url), "VFSFile",
                                 token=self.token)
         f.write(str(t))
         f.Close()
 
+    # The following tests occur sometime in the future (time 3000).
+    with test_lib.Stubber(time, "time", lambda: 3000):
       fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
           "/fs/os/c/time"), token=self.token)
 
@@ -550,7 +544,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertEqual(matched[0].read(100), "2500")
 
       # Query for the latest entry.
-      matched = list(fd.Query(u"subject matches 'file'", age=aff4.NEWEST_TIME))
+      matched = list(fd.Query(u"subject matches 'file'",
+                              age=aff4.NEWEST_TIME))
       self.assertEqual(len(matched), 2)
       self.assertEqual(matched[0].read(100), "2500")
 
@@ -570,9 +565,6 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       matched = list(fd.Query(u"subject matches 'file'", age=(0, 1600 * 1e6)))
       self.assertEqual(len(matched), 2)
       self.assertEqual(matched[0].read(100), "1500")
-
-    finally:
-      time.time = old_time
 
   def testChangeNotifications(self):
     rule_fd = aff4.FACTORY.Create(
@@ -595,15 +587,14 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
   def testNotificationRulesArePeriodicallyUpdated(self):
     current_time = time.time()
+
+    # Be sure that we're well in advance from the time when aff4.FACTORY
+    # got intialized.
     time_in_future = (
         current_time +
         config_lib.CONFIG["AFF4.notification_rules_cache_age"] + 1)
-    old_time = time.time
-    try:
-      # Be sure that we're well in advance from the time when aff4.FACTORY
-      # got intialized.
-      time.time = lambda: time_in_future
 
+    with test_lib.Stubber(time, "time", lambda: time_in_future):
       fd = aff4.FACTORY.Create(
           rdfvalue.RDFURN("aff4:/some"),
           aff4_type="AFF4Object",
@@ -653,8 +644,6 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
       # Rules have been already reloaded.
       self.assertEquals(len(MockNotificationRule.OBJECTS_WRITTEN), 1)
-    finally:
-      time.time = old_time
 
   def testListChildren(self):
     root_urn = aff4.ROOT_URN.Add("path")
@@ -815,10 +804,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertRaises(aff4.LockError, TryOpen)
 
   def testLockHasLimitedLeaseTime(self):
-    original_time = time.time
-    try:
-      time.time = lambda: 100
-
+    with test_lib.Stubber(time, "time", lambda: 100):
       client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
                                    token=self.token)
       client.Set(client.Schema.HOSTNAME("client1"))
@@ -852,9 +838,6 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
       self.assertTrue(lock_error_catched)
 
-    finally:
-      time.time = original_time
-
   def testUpdateLeaseRaisesIfObjectIsNotLocked(self):
     client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
                                  token=self.token)
@@ -865,10 +848,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertRaises(aff4.LockError, client.UpdateLease, 100)
 
   def testUpdateLeaseRaisesIfLeaseHasExpired(self):
-    original_time = time.time
-    try:
-      time.time = lambda: 100
-
+    with test_lib.Stubber(time, "time", lambda: 100):
       client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
                                    token=self.token)
       client.Set(client.Schema.HOSTNAME("client1"))
@@ -885,14 +865,21 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
         # time has expired. Ignoring this exception.
         pass
 
-    finally:
-      time.time = original_time
+  def testCheckLease(self):
+    with test_lib.Stubber(time, "time", lambda: 100):
+      client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
+                                   token=self.token)
+      client.Set(client.Schema.HOSTNAME("client1"))
+      client.Close()
+
+      with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                     lease_time=300) as fd:
+        self.assertEqual(fd.CheckLease(), 300)
+        time.time = lambda: 200
+        self.assertEqual(fd.CheckLease(), 200)
 
   def testUpdateLeaseWorksCorrectly(self):
-    original_time = time.time
-    try:
-      time.time = lambda: 100
-
+    with test_lib.Stubber(time, "time", lambda: 100):
       client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
                                    token=self.token)
       client.Set(client.Schema.HOSTNAME("client1"))
@@ -910,9 +897,6 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
                                          blocking=False):
             pass
         self.assertRaises(aff4.LockError, TryOpen)
-
-    finally:
-      time.time = original_time
 
   def testLockProtectedAttributesWorkCorrectly(self):
     obj = aff4.FACTORY.Create("aff4:/obj", "ObjectWithLockProtectedAttribute",
@@ -938,6 +922,43 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     obj.Set(obj.Schema.UNPROTECTED_ATTR("value"))
     obj.Set(obj.Schema.LOCK_PROTECTED_ATTR("value"))
     obj.Close()
+
+  def testLabels(self):
+    """Check we can set and remove labels."""
+    client1 = aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
+                                  mode="rw", token=self.token)
+    client_schema = client1.Schema
+    client1.Set(client_schema.HOSTNAME("client1"))
+    labels = ["label1", "label2", "label3"]
+    client1.AddLabels(labels)
+    client1.Flush()
+    self.assertEquals(labels, list(client1.Get(client_schema.LABEL)))
+
+    client1.RemoveLabels(["label1"])
+    client1.Flush()
+    self.assertEquals(["label2", "label3"],
+                      list(client1.Get(client_schema.LABEL)))
+
+  def testLabelIndexes(self):
+    """Check we can set and remove labels and indexes get handled."""
+    client1 = aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
+                                  mode="rw", token=self.token)
+    client_schema = client1.Schema
+    client1.Set(client_schema.HOSTNAME("client1"))
+    labels = ["label1", "label2", "label3"]
+    client1.AddLabels(labels)
+    client1.Flush()
+
+    label_index_urn = rdfvalue.RDFURN("aff4:/index/label")
+    label_index = aff4.FACTORY.Create(label_index_urn, "AFF4Index", mode="r",
+                                      token=self.token)
+    index_results = label_index.Query([client_schema.LABEL], "label1")
+    self.assertEquals(index_results, [client1.urn])
+
+    client1.RemoveLabels(["label1"])
+    client1.Flush()
+    index_results = label_index.Query([client_schema.LABEL], "label1")
+    self.assertEquals(index_results, [])
 
 
 class AFF4SymlinkTestSubject(aff4.AFF4Volume):

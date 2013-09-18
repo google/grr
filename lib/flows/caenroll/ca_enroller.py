@@ -7,7 +7,6 @@ import time
 
 from M2Crypto import ASN1
 from M2Crypto import EVP
-from M2Crypto import RSA
 from M2Crypto import X509
 
 import logging
@@ -48,7 +47,7 @@ class CAEnroler(flow.GRRFlow):
 
     logging.info("Will sign CSR for: %s", self.cn)
 
-    cert = self.MakeCert(req)
+    cert = self.MakeCert(self.cn, req)
 
     # This check is important to ensure that the client id reported in the
     # source of the enrollment request is the same as the one in the
@@ -75,14 +74,14 @@ class CAEnroler(flow.GRRFlow):
     self.CallClient("SaveCert", pem=cert.as_pem(),
                     type=rdfvalue.Certificate.Type.CRT, next_state="End")
 
-  def MakeCert(self, req):
+  def MakeCert(self, cn, req):
     """Make new cert for the client."""
     # code inspired by M2Crypto unit tests
 
     cert = X509.X509()
     # Use the client CN for a cert serial_id. This will ensure we do
     # not have clashing cert id.
-    cert.set_serial_number(int(self.cn.Basename().split(".")[1], 16))
+    cert.set_serial_number(int(cn.Basename().split(".")[1], 16))
     cert.set_version(2)
     cert.set_subject(req.get_subject())
     t = long(time.time()) - 10
@@ -97,12 +96,11 @@ class CAEnroler(flow.GRRFlow):
     cert.set_not_after(now_plus_year)
 
     # Get the CA issuer:
-    ca_data = config_lib.CONFIG["CA.certificate"]
-    ca_cert = X509.load_cert_string(ca_data)
+    ca_cert = config_lib.CONFIG["CA.certificate"].GetX509Cert()
     cert.set_issuer(ca_cert.get_issuer())
     cert.set_pubkey(req.get_pubkey())
 
-    ca_key = RSA.load_key_string(config_lib.CONFIG["PrivateKeys.ca_key"])
+    ca_key = config_lib.CONFIG["PrivateKeys.ca_key"].GetPrivateKey()
     key_pair = EVP.PKey(md="sha256")
     key_pair.assign_rsa(ca_key)
 

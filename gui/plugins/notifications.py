@@ -8,6 +8,9 @@ import urllib
 from django import http
 
 from grr.gui import renderers
+from grr.gui.plugins import forms
+from grr.gui.plugins import semantic
+
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -54,22 +57,91 @@ class NotificationBar(renderers.TemplateRenderer):
   </div>
 </div>
 
+<div id="user_settings_dialog" class="modal hide" tabindex="-1"
+  role="dialog" aria-hidden="true">
+</div>
+
 <ul class="nav pull-left">
   <li><p class="navbar-text">User: {{this.user|escape}}</p></li>
 </ul>
 
-<ul class="nav pull-right">
-  <li><button id="notification_button" class="nav-btn btn btn-info span1"
-         data-toggle="modal" data-target="#notification_dialog"/></li>
-</ul>
+<div id="notifications_and_settings" class="pull-right">
+  <button id="notification_button" class="btn btn-info span1"
+         data-toggle="modal" data-target="#notification_dialog"
+         style="margin-right: 10px" />
+  <button id="user_settings_button" class="btn" data-toggle="modal"
+    data-target="#user_settings_dialog">
+     <img src="static/images/modify.png" style="height: 17px; margin-top: -2px">
+  </button>
+</div>
 """)
 
   def Layout(self, request, response):
     """Show the number of notifications outstanding for the user."""
     self.user = request.user
-
     response = super(NotificationBar, self).Layout(request, response)
-    return self.CallJavascript(response, "NotificationBar.Layout")
+    return self.CallJavascript(response, "Layout")
+
+
+class UpdateSettingsFlow(flow.GRRFlow):
+  """Update the User's GUI settings."""
+  # This flow can run without ACL enforcement (an SUID flow).
+  ACL_ENFORCED = False
+
+  args_type = rdfvalue.GUISettings
+
+  @flow.StateHandler()
+  def Start(self):
+    with aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users").Add(self.token.username),
+        aff4_type="GRRUser", mode="w",
+        token=self.token) as user_fd:
+      user_fd.Set(user_fd.Schema.GUI_SETTINGS(self.args))
+
+
+class UserSettingsDialog(renderers.ConfirmationDialogRenderer):
+  """Dialog that allows user to change his settings."""
+
+  header = "Settings"
+  proceed_button_title = "Apply"
+
+  content_template = renderers.Template("""
+{{this.user_settings_form|safe}}
+""")
+
+  ajax_template = renderers.Template("""
+Settings were successfully updated. Reloading...
+""")
+
+  def GetUserSettings(self, request):
+    try:
+      user_record = aff4.FACTORY.Open(
+          aff4.ROOT_URN.Add("users").Add(request.user), "GRRUser",
+          token=request.token)
+
+      return user_record.Get(user_record.Schema.GUI_SETTINGS)
+    except IOError:
+      return aff4.GRRUser.SchemaCls.GUI_SETTINGS()
+
+  def Layout(self, request, response):
+    user_settings = self.GetUserSettings(request)
+    self.user_settings_form = forms.SemanticProtoFormRenderer(
+        proto_obj=user_settings, prefix="settings").RawHTML()
+
+    return super(UserSettingsDialog, self).Layout(request, response)
+
+  def RenderAjax(self, request, response):
+    """Ajax hanlder for this renderer."""
+    settings = forms.SemanticProtoFormRenderer(
+        proto_obj=rdfvalue.GUISettings(),
+        prefix="settings").ParseArgs(request)
+
+    flow.GRRFlow.StartFlow(flow_name="UpdateSettingsFlow",
+                           args=settings, token=request.token)
+
+    response = self.RenderFromTemplate(self.ajax_template, response,
+                                       unique=self.unique)
+    return self.CallJavascript(response, "RenderAjax")
 
 
 class ResetUserNotifications(flow.GRRFlow):
@@ -96,9 +168,9 @@ class ViewNotifications(renderers.TableRenderer):
   def __init__(self, **kwargs):
     renderers.TableRenderer.__init__(self, **kwargs)
 
-    self.AddColumn(renderers.RDFValueColumn("Timestamp"))
-    self.AddColumn(renderers.RDFValueColumn("Message", width="100%"))
-    self.AddColumn(renderers.RDFValueColumn("Target"))
+    self.AddColumn(semantic.RDFValueColumn("Timestamp"))
+    self.AddColumn(semantic.RDFValueColumn("Message", width="100%"))
+    self.AddColumn(semantic.RDFValueColumn("Target"))
 
   def Layout(self, request, response):
     response = super(ViewNotifications, self).Layout(request, response)
@@ -111,8 +183,11 @@ class ViewNotifications(renderers.TableRenderer):
 
     # We modify this object by changing the notification from pending to
     # shown.
-    user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add(
-        request.user), aff4_type="GRRUser", token=request.token)
+    try:
+      user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add(
+          request.user), aff4_type="GRRUser", token=request.token)
+    except IOError:
+      return
 
     # Hack for sorting. Requires retrieval of all notifications.
     notifications = list(user_fd.ShowNotifications(reset=False))

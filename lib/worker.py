@@ -7,7 +7,6 @@ import time
 import traceback
 
 
-
 import logging
 
 from grr.lib import aff4

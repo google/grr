@@ -6,6 +6,7 @@ Contains the startup routines and Init functions for initializing GRR.
 
 import os
 import platform
+import sys
 
 from grr.lib import config_lib
 from grr.lib import flags
@@ -46,7 +47,7 @@ def ClientPluginInit():
   """
   for plugin in config_lib.CONFIG["Client.plugins"]:
     config_lib.PluginLoader.LoadPlugin(
-        os.path.join(config_lib.CONFIG["Client.install_path"], plugin))
+        os.path.join(os.path.dirname(sys.executable), plugin))
 
 
 def ClientLoggingStartupInit():

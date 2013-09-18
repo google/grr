@@ -9,8 +9,6 @@ import os
 import time
 
 
-from M2Crypto import RSA
-
 from grr.client.client_actions import standard
 from grr.lib import config_lib
 from grr.lib import flags
@@ -107,7 +105,7 @@ class TestExecutePython(test_lib.EmptyActionTest):
     python_code = "print 'test'"
 
     # Generate a test valid RSA key that isn't the real one.
-    signing_key = RSA.gen_key(2048, 65537).as_pem(None)
+    signing_key = rdfvalue.PEMPrivateKey.GenKey(2048, 65537)
     signed_blob = rdfvalue.SignedBlob()
     signed_blob.Sign(python_code, signing_key)
     request = rdfvalue.ExecutePythonRequest(python_code=signed_blob)

@@ -16,6 +16,7 @@ class TakeScreenshot(flow.GRRFlow):
   """Take a screenshot from a running system."""
 
   category = "/Misc/"
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state=["RetrieveFile"])
   def Start(self):

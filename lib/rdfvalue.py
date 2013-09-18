@@ -50,7 +50,7 @@ class InitializeError(Error):
   """Raised when we can not initialize from this parameter."""
 
 
-class DecodeError(InitializeError):
+class DecodeError(InitializeError, ValueError):
   """Generated when we can not decode the data."""
 
   def __init__(self, msg):
@@ -256,7 +256,8 @@ class HashDigest(RDFBytes):
     return self._value.encode("hex")
 
   def __eq__(self, other):
-    return self._value == other or self._value.encode("hex") == other
+    return (self._value == utils.SmartStr(other) or
+            self._value.encode("hex") == other)
 
   def __ne__(self, other):
     return not self == other  # pylint: disable=g-comparison-negation
@@ -397,6 +398,10 @@ class RDFDatetime(RDFInteger):
   def Now(self):
     self._value = int(time.time() * self.converter)
     return self
+
+  def Format(self, fmt):
+    """Return the value as a string formatted as per strftime semantics."""
+    return time.strftime(fmt, time.gmtime(self._value / self.converter))
 
   def __str__(self):
     """Return the date in human readable (UTC)."""

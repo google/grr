@@ -135,8 +135,9 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
               "test@grrserver.com")
 
     self.Click("css=.Wizard button:contains('Add Output Plugin')")
-    self.Select("css=.Wizard select[id=output_2-option]",
-                "Store results in a collection")
+    self.Select(
+        "css=.Wizard select[id=output_2-option]",
+        "         Store results in a collection.\n          (default)\n     ")
 
     # Click on "Next" button
     self.Click("css=.Wizard button.Next")
@@ -196,10 +197,10 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.WaitUntil(self.IsTextPresent, "Review")
 
     # Check that the arguments summary is present.
-    self.assertTrue(self.IsTextPresent("Pathspec"))
-    self.assertTrue(self.IsTextPresent("/tmp"))
-    self.assertTrue(self.IsTextPresent("Depth"))
-    self.assertTrue(self.IsTextPresent("42"))
+    self.WaitUntil(self.IsTextPresent, "Pathspec")
+    self.WaitUntil(self.IsTextPresent, "/tmp")
+    self.WaitUntil(self.IsTextPresent, "Depth")
+    self.WaitUntil(self.IsTextPresent, "42")
 
     # Check that output plugins are shown.
     self.assertTrue(self.IsTextPresent("EmailPlugin"))

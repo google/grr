@@ -311,7 +311,8 @@ class FakeDataStore(data_store.DataStore):
         return utils.SmartStr(value)
 
   @utils.Synchronized
-  def DeleteSubject(self, subject, token=None):
+  def DeleteSubject(self, subject, sync=False, token=None):
+    _ = sync
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     try:
       del self.subjects[subject]

@@ -1,0 +1,130 @@
+#!/bin/bash
+# chkconfig: 2345 90 90
+# description: %(Client.name) client
+### BEGIN INIT INFO
+# Provides: %(Client.binary_name)
+# Required-Start: network
+# Required-Stop: network
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Description: Start the program
+### END INIT INFO
+
+START_CMD="%(ClientBuilder.target_dir)/%(Client.binary_name) --config=%(ClientBuilder.target_dir)/%(ClientBuilder.config_filename)"
+NAME="%(Client.binary_name)"
+PGREP_STRING="%(ClientBuilder.target_dir)/%(Client.binary_name)"
+PID_FILE="/var/run/%(Client.binary_name)/%(Client.binary_name).pid"
+
+### No further muckin' about needed!
+
+CUR_USER=`whoami`
+
+killproc\(\) {
+  pkill -f $PGREP_STRING
+}
+
+start_daemon\(\) {
+  eval "$*"
+}
+
+log_success_msg\(\) {
+  echo "$*"
+  logger "$_"
+}
+
+log_failure_msg\(\) {
+  echo "$*"
+  logger "$_"
+}
+
+check_proc\(\) {
+  pgrep -f $PGREP_STRING >/dev/null
+}
+
+start_script\(\) {
+  if [ "${CUR_USER}" != "root" ] ; then
+    log_failure_msg "$NAME can only be started as 'root'."
+    exit -1
+  fi
+
+  check_proc
+  if [ $? -eq 0 ]; then
+    log_success_msg "$NAME is already running."
+    exit 0
+  fi
+
+  [ -d /var/run/$NAME ] || \(mkdir /var/run/$NAME \)
+
+   # make go now
+   $START_CMD &
+
+  # Sleep for a while to see if anything cries
+  sleep 5
+  check_proc
+
+  if [ $? -eq 0 ]; then
+    log_success_msg "Started $NAME."
+  else
+    log_failure_msg "Error starting $NAME."
+    exit -1
+  fi
+}
+
+stop_script\(\) {
+  if [ "${CUR_USER}" != "root" ] ; then
+    log_failure_msg "You do not have permission to stop $NAME."
+    exit -1
+  fi
+
+  check_proc
+  if [ $? -eq 0 ]; then
+    killproc -p $PID_FILE >/dev/null
+
+    # Make sure it's dead before we return
+    until [ $? -ne 0 ]; do
+      sleep 1
+      check_proc
+    done
+
+    check_proc
+    if [ $? -eq 0 ]; then
+      log_failure_msg "Error stopping $NAME."
+      exit -1
+    else
+      log_success_msg "Stopped $NAME."
+    fi
+  else
+    log_failure_msg "$NAME is not running or you don't have permission to stop it"
+  fi
+}
+
+check_status\(\) {
+  check_proc
+  if [ $? -eq 0 ]; then
+    log_success_msg "$NAME is running."
+  else
+    log_failure_msg "$NAME is stopped."
+    exit -1
+  fi
+}
+
+case "$1" in
+  start\)
+    start_script
+    ;;
+  stop\)
+    stop_script
+    ;;
+  restart\)
+    stop_script
+    start_script
+    ;;
+  status\)
+    check_status
+    ;;
+  *\)
+    echo "Usage: $0 {start|stop|restart|status}"
+    exit 1
+esac
+
+exit 0

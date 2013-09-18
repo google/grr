@@ -19,15 +19,6 @@ from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import utils
 
-config_lib.DEFINE_string("Nanny.logfile", "%(Logging.path)/nanny.log",
-                         "The file where we write the nanny transaction log.")
-
-config_lib.DEFINE_string("Nanny.statusfile", "%(Logging.path)/nanny.status",
-                         "The file where we write the nanny status.")
-
-config_lib.DEFINE_integer("Nanny.unresponsive_kill_period", 60,
-                          "The time in seconds after which the nanny kills us.")
-
 
 # TODO(user): Find a reliable way to do this for Linux.
 def LinFindProxies():

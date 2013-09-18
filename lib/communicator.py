@@ -21,19 +21,6 @@ from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
 
-config_lib.DEFINE_option(type_info.PEMPrivateKey(
-    name="PrivateKeys.ca_key",
-    description="CA private key. Used to sign for client enrollment.",
-    ))
-
-config_lib.DEFINE_integer("Network.api", 3,
-                          "The version of the network protocol the client "
-                          "uses.")
-
-
-config_lib.DEFINE_string("Network.compression", default="ZCOMPRESS",
-                         help="Type of compression (ZCOMPRESS, UNCOMPRESSED)")
-
 # Constants.
 ENCRYPT = 1
 DECRYPT = 0
@@ -174,8 +161,7 @@ class Cipher(object):
     digest = self.hash_function(serialized_cipher).digest()
 
     # We never want to have a password dialog
-    private_key = RSA.load_key_string(str(self.private_key),
-                                      callback=lambda x: "")
+    private_key = self.private_key.GetPrivateKey()
 
     self.cipher_metadata.signature = private_key.sign(
         digest, self.hash_function_name)
@@ -238,8 +224,8 @@ class ReceivedCipher(Cipher):
     self.pub_key_cache = pub_key_cache
 
     # Decrypt the message
-    private_key = RSA.load_key_string(str(self.private_key),
-                                      callback=lambda x: "")
+    private_key = self.private_key.GetPrivateKey()
+
     try:
       self.encrypted_cipher = response_comms.encrypted_cipher
       # M2Crypto verifies the key on each private_decrypt call which is horribly
@@ -401,8 +387,7 @@ class Communicator(object):
       digest = cipher.hash_function(signed_message_list.message_list).digest()
 
       # We never want to have a password dialog
-      private_key = RSA.load_key_string(str(self.private_key),
-                                        callback=lambda x: "")
+      private_key = self.private_key.GetPrivateKey()
 
       signed_message_list.signature = private_key.sign(
           digest, cipher.hash_function_name)
@@ -444,7 +429,8 @@ class Communicator(object):
     try:
       response_comms = rdfvalue.ClientCommunication(encrypted_response)
       return self.DecodeMessages(response_comms)
-    except (rdfvalue.DecodeError, type_info.TypeValueError, ValueError) as e:
+    except (rdfvalue.DecodeError, type_info.TypeValueError,
+            ValueError, AttributeError) as e:
       raise DecodingError("Protobuf parsing error: %s" % e)
 
   def DecompressMessageList(self, signed_message_list):

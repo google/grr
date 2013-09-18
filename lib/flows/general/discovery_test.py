@@ -8,6 +8,7 @@ import socket
 
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -77,8 +78,27 @@ class InterrogatedClient(object):
 class TestClientInterrogate(test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
-  def CheckLightweight(self, fd):
-    """Checks for attributes set by the lightweight interrogation flow."""
+  def setUp(self):
+    super(TestClientInterrogate, self).setUp()
+    self.flow_reply = None
+
+  def MockSendReply(self, reply=None):
+    self.flow_reply = reply
+
+  def testInterrogate(self):
+    """Test the Interrogate flow."""
+
+    flow_name = "Interrogate"
+
+    with test_lib.Stubber(flow.GRRFlow, "SendReply", self.MockSendReply):
+      # Run the flow in the simulated way
+      for _ in test_lib.TestFlowHelper(flow_name, InterrogatedClient(),
+                                       token=self.token,
+                                       client_id=self.client_id):
+        pass
+
+    # Now check that the AFF4 object is properly set
+    fd = aff4.FACTORY.Open(self.client_id, token=self.token)
 
     self.assertEqual(fd.Get(fd.Schema.HOSTNAME), "test_node")
     self.assertEqual(fd.Get(fd.Schema.SYSTEM), "Linux")
@@ -103,53 +123,30 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(
         [fd.urn],
-        [x.urn for x in index_fd.Query([fd.Schema.HOSTNAME], "test")])
+        [x for x in index_fd.Query([fd.Schema.HOSTNAME], ".*test.*")])
 
     # Check for notifications
-    fd = aff4.FACTORY.Open("aff4:/users/test", token=self.token)
-    notifications = fd.Get(fd.Schema.PENDING_NOTIFICATIONS)
+    user_fd = aff4.FACTORY.Open("aff4:/users/test", token=self.token)
+    notifications = user_fd.Get(user_fd.Schema.PENDING_NOTIFICATIONS)
 
     self.assertEqual(len(notifications), 1)
     notification = notifications[0]
 
     self.assertEqual(notification.subject, rdfvalue.RDFURN(self.client_id))
 
-  def testLightweightInterrogate(self):
-    """Tests the lightweight interrogation."""
+    # Check that reply sent from the flow is correct
+    self.assertEqual(self.flow_reply.client_info.client_name,
+                     config_lib.CONFIG["Client.name"])
+    self.assertEqual(self.flow_reply.client_info.client_version,
+                     int(config_lib.CONFIG["Client.version_numeric"]))
+    self.assertEqual(self.flow_reply.client_info.build_time,
+                     config_lib.CONFIG["Client.build_time"])
 
-    flow_name = "Interrogate"
-
-    # Run the flow in the simulated way
-    for _ in test_lib.TestFlowHelper(flow_name, InterrogatedClient(),
-                                     token=self.token,
-                                     client_id=self.client_id,
-                                     lightweight=True):
-      pass
-
-    # Now check that the AFF4 object is properly set
-    fd = aff4.FACTORY.Open(self.client_id, token=self.token)
-
-    self.CheckLightweight(fd)
-
-    # Users have not been created.
-    users = fd.Get(fd.Schema.USER)
-    self.assertEqual(users, None)
-
-  def testInterrogate(self):
-    """Test the Interrogate flow."""
-
-    flow_name = "Interrogate"
-
-    # Run the flow in the simulated way
-    for _ in test_lib.TestFlowHelper(flow_name, InterrogatedClient(),
-                                     token=self.token,
-                                     client_id=self.client_id):
-      pass
-
-    # Now check that the AFF4 object is properly set
-    fd = aff4.FACTORY.Open(self.client_id, token=self.token)
-
-    self.CheckLightweight(fd)
+    self.assertEqual(self.flow_reply.system_info.system, "Linux")
+    self.assertEqual(self.flow_reply.system_info.node, "test_node")
+    self.assertEqual(self.flow_reply.system_info.release, "5")
+    self.assertEqual(self.flow_reply.system_info.version, "2")
+    self.assertEqual(self.flow_reply.system_info.machine, "i386")
 
     users = list(fd.Get(fd.Schema.USER))
     self.assertEqual(len(users), 3)
@@ -189,3 +186,12 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
     # Check the empty process branch exists
     fd = aff4.FACTORY.Open(self.client_id.Add("processes"), token=self.token)
     self.assertEqual(fd.__class__.__name__, "ProcessListing")
+
+    # Check flow's reply
+    self.assertEqual(len(self.flow_reply.users), 3)
+    self.assertEqual(self.flow_reply.users[0].username, "Foo")
+    self.assertEqual(self.flow_reply.users[1].username, "Bar")
+    self.assertEqual(self.flow_reply.users[2].username, u"文德文")
+
+    self.assertEqual(len(self.flow_reply.interfaces), 1)
+    self.assertEqual(self.flow_reply.interfaces[0].mac_address, "123456")

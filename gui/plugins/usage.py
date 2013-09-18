@@ -23,7 +23,7 @@ class MostActiveUsers(statistics.PieChart):
 
       counts = {}
       for event in fd.GenerateItems(
-          timestamp=(now - 7 * 24 * 60 * 60 * 1e6, now)):
+          timestamp=(now - 7 * 24 * 60 * 60 * 1000000, now)):
         counts.setdefault(event.user, 0)
         counts[event.user] += 1
 
@@ -104,7 +104,7 @@ class UserActivity(StackChart):
     try:
       # TODO(user): Replace with Duration().
       now = int(rdfvalue.RDFDatetime().Now())
-      week_duration = 7 * 24 * 60 * 60 * 1e6
+      week_duration = 7 * 24 * 60 * 60 * 1000000
 
       fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="VersionedCollection",
                              token=request.token)
@@ -143,7 +143,7 @@ class FlowsUsed(StackChart):
     try:
       # TODO(user): Replace with Duration().
       now = int(rdfvalue.RDFDatetime().Now())
-      week_duration = 7 * 24 * 60 * 60 * 1e6
+      week_duration = 7 * 24 * 60 * 60 * 1000000
 
       fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="VersionedCollection",
                              token=request.token)
@@ -183,7 +183,7 @@ class ClientActivity(StackChart):
     try:
       # TODO(user): Replace with Duration().
       now = int(rdfvalue.RDFDatetime().Now())
-      week_duration = 7 * 24 * 60 * 60 * 1e6
+      week_duration = 7 * 24 * 60 * 60 * 1000000
 
       fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="VersionedCollection",
                              token=request.token)

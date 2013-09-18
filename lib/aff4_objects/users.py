@@ -7,6 +7,11 @@ import time
 
 from grr.lib import aff4
 from grr.lib import rdfvalue
+from grr.proto import flows_pb2
+
+
+class GUISettings(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.GUISettings
 
 
 class GRRUser(aff4.AFF4Object):
@@ -20,6 +25,10 @@ class GRRUser(aff4.AFF4Object):
     SHOWN_NOTIFICATIONS = aff4.Attribute(
         "aff4:notifications/shown", rdfvalue.NotificationList,
         "Notifications already shown to the user.", default="")
+
+    GUI_SETTINGS = aff4.Attribute(
+        "aff4:gui/settings", rdfvalue.GUISettings,
+        "GUI Settings", default="")
 
   def Notify(self, message_type, subject, msg, source):
     """Send a notification to the user in the UI.

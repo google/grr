@@ -6,7 +6,6 @@
 
 
 
-from grr.artifacts import win_artifacts
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -37,7 +36,7 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     """Test the type info objects behave as expected."""
     a = type_info.Integer()
     self.assertRaises(type_info.TypeValueError, a.Validate, "1")
-    self.assertRaises(type_info.TypeValueError, a.Validate, None)
+    self.assertRaises(type_info.TypeValueError, a.Validate, "hello")
     a.Validate(1231232)
     a.Validate(-2)
 
@@ -51,16 +50,6 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     self.assertRaises(type_info.TypeValueError, a.Validate, [
         rdfvalue.PathSpec()])
     a.Validate([1, 2, 3])
-
-  def testTypeInfoArtifactObjects(self):
-    """Test list List objects."""
-    a = type_info.ArtifactList()
-    self.assertRaises(type_info.TypeValueError, a.Validate, 1)
-    self.assertRaises(type_info.TypeValueError, a.Validate, None)
-    a.Validate(["ApplicationEventLog"])
-    self.assertRaises(type_info.TypeValueError, a.Validate, ["Invalid"])
-    self.assertRaises(type_info.TypeValueError, a.Validate,
-                      [win_artifacts.ApplicationEventLog])
 
   def testTypeDescriptorSet(self):
 
@@ -78,41 +67,35 @@ class TypeInfoTest(test_lib.GRRBaseTest):
             description="A comma separated list of plugins.",
             name="plugins",
             default=""),
-
-        type_info.GenericProtoDictType(
-            description="Volatility Arguments",
-            name="args"),
     ]
 
     info = type_info.TypeDescriptorSet(
         type_infos[0],
         type_infos[1],
         type_infos[2],
-        type_infos[3],
         )
 
     new_info = type_info.TypeDescriptorSet(
         type_infos[0],
-        type_infos[1],
         )
 
     updated_info = new_info + type_info.TypeDescriptorSet(
-        type_infos[2],
+        type_infos[1],
         )
 
     updated_info += type_info.TypeDescriptorSet(
-        type_infos[3],
+        type_infos[2],
         )
 
     self.assertEqual(info.descriptor_map, updated_info.descriptor_map)
     self.assertEqual(sorted(info.descriptors), sorted(updated_info.descriptors))
 
-    self.assertTrue(type_infos[2] in updated_info.descriptors)
+    self.assertTrue(type_infos[1] in updated_info.descriptors)
     self.assertTrue("plugins" in updated_info)
 
     removed_info = updated_info.Remove("plugins")
 
-    self.assertTrue(type_infos[2] in updated_info.descriptors)
+    self.assertTrue(type_infos[1] in updated_info.descriptors)
     self.assertTrue("plugins" in updated_info)
 
     self.assertFalse(type_infos[2] in removed_info.descriptors)

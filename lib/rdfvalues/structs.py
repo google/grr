@@ -13,9 +13,8 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import type_info
 from grr.lib import utils
-
+from grr.lib.rdfvalues import proto2
 from grr.proto import semantic_pb2
-
 # pylint: disable=super-init-not-called
 
 # We copy these here to remove dependency on the protobuf library.
@@ -594,6 +593,7 @@ class ProtoEnum(ProtoSignedInteger):
       enum = enum.enum_dict
 
     self.enum = enum or {}
+    self.enum_container = EnumContainer(name=enum_name, **self.enum)
     self.reverse_enum = {}
     for k, v in enum.iteritems():
       if not (v.__class__ is int or v.__class__ is long):
@@ -1049,11 +1049,11 @@ class RepeatedFieldHelper(object):
       # Coerce the value to the required type.
       try:
         rdf_value = self.type_descriptor.Validate(rdf_value, **kwargs)
-      except (TypeError, ValueError):
+      except (TypeError, ValueError) as e:
         raise type_info.TypeValueError(
             "Assignment value must be %s, but %s can not "
-            "be coerced." % (self.type_descriptor.proto_type_name,
-                             type(rdf_value)))
+            "be coerced. Error: %s" % (self.type_descriptor.proto_type_name,
+                                       type(rdf_value), e))
 
     self.wrapped_list.append((rdf_value, wire_format))
 
@@ -1167,11 +1167,8 @@ class ProtoList(ProtoType):
     # Make sure the base class finds the value valid.
     else:
       # The value may be a generator here, so we just iterate over it.
-      try:
-        result = RepeatedFieldHelper(type_descriptor=self.delegate)
-        result.Extend(value)
-      except ValueError:
-        raise type_info.TypeValueError("Field %s must be a list" % self.name)
+      result = RepeatedFieldHelper(type_descriptor=self.delegate)
+      result.Extend(value)
 
     return result
 
@@ -1477,7 +1474,7 @@ class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
 
     # Build the class by parsing an existing protobuf class.
     if cls.protobuf is not None:
-      cls.DefineFromProtobuf(cls.protobuf)
+      proto2.DefineFromProtobuf(cls, cls.protobuf)
 
     # Pre-populate the class using the type_infos class member.
     if cls.type_description is not None:
@@ -1908,133 +1905,6 @@ class RDFProtoStruct(RDFStruct):
 
     result += "}\n"
     return result
-
-  @classmethod
-  def DefineFromProtobuf(cls, protobuf):
-    """Add type info definitions from an existing protobuf.
-
-    We support building this class by copying definitions from an annotated
-    protobuf using the semantic protobuf. This is ideal for interoperability
-    with other languages and non-semantic protobuf implementations. In that case
-    it might be easier to simply annotate the .proto file with the relevant
-    semantic information.
-
-    Args:
-
-      protobuf: A generated protocol buffer class as produced by the protobuf
-        compiler.
-    """
-    # Parse message level options.
-    message_options = protobuf.DESCRIPTOR.GetOptions()
-    semantic_options = message_options.Extensions[semantic_pb2.semantic]
-
-    # Support message descriptions
-    if semantic_options.description and not cls.__doc__:
-      cls.__doc__ = semantic_options.description
-
-    # We search through all the field descriptors and build type info
-    # descriptors from them.
-    for field in protobuf.DESCRIPTOR.fields:
-      type_descriptor = None
-
-      # Does this field have semantic options?
-      options = field.GetOptions().Extensions[semantic_pb2.sem_type]
-      kwargs = dict(description=options.description, name=field.name,
-                    field_number=field.number, labels=list(options.label))
-
-      if field.has_default_value:
-        kwargs["default"] = field.default_value
-
-      # This field is a non-protobuf semantic value.
-      if options.type and field.type != 11:
-        type_descriptor = ProtoRDFValue(rdf_type=options.type, **kwargs)
-
-      # A nested semantic protobuf of this type.
-      elif options.type and field.type == 11:
-        # Locate the semantic protobuf which is embedded here.
-
-        # TODO(user): If we can not find it, should we just go ahead and
-        # define it here?
-        nested = cls.classes.get(options.type)
-        if nested:
-          type_descriptor = ProtoEmbedded(nested=nested, **kwargs)
-
-      # Try to figure out what this field actually is from the descriptor.
-      elif field.type == 1:
-        type_descriptor = ProtoDouble(**kwargs)
-
-      elif field.type == 2:  # Float
-        type_descriptor = ProtoFloat(**kwargs)
-
-      elif field.type == 3:  # int64
-        type_descriptor = ProtoSignedInteger(**kwargs)
-
-      elif field.type == 5:  # int32 is the same as int64 on the wire.
-        type_descriptor = ProtoSignedInteger(**kwargs)
-
-      elif field.type == 8:  # Boolean
-        type_descriptor = ProtoBoolean(**kwargs)
-
-      elif field.type == 9:  # string
-        type_descriptor = ProtoString(**kwargs)
-
-      elif field.type == 12:  # bytes
-        type_descriptor = ProtoBinary(**kwargs)
-        if options.dynamic_type:
-          # This may be a dynamic type. In this case the dynamic_type option
-          # names a method (which must exist) which should return the class of
-          # the embedded semantic value.
-          dynamic_cb = getattr(cls, options.dynamic_type, None)
-          if dynamic_cb is not None:
-            type_descriptor = ProtoDynamicEmbedded(dynamic_cb=dynamic_cb,
-                                                   **kwargs)
-          else:
-            logging.warning("Dynamic type specifies a non existant callback %s",
-                            options.dynamic_type)
-
-      elif field.type == 13:  # unsigned integer
-        type_descriptor = ProtoUnsignedInteger(**kwargs)
-
-      elif field.type == 11 and field.message_type:  # Another protobuf.
-        # Nested proto refers to itself.
-        if field.message_type.name == cls.protobuf.__name__:
-          type_descriptor = ProtoEmbedded(nested=cls, **kwargs)
-
-        else:
-          # Refer to another protobuf. Note that the target does not need to be
-          # known at this time. It will be resolved using the late binding
-          # algorithm.
-          type_descriptor = ProtoEmbedded(nested=field.message_type.name,
-                                          **kwargs)
-
-      elif field.enum_type:  # It is an enum.
-        enum_desc = field.enum_type
-        enum_dict = dict((x.name, x.number) for x in enum_desc.values)
-
-        type_descriptor = ProtoEnum(enum_name=enum_desc.name, enum=enum_dict,
-                                    **kwargs)
-
-        # Attach the enum container to the class for easy reference:
-        setattr(cls, enum_desc.name,
-                EnumContainer(name=enum_desc.name, **enum_dict))
-
-      elif field.type == 4:  # a uint64
-        type_descriptor = ProtoUnsignedInteger(**kwargs)
-
-      # If we do not recognize the type descriptor we ignore this field.
-      if type_descriptor is not None:
-        # If the field is repeated, wrap it in a ProtoList.
-        if field.label == 3:
-          type_descriptor = ProtoList(type_descriptor)
-
-        try:
-          cls.AddDescriptor(type_descriptor)
-        except Exception:
-          logging.error("Failed to parse protobuf %s", cls)
-          raise
-
-      else:
-        logging.error("Unknown field type for %s - Ignoring.", field.name)
 
   def Validate(self):
     """Validates the semantic protobuf for internal consistency.

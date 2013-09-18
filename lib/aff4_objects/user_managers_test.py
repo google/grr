@@ -82,8 +82,7 @@ class CheckAccessHelperTest(test_lib.GRRBaseTest):
     self.assertTrue(self.helper.CheckAccess(self.subject, self.token))
 
   def testUserManagement(self):
-
-    config_lib.CONFIG.Set("Users.authorization", "")
+    config_lib.CONFIG.Set("Users.authentication", "")
     um = user_managers.ConfigBasedUserManager()
 
     # Make sure we start from a clean state.

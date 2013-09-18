@@ -17,18 +17,10 @@ import logging
 import time
 
 
-from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.proto import flows_pb2
-
-config_lib.DEFINE_integer("ACL.cache_age", 600, "The number of seconds "
-                          "approval objects live in the cache.")
-
-config_lib.DEFINE_string("Datastore.security_manager",
-                         "NullAccessControlManager",
-                         "The ACL manager for controlling access to data.")
 
 
 class Error(Exception):

@@ -64,7 +64,7 @@ Monitoring.events_email: grr-monitoring@example.com
 AdminUI Context:
   Logging.filename: "%(Logging.path)/grr-ui.log"
 
-  Monitoring.stats_server_http_port: 44449
+  Monitoring.http_port: 44449
 
 # The client's reported architecture string depends on the Arch context
 Arch:amd64:
@@ -175,7 +175,7 @@ Demo Context:
 Enroller Context:
   Logging.filename: "%(Logging.path)/grr-enroller.log"
 
-  Monitoring.stats_server_http_port: 44442
+  Monitoring.http_port: 44442
 
 Frontend Context:
   Logging.filename: "%(Logging.path)/grr-http-server.log"
@@ -203,8 +203,6 @@ Platform:Darwin:
 
   MemoryDriver.device_path: /dev/pmem
 
-  MemoryDriver.install_write_path:
-
   Arch:amd64:
     MemoryDriver.driver_file: binaries/OSXPMem-RC1.tar.gz
 
@@ -218,8 +216,6 @@ Platform:Linux:
   Logging.syslog_path: "/dev/log"
 
   MemoryDriver.device_path: /dev/pmem
-
-  MemoryDriver.install_write_path:
 
 Platform:Windows:
   Client.binary_name: "%(Client.name).exe"
@@ -254,7 +250,7 @@ Platform:Windows:
   Nanny.child_command_line: |
     %(child_binary) --config "%(Client.install_path)\\%(Client.binary_name).yaml"
 
-  Nanny.nanny_binary: |
+  Nanny.binary: |
     %(Client.install_path)\\%(Nanny.service_binary_name)
 
   Nanny.service_binary_name: "%(Client.name)service.exe"
@@ -294,14 +290,14 @@ Platform:Windows:
 SingleServer Context:
   Logging.filename: "%(Logging.path)/grr-single-server.log"
 
-  Monitoring.stats_server_http_port: 44441
+  Monitoring.http_port: 44441
 
 Worker Context:
   Cron.active: True
 
   Logging.filename: "%(Logging.path)/grr-worker.log"
 
-  Monitoring.stats_server_http_port: 44441
+  Monitoring.http_port: 44441
 
 Test Context:
   Platform:Linux:

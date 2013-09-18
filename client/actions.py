@@ -93,22 +93,22 @@ class ActionPlugin(object):
 
     """
     args = None
-    if self.message.args_rdf_name:
-      if not self.in_rdfvalue:
-        raise RuntimeError("Did not expect arguments, got %s." %
-                           self.message.args_rdf_name)
-      if self.in_rdfvalue.__name__ != self.message.args_rdf_name:
-        raise RuntimeError("Unexpected arg type %s != %s." %
-                           self.message.args_rdf_name,
-                           self.in_rdfvalue.__name__)
-
-      # TODO(user): should be args = self.message.payload
-      args = rdfvalue.GrrMessage(self.message).payload
-
-    self.status = rdfvalue.GrrStatus(
-        status=rdfvalue.GrrStatus.ReturnedStatus.OK)
-
     try:
+      if self.message.args_rdf_name:
+        if not self.in_rdfvalue:
+          raise RuntimeError("Did not expect arguments, got %s." %
+                             self.message.args_rdf_name)
+
+        if self.in_rdfvalue.__name__ != self.message.args_rdf_name:
+          raise RuntimeError("Unexpected arg type %s != %s." %
+                             (self.message.args_rdf_name,
+                              self.in_rdfvalue.__name__))
+
+        args = self.message.payload
+
+      self.status = rdfvalue.GrrStatus(
+          status=rdfvalue.GrrStatus.ReturnedStatus.OK)
+
       # Only allow authenticated messages in the client
       if (self._authentication_required and
           self.message.auth_state !=

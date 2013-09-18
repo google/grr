@@ -6,10 +6,11 @@ import itertools
 import urllib
 
 from grr.gui import renderers
+from grr.gui.plugins import semantic
 from grr.lib import aff4
 
 
-class ClientCrashDetailsRenderer(renderers.RDFValueRenderer):
+class ClientCrashDetailsRenderer(semantic.RDFValueRenderer):
   """Renders details about a single client crash."""
 
   layout_template = renderers.Template("""
@@ -45,7 +46,7 @@ class ClientCrashDetailsRenderer(renderers.RDFValueRenderer):
       self.hash = urllib.urlencode(dict(c=self.proxy.client_id,
                                         flow=self.proxy.session_id,
                                         main="ManageFlows"))
-    client_info_renderer = renderers.FindRendererForObject(
+    client_info_renderer = semantic.FindRendererForObject(
         self.proxy.client_info)
     self.client_info = client_info_renderer.RawHTML()
     super(ClientCrashDetailsRenderer, self).Layout(request, response)
@@ -59,8 +60,8 @@ class ClientCrashCollectionRenderer(renderers.TableRenderer):
 
   def __init__(self, **kwargs):
     super(ClientCrashCollectionRenderer, self).__init__(**kwargs)
-    self.AddColumn(renderers.RDFValueColumn("Client Id", width="10%"))
-    self.AddColumn(renderers.RDFValueColumn(
+    self.AddColumn(semantic.RDFValueColumn("Client Id", width="10%"))
+    self.AddColumn(semantic.RDFValueColumn(
         "Crash Details", width="90%", renderer=ClientCrashDetailsRenderer))
 
   def BuildTable(self, start_row, end_row, request):

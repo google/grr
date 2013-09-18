@@ -24,8 +24,7 @@ class EnumerateRunningServices(flow.GRRFlow):
   collected.
   """
   category = "/Services/"
-
-  behaviours = flow.GRRFlow.behaviours + "OSX"
+  behaviours = flow.GRRFlow.behaviours + "OSX" + "BASIC"
 
   @flow.StateHandler(next_state=["StoreServices"])
   def Start(self):

@@ -201,7 +201,7 @@ executable_signing_public_key = -----BEGIN PUBLIC KEY-----
     -----END PUBLIC KEY-----
 """)
     errors = conf.Validate(["Client"])
-    self.assertEqual(errors.keys(), ["Client.private_key"])
+    self.assertItemsEqual(errors.keys(), ["Client.private_key"])
 
   def testEmptyClientKeys(self):
     """Check an empty other keys fail."""
@@ -211,6 +211,7 @@ executable_signing_public_key = -----BEGIN PUBLIC KEY-----
 private_key =
 driver_signing_public_key =
 executable_signing_public_key =
+certificate =
 """)
     errors = conf.Validate(["Client"])
     self.assertItemsEqual(errors.keys(),
@@ -371,6 +372,14 @@ interpolation2 = %(section%{%(Section1.foo)}|env)
 
     errors = conf.Validate("Section1")
     self.assertEquals(type(conf.Get("Section1.int")), long)
+
+    conf.DEFINE_list("Section1.list", default=[], help="A list")
+    self.assertEquals(type(conf.Get("Section1.list")), list)
+    self.assertEquals(conf.Get("Section1.list"), [])
+
+    conf.DEFINE_list("Section1.list2", default=["a", "2"], help="A list")
+    self.assertEquals(type(conf.Get("Section1.list2")), list)
+    self.assertEquals(conf.Get("Section1.list2"), ["a", "2"])
 
 
 def main(argv):

@@ -8,12 +8,8 @@ starting flows and for validating arguments.
 
 
 
-import re
-
 import logging
 
-from grr.lib import lexer
-from grr.lib import objectfilter
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
@@ -33,8 +29,6 @@ class UnknownArg(TypeValueError):
 
 class TypeInfoObject(object):
   """Definition of the interface for flow arg typing information."""
-
-  renderer = ""        # The renderer that should be used to render the arg.
 
   # Some descriptors can delegate to child descriptors to define types of
   # members.
@@ -131,13 +125,6 @@ class RDFValueType(TypeInfoObject):
     super(RDFValueType, self).__init__(**kwargs)
     self._type = self.rdfclass = rdfclass
 
-  def GetDefault(self):
-    if self.default is None:
-      # Just return a new instance of our RDFValue.
-      return self.rdfclass()
-    else:
-      return self.default
-
   def Validate(self, value):
     """Validate an RDFValue instance.
 
@@ -168,268 +155,6 @@ class RDFValueType(TypeInfoObject):
 
   def FromString(self, string):
     return self.rdfclass(string)
-
-
-class Bool(TypeInfoObject):
-  """A True or False value."""
-
-  renderer = "BoolFormRenderer"
-
-  _type = bool
-
-  def Validate(self, value):
-    if value not in [True, False]:
-      raise TypeValueError("Value must be True or False")
-
-    return value
-
-  def FromString(self, string):
-    """Parse a bool from a string."""
-    if string.lower() in ("false", "no", "n"):
-      return False
-
-    if string.lower() in ("true", "yes", "y"):
-      return True
-
-    raise TypeValueError("%s is not recognized as a boolean value." % string)
-
-
-class SemanticEnum(TypeInfoObject):
-  """Describe an enum for a Semantic Protobuf."""
-
-  def __init__(self, enum_container=None, **kwargs):
-    super(SemanticEnum, self).__init__(**kwargs)
-    self.enum_container = enum_container
-
-  def Validate(self, value):
-    if value in self.enum_container.reverse_enum:
-      enum_name = self.enum_container.reverse_enum[value]
-    elif value in self.enum_container.enum_dict:
-      enum_name = value
-    else:
-      raise TypeValueError("%s not a valid value for %s" % (
-          value, self.enum_container.name))
-
-    return getattr(self.enum_container, enum_name)
-
-
-class List(TypeInfoObject):
-  """A list type. Turns another type into a list of those types."""
-
-  _type = list
-
-  def __init__(self, validator=None, **kwargs):
-    self.validator = validator
-    super(List, self).__init__(**kwargs)
-
-  def Validate(self, value):
-    """Validate a potential list."""
-    if isinstance(value, basestring):
-      raise TypeValueError("Value must be an iterable not a string.")
-
-    elif not isinstance(value, (list, tuple)):
-      raise TypeValueError("%s not a valid List" % utils.SmartStr(value))
-
-    else:
-      for val in value:
-        # Validate each value in the list validates against our type.
-        self.validator.Validate(val)
-
-    return value
-
-  def FromString(self, string):
-    result = []
-    for x in string.split(","):
-      x = x.strip()
-      result.append(self.validator.FromString(x))
-
-    return result
-
-  def ToString(self, value):
-    return ",".join([self.validator.ToString(x) for x in value])
-
-
-class InterpolatedList(List):
-  """A list of path strings that can contain %% expansions."""
-  renderer = "InterpolatedPathRenderer"
-
-
-class String(TypeInfoObject):
-  """A String type."""
-
-  renderer = "StringFormRenderer"
-
-  _type = unicode
-
-  def __init__(self, **kwargs):
-    defaults = dict(default="")
-    defaults.update(kwargs)
-    super(String, self).__init__(**defaults)
-
-  def Validate(self, value):
-    if not isinstance(value, basestring):
-      raise TypeValueError("%s: %s not a valid string" % (self.name, value))
-
-    # A String means a unicode String. We must be dealing with unicode strings
-    # here and the input must be encodable as a unicode object.
-    try:
-      return unicode(value)
-    except UnicodeError:
-      raise TypeValueError("Not a valid unicode string")
-
-
-class Bytes(String):
-  """A Bytes type."""
-
-  _type = str
-
-  def Validate(self, value):
-    if not isinstance(value, str):
-      raise TypeValueError("%s not a valid string" % value)
-
-    return value
-
-
-class NotEmptyString(String):
-
-  renderer = "NotEmptyStringFormRenderer"
-
-  def Validate(self, value):
-    super(NotEmptyString, self).Validate(value)
-    if not value:
-      raise TypeValueError("Empty string is invalid.")
-    return value
-
-
-class RegularExpression(String):
-  """A regular expression type."""
-
-  def Validate(self, value):
-    try:
-      re.compile(value)
-    except (re.error, TypeError) as e:
-      raise TypeValueError("%s Error: %s." % (value, e))
-
-    return value
-
-
-class EncryptionKey(TypeInfoObject):
-
-  renderer = "EncryptionKeyFormRenderer"
-
-  def __init__(self, length=None, **kwargs):
-    self.length = length
-    super(EncryptionKey, self).__init__(**kwargs)
-
-  def Validate(self, value):
-    try:
-      key = value.decode("hex")
-    except TypeError:
-      raise TypeValueError("Key given is not a hex string.")
-
-    if len(key) != self.length:
-      raise TypeValueError("Invalid key length (%d)." % len(value))
-
-    return value
-
-
-class Integer(TypeInfoObject):
-  """An Integer number type."""
-  renderer = "StringFormRenderer"
-
-  _type = long
-
-  def Validate(self, value):
-    if not isinstance(value, (int, long)):
-      raise TypeValueError("Invalid value %s for Integer" % value)
-
-    return long(value)
-
-  def FromString(self, string):
-    try:
-      return long(string)
-    except ValueError:
-      raise TypeValueError("Invalid value %s for Integer" % string)
-
-
-class Float(Integer):
-  """Type info describing a float."""
-  _type = float
-
-  def Validate(self, value):
-    try:
-      value = float(value)
-    except (ValueError, TypeError):
-      raise TypeValueError("Invalid value %s for Float" % value)
-
-    return value
-
-  def FromString(self, string):
-    try:
-      return float(string)
-    except (ValueError, TypeError):
-      raise TypeValueError("Invalid value %s for Float" % string)
-
-
-class Duration(RDFValueType):
-  """Duration in microseconds."""
-
-  def __init__(self, **kwargs):
-    defaults = dict(rdfclass=rdfvalue.Duration)
-
-    defaults.update(kwargs)
-    super(Duration, self).__init__(**defaults)
-
-  def Validate(self, value):
-    if not isinstance(value, rdfvalue.Duration):
-      raise TypeValueError("Invalid value %s for Duration" % value)
-
-    return value
-
-  def FromString(self, string):
-    try:
-      return rdfvalue.Duration(string)
-    except ValueError:
-      raise TypeValueError("Invalid value %s for Duration" % string)
-
-
-class Choice(TypeInfoObject):
-  """A choice from a set of allowed values."""
-
-  def __init__(self, choices=None, validator=None, **kwargs):
-    self.choices = choices
-    self.validator = validator or String()
-    super(Choice, self).__init__(**kwargs)
-
-  def Validate(self, value):
-    self.validator.Validate(value)
-
-    if value not in self.choices:
-      raise TypeValueError("%s not a valid instance string." % value)
-
-    return value
-
-
-class MultiSelectList(TypeInfoObject):
-  """Abstract type that select from a list of values."""
-
-  def Validate(self, value):
-    """Check that this is a list of strings."""
-    try:
-      iter(value)
-    except TypeError:
-      raise TypeValueError("%s not a valid iterable" % value)
-
-    for val in value:
-      if not isinstance(val, basestring):
-        raise TypeValueError("%s not a valid instance string." % val)
-
-    return value
-
-
-class UserList(MultiSelectList):
-  """A list of usernames."""
-  renderer = "UserListRenderer"
 
 
 class TypeDescriptorSet(object):
@@ -536,78 +261,156 @@ class TypeDescriptorSet(object):
       yield descriptor.name, value
 
 
-class RDFURNType(RDFValueType):
-  """A URN type."""
+class Bool(TypeInfoObject):
+  """A True or False value."""
 
-  def __init__(self, **kwargs):
-    defaults = dict(default=rdfvalue.RDFURN("aff4:/"),
-                    rdfclass=rdfvalue.RDFURN)
+  renderer = "BoolFormRenderer"
 
-    defaults.update(kwargs)
-    super(RDFURNType, self).__init__(**defaults)
+  _type = bool
 
   def Validate(self, value):
-    # Check this separately since SerializeToString will modify it.
-    try:
-      if value.scheme != "aff4":
-        raise TypeValueError("Bad URN: %s" % value.SerializeToString())
-    except AttributeError as e:
-      raise TypeValueError("Bad RDFURN: %s" % e)
+    if value not in [True, False]:
+      raise TypeValueError("Value must be True or False")
+
     return value
 
+  def FromString(self, string):
+    """Parse a bool from a string."""
+    if string.lower() in ("false", "no", "n"):
+      return False
 
-class DriverInstallTemplateType(RDFValueType):
-  """A type for the DriverInstallTemplate."""
+    if string.lower() in ("true", "yes", "y"):
+      return True
 
-  # There is no point showing this in the GUI since the user would have to
-  # provide an encrypted blob so we set this to the empty set.
-  child_descriptor = TypeDescriptorSet()
+    raise TypeValueError("%s is not recognized as a boolean value." % string)
 
-  def __init__(self, **kwargs):
-    defaults = dict(name="driver_installer",
-                    rdfclass=rdfvalue.DriverInstallTemplate)
 
-    defaults.update(kwargs)
-    super(DriverInstallTemplateType, self).__init__(**defaults)
+class List(TypeInfoObject):
+  """A list type. Turns another type into a list of those types."""
 
-  def GetDefault(self):
-    if not self.default:
-      return None
+  _type = list
 
-    result = self.default.Copy()
+  def __init__(self, validator=None, **kwargs):
+    self.validator = validator
+    super(List, self).__init__(**kwargs)
+
+  def Validate(self, value):
+    """Validate a potential list."""
+    if isinstance(value, basestring):
+      raise TypeValueError("Value must be an iterable not a string.")
+
+    elif not isinstance(value, (list, tuple)):
+      raise TypeValueError("%s not a valid List" % utils.SmartStr(value))
+
+    else:
+      for val in value:
+        # Validate each value in the list validates against our type.
+        self.validator.Validate(val)
+
+    return value
+
+  def FromString(self, string):
+    result = []
+    if string:
+      for x in string.split(","):
+        x = x.strip()
+        result.append(self.validator.FromString(x))
 
     return result
 
+  def ToString(self, value):
+    return ",".join([self.validator.ToString(x) for x in value])
 
-class FilterString(String):
-  """An argument that is a valid filter string parsed by query_parser_cls.
 
-  The class member query_parser_cls should be overriden by derived classes.
-  """
+class String(TypeInfoObject):
+  """A String type."""
 
   renderer = "StringFormRenderer"
 
-  # A subclass of lexer.Searchparser able to parse textual queries.a
-  query_parser_cls = lexer.SearchParser
+  _type = unicode
 
   def __init__(self, **kwargs):
-    if not self.query_parser_cls:
-      raise Error("Undefined query parsing class for type %s."
-                  % self.__class__.__name__)
-    super(FilterString, self).__init__(**kwargs)
+    defaults = dict(default="")
+    defaults.update(kwargs)
+    super(String, self).__init__(**defaults)
 
   def Validate(self, value):
-    query = str(value)
+    if not isinstance(value, basestring):
+      raise TypeValueError("%s: %s not a valid string" % (self.name, value))
+
+    # A String means a unicode String. We must be dealing with unicode strings
+    # here and the input must be encodable as a unicode object.
     try:
-      self.query_parser_cls(query).Parse()
-    except (lexer.ParseError, objectfilter.ParseError), e:
-      raise TypeValueError("Malformed filter %s: %s" % (self.name, e))
-    return query
+      return unicode(value)
+    except UnicodeError:
+      raise TypeValueError("Not a valid unicode string")
 
 
-# TODO(user): Deprecate this.
-class Any(TypeInfoObject):
-  """Any type. No checks are performed."""
+class Bytes(String):
+  """A Bytes type."""
+
+  _type = str
 
   def Validate(self, value):
+    if not isinstance(value, str):
+      raise TypeValueError("%s not a valid string" % value)
+
+    return value
+
+
+class Integer(TypeInfoObject):
+  """An Integer number type."""
+  renderer = "StringFormRenderer"
+
+  _type = long
+
+  def Validate(self, value):
+    if value is None:
+      value = 0
+
+    if not isinstance(value, (int, long)):
+      raise TypeValueError("Invalid value %s for Integer" % value)
+
+    return long(value)
+
+  def FromString(self, string):
+    try:
+      return long(string)
+    except ValueError:
+      raise TypeValueError("Invalid value %s for Integer" % string)
+
+
+class Float(Integer):
+  """Type info describing a float."""
+  _type = float
+
+  def Validate(self, value):
+    try:
+      value = float(value)
+    except (ValueError, TypeError):
+      raise TypeValueError("Invalid value %s for Float" % value)
+
+    return value
+
+  def FromString(self, string):
+    try:
+      return float(string)
+    except (ValueError, TypeError):
+      raise TypeValueError("Invalid value %s for Float" % string)
+
+
+class Choice(TypeInfoObject):
+  """A choice from a set of allowed values."""
+
+  def __init__(self, choices=None, validator=None, **kwargs):
+    self.choices = choices
+    self.validator = validator or String()
+    super(Choice, self).__init__(**kwargs)
+
+  def Validate(self, value):
+    self.validator.Validate(value)
+
+    if value not in self.choices:
+      raise TypeValueError("%s not a valid instance string." % value)
+
     return value

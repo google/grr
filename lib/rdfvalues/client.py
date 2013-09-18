@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
 """AFF4 RDFValue implementations for client information.
 
 This module contains the RDFValue implementations used to communicate with the
@@ -19,6 +18,7 @@ from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs
 
+from grr.proto import flows_pb2
 from grr.proto import jobs_pb2
 from grr.proto import knowledge_base_pb2
 from grr.proto import sysinfo_pb2
@@ -122,7 +122,7 @@ class User(rdfvalue.RDFProtoStruct):
 
   This stores information related to a specific user of the client system.
   """
-  protobuf = jobs_pb2.UserAccount
+  protobuf = jobs_pb2.User
 
 
 class Users(protodict.RDFValueArray):
@@ -158,14 +158,23 @@ class NetworkAddress(rdfvalue.RDFProtoStruct):
   """A network address."""
   protobuf = jobs_pb2.NetworkAddress
 
-  def HumanReadableAddress(self):
+  @property
+  def human_readable_address(self):
     if self.human_readable:
       return self.human_readable
     else:
-      if self.address_type == rdfvalue.NetworkAddress.Enum("INET"):
+      if self.address_type == rdfvalue.NetworkAddress.Family.INET:
         return socket.inet_ntop(socket.AF_INET, self.packed_bytes)
       else:
         return socket.inet_ntop(socket.AF_INET6, self.packed_bytes)
+
+
+class MacAddress(rdfvalue.RDFBytes):
+  """A MAC address."""
+
+  @property
+  def human_readable_address(self):
+    return self._value.encode("hex")
 
 
 class Interface(rdfvalue.RDFProtoStruct):
@@ -340,11 +349,15 @@ class SoftwarePackages(protodict.RDFValueArray):
 
 class StatMode(rdfvalue.RDFInteger):
   """The mode of a file."""
+  data_store_type = "unsigned_integer"
 
   def __unicode__(self):
     """Pretty print the file mode."""
     mode_template = "rwx" * 3
-    mode = bin(int(self))[-9:]
+    # Strip the "0b"
+    mode = bin(int(self))[2:]
+    mode = mode[-9:]
+    mode = "0" * (9-len(mode)) + mode
 
     bits = []
     for i in range(len(mode_template)):
@@ -442,6 +455,12 @@ class StartupInfo(rdfvalue.RDFProtoStruct):
 class SendFileRequest(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.SendFileRequest
 
+  def Validate(self):
+    self.pathspec.Validate()
+
+    if not self.host:
+      raise ValueError("A host must be specified.")
+
 
 class ListDirRequest(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.ListDirRequest
@@ -476,9 +495,9 @@ class GrepSpec(rdfvalue.RDFProtoStruct):
     self.target.Validate()
 
 
-class BareGrepSpec(GrepSpec):
+class BareGrepSpec(rdfvalue.RDFProtoStruct):
   """A GrepSpec without a target."""
-  suppressions = ["target"]
+  protobuf = flows_pb2.BareGrepSpec
 
 
 class WMIRequest(rdfvalue.RDFProtoStruct):
@@ -544,3 +563,8 @@ class AFF4ObjectSummary(rdfvalue.RDFProtoStruct):
 class ClientCrash(rdfvalue.RDFProtoStruct):
   """Details of a client crash."""
   protobuf = jobs_pb2.ClientCrash
+
+
+class ClientSummary(rdfvalue.RDFProtoStruct):
+  """Object containing client's summary data."""
+  protobuf = jobs_pb2.ClientSummary

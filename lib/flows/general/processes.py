@@ -14,6 +14,7 @@ class ListProcesses(flow.GRRFlow):
   """List running processes on a system."""
 
   category = "/Processes/"
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state=["StoreProcessList"])
   def Start(self):

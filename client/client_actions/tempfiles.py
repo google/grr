@@ -19,17 +19,6 @@ from grr.lib import config_lib
 from grr.lib import rdfvalue
 
 
-config_lib.DEFINE_string(
-    name="Client.tempfile_prefix",
-    help="Prefix to use for temp files created by GRR.",
-    default="tmp%(Client.name)")
-
-config_lib.DEFINE_string(
-    name="Client.tempdir",
-    help="Default temporary directory to use on the client.",
-    default="/var/tmp/grr/")
-
-
 class Error(Exception):
   """Base error class."""
 

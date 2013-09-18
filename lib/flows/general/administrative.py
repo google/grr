@@ -20,29 +20,12 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import rendering
 from grr.lib import stats
-from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import reports
 from grr.proto import flows_pb2
 
 
 from grr.proto import flows_pb2
-
-
-config_lib.DEFINE_string("Monitoring.events_email", None,
-                         "The email address to send events to.")
-
-config_lib.DEFINE_option(type_info.RDFURNType(
-    name="Executables.aff4_path",
-    description="The aff4 path to signed executables.",
-    default="%(Config.aff4_root)/executables/%(Client.platform)"))
-
-config_lib.DEFINE_string(
-    name="Executables.installer",
-    default=("%(Executables.aff4_path)/installers/"
-             "%(ClientBuilder.output_basename)"
-             "%(ClientBuilder.output_extension)"),
-    help="The location of the generated installer in the config directory.")
 
 
 class AdministrativeInit(registry.InitHook):
@@ -368,6 +351,7 @@ class OnlineNotification(flow.GRRFlow):
   """Notifies by email when a client comes online in GRR."""
 
   category = "/Administrative/"
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   template = """
 <html><body><h1>GRR Client Online Notification.</h1>
@@ -641,7 +625,7 @@ P.S. The state of the failing flow was:
       url = urllib.urlencode((("c", client_id),
                               ("main", "HostInformation")))
 
-      renderer = rendering.renderers.FindRendererForObject(flow_obj.state)
+      renderer = rendering.FindRendererForObject(flow_obj.state)
 
       email_alerts.SendEmail(
           config_lib.CONFIG["Monitoring.events_email"],
@@ -715,6 +699,7 @@ class KeepAlive(flow.GRRFlow):
   """Requests that the clients stays alive for a period of time."""
 
   category = "/Administrative/"
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   sleep_time = 60
   args_type = KeepAliveArgs
@@ -822,6 +807,7 @@ class RunReport(flow.GRRGlobalFlow):
   category = "/Reporting/"
 
   args_type = RunReportFlowArgs
+  behaviours = flow.GRRGlobalFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state="RunReport")
   def Start(self):

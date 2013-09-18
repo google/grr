@@ -47,7 +47,6 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     """Set up communicator tests."""
     test_lib.GRRBaseTest.setUp(self)
 
-    self.client_certificate = config_lib.CONFIG["Client.certificate"]
     self.client_private_key = config_lib.CONFIG["Client.private_key"]
 
     self.server_serial_number = 0
@@ -99,7 +98,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
   def MakeClientAFF4Record(self):
     """Make a client in the data store."""
-    client_cert = rdfvalue.RDFX509Cert(self.client_certificate)
+    cert = self.ClientCertFromPrivateKey(self.client_private_key)
+    client_cert = rdfvalue.RDFX509Cert(cert.as_pem())
     new_client = aff4.FACTORY.Create(client_cert.common_name, "VFSGRRClient",
                                      token=self.token)
     new_client.Set(new_client.Schema.CERT, client_cert)
@@ -251,7 +251,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     """Set up communicator tests."""
     super(HTTPClientTests, self).setUp()
 
-    self.certificate = config_lib.CONFIG["Client.certificate"]
+    self.certificate = self.ClientCertFromPrivateKey(
+        config_lib.CONFIG["Client.private_key"]).as_pem()
     self.server_serial_number = 0
 
     self.server_private_key = config_lib.CONFIG["PrivateKeys.server_key"]
@@ -386,7 +387,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     """If the client has no certificate initially it should enroll."""
 
     # Clear the certificate so we can generate a new one.
-    config_lib.CONFIG.Set("Client.private_key", None)
+    config_lib.CONFIG.Set("Client.private_key", "")
     self.CreateNewClientObject()
 
     # Client should get a new Common Name.

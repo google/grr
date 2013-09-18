@@ -10,6 +10,7 @@ class ListVolumeShadowCopies(flow.GRRFlow):
   """List the Volume Shadow Copies on the client."""
 
   category = "/Filesystem/"
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state="ListDeviceDirectories")
   def Start(self, unused_response):

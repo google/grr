@@ -73,35 +73,6 @@ from grr.proto import flows_pb2
 from grr.proto import jobs_pb2
 
 
-# Note: Each thread adds about 8mb for stack space.
-config_lib.DEFINE_integer("Threadpool.size", 50,
-                          "Number of threads in the shared thread pool.")
-
-config_lib.DEFINE_integer("Worker.task_limit", 2000,
-                          "Limits the number of tasks a worker retrieves "
-                          "every poll")
-
-config_lib.DEFINE_integer("Worker.flow_lease_time", 600,
-                          "Duration of flow lease time in seconds.")
-
-config_lib.DEFINE_integer("Frontend.throttle_average_interval", 60,
-                          "Time interval over which average request rate is "
-                          "calculated when throttling is enabled.")
-
-config_lib.DEFINE_list("Frontend.well_known_flows",
-                       ["aff4:/flows/W:TransferStore", "aff4:/flows/W:Stats"],
-                       "Allow these well known flows to run directly on the "
-                       "frontend. Other flows are scheduled as normal.")
-
-config_lib.CONFIG.AddOption(type_info.X509PrivateKey(
-    name="PrivateKeys.server_key",
-    description="Private key for the front end server."))
-
-config_lib.CONFIG.AddOption(type_info.X509CertificateType(
-    name="Frontend.certificate",
-    description="An X509 certificate for the frontend server."))
-
-
 class FlowError(Exception):
   """Raised when we can not retrieve the flow."""
 
@@ -337,15 +308,70 @@ class FlowRunnerArgs(rdfvalue.RDFProtoStruct):
   protobuf = flows_pb2.FlowRunnerArgs
 
 
-class Behaviour(set):
+class Behaviour(object):
+  """A Behaviour is a property of a flow.
+
+  Behaviours advertise what kind of flow this is. The flow can only advertise
+  predefined behaviours.
+  """
+  # A constant which defines all the allowed behaviours and their descriptions.
+  LEXICON = {}
+
   def __init__(self, *args):
-    super(Behaviour, self).__init__(args)
+    self.set = set()
+    for arg in args:
+      if arg not in self.LEXICON:
+        raise ValueError("Behaviour %s not known." % arg)
+
+      self.set.add(str(arg))
 
   def __add__(self, other):
-    result = self.copy()
-    result.add(other)
+    other = str(other)
 
-    return result
+    if other not in self.LEXICON:
+      raise ValueError("Behaviour %s not known." % other)
+
+    return self.__class__(other, *list(self.set))
+
+  def __sub__(self, other):
+    other = str(other)
+
+    result = self.set.copy()
+    result.discard(other)
+
+    return self.__class__(*list(result))
+
+  def __iter__(self):
+    return iter(self.set)
+
+  def IsSupported(self, other):
+    """Ensure the other Behaviour supports all our Behaviours."""
+    if not isinstance(other, self.__class__):
+      raise TypeError("Must be called on %s" % self.__class__)
+
+    return self.set.issubset(other.set)
+
+
+class FlowBehaviour(Behaviour):
+  # A constant which defines all the allowed behaviours and their descriptions.
+  LEXICON = {
+      # What GUI mode should this flow appear in?
+      "BASIC": ("Include in the simple UI. This flow is designed "
+                "for simpler use."),
+      "ADVANCED": ("Include in advanced UI. This flow takes "
+                   "more experience to use."),
+      "DANGEROUS": "This flow may be dangerous. Only available for Admins",
+      "DEBUG": "This flow only appears in debug mode.",
+
+      # Is this a global flow or a client specific flow?
+      "Client Flow": "This flow works on a client.",
+      "Global Flow": "This flow works without a client.",
+
+      # OS Support.
+      "OSX": "This flow works on OSX operating systems.",
+      "Windows": "This flow works on Windows operating systems.",
+      "Linux": "This flow works on Linux operating systems.",
+      }
 
 
 class GRRFlow(aff4.AFF4Volume):
@@ -410,15 +436,8 @@ class GRRFlow(aff4.AFF4Volume):
   # access to the client before they can run this flow.
   ACL_ENFORCED = True
 
-  # Behaviors set what kind of flow we have, global or client based.
-  # Values can be "Client Flow" and "Global Flow".
-  behaviours = Behaviour("Client Flow")
-
-  # DEPRECATED. New flows should specify a semantic protobuf to args_type
-  # below.  A list of type descriptor for this flow. The Flow constructor accept
-  # all these args the these type descriptors themselves implement the required
-  # validation.
-  flow_typeinfo = type_info.TypeDescriptorSet()
+  # Behaviors set attributes of this flow. See FlowBehavior() above.
+  behaviours = FlowBehaviour("Client Flow", "ADVANCED")
 
   # Alternatively we can specify a single semantic protobuf that will be used to
   # provide the args.
@@ -453,19 +472,6 @@ class GRRFlow(aff4.AFF4Volume):
       value = kwargs.pop(descriptor.name, None)
       if value is not None:
         setattr(protobuf, descriptor.name, value)
-
-  # DEPRECATED: remove when all flows use args_type semantic protos.
-  @classmethod
-  def _SetTypedArgs(cls, target, type_descriptor, kwargs):
-    """Sets our attributes from the type_descriptor."""
-    # Parse and validate the args to this flow. This will raise if the args are
-    # invalid.
-    for name, value in type_descriptor.ParseArgs(kwargs):
-      # Make sure we dont trash an internal name.
-      if name in target:
-        raise AttributeError("Flow arg name already set: %s" % name)
-
-      target.Register(name, value)
 
   def WriteState(self):
     if "w" in self.mode and not self.state.Empty():
@@ -693,30 +699,19 @@ class GRRFlow(aff4.AFF4Volume):
                                    token=token)
 
     # Now parse the flow args into the new object from the keywords.
+    if args is None:
+      args = flow_obj.args_type()
 
-    # New style flows specify their args with a semantic protobuf.
-    if flow_obj.args_type is not None:
-      # Flow is called using keyword args. We construct an args proto from the
-      # kwargs..
-      if args is None:
-        args = flow_obj.args_type()
+    cls._FilterArgsFromSemanticProtobuf(args, kwargs)
 
-      cls._FilterArgsFromSemanticProtobuf(args, kwargs)
+    # Check that the flow args are valid.
+    args.Validate()
 
-      # Check that the flow args are valid.
-      args.Validate()
+    # Store the flow args in the state.
+    flow_obj.state.Register("args", args)
 
-      # Store the flow args in the state.
-      flow_obj.state.Register("args", args)
-
-      # A convenience attribute to allow flows to access their args directly.
-      flow_obj.args = args
-
-    else:
-      # Flow uses the deprecated flow_typeinfo descriptors.
-      # TODO(user): remove this when all flows are converted to the new
-      # form.
-      cls._SetTypedArgs(flow_obj.state, flow_obj.flow_typeinfo, kwargs)
+    # A convenience attribute to allow flows to access their args directly.
+    flow_obj.args = args
 
     # At this point we should exhaust all the keyword args. If any are left
     # over, we do not know what to do with them so raise.
@@ -831,7 +826,7 @@ class GRRGlobalFlow(GRRFlow):
   UI, but will instead be seen in Admin Flows.
   """
 
-  behaviours = set(["Global Flow"])
+  behaviours = GRRFlow.behaviours + "Global Flow" - "Client Flow"
 
 
 class WellKnownFlow(GRRFlow):

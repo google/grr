@@ -24,15 +24,6 @@ from grr.lib import utils
 from grr.lib.rdfvalues import grr_rdf
 
 
-config_lib.DEFINE_integer(
-    "AFF4.cache_age", 5,
-    "The number of seconds AFF4 objects live in the cache.")
-
-config_lib.DEFINE_integer(
-    "AFF4.notification_rules_cache_age", 60,
-    "The number of seconds AFF4 notification rules are cached.")
-
-
 # Factor to convert from seconds to microseconds
 MICROSECONDS = 1000000
 
@@ -1052,8 +1043,11 @@ class AFF4Object(object):
                      "The last time any attribute of this object was written.",
                      creates_new_object_version=False)
 
+    # Note labels should not be Set directly but should be manipulated via
+    # the AddLabels method.
     LABEL = Attribute("aff4:labels", grr_rdf.LabelList,
-                      "Any object can have labels applied to it.")
+                      "Any object can have labels applied to it.", "Labels",
+                      creates_new_object_version=False, versioned=False)
 
     LEASED_UNTIL = Attribute("aff4:lease", rdfvalue.RDFDatetime,
                              "The time until which the object is leased by a "
@@ -1115,6 +1109,9 @@ class AFF4Object(object):
 
     # Mark out attributes to delete when Flushing()
     self._to_delete = set()
+
+    # Cached index object for Label handling.
+    self._label_index = None
 
     # We maintain two attribute caches - self.synced_attributes reflects the
     # attributes which are synced with the data_store, while self.new_attributes
@@ -1196,12 +1193,21 @@ class AFF4Object(object):
     cache.setdefault(attribute_name, []).append(value)
 
   def CheckLease(self):
+    """Check if our lease has expired, return seconds left.
+
+    Returns:
+      int: seconds left in the lease, 0 if not locked
+    Raises:
+      LockError: if lease has expired
+    """
     if self.locked:
       leased_until = self.Get(self.Schema.LEASED_UNTIL)
       now = rdfvalue.RDFDatetime().Now()
       if leased_until < now:
         raise LockError("Lease for this object is expired "
                         "(leased until %s, now %s)!" % (leased_until, now))
+      return leased_until.AsSecondsFromEpoch() - now.AsSecondsFromEpoch()
+    return 0
 
   def UpdateLease(self, duration):
     """Updates the lease and flushes the object.
@@ -1297,6 +1303,10 @@ class AFF4Object(object):
 
       # Notify the factory that this object got updated.
       FACTORY.NotifyWriteObject(self)
+
+      # Flush label indexes.
+      if self._label_index:
+        self._label_index.Flush(sync=sync)
 
   @utils.Synchronized
   def _SyncAttributes(self):
@@ -1584,6 +1594,37 @@ class AFF4Object(object):
   def __exit__(self, unused_type, unused_value, unused_traceback):
     self.Close()
 
+  def AddLabels(self, labels):
+    """Add labels to the AFF4Object."""
+    if not self._label_index:
+      self._label_index = FACTORY.Create(rdfvalue.RDFURN("aff4:/index/label"),
+                                         "AFF4Index", mode="w",
+                                         token=self.token)
+    label_list = self.Get(self.Schema.LABEL, self.Schema.LABEL())
+    for label in labels:
+      if label not in label_list:
+        label_list.Append(label)
+        self._label_index.Add(self.urn, self.Schema.LABEL, label)
+    self.Set(label_list)
+
+  def RemoveLabels(self, labels):
+    """Remove specified labels from the AFF4Object."""
+    if not self._label_index:
+      self._label_index = FACTORY.Create(rdfvalue.RDFURN("aff4:/index/label"),
+                                         "AFF4Index", mode="w",
+                                         token=self.token)
+    label_list = self.Get(self.Schema.LABEL)
+    new_label_list = self.Schema.LABEL()
+    if label_list:
+      for label in label_list:
+        if label not in labels:
+          new_label_list.Append(label)
+      self.Set(new_label_list)
+
+    # Clean up indexes.
+    for label in labels:
+      self._label_index.DeleteAttributeIndexesForURN(self.SchemaCls.LABEL,
+                                                     label, self.urn)
 
 # This will register all classes into this modules's namespace regardless of
 # where they are defined. This allows us to decouple the place of definition of

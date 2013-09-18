@@ -5,10 +5,8 @@ This handles invocations for the build across the supported platforms including
 handling Visual Studio, pyinstaller and other packaging mechanisms.
 """
 
-import os
 import platform
 import sys
-import time
 
 
 # pylint: disable=unused-import
@@ -20,7 +18,6 @@ from grr.lib import builders
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import startup
-from grr.lib import type_info
 
 parser = flags.PARSER
 
@@ -40,15 +37,10 @@ parser.add_argument(
     default=default_arch,
     help="The architecture to build or repack for.")
 
-config_lib.DEFINE_option(type_info.PathTypeInfo(
-    name="ClientBuilder.source", must_exist=False,
-    default=os.path.normpath(__file__ + "/../../.."),
-    help="The location of the source files."))
-
-config_lib.DEFINE_option(type_info.PathTypeInfo(
-    name="ClientBuilder.executables_dir",
-    default="%(ClientBuilder.source)/grr/executables",
-    help="The directory that contains the executables."))
+parser.add_argument(
+    "--package_format", choices=["deb", "rpm"],
+    default="deb",
+    help="The packaging format to use when building a Linux client.")
 
 # Initialize sub parsers and their arguments.
 subparsers = parser.add_subparsers(
@@ -78,18 +70,64 @@ parser_deploy.add_argument("--output", default=None,
                            help="The path to write the output installer.")
 
 
-config_lib.DEFINE_string(
-    name="ClientBuilder.build_time",
-    default=time.ctime(),
-    help="Time of build to embed into binary.")
-
-config_lib.DEFINE_string(
-    "ClientBuilder.packagemaker",
-    default=("/Developer/Applications/Utilities/PackageMaker.app/Contents"
-             "/MacOS/PackageMaker"),
-    help="Location of the PackageMaker executable.")
+parser_deploy.add_argument("-p", "--plugins", default=[], nargs="+",
+                           help="Additional python files that will be loaded "
+                           "as custom plugins.")
 
 args = parser.parse_args()
+
+
+def GetBuilder(context):
+  """Get the appropriate builder based on the selected flags."""
+  try:
+    if args.platform == "darwin":
+      context.append("Platform:Darwin")
+      builder_obj = builders.DarwinClientBuilder
+
+    elif args.platform == "windows":
+      context.append("Platform:Windows")
+      builder_obj = builders.WindowsClientBuilder
+
+    elif args.platform == "linux":
+      context.append("Platform:Linux")
+      if args.package_format == "deb":
+        builder_obj = builders.LinuxClientBuilder
+      else:
+        context.append("Target:LinuxRpm")
+        builder_obj = builders.CentosClientBuilder
+
+    else:
+      parser.error("Unsupported build platform: %s" % args.platform)
+
+  except AttributeError:
+    raise RuntimeError("Unable to build for platform %s when running "
+                       "on current platform." % args.platform)
+
+  return builder_obj(context=context)
+
+
+def GetDeployer(context):
+  """Get the appropriate client deployer based on the selected flags."""
+  if args.platform == "darwin":
+    context.append("Platform:Darwin")
+    deployer_obj = build.DarwinClientDeployer
+
+  elif args.platform == "windows":
+    context.append("Platform:Windows")
+    deployer_obj = build.WindowsClientDeployer
+
+  elif args.platform == "linux":
+    context.append("Platform:Linux")
+    if args.package_format == "deb":
+      deployer_obj = build.LinuxClientDeployer
+    else:
+      context.append("Target:LinuxRpm")
+      deployer_obj = build.CentosClientDeployer
+
+  else:
+    parser.error("Unsupported build platform: %s" % args.platform)
+
+  return deployer_obj(context=context)
 
 
 def main(_):
@@ -98,7 +136,7 @@ def main(_):
       "ClientBuilder Context",
       "Context applied when we run the client builder script.")
 
-  startup.Init()
+  startup.ClientInit()
 
   # The following is used to change the identity of the builder based on the
   # target platform.
@@ -109,51 +147,18 @@ def main(_):
     context.append("Arch:i386")
 
   if args.subparser_name == "build":
-    if args.platform == "darwin":
-      context.append("Platform:Darwin")
-      builder_obj = builders.DarwinClientBuilder(context=context)
-    elif args.platform == "windows":
-      context.append("Platform:Windows")
-      builder_obj = builders.WindowsClientBuilder(context=context)
-    elif args.platform == "linux":
-      context.append("Platform:Linux")
-      builder_obj = builders.LinuxClientBuilder(context=context)
-    else:
-      parser.error("Unsupported build platform: %s" % args.platform)
-
+    builder_obj = GetBuilder(context)
     builder_obj.MakeExecutableTemplate()
 
   elif args.subparser_name == "repack":
-    if args.platform == "darwin":
-      context.append("Platform:Darwin")
-      deployer = build.DarwinClientDeployer(context=context)
-    elif args.platform == "windows":
-      context.append("Platform:Windows")
-      deployer = build.WindowsClientDeployer(context=context)
-    elif args.platform == "linux":
-      context.append("Platform:Linux")
-      deployer = build.LinuxClientDeployer(context=context)
-    else:
-      parser.error("Unsupported build platform: %s" % args.platform)
-
+    deployer = GetDeployer(context)
     deployer.RepackInstaller(open(args.package, "rb").read(), args.output)
 
   elif args.subparser_name == "deploy":
-    if args.platform == "darwin":
-      context.append("Platform:Darwin")
-      deployer = build.DarwinClientDeployer(context=context)
+    if args.plugins:
+      config_lib.CONFIG.Set("Client.plugins", args.plugins)
 
-    elif args.platform == "windows":
-      context.append("Platform:Windows")
-      deployer = build.WindowsClientDeployer(context=context)
-
-    elif args.platform == "linux":
-      context.append("Platform:Linux")
-      deployer = build.LinuxClientDeployer(context=context)
-
-    else:
-      parser.error("Unsupported build platform: %s" % args.platform)
-
+    deployer = GetDeployer(context)
     template_path = args.template or config_lib.CONFIG.Get(
         "ClientBuilder.template_path", context=deployer.context)
 

@@ -18,22 +18,6 @@ from grr.lib import registry
 from grr.lib import utils
 
 
-config_lib.DEFINE_string("Mysql.database_name", default="grr",
-                         help="Name of the database to use.")
-
-config_lib.DEFINE_string("Mysql.table_name", default="aff4",
-                         help="Name of the table to use.")
-
-config_lib.DEFINE_string("Mysql.database_username", default="root",
-                         help="The user to connect to the database.")
-
-config_lib.DEFINE_string("Mysql.database_password", default="",
-                         help="The password to connect to the database.")
-
-config_lib.DEFINE_integer("Mysql.transaction_timeout", default=60,
-                          help="How long do we wait for a transaction lock.")
-
-
 # pylint: disable=nonstandard-exception
 class Error(data_store.Error):
   """Base class for all exceptions in this module."""

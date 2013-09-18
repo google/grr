@@ -36,6 +36,7 @@ class ListDirectory(flow.GRRFlow):
 
   category = "/Filesystem/"
   args_type = ListDirectoryArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state=["List", "Stat"])
   def Start(self):
@@ -614,6 +615,8 @@ class GlobAndGrep(flow.GRRFlow):
   category = "/Filesystem/Glob/"
 
   args_type = rdfvalue.GlobAndGrepArgs
+
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state=["Grep"])
   def Start(self):

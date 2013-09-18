@@ -29,29 +29,6 @@ class AFF4ResultWriter(object):
     self.mode = mode
 
 
-class ArtifactList(type_info.TypeInfoObject):
-  """A list of Artifacts names."""
-
-  renderer = "ArtifactListRenderer"
-
-  def Validate(self, value):
-    """Value must be a list of artifact names."""
-    try:
-      iter(value)
-    except TypeError:
-      raise type_info.TypeValueError(
-          "%s not a valid iterable for ArtifactList" % value)
-    for val in value:
-      if not isinstance(val, basestring):
-        raise type_info.TypeValueError("%s not a valid instance string." % val)
-      artifact_cls = artifact_lib.Artifact.classes.get(val)
-      if (not artifact_cls or not
-          issubclass(artifact_cls, artifact_lib.Artifact)):
-        raise type_info.TypeValueError("%s not a valid Artifact class." % val)
-
-    return value
-
-
 KB_USER_MAPPING = {
     "username": "username",
     "domain": "userdomain",
@@ -71,6 +48,23 @@ KB_USER_MAPPING = {
     # "gid"
     # "uid"
 }
+
+
+class ArtifactName(rdfvalue.RDFString):
+
+  type = "ArtifactName"
+
+  def ParseFromString(self, value):
+    """Value must be a list of artifact names."""
+    super(ArtifactName, self).ParseFromString(value)
+    self.Validate(self._value)
+
+  def Validate(self, value):
+    """Validate we have a real Artifact name."""
+    artifact_cls = artifact_lib.Artifact.classes.get(value)
+    if (not artifact_cls or not
+        issubclass(artifact_cls, artifact_lib.Artifact)):
+      raise type_info.TypeValueError("%s not a valid Artifact." % value)
 
 
 def GetArtifactKnowledgeBase(client_obj):

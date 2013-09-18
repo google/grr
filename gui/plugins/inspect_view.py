@@ -13,6 +13,7 @@ progress of existing flows.
 
 from grr.gui import renderers
 from grr.gui.plugins import fileview
+from grr.gui.plugins import semantic
 from grr.lib import data_store
 from grr.lib import flow_runner
 from grr.lib import rdfvalue
@@ -55,14 +56,14 @@ class RequestTable(renderers.TableRenderer):
 
   def __init__(self, **kwargs):
     super(RequestTable, self).__init__(**kwargs)
-    self.AddColumn(renderers.RDFValueColumn(
-        "Status", renderer=renderers.IconRenderer, width="40px"))
+    self.AddColumn(semantic.RDFValueColumn(
+        "Status", renderer=semantic.IconRenderer, width="40px"))
 
-    self.AddColumn(renderers.RDFValueColumn(
+    self.AddColumn(semantic.RDFValueColumn(
         "ID", renderer=renderers.ValueRenderer))
-    self.AddColumn(renderers.RDFValueColumn("Due"))
-    self.AddColumn(renderers.RDFValueColumn("Flow", width="70%"))
-    self.AddColumn(renderers.RDFValueColumn("Client Action", width="30%"))
+    self.AddColumn(semantic.RDFValueColumn("Due"))
+    self.AddColumn(semantic.RDFValueColumn("Flow", width="70%"))
+    self.AddColumn(semantic.RDFValueColumn("Client Action", width="30%"))
 
   def BuildTable(self, start_row, end_row, request):
     client_id = rdfvalue.ClientURN(request.REQ.get("client_id"))
@@ -103,8 +104,8 @@ class ResponsesTable(renderers.TableRenderer):
 
   def __init__(self, **kwargs):
     super(ResponsesTable, self).__init__(**kwargs)
-    self.AddColumn(renderers.RDFValueColumn("Task ID"))
-    self.AddColumn(renderers.RDFValueColumn(
+    self.AddColumn(semantic.RDFValueColumn("Task ID"))
+    self.AddColumn(semantic.RDFValueColumn(
         "Response", renderer=fileview.GrrMessageRenderer, width="100%"))
 
   def BuildTable(self, start_row, end_row, request):
@@ -216,7 +217,7 @@ class RequestRenderer(renderers.TemplateRenderer):
     msgs = scheduler_obj.Query(client_id, task_id=task_id, token=request.token)
     if msgs:
       self.msg = msgs[0]
-      self.view = renderers.FindRendererForObject(
+      self.view = semantic.FindRendererForObject(
           self.msg).RawHTML(request)
 
     return super(RequestRenderer, self).Layout(request, response)

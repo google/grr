@@ -22,9 +22,6 @@ flags.DEFINE_bool("break_on_start", False,
                   "If True break into a pdb shell immediately on startup. This"
                   " can be used for debugging the client manually.")
 
-config_lib.DEFINE_list("Client.plugins", [],
-                       help="Plugins loaded by the client.")
-
 
 class GRRClient(object):
   """A stand alone GRR client, which uses the HTTP mechanism."""

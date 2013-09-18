@@ -166,7 +166,7 @@ grr.init = function() {
  */
 grr.grrTree = function(renderer, domId, opt_publishEvent, opt_state,
                        opt_success_cb) {
-  var state = opt_state || grr.state;
+  var state = $.extend({}, grr.state, opt_state);
   var publishEvent = opt_publishEvent || 'tree_select';
 
   state.path = '/';
@@ -894,32 +894,6 @@ grr.layout = function(renderer, domId, opt_state, on_success) {
               'Layout');
 };
 
-/**
- * Function sets up event handlers on text elements.
- *
- * @param {string} domId The element we attach the events to.
- * @param {string} queue The name of the queue to send key down
- *     events to.
-*/
-grr.installEventsForText = function(domId, queue) {
-  var node = $('#' + domId);
-
-  // Stops event bubbling
-  var blocker = function(event) {
-    event.stopPropagation();
-    node.focus();
-  };
-
-  // Install events on this node.
-  node.keyup(function(event) {
-    grr.publish(queue, this.value);
-    blocker(event);
-  });
-
-  // Block bubbling of these events.
-  node.mousedown(blocker);
-  node.click(blocker);
-};
 
 /**
  * Create the popup menu dialog.
@@ -1632,8 +1606,9 @@ grr.getCookie = function(name) {
  */
 grr.enableSearchHelp = function(clickNode) {
   var help_content = 'Search by hostname, username, id or MAC<br/>' +
-      'Limit scope using mac: host: fqdn: or user:<br/>e.g. user:sham<br/>' +
-      'Regex is supported<br/> e.g. test1[2-5].*\.example.com$';
+      'Limit scope using mac: host: label: fqdn: or user:<br/>e.g.' +
+      ' user:sham<br/>Regex is supported<br/> e.g. test1[2-5].*\.' +
+      'example.com$';
   var popover_opts = {'placement': 'bottom',
                       'title': help_content,
                       'container': 'body',

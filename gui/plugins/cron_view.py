@@ -11,6 +11,7 @@ from grr.gui.plugins import fileview
 from grr.gui.plugins import flow_management
 from grr.gui.plugins import forms
 from grr.gui.plugins import new_hunt
+from grr.gui.plugins import semantic
 from grr.gui.plugins import wizards
 from grr.lib import aff4
 from grr.lib import flow
@@ -42,7 +43,7 @@ class CronJobInformation(fileview.AFF4Stats):
                                                   aff4_path=self.cron_job_urn)
 
 
-class CronJobStateIcon(renderers.RDFValueRenderer):
+class CronJobStateIcon(semantic.RDFValueRenderer):
   """Render the flow state by using an icon."""
 
   layout_template = renderers.Template("""
@@ -133,13 +134,13 @@ class CronTable(renderers.TableRenderer):
 
   def __init__(self, **kwargs):
     super(CronTable, self).__init__(**kwargs)
-    self.AddColumn(renderers.RDFValueColumn(
+    self.AddColumn(semantic.RDFValueColumn(
         "State", renderer=CronJobStateIcon, width="40px"))
-    self.AddColumn(renderers.RDFValueColumn(
-        "Name", width="10%", renderer=renderers.SubjectRenderer))
-    self.AddColumn(renderers.RDFValueColumn("Last Run", width="10%"))
-    self.AddColumn(renderers.RDFValueColumn("Frequency", width="10%"))
-    self.AddColumn(renderers.RDFValueColumn("Description", width="70%"))
+    self.AddColumn(semantic.RDFValueColumn(
+        "Name", width="10%", renderer=semantic.SubjectRenderer))
+    self.AddColumn(semantic.RDFValueColumn("Last Run", width="10%"))
+    self.AddColumn(semantic.RDFValueColumn("Frequency", width="10%"))
+    self.AddColumn(semantic.RDFValueColumn("Description", width="70%"))
 
   def Layout(self, request, response):
     response = super(CronTable, self).Layout(request, response)

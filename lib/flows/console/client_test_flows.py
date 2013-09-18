@@ -7,7 +7,7 @@ import hashlib
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import type_info
+from grr.proto import flows_pb2
 
 
 class CPULimitTestFlow(flow.GRRFlow):
@@ -15,30 +15,26 @@ class CPULimitTestFlow(flow.GRRFlow):
 
   @flow.StateHandler(next_state="State1")
   def Start(self):
-    self.CallClient("BusyHang", next_state="State1")
+    self.CallClient("BusyHang", integer=5, next_state="State1")
 
   @flow.StateHandler(next_state="Done")
   def State1(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
-    self.CallClient("BusyHang", next_state="Done")
+    self.CallClient("BusyHang", integer=5, next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
     pass
 
 
+class FastGetFileTestFlowArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.FastGetFileTestFlowArgs
+
+
 class FastGetFileTestFlow(flow.GRRFlow):
   """This flow checks FastGetFile correctly transfers files."""
-
-  flow_typeinfo = type_info.TypeDescriptorSet(
-
-      type_info.Integer(
-          name="file_limit",
-          default=3,
-          help=("The number of files to retrieve.")
-          )
-      )
+  args_type = FastGetFileTestFlowArgs
 
   @flow.StateHandler(next_state=["HashFile"])
   def Start(self):
@@ -53,7 +49,7 @@ class FastGetFileTestFlow(flow.GRRFlow):
     urandom = rdfvalue.PathSpec(path="/dev/urandom",
                                 pathtype=rdfvalue.PathSpec.PathType.OS)
 
-    for _ in range(self.state.file_limit):
+    for _ in range(self.args.file_limit):
       self.CallClient("CopyPathToFile",
                       offset=0,
                       length=2 * 1024 * 1024,  # 4 default sized blobs
@@ -90,7 +86,7 @@ class FastGetFileTestFlow(flow.GRRFlow):
     if not responses.success:
       raise flow.FlowError(responses.status)
     for response in responses:
-      fd = aff4.FACTORY.Open(response.aff4path, "HashImage",
+      fd = aff4.FACTORY.Open(response.aff4path, "VFSBlobImage",
                              mode="r", token=self.token)
       server_hash = hashlib.sha256(fd.Read(response.st_size)).hexdigest()
       client_hash = self.state.client_hashes[response.aff4path]
@@ -135,4 +131,3 @@ class NetworkLimitTestFlow(flow.GRRFlow):
   def Done(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
-

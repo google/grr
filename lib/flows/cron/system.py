@@ -9,6 +9,7 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import export_utils
 from grr.lib import flow
+from grr.lib import hunts
 from grr.lib import rdfvalue
 
 from grr.lib import utils
@@ -268,5 +269,31 @@ class LastAccessStats(AbstractClientStatsCronFlow):
         self._value[pos] += 1
       except IndexError:
         pass
+
+
+class InterrogateClientsCronFlow(SystemCronFlow):
+  """A cron job which runs an interrogate hunt on all clients.
+
+  Interrogate needs to be run regularly on our clients to keep host information
+  fresh and enable searching by username etc. in the GUI.
+  """
+  frequency = rdfvalue.Duration("1w")
+  lifetime = rdfvalue.Duration("1w")
+
+  @flow.StateHandler()
+  def Start(self):
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        flow_runner_args=rdfvalue.FlowRunnerArgs(flow_name="Interrogate"),
+        flow_args=rdfvalue.InterrogateArgs(lightweight=False),
+        regex_rules=[],
+        output_plugins=[],
+        token=self.token) as hunt:
+
+      with hunt.GetRunner() as runner:
+        runner.args.expiry_time = "1w"
+        runner.args.description = ("Interrogate run by cron to keep host"
+                                   "info fresh.")
+        runner.Start()
 
 

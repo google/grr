@@ -18,13 +18,6 @@ from grr.lib import data_store
 from grr.lib import registry
 from grr.lib import utils
 
-config_lib.DEFINE_string("Mongo.server", "localhost",
-                         "The mongo server hostname.")
-
-config_lib.DEFINE_integer("Mongo.port", 27017, "The mongo server port..")
-
-config_lib.DEFINE_string("Mongo.db_name", "grr", "The mongo database name")
-
 
 # These are filters
 class Filter(object):
@@ -258,8 +251,9 @@ class MongoDataStore(data_store.DataStore):
       value = Decode(document, decoder)
       yield (document["predicate"], value, document["timestamp"])
 
-  def DeleteSubject(self, subject, token=None):
+  def DeleteSubject(self, subject, sync=False, token=None):
     """Completely deletes all information about the subject."""
+    _ = sync
     subject = utils.SmartUnicode(subject)
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     self.latest_collection.remove(dict(subject=subject))

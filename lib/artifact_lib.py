@@ -36,17 +36,30 @@ class KnowledgeBaseInterpolationError(Error):
 # of hand.
 # Labels are used to logicaly group Artifacts for ease of use.
 
-ARTIFACT_LABELS = [
-    "Antivirus",       # Antivirus related artifacts, e.g. quarantine files.
-    "Execution",       # Contain execution events.
-    "KnowledgeBase",   # Artifacts used in knowledgebase generation.
-    "Logs",            # Contain log files.
-    "External Media",  # Contain external media data or events e.g. (USB drives)
-    "Network",         # Describe networking state.
-    "Authentication",  # Authentication artifacts.
-    "Software",        # Installed software.
-    "Users",           # Information about users.
-    ]
+ARTIFACT_LABELS = {
+    "Antivirus": "Antivirus related artifacts, e.g. quarantine files.",
+    "Authentication": "Authentication artifacts.",
+    "Configuration Files": "Configuration files artifacts.",
+    "Execution": "Contain execution events.",
+    "External Media": "Contain external media data or events e.g. USB drives.",
+    "KnowledgeBase": "Artifacts used in knowledgebase generation.",
+    "Logs": "Contain log files.",
+    "Network": "Describe networking state.",
+    "Processes": "Describe running processes.",
+    "Software": "Installed software.",
+    "System": "Core system artifacts.",
+    "Users": "Information about users."
+    }
+
+ACTIONS_MAP = {"RunGrrClientAction": {"required_args": ["client_action"]},
+               "GetFile": {"required_args": ["path"]},
+               "GetFiles": {"required_args": ["path_list"]},
+               "GetRegistryKeys": {"required_args": ["path_list"]},
+               "GetRegistryValue": {"required_args": ["path"]},
+               "WMIQuery": {"required_args": ["query"]},
+               "RunCommand": {"required_args": ["cmd", "args"]},
+               "Bootstrap": {"required_args": []},
+              }
 
 
 SUPPORTED_OS_LIST = ["Windows", "Linux", "Darwin"]
@@ -189,6 +202,16 @@ class GenericArtifact(Artifact):
           if not isinstance(collector.args.get("path"), basestring):
             raise ArtifactDefinitionError("Artifact %s collector has arg 'path'"
                                           " that is not a string." % cls_name)
+
+      if collector.action not in ACTIONS_MAP:
+        raise ArtifactDefinitionError("Artifact %s has invalid action %s." %
+                                      (cls_name, collector.action))
+
+      required_args = ACTIONS_MAP[collector.action].get("required_args", [])
+      missing_args = set(required_args).difference(collector.args.keys())
+      if missing_args:
+        raise ArtifactDefinitionError("Artifact %s is missing some required "
+                                      "args: %s." % (cls_name, missing_args))
 
     for label in self.LABELS:
       if label not in ARTIFACT_LABELS:

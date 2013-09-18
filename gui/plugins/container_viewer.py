@@ -12,6 +12,7 @@ import logging
 
 from grr.gui import renderers
 from grr.gui.plugins import fileview
+from grr.gui.plugins import semantic
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -20,7 +21,7 @@ from grr.lib import utils
 locale.setlocale(locale.LC_ALL, "")
 
 
-class RDFValueCollectionViewRenderer(renderers.RDFValueRenderer):
+class RDFValueCollectionViewRenderer(semantic.RDFValueArrayRenderer):
   """Render an RDFView."""
   classname = "RDFValueCollectionView"
   name = "Array"
@@ -112,9 +113,9 @@ class ContainerFileTable(renderers.TableRenderer):
 
     super(ContainerFileTable, self).__init__(**kwargs)
 
-    self.AddColumn(renderers.RDFValueColumn(
-        "Icon", renderer=renderers.IconRenderer, width="40px"))
-    self.AddColumn(renderers.AttributeColumn("subject", width="100%"))
+    self.AddColumn(semantic.RDFValueColumn(
+        "Icon", renderer=semantic.IconRenderer, width="40px"))
+    self.AddColumn(semantic.AttributeColumn("subject", width="100%"))
 
   def Layout(self, request, response):
     """The table lists files in the directory and allow file selection."""
@@ -131,7 +132,7 @@ class ContainerFileTable(renderers.TableRenderer):
     view = container.Get(container.Schema.VIEW, [])
     for column_name in view:
       try:
-        self.AddColumn(renderers.AttributeColumn(column_name))
+        self.AddColumn(semantic.AttributeColumn(column_name))
       except (KeyError, AttributeError):
         logging.error("Container %s specifies an invalid attribute %s",
                       container.urn, column_name)

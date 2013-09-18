@@ -20,10 +20,10 @@ class ReportsTest(test_lib.FlowTestsBaseclass):
       with aff4.FACTORY.Open(client.urn.Add("network"), aff4_type="Network",
                              token=self.token, mode="w") as net:
         interfaces = net.Schema.INTERFACES()
-        interfaces.Append(rdfvalue.Interface(
+        interfaces.Append(
             addresses=[rdfvalue.NetworkAddress(human_readable="1.1.1.1",
                                                address_type="INET")],
-            mac_address="11:11:11:11:11:11", ifname="eth0"))
+            mac_address="11:11:11:11:11:11", ifname="eth0")
         net.Set(interfaces)
 
       client.Set(client.Schema.HOSTNAME("lawman"))

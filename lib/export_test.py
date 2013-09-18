@@ -4,6 +4,7 @@
 
 
 import os
+import socket
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
@@ -507,6 +508,48 @@ class ExportTest(test_lib.GRRBaseTest):
 
     self.assertTrue(exported_file)
     self.assertEqual(exported_file.urn, urn)
+
+  def testClientSummaryToExportedNetworkInterfaceConverter(self):
+    client_summary = rdfvalue.ClientSummary(
+        interfaces=[rdfvalue.Interface(
+            mac_address="123456",
+            ifname="eth0",
+            addresses=[
+                rdfvalue.NetworkAddress(
+                    address_type=rdfvalue.NetworkAddress.Family.INET,
+                    packed_bytes=socket.inet_aton("127.0.0.1"),
+                ),
+                rdfvalue.NetworkAddress(
+                    address_type=rdfvalue.NetworkAddress.Family.INET,
+                    packed_bytes=socket.inet_aton("10.0.0.1"),
+                    ),
+                rdfvalue.NetworkAddress(
+                    address_type=rdfvalue.NetworkAddress.Family.INET6,
+                    packed_bytes=socket.inet_pton(socket.AF_INET6,
+                                                  "2001:720:1500:1::a100"),
+                    )
+                ]
+            )]
+        )
+
+    converter = export.ClientSummaryToExportedNetworkInterfaceConverter()
+    results = list(converter.Convert(rdfvalue.ExportedMetadata(),
+                                     client_summary))
+    self.assertEqual(len(results), 1)
+    self.assertEqual(results[0].mac_address, "123456".encode("hex"))
+    self.assertEqual(results[0].ifname, "eth0")
+    self.assertEqual(results[0].ip4_addresses, "127.0.0.1 10.0.0.1")
+    self.assertEqual(results[0].ip6_addresses, "2001:720:1500:1::a100")
+
+  def testClientSummaryToExportedClientConverter(self):
+    client_summary = rdfvalue.ClientSummary()
+    metadata = rdfvalue.ExportedMetadata(hostname="ahostname")
+
+    converter = export.ClientSummaryToExportedClientConverter()
+    results = list(converter.Convert(metadata, client_summary))
+
+    self.assertEqual(len(results), 1)
+    self.assertEqual(results[0].metadata.hostname, "ahostname")
 
   def testRDFURNConverterWithURNPointingToCollection(self):
     urn = rdfvalue.RDFURN("aff4:/C.00000000000000/some/collection")

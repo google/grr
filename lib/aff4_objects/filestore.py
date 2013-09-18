@@ -24,9 +24,7 @@ class FileStoreInit(registry.InitHook):
       filestore = aff4.FACTORY.Create(FileStore.PATH, "FileStore",
                                       mode="rw", token=aff4.FACTORY.root_token)
       filestore.Close()
-
-      hash_urn = rdfvalue.RDFURN(FileStore.PATH).Add(HashFileStore.PATH)
-      hash_filestore = aff4.FACTORY.Create(hash_urn, "HashFileStore",
+      hash_filestore = aff4.FACTORY.Create(HashFileStore.PATH, "HashFileStore",
                                            mode="rw",
                                            token=aff4.FACTORY.root_token)
       hash_filestore.Close()
@@ -42,22 +40,38 @@ class FileStore(aff4.AFF4Volume):
   Modules can register for file content by creating paths under "aff4:/files".
   By default files created in this namespace can be read by users that have the
   URN (hash).  See lib/aff4_objects/user_managers.py.
-  """
-  PATH = "aff4:/files"
-  CHUNK_SIZE = 5 * 512 * 1024
 
-  def CheckHashes(self, hashes, hash_type="sha256"):
+  Filestores are operated on according to their PRIORITY value, lowest first.
+  """
+  PATH = rdfvalue.RDFURN("aff4:/files")
+  CHUNK_SIZE = 5 * 512 * 1024
+  PRIORITY = 99  # default low priority for subclasses
+  EXTERNAL = False
+
+  def GetChildrenByPriority(self, allow_external=True):
+    """Generator that yields active filestore children in priority order."""
+    for child in sorted(self.OpenChildren(), key=lambda x: x.PRIORITY):
+      if not allow_external and child.EXTERNAL:
+        continue
+      if child.Get(child.Schema.ACTIVE):
+        yield child
+
+  def CheckHashes(self, hashes, hash_type="sha256", external=True):
     """Checks a list of hashes for presence in the store.
+
+    Sub stores need to pass back the original HashDigest objects since they
+    carry state about the original file source.
 
     Args:
       hashes: A list of Hash objects to check.
       hash_type: The type of hash (can be sha256, sha1, md5).
+      external: If true, attempt to check stores defined as EXTERNAL.
 
     Yields:
-      Tuples of  (urn, hash) of objects that exist in the store.
+      Tuples of (RDFURN, HashDigest) objects that exist in the store.
     """
     hashes = set(hashes)
-    for child in self.OpenChildren():
+    for child in self.GetChildrenByPriority(allow_external=external):
       for urn, digest in child.CheckHashes(hashes, hash_type=hash_type):
         yield urn, digest
 
@@ -67,20 +81,21 @@ class FileStore(aff4.AFF4Volume):
       if not hashes:
         break
 
-  def AddFile(self, blob_fd, sync=False):
+  def AddFile(self, blob_fd, sync=False, external=True):
     """Create a new file in the file store.
 
     We delegate the actual file addition to our contained
     implementations. Implementations can either implement the AddFile() method,
     returning a file like object which will be written on, or directly support
-    the AddBlobToStore() method which can copy the BlobImage efficiently.
+    the AddBlobToStore() method which can copy the VFSBlobImage efficiently.
 
     Args:
-      blob_fd: BlobImage open for read/write.
+      blob_fd: VFSBlobImage open for read/write.
       sync: Should the file be synced immediately.
+      external: If true, attempt to add files to stores defined as EXTERNAL.
     """
     files_for_write = []
-    for sub_store in self.OpenChildren():
+    for sub_store in self.GetChildrenByPriority(allow_external=external):
       new_file = sub_store.AddFile(blob_fd, sync=sync)
       if new_file:
         files_for_write.append(new_file)
@@ -97,11 +112,18 @@ class FileStore(aff4.AFF4Volume):
     for child in files_for_write:
       child.Close(sync=sync)
 
+  class SchemaCls(aff4.AFF4Volume.SchemaCls):
+    ACTIVE = aff4.Attribute("aff4:filestore_active", rdfvalue.RDFBool,
+                            "If true this filestore is active.",
+                            default=True)
+
 
 class HashFileStore(FileStore):
   """FileStore that stores files referenced by hash."""
 
-  PATH = "hash"
+  PATH = rdfvalue.RDFURN("aff4:/files/hash")
+  PRIORITY = 1
+  EXTERNAL = False
 
   def CheckHashes(self, hashes, hash_type="sha256"):
     """Check hashes against the filestore.
@@ -114,7 +136,7 @@ class HashFileStore(FileStore):
       hash_type: The type of hash (can be sha256, sha1, md5).
 
     Yields:
-      Tuples of (urn, hash) of objects that exist in the store.
+      Tuples of (RDFURN, HashDigest) objects that exist in the store.
     """
     hash_map = {}
     for digest in hashes:
@@ -149,14 +171,14 @@ class HashFileStore(FileStore):
     different-sized regions based on the signature information.
 
     Args:
-      blob_fd: BlobImage open for reading.
+      blob_fd: VFSBlobImage open for reading.
       sync: Should the file be synced immediately.
 
     Raises:
       IOError: If there was an error writing the file.
     """
-    if not isinstance(blob_fd, aff4.BlobImage):
-      raise IOError("Only adding BlobImage to file store supported right now.")
+    if not isinstance(blob_fd, aff4.VFSBlobImage):
+      raise IOError("Only adding VFSBlobImage to file store supported.")
 
     # Currently we only handle blob images.
     fingerprinter = fingerprint.Fingerprinter(blob_fd)
@@ -212,7 +234,7 @@ class HashFileStore(FileStore):
     return None
 
 
-class FileStoreImage(aff4.BlobImage):
+class FileStoreImage(aff4.VFSBlobImage):
   """The AFF4 files that are stored in the file store area.
 
   Files in the file store are essentially blob images, containing indexes to the
@@ -231,7 +253,7 @@ class FileStoreImage(aff4.BlobImage):
   age=1970-01-01 00:00:00>]
   """
 
-  class SchemaCls(aff4.BlobImage.SchemaCls):
+  class SchemaCls(aff4.VFSBlobImage.SchemaCls):
     # The file store does not need to version file content.
     HASHES = aff4.Attribute("aff4:hashes", rdfvalue.HashList,
                             "List of hashes of each chunk in this file.",
@@ -274,3 +296,4 @@ class FileStoreImage(aff4.BlobImage):
         break
 
       yield rdfvalue.RDFURN(hit)
+

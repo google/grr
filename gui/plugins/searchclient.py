@@ -7,7 +7,7 @@ import time
 from django.utils import datastructures
 
 from grr.gui import renderers
-
+from grr.gui.plugins import semantic
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import rdfvalue
@@ -231,6 +231,9 @@ class Navigator(renderers.TemplateRenderer):
     # Introspect all the categories
     for cls in self.classes.values():
       try:
+        if not aff4.issubclass(cls, renderers.Renderer):
+          continue
+
         cls.CheckAccess(request)
       except access_control.UnauthorizedAccess:
         continue
@@ -277,7 +280,7 @@ class Navigator(renderers.TemplateRenderer):
     return response
 
 
-class OnlineStateIcon(renderers.RDFValueRenderer):
+class OnlineStateIcon(semantic.RDFValueRenderer):
   """Render the online state by using an icon."""
 
   cls = "vertical_aligned"
@@ -303,7 +306,7 @@ class OnlineStateIcon(renderers.RDFValueRenderer):
     return super(OnlineStateIcon, self).Layout(request, response)
 
 
-class IPStatusIcon(renderers.RDFValueRenderer):
+class IPStatusIcon(semantic.RDFValueRenderer):
   """Renders the ip status (internal, external) icon."""
 
   cls = "vertical_aligned"
@@ -355,15 +358,16 @@ class HostTable(renderers.TableRenderer):
 
   def __init__(self, **kwargs):
     renderers.TableRenderer.__init__(self, **kwargs)
-    self.AddColumn(renderers.RDFValueColumn("Online", width="40px",
-                                            renderer=CenteredOnlineStateIcon))
-    self.AddColumn(renderers.AttributeColumn("subject", width="13em"))
-    self.AddColumn(renderers.AttributeColumn("Host", width="13em"))
-    self.AddColumn(renderers.AttributeColumn("Version", width="20%"))
-    self.AddColumn(renderers.AttributeColumn("MAC", width="10%"))
-    self.AddColumn(renderers.AttributeColumn("Usernames", width="20%"))
-    self.AddColumn(renderers.AttributeColumn("Install", width="15%"))
-    self.AddColumn(renderers.AttributeColumn("Clock", width="15%"))
+    self.AddColumn(semantic.RDFValueColumn("Online", width="40px",
+                                           renderer=CenteredOnlineStateIcon))
+    self.AddColumn(semantic.AttributeColumn("subject", width="13em"))
+    self.AddColumn(semantic.AttributeColumn("Host", width="13em"))
+    self.AddColumn(semantic.AttributeColumn("Version", width="20%"))
+    self.AddColumn(semantic.AttributeColumn("MAC", width="10%"))
+    self.AddColumn(semantic.AttributeColumn("Usernames", width="20%"))
+    self.AddColumn(semantic.AttributeColumn("Install", width="15%"))
+    self.AddColumn(semantic.AttributeColumn("Labels", width="8%"))
+    self.AddColumn(semantic.AttributeColumn("Clock", width="15%"))
 
   @renderers.ErrorHandler()
   def Layout(self, request, response):
@@ -384,9 +388,11 @@ class HostTable(renderers.TableRenderer):
     if not query_string:
       raise RuntimeError("A query string must be provided.")
 
-    result_set = search.SearchClients(query_string, start=start,
-                                      max_results=end-start,
-                                      token=request.token)
+    result_urns = search.SearchClients(query_string, start=start,
+                                       max_results=end-start,
+                                       token=request.token)
+    result_set = aff4.FACTORY.MultiOpen(result_urns, token=request.token)
+
     self.message = "Searched for %s" % query_string
 
     for child in result_set:

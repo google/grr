@@ -73,9 +73,6 @@ from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import flows
 
-config_lib.DEFINE_integer("Worker.hunt_ping_interval", 60,
-                          "Time interval between hunt's lease extensions.")
-
 
 class FlowRunnerError(Exception):
   """Raised when there is an error during state transitions."""
@@ -656,7 +653,7 @@ class FlowRunner(object):
       RuntimeError: If responses is not of the correct type.
     """
     if not isinstance(response, rdfvalue.RDFValue):
-      raise RuntimeError("SendReply does not send RDFValue")
+      raise RuntimeError("SendReply can only send a Semantic Value")
 
     # Only send the reply if we have a parent and if flow's send_replies
     # attribute is True. We have a parent only if we know our parent's request.
@@ -683,9 +680,6 @@ class FlowRunner(object):
         self.queue_manager.QueueResponse(request_state.session_id, msg)
       except MoreDataException:
         pass
-
-      finally:
-        self.QueueNotification(request_state.session_id)
 
   def __enter__(self):
     return self

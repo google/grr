@@ -12,7 +12,6 @@ from grr.lib import email_alerts
 from grr.lib import export_utils
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import network
 
@@ -98,12 +97,11 @@ class ClientReport(Report):
 
   def MailReport(self, recipient, subject=None):
     """Mail the HTML report to recipient."""
-    dt = rdfvalue.RDFDatetime().Now().AsDatetime().strftime("%Y-%m-%dT%H-%MZ")
+    dt = rdfvalue.RDFDatetime().Now().Format("%Y-%m-%dT%H-%MZ")
     subject = subject or "%s - %s" % (self.REPORT_NAME, dt)
     csv_data = self.AsCsv()
     filename = "%s-%s.csv" % (self.REPORT_NAME, dt)
-    email_alerts.SendEmail(utils.SmartStr(recipient), self.EMAIL_FROM,
-                           subject,
+    email_alerts.SendEmail(recipient, self.EMAIL_FROM, subject,
                            "Please find the CSV report file attached",
                            attachments={filename: csv_data.getvalue()},
                            is_html=False)
@@ -111,11 +109,10 @@ class ClientReport(Report):
 
   def MailHTMLReport(self, recipient, subject=None):
     """Mail the HTML report to recipient."""
-    dt = rdfvalue.RDFDatetime().Now().AsDatetime().strftime("%Y-%m-%dT%H-%MZ")
+    dt = rdfvalue.RDFDatetime().Now().Format("%Y-%m-%dT%H-%MZ")
     subject = subject or "%s - %s" % (self.REPORT_NAME, dt)
     report_text = self.AsHtmlTable()
-    email_alerts.SendEmail(utils.SmartStr(recipient), self.EMAIL_FROM,
-                           subject,
+    email_alerts.SendEmail(recipient, self.EMAIL_FROM, subject,
                            self.EMAIL_TEMPLATE % dict(
                                report_text=report_text,
                                report_name=self.REPORT_NAME),

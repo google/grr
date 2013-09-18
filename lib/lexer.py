@@ -408,7 +408,7 @@ class SearchParser(Lexer):
 
   def InsertArg(self, string="", **_):
     """Insert an arg to the current expression."""
-    logging.debug("Storing Argument %s", string)
+    logging.debug("Storing Argument %s", utils.SmartUnicode(string))
 
     # This expression is complete
     if self.current_expression.AddArg(string):

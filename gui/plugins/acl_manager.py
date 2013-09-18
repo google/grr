@@ -14,6 +14,25 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 
 
+class UnauthorizedRenderer(renderers.TemplateRenderer):
+  """Send UnauthorizedAccess Exceptions to the queue."""
+
+  layout_template = renderers.Template("""
+<script>
+  grr.publish("unauthorized", "{{this.subject|escapejs}}",
+              "{{this.message|escapejs}}");
+</script>
+""")
+
+  def Layout(self, request, response, exception=None):
+    exception = exception or request.REQ.get("e", "")
+    if exception:
+      self.subject = exception.subject
+      self.message = str(exception)
+
+    return super(UnauthorizedRenderer, self).Layout(request, response)
+
+
 class ACLDialog(renderers.TemplateRenderer):
   """Render the ACL dialogbox."""
 

@@ -139,7 +139,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
 
     self.state.Register("collected_count", 0)
+    self.state.Register("artifacts_skipped_due_to_condition", [])
     self.state.Register("failed_count", 0)
+    self.state.Register("artifacts_failed", [])
     self.state.Register("bootstrap_complete", False)
     self.state.Register("knowledge_base", self.args.knowledge_base)
 
@@ -168,29 +170,25 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def Collect(self, artifact_obj):
     """Collect the raw data from the client for this artifact."""
-    # Turn SUPPORTED_OS into a condition.
-    os_match = lambda kb: kb.os in artifact_obj.SUPPORTED_OS
-    test_conditions = list(artifact_obj.CONDITIONS)
-    test_conditions.append(os_match)
     artifact_name = artifact_obj.__class__.__name__
+
+    test_conditions = list(artifact_obj.CONDITIONS)
+    # Turn SUPPORTED_OS into a condition.
+    if artifact_obj.SUPPORTED_OS:
+      os_match = lambda kb: kb.os in artifact_obj.SUPPORTED_OS
+      test_conditions.append(os_match)
 
     # Check each of the conditions match our target.
     for condition in test_conditions:
       if not condition(self.state.knowledge_base):
         logging.debug("Artifact %s condition %s failed on %s",
                       artifact_name, condition.func_name, self.client.client_id)
+        self.state.artifacts_skipped_due_to_condition.append(
+            (artifact_name, condition.func_name))
         return
 
     # Call the collector defined action for each collector.
     for collector in artifact_obj.COLLECTORS:
-      for condition in collector.conditions:
-        if not condition(self.state.knowledge_base):
-          logging.debug("Artifact Collector %s condition %s failed on %s",
-                        artifact_name, condition.func_name,
-                        self.client.client_id)
-          continue
-
-      # Handoff to the the correct Collector action.
       action_name = collector.action
       self.current_artifact_name = artifact_name
       if action_name == "Bootstrap":
@@ -203,11 +201,14 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       elif action_name == "GetFiles":
         self.GetFiles(path_type=self.state.path_type, **collector.args)
       elif action_name == "GetRegistryKeys":
-        self.GetRegistry(paths=collector.args["paths"])
+        self.GetRegistry(path_list=collector.args["path_list"])
       elif action_name == "GetRegistryValue":
         self.GetRegistryValue(path=collector.args["path"])
       elif action_name == "WMIQuery":
         self.WMIQuery(**collector.args)
+      elif action_name == "RunGrrClientAction":
+        self.RunGrrClientAction(collector.args["client_action"],
+                                collector.args.get("action_args", {}))
       else:
         raise RuntimeError("Invalid action %s in %s" % (action_name,
                                                         artifact_name))
@@ -230,16 +231,16 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     """Convenience shortcut to GetFiles to get a single file path."""
     self.GetFiles([path], path_type=path_type)
 
-  def GetRegistry(self, paths):
+  def GetRegistry(self, path_list):
     """Retrieve globbed registry values, returning Stat objects."""
     new_path_list = []
-    for path in paths:
+    for path in path_list:
       # Interpolate any attributes from the knowledgebase.
       new_path_list.extend(artifact_lib.InterpolateKbAttributes(
           path, self.state.knowledge_base))
 
     self.CallFlow(
-        "Glob", paths=paths,
+        "Glob", paths=new_path_list,
         pathtype=rdfvalue.PathSpec.PathType.REGISTRY,
         request_data={"artifact_name": self.current_artifact_name},
         next_state="ProcessCollected"
@@ -273,6 +274,15 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         next_state="ProcessCollected"
         )
 
+  def RunGrrClientAction(self, client_action, action_args):
+    """Call a GRR Client Action."""
+    self.CallClient(
+        client_action,
+        request_data={"artifact_name": self.current_artifact_name},
+        next_state="ProcessCollected",
+        **action_args
+        )
+
   @flow.StateHandler(next_state="ProcessCollected")
   def ProcessRegistryValue(self, responses):
     """Extract DataBlob from Stat response."""
@@ -304,9 +314,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                artifact_cls_name, flow_name)
       self.state.collected_count += 1
     else:
-      self.Log("Artifact %s collection failed. Flow %s failed to complete",
-               artifact_cls_name, flow_name)
+      self.Log("Artifact %s collection failed. Status: %s.",
+               artifact_cls_name, responses.status)
       self.state.failed_count += 1
+      self.state.artifacts_failed.append(artifact_cls_name)
       return
 
     # Initialize some local non-state saved variables for processing.

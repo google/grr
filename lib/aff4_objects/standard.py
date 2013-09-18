@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """These are standard aff4 objects."""
 
 
@@ -143,12 +142,20 @@ class BlobImage(aff4.AFF4Image):
 
   def Initialize(self):
     super(BlobImage, self).Initialize()
+    self.content_dirty = False
     if self.mode == "w":
       self.index = StringIO.StringIO("")
       self.finalized = False
     else:
       self.index = StringIO.StringIO(self.Get(self.Schema.HASHES, ""))
       self.finalized = self.Get(self.Schema.FINALIZED, False)
+
+  def Truncate(self, offset=0):
+    if offset != 0:
+      raise IOError("Non-zero truncation not supported for BlobImage")
+    super(BlobImage, self).Truncate(0)
+    self.index = StringIO.StringIO("")
+    self.finalized = False
 
   def _GetChunkForWriting(self, chunk):
     """Chunks must be added using the AddBlob() method."""
@@ -189,17 +196,17 @@ class BlobImage(aff4.AFF4Image):
 
   def FromBlobImage(self, fd):
     """Copy this file cheaply from another BlobImage."""
+    self.content_dirty = True
     self.SetChunksize(fd.chunksize)
     self.index = StringIO.StringIO(fd.index.getvalue())
     self.size = fd.size
 
-  def Close(self, sync=True):
-    if self._dirty:
+  def Flush(self, sync=True):
+    if self.content_dirty:
       self.Set(self.Schema.SIZE(self.size))
       self.Set(self.Schema.HASHES(self.index.getvalue()))
       self.Set(self.Schema.FINALIZED(self.finalized))
-
-    super(BlobImage, self).Close(sync)
+    super(BlobImage, self).Flush(sync)
 
   def AppendContent(self, src_fd):
     """Create new blob hashes and append to BlobImage.
@@ -231,6 +238,8 @@ class BlobImage(aff4.AFF4Image):
 
       self.AddBlob(blob_hash, len(blob))
 
+    self.Flush()
+
   def AddBlob(self, blob_hash, length):
     """Add another blob to this image using its hash.
 
@@ -246,7 +255,7 @@ class BlobImage(aff4.AFF4Image):
     if self.finalized and length > 0:
       raise IOError("Can't add blobs to finalized BlobImage")
 
-    self._dirty = True
+    self.content_dirty = True
     self.index.seek(0, 2)
     self.index.write(blob_hash)
     self.size += length
@@ -376,19 +385,38 @@ class AFF4Index(aff4.AFF4Object):
   This object has no actual attributes, it simply manages the index.
   """
 
+  # Value to put in the cell for index hits.
+  PLACEHOLDER_VALUE = "X"
+
   def __init__(self, urn, **kwargs):
     # Never read anything directly from the table by forcing an empty clone.
     kwargs["clone"] = {}
     super(AFF4Index, self).__init__(urn, **kwargs)
 
     # We collect index data here until we flush.
-    self.to_set = {}
+    self.to_set = set()
+    self.to_delete = set()
 
-  def Close(self):
+  def Flush(self, sync=False):
     """Flush the data to the index."""
-    if self.to_set:
-      data_store.DB.MultiSet(self.urn, self.to_set, token=self.token,
-                             replace=False, sync=False)
+    super(AFF4Index, self).Flush(sync=sync)
+
+    # Remove entries from deletion set that are going to be added anyway.
+    self.to_delete = self.to_delete.difference(self.to_set)
+
+    # Convert sets into dicts that MultiSet handles.
+    to_delete = dict(zip(self.to_delete,
+                         self.PLACEHOLDER_VALUE*len(self.to_delete)))
+    to_set = dict(zip(self.to_set, self.PLACEHOLDER_VALUE*len(self.to_set)))
+
+    data_store.DB.MultiSet(self.urn, to_set, to_delete=to_delete,
+                           token=self.token, replace=True, sync=sync)
+    self.to_set = set()
+    self.to_delete = set()
+
+  def Close(self, sync=False):
+    self.Flush(sync=sync)
+    super(AFF4Index, self).Close(sync=sync)
 
   def Add(self, urn, attribute, value):
     """Add the attribute of an AFF4 object to the index.
@@ -397,10 +425,15 @@ class AFF4Index(aff4.AFF4Object):
       urn: The URN of the AFF4 object this attribute belongs to.
       attribute: The attribute to add to the index.
       value: The value of the attribute to index.
+
+    Raises:
+      RuntimeError: If a bad URN is passed in.
     """
-    attribute_name = "index:%s:%s" % (
-        attribute.predicate, utils.SmartStr(value).lower())
-    self.to_set[attribute_name] = (utils.SmartStr(urn),)
+    if not isinstance(urn, rdfvalue.RDFURN):
+      raise RuntimeError("Bad urn parameter for index addition.")
+    column_name = "index:%s:%s:%s" % (
+        attribute.predicate, value.lower(), urn)
+    self.to_set.add(column_name)
 
   def Query(self, attributes, regex, limit=100):
     """Query the index for the attribute.
@@ -409,25 +442,29 @@ class AFF4Index(aff4.AFF4Object):
       attributes: A list of attributes to query for.
       regex: The regex to search this attribute.
       limit: A (start, length) tuple of integers representing subjects to
-             return. Useful for paging. If its a single integer we take
-             it as the length limit (start=0).
-
+          return. Useful for paging. If its a single integer we take it as the
+          length limit (start=0).
     Returns:
-      A list of AFF4 objects which match the index search.
+      A list of RDFURNs which match the index search.
     """
-    # Make the regular expression.
-    regex = ["index:%s:.*%s.*" % (a.predicate, regex.lower())
-             for a in attributes]
+    # Make the regular expressions.
+    regexes = ["index:%s:%s:.*" % (a.predicate, regex.lower())
+               for a in attributes]
     start = 0
     try:
       start, length = limit
     except TypeError:
       length = limit
 
-    # Get all the unique hits
-    index_hits = set([x for (_, x, _) in data_store.DB.ResolveRegex(
-        self.urn, regex, token=self.token,
-        timestamp=data_store.DB.ALL_TIMESTAMPS)])
+    # Get all the hits
+
+    index_hits = set()
+    for col, _, _ in data_store.DB.ResolveRegex(
+        self.urn, regexes, token=self.token,
+        timestamp=data_store.DB.ALL_TIMESTAMPS):
+      # Extract URN from the column_name.
+      index_hits.add(rdfvalue.RDFURN(col.rsplit("aff4:/", 1)[1]))
+
     hits = []
     for i, hit in enumerate(index_hits):
       if i < start: continue
@@ -436,4 +473,17 @@ class AFF4Index(aff4.AFF4Object):
       if i >= start + length - 1:
         break
 
-    return aff4.FACTORY.MultiOpen(hits, mode=self.mode, token=self.token)
+    return hits
+
+  def _QueryRaw(self, regex):
+    return set([(x, y) for (y, x, _) in data_store.DB.ResolveRegex(
+        self.urn, regex, token=self.token,
+        timestamp=data_store.DB.ALL_TIMESTAMPS)])
+
+  def DeleteAttributeIndexesForURN(self, attribute, value, urn):
+    """Remove all entries for a given attribute referring to a specific urn."""
+    if not isinstance(urn, rdfvalue.RDFURN):
+      raise RuntimeError("Bad urn parameter for index deletion.")
+    column_name = "index:%s:%s:%s" % (
+        attribute.predicate, value.lower(), urn)
+    self.to_delete.add(column_name)

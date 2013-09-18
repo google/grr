@@ -291,8 +291,9 @@ class TestCronView(test_lib.GRRSeleniumTest):
               "test@grrserver.com")
 
     self.Click("css=.Wizard button:contains('Add Output Plugin')")
-    self.Select("css=.Wizard select[id=output_2-option]",
-                "Store results in a collection")
+    self.Select(
+        "css=.Wizard select[id=output_2-option]",
+        "         Store results in a collection.\n          (default)\n     ")
 
     # Click on "Next" button
     self.Click("css=.Wizard button.Next")

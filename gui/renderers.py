@@ -5,34 +5,24 @@
 import copy
 import csv
 import functools
-import itertools
 import json
 import os
 import re
 import StringIO
 import traceback
-import urllib
 
 
 from django import http
 from django import template
 from django.core import context_processors
 
-from M2Crypto import BN
-
 import logging
 
 from grr.lib import access_control
-from grr.lib import aff4
-from grr.lib import artifact
 from grr.lib import data_store
-from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import type_info
 from grr.lib import utils
 
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.rdfvalues import structs
 
 # Global counter for ids
 COUNTER = 1
@@ -46,20 +36,6 @@ def GetNextId():
   global COUNTER  # pylint: disable=global-statement
   COUNTER += 1  # pylint: disable=g-bad-name
   return COUNTER
-
-
-class VerifyRenderers(registry.InitHook):
-
-  def RunOnce(self):
-    renderers = {}
-
-    for candidate in RDFValueRenderer.classes.values():
-      if aff4.issubclass(candidate, RDFValueRenderer) and candidate.classname:
-        renderers.setdefault(candidate.classname, []).append(candidate)
-
-    for r in renderers:
-      if len(renderers[r]) > 1:
-        raise RuntimeError("More than one renderer found for %s!" % str(r))
 
 
 class Template(template.Template):
@@ -82,97 +58,6 @@ class Template(template.Template):
   def __radd__(self, other):
     """Support concatenation."""
     return Template(utils.SmartStr(other) + self.template_string)
-
-
-class RDFValueColumn(object):
-  """A column holds a bunch of cell values which are RDFValue instances."""
-
-  width = None
-
-  def __init__(self, name, header=None, renderer=None, sortable=False,
-               width=None):
-    """Constructor.
-
-    Args:
-
-     name: The name of this column.The name of this column normally
-       shown in the column header.
-
-     header: (Optional) If exists, we call its Layout() method to
-       render the column headers.
-
-     renderer: The RDFValueRenderer that should be used in this column. Default
-       is None - meaning it will be automatically calculated.
-
-     sortable: Should this column be sortable.
-     width: The ratio (in percent) of this column relative to the table width.
-    """
-    self.name = name
-    self.header = header
-    self.width = width
-    self.renderer = renderer
-    self.sortable = sortable
-    # This stores all Elements on this column. The column may be
-    # sparse.
-    self.rows = {}
-
-  def LayoutHeader(self, request, response):
-    if self.header is not None:
-      try:
-        self.header.Layout(request, response)
-      except AttributeError:
-        response.write(utils.SmartStr(self.header))
-    else:
-      response.write(utils.SmartStr(self.name))
-
-  def GetElement(self, index):
-    return self.rows[index]
-
-  def AddElement(self, index, element):
-    self.rows[index] = element
-
-  def RenderRow(self, index, request, row_options=None):
-    """Render the RDFValue stored at the specific index."""
-    value = self.rows.get(index)
-    if value is None:
-      return ""
-
-    if row_options is not None:
-      row_options["row_id"] = index
-
-    if self.renderer:
-      renderer = self.renderer(value)
-    else:
-      renderer = FindRendererForObject(value)
-
-    # Intantiate the renderer and return the HTML
-    if renderer:
-      result = renderer.RawHTML(request)
-    else:
-      result = utils.SmartStr(value)
-
-    return result
-
-
-class AttributeColumn(RDFValueColumn):
-  """A table column which can be filled from an AFF4Object."""
-
-  def __init__(self, name, **kwargs):
-    # Locate the attribute
-    self.attribute = aff4.Attribute.GetAttributeByName(name)
-
-    RDFValueColumn.__init__(self, name, **kwargs)
-
-  def AddRowFromFd(self, index, fd):
-    """Add a new value from the fd."""
-    value = fd.Get(self.attribute)
-    try:
-      # Unpack flows that are stored inside tasks.
-      value = value.Payload()
-    except AttributeError:
-      pass
-    if value is not None:
-      self.rows[index] = value
 
 
 class Renderer(object):
@@ -328,6 +213,13 @@ class Renderer(object):
         self.classes[self.renderer].__module__.split(".")[-1])
 
 
+# This will register all classes into this modules's namespace regardless of
+# where they are defined. This allows us to decouple the place of definition of
+# a class (which might be in a plugin) from its use which will reference this
+# module.
+Renderer.classes = globals()
+
+
 class UserLabelCheckMixin(object):
   """Checks the user has a label or deny access to this renderer."""
 
@@ -430,6 +322,71 @@ class EscapingRenderer(TemplateRenderer):
   def __init__(self, to_escape, **kwargs):
     self.to_escape = to_escape
     super(EscapingRenderer, self).__init__(**kwargs)
+
+
+class TableColumn(object):
+  """A column holds a bunch of cell values which are RDFValue instances."""
+
+  width = None
+
+  def __init__(self, name, header=None, renderer=None, sortable=False,
+               width=None):
+    """Constructor.
+
+    Args:
+
+     name: The name of this column.The name of this column normally
+       shown in the column header.
+
+     header: (Optional) If exists, we call its Layout() method to
+       render the column headers.
+
+     renderer: The RDFValueRenderer that should be used in this column. Default
+       is None - meaning it will be automatically calculated.
+
+     sortable: Should this column be sortable.
+     width: The ratio (in percent) of this column relative to the table width.
+    """
+    self.name = name
+    self.header = header
+    self.width = width
+    self.renderer = renderer
+    self.sortable = sortable
+    # This stores all Elements on this column. The column may be
+    # sparse.
+    self.rows = {}
+
+  def LayoutHeader(self, request, response):
+    if self.header is not None:
+      try:
+        self.header.Layout(request, response)
+      except AttributeError:
+        response.write(utils.SmartStr(self.header))
+    else:
+      response.write(utils.SmartStr(self.name))
+
+  def GetElement(self, index):
+    return self.rows[index]
+
+  def AddElement(self, index, element):
+    self.rows[index] = element
+
+  def RenderRow(self, index, request, row_options=None):
+    """Render the data stored at the specific index."""
+    value = self.rows.get(index)
+    if value is None:
+      return ""
+
+    if row_options is not None:
+      row_options["row_id"] = index
+
+    if self.renderer:
+      renderer = self.renderer(value)
+      result = renderer.RawHTML(request)
+    else:
+      result = utils.SmartStr(value)
+
+    return result
 
 
 class TableRenderer(TemplateRenderer):
@@ -1079,384 +1036,6 @@ class Splitter2WayVertical(TemplateRenderer):
     return super(Splitter2WayVertical, self).Layout(request, response)
 
 
-class TextInput(Renderer):
-  """A Renderer to produce a text input field.
-
-  The renderer will publish keystrokes to the publish_queue.
-  """
-  # The descriptive text
-  text = ""
-  name = ""
-  publish_queue = ""
-
-  template = Template("""
-<div class="GrrSearch">
-{{ text|escape }}<br>
-<input type="text" name="{{this.name|escape}}"
-  id="{{unique|escape}}"></input></div>
-<script>
-   grr.installEventsForText("{{unique|escapejs}}",
-                            "{{this.publish_queue|escapejs}}");
-</script>
-""")
-
-
-class Button(TemplateRenderer):
-  """A Renderer for a button."""
-  text = "A button"
-
-  template = Template("""
-<button id="{{ unique|escape }}_button">{{ this.text|escape }}</button>
-<script>
- $('#{{ unique|escape }}_button').button()
-</script>
-""")
-
-
-class RDFValueRenderer(TemplateRenderer):
-  """These are abstract classes for rendering RDFValues."""
-
-  # This specifies the name of the RDFValue object we will render.
-  classname = ""
-
-  layout_template = Template("""
-{{this.proxy|escape}}
-""")
-
-  def __init__(self, proxy, **kwargs):
-    """Constructor.
-
-    This class renders a specific AFF4 object which we delegate.
-
-    Args:
-      proxy: The RDFValue class we delegate.
-    """
-    self.proxy = proxy
-    super(RDFValueRenderer, self).__init__(**kwargs)
-
-  @classmethod
-  def RendererForRDFValue(cls, rdfvalue_cls_name):
-    """Returns the class of the RDFValueRenderer which renders rdfvalue_cls."""
-    for candidate in cls.classes.values():
-      if (aff4.issubclass(candidate, RDFValueRenderer) and
-          candidate.classname == rdfvalue_cls_name):
-        return candidate
-
-
-class ValueRenderer(RDFValueRenderer):
-  """A renderer which renders an RDFValue in machine readable format."""
-
-  layout_template = Template("""
-<span type='{{this.rdfvalue_type|escape}}' rdfvalue='{{this.value|escape}}'>
-  {{this.rendered_value|safe}}
-</span>
-""")
-
-  def Layout(self, request, response):
-    self.rdfvalue_type = self.proxy.__class__.__name__
-    try:
-      self.value = self.proxy.SerializeToString()
-    except AttributeError:
-      self.value = utils.SmartStr(self.proxy)
-
-    renderer = FindRendererForObject(self.proxy)
-    self.rendered_value = renderer.RawHTML(request)
-    return super(ValueRenderer, self).Layout(request, response)
-
-
-class SubjectRenderer(RDFValueRenderer):
-  """A special renderer for Subject columns."""
-  classname = "Subject"
-
-  layout_template = Template("""
-<span type=subject aff4_path='{{this.aff4_path|escape}}'>
-  {{this.basename|escape}}
-</span>
-""")
-
-  def Layout(self, request, response):
-    aff4_path = rdfvalue.RDFURN(request.REQ.get("aff4_path", ""))
-    self.basename = self.proxy.RelativeName(aff4_path) or self.proxy
-    self.aff4_path = self.proxy
-
-    return super(SubjectRenderer, self).Layout(request, response)
-
-
-class RDFURNRenderer(RDFValueRenderer):
-  """A special renderer for RDFURNs."""
-
-  classname = "RDFURN"
-
-  layout_template = Template("""
-{% if this.href %}
-<a href='#{{this.href|escape}}'
-  onclick='grr.loadFromHash("{{this.href|escape}}");'>
-  {{this.proxy|escape}}
-</a>
-{% else %}
-{{this.proxy|escape}}
-{% endif %}
-""")
-
-  def Layout(self, request, response):
-    client, rest = self.proxy.Split(2)
-    if aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(client):
-      h = dict(main="VirtualFileSystemView",
-               c=client,
-               tab="AFF4Stats",
-               t=DeriveIDFromPath(rest))
-      self.href = urllib.urlencode(sorted(h.items()))
-
-    super(RDFURNRenderer, self).Layout(request, response)
-
-
-class RDFProtoRenderer(RDFValueRenderer):
-  """Nicely render protobuf based RDFValues.
-
-  Its possible to override specific fields in the protobuf by providing a method
-  like:
-
-  translate_method_name(self, value)
-
-  which is expected to return a safe html unicode object reflecting the value in
-  the value field.
-  """
-  name = ""
-
-  # The field which holds the protobuf
-  proxy_field = "data"
-
-  # {{value}} comes from the translator so its assumed to be safe.
-  layout_template = Template("""
-<table class='proto_table'>
-<tbody>
-{% for key, desc, value in this.result %}
-<tr>
-  <td class="proto_key">
-    {% if desc %}
-      <abbr title='{{desc|escape}}'>
-        {{key|escape}}
-      </abbr>
-    {% else %}
-      {{key|escape}}
-    {% endif %}
-  </td>
-  <td class="proto_value">
-  {{value|safe}}
-  </td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
-""")
-
-  # This is a translation dispatcher for rendering special fields.
-  translator = {}
-
-  translator_error_template = Template("<pre>{{value|escape}}</pre>")
-
-  def Ignore(self, unused_descriptor, unused_value):
-    """A handler for ignoring a value."""
-    return None
-
-  time_template = Template("{{value|escape}}")
-
-  def Time(self, _, value):
-    return self.FormatFromTemplate(self.time_template,
-                                   value=rdfvalue.RDFDatetime(value))
-
-  def Time32Bit(self, _, value):
-    return self.FormatFromTemplate(self.time_template,
-                                   value=rdfvalue.RDFDatetime(value*1000000))
-
-  hrb_template = Template("{{value|filesizeformat}}")
-
-  def HumanReadableBytes(self, _, value):
-    """Format byte values using human readable units."""
-    return self.FormatFromTemplate(self.hrb_template, value=value)
-
-  pre_template = Template("<pre>{{value|escape}}</pre>")
-
-  def Pre(self, _, value):
-    return self.FormatFromTemplate(self.pre_template, value=value)
-
-  def Enum(self, descriptor, value):
-    try:
-      return descriptor.enum_type.values_by_number[value].name
-    except (AttributeError, KeyError):
-      return value
-
-  def ProtoDict(self, _, protodict):
-    """Render a ProtoDict as a string of values."""
-    protodict = rdfvalue.Dict(initializer=protodict)
-    return self.FormatFromTemplate(self.proto_template,
-                                   data=protodict.ToDict().items())
-
-  def RDFProtoRenderer(self, _, value, proto_renderer_name=None):
-    """Render a field using another RDFProtoRenderer."""
-    renderer_cls = self.classes[proto_renderer_name]
-    rdf_value = aff4.FACTORY.RDFValue(renderer_cls.classname)(value)
-    return renderer_cls(rdf_value).RawHTML()
-
-  def Layout(self, request, response):
-    """Render the protobuf as a table."""
-    self.result = []
-    for descriptor, value in self.proxy.ListFields():
-      name = descriptor.name
-      friendly_name = descriptor.friendly_name or name
-
-      # Try to translate the value if there is a special translator for it.
-      if name in self.translator:
-        try:
-          value = self.translator[name](self, None, value)
-          if value is not None:
-            self.result.append((friendly_name, descriptor.description, value))
-
-          # If the translation fails for whatever reason, just output the string
-          # value literally (after escaping)
-        except KeyError:
-          value = self.FormatFromTemplate(self.translator_error_template,
-                                          value=value)
-        except Exception as e:
-          logging.warn("Failed to render {0}. Err: {1}".format(name, e))
-          value = ""
-
-      else:
-        renderer = FindRendererForObject(value)
-
-        self.result.append((friendly_name, descriptor.description,
-                            renderer.RawHTML(request)))
-
-    return super(RDFProtoRenderer, self).Layout(request, response)
-
-
-class RDFValueArrayRenderer(RDFValueRenderer):
-  """Renders arrays of RDFValues."""
-
-  # {{entry}} comes from the individual rdfvalue renderers so it is assumed to
-  # be safe.
-  layout_template = Template("""
-<table class='proto_table'>
-<tbody>
-{% for entry in this.data %}
-<tr class="proto_separator"></tr>
-<td>{{entry|safe}}</td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
-""")
-
-  def Layout(self, request, response):
-    """Render the protobuf as a table."""
-    self.data = []
-
-    for element in self.proxy:
-      renderer = FindRendererForObject(element)
-      if renderer:
-        try:
-          self.data.append(renderer.RawHTML(request))
-        except Exception as e:
-          raise RuntimeError(
-              "Unable to render %s with %s: %s" % (type(element), renderer, e))
-
-    return super(RDFValueArrayRenderer, self).Layout(request, response)
-
-
-class DictRenderer(RDFValueRenderer):
-  """Renders dicts."""
-
-  classname = "Dict"
-
-  # {{value}} comes from the translator so its assumed to be safe.
-  layout_template = Template("""
-{% if this.data %}
-<table class='proto_table'>
-<tbody>
-  {% for key, value in this.data %}
-    <tr>
-      <td class="proto_key">{{key|escape}}</td><td class="proto_value">
-        {{value|safe}}
-      </td>
-    </tr>
-  {% endfor %}
-</tbody>
-</table>
-{% endif %}
-""")
-
-  translator_error_template = Template("<pre>{{value|escape}}</pre>")
-
-  def Layout(self, request, response):
-    """Render the protodict as a table."""
-    self.data = []
-
-    for key, value in sorted(self.proxy.items()):
-      try:
-        renderer = FindRendererForObject(value)
-        if renderer:
-          value = renderer.RawHTML(request)
-        else:
-          raise TypeError("Unknown renderer")
-
-      # If the translation fails for whatever reason, just output the string
-      # value literally (after escaping)
-      except TypeError:
-        value = self.FormatFromTemplate(self.translator_error_template,
-                                        value=value)
-      except Exception as e:
-        logging.warn("Failed to render {0}. Err: {1}".format(type(value), e))
-
-      self.data.append((key, value))
-
-    return super(DictRenderer, self).Layout(request, response)
-
-
-class ListRenderer(RDFValueArrayRenderer):
-  classname = "list"
-
-
-class AbstractLogRenderer(TemplateRenderer):
-  """Render a page for view a Log file.
-
-  Implements a very simple view. That will be extended with filtering
-  capabilities.
-
-  Implementations should implement the GetLog function.
-  """
-
-  layout_template = Template("""
-<table class="proto_table">
-{% for line in this.log %}
-  <tr>
-  {% for val in line %}
-    <td class="proto_key">{{ val|escape }}</td>
-  {% endfor %}
-  </tr>
-{% empty %}
-<tr><td>No entries</tr></td>
-{% endfor %}
-<table>
-""")
-
-  def GetLog(self, request):
-    """Take a request and return a list of tuples for a log."""
-
-  def Layout(self, request, response):
-    """Fill in the form with the specific fields for the flow requested."""
-    self.log = self.GetLog(request)
-    return super(AbstractLogRenderer, self).Layout(request, response)
-
-
-class IconRenderer(RDFValueRenderer):
-  width = 0
-  layout_template = Template("""
-<div class="centered">
-<img class='grr-icon' src='/static/images/{{this.proxy.icon}}.png'
- alt='{{this.proxy.description}}' title='{{this.proxy.description}}'
- /></div>""")
-
-
 def DeriveIDFromPath(path):
   """Transforms path into something that can be used as a HTML DOM ID.
 
@@ -1500,606 +1079,6 @@ class EmptyRenderer(TemplateRenderer):
   layout_template = Template("")
 
 
-class UnauthorizedRenderer(TemplateRenderer):
-  """Send UnauthorizedAccess Exceptions to the queue."""
-
-  layout_template = Template("""
-<script>
-  grr.publish("unauthorized", "{{this.subject|escapejs}}",
-              "{{this.message|escapejs}}");
-</script>
-""")
-
-  def Layout(self, request, response, exception=None):
-    exception = exception or request.REQ.get("e", "")
-    if exception:
-      self.subject = exception.subject
-      self.message = str(exception)
-
-    return super(UnauthorizedRenderer, self).Layout(request, response)
-
-
-class TypeInfoFormRenderer(TemplateRenderer):
-  """A Renderer for the form of a type info."""
-
-  # Derived classes should use this to specify which type_info class this
-  # renderer should be used.
-  type_info_cls = None
-
-  # This lookup map is for mapping the renderer to the the TypeInfo class.
-  type_map = None
-
-  form_template = Template("")
-
-  # This is the default view of the description.
-  default_description_view = Template("""
-  <label class="control-label">
-    <abbr title='{{this.type.description|escape}}'>
-      {{this.type.friendly_name}}
-    </abbr>
-  </label>
-""")
-
-  @classmethod
-  def GetRendererForType(cls, type_info_cls):
-    # Build a lookup map for speed.
-    if cls.type_map is None:
-      cls.type_map = dict(
-          [(x.type_info_cls, x) for x in cls.classes.values()
-           if aff4.issubclass(x, TypeInfoFormRenderer)])
-    try:
-      return cls.type_map[type_info_cls]
-    except KeyError:
-      logging.error("TypeInfo %s has no renderer.", type_info_cls)
-      raise KeyError("TypeInfo %s has no renderer." % type_info_cls)
-
-  def Form(self, type_descriptor, request, prefix="v_", **kwargs):
-    """Produce a string to render a form element from the type_descriptor."""
-    self.type = type_descriptor
-    self.value = (request.REQ.get(prefix + type_descriptor.name) or
-                  type_descriptor.default)
-
-    return self.FormatFromTemplate(self.form_template, prefix=prefix, **kwargs)
-
-  def ParseArgs(self, type_descriptor, request, **kwargs):
-    raise NotImplementedError("Type renderer %s does not know how to parse "
-                              "args." % self.__class__.__name__)
-
-
-class EmptyRequest(object):
-  """Class used to create fake request objects."""
-  pass
-
-
-class TypeDescriptorSetRenderer(TemplateRenderer):
-  """A Renderer for a type descriptor set."""
-
-  form_template = Template("""
-  {% for form_element in this.form_elements %}
-    {{form_element|escape}}
-  {% endfor %}
-""")
-
-  def Form(self, type_descriptor_set, request, **kwargs):
-    """Render the form for this type descriptor set."""
-    self.form_elements = []
-
-    # This allows us to pass dictionary instead of a proper request object.
-    if not hasattr(request, "REQ"):
-      req = EmptyRequest()
-      req.REQ = request  # pylint: disable=g-bad-name
-    else:
-      req = request
-
-    for type_descriptor in type_descriptor_set:
-      if not type_descriptor.hidden:
-        try:
-          type_renderer = TypeInfoFormRenderer.GetRendererForType(
-              type_descriptor.__class__)()
-        except KeyError:
-          # If no special renderer is specified, use DelegatedTypeInfoRenderer.
-          type_renderer = DelegatedTypeInfoRenderer()
-          type_renderer.type_info_cls = type_descriptor.__class__
-
-        # Allow the type renderer to draw the form.
-        self.form_elements.append(type_renderer.Form(
-            type_descriptor, req, **kwargs))
-
-    return self.FormatFromTemplate(self.form_template)
-
-  def ParseArgs(self, type_descriptor_set, request, **kwargs):
-    """Given the type descriptor, construct the args from the request."""
-
-    # This allows us to pass dictionary instead of a proper request object.
-    if not hasattr(request, "REQ"):
-      req = EmptyRequest()
-      req.REQ = request
-    else:
-      req = request
-
-    for type_descriptor in type_descriptor_set:
-      if not type_descriptor.hidden:
-        try:
-          type_renderer = TypeInfoFormRenderer.GetRendererForType(
-              type_descriptor.__class__)()
-        except KeyError:
-          # If no special renderer is specified, use DelegatedTypeInfoRenderer.
-          type_renderer = DelegatedTypeInfoRenderer()
-          type_renderer.type_info_cls = type_descriptor.__class__
-
-        # Allow the type renderer to construct its own object.
-        yield type_descriptor.name, type_renderer.ParseArgs(
-            type_descriptor, req, **kwargs)
-
-
-class DelegatedTypeInfoRenderer(TypeInfoFormRenderer):
-  """A renderer which delegates the rendering to a child descriptor."""
-
-  child_prefix = "pathspec_"
-
-  def Form(self, type_descriptor, request, prefix="v_"):
-    """Render a form for this type_descriptor."""
-
-    # Just delegate the form building to the child descriptors.
-    if type_descriptor.child_descriptor:
-      type_descriptor_renderer = TypeDescriptorSetRenderer()
-      return type_descriptor_renderer.Form(type_descriptor.child_descriptor,
-                                           request,
-                                           prefix=prefix + self.child_prefix)
-
-  def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
-    """Parse an RDFValue for the type_descriptor from the request."""
-    # Build a new RDFValue from the default, and then simply change the
-    # attributes as specified in the child type_descriptor_set.
-    result = type_descriptor.GetDefault()
-
-    if type_descriptor.child_descriptor:
-      type_descriptor_renderer = TypeDescriptorSetRenderer()
-      for name, value in type_descriptor_renderer.ParseArgs(
-          type_descriptor.child_descriptor, request,
-          prefix=prefix + self.child_prefix, **kwargs):
-        if value is not None:
-          if not result:
-            # If the default is None but there are parameters set for this
-            # argument we create an object of the rdf type it should be.
-            result_cls = aff4.FACTORY.RDFValue(type_descriptor.rdf_type)
-            if not result_cls:
-              raise ValueError("Could not get default for type %s" %
-                               type_descriptor)
-            result = result_cls()
-
-          setattr(result, name, value)
-
-    return result
-
-
-class GenericProtoDictTypeRenderer(TypeInfoFormRenderer):
-  """Renderer for generic ProtoDict type."""
-  type_info_cls = type_info.GenericProtoDictType
-
-  form_template = """<div class="control-group">
-""" + TypeInfoFormRenderer.default_description_view + """
-<div class="controls">
-  <span class="uneditable-input">
-    Specifying {{ this.type.name|escape }} not yet supported in the GUI.</span>
-</div>
-</div> <!-- control-group -->
-"""
-
-  def ParseArgs(self, type_descriptor, request, **kwargs):
-    return None
-
-
-class StringFormRenderer(TypeInfoFormRenderer):
-  """String form element renderer."""
-  type_info_cls = type_info.String
-
-  form_template = """<div class="control-group">
-""" + TypeInfoFormRenderer.default_description_view + """
-<div class="controls"><input name='{{prefix}}{{ this.type.name|escape }}'
-    type=text value='{{ this.value|escape }}'/></div>
-</div>
-"""
-
-  def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
-    return request.REQ.get(prefix + type_descriptor.name)
-
-
-class NotEmptyStringFormRenderer(StringFormRenderer):
-  type_info_cls = type_info.NotEmptyString
-
-
-class ByteStringRenderer(StringFormRenderer):
-  type_info_cls = type_info.Bytes
-
-  def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
-    return utils.SmartStr(super(ByteStringRenderer, self).ParseArgs(
-        type_descriptor, request, prefix=prefix, **kwargs))
-
-
-# TODO(user): we only support list of strings at the moment. We should
-# come out with a proper way to rendering complex types like List(String) and
-# so on.
-class ListFormRenderer(TypeInfoFormRenderer):
-  """Renderer for generic lists of objects."""
-  type_info_cls = type_info.List
-
-  def Form(self, type_descriptor, request, prefix="v_", **kwargs):
-    """Produce a string to render a form element from the type_descriptor."""
-    if isinstance(type_descriptor.validator, type_info.String):
-      self.form_template = StringFormRenderer.form_template
-    else:
-      return ""
-
-    self.type = type_descriptor
-    if request.REQ.get(prefix + type_descriptor.name) is not None:
-      items = self.ParseArgs(type_descriptor, request, **kwargs)
-    else:
-      items = type_descriptor.default
-    self.value = ",".join(items or [])
-
-    return self.FormatFromTemplate(self.form_template, prefix=prefix, **kwargs)
-
-  def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
-    if isinstance(type_descriptor.validator, type_info.String):
-      str_val = request.REQ.get(prefix + type_descriptor.name)
-      if str_val:
-        return [x.strip() for x in str_val.split(",")]
-      else:
-        return []
-    else:
-      return ""
-
-
-class InterpolatedPathRenderer(ListFormRenderer):
-  """Renderer for paths that contain variable expansions."""
-  type_info_cls = type_info.InterpolatedList
-  form_template = """<div class="control-group">
-""" + TypeInfoFormRenderer.default_description_view + """
-  <script>
-(function() {
-  var select2_id="";
-
-  function SetFormText(text) {
-    $("#{{unique|escape}}_inputpath").focus();
-    $("#{{unique|escape}}_inputpath").replaceSelectedText(text,
-        "collapseToEnd");
-    // Need to call change here, to notify new hunt's wizard when this
-    // renderer is used there.
-    $("#{{unique|escape}}_inputpath").change();
-  }
-
-  function HideDropdown() {
-    $(select2_id).hide();
-  }
-
-  function ShowDropdown() {
-    $(select2_id).show();
-    $("#{{unique|escape}}_select").select2("open");
-  }
-
-  function SetEventHandlers() {
-    $("#{{unique|escape}}_select").on("change", function(e) {
-      // Note: Hunt's wizards triggers "change" event in all the controls of the
-      // form every time the form is displayed. We can detect that by checking
-      // if the e.val object is empty or not.
-      if (e.val) {
-        SetFormText(e.val);
-      }
-    });
-    $("#{{unique|escape}}_select").on("close", function () { HideDropdown() });
-    $("#{{unique|escape}}_caret").click(function () { ShowDropdown() });
-  }
-
-  $("#{{unique|escape}}_select").select2();
-
-  // select2 injects HTML so we need to find the element ID again to hide it
-  // until the dropdown is clicked.
-  select2_id = "#"+$("#{{unique|escape}}_select").select2("container")[0].id;
-
-  SetEventHandlers();
-  HideDropdown();
-})();
-  </script>
-
-  <div class="controls">
-    <input name='{{prefix}}{{this.type.name|escape}}'
-    id='{{unique|escape}}_inputpath' type=text value='{{ this.value|escape }}'/>
-
-    <a class="btn dropdown-toggle" id='{{unique|escape}}_caret' href="#">
-      <span class="caret"></span>
-    </a>
-
-    <select id='{{unique|escape}}_select'>
-      {% for key, value in this.interpolated_paths.items %}
-        <option value='{{value|escape}}'>{{key|escape}}</option>
-      {% endfor %}
-    </select>
-
-  </div>
-</div>
-"""
-
-  def GetInterpolatedPaths(self):
-    """Get the list of path expansions from the User object.
-
-    Returns:
-      dictionary of path expansions: dict[label] = expansion
-    """
-    interpolated_paths = {}
-    for attribute in rdfvalue.User().special_folders.Fields():
-      expansion = "%%%%Users.special_folders.%s%%%%" % attribute
-      interpolated_paths["%%%s%%" % attribute] = expansion
-
-    interpolated_paths["%homedir%"] = "%%Users.homedir%%"
-    interpolated_paths["%username%"] = "%%Users.username%%"
-
-    return interpolated_paths
-
-  def Form(self, type_descriptor, request, prefix="v_", **kwargs):
-    """Produce a string to render a form element from the type_descriptor."""
-    if not isinstance(type_descriptor.validator, type_info.String):
-      return ""
-
-    self.type = type_descriptor
-    self.interpolated_paths = self.GetInterpolatedPaths()
-
-    if request.REQ.get(prefix + type_descriptor.name) is not None:
-      items = self.ParseArgs(type_descriptor, request, **kwargs)
-    else:
-      items = type_descriptor.default
-    self.value = ",".join(items or [])
-
-    return self.FormatFromTemplate(
-        self.form_template, unique=self.unique, this=self,
-        prefix=prefix, **kwargs)
-
-
-class RegularExpressionFormRenderer(StringFormRenderer):
-  type_info_cls = type_info.RegularExpression
-
-
-class NumberFormRenderer(StringFormRenderer):
-  type_info_cls = type_info.Integer
-
-  def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
-    return long(request.REQ.get(prefix + type_descriptor.name))
-
-
-class DurationFormRenderer(StringFormRenderer):
-  """Form elements renderer for DurationSeconds."""
-  type_info_cls = type_info.Duration
-
-  def Form(self, type_descriptor, request, prefix="v_", **kwargs):
-    """Produce a string to render a form element from the type_descriptor."""
-    self.type = type_descriptor
-    value = (request.REQ.get(prefix + type_descriptor.name) or
-             type_descriptor.default)
-    self.value = str(rdfvalue.Duration(value))
-
-    return self.FormatFromTemplate(self.form_template, prefix=prefix, **kwargs)
-
-  def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
-    return rdfvalue.Duration(utils.SmartStr(
-        request.REQ.get(prefix + type_descriptor.name)))
-
-
-class EncryptionKeyFormRenderer(StringFormRenderer):
-  """Renders an encryption key."""
-
-  type_info_cls = type_info.EncryptionKey
-
-  form_template = """<div class="control-group">
-""" + TypeInfoFormRenderer.default_description_view + """
-<div class="controls">
-<input name='{{prefix}}{{ this.type.name|escape }}'
- type=text value='{{ value|escape }}'
- size='{{field_size|escape}}'
- max_size='{{field_size|escape}}'/></div>
-
-</div>
-"""
-
-  def Form(self, type_descriptor, request, prefix="v_", **kwargs):
-    self.type = type_descriptor
-    bits = type_descriptor.length * 8
-    key = BN.rand(bits)
-    kwargs["value"] = utils.FormatAsHexString(key, width=bits/4, prefix="")
-    kwargs["field_size"] = (bits/4) + 2
-    return self.FormatFromTemplate(self.form_template, prefix=prefix, **kwargs)
-
-
-class BoolFormRenderer(TypeInfoFormRenderer):
-  """Render Boolean types."""
-  type_info_cls = type_info.Bool
-
-  form_template = Template("""
-<div class="control-group">
-<div class="controls">
-
-<label class="checkbox">
-  <input name='{{prefix}}{{ this.type.name|escape }}' type=checkbox
-      {% if this.value %}checked {% endif %} value='{{ this.value|escape }}'/>
-
-  <abbr title='{{this.type.description|escape}}'>
-    {{this.type.friendly_name}}
-  </abbr>
-</label>
-
-</div>
-</div>
-""")
-
-  def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
-    value = request.REQ.get(prefix + type_descriptor.name)
-    if value.lower() == "true":
-      return True
-
-    elif value.lower() == "false":
-      return False
-
-
-class RDFEnumFormRenderer(NumberFormRenderer):
-  """Renders RDF enums."""
-
-  type_info_cls = type_info.SemanticEnum
-
-  form_template = """<div class="control-group">
-""" + TypeInfoFormRenderer.default_description_view + """
-<div class="controls">
-
-<select name="{{prefix}}{{this.type.name|escape}}">
-{% for enum_name, enum_value in enum_values %}
- <option {% ifequal enum_value value %}selected{% endifequal %}
-   value="{{enum_value|escape}}">
-   {{enum_name|escape}}
-   {% ifequal enum_value default %} (default){% endifequal %}
-</option>
-{% endfor %}
-</select>
-
-</div>
-</div>
-"""
-
-  def Form(self, type_descriptor, request, prefix=""):
-    # We want enums to be sorted by their numerical value.
-    self.type = type_descriptor
-    value = type_descriptor.GetDefault()
-
-    enum_values = sorted(
-        type_descriptor.enum_container.enum_dict.items(),
-        key=lambda (k, v): v)
-
-    return self.FormatFromTemplate(
-        self.form_template, enum_values=enum_values, prefix=prefix,
-        default=type_descriptor.GetDefault(), value=value)
-
-  def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
-    return type_descriptor.Validate(
-        long(request.REQ.get(prefix + type_descriptor.name)))
-
-
-class ArtifactListRenderer(TypeInfoFormRenderer):
-  """Renders an Artifact selector."""
-
-  form_template = Template("""
-<tr><td><hr/></td></tr>
-{% for name, cls in artifact_list %}
-  {% if name in default %}
-    <tr>
-      <td>Collect {{name|escape}}</td>
-      <td><input name='{{ desc|escape }}' type='checkbox'
-          checked value='{{ name|escape }}'/></td>
-      <td>{{ cls.GetDescription|escape }}</td>
-    </tr>
-  {% endif %}
-{% endfor %}
-
-<tr><td><hr/></td></tr>
-""")
-
-  def Format(self, arg_type, **kwargs):
-    _ = arg_type
-    artifacts_list = []
-    for key, val in artifact.Artifact.classes.items():
-      if key != "Artifact":
-        artifacts_list.append((key, val))
-    return self.FormatFromTemplate(
-        self.form_template, artifact_list=artifacts_list, **kwargs)
-
-
-class UserListRenderer(TypeInfoFormRenderer):
-  """Renders a User selector."""
-
-  type_info_cls = type_info.UserList
-
-  form_template = """<div class="control-group">
-""" + TypeInfoFormRenderer.default_description_view + """
-<div class="controls">
-<select id="user_select_{{unique|escape}}"
-name="{{prefix}}{{ this.type.name|escape }}" multiple="multiple">
-{% for user in valid_users %}
-  <option value="{{user.username|escape}}">{{user.username|escape}}
-  {% if user.domain %} ({{user.domain|escape}}){% endif %}
-  </option>
-{% endfor %}
-</select>
-</div>
-</div>
-"""
-
-  def Form(self, type_descriptor, request, prefix="v_", **kwargs):
-    client_id = request.REQ.get("client_id", None)
-    if client_id:
-      client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id), mode="r",
-                                 token=request.token)
-      valid_users = sorted(list(client.Get(client.Schema.USER, [])))
-    else:
-      valid_users = []
-
-    return super(UserListRenderer, self).Form(
-        type_descriptor, request,
-        prefix=prefix, valid_users=valid_users, **kwargs)
-
-  def ParseArgs(self, type_descriptor, request, prefix="v_", **kwargs):
-    return request.REQ.getlist(prefix + type_descriptor.name + "[]") or []
-
-
-def FindRendererForObject(rdf_obj):
-  """Find the appropriate renderer for an RDFValue object."""
-  for cls in RDFValueRenderer.classes.values():
-    try:
-      if cls.classname == rdf_obj.__class__.__name__:
-        return cls(rdf_obj)
-    except AttributeError:
-      pass
-
-  if isinstance(rdf_obj, (rdfvalue.RDFValueArray, structs.RepeatedFieldHelper)):
-    return RDFValueArrayRenderer(rdf_obj)
-
-  elif isinstance(rdf_obj, rdfvalue.RDFProtoStruct):
-    return RDFProtoRenderer(rdf_obj)
-
-  # Default renderer.
-  return RDFValueRenderer(rdf_obj)
-
-
-class RDFValueCollectionRenderer(TableRenderer):
-  """Renderer for RDFValueCollection objects."""
-
-  post_parameters = ["aff4_path"]
-  size = 0
-
-  def __init__(self, **kwargs):
-    super(RDFValueCollectionRenderer, self).__init__(**kwargs)
-    self.AddColumn(RDFValueColumn("Value", width="100%"))
-
-  def BuildTable(self, start_row, end_row, request):
-    """Builds a table of rdfvalues."""
-    try:
-      aff4_path = self.state.get("aff4_path") or request.REQ.get("aff4_path")
-      collection = aff4.FACTORY.Open(aff4_path,
-                                     aff4_type="RDFValueCollection",
-                                     token=request.token)
-    except IOError:
-      return
-
-    self.size = len(collection)
-
-    row_index = start_row
-    for value in itertools.islice(collection, start_row, end_row):
-      self.AddCell(row_index, "Value", value)
-      row_index += 1
-
-  def Layout(self, request, response, aff4_path=None):
-    if aff4_path:
-      self.state["aff4_path"] = str(aff4_path)
-
-    return super(RDFValueCollectionRenderer, self).Layout(
-        request, response)
-
-
 class ConfirmationDialogRenderer(TemplateRenderer):
   """Renderer used to render confirmation dialogs."""
 
@@ -2107,7 +1086,7 @@ class ConfirmationDialogRenderer(TemplateRenderer):
   cancel_button_title = "Close"
   proceed_button_title = "Proceed"
 
-  # If check_access_subject is None, ConfirmationDialogRenderer will first
+  # If check_access_subject is not None, ConfirmationDialogRenderer will first
   # do an Ajax call to a CheckAccess renderer to obtain proper token and only
   # then will do an update.
   check_access_subject = None
@@ -2159,11 +1138,11 @@ class ConfirmationDialogRenderer(TemplateRenderer):
     super(ConfirmationDialogRenderer, self).Layout(request, response)
     return self.CallJavascript(response, "ConfirmationDialogRenderer.Layout",
                                check_access_subject=utils.SmartStr(
-                                   self.check_access_subject))
+                                   self.check_access_subject or ""))
 
 
 class ImageDownloadRenderer(TemplateRenderer):
-
+  """Baseclass for renderers which simply transfer an image graphic."""
   mimetype = "image/png"
 
   def Content(self, request, response):
@@ -2176,28 +1155,3 @@ class ImageDownloadRenderer(TemplateRenderer):
                                  mimetype=self.mimetype)
 
     return response
-
-
-class ProgressButtonRenderer(RDFValueRenderer):
-  """Renders a button that shows a progress graph."""
-
-  # This specifies the name of the RDFValue object we will render.
-  classname = "ProgressGraph"
-
-  layout_template = Template("""
-Open a graph showing the download progress in a new window:
-<button id="{{ unique|escape }}">
- Generate
-</button>
-<script>
-  var button = $("#{{ unique|escapejs }}").button();
-
-  var state = {flow_id: '{{this.flow_id|escapejs}}'};
-  grr.downloadHandler(button, state, false,
-                      '/render/Download/ProgressGraphRenderer');
-</script>
-""")
-
-  def Layout(self, request, response):
-    self.flow_id = request.REQ.get("flow")
-    return super(ProgressButtonRenderer, self).Layout(request, response)

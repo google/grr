@@ -53,6 +53,7 @@ class FindFiles(flow.GRRFlow):
   """
 
   category = "/Filesystem/"
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   args_type = FindFilesArgs
 

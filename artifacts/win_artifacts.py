@@ -168,9 +168,71 @@ class AllUsersProfileEnvironmentVariable(Artifact):
   PROVIDES = "environ_allusersprofile"
   COLLECTORS = [
       Collector(action="GetRegistryKeys",
-                args={"paths": [r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProfilesDirectory",
-                                r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\AllUsersProfile"]})
+                args={"path_list": [r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProfilesDirectory",
+                                    r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\AllUsersProfile"]})
       ]
+
+
+################################################################################
+#  Windows user related information
+################################################################################
+
+
+class WindowsRegistryProfiles(Artifact):
+  """Get SIDs for all users on the system with profiles present in the registry.
+
+  This looks in the Windows registry where the profiles are stored and retrieves
+  the paths for each profile.
+  """
+  URLS = ["http://msdn.microsoft.com/en-us/library/windows/desktop/bb776892(v=vs.85).aspx"]
+  SUPPORTED_OS = ["Windows"]
+  LABELS = ["Users", "KnowledgeBase"]
+  COLLECTORS = [
+      Collector(action="GetRegistryValue",
+                args={"path": r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*\ProfileImagePath"}
+               )
+  ]
+
+
+class WindowsWMIProfileUsers(Artifact):
+  """Get user information based on known user's SID.
+
+  This artifact optimizes retrieval of user information by limiting the WMI
+  query to users for which we have a SID for. Specifically this solves the issue
+  that in a domain setting, querying for all users via WMI will give you the
+  list of all local and domain accounts which means a large data transfer from
+  an Active Directory server.
+
+  This artifact relies on having the SID field users.sid populated knowledge
+  base.
+  """
+  URLS = ["http://msdn.microsoft.com/en-us/library/windows/desktop/aa394507(v=vs.85).aspx"]
+  SUPPORTED_OS = ["Windows"]
+  LABELS = ["Users"]
+  COLLECTORS = [
+      Collector(action="WMIQuery",
+                args={"query": "SELECT * FROM Win32_UserAccount "
+                      "WHERE name=\"%%users.sid%%\""}
+               )
+  ]
+
+
+class WindowsWMIUsers(Artifact):
+  """Get all users the system knows about via WMI.
+
+  Note that in a domain setup, this will probably return all users in the
+  domain which will be expensive and slow. Consider WindowsWMIProfileUsers
+  instead.
+  """
+  URLS = ["http://msdn.microsoft.com/en-us/library/windows/desktop/aa394507(v=vs.85).aspx"]
+  LABELS = ["Users"]
+  SUPPORTED_OS = ["Windows"]
+
+  COLLECTORS = [
+      Collector(action="WMIQuery",
+                args={"query": "SELECT * FROM Win32_UserAccount"}
+               )
+  ]
 
 
 ################################################################################
@@ -183,27 +245,25 @@ class AbstractEventLogEvtx(Artifact):
   CONDITIONS = [VistaOrNewer]
   SUPPORTED_OS = ["Windows"]
   LABELS = ["Logs"]
-  PATH_VARS = {"log_path": "%%environ_systemroot%%\\System32\\winevt\\Logs"}
-  PROCESSORS = ["EvtxLogParser"]
 
 
 class ApplicationEventLogEvtx(AbstractEventLogEvtx):
   """Windows Application Event Log for Vista or newer systems."""
   COLLECTORS = [
       Collector(action="GetFile",
-                args={"path": "%%environ_systemroot%%\\System32\\winevt\\Logs\\Application.evtx"})]
+                args={"path": r"%%environ_systemroot%%\System32\winevt\Logs\Application.evtx"})]
 
 
 class SystemEventLogEvtx(AbstractEventLogEvtx):
   """Windows System Event Log for Vista or newer systems."""
   COLLECTORS = [
-      Collector(action="GetFile", args={"path": "{log_path}\\System.evtx"})]
+      Collector(action="GetFile", args={"path": r"%%environ_systemroot%%\System32\winevt\Logs\System.evtx"})]
 
 
 class SecurityEventLogEvtx(AbstractEventLogEvtx):
   """Windows Security Event Log for Vista or newer systems."""
   COLLECTORS = [
-      Collector(action="GetFile", args={"path": "{log_path}\\Security.evtx"})]
+      Collector(action="GetFile", args={"path": r"%%environ_systemroot%%\System32\winevt\Logs\Security.evtx"})]
 
 
 class TerminalServicesEventLogEvtx(AbstractEventLogEvtx):
@@ -214,7 +274,7 @@ RDP/TerminalServices to the machine.
 """
   COLLECTORS = [
       Collector(action="GetFile",
-                args={"path": "{log_path}\\Microsoft-Windows-TerminalServices-LocalSessionManager%4Operational.evtx"})]
+                args={"path": r"%%environ_systemroot%%\System32\winevt\Logs\Microsoft-Windows-TerminalServices-LocalSessionManager%4Operational.evtx"})]
 
 
 ################################################################################
@@ -239,7 +299,7 @@ class ApplicationEventLog(AbstractEventLog):
   COLLECTORS = [
       Collector(
           action="GetFile",
-          args={"path": "%%environ_systemroot%%\\System32\\winevt\\Logs\\AppEvent.evt"}
+          args={"path": r"%%environ_systemroot%%\System32\winevt\Logs\AppEvent.evt"}
           )]
 
 
@@ -248,7 +308,7 @@ class SystemEventLog(AbstractEventLog):
   COLLECTORS = [
       Collector(
           action="GetFile",
-          args={"path": "%%environ_systemroot%%\\System32\\winevt\\Logs\\SysEvent.evt"}
+          args={"path": r"%%environ_systemroot%%\System32\winevt\Logs\SysEvent.evt"}
           )]
 
 
@@ -257,8 +317,13 @@ class SecurityEventLog(AbstractEventLog):
   COLLECTORS = [
       Collector(
           action="GetFile",
-          args={"path": "%%environ_systemroot%%\\System32\\winevt\\Logs\\SecEvent.evt"}
+          args={"path": r"%%environ_systemroot%%\System32\winevt\Logs\SecEvent.evt"}
           )]
+
+
+################################################################################
+#  Software Artifacts
+################################################################################
 
 
 class WindowsWMIInstalledSoftware(AbstractWMIArtifact):
@@ -267,8 +332,8 @@ class WindowsWMIInstalledSoftware(AbstractWMIArtifact):
 
   COLLECTORS = [
       Collector(action="WMIQuery",
-                args={"query": "SELECT Name, Vendor, Description, InstallDate, InstallDate2, Version"
-                      " from Win32_Product"}
+                args={"query": "SELECT Name, Vendor, Description, InstallDate, InstallDate2, Version "
+                      "from Win32_Product"}
                )
   ]
 
@@ -283,3 +348,68 @@ class WindowsDrivers(AbstractWMIArtifact):
                       "from Win32_SystemDriver"}
                )
   ]
+
+
+class WindowsHotFixes(AbstractWMIArtifact):
+  """Extract the installed hotfixes on Windows via WMI."""
+  LABELS = ["Software"]
+
+  COLLECTORS = [
+      Collector(action="WMIQuery",
+                args={"query": "SELECT * "
+                      "from Win32_QuickFixEngineering"}
+               )
+  ]
+
+
+################################################################################
+#  User Artifacts
+################################################################################
+
+
+class WindowsAdminUsers(AbstractWMIArtifact):
+  """Extract the Aministrators on Windows via WMI."""
+  LABELS = ["Software"]
+
+  COLLECTORS = [
+      Collector(action="WMIQuery",
+                args={"query": "SELECT * "
+                      "from Win32_GroupUser where name = Administrators"}
+               )
+  ]
+
+
+class WindowsLoginUsers(AbstractWMIArtifact):
+  """Extract the Login Users on Windows via WMI."""
+  LABELS = ["Software"]
+
+  COLLECTORS = [
+      Collector(action="WMIQuery",
+                args={"query": "SELECT * "
+                      "from Win32_GroupUser where name = login_users"}
+               )
+  ]
+
+
+class WMIProcessList(AbstractWMIArtifact):
+  """Extract the process list on Windows via WMI."""
+  LABELS = ["Software"]
+
+  COLLECTORS = [
+      Collector(action="WMIQuery",
+                args={"query": "SELECT * "
+                      "from Win32_Process"}
+               )
+  ]
+
+
+################################################################################
+#  Network Artifacts
+################################################################################
+
+
+class WinHostsFile(Artifact):
+  """The Windows hosts file."""
+  COLLECTORS = [
+      Collector(action="GetFile",
+                args={"path": "%%environ_systemroot%%\\System32\\Drivers\\etc\\hosts"})]

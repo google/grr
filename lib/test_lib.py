@@ -21,6 +21,8 @@ import time
 import unittest
 
 
+from M2Crypto import X509
+
 from selenium.common import exceptions
 from selenium.webdriver.common import keys
 from selenium.webdriver.support import select
@@ -48,37 +50,18 @@ from grr.lib import registry
 from grr.lib import scheduler
 
 # Server components must also be imported even when the client code is tested.
-from grr.lib import server_plugins  # pylint: disable=unused-import
+# pylint: disable=unused-import
+from grr.lib import server_plugins
+# pylint: enable=unused-import
 from grr.lib import startup
 from grr.lib import utils
 from grr.lib import worker
+# pylint: disable=unused-import
+from grr.lib.flows.caenroll import ca_enroller
+# pylint: enable=unused-import
 from grr.proto import flows_pb2
 
 from grr.test_data import client_fixture
-
-# Default for running in the current directory
-config_lib.DEFINE_string("Test.srcdir",
-                         os.path.normpath(os.path.dirname(__file__) + "/../.."),
-                         "The directory containing the source code.")
-
-config_lib.DEFINE_string("Test.tmpdir", "/tmp/",
-                         help="Somewhere to write temporary files.")
-
-config_lib.DEFINE_string("Test.data_dir",
-                         default="%(Test.srcdir)/grr/test_data",
-                         help="The directory where test data exist.")
-
-config_lib.DEFINE_string(
-    "Test.config",
-    default="%(Test.srcdir)/grr/config/grr-server.yaml",
-    help="The path where the test configuration file "
-    "exists.")
-
-config_lib.DEFINE_string("Test.data_store", "FakeDataStore",
-                         "The data store to run the tests against.")
-
-config_lib.DEFINE_integer("Test.remote_pdb_port", 2525,
-                          "Remote debugger port.")
 
 flags.DEFINE_list("tests", None,
                   help=("Test module to run. If not specified we run"
@@ -193,8 +176,8 @@ class MockSecurityManager(access_control.BaseAccessControlManager):
       raise RuntimeError("Security Token is not set correctly.")
     return True
 
-  def CheckCronJobAccess(self, token, hunt_urn):
-    _ = hunt_urn
+  def CheckCronJobAccess(self, token, cron_job_urn):
+    _ = cron_job_urn
     if token is None:
       raise RuntimeError("Security Token is not set correctly.")
     return True
@@ -410,8 +393,10 @@ class GRRBaseTest(unittest.TestCase):
       client_id = rdfvalue.ClientURN("C.1%015d" % i)
       client_ids.append(client_id)
       fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=self.token)
-      fd.Set(fd.Schema.CERT, rdfvalue.RDFX509Cert(
-          config_lib.CONFIG["Client.certificate"]))
+      cert = rdfvalue.RDFX509Cert(
+          self.ClientCertFromPrivateKey(
+              config_lib.CONFIG["Client.private_key"]).as_pem())
+      fd.Set(fd.Schema.CERT, cert)
 
       info = fd.Schema.CLIENT_INFO()
       info.client_name = "GRR Monitor"
@@ -497,6 +482,15 @@ class GRRBaseTest(unittest.TestCase):
         raise RuntimeError("Bin: %s should have returned exit code 0 but got "
                            "%s" % (cmd, proc.returncode))
 
+  def ClientCertFromPrivateKey(self, private_key):
+    communicator = comms.ClientCommunicator(private_key=private_key)
+    csr = communicator.GetCSR()
+    request = X509.load_request_string(csr)
+    flow_obj = aff4.FACTORY.Create(None, "CAEnroler", token=self.token)
+    subject = request.get_subject()
+    cn = rdfvalue.ClientURN(subject.as_text().split("=")[-1])
+    return flow_obj.MakeCert(cn, request)
+
 
 class EmptyActionTest(GRRBaseTest):
   """Test the client Actions."""
@@ -572,7 +566,7 @@ def SeleniumAction(f):
       try:
         return f(*args, **kwargs)
       except exceptions.WebDriverException as e:
-        logging.warn("Selenium raised %s", e)
+        logging.warn("Selenium raised %s", utils.SmartUnicode(e))
 
         cur_attempt += 1
         if cur_attempt == num_attempts:
@@ -712,7 +706,7 @@ class GRRSeleniumTest(GRRBaseTest):
       # The element might not exist yet and selenium could raise here. (Also
       # Selenium raises Exception not StandardError).
       except Exception as e:  # pylint: disable=broad-except
-        logging.warn("Selenium raised %s", e)
+        logging.warn("Selenium raised %s", utils.SmartUnicode(e))
 
       time.sleep(self.sleep_time)
 
@@ -729,7 +723,7 @@ class GRRSeleniumTest(GRRBaseTest):
       # The element might not exist yet and selenium could raise here. (Also
       # Selenium raises Exception not StandardError).
       except Exception as e:  # pylint: disable=broad-except
-        logging.warn("Selenium raised %s", e)
+        logging.warn("Selenium raised %s", utils.SmartUnicode(e))
 
       element = self.GetElement(target)
       if element:
@@ -897,7 +891,7 @@ class GRRSeleniumTest(GRRBaseTest):
       # The element might not exist yet and selenium could raise here. (Also
       # Selenium raises Exception not StandardError).
       except Exception as e:  # pylint: disable=broad-except
-        logging.warn("Selenium raised %s", e)
+        logging.warn("Selenium raised %s", utils.SmartUnicode(e))
 
       time.sleep(self.sleep_time)
 
@@ -924,6 +918,13 @@ class GRRSeleniumTest(GRRBaseTest):
 
   def setUp(self):
     super(GRRSeleniumTest, self).setUp()
+
+    # Make the user use the advanced gui so we can test it.
+    with aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users/test"), aff4_type="GRRUser", mode="w",
+        token=self.token) as user_fd:
+      user_fd.Set(user_fd.Schema.GUI_SETTINGS(mode="ADVANCED"))
+
     self.InstallACLChecks()
 
   def tearDown(self):
@@ -1597,11 +1598,8 @@ class ClientFixture(object):
 
   def CreateClientObject(self, vfs_fixture):
     """Make a new client object."""
-    old_time = time.time
-
-    try:
-      # Create the fixture at a fixed time.
-      time.time = lambda: self.age
+    # Create the fixture at a fixed time.
+    with Stubber(time, "time", lambda: self.age):
       for path, (aff4_type, attributes) in vfs_fixture:
         path %= self.args
 
@@ -1642,10 +1640,6 @@ class ClientFixture(object):
         # Make sure we do not actually close the object here - we only want to
         # sync back its attributes, not run any finalization code.
         aff4_object.Flush()
-
-    finally:
-      # Restore the time function.
-      time.time = old_time
 
 
 class ClientVFSHandlerFixture(vfs.VFSHandler):
@@ -1795,6 +1789,12 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
                                 st_size=12288,
                                 st_atime=1319796280,
                                 st_dev=1)
+
+
+class ClientRegistryVFSFixture(ClientVFSHandlerFixture):
+  """Special client VFS mock that will emulate the registry."""
+  prefix = "/registry"
+  supported_pathtype = rdfvalue.PathSpec.PathType.REGISTRY
 
 
 class GrrTestProgram(unittest.TestProgram):

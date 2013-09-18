@@ -35,7 +35,10 @@ class BuildConfigTests(test_lib.GRRBaseTest):
   """Tests for config functionality."""
 
   # Server configuration files do not normally have valid client keys.
-  exceptions = ["Client.private_key"]
+  exceptions = ["Client.private_key",
+                "PrivateKeys.executable_signing_private_key",
+                "PrivateKeys.server_key", "PrivateKeys.ca_key",
+                "PrivateKeys.driver_signing_private_key"]
 
   def testAllConfigs(self):
     """Go through all our config files looking for errors."""

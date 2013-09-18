@@ -572,3 +572,9 @@ def GetAgeTupleFromRequest(request, default_days=90):
   start_time = int(request.REQ.get("start_time", default_start))
   end_time = int(request.REQ.get("end_time", now))
   return (start_time, end_time)
+
+
+class ClientStatsView(AFF4ClientStats):
+  description = "Client Performance Stats"
+  behaviours = frozenset(["HostAdvanced"])
+  order = 60

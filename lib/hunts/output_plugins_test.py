@@ -14,16 +14,15 @@ from grr.lib import flags
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib import type_info
 
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.hunts import output_plugins
 
+from grr.proto import flows_pb2
+
 
 class DummyCronHuntOutputPluginArgs(rdfvalue.RDFProtoStruct):
-  type_description = type_info.TypeDescriptorSet(
-      type_info.ProtoString(name="output_path", field_number=1),
-      )
+  protobuf = flows_pb2.DummyCronHuntOutputPluginArgs
 
 
 class DummyCronHuntOutputPlugin(output_plugins.CronHuntOutputPlugin):
@@ -63,10 +62,9 @@ class OutputPluginsTest(test_lib.FlowTestsBaseclass):
         regex_rules=[rdfvalue.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
-        output_plugins=[rdfvalue.OutputPlugin(plugin_name="CollectionPlugin"),
-                        rdfvalue.OutputPlugin(
-                            plugin_name=plugin_name,
-                            plugin_args=plugin_args)],
+        output_plugins=[rdfvalue.OutputPlugin(
+            plugin_name=plugin_name,
+            plugin_args=plugin_args)],
         token=self.token) as hunt:
       hunt.Run()
 
@@ -107,7 +105,8 @@ class OutputPluginsTest(test_lib.FlowTestsBaseclass):
 
     hunt_urn = self.RunHunt(plugin_name="DummyCronHuntOutputPlugin",
                             plugin_args=DummyCronHuntOutputPluginArgs(
-                                output_path="/some/path"))
+                                output_path="/some/path",
+                                collection_name="DummyResults"))
 
     # We expect a cron job with a certain name to be scheduled
     cron_jobs_list = list(cronjobs.CRON_MANAGER.ListJobs(token=self.token))

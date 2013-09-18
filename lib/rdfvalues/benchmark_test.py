@@ -92,7 +92,7 @@ class RDFValueBenchmark(test_lib.MicroBenchmarks):
 
   def testObjectCreation(self):
     """Compare the speed of object creation to raw protobufs."""
-    test_proto = jobs_pb2.UserAccount(**self.USER_ACCOUNT)
+    test_proto = jobs_pb2.User(**self.USER_ACCOUNT)
     test_proto = test_proto.SerializeToString()
 
     def RDFStructCreateAndSerialize():
@@ -111,18 +111,18 @@ class RDFValueBenchmark(test_lib.MicroBenchmarks):
       s.SerializeToString()
 
     def ProtoCreateAndSerialize():
-      s = jobs_pb2.UserAccount(**self.USER_ACCOUNT)
+      s = jobs_pb2.User(**self.USER_ACCOUNT)
       s.SerializeToString()
 
     def ProtoCreateAndSerializeSetValue():
-      s = jobs_pb2.UserAccount()
+      s = jobs_pb2.User()
       for k, v in self.USER_ACCOUNT.iteritems():
         setattr(s, k, v)
 
       s.SerializeToString()
 
     def ProtoCreateAndSerializeFromProto():
-      s = jobs_pb2.UserAccount()
+      s = jobs_pb2.User()
       s.ParseFromString(test_proto)
       self.assertEqual(s.SerializeToString(), test_proto)
 
@@ -259,12 +259,12 @@ class RDFValueBenchmark(test_lib.MicroBenchmarks):
     but only a few fields are examined.
     """
 
-    s = jobs_pb2.UserAccount(**self.USER_ACCOUNT)
+    s = jobs_pb2.User(**self.USER_ACCOUNT)
 
     data = s.SerializeToString()
 
     def ProtoDecode():
-      new_s = jobs_pb2.UserAccount()
+      new_s = jobs_pb2.User()
       new_s.ParseFromString(data)
 
       self.assertEqual(new_s.username, "user")

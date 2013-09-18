@@ -2,17 +2,17 @@
 # Copyright 2011 Google Inc. All Rights Reserved.
 """A viewer for the timeline objects."""
 
-import functools
 import urllib
 
 from grr.gui import renderers
 from grr.gui.plugins import fileview
+from grr.gui.plugins import semantic
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import utils
 
 
-class TimelineViewRenderer(renderers.RDFValueRenderer):
+class TimelineViewRenderer(semantic.RDFValueArrayRenderer):
   """Render a container View.
 
   Post Parameters:
@@ -139,7 +139,7 @@ $("#form_{{unique|escapejs}}").submit(function () {
     return super(TimelineToolbar, self).Layout(request, response)
 
 
-class EventMessageRenderer(renderers.RDFValueRenderer):
+class EventMessageRenderer(semantic.RDFValueRenderer):
   """Render a special message to describe the event based on its type."""
 
   # If the type is unknown we just say what it is.
@@ -205,10 +205,10 @@ class EventTable(renderers.TableRenderer):
     if EventTable.content_cache is None:
       EventTable.content_cache = utils.TimeBasedCache()
     super(EventTable, self).__init__(**kwargs)
-    self.AddColumn(renderers.AttributeColumn("event.id"))
-    self.AddColumn(renderers.AttributeColumn("timestamp"))
-    self.AddColumn(renderers.AttributeColumn("subject"))
-    self.AddColumn(renderers.RDFValueColumn(
+    self.AddColumn(semantic.AttributeColumn("event.id"))
+    self.AddColumn(semantic.AttributeColumn("timestamp"))
+    self.AddColumn(semantic.AttributeColumn("subject"))
+    self.AddColumn(semantic.RDFValueColumn(
         "Message", renderer=EventMessageRenderer, width="100%"))
 
   def Layout(self, request, response):
@@ -244,7 +244,7 @@ class EventTable(renderers.TableRenderer):
       # Add the fd to all the columns
       for column in self.columns:
         # This sets AttributeColumns directly from their fd.
-        if isinstance(column, renderers.AttributeColumn):
+        if isinstance(column, semantic.AttributeColumn):
           column.AddRowFromFd(act_row, child)
 
       act_row += 1
@@ -346,12 +346,7 @@ class EventView(EventSubjectView):
                                              self.error_message)
 
 
-class RDFEventRenderer(renderers.RDFProtoRenderer):
+class RDFEventRenderer(semantic.RDFProtoRenderer):
   """A renderer for Event Protobufs."""
   classname = "RDFEvent"
   name = "Event"
-
-  translator = dict(
-      # The stat field is rendered using the StatEntryRenderer.
-      stat=functools.partial(renderers.RDFProtoRenderer.RDFProtoRenderer,
-                             proto_renderer_name="StatEntryRenderer"))

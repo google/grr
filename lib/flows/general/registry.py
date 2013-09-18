@@ -15,6 +15,7 @@ class CollectRunKeys(flow.GRRFlow):
   """Collect Run and RunOnce keys on the system for all users and System."""
 
   category = "/Registry/"
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state="StoreRunKeys")
   def Start(self):
@@ -89,6 +90,7 @@ class FindMRU(flow.GRRFlow):
   """Collect a list of the Most Recently Used files for all users."""
 
   category = "/Registry/"
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state="StoreMRUs")
   def Start(self):

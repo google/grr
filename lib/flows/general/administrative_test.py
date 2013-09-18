@@ -312,10 +312,11 @@ sys.test_code_ran_here = py_args['value']
     class Popen(object):
       """A mock object for subprocess.Popen."""
 
-      def __init__(self, run, stdout, stderr):
+      def __init__(self, run, stdout, stderr, stdin):
         Popen.running_args = run
         Popen.stdout = stdout
         Popen.stderr = stderr
+        Popen.stdin = stdin
         Popen.returncode = 0
 
         # Store the content of the executable file.

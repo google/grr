@@ -19,10 +19,6 @@ from grr.lib.flows.cron import system
 from grr.proto import flows_pb2
 
 
-config_lib.DEFINE_bool("Cron.active", False,
-                       "Set to true to run a cron thread on this binary.")
-
-
 class CronSpec(rdfvalue.Duration):
   data_store_type = "string"
 
@@ -132,13 +128,13 @@ class CronManager(object):
 CRON_MANAGER = CronManager()
 
 
-def ScheduleSystemCronFlows(token=None, lifetime=rdfvalue.Duration("20h")):
+def ScheduleSystemCronFlows(token=None):
   for name, cls in flow.GRRFlow.classes.items():
     if aff4.issubclass(cls, system.SystemCronFlow):
 
       cron_args = CreateCronJobFlowArgs(periodicity=cls.frequency)
       cron_args.flow_runner_args.flow_name = name
-      cron_args.lifetime = lifetime
+      cron_args.lifetime = cls.lifetime
 
       CRON_MANAGER.ScheduleFlow(cron_args=cron_args,
                                 job_name=name, token=token)
@@ -332,7 +328,7 @@ class CronJob(aff4.AFF4Volume):
     cron_args = self.Get(self.Schema.CRON_ARGS)
     flow_urn = flow.GRRFlow.StartFlow(
         runner_args=cron_args.flow_runner_args,
-        args=cron_args.flow_args, token=self.token)
+        args=cron_args.flow_args, token=self.token, sync=False)
 
     self.Set(self.Schema.CURRENT_FLOW_URN, flow_urn)
     self.Set(self.Schema.LAST_RUN_TIME, rdfvalue.RDFDatetime().Now())
@@ -345,6 +341,9 @@ class CronJob(aff4.AFF4Volume):
 
 
 class CronHook(registry.InitHook):
+
+  pre = ["AFF4InitHook"]
+
   def RunOnce(self):
     # Start the cron thread if configured to.
     if config_lib.CONFIG["Cron.active"]:

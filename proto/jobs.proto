@@ -325,6 +325,7 @@ message ClientInformation {
   optional uint64 revision = 3;
   optional string build_time = 4;
   optional string client_description = 5;
+  repeated string labels = 6;
 }
 
 // This is used to store a task in task scheduler
@@ -691,7 +692,7 @@ message StatEntry {
       type: "RDFURN",
       description: "The location of this file in the AFF4 space."
     }];
-  optional uint32 st_mode = 2 [(sem_type) = {
+  optional uint64 st_mode = 2 [(sem_type) = {
       type: "StatMode",
       description: "A unix file permission mode."
     }, default=0];
@@ -828,7 +829,7 @@ message FolderInformation {
   optional string templates = 20;
 };
 
-message UserAccount {
+message User {
   option (semantic) = {
     description: "User account information."
   };
@@ -856,7 +857,7 @@ message NetworkAddress {
     INET6 = 1;
   }
   optional Family address_type = 1;
-  optional string human_readable = 2;
+  optional string human_readable = 2;  // deprecated
   optional bytes packed_bytes = 3;
 };
 
@@ -865,7 +866,10 @@ message Interface {
     description: "Information about a network interface."
   };
 
-  optional bytes mac_address = 1;
+  optional bytes mac_address = 1 [(sem_type) = {
+      type: "MacAddress",
+      description: "Interface MAC address."""
+    }];
   // ip4_addresses is deprecated, use addresses.
   repeated bytes ip4_addresses = 2;
   optional string ifname = 3;
@@ -1138,17 +1142,31 @@ message DriverInstallTemplate {
 
 // This requests the client to encrypt a file and send it to a specified server.
 message SendFileRequest {
-  // The file to send.
-  optional PathSpec pathspec = 1;
-  // Connect to the receiver using IPv4 or IPv6.
-  optional NetworkAddress.Family address_family = 2;
-  // Receiving host.
-  optional string host = 3;
-  // Receiving port.
-  optional uint32 port = 4;
-  // Encryption key and iv for AES. Both have to be exactly 16 bytes.
-  optional bytes key = 5;
-  optional bytes iv = 6;
+  optional PathSpec pathspec = 1 [(sem_type) = {
+      description: "The pathspec for the file to retrieve.",
+    }];
+
+  optional NetworkAddress.Family address_family = 2 [(sem_type) = {
+      description: "address family to use (AF_INET or AF_INET6).",
+    }, default=INET];
+
+  optional string host = 3 [(sem_type) = {
+      description: "Hostname or IP to send the file to.",
+    }];
+
+  optional uint64 port = 4 [(sem_type) = {
+      description: "Port number on the listening server.",
+    }, default=12345];
+
+  optional bytes key = 5 [(sem_type) = {
+      type: "AES128Key",
+      description: "An encryption key given in hex representation.",
+    }];
+
+  optional bytes iv = 6 [(sem_type) = {
+      type: "AES128Key",
+      description: "The iv for AES, also given in hex representation.",
+    }];
 }
 
 // Grep searches the content of files for a hit and returns several
@@ -1160,8 +1178,13 @@ message GrepSpec {
     }];
 
   // The search only covers this buffer.
-  optional uint64 start_offset = 2 [default = 0];
-  optional uint64 length = 3 [default = 10737418240];
+  optional uint64 start_offset = 2 [(sem_type) = {
+      description: "Start searching at this file offset.",
+    }, default = 0];
+
+  optional uint64 length = 3 [(sem_type) = {
+      description: "How far (in bytes) into the file to search.",
+    }, default = 10737418240];
 
   optional string regex = 4 [(sem_type) = {
       type: "RegularExpression",
@@ -1169,23 +1192,45 @@ message GrepSpec {
     }];
 
   // A literal search.
-  optional bytes literal = 5;
+  optional bytes literal = 5 [(sem_type) = {
+      description: "Search for this literal string.",
+    }];
 
   enum Mode {
     ALL_HITS = 0;   // Report all hits.
     FIRST_HIT = 1;  // Stop after one hit.
   }
 
-  optional Mode mode = 6 [default = ALL_HITS];
+  optional Mode mode = 6 [(sem_type) = {
+      description: "When should searching stop? Stop after one hit "
+                   "or search for all?",
+    }, default = ALL_HITS];
 
-  optional uint32 bytes_before = 7 [default = 10];
-  optional uint32 bytes_after = 8 [default = 10];
+  optional uint32 bytes_before = 7 [(sem_type) = {
+      description: "Include this many bytes before the hit.",
+      label: ADVANCED,
+    }, default = 10];
+
+  optional uint32 bytes_after = 8 [(sem_type) = {
+      description: "Include this many bytes after the hit.",
+      label: ADVANCED,
+    }, default = 10];
 
   // These are used to encode the arguments / results.
-  optional uint32 xor_in_key = 9 [default = 0];
-  optional uint32 xor_out_key = 10 [default = 0];
-}
+  optional uint32 xor_in_key = 9 [(sem_type) = {
+      description: "When searching memory we need to ensure we dont "
+      "hit on our own process. This allows us to obfuscate the search "
+      "string in memory to avoid us finding ourselves.",
+      label: ADVANCED
+    }, default = 0];
 
+  optional uint32 xor_out_key = 10 [(sem_type) = {
+      description: "When searching memory we need to ensure we dont "
+      "hit on our own process. This allows us to obfuscate the search "
+      "string in memory to avoid us finding ourselves.",
+      label: ADVANCED
+    }, default = 0];
+}
 
 // Requests and responses to allow a search for files that match all of these
 // conditions.
@@ -1194,8 +1239,9 @@ message FindSpec {
       label: HIDDEN,
     }];
 
-  // The base path to recursive search from
-  optional PathSpec pathspec = 2;
+  optional PathSpec pathspec = 2 [(sem_type) = {
+      description: "The base path to recursive search from ",
+    }];
 
   optional string path_regex = 3 [(sem_type) = {
       type: "RegularExpression",
@@ -1274,7 +1320,7 @@ message ForemanAttributeRegex {
       description: "An AFF4 attribute name"
     }];
 
-  optional bytes attribute_regex = 3 [(sem_type) = {
+  optional string attribute_regex = 3 [(sem_type) = {
       type: "RegularExpression",
       description: "If these are specified we fire when the attribute's str() "
       "representation matches the regex."
@@ -1488,6 +1534,43 @@ message AuditEvent {
     }];
 }
 
+// This is a summary of a GRR client.
+message ClientSummary {
+  option (semantic) = {
+    description: "A summary of the client information."
+  };
+
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "The Client's URN.",
+    }];
+
+  optional uint64 timestamp = 2 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp for the creation of the record.",
+    }];
+
+  optional Uname system_info = 3 [(sem_type) = {
+      description: "Client's system info."
+    }];
+
+  optional ClientInformation client_info = 4 [(sem_type) = {
+      description: "Basic information about the GRR client.",
+    }];
+
+  optional uint64 install_date = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The date the system was installed.",
+    }];
+
+  repeated User users = 6 [(sem_type) = {
+      description: "User accounts on the system."
+    }];
+
+  repeated Interface interfaces = 7 [(sem_type) = {
+      description: "All interfaces on the system.",
+    }];
+}
 
 
 

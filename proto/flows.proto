@@ -21,7 +21,7 @@ message ACLToken {
   optional string requested_access = 3;
 
 
-  optional int64 expiry = 5 [(sem_type) = {
+  optional uint64 expiry = 5 [(sem_type) = {
       type: "RDFDatetime",
       description: "When does this token expire?",
     }];
@@ -35,6 +35,24 @@ message ACLToken {
   // Is this action an emergency action?
   optional bool is_emergency = 8;
 }
+
+message GUISettings {
+  option (semantic) = {
+    description: "User GUI settings and preferences."
+  };
+
+  enum UIMode {
+    BASIC = 0;
+    ADVANCED = 1;
+    DEBUG = 2;
+  }
+
+  optional UIMode mode = 1 [(sem_type) = {
+      description: "User interface mode.",
+    }, default=BASIC];
+
+}
+
 
 message FlowRunnerArgs {
   // Next field ID: 15
@@ -180,11 +198,11 @@ message HuntRunnerArgs {
       friendly_name: "Client Limit",
     }, default=0];
 
-  optional string expiry_time = 11 [(sem_type) = {
+  optional uint64 expiry_time = 11 [(sem_type) = {
       type: "Duration",
       description: "Expiry time for the hunt.",
       friendly_name: "Expiry Time",
-    }, default="31d"];
+    }, default=2678400];
 
   enum State {
     STOPPED = 0; // Hunt is not active and expired. (EXPIRED)
@@ -292,11 +310,67 @@ message GenericHuntArgs {
 }
 
 
+// Useful messages.
+
+// Many flows use this reduced version of the GrepSpec.
+message BareGrepSpec {
+  optional uint64 start_offset = 2 [(sem_type) = {
+      description: "Start searching at this file offset.",
+    }, default = 0];
+
+  optional uint64 length = 3 [(sem_type) = {
+      description: "How far (in bytes) into the file to search.",
+    }, default = 10737418240];
+
+  optional string regex = 4 [(sem_type) = {
+      type: "RegularExpression",
+      description: "The regular expression which will be used to search."
+    }];
+
+  optional bytes literal = 5 [(sem_type) = {
+      description: "Search for this literal string.",
+    }];
+
+  enum Mode {
+    ALL_HITS = 0;   // Report all hits.
+    FIRST_HIT = 1;  // Stop after one hit.
+  }
+
+  optional Mode mode = 6 [(sem_type) = {
+      description: "When should searching stop? Stop after one hit "
+                   "or search for all?",
+    }, default = ALL_HITS];
+
+  optional uint32 bytes_before = 7 [(sem_type) = {
+      description: "Include this many bytes before the hit.",
+      label: ADVANCED,
+    }, default = 10];
+
+  optional uint32 bytes_after = 8 [(sem_type) = {
+      description: "Include this many bytes after the hit.",
+      label: ADVANCED,
+    }, default = 10];
+
+  optional uint32 xor_in_key = 9 [(sem_type) = {
+      description: "When searching memory we need to ensure we dont "
+      "hit on our own process. This allows us to obfuscate the search "
+      "string in memory to avoid us finding ourselves.",
+      label: ADVANCED
+    }, default = 0];
+
+  optional uint32 xor_out_key = 10 [(sem_type) = {
+      description: "When searching memory we need to ensure we dont "
+      "hit on our own process. This allows us to obfuscate the search "
+      "string in memory to avoid us finding ourselves.",
+      label: ADVANCED
+    }, default = 0];
+}
+
+
 // Various flows.
 
 message CAEnrolerArgs {
-  optional string csr = 1 [(sem_type) = {
-      type: "Certificate",
+  optional Certificate csr = 1 [(sem_type) = {
       description: "A Certificate RDFValue with the CSR in it.",
     }];
 }
@@ -361,10 +435,10 @@ message UpdateClientArgs {
 }
 
 message KeepAliveArgs {
-  optional string duration = 1 [(sem_type) = {
+  optional uint64 duration = 1 [(sem_type) = {
       type: "Duration",
       description: "Until when should the client stay in the fast poll mode.",
-    }, default="1h"];
+    }, default=3600];
 }
 
 message TerminateFlowArgs {
@@ -408,6 +482,7 @@ message WinUserActivityInvestigationArgs {
 
   repeated string artifact_list = 5 [(sem_type) = {
       description: "A list of Artifact names.",
+      type: "ArtifactName",
     }];
 
   optional bool timeline_collected_data = 6 [(sem_type) = {
@@ -422,12 +497,13 @@ message WinUserActivityInvestigationArgs {
 
 message ArtifactCollectorFlowArgs {
   repeated string artifact_list = 1 [(sem_type) = {
+      type: "ArtifactName",
       description: "A list of Artifact class names.",
     }];
 
   optional bool use_tsk = 2 [(sem_type) = {
       description: "Whether raw filesystem access should be used.",
-    }, default=true];
+    }, default=false];
 
   optional bool store_results_in_aff4 = 3 [(sem_type) = {
       description: "Should the collected artifacts be written to the GRR "
@@ -437,7 +513,7 @@ message ArtifactCollectorFlowArgs {
   optional string output = 4 [(sem_type) = {
       description: "If set, a relative URN to write each result to. This "
       "will create the collection if it does not exist."
-    }];
+    }, default="analysis/artifact/{u}-{t}"];
 
   optional bool split_output_by_artifact = 5 [(sem_type) = {
       description: "If True, use output as a directory and write a separate"
@@ -470,6 +546,12 @@ message FetchAllFilesArgs {
       "server worthwhile."
     }, default=10000];
 
+  optional bool use_external_stores = 3 [(sem_type) = {
+      description: "If true, look in any defined external file stores for files"
+      "before downloading them, and offer any new files to external stores."
+      "This should be true unless the external checks are misbehaving.",
+      label: ADVANCED
+    }, default=true];
 
 }
 
@@ -492,19 +574,25 @@ message DownloadMemoryImageArgs {
   optional string destdir = 1 [(sem_type) = {
       description: "Destination directory on the client for the temporary image. "
       "Leave blank to use defaults. Parent directories will be created "
-      "if necessary."
+      "if necessary.",
+      label: ADVANCED
     }];
 
   optional uint64 offset = 2 [(sem_type) = {
       description: "Memory offset in bytes",
+      label: ADVANCED,
+      friendly_name: "Starting Offset"
     }, default=0];
 
   optional uint64 length = 3 [(sem_type) = {
       description: "Number of bytes to copy (default 0 copies all memory)",
+      label: ADVANCED,
+      friendly_name: "Length to download"
     }, default=0];
 
   optional bool gzip = 4 [(sem_type) = {
       description: "Gzip temporary image file on the client.",
+      label: ADVANCED
     }, default=true];
 }
 
@@ -526,7 +614,8 @@ message AnalyzeClientMemoryArgs {
   optional DriverInstallTemplate driver_installer = 1 [(sem_type) = {
       description: "An optional DriverInstallTemplate proto to control "
       "driver installation. If not set, the default  installation proto will "
-      "be used."
+      "be used.",
+      label: HIDDEN,
     }];
 
   optional VolatilityRequest request = 2 [(sem_type) = {
@@ -546,8 +635,7 @@ message GrepMemoryArgs {
     description: "A grep specification which operates only on memory devices."
   };
 
-  optional GrepSpec request = 1 [(sem_type) = {
-      type: "BareGrepSpec",
+  optional BareGrepSpec request = 1 [(sem_type) = {
       description: "A grepspec for memory devices."
     }];
 
@@ -747,8 +835,7 @@ message GlobAndGrepArgs {
       description: "Type of access to glob in.",
     }];
 
-  optional GrepSpec grep = 3 [(sem_type) = {
-      type: "BareGrepSpec",
+  optional BareGrepSpec grep = 3 [(sem_type) = {
       description: "The parameters for grep."
     }];
 
@@ -833,34 +920,6 @@ message ChromeHistoryArgs {
     }];
 }
 
-
-message SendFileArgs {
-  optional PathSpec pathspec = 1 [(sem_type) = {
-      description: "The pathspec for the file to retrieve.",
-    }];
-
-  optional string host = 2 [(sem_type) = {
-      description: "Hostname or IP to send the file to.",
-    }];
-
-  optional uint64 port = 3 [(sem_type) = {
-      description: "Port number on the listening server.",
-    }, default=12345];
-
-  optional NetworkAddress.Family address_family = 4 [(sem_type) = {
-      description: "address family to use (AF_INET or AF_INET6).",
-    }, default=INET];
-
-  optional string key = 5 [(sem_type) = {
-      description: "An encryption key given in hex representation.",
-    }];
-
-  optional string iv = 6 [(sem_type) = {
-      description: "The iv for AES, also given in hex representation.",
-    }];
-
-}
-
 message ClientActionArgs {
   optional string action = 1 [(sem_type) = {
       description: "The action to execute.",
@@ -935,7 +994,9 @@ message CreateCronJobFlowArgs {
   optional uint64 lifetime = 6 [(sem_type) = {
       type: "Duration",
       description: "How long each run of the cron should be allowed to run. "
-      "Runs that exceed lifetime will be killed.",
+      "Runs that exceed lifetime will be killed. This is complimentary but"
+      " different to periodicity e.g. it allows us to run jobs weekly that"
+      " should be killed if they take more than a few hours.",
     }, default=0];
 }
 
@@ -947,7 +1008,7 @@ message ModifyHuntFlowArgs {
 
   optional uint64 client_limit = 2;
 
-  optional string expiry_time = 3 [(sem_type) = {
+  optional uint64 expiry_time = 3 [(sem_type) = {
       type: "RDFDatetime",
       description: "When should this hunt expire?",
     }];
@@ -1055,7 +1116,7 @@ message ChromePluginsArgs {
     }, default=false];
 }
 
-// Testing flows.
+// Testing flows and hunt output plugins.
 message PriorityFlowArgs {
   optional string msg = 1;
 }
@@ -1076,6 +1137,11 @@ message SendingFlowArgs {
 
 message RecursiveTestFlowArgs {
   optional uint64 depth = 1;
+}
+
+message DummyCronHuntOutputPluginArgs {
+  optional string output_path = 1;
+  optional string collection_name = 2;
 }
 
 
@@ -1131,19 +1197,6 @@ message CheckHuntAccessFlowArgs {
     }];
 }
 
-message MemoryHuntArgs {
-  optional GrepSpec request = 1 [(sem_type) = {
-      description: "Search memory for this expression.",
-    }];
-
-  optional string output = 2 [(sem_type) = {
-      description: "The path to the output container for this flow. "
-      "Will be created under the client. supports format variables "
-      "{u}, {p} and {t} for user, plugin and time. E.g. /analysis/{p}/{u}-{t}."
-    }, default="analysis/{p}/{u}-{t}"];
-
-}
-
 message UpdateVFSFileArgs {
   optional string vfs_file_urn = 1 [(sem_type) = {
       type: "RDFURN",
@@ -1153,4 +1206,10 @@ message UpdateVFSFileArgs {
   optional string attribute = 2 [(sem_type) = {
       description: "Attribute to update.",
     }, default="aff4:contains"];
+}
+
+message FastGetFileTestFlowArgs {
+  optional uint64 file_limit = 1 [(sem_type) = {
+      description: "The number of files to retrieve.",
+    }, default=3];
 }

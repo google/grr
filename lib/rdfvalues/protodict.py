@@ -4,7 +4,6 @@
 
 
 from grr.lib import rdfvalue
-from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import structs
 from grr.proto import jobs_pb2
@@ -49,7 +48,7 @@ class DataBlob(structs.RDFProtoStruct):
 
     return self
 
-  def GetValue(self):
+  def GetValue(self, ignore_error=True):
     """Extracts and returns a single value from a DataBlob."""
     if self.HasField("none"):
       return None
@@ -64,9 +63,15 @@ class DataBlob(structs.RDFProtoStruct):
 
     # Unpack RDFValues.
     if self.HasField("rdf_value"):
-      return rdfvalue.RDFValue.classes[self.rdf_value.name](
-          initializer=self.rdf_value.data,
-          age=self.rdf_value.age)
+      try:
+        return rdfvalue.RDFValue.classes[self.rdf_value.name](
+            initializer=self.rdf_value.data,
+            age=self.rdf_value.age)
+      except (ValueError, KeyError) as e:
+        if ignore_error:
+          return e
+
+        raise
 
     elif self.HasField("list"):
       return [x.GetValue() for x in self.list.content]
@@ -272,16 +277,6 @@ class RDFValueArray(rdfvalue.RDFProtoStruct):
         result.append(value)
 
     return result
-
-
-class GenericProtoDictType(type_info.RDFValueType):
-
-  def __init__(self, **kwargs):
-    defaults = dict(default=rdfvalue.Dict(),
-                    rdfclass=rdfvalue.Dict)
-
-    defaults.update(kwargs)
-    super(GenericProtoDictType, self).__init__(**defaults)
 
 
 class EmbeddedRDFValue(rdfvalue.RDFProtoStruct):

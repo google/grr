@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr.lib.aff4_objects.filestore."""
 
-import hashlib
+import StringIO
 
 from grr.lib import aff4
 from grr.lib import rdfvalue
@@ -10,15 +10,22 @@ from grr.lib.aff4_objects import filestore
 
 
 class FakeStore(object):
+  PRIORITY = 99
+  PATH = rdfvalue.RDFURN("aff4:/files/temp")
 
   def __init__(self, path, token):
-    self.dest_file = aff4.FACTORY.Create(aff4.ROOT_URN.Add("temp").Add(path),
-                                         "AFF4MemoryStream", mode="rw",
-                                         token=token)
+    self.dest_file = aff4.FACTORY.Create(path, "AFF4MemoryStream",
+                                         mode="rw", token=token)
 
   def AddFile(self, unused_blob_fd, sync=False):
     _ = sync
     return self.dest_file
+
+  def Get(self, _):
+    return True
+
+  class Schema(object):
+    ACTIVE = "unused"
 
 
 class FileStoreTest(test_lib.GRRBaseTest):
@@ -27,43 +34,55 @@ class FileStoreTest(test_lib.GRRBaseTest):
   def testFileAdd(self):
     fs = aff4.FACTORY.Open(filestore.FileStore.PATH, "FileStore",
                            token=self.token)
-    fake_store1 = FakeStore("1", token=self.token)
-    fake_store2 = FakeStore("2", token=self.token)
-    fs.OpenChildren = lambda: [fake_store1, fake_store2]
+    fake_store1 = FakeStore("aff4:/files/temp1", self.token)
+    fake_store2 = FakeStore("aff4:/files/temp2", self.token)
 
-    src_fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("temp").Add("src"),
-                                 "BlobImage", token=self.token, mode="rw")
-    src_fd.SetChunksize(filestore.FileStore.CHUNK_SIZE)
+    with test_lib.Stubber(fs, "OpenChildren",
+                          lambda: [fake_store1, fake_store2]):
 
-    blob_contents = []
-    for value in ["X", "Y", "Z"]:
-      blob = value * filestore.FileStore.CHUNK_SIZE
-      blob_contents.append(blob)
+      src_fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("temp").Add("src"),
+                                   "VFSBlobImage", token=self.token, mode="rw")
+      src_fd.SetChunksize(filestore.FileStore.CHUNK_SIZE)
 
-      blob_hash = hashlib.sha256(blob).digest()
-      blob_urn = rdfvalue.RDFURN("aff4:/blobs").Add(blob_hash.encode("hex"))
+      src_data = "ABC" * filestore.FileStore.CHUNK_SIZE
+      src_data_fd = StringIO.StringIO(src_data)
+      src_fd.AppendContent(src_data_fd)
 
-      fd = aff4.FACTORY.Create(blob_urn, "AFF4MemoryStream", mode="w",
-                               token=self.token)
-      fd.Write(blob)
-      fd.Close(sync=True)
+      fs.AddFile(src_fd)
 
-      src_fd.AddBlob(blob_hash, len(blob))
+      # Reset file pointers
+      src_fd.Seek(0)
+      fake_store1.dest_file.Seek(0)
+      fake_store2.dest_file.Seek(0)
 
-    src_fd.Close(sync=True)
+      # Check file content got written to both data stores.
+      self.assertEqual(src_data, fake_store1.dest_file.Read(-1))
+      self.assertEqual(src_data, fake_store2.dest_file.Read(-1))
 
-    src_fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("temp").Add("src"),
-                                 "BlobImage", token=self.token, mode="rw")
+  def testGetByPriority(self):
+    priority1 = aff4.FACTORY.Create("aff4:/files/1", "FileStore", mode="rw",
+                                    token=self.token)
+    priority1.PRIORITY = 1
+    priority1.Set(priority1.Schema.ACTIVE(False))
 
-    src_data = "".join(blob_contents)
+    priority2 = aff4.FACTORY.Create("aff4:/files/2", "FileStore", mode="rw",
+                                    token=self.token)
+    priority2.PRIORITY = 2
 
-    fs.AddFile(src_fd)
+    priority3 = aff4.FACTORY.Create("aff4:/files/3", "FileStore", mode="rw",
+                                    token=self.token)
+    priority3.PRIORITY = 3
 
-    # Reset file pointers
-    src_fd.Seek(0)
-    fake_store1.dest_file.Seek(0)
-    fake_store2.dest_file.Seek(0)
+    fs = aff4.FACTORY.Open(filestore.FileStore.PATH, "FileStore",
+                           token=self.token)
 
-    # Check file content got written to both data stores.
-    self.assertEqual(src_data, fake_store1.dest_file.Read(-1))
-    self.assertEqual(src_data, fake_store2.dest_file.Read(-1))
+    with test_lib.Stubber(fs, "OpenChildren",
+                          lambda: [priority3, priority1, priority2]):
+
+      child_list = list(fs.GetChildrenByPriority())
+      self.assertEqual(child_list[0].PRIORITY, 2)
+      self.assertEqual(child_list[1].PRIORITY, 3)
+
+      child_list = list(fs.GetChildrenByPriority(allow_external=False))
+      self.assertEqual(child_list[0].PRIORITY, 2)
+

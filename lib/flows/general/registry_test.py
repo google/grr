@@ -10,12 +10,6 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
-class ClientRegistryVFSFixture(test_lib.ClientVFSHandlerFixture):
-  """Special client VFS mock that will emulate the registry."""
-  prefix = "/registry"
-  supported_pathtype = rdfvalue.PathSpec.PathType.REGISTRY
-
-
 class TestRegistryFlows(test_lib.FlowTestsBaseclass):
   """Test the Run Key and MRU registry flows."""
 
@@ -23,7 +17,7 @@ class TestRegistryFlows(test_lib.FlowTestsBaseclass):
     """Test that the MRU discovery flow. Flow is a work in Progress."""
     # Install the mock
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = ClientRegistryVFSFixture
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
 
     # Mock out the Find client action.
     client_mock = test_lib.ActionMock("Find")
@@ -59,7 +53,7 @@ class TestRegistryFlows(test_lib.FlowTestsBaseclass):
     """Read Run key from the client_fixtures to test parsing and storage."""
     # Install the mock.
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = ClientRegistryVFSFixture
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
 
     # Mock out the Find client action.
     client_mock = test_lib.ActionMock("Find")

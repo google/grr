@@ -22,18 +22,18 @@ from grr.lib import type_info
 from grr.lib import utils
 
 
-# A cache for GetTypeDescriptorRenderer(),
-type_descriptor_cache = None
+# Caches for GetTypeDescriptorRenderer(), We can have a renderer for a repeated
+# member by extending RepeatedFieldFormRenderer and a renderer for a single item
+# by extending TypeDescriptorFormRenderer.
+repeated_renderer_cache = {}
+semantic_renderer_cache = {}
 
 
 def GetTypeDescriptorRenderer(type_descriptor):
-  """Return the TypeDescriptorRenderer responsible for the type_descriptor."""
-  global type_descriptor_cache
-
+  """Return a TypeDescriptorFormRenderer responsible for the type_descriptor."""
   # Cache a mapping between type descriptors and their renderers for speed.
-  if type_descriptor_cache is None:
+  if not semantic_renderer_cache:
     # Rebuild the cache on first access.
-    cache = {}
     for renderer_cls in TypeDescriptorFormRenderer.classes.values():
       # A renderer can specify that it works on a type. This is used for nested
       # protobuf.
@@ -43,19 +43,36 @@ def GetTypeDescriptorRenderer(type_descriptor):
       if delegate is None:
         delegate = getattr(renderer_cls, "type_descriptor", None)
 
-      if delegate:
-        cache[delegate] = renderer_cls
+      # Repeated form renderers go in their own cache.
+      if utils.issubclass(renderer_cls, RepeatedFieldFormRenderer):
+        repeated_renderer_cache[delegate] = renderer_cls
+        continue
 
-    # Atomic setting to prevent races.
-    type_descriptor_cache = cache
+      if delegate:
+        semantic_renderer_cache[delegate] = renderer_cls
 
   # Try to find a renderer for this type descriptor's type:
-  result = type_descriptor_cache.get(getattr(type_descriptor, "type", None))
-  if result is None:
-    result = type_descriptor_cache.get(type_descriptor.__class__)
+  if isinstance(type_descriptor, type_info.ProtoList):
+    # Special handling for repeated fields - must read from
+    # repeated_renderer_cache.
+    delegate_type = getattr(type_descriptor.delegate, "type", None)
+    cache = repeated_renderer_cache
+    default = RepeatedFieldFormRenderer
 
+  else:
+    delegate_type = getattr(type_descriptor, "type", None)
+    cache = semantic_renderer_cache
+    default = StringTypeFormRenderer
+
+  result = cache.get(delegate_type)
+
+  # Try to find a handler for all fields of this type.
   if result is None:
-    result = StringTypeFormRenderer
+    result = cache.get(type_descriptor.__class__)
+
+  # Fallback in case we have no handler.
+  if result is None:
+    result = default
 
   return result
 
@@ -73,26 +90,15 @@ class SemanticProtoFormRenderer(renderers.TemplateRenderer):
       {{form_element|safe}}
     {% endfor %}
   {% if this.advanced_elements %}
-  <div class="accordion" id="accordion{{unique}}">
-    <div class="accordion-group">
-      <div class="accordion-heading">
-       <a class="accordion-toggle" data-toggle="collapse"
-         data-parent="#accordion{{unique}}" href="#collapse{{unique}}">
-         <div class="control-group">
-           <div class="controls">
-            Advanced...
-           </div>
-         </div>
-      </a>
-      </div>
-      <div id="collapse{{unique}}" class="accordion-body collapse">
-        <div class="accordion-inner">
-          {% for form_element in this.advanced_elements %}
-            {{form_element|safe}}
-          {% endfor %}
-        </div>
-      </div>
-    </div>
+  <div class="control-group">
+    <a id="advanced_label_{{unique|escape}}"
+      class="control-label advanced-label">Advanced</a>
+    <div class="controls"><i class="advanced-icon icon-chevron-right"></i></div>
+  </div>
+  <div class="hide advanced-controls" id="advanced_controls_{{unique|escape}}">
+    {% for form_element in this.advanced_elements %}
+      {{form_element|safe}}
+    {% endfor %}
   </div>
   {% endif %}
 </div>
@@ -156,7 +162,7 @@ class SemanticProtoFormRenderer(renderers.TemplateRenderer):
                       prefix=self.prefix + "-" + descriptor.name)
 
         if self.proto_obj.HasField(descriptor.name):
-          kwargs["default"] = getattr(self.proto_obj, descriptor.name)
+          kwargs["value"] = getattr(self.proto_obj, descriptor.name)
 
         type_renderer = GetTypeDescriptorRenderer(descriptor)(**kwargs)
 
@@ -169,7 +175,8 @@ class SemanticProtoFormRenderer(renderers.TemplateRenderer):
         else:
           self.form_elements.append(type_renderer.RawHTML(request))
 
-    return super(SemanticProtoFormRenderer, self).Layout(request, response)
+    response = super(SemanticProtoFormRenderer, self).Layout(request, response)
+    return self.CallJavascript(response, "Layout")
 
   def ParseArgs(self, request):
     """Parse all the post parameters and build a new protobuf instance."""
@@ -179,6 +186,10 @@ class SemanticProtoFormRenderer(renderers.TemplateRenderer):
     for name in request.REQ:
       if not name.startswith(self.prefix):
         continue
+
+      if name.endswith("[]"):
+        # This was an array value, e.g. multi select box and we need to strip.
+        name = name[0:-2]
 
       # Strip the prefix from the name
       field = name[len(self.prefix) + 1:].split("-")[0]
@@ -211,17 +222,19 @@ class TypeDescriptorFormRenderer(renderers.TemplateRenderer):
 
   # This is the default view of the description.
   default_description_view = renderers.Template("""
+  {% if this.render_label %}
   <label class="control-label">
     <abbr title='{{this.descriptor.description|escape}}'>
       {{this.friendly_name}}
     </abbr>
   </label>
+  {% endif %}
 """)
 
   friendly_name = None
 
   def __init__(self, descriptor=None, prefix="v_", opened=False, default=None,
-               container=None, **kwargs):
+               value=None, container=None, render_label=True, **kwargs):
     """Create a new renderer for a type descriptor.
 
     Args:
@@ -231,16 +244,28 @@ class TypeDescriptorFormRenderer(renderers.TemplateRenderer):
         own use by prepending them with this unique prefix.
 
       opened: If this is specified, we open all our children.
+
       default: Use this default value to initialize form elements.
 
+      value: This is the value of this field. Note that this is not the same as
+        default - while default specifies value when the field is not set, value
+        specifies that this field is actually set.
+
       container: The container of this field.
+
+      render_label: If True, will render the label for this field.
 
       **kwargs: Passthrough to baseclass.
     """
     self.descriptor = descriptor
+    self.value = value
     self.opened = opened
     self.container = container
+    self.render_label = render_label
     self.default = default
+    if default is None and descriptor:
+      self.default = self.descriptor.GetDefault(container=self.container)
+
     self.prefix = prefix
     super(TypeDescriptorFormRenderer, self).__init__(**kwargs)
 
@@ -248,10 +273,6 @@ class TypeDescriptorFormRenderer(renderers.TemplateRenderer):
     self.friendly_name = (self.friendly_name or
                           self.descriptor.friendly_name or
                           self.descriptor.name)
-
-    self.value = self.descriptor.GetDefault(container=self.container)
-    if self.value is None:
-      self.value = ""
 
     return super(TypeDescriptorFormRenderer, self).Layout(request, response)
 
@@ -269,7 +290,10 @@ class StringTypeFormRenderer(TypeDescriptorFormRenderer):
 """ + TypeDescriptorFormRenderer.default_description_view + """
   <div class="controls">
     <input id='{{this.prefix}}'
-      type=text value='{{ this.value|escape }}'
+      type=text
+{% if this.default %}
+  value='{{ this.default|escape }}'
+{% endif %}
       onchange="grr.forms.inputOnChange(this)"
       class="unset"/>
   </div>
@@ -278,10 +302,24 @@ class StringTypeFormRenderer(TypeDescriptorFormRenderer):
 
   def Layout(self, request, response):
     super(StringTypeFormRenderer, self).Layout(request, response)
+    return self.CallJavascript(response, "StringTypeFormRenderer.Layout",
+                               default=self.default, value=self.value,
+                               prefix=self.prefix)
+
+
+class ProtoRDFValueFormRenderer(StringTypeFormRenderer):
+  """A Generic renderer for RDFValue Semantic types."""
+
+  type_descriptor = type_info.ProtoRDFValue
+
+  def Layout(self, request, response):
+    if self.value is not None:
+      self.value = self.value.SerializeToString()
+
     if self.default is not None:
-      self.CallJavascript(response, "StringTypeFormRenderer.Layout",
-                          default=utils.SmartUnicode(self.default),
-                          prefix=self.prefix)
+      self.default = self.default.SerializeToString()
+
+    return super(ProtoRDFValueFormRenderer, self).Layout(request, response)
 
 
 class IntegerTypeFormRenderer(StringTypeFormRenderer):
@@ -339,7 +377,7 @@ class EmbeddedProtoFormRenderer(TypeDescriptorFormRenderer):
 {% if this.opened %}
      {{this.prefetched|safe}}
 {% else %}
-     <ins class='fg-button ui-icon ui-icon-plus' id='{{unique|escape}}'
+     <i class='nested-icon icon-plus' id='{{unique|escape}}'
        data-rdfvalue='{{this.type_name}}' data-prefix='{{this.prefix}}'
       />
      <div id='content_{{unique|escape}}'></div>
@@ -350,22 +388,21 @@ class EmbeddedProtoFormRenderer(TypeDescriptorFormRenderer):
 """)
 
   ajax_template = renderers.Template("""
-    {{this.delegated_renderer_layout|safe}}
-<script>
- // Mark the content as already fetched so we do not need to fetch again.
- $("#{{id|escapejs}}").addClass("Fetched");
-</script>
+{{this.delegated_renderer_layout|safe}}
 """)
 
   def Layout(self, request, response):
     """Build the form elements for the nested protobuf."""
-    default = self.descriptor.GetDefault(container=self.container)
+    self.type_name = self.descriptor.type.__name__
 
-    self.type_name = default.__class__.__name__
+    # If we have data under us we must open the expander to show it.
+    if self.value is not None:
+      self.opened = True
 
     if self.opened:
       delegated_renderer = SemanticProtoFormRenderer(
-          default, opened=False, prefix=self.prefix)
+          proto_obj=self.value or self.default, opened=False,
+          prefix=self.prefix)
 
       self.prefetched = delegated_renderer.RawHTML(request)
 
@@ -387,8 +424,9 @@ class EmbeddedProtoFormRenderer(TypeDescriptorFormRenderer):
 
     self.delegated_renderer_layout = delegated_renderer.RawHTML(request)
 
-    return renderers.TemplateRenderer.Layout(
+    response = renderers.TemplateRenderer.Layout(
         self, request, response, apply_template=self.ajax_template)
+    return self.CallJavascript(response, "RenderAjax")
 
   def ParseArgs(self, request):
     """Parse all the post parameters and build a new protobuf instance."""
@@ -438,85 +476,37 @@ class RepeatedFieldFormRenderer(TypeDescriptorFormRenderer):
   type_descriptor = type_info.ProtoList
 
   layout_template = renderers.Template("""
-<div class="accordion" id="accordion{{unique}}">
-  <div class="accordion-group">
-    <div class="accordion-heading">
-      <button class="btn" id="add_{{unique}}"
-       data-count=0
-       data-prefix="{{this.prefix}}"
-       >
-      <img src="static/images/new.png"
-       alt="Add {{this.descriptor.friendly_name}}" />
+  <div class="control-group">
+""" + TypeDescriptorFormRenderer.default_description_view + """
+    <div class="controls">
+      <button class="btn form-add" id="add_{{unique|escape}}"
+        data-count=0 data-prefix="{{this.prefix|escape}}">
+        <i class="icon-plus"></i>
       </button>
     </div>
-    <div id="collapse{{unique}}" class="accordion-body in">
-      <div class="accordion-inner">
-        <div id="content_{{unique}}" />
-      </div>
-    </div>
   </div>
-</div>
-<script>
-$("button#add_{{unique}}").click(function (event) {
-  var count = $(this).data("count") + 1;
-  var new_id = 'content_{{unique}}_' + count;
-
-  $(this).data("count", count);
-
-  // Store the total count of members in the form.
-  $(this).closest(".FormData").data()[
-     "{{this.prefix}}_count"] = count;
-
-  $("#content_{{unique}}").append('<div id="' + new_id + '"/>');
-
-  grr.update("{{renderer}}", new_id, {
-    'index': count,
-    'prefix': "{{this.prefix}}",
-    'owner': "{{this.owner}}",
-    'field': "{{this.field}}",
-  });
-
-  event.preventDefault();
-}).click();
-</script>
+  <div id="content_{{unique}}" />
 """)
 
   ajax_template = renderers.Template("""
-<div class="alert fade in" id="{{unique}}"
-  data-index="{{this.index}}"
-  data-prefix="{{this.prefix}}"
-  >
-  <button type=button class=close data-dismiss="alert">x</button>
+<button type=button class="control-label close" data-dismiss="alert">x</button>
+<div class="control-group" id="{{unique|escape}}"
+  data-index="{{this.index}}" data-prefix="{{this.prefix}}">
+
   {{this.delegated|safe}}
 </div>
-
-<script>
-
-$("#{{unique}}").on('close', function () {
-  var data = $(this).data();
-
-  grr.forms.clearPrefix(this, data.prefix + "-" + data.index + "-");
-});
-
-</script>
 """)
 
   def Layout(self, request, response):
     """Build form elements for repeated fields."""
-    self.index = 0
-    self.delegate_prefix = self.prefix + "-%s-" % self.index
     self.owner = self.descriptor.owner.__name__
     self.field = self.descriptor.name
 
-    delegate = self.descriptor.delegate
-    delegate_renderer = GetTypeDescriptorRenderer(delegate)(
-        descriptor=delegate, opened=True, container=self.container,
-        prefix=self.delegate_prefix)
-
-    self.delegated = delegate_renderer.RawHTML(request)
-    self.delegate_name = delegate.__class__.__name__
-
-    return super(RepeatedFieldFormRenderer, self).Layout(request, response)
+    response = super(RepeatedFieldFormRenderer, self).Layout(request, response)
+    return self.CallJavascript(response, "Layout",
+                               owner=self.descriptor.owner.__name__,
+                               field=self.descriptor.name,
+                               prefix=self.prefix)
 
   def ParseArgs(self, request):
     """Parse repeated fields from post parameters."""
@@ -557,12 +547,13 @@ $("#{{unique}}").on('close', function () {
 
     delegated_renderer = GetTypeDescriptorRenderer(delegate)(
         descriptor=delegate, opened=True, container=self.container,
-        prefix=self.delegate_prefix)
+        prefix=self.delegate_prefix, render_label=False)
 
     self.delegated = delegated_renderer.RawHTML(request)
 
-    return super(RepeatedFieldFormRenderer, self).RenderAjax(
+    response = super(RepeatedFieldFormRenderer, self).RenderAjax(
         request, response)
+    return self.CallJavascript(response, "RenderAjax")
 
 
 class EnumFormRenderer(TypeDescriptorFormRenderer):
@@ -578,10 +569,10 @@ class EnumFormRenderer(TypeDescriptorFormRenderer):
   onchange="grr.forms.inputOnChange(this)"
   >
 {% for enum_name, enum_value in this.items %}
- <option {% ifequal enum_value this.value %}selected{% endifequal %}
+ <option {% ifequal enum_value this.default %}selected{% endifequal %}
    value="{{enum_value|escape}}">
-   {{enum_name|escape}}
-   {% ifequal enum_value this.value %} (default){% endifequal %}
+   {{enum_name|escape}}{% ifequal enum_value this.default %} (default)
+                       {% endifequal %}
  </option>
 {% endfor %}
 </select>
@@ -591,7 +582,17 @@ class EnumFormRenderer(TypeDescriptorFormRenderer):
 
   def Layout(self, request, response):
     self.items = sorted(self.descriptor.enum.items(), key=lambda x: x[1])
-    return super(EnumFormRenderer, self).Layout(request, response)
+    super(EnumFormRenderer, self).Layout(request, response)
+
+    if self.value is not None:
+      self.value = int(self.value)
+
+    if self.default is not None:
+      self.default = int(self.default)
+
+    return self.CallJavascript(response, "Layout",
+                               default=self.default, value=self.value,
+                               prefix=self.prefix)
 
 
 class ProtoBoolFormRenderer(EnumFormRenderer):
@@ -644,24 +645,20 @@ class RDFDatetimeFormRenderer(StringTypeFormRenderer):
 
   </div>
 </div>
-<script>
- $('#{{this.prefix}}_picker').datepicker({
-   showAnim: '',
-   changeMonth: true,
-   changeYear: true,
-   showOn: "button",
-   buttonImage: "static/images/clock.png",
-   buttonImageOnly: true,
-   altField: "#{{this.prefix}}",
- });
-</script>
 """)
 
   def Layout(self, request, response):
-    now = rdfvalue.RDFDatetime()
-    self.date, self.time = str(now).split()
+    value = self.value or rdfvalue.RDFDatetime()
+    self.date, self.time = str(value).split()
 
-    return super(RDFDatetimeFormRenderer, self).Layout(request, response)
+    # From now on we treat the RDFDatetime as a human readable string.
+    if self.value is not None:
+      self.value = str(self.value)
+
+    self.default = str(self.default)
+
+    response = super(RDFDatetimeFormRenderer, self).Layout(request, response)
+    return self.CallJavascript(response, "Layout", prefix=self.prefix)
 
   def ParseArgs(self, request):
     date = request.REQ.get(self.prefix)
@@ -786,3 +783,39 @@ class MultiFormRenderer(renderers.TemplateRenderer):
                           option=self.option_name)
 
     return super(MultiFormRenderer, self).Layout(request, response)
+
+
+class MultiSelectListRenderer(RepeatedFieldFormRenderer):
+  """Renderer for choosing multiple options from a list.
+
+  Set self.values to the list of things that should be rendered.
+  """
+
+  type = None
+  values = []
+
+  layout_template = ("""<div class="control-group">
+""" + TypeDescriptorFormRenderer.default_description_view + """
+  <div class="controls">
+    <select id='{{this.prefix}}' multiple
+      onchange="grr.forms.inputOnChange(this)">
+      {% for val in this.values %}
+        <option value='{{val|escape}}'>{{val|escape}}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+<script>
+  // Height hack as CSS isn't handled properly for multiselect.
+  var multiselect_height = parseInt($("#{{this.prefix}} option").length) * 15;
+  $("#{{this.prefix}}").css("height", multiselect_height);
+</script>
+""")
+
+  def ParseArgs(self, request):
+    """Parse all the post parameters and build a list."""
+    result = []
+    for value in request.REQ.getlist("%s[]" % self.prefix):
+      result.append(value)
+    return result

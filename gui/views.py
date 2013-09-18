@@ -4,6 +4,7 @@
 
 import os
 import pdb
+import time
 
 
 from django import http
@@ -16,6 +17,7 @@ from grr import gui
 from grr.gui import renderers
 from grr.gui import webauth
 from grr.lib import access_control
+from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -31,12 +33,19 @@ class ViewsInit(registry.InitHook):
 
   def RunOnce(self):
     """Run this once on init."""
-    # Counters used here
-    stats.STATS.RegisterCounterMetric("grr_admin_ui_access_denied")
-    stats.STATS.RegisterCounterMetric("grr_admin_ui_slave_response")
-    stats.STATS.RegisterCounterMetric("grr_admin_ui_renderer_called")
-    stats.STATS.RegisterCounterMetric("grr_admin_ui_renderer_failed")
-    stats.STATS.RegisterCounterMetric("grr_admin_ui_unknown_renderer")
+    # Renderer-aware metrics
+    stats.STATS.RegisterEventMetric(
+        "ui_renderer_latency", fields=[("renderer", str)])
+    stats.STATS.RegisterEventMetric(
+        "ui_renderer_response_size", fields=[("renderer", str)],
+        units=stats.MetricUnits.BYTES)
+    stats.STATS.RegisterCounterMetric(
+        "ui_renderer_failure", fields=[("renderer", str)])
+
+    # General metrics
+    stats.STATS.RegisterCounterMetric("ui_unknown_renderer")
+    stats.STATS.RegisterCounterMetric("http_access_denied")
+    stats.STATS.RegisterCounterMetric("http_server_error")
 
 
 @webauth.SecurityCheck
@@ -49,7 +58,7 @@ def Homepage(request):
   # grr.gui.plugins.acl_manager, we expect a js files called acl_manager.js.
   renderers_js_files = set()
   for cls in renderers.Renderer.classes.values():
-    if cls.__module__:
+    if aff4.issubclass(cls, renderers.Renderer) and cls.__module__:
       renderers_js_files.add(cls.__module__.split(".")[-1] + ".js")
 
   context = {"title": SERVER_NAME,
@@ -67,13 +76,12 @@ def RenderGenericRenderer(request):
 
     renderer_cls = renderers.Renderer.GetPlugin(name=renderer_name)
   except KeyError:
-    stats.STATS.IncrementCounter("grr_admin_ui_unknown_renderer")
+    stats.STATS.IncrementCounter("ui_unknown_renderer")
     return AccessDenied("Error: Renderer %s not found" % renderer_name)
 
   # Check that the action is valid
   ["Layout", "RenderAjax", "Download", "Validate"].index(action)
   renderer = renderer_cls()
-  stats.STATS.IncrementCounter("grr_admin_ui_renderer_called")
   result = http.HttpResponse(mimetype="text/html")
 
   # Pass the request only from POST parameters
@@ -102,13 +110,24 @@ def RenderGenericRenderer(request):
   try:
     # Does this renderer support this action?
     method = getattr(renderer, action)
-    result = method(request, result) or result
+
+    start_time = time.time()
+    try:
+      result = method(request, result) or result
+    finally:
+      total_time = time.time() - start_time
+      stats.STATS.RecordEvent("ui_renderer_latency",
+                              total_time, fields=[renderer_name])
+
   except access_control.UnauthorizedAccess, e:
     result = http.HttpResponse(mimetype="text/html")
     result = renderers.Renderer.GetPlugin("UnauthorizedRenderer")().Layout(
         request, result, exception=e)
 
   except Exception:
+    stats.STATS.IncrementCounter("ui_renderer_failure",
+                                 fields=[renderer_name])
+
     if flags.FLAGS.debug:
       pdb.post_mortem()
 
@@ -116,6 +135,10 @@ def RenderGenericRenderer(request):
 
   if not isinstance(result, http.HttpResponse):
     raise RuntimeError("Renderer returned invalid response %r" % result)
+
+  stats.STATS.RecordEvent("ui_renderer_response_size",
+                          len(result.content),
+                          fields=[renderer_name])
 
   # Prepend bad json to break json script inclusion attacks.
   content_type = result.get("Content-Type", 0)
@@ -130,13 +153,13 @@ def AccessDenied(message):
   response = shortcuts.render_to_response("404.html", {"message": message})
   logging.warn(message)
   response.status_code = 403
-  stats.STATS.IncrementCounter("grr_admin_ui_access_denied")
+  stats.STATS.IncrementCounter("http_access_denied")
   return response
 
 
 def ServerError(unused_request, template_name="500.html"):
   """500 Error handler."""
-  stats.STATS.IncrementCounter("grr_admin_ui_renderer_failed")
+  stats.STATS.IncrementCounter("http_server_error")
   response = shortcuts.render_to_response(template_name)
   response.status_code = 500
   return response

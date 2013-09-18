@@ -1,7 +1,7 @@
 var grr = window.grr || {};
 
 grr.Renderer('NotificationBar', {
-  Layout: function() {
+  Layout: function(state) {
     grr.subscribe('NotificationCount', function(number) {
       var button;
 
@@ -24,12 +24,28 @@ grr.Renderer('NotificationBar', {
     }, 60000, grr.state, 'json');
 
     $('#notification_dialog').detach().appendTo('body');
+    $('#user_settings_dialog').detach().appendTo('body');
+
     $('#notification_dialog').on('show', function() {
       grr.layout('ViewNotifications', 'notification_dialog_body');
       grr.publish('NotificationCount', 0);
     });
+
+    $('#user_settings_dialog').on('show', function() {
+      grr.layout('UserSettingsDialog', 'user_settings_dialog');
+    }).on('hidden', function() {
+      $(this).html('');
+    });
   }
 });
+
+
+grr.Renderer('UserSettingsDialog', {
+  RenderAjax: function(state) {
+    document.location.reload(true);
+  }
+});
+
 
 grr.Renderer('ViewNotifications', {
   Layout: function(state) {

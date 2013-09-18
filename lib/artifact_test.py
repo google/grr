@@ -132,10 +132,11 @@ class ArtifactFlowTest(test_lib.FlowTestsBaseclass):
     class Popen(object):
       """A mock object for subprocess.Popen."""
 
-      def __init__(self, run, stdout, stderr):
+      def __init__(self, run, stdout, stderr, stdin):
         Popen.running_args = run
         Popen.stdout = stdout
         Popen.stderr = stderr
+        Popen.stdin = stdin
         Popen.returncode = 0
 
       def communicate(self):  # pylint: disable=g-bad-name
@@ -189,7 +190,7 @@ class ArtifactFlowTest(test_lib.FlowTestsBaseclass):
         artifact_list=["TestFileArtifact"], use_tsk=False, token=self.token):
       pass
     urn = self.client_id.Add("fs/os/").Add(self.base_path).Add("auth.log")
-    fd = aff4.FACTORY.Open(urn, aff4_type="BlobImage", token=self.token)
+    fd = aff4.FACTORY.Open(urn, aff4_type="VFSBlobImage", token=self.token)
 
   def testArtifactOutput(self):
     """Check we can run command based artifacts."""
@@ -226,12 +227,6 @@ class ArtifactFlowTest(test_lib.FlowTestsBaseclass):
                            token=self.token)
 
 
-class ClientRegistryVFSFixture(test_lib.ClientVFSHandlerFixture):
-  """Special client VFS mock that will emulate the registry."""
-  prefix = "/registry"
-  supported_pathtype = rdfvalue.PathSpec.PathType.REGISTRY
-
-
 class ClientFullVFSFixture(test_lib.ClientVFSHandlerFixture):
   """Special client VFS mock that will emulate the registry."""
   prefix = "/"
@@ -248,7 +243,7 @@ class GrrKbTest(test_lib.FlowTestsBaseclass):
     client.Flush()
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = ClientRegistryVFSFixture
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.OS] = ClientFullVFSFixture
 

@@ -19,6 +19,7 @@ class MACTimes(flow.GRRFlow):
   """Calculate the MAC times from objects in the VFS."""
 
   category = "/Timeline/"
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
   args_type = MACTimesArgs
 
   @flow.StateHandler(next_state="CreateTimeline")

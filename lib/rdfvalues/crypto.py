@@ -3,6 +3,8 @@
 
 
 import hashlib
+import struct
+
 from M2Crypto import BIO
 from M2Crypto import RSA
 from M2Crypto import util
@@ -51,6 +53,53 @@ class RDFX509Cert(rdfvalue.RDFString):
       raise rdfvalue.DecodeError("Cert invalid")
 
 
+class PEMPublicKey(rdfvalue.RDFString):
+  """A Public key encoded as a pem file."""
+
+  def GetPublicKey(self):
+    try:
+      bio = BIO.MemoryBuffer(self._value)
+      rsa = RSA.load_pub_key_bio(bio)
+      if rsa.check_key() != 1:
+        raise RSA.RSAError("RSA.check_key() did not succeed.")
+
+      return rsa
+    except RSA.RSAError as e:
+      raise type_info.TypeValueError("Public key invalid." % e)
+
+  def ParseFromString(self, pem_string):
+    super(PEMPublicKey, self).ParseFromString(pem_string)
+    self.GetPublicKey()
+
+
+class PEMPrivateKey(rdfvalue.RDFString):
+  """An RSA private key encoded as a pem file."""
+
+  def GetPrivateKey(self, callback=None):
+    if callback is None:
+      callback = lambda: ""
+
+    return RSA.load_key_string(self._value, callback=callback)
+
+  def GetPublicKey(self):
+    rsa = self.GetPrivateKey()
+    m = BIO.MemoryBuffer()
+    rsa.save_pub_key_bio(m)
+    return PEMPublicKey(m.read_all())
+
+  def ParseFromString(self, pem_string):
+    super(PEMPrivateKey, self).ParseFromString(pem_string)
+    try:
+      rsa = self.GetPrivateKey()
+      rsa.check_key()
+    except RSA.RSAError as e:
+      raise type_info.TypeValueError("Private key invalid: %s" % e)
+
+  @classmethod
+  def GenKey(cls, bits=2048, exponent=65537):
+    return cls(RSA.gen_key(bits, exponent).as_pem(None))
+
+
 class Hash(rdfvalue.RDFProtoStruct):
   """A hash object containing multiple digests."""
   protobuf = jobs_pb2.Hash
@@ -79,8 +128,7 @@ class SignedBlob(rdfvalue.RDFProtoStruct):
     if self.digest_type != self.HashType.SHA256:
       raise rdfvalue.DecodeError("Unsupported digest.")
 
-    bio = BIO.MemoryBuffer(pub_key)
-    rsa = RSA.load_pub_key_bio(bio)
+    rsa = pub_key.GetPublicKey()
     result = 0
     try:
       result = rsa.verify(self.digest, self.signature,
@@ -121,7 +169,7 @@ class SignedBlob(rdfvalue.RDFProtoStruct):
       callback = lambda x: ""
 
     digest = DIGEST_ALGORITHM(data).digest()
-    rsa = RSA.load_key_string(signing_key, callback=callback)
+    rsa = signing_key.GetPrivateKey(callback=callback)
     if len(rsa) < 2048:
       logging.warn("signing key is too short.")
 
@@ -134,70 +182,39 @@ class SignedBlob(rdfvalue.RDFProtoStruct):
 
     # Test we can verify before we send it off.
     if verify_key is None:
-      m = BIO.MemoryBuffer()
-      rsa.save_pub_key_bio(m)
-      verify_key = m.read_all()
+      verify_key = signing_key.GetPublicKey()
 
     # Verify our own data.
     self.Verify(verify_key)
 
 
-class X509CertificateType(type_info.TypeInfoObject):
-  """A type descriptor for an X509 certificate."""
+class EncryptionKey(rdfvalue.RDFBytes):
+  """Base class for encryption keys."""
+  # Size of the key in bits.
+  length = 128
 
-  def Validate(self, value):
-    """Ensure that value is a valid X509 certificate."""
-    # An empty string is considered a valid certificate to allow us to load
-    # config files with no certs filled in.
-    if value:
-      return self.ParseFromString(value)
+  def ParseFromString(self, string):
+    # Support both hex encoded and raw serializations.
+    if len(string) == 2 * self.length / 8:
+      self._value = string.decode("hex")
+    elif len(string) == self.length / 8:
+      self._value = string
 
-    raise type_info.TypeValueError("No value set for %s" % self.name)
+    else:
+      raise ValueError("%s must be exactly %s bit longs." %
+                       (self.__class__.__name__, self.length))
 
-  def ParseFromString(self, cert_string):
-    try:
-      X509.load_cert_string(cert_string)
-      return cert_string
-    except X509.X509Error:
-      raise type_info.TypeValueError("Certificate %s is invalid." % self.name)
+  def __str__(self):
+    return self._value.encode("hex")
 
+  def Generate(self):
+    self._value = ""
+    while len(self._value) < self.length/8:
+      self._value += struct.pack("=L", utils.PRNG.GetULong())
 
-class PEMPublicKey(X509CertificateType):
-  """A Public key encoded as a pem file."""
-
-  def ParseFromString(self, pem_string):
-    try:
-      bio = BIO.MemoryBuffer(pem_string)
-      RSA.load_pub_key_bio(bio).check_key()
-    except RSA.RSAError:
-      raise type_info.TypeValueError("Public key %s is invalid." % self.name)
+    self._value = self._value[:self.length/8]
+    return self
 
 
-class PEMPrivateKey(X509CertificateType):
-  """An RSA private key encoded as a pem file."""
-
-  def ParseFromString(self, pem_string):
-    try:
-      rsa = RSA.load_key_string(pem_string, callback=lambda x: "")
-      rsa.check_key()
-    except RSA.RSAError:
-      raise type_info.TypeValueError("Private key %s is invalid." % self.name)
-
-
-class X509PrivateKey(X509CertificateType):
-  """A type descriptor for a combined X509 certificate and private key."""
-
-  def ParseFromString(self, cert_string):
-    """Verify a certificate + private key pem config."""
-    try:
-      rsa = RSA.load_key_string(utils.SmartStr(cert_string),
-                                callback=lambda x: "")
-    except RSA.RSAError:
-      raise type_info.TypeValueError("Private key %s is invalid." %
-                                     self.name)
-
-    # Now verify that rsa key is actually the private key that belongs to x509
-    # key.
-    if rsa.check_key() != 1:
-      raise type_info.TypeValueError("Certificate and public key mismatch for "
-                                     "%s." % self.name)
+class AES128Key(EncryptionKey):
+  length = 128

@@ -104,6 +104,28 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     self.WaitUntilContains(
         self.session_id, self.GetText, "css=.tab-content h3")
 
+  def testUserSettings(self):
+    """Tests that user settings UI is working."""
+    self.Open("/")
+    self.WaitUntil(self.IsElementPresent, "client_query")
+
+    # Open settings dialog and change mode from BASIC to ADVANCED
+    self.Click("css=button[id=user_settings_button]")
+    self.assertEqual(
+        "ADVANCED",
+        self.GetSelectedLabel("css=#user_settings_dialog select#settings-mode"))
+
+    self.Select("css=#user_settings_dialog select#settings-mode",
+                "BASIC (default)")
+    self.Click("css=#user_settings_dialog button[name=Proceed]")
+
+    # Check that the mode value was saved
+    self.Click("css=button[id=user_settings_button]")
+    self.assertEqual(
+        "BASIC (default)",
+        self.GetSelectedLabel(
+            "css=#user_settings_dialog select#settings-mode").strip())
+
 
 def main(argv):
   # Run the full test suite

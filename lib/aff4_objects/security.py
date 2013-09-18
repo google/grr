@@ -15,17 +15,6 @@ from grr.lib import utils
 from grr.proto import flows_pb2
 
 
-config_lib.DEFINE_integer("ACL.approvers_required", 2,
-                          "The number of approvers required for access.")
-
-config_lib.DEFINE_string("AdminUI.url", "http://localhost:8000/",
-                         "The direct URL for the user interface.")
-
-config_lib.DEFINE_string("Monitoring.emergency_access_email",
-                         "emergency@nowhere.com",
-                         "The email address to notify in an emergency.")
-
-
 class Approval(aff4.AFF4Object):
   """An abstract approval request object.
 

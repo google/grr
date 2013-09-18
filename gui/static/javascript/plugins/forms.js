@@ -60,8 +60,8 @@ grr.Renderer('EmbeddedProtoFormRenderer', {
     $('#' + state.unique).click(function() {
       var jthis = $(this);
 
-      if (jthis.hasClass('ui-icon-plus')) {
-        jthis.removeClass('ui-icon-plus').addClass('ui-icon-minus');
+      if (jthis.hasClass('icon-plus')) {
+        jthis.removeClass('icon-plus').addClass('icon-minus');
 
         var jcontent = $('#content_' + state.unique);
 
@@ -73,31 +73,49 @@ grr.Renderer('EmbeddedProtoFormRenderer', {
         jcontent.show();
       } else {
         // Flip the opener and remove the form.
-        jthis.removeClass('ui-icon-minus').addClass('ui-icon-plus');
+        jthis.removeClass('icon-minus').addClass('icon-plus');
         $('#content_' + state.unique).hide();
       }
     });
+  },
+
+  RenderAjax: function(state) {
+    // Mark the content as already fetched so we do not need to fetch again.
+    $(state.id).addClass('Fetched');
   }
 });
 
 
 grr.Renderer('RepeatedFieldFormRenderer', {
   Layout: function(state) {
-    $('#' + state.unique).click(function() {
-      var jthis = $(this);
-      var data = jthis.data();
-      var content = $('#content_' + state.unique);
-      var new_node = $('<div/>').data('count', data.count);
+    var unique = state.unique;
 
-      data.count++;
-      new_node.attr('id', content.attr('id') + '_' + data.count);
-      content.append(new_node);
-      grr.update(state.renderer, new_node.attr('id'), jthis.data());
-    });
+    $('button#add_' + unique).click(function(event) {
+      var count = $(this).data('count') + 1;
+      var new_id = 'content_' + unique + '_' + count;
+
+      $(this).data('count', count);
+
+      // Store the total count of members in the form.
+      $(this).closest('.FormData').data()[state.prefix + '_count'] = count;
+
+      $('#content_' + unique).append('<div id="' + new_id + '"/>');
+
+      grr.update(state.renderer, new_id, {
+        'index': count,
+        'prefix': state.prefix,
+        'owner': state.owner,
+        'field': state.field});
+
+      event.preventDefault();
+    }).click();
   },
+
   RenderAjax: function(state) {
-    $('#' + state.unique).click(function() {
-      $(this).parent().html('');
+    $(state.unique).on('close', function() {
+      var data = $(this).data();
+
+      grr.forms.clearPrefix(this, data.prefix + '-' + data.index + '-');
     });
   }
 });
@@ -105,7 +123,28 @@ grr.Renderer('RepeatedFieldFormRenderer', {
 
 grr.Renderer('StringTypeFormRenderer', {
   Layout: function(state) {
-    $('input#' + state.prefix).val(state.default).change();
+    var value = state.value;
+    if (value != null) {
+      $('input#' + state.prefix).val(value).change();
+    }
+  }
+});
+
+grr.Renderer('EnumFormRenderer', {
+  Layout: function(state) {
+    var value = state.value;
+    if (value != null) {
+      $('select#' + state.prefix).val(value).change();
+    }
+  }
+});
+
+grr.Renderer('ProtoBoolFormRenderer', {
+  Layout: function(state) {
+    var value = state.value;
+    if (value != null) {
+      $('select#' + state.prefix).val(value).change();
+    }
   }
 });
 
@@ -156,5 +195,42 @@ grr.Renderer('MultiFormRenderer', {
       grr.layout(state.renderer, new_id, data);
     }).click();  // First time we show the button click it to make at least one
                  // option available.
+  }
+});
+
+
+grr.Renderer('SemanticProtoFormRenderer', {
+  Layout: function(state) {
+    var unique = state.unique;
+
+    $('#advanced_label_' + unique).click(function() {
+      $('#advanced_controls_' + unique).toggle();
+
+      var icon = $('#' + unique + ' .advanced-icon:last');
+      if ($('#advanced_controls_' + unique).is(':visible')) {
+        icon.removeClass('icon-chevron-right').addClass('icon-chevron-down');
+      } else {
+        icon.removeClass('icon-chevron-down').addClass('icon-chevron-right');
+      }
+    });
+
+    $('#' + unique + ' i.advanced-icon').click(function() {
+      $('#advanced_label_' + unique).trigger('click');
+    });
+  }
+});
+
+
+grr.Renderer('RDFDatetimeFormRenderer', {
+  Layout: function(state) {
+    $('#' + state.prefix + '_picker').datepicker({
+      showAnim: '',
+      changeMonth: true,
+      changeYear: true,
+      showOn: 'button',
+      buttonImage: 'static/images/clock.png',
+      buttonImageOnly: true,
+      altField: state.prefix
+    });
   }
 });

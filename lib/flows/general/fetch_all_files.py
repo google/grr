@@ -6,15 +6,11 @@
 import stat
 
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import filestore
 from grr.proto import flows_pb2
-
-
-class VFSBlobImage(aff4.BlobImage, aff4.VFSFile):
-  class SchemaCls(aff4.BlobImage.SchemaCls, aff4.VFSFile.SchemaCls):
-    pass
 
 
 class HashTracker(object):
@@ -28,9 +24,9 @@ class HashTracker(object):
 class FileTracker(object):
   """A Class to track a single file download."""
 
-  def __init__(self, fd, stat_entry, digest):
-    self.fd = fd
-    self.urn = fd.urn
+  def __init__(self, vfs_urn, stat_entry, digest):
+    self.fd = None
+    self.urn = vfs_urn
     self.stat_entry = stat_entry
     self.digest = digest
     self.file_size = stat_entry.st_size
@@ -39,6 +35,30 @@ class FileTracker(object):
 
   def __str__(self):
     return "<Tracker: %s (%s hashes)>" % (self.urn, len(self.hash_list))
+
+  def CreateVFSFile(self, filetype, token=None, chunksize=None):
+    """Create a VFSFile with stat_entry metadata.
+
+    We don't do this in __init__ since we need to first need to determine the
+    appropriate filetype.
+
+    Args:
+      filetype: string filetype
+      token: ACL token
+      chunksize: BlobImage chunksize
+    Side-Effect:
+      sets self.fd
+    Returns:
+      filehandle open for write
+    """
+    # We create the file in the client namespace and populate with metadata.
+    self.fd = aff4.FACTORY.Create(self.urn, filetype, mode="w",
+                                  token=token)
+    self.fd.SetChunksize(chunksize)
+    self.fd.Set(self.fd.Schema.STAT(self.stat_entry))
+    self.fd.Set(self.fd.Schema.SIZE(self.file_size))
+    self.fd.Set(self.fd.Schema.PATHSPEC(self.pathspec))
+    return self.fd
 
 
 class FetchAllFilesArgs(rdfvalue.RDFProtoStruct):
@@ -76,6 +96,7 @@ class FetchAllFiles(flow.GRRFlow):
     self.state.Register("files_hashed", 0)
     self.state.Register("files_to_fetch", 0)
     self.state.Register("files_fetched", 0)
+    self.state.Register("files_skipped", 0)
 
     # A dict of urn->hash which are waiting to be checked by the file store.
     self.state.Register("pending_urns", [])
@@ -144,20 +165,13 @@ class FetchAllFiles(flow.GRRFlow):
     response = responses.First()
     hit = responses.request_data["hit"]
 
-    # Create the file in the VFS under the client's namespace.
+    # Store the VFS client namespace URN.
     vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
         hit.pathspec, self.client_id)
 
-    # We create a new file in the client namespace and populate with metadata.
-    fd = aff4.FACTORY.Create(vfs_urn, "VFSBlobImage", mode="w",
-                             token=self.token)
-    fd.SetChunksize(self.CHUNK_SIZE)
-    fd.Set(fd.Schema.STAT(hit))
-    fd.Set(fd.Schema.PATHSPEC(hit.pathspec))
-
     # Keep the file handle around so it is available in following states.
     self.state.store[vfs_urn] = FileTracker(
-        fd, hit, rdfvalue.HashDigest(response.data))
+        vfs_urn, hit, rdfvalue.HashDigest(response.data))
 
     # Add the file urn to the list of pending urns.
     self.state.pending_urns.append(vfs_urn)
@@ -184,7 +198,9 @@ class FetchAllFiles(flow.GRRFlow):
     self.state.pending_urns = []
 
     for file_store_urn, digest in self.state.filestore.CheckHashes(
-        file_hashes.values()):
+        file_hashes.values(), external=self.args.use_external_stores):
+
+      self.state.files_skipped += 1
 
       # In this loop we have only the hashes in the store.
       vfs_urn = digest.vfs_urn
@@ -195,6 +211,16 @@ class FetchAllFiles(flow.GRRFlow):
       # Just copy the file data from the file store.
       existing_blob = aff4.FACTORY.Open(file_store_urn, token=self.token)
 
+      # Some existing_blob files can be created with 0 size, make sure our size
+      # matches the STAT.
+      existing_blob.size = file_tracker.file_size
+
+      # Create a file in the client name space with the same classtype and
+      # populate its attributes.
+      file_tracker.CreateVFSFile(existing_blob.__class__.__name__,
+                                 token=self.token,
+                                 chunksize=self.CHUNK_SIZE)
+
       file_tracker.fd.FromBlobImage(existing_blob)
       file_tracker.fd.Set(existing_blob.Get(existing_blob.Schema.HASH))
       file_tracker.fd.Close()
@@ -202,6 +228,8 @@ class FetchAllFiles(flow.GRRFlow):
     # Now we iterate over all the files which are not in the store.
     for vfs_urn in file_hashes:
       file_tracker = self.state.store[vfs_urn]
+      file_tracker.CreateVFSFile("VFSBlobImage", token=self.token,
+                                 chunksize=self.CHUNK_SIZE)
 
       # We do not have the file here yet - we need to retrieve it.
       expected_number_of_hashes = file_tracker.file_size / self.CHUNK_SIZE + 1
@@ -214,8 +242,14 @@ class FetchAllFiles(flow.GRRFlow):
                         length=self.CHUNK_SIZE, next_state="CheckHash",
                         request_data=dict(urn=vfs_urn))
 
+    lease_time = config_lib.CONFIG["Worker.flow_lease_time"]
+    if self.CheckLease() < lease_time/3:
+      self.UpdateLease(lease_time)
+
     if not int(self.state.files_hashed % 100):
-      self.Log("Hashed %d files.", self.state.files_hashed)
+      self.Log("Hashed %d files, skipped %s already stored.",
+               self.state.files_hashed,
+               self.state.files_skipped)
 
   @flow.StateHandler(next_state="WriteBuffer")
   def CheckHash(self, responses):

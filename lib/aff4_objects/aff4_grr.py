@@ -713,3 +713,11 @@ class AFF4RegexNotificationRule(aff4.AFF4NotificationRule):
           source=client_name)
       flow.PublishEvent(utils.SmartStr(self.event_name), event,
                         token=self.token)
+
+
+class VFSBlobImage(aff4.BlobImage, aff4.VFSFile):
+  """BlobImage with VFS attributes for use in client namespace."""
+
+  class SchemaCls(aff4.BlobImage.SchemaCls, aff4.VFSFile.SchemaCls):
+    pass
+

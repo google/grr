@@ -77,7 +77,7 @@ def main(unused_argv):
                                  overwrite=flags.FLAGS.overwrite)
 
   elif flags.FLAGS.directory:
-    directory = aff4.FACTORY.Open(flags.FLAGS.directory)
+    directory = aff4.FACTORY.Open(flags.FLAGS.directory, "VFSDirectory")
     if not list(directory.ListChildren()):
       print "%s contains no children." % directory.urn
       sys.exit(1)

@@ -21,17 +21,6 @@ from grr.lib import flags
 from grr.lib import startup
 
 
-config_lib.DEFINE_integer("AdminUI.port", 8001, "port to listen on")
-
-config_lib.DEFINE_string("AdminUI.bind", "::", "interface to bind to.")
-
-
-config_lib.DEFINE_string(
-    "AdminUI.django_secret_key", "CHANGE_ME",
-    "This is a secret key that should be set in the server "
-    "config. It is used in XSRF and session protection.")
-
-
 class ThreadingDjango(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
   address_family = socket.AF_INET6
 

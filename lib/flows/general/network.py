@@ -12,6 +12,7 @@ class Netstat(flow.GRRFlow):
   """List running processes on a system."""
 
   category = "/Network/"
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state=["StoreNetstat"])
   def Start(self):

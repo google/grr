@@ -31,31 +31,6 @@ from grr.lib import type_info
 from grr.lib import utils
 
 
-config_lib.DEFINE_string("Frontend.bind_address", "::",
-                         "The ip address to bind.")
-
-config_lib.DEFINE_integer("Frontend.bind_port", 8080, "The port to bind.")
-
-config_lib.DEFINE_integer("Frontend.processes", 1,
-                          "Number of processes to use for the HTTP server")
-
-config_lib.DEFINE_integer("Frontend.max_queue_size", 500,
-                          "Maximum number of messages to queue for the client.")
-
-config_lib.DEFINE_integer("Frontend.max_retransmission_time", 10,
-                          "Maximum number of times we are allowed to "
-                          "retransmit a request until it fails.")
-
-config_lib.DEFINE_integer(
-    "Frontend.message_expiry_time", 600,
-    "Maximum time messages remain valid within the system.")
-
-config_lib.CONFIG.AddOption(type_info.X509CertificateType(
-    name="Frontend.certificate",
-    description="Server certificate in X509 pem format"
-    ))
-
-
 # pylint: disable=g-bad-name
 
 

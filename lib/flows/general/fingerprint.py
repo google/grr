@@ -18,6 +18,7 @@ class FingerprintFile(flow.GRRFlow):
 
   category = "/Filesystem/"
   args_type = FingerprintFileArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state="Done")
   def Start(self):

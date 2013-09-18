@@ -20,10 +20,11 @@ class LinuxClientBuilder(build.ClientBuilder):
     self.CleanDirectory(config_lib.CONFIG.Get("PyInstaller.dpkg_root",
                                               context=self.context))
     self.BuildWithPyInstaller()
+    self.CopyFiles()
     self.MakeZip()
 
-  def MakeZip(self):
-    """This builds the template."""
+  def CopyFiles(self):
+    """This sets up the template directory."""
 
     dpkg_dir = config_lib.CONFIG.Get("PyInstaller.dpkg_root",
                                      context=self.context)
@@ -41,7 +42,9 @@ class LinuxClientBuilder(build.ClientBuilder):
         os.path.join(src_dir, "grr/config/debian/upstart/grr-client.conf"),
         outdir)
 
-    # Now zip up the template.
+  def MakeZip(self):
+    """This builds the template."""
+
     template_path = config_lib.CONFIG.Get("ClientBuilder.template_path",
                                           context=self.context)
     self.EnsureDirExists(os.path.dirname(template_path))
@@ -49,8 +52,32 @@ class LinuxClientBuilder(build.ClientBuilder):
     oldwd = os.getcwd()
     os.chdir(config_lib.CONFIG.Get("PyInstaller.dpkg_root",
                                    context=self.context))
-    for root, _, files in os.walk("debian"):
-      for f in files:
-        zf.write(os.path.join(root, f))
+    for path in ["debian", "rpmbuild"]:
+      for root, _, files in os.walk(path):
+        for f in files:
+          zf.write(os.path.join(root, f))
     zf.close()
     os.chdir(oldwd)
+
+
+class CentosClientBuilder(LinuxClientBuilder):
+  """A builder class that produces a client for RPM based distros."""
+
+  def CopyFiles(self):
+    """This sets up the template directory."""
+
+    build_dir = config_lib.CONFIG.Get("PyInstaller.dpkg_root",
+                                      context=self.context)
+    src_dir = config_lib.CONFIG.Get("PyInstaller.build_root_dir",
+                                    context=self.context)
+
+    # Copy files needed for rpmbuild.
+    shutil.move(
+        os.path.join(build_dir, "debian"),
+        os.path.join(build_dir, "rpmbuild"))
+    shutil.copy(
+        os.path.join(src_dir, "grr/config/centos/grr.spec.in"),
+        os.path.join(build_dir, "rpmbuild/grr.spec.in"))
+    shutil.copy(
+        os.path.join(src_dir, "grr/config/centos/grr-client.initd.in"),
+        os.path.join(build_dir, "rpmbuild/grr-client.initd.in"))

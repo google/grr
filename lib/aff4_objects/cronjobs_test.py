@@ -16,6 +16,7 @@ from grr.lib.aff4_objects import cronjobs
 
 class FakeCronJob(flow.GRRFlow):
   """A Cron job which does nothing."""
+  lifetime = rdfvalue.Duration("1d")
 
   @flow.StateHandler(next_state="End")
   def Start(self):
@@ -294,7 +295,7 @@ class CronTest(test_lib.GRRBaseTest):
       cron_args = rdfvalue.CreateCronJobFlowArgs()
       cron_args.flow_runner_args.flow_name = "FakeCronJob"
       cron_args.periodicity = "1w"
-      cron_args.lifetime = "1d"
+      cron_args.lifetime = FakeCronJob.lifetime
 
       cron_job_urn = cron_manager.ScheduleFlow(cron_args=cron_args,
                                                token=self.token)
@@ -355,22 +356,6 @@ class CronTest(test_lib.GRRBaseTest):
                                  token=self.token)
     attr_values = list(cron_job.GetValuesForAttribute(cron_job.Schema.TYPE))
     self.assertTrue(len(attr_values) == 1)
-
-  def testSystemCronJobsGetScheduledWithSpecifiedLifetime(self):
-    cron_manager = cronjobs.CronManager()
-    self.assertFalse(list(cron_manager.ListJobs(token=self.token)))
-
-    cronjobs.ScheduleSystemCronFlows(token=self.token,
-                                     lifetime=rdfvalue.Duration("1h"))
-
-    # Check that jobs got scheduled
-    jobs = list(cron_manager.ListJobs(token=self.token))
-    self.assertTrue(jobs)
-
-    # Pick the first job and check that it has LIFETIME attribute set properly
-    job = aff4.FACTORY.Open(jobs[0], token=self.token)
-    self.assertEqual(rdfvalue.Duration("1h"),
-                     job.Get(job.Schema.CRON_ARGS).lifetime)
 
 
 def main(argv):

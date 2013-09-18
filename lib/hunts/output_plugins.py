@@ -46,6 +46,32 @@ class CollectionPluginArgs(rdfvalue.RDFProtoStruct):
   protobuf = flows_pb2.CollectionPluginArgs
 
 
+class CollectionPlugin(HuntOutputPlugin):
+  """An output plugin that stores the results in a collection."""
+
+  description = "Store results in a collection."
+  args_type = CollectionPluginArgs
+
+  def __init__(self, hunt_obj, *args, **kw):
+    super(CollectionPlugin, self).__init__(hunt_obj, *args, **kw)
+
+    # The results will be written to this collection.
+    self.collection = aff4.FACTORY.Create(
+        hunt_obj.urn.Add(self.args.collection_name), "RDFValueCollection",
+        mode="rw", token=self.token)
+
+  def ProcessResponse(self, response, client_id):
+    msg = rdfvalue.GrrMessage(payload=response)
+    msg.source = client_id
+    self.collection.Add(msg)
+
+  def Flush(self):
+    self.collection.Flush()
+
+  def GetCollection(self):
+    return self.collection
+
+
 class CronHuntOutputMetadata(aff4.AFF4Object):
   """Metadata AFF4 object used by CronHuntOutputFlow."""
 
@@ -117,7 +143,7 @@ class CronHuntOutputFlow(flow.GRRFlow):
 
   def _IsHuntStarted(self):
     """Returns True if corresponding hunt is paused."""
-    hunt_obj = aff4.FACTORY.Open(self.state.args.hunt_urn, aff4_type="GRRHunt",
+    hunt_obj = aff4.FACTORY.Open(self.args.hunt_urn, aff4_type="GRRHunt",
                                  mode="r", token=self.token)
     return hunt_obj.GetRunner().IsHuntStarted()
 
@@ -130,7 +156,9 @@ class CronHuntOutputFlow(flow.GRRFlow):
     and self.EndBatch() are not called at all.
     """
     hunt_results = aff4.FACTORY.Open(
-        self.state.args.hunt_urn.Add("Results"), aff4_type="RDFValueCollection",
+        self.state.args.hunt_urn.Add(
+            self.args.output_plugin_args.collection_name),
+        aff4_type="RDFValueCollection",
         mode="r", token=self.token)
 
     with aff4.FACTORY.Open(
@@ -207,7 +235,7 @@ class CronHuntOutputFlow(flow.GRRFlow):
     pass
 
 
-class CronHuntOutputPlugin(HuntOutputPlugin):
+class CronHuntOutputPlugin(CollectionPlugin):
   """Hunt output plugin that schedule a cron job to process hunt's results."""
 
   # Name of the flow to be scheduled to process results. The flow should
@@ -227,10 +255,12 @@ class CronHuntOutputPlugin(HuntOutputPlugin):
 
   def ProcessResponse(self, response, client_id):
     """Does nothing, because results are processed by the cron job."""
-    pass
+    super(CronHuntOutputPlugin, self).ProcessResponse(response, client_id)
 
   def Flush(self):
     """Updates output metadata object and ensures that cron job is scheduled."""
+    super(CronHuntOutputPlugin, self).Flush()
+
     if not self.cron_flow_name:
       raise ValueError("self.cron_flow_name can not be None.")
 
@@ -262,32 +292,6 @@ class CronHuntOutputPlugin(HuntOutputPlugin):
       # We have to set CRON_JOB_URN in output_metadata so that cron job knows
       # it's own URN so that it can enable/disable/delete itself.
       metadata_obj.Set(metadata_obj.Schema.CRON_JOB_URN(cron_job_urn))
-
-
-class CollectionPlugin(HuntOutputPlugin):
-  """An output plugin that stores the results in a collection."""
-
-  description = "Store results in a collection."
-  args_type = CollectionPluginArgs
-
-  def __init__(self, hunt_obj, *args, **kw):
-    super(CollectionPlugin, self).__init__(hunt_obj, *args, **kw)
-
-    # The results will be written to this collection.
-    self.collection = aff4.FACTORY.Create(
-        hunt_obj.urn.Add("Results"), "RDFValueCollection",
-        mode="rw", token=self.token)
-
-  def ProcessResponse(self, response, client_id):
-    msg = rdfvalue.GrrMessage(payload=response)
-    msg.source = client_id
-    self.collection.Add(msg)
-
-  def Flush(self):
-    self.collection.Flush()
-
-  def GetCollection(self):
-    return self.collection
 
 
 class EmailPluginArgs(rdfvalue.RDFProtoStruct):
@@ -343,7 +347,7 @@ class EmailPlugin(HuntOutputPlugin):
     url = urllib.urlencode((("c", client_id),
                             ("main", "HostInformation")))
 
-    response_htm = rendering.renderers.FindRendererForObject(response).RawHTML()
+    response_htm = rendering.FindRendererForObject(response).RawHTML()
 
     self.emails_sent += 1
     if self.emails_sent == self.args.email_limit:

@@ -11,6 +11,7 @@ import re
 import smtplib
 
 from grr.lib import flags
+from grr.lib import utils
 
 flags.DEFINE_string("smtp_server", "localhost",
                     "The smpt server for sending email alerts.")

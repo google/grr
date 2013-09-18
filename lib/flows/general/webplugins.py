@@ -46,6 +46,7 @@ class ChromePlugins(flow.GRRFlow):
 
   category = "/Browser/"
   args_type = ChromePluginsArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state=["EnumerateExtensionDirs"])
   def Start(self):

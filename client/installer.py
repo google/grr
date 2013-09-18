@@ -9,7 +9,6 @@ Installers are usually used to upgrade existing clients and setup
 clients in unusual situations.
 """
 import logging
-import os
 import sys
 
 from grr.client import comms
@@ -17,18 +16,6 @@ from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import registry
-
-
-config_lib.DEFINE_list(
-    name="Installer.plugins",
-    default=[],
-    help="Plugins that will be loaded during installation.")
-
-config_lib.DEFINE_string(
-    name="Installer.logfile",
-    default="%(Logging.path)/%(Client.name)_installer.txt",
-    help=("A specific log file which is used for logging the "
-          "installation process."))
 
 
 class Installer(registry.HookRegistry):
@@ -83,16 +70,6 @@ def RunInstaller():
 
   Run all the current installers and then exit the process.
   """
-  # Register any installer plugins. This allows users to add specialized
-  # functionality to the pre-build client package. Simply add python files to
-  # the pre-built template where installer plugins are defined, and add them to
-  # this config option. The deployed binary will load these installer plugins
-  # and run them as part of the installation.
-  for plugin in config_lib.CONFIG["Installer.plugins"]:
-    # Load from path relative to our executable.
-    config_lib.PluginLoader.LoadPlugin(
-        os.path.join(os.path.dirname(sys.executable), plugin))
-
   # Always log to the installer logfile at debug level. This way if our
   # installer fails we can send detailed diagnostics.
   handler = logging.FileHandler(

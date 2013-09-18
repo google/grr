@@ -25,33 +25,11 @@ from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import type_info
 from grr.lib import utils
 
 
 # We do not send larger buffers than this:
 MAX_BUFFER_SIZE = 640*1024
-
-
-config_lib.CONFIG.AddOption(type_info.PEMPublicKey(
-    name="Client.executable_signing_public_key",
-    description="public key for verifying executable signing."))
-
-config_lib.CONFIG.AddOption(type_info.PEMPrivateKey(
-    name="PrivateKeys.executable_signing_private_key",
-    description="Private keys for signing executables. NOTE: This "
-    "key is usually kept offline and is thus not present in the "
-    "configuration file."))
-
-config_lib.CONFIG.AddOption(type_info.PEMPublicKey(
-    name="Client.driver_signing_public_key",
-    description="public key for verifying driver signing."))
-
-config_lib.CONFIG.AddOption(type_info.PEMPrivateKey(
-    name="PrivateKeys.driver_signing_private_key",
-    description="Private keys for signing drivers. NOTE: This "
-    "key is usually kept offline and is thus not present in the "
-    "configuration file."))
 
 
 class ReadBuffer(actions.ActionPlugin):

@@ -17,47 +17,6 @@ from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import stats
 
-config_lib.DEFINE_string("Client.name", "GRR", "The name of the client.")
-config_lib.DEFINE_string("Client.binary_name", "%(Client.name)",
-                         "The name of the client binary.")
-
-config_lib.DEFINE_string("Client.company_name", "GRR Project",
-                         "The name of the company which made the client.")
-
-config_lib.DEFINE_string("Client.description", "%(name) %(platform) %(arch)",
-                         "A description of this specific client build.")
-
-config_lib.DEFINE_string("Client.platform", "windows",
-                         "The platform we are running on.")
-
-config_lib.DEFINE_string("Client.arch", "amd64",
-                         "The architecture we are running on.")
-
-config_lib.DEFINE_string("Client.build_time", "Unknown",
-                         "The time the client was built.")
-
-config_lib.DEFINE_integer("Client.version_major", 0,
-                          "Major version number of client binary.")
-
-config_lib.DEFINE_integer("Client.version_minor", 0,
-                          "Minor version number of client binary.")
-
-config_lib.DEFINE_integer("Client.version_revision", 0,
-                          "Revision number of client binary.")
-
-config_lib.DEFINE_integer("Client.version_release", 0,
-                          "Release number of client binary.")
-
-config_lib.DEFINE_string("Client.version_string",
-                         "%(version_major).%(version_minor)."
-                         "%(version_revision).%(version_release)",
-                         "Version string of the client.")
-
-config_lib.DEFINE_integer("Client.version_numeric",
-                          "%(version_major)%(version_minor)"
-                          "%(version_revision)%(version_release)",
-                          "Version string of the client as an integer.")
-
 
 class Echo(actions.ActionPlugin):
   """Returns a message to the server."""
@@ -148,7 +107,10 @@ class BusyHang(actions.ActionPlugin):
   in_rdfvalue = rdfvalue.DataBlob
 
   def Run(self, arg):
-    end = time.time() + (arg.integer or 5)
+    duration = 5
+    if arg and arg.integer:
+      duration = arg.integer
+    end = time.time() + duration
     while time.time() < end:
       pass
 
@@ -185,12 +147,13 @@ class GetConfiguration(actions.ActionPlugin):
         value = "[Redacted]"
       else:
         try:
-          value = config_lib.CONFIG[descriptor.name]
+          value = config_lib.CONFIG.Get(descriptor.name, default=None)
         except (config_lib.Error, KeyError, AttributeError, ValueError) as e:
           logging.info("Config reading error: %s", e)
           continue
 
-      out[descriptor.name] = value
+      if value is not None:
+        out[descriptor.name] = value
 
     self.SendReply(out)
 
@@ -311,13 +274,16 @@ class SendStartupInfo(actions.ActionPlugin):
   def Run(self, unused_arg, ttl=None):
     """Returns the startup information."""
     logging.debug("Sending startup information.")
+    client_info = rdfvalue.ClientInformation(
+        client_name=config_lib.CONFIG["Client.name"],
+        client_description=config_lib.CONFIG["Client.description"],
+        client_version=int(config_lib.CONFIG["Client.version_numeric"]),
+        build_time=config_lib.CONFIG["Client.build_time"])
+    if config_lib.CONFIG.Get("Client.labels"):
+      client_info.labels = config_lib.CONFIG["Client.labels"]
     response = rdfvalue.StartupInfo(
         boot_time=long(psutil.BOOT_TIME * 1e6),
-        client_info=rdfvalue.ClientInformation(
-            client_name=config_lib.CONFIG["Client.name"],
-            client_description=config_lib.CONFIG["Client.description"],
-            client_version=int(config_lib.CONFIG["Client.version_numeric"]),
-            build_time=config_lib.CONFIG["Client.build_time"]))
+        client_info=client_info)
 
     self.grr_worker.SendReply(
         response,

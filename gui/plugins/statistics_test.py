@@ -50,7 +50,8 @@ class TestStats(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "client_query")
 
     # Make sure the foreman is not there (we are not admin yet)
-    self.assert_(not self.IsElementPresent("css=a[grrtarget=ManageForeman]"))
+    self.assert_(not self.IsElementPresent(
+        "css=a[grrtarget=ReadOnlyForemanRuleTable]"))
 
     # Make "test" user an admin
     with self.ACLChecksDisabled():
@@ -61,7 +62,8 @@ class TestStats(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "client_query")
 
     # Make sure that now we can see this option.
-    self.WaitUntil(self.IsElementPresent, "css=a[grrtarget=ManageForeman]")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=a[grrtarget=ReadOnlyForemanRuleTable]")
 
     # Go to Statistics
     self.Click("css=a:contains('Statistics')")

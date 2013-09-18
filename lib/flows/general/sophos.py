@@ -22,6 +22,7 @@ class SophosCollector(flow.GRRFlow):
   """Collect all files related to Sophos."""
 
   category = "/Collectors/"
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
   args_type = SophosCollectorArgs
   collector_flow = "FileCollector"
 

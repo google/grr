@@ -19,22 +19,6 @@ from grr.lib.flows.general import transfer
 from grr.proto import flows_pb2
 
 
-config_lib.DEFINE_string("MemoryDriver.aff4_path", "",
-                         "The AFF4 path to the driver object.")
-
-config_lib.DEFINE_string("MemoryDriver.device_path", r"\\\\.\\pmem",
-                         "The device path which the client will open after "
-                         "installing this driver.")
-
-config_lib.DEFINE_string("MemoryDriver.service_name", "pmem",
-                         "The name of the service created for "
-                         "the driver (Windows).")
-
-config_lib.DEFINE_string("MemoryDriver.display_name", "%(service_name)",
-                         "The display name of the service created for "
-                         "the driver (Windows).")
-
-
 class ImageMemoryArgs(rdfvalue.RDFProtoStruct):
   protobuf = flows_pb2.ImageMemoryArgs
 
@@ -51,6 +35,7 @@ class ImageMemory(flow.GRRFlow):
 
   category = "/Memory/"
   args_type = ImageMemoryArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state="GetFile")
   def Start(self, _):
@@ -138,6 +123,9 @@ class DownloadMemoryImage(flow.GRRFlow):
 
   category = "/Memory/"
   args_type = DownloadMemoryImageArgs
+
+  # This flow is also a basic flow.
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state="CopyFile")
   def Start(self):
@@ -395,6 +383,7 @@ class AnalyzeClientMemory(flow.GRRFlow):
 
   category = "/Memory/"
   args_type = AnalyzeClientMemoryArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state=["RunVolatilityPlugins"])
   def Start(self, _):
@@ -531,6 +520,7 @@ class GrepAndDownloadMemory(flow.GRRFlow):
 
   category = "/Memory/"
   args_type = GrepMemoryArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state="Download")
   def Start(self):

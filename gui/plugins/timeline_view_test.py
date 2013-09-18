@@ -21,8 +21,7 @@ from grr.lib import test_lib
 class TestTimelineView(test_lib.GRRSeleniumTest):
   """Test the timeline view."""
 
-  @staticmethod
-  def CreateTimelineFixture():
+  def CreateTimelineFixture(self):
     """Creates a new timeline fixture we can play with."""
     # Create a client for testing
     client_id = rdfvalue.ClientURN("C.0000000000000001")
@@ -30,7 +29,10 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     token = access_control.ACLToken(username="test", reason="fixture")
 
     fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=token)
-    fd.Set(fd.Schema.CERT(config_lib.CONFIG["Client.certificate"]))
+    cert = self.ClientCertFromPrivateKey(
+        config_lib.CONFIG["Client.private_key"])
+    client_cert = rdfvalue.RDFX509Cert(cert.as_pem())
+    fd.Set(fd.Schema.CERT(client_cert))
     fd.Close()
 
     # Install the mock

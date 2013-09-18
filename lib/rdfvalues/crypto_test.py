@@ -91,9 +91,7 @@ driver_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
 
     errors = config_lib.CONFIG.Validate("PrivateKeys")
     self.assertItemsEqual(errors.keys(),
-                          ["PrivateKeys.executable_signing_private_key",
-                           "PrivateKeys.server_key",
-                           "PrivateKeys.ca_key"])
+                          ["PrivateKeys.server_key"])
 
   def testPEMPublicKey(self):
     """Deliberately try to parse an invalid public key."""
@@ -102,6 +100,7 @@ driver_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
 executable_signing_public_key = -----BEGIN PUBLIC KEY-----
         GpJgTFkTIAgX0Ih5lxoFB5TUjUfJFbBkSmKQPRA/IyuLBtCLQgwkTNkCAwEAAQ==
         -----END PUBLIC KEY-----
+
 driver_signing_public_key = -----BEGIN PUBLIC KEY-----
     MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCOD
     QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
@@ -109,8 +108,7 @@ driver_signing_public_key = -----BEGIN PUBLIC KEY-----
 """)
     errors = config_lib.CONFIG.Validate("Client")
     self.assertItemsEqual(errors.keys(),
-                          ["Client.executable_signing_public_key",
-                           "Client.private_key"])
+                          ["Client.executable_signing_public_key"])
 
   def testPEMPrivate(self):
     """Deliberately try to parse an invalid public key."""
@@ -123,9 +121,4 @@ driver_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
 
     errors = config_lib.CONFIG.Validate("PrivateKeys")
     self.assertItemsEqual(errors.keys(),
-                          ["PrivateKeys.driver_signing_private_key",
-                           "PrivateKeys.executable_signing_private_key",
-                           "PrivateKeys.server_key",
-                           "PrivateKeys.ca_key"])
-
-
+                          ["PrivateKeys.driver_signing_private_key"])

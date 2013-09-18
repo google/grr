@@ -34,6 +34,10 @@ class ExportedMetadata(rdfvalue.RDFProtoStruct):
   protobuf = export_pb2.ExportedMetadata
 
 
+class ExportedClient(rdfvalue.RDFProtoStruct):
+  protobuf = export_pb2.ExportedClient
+
+
 class ExportedFile(rdfvalue.RDFProtoStruct):
   protobuf = export_pb2.ExportedFile
 
@@ -60,6 +64,10 @@ class ExportedVolatilityHandle(rdfvalue.RDFProtoStruct):
 
 class ExportedVolatilityMutant(rdfvalue.RDFProtoStruct):
   protobuf = export_pb2.ExportedVolatilityMutant
+
+
+class ExportedNetworkInterface(rdfvalue.RDFProtoStruct):
+  protobuf = export_pb2.ExportedNetworkInterface
 
 
 class ExportConverter(object):
@@ -347,6 +355,38 @@ class VolatilityResultToExportedVolatilityMutantConverter(
   }
 
   output_rdf_cls = rdfvalue.ExportedVolatilityMutant
+
+
+class ClientSummaryToExportedNetworkInterfaceConverter(ExportConverter):
+  input_rdf_type = "ClientSummary"
+
+  def Convert(self, metadata, client_summary, token=None):
+    """Converts ClientSummary to ExportedNetworkInterfaces."""
+
+    for interface in client_summary.interfaces:
+      ip4_addresses = []
+      ip6_addresses = []
+      for addr in interface.addresses:
+        if addr.address_type == addr.Family.INET:
+          ip4_addresses.append(addr.human_readable_address)
+        elif addr.address_type == addr.Family.INET6:
+          ip6_addresses.append(addr.human_readable_address)
+        else:
+          raise ValueError("Invalid address type: %s", addr.address_type)
+
+      yield ExportedNetworkInterface(
+          metadata=metadata,
+          mac_address=interface.mac_address.human_readable_address,
+          ifname=interface.ifname,
+          ip4_addresses=" ".join(ip4_addresses),
+          ip6_addresses=" ".join(ip6_addresses))
+
+
+class ClientSummaryToExportedClientConverter(ExportConverter):
+  input_rdf_type = "ClientSummary"
+
+  def Convert(self, metadata, unused_client_summary, token=None):
+    return [ExportedClient(metadata=metadata)]
 
 
 class RDFURNConverter(ExportConverter):

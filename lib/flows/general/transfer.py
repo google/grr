@@ -108,7 +108,7 @@ class GetFile(flow.GRRFlow):
 
     # Create a new Hash image for the data. Note that this object is pickled
     # with this flow between states.
-    self.state.fd = aff4.FACTORY.Create(urn, "BlobImage", token=self.token)
+    self.state.fd = aff4.FACTORY.Create(urn, "VFSBlobImage", token=self.token)
 
     # The chunksize must be set to be the same as the transfer chunk size.
     self.state.fd.SetChunksize(self.CHUNK_SIZE)
@@ -132,9 +132,6 @@ class GetFile(flow.GRRFlow):
 
         # Add one more chunk to the window.
         self.FetchWindow(1)
-    elif (responses.status.status ==
-          responses.status.ReturnedStatus.NETWORK_LIMIT_EXCEEDED):
-      raise flow.FlowError(responses.status)
 
   @flow.StateHandler()
   def End(self):
@@ -276,6 +273,7 @@ class GetMBR(flow.GRRFlow):
 
   category = "/Filesystem/"
   args_type = GetMBRArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state=["StoreMBR"])
   def Start(self):
@@ -478,10 +476,6 @@ class FileCollector(flow.GRRFlow):
                 "Completed download of {0:d} files.".format(num_files))
 
 
-class SendFileArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.SendFileArgs
-
-
 class SendFile(flow.GRRFlow):
   """This flow sends a file to remote listener.
 
@@ -496,23 +490,12 @@ class SendFile(flow.GRRFlow):
   """
 
   category = "/Filesystem/"
-  args_type = SendFileArgs
+  args_type = rdfvalue.SendFileRequest
 
   @flow.StateHandler(next_state="Done")
   def Start(self):
     """This issues the sendfile request."""
-
-    self.state.Register("key", self.state.args.key.decode("hex"))
-    self.state.Register("iv", self.state.args.iv.decode("hex"))
-
-    request = rdfvalue.SendFileRequest(
-        key=self.state.key,
-        iv=self.state.iv,
-        pathspec=self.state.args.pathspec,
-        address_family=self.state.args.address_family,
-        host=self.state.args.host,
-        port=self.state.args.port)
-    self.CallClient("SendFile", request, next_state="Done")
+    self.CallClient("SendFile", self.args, next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):

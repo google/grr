@@ -43,6 +43,7 @@ class ChromeHistory(flow.GRRFlow):
 
   category = "/Browser/"
   args_type = ChromeHistoryArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state="ParseFiles")
   def Start(self):
@@ -179,6 +180,7 @@ class FirefoxHistory(flow.GRRFlow):
 
   category = "/Browser/"
   args_type = FirefoxHistoryArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state="ParseFiles")
   def Start(self):
@@ -312,6 +314,7 @@ class CacheGrep(flow.GRRFlow):
 
   category = "/Browser/"
   args_type = CacheGrepArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state="StartRequests")
   def Start(self):

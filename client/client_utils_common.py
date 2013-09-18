@@ -16,17 +16,6 @@ from grr.lib import config_lib
 from grr.lib import utils
 
 
-# TODO(user): This should be moved into the osx only files.
-config_lib.DEFINE_string("Client.plist_path",
-                         "/Library/LaunchDaemons/com.google.code.grrd.plist",
-                         "Location of our launchctl plist.")
-
-config_lib.DEFINE_list(
-    name="Client.proxy_servers",
-    help="List of valid proxy servers the client should try.",
-    default=[])
-
-
 def HandleAlarm(process):
   try:
     logging.info("Killing child process due to timeout")
@@ -85,7 +74,8 @@ def _Execute(cmd, args, time_limit=-1):
   run = [cmd]
   run.extend(args)
   logging.info("Executing %s", " ".join(run))
-  p = subprocess.Popen(run, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  p = subprocess.Popen(run, stdin=subprocess.PIPE,
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
   alarm = None
   if time_limit > 0:

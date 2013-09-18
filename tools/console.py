@@ -78,7 +78,8 @@ def SearchClients(query_str, token=None, limit=1000):
   """Search indexes for clients. Returns list (client, hostname, os version)."""
   client_schema = aff4.AFF4Object.classes["VFSGRRClient"].SchemaCls
   results = []
-  result_set = search.SearchClients(query_str, max_results=limit, token=token)
+  result_urns = search.SearchClients(query_str, max_results=limit, token=token)
+  result_set = aff4.FACTORY.MultiOpen(result_urns, token=token)
   for result in result_set:
     results.append((result,
                     str(result.Get(client_schema.HOSTNAME)),
@@ -324,7 +325,7 @@ def main(unused_argv):
 
   if flags.FLAGS.code_to_execute:
     logging.info("Running code from flag: %s", flags.FLAGS.code_to_execute)
-    exec(flags.FLAGS.code_to_execute)  # pylint: disable=exec-statement
+    exec(flags.FLAGS.code_to_execute)  # pylint: disable=exec-used
   else:
     ipshell.IPShell(argv=[], user_ns=locals_vars, banner=banner)
 

@@ -22,6 +22,7 @@ from grr.gui.plugins import crash_view
 from grr.gui.plugins import fileview
 from grr.gui.plugins import forms
 from grr.gui.plugins import searchclient
+from grr.gui.plugins import semantic
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import hunts
@@ -48,7 +49,7 @@ class ManageHunts(renderers.Splitter2Way):
 """
 
 
-class HuntStateIcon(renderers.RDFValueRenderer):
+class HuntStateIcon(semantic.RDFValueRenderer):
   """Render the hunt state by using an icon.
 
   This class is similar to FlowStateIcon, but it also adds STATE_STOPPED
@@ -57,8 +58,9 @@ class HuntStateIcon(renderers.RDFValueRenderer):
   """
 
   layout_template = renderers.Template("""
-<div class="centered hunt-state-icon" state="{{state_str|escape}}">
-<img class='grr-icon grr-flow-icon' src='/static/images/{{icon|escape}}' />
+<div class="centered hunt-state-icon" state="{{this.state_str|escape}}">
+<img class='grr-icon grr-flow-icon'
+  src='/static/images/{{this.icon|escape}}' />
 </div>
 """)
 
@@ -68,12 +70,10 @@ class HuntStateIcon(renderers.RDFValueRenderer):
       implementation.HuntRunnerArgs.State.STARTED: "clock.png",
       implementation.HuntRunnerArgs.State.PAUSED: "pause.png"}
 
-  def Layout(self, _, response):
+  def Layout(self, request, response):
     self.state_str = str(self.proxy)
-    return self.RenderFromTemplate(
-        self.layout_template, response,
-        state_str=str(self.proxy),
-        icon=self.state_map.get(self.proxy, "question-red.png"))
+    self.icon = self.state_map.get(self.proxy, "question-red.png")
+    return super(HuntStateIcon, self).Layout(request, response)
 
 
 class RunHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
@@ -151,12 +151,13 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
 
       runner = hunt.GetRunner()
 
+      hunt_args = rdfvalue.ModifyHuntFlowArgs(
+          client_limit=runner.args.client_limit,
+          expiry_time=runner.context.expires,
+          )
+
       self.hunt_params_form = forms.SemanticProtoFormRenderer(
-          rdfvalue.ModifyHuntFlowArgs(
-              client_limit=runner.args.client_limit,
-              expiry_time=runner.context.expires,
-              ),
-          supressions=["hunt_urn"]).RawHTML(request)
+          hunt_args, supressions=["hunt_urn"]).RawHTML(request)
 
       self.check_access_subject = hunt_urn
 
@@ -238,18 +239,18 @@ class HuntTable(fileview.AbstractFileTable):
 
   def __init__(self, **kwargs):
     super(HuntTable, self).__init__(**kwargs)
-    self.AddColumn(renderers.RDFValueColumn(
+    self.AddColumn(semantic.RDFValueColumn(
         "Status", renderer=HuntStateIcon, width="40px"))
 
     # The hunt id is the AFF4 URN for the hunt object.
-    self.AddColumn(renderers.RDFValueColumn(
-        "Hunt ID", renderer=renderers.SubjectRenderer))
-    self.AddColumn(renderers.RDFValueColumn("Name"))
-    self.AddColumn(renderers.RDFValueColumn("Start Time", width="16em"))
-    self.AddColumn(renderers.RDFValueColumn("Expires", width="16em"))
-    self.AddColumn(renderers.RDFValueColumn("Client Limit"))
-    self.AddColumn(renderers.RDFValueColumn("Creator"))
-    self.AddColumn(renderers.RDFValueColumn("Description", width="100%"))
+    self.AddColumn(semantic.RDFValueColumn(
+        "Hunt ID", renderer=semantic.SubjectRenderer))
+    self.AddColumn(semantic.RDFValueColumn("Name"))
+    self.AddColumn(semantic.RDFValueColumn("Start Time", width="16em"))
+    self.AddColumn(semantic.RDFValueColumn("Expires", width="16em"))
+    self.AddColumn(semantic.RDFValueColumn("Client Limit"))
+    self.AddColumn(semantic.RDFValueColumn("Creator"))
+    self.AddColumn(semantic.RDFValueColumn("Description", width="100%"))
 
   def Layout(self, request, response):
     super(HuntTable, self).Layout(request, response)
@@ -371,7 +372,7 @@ class ManageHuntsClientView(renderers.Splitter2Way):
   bottom_renderer = "HuntClientViewTabs"
 
 
-class ResourceRenderer(renderers.RDFValueRenderer):
+class ResourceRenderer(semantic.RDFValueRenderer):
   """Renders resource usage as meters."""
 
   cls = "vertical_aligned"
@@ -382,7 +383,7 @@ class ResourceRenderer(renderers.RDFValueRenderer):
       "</div>")
 
 
-class FloatRenderer(renderers.RDFValueRenderer):
+class FloatRenderer(semantic.RDFValueRenderer):
 
   layout_template = renderers.Template("{{this.value|escape}}")
 
@@ -440,22 +441,22 @@ back to hunt view</a>
 
   def __init__(self, **kwargs):
     super(HuntClientTableRenderer, self).__init__(**kwargs)
-    self.AddColumn(renderers.RDFValueColumn(
-        "Client ID", width="20%", renderer=renderers.SubjectRenderer))
-    self.AddColumn(renderers.RDFValueColumn("Hostname", width="10%"))
-    self.AddColumn(renderers.RDFValueColumn("Status", width="10%"))
-    self.AddColumn(renderers.RDFValueColumn("User CPU seconds", width="10%",
-                                            renderer=FloatRenderer))
-    self.AddColumn(renderers.RDFValueColumn("System CPU seconds", width="10%",
-                                            renderer=FloatRenderer))
-    self.AddColumn(renderers.RDFValueColumn("CPU",
-                                            renderer=ResourceRenderer,
-                                            width="10%"))
-    self.AddColumn(renderers.RDFValueColumn("Network bytes sent", width="10%"))
-    self.AddColumn(renderers.RDFValueColumn("Network",
-                                            renderer=ResourceRenderer,
-                                            width="10%"))
-    self.AddColumn(renderers.RDFValueColumn("Last Checkin", width="10%"))
+    self.AddColumn(semantic.RDFValueColumn(
+        "Client ID", width="20%", renderer=semantic.SubjectRenderer))
+    self.AddColumn(semantic.RDFValueColumn("Hostname", width="10%"))
+    self.AddColumn(semantic.RDFValueColumn("Status", width="10%"))
+    self.AddColumn(semantic.RDFValueColumn("User CPU seconds", width="10%",
+                                           renderer=FloatRenderer))
+    self.AddColumn(semantic.RDFValueColumn("System CPU seconds", width="10%",
+                                           renderer=FloatRenderer))
+    self.AddColumn(semantic.RDFValueColumn("CPU",
+                                           renderer=ResourceRenderer,
+                                           width="10%"))
+    self.AddColumn(semantic.RDFValueColumn("Network bytes sent", width="10%"))
+    self.AddColumn(semantic.RDFValueColumn("Network",
+                                           renderer=ResourceRenderer,
+                                           width="10%"))
+    self.AddColumn(semantic.RDFValueColumn("Last Checkin", width="10%"))
 
   def Layout(self, request, response):
     """Ensure our hunt is in our state for HTML layout."""
@@ -540,7 +541,39 @@ back to hunt view</a>
     self.size = len(results)
 
 
-class HuntOverviewRenderer(renderers.AbstractLogRenderer):
+class AbstractLogRenderer(renderers.TemplateRenderer):
+  """Render a page for view a Log file.
+
+  Implements a very simple view. That will be extended with filtering
+  capabilities.
+
+  Implementations should implement the GetLog function.
+  """
+
+  layout_template = renderers.Template("""
+<table class="proto_table">
+{% for line in this.log %}
+  <tr>
+  {% for val in line %}
+    <td class="proto_key">{{ val|escape }}</td>
+  {% endfor %}
+  </tr>
+{% empty %}
+<tr><td>No entries</tr></td>
+{% endfor %}
+<table>
+""")
+
+  def GetLog(self, request):
+    """Take a request and return a list of tuples for a log."""
+
+  def Layout(self, request, response):
+    """Fill in the form with the specific fields for the flow requested."""
+    self.log = self.GetLog(request)
+    return super(AbstractLogRenderer, self).Layout(request, response)
+
+
+class HuntOverviewRenderer(AbstractLogRenderer):
   """Renders the overview tab."""
 
   layout_template = renderers.Template("""
@@ -671,7 +704,7 @@ class HuntOverviewRenderer(renderers.AbstractLogRenderer):
     return super(HuntOverviewRenderer, self).Layout(request, response)
 
 
-class HuntLogRenderer(renderers.AbstractLogRenderer):
+class HuntLogRenderer(AbstractLogRenderer):
   """Render the hunt log."""
 
   def GetLog(self, request):
@@ -692,7 +725,7 @@ class HuntLogRenderer(renderers.AbstractLogRenderer):
     return log
 
 
-class HuntErrorRenderer(renderers.AbstractLogRenderer):
+class HuntErrorRenderer(AbstractLogRenderer):
   """Render the hunt errors."""
 
   def GetLog(self, request):
@@ -721,7 +754,7 @@ class HuntRuleRenderer(renderers.TableRenderer):
 
   def __init__(self, **kwargs):
     super(HuntRuleRenderer, self).__init__(**kwargs)
-    self.AddColumn(renderers.RDFValueColumn("Rules", width="100%"))
+    self.AddColumn(semantic.RDFValueColumn("Rules", width="100%"))
 
   def RenderAjax(self, request, response):
     """Renders the table."""
@@ -906,8 +939,8 @@ class HuntHostInformationRenderer(fileview.AFF4Stats):
 
   description = "Hunt Client Host Information"
   css_class = "TableBody"
-  filtered_attributes = ["USERNAMES", "HOSTNAME", "MAC_ADDRESS", "INSTALL_DATE",
-                         "SYSTEM", "CLOCK", "CLIENT_INFO"]
+  attributes_to_show = ["USERNAMES", "HOSTNAME", "MAC_ADDRESS", "INSTALL_DATE",
+                        "SYSTEM", "CLOCK", "CLIENT_INFO"]
 
   def Layout(self, request, response):
     """Produce a summary of the client information."""
@@ -919,7 +952,7 @@ class HuntHostInformationRenderer(fileview.AFF4Stats):
           age=aff4.ALL_TIMES)
 
 
-class HuntResultsRenderer(renderers.RDFValueCollectionRenderer):
+class HuntResultsRenderer(semantic.RDFValueCollectionRenderer):
   """Displays a collection of hunt's results."""
 
   error_template = renderers.Template("""

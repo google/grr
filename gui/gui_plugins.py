@@ -12,4 +12,5 @@ modules that have been customized for your deployment.
 
 from grr.gui import plugins
 from grr.gui import renderers
+from grr.gui import urls
 from grr.gui import views

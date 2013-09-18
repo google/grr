@@ -15,6 +15,7 @@ from M2Crypto import X509
 
 from grr.gui import renderers
 from grr.gui.plugins import fileview_widgets
+from grr.gui.plugins import semantic
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -23,7 +24,7 @@ from grr.proto import sysinfo_pb2
 
 
 # pylint: disable=g-bad-name
-class BufferReferenceRenderer(renderers.RDFProtoRenderer):
+class BufferReferenceRenderer(semantic.RDFProtoRenderer):
   """Render the buffer reference."""
   classname = "BufferReference"
   name = "Buffer Reference"
@@ -55,7 +56,7 @@ class BufferReferenceRenderer(renderers.RDFProtoRenderer):
   translator = dict(data=Hexify)
 
 
-class StatEntryRenderer(renderers.RDFProtoRenderer):
+class StatEntryRenderer(semantic.RDFProtoRenderer):
   """Nicely format the StatEntry rdfvalue."""
   classname = "StatEntry"
   name = "Stat Entry"
@@ -69,30 +70,17 @@ class StatEntryRenderer(renderers.RDFProtoRenderer):
     # This is not escaped by the template!
     return renderers.EscapingRenderer(ret).RawHTML()
 
-  translator = dict(registry_data=TranslateRegistryData,
-                    registry_type=renderers.RDFProtoRenderer.Enum)
+  translator = dict(registry_data=TranslateRegistryData)
 
 
-class TaskRenderer(renderers.RDFProtoRenderer):
-  """Nicely format the deprecated Task rdfvalue."""
-  classname = "Task"
-  name = "Task"
-
-  def RenderPayload(self, _, value):
-    rdf_flow = rdfvalue.Flow(value)
-    return renderers.FindRendererForObject(rdf_flow).RawHTML()
-
-  translator = dict(value=RenderPayload)
-
-
-class GrrMessageRenderer(renderers.RDFProtoRenderer):
+class GrrMessageRenderer(semantic.RDFProtoRenderer):
   """Nicely format the GrrMessage rdfvalue."""
   classname = "GrrMessage"
   name = "GrrMessage"
 
   def RenderPayload(self, _, unused_value):
     rdf_object = self.proxy.payload
-    return renderers.FindRendererForObject(rdf_object).RawHTML()
+    return semantic.FindRendererForObject(rdf_object).RawHTML()
 
   translator = dict(args=RenderPayload)
 
@@ -145,7 +133,7 @@ class CollectionRenderer(StatEntryRenderer):
     return renderers.TemplateRenderer.Layout(self, request, response)
 
 
-class GrepResultRenderer(renderers.RDFProtoRenderer):
+class GrepResultRenderer(semantic.RDFProtoRenderer):
   """Nicely format grep results."""
   classname = "GrepResultList"
   name = "Grep Result Listing"
@@ -177,7 +165,7 @@ class GrepResultRenderer(renderers.RDFProtoRenderer):
     return renderers.TemplateRenderer.Layout(self, request, response)
 
 
-class VolatilityFormatstringRenderer(renderers.RDFProtoRenderer):
+class VolatilityFormatstringRenderer(semantic.RDFProtoRenderer):
   """Formats a volatility result string."""
 
   layout_template = renderers.Template("""
@@ -200,7 +188,7 @@ class VolatilityFormatstringRenderer(renderers.RDFProtoRenderer):
     return renderers.TemplateRenderer.Layout(self, request, response)
 
 
-class VolatilityTableRenderer(renderers.RDFProtoRenderer):
+class VolatilityTableRenderer(semantic.RDFProtoRenderer):
   """Formats a volatility result table."""
 
   layout_template = renderers.Template("""
@@ -261,7 +249,7 @@ class VolatilityTableRenderer(renderers.RDFProtoRenderer):
     return renderers.TemplateRenderer.Layout(self, request, response)
 
 
-class GenericVolatilityResultRenderer(renderers.RDFProtoRenderer):
+class GenericVolatilityResultRenderer(semantic.RDFProtoRenderer):
   """Nicely format results of volatility plugins."""
   name = "Volatility Result Listing"
 
@@ -324,7 +312,7 @@ Details:<br>
     return renderers.TemplateRenderer.Layout(self, request, response)
 
 
-class VolatilityResultRenderer(renderers.RDFProtoRenderer):
+class VolatilityResultRenderer(semantic.RDFProtoRenderer):
   """Nicely format results of volatility plugins."""
   classname = "VolatilityResult"
 
@@ -344,12 +332,12 @@ class VolatilityResultRenderer(renderers.RDFProtoRenderer):
     return super(VolatilityResultRenderer, self).Layout(request, response)
 
 
-class UsersRenderer(renderers.RDFValueArrayRenderer):
+class UsersRenderer(semantic.RDFValueArrayRenderer):
   classname = "Users"
   name = "Users"
 
 
-class NetworkAddressRenderer(renderers.RDFValueRenderer):
+class NetworkAddressRenderer(semantic.RDFValueRenderer):
   classname = "NetworkAddress"
   name = "Network Address"
   layout_template = renderers.Template("{{result|escape}}")
@@ -357,10 +345,10 @@ class NetworkAddressRenderer(renderers.RDFValueRenderer):
   def Layout(self, request, response):
     _ = request, response
     return self.RenderFromTemplate(self.layout_template, response,
-                                   result=self.proxy.HumanReadableAddress())
+                                   result=self.proxy.human_readable_address)
 
 
-class InterfaceRenderer(renderers.RDFProtoRenderer):
+class InterfaceRenderer(semantic.RDFProtoRenderer):
   """Render a machine's interfaces."""
   classname = "Interface"
   name = "Interface Record"
@@ -379,11 +367,9 @@ class InterfaceRenderer(renderers.RDFProtoRenderer):
                     mac_address=TranslateMacAddress)
 
 
-class ConfigRenderer(renderers.RDFProtoRenderer):
+class ConfigRenderer(semantic.RDFProtoRenderer):
   classname = "GRRConfig"
   name = "GRR Configuration"
-
-  translator = {}
 
 
 class StringListRenderer(renderers.TemplateRenderer):
@@ -405,7 +391,7 @@ class StringListRenderer(renderers.TemplateRenderer):
     super(StringListRenderer, self).__init__(**kwargs)
 
 
-class ConnectionRenderer(renderers.RDFValueArrayRenderer):
+class ConnectionsRenderer(semantic.RDFValueArrayRenderer):
   """Renders connection listings."""
   classname = "Connections"
   name = "Connection Listing"
@@ -453,7 +439,6 @@ class ConnectionRenderer(renderers.RDFValueArrayRenderer):
 
   def Layout(self, request, response):
     """Render the connection as a table."""
-
     _ = request
 
     result = []
@@ -486,28 +471,28 @@ class ConnectionRenderer(renderers.RDFValueArrayRenderer):
                                    result=sorted(result))
 
 
-class ProcessRenderer(renderers.RDFValueArrayRenderer):
+class NetworkConnections(ConnectionsRenderer):
+  """Handle repeated NetworkConnection fields in protobufs."""
+  classname = "NetworkConnection"
+
+
+class ProcessRenderer(semantic.RDFValueArrayRenderer):
   """Renders process listings."""
   classname = "Processes"
   name = "Process Listing"
 
-  def RenderConnections(self, unused_descriptor, connection_list):
-    return ConnectionRenderer(connection_list).RawHTML()
-
   def RenderFiles(self, unused_descriptor, file_list):
     return StringListRenderer(sorted(file_list)).RawHTML()
 
-  translator = dict(ctime=renderers.RDFProtoRenderer.Time,
-                    connections=RenderConnections,
-                    open_files=RenderFiles)
+  translator = dict(open_files=RenderFiles)
 
 
-class FilesystemRenderer(renderers.RDFValueArrayRenderer):
+class FilesystemRenderer(semantic.RDFValueArrayRenderer):
   classname = "FileSystem"
   name = "FileSystems"
 
 
-class CertificateRenderer(renderers.RDFValueRenderer):
+class CertificateRenderer(semantic.RDFValueRenderer):
   """Render X509 Certs properly."""
   classname = "RDFX509Cert"
   name = "X509 Certificate"
@@ -540,7 +525,7 @@ $('#certificate_viewer_{{unique|escape}}').click(function () {
     return super(CertificateRenderer, self).Layout(request, response)
 
 
-class BlobArrayRenderer(renderers.RDFValueRenderer):
+class BlobArrayRenderer(semantic.RDFValueRenderer):
   """Render a blob array."""
   classname = "BlobArray"
   name = "Array"
@@ -566,7 +551,7 @@ class BlobArrayRenderer(renderers.RDFValueRenderer):
                                    first=array[0:1], array=array[1:])
 
 
-class AgeSelector(renderers.RDFValueRenderer):
+class AgeSelector(semantic.RDFValueRenderer):
   """Allows the user to select a different version for viewing objects."""
   layout_template = renderers.Template("""
 <img src=static/images/window-duplicate.png class='grr-icon version-selector'>
@@ -781,7 +766,7 @@ class AbstractFileTable(renderers.TableRenderer):
       # Add the fd to all the columns
       for column in self.columns:
         # This sets AttributeColumns directly from their fd.
-        if isinstance(column, renderers.AttributeColumn):
+        if isinstance(column, semantic.AttributeColumn):
           column.AddRowFromFd(row_index, fd)
 
       if "Container" in fd.behaviours:
@@ -818,16 +803,16 @@ class FileTable(AbstractFileTable):
   def __init__(self, **kwargs):
     super(FileTable, self).__init__(**kwargs)
 
-    self.AddColumn(renderers.RDFValueColumn(
-        "Icon", renderer=renderers.IconRenderer, width="40px"))
-    self.AddColumn(renderers.RDFValueColumn(
-        "Name", renderer=renderers.SubjectRenderer, sortable=True, width="20%"))
-    self.AddColumn(renderers.AttributeColumn("type", width="10%"))
-    self.AddColumn(renderers.AttributeColumn("size", width="10%"))
-    self.AddColumn(renderers.AttributeColumn("stat.st_size", width="15%"))
-    self.AddColumn(renderers.AttributeColumn("stat.st_mtime", width="15%"))
-    self.AddColumn(renderers.AttributeColumn("stat.st_ctime", width="15%"))
-    self.AddColumn(renderers.RDFValueColumn(
+    self.AddColumn(semantic.RDFValueColumn(
+        "Icon", renderer=semantic.IconRenderer, width="40px"))
+    self.AddColumn(semantic.RDFValueColumn(
+        "Name", renderer=semantic.SubjectRenderer, sortable=True, width="20%"))
+    self.AddColumn(semantic.AttributeColumn("type", width="10%"))
+    self.AddColumn(semantic.AttributeColumn("size", width="10%"))
+    self.AddColumn(semantic.AttributeColumn("stat.st_size", width="15%"))
+    self.AddColumn(semantic.AttributeColumn("stat.st_mtime", width="15%"))
+    self.AddColumn(semantic.AttributeColumn("stat.st_ctime", width="15%"))
+    self.AddColumn(semantic.RDFValueColumn(
         "Age", renderer=AgeSelector, width="15%"))
 
   def Layout(self, request, response):
@@ -1365,7 +1350,9 @@ class AFF4Stats(renderers.TemplateRenderer):
   name = "Stats"
   css_class = ""
   historical_renderer = "HistoricalView"
-  filtered_attributes = None
+
+  # If specified, only these attributes will be shown.
+  attributes_to_show = None
 
   layout_template = renderers.Template("""
 <div class="container-fluid">
@@ -1489,8 +1476,8 @@ $('.attribute_opener').click(function () {
 
         if values:
           attribute_names.add(attribute.predicate)
-          value_renderer = renderers.FindRendererForObject(values[0])
-          if self.filtered_attributes and name not in self.filtered_attributes:
+          value_renderer = semantic.FindRendererForObject(values[0])
+          if self.attributes_to_show and name not in self.attributes_to_show:
             continue
 
           attributes.append((name, attribute.description,
@@ -1512,9 +1499,9 @@ class HostInformation(AFF4Stats):
   behaviours = frozenset(["Host"])
   order = 0
   css_class = "TableBody"
-  filtered_attributes = ["USERNAMES", "HOSTNAME", "MAC_ADDRESS", "INSTALL_DATE",
-                         "SYSTEM", "CLOCK", "CLIENT_INFO", "UNAME", "ARCH",
-                         "FIRST_SEEN"]
+  attributes_to_show = ["USERNAMES", "HOSTNAME", "MAC_ADDRESS", "INSTALL_DATE",
+                        "SYSTEM", "CLOCK", "CLIENT_INFO", "UNAME", "ARCH",
+                        "FIRST_SEEN", "LABEL", "LAST_BOOT_TIME"]
 
   def Layout(self, request, response, client_id=None):
     client_id = client_id or request.REQ.get("client_id")
@@ -1662,11 +1649,11 @@ class HistoricalView(renderers.TableRenderer):
   def __init__(self, **kwargs):
     super(HistoricalView, self).__init__(**kwargs)
 
-    self.AddColumn(renderers.RDFValueColumn("Age"))
+    self.AddColumn(semantic.RDFValueColumn("Age"))
 
   def Layout(self, request, response):
     """Add the columns to the table."""
-    self.AddColumn(renderers.RDFValueColumn(request.REQ.get("attribute")))
+    self.AddColumn(semantic.RDFValueColumn(request.REQ.get("attribute")))
 
     return super(HistoricalView, self).Layout(request, response)
 
@@ -1680,7 +1667,7 @@ class HistoricalView(renderers.TableRenderer):
     client_id = request.REQ.get("client_id")
     path = request.REQ.get("path")
 
-    self.AddColumn(renderers.RDFValueColumn(attribute_name))
+    self.AddColumn(semantic.RDFValueColumn(attribute_name))
     fd = aff4.FACTORY.Open(urn or path or client_id,
                            token=request.token, age=aff4.ALL_TIMES)
     self.BuildTableFromAttribute(attribute_name, fd, start_row, end_row)
@@ -1739,8 +1726,8 @@ class VersionSelectorDialog(renderers.TableRenderer):
   def __init__(self, **kwargs):
     super(VersionSelectorDialog, self).__init__(**kwargs)
 
-    self.AddColumn(renderers.RDFValueColumn("Age"))
-    self.AddColumn(renderers.RDFValueColumn("Type"))
+    self.AddColumn(semantic.RDFValueColumn("Age"))
+    self.AddColumn(semantic.RDFValueColumn("Type"))
 
   def Layout(self, request, response):
     """Populates the table state with the request."""

@@ -32,13 +32,7 @@ import time
 
 import logging
 
-from grr.lib import flags
-from grr.lib import registry
 from grr.lib import stats
-
-
-flags.DEFINE_bool("mock_threadpool", False,
-                  "Use a single threaded mock for the threadpool.")
 
 
 STOP_MESSAGE = "Stop message"
@@ -319,14 +313,3 @@ class MockThreadPool(object):
 
   def Join(self):
     pass
-
-
-class ThreadPoolInit(registry.InitHook):
-  def RunOnce(self):
-    if flags.FLAGS.mock_threadpool:
-      logging.warning("Using mocked thread pool.")
-
-      # pylint: disable=global-variable-undefined, g-bad-name
-      global ThreadPool
-
-      ThreadPool = MockThreadPool

@@ -10,7 +10,7 @@ modules that have been customized for your deployment.
 """
 import sys
 
-# pylint: disable=g-import-not-at-top,unused-import
+# pylint: disable=g-import-not-at-top,unused-import,g-bad-import-order
 # Load the os specific modules.
 if sys.platform == "win32":
   from grr.client import windows
@@ -27,3 +27,6 @@ from grr.client import local
 from grr.client import vfs_handlers
 from grr.lib import log
 from grr.lib import rdfvalues
+
+# Config definitions use Semantic Values from plugins.
+from grr import config
