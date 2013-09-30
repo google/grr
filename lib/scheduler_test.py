@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc. All Rights Reserved.
 """Tests the data store abstraction."""
 
 
@@ -38,7 +37,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
   def testSchedule(self):
     """Test the ability to schedule a task."""
     test_queue = rdfvalue.RDFURN("fooSchedule")
-    task = rdfvalue.GrrMessage(queue=test_queue, ttl=5,
+    task = rdfvalue.GrrMessage(queue=test_queue, task_ttl=5,
                                session_id="aff4:/Test")
 
     scheduler.SCHEDULER.Schedule([task], token=self.token)
@@ -46,11 +45,12 @@ class SchedulerTest(test_lib.GRRBaseTest):
     self.assert_(task.task_id > 0)
     self.assert_(task.task_id & 0xffffffff > 0)
     self.assertEqual((long(self._current_mock_time * 1000) & 0xffffffff) << 32,
-                     task.task_id & 0xffffffff00000000)
+                     task.task_id & 0x1fffffff00000000)
     self.assertEqual(task.task_ttl, 5)
-    value, ts = data_store.DB.Resolve(test_queue,
-                                      "task:%08d" % task.task_id,
-                                      token=self.token)
+
+    value, ts = data_store.DB.Resolve(
+        test_queue, scheduler.SCHEDULER._TaskIdToColumn(task.task_id),
+        token=self.token)
 
     decoded = rdfvalue.GrrMessage(value)
     self.assertProtoEqual(decoded, task)
@@ -101,7 +101,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
   def testTaskRetransmissionsAreCorrectlyAccounted(self):
     test_queue = rdfvalue.RDFURN("fooSchedule")
     task = rdfvalue.GrrMessage(queue=test_queue,
-                               session_id="aff4:/Test")
+                               task_ttl=5, session_id="aff4:/Test")
 
     scheduler.SCHEDULER.Schedule([task], token=self.token)
 
@@ -171,7 +171,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
   def testReSchedule(self):
     """Test the ability to re-schedule a task."""
     test_queue = rdfvalue.RDFURN("fooReschedule")
-    task = rdfvalue.GrrMessage(queue=test_queue,
+    task = rdfvalue.GrrMessage(queue=test_queue, task_ttl=5,
                                session_id="aff4:/Test")
 
     scheduler.SCHEDULER.Schedule([task], token=self.token)
@@ -223,24 +223,21 @@ class SchedulerTest(test_lib.GRRBaseTest):
     scheduler.SCHEDULER.Schedule(tasks, token=self.token)
 
     tasks = scheduler.SCHEDULER.QueryAndOwn(
-        test_queue, lease_seconds=100, token=self.token,
-        limit=3)
+        test_queue, lease_seconds=100, token=self.token, limit=3)
 
     self.assertEqual(len(tasks), 3)
     for task in tasks:
       self.assertEqual(task.priority, 2)
 
     tasks = scheduler.SCHEDULER.QueryAndOwn(
-        test_queue, lease_seconds=100, token=self.token,
-        limit=3)
+        test_queue, lease_seconds=100, token=self.token, limit=3)
 
     self.assertEqual(len(tasks), 3)
     for task in tasks:
       self.assertEqual(task.priority, 1)
 
     tasks = scheduler.SCHEDULER.QueryAndOwn(
-        test_queue, lease_seconds=100, token=self.token,
-        limit=100)
+        test_queue, lease_seconds=100, token=self.token, limit=100)
 
     self.assertEqual(len(tasks), 4)
     for task in tasks:
@@ -248,8 +245,7 @@ class SchedulerTest(test_lib.GRRBaseTest):
 
     # Now for Query.
     tasks = scheduler.SCHEDULER.Query(
-        test_queue, token=self.token,
-        limit=100)
+        test_queue, token=self.token, limit=100)
     self.assertEqual(len(tasks), 10)
     self.assertEqual([task.priority for task in tasks],
                      [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])

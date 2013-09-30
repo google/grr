@@ -91,7 +91,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
 
       # We expect the email to be sent.
       self.assertEqual(self.email_message.get("address", ""),
-                       config_lib.CONFIG["Monitoring.events_email"])
+                       config_lib.CONFIG["Monitoring.alert_email"])
       self.assertTrue(str(self.client_id) in self.email_message["title"])
 
       # Make sure the flow state is included in the email message.
@@ -150,8 +150,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
                                        title=title, message=message))
 
       email_alerts.SendEmail = SendEmail
-      config_lib.CONFIG.Set("Monitoring.events_email", "admin@nowhere.com")
-
+      config_lib.CONFIG.Set("Monitoring.alert_email", "admin@nowhere.com")
       msg = rdfvalue.GrrMessage(
           session_id=rdfvalue.SessionID("aff4:/flows/W:NannyMessage"),
           args=rdfvalue.DataBlob(string=nanny_message).SerializeToString(),
@@ -160,7 +159,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
 
       # This is normally done by the FrontEnd when a CLIENT_KILLED message is
       # received.
-      flow.PublishEvent("NannyMessage", msg, token=self.token)
+      flow.Events.PublishEvent("NannyMessage", msg, token=self.token)
 
       # Now emulate a worker to process the event.
       worker = test_lib.MockWorker(token=self.token)
@@ -169,8 +168,8 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       worker.pool.Join()
 
       # We expect the email to be sent.
-      self.assertEqual(self.email_message.get("address", ""),
-                       config_lib.CONFIG["Monitoring.events_email"])
+      self.assertEqual(self.email_message.get("address"),
+                       config_lib.CONFIG["Monitoring.alert_email"])
       self.assertTrue(str(self.client_id) in self.email_message["title"])
 
       # Make sure the message is included in the email message.

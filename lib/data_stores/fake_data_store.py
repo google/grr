@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
-
 """An implementation of an in-memory data store for testing."""
 
 import operator
@@ -361,9 +359,9 @@ class FakeDataStore(data_store.DataStore):
 
     for k, seq in values.items():
       for v in seq:
-        try:
+        if isinstance(v, (list, tuple)):
           v, element_timestamp = v
-        except (TypeError, ValueError):
+        else:
           element_timestamp = timestamp
 
         self.Set(subject, k, v, timestamp=element_timestamp, token=token,
@@ -427,9 +425,9 @@ class FakeDataStore(data_store.DataStore):
                    timestamp=None):
     self.security_manager.CheckDataStoreAccess(token, [subject], "r")
     # Does timestamp represent a range?
-    try:
+    if isinstance(timestamp, (list, tuple)):
       start, end = timestamp
-    except (ValueError, TypeError):
+    else:
       start, end = -1, 1 << 65
 
     if isinstance(predicates, str):
@@ -471,11 +469,10 @@ class FakeDataStore(data_store.DataStore):
                    timestamp=None, limit=None):
     """Resolve all predicates for a subject matching a regex."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "r")
-
     # Does timestamp represent a range?
-    try:
+    if isinstance(timestamp, (list, tuple)):
       start, end = timestamp
-    except (ValueError, TypeError):
+    else:
       start, end = -1, 1 << 65
 
     if isinstance(predicate_regex, str):
@@ -516,10 +513,9 @@ class FakeDataStore(data_store.DataStore):
               break
 
     result = []
-    for k, values in results.items():
+    for k, values in sorted(results.items()):
       for v in sorted(values):
         result.append((k, v[2], v[1]))
-
     return result
 
   @utils.Synchronized
@@ -545,9 +541,9 @@ class FakeDataStore(data_store.DataStore):
                        for x in subjects if x in self.subjects])
 
     # Support limits if required
-    try:
+    if isinstance(limit, (list, tuple)):
       start, length = limit
-    except (TypeError, IndexError):
+    else:
       start, length = 0, limit
 
     i = -1
@@ -581,10 +577,10 @@ class FakeDataStore(data_store.DataStore):
           elif timestamp == data_store.DataStore.ALL_TIMESTAMPS:
             pass
           else:
-            try:
+            if isinstance(timestamp, (list, tuple)):
               start, end = timestamp
               values = [v for v in values if start <= v[1] <= end]
-            except (TypeError, ValueError):
+            else:
               raise RuntimeError("Invalid timestamp value.")
 
           result.setdefault(attribute, []).extend(

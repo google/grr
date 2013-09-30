@@ -37,8 +37,6 @@ class TaskScheduler(object):
   5) Tasks can be re-leased by calling TaskScheduler.Schedule(task)
   repeatedly. Each call will extend the lease by the specified amount.
   """
-  # This is the column name for counting the next available task ID:
-  MAX_TS_ID = "metadata:task_counter"
   PREDICATE_PREFIX = "task:%s"
 
   def __init__(self, store=None):
@@ -49,8 +47,6 @@ class TaskScheduler(object):
 
   def _TaskIdToColumn(self, task_id):
     """Return a predicate representing this task."""
-    if task_id == 1:
-      return self.PREDICATE_PREFIX % "flow"
     return self.PREDICATE_PREFIX % ("%08d" % task_id)
 
   def Delete(self, queue, tasks, token=None):
@@ -66,28 +62,28 @@ class TaskScheduler(object):
      token: An access token to access the data store.
     """
     if queue:
-      self.data_store.RetryWrapper(
-          queue, self._Delete, tasks=tasks, token=token)
+      predicates = []
+      for task in tasks:
+        try:
+          task_id = task.task_id
+        except AttributeError:
+          task_id = int(task)
+        predicates.append(self._TaskIdToColumn(task_id))
 
-  def _Delete(self, transaction, tasks=None):
-    for task in tasks:
-      try:
-        ts_id = task.task_id
-      except AttributeError:
-        ts_id = int(task)
-
-      transaction.DeleteAttribute(self._TaskIdToColumn(ts_id))
+      data_store.DB.DeleteAttributes(queue, predicates, token=token, sync=False)
 
   def Schedule(self, tasks, sync=False, timestamp=None, token=None):
     """Schedule a set of Task() instances."""
-    for queue, queued_tasks in utils.GroupBy(tasks, lambda x: x.queue):
+    for queue, queued_tasks in utils.GroupBy(
+        tasks, lambda x: x.queue).iteritems():
       if queue:
         to_schedule = dict(
-            [(self._TaskIdToColumn(task.task_id), [task.SerializeToString()])
-             for task in queued_tasks])
+            [(self._TaskIdToColumn(task.task_id),
+              [task.SerializeToString()]) for task in queued_tasks])
 
         self.data_store.MultiSet(
-            queue, to_schedule, timestamp=timestamp, sync=sync, token=token)
+            queue, to_schedule, timestamp=timestamp, sync=sync,
+            token=token)
 
   def GetSessionsFromQueue(self, queue, token=None):
     """Retrieves candidate session ids for processing from the datastore."""
@@ -140,10 +136,10 @@ class TaskScheduler(object):
         raise RuntimeError("Can only notify on rdfvalue.SessionIDs.")
 
     for queue, ids in utils.GroupBy(
-        session_ids, lambda session_id: session_id.Queue()):
+        session_ids, lambda session_id: session_id.Queue()).iteritems():
 
-      self._MultiNotifyQueue(queue, ids, priorities, timestamp=timestamp,
-                             sync=sync, token=token)
+      self._MultiNotifyQueue(queue, ids, priorities,
+                             timestamp=timestamp, sync=sync, token=token)
 
   def _MultiNotifyQueue(self, queue, session_ids, priorities, timestamp=None,
                         sync=True, token=None):
@@ -224,7 +220,7 @@ class TaskScheduler(object):
       limit: Number of values to fetch.
       token: An access token to access the data store.
     Returns:
-        A list of Task() objects leased.
+        A list of GrrMessage() objects leased.
     """
     user = ""
     if token:
@@ -253,15 +249,13 @@ class TaskScheduler(object):
     now = long(time.time() * 1e6)
     lease = long(lease_seconds * 1e6)
 
-    all_tasks = list(transaction.ResolveRegex(
+    ttl_exceeded_count = 0
+
+    # Only grab attributes with timestamps in the past.
+    for predicate, task, timestamp in transaction.ResolveRegex(
         self.PREDICATE_PREFIX % ".*",
         decoder=rdfvalue.GrrMessage,
-        timestamp=(0, now)))
-
-    all_tasks.sort(key=lambda task: task[1].priority, reverse=True)
-
-    # Only grab attributes with timestamps in the past
-    for predicate, task, timestamp in all_tasks:
+        timestamp=(0, now)):
       task.eta = timestamp
       task.last_lease = "%s@%s:%d" % (user,
                                       socket.gethostname(),
@@ -271,8 +265,7 @@ class TaskScheduler(object):
       if task.task_ttl <= 0:
         # Remove the task if ttl is exhausted.
         transaction.DeleteAttribute(predicate)
-        logging.info("TTL exceeded on task %s:%s, dequeueing", task.queue,
-                     task.task_id)
+        ttl_exceeded_count += 1
         stats.STATS.IncrementCounter("grr_task_ttl_expired_count")
       else:
         if task.task_ttl != rdfvalue.GrrMessage.max_ttl - 1:
@@ -282,9 +275,12 @@ class TaskScheduler(object):
         transaction.Set(predicate, task.SerializeToString(), replace=True,
                         timestamp=now + lease)
         tasks.append(task)
+        if len(tasks) >= limit:
+          break
 
-      if len(tasks) >= limit:
-        break
+    if ttl_exceeded_count:
+      logging.info("TTL exceeded for %d messages on queue %s",
+                   ttl_exceeded_count, transaction.subject)
     return tasks
 
 # These are globally available handles to factories

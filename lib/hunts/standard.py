@@ -48,7 +48,6 @@ class CreateGenericHuntFlow(flow.GRRFlow):
     """Create the hunt, in the paused state."""
     # Anyone can create the hunt but it will be created in the paused
     # state. Permissions are required to actually start it.
-
     with implementation.GRRHunt.StartHunt(
         runner_args=self.args.hunt_runner_args,
         args=self.args.hunt_args,
@@ -607,6 +606,10 @@ class GenericHunt(implementation.GRRHunt):
 
   args_type = GenericHuntArgs
 
+  def Initialize(self):
+    super(GenericHunt, self).Initialize()
+    self.processed_responses = False
+
   @flow.StateHandler()
   def Start(self):
     """Initializes this hunt from arguments."""
@@ -633,11 +636,40 @@ class GenericHunt(implementation.GRRHunt):
                     next_state="MarkDone", sync=False,
                     runner_args=self.state.args.flow_runner_args)
 
+  def GetLaunchedFlows(self, flow_type="outstanding"):
+    """Returns the session IDs of all the flows we launched.
+
+    Args:
+      flow_type: The type of flows to fetch. Can be "all", "outstanding" or
+      "finished".
+
+    Returns:
+      A list of flow URNs.
+    """
+    result = None
+    all_clients = set(self.GetValuesForAttribute(self.Schema.CLIENTS))
+    finished_clients = set(self.GetValuesForAttribute(self.Schema.FINISHED))
+    outstanding_clients = all_clients - finished_clients
+
+    if flow_type == "all":
+      result = all_clients
+    elif flow_type == "finished":
+      result = finished_clients
+    elif flow_type == "outstanding":
+      result = outstanding_clients
+
+    # Now get the flows for all these clients.
+    flows = aff4.FACTORY.MultiListChildren(
+        [self.urn.Add(x.Basename()) for x in result])
+
+    return [x[0] for x in flows.values()]
+
   def Save(self):
-    with self.lock:
-      # Flush results frequently so users can monitor them as they come in.
-      for plugin in self.state.context.output_plugins:
-        plugin.Flush()
+    if self.state and self.processed_responses:
+      with self.lock:
+        # Flush results frequently so users can monitor them as they come in.
+        for plugin in self.state.context.output_plugins:
+          plugin.Flush()
 
     super(GenericHunt, self).Save()
 
@@ -648,15 +680,14 @@ class GenericHunt(implementation.GRRHunt):
 
     # Open child flow and account its' reported resource usage
     flow_path = responses.status.child_session_id
-    flow_obj = aff4.FACTORY.Open(flow_path, mode="r", token=self.token)
-    client_res = flow_obj.state.context.client_resources
+    status = responses.status
 
     resources = rdfvalue.ClientResources()
     resources.client_id = client_id
     resources.session_id = flow_path
-    resources.cpu_usage.user_cpu_time = client_res.cpu_usage.user_cpu_time
-    resources.cpu_usage.system_cpu_time = client_res.cpu_usage.system_cpu_time
-    resources.network_bytes_sent = flow_obj.state.context.network_bytes_sent
+    resources.cpu_usage.user_cpu_time = status.cpu_time_used.user_cpu_time
+    resources.cpu_usage.system_cpu_time = status.cpu_time_used.system_cpu_time
+    resources.network_bytes_sent = status.network_bytes_sent
     self.state.context.usage_stats.RegisterResources(resources)
 
     if responses.success:
@@ -664,9 +695,11 @@ class GenericHunt(implementation.GRRHunt):
       self.LogResult(client_id, msg)
 
       with self.lock:
+        self.processed_responses = True
         for plugin in self.state.context.output_plugins:
-          for response in responses:
-            plugin.ProcessResponse(response, client_id)
+          if not plugin.initialized:
+            plugin.Initialize()
+          plugin.ProcessResponses(responses, client_id)
 
     else:
       self.LogClientError(client_id, log_message=utils.SmartStr(

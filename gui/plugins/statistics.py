@@ -544,8 +544,8 @@ selectTab = function (tabid) {
 
     # Network traffic graphs.
     graph = StatGraph(
-        name="Network Bytes Recieved", graph_id="nw_recieved",
-        click_text="Network bytes recieved until %date: %value")
+        name="Network Bytes Received", graph_id="nw_received",
+        click_text="Network bytes received until %date: %value")
     series = dict()
     for stat_entry in stats:
       series[int(stat_entry.age/1e3)] = int(

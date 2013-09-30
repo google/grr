@@ -140,7 +140,7 @@ class Responses(object):
       if self.status is None:
         # This is a special case of de-synchronized messages.
         if self._dropped_responses:
-          raise FlowError("De-synchronized messages detected:\n" + "\n".join(
+          logging.error("De-synchronized messages detected:\n" + "\n".join(
               [utils.SmartUnicode(x) for x in self._dropped_responses]))
 
         raise FlowError("No valid Status message.")
@@ -473,6 +473,13 @@ class GRRFlow(aff4.AFF4Volume):
       if value is not None:
         setattr(protobuf, descriptor.name, value)
 
+  def HeartBeat(self):
+    if self.locked:
+      lease_time = config_lib.CONFIG["Worker.flow_lease_time"]
+      if self.CheckLease() < lease_time/3:
+        logging.info("%s: Extending Lease", self.session_id)
+        self.UpdateLease(lease_time)
+
   def WriteState(self):
     if "w" in self.mode and not self.state.Empty():
       self.Set(self.Schema.FLOW_STATE(self.state))
@@ -483,6 +490,7 @@ class GRRFlow(aff4.AFF4Volume):
     self.CheckLease()
     self.Save()
     self.WriteState()
+    self.Load()
     super(GRRFlow, self).Flush(sync=sync)
 
   def Close(self, sync=True):
@@ -492,9 +500,6 @@ class GRRFlow(aff4.AFF4Volume):
     self.Save()
     self.WriteState()
     super(GRRFlow, self).Close(sync=sync)
-
-  def Ping(self):
-    self.UpdateLease(config_lib.CONFIG["Worker.flow_lease_time"])
 
   def CreateRunner(self, parent_runner=None, runner_args=None, **kw):
     """Make a new runner."""
@@ -573,13 +578,15 @@ class GRRFlow(aff4.AFF4Volume):
     with self.GetRunner() as runner:
       runner.Notify(message_type, subject, msg)
 
-  def Publish(self, event_name, message=None, session_id=None):
+  def Publish(self, event_name, message=None, session_id=None,
+              priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY):
     """Publish a message to an event queue.
 
     Args:
        event_name: The name of the event to publish to.
        message: An RDFValue instance to publish to the event listeners.
        session_id: The session id to send from, defaults to self.session_id.
+       priority: Controls the priority of this message.
     """
     result = message
     logging.debug("Publishing %s to %s",
@@ -592,8 +599,9 @@ class GRRFlow(aff4.AFF4Volume):
     result.session_id = session_id or self.session_id
     result.auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
     result.source = self.session_id
+    result.priority = priority
 
-    PublishEvent(event_name, result, token=self.token)
+    self.runner.Publish(event_name, result)
 
   # The following methods simply delegate to the runner. They are meant to only
   # be called from within the flow's state handling methods (i.e. a runner
@@ -680,6 +688,9 @@ class GRRFlow(aff4.AFF4Volume):
 
     # If no token is specified, use the default token.
     if not runner_args.HasField("token"):
+      if data_store.default_token is None:
+        raise access_control.UnauthorizedAccess("A token must be specified.")
+
       runner_args.token = data_store.default_token.Copy()
 
     # Make sure we are allowed to run this flow. If not, we raise here.
@@ -756,12 +767,12 @@ class GRRFlow(aff4.AFF4Volume):
 
     # Publish an audit event, only for top level flows.
       if parent_flow is None:
-        PublishEvent("Audit",
-                     rdfvalue.AuditEvent(user=token.username,
-                                         action="RUN_FLOW",
-                                         flow=runner_args.flow_name,
-                                         client=runner_args.client_id),
-                     token=token)
+        Events.PublishEvent("Audit",
+                            rdfvalue.AuditEvent(user=token.username,
+                                                action="RUN_FLOW",
+                                                flow=runner_args.flow_name,
+                                                client=runner_args.client_id),
+                            token=token)
 
     return flow_obj.urn
 
@@ -901,12 +912,16 @@ class WellKnownFlow(GRRFlow):
         for request, responses in queue_manager.FetchRequestsAndResponses(
             self.session_id):
           for msg in responses:
+            # Even though we use the thread pool here, it may be exhausted so we
+            # end up running inline. We still need to heartbeat here so the
+            # lease on the well known flow does not expire.
+            self.HeartBeat()
             priority = msg.priority
             thread_pool.AddTask(target=self._SafeProcessMessage,
                                 args=(msg,), name=self.__class__.__name__)
 
-          queue_manager.DeleteFlowRequestStates(self.session_id, request,
-                                                responses)
+          queue_manager.DeleteFlowRequestStates(self.session_id, request)
+
     except flow_runner.MoreDataException:
       # There is more data for this flow so we have to tell the worker to
       # fetch more messages later.
@@ -922,6 +937,45 @@ class WellKnownFlow(GRRFlow):
        msg: The GrrMessage sent by the client. Note that this
             message is not authenticated.
     """
+
+  def CallClient(self, client_id, action_name, request=None,
+                 response_session_id=None, **kwargs):
+    """Calls a client action from a well known flow."""
+
+    if client_id is None:
+      raise FlowError("CallClient needs a valid client_id.")
+
+    client_id = rdfvalue.ClientURN(client_id)
+
+    # Retrieve the correct rdfvalue to use for this client action.
+    try:
+      action = actions.ActionPlugin.classes[action_name]
+    except KeyError:
+      raise RuntimeError("Client action %s not found." % action_name)
+
+    if action.in_rdfvalue is None:
+      if request:
+        raise RuntimeError("Client action %s does not expect args." %
+                           action_name)
+    else:
+      if request is None:
+        # Create a new rdf request.
+        request = action.in_rdfvalue(**kwargs)
+      else:
+        # Verify that the request type matches the client action requirements.
+        if not isinstance(request, action.in_rdfvalue):
+          raise RuntimeError("Client action expected %s but got %s" % (
+              action.in_rdfvalue, type(request)))
+
+    if response_session_id is None:
+      cls = GRRFlow.classes["IgnoreResponses"]
+      response_session_id = cls.well_known_session_id
+
+    msg = rdfvalue.GrrMessage(
+        session_id=utils.SmartUnicode(response_session_id),
+        name=action_name, request_id=0, queue=client_id, payload=request)
+
+    scheduler.SCHEDULER.Schedule(msg, token=self.token)
 
 
 def EventHandler(source_restriction=None, auth_required=True,
@@ -986,9 +1040,6 @@ class EventListener(WellKnownFlow):
   """
   EVENTS = []
 
-  # This lookup map is built at runtime for fast lookups.
-  EVENT_NAME_MAP = {}
-
   @EventHandler(auth_required=True)
   def ProcessMessage(self, message=None, event=None):
     """Handler for the event.
@@ -1006,54 +1057,117 @@ class EventListener(WellKnownFlow):
     """
 
 
-def PublishEvent(event_name, msg, token=None):
-  """Publish the message into all listeners of the event.
+class Events(object):
+  """A class that provides event publishing methods."""
 
-  If event_name is a string, we send the message to all event handlers which
-  contain this string in their EVENT static member. This allows the event to be
-  sent to multiple interested listeners. Alternatively, the event_name can
-  specify a single URN of an event listener to receive the message.
+  # This lookup map is built at runtime for fast lookups.
+  EVENT_NAME_MAP = {}
 
-  Args:
-    event_name: Either a URN of an event listener or an event name.
-    msg: The message to send to the event handler.
-    token: ACL token.
+  @classmethod
+  def BuildCache(cls):
+    # Build a lookup map for EventListener objects.
+    for event_cls in EventListener.classes.values():
+      if aff4.issubclass(event_cls, EventListener):
+        for event_name in event_cls.EVENTS:
+          cls.EVENT_NAME_MAP.setdefault(
+              event_name, []).append(event_cls)
 
-  Raises:
-    ValueError: If the message is invalid. The message must be a Semantic Value
-    (instance of RDFValue) or a full GrrMessage.
-  """
-  if not isinstance(msg, rdfvalue.RDFValue):
-    raise ValueError("Can only publish RDFValue instances.")
+    EventListener.EVENT_NAME_MAP = Events.EVENT_NAME_MAP
 
-  # Wrap the message in a GrrMessage if needed.
-  if not isinstance(msg, rdfvalue.GrrMessage):
-    msg = rdfvalue.GrrMessage(payload=msg)
+  @classmethod
+  def PublishEvent(cls, event_name, msg, token=None, sync=None):
+    """Publish the message into all listeners of the event.
 
-  # Randomize the response id or events will get overwritten.
-  msg.response_id = msg.task_id = msg.GenerateTaskID()
+    If event_name is a string, we send the message to all event handlers which
+    contain this string in their EVENT static member. This allows the event to
+    be sent to multiple interested listeners. Alternatively, the event_name can
+    specify a single URN of an event listener to receive the message.
 
-  # Allow the event name to be either a string or a URN of an event listener.
-  handler_urns = []
-  if isinstance(event_name, basestring):
-    for event_cls in EventListener.EVENT_NAME_MAP.get(event_name, []):
-      if event_cls.well_known_session_id is None:
-        logging.error("Well known flow %s has no session_id.",
-                      event_cls.__name__)
-      else:
-        handler_urns.append(event_cls.well_known_session_id)
+    Args:
+      event_name: Either a URN of an event listener or an event name.
+      msg: The message to send to the event handler.
+      token: ACL token.
+      sync: Should messages be synced.
 
-  else:
-    handler_urns.append(event_name)
+    Raises:
+      ValueError: If the message is invalid. The message must be a Semantic
+        Value (instance of RDFValue) or a full GrrMessage.
+    """
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token, sync=sync)
 
-  for event_urn in handler_urns:
-    # Forward the message to the well known flow's queue.
-    with flow_runner.WellKnownQueueManager(token=token) as queue_manager:
-      queue_manager.QueueResponse(event_urn, msg)
+  @classmethod
+  def PublishMultipleEvents(cls, events, token=None, sync=None):
+    """Publish the message into all listeners of the event.
 
-  # Notify all the workers of their pending sessions.
-  priorities = dict([(s, msg.priority) for s in handler_urns])
-  scheduler.SCHEDULER.MultiNotifyQueue(handler_urns, priorities, token=token)
+    If event_name is a string, we send the message to all event handlers which
+    contain this string in their EVENT static member. This allows the event to
+    be sent to multiple interested listeners. Alternatively, the event_name can
+    specify a single URN of an event listener to receive the message.
+
+    Args:
+
+      events: A dict with keys being event names and values being lists of
+        messages.
+      token: ACL token.
+      sync: Should messages be synced.
+
+    Raises:
+      ValueError: If the message is invalid. The message must be a Semantic
+        Value (instance of RDFValue) or a full GrrMessage.
+    """
+    with flow_runner.WellKnownQueueManager(
+        token=token, sync=sync) as queue_manager:
+      for event_name, messages in events.iteritems():
+        handler_urns = []
+        if isinstance(event_name, basestring):
+          for event_cls in cls.EVENT_NAME_MAP.get(event_name, []):
+            if event_cls.well_known_session_id is None:
+              logging.error("Well known flow %s has no session_id.",
+                            event_cls.__name__)
+            else:
+              handler_urns.append(event_cls.well_known_session_id)
+
+        else:
+          handler_urns.append(event_name)
+
+        for msg in messages:
+          # Allow the event name to be either a string or a URN of an event
+          # listener.
+          if not isinstance(msg, rdfvalue.RDFValue):
+            raise ValueError("Can only publish RDFValue instances.")
+
+          # Wrap the message in a GrrMessage if needed.
+          if not isinstance(msg, rdfvalue.GrrMessage):
+            msg = rdfvalue.GrrMessage(payload=msg)
+
+          # Randomize the response id or events will get overwritten.
+          msg.response_id = msg.task_id = msg.GenerateTaskID()
+          # Well known flows always listen for request id 0.
+          msg.request_id = 0
+
+          # Forward the message to the well known flow's queue.
+          for event_urn in handler_urns:
+            queue_manager.QueueResponse(event_urn, msg)
+            queue_manager.QueueNotification(event_urn, priority=msg.priority)
+
+  @classmethod
+  def PublishEventInline(cls, event_name, msg, token=None):
+    """Directly publish the message into all listeners of the event."""
+
+    if not isinstance(msg, rdfvalue.RDFValue):
+      raise ValueError("Can only publish RDFValue instances.")
+
+    # Wrap the message in a GrrMessage if needed.
+    if not isinstance(msg, rdfvalue.GrrMessage):
+      msg = rdfvalue.GrrMessage(payload=msg)
+
+    # Event name must be a string.
+    if not isinstance(event_name, basestring):
+      raise ValueError("Event name must be a string.")
+    for event_cls in cls.EVENT_NAME_MAP.get(event_name, []):
+      event_obj = event_cls(event_cls.well_known_session_id,
+                            mode="rw", token=token)
+      event_obj.ProcessMessage(msg)
 
 
 class ServerPubKeyCache(communicator.PubKeyCache):
@@ -1206,7 +1320,7 @@ class ServerCommunicator(communicator.Communicator):
 
         # The very first packet we see from the client we do not have its clock
         remote_time = client.Get(client.Schema.CLOCK) or 0
-        client_time = signed_message_list.timestamp
+        client_time = signed_message_list.timestamp or 0
         if client_time > long(remote_time):
           stats.STATS.IncrementCounter("grr_authenticated_messages")
 
@@ -1215,6 +1329,8 @@ class ServerCommunicator(communicator.Communicator):
           client.Set(client.Schema.PING, rdfvalue.RDFDatetime().Now())
 
         else:
+          logging.debug("Message desynchronized: %s > %s", int(client_time),
+                        long(remote_time))
           # This is likely an old message
           return rdfvalue.GrrMessage.AuthorizationState.DESYNCHRONIZED
 
@@ -1252,7 +1368,7 @@ class FrontEndServer(object):
     self.token = access_control.ACLToken(username="FrontEndServer",
                                          reason="Implied.")
     self.token.supervisor = True
-
+    self.throttle_callback = lambda: True
     self.SetThrottleBundlesRatio(None)
 
     # This object manages our crypto.
@@ -1274,6 +1390,9 @@ class FrontEndServer(object):
     for well_known_flow in well_known_flow_names:
       if well_known_flow not in config_lib.CONFIG["Frontend.well_known_flows"]:
         del self.well_known_flows[well_known_flow]
+
+  def SetThrottleCallBack(self, callback):
+    self.throttle_callback = callback
 
   def SetThrottleBundlesRatio(self, throttle_bundles_ratio):
     """Sets throttling ration.
@@ -1365,20 +1484,24 @@ class FrontEndServer(object):
     messages, source, timestamp = self._communicator.DecodeMessages(
         request_comms)
 
-    self.thread_pool.AddTask(
-        target=self.ReceiveMessages, args=(messages,),
-        name="ReceiveMessages")
+    if messages:
+      self.thread_pool.AddTask(
+          target=self.ReceiveMessages, args=(source, messages,),
+          name="ReceiveMessages")
 
     # We send the client a maximum of self.max_queue_size messages
     required_count = max(0, self.max_queue_size - request_comms.queue_size)
+    tasks = []
 
     message_list = rdfvalue.MessageList()
     if self.UpdateAndCheckIfShouldThrottle(time.time()):
-      tasks = []
       stats.STATS.IncrementCounter("grr_frontendserver_handle_throttled_num")
-    else:
-      tasks = self.DrainTaskSchedulerQueueForClient(source, required_count,
-                                                    message_list)
+
+    elif self.throttle_callback():
+      # Only give the client messages if we are able to receive them.
+      if self.thread_pool.idle_threads > 0:
+        tasks = self.DrainTaskSchedulerQueueForClient(source, required_count,
+                                                      message_list)
 
     # Encode the message_list in the response_comms using the same API version
     # the client used.
@@ -1417,6 +1540,7 @@ class FrontEndServer(object):
     if max_count <= 0:
       return []
 
+    start_time = time.time()
     # Drain the queue for this client:
     new_tasks = scheduler.SCHEDULER.QueryAndOwn(
         queue=client_name,
@@ -1426,9 +1550,12 @@ class FrontEndServer(object):
     for task in new_tasks:
       response_message.job.Append(task)
     stats.STATS.IncrementCounter("grr_messages_sent", len(new_tasks))
+    logging.info("Drained %d messages for %s in %s seconds.",
+                 len(new_tasks), client_name, time.time() - start_time)
+
     return new_tasks
 
-  def ReceiveMessages(self, messages):
+  def ReceiveMessages(self, client_id, messages):
     """Receives and processes the messages from the source.
 
     For each message we update the request object, and place the
@@ -1436,41 +1563,48 @@ class FrontEndServer(object):
     send a message to the worker.
 
     Args:
+      client_id: The client which sent the messages.
       messages: A list of GrrMessage RDFValues.
     """
+    now = time.time()
+    with flow_runner.QueueManager(token=self.token,
+                                  store=self.data_store) as queue_manager:
+      for msg in messages:
+        # Messages for well known flows should notify even though they dont have
+        # a status.
+        if msg.request_id == 0:
+          queue_manager.QueueNotification(msg.session_id, priority=msg.priority)
 
-    for msg in messages:
-      if msg.type == rdfvalue.GrrMessage.Type.STATUS:
-        status = rdfvalue.GrrStatus(msg.args)
-        if status.status == rdfvalue.GrrStatus.ReturnedStatus.CLIENT_KILLED:
-          # A client crashed while performing an action, fire an event.
-          PublishEvent("ClientCrash", rdfvalue.GrrMessage(msg),
-                       token=self.token)
+        elif msg.type == rdfvalue.GrrMessage.Type.STATUS:
+          # If we receive a status message from the client it means the client
+          # has finished processing this request. We therefore can de-queue it
+          # from the client queue.
+          queue_manager.DeQueueClientRequest(client_id, msg.task_id)
+          queue_manager.QueueNotification(msg.session_id, priority=msg.priority)
 
-    sessions_handled = []
-    priorities = {}
-    for session_id, messages in utils.GroupBy(
-        messages, operator.attrgetter("session_id")):
+          status = rdfvalue.GrrStatus(msg.args)
+          if status.status == rdfvalue.GrrStatus.ReturnedStatus.CLIENT_KILLED:
+            # A client crashed while performing an action, fire an event.
+            Events.PublishEvent("ClientCrash", rdfvalue.GrrMessage(msg),
+                                token=self.token)
 
-      # Remove and handle messages to WellKnownFlows
-      messages = self.HandleWellKnownFlows(messages)
+      sessions_handled = []
+      for session_id, messages in utils.GroupBy(
+          messages, operator.attrgetter("session_id")).iteritems():
 
-      if not messages: continue
+        # Remove and handle messages to WellKnownFlows
+        messages = self.HandleWellKnownFlows(messages)
 
-      # Keep track of all the flows we handled in this request.
-      sessions_handled.append(session_id)
+        if not messages: continue
 
-      with flow_runner.QueueManager(token=self.token,
-                                    store=self.data_store) as queue_manager:
+        # Keep track of all the flows we handled in this request.
+        sessions_handled.append(session_id)
+
         for msg in messages:
-          priorities[session_id] = max(priorities.setdefault(session_id, 0),
-                                       msg.priority)
-          logging.debug("Queueing for the backend: %s", session_id)
           queue_manager.QueueResponse(session_id, msg)
 
-    # Write the session ids that we saw to the worker queue.
-    scheduler.SCHEDULER.MultiNotifyQueue(
-        sessions_handled, priorities, token=self.token)
+    logging.info("Received %s messages in %s sec", len(messages),
+                 time.time() - now)
 
   def HandleWellKnownFlows(self, messages):
     """Hands off messages to well known flows."""
@@ -1486,6 +1620,7 @@ class FrontEndServer(object):
           # This message should be processed directly on the front end.
           flow = self.well_known_flows[msg.session_id]
           flow.ProcessMessage(msg)
+          flow.HeartBeat()
 
           # Remove the notification from the well known flows.
           scheduler.SCHEDULER.DeleteNotification(
@@ -1499,10 +1634,6 @@ class FrontEndServer(object):
           # as that it will overwrite some other message that is queued. So we
           # change it to a random number here.
           msg.response_id = utils.PRNG.GetULong()
-
-          # By setting the request ID to increment with time we maintain rough
-          # time order in the queue.
-          msg.request_id = int(time.time())
 
           # Queue the message in the data store.
           result.append(msg)
@@ -1521,12 +1652,7 @@ class FlowInit(registry.InitHook):
 
   def RunOnce(self):
     """Exports our vars."""
-    # Build a lookup map for EventListener objects.
-    for event_cls in EventListener.classes.values():
-      if aff4.issubclass(event_cls, EventListener):
-        for event_name in event_cls.EVENTS:
-          EventListener.EVENT_NAME_MAP.setdefault(
-              event_name, []).append(event_cls)
+    Events.BuildCache()
 
     # Counters defined here
     stats.STATS.RegisterCounterMetric("grr_flow_completed_count")

@@ -242,21 +242,24 @@ class ExecutePythonHack(flow.GRRFlow):
   category = "/Administrative/"
   args_type = ExecutePythonHackArgs
 
-  @flow.StateHandler(next_state=["End"])
+  @flow.StateHandler(next_state=["Done"])
   def Start(self):
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("config").Add(
-        "python_hacks").Add(self.args.hack_name), token=self.token)
+    python_hack_root_urn = config_lib.CONFIG.Get("Config.python_hack_root")
+    fd = aff4.FACTORY.Open(python_hack_root_urn.Add(self.args.hack_name),
+                           token=self.token)
 
     python_blob = fd.Get(fd.Schema.BINARY)
     if python_blob is None:
       raise RuntimeError("Python hack %s not found." % self.args.hack_name)
     self.CallClient("ExecutePython", python_code=python_blob,
-                    py_args=self.args.py_args, next_state="End")
+                    py_args=self.args.py_args, next_state="Done")
 
   @flow.StateHandler()
-  def End(self, responses):
+  def Done(self, responses):
     response = responses.First()
-    if responses.success and response:
+    if not responses.success:
+      raise flow.FlowError("Execute Python hack failed: %s" % responses.status)
+    if response:
       result = utils.SmartStr(response.return_val)
       # Send reply with full data, but only log the first 200 bytes.
       str_result = result[0:200]
@@ -522,14 +525,14 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
     self.WriteAllCrashDetails(client_id, crash_details)
 
     # Also send email.
-    if config_lib.CONFIG["Monitoring.events_email"]:
+    if config_lib.CONFIG["Monitoring.alert_email"]:
       client = aff4.FACTORY.Open(client_id, token=self.token)
       hostname = client.Get(client.Schema.HOSTNAME)
       url = urllib.urlencode((("c", client_id),
                               ("main", "HostInformation")))
 
       email_alerts.SendEmail(
-          config_lib.CONFIG["Monitoring.events_email"],
+          config_lib.CONFIG["Monitoring.alert_email"],
           "GRR server",
           self.subject % client_id,
           self.mail_template % dict(
@@ -616,7 +619,7 @@ P.S. The state of the failing flow was:
                               flow_session_id=message.session_id)
 
     # Also send email.
-    if config_lib.CONFIG["Monitoring.events_email"]:
+    if config_lib.CONFIG["Monitoring.alert_email"]:
       if status.nanny_status:
         nanny_msg = "Nanny status: %s" % status.nanny_status
 
@@ -628,7 +631,7 @@ P.S. The state of the failing flow was:
       renderer = rendering.FindRendererForObject(flow_obj.state)
 
       email_alerts.SendEmail(
-          config_lib.CONFIG["Monitoring.events_email"],
+          config_lib.CONFIG["Monitoring.alert_email"],
           "GRR server",
           "Client %s reported a crash." % client_id,
           self.mail_template % dict(
@@ -650,7 +653,6 @@ P.S. The state of the failing flow was:
 
 
 class ClientStartupHandler(flow.EventListener):
-  EVENTS = ["ClientStartup"]
 
   well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:Startup")
 
@@ -658,7 +660,6 @@ class ClientStartupHandler(flow.EventListener):
   def ProcessMessage(self, message=None, event=None):
     """Handle a startup event."""
     _ = event
-
     # We accept unauthenticated messages so there are no errors but we don't
     # store the results.
     if (message.auth_state !=
@@ -689,6 +690,19 @@ class ClientStartupHandler(flow.EventListener):
       client.Set(client.Schema.LAST_BOOT_TIME(startup_info.boot_time))
 
     client.Close()
+
+    flow.Events.PublishEventInline("ClientStartup", message, token=self.token)
+
+
+class IgnoreResponses(flow.WellKnownFlow):
+  """This flow exists so other well known flows can delegate their responses."""
+
+  category = None
+
+  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:DevNull")
+
+  def ProcessMessage(self, message):
+    pass
 
 
 class KeepAliveArgs(rdfvalue.RDFProtoStruct):

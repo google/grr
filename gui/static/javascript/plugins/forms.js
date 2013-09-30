@@ -35,6 +35,29 @@ grr.forms.checkboxOnChange = function(element) {
 
 
 /**
+ * Change handler function for select box which updates the FormData container.
+ *
+ * In this setup we want everything in the list box to be considered a value
+ * not just the ones that are selected. Additionally this has be to called
+ * manually, because the onchange only fires on selection, not addition to the
+ * list.
+ *
+ * @param {Object} element an input element.
+ */
+grr.forms.selectOnChange = function(element) {
+  var jthis = $(element);
+  var json_store = jthis.closest('.FormData').data();
+  var all_opts = $(element + ' option');
+  var all_opts_vals = [];
+  all_opts.each(function(index, value) {
+    all_opts_vals.push(value.value);
+  });
+  json_store[jthis.attr('id')] = all_opts_vals;
+  jthis.removeClass('unset');
+};
+
+
+/**
  * Remove all elements starting with the prefix from an input's FormData
  * container.
  *

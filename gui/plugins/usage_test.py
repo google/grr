@@ -18,7 +18,7 @@ def PopulateData(token=None):
                                   flow=flow_name, client=client_id,
                                   age=timestamp)
 
-      flow.PublishEvent("Audit", event, token=token)
+      flow.Events.PublishEvent("Audit", event, token=token)
 
   now = int(rdfvalue.RDFDatetime().Now())
   week_duration = 7 * 24 * 60 * 60 * 1e6

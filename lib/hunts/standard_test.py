@@ -62,8 +62,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
                             check_flow_errors=False, token=self.token)
 
     # Stop the hunt now.
-    with hunt.GetRunner() as runner:
-      runner.Stop()
+    with aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES, mode="rw",
+                           token=self.token) as hunt_obj:
+      hunt_obj.Stop()
 
     hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
                                  token=self.token)
@@ -106,8 +107,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
     # Stop the hunt now.
-    with hunt.GetRunner() as runner:
-      runner.Stop()
+    with aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES, mode="rw",
+                           token=self.token) as hunt_obj:
+      hunt_obj.Stop()
 
     with aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
                            token=self.token) as hunt_obj:
@@ -120,7 +122,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       self.assertEqual(len(set(errors)), 5)
 
       collection = aff4.FACTORY.Open(
-          hunt.state.context.output_plugins[0].collection.urn,
+          hunt_obj.state.context.output_plugins[0].collection.urn,
           mode="r", token=self.token)
 
       # We should receive stat entries.
@@ -158,8 +160,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
     # Stop the hunt now.
-    with hunt.GetRunner() as runner:
-      runner.Stop()
+    with aff4.FACTORY.Open(hunt.session_id, mode="rw",
+                           token=self.token) as hunt:
+      hunt.Stop()
 
     return hunt
 
@@ -223,8 +226,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
                                    token=self.token)
 
       # Hunts are automatically paused when they reach the client limit.
-      self.assertEqual(hunt_obj.state.context.args.state,
-                       rdfvalue.HuntRunnerArgs.State.PAUSED)
+      self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "PAUSED")
 
   def testHuntExpiration(self):
     """This tests that hunts with a client limit terminate correctly."""
@@ -251,6 +253,11 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       for client_id in self.client_ids:
         foreman.AssignTasksToClient(client_id)
 
+      hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
+                                   token=self.token)
+
+      self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "STARTED")
+
       # Now advance the time such that the hunt expires.
       time.time = lambda: 5000
 
@@ -258,9 +265,6 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       client_mock = test_lib.SampleHuntMock()
       test_lib.TestHuntHelper(client_mock, self.client_ids,
                               check_flow_errors=False, token=self.token)
-
-      hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
-                                   token=self.token)
 
       started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
       finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
@@ -275,8 +279,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
                                    token=self.token)
 
       # Hunts are automatically stopped when they expire.
-      self.assertEqual(hunt_obj.state.context.args.state,
-                       rdfvalue.HuntRunnerArgs.State.STOPPED)
+      self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "STOPPED")
 
   def testHuntModificationWorksCorrectly(self):
     """This tests running the hunt on some clients."""
@@ -320,8 +323,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(set(started)), 1)
 
     # Check the hunt is paused.
-    self.assertEqual(
-        hunt_obj.state.context.args.state, rdfvalue.HuntRunnerArgs.State.PAUSED)
+    self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "PAUSED")
 
     with aff4.FACTORY.Open(
         hunt_session_id, mode="rw", token=self.token) as hunt_obj:

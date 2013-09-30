@@ -32,8 +32,6 @@ Client.version_release: 0
 
 Client.version_revision: 1
 
-Config.aff4_root: aff4:/config/
-
 # Writeback for server components.
 Config.writeback: /etc/grr/server.local.yaml
 
@@ -54,7 +52,7 @@ Mongo.port: 27017
 
 Monitoring.emergency_access_email: grr-emergency-access@example.com
 
-Monitoring.events_email: grr-monitoring@example.com
+Monitoring.alerts_email: grr-monitoring@example.com
 
 # Mysql.database_name:
 # Mysql.table_name:

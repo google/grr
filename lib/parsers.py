@@ -46,6 +46,10 @@ class Parser(object):
     return [cls.classes[c] for c in cls.classes if artifact_name in
             cls.classes[c].supported_artifacts]
 
+  @classmethod
+  def GetDescription(cls):
+    return cls.__doc__.split("\n")[0]
+
 
 class CommandParser(Parser):
   """Abstract parser for processing command output.

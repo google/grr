@@ -290,7 +290,8 @@ class Interrogate(flow.GRRFlow):
         interface_list.Append(response)
 
         # Add a hex encoded string for searching
-        if response.mac_address != "\x00" * len(response.mac_address):
+        if (response.mac_address and
+            response.mac_address != "\x00" * len(response.mac_address)):
           mac_addresses.append(response.mac_address.human_readable_address)
 
       self.client.Set(self.client.Schema.MAC_ADDRESS(

@@ -76,7 +76,7 @@ class TransactionError(Error):
 
 
 # This token will be used by default if no token was provided.
-default_token = access_control.ACLToken(username="default")
+default_token = None
 
 
 class DataStore(object):

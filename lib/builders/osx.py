@@ -99,8 +99,8 @@ class DarwinClientBuilder(build.ClientBuilder):
     # Generate a config file.
     with open(os.path.join(target_binary_dir, config_lib.CONFIG.Get(
         "ClientBuilder.config_filename", context=self.context)), "wb") as fd:
-      fd.write(deployer.GetClientConfig(("Client Context", "Platform:Darwin"),
-                                        validate=False))
+      fd.write(deployer.GetClientConfig(
+          ["Client Context"] + self.context, validate=False))
 
     print "Fixing file ownership and permissions"
     command = ["sudo", "chown", "-R", "root:wheel", self.build_dir]

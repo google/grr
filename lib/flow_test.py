@@ -294,6 +294,162 @@ class FlowCreationTest(test_lib.FlowTestsBaseclass):
                       "the flow was created.")
 
 
+class QueueManagerTest(test_lib.FlowTestsBaseclass):
+  """Test the queue manager."""
+
+  def testQueueing(self):
+    """Tests that queueing and fetching of requests and responses work."""
+    session_id = rdfvalue.SessionID("aff4:/flows/test")
+
+    request = rdfvalue.RequestState(
+        id=1, client_id=self.client_id,
+        next_state="TestState",
+        session_id=session_id)
+
+    with flow_runner.QueueManager(token=self.token) as manager:
+      manager.QueueRequest(session_id, request)
+
+    # We only have one unanswered request on the queue.
+    all_requests = list(manager.FetchRequestsAndResponses(session_id))
+    self.assertEqual(len(all_requests), 1)
+    self.assertEqual(all_requests[0], (request, []))
+
+    # FetchCompletedRequests should return nothing now.
+    self.assertEqual(list(manager.FetchCompletedRequests(session_id)), [])
+
+    # Now queue more requests and responses:
+    with flow_runner.QueueManager(token=self.token) as manager:
+      # Start with request 2 - leave request 1 un-responded to.
+      for request_id in range(2, 5):
+        request = rdfvalue.RequestState(
+            id=request_id, client_id=self.client_id,
+            next_state="TestState", session_id=session_id)
+
+        manager.QueueRequest(session_id, request)
+
+        response_id = None
+        for response_id in range(1, 10):
+          # Normal message.
+          manager.QueueResponse(session_id, rdfvalue.GrrMessage(
+              request_id=request_id, response_id=response_id))
+
+        # And a status message.
+        manager.QueueResponse(session_id, rdfvalue.GrrMessage(
+            request_id=request_id, response_id=response_id+1,
+            type=rdfvalue.GrrMessage.Type.STATUS))
+
+    completed_requests = list(manager.FetchCompletedRequests(session_id))
+    self.assertEqual(len(completed_requests), 3)
+
+    # First completed message is request_id = 2 with 10 responses.
+    self.assertEqual(completed_requests[0][0].id, 2)
+
+    # Last message is the status message.
+    self.assertEqual(completed_requests[0][-1].type,
+                     rdfvalue.GrrMessage.Type.STATUS)
+    self.assertEqual(completed_requests[0][-1].response_id, 10)
+
+    # Now fetch all the completed responses. Set the limit so we only fetch some
+    # of the responses.
+    completed_response = list(manager.FetchCompletedResponses(session_id))
+    self.assertEqual(len(completed_response), 3)
+    for i, (request, responses) in enumerate(completed_response, 2):
+      self.assertEqual(request.id, i)
+      self.assertEqual(len(responses), 10)
+
+    # Now check if the limit is enforced. The limit refers to the total number
+    # of responses to return. We ask for maximum 15 responses, so we should get
+    # a single request with 10 responses (since 2 requests will exceed the
+    # limit).
+    more_data = False
+    i = 0
+    try:
+      partial_response = manager.FetchCompletedResponses(session_id, limit=15)
+      for i, (request, responses) in enumerate(partial_response, 2):
+        self.assertEqual(request.id, i)
+        self.assertEqual(len(responses), 10)
+    except flow_runner.MoreDataException:
+      more_data = True
+
+    # Returns the first request that is completed.
+    self.assertEqual(i, 2)
+
+    # Make sure the manager told us that more data is available.
+    self.assertTrue(more_data)
+
+  def testDeleteFlowRequestStates(self):
+    """Check that we can efficiently destroy a single flow request."""
+    session_id = rdfvalue.SessionID("aff4:/flows/test3")
+
+    request = rdfvalue.RequestState(
+        id=1, client_id=self.client_id,
+        next_state="TestState",
+        session_id=session_id)
+
+    with flow_runner.QueueManager(token=self.token) as manager:
+      manager.QueueRequest(session_id, request)
+      manager.QueueResponse(session_id, rdfvalue.GrrMessage(
+          request_id=1, response_id=1))
+
+    # Check the request and responses are there.
+    all_requests = list(manager.FetchRequestsAndResponses(session_id))
+    self.assertEqual(len(all_requests), 1)
+    self.assertEqual(all_requests[0][0], request)
+
+    with flow_runner.QueueManager(token=self.token) as manager:
+      manager.DeleteFlowRequestStates(session_id, request)
+
+    all_requests = list(manager.FetchRequestsAndResponses(session_id))
+    self.assertEqual(len(all_requests), 0)
+
+  def testDestroyFlowStates(self):
+    """Check that we can efficiently destroy the flow's request queues."""
+    session_id = rdfvalue.SessionID("aff4:/flows/test2")
+
+    request = rdfvalue.RequestState(
+        id=1, client_id=self.client_id,
+        next_state="TestState",
+        session_id=session_id)
+
+    with flow_runner.QueueManager(token=self.token) as manager:
+      manager.QueueRequest(session_id, request)
+      manager.QueueResponse(session_id, rdfvalue.GrrMessage(
+          request_id=1, response_id=1))
+
+    # Check the request and responses are there.
+    all_requests = list(manager.FetchRequestsAndResponses(session_id))
+    self.assertEqual(len(all_requests), 1)
+    self.assertEqual(all_requests[0][0], request)
+
+    # Ensure the rows are in the data store:
+    self.assertEqual(
+        data_store.DB.ResolveRegex(
+            session_id.Add("state"), ".*", token=self.token)[0][0],
+        "flow:request:00000001")
+
+    self.assertEqual(
+        data_store.DB.ResolveRegex(
+            session_id.Add("state/request:00000001"), ".*",
+            token=self.token)[0][0],
+        "flow:response:00000001:00000001")
+
+    with flow_runner.QueueManager(token=self.token) as manager:
+      manager.DestroyFlowStates(session_id)
+
+    all_requests = list(manager.FetchRequestsAndResponses(session_id))
+    self.assertEqual(len(all_requests), 0)
+
+    # Ensure the rows are gone from the data store.
+    self.assertEqual(
+        data_store.DB.ResolveRegex(
+            session_id.Add("state/request:00000001"), ".*", token=self.token),
+        [])
+
+    self.assertEqual(
+        data_store.DB.ResolveRegex(
+            session_id.Add("state"), ".*", token=self.token), [])
+
+
 class FlowTest(test_lib.FlowTestsBaseclass):
   """Tests the Flow."""
 
@@ -319,14 +475,8 @@ class FlowTest(test_lib.FlowTestsBaseclass):
 
   def SendMessage(self, message):
     # Now messages are set in the data store
-    response_attribute = flow_runner.QueueManager.FLOW_RESPONSE_TEMPLATE % (
-        message.request_id,
-        message.response_id)
-
-    data_store.DB.Set(
-        flow_runner.QueueManager.FLOW_STATE_TEMPLATE % message.session_id,
-        response_attribute,
-        message, token=self.token)
+    with flow_runner.QueueManager(token=self.token) as manager:
+      manager.QueueResponse(message.session_id, message)
 
   def SendOKStatus(self, response_id, session_id):
     """Send a message to the flow."""
@@ -344,14 +494,14 @@ class FlowTest(test_lib.FlowTestsBaseclass):
 
     # Now also set the state on the RequestState
     request_state, _ = data_store.DB.Resolve(
-        flow_runner.QueueManager.FLOW_STATE_TEMPLATE % message.session_id,
+        message.session_id.Add("state"),
         flow_runner.QueueManager.FLOW_REQUEST_TEMPLATE % message.request_id,
         decoder=rdfvalue.RequestState, token=self.token)
 
     request_state.status = status
 
     data_store.DB.Set(
-        flow_runner.QueueManager.FLOW_STATE_TEMPLATE % message.session_id,
+        message.session_id.Add("state"),
         flow_runner.QueueManager.FLOW_REQUEST_TEMPLATE % message.request_id,
         request_state, token=self.token)
 
@@ -389,6 +539,41 @@ class FlowTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(message.session_id, flow_obj.session_id)
     self.assertEqual(message.request_id, 1)
     self.assertEqual(message.name, "Test")
+
+  def testCallClientWellKnown(self):
+    """Well known flows can also call the client."""
+    cls = flow.GRRFlow.classes["GetClientStatsAuto"]
+    flow_obj = cls(cls.well_known_session_id, mode="rw", token=self.token)
+
+    flow_obj.CallClient(self.client_id, "GetClientStats")
+
+    # Check that a message went out to the client
+    tasks = scheduler.SCHEDULER.Query(self.client_id, limit=100,
+                                      token=self.token)
+
+    self.assertEqual(len(tasks), 1)
+
+    message = tasks[0]
+
+    # If we don't specify where to send the replies, they go to the devnull flow
+    devnull = flow.GRRFlow.classes["IgnoreResponses"]
+    self.assertEqual(message.session_id, devnull.well_known_session_id)
+    self.assertEqual(message.request_id, 0)
+    self.assertEqual(message.name, "GetClientStats")
+
+    messages = []
+    def StoreMessage(_, msg):
+      messages.append(msg)
+
+    with test_lib.Stubber(devnull, "ProcessMessage", StoreMessage):
+      client_mock = test_lib.ActionMock("GetClientStats")
+      for _ in test_lib.TestFlowHelper(
+          "ClientActionRunner", client_mock, client_id=self.client_id,
+          action="GetClientStats", token=self.token):
+        pass
+
+    # Make sure the messages arrived.
+    self.assertEqual(len(messages), 2)
 
   def testAuthentication1(self):
     """Test that flows refuse to processes unauthenticated messages."""
@@ -635,7 +820,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
 
     event.payload = rdfvalue.PathSpec(path="foobar")
 
-    flow.PublishEvent("TestEvent", event, token=self.token)
+    flow.Events.PublishEvent("TestEvent", event, token=self.token)
     test_lib.MockWorker(token=self.token).Simulate()
 
     # The same event should be sent to both listeners, but only the listener
@@ -682,7 +867,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
         source="aff4:/C.0000000000000001", auth_state="AUTHENTICATED")
 
     # Not allowed to publish a message from a client..
-    flow.PublishEvent("TestEvent", event, token=self.token)
+    flow.Events.PublishEvent("TestEvent", event, token=self.token)
     worker.Simulate()
 
     self.assertEqual(NoClientListener.received_events, [])
@@ -693,7 +878,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     event.auth_state = rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED
 
     # Publish the event.
-    flow.PublishEvent("TestEvent", event, token=self.token)
+    flow.Events.PublishEvent("TestEvent", event, token=self.token)
     worker.Simulate()
 
     # This should not work - the unauthenticated message is dropped.
@@ -703,7 +888,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     event.auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
 
     # Publish the event.
-    flow.PublishEvent("TestEvent", event, token=self.token)
+    flow.Events.PublishEvent("TestEvent", event, token=self.token)
     worker.Simulate()
 
     # This should now work:
@@ -718,7 +903,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     # Now schedule ten events at the same time.
     for i in xrange(10):
       event.source = "Source%d" % i
-      flow.PublishEvent("TestEvent", event, token=self.token)
+      flow.Events.PublishEvent("TestEvent", event, token=self.token)
 
     worker.Simulate()
 

@@ -7,6 +7,6 @@
 
 if [ -f "%(Client.plist_path)" ];
 then
-  sudo launchctl load "%(Client.plist_path)";
+  sudo launchctl load -w "%(Client.plist_path)";
 fi
 

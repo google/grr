@@ -51,14 +51,24 @@ ARTIFACT_LABELS = {
     "Users": "Information about users."
     }
 
-ACTIONS_MAP = {"RunGrrClientAction": {"required_args": ["client_action"]},
-               "GetFile": {"required_args": ["path"]},
-               "GetFiles": {"required_args": ["path_list"]},
-               "GetRegistryKeys": {"required_args": ["path_list"]},
-               "GetRegistryValue": {"required_args": ["path"]},
-               "WMIQuery": {"required_args": ["query"]},
-               "RunCommand": {"required_args": ["cmd", "args"]},
-               "Bootstrap": {"required_args": []},
+OUTPUT_UNDEFINED = "Undefined"
+
+ACTIONS_MAP = {"RunGrrClientAction": {"required_args": ["client_action"],
+                                      "output_type": OUTPUT_UNDEFINED},
+               "GetFile": {"required_args": ["path"],
+                           "output_type": "StatEntry"},
+               "GetFiles": {"required_args": ["path_list"],
+                            "output_type": "StatEntry"},
+               "GetRegistryKeys": {"required_args": ["path_list"],
+                                   "output_type": "StatEntry"},
+               "GetRegistryValue": {"required_args": ["path"],
+                                    "output_type": "RDFString"},
+               "WMIQuery": {"required_args": ["query"],
+                            "output_type": "Dict"},
+               "RunCommand": {"required_args": ["cmd", "args"],
+                              "output_type": "ExecuteResponse"},
+               "Bootstrap": {"required_args": [],
+                             "output_type": OUTPUT_UNDEFINED},
               }
 
 
@@ -84,7 +94,6 @@ class Artifact(object):
   # Register a metaclass registry to track all artifacts.
   __metaclass__ = registry.MetaclassRegistry
 
-  DESCRIPTION = "Abstract Artifact"
   LABELS = []       # A list of labels that describe what the artifact provides.
 
   def Collect(self):
@@ -130,6 +139,24 @@ class Artifact(object):
               deps.append(match.group()[2:-2])   # Strip off %%.
     return deps
 
+  @classmethod
+  def GetOutputType(cls):
+    """Get an RDFValue class for the type this artifact returns.
+
+    Returns:
+      The name of a class that inherits from RDFValue, or None if undefined.
+    """
+    try:
+      collector_action = cls.COLLECTORS[0].action
+      output_type = ACTIONS_MAP.get(collector_action).get("output_type")
+      if output_type == OUTPUT_UNDEFINED:
+        # Fall back to OUTPUT_TYPE if there is one.
+        return getattr(cls, "OUTPUT_TYPE", None)
+      else:
+        return output_type
+    except IndexError:
+      return None
+
 
 class GenericArtifact(Artifact):
   """A generalized Artifact that executes based on class variables.
@@ -154,6 +181,9 @@ class GenericArtifact(Artifact):
   # conditions.
   CONDITIONS = []
   LABELS = []
+
+  # URLs that link to information describing what this artifact collects.
+  URLS = []
 
   # A list of Collector objects.
   COLLECTORS = []
@@ -220,8 +250,12 @@ class GenericArtifact(Artifact):
                                       % (cls_name, label))
 
   @classmethod
-  def GetDescription(cls):
+  def GetShortDescription(cls):
     return cls.__doc__.split("\n")[0]
+
+  @classmethod
+  def GetDescription(cls):
+    return cls.__doc__
 
 
 class Collector(object):

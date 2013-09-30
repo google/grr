@@ -124,9 +124,9 @@ class Renderer(object):
     if "." not in method:
       method = "%s.%s" % (self.__class__.__name__, method)
 
+    js_state_json = JsonDumpForScriptContext(js_state)
     self.RenderFromTemplate(self.js_call_template, response,
-                            method=method,
-                            js_state_json=json.dumps(js_state))
+                            method=method, js_state_json=js_state_json)
     return response
 
   def RenderAjax(self, request, response):
@@ -262,7 +262,7 @@ class ErrorHandler(Renderer):
         logging.exception(utils.SmartUnicode(e))
         response = http.HttpResponse(mimetype="text/json")
 
-        response.write(")]}\n" + json.dumps(
+        response.write(")]}\n" + JsonDumpForScriptContext(
             dict(message=utils.SmartUnicode(e),
                  traceback=traceback.format_exc())))
 
@@ -652,7 +652,7 @@ class TableRenderer(TemplateRenderer):
       writer.writerow([c.name for c in self.columns])
 
       # Send 1000 rows at a time
-      for i in range(0, self.size):
+      for i in xrange(0, self.size):
         if i % 1000 == 0:
           # Flush the buffer
           yield fd.getvalue()
@@ -1155,3 +1155,13 @@ class ImageDownloadRenderer(TemplateRenderer):
                                  mimetype=self.mimetype)
 
     return response
+
+
+def JsonDumpForScriptContext(dump_object):
+  """Dump an object to json, encoding safely for <script> inclusion."""
+  js_state_json = json.dumps(dump_object)
+  # As the json will be written inside script tags in html context (as opposed
+  # to being retrieved via XHR) it will be parsed as html by the browser first,
+  # and then by the json parser, so we must escape < & > to prevent someone
+  # including <script> tags and creating XSS security bugs.
+  return js_state_json.replace("<", r"\x3c").replace(">", r"\x3e")

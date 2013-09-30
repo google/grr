@@ -66,11 +66,14 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       with hunt.GetRunner() as runner:
         runner.Start()
 
-        collection = runner.context.output_plugins[0].collection
-        collection.Add(rdfvalue.RDFURN("aff4:/sample/1"))
-        collection.Add(rdfvalue.RDFURN(
-            "aff4:/C.0000000000000001/fs/os/c/bin/bash"))
-        collection.Add(rdfvalue.RDFURN("aff4:/sample/3"))
+        with aff4.FACTORY.Create(
+            runner.context.output_plugins[0].collection_urn,
+            aff4_type="RDFValueCollection", mode="w",
+            token=self.token) as collection:
+          collection.Add(rdfvalue.RDFURN("aff4:/sample/1"))
+          collection.Add(rdfvalue.RDFURN(
+              "aff4:/C.0000000000000001/fs/os/c/bin/bash"))
+          collection.Add(rdfvalue.RDFURN("aff4:/sample/3"))
 
   def SetupTestHuntView(self):
     # Create some clients and a hunt to view.

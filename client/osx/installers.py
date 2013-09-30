@@ -31,6 +31,12 @@ class OSXInstaller(installer.Installer):
           ("certificate ?= ?(-----BEGIN PRIVATE KEY-----[^-]*"
            "-----END PRIVATE KEY-----)"),
           data, flags=re.DOTALL)
+      if not m:
+        m = re.search(
+            ("private_key ?= ?(-----BEGIN PRIVATE KEY-----[^-]*"
+             "-----END PRIVATE KEY-----)"),
+            data, flags=re.DOTALL)
+
       if m:
         cert = m.group(1).replace("\t", "")
         logging.info("Found a valid private key!")

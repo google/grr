@@ -40,7 +40,7 @@ config_lib.DEFINE_string("Logging.service_name", "GRR",
 
 config_lib.DEFINE_option(type_info.RDFValueType(
     rdfclass=rdfvalue.DomainEmailAddress,
-    name="Monitoring.events_email",
+    name="Monitoring.alert_email",
     help="The email address to send events to."))
 
 config_lib.DEFINE_option(type_info.RDFValueType(

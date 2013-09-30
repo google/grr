@@ -204,19 +204,6 @@ message HuntRunnerArgs {
       friendly_name: "Expiry Time",
     }, default=2678400];
 
-  enum State {
-    STOPPED = 0; // Hunt is not active and expired. (EXPIRED)
-
-    STARTED = 1; // Hunt is registered with the foreman and receives new
-                 // clients. (ACTIVE)
-
-    PAUSED = 2;  // Hunt is no longer registered with the foreman. (INACTIVE)
-  };
-
-  optional State state = 12 [(sem_type) = {
-      description: "The state of this hunt.",
-      label: HIDDEN,
-    }, default=STOPPED];
 };
 
 
@@ -552,7 +539,25 @@ message FetchAllFilesArgs {
       "This should be true unless the external checks are misbehaving.",
       label: ADVANCED
     }, default=true];
+}
 
+message FetchAllFilesGlobArgs {
+  repeated string paths = 1 [(sem_type) = {
+      type: "GlobExpression",
+      description: "A path to glob that can contain %% "
+      "expansions",
+    }];
+
+  optional PathSpec.PathType pathtype = 2 [(sem_type) = {
+      description: "Type of access to glob in.",
+    }];
+
+  optional bool use_external_stores = 3 [(sem_type) = {
+      description: "If true, look in any defined external file stores for files"
+      "before downloading them, and offer any new files to external stores."
+      "This should be true unless the external checks are misbehaving.",
+      label: ADVANCED
+    }, default=true];
 }
 
 message FingerprintFileArgs {
@@ -1212,4 +1217,16 @@ message FastGetFileTestFlowArgs {
   optional uint64 file_limit = 1 [(sem_type) = {
       description: "The number of files to retrieve.",
     }, default=3];
+}
+
+message MultiGetFileArgs {
+  repeated StatEntry files_stat_entries = 1 [(sem_type) = {
+      description: "StatEntries of the files to be retrieved."""
+    }];
+  optional bool use_external_stores = 3 [(sem_type) = {
+      description: "If true, look in any defined external file stores for files"
+      "before downloading them, and offer any new files to external stores."
+      "This should be true unless the external checks are misbehaving.",
+      label: ADVANCED
+    }, default=true];
 }

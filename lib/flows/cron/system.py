@@ -174,7 +174,7 @@ class AbstractClientStatsCronFlow(SystemCronFlow):
           self.ProcessClient(child)
 
         # This flow is not dead: we don't want to run out of lease time.
-        self.Ping()
+        self.HeartBeat()
     finally:
       self.FinishProcessing()
       self.stats.Close()

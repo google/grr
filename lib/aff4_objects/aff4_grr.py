@@ -711,8 +711,8 @@ class AFF4RegexNotificationRule(aff4.AFF4NotificationRule):
           args=aff4_object.urn.SerializeToString(),
           auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
           source=client_name)
-      flow.PublishEvent(utils.SmartStr(self.event_name), event,
-                        token=self.token)
+      flow.Events.PublishEvent(utils.SmartStr(self.event_name), event,
+                               token=self.token)
 
 
 class VFSBlobImage(aff4.BlobImage, aff4.VFSFile):
@@ -720,4 +720,3 @@ class VFSBlobImage(aff4.BlobImage, aff4.VFSFile):
 
   class SchemaCls(aff4.BlobImage.SchemaCls, aff4.VFSFile.SchemaCls):
     pass
-

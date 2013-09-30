@@ -510,13 +510,11 @@ class TestNetworkFlowLimit(ClientTestBase):
     # Reopen the object to update the state.
     flow_obj = aff4.FACTORY.Open(self.flow_urn, token=self.token)
 
+    # Make sure we transferred approximately the right amount of data.
     self.assertAlmostEqual(flow_obj.state.context.network_bytes_sent,
                            self.network_bytes_limit, delta=30000)
     backtrace = flow_obj.state.context.get("backtrace", "")
     self.assertTrue("Network bytes limit exceeded." in backtrace)
-
-    fd = aff4.FACTORY.Open(self.urn, mode="r", token=self.token)
-    self.assertEqual(type(fd), aff4.AFF4Volume)
 
 
 class TestFastGetFileNetworkLimitExceeded(LocalClientTest):
@@ -619,6 +617,7 @@ class TestGetClientStats(ClientTestBase):
     self.assertRaises(AssertionError, self.CheckFlow)
 
   def CheckFlow(self):
+    aff4.FACTORY.Flush()
     client_stats = aff4.FACTORY.Open(self.stats_urn, token=self.token)
     self.assertIsInstance(client_stats, aff4.ClientStats)
 
@@ -632,8 +631,10 @@ class TestGetClientStats(ClientTestBase):
     self.assertGreater(entry.bytes_sent, 0)
     self.assertGreater(entry.memory_percent, 0)
 
-    self.assertGreater(len(list(entry.io_samples)), 0)
     self.assertGreater(len(list(entry.cpu_samples)), 0)
+    if not list(entry.io_samples):
+      logging.warning("No IO samples received. This is ok if the tested"
+                      " client is a mac.")
 
 
 class FingerPrintTestBase(object):
@@ -704,7 +705,7 @@ class TestAnalyzeClientMemory(ClientTestBase):
 
 
 class TestGrepMemory(ClientTestBase):
-  platforms = ["windows"]
+  platforms = ["windows", "darwin"]
   flow = "GrepMemory"
 
   args = {"output": "analysis/grep/testing",

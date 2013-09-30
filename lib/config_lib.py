@@ -62,7 +62,7 @@ class ConfigWriteError(Error):
   """Raised when we failed to update the config."""
 
 
-class UnknownOption(Error):
+class UnknownOption(Error, KeyError):
   """Raised when an unknown option was requested."""
 
 
@@ -901,11 +901,10 @@ class GrrConfigManager(object):
 
   def __getitem__(self, name):
     """Retrieve a configuration value after suitable interpolations."""
-    result = self.Get(name)
-    if result is None:
-      raise KeyError("Config parameter %s not known." % name)
+    if name not in self.type_infos:
+      raise UnknownOption("Config parameter %s not known." % name)
 
-    return result
+    return self.Get(name)
 
   def GetRaw(self, name, context=None, default=utils.NotAValue):
     """Get the raw value without interpolations."""

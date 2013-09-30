@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc. All Rights Reserved.
 """General purpose flows."""
 
 
@@ -28,7 +27,6 @@ from grr.lib.flows.general import processes
 from grr.lib.flows.general import registry
 from grr.lib.flows.general import screenshot
 from grr.lib.flows.general import services
-from grr.lib.flows.general import sophos
 from grr.lib.flows.general import timelines
 from grr.lib.flows.general import transfer
 from grr.lib.flows.general import utilities

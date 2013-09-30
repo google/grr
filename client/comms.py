@@ -35,6 +35,7 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
+from grr.lib import type_info
 from grr.lib import utils
 
 
@@ -178,7 +179,7 @@ class GRRClientWorker(object):
 
   def SendReply(self, rdf_value=None, request_id=None, response_id=None,
                 priority=None, session_id="W:0", message_type=None, name=None,
-                require_fastpoll=None, ttl=None, blocking=True):
+                require_fastpoll=None, ttl=None, blocking=True, task_id=None):
     """Send the protobuf to the server.
 
     Args:
@@ -194,39 +195,22 @@ class GRRClientWorker(object):
                         sending this message.
       ttl: The time to live of this message.
       blocking: If the output queue is full, block until there is space.
-
+      task_id: The task ID that the request was queued at. We send this back to
+        the server so it can de-queue the request.
     Raises:
       RuntimeError: An object other than an RDFValue was passed for sending.
     """
     if not isinstance(rdf_value, rdfvalue.RDFValue):
       raise RuntimeError("Sending objects other than RDFValues not supported.")
 
-    message = rdfvalue.GrrMessage(session_id=session_id,
-                                  type=message_type)
+    message = rdfvalue.GrrMessage(
+        session_id=session_id, task_id=task_id, name=name,
+        response_id=response_id, request_id=request_id,
+        priority=priority, require_fastpoll=require_fastpoll,
+        ttl=ttl, type=message_type)
 
     if rdf_value:
       message.payload = rdf_value
-
-    if name is not None:
-      message.name = name
-
-    if response_id is not None:
-      message.response_id = response_id
-
-    if request_id is not None:
-      message.request_id = request_id
-
-    if message_type is None:
-      message_type = rdfvalue.GrrMessage.Type.MESSAGE
-
-    if priority is not None:
-      message.priority = priority
-
-    if require_fastpoll is not None:
-      message.require_fastpoll = require_fastpoll
-
-    if ttl is not None:
-      message.ttl = ttl
 
     serialized_message = message.SerializeToString()
 
@@ -339,6 +323,7 @@ class GRRClientWorker(object):
             request_id=message.request_id,
             response_id=message.response_id,
             session_id=message.session_id,
+            task_id=message.task_id,
             message_type=rdfvalue.GrrMessage.Type.STATUS)
         if flags.FLAGS.debug:
           pdb.post_mortem()
@@ -643,6 +628,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
             request_id=message.request_id,
             response_id=message.response_id,
             session_id=message.session_id,
+            task_id=message.task_id,
             message_type=rdfvalue.GrrMessage.Type.STATUS)
         if flags.FLAGS.debug:
           pdb.post_mortem()
@@ -1085,24 +1071,31 @@ class ClientCommunicator(communicator.Communicator):
       An RSA key - either from the certificate or a new random key.
     """
     if self.private_key:
-      # This is our private key - make sure it has no password set.
-      rsa = self.private_key.GetPrivateKey()
-      self._ParseRSAKey(rsa)
+      try:
+        # This is our private key - make sure it has no password set.
+        self.private_key.Validate()
+        rsa = self.private_key.GetPrivateKey()
+        self._ParseRSAKey(rsa)
 
-      logging.info("Starting client %s", self.common_name)
-    else:
-      # 65537 is the standard value for e
-      rsa = RSA.gen_key(self.BITS, 65537, lambda: None)
+        logging.info("Starting client %s", self.common_name)
+        return rsa
 
-      self._ParseRSAKey(rsa)
-      logging.info("Client pending enrolment %s", self.common_name)
+      except type_info.TypeValueError:
+        pass
 
-      # Make new keys
-      pk = EVP.PKey()
-      pk.assign_rsa(rsa)
+    # We either have an invalid key or no key. We just generate a new one.
+    # 65537 is the standard value for e
+    rsa = RSA.gen_key(self.BITS, 65537, lambda: None)
 
-      # Save the keys
-      self.SavePrivateKey(pk)
+    self._ParseRSAKey(rsa)
+    logging.info("Client pending enrolment %s", self.common_name)
+
+    # Make new keys
+    pk = EVP.PKey()
+    pk.assign_rsa(rsa)
+
+    # Save the keys
+    self.SavePrivateKey(pk)
 
     return rsa
 

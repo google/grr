@@ -5,6 +5,7 @@
 
 import os
 import socket
+import threading
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
@@ -13,6 +14,7 @@ from grr.lib import server_plugins
 from grr.lib import aff4
 from grr.lib import export
 from grr.lib import flags
+from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -65,7 +67,7 @@ class ExportTest(test_lib.GRRBaseTest):
                                             dummy_value))
     self.assertEqual(len(result), 1)
     self.assertTrue(isinstance(result[0], rdfvalue.RDFString))
-    self.assertEqual(result[0], rdfvalue.RDFString("result"))
+    self.assertEqual(result[0], "result")
 
   def testRaisesWhenNoConverterFound(self):
     dummy_value = DummyRDFValue2("some")
@@ -105,11 +107,67 @@ class ExportTest(test_lib.GRRBaseTest):
 
     fd = aff4.FACTORY.Open("aff4:/testcoll", aff4_type="RDFValueCollection",
                            token=self.token)
-    converted_values = list(export.ConvertHuntRDFValueCollection(fd))
 
-    self.assertEqual(len(converted_values), 2)
-    self.assertEqual(converted_values[0], rdfvalue.RDFString("some"))
-    self.assertEqual(converted_values[1], rdfvalue.RDFString("some2"))
+    converter = export.RDFValueCollectionListBasedConverter()
+    converter.Convert(fd, token=self.token)
+    results = sorted([str(x) for x in converter.results])
+
+    self.assertEqual(len(results), 2)
+    self.assertEqual(results[0], "some")
+    self.assertEqual(results[1], "some2")
+
+  def testCorrectlyProcessesBatchesDuringConversion(self):
+    fd = aff4.FACTORY.Create("aff4:/testcoll", "RDFValueCollection",
+                             token=self.token)
+
+    msg = rdfvalue.GrrMessage(payload=DummyRDFValue("some"))
+    msg.source = rdfvalue.ClientURN("C.0000000000000000")
+    fd.Add(msg)
+    test_lib.ClientFixture(msg.source, token=self.token)
+
+    msg = rdfvalue.GrrMessage(payload=DummyRDFValue("some2"))
+    msg.source = rdfvalue.ClientURN("C.0000000000000001")
+    fd.Add(msg)
+    test_lib.ClientFixture(msg.source, token=self.token)
+
+    fd.Close()
+
+    fd = aff4.FACTORY.Open("aff4:/testcoll", aff4_type="RDFValueCollection",
+                           token=self.token)
+
+    # Test multhi-threaded converter
+    batches = []
+    converter = export.RDFValueCollectionConverter(
+        batch_size=1, threadpool_size=10, callback_fn=batches.append)
+    converter.Convert(fd, token=self.token)
+
+    self.assertEqual(len(batches), 2)
+    self.assertEqual(len(batches[0]), 1)
+    self.assertEqual(len(batches[1]), 1)
+
+    results = sorted(batches[0] + batches[1])
+    self.assertEqual(len(results), 2)
+    self.assertEqual(results[0], "some")
+    self.assertEqual(results[1], "some2")
+
+    # Test single-threaded converter
+    batches = []
+    current_thread = threading.current_thread().ident
+    def CallbackFn(result):
+      batches.append(result)
+      self.assertEqual(threading.current_thread().ident, current_thread)
+
+    converter = export.RDFValueCollectionConverter(
+        batch_size=1, threadpool_size=0, callback_fn=CallbackFn)
+    converter.Convert(fd, token=self.token)
+
+    self.assertEqual(len(batches), 2)
+    self.assertEqual(len(batches[0]), 1)
+    self.assertEqual(len(batches[1]), 1)
+
+    results = sorted(batches[0] + batches[1])
+    self.assertEqual(len(results), 2)
+    self.assertItemsEqual(results, ["some", "some2"])
 
   def testConvertsHuntCollectionWithValuesWithMultipleConverters(self):
     fd = aff4.FACTORY.Create("aff4:/testcoll", "RDFValueCollection",
@@ -129,13 +187,15 @@ class ExportTest(test_lib.GRRBaseTest):
 
     fd = aff4.FACTORY.Open("aff4:/testcoll", aff4_type="RDFValueCollection",
                            token=self.token)
-    converted_values = list(export.ConvertHuntRDFValueCollection(fd))
 
-    self.assertEqual(len(converted_values), 4)
-    self.assertEqual(sorted([str(v) for v in converted_values
+    converter = export.RDFValueCollectionListBasedConverter()
+    converter.Convert(fd, token=self.token)
+
+    self.assertEqual(len(converter.results), 4)
+    self.assertEqual(sorted([str(v) for v in converter.results
                              if isinstance(v, rdfvalue.DummyRDFValue)]),
                      ["some1A", "some2A"])
-    self.assertEqual(sorted([str(v) for v in converted_values
+    self.assertEqual(sorted([str(v) for v in converter.results
                              if isinstance(v, rdfvalue.DummyRDFValue2)]),
                      ["some1B", "some2B"])
 
@@ -216,7 +276,7 @@ class ExportTest(test_lib.GRRBaseTest):
         results[0].content_sha256,
         "69264282ca1a3d4e7f9b1f43720f719a4ea47964f0bfd1b2ba88424f1c61395d")
 
-  def testStatEntryToExportedFileConverterWithFingerprintedAFF4File(self):
+  def testStatEntryToExportedFileConverterWithHashedAFF4File(self):
     client_ids = self.SetupClients(1)
     client_id = client_ids[0]
 
@@ -225,18 +285,26 @@ class ExportTest(test_lib.GRRBaseTest):
         path=os.path.join(self.base_path, "winexec_img.dd"))
     pathspec.Append(path="/Ext2IFS_1_10b.exe",
                     pathtype=rdfvalue.PathSpec.PathType.TSK)
+    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, client_id)
 
-    client_mock = test_lib.ActionMock("FingerprintFile")
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile",
+                                      "HashBuffer")
     for _ in test_lib.TestFlowHelper(
-        "FingerprintFile", client_mock, token=self.token,
+        "GetFile", client_mock, token=self.token,
         client_id=client_id, pathspec=pathspec):
       pass
 
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, client_id)
-    fd = aff4.FACTORY.Open(urn, token=self.token)
+    auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
+    flow.Events.PublishEvent(
+        "FileStore.AddFileToStore",
+        rdfvalue.GrrMessage(payload=urn, auth_state=auth_state),
+        token=self.token)
+    worker = test_lib.MockWorker(token=self.token)
+    worker.Simulate()
 
-    fingerprint = fd.Get(fd.Schema.FINGERPRINT)
-    self.assertTrue(fingerprint)
+    fd = aff4.FACTORY.Open(urn, token=self.token)
+    hash_value = fd.Get(fd.Schema.HASH)
+    self.assertTrue(hash_value)
 
     converter = export.StatEntryToExportedFileConverter()
     results = list(converter.Convert(rdfvalue.ExportedMetadata(),
@@ -409,7 +477,8 @@ class ExportTest(test_lib.GRRBaseTest):
 
     converter = export.VolatilityResultToExportedVolatilityHandleConverter()
     results = list(converter.Convert(rdfvalue.ExportedMetadata(),
-                                     volatility_result))
+                                     volatility_result,
+                                     token=self.token))
 
     self.assertEqual(len(results), 2)
     self.assertEqual(results[0].offset, 275427776305632)
@@ -461,7 +530,8 @@ class ExportTest(test_lib.GRRBaseTest):
 
     converter = export.VolatilityResultToExportedVolatilityMutantConverter()
     results = list(converter.Convert(rdfvalue.ExportedMetadata(),
-                                     volatility_result))
+                                     volatility_result,
+                                     token=self.token))
 
     self.assertEqual(len(results), 2)
     self.assertEqual(results[0].offset, 50211728)
@@ -534,7 +604,8 @@ class ExportTest(test_lib.GRRBaseTest):
 
     converter = export.ClientSummaryToExportedNetworkInterfaceConverter()
     results = list(converter.Convert(rdfvalue.ExportedMetadata(),
-                                     client_summary))
+                                     client_summary,
+                                     token=self.token))
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].mac_address, "123456".encode("hex"))
     self.assertEqual(results[0].ifname, "eth0")
@@ -546,7 +617,8 @@ class ExportTest(test_lib.GRRBaseTest):
     metadata = rdfvalue.ExportedMetadata(hostname="ahostname")
 
     converter = export.ClientSummaryToExportedClientConverter()
-    results = list(converter.Convert(metadata, client_summary))
+    results = list(converter.Convert(metadata, client_summary,
+                                     token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].metadata.hostname, "ahostname")

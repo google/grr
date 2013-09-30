@@ -382,7 +382,7 @@ class HuntRunStatus(HuntInformation):
       flow.GRRFlow.StartFlow(
           flow_name="CreateGenericHuntFlow",
           hunt_runner_args=hunt_runner_args,
-          hunt_args=hunt_args)
+          hunt_args=hunt_args, token=request.token)
 
     except Exception as e:  # pylint: disable=broad-except
       logging.exception("Failed to create hunt: %s", e)

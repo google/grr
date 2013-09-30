@@ -124,7 +124,7 @@ message GrrMessage {
   optional uint64 task_id = 15;
 
   // The ttl used in the task scheduler.
-  optional int32 task_ttl = 16 [ default = 5 ];
+  optional int32 task_ttl = 16 [ default = 2 ];
   optional string queue = 17  [(sem_type) = {
       type: "RDFURN",
       description: "The scheduler queue this message is in."
@@ -445,7 +445,9 @@ message RequestState {
   // The number of this request (starts in 1).
   required uint32 id = 1;
 
-  // The task scheduler ID corresponding to the message from this request.
+  // DEPRECATED: This should not be used. The task id is stored in the request
+  // message itself (request_state.request.task_id).  The task scheduler ID
+  // corresponding to the message from this request.
   optional uint64 ts_id = 2;
   optional string next_state = 3;
   optional GrrStatus status = 4;

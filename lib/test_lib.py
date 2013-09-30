@@ -234,12 +234,18 @@ class GRRBaseTest(unittest.TestCase):
       data_store.DB.security_manager = MockSecurityManager()
 
   def tearDown(self):
+    logging.info("Completed test: %s.%s",
+                 self.__class__.__name__, self._testMethodName)
+
     shutil.rmtree(self.temp_dir, True)
 
   def shortDescription(self):  # pylint: disable=g-bad-name
     doc = self._testMethodDoc or ""
     doc = doc.split("\n")[0].strip()
-    return "%s - %s\n" % (self, doc)
+    # Write the suite and test name so it can be easily copied into the --tests
+    # parameter.
+    return "\n%s.%s - %s\n" % (
+        self.__class__.__name__, self._testMethodName, doc)
 
   def _EnumerateProto(self, protobuf):
     """Return a sorted list of tuples for the protobuf."""
@@ -546,6 +552,7 @@ class FlowTestsBaseclass(GRRBaseTest):
     self.client_id = client_ids[0]
 
   def tearDown(self):
+    super(FlowTestsBaseclass, self).tearDown()
     data_store.DB.Clear()
 
   def FlowSetup(self, name):
@@ -1088,14 +1095,8 @@ class MockClient(object):
     for k, v in kw.items():
       setattr(message, k, v)
 
-    queue = (flow_runner.QueueManager.FLOW_STATE_TEMPLATE %
-             message.session_id)
-
-    attribute_name = flow_runner.QueueManager.FLOW_RESPONSE_TEMPLATE % (
-        message.request_id, message.response_id)
-
-    data_store.DB.Set(queue, attribute_name, message.SerializeToString(),
-                      token=self.token)
+    with flow_runner.QueueManager(token=self.token) as manager:
+      manager.QueueResponse(message.session_id, message)
 
   def Next(self):
     # Grab tasks for us from the queue.
@@ -1244,6 +1245,7 @@ class MockWorker(worker.GRRWorker):
 
       with aff4.FACTORY.OpenWithLock(
           session_id, token=self.token, blocking=False) as flow_obj:
+
         # Run it
         with flow_obj.GetRunner() as runner:
           cpu_used = runner.context.client_resources.cpu_usage
@@ -1352,9 +1354,8 @@ def CheckFlowErrors(total_flows, token=None):
     if flow_obj.state.context.state != rdfvalue.Flow.State.TERMINATED:
       if flags.FLAGS.debug:
         pdb.set_trace()
-
       raise RuntimeError("Flow %s completed in state %s" % (
-          flow_obj.state.context.flow_name,
+          flow_obj.state.context.args.flow_name,
           flow_obj.state.context.state))
 
 
@@ -1443,7 +1444,7 @@ class CrashClientMock(object):
 
     # This is normally done by the FrontEnd when a CLIENT_KILLED message is
     # received.
-    flow.PublishEvent("ClientCrash", msg, token=self.token)
+    flow.Events.PublishEvent("ClientCrash", msg, token=self.token)
 
     return [status]
 

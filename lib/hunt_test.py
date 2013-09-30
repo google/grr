@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """Tests for the hunt."""
 
 
@@ -10,6 +8,7 @@ import logging
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
+from grr.lib.hunts import tests
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import aff4

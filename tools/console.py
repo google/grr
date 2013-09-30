@@ -59,6 +59,9 @@ flags.DEFINE_string("client", None,
                     "Initialise the console with this client id "
                     "(e.g. C.1234345).")
 
+flags.DEFINE_string("reason", None,
+                    "Create a default token with this access reason ")
+
 flags.DEFINE_string("code_to_execute", None,
                     "If present, no console is started but the code given in "
                     "the flag is run instead (comparable to the -c option of "
@@ -304,6 +307,11 @@ def main(unused_argv):
       "Console Context",
       "Context applied when running the console binary.")
   startup.Init()
+
+  # To make the console easier to use, we make a default token which will be
+  # used in StartFlow operations.
+  data_store.default_token = rdfvalue.ACLToken(username=getpass.getuser(),
+                                               reason=flags.FLAGS.reason)
 
   locals_vars = {
       "hilfe": Help,

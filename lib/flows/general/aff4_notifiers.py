@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
-"""EventListener flows used to notify about AFF4 changes."""
+"""Eventlistener flows used to notify about AFF4 changes."""
 
 
 from grr.lib import aff4

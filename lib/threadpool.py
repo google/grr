@@ -44,7 +44,10 @@ class Error(Exception):
 
 class DuplicateThreadpoolError(Error):
   """Raised when a thread pool with the same name already exists."""
-  pass
+
+
+class Full(Error):
+  """Raised when the threadpool is full."""
 
 
 class _WorkerThread(threading.Thread):
@@ -203,9 +206,8 @@ class ThreadPool(object):
                                    self._queue.qsize)
 
       stats.STATS.RegisterGaugeMetric(self.name + "_idle_threads", int)
-      stats.STATS.SetGaugeCallback(
-          self.name + "_idle_threads",
-          lambda: len([w for w in self.workers if w.idle]))
+      stats.STATS.SetGaugeCallback(self.name + "_idle_threads",
+                                   lambda: self.idle_threads)
 
       stats.STATS.RegisterCounterMetric(self.name + "_task_exceptions")
       stats.STATS.RegisterEventMetric(self.name + "_working_time")
@@ -215,11 +217,14 @@ class ThreadPool(object):
     if self.started:
       self.Stop()
 
+  @property
+  def idle_threads(self):
+    return len([w for w in self.workers if w.idle])
+
   def Start(self):
     """This starts the worker threads."""
-    self.workers = []
-
     if not self.started:
+      self.workers = []
       self.started = True
       for thread_counter in range(self.num_threads):
         try:
@@ -254,18 +259,33 @@ class ThreadPool(object):
     for worker in self.workers:
       worker.join()
 
-  def AddTask(self, target, args, name="Unnamed task"):
+  def Available(self):
+    return self._queue.qsize
+
+  def AddTask(self, target, args, name="Unnamed task", blocking=True):
     """Adds a task to be processed later.
 
     Args:
       target: A callable which should be processed by one of the workers.
       args: A tuple of arguments to target.
       name: The name of this task. Used to identify tasks in the log.
+      blocking: If True we block until the task is finished, otherwise we raise
+        Queue.Full
+
+    Raises:
+      Full() if the pool is full and can not accept new jobs.
     """
+    if self.num_threads == 0:
+      target(*args)
+      return
+
     try:
       # Push the task on the queue but raise if unsuccessful.
       self._queue.put((target, args, name, time.time()), block=False)
     except Queue.Full:
+      if not blocking:
+        raise Full()
+
       # The pool cannot accept new work so in order to avoid deadlocks we just
       # process one task inline.
       try:
@@ -290,16 +310,20 @@ class ThreadPool(object):
 class MockThreadPool(object):
   """A mock thread pool which runs all jobs serially."""
 
-  def __init__(self, *_):
-    pass
+  def __init__(self, name, num_threads, ignore_errors=True):
+    _ = name
+    _ = num_threads
+    self.ignore_errors = ignore_errors
 
   def AddTask(self, target, args, name="Unnamed task"):
     _ = name
     try:
       target(*args)
       # The real threadpool can not raise from a task. We emulate this here.
-    except Exception:  # pylint: disable=broad-except
-      pass
+    except Exception as e:  # pylint: disable=broad-except
+      logging.exception("MockThreadPool worker raised %s", e)
+      if not self.ignore_errors:
+        raise
 
   @classmethod
   def Factory(cls, name, num_threads):

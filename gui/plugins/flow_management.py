@@ -454,13 +454,14 @@ class FlowRequestView(renderers.TableRenderer):
   def BuildTable(self, start_row, end_row, request):
     session_id = request.REQ.get("flow", "")
 
-    state_queue = flow_runner.QueueManager.FLOW_STATE_TEMPLATE % session_id
-    predicate_re = flow_runner.QueueManager.FLOW_REQUEST_PREFIX + ".*"
+    if not session_id:
+      return
 
-    # Get all the responses for this request.
-    for i, (predicate, req_state, _) in enumerate(data_store.DB.ResolveRegex(
-        state_queue, predicate_re, decoder=rdfvalue.RequestState,
-        limit=end_row, token=request.token)):
+    for i, (request, _) in enumerate(
+        flow_runner.QueueManager(token=request.token).FetchRequestsAndResponses(
+            rdfvalue.RDFURN(session_id))):
+      if request.id == 0:
+        continue
 
       if i < start_row:
         continue
@@ -468,8 +469,9 @@ class FlowRequestView(renderers.TableRenderer):
         break
 
       # Tie up the request to each response to make it easier to render.
-      self.AddCell(i, "ID", predicate)
-      self.AddCell(i, "Request", rdfvalue.RequestState(req_state))
+      self.AddCell(i, "ID",
+                   flow_runner.QueueManager.FLOW_REQUEST_TEMPLATE % request.id)
+      self.AddCell(i, "Request", request)
 
 
 class TreeColumn(semantic.RDFValueColumn, renderers.TemplateRenderer):

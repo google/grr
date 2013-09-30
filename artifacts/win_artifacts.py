@@ -374,19 +374,24 @@ class WindowsAdminUsers(AbstractWMIArtifact):
   COLLECTORS = [
       Collector(action="WMIQuery",
                 args={"query": "SELECT * "
-                      "from Win32_GroupUser where name = Administrators"}
+                      "from Win32_GroupUser where Name = \"Administrators\""}
                )
   ]
 
 
 class WindowsLoginUsers(AbstractWMIArtifact):
-  """Extract the Login Users on Windows via WMI."""
+  """Extract the Login Users on Windows via WMI.
+
+  If on a domain this will query the domain which may take a long time and
+  create load on a domain controller.
+  <script>alert(1)</script>
+  """
   LABELS = ["Software"]
 
   COLLECTORS = [
       Collector(action="WMIQuery",
                 args={"query": "SELECT * "
-                      "from Win32_GroupUser where name = login_users"}
+                      "from Win32_GroupUser where Name = \"login_users\""}
                )
   ]
 

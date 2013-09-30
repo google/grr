@@ -422,16 +422,11 @@ def main(unused_argv):
 
   elif flags.FLAGS.subparser_name == "upload_python":
     content = open(flags.FLAGS.file).read(1024*1024*30)
-    if flags.FLAGS.dest_path:
-      uploaded = maintenance_utils.UploadSignedConfigBlob(
-          content, platform=flags.FLAGS.platform,
-          aff4_path=flags.FLAGS.dest_path)
-    else:
-      uploaded = maintenance_utils.UploadSignedConfigBlob(
-          content, file_name=os.path.basename(flags.FLAGS.file),
-          platform=flags.FLAGS.platform,
-          aff4_path="/config/python_hacks/{file_name}")
-    print "Uploaded to %s" % uploaded
+    aff4_path = flags.FLAGS.dest_path
+    if not aff4_path:
+      python_hack_root_urn = config_lib.CONFIG.Get("Config.python_hack_root")
+      aff4_path = python_hack_root_urn.Add(os.path.basename(flags.FLAGS.file))
+    maintenance_utils.UploadSignedConfigBlob(content, aff4_path=aff4_path)
 
   elif flags.FLAGS.subparser_name == "upload_exe":
     content = open(flags.FLAGS.file).read(1024*1024*30)

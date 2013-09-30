@@ -8,7 +8,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
-class TestCollections(test_lib.FlowTestsBaseclass):
+class TestCollections(test_lib.AFF4ObjectTest):
 
   def testRDFValueCollections(self):
     urn = "aff4:/test/collection"
@@ -142,3 +142,32 @@ class TestCollections(test_lib.FlowTestsBaseclass):
     # In a PackedVersionedCollection the size represents only the packed number
     # of records.
     self.assertEqual(fd.size, 5)
+
+  def testChunkSize(self):
+
+    urn = "aff4:/test/chunktest"
+
+    fd = aff4.FACTORY.Create(urn, "RDFValueCollection",
+                             mode="w", token=self.token)
+    fd.SetChunksize(1024 * 1024)
+
+    # Estimate the size of the resulting message.
+    msg = rdfvalue.GrrMessage(request_id=100)
+    msg_size = len(rdfvalue.EmbeddedRDFValue(payload=msg).SerializeToString())
+    # Write ~500Kb.
+    n = 500 * 1024 / msg_size
+
+    fd.AddAll([rdfvalue.GrrMessage(request_id=i) for i in xrange(n)])
+    fd.Close()
+
+    self.assertEqual(fd.fd.Get(fd.fd.Schema._CHUNKSIZE), 1024*1024)
+    # There should be 500K of data.
+    self.assertGreater(fd.fd.size, 400 * 1024)
+    # and there should only be one chunk since 500K is less than the chunk size.
+    self.assertEqual(len(fd.fd.chunk_cache._hash), 1)
+
+    self.assertRaises(ValueError, fd.SetChunksize, (10))
+
+    fd = aff4.FACTORY.Open(urn, "RDFValueCollection",
+                           mode="rw", token=self.token)
+    self.assertRaises(ValueError, fd.SetChunksize, (2 * 1024 * 1024))

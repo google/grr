@@ -526,7 +526,7 @@ def GroupBy(items, key):
     key_id = key(item)
     key_map.setdefault(key_id, []).append(item)
 
-  return key_map.iteritems()
+  return key_map
 
 
 def SmartStr(string):
@@ -727,7 +727,7 @@ def GeneratePassphrase(length=20):
 class PRNG(object):
   """An optimized PRNG."""
 
-  random_list = None
+  random_list = []
 
   @classmethod
   def GetUShort(cls):
@@ -735,12 +735,13 @@ class PRNG(object):
 
   @classmethod
   def GetULong(cls):
-    if not cls.random_list:
-      PRNG.random_list = list(
-          struct.unpack("=" + "L" * 1000,
-                        os.urandom(struct.calcsize("=L") * 1000)))
-
-    return cls.random_list.pop()
+    while True:
+      try:
+        return cls.random_list.pop()
+      except IndexError:
+        PRNG.random_list = list(
+            struct.unpack("=" + "L" * 1000,
+                          os.urandom(struct.calcsize("=L") * 1000)))
 
 
 def FormatNumberAsString(num):

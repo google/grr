@@ -156,7 +156,11 @@ class GenericRDFProtoTest(test_lib.AFF4ObjectTest):
     self.assertEqual(str(sample.status), "OK")
 
 
-class RDFValueTestCase(test_lib.GRRBaseTest):
+class RDFValueBaseTest(test_lib.GRRBaseTest):
+  pass
+
+
+class RDFValueTestCase(RDFValueBaseTest):
   """The base class for testing RDFValue implementations."""
 
   # This should be overridden by the RDFValue class we want to test.

@@ -22,6 +22,7 @@ class ListProcessesGrr(Artifact):
   COLLECTORS = [
       Collector(action="RunGrrClientAction",
                 args={"client_action": r"ListProcesses"})]
+  OUTPUT_TYPE = "Processes"
 
 
 class EnumerateInterfacesGrr(Artifact):
@@ -30,6 +31,7 @@ class EnumerateInterfacesGrr(Artifact):
   COLLECTORS = [
       Collector(action="RunGrrClientAction",
                 args={"client_action": r"EnumerateInterfaces"})]
+  OUTPUT_TYPE = "Interface"
 
 
 class NetstatGrr(Artifact):
@@ -38,6 +40,7 @@ class NetstatGrr(Artifact):
   COLLECTORS = [
       Collector(action="RunGrrClientAction",
                 args={"client_action": r"Netstat"})]
+  OUTPUT_TYPE = "NetworkConnection"
 
 
 class HostnameGrr(Artifact):
@@ -46,6 +49,7 @@ class HostnameGrr(Artifact):
   COLLECTORS = [
       Collector(action="RunGrrClientAction",
                 args={"client_action": r"GetHostname"})]
+  OUTPUT_TYPE = "RDFString"
 
 
 class EnumerateUsersGrr(Artifact):
@@ -54,6 +58,7 @@ class EnumerateUsersGrr(Artifact):
   COLLECTORS = [
       Collector(action="RunGrrClientAction",
                 args={"client_action": r"EnumerateUsers"})]
+  OUTPUT_TYPE = "User"
 
 
 class EnumerateFilesystemsGrr(Artifact):
@@ -62,3 +67,5 @@ class EnumerateFilesystemsGrr(Artifact):
   COLLECTORS = [
       Collector(action="RunGrrClientAction",
                 args={"client_action": r"EnumerateFilesystems"})]
+  OUTPUT_TYPE = "Filesystem"
+

@@ -43,7 +43,7 @@ class GRRWorker(object):
   queued_flows = None
 
   def __init__(self, queue=None, threadpool_prefix="grr_threadpool",
-               threadpool_size=0, token=None):
+               threadpool_size=None, token=None):
     """Constructor.
 
     Args:
@@ -63,7 +63,7 @@ class GRRWorker(object):
 
     # Make the thread pool a global so it can be reused for all workers.
     if GRRWorker.thread_pool is None:
-      if threadpool_size == 0:
+      if threadpool_size is None:
         threadpool_size = config_lib.CONFIG["Threadpool.size"]
 
       GRRWorker.thread_pool = threadpool.ThreadPool.Factory(threadpool_prefix,
@@ -106,15 +106,27 @@ class GRRWorker(object):
     Returns:
         Total number of messages processed by this call.
     """
+    now = time.time()
     sessions_available = scheduler.SCHEDULER.GetSessionsFromQueue(
         self.queue, self.token)
+
+    time_to_fetch_messages = time.time() - now
 
     # Filter out session ids we already tried to lock but failed.
     sessions_available = [session for session in sessions_available
                           if session not in self.queued_flows]
 
     try:
-      processed = self.ProcessMessages(sessions_available)
+      # If we spent too much time processing what we have so far, the
+      # active_sessions list might not be current. We therefore break here so we
+      # can re-fetch a more up to date version of the list, and try again
+      # later. The risk with running with an old active_sessions list is that
+      # another worker could have already processed this message, and when we
+      # try to process it, there is nothing to do - costing us a lot of
+      # processing time. This is a tradeoff between checking the data store for
+      # current information and processing out of date information.
+      processed = self.ProcessMessages(
+          sessions_available, min(time_to_fetch_messages * 100, 300))
     # We need to keep going no matter what.
     except Exception as e:    # pylint: disable=broad-except
       logging.error("Error processing message %s. %s.", e,
@@ -125,7 +137,7 @@ class GRRWorker(object):
 
     return processed
 
-  def ProcessMessages(self, active_sessions):
+  def ProcessMessages(self, active_sessions, time_limit=0):
     """Processes all the flows in the messages.
 
     Precondition: All tasks come from the same queue (self.queue).
@@ -137,29 +149,38 @@ class GRRWorker(object):
 
     Args:
         active_sessions: The list of sessions which had messages received.
+        time_limit: If set return as soon as possible after this many seconds.
+
     Returns:
         The number of processed flows.
     """
+    now = time.time()
     processed = 0
     for session_id in active_sessions:
       if session_id not in self.queued_flows:
+        if time_limit and time.time() - now > time_limit:
+          break
+
         processed += 1
         self.queued_flows.Put(session_id, 1)
         self.thread_pool.AddTask(target=self._ProcessMessages,
                                  args=(rdfvalue.SessionID(session_id),),
                                  name=self.__class__.__name__)
+
     return processed
 
   def _ProcessMessages(self, session_id):
     """Does the real work with a single flow."""
-
     flow_obj = None
+
     # Take a lease on the flow:
     try:
-
       with aff4.FACTORY.OpenWithLock(
           session_id, lease_time=config_lib.CONFIG["Worker.flow_lease_time"],
           blocking=False, token=self.token) as flow_obj:
+
+        now = time.time()
+        logging.info("Got lock on %s", session_id)
 
         # If we get here, we now own the flow, so we can remove the notification
         # for it from the worker queue.
@@ -193,6 +214,9 @@ class GRRWorker(object):
             # with no associated flow.
             flow_obj.Flush(sync=True)
 
+        logging.info("Done processing %s: %s sec", session_id,
+                     time.time() - now)
+
       # Everything went well -> session can be run again.
       self.queued_flows.ExpireObject(session_id)
 
@@ -200,22 +224,11 @@ class GRRWorker(object):
       # Another worker is dealing with this flow right now, we just skip it.
       return
 
-    except aff4.InstanciationError:
-      # Something went wrong when creating the aff4 object. In order not to spin
+    except Exception as e:    # pylint: disable=broad-except
+      # Something went wrong when processing this session. In order not to spin
       # here, we just remove the notification.
+      logging.exception("Error processing session %s: %s", session_id, e)
       scheduler.SCHEDULER.DeleteNotification(session_id, token=self.token)
-
-    except flow.FlowError as e:
-      # Something went wrong - log it
-      if isinstance(flow_obj, flow.GRRFlow):
-        flow_obj.SetState(rdfvalue.Flow.State.ERROR)
-        if not flow_obj.backtrace:
-          flow_obj.backtrace = traceback.format_exc()
-
-      if flow_obj:
-        logging.error("Flow %s: %s", flow_obj, e)
-      else:
-        logging.error("Flow %s: %s", session_id, e)
 
 
 class GRREnroler(GRRWorker):

@@ -25,7 +25,7 @@ from grr.client import installer
 
 class StopOldService(installer.Installer):
   def RunOnce(self):
-    """Stop and remove an old unneeded service during installtion."""
+    """Stop and remove an old unneeded service during installation."""
     service_name = "My Old Service Name"
 
     try:

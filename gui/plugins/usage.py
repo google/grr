@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """GUI elements to display usage statistics."""
 
-import json
 
 from grr.gui import renderers
 from grr.gui.plugins import statistics
@@ -123,7 +122,7 @@ class UserActivity(StackChart):
       for user, data in self.user_activity.items():
         self.data.append(dict(label=user, data=data))
 
-      self.data = json.dumps(self.data)
+      self.data = renderers.JsonDumpForScriptContext(self.data)
 
     except IOError:
       pass
@@ -162,7 +161,7 @@ class FlowsUsed(StackChart):
       for flow, data in self.flow_activity.items():
         self.data.append(dict(label=flow, data=data))
 
-      self.data = json.dumps(self.data)
+      self.data = renderers.JsonDumpForScriptContext(self.data)
 
     except IOError:
       pass
@@ -202,7 +201,7 @@ class ClientActivity(StackChart):
       for client, data in self.client_activity.items():
         self.data.append(dict(label=str(client), data=data))
 
-      self.data = json.dumps(self.data)
+      self.data = renderers.JsonDumpForScriptContext(self.data)
 
     except IOError:
       pass

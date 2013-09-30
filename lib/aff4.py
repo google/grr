@@ -6,6 +6,8 @@ This contains an AFF4 data model implementation.
 
 import __builtin__
 import abc
+import os
+import socket
 import StringIO
 import time
 import zlib
@@ -74,7 +76,7 @@ class Factory(object):
 
     # Create a token for system level actions:
     self.root_token = access_control.ACLToken(username="system",
-                                              reason="Maintainance").SetUID()
+                                              reason="Maintenance").SetUID()
 
     self.notification_rules = []
     self.notification_rules_timestamp = 0
@@ -273,6 +275,7 @@ class Factory(object):
 
   def _OpenWithLock(self, transaction, aff4_type=None, age=NEWEST_TIME,
                     lease_time=100):
+
     values = list(transaction.ResolveRegex(
         AFF4_PREFIXES, timestamp=self.ParseAgeSpecification(age)))
     local_cache = {rdfvalue.RDFURN(transaction.subject): values}
@@ -298,12 +301,21 @@ class Factory(object):
 
     new_lease_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(
         time.time() + lease_time)
-    transaction.Set(aff4_obj.Schema.LEASED_UNTIL.predicate,
+
+    transaction.Set(AFF4Object.SchemaCls.LEASED_UNTIL.predicate,
                     new_lease_time.SerializeToDataStore())
 
-    aff4_obj.Set(aff4_obj.Schema.LEASED_UNTIL, new_lease_time)
+    # Commit at this point to make sure we actually have the lock on this row.
+    transaction.Commit()
+
+    # Also record the name of the last owner to make debugging easier.
+    aff4_obj.Set(aff4_obj.Schema.LEASED_UNTIL(new_lease_time))
+    aff4_obj.Set(aff4_obj.Schema.LAST_OWNER(
+        "%s@%s:%d" % (transaction.token.username,
+                      socket.gethostname(), os.getpid())))
+
     # We don't want the object to be dirty.
-    aff4_obj._SyncAttributes()  # pylint: disable=protected-access
+    aff4_obj._WriteAttributes()  # pylint: disable=protected-access
     aff4_obj.locked = True
 
     return aff4_obj
@@ -342,6 +354,9 @@ class Factory(object):
     """
     timestamp = time.time()
 
+    if token is None:
+      token = data_store.default_token
+
     if urn is not None:
       urn = rdfvalue.RDFURN(urn)
 
@@ -361,6 +376,9 @@ class Factory(object):
   def Copy(self, old_urn, new_urn, age=NEWEST_TIME, token=None, limit=None,
            sync=False):
     """Make a copy of one AFF4 object to a different URN."""
+    if token is None:
+      token = data_store.default_token
+
     values = {}
     for predicate, value, ts in data_store.DB.ResolveRegex(
         old_urn, AFF4_PREFIXES,
@@ -427,6 +445,9 @@ class Factory(object):
 
     urn = rdfvalue.RDFURN(urn)
 
+    if token is None:
+      token = data_store.default_token
+
     if "r" in mode and (local_cache is None or urn not in local_cache):
       # Warm up the cache. The idea is to prefetch all the path components in
       # the same round trip and make sure this data is in cache, so that as each
@@ -459,6 +480,8 @@ class Factory(object):
   def MultiOpen(self, urns, mode="rw", token=None, aff4_type=None,
                 age=NEWEST_TIME):
     """Opens a bunch of urns efficiently."""
+    if token is None:
+      token = data_store.default_token
 
     if mode not in ["w", "r", "rw"]:
       raise RuntimeError("Invalid mode %s" % mode)
@@ -576,6 +599,8 @@ class Factory(object):
     Raises:
       RuntimeError: A string was passed instead of an iterable.
     """
+    if token is None:
+      token = data_store.default_token
 
     if isinstance(urns, basestring):
       raise RuntimeError("Expected an iterable, not string.")
@@ -608,6 +633,9 @@ class Factory(object):
     """
     if mode not in ["w", "r", "rw"]:
       raise AttributeError("Invalid mode %s" % mode)
+
+    if token is None:
+      token = data_store.default_token
 
     if urn is not None:
       urn = rdfvalue.RDFURN(urn)
@@ -648,16 +676,19 @@ class Factory(object):
       RuntimeError: If the urn is too short. This is a safety check to ensure
       the root is not removed.
     """
+    if token is None:
+      token = data_store.default_token
+
     urn = rdfvalue.RDFURN(urn)
     if len(urn.Path()) < 1:
       raise RuntimeError("URN %s too short. Please enter a valid URN" % urn)
 
     # Get all the children of this URN and delete them all.
-    logging.info("Recursively removing AFF4 Object %s", urn)
+    logging.info(u"Recursively removing AFF4 Object %s", urn)
     fd = FACTORY.Create(urn, "AFF4Volume", mode="rw", token=token)
     count = 0
     for child in fd.ListChildren():
-      logging.info("Removing child %s", child)
+      logging.info(u"Removing child %s", child)
       self.Delete(child, token=token)
       count += 1
 
@@ -1054,6 +1085,10 @@ class AFF4Object(object):
                              "particular caller.", versioned=False,
                              creates_new_object_version=False)
 
+    LAST_OWNER = Attribute("aff4:lease_owner", rdfvalue.RDFString,
+                           "The owner of the lease.", versioned=False,
+                           creates_new_object_version=False)
+
     @classmethod
     def ListAttributes(cls):
       for attr in dir(cls):
@@ -1235,7 +1270,9 @@ class AFF4Object(object):
     self.Set(
         self.Schema.LEASED_UNTIL,
         rdfvalue.RDFDatetime().FromSecondsFromEpoch(time.time() + duration))
-    self.Flush()
+
+    # Only update the LEASED_UNTIL attribute to the data store.
+    self._WriteAttributes()
 
   def Flush(self, sync=True):
     """Syncs this object with the data store, maintaining object validity."""
@@ -1272,7 +1309,6 @@ class AFF4Object(object):
   @utils.Synchronized
   def _WriteAttributes(self, sync=True):
     """Write the dirty attributes to the data store."""
-
     # If the object is not opened for writing we do not need to flush it to the
     # data_store.
     if "w" not in self.mode:
@@ -2029,7 +2065,7 @@ class AFF4ObjectCache(utils.PickleableStore):
   """A cache which closes its objects when they expire."""
 
   def KillObject(self, obj):
-    obj.Close()
+    obj.Close(sync=False)
 
 
 class AFF4Image(AFF4Stream):

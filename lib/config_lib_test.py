@@ -201,10 +201,10 @@ executable_signing_public_key = -----BEGIN PUBLIC KEY-----
     -----END PUBLIC KEY-----
 """)
     errors = conf.Validate(["Client"])
-    self.assertItemsEqual(errors.keys(), ["Client.private_key"])
+    self.assertItemsEqual(errors.keys(), [])
 
   def testEmptyClientKeys(self):
-    """Check an empty other keys fail."""
+    """Check that empty other keys fail."""
     conf = config_lib.CONFIG.MakeNewConfig()
     conf.Initialize(data="""
 [Client]
@@ -215,8 +215,7 @@ certificate =
 """)
     errors = conf.Validate(["Client"])
     self.assertItemsEqual(errors.keys(),
-                          ["Client.private_key",
-                           "Client.driver_signing_public_key",
+                          ["Client.driver_signing_public_key",
                            "Client.executable_signing_public_key"])
 
   def testAddOption(self):

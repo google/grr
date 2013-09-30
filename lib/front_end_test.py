@@ -85,7 +85,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
                                     args=str(i))
                 for i in range(1, 10)]
 
-    self.server.ReceiveMessages(messages)
+    self.server.ReceiveMessages(self.client_id, messages)
 
     # Make sure the task is still on the client queue
     tasks_on_client_queue = scheduler.SCHEDULER.Query(self.client_id, 100,
@@ -95,7 +95,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     # Check that messages were stored correctly
     for message in messages:
       stored_message, _ = data_store.DB.Resolve(
-          flow_runner.QueueManager.FLOW_STATE_TEMPLATE % session_id,
+          session_id.Add("state/request:00000001"),
           flow_runner.QueueManager.FLOW_RESPONSE_TEMPLATE % (
               1, message.response_id),
           decoder=rdfvalue.GrrMessage, token=self.token)
@@ -106,16 +106,39 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
   def testReceiveMessagesWithStatus(self):
     """Receiving a sequence of messages with a status."""
-    messages = self.testReceiveMessages()
+    flow_obj = self.FlowSetup("FlowOrderTest")
+
+    session_id = flow_obj.session_id
+    messages = [rdfvalue.GrrMessage(request_id=1,
+                                    response_id=i,
+                                    session_id=session_id,
+                                    args=str(i),
+                                    task_id=15)
+                for i in range(1, 10)]
 
     # Now add the status message
     status = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.ReturnedStatus.OK)
-    status_messages = [rdfvalue.GrrMessage(
-        request_id=1, response_id=len(messages)+1,
+    messages.append(rdfvalue.GrrMessage(
+        request_id=1, response_id=len(messages)+1, task_id=15,
         session_id=messages[0].session_id, payload=status,
-        type=rdfvalue.GrrMessage.Type.STATUS)]
+        type=rdfvalue.GrrMessage.Type.STATUS))
 
-    self.server.ReceiveMessages(status_messages)
+    self.server.ReceiveMessages(self.client_id, messages)
+
+    # Make sure the task is still on the client queue
+    tasks_on_client_queue = scheduler.SCHEDULER.Query(self.client_id, 100,
+                                                      token=self.token)
+    self.assertEqual(len(tasks_on_client_queue), 1)
+
+    # Check that messages were stored correctly
+    for message in messages:
+      stored_message, _ = data_store.DB.Resolve(
+          session_id.Add("state/request:00000001"),
+          flow_runner.QueueManager.FLOW_RESPONSE_TEMPLATE % (
+              1, message.response_id),
+          decoder=rdfvalue.GrrMessage, token=self.token)
+
+      self.assertProtoEqual(stored_message, message)
 
   def testWellKnownFlows(self):
     """Make sure that well known flows can run on the front end."""
@@ -128,7 +151,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
                                     args=str(i))
                 for i in range(1, 10)]
 
-    self.server.ReceiveMessages(messages)
+    self.server.ReceiveMessages(self.client_id, messages)
 
     # Wait for async actions to complete
     self.server.thread_pool.Join()
@@ -156,7 +179,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
     # Delete the local well known flow cache is empty.
     self.server.well_known_flows = {}
-    self.server.ReceiveMessages(messages)
+    self.server.ReceiveMessages(self.client_id, messages)
 
     # Wait for async actions to complete
     self.server.thread_pool.Join()
@@ -171,7 +194,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     # The well known flow messages should be waiting in the flow state now:
     queued_messages = []
     for predicate, _, _ in data_store.DB.ResolveRegex(
-        "%s/state" % session_id, "flow:.*", token=self.token):
+        session_id.Add("state/request:00000000"), "flow:.*", token=self.token):
       queued_messages.append(predicate)
 
     self.assertEqual(len(queued_messages), 9)
@@ -198,13 +221,13 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
       # Retrieve the request state for this request_id
       request_state, _ = data_store.DB.Resolve(
-          flow_runner.QueueManager.FLOW_STATE_TEMPLATE % session_id,
+          session_id.Add("state"),
           flow_runner.QueueManager.FLOW_REQUEST_TEMPLATE % request_id,
           decoder=rdfvalue.RequestState, token=self.token)
 
-      # Check that ts_id for the client message is correctly set in
-      # request_state
-      self.assertEqual(request_state.ts_id, task.task_id)
+      # Check that task_id for the client message is correctly set in
+      # request_state.
+      self.assertEqual(request_state.request.task_id, task.task_id)
 
     # Now ask the server to drain the outbound messages into the
     # message list.

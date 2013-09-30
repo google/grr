@@ -195,6 +195,7 @@ class ActionPlugin(object):
                               response_id=self.response_id,
                               request_id=self.message.request_id,
                               message_type=message_type,
+                              task_id=self.message.task_id,
                               priority=self.priority,
                               require_fastpoll=self.require_fastpoll)
 

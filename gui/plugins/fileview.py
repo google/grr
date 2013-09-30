@@ -357,7 +357,7 @@ class InterfaceRenderer(semantic.RDFProtoRenderer):
     return " ".join([socket.inet_ntop(socket.AF_INET, x) for x in value])
 
   def TranslateMacAddress(self, _, value):
-    return ":".join([x.encode("hex") for x in value])
+    return value.human_readable_address
 
   def TranslateIp6Addresses(self, _, value):
     return " ".join([socket.inet_ntop(socket.AF_INET6, x) for x in value])

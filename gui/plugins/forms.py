@@ -790,7 +790,7 @@ class MultiSelectListRenderer(RepeatedFieldFormRenderer):
 
   Set self.values to the list of things that should be rendered.
   """
-
+  type_descriptor = None
   type = None
   values = []
 

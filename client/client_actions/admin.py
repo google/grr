@@ -193,18 +193,21 @@ class UpdateConfiguration(actions.ActionPlugin):
       pass
 
 
+def GetClientInformation():
+  return rdfvalue.ClientInformation(
+      client_name=config_lib.CONFIG["Client.name"],
+      client_description=config_lib.CONFIG["Client.description"],
+      client_version=int(config_lib.CONFIG["Client.version_numeric"]),
+      build_time=config_lib.CONFIG["Client.build_time"],
+      labels=config_lib.CONFIG.Get("Client.labels", default=None))
+
+
 class GetClientInfo(actions.ActionPlugin):
   """Obtains information about the GRR client installed."""
   out_rdfvalue = rdfvalue.ClientInformation
 
   def Run(self, unused_args):
-
-    self.SendReply(
-        client_name=config_lib.CONFIG["Client.name"],
-        client_description=config_lib.CONFIG["Client.description"],
-        client_version=int(config_lib.CONFIG["Client.version_numeric"]),
-        build_time=config_lib.CONFIG["Client.build_time"],
-        )
+    self.SendReply(GetClientInformation())
 
 
 class GetClientStats(actions.ActionPlugin):
@@ -274,16 +277,10 @@ class SendStartupInfo(actions.ActionPlugin):
   def Run(self, unused_arg, ttl=None):
     """Returns the startup information."""
     logging.debug("Sending startup information.")
-    client_info = rdfvalue.ClientInformation(
-        client_name=config_lib.CONFIG["Client.name"],
-        client_description=config_lib.CONFIG["Client.description"],
-        client_version=int(config_lib.CONFIG["Client.version_numeric"]),
-        build_time=config_lib.CONFIG["Client.build_time"])
-    if config_lib.CONFIG.Get("Client.labels"):
-      client_info.labels = config_lib.CONFIG["Client.labels"]
+
     response = rdfvalue.StartupInfo(
         boot_time=long(psutil.BOOT_TIME * 1e6),
-        client_info=client_info)
+        client_info=GetClientInformation())
 
     self.grr_worker.SendReply(
         response,

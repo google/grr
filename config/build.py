@@ -32,6 +32,19 @@ config_lib.DEFINE_string("MemoryDriver.display_name", "%(service_name)",
                          "The display name of the service created for "
                          "the driver (Windows).")
 
+config_lib.DEFINE_option(type_info.RDFValueType(
+    rdfclass=rdfvalue.RDFURN,
+    name="Config.aff4_root", default="aff4:/config/",
+    description=("The path where the configs are stored in the aff4 "
+                 "namespace.")))
+
+config_lib.DEFINE_option(type_info.RDFValueType(
+    rdfclass=rdfvalue.RDFURN,
+    name="Config.python_hack_root",
+    default="%(Config.aff4_root)/python_hacks",
+    description=("The path where python hacks are stored in the aff4 "
+                 "namespace.")))
+
 # Executables must be signed and uploaded to their dedicated AFF4 namespace.
 config_lib.DEFINE_option(type_info.RDFValueType(
     rdfclass=rdfvalue.RDFURN,

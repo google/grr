@@ -68,7 +68,8 @@ class HuntRunner(flow_runner.FlowRunner):
       if not self.IsHuntStarted():
         logging.debug(
             "Unable to start client %s on hunt %s which is in state %s",
-            request.client_id, self.session_id, self.args.state)
+            request.client_id, self.session_id,
+            self.flow_obj.Get(self.flow_obj.Schema.STATE))
         return
 
       # Update the client count.
@@ -163,10 +164,10 @@ class HuntRunner(flow_runner.FlowRunner):
     """
     return rdfvalue.SessionID(base="aff4:/hunts", queue=self.args.queue)
 
-  def Start(self):
+  def Start(self, add_foreman_rules=True):
     """This uploads the rules to the foreman and, thus, starts the hunt."""
     # We are already running.
-    if self.args.state == HuntRunnerArgs.State.STARTED:
+    if self.flow_obj.Get(self.flow_obj.Schema.STATE) == "STARTED":
       return
 
     # Check the permissions for the hunt here. Note that self.args.token is the
@@ -179,6 +180,13 @@ class HuntRunner(flow_runner.FlowRunner):
 
     # Determine when this hunt will expire.
     self.context.expires = self.args.expiry_time.Expiry()
+
+    # Start the hunt.
+    self.flow_obj.Set(self.flow_obj.Schema.STATE("STARTED"))
+    self.flow_obj.Flush()
+
+    if not add_foreman_rules:
+      return
 
     # Add a new rule to the foreman
     foreman_rule = rdfvalue.ForemanRule(
@@ -195,12 +203,6 @@ class HuntRunner(flow_runner.FlowRunner):
 
     # Make sure the rule makes sense.
     foreman_rule.Validate()
-
-    # Start the hunt.
-    # TODO(user): We shouldn't modify args.state. State should be stored
-    # as part of the runner state, not as part of the args.
-    self.args.state = HuntRunnerArgs.State.STARTED
-    self.flow_obj.Flush()
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token,
                                 aff4_type="GRRForeman", ignore_cache=True)
@@ -234,7 +236,7 @@ class HuntRunner(flow_runner.FlowRunner):
 
     self._RemoveForemanRule()
 
-    self.args.state = HuntRunnerArgs.State.PAUSED
+    self.flow_obj.Set(self.flow_obj.Schema.STATE("PAUSED"))
     self.flow_obj.Flush()
 
   def Stop(self):
@@ -247,7 +249,7 @@ class HuntRunner(flow_runner.FlowRunner):
     self.args.expires = rdfvalue.RDFDatetime().Now()
     self._RemoveForemanRule()
 
-    self.args.state = HuntRunnerArgs.State.STOPPED
+    self.flow_obj.Set(self.flow_obj.Schema.STATE("STOPPED"))
     self.flow_obj.Flush()
 
   def IsRunning(self):
@@ -275,8 +277,8 @@ class HuntRunner(flow_runner.FlowRunner):
       If a new client is allowed to be scheduled on this hunt.
     """
     # Hunt is considered running in PAUSED or STARTED states.
-    if self.args.state in [HuntRunnerArgs.State.STOPPED,
-                           HuntRunnerArgs.State.PAUSED]:
+    state = self.flow_obj.Get(self.flow_obj.Schema.STATE)
+    if state in ["STOPPED", "PAUSED"]:
       return False
 
     # Hunt has expired.
@@ -329,6 +331,13 @@ class GRRHunt(flow.GRRFlow):
     LOG = aff4.Attribute("aff4:result_log", rdfvalue.HuntLog,
                          "The log entries.",
                          creates_new_object_version=False)
+
+    # This needs to be kept out the args semantic value since must be updated
+    # without taking a lock on the hunt object.
+    STATE = aff4.Attribute(
+        "aff4:hunt_state", rdfvalue.RDFString,
+        "The state of this hunt Can be 'STOPPED', 'STARTED' or 'PAUSED'.",
+        versioned=False, lock_protected=False, default="PAUSED")
 
   args_type = None
 
@@ -389,7 +398,7 @@ class GRRHunt(flow.GRRFlow):
 
     # Hunts are always created in the paused state. The runner method Start
     # should be called to start them.
-    runner_args.state = HuntRunnerArgs.State.PAUSED
+    hunt_obj.Set(hunt_obj.Schema.STATE("PAUSED"))
 
     with hunt_obj.CreateRunner(runner_args=runner_args) as runner:
       # Allow the hunt to do its own initialization.

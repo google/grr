@@ -7,7 +7,6 @@
 
 
 import collections as py_collections
-import json
 import operator
 import StringIO
 import urllib
@@ -27,7 +26,6 @@ from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
-from grr.lib.hunts import implementation
 from grr.lib.hunts import output_plugins
 
 
@@ -65,10 +63,9 @@ class HuntStateIcon(semantic.RDFValueRenderer):
 """)
 
   # Maps the flow states to icons we can show
-  state_map = {
-      implementation.HuntRunnerArgs.State.STOPPED: "stock_yes.png",
-      implementation.HuntRunnerArgs.State.STARTED: "clock.png",
-      implementation.HuntRunnerArgs.State.PAUSED: "pause.png"}
+  state_map = {"STOPPED": "stock_yes.png",
+               "STARTED": "clock.png",
+               "PAUSED": "pause.png"}
 
   def Layout(self, request, response):
     self.state_str = str(self.proxy)
@@ -298,7 +295,7 @@ class HuntTable(fileview.AbstractFileTable):
 
         self.AddRow({"Hunt ID": hunt_obj.urn,
                      "Name": hunt_obj.__class__.__name__,
-                     "Status": runner.context.args.state,
+                     "Status": hunt_obj.Get(hunt_obj.Schema.STATE),
                      "Start Time": runner.context.start_time,
                      "Expires": runner.context.expires,
                      "Client Limit": runner.args.client_limit,
@@ -692,7 +689,7 @@ class HuntOverviewRenderer(AbstractLogRenderer):
           self.data = py_collections.OrderedDict()
           self.data["Start Time"] = runner.context.start_time
           self.data["Expiry Time"] = runner.context.expires
-          self.data["Status"] = runner.context.state
+          self.data["Status"] = self.hunt.Get(self.hunt.Schema.STATE)
 
           self.client_limit = runner.args.client_limit
 
@@ -973,9 +970,8 @@ class HuntResultsRenderer(semantic.RDFValueCollectionRenderer):
     with hunt.GetRunner() as runner:
       for plugin in runner.context.output_plugins:
         if isinstance(plugin, output_plugins.CollectionPlugin):
-          collection_urn = plugin.collection.urn
           return super(HuntResultsRenderer, self).Layout(
-              request, response, aff4_path=collection_urn)
+              request, response, aff4_path=plugin.collection_urn)
 
     return self.RenderFromTemplate(self.no_plugin_template, response)
 
@@ -1124,7 +1120,8 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
       "No information available for this Hunt.")
 
   def _HistogramToJSON(self, histogram):
-    return json.dumps([(b.range_max_value, b.num) for b in histogram.bins])
+    hist_data = [(b.range_max_value, b.num) for b in histogram.bins]
+    return renderers.JsonDumpForScriptContext(hist_data)
 
   def Layout(self, request, response):
     """Layout the HuntStatsRenderer data."""

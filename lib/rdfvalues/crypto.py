@@ -87,8 +87,7 @@ class PEMPrivateKey(rdfvalue.RDFString):
     rsa.save_pub_key_bio(m)
     return PEMPublicKey(m.read_all())
 
-  def ParseFromString(self, pem_string):
-    super(PEMPrivateKey, self).ParseFromString(pem_string)
+  def Validate(self):
     try:
       rsa = self.GetPrivateKey()
       rsa.check_key()

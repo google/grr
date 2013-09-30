@@ -18,6 +18,7 @@ from grr.client import client
 from grr.client import client_plugins
 # pylint: enable=unused-import
 
+from grr.client import comms
 from grr.client import vfs
 from grr.lib import config_lib
 from grr.lib import flags
@@ -84,8 +85,9 @@ def CreateClientPool(n):
     pass
 
   while len(clients) < n:
-    # Force the client to regenerate the RSA key pair each time.
-    clients.append(PoolGRRClient(private_key="Invalid"))
+    # Generate a new RSA key pair for each client.
+    key = rdfvalue.PEMPrivateKey.GenKey(bits=comms.ClientCommunicator.BITS)
+    clients.append(PoolGRRClient(private_key=key))
 
   # Start all the clients now.
   for c in clients:

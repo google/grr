@@ -152,7 +152,7 @@ class OutputPluginsTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(DummyCronHuntOutputPluginFlow.batch_ended, 1)
 
     # Stop the hunt and check that no new batches were processed and that
-    # cron job is deleted.
+    # cron job is disabled.
     with aff4.FACTORY.Open(hunt_urn, mode="rw", token=self.token) as hunt:
       hunt.Stop()
 
@@ -233,16 +233,19 @@ class OutputPluginsTest(test_lib.FlowTestsBaseclass):
           token=self.token) as hunt:
         hunt.Run()
 
+      hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
+                                   mode="rw", token=self.token)
+
       self.client_ids = self.SetupClients(40)
       for client_id in self.client_ids:
-        hunt.StartClient(hunt.session_id, client_id)
+        hunt_obj.StartClient(hunt_obj.session_id, client_id)
 
       # Run the hunt.
       client_mock = test_lib.SampleHuntMock()
       test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
       # Stop the hunt now.
-      with hunt.GetRunner() as runner:
+      with hunt_obj.GetRunner() as runner:
         runner.Stop()
 
       hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,

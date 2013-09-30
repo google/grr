@@ -437,6 +437,17 @@ pre.inline {
     font-family: "Courier New", Courier, monospace;
 }
 
+select.artifact_list {
+    height: 300px;
+}
+
+table.artifact_table {
+  vertical-align: top;
+  border-spacing: 5px;
+  border-collapse: separate;
+}
+
+
 /*------------------------------------------------------------------
   Scrollbars
   ------------------------------------------------------------------*/

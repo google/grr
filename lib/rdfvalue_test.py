@@ -15,7 +15,7 @@ from grr.lib.rdfvalues import tests
 
 
 class RDFValueTestLoader(test_lib.GRRTestLoader):
-  base_class = test_base.RDFValueTestCase
+  base_class = test_base.RDFValueBaseTest
 
 
 def main(argv):

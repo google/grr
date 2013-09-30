@@ -253,8 +253,7 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
                     "EmailPlugin")
 
     # Check that hunt was not started
-    self.assertEqual(hunt.state.context.args.state,
-                     rdfvalue.HuntRunnerArgs.State.PAUSED)
+    self.assertEqual(hunt.Get(hunt.Schema.STATE), "PAUSED")
 
     # Now try to start the hunt.
     self.Click("css=button[name=RunHunt]")

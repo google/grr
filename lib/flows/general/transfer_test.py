@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
-
 """Test the file transfer mechanism."""
 
 
@@ -14,7 +12,6 @@ from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.flows.general import sophos
 from grr.lib.flows.general import transfer
 
 
@@ -245,38 +242,6 @@ class TestFileCollector(test_lib.FlowTestsBaseclass):
       self.assertTrue(file_re.search(path))
       child_fd = aff4.FACTORY.Open(path, token=self.token)
       self.assertTrue(isinstance(child_fd, aff4.AFF4Stream))
-
-  def testSophosCollector(self):
-    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find")
-
-    output_path = "analysis/MyDownloadedFiles"
-
-    client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    client.Set(client.Schema.SYSTEM("Windows"))
-    client.Close()
-
-    for _ in test_lib.TestFlowHelper("TestSophosCollector", client_mock,
-                                     token=self.token, client_id=self.client_id,
-                                     output=output_path):
-      pass
-
-    # Check the output file is created
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
-    file_re = re.compile("(ntfs_img.dd|sqlite)$")
-    # Make sure that it is a file.
-    actual_children = [c for c in os.listdir(self.base_path) if
-                       file_re.search(c)]
-    children = list(fd.OpenChildren())
-    self.assertEqual(len(children), len(actual_children))
-    for child in children:
-      path = utils.SmartStr(child.urn)
-      self.assertTrue(file_re.search(path))
-      child_fd = aff4.FACTORY.Open(path, token=self.token)
-      self.assertTrue(isinstance(child_fd, aff4.AFF4Stream))
-
-
-class TestSophosCollector(sophos.SophosCollector):
-  collector_flow = "TestCollector"
 
 
 class TestCollector(transfer.FileCollector):

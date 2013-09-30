@@ -16,7 +16,7 @@ import grr.proto.semantic_pb2
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='grr/proto/export.proto',
   package='',
-  serialized_pb='\n\x16grr/proto/export.proto\x1a\x14grr/proto/jobs.proto\x1a\x17grr/proto/sysinfo.proto\x1a\x18grr/proto/semantic.proto\"\x85\x01\n\rExportOptions\x12t\n\x15\x65xport_files_contents\x18\x01 \x01(\x08:\x05\x66\x61lseBN\xe2\xfc\xe3\xc4\x01H\x12\x46If this is true, open files and export their full or partial contents.\"\xc0\x03\n\x10\x45xportedMetadata\x12V\n\nclient_urn\x18\x01 \x01(\tBB\xe2\xfc\xe3\xc4\x01<\n\tClientURN\x12/Client ID of a client that contains this entry.\x12\x10\n\x08hostname\x18\x02 \x01(\t\x12\n\n\x02os\x18\x03 \x01(\t\x12;\n\nclient_age\x18\x04 \x01(\x04\x42\'\xe2\xfc\xe3\xc4\x01!\n\x0bRDFDatetime\x12\x12\x41ge of the client.\x12\r\n\x05uname\x18\x05 \x01(\t\x12\x12\n\nos_release\x18\x06 \x01(\t\x12\x12\n\nos_version\x18\x07 \x01(\t\x12\x11\n\tusernames\x18\x08 \x01(\t\x12\x13\n\x0bmac_address\x18\t \x01(\t\x12\x44\n\ttimestamp\x18\n \x01(\x04\x42\x31\xe2\xfc\xe3\xc4\x01+\n\x0bRDFDatetime\x12\x1cWhen metadata were recorded.\x12T\n\nsession_id\x18\x0b \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\tSessionID\x12-Session id of a hunt that collected the data.\"5\n\x0e\x45xportedClient\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\"\x92\x01\n\x18\x45xportedNetworkInterface\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x13\n\x0bmac_address\x18\x02 \x01(\t\x12\x0e\n\x06ifname\x18\x03 \x01(\t\x12\x15\n\rip4_addresses\x18\x04 \x01(\t\x12\x15\n\rip6_addresses\x18\x05 \x01(\t\"\xca\x05\n\x0c\x45xportedFile\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12I\n\x03urn\x18\x02 \x01(\tB<\xe2\xfc\xe3\xc4\x01\x36\n\x06RDFURN\x12,The location of this file in the AFF4 space.\x12/\n\x08\x62\x61sename\x18\x03 \x01(\tB\x1d\xe2\xfc\xe3\xc4\x01\x17\x12\x15\x42\x61sename of the file.\x12?\n\x07st_mode\x18\x04 \x01(\x04\x42.\xe2\xfc\xe3\xc4\x01(\n\x08StatMode\x12\x1c\x41 unix file permission mode.\x12\x0e\n\x06st_ino\x18\x05 \x01(\r\x12\x0e\n\x06st_dev\x18\x06 \x01(\r\x12\x10\n\x08st_nlink\x18\x07 \x01(\r\x12\x0e\n\x06st_uid\x18\x08 \x01(\r\x12\x0e\n\x06st_gid\x18\t \x01(\r\x12\x0f\n\x07st_size\x18\n \x01(\x04\x12?\n\x08st_atime\x18\x0b \x01(\x04\x42-\xe2\xfc\xe3\xc4\x01\'\n\x12RDFDatetimeSeconds\x12\x11Last access time.\x12\x41\n\x08st_mtime\x18\x0c \x01(\x04\x42/\xe2\xfc\xe3\xc4\x01)\n\x12RDFDatetimeSeconds\x12\x13Last modified time.\x12\x45\n\x08st_ctime\x18\r \x01(\x04\x42\x33\xe2\xfc\xe3\xc4\x01-\n\x12RDFDatetimeSeconds\x12\x17Last inode change time.\x12\x11\n\tst_blocks\x18\x0e \x01(\r\x12\x12\n\nst_blksize\x18\x0f \x01(\r\x12\x0f\n\x07st_rdev\x18\x10 \x01(\r\x12\x0f\n\x07symlink\x18\x11 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x12 \x01(\x0c\x12\x16\n\x0e\x63ontent_sha256\x18\x13 \x01(\t\x12\x10\n\x08hash_md5\x18\x14 \x01(\t\x12\x11\n\thash_sha1\x18\x15 \x01(\t\x12\x13\n\x0bhash_sha256\x18\x16 \x01(\t\"\xf3\x01\n\x13\x45xportedRegistryKey\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x35\n\x03urn\x18\x02 \x01(\tB(\xe2\xfc\xe3\xc4\x01\"\n\x06RDFURN\x12\x18URN of the registry key.\x12K\n\rlast_modified\x18\x03 \x01(\x04\x42\x34\xe2\xfc\xe3\xc4\x01.\n\x12RDFDatetimeSeconds\x12\x18Last modified timestamp.\x12%\n\x04type\x18\x04 \x01(\x0e\x32\x17.StatEntry.RegistryType\x12\x0c\n\x04\x64\x61ta\x18\x05 \x01(\x0c\"\xe9\x03\n\x0f\x45xportedProcess\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0b\n\x03pid\x18\x02 \x01(\r\x12\x0c\n\x04ppid\x18\x03 \x01(\r\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0b\n\x03\x65xe\x18\x05 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x06 \x01(\t\x12\r\n\x05\x63time\x18\x07 \x01(\x04\x12\x10\n\x08real_uid\x18\x08 \x01(\r\x12\x15\n\reffective_uid\x18\t \x01(\r\x12\x11\n\tsaved_uid\x18\n \x01(\r\x12\x10\n\x08real_gid\x18\x0b \x01(\r\x12\x15\n\reffective_gid\x18\x0c \x01(\r\x12\x11\n\tsaved_gid\x18\r \x01(\r\x12\x10\n\x08username\x18\x0e \x01(\t\x12\x10\n\x08terminal\x18\x0f \x01(\t\x12\x0e\n\x06status\x18\x10 \x01(\t\x12\x0c\n\x04nice\x18\x11 \x01(\x05\x12\x0b\n\x03\x63wd\x18\x12 \x01(\t\x12\x13\n\x0bnum_threads\x18\x13 \x01(\r\x12\x15\n\ruser_cpu_time\x18\x14 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x15 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x16 \x01(\x02\x12\x10\n\x08rss_size\x18\x17 \x01(\x04\x12\x10\n\x08vms_size\x18\x18 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x19 \x01(\x02\"\xc3\x02\n\x19\x45xportedNetworkConnection\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12)\n\x06\x66\x61mily\x18\x02 \x01(\x0e\x32\x19.NetworkConnection.Family\x12\x35\n\x04type\x18\x03 \x01(\x0e\x32\x17.NetworkConnection.Type:\x0eUNKNOWN_SOCKET\x12\'\n\rlocal_address\x18\x04 \x01(\x0b\x32\x10.NetworkEndpoint\x12(\n\x0eremote_address\x18\x05 \x01(\x0b\x32\x10.NetworkEndpoint\x12\x30\n\x05state\x18\x06 \x01(\x0e\x32\x18.NetworkConnection.State:\x07UNKNOWN\x12\x0b\n\x03pid\x18\x07 \x01(\r\x12\r\n\x05\x63time\x18\x08 \x01(\x04\"R\n\x10\x45xportedOpenFile\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0b\n\x03pid\x18\x02 \x01(\r\x12\x0c\n\x04path\x18\x03 \x01(\t\"\x98\x01\n\x18\x45xportedVolatilityHandle\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0e\n\x06offset\x18\x02 \x01(\x04\x12\x0b\n\x03pid\x18\x03 \x01(\r\x12\x0e\n\x06handle\x18\x04 \x01(\r\x12\x0e\n\x06\x61\x63\x63\x65ss\x18\x05 \x01(\r\x12\x0c\n\x04type\x18\x06 \x01(\t\x12\x0c\n\x04path\x18\x07 \x01(\t\"\xb3\x01\n\x18\x45xportedVolatilityMutant\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0e\n\x06offset\x18\x02 \x01(\x04\x12\x11\n\tptr_count\x18\x03 \x01(\r\x12\x14\n\x0chandle_count\x18\x04 \x01(\r\x12\x0e\n\x06signal\x18\x05 \x01(\r\x12\x0e\n\x06thread\x18\x06 \x01(\x04\x12\x0b\n\x03\x63id\x18\x07 \x01(\t\x12\x0c\n\x04name\x18\x08 \x01(\t')
+  serialized_pb='\n\x16grr/proto/export.proto\x1a\x14grr/proto/jobs.proto\x1a\x17grr/proto/sysinfo.proto\x1a\x18grr/proto/semantic.proto\"\x85\x01\n\rExportOptions\x12t\n\x15\x65xport_files_contents\x18\x01 \x01(\x08:\x05\x66\x61lseBN\xe2\xfc\xe3\xc4\x01H\x12\x46If this is true, open files and export their full or partial contents.\"\xc0\x03\n\x10\x45xportedMetadata\x12V\n\nclient_urn\x18\x01 \x01(\tBB\xe2\xfc\xe3\xc4\x01<\n\tClientURN\x12/Client ID of a client that contains this entry.\x12\x10\n\x08hostname\x18\x02 \x01(\t\x12\n\n\x02os\x18\x03 \x01(\t\x12;\n\nclient_age\x18\x04 \x01(\x04\x42\'\xe2\xfc\xe3\xc4\x01!\n\x0bRDFDatetime\x12\x12\x41ge of the client.\x12\r\n\x05uname\x18\x05 \x01(\t\x12\x12\n\nos_release\x18\x06 \x01(\t\x12\x12\n\nos_version\x18\x07 \x01(\t\x12\x11\n\tusernames\x18\x08 \x01(\t\x12\x13\n\x0bmac_address\x18\t \x01(\t\x12\x44\n\ttimestamp\x18\n \x01(\x04\x42\x31\xe2\xfc\xe3\xc4\x01+\n\x0bRDFDatetime\x12\x1cWhen metadata were recorded.\x12T\n\nsession_id\x18\x0b \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\tSessionID\x12-Session id of a hunt that collected the data.\"5\n\x0e\x45xportedClient\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\"\x92\x01\n\x18\x45xportedNetworkInterface\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x13\n\x0bmac_address\x18\x02 \x01(\t\x12\x0e\n\x06ifname\x18\x03 \x01(\t\x12\x15\n\rip4_addresses\x18\x04 \x01(\t\x12\x15\n\rip6_addresses\x18\x05 \x01(\t\"\xd1\x07\n\x0c\x45xportedFile\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12I\n\x03urn\x18\x02 \x01(\tB<\xe2\xfc\xe3\xc4\x01\x36\n\x06RDFURN\x12,The location of this file in the AFF4 space.\x12/\n\x08\x62\x61sename\x18\x03 \x01(\tB\x1d\xe2\xfc\xe3\xc4\x01\x17\x12\x15\x42\x61sename of the file.\x12?\n\x07st_mode\x18\x04 \x01(\x04\x42.\xe2\xfc\xe3\xc4\x01(\n\x08StatMode\x12\x1c\x41 unix file permission mode.\x12\x0e\n\x06st_ino\x18\x05 \x01(\r\x12\x0e\n\x06st_dev\x18\x06 \x01(\r\x12\x10\n\x08st_nlink\x18\x07 \x01(\r\x12\x0e\n\x06st_uid\x18\x08 \x01(\r\x12\x0e\n\x06st_gid\x18\t \x01(\r\x12\x0f\n\x07st_size\x18\n \x01(\x04\x12?\n\x08st_atime\x18\x0b \x01(\x04\x42-\xe2\xfc\xe3\xc4\x01\'\n\x12RDFDatetimeSeconds\x12\x11Last access time.\x12\x41\n\x08st_mtime\x18\x0c \x01(\x04\x42/\xe2\xfc\xe3\xc4\x01)\n\x12RDFDatetimeSeconds\x12\x13Last modified time.\x12\x45\n\x08st_ctime\x18\r \x01(\x04\x42\x33\xe2\xfc\xe3\xc4\x01-\n\x12RDFDatetimeSeconds\x12\x17Last inode change time.\x12\x11\n\tst_blocks\x18\x0e \x01(\r\x12\x12\n\nst_blksize\x18\x0f \x01(\r\x12\x0f\n\x07st_rdev\x18\x10 \x01(\r\x12\x0f\n\x07symlink\x18\x11 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x12 \x01(\x0c\x12\x16\n\x0e\x63ontent_sha256\x18\x13 \x01(\t\x12\x10\n\x08hash_md5\x18\x14 \x01(\t\x12\x11\n\thash_sha1\x18\x15 \x01(\t\x12\x13\n\x0bhash_sha256\x18\x16 \x01(\t\x12\x17\n\x0fpecoff_hash_md5\x18\x17 \x01(\t\x12\x18\n\x10pecoff_hash_sha1\x18\x18 \x01(\t\x12\x18\n\x10\x63\x65rt_hasher_name\x18\x19 \x01(\t\x12\x19\n\x11\x63\x65rt_program_name\x18\x1a \x01(\t\x12\x18\n\x10\x63\x65rt_program_url\x18\x1b \x01(\t\x12\x17\n\x0f\x63\x65rt_signing_id\x18\x1c \x01(\t\x12\x1e\n\x16\x63\x65rt_chain_head_issuer\x18\x1d \x01(\t\x12/\n\'cert_countersignature_chain_head_issuer\x18\x1e \x01(\t\x12\x19\n\x11\x63\x65rt_certificates\x18\x1f \x01(\t\"\xf3\x01\n\x13\x45xportedRegistryKey\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x35\n\x03urn\x18\x02 \x01(\tB(\xe2\xfc\xe3\xc4\x01\"\n\x06RDFURN\x12\x18URN of the registry key.\x12K\n\rlast_modified\x18\x03 \x01(\x04\x42\x34\xe2\xfc\xe3\xc4\x01.\n\x12RDFDatetimeSeconds\x12\x18Last modified timestamp.\x12%\n\x04type\x18\x04 \x01(\x0e\x32\x17.StatEntry.RegistryType\x12\x0c\n\x04\x64\x61ta\x18\x05 \x01(\x0c\"\xe9\x03\n\x0f\x45xportedProcess\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0b\n\x03pid\x18\x02 \x01(\r\x12\x0c\n\x04ppid\x18\x03 \x01(\r\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0b\n\x03\x65xe\x18\x05 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x06 \x01(\t\x12\r\n\x05\x63time\x18\x07 \x01(\x04\x12\x10\n\x08real_uid\x18\x08 \x01(\r\x12\x15\n\reffective_uid\x18\t \x01(\r\x12\x11\n\tsaved_uid\x18\n \x01(\r\x12\x10\n\x08real_gid\x18\x0b \x01(\r\x12\x15\n\reffective_gid\x18\x0c \x01(\r\x12\x11\n\tsaved_gid\x18\r \x01(\r\x12\x10\n\x08username\x18\x0e \x01(\t\x12\x10\n\x08terminal\x18\x0f \x01(\t\x12\x0e\n\x06status\x18\x10 \x01(\t\x12\x0c\n\x04nice\x18\x11 \x01(\x05\x12\x0b\n\x03\x63wd\x18\x12 \x01(\t\x12\x13\n\x0bnum_threads\x18\x13 \x01(\r\x12\x15\n\ruser_cpu_time\x18\x14 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x15 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x16 \x01(\x02\x12\x10\n\x08rss_size\x18\x17 \x01(\x04\x12\x10\n\x08vms_size\x18\x18 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x19 \x01(\x02\"\xc3\x02\n\x19\x45xportedNetworkConnection\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12)\n\x06\x66\x61mily\x18\x02 \x01(\x0e\x32\x19.NetworkConnection.Family\x12\x35\n\x04type\x18\x03 \x01(\x0e\x32\x17.NetworkConnection.Type:\x0eUNKNOWN_SOCKET\x12\'\n\rlocal_address\x18\x04 \x01(\x0b\x32\x10.NetworkEndpoint\x12(\n\x0eremote_address\x18\x05 \x01(\x0b\x32\x10.NetworkEndpoint\x12\x30\n\x05state\x18\x06 \x01(\x0e\x32\x18.NetworkConnection.State:\x07UNKNOWN\x12\x0b\n\x03pid\x18\x07 \x01(\r\x12\r\n\x05\x63time\x18\x08 \x01(\x04\"R\n\x10\x45xportedOpenFile\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0b\n\x03pid\x18\x02 \x01(\r\x12\x0c\n\x04path\x18\x03 \x01(\t\"\x98\x01\n\x18\x45xportedVolatilityHandle\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0e\n\x06offset\x18\x02 \x01(\x04\x12\x0b\n\x03pid\x18\x03 \x01(\r\x12\x0e\n\x06handle\x18\x04 \x01(\r\x12\x0e\n\x06\x61\x63\x63\x65ss\x18\x05 \x01(\r\x12\x0c\n\x04type\x18\x06 \x01(\t\x12\x0c\n\x04path\x18\x07 \x01(\t\"\xb3\x01\n\x18\x45xportedVolatilityMutant\x12#\n\x08metadata\x18\x01 \x01(\x0b\x32\x11.ExportedMetadata\x12\x0e\n\x06offset\x18\x02 \x01(\x04\x12\x11\n\tptr_count\x18\x03 \x01(\r\x12\x14\n\x0chandle_count\x18\x04 \x01(\r\x12\x0e\n\x06signal\x18\x05 \x01(\r\x12\x0e\n\x06thread\x18\x06 \x01(\x04\x12\x0b\n\x03\x63id\x18\x07 \x01(\t\x12\x0c\n\x04name\x18\x08 \x01(\t')
 
 
 
@@ -392,6 +392,69 @@ _EXPORTEDFILE = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='pecoff_hash_md5', full_name='ExportedFile.pecoff_hash_md5', index=22,
+      number=23, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='pecoff_hash_sha1', full_name='ExportedFile.pecoff_hash_sha1', index=23,
+      number=24, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='cert_hasher_name', full_name='ExportedFile.cert_hasher_name', index=24,
+      number=25, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='cert_program_name', full_name='ExportedFile.cert_program_name', index=25,
+      number=26, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='cert_program_url', full_name='ExportedFile.cert_program_url', index=26,
+      number=27, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='cert_signing_id', full_name='ExportedFile.cert_signing_id', index=27,
+      number=28, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='cert_chain_head_issuer', full_name='ExportedFile.cert_chain_head_issuer', index=28,
+      number=29, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='cert_countersignature_chain_head_issuer', full_name='ExportedFile.cert_countersignature_chain_head_issuer', index=29,
+      number=30, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='cert_certificates', full_name='ExportedFile.cert_certificates', index=30,
+      number=31, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -402,7 +465,7 @@ _EXPORTEDFILE = _descriptor.Descriptor(
   is_extendable=False,
   extension_ranges=[],
   serialized_start=891,
-  serialized_end=1605,
+  serialized_end=1868,
 )
 
 
@@ -457,8 +520,8 @@ _EXPORTEDREGISTRYKEY = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1608,
-  serialized_end=1851,
+  serialized_start=1871,
+  serialized_end=2114,
 )
 
 
@@ -653,8 +716,8 @@ _EXPORTEDPROCESS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1854,
-  serialized_end=2343,
+  serialized_start=2117,
+  serialized_end=2606,
 )
 
 
@@ -730,8 +793,8 @@ _EXPORTEDNETWORKCONNECTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2346,
-  serialized_end=2669,
+  serialized_start=2609,
+  serialized_end=2932,
 )
 
 
@@ -772,8 +835,8 @@ _EXPORTEDOPENFILE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2671,
-  serialized_end=2753,
+  serialized_start=2934,
+  serialized_end=3016,
 )
 
 
@@ -842,8 +905,8 @@ _EXPORTEDVOLATILITYHANDLE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2756,
-  serialized_end=2908,
+  serialized_start=3019,
+  serialized_end=3171,
 )
 
 
@@ -919,8 +982,8 @@ _EXPORTEDVOLATILITYMUTANT = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2911,
-  serialized_end=3090,
+  serialized_start=3174,
+  serialized_end=3353,
 )
 
 _EXPORTEDCLIENT.fields_by_name['metadata'].message_type = _EXPORTEDMETADATA

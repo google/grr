@@ -106,14 +106,13 @@ class ClientBuilder(BuilderBase):
         config_lib.CONFIG.Get("PyInstaller.distpath", context=self.context),
         "grr-client")
 
-    subprocess.check_call([sys.executable,
-                           config_lib.CONFIG.Get("PyInstaller.path",
+    cmd = [sys.executable, config_lib.CONFIG.Get("PyInstaller.path",
                                                  context=self.context),
-                           "--distpath",
-                           config_lib.CONFIG.Get("PyInstaller.distpath",
-                                                 context=self.context),
-                           self.spec_file,
-                          ])
+           "--distpath", config_lib.CONFIG.Get("PyInstaller.distpath",
+                                               context=self.context),
+           self.spec_file]
+    logging.info("Running pyinstaller: %s", cmd)
+    subprocess.check_call(cmd)
 
   def MakeExecutableTemplate(self):
     """Create the executable template.

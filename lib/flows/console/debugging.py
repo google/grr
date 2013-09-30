@@ -13,6 +13,7 @@ from grr.client import actions
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import flow_runner
 from grr.lib import rdfvalue
 from grr.lib import worker
 from grr.proto import flows_pb2
@@ -197,3 +198,44 @@ def TestClientActionWithWorker(client_id, client_action, print_request=False,
     print str(request)
   StartFlowAndWorker(client_id, flow_name="ClientAction", action=client_action,
                      break_pdb=break_pdb, args=request)
+
+
+def WakeStuckFlow(session_id):
+  """Wake up stuck flows.
+
+  A stuck flow is one which is waiting for the client to do something, but the
+  client requests have been removed from the client queue. This can happen if
+  the system is too loaded and the client messages have TTLed out. In this case
+  we reschedule the client requests for this session.
+
+  Args:
+    session_id: The session for the flow to wake.
+
+  Returns:
+    The total number of client messages re-queued.
+  """
+  session_id = rdfvalue.SessionID(session_id)
+  woken = 0
+  checked_pending = False
+
+  with flow_runner.QueueManager() as manager:
+    for request, responses in manager.FetchRequestsAndResponses(session_id):
+      # We need to check if there are client requests pending.
+      if not checked_pending:
+        task = flow.scheduler.SCHEDULER.Query(
+            request.client_id, task_id="task:%s" % request.request.task_id)
+
+        if task:
+          # Client has tasks pending already.
+          return
+
+        checked_pending = True
+
+      if not responses or responses[-1].type != rdfvalue.GrrMessage.Type.STATUS:
+        manager.QueueClientMessage(request.request)
+        woken += 1
+
+      if responses and responses[-1].type == rdfvalue.GrrMessage.Type.STATUS:
+        manager.QueueNotification(session_id)
+
+  return woken

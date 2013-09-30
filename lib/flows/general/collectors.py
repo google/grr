@@ -131,6 +131,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   category = "/Collectors/"
   args_type = ArtifactCollectorFlowArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state=["ProcessCollected", "ProcessRegistryValue",
                                  "ProcessBootstrap"])

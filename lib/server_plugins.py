@@ -20,6 +20,7 @@ from grr.client import client_plugins
 
 from grr.lib import access_control
 from grr.lib import aff4_objects
+from grr.lib import client_compatibility
 from grr.lib import config_lib
 from grr.lib import data_stores
 from grr.lib import flow

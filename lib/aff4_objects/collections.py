@@ -3,6 +3,7 @@
 
 
 
+import cStringIO
 import struct
 
 from grr.lib import aff4
@@ -50,9 +51,14 @@ class RDFValueCollection(aff4.AFF4Object):
     # stream.
     self.fd = aff4.FACTORY.Create(self.urn.Add("Stream"), "AFF4Image",
                                   mode=self.mode, token=self.token)
-
     self.fd.seek(0, 2)
     self.size = 0
+
+  def SetChunksize(self, chunk_size):
+
+    if self.fd.size != 0:
+      raise ValueError("Cannot set chunk size on an existing collection.")
+    self.fd.SetChunksize(chunk_size)
 
   def Flush(self, sync=False):
     if self._dirty and self.fd:
@@ -81,6 +87,26 @@ class RDFValueCollection(aff4.AFF4Object):
     self.fd.Write(struct.pack("<i", len(data)))
     self.fd.Write(data)
     self.size += 1
+    self._dirty = True
+
+  def AddAll(self, rdf_values):
+    """Adds a list of rdfvalues to the collection."""
+    for rdf_value in rdf_values:
+      if self._rdf_type and not isinstance(rdf_value, self._rdf_type):
+        raise RuntimeError("This collection only accepts values of type %s" %
+                           self._rdf_type.__name__)
+
+      if not rdf_value.age:
+        rdf_value.age.Now()
+
+    buf = cStringIO.StringIO()
+    for rdf_value in rdf_values:
+      data = rdfvalue.EmbeddedRDFValue(payload=rdf_value).SerializeToString()
+      buf.write(struct.pack("<i", len(data)))
+      buf.write(data)
+    self.fd.Seek(0, 2)
+    self.fd.Write(buf.getvalue())
+    self.size += len(rdf_values)
     self._dirty = True
 
   def __len__(self):

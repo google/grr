@@ -19,9 +19,14 @@ class GrrMessage(rdfvalue.RDFProtoStruct):
   lock = threading.Lock()
   next_id_base = 0
   max_ttl = 5
+  # We prefix the task id with the encoded priority of the message so it gets
+  # read first from data stores that support sorted reads. We reserve 3 bits
+  # for this so there can't be more than 8 different levels of priority.
+  max_priority = 7
 
   def __init__(self, initializer=None, age=None, payload=None, **kwarg):
     super(GrrMessage, self).__init__(initializer=initializer, age=age, **kwarg)
+
     if payload:
       self.payload = payload
 
@@ -50,9 +55,14 @@ class GrrMessage(rdfvalue.RDFProtoStruct):
       Task.next_id_base = id_base
 
     # 32 bit timestamp (in 1/1000 second resolution)
-    time_base = (long(time.time() * 1000) & 0xFFFFFFFF) << 32
+    time_base = (long(time.time() * 1000) & 0x1FFFFFFF) << 32
 
-    return time_base + id_base
+    priority_prefix = self.max_priority - self.priority
+    # Prepend the priority so the messages stay sorted.
+    task_id = time_base | id_base
+    task_id |= priority_prefix << 61
+
+    return task_id
 
   @property
   def payload(self):

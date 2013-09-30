@@ -69,22 +69,28 @@ class WorkerSendingWKTestFlow(flow.WellKnownFlow):
 class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   """Tests the GRR Worker."""
 
-  def SendResponse(self, session_id, data, client_id=None, send_status=True):
+  def SendResponse(self, session_id, data, client_id=None, well_known=False):
     if not isinstance(data, rdfvalue.RDFValue):
       data = rdfvalue.DataBlob(string=data)
+    if well_known:
+      request_id, response_id = 0, 12345
+    else:
+      request_id, response_id = 1, 1
     with flow_runner.QueueManager(token=self.token) as flow_manager:
       flow_manager.QueueResponse(session_id, rdfvalue.GrrMessage(
           source=client_id,
           session_id=session_id,
           payload=data,
-          request_id=1, response_id=1))
-      if send_status:
+          request_id=request_id,
+          response_id=response_id))
+      if not well_known:
+        # For normal flows we have to send a status as well.
         flow_manager.QueueResponse(session_id, rdfvalue.GrrMessage(
             source=client_id,
             session_id=session_id,
             payload=rdfvalue.GrrStatus(
                 status=rdfvalue.GrrStatus.ReturnedStatus.OK),
-            request_id=1, response_id=2,
+            request_id=request_id, response_id=response_id+1,
             type=rdfvalue.GrrMessage.Type.STATUS))
 
     # Signal on the worker queue that this flow is ready.
@@ -142,7 +148,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     # Ensure that processed requests are removed from state subject
     self.assertEqual((None, 0), data_store.DB.Resolve(
-        flow_runner.QueueManager.FLOW_STATE_TEMPLATE % session_id_1,
+        session_id_1.Add("state"),
         flow_runner.QueueManager.FLOW_REQUEST_TEMPLATE % 1,
         token=self.token))
 
@@ -161,8 +167,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     client_id = rdfvalue.ClientURN("C.1100110011001100")
     self.SendResponse(rdfvalue.SessionID("aff4:/flows/W:Stats"),
                       data=rdfvalue.ClientStats(RSS_size=1234),
-                      client_id=client_id,
-                      send_status=False)
+                      client_id=client_id, well_known=True)
 
     # Process all messages
     worker_obj.RunOnce()

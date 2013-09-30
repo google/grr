@@ -389,10 +389,10 @@ class ExecutePython(actions.ActionPlugin):
     # The execed code can assign to this variable if it wants to return data.
     magic_return_str = ""
     logging.debug("exec for python code %s", args.python_code.data[0:100])
-    # pylint: disable=exec-statement,unused-variable
+    # pylint: disable=exec-used,unused-variable
     py_args = args.py_args.ToDict()
     exec(args.python_code.data)
-    # pylint: enable=exec-statement,unused-variable
+    # pylint: enable=exec-used,unused-variable
     time_used = time.time() - time_start
     # We have to return microseconds.
     result = rdfvalue.ExecutePythonResponse(

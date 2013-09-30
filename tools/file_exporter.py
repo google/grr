@@ -47,6 +47,10 @@ flags.DEFINE_bool("export_client_data", True,
 flags.DEFINE_integer("threads", 10,
                      "Number of threads to use for export.")
 
+flags.DEFINE_integer("batch_size", 1000,
+                     "If export requires batch processing of data, this option "
+                     "determines size of every batch.")
+
 
 def Usage():
   print "Needs --output and one of --collection --directory or --file."

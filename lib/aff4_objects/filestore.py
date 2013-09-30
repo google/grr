@@ -62,6 +62,9 @@ class FileStore(aff4.AFF4Volume):
     Sub stores need to pass back the original HashDigest objects since they
     carry state about the original file source.
 
+    Only unique hashes are checked, if there is duplication in the hashes input
+    it is the caller's responsibility to maintain any necessary mappings.
+
     Args:
       hashes: A list of Hash objects to check.
       hash_type: The type of hash (can be sha256, sha1, md5).
@@ -296,4 +299,3 @@ class FileStoreImage(aff4.VFSBlobImage):
         break
 
       yield rdfvalue.RDFURN(hit)
-

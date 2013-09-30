@@ -32,13 +32,56 @@ class HuntOutputPlugin(object):
   description = ""
 
   def __init__(self, hunt_obj, args=None):
+    """HuntOutputPlugin constructor.
+
+    HuntOutputPlugin constructor is called during StartHuntFlow and therefore
+    runs with security checks enabled (if they're enabled in the config).
+    Therefore it's a bad idea to write anything to AFF4 in the constructor.
+
+    Args:
+      hunt_obj: Hunt which results this plugin is going to process.
+      args: This plugin's arguments.
+    """
     self.token = hunt_obj.token
     self.args = args
+    self.initialized = False
+
+  def Initialize(self):
+    """Initializes the hunt output plugin.
+
+    Initialize() is called when first client's results are processed by the
+    hunt. It's called on the worker, so no security checks apply.
+    """
+    self.initialized = True
 
   def ProcessResponse(self, response, client_id):
+    """Processes the response from the given client.
+
+    ProcessResponse() is called on the worker, so no security checks apply.
+
+    Args:
+      response: GrrMessage from the client.
+      client_id: Client id of the client.
+    """
     pass
 
+  def ProcessResponses(self, responses, client_id):
+    """Processes bunch of responses from the given client.
+
+    ProcessResponses() is called on the worker, so no security checks apply.
+
+    Args:
+      responses: GrrMessages from the client.
+      client_id: client id of the client.
+    """
+    for response in responses:
+      self.ProcessResponse(response, client_id)
+
   def Flush(self):
+    """Flushes the output plugin's state.
+
+    Flush() is called on the worker, so no security checks apply.
+    """
     pass
 
 
@@ -54,16 +97,25 @@ class CollectionPlugin(HuntOutputPlugin):
 
   def __init__(self, hunt_obj, *args, **kw):
     super(CollectionPlugin, self).__init__(hunt_obj, *args, **kw)
+    self.collection_urn = hunt_obj.urn.Add(self.args.collection_name)
+    self.collection = None
+
+  def Initialize(self):
+    super(CollectionPlugin, self).Initialize()
 
     # The results will be written to this collection.
     self.collection = aff4.FACTORY.Create(
-        hunt_obj.urn.Add(self.args.collection_name), "RDFValueCollection",
-        mode="rw", token=self.token)
+        self.collection_urn, "RDFValueCollection", mode="rw", token=self.token)
+    self.collection.SetChunksize(1024 * 1024)
 
   def ProcessResponse(self, response, client_id):
-    msg = rdfvalue.GrrMessage(payload=response)
-    msg.source = client_id
+    msg = rdfvalue.GrrMessage(payload=response, source=client_id)
     self.collection.Add(msg)
+
+  def ProcessResponses(self, responses, client_id):
+    msgs = [rdfvalue.GrrMessage(payload=response, source=client_id)
+            for response in responses]
+    self.collection.AddAll(msgs)
 
   def Flush(self):
     self.collection.Flush()
@@ -147,6 +199,13 @@ class CronHuntOutputFlow(flow.GRRFlow):
                                  mode="r", token=self.token)
     return hunt_obj.GetRunner().IsHuntStarted()
 
+  def _Disable(self):
+    metadata_obj = aff4.FACTORY.Open(
+        self.state.args.metadata_urn, aff4_type="CronHuntOutputMetadata",
+        mode="r", token=self.token)
+    cronjobs.CRON_MANAGER.DisableJob(
+        metadata_obj.Get(metadata_obj.Schema.CRON_JOB_URN), token=self.token)
+
   def _ProcessNewResults(self):
     """Processes new hunt's results.
 
@@ -191,7 +250,11 @@ class CronHuntOutputFlow(flow.GRRFlow):
   @flow.StateHandler(next_state="ProcessNewResults")
   def Start(self):
     """Start state."""
-    self._CheckMetadataAndProcessIfNeeded()
+    if not self._CheckMetadataAndProcessIfNeeded():
+      # If there are no new results, check whether hunt is still running.
+      if not self._IsHuntStarted():
+        # If the hunt is not running anymore, disable itself.
+        self._Disable()
 
   @flow.StateHandler(next_state=["ProcessNewResults",
                                  "ProcessResultsAfterHuntHasStopped"])
@@ -215,12 +278,7 @@ class CronHuntOutputFlow(flow.GRRFlow):
     the results that weren't processed before and then disable the cron job.
     """
     self._ProcessNewResults()
-
-    metadata_obj = aff4.FACTORY.Open(
-        self.state.args.metadata_urn, aff4_type="CronHuntOutputMetadata",
-        mode="r", token=self.token)
-    cronjobs.CRON_MANAGER.DisableJob(
-        metadata_obj.Get(metadata_obj.Schema.CRON_JOB_URN), token=self.token)
+    self._Disable()
 
   def StartBatch(self):
     """Called before processing results batch."""
@@ -236,7 +294,7 @@ class CronHuntOutputFlow(flow.GRRFlow):
 
 
 class CronHuntOutputPlugin(CollectionPlugin):
-  """Hunt output plugin that schedule a cron job to process hunt's results."""
+  """Hunt output plugin that schedules a cron job to process hunt's results."""
 
   # Name of the flow to be scheduled to process results. The flow should
   # be a subclass of CronHuntOutputFlow.
@@ -248,10 +306,10 @@ class CronHuntOutputPlugin(CollectionPlugin):
   # Prevents this from automatically registering.
   __abstract = True  # pylint: disable=g-bad-name
 
-  def __init__(self, hunt_obj, *unused_args, **kw):
+  def __init__(self, hunt_obj, *args, **kw):
     self.hunt_urn = hunt_obj.urn
     self.output_metadata_urn = hunt_obj.urn.Add("OutputMetadata")
-    super(CronHuntOutputPlugin, self).__init__(hunt_obj, *unused_args, **kw)
+    super(CronHuntOutputPlugin, self).__init__(hunt_obj, *args, **kw)
 
   def ProcessResponse(self, response, client_id):
     """Does nothing, because results are processed by the cron job."""
