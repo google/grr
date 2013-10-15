@@ -59,9 +59,9 @@ from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow_runner
+from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import scheduler
 # pylint: disable=unused-import
 from grr.lib import server_stubs
 # pylint: enable=unused-import
@@ -476,7 +476,7 @@ class GRRFlow(aff4.AFF4Volume):
   def HeartBeat(self):
     if self.locked:
       lease_time = config_lib.CONFIG["Worker.flow_lease_time"]
-      if self.CheckLease() < lease_time/3:
+      if self.CheckLease() < lease_time/2:
         logging.info("%s: Extending Lease", self.session_id)
         self.UpdateLease(lease_time)
 
@@ -747,8 +747,8 @@ class GRRFlow(aff4.AFF4Volume):
         client.AddAttribute(client.Schema.FLOW(flow_obj.urn))
         client.Flush()
 
-      logging.info("Scheduling %s(%s) on %s: %s", flow_obj.urn,
-                   runner_args.flow_name, runner_args.client_id, args)
+      logging.info(u"Scheduling %s(%s) on %s", flow_obj.urn,
+                   runner_args.flow_name, runner_args.client_id)
 
       if sync:
         # Just run the first state inline. NOTE: Running synchronously means
@@ -907,9 +907,9 @@ class WellKnownFlow(GRRFlow):
     """For WellKnownFlows we receive these messages directly."""
     try:
       priority = rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY
-      with flow_runner.WellKnownQueueManager(
-          token=self.token) as queue_manager:
-        for request, responses in queue_manager.FetchRequestsAndResponses(
+      with queue_manager.WellKnownQueueManager(
+          token=self.token) as manager:
+        for request, responses in manager.FetchRequestsAndResponses(
             self.session_id):
           for msg in responses:
             # Even though we use the thread pool here, it may be exhausted so we
@@ -920,13 +920,13 @@ class WellKnownFlow(GRRFlow):
             thread_pool.AddTask(target=self._SafeProcessMessage,
                                 args=(msg,), name=self.__class__.__name__)
 
-          queue_manager.DeleteFlowRequestStates(self.session_id, request)
+          manager.DeleteFlowRequestStates(self.session_id, request)
 
-    except flow_runner.MoreDataException:
+    except queue_manager.MoreDataException:
       # There is more data for this flow so we have to tell the worker to
       # fetch more messages later.
-      scheduler.SCHEDULER.NotifyQueue(self.state.context.session_id,
-                                      priority=priority, token=self.token)
+      queue_manager.QueueManager(token=self.token).NotifyQueue(
+          self.state.context.session_id, priority=priority)
 
   def ProcessMessage(self, msg):
     """This is where messages get processed.
@@ -973,9 +973,10 @@ class WellKnownFlow(GRRFlow):
 
     msg = rdfvalue.GrrMessage(
         session_id=utils.SmartUnicode(response_session_id),
-        name=action_name, request_id=0, queue=client_id, payload=request)
+        name=action_name, request_id=0, queue=client_id.Queue(),
+        payload=request)
 
-    scheduler.SCHEDULER.Schedule(msg, token=self.token)
+    queue_manager.QueueManager(token=self.token).Schedule(msg)
 
 
 def EventHandler(source_restriction=None, auth_required=True,
@@ -1115,8 +1116,7 @@ class Events(object):
       ValueError: If the message is invalid. The message must be a Semantic
         Value (instance of RDFValue) or a full GrrMessage.
     """
-    with flow_runner.WellKnownQueueManager(
-        token=token, sync=sync) as queue_manager:
+    with queue_manager.WellKnownQueueManager(token=token, sync=sync) as manager:
       for event_name, messages in events.iteritems():
         handler_urns = []
         if isinstance(event_name, basestring):
@@ -1147,8 +1147,8 @@ class Events(object):
 
           # Forward the message to the well known flow's queue.
           for event_urn in handler_urns:
-            queue_manager.QueueResponse(event_urn, msg)
-            queue_manager.QueueNotification(event_urn, priority=msg.priority)
+            manager.QueueResponse(event_urn, msg)
+            manager.QueueNotification(event_urn, priority=msg.priority)
 
   @classmethod
   def PublishEventInline(cls, event_name, msg, token=None):
@@ -1484,10 +1484,10 @@ class FrontEndServer(object):
     messages, source, timestamp = self._communicator.DecodeMessages(
         request_comms)
 
+    now = time.time()
     if messages:
-      self.thread_pool.AddTask(
-          target=self.ReceiveMessages, args=(source, messages,),
-          name="ReceiveMessages")
+      # Receive messages in line.
+      self.ReceiveMessages(source, messages)
 
     # We send the client a maximum of self.max_queue_size messages
     required_count = max(0, self.max_queue_size - request_comms.queue_size)
@@ -1498,10 +1498,13 @@ class FrontEndServer(object):
       stats.STATS.IncrementCounter("grr_frontendserver_handle_throttled_num")
 
     elif self.throttle_callback():
-      # Only give the client messages if we are able to receive them.
-      if self.thread_pool.idle_threads > 0:
+      # Only give the client messages if we are able to receive them in a
+      # reasonable time.
+      if time.time() - now < 10:
         tasks = self.DrainTaskSchedulerQueueForClient(source, required_count,
                                                       message_list)
+    else:
+      stats.STATS.IncrementCounter("grr_frontendserver_handle_throttled_num")
 
     # Encode the message_list in the response_comms using the same API version
     # the client used.
@@ -1512,12 +1515,12 @@ class FrontEndServer(object):
     except communicator.UnknownClientCert:
       # We can not encode messages to the client yet because we do not have the
       # client certificate - return them to the queue so we can try again later.
-      scheduler.SCHEDULER.Schedule(tasks, token=self.token)
+      queue_manager.QueueManager(token=self.token).Schedule(tasks)
       raise
 
     return source, len(messages)
 
-  def DrainTaskSchedulerQueueForClient(self, client_name, max_count,
+  def DrainTaskSchedulerQueueForClient(self, client, max_count,
                                        response_message):
     """Drains the client's Task Scheduler queue.
 
@@ -1527,7 +1530,7 @@ class FrontEndServer(object):
     4) Delete all responses for retransmitted messages (if needed).
 
     Args:
-       client_name: CN of client (also TS queue name)
+       client: The ClientURN object specifying this client.
 
        max_count: The maximum number of messages we will issue for the
                   client.
@@ -1540,18 +1543,19 @@ class FrontEndServer(object):
     if max_count <= 0:
       return []
 
+    client = rdfvalue.ClientURN(client)
+
     start_time = time.time()
     # Drain the queue for this client:
-    new_tasks = scheduler.SCHEDULER.QueryAndOwn(
-        queue=client_name,
-        limit=max_count, token=self.token,
+    new_tasks = queue_manager.QueueManager(token=self.token).QueryAndOwn(
+        queue=client.Queue(), limit=max_count,
         lease_seconds=self.message_expiry_time)
 
     for task in new_tasks:
       response_message.job.Append(task)
     stats.STATS.IncrementCounter("grr_messages_sent", len(new_tasks))
     logging.info("Drained %d messages for %s in %s seconds.",
-                 len(new_tasks), client_name, time.time() - start_time)
+                 len(new_tasks), client, time.time() - start_time)
 
     return new_tasks
 
@@ -1567,20 +1571,20 @@ class FrontEndServer(object):
       messages: A list of GrrMessage RDFValues.
     """
     now = time.time()
-    with flow_runner.QueueManager(token=self.token,
-                                  store=self.data_store) as queue_manager:
+    with queue_manager.QueueManager(
+        token=self.token, store=self.data_store) as manager:
       for msg in messages:
         # Messages for well known flows should notify even though they dont have
         # a status.
         if msg.request_id == 0:
-          queue_manager.QueueNotification(msg.session_id, priority=msg.priority)
+          manager.QueueNotification(msg.session_id, priority=msg.priority)
 
         elif msg.type == rdfvalue.GrrMessage.Type.STATUS:
           # If we receive a status message from the client it means the client
           # has finished processing this request. We therefore can de-queue it
           # from the client queue.
-          queue_manager.DeQueueClientRequest(client_id, msg.task_id)
-          queue_manager.QueueNotification(msg.session_id, priority=msg.priority)
+          manager.DeQueueClientRequest(client_id, msg.task_id)
+          manager.QueueNotification(msg.session_id, priority=msg.priority)
 
           status = rdfvalue.GrrStatus(msg.args)
           if status.status == rdfvalue.GrrStatus.ReturnedStatus.CLIENT_KILLED:
@@ -1601,7 +1605,7 @@ class FrontEndServer(object):
         sessions_handled.append(session_id)
 
         for msg in messages:
-          queue_manager.QueueResponse(session_id, msg)
+          manager.QueueResponse(session_id, msg)
 
     logging.info("Received %s messages in %s sec", len(messages),
                  time.time() - now)
@@ -1623,8 +1627,8 @@ class FrontEndServer(object):
           flow.HeartBeat()
 
           # Remove the notification from the well known flows.
-          scheduler.SCHEDULER.DeleteNotification(
-              msg.session_id, token=self.token)
+          queue_manager.QueueManager(token=self.token).DeleteNotification(
+              msg.session_id)
 
           stats.STATS.IncrementCounter("grr_well_known_flow_requests")
         else:

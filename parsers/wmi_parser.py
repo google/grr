@@ -23,3 +23,27 @@ class WMIInstalledSoftwareParser(parsers.WMIQueryParser):
         install_state=status)
 
     yield soft
+
+
+class WMIUserAccountParser(parsers.WMIQueryParser):
+  """Parser for WMI Win32_UserAccount output."""
+
+  output_types = ["KnowledgeBaseUser"]
+  supported_artifacts = ["WindowsWMIProfileUsers"]
+
+  account_mapping = {
+      "Name": "username",
+      "Domain": "userdomain",
+      "SID": "sid"
+      }
+
+  def Parse(self, query, result, knowledge_base):
+    """Parse the wmi Win32_UserAccount output."""
+    _ = query, knowledge_base
+    kb_user = rdfvalue.KnowledgeBaseUser()
+    for wmi_key, kb_key in self.account_mapping.items():
+      try:
+        kb_user.Set(kb_key, result[wmi_key])
+      except KeyError:
+        pass
+    yield kb_user

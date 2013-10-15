@@ -313,9 +313,16 @@ class RDFValueArrayRenderer(RDFValueRenderer):
 <tbody>
 {% for entry in this.data %}
 <tr class="proto_separator"></tr>
-<td>{{entry|safe}}</td>
+<tr>
+   <td>{{entry|safe}}</td>
 </tr>
 {% endfor %}
+{% if this.additional_data %}
+<tr class="proto_separator"></tr>
+<tr>
+ <td> (Additional data available) </td>
+</tr>
+{% endif %}
 </tbody>
 </table>
 """)
@@ -325,6 +332,10 @@ class RDFValueArrayRenderer(RDFValueRenderer):
     self.data = []
 
     for element in self.proxy:
+      if len(self.data) > 10:
+        self.additional_data = True
+        break
+
       renderer = FindRendererForObject(element)
       if renderer:
         try:
@@ -491,3 +502,21 @@ $("#{{this.prefix}}").change();
   def Layout(self, request, response):
     self.default = str(self.descriptor.type().Generate())
     return super(AES128KeyFormRenderer, self).Layout(request, response)
+
+
+class ClientURNRenderer(RDFValueRenderer):
+  """A renderer for a client id."""
+
+  classname = "ClientURN"
+
+  layout_template = renderers.Template("""
+<a href='#{{this.hash|escape}}' onclick='grr.loadFromHash(
+    "{{this.hash|escape}}");'>
+  {{this.proxy|escape}}
+</a>
+""")
+
+  def Layout(self, request, response):
+    h = dict(main="HostInformation", c=self.proxy)
+    self.hash = urllib.urlencode(sorted(h.items()))
+    return super(ClientURNRenderer, self).Layout(request, response)

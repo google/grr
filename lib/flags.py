@@ -27,8 +27,7 @@ def DEFINE_string(longopt, default, help):
 def DEFINE_bool(longopt, default, help):
   PARSER.add_argument("--%s" % longopt, dest=longopt, action="store_true",
                       help=help)
-  PARSER.add_argument("--no%s" % longopt, dest=longopt, action="store_false",
-                      help=help)
+
   PARSER.set_defaults(**{longopt: default})
 
 

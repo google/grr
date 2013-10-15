@@ -163,8 +163,8 @@ class FastGetFile(GetFile):
   WINDOW_SIZE = 400
 
   @flow.StateHandler()
-  def Start(self, responses):
-    super(FastGetFile, self).Start(responses)
+  def Start(self):
+    super(FastGetFile, self).Start()
     self.state.Register("queue", [])
 
   def FetchWindow(self, number_of_chunks_to_readahead):
@@ -238,7 +238,7 @@ class FastGetFile(GetFile):
     self.Status("Received %s bytes", self.state.fd.size)
 
   @flow.StateHandler(next_state=["CheckHashes", "WriteHash"])
-  def End(self, _):
+  def End(self):
     """Flush outstanding hash blobs and retrieve more if needed."""
     if self.state.queue:
       self.CheckQueuedHashes(self.state.queue)
@@ -416,6 +416,10 @@ class MultiGetFile(flow.GRRFlow):
                                                 mode="r", token=self.token):
 
       hashset = existing_blob.Get(existing_blob.Schema.HASH)
+      if hashset is None:
+        self.Log("Filestore File %s has no hash.", existing_blob.urn)
+        continue
+
       for file_tracker in hash_to_urn.get(hashset.sha256, []):
 
         # Some existing_blob files can be created with 0 size, make sure our
@@ -540,31 +544,34 @@ class MultiGetFile(flow.GRRFlow):
       return self.RemoveInFlightFile(vfs_urn)
 
     response = responses.First()
-    file_tracker = self.state.pending_files[vfs_urn]
-    file_tracker.fd.AddBlob(response.data, response.length)
+    file_tracker = self.state.pending_files.get(vfs_urn)
+    if file_tracker:
+      file_tracker.fd.AddBlob(response.data, response.length)
 
-    if response.offset + response.length >= file_tracker.file_size:
-      # File done, remove from the store and close it.
-      self.RemoveInFlightFile(vfs_urn)
+      if (response.length < file_tracker.fd.chunksize or
+          response.offset + response.length >= file_tracker.file_size):
+        # File done, remove from the store and close it.
+        self.RemoveInFlightFile(vfs_urn)
 
-      # Close and write the file to the data store.
-      file_tracker.fd.Close(sync=False)
+        # Close and write the file to the data store.
+        file_tracker.fd.Close(sync=False)
 
-      # Publish the new file event to cause the file to be added to the
-      # filestore. This is not time critical so do it when we have spare
-      # capacity.
-      self.Publish("FileStore.AddFileToStore", vfs_urn,
-                   priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY)
+        # Publish the new file event to cause the file to be added to the
+        # filestore. This is not time critical so do it when we have spare
+        # capacity.
+        self.Publish("FileStore.AddFileToStore", vfs_urn,
+                     priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY)
 
-      self.state.files_fetched += 1
+        self.state.files_fetched += 1
 
-      if not self.state.files_fetched % 100:
-        self.Log("Fetched %d of %d files.", self.state.files_fetched,
-                 self.state.files_to_fetch)
+        if not self.state.files_fetched % 100:
+          self.Log("Fetched %d of %d files.", self.state.files_fetched,
+                   self.state.files_to_fetch)
 
   def RemoveInFlightFile(self, vfs_urn):
-    self.SendReply(self.state.pending_files[vfs_urn].stat_entry)
-    del self.state.pending_files[vfs_urn]
+    file_tracker = self.state.pending_files.pop(vfs_urn)
+    if file_tracker:
+      self.SendReply(file_tracker.stat_entry)
 
   @flow.StateHandler(next_state=["CheckHash", "WriteBuffer"])
   def End(self):

@@ -31,6 +31,7 @@ import logging
 import unittest
 
 from grr.client import actions
+from grr.client import client_stats
 from grr.client import comms
 from grr.client import vfs
 
@@ -43,11 +44,10 @@ from grr.lib import email_alerts
 from grr.lib import flags
 
 from grr.lib import flow
-from grr.lib import flow_runner
 
+from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import scheduler
 
 # Server components must also be imported even when the client code is tested.
 # pylint: disable=unused-import
@@ -603,7 +603,7 @@ class Stubber(object):
     self.stub = stub
 
   def __enter__(self):
-    self.old_target = getattr(self.module, self.target_name)
+    self.old_target = getattr(self.module, self.target_name, None)
     try:
       self.stub.old_target = self.old_target
     except AttributeError:
@@ -1076,18 +1076,6 @@ class MockClient(object):
     self.well_known_flows = flow.WellKnownFlow.GetAllWellKnownFlows(token=token)
 
   def PushToStateQueue(self, message, **kw):
-    # Handle well known flows
-    if message.request_id == 0:
-      # Assume the message is authenticated and comes from this client.
-      message.SetWireFormat("source", utils.SmartStr(self.client_id.Basename()))
-      message.auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
-
-      session_id = message.session_id
-
-      logging.info("Running well known flow: %s", session_id)
-      self.well_known_flows[str(session_id)].ProcessMessage(message)
-      return
-
     # Assume the client is authorized
     message.auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
 
@@ -1095,14 +1083,33 @@ class MockClient(object):
     for k, v in kw.items():
       setattr(message, k, v)
 
-    with flow_runner.QueueManager(token=self.token) as manager:
+    # Handle well known flows
+    if message.request_id == 0:
+
+      # Well known flows only accept messages of type MESSAGE.
+      if message.type == rdfvalue.GrrMessage.Type.MESSAGE:
+        # Assume the message is authenticated and comes from this client.
+        message.SetWireFormat(
+            "source", utils.SmartStr(self.client_id.Basename()))
+
+        message.auth_state = "AUTHENTICATED"
+
+        session_id = message.session_id
+
+        logging.info("Running well known flow: %s", session_id)
+        self.well_known_flows[str(session_id)].ProcessMessage(message)
+
+      return
+
+    with queue_manager.QueueManager(token=self.token) as manager:
       manager.QueueResponse(message.session_id, message)
 
   def Next(self):
     # Grab tasks for us from the queue.
-    request_tasks = scheduler.SCHEDULER.QueryAndOwn(self.client_id, limit=1,
-                                                    lease_seconds=10000,
-                                                    token=self.token)
+    manager = queue_manager.QueueManager(token=self.token)
+    request_tasks = manager.QueryAndOwn(self.client_id.Queue(),
+                                        limit=1,
+                                        lease_seconds=10000)
     for message in request_tasks:
       response_id = 1
       # Collect all responses for this message from the client mock
@@ -1155,9 +1162,8 @@ class MockClient(object):
                             type=rdfvalue.GrrMessage.Type.STATUS)
 
       # Additionally schedule a task for the worker
-      scheduler.SCHEDULER.NotifyQueue(message.session_id,
-                                      priority=message.priority,
-                                      token=self.token)
+      manager.NotifyQueue(message.session_id,
+                          priority=message.priority)
 
     return len(request_tasks)
 
@@ -1222,8 +1228,8 @@ class MockWorker(worker.GRRWorker):
     Raises:
       RuntimeError: if the flow terminates with an error.
     """
-    sessions_available = scheduler.SCHEDULER.GetSessionsFromQueue(
-        self.queue, self.token)
+    manager = queue_manager.QueueManager(token=self.token)
+    sessions_available = manager.GetSessionsFromQueue(self.queue)
 
     sessions_available = [rdfvalue.SessionID(session_id)
                           for session_id in sessions_available]
@@ -1234,7 +1240,7 @@ class MockWorker(worker.GRRWorker):
     # Only sample one session at the time to force serialization of flows after
     # each state run - this helps to catch unpickleable objects.
     for session_id in sessions_available[:1]:
-      scheduler.SCHEDULER.DeleteNotification(session_id, token=self.token)
+      manager.DeleteNotification(session_id)
       run_sessions.append(session_id)
 
       # Handle well known flows here.
@@ -1275,6 +1281,7 @@ class FakeClientWorker(comms.GRRClientWorker):
     self.responses = []
     self.sent_bytes_per_flow = {}
     self.lock = threading.RLock()
+    self.stats_collector = client_stats.ClientStatsCollector(self)
 
   def __del__(self):
     pass

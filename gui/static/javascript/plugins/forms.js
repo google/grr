@@ -253,7 +253,7 @@ grr.Renderer('RDFDatetimeFormRenderer', {
       showOn: 'button',
       buttonImage: 'static/images/clock.png',
       buttonImageOnly: true,
-      altField: state.prefix
+      altField: '#' + state.prefix
     });
   }
 });

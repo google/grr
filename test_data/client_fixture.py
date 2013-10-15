@@ -3628,7 +3628,7 @@ registry_data {
 }
 """
 })),
-(u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/TimeZoneInformation/TimeZoneKeyName", ("VFSFile", {
+(u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/TimeZoneInformation/StandardName", ("VFSFile", {
 "aff4:stat":
 """
 st_mode: 32768
@@ -3637,7 +3637,7 @@ st_mtime: 0
 registry_type: REG_EXPAND_SZ
 pathspec {
   pathtype: REGISTRY
-  path: "/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/TimeZoneInformation/TimeZoneKeyName"
+  path: "/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/TimeZoneInformation/StandardName"
 }
 registry_data {
   string: "AlaskanStandardTime"
@@ -3738,6 +3738,23 @@ pathspec {
 }
 registry_data {
   string: "C:\\Windows"
+}
+"""
+})),
+
+(r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/S-1-5-21-702227068-2140022151-3110739409-1000/ProfileImagePath", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 12
+st_mtime: 0
+registry_type: REG_EXPAND_SZ
+pathspec {
+  pathtype: REGISTRY
+  path: "/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/S-1-5-21-702227068-2140022151-3110739409-1000/ProfileImagePath"
+}
+registry_data {
+  string: "C:\\Users\\jim"
 }
 """
 })),

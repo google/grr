@@ -116,9 +116,8 @@ class FetchAllFilesGlob(flow.GRRFlow):
   def ProcessGlob(self, responses):
     """Iterate through glob responses, and hash each hit."""
     if not responses.success:
-      # We just stop the find iteration, the flow goes on.
-      self.Log("Failed Glob: %s", responses.status)
-      return
+      # Glob failing is fatal here.
+      return self.Error("Failed Glob: %s", responses.status)
 
     files_to_fetch = []
     for response in responses:
@@ -144,5 +143,8 @@ class FetchAllFilesGlob(flow.GRRFlow):
                     next_state="End")
 
   @flow.StateHandler()
-  def End(self):
+  def End(self, responses):
+    if not responses.success:
+      return self.Error("Failed to retrieve files: %s", responses.status)
+
     self.Log("Found %d files.", self.state.files_found)

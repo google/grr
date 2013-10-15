@@ -420,14 +420,6 @@ class ListProcesses(actions.ActionPlugin):
   in_rdfvalue = None
   out_rdfvalue = rdfvalue.Process
 
-  states = {
-      "UNKNOWN": rdfvalue.NetworkConnection.State.UNKNOWN,
-      "LISTEN": rdfvalue.NetworkConnection.State.LISTEN,
-      "ESTABLISHED": rdfvalue.NetworkConnection.State.ESTAB,
-      "TIME_WAIT": rdfvalue.NetworkConnection.State.TIME_WAIT,
-      "CLOSE_WAIT": rdfvalue.NetworkConnection.State.CLOSE_WAIT,
-      }
-
   def Run(self, unused_arg):
     # psutil will cause an active loop on Windows 2000
     if platform.system() == "Windows" and platform.version().startswith("5.0"):
@@ -511,11 +503,12 @@ class ListProcesses(actions.ActionPlugin):
       try:
         for c in proc.get_connections():
           conn = response.connections.Append(family=c.family,
-                                             type=c.type)
+                                             type=c.type,
+                                             pid=proc.pid)
 
-          if c.status in self.states:
-            conn.state = self.states[c.status]
-          elif c.status:
+          try:
+            conn.state = c.status
+          except ValueError:
             logging.info("Encountered unknown connection status (%s).",
                          c.status)
 

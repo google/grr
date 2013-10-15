@@ -68,6 +68,33 @@ def Homepage(request):
 
 
 @webauth.SecurityCheck
+def RenderBinaryDownload(request):
+  """Basic handler to allow downloads of aff4:/config/executables files."""
+  path, filename = request.path.split("/", 2)[-1].rsplit("/", 1)
+  if not path or not filename:
+    return AccessDenied("Error: Invalid path.")
+  request.REQ = request.REQUEST
+  def Generator():
+    with aff4.FACTORY.Open(aff4_path, aff4_type="GRRSignedBlob",
+                           token=BuildToken(request, 60)) as fd:
+      while True:
+        data = fd.Read(1000000)
+        if not data: break
+        yield data
+
+  base_path = rdfvalue.RDFURN("aff4:/config/executables")
+  aff4_path = base_path.Add(path).Add(filename)
+  if not aff4_path.RelativeName(base_path):
+    # Check for path traversals.
+    return AccessDenied("Error: Invalid path.")
+  filename = aff4_path.Basename()
+  response = http.HttpResponse(content=Generator(),
+                               mimetype="binary/octet-stream")
+  response["Content-Disposition"] = ("attachment; filename=%s" % filename)
+  return response
+
+
+@webauth.SecurityCheck
 @renderers.ErrorHandler()
 def RenderGenericRenderer(request):
   """Django handler for rendering registered GUI Elements."""
@@ -93,16 +120,7 @@ def RenderGenericRenderer(request):
     request.REQ = request.POST
 
   # Build the security token for this request
-  request.token = access_control.ACLToken(
-      username=request.user,
-      reason=request.REQ.get("reason", ""),
-      process="GRRAdminUI",
-      expiry=rdfvalue.RDFDatetime().Now() + renderer.max_execution_time)
-
-  for field in ["REMOTE_ADDR", "HTTP_X_FORWARDED_FOR"]:
-    remote_addr = request.META.get(field, "")
-    if remote_addr:
-      request.token.source_ips.append(remote_addr)
+  request.token = BuildToken(request, renderer.max_execution_time)
 
   # Allow the renderer to check its own ACLs.
   renderer.CheckAccess(request)
@@ -136,16 +154,27 @@ def RenderGenericRenderer(request):
   if not isinstance(result, http.HttpResponse):
     raise RuntimeError("Renderer returned invalid response %r" % result)
 
-  stats.STATS.RecordEvent("ui_renderer_response_size",
-                          len(result.content),
-                          fields=[renderer_name])
-
   # Prepend bad json to break json script inclusion attacks.
   content_type = result.get("Content-Type", 0)
   if content_type and "json" in content_type.lower():
     result.content = ")]}\n" + result.content
 
   return result
+
+
+def BuildToken(request, execution_time):
+  """Build an ACLToken from the request."""
+  token = access_control.ACLToken(
+      username=request.user,
+      reason=request.REQ.get("reason", ""),
+      process="GRRAdminUI",
+      expiry=rdfvalue.RDFDatetime().Now() + execution_time)
+
+  for field in ["REMOTE_ADDR", "HTTP_X_FORWARDED_FOR"]:
+    remote_addr = request.META.get(field, "")
+    if remote_addr:
+      token.source_ips.append(remote_addr)
+  return token
 
 
 def AccessDenied(message):

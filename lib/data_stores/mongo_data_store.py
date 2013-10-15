@@ -12,169 +12,9 @@ from pymongo import errors
 
 import logging
 
-from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
-from grr.lib import registry
 from grr.lib import utils
-
-
-# These are filters
-class Filter(object):
-  """Baseclass for filters."""
-
-  __metaclass__ = registry.MetaclassRegistry
-
-  # Automatically register plugins as class attributes
-  include_plugins_as_attributes = True
-
-  def FilterExpression(self):
-    """Generates a find spec.
-
-    This returns a mongo find spec which will select the documents which satisfy
-    the condition.
-
-    Returns:
-      A mongo find spec that will be used to general the initial list of
-      subjects.
-    """
-    return {}
-
-  def GetMatches(self, spec, collection):
-    """Generates a list of subjects which match the filter.
-
-    Args:
-      spec: A spec which is used to restrict the query.
-      collection: The collection this will query.
-
-    Returns:
-      A set of matching subjects.
-    """
-    result = set()
-    spec = {"$and": [spec, self.FilterExpression()]}
-    for document in collection.find(spec,
-                                    dict(subject=True)):
-      result.add(document["subject"])
-
-    return result
-
-
-class IdentityFilter(Filter):
-  def GetMatches(self, spec, collection):
-    result = set()
-
-    # Only project the subject.
-    for document in collection.find(spec, dict(subject=True)):
-      result.add(document["subject"])
-
-    return result
-
-
-class HasPredicateFilter(Filter):
-
-  def __init__(self, attribute_name):
-    self.attribute_name = utils.SmartUnicode(attribute_name)
-    super(HasPredicateFilter, self).__init__()
-
-  def FilterExpression(self):
-    return dict(predicate=self.attribute_name)
-
-
-class AndFilter(Filter):
-  """A Logical And operator."""
-
-  def __init__(self, *parts):
-    self.parts = parts
-    super(AndFilter, self).__init__()
-
-  def GetMatches(self, spec, collection):
-    sets = []
-    for part in self.parts:
-      sets.append(part.GetMatches(spec, collection))
-
-    return set.intersection(*sets)
-
-
-class OrFilter(Filter):
-  """A Logical Or operator."""
-
-  def __init__(self, *parts):
-    self.parts = parts
-    super(OrFilter, self).__init__()
-
-  def FilterExpression(self):
-    return {"$or": [x.FilterExpression() for x in self.parts]}
-
-
-class PredicateContainsFilter(Filter):
-  """Applies a RegEx on the content of an attribute."""
-
-  def __init__(self, attribute_name, regex):
-    self.regex = regex
-    self.attribute_name = utils.SmartUnicode(attribute_name)
-    super(PredicateContainsFilter, self).__init__()
-
-  def FilterExpression(self):
-    return dict(predicate=self.attribute_name,
-                str_value={"$regex": self.regex})
-
-
-class SubjectContainsFilter(Filter):
-  """Applies a RegEx to the subject name."""
-
-  def __init__(self, regex):
-    """Constructor.
-
-    Args:
-       regex: Must match the row name.
-    """
-    self.regex = regex
-    super(SubjectContainsFilter, self).__init__()
-
-  def FilterExpression(self):
-    # If no search term specified we allow the column to not even be
-    # set. Without this statement we produce a filter which requires
-    # the column to be set.
-    if not self.regex: return {}
-
-    return dict(subject={"$regex": self.regex})
-
-
-class PredicateGreaterThanFilter(Filter):
-  """A filter to be applied to DataStore.Query.
-
-  This filters all subjects which have this predicate greater than the value
-  specified.
-  """
-
-  operator = "$gt"
-
-  def __init__(self, attribute_name, value):
-    """Constructor.
-
-    Args:
-       attribute_name: The attribute name must be set.
-       value: The value that attribute must be less than.
-    """
-    self.attribute_name = utils.SmartUnicode(attribute_name)
-    self.value = value
-    super(PredicateGreaterThanFilter, self).__init__()
-
-  def FilterExpression(self):
-    return dict(int_value={self.operator: long(self.value)},
-                predicate=self.attribute_name)
-
-
-class PredicateGreaterEqualFilter(PredicateGreaterThanFilter):
-  operator = "$ge"
-
-
-class PredicateLessThanFilter(PredicateGreaterThanFilter):
-  operator = "$lt"
-
-
-class PredicateLessEqualFilter(PredicateGreaterThanFilter):
-  operator = "$le"
 
 
 class MongoDataStore(data_store.DataStore):
@@ -202,7 +42,6 @@ class MongoDataStore(data_store.DataStore):
     # and the versioned collection maintains versioned data.
     self.latest_collection = self.db_handle.latest
     self.versioned_collection = self.db_handle.versioned
-    self.filter = Filter
 
     # Ensure we have the correct indexes.
     for idx in ["subject", "predicate", "timestamp"]:
@@ -234,7 +73,7 @@ class MongoDataStore(data_store.DataStore):
 
     return cursor
 
-  def ResolveMulti(self, subject, predicates, decoder=None, token=None,
+  def ResolveMulti(self, subject, predicates, token=None,
                    timestamp=None):
     """Resolves multiple predicates at once for one subject."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "r")
@@ -248,7 +87,7 @@ class MongoDataStore(data_store.DataStore):
 
     for document in self._GetCursor(spec, timestamp, 0):
       subject = document["subject"]
-      value = Decode(document, decoder)
+      value = Decode(document)
       yield (document["predicate"], value, document["timestamp"])
 
   def DeleteSubject(self, subject, sync=False, token=None):
@@ -346,7 +185,7 @@ class MongoDataStore(data_store.DataStore):
     self.latest_collection.remove(spec)
 
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
-                        decoder=None, timestamp=None, limit=None):
+                        timestamp=None, limit=None):
     """Retrieves a bunch of subjects in one round trip."""
     self.security_manager.CheckDataStoreAccess(token, subjects, "r")
     if not subjects:
@@ -372,7 +211,7 @@ class MongoDataStore(data_store.DataStore):
 
     for document in self._GetCursor(spec, timestamp, limit):
       subject = document["subject"]
-      value = Decode(document, decoder)
+      value = Decode(document)
       predicate = document.get("predicate")
       if predicate is None:
         # This might not be a normal aff4 attribute - transactions are one
@@ -390,10 +229,10 @@ class MongoDataStore(data_store.DataStore):
       result.setdefault(subject, []).append(
           (predicate, value, document["timestamp"]))
 
-    return result
+    return result.iteritems()
 
   def MultiResolveLiteral(self, subjects, predicates, token=None,
-                          decoder=None, timestamp=None, limit=None):
+                          timestamp=None, limit=None):
     """Retrieves a bunch of subjects in one round trip."""
     self.security_manager.CheckDataStoreAccess(token, subjects, "r")
     if not subjects:
@@ -409,84 +248,14 @@ class MongoDataStore(data_store.DataStore):
 
     for document in self._GetCursor(spec, timestamp, limit):
       subject = document["subject"]
-      value = Decode(document, decoder)
+      value = Decode(document)
       result.setdefault(subject, []).append(
           (document["predicate"], value, document["timestamp"]))
 
     return result
 
-  def Query(self, attributes=None, filter_obj=None, subject_prefix="",
-            token=None, subjects=None, limit=100, timestamp=None):
-    """Selects a set of subjects based on filters.
-
-    This is not very efficient in the general case so subject_prefix must
-    usually be specified to limit the number of documents examined.
-
-    Args:
-      attributes: The attributes to return.
-      filter_obj: An object of Filter() baseclass.
-      subject_prefix: Only consider those URNs with this subject prefix.
-      token: The security token.
-      subjects: Only consider the subjects from this list of URNs.
-      limit: A (start, length) tuple of integers representing subjects to
-          return. Useful for paging. If its a single integer we take
-          it as the length limit (start=0).
-      timestamp: The timestamp policy to use.
-
-    Returns:
-      A ResultSet instance.
-    """
-    subject_prefix = utils.SmartUnicode(subject_prefix)
-
-    # The initial spec restricts the query to a small subset of the documents.
-    if subject_prefix:
-      spec = {"$and": [
-          dict(subject={"$gte": subject_prefix}),
-          dict(subject={"$lte": subject_prefix+"\x7f"})
-          ]}
-
-    elif subjects:
-      spec = dict(subject={"$in": [
-          utils.SmartUnicode(x) for x in list(subjects)]})
-
-    else:
-      spec = {}
-
-    try:
-      skip, limit = limit
-    except TypeError:
-      skip = 0
-
-    if attributes is None: attributes = []
-
-    if u"aff4:type" not in attributes:
-      attributes.append(u"aff4:type")
-
-    if filter_obj is None:
-      filter_obj = IdentityFilter()
-
-    total_hits = sorted(filter_obj.GetMatches(spec, self.versioned_collection))
-    result_set = data_store.ResultSet()
-    for subject, data in sorted(self.MultiResolveLiteral(
-        total_hits[skip:skip+limit], attributes, token=token,
-        timestamp=timestamp).items()):
-      result = dict(subject=[(subject, 0)])
-      for predicate, value, ts in data:
-        result.setdefault(predicate, []).append((value, ts))
-
-      try:
-        self.security_manager.CheckDataStoreAccess(token, [subject], "rq")
-
-        result_set.Append(result)
-      except access_control.UnauthorizedAccess:
-        continue
-
-    result_set.total_count = len(total_hits)
-
-    return result_set
-
-  def Transaction(self, subject, token=None):
-    return MongoTransaction(self, subject, token=token)
+  def Transaction(self, subject, lease_time=None, token=None):
+    return MongoTransaction(self, subject, lease_time=lease_time, token=token)
 
 
 class MongoTransaction(data_store.Transaction):
@@ -502,29 +271,30 @@ class MongoTransaction(data_store.Transaction):
   A lock is considered expired after a certain time.
   """
 
-  # The maximum time the lock remains active in seconds.
-  LOCK_TIME = 60
-
   lock_creation_lock = threading.Lock()
 
   locked = False
 
-  def __init__(self, store, subject, token=None):
+  def __init__(self, store, subject, lease_time=None, token=None):
     """Ensure we can take a lock on this subject."""
     self.store = store
     self.token = token
     self.subject = utils.SmartUnicode(subject)
-    self.current_lock = time.time()
+    self.to_set = {}
+    self.to_delete = []
+    if lease_time is None:
+      lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
 
+    self.expires = time.time() + lease_time
     self.document = self.store.latest_collection.find_and_modify(
         query={"subject": self.subject, "type": "transaction",
-               "lock_time": {"$lt": time.time() - self.LOCK_TIME}},
+               "expires": {"$lt": time.time()}},
         update=dict(subject=self.subject, type="transaction",
-                    lock_time=self.current_lock),
+                    expires=self.expires),
         upsert=False, new=True)
 
     if self.document:
-      # We hold a lock now:
+      # Old transaction expired and we hold a lock now:
       self.locked = True
       return
 
@@ -536,10 +306,7 @@ class MongoTransaction(data_store.Transaction):
       document = self.store.latest_collection.find(
           {"subject": self.subject, "type": "transaction"})
       if not document.count():
-        # There is no lock yet for this row, lets create one.
-        self.document = dict(subject=self.subject, type="transaction",
-                             lock_time=self.current_lock)
-        store.latest_collection.save(self.document)
+        self.UpdateLease(lease_time)
 
         # We hold a lock now:
         self.locked = True
@@ -547,35 +314,55 @@ class MongoTransaction(data_store.Transaction):
 
     raise data_store.TransactionError("Subject %s is locked" % subject)
 
+  def CheckLease(self):
+    return max(0, self.expires - time.time())
+
+  def UpdateLease(self, duration):
+    self.expires = time.time() + duration
+    document = dict(subject=self.subject, type="transaction",
+                    expires=self.expires)
+
+    self.store.latest_collection.save(document)
+
   def DeleteAttribute(self, predicate):
-    self.store.DeleteAttributes(self.subject, [predicate], sync=True,
-                                token=self.token)
+    self.to_delete.append(predicate)
 
-  def Resolve(self, predicate, decoder=None):
-    return self.store.Resolve(self.subject, predicate, decoder=decoder,
-                              token=self.token)
+  def Resolve(self, predicate):
+    return self.store.Resolve(self.subject, predicate, token=self.token)
 
-  def ResolveRegex(self, predicate_regex, decoder=None, timestamp=None):
+  def ResolveRegex(self, predicate_regex, timestamp=None):
     return self.store.ResolveRegex(self.subject, predicate_regex,
-                                   decoder=decoder, token=self.token,
-                                   timestamp=timestamp)
+                                   token=self.token, timestamp=timestamp)
 
   def Set(self, predicate, value, timestamp=None, replace=None):
-    self.store.Set(self.subject, predicate, value, timestamp=timestamp,
-                   replace=replace, token=self.token)
+    if replace:
+      self.to_delete.append(predicate)
+
+    if timestamp is None:
+      timestamp = int(time.time() * 1e6)
+
+    self.to_set.setdefault(predicate, []).append((value, timestamp))
 
   def Abort(self):
-    self.Commit()
+    if self.locked:
+      self._RemoveLock()
 
   def Commit(self):
     if self.locked:
-      # Remove the lock on the document:
-      if not self.store.latest_collection.find_and_modify(
-          query=self.document,
-          update=dict(subject=self.subject, type="transaction", lock_time=0)):
-        raise data_store.TransactionError("Lock was overridden for %s." %
-                                          self.subject)
-      self.locked = False
+      self.store.DeleteAttributes(self.subject, self.to_delete, sync=True,
+                                  token=self.token)
+
+      self.store.MultiSet(self.subject, self.to_set, token=self.token)
+      self._RemoveLock()
+
+  def _RemoveLock(self):
+    # Remove the lock on the document:
+    if not self.store.latest_collection.find_and_modify(
+        query=self.document,
+        update=dict(subject=self.subject, type="transaction", expires=0)):
+      raise data_store.TransactionError("Lock was overridden for %s." %
+                                        self.subject)
+    self.locked = False
 
   def __del__(self):
     try:
@@ -584,7 +371,7 @@ class MongoTransaction(data_store.Transaction):
       pass
 
 
-def Decode(document, decoder=None):
+def Decode(document):
   """Decodes from a value using the protobuf specified."""
   value = document.get("int_value")
   if value is None:
@@ -592,12 +379,6 @@ def Decode(document, decoder=None):
 
   if value is None:
     value = str(document.get("value"))
-
-  if decoder:
-    result = decoder()
-    # Try if the retrieved type is directly supported.
-    result.ParseFromDataStore(value)
-    return result
 
   return value
 

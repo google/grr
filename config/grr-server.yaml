@@ -32,6 +32,10 @@ Client.version_release: 0
 
 Client.version_revision: 1
 
+Client.foreman_check_frequency: 600
+
+Client.poll_max: 600
+
 # Writeback for server components.
 Config.writeback: /etc/grr/server.local.yaml
 

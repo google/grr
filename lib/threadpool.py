@@ -25,6 +25,7 @@ Example usage:
 
 
 
+import itertools
 import Queue
 import threading
 import time
@@ -33,6 +34,7 @@ import time
 import logging
 
 from grr.lib import stats
+from grr.lib import utils
 
 
 STOP_MESSAGE = "Stop message"
@@ -262,15 +264,25 @@ class ThreadPool(object):
   def Available(self):
     return self._queue.qsize
 
-  def AddTask(self, target, args, name="Unnamed task", blocking=True):
+  def AddTask(self, target, args, name="Unnamed task", blocking=True,
+              inline=True):
     """Adds a task to be processed later.
 
     Args:
       target: A callable which should be processed by one of the workers.
+
       args: A tuple of arguments to target.
+
       name: The name of this task. Used to identify tasks in the log.
+
       blocking: If True we block until the task is finished, otherwise we raise
         Queue.Full
+
+      inline: If set, process the task inline when the queue is full. This
+        implies no blocking. Specifying inline helps if the worker tasks are
+        blocked because it still ensures some progress is made. However, this
+        can generally block the calling thread even after the threadpool is
+        available again and therefore decrease efficiency.
 
     Raises:
       Full() if the pool is full and can not accept new jobs.
@@ -279,28 +291,17 @@ class ThreadPool(object):
       target(*args)
       return
 
+    if inline:
+      blocking = False
+
     try:
       # Push the task on the queue but raise if unsuccessful.
-      self._queue.put((target, args, name, time.time()), block=False)
+      self._queue.put((target, args, name, time.time()), block=blocking)
     except Queue.Full:
-      if not blocking:
+      if inline:
+        target(*args)
+      else:
         raise Full()
-
-      # The pool cannot accept new work so in order to avoid deadlocks we just
-      # process one task inline.
-      try:
-        task = self._queue.get(block=False)
-      except Queue.Empty:
-        # All the tasks have finished in the meantime?! We just try again.
-        self.AddTask(target, args, name=name)
-        return
-
-      # Now create a worker and process the task.
-      try:
-        _WorkerThread(self.name, self._queue).ProcessTask(*task)
-      finally:
-        self._queue.task_done()
-        self.AddTask(target, args, name=name)
 
   def Join(self):
     """Waits until all outstanding tasks are completed."""""
@@ -337,3 +338,80 @@ class MockThreadPool(object):
 
   def Join(self):
     pass
+
+
+class BatchConverter(object):
+  """Generic class that does multi-threaded values conversion.
+
+  BatchConverter converts a set of values to a set of different values in
+  batches using a threadpool.
+  """
+
+  def __init__(self, batch_size=1000, threadpool_prefix="batch_processor",
+               threadpool_size=10):
+    """BatchProcessor constructor.
+
+    Args:
+      batch_size: All the values will be processed in batches of this size.
+      threadpool_prefix: Prefix that will be used in thread pool's threads
+                         names.
+      threadpool_size: Size of a thread pool that will be used.
+                       If threadpool_size is 0, no threads will be used
+                       and all conversions will be done in the current
+                       thread.
+    """
+    super(BatchConverter, self).__init__()
+    self.batch_size = batch_size
+    self.threadpool_prefix = threadpool_prefix
+    self.threadpool_size = threadpool_size
+
+  def ConvertBatch(self, batch):
+    """ConvertBatch is called for every batch to do the conversion.
+
+    Args:
+      batch: Batch to convert.
+    Returns:
+      List with converted values.
+    """
+    raise NotImplementedError()
+
+  def Convert(self, values, start_index=0, end_index=None):
+    """Converts given collection to exported values.
+
+    This method uses a threadpool to do the conversion in parallel. It
+    blocks until everything is converted.
+
+    Args:
+      values: Iterable object with values to convert.
+      start_index: Start from this index in the collection.
+      end_index: Finish processing on the (index - 1) element of the
+                 collection. If None, work till the end of the collection.
+
+    Returns:
+      Nothing. ConvertedBatch() should handle the results.
+    """
+    if not values:
+      return
+
+    try:
+      total_batch_count = len(values) / self.batch_size
+    except TypeError:
+      total_batch_count = -1
+
+    pool = ThreadPool.Factory(self.threadpool_prefix,
+                              self.threadpool_size)
+    val_iterator = itertools.islice(values, start_index, end_index)
+
+    pool.Start()
+    try:
+      for batch_index, batch in enumerate(utils.Grouper(val_iterator,
+                                                        self.batch_size)):
+        logging.info("Processing batch %d out of %d", batch_index,
+                     total_batch_count)
+
+        pool.AddTask(target=self.ConvertBatch,
+                     args=(batch,), name="batch_%d" % batch_index,
+                     inline=False)
+
+    finally:
+      pool.Stop()

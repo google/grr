@@ -173,8 +173,14 @@ class ActionTest(test_lib.EmptyActionTest):
     old_listdir = os.listdir
 
     # Mock the open call
-    def MockedOpen(_):
-      return old_open(path)
+    def MockedOpen(requested_path):
+      # Any calls to open the wtmp get the mocked out version.
+      if "wtmp" in requested_path:
+        self.assertEqual(requested_path, "/var/log/wtmp")
+        return old_open(path)
+
+      # Everything else has to be opened normally.
+      return old_open(requested_path)
 
     __builtin__.open = MockedOpen
     os.listdir = lambda x: ["wtmp"]

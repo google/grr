@@ -28,6 +28,12 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     # Set up 10 clients.
     self.client_ids = self.SetupClients(10)
 
+    with test_lib.Stubber(time, "time", lambda: 0):
+      # Clean up the foreman to remove any rules.
+      with aff4.FACTORY.Open("aff4:/foreman", mode="rw",
+                             token=self.token) as foreman:
+        foreman.Set(foreman.Schema.RULES())
+
   def tearDown(self):
     super(StandardHuntTest, self).tearDown()
     self.DeleteClients(10)

@@ -637,11 +637,21 @@ message PathSpec {
   enum Options {
     CASE_INSENSITIVE = 0;
     CASE_LITERAL = 1;
+
+    // The path component is a regular expression.
     REGEX = 2;
+
+    // Indicates that this pathspec represents any subdirectory recursively.
+    RECURSIVE = 3;
   };
   optional Options path_options = 7 [(sem_type) = {
       label: ADVANCED
       }, default = CASE_INSENSITIVE];
+
+  optional uint64 recursion_depth = 12 [(sem_type) = {
+      label: HIDDEN,
+      description: "Recursion depth when RECURSIVE option is specified."
+    }, default=3];
 
   // On NTFS, the sleuthkit uses the inode, type and id to uniquely identify a
   // file - instead of the path.
@@ -1247,7 +1257,8 @@ message FindSpec {
 
   optional string path_regex = 3 [(sem_type) = {
       type: "RegularExpression",
-      description: "This matches the filename (not the directory name)."
+      description: "This matches the filename (not the directory name).",
+      friendly_name: "Filename RegEx",
     }];
 
   optional string data_regex = 4 [(sem_type) = {

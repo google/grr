@@ -8,6 +8,7 @@ intended to end up as an independent library.
 import itertools
 import re
 
+from grr.lib import rdfvalue
 from grr.lib import registry
 
 
@@ -125,19 +126,19 @@ class Artifact(object):
       A list of strings for the required kb objects e.g.
       ["users.appdata", "systemroot"]
     """
-    deps = []
+    deps = set()
     for collector in cls.COLLECTORS:
       if hasattr(collector, "args"):   # Not all collections have args.
         for arg, value in collector.args.items():
           paths = []
-          if arg == "path":
+          if arg in ["path", "query"]:
             paths.append(value)
-          if arg == "paths":
+          if arg in ["paths", "path_list"]:
             paths.extend(value)
           for path in paths:
             for match in INTERPOLATED_REGEX.finditer(path):
-              deps.append(match.group()[2:-2])   # Strip off %%.
-    return deps
+              deps.add(match.group()[2:-2])   # Strip off %%.
+    return list(deps)
 
   @classmethod
   def GetOutputType(cls):
@@ -249,6 +250,14 @@ class GenericArtifact(Artifact):
                                       " Please use one from ARTIFACT_LABELS."
                                       % (cls_name, label))
 
+    # Check all dependencies exist in the knowledge base.
+    valid_fields = rdfvalue.KnowledgeBase().GetKbFieldNames()
+    for dependency in self.GetArtifactDependencies():
+      if dependency not in valid_fields:
+        raise ArtifactDefinitionError("Artifact %s has an invalid dependency %s"
+                                      ". Artifacts must use defined knowledge "
+                                      "attributes." % (cls_name, dependency))
+
   @classmethod
   def GetShortDescription(cls):
     return cls.__doc__.split("\n")[0]
@@ -289,16 +298,20 @@ def InterpolateKbAttributes(pattern, knowledge_base):
     try:
       if "." in match.group(1):     # e.g. %%users.username%%
         base_name, attr_name = match.group(1).split(".", 1)
-        kb_value = getattr(knowledge_base, base_name.lower())
-        if isinstance(kb_value, basestring) and kb_value:
+        kb_value = knowledge_base.Get(base_name.lower())
+        if not kb_value:
+          raise AttributeError(base_name.lower())
+        elif isinstance(kb_value, basestring):
           alternatives.append(kb_value)
         else:
           for value in kb_value:
-            sub_attr = getattr(value, attr_name)
+            sub_attr = value.Get(attr_name)
             alternatives.append(unicode(sub_attr))
       else:
-        kb_value = getattr(knowledge_base, match.group(1).lower())
-        if isinstance(kb_value, basestring) and kb_value:
+        kb_value = knowledge_base.Get(match.group(1).lower())
+        if not kb_value:
+          raise AttributeError(match.group(1).lower())
+        elif isinstance(kb_value, basestring):
           alternatives.append(kb_value)
     except AttributeError as e:
       raise KnowledgeBaseInterpolationError("Failed to interpolate %s with the "
@@ -331,11 +344,44 @@ def ExpandWindowsEnvironmentVariables(data_string, knowledge_base):
     components.append(data_string[offset:match.start()])
 
     # KB environment variables are prefixed with environ_.
-    kb_value = getattr(knowledge_base, "environ_%s" % match.group(1).lower())
+    kb_value = getattr(knowledge_base, "environ_%s" % match.group(1).lower(),
+                       None)
     if isinstance(kb_value, basestring) and kb_value:
       components.append(kb_value)
     else:
-      components.append(match.group(1))
+      components.append("%%%s%%" % match.group(1))
     offset = match.end()
+  components.append(data_string[offset:])    # Append the final chunk.
+  return "".join(components)
+
+
+def ExpandWindowsUserEnvironmentVariables(data_string, knowledge_base, sid=None,
+                                          username=None):
+  """Take a string and expand windows user environment variables based.
+
+  Args:
+    data_string: A string, e.g. "%TEMP%\\LogFiles"
+    knowledge_base: A knowledgebase object.
+    sid: A Windows SID for a user to expand for.
+    username: A Windows user name to expand for.
+
+  Returns:
+    A string with available environment variables expanded.
+  """
+  win_environ_regex = re.compile(r"%([^%]+?)%")
+  components = []
+  offset = 0
+  for match in win_environ_regex.finditer(data_string):
+    components.append(data_string[offset:match.start()])
+    kb_user = knowledge_base.GetUser(sid=sid, username=username)
+    kb_value = None
+    if kb_user:
+      kb_value = getattr(kb_user, match.group(1).lower(), None)
+    if isinstance(kb_value, basestring) and kb_value:
+      components.append(kb_value)
+    else:
+      components.append("%%%s%%" % match.group(1))
+    offset = match.end()
+
   components.append(data_string[offset:])    # Append the final chunk.
   return "".join(components)

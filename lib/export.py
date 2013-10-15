@@ -7,7 +7,6 @@ easily be written to a relational database or just to a set of files.
 """
 
 import hashlib
-import itertools
 import stat
 import time
 
@@ -72,6 +71,10 @@ class ExportedVolatilityMutant(rdfvalue.RDFProtoStruct):
 
 class ExportedNetworkInterface(rdfvalue.RDFProtoStruct):
   protobuf = export_pb2.ExportedNetworkInterface
+
+
+class ExportedFileStoreHash(rdfvalue.RDFProtoStruct):
+  protobuf = export_pb2.ExportedFileStoreHash
 
 
 class ExportConverter(object):
@@ -142,8 +145,31 @@ class StatEntryToExportedFileConverter(ExportConverter):
 
   MAX_CONTENT_SIZE = 1024 * 64
 
-  def _ParseSignedData(self, signed_data, result):
+  @staticmethod
+  def ParseSignedData(signed_data, result):
     """Parses signed certificate data and updates result rdfvalue."""
+
+  @staticmethod
+  def ParseFileHash(hash_obj, result):
+    """Parses Hash rdfvalue into ExportedFile's fields."""
+    if hash_obj.HasField("md5"):
+      result.hash_md5 = str(hash_obj.md5)
+
+    if hash_obj.HasField("sha1"):
+      result.hash_sha1 = str(hash_obj.sha1)
+
+    if hash_obj.HasField("sha256"):
+      result.hash_sha256 = str(hash_obj.sha256)
+
+    if hash_obj.HasField("pecoff_md5"):
+      result.pecoff_hash_md5 = str(hash_obj.pecoff_md5)
+
+    if hash_obj.HasField("pecoff_sha1"):
+      result.pecoff_hash_sha1 = str(hash_obj.pecoff_sha1)
+
+    if hash_obj.HasField("signed_data"):
+      StatEntryToExportedFileConverter.ParseSignedData(
+          hash_obj.signed_data[0], result)
 
   def Convert(self, metadata, stat_entry, token=None):
     """Converts StatEntry to ExportedFile.
@@ -179,10 +205,11 @@ class StatEntryToExportedFileConverter(ExportConverter):
       if not stat_entry.HasField("registry_type"):
         filtered_pairs.append((metadata, stat_entry))
 
-    aff4_paths = [stat_entry.aff4path
-                  for metadata, stat_entry in metadata_value_pairs]
-    fds = aff4.FACTORY.MultiOpen(aff4_paths, mode="r", token=token)
-    fds_dict = dict([(fd.urn, fd) for fd in fds])
+    if self.options.export_files_hashes or self.options.export_files_contents:
+      aff4_paths = [stat_entry.aff4path
+                    for metadata, stat_entry in metadata_value_pairs]
+      fds = aff4.FACTORY.MultiOpen(aff4_paths, mode="r", token=token)
+      fds_dict = dict([(fd.urn, fd) for fd in fds])
 
     for metadata, stat_entry in filtered_pairs:
       result = ExportedFile(metadata=metadata,
@@ -203,33 +230,24 @@ class StatEntryToExportedFileConverter(ExportConverter):
                             st_rdev=stat_entry.st_rdev,
                             symlink=stat_entry.symlink)
 
-      try:
-        aff4_object = fds_dict[stat_entry.aff4path]
+      if self.options.export_files_hashes or self.options.export_files_contents:
+        try:
+          aff4_object = fds_dict[stat_entry.aff4path]
 
-        hash_obj = aff4_object.Get(aff4_object.Schema.HASH)
-        if hash_obj:
-          result.hash_md5 = str(hash_obj.md5)
-          result.hash_sha1 = str(hash_obj.sha1)
-          result.hash_sha256 = str(hash_obj.sha256)
+          if self.options.export_files_hashes:
+            hash_obj = aff4_object.Get(aff4_object.Schema.HASH)
+            if hash_obj:
+              self.ParseFileHash(hash_obj, result)
 
-          if hash_obj.HasField("pecoff_md5"):
-            result.pecoff_hash_md5 = str(hash_obj.pecoff_md5)
-
-          if hash_obj.HasField("pecoff_sha1"):
-            result.pecoff_hash_sha1 = str(hash_obj.pecoff_sha1)
-
-          if hash_obj.HasField("signed_data"):
-            self._ParseSignedData(hash_obj.signed_data[0], result)
-
-        if self.options.export_files_contents:
-          try:
-            result.content = aff4_object.Read(self.MAX_CONTENT_SIZE)
-            result.content_sha256 = hashlib.sha256(result.content).hexdigest()
-          except (IOError, AttributeError) as e:
-            logging.warning("Can't read content of %s: %s",
-                            stat_entry.aff4path, e)
-      except KeyError:
-        pass
+          if self.options.export_files_contents:
+            try:
+              result.content = aff4_object.Read(self.MAX_CONTENT_SIZE)
+              result.content_sha256 = hashlib.sha256(result.content).hexdigest()
+            except (IOError, AttributeError) as e:
+              logging.warning("Can't read content of %s: %s",
+                              stat_entry.aff4path, e)
+        except KeyError:
+          pass
 
       yield result
 
@@ -437,12 +455,16 @@ class ClientSummaryToExportedNetworkInterfaceConverter(ExportConverter):
         else:
           raise ValueError("Invalid address type: %s", addr.address_type)
 
-      yield ExportedNetworkInterface(
+      result = ExportedNetworkInterface(
           metadata=metadata,
-          mac_address=interface.mac_address.human_readable_address,
           ifname=interface.ifname,
           ip4_addresses=" ".join(ip4_addresses),
           ip6_addresses=" ".join(ip6_addresses))
+
+      if interface.mac_address:
+        result.mac_address = interface.mac_address.human_readable_address
+
+      yield result
 
 
 class ClientSummaryToExportedClientConverter(ExportConverter):
@@ -462,17 +484,235 @@ class RDFURNConverter(ExportConverter):
 
   input_rdf_type = "RDFURN"
 
-  def Convert(self, metadata, urn, token=None):
-    fd = aff4.FACTORY.Open(urn, token=token)
-    if fd.Get(fd.Schema.TYPE) == "RDFValueCollection":
-      for value in fd:
-        for v in ConvertSingleValue(metadata, value, token=token):
-          yield v
-    else:
-      stat_entry = fd.Get(fd.Schema.STAT)
-      if stat_entry:
-        for v in ConvertSingleValue(metadata, stat_entry, token=token):
-          yield v
+  def Convert(self, metadata, stat_entry, token=None):
+    return self.BatchConvert([(metadata, stat_entry)], token=token)
+
+  def BatchConvert(self, metadata_value_pairs, token=None):
+    urn_metadata_pairs = []
+    for metadata, value in metadata_value_pairs:
+      if isinstance(value, rdfvalue.RDFURN):
+        urn_metadata_pairs.append((value, metadata))
+
+    urns_dict = dict(urn_metadata_pairs)
+    fds = aff4.FACTORY.MultiOpen(urns_dict.iterkeys(), mode="r", token=token)
+
+    batch = []
+    for fd in fds:
+      batch.append((urns_dict[fd.urn], fd))
+
+    converters_classes = ExportConverter.GetConvertersByValue(
+        batch[0][1])
+    converters = [cls(self.options) for cls in converters_classes]
+    if not converters:
+      logging.info("No converters found for %s.",
+                   batch[0][1].__class__.__name__)
+
+    converted_batch = []
+    for converter in converters:
+      converted_batch.extend(converter.BatchConvert(batch, token=token))
+
+    return converted_batch
+
+
+class RDFValueCollectionConverter(ExportConverter):
+
+  input_rdf_type = "RDFValueCollection"
+
+  BATCH_SIZE = 1000
+
+  def Convert(self, metadata, collection, token=None):
+    if not collection:
+      return
+
+    converters_classes = ExportConverter.GetConvertersByValue(collection[0])
+    converters = [cls(self.options) for cls in converters_classes]
+
+    for batch in utils.Grouper(collection, self.BATCH_SIZE):
+      print ["A", [str(s) for s in batch]]
+      batch_with_metadata = [(metadata, v) for v in batch]
+      converted_batch = []
+      for converter in converters:
+        converted_batch.extend(
+            converter.BatchConvert(batch_with_metadata, token=token))
+
+      for v in converted_batch:
+        yield v
+
+
+class VFSFileToExportedFileConverter(ExportConverter):
+
+  input_rdf_type = "VFSFile"
+
+  def Convert(self, metadata, vfs_file, token=None):
+    stat_entry = vfs_file.Get(vfs_file.Schema.STAT)
+    if not stat_entry:
+      return []
+
+    result = ExportedFile(metadata=metadata,
+                          urn=stat_entry.aff4path,
+                          basename=stat_entry.pathspec.Basename(),
+                          st_mode=stat_entry.st_mode,
+                          st_ino=stat_entry.st_ino,
+                          st_dev=stat_entry.st_dev,
+                          st_nlink=stat_entry.st_nlink,
+                          st_uid=stat_entry.st_uid,
+                          st_gid=stat_entry.st_gid,
+                          st_size=stat_entry.st_size,
+                          st_atime=stat_entry.st_atime,
+                          st_mtime=stat_entry.st_mtime,
+                          st_ctime=stat_entry.st_ctime,
+                          st_blocks=stat_entry.st_blocks,
+                          st_blksize=stat_entry.st_blksize,
+                          st_rdev=stat_entry.st_rdev,
+                          symlink=stat_entry.symlink)
+
+    hash_obj = vfs_file.Get(vfs_file.Schema.HASH)
+    if hash_obj:
+      StatEntryToExportedFileConverter.ParseFileHash(hash_obj, result)
+
+    return [result]
+
+
+class GrrMessageConverter(ExportConverter):
+  """Converts GrrMessage's payload into a set of RDFValues.
+
+  GrrMessageConverter converts given GrrMessages to a set of exportable
+  RDFValues. It looks at the payload of every message and applies necessary
+  converters to produce the resulting RDFValues.
+
+  Usually, when a value is converted via one of the ExportConverter classes,
+  metadata (ExportedMetadata object describing the client, session id, etc)
+  are provided by the caller. But when converting GrrMessages, the caller can't
+  provide any reasonable metadata. In order to understand where the messages
+  are coming from, one actually has to inspect the messages source and this
+  is done by GrrMessageConverter and not by the caller.
+
+  Although ExportedMetadata should still be provided for the conversion to
+  happen, only "session_id" and "timestamp" values will be used. All other
+  metadata will be fetched from the client object pointed to by
+  GrrMessage.source.
+  """
+
+  input_rdf_type = "GrrMessage"
+
+  def __init__(self, *args, **kw):
+    super(GrrMessageConverter, self).__init__(*args, **kw)
+    self.cached_metadata = {}
+
+  def Convert(self, metadata, stat_entry, token=None):
+    """Converts GrrMessage into a set of RDFValues.
+
+    Args:
+      metadata: ExporteMetadata to be used for conversion.
+      stat_entry: StatEntry to be converted.
+      token: Security token.
+
+    Returns:
+      List or generator with resulting RDFValues. Empty list if StatEntry
+      corresponds to a registry entry and not to a file.
+    """
+    return self.BatchConvert([(metadata, stat_entry)], token=token)
+
+  def BatchConvert(self, metadata_value_pairs, token=None):
+    """Converts a batch of StatEntry value to ExportedFile values at once.
+
+    Args:
+      metadata_value_pairs: a list or a generator of tuples (metadata, value),
+                            where metadata is ExportedMetadata to be used for
+                            conversion and value is a StatEntry to be converted.
+      token: Security token:
+
+    Returns:
+      Resulting RDFValues. Empty list is a valid result and means that
+      conversion wasn't possible.
+    """
+    # Find set of converters for the first message payload.
+    # We assume that payload is of the same type for all the messages in the
+    # batch.
+    converters_classes = ExportConverter.GetConvertersByValue(
+        metadata_value_pairs[0][1].payload)
+    converters = [cls(self.options) for cls in converters_classes]
+
+    # Group messages by source (i.e. by client urn).
+    msg_dict = {}
+    for metadata, msg in metadata_value_pairs:
+      if msg.source not in msg_dict:
+        msg_dict[msg.source] = []
+      msg_dict[msg.source].append((metadata, msg))
+
+    metadata_objects = []
+    metadata_to_fetch = []
+    # Open the clients we don't have metadata for and fetch metadata.
+    for client_urn in msg_dict.iterkeys():
+      try:
+        metadata_objects.append(self.cached_metadata[client_urn])
+      except KeyError:
+        metadata_to_fetch.append(client_urn)
+
+    if metadata_to_fetch:
+      client_fds = aff4.FACTORY.MultiOpen(metadata_to_fetch, mode="r",
+                                          token=token)
+      fetched_metadata = [GetMetadata(client_fd, token=token)
+                          for client_fd in client_fds]
+      for metadata in fetched_metadata:
+        self.cached_metadata[metadata.client_urn] = metadata
+      metadata_objects.extend(fetched_metadata)
+
+    # Get session id and timestamp from the original metadata provided.
+    batch_data = []
+    for metadata in metadata_objects:
+      try:
+        for original_metadata, message in msg_dict[metadata.client_urn]:
+          new_metadata = rdfvalue.ExportedMetadata(metadata)
+          new_metadata.session_id = original_metadata.session_id
+          new_metadata.timestamp = original_metadata.timestamp
+          batch_data.append((new_metadata, message.payload))
+
+      except KeyError:
+        pass
+
+    converted_batch = []
+    for converter in converters:
+      converted_batch.extend(converter.BatchConvert(batch_data, token=token))
+
+    return converted_batch
+
+
+class FileStoreImageToExportedFileStoreHashConverter(ExportConverter):
+  """Converts FileStoreImage to ExportedFileStoreHash."""
+
+  input_rdf_type = "ExportedFileStoreImage"
+
+  def Convert(self, metadata, stat_entry, token=None):
+    """Converts StatEntry to ExportedFile.
+
+    Does nothing if StatEntry corresponds to a registry entry and not to a file.
+
+    Args:
+      metadata: ExporteMetadata to be used for conversion.
+      stat_entry: StatEntry to be converted.
+      token: Security token.
+
+    Returns:
+      List or generator with resulting RDFValues. Empty list if StatEntry
+      corresponds to a registry entry and not to a file.
+    """
+    return self.BatchConvert([(metadata, stat_entry)], token=token)
+
+  def BatchConvert(self, metadata_value_pairs, token=None):
+    """Converts a batch of StatEntry value to ExportedFile values at once.
+
+    Args:
+      metadata_value_pairs: a list or a generator of tuples (metadata, value),
+                            where metadata is ExportedMetadata to be used for
+                            conversion and value is a StatEntry to be converted.
+      token: Security token:
+
+    Yields:
+      Resulting ExportedFile values. Empty list is a valid result and means that
+      conversion wasn't possible.
+    """
+    raise NotImplementedError()
 
 
 def GetMetadata(client, token=None):
@@ -535,11 +775,12 @@ def ConvertSingleValue(metadata, value, token=None, options=None):
       yield v
 
 
-class RDFValueCollectionConverter(object):
+class RDFValuesExportConverter(threadpool.BatchConverter):
   """Class used to convert sets of RDFValues to their exported versions."""
 
-  def __init__(self, batch_size=None, threadpool_prefix=None,
-               threadpool_size=None, callback_fn=None):
+  def __init__(self, batch_size=1000, threadpool_prefix="export_converter",
+               threadpool_size=10, default_metadata=None, options=None,
+               token=None):
     """Constructor of RDFValueCollectionConverter.
 
     Args:
@@ -550,17 +791,22 @@ class RDFValueCollectionConverter(object):
                        If threadpool_size is 0, no threads will be used
                        and all conversions will be done in the current
                        thread.
-      callback_fn: User-provided callback that will be called every time
-                   a converted batch is ready.
+      default_metadata: Metadata that will be used for exported values by
+                        default. ExportConverters will use this metadata
+                        object if they cannot collect their own metadata.
+      options: ExportOptions used by the ExportConverters.
+      token: Security token.
     """
-    super(RDFValueCollectionConverter, self).__init__()
-    self.batch_size = batch_size or 1000
-    self.threadpool_prefix = threadpool_prefix or "convert_collection"
-    if threadpool_size is None:
-      self.threadpool_size = 10
-    else:
-      self.threadpool_size = threadpool_size
-    self.callback_fn = callback_fn
+    super(RDFValuesExportConverter, self).__init__(
+        batch_size=batch_size, threadpool_prefix=threadpool_prefix,
+        threadpool_size=threadpool_size)
+
+    self.default_metadata = default_metadata or rdfvalue.ExportedMetadata(
+        timestamp=rdfvalue.RDFDatetime().Now())
+    self.options = options
+    self.token = token
+
+    self.converters = []
 
   def ProcessConvertedBatch(self, converted_batch):
     """Callback function that is called after every converted batch.
@@ -570,126 +816,34 @@ class RDFValueCollectionConverter(object):
     Args:
       converted_batch: List or a generator of RDFValues.
     """
-    if self.callback_fn:
-      self.callback_fn(converted_batch)
+    pass
 
-  def _ProcessBatchTask(self, batch, converters_classes, options,
-                        session_id, token):
-    """Threadpool task method.
+  def ConvertBatch(self, batch):
+    """Converts batch of values at once."""
 
-    Args:
-      batch: Batch to process.
-      converters_classes: List of converters to use.
-      options: Export options to pass to converters.
-      session_id: Session id to fill into the metadata.
-      token: Security token.
-    """
-    msg_dict = {}
-    for msg in batch:
-      if msg.source not in msg_dict:
-        msg_dict[msg.source] = []
-      msg_dict[msg.source].append(msg)
+    if not self.converters:
+      converters_classes = ExportConverter.GetConvertersByValue(batch[0])
+      if not converters_classes:
+        raise NoConverterFound(
+            "No converters found for value: %s" % str(batch[0]))
 
-    client_fds = aff4.FACTORY.MultiOpen(msg_dict.iterkeys(), mode="r",
-                                        token=token)
-    metadata_objects = [GetMetadata(client_fd, token=token)
-                        for client_fd in client_fds]
-    for metadata in metadata_objects:
-      metadata.session_id = session_id
+      self.converters = [cls(self.options) for cls in converters_classes]
 
-    converters = [cls(options) for cls in converters_classes]
+    batch_data = [(self.default_metadata, obj) for obj in batch]
+
     converted_batch = []
-
-    batch_data = []
-    for metadata in metadata_objects:
-      try:
-        batch_data.extend([(metadata, message.payload)
-                           for message in msg_dict[metadata.client_urn]])
-      except KeyError:
-        pass
-
-    for converter in converters:
+    for converter in self.converters:
       converted_batch.extend(
-          converter.BatchConvert(batch_data, token=token))
+          converter.BatchConvert(batch_data, token=self.token))
 
     self.ProcessConvertedBatch(converted_batch)
 
-  def Convert(self, collection, start_index=0, end_index=None, session_id=None,
-              options=None, token=None):
-    """Converts given collection to exported values.
 
-    This method uses a threadpool to do the conversion in parallel. It
-    blocks until everything is converted.
-
-    Args:
-      collection: Iterable object with GRRMessages whose payload
-                  should be converted.
-      start_index: Start from this index in the collection.
-      end_index: Finish processing on the (index - 1) element of the
-                 collection. If None, work till the end of the collection.
-      session_id: to use in ExportedMetadata corresponding to values.
-      options: Export options for the converters.
-      token: Security token.
-
-    Raises:
-      NoConverterFound: if no available converters are found for the
-                        values in given RDFValueCollection.
-
-    Returns:
-      Nothing. callback_fn should be used to process results.
-    """
-    if not collection:
-      return
-
-    try:
-      total_batch_count = len(collection) / self.batch_size
-    except TypeError:
-      total_batch_count = -1
-
-    pool = threadpool.ThreadPool.Factory(self.threadpool_prefix,
-                                         self.threadpool_size)
-    msg_iterator = itertools.islice(collection, start_index, end_index)
-
-    pool.Start()
-    try:
-      converters_classes = None
-      batch_index = 0
-      batch = []
-      for msg in msg_iterator:
-        if not converters_classes:
-          converters_classes = ExportConverter.GetConvertersByValue(
-              msg.payload)
-          if not converters_classes:
-            raise NoConverterFound(
-                "No converters found for value: %s" % msg)
-
-        batch.append(msg)
-        if len(batch) >= self.batch_size:
-          logging.info("Processing batch %d out of %d", batch_index,
-                       total_batch_count)
-
-          pool.AddTask(target=self._ProcessBatchTask,
-                       args=(batch, converters_classes,
-                             options, session_id, token),
-                       name="batch_%d" % batch_index)
-          batch = []
-          batch_index += 1
-
-      if batch:
-        pool.AddTask(target=self._ProcessBatchTask,
-                     args=(batch, converters_classes,
-                           options, session_id, token),
-                     name="last_batch_%d" % batch_index)
-
-    finally:
-      pool.Stop()
-
-
-class RDFValueCollectionListBasedConverter(RDFValueCollectionConverter):
+class RDFValuesExportConverterToList(RDFValuesExportConverter):
   """RDFValueCollectionConverter that accumulates results in a list."""
 
   def __init__(self, *args, **kwargs):
-    super(RDFValueCollectionListBasedConverter, self).__init__(*args, **kwargs)
+    super(RDFValuesExportConverterToList, self).__init__(*args, **kwargs)
     self.results = []
 
   def ProcessConvertedBatch(self, batch):

@@ -11,9 +11,9 @@ import logging
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import scheduler
 from grr.lib import utils
 from grr.lib.aff4_objects import standard
 from grr.proto import flows_pb2
@@ -182,9 +182,6 @@ class VFSGRRClient(standard.VFSDirectory):
     if not isinstance(pathspec, rdfvalue.RDFValue):
       raise ValueError("Pathspec should be an rdfvalue.")
 
-    # Do not change the argument pathspec.
-    pathspec = pathspec.Copy()
-
     # If the first level is OS and the second level is TSK its probably a mount
     # point resolution. We map it into the tsk branch. For example if we get:
     # path: \\\\.\\Volume{1234}\\
@@ -207,7 +204,7 @@ class VFSGRRClient(standard.VFSDirectory):
                 dev]
 
       # Skip the top level pathspec.
-      pathspec.Pop()
+      pathspec = pathspec[1]
     else:
       # For now just map the top level prefix based on the first pathtype
       result = [VFSGRRClient.AFF4_PREFIXES[pathspec[0].pathtype]]
@@ -398,8 +395,8 @@ class GRRForeman(aff4.AFF4Object):
       for session_id in expired_session_ids:
         priorities[session_id] = rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY
 
-      scheduler.SCHEDULER.MultiNotifyQueue(list(expired_session_ids),
-                                           priorities, token=self.token)
+      manager = queue_manager.QueueManager(token=self.token)
+      manager.MultiNotifyQueue(list(expired_session_ids), priorities)
 
     if len(new_rules) < len(rules):
       self.Set(self.Schema.RULES, new_rules)

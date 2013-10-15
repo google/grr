@@ -13,9 +13,8 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import flow_runner
+from grr.lib import queue_manager
 from grr.lib import rdfvalue
-from grr.lib import scheduler
 from grr.lib import test_lib
 from grr.lib import worker
 
@@ -76,7 +75,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       request_id, response_id = 0, 12345
     else:
       request_id, response_id = 1, 1
-    with flow_runner.QueueManager(token=self.token) as flow_manager:
+    with queue_manager.QueueManager(token=self.token) as flow_manager:
       flow_manager.QueueResponse(session_id, rdfvalue.GrrMessage(
           source=client_id,
           session_id=session_id,
@@ -111,9 +110,9 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     session_id_2 = flow_obj.session_id
     flow_obj.Close()
 
+    manager = queue_manager.QueueManager(token=self.token)
     # Check that client queue has messages
-    tasks_on_client_queue = scheduler.SCHEDULER.Query(
-        self.client_id, 100, token=self.token)
+    tasks_on_client_queue = manager.Query(self.client_id.Queue(), 100)
 
     # should have 10 requests from WorkerSendingTestFlow and 1 from
     # SendingTestFlow2
@@ -141,15 +140,14 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     # Check that client queue is cleared - should have 2 less messages (since
     # two were completed).
-    tasks_on_client_queue = scheduler.SCHEDULER.Query(
-        self.client_id, 100, token=self.token)
+    tasks_on_client_queue = manager.Query(self.client_id.Queue(), 100)
 
     self.assertEqual(len(tasks_on_client_queue), 9)
 
     # Ensure that processed requests are removed from state subject
     self.assertEqual((None, 0), data_store.DB.Resolve(
         session_id_1.Add("state"),
-        flow_runner.QueueManager.FLOW_REQUEST_TEMPLATE % 1,
+        manager.FLOW_REQUEST_TEMPLATE % 1,
         token=self.token))
 
     flow_obj = aff4.FACTORY.Open(session_id_1, token=self.token)
@@ -186,10 +184,10 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def CheckNotificationsDisappear(self, session_id):
     worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
                                   token=self.token)
-    scheduler.SCHEDULER.NotifyQueue(session_id, token=self.token)
+    manager = queue_manager.QueueManager(token=self.token)
+    manager.NotifyQueue(session_id)
 
-    sessions = scheduler.SCHEDULER.GetSessionsFromQueue("aff4:/W",
-                                                        token=self.token)
+    sessions = manager.GetSessionsFromQueue("aff4:/W")
     # Check the notification is there.
     self.assertEqual(len(sessions), 1)
     self.assertEqual(sessions[0], session_id)
@@ -198,8 +196,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     worker_obj.RunOnce()
     worker_obj.thread_pool.Join()
 
-    sessions = scheduler.SCHEDULER.GetSessionsFromQueue("aff4:/W",
-                                                        token=self.token)
+    sessions = manager.GetSessionsFromQueue("aff4:/W")
     # Check the notification is now gone.
     self.assertEqual(len(sessions), 0)
 

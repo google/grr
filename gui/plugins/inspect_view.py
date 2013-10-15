@@ -15,9 +15,8 @@ from grr.gui import renderers
 from grr.gui.plugins import fileview
 from grr.gui.plugins import semantic
 from grr.lib import data_store
-from grr.lib import flow_runner
+from grr.lib import queue_manager
 from grr.lib import rdfvalue
-from grr.lib import scheduler
 
 
 class InspectView(renderers.Splitter2Way):
@@ -69,11 +68,10 @@ class RequestTable(renderers.TableRenderer):
     client_id = rdfvalue.ClientURN(request.REQ.get("client_id"))
     now = rdfvalue.RDFDatetime().Now()
 
-    # Make a local scheduler.
-    scheduler_obj = scheduler.TaskScheduler()
+    # Make a local QueueManager.
+    manager = queue_manager.QueueManager(token=request.token)
 
-    for i, task in enumerate(scheduler_obj.Query(client_id, limit=end_row,
-                                                 token=request.token)):
+    for i, task in enumerate(manager.Query(client_id, limit=end_row)):
       if i < start_row:
         continue
 
@@ -114,11 +112,11 @@ class ResponsesTable(renderers.TableRenderer):
 
     task_id = "task:%s" % request.REQ.get("task_id", "")
 
-    # This is the request.
-    scheduler_obj = scheduler.TaskScheduler()
+    # Make a local QueueManager.
+    manager = queue_manager.QueueManager(token=request.token)
 
-    request_messages = scheduler_obj.Query(
-        client_id, task_id=task_id, token=request.token)
+    # This is the request.
+    request_messages = manager.Query(client_id, task_id=task_id)
 
     if not request_messages: return
 
@@ -127,13 +125,15 @@ class ResponsesTable(renderers.TableRenderer):
     state_queue = request_message.session_id.Add(
         "state/request:%08X" % request_message.request_id)
 
-    predicate_re = (flow_runner.QueueManager.FLOW_RESPONSE_PREFIX %
+    predicate_re = (manager.FLOW_RESPONSE_PREFIX %
                     request_message.request_id) + ".*"
 
     # Get all the responses for this request.
-    for i, (predicate, message, _) in enumerate(data_store.DB.ResolveRegex(
-        state_queue, predicate_re, decoder=rdfvalue.GrrMessage, limit=end_row,
-        token=request.token)):
+    for i, (predicate, serialized_message, _) in enumerate(
+        data_store.DB.ResolveRegex(state_queue, predicate_re,
+                                   limit=end_row, token=request.token)):
+
+      message = rdfvalue.GrrMessage(serialized_message)
 
       if i < start_row:
         continue
@@ -212,9 +212,9 @@ class RequestRenderer(renderers.TemplateRenderer):
     client_id = rdfvalue.ClientURN(request.REQ.get("client_id"))
     task_id = "task:" + request.REQ.get("task_id")
 
-    # Make a local scheduler.
-    scheduler_obj = scheduler.TaskScheduler()
-    msgs = scheduler_obj.Query(client_id, task_id=task_id, token=request.token)
+    # Make a local QueueManager.
+    manager = queue_manager.QueueManager(token=request.token)
+    msgs = manager.Query(client_id, task_id=task_id)
     if msgs:
       self.msg = msgs[0]
       self.view = semantic.FindRendererForObject(

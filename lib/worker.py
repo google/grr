@@ -13,8 +13,8 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import queue_manager
 from grr.lib import rdfvalue
-from grr.lib import scheduler
 # pylint: disable=unused-import
 from grr.lib import server_stubs
 # pylint: enable=unused-import
@@ -56,7 +56,7 @@ class GRRWorker(object):
       RuntimeError: If the token is not provided.
     """
     self.queue = queue
-    self.queued_flows = utils.TimeBasedCache(max_size=1000, max_age=60)
+    self.queued_flows = utils.TimeBasedCache(max_size=10, max_age=60)
 
     if token is None:
       raise RuntimeError("A valid ACLToken is required.")
@@ -72,6 +72,7 @@ class GRRWorker(object):
 
     self.token = token
     self.last_active = 0
+    self.manager = queue_manager.QueueManager(token=self.token)
 
     # Well known flows are just instantiated.
     self.well_known_flows = flow.WellKnownFlow.GetAllWellKnownFlows(token=token)
@@ -107,8 +108,7 @@ class GRRWorker(object):
         Total number of messages processed by this call.
     """
     now = time.time()
-    sessions_available = scheduler.SCHEDULER.GetSessionsFromQueue(
-        self.queue, self.token)
+    sessions_available = self.manager.GetSessionsFromQueue(self.queue)
 
     time_to_fetch_messages = time.time() - now
 
@@ -184,7 +184,7 @@ class GRRWorker(object):
 
         # If we get here, we now own the flow, so we can remove the notification
         # for it from the worker queue.
-        scheduler.SCHEDULER.DeleteNotification(session_id, token=self.token)
+        self.manager.DeleteNotification(session_id)
 
         # We still need to take a lock on the well known flow in the datastore,
         # but we can run a local instance.
@@ -228,7 +228,7 @@ class GRRWorker(object):
       # Something went wrong when processing this session. In order not to spin
       # here, we just remove the notification.
       logging.exception("Error processing session %s: %s", session_id, e)
-      scheduler.SCHEDULER.DeleteNotification(session_id, token=self.token)
+      self.manager.DeleteNotification(session_id)
 
 
 class GRREnroler(GRRWorker):

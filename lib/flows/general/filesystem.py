@@ -15,12 +15,15 @@ from grr.proto import flows_pb2
 def CreateAFF4Object(stat_response, client_id, token, sync=False):
   """This creates a File or a Directory from a stat response."""
 
-  urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(stat_response.pathspec,
-                                                   client_id)
+  stat_response.aff4path = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+      stat_response.pathspec, client_id)
+
   if stat.S_ISDIR(stat_response.st_mode):
-    fd = aff4.FACTORY.Create(urn, "VFSDirectory", mode="w", token=token)
+    fd = aff4.FACTORY.Create(stat_response.aff4path, "VFSDirectory",
+                             mode="w", token=token)
   else:
-    fd = aff4.FACTORY.Create(urn, "VFSFile", mode="w", token=token)
+    fd = aff4.FACTORY.Create(stat_response.aff4path, "VFSFile", mode="w",
+                             token=token)
 
   fd.Set(fd.Schema.STAT(stat_response))
   fd.Set(fd.Schema.PATHSPEC(stat_response.pathspec))
@@ -106,7 +109,7 @@ class IteratedListDirectory(ListDirectory):
   category = None
 
   @flow.StateHandler(next_state="List")
-  def Start(self, unused_response):
+  def Start(self):
     """Issue a request to list the directory."""
     self.state.Register("responses", [])
     self.state.Register("urn", None)
@@ -429,12 +432,17 @@ class Glob(flow.GRRFlow):
 
   # A regex indicating if there are shell globs in this path.
   GLOB_MAGIC_CHECK = re.compile("[*?[]")
+  RECURSION_REGEX = re.compile(r"\*\*(\d*)")
 
   def ConvertGlobIntoPathComponents(self, pattern):
     """Converts a glob pattern into a list of pathspec components.
 
     Wildcards are also converted to regular expressions. The pathspec components
     do not span directories, and are marked as a regex or a literal component.
+
+    We also support recursion into directories using the ** notation.  For
+    example, /home/**2/foo.txt will find all files named foo.txt recursed 2
+    directories deep. If the directory depth is omitted, it defaults to 3.
 
     Example:
      /home/test/* -> ['home', 'test', '.*\\Z(?ms)']
@@ -444,17 +452,43 @@ class Glob(flow.GRRFlow):
 
     Returns:
       A list of PathSpec instances for each component.
+
+    Raises:
+      ValueError: If the glob is invalid.
     """
+    starstar_used = False
+
     components = []
     for path_component in pattern.split("/"):
-      if self.GLOB_MAGIC_CHECK.search(path_component):
-        components.append(rdfvalue.PathSpec(
-            path="^" + fnmatch.translate(path_component),
-            path_options=rdfvalue.PathSpec.Options.REGEX))
+      # A ** in the path component means recurse into directories that match the
+      # pattern.
+      m = self.RECURSION_REGEX.search(path_component)
+      if m:
+        if starstar_used:
+          raise ValueError("wildcards ** can be used once per path at most.")
+
+        starstar_used = True
+        path_component = path_component.replace(m.group(0), "*")
+
+        component = rdfvalue.PathSpec(
+            path="(?i)^" + fnmatch.translate(path_component),
+            path_options=rdfvalue.PathSpec.Options.RECURSIVE)
+
+        # Allow the user to override the recursion depth.
+        if m.group(1):
+          component.recursion_depth = int(m.group(1))
+
+      elif self.GLOB_MAGIC_CHECK.search(path_component):
+        component = rdfvalue.PathSpec(
+            # We have to prefix the regex with the ignore case flag here.
+            path="(?i)^" + fnmatch.translate(path_component),
+            path_options=rdfvalue.PathSpec.Options.REGEX)
       else:
-        components.append(rdfvalue.PathSpec(
+        component = rdfvalue.PathSpec(
             path=path_component,
-            path_options=rdfvalue.PathSpec.Options.CASE_INSENSITIVE))
+            path_options=rdfvalue.PathSpec.Options.CASE_INSENSITIVE)
+
+      components.append(component)
 
     return components
 
@@ -542,11 +576,24 @@ class Glob(flow.GRRFlow):
 
           # Use the pathtype from the flow args.
           component.pathtype = self.state.args.pathtype
+          if component.path_options == component.Options.RECURSIVE:
+            findspec = rdfvalue.FindSpec(pathspec=response.pathspec,
+                                         cross_devs=True,
+                                         max_depth=component.recursion_depth,
+                                         path_regex=component.path)
 
-          if component.path_options == component.Options.REGEX:
+            # We don't really support iteration here, so we make sure we will
+            # check all the files in this directory.
+            findspec.iterator.number = 100000
+            self.CallClient("Find", findspec,
+                            next_state="ProcessEntry",
+                            request_data=dict(component_path=next_component))
+
+          elif component.path_options == component.Options.REGEX:
             findspec = rdfvalue.FindSpec(pathspec=response.pathspec,
                                          max_depth=1,
                                          path_regex=component.path)
+
             # We don't really support iteration here, so we make sure we will
             # check all the files in this directory.
             findspec.iterator.number = 100000
@@ -555,7 +602,9 @@ class Glob(flow.GRRFlow):
                             request_data=dict(component_path=next_component))
 
           elif component.path_options == component.Options.CASE_INSENSITIVE:
-            pathspec = response.pathspec.Copy().Append(component)
+            # Check for the existence of the last node.
+            pathspec = response.pathspec.Copy().AppendPath(component.path)
+
             if not next_node:
               # If next node is empty, this node is a leaf node, we therefore
               # must stat it to check that it is there.

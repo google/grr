@@ -662,7 +662,7 @@ class GenericHunt(implementation.GRRHunt):
     flows = aff4.FACTORY.MultiListChildren(
         [self.urn.Add(x.Basename()) for x in result])
 
-    return [x[0] for x in flows.values()]
+    return [x[0] for _, x in flows]
 
   def Save(self):
     if self.state and self.processed_responses:

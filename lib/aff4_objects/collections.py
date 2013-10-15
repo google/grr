@@ -182,25 +182,32 @@ class AFF4Collection(aff4.AFF4Volume, RDFValueCollection):
     """
     self.Set(self.Schema.VIEW(attributes))
 
-  def Query(self, filter_string="", filter_obj=None, subjects=None, limit=100):
+  def Query(self, filter_string="", subjects=None, limit=100):
     """Filter the objects contained within this collection."""
-    if filter_obj is None and filter_string:
+    if subjects is None:
+      subjects = set()
+      for obj in self:
+        if len(subjects) < limit:
+          subjects.add(obj.urn)
+        else:
+          break
+
+    else:
+      subjects = set(subjects[:limit])
+
+    if filter_string:
       # Parse the query string
       ast = aff4.AFF4QueryParser(filter_string).Parse()
 
       # Query our own data store
-      filter_obj = ast.Compile(data_store.DB.filter)
+      filter_obj = ast.Compile(aff4.AFF4Filter)
 
     # We expect RDFURN objects to be stored in this collection.
-    subjects = set([x.urn for x in self])
-    if not subjects:
-      return []
-    result = []
-    for match in data_store.DB.Query([], filter_obj, subjects=subjects,
-                                     limit=limit, token=self.token):
-      result.append(match["subject"][0][0])
+    for subject in aff4.FACTORY.MultiOpen(subjects, token=self.token):
+      if filter_string and not filter_obj.FilterOne(subject):
+        continue
 
-    return self.OpenChildren(result)
+      yield subject
 
   def ListChildren(self, **_):
     for aff4object_summary in self:

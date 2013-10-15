@@ -26,6 +26,7 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import flow_runner
+from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
@@ -430,7 +431,7 @@ class GRRHunt(flow.GRRFlow):
                                   next_state="RunClient")
 
     # Queue the new request.
-    with flow_runner.QueueManager(token=token) as flow_manager:
+    with queue_manager.QueueManager(token=token) as flow_manager:
       flow_manager.QueueRequest(hunt_id, state)
 
       # Send a response.

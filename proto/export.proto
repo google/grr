@@ -10,7 +10,23 @@ import "grr/proto/semantic.proto";
 message ExportOptions {
   optional bool export_files_contents = 1 [ default = false, (sem_type) = {
       description: "If this is true, open files and export their full or "
-      "partial contents."
+      "partial contents. Note: this may require additional datastore "
+      "roundtrips and slow down the export process, also exporting file "
+      "contents may significantly increase size of the exported data."
+    }];
+  optional bool follow_urns = 2 [ default = true, (sem_type) = {
+      description: "If this is true, follow urns and try to export not only "
+      "the urns themselves, but also the data they are pointing to. Note: "
+      "this may require additional datastore roundtrips and slow down the "
+      "export process."
+    }];
+  optional bool export_files_hashes = 3 [ default = true, (sem_type) = {
+      description: "If this is true, export hashes when dealing with "
+      "file-related values. The files are not gonna be hashed during the "
+      "export, hashes will only be exported if they were collected before "
+      "the export. This option affects exporting VFSFile and StatEntry "
+      "RDFValues. Note: setting this option to true may require additional "
+      "datastore roundtrips and slow down the export process."
     }];
 }
 
@@ -205,4 +221,15 @@ message ExportedVolatilityMutant {
   optional uint64 thread = 6;
   optional string cid = 7; // 12345678:123
   optional string name = 8; // named object, eg: XYZLock
+}
+
+message ExportedFileStoreHash {
+  optional ExportedMetadata metadata = 1;
+
+  optional string hash = 2;
+  optional string hash_type = 3;
+  optional string fingerprint_type = 4;
+  optional string target_urn = 5 [(sem_type) = {
+      type: "RDFURN",
+    }];
 }

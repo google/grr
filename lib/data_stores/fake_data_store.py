@@ -1,258 +1,82 @@
 #!/usr/bin/env python
 """An implementation of an in-memory data store for testing."""
 
-import operator
 import re
 import threading
 import time
 
-from grr.lib import access_control
+from grr.lib import config_lib
 from grr.lib import data_store
-from grr.lib import rdfvalue
-from grr.lib import registry
 from grr.lib import utils
-
-
-# These are filters
-class Filter(object):
-  """Baseclass for filters.
-
-  NOTE: Filters are not to be used on their own outside the data store
-  module. They have no stable interface and do not have to implement their own
-  abstraction. Users should only ever use filters from the data store
-  implementation and only as args to the Query() method.
-
-  This means that filters defined by the fake data store, and the mongo data
-  store do not have to share any APIs.
-  """
-
-  __metaclass__ = registry.MetaclassRegistry
-
-  # Automatically register plugins as class attributes
-  include_plugins_as_attributes = True
-
-  def FilterSubjects(self, subjects, token=None):
-    data_store.DB.security_manager.CheckDataStoreAccess(token, subjects, "w")
-    return subjects
-
-
-class IdentityFilter(Filter):
-  """A Filter which always returns true."""
-
-
-class HasPredicateFilter(Filter):
-  """Returns only the documents which have some value in the predicate."""
-
-  def __init__(self, attribute_name):
-    self.attribute_name = utils.SmartUnicode(attribute_name)
-    Filter.__init__(self)
-
-  def FilterSubjects(self, subjects, token=None):
-    super(HasPredicateFilter, self).FilterSubjects(subjects, token)
-    for subject, contents in subjects.items():
-      if self.attribute_name in contents:
-        yield utils.SmartUnicode(subject)
-
-
-class AndFilter(Filter):
-  """A Logical And operator."""
-
-  def __init__(self, *parts):
-    self.parts = parts
-    Filter.__init__(self)
-
-  def FilterSubjects(self, subjects, token=None):
-    """Filter the subjects."""
-    super(AndFilter, self).FilterSubjects(subjects, token)
-    result = None
-    for part in self.parts:
-      part_set = set([subject for subject in part.FilterSubjects(
-          subjects, token=token)])
-      if result is None:
-        result = part_set
-      else:
-        result = result.intersection(part_set)
-
-    return result
-
-
-class OrFilter(Filter):
-  """A Logical Or operator."""
-
-  def __init__(self, *parts):
-    self.parts = parts
-    Filter.__init__(self)
-
-  def FilterSubjects(self, subjects, token=None):
-    super(OrFilter, self).FilterSubjects(subjects, token)
-    for part in self.parts:
-      for subject in part.FilterSubjects(subjects, token=token):
-        yield subject
-
-
-class PredicateContainsFilter(Filter):
-  """Applies a RegEx on the content of an attribute."""
-
-  regex = None
-
-  def __init__(self, attribute_name, regex):
-    if regex:
-      self.regex = re.compile(regex)
-
-    self.attribute_name = utils.SmartUnicode(attribute_name)
-    super(PredicateContainsFilter, self).__init__()
-
-  def FilterSubjects(self, subjects, token=None):
-    super(PredicateContainsFilter, self).FilterSubjects(subjects, token)
-    for subject in subjects:
-      # If the regex is empty, this is a passthrough.
-      if self.regex is None:
-        yield utils.SmartUnicode(subject)
-      else:
-        try:
-          predicate_value = data_store.DB.Resolve(subject, self.attribute_name,
-                                                  token=token)[0]
-          if (predicate_value and
-              self.regex.search(str(predicate_value))):
-            yield utils.SmartUnicode(subject)
-        except access_control.UnauthorizedAccess:
-          pass
-
-
-class PredicateLessThanFilter(Filter):
-  """Filters attributes numerically less than a value."""
-
-  _operator = operator.lt
-
-  def __init__(self, attribute, value):
-    self.value = long(value)
-    self.attribute_name = utils.SmartUnicode(attribute)
-    if getattr(attribute, "field_names", False):
-      raise RuntimeError(
-          "%s.%s: Filtering by subfields is not implemented yet." % (
-              __name__, self.__class__.__name__))
-
-    super(PredicateLessThanFilter, self).__init__()
-
-  def FilterSubjects(self, subjects, token=None):
-    super(PredicateLessThanFilter, self).FilterSubjects(subjects, token)
-    for subject, values in subjects.items():
-      try:
-        # If the regex is empty, this is a passthrough.
-        predicate_value, _ = values[self.attribute_name][0]
-        if predicate_value is None: continue
-
-        attribute = rdfvalue.RDFInteger(predicate_value)
-        if self._operator(attribute, self.value):
-          yield utils.SmartUnicode(subject)
-      except (KeyError, ValueError):
-        pass
-
-
-class PredicateGreaterThanFilter(PredicateLessThanFilter):
-  _operator = operator.gt
-
-
-class PredicateGreaterEqualFilter(PredicateLessThanFilter):
-  _operator = operator.ge
-
-
-class PredicateNumericEqualFilter(Filter):
-  """Filters attributes numerically equal than a value."""
-
-  def __init__(self, attribute, value):
-    self.value = value
-    self.attribute_name = utils.SmartUnicode(attribute)
-    if getattr(attribute, "field_names", False):
-      raise RuntimeError(
-          "%r: Filtering by subfields is not implemented yet." % self)
-
-    super(PredicateNumericEqualFilter, self).__init__()
-
-  def FilterSubjects(self, subjects, token=None):
-    super(PredicateNumericEqualFilter, self).FilterSubjects(subjects, token)
-    for subject in subjects:
-      try:
-        # If the regex is empty, this is a passthrough.
-        predicate_value = data_store.DB.Resolve(subject, self.attribute_name)[0]
-        attribute = self.attribute_name()
-        attribute.ParseFromString(predicate_value)
-
-        if attribute == self.value:
-          yield utils.SmartUnicode(subject)
-      except ValueError:
-        pass
-
-
-class SubjectContainsFilter(Filter):
-  """Applies a RegEx to the subject name."""
-
-  def __init__(self, regex):
-    """Constructor.
-
-    Args:
-       regex: Must match the subject.
-    """
-    regex = utils.SmartUnicode(regex)
-    self.regex = re.compile(regex)
-    self.regex_text = regex
-    super(SubjectContainsFilter, self).__init__()
-
-  def FilterSubjects(self, subjects, token=None):
-    super(SubjectContainsFilter, self).FilterSubjects(subjects, token)
-    for subject in subjects:
-      subject = utils.SmartUnicode(subject)
-      if self.regex.search(subject):
-        yield subject
 
 
 class FakeTransaction(data_store.Transaction):
   """A fake transaction object for testing."""
 
-  def __init__(self, store, subject, token=None):
+  def __init__(self, store, subject, lease_time=None, token=None):
     self.data_store = store
     self.subject = subject
     self.token = token
     self.locked = False
+    self.to_set = {}
+    self.to_delete = []
+    if lease_time is None:
+      lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
+
+    self.expires = time.time() + lease_time
 
     with self.data_store.lock:
-      if subject in store.transactions:
+      expires = store.transactions.get(subject)
+      if expires and time.time() < expires:
         raise data_store.TransactionError("Subject is locked")
 
-      store.transactions.add(subject)
+      # Check expiry time.
+      store.transactions[subject] = self.expires
+
       self.locked = True
 
-  def DeleteAttribute(self, attribute):
-    self.data_store.DeleteAttributes(self.subject, [attribute],
-                                     token=self.token)
+  def CheckLease(self):
+    return max(0, self.expires - time.time())
 
-  def ResolveRegex(self, predicate_regex,
-                   decoder=None, timestamp=None):
+  def UpdateLease(self, duration):
+    self.expires = time.time() + duration
+    self.data_store.transactions[self.subject] = self.expires
+
+  def DeleteAttribute(self, predicate):
+    self.to_delete.append(predicate)
+
+  def ResolveRegex(self, predicate_regex, timestamp=None):
     return self.data_store.ResolveRegex(self.subject, predicate_regex,
-                                        decoder=decoder, timestamp=timestamp,
+                                        timestamp=timestamp,
                                         token=self.token)
 
   def Set(self, predicate, value, timestamp=None, replace=True):
-    self.data_store.Set(self.subject, predicate, value,
-                        timestamp=timestamp, replace=replace,
-                        token=self.token)
+    if replace:
+      self.to_delete.append(predicate)
 
-  def Resolve(self, predicate, decoder=None):
-    return self.data_store.Resolve(self.subject, predicate, decoder=decoder,
-                                   token=self.token)
+    if timestamp is None:
+      timestamp = int(time.time() * 1e6)
+
+    self.to_set.setdefault(predicate, []).append((value, timestamp))
+
+  def Resolve(self, predicate):
+    return self.data_store.Resolve(self.subject, predicate, token=self.token)
 
   def Abort(self):
-    # This is technically wrong - everything is always written. We do not have
-    # code that depends on a working Abort right now.
     self.Unlock()
 
   def Commit(self):
+    self.data_store.DeleteAttributes(self.subject, self.to_delete, sync=True,
+                                     token=self.token)
+
+    self.data_store.MultiSet(self.subject, self.to_set, token=self.token)
+
     self.Unlock()
 
   def Unlock(self):
     with self.data_store.lock:
       if self.locked:
-        self.data_store.transactions.remove(self.subject)
+        self.data_store.transactions.pop(self.subject, None)
         self.locked = False
 
   def __del__(self):
@@ -268,18 +92,11 @@ class FakeDataStore(data_store.DataStore):
   def __init__(self):
     super(FakeDataStore, self).__init__()
     self.subjects = {}
-    self.filter = Filter
+
     # All access to the store must hold this lock.
     self.lock = threading.RLock()
     # The set of all transactions in flight.
-    self.transactions = set()
-
-  def Decode(self, value, decoder=None):
-    result = super(FakeDataStore, self).Decode(value, decoder=decoder)
-    if result is None:
-      result = value
-
-    return result
+    self.transactions = {}
 
   def _Encode(self, value):
     """Encode the value into a Binary BSON object.
@@ -324,8 +141,8 @@ class FakeDataStore(data_store.DataStore):
   def Clear(self):
     self.subjects = {}
 
-  def Transaction(self, subject, token=None):
-    return FakeTransaction(self, subject, token=token)
+  def Transaction(self, subject, lease_time=None, token=None):
+    return FakeTransaction(self, subject, lease_time=lease_time, token=token)
 
   @utils.Synchronized
   def Set(self, subject, attribute, value, timestamp=None, token=None,
@@ -403,26 +220,24 @@ class FakeDataStore(data_store.DataStore):
 
   @utils.Synchronized
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
-                        decoder=None, timestamp=None, limit=None):
+                        timestamp=None, limit=None):
     result = {}
     for subject in subjects:
       # If any of the subjects is forbidden we fail the entire request.
       self.security_manager.CheckDataStoreAccess(token, [subject], "r")
 
       values = self.ResolveRegex(subject, predicate_regex, token=token,
-                                 decoder=decoder, timestamp=timestamp,
-                                 limit=limit)
+                                 timestamp=timestamp, limit=limit)
 
       if values:
         result[subject] = values
         if limit:
           limit -= len(values)
 
-    return result
+    return result.iteritems()
 
   @utils.Synchronized
-  def ResolveMulti(self, subject, predicates, decoder=None, token=None,
-                   timestamp=None):
+  def ResolveMulti(self, subject, predicates, token=None, timestamp=None):
     self.security_manager.CheckDataStoreAccess(token, [subject], "r")
     # Does timestamp represent a range?
     if isinstance(timestamp, (list, tuple)):
@@ -457,7 +272,7 @@ class FakeDataStore(data_store.DataStore):
             elif ts < start or ts > end:
               continue
 
-            results_list.append((attribute, ts, self.Decode(value, decoder)))
+            results_list.append((attribute, ts, value))
 
     # Return the results in the same order they requested.
     for predicate in predicates:
@@ -465,7 +280,7 @@ class FakeDataStore(data_store.DataStore):
         yield (predicate, v[2], v[1])
 
   @utils.Synchronized
-  def ResolveRegex(self, subject, predicate_regex, decoder=None, token=None,
+  def ResolveRegex(self, subject, predicate_regex, token=None,
                    timestamp=None, limit=None):
     """Resolve all predicates for a subject matching a regex."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "r")
@@ -507,7 +322,7 @@ class FakeDataStore(data_store.DataStore):
             elif ts < start or ts > end:
               continue
 
-            results_list.append((attribute, ts, self.Decode(value, decoder)))
+            results_list.append((attribute, ts, value))
             nr_results += 1
             if limit and nr_results >= limit:
               break
@@ -517,82 +332,3 @@ class FakeDataStore(data_store.DataStore):
       for v in sorted(values):
         result.append((k, v[2], v[1]))
     return result
-
-  @utils.Synchronized
-  def Query(self, attributes=None, filter_obj=None, subject_prefix="",
-            token=None, subjects=None, limit=100,
-            timestamp=data_store.DataStore.NEWEST_TIMESTAMP):
-    """Retrieve subjects based on a filter."""
-    # ACLs are enforced below.
-    subject_prefix = utils.SmartUnicode(subject_prefix)
-
-    if attributes is not None:
-      attributes = [utils.SmartUnicode(x) for x in attributes]
-
-    result_set = data_store.ResultSet()
-    if filter_obj is None:
-      filter_obj = Filter()
-
-    # Filter the subjects according to the security_manager.
-    if not subjects:
-      subjects = self.subjects
-    else:
-      subjects = dict([(x, self.subjects[x])
-                       for x in subjects if x in self.subjects])
-
-    # Support limits if required
-    if isinstance(limit, (list, tuple)):
-      start, length = limit
-    else:
-      start, length = 0, limit
-
-    i = -1
-
-    super_token = access_control.ACLToken(username="test")
-    super_token.supervisor = True
-    # Grab all the subjects which match the filter
-    for subject in sorted(filter_obj.FilterSubjects(
-        subjects, token=super_token)):
-      if subject_prefix and not subject.startswith(subject_prefix):
-        continue
-
-      self.security_manager.CheckDataStoreAccess(token, [subject], "r")
-
-      i += 1
-
-      if i < start: continue
-      if i >= start + length: break
-
-      try:
-        result = dict(subject=[(subject, 0)])
-        for attribute in attributes or subjects[subject].keys():
-          subject = utils.SmartUnicode(subject)
-          attribute = utils.SmartUnicode(attribute)
-
-          records = self.subjects.get(subject, {})
-          values = records.get(attribute, [(None, 0)])
-
-          if timestamp == data_store.DataStore.NEWEST_TIMESTAMP:
-            values = values[-1:]
-          elif timestamp == data_store.DataStore.ALL_TIMESTAMPS:
-            pass
-          else:
-            if isinstance(timestamp, (list, tuple)):
-              start, end = timestamp
-              values = [v for v in values if start <= v[1] <= end]
-            else:
-              raise RuntimeError("Invalid timestamp value.")
-
-          result.setdefault(attribute, []).extend(
-              [(self.Decode(value[0]), value[1])
-               for value in values if value[0]])
-
-        # Skip unauthorized results.
-        self.security_manager.CheckDataStoreAccess(token, [subject], "rq")
-        result_set.Append(result)
-      except access_control.UnauthorizedAccess:
-        continue
-
-    result_set.total_count = len(result_set)
-
-    return result_set

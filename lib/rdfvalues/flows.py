@@ -299,7 +299,7 @@ class ProgressGraph(rdfvalue.RDFString):
 
 
 class Task(rdfvalue.RDFProtoStruct):
-  """Tasks are scheduled on the TaskScheduler.
+  """Tasks are scheduled on the task scheduler.
 
   This class is DEPRECATED! It only exists here so we can render flows stored
   in the old format in the GUI. Do not use this anymore, GrrMessage now contains

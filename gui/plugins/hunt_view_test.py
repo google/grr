@@ -25,6 +25,11 @@ class TestHuntView(test_lib.GRRSeleniumTest):
   def CreateSampleHunt(self, stopped=False):
     self.client_ids = self.SetupClients(10)
 
+    # Clean up the foreman to remove any rules.
+    with aff4.FACTORY.Open("aff4:/foreman", mode="rw",
+                           token=self.token) as foreman:
+      foreman.Set(foreman.Schema.RULES())
+
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
         flow_runner_args=rdfvalue.FlowRunnerArgs(

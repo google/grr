@@ -552,7 +552,7 @@ class AbstractLogRenderer(renderers.TemplateRenderer):
 {% for line in this.log %}
   <tr>
   {% for val in line %}
-    <td class="proto_key">{{ val|escape }}</td>
+    <td class="proto_key">{{ val|safe }}</td>
   {% endfor %}
   </tr>
 {% empty %}
@@ -563,10 +563,20 @@ class AbstractLogRenderer(renderers.TemplateRenderer):
 
   def GetLog(self, request):
     """Take a request and return a list of tuples for a log."""
+    _ = request
+    return []
 
   def Layout(self, request, response):
     """Fill in the form with the specific fields for the flow requested."""
-    self.log = self.GetLog(request)
+    self.log = []
+    for row in self.GetLog(request):
+      rendered_row = []
+      for item in row:
+        item_renderer = semantic.FindRendererForObject(item)
+        rendered_row.append(item_renderer.RawHTML(request))
+
+      self.log.append(rendered_row)
+
     return super(AbstractLogRenderer, self).Layout(request, response)
 
 
@@ -715,6 +725,7 @@ class HuntLogRenderer(AbstractLogRenderer):
                            age=aff4.ALL_TIMES)
     log_vals = fd.GetValuesForAttribute(fd.Schema.LOG)
     log = []
+
     for l in log_vals:
       if not hunt_client or hunt_client == l.client_id:
         log.append((l.age, l.client_id, l.log_message))

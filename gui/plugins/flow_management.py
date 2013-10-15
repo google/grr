@@ -18,7 +18,7 @@ from grr.gui.plugins import semantic
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
-from grr.lib import flow_runner
+from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import utils
 
@@ -450,6 +450,7 @@ class FlowRequestView(renderers.TableRenderer):
     super(FlowRequestView, self).__init__(**kwargs)
     self.AddColumn(semantic.RDFValueColumn("ID"))
     self.AddColumn(semantic.RDFValueColumn("Request", width="100%"))
+    self.AddColumn(semantic.RDFValueColumn("Last Response", width="100%"))
 
   def BuildTable(self, start_row, end_row, request):
     session_id = request.REQ.get("flow", "")
@@ -457,8 +458,9 @@ class FlowRequestView(renderers.TableRenderer):
     if not session_id:
       return
 
-    for i, (request, _) in enumerate(
-        flow_runner.QueueManager(token=request.token).FetchRequestsAndResponses(
+    manager = queue_manager.QueueManager(token=request.token)
+    for i, (request, responses) in enumerate(
+        manager.FetchRequestsAndResponses(
             rdfvalue.RDFURN(session_id))):
       if request.id == 0:
         continue
@@ -470,8 +472,10 @@ class FlowRequestView(renderers.TableRenderer):
 
       # Tie up the request to each response to make it easier to render.
       self.AddCell(i, "ID",
-                   flow_runner.QueueManager.FLOW_REQUEST_TEMPLATE % request.id)
+                   manager.FLOW_REQUEST_TEMPLATE % request.id)
       self.AddCell(i, "Request", request)
+      if responses:
+        self.AddCell(i, "Last Response", responses[-1])
 
 
 class TreeColumn(semantic.RDFValueColumn, renderers.TemplateRenderer):
@@ -640,8 +644,8 @@ class ListFlowsTable(renderers.TableRenderer):
     root_children = list(flow_root.OpenChildren())
     self.size = len(root_children)
 
-    level2_children = aff4.FACTORY.MultiListChildren(
-        [f.urn for f in root_children], token=request.token)
+    level2_children = dict(aff4.FACTORY.MultiListChildren(
+        [f.urn for f in root_children], token=request.token))
 
     row_index = start
     for flow_obj in sorted(root_children,

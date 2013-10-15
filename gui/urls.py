@@ -21,6 +21,7 @@ urlpatterns = defaults.patterns(
     (r"^$", view_base + "Homepage"),
     # Automatic rendering is done here
     (r"^render/[^/]+/.*", view_base + "RenderGenericRenderer"),
+    (r"^download/[^/]+/.*", view_base + "RenderBinaryDownload"),
     (r"^static/(.*)$", django_base + "views.static.serve",
      {"document_root": document_root}),
 )

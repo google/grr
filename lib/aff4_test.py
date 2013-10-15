@@ -477,7 +477,6 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertNotEqual(child.Get(child.Schema.TYPE), "VFSVolume")
 
     urns = [utils.SmartUnicode(x.urn) for x in children]
-
     self.assertTrue(u"aff4:/C.0000000000000000/fs/os/c/中国新闻网新闻中"
                     in urns)
 
@@ -489,8 +488,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     child = children[0]
     self.assertEqual(child.Get(child.Schema.TYPE), "VFSFile")
 
-    # This tests the VFSDirectory implementation of Query (i.e. filtering
-    # through the AFF4Filter).
+    # This tests filtering through the AFF4Filter.
     fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
         "/fs/os/c/bin %s" % client_id), token=self.token)
 
@@ -505,18 +503,6 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(utils.SmartUnicode(matched[1].urn),
                      u"aff4:/C.0000000000000000/fs/os/"
                      u"c/bin C.0000000000000000/rbash")
-
-    # This tests the native filtering through the database.
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id), token=self.token)
-
-    # Deliberately call the baseclass Query to search in the database.
-    matched = list(aff4.AFF4Volume.Query(
-        fd, u"subject matches '中国新闻网新闻中'"))
-
-    self.assertEqual(len(matched), 2)
-    self.assertEqual(utils.SmartUnicode(matched[0].urn),
-                     u"aff4:/C.0000000000000000/"
-                     u"fs/os/c/中国新闻网新闻中")
 
   def testQueryWithTimestamp(self):
     """Tests aff4 querying using timestamps."""
@@ -540,30 +526,30 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       # Query for all entries.
       matched = list(fd.Query(u"subject matches 'file'", age=aff4.ALL_TIMES))
       # A file and a MemoryStream containing the data.
-      self.assertEqual(len(matched), 2)
+      self.assertEqual(len(matched), 1)
       self.assertEqual(matched[0].read(100), "2500")
 
       # Query for the latest entry.
       matched = list(fd.Query(u"subject matches 'file'",
                               age=aff4.NEWEST_TIME))
-      self.assertEqual(len(matched), 2)
+      self.assertEqual(len(matched), 1)
       self.assertEqual(matched[0].read(100), "2500")
 
       # Query for a range 1250-2250.
       matched = list(fd.Query(u"subject matches 'file'",
                               age=(1250 * 1e6, 2250 * 1e6)))
-      self.assertEqual(len(matched), 2)
+      self.assertEqual(len(matched), 1)
       self.assertEqual(matched[0].read(100), "2000")
 
       # Query for a range 1750-3250.
       matched = list(fd.Query(u"subject matches 'file'",
                               age=(1750 * 1e6, 3250 * 1e6)))
-      self.assertEqual(len(matched), 2)
+      self.assertEqual(len(matched), 1)
       self.assertEqual(matched[0].read(100), "2500")
 
       # Query for a range 1600 and older.
       matched = list(fd.Query(u"subject matches 'file'", age=(0, 1600 * 1e6)))
-      self.assertEqual(len(matched), 2)
+      self.assertEqual(len(matched), 1)
       self.assertEqual(matched[0].read(100), "1500")
 
   def testChangeNotifications(self):
@@ -645,6 +631,23 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       # Rules have been already reloaded.
       self.assertEquals(len(MockNotificationRule.OBJECTS_WRITTEN), 1)
 
+  def testMultiOpen(self):
+    root_urn = aff4.ROOT_URN.Add("path")
+
+    f = aff4.FACTORY.Create(root_urn.Add("some1"), "AFF4Volume",
+                            token=self.token)
+    f.Close()
+
+    f = aff4.FACTORY.Create(root_urn.Add("some2"), "AFF4Volume",
+                            token=self.token)
+    f.Close()
+
+    root = aff4.FACTORY.Open(root_urn, token=self.token)
+    all_children = list(aff4.FACTORY.MultiOpen(root.ListChildren(),
+                                               token=self.token))
+    self.assertListEqual(sorted([x.urn for x in all_children]),
+                         [root_urn.Add("some1"), root_urn.Add("some2")])
+
   def testListChildren(self):
     root_urn = aff4.ROOT_URN.Add("path")
 
@@ -676,8 +679,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
                             token=self.token)
     f.Close()
 
-    children = aff4.FACTORY.MultiListChildren([client1_urn, client2_urn],
-                                              token=self.token)
+    children = dict(aff4.FACTORY.MultiListChildren([client1_urn, client2_urn],
+                                                   token=self.token))
 
     self.assertListEqual(sorted(children.keys()),
                          [client1_urn, client2_urn])
@@ -810,33 +813,23 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       client.Set(client.Schema.HOSTNAME("client1"))
       client.Close()
 
-      lock_error_catched = False
-      try:
-        with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
-                                       lease_time=100) as fd:
+      with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                     lease_time=100) as fd:
 
-          def TryOpen():
-            with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
-                                           blocking=False):
-              pass
+        def TryOpen():
+          with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                         blocking=False):
+            pass
 
-          time.time = lambda: 150
-          self.assertRaises(aff4.LockError, TryOpen)
+        time.time = lambda: 150
+        self.assertRaises(aff4.LockError, TryOpen)
 
-          # This shouldn't raise, because previous lock's lease has expired
-          time.time = lambda: 201
-          TryOpen()
-          self.assertRaises(aff4.LockError, fd.Close)
-          self.assertRaises(aff4.LockError, fd.Flush)
-          # Now disable the lock so the implicit close call does not raise.
-          fd._locked = False
+        # This shouldn't raise, because previous lock's lease has expired
+        time.time = lambda: 201
+        TryOpen()
 
-      except aff4.LockError:
-        # We expect a lock error here, because it's raised when Close() is
-        # called after the lease has expired.
-        lock_error_catched = True
-
-      self.assertTrue(lock_error_catched)
+        self.assertRaises(aff4.LockError, fd.Close)
+        self.assertRaises(aff4.LockError, fd.Flush)
 
   def testUpdateLeaseRaisesIfObjectIsNotLocked(self):
     client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
@@ -874,9 +867,9 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
       with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
                                      lease_time=300) as fd:
-        self.assertEqual(fd.CheckLease(), 300)
-        time.time = lambda: 200
-        self.assertEqual(fd.CheckLease(), 200)
+        self.assertTrue(fd.CheckLease())
+        time.time = lambda: 500
+        self.assertEqual(fd.CheckLease(), 0)
 
   def testUpdateLeaseWorksCorrectly(self):
     with test_lib.Stubber(time, "time", lambda: 100):
@@ -896,6 +889,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
           with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
                                          blocking=False):
             pass
+
         self.assertRaises(aff4.LockError, TryOpen)
 
   def testLockProtectedAttributesWorkCorrectly(self):

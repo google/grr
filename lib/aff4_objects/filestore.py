@@ -5,6 +5,8 @@ Filestore allows for multiple different filestore modules to register URNs
 under aff4:/files to handle new file hash and new file creations.
 """
 
+import logging
+
 from grr.parsers import fingerprint
 from grr.lib import access_control
 from grr.lib import aff4
@@ -127,6 +129,8 @@ class HashFileStore(FileStore):
   PATH = rdfvalue.RDFURN("aff4:/files/hash")
   PRIORITY = 1
   EXTERNAL = False
+  FINGERPRINT_TYPES = ["generic", "pecoff"]
+  HASH_TYPES = ["md5", "sha1", "sha256", "SignedData"]
 
   def CheckHashes(self, hashes, hash_type="sha256"):
     """Check hashes against the filestore.
@@ -194,7 +198,7 @@ class HashFileStore(FileStore):
 
     for result in fingerprinter.HashIt():
       fingerprint_type = result["name"]
-      for hash_type in ["md5", "sha1", "sha256", "SignedData"]:
+      for hash_type in self.HASH_TYPES:
         if hash_type not in result:
           continue
 
@@ -213,11 +217,14 @@ class HashFileStore(FileStore):
         elif fingerprint_type == "pecoff":
           hashes.Set("pecoff_%s" % hash_type, result[hash_type])
 
+        else:
+          logging.error("Unknown fingerprint_type %s.", fingerprint_type)
+
         # These files are all created through async write so they should be
         # fast.
         hash_digest = result[hash_type].encode("hex")
-        file_store_urn = aff4.ROOT_URN.Add("files/hash").Add(
-            fingerprint_type).Add(hash_type).Add(hash_digest)
+        file_store_urn = self.PATH.Add(fingerprint_type).Add(
+            hash_type).Add(hash_digest)
 
         file_store_fd = aff4.FACTORY.Create(file_store_urn, "FileStoreImage",
                                             mode="w", token=self.token)
@@ -235,6 +242,16 @@ class HashFileStore(FileStore):
 
     # We do not want to be externally written here.
     return None
+
+  def ListHashes(self):
+    urns = []
+    for fingerprint_type in self.FINGERPRINT_TYPES:
+      for hash_type in self.HASH_TYPES:
+        urns.append(self.PATH.Add(fingerprint_type).Add(hash_type))
+
+    for _, values in aff4.FACTORY.MultiListChildren(urns, token=self.token):
+      for value in values:
+        yield value
 
 
 class FileStoreImage(aff4.VFSBlobImage):
@@ -268,7 +285,7 @@ class FileStoreImage(aff4.VFSBlobImage):
     data_store.DB.MultiSet(self.urn, {predicate: target}, token=self.token,
                            replace=True, sync=False)
 
-  def Query(self, target_regex, limit=100):
+  def Query(self, target_regex=".", limit=100):
     """Search the index for matches to the file specified by the regex.
 
     Args:
@@ -283,10 +300,11 @@ class FileStoreImage(aff4.VFSBlobImage):
     """
     # Make the regular expression.
     regex = ["index:target:.*%s.*" % target_regex.lower()]
-    start = 0
-    try:
+    if isinstance(limit, (tuple, list)):
       start, length = limit
-    except TypeError:
+
+    else:
+      start = 0
       length = limit
 
     # Get all the unique hits

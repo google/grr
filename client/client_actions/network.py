@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """Get Information about network states."""
 
 
@@ -19,14 +17,6 @@ class Netstat(actions.ActionPlugin):
   in_rdfvalue = None
   out_rdfvalue = rdfvalue.NetworkConnection
 
-  states = {
-      "UNKNOWN": rdfvalue.NetworkConnection.State.UNKNOWN,
-      "LISTEN": rdfvalue.NetworkConnection.State.LISTEN,
-      "ESTABLISHED": rdfvalue.NetworkConnection.State.ESTAB,
-      "TIME_WAIT": rdfvalue.NetworkConnection.State.TIME_WAIT,
-      "CLOSE_WAIT": rdfvalue.NetworkConnection.State.CLOSE_WAIT,
-      }
-
   def Run(self, unused_args):
     netstat = []
 
@@ -44,11 +34,10 @@ class Netstat(actions.ActionPlugin):
         res.type = conn.type
 
         try:
-          res.state = self.states[conn.status]
-        except KeyError:
-          if conn.status:
-            logging.warn("Encountered unknown connection status (%s).",
-                         conn.status)
+          res.state = conn.status
+        except ValueError:
+          logging.warn("Encountered unknown connection status (%s).",
+                       conn.status)
 
         res.local_address.ip, res.local_address.port = conn.local_address
         if conn.remote_address:

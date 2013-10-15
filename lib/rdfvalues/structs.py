@@ -1592,7 +1592,12 @@ class RDFStruct(rdfvalue.RDFValue):
 
   def Copy(self):
     """Make an efficient copy of this protobuf."""
-    return copy.deepcopy(self)
+    result = copy.deepcopy(self)
+
+    # The copy should have the same age as us.
+    result.age = self.age
+
+    return result
 
   def __copy__(self):
     result = self.__class__()

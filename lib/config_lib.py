@@ -9,6 +9,7 @@ http://grr.googlecode.com/git/docs/configuration.html
 
 import collections
 import ConfigParser
+import errno
 import os
 import re
 import StringIO
@@ -329,7 +330,16 @@ class YamlParser(GRRConfigParser):
     elif filename:
       try:
         self.parsed = yaml.safe_load(open(filename, "rb")) or OrderedYamlDict()
-      except (OSError, IOError):
+
+      except IOError as e:
+        if e.errno == errno.EACCES:
+          # Specifically catch access denied errors, this usually indicates the
+          # user wanted to read the file, and it existed, but they lacked the
+          # permissions.
+          raise IOError(e)
+        else:
+          self.parsed = OrderedYamlDict()
+      except OSError:
         self.parsed = OrderedYamlDict()
 
       self.filename = filename

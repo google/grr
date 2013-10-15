@@ -79,7 +79,7 @@ class ArtifactListRenderer(forms.MultiSelectListRenderer):
     self.artifacts = {}
     for arifact_name, artifact in artifact_lib.Artifact.classes.items():
       if artifact is not artifact_lib.Artifact.top_level_class:
-        if set(["Bootstrap", "KnowledgeBase"]).isdisjoint(artifact.LABELS):
+        if set(["Bootstrap"]).isdisjoint(artifact.LABELS):
           self.artifacts[arifact_name] = artifact
     self.labels = artifact_lib.ARTIFACT_LABELS
 

@@ -280,7 +280,7 @@ class TSKFile(vfs.VFSHandler):
         except AttributeError:
           pass
     else:
-      raise IOError("%s is not a directory" % self.fd.info.name.name)
+      raise IOError("%s is not a directory" % self.pathspec.CollapsePath())
 
   def IsDirectory(self):
     return self.fd.info.meta.type == pytsk3.TSK_FS_META_TYPE_DIR

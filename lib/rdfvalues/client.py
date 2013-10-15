@@ -88,6 +88,10 @@ class ClientURN(rdfvalue.RDFURN):
 
     return result
 
+  def Queue(self):
+    """Returns the queue name of this clients task queue."""
+    return self.Add("tasks")
+
 
 # These are objects we store as attributes of the client.
 class Filesystem(structs.RDFProtoStruct):
@@ -124,6 +128,34 @@ class User(rdfvalue.RDFProtoStruct):
   """
   protobuf = jobs_pb2.User
 
+  kb_user_mapping = {
+      "username": "username",
+      "domain": "userdomain",
+      "homedir": "homedir",
+      "sid": "sid",
+      "special_folders.cookies": "cookies",
+      "special_folders.local_settings": "local_settings",
+      "special_folders.local_app_data": "localappdata",
+      "special_folders.app_data": "appdata",
+      "special_folders.cache": "internet_cache",
+      "special_folders.personal": "personal",
+      "special_folders.desktop": "desktop",
+      "special_folders.startup": "startup",
+      "special_folders.recent": "recent",
+  }
+
+  def ToKnowledgeBaseUser(self):
+    """Convert a User value into a KnowledgeBaseUser value."""
+    kb_user = rdfvalue.KnowledgeBaseUser()
+    for old_pb_name, new_pb_name in self.kb_user_mapping.items():
+      if len(old_pb_name.split(".")) > 1:
+        attr, old_pb_name = old_pb_name.split(".", 1)
+        val = getattr(getattr(self, attr), old_pb_name)
+      else:
+        val = getattr(self, old_pb_name)
+      kb_user.Set(new_pb_name, val)
+    return kb_user
+
 
 class Users(protodict.RDFValueArray):
   """A list of user accounts on the client system."""
@@ -133,6 +165,52 @@ class Users(protodict.RDFValueArray):
 class KnowledgeBase(rdfvalue.RDFProtoStruct):
   """Information about the system and users."""
   protobuf = knowledge_base_pb2.KnowledgeBase
+
+  def MergeOrAddUser(self, kb_user):
+    """Merge a user into existing users or add new if it doesn't exist.
+
+    Args:
+      kb_user: A KnowledgeBaseUser rdfvalue.
+
+    Returns:
+      A list of strings with the set attribute names, e.g. ["users.sid"]
+    """
+    user = self.GetUser(sid=kb_user.sid, uid=kb_user.uid,
+                        username=kb_user.username)
+    new_attrs = []
+    merge_conflicts = []    # Record when we overwrite a value.
+    if not user:
+      self.users.Append(kb_user)
+      new_attrs = ["users.%s" % k for k in kb_user.AsDict().keys()]
+    else:
+      for key, val in kb_user.AsDict().items():
+        if user.Get(key) != val:
+          merge_conflicts.append((key, user.Get(key), val))
+        user.Set(key, val)
+        new_attrs.append("users.%s" % key)
+
+    return new_attrs, merge_conflicts
+
+  def GetUser(self, sid=None, uid=None, username=None):
+    """Retrieve a KnowledgeBaseUser based on sid, uid or username."""
+    if sid:
+      for user in self.users:
+        if user.sid == sid:
+          return user
+    if uid:
+      for user in self.users:
+        if user.uid == uid:
+          return user
+    if username:
+      for user in self.users:
+        if user.username == username:
+          return user
+
+  def GetKbFieldNames(self):
+    fields = self.type_infos.descriptor_names
+    for field in self.users.type_descriptor.type.type_infos.descriptor_names:
+      fields.append("users.%s" % field)
+    return fields
 
 
 class KnowledgeBaseUser(rdfvalue.RDFProtoStruct):
@@ -163,10 +241,13 @@ class NetworkAddress(rdfvalue.RDFProtoStruct):
     if self.human_readable:
       return self.human_readable
     else:
-      if self.address_type == rdfvalue.NetworkAddress.Family.INET:
-        return socket.inet_ntop(socket.AF_INET, self.packed_bytes)
-      else:
-        return socket.inet_ntop(socket.AF_INET6, self.packed_bytes)
+      try:
+        if self.address_type == rdfvalue.NetworkAddress.Family.INET:
+          return socket.inet_ntop(socket.AF_INET, self.packed_bytes)
+        else:
+          return socket.inet_ntop(socket.AF_INET6, self.packed_bytes)
+      except ValueError as e:
+        return str(e)
 
 
 class MacAddress(rdfvalue.RDFBytes):

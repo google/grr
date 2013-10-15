@@ -7,6 +7,8 @@ from grr.lib import artifact_lib
 Artifact = artifact_lib.GenericArtifact   # pylint: disable=g-bad-name
 Collector = artifact_lib.Collector        # pylint: disable=g-bad-name
 
+# pylint: disable=g-line-too-long
+
 ################################################################################
 #  Sophos Artifacts
 ################################################################################
@@ -28,8 +30,7 @@ class SophosWinQuarantineFiles(Artifact):
   LABELS = ["Antivirus"]
   COLLECTORS = [
       Collector(action="GetFile",
-                args={"path": "%%allusersappdata%%\\Sophos\\Sophos Anti-Virus"
-                      "\\INFECTED\\*"})
+                args={"path": "%%environ_allusersappdata%%\\Sophos\\Sophos Anti-Virus\\INFECTED\\*"})
   ]
 
 
@@ -49,6 +50,5 @@ class SophosWinLogs(Artifact):
   LABELS = ["Antivirus", "Logs"]
   COLLECTORS = [
       Collector(action="GetFile",
-                args={"path": "%%allusersappdata%%\\Sophos\\Sophos Anti-Virus"
-                      "\\Logs\\*"})
+                args={"path": "%%environ_allusersappdata%%\\Sophos\\Sophos Anti-Virus\\Logs\\*"})
   ]

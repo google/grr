@@ -14,13 +14,10 @@ import unittest
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
+from grr.client import tests
 # pylint: enable=unused-import,g-bad-import-order
 
 # These need to register plugins so, pylint: disable=unused-import
-from grr.client import client_test
-from grr.client import client_utils_test
-from grr.client import client_vfs_test
-from grr.client.client_actions import action_test
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import tests

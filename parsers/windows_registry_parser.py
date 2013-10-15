@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 """Simple parsers for registry keys and values."""
 
+import re
+
 from grr.lib import artifact_lib
 from grr.lib import parsers
 from grr.lib import rdfvalue
+
+
+SID_RE = re.compile(r"^S-\d-\d+-(\d+-){1,14}\d+$")
 
 
 class CurrentControlSetKBParser(parsers.RegistryValueParser):
@@ -78,6 +83,93 @@ class AllUsersProfileEnvironmentVariable(parsers.RegistryParser):
     all_users_dir = artifact_lib.ExpandWindowsEnvironmentVariables(
         all_users_dir, knowledge_base)
     yield rdfvalue.RDFString(all_users_dir)
+
+
+class WinUserSids(parsers.RegistryParser):
+  """Parser for extracting SID for multiple users.
+
+  This reads a listing of the profile paths to extract a list of SIDS for
+  users with profiles on a system.
+  """
+  output_types = ["KnowledgeBaseUser"]
+  supported_artifacts = ["WindowsRegistryProfiles"]
+
+  def Parse(self, stat, knowledge_base):
+    """Parse each returned registry value."""
+    _ = knowledge_base  # Unused.
+    sid_str = stat.pathspec.Dirname().Basename()
+
+    if SID_RE.match(sid_str):
+      kb_user = rdfvalue.KnowledgeBaseUser()
+      kb_user.sid = sid_str
+      if stat.pathspec.Basename() == "ProfileImagePath":
+        kb_user.homedir = stat.registry_data.GetValue()
+        kb_user.userprofile = kb_user.homedir
+        try:
+          # Assume username is the last component of the path. This is not
+          # robust, but other user artifacts will override it if there is a
+          # better match.
+          kb_user.username = kb_user.homedir.rsplit("\\", 1)[-1]
+        except IndexError:
+          pass
+
+      yield kb_user
+
+
+class WinUserSpecialDirs(parsers.RegistryParser):
+  r"""Parser for extracting special folders from registry.
+
+  Keys will come from HKEY_USERS and will list the Shell Folders and user's
+  Environment key. We extract each subkey that matches on of our knowledge base
+  attributes.
+  """
+  output_types = ["KnowledgeBaseUser"]
+  supported_artifacts = ["UserShellFolders"]
+  process_together = True
+
+  key_var_mapping = {
+      "Shell Folders": {
+          "Desktop": "desktop",
+          "AppData": "appdata",
+          "Local AppData": "localappdata",
+          "Cookies": "cookies",
+          "Cache": "internet_cache",
+          "Recent": "recent",
+          "Startup": "startup",
+          "Personal": "personal",
+          },
+      "Environment": {
+          "TEMP": "temp",
+          },
+  }
+
+  def ParseMultiple(self, stats, knowledge_base):
+    """Parse each returned registry value."""
+    user_dict = {}
+
+    for stat in stats:
+      sid_str = stat.pathspec.path.split("/", 3)[2]
+      if SID_RE.match(sid_str):
+        if sid_str not in user_dict:
+          user_dict[sid_str] = rdfvalue.KnowledgeBaseUser(sid=sid_str)
+
+        if stat.registry_data.GetValue():
+          # Look up in the mapping if we can use this entry to populate a user
+          # attribute, and if so, set it.
+          reg_key_name = stat.pathspec.Dirname().Basename()
+          if reg_key_name in self.key_var_mapping:
+            map_dict = self.key_var_mapping[reg_key_name]
+            reg_key = stat.pathspec.Basename()
+            kb_attr = map_dict.get(reg_key)
+            if kb_attr:
+              value = artifact_lib.ExpandWindowsEnvironmentVariables(
+                  stat.registry_data.GetValue(), knowledge_base)
+              value = artifact_lib.ExpandWindowsUserEnvironmentVariables(
+                  value, knowledge_base, sid=sid_str)
+              user_dict[sid_str].Set(kb_attr, value)
+
+    # Now yield each user we found.
+    return user_dict.itervalues()
 
 
 class WinTimezoneParser(parsers.RegistryValueParser):

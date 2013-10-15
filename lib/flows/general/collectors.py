@@ -37,7 +37,7 @@ class BootStrapKnowledgeBaseFlow(flow.GRRFlow):
     if system != "Windows":
       # We don't need bootstrapping for non-windows clients at the moment.
       self.state.bootstrap_initialized = True
-      self.CallState("End")
+      self.CallState(next_state="End")
       return
 
     # First try querying the registry, this should work fine for live clients
@@ -205,6 +205,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         self.GetRegistry(path_list=collector.args["path_list"])
       elif action_name == "GetRegistryValue":
         self.GetRegistryValue(path=collector.args["path"])
+      elif action_name == "GetRegistryValues":
+        self.GetRegistryValue(path=collector.args["paths"])
       elif action_name == "WMIQuery":
         self.WMIQuery(**collector.args)
       elif action_name == "RunGrrClientAction":
@@ -268,12 +270,15 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def WMIQuery(self, query):
     """Run a Windows WMI Query."""
-    self.CallClient(
-        "WmiQuery", query=query,
-        request_data={"artifact_name": self.current_artifact_name,
-                      "query": query},
-        next_state="ProcessCollected"
-        )
+    queries = artifact_lib.InterpolateKbAttributes(query,
+                                                   self.state.knowledge_base)
+    for query in queries:
+      self.CallClient(
+          "WmiQuery", query=query,
+          request_data={"artifact_name": self.current_artifact_name,
+                        "query": query},
+          next_state="ProcessCollected"
+          )
 
   def RunGrrClientAction(self, client_action, action_args):
     """Call a GRR Client Action."""
@@ -311,11 +316,12 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     flow_name = self.__class__.__name__
     artifact_cls_name = responses.request_data["artifact_name"]
     if responses.success:
-      self.Log("Artifact %s completed successfully in flow %s",
-               artifact_cls_name, flow_name)
+      self.Log("Artifact data collection %s completed successfully in flow %s "
+               "with %d responses", artifact_cls_name, flow_name,
+               len(responses))
       self.state.collected_count += 1
     else:
-      self.Log("Artifact %s collection failed. Status: %s.",
+      self.Log("Artifact %s data collection failed. Status: %s.",
                artifact_cls_name, responses.status)
       self.state.failed_count += 1
       self.state.artifacts_failed.append(artifact_cls_name)
@@ -374,7 +380,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       responses_obj: The responses object itself.
       artifact_name: Name of the artifact that generated the responses.
     """
-    # TODO(user): Add support for all parsers.
     if not processor_obj.process_together:
       response = responses   # There is a single response.
     if isinstance(processor_obj, parsers.CommandParser):
@@ -443,8 +448,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       if self.output_collection:
         self.output_collection.Flush()
         total += len(self.output_collection)
-    self.Log("Wrote %d results from Artifact %s to %s", total, artifact_name,
-             self.state.output_urn)
+    self.Log("Wrote results from Artifact %s to %s. Collection size %d.",
+             artifact_name, self.state.output_urn, total)
 
   def _WriteResultToMappedAFF4Location(self, result):
     """If we have a mapping for this result type, write it there."""

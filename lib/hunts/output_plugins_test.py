@@ -95,6 +95,11 @@ class OutputPluginsTest(test_lib.FlowTestsBaseclass):
     DummyCronHuntOutputPluginFlow.processed_result = 0
     DummyCronHuntOutputPluginFlow.batch_ended = 0
 
+    # Clean up the foreman to remove any rules.
+    with aff4.FACTORY.Open("aff4:/foreman", mode="rw",
+                           token=self.token) as foreman:
+      foreman.Set(foreman.Schema.RULES())
+
   def tearDown(self):
     super(OutputPluginsTest, self).tearDown()
     self.DeleteClients(10)

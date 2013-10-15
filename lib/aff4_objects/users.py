@@ -44,6 +44,9 @@ class GRRUser(aff4.AFF4Object):
       TypeError: On invalid message_type.
     """
     pending = self.Get(self.Schema.PENDING_NOTIFICATIONS)
+    if pending is None:
+      pending = self.Schema.PENDING_NOTIFICATIONS()
+
     if message_type not in rdfvalue.Notification.notification_types:
       raise TypeError("Invalid notification type %s" % message_type)
 

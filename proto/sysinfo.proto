@@ -65,8 +65,8 @@ message NetworkConnection {
     CLOSED = 1;
     LISTEN = 2;
     SYN_SENT = 3;
-    SYN_RCVD = 4;
-    ESTAB = 5;
+    SYN_RECV = 4;
+    ESTABLISHED = 5;
     FIN_WAIT1 = 6;
     FIN_WAIT2 = 7;
     CLOSE_WAIT = 8;

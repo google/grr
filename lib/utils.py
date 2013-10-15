@@ -773,3 +773,10 @@ def issubclass(obj, cls):    # pylint: disable=redefined-builtin,g-bad-name
     True if obj is a subclass of cls and False otherwise.
   """
   return isinstance(obj, type) and __builtin__.issubclass(obj, cls)
+
+
+def ConditionalImport(name):
+  try:
+    return __import__(name)
+  except ImportError:
+    pass

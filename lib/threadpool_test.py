@@ -5,6 +5,7 @@
 
 
 import threading
+import time
 
 import mox
 
@@ -17,7 +18,7 @@ from grr.lib import threadpool
 
 class ThreadPoolTest(test_lib.GRRBaseTest):
   """Tests for the ThreadPool class."""
-  NUMBER_OF_THREADS = 250
+  NUMBER_OF_THREADS = 10
   NUMBER_OF_TASKS = 1500
 
   def setUp(self):
@@ -159,12 +160,14 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
         i += 1
 
       # Inserting more tasks than the queue can hold should lead to processing
-      # of some the earlier tasks.
+      # the tasks inline.
       for _ in range(n):
-        self.test_pool.AddTask(Insert, (res, i), "Insert")
+        self.test_pool.AddTask(Insert, (res, i), "Insert", inline=True)
         i += 1
 
-      self.assertEqual(sorted(res), range(n))
+      self.assertEqual(
+          sorted(res), range(2 * self.NUMBER_OF_THREADS,
+                             n + 2 * self.NUMBER_OF_THREADS))
 
       done_event.set()
       self.test_pool.Join()
@@ -256,6 +259,63 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     pool.Start()
     self.assertEqual(pool.started, True)
     pool.Stop()
+
+
+class DummyConverter(threadpool.BatchConverter):
+  def __init__(self, **kwargs):
+    self.sleep_time = kwargs.pop("sleep_time")
+
+    super(DummyConverter, self).__init__(**kwargs)
+
+    self.batches = []
+    self.threads = []
+    self.results = []
+
+  def ConvertBatch(self, batch):
+    time.sleep(self.sleep_time)
+
+    self.batches.append(batch)
+    self.threads.append(threading.current_thread().ident)
+    self.results.extend([s + "*" for s in batch])
+
+
+class BatchConverterTest(test_lib.GRRBaseTest):
+  """BatchConverter tests."""
+
+  def testMultiThreadedConverter(self):
+    converter = DummyConverter(threadpool_size=10, batch_size=2, sleep_time=0.1,
+                               threadpool_prefix="multi_threaded")
+    test_data = [str(i) for i in range(10)]
+
+    converter.Convert(test_data)
+
+    print converter.threads
+    self.assertEqual(len(set(converter.threads)), 5)
+
+    self.assertEqual(len(converter.batches), 5)
+    for batch in converter.batches:
+      self.assertEqual(len(batch), 2)
+
+    self.assertEqual(len(converter.results), 10)
+    for i, r in enumerate(sorted(converter.results)):
+      self.assertEqual(r, str(i) + "*")
+
+  def testSingleThreadedConverter(self):
+    converter = DummyConverter(threadpool_size=0, batch_size=2, sleep_time=0,
+                               threadpool_prefix="single_threaded")
+    test_data = [str(i) for i in range(10)]
+
+    converter.Convert(test_data)
+
+    self.assertEqual(len(set(converter.threads)), 1)
+
+    self.assertEqual(len(converter.batches), 5)
+    for batch in converter.batches:
+      self.assertEqual(len(batch), 2)
+
+    self.assertEqual(len(converter.results), 10)
+    for i, r in enumerate(sorted(converter.results)):
+      self.assertEqual(r, str(i) + "*")
 
 
 def main(argv):

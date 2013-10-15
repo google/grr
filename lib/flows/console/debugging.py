@@ -13,7 +13,7 @@ from grr.client import actions
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import flow_runner
+from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import worker
 from grr.proto import flows_pb2
@@ -197,7 +197,7 @@ def TestClientActionWithWorker(client_id, client_action, print_request=False,
   if print_request:
     print str(request)
   StartFlowAndWorker(client_id, flow_name="ClientAction", action=client_action,
-                     break_pdb=break_pdb, args=request)
+                     break_pdb=break_pdb, action_args=request)
 
 
 def WakeStuckFlow(session_id):
@@ -218,12 +218,12 @@ def WakeStuckFlow(session_id):
   woken = 0
   checked_pending = False
 
-  with flow_runner.QueueManager() as manager:
+  with queue_manager.QueueManager() as manager:
     for request, responses in manager.FetchRequestsAndResponses(session_id):
       # We need to check if there are client requests pending.
       if not checked_pending:
-        task = flow.scheduler.SCHEDULER.Query(
-            request.client_id, task_id="task:%s" % request.request.task_id)
+        task = manager.Query(request.client_id,
+                             task_id="task:%s" % request.request.task_id)
 
         if task:
           # Client has tasks pending already.

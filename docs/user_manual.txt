@@ -52,14 +52,26 @@ Look on the left for "Manage Binaries", the files should be in the executables
 directory, under installers. The download button is the down arrown in the
 toolbar.
 
+The files are also accessible directly if you know the path via /download. This
+is useful if you want to retrieve the file using command line tools or a browser
+that isn't supported (e.g. IE6).
+-----------------------------------------------------------------
+wget --user=admin --password=setecastronomy http://example.com:8080/download/windows/installers/grr-installer-2209.exe
+-----------------------------------------------------------------
+
+
 If your server configuration has changed your agents will need to be repacked
-with an updated config. For details see: 
+with an updated config. For details see:
 link:admin.html#_repacking_the_client_with_a_new_configuration[the GRR server
 installed and running]
 
 Installing the Agent
 ~~~~~~~~~~~~~~~~~~~~
-This differs significantly depending on the operating system.
+This differs significantly depending on the operating system so we split it into
+separate sections below.
+
+If an install is successful, it should appear in the search UI within a few
+seconds.
 
 Windows
 ^^^^^^^
@@ -120,7 +132,7 @@ The expected output is something along these lines:
 ---------------------------------------------------------------------
 C:\> cd C:\AGENT_DIRECTORY\
 C:\> net use \\127.0.0.1\IPC$ /USER:admin *
-Type the password for \\127.0.0.1\IPC$: 
+Type the password for \\127.0.0.1\IPC$:
 The command completed successfully
 
 C:\AGENT_DIRECTORY> psexec \\127.0.0.1 -c -f -s agent.exe
@@ -170,7 +182,7 @@ Deploying at scale
 
 There shouldn't be any special considerations for deploying GRR clients at
 scale. If the server can't handle the load, the clients should happily back off
-and wait their turn. However, we recommend a staged rollout if possible. 
+and wait their turn. However, we recommend a staged rollout if possible.
 
 
 Debugging the Agent Install
@@ -184,18 +196,30 @@ be:
 
 To make debugging easier, we also support repacking the client with verbosity
 enabled. This is particularly handy on Windows. To repack with this enabled, on
-the server do:
+the server you can do:
 --------------------------------------------------------------------------------
-db@host:~ sudo grr_config_updater --verbose --config_execute=VerboseClientBuilder
+db@host:~ sudo grr_config_updater --verbose -p ClientBuilder.console=True
 repack_clients
 --------------------------------------------------------------------------------
-Then download the new binary. It should have the same configuration, but will
-output detailed progress to the console, making it easier to debug.
+
+Alternatively, you can set ClientBuilder.console: False inside your server
+config file to have this setting always applied.
+
+Once you have done this, you can download the new binary from the Web UI. It
+should have the same configuration, but will output detailed progress to the
+console, making it much easier to debug.
 
 Note that the binary is also a zipfile, you can open it in any capable zip
 reader. Unfortunately this doesn't include the built in Windows zip file handler
 but does include winzip or 7-zip. Opening the zip is useful for reading the
 config or checking that the right dependencies have been included.
+
+Repacking the Windows client in verbose mode enables console output for both the
+installer and for the application itself. It does so by updating the header of
+the binary at PE_HEADER_OFFSET + 0x5c from value 2 to 3. This is at 0x144 on 64
+bit and 0x134 on 32 bit Windows binaries. You can do this manually with a hex
+editor as well.
+
 
 Interactively Debugging the Client
 ++++++++++++++++++++++++++++++++++
@@ -213,6 +237,15 @@ The GRR Monitor service was stopped successfully.
 
 C:\Windows\system32>c:\windows\system32\grr\2.5.0.5\grr.exe --config reg://HKEY_
 LOCAL_MACHINE/Software\GRR --verbose
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+test@test0:~$ sudo service grr-single-server stop
+[sudo] password for test:
+grr-single-server stop/waiting
+test@test0:~$ sudo /usr/sbin/grrd --config=/usr/lib/grr/grr_2.9.1.1_amd64/grr.yaml --verbose
+INFO:2013-10-02 14:32:07,756 logging:1611] Starting GRR Prelogging buffer.
+INFO:2013-10-02 14:32:07,791 logging:1611] Loading configuration from /usr/lib/grr/grr_2.9.1.1_amd64/grr.yaml
 --------------------------------------------------------------------------------
 
 Configuration Changes to Ease Debugging
@@ -234,19 +267,77 @@ The GRR Monitor service is starting.
 The GRR Monitor service was started successfully.
 ---------------------------------------------------------------------------
 
+Changing Logging For Debugging
+++++++++++++++++++++++++++++++
+
+On all platforms, by default only hard errors are logged. A hard error is
+defined as anything level ERROR or above, which is generally reserved for
+unrecoverable errors. But because temporary disconnections are normal, an agent
+failing to talk to the server doesn't actually count as a hard error.
+
+In the client you will likely want to set:
+Logging.verbose: True
+
+And depending on your configuration, you can play with syslog, log file and
+Windows EventLog logging using parameters Logging.path, and Logging.engines.
+
+
 Uninstalling the Agent
 ~~~~~~~~~~~~~~~~~~~~~~
-On Windows the agent does not have an uninstaller. It is designed to have
-minimal impact on the system and leave limited traces of itself such that it
-can be hidden reasonably easily. Thus it was designed to install silently
+On Windows the agent does not have a standard uninstaller. It is designed to
+have minimal impact on the system and leave limited traces of itself such that
+it can be hidden reasonably easily. Thus it was designed to install silently
 without an uninstall.
 
-Uninstalling the agent is a matter of deleting the service and the install
-directory, then optionally removing the registry keys and install log if one
-was created. 
+Disabling the service can be done with the Uninstall flow, but this does not
+clean up after itself by default.
 
-On Linux and MacOSX the standard system packaging (deb, pkg) is used by default.
-Use the standard uninstall mechanisms for these.
+Cleaning up the agent is a matter of deleting the service and the install
+directory, then optionally removing the registry keys and install log if one
+was created, as per below:
+---------------------------------------------------------------------------
+sc stop "grr monitor"
+sc delete "grr monitor"
+reg delete HKLM\Software\GRR
+rmdir /Q /S c:\windows\system32\grr
+del /F c:\windows\system32\grr_installer.txt
+---------------------------------------------------------------------------
+
+On OSX you can also use the Uninstall flow.
+
+On Linux the standard system packaging (deb, pkg) is used by default. Use the
+standard uninstall mechanisms for this.
+
+
+Proxies and Connectivity
+~~~~~~~~~~~~~~~~~~~~~~~~
+If an agent can't connect to the server, there can be a number of reasons such
+as:
+
+Server Isn't Listening::
+Confirm you can connect to the server and retrieve the server.pem file. E.g.
+  wget http://server:8080/server.pem
+
+Proxy Required For Access::
+If the environment doesn't allow direct connections GRR may need to use a
+proxy. GRR currently doesn't support Proxy Autoconfig or Proxy Authentication.
+GRR will attempt to guess your proxy configuration, or you can explicitly set
+proxies in the config file, e.g.
+  Client.proxy_servers: ["http://cache.example.com:3128/"]
+On Windows systems GRR will try a direct connection, and then search for
+configured proxies in all users profiles on the system trying to get a working
+connection.
+On Linux GRR should obey system proxy settings, and it will also obey
+environment variables. e.g.
+  export http_proxy=http://cache.example.com:3128
+
+Outbound Firewall Blocking Connections::
+GRR doesn't do anything to bypass egress firewalling by default. However, if you
+have a restrictive policy you could add this as an installer plugin.
+
+If you look at the running config, the first time the client successfully
+connects to the server a variable "Client.server_serial_number" will be written
+to the config. If that exists, the client successfully made a connection.
 
 
 The GRR GUI
@@ -327,7 +418,7 @@ time for a specific attribute, a _+_ sign will appear before it in the GUI.
 Click on it and it will display a table with all the known values over time.
 
 Additionally, in the listing view, the Age column has a clickable icon that
-will show you the different versions of the file that have been collected. 
+will show you the different versions of the file that have been collected.
 
 
 .Versioned MAC address
@@ -374,7 +465,7 @@ Inside you will find two directories:
 1. `os` contains the volumes seen by the Operating System.
 
 2. `tsk` contains volumes seen by sleuthkit when analyzing the partition table
-on the remote system. 
+on the remote system.
 
 
 .GRR VFS fs node
@@ -477,7 +568,7 @@ file, you will get a HashImage.
 This can lead to confusion. If you download a file, then list the directory,
 the downloadable HashImage may seem to disappeared due to the default view only
 showing latest version of the file. You will need to click the Age icon to
-access the previous version. 
+access the previous version.
 
 
 [CAUTION]
@@ -551,7 +642,7 @@ the date when it was launched, when it was last active and who created it.
 As you can see, 4 Flows have been launched in the shown example:
 
 1. 'CAEnroler'. This is the first flow ever to launch for any client. It is the
-enroling Flow which gets the client set up server side. 
+enroling Flow which gets the client set up server side.
 
 2. 'Interrogate'. After enroling, a client sends some information about the
 machine it's running in such as the hostname, MAC address or users available
@@ -1301,7 +1392,7 @@ Why Is My Hunt Doing Nothing?
 couple of minutes before the first client picks up the flow.
 - Hunting is currently optimised for very large numbers of clients, so by
 default the client Foreman poll time is set to only check if hunts are scheduled
-every 50 minutes. If you only have one client you may need to wait up to 50
+every 30 minutes. If you only have one client you may need to wait up to 30
 minutes for it to start. (Note: this is planned to change in the future).
 
 TODO
@@ -1320,7 +1411,7 @@ db@grrhost: ~$ grr_file_exporter --file=aff4:/C.123456890ABCDEF/fs/os/boot.ini -
 Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
 Downloading: aff4:/C.123456890abcdef/fs/os/boot.ini to: /tmp/C.123456890abcdef/fs/os/boot.ini
 
-db@grrhost: ~$ 
+db@grrhost: ~$
 --------------------------------------------------------------------------
 
 Exporting a Directory
@@ -1449,7 +1540,7 @@ EnumerateFilesystems, Uninstall.
 [[collection]] Collection::
 A Collection is a logical set of objects stored in the AFF4 database. Generally
 these are a list of URNs containing a grouping of data such as Artifacts or
-Events from a client. 
+Events from a client.
 
 [[datastore]] DataStore::
 The backend is where all AFF4 and Scheduler data is stored. It is provided as an
@@ -1462,7 +1553,7 @@ objective. A flow is the core unit of work in the GRR server. For example a
 BrowserHistory flow contains all the logic to download, extract and display
 browser history from a client. Flows can call other flows to get their job
 done. E.g. A CollectBrowserHistory flow might call ListDirectory and GetFile to
-do it's work. A flow is implemented as a class that inherits from GRRFlow. 
+do it's work. A flow is implemented as a class that inherits from GRRFlow.
 
 Frontend server::
 Server-side component that sends and receives messages back and forth from
@@ -1481,9 +1572,4 @@ viceversa.
 [[worker]] Worker::
 Once receiving a message from a client a worker will wake up the Flow that
 requested its results and execute it.
-
-
-FAQ
----
-
 

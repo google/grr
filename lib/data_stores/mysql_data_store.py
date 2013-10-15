@@ -10,161 +10,15 @@ import time
 import MySQLdb
 from MySQLdb import cursors
 
-from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
-from grr.lib import registry
 from grr.lib import utils
 
 
 # pylint: disable=nonstandard-exception
 class Error(data_store.Error):
   """Base class for all exceptions in this module."""
-
-
-class Filter(object):
-  """The baseclass for filters."""
-  __metaclass__ = registry.MetaclassRegistry
-
-  # Automatically register plugins as class attributes
-  include_plugins_as_attributes = True
-
-  def SQL(self):
-    """Should return the SQL string.
-
-    Note that this should have a %s for parameter placeholders.
-
-    Returns:
-      A string representing the SQL condition.
-    """
-    return "(1)"
-
-  def Parameters(self):
-    """Returns all the parameters for this condition.
-
-    Parameters must correspond to the placeholders returned in SQL().
-
-    Returns:
-      A list of parameter values.
-    """
-    return []
-
-
-class AndFilter(Filter):
-  """A Logical And operator."""
-
-  def __init__(self, *parts):
-    self.parts = parts
-    super(AndFilter, self).__init__()
-
-  def SQL(self):
-    return "(" + " and ".join([x.SQL() for x in self.parts]) + ")"
-
-  def Parameters(self):
-    result = []
-    for x in self.parts:
-      result.extend(x.Parameters())
-
-    return result
-
-
-class SubjectContainsFilter(Filter):
-  """Applies a RegEx to the subject name."""
-
-  def __init__(self, regex):
-    """Constructor.
-
-    Args:
-       regex: Must match the row name.
-    """
-    self.regex = regex
-    super(SubjectContainsFilter, self).__init__()
-
-  def SQL(self):
-    return "(subject rlike %s)"
-
-  def Parameters(self):
-    return [self.regex]
-
-
-class OrFilter(AndFilter):
-  """A Logical Or operator."""
-
-  def SQL(self):
-    return "(" + " or ".join([x.SQL() for x in self.parts]) + ")"
-
-
-class HasPredicateFilter(Filter):
-
-  def __init__(self, attribute_name):
-    self.attribute_name = attribute_name
-    Filter.__init__(self)
-
-  def SQL(self):
-    return "(attribute = %s)"
-
-  def Parameters(self):
-    return [self.attribute_name]
-
-
-class PredicateContainsFilter(Filter):
-  """Applies a RegEx on the content of an attribute."""
-
-  def __init__(self, attribute_name, regex):
-    self.regex = regex
-    self.attribute_name = attribute_name
-    super(PredicateContainsFilter, self).__init__()
-
-  def SQL(self):
-    return "(attribute = %s and value_string rlike %s)"
-
-  def Parameters(self):
-    return [self.attribute_name, self.regex]
-
-
-class PredicateGreaterThanFilter(Filter):
-  """A filter to be applied to DataStore.Query.
-
-  This filters all subjects which have this predicate greater than the value
-  specified.
-  """
-
-  operator = ">"
-
-  def __init__(self, attribute_name, value):
-    """Constructor.
-
-    Args:
-       attribute_name: The attribute name must be set.
-       value: The value that attribute must be greater than.
-    """
-    self.attribute_name = utils.SmartUnicode(attribute_name)
-    self.value = value
-    super(PredicateGreaterThanFilter, self).__init__()
-
-  def SQL(self):
-    return "(attribute = %%s and value_integer %s %%s)" % self.operator
-
-  def Parameters(self):
-    return [self.attribute_name, self.value]
-
-
-class PredicateGreaterEqualFilter(PredicateGreaterThanFilter):
-  operator = ">="
-
-
-class PredicateLessThanFilter(PredicateGreaterThanFilter):
-  """A filter to be applied to DataStore.Query.
-
-  This filters all subjects which have this predicate less than the value
-  specified.
-  """
-  operator = "<"
-
-
-class PredicateLessEqualFilter(PredicateGreaterThanFilter):
-  operator = "<="
 
 
 class MySQLConnection(object):
@@ -254,8 +108,6 @@ class MySQLDataStore(data_store.DataStore):
   POOL = None
 
   def __init__(self):
-    self.filter = Filter
-
     # Use the global connection pool.
     if MySQLDataStore.POOL is None:
       MySQLDataStore.POOL = ConnectionPool()
@@ -304,6 +156,9 @@ class MySQLDataStore(data_store.DataStore):
     _ = sync  # Unused
 
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
+    if not attributes:
+      return
+
     with self.pool.GetConnection() as cursor:
       query = ("delete from `%s` where hash=md5(%%s) and "
                "subject=%%s and attribute in (%s) " % (
@@ -349,8 +204,7 @@ class MySQLDataStore(data_store.DataStore):
     with self.pool.GetConnection() as cursor:
       return cursor.dbh.escape(string)
 
-  def ResolveMulti(self, subject, predicates, decoder=None, token=None,
-                   timestamp=None):
+  def ResolveMulti(self, subject, predicates, token=None, timestamp=None):
     """Resolves multiple predicates at once for one subject."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "r")
 
@@ -369,7 +223,7 @@ class MySQLDataStore(data_store.DataStore):
 
     for row in result:
       subject = row["subject"]
-      value = self.DecodeValue(row, decoder=decoder)
+      value = self.DecodeValue(row)
 
       yield row["attribute"], value, rdfvalue.RDFDatetime(row["age"])
 
@@ -387,7 +241,7 @@ class MySQLDataStore(data_store.DataStore):
     return query
 
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
-                        decoder=None, timestamp=None, limit=None):
+                        timestamp=None, limit=None):
     self.security_manager.CheckDataStoreAccess(token, subjects, "r")
     if not subjects:
       return {}
@@ -405,7 +259,7 @@ class MySQLDataStore(data_store.DataStore):
       query += "and (" + " or ".join(
           ["attribute rlike %s"] * len(predicate_regex)) + ")"
 
-      args = subjects[:] + subjects[:] + predicate_regex
+      args = list(subjects) + list(subjects) + predicate_regex
 
       query += self._TimestampToQuery(timestamp, args)
 
@@ -414,7 +268,7 @@ class MySQLDataStore(data_store.DataStore):
 
       for row in cursor.Execute(query, args):
         subject = row["subject"]
-        value = self.DecodeValue(row, decoder=decoder)
+        value = self.DecodeValue(row)
 
         # Only record the latest results. This is suboptimal since it always
         # returns all the results from the db. Can we do better with better SQL?
@@ -430,7 +284,7 @@ class MySQLDataStore(data_store.DataStore):
         if limit > 0 and len(result) > limit:
           break
 
-      return result
+      return result.iteritems()
 
   def MultiSet(self, subject, values, timestamp=None, token=None, replace=True,
                sync=True, to_delete=None):
@@ -530,7 +384,7 @@ class MySQLDataStore(data_store.DataStore):
 
     return result
 
-  def DecodeValue(self, row, decoder=None):
+  def DecodeValue(self, row):
     """Decode the value from the row object."""
     value = row["value_string"]
     if value is None:
@@ -539,71 +393,10 @@ class MySQLDataStore(data_store.DataStore):
     if value is None:
       value = row["value_binary"]
 
-    if value is not None and decoder:
-      value = self.Decode(value, decoder=decoder)
-
     return value
 
-  def Query(self, attributes=None, filter_obj=None, subject_prefix="",
-            token=None, subjects=None, limit=100, timestamp=None):
-    """Query the database according to the filter."""
-    try:
-      skip, limit = limit
-    except TypeError:
-      skip = 0
-
-    if attributes is None: attributes = []
-
-    if u"aff4:type" not in attributes:
-      attributes.append(u"aff4:type")
-
-    if filter_obj is None:
-      filter_obj = Filter()
-
-    with self.pool.GetConnection() as cursor:
-      query = "select subject from `%s` where " % self.table_name
-      parameters = []
-
-      query += filter_obj.SQL()
-      parameters.extend(filter_obj.Parameters())
-
-      if subjects:
-        query += " and subject in (%s)" % (",".join(
-            ["%s"] * len(subjects)))
-        parameters.extend(subjects)
-
-      elif subject_prefix:
-        query += " and subject like concat(%s, '%%')"
-        prefix = utils.SmartUnicode(subject_prefix)
-        parameters.append(prefix)
-
-      query += " group by subject order by subject limit %s, %s"
-      parameters.extend((skip, limit))
-
-      total_hits = sorted(
-          (row["subject"] for row in cursor.Execute(query, parameters)))
-
-      result_set = data_store.ResultSet()
-      for subject, data in sorted(self.MultiResolveRegex(
-          total_hits, attributes, token=token,
-          timestamp=timestamp).items()):
-        result = dict(subject=[(subject, 0)])
-        for predicate, value, ts in data:
-          result.setdefault(predicate, []).append((value, ts))
-
-        try:
-          self.security_manager.CheckDataStoreAccess(token, [subject], "rq")
-
-          result_set.Append(result)
-        except access_control.UnauthorizedAccess:
-          continue
-
-      result_set.total_count = len(total_hits)
-
-      return result_set
-
-  def Transaction(self, subject, token=None):
-    return MySQLTransaction(self, subject, token=token)
+  def Transaction(self, subject, lease_time=None, token=None):
+    return MySQLTransaction(self, subject, lease_time=lease_time, token=token)
 
 
 class MySQLTransaction(data_store.Transaction):
@@ -619,24 +412,41 @@ class MySQLTransaction(data_store.Transaction):
   A lock is considered expired after a certain time.
   """
 
-  def __init__(self, store, subject, token=None):
+  def __init__(self, store, subject, lease_time=None, token=None):
     """Ensure we can take a lock on this subject."""
     self.store = store
+    if lease_time is None:
+      lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
+
+    self.lock_time = lease_time
     self.token = token
     self.subject = utils.SmartUnicode(subject)
     self.table_name = store.table_name
+    self.to_set = {}
+    self.to_delete = []
     with store.pool.GetConnection() as connection:
-      self.current_lock = int(time.time() * 1e6)
+      self.expires_lock = int((time.time() + self.lock_time) * 1e6)
 
       # This will take over the lock if the lock is too old.
       connection.Execute(
           "update `%s` set value_integer=%%s where "
           "attribute='transaction' and subject=%%s and hash=md5(%%s) and "
           "(value_integer < %%s)" % self.table_name,
-          (self.current_lock, subject, subject,
-           (time.time()-config_lib.CONFIG["Mysql.transaction_timeout"]) * 1e6))
+          (self.expires_lock, subject, subject, time.time() * 1e6))
 
       self.CheckForLock(connection, subject)
+
+  def UpdateLease(self, lease_time):
+    self.expires_lock = int((time.time() + lease_time) * 1e6)
+    with self.store.pool.GetConnection() as connection:
+      # This will take over the lock if the lock is too old.
+      connection.Execute(
+          "update `%s` set value_integer=%%s where "
+          "attribute='transaction' and subject=%%s and hash=md5(%%s)" %
+          self.table_name, (self.expires_lock, self.subject, self.subject))
+
+  def CheckLease(self):
+    return max(0, self.expires_lock/1e6 - time.time())
 
   def CheckForLock(self, connection, subject):
     """Checks that the lock has stuck."""
@@ -646,7 +456,7 @@ class MySQLTransaction(data_store.Transaction):
         "attribute='transaction'" % self.table_name, (subject, subject)):
 
       # We own this lock now.
-      if row["value_integer"] == self.current_lock:
+      if row["value_integer"] == self.expires_lock:
         return
 
       # Someone else owns this lock.
@@ -657,39 +467,48 @@ class MySQLTransaction(data_store.Transaction):
     connection.Execute(
         "insert ignore into `%s` set value_integer=%%s, "
         "attribute='transaction', subject=%%s, hash=md5(%%s) " %
-        self.table_name, (self.current_lock, self.subject, self.subject))
+        self.table_name, (self.expires_lock, self.subject, self.subject))
 
     self.CheckForLock(connection, subject)
 
   def DeleteAttribute(self, predicate):
-    self.store.DeleteAttributes(self.subject, [predicate], sync=True,
-                                token=self.token)
+    self.to_delete.append(predicate)
 
-  def Resolve(self, predicate, decoder=None):
-    return self.store.Resolve(self.subject, predicate, decoder=decoder,
-                              token=self.token)
+  def Resolve(self, predicate):
+    return self.store.Resolve(self.subject, predicate, token=self.token)
 
-  def ResolveRegex(self, predicate_regex, decoder=None, timestamp=None):
+  def ResolveRegex(self, predicate_regex, timestamp=None):
     return self.store.ResolveRegex(self.subject, predicate_regex,
-                                   decoder=decoder, token=self.token,
-                                   timestamp=timestamp)
+                                   token=self.token, timestamp=timestamp)
 
   def Set(self, predicate, value, timestamp=None, replace=True):
-    self.store.Set(self.subject, predicate, value, timestamp=timestamp,
-                   replace=replace, token=self.token)
+    if replace:
+      self.to_delete.append(predicate)
+
+    if timestamp is None:
+      timestamp = int(time.time() * 1e6)
+
+    self.to_set.setdefault(predicate, []).append((value, timestamp))
 
   def Abort(self):
-    self.Commit()
+    self._RemoveLock()
 
   def Commit(self):
+    self.store.DeleteAttributes(self.subject, self.to_delete, sync=True,
+                                token=self.token)
+
+    self.store.MultiSet(self.subject, self.to_set, token=self.token)
+    self._RemoveLock()
+
+  def _RemoveLock(self):
     # Remove the lock on the document. Note that this only resets the lock if
-    # we actually hold it (value_integer == self.current_lock).
+    # we actually hold it (value_integer == self.expires_lock).
     with self.store.pool.GetConnection() as connection:
       connection.Execute(
           "update `%s` set value_integer=0 where "
           "attribute='transaction' and value_integer=%%s and hash=md5(%%s) and "
           "subject=%%s" % self.table_name,
-          (self.current_lock, self.subject, self.subject))
+          (self.expires_lock, self.subject, self.subject))
 
   def __del__(self):
     try:

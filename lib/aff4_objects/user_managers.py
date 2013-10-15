@@ -488,6 +488,10 @@ class FullAccessControlManager(access_control.BaseAccessControlManager):
     #       anything under aff4:/flows/W:SOMEFLOW, for example.
     h.Allow("aff4:/flows/*")
 
+    # Querying the index of filestore objects is allowed since it reveals the
+    # clients which have this file.
+    h.Allow("aff4:/files/hash/generic/sha256/" + "[a-z0-9]" * 64)
+
     return h
 
   def RejectWriteAccess(self, unused_subject, unused_token):

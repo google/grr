@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc. All Rights Reserved.
-
 """Linux specific actions."""
 
 
@@ -292,6 +290,18 @@ class EnumerateRunningServices(actions.ActionPlugin):
   """
   in_rdfvalue = None
   out_rdfvalue = None
+
+  def Run(self, unused_arg):
+    raise RuntimeError("Not implemented")
+
+
+class Uninstall(actions.ActionPlugin):
+  """Uninstall GRR. Place holder, does nothing.
+
+  Note this needs to handle the different distributions separately, e.g. Redhat
+  vs Debian.
+  """
+  out_rdfvalue = rdfvalue.DataBlob
 
   def Run(self, unused_arg):
     raise RuntimeError("Not implemented")

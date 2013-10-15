@@ -171,7 +171,7 @@ def ApprovalGrant(token=None):
 def ApprovalFind(object_id, token=None):
   """Find approvals issued for a specific client."""
   user = getpass.getuser()
-  object_id = aff4.RDFURN(object_id)
+  object_id = rdfvalue.RDFURN(object_id)
   try:
     approved_token = aff4.Approval.GetApprovalForObject(
         object_id, token=token, username=user)
@@ -195,9 +195,10 @@ def ApprovalCreateRaw(client_id, token, approval_type="ClientApproval"):
   Raises:
     RuntimeError: On bad token.
   """
+  client_id = rdfvalue.ClientURN(client_id)
   if not token.reason:
     raise RuntimeError("Cannot create approval with empty reason")
-  approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
+  approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id.Path()).Add(
       token.username).Add(utils.EncodeReasonString(token.reason))
 
   super_token = access_control.ACLToken(username="test")
@@ -212,7 +213,7 @@ def ApprovalCreateRaw(client_id, token, approval_type="ClientApproval"):
       approval_request.Schema.APPROVER("%s1-raw" % user))
   approval_request.AddAttribute(
       approval_request.Schema.APPROVER("%s-raw2" % user))
-  approval_request.Close()
+  approval_request.Close(sync=True)
 
 
 def ApprovalRevokeRaw(client_id, token, remove_from_cache=False):
@@ -227,7 +228,8 @@ def ApprovalRevokeRaw(client_id, token, remove_from_cache=False):
     remove_from_cache: If True, also remove the approval from the
                        security_manager cache.
   """
-  approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
+  client_id = rdfvalue.ClientURN(client_id)
+  approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id.Path()).Add(
       token.username).Add(utils.EncodeReasonString(token.reason))
 
   super_token = access_control.ACLToken(username="test")

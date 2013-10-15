@@ -16,9 +16,6 @@ config_lib.DEFINE_integer("Worker.task_limit", 2000,
 config_lib.DEFINE_integer("Worker.flow_lease_time", 600,
                           "Duration of flow lease time in seconds.")
 
-config_lib.DEFINE_integer("Worker.hunt_ping_interval", 60,
-                          "Time interval between hunt's lease extensions.")
-
 config_lib.DEFINE_integer("Frontend.throttle_average_interval", 60,
                           "Time interval over which average request rate is "
                           "calculated when throttling is enabled.")
@@ -27,6 +24,13 @@ config_lib.DEFINE_list("Frontend.well_known_flows",
                        ["aff4:/flows/W:TransferStore", "aff4:/flows/W:Stats"],
                        "Allow these well known flows to run directly on the "
                        "frontend. Other flows are scheduled as normal.")
+
+# Smtp settings.
+config_lib.DEFINE_string("Worker.smtp_server", "localhost",
+                         "The smpt server for sending email alerts.")
+
+config_lib.DEFINE_integer("Worker.smtp_port", 25, "The smtp server port.")
+
 
 # Server Cryptographic settings.
 config_lib.DEFINE_semantic(
@@ -53,6 +57,8 @@ config_lib.DEFINE_string("Datastore.security_manager",
 config_lib.DEFINE_string("Datastore.implementation", "FakeDataStore",
                          "Storage subsystem to use.")
 
+config_lib.DEFINE_integer("Datastore.transaction_timeout", default=600,
+                          help="How long do we wait for a transaction lock.")
 
 # Mongo data store.
 config_lib.DEFINE_string("Mongo.server", "localhost",
@@ -74,9 +80,6 @@ config_lib.DEFINE_string("Mysql.database_username", default="root",
 
 config_lib.DEFINE_string("Mysql.database_password", default="",
                          help="The password to connect to the database.")
-
-config_lib.DEFINE_integer("Mysql.transaction_timeout", default=60,
-                          help="How long do we wait for a transaction lock.")
 
 
 config_lib.DEFINE_bool("Cron.active", False,

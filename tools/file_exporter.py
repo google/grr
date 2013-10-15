@@ -17,6 +17,8 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import startup
 
+flags.DEFINE_bool("hash_file_store", False,
+                  "If true, export contents of hash file store.")
 
 flags.DEFINE_string("collection", None,
                     "AFF4 path to a collection to download/sync.")
@@ -38,11 +40,11 @@ flags.DEFINE_bool("overwrite", False,
 flags.DEFINE_string("output", None,
                     "Path to dump the data to.")
 
-flags.DEFINE_bool("export_client_data", True,
-                  "Export a yaml file containing client data in the root "
-                  "directory of the client output dir for collections. This "
-                  "is useful for identifying the client that the files "
-                  "belong to.")
+flags.DEFINE_bool("noexport_client_data", False,
+                  "Do not export a yaml file containing client data in "
+                  "the root directory of the client output dir for "
+                  "collections. This file is exported by default and is "
+                  "useful for identifying the client that the files belong to.")
 
 flags.DEFINE_integer("threads", 10,
                      "Number of threads to use for export.")
@@ -53,7 +55,8 @@ flags.DEFINE_integer("batch_size", 1000,
 
 
 def Usage():
-  print "Needs --output and one of --collection --directory or --file."
+  print("Needs --output and one of --hash_file_store --collection --directory "
+        "or --file.")
   print "e.g. --collection=aff4:/hunts/W:123456/Results --output=/tmp/foo"
 
 
@@ -65,7 +68,8 @@ def main(unused_argv):
   startup.Init()
 
   if not flags.FLAGS.output or not (flags.FLAGS.collection or flags.FLAGS.file
-                                    or flags.FLAGS.directory):
+                                    or flags.FLAGS.directory
+                                    or flags.FLAGS.hash_file_store):
     Usage()
     sys.exit(1)
 
@@ -75,7 +79,7 @@ def main(unused_argv):
                                     overwrite=flags.FLAGS.overwrite,
                                     max_threads=flags.FLAGS.threads,
                                     dump_client_info=
-                                    flags.FLAGS.export_client_data)
+                                    not flags.FLAGS.noexport_client_data)
   elif flags.FLAGS.file:
     export_utils.CopyAFF4ToLocal(flags.FLAGS.file, flags.FLAGS.output,
                                  overwrite=flags.FLAGS.overwrite)
@@ -89,6 +93,7 @@ def main(unused_argv):
     export_utils.RecursiveDownload(directory, flags.FLAGS.output,
                                    overwrite=flags.FLAGS.overwrite,
                                    depth=flags.FLAGS.depth)
+
 
 
 def ConsoleMain():

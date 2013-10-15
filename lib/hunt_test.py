@@ -54,6 +54,14 @@ class BrokenSampleHunt(hunts.SampleHunt):
 class HuntTest(test_lib.FlowTestsBaseclass):
   """Tests the Hunt."""
 
+  def setUp(self):
+    super(HuntTest, self).setUp()
+
+    # Clean up the foreman to remove any rules.
+    with aff4.FACTORY.Open("aff4:/foreman", mode="rw",
+                           token=self.token) as foreman:
+      foreman.Set(foreman.Schema.RULES())
+
   def testRuleAdding(self):
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     rules = foreman.Get(foreman.Schema.RULES)
@@ -111,7 +119,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
   def AddForemanRules(self, to_add):
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-    rules = foreman.Get(foreman.Schema.RULES) or foreman.Schema.RULES()
+    rules = foreman.Get(foreman.Schema.RULES, default=foreman.Schema.RULES())
     for rule in to_add:
       rules.Append(rule)
     foreman.Set(foreman.Schema.RULES, rules)
@@ -208,8 +216,6 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       with hunt.GetRunner() as runner:
         runner.Start()
 
-    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-
     # Create a client that matches our regex.
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     info = client.Schema.CLIENT_INFO()
@@ -217,21 +223,14 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client.Set(client.Schema.CLIENT_INFO, info)
     client.Close()
 
-    old_start_client = hunts.SampleHunt.StartClient
-    try:
-      hunts.SampleHunt.StartClient = self.Callback
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    with test_lib.Stubber(hunts.SampleHunt, "StartClient", self.Callback):
       self.called = []
 
       foreman.AssignTasksToClient(client.urn)
 
       self.assertEqual(len(self.called), 1)
       self.assertEqual(self.called[0][1], client.urn)
-
-      # Clean up.
-      foreman.Set(foreman.Schema.RULES())
-      foreman.Close()
-    finally:
-      hunts.SampleHunt.StartClient = staticmethod(old_start_client)
 
   def testStartClient(self):
     with hunts.GRRHunt.StartHunt(
@@ -299,10 +298,6 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(set(started)), 10)
     self.assertEqual(len(set(finished)), 10)
 
-    # Clean up.
-    foreman.Set(foreman.Schema.RULES())
-    foreman.Close()
-
     self.DeleteClients(10)
 
   def testHangingClients(self):
@@ -338,10 +333,6 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(set(started)), 10)
     # But only 8 should have finished.
     self.assertEqual(len(set(finished)), 8)
-
-    # Clean up.
-    foreman.Set(foreman.Schema.RULES())
-    foreman.Close()
 
     self.DeleteClients(10)
 
@@ -384,9 +375,6 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       # before.
       self.assertEqual(num_tasks, 0)
 
-    foreman.Set(foreman.Schema.RULES())
-    foreman.Close()
-
     self.DeleteClients(10)
 
   def testClientLimit(self):
@@ -420,10 +408,6 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     # We limited here to 5 clients.
     self.assertEqual(len(set(started)), 5)
     self.assertEqual(len(set(finished)), 5)
-
-    # Clean up.
-    foreman.Set(foreman.Schema.RULES())
-    foreman.Close()
 
     self.DeleteClients(10)
 
@@ -464,10 +448,6 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     # All of the clients that have the file should still finish eventually.
     self.assertEqual(len(set(finished)), 5)
 
-    # Clean up.
-    foreman.Set(foreman.Schema.RULES())
-    foreman.Close()
-
     self.DeleteClients(10)
 
   def testHuntNotifications(self):
@@ -498,10 +478,6 @@ class HuntTest(test_lib.FlowTestsBaseclass):
                             token=self.token)
 
     self.assertEqual(len(TestHuntListener.received_events), 5)
-
-    # Clean up.
-    foreman.Set(foreman.Schema.RULES())
-    foreman.Close()
 
     self.DeleteClients(10)
 

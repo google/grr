@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 """A collection of compatibility fixes for client."""
-import logging
-
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
@@ -25,9 +23,9 @@ class ClientCompatibility(flow.EventListener):
   @flow.EventHandler(allow_client_access=True, auth_required=False)
   def ProcessMessage(self, message=None, event=None):
     client_id = message.source
+    # Older client versions do not sent the RDFValue type name explicitly.
     if event is None:
-      logging.info("Event handler called with no event: %s", message)
-      return
+      event = rdfvalue.StartupInfo(message.args)
 
     client_info = event.client_info
 

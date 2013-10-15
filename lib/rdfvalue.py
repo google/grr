@@ -429,7 +429,7 @@ class RDFDatetime(RDFInteger):
     return self
 
   def __add__(self, other):
-    if isinstance(other, (int, long)):
+    if isinstance(other, (int, long, float)):
       return self.__class__(self._value + other * self.converter)
 
     return NotImplemented

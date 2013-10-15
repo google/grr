@@ -19,28 +19,6 @@ class VFSDirectory(aff4.AFF4Volume):
   # We contain other objects within the tree.
   _behaviours = frozenset(["Container"])
 
-  def Query(self, filter_string="", filter_obj=None, limit=1000,
-            age=aff4.NEWEST_TIME):
-    """This queries the Directory using a filter expression."""
-
-    direct_children_filter = data_store.DB.filter.SubjectContainsFilter(
-        "%s/[^/]+$" % utils.EscapeRegex(self.urn))
-
-    if not filter_string and filter_obj is None:
-      filter_obj = direct_children_filter
-    elif filter_obj:
-      filter_obj = data_store.DB.filter.AndFilter(
-          filter_obj, direct_children_filter)
-    else:
-      # Parse the query string.
-      ast = aff4.AFF4QueryParser(filter_string).Parse()
-      filter_obj = data_store.DB.filter.AndFilter(
-          ast.Compile(data_store.DB.filter),
-          direct_children_filter)
-
-    return super(VFSDirectory, self).Query(filter_obj=filter_obj, limit=limit,
-                                           age=age)
-
   def Update(self, attribute=None, priority=None):
     """Refresh an old attribute.
 

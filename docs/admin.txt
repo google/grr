@@ -23,7 +23,7 @@ GRR requires multiple key pairs. These are used to:
 - Sign code and drivers sent to the client.
 
 These keys can be generated using the config_updater script normally installed
-in the path as grr_config_updater using the generate_keys command. 
+in the path as grr_config_updater using the generate_keys command.
 
 --------------------------------------------------------------------
 db@host:$ sudo grr_config_updater generate_keys
@@ -272,7 +272,7 @@ GRR currently ships with two usable datastores, MongoDB and MySQL, and an extra
 in memory only test datastore FakeDataStore.
 
 By default GRR will use the MongoDataStore and expect to find it on localhost.
-You can configure it in the config file, e.g. 
+You can configure it in the config file, e.g.
 
 -----------------------------------------
 [MongoDataStore]
@@ -291,15 +291,15 @@ Performance
 GRR is designed to scale linearly, which it mostly does. It has been run in test
 environments wtih with greater than 100,000 clients reporting and hunting
 without problems. However, this depends significantly on the datastore
-implementation, how it is being run, and the hardware it is running on. 
+implementation, how it is being run, and the hardware it is running on.
 
 As of April 2013, we don't have a clear set of metrics on performance in the
-main release, however there is work being done to create these. 
+main release, however there is work being done to create these.
 
 Deployment Performance Factors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The key issue with performance generally relates to how the server is deployed. 
+The key issue with performance generally relates to how the server is deployed.
 
 - If you are running from the prepackaged release you are likely running the
   grr_server.py binary. This binary runs all components in a single process,
@@ -322,7 +322,16 @@ The key issue with performance generally relates to how the server is deployed.
   traffic you probably want to run multiple http servers. Again, assuming your
   datastore handles it, these should scale linearly.
 - The admin UI and enroller components should have less load on them, depending
-  on your use case, but you can run as many as you want for redundancy. 
+  on your use case, but you can run as many as you want for redundancy.
+- Foreman check frequency. By default the foreman_check_frequency in the client
+  configuration is set to 10 minutes. This variable controls how often a client
+  checks if there are hunts scheduled for it. Adjusting this parameter has two
+  major affects. Firstly it slows down how fast a hunt ramps up, which
+  normalizes the load at the cost of making the hunt slower (this is useful in
+  large deployments). Secondly, each foreman check incurs a penalty on the
+  frontend server, as it must queue up a check against the rules. So setting
+  this to a shorter time increases frontend load. In a large deployment 30-40
+  minutes is a more reasonable setting.
 
 
 Datastore Performance
@@ -349,7 +358,7 @@ Scheduling Flows with Cron
 --------------------------
 The cron allows for scheduling flows to run regularly on the GRR server.
 This is currently used to collect statistics and do cleanup on the database.
-The cron runs as part of the workers. 
+The cron runs as part of the workers.
 
 
 
@@ -393,11 +402,11 @@ db@host:$
 --------------------------------------------------------------------
 
 You can also repack a single client with a new config using the client_build.py
-script. This is described in the section for building clients. 
+script. This is described in the section for building clients.
 
 NOTE: This builds by taking the template zip file, adding relevant configuration
 files to the zip, then modifying the zip into a special self extracting zip
-archive. 
+archive.
 
 Building the Client.
 ~~~~~~~~~~~~~~~~~~~~
@@ -529,4 +538,4 @@ db@host:$
 ------------------------------------------------------------------------
 
 This uploads to the installers directory by default. But you can override with
-the --dest_path option. 
+the --dest_path option.

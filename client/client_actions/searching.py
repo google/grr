@@ -35,7 +35,7 @@ class Find(actions.IteratedAction):
 
     try:
       fd = vfs.VFSOpen(pathspec)
-      files = list(fd.ListFiles())
+      files = fd.ListFiles()
     except (IOError, OSError) as e:
       if depth == 0:
         # We failed to open the directory the server asked for because dir
@@ -53,8 +53,6 @@ class Find(actions.IteratedAction):
     if not self.request.cross_devs and self.filesystem_id is None:
       dir_stat = fd.Stat()
       self.filesystem_id = dir_stat.st_dev
-
-    files.sort(key=lambda x: x.pathspec.Basename())
 
     # Recover the start point for this directory from the state dict so we can
     # resume.

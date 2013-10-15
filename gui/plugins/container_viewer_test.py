@@ -135,16 +135,12 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
     self.Type("query", "stat.st_size < 5000")
     self.Click("css=form[name=query_form] button[type=submit]")
 
-    # This should be fixed eventually and the test turned back on.
-    self.WaitUntilContains("Filtering by subfields is not implemented yet.",
-                           self.GetText, "css=#footer_message")
-
-    # self.WaitUntilEqual("4874", self.GetText,
-    #                    "css=.tableContainer  tbody > tr:nth(0) td:nth(4)")
+    self.WaitUntilEqual("4874", self.GetText,
+                        "css=.containerFileTable tbody > tr:nth(0) td:nth(4)")
 
     # We should have exactly 1 file
-    # self.assertEqual(
-    #    1, self.GetCssCount("css=.tableContainer  tbody > tr"))
+    self.assertEqual(
+        1, self.GetCssCount("css=.containerFileTable  tbody > tr"))
 
 
 def main(argv):

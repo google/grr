@@ -5,6 +5,7 @@
 import os
 
 from grr.lib import aff4
+from grr.lib import artifact
 from grr.lib import artifact_lib
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -20,6 +21,15 @@ class FakeArtifact(artifact_lib.GenericArtifact):
 
 class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
   """Test the artifact collection mechanism works."""
+
+  def setUp(self):
+    """Make sure things are initialized."""
+    super(TestArtifactCollectors, self).setUp()
+    with aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw") as fd:
+      fd.Set(fd.Schema.SYSTEM("Linux"))
+      kb = fd.Schema.KNOWLEDGE_BASE()
+      artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
+      fd.Set(kb)
 
   def tearDown(self):
     super(TestArtifactCollectors, self).tearDown()

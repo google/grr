@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
 """A simple wrapper to send email alerts."""
 
 
@@ -10,14 +9,8 @@ from email.mime.text import MIMEText
 import re
 import smtplib
 
-from grr.lib import flags
+from grr.lib import config_lib
 from grr.lib import utils
-
-flags.DEFINE_string("smtp_server", "localhost",
-                    "The smpt server for sending email alerts.")
-
-flags.DEFINE_integer("smtp_port", 25,
-                     "The smtp server port.")
 
 
 def RemoveHtmlTags(data):
@@ -42,7 +35,8 @@ def SendEmail(to_addresses, from_address, subject, message, is_html=True):
   msg["From"] = from_address
   msg["To"] = to_addresses
 
-  s = smtplib.SMTP(flags.FLAGS.smtp_server, flags.FLAGS.smtp_port)
+  s = smtplib.SMTP(config_lib.CONFIG["Worker.smtp_server"],
+                   int(config_lib.CONFIG["Worker.smtp_port"]))
   s.sendmail(from_address, [to_addresses], msg.as_string())
   s.quit()
 

@@ -39,8 +39,17 @@ class WinTimeZone(Artifact):
   LABELS = ["KnowledgeBase"]
   COLLECTORS = [
       Collector(action="GetRegistryValue",
-                args={"path": r"%%current_control_set%%\Control\TimeZoneInformation\TimeZoneKeyName"})]
+                args={"path": r"%%current_control_set%%\Control\TimeZoneInformation\StandardName"})]
   PROVIDES = "time_zone"
+
+
+class AvailableTimeZones(Artifact):
+  """The timezones avaialable on the system."""
+  URLS = ["https://code.google.com/p/winreg-kb/wiki/TimeZoneKeys"]
+  SUPPORTED_OS = ["Windows"]
+  COLLECTORS = [
+      Collector(action="GetRegistryKeys",
+                args={"path_list": [r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Time Zones\*\*"]})]
 
 
 class WinCodePage(Artifact):
@@ -188,10 +197,11 @@ class WindowsRegistryProfiles(Artifact):
   SUPPORTED_OS = ["Windows"]
   LABELS = ["Users", "KnowledgeBase"]
   COLLECTORS = [
-      Collector(action="GetRegistryValue",
-                args={"path": r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*\ProfileImagePath"}
+      Collector(action="GetRegistryKeys",
+                args={"path_list": [r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*\ProfileImagePath"]}
                )
   ]
+  PROVIDES = ["users.sid", "users.userprofile", "users.homedir"]
 
 
 class WindowsWMIProfileUsers(Artifact):
@@ -208,13 +218,14 @@ class WindowsWMIProfileUsers(Artifact):
   """
   URLS = ["http://msdn.microsoft.com/en-us/library/windows/desktop/aa394507(v=vs.85).aspx"]
   SUPPORTED_OS = ["Windows"]
-  LABELS = ["Users"]
+  LABELS = ["Users", "KnowledgeBase"]
   COLLECTORS = [
       Collector(action="WMIQuery",
                 args={"query": "SELECT * FROM Win32_UserAccount "
-                      "WHERE name=\"%%users.sid%%\""}
+                               "WHERE name='%%users.username%%'"}
                )
   ]
+  PROVIDES = ["users.username", "users.userdomain", "users.sid"]
 
 
 class WindowsWMIUsers(Artifact):
@@ -233,6 +244,23 @@ class WindowsWMIUsers(Artifact):
                 args={"query": "SELECT * FROM Win32_UserAccount"}
                )
   ]
+
+
+class UserShellFolders(Artifact):
+  """The Shell Folders information for Windows users."""
+  SUPPORTED_OS = ["Windows"]
+  LABELS = ["KnowledgeBase"]
+  PROVIDES = ["users.cookies", "users.appdata", "users.personal",
+              "users.startup", "users.homedir", "users.desktop",
+              "users.local_settings", "users.internet_cache",
+              "users.localappdata", "users.recent", "users.userprofile",
+              "users.temp"]
+
+  COLLECTORS = [
+      Collector(action="GetRegistryKeys",
+                args={"path_list": [r"HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\*",
+                                    r"HKEY_USERS\%%users.sid%%\Environment\*"]})
+      ]
 
 
 ################################################################################
@@ -333,7 +361,7 @@ class WindowsWMIInstalledSoftware(AbstractWMIArtifact):
   COLLECTORS = [
       Collector(action="WMIQuery",
                 args={"query": "SELECT Name, Vendor, Description, InstallDate, InstallDate2, Version "
-                      "from Win32_Product"}
+                               "from Win32_Product"}
                )
   ]
 
@@ -345,7 +373,7 @@ class WindowsDrivers(AbstractWMIArtifact):
   COLLECTORS = [
       Collector(action="WMIQuery",
                 args={"query": "SELECT DisplayName, Description, InstallDate, Name, PathName, Status, State, ServiceType "
-                      "from Win32_SystemDriver"}
+                               "from Win32_SystemDriver"}
                )
   ]
 
@@ -357,7 +385,7 @@ class WindowsHotFixes(AbstractWMIArtifact):
   COLLECTORS = [
       Collector(action="WMIQuery",
                 args={"query": "SELECT * "
-                      "from Win32_QuickFixEngineering"}
+                               "from Win32_QuickFixEngineering"}
                )
   ]
 
@@ -374,7 +402,7 @@ class WindowsAdminUsers(AbstractWMIArtifact):
   COLLECTORS = [
       Collector(action="WMIQuery",
                 args={"query": "SELECT * "
-                      "from Win32_GroupUser where Name = \"Administrators\""}
+                               "from Win32_GroupUser where Name = \"Administrators\""}
                )
   ]
 
@@ -391,7 +419,7 @@ class WindowsLoginUsers(AbstractWMIArtifact):
   COLLECTORS = [
       Collector(action="WMIQuery",
                 args={"query": "SELECT * "
-                      "from Win32_GroupUser where Name = \"login_users\""}
+                               "from Win32_GroupUser where Name = \"login_users\""}
                )
   ]
 
@@ -403,7 +431,7 @@ class WMIProcessList(AbstractWMIArtifact):
   COLLECTORS = [
       Collector(action="WMIQuery",
                 args={"query": "SELECT * "
-                      "from Win32_Process"}
+                               "from Win32_Process"}
                )
   ]
 

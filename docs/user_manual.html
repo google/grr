@@ -829,6 +829,13 @@ server with working configurations, and should be available in the Admin UI.</p>
 <div class="paragraph"><p>Look on the left for "Manage Binaries", the files should be in the executables
 directory, under installers. The download button is the down arrown in the
 toolbar.</p></div>
+<div class="paragraph"><p>The files are also accessible directly if you know the path via /download. This
+is useful if you want to retrieve the file using command line tools or a browser
+that isn&#8217;t supported (e.g. IE6).</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>wget --user=admin --password=setecastronomy http://example.com:8080/download/windows/installers/grr-installer-2209.exe</tt></pre>
+</div></div>
 <div class="paragraph"><p>If your server configuration has changed your agents will need to be repacked
 with an updated config. For details see:
 <a href="admin.html#_repacking_the_client_with_a_new_configuration">the GRR server
@@ -836,7 +843,10 @@ installed and running</a></p></div>
 </div>
 <div class="sect2">
 <h3 id="_installing_the_agent">Installing the Agent</h3>
-<div class="paragraph"><p>This differs significantly depending on the operating system.</p></div>
+<div class="paragraph"><p>This differs significantly depending on the operating system so we split it into
+separate sections below.</p></div>
+<div class="paragraph"><p>If an install is successful, it should appear in the search UI within a few
+seconds.</p></div>
 <div class="sect3">
 <h4 id="_windows">Windows</h4>
 <div class="paragraph"><p>The Windows agents are special self extracting zipfiles. Just double click or
@@ -973,18 +983,26 @@ Linux/Mac OSX: /tmp/grr_installer.txt
 </ul></div>
 <div class="paragraph"><p>To make debugging easier, we also support repacking the client with verbosity
 enabled. This is particularly handy on Windows. To repack with this enabled, on
-the server do:</p></div>
+the server you can do:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>db@host:~ sudo grr_config_updater --verbose --config_execute=VerboseClientBuilder
+<pre><tt>db@host:~ sudo grr_config_updater --verbose -p ClientBuilder.console=True
 repack_clients</tt></pre>
 </div></div>
-<div class="paragraph"><p>Then download the new binary. It should have the same configuration, but will
-output detailed progress to the console, making it easier to debug.</p></div>
+<div class="paragraph"><p>Alternatively, you can set ClientBuilder.console: False inside your server
+config file to have this setting always applied.</p></div>
+<div class="paragraph"><p>Once you have done this, you can download the new binary from the Web UI. It
+should have the same configuration, but will output detailed progress to the
+console, making it much easier to debug.</p></div>
 <div class="paragraph"><p>Note that the binary is also a zipfile, you can open it in any capable zip
 reader. Unfortunately this doesn&#8217;t include the built in Windows zip file handler
 but does include winzip or 7-zip. Opening the zip is useful for reading the
 config or checking that the right dependencies have been included.</p></div>
+<div class="paragraph"><p>Repacking the Windows client in verbose mode enables console output for both the
+installer and for the application itself. It does so by updating the header of
+the binary at PE_HEADER_OFFSET + 0x5c from value 2 to 3. This is at 0x144 on 64
+bit and 0x134 on 32 bit Windows binaries. You can do this manually with a hex
+editor as well.</p></div>
 <div class="sect4">
 <h5 id="_interactively_debugging_the_client">Interactively Debugging the Client</h5>
 <div class="paragraph"><p>On each platform, the agent binary should support the following options:
@@ -1001,6 +1019,15 @@ The GRR Monitor service was stopped successfully.
 
 C:\Windows\system32&gt;c:\windows\system32\grr\2.5.0.5\grr.exe --config reg://HKEY_
 LOCAL_MACHINE/Software\GRR --verbose</tt></pre>
+</div></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>test@test0:~$ sudo service grr-single-server stop
+[sudo] password for test:
+grr-single-server stop/waiting
+test@test0:~$ sudo /usr/sbin/grrd --config=/usr/lib/grr/grr_2.9.1.1_amd64/grr.yaml --verbose
+INFO:2013-10-02 14:32:07,756 logging:1611] Starting GRR Prelogging buffer.
+INFO:2013-10-02 14:32:07,791 logging:1611] Loading configuration from /usr/lib/grr/grr_2.9.1.1_amd64/grr.yaml</tt></pre>
 </div></div>
 </div>
 <div class="sect4">
@@ -1023,18 +1050,86 @@ The GRR Monitor service is starting.
 The GRR Monitor service was started successfully.</tt></pre>
 </div></div>
 </div>
+<div class="sect4">
+<h5 id="_changing_logging_for_debugging">Changing Logging For Debugging</h5>
+<div class="paragraph"><p>On all platforms, by default only hard errors are logged. A hard error is
+defined as anything level ERROR or above, which is generally reserved for
+unrecoverable errors. But because temporary disconnections are normal, an agent
+failing to talk to the server doesn&#8217;t actually count as a hard error.</p></div>
+<div class="paragraph"><p>In the client you will likely want to set:
+Logging.verbose: True</p></div>
+<div class="paragraph"><p>And depending on your configuration, you can play with syslog, log file and
+Windows EventLog logging using parameters Logging.path, and Logging.engines.</p></div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_uninstalling_the_agent">Uninstalling the Agent</h3>
-<div class="paragraph"><p>On Windows the agent does not have an uninstaller. It is designed to have
-minimal impact on the system and leave limited traces of itself such that it
-can be hidden reasonably easily. Thus it was designed to install silently
+<div class="paragraph"><p>On Windows the agent does not have a standard uninstaller. It is designed to
+have minimal impact on the system and leave limited traces of itself such that
+it can be hidden reasonably easily. Thus it was designed to install silently
 without an uninstall.</p></div>
-<div class="paragraph"><p>Uninstalling the agent is a matter of deleting the service and the install
+<div class="paragraph"><p>Disabling the service can be done with the Uninstall flow, but this does not
+clean up after itself by default.</p></div>
+<div class="paragraph"><p>Cleaning up the agent is a matter of deleting the service and the install
 directory, then optionally removing the registry keys and install log if one
-was created.</p></div>
-<div class="paragraph"><p>On Linux and MacOSX the standard system packaging (deb, pkg) is used by default.
-Use the standard uninstall mechanisms for these.</p></div>
+was created, as per below:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>sc stop "grr monitor"
+sc delete "grr monitor"
+reg delete HKLM\Software\GRR
+rmdir /Q /S c:\windows\system32\grr
+del /F c:\windows\system32\grr_installer.txt</tt></pre>
+</div></div>
+<div class="paragraph"><p>On OSX you can also use the Uninstall flow.</p></div>
+<div class="paragraph"><p>On Linux the standard system packaging (deb, pkg) is used by default. Use the
+standard uninstall mechanisms for this.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_proxies_and_connectivity">Proxies and Connectivity</h3>
+<div class="paragraph"><p>If an agent can&#8217;t connect to the server, there can be a number of reasons such
+as:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Server Isn&#8217;t Listening
+</dt>
+<dd>
+<p>
+Confirm you can connect to the server and retrieve the server.pem file. E.g.
+  wget <a href="http://server:8080/server.pem">http://server:8080/server.pem</a>
+</p>
+</dd>
+<dt class="hdlist1">
+Proxy Required For Access
+</dt>
+<dd>
+<p>
+If the environment doesn&#8217;t allow direct connections GRR may need to use a
+proxy. GRR currently doesn&#8217;t support Proxy Autoconfig or Proxy Authentication.
+GRR will attempt to guess your proxy configuration, or you can explicitly set
+proxies in the config file, e.g.
+  Client.proxy_servers: ["http://cache.example.com:3128/"]
+On Windows systems GRR will try a direct connection, and then search for
+configured proxies in all users profiles on the system trying to get a working
+connection.
+On Linux GRR should obey system proxy settings, and it will also obey
+environment variables. e.g.
+  export http_proxy=http://cache.example.com:3128
+</p>
+</dd>
+<dt class="hdlist1">
+Outbound Firewall Blocking Connections
+</dt>
+<dd>
+<p>
+GRR doesn&#8217;t do anything to bypass egress firewalling by default. However, if you
+have a restrictive policy you could add this as an installer plugin.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>If you look at the running config, the first time the client successfully
+connects to the server a variable "Client.server_serial_number" will be written
+to the config. If that exists, the client successfully made a connection.</p></div>
 </div>
 </div>
 </div>
@@ -2629,7 +2724,7 @@ couple of minutes before the first client picks up the flow.
 <p>
 Hunting is currently optimised for very large numbers of clients, so by
 default the client Foreman poll time is set to only check if hunts are scheduled
-every 50 minutes. If you only have one client you may need to wait up to 50
+every 30 minutes. If you only have one client you may need to wait up to 30
 minutes for it to start. (Note: this is planned to change in the future).
 </p>
 </li>
@@ -2875,16 +2970,11 @@ requested its results and execute it.
 </dl></div>
 </div>
 </div>
-<div class="sect1">
-<h2 id="_faq">FAQ</h2>
-<div class="sectionbody">
-</div>
-</div>
 </div>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-09-05 16:39:03 CEST
+Last updated 2013-10-15 14:11:42 EST
 </div>
 </div>
 </body>

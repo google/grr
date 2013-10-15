@@ -40,35 +40,50 @@ class MACTimes(flow.GRRFlow):
     # Main work done in another process.
     self.CallState(next_state="CreateTimeline")
 
+  def _ListVFSChildren(self, fds):
+    """Recursively iterate over all children of the AFF4Objects in fds."""
+    child_urns = []
+    while 1:
+      direct_children = []
+      for _, children in aff4.FACTORY.MultiListChildren(
+          fds, token=self.token):
+        direct_children.extend(children)
+
+      # Break if there are no children at this level.
+      if not direct_children:
+        break
+
+      child_urns.extend(direct_children)
+
+      # Now get the next lower level of children.
+      fds = direct_children
+
+    return child_urns
+
   @flow.StateHandler()
   def CreateTimeline(self):
     """Populate the timeline with the MAC data."""
-
+    child_urns = self._ListVFSChildren([self.state.urn])
     attribute = aff4.Attribute.GetAttributeByName("stat")
-    filter_obj = data_store.DB.filter.HasPredicateFilter(attribute)
 
-    for row in data_store.DB.Query(
-        [attribute], filter_obj,
-        subject_prefix=self.state.urn, token=self.token,
-        limit=10000000):
+    for subject, values in data_store.DB.MultiResolveRegex(
+        child_urns, attribute.predicate, token=self.token, limit=10000000):
+      for _, serialized, _ in values:
+        stat = rdfvalue.StatEntry(serialized)
+        event = rdfvalue.Event(source=utils.SmartUnicode(subject),
+                               stat=stat)
 
-      # The source of this event is the directory inode.
-      source = rdfvalue.RDFURN(row["subject"][0][0])
+        # Add a new event for each MAC time if it exists.
+        for c in "mac":
+          timestamp = getattr(stat, "st_%stime" % c)
+          if timestamp is not None:
+            event.timestamp = timestamp * 1000000
+            event.type = "file.%stime" % c
 
-      stat = rdfvalue.StatEntry(row[str(attribute)][0][0])
-      event = rdfvalue.Event(source=utils.SmartUnicode(source),
-                             stat=stat)
-
-      # Add a new event for each MAC time if it exists.
-      for c in "mac":
-        timestamp = getattr(stat, "st_%stime" % c)
-        if timestamp is not None:
-          event.timestamp = timestamp * 1000000
-          event.type = "file.%stime" % c
-
-          # We are taking about the file which is a direct child of the source.
-          event.subject = utils.SmartUnicode(source)
-          self.state.timeline_fd.AddEvent(event)
+            # We are taking about the file which is a direct child of the
+            # source.
+            event.subject = utils.SmartUnicode(subject)
+            self.state.timeline_fd.AddEvent(event)
 
   @flow.StateHandler()
   def End(self, unused_responses):

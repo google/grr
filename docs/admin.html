@@ -1172,6 +1172,19 @@ The admin UI and enroller components should have less load on them, depending
   on your use case, but you can run as many as you want for redundancy.
 </p>
 </li>
+<li>
+<p>
+Foreman check frequency. By default the foreman_check_frequency in the client
+  configuration is set to 10 minutes. This variable controls how often a client
+  checks if there are hunts scheduled for it. Adjusting this parameter has two
+  major affects. Firstly it slows down how fast a hunt ramps up, which
+  normalizes the load at the cost of making the hunt slower (this is useful in
+  large deployments). Secondly, each foreman check incurs a penalty on the
+  frontend server, as it must queue up a check against the rules. So setting
+  this to a shorter time increases frontend load. In a large deployment 30-40
+  minutes is a more reasonable setting.
+</p>
+</li>
 </ul></div>
 </div>
 <div class="sect2">
@@ -1424,7 +1437,7 @@ the --dest_path option.</p></div>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-09-05 16:39:03 CEST
+Last updated 2013-10-15 14:11:42 EST
 </div>
 </div>
 </body>

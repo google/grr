@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 #
-# Copyright 2010 Google Inc. All Rights Reserved.
 
 """This plugin renders the filesystem in a tree and a table."""
 
@@ -20,7 +19,6 @@ from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.proto import sysinfo_pb2
 
 
 # pylint: disable=g-bad-name
@@ -416,6 +414,7 @@ class ConnectionsRenderer(semantic.RDFValueArrayRenderer):
 <td>{{local_address|escape}}</td>
 <td>{{remote_address|escape}}</td>
 <td>{{state|escape}}</td>
+<td>{{pid|escape}}</td>
 """)
 
   types = {
@@ -427,14 +426,6 @@ class ConnectionsRenderer(semantic.RDFValueArrayRenderer):
       (10, 2): "udp6",
       (23, 2): "udp6",
       (30, 2): "udp6",
-      }
-
-  states = {
-      sysinfo_pb2.NetworkConnection.UNKNOWN: "UNKNOWN",
-      sysinfo_pb2.NetworkConnection.LISTEN: "LISTEN",
-      sysinfo_pb2.NetworkConnection.ESTAB: "ESTABLISHED",
-      sysinfo_pb2.NetworkConnection.TIME_WAIT: "TIME_WAIT",
-      sysinfo_pb2.NetworkConnection.CLOSE_WAIT: "CLOSE_WAIT",
       }
 
   def Layout(self, request, response):
@@ -459,13 +450,12 @@ class ConnectionsRenderer(semantic.RDFValueArrayRenderer):
         else:
           remote_address = "0.0.0.0:*"
 
-      state = self.states[conn.state]
-
       result.append(self.FormatFromTemplate(self.connection_template,
                                             type=conn_type,
                                             local_address=local_address,
                                             remote_address=remote_address,
-                                            state=state))
+                                            state=utils.SmartStr(conn.state),
+                                            pid=conn.pid))
 
     return self.RenderFromTemplate(self.layout_template, response,
                                    result=sorted(result))
@@ -866,7 +856,7 @@ class FileSystemTree(renderers.TreeRenderer):
       except AttributeError:
         pass
 
-      for child in children:
+      for child in sorted(children):
         self.AddElement(child.urn.RelativeName(urn))
 
     except IOError as e:

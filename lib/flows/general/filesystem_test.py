@@ -176,6 +176,53 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
                              "syslog_false.gz", "test_img.dd", "test.plist",
                              "tests", "tests_long", "wtmp"]))
 
+  def testGlobWithStarStar(self):
+    """Test that ** expressions mean recursion."""
+
+    # Add some usernames we can interpolate later.
+    client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
+    users = client.Schema.USER()
+    users.Append(username="test")
+    users.Append(username="syslog")
+    client.Set(users)
+    client.Close()
+
+    client_mock = test_lib.ActionMock("Find", "StatFile")
+
+    # Glob for foo at a depth of 4.
+    paths = [
+        os.path.join(self.base_path, "test_img.dd/", "foo**4")]
+
+    # Run the flow.
+    for _ in test_lib.TestFlowHelper(
+        "Glob", client_mock, client_id=self.client_id,
+        paths=paths, pathtype=rdfvalue.PathSpec.PathType.OS,
+        token=self.token):
+      pass
+
+    output_path = self.client_id.Add("fs/tsk").Add(
+        self.base_path.replace("\\", "/")).Add("test_img.dd/glob_test/a/b")
+
+    children = []
+    fd = aff4.FACTORY.Open(output_path, token=self.token)
+    for child in fd.ListChildren():
+      children.append(child.Basename())
+
+    # We should find some files.
+    self.assertEqual(children, ["foo"])
+
+  def testGlobWithInvalidStarStar(self):
+    client_mock = test_lib.ActionMock("Find", "StatFile")
+
+    # This glob is invalid since it uses 2 ** expressions..
+    paths = [os.path.join(self.base_path, "test_img.dd", "**", "**", "foo")]
+
+    # Make sure the flow raises.
+    self.assertRaises(ValueError, list, test_lib.TestFlowHelper(
+        "Glob", client_mock, client_id=self.client_id,
+        paths=paths, pathtype=rdfvalue.PathSpec.PathType.OS,
+        token=self.token))
+
   def testGlobWithWildcardsInsideTSKFile(self):
     client_mock = test_lib.ActionMock("Find", "StatFile")
 
@@ -201,8 +248,9 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
   def testGlobWithWildcardInTSKFilename(self):
     client_mock = test_lib.ActionMock("Find", "StatFile")
 
-    # This glob should find this file in test data: glob_test/a/b/foo.
-    path = os.path.join(self.base_path, "test_img.*", "*", "a", "b", "*")
+    # This glob should find this file in test data: glob_test/a/b/foo. Match the
+    # file with the wrong case to test case insensitive globbing.
+    path = os.path.join(self.base_path, "test_IMG.*", "*", "a", "b", "*")
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(

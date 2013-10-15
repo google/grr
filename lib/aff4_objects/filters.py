@@ -12,6 +12,9 @@ from grr.lib import utils
 class IdentityFilter(aff4.AFF4Filter):
   """Just pass all objects."""
 
+  def FilterOne(self, fd):
+    return fd
+
   def Filter(self, subjects):
     return subjects
 
@@ -22,11 +25,11 @@ class HasPredicateFilter(aff4.AFF4Filter):
   def __init__(self, attribute_name):
     self.attribute_name = attribute_name
 
-  def Filter(self, subjects):
-    attribute_name = self.attribute_name
-    for subject in subjects:
-      if subject.Get(attribute_name):
-        yield subject
+  def FilterOne(self, subject):
+    if subject.Get(self.attribute_name):
+      return subject
+
+    return False
 
 
 class AndFilter(aff4.AFF4Filter):
@@ -35,12 +38,14 @@ class AndFilter(aff4.AFF4Filter):
   def __init__(self, *parts):
     self.parts = parts
 
-  def Filter(self, subjects):
-    result = subjects
+  def FilterOne(self, subject):
+    result = subject
     for part in self.parts:
-      result = list(part.Filter(result))
+      result = part.FilterOne(result)
+      if not result:
+        return False
 
-    return result or []
+    return result
 
   def Compile(self, filter_cls):
     return getattr(filter_cls, self.__class__.__name__)(
@@ -50,12 +55,12 @@ class AndFilter(aff4.AFF4Filter):
 class OrFilter(AndFilter):
   """A logical Or operator."""
 
-  def Filter(self, subjects):
-    for subject in subjects:
-      for part in self.parts:
-        if list(part.Filter([subject])):
-          yield subject
-          break
+  def FilterOne(self, subject):
+    for part in self.parts:
+      result = part.FilterOne(subject)
+      # If any of the parts is not False, return it.
+      if result:
+        return result
 
 
 class PredicateLessThanFilter(aff4.AFF4Filter):
@@ -66,12 +71,11 @@ class PredicateLessThanFilter(aff4.AFF4Filter):
     self.value = value
     self.attribute_name = attribute_name
 
-  def Filter(self, subjects):
-    for subject in subjects:
-      predicate_value = subject.Get(self.attribute_name)
-      if predicate_value and self.operator_function(
-          predicate_value, self.value):
-        yield subject
+  def FilterOne(self, subject):
+    predicate_value = subject.Get(self.attribute_name)
+    if predicate_value and self.operator_function(
+        predicate_value, self.value):
+      return subject
 
 
 class PredicateGreaterThanFilter(PredicateLessThanFilter):
@@ -105,16 +109,15 @@ class PredicateContainsFilter(PredicateLessThanFilter):
     if value:
       self.regex = re.compile(value)
 
-  def Filter(self, subjects):
-    for subject in subjects:
-      # If the regex is empty, this is a passthrough.
-      if self.regex is None:
-        yield subject
-      else:
-        predicate_value = subject.Get(self.attribute_name)
-        if (predicate_value and
-            self.regex.search(utils.SmartUnicode(predicate_value))):
-          yield subject
+  def FilterOne(self, subject):
+    # If the regex is empty, this is a passthrough.
+    if self.regex is None:
+      return subject
+    else:
+      predicate_value = subject.Get(self.attribute_name)
+      if (predicate_value and
+          self.regex.search(utils.SmartUnicode(predicate_value))):
+        return subject
 
 
 class SubjectContainsFilter(aff4.AFF4Filter):
@@ -123,13 +126,15 @@ class SubjectContainsFilter(aff4.AFF4Filter):
   def __init__(self, regex):
     """Constructor.
 
+    Regex matching occurs on unicode sequences only.
+
     Args:
        regex: For the filter to apply, subject must match this regex.
     """
-    self.regex = re.compile(regex)
+    self.regex_text = utils.SmartUnicode(regex)
+    self.regex = re.compile(self.regex_text)
     super(SubjectContainsFilter, self).__init__()
 
-  def Filter(self, subjects):
-    for subject in subjects:
-      if self.regex.search(utils.SmartUnicode(subject.urn)):
-        yield subject
+  def FilterOne(self, subject):
+    if self.regex.search(utils.SmartUnicode(subject.urn)):
+      return subject

@@ -122,12 +122,18 @@ class ArtifactFlowTest(test_lib.FlowTestsBaseclass):
     def WmiQuery(self, _):
       return WMI_SAMPLE
 
-  def testCmdArtifact(self):
-    """Check we can run command based artifacts."""
-
+  def setUp(self):
+    """Make sure things are initialized."""
+    super(ArtifactFlowTest, self).setUp()
     fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     fd.Set(fd.Schema.SYSTEM("Linux"))
+    kb = fd.Schema.KNOWLEDGE_BASE()
+    artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
+    fd.Set(kb)
     fd.Flush()
+
+  def testCmdArtifact(self):
+    """Check we can run command based artifacts."""
 
     class Popen(object):
       """A mock object for subprocess.Popen."""
