@@ -7,6 +7,7 @@ import threading
 
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.proto import analysis_pb2
 from grr.proto import jobs_pb2
 
 
@@ -110,3 +111,36 @@ class ClientResourcesStats(rdfvalue.RDFProtoStruct):
         key=lambda s: s.cpu_usage.user_cpu_time + s.cpu_usage.system_cpu_time,
         reverse=True)[:self.NUM_WORST_PERFORMERS]
     self.worst_performers = new_worst_performers
+
+
+class Sample(rdfvalue.RDFProtoStruct):
+  """A Graph sample is a single data point."""
+  protobuf = analysis_pb2.Sample
+
+
+class Graph(rdfvalue.RDFProtoStruct):
+  """A Graph is a collection of sample points."""
+  protobuf = analysis_pb2.Graph
+
+  def Append(self, **kwargs):
+    self.data.Append(**kwargs)
+
+  def __len__(self):
+    return len(self.data)
+
+  def __nonzero__(self):
+    return bool(self.data)
+
+  def __getitem__(self, item):
+    return Sample(self.data[item])
+
+  def __iter__(self):
+    for x in self.data:
+      yield Sample(x)
+
+
+class GraphSeries(rdfvalue.RDFValueArray):
+  """A sequence of graphs (e.g. evolving over time)."""
+  rdf_type = Graph
+
+

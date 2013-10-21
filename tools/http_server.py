@@ -37,18 +37,6 @@ from grr.lib import utils
 class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   """GRR HTTP handler for receiving client posts."""
 
-  def do_GET(self):
-    """Server the server pem with GET requests."""
-    if self.path.startswith("/server.pem"):
-      self.wfile.write(("HTTP/1.0 200\r\n"
-                        "Server: BaseHTTP/0.3 Python/2.6.5\r\n"
-                        "Content-type: application/octet-stream\r\n"
-                        "Content-Length: %d\r\n"
-                        "Cache-Control: no-cache\r\n"
-                        "\r\n"
-                        "%s" % (len(self.server.server_cert),
-                                self.server.server_cert)))
-
   statustext = {200: "200 OK",
                 406: "406 Not Acceptable",
                 500: "500 Internal Server Error"}
@@ -65,6 +53,14 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                       "%s") %
                      (self.statustext[status], ctype, len(data),
                       self.date_time_string(last_modified), data))
+
+  def do_GET(self):
+    """Server the server pem with GET requests."""
+    if self.path.startswith("/server.pem"):
+      self.ServerPem()
+
+  def ServerPem(self):
+    self.Send(self.server_cert)
 
   RECV_BLOCK_SIZE = 8192
 
@@ -85,6 +81,9 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   def do_POST(self):
     """Process encrypted message bundles."""
+    self.Control()
+
+  def Control(self):
     # Get the api version
     try:
       api_version = int(cgi.parse_qs(self.path.split("?")[1])["api"][0])
@@ -129,14 +128,14 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       # "406 Not Acceptable: The server can only generate a response that is not
       # accepted by the client". This is because we can not encrypt for the
       # client appropriately.
-      return self.Send("Enrollment required", status=406)
+      self.Send("Enrollment required", status=406)
 
     except Exception as e:
       if flags.FLAGS.debug:
         pdb.post_mortem()
 
       logging.error("Had to respond with status 500: %s.", e)
-      return self.Send("Error", status=500)
+      self.Send("Error", status=500)
 
 
 class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
@@ -147,11 +146,8 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
   address_family = socket.AF_INET6
 
-  def __init__(self, server_address, handler, frontend=None, logger=None,
-               *args, **kwargs):
+  def __init__(self, server_address, handler, frontend=None, *args, **kwargs):
     if frontend:
-      if logger is None:
-        raise RuntimeError("No logger provided.")
       self.frontend = frontend
     else:
       self.frontend = flow.FrontEndServer(
@@ -175,7 +171,17 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
                                        **kwargs)
 
 
-def serve_forever(server):
+def CreateServer(frontend=None):
+  server_address = (config_lib.CONFIG["Frontend.bind_address"],
+                    config_lib.CONFIG["Frontend.bind_port"])
+  httpd = GRRHTTPServer(server_address, GRRHTTPServerHandler, frontend=frontend)
+
+  sa = httpd.socket.getsockname()
+  logging.info("Serving HTTP on %s port %d ...", sa[0], sa[1])
+  return httpd
+
+
+def Serve(server):
   try:
     server.serve_forever()
   except KeyboardInterrupt:
@@ -184,26 +190,15 @@ def serve_forever(server):
 
 def main(unused_argv):
   """Main."""
-  config_lib.CONFIG.AddContext(
-      "Frontend Context",
-      "The frontend receives messages from the clients.")
-
   config_lib.CONFIG.AddContext("HTTPServer Context")
 
   startup.Init()
 
-  server_address = (config_lib.CONFIG["Frontend.bind_address"],
-                    config_lib.CONFIG["Frontend.bind_port"])
-  logging.info("Will serve requests at %s", server_address)
-  httpd = GRRHTTPServer(server_address, GRRHTTPServerHandler)
-
-  sa = httpd.socket.getsockname()
-  logging.info("Serving HTTP on %s port %d ...", sa[0], sa[1])
-
+  httpd = CreateServer()
   if config_lib.CONFIG["Frontend.processes"] > 1:
     # Multiprocessing
     for _ in range(config_lib.CONFIG["Frontend.processes"] - 1):
-      Process(target=serve_forever, args=(httpd,)).start()
+      Process(target=Serve, args=(httpd,)).start()
 
   try:
     httpd.serve_forever()

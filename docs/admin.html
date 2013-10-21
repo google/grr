@@ -816,7 +816,6 @@ in the path as grr_config_updater using the generate_keys command.</p></div>
 <div class="listingblock">
 <div class="content">
 <pre><tt>db@host:$ sudo grr_config_updater generate_keys
-Using configuration &lt;ConfigFileParser filename="/etc/grr/grr-server.conf"&gt;
 Generating executable signing key
 ..............+++
 .....+++
@@ -897,7 +896,7 @@ security mechanisms and the options you have.</p></div>
 <div class="sect2">
 <h3 id="_communication_security">Communication Security.</h3>
 <div class="paragraph"><p>GRR communication happens using signed and encrypted protobuf messages. We use
-1024 bit RSA keys to protect symmettric AES256 encryption. The security of the
+1024 bit RSA keys to protect symmetric AES256 encryption. The security of the
 system does not rely on SSL transport for communication security. This enables
 easy replacement of the comms protocol with non-http mechanisms such as UDP
 packets.</p></div>
@@ -1121,7 +1120,7 @@ database which is handy while testing things.</p></div>
 <h2 id="_performance">Performance</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>GRR is designed to scale linearly, which it mostly does. It has been run in test
-environments wtih with greater than 100,000 clients reporting and hunting
+environments with with greater than 100,000 clients reporting and hunting
 without problems. However, this depends significantly on the datastore
 implementation, how it is being run, and the hardware it is running on.</p></div>
 <div class="paragraph"><p>As of April 2013, we don&#8217;t have a clear set of metrics on performance in the
@@ -1347,14 +1346,12 @@ encoded in a variable called "magic_return_str".</p></div>
 <div class="paragraph"><p>E.g. as a simple example. The following code modifies the clients poll_max
 setting and pings test.com.</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt><span style="font-weight: bold"><span style="color: #000080">import</span></span> commands
-status<span style="color: #990000">,</span> output <span style="color: #990000">=</span> commands<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">getstatusoutput</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"ping -c 3 test.com"</span><span style="color: #990000">)</span>
-FLAGS<span style="color: #990000">.</span>poll_max <span style="color: #990000">=</span> <span style="color: #993399">100</span>
-magic_return_str <span style="color: #990000">=</span> <span style="color: #FF0000">"poll_max successfully set. ping output %s"</span> <span style="color: #990000">%</span> output</tt></pre></div></div>
+<div class="content">
+<pre><tt>import commands
+status, output = commands.getstatusoutput("ping -c 3 test.com")
+FLAGS.poll_max = 100
+magic_return_str = "poll_max successfully set. ping output %s" % output</tt></pre>
+</div></div>
 <div class="paragraph"><p>This file then needs to be signed and converted into the protobuf format
 required, and then needs to be uploaded to the data store. You can do this using
 the following command line.</p></div>
@@ -1433,11 +1430,151 @@ the --dest_path option.</p></div>
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="_client_robustness_mechanisms">Client Robustness Mechanisms</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>We have a number of mechanisms built into the client to try and ensure it has
+sensible resource requirements, doesn&#8217;t get out of control, and doesn&#8217;t
+accidentally die. We document them here.</p></div>
+<div class="sect2">
+<h3 id="_heart_beat">Heart beat</h3>
+<div class="paragraph"><p>The client process regularly writes to a registry key (file on Linux and OSX)
+with a timer. The nanny process watches this registry key called HeartBeat, if
+it notices that the the client hasn&#8217;t updated the heartbeat in the time
+allocated by UNRESPONSIVE_KILL_PERIOD (default 3 minutes), the nanny will assume
+the client has hung and will kill it. In Windows we then rely on the Nanny to
+revive it, on Linux and OSX we rely on the service handling mechanism to do so.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_transaction_log">Transaction log</h3>
+<div class="paragraph"><p>When the client is about to start an action it writes to a registry key
+containing information about what it is about to do. If the client dies while
+performing the action, when the client gets restarted it will send an error
+along with the data from the transaction log to help diagnose the issue.</p></div>
+<div class="paragraph"><p>One tricky thing with the transaction log is the case of Bluescreens or kernel
+panics. Writing to the transaction log will write a registry key on Windows,
+but registry keys are not flushed to disk immediately. Therefore, writing a
+transaction log, and then getting a hard BlueScreen or kernel panic, the
+transaction log won&#8217;t be persistent, and therefore the error won&#8217;t be sent.
+We work around this by adding a Flush to the transaction log when we are about
+to do dangerous transactions, such as loading a memory driver. But if the client
+dies during a transaction we didn&#8217;t deem as dangerous, it is possible that you
+will not get a crash report.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_memory_limit">Memory limit</h3>
+<div class="paragraph"><p>We have a hard and a soft memory limit built into the client to stop it getting
+out of control. The hard limit is enforced by the nanny, if the client goes over
+that limit it will be hard killed. The soft limit is enforced by the client, if
+the limit is exceeded the client will stop retrieving new work to do. Once it
+has finished its current work it will die cleanly.</p></div>
+<div class="paragraph"><p>Default soft limit is 500MB, but GRR should only use about 30MB. Some volatility
+plugins can use a lot of memory so we try to be generous. Hard limit is double
+the soft limit. This is configurable from the config file.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_cpu_limit">CPU limit</h3>
+<div class="paragraph"><p>A ClientAction can be transmitted from the server with a specified CPU limit,
+this is how many seconds the action can use. If the action uses more than that
+it will be killed.
+The actual implementation is a little more complicated. An action can run for 3
+minutes using any CPU it wants before being killed by nanny. However actions
+that are good citizens (normally the dangerous ones) will call the Progress()
+function regularly. This function checks if limit has been exceeded and will
+exit.</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_crashes">Crashes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The client shouldn&#8217;t ever crash&#8230; but it does because making software is hard.
+There are a few ways in which this can happen, all of which we try and catch,
+record and make visible to allow for debugging. In the UI they are visible in
+two ways, in "Crashes" when a client is selected, and in "All Client Crashes".
+These have the same information but the client view only shows crashes for the
+specific client.</p></div>
+<div class="paragraph"><p>Each crash should contain the reason for the crash, optionally it may contain
+the flow or action that caused the crash. In some cases this information is not
+available because the client may have crashed when it wasn&#8217;t doing anything or
+in a way where we could not tie it to the action. See
+<a href="#_client_robustness_mechanisms">Client Robustness Mechanisms</a> for a
+discussion of this.</p></div>
+<div class="paragraph"><p>This data is also emailed to the email address configured in the config as
+Monitoring.alert_email</p></div>
+<div class="sect2">
+<h3 id="_crash_types">Crash Types</h3>
+<div class="sect3">
+<h4 id="_crashed_while_executing_an_action">Crashed while executing an action</h4>
+<div class="paragraph"><p>This means that while handling a specific action, the client died, the nanny
+knows this because the client recorded the action it was about to take in the
+Transaction Log before starting it.</p></div>
+<div class="paragraph"><p>Causes</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+Client segfaults, could happen in native code such Sleuth Kit or psutil.
+</p>
+</li>
+<li>
+<p>
+Hard reboot while it was running an action.
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="_unexpected_child_process_exit">Unexpected child process exit!</h4>
+<div class="paragraph"><p>This means the client exited, but the nanny didn&#8217;t kill it.</p></div>
+<div class="paragraph"><p>Causes</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+Uncaught exception in python, very unlikely due to the fact that we catch
+Exception for all client actions.
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="_memory_limit_exceeded_exiting">Memory limit exceeded, exiting</h4>
+<div class="paragraph"><p>This means the client exited due to exceeding the soft memory limit.</p></div>
+<div class="paragraph"><p>Causes</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+Client hits the soft memory limit. Soft memory limit is when the client knows
+it is using too much memory but will continue operation until it finishes what
+it is doing.
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="_nanny_message_no_heartbeat_received">Nanny Message - No heartbeat received</h4>
+<div class="paragraph"><p>This means that the Nanny killed the client because it didn&#8217;t receive a
+Heartbeat within the allocated time.</p></div>
+<div class="paragraph"><p>Causes</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+The client has hung, e.g. locked accessing network file
+</p>
+</li>
+<li>
+<p>
+The client is performing an action that is taking longer than it should.
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+</div>
+</div>
 </div>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-10-15 14:11:42 EST
 </div>
 </div>
 </body>

@@ -128,7 +128,9 @@ $("#form_{{unique|escapejs}}").submit(function () {
   return false;
 });
 </script>
-""")
+""") + renderers.TemplateRenderer.help_template
+
+  context_help_url = "user_manual.html#_timeline"
 
   def Layout(self, request, response):
     """Render the toolbar."""

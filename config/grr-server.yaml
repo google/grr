@@ -179,7 +179,7 @@ Enroller Context:
 
   Monitoring.http_port: 44442
 
-Frontend Context:
+HTTPServer Context:
   Logging.filename: "%(Logging.path)/grr-http-server.log"
 
 Platform:Darwin:

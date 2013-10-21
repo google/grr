@@ -87,68 +87,29 @@ class Report(renderers.TemplateRenderer):
   """This is the base of all Statistic Reports."""
   category = None
 
-
-class PieChart(Report):
-  """Display a pie chart."""
-
   layout_template = renderers.Template("""
 <div class="padded">
-{% if this.graph %}
+{% if this.data %}
   <h3>{{this.title|escape}}</h3>
   <div>
   {{this.description|escape}}
   </div>
-  <div id="hover">Hover to show exact numbers.</div>
-  <div id="{{unique|escape}}" class="grr_graph"></div>
-  <script>
-
-  var specs = [
-    {% for data in this.graph %}
-    {label: "{{data.label|escapejs}}", data: {{data.y_value|escapejs}} },
-    {% endfor %}
-  ];
-
-  $("#{{unique|escapejs}}").resize(function () {
-    $("#{{unique|escapejs}}").html("");
-    $.plot($("#{{unique|escapejs}}"), specs, {
-      series: {
-        pie: {
-          show: true,
-          label: {
-            show: true,
-            radius: 0.5,
-            formatter: function(label, series){
-              return ('<div style="font-size:8pt;' +
-                      'text-align:center;padding:2px;color:white;">' +
-                      label+'<br/>'+Math.round(series.percent)+'%</div>');
-            },
-            background: { opacity: 0.8 }
-          }
-        }
-      },
-      grid: {
-        hoverable: true,
-        clickable: true
-      }
-    });
-  });
-
-  $("#{{unique|escapejs}}").bind("plothover", function(event, pos, obj) {
-    if (obj) {
-      percent = parseFloat(obj.series.percent).toFixed(2);
-      $("#hover").html('<span style="font-weight: bold; color: ' +
-                       obj.series.color + '">' + obj.series.label + " " +
-                       obj.series[0][1] + ' (' + percent + '%)</span>');
-    }
-  });
-
-  $("#{{unique|escapejs}}").resize();
-  </script>
+  <div id="hover_{{unique|escape}}">Hover to show exact numbers.</div>
+  <div id="graph_{{unique|escape}}" class="grr_graph"></div>
 {% else %}
   <h3>No data Available</h3>
 {% endif %}
 </div>
 """)
+
+
+class PieChart(Report):
+  """Display a pie chart."""
+
+  def Layout(self, request, response):
+    response = super(PieChart, self).Layout(request, response)
+    return self.CallJavascript(response, "PieChart.Layout",
+                               data=self.data)
 
 
 class OSBreakdown(PieChart):
@@ -163,12 +124,12 @@ class OSBreakdown(PieChart):
     try:
       fd = aff4.FACTORY.Open("aff4:/stats/ClientFleetStats",
                              token=request.token)
-      self.graph = rdfvalue.Graph(title="Operating system break down.")
+      self.data = []
       for graph in fd.Get(self.attribute):
         # Find the correct graph and merge the OS categories together
         if "%s day" % self.active_day in graph.title:
           for sample in graph:
-            self.graph.Append(label=sample.label, y_value=sample.y_value)
+            self.data.append(dict(label=sample.label, data=sample.y_value))
           break
     except (IOError, TypeError):
       pass
@@ -208,7 +169,7 @@ class ReleaseBreakdown30(ReleaseBreakdown):
   active_day = 30
 
 
-class LastActiveReport(OSBreakdown):
+class LastActiveReport(Report):
   """Display a histogram of last actives."""
   category = "/Clients/Last Active/Count of last activity time"
   title = "Breakdown of Client Count Based on Last Activity of the Client."
@@ -228,47 +189,21 @@ evolves over time.
     {{this.description|escape}}
   </div>
   <div id="{{unique|escape}}" class="grr_graph"></div>
-  <script>
-    var specs = [];
-
-  {% for graph in this.graphs %}
-    specs.push({
-      label: "{{graph.title|escapejs}}",
-      data: [
-  {% for series in graph %}
-        [ {{series.x_value|escapejs}}, {{series.y_value|escapejs}}],
-  {% endfor %}
-      ],
-    });
-  {% endfor %}
-
-    var options = {
-      xaxis: {mode: "time",
-              timeformat: "%y/%m/%d"},
-      lines: {show: true},
-      points: {show: true},
-      zoom: {interactive: true},
-      pan: {interactive: true},
-      grid: {clickable: true, autohighlight: true},
-    };
-
-    var placeholder = $("#{{unique|escapejs}}");
-    var plot = $.plot(placeholder, specs, options);
-
-    placeholder.bind("plotclick", function(event, pos, item) {
-      if (item) {
-        var date = new Date(item.datapoint[0]);
-        $("#{{unique|escapejs}}_click").text("On " + date.toDateString() +
-          ", there were " + item.datapoint[1] + " " + item.series.label +
-          " systems.");
-      };
-    });
-  </script>
 {% else %}
   <h3>No data Available</h3>
 {% endif %}
 </div>
 """)
+
+  def _ProcessGraphSeries(self, graph_series):
+    for graph in graph_series:
+      for sample in graph:
+        # Provide the time in js timestamps (millisecond since the epoch)
+        days = sample.x_value/1000000/24/60/60
+        if days in self.active_days_display:
+          label = "%s day active" % days
+          self.categories.setdefault(label, []).append(
+              (graph_series.age/1000, sample.y_value))
 
   def Layout(self, request, response):
     """Show how the last active breakdown evolves over time."""
@@ -276,68 +211,41 @@ evolves over time.
       self.start_time, self.end_time = GetAgeTupleFromRequest(request, 180)
       fd = aff4.FACTORY.Open(self.DATA_URN, token=request.token,
                              age=(self.start_time, self.end_time))
-      categories = {}
+      self.categories = {}
       for graph_series in fd.GetValuesForAttribute(self.attribute):
-        for graph in graph_series:
-          # Find the correct graph and merge the OS categories together
-          for sample in graph:
-            # Provide the time in js timestamps (millisecond since the epoch)
-            days = sample.x_value/1000000/24/60/60
-            if days in self.active_days_display:
-              label = "%s day active" % days
-              categories.setdefault(label, []).append(
-                  (graph_series.age/1000, sample.y_value))
+        self._ProcessGraphSeries(graph_series)
 
       self.graphs = []
-      for k, v in categories.items():
-        graph = rdfvalue.Graph(title=k)
-        for x, y in v:
-          graph.Append(x_value=x, y_value=y)
+      for k, v in self.categories.items():
+        graph = dict(label=k, data=v)
         self.graphs.append(graph)
     except IOError:
       pass
 
-    return Report.Layout(self, request, response)
+    response = super(LastActiveReport, self).Layout(request, response)
+    return self.CallJavascript(response, "LastActiveReport.Layout",
+                               graphs=self.graphs)
 
 
 class LastDayGRRVersionReport(LastActiveReport):
   """Display a histogram of last actives based on GRR Version."""
   category = "/Clients/GRR Version/ 1 Day"
-  title = "One day Active Clients."
+  title = "1 day Active Clients."
   description = """This shows the number of clients active in the last day based
 on the GRR version.
 """
   DATA_URN = "aff4:/stats/ClientFleetStats"
+  active_day = 1
   attribute = aff4.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM
 
-  def Layout(self, request, response):
-    """Show how the last active breakdown evolves over time."""
-    try:
-      self.start_time, self.end_time = GetAgeTupleFromRequest(request, 90)
-      fd = aff4.FACTORY.Open(self.DATA_URN, token=request.token,
-                             age=(self.start_time, self.end_time))
-      categories = {}
-      for graph_series in fd.GetValuesForAttribute(self.attribute):
-        for graph in graph_series:
-          # Find the correct graph and merge the OS categories together
-          if "%s day" % self.active_day in graph.title:
-            for sample in graph:
-              # Provide the time in js timestamps (millisecond since the epoch)
-              categories.setdefault(sample.label, []).append(
-                  (graph_series.age/1000, sample.y_value))
-            break
-
-      self.graphs = []
-      for k, v in categories.items():
-        graph = rdfvalue.Graph(title=k)
-        for x, y in v:
-          graph.Append(x_value=x, y_value=y)
-
-        self.graphs.append(graph)
-    except IOError:
-      pass
-
-    return Report.Layout(self, request, response)
+  def _ProcessGraphSeries(self, graph_series):
+    for graph in graph_series:
+      # Find the correct graph and merge the OS categories together
+      if "%s day" % self.active_day in graph.title:
+        for sample in graph:
+          self.categories.setdefault(sample.label, []).append(
+              (graph_series.age/1000, sample.y_value))
+        break
 
 
 class Last7DaysGRRVersionReport(LastDayGRRVersionReport):
@@ -578,3 +486,124 @@ class ClientStatsView(AFF4ClientStats):
   description = "Client Performance Stats"
   behaviours = frozenset(["HostAdvanced"])
   order = 60
+
+
+class CustomXAxisChart(Report):
+  """Bar chart with custom ticks on X axis."""
+
+  def FormatLabel(self, value):
+    return str(value)
+
+  def Layout(self, request, response):
+    """Set X,Y values."""
+    try:
+      fd = aff4.FACTORY.Open(self.data_urn)
+      self.graph = fd.Get(self.attribute)
+
+      self.data = []
+      self.xaxis_ticks = []
+      if self.graph:
+        for point in self.graph.data:
+          self.data.append([[point.x_value, point.y_value]])
+          self.xaxis_ticks.append([point.x_value,
+                                   self.FormatLabel(point.x_value)])
+
+    except (IOError, TypeError):
+      pass
+
+    response = super(CustomXAxisChart, self).Layout(request, response)
+    return self.CallJavascript(response, "CustomXAxisChart.Layout",
+                               data=self.data,
+                               xaxis_ticks=self.xaxis_ticks)
+
+
+class LogXAxisChart(CustomXAxisChart):
+  """Chart with a log10 x axis.
+
+  Workaround for buggy log scale display in flot:
+    https://code.google.com/p/flot/issues/detail?id=26
+  """
+
+  def Layout(self, request, response):
+    try:
+      fd = aff4.FACTORY.Open(self.data_urn)
+      self.graph = fd.Get(self.attribute)
+
+      self.data = []
+      self.xaxis_ticks = []
+      if self.graph:
+        for point in self.graph.data:
+          # Note 0 and 1 are collapsed into a single category
+          if point.x_value > 0:
+            x_value = math.log10(point.x_value)
+          else:
+            x_value = point.x_value
+          self.data.append([[x_value, point.y_value]])
+          self.xaxis_ticks.append([x_value, self.FormatLabel(point.x_value)])
+
+    except (IOError, TypeError):
+      pass
+
+    response = super(CustomXAxisChart, self).Layout(request, response)
+    return self.CallJavascript(response, "CustomXAxisChart.Layout",
+                               data=self.data,
+                               xaxis_ticks=self.xaxis_ticks)
+
+
+class FileStoreFileTypes(PieChart):
+  title = "Filetypes stored in filestore."
+  description = ""
+  category = "/FileStore/FileTypes"
+
+  def Layout(self, request, response):
+    """Extract only the operating system type from the active histogram."""
+    try:
+      fd = aff4.FACTORY.Open("aff4:/stats/FileStoreStats",
+                             token=request.token)
+      self.graph = fd.Get(fd.Schema.FILESTORE_FILETYPES)
+
+      self.data = []
+      for sample in self.graph:
+        self.data.append(dict(label=sample.label, data=sample.y_value))
+    except (IOError, TypeError):
+      pass
+
+    return super(FileStoreFileTypes, self).Layout(request, response)
+
+
+def SizeToReadableString(filesize):
+  """Turn a filesize int into a human readable filesize.
+
+  From http://stackoverflow.com/questions/1094841/
+
+  Args:
+    filesize: int
+  Returns:
+    string: human readable size representation.
+  """
+  for x in ["bytes", "KiB", "MiB", "GiB", "TiB"]:
+    if filesize < 1000.0:
+      return "%3.1f %s" % (filesize, x)
+    filesize /= 1000.0
+
+
+class FileStoreFileSizes(LogXAxisChart):
+  title = "Number of files in filestore by size"
+  description = "X: log10 (filesize), Y: Number of files"
+  category = "/FileStore/FileSizes"
+  data_urn = "aff4:/stats/FileStoreStats"
+  attribute = aff4.FilestoreStats.SchemaCls.FILESTORE_FILESIZE_HISTOGRAM
+
+  def FormatLabel(self, value):
+    return SizeToReadableString(value)
+
+
+class FileClientCount(CustomXAxisChart):
+  title = "File frequency by client count."
+  description = ("Number of files seen on 0, 1, 5 etc. clients. X: number of"
+                 " clients, Y: number of files.")
+  category = "/FileStore/ClientCounts"
+  data_urn = "aff4:/stats/FileStoreStats"
+  attribute = aff4.FilestoreStats.SchemaCls.FILESTORE_CLIENTCOUNT_HISTOGRAM
+
+

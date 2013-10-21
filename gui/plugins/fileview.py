@@ -789,6 +789,7 @@ class FileTable(AbstractFileTable):
 
   root_path = None   # The root will be dynamically set to the client path.
   toolbar = "Toolbar"
+  context_help_url = "user_manual.html#_listing_the_virtual_filesystem"
 
   def __init__(self, **kwargs):
     super(FileTable, self).__init__(**kwargs)
@@ -828,6 +829,10 @@ class FileSystemTree(renderers.TreeRenderer):
     - client_id: The client this tree is showing.
     - aff4_root: The aff4 node which forms the root of this tree.
   """
+
+  # Flows are special children which confuse users when seen, so we remove them
+  # from the tree. Note that they are still visible in the table.
+  hidden_branches = ["/flows"]
 
   def Layout(self, request, response):
     self.state["client_id"] = client_id = request.REQ.get("client_id")

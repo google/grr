@@ -39,7 +39,9 @@ class ClientCrashDetailsRenderer(semantic.RDFValueRenderer):
   <dt>Client Information</dt>
   <dd>{{this.client_info|safe}}</dd>
 </dl>
-""")
+""") + renderers.TemplateRenderer.help_template
+
+  context_help_url = "admin.html#_crashes"
 
   def Layout(self, request, response):
     if self.proxy.session_id:

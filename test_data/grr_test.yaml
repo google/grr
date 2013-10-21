@@ -108,7 +108,7 @@ Frontend.certificate: |
 Frontend.bind_address: 127.0.0.1
 Frontend.bind_port: 8080
 
-Frontend Context:
+HTTPServer Context:
   Logging.filename: "%(Logging.path)/grr-http-server.log"
 
 PrivateKeys.ca_key: |

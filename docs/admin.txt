@@ -25,9 +25,9 @@ GRR requires multiple key pairs. These are used to:
 These keys can be generated using the config_updater script normally installed
 in the path as grr_config_updater using the generate_keys command.
 
+[source, shell]
 --------------------------------------------------------------------
 db@host:$ sudo grr_config_updater generate_keys
-Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
 Generating executable signing key
 ..............+++
 .....+++
@@ -64,6 +64,7 @@ If you are using the ConfigBasedUserManager (default) then you can add users
 with config updater.
 
 To add the user joe as an admin:
+[source,shell]
 --------------------------------------------------------------------------------
 db@host:~$ sudo grr_config_updater add_user --username joe
 Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
@@ -73,6 +74,7 @@ db@host:~$
 
 To add the user bob as a non-admin, with password test1234 and with the
 additional labels label1,label2:
+[source,shell]
 --------------------------------------------------------------------------------
 db@host:~$ sudo grr_config_updater add_user --username bob --noadmin --password
 test1234 --label label1 --label label2
@@ -81,6 +83,7 @@ db@host:~$
 --------------------------------------------------------------------------------
 
 To then update bob to an admin and set the labels to just label1
+[source,shell]
 --------------------------------------------------------------------------------
 db@host:~$ sudo grr_config_updater update_user --username bob --label label1
 Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
@@ -110,7 +113,7 @@ Communication Security.
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 GRR communication happens using signed and encrypted protobuf messages. We use
-1024 bit RSA keys to protect symmettric AES256 encryption. The security of the
+1024 bit RSA keys to protect symmetric AES256 encryption. The security of the
 system does not rely on SSL transport for communication security. This enables
 easy replacement of the comms protocol with non-http mechanisms such as UDP
 packets.
@@ -289,7 +292,7 @@ Performance
 -----------
 
 GRR is designed to scale linearly, which it mostly does. It has been run in test
-environments wtih with greater than 100,000 clients reporting and hunting
+environments with with greater than 100,000 clients reporting and hunting
 without problems. However, this depends significantly on the datastore
 implementation, how it is being run, and the hardware it is running on.
 
@@ -387,6 +390,8 @@ the client reports back to.
 
 To repack all clients with a new config and upload them to the datastore use
 config_updater repack_clients.
+
+[source, shell]
 --------------------------------------------------------------------
 db@host:$ sudo grr_config_updater repack_clients
 Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
@@ -469,6 +474,7 @@ This file then needs to be signed and converted into the protobuf format
 required, and then needs to be uploaded to the data store. You can do this using
 the following command line.
 
+[source, shell]
 ------------------------------------------------------------------------
 grr_config_updater upload_python --file=myfile.py --platform=windows
 ------------------------------------------------------------------------
@@ -505,6 +511,7 @@ file, encode it in a protobuf and upload it to a specific place in the GRR
 datastore. There is a shortcut to upload the existing memory drivers using
 config updater.
 
+[source,shell]
 ------------------------------------------------------------------------
 db@host: ~$ sudo grr_config_updater load_memory_drivers
 Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
@@ -530,6 +537,7 @@ PrivateKeys.executable_signing_private_key).
 
 To sign an exe for execution use the config updater script.
 
+[source,shell]
 ------------------------------------------------------------------------
 db@host:$ grr_config_updater upload_exe --file=/tmp/bazinga.exe -platform=windows
 Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
@@ -539,3 +547,123 @@ db@host:$
 
 This uploads to the installers directory by default. But you can override with
 the --dest_path option.
+
+
+Client Robustness Mechanisms
+----------------------------
+We have a number of mechanisms built into the client to try and ensure it has
+sensible resource requirements, doesn't get out of control, and doesn't
+accidentally die. We document them here.
+
+Heart beat
+~~~~~~~~~~
+The client process regularly writes to a registry key (file on Linux and OSX)
+with a timer. The nanny process watches this registry key called HeartBeat, if
+it notices that the the client hasn't updated the heartbeat in the time
+allocated by UNRESPONSIVE_KILL_PERIOD (default 3 minutes), the nanny will assume
+the client has hung and will kill it. In Windows we then rely on the Nanny to
+revive it, on Linux and OSX we rely on the service handling mechanism to do so.
+
+Transaction log
+~~~~~~~~~~~~~~~
+When the client is about to start an action it writes to a registry key
+containing information about what it is about to do. If the client dies while
+performing the action, when the client gets restarted it will send an error
+along with the data from the transaction log to help diagnose the issue.
+
+One tricky thing with the transaction log is the case of Bluescreens or kernel
+panics. Writing to the transaction log will write a registry key on Windows,
+but registry keys are not flushed to disk immediately. Therefore, writing a
+transaction log, and then getting a hard BlueScreen or kernel panic, the
+transaction log won't be persistent, and therefore the error won't be sent.
+We work around this by adding a Flush to the transaction log when we are about
+to do dangerous transactions, such as loading a memory driver. But if the client
+dies during a transaction we didn't deem as dangerous, it is possible that you
+will not get a crash report.
+
+Memory limit
+~~~~~~~~~~~~
+We have a hard and a soft memory limit built into the client to stop it getting
+out of control. The hard limit is enforced by the nanny, if the client goes over
+that limit it will be hard killed. The soft limit is enforced by the client, if
+the limit is exceeded the client will stop retrieving new work to do. Once it
+has finished its current work it will die cleanly.
+
+Default soft limit is 500MB, but GRR should only use about 30MB. Some volatility
+plugins can use a lot of memory so we try to be generous. Hard limit is double
+the soft limit. This is configurable from the config file.
+
+CPU limit
+~~~~~~~~~
+A ClientAction can be transmitted from the server with a specified CPU limit,
+this is how many seconds the action can use. If the action uses more than that
+it will be killed.
+The actual implementation is a little more complicated. An action can run for 3
+minutes using any CPU it wants before being killed by nanny. However actions
+that are good citizens (normally the dangerous ones) will call the Progress()
+function regularly. This function checks if limit has been exceeded and will
+exit.
+
+
+Crashes
+-------
+The client shouldn't ever crash... but it does because making software is hard.
+There are a few ways in which this can happen, all of which we try and catch,
+record and make visible to allow for debugging. In the UI they are visible in
+two ways, in "Crashes" when a client is selected, and in "All Client Crashes".
+These have the same information but the client view only shows crashes for the
+specific client.
+
+Each crash should contain the reason for the crash, optionally it may contain
+the flow or action that caused the crash. In some cases this information is not
+available because the client may have crashed when it wasn't doing anything or
+in a way where we could not tie it to the action. See
+xref:_client_robustness_mechanisms[Client Robustness Mechanisms] for a
+discussion of this.
+
+This data is also emailed to the email address configured in the config as
+Monitoring.alert_email
+
+Crash Types
+~~~~~~~~~~~
+
+Crashed while executing an action
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This means that while handling a specific action, the client died, the nanny
+knows this because the client recorded the action it was about to take in the
+Transaction Log before starting it.
+
+Causes
+
+* Client segfaults, could happen in native code such Sleuth Kit or psutil.
+* Hard reboot while it was running an action.
+
+Unexpected child process exit!
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This means the client exited, but the nanny didn't kill it.
+
+Causes
+
+* Uncaught exception in python, very unlikely due to the fact that we catch
+Exception for all client actions.
+
+
+Memory limit exceeded, exiting
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This means the client exited due to exceeding the soft memory limit.
+
+Causes
+
+* Client hits the soft memory limit. Soft memory limit is when the client knows
+it is using too much memory but will continue operation until it finishes what
+it is doing.
+
+Nanny Message - No heartbeat received
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This means that the Nanny killed the client because it didn't receive a
+Heartbeat within the allocated time.
+
+Causes
+
+* The client has hung, e.g. locked accessing network file
+* The client is performing an action that is taking longer than it should.

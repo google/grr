@@ -149,8 +149,8 @@ Logging.path: /var/log/grr/grr_server.log
 AdminUI Context:
   Logging.path: /var/log/grr/adminui.log
 
-Frontend Context:
-  Logging.path: /var/log/grr/frontend.log
+HTTPServer Context:
+  Logging.path: /var/log/grr/httpserver.log
 
 Client Context:
   Logging.path: /var/log/grr/grr_client.log

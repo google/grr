@@ -1096,7 +1096,7 @@ Server Isn&#8217;t Listening
 <dd>
 <p>
 Confirm you can connect to the server and retrieve the server.pem file. E.g.
-  wget <a href="http://server:8080/server.pem">http://server:8080/server.pem</a>
+  <tt>wget http://server:8080/server.pem</tt>
 </p>
 </dd>
 <dt class="hdlist1">
@@ -1108,13 +1108,13 @@ If the environment doesn&#8217;t allow direct connections GRR may need to use a
 proxy. GRR currently doesn&#8217;t support Proxy Autoconfig or Proxy Authentication.
 GRR will attempt to guess your proxy configuration, or you can explicitly set
 proxies in the config file, e.g.
-  Client.proxy_servers: ["http://cache.example.com:3128/"]
+  <tt>Client.proxy_servers: ["http://cache.example.com:3128/"]</tt>
 On Windows systems GRR will try a direct connection, and then search for
 configured proxies in all users profiles on the system trying to get a working
 connection.
 On Linux GRR should obey system proxy settings, and it will also obey
 environment variables. e.g.
-  export http_proxy=http://cache.example.com:3128
+  <tt>export http_proxy=http://cache.example.com:3128</tt>
 </p>
 </dd>
 <dt class="hdlist1">
@@ -1128,7 +1128,7 @@ have a restrictive policy you could add this as an installer plugin.
 </dd>
 </dl></div>
 <div class="paragraph"><p>If you look at the running config, the first time the client successfully
-connects to the server a variable "Client.server_serial_number" will be written
+connects to the server a variable <tt>Client.server_serial_number</tt> will be written
 to the config. If that exists, the client successfully made a connection.</p></div>
 </div>
 </div>
@@ -2722,14 +2722,17 @@ couple of minutes before the first client picks up the flow.
 </li>
 <li>
 <p>
-Hunting is currently optimised for very large numbers of clients, so by
-default the client Foreman poll time is set to only check if hunts are scheduled
-every 30 minutes. If you only have one client you may need to wait up to 30
-minutes for it to start. (Note: this is planned to change in the future).
+Clients only check if there is hunt work to do according to the
+<tt>Client.foreman_check_frequency</tt> parameter. This should default to every 10
+minutes as of version 0.2-9. Note that when a client issues a foreman check,
+flows are not directly queued on the client. Instead, the process is
+asynchronous, so the check tells the server to check its hunt rules to see if
+there are things for the client to do, if there are, it schedules them. However,
+if the client is in slow poll mode, it may not poll and pick up that work for
+another <tt>Client.poll_max period</tt> (10 minutes by default).
 </p>
 </li>
 </ul></div>
-<div class="paragraph"><p>TODO</p></div>
 </div>
 </div>
 </div>
@@ -2739,8 +2742,8 @@ minutes for it to start. (Note: this is planned to change in the future).
 <div class="paragraph"><p>Extracting bulk data from the GRR datastore using the UI is slow and cumbersome.
 It is possible to use the console to extract any data you wish, but we also
 provide a tool called file_exporter.</p></div>
-<div class="sect3">
-<h4 id="_exporting_a_single_file">Exporting a Single File</h4>
+<div class="sect2">
+<h3 id="_exporting_a_single_file">Exporting a Single File</h3>
 <div class="listingblock">
 <div class="content">
 <pre><tt>db@grrhost: ~$ grr_file_exporter --file=aff4:/C.123456890ABCDEF/fs/os/boot.ini --output=/tmp
@@ -2750,8 +2753,8 @@ Downloading: aff4:/C.123456890abcdef/fs/os/boot.ini to: /tmp/C.123456890abcdef/f
 db@grrhost: ~$</tt></pre>
 </div></div>
 </div>
-<div class="sect3">
-<h4 id="_exporting_a_directory">Exporting a Directory</h4>
+<div class="sect2">
+<h3 id="_exporting_a_directory">Exporting a Directory</h3>
 <div class="paragraph"><p>Directories can be exported recursively</p></div>
 <div class="listingblock">
 <div class="content">
@@ -2762,8 +2765,8 @@ Downloading: aff4:/C.123456890abcdef/fs/os/tmp1 to: /tmp/C.123456890abcdef/fs/os
 db@grrhost: ~$</tt></pre>
 </div></div>
 </div>
-<div class="sect3">
-<h4 id="_exporting_a_collection">Exporting a Collection</h4>
+<div class="sect2">
+<h3 id="_exporting_a_collection">Exporting a Collection</h3>
 <div class="paragraph"><p>An RDFValueCollection is a collection of objects, often URNs or StatEntry
 objects which reference files that have been downloaded. These are often created
 as the output of hunts and it is common to want to download all these files to
@@ -2776,12 +2779,9 @@ In addition, for collections, by default dump a yaml file of the client data to
 the root of the client directory, e.g. C.123456890abcdef/client_info.yaml.
 This is useful for identifying which machine the files came from when working on
 the filesystem.</p></div>
-<div class="paragraph"><p><em>TODO</em> Add example</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>db@grrhost: ~$ grr_file_exporter --collection=aff4:/hunts/W:123456/Results --output=/tmp
-
-db@grrhost: ~$</tt></pre>
+<pre><tt>db@grrhost: ~$ grr_file_exporter --collection=aff4:/hunts/W:123456/Results --output=/tmp</tt></pre>
 </div></div>
 </div>
 </div>
@@ -2791,7 +2791,6 @@ db@grrhost: ~$</tt></pre>
 <div class="sectionbody">
 <div class="paragraph"><p>The GRR console gives you an interactive ipython shell with all the right
 imports to do pretty much whatever you want.</p></div>
-<div class="paragraph"><p><em>TODO</em> Add more examples.</p></div>
 <div class="sect3">
 <h4 id="_running_a_simple_flow_list_processes">Running a Simple Flow - List Processes</h4>
 <div class="paragraph"><p>Run the ListProcesses flow and look at the output.</p></div>
@@ -2809,7 +2808,19 @@ imports to do pretty much whatever you want.</p></div>
 <div class="content">
 <pre><tt>PYTHONPATH=. python grr/tools/console.py
 
-In [32]: flow.GRRFlow.StartFlow('C.93ce669b1b0c76b6', "ListProcesses")
+In [31]: flow.GRRFlow.ListProcesses?
+Type:       MetaclassRegistry
+String Form:&lt;class 'grr.lib.flows.general.processes.ListProcesses'&gt;
+File:       /usr/lib/python27/dist-packages/grr/lib/flows/general/processes.py
+Docstring:
+List running processes on a system.
+
+Call Spec:
+  flow.GRRFlow.StartFlow(client_id=client_id, flow_name="ListProcesses")
+
+Args: None
+
+In [32]: flow.GRRFlow.StartFlow(client_id='C.93ce669b1b0c76b6', flow_name="ListProcesses")
 I0814 17:24:38.813689 24346 flow.py:810] Scheduling aff4:/C.93ce669b1b0c76b6/flows/W:52EBD0A7(ListProcesses) on aff4:/C.93ce669b1b0c76b6: {}
 Out[32]: &lt;aff4:/C.93ce669b1b0c76b6/flows/W:52EBD0A7 age=1970-01-01 00:00:00&gt;
 
@@ -2850,6 +2861,30 @@ message Process {
 }</tt></pre>
 </div></div>
 </div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_timeline">Timeline</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>GRR currently contains rudimentary support for timelining and timeline
+visualization through the MACTimes flow. When you run this flow it will be
+executed server side and will create a timeline collection containing all
+events that you specified in the flow.</p></div>
+<div class="paragraph"><p>If you view the results from this flow, you will see a GRRTimeSeries, which
+when selected should give you a link to View Details. Clicking on that link will
+take you to the Timeline view.</p></div>
+<div class="paragraph"><p>Within the timeline view you can download the timeline as a CSV file, or you
+can also do basic filtering in the GUI. Filters work against the objects stored
+as events in timeline.</p></div>
+<div class="paragraph"><p>Below are some example filters that might be of use:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>event.stat.st_size = 403
+event.timestamp &gt; 2012
+event.timestamp &gt; 2012-03-01 and event.timestamp &lt; 2013-12-01-13:04:23
+event.subject contains exe
+event.subject matches ini$</tt></pre>
+</div></div>
 </div>
 </div>
 <div class="sect1">
@@ -2974,7 +3009,6 @@ requested its results and execute it.
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-10-15 14:11:42 EST
 </div>
 </div>
 </body>

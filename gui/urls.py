@@ -10,6 +10,7 @@ from django.conf.urls import defaults
 from grr import gui
 
 document_root = os.path.join(os.path.dirname(gui.__file__), "static")
+help_root = os.path.join(os.path.dirname(os.path.dirname(gui.__file__)), "docs")
 
 django_base = "django."
 view_base = "grr.gui.views."
@@ -24,4 +25,6 @@ urlpatterns = defaults.patterns(
     (r"^download/[^/]+/.*", view_base + "RenderBinaryDownload"),
     (r"^static/(.*)$", django_base + "views.static.serve",
      {"document_root": document_root}),
+    (r"^help/(.*)$", django_base + "views.static.serve",
+     {"document_root": help_root}),
 )

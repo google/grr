@@ -85,10 +85,21 @@ class Renderer(object):
   # maximum, but will be used as a guide).
   max_execution_time = 60
 
+  context_help_url = ""   # Class variable to store context sensitive help.
+
   js_call_template = Template("""
 <script>
   grr.ExecuteRenderer("{{method|escapejs}}", {{js_state_json|safe}});
 </script>
+""")
+
+  help_template = Template("""
+{% if this.context_help_url %}
+<div style="width: 15px; height: 0px; position: absolute; right: 10px; top:0">
+  <a href="/help/{{this.context_help_url|escape}}" target="_blank">
+  <i class="icon-question-sign"></i></a>
+</div>
+{% endif %}
 """)
 
   # pylint: disable=redefined-builtin
@@ -509,7 +520,7 @@ class TableRenderer(TemplateRenderer):
   grr.publish("grr_messages", "{{this.message|escapejs}}");
   $("#table_{{id|escapejs}}").attr({{this.state_json|safe}});
 </script>
-""")
+""") + TemplateRenderer.help_template
 
   # Renders the inside of the tbody.
   ajax_template = Template("""
@@ -685,6 +696,8 @@ grr.grrTree("{{ renderer|escapejs }}", "{{ id|escapejs }}",
             {{ this.state_json|safe }});
 </script>""")
 
+  hidden_branches = []     # Branches to hide in the tree.
+
   def RenderAjax(self, request, response):
     """Render the tree leafs for the tree path."""
     response = super(TreeRenderer, self).RenderAjax(request, response)
@@ -700,6 +713,8 @@ grr.grrTree("{{ renderer|escapejs }}", "{{ id|escapejs }}",
     for name, icon, behaviour in self._elements:
       if name:
         fullpath = os.path.join(path, name)
+        if fullpath in self.hidden_branches:
+          continue
         data = dict(data=dict(title=name, icon=icon),
                     attr=dict(id=DeriveIDFromPath(fullpath),
                               path=fullpath))
@@ -840,7 +855,7 @@ $("li a[renderer={{disabled|escapejs}}]").addClass("disabled");
   }
 </script>
 
-""")
+""") + TemplateRenderer.help_template
 
   def __init__(self, *args, **kwargs):
     super(TabLayout, self).__init__(*args, **kwargs)
@@ -971,7 +986,7 @@ class Splitter2Way(TemplateRenderer):
 
 var state = $.extend({}, grr.state, {{this.state_json|safe}});
 </script>
-""")
+""") + TemplateRenderer.help_template
 
   def Layout(self, request, response):
     """Layout."""
@@ -1018,7 +1033,7 @@ class Splitter2WayVertical(TemplateRenderer):
               closeableto: 0});
 
 </script>
-""")
+""") + TemplateRenderer.help_template
 
   def Layout(self, request, response):
     """Layout."""
@@ -1164,4 +1179,4 @@ def JsonDumpForScriptContext(dump_object):
   # to being retrieved via XHR) it will be parsed as html by the browser first,
   # and then by the json parser, so we must escape < & > to prevent someone
   # including <script> tags and creating XSS security bugs.
-  return js_state_json.replace("<", r"\x3c").replace(">", r"\x3e")
+  return js_state_json.replace("<", r"\\x3c").replace(">", r"\\x3e")

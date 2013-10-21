@@ -8,6 +8,7 @@
 from grr.lib.flows.console import debugging_test
 
 # Cron tests.
+from grr.lib.flows.cron import filestore_stats_test
 from grr.lib.flows.cron import system_test
 
 from grr.lib.flows.general import administrative_test

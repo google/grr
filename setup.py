@@ -142,6 +142,10 @@ grr_test_data_files_spec = ('grr.test_data',
                             [''],
                             ['*'])
 
+grr_docs_files_spec = ('grr',
+                       ['docs'],
+                       ['*'])
+
 setup(name='grr',
       version='0.2',
       description='GRR Rapid Response Framework',
@@ -155,7 +159,8 @@ setup(name='grr',
                                      grr_gui_data_files_spec,
                                      grr_client_data_files_spec,
                                      grr_test_data_files_spec,
-                                     grr_config_files_spec]),
+                                     grr_config_files_spec,
+                                     grr_docs_files_spec]),
       entry_points={
           'console_scripts': [
               'grr_console = grr.tools.console:ConsoleMain',

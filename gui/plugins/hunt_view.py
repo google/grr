@@ -36,6 +36,8 @@ class ManageHunts(renderers.Splitter2Way):
   top_renderer = "HuntTable"
   bottom_renderer = "HuntViewTabs"
 
+  context_help_url = "user_manual.html#_creating_a_hunt"
+
   layout_template = renderers.Splitter2Way.layout_template + """
 <script>
   // If hunt_id in hash, click that row.
@@ -44,7 +46,7 @@ class ManageHunts(renderers.Splitter2Way):
     $("table.HuntTable td:contains('" + basename + "')").click();
   }
 </script>
-"""
+""" + renderers.TemplateRenderer.help_template
 
 
 class HuntStateIcon(semantic.RDFValueRenderer):
@@ -328,7 +330,6 @@ class HuntViewTabs(renderers.TabLayout):
 
   names = ["Overview", "Log", "Errors", "Rules", "Graph", "Results", "Stats",
            "Crashes"]
-  # TODO(user): Add Renderer for Hunt Resource Usage (CPU/IO etc).
   delegated_renderers = ["HuntOverviewRenderer", "HuntLogRenderer",
                          "HuntErrorRenderer", "HuntRuleRenderer",
                          "HuntClientGraphRenderer", "HuntResultsRenderer",
@@ -970,6 +971,8 @@ class HuntResultsRenderer(semantic.RDFValueCollectionRenderer):
   no_plugin_template = renderers.Template("""
 <p>This hunt is not configured to store results in a collection.</p>
 """)
+
+  context_help_url = "user_manual.html#_exporting_a_collection"
 
   def Layout(self, request, response):
     """Layout the hunt results."""

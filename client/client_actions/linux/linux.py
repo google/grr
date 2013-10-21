@@ -243,6 +243,12 @@ class EnumerateUsers(actions.ActionPlugin):
           homedir = ""
           full_name = ""
 
+        # Somehow the last login time can be < 0. There is no documentation
+        # what this means so we just set it to 0 (the rdfvalue field is
+        # unsigned so we can't send negative values).
+        if last_login < 0:
+          last_login = 0
+
         self.SendReply(username=utils.SmartUnicode(username),
                        homedir=utils.SmartUnicode(homedir),
                        full_name=utils.SmartUnicode(full_name),

@@ -316,27 +316,27 @@ as:
 
 Server Isn't Listening::
 Confirm you can connect to the server and retrieve the server.pem file. E.g.
-  wget http://server:8080/server.pem
+  `wget http://server:8080/server.pem`
 
 Proxy Required For Access::
 If the environment doesn't allow direct connections GRR may need to use a
 proxy. GRR currently doesn't support Proxy Autoconfig or Proxy Authentication.
 GRR will attempt to guess your proxy configuration, or you can explicitly set
 proxies in the config file, e.g.
-  Client.proxy_servers: ["http://cache.example.com:3128/"]
+  `Client.proxy_servers: ["http://cache.example.com:3128/"]`
 On Windows systems GRR will try a direct connection, and then search for
 configured proxies in all users profiles on the system trying to get a working
 connection.
 On Linux GRR should obey system proxy settings, and it will also obey
 environment variables. e.g.
-  export http_proxy=http://cache.example.com:3128
+  `export http_proxy=http://cache.example.com:3128`
 
 Outbound Firewall Blocking Connections::
 GRR doesn't do anything to bypass egress firewalling by default. However, if you
 have a restrictive policy you could add this as an installer plugin.
 
 If you look at the running config, the first time the client successfully
-connects to the server a variable "Client.server_serial_number" will be written
+connects to the server a variable `Client.server_serial_number` will be written
 to the config. If that exists, the client successfully made a connection.
 
 
@@ -1390,12 +1390,15 @@ Why Is My Hunt Doing Nothing?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - There are caches involved in the frontend server, you may need to wait a
 couple of minutes before the first client picks up the flow.
-- Hunting is currently optimised for very large numbers of clients, so by
-default the client Foreman poll time is set to only check if hunts are scheduled
-every 30 minutes. If you only have one client you may need to wait up to 30
-minutes for it to start. (Note: this is planned to change in the future).
+- Clients only check if there is hunt work to do according to the
+`Client.foreman_check_frequency` parameter. This should default to every 10
+minutes as of version 0.2-9. Note that when a client issues a foreman check,
+flows are not directly queued on the client. Instead, the process is
+asynchronous, so the check tells the server to check its hunt rules to see if
+there are things for the client to do, if there are, it schedules them. However,
+if the client is in slow poll mode, it may not poll and pick up that work for
+another `Client.poll_max period` (10 minutes by default).
 
-TODO
 
 Exporting Data From GRR
 -----------------------
@@ -1404,7 +1407,7 @@ It is possible to use the console to extract any data you wish, but we also
 provide a tool called file_exporter.
 
 Exporting a Single File
-^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~
 
 --------------------------------------------------------------------------
 db@grrhost: ~$ grr_file_exporter --file=aff4:/C.123456890ABCDEF/fs/os/boot.ini --output=/tmp
@@ -1415,7 +1418,7 @@ db@grrhost: ~$
 --------------------------------------------------------------------------
 
 Exporting a Directory
-^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~
 Directories can be exported recursively
 --------------------------------------------------------------------------
 db@grrhost: ~$ grr_file_exporter --directory=aff4:/C.123456890ABCDEF/fs/os/ --output=/tmp --overwrite --depth=4
@@ -1427,7 +1430,7 @@ db@grrhost: ~$
 
 
 Exporting a Collection
-^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~
 An RDFValueCollection is a collection of objects, often URNs or StatEntry
 objects which reference files that have been downloaded. These are often created
 as the output of hunts and it is common to want to download all these files to
@@ -1443,11 +1446,8 @@ the root of the client directory, e.g. C.123456890abcdef/client_info.yaml.
 This is useful for identifying which machine the files came from when working on
 the filesystem.
 
-_TODO_ Add example
 --------------------------------------------------------------------------
 db@grrhost: ~$ grr_file_exporter --collection=aff4:/hunts/W:123456/Results --output=/tmp
-
-db@grrhost: ~$
 --------------------------------------------------------------------------
 
 
@@ -1456,8 +1456,6 @@ The console
 
 The GRR console gives you an interactive ipython shell with all the right
 imports to do pretty much whatever you want.
-
-_TODO_ Add more examples.
 
 Running a Simple Flow - List Processes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1472,7 +1470,19 @@ Run the ListProcesses flow and look at the output.
 --------------------------------------------------------------------------
 PYTHONPATH=. python grr/tools/console.py
 
-In [32]: flow.GRRFlow.StartFlow('C.93ce669b1b0c76b6', "ListProcesses")
+In [31]: flow.GRRFlow.ListProcesses?
+Type:       MetaclassRegistry
+String Form:<class 'grr.lib.flows.general.processes.ListProcesses'>
+File:       /usr/lib/python27/dist-packages/grr/lib/flows/general/processes.py
+Docstring:
+List running processes on a system.
+
+Call Spec:
+  flow.GRRFlow.StartFlow(client_id=client_id, flow_name="ListProcesses")
+
+Args: None
+
+In [32]: flow.GRRFlow.StartFlow(client_id='C.93ce669b1b0c76b6', flow_name="ListProcesses")
 I0814 17:24:38.813689 24346 flow.py:810] Scheduling aff4:/C.93ce669b1b0c76b6/flows/W:52EBD0A7(ListProcesses) on aff4:/C.93ce669b1b0c76b6: {}
 Out[32]: <aff4:/C.93ce669b1b0c76b6/flows/W:52EBD0A7 age=1970-01-01 00:00:00>
 
@@ -1512,6 +1522,31 @@ message Process {
  username : u'root'
 }
 --------------------------------------------------------------------------
+
+Timeline
+--------
+GRR currently contains rudimentary support for timelining and timeline
+visualization through the MACTimes flow. When you run this flow it will be
+executed server side and will create a timeline collection containing all
+events that you specified in the flow.
+
+If you view the results from this flow, you will see a GRRTimeSeries, which
+when selected should give you a link to View Details. Clicking on that link will
+take you to the Timeline view.
+
+Within the timeline view you can download the timeline as a CSV file, or you
+can also do basic filtering in the GUI. Filters work against the objects stored
+as events in timeline.
+
+Below are some example filters that might be of use:
+
+-------------------------------------------
+event.stat.st_size = 403
+event.timestamp > 2012
+event.timestamp > 2012-03-01 and event.timestamp < 2013-12-01-13:04:23
+event.subject contains exe
+event.subject matches ini$
+-------------------------------------------
 
 
 Glossary

@@ -875,7 +875,10 @@ class Attribute(object):
     for field_name in self.field_names:
       # Support the new semantic protobufs.
       if issubclass(result, rdfvalue.RDFProtoStruct):
-        result = result.type_infos.get(field_name, rdfvalue.RDFString).type
+        try:
+          result = result.type_infos.get(field_name).type
+        except AttributeError:
+          raise AttributeError("Invalid attribute %s" % field_name)
       else:
         # TODO(user): Remove and deprecate.
         # Support for the old RDFProto.

@@ -53,6 +53,9 @@ class MetaclassRegistry(abc.ABCMeta):
         cls.classes[cls.__name__] = cls
         cls.classes_by_name[getattr(cls, "name", None)] = cls
         cls.class_list.append(cls)
+        if hasattr(cls, "_ClsHelpEpilog"):
+          cls.__doc__ = "%s\n\n%s" % (getattr(cls, "__doc__", ""),
+                                      cls._ClsHelpEpilog())
       except AttributeError:
         cls.classes = {cls.__name__: cls}
         cls.classes_by_name = {getattr(cls, "name", None): cls}

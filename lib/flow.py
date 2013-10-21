@@ -829,6 +829,63 @@ class GRRFlow(aff4.AFF4Volume):
           cls.TerminateFlow(child, reason="Parent flow terminated.",
                             token=super_token, force=force)
 
+  @classmethod
+  def PrintArgsHelp(cls):
+    print cls.GetArgsHelpAsString()
+
+  @classmethod
+  def _ClsHelpEpilog(cls):
+    return cls.GetArgsHelpAsString()
+
+  @classmethod
+  def GetCallingPrototypeAsString(cls):
+    """Get a description of the calling prototype for this flow."""
+    output = []
+    output.append("flow.GRRFlow.StartFlow(client_id=client_id, ")
+    output.append("flow_name=\"%s\", " % cls.__name__)
+    prototypes = []
+    if cls.args_type:
+      for type_descriptor in cls.args_type.type_infos:
+        if not type_descriptor.hidden:
+          prototypes.append("%s=%s" % (type_descriptor.name,
+                                       type_descriptor.name))
+    output.append(", ".join(prototypes))
+    output.append(")")
+    return "".join(output)
+
+  @classmethod
+  def GetArgs(cls):
+    """Get a simplified description of the args for this flow."""
+    args = {}
+    if cls.args_type:
+      for type_descriptor in cls.args_type.type_infos:
+        if not type_descriptor.hidden:
+          args[type_descriptor.name] = {
+              "description": type_descriptor.description,
+              "default": type_descriptor.default,
+              "type": "",
+              }
+          if type_descriptor.type:
+            args[type_descriptor.name]["type"] = type_descriptor.type.__name__
+    return args
+
+  @classmethod
+  def GetArgsHelpAsString(cls):
+    """Get a string description of the calling prototype for this function."""
+    output = ["  Call Spec:", "    %s" % cls.GetCallingPrototypeAsString(), ""]
+    arg_list = cls.GetArgs().items()
+    if not arg_list:
+      output.append("  Args: None")
+    else:
+      output.append("  Args:")
+      for arg, val in arg_list:
+        output.append("    %s" % arg)
+        output.append("      description: %s" % val["description"])
+        output.append("      type: %s" % val["type"])
+        output.append("      default: %s" % val["default"])
+        output.append("")
+    return "\n".join(output)
+
 
 class GRRGlobalFlow(GRRFlow):
   """A flow that acts globally instead of on a specific client.

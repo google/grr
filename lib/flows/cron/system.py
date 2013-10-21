@@ -11,9 +11,8 @@ from grr.lib import export_utils
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
-
 from grr.lib import utils
-from grr.proto import analysis_pb2
+from grr.lib.rdfvalues import stats
 
 
 class SystemCronFlow(flow.GRRFlow):
@@ -21,37 +20,6 @@ class SystemCronFlow(flow.GRRFlow):
   lifetime = rdfvalue.Duration("20h")
 
   __abstract = True  # pylint: disable=g-bad-name
-
-
-class Sample(rdfvalue.RDFProtoStruct):
-  """A Graph sample is a single data point."""
-  protobuf = analysis_pb2.Sample
-
-
-class Graph(rdfvalue.RDFProtoStruct):
-  """A Graph is a collection of sample points."""
-  protobuf = analysis_pb2.Graph
-
-  def Append(self, **kwargs):
-    self.data.Append(**kwargs)
-
-  def __len__(self):
-    return len(self.data)
-
-  def __nonzero__(self):
-    return bool(self.data)
-
-  def __getitem__(self, item):
-    return Sample(self.data[item])
-
-  def __iter__(self):
-    for x in self.data:
-      yield Sample(x)
-
-
-class GraphSeries(rdfvalue.RDFValueArray):
-  """A sequence of graphs (e.g. evolving over time)."""
-  rdf_type = Graph
 
 
 class _ActiveCounter(object):
@@ -98,7 +66,7 @@ class _ActiveCounter(object):
     """Generate a histogram object and store in the specified attribute."""
     histogram = self.attribute()
     for active_time in self.active_days:
-      graph = Graph(title="%s day actives" % active_time)
+      graph = stats.Graph(title="%s day actives" % active_time)
       for k, v in sorted(self.categories[active_time].items()):
         graph.Append(label=k, y_value=v)
 
@@ -115,22 +83,24 @@ class ClientFleetStats(aff4.AFF4Object):
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     """Schema for ClientFleetStats object."""
 
-    GRRVERSION_HISTOGRAM = aff4.Attribute("aff4:stats/grrversion", GraphSeries,
+    GRRVERSION_HISTOGRAM = aff4.Attribute("aff4:stats/grrversion",
+                                          stats.GraphSeries,
                                           "GRR version statistics for active "
                                           "clients.")
 
     OS_HISTOGRAM = aff4.Attribute(
-        "aff4:stats/os_type", GraphSeries,
+        "aff4:stats/os_type", stats.GraphSeries,
         "Operating System statistics for active clients.")
 
-    RELEASE_HISTOGRAM = aff4.Attribute("aff4:stats/release", GraphSeries,
+    RELEASE_HISTOGRAM = aff4.Attribute("aff4:stats/release", stats.GraphSeries,
                                        "Release statistics for active clients.")
 
-    VERSION_HISTOGRAM = aff4.Attribute("aff4:stats/version", GraphSeries,
+    VERSION_HISTOGRAM = aff4.Attribute("aff4:stats/version", stats.GraphSeries,
                                        "Version statistics for active clients.")
 
     LAST_CONTACTED_HISTOGRAM = aff4.Attribute("aff4:stats/last_contacted",
-                                              Graph, "Last contacted time")
+                                              stats.Graph,
+                                              "Last contacted time")
 
 
 class AbstractClientStatsCronFlow(SystemCronFlow):
