@@ -1241,13 +1241,13 @@ A repack on the other hand limits what you can change. Each approach is
 described below.</p></div>
 <div class="sect2">
 <h3 id="_repacking_the_client_with_a_new_configuration">Repacking the Client with a New Configuration.</h3>
-<div class="paragraph"><p>Changing basic configuration parameters can be done by editing the config file
-(default /etc/grr/grr-server.conf) and then using the config_updater or
-client_build script to repack the binaries.
+<div class="paragraph"><p>Changing basic configuration parameters can be done by editing the server config
+file (/etc/grr/server.local.yaml) to override default values, and then using the
+config_updater to repack the binaries.
 This allows for changing basic configuration parameters such as the URL
 the client reports back to.</p></div>
-<div class="paragraph"><p>To repack all clients with a new config and upload them to the datastore use
-config_updater repack_clients.</p></div>
+<div class="paragraph"><p>Once the config has been edited, you can repack all clients with the new config
+and upload them to the datastore using <tt>grr_config_updater repack_clients</tt></p></div>
 <div class="listingblock">
 <div class="content">
 <pre><tt>db@host:$ sudo grr_config_updater repack_clients
@@ -1262,18 +1262,12 @@ s/GRR_2.5.0.4_amd64.exe
 Uploaded to aff4:/config/executables/windows/installers/GRR_2.5.0.4_amd64.exe
 db@host:$</tt></pre>
 </div></div>
-<div class="paragraph"><p>You can also repack a single client with a new config using the client_build.py
-script. This is described in the section for building clients.</p></div>
-<div class="admonitionblock">
-<table><tr>
-<td class="icon">
-<img src="./images/icons/note.png" alt="Note" />
-</td>
-<td class="content">This builds by taking the template zip file, adding relevant configuration
-files to the zip, then modifying the zip into a special self extracting zip
-archive.</td>
-</tr></table>
-</div>
+<div class="paragraph"><p>Repacking works by taking the template zip file which are by default installed
+to <tt>/usr/share/grr/executables</tt>, injecting relevant configuration files,
+and renaming files inside the zip to match requested names. This template is
+then turned into something that can be deployed on the system by using the
+debian package builder on linux, creating a self extracting zip on Windows, or
+creating a DMG on OSX.</p></div>
 </div>
 <div class="sect2">
 <h3 id="_building_the_client">Building the Client.</h3>
@@ -1297,6 +1291,296 @@ on the wiki. See:</p></div>
 </p>
 </li>
 </ul></div>
+</div>
+<div class="sect2">
+<h3 id="_client_configuration">Client Configuration.</h3>
+<div class="paragraph"><p>Configuration of the client is done during the packing/repacking of the client.
+The process looks like:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+For the client we are packing, find the correct context and platform,
+  e.g. <tt>Platform: Windows</tt> <tt>Client Context</tt>
+</p>
+</li>
+<li>
+<p>
+Extract the relevant configuration parameters for that context from the
+ server configuration file, and write them to a client specific configuration
+ file e.g. <tt>GRR.exe.yaml</tt>
+</p>
+</li>
+<li>
+<p>
+Pack that configuration file into the binary to be deployed.
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>When the client runs, it determines the configuration in the following manner
+based on --config and --secondary_configs arguments that are given to it:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Read the config file packed with the installer, default:
+<tt>c:\windows\system32\GRR\GRR.exe.yaml</tt>
+</p>
+</li>
+<li>
+<p>
+GRR.exe.yaml reads the Config.writeback value, default:
+<tt>reg://HKEY_LOCAL_MACHINE/Software/GRR</tt> by default
+</p>
+</li>
+<li>
+<p>
+Read in the values at that registry key and override any values from the yaml
+file with those values.
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>Most parameters are able to be modified by changing parameters and then
+restarting GRR. However, some configuration options, such as <tt>Client.name</tt>
+affect the name of the actual binary itself and therefore can only be changed
+with a repack on the server.</p></div>
+<div class="paragraph"><p>Updating a configuration variable in the client can be done in multiple ways:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Change the configuration on the server, repack the clients and
+redeploy/update them.
+</p>
+</li>
+<li>
+<p>
+Edit the yaml configuration file on the machine running the client and
+restart the client.
+</p>
+</li>
+<li>
+<p>
+Update where Config.writeback points to with new values, e.g. by editing the
+registry key.
+</p>
+</li>
+<li>
+<p>
+Issue an UpdateConfig flow from the server (not visible in the UI), to
+achieve 3.
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>In practice, you should nearly always do 3 or 4.</p></div>
+<div class="paragraph"><p>As an example, to reduce how often the client polls the server to every 300
+seconds, you can update the registry as per below, and then restart the service:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>C:\Windows\System32\&gt;reg add HKLM\Software\GRR /v Client.poll_max /d 300
+
+The operation completed successfully.
+C:\Windows\System32\&gt;</tt></pre>
+</div></div>
+</div>
+<div class="sect2">
+<h3 id="_common_client_configuration_options">Common Client Configuration Options.</h3>
+<div class="paragraph"><p>The client has numerous configuration parameters that control its behavior, the
+following explains some key ones you might want to change:</p></div>
+<div class="hdlist"><div class="title">Keys you might want to change that affect behavior of the client</div><table>
+<tr>
+<td class="hdlist1">
+Client.poll_max
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+Maximum number of seconds between polls to the server.
+</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Client.foreman_check_frequency
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+How often to check for foreman jobs (hunts).
+</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Client.rss_max
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+Maximum memory for the client to use.
+</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Client.location
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+The URL to contact the server on.
+</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Client.proxy_servers
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+A list of proxy servers to try.
+</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Logging.verbose
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+Enable more verbose logging.
+</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Logging.engines
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+Enable or disable syslog, event logs or file logs.
+</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Logging.path
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+Where log files get written to.
+</p>
+</td>
+</tr>
+</table></div>
+<div class="hdlist"><div class="title">Keys you might want to change to affect obfuscation</div><table>
+<tr>
+<td class="hdlist1">
+Client.name
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+The base name of the client. Changing this to Foo will change
+the running binary to Foo.exe and Fooservice.exe on Windows.
+</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Client.config_key
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+The registry key to store config data on Windows
+</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Client.location
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+The URL to contact the server on.
+</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Client.plist_path
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+Where to store the plist on OSX.
+</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+MemoryDriver.display_name
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+Description of the service used for the memory
+driver on Windows
+</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+MemoryDriver.service_name
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+Name of the service used for the memory driver on
+Windows
+</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+MemoryDriver.install_write_path
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+Path to write the memory driver to.
+</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Nanny.service_name
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+Name of the Windows service the nanny runs as.
+</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Nanny.service_description
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+Description of the Windows service the nanny runs
+as.
+</p>
+</td>
+</tr>
+</table></div>
+<div class="paragraph"><p>For a full list of available options you can run <tt>grr_server --config-help</tt> and
+look for <tt>Client</tt>, <tt>Nanny</tt> and <tt>Logging</tt> options.</p></div>
 </div>
 </div>
 </div>
@@ -1327,10 +1611,11 @@ Protected functionality. If you have code that you want to deploy to deal with
 </p>
 </li>
 </ul></div>
-<div class="paragraph"><p>The code that is pushed from the server must be signed by the
-executable_signing_private_key for python and binaries or the
-driver_signing_private_key for drivers. These signatures
-will be checked by the client to ensure they match before the code is used.</p></div>
+<div class="paragraph"><p>The code that is pushed from the server must be signed by the corresponding
+private key for <tt>Client.executable_signing_public_key</tt> for python and binaries
+or the corresponding private key for Client.driver_signing_public_key for
+drivers. These signatures will be checked by the client to ensure they match
+before the code is used.</p></div>
 <div class="paragraph"><p>What is actually sent to the client is the code or binary wrapped in a protobuf
 which will contain a hash, a signature and some other configuration data.</p></div>
 <div class="paragraph"><p>To sign code requires use of config_updater utility. In a secure environment the
@@ -1349,7 +1634,8 @@ setting and pings test.com.</p></div>
 <div class="content">
 <pre><tt>import commands
 status, output = commands.getstatusoutput("ping -c 3 test.com")
-FLAGS.poll_max = 100
+config_lib.CONFIG.Set("Client.poll_max", 100)
+config_lib.CONFIG.Write()
 magic_return_str = "poll_max successfully set. ping output %s" % output</tt></pre>
 </div></div>
 <div class="paragraph"><p>This file then needs to be signed and converted into the protobuf format

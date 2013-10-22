@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """This file contains utility classes related to maintenance used by GRR."""
 
 

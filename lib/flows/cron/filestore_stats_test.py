@@ -26,6 +26,12 @@ class FilestoreStatsCronFlowTest(test_lib.FlowTestsBaseclass):
     newfd.AddIndex("aff4:/C.0000000000000001/fs/os/2")
     newfd.Close()
 
+    newfd = aff4.FACTORY.Create("aff4:/files/hash/generic/sha256/blobtiny",
+                                "FileStoreImage", token=self.token)
+    newfd.size = 12
+    newfd.AddIndex("aff4:/C.0000000000000001/fs/os/1")
+    newfd.Close()
+
   def testFileTypes(self):
     for _ in test_lib.TestFlowHelper("FilestoreStatsCronFlow",
                                      token=self.token):
@@ -36,26 +42,30 @@ class FilestoreStatsCronFlowTest(test_lib.FlowTestsBaseclass):
         token=self.token)
 
     filetypes = fd.Get(fd.Schema.FILESTORE_FILETYPES)
-    self.assertEqual(filetypes.title, "Number of files by class type")
     self.assertEqual(len(filetypes), 1)
     self.assertEqual(filetypes.data[0].label, "FileStoreImage")
-    self.assertEqual(filetypes.data[0].y_value, 11)
+    self.assertEqual(filetypes.data[0].y_value, 12)
+
+    filetype_size = fd.Get(fd.Schema.FILESTORE_FILETYPES_SIZE)
+    self.assertEqual(filetype_size.data[0].label, "FileStoreImage")
+    self.assertEqual(filetype_size.data[0].y_value, 931.364501953125)
 
     filesizes = fd.Get(fd.Schema.FILESTORE_FILESIZE_HISTOGRAM)
-    self.assertEqual(filesizes.title, "Filesize in bytes")
     self.assertEqual(filesizes.data[0].x_value, 0)
     self.assertEqual(filesizes.data[0].y_value, 1)
-    self.assertEqual(filesizes.data[4].x_value, 5000000)
-    self.assertEqual(filesizes.data[4].y_value, 5)
+    self.assertEqual(filesizes.data[1].x_value, 2)
+    self.assertEqual(filesizes.data[1].y_value, 1)
+    self.assertEqual(filesizes.data[8].x_value, 1000000)
+    self.assertEqual(filesizes.data[8].y_value, 4)
+    self.assertEqual(filesizes.data[9].x_value, 5000000)
+    self.assertEqual(filesizes.data[9].y_value, 5)
     self.assertEqual(filesizes.data[-1].y_value, 1)
 
     clientcount = fd.Get(fd.Schema.FILESTORE_CLIENTCOUNT_HISTOGRAM)
-    print clientcount
     self.assertEqual(clientcount.data[0].x_value, 0)
     self.assertEqual(clientcount.data[0].y_value, 1)
     self.assertEqual(clientcount.data[1].x_value, 1)
-    self.assertEqual(clientcount.data[1].y_value, 5)
+    self.assertEqual(clientcount.data[1].y_value, 6)
     self.assertEqual(clientcount.data[2].x_value, 5)
     self.assertEqual(clientcount.data[2].y_value, 5)
-
 

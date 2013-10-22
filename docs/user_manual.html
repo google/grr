@@ -1003,8 +1003,8 @@ installer and for the application itself. It does so by updating the header of
 the binary at PE_HEADER_OFFSET + 0x5c from value 2 to 3. This is at 0x144 on 64
 bit and 0x134 on 32 bit Windows binaries. You can do this manually with a hex
 editor as well.</p></div>
-<div class="sect4">
-<h5 id="_interactively_debugging_the_client">Interactively Debugging the Client</h5>
+<div class="sect3">
+<h4 id="_interactively_debugging_the_client">Interactively Debugging the Client</h4>
 <div class="paragraph"><p>On each platform, the agent binary should support the following options:
 --verbose::
   This will set higher logging allowing you to see what is going on.
@@ -1029,7 +1029,6 @@ test@test0:~$ sudo /usr/sbin/grrd --config=/usr/lib/grr/grr_2.9.1.1_amd64/grr.ya
 INFO:2013-10-02 14:32:07,756 logging:1611] Starting GRR Prelogging buffer.
 INFO:2013-10-02 14:32:07,791 logging:1611] Loading configuration from /usr/lib/grr/grr_2.9.1.1_amd64/grr.yaml</tt></pre>
 </div></div>
-</div>
 <div class="sect4">
 <h5 id="_configuration_changes_to_ease_debugging">Configuration Changes to Ease Debugging</h5>
 <div class="paragraph"><p>If you are finding that it is slow to debug because the agent starts backed
@@ -1060,6 +1059,7 @@ failing to talk to the server doesn&#8217;t actually count as a hard error.</p><
 Logging.verbose: True</p></div>
 <div class="paragraph"><p>And depending on your configuration, you can play with syslog, log file and
 Windows EventLog logging using parameters Logging.path, and Logging.engines.</p></div>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -2787,12 +2787,12 @@ the filesystem.</p></div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_the_console">The console</h2>
+<h2 id="_the_console">The Console</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>The GRR console gives you an interactive ipython shell with all the right
 imports to do pretty much whatever you want.</p></div>
-<div class="sect3">
-<h4 id="_running_a_simple_flow_list_processes">Running a Simple Flow - List Processes</h4>
+<div class="sect2">
+<h3 id="_running_a_simple_flow_list_processes">Running a Simple Flow - List Processes</h3>
 <div class="paragraph"><p>Run the ListProcesses flow and look at the output.</p></div>
 <div class="admonitionblock">
 <table><tr>

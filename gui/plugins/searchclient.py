@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc. All Rights Reserved.
-
 """This plugin renders the client search page."""
 import time
 
@@ -287,7 +285,8 @@ class OnlineStateIcon(semantic.RDFValueRenderer):
 
   layout_template = renderers.Template("""
 <img class="grr-icon-small {{this.cls|escape}}"
-     src="/static/images/{{this.icon|escape}}"/>""")
+     src="/static/images/{{this.icon|escape}}"
+     title="{{this.last_seen_str|escape}}"/>""")
 
   # Maps the flow states to icons we can show
   state_map = {"15m": "online.png",
@@ -295,7 +294,9 @@ class OnlineStateIcon(semantic.RDFValueRenderer):
                "offline": "offline.png"}
 
   def Layout(self, request, response):
+    """Render the state icon."""
     time_last_seen = time.time() - (self.proxy / 1e6)
+    self.last_seen_str = FormatLastSeenTime(self.proxy)
     if time_last_seen < 60 * 15:
       self.icon = self.state_map["15m"]
     elif time_last_seen < 60 * 60 * 24:
@@ -365,9 +366,13 @@ class HostTable(renderers.TableRenderer):
     self.AddColumn(semantic.AttributeColumn("Version", width="20%"))
     self.AddColumn(semantic.AttributeColumn("MAC", width="10%"))
     self.AddColumn(semantic.AttributeColumn("Usernames", width="20%"))
-    self.AddColumn(semantic.AttributeColumn("Install", width="15%"))
+    self.AddColumn(semantic.AttributeColumn("FirstSeen", width="15%",
+                                            header="First Seen"))
+    self.AddColumn(semantic.AttributeColumn("Install", width="15%",
+                                            header="OS Install Date"))
     self.AddColumn(semantic.AttributeColumn("Labels", width="8%"))
-    self.AddColumn(semantic.AttributeColumn("Clock", width="15%"))
+    self.AddColumn(semantic.AttributeColumn("Clock", width="15%",
+                                            header="Last Checkin"))
 
   @renderers.ErrorHandler()
   def Layout(self, request, response):

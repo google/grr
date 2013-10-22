@@ -15,6 +15,12 @@ message Sample {
   optional uint64 y_value = 3;
 };
 
+message SampleFloat {
+  optional string label = 1;
+  optional float x_value = 2;
+  optional float y_value = 3;
+};
+
 message Graph {
   optional string title = 1;
   optional string xtitle = 2;
@@ -24,6 +30,14 @@ message Graph {
   optional uint32 y_scale = 6 [default = 1];
 };
 
+message GraphFloat {
+  optional string title = 1;
+  optional string xtitle = 2;
+  optional string ytitle = 3;
+  repeated SampleFloat data = 4;
+  optional uint32 x_scale = 5 [default = 1];
+  optional uint32 y_scale = 6 [default = 1];
+};
 
 // The following relate to the timelining functionality.
 message Event {

@@ -554,13 +554,14 @@ class FileStoreFileTypes(PieChart):
   title = "Filetypes stored in filestore."
   description = ""
   category = "/FileStore/FileTypes"
+  attribute = aff4.FilestoreStats.SchemaCls.FILESTORE_FILETYPES
 
   def Layout(self, request, response):
     """Extract only the operating system type from the active histogram."""
     try:
       fd = aff4.FACTORY.Open("aff4:/stats/FileStoreStats",
                              token=request.token)
-      self.graph = fd.Get(fd.Schema.FILESTORE_FILETYPES)
+      self.graph = fd.Get(self.attribute)
 
       self.data = []
       for sample in self.graph:
@@ -569,6 +570,13 @@ class FileStoreFileTypes(PieChart):
       pass
 
     return super(FileStoreFileTypes, self).Layout(request, response)
+
+
+class FileStoreSizeFileTypes(FileStoreFileTypes):
+  title = "Total filesize in GB of files in the filestore by type."
+  description = ""
+  category = "/FileStore/TotalFileSize"
+  attribute = aff4.FilestoreStats.SchemaCls.FILESTORE_FILETYPES_SIZE
 
 
 def SizeToReadableString(filesize):
@@ -590,7 +598,7 @@ def SizeToReadableString(filesize):
 class FileStoreFileSizes(LogXAxisChart):
   title = "Number of files in filestore by size"
   description = "X: log10 (filesize), Y: Number of files"
-  category = "/FileStore/FileSizes"
+  category = "/FileStore/FileSizeDistribution"
   data_urn = "aff4:/stats/FileStoreStats"
   attribute = aff4.FilestoreStats.SchemaCls.FILESTORE_FILESIZE_HISTOGRAM
 

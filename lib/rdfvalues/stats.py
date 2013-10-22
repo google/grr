@@ -118,6 +118,11 @@ class Sample(rdfvalue.RDFProtoStruct):
   protobuf = analysis_pb2.Sample
 
 
+class SampleFloat(rdfvalue.RDFProtoStruct):
+  """A Graph float data point."""
+  protobuf = analysis_pb2.SampleFloat
+
+
 class Graph(rdfvalue.RDFProtoStruct):
   """A Graph is a collection of sample points."""
   protobuf = analysis_pb2.Graph
@@ -137,6 +142,18 @@ class Graph(rdfvalue.RDFProtoStruct):
   def __iter__(self):
     for x in self.data:
       yield Sample(x)
+
+
+class GraphFloat(Graph):
+  """A Graph that stores sample points as floats."""
+  protobuf = analysis_pb2.GraphFloat
+
+  def __getitem__(self, item):
+    return SampleFloat(self.data[item])
+
+  def __iter__(self):
+    for x in self.data:
+      yield SampleFloat(x)
 
 
 class GraphSeries(rdfvalue.RDFValueArray):

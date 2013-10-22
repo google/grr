@@ -481,7 +481,10 @@ class GRRFlow(aff4.AFF4Volume):
         self.UpdateLease(lease_time)
 
   def WriteState(self):
-    if "w" in self.mode and not self.state.Empty():
+    if "w" in self.mode:
+      if self.state.Empty():
+        raise IOError("Trying to write an empty state for flow %s." %
+                      self.urn)
       self.Set(self.Schema.FLOW_STATE(self.state))
 
   def Flush(self, sync=True):

@@ -430,7 +430,7 @@ class UpdateClient(flow.GRRFlow):
       "Linux": "linux",
       "Windows": "windows"}
 
-  args_type = OnlineNotificationArgs
+  args_type = UpdateClientArgs
 
   @flow.StateHandler(next_state="Interrogate")
   def Start(self):

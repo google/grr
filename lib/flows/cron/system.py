@@ -257,7 +257,7 @@ class InterrogateClientsCronFlow(SystemCronFlow):
         flow_runner_args=rdfvalue.FlowRunnerArgs(flow_name="Interrogate"),
         flow_args=rdfvalue.InterrogateArgs(lightweight=False),
         regex_rules=[],
-        output_plugins=[],
+        output_plugins=[rdfvalue.OutputPlugin(plugin_name="CollectionPlugin")],
         token=self.token) as hunt:
 
       with hunt.GetRunner() as runner:

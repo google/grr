@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc. All Rights Reserved.
 """This is a backend analysis worker which will be deployed on the server.
 
 We basically pull a new task from the task master, and run the plugin

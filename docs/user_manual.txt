@@ -222,7 +222,7 @@ editor as well.
 
 
 Interactively Debugging the Client
-++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 On each platform, the agent binary should support the following options:
 --verbose::
   This will set higher logging allowing you to see what is going on.
@@ -1451,14 +1451,14 @@ db@grrhost: ~$ grr_file_exporter --collection=aff4:/hunts/W:123456/Results --out
 --------------------------------------------------------------------------
 
 
-The console
+The Console
 -----------
 
 The GRR console gives you an interactive ipython shell with all the right
 imports to do pretty much whatever you want.
 
 Running a Simple Flow - List Processes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Run the ListProcesses flow and look at the output.
 
@@ -1467,6 +1467,7 @@ Run the ListProcesses flow and look at the output.
 "C.93ce669b1b0c76b6" is the client you want to run the flow on (get it from the gui).
 =====================================================
 
+[source, shell]
 --------------------------------------------------------------------------
 PYTHONPATH=. python grr/tools/console.py
 
@@ -1540,6 +1541,7 @@ as events in timeline.
 
 Below are some example filters that might be of use:
 
+[source,python]
 -------------------------------------------
 event.stat.st_size = 403
 event.timestamp > 2012

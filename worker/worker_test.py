@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc. All Rights Reserved.
 """Tests for the worker."""
 
 
@@ -187,7 +186,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     manager = queue_manager.QueueManager(token=self.token)
     manager.NotifyQueue(session_id)
 
-    sessions = manager.GetSessionsFromQueue("aff4:/W")
+    sessions = manager.GetSessionsFromQueue(worker.DEFAULT_WORKER_QUEUE)
     # Check the notification is there.
     self.assertEqual(len(sessions), 1)
     self.assertEqual(sessions[0], session_id)
@@ -196,7 +195,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     worker_obj.RunOnce()
     worker_obj.thread_pool.Join()
 
-    sessions = manager.GetSessionsFromQueue("aff4:/W")
+    sessions = manager.GetSessionsFromQueue(worker.DEFAULT_WORKER_QUEUE)
     # Check the notification is now gone.
     self.assertEqual(len(sessions), 0)
 
@@ -207,12 +206,19 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     self.CheckNotificationsDisappear(session_id)
 
     # Now check objects that are actually broken.
-    session_id = rdfvalue.SessionID("aff4:/flows/W:testobj")
-    obj = aff4.FACTORY.Create(session_id, "GRRFlow", token=self.token)
-    obj.Close()
+
+    # Start a new flow.
+    session_id = flow.GRRFlow.StartFlow(flow_name="WorkerSendingTestFlow",
+                                        client_id=self.client_id,
+                                        token=self.token)
     # Overwrite the type of the object such that opening it will now fail.
     data_store.DB.Set(session_id, "aff4:type", "DeprecatedClass",
                       token=self.token)
+
+    # Starting a new flow schedules notifications for the worker already but
+    # this test actually checks that there are none. Thus, we have to delete
+    # them or the test fails.
+    data_store.DB.DeleteSubject(worker.DEFAULT_WORKER_QUEUE, token=self.token)
 
     # Check it really does.
     with self.assertRaises(aff4.InstanciationError):

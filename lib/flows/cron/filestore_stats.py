@@ -15,10 +15,15 @@ class FilestoreStats(aff4.AFF4Object):
   """AFF4 object for storing filestore statistics."""
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
-    FILESTORE_FILETYPES = aff4.Attribute("aff4:stats/filestore/filetypes",
-                                         stats.Graph,
-                                         ("Number of files in the filestore "
-                                          "by type"))
+    """SchemaCls."""
+    FILESTORE_FILETYPES = aff4.Attribute(
+        "aff4:stats/filestore/filetypes", stats.Graph,
+        "Number of files in the filestore by type")
+
+    FILESTORE_FILETYPES_SIZE = aff4.Attribute(
+        "aff4:stats/filestore/filetypes_size", stats.GraphFloat,
+        "Total filesize in GB of files in the filestore by type")
+
     FILESTORE_FILESIZE_HISTOGRAM = aff4.Attribute(
         "aff4:stats/filestore/filesize", stats.Graph,
         "Filesize histogram of files in the filestore")
@@ -46,6 +51,22 @@ class ClassCounter(object):
     fd.Set(self.attribute, self.graph)
 
 
+class ClassFileSizeCounter(ClassCounter):
+  """Count total filesize by classtype."""
+
+  GB = 1024 * 1024 * 1024
+
+  def ProcessFile(self, fd):
+    classname = fd.__class__.__name__
+    self.value_dict[classname] = self.value_dict.get(classname, 0) + fd.Get(
+        fd.Schema.SIZE)
+
+  def Save(self, fd):
+    for classname, count in self.value_dict.items():
+      self.graph.Append(label=classname, y_value=count/float(self.GB))
+    fd.Set(self.attribute, self.graph)
+
+
 class GraphDistribution(stats_lib.Distribution):
   """Abstract class for building histograms."""
 
@@ -70,7 +91,8 @@ class GraphDistribution(stats_lib.Distribution):
 class FileSizeHistogram(GraphDistribution):
   """Graph filesize."""
 
-  _bins = [0, 100e3, 500e3, 1e6, 5e6, 10e6, 50e6, 100e6, 500e6, 1e9, 5e9, 10e9]
+  _bins = [0, 2, 50, 100, 1e3, 10e3, 100e3, 500e3, 1e6, 5e6, 10e6, 50e6,
+           100e6, 500e6, 1e9, 5e9, 10e9]
 
   def ProcessFile(self, fd):
     self.Record(fd.Get(fd.Schema.SIZE))
@@ -102,13 +124,16 @@ class FilestoreStatsCronFlow(system.SystemCronFlow):
 
   def _CreateConsumers(self):
     self.consumers = [ClassCounter(self.stats.Schema.FILESTORE_FILETYPES,
-                                   "Number of files by class type"),
+                                   "Number of files in the filestore by type"),
+                      ClassFileSizeCounter(
+                          self.stats.Schema.FILESTORE_FILETYPES_SIZE,
+                          "Total filesize (GB) files in the filestore by type"),
                       FileSizeHistogram(
                           self.stats.Schema.FILESTORE_FILESIZE_HISTOGRAM,
-                          "Filesize in bytes"),
+                          "Filesize distribution in bytes"),
                       ClientCountHistogram(
                           self.stats.Schema.FILESTORE_CLIENTCOUNT_HISTOGRAM,
-                          "Number of files found on clients")]
+                          "Number of files found on X clients")]
 
   @flow.StateHandler()
   def Start(self):

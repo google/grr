@@ -187,7 +187,7 @@ class FlowState(rdfvalue.RDFValue):
     return pickle.dumps(self.data)
 
   def Empty(self):
-    return len(self.data) == 1 and not self.data.context
+    return not bool(self.data)
 
   def __len__(self):
     return len(self.data)

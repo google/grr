@@ -203,6 +203,10 @@ Platform:Darwin:
 
   Logging.syslog_path: localhost:514
 
+  # Darwin systems have their drivers stored in this part of the config space.
+  MemoryDriver.aff4_path: |
+    %(Config.aff4_root)/drivers/osx/memory/pmem
+
   MemoryDriver.device_path: /dev/pmem
 
   Arch:amd64:

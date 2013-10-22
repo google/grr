@@ -382,14 +382,14 @@ described below.
 
 Repacking the Client with a New Configuration.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Changing basic configuration parameters can be done by editing the config file
-(default /etc/grr/grr-server.conf) and then using the config_updater or
-client_build script to repack the binaries.
+Changing basic configuration parameters can be done by editing the server config
+file (/etc/grr/server.local.yaml) to override default values, and then using the
+config_updater to repack the binaries.
 This allows for changing basic configuration parameters such as the URL
 the client reports back to.
 
-To repack all clients with a new config and upload them to the datastore use
-config_updater repack_clients.
+Once the config has been edited, you can repack all clients with the new config
+and upload them to the datastore using `grr_config_updater repack_clients`
 
 [source, shell]
 --------------------------------------------------------------------
@@ -406,12 +406,13 @@ Uploaded to aff4:/config/executables/windows/installers/GRR_2.5.0.4_amd64.exe
 db@host:$
 --------------------------------------------------------------------
 
-You can also repack a single client with a new config using the client_build.py
-script. This is described in the section for building clients.
+Repacking works by taking the template zip file which are by default installed
+to `/usr/share/grr/executables`, injecting relevant configuration files,
+and renaming files inside the zip to match requested names. This template is
+then turned into something that can be deployed on the system by using the
+debian package builder on linux, creating a self extracting zip on Windows, or
+creating a DMG on OSX.
 
-NOTE: This builds by taking the template zip file, adding relevant configuration
-files to the zip, then modifying the zip into a special self extracting zip
-archive.
 
 Building the Client.
 ~~~~~~~~~~~~~~~~~~~~
@@ -423,6 +424,92 @@ on the wiki. See:
 - https://code.google.com/p/grr/wiki/BuildingOSXClient
 - https://code.google.com/p/grr/wiki/BuildingLinuxClient
 
+
+Client Configuration.
+~~~~~~~~~~~~~~~~~~~~~
+Configuration of the client is done during the packing/repacking of the client.
+The process looks like:
+
+.  For the client we are packing, find the correct context and platform,
+  e.g. `Platform: Windows` `Client Context`
+.  Extract the relevant configuration parameters for that context from the
+ server configuration file, and write them to a client specific configuration
+ file e.g. `GRR.exe.yaml`
+.  Pack that configuration file into the binary to be deployed.
+
+When the client runs, it determines the configuration in the following manner
+based on --config and --secondary_configs arguments that are given to it:
+
+.  Read the config file packed with the installer, default:
+`c:\windows\system32\GRR\GRR.exe.yaml`
+.  GRR.exe.yaml reads the Config.writeback value, default:
+`reg://HKEY_LOCAL_MACHINE/Software/GRR` by default
+.  Read in the values at that registry key and override any values from the yaml
+file with those values.
+
+Most parameters are able to be modified by changing parameters and then
+restarting GRR. However, some configuration options, such as `Client.name`
+affect the name of the actual binary itself and therefore can only be changed
+with a repack on the server.
+
+Updating a configuration variable in the client can be done in multiple ways:
+
+.  Change the configuration on the server, repack the clients and
+redeploy/update them.
+.  Edit the yaml configuration file on the machine running the client and
+restart the client.
+.  Update where Config.writeback points to with new values, e.g. by editing the
+registry key.
+.  Issue an UpdateConfig flow from the server (not visible in the UI), to
+achieve 3.
+
+In practice, you should nearly always do 3 or 4.
+
+As an example, to reduce how often the client polls the server to every 300
+seconds, you can update the registry as per below, and then restart the service:
+
+[source, shell]
+-------------------------------------------------------------
+C:\Windows\System32\>reg add HKLM\Software\GRR /v Client.poll_max /d 300
+
+The operation completed successfully.
+C:\Windows\System32\>
+-------------------------------------------------------------
+
+Common Client Configuration Options.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The client has numerous configuration parameters that control its behavior, the
+following explains some key ones you might want to change:
+
+[horizontal]
+.Keys you might want to change that affect behavior of the client
+Client.poll_max:: Maximum number of seconds between polls to the server.
+Client.foreman_check_frequency:: How often to check for foreman jobs (hunts).
+Client.rss_max:: Maximum memory for the client to use.
+Client.location:: The URL to contact the server on.
+Client.proxy_servers:: A list of proxy servers to try.
+Logging.verbose:: Enable more verbose logging.
+Logging.engines:: Enable or disable syslog, event logs or file logs.
+Logging.path:: Where log files get written to.
+
+[horizontal]
+.Keys you might want to change to affect obfuscation
+Client.name:: The base name of the client. Changing this to Foo will change
+the running binary to Foo.exe and Fooservice.exe on Windows.
+Client.config_key:: The registry key to store config data on Windows
+Client.location:: The URL to contact the server on.
+Client.plist_path:: Where to store the plist on OSX.
+MemoryDriver.display_name:: Description of the service used for the memory
+driver on Windows
+MemoryDriver.service_name:: Name of the service used for the memory driver on
+Windows
+MemoryDriver.install_write_path:: Path to write the memory driver to.
+Nanny.service_name:: Name of the Windows service the nanny runs as.
+Nanny.service_description:: Description of the Windows service the nanny runs
+as.
+
+For a full list of available options you can run `grr_server --config-help` and
+look for `Client`, `Nanny` and `Logging` options.
 
 Deploying Custom Drivers and Code.
 ----------------------------------
@@ -439,10 +526,11 @@ kernel differences.)
  a specific case, you may not want that to be part of the client, and should
  only be deployed to specific clients.
 
-The code that is pushed from the server must be signed by the
-executable_signing_private_key for python and binaries or the
-driver_signing_private_key for drivers. These signatures
-will be checked by the client to ensure they match before the code is used.
+The code that is pushed from the server must be signed by the corresponding
+private key for `Client.executable_signing_public_key` for python and binaries
+or the corresponding private key for Client.driver_signing_public_key for
+drivers. These signatures will be checked by the client to ensure they match
+before the code is used.
 
 What is actually sent to the client is the code or binary wrapped in a protobuf
 which will contain a hash, a signature and some other configuration data.
@@ -466,7 +554,8 @@ setting and pings test.com.
 ------------------------------------------------------------------------
 import commands
 status, output = commands.getstatusoutput("ping -c 3 test.com")
-FLAGS.poll_max = 100
+config_lib.CONFIG.Set("Client.poll_max", 100)
+config_lib.CONFIG.Write()
 magic_return_str = "poll_max successfully set. ping output %s" % output
 ------------------------------------------------------------------------
 

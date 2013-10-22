@@ -3,6 +3,8 @@
 
 
 
+from email import encoders
+from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -18,18 +20,28 @@ def RemoveHtmlTags(data):
   return p.sub("", data)
 
 
-def SendEmail(to_addresses, from_address, subject, message, is_html=True):
+def SendEmail(to_addresses, from_address, subject, message, attachments=None,
+              is_html=True):
   """This method sends an email notification."""
-
+  msg = MIMEMultipart("alternative")
   if is_html:
-    msg = MIMEMultipart("alternative")
     text = RemoveHtmlTags(message)
     part1 = MIMEText(text, "plain")
-    part2 = MIMEText(message, "html")
     msg.attach(part1)
+    part2 = MIMEText(message, "html")
     msg.attach(part2)
   else:
-    msg = MIMEText(message)
+    part1 = MIMEText(message, "plain")
+    msg.attach(part1)
+
+  if attachments:
+    for file_name, file_data in attachments.iteritems():
+      part = MIMEBase("application", "octet-stream")
+      part.set_payload(file_data)
+      encoders.encode_base64(part)
+      part.add_header("Content-Disposition",
+                      "attachment; filename=\"%s\"" % file_name)
+      msg.attach(part)
 
   msg["Subject"] = subject
   msg["From"] = from_address

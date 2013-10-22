@@ -11,7 +11,6 @@ regions. It is always safe to access all of memory using this handler.
 
 
 import array
-import fcntl
 import re
 import struct
 import sys
@@ -22,6 +21,7 @@ from grr.lib import utils
 
 
 win32file = utils.ConditionalImport("win32file")
+fcntl = utils.ConditionalImport("fcntl")
 
 
 class MemoryVFS(vfs.VFSHandler):
