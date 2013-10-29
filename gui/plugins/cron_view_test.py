@@ -5,7 +5,10 @@
 """Test the cron_view interface."""
 
 
+import time
+
 from grr.gui import runtests_test
+from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -14,6 +17,13 @@ from grr.lib.aff4_objects import cronjobs
 
 class TestCronView(test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
+
+  def AddJobStatus(self, job, status):
+    with self.ACLChecksDisabled():
+      with aff4.FACTORY.OpenWithLock("aff4:/cron/OSBreakDown",
+                                     token=self.token) as job:
+        job.Set(job.Schema.LAST_RUN_TIME(rdfvalue.RDFDatetime().Now()))
+        job.Set(job.Schema.LAST_RUN_STATUS(status=status))
 
   def setUp(self):
     super(TestCronView, self).setUp()
@@ -389,6 +399,42 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.assertTrue(self.IsTextPresent("/tmp"))
     self.assertTrue(self.IsTextPresent("Depth"))
     self.assertTrue(self.IsTextPresent("42"))
+
+  def testStuckCronJobIsHighlighted(self):
+    # Make sure a lot of time has passed since the last
+    # execution
+    with test_lib.Stubber(time, "time", lambda: 0):
+      self.AddJobStatus("aff4:/cron/OSBreakDown",
+                        rdfvalue.CronJobRunStatus.Status.OK)
+
+    self.Open("/")
+
+    self.WaitUntil(self.IsElementPresent, "client_query")
+    self.Click("css=a[grrtarget=ManageCron]")
+
+    # OSBreakDown's row should have a 'warn' class
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr.warning td:contains('OSBreakDown')")
+    # Check that only OSBreakDown is highlighted
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=tr.warning td:contains('GRRVersionBreakDown')")
+
+  def testFailingCronJobIsHighlighted(self):
+    for _ in range(4):
+      self.AddJobStatus("aff4:/cron/OSBreakDown",
+                        rdfvalue.CronJobRunStatus.Status.ERROR)
+
+    self.Open("/")
+
+    self.WaitUntil(self.IsElementPresent, "client_query")
+    self.Click("css=a[grrtarget=ManageCron]")
+
+    # OSBreakDown's row should have an 'error' class
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr.error td:contains('OSBreakDown')")
+    # Check that only OSBreakDown is highlighted
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=tr.error td:contains('GRRVersionBreakDown')")
 
 
 def main(argv):

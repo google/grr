@@ -221,7 +221,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     data_store.DB.DeleteSubject(worker.DEFAULT_WORKER_QUEUE, token=self.token)
 
     # Check it really does.
-    with self.assertRaises(aff4.InstanciationError):
+    with self.assertRaises(aff4.InstantiationError):
       aff4.FACTORY.Open(session_id, token=self.token)
 
     self.CheckNotificationsDisappear(session_id)

@@ -17,7 +17,6 @@ from grr.lib import server_plugins
 
 from grr.lib import aff4
 from grr.lib import config_lib
-from grr.lib import data_store
 from grr.lib import flags
 
 # pylint: disable=g-import-not-at-top,no-name-in-module
@@ -31,7 +30,7 @@ from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import startup
 from grr.lib import utils
-from grr.lib.aff4_objects import user_managers
+from grr.lib.aff4_objects import users
 # pylint: enable=g-import-not-at-top,no-name-in-module
 
 
@@ -66,31 +65,71 @@ parser_initialize = subparsers.add_parser(
     help="Interactively run all the required steps to setup a new GRR install.")
 
 
-# Parent parser used in other user based parsers.
-parser_user_args = argparse.ArgumentParser(add_help=False)
+# Update an existing user.
+parser_update_user = subparsers.add_parser(
+    "update_user", help="Update user settings.")
 
-# User arguments.
-parser_user_args.add_argument(
-    "--username", required=True,
-    help="Username to create.")
-parser_user_args.add_argument(
-    "--noadmin", default=False, action="store_true",
-    help="Don't create the user as an administrator.")
-parser_user_args.add_argument(
-    "--password", default=None,
-    help="Password to set for the user. If None, user will be prompted.")
-parser_user_args.add_argument(
+parser_update_user.add_argument("username", help="Username to update.")
+
+parser_update_user.add_argument(
+    "--password", default=None, help="Reset the password for this user..")
+
+parser_update_user.add_argument(
     "--label", default=[], action="append",
-    help="Labels to add to the user object. These are used to control access.")
-
+    help=("Labels to set the user object. These are used to control access."
+          "Note that previous labels are cleared."))
 
 parser_add_user = subparsers.add_parser(
-    "add_user", parents=[parser_user_args],
-    help="Add a user to the system.")
+    "add_user", help="Add a new user.")
 
-parser_update_user = subparsers.add_parser(
-    "update_user", parents=[parser_user_args],
-    help="Update user settings.")
+parser_add_user.add_argument("username", help="Username to update.")
+
+
+def UpdateUser(username, password, labels):
+  """Implementation of the update_user command."""
+  with aff4.FACTORY.Create("aff4:/users/%s" % username,
+                           "GRRUser", mode="rw") as fd:
+    if password:
+      fd.SetPassword(password)
+
+    if labels:
+      # Allow labels to be comma separated list of labels.
+      expanded_labels = []
+      for label in labels:
+        if "," in label:
+          expanded_labels.extend(label.split(","))
+        else:
+          expanded_labels.append(label)
+
+      fd.SetLabels(*expanded_labels)
+
+  print "Updating user %s" % username
+  ShowUser(username)
+
+
+# Show user account.
+parser_show_user = subparsers.add_parser(
+    "show_user", help="Display user settings or list all users.")
+
+parser_show_user.add_argument(
+    "username", default=None, nargs="?",
+    help="Username to display. If not specified, list all users.")
+
+
+def ShowUser(username):
+  """Implementation o the show_user command."""
+  if username is None:
+    fd = aff4.FACTORY.Open("aff4:/users")
+    for user in fd.OpenChildren():
+      if isinstance(user, users.GRRUser):
+        print user.Describe()
+  else:
+    user = aff4.FACTORY.Open("aff4:/users/%s" % flags.FLAGS.username)
+    if isinstance(user, users.GRRUser):
+      print user.Describe()
+    else:
+      print "User %s not found" % flags.FLAGS.username
+
 
 # Generate Keys Arguments
 parser_generate_keys.add_argument(
@@ -189,7 +228,7 @@ def ImportConfig(filename, config):
   options_imported = 0
   old_config = config_lib.CONFIG.MakeNewConfig()
   old_config.Initialize(filename)
-  user_manager = None
+
   for entry in old_config.raw_data.keys():
     try:
       section = entry.split(".")[0]
@@ -197,14 +236,7 @@ def ImportConfig(filename, config):
         config.Set(entry, old_config.Get(entry))
         print "Imported %s." % entry
         options_imported += 1
-      elif section == "Users":
-        if user_manager is None:
-          user_manager = user_managers.ConfigBasedUserManager()
-        user = entry.split(".", 1)[1]
-        hash_str, labels = old_config.Get(entry).split(":")
-        user_manager.SetRaw(user, hash_str, labels.split(","))
-        print "Imported user %s." % user
-        options_imported += 1
+
     except Exception as e:  # pylint: disable=broad-except
       print "Exception during import of %s: %s" % (entry, e)
   return options_imported
@@ -350,8 +382,7 @@ def Initialize(config=None):
 
   print "\nStep 3: Adding Admin User"
   password = getpass.getpass(prompt="Please enter password for user 'admin': ")
-  data_store.DB.security_manager.user_manager.UpdateUser(
-      "admin", password=password, admin=True)
+  UpdateUser("admin", password, ["admin"])
   print "User admin added."
 
   print "\nStep 4: Uploading Memory Drivers to the Database"
@@ -361,7 +392,7 @@ def Initialize(config=None):
   # We need to update the config to point to the installed templates now.
   config.Set("ClientBuilder.executables_path", os.path.join(
       flags.FLAGS.share_dir, "executables"))
-  maintenance_utils.RepackAllBinaries(upload=True)
+  maintenance_utils.RepackAllBinaries(upload=True, debug_build=True)
 
   print "\nInitialization complete, writing configuration."
   config.Write()
@@ -383,7 +414,10 @@ def main(unused_argv):
   config_lib.CONFIG.AddContext("ConfigUpdater Context")
   startup.Init()
 
-  print "Using configuration %s" % config_lib.CONFIG.parser
+  try:
+    print "Using configuration %s" % config_lib.CONFIG.parser
+  except AttributeError:
+    raise RuntimeError("No valid config specified.")
 
   if flags.FLAGS.subparser_name == "load_memory_drivers":
     LoadMemoryDrivers(flags.FLAGS.share_dir)
@@ -399,26 +433,22 @@ def main(unused_argv):
 
   elif flags.FLAGS.subparser_name == "repack_clients":
     maintenance_utils.RepackAllBinaries(upload=flags.FLAGS.upload)
-
-  if flags.FLAGS.subparser_name == "add_user":
-    if flags.FLAGS.password:
-      password = flags.FLAGS.password
-    else:
-      password = getpass.getpass(prompt="Please enter password for user %s: " %
-                                 flags.FLAGS.username)
-    admin = not flags.FLAGS.noadmin
-    data_store.DB.security_manager.user_manager.AddUser(
-        flags.FLAGS.username, password=password, admin=admin,
-        labels=flags.FLAGS.label)
-
-  elif flags.FLAGS.subparser_name == "update_user":
-    admin = not flags.FLAGS.noadmin
-    data_store.DB.security_manager.user_manager.UpdateUser(
-        flags.FLAGS.username, password=flags.FLAGS.password, admin=admin,
-        labels=flags.FLAGS.label)
+    maintenance_utils.RepackAllBinaries(upload=flags.FLAGS.upload,
+                                        debug_build=True)
 
   elif flags.FLAGS.subparser_name == "initialize":
     Initialize(config_lib.CONFIG)
+
+  elif flags.FLAGS.subparser_name == "show_user":
+    ShowUser(flags.FLAGS.username)
+
+  elif flags.FLAGS.subparser_name == "update_user":
+    UpdateUser(flags.FLAGS.username, flags.FLAGS.password, flags.FLAGS.label)
+
+  elif flags.FLAGS.subparser_name == "add_user":
+    password = getpass.getpass(prompt="Please enter password for user '%s': " %
+                               flags.FLAGS.username)
+    UpdateUser(flags.FLAGS.username, password, [])
 
   elif flags.FLAGS.subparser_name == "upload_python":
     content = open(flags.FLAGS.file).read(1024*1024*30)
@@ -426,7 +456,10 @@ def main(unused_argv):
     if not aff4_path:
       python_hack_root_urn = config_lib.CONFIG.Get("Config.python_hack_root")
       aff4_path = python_hack_root_urn.Add(os.path.basename(flags.FLAGS.file))
-    maintenance_utils.UploadSignedConfigBlob(content, aff4_path=aff4_path)
+    context = ["Platform:%s" % flags.FLAGS.platform.title(),
+               "Client"]
+    maintenance_utils.UploadSignedConfigBlob(content, aff4_path=aff4_path,
+                                             client_context=context)
 
   elif flags.FLAGS.subparser_name == "upload_exe":
     content = open(flags.FLAGS.file).read(1024*1024*30)
@@ -469,9 +502,5 @@ def main(unused_argv):
     print "Uploaded to %s" % uploaded
 
 
-def ConsoleMain():
-  """Helper function for calling with setup tools entry points."""
-  flags.StartMain(main)
-
 if __name__ == "__main__":
-  ConsoleMain()
+  flags.StartMain(main)

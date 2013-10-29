@@ -1000,6 +1000,13 @@ flow. The client simply copies the session id from requests to any responses it
 generates, to ensure they will arrive at the respective flow. For example, a
 session id may be &#8216;W:1213243AE&#8217;.</p></div>
 <div class="sect2">
+<h3 id="_life_of_a_flow">Life of a Flow</h3>
+<div class="paragraph"><p>This section will attempt to explain the lifecycle of a typical flow that talks
+to a client. It will discuss the various queues involved in scheduling actions.
+Understanding this process is critical to understanding how to debug the GRR
+system.</p></div>
+</div>
+<div class="sect2">
 <h3 id="_well_known_flows_and_the_event_system">Well Known Flows and the Event System</h3>
 <div class="paragraph"><p>The GRR client receives requests with a flow session id, which it copies to the
 response. This session id is used to route the response to the correct
@@ -1107,6 +1114,306 @@ client.
     # Publish the client enrollment message.
     self.Publish("ClientEnrollment", certificate_attribute.AsProto())</tt></pre>
 </div></div>
+</div>
+<div class="sect2">
+<h3 id="_rules_for_writing_flows">Rules for Writing Flows</h3>
+<div class="paragraph"><p>This section contains several guidelines on writing a flow. A flow acts as a
+state machine, and a has a number of rules that should be followed to ensure it
+behaves in the GRR framework. By following the guidelines you should avoid
+common pitfalls.</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Arguments
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+Arguments to flows are defined as semantic protobufs in flows.proto.
+</p>
+</li>
+<li>
+<p>
+Setting type will enforce type checking using the corresponding RDFValue.
+ E.g. type RegularExpression will ensure the argument value can be compiled as
+ a regex.
+</p>
+</li>
+<li>
+<p>
+Setting the label ADVANCED will hide the argument from the user in an
+ expandable box in Admin UI. Setting the label HIDDEN will hide it entirely from
+ the Admin UI.
+</p>
+</li>
+<li>
+<p>
+The flow class attribute <tt>args_type</tt> specifies which proto to use for the
+ arguments to the flow.
+</p>
+</li>
+</ul></div>
+</li>
+<li>
+<p>
+Flow Help and Visibility
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+Setting the flow class attribute <tt>category</tt> will define where in flow
+ hierarchy in the Admin UI the flow will appear. Setting it to None will stop it
+ from being visible in the UI.
+</p>
+</li>
+<li>
+<p>
+Setting the flow class attribute <tt>behaviours</tt> will affect who sees the flow.
+ By default flows are only visible if they user has selected to see Advanced
+ flows. Set <tt>behaviours = flow.GRRFlow.behaviours + "BASIC"</tt> to make it visible
+ in basic view.
+</p>
+</li>
+<li>
+<p>
+Documentation for the flow will be generated from the flow docstring, and by
+ analyzing the flow arguments.
+</p>
+</li>
+</ul></div>
+</li>
+<li>
+<p>
+Initialization
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+Don&#8217;t define an <em>init</em> function, just the Start() function.
+</p>
+</li>
+<li>
+<p>
+The Start() function is where you start your work, no heavy lifting should
+ happen here. Start() should finish in less than a second as it will be run from
+ the UI when you schedule a flow (not from the worker).
+</p>
+</li>
+<li>
+<p>
+You should just register any variables and potentially do some fast checks to
+ return immediately if something is wrong with the supplied arguments.
+</p>
+</li>
+<li>
+<p>
+If you need to do heavy work without calling other flows, e.g. a server only
+ flow, you can do a CallState() to delay your work to happen on a worker.
+ Note this doesn&#8217;t provide parallelism, multiple calls to CallState will be run
+ in order by a worker.
+</p>
+</li>
+</ul></div>
+</li>
+<li>
+<p>
+State Handling
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+Each state in a flow (indicated by @StateHandler decorator) may (but isn&#8217;t
+ guaranteed to) happen on a completely different machine.
+</p>
+</li>
+<li>
+<p>
+Every state requires a decorator to define it as a state.
+</p>
+</li>
+<li>
+<p>
+You get to another state by calling CallClient (a client action), CallFlow
+ (another flow) or CallState (the same flow) and specifying NextState
+</p>
+</li>
+<li>
+<p>
+For every CallXXXXXX call, the function specified in NextState will be called
+ exactly once.
+</p>
+</li>
+<li>
+<p>
+Instance variables (self.xxx) will not be available across invocations. To
+ store variables across states you need to register them via
+ self.state.Register, and access them via self.state. Anything that can be
+ pickled is supported.
+</p>
+</li>
+<li>
+<p>
+If you are writing to the database, you may want to .Flush() or .Close() at
+ then end of each state to reduce the size of any stored state. You normally do
+ this by overriding self.Load() and self.Save() functions to do this for you,
+ as they are invoked whenever a flow is serialized/deserialized from the
+ database.
+</p>
+</li>
+</ul></div>
+</li>
+<li>
+<p>
+Errors
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+If your flow fails, you should raise FlowError(error message), but you can
+ feel free to raise something else like an IOError if you feel it makes more
+ sense.
+</p>
+</li>
+<li>
+<p>
+Non-fatal errors should be logged with self.Log()
+</p>
+</li>
+</ul></div>
+</li>
+<li>
+<p>
+Notifications
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+If you don&#8217;t call self.Notify() and don&#8217;t override the End() method, the user
+ will just get a generic "Flow completed" notification.
+</p>
+</li>
+<li>
+<p>
+You normally want to override the End() method and do your notification in
+ there if you want to say something custom.
+</p>
+</li>
+<li>
+<p>
+If the flow is a child flow, i.e. created from another flow by CallFlow(),
+ the notifications will be suppressed. Only the parent flow will notify.
+</p>
+</li>
+</ul></div>
+</li>
+<li>
+<p>
+Chaining Flows
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+You nearly always want to write your flow in a way that can be chained or
+ used in a hunt. Others may want to use your flow as part of theirs and don&#8217;t
+ want to reinvent the wheel.
+</p>
+</li>
+<li>
+<p>
+You make this work by by calling SendReply() with a RDFValue. You can call it
+ multiple times but you should call it with the same protobuf type each time.
+</p>
+</li>
+<li>
+<p>
+The most common things to send with SendReply are a RDFURN or a StatEntry.
+</p>
+</li>
+</ul></div>
+</li>
+<li>
+<p>
+Handling Responses
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+Each flow state gets called with a responses object as the argument, the
+ object is a little magical as it has attributes and is also an iterable.
+</p>
+</li>
+<li>
+<p>
+If responses.success is True, then no error was raised.
+</p>
+</li>
+<li>
+<p>
+Iterating over the response object will give you protobuf object each time.
+ For a ClientAction the type is specified by out_rdfvalue, otherwise you can
+ specify using first param of the @StateHandler to force a type.
+</p>
+</li>
+<li>
+<p>
+The number of responses you get directly correlates to the number of times
+ the ClientAction or Flow called SendReply().
+</p>
+</li>
+</ul></div>
+</li>
+<li>
+<p>
+Testing
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+Add any tests created to grr/lib/flows/tests.py
+</p>
+</li>
+<li>
+<p>
+Flows commonly use client actions. The test framework offers a client-mock to
+ automate flow testing defined grr/lib/test_lib.py
+</p>
+</li>
+<li>
+<p>
+To test some flows you&#8217;ll need client-side data, for this you can use a
+ client fixture, a fixture contains the client-side implementation of the
+ testing code for the client actions.
+</p>
+</li>
+<li>
+<p>
+The default fixture for file system related testing is
+ ClientVFSHandlerFixture. See grr/test_data/client_fixture.py. It contains the
+ AFF4 data of a client defined in Python.
+</p>
+</li>
+</ul></div>
+</li>
+<li>
+<p>
+Deployment
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+If the flow is to be sent to the main codebase, put it in
+ grr/lib/flows/general and add it to grr/lib/flows/general/<em>init</em>.py
+</p>
+</li>
+<li>
+<p>
+Otherwise you can add them to grr/lib/local/ and the <em>init</em>.py there to
+ keep your local code separate from the main codebase.
+</p>
+</li>
+</ul></div>
+</li>
+</ol></div>
 </div>
 </div>
 </div>

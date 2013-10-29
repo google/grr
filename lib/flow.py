@@ -768,7 +768,7 @@ class GRRFlow(aff4.AFF4Volume):
 
       flow_obj.Close()
 
-    # Publish an audit event, only for top level flows.
+      # Publish an audit event, only for top level flows.
       if parent_flow is None:
         Events.PublishEvent("Audit",
                             rdfvalue.AuditEvent(user=token.username,
@@ -793,16 +793,15 @@ class GRRFlow(aff4.AFF4Volume):
       FlowError: If the flow can not be found.
     """
     if not force:
-      lock_manager = aff4.FACTORY.OpenWithLock(flow_id, blocking=True,
-                                               token=token)
+      flow_obj = aff4.FACTORY.OpenWithLock(flow_id, blocking=True,
+                                           token=token)
     else:
-      lock_manager = aff4.LockContextManager(
-          aff4.FACTORY.Open(flow_id, mode="rw", token=token), sync=True)
+      flow_obj = aff4.FACTORY.Open(flow_id, mode="rw", token=token)
 
-    with lock_manager as flow_obj:
-      if not flow_obj:
-        raise FlowError("Could not terminate flow %s" % flow_id)
+    if not flow_obj:
+      raise FlowError("Could not terminate flow %s" % flow_id)
 
+    with flow_obj:
       with flow_obj.GetRunner() as runner:
         if not runner.IsRunning():
           return

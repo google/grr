@@ -43,62 +43,76 @@ db@host:$
 User Management
 ---------------
 
-Security Managers and User Managers.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-GRR supports the ideas of a User Manager and a separate Security Manager.
-The User Manager handles authentication, setting passwords and managing labels
-for those users.
-The Security Manager (Datastore.security_manager config option) handles
-authorizing those users to resources based on a set of rules.
+GRR has a concept of users of the system. The GUI supports authentication and
+this verfication of user identity is used in all auditing functions (So for
+example GRR can properly record which user accessed which client, and who
+executed flows on clients).
 
-By default GRR will use the ConfigBasedUserManager which manages the users in a
-basic format inside the ["Users"] section of the configuration file.
-
-The default Security Manager is the BasicAccessControlManager. This manager
-provides rudimentary Admin/Non-Admin functionality, but very little else. See
-the Auditing section for a discussion on the FullAccessControlManager.
-
-Adding and Updating Users.
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you are using the ConfigBasedUserManager (default) then you can add users
-with config updater.
+Users are modeled in the data store as AFF4 objects called GRRUser. These
+normally reside in the directory 'aff4:/users/<username>'. To manage users it is
+possible to use the config_updater.py script:
 
 To add the user joe as an admin:
 [source,shell]
 --------------------------------------------------------------------------------
 db@host:~$ sudo grr_config_updater add_user --username joe
 Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
-Please enter password for user joe:
-db@host:~$
+Please enter password for user 'joe':
+Updating user joe
+
+Username: joe
+Labels:
+Password: set
 --------------------------------------------------------------------------------
 
-To add the user bob as a non-admin, with password test1234 and with the
-additional labels label1,label2:
+To list all users:
 [source,shell]
 --------------------------------------------------------------------------------
-db@host:~$ sudo grr_config_updater add_user --username bob --noadmin --password
-test1234 --label label1 --label label2
+db@host:~$ sudo grr_config_updater show_user
 Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
-db@host:~$
+
+Username: test
+Labels:
+Password: set
+
+Username: admin
+Labels: admin
+Password: set
 --------------------------------------------------------------------------------
 
-To then update bob to an admin and set the labels to just label1
-[source,shell]
+To update a user (useful for setting labels or for changing passwords):
 --------------------------------------------------------------------------------
-db@host:~$ sudo grr_config_updater update_user --username bob --label label1
+db@host:~$ sudo grr_config_updater update_user joe --label admin,user
 Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
-db@host:~$
+Updating user joe
+
+Username: joe
+Labels: admin,user
+Password: set
 --------------------------------------------------------------------------------
+
+Security Managers.
+~~~~~~~~~~~~~~~~~~
+
+GRR supports the ideas of a Security Manager. The Security Manager
+(Datastore.security_manager config option) handles authorizing those users to
+resources based on a set of rules.
+
+The default Security Manager is the BasicAccessControlManager. This manager
+provides rudimentary Admin/Non-Admin functionality, but very little else. See
+the Auditing section for a discussion on the FullAccessControlManager.
+
 
 Authentication to the Admin UI.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Given the sensitivity of the data that GRR ends up holding, it is important to
-protect access to it. The AdminUI by default uses weak digest authentication,
-based on the users stored in the config file.
-However, we support the idea of a Webauth Manager
-(AdminUI.webauth_manager config option). This allows for customization to use an
-SSO or SAML based authentication mechanism. However, while we try and make it
-easy to integrate, this kind of auth is not currently built into GRR.
+protect access to it. The AdminUI by default uses basic authentication, based on
+the passwords within the user objects stored in the data store.  However, we
+support the idea of a Webauth Manager (AdminUI.webauth_manager config
+option). This allows for customization to use an SSO or SAML based
+authentication mechanism. However, while we try and make it easy to integrate,
+this kind of auth is not currently built into GRR.
 
 
 Security Considerations
@@ -482,31 +496,34 @@ The client has numerous configuration parameters that control its behavior, the
 following explains some key ones you might want to change:
 
 [horizontal]
-.Keys you might want to change that affect behavior of the client
-Client.poll_max:: Maximum number of seconds between polls to the server.
-Client.foreman_check_frequency:: How often to check for foreman jobs (hunts).
-Client.rss_max:: Maximum memory for the client to use.
-Client.location:: The URL to contact the server on.
-Client.proxy_servers:: A list of proxy servers to try.
-Logging.verbose:: Enable more verbose logging.
-Logging.engines:: Enable or disable syslog, event logs or file logs.
-Logging.path:: Where log files get written to.
+Client Behavior Keys:: Keys which affect behavior of the client. Should take
+affect on client restart.
+Client.poll_max::: Maximum number of seconds between polls to the server.
+Client.foreman_check_frequency::: How often to check for foreman jobs (hunts).
+Client.rss_max::: Maximum memory for the client to use.
+Client.location::: The URL to contact the server on.
+Client.proxy_servers::: A list of proxy servers to try.
+Logging.verbose::: Enable more verbose logging.
+Logging.engines::: Enable or disable syslog, event logs or file logs.
+Logging.path::: Where log files get written to.
 
 [horizontal]
-.Keys you might want to change to affect obfuscation
-Client.name:: The base name of the client. Changing this to Foo will change
-the running binary to Foo.exe and Fooservice.exe on Windows.
-Client.config_key:: The registry key to store config data on Windows
-Client.location:: The URL to contact the server on.
-Client.plist_path:: Where to store the plist on OSX.
-MemoryDriver.display_name:: Description of the service used for the memory
-driver on Windows
-MemoryDriver.service_name:: Name of the service used for the memory driver on
-Windows
-MemoryDriver.install_write_path:: Path to write the memory driver to.
-Nanny.service_name:: Name of the Windows service the nanny runs as.
-Nanny.service_description:: Description of the Windows service the nanny runs
-as.
+Obfuscation Related Keys:: Keys you might want to change to affect obfuscation,
+these will require a rebuild.
+    Client.name::: The base name of the client. Changing this to Foo will change
+    the running binary to Foo.exe and Fooservice.exe on Windows.
+    Client.config_key::: The registry key to store config data on Windows
+    Client.location::: The URL to contact the server on.
+    Client.plist_path::: Where to store the plist on OSX.
+    MemoryDriver.display_name::: Description of the service used for the memory
+    driver on Windows
+    MemoryDriver.service_name::: Name of the service used for the memory driver
+    on Windows
+    MemoryDriver.install_write_path::: Path to write the memory driver to.
+    Nanny.service_name::: Name of the Windows service the nanny runs as.
+    Nanny.service_description::: Description of the Windows service the nanny
+    runs as.
+    ClientBuilder.console::: Affects whether the installer is silent.
 
 For a full list of available options you can run `grr_server --config-help` and
 look for `Client`, `Nanny` and `Logging` options.

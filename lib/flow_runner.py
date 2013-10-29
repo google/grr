@@ -251,6 +251,9 @@ class FlowRunner(object):
 
         if isinstance(payload, rdfvalue.GrrStatus):
           msg.type = rdfvalue.GrrMessage.Type.STATUS
+      else:
+        raise FlowRunnerError("Bad message %s of type %s." % (payload,
+                                                              type(payload)))
 
       self.QueueResponse(msg)
 

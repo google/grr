@@ -86,12 +86,12 @@ Status: {{this.icon|safe}}
       # Also check for proper access.
       aff4.FACTORY.Open(client.urn.Add("fs"), token=request.token)
 
-      self.icon = OnlineStateIcon(age).RawHTML()
+      self.icon = OnlineStateIcon(age).RawHTML(request)
       self.last_seen_msg = FormatLastSeenTime(age)
 
       ip = client.Get(client.Schema.CLIENT_IP)
       (status, description) = utils.RetrieveIPInfo(ip)
-      self.ip_icon = IPStatusIcon(status).RawHTML()
+      self.ip_icon = IPStatusIcon(status).RawHTML(request)
       self.ip_description = description
 
     return super(StatusRenderer, self).Layout(request, response)

@@ -14,6 +14,7 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import stats
 from grr.lib import utils
 from grr.lib.flows.cron import system
 from grr.proto import flows_pb2
@@ -120,6 +121,7 @@ class CronManager(object):
           except Exception as e:  # pylint: disable=broad-except
             logging.exception("Error processing cron job %s: %s",
                               cron_job.urn, e)
+            stats.STATS.IncrementCounter("cron_internal_error")
 
       except aff4.LockError:
         pass
@@ -234,6 +236,11 @@ class CronJob(aff4.AFF4Volume):
         "The last time this cron job ran.", "last_run",
         versioned=False, lock_protected=True)
 
+    LAST_RUN_STATUS = aff4.Attribute(
+        "aff4:cron/last_run_status", rdfvalue.CronJobRunStatus,
+        "Result of the last flow", lock_protected=True,
+        creates_new_object_version=False)
+
   def IsRunning(self):
     """Returns True if there's a currently running iteration of this job."""
     current_urn = self.Get(self.Schema.CURRENT_FLOW_URN)
@@ -276,6 +283,11 @@ class CronJob(aff4.AFF4Volume):
     if current_flow_urn:
       flow.GRRFlow.TerminateFlow(current_flow_urn, reason=reason, force=force,
                                  token=self.token)
+      self.Set(self.Schema.LAST_RUN_STATUS,
+               rdfvalue.CronJobRunStatus(
+                   status=rdfvalue.CronJobRunStatus.Status.TIMEOUT))
+      self.DeleteAttribute(self.Schema.CURRENT_FLOW_URN)
+      self.Flush()
 
   def KillOldFlows(self):
     """Disable cron flow if it has exceeded CRON_ARGS.lifetime.
@@ -290,6 +302,10 @@ class CronJob(aff4.AFF4Volume):
 
       if lifetime and elapsed > lifetime.seconds:
         self.StopCurrentRun()
+        stats.STATS.IncrementCounter("cron_job_timeout",
+                                     fields=[self.urn.Basename()])
+        stats.STATS.RecordEvent("cron_job_latency", elapsed,
+                                fields=[self.urn.Basename()])
         return True
 
     return False
@@ -319,6 +335,22 @@ class CronJob(aff4.AFF4Volume):
       current_flow = aff4.FACTORY.Open(current_flow_urn, token=self.token)
       with current_flow.GetRunner() as runner:
         if not runner.IsRunning():
+          if runner.context.state == rdfvalue.Flow.State.ERROR:
+            self.Set(self.Schema.LAST_RUN_STATUS,
+                     rdfvalue.CronJobRunStatus(
+                         status=rdfvalue.CronJobRunStatus.Status.ERROR))
+            stats.STATS.IncrementCounter("cron_job_failure",
+                                         fields=[self.urn.Basename()])
+          else:
+            self.Set(self.Schema.LAST_RUN_STATUS,
+                     rdfvalue.CronJobRunStatus(
+                         status=rdfvalue.CronJobRunStatus.Status.OK))
+
+            start_time = self.Get(self.Schema.LAST_RUN_TIME)
+            elapsed = time.time() - start_time.AsSecondsFromEpoch()
+            stats.STATS.RecordEvent("cron_job_latency", elapsed,
+                                    fields=[self.urn.Basename()])
+
           self.DeleteAttribute(self.Schema.CURRENT_FLOW_URN)
           self.Flush()
 
@@ -345,7 +377,17 @@ class CronHook(registry.InitHook):
   pre = ["AFF4InitHook"]
 
   def RunOnce(self):
+    """Main CronHook method."""
+    stats.STATS.RegisterCounterMetric("cron_internal_error")
+    stats.STATS.RegisterCounterMetric("cron_job_failure",
+                                      fields=[("cron_job_name", str)])
+    stats.STATS.RegisterCounterMetric("cron_job_timeout",
+                                      fields=[("cron_job_name", str)])
+    stats.STATS.RegisterEventMetric("cron_job_latency",
+                                    fields=[("cron_job_name", str)])
+
     # Start the cron thread if configured to.
     if config_lib.CONFIG["Cron.active"]:
+
       self.cron_worker = CronWorker()
       self.cron_worker.RunAsync()

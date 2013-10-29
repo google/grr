@@ -5,17 +5,9 @@
 # This stops all services to release any caches then deletes the database.
 #
 
-SERVICES="grr-single-server grr-http-server grr-ui grr-enroller grr-worker"
+source "$(dirname $0)/shell_helpers.sh"
 
-for SVC in $SERVICES
-do
-  service $SVC stop;
-done
-
+stop_services $GRR_SERVICES
 echo "Dropping database"
 echo "db.dropDatabase()" |  mongo grr
-
-for SVC in $SERVICES
-do
-  service $SVC start;
-done
+start_services $GRR_SERVICES

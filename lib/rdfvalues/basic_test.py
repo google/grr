@@ -113,6 +113,41 @@ class RDFDatetimeTest(test_base.RDFValueTestCase):
     finally:
       time.time = orig_time
 
+  def testAddNumber(self):
+    date = rdfvalue.RDFDatetime(1e9)
+    self.assertEqual(int(date + 60), 1e9 + 60e6)
+    self.assertEqual(int(date + 1000.23), 1e9 + 1000230e3)
+    self.assertEqual(int(date + (-10)), 1e9 - 10e6)
+
+  def testSubNumber(self):
+    date = rdfvalue.RDFDatetime(1e9)
+    self.assertEqual(int(date - 60), 1e9 - 60e6)
+    self.assertEqual(int(date - (-1000.23)), 1e9 + 1000230e3)
+    self.assertEqual(int(date - 1e12), 1e9 - 1e18)
+
+  def testAddDuration(self):
+    duration = rdfvalue.Duration("12h")
+    date = rdfvalue.RDFDatetime(1e9)
+    self.assertEqual(int(date + duration), 1e9 + 12 * 3600e6)
+    duration = rdfvalue.Duration("-60s")
+    self.assertEqual(int(date + duration), 1e9 - 60e6)
+
+  def testSubDuration(self):
+    duration = rdfvalue.Duration("5m")
+    date = rdfvalue.RDFDatetime(1e9)
+    self.assertEqual(int(date - duration), 1e9 - 5 * 60e6)
+    duration = rdfvalue.Duration("-60s")
+    self.assertEqual(int(date - duration), 1e9 + 60e6)
+    duration = rdfvalue.Duration("1w")
+    self.assertEqual(int(date - duration), 1e9 - 7 * 24 * 3600e6)
+
+  def testAddSubDatetime(self):
+    date1 = rdfvalue.RDFDatetime(1e9)
+    date2 = rdfvalue.RDFDatetime(2e9)
+    self.assertEqual(int(date1 + date2), 3e9)
+    self.assertEqual(int(date2 - date1), 1e9)
+    self.assertEqual(int(date1 - date2), 1e9 - 2e9)
+
 
 class RDFDatetimeSecondsTest(RDFDatetimeTest):
   rdfvalue_class = rdfvalue.RDFDatetimeSeconds

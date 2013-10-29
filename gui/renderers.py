@@ -241,7 +241,8 @@ class UserLabelCheckMixin(object):
   def CheckAccess(cls, request):
     """If the user is not in the AUTHORIZED_LABELS, reject this renderer."""
     if data_store.DB.security_manager.CheckUserLabels(
-        request.token.username, cls.AUTHORIZED_LABELS):
+        request.token.username, cls.AUTHORIZED_LABELS,
+        token=request.token):
       return
     raise access_control.UnauthorizedAccess("User %s not allowed." %
                                             request.token.username)
@@ -420,6 +421,7 @@ class TableRenderer(TemplateRenderer):
     # A list of columns
     self.columns = []
     self.column_dict = {}
+    self.row_classes_dict = {}
     # Number of rows
     self.size = 0
     self.message = ""
@@ -477,6 +479,12 @@ class TableRenderer(TemplateRenderer):
       return self.column_dict[column_name].GetElement(row_index)
     except KeyError:
       pass
+
+  def SetRowClass(self, row_index, value):
+    if row_index is None:
+      row_index = self.size
+
+    self.row_classes_dict[row_index] = value
 
   def AddCell(self, row_index, column_name, value):
     if row_index is None:
@@ -619,6 +627,11 @@ class TableRenderer(TemplateRenderer):
     self.rows = []
     for index in xrange(start_row, end_row):
       row_options = {}
+      try:
+        row_options["class"] = self.row_classes_dict[index]
+      except KeyError:
+        pass
+
       row = []
       for c in self.columns:
         row.append(utils.SmartStr(c.RenderRow(index, request, row_options)))

@@ -710,8 +710,11 @@ class CentosClientDeployer(LinuxClientDeployer):
           homedir, "rpmbuild/RPMS/x86_64",
           "%s-%s-1.x86_64.rpm" % (client_name, client_version))
 
-      print "Created package %s" % rpm_filename
-      return rpm_filename
+      self.EnsureDirExists(os.path.dirname(output_path))
+      shutil.move(rpm_filename, output_path)
+
+      print "Created package %s" % output_path
+      return output_path
 
 
 def CopyFileInZip(from_zip, from_name, to_zip, to_name=None):

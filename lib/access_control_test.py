@@ -243,28 +243,22 @@ class AccessControlTest(test_lib.GRRBaseTest):
                       aff4.FACTORY.Open, "aff4:/foreman", token=token)
 
     # Make sure the user themselves can not create the labels object.
-    fd = aff4.FACTORY.Create("aff4:/users/test/labels", "AFF4Object",
-                             token=token)
-
-    labels = fd.Schema.LABEL()
-    labels.Append("admin")
-    fd.Set(labels)
-
-    # The write will fail due to access denied!
-    self.assertRaises(access_control.UnauthorizedAccess, fd.Close)
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      with aff4.FACTORY.Create("aff4:/users/test/labels", "AFF4Object",
+                               token=token) as fd:
+        label = fd.Schema.LABEL()
+        label.Append("admin")
+        fd.Set(label)
 
     # We need a supervisor to manipulate a user's ACL token:
     super_token = access_control.ACLToken(username="test")
     super_token.supervisor = True
 
     # Make the user an admin user now, this time with the supervisor token.
-    fd = aff4.FACTORY.Create("aff4:/users/test/labels", "AFF4Object",
-                             token=super_token)
+    with aff4.FACTORY.Create("aff4:/users/test", "GRRUser",
+                             token=super_token) as fd:
 
-    labels = fd.Schema.LABEL()
-    labels.Append("admin")
-    fd.Set(labels)
-    fd.Close()
+      fd.SetLabels("admin")
 
     # Now we are allowed.
     aff4.FACTORY.Open("aff4:/foreman", token=token)

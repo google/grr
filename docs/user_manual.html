@@ -1037,7 +1037,7 @@ In windows, set the registry key poll_max to 10, then restart the service. You
 can do this with regedit or via the Windows command line:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>C:\Windows\system32&gt;reg add HKLM\Software\GRR\Client /v poll_max /d 10
+<pre><tt>C:\Windows\system32&gt;reg add HKLM\Software\GRR /v Client.poll_max /d 10
 The operation completed successfully.
 
 C:\Windows\system32&gt;net stop "grr monitor"
@@ -2789,8 +2789,8 @@ the filesystem.</p></div>
 <div class="sect1">
 <h2 id="_the_console">The Console</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>The GRR console gives you an interactive ipython shell with all the right
-imports to do pretty much whatever you want.</p></div>
+<div class="paragraph"><p>The GRR console <tt>grr_console</tt> gives you an interactive ipython shell with all
+the right imports to do pretty much whatever you want.</p></div>
 <div class="sect2">
 <h3 id="_running_a_simple_flow_list_processes">Running a Simple Flow - List Processes</h3>
 <div class="paragraph"><p>Run the ListProcesses flow and look at the output.</p></div>
@@ -2806,7 +2806,7 @@ imports to do pretty much whatever you want.</p></div>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>PYTHONPATH=. python grr/tools/console.py
+<pre><tt>grr_console
 
 In [31]: flow.GRRFlow.ListProcesses?
 Type:       MetaclassRegistry

@@ -609,6 +609,23 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(results[0].ip4_addresses, "127.0.0.1 10.0.0.1")
     self.assertEqual(results[0].ip6_addresses, "2001:720:1500:1::a100")
 
+  def testGetMetadata(self):
+    client_urn = rdfvalue.ClientURN("C.0000000000000000")
+    test_lib.ClientFixture(client_urn, token=self.token)
+    metadata = export.GetMetadata(client_urn, token=self.token)
+    self.assertEqual(metadata.os, u"Windows")
+    self.assertEqual(metadata.labels, u"")
+
+    # Now set CLIENT_INFO with labels
+    client_info = rdfvalue.ClientInformation(client_name="grr",
+                                             labels=["a", "b"])
+    client = aff4.FACTORY.Open(client_urn, mode="rw", token=self.token)
+    client.Set(client.Schema.CLIENT_INFO(client_info))
+    client.Flush()
+    metadata = export.GetMetadata(client_urn, token=self.token)
+    self.assertEqual(metadata.os, u"Windows")
+    self.assertEqual(metadata.labels, u"a,b")
+
   def testClientSummaryToExportedClientConverter(self):
     client_summary = rdfvalue.ClientSummary()
     metadata = rdfvalue.ExportedMetadata(hostname="ahostname")

@@ -162,6 +162,8 @@ class ConfigFileTable(fileview.AbstractFileTable):
   root_path = "/config"
   toolbar = "ConfigFileTableToolbar"
 
+  context_help_url = "user_manual.html#_downloading_agents"
+
   def __init__(self, **kwargs):
     super(ConfigFileTable, self).__init__(**kwargs)
 

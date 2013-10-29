@@ -6,6 +6,9 @@
 """This is the interface for managing cron jobs."""
 
 
+import itertools
+import time
+
 from grr.gui import renderers
 from grr.gui.plugins import fileview
 from grr.gui.plugins import flow_management
@@ -146,14 +149,41 @@ class CronTable(renderers.TableRenderer):
     response = super(CronTable, self).Layout(request, response)
     return self.CallJavascript(response, "CronTable.Layout")
 
+  def IsCronJobFailing(self, cron_job):
+    """Returns True if there are more than 1 failures during last 4 runs."""
+    statuses = itertools.islice(
+        cron_job.GetValuesForAttribute(cron_job.Schema.LAST_RUN_STATUS), 0, 4)
+
+    failures_count = 0
+    for status in statuses:
+      if status.status != rdfvalue.CronJobRunStatus.Status.OK:
+        failures_count += 1
+
+    return failures_count >= 2
+
+  def IsCronJobStuck(self, cron_job):
+    """Returns True if more than "2 * periodicity" has passed since last run."""
+    last_run_time = cron_job.Get(cron_job.Schema.LAST_RUN_TIME)
+    if not last_run_time:
+      return True
+
+    periodicity = cron_job.Get(cron_job.Schema.CRON_ARGS).periodicity
+    return (time.time() - last_run_time.AsSecondsFromEpoch() >
+            periodicity.seconds * 2)
+
   def BuildTable(self, start_row, end_row, request):
     """Renders the table."""
     cron_jobs_urns = list(cronjobs.CRON_MANAGER.ListJobs(token=request.token))
     cron_jobs = aff4.FACTORY.MultiOpen(
         cron_jobs_urns[start_row:end_row], aff4_type="CronJob",
-        token=request.token)
+        token=request.token, age=aff4.ALL_TIMES)
 
     for i, cron_job in enumerate(cron_jobs):
+      if self.IsCronJobFailing(cron_job):
+        self.SetRowClass(i + start_row, "error")
+      elif self.IsCronJobStuck(cron_job):
+        self.SetRowClass(i + start_row, "warning")
+
       cron_args = cron_job.Get(cron_job.Schema.CRON_ARGS)
       if cron_args is not None:
         self.AddCell(i + start_row, "State",

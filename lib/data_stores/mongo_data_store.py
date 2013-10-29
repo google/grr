@@ -161,6 +161,9 @@ class MongoDataStore(data_store.DataStore):
       raise NotImplementedError("Mongo data store does not support timestamp "
                                 "based deletion yet.")
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
+    if not attributes:
+      # Nothing to delete.
+      return
 
     # Build a spec to select the subject and any of the predicates.
     spec = {"$and": [

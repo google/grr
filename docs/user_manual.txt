@@ -255,7 +255,7 @@ off to 10 minutes and you have to wait, you should change the configuration.
 In windows, set the registry key poll_max to 10, then restart the service. You
 can do this with regedit or via the Windows command line:
 ---------------------------------------------------------------------------
-C:\Windows\system32>reg add HKLM\Software\GRR\Client /v poll_max /d 10
+C:\Windows\system32>reg add HKLM\Software\GRR /v Client.poll_max /d 10
 The operation completed successfully.
 
 C:\Windows\system32>net stop "grr monitor"
@@ -1454,8 +1454,8 @@ db@grrhost: ~$ grr_file_exporter --collection=aff4:/hunts/W:123456/Results --out
 The Console
 -----------
 
-The GRR console gives you an interactive ipython shell with all the right
-imports to do pretty much whatever you want.
+The GRR console `grr_console` gives you an interactive ipython shell with all
+the right imports to do pretty much whatever you want.
 
 Running a Simple Flow - List Processes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1469,7 +1469,7 @@ Run the ListProcesses flow and look at the output.
 
 [source, shell]
 --------------------------------------------------------------------------
-PYTHONPATH=. python grr/tools/console.py
+grr_console
 
 In [31]: flow.GRRFlow.ListProcesses?
 Type:       MetaclassRegistry

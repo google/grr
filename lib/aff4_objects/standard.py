@@ -208,7 +208,7 @@ class BlobImage(aff4.AFF4Image):
       try:
         fd = aff4.FACTORY.Open(blob_urn, "AFF4MemoryStream", mode="r",
                                token=self.token)
-      except aff4.InstanciationError:
+      except IOError:
         fd = aff4.FACTORY.Create(blob_urn, "AFF4MemoryStream", mode="w",
                                  token=self.token)
         fd.Write(blob)
@@ -465,3 +465,13 @@ class AFF4Index(aff4.AFF4Object):
     column_name = "index:%s:%s:%s" % (
         attribute.predicate, value.lower(), urn)
     self.to_delete.add(column_name)
+
+
+class TempFile(aff4.AFF4MemoryStream):
+  """A temporary file (with a random URN) to store an RDFValue."""
+
+  def __init__(self, urn, **kwargs):
+    if urn is None:
+      urn = rdfvalue.RDFURN("aff4:/tmp").Add("%X" % utils.PRNG.GetULong())
+
+    super(TempFile, self).__init__(urn, **kwargs)

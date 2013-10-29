@@ -19,8 +19,12 @@ class UnauthorizedRenderer(renderers.TemplateRenderer):
 
   layout_template = renderers.Template("""
 <script>
-  grr.publish("unauthorized", "{{this.subject|escapejs}}",
-              "{{this.message|escapejs}}");
+  var subject = null;
+  {% if this.subject %}
+  subject = "{{this.subject|escapejs}}";
+  {% endif %}
+  grr.publish("unauthorized", subject, "{{this.message|escapejs}}");
+  grr.publish("grr_messages", "{{this.message|escapejs}}");
 </script>
 """)
 
@@ -66,7 +70,9 @@ $("#acl_dialog_submit").click(function (event) {
 });
 
 grr.subscribe("unauthorized", function(subject, message) {
-  grr.layout("CheckAccess", "acl_form", {subject: subject});
+  if (subject) {
+    grr.layout("CheckAccess", "acl_form", {subject: subject});
+  };
 }, "acl_dialog");
 
 </script>

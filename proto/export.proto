@@ -55,6 +55,9 @@ message ExportedMetadata {
       type: "SessionID",
       description: "Session id of a hunt that collected the data."
     }];
+  optional string labels = 12 [(sem_type) = {
+      description: "CSV list of client labels."
+    }];
 }
 
 

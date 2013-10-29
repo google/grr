@@ -99,7 +99,7 @@ class ExportConverter(object):
     """Converts given RDFValue to other RDFValues.
 
     Args:
-      metadata: ExporteMetadata to be used for conversion.
+      metadata: ExportedMetadata to be used for conversion.
       value: RDFValue to be converted.
       token: Security token.
 
@@ -177,7 +177,7 @@ class StatEntryToExportedFileConverter(ExportConverter):
     Does nothing if StatEntry corresponds to a registry entry and not to a file.
 
     Args:
-      metadata: ExporteMetadata to be used for conversion.
+      metadata: ExportedMetadata to be used for conversion.
       stat_entry: StatEntry to be converted.
       token: Security token.
 
@@ -263,7 +263,7 @@ class StatEntryToExportedRegistryKeyConverter(ExportConverter):
     Does nothing if StatEntry corresponds to a file and nto a registry entry.
 
     Args:
-      metadata: ExporteMetadata to be used for conversion.
+      metadata: ExportedMetadata to be used for conversion.
       stat_entry: StatEntry to be converted.
       token: Security token.
 
@@ -603,7 +603,7 @@ class GrrMessageConverter(ExportConverter):
     """Converts GrrMessage into a set of RDFValues.
 
     Args:
-      metadata: ExporteMetadata to be used for conversion.
+      metadata: ExportedMetadata to be used for conversion.
       stat_entry: StatEntry to be converted.
       token: Security token.
 
@@ -689,7 +689,7 @@ class FileStoreImageToExportedFileStoreHashConverter(ExportConverter):
     Does nothing if StatEntry corresponds to a registry entry and not to a file.
 
     Args:
-      metadata: ExporteMetadata to be used for conversion.
+      metadata: ExportedMetadata to be used for conversion.
       stat_entry: StatEntry to be converted.
       token: Security token.
 
@@ -758,6 +758,10 @@ def GetMetadata(client, token=None):
 
   metadata.mac_address = utils.SmartUnicode(
       client_fd.Get(client_fd.Schema.MAC_ADDRESS, u""))
+
+  client_info = client_fd.Get(client_fd.Schema.CLIENT_INFO)
+  if client_info is not None:
+    metadata.labels = u",".join(client_info.labels)
 
   return metadata
 

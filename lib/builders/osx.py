@@ -103,13 +103,13 @@ class DarwinClientBuilder(build.ClientBuilder):
           ["Client Context"] + self.context, validate=False))
 
     print "Fixing file ownership and permissions"
-    command = ["sudo", "chown", "-R", "root:wheel", self.build_dir]
 
+    command = ["sudo", "/usr/sbin/chown", "-R", "root:wheel", self.build_dir]
     # Change the owner, group and permissions of the binaries
     print "Running: %s" % " ".join(command)
     subprocess.call(command)
 
-    command = ["sudo", "chmod", "-R", "755", self.build_dir]
+    command = ["sudo", "/bin/chmod", "-R", "755", self.build_dir]
 
     print "Running: %s" % " ".join(command)
     subprocess.call(command)
@@ -135,3 +135,9 @@ class DarwinClientBuilder(build.ClientBuilder):
                                                               output_tmpl_path)
     self.EnsureDirExists(os.path.dirname(output_tmpl_path))
     shutil.copyfile(output_pkg_path, output_tmpl_path)
+
+    # Change the owner, group and permissions of the binaries back.
+    command = ["sudo", "/usr/sbin/chown", "-R",
+               "grr-build:staff", self.build_dir]
+    print "Running: %s" % " ".join(command)
+    subprocess.call(command)

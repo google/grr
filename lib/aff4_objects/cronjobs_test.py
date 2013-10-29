@@ -10,6 +10,7 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
+from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib.aff4_objects import cronjobs
 
@@ -21,6 +22,23 @@ class FakeCronJob(flow.GRRFlow):
   @flow.StateHandler(next_state="End")
   def Start(self):
     self.CallState(next_state="End")
+
+
+class FailingFakeCronJob(flow.GRRFlow):
+  """A Cron job that only fails."""
+
+  @flow.StateHandler(next_state="End")
+  def Start(self):
+    raise RuntimeError("Oh, no!")
+
+
+class OccasionallyFailingFakeCronJob(flow.GRRFlow):
+  """A Cron job that only fails."""
+
+  @flow.StateHandler(next_state="End")
+  def Start(self):
+    if time.time() > 30:
+      raise RuntimeError("Oh, no!")
 
 
 class CronTest(test_lib.GRRBaseTest):
@@ -307,20 +325,100 @@ class CronTest(test_lib.GRRBaseTest):
       self.assertTrue(cron_job.IsRunning())
       self.assertFalse(cron_job.KillOldFlows())
 
+    prev_timeout_value = stats.STATS.GetMetricValue(
+        "cron_job_timeout", fields=[cron_job_urn.Basename()])
+    prev_latency_value = stats.STATS.GetMetricValue(
+        "cron_job_latency", fields=[cron_job_urn.Basename()])
+
     # Fast foward one day
     with test_lib.Stubber(time, "time", lambda: 24*60*60 + 1):
+      flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
+
       cron_manager.RunOnce(token=self.token)
       cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
                                    token=self.token)
       self.assertFalse(cron_job.IsRunning())
 
       # Check the termination log
-      flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
-
       current_flow = aff4.FACTORY.Open(urn=flow_urn,
                                        token=self.token, mode="r")
       log = current_flow.Get(current_flow.Schema.LOG)
       self.assertTrue("lifetime exceeded" in str(log))
+
+      # Check that timeout counter got updated.
+      current_timeout_value = stats.STATS.GetMetricValue(
+          "cron_job_timeout", fields=[cron_job_urn.Basename()])
+      self.assertEqual(current_timeout_value - prev_timeout_value, 1)
+
+      # Check that latency stat got updated.
+      current_latency_value = stats.STATS.GetMetricValue(
+          "cron_job_latency", fields=[cron_job_urn.Basename()])
+      self.assertEqual(current_latency_value.count - prev_latency_value.count,
+                       1)
+      self.assertEqual(current_latency_value.sum - prev_latency_value.sum,
+                       24*60*60 + 1)
+
+  def testFailedFlowUpdatesStats(self):
+    cron_manager = cronjobs.CronManager()
+    cron_args = rdfvalue.CreateCronJobFlowArgs(allow_overruns=False,
+                                               periodicity="1d")
+    cron_args.flow_runner_args.flow_name = "FailingFakeCronJob"
+
+    cron_job_urn = cron_manager.ScheduleFlow(cron_args=cron_args,
+                                             token=self.token)
+
+    prev_metric_value = stats.STATS.GetMetricValue(
+        "cron_job_failure", fields=[cron_job_urn.Basename()])
+
+    cron_manager.RunOnce(token=self.token)
+    cron_job = aff4.FACTORY.Open(cron_job_urn, token=self.token)
+    cron_flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
+    for _ in test_lib.TestFlowHelper(cron_flow_urn,
+                                     check_flow_errors=False,
+                                     token=self.token):
+      pass
+    # This RunOnce call should determine that the flow has failed
+    cron_manager.RunOnce(token=self.token)
+
+    # Check that stats got updated
+    current_metric_value = stats.STATS.GetMetricValue(
+        "cron_job_failure", fields=[cron_job_urn.Basename()])
+    self.assertEqual(current_metric_value - prev_metric_value, 1)
+
+  def testLatencyStatsAreCorrectlyRecorded(self):
+    with test_lib.Stubber(time, "time", lambda: 0):
+      cron_manager = cronjobs.CronManager()
+      cron_args = rdfvalue.CreateCronJobFlowArgs()
+      cron_args.flow_runner_args.flow_name = "FakeCronJob"
+      cron_args.periodicity = "1w"
+
+      cron_job_urn = cron_manager.ScheduleFlow(cron_args=cron_args,
+                                               token=self.token)
+
+      cron_manager.RunOnce(token=self.token)
+
+    prev_metric_value = stats.STATS.GetMetricValue(
+        "cron_job_latency", fields=[cron_job_urn.Basename()])
+
+    # Fast foward one minute
+    with test_lib.Stubber(time, "time", lambda: 60):
+      cron_manager.RunOnce(token=self.token)
+      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+                                   token=self.token)
+      cron_flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
+      for _ in test_lib.TestFlowHelper(cron_flow_urn,
+                                       check_flow_errors=False,
+                                       token=self.token):
+        pass
+
+      # This RunOnce call should determine that the flow has finished
+      cron_manager.RunOnce(token=self.token)
+
+    # Check that stats got updated
+    current_metric_value = stats.STATS.GetMetricValue(
+        "cron_job_latency", fields=[cron_job_urn.Basename()])
+    self.assertEqual(current_metric_value.count - prev_metric_value.count, 1)
+    self.assertEqual(current_metric_value.sum - prev_metric_value.sum, 60)
 
   def testSchedulingJobWithFixedNamePreservesTheName(self):
     cron_manager = cronjobs.CronManager()
@@ -356,6 +454,44 @@ class CronTest(test_lib.GRRBaseTest):
                                  token=self.token)
     attr_values = list(cron_job.GetValuesForAttribute(cron_job.Schema.TYPE))
     self.assertTrue(len(attr_values) == 1)
+
+  def testLastRunStatusGetsUpdatedOnEveryRun(self):
+    cron_manager = cronjobs.CronManager()
+    cron_args = rdfvalue.CreateCronJobFlowArgs()
+    cron_args.flow_runner_args.flow_name = "OccasionallyFailingFakeCronJob"
+    cron_args.periodicity = "30s"
+
+    cron_job_urn = cron_manager.ScheduleFlow(cron_args=cron_args,
+                                             token=self.token)
+
+    for fake_time in [0, 60]:
+      with test_lib.Stubber(time, "time", lambda: fake_time):
+        # This call should start a new cron job flow
+        cron_manager.RunOnce(token=self.token)
+        cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+                                     token=self.token)
+        cron_flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
+        for _ in test_lib.TestFlowHelper(cron_flow_urn,
+                                         check_flow_errors=False,
+                                         token=self.token):
+          pass
+        # This RunOnce call should determine that the flow has finished
+        cron_manager.RunOnce(token=self.token)
+
+    cron_job = aff4.FACTORY.Open(cron_job_urn, age=aff4.ALL_TIMES,
+                                 token=self.token)
+    statuses = list(cron_job.GetValuesForAttribute(
+        cron_job.Schema.LAST_RUN_STATUS))
+
+    statuses = sorted(statuses, key=lambda x: x.age)
+    self.assertEqual(len(statuses), 2)
+
+    self.assertEqual(statuses[0].age,
+                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(0))
+    self.assertEqual(statuses[1].age,
+                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(60))
+    self.assertEqual(statuses[0].status, rdfvalue.CronJobRunStatus.Status.OK)
+    self.assertEqual(statuses[1].status, rdfvalue.CronJobRunStatus.Status.ERROR)
 
 
 def main(argv):

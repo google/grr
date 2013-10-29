@@ -64,7 +64,7 @@ class FlowTree(renderers.TreeRenderer):
       # label to see it.
       if cls.AUTHORIZED_LABELS:
         if not data_store.DB.security_manager.CheckUserLabels(
-            request.token.username, cls.AUTHORIZED_LABELS):
+            request.token.username, cls.AUTHORIZED_LABELS, token=request.token):
           continue
 
       # Skip if there are behaviours that are not supported by the class.
@@ -263,7 +263,7 @@ Please Select a flow to launch from the tree on the left.
      });
   }, '{{unique|escapejs}}');
 </script>
-""")
+""") + renderers.TemplateRenderer.help_template
 
   ajax_template = renderers.Template("""
 <pre>
@@ -294,6 +294,8 @@ grr.publish("grr_messages", "{{error|escapejs}}");
 grr.publish("grr_traceback", "{{error|escapejs}}");
 </script>
 """)
+
+  context_help_url = "user_manual.html#_flows"
 
   def Layout(self, request, response):
     """Render the form for creating the flow args."""

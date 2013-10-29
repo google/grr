@@ -105,10 +105,5 @@ def main(argv):
     pass
 
 
-def ConsoleMain():
-  """Helper function for calling with setup tools entry points."""
-  flags.StartMain(main)
-
-
 if __name__ == "__main__":
-  ConsoleMain()
+  flags.StartMain(main)

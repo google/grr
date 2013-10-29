@@ -1586,6 +1586,16 @@ message ClientSummary {
 }
 
 
+message CronJobRunStatus {
+  enum Status {
+    OK = 0;
+    TIMEOUT = 1;
+    ERROR = 2;
+  }
+
+  optional Status status = 1 [default = OK];
+}
+
 
 message EmptyMessage {
 }

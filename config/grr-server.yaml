@@ -6,8 +6,6 @@ AdminUI.bind: "::"
 
 AdminUI.django_debug: True
 
-AdminUI.django_secret_key: CHANGE_ME
-
 AdminUI.port: 8000
 
 AdminUI.url: http://localhost:8000
@@ -28,7 +26,7 @@ Client.version_major: 2
 
 Client.version_minor: 9
 
-Client.version_release: 0
+Client.version_release: 1
 
 Client.version_revision: 1
 
@@ -130,7 +128,7 @@ ClientBuilder Context:
     PyInstaller.build_dir: |
       %(PyInstaller.build_root_dir)/build
 
-    PyInstaller.build_root_dir: /grr-build
+    PyInstaller.build_root_dir: /usr/local/grr_build
 
     PyInstaller.distpath: |
       %(PyInstaller.dpkg_root)/debian/
@@ -141,6 +139,14 @@ ClientBuilder Context:
     PyInstaller.path: |
       %(PyInstaller.build_root_dir)/pyinstaller/pyinstaller.py
 
+    Target:LinuxRpm:
+      ClientBuilder.template_extension: .rpm.zip
+
+      ClientBuilder.output_extension: .rpm
+
+      ClientBuilder.target_dir: |
+        /usr/lib64/%(Client.name)/%(ClientBuilder.output_basename)
+
   Target:Windows:
     ClientBuilder.output_extension: .exe
 
@@ -150,6 +156,20 @@ ClientBuilder Context:
       %{C:\Program Files (x86)\Microsoft Visual Studio 10.0}
 
     PyInstaller.path: C:\\grr_build\\pyinstaller\\pyinstaller.py
+
+  ClientDebug Context:
+
+    Logging.verbose: True
+
+    ClientBuilder.console: True
+
+    Client.poll_max: 5
+
+    Client.foreman_poll_frequency: 30
+
+    Client.rss_max: 4000
+
+    Nanny.unresponsive_kill_period: 3600
 
 CommandLineTools Context:
   Logging.engines: stderr

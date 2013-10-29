@@ -2,10 +2,29 @@
 
 
 from grr.lib import access_control
-from grr.lib import config_lib
+from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import user_managers
+
+
+class GRRUserTest(test_lib.AFF4ObjectTest):
+  def testUserPasswords(self):
+    with aff4.FACTORY.Create("aff4:/users/test", "GRRUser",
+                             token=self.token) as user:
+      user.SetPassword("hello")
+
+    user = aff4.FACTORY.Open(user.urn, token=self.token)
+
+    self.assertFalse(user.CheckPassword("goodbye"))
+    self.assertTrue(user.CheckPassword("hello"))
+
+  def testLabels(self):
+    with aff4.FACTORY.Create("aff4:/users/test", "GRRUser",
+                             token=self.token) as user:
+      user.SetLabels("hello", "world")
+    user = aff4.FACTORY.Open(user.urn, token=self.token)
+    self.assertListEqual(["hello", "world"], user.GetLabels())
 
 
 class CheckAccessHelperTest(test_lib.GRRBaseTest):
@@ -80,49 +99,3 @@ class CheckAccessHelperTest(test_lib.GRRBaseTest):
                       rdfvalue.RDFURN("aff4:/some/other/path"),
                       self.token)
     self.assertTrue(self.helper.CheckAccess(self.subject, self.token))
-
-  def testUserManagement(self):
-    config_lib.CONFIG.Set("Users.authentication", "")
-    um = user_managers.ConfigBasedUserManager()
-
-    # Make sure we start from a clean state.
-    self.assertEquals(len(um._user_cache), 0)
-
-    um.AddUser("admin", password="admin", admin=True)
-
-    # There should be one user now.
-    self.assertEquals(len(um._user_cache), 1)
-
-    # Make sure we can authenticate.
-    class MyAuthObj(object):
-      pass
-    auth_obj = MyAuthObj()
-    auth_obj.user_provided_hash = "admin"
-    self.assertTrue(um.CheckUserAuth("admin", auth_obj))
-
-    # Change the password for the existing user.
-    um.AddUser("admin", password="new_pwd", admin=True)
-
-    # There should still only be one user.
-    self.assertEquals(len(um._user_cache), 1)
-
-    # Check old password, should not work.
-    self.assertFalse(um.CheckUserAuth("admin", auth_obj))
-
-    # Try the new password.
-    auth_obj.user_provided_hash = "new_pwd"
-    self.assertTrue(um.CheckUserAuth("admin", auth_obj))
-
-    # Now add a second user but do not provide a password.
-    self.assertRaises(RuntimeError, um.AddUser, ("johndoe"))
-
-    # Ok, lets provide one.
-    um.AddUser("johndoe", password="jane", labels=["label1", "label2"],
-               admin=True)
-
-    # There should be two now.
-    self.assertEquals(len(um._user_cache), 2)
-
-    # Make sure the admin label got added.
-    self.assertEquals(um._user_cache["johndoe"]["labels"],
-                      ["admin", "label1", "label2"])

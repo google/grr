@@ -50,7 +50,7 @@ class ClientCrashDetailsRenderer(semantic.RDFValueRenderer):
                                         main="ManageFlows"))
     client_info_renderer = semantic.FindRendererForObject(
         self.proxy.client_info)
-    self.client_info = client_info_renderer.RawHTML()
+    self.client_info = client_info_renderer.RawHTML(request)
     super(ClientCrashDetailsRenderer, self).Layout(request, response)
 
 

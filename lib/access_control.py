@@ -51,82 +51,7 @@ class ExpiryError(Error):
   counter = "grr_expired_tokens"
 
 
-class BaseUserManager(object):
-  """User management class.
-
-  Provides basic functionality for managing users.
-
-  Note: This class is only meant for simple implementations. In a significant
-    GRR implementation it is expected that user management will be
-    handled outside of GRR using an SSO or directory service implementation.
-  """
-
-  __metaclass__ = registry.MetaclassRegistry
-
-  def CheckUserLabels(self, username, authorized_labels):
-    """Verify that the username has one of the authorized_labels set.
-
-    Args:
-       username: The name of the user.
-       authorized_labels: A list of string labels.
-
-    Returns:
-      True if the user has one of the authorized_labels set.
-
-    Raises:
-      RuntimeError: On bad parameters.
-    """
-    if not username or not authorized_labels:
-      raise RuntimeError("Bad CheckUserLabels call.")
-    for label in self.GetUserLabels(username):
-      if label in authorized_labels:
-        return True
-    return False
-
-  def GetUserLabels(self, username):
-    """Get a list of the labels assigned to user."""
-
-  def AddUserLabels(self, username, labels):
-    """Add the labels to the specified user."""
-    self.SetUserLabels(username, list(self.GetUserLabels(username)) + labels)
-
-  def SetUserLabels(self, username, labels):
-    """Overwrite the current set of labels with a list of labels."""
-
-  def MakeUserAdmin(self, username):
-    """Shortcut to add the Admin label to a specific user."""
-    self.AddUserLabels(username, ["admin"])
-
-  # pylint: disable=unused-argument
-  def AddUser(self, username, password=None, admin=True, labels=None):
-    """Add a user.
-
-    Args:
-      username: User name to create.
-      password: Password to set.
-      admin: Should the user be made an admin.
-      labels: List of additional labels to add to the user.
-
-    Raises:
-      RuntimeError: On invalid arguments.
-      NotSupportedError: If unimplemented.
-    """
-    raise NotSupportedError("AddUser not supported by %s" %
-                            self.__class__.__name__)
-
-  def UpdateUser(self, username, password=None, admin=True, labels=None):
-    """Update the properties of an existing user."""
-    self.AddUser(username, password=password, admin=admin, labels=labels)
-
-  def CheckUserAuth(self, username, auth_obj):
-    """Update the properties of an existing user."""
-    raise NotSupportedError("UpdateUser not supported by %s" %
-                            self.__class__.__name__)
-
-  # pylint: enable=unused-argument
-
-
-class BaseAccessControlManager(object):
+class AccessControlManager(object):
   """A class for managing access to data resources.
 
   This class is responsible for determining which users have access to each
@@ -137,19 +62,6 @@ class BaseAccessControlManager(object):
   """
 
   __metaclass__ = registry.MetaclassRegistry
-
-  user_manager_cls = BaseUserManager
-
-  def __init__(self, user_manager_cls=None):
-    """Init.
-
-    Args:
-      user_manager_cls: Class to use for managing users.
-    """
-    if user_manager_cls is None and self.user_manager_cls:
-      self.user_manager = self.user_manager_cls()
-    elif user_manager_cls:
-      self.user_manager = user_manager_cls()
 
   def CheckHuntAccess(self, token, hunt_urn):
     """Checks access to the given hunt.
@@ -221,9 +133,9 @@ class BaseAccessControlManager(object):
     logging.debug("Checking %s: %s for %s", token, subjects, requested_access)
     raise NotImplementedError()
 
-  def CheckUserLabels(self, username, authorized_labels):
-    """Verify that the username has the authorized_labels set."""
-    return self.user_manager.CheckUserLabels(username, authorized_labels)
+  def CheckUserLabels(self, username, authorized_labels, token=None):
+    """Subclasses verify that the username has all the authorized_labels set."""
+    raise NotImplementedError()
 
 
 class ACLInit(registry.InitHook):
@@ -244,8 +156,7 @@ class ACLInit(registry.InitHook):
 # where they are defined. This allows us to decouple the place of definition of
 # a class (which might be in a plugin) from its use which will reference this
 # module.
-BaseUserManager.classes = globals()
-BaseAccessControlManager.classes = globals()
+AccessControlManager.classes = globals()
 
 
 class ACLToken(rdfvalue.RDFProtoStruct):

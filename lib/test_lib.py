@@ -137,22 +137,6 @@ class WellKnownSessionTest(flow.WellKnownFlow):
     self.messages.append(int(message.args))
 
 
-class MockUserManager(access_control.BaseUserManager):
-
-  def __init__(self):
-    super(MockUserManager, self).__init__()
-    self.labels = []
-
-  # pylint: disable=unused-argument
-  def SetUserLabels(self, username, labels):
-    self.labels = list(labels)
-
-  def GetUserLabels(self, username):
-    return self.labels
-
-  # pylint: enable=unused-argument
-
-
 class MockSecurityManager(access_control.BaseAccessControlManager):
   """A simple in memory ACL manager which only enforces the Admin label.
 
@@ -161,8 +145,6 @@ class MockSecurityManager(access_control.BaseAccessControlManager):
 
   Note: No user management, we assume a single test user.
   """
-
-  user_manager_cls = MockUserManager
 
   def CheckFlowAccess(self, token, flow_name, client_id=None):
     _ = flow_name, client_id
@@ -332,7 +314,9 @@ class GRRBaseTest(unittest.TestCase):
 
   def MakeUserAdmin(self, username):
     """Makes the test user an admin."""
-    data_store.DB.security_manager.user_manager.MakeUserAdmin(username)
+    with aff4.FACTORY.Create("aff4:/users/%s" % username, "GRRUser",
+                             token=self.token.SetUID()) as user:
+      user.SetLabels("admin")
 
   def GrantClientApproval(self, client_id, token=None):
     token = token or self.token

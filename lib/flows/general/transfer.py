@@ -263,14 +263,14 @@ class HashTracker(object):
 class FileTracker(object):
   """A Class to track a single file download."""
 
-  def __init__(self, vfs_urn, stat_entry, digest):
+  def __init__(self, stat_entry, client_id):
     self.fd = None
-    self.urn = vfs_urn
     self.stat_entry = stat_entry
-    self.digest = digest
-    self.file_size = stat_entry.st_size
-    self.pathspec = stat_entry.pathspec
+    self.digest = None
     self.hash_list = []
+    self.pathspec = stat_entry.pathspec
+    self.urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+        self.pathspec, client_id)
 
   def __str__(self):
     return "<Tracker: %s (%s hashes)>" % (self.urn, len(self.hash_list))
@@ -295,7 +295,7 @@ class FileTracker(object):
                                   token=token)
     self.fd.SetChunksize(chunksize)
     self.fd.Set(self.fd.Schema.STAT(self.stat_entry))
-    self.fd.Set(self.fd.Schema.SIZE(self.file_size))
+    self.fd.Set(self.fd.Schema.SIZE(self.stat_entry.st_size))
     self.fd.Set(self.fd.Schema.PATHSPEC(self.pathspec))
     return self.fd
 
@@ -315,7 +315,7 @@ class MultiGetFile(flow.GRRFlow):
   # allows us to amortize file store round trips and increases throughput.
   MIN_CALL_TO_FILE_STORE = 200
 
-  @flow.StateHandler(next_state="ReceiveFileHash")
+  @flow.StateHandler(next_state=["ReceiveFileHash", "StoreStat"])
   def Start(self):
     """Start state of the flow."""
     self.state.Register("files_hashed", 0)
@@ -323,8 +323,9 @@ class MultiGetFile(flow.GRRFlow):
     self.state.Register("files_fetched", 0)
     self.state.Register("files_skipped", 0)
 
-    # A dict of urn->file hash which are waiting to be checked by the file
-    # store.
+    # A dict of file trackers which are waiting to be checked by the file
+    # store.  Keys are vfs urns and values are FileTrack instances.  Values are
+    # copied to pending_files for download if not present in FileStore.
     self.state.Register("pending_hashes", {})
 
     # A dict of file trackers currently being fetched. Keys are vfs urns and
@@ -338,35 +339,46 @@ class MultiGetFile(flow.GRRFlow):
                            token=self.token)
     self.state.Register("filestore", fd)
 
-    for stat_entry in self.args.files_stat_entries:
-      self.CallClient("HashFile", pathspec=stat_entry.pathspec,
-                      next_state="ReceiveFileHash",
-                      request_data=dict(stat_entry=stat_entry))
+    for pathspec in self.args.pathspecs:
+
+      vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+          pathspec, self.client_id)
+
+      # If we have duplicate pathspecs only stat/hash once.
+      if vfs_urn not in self.state.pending_hashes:
+        self.CallClient("StatFile", pathspec=pathspec,
+                        next_state="StoreStat",
+                        request_data=dict(vfs_urn=vfs_urn))
+        self.CallClient("HashFile", pathspec=pathspec,
+                        next_state="ReceiveFileHash",
+                        request_data=dict(vfs_urn=vfs_urn))
+
+  @flow.StateHandler()
+  def StoreStat(self, responses):
+    if not responses.success:
+      self.Log("Failed to stat file: %s", responses.status)
+      return
+
+    stat_entry = responses.First()
+    vfs_urn = responses.request_data["vfs_urn"]
+    self.state.pending_hashes[vfs_urn] = FileTracker(stat_entry, self.client_id)
 
   @flow.StateHandler(next_state="CheckHash")
   def ReceiveFileHash(self, responses):
-    """Receive hashes and add to pending hashes."""
+    """Add hash digest to tracker and check with filestore."""
+    vfs_urn = responses.request_data["vfs_urn"]
     if not responses.success:
       self.Log("Failed to hash file: %s", responses.status)
+      self.state.pending_hashes.pop(vfs_urn)
       return
 
-    self.state.files_hashed += 1
-
-    response = responses.First()
-    stat_entry = responses.request_data["stat_entry"]
-
-    # Store the VFS client namespace URN.
-    vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-        stat_entry.pathspec, self.client_id)
-
-    # Create a file tracker for this file and add to the pending hashes store.
-    self.state.pending_hashes[vfs_urn] = FileTracker(
-        vfs_urn, stat_entry, rdfvalue.HashDigest(response.data))
+    self.state.pending_hashes[vfs_urn].digest = rdfvalue.HashDigest(
+        responses.First().data)
 
     if len(self.state.pending_hashes) >= self.MIN_CALL_TO_FILE_STORE:
-      self.CheckHashesWithFileStore()
+      self._CheckHashesWithFileStore()
 
-  def CheckHashesWithFileStore(self):
+  def _CheckHashesWithFileStore(self):
     """Check all queued up hashes for existence in file store.
 
     Hashes which do not exist in the file store will be downloaded. This
@@ -394,7 +406,7 @@ class MultiGetFile(flow.GRRFlow):
       hash_to_urn.setdefault(digest, []).append(tracker)
 
     # First we get all the files which are present in the file store.
-    files_in_filestore = {}
+    files_in_filestore = set()
     for file_store_urn, digest in self.state.filestore.CheckHashes(
         file_hashes.values(), external=self.args.use_external_stores):
 
@@ -406,10 +418,10 @@ class MultiGetFile(flow.GRRFlow):
         vfs_urn = tracker.digest.vfs_urn
         self.state.files_skipped += 1
         file_hashes.pop(vfs_urn, None)
+        files_in_filestore.add(file_store_urn)
         # Remove this tracker from the pending_hashes store since we no longer
-        # need to process it.  Store it to copy into the client VFS space
-        files_in_filestore[file_store_urn] = self.state.pending_hashes.pop(
-            vfs_urn, None)
+        # need to process it.
+        self.state.pending_hashes.pop(vfs_urn, None)
 
     # Now copy all existing files to the client aff4 space.
     for existing_blob in aff4.FACTORY.MultiOpen(files_in_filestore,
@@ -424,7 +436,7 @@ class MultiGetFile(flow.GRRFlow):
 
         # Some existing_blob files can be created with 0 size, make sure our
         # size matches the STAT.
-        existing_blob.size = file_tracker.file_size
+        existing_blob.size = file_tracker.stat_entry.st_size
 
         # Create a file in the client name space with the same classtype and
         # populate its attributes.
@@ -455,7 +467,8 @@ class MultiGetFile(flow.GRRFlow):
                                  chunksize=self.CHUNK_SIZE)
 
       # We do not have the file here yet - we need to retrieve it.
-      expected_number_of_hashes = file_tracker.file_size / self.CHUNK_SIZE + 1
+      expected_number_of_hashes = (file_tracker.stat_entry.st_size /
+                                   self.CHUNK_SIZE + 1)
 
       # We just hash ALL the chunks in the file now. NOTE: This maximizes client
       # VFS cache hit rate and is far more efficient than launching multiple
@@ -549,7 +562,7 @@ class MultiGetFile(flow.GRRFlow):
       file_tracker.fd.AddBlob(response.data, response.length)
 
       if (response.length < file_tracker.fd.chunksize or
-          response.offset + response.length >= file_tracker.file_size):
+          response.offset + response.length >= file_tracker.stat_entry.st_size):
         # File done, remove from the store and close it.
         self.RemoveInFlightFile(vfs_urn)
 
@@ -577,9 +590,8 @@ class MultiGetFile(flow.GRRFlow):
   def End(self):
     # There are some files still in flight.
     if self.state.pending_hashes or self.state.pending_files:
-      self.CheckHashesWithFileStore()
+      self._CheckHashesWithFileStore()
       self.FetchFileContent()
-
     else:
       return super(MultiGetFile, self).End()
 

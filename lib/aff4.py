@@ -46,20 +46,8 @@ class LockError(Error):
   pass
 
 
-class InstanciationError(Error, IOError):
+class InstantiationError(Error, IOError):
   pass
-
-
-class LockContextManager(object):
-  def __init__(self, aff4_obj, sync):
-    self.aff4_obj = aff4_obj
-    self.sync = sync
-
-  def __enter__(self):
-    return self.aff4_obj
-
-  def __exit__(self, unused_type, unused_value, unused_traceback):
-    self.aff4_obj.Close(sync=self.sync)
 
 
 class Factory(object):
@@ -73,8 +61,8 @@ class Factory(object):
     self.intermediate_cache = utils.FastStore(2000)
 
     # Create a token for system level actions:
-    self.root_token = access_control.ACLToken(username="system",
-                                              reason="Maintenance").SetUID()
+    self.root_token = rdfvalue.ACLToken(username="system",
+                                        reason="Maintenance").SetUID()
 
     self.notification_rules = []
     self.notification_rules_timestamp = 0
@@ -279,7 +267,7 @@ class Factory(object):
     Args:
       urn: The urn to open.
       aff4_type: If this optional parameter is set, we raise an
-          InstanciationError if the object exists and is not an instance of this
+          InstantiationError if the object exists and is not an instance of this
           type. This check is important when a different object can be stored in
           this location.
       token: The Security Token to use for opening this item.
@@ -427,7 +415,7 @@ class Factory(object):
 
     if (aff4_type is not None and
         not isinstance(result, AFF4Object.classes[aff4_type])):
-      raise InstanciationError(
+      raise InstantiationError(
           "Object %s is of type %s, but required_type is %s" % (
               urn, result.__class__.__name__, aff4_type))
 
@@ -1317,10 +1305,12 @@ class AFF4Object(object):
     # This effectively moves all the values from the new_attributes to the
     # _attributes caches.
     for attribute, value_array in self.new_attributes.iteritems():
-      if not attribute.versioned:
-        value = value_array[0]
+      if not attribute.versioned or self.age_policy == NEWEST_TIME:
+        # Store the latest version if there are multiple unsynced versions.
+        value = value_array[-1]
         self.synced_attributes[attribute] = [LazyDecoder(decoded=value,
                                                          age=value.age)]
+
       else:
         synced_value_array = self.synced_attributes.setdefault(attribute, [])
         for value in value_array:
@@ -1533,7 +1523,7 @@ class AFF4Object(object):
     Raises:
        AttributeError: When the new object can not accept some of the old
        attributes.
-       InstanciationError: When we cannot instantiate the object type class.
+       InstantiationError: When we cannot instantiate the object type class.
     """
     # We are already of the required type
     if self.__class__.__name__ == aff4_class:
@@ -1542,7 +1532,7 @@ class AFF4Object(object):
     # Instantiate the right type
     cls = self.classes.get(str(aff4_class))
     if cls is None:
-      raise InstanciationError("Could not instantiate %s" % aff4_class)
+      raise InstantiationError("Could not instantiate %s" % aff4_class)
 
     # It's not allowed to downgrade the object
     if isinstance(self, cls):
@@ -1599,6 +1589,8 @@ class AFF4Object(object):
       # object will stay locked.
       if self.transaction:
         self.transaction.Abort()
+
+      raise
 
   def AddLabels(self, labels):
     """Add labels to the AFF4Object."""
@@ -1733,7 +1725,7 @@ class AFF4Volume(AFF4Object):
        an AFF4Object instance.
 
     Raises:
-      InstanciationError: If we are unable to open the member (e.g. it does not
+      InstantiationError: If we are unable to open the member (e.g. it does not
         already exist.)
     """
     if isinstance(path, rdfvalue.RDFURN):
@@ -1750,7 +1742,7 @@ class AFF4Volume(AFF4Object):
       # Try to get the container.
       return result.Upgrade(aff4_type)
 
-    raise InstanciationError("Path %s not found" % path)
+    raise InstantiationError("Path %s not found" % path)
 
   def ListChildren(self, limit=1000000, age=NEWEST_TIME):
     """Yields RDFURNs of all the children of this object.
@@ -1758,7 +1750,7 @@ class AFF4Volume(AFF4Object):
     Args:
       limit: Total number of items we will attempt to retrieve.
       age: The age of the items to retrieve. Should be one of ALL_TIMES,
-           NEWEST_TIME or a range.
+           NEWEST_TIME or a range in microseconds.
 
     Yields:
       RDFURNs instances of each child.

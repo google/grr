@@ -59,14 +59,14 @@ class StatEntryRenderer(semantic.RDFProtoRenderer):
   classname = "StatEntry"
   name = "Stat Entry"
 
-  def TranslateRegistryData(self, _, registry_data):
+  def TranslateRegistryData(self, request, registry_data):
     if registry_data.HasField("data"):
       ret = repr(registry_data.GetValue())
     else:
       ret = utils.SmartStr(registry_data.GetValue())
 
     # This is not escaped by the template!
-    return renderers.EscapingRenderer(ret).RawHTML()
+    return renderers.EscapingRenderer(ret).RawHTML(request)
 
   translator = dict(registry_data=TranslateRegistryData)
 
@@ -76,9 +76,9 @@ class GrrMessageRenderer(semantic.RDFProtoRenderer):
   classname = "GrrMessage"
   name = "GrrMessage"
 
-  def RenderPayload(self, _, unused_value):
+  def RenderPayload(self, request, unused_value):
     rdf_object = self.proxy.payload
-    return semantic.FindRendererForObject(rdf_object).RawHTML()
+    return semantic.FindRendererForObject(rdf_object).RawHTML(request)
 
   translator = dict(args=RenderPayload)
 
@@ -117,7 +117,7 @@ class CollectionRenderer(StatEntryRenderer):
       for name in fields:
         value = getattr(item, name)
         try:
-          value = self.translator[name](self, None, value)
+          value = self.translator[name](self, request, value)
 
         # Regardless of what the error is, we need to escape the value.
         except StandardError:  # pylint: disable=broad-except
@@ -269,11 +269,11 @@ Error:
     for section in self.proxy.sections:
       if section.HasField("table"):
         self.section_html.append(
-            VolatilityTableRenderer(section.table).RawHTML())
+            VolatilityTableRenderer(section.table).RawHTML(request))
       else:
         self.section_html.append(
             VolatilityFormatstringRenderer(
-                section.formatted_value_list).RawHTML())
+                section.formatted_value_list).RawHTML(request))
     return renderers.TemplateRenderer.Layout(self, request, response)
 
 
@@ -306,7 +306,7 @@ Details:<br>
     table = self.proxy.sections[0].table
     self.GenerateRows(table)
     self.names = sorted(set([values[-1] for values in self.rows if values[-1]]))
-    self.details = VolatilityTableRenderer(table).RawHTML()
+    self.details = VolatilityTableRenderer(table).RawHTML(request)
     return renderers.TemplateRenderer.Layout(self, request, response)
 
 
@@ -471,8 +471,8 @@ class ProcessRenderer(semantic.RDFValueArrayRenderer):
   classname = "Processes"
   name = "Process Listing"
 
-  def RenderFiles(self, unused_descriptor, file_list):
-    return StringListRenderer(sorted(file_list)).RawHTML()
+  def RenderFiles(self, request, file_list):
+    return StringListRenderer(sorted(file_list)).RawHTML(request)
 
   translator = dict(open_files=RenderFiles)
 

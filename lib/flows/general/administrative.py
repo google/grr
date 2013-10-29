@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """Administrative flows for managing the clients state."""
 
+
 import shlex
+import threading
 import time
 import urllib
 
@@ -326,6 +328,8 @@ class Foreman(flow.WellKnownFlow):
   # How often we refresh the rule set from the data store.
   cache_refresh_time = 60
 
+  lock = threading.Lock()
+
   def ProcessMessage(self, message):
     """Run the foreman on the client."""
     # Only accept authenticated messages
@@ -336,11 +340,12 @@ class Foreman(flow.WellKnownFlow):
     now = time.time()
 
     # Maintain a cache of the foreman
-    if (self.foreman_cache is None or
-        now > self.foreman_cache.age + self.cache_refresh_time):
-      self.foreman_cache = aff4.FACTORY.Open("aff4:/foreman", mode="rw",
-                                             token=self.token)
-      self.foreman_cache.age = now
+    with self.lock:
+      if (self.foreman_cache is None or
+          now > self.foreman_cache.age + self.cache_refresh_time):
+        self.foreman_cache = aff4.FACTORY.Open("aff4:/foreman", mode="rw",
+                                               token=self.token)
+        self.foreman_cache.age = now
 
     if message.source:
       self.foreman_cache.AssignTasksToClient(message.source)
@@ -823,9 +828,17 @@ class RunReport(flow.GRRGlobalFlow):
   args_type = RunReportFlowArgs
   behaviours = flow.GRRGlobalFlow.behaviours + "BASIC"
 
+  ACL_ENFORCED = False
+
+  # Only admins are allows to run reports.
+  AUTHORIZED_LABELS = ["admin"]
+
   @flow.StateHandler(next_state="RunReport")
   def Start(self):
-    """Initialize."""
+    if not data_store.DB.security_manager.CheckUserLabels(
+        self.token.username, self.AUTHORIZED_LABELS):
+      raise access_control.UnauthorizedAccess("Must be admin to run this flow.")
+
     if self.state.args.report_name not in reports.Report.classes:
       raise flow.FlowError("No such report %s" % self.state.args.report_name)
     else:

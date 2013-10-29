@@ -98,9 +98,11 @@ class QueueManager(object):
 
   def DeQueueClientRequest(self, client_id, task_id):
     """Remove the message from the client queue that this request forms."""
-    client_id = rdfvalue.ClientURN(client_id)
+    # Check this request was actually bound for a client.
+    if client_id:
+      client_id = rdfvalue.ClientURN(client_id)
 
-    self.client_messages_to_delete.setdefault(client_id, []).append(task_id)
+      self.client_messages_to_delete.setdefault(client_id, []).append(task_id)
 
   def FetchCompletedRequests(self, session_id):
     """Fetch all the requests with a status message queued for them."""
@@ -204,9 +206,8 @@ class QueueManager(object):
     queue.append(self.FLOW_STATUS_TEMPLATE % request_state.id)
 
     if request_state and request_state.HasField("request"):
-      if request_state.HasField("request"):
-        self.DeQueueClientRequest(request_state.client_id,
-                                  request_state.request.task_id)
+      self.DeQueueClientRequest(request_state.client_id,
+                                request_state.request.task_id)
 
     # Efficiently drop all responses to this request.
     response_subject = self.GetFlowResponseSubject(session_id, request_state.id)
@@ -226,7 +227,6 @@ class QueueManager(object):
       response_subject = self.GetFlowResponseSubject(session_id, request.id)
       self.data_store.DeleteSubject(response_subject, token=self.token)
 
-      # If the request refers to a client, dequeue client requests.
       if request.HasField("request"):
         self.DeQueueClientRequest(request.client_id, request.request.task_id)
 
@@ -235,7 +235,8 @@ class QueueManager(object):
 
   def Flush(self):
     """Writes the changes in this object to the datastore."""
-    for session_id in set(self.to_write) | set(self.to_delete):
+    session_ids = set(self.to_write) | set(self.to_delete)
+    for session_id in session_ids:
       try:
         self.data_store.MultiSet(session_id, self.to_write.get(session_id, {}),
                                  to_delete=self.to_delete.get(session_id, []),
@@ -248,6 +249,11 @@ class QueueManager(object):
 
     if self.new_client_messages:
       self.Schedule(self.new_client_messages)
+
+    # We need to make sure that notifications are written after the requests so
+    # we flush here and only notify afterwards.
+    if self.sync and session_ids:
+      self.data_store.Flush()
 
     for session_id, (priority, timestamp) in self.notifications.items():
       self.NotifyQueue(

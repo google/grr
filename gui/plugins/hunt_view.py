@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 #
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """This is the interface for managing hunts."""
 
 
@@ -23,6 +21,7 @@ from grr.gui.plugins import forms
 from grr.gui.plugins import searchclient
 from grr.gui.plugins import semantic
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
@@ -329,11 +328,12 @@ class HuntViewTabs(renderers.TabLayout):
   """
 
   names = ["Overview", "Log", "Errors", "Rules", "Graph", "Results", "Stats",
-           "Crashes"]
+           "Crashes", "Outstanding"]
   delegated_renderers = ["HuntOverviewRenderer", "HuntLogRenderer",
                          "HuntErrorRenderer", "HuntRuleRenderer",
                          "HuntClientGraphRenderer", "HuntResultsRenderer",
-                         "HuntStatsRenderer", "HuntCrashesRenderer"]
+                         "HuntStatsRenderer", "HuntCrashesRenderer",
+                         "HuntOutstandingRenderer"]
 
   subscribe_script_template = renderers.Template("""
 <script>
@@ -705,7 +705,7 @@ class HuntOverviewRenderer(AbstractLogRenderer):
           self.client_limit = runner.args.client_limit
 
           args_dict = self.hunt.state.Copy()
-          self.args_str = renderers.DictRenderer(args_dict).RawHTML()
+          self.args_str = renderers.DictRenderer(args_dict).RawHTML(request)
       except IOError:
         self.layout_template = self.error_template
 
@@ -1170,3 +1170,163 @@ class HuntCrashesRenderer(crash_view.ClientCrashCollectionRenderer):
     hunt_id = request.REQ.get("hunt_id")
     self.crashes_urn = rdfvalue.RDFURN(hunt_id).Add("crashes")
     super(HuntCrashesRenderer, self).Layout(request, response)
+
+
+class HuntOutstandingRenderer(renderers.TableRenderer):
+  """A renderer that shows debug information for outstanding clients."""
+
+  post_parameters = ["hunt_id"]
+
+  def __init__(self, **kwargs):
+    super(HuntOutstandingRenderer, self).__init__(**kwargs)
+    self.AddColumn(semantic.RDFValueColumn("Client"))
+    self.AddColumn(semantic.RDFValueColumn("Flow"))
+    self.AddColumn(semantic.RDFValueColumn("Incomplete Request #"))
+    self.AddColumn(semantic.RDFValueColumn("State"))
+    self.AddColumn(semantic.RDFValueColumn("Args Expected"))
+    self.AddColumn(semantic.RDFValueColumn("Available Responses"))
+    self.AddColumn(semantic.RDFValueColumn("Status"))
+    self.AddColumn(semantic.RDFValueColumn("Expected Responses"))
+    self.AddColumn(semantic.RDFValueColumn("Client Requests Pending"))
+
+  def GetClientRequests(self, client_urns):
+    """Returns all client requests for the given client urns."""
+    task_urns = [urn.Add("tasks") for urn in client_urns]
+
+    client_requests_raw = data_store.DB.MultiResolveRegex(task_urns, "task:.*")
+
+    client_requests = {}
+    for client_urn, requests in client_requests_raw:
+      client_id = str(client_urn)[6:6+18]
+
+      client_requests.setdefault(client_id, [])
+
+      for _, serialized, _ in requests:
+        client_requests[client_id].append(rdfvalue.GrrMessage(serialized))
+
+    return client_requests
+
+  def GetAllSubflows(self, hunt_urn, client_urns):
+    """Lists all subflows for a given hunt for all clients in client_urns."""
+    client_ids = [urn.Split()[0] for urn in client_urns]
+    client_bases = [hunt_urn.Add(client_id) for client_id in client_ids]
+
+    all_flows = []
+    act_flows = client_bases
+
+    while act_flows:
+      next_flows = []
+      for _, children in aff4.FACTORY.MultiListChildren(act_flows):
+        for flow_urn in children:
+          next_flows.append(flow_urn)
+      all_flows.extend(next_flows)
+      act_flows = next_flows
+
+    return all_flows
+
+  def GetFlowRequests(self, flow_urns):
+    """Returns all outstanding requests for the flows in flow_urns."""
+    flow_requests = {}
+    flow_request_urns = [flow_urn.Add("state") for flow_urn in flow_urns]
+
+    for flow_urn, values in data_store.DB.MultiResolveRegex(
+        flow_request_urns, "flow:.*"):
+      for subject, serialized, _ in values:
+        try:
+          if "status" in subject:
+            msg = rdfvalue.GrrMessage(serialized)
+          else:
+            msg = rdfvalue.RequestState(serialized)
+        except Exception as e:  # pylint: disable=broad-except
+          logging.warn("Error while parsing: %s", e)
+          continue
+
+        flow_requests.setdefault(flow_urn, []).append(msg)
+    return flow_requests
+
+  def BuildTable(self, start_row, end_row, request):
+    """Renders the table."""
+    hunt_id = request.REQ.get("hunt_id")
+
+    if hunt_id is None:
+      return
+
+    hunt_id = rdfvalue.RDFURN(hunt_id)
+    hunt = aff4.FACTORY.Open(hunt_id, aff4_type="GRRHunt", age=aff4.ALL_TIMES,
+                             token=request.token)
+
+    started = hunt.GetValuesForAttribute(hunt.Schema.CLIENTS)
+    finished = hunt.GetValuesForAttribute(hunt.Schema.FINISHED)
+    outstanding = set(started) - set(finished)
+
+    self.size = len(outstanding)
+
+    outstanding = sorted(outstanding)[start_row:end_row]
+
+    all_flow_urns = self.GetAllSubflows(hunt_id, outstanding)
+
+    flow_requests = self.GetFlowRequests(all_flow_urns)
+
+    client_requests = self.GetClientRequests(outstanding)
+
+    waitingfor = {}
+    status_by_request = {}
+
+    for flow_urn in flow_requests:
+      for obj in flow_requests[flow_urn]:
+        if isinstance(obj, rdfvalue.RequestState):
+          waitingfor.setdefault(flow_urn, obj)
+          if waitingfor[flow_urn].id > obj.id:
+            waitingfor[flow_urn] = obj
+        elif isinstance(obj, rdfvalue.GrrMessage):
+          status_by_request.setdefault(flow_urn, {})[obj.request_id] = obj
+
+    response_urns = []
+
+    for request_base_urn, request in waitingfor.iteritems():
+      response_urns.append(rdfvalue.RDFURN(request_base_urn).Add(
+          "request:%08X" % request.id))
+
+    response_dict = dict(data_store.DB.MultiResolveRegex(
+        response_urns, "flow:.*"))
+
+    row_index = start_row
+
+    for flow_urn in sorted(all_flow_urns):
+      request_urn = flow_urn.Add("state")
+      client_id = flow_urn.Split()[2]
+      try:
+        request_obj = waitingfor[request_urn]
+        response_urn = rdfvalue.RDFURN(request_urn).Add(
+            "request:%08X" % request_obj.id)
+        responses_available = len(response_dict.setdefault(response_urn, []))
+        status_available = "No"
+        responses_expected = "Unknown"
+        if request_obj.id in status_by_request.setdefault(request_urn, {}):
+          status_available = "Yes"
+          status = status_by_request[request_urn][request_obj.id]
+          responses_expected = status.response_id
+
+        client_requests_available = 0
+        for client_req in client_requests.setdefault(client_id, []):
+          if request_obj.request.session_id == client_req.session_id:
+            client_requests_available += 1
+
+        row_data = {
+            "Client": client_id,
+            "Flow": flow_urn,
+            "Incomplete Request #": request_obj.id,
+            "State": request_obj.next_state,
+            "Args Expected": request_obj.request.args_rdf_name,
+            "Available Responses": responses_available,
+            "Status": status_available,
+            "Expected Responses": responses_expected,
+            "Client Requests Pending": client_requests_available}
+      except KeyError:
+        row_data = {
+            "Client": client_id,
+            "Flow": flow_urn,
+            "Incomplete Request #": "No request found"}
+
+      self.AddRow(row_data, row_index=row_index)
+      row_index += 1

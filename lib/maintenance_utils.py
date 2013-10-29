@@ -202,7 +202,7 @@ def _RepackBinary(context, builder_cls):
     print "Template %s missing - will not repack." % template_path
 
 
-def RepackAllBinaries(upload=False):
+def RepackAllBinaries(upload=False, debug_build=False):
   """Repack binaries based on the configuration.
 
   NOTE: The configuration file specifies the location of the binaries
@@ -217,6 +217,7 @@ def RepackAllBinaries(upload=False):
 
   Args:
     upload: If specified we also upload the repacked binary into the datastore.
+    debug_build: Repack as a debug build.
 
   Returns:
     A list of output installers generated.
@@ -224,6 +225,8 @@ def RepackAllBinaries(upload=False):
   built = []
 
   base_context = ["ClientBuilder Context"]
+  if debug_build:
+    base_context += ["ClientDebug Context"]
   for context, deployer in (
       (["Target:Windows", "Platform:Windows", "Arch:amd64"],
        build.WindowsClientDeployer),
@@ -241,6 +244,9 @@ def RepackAllBinaries(upload=False):
       if upload:
         dest = config_lib.CONFIG.Get("Executables.installer",
                                      context=context)
+        if debug_build:
+          dest = rdfvalue.RDFURN(dest)
+          dest = rdfvalue.RDFURN(dest.Dirname()).Add("dbg_%s" % dest.Basename())
         UploadSignedConfigBlob(open(output_path).read(100*1024*1024),
                                dest, client_context=context)
 

@@ -194,6 +194,8 @@ class GRRWorker(object):
 
         else:
           if not isinstance(flow_obj, flow.GRRFlow):
+            logging.info("%s is not a proper flow object (got %s)", session_id,
+                         type(flow_obj))
             return
 
           with flow_obj.GetRunner() as runner:

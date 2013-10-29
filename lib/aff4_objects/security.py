@@ -190,9 +190,15 @@ class ApprovalWithApproversAndReason(Approval):
           requested_access=token.requested_access)
 
     if self.checked_approvers_label:
-      approvers_with_label = [approver for approver in approvers
-                              if data_store.DB.security_manager.CheckUserLabels(
-                                  approver, [self.checked_approvers_label])]
+      approvers_with_label = []
+
+      # We need to check labels with high privilege since normal users can
+      # inspect other user's labels.
+      for approver in approvers:
+        if data_store.DB.security_manager.CheckUserLabels(
+            approver, [self.checked_approvers_label], token=token.SetUID()):
+          approvers_with_label.append(approver)
+
       if len(approvers_with_label) < self.min_approvers_with_label:
         raise access_control.UnauthorizedAccess(
             "At least %d approver(s) should have '%s' label." % (

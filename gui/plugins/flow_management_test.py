@@ -147,7 +147,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
   def testGlobalFlowManagement(self):
     """Test that scheduling flows works."""
     with self.ACLChecksDisabled():
-      self.GrantClientApproval("C.0000000000000001")
+      self.MakeUserAdmin("test")
 
     self.Open("/")
 

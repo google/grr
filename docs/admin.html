@@ -832,57 +832,68 @@ db@host:$</tt></pre>
 <div class="sect1">
 <h2 id="_user_management">User Management</h2>
 <div class="sectionbody">
-<div class="sect2">
-<h3 id="_security_managers_and_user_managers">Security Managers and User Managers.</h3>
-<div class="paragraph"><p>GRR supports the ideas of a User Manager and a separate Security Manager.
-The User Manager handles authentication, setting passwords and managing labels
-for those users.
-The Security Manager (Datastore.security_manager config option) handles
-authorizing those users to resources based on a set of rules.</p></div>
-<div class="paragraph"><p>By default GRR will use the ConfigBasedUserManager which manages the users in a
-basic format inside the ["Users"] section of the configuration file.</p></div>
-<div class="paragraph"><p>The default Security Manager is the BasicAccessControlManager. This manager
-provides rudimentary Admin/Non-Admin functionality, but very little else. See
-the Auditing section for a discussion on the FullAccessControlManager.</p></div>
-</div>
-<div class="sect2">
-<h3 id="_adding_and_updating_users">Adding and Updating Users.</h3>
-<div class="paragraph"><p>If you are using the ConfigBasedUserManager (default) then you can add users
-with config updater.</p></div>
+<div class="paragraph"><p>GRR has a concept of users of the system. The GUI supports authentication and
+this verfication of user identity is used in all auditing functions (So for
+example GRR can properly record which user accessed which client, and who
+executed flows on clients).</p></div>
+<div class="paragraph"><p>Users are modeled in the data store as AFF4 objects called GRRUser. These
+normally reside in the directory <em>aff4:/users/&lt;username&gt;</em>. To manage users it is
+possible to use the config_updater.py script:</p></div>
 <div class="paragraph"><p>To add the user joe as an admin:</p></div>
 <div class="listingblock">
 <div class="content">
 <pre><tt>db@host:~$ sudo grr_config_updater add_user --username joe
 Using configuration &lt;ConfigFileParser filename="/etc/grr/grr-server.conf"&gt;
-Please enter password for user joe:
-db@host:~$</tt></pre>
+Please enter password for user 'joe':
+Updating user joe
+
+Username: joe
+Labels:
+Password: set</tt></pre>
 </div></div>
-<div class="paragraph"><p>To add the user bob as a non-admin, with password test1234 and with the
-additional labels label1,label2:</p></div>
+<div class="paragraph"><p>To list all users:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>db@host:~$ sudo grr_config_updater add_user --username bob --noadmin --password
-test1234 --label label1 --label label2
+<pre><tt>db@host:~$ sudo grr_config_updater show_user
 Using configuration &lt;ConfigFileParser filename="/etc/grr/grr-server.conf"&gt;
-db@host:~$</tt></pre>
+
+Username: test
+Labels:
+Password: set
+
+Username: admin
+Labels: admin
+Password: set</tt></pre>
 </div></div>
-<div class="paragraph"><p>To then update bob to an admin and set the labels to just label1</p></div>
+<div class="paragraph"><p>To update a user (useful for setting labels or for changing passwords):</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>db@host:~$ sudo grr_config_updater update_user --username bob --label label1
+<pre><tt>db@host:~$ sudo grr_config_updater update_user joe --label admin,user
 Using configuration &lt;ConfigFileParser filename="/etc/grr/grr-server.conf"&gt;
-db@host:~$</tt></pre>
+Updating user joe
+
+Username: joe
+Labels: admin,user
+Password: set</tt></pre>
 </div></div>
+<div class="sect2">
+<h3 id="_security_managers">Security Managers.</h3>
+<div class="paragraph"><p>GRR supports the ideas of a Security Manager. The Security Manager
+(Datastore.security_manager config option) handles authorizing those users to
+resources based on a set of rules.</p></div>
+<div class="paragraph"><p>The default Security Manager is the BasicAccessControlManager. This manager
+provides rudimentary Admin/Non-Admin functionality, but very little else. See
+the Auditing section for a discussion on the FullAccessControlManager.</p></div>
 </div>
 <div class="sect2">
 <h3 id="_authentication_to_the_admin_ui">Authentication to the Admin UI.</h3>
 <div class="paragraph"><p>Given the sensitivity of the data that GRR ends up holding, it is important to
-protect access to it. The AdminUI by default uses weak digest authentication,
-based on the users stored in the config file.
-However, we support the idea of a Webauth Manager
-(AdminUI.webauth_manager config option). This allows for customization to use an
-SSO or SAML based authentication mechanism. However, while we try and make it
-easy to integrate, this kind of auth is not currently built into GRR.</p></div>
+protect access to it. The AdminUI by default uses basic authentication, based on
+the passwords within the user objects stored in the data store.  However, we
+support the idea of a Webauth Manager (AdminUI.webauth_manager config
+option). This allows for customization to use an SSO or SAML based
+authentication mechanism. However, while we try and make it easy to integrate,
+this kind of auth is not currently built into GRR.</p></div>
 </div>
 </div>
 </div>
@@ -1384,97 +1395,96 @@ C:\Windows\System32\&gt;</tt></pre>
 <h3 id="_common_client_configuration_options">Common Client Configuration Options.</h3>
 <div class="paragraph"><p>The client has numerous configuration parameters that control its behavior, the
 following explains some key ones you might want to change:</p></div>
-<div class="hdlist"><div class="title">Keys you might want to change that affect behavior of the client</div><table>
+<div class="hdlist"><table>
 <tr>
 <td class="hdlist1">
-Client.poll_max
+Client Behavior Keys
 <br />
 </td>
 <td class="hdlist2">
 <p style="margin-top: 0;">
+Keys which affect behavior of the client. Should take
+affect on client restart.
+</p>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Client.poll_max
+</dt>
+<dd>
+<p>
 Maximum number of seconds between polls to the server.
 </p>
-</td>
-</tr>
-<tr>
-<td class="hdlist1">
+</dd>
+<dt class="hdlist1">
 Client.foreman_check_frequency
-<br />
-</td>
-<td class="hdlist2">
-<p style="margin-top: 0;">
+</dt>
+<dd>
+<p>
 How often to check for foreman jobs (hunts).
 </p>
-</td>
-</tr>
-<tr>
-<td class="hdlist1">
+</dd>
+<dt class="hdlist1">
 Client.rss_max
-<br />
-</td>
-<td class="hdlist2">
-<p style="margin-top: 0;">
+</dt>
+<dd>
+<p>
 Maximum memory for the client to use.
 </p>
-</td>
-</tr>
-<tr>
-<td class="hdlist1">
+</dd>
+<dt class="hdlist1">
 Client.location
-<br />
-</td>
-<td class="hdlist2">
-<p style="margin-top: 0;">
+</dt>
+<dd>
+<p>
 The URL to contact the server on.
 </p>
-</td>
-</tr>
-<tr>
-<td class="hdlist1">
+</dd>
+<dt class="hdlist1">
 Client.proxy_servers
-<br />
-</td>
-<td class="hdlist2">
-<p style="margin-top: 0;">
+</dt>
+<dd>
+<p>
 A list of proxy servers to try.
 </p>
-</td>
-</tr>
-<tr>
-<td class="hdlist1">
+</dd>
+<dt class="hdlist1">
 Logging.verbose
-<br />
-</td>
-<td class="hdlist2">
-<p style="margin-top: 0;">
+</dt>
+<dd>
+<p>
 Enable more verbose logging.
 </p>
-</td>
-</tr>
-<tr>
-<td class="hdlist1">
+</dd>
+<dt class="hdlist1">
 Logging.engines
-<br />
-</td>
-<td class="hdlist2">
-<p style="margin-top: 0;">
+</dt>
+<dd>
+<p>
 Enable or disable syslog, event logs or file logs.
 </p>
+</dd>
+<dt class="hdlist1">
+Logging.path
+</dt>
+<dd>
+<p>
+Where log files get written to.
+</p>
+</dd>
+</dl></div>
 </td>
 </tr>
 <tr>
 <td class="hdlist1">
-Logging.path
+Obfuscation Related Keys
 <br />
 </td>
 <td class="hdlist2">
 <p style="margin-top: 0;">
-Where log files get written to.
+Keys you might want to change to affect obfuscation,
+these will require a rebuild.
 </p>
-</td>
-</tr>
-</table></div>
-<div class="hdlist"><div class="title">Keys you might want to change to affect obfuscation</div><table>
+<div class="hdlist"><table>
 <tr>
 <td class="hdlist1">
 Client.name
@@ -1483,7 +1493,7 @@ Client.name
 <td class="hdlist2">
 <p style="margin-top: 0;">
 The base name of the client. Changing this to Foo will change
-the running binary to Foo.exe and Fooservice.exe on Windows.
+    the running binary to Foo.exe and Fooservice.exe on Windows.
 </p>
 </td>
 </tr>
@@ -1528,7 +1538,7 @@ MemoryDriver.display_name
 <td class="hdlist2">
 <p style="margin-top: 0;">
 Description of the service used for the memory
-driver on Windows
+    driver on Windows
 </p>
 </td>
 </tr>
@@ -1539,8 +1549,8 @@ MemoryDriver.service_name
 </td>
 <td class="hdlist2">
 <p style="margin-top: 0;">
-Name of the service used for the memory driver on
-Windows
+Name of the service used for the memory driver
+    on Windows
 </p>
 </td>
 </tr>
@@ -1573,9 +1583,23 @@ Nanny.service_description
 </td>
 <td class="hdlist2">
 <p style="margin-top: 0;">
-Description of the Windows service the nanny runs
-as.
+Description of the Windows service the nanny
+    runs as.
 </p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+ClientBuilder.console
+<br />
+</td>
+<td class="hdlist2">
+<p style="margin-top: 0;">
+Affects whether the installer is silent.
+</p>
+</td>
+</tr>
+</table></div>
 </td>
 </tr>
 </table></div>

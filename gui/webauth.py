@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 """Web authentication classes for the GUI."""
 
-import collections
-
 
 from django import http
 import logging
 
-from grr.lib import access_control
+from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import log
+from grr.lib import rdfvalue
 from grr.lib import registry
 
 
@@ -31,6 +30,8 @@ class BaseWebAuthManager(object):
     Args:
       func: The wrapped function to call.
       request: The web request.
+      *args: Passthrough to wrapped function.
+      **kwargs: Passthrough to wrapped function.
 
     Returns:
       A django http response object.
@@ -47,12 +48,6 @@ class BaseWebAuthManager(object):
 class BasicWebAuthManager(BaseWebAuthManager):
   """Manager using basic auth using the config file."""
 
-  def __init__(self):
-    """Constructor."""
-    # Reuse the basic ACL manager functions for accessing the config.
-    self._aclmanager = access_control.BasicAccessControlManager()
-    super(BasicWebAuthManager, self).__init__()
-
   def SecurityCheck(self, func, request, *args, **kwargs):
     """Wrapping function."""
     event_id = log.LOGGER.GetNewEventId()
@@ -65,17 +60,21 @@ class BasicWebAuthManager(BaseWebAuthManager):
     try:
       auth_type, authorization = request.META.get(
           "HTTP_AUTHORIZATION", " ").split(" ", 1)
+
       if auth_type == "Basic":
         user, password = authorization.decode("base64").split(":", 1)
-        # Check the hash is ok
-        auth_obj = collections.namedtuple("AuthObj", "user_provided_hash")
-        auth_obj.user_provided_hash = password
-        if self._aclmanager.user_manager.CheckUserAuth(user, auth_obj):
+        token = rdfvalue.ACLToken(username=user)
+
+        fd = aff4.FACTORY.Open("aff4:/users/%s" % user, aff4_type="GRRUser",
+                               token=token)
+        crypted_password = fd.Get(fd.Schema.PASSWORD)
+        if crypted_password and crypted_password.CheckPassword(password):
           authorized = True
+
           # The password is ok - update the user
           request.user = user
 
-    except (IndexError, KeyError):
+    except (IndexError, KeyError, IOError):
       pass
 
     if not authorized:
@@ -102,8 +101,8 @@ class NullWebAuthManager(BaseWebAuthManager):
     """A decorator applied to protected web handlers."""
     request.event_id = "1"
     request.user = self.username
-    request.token = access_control.ACLToken(username="Testing",
-                                            reason="Just a test")
+    request.token = rdfvalue.ACLToken(username="Testing",
+                                      reason="Just a test")
     return func(request, *args, **kwargs)
 
 

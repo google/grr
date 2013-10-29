@@ -61,14 +61,14 @@ class FetchAllFiles(flow.GRRFlow):
             response.hit.pathspec, self.client_id)
         self.SendReply(response.hit)
 
-        files_to_fetch.append(response.hit)
+        files_to_fetch.append(response.hit.pathspec)
 
     # Hold onto the iterator in the state - we might need to re-iterate this
     # later.
     self.args.findspec.iterator = responses.iterator
 
     if files_to_fetch:
-      self.CallFlow("MultiGetFile", files_stat_entries=files_to_fetch,
+      self.CallFlow("MultiGetFile", pathspecs=files_to_fetch,
                     use_external_stores=self.args.use_external_stores,
                     next_state="End")
     else:
@@ -135,10 +135,10 @@ class FetchAllFilesGlob(flow.GRRFlow):
             response.pathspec, self.client_id)
         self.SendReply(response)
 
-        files_to_fetch.append(response)
+        files_to_fetch.append(response.pathspec)
 
     if files_to_fetch:
-      self.CallFlow("MultiGetFile", files_stat_entries=files_to_fetch,
+      self.CallFlow("MultiGetFile", pathspecs=files_to_fetch,
                     use_external_stores=self.args.use_external_stores,
                     next_state="End")
 

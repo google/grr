@@ -418,6 +418,9 @@ class RDFDatetime(RDFInteger):
   def AsSecondsFromEpoch(self):
     return self._value / self.converter
 
+  def AsMicroSecondsFromEpoch(self):
+    return self._value
+
   def FromSecondsFromEpoch(self, value):
     self._value = value * self.converter
 
@@ -425,12 +428,27 @@ class RDFDatetime(RDFInteger):
 
   def ParseFromHumanReadable(self, string, eoy=False):
     self._value = self._ParseFromHumanReadable(string, eoy=eoy)
-
     return self
 
   def __add__(self, other):
-    if isinstance(other, (int, long, float)):
+    if isinstance(other, (int, long, float, Duration)):
+      # Assume other is in seconds
       return self.__class__(self._value + other * self.converter)
+
+    if isinstance(other, RDFDatetime):
+      return self.__class__(self._value +
+                            other.AsSecondsFromEpoch() * self.converter)
+
+    return NotImplemented
+
+  def __sub__(self, other):
+    if isinstance(other, (int, long, float, Duration)):
+      # Assume other is in seconds
+      return self.__class__(self._value - other * self.converter)
+
+    if isinstance(other, RDFDatetime):
+      return self.__class__(self._value -
+                            other.AsSecondsFromEpoch() * self.converter)
 
     return NotImplemented
 
@@ -534,6 +552,10 @@ class Duration(RDFInteger):
   @property
   def seconds(self):
     return self._value
+
+  @property
+  def microseconds(self):
+    return self._value * 1000000
 
   def __str__(self):
     time_secs = self._value

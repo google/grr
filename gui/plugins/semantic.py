@@ -123,7 +123,7 @@ class RDFValueRenderer(renderers.TemplateRenderer):
 {{this.proxy|escape}}
 """)
 
-  def __init__(self, proxy, **kwargs):
+  def __init__(self, proxy=None, **kwargs):
     """Constructor.
 
     This class renders a specific AFF4 object which we delegate.
@@ -176,7 +176,8 @@ class SubjectRenderer(RDFValueRenderer):
 """)
 
   def Layout(self, request, response):
-    aff4_path = rdfvalue.RDFURN(request.REQ.get("aff4_path", ""))
+    aff4_path = request.REQ.get("aff4_path", "")
+    aff4_path = rdfvalue.RDFURN(aff4_path)
     self.basename = self.proxy.RelativeName(aff4_path) or self.proxy
     self.aff4_path = self.proxy
 
@@ -281,7 +282,7 @@ class RDFProtoRenderer(RDFValueRenderer):
       # Try to translate the value if there is a special translator for it.
       if name in self.translator:
         try:
-          value = self.translator[name](self, None, value)
+          value = self.translator[name](self, request, value)
           if value is not None:
             self.result.append((friendly_name, descriptor.description, value))
 
@@ -317,23 +318,57 @@ class RDFValueArrayRenderer(RDFValueRenderer):
    <td>{{entry|safe}}</td>
 </tr>
 {% endfor %}
-{% if this.additional_data %}
+{% if this.next_start %}
 <tr class="proto_separator"></tr>
-<tr>
- <td> (Additional data available) </td>
+<tr id="{{unique}}">
+ <td> (<a>Additional data available</a>) </td>
 </tr>
 {% endif %}
 </tbody>
 </table>
+<script>
+ $("#{{unique}} a").click(function () {
+   grr.layout("RDFValueArrayRenderer", "{{unique}}", {
+     start: "{{this.next_start}}",
+     cache: "{{this.cache.urn}}",
+     length: "{{this.length}}"
+   });
+ });
+</script>
 """)
 
   def Layout(self, request, response):
     """Render the protobuf as a table."""
+    # Remove these from the request in case we need to pass it to another
+    # renderer.
+    start = int(request.REQ.pop("start", 0))
+    length = int(request.REQ.pop("length", 10))
+
+    # We can get called again to render from an existing cache.
+    cache = request.REQ.pop("cache", None)
+    if cache:
+      self.cache = aff4.FACTORY.Open(cache, token=request.token)
+      self.proxy = rdfvalue.RDFValueArray(self.cache.Read(1000000))
+
+    else:
+      # We need to create a cache if this is too long.
+      if len(self.proxy) > length:
+        # Make a cache
+        with aff4.FACTORY.Create(None, "TempFile",
+                                 token=request.token) as self.cache:
+          data = rdfvalue.RDFValueArray()
+          data.Extend(self.proxy)
+          self.cache.Write(data.SerializeToString())
+
     self.data = []
 
-    for element in self.proxy:
-      if len(self.data) > 10:
-        self.additional_data = True
+    for i, element in enumerate(self.proxy):
+      if i < start:
+        continue
+
+      elif len(self.data) > length:
+        self.next_start = i
+        self.length = 100
         break
 
       renderer = FindRendererForObject(element)

@@ -53,7 +53,6 @@ config_lib.DEFINE_string("Datastore.security_manager",
                          "NullAccessControlManager",
                          "The ACL manager for controlling access to data.")
 
-
 config_lib.DEFINE_string("Datastore.implementation", "FakeDataStore",
                          "Storage subsystem to use.")
 

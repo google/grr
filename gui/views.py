@@ -111,13 +111,15 @@ def RenderGenericRenderer(request):
   renderer = renderer_cls()
   result = http.HttpResponse(mimetype="text/html")
 
-  # Pass the request only from POST parameters
+  # Pass the request only from POST parameters. It is much more convenient to
+  # deal with normal dicts than Django's Query objects so we convert here.
   if flags.FLAGS.debug:
-    # Allow both for debugging
-    request.REQ = request.REQUEST
+    # Allow both POST and GET for debugging
+    request.REQ = request.POST.dict()
+    request.REQ.update(request.GET.dict())
   else:
     # Only POST in production for CSRF protections.
-    request.REQ = request.POST
+    request.REQ = request.POST.dict()
 
   # Build the security token for this request
   request.token = BuildToken(request, renderer.max_execution_time)

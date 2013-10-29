@@ -340,10 +340,5 @@ def main(unused_argv):
     ipshell.IPShell(argv=[], user_ns=locals_vars, banner=banner)
 
 
-def ConsoleMain():
-  """Helper function for calling with setup tools entry points."""
-  flags.StartMain(main)
-
-
 if __name__ == "__main__":
-  ConsoleMain()
+  flags.StartMain(main)

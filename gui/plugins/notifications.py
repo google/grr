@@ -126,7 +126,7 @@ Settings were successfully updated. Reloading...
   def Layout(self, request, response):
     user_settings = self.GetUserSettings(request)
     self.user_settings_form = forms.SemanticProtoFormRenderer(
-        proto_obj=user_settings, prefix="settings").RawHTML()
+        proto_obj=user_settings, prefix="settings").RawHTML(request)
 
     return super(UserSettingsDialog, self).Layout(request, response)
 

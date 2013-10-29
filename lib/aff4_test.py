@@ -154,6 +154,36 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     obj = aff4.FACTORY.Open("foobar", token=self.token, age=aff4.ALL_TIMES)
     self.assertEqual(6, len(list(obj.GetValuesForAttribute(obj.Schema.STORED))))
 
+  def testFlushNewestTime(self):
+    """Flush with age policy NEWEST_TIME should only keeps a single version."""
+    # Create an object to carry attributes
+    obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
+    obj.Set(obj.Schema.STORED("http://www.google.com"))
+    obj.Close()
+
+    obj = aff4.FACTORY.Open("foobar", mode="rw", token=self.token,
+                            age=aff4.NEWEST_TIME)
+
+    self.assertEqual(1, len(obj.synced_attributes[obj.Schema.STORED.predicate]))
+
+    # Add a bunch of attributes now.
+    for i in range(5):
+      obj.AddAttribute(obj.Schema.STORED("http://example.com/%s" % i))
+
+    # There should be 5 unsynced versions now
+    self.assertEqual(5, len(obj.new_attributes[obj.Schema.STORED.predicate]))
+    obj.Flush()
+
+    # When we sync there should be no more unsynced attributes.
+    self.assertEqual({}, obj.new_attributes)
+
+    # But there should only be a single synced attribute since this object has a
+    # NEWEST_TIME age policy.
+    self.assertEqual(1, len(obj.synced_attributes[obj.Schema.STORED.predicate]))
+
+    # The latest version should be kept.
+    self.assertEqual(obj.Get(obj.Schema.STORED), "http://example.com/4")
+
   def testCopyAttributes(self):
     # Create an object to carry attributes
     obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
@@ -813,23 +843,24 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       client.Set(client.Schema.HOSTNAME("client1"))
       client.Close()
 
-      with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
-                                     lease_time=100) as fd:
+      with self.assertRaises(aff4.LockError):
+        with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                       lease_time=100) as fd:
 
-        def TryOpen():
-          with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
-                                         blocking=False):
-            pass
+          def TryOpen():
+            with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                           blocking=False):
+              pass
 
-        time.time = lambda: 150
-        self.assertRaises(aff4.LockError, TryOpen)
+          time.time = lambda: 150
+          self.assertRaises(aff4.LockError, TryOpen)
 
-        # This shouldn't raise, because previous lock's lease has expired
-        time.time = lambda: 201
-        TryOpen()
+          # This shouldn't raise, because previous lock's lease has expired
+          time.time = lambda: 201
+          TryOpen()
 
-        self.assertRaises(aff4.LockError, fd.Close)
-        self.assertRaises(aff4.LockError, fd.Flush)
+          self.assertRaises(aff4.LockError, fd.Close)
+          self.assertRaises(aff4.LockError, fd.Flush)
 
   def testUpdateLeaseRaisesIfObjectIsNotLocked(self):
     client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
@@ -865,11 +896,12 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       client.Set(client.Schema.HOSTNAME("client1"))
       client.Close()
 
-      with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
-                                     lease_time=300) as fd:
-        self.assertTrue(fd.CheckLease())
-        time.time = lambda: 500
-        self.assertEqual(fd.CheckLease(), 0)
+      with self.assertRaises(aff4.LockError):
+        with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                       lease_time=300) as fd:
+          self.assertTrue(fd.CheckLease())
+          time.time = lambda: 500
+          self.assertEqual(fd.CheckLease(), 0)
 
   def testUpdateLeaseWorksCorrectly(self):
     with test_lib.Stubber(time, "time", lambda: 100):

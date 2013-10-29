@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """A simple thread pool for the Google Response Rig.
 
 This file defines a simple thread pool that is used throughout this
