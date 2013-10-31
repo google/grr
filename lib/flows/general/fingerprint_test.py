@@ -22,7 +22,7 @@ class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
     pathspec = rdfvalue.PathSpec(
         pathtype=rdfvalue.PathSpec.PathType.OS, path=path)
 
-    pathspec.Append(path="/Ext2IFS_1_10b.exe",
+    pathspec.Append(path="/winpmem-amd64.sys",
                     pathtype=rdfvalue.PathSpec.PathType.TSK)
 
     client_mock = test_lib.ActionMock("FingerprintFile")
@@ -36,4 +36,10 @@ class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd.__class__, aff4_grr.VFSFile)
     fingerprint = fd.Get(fd.Schema.FINGERPRINT)
     pecoff = fingerprint.GetFingerprint("pecoff")["sha1"].encode("hex")
-    self.assertEqual(pecoff, "019bddad9cac09f37f3941a7f285c79d3c7e7801")
+    self.assertEqual(pecoff, "1f32fa4eedfba023653c094143d90999f6b9bc4f")
+
+    hash_obj = fd.Get(fd.Schema.HASH)
+    self.assertEqual(hash_obj.pecoff_sha1,
+                     "1f32fa4eedfba023653c094143d90999f6b9bc4f")
+
+    self.assertEqual(hash_obj.signed_data[0].revision, 512)

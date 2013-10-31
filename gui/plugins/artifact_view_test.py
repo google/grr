@@ -11,9 +11,6 @@ from grr.lib import test_lib
 class TestArtifactRender(test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
-  def setUp(self):
-    super(TestArtifactRender, self).setUp()
-
   def testArtifactRendering(self):
     self.Open("/")
     with self.ACLChecksDisabled():

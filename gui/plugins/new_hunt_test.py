@@ -271,7 +271,7 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
 
     self.assertEquals(len(hunt_rules), 1)
     self.assertTrue(
-        abs(int((hunt_rules[0].expires - hunt_rules[0].created) * 1e-6) -
+        abs(int(hunt_rules[0].expires - hunt_rules[0].created) -
             31 * 24 * 60 * 60) <= 1)
 
     self.assertEquals(len(hunt_rules[0].regex_rules), 2)

@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
-
 """Loads up all flow tests."""
 
 # pylint: disable=unused-import

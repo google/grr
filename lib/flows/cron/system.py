@@ -110,7 +110,6 @@ class AbstractClientStatsCronFlow(SystemCronFlow):
   """
 
   CLIENT_STATS_URN = rdfvalue.RDFURN("aff4:/stats/ClientFleetStats")
-  OPEN_CHUNK_LIMIT = 10000
 
   def BeginProcessing(self):
     pass
@@ -136,12 +135,9 @@ class AbstractClientStatsCronFlow(SystemCronFlow):
       root = aff4.FACTORY.Open(aff4.ROOT_URN, token=self.token)
       children_urns = list(root.ListChildren())
 
-      while children_urns:
-        to_read = children_urns[:self.OPEN_CHUNK_LIMIT]
-        children_urns = children_urns[self.OPEN_CHUNK_LIMIT:]
-        for child in aff4.FACTORY.MultiOpen(to_read, mode="r", token=self.token,
-                                            age=aff4.NEWEST_TIME):
-          self.ProcessClient(child)
+      for child in aff4.FACTORY.MultiOpen(
+          children_urns, mode="r", token=self.token, age=aff4.NEWEST_TIME):
+        self.ProcessClient(child)
 
         # This flow is not dead: we don't want to run out of lease time.
         self.HeartBeat()

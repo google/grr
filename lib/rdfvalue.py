@@ -435,10 +435,6 @@ class RDFDatetime(RDFInteger):
       # Assume other is in seconds
       return self.__class__(self._value + other * self.converter)
 
-    if isinstance(other, RDFDatetime):
-      return self.__class__(self._value +
-                            other.AsSecondsFromEpoch() * self.converter)
-
     return NotImplemented
 
   def __sub__(self, other):
@@ -447,8 +443,7 @@ class RDFDatetime(RDFInteger):
       return self.__class__(self._value - other * self.converter)
 
     if isinstance(other, RDFDatetime):
-      return self.__class__(self._value -
-                            other.AsSecondsFromEpoch() * self.converter)
+      return Duration(self.AsSecondsFromEpoch() - other.AsSecondsFromEpoch())
 
     return NotImplemented
 

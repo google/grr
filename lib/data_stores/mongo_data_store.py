@@ -4,11 +4,13 @@
 """An implementation of a data store based on mongo."""
 
 
+import hashlib
 import threading
 import time
 from bson import binary
 import pymongo
 from pymongo import errors
+from pymongo import objectid
 
 import logging
 
@@ -283,6 +285,9 @@ class MongoTransaction(data_store.Transaction):
     self.store = store
     self.token = token
     self.subject = utils.SmartUnicode(subject)
+    self.object_id = objectid.ObjectId(
+        hashlib.sha256(utils.SmartStr(self.subject)).digest()[:12])
+
     self.to_set = {}
     self.to_delete = []
     if lease_time is None:
@@ -290,10 +295,8 @@ class MongoTransaction(data_store.Transaction):
 
     self.expires = time.time() + lease_time
     self.document = self.store.latest_collection.find_and_modify(
-        query={"subject": self.subject, "type": "transaction",
-               "expires": {"$lt": time.time()}},
-        update=dict(subject=self.subject, type="transaction",
-                    expires=self.expires),
+        query={"_id": self.object_id, "expires": {"$lt": time.time()}},
+        update=dict(_id=self.object_id, expires=self.expires),
         upsert=False, new=True)
 
     if self.document:
@@ -306,10 +309,20 @@ class MongoTransaction(data_store.Transaction):
     # there still exists a very small race if this happens in multiple processes
     # at the same time.
     with self.lock_creation_lock:
-      document = self.store.latest_collection.find(
-          {"subject": self.subject, "type": "transaction"})
+      document = self.store.latest_collection.find({"_id": self.object_id})
       if not document.count():
         self.UpdateLease(lease_time)
+
+        cursor = self.store.latest_collection.find({"_id": self.object_id})
+        if cursor.count() != 1:
+          self._DeleteLock()
+          logging.warn("Multiple lock rows for %s", subject)
+          raise data_store.TransactionError("Error while locking %s." % subject)
+
+        self.document = cursor.next()
+
+        if self.document["expires"] != self.expires:
+          raise data_store.TransactionError("Subject %s is locked" % subject)
 
         # We hold a lock now:
         self.locked = True
@@ -322,10 +335,8 @@ class MongoTransaction(data_store.Transaction):
 
   def UpdateLease(self, duration):
     self.expires = time.time() + duration
-    document = dict(subject=self.subject, type="transaction",
-                    expires=self.expires)
-
-    self.store.latest_collection.save(document)
+    self.store.latest_collection.save(
+        dict(_id=self.object_id, expires=self.expires))
 
   def DeleteAttribute(self, predicate):
     self.to_delete.append(predicate)
@@ -359,12 +370,19 @@ class MongoTransaction(data_store.Transaction):
       self._RemoveLock()
 
   def _RemoveLock(self):
-    # Remove the lock on the document:
+    # Remove the lock on the document.
     if not self.store.latest_collection.find_and_modify(
-        query=self.document,
-        update=dict(subject=self.subject, type="transaction", expires=0)):
+        query=self.document, update=dict(_id=self.object_id, expires=0)):
       raise data_store.TransactionError("Lock was overridden for %s." %
                                         self.subject)
+    self.locked = False
+
+  def _DeleteLock(self):
+    # Deletes the lock entirely from the document.
+    document = dict(_id=self.object_id, expires=self.expires)
+    if not self.store.latest_collection.remove(query=document):
+      raise data_store.TransactionError(
+          "Could not remove lock for %s." % self.subject)
     self.locked = False
 
   def __del__(self):

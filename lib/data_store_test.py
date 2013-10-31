@@ -314,6 +314,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
     """Test transactions raise."""
     predicate = u"metadata:predicateÎñţér"
     subject = u"aff4:/metadata:rowÎñţér"
+    subject2 = u"aff4:/metadata:rowÎñţér2"
 
     # t1 is holding a transaction on this row.
     t1 = data_store.DB.Transaction(subject, token=self.token)
@@ -338,6 +339,36 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     self.assertEqual(
         data_store.DB.Resolve(subject, predicate, token=self.token)[0], "2")
+
+    # Check that locks don't influence each other.
+
+    # t1 is holding a transaction on this row.
+    t1 = data_store.DB.Transaction(subject, token=self.token)
+    t1.Resolve(predicate)
+
+    # This means that modification of this row will fail using a different
+    # transaction.
+    self.assertRaises(
+        data_store.TransactionError, data_store.DB.Transaction,
+        subject, token=self.token)
+
+    # t2 is holding a transaction on this row.
+    t2 = data_store.DB.Transaction(subject2, token=self.token)
+    t2.Resolve(predicate)
+
+    # This means that modification of this row will fail using a different
+    # transaction.
+    self.assertRaises(
+        data_store.TransactionError, data_store.DB.Transaction,
+        subject2, token=self.token)
+    t2.Commit()
+
+    # Subject 1 should still be locked.
+    self.assertRaises(
+        data_store.TransactionError, data_store.DB.Transaction,
+        subject, token=self.token)
+
+    t1.Commit()
 
   def testAbortTransaction(self):
     predicate = u"metadata:predicate_Îñţér"
@@ -963,7 +994,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
     start_time = time.time()
     for i in xrange(self.n):
       self.tp.AddTask(data_store.DB.Resolve, (
-          subject_template % i, "task:threadedflow", None, self.token))
+          subject_template % i, "task:threadedflow", self.token))
     self.tp.Join()
     data_store.DB.Flush()
     end_time = time.time()
@@ -974,7 +1005,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
     start_time = time.time()
     for i in xrange(self.n):
       self.tp.AddTask(data_store.DB.Resolve, (
-          "aff4:/somerowthreaded", predicate_template % i, None, self.token))
+          "aff4:/somerowthreaded", predicate_template % i, self.token))
     self.tp.Join()
     data_store.DB.Flush()
     end_time = time.time()

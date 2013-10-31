@@ -141,13 +141,6 @@ class RDFDatetimeTest(test_base.RDFValueTestCase):
     duration = rdfvalue.Duration("1w")
     self.assertEqual(int(date - duration), 1e9 - 7 * 24 * 3600e6)
 
-  def testAddSubDatetime(self):
-    date1 = rdfvalue.RDFDatetime(1e9)
-    date2 = rdfvalue.RDFDatetime(2e9)
-    self.assertEqual(int(date1 + date2), 3e9)
-    self.assertEqual(int(date2 - date1), 1e9)
-    self.assertEqual(int(date1 - date2), 1e9 - 2e9)
-
 
 class RDFDatetimeSecondsTest(RDFDatetimeTest):
   rdfvalue_class = rdfvalue.RDFDatetimeSeconds

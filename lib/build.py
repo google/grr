@@ -539,6 +539,11 @@ class LinuxClientDeployer(ClientDeployer):
 
   def MakeDeployableBinary(self, template_path, output_path=None):
     """This will add the config to the client template and create a .deb."""
+
+    # Linux only supports lower case names.
+    old_name = config_lib.CONFIG.Get("Client.name")
+    config_lib.CONFIG.Set("Client.name", old_name.lower())
+
     if output_path is None:
       output_path = config_lib.CONFIG.Get("ClientBuilder.output_path",
                                           context=self.context)
@@ -592,7 +597,7 @@ class LinuxClientDeployer(ClientDeployer):
       oldwd = os.getcwd()
       os.chdir(template_dir)
       command = [buildpackage_binary, "-b"]
-      subprocess.call(command)
+      subprocess.check_call(command)
       os.chdir(oldwd)
 
       filename_base = config_lib.CONFIG.Get("ClientBuilder.debian_package_base",
@@ -610,6 +615,9 @@ class LinuxClientDeployer(ClientDeployer):
                     os.path.join(os.path.dirname(output_path), output_name))
 
       print "Created package %s" % output_path
+
+      # Restore old name.
+      config_lib.CONFIG.Set("Client.name", old_name)
       return output_path
 
 

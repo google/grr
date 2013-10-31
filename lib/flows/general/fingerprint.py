@@ -59,9 +59,34 @@ class FingerprintFile(flow.GRRFlow):
       urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(self.args.pathspec,
                                                        self.client_id)
     self.state.Register("urn", urn)
+
     fd = aff4.FACTORY.Create(urn, "VFSFile", mode="w", token=self.token)
-    fingerprint = fd.Schema.FINGERPRINT(response)
-    fd.Set(fingerprint)
+
+    hash_obj = fd.Schema.HASH()
+
+    for result in response.results:
+      if result["name"] == "generic":
+        for hash_type in ["md5", "sha1", "sha256"]:
+          value = result.GetItem(hash_type)
+          if value:
+            setattr(hash_obj, hash_type, value)
+
+      if result["name"] == "pecoff":
+        for hash_type in ["md5", "sha1", "sha256"]:
+          value = result.GetItem(hash_type)
+          if value:
+            setattr(hash_obj, "pecoff_" + hash_type, value)
+
+        signed_data = result.GetItem("SignedData", [])
+        for data in signed_data:
+          hash_obj.signed_data.Append(
+              revision=data[0], cert_type=data[1], certificate=data[2])
+
+    fd.Set(hash_obj)
+
+    # TODO(user): This attribute will be deprecated in the future. Do not
+    # use.
+    fd.Set(fd.Schema.FINGERPRINT(response))
     fd.Close(sync=False)
 
   @flow.StateHandler()

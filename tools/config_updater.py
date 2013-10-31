@@ -124,11 +124,11 @@ def ShowUser(username):
       if isinstance(user, users.GRRUser):
         print user.Describe()
   else:
-    user = aff4.FACTORY.Open("aff4:/users/%s" % flags.FLAGS.username)
+    user = aff4.FACTORY.Open("aff4:/users/%s" % username)
     if isinstance(user, users.GRRUser):
       print user.Describe()
     else:
-      print "User %s not found" % flags.FLAGS.username
+      print "User %s not found" % username
 
 
 # Generate Keys Arguments
@@ -392,7 +392,10 @@ def Initialize(config=None):
   # We need to update the config to point to the installed templates now.
   config.Set("ClientBuilder.executables_path", os.path.join(
       flags.FLAGS.share_dir, "executables"))
+
+  # Build debug binaries, then build release binaries.
   maintenance_utils.RepackAllBinaries(upload=True, debug_build=True)
+  maintenance_utils.RepackAllBinaries(upload=True)
 
   print "\nInitialization complete, writing configuration."
   config.Write()

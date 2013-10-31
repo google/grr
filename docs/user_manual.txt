@@ -235,8 +235,7 @@ C:\Windows\system32>net stop "grr monitor"
 The GRR Monitor service is stopping.
 The GRR Monitor service was stopped successfully.
 
-C:\Windows\system32>c:\windows\system32\grr\2.5.0.5\grr.exe --config reg://HKEY_
-LOCAL_MACHINE/Software\GRR --verbose
+C:\Windows\system32>c:\windows\system32\grr\2.5.0.5\grr.exe --config grr.exe.yaml --verbose
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2013 Google Inc. All Rights Reserved.
 """Tests the mysql data store."""
 
 

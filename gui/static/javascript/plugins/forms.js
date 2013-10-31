@@ -48,11 +48,11 @@ grr.forms.selectOnChange = function(element) {
   var jthis = $(element);
   var json_store = jthis.closest('.FormData').data();
   var all_opts = $(element + ' option');
-  var all_opts_vals = [];
+  var all_opts_vals = {};
   all_opts.each(function(index, value) {
-    all_opts_vals.push(value.value);
+    json_store[jthis.attr('id') + '-' + index] = value.value;
   });
-  json_store[jthis.attr('id')] = all_opts_vals;
+
   jthis.removeClass('unset');
 };
 

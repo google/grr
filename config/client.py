@@ -6,7 +6,13 @@ from grr.lib import rdfvalue
 
 
 # General Client options.
-config_lib.DEFINE_string("Client.name", "GRR", "The name of the client.")
+config_lib.DEFINE_string("Client.name", "GRR",
+                         "The name of the client. This will be used as a base "
+                         "name to generate many other default parameters such "
+                         "as binary names and service names. Note that on "
+                         "Linux we lowercase the name to confirm with most "
+                         "linux naming conventions.")
+
 config_lib.DEFINE_string("Client.binary_name", "%(Client.name)",
                          "The name of the client binary.")
 

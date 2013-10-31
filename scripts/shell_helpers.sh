@@ -3,6 +3,10 @@
 
 GRR_SERVICES="grr-single-server grr-http-server grr-ui grr-enroller grr-worker"
 
+alias grr_stop_all='stop_services "$GRR_SERVICES"'
+alias grr_start_all='start_services "$GRR_SERVICES"'
+
+
 function stop_services()
 {
   local SERVICES;

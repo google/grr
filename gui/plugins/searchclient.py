@@ -43,10 +43,11 @@ class ContentView(renderers.Splitter2WayVertical):
 
 def FormatLastSeenTime(age):
 
+  age = rdfvalue.RDFDatetime(age)
   if int(age) == 0:
     return "Never"
 
-  time_last_seen = (rdfvalue.RDFDatetime().Now() - int(age)) / 1e6
+  time_last_seen = int(rdfvalue.RDFDatetime().Now() - age)
 
   if time_last_seen < 60:
     return "%d seconds ago" % int(time_last_seen)

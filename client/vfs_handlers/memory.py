@@ -319,7 +319,7 @@ class OSXMemory(MemoryVFS):
 if "linux" in sys.platform:
   vfs.VFS_HANDLERS[rdfvalue.PathSpec.PathType.MEMORY] = LinuxMemory
 
-elif "windows" in sys.platform:
+elif "win32" in sys.platform:
   vfs.VFS_HANDLERS[rdfvalue.PathSpec.PathType.MEMORY] = WindowsMemory
 
 elif "darwin" in sys.platform:

@@ -37,12 +37,12 @@ class VolatilityPlugins(flow.GRRFlow):
   @flow.StateHandler(next_state=["StoreResults"])
   def Start(self):
     """Call the client with the volatility actions."""
-    for plugin in self.args.plugins:
+    for plugin in self.args.request.plugins:
       if plugin not in self.args.request.args:
         self.args.request.args[plugin] = {}
 
       # Also support this deprecated request method for old clients.
-      self.args.request.plugins.Append(plugin)
+      self.args.plugins.Append(plugin)
 
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
 

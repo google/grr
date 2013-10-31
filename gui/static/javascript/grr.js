@@ -1393,7 +1393,7 @@ grr.textview.TextViewer = function(renderer, domId, default_codec, state) {
 
     // Add handlers for if someone updates the values manually.
     $('#text_encoding').change(function() {
-      grr.textview.Update(renderer, domId);
+      grr.textview.Update(renderer, domId, state);
     });
     $('#text_viewer_offset').change(function() {
       $('#text_viewer_slider').slider('values', 0, $(this).val());

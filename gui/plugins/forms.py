@@ -307,6 +307,16 @@ class StringTypeFormRenderer(TypeDescriptorFormRenderer):
                                prefix=self.prefix)
 
 
+class BinaryStringTypeFormRenderer(StringTypeFormRenderer):
+  """Binary string form element renderer."""
+
+  type_descriptor = type_info.ProtoBinary
+
+  def ParseArgs(self, request):
+    res = super(BinaryStringTypeFormRenderer, self).ParseArgs(request)
+    return res.decode("string_escape")
+
+
 class ProtoRDFValueFormRenderer(StringTypeFormRenderer):
   """A Generic renderer for RDFValue Semantic types."""
 
@@ -816,6 +826,8 @@ class MultiSelectListRenderer(RepeatedFieldFormRenderer):
   def ParseArgs(self, request):
     """Parse all the post parameters and build a list."""
     result = []
-    for value in request.REQ.getlist("%s[]" % self.prefix):
-      result.append(value)
+    for k, v in request.REQ.iteritems():
+      if k.startswith(self.prefix):
+        result.append(v)
+
     return result

@@ -1014,9 +1014,15 @@ message Hash {
       type: "HashDigest",
       description: "Authenticode SHA1 hash digest for signed region of PE file."
       }];
+
   optional bytes pecoff_md5 = 5 [(sem_type) = {
       type: "HashDigest",
       description: "Authenticode MD5 hash digest for signed region of PE file."
+      }];
+
+  optional bytes pecoff_sha256 = 7 [(sem_type) = {
+      type: "HashDigest",
+      description: "Authenticode SHA256 hash digest for signed region of PE file."
       }];
 
   repeated AuthenticodeSignedData signed_data = 6 [(sem_type) = {

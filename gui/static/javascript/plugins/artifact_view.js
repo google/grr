@@ -216,6 +216,7 @@ grr.artifact_view.list_manager = {};
  */
 grr.artifact_view.list_manager.add = function(domId, value, value_object) {
   var data = $('#' + domId).data();
+
   if (!(value in data)) {
     var row = '<option value="' + value + '">' + value + '</option>';
     $('#' + domId).append(row);
