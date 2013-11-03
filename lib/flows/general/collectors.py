@@ -158,6 +158,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       # If not provided, get a knowledge base from the client.
       self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(self.client)
 
+    if not self.args.artifact_list:
+      raise flow.FlowError("No artifacts to collect")
+
     for cls_name in self.args.artifact_list:
       artifact_cls = self._GetArtifactClassFromName(cls_name)
       artifact_obj = artifact_cls()

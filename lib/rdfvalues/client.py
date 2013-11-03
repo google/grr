@@ -30,21 +30,6 @@ class ClientURN(rdfvalue.RDFURN):
   # Valid client urns must match this expression.
   CLIENT_ID_RE = re.compile(r"^(aff4:/)?C\.[0-9a-fA-F]{16}$")
 
-  def __init__(self, initializer=None, age=None):
-    """Constructor.
-
-    Args:
-      initializer: A string or another RDFURN.
-      age: The age of this entry.
-    """
-    # If we are initialized from another URN we need to validate it.
-    if isinstance(initializer, rdfvalue.RDFURN):
-      super(ClientURN, self).__init__(initializer=None, age=age)
-      self.ParseFromString(initializer.SerializeToString())
-
-    else:
-      super(ClientURN, self).__init__(initializer=initializer, age=age)
-
   def ParseFromString(self, value):
     if not self.Validate(value):
       raise type_info.TypeValueError("Client urn malformed: %s" % value)

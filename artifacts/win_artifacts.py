@@ -390,6 +390,19 @@ class WindowsHotFixes(AbstractWMIArtifact):
   ]
 
 
+class WindowsRunKeys(Artifact):
+  """Collect windows run keys."""
+  LABELS = ["Software"]
+  SUPPORTED_OS = ["Windows"]
+  COLLECTORS = [
+      Collector(action="GetRegistryKeys",
+                args={"path_list":
+                      [r"HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\Run\*",
+                       r"HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\RunOnce\*",
+                       r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run\*",
+                       r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce\*"]})]
+
+
 ################################################################################
 #  User Artifacts
 ################################################################################

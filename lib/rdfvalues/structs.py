@@ -1348,8 +1348,7 @@ class ProtoRDFValue(ProtoBinary):
     value = self.primitive_desc.ConvertFromWireFormat(
         value, container=container)
 
-    result = self.type()
-    result.ParseFromDataStore(value)
+    result = self.type(value)
 
     return result
 

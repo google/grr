@@ -34,8 +34,7 @@ Following path got modified: %(path)s"
     if not change_email:
       return
 
-    urn = aff4.RDFURN()
-    urn.ParseFromString(message.args)
+    urn = aff4.RDFURN(message.args)
 
     subject = "AFF4 change: %s" % utils.SmartStr(urn)
     email_alerts.SendEmail(change_email, "GRR server",

@@ -214,17 +214,17 @@ class RDFValueTestCase(RDFValueBaseTest):
 
     self.CheckRDFValue(self.rdfvalue_class(sample), sample)
 
-  def testSerialization(self):
+  def testSerialization(self, sample=None):
     """Make sure the RDFValue instance can be serialized."""
-    sample = self.GenerateSample()
+    if sample is None:
+      sample = self.GenerateSample()
 
     # Serializing to a string must produce a string.
     serialized = sample.SerializeToString()
     self.assertIsInstance(serialized, str)
 
     # Ensure we can parse it again.
-    rdfvalue_object = self.rdfvalue_class()
-    rdfvalue_object.ParseFromString(serialized)
+    rdfvalue_object = self.rdfvalue_class(serialized)
     self.CheckRDFValue(rdfvalue_object, sample)
 
     # Also by initialization.
@@ -245,8 +245,7 @@ class RDFValueTestCase(RDFValueBaseTest):
       self.fail("%s has no valid data_store_type" % self.rdfvalue_class)
 
     # Ensure we can parse it again.
-    rdfvalue_object = self.rdfvalue_class()
-    rdfvalue_object.ParseFromDataStore(serialized)
+    rdfvalue_object = self.rdfvalue_class(serialized)
     self.CheckRDFValue(rdfvalue_object, sample)
 
 

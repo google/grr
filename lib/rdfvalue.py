@@ -273,6 +273,8 @@ class RDFInteger(RDFString):
     super(RDFInteger, self).__init__(initializer=initializer, age=age)
     if initializer is None:
       self._value = 0
+    else:
+      self.ParseFromString(initializer)
 
   def ParseFromString(self, string):
     self._value = 0
@@ -281,11 +283,6 @@ class RDFInteger(RDFString):
         self._value = int(string)
       except TypeError as e:
         raise DecodeError(e)
-
-  def ParseFromDataStore(self, data_store_obj):
-    self._value = 0
-    if data_store_obj:
-      self._value = int(data_store_obj)
 
   def SerializeToDataStore(self):
     """Use varint to store the integer."""
@@ -615,6 +612,8 @@ class RDFURN(RDFValue):
     Args:
       initializer: A string or another RDFURN.
       age: The age of this entry.
+    Raises:
+      ValueError: if no urn passed
     """
     if isinstance(initializer, RDFURN):
       # Make a direct copy of the other object
@@ -624,6 +623,9 @@ class RDFURN(RDFValue):
       # pylint: enable=protected-access
       super(RDFURN, self).__init__(None, age)
       return
+
+    if initializer is None:
+      raise ValueError("URN cannot be None")
 
     super(RDFURN, self).__init__(initializer=initializer, age=age)
 

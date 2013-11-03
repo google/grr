@@ -8,10 +8,9 @@ import hashlib
 import threading
 import time
 from bson import binary
+from bson import objectid
 import pymongo
 from pymongo import errors
-from pymongo import objectid
-
 import logging
 
 from grr.lib import config_lib

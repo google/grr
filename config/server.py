@@ -131,3 +131,14 @@ config_lib.DEFINE_list(
     "AdminUI.django_allowed_hosts", ["*"],
     "Set the django ALLOWED_HOSTS parameter. "
     "See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts")
+
+config_lib.DEFINE_bool("AdminUI.enable_ssl", False,
+                       "Turn on SSL. This needs AdminUI.ssl_cert to be set.")
+
+config_lib.DEFINE_string("AdminUI.ssl_cert_file", "",
+                         "The SSL certificate to use.")
+
+config_lib.DEFINE_string(
+    "AdminUI.ssl_key_file", None,
+    "The SSL key to use. The key may also be part of the cert file, in which "
+    "case this can be omitted.")

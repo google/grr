@@ -74,6 +74,21 @@ class RDFURNTest(test_base.RDFValueTestCase):
     url = rdfvalue.RDFURN(str_url, age=1)
     self.assertEqual(url.Path(), str_url[5:])
 
+  def testInitialization(self):
+    """Check that we can initialize from common initializers."""
+
+    # Empty Initializer not allowed.
+    self.assertRaises(ValueError, self.rdfvalue_class)
+
+    # Initialize from another instance.
+    sample = self.GenerateSample("aff4:/")
+
+    self.CheckRDFValue(self.rdfvalue_class(sample), sample)
+
+  def testSerialization(self, sample=None):
+    sample = self.GenerateSample("aff4:/")
+    super(RDFURNTest, self).testSerialization(sample=sample)
+
 
 class RDFDatetimeTest(test_base.RDFValueTestCase):
   rdfvalue_class = rdfvalue.RDFDatetime

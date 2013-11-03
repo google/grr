@@ -71,9 +71,7 @@ class GrrMessage(rdfvalue.RDFProtoStruct):
       # Now try to create the correct RDFValue.
       result_cls = self.classes.get(self.args_rdf_name, rdfvalue.RDFString)
 
-      result = result_cls(age=self.args_age)
-      result.ParseFromString(self.args)
-
+      result = result_cls(self.args, age=self.args_age)
       return result
 
   @payload.setter

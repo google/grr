@@ -509,8 +509,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     def Corruptor(req):
       """Futz with some of the fields."""
-      self.client_communication = rdfvalue.ClientCommunication()
-      self.client_communication.ParseFromString(req.data)
+      self.client_communication = rdfvalue.ClientCommunication(req.data)
 
       cipher_text = self.client_communication.encrypted_cipher
       cipher_text = (cipher_text[:10] +

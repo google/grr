@@ -24,8 +24,7 @@ class MockChangeEvent(flow.EventListener):
         rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED):
       return
 
-    urn = rdfvalue.RDFURN()
-    urn.ParseFromString(message.args)
+    urn = rdfvalue.RDFURN(message.args)
     MockChangeEvent.CHANGED_URNS.append(urn)
 
 

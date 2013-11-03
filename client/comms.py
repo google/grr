@@ -482,7 +482,8 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
 
     # This queue should never hit its maximum since the server will throttle
     # messages before this.
-    self._in_queue = Queue.Queue(maxsize=1024)
+    self._in_queue = utils.HeartbeatQueue(
+        callback=self.nanny_controller.Heartbeat, maxsize=1024)
 
     # The size of the output queue controls the worker thread. Once this queue
     # is too large, the worker thread will block until the queue is drained.
@@ -546,14 +547,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     """Push the message to the input queue."""
     # Push all the messages to our input queue
     for message in messages:
-      # Block if we need to wait for the worker thread to drain it. We do not
-      # forget about heartbeats too.
-      while True:
-        try:
-          self._in_queue.put(message, block=True, timeout=10)
-          break
-        except Queue.Full:
-          self.nanny_controller.Heartbeat()
+      self._in_queue.put(message, block=True)
 
       stats.STATS.IncrementCounter("grr_client_received_messages")
 
@@ -606,11 +600,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     # As long as our output queue has some room we can process some
     # input messages:
     while True:
-      try:
-        message = self._in_queue.get(block=True, timeout=5)
-      except Queue.Empty:
-        self.nanny_controller.Heartbeat()
-        continue
+      message = self._in_queue.get()
 
       # A message of None is our terminal message.
       if message is None:
