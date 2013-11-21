@@ -7,7 +7,6 @@
 
 import json
 import os.path
-import time
 
 
 import logging
@@ -51,15 +50,11 @@ class ChromePlugins(flow.GRRFlow):
   @flow.StateHandler(next_state=["EnumerateExtensionDirs"])
   def Start(self):
     """Determine the Chrome directory."""
-    self.state.Register("urn", self.client_id)
-    self.args.output = self.args.output.format(t=time.time(),
-                                               p=self.__class__.__name__,
-                                               u=self.state.context.user)
-    self.state.Register("out_urn", self.state.urn.Add(self.args.output))
     self.state.Register("storage", {})
 
     if self.args.path:
       paths = [self.args.path]
+
     elif self.args.username:
       paths = self.GuessExtensionPaths(self.args.username)
 
@@ -88,13 +83,16 @@ class ChromePlugins(flow.GRRFlow):
   def EnumerateVersions(self, responses):
     """Enumerates all extension version directories."""
     if responses.success:
+      pathspecs = []
+
       for response in responses:
         # Get the json manifest.
         pathspec = response.pathspec
         pathspec.Append(pathtype=self.args.pathtype, path="manifest.json")
+        pathspecs.append(pathspec)
 
-        self.CallFlow("GetFile", next_state="GetExtensionName",
-                      pathspec=pathspec)
+      self.CallFlow("MultiGetFile", next_state="GetExtensionName",
+                    pathspecs=pathspecs)
 
   @flow.StateHandler(next_state=["GetLocalizedName", "Done"])
   def GetExtensionName(self, responses):
@@ -137,8 +135,9 @@ class ChromePlugins(flow.GRRFlow):
       self.CreateAnalysisVFile(extension_directory, manifest)
 
       if self.args.download_files:
-        self.CallFlow("DownloadDirectory", next_state="Done",
-                      pathspec=extension_directory)
+        self.CallFlow("FetchFiles", next_state="Done",
+                      findspec=rdfvalue.FindSpec(pathspec=extension_directory,
+                                                 max_depth=3, path_glob="*"))
 
   @flow.StateHandler(next_state="Done")
   def GetLocalizedName(self, responses):
@@ -169,8 +168,9 @@ class ChromePlugins(flow.GRRFlow):
     self.CreateAnalysisVFile(extension_directory, manifest)
 
     if self.args.download_files:
-      self.CallFlow("DownloadDirectory", next_state="Done",
-                    pathspec=extension_directory)
+      self.CallFlow("FetchFiles", next_state="Done",
+                    findspec=rdfvalue.FindSpec(pathspec=extension_directory,
+                                               max_depth=3, path_glob="*"))
 
   def CreateAnalysisVFile(self, extension_directory, manifest):
     """Creates the analysis result object."""
@@ -178,7 +178,7 @@ class ChromePlugins(flow.GRRFlow):
     chromeid = extension_directory.Dirname().Basename()
     name = manifest.get("name", "unknown_" + chromeid)
 
-    ext_urn = self.state.out_urn.Add(name).Add(version)
+    ext_urn = self.runner.output.urn.Add(name).Add(version)
 
     fd = aff4.FACTORY.Create(ext_urn, "VFSBrowserExtension",
                              token=self.token)
@@ -198,11 +198,6 @@ class ChromePlugins(flow.GRRFlow):
   def Done(self, responses):
     if not responses.success:
       logging.error("Error downloading directory recursively.")
-
-  @flow.StateHandler()
-  def End(self):
-    self.Notify("ViewObject", self.state.out_urn,
-                "Completed retrieval of Chrome Plugins")
 
   def GuessExtensionPaths(self, user):
     """Take a user and return guessed full paths to Extension files.

@@ -64,11 +64,27 @@ class UserTests(test_base.RDFValueTestCase):
     self.assertEqual(type(fast_proto.last_logon), rdfvalue.RDFDatetime)
 
   def testPrettyPrintMode(self):
-    mode = rdfvalue.StatMode(0775)
-    self.assertEqual(unicode(mode), "rwxrwxr-x")
 
-    mode = rdfvalue.StatMode(075)
-    self.assertEqual(unicode(mode), "---rwxr-x")
-
-    mode = rdfvalue.StatMode(0)
-    self.assertEqual(unicode(mode), "---------")
+    for mode, result in [
+        (0775, "-rwxrwxr-x"),
+        (075, "----rwxr-x"),
+        (0, "----------"),
+        # DIR
+        (040775, "drwxrwxr-x"),
+        # SUID
+        (35232, "-rwSr-----"),
+        # GID
+        (34208, "-rw-r-S---"),
+        # CHR
+        (9136, "crw-rw---T"),
+        # BLK
+        (25008, "brw-rw----"),
+        # Socket
+        (49663, "srwxrwxrwx"),
+        # Sticky
+        (33791, "-rwxrwxrwt"),
+        # Sticky, not x
+        (33784, "-rwxrwx--T"),
+        ]:
+      value = rdfvalue.StatMode(mode)
+      self.assertEqual(unicode(value), result)

@@ -73,7 +73,7 @@ class FlowTree(renderers.TreeRenderer):
 
       category = rdfvalue.RDFURN(cls.category)
       if category == path:
-        flows.add(name)
+        flows.add((name, cls.friendly_name))
       else:
         relative_path = category.RelativeName(path)
         # This category starts with this path
@@ -102,8 +102,8 @@ class FlowTree(renderers.TreeRenderer):
     for category in sorted(categories):
       self.AddElement(category)
 
-    for f in sorted(flows):
-      self.AddElement(f, "leaf")
+    for name, friendly_name in sorted(flows):
+      self.AddElement(name, behaviour="leaf", friendly_name=friendly_name)
 
 
 class FlowManagementTabs(renderers.TabLayout):
@@ -305,7 +305,8 @@ grr.publish("grr_traceback", "{{error|escapejs}}");
       self.flow_found = True
 
       self.form = forms.SemanticProtoFormRenderer(
-          self.flow_cls.args_type(), prefix="args").RawHTML(request)
+          self.flow_cls.GetDefaultArgs(token=request.token),
+          prefix="args").RawHTML(request)
 
       self.runner_form = forms.SemanticProtoFormRenderer(
           flow.FlowRunnerArgs(flow_name=self.flow_name),
@@ -897,11 +898,22 @@ class GlobExpressionFormRenderer(forms.StringTypeFormRenderer):
   """A renderer for glob expressions with autocomplete."""
   type = rdfvalue.GlobExpression
 
-  layout_template = forms.StringTypeFormRenderer.layout_template + """
+  layout_template = ("""<div class="control-group">
+""" + forms.TypeDescriptorFormRenderer.default_description_view + """
+  <div class="controls">
+    <input id='{{this.prefix}}'
+      type=text
+{% if this.default %}
+  value='{{ this.default|escape }}'
+{% endif %}
+      onchange="grr.forms.inputOnChange(this)"
+      class="unset input-xxlarge"/>
+  </div>
+</div>
 <script>
 grr.glob_completer.Completer("{{this.prefix}}", {{this.completions|safe}});
 </script>
-"""
+""")
 
   def AddProtoFields(self, name, attribute_type):
     for type_info in attribute_type.type_infos:

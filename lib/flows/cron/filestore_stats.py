@@ -7,7 +7,7 @@ from grr.lib import rdfvalue
 from grr.lib import stats as stats_lib
 from grr.lib import utils
 
-from grr.lib.flows.cron import system
+from grr.lib.aff4_objects import cronjobs
 from grr.lib.rdfvalues import stats
 
 
@@ -114,7 +114,7 @@ class ClientCountHistogram(GraphDistribution):
     self.Record(len(clients))
 
 
-class FilestoreStatsCronFlow(system.SystemCronFlow):
+class FilestoreStatsCronFlow(cronjobs.SystemCronFlow):
   """Build statistics about the filestore."""
   frequency = rdfvalue.Duration("1w")
   lifetime = rdfvalue.Duration("1d")
@@ -158,4 +158,3 @@ class FilestoreStatsCronFlow(system.SystemCronFlow):
       for consumer in self.consumers:
         consumer.Save(self.stats)
       self.stats.Close()
-

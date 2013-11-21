@@ -66,8 +66,9 @@ class GRRWorker(object):
       if threadpool_size is None:
         threadpool_size = config_lib.CONFIG["Threadpool.size"]
 
-      GRRWorker.thread_pool = threadpool.ThreadPool.Factory(threadpool_prefix,
-                                                            threadpool_size)
+      GRRWorker.thread_pool = threadpool.ThreadPool.Factory(
+          threadpool_prefix, min_threads=2, max_threads=threadpool_size)
+
       GRRWorker.thread_pool.Start()
 
     self.token = token

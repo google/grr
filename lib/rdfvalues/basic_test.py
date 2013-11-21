@@ -45,6 +45,19 @@ class DurationTest(test_base.RDFValueTestCase):
     self.assertEqual(str(t), "5m")
 
 
+class ByteSizeTest(test_base.RDFValueTestCase):
+  rdfvalue_class = rdfvalue.ByteSize
+
+  def GenerateSample(self, number=5):
+    return rdfvalue.ByteSize("%sKib" % number)
+
+  def testParsing(self):
+    for string, expected in [("100gb", 100 * 1000**3),
+                             ("10kib", 10*1024),
+                             ("2.5kb", 2500)]:
+      self.assertEqual(expected, rdfvalue.ByteSize(string))
+
+
 class RDFURNTest(test_base.RDFValueTestCase):
   rdfvalue_class = rdfvalue.RDFURN
 
@@ -180,8 +193,3 @@ class HashDigestTest(test_base.RDFValueTestCase):
     self.assertEqual(sample, binary_digest)
     self.assertNotEqual(sample, "\xaa\xbb")
     self.assertNotEqual(sample, "deadbeef")
-
-
-
-
-

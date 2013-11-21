@@ -123,8 +123,15 @@ class RDFValueCollection(aff4.AFF4Object):
     """
     return self.GenerateItems()
 
-  def GenerateItems(self):
+  @property
+  def current_offset(self):
+    return self.fd.Tell()
+
+  def GenerateItems(self, offset=0):
     """Iterate over all contained RDFValues.
+
+    Args:
+      offset: The offset in the stream to start reading from.
 
     Yields:
       RDFValues stored in the collection.
@@ -138,8 +145,11 @@ class RDFValueCollection(aff4.AFF4Object):
     if self.mode == "w":
       raise RuntimeError("Can not read when in write mode.")
 
-    self.fd.seek(0)
+    self.fd.seek(offset)
+    count = 0
+
     while True:
+      offset = self.fd.Tell()
       try:
         length = struct.unpack("<i", self.fd.Read(4))[0]
         serialized_event = self.fd.Read(length)
@@ -147,7 +157,21 @@ class RDFValueCollection(aff4.AFF4Object):
         break
 
       result = rdfvalue.EmbeddedRDFValue(serialized_event)
-      yield result.payload
+
+      payload = result.payload
+
+      # Mark the RDFValue with important information relating to the
+      # collection it is from.
+      payload.id = count
+      payload.collection_offset = offset
+
+      yield payload
+
+      count += 1
+
+  def GetItem(self, offset=0):
+    for item in self.GenerateItems(offset=offset):
+      return item
 
   def __getitem__(self, index):
     if index >= 0:

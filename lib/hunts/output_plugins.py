@@ -8,11 +8,9 @@ import urllib
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
-from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import rendering
-from grr.lib.aff4_objects import cronjobs
 from grr.proto import flows_pb2
 
 
@@ -31,7 +29,7 @@ class HuntOutputPlugin(object):
   args_type = None
   description = ""
 
-  def __init__(self, hunt_obj, args=None):
+  def __init__(self, hunt_obj, args=None, state=None):
     """HuntOutputPlugin constructor.
 
     HuntOutputPlugin constructor is called during StartHuntFlow and therefore
@@ -41,315 +39,68 @@ class HuntOutputPlugin(object):
     Args:
       hunt_obj: Hunt which results this plugin is going to process.
       args: This plugin's arguments.
+      state: Instance of rdfvalue.FlowState. Represents plugin's state. If this
+             is passed, no initialization will be performed, only the state will
+             be applied.
     """
-    self.token = hunt_obj.token
-    self.args = args
-    self.initialized = False
+    if not state:
+      self.state = state or rdfvalue.FlowState()
+      self.state.Register("hunt_urn", hunt_obj.urn)
+      self.state.Register("args", args)
+      self.state.Register("token", hunt_obj.token)
+      self.Initialize()
+    else:
+      self.state = state
+
+    self.args = self.state.args
+    self.token = self.state.token
 
   def Initialize(self):
     """Initializes the hunt output plugin.
 
-    Initialize() is called when first client's results are processed by the
-    hunt. It's called on the worker, so no security checks apply.
+    Initialize() is called when hunt is created. It can be used to register
+    state variables. It's called on the worker, so no security checks apply.
     """
-    self.initialized = True
 
-  def ProcessResponse(self, response, client_id):
-    """Processes the response from the given client.
+  def ProcessResponses(self, responses):
+    """Processes bunch of responses.
 
-    ProcessResponse() is called on the worker, so no security checks apply.
+    Multiple ProcessResponses() calls can be done in a row. They're *always*
+    followed by a Flush() call. ProcessResponses() is called on the worker,
+    so no security checks apply.
 
     Args:
-      response: GrrMessage from the client.
-      client_id: Client id of the client.
+      responses: GrrMessages from the hunt results collection.
     """
-    pass
-
-  def ProcessResponses(self, responses, client_id):
-    """Processes bunch of responses from the given client.
-
-    ProcessResponses() is called on the worker, so no security checks apply.
-
-    Args:
-      responses: GrrMessages from the client.
-      client_id: client id of the client.
-    """
-    for response in responses:
-      self.ProcessResponse(response, client_id)
+    raise NotImplementedError()
 
   def Flush(self):
     """Flushes the output plugin's state.
 
+    Flush is *always* called after a series of ProcessResponses() calls.
     Flush() is called on the worker, so no security checks apply.
     """
     pass
 
 
+# TODO(user): remove as soon as we don't care about old hunts with pickled
+# CollectionPluginArgs and CollectionPlugin.
 class CollectionPluginArgs(rdfvalue.RDFProtoStruct):
   protobuf = flows_pb2.CollectionPluginArgs
 
 
+# TODO(user): remove as soon as we don't care about old hunts with pickled
+# CollectionPluginArgs and CollectionPlugin.
 class CollectionPlugin(HuntOutputPlugin):
   """An output plugin that stores the results in a collection."""
 
   description = "Store results in a collection."
   args_type = CollectionPluginArgs
+  # Making this class abstract, so that it doesn't show up in the UI
+  __abstract = True  # pylint: disable=invalid-name
 
-  def __init__(self, hunt_obj, *args, **kw):
-    super(CollectionPlugin, self).__init__(hunt_obj, *args, **kw)
-    self.collection_urn = hunt_obj.urn.Add(self.args.collection_name)
-    self.collection = None
-
-  def Initialize(self):
-    super(CollectionPlugin, self).Initialize()
-
-    # The results will be written to this collection.
-    self.collection = aff4.FACTORY.Create(
-        self.collection_urn, "RDFValueCollection", mode="rw", token=self.token)
-    self.collection.SetChunksize(1024 * 1024)
-
-  def ProcessResponse(self, response, client_id):
-    msg = rdfvalue.GrrMessage(payload=response, source=client_id)
-    self.collection.Add(msg)
-
-  def ProcessResponses(self, responses, client_id):
-    msgs = [rdfvalue.GrrMessage(payload=response, source=client_id)
-            for response in responses]
-    self.collection.AddAll(msgs)
-
-  def Flush(self):
-    self.collection.Flush()
-
-  def GetCollection(self):
-    return self.collection
-
-
-class CronHuntOutputMetadata(aff4.AFF4Object):
-  """Metadata AFF4 object used by CronHuntOutputFlow."""
-
-  class SchemaCls(aff4.AFF4Object.SchemaCls):
-    """AFF4 schema for CronHuntOutputMetadata."""
-
-    HAS_NEW_RESULTS = aff4.Attribute(
-        "aff4:has_new_results", rdfvalue.RDFBool,
-        "True if there are new results in the hunt.", versioned=False)
-
-    NUM_PROCESSED_RESULTS = aff4.Attribute(
-        "aff4:num_processed_results", rdfvalue.RDFInteger,
-        "Number of hunt results already processed by the cron job.",
-        versioned=False, default=0)
-
-    CRON_JOB_URN = aff4.Attribute(
-        "aff4:cron_job_urn", rdfvalue.RDFURN,
-        "URN of a cron job that processes this hunt's output")
-
-
-class CronHuntOutputFlowArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.CronHuntOutputFlowArgs
-
-  def GetOutputPluginArgsClass(self):
-    if self.output_plugin_name:
-      output_plugin_cls = HuntOutputPlugin.classes.get(self.output_plugin_name)
-      if output_plugin_cls is None:
-        raise ValueError("Hunt output plugin '%s' not known by this "
-                         "implementation." % self.output_plugin_name)
-
-      # The required protobuf for this class is in args_type.
-      return output_plugin_cls.args_type
-
-
-class CronHuntOutputFlow(flow.GRRFlow):
-  """Cron flow scheduled by CronHuntOutputPlugin.
-
-  This flow checks hunt's results collection, and processes new results in
-  batch if there are any. It updates NUM_PROCESSES_RESULT attribute of
-  CronHuntOutputMetadata object to avoid processing previously processed
-  results.
-
-  This has to be inherited and StartBatch(), ProcessResult() and EndBatch()
-  methods overriden.
-  """
-
-  __abstract = True  # pylint: disable=g-bad-name
-
-  args_type = CronHuntOutputFlowArgs
-
-  def _CheckMetadataAndProcessIfNeeded(self):
-    """Checks metadata object and calls ProcessNewResults state if needed.
-
-    Returns:
-      True if there were new results to be processed. False otherwise.
-    """
-    metadata_obj = aff4.FACTORY.Open(
-        self.state.args.metadata_urn, aff4_type="CronHuntOutputMetadata",
-        mode="rw", token=self.token)
-
-    if metadata_obj.Get(metadata_obj.Schema.HAS_NEW_RESULTS):
-      metadata_obj.Set(metadata_obj.Schema.HAS_NEW_RESULTS(False))
-      metadata_obj.Close()
-
-      self.CallState(next_state="ProcessNewResults")
-      return True
-    else:
-      return False
-
-  def _IsHuntStarted(self):
-    """Returns True if corresponding hunt is paused."""
-    hunt_obj = aff4.FACTORY.Open(self.args.hunt_urn, aff4_type="GRRHunt",
-                                 mode="r", token=self.token)
-    return hunt_obj.GetRunner().IsHuntStarted()
-
-  def _Disable(self):
-    metadata_obj = aff4.FACTORY.Open(
-        self.state.args.metadata_urn, aff4_type="CronHuntOutputMetadata",
-        mode="r", token=self.token)
-    cronjobs.CRON_MANAGER.DisableJob(
-        metadata_obj.Get(metadata_obj.Schema.CRON_JOB_URN), token=self.token)
-
-  def _ProcessNewResults(self):
-    """Processes new hunt's results.
-
-    Opens hunt's results collection and processes newly added results. Calls
-    self.StartBatch() then self.ProcessResult() for every result and then
-    self.EndBatch(). If there are no new results, self.StartBatch()
-    and self.EndBatch() are not called at all.
-    """
-    hunt_results = aff4.FACTORY.Open(
-        self.state.args.hunt_urn.Add(
-            self.args.output_plugin_args.collection_name),
-        aff4_type="RDFValueCollection",
-        mode="r", token=self.token)
-
-    with aff4.FACTORY.Open(
-        self.state.args.metadata_urn, aff4_type="CronHuntOutputMetadata",
-        mode="rw", token=self.token) as metadata_obj:
-      num_processed = int(metadata_obj.Get(
-          metadata_obj.Schema.NUM_PROCESSED_RESULTS))
-
-      if len(hunt_results) > num_processed:
-        self.Log("Processing %d new results.",
-                 len(hunt_results) - num_processed)
-
-        self.StartBatch()
-
-        for i, msg in enumerate(hunt_results):
-          if i >= num_processed:
-            self.ProcessResult(msg)
-
-        self.EndBatch()
-
-        # Update NUM_PROCESSED_RESULTS so that we don't process results
-        # twice.
-        metadata_obj.Set(
-            metadata_obj.Schema.NUM_PROCESSED_RESULTS(len(hunt_results)))
-
-        self.Log("Done processing.")
-      else:
-        self.Log("No new results found (current number: %d)", num_processed)
-
-  @flow.StateHandler(next_state="ProcessNewResults")
-  def Start(self):
-    """Start state."""
-    if not self._CheckMetadataAndProcessIfNeeded():
-      # If there are no new results, check whether hunt is still running.
-      if not self._IsHuntStarted():
-        # If the hunt is not running anymore, disable itself.
-        self._Disable()
-
-  @flow.StateHandler(next_state=["ProcessNewResults",
-                                 "ProcessResultsAfterHuntHasStopped"])
-  def ProcessNewResults(self):
-    """This state is called if there are new results to process."""
-    self._ProcessNewResults()
-
-    if not self._CheckMetadataAndProcessIfNeeded():
-      # If there are no new results after we processed results' batch,
-      # check whether hunt is still running
-      if not self._IsHuntStarted():
-        # If the hunt is not running anymore, proceed to
-        # ProcessResultsAfterHuntHasStopped state.
-        self.CallState(next_state="ProcessResultsAfterHuntHasStopped")
-
-  @flow.StateHandler()
-  def ProcessResultsAfterHuntHasStopped(self):
-    """This state is called if we detect that hunt has stopped.
-
-    If this state is called, hunt is not running anymore. We process all
-    the results that weren't processed before and then disable the cron job.
-    """
-    self._ProcessNewResults()
-    self._Disable()
-
-  def StartBatch(self):
-    """Called before processing results batch."""
+  def ProcessResponses(self, responses):
     pass
-
-  def ProcessResult(self, result):
-    """Called for every new result in hunt's results collection."""
-    raise NotImplementedError()
-
-  def EndBatch(self):
-    """Called after results batch is processed."""
-    pass
-
-
-class CronHuntOutputPlugin(CollectionPlugin):
-  """Hunt output plugin that schedules a cron job to process hunt's results."""
-
-  # Name of the flow to be scheduled to process results. The flow should
-  # be a subclass of CronHuntOutputFlow.
-  cron_flow_name = None
-  # Frequency of the cron job that will be scheduled to process new hunt's
-  # results.
-  frequency = rdfvalue.Duration("5m")
-
-  # Prevents this from automatically registering.
-  __abstract = True  # pylint: disable=g-bad-name
-
-  def __init__(self, hunt_obj, *args, **kw):
-    self.hunt_urn = hunt_obj.urn
-    self.output_metadata_urn = hunt_obj.urn.Add("OutputMetadata")
-    super(CronHuntOutputPlugin, self).__init__(hunt_obj, *args, **kw)
-
-  def ProcessResponse(self, response, client_id):
-    """Does nothing, because results are processed by the cron job."""
-    super(CronHuntOutputPlugin, self).ProcessResponse(response, client_id)
-
-  def Flush(self):
-    """Updates output metadata object and ensures that cron job is scheduled."""
-    super(CronHuntOutputPlugin, self).Flush()
-
-    if not self.cron_flow_name:
-      raise ValueError("self.cron_flow_name can not be None.")
-
-    # It's ok to call ScheduleFlow multiple times. As long as job_name
-    # doesn't change, nothing will happen if there's an already running
-    # job with the same name.
-    cron_job_urn = cronjobs.CRON_MANAGER.ScheduleFlow(
-        cron_args=rdfvalue.CreateCronJobFlowArgs(
-            flow_runner_args=rdfvalue.FlowRunnerArgs(
-                flow_name=self.cron_flow_name),
-            flow_args=rdfvalue.CronHuntOutputFlowArgs(
-                hunt_urn=self.hunt_urn,
-                metadata_urn=self.output_metadata_urn,
-                output_plugin_name=self.__class__.__name__,
-                output_plugin_args=self.args),
-            allow_overruns=False,
-            periodicity=self.frequency,
-            lifetime=rdfvalue.Duration("2h")
-            ),
-        job_name=self.hunt_urn.Basename() + "_" + self.cron_flow_name,
-        disabled=False, token=self.token)
-
-    # Update/create output metadata object. We have to set the HAS_NEW_RESULTS
-    # flag so that the cron job knows that there are new results to process.
-    with aff4.FACTORY.Create(
-        self.output_metadata_urn, aff4_type="CronHuntOutputMetadata", mode="w",
-        token=self.token) as metadata_obj:
-      metadata_obj.Set(metadata_obj.Schema.HAS_NEW_RESULTS(True))
-      # We have to set CRON_JOB_URN in output_metadata so that cron job knows
-      # it's own URN so that it can enable/disable/delete itself.
-      metadata_obj.Set(metadata_obj.Schema.CRON_JOB_URN(cron_job_urn))
 
 
 class EmailPluginArgs(rdfvalue.RDFProtoStruct):
@@ -386,35 +137,35 @@ class EmailPlugin(HuntOutputPlugin):
   too_many_mails_msg = ("<p> This hunt has now produced %d results so the "
                         "sending of emails will be disabled now. </p>")
 
-  def __init__(self, hunt_obj, *args, **kw):
-    super(EmailPlugin, self).__init__(hunt_obj, *args, **kw)
-    self.hunt_id = hunt_obj.session_id
-    self.emails_sent = 0
+  def Initialize(self):
+    self.state.Register("emails_sent", 0)
+    super(EmailPlugin, self).Initialize()
 
-  def ProcessResponse(self, response, client_id):
+  def ProcessResponse(self, response):
     """Sends an email for each response."""
 
-    if self.emails_sent >= self.args.email_limit:
+    if self.state.emails_sent >= self.state.args.email_limit:
       return
 
+    client_id = response.source
     client = aff4.FACTORY.Open(client_id, token=self.token)
     hostname = client.Get(client.Schema.HOSTNAME) or "unknown hostname"
 
-    subject = "GRR Hunt %s produced a new result." % self.hunt_id
+    subject = "GRR Hunt %s produced a new result." % self.state.hunt_urn
 
     url = urllib.urlencode((("c", client_id),
                             ("main", "HostInformation")))
 
     response_htm = rendering.FindRendererForObject(response).RawHTML()
 
-    self.emails_sent += 1
-    if self.emails_sent == self.args.email_limit:
-      additional_message = self.too_many_mails_msg % self.args.email_limit
+    self.state.emails_sent += 1
+    if self.state.emails_sent == self.state.args.email_limit:
+      additional_message = self.too_many_mails_msg % self.state.args.email_limit
     else:
       additional_message = ""
 
     email_alerts.SendEmail(
-        self.args.email, "grr-noreply",
+        self.state.args.email, "grr-noreply",
         subject,
         self.template % dict(
             client_id=client_id,
@@ -422,11 +173,15 @@ class EmailPlugin(HuntOutputPlugin):
             hostname=hostname,
             urn=url,
             creator=self.token.username,
-            hunt_id=self.hunt_id,
+            hunt_id=self.state.hunt_urn,
             response=response_htm,
             additional_message=additional_message,
             ),
         is_html=True)
+
+  def ProcessResponses(self, responses):
+    for response in responses:
+      self.ProcessResponse(response)
 
 
 class OutputPlugin(rdfvalue.RDFProtoStruct):
@@ -444,3 +199,10 @@ class OutputPlugin(rdfvalue.RDFProtoStruct):
       raise KeyError("Unknown output plugin %s" % self.plugin_name)
 
     return cls(hunt_obj, args=self.plugin_args)
+
+  def GetPluginForState(self, plugin_state):
+    cls = HuntOutputPlugin.classes.get(self.plugin_name)
+    if cls is None:
+      raise KeyError("Unknown output plugin %s" % self.plugin_name)
+
+    return cls(None, state=plugin_state)

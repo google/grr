@@ -7,6 +7,7 @@ from grr.gui import runtests_test
 
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -85,22 +86,19 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=#_Filesystem > ins.jstree-icon")
     self.Click("css=#_Filesystem > ins.jstree-icon")
 
-    # Click on DownloadDirectory item in Filesystem flows list
-    self.WaitUntil(self.IsElementPresent,
-                   "link=DownloadDirectory")
-    self.Click("link=DownloadDirectory")
+    # Click on FetchFiles item in Filesystem flows list
+    self.WaitUntil(self.IsElementPresent, "link=Fetch Files")
+    self.Click("link=Fetch Files")
 
     # Wait for flow configuration form to be rendered (just wait for first
     # input field).
     self.WaitUntil(self.IsElementPresent,
-                   "css=.Wizard input[id=args-pathspec-path]")
+                   "css=.Wizard input[id=args-paths-0]")
 
     # Change "path", "pathtype", "depth" and "ignore_errors" values
-    self.Type("css=.Wizard input[id=args-pathspec-path]", "/tmp")
-    self.Select("css=.Wizard select[id=args-pathspec-pathtype]",
-                "TSK")
-    self.Type("css=.Wizard input[id=args-depth]", "42")
-    self.Click("css=.Wizard input[id=args-ignore_errors]")
+    self.Type("css=.Wizard input[id=args-paths-0]", "/tmp")
+    self.Select("css=.Wizard select[id=args-pathtype]", "TSK")
+    self.Type("css=.Wizard input[id=args-max_size]", "42")
 
     # Click on "Next" button
     self.Click("css=.Wizard button.Next")
@@ -110,34 +108,27 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     # remain intact.
     self.Click("css=.Wizard button.Back")
     self.WaitUntil(self.IsElementPresent,
-                   "css=.Wizard input#args-pathspec-path")
+                   "css=.Wizard input#args-paths-0")
+
+    self.assertEqual("/tmp", self.GetValue(
+        "css=.Wizard input#args-paths-0"))
+
     self.assertEqual(
-        "/tmp", self.GetValue(
-            "css=.Wizard input#args-pathspec-path"))
-    self.assertEqual(
-        "TSK",
-        self.GetSelectedLabel(
-            "css=.Wizard select#args-pathspec-pathtype"))
-    self.assertEqual(
-        "42",
-        self.GetValue("css=.Wizard input#args-depth"))
-    self.assertTrue(
-        self.IsChecked("css=.Wizard input#args-ignore_errors"))
+        "TSK", self.GetSelectedLabel("css=.Wizard select#args-pathtype"))
+
+    self.assertEqual("42",
+                     self.GetValue("css=.Wizard input#args-max_size"))
 
     # Click on "Next" button
     self.Click("css=.Wizard button.Next")
     self.WaitUntil(self.IsTextPresent, "Output Processing")
 
-    # Configure the hunt to use a collection and also send an email on results.
+    self.Click("css=.Wizard button:contains('Add Output Plugin')")
+    # Configure the hunt to send an email on results.
     self.Select("css=.Wizard select[id=output_1-option]",
                 "Send an email for each result.")
     self.Type("css=.Wizard input[id=output_1-email]",
-              "test@grrserver.com")
-
-    self.Click("css=.Wizard button:contains('Add Output Plugin')")
-    self.Select(
-        "css=.Wizard select[id=output_2-option]",
-        "         Store results in a collection.\n          (default)\n     ")
+              "test@%s" % config_lib.CONFIG["Logging.domain"])
 
     # Click on "Next" button
     self.Click("css=.Wizard button.Next")
@@ -197,15 +188,15 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.WaitUntil(self.IsTextPresent, "Review")
 
     # Check that the arguments summary is present.
-    self.WaitUntil(self.IsTextPresent, "Pathspec")
+    self.WaitUntil(self.IsTextPresent, "Paths")
     self.WaitUntil(self.IsTextPresent, "/tmp")
-    self.WaitUntil(self.IsTextPresent, "Depth")
+    self.WaitUntil(self.IsTextPresent, "Max size")
     self.WaitUntil(self.IsTextPresent, "42")
 
     # Check that output plugins are shown.
     self.assertTrue(self.IsTextPresent("EmailPlugin"))
-    self.assertTrue(self.IsTextPresent("test@grrserver.com"))
-    self.assertTrue(self.IsTextPresent("CollectionPlugin"))
+    self.assertTrue(self.IsTextPresent("test@%s" %
+                                       config_lib.CONFIG["Logging.domain"]))
 
     # Check that rules summary is present.
     self.assertTrue(self.IsTextPresent("Regex rules"))
@@ -226,14 +217,14 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
     self.WaitUntil(self.IsTextPresent, "Flow args")
 
-    self.assertTrue(self.IsTextPresent("Pathspec"))
+    self.assertTrue(self.IsTextPresent("Paths"))
     self.assertTrue(self.IsTextPresent("/tmp"))
-    self.assertTrue(self.IsTextPresent("Depth"))
+    self.assertTrue(self.IsTextPresent("Max size"))
     self.assertTrue(self.IsTextPresent("42"))
 
     self.assertTrue(self.IsTextPresent("EmailPlugin"))
-    self.assertTrue(self.IsTextPresent("test@grrserver.com"))
-    self.assertTrue(self.IsTextPresent("CollectionPlugin"))
+    self.assertTrue(self.IsTextPresent("test@%s" %
+                                       config_lib.CONFIG["Logging.domain"]))
 
     # Check that the hunt object was actually created
     hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
@@ -243,11 +234,11 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     # Check that the hunt was created with a correct flow
     hunt = hunts_list[0]
     self.assertEqual(hunt.state.args.flow_runner_args.flow_name,
-                     "DownloadDirectory")
-    self.assertEqual(hunt.state.args.flow_args.pathspec.path, "/tmp")
-    self.assertEqual(hunt.state.args.flow_args.pathspec.pathtype,
+                     "FetchFiles")
+    self.assertEqual(hunt.state.args.flow_args.paths[0], "/tmp")
+    self.assertEqual(hunt.state.args.flow_args.pathtype,
                      rdfvalue.PathSpec.PathType.TSK)
-    self.assertEqual(hunt.state.args.flow_args.depth, 42)
+    self.assertEqual(hunt.state.args.flow_args.max_size, 42)
     # self.assertEqual(hunt.state.args.flow_args.ignore_errors, True)
     self.assertTrue(hunt.state.args.output_plugins[0].plugin_name,
                     "EmailPlugin")

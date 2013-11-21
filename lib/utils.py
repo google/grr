@@ -8,6 +8,7 @@ import os
 import Queue
 import random
 import re
+import shlex
 import socket
 import shutil
 import struct
@@ -669,6 +670,37 @@ def JoinPath(*parts):
   parts = [SmartUnicode(path) for path in parts]
 
   return NormalizePath(u"/".join(parts))
+
+
+def GuessWindowsFileNameFromString(str_in):
+  """Take a commandline string and guess the file path.
+
+  Commandline strings can be space separated and contain options.
+  e.g. C:\\Program Files\\ACME Corporation\\wiz.exe /quiet /blah
+
+  See here for microsoft doco on commandline parsing:
+  http://msdn.microsoft.com/en-us/library/windows/desktop/ms682425(v=vs.85).aspx
+
+  Args:
+    str_in: commandline string
+  Returns:
+    list of candidate filename strings.
+  """
+  guesses = []
+  current_str = ""
+
+  # If paths are quoted as recommended, just use that path.
+  if str_in.startswith(("\"", "'")):
+    guesses = [shlex.split(str_in)[0]]
+  else:
+    for component in str_in.split(" "):
+      if current_str:
+        current_str = " ".join((current_str, component))
+      else:
+        current_str = component
+      guesses.append(current_str)
+
+  return guesses
 
 
 def Join(*parts):

@@ -218,6 +218,9 @@ class EnumerateUsers(actions.ActionPlugin):
             break
 
           wtmp = wtmp[record.size:]
+          # Users only appear for USER_PROCESS events, others are system.
+          if record.ut_type != 7:
+            continue
 
           try:
             if users[record.ut_user] < record.tv_sec:

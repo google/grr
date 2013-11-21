@@ -278,7 +278,7 @@ class ContainerToolbar(renderers.TemplateRenderer):
 <input type="hidden" name='container' value='{{this.container|escape}}' />
 <input type="hidden" id="csv_query" name="query" />
 <input type="hidden" id="csv_reason" name="reason" />
-{% csrf_token %}
+<input type="hidden" id="csrfmiddlewaretoken" name="csrfmiddlewaretoken" />
 <button id='export' title="Export to CSV" class="btn">
 <img src="/static/images/stock-save.png" class="toolbar_icon" />
 </button>
@@ -300,6 +300,7 @@ class ContainerToolbar(renderers.TemplateRenderer):
 </li>
 <script>
 $('#export').button().click(function () {
+  $("input#csrfmiddlewaretoken").val(grr.getCookie("csrftoken"));
   $("input#csv_query").val($("input#query").val());
   $("input#csv_reason").val(grr.state.reason);
   $("#csv_{{unique|escape}}").submit();

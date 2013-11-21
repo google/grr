@@ -15,6 +15,7 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.aff4_objects import cronjobs
 from grr.lib.hunts import implementation
 from grr.proto import flows_pb2
 
@@ -582,6 +583,159 @@ class RunKeysHunt(implementation.GRRHunt):
     return rk_list
 
 
+class HuntResultsMetadata(aff4.AFF4Object):
+  """Metadata AFF4 object used by CronHuntOutputFlow."""
+
+  class SchemaCls(aff4.AFF4Object.SchemaCls):
+    """AFF4 schema for CronHuntOutputMetadata."""
+
+    NUM_PROCESSED_RESULTS = aff4.Attribute(
+        "aff4:num_processed_results", rdfvalue.RDFInteger,
+        "Number of hunt results already processed by the cron job.",
+        versioned=False, default=0)
+
+    COLLECTION_RAW_OFFSET = aff4.Attribute(
+        "aff4:collection_raw_position", rdfvalue.RDFInteger,
+        "Effectively, number of bytes occuppied by NUM_PROCESSED_RESULTS "
+        "processed results in the results collection. Used to optimize "
+        "results collection access and not to iterate over all previously "
+        "processes results all the time.",
+        versioned=False, default=0)
+
+    OUTPUT_PLUGINS = aff4.Attribute(
+        "aff4:output_plugins_state", rdfvalue.FlowState,
+        "Piclked output plugins.", versioned=False)
+
+
+class ProcessHuntResultsCronFlowArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.ProcessHuntResultsCronFlowArgs
+
+
+class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
+  """Periodic cron flow that processes hunts results with output plugins."""
+  frequency = rdfvalue.Duration("5m")
+  lifetime = rdfvalue.Duration("40m")
+
+  args_type = ProcessHuntResultsCronFlowArgs
+
+  DEFAULT_BATCH_SIZE = 1000
+
+  def ProcessHunt(self, session_id):
+    metadata_urn = session_id.Add("ResultsMetadata")
+    last_exception = None
+
+    with aff4.FACTORY.Open(
+        metadata_urn, mode="rw", token=self.token) as metadata_obj:
+
+      output_plugins = metadata_obj.Get(metadata_obj.Schema.OUTPUT_PLUGINS)
+      num_processed = int(metadata_obj.Get(
+          metadata_obj.Schema.NUM_PROCESSED_RESULTS))
+      raw_offset = int(metadata_obj.Get(
+          metadata_obj.Schema.COLLECTION_RAW_OFFSET))
+      results = aff4.FACTORY.Open(session_id.Add("Results"), mode="r",
+                                  token=self.token)
+
+      batch_size = self.state.args.batch_size or self.DEFAULT_BATCH_SIZE
+      batches = utils.Grouper(results.GenerateItems(offset=raw_offset),
+                              batch_size)
+
+      used_plugins = {}
+      for batch_index, batch in enumerate(batches):
+        if not used_plugins:
+          for plugin_name, (plugin_def,
+                            state) in output_plugins.data.iteritems():
+            used_plugins[plugin_name] = plugin_def.GetPluginForState(state)
+
+        # If this flow is working for more than lifetime/2,
+        # stop processing.
+        if self.state.args.max_running_time:
+          elapsed = (rdfvalue.RDFDatetime().Now().AsSecondsFromEpoch() -
+                     self.start_time.AsSecondsFromEpoch())
+          if elapsed > self.state.args.max_running_time:
+            self.Log("Running for too long, skipping rest of batches for %s.",
+                     session_id)
+            break
+
+        batch = list(batch)
+        num_processed += len(batch)
+
+        for plugin_name, plugin in used_plugins.iteritems():
+          try:
+            plugin.ProcessResponses(batch)
+          except Exception as e:  # pylint: disable=broad-except
+            logging.exception("Error processing hunt results: hunt %s, "
+                              "plugin %s, batch %d", session_id, plugin_name,
+                              batch_index)
+            self.Log("Error processing hunt results (hunt %s, "
+                     "plugin %s, batch %d): %s" %
+                     (session_id, plugin_name, batch_index, e))
+            last_exception = e
+        self.HeartBeat()
+
+      for plugin in used_plugins.itervalues():
+        try:
+          plugin.Flush()
+        except Exception as e:  # pylint: disable=broad-except
+          logging.exception("Error flushing hunt results: hunt %s, "
+                            "plugin %s", session_id, str(plugin))
+          self.Log("Error processing hunt results (hunt %s, "
+                   "plugin %s): %s" % (session_id, str(plugin), e))
+          last_exception = e
+
+      metadata_obj.Set(metadata_obj.Schema.OUTPUT_PLUGINS(output_plugins))
+      metadata_obj.Set(metadata_obj.Schema.NUM_PROCESSED_RESULTS(num_processed))
+      metadata_obj.Set(metadata_obj.Schema.COLLECTION_RAW_OFFSET(
+          results.current_offset))
+
+      # TODO(user): throw proper exception which will contain all the
+      # exceptions that were raised while processing this hunt.
+      if last_exception:
+        raise last_exception  # pylint: disable=raising-bad-type
+
+  @flow.StateHandler()
+  def Start(self):
+    """Start state of the flow."""
+    last_exception = None
+    self.start_time = rdfvalue.RDFDatetime().Now()
+    for session_id, timestamp, _ in data_store.DB.ResolveRegex(
+        GenericHunt.RESULTS_QUEUE, ".*", token=self.token):
+
+      logging.info("Found new results for hunt %s.", session_id)
+      try:
+        self.ProcessHunt(rdfvalue.RDFURN(session_id))
+        self.HeartBeat()
+
+      except Exception as e:  # pylint: disable=broad-except
+        last_exception = e
+
+      # We will delete hunt's results notification even if ProcessHunt has
+      # failed
+      finally:
+        results = data_store.DB.ResolveRegex(
+            GenericHunt.RESULTS_QUEUE, session_id, token=self.token)
+        if results and len(results) == 1:
+          _, latest_timestamp, _ = results[0]
+        else:
+          logging.warning("Inconsistent state in hunt results queue for "
+                          "hunt %s", session_id)
+          latest_timestamp = None
+
+        # We don't want to delete notification that was written after we
+        # started processing.
+        if latest_timestamp and latest_timestamp > timestamp:
+          logging.info("Not deleting results notification: it was written "
+                       "after processing has started.")
+        else:
+          data_store.DB.DeleteAttributes(GenericHunt.RESULTS_QUEUE,
+                                         [session_id], sync=True,
+                                         token=self.token)
+
+    # TODO(user): throw proper exception which will contain all the
+    # exceptions that were raised while processing the hunts.
+    if last_exception:
+      raise last_exception  # pylint: disable=raising-bad-type
+
+
 class GenericHuntArgs(rdfvalue.RDFProtoStruct):
   """Arguments to the generic hunt."""
   protobuf = flows_pb2.GenericHuntArgs
@@ -606,6 +760,8 @@ class GenericHunt(implementation.GRRHunt):
 
   args_type = GenericHuntArgs
 
+  RESULTS_QUEUE = rdfvalue.RDFURN("HR")
+
   def Initialize(self):
     super(GenericHunt, self).Initialize()
     self.processed_responses = False
@@ -613,27 +769,52 @@ class GenericHunt(implementation.GRRHunt):
   @flow.StateHandler()
   def Start(self):
     """Initializes this hunt from arguments."""
-    # If not output plugins are specified, we use the collection plugin.
-    if self.state.args.HasField("output_plugins"):
-      plugins = self.state.args.output_plugins
-    else:
-      plugins = [rdfvalue.OutputPlugin(plugin_name="CollectionPlugin")]
+    self.state.context.Register("results_metadata_urn",
+                                self.urn.Add("ResultsMetadata"))
+    self.state.context.Register("results_collection_urn",
+                                self.urn.Add("Results"))
 
-    # Instantiate the output plugins and store them in the context.
-    self.state.context.Register(
-        "output_plugins", [x.GetPluginForHunt(self) for x in plugins])
+    with aff4.FACTORY.Create(
+        self.state.context.results_metadata_urn, "HuntResultsMetadata",
+        mode="rw", token=self.token) as results_metadata:
+
+      state = rdfvalue.FlowState()
+      plugins = self.state.args.output_plugins or []
+      for plugin in plugins:
+        plugin_obj = plugin.GetPluginForHunt(self)
+        state.Register(plugin.plugin_name, (plugin, plugin_obj.state))
+
+      results_metadata.Set(results_metadata.Schema.OUTPUT_PLUGINS(state))
+
+    with aff4.FACTORY.Create(
+        self.state.context.results_collection_urn, "RDFValueCollection",
+        mode="rw", token=self.token) as results_collection:
+      results_collection.SetChunksize(1024 * 1024)
+      self.state.context.Register("results_collection", results_collection)
 
     self.SetDescription()
+
+    # When the next client can be scheduled. Implements gradual client
+    # recruitment rate according to the client_rate.
+    self.state.Register("next_client_due", rdfvalue.RDFDatetime().Now())
 
   def SetDescription(self):
     self.state.context.description = self.state.args.flow_runner_args.flow_name
 
   @flow.StateHandler(next_state=["MarkDone"])
   def RunClient(self, responses):
+    # For each new client, we advance the next_client_due time by the requested
+    # rate.
+    next_client_due = self.state.next_client_due
+    if self.runner.args.client_rate > 0:
+      self.state.next_client_due = (next_client_due +
+                                    60 / self.runner.args.client_rate)
+
     # Just run the flow on this client.
     for client_id in responses:
       self.CallFlow(args=self.state.args.flow_args, client_id=client_id,
                     next_state="MarkDone", sync=False,
+                    start_time=next_client_due,
                     runner_args=self.state.args.flow_runner_args)
 
   def GetLaunchedFlows(self, flow_type="outstanding"):
@@ -667,9 +848,10 @@ class GenericHunt(implementation.GRRHunt):
   def Save(self):
     if self.state and self.processed_responses:
       with self.lock:
-        # Flush results frequently so users can monitor them as they come in.
-        for plugin in self.state.context.output_plugins:
-          plugin.Flush()
+        self.state.context.results_collection.Flush(sync=True)
+        data_store.DB.Set(self.RESULTS_QUEUE, self.urn,
+                          rdfvalue.RDFDatetime().Now(),
+                          replace=True, token=self.token)
 
     super(GenericHunt, self).Save()
 
@@ -696,10 +878,9 @@ class GenericHunt(implementation.GRRHunt):
 
       with self.lock:
         self.processed_responses = True
-        for plugin in self.state.context.output_plugins:
-          if not plugin.initialized:
-            plugin.Initialize()
-          plugin.ProcessResponses(responses, client_id)
+        msgs = [rdfvalue.GrrMessage(payload=response, source=client_id)
+                for response in responses]
+        self.state.context.results_collection.AddAll(msgs)
 
     else:
       self.LogClientError(client_id, log_message=utils.SmartStr(

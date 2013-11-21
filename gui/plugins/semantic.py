@@ -549,9 +549,143 @@ class ClientURNRenderer(RDFValueRenderer):
     "{{this.hash|escape}}");'>
   {{this.proxy|escape}}
 </a>
+
+<div id="ClientInfo_{{unique|escape}}" class="modal fade" role="dialog"
+     aria-hidden="true">
+  <div class="modal-dialog">
+   <div class="modal-content">
+    <div class="modal-header">
+     <button type="button" class="close"
+       aria-hidden="true" data-dismiss="modal">
+      &times;
+     </button>
+     <h4 class="modal-title">Client {{this.proxy}}</h4>
+    </div>
+    <div id="ClientInfoContent_{{unique|escape}}" class="modal-body"/>
+   </div>
+  </div>
+</div>
+
+<button
+ class="btn btn-default btn-mini" id="ClientInfoButton_{{unique}}">
+ <span class="icon-glyphicon icon-info-sign"></span>
+</button>
+""")
+
+  ajax_template = renderers.Template("""
+{{this.summary|safe}}
 """)
 
   def Layout(self, request, response):
     h = dict(main="HostInformation", c=self.proxy)
     self.hash = urllib.urlencode(sorted(h.items()))
-    return super(ClientURNRenderer, self).Layout(request, response)
+    response = super(ClientURNRenderer, self).Layout(request, response)
+    return self.CallJavascript(response, "Layout",
+                               urn=utils.SmartStr(self.proxy))
+
+  def RenderAjax(self, request, response):
+    self.urn = request.REQ.get("urn")
+    if self.urn:
+      fd = aff4.FACTORY.Open(self.urn, token=request.token)
+      self.summary = FindRendererForObject(fd.GetSummary()).RawHTML(request)
+
+    return super(ClientURNRenderer, self).RenderAjax(request, response)
+
+
+class KeyValueFormRenderer(forms.TypeDescriptorFormRenderer):
+  """A renderer for a Dict's KeyValue protobuf."""
+  type = rdfvalue.KeyValue
+
+  layout_template = renderers.Template("""<div class="control-group">
+<div id="{{unique}}" class="control input-append">
+ <input id='{{this.prefix}}_key'
+  type=text
+{% if this.default %}
+  value='{{ this.default.key|escape }}'
+{% endif %}
+  onchange="grr.forms.inputOnChange(this)"
+  class="unset"/>
+ <input id='{{this.prefix}}_value'
+  type=text
+{% if this.default %}
+  value='{{ this.default.value|escape }}'
+{% endif %}
+  onchange="grr.forms.inputOnChange(this)"
+  class="unset"/>
+
+ <div class="btn-group">
+  <button class="btn dropdown-toggle" data-toggle="dropdown">
+    <span class="Type">Auto</span>  <span class="caret"></span>
+  </button>
+
+  <ul class="dropdown-menu" data-name="{{this.prefix}}_type">
+   <li><a data-type="String">String</a></li>
+   <li><a data-type="Integer">Integer</a></li>
+   <li><a data-type="Bytes">Bytes</a></li>
+   <li><a data-type="Float">Float</a></li>
+   <li><a data-type="Boolean">Boolean</a></li>
+  </ul>
+ </div>
+</div>
+""")
+
+  def Layout(self, request, response):
+    response = super(KeyValueFormRenderer, self).Layout(request, response)
+    return self.CallJavascript(response, "Layout")
+
+  def GuessValueType(self, value):
+    """Get the type of value."""
+    if value in ["None", "none", None]:
+      return None
+
+    if value in ["true", "yes"]:
+      return True
+
+    if value in ["false", "no"]:
+      return False
+
+    try:
+      return int(value)
+    except (TypeError, ValueError):
+      try:
+        return float(value)
+      except (TypeError, ValueError):
+        try:
+          return value.decode("utf8")
+        except UnicodeDecodeError:
+          return value
+
+  def ParseArgs(self, request):
+    """Parse the request into a KeyValue proto."""
+    key = request.REQ.get("%s_key" % self.prefix)
+    value = request.REQ.get("%s_value" % self.prefix)
+    value_type = request.REQ.get("%s_type" % self.prefix)
+
+    if key is None:
+      return
+
+    result = rdfvalue.KeyValue()
+    result.k.SetValue(key)
+
+    # Automatically try to detect the value
+    if value_type is None:
+      value = self.GuessValueType(value)
+    elif value_type == "Integer":
+      value = int(value)
+    elif value_type == "Float":
+      value = float(value)
+    elif value_type == "Boolean":
+      if value in ["true", "yes"]:
+        value = True
+
+      elif value in ["false", "no"]:
+        value = False
+
+      else:
+        raise ValueError("Value %s is not a boolean" % value)
+    elif value_type == "String":
+      value = value.decode("utf8")
+
+    result.v.SetValue(value)
+
+    return result

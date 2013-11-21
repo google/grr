@@ -423,7 +423,7 @@ class MySQLTransaction(data_store.Transaction):
     self.subject = utils.SmartUnicode(subject)
     self.table_name = store.table_name
     self.to_set = {}
-    self.to_delete = []
+    self.to_delete = set()
     with store.pool.GetConnection() as connection:
       self.expires_lock = int((time.time() + self.lock_time) * 1e6)
 
@@ -472,18 +472,23 @@ class MySQLTransaction(data_store.Transaction):
     self.CheckForLock(connection, subject)
 
   def DeleteAttribute(self, predicate):
-    self.to_delete.append(predicate)
+    self.to_delete.add(predicate)
 
   def Resolve(self, predicate):
+    if predicate in self.to_set:
+      return sorted(self.to_set[predicate], key=lambda vt: vt[1])[-1]
+    if predicate in self.to_delete:
+      return None
     return self.store.Resolve(self.subject, predicate, token=self.token)
 
   def ResolveRegex(self, predicate_regex, timestamp=None):
+    # TODO(user): Retrieve values from to_set as well.
     return self.store.ResolveRegex(self.subject, predicate_regex,
                                    token=self.token, timestamp=timestamp)
 
   def Set(self, predicate, value, timestamp=None, replace=True):
     if replace:
-      self.to_delete.append(predicate)
+      self.to_delete.add(predicate)
 
     if timestamp is None:
       timestamp = int(time.time() * 1e6)

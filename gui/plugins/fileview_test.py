@@ -17,6 +17,13 @@ from grr.lib import test_lib
 class TestFileView(test_lib.GRRSeleniumTest):
   """Test the fileview interface."""
 
+  def setUp(self):
+    super(TestFileView, self).setUp()
+    # Prepare our fixture.
+    with self.ACLChecksDisabled():
+      self.CreateFileVersions()
+      self.GrantClientApproval("C.0000000000000001")
+
   @staticmethod
   def CreateFileVersions():
     """Add a new version for a file."""
@@ -40,11 +47,6 @@ class TestFileView(test_lib.GRRSeleniumTest):
 
   def testFileView(self):
     """Test the fileview interface."""
-    # Prepare our fixture.
-    with self.ACLChecksDisabled():
-      self.CreateFileVersions()
-      self.GrantClientApproval("C.0000000000000001")
-
     self.Open("/")
 
     self.Type("client_query", "0001")

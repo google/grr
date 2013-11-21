@@ -370,6 +370,21 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     t1.Commit()
 
+  def testTransactionLease(self):
+    subject = u"aff4:/leasetest"
+    predicate = "metadata:pred"
+
+    t = data_store.DB.Transaction(subject, token=self.token)
+    t.Resolve(predicate)
+    t.Set(predicate, "1")
+    t.UpdateLease(100)
+    res = t.Resolve(predicate)
+    t.Set(predicate, "2")
+    t.Commit()
+    self.assertEqual(res[0], "1")
+    t = data_store.DB.Transaction(subject, token=self.token)
+    self.assertEqual(t.Resolve(predicate)[0], "2")
+
   def testAbortTransaction(self):
     predicate = u"metadata:predicate_Îñţér"
     row = u"metadata:row1Îñţér"

@@ -131,7 +131,7 @@ grr.Renderer('RepeatedFieldFormRenderer', {
         'field': state.field});
 
       event.preventDefault();
-    }).click();
+    });
   },
 
   RenderAjax: function(state) {
@@ -197,7 +197,7 @@ grr.Renderer('MultiFormRenderer', {
     var option = state.option || 'option';
 
     // This button is pressed when we want a new form.
-    $('#AddButton' + unique).click(function() {
+    var addButton = $('#AddButton' + unique).click(function() {
       var data = $(this).closest('.FormData').data();
       var count = data[option + '_count'] || 1;
       var new_id = unique + '_' + count;
@@ -216,8 +216,13 @@ grr.Renderer('MultiFormRenderer', {
       new_div.insertBefore(this);
 
       grr.layout(state.renderer, new_id, data);
-    }).click();  // First time we show the button click it to make at least one
-                 // option available.
+    });
+
+    if (state.add_one_default) {
+      // If "add_one_default" argument is true, first time we show the button
+      // click it to make at least one option available.
+      addButton.click();
+    }
   }
 });
 

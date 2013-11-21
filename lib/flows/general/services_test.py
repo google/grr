@@ -28,8 +28,8 @@ class ServicesTest(test_lib.FlowTestsBaseclass):
 
     # Run the flow in the emulated way.
     for _ in test_lib.TestFlowHelper(
-        "EnumerateRunningServices", ClientMock(), client_id=self.client_id,
-        token=self.token):
+        "EnumerateServices", ClientMock(), client_id=self.client_id,
+        token=self.token, output="analysis/Services"):
       pass
 
     # Check the output file is created
@@ -68,9 +68,14 @@ class ServicesTest(test_lib.FlowTestsBaseclass):
       "SystemName": "TEST-PC",
       "TagId": "0"}
 
-  def testEnumerateWindowsServices(self):
-    """Test the EnumerateWindowsServices flow."""
+  def testEnumerateServices(self):
+    """Test the EnumerateServices flow."""
     test_obj = self
+
+    # This is a windows client.
+    with aff4.FACTORY.Create(self.client_id, "VFSGRRClient",
+                             token=self.token) as client:
+      client.Set(client.Schema.SYSTEM("Windows"))
 
     # Swap this file for the driver binary.
     pathspec = rdfvalue.PathSpec(
@@ -96,9 +101,23 @@ class ServicesTest(test_lib.FlowTestsBaseclass):
         return [rdfvalue.StatEntry(pathspec=pathspec,
                                    st_mode=33261, st_size=20746)]
 
+      def Find(self, args):
+        # Make sure the flow wants to download the same file mentioned in the
+        # WMI response.
+        driver_name = test_obj.SAMPLE_WMI_RESPONSE["PathName"]
+        driver_basename = driver_name.split("\\")[-1]
+
+        test_obj.assertTrue(args.path_regex.Search(driver_basename))
+
+        # Return a pathspec for a file in our test_data which we can verify..
+        return [rdfvalue.StatEntry(pathspec=pathspec,
+                                   st_mode=33261, st_size=20746)]
+
     # Run the flow in the emulated way.
+    client_mock = ClientMock("HashBuffer", "HashFile", "TransferBuffer")
+
     for _ in test_lib.TestFlowHelper(
-        "EnumerateWindowsServices", ClientMock("HashBuffer", "TransferBuffer"),
+        "EnumerateServices", client_mock,
         client_id=self.client_id, output=output, token=self.token):
       pass
 

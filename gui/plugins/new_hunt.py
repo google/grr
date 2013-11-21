@@ -175,7 +175,6 @@ class HuntFlowForm(flow_management.SemanticProtoFlowForm):
 
 class OutputPluginsForm(forms.OptionFormRenderer):
   """Render and parse the form for output plugin selection."""
-  default = "CollectionPlugin"
   friendly_name = "Output Plugin"
   help = "Select and output plugin for processing hunt results."
   option_name = "output"
@@ -183,7 +182,8 @@ class OutputPluginsForm(forms.OptionFormRenderer):
   @property
   def options(self):
     """Only include output plugins with descriptions."""
-    for name, cls in output_plugins.HuntOutputPlugin.classes.items():
+    for name in sorted(output_plugins.HuntOutputPlugin.classes.keys()):
+      cls = output_plugins.HuntOutputPlugin.classes[name]
       if cls.description:
         yield name, cls.description
 
@@ -216,6 +216,7 @@ class HuntConfigureOutputPlugins(forms.MultiFormRenderer):
   option_name = "output"
   button_text = "Add Output Plugin"
   description = "Define Output Processing"
+  add_one_default = False
 
   def Validate(self, request, _):
     # Check each plugin for validity.

@@ -2,7 +2,7 @@ Source: grr-server
 Section: misc
 Priority: extra
 Maintainer: Joachim Metz <joachim.metz@gmail.com>
-Build-Depends: debhelper (>= 7), python, python-setuptools
+Build-Depends: debhelper (>= 8), python, python-setuptools
 Standards-Version: 3.8.3
 Homepage: http://code.google.com/p/grr/
 

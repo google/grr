@@ -2,8 +2,6 @@
 """These are process related flows."""
 
 
-import time
-
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -58,14 +56,6 @@ class GetProcessesBinaries(flow.GRRFlow):
   @flow.StateHandler(next_state="IterateProcesses")
   def Start(self):
     """Start processing, request processes list."""
-
-    output = self.args.output.format(t=time.time(), u=self.state.context.user)
-    self.state.Register("output", self.client_id.Add(output))
-    self.state.Register("fd", aff4.FACTORY.Create(
-        self.state.output, "AFF4Collection", mode="w", token=self.token))
-    self.state.fd.Set(self.state.fd.Schema.DESCRIPTION(
-        "GetProcessesBinaries processes list"))
-
     self.CallFlow("ListProcesses", next_state="IterateProcesses")
 
   @flow.StateHandler(next_state="HandleDownloadedFiles")
@@ -74,7 +64,7 @@ class GetProcessesBinaries(flow.GRRFlow):
 
     This state handler opens the URN returned from the parent flow, loads
     the list of processes from there, filters out processes without
-    exe attribute and initiates FastGetFile flows for all others.
+    exe attribute and initiates FetchFiles flows for all others.
 
     Args:
       responses: rdfvalue.Stat pointing at ProcessListing file.
@@ -89,22 +79,18 @@ class GetProcessesBinaries(flow.GRRFlow):
     self.Log("Got %d processes, fetching binaries for %d...", len(responses),
              len(paths_to_fetch))
 
-    for p in paths_to_fetch:
-      pathspec = rdfvalue.PathSpec(path=p,
-                                   pathtype=rdfvalue.PathSpec.PathType.OS)
-      self.CallFlow("FastGetFile",
-                    next_state="HandleDownloadedFiles",
-                    pathspec=pathspec,
-                    request_data={"path": p})
+    self.CallFlow("FetchFiles",
+                  next_state="HandleDownloadedFiles",
+                  paths=paths_to_fetch)
 
   @flow.StateHandler()
   def HandleDownloadedFiles(self, responses):
-    """Handle success/failure of the FastGetFile flow."""
+    """Handle success/failure of the FetchFiles flow."""
     if responses.success:
       for response_stat in responses:
         self.Log("Downloaded %s", response_stat.pathspec)
         self.SendReply(response_stat)
-        self.state.fd.Add(stat=response_stat, urn=response_stat.aff4path)
+
     else:
       self.Log("Download of file %s failed %s",
                responses.request_data["path"], responses.status)
@@ -112,10 +98,8 @@ class GetProcessesBinaries(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     """Save the results collection and update the notification line."""
-    self.state.fd.Close()
-
-    num_files = len(self.state.fd)
-    self.Notify("ViewObject", self.state.output,
+    num_files = len(self.runner.output)
+    self.Notify("ViewObject", self.runner.output.urn,
                 "GetProcessesBinaries completed. "
                 "Fetched {0:d} files".format(num_files))
 
@@ -165,12 +149,7 @@ class GetProcessesBinariesVolatility(flow.GRRFlow):
   @flow.StateHandler(next_state="FetchBinaries")
   def Start(self):
     """Request VAD data."""
-    output = self.args.output.format(t=time.time(), u=self.state.context.user)
-    self.state.Register("output", self.client_id.Add(output))
-    self.state.Register("fd", aff4.FACTORY.Create(
-        self.state.output, "AFF4Collection", mode="w", token=self.token))
-
-    self.state.fd.Set(self.state.fd.Schema.DESCRIPTION(
+    self.runner.output.Set(self.runner.output.Schema.DESCRIPTION(
         "GetProcessesBinariesVolatility binaries (regex: %s) " %
         self.args.filename_regex or "None"))
 
@@ -180,7 +159,7 @@ class GetProcessesBinariesVolatility(flow.GRRFlow):
 
   @flow.StateHandler(next_state="HandleDownloadedFiles")
   def FetchBinaries(self, responses):
-    """Parses Volatility response and initiates FastGetFile flows."""
+    """Parses Volatility response and initiates FetchFiles flows."""
     if not responses.success:
       self.Log("Error fetching VAD data: %s", responses.status)
       return
@@ -221,33 +200,17 @@ class GetProcessesBinariesVolatility(flow.GRRFlow):
       self.Log("Applied filename regex. Will fetch %d files",
                len(binaries))
 
-    for path in binaries:
-      pathspec = rdfvalue.PathSpec(path=path,
-                                   pathtype=rdfvalue.PathSpec.PathType.OS)
-
-      self.CallFlow("FastGetFile",
-                    next_state="HandleDownloadedFiles",
-                    pathspec=pathspec,
-                    request_data={"path": path})
+    self.CallFlow("FetchFiles",
+                  next_state="HandleDownloadedFiles",
+                  paths=binaries, pathtype=rdfvalue.PathSpec.PathType.OS)
 
   @flow.StateHandler()
   def HandleDownloadedFiles(self, responses):
-    """Handle success/failure of the FastGetFile flow."""
+    """Handle success/failure of the FetchFiles flow."""
     if responses.success:
       for response_stat in responses:
         self.SendReply(response_stat)
-        self.Log("Downloaded %s", responses.request_data["path"])
-        self.state.fd.Add(stat=response_stat, urn=response_stat.aff4path)
+        self.Log("Downloaded %s", response_stat.pathspec.CollapsePath())
     else:
       self.Log("Download of file %s failed %s",
-               responses.request_data["path"], responses.status)
-
-  @flow.StateHandler()
-  def End(self):
-    """Save the results collection and update the notification line."""
-    self.state.fd.Close()
-
-    num_files = len(self.state.fd)
-    self.Notify("ViewObject", self.state.output,
-                "GetProcessesBinariesVolatility completed. "
-                "Fetched {0:d} files".format(num_files))
+               response_stat.pathspec.CollapsePath(), responses.status)

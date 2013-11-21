@@ -6,87 +6,67 @@ import re
 import stat
 
 from grr.lib import aff4
+from grr.lib import artifact
+from grr.lib import artifact_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 
 
-class CollectRunKeys(flow.GRRFlow):
-  """Collect Run and RunOnce keys on the system for all users and System."""
+# TODO(user): replace this flow with chained artifacts once the capability
+# exists.
+class CollectRunKeyBinaries(flow.GRRFlow):
+  """Collect the binaries used by Run and RunOnce keys on the system.
 
+  We use the RunKeys artifact to get RunKey command strings for all users and
+  System. This flow guesses file paths from the strings, expands any
+  windows system environment variables, and attempts to retrieve the files.
+  """
   category = "/Registry/"
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler(next_state="StoreRunKeys")
+  @flow.StateHandler(next_state="ParseRunKeys")
   def Start(self):
-    """Issue the find request for each user and the system."""
-    fd = aff4.FACTORY.Open(self.client_id, mode="r", token=self.token)
-    self.numrunkeys = 0
-    users = fd.Get(fd.Schema.USER, [])
-    # Iterate through all the users and trigger flows for Run and RunOnce keys.
-    for user in users:
-      for key in ["Run", "RunOnce"]:
-        run_path = ("HKEY_USERS/%s/Software/Microsoft/Windows/CurrentVersion"
-                    "/%s" % (user.sid, key))
+    """Get runkeys via the ArtifactCollectorFlow."""
+    self.CallFlow("ArtifactCollectorFlow", artifact_list=["WindowsRunKeys"],
+                  use_tsk=True, store_results_in_aff4=True,
+                  next_state="ParseRunKeys")
 
-        findspec_run = rdfvalue.FindSpec(max_depth=2, path_regex=".")
-        findspec_run.iterator.number = 1000
-        findspec_run.pathspec.path = run_path
-        findspec_run.pathspec.pathtype = rdfvalue.PathSpec.PathType.REGISTRY
+  def _IsExecutableExtension(self, path):
+    return path.endswith(("exe", "com", "bat", "dll", "msi", "sys", "scr",
+                          "pif"))
 
-        self.CallFlow("FindFiles", findspec=findspec_run,
-                      next_state="StoreRunKeys",
-                      request_data=dict(username=user.username, keytype=key))
-
-    # Set off the LocalMachine Run and RunOnce Flows.
-    for key in ["Run", "RunOnce"]:
-      run_path = ("HKEY_LOCAL_MACHINE/Software/Microsoft/Windows/CurrentVersion"
-                  "/%s" % key)
-
-      findspec_run = rdfvalue.FindSpec(max_depth=2, path_regex=".")
-      findspec_run.iterator.number = 1000
-      findspec_run.pathspec.path = run_path
-      findspec_run.pathspec.pathtype = rdfvalue.PathSpec.PathType.REGISTRY
-
-      self.CallFlow("FindFiles", findspec=findspec_run,
-                    next_state="StoreRunKeys",
-                    request_data=dict(username="System", keytype=key))
-
-  @flow.StateHandler()
-  def StoreRunKeys(self, responses):
-    """Store the Run Keys in RunKey Collections."""
-
-    # Get Username and keytype from the responses object.
-    username = responses.request_data["username"]
-    keytype = responses.request_data["keytype"]
-
-    # Log that the requested key does not exist.
-    if not responses.success:
-      self.Log("%s for %s does not exist" % (keytype, username))
-
-    # Creates a RunKeyCollection for everyone, even if the key does not exist.
-    runkey_collection = aff4.FACTORY.Create(
-        rdfvalue.RDFURN(self.client_id).Add("analysis/RunKeys")
-        .Add(username).Add(keytype),
-        "RDFValueCollection", token=self.token, mode="rw")
+  @flow.StateHandler(next_state="Done")
+  def ParseRunKeys(self, responses):
+    """Get filenames from the RunKeys and download the files."""
+    filenames = []
+    client = aff4.FACTORY.Open(self.client_id, mode="r", token=self.token)
+    kb = artifact.GetArtifactKnowledgeBase(client)
 
     for response in responses:
-      runkey_collection.Add(rdfvalue.RunKey(
-          keyname=utils.SmartUnicode(response.pathspec.path),
-          filepath=utils.SmartUnicode(response.registry_data.string),
-          lastwritten=int(response.st_mtime)))
+      runkey = response.registry_data.string
 
-    runkey_collection.Close()
-    self.numrunkeys = len(runkey_collection)
+      path_guesses = utils.GuessWindowsFileNameFromString(runkey)
+      path_guesses = filter(self._IsExecutableExtension, path_guesses)
+      if not path_guesses:
+        self.Log("Couldn't guess path for %s", runkey)
+
+      for path in path_guesses:
+        full_path = artifact_lib.ExpandWindowsEnvironmentVariables(path, kb)
+        filenames.append(rdfvalue.PathSpec(
+            path=full_path, pathtype=rdfvalue.PathSpec.PathType.TSK))
+
+    if filenames:
+      self.CallFlow("MultiGetFile", pathspecs=filenames,
+                    next_state="Done")
 
   @flow.StateHandler()
-  def End(self):
-    self.Log("Successfully wrote %d RunKeys.", self.numrunkeys)
-    urn = self.client_id.Add("analysis/RunKeys")
-    self.Notify("ViewObject", urn, "Collected the User and System Run Keys")
+  def Done(self, responses):
+    for response in responses:
+      self.SendReply(response)
 
 
-class FindMRU(flow.GRRFlow):
+class GetMRU(flow.GRRFlow):
   """Collect a list of the Most Recently Used files for all users."""
 
   category = "/Registry/"

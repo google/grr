@@ -376,6 +376,11 @@ class OnlineNotification(flow.GRRFlow):
 
   args_type = OnlineNotificationArgs
 
+  @classmethod
+  def GetDefaultArgs(cls, token=None):
+    return cls.args_type(email="%s@%s" % (
+        token.username, config_lib.CONFIG.Get("Logging.domain")))
+
   @flow.StateHandler(next_state="SendMail")
   def Start(self):
     """Starts processing."""
@@ -743,7 +748,8 @@ class KeepAlive(flow.GRRFlow):
       raise flow.FlowError(responses.status.error_message)
 
     if rdfvalue.RDFDatetime().Now() < self.state.end_time - self.sleep_time:
-      self.CallState(next_state="SendMessage", delay=self.sleep_time)
+      start_time = rdfvalue.RDFDatetime().Now() + self.sleep_time
+      self.CallState(next_state="SendMessage", start_time=start_time)
 
 
 class TerminateFlowArgs(rdfvalue.RDFProtoStruct):

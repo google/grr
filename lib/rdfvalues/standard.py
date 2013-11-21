@@ -38,14 +38,14 @@ class RegularExpression(rdfvalue.RDFString):
 class EmailAddress(rdfvalue.RDFString):
   """An email address must be well formed."""
 
-  _EMAIL_REGEX = re.compile(r"[^@]+@([^@]+\.[^@]+)$")
+  _EMAIL_REGEX = re.compile(r"[^@]+@([^@]+)$")
 
   def ParseFromString(self, value):
     super(EmailAddress, self).ParseFromString(value)
 
     self._match = self._EMAIL_REGEX.match(self._value)
     if not self._match:
-      raise ValueError("Email address not well formed.")
+      raise ValueError("Email address %r not well formed." % self._value)
 
 
 class DomainEmailAddress(EmailAddress):

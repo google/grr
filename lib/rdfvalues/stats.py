@@ -159,5 +159,3 @@ class GraphFloat(Graph):
 class GraphSeries(rdfvalue.RDFValueArray):
   """A sequence of graphs (e.g. evolving over time)."""
   rdf_type = Graph
-
-

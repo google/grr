@@ -1012,8 +1012,8 @@ Arguments
   directory or file cannot be not found.
 
 
-Filesystem/FastGetFile
-^^^^^^^^^^^^^^^^^^^^^^
+Filesystem/MultiGetFile
+^^^^^^^^^^^^^^^^^^^^^^^
 An experimental GetFile which uses deduplication to save bandwidth.
 
 

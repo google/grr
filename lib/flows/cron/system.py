@@ -12,14 +12,8 @@ from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.aff4_objects import cronjobs
 from grr.lib.rdfvalues import stats
-
-
-class SystemCronFlow(flow.GRRFlow):
-  frequency = rdfvalue.Duration("1d")
-  lifetime = rdfvalue.Duration("20h")
-
-  __abstract = True  # pylint: disable=g-bad-name
 
 
 class _ActiveCounter(object):
@@ -58,7 +52,7 @@ class _ActiveCounter(object):
     category = utils.SmartUnicode(category)
 
     for active_time in self.active_days:
-      if now - age < active_time * 24 * 60 * 60 * 1e6:
+      if (now - age).seconds < active_time * 24 * 60 * 60:
         self.categories[active_time][category] = self.categories[
             active_time].get(category, 0) + 1
 
@@ -103,7 +97,7 @@ class ClientFleetStats(aff4.AFF4Object):
                                               "Last contacted time")
 
 
-class AbstractClientStatsCronFlow(SystemCronFlow):
+class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
   """A cron job which opens every client in the system.
 
   We feed all the client objects to the AbstractClientStatsCollector instances.
@@ -228,7 +222,7 @@ class LastAccessStats(AbstractClientStatsCronFlow):
     ping = client.Get(client.Schema.PING)
     if ping:
       time_ago = now - ping
-      pos = bisect.bisect(self._bins, time_ago)
+      pos = bisect.bisect(self._bins, time_ago.microseconds)
 
       # If clients are older than the last bin forget them.
       try:
@@ -237,7 +231,7 @@ class LastAccessStats(AbstractClientStatsCronFlow):
         pass
 
 
-class InterrogateClientsCronFlow(SystemCronFlow):
+class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
   """A cron job which runs an interrogate hunt on all clients.
 
   Interrogate needs to be run regularly on our clients to keep host information
@@ -246,6 +240,10 @@ class InterrogateClientsCronFlow(SystemCronFlow):
   frequency = rdfvalue.Duration("1w")
   lifetime = rdfvalue.Duration("1w")
 
+  def GetOutputPlugins(self):
+    """Returns list of rdfvalue.OutputPlugin objects to be used in the hunt."""
+    return []
+
   @flow.StateHandler()
   def Start(self):
     with hunts.GRRHunt.StartHunt(
@@ -253,7 +251,7 @@ class InterrogateClientsCronFlow(SystemCronFlow):
         flow_runner_args=rdfvalue.FlowRunnerArgs(flow_name="Interrogate"),
         flow_args=rdfvalue.InterrogateArgs(lightweight=False),
         regex_rules=[],
-        output_plugins=[rdfvalue.OutputPlugin(plugin_name="CollectionPlugin")],
+        output_plugins=self.GetOutputPlugins(),
         token=self.token) as hunt:
 
       with hunt.GetRunner() as runner:

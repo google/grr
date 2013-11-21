@@ -4,6 +4,7 @@
 
 import os
 
+from grr.client import vfs
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -358,18 +359,19 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     self.assertTrue("AttributeError" in fd.state.context.backtrace)
     self.assertEqual("ERROR", str(fd.state.context.state))
 
-  def testGlobAndDownload(self):
+  def testFetchFilesFlow(self):
 
     pattern = "test_data/*.log"
 
     client_mock = test_lib.ActionMock("Find", "TransferBuffer",
-                                      "StatFile")
+                                      "StatFile", "HashBuffer", "HashFile")
     path = os.path.join(os.path.dirname(self.base_path), pattern)
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
-        "GlobAndDownload", client_mock, client_id=self.client_id,
-        paths=[path], token=self.token):
+        "FetchFiles", client_mock, client_id=self.client_id,
+        paths=[path], pathtype=rdfvalue.PathSpec.PathType.OS,
+        token=self.token):
       pass
 
     for f in "auth.log dpkg.log dpkg_false.log".split():
@@ -379,64 +381,88 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
       # Make sure that some data was downloaded.
       self.assertTrue(fd.Get(fd.Schema.SIZE) > 100)
 
-  def testGlobAndGrep(self):
-    pattern = "test_data/*.log"
+  def testDownloadDirectory(self):
+    """Test a FetchFiles flow with depth=1."""
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
 
-    client_mock = test_lib.ActionMock("Find", "Grep", "StatFile")
-    path = os.path.join(os.path.dirname(self.base_path), pattern)
+    # Mock the client actions FetchFiles uses
+    client_mock = test_lib.ActionMock("HashFile", "HashBuffer", "StatFile",
+                                      "Find", "TransferBuffer")
 
-    args = rdfvalue.GlobAndGrepArgs(output="analysis/grep/testing",
-                                    paths=[path])
+    pathspec = rdfvalue.PathSpec(
+        path="/c/Downloads", pathtype=rdfvalue.PathSpec.PathType.OS)
 
-    args.grep = rdfvalue.BareGrepSpec(
-        literal="session opened for user dearjohn",
-        mode=rdfvalue.GrepSpec.Mode.ALL_HITS
-        )
-
-    # Run the flow.
     for _ in test_lib.TestFlowHelper(
-        "GlobAndGrep", client_mock, client_id=self.client_id,
-        args=args, token=self.token):
+        "FetchFiles", client_mock, client_id=self.client_id,
+        findspec=rdfvalue.FindSpec(max_depth=1, pathspec=pathspec,
+                                   path_glob="*"),
+        token=self.token):
       pass
 
-    fd = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add("/analysis/grep/testing"),
-        token=self.token)
+    # Check if the base path was created
+    output_path = self.client_id.Add("fs/os/c/Downloads")
 
-    # Make sure that there is a hit.
-    self.assertEqual(len(fd), 1)
-    first = fd[0]
+    output_fd = aff4.FACTORY.Open(output_path, token=self.token)
 
-    self.assertEqual(first.offset, 350)
-    self.assertEqual(first.data,
-                     "session): session opened for user dearjohn by (uid=0")
+    children = list(output_fd.OpenChildren())
 
-  def testGlobAndListDirectory(self):
-    """Check we can list a directory using the Glob flow."""
-    fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(
-        os.path.join(os.path.dirname(self.base_path), "test_data")),
-                           token=self.token)
-    self.assertEqual(len(list(fd.ListChildren())), 0)
+    # There should be 5 children: a.txt, b.txt, c.txt, d.txt sub1
+    self.assertEqual(len(children), 5)
 
-    pattern = "test_*/*"
+    self.assertEqual("a.txt b.txt c.txt d.txt sub1".split(),
+                     sorted([child.urn.Basename() for child in children]))
 
-    client_mock = test_lib.ActionMock("Find", "ListDirectory",
-                                      "StatFile")
-    path = os.path.join(os.path.dirname(self.base_path), pattern)
+    # Find the child named: a.txt
+    for child in children:
+      if child.urn.Basename() == "a.txt":
+        break
 
-    # Run the flow.
+    # Check the AFF4 type of the child, it should have changed
+    # from VFSFile to VFSBlobImage
+    self.assertEqual(child.__class__.__name__, "VFSBlobImage")
+
+  def testDownloadDirectorySub(self):
+    """Test a FetchFiles flow with depth=5."""
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
+
+    # Mock the client actions FetchFiles uses
+    client_mock = test_lib.ActionMock("HashFile", "HashBuffer", "StatFile",
+                                      "Find", "TransferBuffer")
+
+    pathspec = rdfvalue.PathSpec(
+        path="/c/Downloads", pathtype=rdfvalue.PathSpec.PathType.OS)
+
     for _ in test_lib.TestFlowHelper(
-        "Glob", client_mock, client_id=self.client_id,
-        paths=[path], token=self.token):
+        "FetchFiles", client_mock, client_id=self.client_id,
+        findspec=rdfvalue.FindSpec(max_depth=5, pathspec=pathspec,
+                                   path_glob="*"),
+        token=self.token):
       pass
 
-    fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(
-        os.path.join(os.path.dirname(self.base_path), "test_data")),
-                           token=self.token)
+    # Check if the base path was created
+    output_path = self.client_id.Add("fs/os/c/Downloads")
 
-    children = list(fd.ListChildren())
-    self.assertGreater(len(children), 30)
-    filenames = [os.path.basename(str(f)) for f in children]
+    output_fd = aff4.FACTORY.Open(output_path, token=self.token)
 
-    for f in "auth.log dpkg.log dpkg_false.log".split():
-      self.assertIn(f, filenames)
+    children = list(output_fd.OpenChildren())
+
+    # There should be 5 children: a.txt, b.txt, c.txt, d.txt, sub1
+    self.assertEqual(len(children), 5)
+
+    self.assertEqual("a.txt b.txt c.txt d.txt sub1".split(),
+                     sorted([child.urn.Basename() for child in children]))
+
+    # Find the child named: sub1
+    for child in children:
+      if child.urn.Basename() == "sub1":
+        break
+
+    children = list(child.OpenChildren())
+
+    # There should be 4 children: a.txt, b.txt, c.txt, d.txt
+    self.assertEqual(len(children), 4)
+
+    self.assertEqual("a.txt b.txt c.txt d.txt".split(),
+                     sorted([child.urn.Basename() for child in children]))

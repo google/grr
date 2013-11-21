@@ -9,6 +9,10 @@ import "grr/proto/semantic.proto";
 
 // A Process record describing a system process.
 message Process {
+  option (semantic) = {
+    description: "Process information."
+  };
+
   optional uint32 pid = 1;
   optional uint32 ppid = 2;
   optional string name = 3;

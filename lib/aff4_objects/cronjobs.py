@@ -16,8 +16,17 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
-from grr.lib.flows.cron import system
 from grr.proto import flows_pb2
+
+
+config_lib.DEFINE_list("Cron.enabled_system_jobs", [],
+                       "List of system cron jobs that will be "
+                       "automatically scheduled on worker startup. "
+                       "If cron jobs from this list were disabled "
+                       "before, they will be enabled on worker "
+                       "startup. Vice versa, if they were enabled "
+                       "but are not specified in the list, they "
+                       "will be disabled.")
 
 
 class CronSpec(rdfvalue.Duration):
@@ -130,16 +139,39 @@ class CronManager(object):
 CRON_MANAGER = CronManager()
 
 
+class SystemCronFlow(flow.GRRFlow):
+  """SystemCronFlows are scheduled automatically on workers startup."""
+
+  frequency = rdfvalue.Duration("1d")
+  lifetime = rdfvalue.Duration("20h")
+
+  __abstract = True  # pylint: disable=g-bad-name
+
+
 def ScheduleSystemCronFlows(token=None):
+  """Schedule all the SystemCronFlows found."""
+
+  for name in config_lib.CONFIG["Cron.enabled_system_jobs"]:
+    try:
+      cls = flow.GRRFlow.classes[name]
+    except KeyError:
+      raise KeyError("No such flow: %s." % name)
+
+    if not aff4.issubclass(cls, SystemCronFlow):
+      raise ValueError("Enabled system cron job name doesn't correspond to "
+                       "a flow inherited from SystemCronFlow: %s" % name)
+
   for name, cls in flow.GRRFlow.classes.items():
-    if aff4.issubclass(cls, system.SystemCronFlow):
+    if aff4.issubclass(cls, SystemCronFlow):
 
       cron_args = CreateCronJobFlowArgs(periodicity=cls.frequency)
       cron_args.flow_runner_args.flow_name = name
       cron_args.lifetime = cls.lifetime
 
+      disabled = name not in config_lib.CONFIG["Cron.enabled_system_jobs"]
       CRON_MANAGER.ScheduleFlow(cron_args=cron_args,
-                                job_name=name, token=token)
+                                job_name=name, token=token,
+                                disabled=disabled)
 
 
 class CronWorker(object):

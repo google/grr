@@ -4,7 +4,6 @@
 import fnmatch
 import re
 import stat
-import time
 
 from grr.lib import aff4
 from grr.lib import flow
@@ -244,8 +243,10 @@ class RecursiveListDirectory(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     status_text = "Recursive Directory Listing complete %d nodes, %d dirs"
-    self.Notify("ViewObject", self.state.first_directory, status_text % (
-        self.state.file_count, self.state.dir_count))
+    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(self.state.args.pathspec,
+                                                     self.client_id)
+    self.Notify("ViewObject", self.state.first_directory or urn,
+                status_text % (self.state.file_count, self.state.dir_count))
     self.Status(status_text, self.state.file_count, self.state.dir_count)
 
 
@@ -533,7 +534,7 @@ class Glob(flow.GRRFlow):
     root = rdfvalue.StatEntry()
     root.pathspec.path = "/"
     root.pathspec.pathtype = self.state.args.pathtype
-    self.CallStateInline([root], next_state="ProcessEntry",
+    self.CallStateInline(messages=[root], next_state="ProcessEntry",
                          request_data=dict(component_path=[]))
 
   def FindNode(self, component_path):
@@ -603,16 +604,19 @@ class Glob(flow.GRRFlow):
 
           elif component.path_options == component.Options.CASE_INSENSITIVE:
             # Check for the existence of the last node.
-            pathspec = response.pathspec.Copy().AppendPath(component.path)
-
             if not next_node:
+              findspec = rdfvalue.FindSpec(
+                  pathspec=response.pathspec,
+                  max_depth=1, path_regex="(?i)^" + component.path + "$")
+
               # If next node is empty, this node is a leaf node, we therefore
               # must stat it to check that it is there.
-              self.CallClient("StatFile",
-                              pathspec=pathspec,
+              self.CallClient("Find", findspec,
                               next_state="ProcessEntry",
                               request_data=dict(component_path=next_component))
             else:
+              pathspec = response.pathspec.Copy().AppendPath(component.path)
+
               # There is no need to go back to the client for intermediate paths
               # in the prefix tree, just emulate this by recursively calling
               # this state inline.
@@ -624,86 +628,3 @@ class Glob(flow.GRRFlow):
       else:
         # Node is empty representing a leaf node - we found a hit - report i.
         self.ReportMatch(response)
-
-
-class GlobAndDownload(flow.GRRFlow):
-  """Run a glob and download all the file."""
-  category = "/Filesystem/Glob/"
-
-  args_type = GlobArgs
-
-  @flow.StateHandler(next_state=["Download"])
-  def Start(self):
-    """Run the glob first."""
-
-    self.CallFlow("Glob", next_state="Download", args=self.state.args)
-
-  @flow.StateHandler(next_state=["End"])
-  def Download(self, responses):
-    if responses.success:
-      for response in responses:
-        # Only fetch regular files with GetFile.
-        if not stat.S_ISDIR(response.st_mode):
-          self.CallFlow("GetFile", pathspec=response.pathspec,
-                        next_state="End")
-
-  @flow.StateHandler()
-  def End(self, responses):
-    # Just send the results to the parent.
-    if responses.success:
-      for response in responses:
-        self.SendReply(response)
-
-
-class GlobAndGrepArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.GlobAndGrepArgs
-
-
-class GlobAndGrep(flow.GRRFlow):
-  """A flow that runs a glob first and then issues a grep on the results."""
-  category = "/Filesystem/Glob/"
-
-  args_type = rdfvalue.GlobAndGrepArgs
-
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
-
-  @flow.StateHandler(next_state=["Grep"])
-  def Start(self):
-    """Run the glob first."""
-    output = self.state.args.output.format(t=time.time(),
-                                           u=self.state.context.user)
-    output = self.client_id.Add(output)
-    self.state.Register("fd", aff4.FACTORY.Create(
-        output, "GrepResultsCollection", mode="rw", token=self.token))
-
-    self.Log("Created output collection %s", output)
-
-    self.state.fd.Set(self.state.fd.Schema.DESCRIPTION(
-        "GlobAndGrep {0}".format(
-            self.__class__.__name__)))
-
-    self.CallFlow("Glob", next_state="Grep",
-                  paths=self.state.args.paths,
-                  pathtype=self.state.args.pathtype)
-
-  @flow.StateHandler(next_state=["WriteHits"])
-  def Grep(self, responses):
-    if responses.success:
-      for response in responses:
-        # Only fetch regular files with GetFile.
-        if not stat.S_ISDIR(response.st_mode):
-          # Cast the BareGrepSpec to a GrepSpec type.
-          request = rdfvalue.GrepSpec(target=response.pathspec,
-                                      **self.args.grep.AsDict())
-          self.CallFlow("Grep", request=request, next_state="WriteHits",
-                        request_data=dict(stat=response))
-
-  @flow.StateHandler()
-  def WriteHits(self, responses):
-    for hit in responses:
-      hit.stat = responses.request_data["stat"]
-      self.state.fd.Add(hit)
-
-  @flow.StateHandler()
-  def End(self):
-    self.state.fd.Close()

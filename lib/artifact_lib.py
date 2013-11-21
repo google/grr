@@ -32,6 +32,10 @@ class KnowledgeBaseInterpolationError(Error):
   """Unable to interpolate path using the Knowledge Base."""
 
 
+class KnowledgeBaseUninitializedError(Error):
+  """Attempt to process artifact without a valid Knowledge Base."""
+
+
 # These labels represent the full set of labels that an Artifact can have.
 # This set is tested on creation to ensure our list of labels doesn't get out
 # of hand.
@@ -45,11 +49,13 @@ ARTIFACT_LABELS = {
     "External Media": "Contain external media data or events e.g. USB drives.",
     "KnowledgeBase": "Artifacts used in knowledgebase generation.",
     "Logs": "Contain log files.",
+    "Memory": "Artifacts retrieved from Memory.",
     "Network": "Describe networking state.",
     "Processes": "Describe running processes.",
     "Software": "Installed software.",
     "System": "Core system artifacts.",
-    "Users": "Information about users."
+    "Users": "Information about users.",
+    "Volatility": "Artifacts using the Volatility memory forensics framework."
     }
 
 OUTPUT_UNDEFINED = "Undefined"
@@ -68,6 +74,10 @@ ACTIONS_MAP = {"RunGrrClientAction": {"required_args": ["client_action"],
                             "output_type": "Dict"},
                "RunCommand": {"required_args": ["cmd", "args"],
                               "output_type": "ExecuteResponse"},
+               "VolatilityPlugin": {"required_args": ["plugin"],
+                                    "output_type": "VolatilityResponse"},
+               "CollectArtifacts": {"required_args": ["artifact_list"],
+                                    "output_type": OUTPUT_UNDEFINED},
                "Bootstrap": {"required_args": [],
                              "output_type": OUTPUT_UNDEFINED},
               }
@@ -120,6 +130,20 @@ class Artifact(object):
 
   @classmethod
   def GetArtifactDependencies(cls):
+    """Return a list of artifact dependencies.
+
+    Returns:
+      A list of strings each dependencies.
+    """
+    deps = set()
+    for collector in cls.COLLECTORS:
+      if collector.action == "CollectArtifact":
+        if hasattr(collector, "args") and collector.args.get("artifact_list"):
+          deps.update(collector.args.get("artifact_list"))
+    return list(deps)
+
+  @classmethod
+  def GetArtifactPathDependencies(cls):
     """Return a list of knowledgebase path dependencies.
 
     Returns:
@@ -234,6 +258,14 @@ class GenericArtifact(Artifact):
             raise ArtifactDefinitionError("Artifact %s collector has arg 'path'"
                                           " that is not a string." % cls_name)
 
+        # Check all returned types.
+        if collector.returned_types:
+          for rdf_type in collector.returned_types:
+            if rdf_type not in rdfvalue.RDFValue.classes:
+              raise ArtifactDefinitionError("Artifact %s has a Collector with "
+                                            "an invalid return type %s"
+                                            % (cls_name, rdf_type))
+
       if collector.action not in ACTIONS_MAP:
         raise ArtifactDefinitionError("Artifact %s has invalid action %s." %
                                       (cls_name, collector.action))
@@ -250,13 +282,20 @@ class GenericArtifact(Artifact):
                                       " Please use one from ARTIFACT_LABELS."
                                       % (cls_name, label))
 
-    # Check all dependencies exist in the knowledge base.
+    # Check all path dependencies exist in the knowledge base.
     valid_fields = rdfvalue.KnowledgeBase().GetKbFieldNames()
-    for dependency in self.GetArtifactDependencies():
+    for dependency in self.GetArtifactPathDependencies():
       if dependency not in valid_fields:
         raise ArtifactDefinitionError("Artifact %s has an invalid dependency %s"
                                       ". Artifacts must use defined knowledge "
                                       "attributes." % (cls_name, dependency))
+
+    # Check all artifact dependencies exist.
+    for dependency in self.GetArtifactDependencies():
+      if dependency not in Artifact.classes:
+        raise ArtifactDefinitionError("Artifact %s has an invalid dependency %s"
+                                      ". Could not find artifact definition."
+                                      % (cls_name, dependency))
 
   @classmethod
   def GetShortDescription(cls):
@@ -270,10 +309,20 @@ class GenericArtifact(Artifact):
 class Collector(object):
   """A basic interface to define an object for collecting data."""
 
-  def __init__(self, action, conditions=None, args=None):
+  def __init__(self, action, conditions=None, args=None, returned_types=None):
     self.action = action
     self.args = args or {}
     self.conditions = conditions or []
+    self.returned_types = returned_types or []
+
+  def ToDict(self):
+    """Return a dict representing the collector."""
+    coll_dict = {}
+    coll_dict["conditions"] = self.conditions
+    coll_dict["args"] = self.args
+    coll_dict["action"] = self.action
+    coll_dict["returned_types"] = self.returned_types
+    return coll_dict
 
 
 def InterpolateKbAttributes(pattern, knowledge_base):

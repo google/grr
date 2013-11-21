@@ -12,7 +12,7 @@ class DpkgCmdParser(parsers.CommandParser):
   """Parser for dpkg output. Yields SoftwarePackage rdfvalues."""
 
   output_types = ["SoftwarePackage"]
-  supported_artifacts = ["DebianPackages"]
+  supported_artifacts = ["DebianPackagesList"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
             knowledge_base):

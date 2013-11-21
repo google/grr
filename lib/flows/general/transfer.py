@@ -5,7 +5,6 @@
 
 
 import hashlib
-import stat
 import time
 import zlib
 
@@ -42,11 +41,19 @@ class GetFile(flow.GRRFlow):
   WINDOW_SIZE = 200
   CHUNK_SIZE = 512 * 1024
 
+  @classmethod
+  def GetDefaultArgs(cls, token=None):
+    _ = token
+    result = cls.args_type()
+    result.pathspec.pathtype = "OS"
+
+    return result
+
   @flow.StateHandler(next_state=["Stat"])
   def Start(self):
     """Get information about the file from the client."""
     self.state.Register("max_chunk_number",
-                        max(2, self.state.args.read_length/self.CHUNK_SIZE))
+                        max(2, self.args.read_length/self.CHUNK_SIZE))
 
     self.state.Register("current_chunk_number", 0)
     self.state.Register("file_size", 0)
@@ -54,8 +61,7 @@ class GetFile(flow.GRRFlow):
     self.state.Register("stat", None)
 
     self.CallClient("StatFile", rdfvalue.ListDirRequest(
-        pathspec=self.state.args.pathspec),
-                    next_state="Stat")
+        pathspec=self.args.pathspec), next_state="Stat")
 
   @flow.StateHandler(next_state=["ReadBuffer", "CheckHashes"])
   def Stat(self, responses):
@@ -63,15 +69,19 @@ class GetFile(flow.GRRFlow):
     response = responses.First()
     if responses.success and response:
       self.state.stat = response
-      self.state.args.pathspec = self.state.stat.pathspec
+      self.args.pathspec = self.state.stat.pathspec
     else:
-      raise IOError("Error: %s" % responses.status)
+      if not self.args.ignore_stat_failure:
+        raise IOError("Error: %s" % responses.status)
+
+      # Just fill up a bogus stat entry.
+      self.state.stat = rdfvalue.StatEntry(pathspec=self.args.pathspec)
 
     # Adjust the size from st_size if read length is not specified.
-    if self.state.args.read_length == 0:
+    if self.args.read_length == 0:
       self.state.file_size = self.state.stat.st_size
     else:
-      self.state.file_size = self.state.args.read_length
+      self.state.file_size = self.args.read_length
 
     self.state.max_chunk_number = (self.state.file_size /
                                    self.CHUNK_SIZE) + 1
@@ -90,7 +100,7 @@ class GetFile(flow.GRRFlow):
         return
 
       request = rdfvalue.BufferReference(
-          pathspec=self.state.args.pathspec,
+          pathspec=self.args.pathspec,
           offset=self.state.current_chunk_number * self.CHUNK_SIZE,
           length=self.CHUNK_SIZE)
       self.CallClient("TransferBuffer", request, next_state="ReadBuffer")
@@ -103,7 +113,7 @@ class GetFile(flow.GRRFlow):
     aff4 objects outside its tree.
     """
     urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-        self.state.args.pathspec, self.client_id)
+        self.args.pathspec, self.client_id)
 
     self.state.stat.aff4path = urn
 
@@ -156,102 +166,6 @@ class GetFile(flow.GRRFlow):
       self.SendReply(stat_response)
 
 
-class FastGetFile(GetFile):
-  """An experimental GetFile which uses deduplication to save bandwidth."""
-
-  # We can be much more aggressive here.
-  WINDOW_SIZE = 400
-
-  @flow.StateHandler()
-  def Start(self):
-    super(FastGetFile, self).Start()
-    self.state.Register("queue", [])
-
-  def FetchWindow(self, number_of_chunks_to_readahead):
-    """Read ahead a number of buffers to fill the window."""
-    number_of_chunks_to_readahead = min(
-        number_of_chunks_to_readahead,
-        self.state.max_chunk_number - self.state.current_chunk_number)
-
-    for _ in range(number_of_chunks_to_readahead):
-      offset = self.state.current_chunk_number * self.CHUNK_SIZE
-      request = rdfvalue.BufferReference(pathspec=self.state.args.pathspec,
-                                         offset=offset,
-                                         length=self.CHUNK_SIZE)
-      self.CallClient("HashBuffer", request, next_state="CheckHashes")
-
-      self.state.current_chunk_number += 1
-
-  @flow.StateHandler(next_state=["CheckHashes", "WriteHash"])
-  def CheckHashes(self, responses):
-    """Check if the hashes are already in the data store.
-
-    In order to minimize the round trips we only actually check the hashes
-    periodically.
-
-    Args:
-      responses: client responses.
-    """
-    if (responses.status.status ==
-        responses.status.ReturnedStatus.NETWORK_LIMIT_EXCEEDED):
-      raise flow.FlowError(responses.status)
-
-    for response in responses:
-      self.state.queue.append(HashTracker(response))
-
-    if len(self.state.queue) > self.WINDOW_SIZE:
-      check_hashes = self.state.queue[:self.WINDOW_SIZE]
-      self.state.queue = self.state.queue[self.WINDOW_SIZE:]
-      self.CheckQueuedHashes(check_hashes)
-
-  def CheckQueuedHashes(self, hash_list):
-    """Check which of the hashes in the queue we already have."""
-    urns = [x.blob_urn for x in hash_list]
-    fds = aff4.FACTORY.Stat(urns, token=self.token)
-
-    # These blob urns we have already.
-    matched_urns = set([x["urn"] for x in fds])
-
-    # Fetch all the blob urns we do not have and that are not currently already
-    # in flight.
-    for hash_tracker in hash_list:
-      request = hash_tracker.hash_response
-      request.pathspec = self.state.args.pathspec
-
-      if hash_tracker.blob_urn in matched_urns:
-        self.CallState([request], next_state="WriteHash")
-      else:
-        self.CallClient("TransferBuffer", request, next_state="WriteHash")
-
-    self.FetchWindow(self.WINDOW_SIZE)
-
-  @flow.StateHandler()
-  def WriteHash(self, responses):
-    if not responses.success:
-      # Silently ignore failures in block-fetches
-      # Might want to clean up the 'broken' fingerprint file here.
-      return
-
-    response = responses.First()
-
-    self.state.fd.AddBlob(response.data, response.length)
-    self.Status("Received %s bytes", self.state.fd.size)
-
-  @flow.StateHandler(next_state=["CheckHashes", "WriteHash"])
-  def End(self):
-    """Flush outstanding hash blobs and retrieve more if needed."""
-    if self.state.queue:
-      self.CheckQueuedHashes(self.state.queue)
-      self.state.queue = []
-
-    else:
-      stat_response = self.state.fd.Get(self.state.fd.Schema.STAT)
-      self.state.fd.Close(sync=True)
-
-      # Notify any parent flows the file is ready to be used now.
-      self.SendReply(stat_response)
-
-
 class HashTracker(object):
   def __init__(self, hash_response, is_known=False):
     self.hash_response = hash_response
@@ -271,6 +185,7 @@ class FileTracker(object):
     self.pathspec = stat_entry.pathspec
     self.urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
         self.pathspec, client_id)
+    self.stat_entry.aff4path = self.urn
 
   def __str__(self):
     return "<Tracker: %s (%s hashes)>" % (self.urn, len(self.hash_list))
@@ -369,7 +284,7 @@ class MultiGetFile(flow.GRRFlow):
     vfs_urn = responses.request_data["vfs_urn"]
     if not responses.success:
       self.Log("Failed to hash file: %s", responses.status)
-      self.state.pending_hashes.pop(vfs_urn)
+      self.state.pending_hashes.pop(vfs_urn, None)
       return
 
     self.state.pending_hashes[vfs_urn].digest = rdfvalue.HashDigest(
@@ -452,6 +367,9 @@ class MultiGetFile(flow.GRRFlow):
 
         # It is not critical that this file be written immediately.
         file_tracker.fd.Close(sync=False)
+
+        # Let the caller know we have this file already.
+        self.SendReply(file_tracker.stat_entry)
 
     # Now we iterate over all the files which are not in the store and arrange
     # for them to be copied.
@@ -572,7 +490,7 @@ class MultiGetFile(flow.GRRFlow):
         # Publish the new file event to cause the file to be added to the
         # filestore. This is not time critical so do it when we have spare
         # capacity.
-        self.Publish("FileStore.AddFileToStore", vfs_urn,
+        self.Publish("FileStore.AddFileToStore", file_tracker.fd.urn,
                      priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY)
 
         self.state.files_fetched += 1
@@ -655,7 +573,7 @@ class GetMBR(flow.GRRFlow):
         path_options=rdfvalue.PathSpec.Options.CASE_LITERAL)
 
     request = rdfvalue.BufferReference(pathspec=pathspec, offset=0,
-                                       length=self.state.args.length)
+                                       length=self.args.length)
     self.CallClient("ReadBuffer", request, next_state="StoreMBR")
 
   @flow.StateHandler()
@@ -720,131 +638,6 @@ class TransferStore(flow.WellKnownFlow):
 
       logging.info("Got blob %s (length %s)", digest.encode("hex"),
                    len(cdata))
-
-
-class FileDownloaderArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.FileDownloaderArgs
-
-
-class FileDownloader(flow.GRRFlow):
-  """Handle the automated collection of multiple files.
-
-  This class contains the logic to automatically collect and store a set
-  of files and directories.
-
-  Returns to parent flow:
-    A StatResponse protobuf for each downloaded file.
-  """
-  args_type = FileDownloaderArgs
-
-  @flow.StateHandler(next_state=["DownloadFiles", "HandleDownloadedFiles"])
-  def Start(self):
-    """Queue flows for all valid find specs."""
-    if not self.state.args.HasField("findspecs"):
-      # Call GetFindSpecs, should be overridden by inheriting classes.
-      self.state.args.findspecs = self.GetFindSpecs()
-
-    if not self.state.args.findspecs and not self.state.pathspecs:
-      self.Error("No usable specs found.")
-
-    for findspec in self.state.args.findspecs:
-      self.CallFlow("FindFiles", next_state="DownloadFiles",
-                    findspec=findspec, output=None)
-
-    for pathspec in self.state.args.pathspecs:
-      self.CallFlow("GetFile", next_state="HandleDownloadedFiles",
-                    pathspec=pathspec)
-
-  @flow.StateHandler(next_state="HandleDownloadedFiles")
-  def DownloadFiles(self, responses):
-    """For each file found in the resulting collection, download it."""
-    if responses.success:
-      count = 0
-      for response in responses:
-        # Only download regular files.
-        if stat.S_ISREG(response.st_mode):
-          count += 1
-          self.CallFlow("GetFile",
-                        next_state="HandleDownloadedFiles",
-                        pathspec=response.pathspec,
-                        request_data=dict(pathspec=response.pathspec))
-
-      self.Log("Scheduling download of %d files", count)
-
-    else:
-      self.Log("Find failed %s", responses.status)
-
-  @flow.StateHandler()
-  def HandleDownloadedFiles(self, responses):
-    """Handle the Stats that come back from the GetFile calls."""
-    if responses.success:
-      # GetFile returns a list of StatEntry.
-      for response in responses:
-        self.Log("Downloaded %s", response)
-        self.SendReply(response)
-    else:
-      self.Log("Download of file %s failed %s",
-               responses.request_data["pathspec"], responses.status)
-
-  def GetFindSpecs(self):
-    """Returns iterable of rdfvalue.FindSpec objects. Should be overridden."""
-    return []
-
-  def GetPathSpecs(self):
-    """Returns iterable of rdfvalue.PathSpec objects. Should be overridden."""
-    return []
-
-
-class FileCollectorArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.FileCollectorArgs
-
-
-class FileCollector(flow.GRRFlow):
-  """Flow to create a collection from downloaded files.
-
-  This flow calls the FileDownloader and creates a collection for the results.
-  Returns to the parent flow:
-    A StatResponse protobuf describing the output collection.
-  """
-  args_type = FileCollectorArgs
-
-  @flow.StateHandler(next_state="WriteCollection")
-  def Start(self):
-    """Start FileCollector flow."""
-    output = self.args.output.format(t=time.time(), u=self.state.context.user)
-    self.state.Register("output", self.client_id.Add(output))
-    self.state.Register("fd", aff4.FACTORY.Create(self.state.output,
-                                                  "AFF4Collection",
-                                                  mode="rw", token=self.token))
-
-    self.Log("Created output collection %s", self.state.output)
-
-    self.state.fd.Set(self.state.fd.Schema.DESCRIPTION(
-        "CollectFiles {0}".format(
-            self.__class__.__name__)))
-
-    # Just call the FileDownloader with these findspecs
-    self.CallFlow("FileDownloader", findspecs=self.args.findspecs,
-                  next_state="WriteCollection")
-
-  @flow.StateHandler()
-  def WriteCollection(self, responses):
-    """Adds the results to the collection."""
-    for response_stat in responses:
-      self.state.fd.Add(stat=response_stat, urn=response_stat.aff4path)
-
-    self.state.fd.Close(True)
-
-    # Tell our caller about the new collection.
-    self.SendReply(self.state.fd.urn)
-
-  @flow.StateHandler()
-  def End(self):
-    # Notify our creator.
-    num_files = len(self.state.fd)
-
-    self.Notify("ViewObject", self.state.output,
-                "Completed download of {0:d} files.".format(num_files))
 
 
 class SendFile(flow.GRRFlow):

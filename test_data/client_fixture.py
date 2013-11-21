@@ -3544,7 +3544,7 @@ pathspec {
  pathtype: REGISTRY
 }
 registry_data {
-  string: "%%ProgramFiles%%/Windows Sidebar/Sidebar.exe /autoRun"
+  string: "%%ProgramFiles%%\\Windows Sidebar\\Sidebar.exe /autoRun"
 }
 """
 })),

@@ -35,6 +35,7 @@ grr.Renderer('ArtifactListRenderer', {
     $.each(state.supported_os, function(artifact_name, value) {
       grr.artifact_view.list_manager.add(os_filter_element, value);
     });
+    grr.artifact_view.updateFilter(artifact_div);
 
     // Search Handler.
     $('#' + state.unique + '_search').keyup(function() {

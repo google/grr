@@ -194,10 +194,6 @@ class SemanticProtoFormRenderer(renderers.TemplateRenderer):
       # Strip the prefix from the name
       field = name[len(self.prefix) + 1:].split("-")[0]
 
-      # We already did this field - skip it.
-      if result.HasField(field):
-        continue
-
       # Recover the type descriptor renderer for this field.
       descriptor = self.descriptors.get(field)
       if descriptor is None:
@@ -267,6 +263,7 @@ class TypeDescriptorFormRenderer(renderers.TemplateRenderer):
       self.default = self.descriptor.GetDefault(container=self.container)
 
     self.prefix = prefix
+
     super(TypeDescriptorFormRenderer, self).__init__(**kwargs)
 
   def Layout(self, request, response):
@@ -302,9 +299,12 @@ class StringTypeFormRenderer(TypeDescriptorFormRenderer):
 
   def Layout(self, request, response):
     super(StringTypeFormRenderer, self).Layout(request, response)
+    parameters = dict(default=self.default, prefix=self.prefix)
+    if self.value:
+      parameters["value"] = utils.SmartUnicode(self.value)
+
     return self.CallJavascript(response, "StringTypeFormRenderer.Layout",
-                               default=self.default, value=self.value,
-                               prefix=self.prefix)
+                               **parameters)
 
 
 class BinaryStringTypeFormRenderer(StringTypeFormRenderer):
@@ -495,7 +495,9 @@ class RepeatedFieldFormRenderer(TypeDescriptorFormRenderer):
       </button>
     </div>
   </div>
-  <div id="content_{{unique}}" />
+  <div id="content_{{unique}}">
+{{this.content|safe}}
+  </div>
 """)
 
   ajax_template = renderers.Template("""
@@ -512,11 +514,14 @@ class RepeatedFieldFormRenderer(TypeDescriptorFormRenderer):
     self.owner = self.descriptor.owner.__name__
     self.field = self.descriptor.name
 
+    parameters = dict(owner=self.descriptor.owner.__name__,
+                      field=self.descriptor.name,
+                      prefix=self.prefix, index=0)
+    request.REQ.update(parameters)
+    self.content = self.RawHTML(request, method=self.RenderAjax)
+
     response = super(RepeatedFieldFormRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "Layout",
-                               owner=self.descriptor.owner.__name__,
-                               field=self.descriptor.name,
-                               prefix=self.prefix)
+    return self.CallJavascript(response, "Layout", **parameters)
 
   def ParseArgs(self, request):
     """Parse repeated fields from post parameters."""
@@ -555,9 +560,14 @@ class RepeatedFieldFormRenderer(TypeDescriptorFormRenderer):
     cls = rdfvalue.RDFValue.classes[self.owner]
     delegate = cls.type_infos[self.field].delegate
 
+    try:
+      value = self.value[self.index]
+    except (TypeError, IndexError):
+      value = None
+
     delegated_renderer = GetTypeDescriptorRenderer(delegate)(
         descriptor=delegate, opened=True, container=self.container,
-        prefix=self.delegate_prefix, render_label=False)
+        prefix=self.delegate_prefix, render_label=False, value=value)
 
     self.delegated = delegated_renderer.RawHTML(request)
 
@@ -750,6 +760,9 @@ class MultiFormRenderer(renderers.TemplateRenderer):
   child_renderer = renderers.TemplateRenderer
   option_name = "option"
   button_text = "Add Option"
+  # If this is true, adds one default form when rendering. Useful when you
+  # don't want the list of forms to be empty.
+  add_one_default = True
 
   layout_template = renderers.Template("""
 {% if this.item %}
@@ -784,13 +797,15 @@ class MultiFormRenderer(renderers.TemplateRenderer):
     return result
 
   def Layout(self, request, response):
+    """Renders given item's form. Calls Layout() js code if no item is given."""
     self.item = request.REQ.get("item")
     if self.item is not None:
       self.item_type_selector = self.child_renderer(
           prefix="%s_%s" % (self.option_name, self.item)).RawHTML(request)
     else:
       self.CallJavascript(response, "MultiFormRenderer.Layout",
-                          option=self.option_name)
+                          option=self.option_name,
+                          add_one_default=self.add_one_default)
 
     return super(MultiFormRenderer, self).Layout(request, response)
 

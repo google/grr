@@ -6,6 +6,8 @@
 Collects Logs and Infected files.
 """
 
+## DISABLED for now until it gets converted to artifacts.
+
 
 
 from grr.lib import aff4

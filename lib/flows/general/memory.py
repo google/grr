@@ -7,8 +7,6 @@ performing basic analysis.
 
 
 
-import time
-
 import logging
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -17,50 +15,6 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.flows.general import transfer
 from grr.proto import flows_pb2
-
-
-class ImageMemoryArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.ImageMemoryArgs
-
-
-class ImageMemory(flow.GRRFlow):
-  """Image a client's memory.
-
-  This flow loads a memory driver on the client and uploads a memory image
-  to the grr server. Note that this flow will take some time depending on the
-  connection speed to the server so there might be substantial memory smear. If
-  this is a problem, consider using the DownloadMemoryImage flow which makes a
-  local copy of the image first to circumvent this problem.
-  """
-
-  category = "/Memory/"
-  args_type = ImageMemoryArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
-
-  @flow.StateHandler(next_state="GetFile")
-  def Start(self, _):
-    self.CallFlow("LoadMemoryDriver",
-                  driver_installer=self.args.driver_installer,
-                  next_state="GetFile")
-
-  @flow.StateHandler(next_state="Done")
-  def GetFile(self, responses):
-    if not responses.success:
-      raise flow.FlowError("Failed due to no memory driver.")
-    memory_information = responses.First()
-    pathspec = rdfvalue.PathSpec(
-        path=memory_information.device.path,
-        pathtype=rdfvalue.PathSpec.PathType.MEMORY)
-    self.CallFlow("GetFile", pathspec=pathspec, next_state="Done")
-
-  @flow.StateHandler()
-  def Done(self, responses):
-    if not responses.success:
-      raise flow.FlowError("Transfer failed %s" % responses.status)
-    else:
-      stat = responses.First()
-      self.SendReply(stat)
-      self.Notify("ViewObject", stat.aff4path, "File transferred successfully")
 
 
 class ImageMemoryToSocket(transfer.SendFile):
@@ -127,24 +81,29 @@ class DownloadMemoryImage(flow.GRRFlow):
   # This flow is also a basic flow.
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler(next_state="CopyFile")
+  @flow.StateHandler(next_state="PrepareImage")
   def Start(self):
-    self.CallFlow("LoadMemoryDriver", next_state="CopyFile")
+    self.CallFlow("LoadMemoryDriver",
+                  driver_installer=self.args.driver_installer,
+                  next_state="PrepareImage")
 
-  @flow.StateHandler(next_state="DownloadFile")
-  def CopyFile(self, responses):
-    """Copy the memory image if the driver loaded."""
+  @flow.StateHandler(next_state=["DownloadFile", "Done"])
+  def PrepareImage(self, responses):
     if not responses.success:
       raise flow.FlowError("Failed due to no memory driver.")
 
     memory_information = responses.First()
-    self.CallClient("CopyPathToFile",
-                    offset=self.args.offset,
-                    length=self.args.length,
-                    src_path=memory_information.device,
-                    dest_dir=self.args.destdir,
-                    gzip_output=self.args.gzip,
-                    next_state="DownloadFile")
+    if self.args.make_local_copy:
+      self.CallClient("CopyPathToFile",
+                      offset=self.args.offset,
+                      length=self.args.length,
+                      src_path=memory_information.device,
+                      dest_dir=self.args.destdir,
+                      gzip_output=self.args.gzip,
+                      next_state="DownloadFile")
+    else:
+      self.CallFlow("GetFile", pathspec=memory_information.device,
+                    next_state="Done")
 
   @flow.StateHandler(next_state="DeleteFile")
   def DownloadFile(self, responses):
@@ -239,7 +198,7 @@ class LoadMemoryDriver(flow.GRRFlow):
   @flow.StateHandler(next_state="GotMemoryInformation")
   def InstalledDriver(self, responses):
     if not responses.success:
-      raise flow.FlowError("Could not install memory driver %s",
+      raise flow.FlowError("Could not install memory driver %s" %
                            responses.status)
 
     self.CallClient("GetMemoryInformation",
@@ -390,38 +349,44 @@ class AnalyzeClientMemory(flow.GRRFlow):
     self.CallFlow("LoadMemoryDriver", next_state="RunVolatilityPlugins",
                   driver_installer=self.args.driver_installer)
 
-  @flow.StateHandler(next_state=["Done"])
+  @flow.StateHandler(next_state=["StoreResults"])
   def RunVolatilityPlugins(self, responses):
-    """Run all the plugins and process the responses."""
-    if responses.success:
-      memory_information = responses.First()
+    """Call the client with the volatility actions."""
+    if not responses.success:
+      raise flow.FlowError("Unable to install memory driver.")
 
-      if memory_information:
-        self.args.request.device = memory_information.device
+    for plugin in self.args.request.plugins:
+      if plugin not in self.args.request.args:
+        self.args.request.args[plugin] = {}
 
-      else:
-        # We loaded the driver previously and stored the path in the AFF4 VFS -
-        # we try to use that instead.
-        device_urn = self.client_id.Add("devices/memory")
-        fd = aff4.FACTORY.Open(device_urn, "MemoryImage", token=self.token)
-        device = fd.Get(fd.Schema.LAYOUT)
-        if device:
-          self.args.request.device = device
-
-      self.CallFlow("VolatilityPlugins", request=self.args.request,
-                    next_state="Done", output=self.args.output)
-    else:
-      raise flow.FlowError("Failed to Load driver: %s" % responses.status)
+    memory_information = responses.First()
+    self.args.request.device = memory_information.device
+    self.CallClient("VolatilityAction", self.args.request,
+                    next_state="StoreResults")
 
   @flow.StateHandler()
-  def Done(self, responses):
-    pass
+  def StoreResults(self, responses):
+    """Stores the results."""
+    if not responses.success:
+      self.Log("Error running plugins: %s.", responses.status)
+      return
+
+    self.Log("Volatility returned %s responses." % len(responses))
+    for response in responses:
+      self.SendReply(response)
+      if self.runner.output:
+        output_urn = self.runner.output.urn.Add(response.plugin)
+        with aff4.FACTORY.Create(output_urn, "VolatilityResponse",
+                                 mode="rw", token=self.token) as fd:
+          fd.Set(fd.Schema.DESCRIPTION("Volatility plugin by %s: %s" % (
+              self.state.context.user, str(self.args.request))))
+          fd.Set(fd.Schema.RESULT(response))
 
   @flow.StateHandler()
   def End(self):
-    out_urn = self.client_id.Add("analysis")
-    self.Notify("ViewObject", out_urn,
-                "Completed execution of volatility plugins.")
+    if self.runner.output:
+      self.Notify("ViewObject", self.runner.output.urn,
+                  "Ran volatility plugins")
 
 
 class UnloadMemoryDriver(LoadMemoryDriver):
@@ -455,11 +420,11 @@ class UnloadMemoryDriver(LoadMemoryDriver):
     pass
 
 
-class GrepMemoryArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.GrepMemoryArgs
+class ScanMemoryArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.ScanMemoryArgs
 
 
-class GrepMemory(flow.GRRFlow):
+class ScanMemory(flow.GRRFlow):
   """Grep client memory for a signature.
 
   This flow greps memory on the client for a pattern or a regex.
@@ -469,12 +434,22 @@ class GrepMemory(flow.GRRFlow):
   """
 
   category = "/Memory/"
-  args_type = GrepMemoryArgs
+  args_type = ScanMemoryArgs
+
+  XOR_IN_KEY = 37
+  XOR_OUT_KEY = 57
 
   @flow.StateHandler(next_state="Grep")
   def Start(self):
+    self.args.grep.xor_in_key = self.XOR_IN_KEY
+    self.args.grep.xor_out_key = self.XOR_OUT_KEY
+    # For literal matches we xor the search term. This stops us matching the GRR
+    # client itself.
+    if self.args.grep.literal:
+      self.args.grep.literal = utils.Xor(
+          self.args.grep.literal, self.XOR_IN_KEY)
+
     self.CallFlow("LoadMemoryDriver", next_state="Grep")
-    self.state.Register("output_urn", None)
 
   @flow.StateHandler(next_state="Done")
   def Grep(self, responses):
@@ -487,63 +462,20 @@ class GrepMemory(flow.GRRFlow):
 
     # Coerce the BareGrepSpec into a GrepSpec explicitly.
     grep_request = rdfvalue.GrepSpec(target=memory_information.device,
-                                     **self.args.request.AsDict())
+                                     **self.args.grep.AsDict())
 
-    output = self.args.output.format(t=time.time(),
-                                     u=self.state.context.user)
-    self.state.output_urn = self.client_id.Add(output)
+    self.CallClient("Grep", request=grep_request, next_state="Done")
 
-    self.CallFlow("Grep", request=grep_request,
-                  output=output, next_state="Done")
-
-  @flow.StateHandler()
+  @flow.StateHandler(next_state="End")
   def Done(self, responses):
     if responses.success:
-      for response in responses:
-        self.SendReply(response)
-      self.state.Register("hits", len(responses))
+      for hit in responses:
+        # Decode the hit data from the client.
+        hit.data = utils.Xor(hit.data, self.XOR_OUT_KEY)
+        self.SendReply(hit)
+
+        if self.args.also_download:
+          self.CallFlow("DownloadMemoryImage", next_state="End")
+
     else:
       raise flow.FlowError("Error grepping memory: %s.", responses.status)
-
-  @flow.StateHandler()
-  def End(self):
-    self.Notify("ViewObject", self.state.output_urn,
-                u"Grep completed, %d hits." % self.state.hits)
-
-
-class GrepAndDownloadMemory(flow.GRRFlow):
-  """Downloads client memory if a signature is found.
-
-  This flow greps memory on the client for a pattern or a regex
-  and, if the pattern is found, downloads the memory image.
-  """
-
-  category = "/Memory/"
-  args_type = GrepMemoryArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
-
-  @flow.StateHandler(next_state="Download")
-  def Start(self):
-    output = self.args.output.format(t=time.time(),
-                                     u=self.state.context.user)
-
-    self.CallFlow("GrepMemory", request=self.state.request,
-                  output=output, next_state="Download")
-
-  @flow.StateHandler(next_state=["DownloadComplete", "End"])
-  def Download(self, responses):
-    if responses:
-      self.Log("Grep found results: %s, downloading memory image." %
-               responses.First())
-      self.CallFlow("DownloadMemoryImage", next_state="DownloadComplete")
-    else:
-      self.Log("Grep did not yield any results.")
-
-  @flow.StateHandler()
-  def DownloadComplete(self, responses):
-    if not responses.success:
-      raise flow.FlowError("Error while downloading memory image: %s" %
-                           responses.status)
-    else:
-      self.Notify("ViewObject", responses.First().aff4path,
-                  "Memory image transferred successfully")

@@ -3,8 +3,9 @@
 """Flow to recover history files."""
 
 
+## DISABLED for now until it gets converted to artifacts.
+
 import datetime
-import time
 
 from grr.lib import aff4
 from grr.lib import flow
@@ -54,11 +55,8 @@ class ChromeHistory(flow.GRRFlow):
     if self.state.args.history_path:
       self.state.history_paths.append(self.state.args.history_path)
 
-    self.state.args.output = self.state.args.output.format(
-        t=time.time(), u=self.state.context.user)
-
-    self.state.Register("urn", self.client_id)
-    self.state.Register("out_urn", self.client_id.Add(self.state.args.output))
+    self.runner.output = aff4.FACTORY.Create(
+        self.runner.output.urn, "VFSAnalysisFile", token=self.token)
 
     if not self.state.history_paths:
       self.state.history_paths = self.GuessHistoryPaths(
@@ -71,19 +69,15 @@ class ChromeHistory(flow.GRRFlow):
     if self.state.args.get_archive:
       filenames.append("Archived History")
 
-    findspecs = []
     for path in self.state.history_paths:
       for fname in filenames:
         findspec = rdfvalue.FindSpec(
-            max_depth=1,
-            path_regex="^{0}$".format(fname),
+            max_depth=1, path_regex="^{0}$".format(fname),
             pathspec=rdfvalue.PathSpec(pathtype=self.state.args.pathtype,
                                        path=path))
 
-        findspecs.append(findspec)
-
-    self.CallFlow("FileDownloader", findspecs=findspecs,
-                  next_state="ParseFiles")
+        self.CallFlow("FetchFiles", findspec=findspec,
+                      next_state="ParseFiles")
 
   @flow.StateHandler()
   def ParseFiles(self, responses):
@@ -91,8 +85,6 @@ class ChromeHistory(flow.GRRFlow):
     # Note that some of these Find requests will fail because some paths don't
     # exist, e.g. Chromium on most machines, so we don't check for success.
     if responses:
-      outfile = aff4.FACTORY.Create(self.state.out_urn, "VFSAnalysisFile",
-                                    token=self.token)
       for response in responses:
         fd = aff4.FACTORY.Open(response.aff4path, token=self.token)
         hist = chrome_history.ChromeParser(fd)
@@ -102,11 +94,12 @@ class ChromeHistory(flow.GRRFlow):
           str_entry = "%s %s %s %s %s %s" % (
               datetime.datetime.utcfromtimestamp(epoch64/1e6), url,
               dat1, dat2, dat3, dtype)
-          outfile.write(utils.SmartStr(str_entry) + "\n")
+
+          self.runner.output.write(utils.SmartStr(str_entry) + "\n")
+
         self.Log("Wrote %d Chrome History entries for user %s from %s", count,
                  self.state.args.username, response.pathspec.Basename())
         self.state.hist_count += count
-      outfile.Close()
 
   def GuessHistoryPaths(self, username):
     """Take a user and return guessed full paths to History files.
@@ -144,12 +137,6 @@ class ChromeHistory(flow.GRRFlow):
     else:
       raise OSError("Invalid OS for Chrome History")
     return paths
-
-  @flow.StateHandler()
-  def End(self):
-    self.SendReply(self.state.out_urn)
-    self.Notify("ViewObject", self.state.out_urn,
-                "Completed retrieval of Chrome History")
 
 
 class FirefoxHistoryArgs(rdfvalue.RDFProtoStruct):
@@ -196,31 +183,23 @@ class FirefoxHistory(flow.GRRFlow):
       if not self.state.history_paths:
         raise flow.FlowError("Could not find valid History paths.")
 
-    self.args.output = self.args.output.format(t=time.time(),
-                                               u=self.state.context.user)
-
-    self.state.Register("urn", self.client_id)
-    self.state.Register("out_urn", self.client_id.Add(self.args.output))
+    self.runner.output = aff4.FACTORY.Create(
+        self.runner.output.urn, "VFSAnalysisFile", token=self.token)
 
     filename = "places.sqlite"
-    findspecs = []
     for path in self.state.history_paths:
       findspec = rdfvalue.FindSpec(max_depth=2, path_regex="^%s$" % filename)
 
       findspec.pathspec.path = path
       findspec.pathspec.pathtype = self.args.pathtype
 
-      findspecs.append(findspec)
-
-    self.CallFlow("FileDownloader", findspecs=findspecs,
-                  next_state="ParseFiles")
+      self.CallFlow("FetchFiles", findspec=findspec,
+                    next_state="ParseFiles")
 
   @flow.StateHandler()
   def ParseFiles(self, responses):
     """Take each file we retrieved and get the history from it."""
     if responses:
-      outfile = aff4.FACTORY.Create(self.state.out_urn, "VFSAnalysisFile",
-                                    token=self.token)
       for response in responses:
         fd = aff4.FACTORY.Open(response.aff4path, token=self.token)
         hist = firefox3_history.Firefox3History(fd)
@@ -230,11 +209,10 @@ class FirefoxHistory(flow.GRRFlow):
           str_entry = "%s %s %s %s" % (
               datetime.datetime.utcfromtimestamp(epoch64/1e6), url,
               dat1, dtype)
-          outfile.write(utils.SmartStr(str_entry) + "\n")
+          self.runner.output.write(utils.SmartStr(str_entry) + "\n")
         self.Log("Wrote %d Firefox History entries for user %s from %s", count,
                  self.args.username, response.pathspec.Basename())
         self.state.hist_count += count
-      outfile.Close()
 
   def GuessHistoryPaths(self, username):
     """Take a user and return guessed full paths to History files.
@@ -270,12 +248,6 @@ class FirefoxHistory(flow.GRRFlow):
     else:
       raise OSError("Invalid OS for Chrome History")
     return paths
-
-  @flow.StateHandler()
-  def End(self):
-    self.SendReply(self.state.out_urn)
-    self.Notify("ViewObject", self.state.out_urn,
-                "Completed retrieval of Firefox History")
 
 
 BROWSER_PATHS = {
@@ -334,9 +306,6 @@ class CacheGrep(flow.GRRFlow):
     if not self.state.all_paths:
       raise flow.FlowError("Unsupported system %s for CacheGrep" % system)
 
-    self.args.output = self.args.output.format(u=self.state.context.user,
-                                               t=time.time())
-
     self.state.Register("users", [])
     for user in self.args.grep_users:
       user_info = flow_utils.GetUserInfo(client, user)
@@ -350,12 +319,8 @@ class CacheGrep(flow.GRRFlow):
   def StartRequests(self):
     """Generate and send the Find requests."""
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.state.Register("urn", self.client_id)
-    self.state.Register("out_urn", self.client_id.Add(self.args.output))
-    self.state.Register("fd", aff4.FACTORY.Create(
-        self.state.out_urn, "RDFValueCollection", mode="w", token=self.token))
-    self.state.fd.Set(
-        self.state.fd.Schema.DESCRIPTION("CacheGrep for {0}".format(
+    self.runner.output.Set(
+        self.runner.output.Schema.DESCRIPTION("CacheGrep for {0}".format(
             self.args.data_regex)))
 
     usernames = ["%s\\%s" % (u.domain, u.username) for u in self.state.users]
@@ -369,8 +334,8 @@ class CacheGrep(flow.GRRFlow):
         findspec.pathspec.path = full_path
         findspec.pathspec.pathtype = self.args.pathtype
 
-        self.CallFlow("FindFiles", findspec=findspec, max_results=200,
-                      next_state="HandleResults", output=None)
+        self.CallFlow("FetchFiles", findspec=findspec,
+                      next_state="HandleResults")
 
   @flow.StateHandler()
   def HandleResults(self, responses):
@@ -378,11 +343,4 @@ class CacheGrep(flow.GRRFlow):
     # Note that some of these Find requests will fail because some paths don't
     # exist, e.g. Chromium on most machines, so we don't check for success.
     for response in responses:
-      self.state.fd.Add(response)
-
-  @flow.StateHandler()
-  def End(self):
-    self.state.fd.Close()
-    self.Notify("ViewObject", self.state.out_urn,
-                u"CacheGrep completed. %d hits" % self.state.fd.Get("size"))
-    self.SendReply(self.state.out_urn)
+      self.SendReply(response)

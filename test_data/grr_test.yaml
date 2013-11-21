@@ -265,6 +265,3 @@ Test Context:
 
   # Disable write back
   Config.writeback: ""
-
-Users.authentication: |
-  admin:sfJhf4e2R5zM2:admin

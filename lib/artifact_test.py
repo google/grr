@@ -16,6 +16,7 @@ from grr.client import vfs
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_lib
+from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import rdfvalue
@@ -92,6 +93,9 @@ class TestCmdProcessor(parsers.CommandParser):
                                     install_state=installed)
     yield soft
 
+    # Also yield something random so we can test return type filtering.
+    yield rdfvalue.StatEntry()
+
 
 class TestCmdArtifact(Artifact):
   """Test command artifact for dpkg."""
@@ -101,6 +105,7 @@ class TestCmdArtifact(Artifact):
   COLLECTORS = [
       Collector(action="RunCommand",
                 args={"cmd": "/usr/bin/dpkg", "args": ["--list"]},
+                returned_types=["SoftwarePackage"]
                )
   ]
 
@@ -115,12 +120,44 @@ class TestFileArtifact(Artifact):
   ]
 
 
+class TestFilesArtifact(Artifact):
+  """Linux auth log file."""
+  SUPPORTED_OS = ["Linux"]
+  LABELS = ["Logs", "Authentication"]
+  COLLECTORS = [
+      Collector(action="GetFiles",
+                args={"path_list": ["/var/log/auth.log"]})
+  ]
+
+
+class TestAggregationArtifact(Artifact):
+  """Test command artifact for dpkg."""
+  SUPPORTED_OS = ["Windows"]
+  LABELS = ["Software"]
+
+  COLLECTORS = [
+      Collector(action="CollectArtifacts",
+                args={"artifact_list": ["VolatilityPsList"]},
+                returned_types=["Process"]),
+
+      Collector(action="CollectArtifacts",
+                args={"artifact_list": ["WindowsWMIInstalledSoftware"]},
+                returned_types=["SoftwarePackage"])
+  ]
+
+
 class ArtifactFlowTest(test_lib.FlowTestsBaseclass):
 
-  class MockClient(test_lib.ActionMock):
+  class MockClient(test_lib.MemoryClientMock):
 
     def WmiQuery(self, _):
       return WMI_SAMPLE
+
+    def VolatilityAction(self, _):
+      ps_list_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+                                  "vol_pslist_result.dat")
+      serialized_result = open(ps_list_file).read(100000)
+      return [rdfvalue.VolatilityResult(serialized_result)]
 
   def setUp(self):
     """Make sure things are initialized."""
@@ -152,15 +189,17 @@ class ArtifactFlowTest(test_lib.FlowTestsBaseclass):
     with test_lib.Stubber(subprocess, "Popen", Popen):
       for _ in test_lib.TestFlowHelper(
           "ArtifactCollectorFlow", client_mock, client_id=self.client_id,
-          use_tsk=False, artifact_list=["TestCmdArtifact"], token=self.token):
+          store_results_in_aff4=True, use_tsk=False,
+          artifact_list=["TestCmdArtifact"], token=self.token):
         pass
     urn = self.client_id.Add("info/software")
     fd = aff4.FACTORY.Open(urn, token=self.token)
     packages = fd.Get(fd.Schema.INSTALLED_PACKAGES)
     self.assertEquals(len(packages), 2)
+    self.assertEquals(packages[0].__class__.__name__, "SoftwarePackage")
 
   def testWMIQueryArtifact(self):
-    """Check we can run command based artifacts."""
+    """Check we can run WMI based artifacts."""
 
     fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     fd.Set(fd.Schema.SYSTEM("Windows"))
@@ -169,7 +208,7 @@ class ArtifactFlowTest(test_lib.FlowTestsBaseclass):
 
     for _ in test_lib.TestFlowHelper(
         "ArtifactCollectorFlow", self.MockClient(),
-        client_id=self.client_id,
+        client_id=self.client_id, store_results_in_aff4=True,
         artifact_list=["WindowsWMIInstalledSoftware"], token=self.token):
       pass
 
@@ -179,24 +218,77 @@ class ArtifactFlowTest(test_lib.FlowTestsBaseclass):
     self.assertEquals(len(packages), 3)
     self.assertEquals(packages[0].description, "Google Chrome")
 
+  def testVolatilityArtifact(self):
+    """Check we can run volatility based artifacts."""
+    self.CreateSignedDriver()
+    fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    fd.Set(fd.Schema.SYSTEM("Windows"))
+    fd.Set(fd.Schema.ARCH("AMD64"))
+    fd.Set(fd.Schema.OS_VERSION("6.2"))
+    fd.Flush()
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow", self.MockClient(),
+        client_id=self.client_id,
+        artifact_list=["VolatilityPsList"], output="/analysis/foo",
+        token=self.token, store_results_in_aff4=False):
+      pass
+
+    urn = self.client_id.Add("/analysis/foo")
+    fd = aff4.FACTORY.Open(urn, aff4_type="RDFValueCollection",
+                           token=self.token)
+    self.assertEquals(len(fd), 50)
+    self.assertEquals(fd[0].exe, "System")
+    self.assertEquals(fd[0].pid, 4)
+
   def testFileArtifact(self):
     """Check we can run command based artifacts."""
-    fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-    fd.Set(fd.Schema.SYSTEM("Linux"))
-    fd.Flush()
-
     # Update the artifact path to point to the test directory.
     TestFileArtifact.COLLECTORS[0].args["path"] = (
         os.path.join(self.base_path, "auth.log"))
 
-    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile",
-                                      "HashBuffer", "ListDirectory")
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
+                                      "HashBuffer", "ListDirectory",
+                                      "HashFile")
     for _ in test_lib.TestFlowHelper(
         "ArtifactCollectorFlow", client_mock, client_id=self.client_id,
         artifact_list=["TestFileArtifact"], use_tsk=False, token=self.token):
       pass
     urn = self.client_id.Add("fs/os/").Add(self.base_path).Add("auth.log")
-    fd = aff4.FACTORY.Open(urn, aff4_type="VFSBlobImage", token=self.token)
+    aff4.FACTORY.Open(urn, aff4_type="VFSBlobImage", token=self.token)
+
+  def testFilesArtifact(self):
+    """Check we can run command based artifacts."""
+    # Update the artifact path to point to the test directory.
+    TestFilesArtifact.COLLECTORS[0].args["path_list"] = (
+        [os.path.join(self.base_path, "auth.log")])
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
+                                      "HashBuffer", "ListDirectory",
+                                      "HashFile")
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow", client_mock, client_id=self.client_id,
+        artifact_list=["TestFilesArtifact"], use_tsk=False, token=self.token):
+      pass
+    urn = self.client_id.Add("fs/os/").Add(self.base_path).Add("auth.log")
+    aff4.FACTORY.Open(urn, aff4_type="VFSBlobImage", token=self.token)
+
+  def testAggregationArtifact(self):
+    """Check we can dependency artifacts."""
+    fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    fd.Set(fd.Schema.SYSTEM("Windows"))
+    fd.Set(fd.Schema.ARCH("AMD64"))
+    fd.Set(fd.Schema.OS_VERSION("6.2"))
+    self.CreateSignedDriver()
+    fd.Flush()
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow", self.MockClient(),
+        client_id=self.client_id,
+        artifact_list=["TestAggregationArtifact"], output="/analysis/foo",
+        token=self.token):
+      pass
+    urn = self.client_id.Add("analysis/foo")
+    fd = aff4.FACTORY.Open(urn, aff4_type="RDFValueCollection",
+                           token=self.token)
+    self.assertEquals(len(fd), 53)
 
   def testArtifactOutput(self):
     """Check we can run command based artifacts."""
@@ -209,13 +301,14 @@ class ArtifactFlowTest(test_lib.FlowTestsBaseclass):
     TestFileArtifact.COLLECTORS[0].args["path"] = (
         os.path.join(self.base_path, "auth.log"))
 
-    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile",
-                                      "HashBuffer", "ListDirectory")
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "HashFile",
+                                      "HashBuffer", "ListDirectory", "Find")
     for _ in test_lib.TestFlowHelper(
         "ArtifactCollectorFlow", client_mock, client_id=self.client_id,
         artifact_list=["TestFileArtifact"], use_tsk=False, token=self.token,
         output=output_path):
       pass
+
     urn = self.client_id.Add(output_path)
     # will raise if it doesn't exist
     fd = aff4.FACTORY.Open(urn, aff4_type="RDFValueCollection",
@@ -227,16 +320,11 @@ class ArtifactFlowTest(test_lib.FlowTestsBaseclass):
         artifact_list=["TestFileArtifact"], use_tsk=False, token=self.token,
         output=output_path, split_output_by_artifact=True):
       pass
+
     urn = self.client_id.Add(output_path).Add("TestFileArtifact")
     # will raise if it doesn't exist
     fd = aff4.FACTORY.Open(urn, aff4_type="RDFValueCollection",
                            token=self.token)
-
-
-class ClientFullVFSFixture(test_lib.ClientVFSHandlerFixture):
-  """Special client VFS mock that will emulate the registry."""
-  prefix = "/"
-  supported_pathtype = rdfvalue.PathSpec.PathType.OS
 
 
 class GrrKbTest(test_lib.FlowTestsBaseclass):
@@ -251,14 +339,14 @@ class GrrKbTest(test_lib.FlowTestsBaseclass):
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = ClientFullVFSFixture
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientFullVFSFixture
 
   def testKnowledgeBaseRetrieval(self):
     """Check we can retrieve a knowledge base from a client."""
     self.SetupMocks()
 
     client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
-                                      "HashBuffer", "ListDirectory")
+                                      "HashBuffer", "ListDirectory", "HashFile")
 
     for _ in test_lib.TestFlowHelper(
         "KnowledgeBaseInitializationFlow", client_mock,
@@ -277,6 +365,10 @@ class GrrKbTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(kb.environ_allusersappdata, "C:\\ProgramData")
     self.assertEqual(kb.environ_temp, "C:\\Windows\\TEMP")
     self.assertEqual(kb.environ_systemdrive, "C:")
+
+    user = kb.GetUser(username="jim")
+    self.assertEqual(user.username, "jim")
+    self.assertEqual(user.sid, "S-1-5-21-702227068-2140022151-3110739409-1000")
 
   def testGlobRegistry(self):
     """Test that glob works on registry."""

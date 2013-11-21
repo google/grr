@@ -9,7 +9,7 @@ from grr.lib import test_lib
 from grr.test_data import client_fixture
 
 
-class SystemCronFlowTest(test_lib.AFF4ObjectTest):
+class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
   """Test system cron flows."""
 
   def setUp(self):
@@ -102,6 +102,7 @@ class SystemCronFlowTest(test_lib.AFF4ObjectTest):
     histogram = fd.Get(fd.Schema.LAST_CONTACTED_HISTOGRAM)
 
     data = [(x.x_value, x.y_value) for x in histogram]
+
     self.assertEqual(data, [
         (86400000000L, 0L),
         (172800000000L, 0L),

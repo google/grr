@@ -935,6 +935,7 @@ class PriorityFlowArgs(rdfvalue.RDFProtoStruct):
 class PriorityFlow(flow.GRRFlow):
   """This flow is used to test priorities."""
   args_type = PriorityFlowArgs
+  storage = []
 
   @flow.StateHandler(next_state="Done")
   def Start(self):
@@ -943,10 +944,7 @@ class PriorityFlow(flow.GRRFlow):
   @flow.StateHandler()
   def Done(self, responses):
     _ = responses
-    try:
-      self.storage.append(self.args.msg)
-    except AttributeError:
-      pass
+    self.storage.append(self.args.msg)
 
 
 class CPULimitClientMock(object):
@@ -1153,7 +1151,8 @@ class DelayedCallStateFlow(flow.GRRFlow):
 
     # Call the child flow.
     self.CallState([rdfvalue.RDFString("Hello")],
-                   next_state="DelayedHello", delay=100)
+                   next_state="DelayedHello",
+                   start_time=rdfvalue.RDFDatetime().Now() + 100)
 
   @flow.StateHandler()
   def DelayedHello(self, responses):

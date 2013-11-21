@@ -8,7 +8,6 @@ import urllib
 from wsgiref import simple_server
 
 # pylint: disable=unused-import
-# Import things that are useful from the console.
 
 # pylint: disable=g-bad-import-order
 from grr.gui import admin_ui
@@ -135,11 +134,6 @@ def main(_):
   # This is a standalone program and might need to use the config
   # file.
   startup.TestInit()
-
-  # Tests must be imported after django is initialized.
-  # pylint: disable=g-import-not-at-top,unused-variable
-  from grr.gui.plugins import tests
-  # pylint: enable=g-import-not-at-top,unused-variable
 
   # Start up a server in another thread
   trd = DjangoThread()

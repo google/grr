@@ -54,6 +54,19 @@ class BufferReferenceRenderer(semantic.RDFProtoRenderer):
   translator = dict(data=Hexify)
 
 
+class StatModeRenderer(semantic.RDFValueRenderer):
+  """Renders stat mode fields."""
+  classname = "StatMode"
+
+  layout_template = renderers.Template("""
+<abbr title="Mode {{this.oct}}">{{this.mode_string|escape}}</abbr>""")
+
+  def Layout(self, request, response):
+    self.oct = oct(int(self.proxy))
+    self.mode_string = unicode(self.proxy)
+    return super(StatModeRenderer, self).Layout(request, response)
+
+
 class StatEntryRenderer(semantic.RDFProtoRenderer):
   """Nicely format the StatEntry rdfvalue."""
   classname = "StatEntry"

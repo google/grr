@@ -573,11 +573,10 @@ class Duration(RDFInteger):
 
     Args:
       timestring: The string to parse.
-    Returns:
-      The parsed duration.
     """
     if not timestring:
-      return None
+      return
+
     orig_string = timestring
 
     multiplicator = 1
@@ -598,6 +597,73 @@ class Duration(RDFInteger):
     except ValueError:
       raise InitializeError("Could not parse expiration time '%s'." %
                             orig_string)
+
+
+class ByteSize(RDFInteger):
+  """A size for bytes allowing standard unit prefixes.
+
+  We use the standard IEC 60027-2 A.2 and ISO/IEC 80000:
+  Binary units (powers of 2): Ki, Mi, Gi
+  SI units (powers of 10): k, m, g
+  """
+  data_store_type = "unsigned_integer"
+
+  DIVIDERS = dict((
+      ("", 1),
+      ("k", 1000),
+      ("m", 1000**2),
+      ("g", 1000**3),
+      ("ki", 1024),
+      ("mi", 1024**2),
+      ("gi", 1024**3),
+      ))
+
+  REGEX = re.compile("^([0-9.]+)([kmgi]*)b?$")
+
+  def __init__(self, initializer=None, age=None):
+    super(ByteSize, self).__init__(None, age)
+    if isinstance(initializer, ByteSize):
+      self._value = initializer._value  # pylint: disable=protected-access
+    elif isinstance(initializer, basestring):
+      self.ParseFromHumanReadable(initializer)
+    elif isinstance(initializer, (int, long, float)):
+      self._value = initializer
+    elif isinstance(initializer, RDFInteger):
+      self._value = int(initializer)
+    elif initializer is None:
+      self._value = 0
+    else:
+      raise InitializeError("Unknown initializer for ByteSize: %s." %
+                            type(initializer))
+
+  def ParseFromHumanReadable(self, string):
+    """Parse a human readable string of a byte string.
+
+    Args:
+      string: The string to parse.
+
+    Raises:
+      DecodeError: If the string can not be parsed.
+    """
+    if not string:
+      return None
+
+    match = self.REGEX.match(string.strip().lower())
+    if not match:
+      raise DecodeError("Unknown specification for ByteSize %s" % string)
+
+    multiplier = self.DIVIDERS.get(match.group(2))
+    if not multiplier:
+      raise DecodeError("Invalid multiplier %s" % match.group(2))
+
+    # The value may be represented as a float, but if not dont lose accuracy.
+    value = match.group(1)
+    if "." in value:
+      value = float(value)
+    else:
+      value = long(value)
+
+    self._value = int(value * multiplier)
 
 
 @functools.total_ordering

@@ -38,7 +38,8 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
 
   def testGetArtifact1(self):
     """Test we can get a basic artifact."""
-    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile")
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
+                                      "HashFile", "HashBuffer")
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()

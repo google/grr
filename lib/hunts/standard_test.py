@@ -15,9 +15,54 @@ from grr.lib import server_plugins
 
 from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.hunts import output_plugins
+
+
+class DummyHuntOutputPlugin(output_plugins.HuntOutputPlugin):
+  num_calls = 0
+  num_responses = 0
+
+  def ProcessResponses(self, responses):
+    DummyHuntOutputPlugin.num_calls += 1
+    DummyHuntOutputPlugin.num_responses += len(list(responses))
+
+
+class FailingDummyHuntOutputPlugin(output_plugins.HuntOutputPlugin):
+
+  def ProcessResponses(self, unused_responses):
+    raise RuntimeError("Oh no!")
+
+
+class StatefulDummyHuntOutputPlugin(output_plugins.HuntOutputPlugin):
+  data = []
+
+  def Initialize(self):
+    super(StatefulDummyHuntOutputPlugin, self).Initialize()
+    self.state.Register("index", 0)
+
+  def ProcessResponses(self, unused_responses):
+    StatefulDummyHuntOutputPlugin.data.append(self.state.index)
+    self.state.index += 1
+
+
+class LongRunningDummyHuntOutputPlugin(output_plugins.HuntOutputPlugin):
+  num_calls = 0
+
+  def ProcessResponses(self, unused_responses):
+    LongRunningDummyHuntOutputPlugin.num_calls += 1
+    time.time = lambda: 100
+
+
+class TestChildFlowForHunt(flow.GRRFlow):
+  storage = []
+
+  @flow.StateHandler()
+  def Start(self):
+    self.storage.append(self.urn)
 
 
 class StandardHuntTest(test_lib.FlowTestsBaseclass):
@@ -27,6 +72,11 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     super(StandardHuntTest, self).setUp()
     # Set up 10 clients.
     self.client_ids = self.SetupClients(10)
+
+    DummyHuntOutputPlugin.num_calls = 0
+    DummyHuntOutputPlugin.num_responses = 0
+    StatefulDummyHuntOutputPlugin.data = []
+    LongRunningDummyHuntOutputPlugin.num_calls = 0
 
     with test_lib.Stubber(time, "time", lambda: 0):
       # Clean up the foreman to remove any rules.
@@ -38,58 +88,54 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     super(StandardHuntTest, self).tearDown()
     self.DeleteClients(10)
 
-  def testGenericHuntWithoutOutputPlugins(self):
-    """This tests running the hunt on some clients."""
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
-        flow_runner_args=rdfvalue.FlowRunnerArgs(flow_name="GetFile"),
-        flow_args=rdfvalue.GetFileArgs(
-            pathspec=rdfvalue.PathSpec(
-                path="/tmp/evil.txt",
-                pathtype=rdfvalue.PathSpec.PathType.OS,
-                )
-            ),
-        regex_rules=[rdfvalue.ForemanAttributeRegex(
-            attribute_name="GRR client",
-            attribute_regex="GRR")],
-        output_plugins=[],
-        token=self.token) as hunt:
-      hunt.Run()
+  def testGenericHuntClientRate(self):
+    """Check that clients are scheduled slowly by the hunt."""
+    TestChildFlowForHunt.storage = []
 
-    # Pretend to be the foreman now and dish out hunting jobs to all the
-    # client..
-    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-    for client_id in self.client_ids:
-      foreman.AssignTasksToClient(client_id)
+    start_time = 10
 
-    # Run the hunt.
-    client_mock = test_lib.SampleHuntMock()
-    test_lib.TestHuntHelper(client_mock, self.client_ids,
-                            check_flow_errors=False, token=self.token)
+    with test_lib.Stubber(time, "time", lambda: start_time):
+      with hunts.GRRHunt.StartHunt(
+          hunt_name="GenericHunt",
+          flow_runner_args=rdfvalue.FlowRunnerArgs(
+              flow_name="TestChildFlowForHunt"),
+          regex_rules=[
+              rdfvalue.ForemanAttributeRegex(attribute_name="GRR client",
+                                             attribute_regex="GRR"),
+              ],
+          client_rate=1, token=self.token) as hunt:
+        hunt.Run()
 
-    # Stop the hunt now.
-    with aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES, mode="rw",
-                           token=self.token) as hunt_obj:
-      hunt_obj.Stop()
+      # Pretend to be the foreman now and dish out hunting jobs to all the
+      # clients..
+      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+      for client_id in self.client_ids:
+        foreman.AssignTasksToClient(client_id)
 
-    hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
-                                 token=self.token)
+      self.assertEqual(len(TestChildFlowForHunt.storage), 0)
 
-    started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
-    finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
-    errors = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.ERRORS)
+      # Run the hunt.
+      worker_mock = test_lib.MockWorker(check_flow_errors=True,
+                                        token=self.token)
 
-    self.assertEqual(len(set(started)), 10)
-    self.assertEqual(len(set(finished)), 10)
-    self.assertEqual(len(set(errors)), 5)
+      time.time = lambda: start_time + 2
 
-    # We shouldn't receive any entries as no output plugin was specified.
-    self.assertRaises(IOError, aff4.FACTORY.Open,
-                      hunt.session_id.Add("Results"),
-                      "RDFValueCollection", "r", False, self.token)
+      # One client is scheduled in the first minute.
+      worker_mock.Simulate()
+      self.assertEqual(len(TestChildFlowForHunt.storage), 1)
 
-  def testGenericHunt(self):
-    """This tests running the hunt on some clients."""
+      # No further clients will be scheduled until the end of the first minute.
+      time.time = lambda: start_time + 59
+      worker_mock.Simulate()
+      self.assertEqual(len(TestChildFlowForHunt.storage), 1)
+
+      # One client will be processed every minute.
+      for i in range(len(self.client_ids)):
+        time.time = lambda: start_time + 1 + 60 * i
+        worker_mock.Simulate()
+        self.assertEqual(len(TestChildFlowForHunt.storage), i + 1)
+
+  def StartHunt(self, **kwargs):
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
         flow_runner_args=rdfvalue.FlowRunnerArgs(flow_name="GetFile"),
@@ -99,25 +145,45 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
             rdfvalue.ForemanAttributeRegex(attribute_name="GRR client",
                                            attribute_regex="GRR"),
             ],
-        token=self.token) as hunt:
+        client_rate=0, token=self.token, **kwargs) as hunt:
       hunt.Run()
 
+    return hunt.urn
+
+  def AssignTasksToClients(self, client_ids=None):
     # Pretend to be the foreman now and dish out hunting jobs to all the
     # clients..
+    client_ids = client_ids or self.client_ids
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-    for client_id in self.client_ids:
+    for client_id in client_ids:
       foreman.AssignTasksToClient(client_id)
 
-    # Run the hunt.
-    client_mock = test_lib.SampleHuntMock()
+  def RunHunt(self, **mock_kwargs):
+    client_mock = test_lib.SampleHuntMock(**mock_kwargs)
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
+  def StopHunt(self, hunt_urn):
     # Stop the hunt now.
-    with aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES, mode="rw",
+    with aff4.FACTORY.Open(hunt_urn, age=aff4.ALL_TIMES, mode="rw",
                            token=self.token) as hunt_obj:
       hunt_obj.Stop()
 
-    with aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
+  def ProcessHuntOutputPlugins(self, **flow_args):
+    flow_urn = flow.GRRFlow.StartFlow(flow_name="ProcessHuntResultsCronFlow",
+                                      token=self.token, **flow_args)
+    for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
+      pass
+    return flow_urn
+
+  def testGenericHuntWithoutOutputPlugins(self):
+    """This tests running the hunt on some clients."""
+    hunt_urn = self.StartHunt()
+    self.AssignTasksToClients()
+    self.RunHunt()
+    self.StopHunt(hunt_urn)
+    self.ProcessHuntOutputPlugins()
+
+    with aff4.FACTORY.Open(hunt_urn, age=aff4.ALL_TIMES,
                            token=self.token) as hunt_obj:
       started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
       finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
@@ -127,8 +193,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       self.assertEqual(len(set(finished)), 10)
       self.assertEqual(len(set(errors)), 5)
 
+      # Results collection is always written, even if there are no output
+      # plugins.
       collection = aff4.FACTORY.Open(
-          hunt_obj.state.context.output_plugins[0].collection.urn,
+          hunt_obj.state.context.results_collection_urn,
           mode="r", token=self.token)
 
       # We should receive stat entries.
@@ -138,6 +206,183 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
         self.assertEqual(x.payload.aff4path.Split(2)[-1], "fs/os/tmp/evil.txt")
 
       self.assertEqual(i, 4)
+
+  def testOutputPluginsProcessOnlyNewResultsOnEveryRun(self):
+    self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+        plugin_name="DummyHuntOutputPlugin")])
+
+    # Process hunt results.
+    self.ProcessHuntOutputPlugins()
+
+    # Check that nothing has happened because hunt hasn't reported any
+    # results yet.
+    self.assertEqual(DummyHuntOutputPlugin.num_calls, 0)
+    self.assertEqual(DummyHuntOutputPlugin.num_responses, 0)
+
+    # Process first 5 clients
+    self.AssignTasksToClients(self.client_ids[:5])
+
+    # Run the hunt.
+    self.RunHunt(failrate=-1)
+
+    # Although we call ProcessHuntResultsCronFlow multiple times, it should
+    # only call actual plugin once.
+    for _ in range(5):
+      self.ProcessHuntOutputPlugins()
+
+    self.assertEqual(DummyHuntOutputPlugin.num_calls, 1)
+    self.assertEqual(DummyHuntOutputPlugin.num_responses, 5)
+
+    # Process last 5 clients
+    self.AssignTasksToClients(self.client_ids[5:])
+
+    # Run the hunt.
+    self.RunHunt(failrate=-1)
+
+    # Although we call ProcessHuntResultsCronFlow multiple times, it should
+    # only call actual plugin once.
+    for _ in range(5):
+      self.ProcessHuntOutputPlugins()
+
+    self.assertEqual(DummyHuntOutputPlugin.num_calls, 2)
+    self.assertEqual(DummyHuntOutputPlugin.num_responses, 10)
+
+  def testFailingOutputPluginDoesNotAffectOtherOutputPlugins(self):
+    self.StartHunt(output_plugins=[
+        rdfvalue.OutputPlugin(plugin_name="FailingDummyHuntOutputPlugin"),
+        rdfvalue.OutputPlugin(plugin_name="DummyHuntOutputPlugin")
+        ])
+
+    # Process hunt results.
+    self.ProcessHuntOutputPlugins()
+
+    self.assertEqual(DummyHuntOutputPlugin.num_calls, 0)
+    self.assertEqual(DummyHuntOutputPlugin.num_responses, 0)
+
+    self.AssignTasksToClients()
+    self.RunHunt(failrate=-1)
+
+    # We shouldn't get any more calls after the first call to
+    # ProcessHuntResultsCronFlow.
+    self.assertRaises(RuntimeError, self.ProcessHuntOutputPlugins)
+    for _ in range(5):
+      self.ProcessHuntOutputPlugins()
+
+    self.assertEqual(DummyHuntOutputPlugin.num_calls, 1)
+    self.assertEqual(DummyHuntOutputPlugin.num_responses, 10)
+
+  def testOutputPluginsMaintainState(self):
+    self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+        plugin_name="StatefulDummyHuntOutputPlugin")])
+
+    self.assertListEqual(StatefulDummyHuntOutputPlugin.data, [])
+
+    # Run the hunt on every client and separately and run the output
+    # cron flow for every client to ensure that output plugin will
+    # run multiple times.
+    for index in range(10):
+      self.AssignTasksToClients([self.client_ids[index]])
+
+      # Run the hunt.
+      self.RunHunt(failrate=-1)
+      self.ProcessHuntOutputPlugins()
+
+    # Output plugins should have been called 10 times, adding a number
+    # to the "data" list on every call and incrementing it each time.
+    self.assertListEqual(StatefulDummyHuntOutputPlugin.data,
+                         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+  def testMultipleHuntsOutputIsProcessedCorrectly(self):
+    self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+        plugin_name="DummyHuntOutputPlugin")])
+    self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+        plugin_name="StatefulDummyHuntOutputPlugin")])
+
+    self.AssignTasksToClients()
+    self.RunHunt(failrate=-1)
+    self.ProcessHuntOutputPlugins()
+
+    # Check that plugins worked correctly
+    self.assertEqual(DummyHuntOutputPlugin.num_calls, 1)
+    self.assertListEqual(StatefulDummyHuntOutputPlugin.data, [0])
+
+  def testProcessHuntResultsCronFlowAbortsIfRunningTooLong(self):
+    self.assertEqual(LongRunningDummyHuntOutputPlugin.num_calls, 0)
+
+    test = [0]
+    def TimeStub():
+      test[0] += 1e-6
+      return test[0]
+
+    with test_lib.Stubber(time, "time", TimeStub):
+      self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+          plugin_name="LongRunningDummyHuntOutputPlugin")])
+      self.AssignTasksToClients()
+      self.RunHunt(failrate=-1)
+
+      # LongRunningDummyHuntOutputPlugin will set the time to 100s on the first
+      # run, which will effectively mean that it's running for too long.
+      self.ProcessHuntOutputPlugins(batch_size=1,
+                                    max_running_time=rdfvalue.Duration("99s"))
+
+      # In normal conditions, there should be 10 results generated.
+      # With batch size of 1 this should result in 10 calls to output plugin.
+      # But as we were using TimeStub, the flow should have aborted after 1
+      # call.
+      self.assertEqual(LongRunningDummyHuntOutputPlugin.num_calls, 1)
+
+  def testProcessHuntResultsCronFlowDoesNotAbortsIfRunningInTime(self):
+    self.assertEqual(LongRunningDummyHuntOutputPlugin.num_calls, 0)
+
+    test = [0]
+    def TimeStub():
+      test[0] += 1e-6
+      return test[0]
+
+    with test_lib.Stubber(time, "time", TimeStub):
+      self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+          plugin_name="LongRunningDummyHuntOutputPlugin")])
+      self.AssignTasksToClients()
+      self.RunHunt(failrate=-1)
+
+      # LongRunningDummyHuntOutputPlugin will set the time to 100s on the first
+      # run, which will effectively mean that it's running in time.
+      self.ProcessHuntOutputPlugins(batch_size=1,
+                                    max_running_time=rdfvalue.Duration("101s"))
+
+      # In normal conditions, there should be 10 results generated.
+      self.assertEqual(LongRunningDummyHuntOutputPlugin.num_calls, 10)
+
+  def testHuntResultsArrivingWhileOldResultsAreProcessedAreHandled(self):
+    self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+        plugin_name="DummyHuntOutputPlugin")])
+
+    # Process hunt results.
+    self.ProcessHuntOutputPlugins()
+
+    # Check that nothing has happened because hunt hasn't reported any
+    # results yet.
+    self.assertEqual(DummyHuntOutputPlugin.num_calls, 0)
+    self.assertEqual(DummyHuntOutputPlugin.num_responses, 0)
+
+    # Generate new results while the plugin is working.
+    def ProcessResponsesStub(_, responses):
+      self.assertEqual(len(responses), 5)
+      self.AssignTasksToClients(self.client_ids[5:])
+      self.RunHunt(failrate=-1)
+
+    with test_lib.Stubber(DummyHuntOutputPlugin, "ProcessResponses",
+                          ProcessResponsesStub):
+      # Process first 5 clients.
+      self.AssignTasksToClients(self.client_ids[:5])
+      self.RunHunt(failrate=-1)
+      self.ProcessHuntOutputPlugins()
+
+    self.ProcessHuntOutputPlugins()
+    # New results should get processed, even though they were added to the
+    # collection while plugin was processing previous results.
+    self.assertEqual(DummyHuntOutputPlugin.num_calls, 1)
+    self.assertEqual(DummyHuntOutputPlugin.num_responses, 5)
 
   def _AppendFlowRequest(self, flows, client_id, file_id):
     flows.Append(
@@ -201,9 +446,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
           regex_rules=[rdfvalue.ForemanAttributeRegex(
               attribute_name="GRR client",
               attribute_regex="GRR")],
-          client_limit=5,
-          expiry_time=rdfvalue.Duration("1000s"),
-          token=self.token) as hunt:
+          client_limit=5, client_rate=0,
+          expiry_time=rdfvalue.Duration("1000s"), token=self.token) as hunt:
         hunt.Run()
 
       # Pretend to be the foreman now and dish out hunting jobs to all the
@@ -368,8 +612,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
         regex_rules=[rdfvalue.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
-        output_plugins=[],
-        token=self.token) as hunt:
+        output_plugins=[], client_rate=0, token=self.token) as hunt:
       hunt.Run()
 
     with aff4.FACTORY.Open(

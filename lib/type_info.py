@@ -56,7 +56,6 @@ class TypeInfoObject(object):
     self.default = default
     self.description = description or help
     self.hidden = hidden
-
     if not friendly_name:
       friendly_name = name.replace("_", " ").capitalize()
 

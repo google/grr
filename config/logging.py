@@ -6,7 +6,7 @@ from grr.lib import rdfvalue
 from grr.lib import type_info
 
 
-config_lib.DEFINE_string("Logging.domain", "",
+config_lib.DEFINE_string("Logging.domain", "localhost",
                          "The email domain belonging to this installation. "
                          "Leave blank to not restrict email to this domain")
 
@@ -41,12 +41,14 @@ config_lib.DEFINE_string("Logging.service_name", "GRR",
 config_lib.DEFINE_option(type_info.RDFValueType(
     rdfclass=rdfvalue.DomainEmailAddress,
     name="Monitoring.alert_email",
-    help="The email address to send events to."))
+    help="The email address to send events to.",
+    default="monitoring@localhost"))
 
 config_lib.DEFINE_option(type_info.RDFValueType(
     rdfclass=rdfvalue.DomainEmailAddress,
     name="Monitoring.emergency_access_email",
-    help="The email address to notify in an emergency."))
+    help="The email address to notify in an emergency.",
+    default="monitoring@localhost"))
 
 config_lib.DEFINE_integer("Monitoring.http_port", 0,
                           "Port for stats monitoring server.")

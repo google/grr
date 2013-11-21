@@ -8,6 +8,7 @@ from grr.client import vfs
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.flows.general import transfer
 
 
 class TestRegistryFlows(test_lib.FlowTestsBaseclass):
@@ -33,7 +34,7 @@ class TestRegistryFlows(test_lib.FlowTestsBaseclass):
     fd.Close()
 
     # Run the flow in the emulated way.
-    for _ in test_lib.TestFlowHelper("FindMRU", client_mock,
+    for _ in test_lib.TestFlowHelper("GetMRU", client_mock,
                                      client_id=self.client_id,
                                      token=self.token):
       pass
@@ -49,14 +50,22 @@ class TestRegistryFlows(test_lib.FlowTestsBaseclass):
     # TODO(user): Make this test better when the MRU flow is complete.
     self.assertTrue(s.registry_data)
 
-  def testRegistryRunKeys(self):
+  def testCollectRunKeyBinaries(self):
     """Read Run key from the client_fixtures to test parsing and storage."""
-    # Install the mock.
+    test_lib.ClientFixture(self.client_id, token=self.token)
+
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    client.Set(client.Schema.SYSTEM("Windows"))
+    client.Set(client.Schema.OS_VERSION("6.2"))
+    client.Flush()
+
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientFullVFSFixture
 
-    # Mock out the Find client action.
-    client_mock = test_lib.ActionMock("Find")
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
+                                      "HashBuffer", "HashFile", "ListDirectory")
 
     # Add some user accounts to this client.
     fd = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
@@ -67,33 +76,24 @@ class TestRegistryFlows(test_lib.FlowTestsBaseclass):
     fd.Set(users)
     fd.Close()
 
-    # Run the flow in the emulated way.
+    # Get KB initialized
     for _ in test_lib.TestFlowHelper(
-        "CollectRunKeys", client_mock, client_id=self.client_id,
-        token=self.token):
+        "KnowledgeBaseInitializationFlow", client_mock,
+        client_id=self.client_id, token=self.token):
       pass
 
-    # Check that the key was read.
-    fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id)
-                           .Add("registry/HKEY_USERS/S-1-5-20/Software/"
-                                "Microsoft/Windows/CurrentVersion/Run/Sidebar"),
-                           token=self.token)
+    with test_lib.Instrument(
+        transfer.MultiGetFile, "Start") as getfile_instrument:
+      # Run the flow in the emulated way.
+      for _ in test_lib.TestFlowHelper(
+          "CollectRunKeyBinaries", client_mock, client_id=self.client_id,
+          token=self.token):
+        pass
 
-    self.assertEqual(fd.__class__.__name__, "VFSFile")
-    s = fd.Get(fd.Schema.STAT)
-    self.assertTrue(s.registry_data)
+      # Check MultiGetFile got called for our runkey file
+      download_requested = False
+      for pathspec in getfile_instrument.args[0][0].args.pathspecs:
+        if pathspec.path == u"C:\\Program Files\\Windows Sidebar\\Sidebar.exe":
+          download_requested = True
+      self.assertTrue(download_requested)
 
-    # Check that the key made it into the Analysis.
-    fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add(
-        "analysis/RunKeys/LocalService/Run"), token=self.token)
-    self.assertEqual(fd.__class__.__name__, "RDFValueCollection")
-
-    runkeys = sorted(fd, key=lambda x: x.keyname)
-
-    # And that they all have data in them.
-    self.assertEqual(runkeys[1].keyname,
-                     "/HKEY_USERS/S-1-5-20/Software/Microsoft/"
-                     "Windows/CurrentVersion/Run/Sidebar")
-    self.assertEqual(runkeys[1].lastwritten, 1247546054L)
-    self.assertEqual(runkeys[1].filepath,
-                     "%ProgramFiles%/Windows Sidebar/Sidebar.exe /autoRun")

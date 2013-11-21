@@ -56,7 +56,6 @@ queues. Child flow runners all share their parent's queue manager.
 
 """
 
-
 import threading
 import time
 import traceback
@@ -137,6 +136,25 @@ class FlowRunner(object):
     # Populate the flow object's urn with the new session id.
     self.flow_obj.urn = self.session_id = self.context.session_id
 
+  @property
+  def output(self):
+    return self.context.output
+
+  @output.setter
+  def output(self, value):
+    self.context.output = value
+
+  def _CreateOutputCollection(self, args):
+    # Can only really have an output collection if we are using a client.
+    if args.client_id and args.output:
+      output_name = args.output.format(
+          t=time.time(), p=self.flow_obj.__class__.__name__,
+          u=self.token.username)
+
+      return aff4.FACTORY.Create(
+          args.client_id.Add(output_name), "RDFValueCollection",
+          token=self.token)
+
   def InitializeContext(self, args):
     """Initializes the context of this flow."""
     if args is None:
@@ -153,6 +171,7 @@ class FlowRunner(object):
         next_outbound_id=1,
         next_processed_request=1,
         next_states=set(),
+        output=self._CreateOutputCollection(args),
         outstanding_requests=0,
         remaining_cpu_quota=args.cpu_limit,
         state=rdfvalue.Flow.State.RUNNING,
@@ -197,7 +216,8 @@ class FlowRunner(object):
     """
     return self.context.outstanding_requests
 
-  def CallState(self, messages=None, next_state="", request_data=None, delay=0):
+  def CallState(self, messages=None, next_state="", request_data=None,
+                start_time=None):
     """This method is used to schedule a new state on a different worker.
 
     This is basically the same as CallFlow() except we are calling
@@ -207,12 +227,17 @@ class FlowRunner(object):
     Args:
        messages: A list of rdfvalues to send. If the last one is not a
             GrrStatus, we append an OK Status.
+
        next_state: The state in this flow to be invoked with the responses.
+
        request_data: Any dict provided here will be available in the
              RequestState protobuf. The Responses object maintains a reference
              to this protobuf for use in the execution of the state method. (so
              you can access this data by responses.request).
-       delay: Delay the call to the next state by <delay> seconds.
+
+       start_time: Start the flow at this time. This Delays notification for
+         flow processing into the future. Note that the flow may still be
+         processed earlier if there are client responses waiting.
 
     Raises:
        FlowRunnerError: if the next state is not valid.
@@ -258,11 +283,7 @@ class FlowRunner(object):
       self.QueueResponse(msg)
 
     # Notify the worker about it.
-    timestamp = None
-    if delay:
-      timestamp = int((time.time() + delay) * 1e6)
-    self.QueueNotification(self.session_id,
-                           timestamp=timestamp)
+    self.QueueNotification(self.session_id, timestamp=start_time)
 
   def ProcessCompletedRequests(self, thread_pool):
     """Go through the list of requests and process the completed ones.
@@ -309,10 +330,10 @@ class FlowRunner(object):
           if request.id == 0:
             continue
 
-          if not responses:
-            break
-
           if self.process_requests_in_order:
+            if not responses:
+              break
+
             # We are missing a needed request - maybe its not completed yet.
             if request.id > self.context.next_processed_request:
               stats.STATS.IncrementCounter("grr_response_out_of_order")
@@ -324,6 +345,9 @@ class FlowRunner(object):
               self.queue_manager.DeleteFlowRequestStates(
                   self.session_id, request)
               continue
+
+          if not responses:
+            continue
 
           # Do we have all the responses here? This can happen if some of the
           # responses were lost.
@@ -562,7 +586,7 @@ class FlowRunner(object):
 
     self.QueueRequest(state)
 
-  def Publish(self, event_name, msg):
+  def Publish(self, event_name, msg, delay=0):
     """Sends the message to event listeners."""
     handler_urns = []
 
@@ -594,14 +618,20 @@ class FlowRunner(object):
     # Well known flows always listen for request id 0.
     msg.request_id = 0
 
+    timestamp = None
+    if delay:
+      timestamp = (rdfvalue.RDFDatetime().Now() +
+                   delay).AsMicroSecondsFromEpoch()
+
     # Forward the message to the well known flow's queue.
     for event_urn in handler_urns:
       self.queue_manager.QueueResponse(event_urn, msg)
-      self.queue_manager.QueueNotification(event_urn, priority=msg.priority)
+      self.queue_manager.QueueNotification(event_urn, priority=msg.priority,
+                                           timestamp=timestamp)
 
   def CallFlow(self, flow_name=None, next_state=None, sync=True,
                request_data=None, client_id=None, base_session_id=None,
-               **kwargs):
+               output="", **kwargs):
     """Creates a new flow and send its responses to a state.
 
     This creates a new flow. The flow may send back many responses which will be
@@ -626,6 +656,10 @@ class FlowRunner(object):
        client_id: If given, the flow is started for this client.
 
        base_session_id: A URN which will be used to build a URN.
+
+       output: A relative output name for the child collection. Normally
+         subflows do not write their own collections, but this can be specified
+         to change this behaviour.
 
        **kwargs: Arguments for the child flow.
 
@@ -671,7 +705,7 @@ class FlowRunner(object):
         event_id=self.context.get("event_id"),
         request_state=state, token=self.token, notify_to_user=False,
         parent_flow=self.flow_obj, _store=self.data_store,
-        network_bytes_limit=network_bytes_limit, sync=sync,
+        network_bytes_limit=network_bytes_limit, sync=sync, output=output,
         queue=self.args.queue, cpu_limit=cpu_limit, **kwargs)
 
     self.QueueRequest(state)
@@ -691,6 +725,9 @@ class FlowRunner(object):
     """
     if not isinstance(response, rdfvalue.RDFValue):
       raise RuntimeError("SendReply can only send a Semantic Value")
+
+    if self.context.output:
+      self.context.output.Add(response)
 
     # Only send the reply if we have a parent and if flow's send_replies
     # attribute is True. We have a parent only if we know our parent's request.
@@ -767,6 +804,13 @@ class FlowRunner(object):
     # This flow might already not be running.
     if self.context.state != rdfvalue.Flow.State.RUNNING:
       return
+
+    # Close off the output collection.
+    if self.output and len(self.output):
+      self.output.Close()
+      logging.info("%s flow results written to %s", len(self.output),
+                   self.output.urn)
+      self.output = None
 
     if self.args.HasField("request_state"):
       logging.debug("Terminating flow %s", self.session_id)

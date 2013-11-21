@@ -39,7 +39,8 @@ class TestChromePlugins(test_lib.FlowTestsBaseclass):
     self.client.Close()
 
     client_mock = test_lib.ActionMock(
-        "ReadBuffer", "HashFile", "TransferBuffer", "StatFile", "ListDirectory")
+        "ReadBuffer", "HashFile", "TransferBuffer", "StatFile", "ListDirectory",
+        "HashBuffer", "Find")
 
     # TODO(user): Find a way to do this on Windows.
     # Mock the client to make it look like the root partition is mounted off the

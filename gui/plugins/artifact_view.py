@@ -100,7 +100,8 @@ class ArtifactListRenderer(forms.MultiSelectListRenderer):
           "description": artifact.GetDescription(),
           "short_description": artifact.GetShortDescription(),
           "conditions": [c.__name__ for c in artifact.CONDITIONS] or ["None"],
-          "dependencies": ([str(c) for c in artifact.GetArtifactDependencies()]
+          "dependencies": ([str(c) for c in
+                            artifact.GetArtifactPathDependencies()]
                            or ["None"]),
           "supported_os": artifact.SUPPORTED_OS or ["All"],
           "output_type": artifact.GetOutputType(),

@@ -139,6 +139,10 @@ class VFSGRRClient(standard.VFSDirectory):
         "aff4:last_foreman_time", rdfvalue.RDFDatetime,
         "The last time the foreman checked us.", versioned=False)
 
+    SUMMARY = aff4.Attribute(
+        "aff4:summary", rdfvalue.ClientSummary,
+        "A summary of this client", versioned=False)
+
   # Valid client ids
   CLIENT_ID_RE = re.compile(r"^C\.[0-9a-fA-F]{16}$")
 
@@ -227,6 +231,25 @@ class VFSGRRClient(standard.VFSDirectory):
       result.append(component)
 
     return client_urn.Add("/".join(result))
+
+  def GetSummary(self):
+    """Gets a client summary object."""
+    summary = self.Get(self.Schema.SUMMARY)
+    if summary is None:
+      summary = rdfvalue.ClientSummary(client_id=self.urn)
+      summary.system_info.node = self.Get(self.Schema.HOSTNAME)
+      summary.system_info.system = self.Get(self.Schema.SYSTEM)
+      summary.system_info.release = self.Get(self.Schema.OS_RELEASE)
+      summary.system_info.version = str(self.Get(self.Schema.OS_VERSION, ""))
+      summary.system_info.fqdn = self.Get(self.Schema.FQDN)
+      summary.system_info.machine = self.Get(self.Schema.ARCH)
+      summary.system_info.install_date = self.Get(self.Schema.INSTALL_DATE)
+
+      summary.users = self.Get(self.Schema.USER)
+      summary.interfaces = self.Get(self.Schema.INTERFACES)
+      summary.client_info = self.Get(self.Schema.CLIENT_INFO)
+
+    return summary
 
 
 class UpdateVFSFileArgs(rdfvalue.RDFProtoStruct):

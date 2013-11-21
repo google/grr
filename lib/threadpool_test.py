@@ -3,11 +3,10 @@
 """Tests for the ThreadPool class."""
 
 
-
+import Queue
 import threading
 import time
 
-import mox
 
 import logging
 from grr.lib import flags
@@ -18,24 +17,34 @@ from grr.lib import threadpool
 
 class ThreadPoolTest(test_lib.GRRBaseTest):
   """Tests for the ThreadPool class."""
-  NUMBER_OF_THREADS = 10
+  NUMBER_OF_THREADS = 1
+  MAXIMUM_THREADS = 20
   NUMBER_OF_TASKS = 1500
+  sleep_time = 0.1
 
   def setUp(self):
     super(ThreadPoolTest, self).setUp()
-    self.mox = mox.Mox()
     self.base_thread_count = threading.active_count()
 
     prefix = "pool-%s" % self._testMethodName
     self.test_pool = threadpool.ThreadPool.Factory(
-        prefix, self.NUMBER_OF_THREADS)
+        prefix, self.NUMBER_OF_THREADS, max_threads=self.MAXIMUM_THREADS)
     self.test_pool.Start()
 
   def tearDown(self):
     self.test_pool.Stop()
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
     super(ThreadPoolTest, self).tearDown()
+
+  def WaitUntil(self, condition_cb, timeout=5):
+    """Wait a fixed time until the condition is true."""
+    for _ in range(int(timeout / self.sleep_time)):
+      res = condition_cb()
+      if res:
+        return res
+
+      time.sleep(self.sleep_time)
+
+    raise RuntimeError("Timeout exceeded. Condition not true")
 
   def Count(self, thread_name):
     worker_threads = [thread for thread in threading.enumerate()
@@ -43,29 +52,23 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     return len(worker_threads)
 
   def testThreadCreation(self):
-    """Checks if at least 100 workers can be created.
-
-    The standard size for the thread pool is 500 workers. It could be
-    that there are fewer threads generated (for example due to memory
-    constraints) but we demand at least 100 workers in the default
-    settings here.
-    """
-
+    """Ensure the thread pool started the minimum number of threads."""
     self.assertEqual(
-        self.Count("pool-testThreadCreation_worker"), self.NUMBER_OF_THREADS)
+        self.Count("pool-testThreadCreation"), self.NUMBER_OF_THREADS)
 
   def testStopping(self):
     """Tests if all worker threads terminate if the thread pool is stopped."""
+    self.assertEqual(
+        self.Count("pool-testStopping"), self.NUMBER_OF_THREADS)
+    self.test_pool.Stop()
+
+    self.assertEqual(self.Count("pool-testStopping"), 0)
+    self.test_pool.Start()
 
     self.assertEqual(
-        self.Count("pool-testStopping_worker"), self.NUMBER_OF_THREADS)
+        self.Count("pool-testStopping"), self.NUMBER_OF_THREADS)
     self.test_pool.Stop()
-    self.assertEqual(self.Count("pool-testStopping_worker"), 0)
-    self.test_pool.Start()
-    self.assertEqual(
-        self.Count("pool-testStopping_worker"), self.NUMBER_OF_THREADS)
-    self.test_pool.Stop()
-    self.assertEqual(self.Count("pool-testStopping_worker"), 0)
+    self.assertEqual(self.Count("pool-testStopping"), 0)
 
     # This test leaves the test pool in stopped state. tearDown will try to
     # Stop() it again but this should work and just log a warning.
@@ -86,10 +89,6 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
       with self.lock:
         list_obj.append(element)
 
-    # We want to schedule more than 500 tasks here so we can see if
-    # reusing threads is actually working and more than 1000 to see if
-    # we can schedule more tasks than fit into the queue.
-
     test_list = []
     for i in range(self.NUMBER_OF_TASKS):
       self.test_pool.AddTask(Insert, (test_list, i,))
@@ -109,115 +108,162 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
         # This simulates an error by calling a non-existent function.
         some_obj.process()
 
-    self.mox.StubOutWithMock(logging, "exception")
-    logging.exception(mox.StrContains("exception in worker thread"),
-                      "Raising", mox.IgnoreArg())
-    logging.exception(mox.StrContains("exception in worker thread"),
-                      "Raising", mox.IgnoreArg())
-    self.mox.ReplayAll()
+    self.exception_args = []
+    def MockException(*args):
+      self.exception_args = args
 
-    self.test_pool.AddTask(IRaise, (None,), "Raising")
-    self.test_pool.AddTask(IRaise, (None,), "Raising")
-    self.test_pool.Join()
+    with test_lib.Stubber(logging, "exception", MockException):
+      self.test_pool.AddTask(IRaise, (None,), "Raising")
+      self.test_pool.AddTask(IRaise, (None,), "Raising")
+      self.test_pool.Join()
+
+    # Check that an exception is raised.
+    self.assertTrue(self.exception_args[0],
+                    "exception in worker thread")
+    self.assertTrue(self.exception_args[1], "Raising")
 
     # Make sure that both exceptions have been counted.
     self.assertEqual(
         stats.STATS.GetMetricValue(self.test_pool.name + "_task_exceptions"),
         2)
 
-  def testBlockingTasks(self):
-    self.test_pool.Join()
+  def testFailToCreateThread(self):
+    """Test that we handle thread creation problems ok."""
+    # The pool starts off with the minimum number of threads.
+    self.assertEqual(len(self.test_pool), self.NUMBER_OF_THREADS)
+
     done_event = threading.Event()
-    ready_events = []
+
+    def Block(done):
+      done.wait()
+
+    def RaisingStart(_):
+      raise threading.ThreadError()
+
+    # Now simulate failure of creating threads.
+    with test_lib.Stubber(threadpool._WorkerThread, "start", RaisingStart):
+      # Fill all the existing threads and wait for them to become busy.
+      self.test_pool.AddTask(Block, (done_event,))
+      self.WaitUntil(
+          lambda: self.test_pool.busy_threads == self.NUMBER_OF_THREADS)
+
+      # Now fill the queue completely..
+      for _ in range(self.MAXIMUM_THREADS):
+        self.test_pool.AddTask(Block, (done_event,))
+
+      # Trying to push this task will overflow the queue, and would normally
+      # cause a new thread to start. We use non blocking mode to receive the
+      # exception.
+      self.assertRaises(
+          threadpool.Full,
+          self.test_pool.AddTask, Block, (done_event,), blocking=False,
+          inline=False)
+
+      # Release the blocking tasks.
+      done_event.set()
+      self.test_pool.Join()
+
+  def testBlockingTasks(self):
+    # The pool starts off with the minimum number of threads.
+    self.assertEqual(len(self.test_pool), self.NUMBER_OF_THREADS)
+
+    done_event = threading.Event()
     self.lock = threading.Lock()
     res = []
 
-    def Block(ready, done):
-      ready.set()
+    def Block(done):
       done.wait()
 
     def Insert(list_obj, element):
       with self.lock:
         list_obj.append(element)
 
-    # Schedule blocking tasks on all the workers.
-    for _ in self.test_pool.workers:
-      ready_event = threading.Event()
-      ready_events.append(ready_event)
-      self.test_pool.AddTask(Block, (ready_event, done_event), "Blocking")
+    # Ensure that the thread pool is able to add the correct number of threads
+    # deterministically.
+    with test_lib.Stubber(self.test_pool, "CPUUsage", lambda: 0):
+      # Schedule the maximum number of threads of blocking tasks and the same of
+      # insert tasks. The threads are now all blocked, and the inserts are
+      # waiting in the queue.
+      for _ in range(self.MAXIMUM_THREADS):
+        self.test_pool.AddTask(Block, (done_event,), "Blocking")
 
-    for ev in ready_events:
-      ev.wait()
+      # Wait until the threadpool picks up the task.
+      self.WaitUntil(
+          lambda: self.test_pool.busy_threads == self.NUMBER_OF_THREADS)
 
-    try:
-      self.assertEqual(stats.STATS.GetMetricValue(self.test_pool.name +
-                                                  "_idle_threads"), 0)
+      # Now there are minimum number of threads active and the rest are sitting
+      # on the queue.
+      self.assertEqual(self.test_pool.pending_tasks,
+                       self.MAXIMUM_THREADS - self.NUMBER_OF_THREADS)
 
-      i = 0
-      n = 10
-      while self.test_pool._queue.qsize() < self.test_pool._queue.maxsize:
-        self.test_pool.AddTask(Insert, (res, i), "Insert")
-        i += 1
+      # Now as we push these tasks on the queue, new threads will be created and
+      # they will receive the blocking tasks from the queue.
+      for i in range(self.MAXIMUM_THREADS):
+        self.test_pool.AddTask(Insert, (res, i), "Insert", blocking=True,
+                               inline=False)
+
+      # There should be 20 workers created and they should consume all the
+      # blocking tasks.
+      self.WaitUntil(
+          lambda: self.test_pool.busy_threads == self.MAXIMUM_THREADS)
+
+      # No Insert tasks are running yet.
+      self.assertEqual(res, [])
+
+      # There are 20 tasks waiting on the queue.
+      self.assertEqual(self.test_pool.pending_tasks, self.MAXIMUM_THREADS)
 
       # Inserting more tasks than the queue can hold should lead to processing
-      # the tasks inline.
-      for _ in range(n):
+      # the tasks inline. This effectively causes these tasks to skip over the
+      # tasks which are waiting in the queue.
+      for i in range(10, 20):
         self.test_pool.AddTask(Insert, (res, i), "Insert", inline=True)
-        i += 1
 
-      self.assertEqual(
-          sorted(res), range(2 * self.NUMBER_OF_THREADS,
-                             n + 2 * self.NUMBER_OF_THREADS))
+      res.sort()
+      self.assertEqual(res, range(10, 20))
 
+      # This should release all the busy tasks. It will also cause the workers
+      # to process all the Insert tasks in the queue.
       done_event.set()
+
       self.test_pool.Join()
 
       # Now the rest of the tasks should have been processed as well.
-      self.assertEqual(sorted(res), range(n + self.test_pool._queue.maxsize))
+      self.assertEqual(sorted(res[10:]), range(20))
 
-    finally:
+  def testThreadsReaped(self):
+    """Check that threads are reaped when too old."""
+    self.now = 0
+    with test_lib.MultiStubber(
+        (time, "time", lambda: self.now),
+        (threading, "_time", lambda: self.now),
+        (Queue, "_time", lambda: self.now),
+        (self.test_pool, "CPUUsage", lambda: 0)):
+      done_event = threading.Event()
+
+      res = []
+
+      def Block(done, count):
+        done.wait()
+        res.append(count)
+
+      for i in range(2 * self.MAXIMUM_THREADS):
+        self.test_pool.AddTask(Block, (done_event, i), "Blocking", inline=False)
+
+      self.assertEqual(len(self.test_pool), self.MAXIMUM_THREADS)
+
+      # Release the threads. All threads are now idle.
       done_event.set()
 
-  def testThreadSpawningProblemsNoWorker(self):
-    """Tests behavior when spawning threads fails."""
+      # Fast forward the time
+      self.now = 1000
 
-    self.mox.StubOutWithMock(logging, "error")
-    worker = threadpool._WorkerThread
-    self.mox.StubOutWithMock(worker, "start")
+      # Threads will now kill themselves off and the threadpool will be reduced
+      # to the minimum number of threads..
+      self.WaitUntil(lambda: len(self.test_pool) == self.NUMBER_OF_THREADS)
 
-    worker.start().AndRaise(threading.ThreadError)
-    # Could not start worker threads.
-    logging.error(mox.StrContains("Could not spawn"))
-
-    self.mox.ReplayAll()
-
-    pool = threadpool.ThreadPool.Factory("test_pool1", 10)
-    # This should raise.
-    self.assertRaises(threading.ThreadError, pool.Start)
-
-  def testThreadSpawningProblemsOneWorker(self):
-    """Tests behavior when spawning threads fails."""
-
-    self.mox.StubOutWithMock(logging, "warning")
-    worker = threadpool._WorkerThread
-    self.mox.StubOutWithMock(worker, "start")
-
-    worker.start()
-    worker.start().AndRaise(threading.ThreadError)
-
-    # Could only start one worker thread.
-    logging.warning(mox.StrContains("Could only start"), 1)
-
-    self.mox.ReplayAll()
-
-    # This should only write the log entry.
-    pool = threadpool.ThreadPool.Factory("test_pool2", 10)
-    pool.Start()
-
-    # Even though the pool thinks it is running, there is only the fake
-    # worker which does not process any jobs. Therefore, stopping the pool would
-    # block.
-    pool.Stop = lambda: None
+      # Ensure we have the minimum number of threads left now.
+      self.assertEqual(len(self.test_pool), self.NUMBER_OF_THREADS)
 
   def testExportedFunctions(self):
     """Tests if the outstanding tasks variable is exported correctly."""
@@ -289,7 +335,6 @@ class BatchConverterTest(test_lib.GRRBaseTest):
 
     converter.Convert(test_data)
 
-    print converter.threads
     self.assertEqual(len(set(converter.threads)), 5)
 
     self.assertEqual(len(converter.batches), 5)

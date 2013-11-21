@@ -9,6 +9,7 @@ from hashlib import sha256
 
 import re
 import socket
+import stat
 
 from grr.lib import rdfvalue
 from grr.lib import type_info
@@ -169,7 +170,7 @@ class KnowledgeBase(rdfvalue.RDFProtoStruct):
       new_attrs = ["users.%s" % k for k in kb_user.AsDict().keys()]
     else:
       for key, val in kb_user.AsDict().items():
-        if user.Get(key) != val:
+        if user.Get(key) and user.Get(key) != val:
           merge_conflicts.append((key, user.Get(key), val))
         user.Set(key, val)
         new_attrs.append("users.%s" % key)
@@ -419,22 +420,50 @@ class StatMode(rdfvalue.RDFInteger):
 
   def __unicode__(self):
     """Pretty print the file mode."""
+    type_char = "-"
+
+    mode = int(self)
+    if stat.S_ISREG(mode):
+      type_char = "-"
+    elif stat.S_ISBLK(mode):
+      type_char = "b"
+    elif stat.S_ISCHR(mode):
+      type_char = "c"
+    elif stat.S_ISDIR(mode):
+      type_char = "d"
+    elif stat.S_ISFIFO(mode):
+      type_char = "f"
+    elif stat.S_ISLNK(mode):
+      type_char = "l"
+    elif stat.S_ISSOCK(mode):
+      type_char = "s"
+
     mode_template = "rwx" * 3
     # Strip the "0b"
-    mode = bin(int(self))[2:]
-    mode = mode[-9:]
-    mode = "0" * (9-len(mode)) + mode
+    bin_mode = bin(int(self))[2:]
+    bin_mode = bin_mode[-9:]
+    bin_mode = "0" * (9-len(bin_mode)) + bin_mode
 
     bits = []
     for i in range(len(mode_template)):
-      if mode[i] == "1":
+      if bin_mode[i] == "1":
         bit = mode_template[i]
       else:
         bit = "-"
 
       bits.append(bit)
 
-    return "".join(bits)
+    if stat.S_ISUID & mode:
+      bits[2] = "S"
+    if stat.S_ISGID & mode:
+      bits[5] = "S"
+    if stat.S_ISVTX & mode:
+      if bits[8] == "x":
+        bits[8] = "t"
+      else:
+        bits[8] = "T"
+
+    return type_char + "".join(bits)
 
 
 class Iterator(rdfvalue.RDFProtoStruct):
@@ -457,18 +486,11 @@ class FindSpec(rdfvalue.RDFProtoStruct):
     """Ensure the pathspec is valid."""
     self.pathspec.Validate()
 
-    # When using OS and TSK we must only perform find on directories.
-    if (self.pathspec.last.pathtype in [self.pathspec.PathType.OS,
-                                        self.pathspec.PathType.TSK] and
-        self.pathspec.last.path[-1] not in ("/", "\\")):
-      raise ValueError("Find can only operate on directories "
-                       "(There must be a final /)")
-
     if (self.HasField("start_time") and self.HasField("end_time") and
         self.start_time > self.end_time):
       raise ValueError("Start time must be before end time.")
 
-    if not self.path_regex and not self.data_regex:
+    if not self.path_regex and not self.data_regex and not self.path_glob:
       raise ValueError("A Find specification can not contain both an empty "
                        "path regex and an empty data regex")
 

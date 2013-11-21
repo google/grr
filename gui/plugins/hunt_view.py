@@ -20,12 +20,12 @@ from grr.gui.plugins import fileview
 from grr.gui.plugins import forms
 from grr.gui.plugins import searchclient
 from grr.gui.plugins import semantic
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
-from grr.lib.hunts import output_plugins
 
 
 class ManageHunts(renderers.Splitter2Way):
@@ -600,9 +600,6 @@ class HuntOverviewRenderer(AbstractLogRenderer):
   <dt>Hunt URN</dt>
   <dd>{{ this.hunt.urn|escape }}</dd>
 
-  <dt>Hunt Results URN</dt>
-  <dd>{{ this.hunt.urn|escape }}/Results</dd>
-
   <dt>Creator</dt>
   <dd>{{ this.hunt_creator|escape }}</dd>
 
@@ -871,7 +868,7 @@ class HuntClientCompletionGraphRenderer(renderers.ImageDownloadRenderer):
   def Content(self, request, _):
     """Generates the actual image to display."""
     hunt_id = request.REQ.get("hunt_id")
-    hunt = aff4.FACTORY.Open(hunt_id, age=aff4.ALL_TIMES)
+    hunt = aff4.FACTORY.Open(hunt_id, age=aff4.ALL_TIMES, token=request.token)
     cl = hunt.GetValuesForAttribute(hunt.Schema.CLIENTS)
     fi = hunt.GetValuesForAttribute(hunt.Schema.FINISHED)
 
@@ -979,13 +976,10 @@ class HuntResultsRenderer(semantic.RDFValueCollectionRenderer):
     hunt_id = request.REQ.get("hunt_id")
     hunt = aff4.FACTORY.Open(hunt_id, token=request.token)
 
-    # In this renderer we only show the output from the CollectionPlugin output
-    # plugin.
+    # In this renderer we show hunt results stored in the results collection.
     with hunt.GetRunner() as runner:
-      for plugin in runner.context.output_plugins:
-        if isinstance(plugin, output_plugins.CollectionPlugin):
-          return super(HuntResultsRenderer, self).Layout(
-              request, response, aff4_path=plugin.collection_urn)
+      return super(HuntResultsRenderer, self).Layout(
+          request, response, aff4_path=runner.context.results_collection_urn)
 
     return self.RenderFromTemplate(self.no_plugin_template, response)
 
@@ -1189,11 +1183,12 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
     self.AddColumn(semantic.RDFValueColumn("Expected Responses"))
     self.AddColumn(semantic.RDFValueColumn("Client Requests Pending"))
 
-  def GetClientRequests(self, client_urns):
+  def GetClientRequests(self, client_urns, token):
     """Returns all client requests for the given client urns."""
     task_urns = [urn.Add("tasks") for urn in client_urns]
 
-    client_requests_raw = data_store.DB.MultiResolveRegex(task_urns, "task:.*")
+    client_requests_raw = data_store.DB.MultiResolveRegex(task_urns, "task:.*",
+                                                          token=token)
 
     client_requests = {}
     for client_urn, requests in client_requests_raw:
@@ -1206,7 +1201,7 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
 
     return client_requests
 
-  def GetAllSubflows(self, hunt_urn, client_urns):
+  def GetAllSubflows(self, hunt_urn, client_urns, token):
     """Lists all subflows for a given hunt for all clients in client_urns."""
     client_ids = [urn.Split()[0] for urn in client_urns]
     client_bases = [hunt_urn.Add(client_id) for client_id in client_ids]
@@ -1216,7 +1211,7 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
 
     while act_flows:
       next_flows = []
-      for _, children in aff4.FACTORY.MultiListChildren(act_flows):
+      for _, children in aff4.FACTORY.MultiListChildren(act_flows, token=token):
         for flow_urn in children:
           next_flows.append(flow_urn)
       all_flows.extend(next_flows)
@@ -1224,13 +1219,13 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
 
     return all_flows
 
-  def GetFlowRequests(self, flow_urns):
+  def GetFlowRequests(self, flow_urns, token):
     """Returns all outstanding requests for the flows in flow_urns."""
     flow_requests = {}
     flow_request_urns = [flow_urn.Add("state") for flow_urn in flow_urns]
 
     for flow_urn, values in data_store.DB.MultiResolveRegex(
-        flow_request_urns, "flow:.*"):
+        flow_request_urns, "flow:.*", token=token):
       for subject, serialized, _ in values:
         try:
           if "status" in subject:
@@ -1247,13 +1242,14 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
   def BuildTable(self, start_row, end_row, request):
     """Renders the table."""
     hunt_id = request.REQ.get("hunt_id")
+    token = request.token
 
     if hunt_id is None:
       return
 
     hunt_id = rdfvalue.RDFURN(hunt_id)
     hunt = aff4.FACTORY.Open(hunt_id, aff4_type="GRRHunt", age=aff4.ALL_TIMES,
-                             token=request.token)
+                             token=token)
 
     started = hunt.GetValuesForAttribute(hunt.Schema.CLIENTS)
     finished = hunt.GetValuesForAttribute(hunt.Schema.FINISHED)
@@ -1263,11 +1259,14 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
 
     outstanding = sorted(outstanding)[start_row:end_row]
 
-    all_flow_urns = self.GetAllSubflows(hunt_id, outstanding)
+    all_flow_urns = self.GetAllSubflows(hunt_id, outstanding, token)
 
-    flow_requests = self.GetFlowRequests(all_flow_urns)
+    flow_requests = self.GetFlowRequests(all_flow_urns, token)
 
-    client_requests = self.GetClientRequests(outstanding)
+    try:
+      client_requests = self.GetClientRequests(outstanding, token)
+    except access_control.UnauthorizedAccess:
+      client_requests = None
 
     waitingfor = {}
     status_by_request = {}
@@ -1288,7 +1287,7 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
           "request:%08X" % request.id))
 
     response_dict = dict(data_store.DB.MultiResolveRegex(
-        response_urns, "flow:.*"))
+        response_urns, "flow:.*", token=token))
 
     row_index = start_row
 
@@ -1307,10 +1306,13 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
           status = status_by_request[request_urn][request_obj.id]
           responses_expected = status.response_id
 
-        client_requests_available = 0
-        for client_req in client_requests.setdefault(client_id, []):
-          if request_obj.request.session_id == client_req.session_id:
-            client_requests_available += 1
+        if client_requests is None:
+          client_requests_available = "Must use raw access."
+        else:
+          client_requests_available = 0
+          for client_req in client_requests.setdefault(client_id, []):
+            if request_obj.request.session_id == client_req.session_id:
+              client_requests_available += 1
 
         row_data = {
             "Client": client_id,

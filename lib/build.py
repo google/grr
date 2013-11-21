@@ -594,11 +594,15 @@ class LinuxClientDeployer(ClientDeployer):
               "Client.binary_name", context=self.context)),
                0755)
 
-      oldwd = os.getcwd()
       os.chdir(template_dir)
       command = [buildpackage_binary, "-b"]
-      subprocess.check_call(command)
-      os.chdir(oldwd)
+      try:
+        subprocess.check_output(command, stderr=subprocess.STDOUT)
+      except subprocess.CalledProcessError as e:
+        if "Failed to sign" not in e.output:
+          logging.error("Error calling %s.", command)
+          logging.error(e.output)
+          raise
 
       filename_base = config_lib.CONFIG.Get("ClientBuilder.debian_package_base",
                                             context=self.context)
@@ -709,7 +713,12 @@ class CentosClientDeployer(LinuxClientDeployer):
       os.chmod(os.path.join(target_binary_dir, client_binary_name), 0755)
 
       command = [rpmbuild_binary, "-bb", spec_filename]
-      subprocess.call(command)
+      try:
+        subprocess.check_output(command, stderr=subprocess.STDOUT)
+      except subprocess.CalledProcessError as e:
+        logging.error("Error calling %s.", command)
+        logging.error(e.output)
+        raise
 
       client_version = config_lib.CONFIG.Get("Client.version_string",
                                              context=self.context)

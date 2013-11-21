@@ -45,6 +45,7 @@ from grr.lib import flags
 
 from grr.lib import flow
 
+from grr.lib import maintenance_utils
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -214,6 +215,9 @@ class GRRBaseTest(unittest.TestCase):
       # Enforce checking that security tokens are propagated to the data store
       # but no actual ACLs.
       data_store.DB.security_manager = MockSecurityManager()
+
+    logging.info("Starting test: %s.%s",
+                 self.__class__.__name__, self._testMethodName)
 
   def tearDown(self):
     logging.info("Completed test: %s.%s",
@@ -480,6 +484,14 @@ class GRRBaseTest(unittest.TestCase):
     subject = request.get_subject()
     cn = rdfvalue.ClientURN(subject.as_text().split("=")[-1])
     return flow_obj.MakeCert(cn, request)
+
+  def CreateSignedDriver(self):
+    client_context = ["Platform:Windows", "Arch:amd64"]
+    # Make sure there is a signed driver for our client.
+    driver_path = maintenance_utils.UploadSignedDriverBlob(
+        "MZ Driveeerrrrrr", client_context=client_context,
+        token=self.token)
+    logging.info("Wrote signed driver to %s", driver_path)
 
 
 class EmptyActionTest(GRRBaseTest):
@@ -1440,6 +1452,26 @@ class CrashClientMock(object):
     return [status]
 
 
+class MemoryClientMock(ActionMock):
+  """A mock of client state including memory actions."""
+
+  def InstallDriver(self, _):
+    return []
+
+  def UninstallDriver(self, _):
+    return []
+
+  def GetMemoryInformation(self, _):
+    reply = rdfvalue.MemoryInformation(
+        device=rdfvalue.PathSpec(
+            path=r"\\.\pmem",
+            pathtype=rdfvalue.PathSpec.PathType.MEMORY))
+    reply.runs.Append(offset=0x1000, length=0x10000)
+    reply.runs.Append(offset=0x20000, length=0x10000)
+
+    return [reply]
+
+
 class SampleHuntMock(object):
 
   def __init__(self, failrate=2, data="Hello World!"):
@@ -1787,6 +1819,12 @@ class ClientRegistryVFSFixture(ClientVFSHandlerFixture):
   """Special client VFS mock that will emulate the registry."""
   prefix = "/registry"
   supported_pathtype = rdfvalue.PathSpec.PathType.REGISTRY
+
+
+class ClientFullVFSFixture(ClientVFSHandlerFixture):
+  """Full client VFS mock."""
+  prefix = "/"
+  supported_pathtype = rdfvalue.PathSpec.PathType.OS
 
 
 class GrrTestProgram(unittest.TestProgram):

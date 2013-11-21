@@ -425,6 +425,7 @@ class GRRFlow(aff4.AFF4Volume):
 
   # This is used to arrange flows into a tree view
   category = ""
+  friendly_name = None
 
   # If this is set, the flow is only displayed in the UI if the user has one of
   # the labels given.
@@ -464,6 +465,25 @@ class GRRFlow(aff4.AFF4Volume):
 
     if self.state is None:
       self.state = self.Schema.FLOW_STATE()
+    elif self.state.errors:
+      logging.warning("Failed to read state for %s - forcing read only mode.",
+                      self.urn)
+      self.mode = "r"
+
+  @classmethod
+  def GetDefaultArgs(cls, token=None):
+    """Return a useful default args semantic value.
+
+    This should be extended by flows.
+
+    Args:
+      token: The ACL token for the user.
+
+    Returns:
+      an instance of cls.args_type pre-populated with useful data
+    """
+    _ = token
+    return cls.args_type()
 
   @classmethod
   def _FilterArgsFromSemanticProtobuf(cls, protobuf, kwargs):
@@ -528,8 +548,14 @@ class GRRFlow(aff4.AFF4Volume):
     This method is called prior to destruction of the flow to give
     the flow a chance to clean up.
     """
-    self.Notify("FlowStatus", self.client_id,
-                "Flow %s completed" % self.__class__.__name__)
+    if self.runner.output:
+      self.Notify(
+          "ViewObject", self.runner.output.urn,
+          u"Completed with {0} results".format(len(self.runner.output)))
+
+    else:
+      self.Notify("FlowStatus", self.client_id,
+                  "Flow %s completed" % self.__class__.__name__)
 
   @StateHandler()
   def Start(self, unused_message=None):
@@ -615,13 +641,17 @@ class GRRFlow(aff4.AFF4Volume):
         action_name=action_name, request=request, next_state=next_state,
         request_data=request_data, **kwargs)
 
-  def CallStateInline(self, messages=None, next_state="", request_data=None):
-    responses = FakeResponses(messages, request_data)
+  def CallStateInline(self, messages=None, next_state="", request_data=None,
+                      responses=None):
+    if responses is None:
+      responses = FakeResponses(messages, request_data)
     getattr(self, next_state)(self.runner, direct_response=responses)
 
-  def CallState(self, messages=None, next_state="", request_data=None, delay=0):
+  def CallState(self, messages=None, next_state="", request_data=None,
+                start_time=0):
     return self.runner.CallState(messages=messages, next_state=next_state,
-                                 request_data=request_data, delay=delay)
+                                 request_data=request_data,
+                                 start_time=start_time)
 
   def CallFlow(self, flow_name, next_state=None, request_data=None, **kwargs):
     return self.runner.CallFlow(flow_name, next_state=next_state,
@@ -683,6 +713,11 @@ class GRRFlow(aff4.AFF4Volume):
       runner_args = FlowRunnerArgs()
 
     cls._FilterArgsFromSemanticProtobuf(runner_args, kwargs)
+
+    # When asked to run a flow in the future this implied it will run
+    # asynchronously.
+    if runner_args.start_time:
+      sync = False
 
     # Is the required flow a known flow?
     if runner_args.flow_name not in GRRFlow.classes:
@@ -760,7 +795,7 @@ class GRRFlow(aff4.AFF4Volume):
         flow_obj.Start()
       else:
         # Running Asynchronously: Schedule the start method on another worker.
-        runner.CallState(next_state="Start")
+        runner.CallState(next_state="Start", start_time=runner_args.start_time)
 
       # The flow does not need to actually remain running.
       if not runner.OutstandingRequests():
@@ -1440,7 +1475,8 @@ class FrontEndServer(object):
     self.max_retransmission_time = max_retransmission_time
     self.max_queue_size = max_queue_size
     self.thread_pool = threadpool.ThreadPool.Factory(
-        threadpool_prefix, config_lib.CONFIG["Threadpool.size"])
+        threadpool_prefix, min_threads=2,
+        max_threads=config_lib.CONFIG["Threadpool.size"])
     self.thread_pool.Start()
 
     # Well known flows are run on the front end.

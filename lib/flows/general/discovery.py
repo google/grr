@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc. All Rights Reserved.
 """These are flows designed to discover information about the host."""
 
 
@@ -372,6 +371,8 @@ class Interrogate(flow.GRRFlow):
       response = responses.First()
       self.state.summary.client_info = response
       self.client.Set(self.client.Schema.CLIENT_INFO(response))
+      self.client.AddLabels(response.labels)
+      self.state.summary.client_info = response
     else:
       self.Log("Could not get ClientInfo.")
 
@@ -402,7 +403,11 @@ class Interrogate(flow.GRRFlow):
 
     self.Notify("Discovery", self.client.urn, "Client Discovery Complete")
 
+    # Publish this client to the Discovery queue.
+    self.state.summary.timestamp = rdfvalue.RDFDatetime().Now()
+    self.Publish("Discovery", self.state.summary)
+    self.SendReply(self.state.summary)
+    self.client.Set(self.client.Schema.SUMMARY, self.state.summary)
+
     # Flush the data to the data store.
     self.client.Close()
-
-    self.SendReply(self.state.summary)

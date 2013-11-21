@@ -74,9 +74,13 @@ class GRRTimeSeries(standard.VFSDirectory):
 
   # Should we write new data on Close()?
   dirty = False
+  size = 0
 
   def Initialize(self):
     super(GRRTimeSeries, self).Initialize()
+    if "r" in self.mode:
+      self.size = self.Get(self.Schema.SIZE)
+
     self.heap = []
 
   def AddEvent(self, event=None, **kw):
@@ -91,6 +95,10 @@ class GRRTimeSeries(standard.VFSDirectory):
     # Push the serialized event proto on the heap to save memory
     heapq.heappush(self.heap, (event.timestamp, event.SerializeToString()))
     self.dirty = True
+    self.size += 1
+
+  def __len__(self):
+    return self.size
 
   # Implement an iterated interface to the events
   def __iter__(self):
@@ -170,6 +178,7 @@ class GRRTimeSeries(standard.VFSDirectory):
       # We are done - flush and close the file.
       storage.Close()
 
+    self.Set(self.Schema.SIZE(self.size))
     super(GRRTimeSeries, self).Close()
 
   def OpenChildren(self, children=None, mode="r"):

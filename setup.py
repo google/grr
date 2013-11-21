@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """Setup configuration for the python grr modules."""
 
 # pylint: disable=unused-variable

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Registry for parsers and abstract classes for basic parser functionality."""
 
+from grr.lib import artifact_lib
+from grr.lib import rdfvalue
 from grr.lib import registry
 
 
@@ -50,6 +52,26 @@ class Parser(object):
   def GetDescription(cls):
     return cls.__doc__.split("\n")[0]
 
+  @classmethod
+  def Validate(cls):
+    """Validate a parser is well defined."""
+    for artifact_to_parse in cls.supported_artifacts:
+      if artifact_to_parse not in artifact_lib.Artifact.classes:
+        raise ParserDefinitionError("Artifact parser %s has an invalid artifact"
+                                    " %s. Artifact is undefined" %
+                                    (cls.__name__, artifact_to_parse))
+
+    for out_type in cls.output_types:
+      if out_type not in rdfvalue.RDFValue.classes:
+        raise ParserDefinitionError("Artifact parser %s has an invalid output "
+                                    "type %s." % (cls.__name__, out_type))
+
+    if cls.process_together:
+      if not hasattr(cls, "ParseMultiple"):
+        raise ParserDefinitionError("Parser %s has set process_together, but "
+                                    "has not defined a ParseMultiple method." %
+                                    cls.__name__)
+
 
 class CommandParser(Parser):
   """Abstract parser for processing command output.
@@ -94,3 +116,28 @@ class RegistryParser(Parser):
 
   def Parse(self, stat, knowledge_base):
     """Take the stat, and yield RDFValues."""
+
+
+class VolatilityPluginParser(Parser):
+  """Abstract parser for processing Volatility results."""
+
+  def ParseMultiple(self, results, knowledge_base):
+    """Parse multiple results in a single call."""
+
+  def Parse(self, results, knowledge_base):
+    """Take the stat, and yield RDFValues."""
+
+  def CheckError(self, result):
+    if result.error:
+      raise ParseError("Volatility returned an error for plugin %s. Error: %s"
+                       % (result.plugin, result.error))
+
+  def IterateSections(self, result, plugin=None):
+    """Iterate through all sections if a plugin matches."""
+    self.CheckError(result)
+    if plugin and result.plugin == plugin:
+      for section in result.sections:
+        headers = [h.name for h in section.table.headers]
+        for row in section.table.rows:
+          yield dict(zip(headers, row.values))
+

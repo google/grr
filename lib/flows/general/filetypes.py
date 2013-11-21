@@ -2,8 +2,6 @@
 """File-type specific flows."""
 
 
-import time
-
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -55,12 +53,8 @@ class PlistValueFilter(flow.GRRFlow):
   @flow.StateHandler(next_state=["Receive"])
   def Start(self, unused_response):
     """Issue a request to list the directory."""
-    output = self.args.output.format(t=time.time(), u=self.state.context.user)
-    self.state.Register("output", self.client_id.Add(output))
-    self.state.Register("fd", aff4.FACTORY.Create(
-        self.state.output, "AFF4PlistQuery", mode="w", token=self.token))
-
-    self.state.fd.Set(self.state.fd.SchemaCls.REQUEST, self.args.request)
+    self.runner.output = aff4.FACTORY.Create(
+        self.runner.output.urn, "AFF4PlistQuery", mode="w", token=self.token)
 
     self.CallClient("PlistQuery", request=self.args.request,
                     next_state="Receive")
@@ -70,5 +64,5 @@ class PlistValueFilter(flow.GRRFlow):
     if not responses.success:
       self.Error("Could not retrieve value: %s" % responses.status)
     else:
-      self.state.fd.Set(self.state.fd.Schema.RESULT(responses))
-      self.state.fd.Close()
+      for response in responses.First():
+        self.SendReply(response)

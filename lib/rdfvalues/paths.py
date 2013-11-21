@@ -17,6 +17,7 @@ On the server the PathSpec is represented as a PathSpec object, and stored
 as an attribute of the AFF4 object. This module defines this abstraction.
 """
 
+import fnmatch
 import itertools
 import posixpath
 import re
@@ -294,3 +295,13 @@ class GlobExpression(rdfvalue.RDFString):
     # strings.
     for vector in itertools.product(*components):
       yield u"".join(vector)
+
+  def AsRegEx(self):
+    """Return the current glob as a simple regex.
+
+    Note: No interpolation is performed.
+
+    Returns:
+      A RegularExpression() object.
+    """
+    return rdfvalue.RegularExpression("(?i)^" + fnmatch.translate(self._value))

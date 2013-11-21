@@ -80,8 +80,6 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
                                      title=title, message=message))
 
     with test_lib.Stubber(email_alerts, "SendEmail", SendEmail):
-      config_lib.CONFIG.Set("Monitoring.alert_email", "admin@nowhere.com")
-
       client = test_lib.CrashClientMock(self.client_id, self.token)
       for _ in test_lib.TestFlowHelper(
           "ListDirectory", client, client_id=self.client_id,
@@ -150,7 +148,6 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
                                        title=title, message=message))
 
       email_alerts.SendEmail = SendEmail
-      config_lib.CONFIG.Set("Monitoring.alert_email", "admin@nowhere.com")
       msg = rdfvalue.GrrMessage(
           session_id=rdfvalue.SessionID("aff4:/flows/W:NannyMessage"),
           args=rdfvalue.DataBlob(string=nanny_message).SerializeToString(),

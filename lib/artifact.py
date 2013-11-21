@@ -46,17 +46,19 @@ class ArtifactName(rdfvalue.RDFString):
       raise type_info.TypeValueError("%s not a valid Artifact." % value)
 
 
-def GetArtifactKnowledgeBase(client_obj):
+def GetArtifactKnowledgeBase(client_obj, allow_uninitialized=False):
   """This generates an artifact knowledge base from a GRR client.
 
   Args:
     client_obj: A GRRClient object which is opened for reading.
+    allow_uninitialized: If True we accept an uninitialized knowledge_base.
 
   Returns:
     A KnowledgeBase semantic value.
 
   Raises:
-    RuntimeError: If called when the knowledge base has not been initialized.
+    ArtifactProcessingError: If called when the knowledge base has not been
+    initialized.
 
   This is needed so that the artifact library has a standardized
   interface to the data that is actually stored in the GRRClient object in
@@ -68,9 +70,12 @@ def GetArtifactKnowledgeBase(client_obj):
   """
   client_schema = client_obj.Schema
   kb = client_obj.Get(client_schema.KNOWLEDGE_BASE)
-  if not kb or not kb.os:
-    raise RuntimeError("Attempting to retreive uninitialized KnowledgeBase for "
-                       "%s. Failing." % client_obj.urn)
+  if not allow_uninitialized and (not kb or not kb.os):
+    raise artifact_lib.KnowledgeBaseUninitializedError(
+        "Attempting to retreive uninitialized KnowledgeBase for %s. Failing." %
+        client_obj.urn)
+  if not kb:
+    kb = client_schema.KNOWLEDGE_BASE()
 
   SetCoreGRRKnowledgeBaseValues(kb, client_obj)
 
@@ -140,7 +145,8 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
   @flow.StateHandler(next_state="ProcessBase")
   def ProcessBootstrap(self, responses):
     """Process the bootstrap responses."""
-    if not responses.success:
+    # pylint: disable=g-explicit-length-test
+    if not responses.success or len(responses) == 0:
       raise flow.FlowError("Failed to run BootStrapKnowledgeBaseFlow. %s" %
                            responses.status)
     for key, value in responses.First().ToDict().items():
@@ -156,7 +162,7 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
     artifacts_to_process = []          # Artifacts that need processing now.
     no_deps_artifacts_names = []       # Artifacts without any dependencies.
     for artifact_cls in all_kb_artifacts:
-      deps = artifact_cls.GetArtifactDependencies()
+      deps = artifact_cls.GetArtifactPathDependencies()
       if not deps:
         no_deps_artifacts_names.append(artifact_cls.__name__)
         if artifact_cls not in bootstrap_artifacts:
@@ -177,6 +183,7 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
     # Now that we have the bootstrap done, run anything
     # Send each artifact independently so we can track which artifact produced
     # it when it comes back.
+    # TODO(user): tag SendReplys with the flow that generated them.
     for artifact_name in artifacts_to_process:
       self.state.in_flight_artifacts.append(artifact_name)
       self.CallFlow("ArtifactCollectorFlow", artifact_list=[artifact_name],
@@ -207,7 +214,7 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
       # Schedule any new artifacts for which we have now fulfilled dependencies.
       for artifact_name in self.state.awaiting_deps_artifacts:
         artifact_cls = artifact_lib.Artifact.classes[artifact_name]
-        deps = artifact_cls.GetArtifactDependencies()
+        deps = artifact_cls.GetArtifactPathDependencies()
         if set(deps).issubset(self.state.fulfilled_deps):
           self.state.in_flight_artifacts.append(artifact_name)
           self.state.awaiting_deps_artifacts.remove(artifact_name)
@@ -273,6 +280,7 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
     client.Set(client.Schema.KNOWLEDGE_BASE, self.state.knowledge_base)
     client.Flush()
     self.Notify("ViewObject", client.urn, "Knowledge Base Updated.")
+    self.SendReply(self.state.knowledge_base)
 
 
 class GRRArtifactMappings(object):

@@ -9,42 +9,12 @@ import os
 import logging
 
 from grr.lib import aff4
-from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
 class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
   """Tests the memory analysis flows."""
-
-  class MockClient(test_lib.ActionMock):
-    """A mock of client state."""
-
-    def InstallDriver(self, _):
-      return []
-
-    def UninstallDriver(self, _):
-      return []
-
-    def GetMemoryInformation(self, _):
-      reply = rdfvalue.MemoryInformation(
-          device=rdfvalue.PathSpec(
-              path=r"\\.\pmem",
-              pathtype=rdfvalue.PathSpec.PathType.MEMORY))
-      reply.runs.Append(offset=0x1000, length=0x10000)
-      reply.runs.Append(offset=0x20000, length=0x10000)
-
-      return [reply]
-
-  def CreateSignedDriver(self):
-    client_context = ["Platform:Windows", "Arch:amd64"]
-
-    # Make sure there is a signed driver for our client.
-    driver_path = maintenance_utils.UploadSignedDriverBlob(
-        "MZ Driveeerrrrrr", client_context=client_context,
-        token=self.token)
-
-    logging.info("Wrote signed driver to %s", driver_path)
 
   def CreateClient(self):
     client = aff4.FACTORY.Create(self.client_id,
@@ -60,7 +30,8 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
     self.CreateClient()
 
     # Run the flow in the simulated way
-    for _ in test_lib.TestFlowHelper("LoadMemoryDriver", self.MockClient(),
+    for _ in test_lib.TestFlowHelper("LoadMemoryDriver",
+                                     test_lib.MemoryClientMock(),
                                      token=self.token,
                                      client_id=self.client_id):
       pass
@@ -84,7 +55,7 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
     self.CreateClient()
     self.CreateSignedDriver()
 
-    class ClientMock(self.MockClient):
+    class ClientMock(test_lib.MemoryClientMock):
       """A mock which returns the image as the driver path."""
 
       def GetMemoryInformation(self, _):
@@ -99,8 +70,8 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
         return [reply]
 
     request = rdfvalue.VolatilityRequest()
-    request.plugins.Append("pslist")
-    request.plugins.Append("modules")
+    request.args["pslist"] = {}
+    request.args["modules"] = {}
 
     # To speed up the test we provide these values. In real life these values
     # will be provided by the kernel driver.
@@ -111,7 +82,7 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
     for _ in test_lib.TestFlowHelper(
         "AnalyzeClientMemory", ClientMock("VolatilityAction"),
         token=self.token, client_id=self.client_id,
-        request=request, output="analysis/memory/{p}"):
+        request=request, output="analysis/memory"):
       pass
 
     fd = aff4.FACTORY.Open(self.client_id.Add("analysis/memory/pslist"),
@@ -135,14 +106,14 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
     # And should include the DumpIt kernel driver.
     self.assert_("DumpIt.sys" in str(result))
 
-  def testGrepMemory(self):
+  def testScanMemory(self):
     # Use a file in place of a memory image for simplicity
     image_path = os.path.join(self.base_path, "numbers.txt")
 
     self.CreateClient()
     self.CreateSignedDriver()
 
-    class ClientMock(self.MockClient):
+    class ClientMock(test_lib.MemoryClientMock):
       """A mock which returns the image as the driver path."""
 
       def GetMemoryInformation(self, _):
@@ -156,15 +127,15 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
 
         return [reply]
 
-    args = {"request": rdfvalue.BareGrepSpec(
+    args = dict(grep=rdfvalue.BareGrepSpec(
         literal="88",
         mode="ALL_HITS",
         ),
-            "output": "analysis/grep/testing"}
+                output="analysis/grep/testing")
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
-        "GrepMemory", ClientMock("Grep"), client_id=self.client_id,
+        "ScanMemory", ClientMock("Grep"), client_id=self.client_id,
         token=self.token, **args):
       pass
 

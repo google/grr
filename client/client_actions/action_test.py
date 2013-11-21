@@ -193,6 +193,8 @@ class ActionTest(test_lib.EmptyActionTest):
 
     found = 0
     for result in results:
+      # This appears in ut_type RUN_LVL, not ut_type USER_PROCESS.
+      self.assertNotEqual("runlevel", result.username)
       if result.username == "user1":
         found += 1
         self.assertEqual(result.last_logon, 1296552099 * 1000000)

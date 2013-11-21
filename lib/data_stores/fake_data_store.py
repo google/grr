@@ -19,7 +19,7 @@ class FakeTransaction(data_store.Transaction):
     self.token = token
     self.locked = False
     self.to_set = {}
-    self.to_delete = []
+    self.to_delete = set()
     if lease_time is None:
       lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
 
@@ -43,16 +43,17 @@ class FakeTransaction(data_store.Transaction):
     self.data_store.transactions[self.subject] = self.expires
 
   def DeleteAttribute(self, predicate):
-    self.to_delete.append(predicate)
+    self.to_delete.add(predicate)
 
   def ResolveRegex(self, predicate_regex, timestamp=None):
+    # TODO(user): Retrieve values from to_set as well.
     return self.data_store.ResolveRegex(self.subject, predicate_regex,
                                         timestamp=timestamp,
                                         token=self.token)
 
   def Set(self, predicate, value, timestamp=None, replace=True):
     if replace:
-      self.to_delete.append(predicate)
+      self.to_delete.add(predicate)
 
     if timestamp is None:
       timestamp = int(time.time() * 1e6)
@@ -60,6 +61,11 @@ class FakeTransaction(data_store.Transaction):
     self.to_set.setdefault(predicate, []).append((value, timestamp))
 
   def Resolve(self, predicate):
+    if predicate in self.to_set:
+      return sorted(self.to_set[predicate], key=lambda vt: vt[1])[-1]
+    if predicate in self.to_delete:
+      return None
+
     return self.data_store.Resolve(self.subject, predicate, token=self.token)
 
   def Abort(self):

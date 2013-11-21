@@ -45,13 +45,44 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     # Check the output file is created
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
 
-    # Make sure that bash is a file.
-    children = list(fd.OpenChildren())
-    self.assertEqual(len(children), 4)
-    for child in children:
-      path = utils.SmartStr(child.urn)
+    # Should match ["bash" and "rbash"].
+    matches = set([x.aff4path.Basename() for x in fd])
+    self.assertEqual(sorted(matches), ["bash", "rbash"])
+
+    self.assertEqual(len(fd), 4)
+    for child in fd:
+      path = utils.SmartStr(child.aff4path)
       self.assertTrue(path.endswith("bash"))
-      self.assertEqual(child.__class__.__name__, "VFSFile")
+      self.assertEqual(child.__class__.__name__, "StatEntry")
+
+  def testFindFilesWithGlob(self):
+    """Test that the Find flow works with glob."""
+    client_mock = test_lib.ActionMock("Find")
+    output_path = "analysis/FindFlowTest1"
+
+    # Prepare a findspec.
+    findspec = rdfvalue.FindSpec(
+        path_glob="bash*",
+        pathspec=rdfvalue.PathSpec(
+            path="/", pathtype=rdfvalue.PathSpec.PathType.OS))
+
+    for _ in test_lib.TestFlowHelper(
+        "FindFiles", client_mock, client_id=self.client_id,
+        token=self.token, output=output_path, findspec=findspec):
+      pass
+
+    # Check the output file is created
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+
+    # Make sure that bash is a file.
+    matches = set([x.aff4path.Basename() for x in fd])
+    self.assertEqual(sorted(matches), ["bash"])
+
+    self.assertEqual(len(fd), 2)
+    for child in fd:
+      path = utils.SmartStr(child.aff4path)
+      self.assertTrue(path.endswith("bash"))
+      self.assertEqual(child.__class__.__name__, "StatEntry")
 
   def testFindDirectories(self):
     """Test that the Find flow works with directories."""
@@ -74,12 +105,11 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
 
     # Make sure that bin is a directory
-    children = list(fd.OpenChildren())
-    self.assertEqual(len(children), 2)
-    for child in children:
-      path = utils.SmartStr(child.urn)
+    self.assertEqual(len(fd), 2)
+    for child in fd:
+      path = utils.SmartStr(child.aff4path)
       self.assertTrue("bin" in path)
-      self.assertEqual(child.__class__.__name__, "VFSDirectory")
+      self.assertEqual(child.__class__.__name__, "StatEntry")
 
   def testFindWithMaxFiles(self):
     """Test that the Find flow works when specifying proto directly."""
@@ -103,8 +133,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
 
     # Make sure we got the right number of results.
-    children = list(fd.OpenChildren())
-    self.assertEqual(len(children), 7)
+    self.assertEqual(len(fd), 7)
 
   def testCollectionOverwriting(self):
     """Test we overwrite the collection every time the flow is executed."""
@@ -124,10 +153,10 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
       pass
 
     # Check the output file with the right number of results.
-    children = list(
-        aff4.FACTORY.Open(self.client_id.Add(output_path),
-                          token=self.token).OpenChildren())
-    self.assertEqual(len(children), 2)
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
+                           token=self.token)
+
+    self.assertEqual(len(fd), 2)
 
     # Now find a new result, should overwrite the collection
     findspec.path_regex = "dd"
@@ -136,6 +165,6 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         findspec=findspec, output=output_path, max_results=1):
       pass
 
-    children = list(aff4.FACTORY.Open(self.client_id.Add(output_path),
-                                      token=self.token).OpenChildren())
-    self.assertEqual(len(children), 1)
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
+                           token=self.token)
+    self.assertEqual(len(fd), 1)

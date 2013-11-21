@@ -324,9 +324,8 @@ class ProtoString(ProtoType):
 
   def Validate(self, value, **_):
     """Validates a python format representation of the value."""
-    # We only accept a base string or unicode object here. (Should we also
-    # accept RDFString?)
-    if not (value.__class__ is str or value.__class__ is unicode):
+    # We only accept a base string or unicode object or RDFString here.
+    if value.__class__ not in (str, unicode, rdfvalue.RDFString):
       raise type_info.TypeValueError("%s not a valid string" % value)
 
     # A String means a unicode String. We must be dealing with unicode strings
@@ -1144,7 +1143,8 @@ class ProtoList(ProtoType):
 
     super(ProtoList, self).__init__(name=delegate.name,
                                     description=delegate.description,
-                                    field_number=delegate.field_number)
+                                    field_number=delegate.field_number,
+                                    friendly_name=delegate.friendly_name)
 
   def IsDirty(self, value):
     return value.IsDirty()
@@ -1882,7 +1882,7 @@ class RDFProtoStruct(RDFStruct):
 
     return [value]
 
-  def AsProto(self):
+  def AsPrimitiveProto(self):
     """Return an old style protocol buffer object."""
     if self.protobuf:
       result = self.protobuf()

@@ -9,6 +9,7 @@ import time
 
 from grr.gui import runtests_test
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -273,37 +274,31 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=#_Filesystem > ins.jstree-icon")
     self.Click("css=#_Filesystem > ins.jstree-icon")
 
-    # Click on DownloadDirectory item in Filesystem flows list
-    self.WaitUntil(self.IsElementPresent,
-                   "link=DownloadDirectory")
-    self.Click("link=DownloadDirectory")
+    # Click on Fetch Files item in Filesystem flows list
+    self.WaitUntil(self.IsElementPresent, "link=Fetch Files")
+    self.Click("link=Fetch Files")
 
     # Wait for flow configuration form to be rendered (just wait for first
     # input field).
     self.WaitUntil(self.IsElementPresent,
-                   "css=.Wizard input[id=args-pathspec-path]")
+                   "css=.Wizard input[id=args-paths-0]")
 
     # Change "path", "pathtype", "depth" and "ignore_errors" values
-    self.Type("css=.Wizard input[id=args-pathspec-path]", "/tmp")
-    self.Select("css=.Wizard select[id=args-pathspec-pathtype]",
-                "TSK")
-    self.Type("css=.Wizard input[id=args-depth]", "42")
-    self.Click("css=.Wizard  input[id=args-ignore_errors]")
+    self.Type("css=.Wizard input[id=args-paths-0]", "/tmp")
+    self.Select("css=.Wizard select[id=args-pathtype]", "TSK")
+    self.Type("css=.Wizard input[id=args-max_size]", "42")
 
     # Click on "Next" button
     self.Click("css=.Wizard button.Next")
     self.WaitUntil(self.IsTextPresent, "Output Processing")
 
     # Configure the hunt to use a collection and also send an email on results.
+    self.Click("css=.Wizard button:contains('Add Output Plugin')")
+
     self.Select("css=.Wizard select[id=output_1-option]",
                 "Send an email for each result.")
     self.Type("css=.Wizard input[id=output_1-email]",
-              "test@grrserver.com")
-
-    self.Click("css=.Wizard button:contains('Add Output Plugin')")
-    self.Select(
-        "css=.Wizard select[id=output_2-option]",
-        "         Store results in a collection.\n          (default)\n     ")
+              "test@%s" % config_lib.CONFIG["Logging.domain"])
 
     # Click on "Next" button
     self.Click("css=.Wizard button.Next")
@@ -361,15 +356,15 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.WaitUntil(self.IsTextPresent, "Review")
 
     # Check that the arguments summary is present.
-    self.assertTrue(self.IsTextPresent("Pathspec"))
+    self.assertTrue(self.IsTextPresent("Paths"))
     self.assertTrue(self.IsTextPresent("/tmp"))
-    self.assertTrue(self.IsTextPresent("Depth"))
+    self.assertTrue(self.IsTextPresent("Max size"))
     self.assertTrue(self.IsTextPresent("42"))
 
     # Check that output plugins are shown.
     self.assertTrue(self.IsTextPresent("EmailPlugin"))
-    self.assertTrue(self.IsTextPresent("test@grrserver.com"))
-    self.assertTrue(self.IsTextPresent("CollectionPlugin"))
+    self.assertTrue(self.IsTextPresent("test@%s" %
+                                       config_lib.CONFIG["Logging.domain"]))
 
     # Check that rules summary is present.
     self.assertTrue(self.IsTextPresent("Regex rules"))
@@ -395,9 +390,9 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.WaitUntil(self.IsTextPresent, "CreateGenericHuntFlow")
     self.WaitUntil(self.IsTextPresent, "Flow args")
 
-    self.assertTrue(self.IsTextPresent("Pathspec"))
+    self.assertTrue(self.IsTextPresent("Paths"))
     self.assertTrue(self.IsTextPresent("/tmp"))
-    self.assertTrue(self.IsTextPresent("Depth"))
+    self.assertTrue(self.IsTextPresent("Max size"))
     self.assertTrue(self.IsTextPresent("42"))
 
   def testStuckCronJobIsHighlighted(self):

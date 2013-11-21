@@ -403,6 +403,16 @@ class WindowsRunKeys(Artifact):
                        r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce\*"]})]
 
 
+class WindowsPersistenceMechanisms(Artifact):
+  """Collect persistence mechanisms."""
+  LABELS = ["Software"]
+  SUPPORTED_OS = ["Windows"]
+
+  Collector(action="CollectArtifacts",
+            args={"artifact_list": ["WindowsRunKeys"]},
+            returned_types=["StatEntry"])
+
+
 ################################################################################
 #  User Artifacts
 ################################################################################

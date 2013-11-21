@@ -360,7 +360,6 @@ class AccessControlTest(test_lib.GRRBaseTest):
 
   def testBreakGlass(self):
     """Test the breakglass mechanism."""
-
     client_id = rdfvalue.ClientURN("C.%016X" % 0)
     urn = client_id.Add("/fs/os/c")
 
@@ -376,10 +375,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
       email["subject"] = subject
       email["message"] = message
 
-    old_email = email_alerts.SendEmail
-    email_alerts.SendEmail = SendEmail
-
-    try:
+    with test_lib.Stubber(email_alerts, "SendEmail", SendEmail):
       flow.GRRFlow.StartFlow(
           client_id=client_id, flow_name="BreakGlassGrantClientApprovalFlow",
           token=self.token, reason=self.token.reason)
@@ -395,8 +391,6 @@ class AccessControlTest(test_lib.GRRBaseTest):
                        config_lib.CONFIG["Monitoring.emergency_access_email"])
       self.assert_(self.token.username in email["message"])
       self.assertEqual(email["from_user"], self.token.username)
-    finally:
-      email_alerts.SendEmail = old_email
 
     # Make sure the token is tagged as an emergency token:
     self.assertEqual(self.token.is_emergency, True)

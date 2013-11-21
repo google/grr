@@ -93,6 +93,7 @@ class StatsServerInit(registry.InitHook):
     # Figure out which port to use.
     port = config_lib.CONFIG["Monitoring.http_port"]
     if port != 0:
+      logging.info("Starting monitoring server on port %d.", port)
       # pylint: disable=g-import-not-at-top
       from grr.lib import local as local_overrides
       # pylint: enable=g-import-not-at-top
@@ -103,4 +104,5 @@ class StatsServerInit(registry.InitHook):
         stats_server = StatsServer(port)
 
       stats_server.Start()
-      logging.info("Monitoring Server started on port %d.", port)
+    else:
+      logging.info("Monitoring server disabled.")

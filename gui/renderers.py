@@ -14,7 +14,6 @@ import traceback
 
 from django import http
 from django import template
-from django.core import context_processors
 
 import logging
 
@@ -309,21 +308,20 @@ class TemplateRenderer(Renderer):
     if apply_template is None:
       apply_template = self.layout_template
 
-    csrf_token = context_processors.csrf(request)
-
     return self.RenderFromTemplate(apply_template, response,
                                    this=self, id=self.id, unique=self.unique,
-                                   renderer=self.__class__.__name__,
-                                   **csrf_token)
+                                   renderer=self.__class__.__name__)
 
   def RenderAjax(self, request, response):
     return TemplateRenderer.Layout(self, request, response,
                                    apply_template=self.ajax_template)
 
-  def RawHTML(self, request=None, **kwargs):
+  def RawHTML(self, request=None, method=None, **kwargs):
     """This returns raw HTML, after sanitization by Layout()."""
+    if method is None:
+      method = self.Layout
     result = http.HttpResponse(mimetype="text/html")
-    self.Layout(request, result, **kwargs)
+    method(request, result, **kwargs)
     return result.content
 
 
@@ -723,12 +721,12 @@ grr.grrTree("{{ renderer|escapejs }}", "{{ id|escapejs }}",
 
     # All derived classes to populate the branch
     self.RenderBranch(path, request)
-    for name, icon, behaviour in self._elements:
+    for name, friendly_name, icon, behaviour in self._elements:
       if name:
         fullpath = os.path.join(path, name)
         if fullpath in self.hidden_branches:
           continue
-        data = dict(data=dict(title=name, icon=icon),
+        data = dict(data=dict(title=friendly_name, icon=icon),
                     attr=dict(id=DeriveIDFromPath(fullpath),
                               path=fullpath))
         if behaviour == "branch":
@@ -748,12 +746,15 @@ grr.grrTree("{{ renderer|escapejs }}", "{{ id|escapejs }}",
         data=result, message=self.message, id=self.id)),
                              mimetype="text/json")
 
-  def AddElement(self, name, behaviour="branch", icon=None):
+  def AddElement(self, name, behaviour="branch", icon=None, friendly_name=None):
     """This should be called by the RenderBranch method to prepare the tree."""
     if icon is None:
       icon = behaviour
 
-    self._elements.append((name, icon, behaviour))
+    if friendly_name is None:
+      friendly_name = name
+
+    self._elements.append((name, friendly_name, icon, behaviour))
     self._element_index.add(name)
 
   def __contains__(self, other):

@@ -4,6 +4,7 @@
 
 
 from grr.lib import rdfvalue
+from grr.lib import test_lib
 from grr.lib.rdfvalues import flows
 from grr.lib.rdfvalues import test_base
 
@@ -43,3 +44,31 @@ class FlowStateTest(test_base.RDFValueTestCase):
     # context and teststate
     self.assertEqual(len(new_state), 2)
     self.assertEqual(len(new_state.context), 1)
+
+  def testBadPickle(self):
+    """Test that we can recover some of the bad pickle."""
+    state = rdfvalue.FlowState()
+    # Store an instance of a RDFURN here.
+    state.Register("urn", rdfvalue.RDFURN("aff4:/"))
+
+    serialized = state.SerializeToString()
+
+    # Substitute the class with something entirely different.
+    with test_lib.Stubber(rdfvalue, "RDFURN", None):
+      # We now should not be able to restore the state normally since we can not
+      # find the RDFURN instance.
+      result = rdfvalue.FlowState(serialized)
+
+      # The pickle error should be available here.
+      self.assertTrue(isinstance(result.errors, TypeError))
+
+      # The bad field should be replaced with an UnknownObject instance.
+      self.assertTrue(isinstance(result.urn, flows.UnknownObject))
+
+      # Missing attribute is a different kind of error, but this is still
+      # trapped.
+      del rdfvalue.RDFURN
+
+      result = rdfvalue.FlowState(serialized)
+      self.assertTrue(isinstance(result.errors, AttributeError))
+      self.assertTrue(isinstance(result.urn, flows.UnknownObject))

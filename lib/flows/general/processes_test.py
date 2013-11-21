@@ -43,7 +43,7 @@ class ListProcessesMock(test_lib.ActionMock):
 
   def __init__(self, processes_list):
     super(ListProcessesMock, self).__init__("TransferBuffer", "StatFile",
-                                            "HashBuffer")
+                                            "Find", "HashBuffer", "HashFile")
     self.processes_list = processes_list
 
   def ListProcesses(self, _):
@@ -68,9 +68,10 @@ class GetProcessesBinariesTest(test_lib.FlowTestsBaseclass):
         token=self.token, output=output_path):
       pass
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
-                           token=self.token)
-    self.assertEqual(len(fd), 0)
+    # No file created since no output matched.
+    with self.assertRaises(IOError):
+      aff4.FACTORY.Open(self.client_id.Add(output_path),
+                        aff4_type="RDFValueCollection", token=self.token)
 
   def testFetchesAndStoresBinary(self):
     process = rdfvalue.Process(
@@ -90,10 +91,10 @@ class GetProcessesBinariesTest(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
                            token=self.token)
-    summaries = list(fd)
-    self.assertEqual(len(summaries), 1)
-    self.assertEqual(summaries[0].stat.pathspec.path, process.exe)
-    self.assertEqual(summaries[0].stat.st_size, os.stat(process.exe).st_size)
+    binaries = list(fd)
+    self.assertEqual(len(binaries), 1)
+    self.assertEqual(binaries[0].pathspec.path, process.exe)
+    self.assertEqual(binaries[0].st_size, os.stat(process.exe).st_size)
 
   def testDoesNotFetchDuplicates(self):
     process1 = rdfvalue.Process(
@@ -147,9 +148,9 @@ class GetProcessesBinariesTest(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
                            token=self.token)
-    summaries = list(fd)
-    self.assertEqual(len(summaries), 1)
-    self.assertEqual(summaries[0].stat.pathspec.path, process1.exe)
+    binaries = list(fd)
+    self.assertEqual(len(binaries), 1)
+    self.assertEqual(binaries[0].pathspec.path, process1.exe)
 
 
 class VolatilityActionMock(test_lib.ActionMock):
@@ -157,7 +158,7 @@ class VolatilityActionMock(test_lib.ActionMock):
 
   def __init__(self, processes_list):
     super(VolatilityActionMock, self).__init__("TransferBuffer", "StatFile",
-                                               "HashBuffer")
+                                               "Find", "HashBuffer", "HashFile")
     self.processes_list = processes_list
 
   def VolatilityAction(self, _):
@@ -209,16 +210,17 @@ class GetProcessesBinariesVolatilityTest(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
                            token=self.token)
+
     # Sorting output collection to make the test deterministic
-    summaries = sorted(fd, key=lambda x: x.urn)
+    binaries = sorted(fd, key=lambda x: x.aff4path)
 
-    self.assertEqual(len(summaries), 2)
+    self.assertEqual(len(binaries), 2)
 
-    self.assertEqual(summaries[0].stat.pathspec.path, process1_exe)
-    self.assertEqual(summaries[0].stat.st_size, os.stat(process1_exe).st_size)
+    self.assertEqual(binaries[0].pathspec.path, process1_exe)
+    self.assertEqual(binaries[0].st_size, os.stat(process1_exe).st_size)
 
-    self.assertEqual(summaries[1].stat.pathspec.path, process2_exe)
-    self.assertEqual(summaries[1].stat.st_size, os.stat(process2_exe).st_size)
+    self.assertEqual(binaries[1].pathspec.path, process2_exe)
+    self.assertEqual(binaries[1].st_size, os.stat(process2_exe).st_size)
 
   def testDoesNotFetchDuplicates(self):
     process_exe = os.path.join(self.base_path, "test_img.dd")
@@ -235,11 +237,11 @@ class GetProcessesBinariesVolatilityTest(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
                            token=self.token)
-    summaries = list(fd)
+    binaries = list(fd)
 
-    self.assertEqual(len(summaries), 1)
-    self.assertEqual(summaries[0].stat.pathspec.path, process_exe)
-    self.assertEqual(summaries[0].stat.st_size, os.stat(process_exe).st_size)
+    self.assertEqual(len(binaries), 1)
+    self.assertEqual(binaries[0].pathspec.path, process_exe)
+    self.assertEqual(binaries[0].st_size, os.stat(process_exe).st_size)
 
   def testFiltersOutBinariesUsingRegex(self):
     process1_exe = os.path.join(self.base_path, "test_img.dd")
@@ -259,11 +261,11 @@ class GetProcessesBinariesVolatilityTest(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
                            token=self.token)
-    summaries = list(fd)
+    binaries = list(fd)
 
-    self.assertEqual(len(summaries), 1)
-    self.assertEqual(summaries[0].stat.pathspec.path, process1_exe)
-    self.assertEqual(summaries[0].stat.st_size, os.stat(process1_exe).st_size)
+    self.assertEqual(len(binaries), 1)
+    self.assertEqual(binaries[0].pathspec.path, process1_exe)
+    self.assertEqual(binaries[0].st_size, os.stat(process1_exe).st_size)
 
   def testIgnoresMissingFiles(self):
     process1_exe = os.path.join(self.base_path, "test_img.dd")
@@ -283,7 +285,7 @@ class GetProcessesBinariesVolatilityTest(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
                            token=self.token)
-    summaries = list(fd)
-    self.assertEqual(len(summaries), 1)
-    self.assertEqual(summaries[0].stat.pathspec.path, process1_exe)
-    self.assertEqual(summaries[0].stat.st_size, os.stat(process1_exe).st_size)
+    binaries = list(fd)
+    self.assertEqual(len(binaries), 1)
+    self.assertEqual(binaries[0].pathspec.path, process1_exe)
+    self.assertEqual(binaries[0].st_size, os.stat(process1_exe).st_size)

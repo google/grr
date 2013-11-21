@@ -2,7 +2,6 @@
 """Flows for handling the collection for artifacts."""
 
 import re
-import time
 
 import logging
 
@@ -98,6 +97,10 @@ class BootStrapKnowledgeBaseFlow(flow.GRRFlow):
 class ArtifactCollectorFlowArgs(rdfvalue.RDFProtoStruct):
   protobuf = flows_pb2.ArtifactCollectorFlowArgs
 
+  def Validate(self):
+    if not self.artifact_list:
+      raise ValueError("No artifacts to collect.")
+
 
 class ArtifactCollectorFlow(flow.GRRFlow):
   """Flow that takes a list of artifacts and collects them.
@@ -133,8 +136,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   args_type = ArtifactCollectorFlowArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler(next_state=["ProcessCollected", "ProcessRegistryValue",
-                                 "ProcessBootstrap"])
+  @flow.StateHandler(next_state=["StartCollection"])
   def Start(self):
     """For each artifact, create subflows for each collector."""
     self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -151,15 +153,35 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     else:
       self.state.Register("path_type", rdfvalue.PathSpec.PathType.OS)
 
-    output = self.args.output.format(t=time.time(), u=self.state.context.user)
-    self.state.Register("output_urn", self.client_id.Add(output))
-
     if not self.state.knowledge_base:
       # If not provided, get a knowledge base from the client.
-      self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(self.client)
+      try:
+        self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
+            self.client)
+      except artifact_lib.KnowledgeBaseUninitializedError:
+        # If no-one has ever initialized the knowledge base, we should do so
+        # now.
+        if not self._AreArtifactsKnowledgeBaseArtifacts():
+          self.CallFlow("KnowledgeBaseInitializationFlow",
+                        next_state="StartCollection")
+          return
 
-    if not self.args.artifact_list:
-      raise flow.FlowError("No artifacts to collect")
+    # In all other cases start the collection state.
+    self.CallState(next_state="StartCollection")
+
+  @flow.StateHandler(next_state=["ProcessCollected", "ProcessRegistryValue",
+                                 "ProcessBootstrap"])
+  def StartCollection(self, responses):
+    """Start collecting."""
+    if not responses.success:
+      raise artifact_lib.KnowledgeBaseUninitializedError(
+          "Attempt to initialize Knowledge Base failed.")
+    else:
+      if not self.state.knowledge_base:
+        self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
+        # If we are processing the knowledge base, it still won't exist yet.
+        self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
+            self.client, allow_uninitialized=True)
 
     for cls_name in self.args.artifact_list:
       artifact_cls = self._GetArtifactClassFromName(cls_name)
@@ -186,7 +208,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     for condition in test_conditions:
       if not condition(self.state.knowledge_base):
         logging.debug("Artifact %s condition %s failed on %s",
-                      artifact_name, condition.func_name, self.client.client_id)
+                      artifact_name, condition.func_name, self.client_id)
         self.state.artifacts_skipped_due_to_condition.append(
             (artifact_name, condition.func_name))
         return
@@ -199,28 +221,42 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         # Can't do anything with a bootstrap action.
         pass
       elif action_name == "RunCommand":
-        self.RunCommand(**collector.args)
+        self.RunCommand(collector)
       elif action_name == "GetFile":
-        self.GetFile(path_type=self.state.path_type, **collector.args)
+        self.GetFiles(collector, path_type=self.state.path_type)
       elif action_name == "GetFiles":
-        self.GetFiles(path_type=self.state.path_type, **collector.args)
+        self.GetFiles(collector, path_type=self.state.path_type)
       elif action_name == "GetRegistryKeys":
-        self.GetRegistry(path_list=collector.args["path_list"])
+        self.GetRegistry(collector)
       elif action_name == "GetRegistryValue":
-        self.GetRegistryValue(path=collector.args["path"])
+        self.GetRegistryValue(collector)
       elif action_name == "GetRegistryValues":
-        self.GetRegistryValue(path=collector.args["paths"])
+        self.GetRegistryValue(collector)
       elif action_name == "WMIQuery":
-        self.WMIQuery(**collector.args)
+        self.WMIQuery(collector)
+      elif action_name == "VolatilityPlugin":
+        self.VolatilityPlugin(collector)
+      elif action_name == "CollectArtifacts":
+        self.CollectArtifacts(collector)
       elif action_name == "RunGrrClientAction":
-        self.RunGrrClientAction(collector.args["client_action"],
-                                collector.args.get("action_args", {}))
+        self.RunGrrClientAction(collector)
       else:
         raise RuntimeError("Invalid action %s in %s" % (action_name,
                                                         artifact_name))
 
-  def GetFiles(self, path_list, path_type):
+  def _AreArtifactsKnowledgeBaseArtifacts(self):
+    for cls_name in self.args.artifact_list:
+      artifact_cls = self._GetArtifactClassFromName(cls_name)
+      if "KnowledgeBase" not in artifact_cls.LABELS:
+        return False
+    return True
+
+  def GetFiles(self, collector, path_type):
     """Get a set of files."""
+    if collector.action == "GetFile":
+      path_list = [collector.args["path"]]
+    elif collector.action == "GetFiles":
+      path_list = collector.args["path_list"]
     new_path_list = []
     for path in path_list:
       # Interpolate any attributes from the knowledgebase.
@@ -228,19 +264,16 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           path, self.state.knowledge_base))
 
     self.CallFlow(
-        "GlobAndDownload", paths=new_path_list, pathtype=path_type,
-        request_data={"artifact_name": self.current_artifact_name},
+        "FetchFiles", paths=new_path_list, pathtype=path_type,
+        request_data={"artifact_name": self.current_artifact_name,
+                      "collector": collector.ToDict()},
         next_state="ProcessCollected"
         )
 
-  def GetFile(self, path, path_type):
-    """Convenience shortcut to GetFiles to get a single file path."""
-    self.GetFiles([path], path_type=path_type)
-
-  def GetRegistry(self, path_list):
+  def GetRegistry(self, collector):
     """Retrieve globbed registry values, returning Stat objects."""
     new_path_list = []
-    for path in path_list:
+    for path in collector.args["path_list"]:
       # Interpolate any attributes from the knowledgebase.
       new_path_list.extend(artifact_lib.InterpolateKbAttributes(
           path, self.state.knowledge_base))
@@ -248,48 +281,93 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.CallFlow(
         "Glob", paths=new_path_list,
         pathtype=rdfvalue.PathSpec.PathType.REGISTRY,
-        request_data={"artifact_name": self.current_artifact_name},
+        request_data={"artifact_name": self.current_artifact_name,
+                      "collector": collector.ToDict()},
         next_state="ProcessCollected"
         )
 
-  def GetRegistryValue(self, path):
+  def GetRegistryValue(self, collector):
     """Retrieve directly specified registry values, returning Stat objects."""
-    paths = artifact_lib.InterpolateKbAttributes(path,
-                                                 self.state.knowledge_base)
-    for new_path in paths:
+    if collector.action == "GetRegistryValue":
+      path_list = [collector.args["path"]]
+    elif collector.action == "GetRegistryValues":
+      path_list = collector.args["path_list"]
+
+    new_paths = set()
+    for path in path_list:
+      expanded_paths = artifact_lib.InterpolateKbAttributes(
+          path, self.state.knowledge_base)
+      new_paths.update(expanded_paths)
+
+    for new_path in new_paths:
       pathspec = rdfvalue.PathSpec(path=new_path,
                                    pathtype=rdfvalue.PathSpec.PathType.REGISTRY)
       self.CallClient(
           "StatFile", pathspec=pathspec,
-          request_data={"artifact_name": self.current_artifact_name},
+          request_data={"artifact_name": self.current_artifact_name,
+                        "collector": collector.ToDict()},
           next_state="ProcessRegistryValue"
           )
 
-  def RunCommand(self, cmd, args):
+  def CollectArtifacts(self, collector):
+    self.CallFlow(
+        "ArtifactCollectorFlow", artifact_list=collector.args["artifact_list"],
+        store_results_in_aff4=False,
+        request_data={"artifact_name": self.current_artifact_name,
+                      "collector": collector.ToDict()},
+        next_state="ProcessCollected"
+        )
+
+  def RunCommand(self, collector):
     """Run a command."""
-    self.CallClient("ExecuteCommand", cmd=cmd, args=args,
-                    request_data={"artifact_name": self.current_artifact_name},
+    self.CallClient("ExecuteCommand", cmd=collector.args["cmd"],
+                    args=collector.args.get("args", {}),
+                    request_data={"artifact_name": self.current_artifact_name,
+                                  "collector": collector.ToDict()},
                     next_state="ProcessCollected")
 
-  def WMIQuery(self, query):
+  def WMIQuery(self, collector):
     """Run a Windows WMI Query."""
+    query = collector.args["query"]
     queries = artifact_lib.InterpolateKbAttributes(query,
                                                    self.state.knowledge_base)
     for query in queries:
       self.CallClient(
           "WmiQuery", query=query,
           request_data={"artifact_name": self.current_artifact_name,
-                        "query": query},
+                        "collector": collector.ToDict()},
           next_state="ProcessCollected"
           )
 
-  def RunGrrClientAction(self, client_action, action_args):
+  def VolatilityPlugin(self, collector):
+    """Run a Volatility Plugin."""
+    new_args = {}
+    for k, v in collector.args["args"]:  # Interpolate string attrs into args.
+      if isinstance(v, basestring):
+        new_args[k] = artifact_lib.InterpolateKbAttributes(
+            v, self.state.knowledge_base)
+      else:
+        new_args[k] = v
+
+    request = rdfvalue.VolatilityRequest()
+    request.args[collector.args["plugin"]] = new_args
+
+    self.CallFlow(
+        "AnalyzeClientMemory", request=request,
+        request_data={"artifact_name": self.current_artifact_name,
+                      "vol_plugin": collector.args["plugin"],
+                      "collector": collector.ToDict()},
+        next_state="ProcessCollected"
+        )
+
+  def RunGrrClientAction(self, collector):
     """Call a GRR Client Action."""
     self.CallClient(
-        client_action,
-        request_data={"artifact_name": self.current_artifact_name},
+        collector.args["client_action"],
+        request_data={"artifact_name": self.current_artifact_name,
+                      "collector": collector.ToDict()},
         next_state="ProcessCollected",
-        **action_args
+        **collector.args.get("action_args", {})
         )
 
   @flow.StateHandler(next_state="ProcessCollected")
@@ -318,6 +396,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     """
     flow_name = self.__class__.__name__
     artifact_cls_name = responses.request_data["artifact_name"]
+    collector = responses.request_data.GetItem("collector", None)
+
     if responses.success:
       self.Log("Artifact data collection %s completed successfully in flow %s "
                "with %d responses", artifact_cls_name, flow_name,
@@ -331,16 +411,16 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       return
 
     # Initialize some local non-state saved variables for processing.
-    if self.args.output:
+    if self.runner.output:
       if self.args.split_output_by_artifact:
         self.output_collection_map = {}
-      else:
-        self.output_collection = None
+
     if self.args.store_results_in_aff4:
       self.aff4_output_map = {}
 
     # Now process the responses.
     processors = parsers.Parser.GetClassesByArtifact(artifact_cls_name)
+    artifact_return_types = self._GetArtifactReturnTypes(collector)
     saved_responses = {}
     for response in responses:
       if processors:
@@ -352,28 +432,35 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           else:
             # Process the response immediately
             self._ParseResponses(processor_obj, response, responses,
-                                 artifact_cls_name)
+                                 artifact_cls_name, collector)
       else:
         # We don't have any defined processors for this artifact, we treat it
         # like a dumb collection and send results back directly.
-        self.SendReply(response)
-        if self.args.output:
-          self._WriteResultToCollection(response, artifact_cls_name)
+        response_type = response.__class__.__name__
+        if not artifact_return_types or response_type in artifact_return_types:
+          self.SendReply(response)
+          if self.runner.output:
+            self._WriteResultToCollection(response, artifact_cls_name)
 
     # If we were saving responses, process them now:
     for processor_name, responses_list in saved_responses.items():
       processor_obj = parsers.Parser.classes[processor_name]()
       self._ParseResponses(processor_obj, responses_list, responses,
-                           artifact_cls_name)
+                           artifact_cls_name, collector)
 
     # Flush the results to the objects.
-    if self.args.output:
+    if self.runner.output:
       self._FinalizeCollection(artifact_cls_name)
     if self.args.store_results_in_aff4:
       self._FinalizeMappedAFF4Locations(artifact_cls_name)
 
+  def _GetArtifactReturnTypes(self, collector):
+    """Get a list of types we expect to handle from our responses."""
+    if collector:
+      return collector["returned_types"]
+
   def _ParseResponses(self, processor_obj, responses, responses_obj,
-                      artifact_name):
+                      artifact_name, collector):
     """Create a result parser sending different arguments for diff parsers.
 
     Args:
@@ -382,11 +469,24 @@ class ArtifactCollectorFlow(flow.GRRFlow):
          process_together setting.
       responses_obj: The responses object itself.
       artifact_name: Name of the artifact that generated the responses.
+      collector: The collector responsible for producing the responses.
+
+    Raises:
+      RuntimeError: On bad parser.
     """
-    if not processor_obj.process_together:
-      response = responses   # There is a single response.
+    if processor_obj.process_together:
+      # We are processing things in a group which requires specialized
+      # handling by the parser. This is used when multiple responses need to
+      # be combined to parse successfully. E.g parsing passwd and shadow files
+      # together.
+      parse_method = processor_obj.ParseMultiple
+    else:
+      parse_method = processor_obj.Parse
+
     if isinstance(processor_obj, parsers.CommandParser):
-      result_parser = processor_obj.Parse(
+      # Command processor only supports one response at a time.
+      response = responses
+      result_parser = parse_method(
           cmd=response.request.cmd,
           args=response.request.args,
           stdout=response.stdout,
@@ -396,49 +496,45 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           knowledge_base=self.state.knowledge_base)
 
     elif isinstance(processor_obj, parsers.WMIQueryParser):
-      result_parser = processor_obj.Parse(responses_obj.request_data["query"],
-                                          responses,
-                                          self.state.knowledge_base)
+      query = collector["args"]["query"]
+      result_parser = parse_method(query, responses, self.state.knowledge_base)
 
-    elif isinstance(processor_obj, parsers.RegistryValueParser):
-      result_parser = processor_obj.Parse(response,
-                                          self.state.knowledge_base)
+    elif isinstance(processor_obj, (parsers.RegistryParser,
+                                    parsers.VolatilityPluginParser,
+                                    parsers.RegistryValueParser)):
+      result_parser = parse_method(responses, self.state.knowledge_base)
 
-    elif isinstance(processor_obj, parsers.RegistryParser):
-      if processor_obj.process_together:
-        result_parser = processor_obj.ParseMultiple(
-            responses, self.state.knowledge_base)
-      else:
-        result_parser = processor_obj.Parse(
-            responses, self.state.knowledge_base)
+    else:
+      raise RuntimeError("Unsupported parser detected %s" % processor_obj)
+
+    artifact_return_types = self._GetArtifactReturnTypes(collector)
 
     if result_parser:
       # If we have a parser, do something with the results it produces.
       for result in result_parser:
-        self.SendReply(result)    # Send to parent.
-        if self.args.output:
-          # Output is set, we need to write to a collection.
-          self._WriteResultToCollection(result, artifact_name)
-        if self.args.store_results_in_aff4:
-          # Write our result back to a mapped location in AFF4 space.
-          self._WriteResultToMappedAFF4Location(result)
+        result_type = result.__class__.__name__
+        if not artifact_return_types or result_type in artifact_return_types:
+          self.SendReply(result)    # Send to parent.
+          if self.runner.output:
+            # Output is set, we need to write to a collection.
+            self._WriteResultToCollection(result, artifact_name)
+          if self.args.store_results_in_aff4:
+            # Write our result back to a mapped location in AFF4 space.
+            self._WriteResultToMappedAFF4Location(result)
 
   def _WriteResultToCollection(self, result, artifact_name):
     """Write any results to the collection."""
     if self.args.split_output_by_artifact:
       if artifact_name not in self.output_collection_map:
-        urn = self.state.output_urn.Add(artifact_name)
+        urn = self.runner.output.urn.Add(artifact_name)
         collection = aff4.FACTORY.Create(urn, "RDFValueCollection", mode="rw",
                                          token=self.token)
         # Cache the opened object.
         self.output_collection_map[artifact_name] = collection
       self.output_collection_map[artifact_name].Add(result)
     else:
-      if not self.output_collection:
-        self.output_collection = aff4.FACTORY.Create(
-            self.state.output_urn, "RDFValueCollection", mode="rw",
-            token=self.token)
-      self.output_collection.Add(result)
+      # If not split the SendReply handling will take care of collection adding.
+      pass
 
   def _FinalizeCollection(self, artifact_name):
     """Finalize writes to the Collection."""
@@ -448,11 +544,12 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         total += len(collection)
         collection.Flush()
     else:
-      if self.output_collection:
-        self.output_collection.Flush()
-        total += len(self.output_collection)
+      if self.runner.output:
+        self.runner.output.Flush()
+        total += len(self.runner.output)
+
     self.Log("Wrote results from Artifact %s to %s. Collection size %d.",
-             artifact_name, self.state.output_urn, total)
+             artifact_name, self.runner.output.urn, total)
 
   def _WriteResultToMappedAFF4Location(self, result):
     """If we have a mapping for this result type, write it there."""
@@ -524,8 +621,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def End(self):
-    if self.args.output:
-      urn = self.state.output_urn
+    if self.runner.output:
+      urn = self.runner.output.urn
     else:
       urn = self.client_id
     self.Notify("ViewObject", urn,

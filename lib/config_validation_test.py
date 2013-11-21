@@ -22,8 +22,8 @@ def ValidateConfig(config_file=None):
   if isinstance(config_file, config_lib.GrrConfigManager):
     conf_obj = config_file
   else:
-    conf_obj = config_lib.CONFIG.MakeNewConfig()
-    conf_obj.Initialize(config_file)
+    conf_obj = config_lib.CONFIG
+    conf_obj.Initialize(config_file, reset=True)
 
   all_sections = conf_obj.GetSections()
   errors = conf_obj.Validate(sections=all_sections)

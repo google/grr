@@ -55,7 +55,7 @@ message GUISettings {
 
 
 message FlowRunnerArgs {
-  // Next field ID: 15
+  // Next field ID: 17
 
   optional GrrMessage.Priority priority = 1 [(sem_type) = {
       description: "The priority used for this flow.",
@@ -134,6 +134,18 @@ message FlowRunnerArgs {
       "If not specified we make one.",
       label: HIDDEN,
     }];
+
+  optional uint64 start_time = 15 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Do not process this flow until this time. "
+      "(Implies the flow is run asyncronously.).",
+      label: ADVANCED
+    }];
+
+  optional string output = 16 [(sem_type) = {
+      description: "If set, a relative URN to the client's namespace where "
+      "a collection will be created, and the result will be written to."
+    }, default="analysis/{p}/{u}-{t}"];
 }
 
 
@@ -204,6 +216,10 @@ message HuntRunnerArgs {
       friendly_name: "Expiry Time",
     }, default=2678400];
 
+  optional float client_rate = 12 [(sem_type) = {
+      description: "The maximum number of clients to engage per minute."
+      "A rate of 0 means to schedule clients as fast as possible."
+    }, default=20];
 };
 
 
@@ -294,6 +310,7 @@ message GenericHuntArgs {
   repeated OutputPlugin output_plugins = 4 [(sem_type) = {
       description: "The output plugins to use for this hunt.",
     }];
+
 }
 
 
@@ -343,14 +360,14 @@ message BareGrepSpec {
       "hit on our own process. This allows us to obfuscate the search "
       "string in memory to avoid us finding ourselves.",
       label: ADVANCED
-    }, default = 0];
+    }, default = 37];
 
   optional uint32 xor_out_key = 10 [(sem_type) = {
       description: "When searching memory we need to ensure we dont "
       "hit on our own process. This allows us to obfuscate the search "
       "string in memory to avoid us finding ourselves.",
       label: ADVANCED
-    }, default = 0];
+    }, default = 57];
 }
 
 
@@ -497,11 +514,6 @@ message ArtifactCollectorFlowArgs {
       "AFF4 namespace based on the AFF4->RDF map.",
     }, default=true];
 
-  optional string output = 4 [(sem_type) = {
-      description: "If set, a relative URN to write each result to. This "
-      "will create the collection if it does not exist."
-    }, default="analysis/artifact/{u}-{t}"];
-
   optional bool split_output_by_artifact = 5 [(sem_type) = {
       description: "If True, use output as a directory and write a separate"
       " collection for each artifact collected."
@@ -520,58 +532,39 @@ message InterrogateArgs {
     }, default=false];
 }
 
-
-message FetchAllFilesArgs {
-  optional FindSpec findspec = 1 [(sem_type) = {
-      description: "Which files to search for. The default is to search "
-      "the entire system for files with an executable extension."
-    }];
-
-  optional uint64 iteration_count = 2 [(sem_type) = {
-      description: "Files examined per iteration before reporting back to "
-      "the server. Should be large enough to make the  roundtrip to the "
-      "server worthwhile."
-    }, default=10000];
-
-  optional bool use_external_stores = 3 [(sem_type) = {
-      description: "If true, look in any defined external file stores for files"
-      "before downloading them, and offer any new files to external stores."
-      "This should be true unless the external checks are misbehaving.",
-      label: ADVANCED
-    }, default=true];
-}
-
-message FetchAllFilesGlobArgs {
+message FetchFilesArgs {
   repeated string paths = 1 [(sem_type) = {
       type: "GlobExpression",
       description: "A path to glob that can contain %% "
-      "expansions",
+      "expansions. For example '%%KnowledgeBase.environ_windir%%\notepad.*'",
     }];
 
   optional PathSpec.PathType pathtype = 2 [(sem_type) = {
       description: "Type of access to glob in.",
+    }, default=OS];
+
+  optional FindSpec findspec = 4 [(sem_type) = {
+      description: "Which files to search for. The default is to search "
+      "the entire system for files with an executable extension.",
+      label: ADVANCED
     }];
 
   optional bool use_external_stores = 3 [(sem_type) = {
-      description: "If true, look in any defined external file stores for files"
-      "before downloading them, and offer any new files to external stores."
-      "This should be true unless the external checks are misbehaving.",
+      description: "If true, look in any defined external file stores for "
+      "files before downloading them, and offer any new files to external "
+      "stores. This should be true unless the external checks are misbehaving.",
       label: ADVANCED
     }, default=true];
+
+  optional uint64 max_size = 5 [(sem_type) = {
+      type: "ByteSize",
+      description: "The maximum size of files we will download.",
+    }, default=100000000];
 }
 
 message FingerprintFileArgs {
   optional PathSpec pathspec = 1 [(sem_type) = {
       description: "The file path to fingerprint.",
-    }];
-}
-
-message ImageMemoryArgs {
-  optional DriverInstallTemplate driver_installer = 1 [(sem_type) = {
-      description: "An optional DriverInstallTemplate proto to control "
-      "driver installation. If not set, the default  installation proto will "
-      "be used.",
-      label: HIDDEN
     }];
 }
 
@@ -598,6 +591,18 @@ message DownloadMemoryImageArgs {
   optional bool gzip = 4 [(sem_type) = {
       description: "Gzip temporary image file on the client.",
       label: ADVANCED
+    }, default=true];
+
+  optional DriverInstallTemplate driver_installer = 5 [(sem_type) = {
+      description: "An optional DriverInstallTemplate proto to control "
+      "driver installation. If not set, the default  installation proto will "
+      "be used.",
+      label: HIDDEN
+    }];
+
+  optional bool make_local_copy = 6 [(sem_type) = {
+      description: "Make a local copy of the memory on the client before "
+      "downloading."
     }, default=true];
 }
 
@@ -626,40 +631,26 @@ message AnalyzeClientMemoryArgs {
   optional VolatilityRequest request = 2 [(sem_type) = {
       description: "A request for the client's volatility subsystem.",
     }];
-
-  optional string output = 3 [(sem_type) = {
-      description: "The path to the output container for this flow. "
-      "Will be created under the client. supports format variables "
-      "{u}, {p} and {t} for user, plugin and time. E.g. /analysis/{p}/{u}-{t}."
-    }, default="analysis/{p}/{u}-{t}"];
-
 }
 
-message GrepMemoryArgs {
+message ScanMemoryArgs {
   option (semantic) = {
     description: "A grep specification which operates only on memory devices."
   };
 
-  optional BareGrepSpec request = 1 [(sem_type) = {
+  optional BareGrepSpec grep = 1 [(sem_type) = {
       description: "A grepspec for memory devices."
     }];
 
-  optional string output = 2 [(sem_type) = {
-      description: "The output collection.",
-    }, default="analysis/grep/{u}-{t}"];
+  optional bool also_download = 2 [(sem_type) = {
+      description: "If a match is found, image memory."
+    }];
 }
 
 message GetProcessesBinariesArgs {
-  optional string output = 1 [(sem_type) = {
-      description: "A path relative to the client to put the output.",
-    }, default="analysis/get-processes-binaries/{u}-{t}"];
 }
 
 message GetProcessesBinariesVolatilityArgs {
-  optional string output = 1 [(sem_type) = {
-      description: "A path relative to the client to put the output.",
-    }, default="analysis/get-processes-binaries/{u}-{t}"];
-
   optional string filename_regex = 2 [(sem_type) = {
       type: "RegularExpression",
       friendly_name: "Filename Regex",
@@ -672,11 +663,8 @@ message GetProcessesBinariesVolatilityArgs {
 message SophosCollectorArgs {
   optional PathSpec.PathType pathtype = 1 [(sem_type) = {
       description: "The requested path type.",
-    }];
+    }, default=OS];
 
-  optional string output = 2 [(sem_type) = {
-      description: "If set, a path relative to the client URN to store results."
-    }, default="analysis/sophos/{u}-{t}"];
 }
 
 message MACTimesArgs {
@@ -684,9 +672,6 @@ message MACTimesArgs {
       description: "An AFF path (relative to the client area of the VFS).",
     }, default="/fs/"];
 
-  optional string output = 2 [(sem_type) = {
-      description: "If set, a path relative to the client URN to store results."
-    }, default="analysis/mactimes/{u}-{t}"];
 }
 
 message FileCollectorArgs {
@@ -694,30 +679,12 @@ message FileCollectorArgs {
       description: "A list of find specifications.",
     }];
 
-  optional string output = 2 [(sem_type) = {
-      description: "If set, a path relative to the client URN to store results."
-    }, default="analysis/collector/{u}-{t}"];
-}
-
-message VolatilityPluginsArgs {
-  optional VolatilityRequest request = 1 [(sem_type) = {
-      description: "A request for the client's volatility subsystem.",
-    }];
-
-  optional string output = 2 [(sem_type) = {
-      description: "If set, a path relative to the client URN to store results."
-    }, default="analysis/{p}/{u}-{t}"];
-
-  repeated string plugins = 3 [(sem_type) = {
-      type: "VolatilityPlugin",
-      description: "A list of plugins to run.",
-    }];
 }
 
 message FirefoxHistoryArgs {
   optional PathSpec.PathType pathtype = 1 [(sem_type) = {
       description: "Type of path access to use."
-    }];
+    }, default=OS];
 
   optional bool get_archive = 2 [(sem_type) = {
       description: "Should we get Archived History as well (3 months old).",
@@ -728,10 +695,6 @@ message FirefoxHistoryArgs {
       "not set this will be used to guess the path to the "
       "history files. Can be in form DOMAIN\\user."
     }];
-
-  optional string output = 4 [(sem_type) = {
-      description: "If set, a path relative to the client URN to store results."
-    }, default="analysis/firefox-{u}-{t}"];
 
   optional string history_path = 5 [(sem_type) = {
       description: "Path to a profile directory that contains a History file.",
@@ -746,16 +709,12 @@ message CacheGrepArgs {
 
   optional PathSpec.PathType pathtype = 2 [(sem_type) = {
       description: "Type of path access to use."
-    }];
+    }, default=OS];
 
   optional string data_regex = 3 [(sem_type) = {
       type: "RegularExpression",
       description: "A regular expression to search for.",
     }];
-
-  optional string output = 4 [(sem_type) = {
-      description: "If set, a path relative to the client URN to store results."
-    }, default="analysis/CacheGrep/{u}-{t}"];
 
   optional bool check_chrome = 5 [(sem_type) = {
       description: "Check Chrome",
@@ -768,22 +727,6 @@ message CacheGrepArgs {
   optional bool check_ie = 7 [(sem_type) = {
       description: "Check Internet Explorer (Not implemented yet)",
     }, default=true];
-}
-
-
-message DownloadDirectoryArgs {
-  optional PathSpec pathspec = 1 [(sem_type) = {
-      description: "The pathspec for the directory to download.",
-    }];
-
-  optional uint64 depth = 2 [(sem_type) = {
-      description: "Maximum recursion depth.",
-    }, default=10];
-
-  optional bool ignore_errors = 3 [(sem_type) = {
-      description: "If True, we do not raise an error in the case"
-      "that a directory or file cannot be not found.",
-    }, default=false];
 }
 
 message ListDirectoryArgs {
@@ -811,10 +754,6 @@ message SlowGetFileArgs {
 
 message GrepArgs {
   optional GrepSpec request = 1;
-
-  optional string output = 2 [(sem_type) = {
-      description: "The output collection."
-    }, default="analysis/grep/{u}-{t}"];
 }
 
 message GlobArgs {
@@ -826,10 +765,10 @@ message GlobArgs {
 
   optional PathSpec.PathType pathtype = 2 [(sem_type) = {
       description: "Type of access to glob in.",
-    }];
+    }, default=OS];
 }
 
-message GlobAndGrepArgs {
+message SearchFileContentArgs {
   repeated string paths = 1 [(sem_type) = {
       type: "GlobExpression",
       description: "A path to glob that can contain %% "
@@ -838,25 +777,23 @@ message GlobAndGrepArgs {
 
   optional PathSpec.PathType pathtype = 2 [(sem_type) = {
       description: "Type of access to glob in.",
-    }];
+    }, default=OS];
 
   optional BareGrepSpec grep = 3 [(sem_type) = {
-      description: "The parameters for grep."
+      friendly_name: "Search parameters",
+      description: "Leave empty to match files by filename only."
+      "only."
     }];
 
-  optional string output = 4 [(sem_type) = {
-      description: "A path relative to the client to put the output.",
-    }, default="analysis/GlobAndGrep/{u}-{t}"];
+  optional bool also_download = 4 [(sem_type) = {
+      description: "If checked, also downloads the files that a hit was found."
+    }];
 }
 
 message FindFilesArgs {
   optional FindSpec findspec = 1 [(sem_type) = {
       description: "A find operation specification.",
     }];
-
-  optional string output = 2 [(sem_type) = {
-      description: "A path relative to the client to put the output.",
-    }, default="analysis/find/{u}-{t}"];
 
   optional uint64 max_results = 3 [(sem_type) = {
       description: "Maximum number of results to get.",
@@ -876,10 +813,16 @@ message GetFileArgs {
     }];
 
   optional uint64 read_length = 2 [(sem_type) = {
-      description:"The amount of data to read from the file. If 0 we use "
+      description: "The amount of data to read from the file. If 0 we use "
       "the value from a stat call.",
       label: ADVANCED
     }, default=0];
+
+  optional bool ignore_stat_failure = 3 [(sem_type) = {
+      description: "Ignore stat failures and try to read anyway. "
+      "Disable for windows devices.",
+      label: ADVANCED,
+    }];
 }
 
 
@@ -889,20 +832,11 @@ message GetMBRArgs {
     }, default=4096];
 }
 
-message FileDownloaderArgs {
-  repeated FindSpec findspecs = 1 [(sem_type) = {
-      description: "List of find specifications to search."
-    }];
-
-  repeated PathSpec pathspecs = 2 [(sem_type) = {
-      description: "List of path specifications to fetch."
-    }];
-}
 
 message ChromeHistoryArgs {
   optional PathSpec.PathType pathtype = 1 [(sem_type) = {
       description: "Type of path access to use."
-    }];
+    }, default=OS];
 
   optional bool get_archive = 2 [(sem_type) = {
       description: "Should we get Archived History as well (3 months old)."
@@ -912,11 +846,6 @@ message ChromeHistoryArgs {
       description: "The user to get Chrome history for. If history_path is "
       "not set this will be used to guess the path to the "
       "history files. Can be in form DOMAIN\\user.",
-    }];
-
-  optional string output = 4 [(sem_type) = {
-      description: "Path to a profile directory that contains a History "
-      "file.",
     }];
 
   optional string history_path = 5 [(sem_type) = {
@@ -1062,11 +991,6 @@ message PlistValueFilterArgs {
       description: "A request for the client to parse a plist file.",
     }];
 
-  optional string output = 3 [(sem_type) = {
-      description: "The path to the output container for this flow. "
-      "Will be created under the client. supports format variables "
-      "{u}, {p} and {t} for user, plugin and time. E.g. /analysis/{p}/{u}-{t}."
-    }, default="analysis/{p}/{u}-{t}"];
 }
 
 message RunReportFlowArgs {
@@ -1080,16 +1004,10 @@ message RunReportFlowArgs {
     }];
 }
 
-message EnumerateWindowsServicesArgs {
+message EnumerateServicesArgs {
   optional bool download_binaries = 1 [(sem_type) = {
       description: "If set, also downloads the binaries.",
     }, default=true];
-
-  optional string output = 2 [(sem_type) = {
-      description: "The path to the output container for this flow. "
-      "Will be created under the client. supports format variables "
-      "{u}, {p} and {t} for user, plugin and time. E.g. /analysis/{p}/{u}-{t}."
-    }, default="analysis/{p}/{u}-{t}"];
 
   optional PathSpec.PathType pathtype = 3 [(sem_type) = {
       description: "How to access the filesystem.",
@@ -1104,13 +1022,7 @@ message ChromePluginsArgs {
 
   optional PathSpec.PathType pathtype = 2 [(sem_type) = {
       description: "Access mode",
-    }];
-
-  optional string output = 3 [(sem_type) = {
-      description: "The path to the output container for this flow. "
-      "Will be created under the client. supports format variables "
-      "{u}, {p} and {t} for user, plugin and time. E.g. /analysis/{p}/{u}-{t}."
-    }, default="analysis/{p}/{u}-{t}"];
+    }, default=OS];
 
   optional string username = 4 [(sem_type) = {
       description: "The user to get Chrome extensions for.",
@@ -1213,7 +1125,7 @@ message UpdateVFSFileArgs {
     }, default="aff4:contains"];
 }
 
-message FastGetFileTestFlowArgs {
+message MultiGetFileTestFlowArgs {
   optional uint64 file_limit = 1 [(sem_type) = {
       description: "The number of files to retrieve.",
     }, default=3];
@@ -1229,4 +1141,19 @@ message MultiGetFileArgs {
       "This should be true unless the external checks are misbehaving.",
       label: ADVANCED
     }, default=true];
+}
+
+message ProcessHuntResultsCronFlowArgs {
+  optional uint64 batch_size = 1 [(sem_type) = {
+      description: "Results will be processed by output plugins in batches "
+      "of this size.",
+      label: ADVANCED
+    }];
+  optional uint64 max_running_time = 2 [(sem_type) = {
+      type: "Duration",
+      description: "ProcessHuntResultsCronFlow will run not much longer than "
+      "max_running_time. It will finish (without an error) even if there are "
+      "still results to process.",
+      label: ADVANCED,
+    }];
 }

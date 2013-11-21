@@ -3,7 +3,9 @@
 """RDFValue implementations related to flow scheduling."""
 
 
-import cPickle as pickle
+import cPickle
+import pickle
+import StringIO
 import threading
 import time
 
@@ -156,6 +158,42 @@ class DataObject(dict):
     return "{\n%s}\n" % "".join(result)
 
 
+class UnknownObject(object):
+  """A placeholder for class instances that can not be unpickled."""
+
+  def __str__(self):
+    return "Unknown Object"
+
+
+class RobustUnpickler(pickle.Unpickler):
+  """A special unpickler we can use when there are errors in the pickle.
+
+  Due to code changes, sometime existing pickles in the data store can not be
+  restored - e.g. if one of the embedded objects is an instance of a class which
+  was renamed or moved. This pickler replaces these instances with the
+  UnknownObject() instance. This way some of the properies of old pickles can
+  still be seen in the UI. It is generally not safe to rely on the data if
+  errors are encountered.
+  """
+  # pylint: disable=invalid-name, broad-except
+  dispatch = pickle.Unpickler.dispatch.copy()
+
+  def load_reduce(self):
+    try:
+      pickle.Unpickler.load_reduce(self)
+    except Exception:
+      self.stack[-1] = UnknownObject()
+  dispatch[pickle.REDUCE] = load_reduce
+
+  def load_global(self):
+    try:
+      pickle.Unpickler.load_global(self)
+    except Exception:
+      self.append(UnknownObject)
+  dispatch[pickle.GLOBAL] = load_global
+  # pylint: enable=invalid-name, broad-except
+
+
 class FlowState(rdfvalue.RDFValue):
   """The state of a running flow.
 
@@ -171,18 +209,29 @@ class FlowState(rdfvalue.RDFValue):
   data_store_type = "bytes"
   data = None
 
+  # If there were errors in unpickling this object, we note them in here.
+  errors = None
+
   def __init__(self, initializer=None, age=None):
     self.data = DataObject()
     super(FlowState, self).__init__(initializer=initializer, age=age)
 
   def ParseFromString(self, string):
     try:
-      self.data = pickle.loads(string)
-    except Exception as e:
-      raise rdfvalue.DecodeError(e)
+      # Try to unpickle using the fast unpickler. This is the most common case.
+      self.data = cPickle.loads(string)
+    except Exception as e:  # pylint: disable=broad-except
+      # If an error occurs we try to use the more robust version to at least
+      # salvage some data. This could happen if an old version of the pickle is
+      # stored in the data store.
+      self.errors = e
+      try:
+        self.data = RobustUnpickler(StringIO.StringIO(string)).load()
+      except Exception as e:  # pylint: disable=broad-except
+        raise rdfvalue.DecodeError(e)
 
   def SerializeToString(self):
-    return pickle.dumps(self.data)
+    return cPickle.dumps(self.data)
 
   def Empty(self):
     return not bool(self.data)
@@ -360,7 +409,7 @@ class Task(rdfvalue.RDFProtoStruct):
 
   def SerializeToString(self):
     try:
-      self.value = self.payload.AsProto().SerializeToString()
+      self.value = self.payload.SerializeToString()
     except AttributeError:
       pass
 

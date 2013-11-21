@@ -189,7 +189,6 @@ grr.grrTree = function(renderer, domId, opt_publishEvent, opt_state,
         'type': grr.ajax_method,
         dataType: '*', // Let the server decide on the mime type.
         beforeSend: function(xhr) {
-          xhr.setRequestHeader('X-CSRFToken', $('#csrfmiddlewaretoken').val());
           grr.PushToAjaxQueue('#' + unique_id);
         },
         'data' : function(n) {
@@ -225,18 +224,15 @@ grr.grrTree = function(renderer, domId, opt_publishEvent, opt_state,
 
   /* Bind the select event to the publish queue */
   tree.bind('select_node.jstree', function(event, data) {
-    var path = data.inst.get_path(data.rslt.obj).join('/');
-    var selected_id = $(data.rslt.obj).attr('id');
+    var path = data.rslt.obj.attr('path');
+    var selected_id = data.rslt.obj.attr('id');
     var update_hash = data.args[1];
 
     // Publish the full AFF4 path of the object the user clicked on.
-    var root = (state.aff4_root || '');
+    var root = (state.aff4_root || '/');
+    var new_path = (root + path).replace(/\/+/, '/');
 
-    // TODO(user): We really need a proper path normalization function.
-    if (root.charAt(root.length - 1) != '/') {
-      root += '/';
-    }
-    grr.publish(publishEvent, root + path, selected_id, update_hash);
+    grr.publish(publishEvent, new_path, selected_id, update_hash);
 
     // Selecting a node automatically opens it
     $(this).jstree('open_node', '#' + selected_id);

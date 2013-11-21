@@ -28,13 +28,13 @@ class CPULimitTestFlow(flow.GRRFlow):
     pass
 
 
-class FastGetFileTestFlowArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.FastGetFileTestFlowArgs
+class MultiGetFileTestFlowArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MultiGetFileTestFlowArgs
 
 
-class FastGetFileTestFlow(flow.GRRFlow):
-  """This flow checks FastGetFile correctly transfers files."""
-  args_type = FastGetFileTestFlowArgs
+class MultiGetFileTestFlow(flow.GRRFlow):
+  """This flow checks MultiGetFile correctly transfers files."""
+  args_type = MultiGetFileTestFlowArgs
 
   @flow.StateHandler(next_state=["HashFile"])
   def Start(self):
@@ -59,17 +59,17 @@ class FastGetFileTestFlow(flow.GRRFlow):
                       lifetime=60,
                       next_state="HashFile")
 
-  @flow.StateHandler(next_state=["FastGetFile"])
+  @flow.StateHandler(next_state=["MultiGetFile"])
   def HashFile(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
 
     for response in responses:
-      self.CallFlow("FingerprintFile", next_state="FastGetFile",
+      self.CallFlow("FingerprintFile", next_state="MultiGetFile",
                     pathspec=response.dest_path)
 
   @flow.StateHandler(next_state="VerifyHashes")
-  def FastGetFile(self, responses):
+  def MultiGetFile(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
     for response in responses:
@@ -78,7 +78,7 @@ class FastGetFileTestFlow(flow.GRRFlow):
       hash_digest = binary_hash.results[0].GetItem("sha256").encode("hex")
       self.state.client_hashes[str(response)] = hash_digest
 
-      self.CallFlow("FastGetFile", pathspec=binary_hash.pathspec,
+      self.CallFlow("MultiGetFile", pathspecs=[binary_hash.pathspec],
                     next_state="VerifyHashes")
 
   @flow.StateHandler()
@@ -106,7 +106,7 @@ class NetworkLimitTestFlow(flow.GRRFlow):
   /dev/urandom.
   """
 
-  @flow.StateHandler(next_state="FastGetFile")
+  @flow.StateHandler(next_state="MultiGetFile")
   def Start(self):
     urandom = rdfvalue.PathSpec(path="/dev/urandom",
                                 pathtype=rdfvalue.PathSpec.PathType.OS)
@@ -117,14 +117,14 @@ class NetworkLimitTestFlow(flow.GRRFlow):
                     dest_dir="",
                     gzip_output=False,
                     lifetime=10,
-                    next_state="FastGetFile")
+                    next_state="MultiGetFile")
 
   @flow.StateHandler(next_state="Done")
-  def FastGetFile(self, responses):
+  def MultiGetFile(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
     self.state.Register("dest_path", responses.First().dest_path)
-    self.CallFlow("FastGetFile", pathspec=self.state.dest_path,
+    self.CallFlow("MultiGetFile", pathspecs=[self.state.dest_path],
                   next_state="Done")
 
   @flow.StateHandler()

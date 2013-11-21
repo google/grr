@@ -1015,6 +1015,8 @@ class AFF4Object(object):
   # SchemaCls.
   class SchemaCls(object):
     """The standard AFF4 schema."""
+    label_index = rdfvalue.RDFURN("aff4:/index/label")
+
     TYPE = Attribute("aff4:type", rdfvalue.RDFString,
                      "The name of the AFF4Object derived class.", "type")
 
@@ -1595,9 +1597,9 @@ class AFF4Object(object):
   def AddLabels(self, labels):
     """Add labels to the AFF4Object."""
     if not self._label_index:
-      self._label_index = FACTORY.Create(rdfvalue.RDFURN("aff4:/index/label"),
-                                         "AFF4Index", mode="w",
-                                         token=self.token)
+      self._label_index = FACTORY.Create(
+          self.Schema.label_index, "AFF4Index", mode="w", token=self.token)
+
     label_list = self.Get(self.Schema.LABEL, self.Schema.LABEL())
     for label in labels:
       if label not in label_list:
@@ -1915,6 +1917,7 @@ class AFF4Stream(AFF4Object):
 
   # The read pointer offset.
   offset = 0
+  size = 0
 
   class SchemaCls(AFF4Object.SchemaCls):
     # Note that a file on the remote system might have stat.st_size > 0 but if
@@ -1926,6 +1929,9 @@ class AFF4Stream(AFF4Object):
     HASH = Attribute("aff4:hashobject", rdfvalue.Hash,
                      "Hash object containing all known hash digests for"
                      " the object.")
+
+  def __len__(self):
+    return self.size
 
   @abc.abstractmethod
   def Read(self, length):

@@ -1,17 +1,20 @@
 #!/usr/bin/make -f
-# debian/rules that uses debhelper >= 7.
+# debian/rules that uses debhelper >= 8.
 
 # Uncomment this to turn on verbose mode.
-#export DH_VERBOSE=1
+# export DH_VERBOSE=1
 
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
 
 
 %:
-	dh  $@
+	dh $@
 
 dh_python2:
+
+
+override_dh_pysupport:
 
 override_dh_auto_clean:
 

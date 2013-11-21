@@ -89,8 +89,8 @@ def UpdateUser(username, password, labels):
   """Implementation of the update_user command."""
   with aff4.FACTORY.Create("aff4:/users/%s" % username,
                            "GRRUser", mode="rw") as fd:
-    if password:
-      fd.SetPassword(password)
+    # Note this accepts blank passwords as valid.
+    fd.SetPassword(password)
 
     if labels:
       # Allow labels to be comma separated list of labels.

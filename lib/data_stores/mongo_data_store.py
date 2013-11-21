@@ -288,7 +288,7 @@ class MongoTransaction(data_store.Transaction):
         hashlib.sha256(utils.SmartStr(self.subject)).digest()[:12])
 
     self.to_set = {}
-    self.to_delete = []
+    self.to_delete = set()
     if lease_time is None:
       lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
 
@@ -336,20 +336,27 @@ class MongoTransaction(data_store.Transaction):
     self.expires = time.time() + duration
     self.store.latest_collection.save(
         dict(_id=self.object_id, expires=self.expires))
+    if self.document:
+      self.document["expires"] = self.expires
 
   def DeleteAttribute(self, predicate):
-    self.to_delete.append(predicate)
+    self.to_delete.add(predicate)
 
   def Resolve(self, predicate):
+    if predicate in self.to_set:
+      return sorted(self.to_set[predicate], key=lambda vt: vt[1])[-1]
+    if predicate in self.to_delete:
+      return None
     return self.store.Resolve(self.subject, predicate, token=self.token)
 
   def ResolveRegex(self, predicate_regex, timestamp=None):
+    # TODO(user): Retrieve values from to_set as well.
     return self.store.ResolveRegex(self.subject, predicate_regex,
                                    token=self.token, timestamp=timestamp)
 
   def Set(self, predicate, value, timestamp=None, replace=None):
     if replace:
-      self.to_delete.append(predicate)
+      self.to_delete.add(predicate)
 
     if timestamp is None:
       timestamp = int(time.time() * 1e6)

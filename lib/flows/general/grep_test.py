@@ -4,6 +4,7 @@
 """Tests for grr.lib.flows.general.grep."""
 
 
+import os
 
 from grr.client import vfs
 from grr.client.client_actions import searching
@@ -13,7 +14,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
-class TestGrepFlow(test_lib.FlowTestsBaseclass):
+class TestSearchFileContentWithFixture(test_lib.FlowTestsBaseclass):
 
   def FlushVFSCache(self):
     test_lib.ClientVFSHandlerFixture.cache = {}
@@ -58,26 +59,22 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
                                    if path[0] != filename]
 
   def setUp(self):
-    super(TestGrepFlow, self).setUp()
+    super(TestSearchFileContentWithFixture, self).setUp()
 
     # Install the mock
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
-    self.client_mock = test_lib.ActionMock("Grep")
+    self.client_mock = test_lib.ActionMock("Grep", "StatFile", "Find")
 
   def testNormalGrep(self):
-
     output_path = "analysis/grep1"
-
-    grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
-                                 literal="hello")
-
-    grepspec.target.path = "/proc/10/cmdline"
-    grepspec.target.pathtype = rdfvalue.PathSpec.PathType.OS
+    grepspec = rdfvalue.BareGrepSpec(mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
+                                     literal="hello")
 
     for _ in test_lib.TestFlowHelper(
-        "Grep", self.client_mock, client_id=self.client_id,
-        token=self.token, output=output_path, request=grepspec):
+        "SearchFileContent", self.client_mock, client_id=self.client_id,
+        paths=["/proc/10/cmdline"], pathtype=rdfvalue.PathSpec.PathType.OS,
+        token=self.token, output=output_path, grep=grepspec):
       pass
 
     # Check the output file is created
@@ -96,15 +93,14 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
 
     output_path = "analysis/grep2"
 
-    grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Mode.ALL_HITS,
-                                 literal="HIT")
-
-    grepspec.target.path = "/c/Downloads/grepfile.txt"
-    grepspec.target.pathtype = rdfvalue.PathSpec.PathType.OS
+    grepspec = rdfvalue.BareGrepSpec(mode=rdfvalue.GrepSpec.Mode.ALL_HITS,
+                                     literal="HIT")
 
     for _ in test_lib.TestFlowHelper(
-        "Grep", self.client_mock, client_id=self.client_id,
-        request=grepspec, token=self.token, output=output_path):
+        "SearchFileContent", self.client_mock, client_id=self.client_id,
+        paths=["/c/Downloads/grepfile.txt"],
+        pathtype=rdfvalue.PathSpec.PathType.OS,
+        grep=grepspec, token=self.token, output=output_path):
       pass
 
     # Check the output file is created
@@ -130,15 +126,14 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
       output_urn = self.client_id.Add(output_path)
       data_store.DB.DeleteSubject(output_urn, token=self.token)
 
-      grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
-                                   literal="HIT")
-
-      grepspec.target.path = "/c/Downloads/grepfile.txt"
-      grepspec.target.pathtype = rdfvalue.PathSpec.PathType.OS
+      grepspec = rdfvalue.BareGrepSpec(mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
+                                       literal="HIT")
 
       for _ in test_lib.TestFlowHelper(
-          "Grep", self.client_mock, client_id=self.client_id,
-          token=self.token, output=output_path, request=grepspec):
+          "SearchFileContent", self.client_mock, client_id=self.client_id,
+          paths=["/c/Downloads/grepfile.txt"],
+          pathtype=rdfvalue.PathSpec.PathType.OS,
+          token=self.token, output=output_path, grep=grepspec):
         pass
 
       # Check the output file is created
@@ -151,13 +146,56 @@ class TestGrepFlow(test_lib.FlowTestsBaseclass):
     finally:
       searching.Grep.BUFF_SIZE = old_size
 
-  def testInvalidArg(self):
-    """Check that the Grep flow raises if the GrepSpec is invlaid."""
-    # No target set.
-    grepspec = rdfvalue.GrepSpec(mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
-                                 literal="hello")
 
-    self.assertRaises(
-        ValueError, list, test_lib.TestFlowHelper(
-            "Grep", self.client_mock, client_id=self.client_id,
-            token=self.token, request=grepspec))
+class TestSearchFileContent(test_lib.FlowTestsBaseclass):
+  def testSearchFileContents(self):
+    pattern = "test_data/*.log"
+
+    client_mock = test_lib.ActionMock("Find", "Grep", "StatFile")
+    path = os.path.join(os.path.dirname(self.base_path), pattern)
+
+    args = rdfvalue.SearchFileContentArgs(
+        paths=[path], pathtype=rdfvalue.PathSpec.PathType.OS)
+
+    args.grep.literal = "session opened for user dearjohn"
+    args.grep.mode = rdfvalue.GrepSpec.Mode.ALL_HITS
+
+    # Run the flow.
+    for _ in test_lib.TestFlowHelper(
+        "SearchFileContent", client_mock, client_id=self.client_id,
+        output="analysis/grep/testing", args=args, token=self.token):
+      pass
+
+    fd = aff4.FACTORY.Open(
+        rdfvalue.RDFURN(self.client_id).Add("/analysis/grep/testing"),
+        token=self.token)
+
+    # Make sure that there is a hit.
+    self.assertEqual(len(fd), 1)
+    first = fd[0]
+
+    self.assertEqual(first.offset, 350)
+    self.assertEqual(first.data,
+                     "session): session opened for user dearjohn by (uid=0")
+
+  def testSearchFileContentsNoGrep(self):
+    """Search files without a grep specification."""
+    pattern = "test_data/*.log"
+
+    client_mock = test_lib.ActionMock("Find", "Grep", "StatFile")
+    path = os.path.join(os.path.dirname(self.base_path), pattern)
+
+    # Do not provide a Grep expression - should match all files.
+    args = rdfvalue.SearchFileContentArgs(paths=[path])
+
+    # Run the flow.
+    for _ in test_lib.TestFlowHelper(
+        "SearchFileContent", client_mock, client_id=self.client_id,
+        output="analysis/grep/testing", args=args, token=self.token):
+      pass
+
+    fd = aff4.FACTORY.Open(
+        rdfvalue.RDFURN(self.client_id).Add("/analysis/grep/testing"),
+        token=self.token)
+
+    self.assertEqual(len(fd), 9)

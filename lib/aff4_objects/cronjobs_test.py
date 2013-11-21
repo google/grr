@@ -7,6 +7,7 @@ from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -39,6 +40,17 @@ class OccasionallyFailingFakeCronJob(flow.GRRFlow):
   def Start(self):
     if time.time() > 30:
       raise RuntimeError("Oh, no!")
+
+
+class DummySystemCronJob(cronjobs.SystemCronFlow):
+  """Dummy system cron job."""
+
+  lifetime = rdfvalue.Duration("42h")
+  frequency = rdfvalue.Duration("42d")
+
+  @flow.StateHandler(next_state="End")
+  def Start(self):
+    self.CallState(next_state="End")
 
 
 class CronTest(test_lib.GRRBaseTest):
@@ -492,6 +504,50 @@ class CronTest(test_lib.GRRBaseTest):
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(60))
     self.assertEqual(statuses[0].status, rdfvalue.CronJobRunStatus.Status.OK)
     self.assertEqual(statuses[1].status, rdfvalue.CronJobRunStatus.Status.ERROR)
+
+  def testSystemCronFlowsGetScheduledAutomatically(self):
+    config_lib.CONFIG.Set("Cron.enabled_system_jobs", ["DummySystemCronJob"])
+    cronjobs.ScheduleSystemCronFlows(token=self.token)
+
+    jobs = cronjobs.CRON_MANAGER.ListJobs(token=self.token)
+    dummy_jobs = [j for j in jobs
+                  if j.Basename() == "DummySystemCronJob"]
+    self.assertTrue(dummy_jobs)
+
+    # System cron job should be enabled by default.
+    job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type="CronJob",
+                            token=self.token)
+    self.assertFalse(job.Get(job.Schema.DISABLED))
+
+  def testSystemCronFlowsMayBeDisabledViaConfig(self):
+    config_lib.CONFIG.Set("Cron.enabled_system_jobs", ["DummySystemCronJob"])
+    cronjobs.ScheduleSystemCronFlows(token=self.token)
+
+    jobs = cronjobs.CRON_MANAGER.ListJobs(token=self.token)
+    dummy_jobs = [j for j in jobs
+                  if j.Basename() == "DummySystemCronJob"]
+    self.assertTrue(dummy_jobs)
+
+    # System cron job should be enabled.
+    job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type="CronJob",
+                            token=self.token)
+    self.assertFalse(job.Get(job.Schema.DISABLED))
+
+    # Now remove the cron job from the list and check that it gets disabled
+    # after next ScheduleSystemCronFlows() call.
+    config_lib.CONFIG.Set("Cron.enabled_system_jobs", [])
+    cronjobs.ScheduleSystemCronFlows(token=self.token)
+
+    # This cron job should be disabled, because it's listed in
+    # Cron.disabled_system_jobs config variable.
+    job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type="CronJob",
+                            token=self.token)
+    self.assertTrue(job.Get(job.Schema.DISABLED))
+
+  def testScheduleSystemCronFlowsRaisesWhenFlowCanNotBeFound(self):
+    config_lib.CONFIG.Set("Cron.enabled_system_jobs", ["NonExistent"])
+    self.assertRaises(KeyError, cronjobs.ScheduleSystemCronFlows,
+                      token=self.token)
 
 
 def main(argv):

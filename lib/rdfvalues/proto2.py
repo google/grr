@@ -85,6 +85,7 @@ def DefineFromProtobuf(cls, protobuf):
     # Does this field have semantic options?
     options = field.GetOptions().Extensions[semantic_pb2.sem_type]
     kwargs = dict(description=options.description, name=field.name,
+                  friendly_name=options.friendly_name,
                   field_number=field.number, labels=list(options.label))
 
     if field.has_default_value:

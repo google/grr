@@ -2,7 +2,6 @@
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Find files on the client."""
 import stat
-import time
 
 from grr.lib import aff4
 from grr.lib import flow
@@ -53,9 +52,8 @@ class FindFiles(flow.GRRFlow):
   """
 
   category = "/Filesystem/"
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
-
   args_type = FindFilesArgs
+  friendly_name = "Find Files"
 
   @flow.StateHandler(next_state="IterateFind")
   def Start(self, unused_response):
@@ -63,19 +61,12 @@ class FindFiles(flow.GRRFlow):
     self.state.Register("received_count", 0)
     self.state.Register("collection", None)
 
-    if self.args.output:
-      # Create the output collection and get it ready.
-      output = self.args.output.format(t=time.time(),
-                                       u=self.state.context.user)
-      output = self.client_id.Add(output)
-      self.state.collection = aff4.FACTORY.Create(
-          output, "AFF4Collection", mode="w", token=self.token)
-
-      self.state.collection.Set(self.state.collection.Schema.DESCRIPTION(
-          "Find {0}".format(self.args.findspec)))
-
     # Build up the request protobuf.
     self.args.findspec.iterator.number = self.args.iteration_count
+
+    # Convert the filename glob to a regular expression.
+    if self.args.findspec.path_glob:
+      self.args.findspec.path_regex = self.args.findspec.path_glob.AsRegEx()
 
     # Call the client with it
     self.CallClient("Find", self.state.args.findspec, next_state="IterateFind")
@@ -105,10 +96,6 @@ class FindFiles(flow.GRRFlow):
       fd.Set(fd.Schema.PATHSPEC(response.hit.pathspec))
       fd.Close(sync=False)
 
-      if self.state.collection:
-        # Add the new objects URN to the collection.
-        self.state.collection.Add(stat=stat_response, urn=vfs_urn)
-
       # Send the stat to the parent flow.
       self.SendReply(stat_response)
 
@@ -130,15 +117,3 @@ class FindFiles(flow.GRRFlow):
       self.CallClient("Find", self.state.args.findspec,
                       next_state="IterateFind")
       self.Log("%d files processed.", self.state.received_count)
-
-  @flow.StateHandler()
-  def End(self):
-    """Save the collection and notification if output is enabled."""
-    if self.state.collection:
-      self.state.collection.Close()
-
-      self.Notify(
-          "ViewObject", self.state.collection.urn,
-          u"Found on {0} completed {1} hits".format(
-              len(self.state.collection),
-              self.state.args.findspec.pathspec))

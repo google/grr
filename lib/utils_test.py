@@ -263,6 +263,18 @@ class UtilsTest(test_lib.GRRBaseTest):
       p1 = p1.next
     self.assertEqual(p, self.tail)
 
+  def testGuessWindowsFileNameFromString(self):
+    g = utils.GuessWindowsFileNameFromString
+    fixture = [(r"C:\Program Files\Realtek\Audio\blah.exe -s",
+                r"C:\Program Files\Realtek\Audio\blah.exe"),
+               (r"'C:\Program Files\Realtek\Audio\blah.exe' -s",
+                r"C:\Program Files\Realtek\Audio\blah.exe"),
+               (r"C:\Program Files\NVIDIA Corporation\nwiz.exe /quiet /blah",
+                r"C:\Program Files\NVIDIA Corporation\nwiz.exe")]
+
+    for in_str, result in fixture:
+      self.assertTrue(result in g(in_str))
+
 
 def main(argv):
   test_lib.main(argv)

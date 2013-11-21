@@ -44,7 +44,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
             attribute_name="GRR client",
             attribute_regex="GRR")],
         output_plugins=[],
-        token=self.token) as hunt:
+        client_rate=0, token=self.token) as hunt:
       if not stopped:
         hunt.Run()
 
@@ -65,14 +65,14 @@ class TestHuntView(test_lib.GRRSeleniumTest):
         regex_rules=[rdfvalue.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
-        output_plugins=[rdfvalue.OutputPlugin(plugin_name="CollectionPlugin")],
+        output_plugins=[],
         token=self.token) as hunt:
 
       with hunt.GetRunner() as runner:
         runner.Start()
 
         with aff4.FACTORY.Create(
-            runner.context.output_plugins[0].collection_urn,
+            runner.context.results_collection_urn,
             aff4_type="RDFValueCollection", mode="w",
             token=self.token) as collection:
           collection.Add(rdfvalue.RDFURN("aff4:/sample/1"))

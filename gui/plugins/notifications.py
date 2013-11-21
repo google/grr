@@ -217,16 +217,22 @@ class ViewNotifications(renderers.TableRenderer):
     """Navigate to the most appropriate location for this navigation."""
     h = {}
 
+    # Still display if subject doesn't get set, this will appear in the GUI with
+    # a target of "None"
+    urn = "/"
+    if notification.subject is not None:
+      urn = notification.subject
+
     # General Host information
     if notification.type == "Discovery":
-      path = rdfvalue.RDFURN(notification.subject)
+      path = rdfvalue.RDFURN(urn)
       components = path.Path().split("/")[1:]
       h["c"] = components[0]
       h["main"] = "HostInformation"
 
     # Downloading a file
     elif notification.type == "ViewObject":
-      path = rdfvalue.RDFURN(notification.subject)
+      path = rdfvalue.RDFURN(urn)
       components = path.Path().split("/")[1:]
       if len(components) == 2 and components[0] == "hunts":
         h["hunt_id"] = notification.subject
@@ -246,7 +252,7 @@ class ViewNotifications(renderers.TableRenderer):
 
     # Error with a flow
     elif notification.type == "FlowStatus":
-      path = rdfvalue.RDFURN(notification.subject)
+      path = rdfvalue.RDFURN(urn)
       components = path.Path().split("/")[1:]
       h["flow"] = notification.source
       h["c"] = components[0]

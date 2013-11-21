@@ -130,8 +130,11 @@ message GrrMessage {
       description: "The scheduler queue this message is in."
     }];
 
-  // The time when this message is becoming available for leasing.
-  optional uint64 eta = 18;
+  optional uint64 eta = 18 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The time when this message will become available "
+      "for leasing.",
+    }];
 
   // Human readable info about the last process leasing this message.
   optional string last_lease = 19;
@@ -790,7 +793,10 @@ message KeyValue {
 
 // A list of Key Value pairs
 message Dict {
-  repeated KeyValue dat = 1;
+  repeated KeyValue dat = 1 [(sem_type) = {
+      friendly_name: "Data",
+      description: "An arbitrary key/value"
+    }];
 };
 
 
@@ -810,7 +816,9 @@ message Certificate {
 // Message to carry uname information.
 message Uname {
   optional string system = 1;
-  optional string node = 2;
+  optional string node = 2 [(sem_type) = {
+      description: "The hostname of this system.",
+    }];;
   optional string release = 3;
   optional string version = 4;
   optional string machine = 5;
@@ -957,7 +965,6 @@ message GRRConfig {
   optional bool process_separate = 15;   // deprecated
   optional float rss_max = 16;
 };
-
 
 message AuthenticodeSignedData {
   optional uint64 revision = 1;
@@ -1261,10 +1268,16 @@ message FindSpec {
       description: "The base path to recursive search from ",
     }];
 
+  optional string path_glob = 13 [(sem_type) = {
+      type: "GlobExpression",
+      description: "A glob for the filename."
+    }];
+
   optional string path_regex = 3 [(sem_type) = {
       type: "RegularExpression",
-      description: "This matches the filename (not the directory name).",
+      description: "This matches the filename. Overrides the path_glob.",
       friendly_name: "Filename RegEx",
+      label: ADVANCED
     }];
 
   optional string data_regex = 4 [(sem_type) = {
@@ -1529,6 +1542,7 @@ message AFF4ObjectSummary {
     }];
   optional StatEntry stat = 3;
 }
+
 
 message AuditEvent {
   optional int32 id = 1;

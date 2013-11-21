@@ -37,6 +37,7 @@ def SearchClients(query_string, start=0, max_results=1000, token=None):
     label_index_urn = rdfvalue.RDFURN("aff4:/index/label")
     label_index = aff4.FACTORY.Create(label_index_urn, aff4_type="AFF4Index",
                                       mode="rw", token=token)
+
     indexed_attrs = []
 
     prefix = ""

@@ -43,6 +43,8 @@ Datastore.security_manager: BasicAccessControlManager
 
 Installer.old_writeback: /usr/lib/grr/grrd.conf
 
+# Logging.domain: example.com
+
 Logging.path: /var/log/grr
 
 Logging.verbose: True
@@ -52,9 +54,10 @@ Mongo.db_name: grr
 # Mongo.server:
 Mongo.port: 27017
 
-Monitoring.emergency_access_email: grr-emergency-access@example.com
 
-Monitoring.alerts_email: grr-monitoring@example.com
+# These must be in the domain specified above as Logging.domain.
+# Monitoring.emergency_access_email: grr-emergency-access@example.com
+# Monitoring.alert_email: grr-monitoring@example.com
 
 # Mysql.database_name:
 # Mysql.table_name:
@@ -331,3 +334,15 @@ Test Context:
     Client.tempdir: /tmp/
 
     Logging.engines: stderr
+
+# These jobs will be enabled by default both for Worker Context and
+# Test Context. They will only actually run if Cron.active is True.
+Cron.enabled_system_jobs:
+- FilestoreStatsCronFlow
+- GRRVersionBreakDown
+- InterrogateClientsCronFlow
+- LastAccessStats
+- OSBreakDown
+- ProcessHuntResultsCronFlow
+- PurgeClientStats
+

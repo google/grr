@@ -6,11 +6,27 @@
 
 import socket
 
+
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
+from grr.lib import search
 from grr.lib import test_lib
+
+
+class DiscoveryTestEventListener(flow.EventListener):
+  """A test listener to receive new client discoveries."""
+  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:discovery_test")
+  EVENTS = ["Discovery"]
+
+  # For this test we just write the event as a class attribute.
+  event = None
+
+  @flow.EventHandler(auth_required=True)
+  def ProcessMessage(self, message=None, event=None):
+    _ = message
+    DiscoveryTestEventListener.event = event
 
 
 class InterrogatedClient(object):
@@ -58,6 +74,7 @@ class InterrogatedClient(object):
         client_name=config_lib.CONFIG["Client.name"],
         client_version=int(config_lib.CONFIG["Client.version_numeric"]),
         build_time=config_lib.CONFIG["Client.build_time"],
+        labels=["GRRLabel1", "Label2"],
         )]
 
   def GetConfig(self, _):
@@ -195,3 +212,14 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(len(self.flow_reply.interfaces), 1)
     self.assertEqual(self.flow_reply.interfaces[0].mac_address, "123456")
+
+    # Check that the client summary was published to the event listener.
+    self.assertEqual(DiscoveryTestEventListener.event.client_id, self.client_id)
+    self.assertEqual(
+        DiscoveryTestEventListener.event.interfaces[0].mac_address,
+        "123456")
+
+    # Check that label indexes are updated.
+    self.assertEqual(
+        list(search.SearchClients("label:Label2", token=self.token)),
+        [self.client_id])

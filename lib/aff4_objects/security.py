@@ -424,9 +424,7 @@ class GrantApprovalWithReasonFlow(flow.GRRFlow):
 The user %(username)s has granted access to %(subject_title)s for the
 purpose of "%(reason)s".
 
-Please click <a href='%(admin_ui)s#%(subject_urn)s'>
-  here
-</a> to access it.
+Please click <a href='%(admin_ui)s#%(subject_urn)s'>here</a> to access it.
 
 <p>Thanks,</p>
 <p>The GRR team.

@@ -517,7 +517,7 @@ class TestNetworkFlowLimit(ClientTestBase):
     self.assertTrue("Network bytes limit exceeded." in backtrace)
 
 
-class TestFastGetFileNetworkLimitExceeded(LocalClientTest):
+class TestMultiGetFileNetworkLimitExceeded(LocalClientTest):
   platforms = ["linux", "darwin"]
   flow = "NetworkLimitTestFlow"
   args = {}
@@ -536,9 +536,9 @@ class TestFastGetFileNetworkLimitExceeded(LocalClientTest):
     self.assertEqual(type(fd), aff4.AFF4Volume)
 
 
-class TestFastGetFile(LocalClientTest):
+class TestMultiGetFile(LocalClientTest):
   platforms = ["linux", "darwin"]
-  flow = "FastGetFileTestFlow"
+  flow = "MultiGetFileTestFlow"
   args = {}
 
   def CheckFlow(self):
@@ -776,3 +776,22 @@ class TestLaunchBinaries(ClientTestBase):
         [str(x) for x in fd.GetValuesForAttribute(fd.Schema.LOG)])
 
     self.assertTrue("Hello world" in logs)
+
+
+class TestCollector(ClientTestBase):
+  platforms = ["windows"]
+  flow = "ArtifactCollectorFlow"
+
+  args = {"output": "analysis/artifact/testing",
+          "artifact_list": ["VolatilityPsList"],
+          "store_results_in_aff4": False}
+
+  def setUp(self):
+    super(TestCollector, self).setUp()
+    self.urn = self.client_id.Add(self.args["output"])
+    self.DeleteUrn(self.urn)
+
+  def CheckFlow(self):
+    collection = aff4.FACTORY.Open(self.urn, token=self.token)
+    self.assertIsInstance(collection, aff4.RDFValueCollection)
+    self.assertTrue(len(list(collection)) > 40)

@@ -5,15 +5,10 @@
 """Test the collection viewer interface."""
 
 
-from grr.client import vfs
-
 from grr.gui import runtests_test
 
-from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
@@ -21,37 +16,19 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
   """Test the collection viewer interface."""
 
   def CreateCollectionFixture(self):
-    """Creates a new collection we can play with."""
-    # Create a client for testing
-    client_id = rdfvalue.ClientURN("C.0000000000000001")
-    token = access_control.ACLToken(username="test", reason="Fixture")
+    with aff4.FACTORY.Create("aff4:/C.0000000000000001/analysis/FindFlowTest",
+                             "AFF4Collection", token=self.token) as out_fd:
+      out_fd.CreateView(
+          ["stat.st_mtime", "type", "stat.st_size", "size", "Age"])
 
-    fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=token)
-    certificate = rdfvalue.RDFX509Cert(self.ClientCertFromPrivateKey(
-        config_lib.CONFIG["Client.private_key"]).as_pem())
-    fd.Set(fd.Schema.CERT(certificate))
-    fd.Close()
-
-    # Install the mock
-    vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
-    client_mock = test_lib.ActionMock("Find")
-
-    output_path = "analysis/FindFlowTest"
-
-    findspec = rdfvalue.FindSpec(path_regex="bash")
-    findspec.pathspec.path = "/"
-    findspec.pathspec.pathtype = rdfvalue.PathSpec.PathType.OS
-
-    for _ in test_lib.TestFlowHelper(
-        "FindFiles", client_mock, client_id=client_id,
-        findspec=findspec, token=token, output=output_path):
-      pass
-
-    # Make the view a bit more interesting
-    fd = aff4.FACTORY.Open(client_id.Add(output_path), mode="rw", token=token)
-    fd.CreateView(["stat.st_mtime", "type", "stat.st_size", "size", "Age"])
-    fd.Close()
+      for urn in [
+          "aff4:/C.0000000000000001/fs/os/c/bin C.0000000000000001/rbash",
+          "aff4:/C.0000000000000001/fs/os/c/bin C.0000000000000001/bash",
+          "aff4:/C.0000000000000001/fs/os/c/bin/bash",
+          "aff4:/C.0000000000000001/fs/os/c/bin/rbash",
+          ]:
+        fd = aff4.FACTORY.Open(urn, token=self.token)
+        out_fd.Add(urn=urn, stat=fd.Get(fd.Schema.STAT))
 
   def setUp(self):
     super(TestContainerViewer, self).setUp()
@@ -116,11 +93,11 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
 
     # Check the rows
     self.assertEqual(
-        "C.0000000000000001/fs/os/c/bin %(client_id)s/bash",
+        "C.0000000000000001/fs/os/c/bin C.0000000000000001/bash",
         self.GetText("css=.containerFileTable  tbody > tr:nth(0) td:nth(1)"))
 
     self.assertEqual(
-        "C.0000000000000001/fs/os/c/bin %(client_id)s/rbash",
+        "C.0000000000000001/fs/os/c/bin C.0000000000000001/rbash",
         self.GetText("css=.containerFileTable  tbody > tr:nth(1) td:nth(1)"))
 
     self.assertEqual(
