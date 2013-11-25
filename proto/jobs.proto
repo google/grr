@@ -913,7 +913,9 @@ message MemoryInformation {
 
 message ServiceInformation {
   option (semantic) = {
-    description: "Describe a windows service or driver.",
+    description: "Describe a windows service or driver. Field names follow"
+    " the cybox naming scheme where possible: "
+    "http://cybox.mitre.org/language/version2.0.1/xsddocs/objects/Win_Service_Object.html",
   };
 
   optional string name = 1 [(sem_type) = {
@@ -936,6 +938,67 @@ message ServiceInformation {
   optional Dict wmi_information = 5 [(sem_type) = {
       description: "Additional information available through WMI.",
     }];
+
+  optional string display_name = 6 [(sem_type) = {
+      description: "Displayed name of the service in Windows GUI controls.",
+    }];
+
+  optional string driver_package_id = 7 [(sem_type) = {
+      description: "Driver Package ID of the service.",
+    }];
+
+  enum ErrorControl {
+    CRITICAL = 3;
+    SEVERE = 2;
+    NORMAL = 1;
+    IGNORE = 0;
+  };
+
+  optional ErrorControl error_control = 8 [(sem_type) = {
+      description: "Behaviour of the service on failure to load/initialize",
+    }];
+
+  optional string image_path = 9 [(sem_type) = {
+      description: "ImagePath of the service.",
+    }];
+
+  optional string object_name = 10 [(sem_type) = {
+      description: "ObjectName of the service.",
+    }];
+
+  enum ServiceMode {
+    SERVICE_BOOT_START = 0;
+    SERVICE_SYSTEM_START = 1;
+    SERVICE_AUTO_START = 2;
+    SERVICE_DEMAND_START = 3;
+    SERVICE_DISABLED = 4;
+  };
+
+  optional ServiceMode startup_type = 11 [(sem_type) = {
+      description: "Service start options",
+    }];
+
+  enum ServiceType {
+    SERVICE_KERNEL_DRIVER = 0x1;
+    SERVICE_FILE_SYSTEM_DRIVER = 0x2;
+    SERVICE_ADAPTER_ARGS = 0x4;
+    SERVICE_WIN32_OWN_PROCESS = 0x10;
+    SERVICE_WIN32_SHARE_PROCESS = 0x20;
+  };
+
+  optional ServiceType service_type = 12 [(sem_type) = {
+      description: "Type of the service.",
+    }];
+
+  optional string group_name = 13 [(sem_type) = {
+      description: "Specifies the name of the load ordering group of which "
+      "this service is a member.",
+    }];
+
+  optional string service_dll = 14 [(sem_type) = {
+      description: "Name of the DLL instantiated in the service.",
+    }];
+
 }
 
 

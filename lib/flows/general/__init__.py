@@ -20,8 +20,6 @@ from grr.lib.flows.general import find
 from grr.lib.flows.general import fingerprint
 from grr.lib.flows.general import grep
 
-# TODO(user): This file has no test and is broken. Replace with artifacts.
-# from grr.lib.flows.general import java_cache
 from grr.lib.flows.general import memory
 from grr.lib.flows.general import network
 from grr.lib.flows.general import processes

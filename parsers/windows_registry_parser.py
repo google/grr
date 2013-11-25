@@ -3,9 +3,13 @@
 
 import re
 
+import logging
+
 from grr.lib import artifact_lib
 from grr.lib import parsers
 from grr.lib import rdfvalue
+from grr.lib import type_info
+from grr.lib import utils
 
 
 SID_RE = re.compile(r"^S-\d-\d+-(\d+-){1,14}\d+$")
@@ -122,6 +126,9 @@ class WinUserSpecialDirs(parsers.RegistryParser):
   Keys will come from HKEY_USERS and will list the Shell Folders and user's
   Environment key. We extract each subkey that matches on of our knowledge base
   attributes.
+
+  Known folder GUIDs:
+  http://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).aspx
   """
   output_types = ["KnowledgeBaseUser"]
   supported_artifacts = ["UserShellFolders"]
@@ -129,6 +136,7 @@ class WinUserSpecialDirs(parsers.RegistryParser):
 
   key_var_mapping = {
       "Shell Folders": {
+          "{A520A1A4-1780-4FF6-BD18-167343C5AF16}": "localappdata_low",
           "Desktop": "desktop",
           "AppData": "appdata",
           "Local AppData": "localappdata",
@@ -170,6 +178,77 @@ class WinUserSpecialDirs(parsers.RegistryParser):
 
     # Now yield each user we found.
     return user_dict.itervalues()
+
+
+class WinServicesParser(parsers.RegistryValueParser):
+  """Parser for Windows services values from the registry.
+
+  See service key doco:
+    http://support.microsoft.com/kb/103000
+  """
+
+  output_types = ["ServiceInformation"]
+  supported_artifacts = ["WindowsServices"]
+  process_together = True
+
+  def __init__(self):
+    self.service_re = re.compile(
+        r".*HKEY_LOCAL_MACHINE/SYSTEM/[^/]+/services/([^/]+)(/(.*))?$")
+    super(WinServicesParser, self).__init__()
+
+  def _GetServiceName(self, path):
+    return self.service_re.match(path).group(1)
+
+  def _GetKeyName(self, path):
+    return self.service_re.match(path).group(3)
+
+  def ParseMultiple(self, stats, knowledge_base):
+    """Parse Service registry keys and return ServiceInformation objects."""
+    _ = knowledge_base
+    services = {}
+    field_map = {"Description": "description",
+                 "DisplayName": "display_name",
+                 "Group": "group_name",
+                 "DriverPackageId": "driver_package_id",
+                 "ErrorControl": "error_control",
+                 "ImagePath": "image_path",
+                 "ObjectName": "object_name",
+                 "Start": "startup_type",
+                 "Type": "service_type",
+                 "Parameters/ServiceDLL": "service_dll"}
+
+    for stat in stats:
+
+      # Ignore subkeys
+      if not stat.HasField("registry_data"):
+        continue
+
+      service_name = self._GetServiceName(stat.pathspec.path)
+      services.setdefault(service_name,
+                          rdfvalue.ServiceInformation(name=service_name))
+
+      key = self._GetKeyName(stat.pathspec.path)
+
+      if key in field_map:
+        try:
+          services[service_name].Set(field_map[key],
+                                     stat.registry_data.GetValue())
+        except type_info.TypeValueError:
+
+          # Flatten multi strings into a simple string
+          if stat.registry_type == rdfvalue.StatEntry.RegistryType.REG_MULTI_SZ:
+            services[service_name].Set(field_map[key],
+                                       utils.SmartUnicode(
+                                           stat.registry_data.GetValue()))
+          else:
+            # Log failures for everything else
+            # TODO(user): change this to yield a ParserAnomaly object.
+            dest_type = type(services[service_name].Get(field_map[key]))
+            logging.debug("Wrong type set for %s:%s, expected %s, got %s",
+                          stat.pathspec.path, stat.registry_data.GetValue(),
+                          dest_type, type(stat.registry_data.GetValue()))
+
+    return services.itervalues()
 
 
 class WinTimezoneParser(parsers.RegistryValueParser):

@@ -201,48 +201,63 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     test_conditions = list(artifact_obj.CONDITIONS)
     # Turn SUPPORTED_OS into a condition.
     if artifact_obj.SUPPORTED_OS:
-      os_match = lambda kb: kb.os in artifact_obj.SUPPORTED_OS
-      test_conditions.append(os_match)
+      filt = " OR ".join("os == '%s'" % o for o in artifact_obj.SUPPORTED_OS)
+      test_conditions.append(filt)
 
     # Check each of the conditions match our target.
     for condition in test_conditions:
-      if not condition(self.state.knowledge_base):
+      if not artifact_lib.CheckCondition(condition, self.state.knowledge_base):
         logging.debug("Artifact %s condition %s failed on %s",
-                      artifact_name, condition.func_name, self.client_id)
+                      artifact_name, condition, self.client_id)
         self.state.artifacts_skipped_due_to_condition.append(
-            (artifact_name, condition.func_name))
+            (artifact_name, condition))
         return
 
     # Call the collector defined action for each collector.
     for collector in artifact_obj.COLLECTORS:
-      action_name = collector.action
-      self.current_artifact_name = artifact_name
-      if action_name == "Bootstrap":
-        # Can't do anything with a bootstrap action.
-        pass
-      elif action_name == "RunCommand":
-        self.RunCommand(collector)
-      elif action_name == "GetFile":
-        self.GetFiles(collector, path_type=self.state.path_type)
-      elif action_name == "GetFiles":
-        self.GetFiles(collector, path_type=self.state.path_type)
-      elif action_name == "GetRegistryKeys":
-        self.GetRegistry(collector)
-      elif action_name == "GetRegistryValue":
-        self.GetRegistryValue(collector)
-      elif action_name == "GetRegistryValues":
-        self.GetRegistryValue(collector)
-      elif action_name == "WMIQuery":
-        self.WMIQuery(collector)
-      elif action_name == "VolatilityPlugin":
-        self.VolatilityPlugin(collector)
-      elif action_name == "CollectArtifacts":
-        self.CollectArtifacts(collector)
-      elif action_name == "RunGrrClientAction":
-        self.RunGrrClientAction(collector)
+
+      # Check conditions on the collector.
+      collector_conditions_met = True
+      if collector.conditions:
+        for condition in collector.conditions:
+          if not artifact_lib.CheckCondition(condition,
+                                             self.state.knowledge_base):
+            collector_conditions_met = False
+
+      if collector_conditions_met:
+        action_name = collector.action
+        self.current_artifact_name = artifact_name
+        if action_name == "Bootstrap":
+          # Can't do anything with a bootstrap action.
+          pass
+        elif action_name == "RunCommand":
+          self.RunCommand(collector)
+        elif action_name == "GetFile":
+          self.GetFiles(collector, path_type=self.state.path_type)
+        elif action_name == "GetFiles":
+          self.GetFiles(collector, path_type=self.state.path_type)
+        elif action_name == "GetRegistryKeys":
+          self.GetRegistry(collector)
+        elif action_name == "GetRegistryValue":
+          self.GetRegistryValue(collector)
+        elif action_name == "GetRegistryValues":
+          self.GetRegistryValue(collector)
+        elif action_name == "WMIQuery":
+          self.WMIQuery(collector)
+        elif action_name == "VolatilityPlugin":
+          self.VolatilityPlugin(collector)
+        elif action_name == "CollectArtifacts":
+          self.CollectArtifacts(collector)
+        elif action_name == "RunGrrClientAction":
+          self.RunGrrClientAction(collector)
+        else:
+          raise RuntimeError("Invalid action %s in %s" % (action_name,
+                                                          artifact_name))
+
       else:
-        raise RuntimeError("Invalid action %s in %s" % (action_name,
-                                                        artifact_name))
+        logging.debug("Artifact %s no collectors run due to all collectors "
+                      "having failing conditons on %s", artifact_name,
+                      self.client_id)
 
   def _AreArtifactsKnowledgeBaseArtifacts(self):
     for cls_name in self.args.artifact_list:

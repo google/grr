@@ -3,6 +3,7 @@
 
 
 import os
+import random
 
 from grr.lib import aff4
 from grr.lib import artifact
@@ -86,3 +87,44 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
                            token=self.token)
     self.assertTrue(isinstance(list(fd)[0], rdfvalue.Process))
     self.assertTrue(len(fd) > 5)
+
+  def testConditions(self):
+    """Test we can get a GRR client artifact with conditions."""
+    # Run with false condition.
+    client_mock = test_lib.ActionMock("ListProcesses")
+    coll1 = artifact_lib.Collector(action="RunGrrClientAction",
+                                   args={"client_action": "ListProcesses"},
+                                   conditions=["os == 'Windows'"])
+    FakeArtifact.COLLECTORS.append(coll1)
+    fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
+    self.assertEquals(fd.__class__.__name__, "AFF4Volume")
+
+    # Now run with matching or condition.
+    coll1.conditions = ["os == 'Linux' or os == 'Windows'"]
+    FakeArtifact.COLLECTORS[0] = coll1
+    fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
+    self.assertEquals(fd.__class__.__name__, "RDFValueCollection")
+
+    # Now run with impossible or condition.
+    coll1.conditions.append("os == 'NotTrue'")
+    FakeArtifact.COLLECTORS[0] = coll1
+    fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
+    self.assertEquals(fd.__class__.__name__, "AFF4Volume")
+
+  def _RunClientActionArtifact(self, client_mock, artifact_list):
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    client.Set(client.Schema.SYSTEM("Linux"))
+    client.Flush()
+    output = "test_artifact_%s" % random.randrange(1, 1000)
+    for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
+                                     artifact_list=artifact_list,
+                                     token=self.token, client_id=self.client_id,
+                                     output=output
+                                    ):
+      pass
+
+    # Test the AFF4 file was not created, as flow should not have run due to
+    # conditions.
+    fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add(output),
+                           token=self.token)
+    return fd

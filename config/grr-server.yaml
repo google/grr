@@ -174,7 +174,7 @@ ClientBuilder Context:
 
     Nanny.unresponsive_kill_period: 3600
 
-CommandLineTools Context:
+CommandLine Context:
   Logging.engines: stderr
 
   Logging.verbose: False

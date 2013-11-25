@@ -11,7 +11,7 @@ from grr.proto import flows_pb2
 from grr.proto import jobs_pb2
 
 
-class ServiceInformation(rdfvalue.RDFProtoDict):
+class ServiceInformation(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.ServiceInformation
 
 
@@ -19,6 +19,8 @@ class EnumerateServicesArgs(rdfvalue.RDFProtoStruct):
   protobuf = flows_pb2.EnumerateServicesArgs
 
 
+# TODO(user): Mostly replaced with WindowsDrivers artifact.  Remove this
+# flow once we can also do the binary download with artifacts.
 class EnumerateServices(flow.GRRFlow):
   """Enumerated windows services and kernel drivers using WMI.
 

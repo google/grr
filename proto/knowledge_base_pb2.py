@@ -14,7 +14,7 @@ import grr.proto.semantic_pb2
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='grr/proto/knowledge_base.proto',
   package='',
-  serialized_pb='\n\x1egrr/proto/knowledge_base.proto\x1a\x18grr/proto/semantic.proto\"\xf3\r\n\x11KnowledgeBaseUser\x12/\n\x08username\x18\x01 \x01(\tB\x1d\xe2\xfc\xe3\xc4\x01\x17\x12\x15The name of the user.\x12\x37\n\x04temp\x18\x02 \x01(\tB)\xe2\xfc\xe3\xc4\x01#\x12!Temporary directory for the user.\x12\x66\n\x07\x64\x65sktop\x18\x04 \x01(\tBU\xe2\xfc\xe3\xc4\x01O\x12MThe desktop directory of the user. E.g. c:\\Documents and Settings\\foo\\Desktop\x12H\n\nuserdomain\x18\n \x01(\tB4\xe2\xfc\xe3\xc4\x01.\x12,The domain name of the user. E.g. MICROSOFT.\x12\x85\x01\n\x03sid\x18\x0c \x01(\tBx\xe2\xfc\xe3\xc4\x01r\x12pThe SID of the user as reported by the system. E.g. S-1-5-80-859482183-879914841-863379149-1145462774-2388618682\x12\x62\n\x0buserprofile\x18\r \x01(\tBM\xe2\xfc\xe3\xc4\x01G\x12\x45The profile directory of the user. E.g.c:\\Documents and Settings\\foo.\x12\x8a\x01\n\x07\x61ppdata\x18\x0e \x01(\tBy\xe2\xfc\xe3\xc4\x01s\x12qThe %APPDATA% directory of the user as reported by the system. E.g. c:\\Documents and Settings\\foo\\AppData\\Roaming\x12\x87\x01\n\x0clocalappdata\x18\x0f \x01(\tBq\xe2\xfc\xe3\xc4\x01k\x12iThe %LOCALAPPDATA% directory of the user as reported by the system. E.g. AppData\\Local\\Microsoft\\Windows\\\x12\x8b\x01\n\x0einternet_cache\x18\x10 \x01(\tBs\xe2\xfc\xe3\xc4\x01m\x12kThe cache directory of the user. E.g. c:\\Documents and Settings\\foo\\AppData\\Local\\Temporary Internet Files.\x12\x66\n\x07\x63ookies\x18\x11 \x01(\tBU\xe2\xfc\xe3\xc4\x01O\x12MThe cookies directory of the user. E.g. c:\\Documents and Settings\\foo\\Cookies\x12\x64\n\x06recent\x18\x12 \x01(\tBT\xe2\xfc\xe3\xc4\x01N\x12LThe recent directory of the user. E.g. c:\\Documents and Settings\\foo\\Recent.\x12k\n\x08personal\x18\x13 \x01(\tBY\xe2\xfc\xe3\xc4\x01S\x12QThe Personal directory of the user. E.g. c:\\Documents and Settings\\foo\\Documents.\x12|\n\x0elocal_settings\x18\x14 \x01(\tBd\xe2\xfc\xe3\xc4\x01^\x12\\The Local Settings directory of the user. E.g. c:\\Documents and Settings\\foo\\Local Settings.\x12g\n\x07startup\x18\x15 \x01(\tBV\xe2\xfc\xe3\xc4\x01P\x12NThe Startup directory of the user. E.g. c:\\Documents and Settings\\foo\\Startup.\x12Z\n\x07homedir\x18\x1e \x01(\tBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41The homedir of the user as reported by the system. E.g. /home/foo\x12\x38\n\x03uid\x18\x1f \x01(\rB+\xe2\xfc\xe3\xc4\x01%\x12#The uid of the of the user. E.g. 0.\x12\x38\n\x03gid\x18  \x01(\rB+\xe2\xfc\xe3\xc4\x01%\x12#The gid of the the user. E.g. 5001.\x12?\n\x05shell\x18! \x01(\tB0\xe2\xfc\xe3\xc4\x01*\x12(The shell of the the user. E.g. /bin/sh.\"\xe9\x10\n\rKnowledgeBase\x12!\n\x05users\x18\x01 \x03(\x0b\x32\x12.KnowledgeBaseUser\x12\x63\n\x08hostname\x18\x02 \x01(\tBQ\xe2\xfc\xe3\xc4\x01K\x12IThe fully qualified domain name reported by the OS. E.g. host1.ad.foo.com\x12y\n\ttime_zone\x18\x03 \x01(\tBf\xe2\xfc\xe3\xc4\x01`\x12^The timezone in Olson format E.g. Pacific/Galapagos. http://en.wikipedia.org/wiki/Tz_database.\x12w\n\x02os\x18\x04 \x01(\tBk\xe2\xfc\xe3\xc4\x01\x65\x12\x63The operating system. Case is important, must be one of Windows Linux Darwin FreeBSD OpenBSD NetBSD\x12\x45\n\x10os_major_version\x18\x05 \x01(\rB+\xe2\xfc\xe3\xc4\x01%\x12#The major version of the OS, e.g. 7\x12\x45\n\x10os_minor_version\x18\x06 \x01(\rB+\xe2\xfc\xe3\xc4\x01%\x12#The minor version of the OS, e.g. 7\x12\x42\n\x0c\x65nviron_path\x18\x07 \x01(\tB,\xe2\xfc\xe3\xc4\x01&\x12$The system configured path variable.\x12=\n\x0c\x65nviron_temp\x18\x08 \x01(\tB\'\xe2\xfc\xe3\xc4\x01!\x12\x1fThe system temporary directory.\x12\\\n\x12\x65nviron_systemroot\x18\x14 \x01(\tB@\xe2\xfc\xe3\xc4\x01:\x12\x38The value of the %SystemRoot% parameter, E.g. c:\\Windows\x12g\n\x0e\x65nviron_windir\x18\x15 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\x12GThe value of the %WINDIR% parameter. As returned by the system, e.g. C:\x12\x80\x01\n\x14\x65nviron_programfiles\x18\x16 \x01(\tBb\xe2\xfc\xe3\xc4\x01\\\x12ZThe value of the %PROGRAMFILES% parameter as returned by the system, e.g. C:\\Program Files\x12\x8e\x01\n\x17\x65nviron_programfilesx86\x18\x17 \x01(\tBm\xe2\xfc\xe3\xc4\x01g\x12\x65The value of the %PROGRAMFILES(X86)% parameter as returned by the system, e.g. C:\\Program Files (x86)\x12q\n\x13\x65nviron_systemdrive\x18\x18 \x01(\tBT\xe2\xfc\xe3\xc4\x01N\x12LThe value of the %SystemDrive% parameter. As returned by the system, e.g. C:\x12x\n\x0e\x65nviron_system\x18\x19 \x01(\tB`\xe2\xfc\xe3\xc4\x01Z\x12XThe value of the %System% parameter. As returned by the system, e.g. C:\\windows\\system32\x12\x9a\x01\n\x17\x65nviron_allusersprofile\x18\x1a \x01(\tBy\xe2\xfc\xe3\xc4\x01s\x12qThe value of the %AllUsersProfile% parameter. As returned by the system, e.g. c:\\Documents and Settings\\All Users\x12\xaf\x01\n\x17\x65nviron_allusersappdata\x18\x1b \x01(\tB\x8d\x01\xe2\xfc\xe3\xc4\x01\x86\x01\x12\x83\x01The value of the %AllUsersAppData% parameter. As returned by the system, e.g. c:\\Documents and Settings\\All Users\\Application Data.\x12i\n\x13\x63urrent_control_set\x18\x1c \x01(\tBL\xe2\xfc\xe3\xc4\x01\x46\x12\x44The current value of the system CurrentControlSet e.g. ControlSet001\x12r\n\x0csys_registry\x18\x1d \x01(\tB\\\xe2\xfc\xe3\xc4\x01V\x12TThe directory containing the system registry files. E.g. c:\\windows\\system32\\config.\x12\x83\x01\n\tcode_page\x18\x1e \x01(\tBp\xe2\xfc\xe3\xc4\x01j\x12hThe current code page of the system. Comes from HKLM\\CurrentControlSet\\Control\\Nls\\CodePage e.g. cp1252.\x12O\n\x06\x64omain\x18\x1f \x01(\tB?\xe2\xfc\xe3\xc4\x01\x39\x12\x37The domain the machine is connected to. E.g. MICROSOFT.')
+  serialized_pb='\n\x1egrr/proto/knowledge_base.proto\x1a\x18grr/proto/semantic.proto\"\xa3\x0f\n\x11KnowledgeBaseUser\x12/\n\x08username\x18\x01 \x01(\tB\x1d\xe2\xfc\xe3\xc4\x01\x17\x12\x15The name of the user.\x12\x37\n\x04temp\x18\x02 \x01(\tB)\xe2\xfc\xe3\xc4\x01#\x12!Temporary directory for the user.\x12\x66\n\x07\x64\x65sktop\x18\x04 \x01(\tBU\xe2\xfc\xe3\xc4\x01O\x12MThe desktop directory of the user. E.g. c:\\Documents and Settings\\foo\\Desktop\x12H\n\nuserdomain\x18\n \x01(\tB4\xe2\xfc\xe3\xc4\x01.\x12,The domain name of the user. E.g. MICROSOFT.\x12\x85\x01\n\x03sid\x18\x0c \x01(\tBx\xe2\xfc\xe3\xc4\x01r\x12pThe SID of the user as reported by the system. E.g. S-1-5-80-859482183-879914841-863379149-1145462774-2388618682\x12\x62\n\x0buserprofile\x18\r \x01(\tBM\xe2\xfc\xe3\xc4\x01G\x12\x45The profile directory of the user. E.g.c:\\Documents and Settings\\foo.\x12\x8a\x01\n\x07\x61ppdata\x18\x0e \x01(\tBy\xe2\xfc\xe3\xc4\x01s\x12qThe %APPDATA% directory of the user as reported by the system. E.g. c:\\Documents and Settings\\foo\\AppData\\Roaming\x12\x86\x01\n\x0clocalappdata\x18\x0f \x01(\tBp\xe2\xfc\xe3\xc4\x01j\x12hThe %LOCALAPPDATA% directory of the user as reported by the system. E.g. AppData\\Local\\Microsoft\\Windows\x12\x8b\x01\n\x0einternet_cache\x18\x10 \x01(\tBs\xe2\xfc\xe3\xc4\x01m\x12kThe cache directory of the user. E.g. c:\\Documents and Settings\\foo\\AppData\\Local\\Temporary Internet Files.\x12\x66\n\x07\x63ookies\x18\x11 \x01(\tBU\xe2\xfc\xe3\xc4\x01O\x12MThe cookies directory of the user. E.g. c:\\Documents and Settings\\foo\\Cookies\x12\x64\n\x06recent\x18\x12 \x01(\tBT\xe2\xfc\xe3\xc4\x01N\x12LThe recent directory of the user. E.g. c:\\Documents and Settings\\foo\\Recent.\x12k\n\x08personal\x18\x13 \x01(\tBY\xe2\xfc\xe3\xc4\x01S\x12QThe Personal directory of the user. E.g. c:\\Documents and Settings\\foo\\Documents.\x12|\n\x0elocal_settings\x18\x14 \x01(\tBd\xe2\xfc\xe3\xc4\x01^\x12\\The Local Settings directory of the user. E.g. c:\\Documents and Settings\\foo\\Local Settings.\x12g\n\x07startup\x18\x15 \x01(\tBV\xe2\xfc\xe3\xc4\x01P\x12NThe Startup directory of the user. E.g. c:\\Documents and Settings\\foo\\Startup.\x12\xae\x01\n\x10localappdata_low\x18\x16 \x01(\tB\x93\x01\xe2\xfc\xe3\xc4\x01\x8c\x01\x12\x89\x01The LocalLow application data directory for data that doesn\'t roam with the user.  E.g. %USERPROFILE%\\AppData\\LocalLow.  Vista and above.\x12Z\n\x07homedir\x18\x1e \x01(\tBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41The homedir of the user as reported by the system. E.g. /home/foo\x12\x38\n\x03uid\x18\x1f \x01(\rB+\xe2\xfc\xe3\xc4\x01%\x12#The uid of the of the user. E.g. 0.\x12\x38\n\x03gid\x18  \x01(\rB+\xe2\xfc\xe3\xc4\x01%\x12#The gid of the the user. E.g. 5001.\x12?\n\x05shell\x18! \x01(\tB0\xe2\xfc\xe3\xc4\x01*\x12(The shell of the the user. E.g. /bin/sh.\"\xe9\x10\n\rKnowledgeBase\x12!\n\x05users\x18\x01 \x03(\x0b\x32\x12.KnowledgeBaseUser\x12\x63\n\x08hostname\x18\x02 \x01(\tBQ\xe2\xfc\xe3\xc4\x01K\x12IThe fully qualified domain name reported by the OS. E.g. host1.ad.foo.com\x12y\n\ttime_zone\x18\x03 \x01(\tBf\xe2\xfc\xe3\xc4\x01`\x12^The timezone in Olson format E.g. Pacific/Galapagos. http://en.wikipedia.org/wiki/Tz_database.\x12w\n\x02os\x18\x04 \x01(\tBk\xe2\xfc\xe3\xc4\x01\x65\x12\x63The operating system. Case is important, must be one of Windows Linux Darwin FreeBSD OpenBSD NetBSD\x12\x45\n\x10os_major_version\x18\x05 \x01(\rB+\xe2\xfc\xe3\xc4\x01%\x12#The major version of the OS, e.g. 7\x12\x45\n\x10os_minor_version\x18\x06 \x01(\rB+\xe2\xfc\xe3\xc4\x01%\x12#The minor version of the OS, e.g. 7\x12\x42\n\x0c\x65nviron_path\x18\x07 \x01(\tB,\xe2\xfc\xe3\xc4\x01&\x12$The system configured path variable.\x12=\n\x0c\x65nviron_temp\x18\x08 \x01(\tB\'\xe2\xfc\xe3\xc4\x01!\x12\x1fThe system temporary directory.\x12\\\n\x12\x65nviron_systemroot\x18\x14 \x01(\tB@\xe2\xfc\xe3\xc4\x01:\x12\x38The value of the %SystemRoot% parameter, E.g. c:\\Windows\x12g\n\x0e\x65nviron_windir\x18\x15 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\x12GThe value of the %WINDIR% parameter. As returned by the system, e.g. C:\x12\x80\x01\n\x14\x65nviron_programfiles\x18\x16 \x01(\tBb\xe2\xfc\xe3\xc4\x01\\\x12ZThe value of the %PROGRAMFILES% parameter as returned by the system, e.g. C:\\Program Files\x12\x8e\x01\n\x17\x65nviron_programfilesx86\x18\x17 \x01(\tBm\xe2\xfc\xe3\xc4\x01g\x12\x65The value of the %PROGRAMFILES(X86)% parameter as returned by the system, e.g. C:\\Program Files (x86)\x12q\n\x13\x65nviron_systemdrive\x18\x18 \x01(\tBT\xe2\xfc\xe3\xc4\x01N\x12LThe value of the %SystemDrive% parameter. As returned by the system, e.g. C:\x12x\n\x0e\x65nviron_system\x18\x19 \x01(\tB`\xe2\xfc\xe3\xc4\x01Z\x12XThe value of the %System% parameter. As returned by the system, e.g. C:\\windows\\system32\x12\x9a\x01\n\x17\x65nviron_allusersprofile\x18\x1a \x01(\tBy\xe2\xfc\xe3\xc4\x01s\x12qThe value of the %AllUsersProfile% parameter. As returned by the system, e.g. c:\\Documents and Settings\\All Users\x12\xaf\x01\n\x17\x65nviron_allusersappdata\x18\x1b \x01(\tB\x8d\x01\xe2\xfc\xe3\xc4\x01\x86\x01\x12\x83\x01The value of the %AllUsersAppData% parameter. As returned by the system, e.g. c:\\Documents and Settings\\All Users\\Application Data.\x12i\n\x13\x63urrent_control_set\x18\x1c \x01(\tBL\xe2\xfc\xe3\xc4\x01\x46\x12\x44The current value of the system CurrentControlSet e.g. ControlSet001\x12r\n\x0csys_registry\x18\x1d \x01(\tB\\\xe2\xfc\xe3\xc4\x01V\x12TThe directory containing the system registry files. E.g. c:\\windows\\system32\\config.\x12\x83\x01\n\tcode_page\x18\x1e \x01(\tBp\xe2\xfc\xe3\xc4\x01j\x12hThe current code page of the system. Comes from HKLM\\CurrentControlSet\\Control\\Nls\\CodePage e.g. cp1252.\x12O\n\x06\x64omain\x18\x1f \x01(\tB?\xe2\xfc\xe3\xc4\x01\x39\x12\x37The domain the machine is connected to. E.g. MICROSOFT.')
 
 
 
@@ -81,7 +81,7 @@ _KNOWLEDGEBASEUSER = _descriptor.Descriptor(
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001k\022iThe %LOCALAPPDATA% directory of the user as reported by the system. E.g. AppData\\Local\\Microsoft\\Windows\\')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001j\022hThe %LOCALAPPDATA% directory of the user as reported by the system. E.g. AppData\\Local\\Microsoft\\Windows')),
     _descriptor.FieldDescriptor(
       name='internet_cache', full_name='KnowledgeBaseUser.internet_cache', index=8,
       number=16, type=9, cpp_type=9, label=1,
@@ -125,28 +125,35 @@ _KNOWLEDGEBASEUSER = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001P\022NThe Startup directory of the user. E.g. c:\\Documents and Settings\\foo\\Startup.')),
     _descriptor.FieldDescriptor(
-      name='homedir', full_name='KnowledgeBaseUser.homedir', index=14,
+      name='localappdata_low', full_name='KnowledgeBaseUser.localappdata_low', index=14,
+      number=22, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\214\001\022\211\001The LocalLow application data directory for data that doesn\'t roam with the user.  E.g. %USERPROFILE%\\AppData\\LocalLow.  Vista and above.')),
+    _descriptor.FieldDescriptor(
+      name='homedir', full_name='KnowledgeBaseUser.homedir', index=15,
       number=30, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001C\022AThe homedir of the user as reported by the system. E.g. /home/foo')),
     _descriptor.FieldDescriptor(
-      name='uid', full_name='KnowledgeBaseUser.uid', index=15,
+      name='uid', full_name='KnowledgeBaseUser.uid', index=16,
       number=31, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001%\022#The uid of the of the user. E.g. 0.')),
     _descriptor.FieldDescriptor(
-      name='gid', full_name='KnowledgeBaseUser.gid', index=16,
+      name='gid', full_name='KnowledgeBaseUser.gid', index=17,
       number=32, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001%\022#The gid of the the user. E.g. 5001.')),
     _descriptor.FieldDescriptor(
-      name='shell', full_name='KnowledgeBaseUser.shell', index=17,
+      name='shell', full_name='KnowledgeBaseUser.shell', index=18,
       number=33, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
@@ -162,7 +169,7 @@ _KNOWLEDGEBASEUSER = _descriptor.Descriptor(
   is_extendable=False,
   extension_ranges=[],
   serialized_start=61,
-  serialized_end=1840,
+  serialized_end=2016,
 )
 
 
@@ -322,8 +329,8 @@ _KNOWLEDGEBASE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1843,
-  serialized_end=3996,
+  serialized_start=2019,
+  serialized_end=4172,
 )
 
 _KNOWLEDGEBASE.fields_by_name['users'].message_type = _KNOWLEDGEBASEUSER
@@ -358,7 +365,7 @@ _KNOWLEDGEBASEUSER.fields_by_name['userprofile']._options = _descriptor._ParseOp
 _KNOWLEDGEBASEUSER.fields_by_name['appdata'].has_options = True
 _KNOWLEDGEBASEUSER.fields_by_name['appdata']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001s\022qThe %APPDATA% directory of the user as reported by the system. E.g. c:\\Documents and Settings\\foo\\AppData\\Roaming')
 _KNOWLEDGEBASEUSER.fields_by_name['localappdata'].has_options = True
-_KNOWLEDGEBASEUSER.fields_by_name['localappdata']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001k\022iThe %LOCALAPPDATA% directory of the user as reported by the system. E.g. AppData\\Local\\Microsoft\\Windows\\')
+_KNOWLEDGEBASEUSER.fields_by_name['localappdata']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001j\022hThe %LOCALAPPDATA% directory of the user as reported by the system. E.g. AppData\\Local\\Microsoft\\Windows')
 _KNOWLEDGEBASEUSER.fields_by_name['internet_cache'].has_options = True
 _KNOWLEDGEBASEUSER.fields_by_name['internet_cache']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001m\022kThe cache directory of the user. E.g. c:\\Documents and Settings\\foo\\AppData\\Local\\Temporary Internet Files.')
 _KNOWLEDGEBASEUSER.fields_by_name['cookies'].has_options = True
@@ -371,6 +378,8 @@ _KNOWLEDGEBASEUSER.fields_by_name['local_settings'].has_options = True
 _KNOWLEDGEBASEUSER.fields_by_name['local_settings']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001^\022\\The Local Settings directory of the user. E.g. c:\\Documents and Settings\\foo\\Local Settings.')
 _KNOWLEDGEBASEUSER.fields_by_name['startup'].has_options = True
 _KNOWLEDGEBASEUSER.fields_by_name['startup']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001P\022NThe Startup directory of the user. E.g. c:\\Documents and Settings\\foo\\Startup.')
+_KNOWLEDGEBASEUSER.fields_by_name['localappdata_low'].has_options = True
+_KNOWLEDGEBASEUSER.fields_by_name['localappdata_low']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\214\001\022\211\001The LocalLow application data directory for data that doesn\'t roam with the user.  E.g. %USERPROFILE%\\AppData\\LocalLow.  Vista and above.')
 _KNOWLEDGEBASEUSER.fields_by_name['homedir'].has_options = True
 _KNOWLEDGEBASEUSER.fields_by_name['homedir']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001C\022AThe homedir of the user as reported by the system. E.g. /home/foo')
 _KNOWLEDGEBASEUSER.fields_by_name['uid'].has_options = True

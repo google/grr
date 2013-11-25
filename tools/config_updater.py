@@ -6,6 +6,7 @@ import argparse
 import ConfigParser
 import getpass
 import os
+import re
 # importing readline enables the raw_input calls to have history etc.
 import readline  # pylint: disable=unused-import
 import sys
@@ -83,6 +84,10 @@ parser_add_user = subparsers.add_parser(
     "add_user", help="Add a new user.")
 
 parser_add_user.add_argument("username", help="Username to update.")
+
+parser_add_user.add_argument(
+    "--noadmin", default=False, action="store_true",
+    help="Don't create the user as an administrator.")
 
 
 def UpdateUser(username, password, labels):
@@ -290,6 +295,22 @@ def GenerateKeys(config):
   GenerateDjangoKey(config)
 
 
+def RetryQuestion(question_text, output_re="", default_val=""):
+  """Continually ask a question until the output_re is matched."""
+  while True:
+    if default_val:
+      new_text = "%s [%s]: " % (question_text, default_val)
+    else:
+      new_text = "%s: " % question_text
+    output = raw_input(new_text) or default_val
+    output = output.strip()
+    if not output_re or re.match(output_re, output):
+      break
+    else:
+      print "Invalid input, must match %s" % output_re
+  return output
+
+
 def ConfigureBaseOptions(config):
   """Configure the basic options required to run the server."""
 
@@ -305,38 +326,46 @@ the client facing server and the admin user interface.\n"""
     print "Using %s as public hostname" % hostname
   except (OSError, IOError):
     print "Sorry, we couldn't guess your public hostname"
-    hostname = raw_input(
-        "Please enter it manually e.g. grr.example.com: ").strip()
+
+  hostname = RetryQuestion("Please enter your public hostname e.g. "
+                           "grr.example.com", "^([\\.A-Za-z0-9-]+)*$")
 
   print """\n\nServer URL
 The Server URL specifies the URL that the clients will connect to
 communicate with the server. This needs to be publically accessible. By default
 this will be port 8080 with the URL ending in /control.
 """
-  def_location = "http://%s:8080/control" % hostname
-  location = raw_input("Server URL [%s]: " % def_location) or def_location
+  location = RetryQuestion("Server URL", "^http://.*/control$",
+                           "http://%s:8080/control" % hostname)
   config.Set("Client.location", location)
 
   print """\nUI URL:
 The UI URL specifies where the Administrative Web Interface can be found.
 """
-  def_url = "http://%s:8000" % hostname
-  ui_url = raw_input("AdminUI URL [%s]: " % def_url) or def_url
+  ui_url = RetryQuestion("AdminUI URL", "^http://.*$",
+                         "http://%s:8000" % hostname)
   config.Set("AdminUI.url", ui_url)
+
+  print """\nMonitoring/Email domain name:
+Emails concerning alerts or updates must be sent to this domain.
+"""
+  domain = RetryQuestion("Email domain", "^([\\.A-Za-z0-9-]+)*$",
+                         "example.com")
+  config.Set("Logging.domain", domain)
 
   print """\nMonitoring email address
 Address where monitoring events get sent, e.g. crashed clients, broken server
 etc.
 """
-  def_email = "grr-emergency@example.com"
-  email = raw_input("Monitoring email [%s]: " % def_email) or def_email
-  config.Set("Monitoring.emergency_access_email", email)
+  email = RetryQuestion("Monitoring email", "",
+                        "grr-monitoring@%s" % domain)
+  config.Set("Monitoring.alert_email", email)
 
   print """\nEmergency email address
 Address where high priority events such as an emergency ACL bypass are sent.
 """
-  def_email = "grr-emergency@example.com"
-  emergency_email = raw_input("Emergency email [%s]: " % email) or email
+  emergency_email = RetryQuestion("Monitoring emergency email", "",
+                                  "grr-emergency@%s" % domain)
   config.Set("Monitoring.emergency_access_email", emergency_email)
 
   config.Write()
@@ -451,7 +480,10 @@ def main(unused_argv):
   elif flags.FLAGS.subparser_name == "add_user":
     password = getpass.getpass(prompt="Please enter password for user '%s': " %
                                flags.FLAGS.username)
-    UpdateUser(flags.FLAGS.username, password, [])
+    labels = []
+    if not flags.FLAGS.noadmin:
+      labels.append("admin")
+    UpdateUser(flags.FLAGS.username, password, labels)
 
   elif flags.FLAGS.subparser_name == "upload_python":
     content = open(flags.FLAGS.file).read(1024*1024*30)

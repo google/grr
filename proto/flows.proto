@@ -512,7 +512,7 @@ message ArtifactCollectorFlowArgs {
   optional bool store_results_in_aff4 = 3 [(sem_type) = {
       description: "Should the collected artifacts be written to the GRR "
       "AFF4 namespace based on the AFF4->RDF map.",
-    }, default=true];
+    }, default=false];
 
   optional bool split_output_by_artifact = 5 [(sem_type) = {
       description: "If True, use output as a directory and write a separate"

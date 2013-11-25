@@ -288,7 +288,7 @@ class ContainerToolbar(renderers.TemplateRenderer):
 {{this.container|escape}}
 </li>
 
-<li class="pull-right">
+<li class="toolbar-search-box">
 <form id="form_{{unique|escape}}" name="query_form" class="form-search">
 <div class="input-append">
 

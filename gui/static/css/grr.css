@@ -26,6 +26,12 @@
   border-left: 5px solid #cecece;
 }
 
+.toolbar-search-box {
+  position: absolute;
+  top: 10px;
+  right: 0;
+}
+
 /* Bootstrap tweaks */
 
 a {

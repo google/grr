@@ -70,13 +70,13 @@ message KnowledgeBaseUser {
 
   optional string localappdata = 15 [(sem_type) = {
       description: "The %LOCALAPPDATA% directory of the user as reported by the"
-        " system. E.g. AppData\\Local\\Microsoft\\Windows\\",
+        " system. E.g. AppData\\Local\\Microsoft\\Windows",
     }];
 
   optional string internet_cache = 16 [(sem_type) = {
       description: "The cache directory of the user. E.g. "
-        "c:\\Documents and Settings\\foo\\AppData\\Local\\"
-        "Temporary Internet Files.",
+        "c:\\Documents and Settings\\foo\\AppData\\Local"
+        "\\Temporary Internet Files.",
     }];
 
   optional string cookies = 17 [(sem_type) = {
@@ -102,6 +102,12 @@ message KnowledgeBaseUser {
     optional string startup = 21 [(sem_type) = {
       description: "The Startup directory of the user. E.g. "
         "c:\\Documents and Settings\\foo\\Startup.",
+    }];
+
+  optional string localappdata_low = 22 [(sem_type) = {
+      description: "The LocalLow application data directory for data that"
+        " doesn't roam with the user.  E.g."
+        " %USERPROFILE%\\AppData\\LocalLow.  Vista and above.",
     }];
 
 

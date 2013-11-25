@@ -8,6 +8,7 @@ intended to end up as an independent library.
 import itertools
 import re
 
+from grr.lib import objectfilter
 from grr.lib import rdfvalue
 from grr.lib import registry
 
@@ -236,9 +237,12 @@ class GenericArtifact(Artifact):
                                       % (cls_name, supp_os))
 
     for condition in self.CONDITIONS:
-      if not hasattr(condition, "__call__"):
-        raise ArtifactDefinitionError("Artifact %s has invalid condition %s" %
-                                      (cls_name, condition))
+      try:
+        of = objectfilter.Parser(condition).Parse()
+        of.Compile(objectfilter.BaseFilterImplementation)
+      except ConditionError as e:
+        raise ArtifactDefinitionError("Artifact %s has invalid condition %s. %s"
+                                      % (cls_name, condition, e))
 
     for collector in self.COLLECTORS:
       if not hasattr(collector.conditions, "__iter__"):
@@ -402,6 +406,27 @@ def ExpandWindowsEnvironmentVariables(data_string, knowledge_base):
     offset = match.end()
   components.append(data_string[offset:])    # Append the final chunk.
   return "".join(components)
+
+
+def CheckCondition(condition, check_object):
+  """Check if a condition matches an object.
+
+  Args:
+    condition: A string condition e.g. "os == 'Windows'"
+    check_object: Object to validate, e.g. an rdfvalue.KnowledgeBase()
+
+  Returns:
+    True or False depending on whether the condition matches.
+
+  Raises:
+    ConditionError: If condition is bad.
+  """
+  try:
+    of = objectfilter.Parser(condition).Parse()
+    compiled_filter = of.Compile(objectfilter.BaseFilterImplementation)
+    return compiled_filter.Matches(check_object)
+  except objectfilter.Error as e:
+    raise ConditionError(e)
 
 
 def ExpandWindowsUserEnvironmentVariables(data_string, knowledge_base, sid=None,

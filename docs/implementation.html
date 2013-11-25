@@ -799,7 +799,7 @@ in different threads.</p></div>
 </div>
 <div class="title">Figure 1: GRR Component overview</div>
 </div>
-<div class="paragraph"><p>The main components running components are:</p></div>
+<div class="paragraph"><p>The main components are:</p></div>
 <div class="dlist"><dl>
 <dt class="hdlist1">
 Client
@@ -819,7 +819,7 @@ Front End Servers
 <dd>
 <p>
 The front end servers' main task is to decrypt POST requests from the client,
-un-bundle the contained messages and queues these on the data store. The front
+un-bundle the contained messages and queue these on the data store. The front
 end also fetches any messages queued for the client and sends them to the
 client.
 </p>
@@ -840,7 +840,7 @@ Console
 <dd>
 <p>
 The console is the central application which enables the incident responder or
-forensic analyst to interact with the system. The consoles allows for analysis
+forensic analyst to interact with the system. The console allows for analysis
 tasks to be queued for the clients, and results of previous stored analysis to
 be examined. GRR has both a GUI and a text based console application.
 </p>
@@ -864,10 +864,10 @@ re-queue new requests for the clients (See <a href="#Flows">[Flows]</a> and <a h
 <h2 id="_grr_messages">GRR Messages</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>On the wire, the client and server interchange messages. We term the messages
-send from server to the client <em>requests</em>, while messages send from the client
-to the server are <em>responses</em>.  Requests sent to the client, ask the client to
-perform some action, which we term the <em>client action</em>, for example
-<em>ListDirectory</em>. A single request may elicit multiple responses.</p></div>
+sent from server to the client <em>requests</em>, while messages sent from the client
+to the server are <em>responses</em>. Requests sent to the client ask the client to
+perform some action, for example <em>ListDirectory</em>. We term these actions the
+<em>client action</em>. A single request may elicit multiple responses.</p></div>
 <div class="paragraph"><p>For example, the request message <em>ListDirectory</em> will elicit a response for each
 file in the directory (potentially thousands). Requests and responses are
 tracked using an incremental <em>request_id</em> and <em>response_id</em>.</p></div>
@@ -934,14 +934,14 @@ is run again.</p></div>
 <div class="paragraph"><p>Typically when we want to run an analysis on the client, we need to go through a
 process where a number of requests are issued, their responses are examined, and
 new requests are issued. This round trip to the client may happen many times.</p></div>
-<div class="paragraph"><p>If it inefficient to dedicate server resources to wait for the client to
+<div class="paragraph"><p>It is inefficient to dedicate server resources to wait for the client to
 complete any particular request. The client may lose connectivity or disappear
-at any time, and leave server resources (such as memory) in use for prolonged
+at any time and leave server resources (such as memory) in use for a prolonged
 period.</p></div>
-<div class="paragraph"><p>GRR solves the problem by using a suspendable execution model. We term this
+<div class="paragraph"><p>GRR solves this problem by using a suspendable execution model. We term this
 construct a <em>Flow</em>. The flow is a state machine which receives responses to
 requests into well defined <em>state methods</em>. The flow object can be pickled
-(serialized) between state executions to disk. This allows the server to suspect
+(serialized) between state executions to disk. This allows the server to suspend
 the current execution flow with the client indefinitely with no server resources
 committed.</p></div>
 <div class="imageblock" style="text-align:center;">
@@ -957,19 +957,19 @@ committed.</p></div>
 We begin in the <em>Start</em> state, where we issue a request to the client to
 calculate the hash of a file. The responses to the request (when they arrive
 back from the client) will be fed into the <em>CheckHash</em> state. Once the requests
-are send, the flow can be serialized indefinitely.
+are sent, the flow can be serialized indefinitely.
 </p>
 </li>
 <li>
 <p>
-When the hash response arrives from the client, and we do not have the hash
+When the hash response arrives from the client, if we do not have the hash
 in the database (i.e. we do not have a copy of this file), the flow will issue a
 <em>ReadBuffer</em> request for the first buffer of the file.
 </p>
 </li>
 <li>
 <p>
-When the response is returned, the buffer is written to disk, and the next
+When the response is returned, the buffer is written to disk and the next
 buffer is requested.
 </p>
 </li>
@@ -1014,7 +1014,7 @@ flow. This means that typically, the client is unable to just send a message
 into any running flow, since it would require guessing the session id for the
 flow. This is a good thing since it protects flows from malicious clients.</p></div>
 <div class="paragraph"><p>However, there is a need sometimes for the client to send unsolicited messages
-to the server (For example during enrollment). In order for the responses to be
+to the server (for example during enrollment). In order for the responses to be
 routed they must have a correct session id.</p></div>
 <div class="paragraph"><p>The solution is to have a second class of flows on the server called <em>Well Known
 Flows</em>. These flows have a well known session id so messages can be routed to
@@ -1053,7 +1053,7 @@ an event. For example:</p></div>
 A new well known flow is created by extending the WellKnownFlow baseclass.
 </td></tr>
 <tr><td><img src="./images/icons/callouts/2.png" alt="2" /></td><td>
-The Well known session id of this flow is "CA:Enrol". Messages to this queue
+The well known session id of this flow is "CA:Enrol". Messages to this queue
 will be routed to this flow.
 </td></tr>
 <tr><td><img src="./images/icons/callouts/3.png" alt="3" /></td><td>
@@ -1070,11 +1070,11 @@ random session_id - that ensure no other clients can interfere with this
 enrollment request.
 </td></tr>
 </table></div>
-<div class="paragraph"><p>On top of the the Well known flow system GRR implements an event dispatching
+<div class="paragraph"><p>On top of the the well known flow system GRR implements an event dispatching
 system. This allows any component to declare an event it is interested in, and
 have any other component broadcast the event.</p></div>
 <div class="paragraph"><p>For example, when a new client enrolls we wish to run the Interrogate flow
-automatically for it (so we can query it for hostname, usernames etc):</p></div>
+automatically for it (so we can query it for hostname, usernames etc.):</p></div>
 <div class="listingblock">
 <div class="content">
 <pre><tt>class EnrolmentInterrogateEvent(flow.EventListener):                  # <img src="./images/icons/callouts/1.png" alt="1" />
@@ -1424,8 +1424,8 @@ Otherwise you can add them to grr/lib/local/ and the <em>init</em>.py there to
 amongst the entire fleet of clients, GRR has implemented the concept
 of hunts. Hunts are essentially flows that run on multiple clients at
 the same time.</p></div>
-<div class="paragraph"><p>At the moment, hunts are regarded as rather high impact since they can
-affect many clients at once so scheduling new hunts is restricted to
+<div class="paragraph"><p>At the moment hunts are regarded as rather high impact since they can
+affect many clients at once, so scheduling new hunts is restricted to
 console users. In order to schedule a hunt, this is the process:</p></div>
 <div class="paragraph"><p>Import the hunts file and create a new hunt (This example uses the
 SampleHunt, replace with a hunt of your choice):</p></div>
@@ -1459,7 +1459,7 @@ them:</p></div>
                    value=7)
 regex_rule = flow.GRRHunt.MATCH_WINDOWS</tt></pre>
 </div></div>
-<div class="paragraph"><p>The two rules above will match clients that run windows and have an
+<div class="paragraph"><p>The two rules above will match clients that run Windows and have an
 OS_RELEASE of 7.</p></div>
 <div class="paragraph"><p>Next, you add the rules to the hunt:</p></div>
 <div class="listingblock">
@@ -1515,10 +1515,10 @@ these workers.</p></div>
 </div>
 <div class="title">Figure 3: Processing queues in the GRR architecture.</div>
 </div>
-<div class="paragraph"><p>For example Figure 3 illustrates three distinct types of workers. The general
+<div class="paragraph"><p>For example, figure 3 illustrates three distinct types of workers. The general
 purpose workers retrieve messages from the general queue named "W". A
 specialized worker responsible for CA enrollments communicates to the client on
-the queue "CA" while an interactive worker has its own queue for the client.</p></div>
+the queue "CA", while an interactive worker has its own queue for the client.</p></div>
 <div class="paragraph"><p>It is also possible to run special purpose workers for example for debugging or
 special flow processing (i.e. workers with custom flows which are not found in
 the standard workers). These workers can be started with the command line
@@ -1534,7 +1534,7 @@ in the GUI:</p></div>
 </div>
 <div class="title">Figure 1. Inspecting outstanding client requests.</div>
 </div>
-<div class="paragraph"><p>The Figure shows three client requests outstanding for this client. The client
+<div class="paragraph"><p>The figure shows three client requests outstanding for this client. The client
 is currently offline and so has requests queued for it when it returns. We can
 see two regular requests directed to the queue "W" - a ListProcesses request and
 a NetStat request. There is also a special request directed at the queue DEBUG
@@ -1551,7 +1551,7 @@ heart of GRR and is essential for understanding how GRR store, analyzes and
 represents forensic artifacts.</p></div>
 <div class="paragraph"><p>AFF4 is an object oriented model. This means that all entities are just
 different types of <em>AFF4 objects</em>. An AFF4 object is simply an entity,
-addressable by a globally unique name, which has attributes attached to it, as
+addressable by a globally unique name, which has attributes attached to it as
 well as behaviors.</p></div>
 <div class="paragraph"><p>Each AFF4 object has a unique urn by which it can be addressed. AFF4 objects
 also have optional attributes which are defined in the object&#8217;s Schema. For
@@ -1599,14 +1599,14 @@ whenever this attribute is updated, the corresponding index is also updated.
 <div class="title">Figure 2. View of an AFF4 VFSGRRClient with some of its attributes.</div>
 </div>
 <div class="paragraph"><p>The figure above illustrates an AFF4 Object of type VFSGRRClient. It has a URN
-of "aff4:/C.880661da867cfebd". The figure also list all the attributes attached
+of "aff4:/C.880661da867cfebd". The figure also lists all the attributes attached
 to this object. Notice how some attributes are listed under the heading
 <em>AFF4Object</em> (since they are defined at that level) and some are listed under
 <em>VFSGRRClient</em> since they are defined under the VFSGRRClient schema.</p></div>
 <div class="paragraph"><p>The figure also gives an <em>Age</em> for each attribute. This is the time when the
 attribute was created. Since GRR deals with fluid, constantly changing systems,
 each fact about the system must be tagged with the point in time where that fact
-was known. For example, in a future time, the hostname may change. In that case
+was known. For example, at a future time, the hostname may change. In that case
 we will have several versions for the HOSTNAME attribute, each correct for that
 point in time. We consider the entire object to have a new version when a
 versioned attribute changes.</p></div>
@@ -1620,7 +1620,7 @@ versioned attribute changes.</p></div>
 currently see shows the the process listing at one point in time, but we can
 also see a UI offering to show us previous versions of the same object.</p></div>
 <div class="paragraph"><p>AFF4 objects take care of their own serialization and unserialization and the
-data store technology is abstracted.  Usually AFF4 objects are managed using the
+data store technology is abstracted. Usually AFF4 objects are managed using the
 aff4 FACTORY:</p></div>
 <div class="listingblock">
 <div class="content">
@@ -1669,7 +1669,7 @@ We receive back an AFF4 object of type <em>AFF4MemoryStream</em>. This is a stre
 </td></tr>
 <tr><td><img src="./images/icons/callouts/3.png" alt="3" /></td><td>
 Since it is a stream, it also implements the stream interface (i.e. supports
-reading and seeking). Reading this stead gives back the results from running
+reading and seeking). Reading this stream gives back the results from running
 Volatility&#8217;s pslist against the memory of the client.
 </td></tr>
 <tr><td><img src="./images/icons/callouts/4.png" alt="4" /></td><td>
@@ -1688,7 +1688,7 @@ All attributes carry the timestamp when they were created. The last time the
 SIZE attribute was updated was when the object was written to last.
 </td></tr>
 <tr><td><img src="./images/icons/callouts/8.png" alt="8" /></td><td>
-We can now retrieve all versions of this attribute - The pslist Flow was run
+We can now retrieve all versions of this attribute - The pslist flow was run
 on this client 3 times at different dates. Each time the data is different.
 </td></tr>
 </table></div>
@@ -1700,16 +1700,16 @@ on this client 3 times at different dates. Each time the data is different.
 <div class="paragraph"><p>One of the nice things about the GRR client is the ability to nest file
 readers. For example, we can read files inside an image using the sleuthkit and
 also directly through the API. We can read registry keys using REGFI from raw
-registry files as well as using the API.  The way this is implemented is using a
+registry files as well as using the API. The way this is implemented is using a
 pathspec.</p></div>
 <div class="sect2">
 <h3 id="_pathspecs">Pathspecs</h3>
-<div class="paragraph"><p>The GRR client has a number of drivers to virtualize access to different objects
-create a Virtual File System (VFS) abstraction. These are called <em>VFS Handlers</em>
-and they provide typical file-like operations (e.g. read, seek, tell and stat).
-It is possible to recursively apply different drivers in the correct order to
-arrive at a certain file like object. In order to specify how drivers should be
-applied we use <em>Path Specifications</em> or pathspec.</p></div>
+<div class="paragraph"><p>The GRR client has a number of drivers to virtualize access to different
+objects, creating a Virtual File System (VFS) abstraction. These are called <em>VFS
+Handlers</em> and they provide typical file-like operations (e.g. read, seek, tell
+and stat). It is possible to recursively apply different drivers in the correct
+order to arrive at a certain file like object. In order to specify how drivers
+should be applied we use <em>Path Specifications</em> or pathspecs.</p></div>
 <div class="paragraph"><p>Each VFS handler is constructed from a previous handler and a pathspec. The
 pathspec is just a collection of arguments which make sense to the specific VFS
 handler. The type of the handler is carried by the pathtype parameter:</p></div>
@@ -1781,7 +1781,7 @@ file while the system is running).</p></div>
 <div class="sect2">
 <h3 id="_pathspec_transformations">Pathspec transformations</h3>
 <div class="paragraph"><p>The pathspec tells the client exactly how to open the required file, by nesting
-drivers on the client.  Generally, however, the server has no prior knowledge of
+drivers on the client. Generally, however, the server has no prior knowledge of
 files on the client, therefore the client needs to transform the server request
 to the pathspec that makes sense for the client. The following are the
 transformations which are applied to the pathspec by the client.</p></div>
@@ -1790,7 +1790,7 @@ transformations which are applied to the pathspec by the client.</p></div>
 <div class="paragraph"><p>Some filesystems are not case sensitive (e.g. NTFS). However they do preserve
 file cases. This means that the same pathspecs with different case filename will
 access the same file on disk. This file however, does have a well defined and
-unchanging casing.  The client can correct file casing, e.g.:</p></div>
+unchanging casing. The client can correct file casing, e.g.:</p></div>
 <div class="literalblock">
 <div class="content">
 <pre><tt>path: c:\documents and settings\
@@ -1840,7 +1840,7 @@ for all clients.</p></div>
 <div class="sect2">
 <h3 id="_life_of_a_client_pathspec_request">Life of a client pathspec request</h3>
 <div class="paragraph"><p>How are the pathspecs sent to the client and how are they related to the aff4
-system. The figure below illustrate a typical request - in this case to list a
+system. The figure below illustrates a typical request - in this case to list a
 directory:</p></div>
 <div class="olist arabic"><ol class="arabic">
 <li>
@@ -1861,8 +1861,8 @@ provided pathspec.
 </li>
 <li>
 <p>
-Client calls VFSOpen(pathspec) which opens the file, and correct the pathspec
-to:
+Client calls VFSOpen(pathspec) which opens the file, and corrects the
+pathspec to:
 </p>
 <div class="literalblock">
 <div class="content">
@@ -1916,7 +1916,7 @@ flows on a large number of clients.</p></div>
 checks in, the specified flow will execute on the client. The rules work against
 AFF4 attributes allowing for things like "All XP Machines" or "All OSX machines
 installed after 01.01.2011".</p></div>
-<div class="paragraph"><p>The foreman check in request is a special request made by the client that
+<div class="paragraph"><p>The foreman check-in request is a special request made by the client that
 communicates with a Well Known Flow (W:Foreman). When the server sees this
 request it does the following:</p></div>
 <div class="olist arabic"><ol class="arabic">
@@ -1927,8 +1927,8 @@ Determines how long since this client did a Foreman check-in.
 </li>
 <li>
 <p>
-Determines the set of that are non-expired and haven&#8217;t previously been checked
- by the client.
+Determines the set of rules that are non-expired and haven&#8217;t previously been
+checked by the client.
 </p>
 </li>
 <li>
@@ -2058,7 +2058,7 @@ A flow is simply a class which extends flow.GRRFlow.
 By specifying a category, the GUI can use this flow automatically.
 </td></tr>
 <tr><td><img src="./images/icons/callouts/3.png" alt="3" /></td><td>
-A state method is decorated with the <em>StatHandler</em> decorator. This also
+A state method is decorated with the <em>StateHandler</em> decorator. This also
 specifies all the possible other states that can be transitioned from this
 state.
 </td></tr>

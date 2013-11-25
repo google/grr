@@ -99,7 +99,7 @@ class ArtifactListRenderer(forms.MultiSelectListRenderer):
           "labels": artifact.LABELS or ["None"],
           "description": artifact.GetDescription(),
           "short_description": artifact.GetShortDescription(),
-          "conditions": [c.__name__ for c in artifact.CONDITIONS] or ["None"],
+          "conditions": [c for c in artifact.CONDITIONS] or ["None"],
           "dependencies": ([str(c) for c in
                             artifact.GetArtifactPathDependencies()]
                            or ["None"]),

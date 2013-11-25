@@ -12,22 +12,6 @@ Collector = artifact_lib.Collector        # pylint: disable=g-bad-name
 
 
 ################################################################################
-#  Windows specific conditions
-################################################################################
-
-
-# TODO(user): Deprecate these once we move to the objectfilter scheme.
-def VistaOrNewer(knowledge_base):
-  """Is the client newer than Windows Vista?"""
-  return (knowledge_base.os_major_version >=
-          constants.MAJOR_VERSION_WINDOWS_VISTA)
-
-
-def NotVistaOrNewer(client):
-  return not VistaOrNewer(client)
-
-
-################################################################################
 #  Core Windows system artifacts
 ################################################################################
 
@@ -253,8 +237,8 @@ class UserShellFolders(Artifact):
   PROVIDES = ["users.cookies", "users.appdata", "users.personal",
               "users.startup", "users.homedir", "users.desktop",
               "users.local_settings", "users.internet_cache",
-              "users.localappdata", "users.recent", "users.userprofile",
-              "users.temp"]
+              "users.localappdata", "users.localappdata_low" "users.recent",
+              "users.userprofile", "users.temp"]
 
   COLLECTORS = [
       Collector(action="GetRegistryKeys",
@@ -270,7 +254,7 @@ class UserShellFolders(Artifact):
 
 class AbstractEventLogEvtx(Artifact):
   URLS = ["http://www.forensicswiki.org/wiki/Windows_XML_Event_Log_(EVTX)"]
-  CONDITIONS = [VistaOrNewer]
+  CONDITIONS = ["os_major_version >= %s" % constants.MAJOR_VERSION_WINDOWS_VISTA]
   SUPPORTED_OS = ["Windows"]
   LABELS = ["Logs"]
 
@@ -313,13 +297,13 @@ RDP/TerminalServices to the machine.
 class AbstractEventLog(Artifact):
   URLS = ["http://www.forensicswiki.org/wiki/Windows_Event_Log_(EVT)"]
   SUPPORTED_OS = ["Windows"]
-  CONDITIONS = [NotVistaOrNewer]
+  CONDITIONS = ["os_major_version >= %s" % constants.MAJOR_VERSION_WINDOWS_VISTA]
   LABELS = ["Logs"]
 
 
 class AbstractWMIArtifact(Artifact):
   SUPPORTED_OS = ["Windows"]
-  CONDITIONS = [VistaOrNewer]
+  CONDITIONS = ["os_major_version >= %s" % constants.MAJOR_VERSION_WINDOWS_VISTA]
 
 
 class ApplicationEventLog(AbstractEventLog):
@@ -403,6 +387,21 @@ class WindowsRunKeys(Artifact):
                        r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce\*"]})]
 
 
+class WindowsServices(Artifact):
+  """Collect windows services from the registry.
+
+  See service key doco:
+    http://support.microsoft.com/kb/103000
+  """
+  LABELS = ["Software"]
+  SUPPORTED_OS = ["Windows"]
+  COLLECTORS = [
+      Collector(action="GetRegistryKeys",
+                args={"path_list":
+                      [r"%%current_control_set%%\services\*\*",
+                       r"%%current_control_set%%\services\*\Parameters\*"]})]
+
+
 class WindowsPersistenceMechanisms(Artifact):
   """Collect persistence mechanisms."""
   LABELS = ["Software"]
@@ -435,7 +434,6 @@ class WindowsLoginUsers(AbstractWMIArtifact):
 
   If on a domain this will query the domain which may take a long time and
   create load on a domain controller.
-  <script>alert(1)</script>
   """
   LABELS = ["Software"]
 
@@ -466,6 +464,7 @@ class WMIProcessList(AbstractWMIArtifact):
 
 class WinHostsFile(Artifact):
   """The Windows hosts file."""
+  SUPPORTED_OS = ["Windows"]
   COLLECTORS = [
       Collector(action="GetFile",
                 args={"path": "%%environ_systemroot%%\\System32\\Drivers\\etc\\hosts"})]
