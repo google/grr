@@ -110,7 +110,7 @@ def SetCoreGRRKnowledgeBaseValues(kb, client_obj):
   if not kb.hostname:
     kb.hostname = utils.SmartUnicode(client_obj.Get(client_schema.HOSTNAME, ""))
   versions = client_obj.Get(client_schema.OS_VERSION)
-  if versions:
+  if versions and versions.versions:
     kb.os_major_version = versions.versions[0]
     kb.os_minor_version = versions.versions[1]
   kb.os = utils.SmartUnicode(client_obj.Get(client_schema.SYSTEM))

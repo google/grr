@@ -98,10 +98,11 @@ class GetProcessesBinaries(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     """Save the results collection and update the notification line."""
-    num_files = len(self.runner.output)
-    self.Notify("ViewObject", self.runner.output.urn,
-                "GetProcessesBinaries completed. "
-                "Fetched {0:d} files".format(num_files))
+    if self.runner.output:
+      num_files = len(self.runner.output)
+      self.Notify("ViewObject", self.runner.output.urn,
+                  "GetProcessesBinaries completed. "
+                  "Fetched {0:d} files".format(num_files))
 
 
 class GetProcessesBinariesVolatilityArgs(rdfvalue.RDFProtoStruct):
@@ -149,9 +150,10 @@ class GetProcessesBinariesVolatility(flow.GRRFlow):
   @flow.StateHandler(next_state="FetchBinaries")
   def Start(self):
     """Request VAD data."""
-    self.runner.output.Set(self.runner.output.Schema.DESCRIPTION(
-        "GetProcessesBinariesVolatility binaries (regex: %s) " %
-        self.args.filename_regex or "None"))
+    if self.runner.output:
+      self.runner.output.Set(self.runner.output.Schema.DESCRIPTION(
+          "GetProcessesBinariesVolatility binaries (regex: %s) " %
+          self.args.filename_regex or "None"))
 
     self.args.request.plugins.Append("vad")
     self.CallClient("VolatilityAction", self.args.request,

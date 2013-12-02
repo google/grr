@@ -540,7 +540,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def _WriteResultToCollection(self, result, artifact_name):
     """Write any results to the collection."""
     if self.args.split_output_by_artifact:
-      if artifact_name not in self.output_collection_map:
+      if self.runner.output and artifact_name not in self.output_collection_map:
         urn = self.runner.output.urn.Add(artifact_name)
         collection = aff4.FACTORY.Create(urn, "RDFValueCollection", mode="rw",
                                          token=self.token)
@@ -563,8 +563,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         self.runner.output.Flush()
         total += len(self.runner.output)
 
-    self.Log("Wrote results from Artifact %s to %s. Collection size %d.",
-             artifact_name, self.runner.output.urn, total)
+    if self.runner.output:
+      self.Log("Wrote results from Artifact %s to %s. Collection size %d.",
+               artifact_name, self.runner.output.urn, total)
 
   def _WriteResultToMappedAFF4Location(self, result):
     """If we have a mapping for this result type, write it there."""

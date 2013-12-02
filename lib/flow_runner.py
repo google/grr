@@ -438,7 +438,7 @@ class FlowRunner(object):
     """
     client_id = None
     try:
-      self.current_state = method
+      self.context.current_state = method
       if request and responses:
         client_id = request.client_id or self.args.client_id
         logging.debug("%s Running %s with %d responses from %s",
