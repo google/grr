@@ -57,14 +57,6 @@ class LongRunningDummyHuntOutputPlugin(output_plugins.HuntOutputPlugin):
     time.time = lambda: 100
 
 
-class TestChildFlowForHunt(flow.GRRFlow):
-  storage = []
-
-  @flow.StateHandler()
-  def Start(self):
-    self.storage.append(self.urn)
-
-
 class StandardHuntTest(test_lib.FlowTestsBaseclass):
   """Tests the Hunt."""
 
@@ -87,53 +79,6 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
   def tearDown(self):
     super(StandardHuntTest, self).tearDown()
     self.DeleteClients(10)
-
-  def testGenericHuntClientRate(self):
-    """Check that clients are scheduled slowly by the hunt."""
-    TestChildFlowForHunt.storage = []
-
-    start_time = 10
-
-    with test_lib.Stubber(time, "time", lambda: start_time):
-      with hunts.GRRHunt.StartHunt(
-          hunt_name="GenericHunt",
-          flow_runner_args=rdfvalue.FlowRunnerArgs(
-              flow_name="TestChildFlowForHunt"),
-          regex_rules=[
-              rdfvalue.ForemanAttributeRegex(attribute_name="GRR client",
-                                             attribute_regex="GRR"),
-              ],
-          client_rate=1, token=self.token) as hunt:
-        hunt.Run()
-
-      # Pretend to be the foreman now and dish out hunting jobs to all the
-      # clients..
-      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-      for client_id in self.client_ids:
-        foreman.AssignTasksToClient(client_id)
-
-      self.assertEqual(len(TestChildFlowForHunt.storage), 0)
-
-      # Run the hunt.
-      worker_mock = test_lib.MockWorker(check_flow_errors=True,
-                                        token=self.token)
-
-      time.time = lambda: start_time + 2
-
-      # One client is scheduled in the first minute.
-      worker_mock.Simulate()
-      self.assertEqual(len(TestChildFlowForHunt.storage), 1)
-
-      # No further clients will be scheduled until the end of the first minute.
-      time.time = lambda: start_time + 59
-      worker_mock.Simulate()
-      self.assertEqual(len(TestChildFlowForHunt.storage), 1)
-
-      # One client will be processed every minute.
-      for i in range(len(self.client_ids)):
-        time.time = lambda: start_time + 1 + 60 * i
-        worker_mock.Simulate()
-        self.assertEqual(len(TestChildFlowForHunt.storage), i + 1)
 
   def StartHunt(self, **kwargs):
     with hunts.GRRHunt.StartHunt(
@@ -402,7 +347,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self._AppendFlowRequest(args.flows, 2, 3)
 
     with hunts.GRRHunt.StartHunt(hunt_name="VariableGenericHunt",
-                                 args=args, token=self.token) as hunt:
+                                 args=args, client_rate=0,
+                                 token=self.token) as hunt:
       hunt.Run()
       hunt.ManuallyScheduleClients()
 
@@ -545,6 +491,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
             attribute_name="GRR client",
             attribute_regex="GRR")],
         client_limit=1,
+        client_rate=0,
         token=self.token) as hunt:
       hunt.Run()
 

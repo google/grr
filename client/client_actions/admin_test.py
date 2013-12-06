@@ -31,9 +31,9 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     # Make sure the file is gone
     self.assertRaises(IOError, open, self.config_file)
 
-    location = "http://www.example.com"
+    location = ["http://www.example1.com/", "http://www.example2.com/"]
     request = rdfvalue.Dict()
-    request["Client.location"] = location
+    request["Client.control_urls"] = location
     request["Client.foreman_check_frequency"] = 3600
 
     result = self.RunAction("UpdateConfiguration", request)
@@ -43,33 +43,37 @@ class ConfigActionTest(test_lib.EmptyActionTest):
 
     # Test the config file got written.
     data = open(self.config_file).read()
-    self.assert_("location: {0}".format(location) in data)
+    self.assertTrue("control_urls: {0}".format(",".join(location)) in data)
 
+    self.urls = []
     # Now test that our location was actually updated.
-    def FakeUrlOpen(req):
-      self.fake_url = req.get_full_url()
+    def FakeUrlOpen(req, timeout=10):
+      _ = timeout
+      self.urls.append(req.get_full_url())
       return StringIO.StringIO()
 
     comms.urllib2.urlopen = FakeUrlOpen
     client_context = comms.GRRHTTPClient()
     client_context.MakeRequest("", comms.Status())
-    self.assertTrue(self.fake_url.startswith(location))
+
+    self.assertTrue(location[0] in self.urls[0])
+    self.assertTrue(location[1] in self.urls[1])
 
   def testUpdateConfigBlacklist(self):
     """Tests that disallowed fields are not getting updated."""
 
-    config_lib.CONFIG.Set("Client.location", "http://something.com/")
+    config_lib.CONFIG.Set("Client.control_urls", ["http://something.com/"])
     config_lib.CONFIG.Set("Client.server_serial_number", 1)
 
-    location = "http://www.example.com"
+    location = ["http://www.example.com"]
     request = rdfvalue.Dict()
-    request["Client.location"] = location
+    request["Client.control_urls"] = location
     request["Client.server_serial_number"] = 10
 
     self.RunAction("UpdateConfiguration", request)
 
     # Location can be set.
-    self.assertEqual(config_lib.CONFIG["Client.location"], location)
+    self.assertEqual(config_lib.CONFIG["Client.control_urls"], location)
 
     # But the server serial number can not be updated.
     self.assertEqual(config_lib.CONFIG["Client.server_serial_number"], 1)
@@ -77,9 +81,9 @@ class ConfigActionTest(test_lib.EmptyActionTest):
   def testGetConfig(self):
     """Check GetConfig client action works."""
     # Use UpdateConfig to generate a config.
-    location = "http://example.com"
+    location = ["http://example.com"]
     request = rdfvalue.Dict()
-    request["Client.location"] = location
+    request["Client.control_urls"] = location
     request["Client.foreman_check_frequency"] = 3600
 
     self.RunAction("UpdateConfiguration", request)
@@ -87,7 +91,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     self.RunAction("GetConfiguration")
 
     self.assertEqual(config_lib.CONFIG["Client.foreman_check_frequency"], 3600)
-    self.assertEqual(config_lib.CONFIG["Client.location"], location)
+    self.assertEqual(config_lib.CONFIG["Client.control_urls"], location)
 
   def VerifyResponse(self, response, bytes_received, bytes_sent):
 

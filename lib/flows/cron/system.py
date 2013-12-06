@@ -5,6 +5,8 @@
 import bisect
 import time
 
+import logging
+
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import export_utils
@@ -114,18 +116,15 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
   def FinishProcessing(self):
     pass
 
-  @flow.StateHandler(next_state="ProcessAllClients")
-  def Start(self):
-    """Calls "Process" state to avoid spending too much time in Start method."""
-    self.CallState(next_state="ProcessAllClients")
-
   @flow.StateHandler()
-  def ProcessAllClients(self, unused_responses):
+  def Start(self):
     """Retrieve all the clients for the AbstractClientStatsCollectors."""
-    self.stats = aff4.FACTORY.Create(self.CLIENT_STATS_URN, "ClientFleetStats",
-                                     mode="w", token=self.token)
-    self.BeginProcessing()
     try:
+      self.stats = aff4.FACTORY.Create(self.CLIENT_STATS_URN,
+                                       "ClientFleetStats",
+                                       mode="w", token=self.token)
+      self.BeginProcessing()
+
       root = aff4.FACTORY.Open(aff4.ROOT_URN, token=self.token)
       children_urns = list(root.ListChildren())
 
@@ -135,9 +134,12 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
 
         # This flow is not dead: we don't want to run out of lease time.
         self.HeartBeat()
-    finally:
+
       self.FinishProcessing()
       self.stats.Close()
+    except Exception as e:  # pylint: disable=broad-except
+      logging.exception("Error while calculating stats: %s", e)
+      raise
 
 
 class GRRVersionBreakDown(AbstractClientStatsCronFlow):

@@ -396,11 +396,6 @@ class Interrogate(flow.GRRFlow):
     if self.state.sid_data:
       self.SaveUsers()
 
-    # Create the bare VFS with empty virtual directories.
-    fd = aff4.FACTORY.Create(self.client.urn.Add("processes"), "ProcessListing",
-                             token=self.token)
-    fd.Close()
-
     self.Notify("Discovery", self.client.urn, "Client Discovery Complete")
 
     # Publish this client to the Discovery queue.

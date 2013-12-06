@@ -204,6 +204,59 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     self.assertEqual(stored, None)
 
+  def CheckLength(self, predicate, l):
+    all_attributes = data_store.DB.ResolveMulti(
+        self.test_row, [predicate], timestamp=(0, 500),
+        token=self.token)
+
+    self.assertEqual(len(list(all_attributes)), l)
+
+  def CheckLast(self, predicate, expected_value, exptected_ts):
+    stored, ts = data_store.DB.Resolve(self.test_row, predicate,
+                                       token=self.token)
+    self.assertEqual(stored, expected_value)
+    self.assertEqual(ts, exptected_ts)
+
+  def testDeleteAttributesTimestamps(self):
+    """Test we can delete an attribute in a time range."""
+    predicate = "metadata:tspredicate"
+
+    data_store.DB.Set(self.test_row, predicate, "hello100", timestamp=100,
+                      replace=False, token=self.token)
+    data_store.DB.Set(self.test_row, predicate, "hello200", timestamp=200,
+                      replace=False, token=self.token)
+    data_store.DB.Set(self.test_row, predicate, "hello300", timestamp=300,
+                      replace=False, token=self.token)
+    data_store.DB.Set(self.test_row, predicate, "hello400", timestamp=400,
+                      replace=False, token=self.token)
+
+    # Check its there
+    self.CheckLast(predicate, "hello400", 400)
+    self.CheckLength(predicate, 4)
+
+    # Delete timestamps between 0 and 150.
+    data_store.DB.DeleteAttributes(self.test_row, [predicate], start=0, end=150,
+                                   token=self.token)
+
+    self.CheckLast(predicate, "hello400", 400)
+    self.CheckLength(predicate, 3)
+
+    # Delete timestamps between 350 and 450.
+    data_store.DB.DeleteAttributes(self.test_row, [predicate],
+                                   start=350, end=450,
+                                   token=self.token)
+
+    self.CheckLast(predicate, "hello300", 300)
+    self.CheckLength(predicate, 2)
+
+    # Delete everything.
+    data_store.DB.DeleteAttributes(self.test_row, [predicate],
+                                   start=0, end=500,
+                                   token=self.token)
+
+    self.CheckLast(predicate, None, 0)
+    self.CheckLength(predicate, 0)
+
   def testMultiResolveRegex(self):
     """tests MultiResolveRegex."""
     # Make some rows

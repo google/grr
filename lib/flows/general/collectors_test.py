@@ -5,11 +5,13 @@
 import os
 import random
 
+from grr.client import vfs
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_lib
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.flows.general import transfer
 
 
 class FakeArtifact(artifact_lib.GenericArtifact):
@@ -18,6 +20,19 @@ class FakeArtifact(artifact_lib.GenericArtifact):
   LABELS = ["Logs", "Authentication"]
   COLLECTORS = []
   PATH_VARS = {}
+
+
+class BadPathspecArtifact(artifact_lib.GenericArtifact):
+  """Broken pathspec_attribute."""
+  LABELS = ["Software"]
+  SUPPORTED_OS = ["Windows"]
+  COLLECTORS = [
+      artifact_lib.Collector(action="CollectArtifactFiles",
+                             args={"artifact_list":
+                                   ["WindowsPersistenceMechanisms"],
+                                   "pathspec_attribute": "broken"},
+                             returned_types=["StatEntry"])
+      ]
 
 
 class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
@@ -128,3 +143,66 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add(output),
                            token=self.token)
     return fd
+
+  def testProcessCollectedArtifacts(self):
+    """Test downloading files from artifacts."""
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    client.Set(client.Schema.SYSTEM("Windows"))
+    client.Set(client.Schema.OS_VERSION("6.2"))
+    client.Flush()
+
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientFullVFSFixture
+
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
+                                      "HashBuffer", "HashFile", "ListDirectory")
+
+    # Add some user accounts to this client.
+    fd = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
+    users = fd.Schema.USER()
+    users.Append(rdfvalue.User(
+        username="LocalService", domain="testing-PC",
+        homedir=r"C:\Users\localservice", sid="S-1-5-20"))
+    fd.Set(users)
+    fd.Close()
+
+    # Get KB initialized
+    for _ in test_lib.TestFlowHelper(
+        "KnowledgeBaseInitializationFlow", client_mock,
+        client_id=self.client_id, token=self.token):
+      pass
+
+    artifact_list = ["WindowsPersistenceMechanismFiles"]
+    with test_lib.Instrument(
+        transfer.MultiGetFile, "Start") as getfile_instrument:
+      for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
+                                       artifact_list=artifact_list,
+                                       token=self.token,
+                                       client_id=self.client_id,
+                                       output="analysis/{p}/{u}-{t}",
+                                       split_output_by_artifact=True):
+        pass
+
+      # Check MultiGetFile got called for our runkey files
+      paths = [u"C:\\Program Files\\Windows Sidebar\\Sidebar.exe",
+               u"C:\\Windows\\TEMP\\Sidebar.exe"]
+      for pathspec in getfile_instrument.args[0][0].args.pathspecs:
+        self.assertTrue(pathspec.path in paths)
+      self.assertEqual(len(getfile_instrument.args[0][0].args.pathspecs), 2)
+
+    artifact_list = ["BadPathspecArtifact"]
+    with test_lib.Instrument(
+        transfer.MultiGetFile, "Start") as getfile_instrument:
+      for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
+                                       artifact_list=artifact_list,
+                                       token=self.token,
+                                       client_id=self.client_id,
+                                       output="analysis/{p}/{u}-{t}",
+                                       split_output_by_artifact=True):
+        pass
+
+      self.assertFalse(getfile_instrument.args)
+
+

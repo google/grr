@@ -915,7 +915,7 @@ class SessionID(RDFURN):
       initializer = RDFURN(base).Add("%s:%X" % (queue.Basename(), flow_name))
     elif isinstance(initializer, RDFURN):
       if initializer.Basename().count(":") != 1:
-        raise InitializeError("Invalid URN for SesionID: %s" % initializer)
+        raise InitializeError("Invalid URN for SessionID: %s" % initializer)
 
     super(SessionID, self).__init__(initializer=initializer, age=age)
 

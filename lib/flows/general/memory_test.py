@@ -145,3 +145,167 @@ class TestMemoryAnalysis(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(fd), 20)
     self.assertEqual(fd[0].offset, 252)
     self.assertEqual(fd[0].data, "\n85\n86\n87\n88\n89\n90\n91\n")
+
+
+class ListVADBinariesActionMock(test_lib.ActionMock):
+  """Client with real file actions and mocked-out VolatilityAction."""
+
+  def __init__(self, processes_list):
+    super(ListVADBinariesActionMock, self).__init__(
+        "TransferBuffer", "StatFile", "Find", "HashBuffer", "HashFile")
+    self.processes_list = processes_list
+
+  def VolatilityAction(self, _):
+    volatility_response = rdfvalue.VolatilityResult()
+
+    section = rdfvalue.VolatilitySection()
+    section.table.headers.Append(print_name="Protection", name="protection")
+    section.table.headers.Append(print_name="start", name="start_pfn")
+    section.table.headers.Append(print_name="Filename", name="filename")
+
+    for proc in self.processes_list:
+      section.table.rows.Append(values=[
+          rdfvalue.VolatilityValue(
+              type="__MMVAD_FLAGS", name="VadFlags",
+              offset=0, vm="None", value=7,
+              svalue="EXECUTE_WRITECOPY"),
+
+          rdfvalue.VolatilityValue(
+              value=42),
+
+          rdfvalue.VolatilityValue(
+              type="_UNICODE_STRING", name="FileName",
+              offset=275427702111096,
+              vm="AMD64PagedMemory@0x00187000 (Kernel AS@0x187000)",
+              value=275427702111096, svalue=proc)
+          ])
+    volatility_response.sections.Append(section)
+
+    return [volatility_response]
+
+
+class ListVADBinariesTest(test_lib.FlowTestsBaseclass):
+  """Tests the Volatility-powered "get processes binaries" flow."""
+
+  def testListsBinaries(self):
+    process1_exe = os.path.join(self.base_path, "test_img.dd")
+    process2_exe = os.path.join(self.base_path, "winexec_img.dd")
+
+    client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
+    output_path = "analysis/ListVADBinariesTest1"
+
+    for _ in test_lib.TestFlowHelper(
+        "ListVADBinaries",
+        client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        output=output_path):
+      pass
+
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
+                           token=self.token)
+
+    # Sorting output collection to make the test deterministic
+    binaries = sorted(fd, key=str)
+    self.assertListEqual(binaries, [process1_exe, process2_exe])
+
+  def testFetchesAndStoresBinary(self):
+    process1_exe = os.path.join(self.base_path, "test_img.dd")
+    process2_exe = os.path.join(self.base_path, "winexec_img.dd")
+
+    client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
+    output_path = "analysis/ListVADBinariesTest1"
+
+    for _ in test_lib.TestFlowHelper(
+        "ListVADBinaries",
+        client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        fetch_binaries=True,
+        output=output_path):
+      pass
+
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
+                           token=self.token)
+
+    # Sorting output collection to make the test deterministic
+    binaries = sorted(fd, key=lambda x: x.aff4path)
+
+    self.assertEqual(len(binaries), 2)
+
+    self.assertEqual(binaries[0].pathspec.path, process1_exe)
+    self.assertEqual(binaries[0].st_size, os.stat(process1_exe).st_size)
+
+    self.assertEqual(binaries[1].pathspec.path, process2_exe)
+    self.assertEqual(binaries[1].st_size, os.stat(process2_exe).st_size)
+
+  def testDoesNotFetchDuplicates(self):
+    process_exe = os.path.join(self.base_path, "test_img.dd")
+    client_mock = ListVADBinariesActionMock([process_exe, process_exe])
+    output_path = "analysis/ListVADBinariesTest1"
+
+    for _ in test_lib.TestFlowHelper(
+        "ListVADBinaries",
+        client_mock,
+        client_id=self.client_id,
+        fetch_binaries=True,
+        token=self.token,
+        output=output_path):
+      pass
+
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
+                           token=self.token)
+    binaries = list(fd)
+
+    self.assertEqual(len(binaries), 1)
+    self.assertEqual(binaries[0].pathspec.path, process_exe)
+    self.assertEqual(binaries[0].st_size, os.stat(process_exe).st_size)
+
+  def testFiltersOutBinariesUsingRegex(self):
+    process1_exe = os.path.join(self.base_path, "test_img.dd")
+    process2_exe = os.path.join(self.base_path, "empty_file")
+
+    client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
+    output_path = "analysis/ListVADBinariesTest1"
+
+    for _ in test_lib.TestFlowHelper(
+        "ListVADBinaries",
+        client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        output=output_path,
+        filename_regex=".*\\.dd$",
+        fetch_binaries=True):
+      pass
+
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
+                           token=self.token)
+    binaries = list(fd)
+
+    self.assertEqual(len(binaries), 1)
+    self.assertEqual(binaries[0].pathspec.path, process1_exe)
+    self.assertEqual(binaries[0].st_size, os.stat(process1_exe).st_size)
+
+  def testIgnoresMissingFiles(self):
+    process1_exe = os.path.join(self.base_path, "test_img.dd")
+    process2_exe = os.path.join(self.base_path, "file_that_does_not_exist")
+
+    client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
+    output_path = "analysis/ListVADBinariesTest1"
+
+    for _ in test_lib.TestFlowHelper(
+        "ListVADBinaries",
+        client_mock,
+        check_flow_errors=False,
+        client_id=self.client_id,
+        token=self.token,
+        output=output_path,
+        fetch_binaries=True):
+      pass
+
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
+                           token=self.token)
+    binaries = list(fd)
+    self.assertEqual(len(binaries), 1)
+    self.assertEqual(binaries[0].pathspec.path, process1_exe)
+    self.assertEqual(binaries[0].st_size, os.stat(process1_exe).st_size)

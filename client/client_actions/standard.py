@@ -13,7 +13,6 @@ import time
 import zlib
 
 
-from M2Crypto import EVP
 import psutil
 
 import logging
@@ -26,6 +25,7 @@ from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import crypto
 
 
 # We do not send larger buffers than this:
@@ -532,7 +532,6 @@ class SendFile(actions.ActionPlugin):
   out_rdfvalue = rdfvalue.StatEntry
 
   BLOCK_SIZE = 1024 * 1024 * 10  # 10 MB
-  OP_ENCRYPT = 1
 
   def Send(self, sock, msg):
     totalsent = 0
@@ -549,14 +548,6 @@ class SendFile(actions.ActionPlugin):
     # Open the file.
     fd = vfs.VFSOpen(args.pathspec)
 
-    key = args.key
-    if len(key) != 16:
-      raise RuntimeError("Invalid key length (%d)." % len(key))
-
-    iv = args.iv
-    if len(iv) != 16:
-      raise RuntimeError("Invalid iv length (%d)." % len(iv))
-
     if args.address_family == rdfvalue.NetworkAddress.Family.INET:
       family = socket.AF_INET
     elif args.address_family == rdfvalue.NetworkAddress.Family.INET6:
@@ -571,16 +562,17 @@ class SendFile(actions.ActionPlugin):
     except socket.error as e:
       raise RuntimeError(str(e))
 
-    cipher = EVP.Cipher(alg="aes_128_cbc", key=key, iv=iv, op=self.OP_ENCRYPT)
+    cipher = crypto.AES128CBCCipher(args.key, args.iv,
+                                    crypto.Cipher.OP_ENCRYPT)
 
     while True:
       data = fd.read(self.BLOCK_SIZE)
       if not data:
         break
-      self.Send(s, cipher.update(data))
+      self.Send(s, cipher.Update(data))
       # Send heartbeats for long files.
       self.Progress()
-    self.Send(s, cipher.final())
+    self.Send(s, cipher.Final())
     s.close()
 
     self.SendReply(fd.Stat())

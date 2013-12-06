@@ -386,6 +386,8 @@ class DictRenderer(RDFValueRenderer):
   """Renders dicts."""
 
   classname = "Dict"
+  # Keys to filter from the output.
+  filter_keys = None
 
   # {{value}} comes from the translator so its assumed to be safe.
   layout_template = renderers.Template("""
@@ -406,11 +408,17 @@ class DictRenderer(RDFValueRenderer):
 
   translator_error_template = renderers.Template("<pre>{{value|escape}}</pre>")
 
+  def __init__(self, proxy=None, filter_keys=None, **kwargs):
+    self.filter_keys = filter_keys or []
+    super(DictRenderer, self).__init__(proxy=proxy, **kwargs)
+
   def Layout(self, request, response):
     """Render the protodict as a table."""
     self.data = []
 
     for key, value in sorted(self.proxy.items()):
+      if key in self.filter_keys:
+        continue
       try:
         renderer = FindRendererForObject(value)
         if renderer:

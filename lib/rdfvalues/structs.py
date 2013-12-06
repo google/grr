@@ -324,8 +324,9 @@ class ProtoString(ProtoType):
 
   def Validate(self, value, **_):
     """Validates a python format representation of the value."""
-    # We only accept a base string or unicode object or RDFString here.
-    if value.__class__ not in (str, unicode, rdfvalue.RDFString):
+    # We only accept a base string, unicode object or RDFString here.
+    if not (value.__class__ is str or value.__class__ is unicode or
+            value.__class__ is rdfvalue.RDFString):
       raise type_info.TypeValueError("%s not a valid string" % value)
 
     # A String means a unicode String. We must be dealing with unicode strings
@@ -430,7 +431,8 @@ class ProtoUnsignedInteger(ProtoType):
     super(ProtoUnsignedInteger, self).__init__(default=default, **kwargs)
 
   def Validate(self, value, **_):
-    if not isinstance(value, (int, long)):
+    if not (value.__class__ is int or value.__class__ is long or
+            value.__class__ is rdfvalue.RDFInteger):
       raise type_info.TypeValueError("Invalid value %s for Integer" % value)
 
     return value

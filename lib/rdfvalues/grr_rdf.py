@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Basic GRR rdfvalue definitions."""
+
 from grr.lib import rdfvalue
 from grr.proto import jobs_pb2
 

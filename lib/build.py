@@ -53,7 +53,7 @@ class BuilderBase(object):
     if output_filename[-3:] == ".in":
       output_filename = output_filename[:-3]
     data = open(input_filename, "rb").read()
-    print "Generating file %s from %s" % (output_filename, input_filename)
+    logging.debug("Generating file %s from %s", output_filename, input_filename)
 
     with open(output_filename, "wb") as fd:
       fd.write(config_lib.CONFIG.InterpolateValue(data, context=self.context))
@@ -217,9 +217,10 @@ class ClientDeployer(BuilderBase):
   def ValidateEndConfig(self, config, errors_fatal=True):
     """Given a generated client config, attempt to check for common errors."""
     errors = []
-    location = config.Get("Client.location", context=self.context)
-    if not location.startswith("http"):
-      errors.append("Bad Client.location specified %s" % location)
+    location = config.Get("Client.control_urls", context=self.context)
+    for url in location:
+      if not url.startswith("http"):
+        errors.append("Bad Client.control_urls specified %s" % url)
 
     keys = ["Client.executable_signing_public_key",
             "Client.driver_signing_public_key"]
@@ -245,7 +246,7 @@ class ClientDeployer(BuilderBase):
 
     if errors_fatal and errors:
       for error in errors:
-        print "Build Config Error: %s" % error
+        logging.error("Build Config Error: %s", error)
       raise RuntimeError("Bad configuration generated. Terminating.")
     else:
       return errors
@@ -286,7 +287,7 @@ class WindowsClientDeployer(ClientDeployer):
 
     if errors_fatal and errors:
       for error in errors:
-        print "Build Config Error: %s" % error
+        logging.error("Build Config Error: %s", error)
       raise RuntimeError("Bad configuration generated. Terminating.")
     else:
       return errors
@@ -550,7 +551,7 @@ class LinuxClientDeployer(ClientDeployer):
 
     buildpackage_binary = "/usr/bin/dpkg-buildpackage"
     if not os.path.exists(buildpackage_binary):
-      print "dpkg-buildpackage not found, unable to repack client."
+      logging.error("dpkg-buildpackage not found, unable to repack client.")
       return
 
     with utils.TempDirectory() as tmp_dir:
@@ -618,7 +619,7 @@ class LinuxClientDeployer(ClientDeployer):
         shutil.move(os.path.join(tmp_dir, input_name),
                     os.path.join(os.path.dirname(output_path), output_name))
 
-      print "Created package %s" % output_path
+      logging.info("Created package %s", output_path)
 
       # Restore old name.
       config_lib.CONFIG.Set("Client.name", old_name)
@@ -636,7 +637,7 @@ class CentosClientDeployer(LinuxClientDeployer):
 
     rpmbuild_binary = "/usr/bin/rpmbuild"
     if not os.path.exists(rpmbuild_binary):
-      print "rpmbuild not found, unable to repack client."
+      logging.error("rpmbuild not found, unable to repack client.")
       return
 
     with utils.TempDirectory() as tmp_dir:
@@ -730,7 +731,7 @@ class CentosClientDeployer(LinuxClientDeployer):
       self.EnsureDirExists(os.path.dirname(output_path))
       shutil.move(rpm_filename, output_path)
 
-      print "Created package %s" % output_path
+      logging.info("Created package %s", output_path)
       return output_path
 
 

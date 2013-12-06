@@ -54,10 +54,10 @@ def GrrServer():
   flags.StartMain(grr_server.main)
 
 
-def FileExporter():
-  from grr.tools import file_exporter
+def Export():
+  from grr.tools import export
   SetConfigOptions()
-  flags.StartMain(file_exporter.main)
+  flags.StartMain(export.main)
 
 
 def Enroller():

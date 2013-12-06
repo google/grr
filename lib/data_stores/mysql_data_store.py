@@ -151,7 +151,8 @@ class MySQLDataStore(data_store.DataStore):
       connection.Execute("CREATE INDEX attribute ON `%s` (attribute(300));" %
                          config_lib.CONFIG["Mysql.table_name"])
 
-  def DeleteAttributes(self, subject, attributes, sync=None, token=None):
+  def DeleteAttributes(self, subject, attributes, start=None, end=None,
+                       sync=None, token=None):
     """Remove some attributes from a subject."""
     _ = sync  # Unused
 
@@ -164,8 +165,14 @@ class MySQLDataStore(data_store.DataStore):
                "subject=%%s and attribute in (%s) " % (
                    self.table_name,
                    ",".join(["%s"] * len(attributes))))
-
       args = [subject, subject] + list(attributes)
+
+      if start or end:
+        query += " and age >= %s and age <= %s"
+        args.append(start or 0)
+        mysql_unsinged_bigint_max = 18446744073709551615
+        args.append(end or mysql_unsinged_bigint_max)
+
       cursor.Execute(query, args)
 
   def DeleteAttributesRegex(self, subject, regexes, token=None):

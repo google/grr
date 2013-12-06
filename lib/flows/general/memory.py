@@ -479,3 +479,121 @@ class ScanMemory(flow.GRRFlow):
 
     else:
       raise flow.FlowError("Error grepping memory: %s.", responses.status)
+
+
+class ListVADBinariesArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.ListVADBinariesArgs
+
+
+class ListVADBinaries(flow.GRRFlow):
+  """Get list of all running binaries from Volatility, (optionally) fetch them.
+
+    This flow executes the "vad" Volatility plugin to get the list of all
+    currently running binaries (including dynamic libraries). Then if
+    fetch_binaries option is set to True, it fetches all the binaries it has
+    found.
+
+    There is a caveat regarding using the "vad" plugin to detect currently
+    running executable binaries. The "Filename" member of the _FILE_OBJECT
+    struct is not reliable:
+
+      * Usually it does not include volume information: i.e.
+        \\Windows\\some\\path. Therefore it's impossible to detect the actual
+        volume where the executable is located.
+
+      * If the binary is executed from a shared network volume, the Filename
+        attribute is not descriptive enough to easily fetch the file.
+
+      * If the binary is executed directly from a network location (without
+        mounting the volume) Filename attribute will contain yet another
+        form of path.
+
+      * Filename attribute is not actually used by the system (it's probably
+        there for debugging purposes). It can be easily overwritten by a rootkit
+        without any noticeable consequences for the running system, but breaking
+        our functionality as a result.
+
+    Therefore this plugin's functionality is somewhat limited. Basically, it
+    won't fetch binaries that are located on non-default volumes.
+
+    Possible workaround (future work):
+    * Find a way to map given address space into the filename on the filesystem.
+    * Fetch binaries directly from memory by forcing page-ins first (via
+      some debug userland-process-dump API?) and then reading the memory.
+  """
+  category = "/Memory/"
+  args_type = ListVADBinariesArgs
+
+  @flow.StateHandler(next_state="FetchBinaries")
+  def Start(self):
+    """Request VAD data."""
+    if self.runner.output:
+      self.runner.output.Set(self.runner.output.Schema.DESCRIPTION(
+          "GetProcessesBinariesVolatility binaries (regex: %s) " %
+          self.args.filename_regex or "None"))
+
+    self.args.request.plugins.Append("vad")
+    self.CallClient("VolatilityAction", self.args.request,
+                    next_state="FetchBinaries")
+
+  @flow.StateHandler(next_state="HandleDownloadedFiles")
+  def FetchBinaries(self, responses):
+    """Parses Volatility response and initiates FetchFiles flows."""
+    if not responses.success:
+      self.Log("Error fetching VAD data: %s", responses.status)
+      return
+
+    binaries = set()
+
+    # Collect binaries list from VolatilityResponse. We search for tables that
+    # have "protection" and "filename" columns.
+    # TODO(user): create an RDFProto class to reuse the functionality below.
+    for response in responses:
+      for section in response.sections:
+        table = section.table
+
+        # Find indices of "protection" and "filename" columns
+        indexed_headers = dict([(header.name, i)
+                                for i, header in enumerate(table.headers)])
+        try:
+          protection_col_index = indexed_headers["protection"]
+          filename_col_index = indexed_headers["filename"]
+        except KeyError:
+          # If we can't find "protection" and "filename" columns, just skip
+          # this section
+          continue
+
+        for row in table.rows:
+          protection_attr = row.values[protection_col_index]
+          filename_attr = row.values[filename_col_index]
+
+          if protection_attr.svalue in ("EXECUTE_READ",
+                                        "EXECUTE_READWRITE",
+                                        "EXECUTE_WRITECOPY"):
+            if filename_attr.svalue:
+              binaries.add(filename_attr.svalue)
+
+    self.Log("Found %d binaries", len(binaries))
+    if self.args.filename_regex:
+      binaries = filter(self.args.filename_regex.Match, binaries)
+      self.Log("Applied filename regex. Will fetch %d files",
+               len(binaries))
+
+    if self.args.fetch_binaries:
+      self.CallFlow("FetchFiles",
+                    next_state="HandleDownloadedFiles",
+                    paths=binaries, pathtype=rdfvalue.PathSpec.PathType.OS)
+    else:
+      for b in binaries:
+        self.SendReply(rdfvalue.RDFString(b))
+
+  @flow.StateHandler()
+  def HandleDownloadedFiles(self, responses):
+    """Handle success/failure of the FetchFiles flow."""
+    if responses.success:
+      for response_stat in responses:
+        self.SendReply(response_stat)
+        self.Log("Downloaded %s", response_stat.pathspec.CollapsePath())
+    else:
+      self.Log("Download of file %s failed %s",
+               response_stat.pathspec.CollapsePath(), responses.status)

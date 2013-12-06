@@ -1102,66 +1102,66 @@ class MockClient(object):
 
   def Next(self):
     # Grab tasks for us from the queue.
-    manager = queue_manager.QueueManager(token=self.token)
-    request_tasks = manager.QueryAndOwn(self.client_id.Queue(),
-                                        limit=1,
-                                        lease_seconds=10000)
-    for message in request_tasks:
-      response_id = 1
-      # Collect all responses for this message from the client mock
-      try:
-        if hasattr(self.client_mock, "HandleMessage"):
-          responses = self.client_mock.HandleMessage(message)
-        else:
-          responses = getattr(self.client_mock, message.name)(message.payload)
+    with queue_manager.QueueManager(token=self.token) as manager:
+      request_tasks = manager.QueryAndOwn(self.client_id.Queue(),
+                                          limit=1,
+                                          lease_seconds=10000)
+      for message in request_tasks:
+        response_id = 1
+        # Collect all responses for this message from the client mock
+        try:
+          if hasattr(self.client_mock, "HandleMessage"):
+            responses = self.client_mock.HandleMessage(message)
+          else:
+            responses = getattr(self.client_mock, message.name)(message.payload)
 
-        if not responses:
+          if not responses:
+            responses = []
+
+          logging.info("Called client action %s generating %s responses",
+                       message.name, len(responses) + 1)
+
+          status = rdfvalue.GrrStatus()
+        except Exception as e:  # pylint: disable=broad-except
+          logging.exception("Error %s occurred in client", e)
+
+          # Error occurred.
           responses = []
+          status = rdfvalue.GrrStatus(
+              status=rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR)
 
-        logging.info("Called client action %s generating %s responses",
-                     message.name, len(responses) + 1)
+        # Now insert those on the flow state queue
+        for response in responses:
+          if isinstance(response, rdfvalue.GrrStatus):
+            msg_type = rdfvalue.GrrMessage.Type.STATUS
+            response = rdfvalue.GrrMessage(
+                session_id=message.session_id, name=message.name,
+                response_id=response_id, request_id=message.request_id,
+                payload=response,
+                type=msg_type)
 
-        status = rdfvalue.GrrStatus()
-      except Exception as e:  # pylint: disable=broad-except
-        logging.exception("Error %s occurred in client", e)
+          elif not isinstance(response, rdfvalue.GrrMessage):
+            msg_type = rdfvalue.GrrMessage.Type.MESSAGE
+            response = rdfvalue.GrrMessage(
+                session_id=message.session_id, name=message.name,
+                response_id=response_id, request_id=message.request_id,
+                payload=response,
+                type=msg_type)
 
-        # Error occurred.
-        responses = []
-        status = rdfvalue.GrrStatus(
-            status=rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR)
+          # Next expected response
+          response_id = response.response_id + 1
+          self.PushToStateQueue(response)
 
-      # Now insert those on the flow state queue
-      for response in responses:
-        if isinstance(response, rdfvalue.GrrStatus):
-          msg_type = rdfvalue.GrrMessage.Type.STATUS
-          response = rdfvalue.GrrMessage(
-              session_id=message.session_id, name=message.name,
-              response_id=response_id, request_id=message.request_id,
-              payload=response,
-              type=msg_type)
+        # Add a Status message to the end
+        self.PushToStateQueue(message, response_id=response_id,
+                              payload=status,
+                              type=rdfvalue.GrrMessage.Type.STATUS)
 
-        elif not isinstance(response, rdfvalue.GrrMessage):
-          msg_type = rdfvalue.GrrMessage.Type.MESSAGE
-          response = rdfvalue.GrrMessage(
-              session_id=message.session_id, name=message.name,
-              response_id=response_id, request_id=message.request_id,
-              payload=response,
-              type=msg_type)
+        # Additionally schedule a task for the worker
+        manager.NotifyQueue(message.session_id,
+                            priority=message.priority)
 
-        # Next expected response
-        response_id = response.response_id + 1
-        self.PushToStateQueue(response)
-
-      # Add a Status message to the end
-      self.PushToStateQueue(message, response_id=response_id,
-                            payload=status,
-                            type=rdfvalue.GrrMessage.Type.STATUS)
-
-      # Additionally schedule a task for the worker
-      manager.NotifyQueue(message.session_id,
-                          priority=message.priority)
-
-    return len(request_tasks)
+      return len(request_tasks)
 
 
 class MockThreadPool(object):
@@ -1224,48 +1224,47 @@ class MockWorker(worker.GRRWorker):
     Raises:
       RuntimeError: if the flow terminates with an error.
     """
-    manager = queue_manager.QueueManager(token=self.token)
-    sessions_available = manager.GetSessionsFromQueue(self.queue)
+    with queue_manager.QueueManager(token=self.token) as manager:
+      sessions_available = manager.GetSessionsFromQueue(self.queue)
 
-    sessions_available = [rdfvalue.SessionID(session_id)
-                          for session_id in sessions_available]
+      sessions_available = [rdfvalue.SessionID(session_id)
+                            for session_id in sessions_available]
+      # Run all the flows until they are finished
+      run_sessions = []
 
-    # Run all the flows until they are finished
-    run_sessions = []
+      # Only sample one session at the time to force serialization of flows
+      # after each state run - this helps to catch unpickleable objects.
+      for session_id in sessions_available[:1]:
+        manager.DeleteNotification(session_id)
+        run_sessions.append(session_id)
 
-    # Only sample one session at the time to force serialization of flows after
-    # each state run - this helps to catch unpickleable objects.
-    for session_id in sessions_available[:1]:
-      manager.DeleteNotification(session_id)
-      run_sessions.append(session_id)
+        # Handle well known flows here.
+        if session_id in self.well_known_flows:
+          self.well_known_flows[session_id].ProcessRequests(
+              self.pool)
+          continue
 
-      # Handle well known flows here.
-      if session_id in self.well_known_flows:
-        self.well_known_flows[session_id].ProcessRequests(
-            self.pool)
-        continue
+        with aff4.FACTORY.OpenWithLock(
+            session_id, token=self.token, blocking=False) as flow_obj:
 
-      with aff4.FACTORY.OpenWithLock(
-          session_id, token=self.token, blocking=False) as flow_obj:
+          # Run it
+          with flow_obj.GetRunner() as runner:
+            cpu_used = runner.context.client_resources.cpu_usage
+            user_cpu = self.cpu_user.next()
+            system_cpu = self.cpu_system.next()
+            network_bytes = self.network_bytes.next()
+            cpu_used.user_cpu_time += user_cpu
+            cpu_used.system_cpu_time += system_cpu
+            runner.context.network_bytes_sent += network_bytes
+            runner.ProcessCompletedRequests(self.pool)
 
-        # Run it
-        with flow_obj.GetRunner() as runner:
-          cpu_used = runner.context.client_resources.cpu_usage
-          user_cpu = self.cpu_user.next()
-          system_cpu = self.cpu_system.next()
-          network_bytes = self.network_bytes.next()
-          cpu_used.user_cpu_time += user_cpu
-          cpu_used.system_cpu_time += system_cpu
-          runner.context.network_bytes_sent += network_bytes
-          runner.ProcessCompletedRequests(self.pool)
+            if (self.check_flow_errors and
+                runner.context.state == rdfvalue.Flow.State.ERROR):
+              logging.exception("Flow terminated in state %s with an error: %s",
+                                runner.context.current_state,
+                                runner.context.backtrace)
 
-          if (self.check_flow_errors and
-              runner.context.state == rdfvalue.Flow.State.ERROR):
-            logging.exception("Flow terminated in state %s with an error: %s",
-                              runner.context.current_state,
-                              runner.context.backtrace)
-
-            raise RuntimeError(runner.context.backtrace)
+              raise RuntimeError(runner.context.backtrace)
 
     return run_sessions
 

@@ -13,7 +13,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import queue_manager
+from grr.lib import queue_manager as queue_manager_lib
 from grr.lib import rdfvalue
 # pylint: disable=unused-import
 from grr.lib import server_stubs
@@ -73,7 +73,6 @@ class GRRWorker(object):
 
     self.token = token
     self.last_active = 0
-    self.manager = queue_manager.QueueManager(token=self.token)
 
     # Well known flows are just instantiated.
     self.well_known_flows = flow.WellKnownFlow.GetAllWellKnownFlows(token=token)
@@ -109,7 +108,13 @@ class GRRWorker(object):
         Total number of messages processed by this call.
     """
     now = time.time()
-    sessions_available = self.manager.GetSessionsFromQueue(self.queue)
+
+    queue_manager = queue_manager_lib.QueueManager(token=self.token)
+    # Freezeing the timestamp used by queue manager to query/delete
+    # notifications to avoid possible race conditions.
+    queue_manager.FreezeTimestamp()
+
+    sessions_available = queue_manager.GetSessionsFromQueue(self.queue)
 
     time_to_fetch_messages = time.time() - now
 
@@ -119,15 +124,18 @@ class GRRWorker(object):
 
     try:
       # If we spent too much time processing what we have so far, the
-      # active_sessions list might not be current. We therefore break here so we
-      # can re-fetch a more up to date version of the list, and try again
+      # active_sessions list might not be current. We therefore break here so
+      # we can re-fetch a more up to date version of the list, and try again
       # later. The risk with running with an old active_sessions list is that
       # another worker could have already processed this message, and when we
       # try to process it, there is nothing to do - costing us a lot of
-      # processing time. This is a tradeoff between checking the data store for
-      # current information and processing out of date information.
+      # processing time. This is a tradeoff between checking the data store
+      # for current information and processing out of date information.
       processed = self.ProcessMessages(
-          sessions_available, min(time_to_fetch_messages * 100, 300))
+          sessions_available, queue_manager,
+          min(time_to_fetch_messages * 100, 300))
+      return processed
+
     # We need to keep going no matter what.
     except Exception as e:    # pylint: disable=broad-except
       logging.error("Error processing message %s. %s.", e,
@@ -136,9 +144,9 @@ class GRRWorker(object):
       if flags.FLAGS.debug:
         pdb.post_mortem()
 
-    return processed
+      return 0
 
-  def ProcessMessages(self, active_sessions, time_limit=0):
+  def ProcessMessages(self, active_sessions, queue_manager, time_limit=0):
     """Processes all the flows in the messages.
 
     Precondition: All tasks come from the same queue (self.queue).
@@ -150,6 +158,8 @@ class GRRWorker(object):
 
     Args:
         active_sessions: The list of sessions which had messages received.
+        queue_manager: QueueManager object used to manage notifications,
+                       requests and responses.
         time_limit: If set return as soon as possible after this many seconds.
 
     Returns:
@@ -165,12 +175,13 @@ class GRRWorker(object):
         processed += 1
         self.queued_flows.Put(session_id, 1)
         self.thread_pool.AddTask(target=self._ProcessMessages,
-                                 args=(rdfvalue.SessionID(session_id),),
+                                 args=(rdfvalue.SessionID(session_id),
+                                       queue_manager.Copy()),
                                  name=self.__class__.__name__)
 
     return processed
 
-  def _ProcessMessages(self, session_id):
+  def _ProcessMessages(self, session_id, queue_manager):
     """Does the real work with a single flow."""
     flow_obj = None
 
@@ -185,7 +196,7 @@ class GRRWorker(object):
 
         # If we get here, we now own the flow, so we can remove the notification
         # for it from the worker queue.
-        self.manager.DeleteNotification(session_id)
+        queue_manager.DeleteNotification(session_id)
 
         # We still need to take a lock on the well known flow in the datastore,
         # but we can run a local instance.
@@ -231,7 +242,7 @@ class GRRWorker(object):
       # Something went wrong when processing this session. In order not to spin
       # here, we just remove the notification.
       logging.exception("Error processing session %s: %s", session_id, e)
-      self.manager.DeleteNotification(session_id)
+      queue_manager.DeleteNotification(session_id)
 
 
 class GRREnroler(GRRWorker):

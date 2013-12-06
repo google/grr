@@ -647,19 +647,6 @@ message ScanMemoryArgs {
     }];
 }
 
-message GetProcessesBinariesArgs {
-}
-
-message GetProcessesBinariesVolatilityArgs {
-  optional string filename_regex = 2 [(sem_type) = {
-      type: "RegularExpression",
-      friendly_name: "Filename Regex",
-      description: "Regex used to filter the list of binaries to download.",
-    }, default="."];
-
-  optional VolatilityRequest request = 3;
-}
-
 message SophosCollectorArgs {
   optional PathSpec.PathType pathtype = 1 [(sem_type) = {
       description: "The requested path type.",
@@ -1155,5 +1142,33 @@ message ProcessHuntResultsCronFlowArgs {
       "max_running_time. It will finish (without an error) even if there are "
       "still results to process.",
       label: ADVANCED,
+    }];
+}
+
+message ListProcessesArgs {
+  optional string filename_regex = 1 [(sem_type) = {
+      type: "RegularExpression",
+      friendly_name: "Filename Regex",
+      description: "Regex used to filter the list of processes.",
+    }, default="."];
+
+  optional bool fetch_binaries = 2 [(sem_type) = {
+      friendly_name: "Fetch Binaries",
+    }, default=false];
+}
+
+message ListVADBinariesArgs {
+  optional string filename_regex = 1 [(sem_type) = {
+      type: "RegularExpression",
+      friendly_name: "Filename Regex",
+      description: "Regex used to filter the list of binaries.",
+    }, default="."];
+
+  optional bool fetch_binaries = 2 [(sem_type) = {
+      friendly_name: "Fetch Binaries",
+    }, default=false];
+
+  optional VolatilityRequest request = 3 [(sem_type) = {
+      label: ADVANCED
     }];
 }

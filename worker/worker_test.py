@@ -149,12 +149,18 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         manager.FLOW_REQUEST_TEMPLATE % 1,
         token=self.token))
 
+    # This flow is still in state Incoming.
     flow_obj = aff4.FACTORY.Open(session_id_1, token=self.token)
     self.assertTrue(flow_obj.state.context.state !=
                     rdfvalue.Flow.State.TERMINATED)
+    self.assertEqual(flow_obj.state.context["current_state"],
+                     "Incoming")
+    # This flow should be done.
     flow_obj = aff4.FACTORY.Open(session_id_2, token=self.token)
     self.assertTrue(flow_obj.state.context.state ==
                     rdfvalue.Flow.State.TERMINATED)
+    self.assertEqual(flow_obj.state.context["current_state"],
+                     "End")
 
   def testProcessMessagesWellKnown(self):
     worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,

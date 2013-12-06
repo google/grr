@@ -660,6 +660,9 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
         num_processed += len(batch)
 
         for plugin_name, plugin in used_plugins.iteritems():
+          logging.info("Processing hunt %s with %s, batch %d", session_id,
+                       plugin_name, batch_index)
+
           try:
             plugin.ProcessResponses(batch)
           except Exception as e:  # pylint: disable=broad-except
@@ -780,9 +783,10 @@ class GenericHunt(implementation.GRRHunt):
 
       state = rdfvalue.FlowState()
       plugins = self.state.args.output_plugins or []
-      for plugin in plugins:
+      for index, plugin in enumerate(plugins):
         plugin_obj = plugin.GetPluginForHunt(self)
-        state.Register(plugin.plugin_name, (plugin, plugin_obj.state))
+        state.Register("%s_%d" % (plugin.plugin_name, index),
+                       (plugin, plugin_obj.state))
 
       results_metadata.Set(results_metadata.Schema.OUTPUT_PLUGINS(state))
 
@@ -794,27 +798,15 @@ class GenericHunt(implementation.GRRHunt):
 
     self.SetDescription()
 
-    # When the next client can be scheduled. Implements gradual client
-    # recruitment rate according to the client_rate.
-    self.state.Register("next_client_due", rdfvalue.RDFDatetime().Now())
-
   def SetDescription(self):
     self.state.context.description = self.state.args.flow_runner_args.flow_name
 
   @flow.StateHandler(next_state=["MarkDone"])
   def RunClient(self, responses):
-    # For each new client, we advance the next_client_due time by the requested
-    # rate.
-    next_client_due = self.state.next_client_due
-    if self.runner.args.client_rate > 0:
-      self.state.next_client_due = (next_client_due +
-                                    60 / self.runner.args.client_rate)
-
     # Just run the flow on this client.
     for client_id in responses:
       self.CallFlow(args=self.state.args.flow_args, client_id=client_id,
                     next_state="MarkDone", sync=False,
-                    start_time=next_client_due,
                     runner_args=self.state.args.flow_runner_args)
 
   def GetLaunchedFlows(self, flow_type="outstanding"):

@@ -63,3 +63,7 @@ class DomainEmailAddress(EmailAddress):
 
 class AuthenticodeSignedData(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.AuthenticodeSignedData
+
+
+class PersistenceFile(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.PersistenceFile

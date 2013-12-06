@@ -94,7 +94,7 @@ class EntryPointTest(test_lib.GRRBaseTest):
   @test_lib.SetLabel("large")
   def testFileExporter(self):
     run_bin = os.path.join(self.bin_dir, "tools",
-                           "file_exporter" + self.bin_ext)
+                           "export" + self.bin_ext)
     self.RunForTimeWithNoExceptions(self.interpreter + run_bin, self.extra_opts,
                                     should_exit=True,
                                     timeout=self.default_timeout*2)

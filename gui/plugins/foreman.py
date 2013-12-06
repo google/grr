@@ -24,8 +24,8 @@ class ActionRuleArray(semantic.RDFValueArrayRenderer):
 class ReadOnlyForemanRuleTable(renderers.UserLabelCheckMixin,
                                renderers.TableRenderer):
   """Show all the foreman rules."""
-  description = "Automated flows"
-  behaviours = frozenset(["General"])
+  description = "Automated Flows View"
+  behaviours = frozenset(["GeneralAdvanced"])
   AUTHORIZED_LABELS = ["admin"]
 
   def __init__(self, **kwargs):
@@ -34,7 +34,9 @@ class ReadOnlyForemanRuleTable(renderers.UserLabelCheckMixin,
     self.AddColumn(semantic.RDFValueColumn("Expires"))
     self.AddColumn(semantic.RDFValueColumn("Description"))
     self.AddColumn(semantic.RDFValueColumn(
-        "Rules", renderer=RegexRuleArray, width="100%"))
+        "Rules", renderer=RegexRuleArray, width="40%"))
+    self.AddColumn(semantic.RDFValueColumn(
+        "Actions", width="40%"))
 
   def RenderAjax(self, request, response):
     """Renders the table."""
@@ -44,8 +46,8 @@ class ReadOnlyForemanRuleTable(renderers.UserLabelCheckMixin,
       self.AddRow(Created=rule.created,
                   Expires=rule.expires,
                   Description=rule.description,
-                  Rules=rule,
-                  Actions=rule)
+                  Rules=rule.regex_rules,
+                  Actions=rule.actions)
 
     # Call our baseclass to actually do the rendering
     return super(ReadOnlyForemanRuleTable, self).RenderAjax(request, response)

@@ -9,6 +9,7 @@ Installers are usually used to upgrade existing clients and setup
 clients in unusual situations.
 """
 import logging
+import os
 import sys
 
 from grr.client import comms
@@ -52,7 +53,7 @@ def InstallerNotifyServer():
       ca_cert=config_lib.CONFIG["CA.certificate"],
       private_key=config_lib.CONFIG.Get("Client.private_key"))
 
-  client.GetServerCert()
+  client.EstablishConnection()
   client.client_worker.SendReply(
       session_id="W:InstallationFailed",
       message_type=rdfvalue.GrrMessage.Type.STATUS,
@@ -70,6 +71,12 @@ def RunInstaller():
 
   Run all the current installers and then exit the process.
   """
+
+  try:
+    os.makedirs(os.path.dirname(config_lib.CONFIG["Installer.logfile"]))
+  except OSError:
+    pass
+
   # Always log to the installer logfile at debug level. This way if our
   # installer fails we can send detailed diagnostics.
   handler = logging.FileHandler(

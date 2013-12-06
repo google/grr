@@ -13,6 +13,7 @@ from grr.lib.rdfvalues import basic_test
 from grr.lib.rdfvalues import benchmark_test
 from grr.lib.rdfvalues import client_test
 from grr.lib.rdfvalues import crypto_test
+from grr.lib.rdfvalues import filestore_test
 from grr.lib.rdfvalues import flows_test
 from grr.lib.rdfvalues import paths_test
 from grr.lib.rdfvalues import protodict_test

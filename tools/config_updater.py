@@ -10,6 +10,7 @@ import re
 # importing readline enables the raw_input calls to have history etc.
 import readline  # pylint: disable=unused-import
 import sys
+import urlparse
 
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -337,7 +338,13 @@ this will be port 8080 with the URL ending in /control.
 """
   location = RetryQuestion("Server URL", "^http://.*/control$",
                            "http://%s:8080/control" % hostname)
-  config.Set("Client.location", location)
+  config.Set("Client.control_urls", [location])
+
+  frontend_port = urlparse.urlparse(location).port or 80
+  if frontend_port != config_lib.CONFIG.Get("Frontend.bind_port"):
+    config.Set("Frontend.bind_port", frontend_port)
+    print "\nSetting the frontend listening port to %d.\n" % frontend_port
+    print "Please make sure that this matches your client settings.\n"
 
   print """\nUI URL:
 The UI URL specifies where the Administrative Web Interface can be found.

@@ -999,6 +999,11 @@ message ServiceInformation {
       description: "Name of the DLL instantiated in the service.",
     }];
 
+  optional string registry_key = 15 [(sem_type) = {
+      type: "RDFURN",
+      description: "The AFF4 location for the service registry key."
+    }];
+
 }
 
 
@@ -1677,6 +1682,17 @@ message CronJobRunStatus {
   }
 
   optional Status status = 1 [default = OK];
+}
+
+// File used for persistence on a system.  e.g. windows service or runkey
+// binary.
+message PersistenceFile {
+  optional PathSpec pathspec = 1;
+  optional string source_urn = 2  [(sem_type) = {
+    type: "RDFURN",
+    description: "URN for rdfvalue that used this file for "
+        " persistence. e.g. ServiceInformation, StatEntry."
+  }];
 }
 
 

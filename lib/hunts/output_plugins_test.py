@@ -115,7 +115,8 @@ class OutputPluginsTest(test_lib.FlowTestsBaseclass):
       for msg in self.email_messages:
         self.assertEqual(msg["address"], email_address)
         self.assertTrue(
-            "%s produced a new result" % hunt_obj.session_id in msg["title"])
+            "%s got a new result" % hunt_obj.session_id.Add("Results")
+            in msg["title"])
         self.assertTrue("fs/os/tmp/evil.txt" in msg["message"])
 
       self.assertTrue("sending of emails will be disabled now"

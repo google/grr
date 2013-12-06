@@ -518,6 +518,7 @@ grr.table.scrollHandler = function(renderer, tbody, opt_state) {
   var loading_id = loading.attr('id');
   var value = loading.attr('data');
   var depth = loading.attr('depth');
+  var start_row = loading.attr('start_row');
 
   $('.table_loading', tbody).each(function() {
     loading_offset = $(this).offset();
@@ -527,10 +528,16 @@ grr.table.scrollHandler = function(renderer, tbody, opt_state) {
       // row.
       $(elem).removeClass('table_loading');
 
-      var previous_row_id = (tbody.find('tr[row_id]').last().attr('row_id') ||
-          -1);
-      var next_row = parseInt(previous_row_id) + 1;
-      var state = $.extend({start_row: next_row}, grr.state, opt_state);
+      var next_row;
+      if (start_row == undefined) {
+        var previous_row_id = (tbody.find('tr[row_id]').last().attr('row_id') ||
+            -1);
+        next_row = parseInt(previous_row_id) + 1;
+      } else {
+        next_row = start_row;
+      }
+      var state = $.extend({start_row: next_row, value: value, depth: depth},
+                           grr.state, opt_state);
       var filter = tbody.parent().find('th[filter]');
       var sort = tbody.parent().find('th[sort]');
 
@@ -541,9 +548,6 @@ grr.table.scrollHandler = function(renderer, tbody, opt_state) {
       if (sort.length && sort.attr('sort')) {
         state.sort = sort.text() + ':' + sort.attr('sort');
       }
-
-      state['value'] = value;
-      state['depth'] = depth;
 
       // Insert the new data after the table loading message, and wipe it.
       grr.update(renderer, loading_id, state,

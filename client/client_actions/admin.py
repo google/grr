@@ -164,7 +164,7 @@ class UpdateConfiguration(actions.ActionPlugin):
 
   UPDATEABLE_FIELDS = ["Client.compression",
                        "Client.foreman_check_frequency",
-                       "Client.location",
+                       "Client.control_urls",
                        "Client.max_post_size",
                        "Client.max_out_queue",
                        "Client.poll_min",

@@ -44,6 +44,16 @@ class QueueManager(object):
   5) Tasks can be re-leased by calling QueueManager.Schedule(task)
   repeatedly. Each call will extend the lease by the specified amount.
 
+  Important QueueManager's feature is the ability to freeze the timestamp used
+  for time-limiting Resolve and Delete queries to the datastore. "with"
+  statement should be used to freeze the timestamp, like:
+    with queue_manager.QueueManager(token=self.token) as manager:
+      ...
+
+  Another option is to use FreezeTimestamp()/UnfreezeTimestamp() methods:
+    queue_manager.FreezeTimestamp()
+    ...
+    queue_manager.UnfreezeTimestamp()
   """
 
   # These attributes are related to a flow's internal data structures Requests
@@ -89,8 +99,52 @@ class QueueManager(object):
     # lists of task ids.
     self.client_messages_to_delete = {}
     self.new_client_messages = []
-    self.client_ids = {}
     self.notifications = {}
+
+    self.prev_frozen_timestamps = []
+    self.frozen_timestamp = None
+
+  def Copy(self):
+    """Return a copy of the queue mananger.
+
+    Returns:
+    Copy of the QueueManager object.
+    NOTE: pending writes/deletions are not copied. On the other hand, if the
+    original object has a frozen timestamp, a copy will have it as well.
+    """
+    result = QueueManager(store=self.data_store, sync=self.sync,
+                          token=self.token)
+    result.prev_frozen_timestamps = self.prev_frozen_timestamps
+    result.frozen_timestamp = self.frozen_timestamp
+    return result
+
+  def FreezeTimestamp(self):
+    """Freezes the timestamp used for resolve/delete database queries.
+
+    Frozen timestamp is used to consistently limit the datastore resolve and
+    delete queries by time range: from 0 to self.frozen_timestamp. This is
+    done to avoid possible race conditions, like accidentally deleting
+    notifications that were written by another process while we were
+    processing requests.
+    """
+    self.prev_frozen_timestamps.append(self.frozen_timestamp)
+    self.frozen_timestamp = rdfvalue.RDFDatetime().Now()
+
+  def UnfreezeTimestamp(self):
+    """Unfreezes the timestamp used for resolve/delete database queries."""
+    if not self.prev_frozen_timestamps:
+      raise RuntimeError("Unbalanced UnfreezeTimestamp call.")
+    self.frozen_timestamp = self.prev_frozen_timestamps.pop()
+
+  def __enter__(self):
+    """Supports 'with' protocol."""
+    self.FreezeTimestamp()
+    return self
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    """Supports 'with' protocol."""
+    self.UnfreezeTimestamp()
+    self.Flush()
 
   def GetFlowResponseSubject(self, session_id, request_id):
     """The subject used to carry all the responses for a specific request_id."""
@@ -104,15 +158,21 @@ class QueueManager(object):
 
       self.client_messages_to_delete.setdefault(client_id, []).append(task_id)
 
-  def FetchCompletedRequests(self, session_id):
+  def FetchCompletedRequests(self, session_id, timestamp=None):
     """Fetch all the requests with a status message queued for them."""
     subject = session_id.Add("state")
     requests = {}
     status = {}
 
+    if timestamp is None:
+      timestamp = (0,
+                   # TODO(user): remove int() conversion when datastores
+                   # accept RDFDatetime instead of ints.
+                   int(self.frozen_timestamp or rdfvalue.RDFDatetime().Now()))
+
     for predicate, serialized, _ in self.data_store.ResolveRegex(
         subject, [self.FLOW_REQUEST_REGEX, self.FLOW_STATUS_REGEX],
-        token=self.token, limit=self.request_limit):
+        token=self.token, limit=self.request_limit, timestamp=timestamp):
 
       parts = predicate.split(":", 3)
       request_id = parts[2]
@@ -126,9 +186,15 @@ class QueueManager(object):
         yield (rdfvalue.RequestState(serialized),
                rdfvalue.GrrMessage(status[request_id]))
 
-  def FetchCompletedResponses(self, session_id, limit=10000):
+  def FetchCompletedResponses(self, session_id, timestamp=None, limit=10000):
     """Fetch only completed requests and responses up to a limit."""
     response_subjects = {}
+
+    if timestamp is None:
+      timestamp = (0,
+                   # TODO(user): remove int() conversion when datastores
+                   # accept RDFDatetime instead of ints.
+                   int(self.frozen_timestamp or rdfvalue.RDFDatetime().Now()))
 
     total_size = 0
     for request, status in self.FetchCompletedRequests(session_id):
@@ -142,7 +208,8 @@ class QueueManager(object):
         break
 
     response_data = dict(self.data_store.MultiResolveRegex(
-        response_subjects, self.FLOW_RESPONSE_REGEX, token=self.token))
+        response_subjects, self.FLOW_RESPONSE_REGEX, token=self.token,
+        timestamp=timestamp))
 
     for response_urn, request in sorted(response_subjects.items()):
       responses = []
@@ -155,7 +222,7 @@ class QueueManager(object):
     if total_size > limit:
       raise MoreDataException()
 
-  def FetchRequestsAndResponses(self, session_id):
+  def FetchRequestsAndResponses(self, session_id, timestamp=None):
     """Fetches all outstanding requests and responses for this flow.
 
     We first cache all requests and responses for this flow in memory to
@@ -163,6 +230,8 @@ class QueueManager(object):
 
     Args:
       session_id: The session_id to get the requests/responses for.
+      timestamp: Tupe (start, end) with a time range. Fetched requests and
+                 responses will have timestamp in this range.
 
     Yields:
       an tuple (request protobufs, list of responses messages) in ascending
@@ -175,10 +244,16 @@ class QueueManager(object):
     subject = session_id.Add("state")
     requests = {}
 
+    if timestamp is None:
+      timestamp = (0,
+                   # TODO(user): remove int() conversion when datastores
+                   # accept RDFDatetime instead of ints.
+                   int(self.frozen_timestamp or rdfvalue.RDFDatetime().Now()))
+
     # Get some requests.
     for predicate, serialized, _ in self.data_store.ResolveRegex(
         subject, self.FLOW_REQUEST_REGEX, token=self.token,
-        limit=self.request_limit):
+        limit=self.request_limit, timestamp=timestamp):
 
       request_id = predicate.split(":", 1)[1]
       requests[str(subject.Add(request_id))] = serialized
@@ -186,7 +261,8 @@ class QueueManager(object):
     # And the responses for them.
     response_data = dict(self.data_store.MultiResolveRegex(
         requests.keys(), self.FLOW_RESPONSE_REGEX,
-        limit=self.response_limit, token=self.token))
+        limit=self.response_limit, token=self.token,
+        timestamp=timestamp))
 
     for urn, request_data in sorted(requests.items()):
       request = rdfvalue.RequestState(request_data)
@@ -255,9 +331,10 @@ class QueueManager(object):
     if self.sync and session_ids:
       self.data_store.Flush()
 
-    for session_id, (priority, timestamp) in self.notifications.items():
-      self.NotifyQueue(
-          session_id, timestamp=timestamp, sync=False, priority=priority)
+    for session_id, notifications in self.notifications.items():
+      for priority, timestamp in notifications:
+        self.NotifyQueue(
+            session_id, timestamp=timestamp, sync=False, priority=priority)
 
     if self.sync:
       self.data_store.Flush()
@@ -265,19 +342,16 @@ class QueueManager(object):
     self.to_write = {}
     self.to_delete = {}
     self.client_messages_to_delete = {}
-    self.client_ids = {}
     self.notifications = {}
     self.new_client_messages = []
 
-  def __enter__(self):
-    return self
-
-  def __exit__(self, unused_type, unused_value, unused_traceback):
-    """Supports 'with' protocol."""
-    self.Flush()
-
-  def QueueResponse(self, session_id, response):
+  def QueueResponse(self, session_id, response, timestamp=None):
     """Queues the message on the flow's state."""
+    # TODO(user): remove int() conversion when datastores accept
+    # RDFDatetime instead of ints.
+    if timestamp is not None:
+      timestamp = int(timestamp)
+
     # Status messages cause their requests to be marked as complete. This allows
     # us to quickly enumerate all the completed requests - it is essentially an
     # index for completed requests.
@@ -293,22 +367,33 @@ class QueueManager(object):
     queue.setdefault(
         QueueManager.FLOW_RESPONSE_TEMPLATE % (
             response.request_id, response.response_id),
-        []).append(response.SerializeToString())
+        []).append((response.SerializeToString(), timestamp))
 
-  def QueueRequest(self, session_id, request_state):
+  def QueueRequest(self, session_id, request_state, timestamp=None):
+    # TODO(user): remove int() conversion when datastores accept
+    # RDFDatetime instead of ints.
+    if timestamp is not None:
+      timestamp = int(timestamp)
+
     subject = session_id.Add("state")
     queue = self.to_write.setdefault(subject, {})
     queue.setdefault(
         self.FLOW_REQUEST_TEMPLATE % request_state.id, []).append(
-            request_state.SerializeToString())
+            (request_state.SerializeToString(), timestamp))
 
   def QueueClientMessage(self, msg):
     self.new_client_messages.append(msg)
 
   def QueueNotification(self, session_id, timestamp=None,
                         priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY):
+    # TODO(user): remove int() conversion when datastores accept
+    # RDFDatetime instead of ints.
+    if timestamp is not None:
+      timestamp = int(timestamp)
+
     if session_id:
-      self.notifications[session_id] = (priority, timestamp)
+      self.notifications.setdefault(session_id, [])
+      self.notifications[session_id].append((priority, timestamp))
 
   def _TaskIdToColumn(self, task_id):
     """Return a predicate representing this task."""
@@ -339,6 +424,11 @@ class QueueManager(object):
 
   def Schedule(self, tasks, sync=False, timestamp=None):
     """Schedule a set of Task() instances."""
+    # TODO(user): remove int() conversion when datastores accept
+    # RDFDatetime instead of ints.
+    if timestamp is not None:
+      timestamp = int(timestamp)
+
     for queue, queued_tasks in utils.GroupBy(
         tasks, lambda x: x.queue).iteritems():
       if queue:
@@ -354,12 +444,15 @@ class QueueManager(object):
     """Retrieves candidate session ids for processing from the datastore."""
 
     # Check which sessions have new data.
-    now = int(time.time() * 1e6)
     # Read all the sessions that have notifications.
     sessions_by_priority = {}
     for predicate, priority, _ in data_store.DB.ResolveRegex(
         queue, self.PREDICATE_PREFIX % ".*",
-        timestamp=(0, now), token=self.token, limit=10000):
+        # TODO(user): remove int() conversion when datastores accept
+        # RDFDatetime instead of ints.
+        timestamp=(0,
+                   int(self.frozen_timestamp or rdfvalue.RDFDatetime().Now())),
+        token=self.token, limit=10000):
       # Strip the prefix from the predicate.
       predicate = predicate[len(self.PREDICATE_PREFIX % ""):]
 
@@ -369,7 +462,9 @@ class QueueManager(object):
     # but with all sessions at the same priority randomly shuffled.
     sessions_available = []
     for priority in sorted(sessions_by_priority, reverse=True):
-      session_ids = sessions_by_priority[priority]
+      # There may be multiple notifications for the same session id, so
+      # we only live unique session ids in the list.
+      session_ids = list(set(sessions_by_priority[priority]))
       random.shuffle(session_ids)
       sessions_available.extend(session_ids)
 
@@ -395,6 +490,11 @@ class QueueManager(object):
     Raises:
       RuntimeError: An invalid session_id was passed.
     """
+    # TODO(user): remove int() conversion when datastores accept
+    # RDFDatetime instead of ints.
+    if timestamp is not None:
+      timestamp = int(timestamp)
+
     for session_id in session_ids:
       if not isinstance(session_id, rdfvalue.SessionID):
         raise RuntimeError("Can only notify on rdfvalue.SessionIDs.")
@@ -410,9 +510,9 @@ class QueueManager(object):
     data_store.DB.MultiSet(
         queue,
         dict([(self.PREDICATE_PREFIX % session_id,
-               str(int(priorities[session_id])))
+               [(str(int(priorities[session_id])), timestamp)])
               for session_id in session_ids]),
-        sync=sync, replace=True, token=self.token, timestamp=timestamp)
+        sync=sync, replace=False, token=self.token)
 
   def DeleteNotification(self, session_id):
     """This deletes the notification when all messages have been processed."""
@@ -422,7 +522,8 @@ class QueueManager(object):
 
     data_store.DB.DeleteAttributes(
         session_id.Queue(), [self.PREDICATE_PREFIX % session_id],
-        token=self.token)
+        token=self.token, start=0,
+        end=int(self.frozen_timestamp or rdfvalue.RDFDatetime().Now()))
 
   def Query(self, queue, limit=1, task_id=None):
     """Retrieves tasks from a queue without leasing them.
@@ -500,14 +601,17 @@ class QueueManager(object):
     """Does the real work of self.QueryAndOwn()."""
     tasks = []
 
-    now = long(time.time() * 1e6)
     lease = long(lease_seconds * 1e6)
 
     ttl_exceeded_count = 0
 
     # Only grab attributes with timestamps in the past.
     for predicate, task, timestamp in transaction.ResolveRegex(
-        self.PREDICATE_PREFIX % ".*", timestamp=(0, now)):
+        self.PREDICATE_PREFIX % ".*",
+        timestamp=(0,
+                   # TODO(user): remove int() conversion when datastores
+                   # accept RDFDatetime instead of ints.
+                   int(self.frozen_timestamp or rdfvalue.RDFDatetime().Now()))):
       task = rdfvalue.GrrMessage(task)
       task.eta = timestamp
       task.last_lease = "%s@%s:%d" % (user,
@@ -526,7 +630,7 @@ class QueueManager(object):
 
         # Update the timestamp on the value to be in the future
         transaction.Set(predicate, task.SerializeToString(), replace=True,
-                        timestamp=now + lease)
+                        timestamp=long(time.time() * 1e6) + lease)
         tasks.append(task)
         if len(tasks) >= limit:
           break
@@ -557,7 +661,11 @@ class WellKnownQueueManager(QueueManager):
     # Get some requests
     for _, serialized, _ in sorted(self.data_store.ResolveRegex(
         subject, self.FLOW_RESPONSE_REGEX, token=self.token,
-        limit=self.request_limit)):
+        limit=self.request_limit,
+        # TODO(user): remove int() conversion when datastores accept
+        # RDFDatetime instead of ints.
+        timestamp=(
+            0, int(self.frozen_timestamp or rdfvalue.RDFDatetime().Now())))):
 
       # The predicate format is flow:response:REQUEST_ID:RESPONSE_ID. For well
       # known flows both request_id and response_id are randomized.

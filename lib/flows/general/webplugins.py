@@ -174,6 +174,9 @@ class ChromePlugins(flow.GRRFlow):
 
   def CreateAnalysisVFile(self, extension_directory, manifest):
     """Creates the analysis result object."""
+    if not self.runner.output:
+      return
+
     version = manifest.get("version", extension_directory.Basename())
     chromeid = extension_directory.Dirname().Basename()
     name = manifest.get("name", "unknown_" + chromeid)

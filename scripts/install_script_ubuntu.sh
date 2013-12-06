@@ -25,6 +25,20 @@ GRR_TEST_VERSION=0.2-9
 SERVER_DEB_STABLE_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/grr-server_
 SERVER_DEB_TEST_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/test-grr-server_
 
+
+# Take command line parameters as these are easier for users than shell
+# variables.
+if [ "$1" == "--localtest" ]
+then
+  GRR_LOCAL_TEST=1;
+  GRR_TESTING=1;
+elif [ "$1" == "--test" ]
+then
+  GRR_LOCAL_TEST=0;
+  GRR_TESTING=1;
+fi
+
+
 if [ -z "${GRR_TESTING}" ];
 then
   SERVER_DEB_URL=${SERVER_DEB_STABLE_BASE_URL}${GRR_STABLE_VERSION}_${PLAT}.deb

@@ -129,6 +129,16 @@ def CreateClientPool(n):
     pass
 
 
+def CheckLocation():
+  """Checks that the poolclient is not accidentally ran against production."""
+  for url in config_lib.CONFIG["Client.control_urls"]:
+    if "staging" in url or "localhost" in url:
+      # This is ok.
+      return
+  logging.error("Poolclient should only be run against test or staging.")
+  exit()
+
+
 def main(unused_argv):
   config_lib.CONFIG.AddContext(
       "PoolClient Context",
@@ -138,10 +148,7 @@ def main(unused_argv):
 
   config_lib.CONFIG.SetWriteBack("/dev/null")
 
-  if ("staging" not in config_lib.CONFIG["Client.location"] and
-      "localhost" not in config_lib.CONFIG["Client.location"]):
-    logging.error("Poolclient should only be run against test or staging.")
-    exit()
+  CheckLocation()
 
   # Let the OS handler also handle sleuthkit requests since sleuthkit is not
   # thread safe.

@@ -71,16 +71,16 @@ parameters and their default values, we can issue the '--config_help' command
 line flag. This is analogous to the '--help' flag:
 
 --------------------------------------------------------------------
-Client.location = http://www.example.com/control
-   URL of the controlling server.
-* Value = http://localhost:8080/control
+Client.control_urls = ["http://www.example.com/control"]
+   List of URLs of the controlling server.
+* Value = ['http://localhost:8080/control']
 
 Client.max_out_queue = 10240000
    Maximum size of the output queue.
 * Value = 10240000
 --------------------------------------------------------------------
 
-We can see that 'Client.location' has a default value of
+We can see that 'Client.control_urls' has a default value of
 http://www.example.com/control, it is used to specify the URL of the controlling
 server, and currently (after reading the configuration files), the value is set
 to http://localhost:8080/control. We can also see that Client.max_out_queue is
@@ -95,8 +95,8 @@ configuration file is also installed (by default
 '/etc/grr/grr_server.yaml'). This specifies the basic configuration of the GRR
 service (i.e. various distribution specific locations). However, the
 configuration typically needs to be updated with site specific parameters (for
-example new crypto keys, the 'Client.location' setting to allow the client to
-connect to the server etc.)
+example new crypto keys, the 'Client.control_urls' setting to allow the client
+to connect to the server etc.)
 
 In order to avoid having to trash the user customized configuration files when
 GRR is updated in future, we write site specific configuration files into the

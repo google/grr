@@ -224,8 +224,10 @@ class WinServicesParser(parsers.RegistryValueParser):
         continue
 
       service_name = self._GetServiceName(stat.pathspec.path)
+      reg_key = stat.aff4path.Dirname()
       services.setdefault(service_name,
-                          rdfvalue.ServiceInformation(name=service_name))
+                          rdfvalue.ServiceInformation(name=service_name,
+                                                      registry_key=reg_key))
 
       key = self._GetKeyName(stat.pathspec.path)
 

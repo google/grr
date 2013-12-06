@@ -671,7 +671,9 @@ class GRRHTTPClient(object):
       private_key = config_lib.CONFIG.Get("Client.private_key", default=None)
 
     self.communicator = ClientCommunicator(private_key=private_key)
-    self.active_proxy = None
+
+    self.active_server_url = None
+
     self.consecutive_connection_errors = 0
 
     # The time we last sent an enrollment request.
@@ -686,17 +688,26 @@ class GRRHTTPClient(object):
     else:
       self.client_worker = GRRThreadedWorker()
 
-    # Start off with a maximum poling interval
+    # Start off with a maximum polling interval
     self.sleep_time = config_lib.CONFIG["Client.poll_max"]
 
-  def FindProxy(self):
-    """This method tries all known proxies until one works.
+  def GetServerUrl(self):
+    if not self.active_server_url:
+      if not self.EstablishConnection():
+        return ""
+    return self.active_server_url
 
-    It does so by downloading the server.pem from the GRR server and returns
-    it so it can be used by GetServerCert immediately.
+  def EstablishConnection(self):
+    """Finds a connection to the server and initializes the client.
+
+    This method tries all pairs of location urls and known proxies until it
+    finds one that works.
+
+    It does so by downloading the server.pem from the GRR server and verifies
+    it directly. Note that this also refreshes the server certificate.
 
     Returns:
-      Contents of server.pem.
+      A boolean indicating success.
     """
     # This gets proxies from the platform specific proxy settings.
     proxies = client_utils.FindProxies()
@@ -706,52 +717,44 @@ class GRRHTTPClient(object):
 
     # Also try all proxies configured in the config system.
     proxies.extend(config_lib.CONFIG["Client.proxy_servers"])
+    for server_url in config_lib.CONFIG["Client.control_urls"]:
+      for proxy in proxies:
+        try:
+          proxydict = {}
+          if proxy:
+            proxydict["http"] = proxy
+          proxy_support = urllib2.ProxyHandler(proxydict)
+          opener = urllib2.build_opener(proxy_support)
+          urllib2.install_opener(opener)
 
-    for proxy in proxies:
-      try:
-        proxydict = {}
-        if proxy:
-          proxydict["http"] = proxy
-        proxy_support = urllib2.ProxyHandler(proxydict)
-        opener = urllib2.build_opener(proxy_support)
-        urllib2.install_opener(opener)
+          cert_url = "/".join((posixpath.dirname(server_url), "server.pem"))
+          request = urllib2.Request(cert_url, None,
+                                    {"Cache-Control": "no-cache"})
+          handle = urllib2.urlopen(request, timeout=10)
+          server_pem = handle.read()
+          if "BEGIN CERTIFICATE" in server_pem:
+            # Now we know that this proxy is working. We still have
+            # to verify the certificate.
+            self.communicator.LoadServerCertificate(
+                server_certificate=server_pem, ca_certificate=self.ca_cert)
 
-        cert_url = "/".join((posixpath.dirname(
-            config_lib.CONFIG["Client.location"]), "server.pem"))
-        request = urllib2.Request(cert_url, None, {"Cache-Control": "no-cache"})
-        handle = urllib2.urlopen(request, timeout=10)
-        server_pem = handle.read()
-        if "BEGIN CERTIFICATE" in server_pem:
-          # If we have reached this point, this proxy is working.
-          self.active_proxy = proxy
-          handle.close()
-          return server_pem
-      except urllib2.URLError:
-        pass
+            # If we reach this point, the server can be reached and the
+            # certificate is valid.
+            self.server_certificate = server_pem
+            self.active_server_url = server_url
+            handle.close()
+            return True
+        except urllib2.URLError:
+          pass
+        except Exception as e:  # pylint: disable=broad-except
+          client_utils_common.ErrorOnceAnHour(
+              "Unable to verify server certificate at %s: %s", cert_url, e)
+          logging.info("Unable to verify server certificate at %s: %s",
+                       cert_url, e)
 
     # No connection is possible at all.
-    return None
-
-  def GetServerCert(self):
-    """Obtain the server certificate and initialize the client."""
-    cert_url = "/".join((
-        posixpath.dirname(config_lib.CONFIG["Client.location"]), "server.pem"))
-    try:
-      data = self.FindProxy()
-      if not data:
-        raise urllib2.URLError("Could not connect to GRR server.")
-
-      self.communicator.LoadServerCertificate(
-          server_certificate=data, ca_certificate=self.ca_cert)
-
-      self.server_certificate = data
-    # This has to succeed or we can not go on
-    except Exception as e:  # pylint: disable=broad-except
-      client_utils_common.ErrorOnceAnHour(
-          "Unable to verify server certificate at %s: %s", cert_url, e)
-      logging.info("Unable to verify server certificate at %s: %s",
-                   cert_url, e)
-      self.client_worker.Sleep(60)
+    logging.info("Could not connect to GRR server.")
+    return False
 
   def MakeRequest(self, data, status):
     """Make a HTTP Post request and return the raw results."""
@@ -760,7 +763,7 @@ class GRRHTTPClient(object):
     try:
       # Now send the request using POST
       start = time.time()
-      url = "%s?api=%s" % (config_lib.CONFIG["Client.location"],
+      url = "%s?api=%s" % (self.GetServerUrl(),
                            config_lib.CONFIG["Network.api"])
 
       req = urllib2.Request(utils.SmartStr(url), data,
@@ -781,6 +784,10 @@ class GRRHTTPClient(object):
         self.InitiateEnrolment(status)
         return ""
       else:
+        self.consecutive_connection_errors += 1
+        if self.consecutive_connection_errors % PROXY_SCAN_ERROR_LIMIT == 0:
+          # Reset the active connection, this will trigger a reconnect attempt.
+          self.active_server_url = None
         status.sent_count = 0
         return str(e)
 
@@ -792,7 +799,8 @@ class GRRHTTPClient(object):
       status.sent_count = 0
       self.consecutive_connection_errors += 1
       if self.consecutive_connection_errors % PROXY_SCAN_ERROR_LIMIT == 0:
-        self.FindProxy()
+        # Reset the active connection, this will trigger a reconnect attempt.
+        self.active_server_url = None
       return str(e)
 
     # Error path:
@@ -847,7 +855,7 @@ class GRRHTTPClient(object):
       if status.code != 200:
         logging.info("%s: Could not connect to server at %s, status %s (%s)",
                      self.communicator.common_name,
-                     config_lib.CONFIG["Client.location"],
+                     self.GetServerUrl(),
                      status.code, response)
 
         # Reschedule the tasks back on the queue so they get retried next time.
@@ -923,12 +931,14 @@ class GRRHTTPClient(object):
       A Status() object indicating how the last POST went.
     """
     while True:
-      while self.communicator.server_name is None:
-        self.GetServerCert()
-        if self.communicator.server_name:
+      while self.active_server_url is None:
+        if self.EstablishConnection():
           # Everything went as expected - we don't need to return to
           # the main loop (which would mean sleeping for a poll_time).
           break
+        else:
+          # Constantly retrying will not work, we back off a bit.
+          time.sleep(60)
         yield Status()
 
       # Check if there is a message from the nanny to be sent.

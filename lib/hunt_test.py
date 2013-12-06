@@ -3,6 +3,8 @@
 
 
 
+import time
+
 
 import logging
 
@@ -51,16 +53,31 @@ class BrokenSampleHunt(hunts.SampleHunt):
     self.MarkClientDone(client_id)
 
 
+class DummyHunt(hunts.GRRHunt):
+  """Dummy hunt that stores client ids in a class variable."""
+
+  client_ids = []
+
+  @flow.StateHandler()
+  def RunClient(self, responses):
+    for client_id in responses:
+      DummyHunt.client_ids.append(client_id)
+      self.MarkClientDone(client_id)
+
+
 class HuntTest(test_lib.FlowTestsBaseclass):
   """Tests the Hunt."""
 
   def setUp(self):
     super(HuntTest, self).setUp()
 
-    # Clean up the foreman to remove any rules.
-    with aff4.FACTORY.Open("aff4:/foreman", mode="rw",
-                           token=self.token) as foreman:
-      foreman.Set(foreman.Schema.RULES())
+    with test_lib.Stubber(time, "time", lambda: 0):
+      # Clean up the foreman to remove any rules.
+      with aff4.FACTORY.Open("aff4:/foreman", mode="rw",
+                             token=self.token) as foreman:
+        foreman.Set(foreman.Schema.RULES())
+
+    DummyHunt.client_ids = []
 
   def testRuleAdding(self):
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
@@ -81,6 +98,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
                 operator=rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN,
                 value=1336650631137737)
             ],
+        client_rate=0,
         token=self.token)
 
     # Push the rules to the foreman.
@@ -155,6 +173,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
                 operator=rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN,
                 value=1336650631137737)
             ],
+        client_rate=0,
         token=self.token)
 
     with hunt.GetRunner() as runner:
@@ -195,6 +214,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         regex_rules=[rdfvalue.ForemanAttributeRegex(
             attribute_name="no such attribute",
             attribute_regex="HUNT")],
+        client_rate=0,
         token=self.token) as hunt:
 
       with hunt.GetRunner() as runner:
@@ -211,6 +231,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
             attribute_name="GRR client",
             attribute_regex="GRR")],
         client_limit=client_limit,
+        client_rate=0,
         token=self.token) as hunt:
 
       with hunt.GetRunner() as runner:
@@ -234,7 +255,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
   def testStartClient(self):
     with hunts.GRRHunt.StartHunt(
-        hunt_name="SampleHunt", token=self.token) as hunt:
+        hunt_name="SampleHunt", client_rate=0, token=self.token) as hunt:
 
       with hunt.GetRunner() as runner:
         runner.Start()
@@ -275,6 +296,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         regex_rules=[rdfvalue.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
+        client_rate=0,
         token=self.token) as hunt:
 
       with hunt.GetRunner() as runner:
@@ -310,6 +332,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         regex_rules=[rdfvalue.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
+        client_rate=0,
         token=self.token) as hunt:
 
       with hunt.GetRunner() as runner:
@@ -345,6 +368,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         regex_rules=[rdfvalue.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
+        client_rate=0,
         token=self.token) as hunt:
 
       with hunt.GetRunner() as runner:
@@ -388,6 +412,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         regex_rules=[rdfvalue.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
+        client_rate=0,
         token=self.token) as hunt:
       hunt.Run()
 
@@ -422,6 +447,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         regex_rules=[rdfvalue.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
+        client_rate=0,
         token=self.token) as hunt:
 
       with hunt.GetRunner() as runner:
@@ -462,6 +488,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         regex_rules=[rdfvalue.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
+        client_rate=0,
         notification_event="TestHuntDone",
         token=self.token) as hunt:
 
@@ -480,6 +507,52 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(TestHuntListener.received_events), 5)
 
     self.DeleteClients(10)
+
+  def testHuntClientRate(self):
+    """Check that clients are scheduled slowly by the hunt."""
+    start_time = 10
+
+    # Set up 10 clients.
+    client_ids = self.SetupClients(10)
+
+    with test_lib.Stubber(time, "time", lambda: start_time):
+      with hunts.GRRHunt.StartHunt(
+          hunt_name="DummyHunt",
+          regex_rules=[
+              rdfvalue.ForemanAttributeRegex(attribute_name="GRR client",
+                                             attribute_regex="GRR"),
+              ],
+          client_rate=1, token=self.token) as hunt:
+        hunt.Run()
+
+      # Pretend to be the foreman now and dish out hunting jobs to all the
+      # clients..
+      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+      for client_id in client_ids:
+        foreman.AssignTasksToClient(client_id)
+
+      self.assertEqual(len(DummyHunt.client_ids), 0)
+
+      # Run the hunt.
+      worker_mock = test_lib.MockWorker(check_flow_errors=True,
+                                        token=self.token)
+
+      time.time = lambda: start_time + 2
+
+      # One client is scheduled in the first minute.
+      worker_mock.Simulate()
+      self.assertEqual(len(DummyHunt.client_ids), 1)
+
+      # No further clients will be scheduled until the end of the first minute.
+      time.time = lambda: start_time + 59
+      worker_mock.Simulate()
+      self.assertEqual(len(DummyHunt.client_ids), 1)
+
+      # One client will be processed every minute.
+      for i in range(len(client_ids)):
+        time.time = lambda: start_time + 1 + 60 * i
+        worker_mock.Simulate()
+        self.assertEqual(len(DummyHunt.client_ids), i + 1)
 
 
 class FlowTestLoader(test_lib.GRRTestLoader):

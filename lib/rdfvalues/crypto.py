@@ -1,11 +1,13 @@
 #!/usr/bin/env python
-"""Implementation of various cryprographic types."""
+"""Implementation of various cryptographic types."""
 
 
 import hashlib
 import struct
 
+
 from M2Crypto import BIO
+from M2Crypto import EVP
 from M2Crypto import RSA
 from M2Crypto import util
 from M2Crypto import X509
@@ -214,6 +216,37 @@ class EncryptionKey(rdfvalue.RDFBytes):
     self._value = self._value[:self.length/8]
     return self
 
+  def RawBytes(self):
+    return self._value
+
 
 class AES128Key(EncryptionKey):
   length = 128
+
+
+class Cipher(object):
+  """A Cipher that accepts rdfvalue.EncryptionKey objects as key and iv."""
+
+  OP_DECRYPT = 0
+  OP_ENCRYPT = 1
+
+  def Update(self, data):
+    pass
+
+  def Final(self):
+    pass
+
+
+class AES128CBCCipher(Cipher):
+  """An aes_128_cbc cipher."""
+
+  def __init__(self, key, iv, mode=Cipher.OP_DECRYPT):
+    super(AES128CBCCipher, self).__init__()
+    self.cipher = EVP.Cipher(alg="aes_128_cbc", key=key.RawBytes(),
+                             iv=iv.RawBytes(), op=mode)
+
+  def Update(self, data):
+    return self.cipher.update(data)
+
+  def Final(self):
+    return self.cipher.final()

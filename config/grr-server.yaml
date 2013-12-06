@@ -16,7 +16,8 @@ Client.company_name: GRR Project
 
 Client.description: "%(name) %(platform) %(arch)"
 
-Client.location: http://localhost:8080/control
+Client.control_urls:
+  - http://localhost:8080/control
 
 Client.name: GRR
 
@@ -26,9 +27,9 @@ Client.version_major: 2
 
 Client.version_minor: 9
 
-Client.version_release: 1
+Client.version_release: 0
 
-Client.version_revision: 1
+Client.version_revision: 2
 
 Client.foreman_check_frequency: 600
 
@@ -183,7 +184,8 @@ ConfigUpdater Context:
   ConfigUpdater.old_config: /etc/grr/grr-server.conf
 
 Demo Context:
-  Client.location: http://%(Frontend.bind_address):%(Frontend.bind_port)/control
+  Client.control_urls:
+    - http://%(Frontend.bind_address):%(Frontend.bind_port)/control
 
   Client.poll_max: 5
 

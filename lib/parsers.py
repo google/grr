@@ -118,6 +118,13 @@ class RegistryParser(Parser):
     """Take the stat, and yield RDFValues."""
 
 
+class ArtifactFilesParser(Parser):
+  """Abstract parser for processing artifact files."""
+
+  def Parse(self, persistence, knowledge_base, download_pathtype):
+    """Parse artifact files."""
+
+
 class VolatilityPluginParser(Parser):
   """Abstract parser for processing Volatility results."""
 

@@ -55,8 +55,9 @@ class ChromeHistory(flow.GRRFlow):
     if self.state.args.history_path:
       self.state.history_paths.append(self.state.args.history_path)
 
-    self.runner.output = aff4.FACTORY.Create(
-        self.runner.output.urn, "VFSAnalysisFile", token=self.token)
+    if self.runner.output:
+      self.runner.output = aff4.FACTORY.Create(
+          self.runner.output.urn, "VFSAnalysisFile", token=self.token)
 
     if not self.state.history_paths:
       self.state.history_paths = self.GuessHistoryPaths(
@@ -95,7 +96,8 @@ class ChromeHistory(flow.GRRFlow):
               datetime.datetime.utcfromtimestamp(epoch64/1e6), url,
               dat1, dat2, dat3, dtype)
 
-          self.runner.output.write(utils.SmartStr(str_entry) + "\n")
+          if self.runner.output:
+            self.runner.output.write(utils.SmartStr(str_entry) + "\n")
 
         self.Log("Wrote %d Chrome History entries for user %s from %s", count,
                  self.state.args.username, response.pathspec.Basename())
@@ -183,8 +185,9 @@ class FirefoxHistory(flow.GRRFlow):
       if not self.state.history_paths:
         raise flow.FlowError("Could not find valid History paths.")
 
-    self.runner.output = aff4.FACTORY.Create(
-        self.runner.output.urn, "VFSAnalysisFile", token=self.token)
+    if self.runner.output:
+      self.runner.output = aff4.FACTORY.Create(
+          self.runner.output.urn, "VFSAnalysisFile", token=self.token)
 
     filename = "places.sqlite"
     for path in self.state.history_paths:
@@ -209,7 +212,8 @@ class FirefoxHistory(flow.GRRFlow):
           str_entry = "%s %s %s %s" % (
               datetime.datetime.utcfromtimestamp(epoch64/1e6), url,
               dat1, dtype)
-          self.runner.output.write(utils.SmartStr(str_entry) + "\n")
+          if self.runner.output:
+            self.runner.output.write(utils.SmartStr(str_entry) + "\n")
         self.Log("Wrote %d Firefox History entries for user %s from %s", count,
                  self.args.username, response.pathspec.Basename())
         self.state.hist_count += count
@@ -319,9 +323,10 @@ class CacheGrep(flow.GRRFlow):
   def StartRequests(self):
     """Generate and send the Find requests."""
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.runner.output.Set(
-        self.runner.output.Schema.DESCRIPTION("CacheGrep for {0}".format(
-            self.args.data_regex)))
+    if self.runner.output:
+      self.runner.output.Set(
+          self.runner.output.Schema.DESCRIPTION("CacheGrep for {0}".format(
+              self.args.data_regex)))
 
     usernames = ["%s\\%s" % (u.domain, u.username) for u in self.state.users]
     usernames = [u.lstrip("\\") for u in usernames]  # Strip \\ if no domain.

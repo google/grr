@@ -122,6 +122,9 @@ class MongoDataStore(data_store.DataStore):
         else:
           entry_timestamp = timestamp
 
+        if entry_timestamp is None:
+          entry_timestamp = timestamp
+
         predicate = utils.SmartUnicode(attribute)
         prefix = predicate.split(":", 1)[0]
 
@@ -157,10 +160,6 @@ class MongoDataStore(data_store.DataStore):
                        token=None, sync=False):
     """Remove all the attributes from this subject."""
     _ = sync  # Unused attribute, mongo is always synced.
-    # Timestamps are not implemented yet.
-    if start or end:
-      raise NotImplementedError("Mongo data store does not support timestamp "
-                                "based deletion yet.")
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     if not attributes:
       # Nothing to delete.
@@ -172,8 +171,55 @@ class MongoDataStore(data_store.DataStore):
         {"$or": [dict(predicate=utils.SmartUnicode(x)) for x in attributes]},
         ]}
 
+    if not start and not end:
+      # Just delete all the versions.
+      self.versioned_collection.remove(spec)
+      self.latest_collection.remove(spec)
+      return
+
+    unversioned_spec = {"$and": [
+        dict(subject=utils.SmartUnicode(subject)),
+        {"$or": [dict(predicate=utils.SmartUnicode(x)) for x in attributes]},
+        ]}
+
+    if start:
+      spec["$and"].append(dict(timestamp={"$gte": start}))
+
+    if not end:
+      # We can optimize this case since the latest version will always
+      # be unchanged or deleted.
+      self.versioned_collection.remove(spec)
+      self.latest_collection.remove(spec)
+      return
+
+    spec["$and"].append(dict(timestamp={"$lte": end}))
     self.versioned_collection.remove(spec)
-    self.latest_collection.remove(spec)
+
+    to_delete = set(attributes)
+    to_set = {}
+    cursor = self.versioned_collection.find(unversioned_spec).sort("timestamp")
+    for document in cursor:
+      value = document["value"]
+      predicate = document["predicate"]
+      to_delete.discard(predicate)
+      timestamp = document["timestamp"]
+      prefix = predicate.split(":", 1)[0]
+      document = dict(subject=subject, timestamp=timestamp,
+                      predicate=predicate, prefix=prefix, value=value)
+      to_set[predicate] = document
+
+    if to_delete:
+      delete_spec = {"$and": [
+          dict(subject=utils.SmartUnicode(subject)),
+          {"$or": [dict(predicate=utils.SmartUnicode(x)) for x in attributes]},
+          ]}
+      self.latest_collection.remove(delete_spec)
+
+    if to_set:
+      for document in to_set.itervalues():
+        self.latest_collection.update(
+            dict(subject=subject, predicate=predicate, prefix=prefix),
+            document, upsert=True, w=1 if sync else 0)
 
   def DeleteAttributesRegex(self, subject, regexes, token=None):
     """Remove the attributes from this subject by regex."""

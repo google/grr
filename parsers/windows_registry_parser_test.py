@@ -67,6 +67,8 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(acpipmi.name, "AcpiPmi")
     self.assertEqual(acpipmi.startup_type, 3)
     self.assertEqual(acpipmi.display_name, "[u'AcpiPmi']")
+    self.assertEqual(acpipmi.registry_key.Path(),
+                     "/C.1000000000000000/registry/%s/AcpiPmi" % hklm_set01)
 
     acpi = results.next()
     self.assertEqual(acpi.name, "ACPI")

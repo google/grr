@@ -399,11 +399,6 @@ class Process(rdfvalue.RDFProtoStruct):
   protobuf = sysinfo_pb2.Process
 
 
-class Processes(protodict.RDFValueArray):
-  """A list of processes on the system."""
-  rdf_type = Process
-
-
 class SoftwarePackage(rdfvalue.RDFProtoStruct):
   """Represent an installed package on the client."""
   protobuf = sysinfo_pb2.SoftwarePackage

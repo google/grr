@@ -24,13 +24,13 @@ class MACTimes(flow.GRRFlow):
   def Start(self):
     """This could take a while so we just schedule for the worker."""
     self.state.Register("urn", self.client_id.Add(self.args.path))
+    if self.runner.output:
+      self.runner.output = aff4.FACTORY.Create(
+          self.runner.output.urn, "GRRTimeSeries", token=self.token)
 
-    self.runner.output = aff4.FACTORY.Create(
-        self.runner.output.urn, "GRRTimeSeries", token=self.token)
-
-    self.runner.output.Set(
-        self.runner.output.Schema.DESCRIPTION(
-            "Timeline {0}".format(self.args.path)))
+      self.runner.output.Set(
+          self.runner.output.Schema.DESCRIPTION(
+              "Timeline {0}".format(self.args.path)))
 
     # Main work done in another process.
     self.CallState(next_state="CreateTimeline")
@@ -78,4 +78,5 @@ class MACTimes(flow.GRRFlow):
             # We are taking about the file which is a direct child of the
             # source.
             event.subject = utils.SmartUnicode(subject)
-            self.runner.output.AddEvent(event)
+            if self.runner.output:
+              self.runner.output.AddEvent(event)

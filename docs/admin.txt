@@ -501,7 +501,7 @@ affect on client restart.
 Client.poll_max::: Maximum number of seconds between polls to the server.
 Client.foreman_check_frequency::: How often to check for foreman jobs (hunts).
 Client.rss_max::: Maximum memory for the client to use.
-Client.location::: The URL to contact the server on.
+Client.control_urls::: The list of URLs to contact the server on.
 Client.proxy_servers::: A list of proxy servers to try.
 Logging.verbose::: Enable more verbose logging.
 Logging.engines::: Enable or disable syslog, event logs or file logs.
@@ -513,7 +513,7 @@ these will require a rebuild.
     Client.name::: The base name of the client. Changing this to Foo will change
     the running binary to Foo.exe and Fooservice.exe on Windows.
     Client.config_key::: The registry key to store config data on Windows
-    Client.location::: The URL to contact the server on.
+    Client.control_urls::: The list of URLs to contact the server on.
     Client.plist_path::: Where to store the plist on OSX.
     MemoryDriver.display_name::: Description of the service used for the memory
     driver on Windows

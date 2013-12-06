@@ -79,6 +79,8 @@ ACTIONS_MAP = {"RunGrrClientAction": {"required_args": ["client_action"],
                                     "output_type": "VolatilityResponse"},
                "CollectArtifacts": {"required_args": ["artifact_list"],
                                     "output_type": OUTPUT_UNDEFINED},
+               "CollectArtifactFiles": {"required_args": ["artifact_list"],
+                                        "output_type": "StatEntry"},
                "Bootstrap": {"required_args": [],
                              "output_type": OUTPUT_UNDEFINED},
               }

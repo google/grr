@@ -39,8 +39,9 @@ config_lib.DEFINE_string(
     default=r"%(SystemRoot|env)\\System32\\%(name)\\%(version_string)",
     help="Where the client binaries are installed.")
 
-config_lib.DEFINE_string("Client.location", "http://www.example.com/control",
-                         "URL of the controlling server.")
+config_lib.DEFINE_list("Client.control_urls",
+                       ["http://www.example.com/control"],
+                       "List of URLs of the controlling server.")
 
 config_lib.DEFINE_string("Client.plist_path",
                          "/Library/LaunchDaemons/com.google.code.grrd.plist",

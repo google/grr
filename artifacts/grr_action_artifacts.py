@@ -22,7 +22,7 @@ class ListProcessesGrr(Artifact):
   COLLECTORS = [
       Collector(action="RunGrrClientAction",
                 args={"client_action": r"ListProcesses"})]
-  OUTPUT_TYPE = "Processes"
+  OUTPUT_TYPE = "Process"
 
 
 class EnumerateInterfacesGrr(Artifact):
@@ -68,4 +68,3 @@ class EnumerateFilesystemsGrr(Artifact):
       Collector(action="RunGrrClientAction",
                 args={"client_action": r"EnumerateFilesystems"})]
   OUTPUT_TYPE = "Filesystem"
-

@@ -40,12 +40,13 @@ class SearchFileContent(flow.GRRFlow):
   @flow.StateHandler(next_state=["Grep"])
   def Start(self):
     """Run the glob first."""
-    self.runner.output = aff4.FACTORY.Create(
-        self.runner.output.urn, "GrepResultsCollection", mode="rw",
-        token=self.token)
+    if self.runner.output:
+      self.runner.output = aff4.FACTORY.Create(
+          self.runner.output.urn, "GrepResultsCollection", mode="rw",
+          token=self.token)
 
-    self.runner.output.Set(self.runner.output.Schema.DESCRIPTION(
-        "SearchFiles {0}".format(self.__class__.__name__)))
+      self.runner.output.Set(self.runner.output.Schema.DESCRIPTION(
+          "SearchFiles {0}".format(self.__class__.__name__)))
 
     self.CallFlow("Glob", next_state="Grep",
                   paths=self.args.paths, pathtype=self.args.pathtype)

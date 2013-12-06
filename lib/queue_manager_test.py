@@ -381,6 +381,57 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     self.assertEqual([task.priority for task in tasks],
                      [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])
 
+  def testUsesFrozenTimestampWhenDeletingAndFetchingNotifications(self):
+    # When used in "with" statement QueueManager uses the frozen timestamp
+    # when fetching and deleting data. Test that if we have 2 managers
+    # created at different times,  they will behave correctly when dealing
+    # with notifications for the same session ids. I.e. older queue_manager
+    # will only "see" it's own notification and younger queue_manager will
+    # "see" both.
+    with queue_manager.QueueManager(token=self.token) as manager1:
+      manager1.QueueNotification(rdfvalue.SessionID("aff4:/hunts/W:123456"))
+      manager1.Flush()
+
+      self._current_mock_time += 10
+      with queue_manager.QueueManager(token=self.token) as manager2:
+        manager2.QueueNotification(rdfvalue.SessionID("aff4:/hunts/W:123456"))
+        manager2.Flush()
+
+        self.assertEqual(len(manager1.GetSessionsFromQueue("aff4:/W")), 1)
+        self.assertEqual(len(manager2.GetSessionsFromQueue("aff4:/W")), 1)
+
+        manager1.DeleteNotification(rdfvalue.SessionID("aff4:/hunts/W:123456"))
+
+        self.assertEqual(len(manager1.GetSessionsFromQueue("aff4:/W")), 0)
+        self.assertEqual(len(manager2.GetSessionsFromQueue("aff4:/W")), 1)
+
+  def testMultipleNotificationsForTheSameSessionId(self):
+    manager = queue_manager.QueueManager(token=self.token)
+    manager.QueueNotification(rdfvalue.SessionID("aff4:/hunts/W:123456"),
+                              timestamp=(self._current_mock_time + 10) * 1e6)
+    manager.QueueNotification(rdfvalue.SessionID("aff4:/hunts/W:123456"),
+                              timestamp=(self._current_mock_time + 20) * 1e6)
+    manager.QueueNotification(rdfvalue.SessionID("aff4:/hunts/W:123456"),
+                              timestamp=(self._current_mock_time + 30) * 1e6)
+    manager.Flush()
+
+    self.assertEqual(len(manager.GetSessionsFromQueue("aff4:/W")), 0)
+
+    self._current_mock_time += 10
+    self.assertEqual(len(manager.GetSessionsFromQueue("aff4:/W")), 1)
+    manager.DeleteNotification(rdfvalue.SessionID("aff4:/hunts/W:123456"))
+
+    self._current_mock_time += 10
+    self.assertEqual(len(manager.GetSessionsFromQueue("aff4:/W")), 1)
+    manager.DeleteNotification(rdfvalue.SessionID("aff4:/hunts/W:123456"))
+
+    self._current_mock_time += 10
+    self.assertEqual(len(manager.GetSessionsFromQueue("aff4:/W")), 1)
+    manager.DeleteNotification(rdfvalue.SessionID("aff4:/hunts/W:123456"))
+
+    self._current_mock_time += 10
+    self.assertEqual(len(manager.GetSessionsFromQueue("aff4:/W")), 0)
+
 
 def main(argv):
   test_lib.main(argv)

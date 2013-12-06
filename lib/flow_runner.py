@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """This file contains a helper class for the flows.
 
 This flow context class provides all the methods for handling flows (i.e.,
@@ -258,7 +257,7 @@ class FlowRunner(object):
     if request_data:
       request_state.data = rdfvalue.Dict().FromDict(request_data)
 
-    self.QueueRequest(request_state)
+    self.QueueRequest(request_state, timestamp=start_time)
 
     # Add the status message if needed.
     if not messages or not isinstance(messages[-1], rdfvalue.GrrStatus):
@@ -280,7 +279,7 @@ class FlowRunner(object):
         raise FlowRunnerError("Bad message %s of type %s." % (payload,
                                                               type(payload)))
 
-      self.QueueResponse(msg)
+      self.QueueResponse(msg, start_time)
 
     # Notify the worker about it.
     self.QueueNotification(self.session_id, timestamp=start_time)
@@ -438,7 +437,7 @@ class FlowRunner(object):
     """
     client_id = None
     try:
-      self.current_state = method
+      self.context.current_state = method
       if request and responses:
         client_id = request.client_id or self.args.client_id
         logging.debug("%s Running %s with %d responses from %s",
@@ -755,7 +754,7 @@ class FlowRunner(object):
   def __enter__(self):
     return self
 
-  def __exit__(self, unused_type, unused_value, unused_traceback):
+  def __exit__(self, t, value, tb):
     """Supports 'with' protocol."""
     self.FlushMessages()
 
@@ -879,12 +878,13 @@ class FlowRunner(object):
       # Do this last since it may raise "CPU limit exceeded".
       self.UpdateProtoResources(status)
 
-  def _QueueRequest(self, request):
+  def _QueueRequest(self, request, timestamp=None):
     if request.HasField("request") and request.request.name:
       # This message contains a client request as well.
       self.queue_manager.QueueClientMessage(request.request)
 
-    self.queue_manager.QueueRequest(self.session_id, request)
+    self.queue_manager.QueueRequest(self.session_id, request,
+                                    timestamp=timestamp)
 
   def IncrementOutstandingRequests(self):
     with self.outbound_lock:
@@ -894,16 +894,17 @@ class FlowRunner(object):
     with self.outbound_lock:
       self.context.outstanding_requests -= 1
 
-  def QueueRequest(self, request):
+  def QueueRequest(self, request, timestamp=None):
     # Remember the new request for later
-    self._QueueRequest(request)
+    self._QueueRequest(request, timestamp=timestamp)
     self.IncrementOutstandingRequests()
 
-  def ReQueueRequest(self, request):
-    self._QueueRequest(request)
+  def ReQueueRequest(self, request, timestamp=None):
+    self._QueueRequest(request, timestamp=timestamp)
 
-  def QueueResponse(self, response):
-    self.queue_manager.QueueResponse(self.session_id, response)
+  def QueueResponse(self, response, timestamp=None):
+    self.queue_manager.QueueResponse(self.session_id, response,
+                                     timestamp=timestamp)
 
   def QueueNotification(self, session_id, timestamp=None):
     self.queue_manager.QueueNotification(session_id, timestamp=timestamp)

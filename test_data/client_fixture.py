@@ -3560,7 +3560,7 @@ pathspec {
   path: "/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/Sidebar"
 }
 registry_data {
-  string: "Sidebar.exe"
+  string: "%%TEMP%%\\Sidebar.exe"
 }
 """
 })),

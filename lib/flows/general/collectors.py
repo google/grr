@@ -169,8 +169,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     # In all other cases start the collection state.
     self.CallState(next_state="StartCollection")
 
-  @flow.StateHandler(next_state=["ProcessCollected", "ProcessRegistryValue",
-                                 "ProcessBootstrap"])
+  @flow.StateHandler(next_state=["ProcessCollected",
+                                 "ProcessCollectedArtifactFiles",
+                                 "ProcessRegistryValue", "ProcessBootstrap"])
   def StartCollection(self, responses):
     """Start collecting."""
     if not responses.success:
@@ -248,6 +249,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           self.VolatilityPlugin(collector)
         elif action_name == "CollectArtifacts":
           self.CollectArtifacts(collector)
+        elif action_name == "CollectArtifactFiles":
+          self.CollectArtifactFiles(collector)
         elif action_name == "RunGrrClientAction":
           self.RunGrrClientAction(collector)
         else:
@@ -331,6 +334,16 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         request_data={"artifact_name": self.current_artifact_name,
                       "collector": collector.ToDict()},
         next_state="ProcessCollected"
+        )
+
+  def CollectArtifactFiles(self, collector):
+    """Collect files from artifact pathspecs."""
+    self.CallFlow(
+        "ArtifactCollectorFlow", artifact_list=collector.args["artifact_list"],
+        store_results_in_aff4=False,
+        request_data={"artifact_name": self.current_artifact_name,
+                      "collector": collector.ToDict()},
+        next_state="ProcessCollectedArtifactFiles"
         )
 
   def RunCommand(self, collector):
@@ -469,6 +482,31 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     if self.args.store_results_in_aff4:
       self._FinalizeMappedAFF4Locations(artifact_cls_name)
 
+  @flow.StateHandler(next_state="ProcessCollected")
+  def ProcessCollectedArtifactFiles(self, responses):
+    """Schedule files for download based on pathspec attribute.
+
+    Args:
+      responses: Response objects from the artifact collector.
+    """
+    self.download_list = []
+    collector = responses.request_data.GetItem("collector")
+    pathspec_attribute = collector["args"]["pathspec_attribute"]
+
+    for response in responses:
+      if response.HasField(pathspec_attribute):
+        self.download_list.append(response.Get(pathspec_attribute))
+      else:
+        self.Log("Missing pathspec field: %s", pathspec_attribute)
+
+    if self.download_list:
+      request_data = responses.request_data.ToDict()
+      self.CallFlow("MultiGetFile", pathspecs=self.download_list,
+                    request_data=request_data,
+                    next_state="ProcessCollected")
+    else:
+      self.Log("No files to download")
+
   def _GetArtifactReturnTypes(self, collector):
     """Get a list of types we expect to handle from our responses."""
     if collector:
@@ -519,6 +557,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                                     parsers.RegistryValueParser)):
       result_parser = parse_method(responses, self.state.knowledge_base)
 
+    elif isinstance(processor_obj, (parsers.ArtifactFilesParser)):
+      result_parser = parse_method(responses, self.state.knowledge_base,
+                                   self.state.path_type)
+
     else:
       raise RuntimeError("Unsupported parser detected %s" % processor_obj)
 
@@ -540,7 +582,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def _WriteResultToCollection(self, result, artifact_name):
     """Write any results to the collection."""
     if self.args.split_output_by_artifact:
-      if artifact_name not in self.output_collection_map:
+      if self.runner.output and artifact_name not in self.output_collection_map:
         urn = self.runner.output.urn.Add(artifact_name)
         collection = aff4.FACTORY.Create(urn, "RDFValueCollection", mode="rw",
                                          token=self.token)
@@ -563,8 +605,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         self.runner.output.Flush()
         total += len(self.runner.output)
 
-    self.Log("Wrote results from Artifact %s to %s. Collection size %d.",
-             artifact_name, self.runner.output.urn, total)
+    if self.runner.output:
+      self.Log("Wrote results from Artifact %s to %s. Collection size %d.",
+               artifact_name, self.runner.output.urn, total)
 
   def _WriteResultToMappedAFF4Location(self, result):
     """If we have a mapping for this result type, write it there."""

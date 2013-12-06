@@ -200,10 +200,6 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
     # But no directory listing exists yet - we will need to fetch a new one
     self.assertEqual(len(list(fd.OpenChildren())), 0)
 
-    # Check the empty process branch exists
-    fd = aff4.FACTORY.Open(self.client_id.Add("processes"), token=self.token)
-    self.assertEqual(fd.__class__.__name__, "ProcessListing")
-
     # Check flow's reply
     self.assertEqual(len(self.flow_reply.users), 3)
     self.assertEqual(self.flow_reply.users[0].username, "Foo")

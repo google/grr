@@ -16,8 +16,8 @@ import logging
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import threadpool
 from grr.lib import utils
+from grr.lib.aff4_objects import filestore
 from grr.proto import export_pb2
 
 
@@ -78,12 +78,28 @@ class ExportedFileStoreHash(rdfvalue.RDFProtoStruct):
 
 
 class ExportConverter(object):
-  """Base ExportConverter class."""
+  """Base ExportConverter class.
+
+  ExportConverters are used to convert RDFValues to export-friendly RDFValues.
+  "Export-friendly" means 2 things:
+    * Flat structure
+    * No repeated fields (i.e. lists)
+
+  In order to use ExportConverters, users have to use ConvertValues.
+  These methods will look up all the available ExportConverters descendants
+  and will choose the ones that have input_rdf_type attribute equal to the
+  type of the values being converted. It's ok to have multiple converters with
+  the same input_rdf_type value. They will be applied sequentially and their
+  cumulative results will be returned.
+  """
 
   __metaclass__ = registry.MetaclassRegistry
 
   # Type of values that this converter accepts.
   input_rdf_type = None
+
+  # Cache used for GetConvertersByValue() lookups.
+  converters_cache = {}
 
   def __init__(self, options=None):
     """Constructor.
@@ -97,6 +113,13 @@ class ExportConverter(object):
 
   def Convert(self, metadata, value, token=None):
     """Converts given RDFValue to other RDFValues.
+
+    Metadata object is provided by the caller. It contains basic information
+    about where the value is coming from (i.e. client_urn, session_id, etc)
+    as well as timestamps corresponding to when current export started.
+
+    ExportConverter should use the metadata when constructing export-friendly
+    RDFValues.
 
     Args:
       metadata: ExportedMetadata to be used for conversion.
@@ -116,6 +139,13 @@ class ExportConverter(object):
     This is a default non-optimized dumb implementation. Subclasses are
     supposed to have their own optimized implementations.
 
+    Metadata object is provided by the caller. It contains basic information
+    about where the value is coming from (i.e. client_urn, session_id, etc)
+    as well as timestamps corresponding to when current export started.
+
+    ExportConverter should use the metadata when constructing export-friendly
+    RDFValues.
+
     Args:
       metadata_value_pairs: a list or a generator of tuples (metadata, value),
                             where metadata is ExportedMetadata to be used for
@@ -134,8 +164,13 @@ class ExportConverter(object):
   @staticmethod
   def GetConvertersByValue(value):
     """Returns all converters that take given value as an input value."""
-    return [cls for cls in ExportConverter.classes.itervalues()
-            if cls.input_rdf_type == value.__class__.__name__]
+    try:
+      return ExportConverter.converters_cache[value.__class__.__name__]
+    except KeyError:
+      results = [cls for cls in ExportConverter.classes.itervalues()
+                 if cls.input_rdf_type == value.__class__.__name__]
+      ExportConverter.converters_cache[value.__class__.__name__] = results
+      return results
 
 
 class StatEntryToExportedFileConverter(ExportConverter):
@@ -500,18 +535,12 @@ class RDFURNConverter(ExportConverter):
     for fd in fds:
       batch.append((urns_dict[fd.urn], fd))
 
-    converters_classes = ExportConverter.GetConvertersByValue(
-        batch[0][1])
-    converters = [cls(self.options) for cls in converters_classes]
-    if not converters:
-      logging.info("No converters found for %s.",
-                   batch[0][1].__class__.__name__)
+    try:
+      return ConvertValuesWithMetadata(batch)
+    except NoConverterFound as e:
+      logging.info(e)
 
-    converted_batch = []
-    for converter in converters:
-      converted_batch.extend(converter.BatchConvert(batch, token=token))
-
-    return converted_batch
+    return []
 
 
 class RDFValueCollectionConverter(ExportConverter):
@@ -524,17 +553,9 @@ class RDFValueCollectionConverter(ExportConverter):
     if not collection:
       return
 
-    converters_classes = ExportConverter.GetConvertersByValue(collection[0])
-    converters = [cls(self.options) for cls in converters_classes]
-
     for batch in utils.Grouper(collection, self.BATCH_SIZE):
-      print ["A", [str(s) for s in batch]]
-      batch_with_metadata = [(metadata, v) for v in batch]
-      converted_batch = []
-      for converter in converters:
-        converted_batch.extend(
-            converter.BatchConvert(batch_with_metadata, token=token))
-
+      converted_batch = ConvertValues(metadata, batch, token=token,
+                                      options=self.options)
       for v in converted_batch:
         yield v
 
@@ -664,7 +685,7 @@ class GrrMessageConverter(ExportConverter):
       try:
         for original_metadata, message in msg_dict[metadata.client_urn]:
           new_metadata = rdfvalue.ExportedMetadata(metadata)
-          new_metadata.session_id = original_metadata.session_id
+          new_metadata.source_urn = original_metadata.source_urn
           new_metadata.timestamp = original_metadata.timestamp
           batch_data.append((new_metadata, message.payload))
 
@@ -713,6 +734,39 @@ class FileStoreImageToExportedFileStoreHashConverter(ExportConverter):
       conversion wasn't possible.
     """
     raise NotImplementedError()
+
+
+class FileStoreHashConverter(ExportConverter):
+  input_rdf_type = "FileStoreHash"
+
+  def Convert(self, metadata, stat_entry, token=None):
+    """Convert a single FileStoreHash."""
+
+    return self.BatchConvert([(metadata, stat_entry)], token=token)
+
+  def BatchConvert(self, metadata_value_pairs, token=None):
+    """Convert batch of FileStoreHashs."""
+
+    urns = [urn for metadata, urn in metadata_value_pairs]
+    urns_dict = dict([(urn, metadata)
+                      for metadata, urn in metadata_value_pairs])
+
+    results = []
+    for hash_urn, hash_hits in filestore.HashFileStore.GetHitsForHashes(
+        urns, token=token):
+      for hit in hash_hits:
+        metadata = rdfvalue.ExportedMetadata(urns_dict[hash_urn])
+        metadata.client_urn = rdfvalue.RDFURN(hit).Split(2)[0]
+
+        result = rdfvalue.ExportedFileStoreHash(
+            metadata=metadata,
+            hash=hash_urn.hash_value,
+            fingerprint_type=hash_urn.fingerprint_type,
+            hash_type=hash_urn.hash_type,
+            target_urn=hit)
+        results.append(result)
+
+    return results
 
 
 def GetMetadata(client, token=None):
@@ -766,89 +820,71 @@ def GetMetadata(client, token=None):
   return metadata
 
 
-def ConvertSingleValue(metadata, value, token=None, options=None):
-  """Finds converters for a single value and converts it."""
+def ConvertValuesWithMetadata(metadata_value_pairs, token=None, options=None):
+  """Converts a set of RDFValues into a set of export-friendly RDFValues.
 
-  converters_classes = ExportConverter.GetConvertersByValue(value)
-  if not converters_classes:
-    raise NoConverterFound("No converters found for value: %s" % value)
+  Args:
+    metadata_value_pairs: Tuples of (metadata, rdf_value), where metadata is
+                          an instance of ExportedMetadata and rdf_value is
+                          an RDFValue subclass instance to be exported.
+    token: Security token.
+    options: rdfvalue.ExportOptions instance that will be passed to
+             ExportConverters.
+  Yields:
+    Converted values. Converted values may be of different types.
 
-  for converter_cls in converters_classes:
-    converter = converter_cls(options=options)
-    for v in converter.Convert(metadata, value, token=token):
-      yield v
+  Raises:
+    NoConverterFound: in case no suitable converters were found for a value in
+                      metadata_value_pairs. This error is only raised after
+                      all values in metadata_value_pairs are attempted to be
+                      converted. If there are multiple value types that could
+                      not be converted because of the lack of corresponding
+                      converters, only the last one will be specified in the
+                      exception message.
+  """
 
+  no_converter_found_error = None
+  for rdf_type, metadata_values_group in utils.GroupBy(
+      metadata_value_pairs,
+      lambda pair: pair[1].__class__.__name__).iteritems():
 
-class RDFValuesExportConverter(threadpool.BatchConverter):
-  """Class used to convert sets of RDFValues to their exported versions."""
+    _ = rdf_type
+    _, first_value = metadata_values_group[0]
+    converters_classes = ExportConverter.GetConvertersByValue(first_value)
+    if not converters_classes:
+      no_converter_found_error = "No converters found for value: %s" % str(
+          first_value)
+      continue
 
-  def __init__(self, batch_size=1000, threadpool_prefix="export_converter",
-               threadpool_size=10, default_metadata=None, options=None,
-               token=None):
-    """Constructor of RDFValueCollectionConverter.
+    converters = [cls(options) for cls in converters_classes]
+    for converter in converters:
+      for result in converter.BatchConvert(metadata_values_group, token=token):
+        yield result
 
-    Args:
-      batch_size: All the values will be processed in batches of this size.
-      threadpool_prefix: Prefix that will be used in thread pool's threads
-                         names.
-      threadpool_size: Size of a thread pool that will be used.
-                       If threadpool_size is 0, no threads will be used
-                       and all conversions will be done in the current
-                       thread.
-      default_metadata: Metadata that will be used for exported values by
-                        default. ExportConverters will use this metadata
-                        object if they cannot collect their own metadata.
-      options: ExportOptions used by the ExportConverters.
-      token: Security token.
-    """
-    super(RDFValuesExportConverter, self).__init__(
-        batch_size=batch_size, threadpool_prefix=threadpool_prefix,
-        threadpool_size=threadpool_size)
-
-    self.default_metadata = default_metadata or rdfvalue.ExportedMetadata(
-        timestamp=rdfvalue.RDFDatetime().Now())
-    self.options = options
-    self.token = token
-
-    self.converters = []
-
-  def ProcessConvertedBatch(self, converted_batch):
-    """Callback function that is called after every converted batch.
-
-    It delegates handlign of the converted values to user-provided callback.
-
-    Args:
-      converted_batch: List or a generator of RDFValues.
-    """
-    pass
-
-  def ConvertBatch(self, batch):
-    """Converts batch of values at once."""
-
-    if not self.converters:
-      converters_classes = ExportConverter.GetConvertersByValue(batch[0])
-      if not converters_classes:
-        raise NoConverterFound(
-            "No converters found for value: %s" % str(batch[0]))
-
-      self.converters = [cls(self.options) for cls in converters_classes]
-
-    batch_data = [(self.default_metadata, obj) for obj in batch]
-
-    converted_batch = []
-    for converter in self.converters:
-      converted_batch.extend(
-          converter.BatchConvert(batch_data, token=self.token))
-
-    self.ProcessConvertedBatch(converted_batch)
+  if no_converter_found_error is not None:
+    raise NoConverterFound(no_converter_found_error)
 
 
-class RDFValuesExportConverterToList(RDFValuesExportConverter):
-  """RDFValueCollectionConverter that accumulates results in a list."""
+def ConvertValues(default_metadata, values, token=None, options=None):
+  """Converts a set of RDFValues into a set of export-friendly RDFValues.
 
-  def __init__(self, *args, **kwargs):
-    super(RDFValuesExportConverterToList, self).__init__(*args, **kwargs)
-    self.results = []
+  Args:
+    default_metadata: rdfvalue.ExportedMetadata instance with basic
+                      information about where the values come from.
+                      This metadata will be passed to exporters.
+    values: Values to convert. They should be of the same type.
+    token: Security token.
+    options: rdfvalue.ExportOptions instance that will be passed to
+             ExportConverters.
+  Returns:
+    Converted values. Converted values may be of different types
+    (unlike the source values which are all of the same type). This is due to
+    the fact that multiple ExportConverters may be applied to the same value
+    thus generating multiple converted values of different types.
 
-  def ProcessConvertedBatch(self, batch):
-    self.results.extend(batch)
+  Raises:
+    NoConverterFound: in case no suitable converters were found for the values.
+  """
+
+  batch_data = [(default_metadata, obj) for obj in values]
+  return ConvertValuesWithMetadata(batch_data, token=token, options=options)

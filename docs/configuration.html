@@ -842,15 +842,15 @@ parameters and their default values, we can issue the <em>--config_help</em> com
 line flag. This is analogous to the <em>--help</em> flag:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>Client.location = http://www.example.com/control
-   URL of the controlling server.
-* Value = http://localhost:8080/control
+<pre><tt>Client.control_urls = ["http://www.example.com/control"]
+   List of URLs of the controlling server.
+* Value = ['http://localhost:8080/control']
 
 Client.max_out_queue = 10240000
    Maximum size of the output queue.
 * Value = 10240000</tt></pre>
 </div></div>
-<div class="paragraph"><p>We can see that <em>Client.location</em> has a default value of
+<div class="paragraph"><p>We can see that <em>Client.control_urls</em> has a default value of
 <a href="http://www.example.com/control">http://www.example.com/control</a>, it is used to specify the URL of the controlling
 server, and currently (after reading the configuration files), the value is set
 to <a href="http://localhost:8080/control">http://localhost:8080/control</a>. We can also see that Client.max_out_queue is
@@ -865,8 +865,8 @@ configuration file is also installed (by default
 <em>/etc/grr/grr_server.yaml</em>). This specifies the basic configuration of the GRR
 service (i.e. various distribution specific locations). However, the
 configuration typically needs to be updated with site specific parameters (for
-example new crypto keys, the <em>Client.location</em> setting to allow the client to
-connect to the server etc.)</p></div>
+example new crypto keys, the <em>Client.control_urls</em> setting to allow the client
+to connect to the server etc.)</p></div>
 <div class="paragraph"><p>In order to avoid having to trash the user customized configuration files when
 GRR is updated in future, we write site specific configuration files into the
 <em>Config.writeback</em> location (by default <em>/etc/grr/grr.local.yaml</em>). This local

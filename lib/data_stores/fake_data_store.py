@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """An implementation of an in-memory data store for testing."""
 
+
 import re
+import sys
 import threading
 import time
 
@@ -58,7 +60,7 @@ class FakeTransaction(data_store.Transaction):
     if timestamp is None:
       timestamp = int(time.time() * 1e6)
 
-    self.to_set.setdefault(predicate, []).append((value, timestamp))
+    self.to_set.setdefault(predicate, []).append((value, int(timestamp)))
 
   def Resolve(self, predicate):
     if predicate in self.to_set:
@@ -198,13 +200,18 @@ class FakeDataStore(data_store.DataStore):
     subject = utils.SmartUnicode(subject)
     try:
       record = self.subjects[subject]
-      for attribute in attributes:
-        if start and attribute[1] <= start:
-          continue
-        if end and attribute[1] >= end:
+      for name, values in record.iteritems():
+        if name not in attributes:
           continue
 
-        record[attribute] = []
+        start = start or 0
+        end = end or sys.maxint
+        new_values = []
+        for value, timestamp in values:
+          if not start <= timestamp <= end:
+            new_values.append((value, int(timestamp)))
+
+        record[name] = new_values
     except KeyError:
       pass
 
@@ -251,6 +258,9 @@ class FakeDataStore(data_store.DataStore):
     else:
       start, end = -1, 1 << 65
 
+    start = int(start)
+    end = int(end)
+
     if isinstance(predicates, str):
       predicates = [predicates]
 
@@ -295,6 +305,9 @@ class FakeDataStore(data_store.DataStore):
       start, end = timestamp
     else:
       start, end = -1, 1 << 65
+
+    start = int(start)
+    end = int(end)
 
     if isinstance(predicate_regex, str):
       predicate_regex = [predicate_regex]

@@ -10,4 +10,5 @@ from grr.parsers import ie_history_test
 from grr.parsers import osx_launchd_test
 from grr.parsers import osx_quarantine_test
 from grr.parsers import sqlite_file_test
+from grr.parsers import windows_persistence_test
 from grr.parsers import windows_registry_parser_test

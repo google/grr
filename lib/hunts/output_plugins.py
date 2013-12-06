@@ -3,6 +3,7 @@
 
 
 
+import threading
 import urllib
 
 from grr.lib import aff4
@@ -11,6 +12,7 @@ from grr.lib import email_alerts
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import rendering
+from grr.lib import utils
 from grr.proto import flows_pb2
 
 
@@ -26,10 +28,11 @@ class HuntOutputPlugin(object):
 
   __metaclass__ = registry.MetaclassRegistry
 
-  args_type = None
+  name = ""
   description = ""
+  args_type = None
 
-  def __init__(self, hunt_obj, args=None, state=None):
+  def __init__(self, collection_urn, args=None, token=None, state=None):
     """HuntOutputPlugin constructor.
 
     HuntOutputPlugin constructor is called during StartHuntFlow and therefore
@@ -37,23 +40,34 @@ class HuntOutputPlugin(object):
     Therefore it's a bad idea to write anything to AFF4 in the constructor.
 
     Args:
-      hunt_obj: Hunt which results this plugin is going to process.
+      collection_urn: URN of the collection which results are going to be
+                      processed.
       args: This plugin's arguments.
+      token: Security token.
       state: Instance of rdfvalue.FlowState. Represents plugin's state. If this
              is passed, no initialization will be performed, only the state will
              be applied.
+    Raises:
+      ValueError: when state argument is passed together with args or token
+                  arguments.
     """
+    if state and (token or args):
+      raise ValueError("'state' argument can't be passed together with 'args' "
+                       "or 'token'.")
+
     if not state:
       self.state = state or rdfvalue.FlowState()
-      self.state.Register("hunt_urn", hunt_obj.urn)
+      self.state.Register("collection_urn", collection_urn)
       self.state.Register("args", args)
-      self.state.Register("token", hunt_obj.token)
+      self.state.Register("token", token)
       self.Initialize()
     else:
       self.state = state
 
     self.args = self.state.args
     self.token = self.state.token
+
+    self.lock = threading.RLock()
 
   def Initialize(self):
     """Initializes the hunt output plugin.
@@ -69,6 +83,9 @@ class HuntOutputPlugin(object):
     followed by a Flush() call. ProcessResponses() is called on the worker,
     so no security checks apply.
 
+    NOTE: this method should be thread-safe as it may be called from multiple
+    threads to improve hunt output performance.
+
     Args:
       responses: GrrMessages from the hunt results collection.
     """
@@ -79,6 +96,9 @@ class HuntOutputPlugin(object):
 
     Flush is *always* called after a series of ProcessResponses() calls.
     Flush() is called on the worker, so no security checks apply.
+
+    NOTE: This method doesn't have to be thread-safe as it's called after all
+    ProcessResponses() calls are complete.
     """
     pass
 
@@ -113,14 +133,15 @@ class EmailPlugin(HuntOutputPlugin):
   TODO
   """
 
+  name = "email"
   description = "Send an email for each result."
   args_type = EmailPluginArgs
 
   template = """
-<html><body><h1>GRR Hunt %(hunt_id)s produced a new result.</h1>
+<html><body><h1>GRR Hunt's results collection %(collection_urn)s got a new result.</h1>
 
 <p>
-  Grr Hunt %(hunt_id)s just reported a response from client %(client_id)s
+  Grr Hunt's results collection %(collection_urn)s just got a response from client %(client_id)s
   (%(hostname)s): <br />
   <br />
   %(response)s
@@ -151,7 +172,8 @@ class EmailPlugin(HuntOutputPlugin):
     client = aff4.FACTORY.Open(client_id, token=self.token)
     hostname = client.Get(client.Schema.HOSTNAME) or "unknown hostname"
 
-    subject = "GRR Hunt %s produced a new result." % self.state.hunt_urn
+    subject = ("GRR Hunt results collection %s got a new result." %
+               self.state.collection_urn)
 
     url = urllib.urlencode((("c", client_id),
                             ("main", "HostInformation")))
@@ -173,12 +195,13 @@ class EmailPlugin(HuntOutputPlugin):
             hostname=hostname,
             urn=url,
             creator=self.token.username,
-            hunt_id=self.state.hunt_urn,
+            collection_urn=self.state.collection_urn,
             response=response_htm,
             additional_message=additional_message,
             ),
         is_html=True)
 
+  @utils.Synchronized
   def ProcessResponses(self, responses):
     for response in responses:
       self.ProcessResponse(response)
@@ -198,7 +221,8 @@ class OutputPlugin(rdfvalue.RDFProtoStruct):
     if cls is None:
       raise KeyError("Unknown output plugin %s" % self.plugin_name)
 
-    return cls(hunt_obj, args=self.plugin_args)
+    return cls(hunt_obj.state.context.results_collection_urn,
+               args=self.plugin_args, token=hunt_obj.token)
 
   def GetPluginForState(self, plugin_state):
     cls = HuntOutputPlugin.classes.get(self.plugin_name)

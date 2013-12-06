@@ -328,12 +328,12 @@ class HuntViewTabs(renderers.TabLayout):
   """
 
   names = ["Overview", "Log", "Errors", "Rules", "Graph", "Results", "Stats",
-           "Crashes", "Outstanding"]
+           "Crashes", "Outstanding", "Context Detail"]
   delegated_renderers = ["HuntOverviewRenderer", "HuntLogRenderer",
                          "HuntErrorRenderer", "HuntRuleRenderer",
                          "HuntClientGraphRenderer", "HuntResultsRenderer",
                          "HuntStatsRenderer", "HuntCrashesRenderer",
-                         "HuntOutstandingRenderer"]
+                         "HuntOutstandingRenderer", "HuntContextView"]
 
   subscribe_script_template = renderers.Template("""
 <script>
@@ -584,6 +584,9 @@ class AbstractLogRenderer(renderers.TemplateRenderer):
 class HuntOverviewRenderer(AbstractLogRenderer):
   """Renders the overview tab."""
 
+  # Will be retrieved from request.REQ if not set.
+  hunt_id = None
+
   layout_template = renderers.Template("""
 
 <a id="ViewHuntDetails_{{unique}}" href='#{{this.hash|escape}}'
@@ -660,8 +663,7 @@ class HuntOverviewRenderer(AbstractLogRenderer):
 
   def Layout(self, request, response):
     """Display the overview."""
-    # If hunt_id is set by a subclass, don't look for it in request.REQ
-    if not hasattr(self, "hunt_id"):
+    if not self.hunt_id:
       self.hunt_id = request.REQ.get("hunt_id")
 
     h = dict(main="ManageHuntsClientView", hunt_id=self.hunt_id)
@@ -701,12 +703,34 @@ class HuntOverviewRenderer(AbstractLogRenderer):
 
           self.client_limit = runner.args.client_limit
 
-          args_dict = self.hunt.state.Copy()
-          self.args_str = renderers.DictRenderer(args_dict).RawHTML(request)
+          self.args_str = renderers.DictRenderer(
+              self.hunt.state, filter_keys=["context"]).RawHTML(request)
       except IOError:
         self.layout_template = self.error_template
 
-    return super(HuntOverviewRenderer, self).Layout(request, response)
+    return super(AbstractLogRenderer, self).Layout(request, response)
+
+
+class HuntContextView(renderers.TemplateRenderer):
+  """Render a the hunt context."""
+
+  layout_template = renderers.Template("""
+{{this.args_str|safe}}
+""")
+
+  def Layout(self, request, response):
+    """Display hunt's context presented as dict."""
+    if not hasattr(self, "hunt_id"):
+      self.hunt_id = request.REQ.get("hunt_id")
+    self.hunt = aff4.FACTORY.Open(self.hunt_id, aff4_type="GRRHunt",
+                                  token=request.token)
+    if self.hunt.state.Empty():
+      raise IOError("No valid state could be found.")
+
+    self.args_str = renderers.DictRenderer(
+        self.hunt.state.context).RawHTML(request)
+
+    return super(HuntContextView, self).Layout(request, response)
 
 
 class HuntLogRenderer(AbstractLogRenderer):

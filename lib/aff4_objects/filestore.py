@@ -243,15 +243,57 @@ class HashFileStore(FileStore):
     # We do not want to be externally written here.
     return None
 
-  def ListHashes(self):
-    urns = []
-    for fingerprint_type in self.FINGERPRINT_TYPES:
-      for hash_type in self.HASH_TYPES:
-        urns.append(self.PATH.Add(fingerprint_type).Add(hash_type))
+  @staticmethod
+  def ListHashes(token=None):
+    """Yields all the hashes in the file store.
 
-    for _, values in aff4.FACTORY.MultiListChildren(urns, token=self.token):
+    Args:
+      token: Security token, instance of ACLToken.
+
+    Yields:
+      FileStoreHash instances corresponding to all the hashes in the file store.
+    """
+    urns = []
+    for fingerprint_type in HashFileStore.FINGERPRINT_TYPES:
+      for hash_type in HashFileStore.HASH_TYPES:
+        urns.append(HashFileStore.PATH.Add(fingerprint_type).Add(hash_type))
+
+    for _, values in aff4.FACTORY.MultiListChildren(urns, token=token):
       for value in values:
-        yield value
+        yield rdfvalue.FileStoreHash(value)
+
+  @staticmethod
+  def GetHitsForHash(hash_obj, token=None):
+    """Yields hash_hits for the specified file store hash.
+
+    Args:
+      hash_obj: FileStoreHash instance that we want to get hits for.
+      token: security token.
+
+    Yields:
+      RDFURNs corresponding to a file that has the hash.
+    """
+    results = HashFileStore.GetHitsForHashes([hash_obj], token=token)
+    for _, hash_hits in results:
+      for hash_hit in hash_hits:
+        yield hash_hit
+
+  @staticmethod
+  def GetHitsForHashes(hashes, token=None):
+    """Yields (hash, hash_hit) pairs for all the specified hashes.
+
+    Args:
+      hashes: List of FileStoreHash instances.
+      token: security token.
+
+    Yields:
+      (hash, hash_hit) tuples, where hash is FileStoreHash instance and
+      hash_hit is an RDFURN corresponding to a file that has the hash.
+    """
+    for hash_obj, hash_hits in data_store.DB.MultiResolveRegex(
+        hashes, "index:target:.*", token=token):
+      yield (rdfvalue.FileStoreHash(hash_obj),
+             [hit_urn for _, hit_urn, _ in hash_hits])
 
 
 class FileStoreImage(aff4.VFSBlobImage):

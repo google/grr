@@ -695,6 +695,8 @@ class ClientStartupHandler(flow.EventListener):
     if new_data != old_data:
       client.Set(client.Schema.CLIENT_INFO(info))
 
+    client.AddLabels(info.labels)
+
     # Allow for some drift in the boot times (5 minutes).
     if abs(int(old_boot) - int(startup_info.boot_time)) > 300 * 1e6:
       client.Set(client.Schema.LAST_BOOT_TIME(startup_info.boot_time))

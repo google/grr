@@ -61,11 +61,26 @@ class HuntRunner(flow_runner.FlowRunner):
 
   process_requests_in_order = False
 
+  def _AddClient(self, client_id):
+    next_client_due = self.flow_obj.state.context.next_client_due
+    if self.args.client_rate > 0:
+      self.flow_obj.state.context.next_client_due = (
+          next_client_due + 60 / self.args.client_rate)
+      self.CallState(messages=[client_id], next_state="RegisterClient",
+                     client_id=client_id, start_time=next_client_due)
+    else:
+      self._RegisterAndRunClient(client_id)
+
+  def _RegisterAndRunClient(self, client_id):
+    self.flow_obj.AddAttribute(
+        self.flow_obj.Schema.CLIENTS(client_id))
+    self.RunStateMethod("RunClient", direct_response=[client_id])
+
   def _Process(self, request, responses, thread_pool=None, events=None):
     """Hunts process all responses concurrently in a threadpool."""
     # This function is called and runs within the main processing thread. We do
     # not need to lock the hunt object while running in this method.
-    if request.next_state == "RunClient":
+    if request.next_state == "AddClient":
       if not self.IsHuntStarted():
         logging.debug(
             "Unable to start client %s on hunt %s which is in state %s",
@@ -89,11 +104,13 @@ class HuntRunner(flow_runner.FlowRunner):
       # Update the client count.
       self.flow_obj.Set(self.flow_obj.Schema.CLIENT_COUNT(client_count + 1))
 
-      self.flow_obj.AddAttribute(
-          self.flow_obj.Schema.CLIENTS(request.client_id))
+      # Add client to list of clients and optionally run it
+      # (if client_rate == 0).
+      self._AddClient(request.client_id)
+      return
 
-      # Call the RunClient method inline.
-      self.RunStateMethod("RunClient", direct_response=[request.client_id])
+    if request.next_state == "RegisterClient":
+      self._RegisterAndRunClient(request.client_id)
       return
 
     event = threading.Event()
@@ -182,6 +199,11 @@ class HuntRunner(flow_runner.FlowRunner):
     # Determine when this hunt will expire.
     self.context.expires = self.args.expiry_time.Expiry()
 
+    # When the next client can be scheduled. Implements gradual client
+    # recruitment rate according to the client_rate.
+    self.context.Register("next_client_due",
+                          rdfvalue.RDFDatetime().Now())
+
     # Start the hunt.
     self.flow_obj.Set(self.flow_obj.Schema.STATE("STARTED"))
     self.flow_obj.Flush()
@@ -205,26 +227,22 @@ class HuntRunner(flow_runner.FlowRunner):
     # Make sure the rule makes sense.
     foreman_rule.Validate()
 
-    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token,
-                                aff4_type="GRRForeman", ignore_cache=True)
-    foreman_rules = foreman.Get(foreman.Schema.RULES,
-                                default=foreman.Schema.RULES())
-
-    foreman_rules.Append(foreman_rule)
-
-    foreman.Set(foreman_rules)
-    foreman.Close()
+    with aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token,
+                           aff4_type="GRRForeman",
+                           ignore_cache=True) as foreman:
+      foreman_rules = foreman.Get(foreman.Schema.RULES,
+                                  default=foreman.Schema.RULES())
+      foreman_rules.Append(foreman_rule)
+      foreman.Set(foreman_rules)
 
   def _RemoveForemanRule(self):
-    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token,
-                                ignore_cache=True)
-
-    aff4_rules = foreman.Get(foreman.Schema.RULES)
-    aff4_rules = foreman.Schema.RULES(
-        # Remove those rules which fire off this hunt id.
-        [r for r in aff4_rules if r.hunt_id != self.session_id])
-    foreman.Set(aff4_rules)
-    foreman.Close()
+    with aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token,
+                           ignore_cache=True) as foreman:
+      aff4_rules = foreman.Get(foreman.Schema.RULES)
+      aff4_rules = foreman.Schema.RULES(
+          # Remove those rules which fire off this hunt id.
+          [r for r in aff4_rules if r.hunt_id != self.session_id])
+      foreman.Set(aff4_rules)
 
   def Pause(self):
     """Pauses the hunt (removes Foreman rules, does not touch expiry time)."""
@@ -293,6 +311,81 @@ class HuntRunner(flow_runner.FlowRunner):
   def OutstandingRequests(self):
     # Lie about it to prevent us from being destroyed.
     return 1
+
+  def CallState(self, messages=None, next_state="", client_id=None,
+                request_data=None, start_time=None):
+    """This method is used to asynchronously schedule a new hunt state.
+
+    The state will be invoked in a later time and receive all the messages
+    we send.
+
+    Args:
+      messages: A list of rdfvalues to send. If the last one is not a
+              GrrStatus, we append an OK Status.
+
+      next_state: The state in this hunt to be invoked with the responses.
+
+      client_id: ClientURN to use in scheduled requests.
+
+      request_data: Any dict provided here will be available in the
+                    RequestState protobuf. The Responses object maintains a
+                    reference to this protobuf for use in the execution of the
+                    state method. (so you can access this data by
+                    responses.request).
+
+      start_time: Schedule the state at this time. This delays notification
+                  and messages for processing into the future.
+    Raises:
+      ValueError: on arguments error.
+    """
+
+    if messages is None:
+      messages = []
+
+    if not next_state:
+      raise ValueError("next_state can't be empty.")
+
+    # Now we construct a special response which will be sent to the hunt
+    # flow. Randomize the request_id so we do not overwrite other messages in
+    # the queue.
+    request_state = rdfvalue.RequestState(id=utils.PRNG.GetULong(),
+                                          session_id=self.context.session_id,
+                                          client_id=client_id,
+                                          next_state=next_state)
+
+    if request_data:
+      request_state.data = rdfvalue.Dict().FromDict(request_data)
+
+    self.QueueRequest(request_state, timestamp=start_time)
+
+    # Add the status message if needed.
+    if not messages or not isinstance(messages[-1], rdfvalue.GrrStatus):
+      messages.append(rdfvalue.GrrStatus())
+
+    # Send all the messages
+    for i, payload in enumerate(messages):
+      if isinstance(payload, rdfvalue.RDFValue):
+        msg = rdfvalue.GrrMessage(
+            session_id=self.session_id, request_id=request_state.id,
+            response_id=1 + i,
+            auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
+            payload=payload,
+            type=rdfvalue.GrrMessage.Type.MESSAGE)
+
+        if isinstance(payload, rdfvalue.GrrStatus):
+          msg.type = rdfvalue.GrrMessage.Type.STATUS
+      else:
+        raise flow_runner.FlowRunnerError("Bad message %s of type %s." %
+                                          (payload, type(payload)))
+
+      self.QueueResponse(msg, timestamp=start_time)
+
+    # Add the status message if needed.
+    if not messages or not isinstance(messages[-1], rdfvalue.GrrStatus):
+      messages.append(rdfvalue.GrrStatus())
+
+    # Notify the worker about it.
+    self.QueueNotification(self.session_id, timestamp=start_time)
 
 
 class GRRHunt(flow.GRRFlow):
@@ -387,7 +480,7 @@ class GRRHunt(flow.GRRFlow):
       args = hunt_obj.args_type()
       cls._FilterArgsFromSemanticProtobuf(args, kwargs)
 
-    if not isinstance(args, hunt_obj.args_type):
+    if hunt_obj.args_type and not isinstance(args, hunt_obj.args_type):
       raise RuntimeError("Hunt args must be instance of %s" %
                          hunt_obj.args_type)
 
@@ -428,7 +521,7 @@ class GRRHunt(flow.GRRFlow):
     state = rdfvalue.RequestState(id=utils.PRNG.GetULong(),
                                   session_id=hunt_id,
                                   client_id=client_id,
-                                  next_state="RunClient")
+                                  next_state="AddClient")
 
     # Queue the new request.
     with queue_manager.QueueManager(token=token) as flow_manager:

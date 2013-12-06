@@ -5,6 +5,8 @@
 
 import os
 import re
+import socket
+import threading
 import unittest
 
 
@@ -19,6 +21,7 @@ from grr.lib import registry
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.console import debugging
+from grr.lib.rdfvalues import crypto
 
 
 def TestFlows(client_id, platform, testname=None, local_worker=False):
@@ -35,6 +38,20 @@ def TestFlows(client_id, platform, testname=None, local_worker=False):
   client_id = rdfvalue.RDFURN(client_id)
   RunTests(client_id, platform=platform, testname=testname,
            token=token, local_worker=local_worker)
+
+
+def RecursiveListChildren(prefix=None, token=None):
+  all_urns = set()
+  act_urns = set([prefix])
+
+  while act_urns:
+    next_urns = set()
+    for _, children in aff4.FACTORY.MultiListChildren(act_urns, token=token):
+      for urn in children:
+        next_urns.add(urn)
+    all_urns |= next_urns
+    act_urns = next_urns
+  return all_urns
 
 
 class ClientTestBase(test_lib.GRRBaseTest):
@@ -132,12 +149,10 @@ class TestGetFileTSKLinux(ClientTestBase):
   def CheckFlow(self):
     pos = self.output_path.find("*")
     if pos > 0:
-      urn = self.client_id.Add(self.output_path[:pos])
-      for entry in data_store.DB.Query(subject_prefix=urn):
-        subject = entry["subject"][0][0]
-        if re.search(self.output_path + "$", subject):
-          urn = subject
-          self.to_delete = rdfvalue.RDFURN(urn)
+      prefix = self.client_id.Add(self.output_path[:pos])
+      for urn in RecursiveListChildren(prefix=prefix):
+        if re.search(self.output_path + "$", str(urn)):
+          self.to_delete = urn
           return self.CheckFile(aff4.FACTORY.Open(urn))
     else:
       urn = self.client_id.Add(self.output_path)
@@ -179,6 +194,64 @@ class TestGetFileOSLinux(TestGetFileTSKLinux):
   output_path = "/fs/os/bin/ls"
 
 
+class TestSendFile(ClientTestBase):
+  platforms = ["linux"]
+  flow = "SendFile"
+  key = rdfvalue.AES128Key("1a5eafcc77d428863d4c2441ea26e5a5")
+  iv = rdfvalue.AES128Key("2241b14c64874b1898dad4de7173d8c0")
+
+  args = dict(host="127.0.0.1",
+              port=12345,
+              pathspec=rdfvalue.PathSpec(pathtype=0, path="/bin/ls"),
+              key=key,
+              iv=iv)
+
+  def setUp(self):
+
+    logging.info("This test only works if the client is running on localhost!!")
+
+    class Listener(threading.Thread):
+      result = []
+      daemon = True
+
+      def run(self):
+        for res in socket.getaddrinfo(
+            None, 12345, socket.AF_INET,
+            socket.SOCK_STREAM, 0, socket.AI_ADDRCONFIG):
+          af, socktype, proto, _, sa = res
+          try:
+            s = socket.socket(af, socktype, proto)
+          except socket.error:
+            s = None
+            continue
+          try:
+            s.bind(sa)
+            s.listen(1)
+          except socket.error:
+            s.close()
+            s = None
+            continue
+          break
+        conn, _ = s.accept()
+        while 1:
+          data = conn.recv(1024)
+          if not data: break
+          self.result.append(data)
+        conn.close()
+
+    self.listener = Listener()
+    self.listener.start()
+
+  def CheckFlow(self):
+    original_data = open("/bin/ls", "rb").read()
+    received_cipher = "".join(self.listener.result)
+    cipher = crypto.AES128CBCCipher(key=self.key, iv=self.iv,
+                                    mode=crypto.AES128CBCCipher.OP_DECRYPT)
+    received_data = cipher.Update(received_cipher) + cipher.Final()
+
+    self.assertEqual(received_data, original_data)
+
+
 class TestListDirectoryOSLinux(ClientTestBase):
   """Tests if ListDirectory works on Linux."""
   platforms = ["linux", "darwin"]
@@ -195,10 +268,8 @@ class TestListDirectoryOSLinux(ClientTestBase):
     urn = None
     if pos > 0:
       base_urn = self.client_id.Add(self.output_path[:pos])
-      for entry in data_store.DB.Query(subject_prefix=base_urn):
-        subject = entry["subject"][0][0]
-        if re.search(self.output_path + "$", subject):
-          urn = rdfvalue.RDFURN(subject)
+      for urn in RecursiveListChildren(prefix=base_urn):
+        if re.search(self.output_path + "$", str(urn)):
           self.to_delete = urn
           break
       self.assertNotEqual(urn, None, "Could not locate Directory.")
@@ -379,10 +450,10 @@ class TestFindWindowsRegistry(ClientTestBase):
 
     urn = self.client_id.Add(self.output_path)
     fd = aff4.FACTORY.Open(urn, token=self.token)
-    hits = sorted([x.urn for x in fd.OpenChildren()])
+    hits = sorted([x.aff4path for x in fd])
 
+    self.assertGreater(len(hits), 1)
     self.assertEqual(len(hits), len(user_accounts))
-    self.assertTrue(len(hits) > 1)
 
     for x, y in zip(user_accounts, hits):
       self.assertEqual(x.Add("ProfileImagePath"), y)
@@ -556,17 +627,19 @@ class TestProcessListing(ClientTestBase):
 
   flow = "ListProcesses"
 
+  args = {"output": "analysis/ListProcesses/testing"}
+
   def setUp(self):
     super(TestProcessListing, self).setUp()
-    self.process_urn = self.client_id.Add("processes")
+    self.process_urn = self.client_id.Add(self.args["output"])
     self.DeleteUrn(self.process_urn)
 
     self.assertRaises(AssertionError, self.CheckFlow)
 
   def CheckFlow(self):
     procs = aff4.FACTORY.Open(self.process_urn, mode="r", token=self.token)
-    self.assertIsInstance(procs, aff4.ProcessListing)
-    process_list = procs.Get(procs.Schema.PROCESSES)
+    self.assertIsInstance(procs, aff4.RDFValueCollection)
+    process_list = list(procs)
     # Make sure there are at least some results.
     self.assertGreater(len(process_list), 5)
 
@@ -686,8 +759,9 @@ class TestAnalyzeClientMemory(ClientTestBase):
 
   def CheckFlow(self):
     response = aff4.FACTORY.Open(self.urn, token=self.token)
-    self.assertIsInstance(response, aff4.VolatilityResponse)
-    result = response.Get(response.Schema.RESULT)
+    self.assertIsInstance(response, aff4.RDFValueCollection)
+    self.assertEqual(len(response), 1)
+    result = response[0]
     self.assertEqual(result.error, "")
     self.assertGreater(len(result.sections), 0)
 
@@ -706,15 +780,15 @@ class TestAnalyzeClientMemory(ClientTestBase):
 
 class TestGrepMemory(ClientTestBase):
   platforms = ["windows", "darwin"]
-  flow = "GrepMemory"
-
-  args = {"output": "analysis/grep/testing",
-          "request": rdfvalue.BareGrepSpec(
-              literal="grr", length=4*1024*1024*1024,
-              mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
-              bytes_before=10, bytes_after=10)}
+  flow = "ScanMemory"
 
   def setUp(self):
+    self.args = {"also_download": False,
+                 "grep": rdfvalue.BareGrepSpec(
+                     literal="grr", length=4*1024*1024*1024,
+                     mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
+                     bytes_before=10, bytes_after=10),
+                 "output": "analysis/grep/testing",}
     super(TestGrepMemory, self).setUp()
     self.urn = self.client_id.Add(self.args["output"])
     self.DeleteUrn(self.urn)
@@ -722,7 +796,7 @@ class TestGrepMemory(ClientTestBase):
 
   def CheckFlow(self):
     collection = aff4.FACTORY.Open(self.urn, token=self.token)
-    self.assertIsInstance(collection, aff4.GrepResultsCollection)
+    self.assertIsInstance(collection, aff4.RDFValueCollection)
     self.assertEqual(len(list(collection)), 1)
     reference = collection[0]
 

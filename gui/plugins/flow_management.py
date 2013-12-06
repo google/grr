@@ -631,12 +631,11 @@ class ListFlowsTable(renderers.TableRenderer):
     self.AddColumn(semantic.RDFValueColumn("Last Active", width="20%"))
     self.AddColumn(semantic.RDFValueColumn("Creator", width="20%"))
 
-  def BuildTable(self, start, _, request):
+  def BuildTable(self, start_row, end_row, request):
     """Renders the table."""
     depth = request.REQ.get("depth", 0)
 
     flow_urn = self.state.get("value", request.REQ.get("value"))
-
     if flow_urn is None:
       client_id = request.REQ.get("client_id")
       if not client_id: return
@@ -645,15 +644,18 @@ class ListFlowsTable(renderers.TableRenderer):
 
     flow_root = aff4.FACTORY.Open(flow_urn, mode="r", token=request.token)
     root_children = list(flow_root.OpenChildren())
+    root_children = sorted(root_children,
+                           key=self._GetCreationTime,
+                           reverse=True)
     self.size = len(root_children)
+    if not depth:
+      root_children = root_children[start_row:end_row]
 
     level2_children = dict(aff4.FACTORY.MultiListChildren(
         [f.urn for f in root_children], token=request.token))
 
-    row_index = start
-    for flow_obj in sorted(root_children,
-                           key=self._GetCreationTime,
-                           reverse=True):
+    row_index = start_row
+    for flow_obj in root_children:
       if level2_children.get(flow_obj.urn, None):
         row_type = "branch"
       else:

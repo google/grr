@@ -406,10 +406,23 @@ class WindowsPersistenceMechanisms(Artifact):
   """Collect persistence mechanisms."""
   LABELS = ["Software"]
   SUPPORTED_OS = ["Windows"]
+  COLLECTORS = [
+      Collector(action="CollectArtifacts",
+                args={"artifact_list": ["WindowsRunKeys", "WindowsServices"]},
+                returned_types=["PersistenceFile"])
+      ]
 
-  Collector(action="CollectArtifacts",
-            args={"artifact_list": ["WindowsRunKeys"]},
-            returned_types=["StatEntry"])
+
+class WindowsPersistenceMechanismFiles(Artifact):
+  """Collect files that are run by Windows persistence mechanisms."""
+  LABELS = ["Software"]
+  SUPPORTED_OS = ["Windows"]
+  COLLECTORS = [
+      Collector(action="CollectArtifactFiles",
+                args={"artifact_list": ["WindowsPersistenceMechanisms"],
+                      "pathspec_attribute": "pathspec"},
+                returned_types=["StatEntry"])
+      ]
 
 
 ################################################################################
