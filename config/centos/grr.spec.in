@@ -33,8 +33,10 @@ fi
 
 %preun
 
-if [ -e "/etc/init.d/%(Client.name)" ]; then
-  /etc/init.d/%(Client.name) stop || exit $?
+if [ "$1" -le 1 ]; then
+  if [ -e "/etc/init.d/%(Client.name)" ]; then
+    /etc/init.d/%(Client.name) stop || exit $?
+  fi
 fi
 
 %files
@@ -43,6 +45,8 @@ fi
 \%attr\(755,root,root\) /etc/init.d/%(Client.name)
 
 %changelog
+* %(ClientBuilder.rpm_build_time) %(ClientBuilder.maintainer)
+- Fix package upgrade %preun
 * %(ClientBuilder.rpm_build_time) %(ClientBuilder.maintainer)
 - New version, %(Client.version_major).%(Client.version_minor).%(Client.version_revision).%(Client.version_release)
 

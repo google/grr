@@ -10,6 +10,7 @@ from email.mime.text import MIMEText
 
 import re
 import smtplib
+import socket
 
 from grr.lib import config_lib
 from grr.lib import utils
@@ -47,9 +48,15 @@ def SendEmail(to_addresses, from_address, subject, message, attachments=None,
   msg["From"] = from_address
   msg["To"] = to_addresses
 
-  s = smtplib.SMTP(config_lib.CONFIG["Worker.smtp_server"],
-                   int(config_lib.CONFIG["Worker.smtp_port"]))
-  s.sendmail(from_address, [to_addresses], msg.as_string())
-  s.quit()
+  try:
+    s = smtplib.SMTP(config_lib.CONFIG["Worker.smtp_server"],
+                     int(config_lib.CONFIG["Worker.smtp_port"]))
+    s.sendmail(from_address, [to_addresses], msg.as_string())
+    s.quit()
+  except (socket.error, smtplib.SMTPException) as e:
+    raise RuntimeError("Could not connect to SMTP server to send email. Please "
+                       "check config option Worker.smtp_server. Currently set "
+                       "to %s. Error: %s" %
+                       (config_lib.CONFIG["Worker.smtp_server"], e))
 
 

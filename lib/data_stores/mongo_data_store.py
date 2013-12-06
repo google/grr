@@ -121,6 +121,9 @@ class MongoDataStore(data_store.DataStore):
           value, entry_timestamp = value
         else:
           entry_timestamp = timestamp
+        
+        if entry_timestamp is None:
+          entry_timestamp = timestamp
 
         predicate = utils.SmartUnicode(attribute)
         prefix = predicate.split(":", 1)[0]
