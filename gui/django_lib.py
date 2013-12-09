@@ -59,3 +59,8 @@ class GuiPluginsInit(registry.InitHook):
     # pylint: disable=unused-variable,g-import-not-at-top
     from grr.gui import gui_plugins
     # pylint: enable=unused-variable,g-import-not-at-top
+
+
+def GetWSGIHandler():
+  from django.core.handlers import wsgi  # pylint: disable=g-import-not-at-top
+  return wsgi.WSGIHandler()

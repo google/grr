@@ -11,10 +11,9 @@ from wsgiref import simple_server
 
 # pylint: disable=g-bad-import-order
 from grr.gui import admin_ui
+from grr.gui import django_lib
 # pylint: enable=g-bad-import-order
 
-
-from django.core.handlers import wsgi
 
 import logging
 
@@ -47,7 +46,7 @@ class DjangoThread(threading.Thread):
     try:
       # Make a simple reference implementation WSGI server
       server = simple_server.make_server("0.0.0.0", port,
-                                         wsgi.WSGIHandler())
+                                         django_lib.GetWSGIHandler())
     except socket.error as e:
       raise socket.error(
           "Error while listening on port %d: %s." % (port, str(e)))

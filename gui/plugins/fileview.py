@@ -1249,7 +1249,7 @@ As downloaded on {{ this.age|escape }}.<br>
             filename += ".noexec"
 
       response = http.HttpResponse(content=Generator(),
-                                   mimetype="binary/octet-stream")
+                                   content_type="binary/octet-stream")
       # This must be a string.
       response["Content-Disposition"] = ("attachment; filename=%s" % filename)
 

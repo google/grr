@@ -96,7 +96,7 @@ right: 0; bottom: 0; left: 0"></div> """ + table_jquery_template + """
     response["total_size"] = self.total_size
 
     return http.HttpResponse(encoder.encode(response),
-                             mimetype="text/json")
+                             content_type="text/json")
 
   def ReadBuffer(self, request, offset, length):
     """Should be overriden by derived classes to satisfy read requests.

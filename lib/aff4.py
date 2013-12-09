@@ -909,7 +909,14 @@ class Attribute(object):
       return self.default(fd)
 
     if self.default is not None:
-      return self(self.default)
+      # We can't return mutable objects here or the default might change for all
+      # objects of this class.
+      if isinstance(self.default, rdfvalue.RDFValue):
+        default = self.default.Copy()
+        default.attribute_instance = self
+        return self(default)
+      else:
+        return self(self.default)
 
     if isinstance(default, rdfvalue.RDFValue):
       default = default.Copy()

@@ -8,8 +8,6 @@ import SocketServer
 import ssl
 from wsgiref import simple_server
 
-from django.core.handlers import wsgi
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr.gui import django_lib
 from grr.lib import server_plugins
@@ -37,7 +35,7 @@ def main(_):
   # Make a simple reference implementation WSGI server
   server = simple_server.make_server(config_lib.CONFIG["AdminUI.bind"],
                                      config_lib.CONFIG["AdminUI.port"],
-                                     wsgi.WSGIHandler(),
+                                     django_lib.GetWSGIHandler(),
                                      server_class=ThreadingDjango)
 
   proto = "HTTP"
