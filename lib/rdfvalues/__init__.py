@@ -8,7 +8,6 @@ This module contains the various RDFValue implementations.
 # These need to register plugins so, pylint: disable=unused-import
 from grr.lib.rdfvalues import client
 from grr.lib.rdfvalues import crypto
-from grr.lib.rdfvalues import filestore
 from grr.lib.rdfvalues import flows
 from grr.lib.rdfvalues import foreman
 from grr.lib.rdfvalues import grr_rdf

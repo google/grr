@@ -89,7 +89,7 @@ def RenderBinaryDownload(request):
     return AccessDenied("Error: Invalid path.")
   filename = aff4_path.Basename()
   response = http.HttpResponse(content=Generator(),
-                               mimetype="binary/octet-stream")
+                               content_type="binary/octet-stream")
   response["Content-Disposition"] = ("attachment; filename=%s" % filename)
   return response
 
@@ -109,7 +109,7 @@ def RenderGenericRenderer(request):
   # Check that the action is valid
   ["Layout", "RenderAjax", "Download", "Validate"].index(action)
   renderer = renderer_cls()
-  result = http.HttpResponse(mimetype="text/html")
+  result = http.HttpResponse(content_type="text/html")
 
   # Pass the request only from POST parameters. It is much more convenient to
   # deal with normal dicts than Django's Query objects so we convert here.
@@ -140,7 +140,7 @@ def RenderGenericRenderer(request):
                               total_time, fields=[renderer_name])
 
   except access_control.UnauthorizedAccess, e:
-    result = http.HttpResponse(mimetype="text/html")
+    result = http.HttpResponse(content_type="text/html")
     result = renderers.Renderer.GetPlugin("UnauthorizedRenderer")().Layout(
         request, result, exception=e)
 

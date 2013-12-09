@@ -1,9 +1,15 @@
+grr-server (0.2.9-1) unstable; urgency=low
+
+  * Version correction
+
+ -- GRR development team <grr-dev@googlegroups.com>  Fri, 06 Dec 2013 11:13:18 +0100
+
+
 grr-server (0.2-9) unstable; urgency=low
 
   * Update
 
  -- GRR development team <grr-dev@googlegroups.com>  Sun, 20 Oct 2013 12:00:00 +0000
-
 
 grr-server (0.2-8) unstable; urgency=low
 

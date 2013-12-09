@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2012 Google Inc. All Rights Reserved.
 """Test the hunt_view interface."""
 
 
@@ -24,11 +23,6 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
   def CreateSampleHunt(self, stopped=False):
     self.client_ids = self.SetupClients(10)
-
-    # Clean up the foreman to remove any rules.
-    with aff4.FACTORY.Open("aff4:/foreman", mode="rw",
-                           token=self.token) as foreman:
-      foreman.Set(foreman.Schema.RULES())
 
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
@@ -54,6 +48,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       for client_id in self.client_ids:
         foreman.AssignTasksToClient(client_id)
 
+    self.hunt_urn = hunt.urn
     return aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token,
                              age=aff4.ALL_TIMES)
 

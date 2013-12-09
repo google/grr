@@ -64,6 +64,7 @@ message NetworkConnection {
   optional NetworkEndpoint local_address = 3;
   optional NetworkEndpoint remote_address = 4;
 
+  // This enum contains connection states as returned by psutils.
   enum State {
     UNKNOWN = 0;
     CLOSED = 1;
@@ -78,6 +79,9 @@ message NetworkConnection {
     LAST_ACK = 10;
     TIME_WAIT = 11;
     DELETE_TCB = 12;
+    // psutils later than v1.0 return "NONE" instead of "UNKNOWN" so we
+    // support both.
+    NONE = 13;
   };
   optional State state = 5 [default = UNKNOWN];
   optional uint32 pid = 6;

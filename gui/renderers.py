@@ -200,9 +200,9 @@ class Renderer(object):
     kwargs["this"] = self
     return template_obj.render(template.Context(kwargs)).encode("utf8")
 
-  def FormatFromString(self, string, mimetype="text/html", **kwargs):
+  def FormatFromString(self, string, content_type="text/html", **kwargs):
     """Returns a http response from a dynamically compiled template."""
-    result = http.HttpResponse(mimetype=mimetype)
+    result = http.HttpResponse(content_type=content_type)
     template_obj = Template(string)
     return self.RenderFromTemplate(template_obj, result, **kwargs)
 
@@ -271,7 +271,7 @@ class ErrorHandler(Renderer):
         return func(*args, **kwargs)
       except Exception as e:  # pylint: disable=broad-except
         logging.exception(utils.SmartUnicode(e))
-        response = http.HttpResponse(mimetype="text/json")
+        response = http.HttpResponse(content_type="text/json")
 
         response.write(")]}\n" + JsonDumpForScriptContext(
             dict(message=utils.SmartUnicode(e),
@@ -320,7 +320,7 @@ class TemplateRenderer(Renderer):
     """This returns raw HTML, after sanitization by Layout()."""
     if method is None:
       method = self.Layout
-    result = http.HttpResponse(mimetype="text/html")
+    result = http.HttpResponse(content_type="text/html")
     method(request, result, **kwargs)
     return result.content
 
@@ -587,7 +587,7 @@ class TableRenderer(TemplateRenderer):
     self.headers = headers.getvalue()
 
     # Populate the table with the initial view.
-    tmp = http.HttpResponse(mimetype="text/html")
+    tmp = http.HttpResponse(content_type="text/html")
     delegate_renderer = self.__class__(id=self.id, state=self.state.copy())
     self.table_contents = delegate_renderer.RenderAjax(request, tmp).content
 
@@ -687,7 +687,7 @@ class TableRenderer(TemplateRenderer):
       yield fd.getvalue()
 
     response = http.HttpResponse(content=Generator(),
-                                 mimetype="binary/x-csv")
+                                 content_type="binary/x-csv")
 
     # This must be a string.
     response["Content-Disposition"] = ("attachment; filename=table.csv")
@@ -744,7 +744,7 @@ grr.grrTree("{{ renderer|escapejs }}", "{{ id|escapejs }}",
     encoder = json.JSONEncoder()
     return http.HttpResponse(encoder.encode(dict(
         data=result, message=self.message, id=self.id)),
-                             mimetype="text/json")
+                             content_type="text/json")
 
   def AddElement(self, name, behaviour="branch", icon=None, friendly_name=None):
     """This should be called by the RenderBranch method to prepare the tree."""
@@ -1172,7 +1172,7 @@ class ConfirmationDialogRenderer(TemplateRenderer):
 
 class ImageDownloadRenderer(TemplateRenderer):
   """Baseclass for renderers which simply transfer an image graphic."""
-  mimetype = "image/png"
+  content_type = "image/png"
 
   def Content(self, request, response):
     _ = request, response
@@ -1181,7 +1181,7 @@ class ImageDownloadRenderer(TemplateRenderer):
   def Download(self, request, response):
 
     response = http.HttpResponse(content=self.Content(request, response),
-                                 mimetype=self.mimetype)
+                                 content_type=self.content_type)
 
     return response
 

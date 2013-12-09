@@ -512,11 +512,19 @@ class ListProcesses(actions.ActionPlugin):
             logging.info("Encountered unknown connection status (%s).",
                          c.status)
 
-          conn.local_address.ip, conn.local_address.port = c.local_address
+          try:
+            conn.local_address.ip, conn.local_address.port = c.laddr
 
-          # Could be in state LISTEN.
-          if c.remote_address:
-            conn.remote_address.ip, conn.remote_address.port = c.remote_address
+            # Could be in state LISTEN.
+            if c.raddr:
+              conn.remote_address.ip, conn.remote_address.port = c.raddr
+          except AttributeError:
+            conn.local_address.ip, conn.local_address.port = c.local_address
+
+            # Could be in state LISTEN.
+            if c.remote_address:
+              (conn.remote_address.ip,
+               conn.remote_address.port) = c.remote_address
 
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass

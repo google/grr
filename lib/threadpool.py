@@ -281,7 +281,6 @@ class ThreadPool(object):
   def busy_threads(self):
     return len([x for x in self.workers.values() if not x.idle])
 
-  @utils.Synchronized
   def __len__(self):
     return len(self.workers)
 
