@@ -131,7 +131,7 @@ class TestFilesArtifact(Artifact):
 
 
 class TestAggregationArtifact(Artifact):
-  """Test command artifact for dpkg."""
+  """Test artifact aggregation."""
   SUPPORTED_OS = ["Windows"]
   LABELS = ["Software"]
 
@@ -143,6 +143,19 @@ class TestAggregationArtifact(Artifact):
       Collector(action="CollectArtifacts",
                 args={"artifact_list": ["WindowsWMIInstalledSoftware"]},
                 returned_types=["SoftwarePackage"])
+  ]
+
+
+class NullArtifact(Artifact):
+  """Null."""
+
+
+class TestAggregationArtifactDeps(TestAggregationArtifact):
+  """Test artifact aggregation dependencies."""
+  COLLECTORS = [
+      Collector(action="CollectArtifacts",
+                args={"artifact_list": ["TestAggregationArtifact"]},
+                returned_types=["Process"])
   ]
 
 
@@ -326,6 +339,33 @@ class ArtifactFlowTest(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(urn, aff4_type="RDFValueCollection",
                            token=self.token)
 
+    # Test the no_results_errors option.
+    with self.assertRaises(RuntimeError) as context:
+      for _ in test_lib.TestFlowHelper(
+          "ArtifactCollectorFlow", client_mock, client_id=self.client_id,
+          artifact_list=["NullArtifact"], use_tsk=False, token=self.token,
+          output=output_path, split_output_by_artifact=True,
+          no_results_errors=True):
+        pass
+    if "collector returned 0 responses" not in context.exception.message:
+      raise RuntimeError("0 responses should have been returned")
+
+  def testArtifactsDependencies(self):
+    """Check artifact dependencies work."""
+    deps = TestAggregationArtifactDeps.GetArtifactDependencies()
+    self.assertListEqual(list(deps), ["TestAggregationArtifact"])
+    deps = TestAggregationArtifactDeps.GetArtifactDependencies(recursive=True)
+    self.assertListEqual(list(deps), ["TestAggregationArtifact"])
+
+    # Test recursive loop.
+    coll = TestAggregationArtifactDeps.COLLECTORS[0]
+    backup = coll.args["artifact_list"]
+    coll.args["artifact_list"] = ["TestAggregationArtifactDeps"]
+    with self.assertRaises(RuntimeError) as e:
+      deps = TestAggregationArtifactDeps.GetArtifactDependencies(recursive=True)
+    self.assertTrue("artifact recursion depth" in e.exception.message)
+    coll.args["artifact_list"] = backup   # Restore old collector.
+
 
 class GrrKbTest(test_lib.FlowTestsBaseclass):
   def SetupMocks(self):
@@ -369,6 +409,28 @@ class GrrKbTest(test_lib.FlowTestsBaseclass):
     user = kb.GetUser(username="jim")
     self.assertEqual(user.username, "jim")
     self.assertEqual(user.sid, "S-1-5-21-702227068-2140022151-3110739409-1000")
+
+  def testKnowledgeBaseRetrievalDarwin(self):
+    """Check we can retrieve a kb from a non-windows client."""
+    test_lib.ClientFixture(self.client_id, token=self.token)
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    client.Set(client.Schema.SYSTEM("Darwin"))
+    client.Set(client.Schema.OS_VERSION("10.9"))
+    client.Close()
+
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
+                                      "HashBuffer", "ListDirectory", "HashFile")
+
+    for _ in test_lib.TestFlowHelper(
+        "KnowledgeBaseInitializationFlow", client_mock,
+        client_id=self.client_id, token=self.token):
+      pass
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    kb = artifact.GetArtifactKnowledgeBase(client)
+    self.assertEqual(kb.os_major_version, 10)
+    self.assertEqual(kb.os_minor_version, 9)
+    user = kb.GetUser(username="Ernie")
+    self.assertEqual(user.username, "Ernie")
 
   def testGlobRegistry(self):
     """Test that glob works on registry."""

@@ -26,6 +26,23 @@ class ArtifactTest(test_lib.GRRBaseTest):
 
     self.assertRaises(artifact_lib.ArtifactDefinitionError, art_obj.Validate)
 
+  def testArtifactConversion(self):
+    for a_cls in artifact_lib.Artifact.classes:
+      if a_cls == "Artifact":
+        continue    # Skip the base object.
+
+      # Exercise conversions to ensure we can move back and forth between the
+      # different forms.
+      art = artifact_lib.Artifact.classes[a_cls]
+      art_obj = art()
+      art_obj.ToDict()
+      art_rdf = art_obj.ToRdfValue()
+      art_rdf.ToExtendedDict()
+      art_json = art_rdf.ToPrettyJson(extended=True)
+      new_art_rdf = artifact_lib.ArtifactsFromJson(art_json)[0]
+      self.assertEqual(art_obj.ToDict(), art_rdf.ToPrimitiveDict())
+      self.assertEqual(new_art_rdf.ToPrimitiveDict(), art_rdf.ToPrimitiveDict())
+
 
 class ArtifactKBTest(test_lib.GRRBaseTest):
 

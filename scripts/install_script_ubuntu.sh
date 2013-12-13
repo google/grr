@@ -20,8 +20,8 @@ SLEUTHKIT_DEB=sleuthkit-lib_3.2.3-1_${PLAT}.deb
 PYTSK_DEB=pytsk3_3.2.3-1_${PLAT}.deb
 M2CRYPTO_DEB=m2crypto_0.21.1-1_${PLAT}.deb
 
-GRR_STABLE_VERSION=0.2-8
-GRR_TEST_VERSION=0.2-9
+GRR_STABLE_VERSION=0.2.9-1
+GRR_TEST_VERSION=0.2.10-1
 SERVER_DEB_STABLE_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/grr-server_
 SERVER_DEB_TEST_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/test-grr-server_
 

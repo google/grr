@@ -6,11 +6,13 @@ intended to end up as an independent library.
 """
 
 import itertools
+import json
 import re
 
 from grr.lib import objectfilter
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import utils
 
 
 class Error(Exception):
@@ -117,40 +119,60 @@ class Artifact(object):
     pass
 
   @classmethod
-  def GetKnowledgeBaseArtifacts(cls):
+  def GetKnowledgeBaseArtifacts(cls, os):
     """Retrieve artifact classes that provide Knowledge Base values."""
-    return [a for a in cls.classes.values() if hasattr(a, "PROVIDES")]
+    return [a for a in cls.classes.values() if (
+        hasattr(a, "PROVIDES") and os in a.SUPPORTED_OS)]
 
   @classmethod
-  def GetKnowledgeBaseBootstrapArtifacts(cls):
+  def GetKnowledgeBaseBootstrapArtifacts(cls, os):
     """Retrieve  Knowledge Base artifact classes that must be bootstrapped."""
     bootstrap_classes = []
-    for artifact_cls in cls.GetKnowledgeBaseArtifacts():
+    for artifact_cls in cls.GetKnowledgeBaseArtifacts(os):
       collector_actions = [c.action for c in artifact_cls.COLLECTORS]
       if "Bootstrap" in collector_actions:
         bootstrap_classes.append(artifact_cls)
     return bootstrap_classes
 
   @classmethod
-  def GetArtifactDependencies(cls):
-    """Return a list of artifact dependencies.
+  def GetArtifactDependencies(cls, recursive=False, depth=1):
+    """Return a set of artifact dependencies.
+
+    Args:
+      recursive: If True recurse into dependencies to find their dependencies.
+      depth: Used for limiting recursion depth.
 
     Returns:
-      A list of strings each dependencies.
+      A set of strings containing the dependent artifact names.
+
+    Raises:
+      RuntimeError: If maximum recursion depth reached.
     """
     deps = set()
     for collector in cls.COLLECTORS:
-      if collector.action == "CollectArtifact":
+      if collector.action == "CollectArtifacts":
         if hasattr(collector, "args") and collector.args.get("artifact_list"):
           deps.update(collector.args.get("artifact_list"))
-    return list(deps)
+
+    if depth > 10:
+      raise RuntimeError("Max artifact recursion depth reached.")
+
+    deps_set = set(deps)
+    if recursive:
+      for dep in deps:
+        new_dep = Artifact.classes[dep].GetArtifactDependencies(True,
+                                                                depth=depth+1)
+        if new_dep:
+          deps_set.update(new_dep)
+
+    return deps
 
   @classmethod
   def GetArtifactPathDependencies(cls):
-    """Return a list of knowledgebase path dependencies.
+    """Return a set of knowledgebase path dependencies.
 
     Returns:
-      A list of strings for the required kb objects e.g.
+      A set of strings for the required kb objects e.g.
       ["users.appdata", "systemroot"]
     """
     deps = set()
@@ -165,25 +187,44 @@ class Artifact(object):
           for path in paths:
             for match in INTERPOLATED_REGEX.finditer(path):
               deps.add(match.group()[2:-2])   # Strip off %%.
-    return list(deps)
+    return deps
 
   @classmethod
-  def GetOutputType(cls):
-    """Get an RDFValue class for the type this artifact returns.
+  def FromDict(cls, input_dict):
+    """Generate an artifact class from a dict."""
+    newclass = type(utils.SmartStr(input_dict["name"]), (cls,), {})
+    for attr in ["CONDITIONS", "LABELS", "SUPPORTED_OS", "URLS"]:
+      setattr(newclass, attr, input_dict.get(attr.lower(), []))
+    newclass.COLLECTORS = []
+    for collector_dict in input_dict.get("collectors", []):
+      newclass.COLLECTORS.append(Collector(**collector_dict))
+    newclass.__doc__ = input_dict["doc"]
+    return newclass
 
-    Returns:
-      The name of a class that inherits from RDFValue, or None if undefined.
-    """
-    try:
-      collector_action = cls.COLLECTORS[0].action
-      output_type = ACTIONS_MAP.get(collector_action).get("output_type")
-      if output_type == OUTPUT_UNDEFINED:
-        # Fall back to OUTPUT_TYPE if there is one.
-        return getattr(cls, "OUTPUT_TYPE", None)
-      else:
-        return output_type
-    except IndexError:
-      return None
+  @classmethod
+  def ToDict(cls):
+    """Convert artifact to a basic dict."""
+    out = {}
+    for attr in ["CONDITIONS", "LABELS", "SUPPORTED_OS", "URLS"]:
+      out[attr.lower()] = getattr(cls, attr, [])
+    out["collectors"] = [c.ToDict() for c in cls.COLLECTORS]
+    out["name"] = cls.__name__
+    out["doc"] = cls.__doc__
+    return out
+
+  @classmethod
+  def ToExtendedDict(cls):
+    """Convert artifact to an extended dict that contains extra info."""
+    out = cls.ToDict()
+    out["doc"] = cls.GetDescription()
+    out["short_description"] = cls.GetShortDescription()
+    out["dependencies"] = [str(c) for c in cls.GetArtifactPathDependencies()]
+    return out
+
+  @classmethod
+  def ToRdfValue(cls):
+    """Convert artifact to an RDFValue."""
+    return rdfvalue.Artifact(**cls.ToDict())
 
 
 class GenericArtifact(Artifact):
@@ -215,9 +256,6 @@ class GenericArtifact(Artifact):
 
   # A list of Collector objects.
   COLLECTORS = []
-
-  # A dict to use for path interpolation.
-  PATH_ARGS = {}
 
   def Validate(self):
     """Attempt to validate the artifact has been well defined.
@@ -461,3 +499,33 @@ def ExpandWindowsUserEnvironmentVariables(data_string, knowledge_base, sid=None,
 
   components.append(data_string[offset:])    # Append the final chunk.
   return "".join(components)
+
+
+def ArtifactsFromJson(json_content):
+  """Get a list of Artifacts from json."""
+  # Read in the json and check its valid json.
+  try:
+    dat = json.loads(json_content)
+    if isinstance(dat, dict):
+      raw_list = [dat]
+    elif isinstance(dat, list):
+      raw_list = dat
+    else:
+      raise ValueError("Not list or dict.")
+
+  except ValueError as e:
+    raise ArtifactDefinitionError("Invalid json for artifact: %s" % e)
+  # Convert json into artifact and validate.
+  valid_artifacts = []
+  for artifact_dict in raw_list:
+    # In this case we are feeding parameters directly from potentially
+    # untrusted json to our RDFValue class. However, json ensures these are
+    # all primitive types as long as there is no other deserialization
+    # involved.
+    try:
+      artifact_value = rdfvalue.Artifact(**artifact_dict)
+      artifact_value.Validate()
+      valid_artifacts.append(artifact_value)
+    except AttributeError as e:
+      raise ArtifactDefinitionError("Invalid artifact definition: %s" % e)
+  return valid_artifacts

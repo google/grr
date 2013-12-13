@@ -174,8 +174,9 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # We should find some files.
     self.assertEqual(sorted(children),
                      sorted(["syslog", "syslog_compress.gz",
-                             "syslog_false.gz", "test_img.dd", "test.plist",
-                             "tests", "tests_long", "wtmp"]))
+                             "syslog_false.gz", "test_artifact.json",
+                             "test_img.dd", "test.plist", "tests", "tests_long",
+                             "wtmp"]))
 
   def testGlobWithStarStar(self):
     """Test that ** expressions mean recursion."""

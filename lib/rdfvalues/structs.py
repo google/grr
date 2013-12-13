@@ -1899,6 +1899,22 @@ class RDFProtoStruct(RDFStruct):
 
     return result
 
+  def ToPrimitiveDict(self):
+    return self._ToPrimitive(self.AsDict())
+
+  def _ToPrimitive(self, value):
+    if isinstance(value, RepeatedFieldHelper):
+      return list(self._ToPrimitive(v) for v in value)
+    elif isinstance(value, rdfvalue.Dict):
+      new_val = value.ToDict()
+      return dict((k, self._ToPrimitive(v)) for k, v in new_val.items())
+    elif isinstance(value, dict):
+      return dict((k, self._ToPrimitive(v)) for k, v in value.items())
+    elif isinstance(value, RDFProtoStruct):
+      return self._ToPrimitive(value.AsDict())
+    else:
+      return value
+
   def __nonzero__(self):
     return bool(self._data)
 

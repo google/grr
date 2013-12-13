@@ -148,6 +148,7 @@ class TestSearchFileContentWithFixture(test_lib.FlowTestsBaseclass):
 
 
 class TestSearchFileContent(test_lib.FlowTestsBaseclass):
+
   def testSearchFileContents(self):
     pattern = "test_data/*.log"
 
@@ -198,4 +199,35 @@ class TestSearchFileContent(test_lib.FlowTestsBaseclass):
         rdfvalue.RDFURN(self.client_id).Add("/analysis/grep/testing"),
         token=self.token)
 
-    self.assertEqual(len(fd), 9)
+    self.assertEqual(len(fd), 3)
+
+  def testSearchFileContentDownload(self):
+
+    pattern = "test_data/*.log"
+
+    client_mock = test_lib.ActionMock("Find", "Grep", "StatFile", "HashFile",
+                                      "HashBuffer", "TransferBuffer")
+    path = os.path.join(os.path.dirname(self.base_path), pattern)
+
+    # Do not provide a Grep expression - should match all files.
+    args = rdfvalue.SearchFileContentArgs(paths=[path],
+                                          also_download=True)
+
+    # Run the flow.
+    for _ in test_lib.TestFlowHelper(
+        "SearchFileContent", client_mock, client_id=self.client_id,
+        output="analysis/grep/testing", args=args, token=self.token):
+      pass
+
+    fd = aff4.FACTORY.Open(
+        rdfvalue.RDFURN(self.client_id).Add("/analysis/grep/testing"),
+        token=self.token)
+
+    self.assertEqual(len(fd), 3)
+
+    for log in aff4.FACTORY.Open(
+        rdfvalue.RDFURN(self.client_id).Add("/fs/os/").Add(self.base_path),
+        token=self.token).OpenChildren():
+      self.assertTrue(isinstance(log, aff4.VFSBlobImage))
+      # Make sure there is some data.
+      self.assertGreater(len(log), 0)

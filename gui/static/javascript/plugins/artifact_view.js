@@ -80,7 +80,7 @@ grr.Renderer('ArtifactListRenderer', {
     var select_elements = $('#' + artifact_list_element + ',#' +
         selected_list_element);
     select_elements.on('change select', function() {
-      grr.artifact_view.renderArtifact(artifact_div, this.value,
+      grr.artifact_view.renderArtifactFromDom(artifact_div, this.value,
           description_element);
     });
 
@@ -125,25 +125,35 @@ grr.artifact_view.updateFilter = function(artifact_div) {
 
 
 /**
- * Renders an artifact into an element.
+ * Renders an artifact into an element from an initialized artifact dom.
  *
  * @param {object} artifact_div The div containing the artifact renderer.
  * @param {string} artifact_name name of artifact
  * @param {string} element to write artifact into.
  */
-grr.artifact_view.renderArtifact = function(artifact_div, artifact_name,
+grr.artifact_view.renderArtifactFromDom = function(artifact_div, artifact_name,
     element) {
   artifact = artifact_div.data('artifacts')[artifact_name];
   if (! artifact) {
     return;
   }
   $('#' + artifact_div.data('description_element')).show(0);
+  grr.artifact_view.renderArtifactFromObject(artifact, element);
+};
 
-  $('#' + element + ' div[name=artifact_name]').text(artifact_name);
+
+/**
+ * Renders an artifact into an element.
+ *
+ * @param {object} artifact An object containing the artifact.
+ * @param {string} element to write artifact into.
+ */
+grr.artifact_view.renderArtifactFromObject = function(artifact, element) {
+  $('#' + element + ' div[name=artifact_name]').text(artifact.name);
   $('#' + element + ' div[name=artifact_labels]').text(artifact.labels);
   var desc_element = $('#' + element + ' div[name=artifact_description]');
   // Set text from description, but allow for newlines.
-  var description = desc_element.text(artifact.description).html();
+  var description = desc_element.text(artifact.doc).html();
   description = description.replace(/\n/g, '<br />');
   desc_element.html(description);
 
@@ -158,8 +168,8 @@ grr.artifact_view.renderArtifact = function(artifact_div, artifact_name,
 
   var links_element = $('#' + element + ' div[name=artifact_links]');
   links_element.html('');
-  if (artifact.links.length > 0) {
-    $.each(artifact.links, function(index, link) {
+  if (artifact.urls.length > 0) {
+    $.each(artifact.urls, function(index, link) {
       var link_html = ('<a href="' + link + '" "noreferrer" target="_blank">' +
           link + '</a><br/>');
       links_element.append(link_html);
@@ -168,7 +178,7 @@ grr.artifact_view.renderArtifact = function(artifact_div, artifact_name,
 
   var processor_element = '#' + element + ' table[name=artifact_processors]';
   $(processor_element + ' tr').remove();
-  if (artifact.processors.length > 0) {
+  if (artifact.processors && artifact.processors.length > 0) {
     $.each(artifact.processors, function(index, processor) {
       processor_row = '<tr><td>Parser<td>' + processor.name + '</tr>';
       processor_row += '<tr><td>Output types<td>' + processor.output_types +
@@ -284,7 +294,7 @@ grr.artifact_view.artifact_manager.add_selected = function(artifact_div,
     if (artifact) {
       grr.artifact_view.list_manager.add(
           artifact_div.data('selected_list_element'),
-          artifact_name, [artifact.description]);
+          artifact_name, [artifact.doc]);
     }
   });
 };
@@ -330,10 +340,10 @@ grr.artifact_view.artifact_manager.filter = function(artifact_div,
   $.each(artifact_div.data('artifacts'),
       function(artifact_name, artifact) {
     // Filter based on supported_os.
-    if ($.inArray(os, artifact.supported_os) >= 0 || os == 'All' ||
-        $.inArray('All', artifact.supported_os) >= 0) {
+    if ((artifact.supported_os.length == 0) ||
+        ($.inArray(os, artifact.supported_os) >= 0)) {
       // Filter based on search string.
-      if (artifact.description.toLowerCase().search(search_string) != -1 ||
+      if (artifact.doc.toLowerCase().search(search_string) != -1 ||
           artifact_name.toLowerCase().search(search_string) != -1) {
         artifact_temp.push(artifact_name);
       }

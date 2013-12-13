@@ -157,7 +157,7 @@ class CopyPathToFile(actions.ActionPlugin):
     self.src_fd.Seek(args.offset)
     offset = self.src_fd.Tell()
 
-    self.length = args.length or sys.maxint
+    self.length = args.length or (1024 ** 4)  # 1 TB
 
     self.written = 0
     suffix = ".gz" if args.gzip_output else ""

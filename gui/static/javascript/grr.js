@@ -1494,10 +1494,11 @@ grr.formNoneHandler = function(node) {
  * @param {string} formId The input form with the file parameter.
  * @param {string} progressId Div to write progress to.
  * @param {function} successHandler Function to call on success.
+ * @param {function} errorHandler Function to call on error.
  * @param {Object} state is the state we use for send to our renderer.
  */
 grr.uploadHandler = function(renderer, formId, progressId, successHandler,
-                             state) {
+                             errorHandler, state) {
   var formData = new FormData($('#' + formId)[0]);
 
   // Include our state in the form post.
@@ -1523,6 +1524,7 @@ grr.uploadHandler = function(renderer, formId, progressId, successHandler,
       return myXhr;
     },
     success: successHandler,
+    error: errorHandler,
     data: formData,
     //Tell JQuery not to process data or worry about content-type.
     cache: false,

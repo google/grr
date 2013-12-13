@@ -646,8 +646,8 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
                             state) in output_plugins.data.iteritems():
             used_plugins[plugin_name] = plugin_def.GetPluginForState(state)
 
-        # If this flow is working for more than lifetime/2,
-        # stop processing.
+        # If this flow is working for more than max_running_time - stop
+        # processing.
         if self.state.args.max_running_time:
           elapsed = (rdfvalue.RDFDatetime().Now().AsSecondsFromEpoch() -
                      self.start_time.AsSecondsFromEpoch())
@@ -698,6 +698,12 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
   @flow.StateHandler()
   def Start(self):
     """Start state of the flow."""
+    # If max_running_time is not specified, set it to 60% of this job's
+    # lifetime.
+    if not self.state.args.max_running_time:
+      self.state.args.max_running_time = rdfvalue.Duration(
+          "%ds" % int(ProcessHuntResultsCronFlow.lifetime.seconds * 0.6))
+
     last_exception = None
     self.start_time = rdfvalue.RDFDatetime().Now()
     for session_id, timestamp, _ in data_store.DB.ResolveRegex(

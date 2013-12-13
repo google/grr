@@ -1263,17 +1263,19 @@ class UploadView(renderers.TemplateRenderer):
   upload_handler = "UploadHandler"
 
   layout_template = renderers.Template("""
+{% if grr.state.tree_path %}
 <h3>Upload to {{ grr.state.tree_path|escape }}</h3>
+{% endif %}
 <form id="{{unique|escape}}_form" enctype="multipart/form-data">
-<input id="{{ unique|escape }}_file" type="file" name="uploadFile" />
+<input class="btn btn-file" id="{{ unique|escape }}_file" type="file" name="uploadFile" />
 </form>
-<button class="btn" id="{{ unique|escape }}_button">Upload</button>
+<button class="btn" id="{{ unique|escape }}_upload_button">Upload</button>
 <br/><br/>
 <div id="{{ unique|escape }}_upload_results"/>
 <div id="{{ unique|escape }}_upload_progress"/>
 
 <script>
-  var u_button = $("#{{ unique|escapejs }}_button").button();
+  var u_button = $("#{{ unique|escapejs }}_upload_button").button();
   var u_file = $("#{{ unique|escapejs }}_file");
   var state = {{this.state_json|safe}};
   state.tree_path = grr.state.tree_path;
@@ -1285,10 +1287,15 @@ class UploadView(renderers.TemplateRenderer):
       function (dat) {
         $("#{{ unique|escapejs }}_upload_results").text(dat);
       },
+      function (jqxhr, dat, error_val) {
+        var data = jqxhr.responseText;
+        data = $.parseJSON(data.substring(4, data.length));
+        $("#{{ unique|escapejs }}_upload_results").text(data.msg);
+        },
       state
     );
 
-    event.preventDefault();
+    return false;
   });
 </script>
 """)
@@ -1306,7 +1313,7 @@ class UploadHandler(renderers.TemplateRenderer):
 Error: {{this.error|escape}}.
 """)
   success_template = renderers.Template("""
-Success: File uploaded {{this.dest_path|escape}}.
+Success: File uploaded to {{this.dest_path|escape}}.
 """)
 
   def RenderAjax(self, request, response):

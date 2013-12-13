@@ -39,8 +39,8 @@ class NetstatGrr(Artifact):
   LABELS = ["Network"]
   COLLECTORS = [
       Collector(action="RunGrrClientAction",
-                args={"client_action": r"Netstat"})]
-  OUTPUT_TYPE = "NetworkConnection"
+                args={"client_action": r"Netstat"},
+                returned_types=["NetworkConnection"])]
 
 
 class HostnameGrr(Artifact):
@@ -48,8 +48,8 @@ class HostnameGrr(Artifact):
   LABELS = ["System"]
   COLLECTORS = [
       Collector(action="RunGrrClientAction",
-                args={"client_action": r"GetHostname"})]
-  OUTPUT_TYPE = "RDFString"
+                args={"client_action": r"GetHostname"},
+                returned_types=["RDFString"])]
 
 
 class EnumerateUsersGrr(Artifact):
@@ -57,8 +57,8 @@ class EnumerateUsersGrr(Artifact):
   LABELS = ["Users"]
   COLLECTORS = [
       Collector(action="RunGrrClientAction",
-                args={"client_action": r"EnumerateUsers"})]
-  OUTPUT_TYPE = "User"
+                args={"client_action": r"EnumerateUsers"},
+                returned_types=["User"])]
 
 
 class EnumerateFilesystemsGrr(Artifact):
@@ -66,5 +66,6 @@ class EnumerateFilesystemsGrr(Artifact):
   LABELS = ["System"]
   COLLECTORS = [
       Collector(action="RunGrrClientAction",
-                args={"client_action": r"EnumerateFilesystems"})]
-  OUTPUT_TYPE = "Filesystem"
+                args={"client_action": r"EnumerateFilesystems"},
+                returned_types=["Filesystem"])]
+

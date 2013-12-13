@@ -194,6 +194,7 @@ class FullAccessControlManager(BaseAccessControlManager):
     super(FullAccessControlManager, self).__init__()
 
   def _CreateWriteAccessHelper(self):
+    """Creates a CheckAccessHelper for controlling write access."""
     h = CheckAccessHelper("write")
 
     # Namespace for temporary scratch space. Note that Querying this area is not
@@ -201,6 +202,10 @@ class FullAccessControlManager(BaseAccessControlManager):
     # prevent other users from reading or modifying them.
     h.Allow("aff4:/tmp")
     h.Allow("aff4:/tmp/*")
+
+    # Users are allowed to modify artifacts live.
+    h.Allow("aff4:/artifact_store")
+    h.Allow("aff4:/artifact_store/*")
 
     return h
 
@@ -258,8 +263,8 @@ class FullAccessControlManager(BaseAccessControlManager):
     # object is stored there.
     h.Allow("aff4:/stats")
     h.Allow("aff4:/stats/*")
-    h.Allow("aff4:/stats/filestore")
-    h.Allow("aff4:/stats/filestore/*")
+    h.Allow("aff4:/stats/FileStoreStats")
+    h.Allow("aff4:/stats/FileStoreStats/*")
 
     # Configuration namespace used for reading drivers, python hacks etc.
     h.Allow("aff4:/config")
@@ -295,6 +300,10 @@ class FullAccessControlManager(BaseAccessControlManager):
     # prevent other users from reading or modifying them.
     h.Allow("aff4:/tmp")
     h.Allow("aff4:/tmp/*")
+
+    # Allow everyone to read the artifact store.
+    h.Allow("aff4:/artifact_store")
+    h.Allow("aff4:/artifact_store/*")
 
     return h
 

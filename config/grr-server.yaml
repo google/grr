@@ -46,6 +46,8 @@ Installer.old_writeback: /usr/lib/grr/grrd.conf
 
 # Logging.domain: example.com
 
+Logging.engines: "stderr,file"
+
 Logging.path: /var/log/grr
 
 Logging.verbose: True

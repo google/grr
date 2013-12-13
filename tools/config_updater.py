@@ -5,6 +5,7 @@
 import argparse
 import ConfigParser
 import getpass
+import json
 import os
 import re
 # importing readline enables the raw_input calls to have history etc.
@@ -18,6 +19,8 @@ from grr.lib import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
 from grr.lib import aff4
+from grr.lib import artifact
+from grr.lib import artifact_lib
 from grr.lib import config_lib
 from grr.lib import flags
 
@@ -161,6 +164,10 @@ parser_upload_args.add_argument(
     help="The destination path to upload the file to, specified in aff4: form,"
     "e.g. aff4:/config/test.raw")
 
+parser_upload_args.add_argument(
+    "--overwrite", default=False, action="store_true",
+    help="Required to overwrite existing files.")
+
 parser_upload_signed_args.add_argument(
     "--platform", required=True, choices=maintenance_utils.SUPPORTED_PLATFORMS,
     default="windows",
@@ -177,6 +184,11 @@ parser_upload_signed_args.add_argument(
 parser_upload_raw = subparsers.add_parser(
     "upload_raw", parents=[parser_upload_args],
     help="Upload a raw file to an aff4 path.")
+
+parser_upload_artifact = subparsers.add_parser(
+    "upload_artifact", parents=[parser_upload_args],
+    help="Upload a raw json artifact file.")
+
 
 parser_upload_python = subparsers.add_parser(
     "upload_python", parents=[parser_upload_args, parser_upload_signed_args],
@@ -543,6 +555,15 @@ def main(unused_argv):
     uploaded = UploadRaw(flags.FLAGS.file, flags.FLAGS.dest_path)
     print "Uploaded to %s" % uploaded
 
+  elif flags.FLAGS.subparser_name == "upload_artifact":
+    json.load(open(flags.FLAGS.file))  # Check it will parse.
+    base_urn = aff4.ROOT_URN.Add("artifact_store")
+    try:
+      artifact.UploadArtifactJsonFile(
+          open(flags.FLAGS.file).read(1000000), base_urn=base_urn, token=None,
+          overwrite=flags.FLAGS.overwrite)
+    except artifact_lib.ArtifactDefinitionError as e:
+      print "Error %s. You may need to set --overwrite." % e
 
 if __name__ == "__main__":
   flags.StartMain(main)

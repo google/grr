@@ -453,6 +453,10 @@ table.artifact_table {
   border-collapse: separate;
 }
 
+td.artifact_table {
+  vertical-align: top !important;
+}
+
 
 /*------------------------------------------------------------------
   Scrollbars

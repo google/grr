@@ -81,6 +81,14 @@ class DownloadMemoryImage(flow.GRRFlow):
   # This flow is also a basic flow.
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
+  @classmethod
+  def GetDefaultArgs(cls, token=None):
+    _ = token
+    result = cls.args_type()
+    result.length = (1024 ** 4)  # 1 TB
+
+    return result
+
   @flow.StateHandler(next_state="PrepareImage")
   def Start(self):
     self.CallFlow("LoadMemoryDriver",

@@ -127,16 +127,22 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
 
       root = aff4.FACTORY.Open(aff4.ROOT_URN, token=self.token)
       children_urns = list(root.ListChildren())
+      logging.info("Found %d children.", len(children_urns))
 
+      processed_count = 0
       for child in aff4.FACTORY.MultiOpen(
           children_urns, mode="r", token=self.token, age=aff4.NEWEST_TIME):
-        self.ProcessClient(child)
+        if isinstance(child, aff4.AFF4Object.VFSGRRClient):
+          self.ProcessClient(child)
+          processed_count += 1
 
         # This flow is not dead: we don't want to run out of lease time.
         self.HeartBeat()
 
       self.FinishProcessing()
       self.stats.Close()
+
+      logging.info("Processed %d clients.", processed_count)
     except Exception as e:  # pylint: disable=broad-except
       logging.exception("Error while calculating stats: %s", e)
       raise
@@ -257,6 +263,7 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
         token=self.token) as hunt:
 
       with hunt.GetRunner() as runner:
+        runner.args.client_rate = 0
         runner.args.expiry_time = "1w"
         runner.args.description = ("Interrogate run by cron to keep host"
                                    "info fresh.")

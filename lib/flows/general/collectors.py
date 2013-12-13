@@ -141,7 +141,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     """For each artifact, create subflows for each collector."""
     self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
 
-    self.state.Register("collected_count", 0)
     self.state.Register("artifacts_skipped_due_to_condition", [])
     self.state.Register("failed_count", 0)
     self.state.Register("artifacts_failed", [])
@@ -430,7 +429,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       self.Log("Artifact data collection %s completed successfully in flow %s "
                "with %d responses", artifact_cls_name, flow_name,
                len(responses))
-      self.state.collected_count += 1
     else:
       self.Log("Artifact %s data collection failed. Status: %s.",
                artifact_cls_name, responses.status)
@@ -672,18 +670,31 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     return result_object, result_attr, operator
 
   def _GetArtifactClassFromName(self, name):
-    if name not in artifact_lib.Artifact.classes:
-      raise RuntimeError("ArtifactCollectorFlow failed due to unknown Artifact"
-                         " %s" % name)
-    return artifact_lib.Artifact.classes[name]
+    """Get an artifact class from the cache in the flow."""
+    if name in artifact_lib.Artifact.classes:
+      return artifact_lib.Artifact.classes[name]
+    else:
+      # If we don't have an artifact, things shouldn't have passed validation
+      # so we assume its a new one in the datastore.
+      artifact.LoadArtifactsFromDatastore()
+      if name not in artifact_lib.Artifact.classes:
+        raise RuntimeError("ArtifactCollectorFlow failed due to unknown "
+                           "Artifact %s" % name)
+      else:
+        return artifact_lib.Artifact.classes[name]
 
   @flow.StateHandler()
   def End(self):
+    # If we got no responses, and user asked for it, we error out.
+    collect_count = self.runner.args.request_state.response_count
+    if self.args.no_results_errors and collect_count == 0:
+      raise artifact_lib.ArtifactProcessingError("Artifact collector returned "
+                                                 "0 responses.")
     if self.runner.output:
       urn = self.runner.output.urn
     else:
       urn = self.client_id
     self.Notify("ViewObject", urn,
                 "Completed artifact collection of %s. Collected %d. Errors %d."
-                % (self.args.artifact_list, self.state.collected_count,
+                % (self.args.artifact_list, collect_count,
                    self.state.failed_count))

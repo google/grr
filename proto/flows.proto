@@ -524,6 +524,12 @@ message ArtifactCollectorFlowArgs {
       "retrieve one from the client object.",
       label: HIDDEN,
     }];
+
+  optional bool no_results_errors = 7 [(sem_type) = {
+      description: "If True, an artifact returning no results will raise a hard"
+      " error. This is useful where you always expect results."
+    }, default=false];
+
 }
 
 message InterrogateArgs {

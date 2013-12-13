@@ -11,7 +11,11 @@ from grr.lib import type_info
 # pylint:mode=test
 
 
-class GenericRDFProtoTest(test_lib.AFF4ObjectTest):
+class RDFValueBaseTest(test_lib.GRRBaseTest):
+  pass
+
+
+class GenericRDFProtoTest(RDFValueBaseTest):
   def testNestedProtobufAssignment(self):
     """Check that we can assign a nested protobuf."""
     container = rdfvalue.VolatilityRequest()
@@ -154,10 +158,6 @@ class GenericRDFProtoTest(test_lib.AFF4ObjectTest):
     """Check that enums are wrapped in a descriptor class."""
     sample = rdfvalue.GrrStatus()
     self.assertEqual(str(sample.status), "OK")
-
-
-class RDFValueBaseTest(test_lib.GRRBaseTest):
-  pass
 
 
 class RDFValueTestCase(RDFValueBaseTest):

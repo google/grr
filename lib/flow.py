@@ -43,7 +43,6 @@ self.state.context.args: The flow runners args. This is an instance of
 
 import functools
 import operator
-import sys
 import time
 
 
@@ -740,7 +739,7 @@ class GRRFlow(aff4.AFF4Volume):
     token = runner_args.token.SetUID()
 
     # Extend the expiry time of this token indefinitely.
-    token.expiry = sys.maxint
+    token.expiry = (2 ** 63) - 1  # sys.maxint
 
     # We create an anonymous AFF4 object first, The runner will then generate
     # the appropriate URN.

@@ -127,7 +127,7 @@ class _WorkerThread(threading.Thread):
         return False
 
       # Remove us from our pool.
-      self.pool.workers.pop(self.name, None)
+      self.pool._RemoveWorker(self.name)  # pylint: disable=protected-access
 
       return True
 
@@ -247,7 +247,9 @@ class ThreadPool(object):
 
     # A reference for all our workers. Keys are thread names, and values are the
     # _WorkerThread instance.
-    self.workers = {}
+    self._workers = {}
+    # Read-only copy of self._workers that is thread-safe for reading.
+    self._workers_ro_copy = {}
     self.lock = threading.RLock()
 
     if self.name:
@@ -260,7 +262,8 @@ class ThreadPool(object):
                                    self._queue.qsize)
 
       stats.STATS.RegisterGaugeMetric(self.name + "_threads", int)
-      stats.STATS.SetGaugeCallback(self.name + "_threads", lambda: len(self))
+      stats.STATS.SetGaugeCallback(self.name + "_threads",
+                                   lambda: len(self))
 
       stats.STATS.RegisterGaugeMetric(self.name + "_cpu_use", float)
       stats.STATS.SetGaugeCallback(self.name + "_cpu_use", self.CPUUsage)
@@ -275,14 +278,15 @@ class ThreadPool(object):
 
   @property
   def pending_tasks(self):
+    # This is thread safe as self._queue is thread safe.
     return self._queue.qsize()
 
   @property
   def busy_threads(self):
-    return len([x for x in self.workers.values() if not x.idle])
+    return len([x for x in self._workers_ro_copy.values() if not x.idle])
 
   def __len__(self):
-    return len(self.workers)
+    return len(self._workers_ro_copy)
 
   @utils.Synchronized
   def Start(self):
@@ -297,7 +301,13 @@ class ThreadPool(object):
     worker = _WorkerThread(self._queue, self)
     worker.start()
 
-    self.workers[worker.name] = worker
+    self._workers[worker.name] = worker
+    self._workers_ro_copy = self._workers.copy()
+
+  @utils.Synchronized
+  def _RemoveWorker(self, key):
+    self._workers.pop(key, None)
+    self._workers_ro_copy = self._workers.copy()
 
   @utils.Synchronized
   def Stop(self):
@@ -307,8 +317,9 @@ class ThreadPool(object):
       return
 
     # Remove all workers from the pool.
-    workers = self.workers.values()
-    self.workers = {}
+    workers = self._workers.values()
+    self._workers = {}
+    self._workers_ro_copy = {}
 
     # Send a stop message to all the workers.
     for _ in workers:
@@ -321,7 +332,6 @@ class ThreadPool(object):
     for worker in workers:
       worker.join()
 
-  @utils.Synchronized
   def AddTask(self, target, args, name="Unnamed task", blocking=True,
               inline=True):
     """Adds a task to be processed later.
@@ -353,38 +363,43 @@ class ThreadPool(object):
     if inline:
       blocking = False
 
-    while True:
-      try:
-        # Push the task on the queue but raise if unsuccessful.
-        self._queue.put((target, args, name, time.time()), block=False)
-        return
-      except Queue.Full:
-        # We increase the number of active threads if we do not exceed the
-        # maximum _and_ our process CPU utilization is not too high. This
-        # ensures that if the workers are waiting on IO we add more workers, but
-        # we do not waste workers when tasks are CPU bound.
-        if len(self) < self.max_threads and self.CPUUsage() < 90:
-          try:
-            self._AddWorker()
+    with self.lock:
+      while True:
+        try:
+          # Push the task on the queue but raise if unsuccessful.
+          self._queue.put((target, args, name, time.time()), block=False)
+          return
+        except Queue.Full:
+          # We increase the number of active threads if we do not exceed the
+          # maximum _and_ our process CPU utilization is not too high. This
+          # ensures that if the workers are waiting on IO we add more workers,
+          # but we do not waste workers when tasks are CPU bound.
+          if len(self) < self.max_threads and self.CPUUsage() < 90:
+            try:
+              self._AddWorker()
+              continue
+
+            # If we fail to add a worker we should keep going anyway.
+            except (RuntimeError, threading.ThreadError):
+              logging.error("Threadpool exception: "
+                            "Could not spawn worker threads.")
+
+          # If we need to process the task inline just break out of the loop,
+          # therefore releasing the lock and run the task inline.
+          if inline:
+            break
+
+          # We should block and try again soon.
+          elif blocking:
+            time.sleep(1)
             continue
 
-          # If we fail to add a worker we should keep going anyway.
-          except (RuntimeError, threading.ThreadError):
-            logging.error("Threadpool exception: "
-                          "Could not spawn worker threads.")
+          else:
+            raise Full()
 
-        # If we need to process the task inline just do it here.
-        if inline:
-          target(*args)
-          return
-
-        # We should block and try again soon.
-        elif blocking:
-          time.sleep(1)
-          continue
-
-        else:
-          raise Full()
+    # We don't want to hold the lock while running the task inline
+    if inline:
+      target(*args)
 
   def CPUUsage(self):
     # Do not block this call.

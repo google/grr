@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """A simple grep flow."""
 
 
@@ -51,33 +49,37 @@ class SearchFileContent(flow.GRRFlow):
     self.CallFlow("Glob", next_state="Grep",
                   paths=self.args.paths, pathtype=self.args.pathtype)
 
-  @flow.StateHandler(next_state=["WriteHits"])
+  @flow.StateHandler(next_state=["WriteHits", "End"])
   def Grep(self, responses):
     if responses.success:
-      for response in responses:
-        # Only fetch regular files here.
-        if not stat.S_ISDIR(response.st_mode):
+      # Grep not specified - just list all hits.
+      if not self.args.grep:
+        msgs = [rdfvalue.BufferReference(pathspec=r.pathspec)
+                for r in responses]
+        self.CallStateInline(messages=msgs, next_state="WriteHits")
+      else:
+        # Grep specification given, ask the client to grep the files.
+        for response in responses:
+          # Only fetch regular files here.
+          if not stat.S_ISDIR(response.st_mode):
 
-          # Cast the BareGrepSpec to a GrepSpec type.
-          request = rdfvalue.GrepSpec(target=response.pathspec,
-                                      **self.args.grep.AsDict())
-
-          # Grep not specified - just list all hits.
-          if not self.args.grep:
-            for response in responses:
-              hit = rdfvalue.BufferReference(pathspec=response.pathspec)
-              self.SendReply(hit)
-
-          else:
-            # Grep specification given, ask the client to grep the files.
+            # Cast the BareGrepSpec to a GrepSpec type.
+            request = rdfvalue.GrepSpec(target=response.pathspec,
+                                        **self.args.grep.AsDict())
             self.CallClient("Grep", request=request, next_state="WriteHits",
-                            request_data=dict(stat=response))
+                            request_data=dict(pathspec=response.pathspec))
 
   @flow.StateHandler(next_state="End")
   def WriteHits(self, responses):
-    for hit in responses:
+    """Sends replies about the hits."""
+    hits = list(responses)
+
+    for hit in hits:
+      # Old clients do not send pathspecs in the Grep response so we add them.
+      if not hit.pathspec:
+        hit.pathspec = responses.request_data.GetItem("pathspec")
       self.SendReply(hit)
 
     if self.args.also_download:
-      self.CallClient("MultiGetFile", pathspecs=[x.pathspec for x in responses],
-                      next_state="End")
+      self.CallFlow("MultiGetFile", pathspecs=[x.pathspec for x in hits],
+                    next_state="End")

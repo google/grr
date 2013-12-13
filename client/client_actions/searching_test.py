@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2010 Google Inc. All Rights Reserved.
 """Test client vfs."""
 
 import functools
@@ -282,6 +281,7 @@ class GrepTest(test_lib.EmptyActionTest):
                             2729, 3129, 3529, 3888])
     for x in result:
       self.assertTrue("10" in utils.Xor(x.data, self.XOR_OUT_KEY))
+      self.assertEqual(request.target.path, x.pathspec.path)
 
   def testGrepRegex(self):
     # Use the real file system.

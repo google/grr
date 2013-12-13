@@ -305,7 +305,8 @@ class Grep(actions.ActionPlugin):
 
         hits += 1
         self.SendReply(offset=base_offset + start - preamble_size,
-                       data=out_data, length=len(out_data))
+                       data=out_data, length=len(out_data),
+                       pathspec=fd.pathspec)
 
         if args.mode == rdfvalue.GrepSpec.Mode.FIRST_HIT:
           return

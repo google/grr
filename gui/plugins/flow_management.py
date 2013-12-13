@@ -373,20 +373,24 @@ class FlowStateIcon(semantic.RDFValueRenderer):
   layout_template = renderers.Template("""
 <div class="centered">
   <img class='grr-icon grr-flow-icon'
-    src='/static/images/{{this.icon|escape}}' />
+    src='/static/images/{{this.icon|escape}}'
+    title='{{this.title|escape}}'
+/>
 </div>""")
 
   # Maps the flow states to icons we can show
-  state_map = {"TERMINATED": "stock_yes.png",
-               "RUNNING": "clock.png",
-               "ERROR": "nuke.png",
-               "CLIENT_CRASHED": "skull-icon.png"}
+  state_map = {"TERMINATED": ("stock_yes.png", "Flow finished normally."),
+               "RUNNING": ("clock.png", "Flow is still running."),
+               "ERROR": ("nuke.png", "Flow terminated with an error."),
+               "CLIENT_CRASHED": (
+                   "skull-icon.png",
+                   "The client crashed while executing this flow.")}
 
   icon = "question-red.png"
 
   def Layout(self, request, response):
     try:
-      self.icon = self.state_map[str(self.proxy)]
+      self.icon, self.title = self.state_map[str(self.proxy)]
     except (KeyError, ValueError):
       pass
 

@@ -1,13 +1,5 @@
 #!/usr/bin/env python
-"""Base classes for artifacts.
-
-Artifacts are classes that describe a system artifact. They describe a number
-of key properties about the artifact:
-
-  Collectors: How to collect it from the client.
-  Processors: How to process the data from the client.
-  Storage: How to store the processed data.
-"""
+"""Base classes for artifacts."""
 
 import logging
 
@@ -15,7 +7,6 @@ from grr.lib import aff4
 from grr.lib import artifact_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import type_info
 from grr.lib import utils
 
 
@@ -27,23 +18,6 @@ class AFF4ResultWriter(object):
     self.aff4_type = aff4_type
     self.aff4_attribute = aff4_attribute
     self.mode = mode
-
-
-class ArtifactName(rdfvalue.RDFString):
-
-  type = "ArtifactName"
-
-  def ParseFromString(self, value):
-    """Value must be a list of artifact names."""
-    super(ArtifactName, self).ParseFromString(value)
-    self.Validate(self._value)
-
-  def Validate(self, value):
-    """Validate we have a real Artifact name."""
-    artifact_cls = artifact_lib.Artifact.classes.get(value)
-    if (not artifact_cls or not
-        issubclass(artifact_cls, artifact_lib.Artifact)):
-      raise type_info.TypeValueError("%s not a valid Artifact." % value)
 
 
 def GetArtifactKnowledgeBase(client_obj, allow_uninitialized=False):
@@ -110,7 +84,7 @@ def SetCoreGRRKnowledgeBaseValues(kb, client_obj):
   if not kb.hostname:
     kb.hostname = utils.SmartUnicode(client_obj.Get(client_schema.HOSTNAME, ""))
   versions = client_obj.Get(client_schema.OS_VERSION)
-  if versions:
+  if versions and versions.versions:
     kb.os_major_version = versions.versions[0]
     kb.os_minor_version = versions.versions[1]
   kb.os = utils.SmartUnicode(client_obj.Get(client_schema.SYSTEM))
@@ -145,17 +119,19 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
   @flow.StateHandler(next_state="ProcessBase")
   def ProcessBootstrap(self, responses):
     """Process the bootstrap responses."""
-    # pylint: disable=g-explicit-length-test
-    if not responses.success or len(responses) == 0:
+    if not responses.success:
       raise flow.FlowError("Failed to run BootStrapKnowledgeBaseFlow. %s" %
                            responses.status)
-    for key, value in responses.First().ToDict().items():
-      self.state.fulfilled_deps.append(key)
-      self.state.knowledge_base.Set(key, value)
+    if responses.First():
+      for key, value in responses.First().ToDict().items():
+        self.state.fulfilled_deps.append(key)
+        self.state.knowledge_base.Set(key, value)
 
-    all_kb_artifacts = artifact_lib.Artifact.GetKnowledgeBaseArtifacts()
+    all_kb_artifacts = artifact_lib.Artifact.GetKnowledgeBaseArtifacts(
+        self.state.knowledge_base.os)
     bootstrap_artifacts = (
-        artifact_lib.Artifact.GetKnowledgeBaseBootstrapArtifacts())
+        artifact_lib.Artifact.GetKnowledgeBaseBootstrapArtifacts(
+            self.state.knowledge_base.os))
 
     # Filter out any which are bootstrap artifacts, which have special
     # GRR specific handling in BootStrapKnowledgeBaseFlow.
@@ -171,7 +147,7 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
       else:
         self.state.all_deps.extend(deps)
 
-    if not artifacts_to_process:
+    if not artifacts_to_process and all_kb_artifacts:
       raise flow.FlowError("We can't bootstrap the knowledge base because we "
                            "don't have any artifacts without dependencies.")
 
@@ -281,6 +257,38 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
     client.Flush()
     self.Notify("ViewObject", client.urn, "Knowledge Base Updated.")
     self.SendReply(self.state.knowledge_base)
+
+
+def UploadArtifactJsonFile(file_content, base_urn=None, token=None,
+                           overwrite=True):
+  """Upload a json file as an artifact to the datastore."""
+  # TODO(user): Add support for merge testing once the collection handles it.
+  _ = overwrite
+  if not base_urn:
+    base_urn = aff4.ROOT_URN.Add("artifact_store")
+  with aff4.FACTORY.Create(base_urn, aff4_type="RDFValueCollection",
+                           token=token, mode="rw") as artifact_coll:
+
+    # Iterate through each artifact adding it to the collection.
+    for artifact_value in artifact_lib.ArtifactsFromJson(file_content):
+      artifact_coll.Add(artifact_value)
+      logging.info("Uploaded artifact %s to %s", artifact_value.name, base_urn)
+
+  return base_urn
+
+
+def LoadArtifactsFromDatastore(artifact_coll_urn=None, token=None):
+  """Load artifacts from the data store."""
+  if not artifact_coll_urn:
+    artifact_coll_urn = aff4.ROOT_URN.Add("artifact_store")
+  with aff4.FACTORY.Create(artifact_coll_urn, aff4_type="RDFValueCollection",
+                           token=token, mode="rw") as artifact_coll:
+    for artifact_value in artifact_coll:
+      rdfvalue_dict = artifact_value.ToPrimitiveDict()
+      # The following line will register the artifact in the global registry.
+      new_artifact = artifact_lib.GenericArtifact.FromDict(rdfvalue_dict)
+      logging.debug("Loaded artifact %s from %s", new_artifact.__name__,
+                    artifact_coll_urn)
 
 
 class GRRArtifactMappings(object):

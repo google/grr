@@ -730,8 +730,7 @@ class FlowRunner(object):
 
     # Only send the reply if we have a parent and if flow's send_replies
     # attribute is True. We have a parent only if we know our parent's request.
-    if (self.args.HasField("request_state") and
-        self.args.send_replies):
+    if self.args.request_state.session_id and self.args.send_replies:
 
       request_state = self.args.request_state
 
@@ -811,7 +810,7 @@ class FlowRunner(object):
                    self.output.urn)
       self.output = None
 
-    if self.args.HasField("request_state"):
+    if self.args.request_state.session_id:
       logging.debug("Terminating flow %s", self.session_id)
 
       # Make a response or use the existing one.

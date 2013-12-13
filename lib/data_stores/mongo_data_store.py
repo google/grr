@@ -160,6 +160,7 @@ class MongoDataStore(data_store.DataStore):
                        token=None, sync=False):
     """Remove all the attributes from this subject."""
     _ = sync  # Unused attribute, mongo is always synced.
+    subject = utils.SmartUnicode(subject)
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     if not attributes:
       # Nothing to delete.
@@ -167,7 +168,7 @@ class MongoDataStore(data_store.DataStore):
 
     # Build a spec to select the subject and any of the predicates.
     spec = {"$and": [
-        dict(subject=utils.SmartUnicode(subject)),
+        dict(subject=subject),
         {"$or": [dict(predicate=utils.SmartUnicode(x)) for x in attributes]},
         ]}
 
@@ -178,7 +179,7 @@ class MongoDataStore(data_store.DataStore):
       return
 
     unversioned_spec = {"$and": [
-        dict(subject=utils.SmartUnicode(subject)),
+        dict(subject=subject),
         {"$or": [dict(predicate=utils.SmartUnicode(x)) for x in attributes]},
         ]}
 
@@ -210,7 +211,7 @@ class MongoDataStore(data_store.DataStore):
 
     if to_delete:
       delete_spec = {"$and": [
-          dict(subject=utils.SmartUnicode(subject)),
+          dict(subject=subject),
           {"$or": [dict(predicate=utils.SmartUnicode(x)) for x in attributes]},
           ]}
       self.latest_collection.remove(delete_spec)

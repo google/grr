@@ -3,7 +3,6 @@
 
 
 import re
-import sys
 import threading
 import time
 
@@ -205,7 +204,7 @@ class FakeDataStore(data_store.DataStore):
           continue
 
         start = start or 0
-        end = end or sys.maxint
+        end = end or (2 ** 63) - 1  # sys.maxint
         new_values = []
         for value, timestamp in values:
           if not start <= timestamp <= end:
