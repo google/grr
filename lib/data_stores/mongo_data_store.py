@@ -160,6 +160,7 @@ class MongoDataStore(data_store.DataStore):
                        token=None, sync=False):
     """Remove all the attributes from this subject."""
     _ = sync  # Unused attribute, mongo is always synced.
+    subject = utils.SmartUnicode(subject)
     # Timestamps are not implemented yet.
     if start or end:
       raise NotImplementedError("Mongo data store does not support timestamp "
@@ -171,7 +172,7 @@ class MongoDataStore(data_store.DataStore):
 
     # Build a spec to select the subject and any of the predicates.
     spec = {"$and": [
-        dict(subject=utils.SmartUnicode(subject)),
+        dict(subject=subject),
         {"$or": [dict(predicate=utils.SmartUnicode(x)) for x in attributes]},
         ]}
 
@@ -180,11 +181,12 @@ class MongoDataStore(data_store.DataStore):
 
   def DeleteAttributesRegex(self, subject, regexes, token=None):
     """Remove the attributes from this subject by regex."""
+    subject = utils.SmartUnicode(subject)
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     # Build a spec to select the subject and any of the predicates by the regex.
     spec = {"$and": [
-        dict(subject=utils.SmartUnicode(subject)),
+        dict(subject=subject),
         {"$or": [{"predicate": {"$regex": regex}} for regex in regexes]},
         ]}
 
