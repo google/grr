@@ -1,0 +1,40 @@
+name: OSXServices
+doc: Collect running services from the servicemanagement framework.
+collectors:
+- action: RunGrrClientAction
+  args: {client_action: OSXEnumerateRunningServices}
+labels: [Software]
+supported_os: [Darwin]
+---
+name: DarwinPersistenceMechanismFiles
+doc: Collect files that are run by Darwin persistence mechanisms.
+collectors:
+- action: CollectArtifactFiles
+  args:
+    artifact_list: [DarwinPersistenceMechanisms]
+    pathspec_attribute: pathspec
+  returned_types: [StatEntry]
+labels: [Software]
+supported_os: [Darwin]
+---
+name: DarwinPersistenceMechanisms
+doc: Collect persistence mechanisms.
+collectors:
+- action: CollectArtifacts
+  args:
+    artifact_list: [OSXServices]
+  returned_types: [PersistenceFile]
+labels: [Software]
+supported_os: [Darwin]
+---
+name: OSXUsers
+doc: Collect users by listing /Users.
+collectors:
+- action: ListFiles
+  args:
+    path_list: [/Users/*]
+  returned_types: [KnowledgeBaseUser]
+labels: [Users]
+supported_os: [Darwin]
+provides: [users.username]
+

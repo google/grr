@@ -10,9 +10,30 @@ import datetime
 import glob
 import locale
 import sys
+import urlparse
 
 
+from grr.lib import parsers
+from grr.lib import rdfvalue
 from grr.parsers import sqlite_file
+
+
+class FirefoxHistoryParser(parsers.FileParser):
+  """Parse Chrome history files into BrowserHistoryItem objects."""
+
+  output_types = ["BrowserHistoryItem"]
+  supported_artifacts = ["FirefoxHistory"]
+
+  def Parse(self, stat, file_object, knowledge_base):
+    """Parse the History file."""
+    _, _ = stat, knowledge_base
+    # TODO(user): Convert this to use the far more intelligent plaso parser.
+    ff = Firefox3History(file_object)
+    for timestamp, unused_entry_type, url, title in ff.Parse():
+      yield rdfvalue.BrowserHistoryItem(
+          url=url, domain=urlparse.urlparse(url).netloc, access_time=timestamp,
+          program_name="Firefox", source_urn=stat.aff4path,
+          title=title)
 
 
 class Firefox3History(sqlite_file.SQLiteFile):

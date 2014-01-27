@@ -12,6 +12,8 @@ class MostActiveUsers(statistics.PieChart):
   category = "/Server/User Breakdown/ 7 Day"
   description = "Active User actions in the last week."
 
+  filtered_users = set(["GRRWorker", "GRREnroller", "GRRCron"])
+
   def Layout(self, request, response):
     """Filter the last week of user actions."""
     try:
@@ -27,8 +29,11 @@ class MostActiveUsers(statistics.PieChart):
         counts[event.user] += 1
 
       self.graph = rdfvalue.Graph(title="User activity breakdown.")
+      self.data = []
       for user, count in counts.items():
-        self.graph.Append(label=user, y_value=count)
+        if user not in self.filtered_users:
+          self.graph.Append(label=user, y_value=count)
+          self.data.append(dict(label=user, data=count))
     except IOError:
       pass
     return super(MostActiveUsers, self).Layout(request, response)
@@ -96,6 +101,8 @@ class UserActivity(StackChart):
   category = "/Server/User Breakdown/Activity"
   description = "Number of flows ran by each user over the last few weeks."
 
+  filtered_users = set(["GRRWorker", "GRREnroller", "GRRCron"])
+
   WEEKS = 10
 
   def Layout(self, request, response):
@@ -120,7 +127,8 @@ class UserActivity(StackChart):
 
       self.data = []
       for user, data in self.user_activity.items():
-        self.data.append(dict(label=user, data=data))
+        if user not in self.filtered_users:
+          self.data.append(dict(label=user, data=data))
 
       self.data = renderers.JsonDumpForScriptContext(self.data)
 
@@ -199,7 +207,8 @@ class ClientActivity(StackChart):
 
       self.data = []
       for client, data in self.client_activity.items():
-        self.data.append(dict(label=str(client), data=data))
+        if client:
+          self.data.append(dict(label=str(client), data=data))
 
       self.data = renderers.JsonDumpForScriptContext(self.data)
 

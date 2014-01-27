@@ -1,0 +1,219 @@
+# Windows specific artifacts.
+
+
+name: ApplicationEventLog
+doc: Windows Application Event Log.
+collectors:
+- action: GetFile
+  args: {path: '%%environ_systemroot%%\System32\winevt\Logs\AppEvent.evt'}
+conditions: [os_major_version >= 6]
+labels: [Logs]
+supported_os: [Windows]
+urls: ['http://www.forensicswiki.org/wiki/Windows_Event_Log_(EVT)']
+---
+
+name: ApplicationEventLogEvtx
+doc: Windows Application Event Log for Vista or newer systems.
+collectors:
+- action: GetFile
+  args: {path: '%%environ_systemroot%%\System32\winevt\Logs\Application.evtx'}
+conditions: [os_major_version >= 6]
+labels: [Logs]
+supported_os: [Windows]
+urls: ['http://www.forensicswiki.org/wiki/Windows_XML_Event_Log_(EVTX)']
+---
+
+name: AvailableTimeZones
+doc: The timezones avaialable on the system.
+collectors:
+- action: GetRegistryKeys
+  args:
+    path_list: [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Time
+        Zones\*\*]
+supported_os: [Windows]
+urls: ['https://code.google.com/p/winreg-kb/wiki/TimeZoneKeys']
+---
+
+name: SecurityEventLog
+doc: Windows Security Event Log.
+collectors:
+- action: GetFile
+  args: {path: '%%environ_systemroot%%\System32\winevt\Logs\SecEvent.evt'}
+conditions: [os_major_version >= 6]
+labels: [Logs]
+supported_os: [Windows]
+urls: ['http://www.forensicswiki.org/wiki/Windows_Event_Log_(EVT)']
+---
+
+name: SecurityEventLogEvtx
+doc: Windows Security Event Log for Vista or newer systems.
+collectors:
+- action: GetFile
+  args: {path: '%%environ_systemroot%%\System32\winevt\Logs\Security.evtx'}
+conditions: [os_major_version >= 6]
+labels: [Logs]
+supported_os: [Windows]
+urls: ['http://www.forensicswiki.org/wiki/Windows_XML_Event_Log_(EVTX)']
+---
+
+name: SystemEventLog
+doc: Windows System Event Log.
+collectors:
+- action: GetFile
+  args: {path: '%%environ_systemroot%%\System32\winevt\Logs\SysEvent.evt'}
+conditions: [os_major_version >= 6]
+labels: [Logs]
+supported_os: [Windows]
+urls: ['http://www.forensicswiki.org/wiki/Windows_Event_Log_(EVT)']
+---
+
+name: SystemEventLogEvtx
+doc: Windows System Event Log for Vista or newer systems.
+collectors:
+- action: GetFile
+  args: {path: '%%environ_systemroot%%\System32\winevt\Logs\System.evtx'}
+conditions: [os_major_version >= 6]
+labels: [Logs]
+supported_os: [Windows]
+urls: ['http://www.forensicswiki.org/wiki/Windows_XML_Event_Log_(EVTX)']
+---
+
+name: TerminalServicesEventLogEvtx
+doc: Windows TerminalServices Event Log.
+collectors:
+- action: GetFile
+  args: {path: '%%environ_systemroot%%\System32\winevt\Logs\Microsoft-Windows-TerminalServices-LocalSessionManager%4Operational.evtx'}
+conditions: [os_major_version >= 6]
+labels: [Logs]
+supported_os: [Windows]
+urls: ['http://www.forensicswiki.org/wiki/Windows_XML_Event_Log_(EVTX)']
+---
+
+name: WMIProcessList
+doc: Extract the process list on Windows via WMI.
+collectors:
+- action: WMIQuery
+  args: {query: SELECT * from Win32_Process}
+conditions: [os_major_version >= 6]
+labels: [Software]
+supported_os: [Windows]
+---
+
+name: WinHostsFile
+doc: The Windows hosts file.
+collectors:
+- action: GetFile
+  args: {path: '%%environ_systemroot%%\System32\Drivers\etc\hosts'}
+supported_os: [Windows]
+---
+
+name: WindowsAdminUsers
+doc: Extract the Aministrators on Windows via WMI.
+collectors:
+- action: WMIQuery
+  args: {query: SELECT * from Win32_GroupUser where Name = "Administrators"}
+conditions: [os_major_version >= 6]
+labels: [Software]
+supported_os: [Windows]
+---
+
+name: WindowsDrivers
+doc: Extract the installed drivers on Windows via WMI.
+collectors:
+- action: WMIQuery
+  args: {query: 'SELECT DisplayName, Description, InstallDate, Name, PathName, Status,
+      State, ServiceType from Win32_SystemDriver'}
+conditions: [os_major_version >= 6]
+labels: [Software]
+supported_os: [Windows]
+---
+
+name: WindowsHotFixes
+doc: Extract the installed hotfixes on Windows via WMI.
+collectors:
+- action: WMIQuery
+  args: {query: SELECT * from Win32_QuickFixEngineering}
+conditions: [os_major_version >= 6]
+labels: [Software]
+supported_os: [Windows]
+---
+
+name: WindowsLoginUsers
+doc: "Extract the Login Users on Windows via WMI.\n\n  If on a domain this will query\
+    \ the domain which may take a long time and\n  create load on a domain controller.\n\
+    \  "
+collectors:
+- action: WMIQuery
+  args: {query: SELECT * from Win32_GroupUser where Name = "login_users"}
+conditions: [os_major_version >= 6]
+labels: [Software]
+supported_os: [Windows]
+---
+
+name: WindowsPersistenceMechanismFiles
+doc: Collect files that are run by Windows persistence mechanisms.
+collectors:
+- action: CollectArtifactFiles
+  args:
+    artifact_list: [WindowsPersistenceMechanisms]
+    pathspec_attribute: pathspec
+  returned_types: [StatEntry]
+labels: [Software]
+supported_os: [Windows]
+---
+
+name: WindowsPersistenceMechanisms
+doc: Collect persistence mechanisms.
+collectors:
+- action: CollectArtifacts
+  args:
+    artifact_list: [WindowsRunKeys, WindowsServices]
+  returned_types: [PersistenceFile]
+labels: [Software]
+supported_os: [Windows]
+---
+
+name: WindowsRunKeys
+doc: Collect windows run keys.
+collectors:
+- action: GetRegistryKeys
+  args:
+    path_list: [HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\Run\*,
+      HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\RunOnce\*,
+      HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run\*, HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce\*]
+labels: [Software]
+supported_os: [Windows]
+---
+
+name: WindowsServices
+doc: "Collect windows services from the registry.\n\n  See service key doco:\n  \
+    \  http://support.microsoft.com/kb/103000\n  "
+collectors:
+- action: GetRegistryKeys
+  args:
+    path_list: ['%%current_control_set%%\services\*\*', '%%current_control_set%%\services\*\Parameters\*']
+labels: [Software]
+supported_os: [Windows]
+---
+
+name: WindowsWMIInstalledSoftware
+doc: Extract the installed software on Windows via WMI.
+collectors:
+- action: WMIQuery
+  args: {query: 'SELECT Name, Vendor, Description, InstallDate, InstallDate2, Version
+      from Win32_Product'}
+conditions: [os_major_version >= 6]
+labels: [Software]
+supported_os: [Windows]
+---
+
+name: WindowsWMIUsers
+doc: "Get all users the system knows about via WMI.\n\n  Note that in a domain setup,\
+    \ this will probably return all users in the\n  domain which will be expensive\
+    \ and slow. Consider WindowsWMIProfileUsers\n  instead.\n  "
+collectors:
+- action: WMIQuery
+  args: {query: SELECT * FROM Win32_UserAccount}
+labels: [Users]
+supported_os: [Windows]
+urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/aa394507(v=vs.85).aspx']

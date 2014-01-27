@@ -6,13 +6,14 @@ intended to end up as an independent library.
 """
 
 import itertools
-import json
+import os
 import re
+import yaml
+
+import logging
 
 from grr.lib import objectfilter
 from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib import utils
 
 
 class Error(Exception):
@@ -47,6 +48,7 @@ class KnowledgeBaseUninitializedError(Error):
 ARTIFACT_LABELS = {
     "Antivirus": "Antivirus related artifacts, e.g. quarantine files.",
     "Authentication": "Authentication artifacts.",
+    "Browser": "Web Browser artifacts.",
     "Configuration Files": "Configuration files artifacts.",
     "Execution": "Contain execution events.",
     "External Media": "Contain external media data or events e.g. USB drives.",
@@ -69,6 +71,8 @@ ACTIONS_MAP = {"RunGrrClientAction": {"required_args": ["client_action"],
                            "output_type": "StatEntry"},
                "GetFiles": {"required_args": ["path_list"],
                             "output_type": "StatEntry"},
+               "ListFiles": {"required_args": ["path_list"],
+                             "output_type": "StatEntry"},
                "GetRegistryKeys": {"required_args": ["path_list"],
                                    "output_type": "StatEntry"},
                "GetRegistryValue": {"required_args": ["path"],
@@ -95,278 +99,53 @@ INTERPOLATED_REGEX = re.compile(r"%%([^%]+?)%%")
 GLOB_MAGIC_CHECK = re.compile("[*?[]")
 
 
-class Artifact(object):
-  """Base class for artifact objects.
+class ArtifactRegistry(object):
+  """A global registry of artifacts."""
 
-  All Artifacts must define a Collect, and a Process class method.
-
-  An Artifact Collector will collect and process the artifact by calling these
-  methods.
-
-  The base class implements no real functionality. As a general rule most things
-  should inherit from GeneralArtifact instead.
-  """
-
-  # Register a metaclass registry to track all artifacts.
-  __metaclass__ = registry.MetaclassRegistry
-
-  LABELS = []       # A list of labels that describe what the artifact provides.
-
-  def Collect(self):
-    pass
-
-  def Process(self, responses):
-    pass
+  artifacts = {}
 
   @classmethod
-  def GetKnowledgeBaseArtifacts(cls, os):
-    """Retrieve artifact classes that provide Knowledge Base values."""
-    return [a for a in cls.classes.values() if (
-        hasattr(a, "PROVIDES") and os in a.SUPPORTED_OS)]
+  def RegisterArtifact(cls, artifact_rdfvalue, source="datastore",
+                       overwrite_if_exists=False):
+    if not overwrite_if_exists and artifact_rdfvalue.name in cls.artifacts:
+      raise ArtifactDefinitionError("Artifact named %s already exists and "
+                                    "overwrite_if_exists is set to False." %
+                                    artifact_rdfvalue.name)
+
+    # Preserve where the artifact was loaded from to help debugging.
+    artifact_rdfvalue.loaded_from = source
+    cls.artifacts[artifact_rdfvalue.name] = artifact_rdfvalue
 
   @classmethod
-  def GetKnowledgeBaseBootstrapArtifacts(cls, os):
-    """Retrieve  Knowledge Base artifact classes that must be bootstrapped."""
-    bootstrap_classes = []
-    for artifact_cls in cls.GetKnowledgeBaseArtifacts(os):
-      collector_actions = [c.action for c in artifact_cls.COLLECTORS]
-      if "Bootstrap" in collector_actions:
-        bootstrap_classes.append(artifact_cls)
-    return bootstrap_classes
+  def GetArtifacts(cls, os_name=None, name_list=None,
+                   collector_action=None):
+    """Retrieve artifact classes with optional filtering.
 
-  @classmethod
-  def GetArtifactDependencies(cls, recursive=False, depth=1):
-    """Return a set of artifact dependencies.
+    All filters must match for the artifact to be returned.
 
     Args:
-      recursive: If True recurse into dependencies to find their dependencies.
-      depth: Used for limiting recursion depth.
-
+      os_name: string to match against supported_os
+      name_list: list of strings to match against artifact names
+      collector_action: string to match against collector_action
     Returns:
-      A set of strings containing the dependent artifact names.
-
-    Raises:
-      RuntimeError: If maximum recursion depth reached.
+      set of artifacts matching filter criteria
     """
-    deps = set()
-    for collector in cls.COLLECTORS:
-      if collector.action == "CollectArtifacts":
-        if hasattr(collector, "args") and collector.args.get("artifact_list"):
-          deps.update(collector.args.get("artifact_list"))
+    results = set()
+    for artifact in ArtifactRegistry.artifacts.values():
 
-    if depth > 10:
-      raise RuntimeError("Max artifact recursion depth reached.")
+      # artifact.supported_os = [] matches all OSes
+      if os_name and artifact.supported_os and (os_name not in
+                                                artifact.supported_os):
+        continue
+      if name_list and artifact.name not in name_list:
+        continue
+      if collector_action:
+        collector_actions = [c.action for c in artifact.collectors]
+        if collector_action not in collector_actions:
+          continue
+      results.add(artifact)
 
-    deps_set = set(deps)
-    if recursive:
-      for dep in deps:
-        new_dep = Artifact.classes[dep].GetArtifactDependencies(True,
-                                                                depth=depth+1)
-        if new_dep:
-          deps_set.update(new_dep)
-
-    return deps
-
-  @classmethod
-  def GetArtifactPathDependencies(cls):
-    """Return a set of knowledgebase path dependencies.
-
-    Returns:
-      A set of strings for the required kb objects e.g.
-      ["users.appdata", "systemroot"]
-    """
-    deps = set()
-    for collector in cls.COLLECTORS:
-      if hasattr(collector, "args"):   # Not all collections have args.
-        for arg, value in collector.args.items():
-          paths = []
-          if arg in ["path", "query"]:
-            paths.append(value)
-          if arg in ["paths", "path_list"]:
-            paths.extend(value)
-          for path in paths:
-            for match in INTERPOLATED_REGEX.finditer(path):
-              deps.add(match.group()[2:-2])   # Strip off %%.
-    return deps
-
-  @classmethod
-  def FromDict(cls, input_dict):
-    """Generate an artifact class from a dict."""
-    newclass = type(utils.SmartStr(input_dict["name"]), (cls,), {})
-    for attr in ["CONDITIONS", "LABELS", "SUPPORTED_OS", "URLS"]:
-      setattr(newclass, attr, input_dict.get(attr.lower(), []))
-    newclass.COLLECTORS = []
-    for collector_dict in input_dict.get("collectors", []):
-      newclass.COLLECTORS.append(Collector(**collector_dict))
-    newclass.__doc__ = input_dict["doc"]
-    return newclass
-
-  @classmethod
-  def ToDict(cls):
-    """Convert artifact to a basic dict."""
-    out = {}
-    for attr in ["CONDITIONS", "LABELS", "SUPPORTED_OS", "URLS"]:
-      out[attr.lower()] = getattr(cls, attr, [])
-    out["collectors"] = [c.ToDict() for c in cls.COLLECTORS]
-    out["name"] = cls.__name__
-    out["doc"] = cls.__doc__
-    return out
-
-  @classmethod
-  def ToExtendedDict(cls):
-    """Convert artifact to an extended dict that contains extra info."""
-    out = cls.ToDict()
-    out["doc"] = cls.GetDescription()
-    out["short_description"] = cls.GetShortDescription()
-    out["dependencies"] = [str(c) for c in cls.GetArtifactPathDependencies()]
-    return out
-
-  @classmethod
-  def ToRdfValue(cls):
-    """Convert artifact to an RDFValue."""
-    return rdfvalue.Artifact(**cls.ToDict())
-
-
-class GenericArtifact(Artifact):
-  """A generalized Artifact that executes based on class variables.
-
-  Artifacts must be processed by an ArtifactCollectorFlow.
-
-  WARNING: The artifact object is re-instantiated between the Collect and
-           Process. State is not preserved.
-  """
-
-  # Prevents this from automatically registering.
-  __abstract = True  # pylint: disable=g-bad-name
-
-  # Which OS are supported by the Artifact e.g. Linux, Windows, Darwin
-  # Note that this can be implemented by CONDITIONS as well, but this
-  # provides a more obvious interface for users for common cases.
-  SUPPORTED_OS = []
-
-  # List of ArtifactCondition function names that define whether Artifact
-  # collection should run. These operate as an AND operator, all conditions
-  # must pass for it to run. OR operators should be implemented as their own
-  # conditions.
-  CONDITIONS = []
-  LABELS = []
-
-  # URLs that link to information describing what this artifact collects.
-  URLS = []
-
-  # A list of Collector objects.
-  COLLECTORS = []
-
-  def Validate(self):
-    """Attempt to validate the artifact has been well defined.
-
-    This is used to enforce Artifact rules.
-
-    Raises:
-      ArtifactDefinitionError: If COLLECTORS object is invalid.
-
-    """
-    cls_name = self.__class__.__name__
-    if not self.__doc__:
-      raise ArtifactDefinitionError("Artifact %s has missing doc string" %
-                                    cls_name)
-
-    for supp_os in self.SUPPORTED_OS:
-      if supp_os not in SUPPORTED_OS_LIST:
-        raise ArtifactDefinitionError("Artifact %s has invalid SUPPORTED_OS %s"
-                                      % (cls_name, supp_os))
-
-    for condition in self.CONDITIONS:
-      try:
-        of = objectfilter.Parser(condition).Parse()
-        of.Compile(objectfilter.BaseFilterImplementation)
-      except ConditionError as e:
-        raise ArtifactDefinitionError("Artifact %s has invalid condition %s. %s"
-                                      % (cls_name, condition, e))
-
-    for collector in self.COLLECTORS:
-      if not hasattr(collector.conditions, "__iter__"):
-        raise ArtifactDefinitionError("Artifact %s collector has invalid"
-                                      " conditions %s" %
-                                      (cls_name, collector.conditions))
-
-      # Catch common mistake of path vs paths.
-      if hasattr(collector, "args"):
-        if collector.args.get("paths"):
-          if isinstance(collector.args.get("paths"), basestring):
-            raise ArtifactDefinitionError("Artifact %s collector has arg "
-                                          "'paths' that is not a list." %
-                                          cls_name)
-        if collector.args.get("path"):
-          if not isinstance(collector.args.get("path"), basestring):
-            raise ArtifactDefinitionError("Artifact %s collector has arg 'path'"
-                                          " that is not a string." % cls_name)
-
-        # Check all returned types.
-        if collector.returned_types:
-          for rdf_type in collector.returned_types:
-            if rdf_type not in rdfvalue.RDFValue.classes:
-              raise ArtifactDefinitionError("Artifact %s has a Collector with "
-                                            "an invalid return type %s"
-                                            % (cls_name, rdf_type))
-
-      if collector.action not in ACTIONS_MAP:
-        raise ArtifactDefinitionError("Artifact %s has invalid action %s." %
-                                      (cls_name, collector.action))
-
-      required_args = ACTIONS_MAP[collector.action].get("required_args", [])
-      missing_args = set(required_args).difference(collector.args.keys())
-      if missing_args:
-        raise ArtifactDefinitionError("Artifact %s is missing some required "
-                                      "args: %s." % (cls_name, missing_args))
-
-    for label in self.LABELS:
-      if label not in ARTIFACT_LABELS:
-        raise ArtifactDefinitionError("Artifact %s has an invalid label %s."
-                                      " Please use one from ARTIFACT_LABELS."
-                                      % (cls_name, label))
-
-    # Check all path dependencies exist in the knowledge base.
-    valid_fields = rdfvalue.KnowledgeBase().GetKbFieldNames()
-    for dependency in self.GetArtifactPathDependencies():
-      if dependency not in valid_fields:
-        raise ArtifactDefinitionError("Artifact %s has an invalid dependency %s"
-                                      ". Artifacts must use defined knowledge "
-                                      "attributes." % (cls_name, dependency))
-
-    # Check all artifact dependencies exist.
-    for dependency in self.GetArtifactDependencies():
-      if dependency not in Artifact.classes:
-        raise ArtifactDefinitionError("Artifact %s has an invalid dependency %s"
-                                      ". Could not find artifact definition."
-                                      % (cls_name, dependency))
-
-  @classmethod
-  def GetShortDescription(cls):
-    return cls.__doc__.split("\n")[0]
-
-  @classmethod
-  def GetDescription(cls):
-    return cls.__doc__
-
-
-class Collector(object):
-  """A basic interface to define an object for collecting data."""
-
-  def __init__(self, action, conditions=None, args=None, returned_types=None):
-    self.action = action
-    self.args = args or {}
-    self.conditions = conditions or []
-    self.returned_types = returned_types or []
-
-  def ToDict(self):
-    """Return a dict representing the collector."""
-    coll_dict = {}
-    coll_dict["conditions"] = self.conditions
-    coll_dict["args"] = self.args
-    coll_dict["action"] = self.action
-    coll_dict["returned_types"] = self.returned_types
-    return coll_dict
+    return results
 
 
 def InterpolateKbAttributes(pattern, knowledge_base):
@@ -501,31 +280,90 @@ def ExpandWindowsUserEnvironmentVariables(data_string, knowledge_base, sid=None,
   return "".join(components)
 
 
-def ArtifactsFromJson(json_content):
+def ArtifactsFromYaml(yaml_content):
   """Get a list of Artifacts from json."""
-  # Read in the json and check its valid json.
   try:
-    dat = json.loads(json_content)
-    if isinstance(dat, dict):
-      raw_list = [dat]
-    elif isinstance(dat, list):
-      raw_list = dat
-    else:
-      raise ValueError("Not list or dict.")
-
+    raw_list = list(yaml.safe_load_all(yaml_content))
   except ValueError as e:
     raise ArtifactDefinitionError("Invalid json for artifact: %s" % e)
+
+  # Try to do the right thing with json/yaml formatted as a list.
+  if (isinstance(raw_list, list) and len(raw_list) == 1 and
+      isinstance(raw_list[0], list)):
+    raw_list = raw_list[0]
+
   # Convert json into artifact and validate.
   valid_artifacts = []
   for artifact_dict in raw_list:
     # In this case we are feeding parameters directly from potentially
-    # untrusted json to our RDFValue class. However, json ensures these are
-    # all primitive types as long as there is no other deserialization
-    # involved.
+    # untrusted yaml/json to our RDFValue class. However, safe_load ensures
+    # these are all primitive types as long as there is no other deserialization
+    # involved, and we are passing these into protobuf primitive types.
     try:
       artifact_value = rdfvalue.Artifact(**artifact_dict)
-      artifact_value.Validate()
       valid_artifacts.append(artifact_value)
-    except AttributeError as e:
-      raise ArtifactDefinitionError("Invalid artifact definition: %s" % e)
+    except (TypeError, AttributeError) as e:
+      raise ArtifactDefinitionError("Invalid artifact definition for %s: %s" %
+                                    (artifact_dict.get("name"), e))
+
   return valid_artifacts
+
+
+def LoadArtifactsFromFiles(file_paths, overwrite_if_exists=True):
+  """Load artifacts from file paths as json or yaml."""
+  loaded_files = []
+  loaded_artifacts = []
+  for file_path in file_paths:
+    try:
+      with open(file_path, mode="rb") as fh:
+        logging.debug("Loading artifacts from %s", file_path)
+        for artifact_val in ArtifactsFromYaml(fh.read(1000000)):
+          ArtifactRegistry.RegisterArtifact(
+              artifact_val, source="file:%s" % file_path,
+              overwrite_if_exists=overwrite_if_exists)
+          loaded_artifacts.append(artifact_val)
+          logging.debug("Loaded artifact %s from %s", artifact_val.name,
+                        file_path)
+
+      loaded_files.append(file_path)
+    except (IOError, OSError) as e:
+      logging.error("Failed to open artifact file %s. %s", file_path, e)
+
+  # Once all artifacts are loaded we can validate, as validation of dependencies
+  # requires the group are all loaded before doing the validation.
+  for artifact_value in loaded_artifacts:
+    artifact_value.Validate()
+
+  return loaded_files
+
+
+def LoadArtifactsFromDir(dir_path):
+  """Load artifacts from all .json or .yaml files in a directory."""
+  files_to_load = []
+  for file_name in os.listdir(dir_path):
+    if (file_name.endswith(".json") or file_name.endswith(".yaml") and
+        not file_name.startswith("test")):
+      files_to_load.append(os.path.join(dir_path, file_name))
+  return LoadArtifactsFromFiles(files_to_load)
+
+
+def DumpArtifactsToYaml(artifact_list, sort_by_os=True):
+  """Dump a list of artifacts into a yaml string."""
+  artifact_list = set(artifact_list)  # Save list in case it is a generator.
+  if sort_by_os:
+    # Sort so its easier to split these if necessary.
+    yaml_list = []
+    done_set = set()
+    for os_name in SUPPORTED_OS_LIST:
+      done_set = set(a for a in artifact_list if a.supported_os == [os_name])
+      # Separate into knowledge_base and non-knowledge base for easier sorting.
+      done_set = sorted(done_set, key=lambda x: x.name)
+      yaml_list.extend(x.ToYaml() for x in done_set if x.provides)
+      yaml_list.extend(x.ToYaml() for x in done_set if not x.provides)
+      artifact_list = artifact_list.difference(done_set)
+    yaml_list.extend(x.ToYaml() for x in artifact_list)  # The rest.
+  else:
+    yaml_list = [x.ToYaml() for x in artifact_list]
+
+  return "---\n\n".join(yaml_list)
+

@@ -391,8 +391,12 @@ class ThreadPool(object):
 
           # We should block and try again soon.
           elif blocking:
-            time.sleep(1)
-            continue
+            try:
+              self._queue.put((target, args, name, time.time()),
+                              block=True, timeout=1)
+              return
+            except Queue.Full:
+              continue
 
           else:
             raise Full()

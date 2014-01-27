@@ -259,9 +259,7 @@ class File(vfs.VFSHandler):
   def ListFiles(self):
     """List all files in the dir."""
     if not self.IsDirectory():
-      # Try to open as a container if possible.
-      for child in self.OpenAsContainer().ListFiles():
-        yield child
+      raise IOError("%s is not a directory." % self.path)
 
     else:
       for path in self.files:

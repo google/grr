@@ -103,7 +103,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     # Force notification rules to be reloaded.
     aff4.FACTORY.UpdateNotificationRules()
 
-    fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add(client_name).Add("a"),
+    fd = aff4.FACTORY.Create(rdfvalue.ClientURN(client_name).Add("a"),
                              token=self.token,
                              aff4_type="AFF4Object")
     fd.Close()
@@ -115,7 +115,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     # No notifications are expected, because path doesn't match the regex
     self.assertEqual(len(MockChangeEvent.CHANGED_URNS), 0)
 
-    fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add(client_name).Add("b"),
+    fd = aff4.FACTORY.Create(rdfvalue.ClientURN(client_name).Add("b"),
                              token=self.token,
                              aff4_type="AFF4Object")
     fd.Close()
@@ -126,12 +126,12 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     # Now we get a notification, because the path matches
     self.assertEqual(len(MockChangeEvent.CHANGED_URNS), 1)
     self.assertEqual(MockChangeEvent.CHANGED_URNS[0],
-                     aff4.ROOT_URN.Add(client_name).Add("b"))
+                     rdfvalue.ClientURN(client_name).Add("b"))
 
     MockChangeEvent.CHANGED_URNS = []
 
     # Write again to the same file and check that there's notification again
-    fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add(client_name).Add("b"),
+    fd = aff4.FACTORY.Create(rdfvalue.ClientURN(client_name).Add("b"),
                              token=self.token,
                              aff4_type="AFF4Object")
     fd.Close()
@@ -141,7 +141,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
     self.assertEqual(len(MockChangeEvent.CHANGED_URNS), 1)
     self.assertEqual(MockChangeEvent.CHANGED_URNS[0],
-                     aff4.ROOT_URN.Add(client_name).Add("b"))
+                     rdfvalue.ClientURN(client_name).Add("b"))
 
     MockChangeEvent.CHANGED_URNS = []
 
@@ -156,7 +156,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     aff4.FACTORY.UpdateNotificationRules()
 
     # Check that we don't get a notification for overwriting existing file
-    fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add(client_name).Add("b"),
+    fd = aff4.FACTORY.Create(rdfvalue.ClientURN(client_name).Add("b"),
                              token=self.token,
                              aff4_type="AFF4Object")
     fd.Close()
@@ -167,7 +167,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     self.assertEqual(len(MockChangeEvent.CHANGED_URNS), 0)
 
     # Check that we do get a notification for writing a new file
-    fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add(client_name).Add("b2"),
+    fd = aff4.FACTORY.Create(rdfvalue.ClientURN(client_name).Add("b2"),
                              token=self.token,
                              aff4_type="AFF4Object")
     fd.Close()
@@ -177,4 +177,4 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
     self.assertEqual(len(MockChangeEvent.CHANGED_URNS), 1)
     self.assertEqual(MockChangeEvent.CHANGED_URNS[0],
-                     aff4.ROOT_URN.Add(client_name).Add("b2"))
+                     rdfvalue.ClientURN(client_name).Add("b2"))

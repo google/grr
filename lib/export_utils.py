@@ -242,6 +242,8 @@ def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
       urn = grr_message
     elif isinstance(grr_message, rdfvalue.StatEntry):
       urn = rdfvalue.RDFURN(grr_message.aff4path)
+    elif isinstance(grr_message, rdfvalue.FileFinderResult):
+      urn = rdfvalue.RDFURN(grr_message.stat_entry.aff4path)
     elif isinstance(grr_message, rdfvalue.RDFBytes):
       try:
         os.makedirs(target_path)

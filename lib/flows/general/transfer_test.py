@@ -12,6 +12,8 @@ from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.general import transfer
 
+# pylint:mode=test
+
 
 class TestTransfer(test_lib.FlowTestsBaseclass):
   """Test the transfer mechanism."""
@@ -134,3 +136,35 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
       fd2.seek(offset)
       data2 = fd2.read(length)
       self.assertEqual(data1, data2)
+
+  def testMultiGetFile(self):
+    """Test MultiGetFile."""
+
+    client_mock = test_lib.ActionMock("TransferBuffer", "HashFile", "StatFile",
+                                      "HashBuffer")
+    pathspec = rdfvalue.PathSpec(
+        pathtype=rdfvalue.PathSpec.PathType.OS,
+        path=os.path.join(self.base_path, "test_img.dd"))
+
+    args = rdfvalue.MultiGetFileArgs(pathspecs=[pathspec, pathspec])
+    with test_lib.Instrument(
+        transfer.MultiGetFile, "StoreStat") as storestat_instrument:
+      for _ in test_lib.TestFlowHelper("MultiGetFile", client_mock,
+                                       token=self.token,
+                                       client_id=self.client_id, args=args):
+        pass
+
+      # We should only have called StoreStat once because the two paths
+      # requested were identical.
+      self.assertEqual(len(storestat_instrument.args), 1)
+
+    # Fix path for Windows testing.
+    pathspec.path = pathspec.path.replace("\\", "/")
+    # Test the AFF4 file that was created.
+    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    fd1 = aff4.FACTORY.Open(urn, token=self.token)
+    fd2 = open(pathspec.path)
+    fd2.seek(0, 2)
+
+    self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
+    self.CompareFDs(fd1, fd2)

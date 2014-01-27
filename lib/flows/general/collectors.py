@@ -8,6 +8,7 @@ import logging
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_lib
+from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import parsers
 from grr.lib import rdfvalue
@@ -146,6 +147,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.state.Register("artifacts_failed", [])
     self.state.Register("bootstrap_complete", False)
     self.state.Register("knowledge_base", self.args.knowledge_base)
+    self.state.Register("client_anomaly_store", None)
 
     if self.args.use_tsk:
       self.state.Register("path_type", rdfvalue.PathSpec.PathType.TSK)
@@ -183,9 +185,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
             self.client, allow_uninitialized=True)
 
-    for cls_name in self.args.artifact_list:
-      artifact_cls = self._GetArtifactClassFromName(cls_name)
-      artifact_obj = artifact_cls()
+    for artifact_name in self.args.artifact_list:
+      artifact_obj = self._GetArtifactFromName(artifact_name)
 
       # Ensure artifact has been written sanely. Note that this could be
       # removed if it turns out to be expensive. Artifact tests should catch
@@ -196,12 +197,12 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def Collect(self, artifact_obj):
     """Collect the raw data from the client for this artifact."""
-    artifact_name = artifact_obj.__class__.__name__
+    artifact_name = artifact_obj.name
 
-    test_conditions = list(artifact_obj.CONDITIONS)
-    # Turn SUPPORTED_OS into a condition.
-    if artifact_obj.SUPPORTED_OS:
-      filt = " OR ".join("os == '%s'" % o for o in artifact_obj.SUPPORTED_OS)
+    test_conditions = list(artifact_obj.conditions)
+    # Turn supported_os into a condition.
+    if artifact_obj.supported_os:
+      filt = " OR ".join("os == '%s'" % o for o in artifact_obj.supported_os)
       test_conditions.append(filt)
 
     # Check each of the conditions match our target.
@@ -214,7 +215,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         return
 
     # Call the collector defined action for each collector.
-    for collector in artifact_obj.COLLECTORS:
+    for collector in artifact_obj.collectors:
 
       # Check conditions on the collector.
       collector_conditions_met = True
@@ -236,8 +237,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           self.GetFiles(collector, path_type=self.state.path_type)
         elif action_name == "GetFiles":
           self.GetFiles(collector, path_type=self.state.path_type)
+        elif action_name == "ListFiles":
+          self.Glob(collector, self.state.path_type)
         elif action_name == "GetRegistryKeys":
-          self.GetRegistry(collector)
+          self.Glob(collector, rdfvalue.PathSpec.PathType.REGISTRY)
         elif action_name == "GetRegistryValue":
           self.GetRegistryValue(collector)
         elif action_name == "GetRegistryValues":
@@ -262,9 +265,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                       self.client_id)
 
   def _AreArtifactsKnowledgeBaseArtifacts(self):
-    for cls_name in self.args.artifact_list:
-      artifact_cls = self._GetArtifactClassFromName(cls_name)
-      if "KnowledgeBase" not in artifact_cls.LABELS:
+    knowledgebase_list = config_lib.CONFIG["Artifacts.knowledge_base"]
+    for artifact_name in self.args.artifact_list:
+      if artifact_name not in knowledgebase_list:
         return False
     return True
 
@@ -283,12 +286,12 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.CallFlow(
         "FetchFiles", paths=new_path_list, pathtype=path_type,
         request_data={"artifact_name": self.current_artifact_name,
-                      "collector": collector.ToDict()},
+                      "collector": collector.ToPrimitiveDict()},
         next_state="ProcessCollected"
         )
 
-  def GetRegistry(self, collector):
-    """Retrieve globbed registry values, returning Stat objects."""
+  def Glob(self, collector, pathtype):
+    """Glob paths, return StatEntry objects."""
     new_path_list = []
     for path in collector.args["path_list"]:
       # Interpolate any attributes from the knowledgebase.
@@ -297,9 +300,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     self.CallFlow(
         "Glob", paths=new_path_list,
-        pathtype=rdfvalue.PathSpec.PathType.REGISTRY,
+        pathtype=pathtype,
         request_data={"artifact_name": self.current_artifact_name,
-                      "collector": collector.ToDict()},
+                      "collector": collector.ToPrimitiveDict()},
         next_state="ProcessCollected"
         )
 
@@ -322,7 +325,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       self.CallClient(
           "StatFile", pathspec=pathspec,
           request_data={"artifact_name": self.current_artifact_name,
-                        "collector": collector.ToDict()},
+                        "collector": collector.ToPrimitiveDict()},
           next_state="ProcessRegistryValue"
           )
 
@@ -331,7 +334,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         "ArtifactCollectorFlow", artifact_list=collector.args["artifact_list"],
         store_results_in_aff4=False,
         request_data={"artifact_name": self.current_artifact_name,
-                      "collector": collector.ToDict()},
+                      "collector": collector.ToPrimitiveDict()},
         next_state="ProcessCollected"
         )
 
@@ -341,7 +344,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         "ArtifactCollectorFlow", artifact_list=collector.args["artifact_list"],
         store_results_in_aff4=False,
         request_data={"artifact_name": self.current_artifact_name,
-                      "collector": collector.ToDict()},
+                      "collector": collector.ToPrimitiveDict()},
         next_state="ProcessCollectedArtifactFiles"
         )
 
@@ -350,7 +353,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.CallClient("ExecuteCommand", cmd=collector.args["cmd"],
                     args=collector.args.get("args", {}),
                     request_data={"artifact_name": self.current_artifact_name,
-                                  "collector": collector.ToDict()},
+                                  "collector": collector.ToPrimitiveDict()},
                     next_state="ProcessCollected")
 
   def WMIQuery(self, collector):
@@ -362,7 +365,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       self.CallClient(
           "WmiQuery", query=query,
           request_data={"artifact_name": self.current_artifact_name,
-                        "collector": collector.ToDict()},
+                        "collector": collector.ToPrimitiveDict()},
           next_state="ProcessCollected"
           )
 
@@ -383,7 +386,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         "AnalyzeClientMemory", request=request,
         request_data={"artifact_name": self.current_artifact_name,
                       "vol_plugin": collector.args["plugin"],
-                      "collector": collector.ToDict()},
+                      "collector": collector.ToPrimitiveDict()},
         next_state="ProcessCollected"
         )
 
@@ -392,7 +395,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.CallClient(
         collector.args["client_action"],
         request_data={"artifact_name": self.current_artifact_name,
-                      "collector": collector.ToDict()},
+                      "collector": collector.ToPrimitiveDict()},
         next_state="ProcessCollected",
         **collector.args.get("action_args", {})
         )
@@ -422,18 +425,18 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       artifact_lib.ArtifactProcessingError: On failure to process.
     """
     flow_name = self.__class__.__name__
-    artifact_cls_name = responses.request_data["artifact_name"]
+    artifact_name = responses.request_data["artifact_name"]
     collector = responses.request_data.GetItem("collector", None)
 
     if responses.success:
       self.Log("Artifact data collection %s completed successfully in flow %s "
-               "with %d responses", artifact_cls_name, flow_name,
+               "with %d responses", artifact_name, flow_name,
                len(responses))
     else:
       self.Log("Artifact %s data collection failed. Status: %s.",
-               artifact_cls_name, responses.status)
+               artifact_name, responses.status)
       self.state.failed_count += 1
-      self.state.artifacts_failed.append(artifact_cls_name)
+      self.state.artifacts_failed.append(artifact_name)
       return
 
     # Initialize some local non-state saved variables for processing.
@@ -445,8 +448,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       self.aff4_output_map = {}
 
     # Now process the responses.
-    processors = parsers.Parser.GetClassesByArtifact(artifact_cls_name)
-    artifact_return_types = self._GetArtifactReturnTypes(collector)
+    processors = parsers.Parser.GetClassesByArtifact(artifact_name)
     saved_responses = {}
     for response in responses:
       if processors:
@@ -458,27 +460,25 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           else:
             # Process the response immediately
             self._ParseResponses(processor_obj, response, responses,
-                                 artifact_cls_name, collector)
+                                 artifact_name, collector)
       else:
-        # We don't have any defined processors for this artifact, we treat it
-        # like a dumb collection and send results back directly.
-        response_type = response.__class__.__name__
-        if not artifact_return_types or response_type in artifact_return_types:
-          self.SendReply(response)
-          if self.runner.output:
-            self._WriteResultToCollection(response, artifact_cls_name)
+        # We don't have any defined processors for this artifact.
+        self._ParseResponses(None, response, responses,
+                             artifact_name, collector)
 
     # If we were saving responses, process them now:
     for processor_name, responses_list in saved_responses.items():
       processor_obj = parsers.Parser.classes[processor_name]()
       self._ParseResponses(processor_obj, responses_list, responses,
-                           artifact_cls_name, collector)
+                           artifact_name, collector)
 
     # Flush the results to the objects.
     if self.runner.output:
-      self._FinalizeCollection(artifact_cls_name)
+      self._FinalizeCollection(artifact_name)
     if self.args.store_results_in_aff4:
-      self._FinalizeMappedAFF4Locations(artifact_cls_name)
+      self._FinalizeMappedAFF4Locations(artifact_name)
+    if self.state.client_anomaly_store:
+      self.state.client_anomaly_store.Flush()
 
   @flow.StateHandler(next_state="ProcessCollected")
   def ProcessCollectedArtifactFiles(self, responses):
@@ -510,6 +510,14 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     if collector:
       return collector["returned_types"]
 
+  def _ProcessAnomaly(self, anomaly_value):
+    """Write anomalies to the client in the data store."""
+    if not self.state.client_anomaly_store:
+      self.state.client_anomaly_store = aff4.FACTORY.Create(
+          self.client_id.Add("anomalies"), "RDFValueCollection",
+          token=self.token, mode="rw")
+    self.state.client_anomaly_store.Add(anomaly_value)
+
   def _ParseResponses(self, processor_obj, responses, responses_obj,
                       artifact_name, collector):
     """Create a result parser sending different arguments for diff parsers.
@@ -525,50 +533,72 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     Raises:
       RuntimeError: On bad parser.
     """
-    if processor_obj.process_together:
-      # We are processing things in a group which requires specialized
-      # handling by the parser. This is used when multiple responses need to
-      # be combined to parse successfully. E.g parsing passwd and shadow files
-      # together.
-      parse_method = processor_obj.ParseMultiple
-    else:
-      parse_method = processor_obj.Parse
-
-    if isinstance(processor_obj, parsers.CommandParser):
-      # Command processor only supports one response at a time.
-      response = responses
-      result_parser = parse_method(
-          cmd=response.request.cmd,
-          args=response.request.args,
-          stdout=response.stdout,
-          stderr=response.stderr,
-          return_val=response.exit_status,
-          time_taken=response.time_used,
-          knowledge_base=self.state.knowledge_base)
-
-    elif isinstance(processor_obj, parsers.WMIQueryParser):
-      query = collector["args"]["query"]
-      result_parser = parse_method(query, responses, self.state.knowledge_base)
-
-    elif isinstance(processor_obj, (parsers.RegistryParser,
-                                    parsers.VolatilityPluginParser,
-                                    parsers.RegistryValueParser)):
-      result_parser = parse_method(responses, self.state.knowledge_base)
-
-    elif isinstance(processor_obj, (parsers.ArtifactFilesParser)):
-      result_parser = parse_method(responses, self.state.knowledge_base,
-                                   self.state.path_type)
+    _ = responses_obj
+    if not processor_obj:
+      # We don't do any parsing, the results are raw as they came back.
+      result_iterator = responses
 
     else:
-      raise RuntimeError("Unsupported parser detected %s" % processor_obj)
+      # We have some processors to run.
+      if processor_obj.process_together:
+        # We are processing things in a group which requires specialized
+        # handling by the parser. This is used when multiple responses need to
+        # be combined to parse successfully. E.g parsing passwd and shadow files
+        # together.
+        parse_method = processor_obj.ParseMultiple
+      else:
+        parse_method = processor_obj.Parse
+
+      if isinstance(processor_obj, parsers.CommandParser):
+        # Command processor only supports one response at a time.
+        response = responses
+        result_iterator = parse_method(
+            cmd=response.request.cmd,
+            args=response.request.args,
+            stdout=response.stdout,
+            stderr=response.stderr,
+            return_val=response.exit_status,
+            time_taken=response.time_used,
+            knowledge_base=self.state.knowledge_base)
+
+      elif isinstance(processor_obj, parsers.WMIQueryParser):
+        query = collector["args"]["query"]
+        result_iterator = parse_method(query, responses,
+                                       self.state.knowledge_base)
+
+      elif isinstance(processor_obj, parsers.FileParser):
+        if processor_obj.process_together:
+          file_objects = [aff4.FACTORY.Open(r.aff4path, token=self.token)
+                          for r in responses]
+          result_iterator = parse_method(responses, file_objects,
+                                         self.state.knowledge_base)
+        else:
+          fd = aff4.FACTORY.Open(responses.aff4path, token=self.token)
+          result_iterator = parse_method(responses, fd,
+                                         self.state.knowledge_base)
+
+      elif isinstance(processor_obj, (parsers.RegistryParser,
+                                      parsers.VolatilityPluginParser,
+                                      parsers.RegistryValueParser)):
+        result_iterator = parse_method(responses, self.state.knowledge_base)
+
+      elif isinstance(processor_obj, (parsers.ArtifactFilesParser)):
+        result_iterator = parse_method(responses, self.state.knowledge_base,
+                                       self.state.path_type)
+
+      else:
+        raise RuntimeError("Unsupported parser detected %s" % processor_obj)
 
     artifact_return_types = self._GetArtifactReturnTypes(collector)
 
-    if result_parser:
+    if result_iterator:
       # If we have a parser, do something with the results it produces.
-      for result in result_parser:
+      for result in result_iterator:
         result_type = result.__class__.__name__
-        if not artifact_return_types or result_type in artifact_return_types:
+        if result_type == "Anomaly":
+          # Anomalies are special results and get handled separately.
+          self._ProcessAnomaly(result)
+        elif not artifact_return_types or result_type in artifact_return_types:
           self.SendReply(result)    # Send to parent.
           if self.runner.output:
             # Output is set, we need to write to a collection.
@@ -642,6 +672,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     Returns:
       A tuple of (aff4 object, attribute, operator)
+
+    Raises:
+      ArtifactProcessingError: If there is no defined mapping.
     """
 
     rdf_type = artifact.GRRArtifactMappings.rdf_map.get(output_type)
@@ -669,19 +702,19 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     return result_object, result_attr, operator
 
-  def _GetArtifactClassFromName(self, name):
+  def _GetArtifactFromName(self, name):
     """Get an artifact class from the cache in the flow."""
-    if name in artifact_lib.Artifact.classes:
-      return artifact_lib.Artifact.classes[name]
+    if name in artifact_lib.ArtifactRegistry.artifacts:
+      return artifact_lib.ArtifactRegistry.artifacts[name]
     else:
       # If we don't have an artifact, things shouldn't have passed validation
       # so we assume its a new one in the datastore.
-      artifact.LoadArtifactsFromDatastore()
-      if name not in artifact_lib.Artifact.classes:
+      artifact.LoadArtifactsFromDatastore(token=self.token)
+      if name not in artifact_lib.ArtifactRegistry.artifacts:
         raise RuntimeError("ArtifactCollectorFlow failed due to unknown "
                            "Artifact %s" % name)
       else:
-        return artifact_lib.Artifact.classes[name]
+        return artifact_lib.ArtifactRegistry.artifacts[name]
 
   @flow.StateHandler()
   def End(self):

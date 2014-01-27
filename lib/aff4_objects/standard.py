@@ -64,7 +64,7 @@ class VFSDirectory(aff4.AFF4Volume):
           # We stripped pieces of the URL, time to add them back at the deepest
           # nested path.
           new_path = utils.JoinPath(pathspec.last.path,
-                                    *stripped_components[:-1])
+                                    *reversed(stripped_components[:-1]))
           pathspec.last.path = new_path
 
         flow_id = flow.GRRFlow.StartFlow(client_id=client_id,

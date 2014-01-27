@@ -587,20 +587,14 @@ class WMIRequest(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.WmiRequest
 
 
-class LaunchdJob(rdfvalue.RDFProtoStruct):
-  protobuf = sysinfo_pb2.LaunchdJob
+class WindowsServiceInformation(rdfvalue.RDFProtoStruct):
+  """Windows Service."""
+  protobuf = sysinfo_pb2.WindowsServiceInformation
 
 
-class Service(rdfvalue.RDFProtoStruct):
-  """Structure of a running service."""
-  protobuf = sysinfo_pb2.Service
-
-  rdf_map = dict(osx_launchd=LaunchdJob)
-
-
-class Services(protodict.RDFValueArray):
-  """Structure of a running service."""
-  rdf_type = Service
+class OSXServiceInformation(rdfvalue.RDFProtoStruct):
+  """OSX Service (launchagent/daemon)."""
+  protobuf = sysinfo_pb2.OSXServiceInformation
 
 
 class ClientResources(rdfvalue.RDFProtoStruct):

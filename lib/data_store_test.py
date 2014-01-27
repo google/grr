@@ -659,7 +659,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     self.assertEqual(10, len(results))
     for i in range(0, 10):
-      self.assertEqual(results[i][1], "Cell "+predicates[i])
+      self.assertEqual(results[i][1], "Cell " + predicates[i])
       self.assertEqual(results[i][0], predicates[i])
 
   def testAFF4Image(self):
@@ -682,6 +682,9 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     fd.AddBlob(digest, len(data))
     fd.Close(sync=True)
+
+    # Chunks are written async, we have to flush here.
+    data_store.DB.Flush()
 
     # Check if we can read back the data.
     fd = aff4.FACTORY.Open("aff4:/C.1235/image", token=self.token)

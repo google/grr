@@ -4,6 +4,7 @@
 
 syntax = "proto2";
 
+import "grr/proto/jobs.proto";
 import "grr/proto/semantic.proto";
 
 
@@ -107,28 +108,152 @@ message RunKey {
   optional uint64 lastwritten = 3 [default = 0];
 }
 
-//OS X specific aspects of a service
-message LaunchdJob {
-  optional string sessiontype = 1;
-  optional uint64 lastexitstatus = 2;
-  optional uint64 timeout = 3;
-  optional bool ondemand = 4;
-  repeated string machservice = 5;
-  repeated string perjobmachservice = 6;
-  repeated string socket = 7;
+message WindowsServiceInformation {
+  option (semantic) = {
+    description: "Describe a windows service or driver. Field names follow"
+    " the cybox naming scheme where possible: "
+    "http://cybox.mitre.org/language/version2.0.1/xsddocs/objects/Win_Service_Object.html",
+  };
+
+  optional string name = 1 [(sem_type) = {
+      description: "The name of the service.",
+    }];
+
+  optional string description = 2 [(sem_type) = {
+      description: "The description string of the service.",
+    }];
+
+  optional StatEntry binary = 3 [(sem_type) = {
+      description: "The binary on the client. This may also contain an AFF4 "
+      "urn to the server copy of the same file.",
+    }];
+
+  optional string state = 4 [(sem_type) = {
+      description: "Current state of the service.",
+    }];
+
+  optional Dict wmi_information = 5 [(sem_type) = {
+      description: "Additional information available through WMI.",
+    }];
+
+  optional string display_name = 6 [(sem_type) = {
+      description: "Displayed name of the service in Windows GUI controls.",
+    }];
+
+  optional string driver_package_id = 7 [(sem_type) = {
+      description: "Driver Package ID of the service.",
+    }];
+
+  enum ErrorControl {
+    CRITICAL = 3;
+    SEVERE = 2;
+    NORMAL = 1;
+    IGNORE = 0;
+  };
+
+  optional ErrorControl error_control = 8 [(sem_type) = {
+      description: "Behaviour of the service on failure to load/initialize",
+    }];
+
+  optional string image_path = 9 [(sem_type) = {
+      description: "ImagePath of the service.",
+    }];
+
+  optional string object_name = 10 [(sem_type) = {
+      description: "ObjectName of the service.",
+    }];
+
+  enum ServiceMode {
+    SERVICE_BOOT_START = 0;
+    SERVICE_SYSTEM_START = 1;
+    SERVICE_AUTO_START = 2;
+    SERVICE_DEMAND_START = 3;
+    SERVICE_DISABLED = 4;
+  };
+
+  optional ServiceMode startup_type = 11 [(sem_type) = {
+      description: "Service start options",
+    }];
+
+  enum ServiceType {
+    SERVICE_KERNEL_DRIVER = 0x1;
+    SERVICE_FILE_SYSTEM_DRIVER = 0x2;
+    SERVICE_ADAPTER_ARGS = 0x4;
+    SERVICE_WIN32_OWN_PROCESS = 0x10;
+    SERVICE_WIN32_SHARE_PROCESS = 0x20;
+  };
+
+  optional ServiceType service_type = 12 [(sem_type) = {
+      description: "Type of the service.",
+    }];
+
+  optional string group_name = 13 [(sem_type) = {
+      description: "Specifies the name of the load ordering group of which "
+      "this service is a member.",
+    }];
+
+  optional string service_dll = 14 [(sem_type) = {
+      description: "Name of the DLL instantiated in the service.",
+    }];
+
+  optional string registry_key = 15 [(sem_type) = {
+      type: "RDFURN",
+      description: "The AFF4 location for the service registry key."
+    }];
 
 }
 
-// Describe a running service:
-// Windows service,
-// linux daemon
-// OS X launchd jobs (launchagents/daemons)
-message Service {
-  optional string label = 1;
-  optional string program = 2;
-  optional string args = 3;
-  optional uint64 pid = 4;
-  optional LaunchdJob osx_launchd = 5;
+message OSXServiceInformation {
+  option (semantic) = {
+    description: "Describe an OS X service (launchagent/daemon).",
+  };
+
+  optional string label = 1 [(sem_type) = {
+      description: "Service label.",
+    }];
+  optional string program = 2 [(sem_type) = {
+      description: "Program path run by the service.",
+    }];
+  repeated string args = 3 [(sem_type) = {
+      description: "Program args.  May also include executable if Program is"
+                   " not set.",
+    }];
+  optional uint64 pid = 4 [(sem_type) = {
+      description: "Current service PID"
+    }];
+
+  optional string sessiontype = 5 [(sem_type) = {
+      description: "SessionType: Aqua|StandardIO|Background|LoginWindow"
+    }];
+
+  optional uint64 lastexitstatus = 6 [(sem_type) = {
+      description: "Last exit return code of service."
+    }];
+
+  optional uint64 timeout = 7 [(sem_type) = {
+      description: "Service timeout."
+    }];
+
+  optional bool ondemand = 8 [(sem_type) = {
+      description: "True if the service should start ondemand."
+    }];
+
+  repeated string machservice = 9 [(sem_type) = {
+      description: "Machservices advertised by this service."
+    }];
+
+  repeated string perjobmachservice = 10 [(sem_type) = {
+      description: "Machservices advertised by this service."
+    }];
+
+  repeated string socket = 11 [(sem_type) = {
+      description: "Sockets used by this service."
+    }];
+
+  optional string plist = 15 [(sem_type) = {
+      type: "RDFURN",
+      description: "The AFF4 location for the service plist."
+    }];
 }
 
 // Describe an installed software package. Cross platform.
@@ -145,4 +270,46 @@ message SoftwarePackage {
   };
   optional InstallState install_state = 5 [default = UNKNOWN];
   optional string description = 6;
+  optional uint64 installed_on = 7;
+  optional string installed_by = 8;
+
+}
+
+
+// An item from the browser history.
+message BrowserHistoryItem {
+
+  optional string url = 1 [(sem_type) = {
+      description: "The URL visited.",
+    }];
+
+  optional string domain = 2 [(sem_type) = {
+      description: "Domain name accessed.",
+    }];
+
+  optional uint64 access_time = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Time the URL was accessed.",
+    }];
+
+  optional string referrer = 4 [(sem_type) = {
+      description: "Referrer used for the access",
+    }];
+
+  optional string title = 5 [(sem_type) = {
+      description: "Title attribute of the page if available.",
+    }];
+
+  optional string program_name = 6 [(sem_type) = {
+      description: "Name of the program that generated the entry, e.g. Chrome.",
+    }];
+
+  optional string source_urn = 7 [(sem_type) = {
+      type: "RDFURN",
+      description: "Location of object that this entry was found in.",
+    }];
+
+  optional string download_path = 8 [(sem_type) = {
+      description: "Path of downloaded file.",
+    }];
 }

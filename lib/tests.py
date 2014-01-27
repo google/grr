@@ -20,6 +20,7 @@ from grr.lib import export_utils_test
 from grr.lib import flow_test
 from grr.lib import flow_utils_test
 from grr.lib import front_end_test
+from grr.lib import fuse_mount_test
 from grr.lib import hunt_test
 from grr.lib import lexer_test
 from grr.lib import objectfilter_test

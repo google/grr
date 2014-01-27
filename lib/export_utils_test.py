@@ -25,6 +25,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
     self.out = self.client_id.Add("fs/os")
     self.CreateFile("testfile1")
     self.CreateFile("testfile2")
+    self.CreateFile("testfile5")
     self.CreateDir("testdir1")
     self.CreateFile("testdir1/testfile3")
     self.CreateDir("testdir1/testdir2")
@@ -57,6 +58,8 @@ class TestExports(test_lib.FlowTestsBaseclass):
                              token=self.token)
     fd.Add(rdfvalue.RDFURN(self.out.Add("testfile1")))
     fd.Add(rdfvalue.StatEntry(aff4path=self.out.Add("testfile2")))
+    fd.Add(rdfvalue.FileFinderResult(
+        stat_entry=rdfvalue.StatEntry(aff4path=self.out.Add("testfile5"))))
     fd.Close()
 
     with utils.TempDirectory() as tmpdir:
@@ -68,6 +71,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
       # Check we found both files.
       self.assertTrue("testfile1" in os.listdir(expected_outdir))
       self.assertTrue("testfile2" in os.listdir(expected_outdir))
+      self.assertTrue("testfile5" in os.listdir(expected_outdir))
 
       # Check we dumped a YAML file to the root of the client.
       expected_rootdir = os.path.join(tmpdir, self.client_id.Basename())

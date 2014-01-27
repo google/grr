@@ -29,7 +29,7 @@ class CollectRunKeyBinaries(flow.GRRFlow):
   def Start(self):
     """Get runkeys via the ArtifactCollectorFlow."""
     self.CallFlow("ArtifactCollectorFlow", artifact_list=["WindowsRunKeys"],
-                  use_tsk=True, store_results_in_aff4=True,
+                  use_tsk=True, store_results_in_aff4=False,
                   next_state="ParseRunKeys")
 
   def _IsExecutableExtension(self, path):

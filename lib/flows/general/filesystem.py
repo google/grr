@@ -38,7 +38,7 @@ class ListDirectory(flow.GRRFlow):
 
   category = "/Filesystem/"
   args_type = ListDirectoryArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
 
   @flow.StateHandler(next_state=["List", "Stat"])
   def Start(self):
@@ -416,6 +416,10 @@ class SlowGetFile(flow.GRRFlow):
 class GlobArgs(rdfvalue.RDFProtoStruct):
   protobuf = flows_pb2.GlobArgs
 
+  def Validate(self):
+    """Ensure that the glob paths are valid."""
+    self.paths.Validate()
+
 
 class Glob(flow.GRRFlow):
   """Glob the filesystem for patterns.
@@ -433,7 +437,9 @@ class Glob(flow.GRRFlow):
 
   # A regex indicating if there are shell globs in this path.
   GLOB_MAGIC_CHECK = re.compile("[*?[]")
-  RECURSION_REGEX = re.compile(r"\*\*(\d*)")
+
+  # Maximum number of files to inspect in a single directory
+  FILE_MAX_PER_DIR = 100000
 
   def ConvertGlobIntoPathComponents(self, pattern):
     """Converts a glob pattern into a list of pathspec components.
@@ -457,22 +463,17 @@ class Glob(flow.GRRFlow):
     Raises:
       ValueError: If the glob is invalid.
     """
-    starstar_used = False
 
     components = []
     for path_component in pattern.split("/"):
       # A ** in the path component means recurse into directories that match the
       # pattern.
-      m = self.RECURSION_REGEX.search(path_component)
+      m = rdfvalue.GlobExpression.RECURSION_REGEX.search(path_component)
       if m:
-        if starstar_used:
-          raise ValueError("wildcards ** can be used once per path at most.")
-
-        starstar_used = True
         path_component = path_component.replace(m.group(0), "*")
 
         component = rdfvalue.PathSpec(
-            path="(?i)^" + fnmatch.translate(path_component),
+            path=fnmatch.translate(path_component),
             path_options=rdfvalue.PathSpec.Options.RECURSIVE)
 
         # Allow the user to override the recursion depth.
@@ -481,8 +482,7 @@ class Glob(flow.GRRFlow):
 
       elif self.GLOB_MAGIC_CHECK.search(path_component):
         component = rdfvalue.PathSpec(
-            # We have to prefix the regex with the ignore case flag here.
-            path="(?i)^" + fnmatch.translate(path_component),
+            path=fnmatch.translate(path_component),
             path_options=rdfvalue.PathSpec.Options.REGEX)
       else:
         component = rdfvalue.PathSpec(
@@ -532,7 +532,10 @@ class Glob(flow.GRRFlow):
 
     # Process the component tree from the root.
     root = rdfvalue.StatEntry()
-    root.pathspec.path = "/"
+    root.pathspec = self.state.args.root_path
+    if not root.pathspec:
+      root.pathspec.path = "/"
+    # root_path.pathtype overridden by user-settable args.pathtype
     root.pathspec.pathtype = self.state.args.pathtype
     self.CallStateInline(messages=[root], next_state="ProcessEntry",
                          request_data=dict(component_path=[]))
@@ -563,8 +566,20 @@ class Glob(flow.GRRFlow):
     component_path = responses.request_data["component_path"]
     node = self.FindNode(component_path)
 
+    # If we get a response with an unfinished iterator then we missed some
+    # files. Call Find on the client until we're done.
+    if (responses.iterator and responses.iterator.state !=
+        responses.iterator.State.FINISHED):
+      findspec = rdfvalue.FindSpec(responses.request.request.args)
+      findspec.iterator = responses.iterator
+      self.CallClient("Find", findspec,
+                      next_state="ProcessEntry",
+                      request_data=responses.request_data)
+
+    regexes_to_get = []
+    recursions_to_get = {}
     for response in responses:
-      # The Find client action does not return a StatEntry but an
+      # The Find client action does not return a StatEntry but a
       # FindSpec. Normalize to a StatEntry.
       if isinstance(response, rdfvalue.FindSpec):
         response = response.hit
@@ -578,42 +593,24 @@ class Glob(flow.GRRFlow):
           # Use the pathtype from the flow args.
           component.pathtype = self.state.args.pathtype
           if component.path_options == component.Options.RECURSIVE:
-            findspec = rdfvalue.FindSpec(pathspec=response.pathspec,
-                                         cross_devs=True,
-                                         max_depth=component.recursion_depth,
-                                         path_regex=component.path)
-
-            # We don't really support iteration here, so we make sure we will
-            # check all the files in this directory.
-            findspec.iterator.number = 100000
-            self.CallClient("Find", findspec,
-                            next_state="ProcessEntry",
-                            request_data=dict(component_path=next_component))
-
+            recursions_to_get.setdefault(component.recursion_depth, []).append(
+                component)
           elif component.path_options == component.Options.REGEX:
-            findspec = rdfvalue.FindSpec(pathspec=response.pathspec,
-                                         max_depth=1,
-                                         path_regex=component.path)
-
-            # We don't really support iteration here, so we make sure we will
-            # check all the files in this directory.
-            findspec.iterator.number = 100000
-            self.CallClient("Find", findspec,
-                            next_state="ProcessEntry",
-                            request_data=dict(component_path=next_component))
+            regexes_to_get.append(component)
 
           elif component.path_options == component.Options.CASE_INSENSITIVE:
             # Check for the existence of the last node.
             if not next_node:
-              findspec = rdfvalue.FindSpec(
-                  pathspec=response.pathspec,
-                  max_depth=1, path_regex="(?i)^" + component.path + "$")
+              pathspec = response.pathspec.Copy().AppendPath(component.path)
+              request = rdfvalue.ListDirRequest(pathspec=pathspec)
 
-              # If next node is empty, this node is a leaf node, we therefore
-              # must stat it to check that it is there.
-              self.CallClient("Find", findspec,
-                              next_state="ProcessEntry",
-                              request_data=dict(component_path=next_component))
+              if response.st_mode == 0 or not stat.S_ISREG(response.st_mode):
+                # If next node is empty, this node is a leaf node, we therefore
+                # must stat it to check that it is there.
+                self.CallClient(
+                    "StatFile", request, next_state="ProcessEntry",
+                    request_data=dict(component_path=next_component))
+
             else:
               pathspec = response.pathspec.Copy().AppendPath(component.path)
 
@@ -625,6 +622,33 @@ class Glob(flow.GRRFlow):
                   next_state="ProcessEntry",
                   request_data=dict(component_path=next_component))
 
+        if recursions_to_get:
+          for depth, recursions in recursions_to_get.iteritems():
+            path_regex = "(?i)^" + "$|^".join(
+                set([c.path for c in recursions])) + "$"
+
+            findspec = rdfvalue.FindSpec(pathspec=response.pathspec,
+                                         cross_devs=True,
+                                         max_depth=depth,
+                                         path_regex=path_regex)
+
+            findspec.iterator.number = self.FILE_MAX_PER_DIR
+            self.CallClient("Find", findspec,
+                            next_state="ProcessEntry",
+                            request_data=dict(component_path=next_component))
+
+        if regexes_to_get:
+          path_regex = "(?i)^" + "$|^".join(
+              set([c.path for c in regexes_to_get])) + "$"
+          findspec = rdfvalue.FindSpec(pathspec=response.pathspec,
+                                       max_depth=1,
+                                       path_regex=path_regex)
+
+          findspec.iterator.number = self.FILE_MAX_PER_DIR
+          self.CallClient("Find", findspec,
+                          next_state="ProcessEntry",
+                          request_data=dict(component_path=next_component))
+
       else:
-        # Node is empty representing a leaf node - we found a hit - report i.
+        # Node is empty representing a leaf node - we found a hit - report it.
         self.ReportMatch(response)

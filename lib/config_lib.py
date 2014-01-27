@@ -453,7 +453,7 @@ class StringInterpolator(lexer.Lexer):
 
       # Expansion sequence is %(....)
       lexer.Token(None, r"\%\(", "StartExpression", None),
-      lexer.Token(None, r"\|([a-zA-Z]+)\)", "Filter", None),
+      lexer.Token(None, r"\|([a-zA-Z_]+)\)", "Filter", None),
       lexer.Token(None, r"\)", "ExpandArg", None),
 
       # Glob up as much data as possible to increase efficiency here.
@@ -1085,7 +1085,7 @@ class GrrConfigManager(object):
   def InterpolateValue(self, value, type_info_obj=type_info.String(),
                        default_section=None, context=None):
     """Interpolate the value and parse it with the appropriate type."""
-    # It is only possible to interpolate strings.
+    # It is only possible to interpolate strings...
     if isinstance(value, basestring):
       value = StringInterpolator(
           value, self, default_section=default_section,
@@ -1093,6 +1093,11 @@ class GrrConfigManager(object):
 
       # Parse the data from the string.
       value = type_info_obj.FromString(value)
+
+    # ... and lists of strings.
+    if isinstance(value, list):
+      value = [self.InterpolateValue(
+          v, default_section=default_section, context=context) for v in value]
 
     return value
 

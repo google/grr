@@ -6,6 +6,7 @@ This module contains the various RDFValue implementations.
 
 
 # These need to register plugins so, pylint: disable=unused-import
+from grr.lib.rdfvalues import anomaly
 from grr.lib.rdfvalues import artifacts
 from grr.lib.rdfvalues import client
 from grr.lib.rdfvalues import crypto
@@ -19,3 +20,4 @@ from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import stats
 from grr.lib.rdfvalues import structs
 from grr.lib.rdfvalues import volatility_types
+from grr.lib.rdfvalues import webhistory

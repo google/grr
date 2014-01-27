@@ -46,7 +46,7 @@ class SearchFileContent(flow.GRRFlow):
       self.runner.output.Set(self.runner.output.Schema.DESCRIPTION(
           "SearchFiles {0}".format(self.__class__.__name__)))
 
-    self.CallFlow("Glob", next_state="Grep",
+    self.CallFlow("Glob", next_state="Grep", root_path=self.args.root_path,
                   paths=self.args.paths, pathtype=self.args.pathtype)
 
   @flow.StateHandler(next_state=["WriteHits", "End"])

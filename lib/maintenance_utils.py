@@ -93,8 +93,14 @@ def UploadSignedDriverBlob(content, aff4_path=None, client_context=None,
                                   context=client_context)
 
   if aff4_path is None:
-    aff4_path = config_lib.CONFIG.Get("MemoryDriver.aff4_path",
-                                      context=client_context)
+    aff4_paths = config_lib.CONFIG.Get("MemoryDriver.aff4_paths",
+                                       context=client_context)
+    if not aff4_paths:
+      raise IOError("Could not determine driver location.")
+    if len(aff4_paths) > 1:
+      logging.info("Possible driver locations: %s", aff4_paths)
+      raise IOError("Ambiguous driver location, please specify.")
+    aff4_path = aff4_paths[0]
 
   blob_rdf = rdfvalue.SignedBlob()
   blob_rdf.Sign(content, sig_key, ver_key, prompt=True)
@@ -151,11 +157,10 @@ def CreateBinaryConfigPaths(token=None):
         client_context = ["Platform:%s" % platform.title(),
                           "Arch:%s" % arch]
 
-        aff4_path = rdfvalue.RDFURN(
-            config_lib.CONFIG.Get("MemoryDriver.aff4_path",
-                                  context=client_context))
-
-        required_urns.add(aff4_path.Basename())
+        aff4_paths = config_lib.CONFIG.Get("MemoryDriver.aff4_paths",
+                                           context=client_context)
+        for aff4_path in aff4_paths:
+          required_urns.add(rdfvalue.RDFURN(aff4_path).Basename())
 
       required_urns.add("aff4:/config/executables/%s/agentupdates" % platform)
       required_urns.add("aff4:/config/executables/%s/installers" % platform)

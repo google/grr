@@ -40,6 +40,9 @@ class BuildConfigTests(test_lib.GRRBaseTest):
                 "PrivateKeys.server_key", "PrivateKeys.ca_key",
                 "PrivateKeys.driver_signing_private_key"]
 
+  disabled_filters = [
+      ]
+
   def testAllConfigs(self):
     """Go through all our config files looking for errors."""
     configs = []
@@ -47,15 +50,21 @@ class BuildConfigTests(test_lib.GRRBaseTest):
     # Test the current loaded configuration.
     configs.append(config_lib.CONFIG)
 
-    for config_file in configs:
-      errors = ValidateConfig(config_file)
+    test_filter_map = config_lib.ConfigFilter.classes_by_name
+    for filter_name in self.disabled_filters:
+      test_filter_map[filter_name] = config_lib.ConfigFilter
 
-      for exception in self.exceptions:
-        errors.pop(exception, None)
+    with test_lib.Stubber(config_lib.ConfigFilter, "classes_by_name",
+                          test_filter_map):
+      for config_file in configs:
+        errors = ValidateConfig(config_file)
 
-      if errors:
-        self.fail("Validation of %s returned errors: %s" % (
-            config_file, errors))
+        for exception in self.exceptions:
+          errors.pop(exception, None)
+
+        if errors:
+          self.fail("Validation of %s returned errors: %s" % (
+              config_file, errors))
 
 
 def main(argv):

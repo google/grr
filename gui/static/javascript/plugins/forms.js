@@ -66,11 +66,10 @@ grr.forms.selectOnChange = function(element) {
  */
 grr.forms.clearPrefix = function(element, prefix) {
   var form_data = $(element).closest('.FormData');
-  var data = form_data.data();
 
   if (form_data) {
-    $.each(data, function(k, v) {
-      if (k.substring(0, prefix.length) == prefix) {
+    $.each(form_data.data(), function(k, v) {
+      if (k == prefix || k.substring(0, prefix.length + 1) == prefix + '-') {
         form_data.removeData(k);
       }
     });
@@ -114,13 +113,12 @@ grr.Renderer('RepeatedFieldFormRenderer', {
     var unique = state.unique;
 
     $('button#add_' + unique).click(function(event) {
-      var count = $(this).data('count') + 1;
+      var count = $(this).data('count');
       var new_id = 'content_' + unique + '_' + count;
 
-      $(this).data('count', count);
-
       // Store the total count of members in the form.
-      $(this).closest('.FormData').data()[state.prefix + '_count'] = count;
+      $(this).closest('.FormData').data()[state.prefix + '_count'] = count + 1;
+      $(this).data('count', count + 1);
 
       $('#content_' + unique).append('<div id="' + new_id + '"/>');
 
@@ -135,10 +133,16 @@ grr.Renderer('RepeatedFieldFormRenderer', {
   },
 
   RenderAjax: function(state) {
-    $(state.unique).on('close', function() {
-      var data = $(this).data();
+    var unique = state.unique;
 
-      grr.forms.clearPrefix(this, data.prefix + '-' + data.index + '-');
+    $('button#remove_' + unique).click(function(event) {
+      var form_id = '#' + unique;
+
+      var data = $('#' + unique).data();
+      grr.forms.clearPrefix(this, data.prefix + '-' + data.index);
+
+      $(this).remove();
+      $(form_id).remove();
     });
   }
 });
@@ -178,11 +182,8 @@ grr.Renderer('OptionFormRenderer', {
       grr.forms.inputOnChange(this);
 
       var data = $.extend({}, $(this).closest('.FormData').data());
-      var form = $(this).closest('.OptionList');
-      data.item = form.data('item');
-      data.prefix = state.prefix;
-
-      grr.update(state.renderer, form.attr('id') + '-' + data.item, data);
+      data['prefix'] = state.prefix;
+      grr.update(state.renderer, state.unique + '-option-form', data);
 
       // First time the form appears, trigger the change event on the selector
       // to make the default choice appear.
@@ -206,7 +207,7 @@ grr.Renderer('MultiFormRenderer', {
       data[option + '_count'] = count + 1;
 
       var new_div = $('<div class="alert fade in" id="' +
-          new_id + '" data-item="' + data.item + '" >');
+          new_id + '" data-item="' + count + '" >');
 
       new_div.on('close', function() {
         var item = $(this).data('item');
@@ -258,7 +259,10 @@ grr.Renderer('RDFDatetimeFormRenderer', {
       showOn: 'button',
       buttonImage: 'static/images/clock.png',
       buttonImageOnly: true,
-      altField: '#' + state.prefix
+      altField: '#' + state.prefix,
+      onSelect: function(dateText, inst) {
+        $('#' + state.prefix).trigger('change');
+     }
     });
   }
 });

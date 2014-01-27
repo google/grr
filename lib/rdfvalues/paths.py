@@ -216,8 +216,13 @@ class GlobExpression(rdfvalue.RDFString):
   3) Wild cards like * and ?
   """
 
-  def __str__(self):
-    return "<GlobExpression: %s>" % self._value
+  RECURSION_REGEX = re.compile(r"\*\*(\d*)")
+
+  def Validate(self):
+    """GlobExpression is valid."""
+    if len(self.RECURSION_REGEX.findall(self._value)) > 1:
+      raise ValueError("Only one ** is permitted per path: %s." %
+                       self._value)
 
   def Interpolate(self, client=None):
     for pattern in self.InterpolateClientAttributes(client=client):

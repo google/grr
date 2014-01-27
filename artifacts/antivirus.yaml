@@ -1,0 +1,31 @@
+name: SophosWinLogs
+doc: Sophos Logs for Windows.
+collectors:
+- action: GetFile
+  args: {path: '%%environ_allusersappdata%%\Sophos\Sophos Anti-Virus\Logs\*'}
+labels: [Antivirus, Logs]
+supported_os: [Windows]
+---
+name: SophosWinQuarantineFiles
+doc: Sophos Infected files for Windows.
+collectors:
+- action: GetFile
+  args: {path: '%%environ_allusersappdata%%\Sophos\Sophos Anti-Virus\INFECTED\*'}
+labels: [Antivirus]
+supported_os: [Windows]
+---
+name: SophosMacLogs
+doc: Sophos Logs for OSX.
+collectors:
+- action: GetFile
+  args: {path: /Library/Logs/Sophos*.log}
+labels: [Antivirus, Logs]
+supported_os: [Darwin]
+---
+name: SophosMacQuarantineFiles
+doc: Sophos Infected files for OSX.
+collectors:
+- action: GetFile
+  args: {path: /Users/Shared/Infected}
+labels: [Antivirus]
+supported_os: [Darwin]

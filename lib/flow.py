@@ -46,7 +46,6 @@ import operator
 import time
 
 
-from M2Crypto import RSA
 from M2Crypto import X509
 
 import logging
@@ -102,7 +101,7 @@ class Responses(object):
 
       # The iterator that was returned as part of these responses. This should
       # be passed back to actions that expect an iterator.
-      self.iterator = rdfvalue.Iterator()
+      self.iterator = None
 
       # Filter the responses by authorized states
       for msg in responses:
@@ -118,6 +117,7 @@ class Responses(object):
 
         # Check for iterators
         if msg.type == msg.Type.ITERATOR:
+          self.iterator = rdfvalue.Iterator()
           self.iterator.ParseFromString(msg.args)
           continue
 
@@ -204,6 +204,7 @@ class FakeResponses(Responses):
     self.success = True
     self._responses = messages
     self.request_data = request_data
+    self.iterator = None
 
   def __iter__(self):
     return iter(self._responses)
@@ -1367,36 +1368,10 @@ class ServerCommunicator(communicator.Communicator):
     """
     result = rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED
     try:
-      if api_version >= 3:
-        # New version:
-        if cipher.HMAC(response_comms.encrypted) != response_comms.hmac:
-          raise communicator.DecryptionError("HMAC does not match.")
+      if cipher.HMAC(response_comms.encrypted) != response_comms.hmac:
+        raise communicator.DecryptionError("HMAC does not match.")
 
-        if cipher.signature_verified:
-          result = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
-
-      else:
-        # Fake the metadata
-        cipher.cipher_metadata = rdfvalue.CipherMetadata(
-            source=signed_message_list.source)
-
-        # Verify the incoming message.
-        digest = cipher.hash_function(
-            signed_message_list.message_list).digest()
-
-        remote_public_key = self.pub_key_cache.GetRSAPublicKey(
-            common_name=signed_message_list.source)
-
-        try:
-          stats.STATS.IncrementCounter("grr_rsa_operations")
-          # Signature is not verified, we consider the message unauthenticated.
-          if remote_public_key.verify(digest, signed_message_list.signature,
-                                      cipher.hash_function_name) != 1:
-            return rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED
-
-        except RSA.RSAError as e:
-          raise communicator.DecryptionError(e)
-
+      if cipher.signature_verified:
         result = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
 
       if result == rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED:

@@ -1,0 +1,102 @@
+
+
+name: HostAccessPolicyConfiguration
+doc: Linux files related to host access policy configuration.
+collectors:
+- action: GetFiles
+  args:
+    path_list: [/etc/hosts.allow, /etc/hosts.deny]
+labels: [Configuration Files]
+supported_os: [Linux]
+---
+name: RedhatPackagesList
+doc: Linux output of rpm -qa.
+collectors:
+- action: RunCommand
+  args:
+    args: [-qa]
+    cmd: /bin/rpm
+labels: [Software]
+supported_os: [Linux]
+---
+name: LinuxPasswd
+doc: Linux passwd file.
+collectors:
+- action: GetFile
+  args: {path: /etc/passwd}
+labels: [Authentication]
+supported_os: [Linux]
+---
+name: RootUserShellConfigs
+doc: Linux root shell configuration files.
+collectors:
+- action: GetFiles
+  args:
+    path_list: [/root/.bashrc, /root/.cshrc, /root/.ksh, /root/.logout, /root/.profile,
+      /root/.tcsh, /root/.zlogin, /root/.zlogout, /root/.zprofile, /root/.zprofile]
+labels: [Configuration Files]
+supported_os: [Linux]
+---
+name: DebianPackagesStatus
+doc: Linux dpkg status file.
+collectors:
+- action: GetFile
+  args: {path: /var/lib/dpkg/status}
+labels: [Software]
+supported_os: [Linux]
+---
+name: AuthLog
+doc: Linux auth log file.
+collectors:
+- action: GetFile
+  args: {path: /var/log/auth.log}
+labels: [Logs, Authentication]
+supported_os: [Linux]
+---
+name: LoginPolicyConfiguration
+doc: Linux files related to login policy configuration.
+collectors:
+- action: GetFiles
+  args:
+    path_list: [/etc/netgroup, /etc/nsswitch.conf, /etc/passwd, /etc/shadow, /etc/security/access.conf,
+      /root/.k5login]
+labels: [Authentication, Configuration Files]
+supported_os: [Linux]
+---
+name: GlobalShellConfigs
+doc: Linux global shell configuration files.
+collectors:
+- action: GetFiles
+  args:
+    path_list: [/etc/bash.bashrc, /etc/csh.cshrc, /etc/csh.login, /etc/csh.logout,
+      /etc/profile, /etc/zsh/zlogin, /etc/zsh/zlogout, /etc/zsh/zprofile, /etc/zsh/zshenv,
+      /etc/zsh/zshrc]
+labels: [Configuration Files]
+supported_os: [Linux]
+---
+name: Wtmp
+doc: Linux wtmp file.
+collectors:
+- action: GetFile
+  args: {path: /var/log/wtmp}
+labels: [Logs, Authentication]
+supported_os: [Linux]
+---
+name: DebianPackagesList
+doc: Linux output of dpkg --list.
+collectors:
+- action: RunCommand
+  args:
+    args: [--list]
+    cmd: /usr/bin/dpkg
+labels: [Software]
+supported_os: [Linux]
+---
+name: SudoersConfiguration
+doc: Linux sudoers configuration.
+collectors:
+- action: GetFiles
+  args:
+    path_list: [/etc/sudoers]
+labels: [Authentication, Configuration Files]
+supported_os: [Linux]

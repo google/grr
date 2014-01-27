@@ -60,6 +60,8 @@ message Artifact {
     description: "A list of artifact collectors.",
   }];
 
-
+  repeated string provides = 8 [(sem_type) = {
+      description: "A list of knowledgebase values this artifact provides.",
+    }];
 
 }

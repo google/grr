@@ -208,32 +208,26 @@ parser_upload_memory_driver = subparsers.add_parser(
 
 def LoadMemoryDrivers(grr_dir):
   """Load memory drivers from disk to database."""
+  for client_context in [["Platform:Darwin", "Arch:amd64"],
+                         ["Platform:Windows", "Arch:i386"],
+                         ["Platform:Windows", "Arch:amd64"]]:
+    file_paths = config_lib.CONFIG.Get(
+        "MemoryDriver.driver_files", context=client_context)
+    aff4_paths = config_lib.CONFIG.Get(
+        "MemoryDriver.aff4_paths", context=client_context)
+    if len(file_paths) != len(aff4_paths):
+      print "Length mismatch:"
+      print "%s.", file_paths
+      print "%s.", aff4_paths
+      raise RuntimeError("Could not find all files/aff4 paths.")
 
-  client_context = ["Platform:Darwin", "Arch:amd64"]
-  f_path = os.path.join(grr_dir, config_lib.CONFIG.Get(
-      "MemoryDriver.driver_file", context=client_context))
-
-  print "Signing and uploading %s" % f_path
-  up_path = maintenance_utils.UploadSignedDriverBlob(
-      open(f_path).read(), client_context=client_context)
-  print "uploaded %s" % up_path
-
-  client_context = ["Platform:Windows", "Arch:i386"]
-  f_path = os.path.join(grr_dir, config_lib.CONFIG.Get(
-      "MemoryDriver.driver_file", context=client_context))
-
-  print "Signing and uploading %s" % f_path
-  up_path = maintenance_utils.UploadSignedDriverBlob(
-      open(f_path).read(), client_context=client_context)
-  print "uploaded %s" % up_path
-
-  client_context = ["Platform:Windows", "Arch:amd64"]
-  f_path = os.path.join(grr_dir, config_lib.CONFIG.Get(
-      "MemoryDriver.driver_file", context=client_context))
-  print "Signing and uploading %s" % f_path
-  up_path = maintenance_utils.UploadSignedDriverBlob(
-      open(f_path).read(), client_context=client_context)
-  print "uploaded %s" % up_path
+    for file_path, aff4_path in zip(file_paths, aff4_paths):
+      f_path = os.path.join(grr_dir, file_path)
+      print "Signing and uploading %s to %s" % (f_path, aff4_path)
+      up_path = maintenance_utils.UploadSignedDriverBlob(
+          open(f_path).read(), aff4_path=aff4_path,
+          client_context=client_context)
+      print "uploaded %s" % up_path
 
 
 def ImportConfig(filename, config):
@@ -559,7 +553,7 @@ def main(unused_argv):
     json.load(open(flags.FLAGS.file))  # Check it will parse.
     base_urn = aff4.ROOT_URN.Add("artifact_store")
     try:
-      artifact.UploadArtifactJsonFile(
+      artifact.UploadArtifactYamlFile(
           open(flags.FLAGS.file).read(1000000), base_urn=base_urn, token=None,
           overwrite=flags.FLAGS.overwrite)
     except artifact_lib.ArtifactDefinitionError as e:

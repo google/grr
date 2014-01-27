@@ -231,13 +231,16 @@ Platform:Darwin:
   Logging.syslog_path: localhost:514
 
   # Darwin systems have their drivers stored in this part of the config space.
-  MemoryDriver.aff4_path: |
-    %(Config.aff4_root)/drivers/osx/memory/pmem
+  MemoryDriver.aff4_paths:
+    - "%(Config.aff4_root)/drivers/osx/memory/pmem-signed"
+    - "%(Config.aff4_root)/drivers/osx/memory/pmem"
 
   MemoryDriver.device_path: /dev/pmem
 
   Arch:amd64:
-    MemoryDriver.driver_file: binaries/OSXPMem-RC1.tar.gz
+    MemoryDriver.driver_files:
+      - binaries/OSXPMem-signed.tar.gz
+      - binaries/OSXPMem.tar.gz
 
 Platform:Linux:
   Client.binary_name: grrd
@@ -301,20 +304,22 @@ Platform:Windows:
 
     ClientBuilder.vs_env_script: "%(ClientBuilder.vs_dir)/VC/bin/amd64/vcvars64.bat"
 
-    MemoryDriver.aff4_path: |
-       %(Config.aff4_root)/drivers/windows/memory/winpmem.amd64.sys
+    MemoryDriver.aff4_paths:
+      - "%(Config.aff4_root)/drivers/windows/memory/winpmem.amd64.sys"
 
-    MemoryDriver.driver_file: binaries/winpmem_amd64_1.4.sys
+    MemoryDriver.driver_files:
+      - binaries/winpmem_amd64_1.4.sys
 
   Arch:i386:
     ClientBuilder.vs_arch: Win32
 
     ClientBuilder.vs_env_script: "%(ClientBuilder.vs_dir)/VC/bin/vcvars32.bat"
 
-    MemoryDriver.aff4_path: |
-       %(Config.aff4_root)/drivers/windows/memory/winpmem.x86.sys
+    MemoryDriver.aff4_paths:
+      - "%(Config.aff4_root)/drivers/windows/memory/winpmem.x86.sys"
 
-    MemoryDriver.driver_file: binaries/winpmem_i386_1.4.sys
+    MemoryDriver.driver_files:
+      - binaries/winpmem_i386_1.4.sys
 
   Client Context:
     # This is where the client will write back volatile configuration data.

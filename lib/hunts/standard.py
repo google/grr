@@ -255,7 +255,7 @@ class RegistryFileHunt(implementation.GRRHunt):
       self.CallFlow("GetFile", pathspec=pathspec, next_state="StoreResults",
                     client_id=client_id)
 
-    client = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id), mode="r",
+    client = aff4.FACTORY.Open(rdfvalue.ClientURN(client_id), mode="r",
                                token=self.token)
     users = client.Get(client.Schema.USER) or []
     for user in users:
@@ -298,7 +298,7 @@ class ProcessesHunt(implementation.GRRHunt):
     client_id = responses.request.client_id
     if responses.success:
       self.LogResult(client_id, "Got process listing.",
-                     aff4.ROOT_URN.Add(client_id).Add("processes"))
+                     rdfvalue.ClientURN(client_id).Add("processes"))
     else:
       self.LogClientError(client_id, log_message=responses.status)
 
@@ -519,7 +519,7 @@ class RunKeysHunt(implementation.GRRHunt):
     client_id = responses.request.client_id
     if responses.success:
       self.LogResult(client_id, "Downloaded RunKeys",
-                     aff4.ROOT_URN.Add(client_id).Add("analysis/RunKeys"))
+                     rdfvalue.ClientURN(client_id).Add("analysis/RunKeys"))
     else:
       self.LogClientError(client_id, log_message=utils.SmartStr(
           responses.status))
@@ -604,7 +604,7 @@ class HuntResultsMetadata(aff4.AFF4Object):
 
     OUTPUT_PLUGINS = aff4.Attribute(
         "aff4:output_plugins_state", rdfvalue.FlowState,
-        "Piclked output plugins.", versioned=False)
+        "Pickled output plugins.", versioned=False)
 
 
 class ProcessHuntResultsCronFlowArgs(rdfvalue.RDFProtoStruct):
@@ -715,6 +715,8 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
         self.HeartBeat()
 
       except Exception as e:  # pylint: disable=broad-except
+        logging.exception("Error processing hunt %s.", session_id)
+        self.Log("Error processing hunt %s: %s", session_id, e)
         last_exception = e
 
       # We will delete hunt's results notification even if ProcessHunt has

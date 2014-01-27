@@ -144,8 +144,18 @@ class Dict(rdfvalue.RDFProtoStruct):
     for x in self.dat:
       yield x.k.GetValue(), x.v.GetValue()
 
-  get = utils.Proxy("Get")
+  def Values(self):
+    for x in self.dat:
+      yield x.v.GetValue()
+
+  def Keys(self):
+    for x in self.dat:
+      yield x.k.GetValue()
+
+  get = utils.Proxy("GetItem")
   items = utils.Proxy("Items")
+  keys = utils.Proxy("Keys")
+  values = utils.Proxy("Values")
 
   def __delitem__(self, key):
     for i, x in enumerate(self.dat):
@@ -294,7 +304,7 @@ class EmbeddedRDFValue(rdfvalue.RDFProtoStruct):
 
     super(EmbeddedRDFValue, self).__init__(initializer=initializer, *args,
                                            **kwargs)
-    if payload:
+    if payload is not None:
       self.payload = payload
 
   @property

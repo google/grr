@@ -118,7 +118,8 @@ class ResponsesTable(renderers.TableRenderer):
     # This is the request.
     request_messages = manager.Query(client_id, task_id=task_id)
 
-    if not request_messages: return
+    if not request_messages:
+      return
 
     request_message = request_messages[0]
 

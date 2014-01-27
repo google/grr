@@ -89,18 +89,15 @@ class ArtifactListRenderer(forms.MultiSelectListRenderer):
     # Get all artifacts that aren't Bootstrap and aren't the base class.
     self.artifacts = {}
     artifact.LoadArtifactsFromDatastore(token=request.token)
-    for arifact_name, artifact_cls in artifact_lib.Artifact.classes.items():
-      if artifact_cls is not artifact_lib.Artifact.top_level_class:
-        if set(["Bootstrap"]).isdisjoint(artifact_cls.LABELS):
-          self.artifacts[arifact_name] = artifact_cls
+    for name, artifact_val in artifact_lib.ArtifactRegistry.artifacts.items():
+      if set(["Bootstrap"]).isdisjoint(artifact_val.labels):
+        self.artifacts[name] = artifact_val
     self.labels = artifact_lib.ARTIFACT_LABELS
 
     # Convert artifacts into a dict usable from javascript.
     artifact_dict = {}
-    for artifact_name, artifact_cls in self.artifacts.items():
-      if artifact_name == "Artifact":
-        continue
-      artifact_dict[artifact_name] = artifact_cls.ToExtendedDict()
+    for artifact_name, artifact_val in self.artifacts.items():
+      artifact_dict[artifact_name] = artifact_val.ToExtendedDict()
       processors = []
       for processor in parsers.Parser.GetClassesByArtifact(artifact_name):
         processors.append({"name": processor.__name__,
@@ -260,7 +257,7 @@ class ArtifactUploadHandler(fileview.UploadHandler):
       content = StringIO.StringIO()
       for chunk in self.uploaded_file.chunks():
         content.write(chunk)
-      self.dest_path = artifact.UploadArtifactJsonFile(
+      self.dest_path = artifact.UploadArtifactYamlFile(
           content.getvalue(), token=request.token)
 
       return renderers.TemplateRenderer.Layout(self, request, response,

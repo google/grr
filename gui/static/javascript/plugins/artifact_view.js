@@ -183,7 +183,7 @@ grr.artifact_view.renderArtifactFromObject = function(artifact, element) {
       processor_row = '<tr><td>Parser<td>' + processor.name + '</tr>';
       processor_row += '<tr><td>Output types<td>' + processor.output_types +
           '</tr>';
-      processor_row += '<tr><td>Description<td>' + processor.description +
+      processor_row += '<tr><td>Description<td>' + processor.doc +
           '</tr>';
       processor_row += '<tr><td></tr>';
       $(processor_element).append(processor_row);

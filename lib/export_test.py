@@ -601,6 +601,90 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].metadata.hostname, "ahostname")
 
+  def testBufferReferenceToExportedMatchConverter(self):
+    buffer_reference = rdfvalue.BufferReference(
+        offset=42, length=43, data="somedata",
+        pathspec=rdfvalue.PathSpec(path="/some/path",
+                                   pathtype=rdfvalue.PathSpec.PathType.OS))
+    metadata = rdfvalue.ExportedMetadata(client_urn="C.0000000000000001")
+
+    converter = export.BufferReferenceToExportedMatchConverter()
+    results = list(converter.Convert(metadata, buffer_reference,
+                                     token=self.token))
+
+    self.assertEqual(len(results), 1)
+    self.assertEqual(results[0].offset, 42)
+    self.assertEqual(results[0].length, 43)
+    self.assertEqual(results[0].data, "somedata")
+    self.assertEqual(
+        results[0].urn,
+        rdfvalue.RDFURN("aff4:/C.0000000000000001/fs/os/some/path"))
+
+  def testFileFinderResultExportConverter(self):
+    pathspec = rdfvalue.PathSpec(path="/some/path",
+                                 pathtype=rdfvalue.PathSpec.PathType.OS)
+
+    match1 = rdfvalue.BufferReference(
+        offset=42, length=43, data="somedata1", pathspec=pathspec)
+    match2 = rdfvalue.BufferReference(
+        offset=44, length=45, data="somedata2", pathspec=pathspec)
+    stat_entry = rdfvalue.StatEntry(
+        aff4path=rdfvalue.RDFURN("aff4:/C.00000000000001/fs/os/some/path"),
+        pathspec=pathspec,
+        st_mode=33184,
+        st_ino=1063090,
+        st_atime=1336469177,
+        st_mtime=1336129892,
+        st_ctime=1336129892)
+
+    file_finder_result = rdfvalue.FileFinderResult(stat_entry=stat_entry,
+                                                   matches=[match1, match2])
+    metadata = rdfvalue.ExportedMetadata(client_urn="C.0000000000000001")
+
+    converter = export.FileFinderResultConverter()
+    results = list(converter.Convert(metadata, file_finder_result,
+                                     token=self.token))
+
+    # We expect 1 ExportedFile instances in the results
+    exported_files = [result for result in results
+                      if isinstance(result, rdfvalue.ExportedFile)]
+    self.assertEqual(len(exported_files), 1)
+
+    self.assertEqual(exported_files[0].basename, "path")
+    self.assertEqual(exported_files[0].urn,
+                     rdfvalue.RDFURN("aff4:/C.00000000000001/fs/os/some/path"))
+    self.assertEqual(exported_files[0].st_mode, 33184)
+    self.assertEqual(exported_files[0].st_ino, 1063090)
+    self.assertEqual(exported_files[0].st_atime, 1336469177)
+    self.assertEqual(exported_files[0].st_mtime, 1336129892)
+    self.assertEqual(exported_files[0].st_ctime, 1336129892)
+
+    self.assertFalse(exported_files[0].HasField("content"))
+    self.assertFalse(exported_files[0].HasField("content_sha256"))
+    self.assertFalse(exported_files[0].HasField("hash_md5"))
+    self.assertFalse(exported_files[0].HasField("hash_sha1"))
+    self.assertFalse(exported_files[0].HasField("hash_sha256"))
+
+    # We expect 2 ExportedMatch instances in the results
+    exported_matches = [result for result in results
+                        if isinstance(result, rdfvalue.ExportedMatch)]
+    exported_matches = sorted(exported_matches, key=lambda x: x.offset)
+    self.assertEqual(len(exported_matches), 2)
+
+    self.assertEqual(exported_matches[0].offset, 42)
+    self.assertEqual(exported_matches[0].length, 43)
+    self.assertEqual(exported_matches[0].data, "somedata1")
+    self.assertEqual(
+        exported_matches[0].urn,
+        rdfvalue.RDFURN("aff4:/C.0000000000000001/fs/os/some/path"))
+
+    self.assertEqual(exported_matches[1].offset, 44)
+    self.assertEqual(exported_matches[1].length, 45)
+    self.assertEqual(exported_matches[1].data, "somedata2")
+    self.assertEqual(
+        exported_matches[1].urn,
+        rdfvalue.RDFURN("aff4:/C.0000000000000001/fs/os/some/path"))
+
   def testRDFURNConverterWithURNPointingToCollection(self):
     urn = rdfvalue.RDFURN("aff4:/C.00000000000000/some/collection")
 

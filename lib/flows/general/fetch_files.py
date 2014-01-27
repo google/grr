@@ -45,6 +45,7 @@ class FetchFiles(flow.GRRFlow):
 
     if self.args.paths:
       self.CallFlow("Glob", next_state="ProcessGlob", paths=self.args.paths,
+                    root_path=self.args.root_path,
                     pathtype=self.args.pathtype)
 
   @flow.StateHandler(next_state=["ProcessGlob", "Done"])

@@ -129,8 +129,8 @@ class TestFetchFilesFlow(test_lib.FlowTestsBaseclass):
 
         for _ in test_lib.TestFlowHelper(
             "FetchFiles", client_mock, token=self.token,
-            paths=[os.path.join(self.base_path, "winexec_img.dd", "*.exe"),
-                   os.path.join(self.base_path, "winexec_img.dd", "*.sys")],
+            paths=["*.exe", "*.sys"],
+            root_path=self.base_pathspec,
             pathtype=rdfvalue.PathSpec.PathType.OS,
             client_id=self.client_id):
           pass

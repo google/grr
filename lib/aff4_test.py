@@ -472,7 +472,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     client_id = "C.%016X" % 0
     test_lib.ClientFixture(client_id, token=self.token)
 
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
+    fd = aff4.FACTORY.Open(rdfvalue.ClientURN(client_id).Add(
         "/fs/os/c"), token=self.token)
 
     # Test that we can match a unicode char
@@ -490,7 +490,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
                      u"fs/os/c/regex.*?][{}--")
 
     # Test the OpenChildren function on files that contain regex chars.
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
+    fd = aff4.FACTORY.Open(rdfvalue.ClientURN(client_id).Add(
         r"/fs/os/c/regex\V.*?]xx[{}--"), token=self.token)
 
     children = list(fd.OpenChildren())
@@ -498,7 +498,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertTrue("regexchild" in utils.SmartUnicode(children[0].urn))
 
     # Test that OpenChildren works correctly on Unicode names.
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
+    fd = aff4.FACTORY.Open(rdfvalue.ClientURN(client_id).Add(
         "/fs/os/c"), token=self.token)
 
     children = list(fd.OpenChildren())
@@ -510,7 +510,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertTrue(u"aff4:/C.0000000000000000/fs/os/c/中国新闻网新闻中"
                     in urns)
 
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
+    fd = aff4.FACTORY.Open(rdfvalue.ClientURN(client_id).Add(
         "/fs/os/c/中国新闻网新闻中"), token=self.token)
 
     children = list(fd.OpenChildren())
@@ -519,7 +519,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(child.Get(child.Schema.TYPE), "VFSFile")
 
     # This tests filtering through the AFF4Filter.
-    fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
+    fd = aff4.FACTORY.Open(rdfvalue.ClientURN(client_id).Add(
         "/fs/os/c/bin %s" % client_id), token=self.token)
 
     matched = list(fd.Query(
@@ -540,7 +540,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     client_id = "C.%016X" % 0
     test_lib.ClientFixture(client_id, token=self.token)
 
-    file_url = aff4.ROOT_URN.Add(client_id).Add("/fs/os/c/time/file.txt")
+    file_url = rdfvalue.ClientURN(client_id).Add("/fs/os/c/time/file.txt")
     for t in [1000, 1500, 2000, 2500]:
       with test_lib.Stubber(time, "time", lambda: t):
         f = aff4.FACTORY.Create(rdfvalue.RDFURN(file_url), "VFSFile",
@@ -550,7 +550,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     # The following tests occur sometime in the future (time 3000).
     with test_lib.Stubber(time, "time", lambda: 3000):
-      fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add(client_id).Add(
+      fd = aff4.FACTORY.Open(rdfvalue.ClientURN(client_id).Add(
           "/fs/os/c/time"), token=self.token)
 
       # Query for all entries.
@@ -985,6 +985,25 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     client1.Flush()
     index_results = label_index.Query([client_schema.LABEL], "label1")
     self.assertEquals(index_results, [])
+
+  def testPathSpecInterpolation(self):
+    # Create a base directory containing a pathspec.
+    os_urn = rdfvalue.RDFURN("aff4:/C.0000000000000002/fs/os")
+    pathspec = rdfvalue.PathSpec(
+        path="/", pathtype=rdfvalue.PathSpec.PathType.OS)
+    additional_path = "/var/log"
+    fd = aff4.FACTORY.Create(os_urn, "VFSDirectory", token=self.token)
+    fd.Set(fd.Schema.PATHSPEC(pathspec))
+    fd.Close()
+
+    # Now we open a path below this aff4 directory.
+    fd = aff4.FACTORY.Create(os_urn.Add(additional_path), "VFSDirectory",
+                             mode="rw", token=self.token)
+    flow_id = fd.Update(attribute=fd.Schema.CONTAINS)
+
+    flow_obj = aff4.FACTORY.Open(flow_id, token=self.token)
+    self.assertEqual(flow_obj.args.pathspec.pathtype, pathspec.pathtype)
+    self.assertEqual(flow_obj.args.pathspec.path, additional_path)
 
 
 class AFF4SymlinkTestSubject(aff4.AFF4Volume):

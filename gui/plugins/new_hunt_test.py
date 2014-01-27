@@ -45,14 +45,14 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     # Add 2 distinct clients
     client_id = "C.1%015d" % 0
-    fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add(client_id), "VFSGRRClient",
+    fd = aff4.FACTORY.Create(rdfvalue.ClientURN(client_id), "VFSGRRClient",
                              token=token)
     fd.Set(fd.Schema.SYSTEM("Windows"))
     fd.Set(fd.Schema.CLOCK(2336650631137737))
     fd.Close()
 
     client_id = "C.1%015d" % 1
-    fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add(client_id), "VFSGRRClient",
+    fd = aff4.FACTORY.Create(rdfvalue.ClientURN(client_id), "VFSGRRClient",
                              token=token)
     fd.Set(fd.Schema.SYSTEM("Linux"))
     fd.Set(fd.Schema.CLOCK(2336650631137737))

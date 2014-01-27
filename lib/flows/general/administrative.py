@@ -44,7 +44,7 @@ class ClientCrashEventListener(flow.EventListener):
 
   def _AppendCrashDetails(self, path, crash_details):
     collection = aff4.FACTORY.Create(
-        path, "RDFValueCollection", mode="rw", token=self.token)
+        path, "PackedVersionedCollection", mode="rw", token=self.token)
 
     collection.Add(crash_details)
     collection.Close(sync=False)

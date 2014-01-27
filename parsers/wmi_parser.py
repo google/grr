@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Simple parsers for the output of WMI queries."""
 
-
 from grr.lib import parsers
 from grr.lib import rdfvalue
+from grr.lib import time_utils
 
 
 class WMIInstalledSoftwareParser(parsers.WMIQueryParser):
@@ -22,6 +22,29 @@ class WMIInstalledSoftwareParser(parsers.WMIQueryParser):
         version=result["Version"],
         install_state=status)
 
+    yield soft
+
+
+class WMIHotfixesSoftwareParser(parsers.WMIQueryParser):
+  """Parser for WMI output. Yields SoftwarePackage rdfvalues."""
+
+  output_types = ["SoftwarePackage"]
+  supported_artifacts = ["WindowsHotFixes"]
+
+  def Parse(self, query, result, knowledge_base):
+    """Parse the wmi packages output."""
+    _ = query, knowledge_base
+    status = rdfvalue.SoftwarePackage.InstallState.INSTALLED
+    result = result.ToDict()
+
+    # InstalledOn comes back in a godawful format such as '7/10/2013'.
+    installed_on = time_utils.AmericanDateToEpoch(result.get("InstalledOn", ""))
+    soft = rdfvalue.SoftwarePackage(
+        name=result.get("HotFixID"),
+        description=result.get("Caption"),
+        installed_by=result.get("InstalledBy"),
+        install_state=status,
+        installed_on=installed_on)
     yield soft
 
 

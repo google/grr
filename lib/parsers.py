@@ -50,13 +50,16 @@ class Parser(object):
 
   @classmethod
   def GetDescription(cls):
-    return cls.__doc__.split("\n")[0]
+    if cls.__doc__:
+      return cls.__doc__.split("\n")[0]
+    else:
+      return ""
 
   @classmethod
   def Validate(cls):
     """Validate a parser is well defined."""
     for artifact_to_parse in cls.supported_artifacts:
-      if artifact_to_parse not in artifact_lib.Artifact.classes:
+      if artifact_to_parse not in artifact_lib.ArtifactRegistry.artifacts:
         raise ParserDefinitionError("Artifact parser %s has an invalid artifact"
                                     " %s. Artifact is undefined" %
                                     (cls.__name__, artifact_to_parse))
@@ -92,6 +95,22 @@ class CommandParser(Parser):
     if return_val != 0:
       raise CommandFailedError("Parsing output of Command %s failed, as "
                                "command had %s return code" % (cmd, return_val))
+
+
+class FileParser(Parser):
+  """Abstract parser for processing files output.
+
+  Must implement the Parse function.
+  """
+
+  # Prevents this from automatically registering.
+  __abstract = True  # pylint: disable=g-bad-name
+
+  def Parse(self, stat, file_object, knowledge_base):
+    """Take the file data, and yield RDFValues."""
+
+  def ParseMultiple(self, stats, file_objects, knowledge_base):
+    """Take the file data, and yield RDFValues."""
 
 
 class WMIQueryParser(Parser):

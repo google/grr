@@ -226,3 +226,4 @@ For example:
 
   HKEY_LOCAL_MACHINE\\Software\\GRR\\certificate -> Client.private_key
 """)
+

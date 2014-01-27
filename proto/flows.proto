@@ -59,6 +59,7 @@ message FlowRunnerArgs {
 
   optional GrrMessage.Priority priority = 1 [(sem_type) = {
       description: "The priority used for this flow.",
+      label: ADVANCED
     }, default=MEDIUM_PRIORITY];
 
   optional bool notify_to_user = 2 [(sem_type) = {
@@ -144,7 +145,8 @@ message FlowRunnerArgs {
 
   optional string output = 16 [(sem_type) = {
       description: "If set, a relative URN to the client's namespace where "
-      "a collection will be created, and the result will be written to."
+      "a collection will be created, and the result will be written to.",
+      label: ADVANCED
     }, default="analysis/{p}/{u}-{t}"];
 }
 
@@ -512,11 +514,13 @@ message ArtifactCollectorFlowArgs {
   optional bool store_results_in_aff4 = 3 [(sem_type) = {
       description: "Should the collected artifacts be written to the GRR "
       "AFF4 namespace based on the AFF4->RDF map.",
+    label: ADVANCED,
     }, default=false];
 
   optional bool split_output_by_artifact = 5 [(sem_type) = {
       description: "If True, use output as a directory and write a separate"
-      " collection for each artifact collected."
+      " collection for each artifact collected.",
+      label: ADVANCED,
     }, default=false];
 
   optional KnowledgeBase knowledge_base = 6 [(sem_type) = {
@@ -548,6 +552,13 @@ message FetchFilesArgs {
   optional PathSpec.PathType pathtype = 2 [(sem_type) = {
       description: "Type of access to glob in.",
     }, default=OS];
+
+  optional PathSpec root_path = 6 [(sem_type) = {
+      description: "The root path to begin the glob.  Users should almost never"
+                   " need to change this. root_path.pathtype is unused in"
+                   " favor of pathtype to allow it to be modified by users.",
+      label: ADVANCED;
+    }];
 
   optional FindSpec findspec = 4 [(sem_type) = {
       description: "Which files to search for. The default is to search "
@@ -759,6 +770,13 @@ message GlobArgs {
   optional PathSpec.PathType pathtype = 2 [(sem_type) = {
       description: "Type of access to glob in.",
     }, default=OS];
+
+  optional PathSpec root_path = 3 [(sem_type) = {
+      description: "The root path to begin the glob.  Users should almost never"
+                   " need to change this. root_path.pathtype is unused in"
+                   " favor of pathtype to allow it to be modified by users.",
+      label: ADVANCED;
+    }];
 }
 
 message SearchFileContentArgs {
@@ -771,6 +789,13 @@ message SearchFileContentArgs {
   optional PathSpec.PathType pathtype = 2 [(sem_type) = {
       description: "Type of access to glob in.",
     }, default=OS];
+
+  optional PathSpec root_path = 5 [(sem_type) = {
+    description: "The root path to begin the glob.  Users should almost never"
+                  " need to change this. root_path.pathtype is unused in"
+                  " favor of pathtype to allow it to be modified by users.",
+    label: ADVANCED;
+  }];
 
   optional BareGrepSpec grep = 3 [(sem_type) = {
       friendly_name: "Search parameters",
@@ -1176,5 +1201,343 @@ message ListVADBinariesArgs {
 
   optional VolatilityRequest request = 3 [(sem_type) = {
       label: ADVANCED
+    }];
+}
+
+message FileFinderModificationTimeFilter {
+  optional uint64 min_last_modified_time = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "File must be modified after this time."
+    }, default=0];
+
+  optional uint64 max_last_modified_time = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "File must be modified before this time (default=heat "
+                   "death of the universe)."
+    }, default = 9223372036854775807];
+}
+
+message FileFinderAccessTimeFilter {
+  optional uint64 min_last_access_time = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "File must be accessed after this time."
+    }, default=0];
+
+  optional uint64 max_last_access_time = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "File must be accessed before this time (default=heat "
+                   "death of the universe)."
+    }, default = 9223372036854775807];
+}
+
+message FileFinderInodeChangeTimeFilter {
+  optional uint64 min_last_inode_change_time = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "File's inode must be changed after this time."
+    }, default=0];
+
+  optional uint64 max_last_inode_change_time = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "File's must be changed before this time (default=heat "
+                   "death of the universe)."
+    }, default = 9223372036854775807];
+}
+
+message FileFinderSizeFilter {
+  optional uint64 min_file_size = 11 [(sem_type) = {
+      description: "Minimum file size in bytes."
+    }, default = 0];
+
+  optional uint64 max_file_size = 12 [(sem_type) = {
+      description: "Maximum file size in bytes "
+      "(default=sys.maxint)."
+    }, default = 9223372036854775807];
+
+}
+
+message FileFinderContentsRegexMatchFilter {
+
+  enum Mode {
+    ALL_HITS = 0;   // Report all hits.
+    FIRST_HIT = 1;  // Stop after one hit.
+  }
+
+  optional string regex = 4 [(sem_type) = {
+      type: "RegularExpression",
+      description: "The regular expression which will be used to search."
+    }];
+
+  optional Mode mode = 6 [(sem_type) = {
+      description: "When should searching stop? Stop after one hit "
+                   "or search for all?",
+    }, default = ALL_HITS];
+
+  optional uint32 bytes_before = 7 [(sem_type) = {
+      description: "Include this many bytes before the hit.",
+      label: ADVANCED,
+    }, default = 10];
+
+  optional uint32 bytes_after = 8 [(sem_type) = {
+      description: "Include this many bytes after the hit.",
+      label: ADVANCED,
+    }, default = 10];
+
+  optional uint64 start_offset = 2 [(sem_type) = {
+      description: "Start searching at this file offset.",
+      label: ADVANCED,
+    }, default = 0];
+
+  optional uint64 length = 3 [(sem_type) = {
+      description: "How far (in bytes) into the file to search.",
+      label: ADVANCED,
+    }, default = 10737418240];
+}
+
+
+message FileFinderContentsLiteralMatchFilter {
+
+  enum Mode {
+    ALL_HITS = 0;   // Report all hits.
+    FIRST_HIT = 1;  // Stop after one hit.
+  }
+
+  optional bytes literal = 5 [(sem_type) = {
+      description: "Search for this literal string.",
+    }];
+
+  optional Mode mode = 6 [(sem_type) = {
+      description: "When should searching stop? Stop after one hit "
+                   "or search for all?",
+    }, default = ALL_HITS];
+
+  optional uint64 start_offset = 2 [(sem_type) = {
+      description: "Start searching at this file offset.",
+      label: ADVANCED,
+    }, default = 0];
+
+  optional uint64 length = 3 [(sem_type) = {
+      description: "How far (in bytes) into the file to search.",
+      label: ADVANCED,
+    }, default = 10737418240];
+
+  optional uint32 bytes_before = 7 [(sem_type) = {
+      description: "Include this many bytes before the hit.",
+      label: ADVANCED,
+    }, default = 10];
+
+  optional uint32 bytes_after = 8 [(sem_type) = {
+      description: "Include this many bytes after the hit.",
+      label: ADVANCED,
+    }, default = 10];
+
+  optional uint32 xor_in_key = 9 [(sem_type) = {
+      description: "When searching memory we need to ensure we dont "
+      "hit on our own process. This allows us to obfuscate the search "
+      "string in memory to avoid us finding ourselves.",
+      label: ADVANCED
+    }, default = 0];
+
+  optional uint32 xor_out_key = 10 [(sem_type) = {
+      description: "When searching memory we need to ensure we dont "
+      "hit on our own process. This allows us to obfuscate the search "
+      "string in memory to avoid us finding ourselves.",
+      label: ADVANCED
+    }, default = 0];
+}
+
+message FileFinderFilter {
+  enum Type {
+    MODIFICATION_TIME = 0 [(description) = "Modification time"];
+    ACCESS_TIME = 1 [(description) = "Access time"];
+    INODE_CHANGE_TIME = 2 [(description) = "Inode change time"];
+    SIZE = 3 [(description) = "File size"];
+    CONTENTS_REGEX_MATCH = 4 [(description) = "Contents regex match"];
+    CONTENTS_LITERAL_MATCH = 5 [(description) = "Contents literal match"];
+  }
+
+  optional Type filter_type = 1 [(sem_type) = {
+      description: "Filter type",
+      friendly_name: "Filter type"
+    }];
+  optional FileFinderModificationTimeFilter modification_time = 2;
+  optional FileFinderAccessTimeFilter access_time = 3;
+  optional FileFinderInodeChangeTimeFilter inode_change_time = 4;
+  optional FileFinderSizeFilter size = 5;
+  optional FileFinderContentsRegexMatchFilter contents_regex_match = 6;
+  optional FileFinderContentsLiteralMatchFilter contents_literal_match = 7;
+}
+
+message FileFinderDownloadActionOptions {
+  optional uint64 max_size = 5 [(sem_type) = {
+      type: "ByteSize",
+      description: "The maximum size of files we will download.",
+      label: ADVANCED
+    }, default=100000000];
+
+  optional bool use_external_stores = 6 [(sem_type) = {
+      description: "If true, look in any defined external file stores for "
+      "files before downloading them, and offer any new files to external "
+      "stores. This should be true unless the external checks are misbehaving.",
+      label: ADVANCED
+    }, default=true];
+}
+
+message FileFinderAction {
+  enum Action {
+    DO_NOTHING = 0 [(description) = "Do nothing"];
+
+    HASH = 1 [(description) = "Hash"];
+
+    DOWNLOAD = 2 [(description) = "Download"];
+  }
+
+  optional Action action_type = 1 [default = DO_NOTHING, (sem_type) = {
+      friendly_name: "Action",
+      description: "Action to apply to found files"
+    }];
+  optional FileFinderDownloadActionOptions download = 2;
+}
+
+message FileFinderArgs {
+  repeated string paths = 1 [(sem_type) = {
+      type: "GlobExpression",
+      description: "A path to glob that can contain %% "
+      "expansions. For example '%%KnowledgeBase.environ_windir%%\notepad.*'",
+    }];
+
+  optional PathSpec.PathType pathtype = 2 [(sem_type) = {
+      description: "Type of access to glob in.",
+    }, default=OS];
+
+
+  repeated FileFinderFilter filters = 5;
+
+  optional FileFinderAction action = 6;
+
+  optional bool no_file_type_check = 7 [(sem_type) = {
+      description: "Work with all kinds of files - not only with regular ones."
+      "NOTE: This is very dangerous and should be used with care, see "
+      "MemoryScanner as an example.",
+      label: HIDDEN,
+    }, default=false];
+}
+
+message FileFinderResult {
+  optional StatEntry stat_entry = 1;
+  repeated BufferReference matches = 2;
+}
+
+message MemoryScannerFilter {
+  enum Type {
+    LITERAL_MATCH = 1 [(description) = "Literal match"];
+    REGEX_MATCH = 2 [(description) = "Regex match"];
+  }
+
+  optional Type filter_type = 1;
+  optional FileFinderContentsLiteralMatchFilter literal_match = 2;
+  optional FileFinderContentsRegexMatchFilter regex_match = 3;
+}
+
+message MemoryScannerWithoutLocalCopyDumpOption {
+}
+
+message MemoryScannerWithLocalCopyDumpOption {
+  optional string destdir = 1 [(sem_type) = {
+      description: "Destination directory on the client for the temporary "
+      "image. Leave blank to use defaults. Parent directories will be "
+      "created if necessary.",
+      label: ADVANCED
+    }];
+
+  optional uint64 offset = 2 [(sem_type) = {
+      description: "Memory offset in bytes",
+      label: ADVANCED,
+      friendly_name: "Starting Offset"
+    }, default=0];
+
+  optional uint64 length = 3 [(sem_type) = {
+      description: "Number of bytes to copy (default 0 copies all memory)",
+      label: ADVANCED,
+      friendly_name: "Length to download"
+    }, default=0];
+
+  optional bool gzip = 4 [(sem_type) = {
+      description: "Gzip temporary image file on the client.",
+      label: ADVANCED
+    }, default=true];
+}
+
+message MemoryScannerDumpOption {
+  enum Option {
+    WITHOUT_LOCAL_COPY = 0 [(description) = "Don't create local copy"];
+    WITH_LOCAL_COPY = 1 [(description) = "Create local copy first"];
+  }
+
+  optional Option option_type = 1 [default = WITHOUT_LOCAL_COPY, (sem_type) = {
+      friendly_name: "Dump option",
+      description: "How to do the dump"
+    }];
+  optional MemoryScannerWithoutLocalCopyDumpOption without_local_copy = 2;
+  optional MemoryScannerWithLocalCopyDumpOption with_local_copy = 3;
+}
+
+message MemoryScannerDownloadAction {
+  optional MemoryScannerDumpOption dump_option = 1 [(sem_type) = {
+      description: "Memory dump options."
+    }];
+}
+
+message MemoryScannerSendToSocketAction {
+  optional MemoryScannerDumpOption dump_option = 1 [(sem_type) = {
+      description: "Memory dump options."
+    }];
+
+  optional NetworkAddress.Family address_family = 2 [(sem_type) = {
+      description: "address family to use (AF_INET or AF_INET6).",
+    }, default=INET];
+
+  optional string host = 3 [(sem_type) = {
+      description: "Hostname or IP to send the file to.",
+    }];
+
+  optional uint64 port = 4 [(sem_type) = {
+      description: "Port number on the listening server.",
+    }, default=12345];
+
+  optional bytes key = 5 [(sem_type) = {
+      type: "AES128Key",
+      description: "An encryption key given in hex representation.",
+    }];
+
+  optional bytes iv = 6 [(sem_type) = {
+      type: "AES128Key",
+      description: "The iv for AES, also given in hex representation.",
+    }];
+}
+
+message MemoryScannerAction {
+  enum Action {
+    NONE = 0 [(description) = "None"];
+    DOWNLOAD = 1 [(description) = "Dump memory to AFF4"];
+    SEND_TO_SOCKET = 2 [(description) = "Send memory dump to socket"];
+  }
+
+  optional Action action_type = 1 [default = NONE, (sem_type) = {
+      friendly_name: "Action",
+      description: "What to do with the memory"
+    }];
+  optional MemoryScannerDownloadAction download = 2;
+  optional MemoryScannerSendToSocketAction send_to_socket = 3;
+}
+
+message MemoryScannerArgs {
+  repeated MemoryScannerFilter filters = 1;
+  optional MemoryScannerAction action = 2;
+
+  optional DriverInstallTemplate driver_installer = 5 [(sem_type) = {
+      description: "An optional DriverInstallTemplate proto to control "
+      "driver installation. If not set, the default installation proto will "
+      "be used.",
+      label: HIDDEN
     }];
 }

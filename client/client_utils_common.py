@@ -46,7 +46,7 @@ def Execute(cmd, args, time_limit=-1, bypass_whitelist=False, daemon=False):
   Returns:
     A tuple of stdout, stderr, return value and time taken.
   """
-  if not IsExecutionWhitelisted(cmd, args) and not bypass_whitelist:
+  if not bypass_whitelist and not IsExecutionWhitelisted(cmd, args):
     # Whitelist doesn't contain this cmd/arg pair
     logging.info("Execution disallowed by whitelist: %s %s.", cmd,
                  " ".join(args))
@@ -138,7 +138,7 @@ def IsExecutionWhitelisted(cmd, args):
   elif platform.system() == "Darwin":
     whitelist = [
         ("/bin/launchctl", ["unload",
-                            config_lib.CONFIG["Client.launchctl_plist"]]),
+                            config_lib.CONFIG["Client.plist_path"]]),
         ("/bin/echo", ["1"]),
         ("/usr/sbin/screencapture", ["-x", "-t", "jpg", "/tmp/ss.dat"]),
         ("/bin/rm", ["-f", "/tmp/ss.dat"])

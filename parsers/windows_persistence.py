@@ -50,7 +50,7 @@ class WindowsPersistenceMechanismsParser(parsers.ArtifactFilesParser):
     pathspecs = []
     source_urn = None
 
-    if isinstance(persistence, rdfvalue.ServiceInformation):
+    if isinstance(persistence, rdfvalue.WindowsServiceInformation):
       if persistence.HasField("registry_key"):
         source_urn = persistence.registry_key
       if persistence.HasField("binary"):
@@ -69,5 +69,4 @@ class WindowsPersistenceMechanismsParser(parsers.ArtifactFilesParser):
     for pathspec in pathspecs:
       yield rdfvalue.PersistenceFile(pathspec=pathspec,
                                      source_urn=source_urn)
-
 

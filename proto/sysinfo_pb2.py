@@ -8,13 +8,14 @@ from google.protobuf import descriptor_pb2
 # @@protoc_insertion_point(imports)
 
 
+import grr.proto.jobs_pb2
 import grr.proto.semantic_pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='grr/proto/sysinfo.proto',
   package='',
-  serialized_pb='\n\x17grr/proto/sysinfo.proto\x1a\x18grr/proto/semantic.proto\"\x97\x04\n\x07Process\x12\x0b\n\x03pid\x18\x01 \x01(\r\x12\x0c\n\x04ppid\x18\x02 \x01(\r\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0b\n\x03\x65xe\x18\x04 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x05 \x03(\t\x12\r\n\x05\x63time\x18\x06 \x01(\x04\x12\x10\n\x08real_uid\x18\x07 \x01(\r\x12\x15\n\reffective_uid\x18\x08 \x01(\r\x12\x11\n\tsaved_uid\x18\t \x01(\r\x12\x10\n\x08real_gid\x18\n \x01(\r\x12\x15\n\reffective_gid\x18\x0b \x01(\r\x12\x11\n\tsaved_gid\x18\x0c \x01(\r\x12\x10\n\x08username\x18\r \x01(\t\x12\x10\n\x08terminal\x18\x0e \x01(\t\x12\x0e\n\x06status\x18\x0f \x01(\t\x12\x0c\n\x04nice\x18\x10 \x01(\x05\x12\x0b\n\x03\x63wd\x18\x11 \x01(\t\x12\x13\n\x0bnum_threads\x18\x12 \x01(\r\x12\x15\n\ruser_cpu_time\x18\x13 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x14 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x15 \x01(\x02\x12\x10\n\x08RSS_size\x18\x16 \x01(\x04\x12\x10\n\x08VMS_size\x18\x17 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x18 \x01(\x02\x12\x12\n\nopen_files\x18\x19 \x03(\t\x12\'\n\x0b\x63onnections\x18\x1a \x03(\x0b\x32\x12.NetworkConnection:\x1c\xda\xfc\xe3\xc4\x01\x16\n\x14Process information.\"+\n\x0fNetworkEndpoint\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x0c\n\x04port\x18\x02 \x01(\x05\"\xde\x04\n\x11NetworkConnection\x12)\n\x06\x66\x61mily\x18\x01 \x01(\x0e\x32\x19.NetworkConnection.Family\x12\x35\n\x04type\x18\x02 \x01(\x0e\x32\x17.NetworkConnection.Type:\x0eUNKNOWN_SOCKET\x12\'\n\rlocal_address\x18\x03 \x01(\x0b\x32\x10.NetworkEndpoint\x12(\n\x0eremote_address\x18\x04 \x01(\x0b\x32\x10.NetworkEndpoint\x12\x30\n\x05state\x18\x05 \x01(\x0e\x32\x18.NetworkConnection.State:\x07UNKNOWN\x12\x0b\n\x03pid\x18\x06 \x01(\r\x12\r\n\x05\x63time\x18\x07 \x01(\x04\";\n\x06\x46\x61mily\x12\x08\n\x04INET\x10\x02\x12\t\n\x05INET6\x10\n\x12\r\n\tINET6_WIN\x10\x17\x12\r\n\tINET6_OSX\x10\x1e\";\n\x04Type\x12\x12\n\x0eUNKNOWN_SOCKET\x10\x00\x12\x0f\n\x0bSOCK_STREAM\x10\x01\x12\x0e\n\nSOCK_DGRAM\x10\x02\"\xcb\x01\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\n\n\x06\x43LOSED\x10\x01\x12\n\n\x06LISTEN\x10\x02\x12\x0c\n\x08SYN_SENT\x10\x03\x12\x0c\n\x08SYN_RECV\x10\x04\x12\x0f\n\x0b\x45STABLISHED\x10\x05\x12\r\n\tFIN_WAIT1\x10\x06\x12\r\n\tFIN_WAIT2\x10\x07\x12\x0e\n\nCLOSE_WAIT\x10\x08\x12\x0b\n\x07\x43LOSING\x10\t\x12\x0c\n\x08LAST_ACK\x10\n\x12\r\n\tTIME_WAIT\x10\x0b\x12\x0e\n\nDELETE_TCB\x10\x0c\x12\x08\n\x04NONE\x10\r\"N\n\nFilesystem\x12\x0e\n\x06\x64\x65vice\x18\x01 \x01(\t\x12\x13\n\x0bmount_point\x18\x02 \x01(\t\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\r\n\x05label\x18\x04 \x01(\t\"1\n\x07MRUFile\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x14\n\ttimestamp\x18\x02 \x01(\x04:\x01\x30\"C\n\x06RunKey\x12\x0f\n\x07keyname\x18\x01 \x01(\t\x12\x10\n\x08\x66ilepath\x18\x02 \x01(\t\x12\x16\n\x0blastwritten\x18\x03 \x01(\x04:\x01\x30\"\x9c\x01\n\nLaunchdJob\x12\x13\n\x0bsessiontype\x18\x01 \x01(\t\x12\x16\n\x0elastexitstatus\x18\x02 \x01(\x04\x12\x0f\n\x07timeout\x18\x03 \x01(\x04\x12\x10\n\x08ondemand\x18\x04 \x01(\x08\x12\x13\n\x0bmachservice\x18\x05 \x03(\t\x12\x19\n\x11perjobmachservice\x18\x06 \x03(\t\x12\x0e\n\x06socket\x18\x07 \x03(\t\"f\n\x07Service\x12\r\n\x05label\x18\x01 \x01(\t\x12\x0f\n\x07program\x18\x02 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x03 \x01(\t\x12\x0b\n\x03pid\x18\x04 \x01(\x04\x12 \n\x0bosx_launchd\x18\x05 \x01(\x0b\x32\x0b.LaunchdJob\"\xf7\x01\n\x0fSoftwarePackage\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x14\n\x0c\x61rchitecture\x18\x03 \x01(\t\x12\x11\n\tpublisher\x18\x04 \x01(\t\x12=\n\rinstall_state\x18\x05 \x01(\x0e\x32\x1d.SoftwarePackage.InstallState:\x07UNKNOWN\x12\x13\n\x0b\x64\x65scription\x18\x06 \x01(\t\"H\n\x0cInstallState\x12\r\n\tINSTALLED\x10\x00\x12\x0b\n\x07PENDING\x10\x01\x12\x0f\n\x0bUNINSTALLED\x10\x02\x12\x0b\n\x07UNKNOWN\x10\x03')
+  serialized_pb='\n\x17grr/proto/sysinfo.proto\x1a\x14grr/proto/jobs.proto\x1a\x18grr/proto/semantic.proto\"\x97\x04\n\x07Process\x12\x0b\n\x03pid\x18\x01 \x01(\r\x12\x0c\n\x04ppid\x18\x02 \x01(\r\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0b\n\x03\x65xe\x18\x04 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x05 \x03(\t\x12\r\n\x05\x63time\x18\x06 \x01(\x04\x12\x10\n\x08real_uid\x18\x07 \x01(\r\x12\x15\n\reffective_uid\x18\x08 \x01(\r\x12\x11\n\tsaved_uid\x18\t \x01(\r\x12\x10\n\x08real_gid\x18\n \x01(\r\x12\x15\n\reffective_gid\x18\x0b \x01(\r\x12\x11\n\tsaved_gid\x18\x0c \x01(\r\x12\x10\n\x08username\x18\r \x01(\t\x12\x10\n\x08terminal\x18\x0e \x01(\t\x12\x0e\n\x06status\x18\x0f \x01(\t\x12\x0c\n\x04nice\x18\x10 \x01(\x05\x12\x0b\n\x03\x63wd\x18\x11 \x01(\t\x12\x13\n\x0bnum_threads\x18\x12 \x01(\r\x12\x15\n\ruser_cpu_time\x18\x13 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x14 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x15 \x01(\x02\x12\x10\n\x08RSS_size\x18\x16 \x01(\x04\x12\x10\n\x08VMS_size\x18\x17 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x18 \x01(\x02\x12\x12\n\nopen_files\x18\x19 \x03(\t\x12\'\n\x0b\x63onnections\x18\x1a \x03(\x0b\x32\x12.NetworkConnection:\x1c\xda\xfc\xe3\xc4\x01\x16\n\x14Process information.\"+\n\x0fNetworkEndpoint\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x0c\n\x04port\x18\x02 \x01(\x05\"\xde\x04\n\x11NetworkConnection\x12)\n\x06\x66\x61mily\x18\x01 \x01(\x0e\x32\x19.NetworkConnection.Family\x12\x35\n\x04type\x18\x02 \x01(\x0e\x32\x17.NetworkConnection.Type:\x0eUNKNOWN_SOCKET\x12\'\n\rlocal_address\x18\x03 \x01(\x0b\x32\x10.NetworkEndpoint\x12(\n\x0eremote_address\x18\x04 \x01(\x0b\x32\x10.NetworkEndpoint\x12\x30\n\x05state\x18\x05 \x01(\x0e\x32\x18.NetworkConnection.State:\x07UNKNOWN\x12\x0b\n\x03pid\x18\x06 \x01(\r\x12\r\n\x05\x63time\x18\x07 \x01(\x04\";\n\x06\x46\x61mily\x12\x08\n\x04INET\x10\x02\x12\t\n\x05INET6\x10\n\x12\r\n\tINET6_WIN\x10\x17\x12\r\n\tINET6_OSX\x10\x1e\";\n\x04Type\x12\x12\n\x0eUNKNOWN_SOCKET\x10\x00\x12\x0f\n\x0bSOCK_STREAM\x10\x01\x12\x0e\n\nSOCK_DGRAM\x10\x02\"\xcb\x01\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\n\n\x06\x43LOSED\x10\x01\x12\n\n\x06LISTEN\x10\x02\x12\x0c\n\x08SYN_SENT\x10\x03\x12\x0c\n\x08SYN_RECV\x10\x04\x12\x0f\n\x0b\x45STABLISHED\x10\x05\x12\r\n\tFIN_WAIT1\x10\x06\x12\r\n\tFIN_WAIT2\x10\x07\x12\x0e\n\nCLOSE_WAIT\x10\x08\x12\x0b\n\x07\x43LOSING\x10\t\x12\x0c\n\x08LAST_ACK\x10\n\x12\r\n\tTIME_WAIT\x10\x0b\x12\x0e\n\nDELETE_TCB\x10\x0c\x12\x08\n\x04NONE\x10\r\"N\n\nFilesystem\x12\x0e\n\x06\x64\x65vice\x18\x01 \x01(\t\x12\x13\n\x0bmount_point\x18\x02 \x01(\t\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\r\n\x05label\x18\x04 \x01(\t\"1\n\x07MRUFile\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x14\n\ttimestamp\x18\x02 \x01(\x04:\x01\x30\"C\n\x06RunKey\x12\x0f\n\x07keyname\x18\x01 \x01(\t\x12\x10\n\x08\x66ilepath\x18\x02 \x01(\t\x12\x16\n\x0blastwritten\x18\x03 \x01(\x04:\x01\x30\"\xac\x0e\n\x19WindowsServiceInformation\x12.\n\x04name\x18\x01 \x01(\tB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18The name of the service.\x12\x43\n\x0b\x64\x65scription\x18\x02 \x01(\tB.\xe2\xfc\xe3\xc4\x01(\x12&The description string of the service.\x12\x84\x01\n\x06\x62inary\x18\x03 \x01(\x0b\x32\n.StatEntryBh\xe2\xfc\xe3\xc4\x01\x62\x12`The binary on the client. This may also contain an AFF4 urn to the server copy of the same file.\x12\x34\n\x05state\x18\x04 \x01(\tB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1d\x43urrent state of the service.\x12U\n\x0fwmi_information\x18\x05 \x01(\x0b\x32\x05.DictB5\xe2\xfc\xe3\xc4\x01/\x12-Additional information available through WMI.\x12T\n\x0c\x64isplay_name\x18\x06 \x01(\tB>\xe2\xfc\xe3\xc4\x01\x38\x12\x36\x44isplayed name of the service in Windows GUI controls.\x12\x44\n\x11\x64river_package_id\x18\x07 \x01(\tB)\xe2\xfc\xe3\xc4\x01#\x12!Driver Package ID of the service.\x12~\n\rerror_control\x18\x08 \x01(\x0e\x32\'.WindowsServiceInformation.ErrorControlB>\xe2\xfc\xe3\xc4\x01\x38\x12\x36\x42\x65haviour of the service on failure to load/initialize\x12\x35\n\nimage_path\x18\t \x01(\tB!\xe2\xfc\xe3\xc4\x01\x1b\x12\x19ImagePath of the service.\x12\x37\n\x0bobject_name\x18\n \x01(\tB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1aObjectName of the service.\x12[\n\x0cstartup_type\x18\x0b \x01(\x0e\x32&.WindowsServiceInformation.ServiceModeB\x1d\xe2\xfc\xe3\xc4\x01\x17\x12\x15Service start options\x12Z\n\x0cservice_type\x18\x0c \x01(\x0e\x32&.WindowsServiceInformation.ServiceTypeB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14Type of the service.\x12l\n\ngroup_name\x18\r \x01(\tBX\xe2\xfc\xe3\xc4\x01R\x12PSpecifies the name of the load ordering group of which this service is a member.\x12I\n\x0bservice_dll\x18\x0e \x01(\tB4\xe2\xfc\xe3\xc4\x01.\x12,Name of the DLL instantiated in the service.\x12U\n\x0cregistry_key\x18\x0f \x01(\tB?\xe2\xfc\xe3\xc4\x01\x39\n\x06RDFURN\x12/The AFF4 location for the service registry key.\"@\n\x0c\x45rrorControl\x12\x0c\n\x08\x43RITICAL\x10\x03\x12\n\n\x06SEVERE\x10\x02\x12\n\n\x06NORMAL\x10\x01\x12\n\n\x06IGNORE\x10\x00\"\x87\x01\n\x0bServiceMode\x12\x16\n\x12SERVICE_BOOT_START\x10\x00\x12\x18\n\x14SERVICE_SYSTEM_START\x10\x01\x12\x16\n\x12SERVICE_AUTO_START\x10\x02\x12\x18\n\x14SERVICE_DEMAND_START\x10\x03\x12\x14\n\x10SERVICE_DISABLED\x10\x04\"\xa2\x01\n\x0bServiceType\x12\x19\n\x15SERVICE_KERNEL_DRIVER\x10\x01\x12\x1e\n\x1aSERVICE_FILE_SYSTEM_DRIVER\x10\x02\x12\x18\n\x14SERVICE_ADAPTER_ARGS\x10\x04\x12\x1d\n\x19SERVICE_WIN32_OWN_PROCESS\x10\x10\x12\x1f\n\x1bSERVICE_WIN32_SHARE_PROCESS\x10 :\xbf\x01\xda\xfc\xe3\xc4\x01\xb8\x01\n\xb5\x01\x44\x65scribe a windows service or driver. Field names follow the cybox naming scheme where possible: http://cybox.mitre.org/language/version2.0.1/xsddocs/objects/Win_Service_Object.html\"\xce\x06\n\x15OSXServiceInformation\x12%\n\x05label\x18\x01 \x01(\tB\x16\xe2\xfc\xe3\xc4\x01\x10\x12\x0eService label.\x12\x39\n\x07program\x18\x02 \x01(\tB(\xe2\xfc\xe3\xc4\x01\"\x12 Program path run by the service.\x12W\n\x04\x61rgs\x18\x03 \x03(\tBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41Program args.  May also include executable if Program is not set.\x12(\n\x03pid\x18\x04 \x01(\x04\x42\x1b\xe2\xfc\xe3\xc4\x01\x15\x12\x13\x43urrent service PID\x12P\n\x0bsessiontype\x18\x05 \x01(\tB;\xe2\xfc\xe3\xc4\x01\x35\x12\x33SessionType: Aqua|StandardIO|Background|LoginWindow\x12\x41\n\x0elastexitstatus\x18\x06 \x01(\x04\x42)\xe2\xfc\xe3\xc4\x01#\x12!Last exit return code of service.\x12)\n\x07timeout\x18\x07 \x01(\x04\x42\x18\xe2\xfc\xe3\xc4\x01\x12\x12\x10Service timeout.\x12\x44\n\x08ondemand\x18\x08 \x01(\x08\x42\x32\xe2\xfc\xe3\xc4\x01,\x12*True if the service should start ondemand.\x12\x45\n\x0bmachservice\x18\t \x03(\tB0\xe2\xfc\xe3\xc4\x01*\x12(Machservices advertised by this service.\x12K\n\x11perjobmachservice\x18\n \x03(\tB0\xe2\xfc\xe3\xc4\x01*\x12(Machservices advertised by this service.\x12\x35\n\x06socket\x18\x0b \x03(\tB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dSockets used by this service.\x12G\n\x05plist\x18\x0f \x01(\tB8\xe2\xfc\xe3\xc4\x01\x32\n\x06RDFURN\x12(The AFF4 location for the service plist.:6\xda\xfc\xe3\xc4\x01\x30\n.Describe an OS X service (launchagent/daemon).\"\xa3\x02\n\x0fSoftwarePackage\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x14\n\x0c\x61rchitecture\x18\x03 \x01(\t\x12\x11\n\tpublisher\x18\x04 \x01(\t\x12=\n\rinstall_state\x18\x05 \x01(\x0e\x32\x1d.SoftwarePackage.InstallState:\x07UNKNOWN\x12\x13\n\x0b\x64\x65scription\x18\x06 \x01(\t\x12\x14\n\x0cinstalled_on\x18\x07 \x01(\x04\x12\x14\n\x0cinstalled_by\x18\x08 \x01(\t\"H\n\x0cInstallState\x12\r\n\tINSTALLED\x10\x00\x12\x0b\n\x07PENDING\x10\x01\x12\x0f\n\x0bUNINSTALLED\x10\x02\x12\x0b\n\x07UNKNOWN\x10\x03\"\x93\x04\n\x12\x42rowserHistoryItem\x12%\n\x03url\x18\x01 \x01(\tB\x18\xe2\xfc\xe3\xc4\x01\x12\x12\x10The URL visited.\x12-\n\x06\x64omain\x18\x02 \x01(\tB\x1d\xe2\xfc\xe3\xc4\x01\x17\x12\x15\x44omain name accessed.\x12\x44\n\x0b\x61\x63\x63\x65ss_time\x18\x03 \x01(\x04\x42/\xe2\xfc\xe3\xc4\x01)\n\x0bRDFDatetime\x12\x1aTime the URL was accessed.\x12\x36\n\x08referrer\x18\x04 \x01(\tB$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1cReferrer used for the access\x12@\n\x05title\x18\x05 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\x12)Title attribute of the page if available.\x12X\n\x0cprogram_name\x18\x06 \x01(\tBB\xe2\xfc\xe3\xc4\x01<\x12:Name of the program that generated the entry, e.g. Chrome.\x12T\n\nsource_urn\x18\x07 \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\x06RDFURN\x12\x30Location of object that this entry was found in.\x12\x37\n\rdownload_path\x18\x08 \x01(\tB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18Path of downloaded file.')
 
 
 
@@ -43,8 +44,8 @@ _NETWORKCONNECTION_FAMILY = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=917,
-  serialized_end=976,
+  serialized_start=939,
+  serialized_end=998,
 )
 
 _NETWORKCONNECTION_TYPE = _descriptor.EnumDescriptor(
@@ -68,8 +69,8 @@ _NETWORKCONNECTION_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=978,
-  serialized_end=1037,
+  serialized_start=1000,
+  serialized_end=1059,
 )
 
 _NETWORKCONNECTION_STATE = _descriptor.EnumDescriptor(
@@ -137,8 +138,103 @@ _NETWORKCONNECTION_STATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1040,
-  serialized_end=1243,
+  serialized_start=1062,
+  serialized_end=1265,
+)
+
+_WINDOWSSERVICEINFORMATION_ERRORCONTROL = _descriptor.EnumDescriptor(
+  name='ErrorControl',
+  full_name='WindowsServiceInformation.ErrorControl',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='CRITICAL', index=0, number=3,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='SEVERE', index=1, number=2,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='NORMAL', index=2, number=1,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='IGNORE', index=3, number=0,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=2743,
+  serialized_end=2807,
+)
+
+_WINDOWSSERVICEINFORMATION_SERVICEMODE = _descriptor.EnumDescriptor(
+  name='ServiceMode',
+  full_name='WindowsServiceInformation.ServiceMode',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='SERVICE_BOOT_START', index=0, number=0,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='SERVICE_SYSTEM_START', index=1, number=1,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='SERVICE_AUTO_START', index=2, number=2,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='SERVICE_DEMAND_START', index=3, number=3,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='SERVICE_DISABLED', index=4, number=4,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=2810,
+  serialized_end=2945,
+)
+
+_WINDOWSSERVICEINFORMATION_SERVICETYPE = _descriptor.EnumDescriptor(
+  name='ServiceType',
+  full_name='WindowsServiceInformation.ServiceType',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='SERVICE_KERNEL_DRIVER', index=0, number=1,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='SERVICE_FILE_SYSTEM_DRIVER', index=1, number=2,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='SERVICE_ADAPTER_ARGS', index=2, number=4,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='SERVICE_WIN32_OWN_PROCESS', index=3, number=16,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='SERVICE_WIN32_SHARE_PROCESS', index=4, number=32,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=2948,
+  serialized_end=3110,
 )
 
 _SOFTWAREPACKAGE_INSTALLSTATE = _descriptor.EnumDescriptor(
@@ -166,8 +262,8 @@ _SOFTWAREPACKAGE_INSTALLSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1884,
-  serialized_end=1956,
+  serialized_start=4375,
+  serialized_end=4447,
 )
 
 
@@ -369,8 +465,8 @@ _PROCESS = _descriptor.Descriptor(
   options=_descriptor._ParseOptions(descriptor_pb2.MessageOptions(), '\332\374\343\304\001\026\n\024Process information.'),
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=54,
-  serialized_end=589,
+  serialized_start=76,
+  serialized_end=611,
 )
 
 
@@ -404,8 +500,8 @@ _NETWORKENDPOINT = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=591,
-  serialized_end=634,
+  serialized_start=613,
+  serialized_end=656,
 )
 
 
@@ -477,8 +573,8 @@ _NETWORKCONNECTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=637,
-  serialized_end=1243,
+  serialized_start=659,
+  serialized_end=1265,
 )
 
 
@@ -526,8 +622,8 @@ _FILESYSTEM = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1245,
-  serialized_end=1323,
+  serialized_start=1267,
+  serialized_end=1345,
 )
 
 
@@ -561,8 +657,8 @@ _MRUFILE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1325,
-  serialized_end=1374,
+  serialized_start=1347,
+  serialized_end=1396,
 )
 
 
@@ -603,134 +699,242 @@ _RUNKEY = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1376,
-  serialized_end=1443,
+  serialized_start=1398,
+  serialized_end=1465,
 )
 
 
-_LAUNCHDJOB = _descriptor.Descriptor(
-  name='LaunchdJob',
-  full_name='LaunchdJob',
+_WINDOWSSERVICEINFORMATION = _descriptor.Descriptor(
+  name='WindowsServiceInformation',
+  full_name='WindowsServiceInformation',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='sessiontype', full_name='LaunchdJob.sessiontype', index=0,
+      name='name', full_name='WindowsServiceInformation.name', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\032\022\030The name of the service.')),
     _descriptor.FieldDescriptor(
-      name='lastexitstatus', full_name='LaunchdJob.lastexitstatus', index=1,
-      number=2, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='timeout', full_name='LaunchdJob.timeout', index=2,
-      number=3, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='ondemand', full_name='LaunchdJob.ondemand', index=3,
-      number=4, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='machservice', full_name='LaunchdJob.machservice', index=4,
-      number=5, type=9, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='perjobmachservice', full_name='LaunchdJob.perjobmachservice', index=5,
-      number=6, type=9, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='socket', full_name='LaunchdJob.socket', index=6,
-      number=7, type=9, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  extension_ranges=[],
-  serialized_start=1446,
-  serialized_end=1602,
-)
-
-
-_SERVICE = _descriptor.Descriptor(
-  name='Service',
-  full_name='Service',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='label', full_name='Service.label', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='program', full_name='Service.program', index=1,
+      name='description', full_name='WindowsServiceInformation.description', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001(\022&The description string of the service.')),
     _descriptor.FieldDescriptor(
-      name='args', full_name='Service.args', index=2,
-      number=3, type=9, cpp_type=9, label=1,
+      name='binary', full_name='WindowsServiceInformation.binary', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001b\022`The binary on the client. This may also contain an AFF4 urn to the server copy of the same file.')),
+    _descriptor.FieldDescriptor(
+      name='state', full_name='WindowsServiceInformation.state', index=3,
+      number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\037\022\035Current state of the service.')),
     _descriptor.FieldDescriptor(
-      name='pid', full_name='Service.pid', index=3,
-      number=4, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='osx_launchd', full_name='Service.osx_launchd', index=4,
+      name='wmi_information', full_name='WindowsServiceInformation.wmi_information', index=4,
       number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001/\022-Additional information available through WMI.')),
+    _descriptor.FieldDescriptor(
+      name='display_name', full_name='WindowsServiceInformation.display_name', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0018\0226Displayed name of the service in Windows GUI controls.')),
+    _descriptor.FieldDescriptor(
+      name='driver_package_id', full_name='WindowsServiceInformation.driver_package_id', index=6,
+      number=7, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001#\022!Driver Package ID of the service.')),
+    _descriptor.FieldDescriptor(
+      name='error_control', full_name='WindowsServiceInformation.error_control', index=7,
+      number=8, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=3,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0018\0226Behaviour of the service on failure to load/initialize')),
+    _descriptor.FieldDescriptor(
+      name='image_path', full_name='WindowsServiceInformation.image_path', index=8,
+      number=9, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\033\022\031ImagePath of the service.')),
+    _descriptor.FieldDescriptor(
+      name='object_name', full_name='WindowsServiceInformation.object_name', index=9,
+      number=10, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\034\022\032ObjectName of the service.')),
+    _descriptor.FieldDescriptor(
+      name='startup_type', full_name='WindowsServiceInformation.startup_type', index=10,
+      number=11, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\027\022\025Service start options')),
+    _descriptor.FieldDescriptor(
+      name='service_type', full_name='WindowsServiceInformation.service_type', index=11,
+      number=12, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=1,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\026\022\024Type of the service.')),
+    _descriptor.FieldDescriptor(
+      name='group_name', full_name='WindowsServiceInformation.group_name', index=12,
+      number=13, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001R\022PSpecifies the name of the load ordering group of which this service is a member.')),
+    _descriptor.FieldDescriptor(
+      name='service_dll', full_name='WindowsServiceInformation.service_dll', index=13,
+      number=14, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001.\022,Name of the DLL instantiated in the service.')),
+    _descriptor.FieldDescriptor(
+      name='registry_key', full_name='WindowsServiceInformation.registry_key', index=14,
+      number=15, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0019\n\006RDFURN\022/The AFF4 location for the service registry key.')),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+    _WINDOWSSERVICEINFORMATION_ERRORCONTROL,
+    _WINDOWSSERVICEINFORMATION_SERVICEMODE,
+    _WINDOWSSERVICEINFORMATION_SERVICETYPE,
+  ],
+  options=_descriptor._ParseOptions(descriptor_pb2.MessageOptions(), '\332\374\343\304\001\270\001\n\265\001Describe a windows service or driver. Field names follow the cybox naming scheme where possible: http://cybox.mitre.org/language/version2.0.1/xsddocs/objects/Win_Service_Object.html'),
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=1468,
+  serialized_end=3304,
+)
+
+
+_OSXSERVICEINFORMATION = _descriptor.Descriptor(
+  name='OSXServiceInformation',
+  full_name='OSXServiceInformation',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='label', full_name='OSXServiceInformation.label', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\020\022\016Service label.')),
+    _descriptor.FieldDescriptor(
+      name='program', full_name='OSXServiceInformation.program', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\"\022 Program path run by the service.')),
+    _descriptor.FieldDescriptor(
+      name='args', full_name='OSXServiceInformation.args', index=2,
+      number=3, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001C\022AProgram args.  May also include executable if Program is not set.')),
+    _descriptor.FieldDescriptor(
+      name='pid', full_name='OSXServiceInformation.pid', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\025\022\023Current service PID')),
+    _descriptor.FieldDescriptor(
+      name='sessiontype', full_name='OSXServiceInformation.sessiontype', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0015\0223SessionType: Aqua|StandardIO|Background|LoginWindow')),
+    _descriptor.FieldDescriptor(
+      name='lastexitstatus', full_name='OSXServiceInformation.lastexitstatus', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001#\022!Last exit return code of service.')),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='OSXServiceInformation.timeout', index=6,
+      number=7, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\022\022\020Service timeout.')),
+    _descriptor.FieldDescriptor(
+      name='ondemand', full_name='OSXServiceInformation.ondemand', index=7,
+      number=8, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001,\022*True if the service should start ondemand.')),
+    _descriptor.FieldDescriptor(
+      name='machservice', full_name='OSXServiceInformation.machservice', index=8,
+      number=9, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001*\022(Machservices advertised by this service.')),
+    _descriptor.FieldDescriptor(
+      name='perjobmachservice', full_name='OSXServiceInformation.perjobmachservice', index=9,
+      number=10, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001*\022(Machservices advertised by this service.')),
+    _descriptor.FieldDescriptor(
+      name='socket', full_name='OSXServiceInformation.socket', index=10,
+      number=11, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\037\022\035Sockets used by this service.')),
+    _descriptor.FieldDescriptor(
+      name='plist', full_name='OSXServiceInformation.plist', index=11,
+      number=15, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0012\n\006RDFURN\022(The AFF4 location for the service plist.')),
   ],
   extensions=[
   ],
   nested_types=[],
   enum_types=[
   ],
-  options=None,
+  options=_descriptor._ParseOptions(descriptor_pb2.MessageOptions(), '\332\374\343\304\0010\n.Describe an OS X service (launchagent/daemon).'),
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1604,
-  serialized_end=1706,
+  serialized_start=3307,
+  serialized_end=4153,
 )
 
 
@@ -783,6 +987,20 @@ _SOFTWAREPACKAGE = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='installed_on', full_name='SoftwarePackage.installed_on', index=6,
+      number=7, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='installed_by', full_name='SoftwarePackage.installed_by', index=7,
+      number=8, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -793,8 +1011,85 @@ _SOFTWAREPACKAGE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=1709,
-  serialized_end=1956,
+  serialized_start=4156,
+  serialized_end=4447,
+)
+
+
+_BROWSERHISTORYITEM = _descriptor.Descriptor(
+  name='BrowserHistoryItem',
+  full_name='BrowserHistoryItem',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='url', full_name='BrowserHistoryItem.url', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\022\022\020The URL visited.')),
+    _descriptor.FieldDescriptor(
+      name='domain', full_name='BrowserHistoryItem.domain', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\027\022\025Domain name accessed.')),
+    _descriptor.FieldDescriptor(
+      name='access_time', full_name='BrowserHistoryItem.access_time', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001)\n\013RDFDatetime\022\032Time the URL was accessed.')),
+    _descriptor.FieldDescriptor(
+      name='referrer', full_name='BrowserHistoryItem.referrer', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\036\022\034Referrer used for the access')),
+    _descriptor.FieldDescriptor(
+      name='title', full_name='BrowserHistoryItem.title', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\022)Title attribute of the page if available.')),
+    _descriptor.FieldDescriptor(
+      name='program_name', full_name='BrowserHistoryItem.program_name', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001<\022:Name of the program that generated the entry, e.g. Chrome.')),
+    _descriptor.FieldDescriptor(
+      name='source_urn', full_name='BrowserHistoryItem.source_urn', index=6,
+      number=7, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001:\n\006RDFURN\0220Location of object that this entry was found in.')),
+    _descriptor.FieldDescriptor(
+      name='download_path', full_name='BrowserHistoryItem.download_path', index=7,
+      number=8, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\032\022\030Path of downloaded file.')),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=4450,
+  serialized_end=4981,
 )
 
 _PROCESS.fields_by_name['connections'].message_type = _NETWORKCONNECTION
@@ -806,7 +1101,14 @@ _NETWORKCONNECTION.fields_by_name['state'].enum_type = _NETWORKCONNECTION_STATE
 _NETWORKCONNECTION_FAMILY.containing_type = _NETWORKCONNECTION;
 _NETWORKCONNECTION_TYPE.containing_type = _NETWORKCONNECTION;
 _NETWORKCONNECTION_STATE.containing_type = _NETWORKCONNECTION;
-_SERVICE.fields_by_name['osx_launchd'].message_type = _LAUNCHDJOB
+_WINDOWSSERVICEINFORMATION.fields_by_name['binary'].message_type = grr.proto.jobs_pb2._STATENTRY
+_WINDOWSSERVICEINFORMATION.fields_by_name['wmi_information'].message_type = grr.proto.jobs_pb2._DICT
+_WINDOWSSERVICEINFORMATION.fields_by_name['error_control'].enum_type = _WINDOWSSERVICEINFORMATION_ERRORCONTROL
+_WINDOWSSERVICEINFORMATION.fields_by_name['startup_type'].enum_type = _WINDOWSSERVICEINFORMATION_SERVICEMODE
+_WINDOWSSERVICEINFORMATION.fields_by_name['service_type'].enum_type = _WINDOWSSERVICEINFORMATION_SERVICETYPE
+_WINDOWSSERVICEINFORMATION_ERRORCONTROL.containing_type = _WINDOWSSERVICEINFORMATION;
+_WINDOWSSERVICEINFORMATION_SERVICEMODE.containing_type = _WINDOWSSERVICEINFORMATION;
+_WINDOWSSERVICEINFORMATION_SERVICETYPE.containing_type = _WINDOWSSERVICEINFORMATION;
 _SOFTWAREPACKAGE.fields_by_name['install_state'].enum_type = _SOFTWAREPACKAGE_INSTALLSTATE
 _SOFTWAREPACKAGE_INSTALLSTATE.containing_type = _SOFTWAREPACKAGE;
 DESCRIPTOR.message_types_by_name['Process'] = _PROCESS
@@ -815,9 +1117,10 @@ DESCRIPTOR.message_types_by_name['NetworkConnection'] = _NETWORKCONNECTION
 DESCRIPTOR.message_types_by_name['Filesystem'] = _FILESYSTEM
 DESCRIPTOR.message_types_by_name['MRUFile'] = _MRUFILE
 DESCRIPTOR.message_types_by_name['RunKey'] = _RUNKEY
-DESCRIPTOR.message_types_by_name['LaunchdJob'] = _LAUNCHDJOB
-DESCRIPTOR.message_types_by_name['Service'] = _SERVICE
+DESCRIPTOR.message_types_by_name['WindowsServiceInformation'] = _WINDOWSSERVICEINFORMATION
+DESCRIPTOR.message_types_by_name['OSXServiceInformation'] = _OSXSERVICEINFORMATION
 DESCRIPTOR.message_types_by_name['SoftwarePackage'] = _SOFTWAREPACKAGE
+DESCRIPTOR.message_types_by_name['BrowserHistoryItem'] = _BROWSERHISTORYITEM
 
 class Process(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
@@ -855,17 +1158,17 @@ class RunKey(_message.Message):
 
   # @@protoc_insertion_point(class_scope:RunKey)
 
-class LaunchdJob(_message.Message):
+class WindowsServiceInformation(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _LAUNCHDJOB
+  DESCRIPTOR = _WINDOWSSERVICEINFORMATION
 
-  # @@protoc_insertion_point(class_scope:LaunchdJob)
+  # @@protoc_insertion_point(class_scope:WindowsServiceInformation)
 
-class Service(_message.Message):
+class OSXServiceInformation(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _SERVICE
+  DESCRIPTOR = _OSXSERVICEINFORMATION
 
-  # @@protoc_insertion_point(class_scope:Service)
+  # @@protoc_insertion_point(class_scope:OSXServiceInformation)
 
 class SoftwarePackage(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
@@ -873,7 +1176,87 @@ class SoftwarePackage(_message.Message):
 
   # @@protoc_insertion_point(class_scope:SoftwarePackage)
 
+class BrowserHistoryItem(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _BROWSERHISTORYITEM
+
+  # @@protoc_insertion_point(class_scope:BrowserHistoryItem)
+
 
 _PROCESS.has_options = True
 _PROCESS._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), '\332\374\343\304\001\026\n\024Process information.')
+_WINDOWSSERVICEINFORMATION.fields_by_name['name'].has_options = True
+_WINDOWSSERVICEINFORMATION.fields_by_name['name']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\032\022\030The name of the service.')
+_WINDOWSSERVICEINFORMATION.fields_by_name['description'].has_options = True
+_WINDOWSSERVICEINFORMATION.fields_by_name['description']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001(\022&The description string of the service.')
+_WINDOWSSERVICEINFORMATION.fields_by_name['binary'].has_options = True
+_WINDOWSSERVICEINFORMATION.fields_by_name['binary']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001b\022`The binary on the client. This may also contain an AFF4 urn to the server copy of the same file.')
+_WINDOWSSERVICEINFORMATION.fields_by_name['state'].has_options = True
+_WINDOWSSERVICEINFORMATION.fields_by_name['state']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\037\022\035Current state of the service.')
+_WINDOWSSERVICEINFORMATION.fields_by_name['wmi_information'].has_options = True
+_WINDOWSSERVICEINFORMATION.fields_by_name['wmi_information']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001/\022-Additional information available through WMI.')
+_WINDOWSSERVICEINFORMATION.fields_by_name['display_name'].has_options = True
+_WINDOWSSERVICEINFORMATION.fields_by_name['display_name']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0018\0226Displayed name of the service in Windows GUI controls.')
+_WINDOWSSERVICEINFORMATION.fields_by_name['driver_package_id'].has_options = True
+_WINDOWSSERVICEINFORMATION.fields_by_name['driver_package_id']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001#\022!Driver Package ID of the service.')
+_WINDOWSSERVICEINFORMATION.fields_by_name['error_control'].has_options = True
+_WINDOWSSERVICEINFORMATION.fields_by_name['error_control']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0018\0226Behaviour of the service on failure to load/initialize')
+_WINDOWSSERVICEINFORMATION.fields_by_name['image_path'].has_options = True
+_WINDOWSSERVICEINFORMATION.fields_by_name['image_path']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\033\022\031ImagePath of the service.')
+_WINDOWSSERVICEINFORMATION.fields_by_name['object_name'].has_options = True
+_WINDOWSSERVICEINFORMATION.fields_by_name['object_name']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\034\022\032ObjectName of the service.')
+_WINDOWSSERVICEINFORMATION.fields_by_name['startup_type'].has_options = True
+_WINDOWSSERVICEINFORMATION.fields_by_name['startup_type']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\027\022\025Service start options')
+_WINDOWSSERVICEINFORMATION.fields_by_name['service_type'].has_options = True
+_WINDOWSSERVICEINFORMATION.fields_by_name['service_type']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\026\022\024Type of the service.')
+_WINDOWSSERVICEINFORMATION.fields_by_name['group_name'].has_options = True
+_WINDOWSSERVICEINFORMATION.fields_by_name['group_name']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001R\022PSpecifies the name of the load ordering group of which this service is a member.')
+_WINDOWSSERVICEINFORMATION.fields_by_name['service_dll'].has_options = True
+_WINDOWSSERVICEINFORMATION.fields_by_name['service_dll']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001.\022,Name of the DLL instantiated in the service.')
+_WINDOWSSERVICEINFORMATION.fields_by_name['registry_key'].has_options = True
+_WINDOWSSERVICEINFORMATION.fields_by_name['registry_key']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0019\n\006RDFURN\022/The AFF4 location for the service registry key.')
+_WINDOWSSERVICEINFORMATION.has_options = True
+_WINDOWSSERVICEINFORMATION._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), '\332\374\343\304\001\270\001\n\265\001Describe a windows service or driver. Field names follow the cybox naming scheme where possible: http://cybox.mitre.org/language/version2.0.1/xsddocs/objects/Win_Service_Object.html')
+_OSXSERVICEINFORMATION.fields_by_name['label'].has_options = True
+_OSXSERVICEINFORMATION.fields_by_name['label']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\020\022\016Service label.')
+_OSXSERVICEINFORMATION.fields_by_name['program'].has_options = True
+_OSXSERVICEINFORMATION.fields_by_name['program']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\"\022 Program path run by the service.')
+_OSXSERVICEINFORMATION.fields_by_name['args'].has_options = True
+_OSXSERVICEINFORMATION.fields_by_name['args']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001C\022AProgram args.  May also include executable if Program is not set.')
+_OSXSERVICEINFORMATION.fields_by_name['pid'].has_options = True
+_OSXSERVICEINFORMATION.fields_by_name['pid']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\025\022\023Current service PID')
+_OSXSERVICEINFORMATION.fields_by_name['sessiontype'].has_options = True
+_OSXSERVICEINFORMATION.fields_by_name['sessiontype']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0015\0223SessionType: Aqua|StandardIO|Background|LoginWindow')
+_OSXSERVICEINFORMATION.fields_by_name['lastexitstatus'].has_options = True
+_OSXSERVICEINFORMATION.fields_by_name['lastexitstatus']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001#\022!Last exit return code of service.')
+_OSXSERVICEINFORMATION.fields_by_name['timeout'].has_options = True
+_OSXSERVICEINFORMATION.fields_by_name['timeout']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\022\022\020Service timeout.')
+_OSXSERVICEINFORMATION.fields_by_name['ondemand'].has_options = True
+_OSXSERVICEINFORMATION.fields_by_name['ondemand']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001,\022*True if the service should start ondemand.')
+_OSXSERVICEINFORMATION.fields_by_name['machservice'].has_options = True
+_OSXSERVICEINFORMATION.fields_by_name['machservice']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001*\022(Machservices advertised by this service.')
+_OSXSERVICEINFORMATION.fields_by_name['perjobmachservice'].has_options = True
+_OSXSERVICEINFORMATION.fields_by_name['perjobmachservice']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001*\022(Machservices advertised by this service.')
+_OSXSERVICEINFORMATION.fields_by_name['socket'].has_options = True
+_OSXSERVICEINFORMATION.fields_by_name['socket']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\037\022\035Sockets used by this service.')
+_OSXSERVICEINFORMATION.fields_by_name['plist'].has_options = True
+_OSXSERVICEINFORMATION.fields_by_name['plist']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0012\n\006RDFURN\022(The AFF4 location for the service plist.')
+_OSXSERVICEINFORMATION.has_options = True
+_OSXSERVICEINFORMATION._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), '\332\374\343\304\0010\n.Describe an OS X service (launchagent/daemon).')
+_BROWSERHISTORYITEM.fields_by_name['url'].has_options = True
+_BROWSERHISTORYITEM.fields_by_name['url']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\022\022\020The URL visited.')
+_BROWSERHISTORYITEM.fields_by_name['domain'].has_options = True
+_BROWSERHISTORYITEM.fields_by_name['domain']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\027\022\025Domain name accessed.')
+_BROWSERHISTORYITEM.fields_by_name['access_time'].has_options = True
+_BROWSERHISTORYITEM.fields_by_name['access_time']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001)\n\013RDFDatetime\022\032Time the URL was accessed.')
+_BROWSERHISTORYITEM.fields_by_name['referrer'].has_options = True
+_BROWSERHISTORYITEM.fields_by_name['referrer']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\036\022\034Referrer used for the access')
+_BROWSERHISTORYITEM.fields_by_name['title'].has_options = True
+_BROWSERHISTORYITEM.fields_by_name['title']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\022)Title attribute of the page if available.')
+_BROWSERHISTORYITEM.fields_by_name['program_name'].has_options = True
+_BROWSERHISTORYITEM.fields_by_name['program_name']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001<\022:Name of the program that generated the entry, e.g. Chrome.')
+_BROWSERHISTORYITEM.fields_by_name['source_urn'].has_options = True
+_BROWSERHISTORYITEM.fields_by_name['source_urn']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001:\n\006RDFURN\0220Location of object that this entry was found in.')
+_BROWSERHISTORYITEM.fields_by_name['download_path'].has_options = True
+_BROWSERHISTORYITEM.fields_by_name['download_path']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\032\022\030Path of downloaded file.')
 # @@protoc_insertion_point(module_scope)

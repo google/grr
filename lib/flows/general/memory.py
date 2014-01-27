@@ -17,6 +17,181 @@ from grr.lib.flows.general import transfer
 from grr.proto import flows_pb2
 
 
+class MemoryScannerFilter(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryScannerFilter
+
+
+class MemoryScannerWithoutLocalCopyDumpOption(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryScannerWithoutLocalCopyDumpOption
+
+
+class MemoryScannerWithLocalCopyDumpOption(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryScannerWithLocalCopyDumpOption
+
+
+class MemoryScannerDumpOption(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryScannerDumpOption
+
+
+class MemoryScannerDownloadAction(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryScannerDownloadAction
+
+
+class MemoryScannerSendToSocketAction(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryScannerSendToSocketAction
+
+
+class MemoryScannerAction(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryScannerAction
+
+
+class MemoryScannerArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryScannerArgs
+
+
+class MemoryScanner(flow.GRRFlow):
+  """Flow for scanning and imaging memory."""
+
+  category = "/Memory/"
+  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
+  args_type = MemoryScannerArgs
+
+  def FiltersToFileFinderFilters(self, filters):
+    result = []
+    for f in filters:
+      if f.filter_type == MemoryScannerFilter.Type.LITERAL_MATCH:
+        result.append(rdfvalue.FileFinderFilter(
+            filter_type=rdfvalue.FileFinderFilter.Type.CONTENTS_LITERAL_MATCH,
+            contents_literal_match=f.literal_match))
+      elif f.filter_type == MemoryScannerFilter.Type.REGEX_MATCH:
+        result.append(rdfvalue.FileFinderFilter(
+            filter_type=rdfvalue.FileFinderFilter.Type.CONTENTS_REGEX_MATCH,
+            contents_regex_match=f.regex_match))
+      else:
+        raise ValueError("Unknown filter type: %s", f.filter_type)
+
+    return result
+
+  @flow.StateHandler(next_state="Filter")
+  def Start(self):
+    self.CallFlow("LoadMemoryDriver",
+                  driver_installer=self.args.driver_installer,
+                  next_state="Filter")
+
+  @flow.StateHandler(next_state=["Action", "Transfer", "Done"])
+  def Filter(self, responses):
+    if not responses.success:
+      raise flow.FlowError("Failed due to no memory driver.")
+
+    self.state.Register("memory_information", responses.First())
+
+    if self.args.filters:
+      self.CallFlow("FileFinder",
+                    paths=[self.state.memory_information.device.path],
+                    filters=self.FiltersToFileFinderFilters(self.args.filters),
+                    no_file_type_check=True,
+                    next_state="Action")
+    else:
+      self.CallStateInline(next_state="Action")
+
+  @property
+  def action_options(self):
+    if self.args.action.action_type == MemoryScannerAction.Action.DOWNLOAD:
+      return self.args.action.download
+    elif (self.args.action.action_type ==
+          MemoryScannerAction.Action.SEND_TO_SOCKET):
+      return self.args.action.send_to_socket
+
+  @flow.StateHandler(next_state=["MakeLocalCopy", "Transfer"])
+  def Action(self, responses):
+    if not responses.success:
+      raise flow.FlowError("Applying filters failed: %s" % (responses.status))
+
+    if self.args.filters:
+      if not responses:
+        self.Status("Memory doesn't match specified filters.")
+        return
+      for response in responses:
+        for match in response.matches:
+          self.SendReply(match)
+
+    if self.action_options:
+      if (self.action_options.dump_option.option_type ==
+          MemoryScannerDumpOption.Option.WITHOUT_LOCAL_COPY):
+        self.CallStateInline(next_state="Transfer")
+      elif (self.action_options.dump_option.option_type ==
+            MemoryScannerDumpOption.Option.WITH_LOCAL_COPY):
+        dump_option = self.action_options.dump_option.with_local_copy
+        self.CallClient("CopyPathToFile",
+                        offset=dump_option.offset,
+                        length=dump_option.length,
+                        src_path=self.state.memory_information.device,
+                        dest_dir=dump_option.destdir,
+                        gzip_output=dump_option.gzip,
+                        next_state="Transfer")
+    else:
+      self.Status("Nothing to do: no action specified.")
+
+  @flow.StateHandler(next_state=["Done"])
+  def Transfer(self, responses):
+    # We can only get a failure if Transfer is called from MakeLocalCopy
+    if not responses.success:
+      raise flow.FlowError("Local copy failed: %s" % (responses.status))
+
+    if (self.action_options.dump_option.option_type ==
+        MemoryScannerDumpOption.Option.WITH_LOCAL_COPY):
+      self.state.Register("memory_src_path", responses.First().dest_path)
+    else:
+      self.state.Register("memory_src_path",
+                          self.state.memory_information.device)
+
+    if self.args.action.action_type == MemoryScannerAction.Action.DOWNLOAD:
+      self.CallFlow("GetFile", pathspec=self.state.memory_src_path,
+                    next_state="Done")
+    elif (self.args.action.action_type ==
+          MemoryScannerAction.Action.SEND_TO_SOCKET):
+      options = self.state.args.action.send_to_socket
+      self.CallClient("SendFile", key=utils.SmartStr(options.key),
+                      iv=utils.SmartStr(options.iv),
+                      pathspec=self.state.memory_src_path,
+                      address_family=options.address_family,
+                      host=options.host,
+                      port=options.port,
+                      next_state="Done")
+
+  @flow.StateHandler(next_state=["DeleteFile"])
+  def Done(self, responses):
+    """'Done' state always gets executed after 'Transfer' state is done."""
+    if not responses.success:
+      # Leave file on disk to allow the user to retry GetFile without having to
+      # copy the whole memory image again.
+      raise flow.FlowError("Transfer of %s failed %s" % (
+          self.state.memory_src_path, responses.status))
+
+    if self.args.action.action_type == MemoryScannerAction.Action.DOWNLOAD:
+      stat = responses.First()
+      self.state.Register("downloaded_file", stat.aff4path)
+      self.Log("Downloaded %s successfully." % self.state.downloaded_file)
+      self.Notify("ViewObject", self.state.downloaded_file,
+                  "Memory image transferred successfully")
+      self.Status("Memory image transferred successfully.")
+    elif (self.args.action.action_type ==
+          MemoryScannerAction.Action.SEND_TO_SOCKET):
+      self.Status("Memory image transferred successfully.")
+
+    if (self.action_options.dump_option.option_type ==
+        MemoryScannerDumpOption.Option.WITH_LOCAL_COPY):
+      self.CallClient("DeleteGRRTempFiles",
+                      self.state.memory_src_path, next_state="DeleteFile")
+
+  @flow.StateHandler()
+  def DeleteFile(self, responses):
+    """Checks for errors from DeleteGRRTempFiles called from 'Done' state."""
+    if not responses.success:
+      raise flow.FlowError("Removing local file %s failed: %s" % (
+          self.state.memory_src_path, responses.status))
+
+
 class ImageMemoryToSocket(transfer.SendFile):
   """This flow sends a memory image to remote listener.
 
@@ -164,24 +339,29 @@ class LoadMemoryDriver(flow.GRRFlow):
   def Start(self):
     """Check if driver is already loaded."""
     self.state.Register("device_urn", self.client_id.Add("devices/memory"))
-    self.state.Register("driver_installer", self.args.driver_installer)
+    self.state.Register("installer_urns", [])
+    self.state.Register("current_installer", None)
 
     if not self.args.driver_installer:
       # Fetch the driver installer from the data store.
-      self.state.driver_installer = GetMemoryModule(self.client_id,
-                                                    token=self.token)
+      self.state.installer_urns = GetMemoryModules(self.client_id,
+                                                   token=self.token)
 
       # Create a protobuf containing the request.
-      if not self.state.driver_installer:
+      if not self.state.installer_urns:
         raise IOError("Could not determine path for memory driver. No module "
                       "available for this platform.")
 
     if self.args.reload_if_loaded:
       self.CallStateInline(next_state="LoadDriver")
     else:
+      # We just check for one of the drivers, assuming that they all use the
+      # same device path.
+      installer = GetDriverFromURN(self.state.installer_urns[0],
+                                   token=self.token)
       self.CallClient("GetMemoryInformation",
                       rdfvalue.PathSpec(
-                          path=self.state.driver_installer.device_path,
+                          path=installer.device_path,
                           pathtype=rdfvalue.PathSpec.PathType.MEMORY),
                       next_state="CheckMemoryInformation")
 
@@ -198,20 +378,26 @@ class LoadMemoryDriver(flow.GRRFlow):
 
   @flow.StateHandler(next_state=["InstalledDriver"])
   def LoadDriver(self, _):
-    # We want to force unload old driver and reload the current one.
-    self.state.driver_installer.force_reload = 1
-    self.CallClient("InstallDriver", self.state.driver_installer,
-                    next_state="InstalledDriver")
+    if not self.state.installer_urns:
+      raise flow.FlowError("Could not find a working memory driver")
 
-  @flow.StateHandler(next_state="GotMemoryInformation")
+    installer_urn = self.state.installer_urns.pop(0)
+    installer = GetDriverFromURN(installer_urn, token=self.token)
+    self.state.current_installer = installer
+    # We want to force unload old driver and reload the current one.
+    installer.force_reload = 1
+    self.CallClient("InstallDriver", installer, next_state="InstalledDriver")
+
+  @flow.StateHandler(next_state=["GotMemoryInformation", "LoadDriver",
+                                 "InstalledDriver"])
   def InstalledDriver(self, responses):
     if not responses.success:
-      raise flow.FlowError("Could not install memory driver %s" %
-                           responses.status)
+      # This driver didn't work, let's try the next one.
+      self.CallStateInline(next_state="LoadDriver")
 
     self.CallClient("GetMemoryInformation",
                     rdfvalue.PathSpec(
-                        path=self.state.driver_installer.device_path,
+                        path=self.state.current_installer.device_path,
                         pathtype=rdfvalue.PathSpec.PathType.MEMORY),
                     next_state="GotMemoryInformation")
 
@@ -232,7 +418,7 @@ class LoadMemoryDriver(flow.GRRFlow):
       self.SendReply(layout)
     else:
       raise flow.FlowError("Failed to query device %s (%s)" %
-                           (self.state.driver_installer.device_path,
+                           (self.state.current_installer.device_path,
                             responses.status))
 
   @flow.StateHandler()
@@ -242,18 +428,18 @@ class LoadMemoryDriver(flow.GRRFlow):
                   "Driver successfully initialized.")
 
 
-def GetMemoryModule(client_id, token):
-  """Given a host, return an appropriate memory module.
+def GetMemoryModules(client_id, token):
+  """Given a host, returns a list of urns to appropriate memory modules.
 
   Args:
     client_id: The client_id of the host to use.
     token: Token to use for access.
 
   Returns:
-    A GRRSignedDriver.
+    A list of URNs pointing to GRRSignedDriver objects.
 
   Raises:
-    IOError: on inability to get driver.
+    IOError: on inability to get any driver.
 
   The driver is retrieved from the AFF4 configuration space according to the
   client's known attributes. The exact layout of the driver's configuration
@@ -282,12 +468,12 @@ def GetMemoryModule(client_id, token):
       .... Key 1 .... (Public)
 
     Arch:amd64:
-      MemoryDriver.aff4_path:  |
-          aff4:/config/drivers/windows/pmem_amd64.sys
+      MemoryDriver.aff4_paths:
+        - aff4:/config/drivers/windows/pmem_amd64.sys
 
     Arch:i386:
-      MemoryDriver.aff4_path:  |
-          aff4:/config/drivers/windows/pmem_x86.sys
+      MemoryDriver.aff4_paths:
+        - aff4:/config/drivers/windows/pmem_x86.sys
   """
   client_context = []
   client = aff4.FACTORY.Open(client_id, token=token)
@@ -307,14 +493,26 @@ def GetMemoryModule(client_id, token):
   if arch:
     client_context.append("Arch:%s" % arch)
 
-  # Now query the configuration system for the driver.
-  aff4_path = config_lib.CONFIG.Get("MemoryDriver.aff4_path",
-                                    context=client_context)
-
-  if aff4_path:
+  installer_urns = []
+  for aff4_path in config_lib.CONFIG.Get("MemoryDriver.aff4_paths",
+                                         context=client_context):
     logging.debug("Will fetch driver at %s for client %s",
                   aff4_path, client_id)
-    fd = aff4.FACTORY.Open(aff4_path, aff4_type="GRRMemoryDriver",
+    if GetDriverFromURN(aff4_path, token):
+      logging.debug("Driver at %s found.", aff4_path)
+      installer_urns.append(aff4_path)
+    else:
+      logging.debug("Unable to load driver at %s.", aff4_path)
+
+  if not installer_urns:
+    raise IOError("Unable to find a driver for client.")
+  return installer_urns
+
+
+def GetDriverFromURN(urn, token=None):
+  """Returns the actual driver from a driver URN."""
+  try:
+    fd = aff4.FACTORY.Open(urn, aff4_type="GRRMemoryDriver",
                            mode="r", token=token)
 
     # Get the signed driver.
@@ -328,8 +526,10 @@ def GetMemoryModule(client_id, token):
         driver_installer.driver = driver_blob
 
         return driver_installer
+  except IOError:
+    pass
 
-  raise IOError("Unable to find a driver for client.")
+  return None
 
 
 class AnalyzeClientMemoryArgs(rdfvalue.RDFProtoStruct):
@@ -407,25 +607,30 @@ class UnloadMemoryDriver(LoadMemoryDriver):
   def Start(self):
     """Start processing."""
     self.state.Register("driver_installer", self.args.driver_installer)
+    self.state.Register("success", False)
 
-    if not self.args.driver_installer:
-      self.state.driver_installer = GetMemoryModule(self.client_id, self.token)
+    if self.args.driver_installer:
+      self.CallClient("UninstallDriver", self.state.driver_installer,
+                      next_state="Done")
+      return
 
-      if not self.state.driver_installer:
-        raise IOError("No memory driver currently available for this system.")
+    urns = GetMemoryModules(self.client_id, self.token)
+    if not urns:
+      raise IOError("No memory driver currently available for this system.")
 
-    self.CallClient("UninstallDriver", self.state.driver_installer,
-                    next_state="Done")
+    for urn in urns:
+      installer = GetDriverFromURN(urn, token=self.token)
+      self.CallClient("UninstallDriver", installer, next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
-    if not responses.success:
-      raise flow.FlowError("Failed to uninstall memory driver: %s",
-                           responses.status.error_message)
+    if responses.success:
+      self.state.success = True
 
   @flow.StateHandler()
   def End(self):
-    pass
+    if not self.state.success:
+      raise flow.FlowError("Failed to uninstall memory driver.")
 
 
 class ScanMemoryArgs(rdfvalue.RDFProtoStruct):

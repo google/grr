@@ -2,7 +2,6 @@
 """Interface for crash information."""
 
 
-import itertools
 import urllib
 
 from grr.gui import renderers
@@ -73,18 +72,20 @@ class ClientCrashCollectionRenderer(renderers.TableRenderer):
 
     try:
       collection = aff4.FACTORY.Open(crashes_urn,
-                                     aff4_type="RDFValueCollection",
+                                     aff4_type="PackedVersionedCollection",
                                      token=request.token)
     except IOError:
       return
 
-    self.size = len(collection)
-
-    row_index = start_row
-    for value in itertools.islice(collection, start_row, end_row):
+    for row_index, value in enumerate(collection):
+      if row_index < start_row:
+        continue
+      row_index += 1
+      if row_index > end_row:
+        # Indicate that there are more rows.
+        return True
       self.AddCell(row_index, "Client Id", value.client_id)
       self.AddCell(row_index, "Crash Details", value)
-      row_index += 1
 
   def Layout(self, request, response):
     self.state["crashes_urn"] = str(self.crashes_urn or

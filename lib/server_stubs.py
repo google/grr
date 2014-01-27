@@ -18,6 +18,12 @@ class WmiQuery(actions.ActionPlugin):
   out_rdfvalue = rdfvalue.Dict
 
 
+class OSXEnumerateRunningServices(actions.ActionPlugin):
+  """Enumerate all running launchd jobs."""
+  in_rdfvalue = None
+  out_rdfvalue = rdfvalue.OSXServiceInformation
+
+
 # The following are deprecated client actions which have been removed.
 class GetConfig(actions.ActionPlugin):
   """Get configuration - DEPRECATED."""

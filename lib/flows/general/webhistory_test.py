@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """Test the webhistory flows."""
 
 import os
@@ -8,6 +7,7 @@ from grr.client import client_utils_linux
 from grr.client import client_utils_osx
 from grr.client.client_actions import standard
 from grr.lib import aff4
+from grr.lib import artifact_test
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
@@ -132,3 +132,42 @@ class TestWebHistory(test_lib.FlowTestsBaseclass):
 
     self.assertEquals(hits[0].pathspec.last.path,
                       "/home/test/.config/google-chrome/Default/Cache/data_1")
+
+
+class TestWebHistoryWithArtifacts(artifact_test.ArtifactTestHelper):
+  """Test the browser history flows."""
+
+  def setUp(self):
+    super(TestWebHistoryWithArtifacts, self).setUp()
+    self.SetLinuxClient()
+    self.MockClientMountPointsWithImage(os.path.join(self.base_path,
+                                                     "test_img.dd"))
+    self.client_mock = test_lib.ActionMock(
+        "ReadBuffer", "HashFile", "HashBuffer", "TransferBuffer", "StatFile",
+        "Find", "ListDirectory")
+
+  def testChrome(self):
+    """Check we can run WMI based artifacts."""
+    fd = self.RunCollectorAndGetCollection(
+        ["ChromeHistory"], client_mock=self.client_mock, use_tsk=True)
+    self.assertEquals(len(fd), 71)
+    self.assertTrue("/home/john/Downloads/funcats_scr.exe" in
+                    [d.download_path for d in fd])
+    self.assertTrue("http://www.java.com/" in [d.url for d in fd])
+    self.assertTrue(fd[0].source_urn.Path().endswith(
+        "/home/test/.config/google-chrome/Default/History"))
+
+  def testFirefox(self):
+    """Check we can run WMI based artifacts."""
+    fd = self.RunCollectorAndGetCollection(
+        ["FirefoxHistory"], client_mock=self.client_mock, use_tsk=True)
+    self.assertEquals(len(fd), 5)
+    self.assertEquals(fd[0].access_time.AsSecondsFromEpoch(), 1340623334)
+    self.assertTrue("http://sport.orf.at/" in [d.url for d in fd])
+    self.assertTrue(fd[0].source_urn.Path().endswith(
+        "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"))
+
+  # TODO(user): Test IE once we have converted to new parsers.
+
+  def tearDown(self):
+    self.UnMockClientMountPoints()

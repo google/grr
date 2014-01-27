@@ -618,48 +618,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         time.time() + 3600)
 
 
-class BackwardsCompatibleClientCommsTest(ClientCommsTest):
-  """Test that we can talk using the old protocol still (version 2)."""
-
-  def setUp(self):
-    self.current_api = config_lib.CONFIG["Network.api"]
-    config_lib.CONFIG.Set("Network.api", 2)
-    super(BackwardsCompatibleClientCommsTest, self).setUp()
-
-
-class BackwardsCompatibleHTTPClientTests(HTTPClientTests):
-  """Test that we can talk using the old protocol still (version 2)."""
-
-  def setUp(self):
-    super(BackwardsCompatibleHTTPClientTests, self).setUp()
-    config_lib.CONFIG.Set("Network.api", 2)
-
-  def testCachedRSAOperations(self):
-    """With the old protocol there should be many RSA operations."""
-    # First time fill the cache.
-    self.SendToServer()
-    self.client_communicator.RunOnce()
-    self.CheckClientQueue()
-
-    metric_value = stats.STATS.GetMetricValue("grr_rsa_operations")
-    self.assert_(metric_value > 0)
-
-    for _ in range(5):
-      self.SendToServer()
-      self.client_communicator.RunOnce()
-      self.CheckClientQueue()
-
-    # There should be about 2 operations per loop iteration using the old
-    # protocol (client and server must sign the message_list). Note that clients
-    # actually running the old version will do 4 operations per loop since we
-    # used to generate a new cipher protobuf for each packet as well. However,
-    # currently, when running in compatibility mode we cache the same ciphers on
-    # each end. The result is that the new code is still faster even when
-    # running the old api.
-    self.assertEqual(stats.STATS.GetMetricValue("grr_rsa_operations"),
-                     metric_value + 10)
-
-
 def main(argv):
   test_lib.main(argv)
 

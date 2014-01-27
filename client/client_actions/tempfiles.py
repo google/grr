@@ -15,6 +15,7 @@ import threading
 
 from grr.client import actions
 from grr.client import client_utils
+from grr.client.vfs_handlers import files
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 
@@ -116,6 +117,8 @@ def DeleteGRRTempFile(path):
     raise ErrorNotTempFile(msg % (path, prefix))
 
   if os.path.exists(path):
+    # Clear our file handle cache so the file can be deleted.
+    files.FILE_HANDLE_CACHE.Flush()
     os.remove(path)
 
 

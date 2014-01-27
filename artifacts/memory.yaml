@@ -1,0 +1,11 @@
+# Artifacts that work with memory.
+
+name: VolatilityPsList
+doc: Process listing using Volatility.
+collectors:
+- action: VolatilityPlugin
+  args:
+    args: {}
+    plugin: pslist
+labels: [Volatility, Processes]
+urls: ['https://code.google.com/p/volatility/wiki/CommandReference#pslist']

@@ -10,19 +10,35 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.flows.general import filesystem
 
 
 class TestFilesystem(test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
-  def testListDirectoryOfTSKFile(self):
-    """Test that the TSK VFS containers are opened automatically."""
+  def testListDirectoryOnFile(self):
+    """OS ListDirectory on a file will raise."""
+    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+
+    pb = rdfvalue.PathSpec(
+        path=os.path.join(self.base_path, "test_img.dd"),
+        pathtype=rdfvalue.PathSpec.PathType.OS)
+
+    # Make sure the flow raises.
+    self.assertRaises(RuntimeError, list, test_lib.TestFlowHelper(
+        "ListDirectory", client_mock, client_id=self.client_id,
+        pathspec=pb, token=self.token))
+
+  def testListDirectory(self):
+    """Test that the ListDirectory flow works."""
     client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
 
     # Deliberately specify incorrect casing for the image name.
     pb = rdfvalue.PathSpec(
         path=os.path.join(self.base_path, "test_img.dd"),
         pathtype=rdfvalue.PathSpec.PathType.OS)
+    pb.Append(path="test directory",
+              pathtype=rdfvalue.PathSpec.PathType.TSK)
 
     for _ in test_lib.TestFlowHelper(
         "ListDirectory", client_mock, client_id=self.client_id,
@@ -31,36 +47,6 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Check the output file is created
     output_path = self.client_id.Add("fs/tsk").Add(pb.first.path)
-
-    fd = aff4.FACTORY.Open(output_path, token=self.token)
-    children = list(fd.OpenChildren())
-    self.assertEqual(len(children), 6)
-
-    # Check that the object is stored with the correct casing.
-    self.assertTrue("lost+found" in [x.urn.Basename() for x in children])
-
-    # And the wrong object is not there
-    self.assertRaises(IOError, aff4.FACTORY.Open,
-                      output_path.Add("test directory"),
-                      aff4_type="VFSDirectory", token=self.token)
-
-  def testListDirectory(self):
-    """Test that the ListDirectory flow works."""
-    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
-
-    # Deliberately specify incorrect casing for the image name.
-    pb = rdfvalue.PathSpec(
-        path=os.path.join(self.base_path, "test_img.dd/test directory"),
-        pathtype=rdfvalue.PathSpec.PathType.OS)
-
-    for _ in test_lib.TestFlowHelper(
-        "ListDirectory", client_mock, client_id=self.client_id,
-        pathspec=pb, token=self.token):
-      pass
-
-    # Check the output file is created
-    output_path = self.client_id.Add("fs/tsk").Add(
-        os.path.dirname(pb.first.path))
 
     fd = aff4.FACTORY.Open(output_path.Add("Test Directory"), token=self.token)
     children = list(fd.OpenChildren())
@@ -156,12 +142,13 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     paths = [os.path.join(self.base_path, "%%Users.username%%*"),
              os.path.join(self.base_path, "wtmp")]
 
-    # Run the flow.
-    for _ in test_lib.TestFlowHelper(
-        "Glob", client_mock, client_id=self.client_id,
-        paths=paths, pathtype=rdfvalue.PathSpec.PathType.OS,
-        token=self.token):
-      pass
+    # Set iterator really low to force iteration.
+    with test_lib.Stubber(filesystem.Glob, "FILE_MAX_PER_DIR", 2):
+      for _ in test_lib.TestFlowHelper(
+          "Glob", client_mock, client_id=self.client_id,
+          paths=paths, pathtype=rdfvalue.PathSpec.PathType.OS,
+          token=self.token, sync=False, check_flow_errors=False):
+        pass
 
     output_path = self.client_id.Add("fs/os").Add(
         self.base_path.replace("\\", "/"))
@@ -174,12 +161,25 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # We should find some files.
     self.assertEqual(sorted(children),
                      sorted(["syslog", "syslog_compress.gz",
-                             "syslog_false.gz", "test_artifact.json",
-                             "test_img.dd", "test.plist", "tests", "tests_long",
-                             "wtmp"]))
+                             "syslog_false.gz", "test_artifacts.json",
+                             "test_artifact.json", "test_img.dd", "test.plist",
+                             "tests", "tests_long", "wtmp"]))
 
-  def testGlobWithStarStar(self):
-    """Test that ** expressions mean recursion."""
+  def _MockSendReply(self, reply=None):
+    self.flow_replies.append(reply.pathspec.path)
+
+  def _RunGlob(self, paths):
+    self.flow_replies = []
+    client_mock = test_lib.ActionMock("Find", "StatFile")
+    with test_lib.Stubber(flow.GRRFlow, "SendReply", self._MockSendReply):
+      for _ in test_lib.TestFlowHelper(
+          "Glob", client_mock, client_id=self.client_id,
+          paths=paths, pathtype=rdfvalue.PathSpec.PathType.OS,
+          token=self.token):
+        pass
+
+  def testGlobWithStarStarRootPath(self):
+    """Test ** expressions with root_path."""
 
     # Add some usernames we can interpolate later.
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
@@ -192,13 +192,18 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     client_mock = test_lib.ActionMock("Find", "StatFile")
 
     # Glob for foo at a depth of 4.
-    paths = [
-        os.path.join(self.base_path, "test_img.dd/", "foo**4")]
+    path = os.path.join("foo**4")
+    root_path = rdfvalue.PathSpec(
+        path=os.path.join(self.base_path, "test_img.dd"),
+        pathtype=rdfvalue.PathSpec.PathType.OS)
+    root_path.Append(path="/",
+                     pathtype=rdfvalue.PathSpec.PathType.TSK)
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
         "Glob", client_mock, client_id=self.client_id,
-        paths=paths, pathtype=rdfvalue.PathSpec.PathType.OS,
+        paths=[path], root_path=root_path,
+        pathtype=rdfvalue.PathSpec.PathType.OS,
         token=self.token):
       pass
 
@@ -212,6 +217,51 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # We should find some files.
     self.assertEqual(children, ["foo"])
+
+  def testGlobWithStarStar(self):
+    """Test that ** expressions mean recursion."""
+
+    fourth_level_dir = utils.JoinPath(self.temp_dir, "1/2/3/4")
+    os.makedirs(fourth_level_dir)
+
+    top_level_path = self.temp_dir
+    open(utils.JoinPath(top_level_path, "bar"), "w").close()
+    for level in range(1, 5):
+      top_level_path = utils.JoinPath(top_level_path, level)
+      for filename in ("foo", "fOo", "bar"):
+        file_path = utils.JoinPath(top_level_path, filename + str(level))
+        open(file_path, "w").close()
+        self.assertTrue(os.path.exists(file_path))
+
+    # Test filename and directory with spaces
+    os.makedirs(utils.JoinPath(self.temp_dir, "1/2 space"))
+    path_spaces = utils.JoinPath(self.temp_dir, "1/2 space/foo something")
+    open(path_spaces, "w").close()
+    self.assertTrue(os.path.exists(path_spaces))
+
+    # Get the foos using default of 3 directory levels.
+    paths = [
+        os.path.join(self.temp_dir, "1/**/foo*")]
+    results = ["1/2/3/4/fOo4", "1/2/3/4/foo4", "/1/2/3/fOo3", "/1/2/3/foo3",
+               "1/2/fOo2", "1/2/foo2", "1/2 space/foo something"]
+    self._RunGlob(paths)
+    self.assertItemsEqual(self.flow_replies,
+                          [utils.JoinPath(self.temp_dir, x) for x in results])
+
+    # Get the files 2 levels down only.
+    paths = [os.path.join(self.temp_dir, "1/", "**2/foo*")]
+    results = ["1/2/3/foo3", "1/2/3/fOo3", "/1/2/fOo2", "/1/2/foo2",
+               "1/2 space/foo something"]
+    self._RunGlob(paths)
+    self.assertItemsEqual(self.flow_replies,
+                          [utils.JoinPath(self.temp_dir, x) for x in results])
+
+    # Get all of the bars.
+    paths = [os.path.join(self.temp_dir, "**10bar*")]
+    results = ["bar", "1/bar1", "/1/2/bar2", "/1/2/3/bar3", "/1/2/3/4/bar4"]
+    self._RunGlob(paths)
+    self.assertItemsEqual(self.flow_replies,
+                          [utils.JoinPath(self.temp_dir, x) for x in results])
 
   def testGlobWithInvalidStarStar(self):
     client_mock = test_lib.ActionMock("Find", "StatFile")
@@ -229,12 +279,18 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     client_mock = test_lib.ActionMock("Find", "StatFile")
 
     # This glob should find this file in test data: glob_test/a/b/foo.
-    path = os.path.join(self.base_path, "test_img.dd", "*", "a", "b", "*")
+    path = os.path.join("*", "a", "b", "*")
+    root_path = rdfvalue.PathSpec(
+        path=os.path.join(self.base_path, "test_img.dd"),
+        pathtype=rdfvalue.PathSpec.PathType.OS)
+    root_path.Append(path="/",
+                     pathtype=rdfvalue.PathSpec.PathType.TSK)
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
         "Glob", client_mock, client_id=self.client_id,
-        paths=[path], pathtype=rdfvalue.PathSpec.PathType.OS,
+        paths=[path], root_path=root_path,
+        pathtype=rdfvalue.PathSpec.PathType.OS,
         token=self.token):
       pass
 
@@ -247,17 +303,22 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(children), 1)
     self.assertEqual(children[0].Basename(), "foo")
 
-  def testGlobWithWildcardInTSKFilename(self):
+  def testGlobWithWildcardsInsideTSKFileCaseInsensitive(self):
     client_mock = test_lib.ActionMock("Find", "StatFile")
 
-    # This glob should find this file in test data: glob_test/a/b/foo. Match the
-    # file with the wrong case to test case insensitive globbing.
-    path = os.path.join(self.base_path, "test_IMG.*", "*", "a", "b", "*")
+    # This glob should find this file in test data: glob_test/a/b/foo.
+    path = os.path.join("*", "a", "b", "FOO*")
+    root_path = rdfvalue.PathSpec(
+        path=os.path.join(self.base_path, "test_IMG.dd"),
+        pathtype=rdfvalue.PathSpec.PathType.OS)
+    root_path.Append(path="/",
+                     pathtype=rdfvalue.PathSpec.PathType.TSK)
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
         "Glob", client_mock, client_id=self.client_id,
-        paths=[path], pathtype=rdfvalue.PathSpec.PathType.OS,
+        paths=[path], root_path=root_path,
+        pathtype=rdfvalue.PathSpec.PathType.OS,
         token=self.token):
       pass
 
@@ -359,6 +420,46 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(session_id, token=self.token)
     self.assertTrue("AttributeError" in fd.state.context.backtrace)
     self.assertEqual("ERROR", str(fd.state.context.state))
+
+  def testGlobRoundtrips(self):
+    """Tests that glob doesn't use too many client round trips."""
+
+    for pattern, num_find, num_stat in [
+        ("test_data/test_artifact.json", 0, 1),
+        ("test_data/test_*", 1, 0),
+        ("test_*/test_artifact.json", 1, 1),
+        ("test_*/test_*", 2, 0),
+        ("test_*/test_{artifact,artifacts}.json", 1, 2),
+        ("test_data/test_{artifact,artifacts}.json", 0, 2),
+        ("test_data/{ntfs_img.dd,*.log,*.raw}", 1, 1),
+        ("test_data/{*.log,*.raw}", 1, 0),
+        ("test_data/a/**/helloc.txt", 1, None),
+        ("test_data/a/**/hello{c,d}.txt", 1, None),
+        ("test_data/a/**/hello*.txt", 6, None),
+        ("test_data/a/**.txt", 1, None),
+        ("test_data/a/**5*.txt", 1, None),
+        ("test_data/a/**{.json,.txt}", 1, 0),
+        ]:
+
+      path = os.path.join(os.path.dirname(self.base_path), pattern)
+      client_mock = test_lib.RecordingActionMock("Find", "StatFile")
+
+      # Run the flow.
+      for _ in test_lib.TestFlowHelper(
+          "Glob", client_mock, client_id=self.client_id,
+          paths=[path], token=self.token):
+        pass
+
+      if num_find is not None:
+        self.assertEqual(client_mock.action_counts.get("Find", 0), num_find)
+      if num_stat is not None:
+        self.assertEqual(client_mock.action_counts.get("StatFile", 0), num_stat)
+
+      # Check for duplicate client calls.
+      for method in "StatFile", "Find":
+        stat_args = client_mock.recorded_args.get(method, [])
+        stat_paths = [c.pathspec.path for c in stat_args]
+        self.assertListEqual(sorted(stat_paths), sorted(set(stat_paths)))
 
   def testFetchFilesFlow(self):
 

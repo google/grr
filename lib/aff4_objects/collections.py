@@ -6,6 +6,8 @@
 import cStringIO
 import struct
 
+import logging
+
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
@@ -72,12 +74,15 @@ class RDFValueCollection(aff4.AFF4Object):
 
   def Add(self, rdf_value=None, **kwargs):
     """Add the rdf value to the collection."""
-    if rdf_value is None and self._rdf_type:
-      rdf_value = self._rdf_type(**kwargs)  # pylint: disable=not-callable
+    if rdf_value is None:
+      if self._rdf_type:
+        rdf_value = self._rdf_type(**kwargs)  # pylint: disable=not-callable
+      else:
+        raise ValueError("RDFValueCollection doesn't accept None values.")
 
     if self._rdf_type and not isinstance(rdf_value, self._rdf_type):
-      raise RuntimeError("This collection only accepts values of type %s" %
-                         self._rdf_type.__name__)
+      raise ValueError("This collection only accepts values of type %s" %
+                       self._rdf_type.__name__)
 
     if not rdf_value.age:
       rdf_value.age.Now()
@@ -92,9 +97,12 @@ class RDFValueCollection(aff4.AFF4Object):
   def AddAll(self, rdf_values):
     """Adds a list of rdfvalues to the collection."""
     for rdf_value in rdf_values:
+      if rdf_value is None:
+        raise ValueError("Can't add None to the collection via AddAll.")
+
       if self._rdf_type and not isinstance(rdf_value, self._rdf_type):
-        raise RuntimeError("This collection only accepts values of type %s" %
-                           self._rdf_type.__name__)
+        raise ValueError("This collection only accepts values of type %s" %
+                         self._rdf_type.__name__)
 
       if not rdf_value.age:
         rdf_value.age.Now()
@@ -159,13 +167,17 @@ class RDFValueCollection(aff4.AFF4Object):
       result = rdfvalue.EmbeddedRDFValue(serialized_event)
 
       payload = result.payload
+      if payload is not None:
+        # Mark the RDFValue with important information relating to the
+        # collection it is from.
+        payload.id = count
+        payload.collection_offset = offset
 
-      # Mark the RDFValue with important information relating to the
-      # collection it is from.
-      payload.id = count
-      payload.collection_offset = offset
-
-      yield payload
+        yield payload
+      else:
+        logging.warning("payload=None was encountered in a collection %s "
+                        "(index %d), this may mean a logical bug or corrupt "
+                        "data. Ignoring...", self.urn, count)
 
       count += 1
 
@@ -243,6 +255,15 @@ class GrepResultsCollection(RDFValueCollection):
   _rdf_type = rdfvalue.BufferReference
 
 
+class ClientAnomalyCollection(RDFValueCollection):
+  """A collection of anomalies related to a client.
+
+  This class is a normal collection, but with additional methods for making
+  viewing and working with anomalies easier.
+  """
+  _rdf_type = rdfvalue.Anomaly
+
+
 class VersionedCollection(RDFValueCollection):
   """A collection which uses the data store's version properties.
 
@@ -261,7 +282,7 @@ class VersionedCollection(RDFValueCollection):
   def Add(self, rdf_value=None, **kwargs):
     """Add the rdf value to the collection."""
     if rdf_value is None and self._rdf_type:
-      rdf_value = self._rdf_type(**kwargs)  # pylint: disable-msg=not-callable
+      rdf_value = self._rdf_type(**kwargs)  # pylint: disable=not-callable
 
     if not rdf_value.age:
       rdf_value.age.Now()
@@ -299,7 +320,7 @@ class PackedVersionedCollection(RDFValueCollection):
   def Add(self, rdf_value=None, **kwargs):
     """Add the rdf value to the collection."""
     if rdf_value is None and self._rdf_type:
-      rdf_value = self._rdf_type(**kwargs)  # pylint: disable-msg=not-callable
+      rdf_value = self._rdf_type(**kwargs)  # pylint: disable=not-callable
 
     if not rdf_value.age:
       rdf_value.age.Now()
@@ -321,3 +342,8 @@ class PackedVersionedCollection(RDFValueCollection):
     for x in super(
         PackedVersionedCollection, self).GenerateItems():
       yield x
+
+  def __len__(self):
+    logging.warning(
+        "Len called on a PackedVersionedCollection, this will not work.")
+    return super(PackedVersionedCollection, self).__len__()

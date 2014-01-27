@@ -98,12 +98,12 @@ class OSXDriverTests(test_lib.EmptyActionTest):
       self.mox.VerifyAll()
 
 
-class OSXEnumerateRunningServices(test_lib.EmptyActionTest):
+class OSXEnumerateRunningServicesTest(test_lib.EmptyActionTest):
 
   def setUp(self):
-    super(OSXEnumerateRunningServices, self).setUp()
+    super(OSXEnumerateRunningServicesTest, self).setUp()
     self.mox = mox.Mox()
-    self.action = osx.EnumerateRunningServices(None)
+    self.action = osx.OSXEnumerateRunningServices(None)
     self.mock_version = self.mox.CreateMock(osx.client_utils_osx.OSXVersion)
 
     self.mox.StubOutWithMock(self.action, "GetRunningLaunchDaemons")
@@ -117,19 +117,19 @@ class OSXEnumerateRunningServices(test_lib.EmptyActionTest):
   def ValidResponseProtoSingle(self, proto):
     td = testdata.JOB[0]
     self.assertEqual(proto.label, td["Label"])
-    self.assertEqual(proto.osx_launchd.lastexitstatus,
+    self.assertEqual(proto.lastexitstatus,
                      td["LastExitStatus"].value)
-    self.assertEqual(proto.osx_launchd.sessiontype,
+    self.assertEqual(proto.sessiontype,
                      td["LimitLoadToSessionType"])
-    self.assertEqual(len(proto.osx_launchd.machservice),
+    self.assertEqual(len(proto.machservice),
                      len(td["MachServices"]))
-    self.assertEqual(proto.osx_launchd.ondemand, td["OnDemand"].value)
-    self.assertEqual(len(proto.args.split(" ")),
+    self.assertEqual(proto.ondemand, td["OnDemand"].value)
+    self.assertEqual(len(proto.args),
                      len(td["ProgramArguments"]))
-    self.assertEqual(proto.osx_launchd.timeout, td["TimeOut"].value)
+    self.assertEqual(proto.timeout, td["TimeOut"].value)
     return True
 
-  def testEnumerateRunningServicesAll(self):
+  def testOSXEnumerateRunningServicesAll(self):
     osx.client_utils_osx.OSXVersion().AndReturn(self.mock_version)
     self.mock_version.VersionAsFloat().AndReturn(10.7)
 
@@ -142,7 +142,7 @@ class OSXEnumerateRunningServices(test_lib.EmptyActionTest):
     self.action.Run(None)
     self.mox.VerifyAll()
 
-  def testEnumerateRunningServicesSingle(self):
+  def testOSXEnumerateRunningServicesSingle(self):
     osx.client_utils_osx.OSXVersion().AndReturn(self.mock_version)
     self.mock_version.VersionAsFloat().AndReturn(10.7)
 
@@ -153,7 +153,7 @@ class OSXEnumerateRunningServices(test_lib.EmptyActionTest):
     self.action.Run(None)
     self.mox.VerifyAll()
 
-  def testEnumerateRunningServicesVersionError(self):
+  def testOSXEnumerateRunningServicesVersionError(self):
     osx.client_utils_osx.OSXVersion().AndReturn(self.mock_version)
     self.mock_version.VersionAsFloat().AndReturn(10.5)
 
@@ -163,7 +163,7 @@ class OSXEnumerateRunningServices(test_lib.EmptyActionTest):
 
   def tearDown(self):
     self.mox.UnsetStubs()
-    super(OSXEnumerateRunningServices, self).tearDown()
+    super(OSXEnumerateRunningServicesTest, self).tearDown()
 
 
 def main(argv):

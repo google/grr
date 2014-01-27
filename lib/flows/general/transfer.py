@@ -252,13 +252,16 @@ class MultiGetFile(flow.GRRFlow):
                            token=self.token)
     self.state.Register("filestore", fd)
 
+    unique_paths = set()
     for pathspec in self.args.pathspecs:
 
       vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
           pathspec, self.client_id)
 
-      # If we have duplicate pathspecs only stat/hash once.
-      if vfs_urn not in self.state.pending_hashes:
+      if vfs_urn not in unique_paths:
+        # Only Stat/Hash each path once, input pathspecs can have dups.
+        unique_paths.add(vfs_urn)
+
         self.CallClient("StatFile", pathspec=pathspec,
                         next_state="StoreStat",
                         request_data=dict(vfs_urn=vfs_urn))
@@ -408,6 +411,12 @@ class MultiGetFile(flow.GRRFlow):
   def CheckHash(self, responses):
     """Adds the block hash to the file tracker responsible for this vfs URN."""
     vfs_urn = responses.request_data["urn"]
+
+    if vfs_urn not in self.state.pending_files:
+      # This is a blobhash for a file we already failed to read and logged as
+      # below, check here to avoid logging dups.
+      return
+
     file_tracker = self.state.pending_files[vfs_urn]
 
     hash_response = responses.First()

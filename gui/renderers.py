@@ -456,8 +456,7 @@ class TableRenderer(TemplateRenderer):
       except KeyError:
         pass
 
-    row_index += 1
-    self.size = max(self.size, row_index)
+    self.size = max(self.size, row_index + 1)
 
   def AddRowFromFd(self, index, fd):
     """Adds the row from an AFF4 object."""
@@ -467,6 +466,7 @@ class TableRenderer(TemplateRenderer):
         column.AddRowFromFd(index, fd)
       except AttributeError:
         pass
+    self.size = max(self.size, index + 1)
 
   def GetCell(self, row_index, column_name):
     """Gets the value of a Cell."""
@@ -619,8 +619,10 @@ class TableRenderer(TemplateRenderer):
 
     # The limit_row is merely a suggestion for the BuildTable method, but if
     # the BuildTable method wants to render more we can render more here.
-    end_row = self.BuildTable(start_row, limit_row + start_row, request)
-    if not end_row: end_row = min(start_row + limit_row, self.size)
+    self.additional_rows = self.BuildTable(start_row,
+                                           limit_row + start_row, request)
+
+    end_row = min(start_row + limit_row, self.size)
 
     self.rows = []
     for index in xrange(start_row, end_row):
@@ -636,7 +638,8 @@ class TableRenderer(TemplateRenderer):
 
       self.rows.append((row, row_options.items()))
 
-    self.additional_rows = self.size > end_row
+    if self.additional_rows is None:
+      self.additional_rows = self.size > end_row
 
     # If we did not write any additional rows in this round trip we ensure the
     # table does not try to fetch more rows. This is a safety check in case

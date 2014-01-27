@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # Copyright 2012 Google Inc. All Rights Reserved.
 
-"""Tests for grr.client.lib.osx.objc."""
+"""Tests for grr.client.lib.osx.objc.
+
+These tests don't have OS X dependencies and will run on linux.
+"""
 
 
 

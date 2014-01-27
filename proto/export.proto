@@ -215,10 +215,10 @@ message ExportedOpenFile {
 message ExportedVolatilityHandle {
   optional ExportedMetadata metadata = 1;
 
-  optional uint64 offset = 2; // position of the value in memory
-  optional uint32 pid = 3; // handler's owner PID
-  optional uint32 handle = 4;
-  optional uint32 access = 5;
+  optional int64 offset = 2; // position of the value in memory
+  optional int64 pid = 3; // handler's owner PID
+  optional int64 handle = 4;
+  optional int64 access = 5;
   optional string type = 6; // system handle type, eg: Key or Process
   optional string path = 7; // details, eg: MACHINE\X\Y
 }
@@ -226,11 +226,11 @@ message ExportedVolatilityHandle {
 message ExportedVolatilityMutant {
   optional ExportedMetadata metadata = 1;
 
-  optional uint64 offset = 2; // position of the value in memory
-  optional uint32 ptr_count = 3;
-  optional uint32 handle_count = 4;
-  optional uint32 signal = 5;
-  optional uint64 thread = 6;
+  optional int64 offset = 2; // position of the value in memory
+  optional int64 ptr_count = 3;
+  optional int64 handle_count = 4;
+  optional int64 signal = 5;
+  optional int64 thread = 6;
   optional string cid = 7; // 12345678:123
   optional string name = 8; // named object, eg: XYZLock
 }
@@ -243,5 +243,21 @@ message ExportedFileStoreHash {
   optional string fingerprint_type = 4;
   optional string target_urn = 5 [(sem_type) = {
       type: "RDFURN",
+    }];
+}
+
+message ExportedSoftware {
+  optional ExportedMetadata metadata = 1;
+  optional SoftwarePackage software = 2;
+}
+
+message ExportedMatch {
+  optional ExportedMetadata metadata = 1;
+  optional uint64 offset = 2;
+  optional uint64 length = 3;
+  optional bytes data = 4;
+  optional string urn = 5 [(sem_type) = {
+      type: "RDFURN",
+      description: "The location of this file in the AFF4 space."
     }];
 }

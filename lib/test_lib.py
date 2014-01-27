@@ -427,6 +427,7 @@ class GRRBaseTest(unittest.TestCase):
       raise TimeoutError()
 
     exited = False
+    proc = None
     try:
       logging.info("Running : %s", [cmd] + argv)
       proc = subprocess.Popen([cmd] + argv, stdout=subprocess.PIPE,
@@ -452,7 +453,8 @@ class GRRBaseTest(unittest.TestCase):
     finally:
       signal.alarm(0)
       try:
-        proc.kill()
+        if proc:
+          proc.kill()
       except OSError:
         pass   # Could already be dead.
 
@@ -637,11 +639,13 @@ class Instrument(object):
     def Wrapper(*args, **kwargs):
       self.args.append(args)
       self.kwargs.append(kwargs)
+      self.call_count += 1
       return self.old_target(*args, **kwargs)
 
     self.stubber = Stubber(module, target_name, Wrapper)
     self.args = []
     self.kwargs = []
+    self.call_count = 0
 
   def __enter__(self):
     self.stubber.__enter__()
@@ -1316,6 +1320,9 @@ class ActionMock(object):
          if k in action_names])
     self.action_counts = dict((x, 0) for x in action_names)
 
+  def RecordCall(self, action_name, action_args):
+    pass
+
   def HandleMessage(self, message):
     message.auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
     client_worker = FakeClientWorker()
@@ -1324,11 +1331,22 @@ class ActionMock(object):
     if hasattr(self, message.name):
       return getattr(self, message.name)(message.payload)
 
+    self.RecordCall(message.name, message.payload)
     action_cls = self.action_classes[message.name]
     action = action_cls(message=message, grr_worker=client_worker)
     action.Execute()
     self.action_counts[message.name] += 1
     return client_worker.responses
+
+
+class RecordingActionMock(ActionMock):
+
+  def __init__(self, *action_names):
+    super(RecordingActionMock, self).__init__(*action_names)
+    self.recorded_args = {}
+
+  def RecordCall(self, action_name, action_args):
+    self.recorded_args.setdefault(action_name, []).append(action_args)
 
 
 class InvalidActionMock(object):

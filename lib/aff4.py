@@ -2028,11 +2028,11 @@ class AFF4MemoryStream(AFF4Stream):
     super(AFF4MemoryStream, self).Close(sync=sync)
 
 
-class AFF4ObjectCache(utils.PickleableStore):
+class AFF4ObjectCache(utils.FastStore):
   """A cache which closes its objects when they expire."""
 
   def KillObject(self, obj):
-    obj.Close(sync=False)
+    obj.Close(sync=True)
 
 
 class AFF4Image(AFF4Stream):
@@ -2218,20 +2218,10 @@ class AFF4Image(AFF4Stream):
   def Flush(self, sync=True):
     """Sync the chunk cache to storage."""
     if self._dirty:
-      chunk_id = self.offset / self.chunksize
-      chunk_name = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_id)
-
-      current_chunk = self.chunk_cache.Pop(chunk_name)
-
-      # Flushing the cache will call Close() on all the chunks. We hold on to
-      # the current chunk to ensure it does not get closed.
-      self.chunk_cache.Flush()
-      if current_chunk:
-        current_chunk.Flush(sync=sync)
-        self.chunk_cache.Put(chunk_name, current_chunk)
-
       self.Set(self.Schema.SIZE(self.size))
 
+    # Flushing the cache will call Close() on all the chunks.
+    self.chunk_cache.Flush()
     super(AFF4Image, self).Flush(sync=sync)
 
   def Close(self, sync=True):

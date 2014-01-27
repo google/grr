@@ -6,6 +6,11 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.aff4_objects import collections
+
+
+class TypedRDFValueCollection(collections.RDFValueCollection):
+  _rdf_type = rdfvalue.PathSpec
 
 
 class TestCollections(test_lib.AFF4ObjectTest):
@@ -158,7 +163,6 @@ class TestCollections(test_lib.AFF4ObjectTest):
     n = 500 * 1024 / msg_size
 
     fd.AddAll([rdfvalue.GrrMessage(request_id=i) for i in xrange(n)])
-    fd.Close()
 
     self.assertEqual(fd.fd.Get(fd.fd.Schema._CHUNKSIZE), 1024*1024)
     # There should be 500K of data.
@@ -166,8 +170,42 @@ class TestCollections(test_lib.AFF4ObjectTest):
     # and there should only be one chunk since 500K is less than the chunk size.
     self.assertEqual(len(fd.fd.chunk_cache._hash), 1)
 
+    fd.Close()
+
+    # Closing the collection empties the chunk_cache.
+    self.assertEqual(len(fd.fd.chunk_cache._hash), 0)
+
     self.assertRaises(ValueError, fd.SetChunksize, (10))
 
     fd = aff4.FACTORY.Open(urn, "RDFValueCollection",
                            mode="rw", token=self.token)
     self.assertRaises(ValueError, fd.SetChunksize, (2 * 1024 * 1024))
+
+  def testAddingNoneToUntypedCollectionRaises(self):
+    urn = "aff4:/test/collection"
+    fd = aff4.FACTORY.Create(urn, "RDFValueCollection",
+                             mode="w", token=self.token)
+
+    self.assertRaises(ValueError, fd.Add, None)
+    self.assertRaises(ValueError, fd.AddAll, [None])
+
+  def testAddingNoneViaAddMethodToTypedCollectionWorksCorrectly(self):
+    urn = "aff4:/test/collection"
+    fd = aff4.FACTORY.Create(urn, "TypedRDFValueCollection",
+                             mode="w", token=self.token)
+    # This works, because Add() accepts keyword arguments and builds _rdf_type
+    # instance out of them. In the current case there are no keyword arguments
+    # specified, so we get default value.
+    fd.Add(None)
+    fd.Close()
+
+    fd = aff4.FACTORY.Open(urn, token=self.token)
+    self.assertEqual(len(fd), 1)
+    self.assertEqual(fd[0], rdfvalue.PathSpec())
+
+  def testAddingNoneViaAddAllMethodToTypedCollectionRaises(self):
+    urn = "aff4:/test/collection"
+    fd = aff4.FACTORY.Create(urn, "RDFValueCollection",
+                             mode="w", token=self.token)
+
+    self.assertRaises(ValueError, fd.AddAll, [None])

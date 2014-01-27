@@ -647,14 +647,17 @@ class ListFlowsTable(renderers.TableRenderer):
       flow_urn = rdfvalue.RDFURN(client_id).Add("flows")
 
     flow_root = aff4.FACTORY.Open(flow_urn, mode="r", token=request.token)
-    root_children = list(flow_root.OpenChildren())
-    root_children = sorted(root_children,
-                           key=self._GetCreationTime,
-                           reverse=True)
-    self.size = len(root_children)
-    if not depth:
-      root_children = root_children[start_row:end_row]
+    root_children_paths = sorted(flow_root.ListChildren(),
+                                 key=lambda x: x.age, reverse=True)
+    self.size = len(root_children_paths)
 
+    if not depth:
+      root_children_paths = root_children_paths[start_row:end_row]
+
+    root_children = aff4.FACTORY.MultiOpen(
+        root_children_paths, token=request.token)
+    root_children = sorted(root_children, key=self._GetCreationTime,
+                           reverse=True)
     level2_children = dict(aff4.FACTORY.MultiListChildren(
         [f.urn for f in root_children], token=request.token))
 
@@ -694,9 +697,6 @@ class ListFlowsTable(renderers.TableRenderer):
 
       self.AddRow(row, row_index)
       row_index += 1
-
-    # The last row we wrote.
-    return row_index
 
 
 class ShowFlowInformation(fileview.AFF4Stats):
@@ -840,7 +840,7 @@ class ClientCrashesRenderer(crash_view.ClientCrashCollectionRenderer):
 
   def Layout(self, request, response):
     client_id = request.REQ.get("client_id")
-    self.crashes_urn = aff4.ROOT_URN.Add(client_id).Add("crashes")
+    self.crashes_urn = rdfvalue.ClientURN(client_id).Add("crashes")
     super(ClientCrashesRenderer, self).Layout(request, response)
 
 
@@ -947,4 +947,52 @@ grr.glob_completer.Completer("{{this.prefix}}", {{this.completions|safe}});
       if attribute.name:
         self._HandleType(attribute.name, attribute.attribute_type)
 
-    return super(GlobExpressionFormRenderer, self).Layout(request, response)
+    response = super(GlobExpressionFormRenderer, self).Layout(request, response)
+    return self.CallJavascript(response, "Layout", prefix=self.prefix,
+                               completions=self.completions)
+
+
+class FileFinderFilterFormRenderer(forms.UnionMultiFormRenderer):
+  """Renders a single option in a list of filters."""
+  type = rdfvalue.FileFinderFilter
+  union_by_field = "filter_type"
+
+
+class FileFinderFilterListFormRenderer(forms.RepeatedFieldFormRenderer):
+  """Renders multiple filters. Doesn't display a "default" filter."""
+  type = rdfvalue.FileFinderFilter
+
+  # We want list of filters to be empty by default.
+  add_element_on_first_show = False
+
+
+class FileFinderActionFormRenderer(forms.UnionMultiFormRenderer):
+  """Renders a file finder action selector."""
+  type = rdfvalue.FileFinderAction
+  union_by_field = "action_type"
+
+
+class MemoryScannerFilterFormRenderer(forms.UnionMultiFormRenderer):
+  """Renders a single option in a list of filters."""
+  type = rdfvalue.MemoryScannerFilter
+  union_by_field = "filter_type"
+
+
+class MemoryScannerFilterListFormRenderer(forms.RepeatedFieldFormRenderer):
+  """Renders multiple filters. Doesn't display a "default" filter."""
+  type = rdfvalue.MemoryScannerFilter
+
+  # We want list of filters to be empty by default.
+  add_element_on_first_show = False
+
+
+class MemoryScannerDumpOptionFormRenderer(forms.UnionMultiFormRenderer):
+  """Renders a memory scanner dump option selector."""
+  type = rdfvalue.MemoryScannerDumpOption
+  union_by_field = "option_type"
+
+
+class MemoryScannerActionFormRenderer(forms.UnionMultiFormRenderer):
+  """Renders a memory scanner action selector."""
+  type = rdfvalue.MemoryScannerAction
+  union_by_field = "action_type"

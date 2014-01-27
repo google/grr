@@ -6,6 +6,7 @@
 from grr import parsers
 # pylint: enable=unused-import
 
+from grr.lib import artifact_test
 from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import test_lib
@@ -16,6 +17,7 @@ class ArtifactParserTests(test_lib.GRRBaseTest):
 
   def testValidation(self):
     """Ensure all parsers pass validation."""
+    artifact_test.ArtifactTestHelper.LoadTestArtifacts()
     for p_cls in parsers.Parser.classes:
       parser = parsers.Parser.classes[p_cls]
       parser.Validate()

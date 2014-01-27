@@ -77,6 +77,14 @@ class ExportedFileStoreHash(rdfvalue.RDFProtoStruct):
   protobuf = export_pb2.ExportedFileStoreHash
 
 
+class ExportedSoftware(rdfvalue.RDFProtoStruct):
+  protobuf = export_pb2.ExportedSoftware
+
+
+class ExportedMatch(rdfvalue.RDFProtoStruct):
+  protobuf = export_pb2.ExportedMatch
+
+
 class ExportConverter(object):
   """Base ExportConverter class.
 
@@ -396,6 +404,16 @@ class ProcessToExportedOpenFileConverter(ExportConverter):
                              path=f)
 
 
+class SoftwareToExportedSoftwareConverter(ExportConverter):
+  """Converts Software to ExportedSoftware."""
+
+  input_rdf_type = "Software"
+
+  def Convert(self, metadata, software, token=None):
+    yield ExportedSoftware(metadata=metadata,
+                           software=software)
+
+
 class VolatilityResultConverter(ExportConverter):
   """Base class for converting volatility results."""
 
@@ -406,8 +424,8 @@ class VolatilityResultConverter(ExportConverter):
   mapping = None
   output_rdf_cls = None
 
-  def __init__(self):
-    super(VolatilityResultConverter, self).__init__()
+  def __init__(self, *args, **kwargs):
+    super(VolatilityResultConverter, self).__init__(*args, **kwargs)
     if not self.mapping:
       raise ValueError("Mapping not specified.")
 
@@ -507,6 +525,44 @@ class ClientSummaryToExportedClientConverter(ExportConverter):
 
   def Convert(self, metadata, unused_client_summary, token=None):
     return [ExportedClient(metadata=metadata)]
+
+
+class BufferReferenceToExportedMatchConverter(ExportConverter):
+  """Export converter for BufferReference instances."""
+
+  input_rdf_type = "BufferReference"
+
+  def Convert(self, metadata, buffer_reference, token=None):
+    yield ExportedMatch(metadata=metadata,
+                        offset=buffer_reference.offset,
+                        length=buffer_reference.length,
+                        data=buffer_reference.data,
+                        urn=aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+                            buffer_reference.pathspec,
+                            metadata.client_urn))
+
+
+class FileFinderResultConverter(ExportConverter):
+  """Export converter for FileFinderResult instances."""
+
+  input_rdf_type = "FileFinderResult"
+
+  def BatchConvert(self, metadata_value_pairs, token=None):
+    for result in ConvertValuesWithMetadata(
+        [(metadata, val.stat_entry) for metadata, val in metadata_value_pairs],
+        token=token, options=self.options):
+      yield result
+
+    matches = []
+    for metadata, val in metadata_value_pairs:
+      matches.extend([(metadata, match) for match in val.matches])
+
+    for result in ConvertValuesWithMetadata(matches, token=token,
+                                            options=self.options):
+      yield result
+
+  def Convert(self, metadata, result, token=None):
+    return self.BatchConvert([(metadata, result)], token=token)
 
 
 class RDFURNConverter(ExportConverter):

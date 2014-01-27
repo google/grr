@@ -89,7 +89,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       api_version = int(cgi.parse_qs(self.path.split("?")[1])["api"][0])
     except (ValueError, KeyError, IndexError):
       # The oldest api version we support if not specified.
-      api_version = 2
+      api_version = 3
 
     try:
       length = int(self.headers.getheader("content-length"))

@@ -497,7 +497,7 @@ class CustomXAxisChart(Report):
   def Layout(self, request, response):
     """Set X,Y values."""
     try:
-      fd = aff4.FACTORY.Open(self.data_urn)
+      fd = aff4.FACTORY.Open(self.data_urn, token=request.token)
       self.graph = fd.Get(self.attribute)
 
       self.data = []
@@ -526,7 +526,7 @@ class LogXAxisChart(CustomXAxisChart):
 
   def Layout(self, request, response):
     try:
-      fd = aff4.FACTORY.Open(self.data_urn)
+      fd = aff4.FACTORY.Open(self.data_urn, token=request.token)
       self.graph = fd.Get(self.attribute)
 
       self.data = []
@@ -613,5 +613,3 @@ class FileClientCount(CustomXAxisChart):
   category = "/FileStore/ClientCounts"
   data_urn = "aff4:/stats/FileStoreStats"
   attribute = aff4.FilestoreStats.SchemaCls.FILESTORE_CLIENTCOUNT_HISTOGRAM
-
-

@@ -187,7 +187,7 @@ class WinServicesParser(parsers.RegistryValueParser):
     http://support.microsoft.com/kb/103000
   """
 
-  output_types = ["ServiceInformation"]
+  output_types = ["WindowsServiceInformation"]
   supported_artifacts = ["WindowsServices"]
   process_together = True
 
@@ -203,7 +203,7 @@ class WinServicesParser(parsers.RegistryValueParser):
     return self.service_re.match(path).group(3)
 
   def ParseMultiple(self, stats, knowledge_base):
-    """Parse Service registry keys and return ServiceInformation objects."""
+    """Parse Service registry keys and return WindowsServiceInformation."""
     _ = knowledge_base
     services = {}
     field_map = {"Description": "description",
@@ -225,9 +225,9 @@ class WinServicesParser(parsers.RegistryValueParser):
 
       service_name = self._GetServiceName(stat.pathspec.path)
       reg_key = stat.aff4path.Dirname()
-      services.setdefault(service_name,
-                          rdfvalue.ServiceInformation(name=service_name,
-                                                      registry_key=reg_key))
+      service_info = rdfvalue.WindowsServiceInformation(name=service_name,
+                                                        registry_key=reg_key)
+      services.setdefault(service_name, service_info)
 
       key = self._GetKeyName(stat.pathspec.path)
 

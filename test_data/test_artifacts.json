@@ -1,0 +1,94 @@
+[
+  {
+   "name": "TestAggregationArtifact",
+    "collectors": [
+      { "action": "CollectArtifacts",
+        "args": { "artifact_list": ["VolatilityPsList"] },
+        "returned_types": ["Process"]
+      },
+      { "action": "CollectArtifacts",
+        "args": { "artifact_list": [ "WindowsWMIInstalledSoftware" ]
+        },
+        "returned_types": [ "SoftwarePackage" ]
+      }
+    ],
+    "doc": "Test artifact aggregation.",
+    "labels": [ "Software" ],
+    "supported_os": [ "Windows" ]
+  },
+
+  { "name": "TestAggregationArtifactDeps",
+    "collectors": [
+      { "action": "CollectArtifacts",
+        "args": { "artifact_list": [ "TestAggregationArtifact" ]
+        },
+        "returned_types": [ "Process" ]
+      }
+    ],
+    "doc": "Test artifact aggregation dependencies.",
+    "labels": [ "Software" ],
+    "supported_os": [ "Windows" ]
+  },
+
+  { "name": "TestCmdArtifact",
+    "collectors": [
+      { "action": "RunCommand",
+        "args": { "cmd": "/usr/bin/dpkg",
+                  "args": ["--list"]
+        },
+        "returned_types": [ "SoftwarePackage" ]
+      }
+    ],
+    "doc": "Test command artifact for dpkg.",
+    "labels": [ "Software" ],
+    "supported_os": [ "Linux" ]
+  },
+
+  { "name": "TestFileArtifact",
+    "collectors": [
+      { "action": "GetFile",
+        "args": { "path": "/var/log/auth.log"
+        }
+      }
+    ],
+    "doc": "Test file artifact.",
+    "labels": ["Logs", "Authentication"],
+    "supported_os": [ "Linux" ]
+  },
+
+  { "name": "TestFilesArtifact",
+    "collectors": [
+      { "action": "GetFiles",
+        "args": { "path_list": ["/var/log/auth.log"] }
+      }
+    ],
+    "doc": "Test files artifact.",
+    "labels": ["Logs", "Authentication"],
+    "supported_os": [ "Linux" ]
+  },
+
+  { "name": "NullArtifact",
+    "doc": "Null"
+  },
+
+  { "name": "FakeArtifact",
+    "doc": "My first artifact.",
+    "labels": [ "Logs", "Authentication" ],
+    "supported_os": [ "Linux" ]
+  },
+
+  { "name": "BadPathspecArtifact",
+    "collectors": [
+      { "action": "CollectArtifactFiles",
+        "args": { "artifact_list": [ "WindowsPersistenceMechanisms" ],
+          "pathspec_attribute": "broken"
+        },
+        "returned_types": ["StatEntry"]
+      }
+    ],
+    "doc": "Broken pathspec_attribute.",
+    "labels": [ "Software" ],
+    "supported_os": [ "Windows" ]
+  }
+
+]

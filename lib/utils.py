@@ -337,12 +337,12 @@ class FastStore(object):
 
   @Synchronized
   def __getstate__(self):
-    """When pickled the cache is fushed."""
+    """When pickled the cache is flushed."""
     self.Flush()
     return dict(max_size=self._limit)
 
   def __setstate__(self, state):
-    self.__init__(max_size=state["max_size"])
+    self.__init__(max_size=state.get("max_size", 10))
 
 
 class TimeBasedCache(FastStore):
@@ -454,18 +454,9 @@ class AgeBasedCache(TimeBasedCache):
     return stored[1]
 
 
+# TODO(user): Remove this once all hunts use the new cache.
 class PickleableStore(FastStore):
-  """A Cache which can be pickled."""
-
-  @Synchronized
-  def __getstate__(self):
-    to_pickle = self.__dict__.copy()
-    to_pickle["lock"] = None
-    return to_pickle
-
-  def __setstate__(self, state):
-    self.__dict__ = state
-    self.lock = threading.RLock()
+  """A cache which keeps its contained members during pickling."""
 
 
 # TODO(user): Eventually slot in Volatility parsing system in here

@@ -17,8 +17,11 @@ config_lib.DEFINE_string("MemoryDriver.driver_display_name",
                          "%(Client.name) Pmem",
                          "The SCCM display name for the driver.")
 
-config_lib.DEFINE_string("MemoryDriver.aff4_path", "",
-                         "The AFF4 path to the driver object.")
+config_lib.DEFINE_list("MemoryDriver.driver_files", [],
+                       "The default drivers to use.")
+
+config_lib.DEFINE_list("MemoryDriver.aff4_paths", [],
+                       "The AFF4 paths to the driver objects.")
 
 config_lib.DEFINE_string("MemoryDriver.device_path", r"\\\\.\\pmem",
                          "The device path which the client will open after "

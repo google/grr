@@ -1,0 +1,50 @@
+name: InternetExplorerHistory
+doc: IE index.dat files.
+collectors:
+- action: GetFiles
+  args:
+    path_list: ['%%users.localappdata%%\Microsoft\Windows\Temporary Internet Files\Content.IE5\index.dat',
+      '%%users.localappdata%%\Microsoft\Windows\Temporary Internet Files\Low\Content.IE5\index.dat']
+labels: [Browser]
+supported_os: [Windows]
+---
+
+name: ChromeHistory
+doc: Chrome history files.
+collectors:
+- action: GetFiles
+  args:
+    path_list: ['%%users.localappdata%%\Google\Chrome\User Data\*\History', '%%users.localappdata%%\Chromium\User
+        Data\*\History']
+  conditions: [os == 'Windows']
+- action: GetFiles
+  args:
+    path_list: ['%%users.homedir%%/Library/Application Support/Google/Chrome/*/History',
+      '%%users.homedir%%/Library/Application Support/Chromium/*/History']
+  conditions: [os == 'Darwin']
+- action: GetFiles
+  args:
+    path_list: ['%%users.homedir%%/.config/google-chrome/*/History', '%%users.homedir%%/.config/chromium/*/History']
+  conditions: [os == 'Linux']
+labels: [Browser]
+supported_os: [Windows, Linux, Darwin]
+---
+
+name: FirefoxHistory
+doc: Firefox places.sqlite files.
+collectors:
+- action: GetFiles
+  args:
+    path_list: ['%%users.localappdata%%\Mozilla\Firefox\Profiles\*\places.sqlite',
+      '%%users.appdata%%\Mozilla\Firefox\Profiles\*\places.sqlite']
+  conditions: [os == 'Windows']
+- action: GetFiles
+  args:
+    path_list: ['%%users.homedir%%/Library/Application Support/Firefox/Profiles/*/places.sqlite']
+  conditions: [os == 'Darwin']
+- action: GetFiles
+  args:
+    path_list: ['%%users.homedir%%/.mozilla/firefox/*/places.sqlite']
+  conditions: [os == 'Linux']
+labels: [Browser]
+supported_os: [Windows, Linux, Darwin]

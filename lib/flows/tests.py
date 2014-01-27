@@ -14,6 +14,7 @@ from grr.lib.flows.general import audit_test
 from grr.lib.flows.general import collectors_test
 from grr.lib.flows.general import discovery_test
 from grr.lib.flows.general import fetch_files_test
+from grr.lib.flows.general import file_finder_test
 from grr.lib.flows.general import filesystem_test
 from grr.lib.flows.general import filetypes_test
 from grr.lib.flows.general import find_test
@@ -23,7 +24,6 @@ from grr.lib.flows.general import memory_test
 from grr.lib.flows.general import network_test
 from grr.lib.flows.general import processes_test
 from grr.lib.flows.general import registry_test
-from grr.lib.flows.general import services_test
 from grr.lib.flows.general import timelines_test
 from grr.lib.flows.general import transfer_test
 from grr.lib.flows.general import webhistory_test

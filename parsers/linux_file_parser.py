@@ -6,7 +6,7 @@ from grr.lib import parsers
 from grr.lib import rdfvalue
 
 
-class PasswdParser(parsers.CommandParser):
+class PasswdParser(parsers.FileParser):
   """Parser for passwd files. Yields User semantic values."""
 
   output_types = ["User"]

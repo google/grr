@@ -61,3 +61,9 @@ grr.glob_completer.Completer = function(dom_id, completions) {
     }
   }).wrap('<abbr title="Type %% to open a list of possible completions."/>');
 };
+
+grr.Renderer('GlobExpressionFormRenderer', {
+  Layout: function(state) {
+    grr.glob_completer.Completer(state.prefix, state.completions);
+  }
+});

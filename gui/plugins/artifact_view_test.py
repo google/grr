@@ -4,12 +4,17 @@
 
 
 from grr.gui import runtests_test
+from grr.lib import artifact_test
 from grr.lib import flags
 from grr.lib import test_lib
 
 
 class TestArtifactRender(test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
+
+  def setUp(self):
+    super(TestArtifactRender, self).setUp()
+    artifact_test.ArtifactTestHelper.LoadTestArtifacts()
 
   def testArtifactRendering(self):
     self.Open("/")

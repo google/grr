@@ -18,13 +18,30 @@ from grr.gui import renderers
 from grr.gui import webauth
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 
 
-SERVER_NAME = "GRR Admin Console"
+config_lib.DEFINE_string("AdminUI.page_title",
+                         "GRR Admin Console",
+                         "Page title of the Admin UI.")
+
+config_lib.DEFINE_string("AdminUI.heading",
+                         "GRR Rapid Response",
+                         "Dashboard heading displayed in the Admin UI.")
+
+config_lib.DEFINE_string("AdminUI.report_url",
+                         "http://code.google.com/p/grr/issues/list",
+                         "URL of the 'Report a problem' link.")
+
+config_lib.DEFINE_string("AdminUI.help_url",
+                         "https://code.google.com/p/grr/",
+                         "URL of the 'Help' link.")
+
+
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
 
 
@@ -61,7 +78,10 @@ def Homepage(request):
     if aff4.issubclass(cls, renderers.Renderer) and cls.__module__:
       renderers_js_files.add(cls.__module__.split(".")[-1] + ".js")
 
-  context = {"title": SERVER_NAME,
+  context = {"page_title": config_lib.CONFIG["AdminUI.page_title"],
+             "heading": config_lib.CONFIG["AdminUI.heading"],
+             "report_url": config_lib.CONFIG["AdminUI.report_url"],
+             "help_url": config_lib.CONFIG["AdminUI.help_url"],
              "renderers_js": renderers_js_files}
   return shortcuts.render_to_response(
       "base.html", context, context_instance=template.RequestContext(request))

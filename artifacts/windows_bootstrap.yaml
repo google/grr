@@ -1,0 +1,175 @@
+# These are bootstrap artifacts that are used to build the core knowledgebase
+# used for interpolation in the rest of the artifacts.
+
+name: AllUsersAppDataEnvironmentVariable
+doc: The %ProgramData% environment variable.
+collectors:
+- action: GetRegistryValue
+  args: {path: HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProgramData}
+provides: [environ_allusersappdata]
+supported_os: [Windows]
+urls: ['http://environmentvariables.org/ProgramData']
+---
+
+name: AllUsersProfileEnvironmentVariable
+doc: The %AllUsersProfile% environment variable.
+collectors:
+- action: GetRegistryKeys
+  args:
+    path_list: [HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProfilesDirectory,
+      HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\AllUsersProfile]
+provides: [environ_allusersprofile]
+supported_os: [Windows]
+urls: ['http://support.microsoft.com/kb//214653']
+---
+
+name: CurrentControlSet
+doc: The control set the system is currently using.
+collectors:
+- action: GetRegistryValue
+  args: {path: HKEY_LOCAL_MACHINE\SYSTEM\Select\Current}
+provides: [current_control_set]
+supported_os: [Windows]
+urls: ['https://code.google.com/p/winreg-kb/wiki/SystemKeys']
+---
+
+name: ProgramFiles
+doc: The %ProgramFiles% environment variable.
+collectors:
+- action: GetRegistryValue
+  args: {path: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\ProgramFilesDir}
+provides: [environ_programfiles]
+supported_os: [Windows]
+urls: ['http://environmentvariables.org/ProgramFiles']
+---
+
+name: ProgramFilesx86
+doc: The %ProgramFiles (x86)% environment variable.
+collectors:
+- action: GetRegistryValue
+  args: {path: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\ProgramFilesDir
+      (x86)}
+provides: [environ_programfilesx86]
+supported_os: [Windows]
+urls: ['http://environmentvariables.org/ProgramFiles']
+---
+
+name: SystemDriveEnvironmentVariable
+doc: The %SystemDrive% environment variable.
+collectors:
+- {action: Bootstrap}
+provides: [environ_systemdrive]
+supported_os: [Windows]
+urls: ['http://environmentvariables.org/SystemDrive']
+---
+
+name: SystemRoot
+doc: The base system directory.
+collectors:
+- {action: Bootstrap}
+provides: [environ_systemroot]
+supported_os: [Windows]
+urls: ['http://environmentvariables.org/SystemRoot']
+---
+
+name: TempEnvironmentVariable
+doc: The %TEMP% environment variable.
+collectors:
+- action: GetRegistryValue
+  args: {path: '%%current_control_set%%\Control\Session Manager\Environment\TEMP'}
+provides: [environ_temp]
+supported_os: [Windows]
+urls: ['http://environmentvariables.org/WinDir']
+---
+
+name: UserShellFolders
+doc: The Shell Folders information for Windows users.
+collectors:
+- action: GetRegistryKeys
+  args:
+    path_list: [HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell
+        Folders\*, HKEY_USERS\%%users.sid%%\Environment\*]
+provides: [users.cookies, users.appdata, users.personal, users.startup, users.homedir,
+  users.desktop, users.local_settings, users.internet_cache, users.localappdata, users.localappdata_low,
+  users.recent, users.userprofile, users.temp]
+supported_os: [Windows]
+---
+
+name: WinCodePage
+doc: The codepage of the system.
+collectors:
+- action: GetRegistryValue
+  args: {path: '%%current_control_set%%\Control\Nls\CodePage\ACP'}
+provides: [code_page]
+supported_os: [Windows]
+urls: ['http://en.wikipedia.org/wiki/Windows_code_page']
+---
+
+name: WinDirEnvironmentVariable
+doc: The %WinDir% environment variable.
+collectors:
+- action: GetRegistryValue
+  args: {path: '%%current_control_set%%\Control\Session Manager\Environment\windir'}
+provides: [environ_windir]
+supported_os: [Windows]
+urls: ['http://environmentvariables.org/WinDir']
+---
+
+name: WinDomainName
+doc: The Windows domain the system is connected to.
+collectors:
+- action: GetRegistryValue
+  args: {path: '%%current_control_set%%\Services\Tcpip\Parameters\Domain'}
+provides: [domain]
+supported_os: [Windows]
+---
+
+name: WinPathEnvironmentVariable
+doc: The %PATH% environment variable.
+collectors:
+- action: GetRegistryValue
+  args: {path: '%%current_control_set%%\Control\Session Manager\Environment\Path'}
+provides: [environ_path]
+supported_os: [Windows]
+urls: ['http://environmentvariables.org/WinDir']
+---
+
+name: WinTimeZone
+doc: The timezone of the system in Olson format.
+collectors:
+- action: GetRegistryValue
+  args: {path: '%%current_control_set%%\Control\TimeZoneInformation\StandardName'}
+provides: [time_zone]
+supported_os: [Windows]
+urls: ['https://code.google.com/p/winreg-kb/wiki/TimeZoneKeys']
+---
+
+name: WindowsRegistryProfiles
+doc: "Get SIDs for all users on the system with profiles present in the registry.\n\
+    \n  This looks in the Windows registry where the profiles are stored and retrieves\n\
+    \  the paths for each profile.\n  "
+collectors:
+- action: GetRegistryKeys
+  args:
+    path_list: [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*\ProfileImagePath]
+labels: [Users]
+provides: [users.sid, users.userprofile, users.homedir]
+supported_os: [Windows]
+urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/bb776892(v=vs.85).aspx']
+---
+
+name: WindowsWMIProfileUsers
+doc: "Get user information based on known user's SID.\n\n  This artifact optimizes\
+    \ retrieval of user information by limiting the WMI\n  query to users for which\
+    \ we have a SID for. Specifically this solves the issue\n  that in a domain setting,\
+    \ querying for all users via WMI will give you the\n  list of all local and domain\
+    \ accounts which means a large data transfer from\n  an Active Directory server.\n\
+    \n  This artifact relies on having the SID field users.sid populated knowledge\n\
+    \  base.\n  "
+collectors:
+- action: WMIQuery
+  args: {query: SELECT * FROM Win32_UserAccount WHERE name='%%users.username%%'}
+labels: [Users]
+provides: [users.username, users.userdomain, users.sid]
+supported_os: [Windows]
+urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/aa394507(v=vs.85).aspx']

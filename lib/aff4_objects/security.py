@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
 """AFF4 Objects to enforce ACL policies."""
 
 import urllib
@@ -65,7 +64,7 @@ class Approval(aff4.AFF4Object):
       A token for access to the object on success, otherwise raises.
 
     Raises:
-      UnauthorizedAccess: If there are no valid tokens available.
+      UnauthorizedAccess: If there are no valid approvals available.
 
     """
     if not username:
@@ -312,6 +311,12 @@ class RequestApprovalWithReasonFlow(flow.GRRFlow):
     """Returns the string with subject's title."""
     raise NotImplementedError()
 
+  @classmethod
+  def ApprovalUrnBuilder(cls, subject, user, reason):
+    """Encode an approval URN."""
+    return aff4.ROOT_URN.Add("ACL").Add(
+        subject).Add(user).Add(utils.EncodeReasonString(reason))
+
   @flow.StateHandler()
   def Start(self):
     """Create the Approval object and notify the Approval Granter."""
@@ -386,6 +391,12 @@ class GrantApprovalWithReasonFlow(flow.GRRFlow):
   def BuildAccessUrl(self):
     """Builds the urn to access this object."""
     raise NotImplementedError()
+
+  @classmethod
+  def ApprovalUrnBuilder(cls, subject, user, reason):
+    """Encode an approval URN."""
+    return RequestApprovalWithReasonFlow.ApprovalUrnBuilder(subject, user,
+                                                            reason)
 
   @flow.StateHandler()
   def Start(self):
@@ -510,8 +521,8 @@ class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):
 
   def BuildApprovalUrn(self):
     """Builds approval object urn."""
-    return aff4.ROOT_URN.Add("ACL").Add(self.client_id.Path()).Add(
-        self.token.username).Add(utils.EncodeReasonString(self.args.reason))
+    return self.ApprovalUrnBuilder(self.client_id.Path(), self.token.username,
+                                   self.args.reason)
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -529,8 +540,8 @@ class GrantClientApprovalFlow(GrantApprovalWithReasonFlow):
 
   def BuildApprovalUrn(self):
     """Builds approval object urn."""
-    return aff4.ROOT_URN.Add("ACL").Add(self.client_id.Path()).Add(
-        self.args.delegate).Add(utils.EncodeReasonString(self.args.reason))
+    return self.ApprovalUrnBuilder(self.client_id.Path(), self.args.delegate,
+                                   self.args.reason)
 
   def BuildAccessUrl(self):
     """Builds the urn to access this object."""
@@ -553,8 +564,8 @@ class BreakGlassGrantClientApprovalFlow(BreakGlassGrantApprovalWithReasonFlow):
 
   def BuildApprovalUrn(self):
     """Builds approval object urn."""
-    return aff4.ROOT_URN.Add("ACL").Add(self.client_id.Path()).Add(
-        self.token.username).Add(utils.EncodeReasonString(self.args.reason))
+    return self.ApprovalUrnBuilder(self.client_id.Path(), self.token.username,
+                                   self.args.reason)
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -573,9 +584,8 @@ class RequestHuntApprovalFlow(RequestApprovalWithReasonFlow):
   def BuildApprovalUrn(self):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
-    return aff4.ROOT_URN.Add("ACL").Add(
-        self.args.subject_urn.Path()).Add(self.token.username).Add(
-            utils.EncodeReasonString(self.args.reason))
+    return self.ApprovalUrnBuilder(self.args.subject_urn.Path(),
+                                   self.token.username, self.args.reason)
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -592,9 +602,8 @@ class GrantHuntApprovalFlow(GrantApprovalWithReasonFlow):
   def BuildApprovalUrn(self):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
-    return aff4.ROOT_URN.Add("ACL").Add(
-        self.args.subject_urn.Path()).Add(self.args.delegate).Add(
-            utils.EncodeReasonString(self.args.reason))
+    return self.ApprovalUrnBuilder(self.args.subject_urn.Path(),
+                                   self.args.delegate, self.args.reason)
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -616,9 +625,8 @@ class RequestCronJobApprovalFlow(RequestApprovalWithReasonFlow):
   def BuildApprovalUrn(self):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
-    return aff4.ROOT_URN.Add("ACL").Add(
-        self.args.subject_urn.Path()).Add(self.token.username).Add(
-            utils.EncodeReasonString(self.args.reason))
+    return self.ApprovalUrnBuilder(self.args.subject_urn.Path(),
+                                   self.token.username, self.args.reason)
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -635,9 +643,8 @@ class GrantCronJobApprovalFlow(GrantApprovalWithReasonFlow):
   def BuildApprovalUrn(self):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
-    return aff4.ROOT_URN.Add("ACL").Add(
-        self.args.subject_urn.Path()).Add(self.args.delegate).Add(
-            utils.EncodeReasonString(self.args.reason))
+    return self.ApprovalUrnBuilder(self.args.subject_urn.Path(),
+                                   self.args.delegate, self.args.reason)
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""

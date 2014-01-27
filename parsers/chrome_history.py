@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
-
 """Parser for Google chrome/chromium History files."""
-
 
 __program__ = "chrome_history.py"
 
@@ -11,9 +8,36 @@ import glob
 import itertools
 import locale
 import sys
+import urlparse
 
 
+from grr.lib import parsers
+from grr.lib import rdfvalue
 from grr.parsers import sqlite_file
+
+
+class ChromeHistoryParser(parsers.FileParser):
+  """Parse Chrome history files into BrowserHistoryItem objects."""
+
+  output_types = ["BrowserHistoryItem"]
+  supported_artifacts = ["ChromeHistory"]
+
+  def Parse(self, stat, file_object, knowledge_base):
+    """Parse the History file."""
+    _, _ = stat, knowledge_base
+    # TODO(user): Convert this to use the far more intelligent plaso parser.
+    chrome = ChromeParser(file_object)
+    for timestamp, entry_type, url, data1, _, _ in chrome.Parse():
+      if entry_type == "CHROME_DOWNLOAD":
+        yield rdfvalue.BrowserHistoryItem(
+            url=url, domain=urlparse.urlparse(url).netloc,
+            access_time=timestamp, program_name="Chrome",
+            source_urn=stat.aff4path, download_path=data1)
+      elif entry_type == "CHROME_VISIT":
+        yield rdfvalue.BrowserHistoryItem(
+            url=url, domain=urlparse.urlparse(url).netloc,
+            access_time=timestamp, program_name="Chrome",
+            source_urn=stat.aff4path, title=data1)
 
 
 class ChromeParser(sqlite_file.SQLiteFile):

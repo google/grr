@@ -7,6 +7,7 @@ least run without raising errors.
 """
 
 import os
+import sys
 
 
 # pylint: disable=unused-import
@@ -46,41 +47,46 @@ class EntryPointTest(test_lib.GRRBaseTest):
     self.extra_opts = ["--config", self.config_file, "--context",
                        "Test Context,EntryPoint Context"]
     self.default_timeout = 10
-    self.interpreter = "python "
+    self.interpreter = sys.executable
 
 
   @test_lib.SetLabel("large")
   def testWorker(self):
     run_bin = os.path.join(self.bin_dir, "worker", "worker" + self.bin_ext)
-    self.RunForTimeWithNoExceptions(self.interpreter + run_bin, self.extra_opts,
+    self.RunForTimeWithNoExceptions(self.interpreter,
+                                    [run_bin] + self.extra_opts,
                                     timeout=self.default_timeout)
 
   @test_lib.SetLabel("large")
   def testEnroller(self):
     run_bin = os.path.join(self.bin_dir, "worker",
                            "enroller" + self.bin_ext)
-    self.RunForTimeWithNoExceptions(self.interpreter + run_bin, self.extra_opts,
+    self.RunForTimeWithNoExceptions(self.interpreter,
+                                    [run_bin] + self.extra_opts,
                                     timeout=self.default_timeout)
 
   @test_lib.SetLabel("large")
   def testHttpServer(self):
     run_bin = os.path.join(self.bin_dir, "tools",
                            "http_server" + self.bin_ext)
-    self.RunForTimeWithNoExceptions(self.interpreter + run_bin, self.extra_opts,
+    self.RunForTimeWithNoExceptions(self.interpreter,
+                                    [run_bin] + self.extra_opts,
                                     timeout=self.default_timeout)
 
   @test_lib.SetLabel("large")
   def testAdminUI(self):
     run_bin = os.path.join(self.bin_dir, "gui",
                            "admin_ui" + self.bin_ext)
-    self.RunForTimeWithNoExceptions(self.interpreter + run_bin, self.extra_opts,
+    self.RunForTimeWithNoExceptions(self.interpreter,
+                                    [run_bin] + self.extra_opts,
                                     timeout=self.default_timeout)
 
   @test_lib.SetLabel("large")
   def testConsole(self):
     self.extra_opts.append("--code_to_execute='pass'")
     run_bin = os.path.join(self.bin_dir, "tools", "console" + self.bin_ext)
-    self.RunForTimeWithNoExceptions(self.interpreter + run_bin, self.extra_opts,
+    self.RunForTimeWithNoExceptions(self.interpreter,
+                                    [run_bin] + self.extra_opts,
                                     should_exit=True, check_exit_code=True,
                                     timeout=self.default_timeout*2)
 
@@ -88,14 +94,16 @@ class EntryPointTest(test_lib.GRRBaseTest):
   def testGrrSingleServer(self):
     run_bin = os.path.join(self.bin_dir, "tools",
                            "grr_server" + self.bin_ext)
-    self.RunForTimeWithNoExceptions(self.interpreter + run_bin, self.extra_opts,
+    self.RunForTimeWithNoExceptions(self.interpreter,
+                                    [run_bin] + self.extra_opts,
                                     timeout=self.default_timeout*2)
 
   @test_lib.SetLabel("large")
   def testFileExporter(self):
     run_bin = os.path.join(self.bin_dir, "tools",
                            "export" + self.bin_ext)
-    self.RunForTimeWithNoExceptions(self.interpreter + run_bin, self.extra_opts,
+    self.RunForTimeWithNoExceptions(self.interpreter,
+                                    [run_bin] + self.extra_opts,
                                     should_exit=True,
                                     timeout=self.default_timeout*2)
 
@@ -103,7 +111,8 @@ class EntryPointTest(test_lib.GRRBaseTest):
   def testClient(self):
     run_bin = os.path.join(self.bin_dir, "client",
                            "client" + self.bin_ext)
-    self.RunForTimeWithNoExceptions(self.interpreter + run_bin, self.extra_opts,
+    self.RunForTimeWithNoExceptions(self.interpreter,
+                                    [run_bin] + self.extra_opts,
                                     timeout=self.default_timeout)
 
 

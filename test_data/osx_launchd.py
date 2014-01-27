@@ -48,6 +48,8 @@ class FakeCFObject(object):
   def __init__(self, value):
     self.value = value
 
+  def __int__(self):
+    return int(self.value)
 
 JOB = [FakeCFDict(
     {

@@ -305,6 +305,12 @@ class CFBoolean(CFType):
     else:
       return True
 
+  def __bool__(self):
+    return self.value
+
+  def __nonzero__(self):
+    return self.value
+
   def __repr__(self):
     return str(self.value)
 
@@ -322,6 +328,9 @@ class CFNumber(CFType):
     else:
       raise TypeError(
           'CFNumber initializer must be python int or objc CFNumber.')
+
+  def __int__(self):
+    return self.value
 
   @property
   def value(self):
@@ -351,6 +360,9 @@ class CFString(CFType):
 
   def __len__(self):
     return self.dll.CFArrayGetCount(self.ref)
+
+  def __unicode__(self):
+    return unicode(self.value)
 
   def __repr__(self):
     return self.value

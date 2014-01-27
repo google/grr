@@ -104,7 +104,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       # into proper locations. First check the per-client crashes collection.
       client_crashes = sorted(
           list(aff4.FACTORY.Open(self.client_id.Add("crashes"),
-                                 aff4_type="RDFValueCollection",
+                                 aff4_type="PackedVersionedCollection",
                                  token=self.token)),
           key=lambda x: x.timestamp)
 
@@ -129,7 +129,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       # equal to per-client crash.
       global_crashes = sorted(
           aff4.FACTORY.Open(aff4.ROOT_URN.Add("crashes"),
-                            aff4_type="RDFValueCollection",
+                            aff4_type="PackedVersionedCollection",
                             token=self.token),
           key=lambda x: x.timestamp)
       self.assertEqual(len(global_crashes), len(client_crashes))
@@ -174,11 +174,12 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
 
       # Make sure crashes RDFValueCollections are created and written
       # into proper locations. First check the per-client crashes collection.
-      client_crashes = aff4.FACTORY.Open(self.client_id.Add("crashes"),
-                                         aff4_type="RDFValueCollection",
-                                         token=self.token)
+      client_crashes = list(aff4.FACTORY.Open(
+          self.client_id.Add("crashes"),
+          aff4_type="PackedVersionedCollection",
+          token=self.token))
       self.assertEqual(len(client_crashes), 1)
-      crash = list(client_crashes)[0]
+      crash = client_crashes[0]
       self.assertEqual(crash.client_id, self.client_id)
       self.assertEqual(crash.client_info.client_name, "GRR Monitor")
       self.assertEqual(crash.crash_type, "aff4:/flows/W:NannyMessage")
@@ -186,11 +187,12 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
 
       # Check global crash collection. Check that crash written there is
       # equal to per-client crash.
-      global_crashes = aff4.FACTORY.Open(aff4.ROOT_URN.Add("crashes"),
-                                         aff4_type="RDFValueCollection",
-                                         token=self.token)
+      global_crashes = list(aff4.FACTORY.Open(
+          aff4.ROOT_URN.Add("crashes"),
+          aff4_type="PackedVersionedCollection",
+          token=self.token))
       self.assertEqual(len(global_crashes), 1)
-      self.assertEqual(list(global_crashes)[0], crash)
+      self.assertEqual(global_crashes[0], crash)
 
     finally:
       email_alerts.SendEmail = old_send_email

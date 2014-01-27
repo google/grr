@@ -583,7 +583,8 @@ class ProtoEnum(ProtoSignedInteger):
   This is really encoded as an integer but only certain values are allowed.
   """
 
-  def __init__(self, default=None, enum_name=None, enum=None, **kwargs):
+  def __init__(self, default=None, enum_name=None, enum=None,
+               enum_descriptions=None, **kwargs):
     super(ProtoEnum, self).__init__(**kwargs)
     if enum_name is None:
       raise type_info.TypeValueError("Enum groups must be given a name.")
@@ -593,14 +594,14 @@ class ProtoEnum(ProtoSignedInteger):
     if isinstance(enum, EnumContainer):
       enum = enum.enum_dict
 
-    self.enum = enum or {}
-    self.enum_container = EnumContainer(name=enum_name, **self.enum)
-    self.reverse_enum = {}
-    for k, v in enum.iteritems():
+    for v in enum.itervalues():
       if not (v.__class__ is int or v.__class__ is long):
         raise type_info.TypeValueError("Enum values must be integers.")
 
-      self.reverse_enum[v] = k
+    self.enum_container = EnumContainer(
+        name=enum_name, descriptions=enum_descriptions, **(enum or {}))
+    self.enum = self.enum_container.enum_dict
+    self.reverse_enum = self.enum_container.reverse_enum
 
     # Ensure the default is a valid enum value.
     if default is not None:
@@ -1819,11 +1820,12 @@ class ProtocolBufferSerializer(AbstractSerlializer):
 
 
 class EnumValue(int):
-  """An integer with a name."""
+  """An integer with a name and description."""
 
-  def __new__(cls, val, name=None):
+  def __new__(cls, val, name=None, description=None):
     inst = super(EnumValue, cls).__new__(cls, val)
     inst.name = name
+    inst.description = description
     return inst
 
   def __str__(self):
@@ -1833,16 +1835,18 @@ class EnumValue(int):
 class EnumContainer(object):
   """A data class to hold enum objects."""
 
-  def __init__(self, name=None, **kwargs):
+  def __init__(self, name=None, descriptions=None, **kwargs):
+    descriptions = descriptions or {}
+
+    self.enum_dict = {}
     self.reverse_enum = {}
     self.name = name
 
     for k, v in kwargs.items():
-      v = EnumValue(v, name=k)
+      v = EnumValue(v, name=k, description=descriptions.get(k, None))
+      self.enum_dict[k] = v
       self.reverse_enum[v] = k
       setattr(self, k, v)
-
-    self.enum_dict = kwargs
 
 
 class RDFProtoStruct(RDFStruct):

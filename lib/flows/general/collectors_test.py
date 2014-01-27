@@ -9,38 +9,24 @@ from grr.client import vfs
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_lib
+from grr.lib import artifact_test
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.flows.general import transfer
 
 
-class FakeArtifact(artifact_lib.GenericArtifact):
-  """My first artifact."""
-  SUPPORTED_OS = ["Linux"]
-  LABELS = ["Logs", "Authentication"]
-  COLLECTORS = []
-  PATH_VARS = {}
-
-
-class BadPathspecArtifact(artifact_lib.GenericArtifact):
-  """Broken pathspec_attribute."""
-  LABELS = ["Software"]
-  SUPPORTED_OS = ["Windows"]
-  COLLECTORS = [
-      artifact_lib.Collector(action="CollectArtifactFiles",
-                             args={"artifact_list":
-                                   ["WindowsPersistenceMechanisms"],
-                                   "pathspec_attribute": "broken"},
-                             returned_types=["StatEntry"])
-      ]
-
-
-class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
+class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
   """Test the artifact collection mechanism works."""
 
   def setUp(self):
     """Make sure things are initialized."""
     super(TestArtifactCollectors, self).setUp()
+
+    self.LoadTestArtifacts()
+    artifact_reg = artifact_lib.ArtifactRegistry.artifacts
+    self.fakeartifact = artifact_reg["FakeArtifact"]
+    self.badpathspecartifact = artifact_reg["BadPathspecArtifact"]
+
     with aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw") as fd:
       fd.Set(fd.Schema.SYSTEM("Linux"))
       kb = fd.Schema.KNOWLEDGE_BASE()
@@ -49,11 +35,12 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
 
   def tearDown(self):
     super(TestArtifactCollectors, self).tearDown()
-    FakeArtifact.COLLECTORS = []  # Reset any Collectors
-    FakeArtifact.CONDITIONS = []  # Reset any Conditions
+    self.fakeartifact.collectors = []  # Reset any Collectors
+    self.fakeartifact.conditions = []  # Reset any Conditions
 
   def testGetArtifact1(self):
     """Test we can get a basic artifact."""
+
     client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
                                       "HashFile", "HashBuffer")
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
@@ -62,8 +49,9 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
 
     # Dynamically add a Collector specifying the base path.
     file_path = os.path.join(self.base_path, "test_img.dd")
-    coll1 = artifact_lib.Collector(action="GetFile", args={"path": file_path})
-    FakeArtifact.COLLECTORS.append(coll1)
+    coll1 = rdfvalue.Collector(action="GetFile", args={"path": file_path})
+    self.fakeartifact.collectors.append(coll1)
+
     artifact_list = ["FakeArtifact"]
     for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
                                      artifact_list=artifact_list, use_tsk=False,
@@ -86,9 +74,9 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
 
-    coll1 = artifact_lib.Collector(action="RunGrrClientAction",
-                                   args={"client_action": r"ListProcesses"})
-    FakeArtifact.COLLECTORS.append(coll1)
+    coll1 = rdfvalue.Collector(action="RunGrrClientAction",
+                               args={"client_action": r"ListProcesses"})
+    self.fakeartifact.collectors.append(coll1)
     artifact_list = ["FakeArtifact"]
     for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
                                      artifact_list=artifact_list,
@@ -107,22 +95,24 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     """Test we can get a GRR client artifact with conditions."""
     # Run with false condition.
     client_mock = test_lib.ActionMock("ListProcesses")
-    coll1 = artifact_lib.Collector(action="RunGrrClientAction",
-                                   args={"client_action": "ListProcesses"},
-                                   conditions=["os == 'Windows'"])
-    FakeArtifact.COLLECTORS.append(coll1)
+    coll1 = rdfvalue.Collector(action="RunGrrClientAction",
+                               args={"client_action": "ListProcesses"},
+                               conditions=["os == 'Windows'"])
+    self.fakeartifact.collectors.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
     self.assertEquals(fd.__class__.__name__, "AFF4Volume")
 
     # Now run with matching or condition.
     coll1.conditions = ["os == 'Linux' or os == 'Windows'"]
-    FakeArtifact.COLLECTORS[0] = coll1
+    self.fakeartifact.collectors = []
+    self.fakeartifact.collectors.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
     self.assertEquals(fd.__class__.__name__, "RDFValueCollection")
 
     # Now run with impossible or condition.
     coll1.conditions.append("os == 'NotTrue'")
-    FakeArtifact.COLLECTORS[0] = coll1
+    self.fakeartifact.collectors = []
+    self.fakeartifact.collectors.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
     self.assertEquals(fd.__class__.__name__, "AFF4Volume")
 

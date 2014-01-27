@@ -14,6 +14,7 @@ from grr.lib.flows.general import collectors
 from grr.lib.flows.general import discovery
 
 from grr.lib.flows.general import fetch_files
+from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import filetypes
 from grr.lib.flows.general import find
@@ -25,7 +26,6 @@ from grr.lib.flows.general import network
 from grr.lib.flows.general import processes
 from grr.lib.flows.general import registry
 from grr.lib.flows.general import screenshot
-from grr.lib.flows.general import services
 from grr.lib.flows.general import timelines
 from grr.lib.flows.general import transfer
 from grr.lib.flows.general import webhistory

@@ -1763,5 +1763,3 @@ class VersionSelectorDialog(renderers.TableRenderer):
 
       self.AddCell(i, "Age", rdfvalue.RDFDatetime(type_attribute.age))
       self.AddCell(i, "Type", type_attribute)
-
-    return i + 1

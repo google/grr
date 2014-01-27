@@ -240,21 +240,17 @@ class ReceivedCipher(Cipher):
           len(self.cipher.iv) != self.iv_size / 8):
         raise DecryptionError("Invalid cipher.")
 
-      if response_comms.api_version >= 3:
-        if len(self.cipher.hmac_key) != self.key_size / 8:
-          raise DecryptionError("Invalid cipher.")
+      if len(self.cipher.hmac_key) != self.key_size / 8:
+        raise DecryptionError("Invalid cipher.")
 
-        # New version: cipher_metadata contains information about the cipher.
-        # Decrypt the metadata symmetrically
-        self.encrypted_cipher_metadata = (
-            response_comms.encrypted_cipher_metadata)
-        self.cipher_metadata = rdfvalue.CipherMetadata(self.Decrypt(
-            response_comms.encrypted_cipher_metadata, self.cipher.iv))
+      # Cipher_metadata contains information about the cipher - decrypt the
+      # metadata symmetrically
+      self.encrypted_cipher_metadata = (
+          response_comms.encrypted_cipher_metadata)
+      self.cipher_metadata = rdfvalue.CipherMetadata(self.Decrypt(
+          response_comms.encrypted_cipher_metadata, self.cipher.iv))
 
-        self.VerifyCipherSignature()
-      else:
-        # Old version: To be set once the message is verified.
-        self.cipher_metadata = None
+      self.VerifyCipherSignature()
     except RSA.RSAError as e:
       raise DecryptionError(e)
 
@@ -292,7 +288,7 @@ class Communicator(object):
        private_key: Our own private key in string form (as PEM).
     """
     # A cache of cipher objects.
-    self.cipher_cache = utils.TimeBasedCache()
+    self.cipher_cache = utils.TimeBasedCache(max_age=24*3600)
     self.private_key = private_key
     self.certificate = certificate
 
@@ -355,7 +351,7 @@ class Communicator(object):
     Raises:
        RuntimeError: If we do not support this api version.
     """
-    if api_version not in [2, 3]:
+    if api_version not in [3]:
       raise RuntimeError("Unsupported api version.")
 
     if destination is None:
@@ -377,23 +373,7 @@ class Communicator(object):
     signed_message_list = rdfvalue.SignedMessageList(timestamp=timestamp)
     self.EncodeMessageList(message_list, signed_message_list)
 
-    # TODO(user): This is for backwards compatibility. Remove when all
-    # clients are moved to new scheme.
-    if api_version == 2:
-      signed_message_list.SetWireFormat(
-          "source", utils.SmartStr(self.common_name.Basename()))
-
-      # Old scheme - message list is signed.
-      digest = cipher.hash_function(signed_message_list.message_list).digest()
-
-      # We never want to have a password dialog
-      private_key = self.private_key.GetPrivateKey()
-
-      signed_message_list.signature = private_key.sign(
-          digest, cipher.hash_function_name)
-
-    elif api_version == 3:
-      result.encrypted_cipher_metadata = cipher.encrypted_cipher_metadata
+    result.encrypted_cipher_metadata = cipher.encrypted_cipher_metadata
 
     # Include the encrypted cipher.
     result.encrypted_cipher = cipher.encrypted_cipher
@@ -401,13 +381,9 @@ class Communicator(object):
     serialized_message_list = signed_message_list.SerializeToString()
 
     # Encrypt the message symmetrically.
-    if api_version >= 3:
-      # New scheme cipher is signed plus hmac over message list.
-      result.iv, result.encrypted = cipher.Encrypt(serialized_message_list)
-      result.hmac = cipher.HMAC(result.encrypted)
-    else:
-      _, result.encrypted = cipher.Encrypt(serialized_message_list,
-                                           cipher.cipher.iv)
+    # New scheme cipher is signed plus hmac over message list.
+    result.iv, result.encrypted = cipher.Encrypt(serialized_message_list)
+    result.hmac = cipher.HMAC(result.encrypted)
 
     result.api_version = api_version
 
@@ -476,7 +452,7 @@ class Communicator(object):
     Raises:
        DecryptionError: If the message failed to decrypt properly.
     """
-    if response_comms.api_version not in [2, 3]:
+    if response_comms.api_version not in [3]:
       raise DecryptionError("Unsupported api version.")
 
     if response_comms.encrypted_cipher:
@@ -548,32 +524,19 @@ class Communicator(object):
     Raises:
        DecryptionError: if the message is corrupt.
     """
+    # This is not used atm since we only support a single api version (3).
+    _ = api_version
     result = rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED
-    if api_version < 3:
-      # Old version: signature is on the message_list
-      digest = cipher.hash_function(
-          signed_message_list.message_list).digest()
+    if cipher.HMAC(response_comms.encrypted) != response_comms.hmac:
+      raise DecryptionError("HMAC verification failed.")
 
-      remote_public_key = self.pub_key_cache.GetRSAPublicKey(
-          signed_message_list.source)
+    # Give the cipher another chance to check its signature.
+    if not cipher.signature_verified:
+      cipher.VerifyCipherSignature()
 
-      stats.STATS.IncrementCounter("grr_rsa_operations")
-      if remote_public_key.verify(digest, signed_message_list.signature,
-                                  cipher.hash_function_name) == 1:
-        stats.STATS.IncrementCounter("grr_authenticated_messages")
-        result = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
-
-    else:
-      if cipher.HMAC(response_comms.encrypted) != response_comms.hmac:
-        raise DecryptionError("HMAC verification failed.")
-
-      # Give the cipher another chance to check its signature.
-      if not cipher.signature_verified:
-        cipher.VerifyCipherSignature()
-
-      if cipher.signature_verified:
-        stats.STATS.IncrementCounter("grr_authenticated_messages")
-        result = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
+    if cipher.signature_verified:
+      stats.STATS.IncrementCounter("grr_authenticated_messages")
+      result = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
 
     # Check for replay attacks. We expect the server to return the same
     # timestamp nonce we sent.

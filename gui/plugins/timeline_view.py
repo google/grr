@@ -251,10 +251,9 @@ class EventTable(renderers.TableRenderer):
 
       act_row += 1
       if act_row >= end_row:
-        # Tell the table there are more rows.
-        self.size = act_row + 1
         self.content_cache.Put(key % act_row, events)
-        return
+        # Tell the table there are more rows.
+        return True
 
 
 class EventViewTabs(renderers.TabLayout):

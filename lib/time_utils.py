@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc. All Rights Reserved.
-
 """This file contains various utilities for datetime handling."""
 
 
@@ -71,3 +69,12 @@ def WmiTimeToEpoch(cimdatetime_str):
 def WinFileTimeToDateTime(filetime):
   """Take a Windows FILETIME as integer and convert to DateTime."""
   return NULL_FILETIME + datetime.timedelta(microseconds=filetime/10)
+
+
+def AmericanDateToEpoch(date_str):
+  """Take a US format date and return epoch. Used for some broken WMI calls."""
+  try:
+    epoch = time.strptime(date_str, "%m/%d/%Y")
+    return int(calendar.timegm(epoch)) * 1000000
+  except ValueError:
+    return 0

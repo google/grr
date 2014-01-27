@@ -173,3 +173,13 @@ class GlobExpressionTest(test_base.RDFValueTestCase):
         client=fd))
     self.assertEqual(interpolated[0], "/home/user0/.mozilla/")
     self.assertEqual(interpolated[1], "/home/user1/.mozilla/")
+
+  def testValidation(self):
+    glob_expression = rdfvalue.GlobExpression(
+        "/home/%%Users.username%%/**/.mozilla/")
+    glob_expression.Validate()
+
+    glob_expression = rdfvalue.GlobExpression(
+        "/home/**/**")
+    self.assertRaises(ValueError, glob_expression.Validate)
+

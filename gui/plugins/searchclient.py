@@ -403,11 +403,7 @@ class HostTable(renderers.TableRenderer):
 
     for child in result_set:
       # Add the fd to all the columns
-      for column in self.columns:
-        try:
-          column.AddRowFromFd(row_count + start, child)
-        except AttributeError:
-          pass
+      self.AddRowFromFd(row_count + start, child)
 
       # Also update the online status.
       ping = child.Get(child.Schema.PING) or 0
@@ -415,7 +411,8 @@ class HostTable(renderers.TableRenderer):
 
       row_count += 1
 
-    return row_count
+    # We only show 50 hits here.
+    return False
 
 
 class SearchHostView(renderers.Renderer):
