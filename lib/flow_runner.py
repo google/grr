@@ -202,6 +202,9 @@ class FlowRunner(object):
 
     return rdfvalue.SessionID(base=base, queue=self.args.queue)
 
+  def GetAllowedFollowUpStates(self):
+    return self.context.next_states
+
   def SetAllowedFollowUpStates(self, next_states):
     self.context.next_states = next_states
 

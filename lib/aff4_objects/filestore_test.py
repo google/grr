@@ -2,10 +2,11 @@
 """Tests for grr.lib.aff4_objects.filestore."""
 
 import os
-
 import StringIO
+import time
 
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -99,30 +100,44 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
     client_ids = self.SetupClients(1)
     self.client_id = client_ids[0]
 
-  def AddFileToFileStore(self, path):
-    pathspec = rdfvalue.PathSpec(
-        pathtype=rdfvalue.PathSpec.PathType.OS,
-        path=os.path.join(self.base_path, "winexec_img.dd"))
-    pathspec.Append(path=path, pathtype=rdfvalue.PathSpec.PathType.TSK)
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+  @staticmethod
+  def AddFileToFileStore(pathspec=None, client_id=None, token=None):
+    """Adds file with given pathspec to the hash file store."""
+    if pathspec is None:
+      raise ValueError("pathspec can't be None")
+
+    if client_id is None:
+      raise ValueError("client_id can't be None")
+
+    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, client_id)
 
     client_mock = test_lib.ActionMock("TransferBuffer", "StatFile",
                                       "HashBuffer")
     for _ in test_lib.TestFlowHelper(
-        "GetFile", client_mock, token=self.token,
-        client_id=self.client_id, pathspec=pathspec):
+        "GetFile", client_mock, token=token, client_id=client_id,
+        pathspec=pathspec):
       pass
 
     auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
     flow.Events.PublishEvent(
         "FileStore.AddFileToStore",
         rdfvalue.GrrMessage(payload=urn, auth_state=auth_state),
-        token=self.token)
-    worker = test_lib.MockWorker(token=self.token)
+        token=token)
+    worker = test_lib.MockWorker(token=token)
     worker.Simulate()
 
+  def AddFile(self, path):
+    """Add file with a subpath (relative to winexec_img.dd) to the store."""
+    pathspec = rdfvalue.PathSpec(
+        pathtype=rdfvalue.PathSpec.PathType.OS,
+        path=os.path.join(self.base_path, "winexec_img.dd"))
+    pathspec.Append(path=path, pathtype=rdfvalue.PathSpec.PathType.TSK)
+
+    return self.AddFileToFileStore(pathspec, client_id=self.client_id,
+                                   token=self.token)
+
   def testListHashes(self):
-    self.AddFileToFileStore("/Ext2IFS_1_10b.exe")
+    self.AddFile("/Ext2IFS_1_10b.exe")
     hashes = list(aff4.HashFileStore.ListHashes(token=self.token))
     self.assertEqual(len(hashes), 5)
 
@@ -143,9 +158,92 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
         hash_value="0e8dc93e150021bb4752029ebbff51394aa36f06"
         "9cf19901578e4f06017acdb5") in hashes)
 
+  def testListHashesWithAge(self):
+    with test_lib.Stubber(time, "time", lambda: 42):
+      self.AddFile("/Ext2IFS_1_10b.exe")
+
+    hashes = list(aff4.HashFileStore.ListHashes(token=self.token, age=41e6))
+    self.assertEqual(len(hashes), 0)
+
+    hashes = list(aff4.HashFileStore.ListHashes(token=self.token, age=43e6))
+    self.assertEqual(len(hashes), 5)
+
+    hashes = list(aff4.HashFileStore.ListHashes(token=self.token))
+    self.assertEqual(len(hashes), 5)
+
+  def testHashAgeUpdatedWhenNewHitAddedWithinAFF4IndexCacheAge(self):
+    # Check that there are no hashes.
+    hashes = list(aff4.HashFileStore.ListHashes(token=self.token,
+                                                age=(41e6, 1e10)))
+    self.assertEqual(len(hashes), 0)
+
+    with test_lib.Stubber(time, "time", lambda: 42):
+      self.AddFileToFileStore(
+          rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.OS,
+                            path=os.path.join(self.base_path, "empty_file")),
+          client_id=self.client_id, token=self.token)
+
+    hashes = list(aff4.HashFileStore.ListHashes(token=self.token,
+                                                age=(41e6, 1e10)))
+    self.assertTrue(hashes)
+    hits = list(aff4.HashFileStore.GetHitsForHash(hashes[0], token=self.token))
+    self.assertEqual(len(hits), 1)
+
+    latest_time = 42 + config_lib.CONFIG["AFF4.intermediate_cache_age"] - 1
+    with test_lib.Stubber(time, "time", lambda: latest_time):
+      self.AddFileToFileStore(
+          rdfvalue.PathSpec(
+              pathtype=rdfvalue.PathSpec.PathType.OS,
+              path=os.path.join(self.base_path, "a", "b", "c", "helloc.txt")),
+          client_id=self.client_id, token=self.token)
+
+    # Check that now we have two hits for the previosly added hash.
+    hits = list(aff4.HashFileStore.GetHitsForHash(hashes[0], token=self.token))
+    self.assertEqual(len(hits), 2)
+
+    # Check that new hit doesn't affect hash age.
+    hashes = list(aff4.HashFileStore.ListHashes(token=self.token,
+                                                age=(43e6, 1e10)))
+    self.assertFalse(hashes)
+
+  def testHashAgeUpdatedWhenNewHitAddedAfterAFF4IndexCacheAge(self):
+    # Check that there are no hashes.
+    hashes = list(aff4.HashFileStore.ListHashes(token=self.token,
+                                                age=(41e6, 1e10)))
+    self.assertEqual(len(hashes), 0)
+
+    with test_lib.Stubber(time, "time", lambda: 42):
+      self.AddFileToFileStore(
+          rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.OS,
+                            path=os.path.join(self.base_path, "empty_file")),
+          client_id=self.client_id, token=self.token)
+
+    hashes = list(aff4.HashFileStore.ListHashes(token=self.token,
+                                                age=(41e6, 1e10)))
+    self.assertTrue(hashes)
+    hits = list(aff4.HashFileStore.GetHitsForHash(hashes[0], token=self.token))
+    self.assertEqual(len(hits), 1)
+
+    latest_time = 42 + config_lib.CONFIG["AFF4.intermediate_cache_age"] + 1
+    with test_lib.Stubber(time, "time", lambda: latest_time):
+      self.AddFileToFileStore(
+          rdfvalue.PathSpec(
+              pathtype=rdfvalue.PathSpec.PathType.OS,
+              path=os.path.join(self.base_path, "a", "b", "c", "helloc.txt")),
+          client_id=self.client_id, token=self.token)
+
+    # Check that now we have two hits for the previosly added hash.
+    hits = list(aff4.HashFileStore.GetHitsForHash(hashes[0], token=self.token))
+    self.assertEqual(len(hits), 2)
+
+    # Check that new hit affects hash age.
+    hashes = list(aff4.HashFileStore.ListHashes(token=self.token,
+                                                age=(43e6, 1e10)))
+    self.assertTrue(hashes)
+
   def testGetHitsForHash(self):
-    self.AddFileToFileStore("/Ext2IFS_1_10b.exe")
-    self.AddFileToFileStore("/idea.dll")
+    self.AddFile("/Ext2IFS_1_10b.exe")
+    self.AddFile("/idea.dll")
 
     hits = list(aff4.HashFileStore.GetHitsForHash(rdfvalue.FileStoreHash(
         fingerprint_type="generic", hash_type="md5",
@@ -153,9 +251,37 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
     self.assertListEqual(hits, [self.client_id.Add(
         "fs/tsk").Add(self.base_path).Add("winexec_img.dd/Ext2IFS_1_10b.exe")])
 
+  def testGetHitsForHashWithAge(self):
+    with test_lib.Stubber(time, "time", lambda: 42):
+      self.AddFile("/Ext2IFS_1_10b.exe")
+      self.AddFile("/idea.dll")
+
+    hits = list(aff4.HashFileStore.GetHitsForHash(
+        rdfvalue.FileStoreHash(
+            fingerprint_type="generic", hash_type="md5",
+            hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a"),
+        age=41e6,
+        token=self.token))
+    self.assertEqual(len(hits), 0)
+
+    hits = list(aff4.HashFileStore.GetHitsForHash(
+        rdfvalue.FileStoreHash(
+            fingerprint_type="generic", hash_type="md5",
+            hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a"),
+        age=43e6,
+        token=self.token))
+    self.assertEqual(len(hits), 1)
+
+    hits = list(aff4.HashFileStore.GetHitsForHash(
+        rdfvalue.FileStoreHash(
+            fingerprint_type="generic", hash_type="md5",
+            hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a"),
+        token=self.token))
+    self.assertEqual(len(hits), 1)
+
   def testGetHitsForHashes(self):
-    self.AddFileToFileStore("/Ext2IFS_1_10b.exe")
-    self.AddFileToFileStore("/idea.dll")
+    self.AddFile("/Ext2IFS_1_10b.exe")
+    self.AddFile("/idea.dll")
 
     hash1 = rdfvalue.FileStoreHash(
         fingerprint_type="generic", hash_type="md5",
@@ -171,3 +297,29 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
         "fs/tsk").Add(self.base_path).Add("winexec_img.dd/Ext2IFS_1_10b.exe")])
     self.assertListEqual(hits[hash2], [self.client_id.Add(
         "fs/tsk").Add(self.base_path).Add("winexec_img.dd/idea.dll")])
+
+  def testGetHitsForHashesWithAge(self):
+    with test_lib.Stubber(time, "time", lambda: 42):
+      self.AddFile("/Ext2IFS_1_10b.exe")
+      self.AddFile("/idea.dll")
+
+    hash1 = rdfvalue.FileStoreHash(
+        fingerprint_type="generic", hash_type="md5",
+        hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a")
+    hash2 = rdfvalue.FileStoreHash(
+        fingerprint_type="generic", hash_type="sha1",
+        hash_value="e1f7e62b3909263f3a2518bbae6a9ee36d5b502b")
+
+    hits = dict(aff4.HashFileStore.GetHitsForHashes([hash1, hash2],
+                                                    age=41e6,
+                                                    token=self.token))
+    self.assertEqual(len(hits), 0)
+
+    hits = dict(aff4.HashFileStore.GetHitsForHashes([hash1, hash2],
+                                                    age=43e6,
+                                                    token=self.token))
+    self.assertEqual(len(hits), 2)
+
+    hits = dict(aff4.HashFileStore.GetHitsForHashes([hash1, hash2],
+                                                    token=self.token))
+    self.assertEqual(len(hits), 2)

@@ -48,16 +48,18 @@ class WMIHotfixesSoftwareParser(parsers.WMIQueryParser):
     yield soft
 
 
-class WMIUserAccountParser(parsers.WMIQueryParser):
-  """Parser for WMI Win32_UserAccount output."""
+class WMIUserParser(parsers.WMIQueryParser):
+  """Parser for WMI Win32_UserAccount and Win32_UserProfile output."""
 
   output_types = ["KnowledgeBaseUser"]
-  supported_artifacts = ["WindowsWMIProfileUsers"]
+  supported_artifacts = ["WindowsWMIProfileUsers", "WindowsWMIAccountUsers"]
 
   account_mapping = {
-      "Name": "username",
+      # Win32_UserAccount
       "Domain": "userdomain",
-      "SID": "sid"
+      "SID": "sid",
+      # Win32_UserProfile
+      "LocalPath": "homedir"
       }
 
   def Parse(self, query, result, knowledge_base):

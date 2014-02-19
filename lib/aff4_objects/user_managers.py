@@ -37,12 +37,16 @@ class BaseAccessControlManager(access_control.AccessControlManager):
       user = aff4.FACTORY.Open("aff4:/users/%s" % username, aff4_type="GRRUser",
                                token=token)
 
-      # Only return True if all the authorized_labels are found in the user's
-      # label list.
-      return (authorized_labels.intersection(user.GetLabels()) ==
-              authorized_labels)
+      # Only return if all the authorized_labels are found in the user's
+      # label list, otherwise raise UnauthorizedAccess.
+      if (authorized_labels.intersection(user.GetLabels()) ==
+          authorized_labels):
+        return
+      raise access_control.UnauthorizedAccess(
+          "User %s is missing labels (required: %s)." % (username,
+                                                         authorized_labels))
     except IOError:
-      return False
+      raise access_control.UnauthorizedAccess("User %s not found." % username)
 
 
 class BasicAccessControlManager(BaseAccessControlManager):
@@ -570,7 +574,7 @@ class FullAccessControlManager(BaseAccessControlManager):
               requested_access=requested_access)
         except access_control.UnauthorizedAccess as e:
           logging.info("%s access rejected for %s: %s", requested_access,
-                       subject, e.message)
+                       subject, e)
           e.requested_access = requested_access
           raise
 
@@ -578,9 +582,7 @@ class FullAccessControlManager(BaseAccessControlManager):
 
   def UserHasAdminLabel(self, subject, token):
     """Checks whether a user has admin label. Used by CheckAccessHelper."""
-    if not self.CheckUserLabels(token.username, ["admin"], token=token):
-      raise access_control.UnauthorizedAccess("User has to have 'admin' label.",
-                                              subject=subject)
+    self.CheckUserLabels(token.username, ["admin"], token=token)
 
   def IsHomeDir(self, subject, token):
     """Checks user access permissions for paths under aff4:/users."""

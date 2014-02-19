@@ -575,7 +575,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
 
   def testDelayedCallState(self):
     """Tests the ability to delay a CallState invocation."""
-    with test_lib.Stubber(time, "time", lambda: 10000):
+    with test_lib.FakeTime(10000):
       client_mock = ClientMock()
       client_mock = test_lib.MockClient(self.client_id, client_mock,
                                         token=self.token)
@@ -591,12 +591,12 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
       # We should have done the first CallState so far.
       self.assertEqual(DelayedCallStateFlow.flow_ran, 1)
 
-    with test_lib.Stubber(time, "time", lambda: 10050):
+    with test_lib.FakeTime(10050):
       # 50 seconds more is not enough.
       self.Work(client_mock, worker_mock)
       self.assertEqual(DelayedCallStateFlow.flow_ran, 1)
 
-    with test_lib.Stubber(time, "time", lambda: 10100):
+    with test_lib.FakeTime(10100):
       # But 100 is.
       self.Work(client_mock, worker_mock)
       self.assertEqual(DelayedCallStateFlow.flow_ran, 2)

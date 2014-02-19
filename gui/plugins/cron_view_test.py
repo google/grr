@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2012 Google Inc. All Rights Reserved.
 """Test the cron_view interface."""
 
-
-import time
 
 from grr.gui import runtests_test
 from grr.lib import aff4
@@ -398,7 +395,7 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
   def testStuckCronJobIsHighlighted(self):
     # Make sure a lot of time has passed since the last
     # execution
-    with test_lib.Stubber(time, "time", lambda: 0):
+    with test_lib.FakeTime(0):
       self.AddJobStatus("aff4:/cron/OSBreakDown",
                         rdfvalue.CronJobRunStatus.Status.OK)
 

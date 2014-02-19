@@ -12,10 +12,12 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import master
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
+
 from grr.proto import flows_pb2
 
 
@@ -27,6 +29,10 @@ config_lib.DEFINE_list("Cron.enabled_system_jobs", [],
                        "startup. Vice versa, if they were enabled "
                        "but are not specified in the list, they "
                        "will be disabled.")
+
+
+class Error(Exception):
+  pass
 
 
 class CronSpec(rdfvalue.Duration):
@@ -148,6 +154,40 @@ class SystemCronFlow(flow.GRRFlow):
   __abstract = True  # pylint: disable=g-bad-name
 
 
+class StateReadError(Error):
+  pass
+
+
+class StateWriteError(Error):
+  pass
+
+
+class StatefulSystemCronFlow(SystemCronFlow):
+  """SystemCronFlow that keeps a permanent state between iterations."""
+
+  __abstract = True
+
+  @property
+  def cron_job_urn(self):
+    return CRON_MANAGER.CRON_JOBS_PATH.Add(self.__class__.__name__)
+
+  def ReadCronState(self):
+    try:
+      cron_job = aff4.FACTORY.Open(self.cron_job_urn, aff4_type="CronJob",
+                                   token=self.token)
+      return cron_job.Get(cron_job.Schema.STATE, default=rdfvalue.FlowState())
+    except aff4.InstantiationError as e:
+      raise StateReadError(e)
+
+  def WriteCronState(self, state):
+    try:
+      with aff4.FACTORY.OpenWithLock(self.cron_job_urn, aff4_type="CronJob",
+                                     token=self.token) as cron_job:
+        cron_job.Set(cron_job.Schema.STATE(state))
+    except aff4.InstantiationError as e:
+      raise StateWriteError(e)
+
+
 def ScheduleSystemCronFlows(token=None):
   """Schedule all the SystemCronFlows found."""
 
@@ -188,6 +228,9 @@ class CronWorker(object):
     ScheduleSystemCronFlows(token=self.token)
 
     while True:
+      if not master.MASTER_WATCHER.IsMaster():
+        time.sleep(self.sleep)
+        continue
       try:
         CRON_MANAGER.RunOnce(token=self.token)
       except Exception as e:  # pylint: disable=broad-except
@@ -272,6 +315,11 @@ class CronJob(aff4.AFF4Volume):
         "aff4:cron/last_run_status", rdfvalue.CronJobRunStatus,
         "Result of the last flow", lock_protected=True,
         creates_new_object_version=False)
+
+    STATE = aff4.Attribute(
+        "aff4:cron/state", rdfvalue.FlowState,
+        "Cron flow state that is kept between iterations", lock_protected=True,
+        versioned=False)
 
   def IsRunning(self):
     """Returns True if there's a currently running iteration of this job."""

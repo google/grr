@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2013 Google Inc. All Rights Reserved.
 """Tests for Windows Volume Shadow Copy flow."""
 from grr.lib import aff4
 from grr.lib import rdfvalue
@@ -48,6 +47,7 @@ class TestClient(object):
     return [rdfvalue.Dict(**self._RESPONSES)]
 
   def ListDirectory(self, list_directory_request):
+    """A mock list directory."""
     pathspec = list_directory_request.pathspec
     if not pathspec:
       raise RuntimeError("Missing pathspec.")

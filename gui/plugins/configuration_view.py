@@ -94,7 +94,7 @@ class ConfigManager(renderers.TemplateRenderer):
           info.append((parameter, raw_value, option_value))
 
         except (config_lib.Error, type_info.TypeValueError) as e:
-          logging.info("Bad config option in ConfigManager View %s", e)
+          logging.warn("Bad config option in ConfigManager View %s", e)
 
     self.sections = sorted(sections.items())
 

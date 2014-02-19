@@ -2,13 +2,10 @@
 """These are flows designed to discover information about the host."""
 
 
-import os
-
 from grr.lib import aff4
-from grr.lib import constants
+from grr.lib import artifact
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import utils
 from grr.lib import worker
 from grr.proto import flows_pb2
 
@@ -51,7 +48,6 @@ class Interrogate(flow.GRRFlow):
                                  "ClientConfiguration"])
   def Start(self):
     """Start off all the tests."""
-    self.state.Register("sid_data", {})
     self.state.Register("summary", rdfvalue.ClientSummary(
         client_id=self.client_id))
 
@@ -83,7 +79,7 @@ class Interrogate(flow.GRRFlow):
       self.client.Close()
       self.client = None
 
-  @flow.StateHandler(next_state=["VerifyUsers", "EnumerateUsers"])
+  @flow.StateHandler(next_state=["ProcessKnowledgeBase"])
   def Platform(self, responses):
     """Stores information about the platform."""
     if responses.success:
@@ -107,145 +103,16 @@ class Interrogate(flow.GRRFlow):
       self.client.Set(self.client.Schema.ARCH(response.machine))
       self.client.Set(self.client.Schema.UNAME("%s-%s-%s" % (
           response.system, response.release, response.version)))
-
-      # Windows systems get registry hives and "manual" way of enumerating
-      # users.
-      if response.system == "Windows":
-        fd = aff4.FACTORY.Create(self.client.urn.Add("registry"),
-                                 "VFSDirectory", token=self.token)
-        fd.Set(fd.Schema.PATHSPEC, fd.Schema.PATHSPEC(
-            path="/", pathtype=rdfvalue.PathSpec.PathType.REGISTRY))
-        fd.Close()
-
-        profiles_key = (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft"
-                        r"\Windows NT\CurrentVersion\ProfileList")
-
-        request = rdfvalue.FindSpec(path_regex="ProfileImagePath", max_depth=2)
-
-        request.pathspec.path = profiles_key
-        request.pathspec.pathtype = request.pathspec.PathType.REGISTRY
-
-        # Download all the Registry keys, it is limited by max_depth.
-        request.iterator.number = 10000
-        self.CallClient("Find", request, next_state="VerifyUsers")
-
-      else:
-        self.CallClient("EnumerateUsers", next_state="EnumerateUsers")
+      self.client.Flush()
 
     else:
       self.Log("Could not retrieve Platform info.")
 
-  @flow.StateHandler(next_state=["GetFolders"])
-  def VerifyUsers(self, responses):
-    """Issues WMI queries that verify that the SIDs actually belong to users."""
-    if not responses.success:
-      self.Log("Cannot query registry for user information. ")
-      return
-
-    for response in responses:
-      if response.hit.resident:
-        # Support old clients.
-        homedir = utils.SmartUnicode(response.hit.resident)
-      else:
-        homedir = response.hit.registry_data.GetValue()
-      # Cut away ProfilePath
-      path = os.path.dirname(response.hit.pathspec.path)
-      sid = os.path.basename(path)
-      # This is the best way we have of deriving the username from a SID.
-      user = homedir[homedir.rfind("\\") + 1:]
-      self.state.sid_data[sid] = {"homedir": homedir,
-                                  "username": user,
-                                  "sid": sid}
-
-      if not self.args.lightweight:
-        query = "SELECT * FROM Win32_UserAccount WHERE name=\"%s\"" % user
-        self.CallClient("WmiQuery", query=query, next_state="GetFolders",
-                        request_data={"SID": sid})
-
-  @flow.StateHandler(next_state=["VerifyFolders"])
-  def GetFolders(self, responses):
-    """If the SID belongs to a user, this tries to get the special folders."""
-    if not responses.success:
-      return
-
-    for response in responses:
-      # It could happen that wmi returns an AD user with the same name as the
-      # local one. In this case, we just ignore the unknown SID.
-      if response["SID"] not in self.state.sid_data:
-        continue
-
-      self.state.sid_data[response["SID"]]["domain"] = response["Domain"]
-      folder_path = (
-          r"HKEY_USERS\%s\Software\Microsoft\Windows"
-          r"\CurrentVersion\Explorer\Shell Folders") % response["SID"]
-      self.CallClient("ListDirectory",
-                      pathspec=rdfvalue.PathSpec(
-                          path=folder_path,
-                          pathtype=rdfvalue.PathSpec.PathType.REGISTRY),
-                      request_data=responses.request_data,
-                      next_state="VerifyFolders")
-
-  @flow.StateHandler(next_state=["SaveFolders"])
-  def VerifyFolders(self, responses):
-    """This saves the returned folders."""
-    if responses.success:
-      profile_folders = {}
-      for response in responses:
-        returned_folder = os.path.basename(response.pathspec.path)
-        for (folder, _, pb_field) in constants.profile_folders:
-          if folder == returned_folder:
-            profile_folders[pb_field] = (
-                response.resident or
-                response.registry_data.GetValue())
-            break
-      # Save the user pb.
-      data = self.state.sid_data[responses.request_data["SID"]]
-      data["special_folders"] = rdfvalue.FolderInformation(**profile_folders)
-
+    if self.client.Get(self.client.Schema.SYSTEM):
+      self.CallFlow("KnowledgeBaseInitializationFlow",
+                    next_state="ProcessKnowledgeBase")
     else:
-      # Reading from registry failed, we have to guess.
-      homedir = self.state.sid_data[responses.request_data["SID"]]["homedir"]
-      for (folder, subdirectory, pb_field) in constants.profile_folders:
-        data = responses.request_data
-        data["pb_field"] = pb_field
-        self.CallClient("StatFile",
-                        pathspec=rdfvalue.PathSpec(
-                            path=utils.JoinPath(homedir,
-                                                subdirectory),
-                            pathtype=rdfvalue.PathSpec.PathType.OS),
-                        request_data=data,
-                        next_state="SaveFolders")
-
-  @flow.StateHandler()
-  def SaveFolders(self, responses):
-    """Saves all the folders found to the user pb."""
-    if responses.success:
-      profile_folders = {}
-      for response in responses:
-        path = response.pathspec.path
-        # We want to store human readable Windows paths here.
-        path = path.lstrip("/").replace("/", "\\")
-        profile_folders[responses.request_data["pb_field"]] = path
-      data = self.state.sid_data[responses.request_data["SID"]]
-      folder = rdfvalue.FolderInformation(**profile_folders)
-
-      data["special_folders"] = folder
-
-  def SaveUsers(self):
-    """This saves the collected data to the data store."""
-    user_list = self.client.Schema.USER()
-    usernames = []
-    for data in self.state.sid_data.itervalues():
-      usernames.append(data["username"])
-
-      user = rdfvalue.User(**data)
-      self.state.summary.users.Append(user)
-
-      user_list.Append(user)
-      self.client.AddAttribute(self.client.Schema.USER, user_list)
-
-    self.client.AddAttribute(self.client.Schema.USERNAMES(
-        " ".join(sorted(usernames))))
+      self.Log("Unknown system type, skipping KnowledgeBaseInitializationFlow")
 
   @flow.StateHandler()
   def InstallDate(self, responses):
@@ -259,25 +126,15 @@ class Interrogate(flow.GRRFlow):
       self.Log("Could not get InstallDate")
 
   @flow.StateHandler()
-  def EnumerateUsers(self, responses):
-    """Store all users in the data store and maintain indexes."""
-    if responses.success and responses:
-      usernames = []
-      user_list = self.client.Schema.USER()
-      # Add all the users to the client object
-      for response in responses:
-        user_list.Append(response)
-        self.state.summary.users.Append(response)
+  def ProcessKnowledgeBase(self, responses):
+    """Update the SUMMARY from the knowledgebase data."""
+    if not responses.success:
+      raise flow.FlowError("Error collecting artifacts: %s" % responses.status)
 
-        if response.username:
-          usernames.append(response.username)
-
-      # Store it now
-      self.client.AddAttribute(self.client.Schema.USER, user_list)
-      self.client.AddAttribute(self.client.Schema.USERNAMES(
-          " ".join(usernames)))
-    else:
-      self.Log("Could not enumerate users")
+    knowledge_base = artifact.GetArtifactKnowledgeBase(self.client)
+    for kbuser in knowledge_base.users:
+      self.state.summary.users.Append(
+          rdfvalue.User().FromKnowledgeBaseUser(kbuser))
 
   @flow.StateHandler()
   def EnumerateInterfaces(self, responses):
@@ -395,9 +252,6 @@ class Interrogate(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     """Finalize client registration."""
-    if self.state.sid_data:
-      self.SaveUsers()
-
     self.Notify("Discovery", self.client.urn, "Client Discovery Complete")
 
     # Publish this client to the Discovery queue.

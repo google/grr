@@ -353,4 +353,4 @@ Cron.enabled_system_jobs:
 - LastAccessStats
 - OSBreakDown
 - ProcessHuntResultsCronFlow
-
+- PurgeClientStats

@@ -70,6 +70,7 @@ class ClientActionRunner(flow.GRRFlow):
 
 
 class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
+  """Tests the administrative flows."""
 
   def testClientKilled(self):
     """Test that client killed messages are handled correctly."""
@@ -323,6 +324,12 @@ sys.test_code_ran_here = py_args['value']
       def communicate(self):  # pylint: disable=g-bad-name
         return "stdout here", "stderr here"
 
+    # This flow has an acl, the user needs to be admin.
+    user = aff4.FACTORY.Create("aff4:/users/%s" % self.token.username,
+                               mode="rw", aff4_type="GRRUser", token=self.token)
+    user.SetLabels("admin")
+    user.Close()
+
     with test_lib.Stubber(subprocess, "Popen", Popen):
       for _ in test_lib.TestFlowHelper(
           "LaunchBinary", client_mock, client_id=self.client_id,
@@ -348,6 +355,7 @@ sys.test_code_ran_here = py_args['value']
 
     class ClientMock(object):
       def GetClientStats(self, _):
+        """Fake get client stats method."""
         response = rdfvalue.ClientStats()
         for i in range(12):
           sample = rdfvalue.CpuSample(

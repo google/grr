@@ -56,9 +56,11 @@ class Factory(object):
   def __init__(self):
     # This is a relatively short lived cache of objects.
     self.cache = utils.AgeBasedCache(
-        max_size=10000,
+        max_size=config_lib.CONFIG["AFF4.cache_max_size"],
         max_age=config_lib.CONFIG["AFF4.cache_age"])
-    self.intermediate_cache = utils.FastStore(2000)
+    self.intermediate_cache = utils.AgeBasedCache(
+        max_size=config_lib.CONFIG["AFF4.intermediate_cache_max_size"],
+        max_age=config_lib.CONFIG["AFF4.intermediate_cache_age"])
 
     # Create a token for system level actions:
     self.root_token = rdfvalue.ACLToken(username="system",
@@ -625,8 +627,8 @@ class Factory(object):
       count += 1
 
     if count >= limit:
-      logging.info("Object limit reached, there may be further objects "
-                   "to delete.")
+      logging.warning("Object limit reached, there may be further objects "
+                      "to delete.")
 
     # Do not remove the index or deeper objects may become unnavigable.
     data_store.DB.DeleteAttributesRegex(fd.urn, AFF4_PREFIXES,
@@ -2181,9 +2183,6 @@ class AFF4Image(AFF4Stream):
     while length > 0:
       data = self._ReadPartial(length)
       if not data:
-        if length > 0:
-          logging.error("Read error: %s bytes read, %s bytes remaining",
-                        len(result), length)
         break
 
       length -= len(data)

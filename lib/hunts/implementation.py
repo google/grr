@@ -157,6 +157,7 @@ class HuntRunner(flow_runner.FlowRunner):
         network_bytes_sent=0,
         next_outbound_id=1,
         next_processed_request=1,
+        next_states=set(),
         outstanding_requests=0,
         current_state=None,
         start_time=rdfvalue.RDFDatetime().Now(),
@@ -503,7 +504,7 @@ class GRRHunt(flow.GRRFlow):
     return hunt_obj
 
   @classmethod
-  def StartClient(cls, hunt_id, client_id):
+  def StartClients(cls, hunt_id, client_ids, token=None):
     """This method is called by the foreman for each client it discovers.
 
     Note that this function is performance sensitive since it is called by the
@@ -511,34 +512,36 @@ class GRRHunt(flow.GRRFlow):
 
     Args:
       hunt_id: The hunt to schedule.
-      client_id: The client that should be added to the hunt.
+      client_ids: List of clients that should be added to the hunt.
+      token: An optional access token to use.
     """
-    token = access_control.ACLToken(username="Hunt", reason="hunting")
+    token = token or access_control.ACLToken(username="Hunt", reason="hunting")
 
-    # Now we construct a special response which will be sent to the hunt
-    # flow. Randomize the request_id so we do not overwrite other messages in
-    # the queue.
-    state = rdfvalue.RequestState(id=utils.PRNG.GetULong(),
-                                  session_id=hunt_id,
-                                  client_id=client_id,
-                                  next_state="AddClient")
-
-    # Queue the new request.
     with queue_manager.QueueManager(token=token) as flow_manager:
-      flow_manager.QueueRequest(hunt_id, state)
+      for client_id in client_ids:
+        # Now we construct a special response which will be sent to the hunt
+        # flow. Randomize the request_id so we do not overwrite other messages
+        # in the queue.
+        state = rdfvalue.RequestState(id=utils.PRNG.GetULong(),
+                                      session_id=hunt_id,
+                                      client_id=client_id,
+                                      next_state="AddClient")
 
-      # Send a response.
-      msg = rdfvalue.GrrMessage(
-          session_id=hunt_id,
-          request_id=state.id, response_id=1,
-          auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
-          type=rdfvalue.GrrMessage.Type.STATUS,
-          payload=rdfvalue.GrrStatus())
+        # Queue the new request.
+        flow_manager.QueueRequest(hunt_id, state)
 
-      flow_manager.QueueResponse(hunt_id, msg)
+        # Send a response.
+        msg = rdfvalue.GrrMessage(
+            session_id=hunt_id,
+            request_id=state.id, response_id=1,
+            auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
+            type=rdfvalue.GrrMessage.Type.STATUS,
+            payload=rdfvalue.GrrStatus())
 
-      # And notify the worker about it.
-      flow_manager.QueueNotification(hunt_id)
+        flow_manager.QueueResponse(hunt_id, msg)
+
+        # And notify the worker about it.
+        flow_manager.QueueNotification(hunt_id)
 
   def Run(self):
     """A shortcut method for starting the hunt."""

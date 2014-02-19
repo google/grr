@@ -5,8 +5,10 @@
 
 import stat
 
+from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
+from grr.lib import utils
 from grr.proto import flows_pb2
 
 
@@ -97,10 +99,30 @@ class FileFinder(flow.GRRFlow):
     self.state.Register("sorted_filters",
                         sorted(self.args.filters, key=self._FilterWeight))
 
-    self.CallFlow("Glob", next_state="ProcessFilters", paths=self.args.paths,
-                  pathtype=self.args.pathtype)
+    if self.args.pathtype == rdfvalue.PathSpec.PathType.MEMORY:
+      # We construct StatEntries ourselves and there's no way they can
+      # pass the file type check.
+      self.args.no_file_type_check = True
 
-  @flow.StateHandler(next_state=["ProcessAction", "ApplyFilter", "Done"])
+      # If pathtype is MEMORY, we're treating provided paths not as globs,
+      # but as paths to memory devices.
+      memory_devices = []
+      for path in self.args.paths:
+        pathspec = rdfvalue.PathSpec(
+            path=utils.SmartUnicode(path),
+            pathtype=rdfvalue.PathSpec.PathType.MEMORY)
+        aff4path = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+            pathspec, self.client_id)
+        stat_entry = rdfvalue.StatEntry(aff4path=aff4path, pathspec=pathspec)
+        memory_devices.append(stat_entry)
+
+      self.CallStateInline(messages=memory_devices,
+                           next_state="ProcessFilters")
+    else:
+      self.CallFlow("Glob", next_state="ProcessFilters", paths=self.args.paths,
+                    pathtype=self.args.pathtype)
+
+  @flow.StateHandler(next_state=["ApplyFilter"])
   def ProcessFilters(self, responses):
     """Iterate through glob responses, and filter each hit."""
     if not responses.success:
@@ -207,7 +229,7 @@ class FileFinder(flow.GRRFlow):
               original_result=response,
               filter_index=filter_index + 1))
 
-  @flow.StateHandler(next_state=["ProcessAction", "ApplyFilter", "Done"])
+  @flow.StateHandler(next_state=["ProcessAction", "ApplyFilter"])
   def ApplyFilter(self, responses):
     """Applies next filter to responses or calls ProcessAction."""
     # We filtered out everything, no need to continue

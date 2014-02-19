@@ -24,6 +24,7 @@ from grr.lib import artifact
 from grr.lib import artifact_lib
 from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import flow
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -132,13 +133,6 @@ class ArtifactTestHelper(test_lib.FlowTestsBaseclass):
   def SetLinuxClient(self):
     fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     fd.Set(fd.Schema.SYSTEM("Linux"))
-
-    user_list = fd.Schema.USER()
-    user_list.Append(rdfvalue.User(username="test",
-                                   full_name="test user",
-                                   homedir="/home/test/",
-                                   last_logon=250))
-    fd.AddAttribute(fd.Schema.USER, user_list)
     fd.Flush()
 
   def MockClientMountPointsWithImage(self, image_path, fs_type="ext2"):
@@ -184,6 +178,9 @@ class ArtifactFlowTest(ArtifactTestHelper):
     fd.Set(fd.Schema.SYSTEM("Linux"))
     kb = fd.Schema.KNOWLEDGE_BASE()
     artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
+    kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(username="gogol"))
+    kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(username="gevulot"))
+    kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(username="exomemory"))
     fd.Set(kb)
     fd.Flush()
     self.LoadTestArtifacts()
@@ -271,12 +268,29 @@ class ArtifactFlowTest(ArtifactTestHelper):
     urn = self.client_id.Add("fs/os/").Add(self.base_path).Add("auth.log")
     aff4.FACTORY.Open(urn, aff4_type="VFSBlobImage", token=self.token)
 
-  def testAggregationArtifact(self):
-    """Check we can dependency artifacts."""
-    self.SetWindowsClient()
-    self.CreateSignedDriver()
-    fd = self.RunCollectorAndGetCollection(["TestAggregationArtifact"])
-    self.assertEquals(len(fd), 53)
+  def testLinuxPasswdHomedirsArtifact(self):
+    """Check we can run command based artifacts."""
+    # Update the artifact path to point to the test directory.
+    art_reg = artifact_lib.ArtifactRegistry.artifacts
+    art_reg["LinuxPasswdHomedirs"].collectors[0].args["path_list"] = [
+        os.path.join(self.base_path, "passwd")]
+
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
+                                      "HashBuffer", "ListDirectory",
+                                      "HashFile", "Grep")
+    fd = self.RunCollectorAndGetCollection(["LinuxPasswdHomedirs"],
+                                           client_mock=client_mock)
+
+    self.assertEqual(len(fd), 3)
+    self.assertItemsEqual([x.username for x in fd], [u"exomemory", u"gevulot",
+                                                     u"gogol"])
+    for user in fd:
+      if user.username == u"exomemory":
+        self.assertEqual(user.full_name, u"Never Forget (admin)")
+        self.assertEqual(user.gid, 47)
+        self.assertEqual(user.homedir, u"/var/lib/exomemory")
+        self.assertEqual(user.shell, u"/bin/sh")
+        self.assertEqual(user.uid, 46)
 
   def testArtifactOutput(self):
     """Check we can run command based artifacts."""
@@ -321,7 +335,7 @@ class GrrKbTest(test_lib.FlowTestsBaseclass):
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientFullVFSFixture
 
-  def testKnowledgeBaseRetrieval(self):
+  def testKnowledgeBaseRetrievalWindows(self):
     """Check we can retrieve a knowledge base from a client."""
     self.SetupMocks()
 
@@ -346,13 +360,17 @@ class GrrKbTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(kb.environ_temp, "C:\\Windows\\TEMP")
     self.assertEqual(kb.environ_systemdrive, "C:")
 
+    self.assertItemsEqual([x.username for x in kb.users],
+                          ["jim", "kovacs"])
     user = kb.GetUser(username="jim")
     self.assertEqual(user.username, "jim")
     self.assertEqual(user.sid, "S-1-5-21-702227068-2140022151-3110739409-1000")
 
   def testKnowledgeBaseRetrievalDarwin(self):
-    """Check we can retrieve a kb from a non-windows client."""
+    """Check we can retrieve a Darwin kb."""
     test_lib.ClientFixture(self.client_id, token=self.token)
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     client.Set(client.Schema.SYSTEM("Darwin"))
     client.Set(client.Schema.OS_VERSION("10.9"))
@@ -369,8 +387,55 @@ class GrrKbTest(test_lib.FlowTestsBaseclass):
     kb = artifact.GetArtifactKnowledgeBase(client)
     self.assertEqual(kb.os_major_version, 10)
     self.assertEqual(kb.os_minor_version, 9)
-    user = kb.GetUser(username="Ernie")
-    self.assertEqual(user.username, "Ernie")
+    # scalzi from /Users dir listing.
+    # Bert and Ernie not present (Users fixture overriden by kb).
+    self.assertItemsEqual([x.username for x in kb.users], ["scalzi"])
+    user = kb.GetUser(username="scalzi")
+    self.assertEqual(user.homedir, "/Users/scalzi")
+
+  def testKnowledgeBaseRetrievalLinux(self):
+    """Check we can retrieve a Linux kb."""
+    test_lib.ClientFixture(self.client_id, token=self.token)
+    config_lib.CONFIG.Set("Artifacts.knowledge_base", ["LinuxWtmp",
+                                                       "NetgroupConfiguration"])
+    config_lib.CONFIG.Set("Artifacts.netgroup_filter_regexes", ["^login$"])
+    config_lib.CONFIG.Set("Artifacts.netgroup_user_blacklist", ["isaac"])
+
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientTestDataVFSFixture
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    client.Set(client.Schema.SYSTEM("Linux"))
+    client.Set(client.Schema.OS_VERSION("12.04"))
+    client.Close()
+
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
+                                      "HashBuffer", "ListDirectory", "HashFile")
+
+    for _ in test_lib.TestFlowHelper(
+        "KnowledgeBaseInitializationFlow", client_mock,
+        client_id=self.client_id, token=self.token):
+      pass
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    kb = artifact.GetArtifactKnowledgeBase(client)
+    self.assertEqual(kb.os_major_version, 12)
+    self.assertEqual(kb.os_minor_version, 4)
+    # user 1,2,3 from wtmp. yagharek from netgroup.
+    # Bert and Ernie not present (Users fixture overriden by kb).
+    self.assertItemsEqual([x.username for x in kb.users], ["user1", "user2",
+                                                           "user3", "yagharek"])
+    user = kb.GetUser(username="user1")
+    self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
+
+  def testKnowledgeBaseNoOS(self):
+    """Check unset OS dies."""
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
+                                      "HashBuffer", "ListDirectory", "HashFile")
+
+    self.assertRaises(flow.FlowError, list, test_lib.TestFlowHelper(
+        "KnowledgeBaseInitializationFlow", client_mock,
+        client_id=self.client_id, token=self.token))
 
   def testGlobRegistry(self):
     """Test that glob works on registry."""
@@ -397,6 +462,36 @@ class GrrKbTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd.__class__.__name__, "VFSFile")
     self.assertEqual(fd.Get(fd.Schema.STAT).registry_data.GetValue(),
                      "%SystemDrive%\\Users")
+
+  def testGetDependencies(self):
+    """Test that dependencies are calculated correctly."""
+    self.SetupMocks()
+    with test_lib.Stubber(artifact_lib.ArtifactRegistry, "artifacts", {}):
+      test_artifacts_file = os.path.join(
+          config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
+      artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
+
+      config_lib.CONFIG.Set("Artifacts.knowledge_base", ["DepsParent",
+                                                         "DepsDesktop",
+                                                         "DepsHomedir",
+                                                         "DepsWindir",
+                                                         "DepsWindirRegex",
+                                                         "DepsControlSet"])
+      config_lib.CONFIG.Set("Artifacts.knowledge_base_additions",
+                            ["DepsHomedir2"])
+      config_lib.CONFIG.Set("Artifacts.knowledge_base_skip", ["DepsWindir"])
+      kb_init = artifact.KnowledgeBaseInitializationFlow(None, token=self.token)
+      kb_init.state.Register("all_deps", set())
+      kb_init.state.Register("awaiting_deps_artifacts", [])
+      kb_init.state.Register("knowledge_base",
+                             rdfvalue.KnowledgeBase(os="Windows"))
+      no_deps, all_deps, waiting = kb_init._GetDependencies()
+      self.assertItemsEqual(no_deps, ["DepsControlSet", "DepsHomedir2"])
+      self.assertItemsEqual(all_deps, ["users.homedir", "users.desktop",
+                                       "users.username", "environ_windir",
+                                       "current_control_set"])
+      self.assertItemsEqual(waiting, ["DepsParent", "DepsDesktop",
+                                      "DepsHomedir", "DepsWindirRegex"])
 
 
 def main(argv):

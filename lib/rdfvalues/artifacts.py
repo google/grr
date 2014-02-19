@@ -138,7 +138,7 @@ class Artifact(structs.RDFProtoStruct):
         paths = []
         if arg in ["path", "query"]:
           paths.append(value)
-        if arg in ["paths", "path_list"]:
+        if arg in ["paths", "path_list", "content_regex_list"]:
           paths.extend(value)
         for path in paths:
           for match in artifact_lib.INTERPOLATED_REGEX.finditer(path):

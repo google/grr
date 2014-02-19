@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc. All Rights Reserved.
-
 """This plugin renders the client search page."""
 import json
 import urllib

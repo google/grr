@@ -843,10 +843,6 @@ class RunReport(flow.GRRGlobalFlow):
 
   @flow.StateHandler(next_state="RunReport")
   def Start(self):
-    if not data_store.DB.security_manager.CheckUserLabels(
-        self.token.username, self.AUTHORIZED_LABELS):
-      raise access_control.UnauthorizedAccess("Must be admin to run this flow.")
-
     if self.state.args.report_name not in reports.Report.classes:
       raise flow.FlowError("No such report %s" % self.state.args.report_name)
     else:

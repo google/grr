@@ -89,6 +89,27 @@ supported_os: [Windows]
 urls: ['http://www.forensicswiki.org/wiki/Windows_XML_Event_Log_(EVTX)']
 ---
 
+name: FullVADBinaryList
+doc: Extract list of currently running binaries on Windows.
+collectors:
+- action: VolatilityPlugin
+  args:
+    plugin: vad
+labels: [Volatility, Processes]
+supported_os: [Windows]
+---
+
+name: AllVADBinaryFiles
+doc: Download all currently running binaries on Windows.
+collectors:
+- action: CollectArtifactFiles
+  args:
+    artifact_list: [FullVADBinaryList]
+  returned_types: [PathSpec]
+labels: [Volatility, Processes, Software]
+supported_os: [Windows]
+---
+
 name: WMIProcessList
 doc: Extract the process list on Windows via WMI.
 collectors:
@@ -174,7 +195,8 @@ supported_os: [Windows]
 ---
 
 name: WindowsRunKeys
-doc: Collect windows run keys.
+doc: "Collect windows run keys.\n\n Note users.sid will currently only expand \
+     to SIDs with profiles on the system, not all SIDs.\n "
 collectors:
 - action: GetRegistryKeys
   args:

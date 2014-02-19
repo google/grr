@@ -191,7 +191,7 @@ class StatsStoreWorker(object):
     self.stats_store.RemoveEmptyProcessIds()
 
     while True:
-      logging.info("Writing stats to stats store.")
+      logging.debug("Writing stats to stats store.")
 
       try:
         self.stats_store.WriteStats(process_id=self.process_id, sync=False)
@@ -199,7 +199,7 @@ class StatsStoreWorker(object):
         logging.exception(
             "StatsStore exception caught during WriteStats(): %s", e)
 
-      logging.info("Removing old stats from stats store.""")
+      logging.debug("Removing old stats from stats store.""")
       try:
         now = rdfvalue.RDFDatetime().Now().AsMicroSecondsFromEpoch()
         self.stats_store.DeleteStats(

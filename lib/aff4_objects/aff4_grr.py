@@ -504,7 +504,7 @@ class GRRForeman(aff4.AFF4Object):
                          action.hunt_id, client_id)
 
             flow_cls = flow.GRRFlow.classes[action.hunt_name]
-            flow_cls.StartClient(action.hunt_id, client_id)
+            flow_cls.StartClients(action.hunt_id, [client_id])
             actions_count += 1
         else:
           flow.GRRFlow.StartFlow(

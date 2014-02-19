@@ -17,13 +17,19 @@ class SearchFileContentArgs(rdfvalue.RDFProtoStruct):
 class SearchFileContent(flow.GRRFlow):
   """A flow that runs a glob first and then issues a grep on the results.
 
-  This flow can be used to search for files by filename. Simply specify a glob
-  expression for the filename:
+  This flow can be used to search for files by specifying a filename glob.
+  e.g. this glob will search recursively under the environment directory for
+  files called notepad with any extension:
 
-  %%KnowledgeBase.environ_windir%%/notepad.exe
+  %%KnowledgeBase.environ_windir%%/**notepad.*
 
-  By also specifying a grep specification, the file contents can also be
-  searched.
+  The default ** recursion depth is 3 levels, and can be modified using a number
+  after the ** like this:
+
+  %%KnowledgeBase.environ_windir%%/**10notepad.*
+
+  Optionally you can also specify File Content Search parameters to search file
+  contents.
   """
   category = "/Filesystem/"
   friendly_name = "Search In Files"
@@ -49,7 +55,7 @@ class SearchFileContent(flow.GRRFlow):
     self.CallFlow("Glob", next_state="Grep", root_path=self.args.root_path,
                   paths=self.args.paths, pathtype=self.args.pathtype)
 
-  @flow.StateHandler(next_state=["WriteHits", "End"])
+  @flow.StateHandler(next_state=["WriteHits"])
   def Grep(self, responses):
     if responses.success:
       # Grep not specified - just list all hits.

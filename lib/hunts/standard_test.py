@@ -70,7 +70,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     StatefulDummyHuntOutputPlugin.data = []
     LongRunningDummyHuntOutputPlugin.num_calls = 0
 
-    with test_lib.Stubber(time, "time", lambda: 0):
+    with test_lib.FakeTime(0):
       # Clean up the foreman to remove any rules.
       with aff4.FACTORY.Open("aff4:/foreman", mode="rw",
                              token=self.token) as foreman:
@@ -380,7 +380,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
   def testHuntTermination(self):
     """This tests that hunts with a client limit terminate correctly."""
-    with test_lib.Stubber(time, "time", lambda: 1000):
+    with test_lib.FakeTime(1000):
       with hunts.GRRHunt.StartHunt(
           hunt_name="GenericHunt",
           flow_runner_args=rdfvalue.FlowRunnerArgs(flow_name="GetFile"),
@@ -426,7 +426,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
   def testHuntExpiration(self):
     """This tests that hunts with a client limit terminate correctly."""
-    with test_lib.Stubber(time, "time", lambda: 1000):
+    with test_lib.FakeTime(1000):
       with hunts.GRRHunt.StartHunt(
           hunt_name="GenericHunt",
           flow_runner_args=rdfvalue.FlowRunnerArgs(flow_name="GetFile"),
@@ -622,7 +622,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
                                  client_limit=1,
                                  token=self.token) as hunt:
       hunt.Run()
-      hunt.StartClient(hunt.session_id, self.client_id)
+      hunt.StartClients(hunt.session_id, [self.client_id])
 
     # Run the hunt.
     client_mock = self.MBRHuntMock()

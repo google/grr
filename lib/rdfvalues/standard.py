@@ -23,12 +23,21 @@ class RegularExpression(rdfvalue.RDFString):
 
   def Search(self, text):
     """Search the text for our value."""
+    if isinstance(text, rdfvalue.RDFString):
+      text = str(text)
+
     return self._regex.search(text)
 
   def Match(self, text):
+    if isinstance(text, rdfvalue.RDFString):
+      text = str(text)
+
     return self._regex.match(text)
 
   def FindIter(self, text):
+    if isinstance(text, rdfvalue.RDFString):
+      text = str(text)
+
     return self._regex.finditer(text)
 
   def __str__(self):

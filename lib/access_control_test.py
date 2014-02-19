@@ -149,14 +149,14 @@ class AccessControlTest(test_lib.GRRBaseTest):
     self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn,
                       None, "rw", token)
 
-    with test_lib.Stubber(time, "time", lambda: 100.0):
+    with test_lib.FakeTime(100.0):
       self.GrantClientApproval(client_id, token)
 
       # This should work now.
       aff4.FACTORY.Open(urn, mode="rw", token=token)
 
     # 3 weeks later.
-    with test_lib.Stubber(time, "time", lambda: 100.0 + 3 * 7 * 24 * 60 * 60):
+    with test_lib.FakeTime(100.0 + 3 * 7 * 24 * 60 * 60):
       # This should still work.
       aff4.FACTORY.Open(urn, mode="rw", token=token)
 

@@ -137,6 +137,20 @@ class RegistryParser(Parser):
     """Take the stat, and yield RDFValues."""
 
 
+class GenericResponseParser(Parser):
+  """Abstract response parser."""
+
+  def Parse(self, response, knowledge_base):
+    """Parse the response object."""
+
+
+class GrepParser(Parser):
+  """Parser for the results of grep artifacts."""
+
+  def Parse(self, response, knowledge_base):
+    """Parse the FileFinderResult.matches."""
+
+
 class ArtifactFilesParser(Parser):
   """Abstract parser for processing artifact files."""
 

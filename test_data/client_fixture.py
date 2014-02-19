@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2011 Google Inc. All Rights Reserved.
-
 """This is a test fixture for client objects.."""
 
 
@@ -109,7 +107,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/pidof"
+  path: "/c/bin %(client_id)s/pidof"
 }
 """
 })),
@@ -131,7 +129,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/hostname"
+  path: "/c/bin %(client_id)s/hostname"
 }
 """
 })),
@@ -175,7 +173,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/which"
+  path: "/c/bin %(client_id)s/which"
 }
 """
 })),
@@ -197,7 +195,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/netstat"
+  path: "/c/bin %(client_id)s/netstat"
 }
 """
 })),
@@ -219,7 +217,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/mount"
+  path: "/c/bin %(client_id)s/mount"
 }
 """
 })),
@@ -241,7 +239,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/zmore"
+  path: "/c/bin %(client_id)s/zmore"
 }
 """
 })),
@@ -263,7 +261,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/ksh93"
+  path: "/c/bin %(client_id)s/ksh93"
 }
 """
 })),
@@ -285,7 +283,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/rnano"
+  path: "/c/bin %(client_id)s/rnano"
 }
 """
 })),
@@ -307,7 +305,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/sync"
+  path: "/c/bin %(client_id)s/sync"
 }
 """
 })),
@@ -329,7 +327,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/mv"
+  path: "/c/bin %(client_id)s/mv"
 }
 """
 })),
@@ -351,7 +349,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/mt"
+  path: "/c/bin %(client_id)s/mt"
 }
 """
 })),
@@ -373,7 +371,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/umount"
+  path: "/c/bin %(client_id)s/umount"
 }
 """
 })),
@@ -395,7 +393,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/中国新闻网新闻中/bzcmp"
+  path: "/c/中国新闻网新闻中/bzcmp"
 }
 """
 })),
@@ -417,7 +415,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/tailf"
+  path: "/c/bin %(client_id)s/tailf"
 }
 """
 })),
@@ -439,7 +437,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/bzless"
+  path: "/c/bin %(client_id)s/bzless"
 }
 """
 })),
@@ -461,7 +459,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/dir"
+  path: "/c/bin %(client_id)s/dir"
 }
 """
 })),
@@ -483,7 +481,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/setfont"
+  path: "/c/bin %(client_id)s/setfont"
 }
 """
 })),
@@ -505,7 +503,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/zegrep"
+  path: "/c/bin %(client_id)s/zegrep"
 }
 """
 })),
@@ -516,7 +514,153 @@ st_mode: 33261
 resident: " \\ncpu  114617668 7836954 50675828 1418369363 12839399 70592 632324 0 14217\\ncpu0 29082342 1842609 9317300 355681349 2794715 30088 59242 0 3170\\ncpu1 28922541 2271509 15959609 352451741 3132959 2503 377305 0 3674\\ncpu2 29410623 1856253 9917677 356174053 3732825 23192 117709 0 4343\\ncpu3 27202162 1866583 15481242 354062220 3178900 14809 78068 0 3030\\nctxt 20506983499\\nbtime 1316172528\\nprocesses 66452973\\nprocs_running 2\\nprocs_blocked 0\\n"
 pathspec {
   pathtype: OS
-  path: "/fs/os/proc/stat"
+  path: "/proc/stat"
+}
+"""
+})),
+(u"/fs/os/etc/netgroup", ("VFSFile", {
+"aff4:size": 168,
+"aff4:stat":
+"""
+st_mode: 33261
+st_ino: 1026280
+st_dev: 51713
+st_nlink: 1
+st_uid: 0
+st_gid: 0
+st_size: 168
+resident: "group1 (-,user11,) (-,user22,) (-,user33,)\\n#group1 comment\\ngroup2 (-,user45,) (-,user22,)\\nsuper_group (-,user5,) (-,user6,) group1 group2\\nsuper_group2 (-,user7,) super_group\\n"
+st_atime: 1309034899
+st_mtime: 1285093976
+st_ctime: 1299502221
+st_blocks: 80
+st_blksize: 4096
+st_rdev: 0
+pathspec {
+  pathtype: OS
+  path: "/etc/netgroup"
+}
+"""
+})),
+(u"/fs/os/var/log/wtmp", ("VFSFile", {
+"aff4:size": 1537,
+"aff4:stat":
+"""
+st_mode: 33261
+st_ino: 1026280
+st_dev: 51713
+st_nlink: 1
+st_uid: 0
+st_gid: 0
+st_size: 1537
+st_atime: 1309034899
+st_mtime: 1285093976
+st_ctime: 1299502221
+st_blocks: 80
+st_blksize: 4096
+st_rdev: 0
+pathspec {
+  pathtype: OS
+  path: "/var/log/wtmp"
+}
+"""
+})),
+(u"/fs/os/Users/scalzi", ("VFSDirectory", {
+"aff4:stat":
+"""
+st_mode: 16877
+st_ino: 106118
+st_dev: 51713
+st_nlink: 1
+st_uid: 0
+st_gid: 0
+st_size: 4874
+st_atime: 1299502220
+st_mtime: 1284154642
+st_ctime: 1299502221
+st_blocks: 16
+st_blksize: 4096
+st_rdev: 0
+pathspec {
+  pathtype: OS
+  path: "/Users/scalzi"
+}
+""",
+"aff4:pathspec":
+"""
+pathtype: OS
+path: "/Users/scalzi"
+"""
+})),
+(u"/fs/os/Users/Shared", ("VFSDirectory", {
+"aff4:stat":
+"""
+st_mode: 16877
+st_ino: 106118
+st_dev: 51713
+st_nlink: 1
+st_uid: 0
+st_gid: 0
+st_size: 4874
+st_atime: 1299502220
+st_mtime: 1284154642
+st_ctime: 1299502221
+st_blocks: 16
+st_blksize: 4096
+st_rdev: 0
+pathspec {
+  pathtype: OS
+  path: "/Users/Shared"
+}
+""",
+"aff4:pathspec":
+"""
+pathtype: OS
+path: "/Users/Shared"
+"""
+})),
+(u"/fs/os/Users/.localized", ("VFSFile", {
+"aff4:size": 15,
+"aff4:stat":
+"""
+st_mode: 33261
+st_ino: 1026280
+st_dev: 51713
+st_nlink: 1
+st_uid: 0
+st_gid: 0
+st_size: 15
+st_atime: 1309034899
+st_mtime: 1285093976
+st_ctime: 1299502221
+st_blocks: 80
+st_blksize: 4096
+st_rdev: 0
+pathspec {
+  pathtype: OS
+  path: "/Users/.localized"
+}
+"""
+})),
+(u"/Users/Bert", ("VFSDirectory", {
+"aff4:stat":
+"""
+st_mode: 16877
+st_ino: 106118
+st_dev: 51713
+st_nlink: 1
+st_uid: 0
+st_gid: 0
+st_size: 4874
+st_atime: 1299502220
+st_mtime: 1284154642
+st_ctime: 1299502221
+st_blocks: 16
+st_blksize: 4096
+st_rdev: 0
+pathspec {
+  pathtype: OS
+  path: "/Users/Bert"
 }
 """
 })),
@@ -538,7 +682,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/uname"
+  path: "/c/bin %(client_id)s/uname"
 }
 """
 })),
@@ -560,7 +704,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/nisdomainname"
+  path: "/c/bin %(client_id)s/nisdomainname"
 }
 """
 })),
@@ -582,7 +726,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/sed"
+  path: "/c/bin %(client_id)s/sed"
 }
 """
 })),
@@ -604,7 +748,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/egrep"
+  path: "/c/bin %(client_id)s/egrep"
 }
 """
 })),
@@ -626,7 +770,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/touch"
+  path: "/c/bin %(client_id)s/touch"
 }
 """
 })),
@@ -648,7 +792,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin/rbash"
+  path: "/c/bin/rbash"
 }
 """
 })),
@@ -670,7 +814,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/ksh"
+  path: "/c/bin %(client_id)s/ksh"
 }
 """
 })),
@@ -692,7 +836,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/uncompress"
+  path: "/c/bin %(client_id)s/uncompress"
 }
 """
 })),
@@ -714,7 +858,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/csh"
+  path: "/c/bin %(client_id)s/csh"
 }
 """
 })),
@@ -736,7 +880,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/true"
+  path: "/c/bin %(client_id)s/true"
 }
 """
 })),
@@ -758,7 +902,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/bzip2recover"
+  path: "/c/bin %(client_id)s/bzip2recover"
 }
 """
 })),
@@ -780,7 +924,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/znew"
+  path: "/c/bin %(client_id)s/znew"
 }
 """
 })),
@@ -802,7 +946,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/bzcat"
+  path: "/c/bin %(client_id)s/bzcat"
 }
 """
 })),
@@ -824,7 +968,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/static-sh"
+  path: "/c/bin %(client_id)s/static-sh"
 }
 """
 })),
@@ -846,7 +990,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/zcmp"
+  path: "/c/bin %(client_id)s/zcmp"
 }
 """
 })),
@@ -866,10 +1010,6 @@ st_ctime: 1299502221
 st_blocks: 16
 st_blksize: 4096
 st_rdev: 0
-pathspec {
-  pathtype: OS
-  path: "/fs/os"
-}
 """
 })),
 (u"/fs/os/c/bin %(client_id)s/chgrp", ("VFSFile", {
@@ -890,7 +1030,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/chgrp"
+  path: "/c/bin %(client_id)s/chgrp"
 }
 """
 })),
@@ -912,7 +1052,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/pwd"
+  path: "/c/bin %(client_id)s/pwd"
 }
 """
 })),
@@ -934,7 +1074,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/netcat"
+  path: "/c/bin %(client_id)s/netcat"
 }
 """
 })),
@@ -956,7 +1096,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/setupcon"
+  path: "/c/bin %(client_id)s/setupcon"
 }
 """
 })),
@@ -978,7 +1118,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/bunzip2"
+  path: "/c/bin %(client_id)s/bunzip2"
 }
 """
 })),
@@ -1000,7 +1140,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/mail"
+  path: "/c/bin %(client_id)s/mail"
 }
 """
 })),
@@ -1022,7 +1162,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/dash"
+  path: "/c/bin %(client_id)s/dash"
 }
 """
 })),
@@ -1044,7 +1184,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/domainname"
+  path: "/c/bin %(client_id)s/domainname"
 }
 """
 })),
@@ -1066,7 +1206,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/usleep"
+  path: "/c/bin %(client_id)s/usleep"
 }
 """
 })),
@@ -1088,7 +1228,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/nc.openbsd"
+  path: "/c/bin %(client_id)s/nc.openbsd"
 }
 """
 })),
@@ -1110,7 +1250,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/ypdomainname"
+  path: "/c/bin %(client_id)s/ypdomainname"
 }
 """
 })),
@@ -1132,7 +1272,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/less"
+  path: "/c/bin %(client_id)s/less"
 }
 """
 })),
@@ -1154,7 +1294,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/ed"
+  path: "/c/bin %(client_id)s/ed"
 }
 """
 })),
@@ -1176,7 +1316,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/zdiff"
+  path: "/c/bin %(client_id)s/zdiff"
 }
 """
 })),
@@ -1198,7 +1338,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/sh.distrib"
+  path: "/c/bin %(client_id)s/sh.distrib"
 }
 """
 })),
@@ -1220,8 +1360,13 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s"
+  path: "/c/bin %(client_id)s"
 }
+""",
+"aff4:pathspec":
+"""
+pathtype: OS
+path: "/c/bin %(client_id)s"
 """
 })),
 (u"/fs/os/c/bin %(client_id)s/nano", ("VFSFile", {
@@ -1242,7 +1387,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/nano"
+  path: "/c/bin %(client_id)s/nano"
 }
 """
 })),
@@ -1264,7 +1409,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/more"
+  path: "/c/bin %(client_id)s/more"
 }
 """
 })),
@@ -1286,7 +1431,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/dumpkeys"
+  path: "/c/bin %(client_id)s/dumpkeys"
 }
 """
 })),
@@ -1308,7 +1453,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/zsh4"
+  path: "/c/bin %(client_id)s/zsh4"
 }
 """
 })),
@@ -1330,7 +1475,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/ntfs-3g"
+  path: "/c/bin %(client_id)s/ntfs-3g"
 }
 """
 })),
@@ -1352,7 +1497,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/cat"
+  path: "/c/bin %(client_id)s/cat"
 }
 """
 })),
@@ -1374,7 +1519,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/dbus-cleanup-sockets"
+  path: "/c/bin %(client_id)s/dbus-cleanup-sockets"
 }
 """
 })),
@@ -1396,7 +1541,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/dmesg"
+  path: "/c/bin %(client_id)s/dmesg"
 }
 """
 })),
@@ -1418,7 +1563,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/dbus-daemon"
+  path: "/c/bin %(client_id)s/dbus-daemon"
 }
 """
 })),
@@ -1440,7 +1585,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/chmod"
+  path: "/c/bin %(client_id)s/chmod"
 }
 """
 })),
@@ -1462,7 +1607,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/dnsdomainname"
+  path: "/c/bin %(client_id)s/dnsdomainname"
 }
 """
 })),
@@ -1484,7 +1629,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/ntfs-3g.secaudit"
+  path: "/c/bin %(client_id)s/ntfs-3g.secaudit"
 }
 """
 })),
@@ -1506,7 +1651,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/plymouth"
+  path: "/c/bin %(client_id)s/plymouth"
 }
 """
 })),
@@ -1528,7 +1673,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/kbd_mode"
+  path: "/c/bin %(client_id)s/kbd_mode"
 }
 """
 })),
@@ -1550,7 +1695,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/bzip2"
+  path: "/c/bin %(client_id)s/bzip2"
 }
 """
 })),
@@ -1572,7 +1717,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/mountpoint"
+  path: "/c/bin %(client_id)s/mountpoint"
 }
 """
 })),
@@ -1594,7 +1739,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/fuser"
+  path: "/c/bin %(client_id)s/fuser"
 }
 """
 })),
@@ -1616,7 +1761,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/unicode_start"
+  path: "/c/bin %(client_id)s/unicode_start"
 }
 """
 })),
@@ -1638,7 +1783,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/dd"
+  path: "/c/bin %(client_id)s/dd"
 }
 """
 })),
@@ -1660,7 +1805,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/df"
+  path: "/c/bin %(client_id)s/df"
 }
 """
 })),
@@ -1682,7 +1827,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/lsmod"
+  path: "/c/bin %(client_id)s/lsmod"
 }
 """
 })),
@@ -1704,7 +1849,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/open"
+  path: "/c/bin %(client_id)s/open"
 }
 """
 })),
@@ -1726,7 +1871,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/ls"
+  path: "/c/bin %(client_id)s/ls"
 }
 """
 })),
@@ -1748,7 +1893,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/grep"
+  path: "/c/bin %(client_id)s/grep"
 }
 """
 })),
@@ -1770,7 +1915,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/false"
+  path: "/c/bin %(client_id)s/false"
 }
 """
 })),
@@ -1792,7 +1937,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/fgrep"
+  path: "/c/bin %(client_id)s/fgrep"
 }
 """
 })),
@@ -1814,7 +1959,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/ping6"
+  path: "/c/bin %(client_id)s/ping6"
 }
 """
 })),
@@ -1836,7 +1981,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/ntfs-3g.usermap"
+  path: "/c/bin %(client_id)s/ntfs-3g.usermap"
 }
 """
 })),
@@ -1858,7 +2003,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/ln"
+  path: "/c/bin %(client_id)s/ln"
 }
 """
 })),
@@ -1880,8 +2025,13 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin"
+  path: "/c/bin"
 }
+""",
+"aff4:pathspec":
+"""
+pathtype: OS
+path: "/c/bin"
 """
 })),
 (u"/fs/os/c/bin %(client_id)s/zforce", ("VFSFile", {
@@ -1902,7 +2052,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/zforce"
+  path: "/c/bin %(client_id)s/zforce"
 }
 """
 })),
@@ -1924,7 +2074,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/tempfile"
+  path: "/c/bin %(client_id)s/tempfile"
 }
 """
 })),
@@ -1946,7 +2096,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/chown"
+  path: "/c/bin %(client_id)s/chown"
 }
 """
 })),
@@ -1968,7 +2118,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/kill"
+  path: "/c/bin %(client_id)s/kill"
 }
 """
 })),
@@ -1990,7 +2140,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/vdir"
+  path: "/c/bin %(client_id)s/vdir"
 }
 """
 })),
@@ -2012,7 +2162,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/fgconsole"
+  path: "/c/bin %(client_id)s/fgconsole"
 }
 """
 })),
@@ -2034,7 +2184,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/ps"
+  path: "/c/bin %(client_id)s/ps"
 }
 """
 })),
@@ -2056,7 +2206,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/chvt"
+  path: "/c/bin %(client_id)s/chvt"
 }
 """
 })),
@@ -2078,7 +2228,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/lessfile"
+  path: "/c/bin %(client_id)s/lessfile"
 }
 """
 })),
@@ -2100,7 +2250,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/echo"
+  path: "/c/bin %(client_id)s/echo"
 }
 """
 })),
@@ -2122,7 +2272,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/ip"
+  path: "/c/bin %(client_id)s/ip"
 }
 """
 })),
@@ -2132,8 +2282,13 @@ pathspec {
 st_mode: 16877
 pathspec {
   pathtype: OS
-  path: "/fs/os/proc/10"
+  path: "/proc/10"
 }
+""",
+"aff4:pathspec":
+"""
+pathtype: OS
+path: "/proc/10"
 """
 })),
 (u"/fs/os/c/bin %(client_id)s/zcat", ("VFSFile", {
@@ -2154,7 +2309,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/zcat"
+  path: "/c/bin %(client_id)s/zcat"
 }
 """
 })),
@@ -2176,7 +2331,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/bzcmp"
+  path: "/c/bin %(client_id)s/bzcmp"
 }
 """
 })),
@@ -2198,7 +2353,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/bzmore"
+  path: "/c/bin %(client_id)s/bzmore"
 }
 """
 })),
@@ -2220,8 +2375,13 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/中国新闻网新闻中"
+  path: "/c/中国新闻网新闻中"
 }
+""",
+"aff4:pathspec":
+"""
+pathtype: OS
+path: "/c/中国新闻网新闻中"
 """
 })),
 (u"/fs/os/c/bin %(client_id)s/cpio", ("VFSFile", {
@@ -2242,7 +2402,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/cpio"
+  path: "/c/bin %(client_id)s/cpio"
 }
 """
 })),
@@ -2264,7 +2424,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/stty"
+  path: "/c/bin %(client_id)s/stty"
 }
 """
 })),
@@ -2286,7 +2446,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/loadkeys"
+  path: "/c/bin %(client_id)s/loadkeys"
 }
 """
 })),
@@ -2308,7 +2468,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/ulockmgr_server"
+  path: "/c/bin %(client_id)s/ulockmgr_server"
 }
 """
 })),
@@ -2330,7 +2490,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/zless"
+  path: "/c/bin %(client_id)s/zless"
 }
 """
 })),
@@ -2352,7 +2512,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/zfgrep"
+  path: "/c/bin %(client_id)s/zfgrep"
 }
 """
 })),
@@ -2374,7 +2534,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/gzexe"
+  path: "/c/bin %(client_id)s/gzexe"
 }
 """
 })),
@@ -2396,7 +2556,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/openvt"
+  path: "/c/bin %(client_id)s/openvt"
 }
 """
 })),
@@ -2418,7 +2578,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/bzfgrep"
+  path: "/c/bin %(client_id)s/bzfgrep"
 }
 """
 })),
@@ -2440,7 +2600,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/lesskey"
+  path: "/c/bin %(client_id)s/lesskey"
 }
 """
 })),
@@ -2462,7 +2622,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/gzip"
+  path: "/c/bin %(client_id)s/gzip"
 }
 """
 })),
@@ -2484,7 +2644,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/busybox"
+  path: "/c/bin %(client_id)s/busybox"
 }
 """
 })),
@@ -2506,7 +2666,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/mt-gnu"
+  path: "/c/bin %(client_id)s/mt-gnu"
 }
 """
 })),
@@ -2528,7 +2688,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/nc"
+  path: "/c/bin %(client_id)s/nc"
 }
 """
 })),
@@ -2550,7 +2710,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/cp"
+  path: "/c/bin %(client_id)s/cp"
 }
 """
 })),
@@ -2572,7 +2732,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/bsd-csh"
+  path: "/c/bin %(client_id)s/bsd-csh"
 }
 """
 })),
@@ -2594,7 +2754,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/tcsh"
+  path: "/c/bin %(client_id)s/tcsh"
 }
 """
 })),
@@ -2616,7 +2776,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/lessecho"
+  path: "/c/bin %(client_id)s/lessecho"
 }
 """
 })),
@@ -2638,7 +2798,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/lesspipe"
+  path: "/c/bin %(client_id)s/lesspipe"
 }
 """
 })),
@@ -2660,7 +2820,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/mkdir"
+  path: "/c/bin %(client_id)s/mkdir"
 }
 """
 })),
@@ -2682,7 +2842,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/ping"
+  path: "/c/bin %(client_id)s/ping"
 }
 """
 })),
@@ -2704,7 +2864,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/keyctl"
+  path: "/c/bin %(client_id)s/keyctl"
 }
 """
 })),
@@ -2726,7 +2886,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/zsh"
+  path: "/c/bin %(client_id)s/zsh"
 }
 """
 })),
@@ -2748,7 +2908,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/bzdiff"
+  path: "/c/bin %(client_id)s/bzdiff"
 }
 """
 })),
@@ -2770,7 +2930,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/rm"
+  path: "/c/bin %(client_id)s/rm"
 }
 """
 })),
@@ -2792,7 +2952,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/fusermount"
+  path: "/c/bin %(client_id)s/fusermount"
 }
 """
 })),
@@ -2814,7 +2974,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/bzegrep"
+  path: "/c/bin %(client_id)s/bzegrep"
 }
 """
 })),
@@ -2836,7 +2996,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/readlink"
+  path: "/c/bin %(client_id)s/readlink"
 }
 """
 })),
@@ -2856,10 +3016,6 @@ st_ctime: 1299502221
 st_blocks: 16
 st_blksize: 4096
 st_rdev: 0
-pathspec {
-  pathtype: OS
-  path: "/fs"
-}
 """
 })),
 (u"/fs/os/c/bin %(client_id)s/mktemp", ("VFSFile", {
@@ -2880,7 +3036,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/mktemp"
+  path: "/c/bin %(client_id)s/mktemp"
 }
 """
 })),
@@ -2891,7 +3047,7 @@ st_mode: 33261
 symlink: "/bin/ls"
 pathspec {
   pathtype: OS
-  path: "/fs/os/proc/10/exe"
+  path: "/proc/10/exe"
 }
 """
 })),
@@ -2913,8 +3069,13 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/proc"
+  path: "/c/proc"
 }
+""",
+"aff4:pathspec":
+"""
+pathtype: OS
+path: "/c/proc"
 """
 })),
 (u"/fs/os/c/bin %(client_id)s/run-parts", ("VFSFile", {
@@ -2935,7 +3096,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/run-parts"
+  path: "/c/bin %(client_id)s/run-parts"
 }
 """
 })),
@@ -2948,7 +3109,7 @@ st_size: 18
 resident: "ls\000hello world\'\000-l"
 pathspec {
   pathtype: OS
-  path: "/fs/os/proc/10/cmdline"
+  path: "/proc/10/cmdline"
 }
 """
 })),
@@ -2970,7 +3131,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/bzgrep"
+  path: "/c/bin %(client_id)s/bzgrep"
 }
 """
 })),
@@ -2992,7 +3153,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/rzsh"
+  path: "/c/bin %(client_id)s/rzsh"
 }
 """
 })),
@@ -3014,7 +3175,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/mknod"
+  path: "/c/bin %(client_id)s/mknod"
 }
 """
 })),
@@ -3036,7 +3197,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/ntfs-3g.probe"
+  path: "/c/bin %(client_id)s/ntfs-3g.probe"
 }
 """
 })),
@@ -3058,8 +3219,13 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c"
+  path: "/c"
 }
+""",
+"aff4:pathspec":
+"""
+pathtype: OS
+path: "/c"
 """
 })),
 (u"/fs/os/c/bin %(client_id)s/gunzip", ("VFSFile", {
@@ -3080,7 +3246,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/gunzip"
+  path: "/c/bin %(client_id)s/gunzip"
 }
 """
 })),
@@ -3102,7 +3268,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/rmdir"
+  path: "/c/bin %(client_id)s/rmdir"
 }
 """
 })),
@@ -3124,7 +3290,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/login"
+  path: "/c/bin %(client_id)s/login"
 }
 """
 })),
@@ -3146,7 +3312,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/sleep"
+  path: "/c/bin %(client_id)s/sleep"
 }
 """
 })),
@@ -3168,7 +3334,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/date"
+  path: "/c/bin %(client_id)s/date"
 }
 """
 })),
@@ -3190,7 +3356,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/sh"
+  path: "/c/bin %(client_id)s/sh"
 }
 """
 })),
@@ -3201,7 +3367,7 @@ st_mode: 33261
 resident: "10 (ls) S 0 1 1 0 -1 4202752 31718 3292927869 90 221932 1968 4310 22381445 6056862 20 0 1 0 19 20250624 484 18446744073709551615 1 1 0 0 0 0 0 4096 536962595 18446744073709551615 0 0 0 3 0 0 0 0 8702"
 pathspec {
   pathtype: OS
-  path: "/fs/os/proc/10/stat"
+  path: "/proc/10/stat"
 }
 """
 })),
@@ -3223,7 +3389,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/su"
+  path: "/c/bin %(client_id)s/su"
 }
 """
 })),
@@ -3245,7 +3411,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/zgrep"
+  path: "/c/bin %(client_id)s/zgrep"
 }
 """
 })),
@@ -3267,7 +3433,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/tar"
+  path: "/c/bin %(client_id)s/tar"
 }
 """
 })),
@@ -3289,7 +3455,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/bin %(client_id)s/dbus-uuidgen"
+  path: "/c/bin %(client_id)s/dbus-uuidgen"
 }
 """
 })),
@@ -3311,8 +3477,13 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/Downloads"
+  path: "/c/Downloads"
 }
+""",
+"aff4:pathspec":
+"""
+pathtype: OS
+path: "/c/Downloads"
 """
 })),
 (u"/fs/os/c/Downloads/a.txt", ("VFSFile", {
@@ -3333,7 +3504,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/Downloads/a.txt"
+  path: "/c/Downloads/a.txt"
 }
 """
 })),
@@ -3355,7 +3526,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/Downloads/b.txt"
+  path: "/c/Downloads/b.txt"
 }
 """
 })),
@@ -3377,7 +3548,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/Downloads/c.txt"
+  path: "/c/Downloads/c.txt"
 }
 """
 })),
@@ -3399,7 +3570,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/Downloads/d.txt"
+  path: "/c/Downloads/d.txt"
 }
 """
 })),
@@ -3421,8 +3592,13 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/Downloads/sub1"
+  path: "/c/Downloads/sub1"
 }
+""",
+"aff4:pathspec":
+"""
+pathtype: OS
+path: "/c/Downloads/sub1"
 """
 })),
 (u"/fs/os/c/Downloads/sub1/a.txt", ("VFSFile", {
@@ -3443,7 +3619,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/Downloads/sub1/a.txt"
+  path: "/c/Downloads/sub1/a.txt"
 }
 """
 })),
@@ -3465,7 +3641,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/Downloads/sub1/b.txt"
+  path: "/c/Downloads/sub1/b.txt"
 }
 """
 })),
@@ -3487,7 +3663,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/Downloads/sub1/c.txt"
+  path: "/c/Downloads/sub1/c.txt"
 }
 """
 })),
@@ -3509,7 +3685,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/fs/os/c/Downloads/sub1/d.txt"
+  path: "/c/Downloads/sub1/d.txt"
 }
 """
 })),
@@ -3564,6 +3740,23 @@ registry_data {
 }
 """
 })),
+(u"/registry/HKEY_USERS/S-1-5-21-702227000-2140022111-3110739999-1990/Software/Microsoft/Windows/CurrentVersion/Run/NothingToSeeHere", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 14
+st_mtime: 1247547054
+registry_type: REG_EXPAND_SZ
+pathspec {
+ path: "/HKEY_USERS/S-1-5-21-702227000-2140022111-3110739999-1990/Software/Microsoft/Windows/CurrentVersion/Run/Sidebar"
+ pathtype: REGISTRY
+}
+registry_data {
+  string: "%%TEMP%%\\A.exe"
+}
+"""
+})),
+
 (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/Select/Current", ("VFSFile", {
 "aff4:stat":
 """
@@ -3758,4 +3951,109 @@ registry_data {
 }
 """
 })),
-    ]
+
+(r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/S-1-5-21-702227000-2140022111-3110739999-1990/ProfileImagePath", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 32768
+st_size: 21
+st_mtime: 0
+registry_type: REG_EXPAND_SZ
+pathspec {
+  pathtype: REGISTRY
+  path: "/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/S-1-5-21-702227000-2140022111-3110739999-1990/ProfileImagePath"
+}
+registry_data {
+  string: "C:\\Users\\kovacs"
+}
+"""
+})),
+
+
+(u"/fs/os/C:", ("VFSDirectory", {
+"aff4:stat":
+"""
+st_mode: 16877
+st_ino: 10268
+st_dev: 51713
+st_nlink: 1
+st_uid: 0
+st_gid: 0
+st_size: 4874
+st_atime: 1299502220
+st_mtime: 1284154642
+st_ctime: 1299502221
+st_blocks: 16
+st_blksize: 4096
+st_rdev: 0
+pathspec {
+  pathtype: OS
+  path: "/C:"
+}
+""",
+"aff4:pathspec":
+"""
+pathtype: OS
+path: "/C:"
+"""
+})),
+
+(u"/fs/os/C:/WINDOWS", ("VFSDirectory", {
+"aff4:stat":
+"""
+st_mode: 16877
+st_ino: 10268
+st_dev: 51713
+st_nlink: 1
+st_uid: 0
+st_gid: 0
+st_size: 4874
+st_atime: 1299502220
+st_mtime: 1284154642
+st_ctime: 1299502221
+st_blocks: 16
+st_blksize: 4096
+st_rdev: 0
+pathspec {
+  pathtype: OS
+  path: "/C:/WINDOWS"
+}
+""",
+"aff4:pathspec":
+"""
+pathtype: OS
+path: "/C:/WINDOWS"
+"""
+})),
+
+(u"/fs/os/C:/WINDOWS/foo.exe", ("VFSMemoryFile", {
+"aff4:size": 11,
+"aff4:content": "this is foo",
+"aff4:stat":
+"""
+st_mode: 33206
+st_size: 11
+resident: "this is foo"
+pathspec {
+  pathtype: OS
+  path: "/C:/WINDOWS/foo.exe"
+}
+"""
+})),
+
+(u"/fs/os/C:/WINDOWS/bar.exe", ("VFSMemoryFile", {
+"aff4:size": 8,
+"aff4:content": "just bar",
+"aff4:stat":
+"""
+st_mode: 33206
+resident: "just bar"
+st_size: 8
+pathspec {
+  pathtype: OS
+  path: "/C:/WINDOWS/bar.exe"
+}
+"""
+})),
+
+]

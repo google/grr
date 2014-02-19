@@ -109,8 +109,8 @@ class Responses(object):
         if msg.auth_state == msg.AuthorizationState.DESYNCHRONIZED or (
             self._auth_required and
             msg.auth_state != msg.AuthorizationState.AUTHENTICATED):
-          logging.info("%s: Messages must be authenticated (Auth state %s)",
-                       msg.session_id, msg.auth_state)
+          logging.warning("%s: Messages must be authenticated (Auth state %s)",
+                          msg.session_id, msg.auth_state)
           self._dropped_responses.append(msg)
           # Skip this message - it is invalid
           continue
@@ -261,29 +261,34 @@ def StateHandler(next_state="End", auth_required=True):
       runner = self.GetRunner()
       next_states = Decorated.next_states
 
-      if direct_response is not None:
-        return f(self, direct_response)
+      old_next_states = runner.GetAllowedFollowUpStates()
+      try:
+        if direct_response is not None:
+          runner.SetAllowedFollowUpStates(next_states)
+          return f(self, direct_response)
 
-      if isinstance(responses, Responses):
-        next_states.update(responses.next_states)
-      else:
-        # Prepare a responses object for the state method to use:
-        responses = Responses(request=request,
-                              next_states=next_states,
-                              responses=responses,
-                              auth_required=auth_required)
+        if isinstance(responses, Responses):
+          next_states.update(responses.next_states)
+        else:
+          # Prepare a responses object for the state method to use:
+          responses = Responses(request=request,
+                                next_states=next_states,
+                                responses=responses,
+                                auth_required=auth_required)
 
-        if responses.status:
-          runner.SaveResourceUsage(request, responses)
+          if responses.status:
+            runner.SaveResourceUsage(request, responses)
 
-      stats.STATS.IncrementCounter("grr_worker_states_run")
-      runner.SetAllowedFollowUpStates(next_states)
+        stats.STATS.IncrementCounter("grr_worker_states_run")
+        runner.SetAllowedFollowUpStates(next_states)
 
-      # Run the state method (Allow for flexibility in prototypes)
-      args = [self, responses]
-      res = f(*args[:f.func_code.co_argcount])
+        # Run the state method (Allow for flexibility in prototypes)
+        args = [self, responses]
+        res = f(*args[:f.func_code.co_argcount])
 
-      return res
+        return res
+      finally:
+        runner.SetAllowedFollowUpStates(old_next_states)
 
     # Make sure the state function itself knows where its allowed to
     # go (This is used to introspect the state graph).
@@ -645,6 +650,7 @@ class GRRFlow(aff4.AFF4Volume):
                       responses=None):
     if responses is None:
       responses = FakeResponses(messages, request_data)
+
     getattr(self, next_state)(self.runner, direct_response=responses)
 
   def CallState(self, messages=None, next_state="", request_data=None,
@@ -746,6 +752,12 @@ class GRRFlow(aff4.AFF4Volume):
     # the appropriate URN.
     flow_obj = aff4.FACTORY.Create(None, runner_args.flow_name,
                                    token=token)
+
+    # Also check for needed labels.
+    if flow_obj.AUTHORIZED_LABELS:
+      data_store.DB.security_manager.CheckUserLabels(
+          runner_args.token.username, flow_obj.AUTHORIZED_LABELS,
+          runner_args.token)
 
     # Now parse the flow args into the new object from the keywords.
     if args is None:
@@ -1368,9 +1380,6 @@ class ServerCommunicator(communicator.Communicator):
     """
     result = rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED
     try:
-      if cipher.HMAC(response_comms.encrypted) != response_comms.hmac:
-        raise communicator.DecryptionError("HMAC does not match.")
-
       if cipher.signature_verified:
         result = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
 
@@ -1623,8 +1632,8 @@ class FrontEndServer(object):
     for task in new_tasks:
       response_message.job.Append(task)
     stats.STATS.IncrementCounter("grr_messages_sent", len(new_tasks))
-    logging.info("Drained %d messages for %s in %s seconds.",
-                 len(new_tasks), client, time.time() - start_time)
+    logging.debug("Drained %d messages for %s in %s seconds.",
+                  len(new_tasks), client, time.time() - start_time)
 
     return new_tasks
 
@@ -1676,8 +1685,8 @@ class FrontEndServer(object):
         for msg in messages:
           manager.QueueResponse(session_id, msg)
 
-    logging.info("Received %s messages in %s sec", len(messages),
-                 time.time() - now)
+    logging.debug("Received %s messages in %s sec", len(messages),
+                  time.time() - now)
 
   def HandleWellKnownFlows(self, messages):
     """Hands off messages to well known flows."""

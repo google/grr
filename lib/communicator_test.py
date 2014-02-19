@@ -302,7 +302,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
   def CreateNewClientObject(self):
     self.client_communicator = comms.GRRHTTPClient(
-        self.certificate, worker=comms.GRRClientWorker)
+        ca_cert=config_lib.CONFIG["CA.certificate"],
+        worker=comms.GRRClientWorker)
 
     # Disable stats collection for tests.
     self.client_communicator.client_worker.last_stats_sent_time = (
@@ -314,6 +315,9 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
   def UrlMock(self, req, **kwargs):
     """A mock for url handler processing from the server's POV."""
+    if "server.pem" in req.get_full_url():
+      return StringIO.StringIO(config_lib.CONFIG["Frontend.certificate"])
+
     _ = kwargs
     try:
       self.client_communication = rdfvalue.ClientCommunication(req.data)

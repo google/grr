@@ -33,7 +33,11 @@ class CommunicatorInit(registry.InitHook):
   def RunOnce(self):
     """This is run only once."""
     # Initialize the PRNG.
-    Rand.rand_seed(Rand.rand_bytes(1000))
+    seed = Rand.rand_bytes(1000)
+    if not seed:
+      raise RuntimeError("Unable to initialize random seed.")
+
+    Rand.rand_seed(seed)
 
     # Counters used here
     stats.STATS.RegisterCounterMetric("grr_client_unknown")
@@ -247,10 +251,12 @@ class ReceivedCipher(Cipher):
       # metadata symmetrically
       self.encrypted_cipher_metadata = (
           response_comms.encrypted_cipher_metadata)
+
       self.cipher_metadata = rdfvalue.CipherMetadata(self.Decrypt(
           response_comms.encrypted_cipher_metadata, self.cipher.iv))
 
       self.VerifyCipherSignature()
+
     except RSA.RSAError as e:
       raise DecryptionError(e)
 
@@ -472,6 +478,10 @@ class Communicator(object):
       # Add entropy to the PRNG.
       Rand.rand_add(response_comms.encrypted, len(response_comms.encrypted))
 
+      # Check the encrypted message integrity using HMAC.
+      if cipher.HMAC(response_comms.encrypted) != response_comms.hmac:
+        raise DecryptionError("HMAC verification failed.")
+
       # Decrypt the messages
       iv = response_comms.iv or cipher.cipher.iv
 
@@ -502,8 +512,8 @@ class Communicator(object):
     return (message_list.job, cipher.cipher_metadata.source,
             signed_message_list.timestamp)
 
-  def VerifyMessageSignature(self, response_comms, signed_message_list,
-                             cipher, api_version):
+  def VerifyMessageSignature(
+      self, unused_response_comms, signed_message_list, cipher, api_version):
     """Verify the message list signature.
 
     This is the way the messages are verified in the client.
@@ -513,7 +523,6 @@ class Communicator(object):
     unauthenticated since it might have resulted from a replay attack.
 
     Args:
-       response_comms: The raw response_comms rdfvalue.
        signed_message_list: The SignedMessageList rdfvalue from the server.
        cipher: The cipher belonging to the remote end.
        api_version: The api version we should use.
@@ -527,8 +536,6 @@ class Communicator(object):
     # This is not used atm since we only support a single api version (3).
     _ = api_version
     result = rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED
-    if cipher.HMAC(response_comms.encrypted) != response_comms.hmac:
-      raise DecryptionError("HMAC verification failed.")
 
     # Give the cipher another chance to check its signature.
     if not cipher.signature_verified:

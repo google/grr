@@ -207,7 +207,7 @@ class ArtifactManagerToolbar(renderers.TemplateRenderer):
 <ul id="toolbar_{{unique|escape}}" class="breadcrumb">
   <li>
     <button id='{{unique|escape}}_upload' class="btn"
-      title="Upload Artifacts as JSON"
+      title="Upload Artifacts as JSON or YAML"
       data-toggle="modal" data-target="#upload_dialog_{{unique|escape}}">
       <img src='/static/images/upload.png' class='toolbar_icon'>
     </button>

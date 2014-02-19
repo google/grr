@@ -8,6 +8,18 @@ config_lib.DEFINE_integer(
     "The number of seconds AFF4 objects live in the cache.")
 
 config_lib.DEFINE_integer(
+    "AFF4.cache_max_size", 10000,
+    "Maximum size of the AFF4 objects cache.")
+
+config_lib.DEFINE_integer(
+    "AFF4.intermediate_cache_age", 600,
+    "The number of seconds AFF4 urns live in index cache.")
+
+config_lib.DEFINE_integer(
+    "AFF4.intermediate_cache_max_size", 2000,
+    "Maximum size of the AFF4 index cache.")
+
+config_lib.DEFINE_integer(
     "AFF4.notification_rules_cache_age", 60,
     "The number of seconds AFF4 notification rules are cached.")
 

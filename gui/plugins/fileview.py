@@ -14,6 +14,7 @@ from M2Crypto import X509
 
 from grr.gui import renderers
 from grr.gui.plugins import fileview_widgets
+from grr.gui.plugins import forms
 from grr.gui.plugins import semantic
 from grr.lib import aff4
 from grr.lib import flow
@@ -512,20 +513,14 @@ class CertificateRenderer(semantic.RDFValueRenderer):
     </pre>
   </div>
 </div>
-
-<script>
-$('#certificate_viewer_{{unique|escape}}').click(function () {
-  $(this).find('ins').toggleClass('ui-icon-plus ui-icon-minus');
-  $(this).find('.contents').toggle();
-}).click();
-</script>
 """)
 
   def Layout(self, request, response):
     # Present the certificate as text
     self.cert = X509.load_cert_string(str(self.proxy)).as_text()
 
-    return super(CertificateRenderer, self).Layout(request, response)
+    response = super(CertificateRenderer, self).RenderAjax(request, response)
+    return self.CallJavascript(response, "CertificateRenderer.Layout")
 
 
 class BlobArrayRenderer(semantic.RDFValueRenderer):
@@ -590,80 +585,9 @@ class AbstractFileTable(renderers.TableRenderer):
     - client_id.
   """
 
-  # When the table is selected we emit a selection event formed by combining the
-  # tree with the table.
-  table_selection_template = renderers.Template("""
-<script>
-  //Receive the selection event and emit a path
-  grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
-    if (node) {
-      var aff4_path = node.find("span[aff4_path]").attr("aff4_path");
-      var age = node.find("span[age]").attr('age');
-      grr.publish("file_select", aff4_path, age);
-    };
-  }, '{{ unique|escapejs }}');
-
-  // Allow the age to be updated for a basename.
-  grr.subscribe("update_age", function(aff4_path, age, age_string) {
-    var cell = $("#{{unique}} span[aff4_path='" + aff4_path + "']")
-      .parents("tr")
-      .find("span[age]");
-    cell.attr("age", age).text(age_string);
-    grr.publish("file_select", aff4_path, age);
-  }, '{{unique|escapejs}}');
-
-</script>""")
-
-  # Subscribe for the tree event queue and when events arrive refresh the table.
-  tree_event_template = renderers.Template("""
-<script>
-  // Update the table when the tree changes
-  grr.subscribe("tree_select", function(aff4_path, selected_id,
-    update_hash) {
-    // Replace ourselves with a new table.
-    grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}", {
-      client_id: '{{this.state.client_id|escapejs}}',
-      aff4_path: aff4_path,
-    });
-    grr.state.tree_path = aff4_path;
-
-    // If the user really clicked the tree, we reset the hash
-    if (update_hash != 'no_hash') {
-      grr.publish('hash_state', 'tb', undefined);
-    }
-  }, '{{ unique|escapejs }}');
-
-  // Allow the table content to be restored from the hash.
-  $("span[aff4_path='" + grr.hash.aff4_path + "']").click()
-
-</script>""")
-
-  layout_template = (renderers.TableRenderer.layout_template +
-                     table_selection_template +
-                     tree_event_template)
-
-  ajax_template = (renderers.TableRenderer.ajax_template + """
+  layout_template = (renderers.TableRenderer.layout_template + """
 <div id="version_selector_dialog_{{unique|escape}}"
   class="version-selector-dialog modal wide-modal high-modal hide"></div>
-<script>
-(function () {
-  $("img.version-selector").unbind("click").click(function (event) {
-    $("#version_selector_{{unique|escapejs}}").modal("show");
-
-    var aff4_path =
-      $(this).parents('tr').find('span[aff4_path]').attr('aff4_path');
-    var state = $.extend({
-      aff4_path: aff4_path
-    }, grr.state);
-
-    grr.layout('VersionSelectorDialog',
-      'version_selector_dialog_{{unique|escapejs}}', state);
-    $('#version_selector_dialog_{{unique|escapejs}}').modal('show');
-
-    event.stopPropagation();
-  });
-})();
-</script>
 """)
 
   toolbar = None    # Toolbar class to render above table.
@@ -681,13 +605,21 @@ class AbstractFileTable(renderers.TableRenderer):
     if AbstractFileTable.content_cache is None:
       AbstractFileTable.content_cache = utils.TimeBasedCache()
 
+  def RenderAjax(self, request, response):
+    response = super(AbstractFileTable, self).RenderAjax(request, response)
+    return self.CallJavascript(response, "AbstractFileTable.RenderAjax")
+
   def Layout(self, request, response):
     """Populate the table state with the request."""
     # Draw the toolbar first
     if self.toolbar:
       tb_cls = renderers.Renderer.classes[self.toolbar]
       tb_cls().Layout(request, response)
-    return super(AbstractFileTable, self).Layout(request, response)
+
+    response = super(AbstractFileTable, self).Layout(request, response)
+    return self.CallJavascript(response, "AbstractFileTable.Layout",
+                               renderer=self.__class__.__name__,
+                               client_id=self.state.get("client_id", ""))
 
   def BuildTable(self, start_row, end_row, request):
     """Populate the table."""
@@ -851,7 +783,8 @@ class FileSystemTree(renderers.TreeRenderer):
     self.state["client_id"] = client_id = request.REQ.get("client_id")
     self.state["aff4_root"] = request.REQ.get("aff4_root", client_id)
 
-    return super(FileSystemTree, self).Layout(request, response)
+    response = super(FileSystemTree, self).Layout(request, response)
+    return self.CallJavascript(response, "FileSystemTree.Layout")
 
   def RenderBranch(self, path, request):
     """Renders tree leafs for filesystem path."""
@@ -881,6 +814,44 @@ class FileSystemTree(renderers.TreeRenderer):
       self.message = "Error fetching %s: %s" % (urn, e)
 
 
+class RecursiveRefreshDialog(renderers.ConfirmationDialogRenderer):
+  """Dialog that allows user to recursively update directories."""
+  post_parameters = ["aff4_path"]
+
+  header = "Recursive Refresh"
+  proceed_button_title = "Refresh!"
+
+  content_template = renderers.Template("""
+{{this.recursive_refresh_form|safe}}
+""")
+
+  ajax_template = renderers.Template("""
+<p class="text-info">Refresh started successfully!</p>
+""")
+
+  def Layout(self, request, response):
+    args = rdfvalue.RecursiveListDirectoryArgs()
+    self.recursive_refresh_form = forms.SemanticProtoFormRenderer(
+        args, supressions=["pathspec"]).RawHTML(request)
+    return super(RecursiveRefreshDialog, self).Layout(request, response)
+
+  def RenderAjax(self, request, response):
+    aff4_path = rdfvalue.RDFURN(request.REQ.get("aff4_path"))
+    args = forms.SemanticProtoFormRenderer(
+        rdfvalue.RecursiveListDirectoryArgs()).ParseArgs(request)
+
+    fd = aff4.FACTORY.Open(aff4_path, aff4_type="VFSDirectory",
+                           token=request.token)
+    args.pathspec = fd.real_pathspec
+
+    flow.GRRFlow.StartFlow(client_id=aff4_path.Split()[0],
+                           flow_name="RecursiveListDirectory",
+                           args=args,
+                           notify_to_user=True,
+                           token=request.token)
+    return self.RenderFromTemplate(self.ajax_template, response)
+
+
 class Toolbar(renderers.TemplateRenderer):
   """A navigation enhancing toolbar.
 
@@ -901,9 +872,17 @@ class Toolbar(renderers.TemplateRenderer):
 
 <ul class="breadcrumb">
   <li class="pull-right">
-    <button class="btn" id='refresh_{{unique|escape}}'
+    <button class="btn" id='refresh_{{unique|escape}}' name="Refresh"
       title='Refresh this directory listing.'>
       <img src='/static/images/stock_refresh.png' class="toolbar_icon" />
+    </button>
+    <button class="btn" id='recursive_refresh_{{unique|escape}}'
+      title='Refresh this directory listing.' style='position: relative'
+      name="RecursiveRefresh" data-toggle="modal"
+      data-target="#recursive_refresh_dialog_{{unique|escape}}">
+      <img src='/static/images/stock_refresh.png' class="toolbar_icon" />
+      <span style='position: absolute; left: 23px; top: 5px; font-weight: bold;
+       font-size: 18px; -webkit-text-stroke: 1px #000; color: #fff'>R</span>
     </button>
   </li>
   <li class="pull-right">
@@ -926,55 +905,21 @@ class Toolbar(renderers.TemplateRenderer):
 </ul>
 <div id="refresh_action" class="hide"></div>
 <div id="rweowned_dialog" class="modal hide"></div>
-
-<script>
-$('#refresh_{{unique|escapejs}}').click(function (){
-  $('#refresh_{{unique|escapejs}}').attr('disabled', 'disabled');
-  grr.layout("UpdateAttribute", "refresh_action", {
-   aff4_path: "{{this.aff4_path|escapejs}}",
-   attribute: "aff4:contains"
-  });
-});
-
-$('#rweowned').click(function (){
-  grr.layout("RWeOwned", "rweowned_dialog");
-});
-
-grr.dialog("RWeOwned", "rweowned_dialog", "rweowned", {
-     width: "500px", height: "auto",
-     title: "Is this machine pwned?",
-});
-
-// When the attribute is updated, refresh the views
-grr.subscribe("AttributeUpdated", function(path, attribute) {
-  $('#refresh_{{unique|escapejs}}').attr('disabled', null);
-  if (attribute == "aff4:contains") {
-    // Update the table
-    grr.publish("tree_select", path);
-    grr.publish("file_select", path);
-  };
-}, 'refresh_{{unique|escapejs}}');
-
-{% for path, fullpath, fullpath_id, i in this.paths %}
-$('#path_{{i|escapejs}}').click(function () {
-   grr.publish("tree_select", "{{ fullpath|escapejs }}");
-   grr.publish("file_select", "{{ fullpath|escapejs }}");
-   grr.publish("hash_state", "t", "{{ fullpath_id|escapejs }}");
-});
-{% endfor %}
-</script>
+<div id="recursive_refresh_dialog_{{unique|escape}}"
+  class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
+</div>
 """)
 
   def Layout(self, request, response):
     """Render the toolbar."""
     self.state["client_id"] = client_id = request.REQ.get("client_id")
-    self.state["aff4_path"] = self.aff4_path = request.REQ.get(
+    self.state["aff4_path"] = aff4_path = request.REQ.get(
         "aff4_path", client_id)
 
     client_urn = rdfvalue.ClientURN(client_id)
 
     self.paths = [("/", client_urn, "_", 0)]
-    for path in rdfvalue.RDFURN(self.aff4_path).Split()[1:]:
+    for path in rdfvalue.RDFURN(aff4_path).Split()[1:]:
       previous = self.paths[-1]
       fullpath = previous[1].Add(path)
 
@@ -983,7 +928,15 @@ $('#path_{{i|escapejs}}').click(function () {
                              fullpath.RelativeName(client_urn)),
                          previous[3] + 1))
 
-    return super(Toolbar, self).Layout(request, response)
+    js_friendly_paths = []
+    for path, fullpath, fullpath_id, i in self.paths:
+      js_friendly_paths.append(
+          [path, utils.SmartUnicode(fullpath), fullpath_id, i])
+
+    response = super(Toolbar, self).Layout(request, response)
+    return self.CallJavascript(response, "Toolbar.Layout",
+                               aff4_path=utils.SmartUnicode(aff4_path),
+                               paths=js_friendly_paths)
 
 
 class UpdateAttribute(renderers.TemplateRenderer):
@@ -1006,26 +959,6 @@ class UpdateAttribute(renderers.TemplateRenderer):
   # Number of ms to wait
   poll_time = 1000
 
-  layout_template = renderers.Template("""
-<script>
-window.setTimeout(function () {
-  grr.update('{{renderer|escapejs}}', '{{id|escapejs}}',
-    {'flow_urn': '{{this.flow_urn|escapejs}}',
-     'aff4_path': '{{this.aff4_path|escapejs}}',
-     'attribute': '{{this.attribute_to_refresh|escapejs}}'
-    });
-}, {{this.poll_time|escapejs}});
-</script>
-""")
-
-  completed_template = renderers.Template("""
-<script>
- grr.publish("AttributeUpdated", "{{this.aff4_path|escapejs}}",
-    "{{this.attribute_to_refresh|escapejs}}");
- $("#{{this.id|escapejs}}").remove();
-</script>
-""")
-
   def ParseRequest(self, request):
     """Parses parameters from the request."""
     self.aff4_path = request.REQ.get("aff4_path")
@@ -1047,12 +980,18 @@ window.setTimeout(function () {
 
       update_flow = aff4.FACTORY.Open(
           update_flow_urn, aff4_type="UpdateVFSFile", token=request.token)
-      self.flow_urn = update_flow.state.get_file_flow_urn
+      self.flow_urn = str(update_flow.state.get_file_flow_urn)
     except IOError as e:
       raise IOError("Sorry. This path cannot be refreshed due to %s" % e)
 
     if self.flow_urn:
-      return super(UpdateAttribute, self).Layout(request, response)
+      response = super(UpdateAttribute, self).Layout(request, response)
+      return self.CallJavascript(response,
+                                 "UpdateAttribute.Layout",
+                                 aff4_path=self.aff4_path,
+                                 flow_urn=self.flow_urn,
+                                 attribute_to_refresh=self.attribute_to_refresh,
+                                 poll_time=self.poll_time)
 
   def RenderAjax(self, request, response):
     """Continue polling as long as the flow is in flight."""
@@ -1070,11 +1009,7 @@ window.setTimeout(function () {
       complete = True
 
     if complete:
-      return renderers.TemplateRenderer.Layout(self, request, response,
-                                               self.completed_template)
-
-    return renderers.TemplateRenderer.Layout(self, request, response,
-                                             self.layout_template)
+      return http.HttpResponse("1", content_type="text/json")
 
 
 class AFF4ReaderMixin(object):
@@ -1145,45 +1080,7 @@ As downloaded on {{ this.age|escape }}.<br>
 
 <button id="{{ unique|escape }}" class="btn">Get a new Version</button>
 </div>
-<script>
-  var button = $("#{{ unique|escapejs }}").button();
-  var download_button = $("#{{ unique|escapejs }}_2").button();
-
-  button.click(function (event) {
-    $('#{{unique|escapejs}}').attr('disabled', 'disabled');
-    grr.layout("UpdateAttribute", "{{unique|escapejs}}_action", {
-      attribute: 'aff4:content',
-      aff4_type: 'VFSFile',
-      aff4_path: '{{this.aff4_path|escapejs}}',
-      reason: '{{this.token.reason|escapejs}}',
-      client_id: grr.state.client_id,
-    });
-
-    event.preventDefault();
-  });
-
-  // When the attribute is updated, refresh the views
-  grr.subscribe("AttributeUpdated", function(path, attribute) {
-    if (attribute == "aff4:content") {
-      // Update the download screen
-      grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}", {
-        aff4_path: path,
-        reason: '{{this.token.reason|escapejs}}',
-      });
-    };
-  }, '{{unique|escapejs}}_action');
-
-  {% if this.file_exists %}
-  // Attach a handler to the Download button.
-  var state = {aff4_path: '{{this.aff4_path|escapejs}}',
-               reason: '{{this.token.reason|escapejs}}',
-               client_id: grr.state.client_id,
-               age: '{{this.age_int|escapejs}}'
-              }
-  grr.downloadHandler(download_button, state, false,
-                      '/render/Download/DownloadView');
-  {% endif %}
-</script>""")
+""")
 
   error_template = renderers.Template("""
 <h1>Error</h1>{{this.urn|escape}} does not appear to be a file object.
@@ -1193,15 +1090,13 @@ As downloaded on {{ this.age|escape }}.<br>
 
   def Layout(self, request, response):
     """Present a download form."""
-    self.client_id = request.REQ.get("client_id")
-    self.aff4_path = request.REQ.get("aff4_path", self.client_id)
     self.age = rdfvalue.RDFDatetime(request.REQ.get("age"))
-    self.age_int = int(self.age)
-    self.token = request.token
+
+    client_id = request.REQ.get("client_id")
+    aff4_path = request.REQ.get("aff4_path", client_id)
 
     try:
-      fd = aff4.FACTORY.Open(self.aff4_path, token=request.token,
-                             age=self.age)
+      fd = aff4.FACTORY.Open(aff4_path, token=request.token, age=self.age)
       self.path = fd.urn
       self.hash = fd.Get(fd.Schema.HASH, None)
       self.size = fd.Get(fd.Schema.SIZE)
@@ -1214,11 +1109,18 @@ As downloaded on {{ this.age|escape }}.<br>
       except (IOError, AttributeError):
         pass
 
+      response = super(DownloadView, self).Layout(request, response)
+      return self.CallJavascript(response, "DownloadView.Layout",
+                                 aff4_path=aff4_path,
+                                 client_id=client_id,
+                                 age_int=int(self.age),
+                                 file_exists=self.file_exists,
+                                 renderer=self.__class__.__name__,
+                                 reason=request.token.reason)
     except (AttributeError, IOError):
-      # Install the error template instead.
-      self.layout_template = self.error_template
-
-    return super(DownloadView, self).Layout(request, response)
+      # Render the error template instead.
+      return renderers.TemplateRenderer.Layout(self, request, response,
+                                               self.error_template)
 
   def Download(self, request, _):
     """Stream the file into the browser."""
@@ -1273,32 +1175,13 @@ class UploadView(renderers.TemplateRenderer):
 <br/><br/>
 <div id="{{ unique|escape }}_upload_results"/>
 <div id="{{ unique|escape }}_upload_progress"/>
-
-<script>
-  var u_button = $("#{{ unique|escapejs }}_upload_button").button();
-  var u_file = $("#{{ unique|escapejs }}_file");
-  var state = {{this.state_json|safe}};
-  state.tree_path = grr.state.tree_path;
-
-  u_button.click(function (event) {
-    grr.uploadHandler("{{ this.upload_handler|escapejs }}",
-      "{{ unique|escapejs }}_form",
-      "{{ unique|escapejs }}_upload_progress",
-      function (dat) {
-        $("#{{ unique|escapejs }}_upload_results").text(dat);
-      },
-      function (jqxhr, dat, error_val) {
-        var data = jqxhr.responseText;
-        data = $.parseJSON(data.substring(4, data.length));
-        $("#{{ unique|escapejs }}_upload_results").text(data.msg);
-        },
-      state
-    );
-
-    return false;
-  });
-</script>
 """)
+
+  def Layout(self, request, response):
+    response = super(UploadView, self).Layout(request, response)
+    return self.CallJavascript(response, "UploadView.Layout",
+                               upload_handler=self.upload_handler,
+                               upload_state=self.state)
 
 
 class UploadHandler(renderers.TemplateRenderer):
@@ -1417,30 +1300,6 @@ class AFF4Stats(renderers.TemplateRenderer):
 
 </div>
 </div>
-
-<script>
-$('.attribute_opener').click(function () {
-  var jthis = $(this);
-  var ins = jthis.children("ins");
-  var value = jthis.next("td");
-  var historical = value.children(".historical_view");
-  var historical_id = historical.attr("id");
-
-  if(ins.hasClass('ui-icon-plus')) {
-    ins.removeClass('ui-icon-plus').addClass('ui-icon-minus');
-    historical.show();
-    var state = {{this.state_json|safe}};
-    state.attribute = jthis.attr("attribute");
-
-    grr.layout("{{this.historical_renderer|escapejs}}", historical_id, state);
-    value.children(".default_view").hide();
-  } else {
-    ins.removeClass('ui-icon-minus').addClass('ui-icon-plus');
-    value.children(".default_view").show();
-    historical.html('').hide();
-  };
-});
-</script>
 """)
 
   def Layout(self, request, response, client_id=None, aff4_path=None, age=None):
@@ -1465,7 +1324,10 @@ $('.attribute_opener').click(function () {
       self.path = "Unable to open %s" % self.urn
       self.classes = []
 
-    return super(AFF4Stats, self).Layout(request, response)
+    response = super(AFF4Stats, self).Layout(request, response)
+    return self.CallJavascript(response, "AFF4Stats.Layout",
+                               historical_renderer=self.historical_renderer,
+                               historical_renderer_state=self.state)
 
   def RenderAFF4Attributes(self, fd, request=None):
     """Returns attributes rendered by class."""
@@ -1544,12 +1406,6 @@ class AFF4ObjectRenderer(renderers.TemplateRenderer):
 
   layout_template = renderers.Template("""
 <div id="{{unique|escape}}"></div>
-<script>
-grr.subscribe("{{ this.event_queue|escapejs }}", function(aff4_path, age) {
-  grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}",
-    {aff4_path: aff4_path, age: age})
-}, '{{unique|escape}}');
-</script>
 """)
 
   # When a message appears on this queue we choose a new renderer.
@@ -1573,7 +1429,10 @@ grr.subscribe("{{ this.event_queue|escapejs }}", function(aff4_path, age) {
           subrenderer = cls
 
     subrenderer(fd).Layout(request, response)
-    return super(AFF4ObjectRenderer, self).Layout(request, response)
+    response = super(AFF4ObjectRenderer, self).Layout(request, response)
+    return self.CallJavascript(response, "AFF4ObjectRenderer.Layout",
+                               event_queue=self.event_queue,
+                               renderer=self.__class__.__name__)
 
 
 class FileViewTabs(renderers.TabLayout):
@@ -1705,21 +1564,6 @@ class HistoricalView(renderers.TableRenderer):
 class VersionSelectorDialog(renderers.TableRenderer):
   """Renders the version available for this object."""
 
-  table_selection_template = renderers.Template("""
-<script>
-  // Receive the selection event and update the age of this aff4 object
-  grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
-    if (node) {
-      var aff4_path = "{{this.state.aff4_path|escapejs}}";
-      var age = node.find("span[age]").attr('age');
-      var age_string = node.find("span[age]").text();
-      grr.publish("update_age", aff4_path, age, age_string);
-      $(".version-selector-dialog").modal("hide");
-    };
-  }, '{{ unique|escapejs }}');
-</script>
-""")
-
   layout_template = renderers.Template("""
 <div class="modal-header">
   <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
@@ -1728,8 +1572,7 @@ class VersionSelectorDialog(renderers.TableRenderer):
 </div>
 <div class="modal-body">
   <div class="padded">
-""") + table_selection_template + """
-""" + renderers.TableRenderer.layout_template + """
+""") + renderers.TableRenderer.layout_template + """
   </div>
 </div>
 <div class="modal-footer">
@@ -1747,7 +1590,9 @@ class VersionSelectorDialog(renderers.TableRenderer):
   def Layout(self, request, response):
     """Populates the table state with the request."""
     self.state["aff4_path"] = request.REQ.get("aff4_path")
-    return super(VersionSelectorDialog, self).Layout(request, response)
+    response = super(VersionSelectorDialog, self).Layout(request, response)
+    return self.CallJavascript(response, "VersionSelectorDialog.Layout",
+                               aff4_path=self.state["aff4_path"])
 
   def BuildTable(self, start_row, end_row, request):
     """Populates the table with attribute values."""

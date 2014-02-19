@@ -125,29 +125,6 @@ class ConsoleDebugFlow(flow.GRRFlow):
         if fd: fd.close()
 
 
-def StartFlowAndWait(client_id, flow_name, **kwargs):
-  """Launches the flow and waits for it to complete.
-
-  Args:
-     client_id: The client common name we issue the request.
-     flow_name: The name of the flow to launch.
-     **kwargs: passthrough to flow.
-
-  Returns:
-     A GRRFlow object.
-  """
-  session_id = flow.GRRFlow.StartFlow(client_id=client_id,
-                                      flow_name=flow_name, **kwargs)
-  while 1:
-    time.sleep(1)
-    with aff4.FACTORY.Open(session_id) as flow_obj:
-      with flow_obj.GetRunner() as runner:
-        if not runner.IsRunning():
-          break
-
-  return flow_obj
-
-
 def StartFlowAndWorker(client_id, flow_name, **kwargs):
   """Launches the flow and worker and waits for it to finish.
 
@@ -157,7 +134,7 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
      **kwargs: passthrough to flow.
 
   Returns:
-     A GRRFlow object.
+     A flow session id.
 
   Note: you need raw access to run this flow as it requires running a worker.
   """
@@ -186,7 +163,7 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
   # Terminate the worker threads
   worker_thrd.thread_pool.Join()
 
-  return flow_obj
+  return session_id
 
 
 def TestClientActionWithWorker(client_id, client_action, print_request=False,

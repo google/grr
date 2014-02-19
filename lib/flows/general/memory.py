@@ -78,7 +78,7 @@ class MemoryScanner(flow.GRRFlow):
                   driver_installer=self.args.driver_installer,
                   next_state="Filter")
 
-  @flow.StateHandler(next_state=["Action", "Transfer", "Done"])
+  @flow.StateHandler(next_state=["Action"])
   def Filter(self, responses):
     if not responses.success:
       raise flow.FlowError("Failed due to no memory driver.")
@@ -88,8 +88,8 @@ class MemoryScanner(flow.GRRFlow):
     if self.args.filters:
       self.CallFlow("FileFinder",
                     paths=[self.state.memory_information.device.path],
+                    pathtype=rdfvalue.PathSpec.PathType.MEMORY,
                     filters=self.FiltersToFileFinderFilters(self.args.filters),
-                    no_file_type_check=True,
                     next_state="Action")
     else:
       self.CallStateInline(next_state="Action")
@@ -102,7 +102,7 @@ class MemoryScanner(flow.GRRFlow):
           MemoryScannerAction.Action.SEND_TO_SOCKET):
       return self.args.action.send_to_socket
 
-  @flow.StateHandler(next_state=["MakeLocalCopy", "Transfer"])
+  @flow.StateHandler(next_state=["Transfer"])
   def Action(self, responses):
     if not responses.success:
       raise flow.FlowError("Applying filters failed: %s" % (responses.status))
@@ -134,7 +134,7 @@ class MemoryScanner(flow.GRRFlow):
 
   @flow.StateHandler(next_state=["Done"])
   def Transfer(self, responses):
-    # We can only get a failure if Transfer is called from MakeLocalCopy
+    # We can only get a failure if Transfer is called from CopyPathToFile
     if not responses.success:
       raise flow.FlowError("Local copy failed: %s" % (responses.status))
 
@@ -745,9 +745,9 @@ class ListVADBinaries(flow.GRRFlow):
           "GetProcessesBinariesVolatility binaries (regex: %s) " %
           self.args.filename_regex or "None"))
 
-    self.args.request.plugins.Append("vad")
-    self.CallClient("VolatilityAction", self.args.request,
-                    next_state="FetchBinaries")
+    self.CallFlow("ArtifactCollectorFlow", artifact_list=["FullVADBinaryList"],
+                  store_results_in_aff4=False,
+                  next_state="FetchBinaries")
 
   @flow.StateHandler(next_state="HandleDownloadedFiles")
   def FetchBinaries(self, responses):
@@ -756,57 +756,38 @@ class ListVADBinaries(flow.GRRFlow):
       self.Log("Error fetching VAD data: %s", responses.status)
       return
 
-    binaries = set()
+    self.Log("Found %d binaries", len(responses))
 
-    # Collect binaries list from VolatilityResponse. We search for tables that
-    # have "protection" and "filename" columns.
-    # TODO(user): create an RDFProto class to reuse the functionality below.
-    for response in responses:
-      for section in response.sections:
-        table = section.table
-
-        # Find indices of "protection" and "filename" columns
-        indexed_headers = dict([(header.name, i)
-                                for i, header in enumerate(table.headers)])
-        try:
-          protection_col_index = indexed_headers["protection"]
-          filename_col_index = indexed_headers["filename"]
-        except KeyError:
-          # If we can't find "protection" and "filename" columns, just skip
-          # this section
-          continue
-
-        for row in table.rows:
-          protection_attr = row.values[protection_col_index]
-          filename_attr = row.values[filename_col_index]
-
-          if protection_attr.svalue in ("EXECUTE_READ",
-                                        "EXECUTE_READWRITE",
-                                        "EXECUTE_WRITECOPY"):
-            if filename_attr.svalue:
-              binaries.add(filename_attr.svalue)
-
-    self.Log("Found %d binaries", len(binaries))
     if self.args.filename_regex:
-      binaries = filter(self.args.filename_regex.Match, binaries)
-      self.Log("Applied filename regex. Will fetch %d files",
+      binaries = []
+      for response in responses:
+        if self.args.filename_regex.Match(response.CollapsePath()):
+          binaries.append(response)
+
+      self.Log("Applied filename regex. Have %d files after filtering.",
                len(binaries))
+    else:
+      binaries = responses
 
     if self.args.fetch_binaries:
-      self.CallFlow("FetchFiles",
+      self.CallFlow("FileFinder",
                     next_state="HandleDownloadedFiles",
-                    paths=binaries, pathtype=rdfvalue.PathSpec.PathType.OS)
+                    paths=[rdfvalue.GlobExpression(b.CollapsePath())
+                           for b in binaries],
+                    pathtype=rdfvalue.PathSpec.PathType.OS,
+                    action=rdfvalue.FileFinderAction(
+                        action_type=rdfvalue.FileFinderAction.Action.DOWNLOAD))
     else:
       for b in binaries:
-        self.SendReply(rdfvalue.RDFString(b))
+        self.SendReply(b)
 
   @flow.StateHandler()
   def HandleDownloadedFiles(self, responses):
     """Handle success/failure of the FetchFiles flow."""
     if responses.success:
-      for response_stat in responses:
-        self.SendReply(response_stat)
-        self.Log("Downloaded %s", response_stat.pathspec.CollapsePath())
+      for file_finder_result in responses:
+        self.SendReply(file_finder_result.stat_entry)
+        self.Log("Downloaded %s",
+                 file_finder_result.stat_entry.pathspec.CollapsePath())
     else:
-      self.Log("Download of file %s failed %s",
-               response_stat.pathspec.CollapsePath(), responses.status)
+      self.Log("Binaries download failed: %s", responses.status)

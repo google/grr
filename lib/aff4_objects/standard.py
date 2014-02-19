@@ -19,6 +19,39 @@ class VFSDirectory(aff4.AFF4Volume):
   # We contain other objects within the tree.
   _behaviours = frozenset(["Container"])
 
+  @property
+  def real_pathspec(self):
+    pathspec = self.Get(self.Schema.PATHSPEC)
+
+    stripped_components = []
+    parent = self
+
+    # TODO(user): this code is potentially slow due to multiple separate
+    # aff4.FACTORY.Open() calls. OTOH the loop below is executed very rarely -
+    # only when we deal with deep files that got fetched alone and then
+    # one of the directories in their path gets updated.
+    while not pathspec and len(parent.urn.Split()) > 1:
+      # We try to recurse up the tree to get a real pathspec.
+      # These directories are created automatically without pathspecs when a
+      # deep directory is listed without listing the parents.
+      # Note /fs/os or /fs/tsk won't be updateable so we will raise IOError
+      # if we try.
+      stripped_components.append(parent.urn.Basename())
+      pathspec = parent.Get(parent.Schema.PATHSPEC)
+      parent = aff4.FACTORY.Open(parent.urn.Dirname(), token=self.token)
+
+    if pathspec:
+      if stripped_components:
+        # We stripped pieces of the URL, time to add them back at the deepest
+        # nested path.
+        new_path = utils.JoinPath(pathspec.last.path,
+                                  *reversed(stripped_components[:-1]))
+        pathspec.last.path = new_path
+    else:
+      raise IOError("Item has no pathspec.")
+
+    return pathspec
+
   def Update(self, attribute=None, priority=None):
     """Refresh an old attribute.
 
@@ -44,36 +77,12 @@ class VFSDirectory(aff4.AFF4Volume):
 
     if attribute == self.Schema.CONTAINS:
       # Get the pathspec for this object
-      pathspec = self.Get(self.Schema.PATHSPEC)
-
-      stripped_components = []
-      parent = self
-
-      while not pathspec and len(parent.urn.Split()) > 1:
-        # We try to recurse up the tree to get a real pathspec.
-        # These directories are created automatically without pathspecs when a
-        # deep directory is listed without listing the parents.
-        # Note /fs/os or /fs/tsk won't be updateable so we will raise IOError
-        # if we try.
-        stripped_components.append(parent.urn.Basename())
-        pathspec = parent.Get(parent.Schema.PATHSPEC)
-        parent = aff4.FACTORY.Open(parent.urn.Dirname(), token=self.token)
-
-      if pathspec:
-        if stripped_components:
-          # We stripped pieces of the URL, time to add them back at the deepest
-          # nested path.
-          new_path = utils.JoinPath(pathspec.last.path,
-                                    *reversed(stripped_components[:-1]))
-          pathspec.last.path = new_path
-
-        flow_id = flow.GRRFlow.StartFlow(client_id=client_id,
-                                         flow_name="ListDirectory",
-                                         pathspec=pathspec, priority=priority,
-                                         notify_to_user=False,
-                                         token=self.token)
-      else:
-        raise IOError("Item has no pathspec.")
+      flow_id = flow.GRRFlow.StartFlow(client_id=client_id,
+                                       flow_name="ListDirectory",
+                                       pathspec=self.real_pathspec,
+                                       priority=priority,
+                                       notify_to_user=False,
+                                       token=self.token)
 
       return flow_id
 
@@ -457,6 +466,34 @@ class AFF4Index(aff4.AFF4Object):
     return set([(x, y) for (y, x, _) in data_store.DB.ResolveRegex(
         self.urn, regex, token=self.token,
         timestamp=data_store.DB.ALL_TIMESTAMPS)])
+
+  def MultiQuery(self, attributes, regexes):
+    """Query the index for the attribute, matching multiple regexes at a time.
+
+    Args:
+      attributes: A list of attributes to query for.
+      regexes: A list of regexes to search the attributes for.
+    Returns:
+      A dict mapping each matched attribute name to a list of RDFURNs.
+    """
+    # Make the regular expressions.
+    combined_regexes = []
+    for attribute in attributes:
+      combined_regexes.append("index:%s:(%s):.*" % (
+          attribute.predicate, "|".join(regexes)))
+
+    # Get all the hits
+    result = {}
+    for col, _, _ in data_store.DB.ResolveRegex(
+        self.urn, combined_regexes, token=self.token,
+        timestamp=data_store.DB.ALL_TIMESTAMPS):
+      # Extract the attribute name.
+      attribute_name = col.split(":")[3]
+      # Extract URN from the column_name.
+      urn = rdfvalue.RDFURN(col.rsplit("aff4:/", 1)[1])
+      result.setdefault(attribute_name, []).append(urn)
+
+    return result
 
   def DeleteAttributeIndexesForURN(self, attribute, value, urn):
     """Remove all entries for a given attribute referring to a specific urn."""

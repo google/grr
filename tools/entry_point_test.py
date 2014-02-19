@@ -28,6 +28,7 @@ class EntryPointTest(test_lib.GRRBaseTest):
   def setUp(self):
     """Sets up the environment for the tests."""
     super(EntryPointTest, self).setUp()
+
     self.config_file = os.path.join(self.temp_dir, "writeback.yaml")
     new_config = config_lib.CONFIG.MakeNewConfig()
     new_config.SetWriteBack(self.config_file)

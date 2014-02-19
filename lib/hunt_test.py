@@ -71,7 +71,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(HuntTest, self).setUp()
 
-    with test_lib.Stubber(time, "time", lambda: 0):
+    with test_lib.FakeTime(0):
       # Clean up the foreman to remove any rules.
       with aff4.FACTORY.Open("aff4:/foreman", mode="rw",
                              token=self.token) as foreman:
@@ -245,15 +245,15 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client.Close()
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-    with test_lib.Stubber(hunts.SampleHunt, "StartClient", self.Callback):
+    with test_lib.Stubber(hunts.SampleHunt, "StartClients", self.Callback):
       self.called = []
 
       foreman.AssignTasksToClient(client.urn)
 
       self.assertEqual(len(self.called), 1)
-      self.assertEqual(self.called[0][1], client.urn)
+      self.assertEqual(self.called[0][1], [client.urn])
 
-  def testStartClient(self):
+  def testStartClients(self):
     with hunts.GRRHunt.StartHunt(
         hunt_name="SampleHunt", client_rate=0, token=self.token) as hunt:
 
@@ -267,7 +267,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
         self.assertEqual(flows, [])
 
-        hunts.GRRHunt.StartClient(hunt.session_id, self.client_id)
+        hunts.GRRHunt.StartClients(hunt.session_id, [self.client_id])
 
     test_lib.TestHuntHelper(None, [self.client_id], False, self.token)
 
@@ -515,7 +515,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     # Set up 10 clients.
     client_ids = self.SetupClients(10)
 
-    with test_lib.Stubber(time, "time", lambda: start_time):
+    with test_lib.FakeTime(start_time):
       with hunts.GRRHunt.StartHunt(
           hunt_name="DummyHunt",
           regex_rules=[

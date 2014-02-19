@@ -61,6 +61,66 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
         os_name="Windows", name_list=["VolatilityPsList"])
     self.assertEqual(results.pop().name, "VolatilityPsList")
 
+    results = artifact_lib.ArtifactRegistry.GetArtifacts(
+        os_name="Windows", exclude_dependents=True)
+    for result in results:
+      self.assertFalse(result.GetArtifactPathDependencies())
+
+    # Check provides filtering
+    results = artifact_lib.ArtifactRegistry.GetArtifacts(
+        os_name="Windows", provides=["users.homedir", "domain"])
+    for result in results:
+      # provides contains at least one of the filter strings
+      self.assertTrue(len(set(result.provides).union(set(["users.homedir",
+                                                          "domain"]))) >= 1)
+
+    results = artifact_lib.ArtifactRegistry.GetArtifacts(
+        os_name="Windows", provides=["nothingprovidesthis"])
+    self.assertEqual(len(results), 0)
+
+  def testGetArtifactNames(self):
+
+    result_objs = artifact_lib.ArtifactRegistry.GetArtifacts(
+        os_name="Windows", provides=["users.homedir", "domain"])
+
+    results_names = artifact_lib.ArtifactRegistry.GetArtifactNames(
+        os_name="Windows", provides=["users.homedir", "domain"])
+
+    self.assertItemsEqual(set([a.name for a in result_objs]), results_names)
+
+    results_names = artifact_lib.ArtifactRegistry.GetArtifactNames(
+        os_name="Darwin", provides=["users.username", "domain"])
+    self.assertItemsEqual(set(["OSXUsers"]), results_names)
+
+  def testSearchDependencies(self):
+    with test_lib.Stubber(artifact_lib.ArtifactRegistry, "artifacts", {}):
+      # Just use the test artifacts to verify dependency correctness so we
+      # aren't subject to changing dependencies in the whole set
+      test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+                                         "test_artifacts.json")
+      artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
+
+      names, expansions = artifact_lib.ArtifactRegistry.SearchDependencies(
+          "Windows", [u"TestAggregationArtifactDeps", u"DepsParent"])
+
+      # This list contains all artifacts that can provide the dependency, e.g.
+      # DepsHomedir and DepsHomedir2 both provide
+      # users.homedir.
+      self.assertItemsEqual(names, [u"DepsHomedir", u"DepsHomedir2",
+                                    u"DepsDesktop", u"DepsParent",
+                                    u"DepsWindir", u"DepsWindirRegex",
+                                    u"DepsControlSet",
+                                    u"TestAggregationArtifactDeps"])
+
+      self.assertItemsEqual(expansions, ["current_control_set", "users.homedir",
+                                         "users.desktop", "environ_windir",
+                                         "users.username"])
+
+      # None of these match the OS, so we should get an empty list.
+      names, expansions = artifact_lib.ArtifactRegistry.SearchDependencies(
+          "Darwin", [u"TestCmdArtifact", u"TestFileArtifact"])
+      self.assertItemsEqual(names, [])
+
   def testArtifactConversion(self):
     for art_obj in artifact_lib.ArtifactRegistry.artifacts.values():
       # Exercise conversions to ensure we can move back and forth between the
@@ -78,8 +138,8 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     deps = artifact_reg["TestAggregationArtifactDeps"].GetArtifactDependencies(
         recursive=True)
     self.assertItemsEqual(list(deps),
-                          ["VolatilityPsList", "TestAggregationArtifact",
-                           "WindowsWMIInstalledSoftware"])
+                          ["TestOSAgnostic", "TestCmdArtifact",
+                           "TestAggregationArtifact"])
 
     # Test recursive loop.
     # Make sure we use the registry registered version of the class.

@@ -10,6 +10,8 @@ from grr.lib import test_lib
 
 
 class TestPlistFlows(test_lib.FlowTestsBaseclass):
+  """Tests the PlistValueFilter flow."""
+
   def _RunFlow(self, flow, context=None, query=None, output=None):
     client_mock = test_lib.ActionMock("PlistQuery")
     request = rdfvalue.PlistRequest(context=context, query=query)

@@ -170,16 +170,22 @@ class SubjectRenderer(RDFValueRenderer):
   classname = "Subject"
 
   layout_template = renderers.Template("""
-<span type=subject aff4_path='{{this.aff4_path|escape}}'>
+<span type=subject aff4_path='{{this.aff4_path|escape}}'
+  tree_node_id='{{this.tree_node_id|escape}}'>
   {{this.basename|escape}}
 </span>
 """)
 
   def Layout(self, request, response):
+    if not self.proxy:
+      return
+
     aff4_path = request.REQ.get("aff4_path", "")
     aff4_path = rdfvalue.RDFURN(aff4_path)
     self.basename = self.proxy.RelativeName(aff4_path) or self.proxy
     self.aff4_path = self.proxy
+    self.tree_node_id = renderers.DeriveIDFromPath(
+        "/".join(self.aff4_path.Split()[1:]))
 
     return super(SubjectRenderer, self).Layout(request, response)
 
@@ -447,7 +453,8 @@ class IconRenderer(RDFValueRenderer):
   width = 0
   layout_template = renderers.Template("""
 <div class="centered">
-<img class='grr-icon' src='/static/images/{{this.proxy.icon}}.png'
+<img class='grr-icon {{this.proxy.icon}}'
+ src='/static/images/{{this.proxy.icon}}.png'
  alt='{{this.proxy.description}}' title='{{this.proxy.description}}'
  /></div>""")
 

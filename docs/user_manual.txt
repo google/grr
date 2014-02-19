@@ -1487,7 +1487,7 @@ I0814 17:24:38.813689 24346 flow.py:810] Scheduling aff4:/C.93ce669b1b0c76b6/flo
 Out[32]: <aff4:/C.93ce669b1b0c76b6/flows/W:52EBD0A7 age=1970-01-01 00:00:00>
 
 ### Alternatively you could use StartFlowAndWait to do the same thing but block while the flow is running like this:
-# debugging.StartFlowAndWait('C.93ce669b1b0c76b6', "ListProcesses")
+# flow_utils.StartFlowAndWait('C.93ce669b1b0c76b6', "ListProcesses")
 
 In [33]: processes_fd = aff4.FACTORY.Open("aff4:/C.93ce669b1b0c76b6/processes", mode="r")
 

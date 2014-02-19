@@ -88,3 +88,28 @@ class UserTests(test_base.RDFValueTestCase):
         ]:
       value = rdfvalue.StatMode(mode)
       self.assertEqual(unicode(value), result)
+
+  def testConvertToKnowledgeBaseUser(self):
+    folders = rdfvalue.FolderInformation(desktop="/usr/local/test/Desktop")
+    user = rdfvalue.User(username="test", domain="test.com",
+                         homedir="/usr/local/test",
+                         special_folders=folders)
+    kbuser = user.ToKnowledgeBaseUser()
+    self.assertEqual(kbuser.username, "test")
+    self.assertEqual(kbuser.userdomain, "test.com")
+    self.assertEqual(kbuser.homedir, "/usr/local/test")
+    self.assertEqual(kbuser.desktop, "/usr/local/test/Desktop")
+
+  def testConvertFromKnowledgeBaseUser(self):
+    kbuser = rdfvalue.KnowledgeBaseUser(username="test", userdomain="test.com",
+                                        homedir="/usr/local/test",
+                                        desktop="/usr/local/test/Desktop",
+                                        localappdata="/usr/local/test/AppData")
+    user = rdfvalue.User().FromKnowledgeBaseUser(kbuser)
+    self.assertEqual(user.username, "test")
+    self.assertEqual(user.domain, "test.com")
+    self.assertEqual(user.homedir, "/usr/local/test")
+    self.assertEqual(user.special_folders.desktop, "/usr/local/test/Desktop")
+    self.assertEqual(user.special_folders.local_app_data,
+                     "/usr/local/test/AppData")
+

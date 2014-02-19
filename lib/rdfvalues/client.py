@@ -31,6 +31,15 @@ class ClientURN(rdfvalue.RDFURN):
   # Valid client urns must match this expression.
   CLIENT_ID_RE = re.compile(r"^(aff4:/)?C\.[0-9a-fA-F]{16}$")
 
+  def __init__(self, initializer=None, age=None):
+    if isinstance(initializer, rdfvalue.RDFURN):
+      # pylint: disable=protected-access
+      if not self.Validate(initializer._string_urn):
+        raise type_info.TypeValueError(
+            "Client urn malformed: %s" % initializer)
+      # pylint: enable=protected-access
+    super(ClientURN, self).__init__(initializer=initializer, age=age)
+
   def ParseFromString(self, value):
     if not self.Validate(value):
       raise type_info.TypeValueError("Client urn malformed: %s" % value)
@@ -119,6 +128,8 @@ class User(rdfvalue.RDFProtoStruct):
       "domain": "userdomain",
       "homedir": "homedir",
       "sid": "sid",
+      "full_name": "full_name",
+      "last_logon": "last_logon",
       "special_folders.cookies": "cookies",
       "special_folders.local_settings": "local_settings",
       "special_folders.local_app_data": "localappdata",
@@ -139,8 +150,22 @@ class User(rdfvalue.RDFProtoStruct):
         val = getattr(getattr(self, attr), old_pb_name)
       else:
         val = getattr(self, old_pb_name)
-      kb_user.Set(new_pb_name, val)
+      if val:
+        kb_user.Set(new_pb_name, val)
     return kb_user
+
+  def FromKnowledgeBaseUser(self, kbuser):
+    """Convert a KnowledgeBaseUser into a User value."""
+    folders = rdfvalue.FolderInformation()
+    for old_pb_name, new_pb_name in self.kb_user_mapping.items():
+      val = getattr(kbuser, new_pb_name)
+      if val:
+        if len(old_pb_name.split(".")) > 1:
+          folders.Set(old_pb_name.split(".")[1], val)
+        else:
+          self.Set(old_pb_name, val)
+    self.Set("special_folders", folders)
+    return self
 
 
 class Users(protodict.RDFValueArray):

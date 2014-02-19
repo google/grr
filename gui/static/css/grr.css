@@ -66,6 +66,10 @@ a {
     margin-right: 6px;
 }
 
+.breadcrumb .btn-group>.btn:first-child {
+    margin-right: 0;
+}
+
 .wide-modal {
     width: 60%;
     left: 20%;

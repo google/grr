@@ -67,15 +67,6 @@ class TestRegistryFlows(test_lib.FlowTestsBaseclass):
     client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
                                       "HashBuffer", "HashFile", "ListDirectory")
 
-    # Add some user accounts to this client.
-    fd = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    users = fd.Schema.USER()
-    users.Append(rdfvalue.User(
-        username="LocalService", domain="testing-PC",
-        homedir=r"C:\Users\localservice", sid="S-1-5-20"))
-    fd.Set(users)
-    fd.Close()
-
     # Get KB initialized
     for _ in test_lib.TestFlowHelper(
         "KnowledgeBaseInitializationFlow", client_mock,
@@ -93,7 +84,7 @@ class TestRegistryFlows(test_lib.FlowTestsBaseclass):
       # Check MultiGetFile got called for our runkey file
       download_requested = False
       for pathspec in getfile_instrument.args[0][0].args.pathspecs:
-        if pathspec.path == u"C:\\Program Files\\Windows Sidebar\\Sidebar.exe":
+        if pathspec.path == u"C:\\Windows\\TEMP\\A.exe":
           download_requested = True
       self.assertTrue(download_requested)
 

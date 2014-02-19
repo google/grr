@@ -12,6 +12,8 @@ from grr.lib import test_lib
 
 
 class TestCrashView(test_lib.GRRSeleniumTest):
+  """Tests the crash view."""
+
   client_id = rdfvalue.ClientURN("C.0000000000000001")
 
   def SetUpCrashedFlow(self):

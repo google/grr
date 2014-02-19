@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """Loads up all client action tests."""
 
 import platform

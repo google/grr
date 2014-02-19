@@ -17,7 +17,6 @@ from django import template
 
 import logging
 
-from grr.lib import access_control
 from grr.lib import data_store
 from grr.lib import registry
 from grr.lib import utils
@@ -239,12 +238,9 @@ class UserLabelCheckMixin(object):
   @classmethod
   def CheckAccess(cls, request):
     """If the user is not in the AUTHORIZED_LABELS, reject this renderer."""
-    if data_store.DB.security_manager.CheckUserLabels(
+    data_store.DB.security_manager.CheckUserLabels(
         request.token.username, cls.AUTHORIZED_LABELS,
-        token=request.token):
-      return
-    raise access_control.UnauthorizedAccess("User %s not allowed." %
-                                            request.token.username)
+        token=request.token)
 
 
 class ErrorHandler(Renderer):
@@ -704,8 +700,9 @@ class TreeRenderer(TemplateRenderer):
   publish_select_queue = "tree_select"
 
   layout_template = Template("""
+<div id="{{unique|escape}}"></div>
 <script>
-grr.grrTree("{{ renderer|escapejs }}", "{{ id|escapejs }}",
+grr.grrTree("{{ renderer|escapejs }}", "{{ unique|escapejs }}",
             "{{ this.publish_select_queue|escapejs }}",
             {{ this.state_json|safe }});
 </script>""")
@@ -806,18 +803,19 @@ class TabLayout(TemplateRenderer):
 
 <!-- TODO: rewrite. it's bad to generate JS code in a loop -->
 <script>
-// Disable the tabs which need to be disabled.
-$("li").removeClass("disabled");
-$("li a").removeClass("disabled");
+  // Disable the tabs which need to be disabled.
+  $("li").removeClass("disabled");
+  $("li a").removeClass("disabled");
 
-{% for disabled in this.disabled %}
-$("li[renderer={{disabled|escapejs}}]").addClass("disabled");
-$("li a[renderer={{disabled|escapejs}}]").addClass("disabled");
-{% endfor %}
-</script>
-<script>
+  {% for disabled in this.disabled %}
+  $("li[renderer={{disabled|escapejs}}]").addClass("disabled");
+  $("li a[renderer={{disabled|escapejs}}]").addClass("disabled");
+  {% endfor %}
+
   // Store the state of this widget.
   $("#{{unique|escapejs}}").data().state = {{this.state_json|safe}};
+
+  grr.pushState({{unique|escapejs}}, {{this.state_json|safe}});
 
   // Add click handlers to switch tabs.
   $("#{{unique|escapejs}} li a").click(function (e) {

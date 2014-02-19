@@ -71,12 +71,16 @@ ACTIONS_MAP = {"RunGrrClientAction": {"required_args": ["client_action"],
                            "output_type": "StatEntry"},
                "GetFiles": {"required_args": ["path_list"],
                             "output_type": "StatEntry"},
+               "Grep": {"required_args": ["path_list", "content_regex_list"],
+                        "output_type": "BufferReference"},
                "ListFiles": {"required_args": ["path_list"],
                              "output_type": "StatEntry"},
                "GetRegistryKeys": {"required_args": ["path_list"],
                                    "output_type": "StatEntry"},
                "GetRegistryValue": {"required_args": ["path"],
                                     "output_type": "RDFString"},
+               "GetRegistryValues": {"required_args": ["path_list"],
+                                     "output_type": "RDFString"},
                "WMIQuery": {"required_args": ["query"],
                             "output_type": "Dict"},
                "RunCommand": {"required_args": ["cmd", "args"],
@@ -118,7 +122,8 @@ class ArtifactRegistry(object):
 
   @classmethod
   def GetArtifacts(cls, os_name=None, name_list=None,
-                   collector_action=None):
+                   collector_action=None, exclude_dependents=False,
+                   provides=None):
     """Retrieve artifact classes with optional filtering.
 
     All filters must match for the artifact to be returned.
@@ -127,6 +132,9 @@ class ArtifactRegistry(object):
       os_name: string to match against supported_os
       name_list: list of strings to match against artifact names
       collector_action: string to match against collector_action
+      exclude_dependents: if true only artifacts with no dependencies will be
+                          returned
+      provides: return the artifacts that provide these dependencies
     Returns:
       set of artifacts matching filter criteria
     """
@@ -143,9 +151,70 @@ class ArtifactRegistry(object):
         collector_actions = [c.action for c in artifact.collectors]
         if collector_action not in collector_actions:
           continue
-      results.add(artifact)
+      if exclude_dependents and artifact.GetArtifactPathDependencies():
+        continue
 
+      # This needs to remain the last test, if it matches the result is added
+      if provides:
+        for provide_string in artifact.provides:
+          if provide_string in provides:
+            results.add(artifact)
+            continue
+        continue
+
+      results.add(artifact)
     return results
+
+  @classmethod
+  def GetArtifactNames(cls, *args, **kwargs):
+    return set([a.name for a in cls.GetArtifacts(*args, **kwargs)])
+
+  @classmethod
+  def SearchDependencies(cls, os_name, artifact_name_list,
+                         existing_artifact_deps=None,
+                         existing_expansion_deps=None):
+    """Return a set of artifact names needed to fulfill dependencies.
+
+    Search the path dependency tree for all artifacts that can fulfill
+    dependencies of artifact_name_list.  If multiple artifacts provide a
+    dependency, they are all included.
+
+    Args:
+      os_name: operating system string
+      artifact_name_list: list of artifact names to find dependencies for.
+      existing_artifact_deps: existing dependencies to add to, for recursion,
+        e.g. set(["WindowsRegistryProfiles", "WinPathEnvironmentVariable"])
+      existing_expansion_deps: existing expansion dependencies to add to, for
+        recursion, e.g. set(["users.userprofile", "users.homedir"])
+    Returns:
+      (artifact_names, expansion_names): a tuple of sets, one with artifact
+          names, the other expansion names
+    """
+    artifact_deps = existing_artifact_deps or set()
+    expansion_deps = existing_expansion_deps or set()
+
+    artifact_objs = cls.GetArtifacts(os_name=os_name,
+                                     name_list=artifact_name_list)
+    artifact_deps = artifact_deps.union([a.name for a in artifact_objs])
+
+    for artifact in artifact_objs:
+      expansions = artifact.GetArtifactPathDependencies()
+      if expansions:
+        expansion_deps = expansion_deps.union(set(expansions))
+        # Get the names of the artifacts that provide those expansions
+        new_artifact_names = cls.GetArtifactNames(os_name=os_name,
+                                                  provides=expansions)
+        missing_artifacts = new_artifact_names - artifact_deps
+
+        if missing_artifacts:
+          # Add those artifacts and any child dependencies
+          new_artifacts, new_expansions = cls.SearchDependencies(
+              os_name, new_artifact_names, existing_artifact_deps=artifact_deps,
+              existing_expansion_deps=expansion_deps)
+          artifact_deps = artifact_deps.union(new_artifacts)
+          expansion_deps = expansion_deps.union(new_expansions)
+
+    return artifact_deps, expansion_deps
 
 
 def InterpolateKbAttributes(pattern, knowledge_base):
@@ -366,4 +435,3 @@ def DumpArtifactsToYaml(artifact_list, sort_by_os=True):
     yaml_list = [x.ToYaml() for x in artifact_list]
 
   return "---\n\n".join(yaml_list)
-

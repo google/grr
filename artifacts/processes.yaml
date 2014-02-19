@@ -1,0 +1,10 @@
+name: AllRunningProcessBinaryFiles
+doc: Download binaries of all the running processes.
+collectors:
+- action: CollectArtifactFiles
+  args:
+    artifact_list: [ListProcessesGrr]
+    pathspec_attribute: exe
+  returned_types: [Process]
+labels: [Processes, Software]
+supported_os: [Windows, Linux, Darwin]

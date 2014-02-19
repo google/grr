@@ -25,6 +25,7 @@ from grr.lib import data_stores
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import local
+from grr.lib import master
 from grr.lib import stats
 from grr.lib import stats_store
 from grr.lib.flows import general

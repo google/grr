@@ -13,6 +13,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import master
 from grr.lib import queue_manager as queue_manager_lib
 from grr.lib import rdfvalue
 # pylint: disable=unused-import
@@ -81,7 +82,10 @@ class GRRWorker(object):
     """Event loop."""
     try:
       while 1:
-        processed = self.RunOnce()
+        if master.MASTER_WATCHER.IsMaster():
+          processed = self.RunOnce()
+        else:
+          processed = 0
 
         if processed == 0:
 
@@ -192,7 +196,7 @@ class GRRWorker(object):
           blocking=False, token=self.token) as flow_obj:
 
         now = time.time()
-        logging.info("Got lock on %s", session_id)
+        logging.debug("Got lock on %s", session_id)
 
         # If we get here, we now own the flow, so we can remove the notification
         # for it from the worker queue.
@@ -206,7 +210,7 @@ class GRRWorker(object):
 
         else:
           if not isinstance(flow_obj, flow.GRRFlow):
-            logging.info("%s is not a proper flow object (got %s)", session_id,
+            logging.warn("%s is not a proper flow object (got %s)", session_id,
                          type(flow_obj))
             return
 
@@ -228,8 +232,8 @@ class GRRWorker(object):
             # with no associated flow.
             flow_obj.Flush(sync=True)
 
-        logging.info("Done processing %s: %s sec", session_id,
-                     time.time() - now)
+        logging.debug("Done processing %s: %s sec", session_id,
+                      time.time() - now)
 
       # Everything went well -> session can be run again.
       self.queued_flows.ExpireObject(session_id)

@@ -146,7 +146,3 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
     binaries = list(fd)
     self.assertEqual(len(binaries), 1)
     self.assertEqual(binaries[0].pathspec.path, process1.exe)
-
-
-class GetProcessesBinariesTest(test_lib.FlowTestsBaseclass):
-  """Test the get processes binaries flow."""

@@ -5,6 +5,8 @@
 
 import os
 
+from grr.client import vfs
+
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -381,3 +383,61 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
       self.RunFlowAndCheckResults(
           action=action, filters=[inode_change_time_filter],
           expected_files=expected_files, non_expected_files=non_expected_files)
+
+  def testTreatsGlobsAsPathsWhenMemoryPathTypeIsUsed(self):
+    # No need to setup VFS handlers as we're not actually looking at the files,
+    # as there's no filter/action specified.
+
+    paths = [os.path.join(os.path.dirname(self.base_path), "*.log"),
+             os.path.join(os.path.dirname(self.base_path), "auth.log")]
+
+    for _ in test_lib.TestFlowHelper(
+        "FileFinder", self.client_mock, client_id=self.client_id,
+        paths=paths, pathtype=rdfvalue.PathSpec.PathType.MEMORY,
+        token=self.token, output=self.output_path):
+      pass
+
+    # Both auth.log and *.log should be present, because we don't apply
+    # any filters and by default FileFinder treats given paths as paths
+    # to memory devices when using PathType=MEMORY. So checking
+    # files existence doesn't make much sense.
+    self.CheckFilesInCollection(["*.log", "auth.log"])
+
+  def testAppliesLiteralFilterWhenMemoryPathTypeIsUsed(self):
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientTestDataVFSFixture
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.MEMORY] = test_lib.ClientTestDataVFSFixture
+
+    paths = [os.path.join(os.path.dirname(self.base_path), "auth.log"),
+             os.path.join(os.path.dirname(self.base_path), "dpkg.log")]
+
+    literal_filter = rdfvalue.FileFinderFilter(
+        filter_type=rdfvalue.FileFinderFilter.Type.CONTENTS_LITERAL_MATCH,
+        contents_literal_match=
+        rdfvalue.FileFinderContentsLiteralMatchFilter(
+            mode=rdfvalue.FileFinderContentsLiteralMatchFilter.Mode.ALL_HITS,
+            literal="session opened for user dearjohn"))
+
+    # Check this filter with all the actions. This makes sense, as we may
+    # download memeory or send it to the socket.
+    for action in sorted(rdfvalue.FileFinderAction.Action.enum_dict.values()):
+      for _ in test_lib.TestFlowHelper(
+          "FileFinder", self.client_mock, client_id=self.client_id,
+          paths=paths, pathtype=rdfvalue.PathSpec.PathType.MEMORY,
+          filters=[literal_filter], action=rdfvalue.FileFinderAction(
+              action_type=action), token=self.token, output=self.output_path):
+        pass
+
+      self.CheckFilesInCollection(["auth.log"])
+
+      fd = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
+                             aff4_type="RDFValueCollection",
+                             token=self.token)
+      self.assertEqual(fd[0].stat_entry.pathspec.CollapsePath(),
+                       paths[0])
+      self.assertEqual(len(fd), 1)
+      self.assertEqual(len(fd[0].matches), 1)
+      self.assertEqual(fd[0].matches[0].offset, 350)
+      self.assertEqual(fd[0].matches[0].data,
+                       "session): session opened for user dearjohn by (uid=0")

@@ -62,7 +62,7 @@ class IterateAllClientUrns(object):
   def GetInput(self):
     """Yield client urns."""
     clients = GetAllClients(token=self.token)
-    logging.info("Got %d clients", len(clients))
+    logging.debug("Got %d clients", len(clients))
     return clients
 
   def Run(self):
@@ -70,7 +70,7 @@ class IterateAllClientUrns(object):
     count = 0
     for count, input_data in enumerate(self.GetInput()):
       if count % 2000 == 0:
-        logging.info("%d processed.", count)
+        logging.debug("%d processed.", count)
       args = (input_data, self.out_queue, self.token)
       self.thread_pool.AddTask(target=self.IterFunction, args=args,
                                name=self.THREAD_POOL_NAME)
@@ -112,7 +112,7 @@ class IterateAllClients(IterateAllClientUrns):
   def GetInput(self):
     """Yield client urns."""
     client_list = GetAllClients(token=self.token)
-    logging.info("Got %d clients", len(client_list))
+    logging.debug("Got %d clients", len(client_list))
     for client_group in utils.Grouper(client_list, self.client_chunksize):
       for fd in aff4.FACTORY.MultiOpen(client_group, mode="r",
                                        aff4_type="VFSGRRClient",
@@ -144,8 +144,8 @@ def DownloadFile(file_obj, target_path, buffer_size=BUFFER_SIZE):
     data_buffer = file_obj.Read(buffer_size)
     count += 1
     if not count % 3:
-      logging.info("Downloading: %s: %s done", file_obj.urn,
-                   utils.FormatNumberAsString(count*buffer_size))
+      logging.debug("Downloading: %s: %s done", file_obj.urn,
+                    utils.FormatNumberAsString(count*buffer_size))
   target_file.close()
 
 

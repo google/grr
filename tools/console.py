@@ -106,7 +106,7 @@ def main(unused_argv):
 
       # Bring some symbols from other modules into the console's
       # namespace.
-      "StartFlowAndWait": debugging.StartFlowAndWait,
+      "StartFlowAndWait": flow_utils.StartFlowAndWait,
       "StartFlowAndWorker": debugging.StartFlowAndWorker,
       "TestFlows": client_tests.TestFlows,
       }

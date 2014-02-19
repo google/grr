@@ -153,23 +153,36 @@ collectors:
   args:
     path_list: [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*\ProfileImagePath]
 labels: [Users]
-provides: [users.sid, users.userprofile, users.homedir]
+provides: [users.sid, users.userprofile, users.homedir, users.username]
 supported_os: [Windows]
 urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/bb776892(v=vs.85).aspx']
 ---
 
 name: WindowsWMIProfileUsers
-doc: "Get user information based on known user's SID.\n\n  This artifact optimizes\
+doc: "Get user homedir from Win32_UserProfile based on a known user's SID.\n\n\
+    This artifact relies on having the SID field users.sid populated in the knowledge\n\
+    \  base.\n  "
+collectors:
+- action: WMIQuery
+  args: {query: SELECT * FROM Win32_UserProfile WHERE SID='%%users.sid%%'}
+labels: [Users]
+provides: [users.homedir]
+supported_os: [Windows]
+urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/ee886409(v=vs.85).aspx']
+---
+
+name: WindowsWMIAccountUsers
+doc: "Fill out user account information based on username.\n\n  This artifact optimizes\
     \ retrieval of user information by limiting the WMI\n  query to users for which\
-    \ we have a SID for. Specifically this solves the issue\n  that in a domain setting,\
+    \ we have a username for. Specifically this solves the issue\n  that in a domain setting,\
     \ querying for all users via WMI will give you the\n  list of all local and domain\
     \ accounts which means a large data transfer from\n  an Active Directory server.\n\
-    \n  This artifact relies on having the SID field users.sid populated knowledge\n\
+    \n  This artifact relies on having the users.username field populated in the knowledge\n\
     \  base.\n  "
 collectors:
 - action: WMIQuery
   args: {query: SELECT * FROM Win32_UserAccount WHERE name='%%users.username%%'}
 labels: [Users]
-provides: [users.username, users.userdomain, users.sid]
+provides: [users.sid, users.userdomain]
 supported_os: [Windows]
 urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/aa394507(v=vs.85).aspx']

@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
-
 """Test the connections listing module."""
 
 from grr.lib import aff4
@@ -16,6 +14,7 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
 
     class ClientMock(object):
       def Netstat(self, _):
+        """Returns fake connections."""
         conn1 = rdfvalue.NetworkConnection(
             state=rdfvalue.NetworkConnection.State.LISTEN,
             type=rdfvalue.NetworkConnection.Type.SOCK_STREAM,

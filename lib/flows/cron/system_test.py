@@ -5,7 +5,9 @@
 import time
 
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.flows.cron import system
 from grr.test_data import client_fixture
 
 
@@ -113,3 +115,34 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
         (1209600000000L, 20L),
         (2592000000000L, 20L),
         (5184000000000L, 20L)])
+
+  def testPurgeClientStats(self):
+    max_age = system.PurgeClientStats.MAX_AGE
+
+    for t in [1 * max_age, 1.5 * max_age, 2 * max_age]:
+      with test_lib.FakeTime(t):
+        urn = self.client_id.Add("stats")
+
+        stats_fd = aff4.FACTORY.Create(urn, "ClientStats", token=self.token,
+                                       mode="rw")
+        st = rdfvalue.ClientStats(RSS_size=int(t))
+        stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
+
+        stats_fd.Close()
+
+    stat_obj = aff4.FACTORY.Open(
+        urn, age=aff4.ALL_TIMES, token=self.token, ignore_cache=True)
+    stat_entries = list(stat_obj.GetValuesForAttribute(stat_obj.Schema.STATS))
+    self.assertEqual(len(stat_entries), 3)
+    self.assertTrue(max_age in [e.RSS_size for e in stat_entries])
+
+    with test_lib.FakeTime(2.5 * max_age):
+      for _ in test_lib.TestFlowHelper(
+          "PurgeClientStats", None, client_id=self.client_id, token=self.token):
+        pass
+
+    stat_obj = aff4.FACTORY.Open(
+        urn, age=aff4.ALL_TIMES, token=self.token, ignore_cache=True)
+    stat_entries = list(stat_obj.GetValuesForAttribute(stat_obj.Schema.STATS))
+    self.assertEqual(len(stat_entries), 1)
+    self.assertTrue(max_age not in [e.RSS_size for e in stat_entries])

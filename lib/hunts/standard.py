@@ -660,8 +660,8 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
         num_processed += len(batch)
 
         for plugin_name, plugin in used_plugins.iteritems():
-          logging.info("Processing hunt %s with %s, batch %d", session_id,
-                       plugin_name, batch_index)
+          logging.debug("Processing hunt %s with %s, batch %d", session_id,
+                        plugin_name, batch_index)
 
           try:
             plugin.ProcessResponses(batch)
@@ -734,8 +734,8 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
         # We don't want to delete notification that was written after we
         # started processing.
         if latest_timestamp and latest_timestamp > timestamp:
-          logging.info("Not deleting results notification: it was written "
-                       "after processing has started.")
+          logging.debug("Not deleting results notification: it was written "
+                        "after processing has started.")
         else:
           data_store.DB.DeleteAttributes(GenericHunt.RESULTS_QUEUE,
                                          [session_id], sync=True,
@@ -926,16 +926,18 @@ class VariableGenericHunt(GenericHunt):
                 runner_args=flow_request.runner_args,
                 next_state="MarkDone", client_id=client_id)
 
-  def ManuallyScheduleClients(self):
+  def ManuallyScheduleClients(self, token=None):
     """Schedule all flows without using the Foreman.
 
     Since we know all the client ids to run on we might as well just schedule
     all the flows and wait for the results.
+
+    Args:
+      token: A datastore access token.
     """
     client_ids = set()
     for flow_request in self.state.args.flows:
       for client_id in flow_request.client_ids:
         client_ids.add(client_id)
 
-    for client_id in client_ids:
-      self.StartClient(self.session_id, client_id)
+    self.StartClients(self.session_id, client_ids, token=token)

@@ -296,7 +296,6 @@ message MBRHuntArgs {
     }, default=4096];
 }
 
-
 message GenericHuntArgs {
   optional bytes flow_args = 2 [(sem_type) = {
       dynamic_type: "GetFlowArgsClass",
@@ -545,8 +544,8 @@ message InterrogateArgs {
 message FetchFilesArgs {
   repeated string paths = 1 [(sem_type) = {
       type: "GlobExpression",
-      description: "A path to glob that can contain %% "
-      "expansions. For example '%%KnowledgeBase.environ_windir%%\notepad.*'",
+      description: "A path to glob that supports: ** path recursion, * "
+          "wildcards and %% expansions",
     }];
 
   optional PathSpec.PathType pathtype = 2 [(sem_type) = {
@@ -763,8 +762,8 @@ message GrepArgs {
 message GlobArgs {
   repeated string paths = 1 [(sem_type) = {
       type: "GlobExpression",
-      description: "A list of paths to glob that can contain %% "
-      "expansions",
+      description: "A list of paths to glob that supports: ** path recursion,"
+          " * wildcards and %% expansions.",
     }];
 
   optional PathSpec.PathType pathtype = 2 [(sem_type) = {
@@ -782,8 +781,8 @@ message GlobArgs {
 message SearchFileContentArgs {
   repeated string paths = 1 [(sem_type) = {
       type: "GlobExpression",
-      description: "A path to glob that can contain %% "
-      "expansions",
+      description: "A path to glob that supports: ** path recursion, * "
+          "wildcards and %% expansions",
     }];
 
   optional PathSpec.PathType pathtype = 2 [(sem_type) = {
@@ -798,13 +797,13 @@ message SearchFileContentArgs {
   }];
 
   optional BareGrepSpec grep = 3 [(sem_type) = {
-      friendly_name: "Search parameters",
+      friendly_name: "File Content Search",
       description: "Leave empty to match files by filename only."
-      "only."
     }];
 
   optional bool also_download = 4 [(sem_type) = {
-      description: "If checked, also downloads the files that a hit was found."
+      friendly_name: "Download matching files",
+      description: "If checked, download any matching files."
     }];
 }
 
@@ -1161,6 +1160,22 @@ message MultiGetFileArgs {
     }, default=true];
 }
 
+message GetExecutablesFilteredByHashArgs {
+  repeated PathSpec pathspecs = 1 [(sem_type) = {
+      description: "Pathspecs of files to be retrieved and their hash.",
+    }];
+  repeated bytes hashes = 2 [(sem_type) = {
+      type: "HashDigest",
+      description: "SHA256 hash digest for the file."
+    }];
+  optional bool use_external_stores = 3 [(sem_type) = {
+      description: "If true, look in any defined external file stores for files"
+      "before downloading them, and offer any new files to external stores."
+      "This should be true unless the external checks are misbehaving.",
+      label: ADVANCED
+    }, default=true];
+}
+
 message ProcessHuntResultsCronFlowArgs {
   optional uint64 batch_size = 1 [(sem_type) = {
       description: "Results will be processed by output plugins in batches "
@@ -1425,6 +1440,24 @@ message FileFinderArgs {
 message FileFinderResult {
   optional StatEntry stat_entry = 1;
   repeated BufferReference matches = 2;
+}
+
+message FileReference {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "The client id the file lives on.",
+    }];
+  repeated PathSpec pathspecs = 2 [(sem_type) = {
+      description: "The paths to the files.",
+    }];
+  repeated bytes sha256_hashes = 3 [(sem_type) = {
+      type: "HashDigest",
+      description: "A SHA256 hash digest for each file."
+    }];
+}
+
+message Bit9DownloaderArgs {
+  repeated FileReference files = 1;
 }
 
 message MemoryScannerFilter {

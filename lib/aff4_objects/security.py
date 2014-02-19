@@ -49,7 +49,7 @@ class Approval(aff4.AFF4Object):
     raise NotImplementedError()
 
   @staticmethod
-  def GetApprovalForObject(object_urn, token, username=""):
+  def GetApprovalForObject(object_urn, token=None, username=""):
     """Looks for approvals for an object and returns available valid tokens.
 
     Args:
@@ -67,6 +67,10 @@ class Approval(aff4.AFF4Object):
       UnauthorizedAccess: If there are no valid approvals available.
 
     """
+    if token is None:
+      raise access_control.UnauthorizedAccess(
+          "No token given, cannot authenticate.")
+
     if not username:
       username = token.username
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(object_urn.Path()).Add(
@@ -194,9 +198,12 @@ class ApprovalWithApproversAndReason(Approval):
       # We need to check labels with high privilege since normal users can
       # inspect other user's labels.
       for approver in approvers:
-        if data_store.DB.security_manager.CheckUserLabels(
-            approver, [self.checked_approvers_label], token=token.SetUID()):
+        try:
+          data_store.DB.security_manager.CheckUserLabels(
+              approver, [self.checked_approvers_label], token=token.SetUID())
           approvers_with_label.append(approver)
+        except access_control.UnauthorizedAccess:
+          pass
 
       if len(approvers_with_label) < self.min_approvers_with_label:
         raise access_control.UnauthorizedAccess(

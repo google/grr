@@ -15,6 +15,7 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import flow_utils
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -85,15 +86,14 @@ class ClientTestBase(test_lib.GRRBaseTest):
 
   def runTest(self):
     if self.local_worker:
-      flow_obj = debugging.StartFlowAndWorker(
+      self.session_id = debugging.StartFlowAndWorker(
           self.client_id, self.flow, cpu_limit=self.cpu_limit,
           network_bytes_limit=self.network_bytes_limit, **self.args)
-      self.flow_urn = flow_obj.urn
     else:
-      flow_obj = debugging.StartFlowAndWait(
-          self.client_id, self.flow, cpu_limit=self.cpu_limit,
-          network_bytes_limit=self.network_bytes_limit, **self.args)
-      self.flow_urn = flow_obj.urn
+      self.session_id = flow_utils.StartFlowAndWait(
+          self.client_id, flow_name=self.flow, cpu_limit=self.cpu_limit,
+          network_bytes_limit=self.network_bytes_limit, token=self.token,
+          **self.args)
 
     self.CheckFlow()
 
@@ -114,7 +114,8 @@ class ClientTestBase(test_lib.GRRBaseTest):
     if config is None:
       # Try running Interrogate once.
       if run_interrogate:
-        debugging.StartFlowAndWait(self.client_id, "Interrogate")
+        flow_utils.StartFlowAndWait(self.client_id,
+                                    flow_name="Interrogate", token=self.token)
         return self.GetGRRBinaryName(run_interrogate=False)
       else:
         self.fail("No valid configuration found, interrogate the client before "
@@ -427,16 +428,14 @@ class TestFindWindowsRegistry(ClientTestBase):
                        "output": self.output_path})]:
 
       if self.local_worker:
-        flow_obj = debugging.StartFlowAndWorker(
+        self.session_id = debugging.StartFlowAndWorker(
             self.client_id, flow, cpu_limit=self.cpu_limit,
             network_bytes_limit=self.network_bytes_limit, **args)
-        self.flow_urn = flow_obj.urn
       else:
-        flow_obj = debugging.StartFlowAndWait(
-            self.client_id, flow, cpu_limit=self.cpu_limit,
-            network_bytes_limit=self.network_bytes_limit, **args)
-
-        self.flow_urn = flow_obj.urn
+        self.session_id = flow_utils.StartFlowAndWait(
+            self.client_id, flow_name=flow, cpu_limit=self.cpu_limit,
+            network_bytes_limit=self.network_bytes_limit, token=self.token,
+            **args)
 
     self.CheckFlow()
 
@@ -551,7 +550,7 @@ class TestCPULimit(LocalClientTest):
 
   def CheckFlow(self):
     # Reopen the object to update the state.
-    flow_obj = aff4.FACTORY.Open(self.flow_urn, token=self.token)
+    flow_obj = aff4.FACTORY.Open(self.session_id, token=self.token)
     backtrace = flow_obj.state.context.get("backtrace", "")
     if backtrace:
       if "BusyHang not available" in backtrace:
@@ -579,7 +578,7 @@ class TestNetworkFlowLimit(ClientTestBase):
 
   def CheckFlow(self):
     # Reopen the object to update the state.
-    flow_obj = aff4.FACTORY.Open(self.flow_urn, token=self.token)
+    flow_obj = aff4.FACTORY.Open(self.session_id, token=self.token)
 
     # Make sure we transferred approximately the right amount of data.
     self.assertAlmostEqual(flow_obj.state.context.network_bytes_sent,
@@ -596,7 +595,7 @@ class TestMultiGetFileNetworkLimitExceeded(LocalClientTest):
 
   def CheckFlow(self):
     # Reopen the object to update the state.
-    flow_obj = aff4.FACTORY.Open(self.flow_urn, token=self.token)
+    flow_obj = aff4.FACTORY.Open(self.session_id, token=self.token)
     backtrace = flow_obj.state.context.get("backtrace", "")
     self.assertTrue("Network bytes limit exceeded." in backtrace)
 
@@ -614,7 +613,7 @@ class TestMultiGetFile(LocalClientTest):
 
   def CheckFlow(self):
     # Reopen the object to update the state.
-    flow_obj = aff4.FACTORY.Open(self.flow_urn, token=self.token)
+    flow_obj = aff4.FACTORY.Open(self.session_id, token=self.token)
 
     # Check flow completed normally, checking is done inside the flow
     self.assertEqual(
@@ -844,7 +843,7 @@ class TestLaunchBinaries(ClientTestBase):
 
   def CheckFlow(self):
     # Check that the test binary returned the correct stdout:
-    fd = aff4.FACTORY.Open(self.flow_urn, age=aff4.ALL_TIMES,
+    fd = aff4.FACTORY.Open(self.session_id, age=aff4.ALL_TIMES,
                            token=self.token)
     logs = "\n".join(
         [str(x) for x in fd.GetValuesForAttribute(fd.Schema.LOG)])

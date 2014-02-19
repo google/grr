@@ -594,7 +594,7 @@ class RDFURNConverter(ExportConverter):
     try:
       return ConvertValuesWithMetadata(batch)
     except NoConverterFound as e:
-      logging.info(e)
+      logging.debug(e)
 
     return []
 

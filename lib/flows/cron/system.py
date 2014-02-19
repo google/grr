@@ -127,7 +127,7 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
 
       root = aff4.FACTORY.Open(aff4.ROOT_URN, token=self.token)
       children_urns = list(root.ListChildren())
-      logging.info("Found %d children.", len(children_urns))
+      logging.debug("Found %d children.", len(children_urns))
 
       processed_count = 0
       for child in aff4.FACTORY.MultiOpen(
@@ -142,7 +142,8 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
       self.FinishProcessing()
       self.stats.Close()
 
-      logging.info("Processed %d clients.", processed_count)
+      logging.info("%s: processed %d clients.", self.__class__.__name__,
+                   processed_count)
     except Exception as e:  # pylint: disable=broad-except
       logging.exception("Error while calculating stats: %s", e)
       raise
@@ -270,3 +271,32 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
         runner.Start()
 
 
+class PurgeClientStats(cronjobs.SystemCronFlow):
+  """Deletes outdated client statistics."""
+
+  frequency = rdfvalue.Duration("1w")
+
+  # Keep stats for one month.
+  MAX_AGE = 31 * 24 * 3600
+
+  @flow.StateHandler(next_state="ProcessClients")
+  def Start(self):
+    """Calls "Process" state to avoid spending too much time in Start."""
+    self.CallState(next_state="ProcessClients")
+
+  @flow.StateHandler()
+  def ProcessClients(self, unused_responses):
+    """Does the work."""
+    self.start = 0
+    self.end = int(1e6 * (time.time() - self.MAX_AGE))
+
+    client_urns = export_utils.GetAllClients(token=self.token)
+
+    for client_urn in client_urns:
+      data_store.DB.DeleteAttributes(client_urn.Add("stats"),
+                                     [u"aff4:stats", u"aff4:type"],
+                                     start=self.start, end=self.end, sync=False,
+                                     token=self.token)
+      self.HeartBeat()
+
+    data_store.DB.Flush()

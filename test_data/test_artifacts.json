@@ -3,11 +3,11 @@
    "name": "TestAggregationArtifact",
     "collectors": [
       { "action": "CollectArtifacts",
-        "args": { "artifact_list": ["VolatilityPsList"] },
+        "args": { "artifact_list": ["TestOSAgnostic"] },
         "returned_types": ["Process"]
       },
       { "action": "CollectArtifacts",
-        "args": { "artifact_list": [ "WindowsWMIInstalledSoftware" ]
+        "args": { "artifact_list": [ "TestCmdArtifact" ]
         },
         "returned_types": [ "SoftwarePackage" ]
       }
@@ -43,6 +43,18 @@
     "labels": [ "Software" ],
     "supported_os": [ "Linux" ]
   },
+
+  { "name": "TestOSAgnostic",
+    "collectors": [
+      { "action": "RunGrrClientAction",
+        "args": { "client_action": {"GetHostname"}}
+      },
+    ],
+    "doc": "Test no OS means all OSes.",
+    "labels": [ "Software" ],
+    "supported_os": []
+  },
+
 
   { "name": "TestFileArtifact",
     "collectors": [
@@ -89,6 +101,89 @@
     "doc": "Broken pathspec_attribute.",
     "labels": [ "Software" ],
     "supported_os": [ "Windows" ]
-  }
+  },
 
+  { "name": "DepsParent",
+    "collectors": [
+      { "action": "GetFiles",
+        "args": { "path_list": ["/test/%%users.desktop%%"] }
+      }
+    ],
+    "doc": "Test files artifact.",
+    "labels": ["Logs", "Authentication"],
+    "supported_os": [ "Windows" ]
+  },
+
+  { "name": "DepsDesktop",
+    "collectors": [
+      { "action": "GetFiles",
+        "args": { "path_list": ["/test/%%users.homedir%%"] }
+      }
+    ],
+    "provides": ["users.desktop"],
+    "doc": "Test files artifact.",
+    "labels": ["Logs", "Authentication"],
+    "supported_os": [ "Windows" ]
+  },
+
+  { "name": "DepsHomedir",
+    "collectors": [
+      { "action": "GetFiles",
+        "args": { "path_list": ["/test/%%environ_windir%%/%%current_control_set%%"] }
+      }
+    ],
+    "provides": ["users.homedir"],
+    "doc": "Test files artifact.",
+    "labels": ["Logs", "Authentication"],
+    "supported_os": [ "Windows" ]
+  },
+
+  { "name": "DepsHomedir2",
+    "collectors": [
+      { "action": "GetFiles",
+        "args": { "path_list": ["/test/blah"] }
+      }
+    ],
+    "provides": ["users.homedir"],
+    "doc": "Test files artifact.",
+    "labels": ["Logs", "Authentication"],
+    "supported_os": [ "Windows" ]
+  },
+
+  { "name": "DepsWindir",
+    "collectors": [
+      { "action": "GetFiles",
+        "args": { "path_list": ["/test/%%current_control_set%%"] }
+      }
+    ],
+    "provides": ["environ_windir"],
+    "doc": "Test files artifact.",
+    "labels": ["Logs", "Authentication"],
+    "supported_os": [ "Windows" ]
+  },
+
+  { "name": "DepsWindirRegex",
+    "collectors": [
+      { "action": "Grep",
+        "args": { "path_list": ["/test/%%current_control_set%%"],
+                  "content_regex_list": ["%%users.username%%"]}
+      }
+    ],
+    "provides": ["environ_windir"],
+    "doc": "Test content_regex_list interpolation",
+    "labels": ["Logs", "Authentication"],
+    "supported_os": [ "Windows" ]
+  },
+
+  { "name": "DepsControlSet",
+    "collectors": [
+      { "action": "GetFiles",
+        "args": { "path_list": ["/test/controlset"] }
+      }
+    ],
+    "provides": ["current_control_set"],
+    "doc": "Test files artifact.",
+    "labels": ["Logs", "Authentication"],
+    "supported_os": [ "Windows" ]
+  }
 ]

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2013 Google Inc. All Rights Reserved.
 """Queries a Windows client for Volume Shadow Copy information."""
 from grr.lib import aff4
 from grr.lib import flow

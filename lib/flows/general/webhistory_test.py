@@ -140,6 +140,16 @@ class TestWebHistoryWithArtifacts(artifact_test.ArtifactTestHelper):
   def setUp(self):
     super(TestWebHistoryWithArtifacts, self).setUp()
     self.SetLinuxClient()
+    fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    self.kb = fd.Schema.KNOWLEDGE_BASE()
+    self.kb.users.Append(rdfvalue.KnowledgeBaseUser(username="test",
+                                                    full_name="test user",
+                                                    homedir="/home/test/",
+                                                    last_logon=250))
+    self.kb.os = "Linux"
+    fd.AddAttribute(fd.Schema.KNOWLEDGE_BASE, self.kb)
+    fd.Flush()
+
     self.MockClientMountPointsWithImage(os.path.join(self.base_path,
                                                      "test_img.dd"))
     self.client_mock = test_lib.ActionMock(
@@ -149,7 +159,8 @@ class TestWebHistoryWithArtifacts(artifact_test.ArtifactTestHelper):
   def testChrome(self):
     """Check we can run WMI based artifacts."""
     fd = self.RunCollectorAndGetCollection(
-        ["ChromeHistory"], client_mock=self.client_mock, use_tsk=True)
+        ["ChromeHistory"], client_mock=self.client_mock, use_tsk=True,
+        knowledge_base=self.kb)
     self.assertEquals(len(fd), 71)
     self.assertTrue("/home/john/Downloads/funcats_scr.exe" in
                     [d.download_path for d in fd])

@@ -47,3 +47,17 @@ class DpkgCmdParser(parsers.CommandParser):
                                        version=version, architecture=arch,
                                        install_state=status)
 
+
+class UserParser(parsers.GenericResponseParser):
+  """Convert User to KnowledgeBaseUser for backwards compatibility."""
+
+  output_types = ["KnowledgeBaseUser"]
+  supported_artifacts = ["LinuxUserProfiles"]
+
+  def Parse(self, user, knowledge_base):
+    _ = knowledge_base
+    if isinstance(user, rdfvalue.User):
+      yield user.ToKnowledgeBaseUser()
+    else:
+      yield user
+

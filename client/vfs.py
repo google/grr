@@ -327,4 +327,3 @@ def ReadVFS(pathspec, offset, length):
   fd = VFSOpen(pathspec)
   fd.Seek(offset)
   return fd.Read(length)
-

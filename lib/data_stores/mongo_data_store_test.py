@@ -15,10 +15,14 @@ from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.data_stores import mongo_data_store
 
+# pylint: mode=test
+
 
 class MongoTestMixin(object):
+  """A mixin for Mongo tests."""
 
   def InitTable(self):
+    """Initializes the data store."""
     self.token = access_control.ACLToken(username="test",
                                          reason="Running tests")
     config_lib.CONFIG.Set("Mongo.db_name", "grr_test_%s" %
@@ -31,6 +35,7 @@ class MongoTestMixin(object):
     data_store.DB.db_handle.drop_collection(data_store.DB.versioned_collection)
 
   def testCorrectDataStore(self):
+    """Makes sure the correct implementation is tested."""
     self.assertTrue(isinstance(data_store.DB, mongo_data_store.MongoDataStore))
 
 

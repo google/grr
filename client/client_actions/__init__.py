@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc. All Rights Reserved.
-
 """A module to load all client plugins."""
 
 

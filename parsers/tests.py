@@ -12,5 +12,6 @@ from grr.parsers import osx_file_parser_test
 from grr.parsers import osx_launchd_test
 from grr.parsers import osx_quarantine_test
 from grr.parsers import sqlite_file_test
+from grr.parsers import volatility_artifact_parser_test
 from grr.parsers import windows_persistence_test
 from grr.parsers import windows_registry_parser_test

@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """Widgets for advanced display of files."""
 
 
@@ -92,6 +90,7 @@ right: 0; bottom: 0; left: 0"></div> """ + table_jquery_template + """
     encoder = json.JSONEncoder()
     data = [ord(x) for x in self.ReadBuffer(
         request, offset, row_count * self.table_width)]
+
     response = dict(offset=offset, values=data)
     response["total_size"] = self.total_size
 

@@ -244,54 +244,92 @@ class HashFileStore(FileStore):
     return None
 
   @staticmethod
-  def ListHashes(token=None):
+  def ListHashes(token=None, age=aff4.NEWEST_TIME):
     """Yields all the hashes in the file store.
 
     Args:
       token: Security token, instance of ACLToken.
+      age: AFF4 age specification. Only get hits corresponding to the given
+           age spec. Should be aff4.NEWEST_TIME or a time range given as a
+           tuple (start, end) in microseconds since Jan 1st, 1970. If just
+           a microsends value is given it's treated as the higher end of the
+           range, i.e. (0, age). See aff4.FACTORY.ParseAgeSpecification for
+           details.
 
     Yields:
       FileStoreHash instances corresponding to all the hashes in the file store.
+
+    Raises:
+      ValueError: if age was set to aff4.ALL_TIMES.
     """
+    if age == aff4.ALL_TIMES:
+      raise ValueError("age==aff4.ALL_TIMES is not allowed.")
+
     urns = []
     for fingerprint_type in HashFileStore.FINGERPRINT_TYPES:
       for hash_type in HashFileStore.HASH_TYPES:
         urns.append(HashFileStore.PATH.Add(fingerprint_type).Add(hash_type))
 
-    for _, values in aff4.FACTORY.MultiListChildren(urns, token=token):
+    for _, values in aff4.FACTORY.MultiListChildren(urns, token=token, age=age):
       for value in values:
         yield rdfvalue.FileStoreHash(value)
 
   @staticmethod
-  def GetHitsForHash(hash_obj, token=None):
+  def GetHitsForHash(hash_obj, token=None, age=aff4.NEWEST_TIME):
     """Yields hash_hits for the specified file store hash.
 
     Args:
       hash_obj: FileStoreHash instance that we want to get hits for.
-      token: security token.
+      token: Security token.
+      age: AFF4 age specification. Only get hits corresponding to the given
+           age spec. Should be aff4.NEWEST_TIME or a time range given as a
+           tuple (start, end) in microseconds since Jan 1st, 1970. If just
+           a microsends value is given it's treated as the higher end of the
+           range, i.e. (0, age). See aff4.FACTORY.ParseAgeSpecification for
+           details.
 
     Yields:
       RDFURNs corresponding to a file that has the hash.
+
+    Raises:
+      ValueError: if age was set to aff4.ALL_TIMES.
     """
-    results = HashFileStore.GetHitsForHashes([hash_obj], token=token)
+
+    if age == aff4.ALL_TIMES:
+      raise ValueError("age==aff4.ALL_TIMES is not allowed.")
+
+    results = HashFileStore.GetHitsForHashes([hash_obj], token=token, age=age)
     for _, hash_hits in results:
       for hash_hit in hash_hits:
         yield hash_hit
 
   @staticmethod
-  def GetHitsForHashes(hashes, token=None):
+  def GetHitsForHashes(hashes, token=None, age=aff4.NEWEST_TIME):
     """Yields (hash, hash_hit) pairs for all the specified hashes.
 
     Args:
       hashes: List of FileStoreHash instances.
-      token: security token.
+      token: Security token.
+      age: AFF4 age specification. Only get hits corresponding to the given
+           age spec. Should be aff4.NEWEST_TIME or a time range given as a
+           tuple (start, end) in microseconds since Jan 1st, 1970. If just
+           a microsends value is given it's treated as the higher end of the
+           range, i.e. (0, age). See aff4.FACTORY.ParseAgeSpecification for
+           details.
 
     Yields:
       (hash, hash_hit) tuples, where hash is FileStoreHash instance and
       hash_hit is an RDFURN corresponding to a file that has the hash.
+
+    Raises:
+      ValueError: if age was set to aff4.ALL_TIMES.
     """
+    if age == aff4.ALL_TIMES:
+      raise ValueError("age==aff4.ALL_TIMES is not allowed.")
+    timestamp = aff4.FACTORY.ParseAgeSpecification(age)
+
     for hash_obj, hash_hits in data_store.DB.MultiResolveRegex(
-        hashes, "index:target:.*", token=token):
+        hashes, "index:target:.*", token=token, timestamp=timestamp):
       yield (rdfvalue.FileStoreHash(hash_obj),
              [hit_urn for _, hit_urn, _ in hash_hits])
 

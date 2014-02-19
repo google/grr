@@ -107,7 +107,12 @@ class WinUserSids(parsers.RegistryParser):
       kb_user = rdfvalue.KnowledgeBaseUser()
       kb_user.sid = sid_str
       if stat.pathspec.Basename() == "ProfileImagePath":
-        kb_user.homedir = stat.registry_data.GetValue()
+        if stat.resident:
+          # Support old clients.
+          kb_user.homedir = utils.SmartUnicode(stat.resident)
+        else:
+          kb_user.homedir = stat.registry_data.GetValue()
+
         kb_user.userprofile = kb_user.homedir
         try:
           # Assume username is the last component of the path. This is not

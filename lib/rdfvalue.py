@@ -402,8 +402,7 @@ class RDFDatetime(RDFInteger):
 
   def __str__(self):
     """Return the date in human readable (UTC)."""
-    value = self._value / self.converter
-    return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(value))
+    return self.Format("%Y-%m-%d %H:%M:%S")
 
   def __unicode__(self):
     return utils.SmartUnicode(str(self))

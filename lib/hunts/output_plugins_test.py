@@ -36,8 +36,7 @@ class OutputPluginsTest(test_lib.FlowTestsBaseclass):
         client_rate=0, token=self.token) as hunt:
       hunt.Run()
 
-      for client_id in self.client_ids:
-        hunt.StartClient(hunt.session_id, client_id)
+      hunt.StartClients(hunt.session_id, self.client_ids)
 
       # Run the hunt.
       client_mock = test_lib.SampleHuntMock()
@@ -77,8 +76,7 @@ class OutputPluginsTest(test_lib.FlowTestsBaseclass):
                                    mode="rw", token=self.token)
 
       self.client_ids = self.SetupClients(40)
-      for client_id in self.client_ids:
-        hunt_obj.StartClient(hunt_obj.session_id, client_id)
+      hunt_obj.StartClients(hunt_obj.session_id, self.client_ids)
 
       # Run the hunt.
       client_mock = test_lib.SampleHuntMock()

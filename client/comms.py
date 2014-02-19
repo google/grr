@@ -850,7 +850,6 @@ class GRRHTTPClient(object):
         payload.queue_size = self.client_worker.InQueueSize()
 
       nonce = self.communicator.EncodeMessages(message_list, payload)
-
       response = self.MakeRequest(payload.SerializeToString(), status)
       if status.code != 200:
         logging.info("%s: Could not connect to server at %s, status %s (%s)",

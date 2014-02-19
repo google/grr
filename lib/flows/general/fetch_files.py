@@ -16,7 +16,19 @@ class FetchFilesArgs(rdfvalue.RDFProtoStruct):
 
 
 class FetchFiles(flow.GRRFlow):
-  """This flow globs for files, computes their hashes, and fetches 'new' files.
+  """This flow downloads files from clients based on a file path glob.
+
+  e.g. this glob will download any files under the environment directory with
+  the basename "notepad" and any extension:
+
+  %%KnowledgeBase.environ_windir%%/**notepad.*
+
+  The default ** recursion depth is 3 levels, and can be modified using a number
+  after the ** like this:
+
+  %%KnowledgeBase.environ_windir%%/**10notepad.*
+
+  Files are de-duplicated to save client side bandwidth.
 
   The result from this flow is a population of aff4 objects under
   aff4:/filestore/hash/(generic|pecoff)/<hashname>/<hashvalue>.

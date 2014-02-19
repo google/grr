@@ -48,6 +48,15 @@ message KnowledgeBaseUser {
         "c:\\Documents and Settings\\foo\\Desktop",
     }];
 
+  optional uint64 last_logon = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The last logon time for this user."
+    }];
+
+  optional string full_name = 6 [(sem_type) = {
+      description: "Full name of the user."
+    }];
+
   // Windows specific values.
   optional string userdomain = 10 [(sem_type) = {
       description: "The domain name of the user. E.g. MICROSOFT.",
@@ -192,11 +201,6 @@ message KnowledgeBase {
   optional string environ_systemdrive = 24 [(sem_type) = {
       description: "The value of the %SystemDrive% parameter. As returned by "
         "the system, e.g. C:",
-    }];
-
-  optional string environ_system = 25 [(sem_type) = {
-      description: "The value of the %System% parameter. As returned by "
-        "the system, e.g. C:\\windows\\system32",
     }];
 
   optional string environ_allusersprofile = 26 [(sem_type) = {

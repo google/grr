@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-"""Configuration parameters for server side subsystems."""
-
-import os
+"""Configuration parameters for the server side subsystems."""
 
 from grr.lib import config_lib
 from grr.lib import rdfvalue
@@ -32,7 +30,6 @@ config_lib.DEFINE_string("Worker.smtp_server", "localhost",
                          "The smpt server for sending email alerts.")
 
 config_lib.DEFINE_integer("Worker.smtp_port", 25, "The smtp server port.")
-
 
 # Server Cryptographic settings.
 config_lib.DEFINE_semantic(
@@ -145,29 +142,6 @@ config_lib.DEFINE_string(
     "The SSL key to use. The key may also be part of the cert file, in which "
     "case this can be omitted.")
 
-config_lib.DEFINE_list(
-    "Artifacts.artifact_dirs",
-    [os.path.normpath(os.path.dirname(__file__) + "/../../grr/artifacts")],
-    "A list directories to load artifacts from.")
 
-
-config_lib.DEFINE_list("Artifacts.knowledge_base",
-                       ["AllUsersAppDataEnvironmentVariable",
-                        "AllUsersProfileEnvironmentVariable",
-                        "CurrentControlSet",
-                        "ProgramFiles",
-                        "ProgramFilesx86",
-                        "SystemDriveEnvironmentVariable",
-                        "SystemRoot",
-                        "TempEnvironmentVariable",
-                        "UserShellFolders",
-                        "WinCodePage",
-                        "WinDirEnvironmentVariable",
-                        "WinDomainName",
-                        "WinPathEnvironmentVariable",
-                        "WinTimeZone",
-                        "WindowsRegistryProfiles",
-                        "WindowsWMIProfileUsers"],
-                       "List of artifacts that are collected regularly by"
-                       " interrogate and used for interpolation of client-side"
-                       " variables. Includes artifacts for all supported OSes.")
+config_lib.DEFINE_string("Server.master_watcher_class", "DefaultMasterWatcher",
+                         "The master watcher class to use.")

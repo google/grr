@@ -41,9 +41,9 @@ def DEFINE_float(longopt, default, help):
                       help=help)
 
 
-def DEFINE_enum(longopt, default, choices, help):
+def DEFINE_enum(longopt, default, choices, help, type=unicode):
   PARSER.add_argument("--%s" % longopt, default=default, choices=choices,
-                      type="choice", help=help)
+                      type=type, help=help)
 
 
 class ListParser(argparse.Action):

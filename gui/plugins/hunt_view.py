@@ -251,8 +251,8 @@ class HuntTable(fileview.AbstractFileTable):
     self.AddColumn(semantic.RDFValueColumn("Description", width="100%"))
 
   def Layout(self, request, response):
-    super(HuntTable, self).Layout(request, response)
-    return self.CallJavascript(response, "Layout")
+    response = super(HuntTable, self).Layout(request, response)
+    return self.CallJavascript(response, "HuntTable.Layout")
 
   def BuildTable(self, start_row, end_row, request):
     fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=request.token)

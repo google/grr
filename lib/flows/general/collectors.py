@@ -234,9 +234,11 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         elif action_name == "RunCommand":
           self.RunCommand(collector)
         elif action_name == "GetFile":
-          self.GetFiles(collector, path_type=self.state.path_type)
+          self.GetFiles(collector, self.state.path_type)
         elif action_name == "GetFiles":
-          self.GetFiles(collector, path_type=self.state.path_type)
+          self.GetFiles(collector, self.state.path_type)
+        elif action_name == "Grep":
+          self.Grep(collector, self.state.path_type)
         elif action_name == "ListFiles":
           self.Glob(collector, self.state.path_type)
         elif action_name == "GetRegistryKeys":
@@ -292,19 +294,35 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def Glob(self, collector, pathtype):
     """Glob paths, return StatEntry objects."""
-    new_path_list = []
-    for path in collector.args["path_list"]:
-      # Interpolate any attributes from the knowledgebase.
-      new_path_list.extend(artifact_lib.InterpolateKbAttributes(
-          path, self.state.knowledge_base))
-
     self.CallFlow(
-        "Glob", paths=new_path_list,
+        "Glob", paths=self.InterpolateList(collector.args.get("path_list", [])),
         pathtype=pathtype,
         request_data={"artifact_name": self.current_artifact_name,
                       "collector": collector.ToPrimitiveDict()},
         next_state="ProcessCollected"
         )
+
+  def Grep(self, collector, pathtype):
+    """Grep files in path_list for any matches to content_regex_list."""
+    path_list = self.InterpolateList(collector.args.get("path_list", []))
+    content_regex_list = self.InterpolateList(
+        collector.args.get("content_regex_list", []))
+
+    filters = []
+    for regex in content_regex_list:
+      regexfilter = rdfvalue.FileFinderContentsRegexMatchFilter(regex=regex,
+                                                                bytes_before=0,
+                                                                bytes_after=0)
+      file_finder_filter = rdfvalue.FileFinderFilter(
+          filter_type=rdfvalue.FileFinderFilter.Type.CONTENTS_REGEX_MATCH,
+          contents_regex_match=regexfilter)
+      filters.append(file_finder_filter)
+
+    self.CallFlow("FileFinder", paths=path_list, filters=filters,
+                  action=rdfvalue.FileFinderAction(), pathtype=pathtype,
+                  request_data={"artifact_name": self.current_artifact_name,
+                                "collector": collector.ToPrimitiveDict()},
+                  next_state="ProcessCollected")
 
   def GetRegistryValue(self, collector):
     """Retrieve directly specified registry values, returning Stat objects."""
@@ -371,16 +389,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def VolatilityPlugin(self, collector):
     """Run a Volatility Plugin."""
-    new_args = {}
-    for k, v in collector.args["args"]:  # Interpolate string attrs into args.
-      if isinstance(v, basestring):
-        new_args[k] = artifact_lib.InterpolateKbAttributes(
-            v, self.state.knowledge_base)
-      else:
-        new_args[k] = v
-
     request = rdfvalue.VolatilityRequest()
-    request.args[collector.args["plugin"]] = new_args
+    request.args[collector.args["plugin"]] = self.InterpolateDict(
+        collector.args.get("args", {}))
 
     self.CallFlow(
         "AnalyzeClientMemory", request=request,
@@ -390,6 +401,51 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         next_state="ProcessCollected"
         )
 
+  def _GetSingleExpansion(self, value):
+    results = list(artifact_lib.InterpolateKbAttributes(
+        value, self.state.knowledge_base))
+    if len(results) > 1:
+      raise ValueError("Interpolation generated multiple results, use a"
+                       " list for multi-value expansions. %s yielded: %s" %
+                       (value, results))
+    return results[0]
+
+  def InterpolateDict(self, input_dict):
+    """Interpolate all items from a dict.
+
+    Args:
+      input_dict: dict to interpolate
+    Returns:
+      original dict with all string values interpolated
+    """
+    new_args = {}
+    for key, value in input_dict.items():
+      if isinstance(value, basestring):
+        new_args[key] = self._GetSingleExpansion(value)
+      elif isinstance(value, list):
+        new_args[key] = self.InterpolateList(value)
+      else:
+        new_args[key] = value
+    return new_args
+
+  def InterpolateList(self, input_list):
+    """Interpolate all items from a given collector array.
+
+    Args:
+      input_list: list of values to interpolate
+    Returns:
+      original list of values extended with strings interpolated
+    """
+    new_args = []
+    for value in input_list:
+      if isinstance(value, basestring):
+        results = list(artifact_lib.InterpolateKbAttributes(
+            value, self.state.knowledge_base))
+        new_args.extend(results)
+      else:
+        new_args.extend(value)
+    return new_args
+
   def RunGrrClientAction(self, collector):
     """Call a GRR Client Action."""
     self.CallClient(
@@ -397,8 +453,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         request_data={"artifact_name": self.current_artifact_name,
                       "collector": collector.ToPrimitiveDict()},
         next_state="ProcessCollected",
-        **collector.args.get("action_args", {})
-        )
+        **self.InterpolateDict(collector.args.get("action_args", {})))
 
   @flow.StateHandler(next_state="ProcessCollected")
   def ProcessRegistryValue(self, responses):
@@ -463,8 +518,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                                  artifact_name, collector)
       else:
         # We don't have any defined processors for this artifact.
-        self._ParseResponses(None, response, responses,
-                             artifact_name, collector)
+        self._ParseResponses(None, response, responses, artifact_name,
+                             collector)
 
     # If we were saving responses, process them now:
     for processor_name, responses_list in saved_responses.items():
@@ -486,16 +541,40 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     Args:
       responses: Response objects from the artifact collector.
+    Raises:
+      RuntimeError: if pathspec value is not a PathSpec instance and not
+                    a basestring.
     """
     self.download_list = []
     collector = responses.request_data.GetItem("collector")
-    pathspec_attribute = collector["args"]["pathspec_attribute"]
+    pathspec_attribute = collector["args"].get("pathspec_attribute", None)
 
     for response in responses:
-      if response.HasField(pathspec_attribute):
-        self.download_list.append(response.Get(pathspec_attribute))
+      if pathspec_attribute:
+        if response.HasField(pathspec_attribute):
+          pathspec = response.Get(pathspec_attribute)
+        else:
+          self.Log("Missing pathspec field %s: %s", pathspec_attribute,
+                   response)
+          continue
       else:
-        self.Log("Missing pathspec field: %s", pathspec_attribute)
+        pathspec = response
+
+      if isinstance(pathspec, basestring):
+        pathspec = rdfvalue.PathSpec(path=pathspec)
+        if self.args.use_tsk:
+          pathspec.pathtype = rdfvalue.PathSpec.PathType.TSK
+        else:
+          pathspec.pathtype = rdfvalue.PathSpec.PathType.OS
+        self.download_list.append(pathspec)
+
+      elif isinstance(pathspec, rdfvalue.PathSpec):
+        self.download_list.append(pathspec)
+
+      else:
+        raise RuntimeError(
+            "Response must be a string path, a pathspec, or have "
+            "pathspec_attribute set. Got: %s" % pathspec)
 
     if self.download_list:
       request_data = responses.request_data.ToDict()
@@ -579,7 +658,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
       elif isinstance(processor_obj, (parsers.RegistryParser,
                                       parsers.VolatilityPluginParser,
-                                      parsers.RegistryValueParser)):
+                                      parsers.RegistryValueParser,
+                                      parsers.GenericResponseParser,
+                                      parsers.GrepParser)):
         result_iterator = parse_method(responses, self.state.knowledge_base)
 
       elif isinstance(processor_obj, (parsers.ArtifactFilesParser)):

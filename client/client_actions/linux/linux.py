@@ -20,7 +20,6 @@ from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import utils
 
-
 # struct sockaddr_ll
 #   {
 #     unsigned short int sll_family;
@@ -197,8 +196,18 @@ class UtmpStruct(utils.Struct):
 
 
 class EnumerateUsers(actions.ActionPlugin):
-  """Enumerates all the users on this system."""
-  out_rdfvalue = rdfvalue.User
+  """Enumerates all the users on this system.
+
+  While wtmp can be collected and parsed server-side using artifacts, we keep
+  this client action to avoid collecting every wtmp on every interrogate, and to
+  allow for the metadata (homedir) expansion to occur on the client, where we
+  have access to LDAP.
+
+  This client action used to return rdfvalue.User.  To allow for backwards
+  compatibility we expect it to be called via the LinuxUserProfiles artifact and
+  we convert User to KnowledgeBaseUser in the artifact parser on the server.
+  """
+  out_rdfvalue = rdfvalue.KnowledgeBaseUser
 
   def ParseWtmp(self):
     """Parse wtmp and extract the last logon time."""

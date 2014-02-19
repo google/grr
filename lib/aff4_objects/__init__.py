@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """AFF4 Implementations."""
 
 
@@ -14,7 +13,6 @@ from grr.lib.aff4_objects import cronjobs
 from grr.lib.aff4_objects import filestore
 from grr.lib.aff4_objects import filetypes
 from grr.lib.aff4_objects import filters
-from grr.lib.aff4_objects import hunts
 from grr.lib.aff4_objects import network
 from grr.lib.aff4_objects import security
 from grr.lib.aff4_objects import software

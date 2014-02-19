@@ -218,7 +218,7 @@ class LinSystemActivityInvestigation(flow.GRRFlow):
       type_info.MultiSelectList(
           name="artifact_list",
           description="A list of Artifact names.",
-          default=["AuthLog", "Wtmp"],
+          default=["AuthLog", "LinuxWtmp"],
           ),
       type_info.Bool(
           name="use_tsk",

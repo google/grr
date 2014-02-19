@@ -90,3 +90,26 @@ def SearchClients(query_string, start=0, max_results=1000, token=None):
       result_iterators.append(label_matches)
 
   return itertools.chain(*result_iterators)
+
+
+def GetClientURNsForHostnames(hostnames, token=None):
+  """Gets all client_ids for a given list of hostnames or FQDNS.
+
+  Args:
+    hostnames: A list of hostnames / FQDNs.
+    token: An ACL token.
+  Returns:
+    A dict with a list of all known GRR client_ids for each hostname.
+  """
+
+  client_schema = aff4.AFF4Object.classes["VFSGRRClient"].SchemaCls
+  index_urn = client_schema.client_index
+  index = aff4.FACTORY.Create(index_urn, aff4_type="AFF4Index",
+                              mode="rw", token=token)
+  hostname = aff4.AFF4Object.classes["VFSGRRClient"].SchemaCls.HOSTNAME
+  fqdn = aff4.AFF4Object.classes["VFSGRRClient"].SchemaCls.FQDN
+  result = {}
+  query_result = index.MultiQuery([hostname, fqdn], hostnames)
+  for hostname, urns in query_result.iteritems():
+    result[hostname] = [rdfvalue.ClientURN(urn) for urn in urns]
+  return result

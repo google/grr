@@ -15,6 +15,7 @@ from grr.gui.plugins import crash_view
 from grr.gui.plugins import fileview
 from grr.gui.plugins import forms
 from grr.gui.plugins import semantic
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
@@ -63,8 +64,11 @@ class FlowTree(renderers.TreeRenderer):
       # If a flow is tagged as AUTHORIZED_LABELS, the user must have the correct
       # label to see it.
       if cls.AUTHORIZED_LABELS:
-        if not data_store.DB.security_manager.CheckUserLabels(
-            request.token.username, cls.AUTHORIZED_LABELS, token=request.token):
+        try:
+          data_store.DB.security_manager.CheckUserLabels(
+              request.token.username, cls.AUTHORIZED_LABELS,
+              token=request.token)
+        except access_control.UnauthorizedAccess:
           continue
 
       # Skip if there are behaviours that are not supported by the class.
@@ -649,7 +653,6 @@ class ListFlowsTable(renderers.TableRenderer):
     flow_root = aff4.FACTORY.Open(flow_urn, mode="r", token=request.token)
     root_children_paths = sorted(flow_root.ListChildren(),
                                  key=lambda x: x.age, reverse=True)
-    self.size = len(root_children_paths)
 
     if not depth:
       root_children_paths = root_children_paths[start_row:end_row]
@@ -660,6 +663,8 @@ class ListFlowsTable(renderers.TableRenderer):
                            reverse=True)
     level2_children = dict(aff4.FACTORY.MultiListChildren(
         [f.urn for f in root_children], token=request.token))
+
+    self.size = len(root_children)
 
     row_index = start_row
     for flow_obj in root_children:

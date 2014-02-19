@@ -53,6 +53,22 @@ class DummySystemCronJob(cronjobs.SystemCronFlow):
     self.CallState(next_state="End")
 
 
+class DummyStatefulSystemCronJob(cronjobs.StatefulSystemCronFlow):
+  """Dummy stateful system cron job."""
+
+  VALUES = []
+
+  @flow.StateHandler()
+  def Start(self):
+    state = self.ReadCronState()
+    value = state.get("value", default=0)
+
+    DummyStatefulSystemCronJob.VALUES.append(value)
+
+    state.Register("value", value + 1)
+    self.WriteCronState(state)
+
+
 class CronTest(test_lib.GRRBaseTest):
   """Tests for cron functionality."""
 
@@ -210,7 +226,7 @@ class CronTest(test_lib.GRRBaseTest):
     self.assertEqual(len(cron_job_flows), 1)
 
   def testCronJobRunDoesNothingIfDueTimeHasNotComeYet(self):
-    with test_lib.Stubber(time, "time", lambda: 0):
+    with test_lib.FakeTime(0):
       cron_manager = cronjobs.CronManager()
       cron_args = rdfvalue.CreateCronJobFlowArgs(
           allow_overruns=False, periodicity="1h")
@@ -239,7 +255,7 @@ class CronTest(test_lib.GRRBaseTest):
       self.assertEqual(len(cron_job_flows), 1)
 
   def testCronJobRunPreventsOverrunsWhenAllowOverrunsIsFalse(self):
-    with test_lib.Stubber(time, "time", lambda: 0):
+    with test_lib.FakeTime(0):
       cron_manager = cronjobs.CronManager()
       cron_args = rdfvalue.CreateCronJobFlowArgs(
           allow_overruns=False, periodicity="1h")
@@ -270,7 +286,7 @@ class CronTest(test_lib.GRRBaseTest):
       self.assertEqual(len(cron_job_flows), 1)
 
   def testCronJobRunAllowsOverrunsWhenAllowOverrunsIsTrue(self):
-    with test_lib.Stubber(time, "time", lambda: 0):
+    with test_lib.FakeTime(0):
       cron_manager = cronjobs.CronManager()
       cron_args = rdfvalue.CreateCronJobFlowArgs(
           allow_overruns=True, periodicity="1h")
@@ -320,7 +336,7 @@ class CronTest(test_lib.GRRBaseTest):
     self.assertEqual(len(cron_jobs), 0)
 
   def testKillOldFlows(self):
-    with test_lib.Stubber(time, "time", lambda: 0):
+    with test_lib.FakeTime(0):
       cron_manager = cronjobs.CronManager()
       cron_args = rdfvalue.CreateCronJobFlowArgs()
       cron_args.flow_runner_args.flow_name = "FakeCronJob"
@@ -343,7 +359,7 @@ class CronTest(test_lib.GRRBaseTest):
         "cron_job_latency", fields=[cron_job_urn.Basename()])
 
     # Fast foward one day
-    with test_lib.Stubber(time, "time", lambda: 24*60*60 + 1):
+    with test_lib.FakeTime(24*60*60 + 1):
       flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
 
       cron_manager.RunOnce(token=self.token)
@@ -398,7 +414,7 @@ class CronTest(test_lib.GRRBaseTest):
     self.assertEqual(current_metric_value - prev_metric_value, 1)
 
   def testLatencyStatsAreCorrectlyRecorded(self):
-    with test_lib.Stubber(time, "time", lambda: 0):
+    with test_lib.FakeTime(0):
       cron_manager = cronjobs.CronManager()
       cron_args = rdfvalue.CreateCronJobFlowArgs()
       cron_args.flow_runner_args.flow_name = "FakeCronJob"
@@ -413,7 +429,7 @@ class CronTest(test_lib.GRRBaseTest):
         "cron_job_latency", fields=[cron_job_urn.Basename()])
 
     # Fast foward one minute
-    with test_lib.Stubber(time, "time", lambda: 60):
+    with test_lib.FakeTime(60):
       cron_manager.RunOnce(token=self.token)
       cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
                                    token=self.token)
@@ -477,7 +493,7 @@ class CronTest(test_lib.GRRBaseTest):
                                              token=self.token)
 
     for fake_time in [0, 60]:
-      with test_lib.Stubber(time, "time", lambda: fake_time):
+      with test_lib.FakeTime(fake_time):
         # This call should start a new cron job flow
         cron_manager.RunOnce(token=self.token)
         cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
@@ -548,6 +564,27 @@ class CronTest(test_lib.GRRBaseTest):
     config_lib.CONFIG.Set("Cron.enabled_system_jobs", ["NonExistent"])
     self.assertRaises(KeyError, cronjobs.ScheduleSystemCronFlows,
                       token=self.token)
+
+  def testStatefulSystemCronFlowRaisesWhenRunningWithoutCronJob(self):
+    self.assertRaises(cronjobs.StateReadError, flow.GRRFlow.StartFlow,
+                      flow_name="DummyStatefulSystemCronJob",
+                      token=self.token)
+
+  def testStatefulSystemCronFlowMaintainsState(self):
+    DummyStatefulSystemCronJob.VALUES = []
+
+    config_lib.CONFIG.Set("Cron.enabled_system_jobs",
+                          ["DummyStatefulSystemCronJob"])
+    cronjobs.ScheduleSystemCronFlows(token=self.token)
+
+    flow.GRRFlow.StartFlow(flow_name="DummyStatefulSystemCronJob",
+                           token=self.token)
+    flow.GRRFlow.StartFlow(flow_name="DummyStatefulSystemCronJob",
+                           token=self.token)
+    flow.GRRFlow.StartFlow(flow_name="DummyStatefulSystemCronJob",
+                           token=self.token)
+
+    self.assertListEqual(DummyStatefulSystemCronJob.VALUES, [0, 1, 2])
 
 
 def main(argv):

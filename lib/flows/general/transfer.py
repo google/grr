@@ -262,12 +262,15 @@ class MultiGetFile(flow.GRRFlow):
         # Only Stat/Hash each path once, input pathspecs can have dups.
         unique_paths.add(vfs_urn)
 
-        self.CallClient("StatFile", pathspec=pathspec,
-                        next_state="StoreStat",
-                        request_data=dict(vfs_urn=vfs_urn))
-        self.CallClient("HashFile", pathspec=pathspec,
-                        next_state="ReceiveFileHash",
-                        request_data=dict(vfs_urn=vfs_urn))
+        self.StartFile(pathspec, vfs_urn)
+
+  def StartFile(self, pathspec, vfs_urn):
+    self.CallClient("StatFile", pathspec=pathspec,
+                    next_state="StoreStat",
+                    request_data=dict(vfs_urn=vfs_urn))
+    self.CallClient("HashFile", pathspec=pathspec,
+                    next_state="ReceiveFileHash",
+                    request_data=dict(vfs_urn=vfs_urn))
 
   @flow.StateHandler()
   def StoreStat(self, responses):
@@ -643,8 +646,8 @@ class TransferStore(flow.WellKnownFlow):
       fd.Set(fd.Schema.SIZE(len(data)))
       super(aff4.AFF4MemoryStream, fd).Close(sync=True)
 
-      logging.info("Got blob %s (length %s)", digest.encode("hex"),
-                   len(cdata))
+      logging.debug("Got blob %s (length %s)", digest.encode("hex"),
+                    len(cdata))
 
 
 class SendFile(flow.GRRFlow):
