@@ -515,9 +515,37 @@ class EmptyActionTest(GRRBaseTest):
     if arg is None:
       arg = rdfvalue.GrrMessage()
 
-    message = rdfvalue.GrrMessage(name=action_name,
-                                  payload=arg)
+    results = []
+
+    # A mock SendReply() method to collect replies.
+    def MockSendReply(self, reply=None, **kwargs):
+      if reply is None:
+        reply = self.out_rdfvalue(**kwargs)
+
+      results.append(reply)
+
+    message = rdfvalue.GrrMessage(name=action_name, payload=arg)
     action_cls = actions.ActionPlugin.classes[message.name]
+    with Stubber(action_cls, "SendReply", MockSendReply):
+      action = action_cls(message=message)
+      action.grr_worker = FakeClientWorker()
+      action.Run(arg)
+
+    return results
+
+  def ExecuteAction(self, action_name, arg=None):
+    """Run an action and generate responses.
+
+    Opposed to RunAction, this also runs the accounting and exception catching
+    code and returns GrrStatus messages along with the responses.
+
+    Args:
+       action_name: The action to run.
+       arg: A protobuf to pass the action.
+
+    Returns:
+      A list of response protobufs.
+    """
     results = []
 
     # Monkey patch a mock SendReply() method
@@ -527,15 +555,14 @@ class EmptyActionTest(GRRBaseTest):
 
       results.append(reply)
 
-    old_sendreply = action_cls.SendReply
-    try:
-      action_cls.SendReply = MockSendReply
-
+    authenticated = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
+    message = rdfvalue.GrrMessage(name=action_name, payload=arg,
+                                  auth_state=authenticated)
+    action_cls = actions.ActionPlugin.classes[message.name]
+    with Stubber(action_cls, "SendReply", MockSendReply):
       action = action_cls(message=message)
       action.grr_worker = FakeClientWorker()
-      action.Run(arg)
-    finally:
-      action_cls.SendReply = old_sendreply
+      action.Execute()
 
     return results
 

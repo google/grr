@@ -26,6 +26,7 @@ from grr.lib import type_info
 from grr.lib import utils
 
 from grr.lib.aff4_objects import security
+from grr.lib.aff4_objects import standard
 
 # Check if fuse is installed. If it's not, set it to None so we know to mock it
 # out later.
@@ -38,7 +39,7 @@ except (EnvironmentError, ImportError):
   # EnvironmentError when fuse isn't installed.
   fuse = None
 
-flags.DEFINE_string("aff4path", None,
+flags.DEFINE_string("aff4path", "/",
                     "Path in AFF4 to use as the root of the filesystem.")
 
 flags.DEFINE_string("mountpoint", None,
@@ -46,25 +47,33 @@ flags.DEFINE_string("mountpoint", None,
 
 flags.DEFINE_bool("background", False,
                   "Whether or not to run the filesystem in the background,"
-                  "not viewing debug information.")
+                  " not viewing debug information.")
 
 flags.DEFINE_float("timeout", 30,
                    "How long to poll a flow for before giving up.")
 
 flags.DEFINE_integer("max_age_before_refresh", 60*5,
-                     "Measured in seconds. Do a client-side update if it's "
-                     "been this long since we last did one.")
+                     "Measured in seconds. Do a client-side update if it's"
+                     " been this long since we last did one.")
 
 flags.DEFINE_bool("ignore_cache", False,
-                  "Disables cache completely. Takes priority over "
-                  "refresh_policy.")
+                  "Disables cache completely. Takes priority over"
+                  " refresh_policy.")
 
 flags.DEFINE_enum("refresh_policy", "if_older_than_max_age",
                   ["if_older_than_max_age", "always", "never"],
-                  "How to refresh the cache. Options are: always (on every "
-                  "client-side access), never, or, by default, "
-                  "if_older_than_max_age (if last accessed > max_age seconds "
-                  "ago).", type=str)
+                  "How to refresh the cache. Options are: always (on every"
+                  " client-side access), never, or, by default,"
+                  " if_older_than_max_age (if last accessed > max_age seconds"
+                  " ago).", type=str)
+
+flags.DEFINE_bool("force_sparse_image", False,
+                  "Whether to convert existing files bigger than the"
+                  " size threshold to new, empty AFF4SparseImages.")
+
+flags.DEFINE_integer("sparse_image_threshold", 1024*1024*1024,
+                     "If a client side file that's not in the datastore yet"
+                     " is >= than this size, then store it as a sparse image.")
 
 # The modes we'll use for aff4 objects that aren't really files.
 # Taken from /etc
@@ -91,6 +100,7 @@ class GRRFuseDatastoreOnly(object):
     try:
       logging.info("Making sure supplied aff4path actually exists....")
       self.getattr(root)
+      logging.info("OK")
     except fuse.FuseOSError:
       logging.info("Supplied aff4path didn't exist!")
       raise IOError("Supplied aff4 path '%s' does not exist." % self.root)
@@ -110,7 +120,7 @@ class GRRFuseDatastoreOnly(object):
     is_dir = "Container" in fd.behaviours
 
     return {
-        "pathspec": fd.urn.Path(),
+        "pathspec": fd.Get(fd.Schema.PATHSPEC, ""),
         "st_atime": fd.Get(fd.Schema.LAST, 0),
         "st_blksize": 0,
         "st_blocks": 0,
@@ -140,6 +150,9 @@ class GRRFuseDatastoreOnly(object):
 
     Yields:
       A generator of filenames.
+
+    Raises:
+      FuseOSError: If we try and list a file.
 
     """
     # We can't read a path if it's a file.
@@ -235,6 +248,10 @@ class GRRFuseDatastoreOnly(object):
     Returns:
       A string containing the file contents requested.
 
+    Raises:
+      FuseOSError: If we try and read a directory or if we try and read an
+      object that doesn't support reading.
+
     """
     if self._IsDir(path):
       raise fuse.FuseOSError(errno.EISDIR)
@@ -302,22 +319,36 @@ class GRRFuse(GRRFuseDatastoreOnly):
   """Interacts with the GRR clients to refresh data in the datastore."""
 
   def __init__(self, root="/", token=None, max_age_before_refresh=None,
-               ignore_cache=False, timeout=flow_utils.DEFAULT_TIMEOUT):
+               ignore_cache=False, force_sparse_image=False,
+               sparse_image_threshold=1024**3,
+               timeout=flow_utils.DEFAULT_TIMEOUT):
     """Create a new FUSE layer at the specified aff4 path.
 
     Args:
       root: String aff4 path for where we'd like to mount the FUSE layer.
+
       token: Datastore access token.
+
       max_age_before_refresh: How out of date our cache is. Specifically, if the
       time since we last did a client-side update of an aff4 object is greater
       than this value, we'll run a flow on the client and update that object.
+
       ignore_cache: If true, always refresh data from the client. Overrides
       max_age_before_refresh.
-      timeout: How long to wait for a client to finish running a flow, maximum.
 
+      force_sparse_image: Whether to try and store every file bigger than the
+      size threshold as a sparse image, regardless of whether we've already got
+      data for it.
+
+      sparse_image_threshold: If a new file is >= this size, store it
+      as an empty AFF4SparseImage.
+
+      timeout: How long to wait for a client to finish running a flow, maximum.
 
     """
 
+    self.size_threshold = sparse_image_threshold
+    self.force_sparse_image = force_sparse_image
     self.timeout = timeout
 
     if ignore_cache:
@@ -333,22 +364,50 @@ class GRRFuse(GRRFuseDatastoreOnly):
 
     super(GRRFuse, self).__init__(root, token)
 
-  def DataRefreshRequired(self, path):
-    """True if we need to update this path from the client."""
-    fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token,
-                           ignore_cache=True)
+  def DataRefreshRequired(self, path=None, last=None):
+    """True if we need to update this path from the client.
 
-    last = fd.Get(fd.Schema.LAST)
-    # If the object doesn't even have a LAST attribute, we say it hasn't been
-    # accessed within the cache expiry time.
+    Args:
+      path: The path relative to the root to check freshness of.
+      last: An aff4:last attribute to check freshness of.
+
+      At least one of path or last must be supplied.
+
+    Returns:
+      True if the path hasn't been updated in the last
+      self.max_age_before_refresh seconds, else False.
+
+    Raises:
+      type_info.TypeValueError: If no arguments are supplied.
+    """
+
+    # If we didn't get given a last attribute, use the path to get one from the
+    # object.
+    if last is None:
+      if path is None:
+        # If we didn't get a path either, we can't do anything.
+        raise type_info.TypeValueError("Either 'path' or 'last' must"
+                                       " be supplied as an argument.")
+      else:
+        fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token,
+                               ignore_cache=True)
+        # We really care about the last time the stat was updated, so we use
+        # this instead of the LAST attribute, which is the last time anything
+        # was updated about the object.
+        stat_obj = fd.Get(fd.Schema.STAT)
+        if stat_obj:
+          last = stat_obj.age
+        else:
+          last = rdfvalue.RDFDatetime(0)
+
+    # If the object doesn't even have a LAST attribute by this point,
+    # we say it hasn't been accessed within the cache expiry time.
     if last is None:
       return True
     last = last.AsDatetime()
 
     # Remember to use UTC time, since that's what the datastore uses.
     if datetime.datetime.utcnow() - last > self.max_age_before_refresh:
-      logging.debug("%s last updated at %s, refreshing cache...", path,
-                    last)
       return True
     return False
 
@@ -374,7 +433,7 @@ class GRRFuse(GRRFuseDatastoreOnly):
     flow_utils.UpdateVFSFileAndWait(
         client_id,
         token=self.token,
-        vfs_file_urn=rdfvalue.RDFURN(path),
+        vfs_file_urn=self.root.Add(path),
         timeout=self.timeout)
 
   def Readdir(self, path, fh=None):
@@ -388,24 +447,102 @@ class GRRFuse(GRRFuseDatastoreOnly):
       A list of filenames.
 
     """
-
     if self.DataRefreshRequired(path):
       self._RunAndWaitForVFSFileUpdate(path)
 
     return super(GRRFuse, self).Readdir(path, fh=None)
 
+  def GetMissingChunks(self, fd, length, offset):
+    """Return which chunks a file doesn't have.
+
+    Specifically, we return a list of the chunks specified by a
+    length-offset range which are not in the datastore.
+
+    Args:
+      fd: The database object to read chunks from.
+      length: Length to read.
+      offset: File offset to read from.
+
+    Returns:
+      A list of chunk numbers.
+    """
+    # Seek in the index for where the hashes of the specified length/offset
+    # should be.
+    start_chunk = offset / fd.chunksize
+    end_chunk = (offset + length) / fd.chunksize
+
+    missing_chunks = []
+    for chunk in xrange(start_chunk, end_chunk + 1):
+      try:
+        # pylint: disable=protected-access
+        chunk_name = fd._GetChunkForReading(chunk)
+        # pylint: enable=protected-access
+      except aff4.ChunkNotFoundError:
+        missing_chunks.append(chunk)
+      else:
+        chunk_last = chunk_name.Get(chunk_name.Schema.LAST)
+        if self.DataRefreshRequired(last=chunk_last):
+          missing_chunks.append(chunk)
+
+    return missing_chunks
+
+  def UpdateSparseImageIfNeeded(self, fd, length, offset):
+    missing_chunks = self.GetMissingChunks(fd, length, offset)
+    if not missing_chunks:
+      return
+
+    client_id = self.GetClientURNFromPath(fd.urn.Path())
+    flow_utils.StartFlowAndWait(client_id, token=self.token,
+                                flow_name="UpdateSparseImageChunks",
+                                file_urn=fd.urn,
+                                chunks_to_fetch=missing_chunks)
+
   def Read(self, path, length=None, offset=0, fh=None):
 
-    if self.DataRefreshRequired(path):
-      self._RunAndWaitForVFSFileUpdate(path)
+    fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token)
+    last = fd.Get(fd.Schema.CONTENT_LAST)
+    client_id = self.GetClientURNFromPath(path)
 
+    if isinstance(fd, standard.AFF4SparseImage):
+      # If we have a sparse image, update just a part of it.
+      self.UpdateSparseImageIfNeeded(fd, length, offset)
+    else:
+
+      # If it's the first time we've seen this path (or we're asking
+      # explicitly), try and make it an AFF4SparseImage.
+      if last is None or self.force_sparse_image:
+        pathspec = fd.Get(fd.Schema.PATHSPEC)
+
+        # Either makes a new AFF4SparseImage or gets the file fully,
+        # depending on size.
+        flow_utils.StartFlowAndWait(client_id, token=self.token,
+                                    flow_name="MakeNewAFF4SparseImage",
+                                    pathspec=pathspec,
+                                    size_threshold=self.size_threshold)
+
+        # Reopen the fd in case it's changed to be an AFF4SparseImage
+        fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token)
+        # If we are now a sparse image, just download the part we requested
+        # from the client.
+        if isinstance(fd, standard.AFF4SparseImage):
+          flow_utils.StartFlowAndWait(client_id, token=self.token,
+                                      flow_name="FetchBufferForSparseImage",
+                                      file_urn=self.root.Add(path),
+                                      length=length, offset=offset)
+      else:
+        # This was a file we'd seen before that wasn't a sparse image, so update
+        # it the usual way.
+        if self.DataRefreshRequired(last):
+          self._RunAndWaitForVFSFileUpdate(path)
+
+    # Read the file from the datastore as usual.
     return super(GRRFuse, self).Read(path, length, offset, fh)
 
 
 def Usage():
-  print "Needs at least --aff4path and --mountpoint"
-  print ("e.g. \n python grr/tools/fuse_mount.py"
-         "--config=grr/config/grr-server.yaml --aff4path=aff4:/"
+  print "Needs at least --mountpoint"
+  print ("e.g. \n python grr/tools/fuse_mount.py "
+         "--config=grr/config/grr-server.yaml "
          "--mountpoint=/home/%s/mntpoint"
          % getpass.getuser())
 
@@ -418,12 +555,12 @@ def main(unused_argv):
 
   if fuse is None:
     logging.critical("""Could not start!
-fusepy must be installed to runfuse_mount.py!
+fusepy must be installed to run fuse_mount.py!
 Try:
   sudo pip install fusepy""")
     sys.exit(1)
 
-  if not (flags.FLAGS.aff4path and flags.FLAGS.mountpoint):
+  if not flags.FLAGS.mountpoint:
     Usage()
     sys.exit(1)
 
@@ -466,18 +603,22 @@ Try:
     max_age_before_refresh = datetime.timedelta(datetime.timedelta.max)
   elif refresh_policy == "if_older_than_max_age":
     max_age_before_refresh = datetime.timedelta(
-        flags.FLAGS.max_age_before_refresh)
+        seconds=flags.FLAGS.max_age_before_refresh)
   else:
     # Otherwise, a flag outside the enum was given and the flag validator threw
     # an execption.
     pass
 
-  fuse.FUSE(FuseOperation(root=root,
-                          token=token,
-                          max_age_before_refresh=max_age_before_refresh,
-                          ignore_cache=flags.FLAGS.ignore_cache,
-                          timeout=flags.FLAGS.timeout),
-            flags.FLAGS.mountpoint,
+  fuse_operation = FuseOperation(
+      root=root,
+      token=token,
+      max_age_before_refresh=max_age_before_refresh,
+      ignore_cache=flags.FLAGS.ignore_cache,
+      force_sparse_image=flags.FLAGS.force_sparse_image,
+      sparse_image_threshold=flags.FLAGS.sparse_image_threshold,
+      timeout=flags.FLAGS.timeout)
+
+  fuse.FUSE(fuse_operation, flags.FLAGS.mountpoint,
             foreground=not flags.FLAGS.background)
 
 if __name__ == "__main__":

@@ -17,6 +17,16 @@ class SearchFileContentArgs(rdfvalue.RDFProtoStruct):
 class SearchFileContent(flow.GRRFlow):
   """A flow that runs a glob first and then issues a grep on the results.
 
+  DEPRECATED.
+  This flow is now deprecated in favor of FileFinder. To use FileFinder instead
+  of SearchFileContent:
+  Specify list of glob expressions corresponding to the files you want to
+  search in. Add conditions that will be applied to found files. You can
+  use "literal match" and "regex match" conditions. Set "action" to
+  "Stat" if you're just interested in matches, or "Download" if you want to
+  also download the matching files.
+  ------------------------------------------------------------------------------
+
   This flow can be used to search for files by specifying a filename glob.
   e.g. this glob will search recursively under the environment directory for
   files called notepad with any extension:
@@ -34,7 +44,7 @@ class SearchFileContent(flow.GRRFlow):
   category = "/Filesystem/"
   friendly_name = "Search In Files"
   args_type = rdfvalue.SearchFileContentArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
 
   @classmethod
   def GetDefaultArgs(cls, token=None):

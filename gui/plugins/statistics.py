@@ -86,6 +86,7 @@ class StatsTree(renderers.TreeRenderer):
 class Report(renderers.TemplateRenderer):
   """This is the base of all Statistic Reports."""
   category = None
+  SYSTEM_USERS = set(["GRRWorker", "GRREnroller", "GRRCron"])
 
   layout_template = renderers.Template("""
 <div class="padded">

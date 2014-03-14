@@ -17,7 +17,11 @@ from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
+from grr.lib.aff4_objects import standard
+
 from grr.tools import fuse_mount
+
+# pylint: mode=test
 
 
 class MockFuseOSError(OSError):
@@ -256,12 +260,95 @@ class GRRFuseTest(test_lib.FlowTestsBaseclass):
 
     return path
 
+  def testUpdateSparseImageChunks(self):
+    """Make sure the right chunks get updated when we read a sparse file."""
+    filename = "bigfile.txt"
+    path = os.path.join(self.temp_dir, filename)
+    contents = "bigdata!"* 1024 * 8 * 20
+    start_point = 1024 * 64 * 10
+
+    with open(path, "w") as f:
+      f.seek(start_point)
+      f.write(contents)
+
+    # Update the directory listing so we can see the file.
+    self.ListDirectoryOnClient(self.temp_dir)
+
+    # Backup the previous settings.
+    old_size_threshold = self.grr_fuse.size_threshold
+    old_max_age = self.grr_fuse.max_age_before_refresh
+
+    # Make sure the file is a sparse image (It's too small to fulfil the default
+    # size requirements).
+    self.grr_fuse.force_sparse_image = True
+    self.grr_fuse.size_threshold = 0
+
+    # Temporarily use cache so we can check which chunks are missing properly.
+    self.grr_fuse.max_age_before_refresh = datetime.timedelta(seconds=30)
+
+    self.assertEqual(self.grr_fuse.Read(self.ClientPathToAFF4Path(path),
+                                        length=len(contents),
+                                        offset=start_point),
+                     contents)
+
+    # Make sure it's an AFF4SparseImage
+    fd = aff4.FACTORY.Open(self.ClientPathToAFF4Path(path), token=self.token)
+    fd.Flush()
+    self.assertIsInstance(fd, standard.AFF4SparseImage)
+
+    missing_chunks = self.grr_fuse.GetMissingChunks(
+        fd,
+        # Subtract 1 so we don't overflow into the next chunk (30), which is of
+        # course missing.
+        length=len(contents) + start_point - 1,
+        offset=0)
+
+    # We don't have anything written before start_point,
+    # so we should say the chunks are missing.
+    self.assertSequenceEqual(missing_chunks, range(10))
+
+    # Now we read and make sure the contents are as we expect.
+    fuse_contents = self.grr_fuse.Read(self.ClientPathToAFF4Path(path),
+                                       length=len(contents),
+                                       offset=start_point)
+
+    self.assertEqual(fuse_contents, contents)
+
+    # Now, we'll write to the file in those previously missing chunks.
+    with open(path, "w+") as f:
+      f.seek(0)
+      f.write("Y" * (start_point))
+
+    # Expire the chunks so we update all of them.
+    self.grr_fuse.max_age_before_refresh = datetime.timedelta(seconds=0)
+    # After we read, there should be no missing chunks in the range from before.
+    # Note that we read from offset 0, not from start_point.
+    # We also only read halfway into the data from before.
+    fuse_contents = self.grr_fuse.Read(self.ClientPathToAFF4Path(path),
+                                       length=len(contents), offset=0)
+
+    # Put a cache time back on, all chunks should be not missing.
+    self.grr_fuse.max_age_before_refresh = datetime.timedelta(seconds=30)
+    missing_chunks = self.grr_fuse.GetMissingChunks(
+        fd,
+        # Subtract 1 so we don't overflow into the next chunk (30), which is of
+        # course missing.
+        length=len(contents) + start_point - 1,
+        offset=0)
+
+    self.assertFalse(missing_chunks)
+
+    # Reset all the flags we set earlier.
+    self.grr_fuse.force_sparse_image = False
+    self.grr_fuse.size_threshold = old_size_threshold
+    self.grr_fuse.max_age_before_refresh = old_max_age
+
   def testCacheExpiry(self):
 
-    cache_expiry_seconds = 5
+    max_age_before_refresh_seconds = 5
     # For this test only, actually set a cache expiry.
-    self.grr_fuse.cache_expiry = datetime.timedelta(
-        seconds=cache_expiry_seconds)
+    self.grr_fuse.max_age_before_refresh = datetime.timedelta(
+        seconds=max_age_before_refresh_seconds)
 
     # Make a new, uncached directory.
     new_dir = os.path.join(self.temp_dir, "new_caching_dir")
@@ -272,16 +359,16 @@ class GRRFuseTest(test_lib.FlowTestsBaseclass):
     self.grr_fuse.readdir(new_dir)
 
     # If we took too long to read the directory, make sure it expired.
-    if time.time() - start_time > cache_expiry_seconds:
+    if time.time() - start_time > max_age_before_refresh_seconds:
       self.assertTrue(self.grr_fuse.DataRefreshRequired(new_dir))
     else:
       # Wait for the cache to expire.
-      time.sleep(cache_expiry_seconds - (time.time() - start_time))
+      time.sleep(max_age_before_refresh_seconds - (time.time() - start_time))
       # Make sure it really expired.
       self.assertTrue(self.grr_fuse.DataRefreshRequired(new_dir))
 
     # Remove the temp cache expiry we set earlier.
-    self.grr_fuse.cache_expiry = datetime.timedelta(seconds=0)
+    self.grr_fuse.max_age_before_refresh = datetime.timedelta(seconds=0)
 
   def testClientSideUpdateDirectoryContents(self):
 

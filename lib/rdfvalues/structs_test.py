@@ -10,6 +10,8 @@ from grr.lib import type_info
 from grr.lib.rdfvalues import structs
 from grr.lib.rdfvalues import test_base
 
+# pylint: mode=test
+
 
 class TestStruct(structs.RDFProtoStruct):
   """A test struct object."""

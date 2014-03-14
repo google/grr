@@ -68,8 +68,14 @@ def SearchClients(query_string, start=0, max_results=1000, token=None):
 
     # Get the main results using wildcard matches.
     if indexed_attrs != [client_schema.LABEL]:
+      # If matching start or end of string, handle that explicitly.
+      wildcard_query = query_string
+      if not wildcard_query.startswith("^"):
+        wildcard_query = ".*%s" % wildcard_query
+      if not wildcard_query.endswith("$"):
+        wildcard_query = "%s.*" % wildcard_query
       search_results = index.Query(
-          indexed_attrs, ".*%s.*" % query_string, limit=(start, max_results))
+          indexed_attrs, wildcard_query, limit=(start, max_results))
       search_results = [rdfvalue.ClientURN(r) for r in search_results]
       result_iterators.append(search_results)
 

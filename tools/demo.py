@@ -2,6 +2,7 @@
 """This is a single binary demo program."""
 
 
+import os
 import threading
 
 
@@ -24,14 +25,21 @@ BASE_DIR = "grr/"
 
 def main(argv):
   """Sets up all the component in their own threads."""
-  # For testing we use the test config file.
   flags.FLAGS.config = config_lib.CONFIG["Test.config"]
 
   config_lib.CONFIG.AddContext(
       "Demo Context",
       "The demo runs all functions in a single process using the "
       "in memory data store.")
-  startup.TestInit()
+
+  config_lib.CONFIG.AddContext(
+      "Test Context", "Context applied when we run tests.")
+
+  flags.FLAGS.config = config_lib.CONFIG["Test.config"]
+  flags.FLAGS.secondary_configs = [
+      os.path.join(config_lib.CONFIG["Test.data_dir"], "grr_test.yaml")]
+
+  startup.Init()
 
   # pylint: disable=unused-import,unused-variable,g-import-not-at-top
   from grr.gui import gui_plugins

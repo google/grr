@@ -263,6 +263,23 @@ they are not currently released  (Mar 2013). If you are interested in this
 functionality please just email the devs and we can release it.
 
 
+Enabling SSL on the AdminUI.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The AdminUI supports SSL if it is configured. We don't currently generate
+certs to enable this by default as certificate management is messy, but you
+can enable by adding to your config something like:
+
+--------------------------------------------------------------------------------
+AdminUI.enable_ssl: True
+AdminUI.ssl_cert_file: "/etc/ssl/certs/grr.crt"
+AdminUI.ssl_key_file: "/etc/ssl/private/grr.plain.key"
+--------------------------------------------------------------------------------
+
+Note that SSL performance using this method may be average. If you have a lot
+of users and a single AdminUI, you may get better performance putting GRR behind
+an SSL reverse proxy such as Apache and letting it handle the SSL.
+
+
 GRR Security Checklist.
 ~~~~~~~~~~~~~~~~~~~~~~~
 .For all deployments
@@ -279,7 +296,7 @@ clients.
 - Run the http server serving clients on a separate machine to the workers.
 - Introduce a stronger AdminUI sign in mechanism and use the
 FullAccessControlManager.
-- Ensure the Administrative UI and it is SSL protected.
+- Ensure the Administrative UI is SSL protected
 - Ensure the database server is using strong passwords and is well protected.
 
 
@@ -328,8 +345,9 @@ The key issue with performance generally relates to how the server is deployed.
 - Additionally, you will probably want to run more than one worker. In a large
   deployment where you are running numerous hunts it makes sense to run 20+
   workers. As long as the datastore scales, the more workers you have the faster
-  things get done. Each worker will use 1 core maximum, so running up multiple
-  on the same box can make sense.
+  things get done. Each worker process will use 1 core maximum, so on multicore
+  boxes you will want to set the config setting Worker.worker_process_count to
+  something > 1.
 - Also, the frontend http server can be a significant bottleneck. By default we
   ship with a simple http server, but this is single process, written in python
   which means it may have thread lock issues. To get better performance you will

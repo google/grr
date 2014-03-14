@@ -724,6 +724,13 @@ class KeepAliveArgs(rdfvalue.RDFProtoStruct):
 class KeepAlive(flow.GRRFlow):
   """Requests that the clients stays alive for a period of time."""
 
+  # We already want to run this flow while waiting for a client approval.
+  # Note that this can potentially be abused to launch a DDOS attack against
+  # the frontend server(s) by putting all clients into fastpoll mode. The load
+  # of idle polling messages is not that high though and this can only be done
+  # by users that have a GRR account already so the risk is acceptable.
+  ACL_ENFORCED = False
+
   category = "/Administrative/"
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 

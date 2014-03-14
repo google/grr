@@ -1446,6 +1446,145 @@ to download to your computer.</p></div>
 </div>
 </div>
 <div class="sect1">
+<h2 id="_specifying_file_paths">Specifying File Paths</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Providing file names to flows is a core part of GRR, and many flows have been
+consolidated into the File Finder flow, which uses a glob+interpolation syntax.</p></div>
+<div class="sect2">
+<h3 id="_file_path_examples">File Path Examples</h3>
+<div class="paragraph"><p>All executables or dlls in the user&#8217;s download directory:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>%%users.homedir%%\Downloads\*.{exe,dll}</tt></pre>
+</div></div>
+<div class="paragraph"><p>All .evtx files found up to three directories under C:\Windows\System32\winevt:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>%%environ_systemroot%%\System32\winevt\**.evtx</tt></pre>
+</div></div>
+<div class="paragraph"><p>"findme.txt" files in user homedirs, up to 10 directories deep:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>%%users.homedir%%/**10/findme.txt</tt></pre>
+</div></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<img src="./images/icons/note.png" alt="Note" />
+</td>
+<td class="content">
+<div class="paragraph"><p>Either forward "/home/me" or backslash "C:\Users\me" path specifications are
+allowed for any target OS.  They will be converted to a common format
+internally.  We recommend using whatever is normal for the target OS: (backslash
+for Windows, fwdslash for OS X and Linux).</p></div>
+</td>
+</tr></table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_file_path_interpolation">File Path Interpolation</h3>
+<div class="paragraph"><p>GRR supports path interpolation from values in the artifact Knowledge Base.
+Interpolated values are enclosed with %%, and may expand to multiple elements.
+e.g.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>%%users.homedir%%\blah.txt</tt></pre>
+</div></div>
+<div class="paragraph"><p>Might expand to the following paths:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>C:\Users\alice\blah.txt, C:\Users\bob\blah.txt, C:\Users\eve\blah.txt</tt></pre>
+</div></div>
+<div class="paragraph"><p>A full list of possible interpolation values can be found by typing %% in the
+gui.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_path_globbing">Path Globbing</h3>
+<div class="paragraph"><p>Curly braces work similarly to bash, e.g:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>{one,two}.{txt,doc}</tt></pre>
+</div></div>
+<div class="paragraph"><p>Will match: one.txt, two.txt, one.doc, two.doc</p></div>
+<div class="paragraph"><p>Recursive searching of a directory is performed with **.  The default search
+depth is 3 directories.  So:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>/root/**.doc</tt></pre>
+</div></div>
+<div class="paragraph"><p>Will match:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>/root/blah.doc
+/root/1/something.doc
+/root/1/2/other.doc
+/root/1/2/3/another.doc</tt></pre>
+</div></div>
+<div class="paragraph"><p>More depth can be specified by adding a number to the **, e.g. this performs
+the same search 10 levels deep:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>/root/**10.doc</tt></pre>
+</div></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_grep_syntax">Grep Syntax</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>A number of GRR flows (such as File Finder and Memory Collector) accept Grep
+specifications, which are a powerful way to search file and memory contents.
+There are two types of grep syntax: literal and regex.</p></div>
+<div class="sect2">
+<h3 id="_literal_matches">Literal Matches</h3>
+<div class="paragraph"><p>Use this when you have a simple string to match, or want to match a byte string.
+Here&#8217;s a simple string example (note no quotes required):</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>allyourbase</tt></pre>
+</div></div>
+<div class="paragraph"><p>And a byte string example:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00</tt></pre>
+</div></div>
+<div class="paragraph"><p>To minimise the potential for errors we recommend using python to create byte
+strings for you where possible, e.g.  the above byte string was created in
+ipython like this:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>In [1]: content = open("test.exe","rb").read(12)
+
+In [2]: content
+Out[2]: 'MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00'</tt></pre>
+</div></div>
+</div>
+<div class="sect2">
+<h3 id="_regex_matches">Regex Matches</h3>
+<div class="paragraph"><p>Use this when you need more complex matching. The format is a regular python
+regex (see <a href="http://docs.python.org/2/library/re.html">http://docs.python.org/2/library/re.html</a>) with the following switches
+applied automatically:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>re.IGNORECASE | re.DOTALL | re.MULTILINE</tt></pre>
+</div></div>
+<div class="paragraph"><p>An example regex is below. The entire match is reported, () groups are not
+broken out separately.  Also note that 10 bytes before and after will be added
+to any matches by default - use the Advanced menu to change this behavior:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>Accepted [^ ]+ for [^ ]+ from [0-9.]+ port [0-9]+ ssh</tt></pre>
+</div></div>
+</div>
+<div class="sect2">
+<h3 id="_advanced_options">Advanced Options</h3>
+<div class="paragraph"><p>The default options under the <em>Advanced</em> menu should be fine for most
+situations, but this is where you can specify byte offsets and lengths, and how
+much context to retrieve around matches.</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
 <h2 id="_the_virtual_filesystem">The Virtual Filesystem</h2>
 <div class="sectionbody">
 <div class="paragraph"><p><em>TODO</em></p></div>
@@ -1657,988 +1796,12 @@ that&#8217;s not available in the given platform an error will show up.</p></div
 </div>
 <div class="sect2">
 <h3 id="_available_flows">Available flows</h3>
-<div class="sect3">
-<h4 id="_administrative_executecommand">Administrative/ExecuteCommand</h4>
-<div class="paragraph"><p>Execute a predefined command on the client.</p></div>
-</div>
-<div class="sect3">
-<h4 id="_administrative_getclientstats">Administrative/GetClientStats</h4>
-<div class="paragraph"><p>This flow retrieves information about the GRR client process.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>context</em>: A FlowContext object that will save the state for this flow.
-</p>
-</li>
-<li>
-<p>
-<em>notify_to_user</em>: Should this flow notify completion to the user that started
-  it?
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_administrative_kill">Administrative/Kill</h4>
-<div class="paragraph"><p>Terminate a running client (does not disable, just kill).</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>context</em>: A FlowContext object that will save the state for this flow.
-</p>
-</li>
-<li>
-<p>
-<em>notify_to_user</em>: Should this flow notify completion to the user that started
-  it?
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_administrative_onlinenotification">Administrative/OnlineNotification</h4>
-<div class="paragraph"><p>Notifies by email when a client comes online in GRR.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>email</em>: Email address to send to, can be comma separated. If not set, mail
-  will be sent to the logged in user.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_administrative_uninstall">Administrative/Uninstall</h4>
-<div class="paragraph"><p>Removes the persistence mechanism which the client uses at boot. For Windows and
-OSX, this will disable the service, and then stop the service. For Linux this
-flow will fail as we haven&#8217;t implemented it yet :)</p></div>
-</div>
-<div class="sect3">
-<h4 id="_administrative_update">Administrative/Update</h4>
-<div class="paragraph"><p>Updates the GRR client to a new version.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>blob_path</em>: An aff4 path to a GRRSignedBlob of a new client version.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_automation_linsystemactivityinvestigation">Automation/LinSystemActivityInvestigation</h4>
-<div class="paragraph"><p>Do the initial work for a Linux system investigation.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>list_processes</em>: Call the ListProcesses flow.
-</p>
-</li>
-<li>
-<p>
-<em>list_network_connections</em>: Call the Netstat flow.
-</p>
-</li>
-<li>
-<p>
-<em>artifact_list</em>: List of artifacts to collect. If None use self.artifact_list.
-</p>
-</li>
-<li>
-<p>
-<em>use_tsk</em>: Use raw filesystem access where possible.
-</p>
-</li>
-<li>
-<p>
-<em>timeline_collected_data</em>: Once complete create a timeline for the host.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_automation_winsystemactivityinvestigation">Automation/WinSystemActivityInvestigation</h4>
-<div class="paragraph"><p>Do the initial work for a system investigation.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>list_processes</em>: Call the ListProcesses flow.
-</p>
-</li>
-<li>
-<p>
-<em>list_network_connections</em>: Call the Netstat flow.
-</p>
-</li>
-<li>
-<p>
-<em>artifact_list</em>: List of artifacts to collect. If None use self.artifact_list.
-</p>
-</li>
-<li>
-<p>
-<em>collect_av_data</em>: Call the Antivirus flows to collect quarantine/logs.
-  collect_bit9_database: Collect the bit9 database.
-</p>
-</li>
-<li>
-<p>
-<em>collect_prefetch</em>: List the prefetch directory.
-</p>
-</li>
-<li>
-<p>
-<em>use_tsk</em>: Use raw filesystem access where possible.
-</p>
-</li>
-<li>
-<p>
-<em>timeline_collected_data</em>: Once complete create a timeline for the host.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_automation_winuseractivityinvestigation">Automation/WinUserActivityInvestigation</h4>
-<div class="paragraph"><p>Do the initial work for a user investigation.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>username</em>: The user to target the actions to.
-</p>
-</li>
-<li>
-<p>
-<em>get_browser_history</em>: Call each of the browser history flows.
-</p>
-</li>
-<li>
-<p>
-<em>recursive_list_homedir</em>: Recursively list the users homedir to this depth.
-</p>
-</li>
-<li>
-<p>
-<em>recursive_list_user_registry</em>: Recursively list the users registry hive.
-</p>
-</li>
-<li>
-<p>
-<em>artifact_list</em>: A list of Artifact names. If None use self.artifact_list.
-</p>
-</li>
-<li>
-<p>
-<em>timeline_collected_data</em>: Once complete create a timeline for the host.
-</p>
-</li>
-<li>
-<p>
-<em>use_tsk</em>: Use raw filesystem access where possible.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_browser_chromehistory">Browser/ChromeHistory</h4>
-<div class="paragraph"><p>Retrieve and analyze the chrome history for a machine. Default directories as
-per: <a href="http://www.chromium.org/user-experience/user-data-directory">http://www.chromium.org/user-experience/user-data-directory</a></p></div>
-<div class="paragraph"><p>Windows XP
-Google Chrome:</p></div>
-<div class="literalblock">
-<div class="content">
-<pre><tt>c:\Documents and Settings\&lt;username&gt;\Local Settings\Application Data Google\
-Chrome\User Data\Default</tt></pre>
-</div></div>
-<div class="paragraph"><p>Windows 7 or Vista
-  c:\Users\&lt;username&gt;\AppData\Local\Google\Chrome\User Data\Default</p></div>
-<div class="paragraph"><p>Mac OS X</p></div>
-<div class="literalblock">
-<div class="content">
-<pre><tt>/Users/&lt;user&gt;/Library/Application Support/Google/Chrome/Default</tt></pre>
-</div></div>
-<div class="paragraph"><p>Linux</p></div>
-<div class="literalblock">
-<div class="content">
-<pre><tt>/home/&lt;user&gt;/.config/google-chrome/Default</tt></pre>
-</div></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>username</em>: String, the user to get Chrome history for. If history_path is not
-  set this will be used to guess the path to the history files. Can be in form
-  DOMAIN\user.
-</p>
-</li>
-<li>
-<p>
-<em>history_path</em>: A specific file to parse.
-</p>
-</li>
-<li>
-<p>
-<em>get_archive</em>: Should we get Archived History as well (3 months old).
-</p>
-</li>
-<li>
-<p>
-<em>pathtype</em>: Type of path to use.
-</p>
-</li>
-<li>
-<p>
-<em>output</em>: A path relative to the client to put the output.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_browser_chromeplugins">Browser/ChromePlugins</h4>
-<div class="paragraph"><p>Extract information about the installed Chrome extensions. Default directories
-as per: <a href="http://www.chromium.org/user-experience/user-data-directory">http://www.chromium.org/user-experience/user-data-directory</a></p></div>
-<div class="paragraph"><p>Windows XP</p></div>
-<div class="literalblock">
-<div class="content">
-<pre><tt>c:\Documents and Settings\&lt;username&gt;\Local Settings Application Data\
-Google\Chrome\User Data\Default\Extensions</tt></pre>
-</div></div>
-<div class="paragraph"><p>Windows 7 or Vista</p></div>
-<div class="literalblock">
-<div class="content">
-<pre><tt>c:\Users\&lt;username&gt;\AppData\Local\Google\Chrome\User Data\Default\Extensions</tt></pre>
-</div></div>
-<div class="paragraph"><p>Mac OS X</p></div>
-<div class="literalblock">
-<div class="content">
-<pre><tt>/Users/&lt;user&gt;/Library/Application Support/Google/Chrome/Default/Extensions</tt></pre>
-</div></div>
-<div class="paragraph"><p>Linux</p></div>
-<div class="literalblock">
-<div class="content">
-<pre><tt>/home/&lt;user&gt;/.config/google-chrome/Default/Extensions</tt></pre>
-</div></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>download_files</em>: If set to 1, all files belonging to the extension are
-  downloaded for analysis.
-</p>
-</li>
-<li>
-<p>
-<em>path</em>: A path to a Chrome Extensions directory. If path is None, the
-  directory is guessed.
-</p>
-</li>
-<li>
-<p>
-<em>pathtype</em>: Identifies requested path type (Enum from Path protobuf).
-</p>
-</li>
-<li>
-<p>
-<em>output</em>: A path relative to the client to put the output.
-</p>
-</li>
-<li>
-<p>
-<em>username</em>: String, the user to get Chrome extension info for. If path is not
-  set this will be used to guess the path to the extensions. For Windows domain
-  can be specified using DOMAIN\user nomenclature.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_browser_firefoxhistory">Browser/FirefoxHistory</h4>
-<div class="paragraph"><p>Retrieve and analyze the Firefox history for a machine. Default directories as
-per: <a href="http://www.forensicswiki.org/wiki/Mozilla_Firefox_3_History_File_Format">http://www.forensicswiki.org/wiki/Mozilla_Firefox_3_History_File_Format</a></p></div>
-<div class="paragraph"><p>Windows XP</p></div>
-<div class="literalblock">
-<div class="content">
-<pre><tt>C:\Documents and Settings\&lt;username&gt;\Application Data\Mozilla Firefox\
-Profiles\&lt;profile folder&gt;\places.sqlite</tt></pre>
-</div></div>
-<div class="paragraph"><p>Windows Vista</p></div>
-<div class="literalblock">
-<div class="content">
-<pre><tt>C:\Users\&lt;user&gt;\AppData\Roaming\Mozilla\Firefox\Profiles\&lt;profile
-folder&gt;\places.sqlite</tt></pre>
-</div></div>
-<div class="paragraph"><p>GNU/Linux</p></div>
-<div class="literalblock">
-<div class="content">
-<pre><tt>/home/&lt;user&gt;/.mozilla/firefox/&lt;profile folder&gt;/places.sqlite</tt></pre>
-</div></div>
-<div class="paragraph"><p>Mac OS X</p></div>
-<div class="literalblock">
-<div class="content">
-<pre><tt>/Users/&lt;user&gt;/Library/Application Support/Firefox/Profiles/&lt;profile
-folder&gt;/places.sqlite</tt></pre>
-</div></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>username</em>: String, the user to get the history for. If history_path is not
-  set this will be used to guess the path to the history files. Can be in form
-  DOMAIN\user.
-</p>
-</li>
-<li>
-<p>
-<em>history_path</em>: A specific file to parse.
-</p>
-</li>
-<li>
-<p>
-<em>pathtype</em>: Type of path to use.
-</p>
-</li>
-<li>
-<p>
-<em>output</em>: A path relative to the client to put the output.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_collectors_javacachecollector">Collectors/JavaCacheCollector</h4>
-<div class="paragraph"><p>Collect all files in a user specific Java Cache directory.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>pathtype</em>: Identifies requested path type. Enum from Path protobuf.
-</p>
-</li>
-<li>
-<p>
-<em>username</em>: A string containing the username.
-</p>
-</li>
-<li>
-<p>
-<em>domain</em>: Optional string containing the domain of the username.
-</p>
-</li>
-<li>
-<p>
-<em>cachedir</em>: Path to the Java cache. If provided, this overrides the guessing
-  of the cache directory using username/domain.
-</p>
-</li>
-<li>
-<p>
-<em>output</em>: If set, a URN to an AFF4Collection to add each result to.  This will
-  create the collection if it does not exist.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_collectors_sophoscollector">Collectors/SophosCollector</h4>
-<div class="paragraph"><p>Collect all files related to Sophos.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>pathtype</em>: Identifies requested path type. Enum from Path protobuf.
-</p>
-</li>
-<li>
-<p>
-<em>output</em>: If set, a URN to an AFF4Collection to add each result to.  This will
-  create the collection if it does not exist.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_filesystem_downloaddirectory">Filesystem/DownloadDirectory</h4>
-<div class="paragraph"><p>Flow for recursively downloading all files in a directory.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>path</em>: The directory path to download.
-</p>
-</li>
-<li>
-<p>
-<em>pathtype</em>: The type of path.
-</p>
-</li>
-<li>
-<p>
-<em>depth</em>: Maximum recursion depth.
-</p>
-</li>
-<li>
-<p>
-<em>pathspec</em>: If specified overrides path to the location of the directory.
-</p>
-</li>
-<li>
-<p>
-<em>ignore_errors</em>: If True, we do not raise an error in the case that a
-  directory or file cannot be not found.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_filesystem_multigetfile">Filesystem/MultiGetFile</h4>
-<div class="paragraph"><p>An experimental GetFile which uses deduplication to save bandwidth.</p></div>
-</div>
-<div class="sect3">
-<h4 id="_filesystem_fetchallfiles">Filesystem/FetchAllFiles</h4>
-<div class="paragraph"><p>Fetch all files satisfying a findspec, unless already fetched.
-This flow finds files, computes their hashes, and fetches <em>new</em> files.</p></div>
-<div class="paragraph"><p>The result from this flow is a population of aff4 objects under
-aff4:/fp/(generic|pecoff)/&lt;hashname&gt;/&lt;hashvalue&gt;.  There may also be a symlink
-from the original file to the retrieved content.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>pattern</em>: filename_regex to search for. The default is good for windows.
-</p>
-</li>
-<li>
-<p>
-<em>pecoff</em>: This causes the computation of Authenticode hashes, and their
-        use for deduplicating file fetches.
-</p>
-</li>
-<li>
-<p>
-<em>findspec</em>: A jobs_pb2.Find, if specified, pattern and the pathspec
-        are ignored.
-</p>
-</li>
-<li>
-<p>
-<em>pathspec</em>: If provided we start searching for the files recursively
-        from this path.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_filesystem_findfiles">Filesystem/FindFiles</h4>
-<div class="paragraph"><p>This flow searches for files on the client.</p></div>
-<div class="paragraph"><p>The result from this flow is an AFF4Collection which will be created on the
-output path, containing all aff4 objects on the client which match the
-criteria. Note that these files will not be downloaded by this flow, only the
-metadata of the file in fetched.</p></div>
-<div class="admonitionblock">
-<table><tr>
-<td class="icon">
-<img src="./images/icons/caution.png" alt="Caution" />
-</td>
-<td class="content">
-<div class="paragraph"><p>This flow is inefficient for collecting a large number of files.</p></div>
-</td>
-</tr></table>
-</div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>path</em>: Search recursively from this place.
-</p>
-</li>
-<li>
-<p>
-<em>pathtype</em>: Identifies requested path type. Enum from Path protobuf.
-</p>
-</li>
-<li>
-<p>
-<em>filename_regex</em>: A regular expression to match the filename (Note only the
-  base component of the filename is matched).
-</p>
-</li>
-<li>
-<p>
-<em>data_regex</em>: The file data should match this regex.
-</p>
-</li>
-<li>
-<p>
-<em>iterate_on_number</em>: The total number of files to search before iterating on
-  the server.
-</p>
-</li>
-<li>
-<p>
-<em>max_results</em>: Maximum number of results to get.
-</p>
-</li>
-<li>
-<p>
-<em>output</em>: The path to the output container for this find. Will be created
-</p>
-</li>
-<li>
-<p>
-<em>findspec</em>: A jobs_pb2.Find, if specified, other arguments are ignored.
-</p>
-</li>
-<li>
-<p>
-<em>cross_devs</em>: If True, the find action will descend into mounted devices.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_filesystem_fingerprintfile">Filesystem/FingerprintFile</h4>
-<div class="paragraph"><p>Retrieve all fingerprints of a file.</p></div>
-<div class="paragraph"><p>Allows declaration of a path or pathspec to compute the fingerprint on.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>path</em>: The file path to fingerprint.
-</p>
-</li>
-<li>
-<p>
-<em>pathtype</em>: Identifies requested path type. Enum from Path protobuf.
-</p>
-</li>
-<li>
-<p>
-<em>device</em>: Optional raw device that should be accessed.
-</p>
-</li>
-<li>
-<p>
-<em>pathspec</em>: Use a pathspec instead of a path.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_filesystem_getfile">Filesystem/GetFile</h4>
-<div class="paragraph"><p>An efficient file transfer mechanism.</p></div>
-<div class="paragraph"><p>This flow uses chunking and hashes to de-duplicate data and send it efficiently.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>path</em>: The directory path to list.
-</p>
-</li>
-<li>
-<p>
-<em>pathtype</em>: Identifies requested path type. Enum from Path protobuf.
-</p>
-</li>
-<li>
-<p>
-<em>pathspec</em>: This flow also accepts all the information in one pathspec.  which
-  is preferred over the path and pathtype definition
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_filesystem_getmbr">Filesystem/GetMBR</h4>
-<div class="paragraph"><p>A flow to retrieve the MBR.</p></div>
-</div>
-<div class="sect3">
-<h4 id="_filesystem_grep">Filesystem/Grep</h4>
-<div class="paragraph"><p>This flow greps a file on the client for a pattern or a regex.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>path</em>: A path to the file.
-</p>
-</li>
-<li>
-<p>
-<em>pathtype</em>: Identifies requested path type. Enum from Path protobuf.
-</p>
-</li>
-<li>
-<p>
-<em>grep_regex</em>: The file data should match this regex.
-</p>
-</li>
-<li>
-<p>
-<em>grep_literal</em>: The file data should contain this pattern. Only one parameter
-  of grep_regex and grep_literal should be set.
-</p>
-</li>
-<li>
-<p>
-<em>offset</em>: An offset in the file to start grepping from.
-</p>
-</li>
-<li>
-<p>
-<em>length</em>: The maximum number of bytes this flow will look at.
-</p>
-</li>
-<li>
-<p>
-<em>mode</em>: Should this grep return all hits or just the first.
-</p>
-</li>
-<li>
-<p>
-<em>bytes_before</em>: The number of data bytes to return before each hit.
-</p>
-</li>
-<li>
-<p>
-<em>bytes_after</em>: The number of data bytes to return after each hit.
-</p>
-</li>
-<li>
-<p>
-<em>output</em>: The path to the output container for this find. Will be created
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_filesystem_listdirectory">Filesystem/ListDirectory</h4>
-<div class="paragraph"><p>List files in a directory.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>path</em>: The directory path to list.
-</p>
-</li>
-<li>
-<p>
-<em>pathtype</em>: Identifies requested path type (Enum from Path protobuf).
-</p>
-</li>
-<li>
-<p>
-<em>pathspec</em>: This flow also accepts all the information in one pathspec.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_filesystem_recursivelistdirectory">Filesystem/RecursiveListDirectory</h4>
-<div class="paragraph"><p>Recursively list directory on the client.  This flow builds a timeline for the
-filesystem on the client.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>path</em>: Search recursively from this place.
-</p>
-</li>
-<li>
-<p>
-<em>pathtype</em>: Identifies requested path type. Enum from Path protobuf.
-</p>
-</li>
-<li>
-<p>
-<em>pathspec</em>: This flow also accepts all the information in one pathspec.
-</p>
-</li>
-<li>
-<p>
-<em>max_depth</em>: Maximum depth to recurse
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_filesystem_slowgetfile">Filesystem/SlowGetFile</h4>
-<div class="paragraph"><p>Simple file retrival.</p></div>
-<div class="paragraph"><p>This flow does not use the efficient hash transfer mechanism used in GetFile
-so its only really suitable for transferring very small files.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>path</em>: The directory path to list.
-</p>
-</li>
-<li>
-<p>
-<em>pathtype</em>: Identifies requested path type. Enum from Path protobuf.
-</p>
-</li>
-<li>
-<p>
-<em>aff4_chunk_size</em>: Specifies how much data is sent back from the client in
-  each chunk.
-</p>
-</li>
-<li>
-<p>
-<em>pathspec</em>: Use a pathspec instead of a path.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_memory_analyzeclientmemory">Memory/AnalyzeClientMemory</h4>
-<div class="paragraph"><p>Runs client side analysis using volatility.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>plugins</em>: A list of volatility plugins to run on the client.
-</p>
-</li>
-<li>
-<p>
-<em>driver_installer</em>: An optional driver installer protobuf.
-</p>
-</li>
-<li>
-<p>
-<em>profile</em>: A volatility profile. None guesses.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_memory_loadmemorydriver">Memory/LoadMemoryDriver</h4>
-<div class="paragraph"><p>Load a memory driver on the client.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>driver_installer</em>: An optional InstallDriverRequest proto to control driver
-  installation. If not set, the default installation proto will be used.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_memory_unloadmemorydriver">Memory/UnloadMemoryDriver</h4>
-<div class="paragraph"><p>Unloads a memory driver on the client.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>driver_installer</em>: An optional InstallDriverRequest proto to control driver
-  installation. If not set, the default installation proto will be used.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_metadata_interrogate">Metadata/Interrogate</h4>
-<div class="paragraph"><p>Interrogate various things about the host.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>context</em>: A FlowContext object that will save the state for this flow.
-</p>
-</li>
-<li>
-<p>
-<em>notify_to_user</em>: Should this flow notify completion to the user that started
-  it?
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_misc_takescreenshot">Misc/TakeScreenshot</h4>
-<div class="paragraph"><p>Take a screenshot from a running system.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>context</em>: A FlowContext object that will save the state for this flow.
-</p>
-</li>
-<li>
-<p>
-<em>notify_to_user</em>: Should this flow notify completion to the user that started
-  it?
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_network_netstat">Network/Netstat</h4>
-<div class="paragraph"><p>List running processes on a system.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>context</em>: A FlowContext object that will save the state for this flow.
-</p>
-</li>
-<li>
-<p>
-<em>notify_to_user</em>: Should this flow notify completion to the user that started
-  it?
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_processes_listprocesses">Processes/ListProcesses</h4>
-<div class="paragraph"><p>List running processes on a system.
-Constructor for the Flow.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>context</em>: A FlowContext object that will save the state for this flow.
-</p>
-</li>
-<li>
-<p>
-<em>notify_to_user</em>: Should this flow notify completion to the user that started
-  it?
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_registry_collectrunkeys">Registry/CollectRunKeys</h4>
-<div class="paragraph"><p>Collect Run and RunOnce keys on the system for all users and System.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>context</em>: A FlowContext object that will save the state for this flow.
-</p>
-</li>
-<li>
-<p>
-<em>notify_to_user</em>: Should this flow notify completion to the user that started
-  it?
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_registry_findmru">Registry/FindMRU</h4>
-<div class="paragraph"><p>Collect a list of the Most Recently Used files for all users.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>context</em>: A FlowContext object that will save the state for this flow.
-</p>
-</li>
-<li>
-<p>
-<em>notify_to_user</em>: Should this flow notify completion to the user that started
-  it?
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_services_enumeraterunningservices">Services/EnumerateRunningServices</h4>
-<div class="paragraph"><p>Collect running services.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>context</em>: A FlowContext object that will save the state for this flow.
-</p>
-</li>
-<li>
-<p>
-<em>notify_to_user</em>: Should this flow notify completion to the user that started
-  it?
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_timeline_mactimes">Timeline/MACTimes</h4>
-<div class="paragraph"><p>Calculate the MAC times from objects in the VFS.
-This flow builds a timeline for the filesystem on the client.</p></div>
-<div class="admonitionblock">
-<table><tr>
-<td class="icon">
-<img src="./images/icons/note.png" alt="Note" />
-</td>
-<td class="content">
-<div class="paragraph"><p>Currently only VFSDirectory objects are supported.</p></div>
-</td>
-</tr></table>
-</div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>path</em>: An AFF4 path (relative to the client area of the VFS).
-</p>
-</li>
-<li>
-<p>
-<em>output</em>: The path to the output container for this find. Will be created
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_volatility_mutexes">Volatility/Mutexes</h4>
-<div class="paragraph"><p>This flow uses a volatility plugin to find mutexes. It relies on a memory
-driver being loaded on the client or it will fail.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>device</em>: Name of the device the memory driver created.
-</p>
-</li>
-<li>
-<p>
-<em>output</em>: The path to the output container for this find. Will be created
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect3">
-<h4 id="_volatility_volatilityplugins">Volatility/VolatilityPlugins</h4>
-<div class="paragraph"><p>This flow runs a volatility plugin. It relies on a memory driver being loaded on
-the client or it will fail.</p></div>
-<div class="paragraph"><p>Arguments</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-<em>plugins</em>: A list of plugins to run.
-</p>
-</li>
-<li>
-<p>
-<em>device</em>: Name of the device the memory driver created.
-</p>
-</li>
-<li>
-<p>
-<em>output</em>: The path to the output container for this find. Will be created
-</p>
-</li>
-</ul></div>
-</div>
+<div class="paragraph"><p>The easiest ways to see the current flows is to check in the AdminUI under
+StartFlow. These have useful documentation.</p></div>
+<div class="paragraph"><p>Note that by default only BASIC flows are shown in the Admin UI. By clicking
+the settings (gear icon) in the top right, you can enable ADVANCED flows. With
+this set you will see many of the underlying flows which sometimes be useful,
+but require a deeper understanding of GRR.</p></div>
 </div>
 </div>
 </div>
@@ -2740,7 +1903,7 @@ another <tt>Client.poll_max period</tt> (10 minutes by default).
 <div class="sectionbody">
 <div class="paragraph"><p>Extracting bulk data from the GRR datastore using the UI is slow and cumbersome.
 It is possible to use the console to extract any data you wish, but we also
-provide a tool called file_exporter.</p></div>
+provide a tool called file_exporter, and a FUSE layer.</p></div>
 <div class="sect2">
 <h3 id="_exporting_a_single_file">Exporting a Single File</h3>
 <div class="listingblock">
@@ -2857,14 +2020,31 @@ message Process {
  system_cpu_time : 6.65999984741
  user_cpu_time : 2.36999988556
  username : u'root'
-}</tt></pre>
+}
+
+
+
+GRR's FUSE layer</tt></pre>
 </div></div>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_timeline">Timeline</h2>
-<div class="sectionbody">
+<div class="paragraph"><p>GRR&#8217;s FUSE layer allows you to mount remote filesystems at directories in your
+machine. Run it by running <tt>grr_fuse</tt>. For configuration options, see
+grr/tools/fuse_mount.py</p></div>
+<div class="paragraph"><p>By default <tt>grr_fuse</tt> will mount the root AFF4 directory, so you&#8217;ll be able to
+cd into any client from there. It&#8217;s also possible to mount at arbitrary URNs
+using the --aff4_path flag to fuse_mount.py.</p></div>
+<div class="paragraph"><p>Example invocation:
+<tt>grr_fuse</tt> --mountpoint=/mnt/aff4</p></div>
+<div class="paragraph"><p>While using the FUSE layer, flows will be run on the client to update
+files/directories, so some commands (e.g. ls) might be slow the first time they
+are run. Results are cached so that subsequent calls (e.g. in tab completion) do
+not need to make a request to the client. The cache is time based, so any files
+older than the expiry time will be refreshed from the client. The default cache
+time is 5 minutes, and can be set with the --max_age_before_refresh flag in
+grr/tools/fuse_mount.py</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>Timeline</tt></pre>
+</div></div>
 <div class="paragraph"><p>GRR currently contains rudimentary support for timelining and timeline
 visualization through the MACTimes flow. When you run this flow it will be
 executed server side and will create a timeline collection containing all
@@ -2884,6 +2064,7 @@ event.timestamp &gt; 2012-03-01 and event.timestamp &lt; 2013-12-01-13:04:23
 event.subject contains exe
 event.subject matches ini$</tt></pre>
 </div></div>
+</div>
 </div>
 </div>
 <div class="sect1">

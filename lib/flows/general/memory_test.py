@@ -32,11 +32,11 @@ class DummyLoadMemoryDriverFlow(flow.GRRFlow):
             pathtype=rdfvalue.PathSpec.PathType.OS)))
 
 
-class TestMemoryScanner(test_lib.FlowTestsBaseclass):
-  """Tests the MemoryScanner flow."""
+class TestMemoryCollector(test_lib.FlowTestsBaseclass):
+  """Tests the MemoryCollector flow."""
 
   def setUp(self):
-    super(TestMemoryScanner, self).setUp()
+    super(TestMemoryCollector, self).setUp()
 
     self.output_path = "analysis/memory_scanner"
 
@@ -61,25 +61,25 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
         rdfvalue.PathSpec.PathType.MEMORY] = test_lib.ClientTestDataVFSFixture
 
   def tearDown(self):
-    super(TestMemoryScanner, self).tearDown()
+    super(TestMemoryCollector, self).tearDown()
 
     flow.GRRFlow.classes["LoadMemoryDriver"] = self.old_driver_flow
 
   def testCallWithDefaultArgumentsDoesNothing(self):
     for _ in test_lib.TestFlowHelper(
-        "MemoryScanner", test_lib.ActionMock(), client_id=self.client_id,
+        "MemoryCollector", test_lib.ActionMock(), client_id=self.client_id,
         token=self.token):
       pass
 
-  def RunWithDownload(self, dump_option, filters=None):
-    download_action = rdfvalue.MemoryScannerDownloadAction(
+  def RunWithDownload(self, dump_option, conditions=None):
+    download_action = rdfvalue.MemoryCollectorDownloadAction(
         dump_option=dump_option)
 
     flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="MemoryScanner",
-        filters=filters or [],
-        action=rdfvalue.MemoryScannerAction(
-            action_type=rdfvalue.MemoryScannerAction.Action.DOWNLOAD,
+        client_id=self.client_id, flow_name="MemoryCollector",
+        conditions=conditions or [],
+        action=rdfvalue.MemoryCollectorAction(
+            action_type=rdfvalue.MemoryCollectorAction.Action.DOWNLOAD,
             download=download_action
             ), token=self.token, output=self.output_path)
 
@@ -90,9 +90,9 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
     return aff4.FACTORY.Open(flow_urn, token=self.token)
 
   def testMemoryImageLocalCopyDownload(self):
-    dump_option = rdfvalue.MemoryScannerDumpOption(
-        option_type=rdfvalue.MemoryScannerDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=rdfvalue.MemoryScannerWithLocalCopyDumpOption(
+    dump_option = rdfvalue.MemoryCollectorDumpOption(
+        option_type=rdfvalue.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
+        with_local_copy=rdfvalue.MemoryCollectorWithLocalCopyDumpOption(
             gzip=False))
 
     flow_obj = self.RunWithDownload(dump_option)
@@ -105,9 +105,9 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd.Read(1024 * 1024), self.memory_dump)
 
   def testMemoryImageLocalCopyDownloadWithOffsetAndLength(self):
-    dump_option = rdfvalue.MemoryScannerDumpOption(
-        option_type=rdfvalue.MemoryScannerDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=rdfvalue.MemoryScannerWithLocalCopyDumpOption(
+    dump_option = rdfvalue.MemoryCollectorDumpOption(
+        option_type=rdfvalue.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
+        with_local_copy=rdfvalue.MemoryCollectorWithLocalCopyDumpOption(
             offset=10, length=42, gzip=False))
 
     flow_obj = self.RunWithDownload(dump_option)
@@ -120,8 +120,9 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd.Read(1024 * 1024), self.memory_dump[10:52])
 
   def testMemoryImageWithoutLocalCopyDownload(self):
-    dump_option = rdfvalue.MemoryScannerDumpOption(
-        option_type=rdfvalue.MemoryScannerDumpOption.Option.WITHOUT_LOCAL_COPY)
+    dump_option = rdfvalue.MemoryCollectorDumpOption(
+        option_type=
+        rdfvalue.MemoryCollectorDumpOption.Option.WITHOUT_LOCAL_COPY)
 
     flow_obj = self.RunWithDownload(dump_option)
     self.assertEqual(flow_obj.state.memory_src_path.path, self.memory_file)
@@ -132,12 +133,12 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(flow_obj.state.downloaded_file, token=self.token)
     self.assertEqual(fd.Read(1024 * 1024), self.memory_dump)
 
-  def RunWithSendToSocket(self, dump_option, filters=None):
+  def RunWithSendToSocket(self, dump_option, conditions=None):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((socket.gethostname(), 0))
     port = sock.getsockname()[1]
 
-    send_to_socket_action = rdfvalue.MemoryScannerSendToSocketAction(
+    send_to_socket_action = rdfvalue.MemoryCollectorSendToSocketAction(
         host=socket.gethostname(),
         port=port,
         key=self.key,
@@ -145,10 +146,10 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
         dump_option=dump_option)
 
     flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="MemoryScanner",
-        filters=filters or [],
-        action=rdfvalue.MemoryScannerAction(
-            action_type=rdfvalue.MemoryScannerAction.Action.SEND_TO_SOCKET,
+        client_id=self.client_id, flow_name="MemoryCollector",
+        conditions=conditions or [],
+        action=rdfvalue.MemoryCollectorAction(
+            action_type=rdfvalue.MemoryCollectorAction.Action.SEND_TO_SOCKET,
             send_to_socket=send_to_socket_action),
         token=self.token, output=self.output_path)
 
@@ -163,6 +164,7 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
       client_socket.close()
       sock.close()
     thread = threading.Thread(target=ReadFromSocket)
+    thread.daemon = True
     thread.start()
 
     for _ in test_lib.TestFlowHelper(
@@ -181,9 +183,9 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
     return flow_urn, encrypted_data, decrypted_data
 
   def testMemoryImageLocalCopySendToSocket(self):
-    dump_option = rdfvalue.MemoryScannerDumpOption(
-        option_type=rdfvalue.MemoryScannerDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=rdfvalue.MemoryScannerWithLocalCopyDumpOption(
+    dump_option = rdfvalue.MemoryCollectorDumpOption(
+        option_type=rdfvalue.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
+        with_local_copy=rdfvalue.MemoryCollectorWithLocalCopyDumpOption(
             gzip=False))
     flow_urn, encrypted, decrypted = self.RunWithSendToSocket(dump_option)
 
@@ -197,9 +199,9 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
     self.assertEqual(decrypted, self.memory_dump)
 
   def testMemoryImageLocalCopySendToSocketWithOffsetAndLength(self):
-    dump_option = rdfvalue.MemoryScannerDumpOption(
-        option_type=rdfvalue.MemoryScannerDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=rdfvalue.MemoryScannerWithLocalCopyDumpOption(
+    dump_option = rdfvalue.MemoryCollectorDumpOption(
+        option_type=rdfvalue.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
+        with_local_copy=rdfvalue.MemoryCollectorWithLocalCopyDumpOption(
             offset=10, length=42, gzip=False))
     flow_urn, encrypted, decrypted = self.RunWithSendToSocket(dump_option)
 
@@ -213,8 +215,9 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
     self.assertEqual(decrypted, self.memory_dump[10:52])
 
   def testMemoryImageWithoutLocalCopySendToSocket(self):
-    dump_option = rdfvalue.MemoryScannerDumpOption(
-        option_type=rdfvalue.MemoryScannerDumpOption.Option.WITHOUT_LOCAL_COPY)
+    dump_option = rdfvalue.MemoryCollectorDumpOption(
+        option_type=
+        rdfvalue.MemoryCollectorDumpOption.Option.WITHOUT_LOCAL_COPY)
     (flow_urn, encrypted, decrypted) = self.RunWithSendToSocket(dump_option)
 
     flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
@@ -226,12 +229,12 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
     # Decrypted data should be equal to the memory dump
     self.assertEqual(decrypted, self.memory_dump)
 
-  def RunWithNoAction(self, filters=None):
+  def RunWithNoAction(self, conditions=None):
     flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="MemoryScanner",
-        filters=filters or [],
-        action=rdfvalue.MemoryScannerAction(
-            action_type=rdfvalue.MemoryScannerAction.Action.NONE),
+        client_id=self.client_id, flow_name="MemoryCollector",
+        conditions=conditions or [],
+        action=rdfvalue.MemoryCollectorAction(
+            action_type=rdfvalue.MemoryCollectorAction.Action.NONE),
         token=self.token, output=self.output_path)
 
     for _ in test_lib.TestFlowHelper(
@@ -240,14 +243,14 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
 
     return aff4.FACTORY.Open(flow_urn, token=self.token)
 
-  def testMemoryImageLiteralMatchFilterWithNoAction(self):
-    literal_filter = rdfvalue.MemoryScannerFilter(
-        filter_type=rdfvalue.MemoryScannerFilter.Type.LITERAL_MATCH,
-        literal_match=rdfvalue.FileFinderContentsLiteralMatchFilter(
-            mode=rdfvalue.FileFinderContentsLiteralMatchFilter.Mode.ALL_HITS,
+  def testMemoryImageLiteralMatchConditionWithNoAction(self):
+    literal_condition = rdfvalue.MemoryCollectorCondition(
+        condition_type=rdfvalue.MemoryCollectorCondition.Type.LITERAL_MATCH,
+        literal_match=rdfvalue.FileFinderContentsLiteralMatchCondition(
+            mode=rdfvalue.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
             literal="session opened for user dearjohn"))
 
-    self.RunWithNoAction(filters=[literal_filter])
+    self.RunWithNoAction(conditions=[literal_condition])
 
     output = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
                                aff4_type="RDFValueCollection",
@@ -258,14 +261,14 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
     self.assertEqual(output[0].data, "session): session opened for user "
                      "dearjohn by (uid=0")
 
-  def testMemoryImageRegexMatchFilterWithNoAction(self):
-    regex_filter = rdfvalue.MemoryScannerFilter(
-        filter_type=rdfvalue.MemoryScannerFilter.Type.REGEX_MATCH,
-        regex_match=rdfvalue.FileFinderContentsRegexMatchFilter(
-            mode=rdfvalue.FileFinderContentsLiteralMatchFilter.Mode.ALL_HITS,
+  def testMemoryImageRegexMatchConditionWithNoAction(self):
+    regex_condition = rdfvalue.MemoryCollectorCondition(
+        condition_type=rdfvalue.MemoryCollectorCondition.Type.REGEX_MATCH,
+        regex_match=rdfvalue.FileFinderContentsRegexMatchCondition(
+            mode=rdfvalue.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
             regex="session opened for user .*?john"))
 
-    self.RunWithNoAction(filters=[regex_filter])
+    self.RunWithNoAction(conditions=[regex_condition])
 
     output = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
                                aff4_type="RDFValueCollection",
@@ -276,17 +279,17 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
     self.assertEqual(output[0].data, "session): session opened for user "
                      "dearjohn by (uid=0")
 
-  def testMemoryImageLiteralMatchFilterWithDownloadAction(self):
-    literal_filter = rdfvalue.MemoryScannerFilter(
-        filter_type=rdfvalue.MemoryScannerFilter.Type.LITERAL_MATCH,
-        literal_match=rdfvalue.FileFinderContentsLiteralMatchFilter(
-            mode=rdfvalue.FileFinderContentsLiteralMatchFilter.Mode.ALL_HITS,
+  def testMemoryImageLiteralMatchConditionWithDownloadAction(self):
+    literal_condition = rdfvalue.MemoryCollectorCondition(
+        condition_type=rdfvalue.MemoryCollectorCondition.Type.LITERAL_MATCH,
+        literal_match=rdfvalue.FileFinderContentsLiteralMatchCondition(
+            mode=rdfvalue.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
             literal="session opened for user dearjohn"))
-    dump_option = rdfvalue.MemoryScannerDumpOption(
-        option_type=rdfvalue.MemoryScannerDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=rdfvalue.MemoryScannerWithLocalCopyDumpOption(
+    dump_option = rdfvalue.MemoryCollectorDumpOption(
+        option_type=rdfvalue.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
+        with_local_copy=rdfvalue.MemoryCollectorWithLocalCopyDumpOption(
             gzip=False))
-    flow_obj = self.RunWithDownload(dump_option, filters=[literal_filter])
+    flow_obj = self.RunWithDownload(dump_option, conditions=[literal_condition])
 
     # Check that matches are in the collection
     output = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
@@ -308,17 +311,17 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(flow_obj.state.downloaded_file, token=self.token)
     self.assertEqual(fd.Read(1024 * 1024), self.memory_dump)
 
-  def testDoesNothingWhenFilterDoesNotMatch(self):
-    literal_filter = rdfvalue.MemoryScannerFilter(
-        filter_type=rdfvalue.MemoryScannerFilter.Type.LITERAL_MATCH,
-        literal_match=rdfvalue.FileFinderContentsLiteralMatchFilter(
-            mode=rdfvalue.FileFinderContentsLiteralMatchFilter.Mode.ALL_HITS,
+  def testDoesNothingWhenConditionDoesNotMatch(self):
+    literal_condition = rdfvalue.MemoryCollectorCondition(
+        condition_type=rdfvalue.MemoryCollectorCondition.Type.LITERAL_MATCH,
+        literal_match=rdfvalue.FileFinderContentsLiteralMatchCondition(
+            mode=rdfvalue.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
             literal="session opened for user foobar"))
-    dump_option = rdfvalue.MemoryScannerDumpOption(
-        option_type=rdfvalue.MemoryScannerDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=rdfvalue.MemoryScannerWithLocalCopyDumpOption(
+    dump_option = rdfvalue.MemoryCollectorDumpOption(
+        option_type=rdfvalue.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
+        with_local_copy=rdfvalue.MemoryCollectorWithLocalCopyDumpOption(
             gzip=False))
-    flow_obj = self.RunWithDownload(dump_option, filters=[literal_filter])
+    flow_obj = self.RunWithDownload(dump_option, conditions=[literal_condition])
 
     # Check that there are no matches
     with self.assertRaises(aff4.InstantiationError):
@@ -330,18 +333,18 @@ class TestMemoryScanner(test_lib.FlowTestsBaseclass):
     self.assertTrue("dest_path" not in flow_obj.state)
     self.assertTrue("downloaded_file" not in flow_obj.state)
 
-  def testMemoryImageLiteralMatchFilterWithSendToSocketAction(self):
-    literal_filter = rdfvalue.MemoryScannerFilter(
-        filter_type=rdfvalue.MemoryScannerFilter.Type.LITERAL_MATCH,
-        literal_match=rdfvalue.FileFinderContentsLiteralMatchFilter(
-            mode=rdfvalue.FileFinderContentsLiteralMatchFilter.Mode.ALL_HITS,
+  def testMemoryImageLiteralMatchConditionWithSendToSocketAction(self):
+    literal_condition = rdfvalue.MemoryCollectorCondition(
+        condition_type=rdfvalue.MemoryCollectorCondition.Type.LITERAL_MATCH,
+        literal_match=rdfvalue.FileFinderContentsLiteralMatchCondition(
+            mode=rdfvalue.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
             literal="session opened for user dearjohn"))
-    dump_option = rdfvalue.MemoryScannerDumpOption(
-        option_type=rdfvalue.MemoryScannerDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=rdfvalue.MemoryScannerWithLocalCopyDumpOption(
+    dump_option = rdfvalue.MemoryCollectorDumpOption(
+        option_type=rdfvalue.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
+        with_local_copy=rdfvalue.MemoryCollectorWithLocalCopyDumpOption(
             gzip=False))
     flow_urn, encrypted, decrypted = self.RunWithSendToSocket(
-        dump_option, filters=[literal_filter])
+        dump_option, conditions=[literal_condition])
 
     # Check that matches are in the collection
     output = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
@@ -628,7 +631,7 @@ class ListVADBinariesTest(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(binaries[0].aff4path, token=self.token)
     self.assertEqual(fd.Read(1024), "just bar")
 
-  def testFiltersOutBinariesUsingRegex(self):
+  def testConditionsOutBinariesUsingRegex(self):
     process1_exe = "\\WINDOWS\\bar.exe"
     process2_exe = "\\WINDOWS\\foo.exe"
 

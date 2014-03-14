@@ -44,6 +44,10 @@ class RegularExpression(rdfvalue.RDFString):
     return "<RegularExpression: %r/>" % self._value
 
 
+class LiteralExpression(rdfvalue.RDFBytes):
+  """A RDFBytes literal for use in GrepSpec."""
+
+
 class EmailAddress(rdfvalue.RDFString):
   """An email address must be well formed."""
 

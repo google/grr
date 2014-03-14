@@ -145,6 +145,23 @@ class ModifyHuntFlow(flow.GRRFlow):
         if runner.IsHuntStarted():
           raise RuntimeError("Unable to modify a running hunt. Pause it first.")
 
+        # Record changes in the audit event
+        changes = []
+        if runner.context.expires != self.args.expiry_time:
+          changes.append("Expires: Old=%s, New=%s" % (runner.context.expires,
+                                                      self.args.expiry_time))
+
+        if runner.args.client_limit != self.args.client_limit:
+          changes.append("Client Limit: Old=%s, New=%s" % (
+              runner.args.client_limit, self.args.client_limit))
+
+        description = ", ".join(changes)
+        event = rdfvalue.AuditEvent(user=self.token.username,
+                                    action="HUNT_MODIFIED",
+                                    urn=self.args.hunt_urn,
+                                    description=description)
+        flow.Events.PublishEvent("Audit", event, token=self.token)
+
         # Just go ahead and change the hunt now.
         runner.context.expires = self.args.expiry_time
         runner.args.client_limit = self.args.client_limit
@@ -806,8 +823,12 @@ class GenericHunt(implementation.GRRHunt):
 
     self.SetDescription()
 
-  def SetDescription(self):
-    self.state.context.description = self.state.args.flow_runner_args.flow_name
+  def SetDescription(self, description=None):
+    if description:
+      self.state.context.args.description = description
+    else:
+      flow_name = self.state.args.flow_runner_args.flow_name
+      self.state.context.args.description = flow_name
 
   @flow.StateHandler(next_state=["MarkDone"])
   def RunClient(self, responses):
@@ -873,7 +894,7 @@ class GenericHunt(implementation.GRRHunt):
     self.state.context.usage_stats.RegisterResources(resources)
 
     if responses.success:
-      msg = "Flow %s completed." % self.state.context.description,
+      msg = "Flow %s completed." % self.state.context.args.description,
       self.LogResult(client_id, msg)
 
       with self.lock:
@@ -912,8 +933,8 @@ class VariableGenericHunt(GenericHunt):
 
   args_type = VariableGenericHuntArgs
 
-  def SetDescription(self):
-    self.state.context.description = "Variable Generic Hunt"
+  def SetDescription(self, description=None):
+    self.state.context.args.description = description or "Variable Generic Hunt"
 
   @flow.StateHandler(next_state=["MarkDone"])
   def RunClient(self, responses):

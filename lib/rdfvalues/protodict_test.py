@@ -14,6 +14,7 @@ an __iter__) method, but are serializable as an RDFProto.
 
 
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import structs
 from grr.lib.rdfvalues import test_base
 
 
@@ -55,6 +56,7 @@ class DictTest(test_base.RDFProtoTestCase):
         key3=u"\u4f60\u597d",  # Unicode.
         key5=rdfvalue.RDFDatetime("2012/12/11"),  # RDFValue.
         key6=None,             # Support None Encoding.
+        key7=structs.Enum(5, name="Test"),  # Integer like objects.
         )
 
     # Initialize through keywords.

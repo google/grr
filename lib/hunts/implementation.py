@@ -183,6 +183,18 @@ class HuntRunner(flow_runner.FlowRunner):
     """
     return rdfvalue.SessionID(base="aff4:/hunts", queue=self.args.queue)
 
+  def _CreateAuditEvent(self, event_action):
+    try:
+      flow_name = self.flow_obj.args.flow_runner_args.flow_name
+    except AttributeError:
+      flow_name = ""
+
+    event = rdfvalue.AuditEvent(user=self.flow_obj.token.username,
+                                action=event_action, urn=self.flow_obj.urn,
+                                flow_name=flow_name,
+                                description=self.args.description)
+    flow.Events.PublishEvent("Audit", event, token=self.flow_obj.token)
+
   def Start(self, add_foreman_rules=True):
     """This uploads the rules to the foreman and, thus, starts the hunt."""
     # We are already running.
@@ -204,6 +216,8 @@ class HuntRunner(flow_runner.FlowRunner):
     # recruitment rate according to the client_rate.
     self.context.Register("next_client_due",
                           rdfvalue.RDFDatetime().Now())
+
+    self._CreateAuditEvent("HUNT_STARTED")
 
     # Start the hunt.
     self.flow_obj.Set(self.flow_obj.Schema.STATE("STARTED"))
@@ -259,6 +273,8 @@ class HuntRunner(flow_runner.FlowRunner):
     self.flow_obj.Set(self.flow_obj.Schema.STATE("PAUSED"))
     self.flow_obj.Flush()
 
+    self._CreateAuditEvent("HUNT_PAUSED")
+
   def Stop(self):
     """Cancels the hunt (removes Foreman rules, resets expiry time to 0)."""
     # Make sure the user is allowed to stop this hunt.
@@ -271,6 +287,8 @@ class HuntRunner(flow_runner.FlowRunner):
 
     self.flow_obj.Set(self.flow_obj.Schema.STATE("STOPPED"))
     self.flow_obj.Flush()
+
+    self._CreateAuditEvent("HUNT_STOPPED")
 
   def IsRunning(self):
     """Hunts are always considered to be running.
@@ -464,7 +482,7 @@ class GRRHunt(flow.GRRFlow):
     if runner_args is None:
       runner_args = HuntRunnerArgs()
 
-    cls._FilterArgsFromSemanticProtobuf(runner_args, kwargs)
+    cls.FilterArgsFromSemanticProtobuf(runner_args, kwargs)
 
     # Is the required flow a known flow?
     if (runner_args.hunt_name not in cls.classes and
@@ -479,7 +497,7 @@ class GRRHunt(flow.GRRFlow):
     # kwargs..
     if hunt_obj.args_type and args is None:
       args = hunt_obj.args_type()
-      cls._FilterArgsFromSemanticProtobuf(args, kwargs)
+      cls.FilterArgsFromSemanticProtobuf(args, kwargs)
 
     if hunt_obj.args_type and not isinstance(args, hunt_obj.args_type):
       raise RuntimeError("Hunt args must be instance of %s" %
@@ -500,6 +518,17 @@ class GRRHunt(flow.GRRFlow):
       runner.RunStateMethod("Start")
 
     hunt_obj.Flush()
+
+    try:
+      flow_name = args.flow_runner_args.flow_name
+    except AttributeError:
+      flow_name = ""
+
+    event = rdfvalue.AuditEvent(user=runner_args.token.username,
+                                action="HUNT_CREATED", urn=hunt_obj.urn,
+                                flow_name=flow_name,
+                                description=runner_args.description)
+    flow.Events.PublishEvent("Audit", event, token=runner_args.token)
 
     return hunt_obj
 

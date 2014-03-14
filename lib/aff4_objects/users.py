@@ -45,11 +45,13 @@ class GRRUser(aff4.AFF4Object):
     """Schema for GRRUser."""
     PENDING_NOTIFICATIONS = aff4.Attribute(
         "aff4:notification/pending", rdfvalue.NotificationList,
-        "The notifications pending for the user.", default="")
+        "The notifications pending for the user.", default="",
+        versioned=False)
 
     SHOWN_NOTIFICATIONS = aff4.Attribute(
         "aff4:notifications/shown", rdfvalue.NotificationList,
-        "Notifications already shown to the user.", default="")
+        "Notifications already shown to the user.", default="",
+        versioned=False)
 
     GUI_SETTINGS = aff4.Attribute(
         "aff4:gui/settings", rdfvalue.GUISettings,

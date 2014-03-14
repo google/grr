@@ -63,7 +63,8 @@ def ServerLoggingStartupInit():
 
 def ClientInit():
   """Run all startup routines for the client."""
-  stats.STATS = stats.StatsCollector()
+  if stats.STATS is None:
+    stats.STATS = stats.StatsCollector()
 
   AddConfigContext()
   ConfigInit()
@@ -94,13 +95,13 @@ def Init():
 
 def TestInit():
   """Only used in tests and will rerun all the hooks to create a clean state."""
-  if stats.STATS is None:
-    stats.STATS = stats.StatsCollector()
-
   # Tests use both the server template grr_server.yaml as a primary config file
   # (this file does not contain all required options, e.g. private keys), and
   # additional configuration in test_data/grr_test.yaml which contains typical
   # values for a complete installation.
+  if stats.STATS is None:
+    stats.STATS = stats.StatsCollector()
+
   flags.FLAGS.config = config_lib.CONFIG["Test.config"]
   flags.FLAGS.secondary_configs = [
       os.path.join(config_lib.CONFIG["Test.data_dir"], "grr_test.yaml")]

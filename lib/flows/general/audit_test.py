@@ -27,5 +27,5 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
     event = fd[0]
 
     self.assertEqual(event.action, rdfvalue.AuditEvent.Action.RUN_FLOW)
-    self.assertEqual(event.flow, "ListDirectory")
+    self.assertEqual(event.flow_name, "ListDirectory")
     self.assertEqual(event.user, self.token.username)

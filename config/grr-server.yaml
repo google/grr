@@ -337,6 +337,8 @@ Worker Context:
 
   Monitoring.http_port: 44441
 
+  Worker.worker_process_count: 1
+
 Test Context:
   Platform:Linux:
 

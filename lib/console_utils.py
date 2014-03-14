@@ -175,21 +175,33 @@ def ApprovalFind(object_id, token=None):
     print "No token available for access to %s" % object_id
 
 
-def ApprovalCreateRaw(client_id, token, approval_type="ClientApproval"):
-  """Creates an approval for a given token.
+def ApprovalCreateRaw(client_id, reason="", expire_in=60*60*24*7,
+                      token=None, approval_type="ClientApproval"):
+  """Creates an approval with raw access.
 
   This method doesn't work through the Gatekeeper for obvious reasons. To use
   it, the console has to use raw datastore access.
 
   Args:
     client_id: The client id the approval should be created for.
-    token: The token that will be used later for access.
+    reason: The reason to put in the token.
+    expire_in: Expiry in seconds to use in the token.
+    token: The token that will be used. If this is specified reason and expiry
+        are ignored.
     approval_type: The type of the approval to create.
+
+  Returns:
+    The token.
 
   Raises:
     RuntimeError: On bad token.
   """
   client_id = rdfvalue.ClientURN(client_id)
+
+  if not token:
+    expiry = time.time() + expire_in
+    token = rdfvalue.ACLToken(reason=reason, expiry=expiry)
+
   if not token.reason:
     raise RuntimeError("Cannot create approval with empty reason")
   if not token.username:

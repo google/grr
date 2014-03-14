@@ -13,6 +13,7 @@ import zlib
 
 import logging
 
+
 from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -47,6 +48,10 @@ class LockError(Error):
 
 
 class InstantiationError(Error, IOError):
+  pass
+
+
+class ChunkNotFoundError(IOError):
   pass
 
 
@@ -2029,6 +2034,9 @@ class AFF4MemoryStream(AFF4Stream):
 
     super(AFF4MemoryStream, self).Close(sync=sync)
 
+  def GetContentAge(self):
+    return self.Get(self.Schema.CONTENT).age
+
 
 class AFF4ObjectCache(utils.FastStore):
   """A cache which closes its objects when they expire."""
@@ -2055,6 +2063,14 @@ class AFF4Image(AFF4Stream):
     _CHUNKSIZE = Attribute("aff4:chunksize", rdfvalue.RDFInteger,
                            "Total size of each chunk.", default=64*1024)
 
+    # Note that we can't use CONTENT.age in place of this, since some types
+    # (specifically, AFF4Image) do not have a CONTENT attribute, since they're
+    # stored in chunks. Rather than maximising the last updated time over all
+    # chunks, we store it and update it as an attribute here.
+    CONTENT_LAST = Attribute("metadata:content_last", rdfvalue.RDFDatetime,
+                             "The last time any content was written.",
+                             creates_new_object_version=False)
+
   def Initialize(self):
     """Build a cache for our chunks."""
     super(AFF4Image, self).Initialize()
@@ -2068,8 +2084,10 @@ class AFF4Image(AFF4Stream):
       # pylint: disable=protected-access
       self.chunksize = int(self.Get(self.Schema._CHUNKSIZE))
       # pylint: enable=protected-access
+      self.content_last = self.Get(self.Schema.CONTENT_LAST)
     else:
       self.size = 0
+      self.content_last = None
 
   def SetChunksize(self, chunksize):
     # pylint: disable=protected-access
@@ -2116,6 +2134,8 @@ class AFF4Image(AFF4Stream):
     return fd
 
   def _GetChunkForReading(self, chunk):
+    """Returns the relevant chunk from the datastore and reads ahead."""
+
     chunk_name = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk)
     try:
       fd = self.chunk_cache.Get(chunk_name)
@@ -2139,7 +2159,7 @@ class AFF4Image(AFF4Stream):
       try:
         fd = self.chunk_cache.Get(chunk_name)
       except KeyError:
-        raise IOError("Cannot open chunk %s" % chunk_name)
+        raise ChunkNotFoundError("Cannot open chunk %s" % chunk_name)
 
     return fd
 
@@ -2187,10 +2207,11 @@ class AFF4Image(AFF4Stream):
 
       length -= len(data)
       result += data
-
     return result
 
   def _WritePartial(self, data):
+    """Writes at most one chunk of data."""
+
     chunk = self.offset / self.chunksize
     chunk_offset = self.offset % self.chunksize
     data = utils.SmartStr(data)
@@ -2213,11 +2234,14 @@ class AFF4Image(AFF4Stream):
       data = self._WritePartial(data)
 
     self.size = max(self.size, self.offset)
+    self.content_last = rdfvalue.RDFDatetime().Now()
 
   def Flush(self, sync=True):
     """Sync the chunk cache to storage."""
     if self._dirty:
       self.Set(self.Schema.SIZE(self.size))
+      if self.content_last is not None:
+        self.Set(self.Schema.CONTENT_LAST, self.content_last)
 
     # Flushing the cache will call Close() on all the chunks.
     self.chunk_cache.Flush()
@@ -2230,6 +2254,9 @@ class AFF4Image(AFF4Stream):
       sync: Should flushing be synchronous.
     """
     self.Flush(sync=sync)
+
+  def GetContentAge(self):
+    return self.content_last
 
 
 class AFF4NotificationRule(AFF4Object):

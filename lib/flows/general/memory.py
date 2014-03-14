@@ -17,58 +17,80 @@ from grr.lib.flows.general import transfer
 from grr.proto import flows_pb2
 
 
-class MemoryScannerFilter(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.MemoryScannerFilter
+class MemoryCollectorCondition(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryCollectorCondition
 
 
-class MemoryScannerWithoutLocalCopyDumpOption(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.MemoryScannerWithoutLocalCopyDumpOption
+class MemoryCollectorWithoutLocalCopyDumpOption(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryCollectorWithoutLocalCopyDumpOption
 
 
-class MemoryScannerWithLocalCopyDumpOption(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.MemoryScannerWithLocalCopyDumpOption
+class MemoryCollectorWithLocalCopyDumpOption(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryCollectorWithLocalCopyDumpOption
 
 
-class MemoryScannerDumpOption(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.MemoryScannerDumpOption
+class MemoryCollectorDumpOption(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryCollectorDumpOption
 
 
-class MemoryScannerDownloadAction(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.MemoryScannerDownloadAction
+class MemoryCollectorDownloadAction(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryCollectorDownloadAction
 
 
-class MemoryScannerSendToSocketAction(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.MemoryScannerSendToSocketAction
+class MemoryCollectorSendToSocketAction(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryCollectorSendToSocketAction
 
 
-class MemoryScannerAction(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.MemoryScannerAction
+class MemoryCollectorAction(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryCollectorAction
 
 
-class MemoryScannerArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.MemoryScannerArgs
+class MemoryCollectorArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MemoryCollectorArgs
 
 
-class MemoryScanner(flow.GRRFlow):
-  """Flow for scanning and imaging memory."""
+class MemoryCollector(flow.GRRFlow):
+  """Flow for scanning and imaging memory.
 
+  MemoryCollector applies "action" (e.g. Download) to memory if memory contents
+  match all given "conditions". Matches are then written to the results
+  collection. If there are no "conditions", "action" is applied immediately.
+
+  MemoryCollector replaces deprecated DownloadMemoryImage and
+  ImageMemoryToSocket.
+
+  When imaging memory to AFF4:
+  If the file transfer fails you can attempt to download again using the GetFile
+  flow without needing to copy all of memory to disk again.  Note that if the
+  flow fails, you'll need to run Administrative/DeleteGRRTempFiles to clean up
+  the disk.
+
+  When imaging memory to socket:
+  Choose a key and an IV in hex format (if run from the GUI,
+  there will be a pregenerated pair key and iv for you to use) and run a
+  listener on the server you want to use like this:
+
+  nc -l <port> | openssl aes-128-cbc -d -K <key> -iv <iv> > <filename>
+  """
+  friendly_name = "Memory Collector"
   category = "/Memory/"
-  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
-  args_type = MemoryScannerArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  args_type = MemoryCollectorArgs
 
-  def FiltersToFileFinderFilters(self, filters):
+  def ConditionsToFileFinderConditions(self, conditions):
+    ff_condition_type_cls = rdfvalue.FileFinderCondition.Type
     result = []
-    for f in filters:
-      if f.filter_type == MemoryScannerFilter.Type.LITERAL_MATCH:
-        result.append(rdfvalue.FileFinderFilter(
-            filter_type=rdfvalue.FileFinderFilter.Type.CONTENTS_LITERAL_MATCH,
-            contents_literal_match=f.literal_match))
-      elif f.filter_type == MemoryScannerFilter.Type.REGEX_MATCH:
-        result.append(rdfvalue.FileFinderFilter(
-            filter_type=rdfvalue.FileFinderFilter.Type.CONTENTS_REGEX_MATCH,
-            contents_regex_match=f.regex_match))
+    for c in conditions:
+      if c.condition_type == MemoryCollectorCondition.Type.LITERAL_MATCH:
+        result.append(rdfvalue.FileFinderCondition(
+            condition_type=ff_condition_type_cls.CONTENTS_LITERAL_MATCH,
+            contents_literal_match=c.literal_match))
+      elif c.condition_type == MemoryCollectorCondition.Type.REGEX_MATCH:
+        result.append(rdfvalue.FileFinderCondition(
+            condition_type=ff_condition_type_cls.CONTENTS_REGEX_MATCH,
+            contents_regex_match=c.regex_match))
       else:
-        raise ValueError("Unknown filter type: %s", f.filter_type)
+        raise ValueError("Unknown condition type: %s", c.condition_type)
 
     return result
 
@@ -85,31 +107,33 @@ class MemoryScanner(flow.GRRFlow):
 
     self.state.Register("memory_information", responses.First())
 
-    if self.args.filters:
+    if self.args.conditions:
       self.CallFlow("FileFinder",
                     paths=[self.state.memory_information.device.path],
                     pathtype=rdfvalue.PathSpec.PathType.MEMORY,
-                    filters=self.FiltersToFileFinderFilters(self.args.filters),
+                    conditions=self.ConditionsToFileFinderConditions(
+                        self.args.conditions),
                     next_state="Action")
     else:
       self.CallStateInline(next_state="Action")
 
   @property
   def action_options(self):
-    if self.args.action.action_type == MemoryScannerAction.Action.DOWNLOAD:
+    if self.args.action.action_type == MemoryCollectorAction.Action.DOWNLOAD:
       return self.args.action.download
     elif (self.args.action.action_type ==
-          MemoryScannerAction.Action.SEND_TO_SOCKET):
+          MemoryCollectorAction.Action.SEND_TO_SOCKET):
       return self.args.action.send_to_socket
 
   @flow.StateHandler(next_state=["Transfer"])
   def Action(self, responses):
     if not responses.success:
-      raise flow.FlowError("Applying filters failed: %s" % (responses.status))
+      raise flow.FlowError(
+          "Applying conditions failed: %s" % (responses.status))
 
-    if self.args.filters:
+    if self.args.conditions:
       if not responses:
-        self.Status("Memory doesn't match specified filters.")
+        self.Status("Memory doesn't match specified conditions.")
         return
       for response in responses:
         for match in response.matches:
@@ -117,10 +141,10 @@ class MemoryScanner(flow.GRRFlow):
 
     if self.action_options:
       if (self.action_options.dump_option.option_type ==
-          MemoryScannerDumpOption.Option.WITHOUT_LOCAL_COPY):
+          MemoryCollectorDumpOption.Option.WITHOUT_LOCAL_COPY):
         self.CallStateInline(next_state="Transfer")
       elif (self.action_options.dump_option.option_type ==
-            MemoryScannerDumpOption.Option.WITH_LOCAL_COPY):
+            MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY):
         dump_option = self.action_options.dump_option.with_local_copy
         self.CallClient("CopyPathToFile",
                         offset=dump_option.offset,
@@ -139,17 +163,17 @@ class MemoryScanner(flow.GRRFlow):
       raise flow.FlowError("Local copy failed: %s" % (responses.status))
 
     if (self.action_options.dump_option.option_type ==
-        MemoryScannerDumpOption.Option.WITH_LOCAL_COPY):
+        MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY):
       self.state.Register("memory_src_path", responses.First().dest_path)
     else:
       self.state.Register("memory_src_path",
                           self.state.memory_information.device)
 
-    if self.args.action.action_type == MemoryScannerAction.Action.DOWNLOAD:
+    if self.args.action.action_type == MemoryCollectorAction.Action.DOWNLOAD:
       self.CallFlow("GetFile", pathspec=self.state.memory_src_path,
                     next_state="Done")
     elif (self.args.action.action_type ==
-          MemoryScannerAction.Action.SEND_TO_SOCKET):
+          MemoryCollectorAction.Action.SEND_TO_SOCKET):
       options = self.state.args.action.send_to_socket
       self.CallClient("SendFile", key=utils.SmartStr(options.key),
                       iv=utils.SmartStr(options.iv),
@@ -168,7 +192,7 @@ class MemoryScanner(flow.GRRFlow):
       raise flow.FlowError("Transfer of %s failed %s" % (
           self.state.memory_src_path, responses.status))
 
-    if self.args.action.action_type == MemoryScannerAction.Action.DOWNLOAD:
+    if self.args.action.action_type == MemoryCollectorAction.Action.DOWNLOAD:
       stat = responses.First()
       self.state.Register("downloaded_file", stat.aff4path)
       self.Log("Downloaded %s successfully." % self.state.downloaded_file)
@@ -176,11 +200,11 @@ class MemoryScanner(flow.GRRFlow):
                   "Memory image transferred successfully")
       self.Status("Memory image transferred successfully.")
     elif (self.args.action.action_type ==
-          MemoryScannerAction.Action.SEND_TO_SOCKET):
+          MemoryCollectorAction.Action.SEND_TO_SOCKET):
       self.Status("Memory image transferred successfully.")
 
     if (self.action_options.dump_option.option_type ==
-        MemoryScannerDumpOption.Option.WITH_LOCAL_COPY):
+        MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY):
       self.CallClient("DeleteGRRTempFiles",
                       self.state.memory_src_path, next_state="DeleteFile")
 
@@ -194,6 +218,12 @@ class MemoryScanner(flow.GRRFlow):
 
 class ImageMemoryToSocket(transfer.SendFile):
   """This flow sends a memory image to remote listener.
+
+  DEPRECATED.
+  This flow is now deprecated in favor of MemoryCollector. Please use
+  MemoryCollector without conditions with "send to socket" action. You can
+  set "dump option" to "create local copy first" or "don't create local copy".
+  ------------------------------------------------------------------------------
 
   It will first initialize the memory device, then send the image to the
   specified socket.
@@ -241,6 +271,12 @@ class DownloadMemoryImageArgs(rdfvalue.RDFProtoStruct):
 class DownloadMemoryImage(flow.GRRFlow):
   """Copy memory image to local disk then retrieve the file.
 
+  DEPRECATED.
+  This flow is now deprecated in favor of MemoryCollector. Please use
+  MemoryCollector without conditions with "Download" action. You can
+  set "dump option" to "create local copy first" or "don't create local copy".
+  ------------------------------------------------------------------------------
+
   If the file transfer fails you can attempt to download again using the GetFile
   flow without needing to copy all of memory to disk again.  Note that if the
   flow fails, you'll need to run Administrative/DeleteGRRTempFiles to clean up
@@ -254,7 +290,7 @@ class DownloadMemoryImage(flow.GRRFlow):
   args_type = DownloadMemoryImageArgs
 
   # This flow is also a basic flow.
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
 
   @classmethod
   def GetDefaultArgs(cls, token=None):
@@ -656,11 +692,6 @@ class ScanMemory(flow.GRRFlow):
   def Start(self):
     self.args.grep.xor_in_key = self.XOR_IN_KEY
     self.args.grep.xor_out_key = self.XOR_OUT_KEY
-    # For literal matches we xor the search term. This stops us matching the GRR
-    # client itself.
-    if self.args.grep.literal:
-      self.args.grep.literal = utils.Xor(
-          self.args.grep.literal, self.XOR_IN_KEY)
 
     self.CallFlow("LoadMemoryDriver", next_state="Grep")
 
@@ -676,6 +707,12 @@ class ScanMemory(flow.GRRFlow):
     # Coerce the BareGrepSpec into a GrepSpec explicitly.
     grep_request = rdfvalue.GrepSpec(target=memory_information.device,
                                      **self.args.grep.AsDict())
+
+    # For literal matches we xor the search term. This stops us matching the GRR
+    # client itself.
+    if self.args.grep.literal:
+      grep_request.literal = utils.Xor(
+          utils.SmartStr(self.args.grep.literal), self.XOR_IN_KEY)
 
     self.CallClient("Grep", request=grep_request, next_state="Done")
 

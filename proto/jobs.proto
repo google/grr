@@ -1189,6 +1189,7 @@ message GrepSpec {
 
   // A literal search.
   optional bytes literal = 5 [(sem_type) = {
+      type: "LiteralExpression",
       description: "Search for this literal string.",
     }];
 
@@ -1521,10 +1522,22 @@ message AuditEvent {
   enum Action {
     UNKNOWN = 0;
     RUN_FLOW = 1;
+    CLIENT_APPROVAL_BREAK_GLASS_REQUEST = 2;
+    CLIENT_APPROVAL_GRANT = 3;
+    CLIENT_APPROVAL_REQUEST = 4;
+    CRON_APPROVAL_GRANT = 5;
+    CRON_APPROVAL_REQUEST = 6;
+    HUNT_APPROVAL_GRANT = 7;
+    HUNT_APPROVAL_REQUEST = 8;
+    HUNT_CREATED = 9;
+    HUNT_MODIFIED = 10;
+    HUNT_PAUSED = 11;
+    HUNT_STARTED = 12;
+    HUNT_STOPPED = 13;
   };
 
   optional Action action = 3 [default=UNKNOWN];
-  optional string flow = 4;
+  optional string flow_name = 4;
   optional bytes flow_args = 5;
 
   optional string client = 6 [(sem_type) = {
@@ -1535,6 +1548,12 @@ message AuditEvent {
   optional uint64 timestamp = 7 [(sem_type) = {
       type: "RDFDatetime",
       description: "Time event was created.",
+    }];
+
+  optional string description = 8;
+  optional string urn = 9 [(sem_type) = {
+      type: "RDFURN",
+      description: "The relevant hunt/flow/cron urn for this event."
     }];
 }
 

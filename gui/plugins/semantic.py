@@ -190,6 +190,15 @@ class SubjectRenderer(RDFValueRenderer):
     return super(SubjectRenderer, self).Layout(request, response)
 
 
+class RDFBytesRenderer(RDFValueRenderer):
+  """A renderer for RDFBytes."""
+  classname = "RDFBytes"
+
+  def Layout(self, request, response):
+    self.proxy = utils.SmartStr(self.proxy).encode("string-escape")
+    super(RDFBytesRenderer, self).Layout(request, response)
+
+
 class RDFURNRenderer(RDFValueRenderer):
   """A special renderer for RDFURNs."""
 
@@ -464,6 +473,14 @@ class RDFValueCollectionRenderer(renderers.TableRenderer):
 
   post_parameters = ["aff4_path"]
   size = 0
+  show_total_count = True
+  layout_template = """
+{% if this.size > 0 %}
+  {% if this.show_total_count %}
+    <h5>{{this.size}} Entries</h5>
+  {% endif %}
+{% endif %}
+""" + renderers.TableRenderer.layout_template
 
   def __init__(self, **kwargs):
     super(RDFValueCollectionRenderer, self).__init__(**kwargs)
@@ -489,6 +506,13 @@ class RDFValueCollectionRenderer(renderers.TableRenderer):
   def Layout(self, request, response, aff4_path=None):
     if aff4_path:
       self.state["aff4_path"] = str(aff4_path)
+      try:
+        collection = aff4.FACTORY.Open(aff4_path,
+                                       aff4_type="RDFValueCollection",
+                                       token=request.token)
+        self.size = len(collection)
+      except IOError:
+        pass
 
     return super(RDFValueCollectionRenderer, self).Layout(
         request, response)

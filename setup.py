@@ -171,5 +171,6 @@ setup(name='grr',
               'grr_worker = grr.lib.distro_entry:Worker',
               'grr_enroller = grr.lib.distro_entry:Enroller',
               'grr_admin_ui = grr.lib.distro_entry:AdminUI',
+              'grr_fuse = grr.lib.distro_entry:GRRFuse',
           ]
       })

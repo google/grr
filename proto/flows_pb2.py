@@ -16,7 +16,7 @@ import grr.proto.semantic_pb2
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='grr/proto/flows.proto',
   package='',
-  serialized_pb='\n\x15grr/proto/flows.proto\x1a\x14grr/proto/jobs.proto\x1a\x1egrr/proto/knowledge_base.proto\x1a\x18grr/proto/semantic.proto\"\xc4\x01\n\x08\x41\x43LToken\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x0e\n\x06reason\x18\x02 \x01(\t\x12\x18\n\x10requested_access\x18\x03 \x01(\t\x12\x41\n\x06\x65xpiry\x18\x05 \x01(\x04\x42\x31\xe2\xfc\xe3\xc4\x01+\n\x0bRDFDatetime\x12\x1cWhen does this token expire?\x12\x12\n\nsource_ips\x18\x06 \x03(\t\x12\x0f\n\x07process\x18\x07 \x01(\t\x12\x14\n\x0cis_emergency\x18\x08 \x01(\x08\"\xaf\x01\n\x0bGUISettings\x12\x46\n\x04mode\x18\x01 \x01(\x0e\x32\x13.GUISettings.UIMode:\x05\x42\x41SICB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14User interface mode.\",\n\x06UIMode\x12\t\n\x05\x42\x41SIC\x10\x00\x12\x0c\n\x08\x41\x44VANCED\x10\x01\x12\t\n\x05\x44\x45\x42UG\x10\x02:*\xda\xfc\xe3\xc4\x01$\n\"User GUI settings and preferences.\"\x96\r\n\x0e\x46lowRunnerArgs\x12\x63\n\x08priority\x18\x01 \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITYB*\xe2\xfc\xe3\xc4\x01$\x12 The priority used for this flow.\x18\x01\x12k\n\x0enotify_to_user\x18\x02 \x01(\x08:\x04trueBM\xe2\xfc\xe3\xc4\x01G\x12/Should a notification be sent to the initiator.\"\x14Notify at Completion\x12g\n\x0csend_replies\x18\x03 \x01(\x08:\x04trueBK\xe2\xfc\xe3\xc4\x01\x45\x12\x33Should send replies back to the parent flow or not.\x18\x02\"\x0cSend Replies\x12\x9e\x01\n\x12notification_event\x18\x04 \x01(\tB\x81\x01\xe2\xfc\xe3\xc4\x01{\x12\x63\x41n event listener\'s event name. An event will be published to this listener once the flow finishes.\x18\x02\"\x12Notification Event\x12\x88\x01\n\x10notification_urn\x18\x0e \x01(\tBn\xe2\xfc\xe3\xc4\x01h\n\tSessionID\x12YThe Session ID for the event listener to receive a notification when this flow completes.\x18\x02\x12L\n\tclient_id\x18\x05 \x01(\tB9\xe2\xfc\xe3\xc4\x01\x33\n\tClientURN\x12$The client id this flow operates on.\x18\x02\x12\x42\n\x05queue\x18\x06 \x01(\t:\x01WB0\xe2\xfc\xe3\xc4\x01*\n\x06RDFURN\x12\x1eThe queue to use for the flow.\x18\x02\x12H\n\x08\x65vent_id\x18\x07 \x01(\tB6\xe2\xfc\xe3\xc4\x01\x30\x12,A logging event id for issuing further logs.\x18\x02\x12Q\n\x05token\x18\x08 \x01(\x0b\x32\t.ACLTokenB7\xe2\xfc\xe3\xc4\x01\x31\x12-The access token to be used for this request.\x18\x02\x12Q\n\tcpu_limit\x18\t \x01(\x04\x42>\xe2\xfc\xe3\xc4\x01\x38\x12\x34\x41 limit on the client cpu seconds used by this flow.\x18\x01\x12V\n\x13network_bytes_limit\x18\r \x01(\x04\x42\x39\xe2\xfc\xe3\xc4\x01\x33\x12/A limit on the total traffic used by this flow.\x18\x01\x12U\n\rrequest_state\x18\n \x01(\x0b\x32\r.RequestStateB/\xe2\xfc\xe3\xc4\x01)\x12%The request state of the parent flow.\x18\x02\x12P\n\tflow_name\x18\x0b \x01(\tB=\xe2\xfc\xe3\xc4\x01\x37\x12\x33The name of the class implementing the flow to run.\x18\x02\x12o\n\x0f\x62\x61se_session_id\x18\x0c \x01(\tBV\xe2\xfc\xe3\xc4\x01P\n\tSessionID\x12\x41The session id for the flow runner. If not specified we make one.\x18\x02\x12~\n\nstart_time\x18\x0f \x01(\x04\x42j\xe2\xfc\xe3\xc4\x01\x64\n\x0bRDFDatetime\x12SDo not process this flow until this time. (Implies the flow is run asyncronously.).\x18\x01\x12\xa8\x01\n\x06output\x18\x10 \x01(\t:\x14\x61nalysis/{p}/{u}-{t}B\x81\x01\xe2\xfc\xe3\xc4\x01{\x12wIf set, a relative URN to the client\'s namespace where a collection will be created, and the result will be written to.\x18\x01\"\xaf\x0b\n\x0eHuntRunnerArgs\x12N\n\thunt_name\x18\x01 \x01(\tB;\xe2\xfc\xe3\xc4\x01\x35\x12\x33The name of the class implementing the hunt to run.\x12:\n\x0b\x64\x65scription\x18\x02 \x01(\tB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dThe description of this hunt.\x12x\n\x0bregex_rules\x18\x03 \x03(\x0b\x32\x16.ForemanAttributeRegexBK\xe2\xfc\xe3\xc4\x01\x45\x12\x43Regex rules that trigger this hunt. Note that all rules must match.\x12s\n\rinteger_rules\x18\x04 \x03(\x0b\x32\x18.ForemanAttributeIntegerBB\xe2\xfc\xe3\xc4\x01<\x12:Integer rules that trigger this hunt.All rules must match.\x12\x63\n\x08priority\x18\x05 \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITYB*\xe2\xfc\xe3\xc4\x01$\x12 The priority used for this flow.\x18\x01\x12\xa4\x01\n\x12notification_event\x18\x06 \x01(\tB\x87\x01\xe2\xfc\xe3\xc4\x01\x80\x01\x12hAn event name for an event listener. An event will be published to this listener once the flow finishes.\x18\x02\"\x12Notification Event\x12\x42\n\x05queue\x18\x07 \x01(\t:\x01WB0\xe2\xfc\xe3\xc4\x01*\n\x06RDFURN\x12\x1eThe queue to use for the flow.\x18\x02\x12Q\n\x05token\x18\x08 \x01(\x0b\x32\t.ACLTokenB7\xe2\xfc\xe3\xc4\x01\x31\x12-The access token to be used for this request.\x18\x02\x12Q\n\tcpu_limit\x18\t \x01(\x04\x42>\xe2\xfc\xe3\xc4\x01\x38\x12\x34\x41 limit on the client cpu seconds used by this flow.\x18\x01\x12V\n\x13network_bytes_limit\x18\r \x01(\x04\x42\x39\xe2\xfc\xe3\xc4\x01\x33\x12/A limit on the total traffic used by this flow.\x18\x01\x12\xea\x01\n\x0c\x63lient_limit\x18\n \x01(\x04:\x01\x30\x42\xd0\x01\xe2\xfc\xe3\xc4\x01\xc9\x01\x12\xb8\x01Maximum number of clients participating in the hunt. Note that this limit can be overshot by a small number of clients if there are multiple workers running. Use this only for testing.\"\x0c\x43lient Limit\x12V\n\x0b\x65xpiry_time\x18\x0b \x01(\x04:\x07\x32\x36\x37\x38\x34\x30\x30\x42\x38\xe2\xfc\xe3\xc4\x01\x32\n\x08\x44uration\x12\x19\x45xpiry time for the hunt.\"\x0b\x45xpiry Time\x12\x8e\x01\n\x0b\x63lient_rate\x18\x0c \x01(\x02:\x02\x32\x30\x42u\xe2\xfc\xe3\xc4\x01o\x12mThe maximum number of clients to engage per minute.A rate of 0 means to schedule clients as fast as possible.\"W\n\x0eSampleHuntArgs\x12\x45\n\x08\x66ilename\x18\x01 \x01(\t:\r/tmp/evil.txtB$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1c\x65vil filename to search for.\"\xce\x02\n\x0b\x46lowRequest\x12H\n\nclient_ids\x18\x01 \x03(\tB4\xe2\xfc\xe3\xc4\x01.\n\tClientURN\x12!The clients to start the flow on.\x12\xac\x01\n\x04\x61rgs\x18\x05 \x01(\x0c\x42\x9d\x01\xe2\xfc\xe3\xc4\x01\x96\x01\x12\x81\x01\x41rgs to the flow. These depend on the flow_name parameter.It is expected that this field contains an instance of flow\'s arg_type.*\x10GetFlowArgsClass\x12\x46\n\x0brunner_args\x18\x06 \x01(\x0b\x32\x0f.FlowRunnerArgsB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18\x41rgs to the flow runner.\"\xd3\x01\n\x0cOutputPlugin\x12;\n\x0bplugin_name\x18\x01 \x01(\tB&\xe2\xfc\xe3\xc4\x01 \x12\x1eThe name of the output plugin.\x12\x85\x01\n\x0bplugin_args\x18\x02 \x01(\x0c\x42p\xe2\xfc\xe3\xc4\x01j\x12TThe parameters for this plugin. Must be an instance of the named plugin\'s args_type.*\x12GetPluginArgsClass\"\x88\x01\n\x0f\x45mailPluginArgs\x12[\n\x05\x65mail\x18\x01 \x01(\tBL\xe2\xfc\xe3\xc4\x01\x46\n\x12\x44omainEmailAddress\x12\x30The email address that messages will be sent to.\x12\x18\n\x0b\x65mail_limit\x18\x02 \x01(\x04:\x03\x31\x30\x30\"\x80\x01\n\x14\x43ollectionPluginArgs\x12h\n\x0f\x63ollection_name\x18\x01 \x01(\t:\x07ResultsBF\xe2\xfc\xe3\xc4\x01@\x12+The name of the collection within the hunt.\x18\x01\"\x0f\x43ollection Name\"\xd2\x01\n\x17VariableGenericHuntArgs\x12^\n\x05\x66lows\x18\x01 \x03(\x0b\x32\x0c.FlowRequestBA\xe2\xfc\xe3\xc4\x01;\x12\x39\x41 list of requests for starting flows on certain clients.\x12W\n\x0eoutput_plugins\x18\x02 \x03(\x0b\x32\r.OutputPluginB0\xe2\xfc\xe3\xc4\x01*\x12(The output plugins to use for this hunt.\"I\n\x0bMBRHuntArgs\x12:\n\x06length\x18\x01 \x01(\x04:\x04\x34\x30\x39\x36\x42$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1cNumber of bytes to retrieve.\"\xca\x02\n\x0fGenericHuntArgs\x12\x80\x01\n\tflow_args\x18\x02 \x01(\x0c\x42m\xe2\xfc\xe3\xc4\x01g\x12QArguments to the flow to run. This should be an instance of flow.args_type proto.\x18\x02*\x10GetFlowArgsClass\x12[\n\x10\x66low_runner_args\x18\x03 \x01(\x0b\x32\x0f.FlowRunnerArgsB0\xe2\xfc\xe3\xc4\x01*\x12(The runner args for launching each flow.\x12W\n\x0eoutput_plugins\x18\x04 \x03(\x0b\x32\r.OutputPluginB0\xe2\xfc\xe3\xc4\x01*\x12(The output plugins to use for this hunt.\"\x82\x08\n\x0c\x42\x61reGrepSpec\x12\x45\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x42,\xe2\xfc\xe3\xc4\x01&\x12$Start searching at this file offset.\x12P\n\x06length\x18\x03 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x33\xe2\xfc\xe3\xc4\x01-\x12+How far (in bytes) into the file to search.\x12^\n\x05regex\x18\x04 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\n\x11RegularExpression\x12\x34The regular expression which will be used to search.\x12\x38\n\x07literal\x18\x05 \x01(\x0c\x42\'\xe2\xfc\xe3\xc4\x01!\x12\x1fSearch for this literal string.\x12u\n\x04mode\x18\x06 \x01(\x0e\x32\x12.BareGrepSpec.Mode:\x08\x41LL_HITSBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41When should searching stop? Stop after one hit or search for all?\x12K\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\'Include this many bytes before the hit.\x18\x01\x12I\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\x12&Include this many bytes after the hit.\x18\x01\x12\xc3\x01\n\nxor_in_key\x18\t \x01(\r:\x02\x33\x37\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\x12\xc4\x01\n\x0bxor_out_key\x18\n \x01(\r:\x02\x35\x37\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"^\n\rCAEnrolerArgs\x12M\n\x03\x63sr\x18\x01 \x01(\x0b\x32\x0c.CertificateB2\xe2\xfc\xe3\xc4\x01,\x12*A Certificate RDFValue with the CSR in it.\"\xa4\x02\n\x16\x44\x65leteGRRTempFilesArgs\x12\x89\x02\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB\xeb\x01\xe2\xfc\xe3\xc4\x01\xe4\x01\x12\xe1\x01The pathspec target for deletion.If path is a directory, look in the top level for filenames beginning with Client.tempfile_prefix, and delete them. If path is a regular file and starts with Client.tempfile_prefix, delete it.\"?\n\rUninstallArgs\x12.\n\x04kill\x18\x01 \x01(\x08\x42 \xe2\xfc\xe3\xc4\x01\x1a\x12\x18Kills the client if set.\"Y\n\x10UpdateConfigArgs\x12\x45\n\x06\x63onfig\x18\x01 \x01(\x0b\x32\n.GRRConfigB)\xe2\xfc\xe3\xc4\x01#\x12!The config to send to the client.\"\x8c\x01\n\x15\x45xecutePythonHackArgs\x12;\n\thack_name\x18\x01 \x01(\tB(\xe2\xfc\xe3\xc4\x01\"\x12 The name of the hack to execute.\x12\x36\n\x07py_args\x18\x02 \x01(\x0b\x32\x05.DictB\x1e\xe2\xfc\xe3\xc4\x01\x18\x12\x16Python Hack Arguments.\"\xd8\x01\n\x12\x45xecuteCommandArgs\x12\x15\n\x03\x63md\x18\x01 \x01(\tB\x08\xe2\xfc\xe3\xc4\x01\x02\x12\x00\x12S\n\x0c\x63ommand_line\x18\x02 \x01(\tB=\xe2\xfc\xe3\xc4\x01\x37\x12\x35The arguments to the command as a shell command line.\x12V\n\ntime_limit\x18\x03 \x01(\x03:\x02-1B>\xe2\xfc\xe3\xc4\x01\x38\x12\x36The time limit for this execution, -1 means unlimited.\"\x93\x01\n\x16OnlineNotificationArgs\x12y\n\x05\x65mail\x18\x01 \x01(\tBj\xe2\xfc\xe3\xc4\x01\x64\n\x12\x44omainEmailAddress\x12NEmail address to send to. If not set, mail will be sent to the logged in user.\"o\n\x10UpdateClientArgs\x12[\n\tblob_path\x18\x01 \x01(\tBH\xe2\xfc\xe3\xc4\x01\x42\n\x06RDFURN\x12\x38\x41n aff4 path to a GRRSignedBlob of a new client version.\"s\n\rKeepAliveArgs\x12\x62\n\x08\x64uration\x18\x01 \x01(\x04:\x04\x33\x36\x30\x30\x42J\xe2\xfc\xe3\xc4\x01\x44\n\x08\x44uration\x12\x38Until when should the client stay in the fast poll mode.\"\x8c\x01\n\x11TerminateFlowArgs\x12\x46\n\x08\x66low_urn\x18\x01 \x01(\tB4\xe2\xfc\xe3\xc4\x01.\n\tSessionID\x12!The URN of the flow to terminate.\x12/\n\x06reason\x18\x02 \x01(\tB\x1f\xe2\xfc\xe3\xc4\x01\x19\x12\x17Reason for termination.\"\x9e\x01\n\x10LaunchBinaryArgs\x12\x41\n\x06\x62inary\x18\x01 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\n\x06RDFURN\x12!The URN of the binary to execute.\x12G\n\x0c\x63ommand_line\x18\x02 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\x12)Binary Arguments as a shell command line.\"\xd8\x04\n WinUserActivityInvestigationArgs\x12<\n\x08username\x18\x01 \x01(\tB*\xe2\xfc\xe3\xc4\x01$\x12\"The user to target the actions to.\x12R\n\x13get_browser_history\x18\x02 \x01(\x08:\x04trueB/\xe2\xfc\xe3\xc4\x01)\x12\'Call each of the browser history flows.\x12\\\n\x16recursive_list_homedir\x18\x03 \x01(\x04:\x01\x35\x42\x39\xe2\xfc\xe3\xc4\x01\x33\x12\x31Recursively list the users homedir to this depth.\x12Z\n\x1crecursive_list_user_registry\x18\x04 \x01(\x04:\x01\x35\x42\x31\xe2\xfc\xe3\xc4\x01+\x12)Recursively list the users registry hive.\x12\x46\n\rartifact_list\x18\x05 \x03(\tB/\xe2\xfc\xe3\xc4\x01)\n\x0c\x41rtifactName\x12\x19\x41 list of Artifact names.\x12\\\n\x17timeline_collected_data\x18\x06 \x01(\x08:\x04trueB5\xe2\xfc\xe3\xc4\x01/\x12-Once complete create a timeline for the host.\x12\x42\n\x07use_tsk\x18\x07 \x01(\x08\x42\x31\xe2\xfc\xe3\xc4\x01+\x12)Use raw filesystem access where possible.\"\x8e\x06\n\x19\x41rtifactCollectorFlowArgs\x12L\n\rartifact_list\x18\x01 \x03(\tB5\xe2\xfc\xe3\xc4\x01/\n\x0c\x41rtifactName\x12\x1f\x41 list of Artifact class names.\x12M\n\x07use_tsk\x18\x02 \x01(\x08:\x05\x66\x61lseB5\xe2\xfc\xe3\xc4\x01/\x12-Whether raw filesystem access should be used.\x12\x8f\x01\n\x15store_results_in_aff4\x18\x03 \x01(\x08:\x05\x66\x61lseBi\xe2\xfc\xe3\xc4\x01\x63\x12_Should the collected artifacts be written to the GRR AFF4 namespace based on the AFF4->RDF map.\x18\x01\x12\x92\x01\n\x18split_output_by_artifact\x18\x05 \x01(\x08:\x05\x66\x61lseBi\xe2\xfc\xe3\xc4\x01\x63\x12_If True, use output as a directory and write a separate collection for each artifact collected.\x18\x01\x12\x8d\x01\n\x0eknowledge_base\x18\x06 \x01(\x0b\x32\x0e.KnowledgeBaseBe\xe2\xfc\xe3\xc4\x01_\x12[An optional knowledge base to use, if not specified we retrieve one from the client object.\x18\x02\x12\x9c\x01\n\x11no_results_errors\x18\x07 \x01(\x08:\x05\x66\x61lseBz\xe2\xfc\xe3\xc4\x01t\x12rIf True, an artifact returning no results will raise a hard error. This is useful where you always expect results.\"i\n\x0fInterrogateArgs\x12V\n\x0blightweight\x18\x01 \x01(\x08:\x05\x66\x61lseB:\xe2\xfc\xe3\xc4\x01\x34\x12\x32Perform a light weight version of the interrogate.\"\x90\x07\n\x0e\x46\x65tchFilesArgs\x12u\n\x05paths\x18\x01 \x03(\tBf\xe2\xfc\xe3\xc4\x01`\n\x0eGlobExpression\x12NA path to glob that supports: ** path recursion, * wildcards and %% expansions\x12L\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1aType of access to glob in.\x12\xd2\x01\n\troot_path\x18\x06 \x01(\x0b\x32\t.PathSpecB\xb3\x01\xe2\xfc\xe3\xc4\x01\xac\x01\x12\xa7\x01The root path to begin the glob.  Users should almost never need to change this. root_path.pathtype is unused in favor of pathtype to allow it to be modified by users.\x18\x01\x12\x94\x01\n\x08\x66indspec\x18\x04 \x01(\x0b\x32\t.FindSpecBw\xe2\xfc\xe3\xc4\x01q\x12mWhich files to search for. The default is to search the entire system for files with an executable extension.\x18\x01\x12\xf0\x01\n\x13use_external_stores\x18\x03 \x01(\x08:\x04trueB\xcc\x01\xe2\xfc\xe3\xc4\x01\xc5\x01\x12\xc0\x01If true, look in any defined external file stores for files before downloading them, and offer any new files to external stores. This should be true unless the external checks are misbehaving.\x18\x01\x12Z\n\x08max_size\x18\x05 \x01(\x04:\t100000000B=\xe2\xfc\xe3\xc4\x01\x37\n\x08\x42yteSize\x12+The maximum size of files we will download.\"Y\n\x13\x46ingerprintFileArgs\x12\x42\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dThe file path to fingerprint.\"\xe7\x05\n\x17\x44ownloadMemoryImageArgs\x12\xa8\x01\n\x07\x64\x65stdir\x18\x01 \x01(\tB\x96\x01\xe2\xfc\xe3\xc4\x01\x8f\x01\x12\x8a\x01\x44\x65stination directory on the client for the temporary image. Leave blank to use defaults. Parent directories will be created if necessary.\x18\x01\x12\x44\n\x06offset\x18\x02 \x01(\x04:\x01\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\x16Memory offset in bytes\x18\x01\"\x0fStarting Offset\x12\x66\n\x06length\x18\x03 \x01(\x04:\x01\x30\x42S\xe2\xfc\xe3\xc4\x01M\x12\x35Number of bytes to copy (default 0 copies all memory)\x18\x01\"\x12Length to download\x12\x46\n\x04gzip\x18\x04 \x01(\x08:\x04trueB2\xe2\xfc\xe3\xc4\x01,\x12(Gzip temporary image file on the client.\x18\x01\x12\xc0\x01\n\x10\x64river_installer\x18\x05 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8d\x01\xe2\xfc\xe3\xc4\x01\x86\x01\x12\x81\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\x18\x02\x12h\n\x0fmake_local_copy\x18\x06 \x01(\x08:\x04trueBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41Make a local copy of the memory on the client before downloading.\"\xca\x02\n\x14LoadMemoryDriverArgs\x12\xc0\x01\n\x10\x64river_installer\x18\x01 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8d\x01\xe2\xfc\xe3\xc4\x01\x86\x01\x12\x81\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\x18\x02\x12o\n\x10reload_if_loaded\x18\x02 \x01(\x08:\x05\x66\x61lseBN\xe2\xfc\xe3\xc4\x01H\x12-If the driver is already loaded we reload it.\"\x17\x46orce reload of driver.\"\xbb\x02\n\x17\x41nalyzeClientMemoryArgs\x12\xc0\x01\n\x10\x64river_installer\x18\x01 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8d\x01\xe2\xfc\xe3\xc4\x01\x86\x01\x12\x81\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\x18\x02\x12]\n\x07request\x18\x02 \x01(\x0b\x32\x12.VolatilityRequestB8\xe2\xfc\xe3\xc4\x01\x32\x12\x30\x41 request for the client\'s volatility subsystem.\"\xdd\x01\n\x0eScanMemoryArgs\x12\x43\n\x04grep\x18\x01 \x01(\x0b\x32\r.BareGrepSpecB&\xe2\xfc\xe3\xc4\x01 \x12\x1e\x41 grepspec for memory devices.\x12\x41\n\ralso_download\x18\x02 \x01(\x08\x42*\xe2\xfc\xe3\xc4\x01$\x12\"If a match is found, image memory.:C\xda\xfc\xe3\xc4\x01=\n;A grep specification which operates only on memory devices.\"a\n\x13SophosCollectorArgs\x12J\n\x08pathtype\x18\x01 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18The requested path type.\"a\n\x0cMACTimesArgs\x12Q\n\x04path\x18\x01 \x01(\t:\x04/fs/B=\xe2\xfc\xe3\xc4\x01\x37\x12\x35\x41n AFF path (relative to the client area of the VFS).\"Y\n\x11\x46ileCollectorArgs\x12\x44\n\tfindspecs\x18\x01 \x03(\x0b\x32\t.FindSpecB&\xe2\xfc\xe3\xc4\x01 \x12\x1e\x41 list of find specifications.\"\xc5\x03\n\x12\x46irefoxHistoryArgs\x12M\n\x08pathtype\x18\x01 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bType of path access to use.\x12Z\n\x0bget_archive\x18\x02 \x01(\x08:\x05\x66\x61lseB>\xe2\xfc\xe3\xc4\x01\x38\x12\x36Should we get Archived History as well (3 months old).\x12\xaa\x01\n\x08username\x18\x03 \x01(\tB\x97\x01\xe2\xfc\xe3\xc4\x01\x90\x01\x12\x8d\x01The user to get history for. If history_path is not set this will be used to guess the path to the history files. Can be in form DOMAIN\\user.\x12W\n\x0chistory_path\x18\x05 \x01(\tBA\xe2\xfc\xe3\xc4\x01;\x12\x39Path to a profile directory that contains a History file.\"\xbf\x03\n\rCacheGrepArgs\x12V\n\ngrep_users\x18\x01 \x03(\tBB\xe2\xfc\xe3\xc4\x01<\x12:A list of users to check. Default all users on the system.\x12M\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bType of path access to use.\x12R\n\ndata_regex\x18\x03 \x01(\tB>\xe2\xfc\xe3\xc4\x01\x38\n\x11RegularExpression\x12#A regular expression to search for.\x12\x30\n\x0c\x63heck_chrome\x18\x05 \x01(\x08:\x04trueB\x14\xe2\xfc\xe3\xc4\x01\x0e\x12\x0c\x43heck Chrome\x12\x32\n\rcheck_firefox\x18\x06 \x01(\x08:\x04trueB\x15\xe2\xfc\xe3\xc4\x01\x0f\x12\rCheck Firefox\x12M\n\x08\x63heck_ie\x18\x07 \x01(\x08:\x04trueB5\xe2\xfc\xe3\xc4\x01/\x12-Check Internet Explorer (Not implemented yet)\"a\n\x11ListDirectoryArgs\x12L\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB/\xe2\xfc\xe3\xc4\x01)\x12\'The pathspec for the directory to list.\"\xa2\x01\n\x1aRecursiveListDirectoryArgs\x12L\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB/\xe2\xfc\xe3\xc4\x01)\x12\'The pathspec for the directory to list.\x12\x36\n\tmax_depth\x18\x02 \x01(\x04:\x01\x35\x42 \xe2\xfc\xe3\xc4\x01\x1a\x12\x18Maximum recursion depth.\"P\n\x0fSlowGetFileArgs\x12\x1b\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpec\x12 \n\x0f\x61\x66\x66\x34_chunk_size\x18\x02 \x01(\x04:\x07\x31\x30\x34\x38\x35\x37\x36\"&\n\x08GrepArgs\x12\x1a\n\x07request\x18\x01 \x01(\x0b\x32\t.GrepSpec\"\xae\x03\n\x08GlobArgs\x12\x7f\n\x05paths\x18\x01 \x03(\tBp\xe2\xfc\xe3\xc4\x01j\n\x0eGlobExpression\x12XA list of paths to glob that supports: ** path recursion, * wildcards and %% expansions.\x12L\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1aType of access to glob in.\x12\xd2\x01\n\troot_path\x18\x03 \x01(\x0b\x32\t.PathSpecB\xb3\x01\xe2\xfc\xe3\xc4\x01\xac\x01\x12\xa7\x01The root path to begin the glob.  Users should almost never need to change this. root_path.pathtype is unused in favor of pathtype to allow it to be modified by users.\x18\x01\"\xfb\x04\n\x15SearchFileContentArgs\x12u\n\x05paths\x18\x01 \x03(\tBf\xe2\xfc\xe3\xc4\x01`\n\x0eGlobExpression\x12NA path to glob that supports: ** path recursion, * wildcards and %% expansions\x12L\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1aType of access to glob in.\x12\xd2\x01\n\troot_path\x18\x05 \x01(\x0b\x32\t.PathSpecB\xb3\x01\xe2\xfc\xe3\xc4\x01\xac\x01\x12\xa7\x01The root path to begin the glob.  Users should almost never need to change this. root_path.pathtype is unused in favor of pathtype to allow it to be modified by users.\x18\x01\x12\x66\n\x04grep\x18\x03 \x01(\x0b\x32\r.BareGrepSpecBI\xe2\xfc\xe3\xc4\x01\x43\x12,Leave empty to match files by filename only.\"\x13\x46ile Content Search\x12`\n\ralso_download\x18\x04 \x01(\x08\x42I\xe2\xfc\xe3\xc4\x01\x43\x12(If checked, download any matching files.\"\x17\x44ownload matching files\"\xe5\x01\n\rFindFilesArgs\x12\x44\n\x08\x66indspec\x18\x01 \x01(\x0b\x32\t.FindSpecB\'\xe2\xfc\xe3\xc4\x01!\x12\x1f\x41 find operation specification.\x12\x45\n\x0bmax_results\x18\x03 \x01(\x04:\x03\x35\x30\x30\x42+\xe2\xfc\xe3\xc4\x01%\x12!Maximum number of results to get.\x18\x01\x12G\n\x0fiteration_count\x18\x04 \x01(\x04:\x05\x32\x30\x30\x30\x30\x42\'\xe2\xfc\xe3\xc4\x01!\x12\x1d\x46iles examined per iteration.\x18\x01\"\xc1\x02\n\x0bGetFileArgs\x12K\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB.\xe2\xfc\xe3\xc4\x01(\x12&The pathspec for the file to retrieve.\x12s\n\x0bread_length\x18\x02 \x01(\x04:\x01\x30\x42[\xe2\xfc\xe3\xc4\x01U\x12QThe amount of data to read from the file. If 0 we use the value from a stat call.\x18\x01\x12p\n\x13ignore_stat_failure\x18\x03 \x01(\x08\x42S\xe2\xfc\xe3\xc4\x01M\x12IIgnore stat failures and try to read anyway. Disable for windows devices.\x18\x01\"Q\n\nGetMBRArgs\x12\x43\n\x06length\x18\x01 \x01(\x04:\x04\x34\x30\x39\x36\x42-\xe2\xfc\xe3\xc4\x01\'\x12%The length of the MBR buffer to read.\"\xc4\x03\n\x11\x43hromeHistoryArgs\x12M\n\x08pathtype\x18\x01 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bType of path access to use.\x12S\n\x0bget_archive\x18\x02 \x01(\x08\x42>\xe2\xfc\xe3\xc4\x01\x38\x12\x36Should we get Archived History as well (3 months old).\x12\xb1\x01\n\x08username\x18\x03 \x01(\tB\x9e\x01\xe2\xfc\xe3\xc4\x01\x97\x01\x12\x94\x01The user to get Chrome history for. If history_path is not set this will be used to guess the path to the history files. Can be in form DOMAIN\\user.\x12W\n\x0chistory_path\x18\x05 \x01(\tBA\xe2\xfc\xe3\xc4\x01;\x12\x39Path to a profile directory that contains a History file.\"\xca\x02\n\x10\x43lientActionArgs\x12.\n\x06\x61\x63tion\x18\x01 \x01(\tB\x1e\xe2\xfc\xe3\xc4\x01\x18\x12\x16The action to execute.\x12\x63\n\x07save_to\x18\x02 \x01(\t:\x04/tmpBL\xe2\xfc\xe3\xc4\x01\x46\x12\x44If set, interpreted as a path to write pickle dumps of responses to.\x12V\n\tbreak_pdb\x18\x03 \x01(\x08:\x05\x66\x61lseB<\xe2\xfc\xe3\xc4\x01\x36\x12\x34If True, run pdb.set_trace when responses come back.\x12I\n\x0b\x61\x63tion_args\x18\x04 \x01(\x0c\x42\x34\xe2\xfc\xe3\xc4\x01.\x12\x18\x43lient action arguments.*\x12GetActionArgsClass\"\x83\x03\n\x14\x43onsoleDebugFlowArgs\x12*\n\x04\x66low\x18\x01 \x01(\tB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14The flow to execute.\x12i\n\x07save_to\x18\x02 \x01(\t:\x04/tmpBR\xe2\xfc\xe3\xc4\x01L\x12JIf not None, interpreted as an path to write pickle dumps of responses to.\x12V\n\tbreak_pdb\x18\x03 \x01(\x08:\x05\x66\x61lseB<\xe2\xfc\xe3\xc4\x01\x36\x12\x34If True, run pdb.set_trace when responses come back.\x12>\n\x0fprint_responses\x18\x04 \x01(\x08\x42%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dIf True, print each response.\x12<\n\tflow_args\x18\x05 \x01(\x0c\x42)\xe2\xfc\xe3\xc4\x01#\x12\x0f\x46low arguments.*\x10GetFlowArgsClass\"k\n\x19\x43reateGenericHuntFlowArgs\x12)\n\x10hunt_runner_args\x18\x01 \x01(\x0b\x32\x0f.HuntRunnerArgs\x12#\n\thunt_args\x18\x02 \x01(\x0b\x32\x10.GenericHuntArgs\"\xbb\x04\n\x15\x43reateCronJobFlowArgs\x12J\n\x0b\x64\x65scription\x18\x01 \x01(\tB5\xe2\xfc\xe3\xc4\x01/\x12-A human readable description of the cron job.\x12\x46\n\x0bperiodicity\x18\x02 \x01(\t:\x02\x37\x64\x42-\xe2\xfc\xe3\xc4\x01\'\n\x08\x43ronSpec\x12\x1bHow often to run this hunt.\x12)\n\x10\x66low_runner_args\x18\x03 \x01(\x0b\x32\x0f.FlowRunnerArgs\x12+\n\tflow_args\x18\x04 \x01(\x0c\x42\x18\xe2\xfc\xe3\xc4\x01\x12*\x10GetFlowArgsClass\x12\x16\n\x0e\x61llow_overruns\x18\x05 \x01(\x08\x12\x9d\x02\n\x08lifetime\x18\x06 \x01(\x04:\x01\x30\x42\x87\x02\xe2\xfc\xe3\xc4\x01\x80\x02\n\x08\x44uration\x12\xf3\x01How long each run of the cron should be allowed to run. Runs that exceed lifetime will be killed. This is complimentary but different to periodicity e.g. it allows us to run jobs weekly that should be killed if they take more than a few hours.\"\xb4\x01\n\x12ModifyHuntFlowArgs\x12?\n\x08hunt_urn\x18\x01 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\x06RDFURN\x12\x1dThe URN of the hunt to pause.\x12\x14\n\x0c\x63lient_limit\x18\x02 \x01(\x04\x12G\n\x0b\x65xpiry_time\x18\x03 \x01(\x04\x42\x32\xe2\xfc\xe3\xc4\x01,\n\x0bRDFDatetime\x12\x1dWhen should this hunt expire?\"\xc6\x02\n\x15ManageCronJobFlowArgs\x12\x34\n\x03urn\x18\x01 \x01(\tB\'\xe2\xfc\xe3\xc4\x01!\n\x06RDFURN\x12\x17The URN of the cron job\x12\x33\n\x06\x61\x63tion\x18\x02 \x01(\x0e\x32\x1d.ManageCronJobFlowArgs.Action:\x04NOOP\"\xc1\x01\n\x06\x41\x63tion\x12@\n\x04NOOP\x10\x00\x1a\x36\xea\xb9\xcb\xb9\x01\x30\x44o nothing (but still check access permissions.)\x12\'\n\x07\x44ISABLE\x10\x01\x1a\x1a\xea\xb9\xcb\xb9\x01\x14\x44isable ths cron job\x12%\n\x06\x45NABLE\x10\x02\x1a\x19\xea\xb9\xcb\xb9\x01\x13\x45nable the cron job\x12%\n\x06\x44\x45LETE\x10\x03\x1a\x19\xea\xb9\xcb\xb9\x01\x13\x44\x65lete the cron job\"\xbc\x02\n\x16\x43ronHuntOutputFlowArgs\x12\x30\n\x08hunt_urn\x18\x01 \x01(\tB\x1e\xe2\xfc\xe3\xc4\x01\x18\n\x06RDFURN\x12\x0eURN of a hunt.\x12P\n\x0cmetadata_urn\x18\x02 \x01(\tB:\xe2\xfc\xe3\xc4\x01\x34\n\x06RDFURN\x12*URN of a cron hunt output module metadata.\x12=\n\x12output_plugin_name\x18\x03 \x01(\tB!\xe2\xfc\xe3\xc4\x01\x1b\x12\x19Name of an output plugin.\x12_\n\x12output_plugin_args\x18\x04 \x01(\x0c\x42\x43\xe2\xfc\xe3\xc4\x01=\x12!Args passed to the output plugin.*\x18GetOutputPluginArgsClass\"o\n\x14PlistValueFilterArgs\x12W\n\x07request\x18\x01 \x01(\x0b\x32\r.PlistRequestB7\xe2\xfc\xe3\xc4\x01\x31\x12/A request for the client to parse a plist file.\"\xb9\x01\n\x11RunReportFlowArgs\x12G\n\x0breport_name\x18\x01 \x01(\tB2\xe2\xfc\xe3\xc4\x01,\n\nReportName\x12\x1eThe name of the report to run.\x12[\n\x05\x65mail\x18\x02 \x01(\tBL\xe2\xfc\xe3\xc4\x01\x46\n\x12\x44omainEmailAddress\x12\x30The email address that messages will be sent to.\"\xb8\x01\n\x15\x45numerateServicesArgs\x12M\n\x11\x64ownload_binaries\x18\x01 \x01(\x08:\x04trueB,\xe2\xfc\xe3\xc4\x01&\x12$If set, also downloads the binaries.\x12P\n\x08pathtype\x18\x03 \x01(\x0e\x32\x12.PathSpec.PathType:\x03TSKB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dHow to access the filesystem.\"\xd0\x02\n\x11\x43hromePluginsArgs\x12q\n\x04path\x18\x01 \x01(\tBc\xe2\xfc\xe3\xc4\x01]\x12[A path to a Chrome Extensions directory. If not set, the path is guessed from the username.\x12=\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\x13\xe2\xfc\xe3\xc4\x01\r\x12\x0b\x41\x63\x63\x65ss mode\x12@\n\x08username\x18\x04 \x01(\tB.\xe2\xfc\xe3\xc4\x01(\x12&The user to get Chrome extensions for.\x12G\n\x0e\x64ownload_files\x18\x05 \x01(\x08:\x05\x66\x61lseB(\xe2\xfc\xe3\xc4\x01\"\x12 Should extensions be downloaded?\"\x1f\n\x10PriorityFlowArgs\x12\x0b\n\x03msg\x18\x01 \x01(\t\"@\n\x16\x43lientActionRunnerArgs\x12&\n\x06\x61\x63tion\x18\x01 \x01(\tB\x16\xe2\xfc\xe3\xc4\x01\x10\x12\x0e\x41\x63tion to run.\"+\n\x10\x42\x61\x64\x41rgsFlow1Args\x12\x17\n\x04\x61rg1\x18\x01 \x01(\x0b\x32\t.PathSpec\"(\n\x0fSendingFlowArgs\x12\x15\n\rmessage_count\x18\x01 \x01(\x04\"&\n\x15RecursiveTestFlowArgs\x12\r\n\x05\x64\x65pth\x18\x01 \x01(\x04\"M\n\x1d\x44ummyCronHuntOutputPluginArgs\x12\x13\n\x0boutput_path\x18\x01 \x01(\t\x12\x17\n\x0f\x63ollection_name\x18\x02 \x01(\t\"\xe1\x01\n!RequestApprovalWithReasonFlowArgs\x12\x38\n\x06reason\x18\x01 \x01(\t:\x0bUnspecifiedB\x1b\xe2\xfc\xe3\xc4\x01\x15\x12\x13Reason for approval\x12+\n\x08\x61pprover\x18\x02 \x01(\tB\x19\xe2\xfc\xe3\xc4\x01\x13\x12\x11\x41pprover username\x12U\n\x0bsubject_urn\x18\x03 \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\x06RDFURN\x12\x30URN of the object that approval is required for.\"\xdf\x01\n\x1fGrantApprovalWithReasonFlowArgs\x12\x38\n\x06reason\x18\x01 \x01(\t:\x0bUnspecifiedB\x1b\xe2\xfc\xe3\xc4\x01\x15\x12\x13Reason for approval\x12+\n\x08\x64\x65legate\x18\x02 \x01(\tB\x19\xe2\xfc\xe3\xc4\x01\x13\x12\x11\x44\x65legate username\x12U\n\x0bsubject_urn\x18\x03 \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\x06RDFURN\x12\x30URN of the object that approval is required for.\"V\n\x11StartHuntFlowArgs\x12\x41\n\x08hunt_urn\x18\x01 \x01(\tB/\xe2\xfc\xe3\xc4\x01)\n\x06RDFURN\x12\x1fThe URN of the hunt to execute.\"T\n\x11PauseHuntFlowArgs\x12?\n\x08hunt_urn\x18\x01 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\x06RDFURN\x12\x1dThe URN of the hunt to pause.\"Z\n\x17\x43heckHuntAccessFlowArgs\x12?\n\x08hunt_urn\x18\x01 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\x06RDFURN\x12\x1dThe URN of the hunt to check.\"\x86\x01\n\x11UpdateVFSFileArgs\x12\x31\n\x0cvfs_file_urn\x18\x01 \x01(\tB\x1b\xe2\xfc\xe3\xc4\x01\x15\n\x06RDFURN\x12\x0bVFSFile urn\x12>\n\tattribute\x18\x02 \x01(\t:\raff4:containsB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14\x41ttribute to update.\"[\n\x18MultiGetFileTestFlowArgs\x12?\n\nfile_limit\x18\x01 \x01(\x04:\x01\x33\x42(\xe2\xfc\xe3\xc4\x01\"\x12 The number of files to retrieve.\"\xce\x02\n\x10MultiGetFileArgs\x12I\n\tpathspecs\x18\x02 \x03(\x0b\x32\t.PathSpecB+\xe2\xfc\xe3\xc4\x01%\x12#Pathspecs of files to be retrieved.\x12\xee\x01\n\x13use_external_stores\x18\x03 \x01(\x08:\x04trueB\xca\x01\xe2\xfc\xe3\xc4\x01\xc3\x01\x12\xbe\x01If true, look in any defined external file stores for filesbefore downloading them, and offer any new files to external stores.This should be true unless the external checks are misbehaving.\x18\x01\"\xb3\x03\n GetExecutablesFilteredByHashArgs\x12X\n\tpathspecs\x18\x01 \x03(\x0b\x32\t.PathSpecB:\xe2\xfc\xe3\xc4\x01\x34\x12\x32Pathspecs of files to be retrieved and their hash.\x12\x44\n\x06hashes\x18\x02 \x03(\x0c\x42\x34\xe2\xfc\xe3\xc4\x01.\n\nHashDigest\x12 SHA256 hash digest for the file.\x12\xee\x01\n\x13use_external_stores\x18\x03 \x01(\x08:\x04trueB\xca\x01\xe2\xfc\xe3\xc4\x01\xc3\x01\x12\xbe\x01If true, look in any defined external file stores for filesbefore downloading them, and offer any new files to external stores.This should be true unless the external checks are misbehaving.\x18\x01\"\xd0\x02\n\x1eProcessHuntResultsCronFlowArgs\x12\x62\n\nbatch_size\x18\x01 \x01(\x04\x42N\xe2\xfc\xe3\xc4\x01H\x12\x44Results will be processed by output plugins in batches of this size.\x18\x01\x12\xc9\x01\n\x10max_running_time\x18\x02 \x01(\x04\x42\xae\x01\xe2\xfc\xe3\xc4\x01\xa7\x01\n\x08\x44uration\x12\x98\x01ProcessHuntResultsCronFlow will run not much longer than max_running_time. It will finish (without an error) even if there are still results to process.\x18\x01\"\xbd\x01\n\x11ListProcessesArgs\x12q\n\x0e\x66ilename_regex\x18\x01 \x01(\t:\x01.BV\xe2\xfc\xe3\xc4\x01P\n\x11RegularExpression\x12+Regex used to filter the list of processes.\"\x0e\x46ilename Regex\x12\x35\n\x0e\x66\x65tch_binaries\x18\x02 \x01(\x08:\x05\x66\x61lseB\x16\xe2\xfc\xe3\xc4\x01\x10\"\x0e\x46\x65tch Binaries\"\xed\x01\n\x13ListVADBinariesArgs\x12p\n\x0e\x66ilename_regex\x18\x01 \x01(\t:\x01.BU\xe2\xfc\xe3\xc4\x01O\n\x11RegularExpression\x12*Regex used to filter the list of binaries.\"\x0e\x46ilename Regex\x12\x35\n\x0e\x66\x65tch_binaries\x18\x02 \x01(\x08:\x05\x66\x61lseB\x16\xe2\xfc\xe3\xc4\x01\x10\"\x0e\x46\x65tch Binaries\x12-\n\x07request\x18\x03 \x01(\x0b\x32\x12.VolatilityRequestB\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\"\x9b\x02\n FileFinderModificationTimeFilter\x12^\n\x16min_last_modified_time\x18\x05 \x01(\x04:\x01\x30\x42;\xe2\xfc\xe3\xc4\x01\x35\n\x0bRDFDatetime\x12&File must be modified after this time.\x12\x96\x01\n\x16max_last_modified_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x61\xe2\xfc\xe3\xc4\x01[\n\x0bRDFDatetime\x12LFile must be modified before this time (default=heat death of the universe).\"\x91\x02\n\x1a\x46ileFinderAccessTimeFilter\x12\\\n\x14min_last_access_time\x18\x05 \x01(\x04:\x01\x30\x42;\xe2\xfc\xe3\xc4\x01\x35\n\x0bRDFDatetime\x12&File must be accessed after this time.\x12\x94\x01\n\x14max_last_access_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x61\xe2\xfc\xe3\xc4\x01[\n\x0bRDFDatetime\x12LFile must be accessed before this time (default=heat death of the universe).\"\xaa\x02\n\x1f\x46ileFinderInodeChangeTimeFilter\x12i\n\x1amin_last_inode_change_time\x18\x05 \x01(\x04:\x01\x30\x42\x42\xe2\xfc\xe3\xc4\x01<\n\x0bRDFDatetime\x12-File\'s inode must be changed after this time.\x12\x9b\x01\n\x1amax_last_inode_change_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x62\xe2\xfc\xe3\xc4\x01\\\n\x0bRDFDatetime\x12MFile\'s must be changed before this time (default=heat death of the universe).\"\xbb\x01\n\x14\x46ileFinderSizeFilter\x12=\n\rmin_file_size\x18\x0b \x01(\x04:\x01\x30\x42#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bMinimum file size in bytes.\x12\x64\n\rmax_file_size\x18\x0c \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x38\xe2\xfc\xe3\xc4\x01\x32\x12\x30Maximum file size in bytes (default=sys.maxint).\"\xec\x04\n\"FileFinderContentsRegexMatchFilter\x12^\n\x05regex\x18\x04 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\n\x11RegularExpression\x12\x34The regular expression which will be used to search.\x12\x8b\x01\n\x04mode\x18\x06 \x01(\x0e\x32(.FileFinderContentsRegexMatchFilter.Mode:\x08\x41LL_HITSBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41When should searching stop? Stop after one hit or search for all?\x12K\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\'Include this many bytes before the hit.\x18\x01\x12I\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\x12&Include this many bytes after the hit.\x18\x01\x12G\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x42.\xe2\xfc\xe3\xc4\x01(\x12$Start searching at this file offset.\x18\x01\x12R\n\x06length\x18\x03 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x35\xe2\xfc\xe3\xc4\x01/\x12+How far (in bytes) into the file to search.\x18\x01\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"\xd5\x07\n$FileFinderContentsLiteralMatchFilter\x12\x38\n\x07literal\x18\x05 \x01(\x0c\x42\'\xe2\xfc\xe3\xc4\x01!\x12\x1fSearch for this literal string.\x12\x8d\x01\n\x04mode\x18\x06 \x01(\x0e\x32*.FileFinderContentsLiteralMatchFilter.Mode:\x08\x41LL_HITSBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41When should searching stop? Stop after one hit or search for all?\x12G\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x42.\xe2\xfc\xe3\xc4\x01(\x12$Start searching at this file offset.\x18\x01\x12R\n\x06length\x18\x03 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x35\xe2\xfc\xe3\xc4\x01/\x12+How far (in bytes) into the file to search.\x18\x01\x12K\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\'Include this many bytes before the hit.\x18\x01\x12I\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\x12&Include this many bytes after the hit.\x18\x01\x12\xc2\x01\n\nxor_in_key\x18\t \x01(\r:\x01\x30\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\x12\xc3\x01\n\x0bxor_out_key\x18\n \x01(\r:\x01\x30\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"\xd5\x05\n\x10\x46ileFinderFilter\x12M\n\x0b\x66ilter_type\x18\x01 \x01(\x0e\x32\x16.FileFinderFilter.TypeB \xe2\xfc\xe3\xc4\x01\x1a\x12\x0b\x46ilter type\"\x0b\x46ilter type\x12<\n\x11modification_time\x18\x02 \x01(\x0b\x32!.FileFinderModificationTimeFilter\x12\x30\n\x0b\x61\x63\x63\x65ss_time\x18\x03 \x01(\x0b\x32\x1b.FileFinderAccessTimeFilter\x12;\n\x11inode_change_time\x18\x04 \x01(\x0b\x32 .FileFinderInodeChangeTimeFilter\x12#\n\x04size\x18\x05 \x01(\x0b\x32\x15.FileFinderSizeFilter\x12\x41\n\x14\x63ontents_regex_match\x18\x06 \x01(\x0b\x32#.FileFinderContentsRegexMatchFilter\x12\x45\n\x16\x63ontents_literal_match\x18\x07 \x01(\x0b\x32%.FileFinderContentsLiteralMatchFilter\"\x95\x02\n\x04Type\x12.\n\x11MODIFICATION_TIME\x10\x00\x1a\x17\xea\xb9\xcb\xb9\x01\x11Modification time\x12\"\n\x0b\x41\x43\x43\x45SS_TIME\x10\x01\x1a\x11\xea\xb9\xcb\xb9\x01\x0b\x41\x63\x63\x65ss time\x12.\n\x11INODE_CHANGE_TIME\x10\x02\x1a\x17\xea\xb9\xcb\xb9\x01\x11Inode change time\x12\x19\n\x04SIZE\x10\x03\x1a\x0f\xea\xb9\xcb\xb9\x01\tFile size\x12\x34\n\x14\x43ONTENTS_REGEX_MATCH\x10\x04\x1a\x1a\xea\xb9\xcb\xb9\x01\x14\x43ontents regex match\x12\x38\n\x16\x43ONTENTS_LITERAL_MATCH\x10\x05\x1a\x1c\xea\xb9\xcb\xb9\x01\x16\x43ontents literal match\"\xf2\x02\n\x1f\x46ileFinderDownloadActionOptions\x12\\\n\x08max_size\x18\x05 \x01(\x04:\t100000000B?\xe2\xfc\xe3\xc4\x01\x39\n\x08\x42yteSize\x12+The maximum size of files we will download.\x18\x01\x12\xf0\x01\n\x13use_external_stores\x18\x06 \x01(\x08:\x04trueB\xcc\x01\xe2\xfc\xe3\xc4\x01\xc5\x01\x12\xc0\x01If true, look in any defined external file stores for files before downloading them, and offer any new files to external stores. This should be true unless the external checks are misbehaving.\x18\x01\"\x91\x02\n\x10\x46ileFinderAction\x12i\n\x0b\x61\x63tion_type\x18\x01 \x01(\x0e\x32\x18.FileFinderAction.Action:\nDO_NOTHINGB.\xe2\xfc\xe3\xc4\x01(\x12\x1e\x41\x63tion to apply to found files\"\x06\x41\x63tion\x12\x32\n\x08\x64ownload\x18\x02 \x01(\x0b\x32 .FileFinderDownloadActionOptions\"^\n\x06\x41\x63tion\x12 \n\nDO_NOTHING\x10\x00\x1a\x10\xea\xb9\xcb\xb9\x01\nDo nothing\x12\x14\n\x04HASH\x10\x01\x1a\n\xea\xb9\xcb\xb9\x01\x04Hash\x12\x1c\n\x08\x44OWNLOAD\x10\x02\x1a\x0e\xea\xb9\xcb\xb9\x01\x08\x44ownload\"\xfd\x03\n\x0e\x46ileFinderArgs\x12\x8d\x01\n\x05paths\x18\x01 \x03(\tB~\xe2\xfc\xe3\xc4\x01x\n\x0eGlobExpression\x12\x66\x41 path to glob that can contain %% expansions. For example \'%%KnowledgeBase.environ_windir%%\notepad.*\'\x12L\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1aType of access to glob in.\x12\"\n\x07\x66ilters\x18\x05 \x03(\x0b\x32\x11.FileFinderFilter\x12!\n\x06\x61\x63tion\x18\x06 \x01(\x0b\x32\x11.FileFinderAction\x12\xc5\x01\n\x12no_file_type_check\x18\x07 \x01(\x08:\x05\x66\x61lseB\xa1\x01\xe2\xfc\xe3\xc4\x01\x9a\x01\x12\x95\x01Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryScanner as an example.\x18\x02\"U\n\x10\x46ileFinderResult\x12\x1e\n\nstat_entry\x18\x01 \x01(\x0b\x32\n.StatEntry\x12!\n\x07matches\x18\x02 \x03(\x0b\x32\x10.BufferReference\"\xe6\x01\n\rFileReference\x12\x46\n\tclient_id\x18\x01 \x01(\tB3\xe2\xfc\xe3\xc4\x01-\n\tClientURN\x12 The client id the file lives on.\x12=\n\tpathspecs\x18\x02 \x03(\x0b\x32\t.PathSpecB\x1f\xe2\xfc\xe3\xc4\x01\x19\x12\x17The paths to the files.\x12N\n\rsha256_hashes\x18\x03 \x03(\x0c\x42\x37\xe2\xfc\xe3\xc4\x01\x31\n\nHashDigest\x12#A SHA256 hash digest for each file.\"3\n\x12\x42it9DownloaderArgs\x12\x1d\n\x05\x66iles\x18\x01 \x03(\x0b\x32\x0e.FileReference\"\x91\x02\n\x13MemoryScannerFilter\x12.\n\x0b\x66ilter_type\x18\x01 \x01(\x0e\x32\x19.MemoryScannerFilter.Type\x12<\n\rliteral_match\x18\x02 \x01(\x0b\x32%.FileFinderContentsLiteralMatchFilter\x12\x38\n\x0bregex_match\x18\x03 \x01(\x0b\x32#.FileFinderContentsRegexMatchFilter\"R\n\x04Type\x12&\n\rLITERAL_MATCH\x10\x01\x1a\x13\xea\xb9\xcb\xb9\x01\rLiteral match\x12\"\n\x0bREGEX_MATCH\x10\x02\x1a\x11\xea\xb9\xcb\xb9\x01\x0bRegex match\")\n\'MemoryScannerWithoutLocalCopyDumpOption\"\xc7\x03\n$MemoryScannerWithLocalCopyDumpOption\x12\xa8\x01\n\x07\x64\x65stdir\x18\x01 \x01(\tB\x96\x01\xe2\xfc\xe3\xc4\x01\x8f\x01\x12\x8a\x01\x44\x65stination directory on the client for the temporary image. Leave blank to use defaults. Parent directories will be created if necessary.\x18\x01\x12\x44\n\x06offset\x18\x02 \x01(\x04:\x01\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\x16Memory offset in bytes\x18\x01\"\x0fStarting Offset\x12\x66\n\x06length\x18\x03 \x01(\x04:\x01\x30\x42S\xe2\xfc\xe3\xc4\x01M\x12\x35Number of bytes to copy (default 0 copies all memory)\x18\x01\"\x12Length to download\x12\x46\n\x04gzip\x18\x04 \x01(\x08:\x04trueB2\xe2\xfc\xe3\xc4\x01,\x12(Gzip temporary image file on the client.\x18\x01\"\x87\x03\n\x17MemoryScannerDumpOption\x12q\n\x0boption_type\x18\x01 \x01(\x0e\x32\x1f.MemoryScannerDumpOption.Option:\x12WITHOUT_LOCAL_COPYB\'\xe2\xfc\xe3\xc4\x01!\x12\x12How to do the dump\"\x0b\x44ump option\x12\x44\n\x12without_local_copy\x18\x02 \x01(\x0b\x32(.MemoryScannerWithoutLocalCopyDumpOption\x12>\n\x0fwith_local_copy\x18\x03 \x01(\x0b\x32%.MemoryScannerWithLocalCopyDumpOption\"s\n\x06Option\x12\x35\n\x12WITHOUT_LOCAL_COPY\x10\x00\x1a\x1d\xea\xb9\xcb\xb9\x01\x17\x44on\'t create local copy\x12\x32\n\x0fWITH_LOCAL_COPY\x10\x01\x1a\x1d\xea\xb9\xcb\xb9\x01\x17\x43reate local copy first\"j\n\x1bMemoryScannerDownloadAction\x12K\n\x0b\x64ump_option\x18\x01 \x01(\x0b\x32\x18.MemoryScannerDumpOptionB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14Memory dump options.\"\xfa\x03\n\x1fMemoryScannerSendToSocketAction\x12K\n\x0b\x64ump_option\x18\x01 \x01(\x0b\x32\x18.MemoryScannerDumpOptionB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14Memory dump options.\x12j\n\x0e\x61\x64\x64ress_family\x18\x02 \x01(\x0e\x32\x16.NetworkAddress.Family:\x04INETB4\xe2\xfc\xe3\xc4\x01.\x12,address family to use (AF_INET or AF_INET6).\x12\x39\n\x04host\x18\x03 \x01(\tB+\xe2\xfc\xe3\xc4\x01%\x12#Hostname or IP to send the file to.\x12\x41\n\x04port\x18\x04 \x01(\x04:\x05\x31\x32\x33\x34\x35\x42,\xe2\xfc\xe3\xc4\x01&\x12$Port number on the listening server.\x12N\n\x03key\x18\x05 \x01(\x0c\x42\x41\xe2\xfc\xe3\xc4\x01;\n\tAES128Key\x12.An encryption key given in hex representation.\x12P\n\x02iv\x18\x06 \x01(\x0c\x42\x44\xe2\xfc\xe3\xc4\x01>\n\tAES128Key\x12\x31The iv for AES, also given in hex representation.\"\xe2\x02\n\x13MemoryScannerAction\x12\x62\n\x0b\x61\x63tion_type\x18\x01 \x01(\x0e\x32\x1b.MemoryScannerAction.Action:\x04NONEB*\xe2\xfc\xe3\xc4\x01$\x12\x1aWhat to do with the memory\"\x06\x41\x63tion\x12.\n\x08\x64ownload\x18\x02 \x01(\x0b\x32\x1c.MemoryScannerDownloadAction\x12\x38\n\x0esend_to_socket\x18\x03 \x01(\x0b\x32 .MemoryScannerSendToSocketAction\"}\n\x06\x41\x63tion\x12\x14\n\x04NONE\x10\x00\x1a\n\xea\xb9\xcb\xb9\x01\x04None\x12\'\n\x08\x44OWNLOAD\x10\x01\x1a\x19\xea\xb9\xcb\xb9\x01\x13\x44ump memory to AFF4\x12\x34\n\x0eSEND_TO_SOCKET\x10\x02\x1a \xea\xb9\xcb\xb9\x01\x1aSend memory dump to socket\"\xa2\x02\n\x11MemoryScannerArgs\x12%\n\x07\x66ilters\x18\x01 \x03(\x0b\x32\x14.MemoryScannerFilter\x12$\n\x06\x61\x63tion\x18\x02 \x01(\x0b\x32\x14.MemoryScannerAction\x12\xbf\x01\n\x10\x64river_installer\x18\x05 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8c\x01\xe2\xfc\xe3\xc4\x01\x85\x01\x12\x80\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default installation proto will be used.\x18\x02')
+  serialized_pb='\n\x15grr/proto/flows.proto\x1a\x14grr/proto/jobs.proto\x1a\x1egrr/proto/knowledge_base.proto\x1a\x18grr/proto/semantic.proto\"\xc4\x01\n\x08\x41\x43LToken\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x0e\n\x06reason\x18\x02 \x01(\t\x12\x18\n\x10requested_access\x18\x03 \x01(\t\x12\x41\n\x06\x65xpiry\x18\x05 \x01(\x04\x42\x31\xe2\xfc\xe3\xc4\x01+\n\x0bRDFDatetime\x12\x1cWhen does this token expire?\x12\x12\n\nsource_ips\x18\x06 \x03(\t\x12\x0f\n\x07process\x18\x07 \x01(\t\x12\x14\n\x0cis_emergency\x18\x08 \x01(\x08\"\xaf\x01\n\x0bGUISettings\x12\x46\n\x04mode\x18\x01 \x01(\x0e\x32\x13.GUISettings.UIMode:\x05\x42\x41SICB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14User interface mode.\",\n\x06UIMode\x12\t\n\x05\x42\x41SIC\x10\x00\x12\x0c\n\x08\x41\x44VANCED\x10\x01\x12\t\n\x05\x44\x45\x42UG\x10\x02:*\xda\xfc\xe3\xc4\x01$\n\"User GUI settings and preferences.\"\x96\r\n\x0e\x46lowRunnerArgs\x12\x63\n\x08priority\x18\x01 \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITYB*\xe2\xfc\xe3\xc4\x01$\x12 The priority used for this flow.\x18\x01\x12k\n\x0enotify_to_user\x18\x02 \x01(\x08:\x04trueBM\xe2\xfc\xe3\xc4\x01G\x12/Should a notification be sent to the initiator.\"\x14Notify at Completion\x12g\n\x0csend_replies\x18\x03 \x01(\x08:\x04trueBK\xe2\xfc\xe3\xc4\x01\x45\x12\x33Should send replies back to the parent flow or not.\x18\x02\"\x0cSend Replies\x12\x9e\x01\n\x12notification_event\x18\x04 \x01(\tB\x81\x01\xe2\xfc\xe3\xc4\x01{\x12\x63\x41n event listener\'s event name. An event will be published to this listener once the flow finishes.\x18\x02\"\x12Notification Event\x12\x88\x01\n\x10notification_urn\x18\x0e \x01(\tBn\xe2\xfc\xe3\xc4\x01h\n\tSessionID\x12YThe Session ID for the event listener to receive a notification when this flow completes.\x18\x02\x12L\n\tclient_id\x18\x05 \x01(\tB9\xe2\xfc\xe3\xc4\x01\x33\n\tClientURN\x12$The client id this flow operates on.\x18\x02\x12\x42\n\x05queue\x18\x06 \x01(\t:\x01WB0\xe2\xfc\xe3\xc4\x01*\n\x06RDFURN\x12\x1eThe queue to use for the flow.\x18\x02\x12H\n\x08\x65vent_id\x18\x07 \x01(\tB6\xe2\xfc\xe3\xc4\x01\x30\x12,A logging event id for issuing further logs.\x18\x02\x12Q\n\x05token\x18\x08 \x01(\x0b\x32\t.ACLTokenB7\xe2\xfc\xe3\xc4\x01\x31\x12-The access token to be used for this request.\x18\x02\x12Q\n\tcpu_limit\x18\t \x01(\x04\x42>\xe2\xfc\xe3\xc4\x01\x38\x12\x34\x41 limit on the client cpu seconds used by this flow.\x18\x01\x12V\n\x13network_bytes_limit\x18\r \x01(\x04\x42\x39\xe2\xfc\xe3\xc4\x01\x33\x12/A limit on the total traffic used by this flow.\x18\x01\x12U\n\rrequest_state\x18\n \x01(\x0b\x32\r.RequestStateB/\xe2\xfc\xe3\xc4\x01)\x12%The request state of the parent flow.\x18\x02\x12P\n\tflow_name\x18\x0b \x01(\tB=\xe2\xfc\xe3\xc4\x01\x37\x12\x33The name of the class implementing the flow to run.\x18\x02\x12o\n\x0f\x62\x61se_session_id\x18\x0c \x01(\tBV\xe2\xfc\xe3\xc4\x01P\n\tSessionID\x12\x41The session id for the flow runner. If not specified we make one.\x18\x02\x12~\n\nstart_time\x18\x0f \x01(\x04\x42j\xe2\xfc\xe3\xc4\x01\x64\n\x0bRDFDatetime\x12SDo not process this flow until this time. (Implies the flow is run asyncronously.).\x18\x01\x12\xa8\x01\n\x06output\x18\x10 \x01(\t:\x14\x61nalysis/{p}/{u}-{t}B\x81\x01\xe2\xfc\xe3\xc4\x01{\x12wIf set, a relative URN to the client\'s namespace where a collection will be created, and the result will be written to.\x18\x01\"\xaf\x0b\n\x0eHuntRunnerArgs\x12N\n\thunt_name\x18\x01 \x01(\tB;\xe2\xfc\xe3\xc4\x01\x35\x12\x33The name of the class implementing the hunt to run.\x12:\n\x0b\x64\x65scription\x18\x02 \x01(\tB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dThe description of this hunt.\x12x\n\x0bregex_rules\x18\x03 \x03(\x0b\x32\x16.ForemanAttributeRegexBK\xe2\xfc\xe3\xc4\x01\x45\x12\x43Regex rules that trigger this hunt. Note that all rules must match.\x12s\n\rinteger_rules\x18\x04 \x03(\x0b\x32\x18.ForemanAttributeIntegerBB\xe2\xfc\xe3\xc4\x01<\x12:Integer rules that trigger this hunt.All rules must match.\x12\x63\n\x08priority\x18\x05 \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITYB*\xe2\xfc\xe3\xc4\x01$\x12 The priority used for this flow.\x18\x01\x12\xa4\x01\n\x12notification_event\x18\x06 \x01(\tB\x87\x01\xe2\xfc\xe3\xc4\x01\x80\x01\x12hAn event name for an event listener. An event will be published to this listener once the flow finishes.\x18\x02\"\x12Notification Event\x12\x42\n\x05queue\x18\x07 \x01(\t:\x01WB0\xe2\xfc\xe3\xc4\x01*\n\x06RDFURN\x12\x1eThe queue to use for the flow.\x18\x02\x12Q\n\x05token\x18\x08 \x01(\x0b\x32\t.ACLTokenB7\xe2\xfc\xe3\xc4\x01\x31\x12-The access token to be used for this request.\x18\x02\x12Q\n\tcpu_limit\x18\t \x01(\x04\x42>\xe2\xfc\xe3\xc4\x01\x38\x12\x34\x41 limit on the client cpu seconds used by this flow.\x18\x01\x12V\n\x13network_bytes_limit\x18\r \x01(\x04\x42\x39\xe2\xfc\xe3\xc4\x01\x33\x12/A limit on the total traffic used by this flow.\x18\x01\x12\xea\x01\n\x0c\x63lient_limit\x18\n \x01(\x04:\x01\x30\x42\xd0\x01\xe2\xfc\xe3\xc4\x01\xc9\x01\x12\xb8\x01Maximum number of clients participating in the hunt. Note that this limit can be overshot by a small number of clients if there are multiple workers running. Use this only for testing.\"\x0c\x43lient Limit\x12V\n\x0b\x65xpiry_time\x18\x0b \x01(\x04:\x07\x32\x36\x37\x38\x34\x30\x30\x42\x38\xe2\xfc\xe3\xc4\x01\x32\n\x08\x44uration\x12\x19\x45xpiry time for the hunt.\"\x0b\x45xpiry Time\x12\x8e\x01\n\x0b\x63lient_rate\x18\x0c \x01(\x02:\x02\x32\x30\x42u\xe2\xfc\xe3\xc4\x01o\x12mThe maximum number of clients to engage per minute.A rate of 0 means to schedule clients as fast as possible.\"W\n\x0eSampleHuntArgs\x12\x45\n\x08\x66ilename\x18\x01 \x01(\t:\r/tmp/evil.txtB$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1c\x65vil filename to search for.\"\xce\x02\n\x0b\x46lowRequest\x12H\n\nclient_ids\x18\x01 \x03(\tB4\xe2\xfc\xe3\xc4\x01.\n\tClientURN\x12!The clients to start the flow on.\x12\xac\x01\n\x04\x61rgs\x18\x05 \x01(\x0c\x42\x9d\x01\xe2\xfc\xe3\xc4\x01\x96\x01\x12\x81\x01\x41rgs to the flow. These depend on the flow_name parameter.It is expected that this field contains an instance of flow\'s arg_type.*\x10GetFlowArgsClass\x12\x46\n\x0brunner_args\x18\x06 \x01(\x0b\x32\x0f.FlowRunnerArgsB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18\x41rgs to the flow runner.\"\xd3\x01\n\x0cOutputPlugin\x12;\n\x0bplugin_name\x18\x01 \x01(\tB&\xe2\xfc\xe3\xc4\x01 \x12\x1eThe name of the output plugin.\x12\x85\x01\n\x0bplugin_args\x18\x02 \x01(\x0c\x42p\xe2\xfc\xe3\xc4\x01j\x12TThe parameters for this plugin. Must be an instance of the named plugin\'s args_type.*\x12GetPluginArgsClass\"\x88\x01\n\x0f\x45mailPluginArgs\x12[\n\x05\x65mail\x18\x01 \x01(\tBL\xe2\xfc\xe3\xc4\x01\x46\n\x12\x44omainEmailAddress\x12\x30The email address that messages will be sent to.\x12\x18\n\x0b\x65mail_limit\x18\x02 \x01(\x04:\x03\x31\x30\x30\"\x80\x01\n\x14\x43ollectionPluginArgs\x12h\n\x0f\x63ollection_name\x18\x01 \x01(\t:\x07ResultsBF\xe2\xfc\xe3\xc4\x01@\x12+The name of the collection within the hunt.\x18\x01\"\x0f\x43ollection Name\"\xd2\x01\n\x17VariableGenericHuntArgs\x12^\n\x05\x66lows\x18\x01 \x03(\x0b\x32\x0c.FlowRequestBA\xe2\xfc\xe3\xc4\x01;\x12\x39\x41 list of requests for starting flows on certain clients.\x12W\n\x0eoutput_plugins\x18\x02 \x03(\x0b\x32\r.OutputPluginB0\xe2\xfc\xe3\xc4\x01*\x12(The output plugins to use for this hunt.\"I\n\x0bMBRHuntArgs\x12:\n\x06length\x18\x01 \x01(\x04:\x04\x34\x30\x39\x36\x42$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1cNumber of bytes to retrieve.\"\xca\x02\n\x0fGenericHuntArgs\x12\x80\x01\n\tflow_args\x18\x02 \x01(\x0c\x42m\xe2\xfc\xe3\xc4\x01g\x12QArguments to the flow to run. This should be an instance of flow.args_type proto.\x18\x02*\x10GetFlowArgsClass\x12[\n\x10\x66low_runner_args\x18\x03 \x01(\x0b\x32\x0f.FlowRunnerArgsB0\xe2\xfc\xe3\xc4\x01*\x12(The runner args for launching each flow.\x12W\n\x0eoutput_plugins\x18\x04 \x03(\x0b\x32\r.OutputPluginB0\xe2\xfc\xe3\xc4\x01*\x12(The output plugins to use for this hunt.\"\x95\x08\n\x0c\x42\x61reGrepSpec\x12\x45\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x42,\xe2\xfc\xe3\xc4\x01&\x12$Start searching at this file offset.\x12P\n\x06length\x18\x03 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x33\xe2\xfc\xe3\xc4\x01-\x12+How far (in bytes) into the file to search.\x12^\n\x05regex\x18\x04 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\n\x11RegularExpression\x12\x34The regular expression which will be used to search.\x12K\n\x07literal\x18\x05 \x01(\x0c\x42:\xe2\xfc\xe3\xc4\x01\x34\n\x11LiteralExpression\x12\x1fSearch for this literal string.\x12u\n\x04mode\x18\x06 \x01(\x0e\x32\x12.BareGrepSpec.Mode:\x08\x41LL_HITSBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41When should searching stop? Stop after one hit or search for all?\x12K\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\'Include this many bytes before the hit.\x18\x01\x12I\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\x12&Include this many bytes after the hit.\x18\x01\x12\xc3\x01\n\nxor_in_key\x18\t \x01(\r:\x02\x33\x37\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\x12\xc4\x01\n\x0bxor_out_key\x18\n \x01(\r:\x02\x35\x37\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"^\n\rCAEnrolerArgs\x12M\n\x03\x63sr\x18\x01 \x01(\x0b\x32\x0c.CertificateB2\xe2\xfc\xe3\xc4\x01,\x12*A Certificate RDFValue with the CSR in it.\"\xa4\x02\n\x16\x44\x65leteGRRTempFilesArgs\x12\x89\x02\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB\xeb\x01\xe2\xfc\xe3\xc4\x01\xe4\x01\x12\xe1\x01The pathspec target for deletion.If path is a directory, look in the top level for filenames beginning with Client.tempfile_prefix, and delete them. If path is a regular file and starts with Client.tempfile_prefix, delete it.\"?\n\rUninstallArgs\x12.\n\x04kill\x18\x01 \x01(\x08\x42 \xe2\xfc\xe3\xc4\x01\x1a\x12\x18Kills the client if set.\"Y\n\x10UpdateConfigArgs\x12\x45\n\x06\x63onfig\x18\x01 \x01(\x0b\x32\n.GRRConfigB)\xe2\xfc\xe3\xc4\x01#\x12!The config to send to the client.\"\x8c\x01\n\x15\x45xecutePythonHackArgs\x12;\n\thack_name\x18\x01 \x01(\tB(\xe2\xfc\xe3\xc4\x01\"\x12 The name of the hack to execute.\x12\x36\n\x07py_args\x18\x02 \x01(\x0b\x32\x05.DictB\x1e\xe2\xfc\xe3\xc4\x01\x18\x12\x16Python Hack Arguments.\"\xd8\x01\n\x12\x45xecuteCommandArgs\x12\x15\n\x03\x63md\x18\x01 \x01(\tB\x08\xe2\xfc\xe3\xc4\x01\x02\x12\x00\x12S\n\x0c\x63ommand_line\x18\x02 \x01(\tB=\xe2\xfc\xe3\xc4\x01\x37\x12\x35The arguments to the command as a shell command line.\x12V\n\ntime_limit\x18\x03 \x01(\x03:\x02-1B>\xe2\xfc\xe3\xc4\x01\x38\x12\x36The time limit for this execution, -1 means unlimited.\"\x93\x01\n\x16OnlineNotificationArgs\x12y\n\x05\x65mail\x18\x01 \x01(\tBj\xe2\xfc\xe3\xc4\x01\x64\n\x12\x44omainEmailAddress\x12NEmail address to send to. If not set, mail will be sent to the logged in user.\"o\n\x10UpdateClientArgs\x12[\n\tblob_path\x18\x01 \x01(\tBH\xe2\xfc\xe3\xc4\x01\x42\n\x06RDFURN\x12\x38\x41n aff4 path to a GRRSignedBlob of a new client version.\"s\n\rKeepAliveArgs\x12\x62\n\x08\x64uration\x18\x01 \x01(\x04:\x04\x33\x36\x30\x30\x42J\xe2\xfc\xe3\xc4\x01\x44\n\x08\x44uration\x12\x38Until when should the client stay in the fast poll mode.\"\x8c\x01\n\x11TerminateFlowArgs\x12\x46\n\x08\x66low_urn\x18\x01 \x01(\tB4\xe2\xfc\xe3\xc4\x01.\n\tSessionID\x12!The URN of the flow to terminate.\x12/\n\x06reason\x18\x02 \x01(\tB\x1f\xe2\xfc\xe3\xc4\x01\x19\x12\x17Reason for termination.\"\x9e\x01\n\x10LaunchBinaryArgs\x12\x41\n\x06\x62inary\x18\x01 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\n\x06RDFURN\x12!The URN of the binary to execute.\x12G\n\x0c\x63ommand_line\x18\x02 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\x12)Binary Arguments as a shell command line.\"\xd8\x04\n WinUserActivityInvestigationArgs\x12<\n\x08username\x18\x01 \x01(\tB*\xe2\xfc\xe3\xc4\x01$\x12\"The user to target the actions to.\x12R\n\x13get_browser_history\x18\x02 \x01(\x08:\x04trueB/\xe2\xfc\xe3\xc4\x01)\x12\'Call each of the browser history flows.\x12\\\n\x16recursive_list_homedir\x18\x03 \x01(\x04:\x01\x35\x42\x39\xe2\xfc\xe3\xc4\x01\x33\x12\x31Recursively list the users homedir to this depth.\x12Z\n\x1crecursive_list_user_registry\x18\x04 \x01(\x04:\x01\x35\x42\x31\xe2\xfc\xe3\xc4\x01+\x12)Recursively list the users registry hive.\x12\x46\n\rartifact_list\x18\x05 \x03(\tB/\xe2\xfc\xe3\xc4\x01)\n\x0c\x41rtifactName\x12\x19\x41 list of Artifact names.\x12\\\n\x17timeline_collected_data\x18\x06 \x01(\x08:\x04trueB5\xe2\xfc\xe3\xc4\x01/\x12-Once complete create a timeline for the host.\x12\x42\n\x07use_tsk\x18\x07 \x01(\x08\x42\x31\xe2\xfc\xe3\xc4\x01+\x12)Use raw filesystem access where possible.\"\x8e\x06\n\x19\x41rtifactCollectorFlowArgs\x12L\n\rartifact_list\x18\x01 \x03(\tB5\xe2\xfc\xe3\xc4\x01/\n\x0c\x41rtifactName\x12\x1f\x41 list of Artifact class names.\x12M\n\x07use_tsk\x18\x02 \x01(\x08:\x05\x66\x61lseB5\xe2\xfc\xe3\xc4\x01/\x12-Whether raw filesystem access should be used.\x12\x8f\x01\n\x15store_results_in_aff4\x18\x03 \x01(\x08:\x05\x66\x61lseBi\xe2\xfc\xe3\xc4\x01\x63\x12_Should the collected artifacts be written to the GRR AFF4 namespace based on the AFF4->RDF map.\x18\x01\x12\x92\x01\n\x18split_output_by_artifact\x18\x05 \x01(\x08:\x05\x66\x61lseBi\xe2\xfc\xe3\xc4\x01\x63\x12_If True, use output as a directory and write a separate collection for each artifact collected.\x18\x01\x12\x8d\x01\n\x0eknowledge_base\x18\x06 \x01(\x0b\x32\x0e.KnowledgeBaseBe\xe2\xfc\xe3\xc4\x01_\x12[An optional knowledge base to use, if not specified we retrieve one from the client object.\x18\x02\x12\x9c\x01\n\x11no_results_errors\x18\x07 \x01(\x08:\x05\x66\x61lseBz\xe2\xfc\xe3\xc4\x01t\x12rIf True, an artifact returning no results will raise a hard error. This is useful where you always expect results.\"i\n\x0fInterrogateArgs\x12V\n\x0blightweight\x18\x01 \x01(\x08:\x05\x66\x61lseB:\xe2\xfc\xe3\xc4\x01\x34\x12\x32Perform a light weight version of the interrogate.\"\x90\x07\n\x0e\x46\x65tchFilesArgs\x12u\n\x05paths\x18\x01 \x03(\tBf\xe2\xfc\xe3\xc4\x01`\n\x0eGlobExpression\x12NA path to glob that supports: ** path recursion, * wildcards and %% expansions\x12L\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1aType of access to glob in.\x12\xd2\x01\n\troot_path\x18\x06 \x01(\x0b\x32\t.PathSpecB\xb3\x01\xe2\xfc\xe3\xc4\x01\xac\x01\x12\xa7\x01The root path to begin the glob.  Users should almost never need to change this. root_path.pathtype is unused in favor of pathtype to allow it to be modified by users.\x18\x01\x12\x94\x01\n\x08\x66indspec\x18\x04 \x01(\x0b\x32\t.FindSpecBw\xe2\xfc\xe3\xc4\x01q\x12mWhich files to search for. The default is to search the entire system for files with an executable extension.\x18\x01\x12\xf0\x01\n\x13use_external_stores\x18\x03 \x01(\x08:\x04trueB\xcc\x01\xe2\xfc\xe3\xc4\x01\xc5\x01\x12\xc0\x01If true, look in any defined external file stores for files before downloading them, and offer any new files to external stores. This should be true unless the external checks are misbehaving.\x18\x01\x12Z\n\x08max_size\x18\x05 \x01(\x04:\t100000000B=\xe2\xfc\xe3\xc4\x01\x37\n\x08\x42yteSize\x12+The maximum size of files we will download.\"Y\n\x13\x46ingerprintFileArgs\x12\x42\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dThe file path to fingerprint.\"\xe7\x05\n\x17\x44ownloadMemoryImageArgs\x12\xa8\x01\n\x07\x64\x65stdir\x18\x01 \x01(\tB\x96\x01\xe2\xfc\xe3\xc4\x01\x8f\x01\x12\x8a\x01\x44\x65stination directory on the client for the temporary image. Leave blank to use defaults. Parent directories will be created if necessary.\x18\x01\x12\x44\n\x06offset\x18\x02 \x01(\x04:\x01\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\x16Memory offset in bytes\x18\x01\"\x0fStarting Offset\x12\x66\n\x06length\x18\x03 \x01(\x04:\x01\x30\x42S\xe2\xfc\xe3\xc4\x01M\x12\x35Number of bytes to copy (default 0 copies all memory)\x18\x01\"\x12Length to download\x12\x46\n\x04gzip\x18\x04 \x01(\x08:\x04trueB2\xe2\xfc\xe3\xc4\x01,\x12(Gzip temporary image file on the client.\x18\x01\x12\xc0\x01\n\x10\x64river_installer\x18\x05 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8d\x01\xe2\xfc\xe3\xc4\x01\x86\x01\x12\x81\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\x18\x02\x12h\n\x0fmake_local_copy\x18\x06 \x01(\x08:\x04trueBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41Make a local copy of the memory on the client before downloading.\"\xca\x02\n\x14LoadMemoryDriverArgs\x12\xc0\x01\n\x10\x64river_installer\x18\x01 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8d\x01\xe2\xfc\xe3\xc4\x01\x86\x01\x12\x81\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\x18\x02\x12o\n\x10reload_if_loaded\x18\x02 \x01(\x08:\x05\x66\x61lseBN\xe2\xfc\xe3\xc4\x01H\x12-If the driver is already loaded we reload it.\"\x17\x46orce reload of driver.\"\xbb\x02\n\x17\x41nalyzeClientMemoryArgs\x12\xc0\x01\n\x10\x64river_installer\x18\x01 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8d\x01\xe2\xfc\xe3\xc4\x01\x86\x01\x12\x81\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\x18\x02\x12]\n\x07request\x18\x02 \x01(\x0b\x32\x12.VolatilityRequestB8\xe2\xfc\xe3\xc4\x01\x32\x12\x30\x41 request for the client\'s volatility subsystem.\"\xdd\x01\n\x0eScanMemoryArgs\x12\x43\n\x04grep\x18\x01 \x01(\x0b\x32\r.BareGrepSpecB&\xe2\xfc\xe3\xc4\x01 \x12\x1e\x41 grepspec for memory devices.\x12\x41\n\ralso_download\x18\x02 \x01(\x08\x42*\xe2\xfc\xe3\xc4\x01$\x12\"If a match is found, image memory.:C\xda\xfc\xe3\xc4\x01=\n;A grep specification which operates only on memory devices.\"a\n\x13SophosCollectorArgs\x12J\n\x08pathtype\x18\x01 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18The requested path type.\"a\n\x0cMACTimesArgs\x12Q\n\x04path\x18\x01 \x01(\t:\x04/fs/B=\xe2\xfc\xe3\xc4\x01\x37\x12\x35\x41n AFF path (relative to the client area of the VFS).\"Y\n\x11\x46ileCollectorArgs\x12\x44\n\tfindspecs\x18\x01 \x03(\x0b\x32\t.FindSpecB&\xe2\xfc\xe3\xc4\x01 \x12\x1e\x41 list of find specifications.\"\xc5\x03\n\x12\x46irefoxHistoryArgs\x12M\n\x08pathtype\x18\x01 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bType of path access to use.\x12Z\n\x0bget_archive\x18\x02 \x01(\x08:\x05\x66\x61lseB>\xe2\xfc\xe3\xc4\x01\x38\x12\x36Should we get Archived History as well (3 months old).\x12\xaa\x01\n\x08username\x18\x03 \x01(\tB\x97\x01\xe2\xfc\xe3\xc4\x01\x90\x01\x12\x8d\x01The user to get history for. If history_path is not set this will be used to guess the path to the history files. Can be in form DOMAIN\\user.\x12W\n\x0chistory_path\x18\x05 \x01(\tBA\xe2\xfc\xe3\xc4\x01;\x12\x39Path to a profile directory that contains a History file.\"\xbf\x03\n\rCacheGrepArgs\x12V\n\ngrep_users\x18\x01 \x03(\tBB\xe2\xfc\xe3\xc4\x01<\x12:A list of users to check. Default all users on the system.\x12M\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bType of path access to use.\x12R\n\ndata_regex\x18\x03 \x01(\tB>\xe2\xfc\xe3\xc4\x01\x38\n\x11RegularExpression\x12#A regular expression to search for.\x12\x30\n\x0c\x63heck_chrome\x18\x05 \x01(\x08:\x04trueB\x14\xe2\xfc\xe3\xc4\x01\x0e\x12\x0c\x43heck Chrome\x12\x32\n\rcheck_firefox\x18\x06 \x01(\x08:\x04trueB\x15\xe2\xfc\xe3\xc4\x01\x0f\x12\rCheck Firefox\x12M\n\x08\x63heck_ie\x18\x07 \x01(\x08:\x04trueB5\xe2\xfc\xe3\xc4\x01/\x12-Check Internet Explorer (Not implemented yet)\"a\n\x11ListDirectoryArgs\x12L\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB/\xe2\xfc\xe3\xc4\x01)\x12\'The pathspec for the directory to list.\"\xa2\x01\n\x1aRecursiveListDirectoryArgs\x12L\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB/\xe2\xfc\xe3\xc4\x01)\x12\'The pathspec for the directory to list.\x12\x36\n\tmax_depth\x18\x02 \x01(\x04:\x01\x35\x42 \xe2\xfc\xe3\xc4\x01\x1a\x12\x18Maximum recursion depth.\"\x88\x01\n\x1d\x46\x65tchBufferForSparseImageArgs\x12G\n\x08\x66ile_urn\x18\x01 \x01(\tB5\xe2\xfc\xe3\xc4\x01/\n\x06RDFURN\x12%The URN of the sparse image to update\x12\x0e\n\x06length\x18\x02 \x01(\x04\x12\x0e\n\x06offset\x18\x03 \x01(\x04\"P\n\x0fSlowGetFileArgs\x12\x1b\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpec\x12 \n\x0f\x61\x66\x66\x34_chunk_size\x18\x02 \x01(\x04:\x07\x31\x30\x34\x38\x35\x37\x36\"Q\n\x1aMakeNewAFF4SparseImageArgs\x12\x1b\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpec\x12\x16\n\x0esize_threshold\x18\x02 \x01(\x04\"\x7f\n\x1bUpdateSparseImageChunksArgs\x12G\n\x08\x66ile_urn\x18\x01 \x01(\tB5\xe2\xfc\xe3\xc4\x01/\n\x06RDFURN\x12%The URN of the sparse image to update\x12\x17\n\x0f\x63hunks_to_fetch\x18\x02 \x03(\x04\"&\n\x08GrepArgs\x12\x1a\n\x07request\x18\x01 \x01(\x0b\x32\t.GrepSpec\"\xae\x03\n\x08GlobArgs\x12\x7f\n\x05paths\x18\x01 \x03(\tBp\xe2\xfc\xe3\xc4\x01j\n\x0eGlobExpression\x12XA list of paths to glob that supports: ** path recursion, * wildcards and %% expansions.\x12L\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1aType of access to glob in.\x12\xd2\x01\n\troot_path\x18\x03 \x01(\x0b\x32\t.PathSpecB\xb3\x01\xe2\xfc\xe3\xc4\x01\xac\x01\x12\xa7\x01The root path to begin the glob.  Users should almost never need to change this. root_path.pathtype is unused in favor of pathtype to allow it to be modified by users.\x18\x01\"\xfb\x04\n\x15SearchFileContentArgs\x12u\n\x05paths\x18\x01 \x03(\tBf\xe2\xfc\xe3\xc4\x01`\n\x0eGlobExpression\x12NA path to glob that supports: ** path recursion, * wildcards and %% expansions\x12L\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1aType of access to glob in.\x12\xd2\x01\n\troot_path\x18\x05 \x01(\x0b\x32\t.PathSpecB\xb3\x01\xe2\xfc\xe3\xc4\x01\xac\x01\x12\xa7\x01The root path to begin the glob.  Users should almost never need to change this. root_path.pathtype is unused in favor of pathtype to allow it to be modified by users.\x18\x01\x12\x66\n\x04grep\x18\x03 \x01(\x0b\x32\r.BareGrepSpecBI\xe2\xfc\xe3\xc4\x01\x43\x12,Leave empty to match files by filename only.\"\x13\x46ile Content Search\x12`\n\ralso_download\x18\x04 \x01(\x08\x42I\xe2\xfc\xe3\xc4\x01\x43\x12(If checked, download any matching files.\"\x17\x44ownload matching files\"\xe5\x01\n\rFindFilesArgs\x12\x44\n\x08\x66indspec\x18\x01 \x01(\x0b\x32\t.FindSpecB\'\xe2\xfc\xe3\xc4\x01!\x12\x1f\x41 find operation specification.\x12\x45\n\x0bmax_results\x18\x03 \x01(\x04:\x03\x35\x30\x30\x42+\xe2\xfc\xe3\xc4\x01%\x12!Maximum number of results to get.\x18\x01\x12G\n\x0fiteration_count\x18\x04 \x01(\x04:\x05\x32\x30\x30\x30\x30\x42\'\xe2\xfc\xe3\xc4\x01!\x12\x1d\x46iles examined per iteration.\x18\x01\"\xc1\x02\n\x0bGetFileArgs\x12K\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB.\xe2\xfc\xe3\xc4\x01(\x12&The pathspec for the file to retrieve.\x12s\n\x0bread_length\x18\x02 \x01(\x04:\x01\x30\x42[\xe2\xfc\xe3\xc4\x01U\x12QThe amount of data to read from the file. If 0 we use the value from a stat call.\x18\x01\x12p\n\x13ignore_stat_failure\x18\x03 \x01(\x08\x42S\xe2\xfc\xe3\xc4\x01M\x12IIgnore stat failures and try to read anyway. Disable for windows devices.\x18\x01\"Q\n\nGetMBRArgs\x12\x43\n\x06length\x18\x01 \x01(\x04:\x04\x34\x30\x39\x36\x42-\xe2\xfc\xe3\xc4\x01\'\x12%The length of the MBR buffer to read.\"\xc4\x03\n\x11\x43hromeHistoryArgs\x12M\n\x08pathtype\x18\x01 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bType of path access to use.\x12S\n\x0bget_archive\x18\x02 \x01(\x08\x42>\xe2\xfc\xe3\xc4\x01\x38\x12\x36Should we get Archived History as well (3 months old).\x12\xb1\x01\n\x08username\x18\x03 \x01(\tB\x9e\x01\xe2\xfc\xe3\xc4\x01\x97\x01\x12\x94\x01The user to get Chrome history for. If history_path is not set this will be used to guess the path to the history files. Can be in form DOMAIN\\user.\x12W\n\x0chistory_path\x18\x05 \x01(\tBA\xe2\xfc\xe3\xc4\x01;\x12\x39Path to a profile directory that contains a History file.\"\xca\x02\n\x10\x43lientActionArgs\x12.\n\x06\x61\x63tion\x18\x01 \x01(\tB\x1e\xe2\xfc\xe3\xc4\x01\x18\x12\x16The action to execute.\x12\x63\n\x07save_to\x18\x02 \x01(\t:\x04/tmpBL\xe2\xfc\xe3\xc4\x01\x46\x12\x44If set, interpreted as a path to write pickle dumps of responses to.\x12V\n\tbreak_pdb\x18\x03 \x01(\x08:\x05\x66\x61lseB<\xe2\xfc\xe3\xc4\x01\x36\x12\x34If True, run pdb.set_trace when responses come back.\x12I\n\x0b\x61\x63tion_args\x18\x04 \x01(\x0c\x42\x34\xe2\xfc\xe3\xc4\x01.\x12\x18\x43lient action arguments.*\x12GetActionArgsClass\"\x83\x03\n\x14\x43onsoleDebugFlowArgs\x12*\n\x04\x66low\x18\x01 \x01(\tB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14The flow to execute.\x12i\n\x07save_to\x18\x02 \x01(\t:\x04/tmpBR\xe2\xfc\xe3\xc4\x01L\x12JIf not None, interpreted as an path to write pickle dumps of responses to.\x12V\n\tbreak_pdb\x18\x03 \x01(\x08:\x05\x66\x61lseB<\xe2\xfc\xe3\xc4\x01\x36\x12\x34If True, run pdb.set_trace when responses come back.\x12>\n\x0fprint_responses\x18\x04 \x01(\x08\x42%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dIf True, print each response.\x12<\n\tflow_args\x18\x05 \x01(\x0c\x42)\xe2\xfc\xe3\xc4\x01#\x12\x0f\x46low arguments.*\x10GetFlowArgsClass\"k\n\x19\x43reateGenericHuntFlowArgs\x12)\n\x10hunt_runner_args\x18\x01 \x01(\x0b\x32\x0f.HuntRunnerArgs\x12#\n\thunt_args\x18\x02 \x01(\x0b\x32\x10.GenericHuntArgs\"\xbb\x04\n\x15\x43reateCronJobFlowArgs\x12J\n\x0b\x64\x65scription\x18\x01 \x01(\tB5\xe2\xfc\xe3\xc4\x01/\x12-A human readable description of the cron job.\x12\x46\n\x0bperiodicity\x18\x02 \x01(\t:\x02\x37\x64\x42-\xe2\xfc\xe3\xc4\x01\'\n\x08\x43ronSpec\x12\x1bHow often to run this hunt.\x12)\n\x10\x66low_runner_args\x18\x03 \x01(\x0b\x32\x0f.FlowRunnerArgs\x12+\n\tflow_args\x18\x04 \x01(\x0c\x42\x18\xe2\xfc\xe3\xc4\x01\x12*\x10GetFlowArgsClass\x12\x16\n\x0e\x61llow_overruns\x18\x05 \x01(\x08\x12\x9d\x02\n\x08lifetime\x18\x06 \x01(\x04:\x01\x30\x42\x87\x02\xe2\xfc\xe3\xc4\x01\x80\x02\n\x08\x44uration\x12\xf3\x01How long each run of the cron should be allowed to run. Runs that exceed lifetime will be killed. This is complimentary but different to periodicity e.g. it allows us to run jobs weekly that should be killed if they take more than a few hours.\"\xb4\x01\n\x12ModifyHuntFlowArgs\x12?\n\x08hunt_urn\x18\x01 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\x06RDFURN\x12\x1dThe URN of the hunt to pause.\x12\x14\n\x0c\x63lient_limit\x18\x02 \x01(\x04\x12G\n\x0b\x65xpiry_time\x18\x03 \x01(\x04\x42\x32\xe2\xfc\xe3\xc4\x01,\n\x0bRDFDatetime\x12\x1dWhen should this hunt expire?\"\xc6\x02\n\x15ManageCronJobFlowArgs\x12\x34\n\x03urn\x18\x01 \x01(\tB\'\xe2\xfc\xe3\xc4\x01!\n\x06RDFURN\x12\x17The URN of the cron job\x12\x33\n\x06\x61\x63tion\x18\x02 \x01(\x0e\x32\x1d.ManageCronJobFlowArgs.Action:\x04NOOP\"\xc1\x01\n\x06\x41\x63tion\x12@\n\x04NOOP\x10\x00\x1a\x36\xea\xb9\xcb\xb9\x01\x30\x44o nothing (but still check access permissions.)\x12\'\n\x07\x44ISABLE\x10\x01\x1a\x1a\xea\xb9\xcb\xb9\x01\x14\x44isable ths cron job\x12%\n\x06\x45NABLE\x10\x02\x1a\x19\xea\xb9\xcb\xb9\x01\x13\x45nable the cron job\x12%\n\x06\x44\x45LETE\x10\x03\x1a\x19\xea\xb9\xcb\xb9\x01\x13\x44\x65lete the cron job\"\xbc\x02\n\x16\x43ronHuntOutputFlowArgs\x12\x30\n\x08hunt_urn\x18\x01 \x01(\tB\x1e\xe2\xfc\xe3\xc4\x01\x18\n\x06RDFURN\x12\x0eURN of a hunt.\x12P\n\x0cmetadata_urn\x18\x02 \x01(\tB:\xe2\xfc\xe3\xc4\x01\x34\n\x06RDFURN\x12*URN of a cron hunt output module metadata.\x12=\n\x12output_plugin_name\x18\x03 \x01(\tB!\xe2\xfc\xe3\xc4\x01\x1b\x12\x19Name of an output plugin.\x12_\n\x12output_plugin_args\x18\x04 \x01(\x0c\x42\x43\xe2\xfc\xe3\xc4\x01=\x12!Args passed to the output plugin.*\x18GetOutputPluginArgsClass\"o\n\x14PlistValueFilterArgs\x12W\n\x07request\x18\x01 \x01(\x0b\x32\r.PlistRequestB7\xe2\xfc\xe3\xc4\x01\x31\x12/A request for the client to parse a plist file.\"\xb9\x01\n\x11RunReportFlowArgs\x12G\n\x0breport_name\x18\x01 \x01(\tB2\xe2\xfc\xe3\xc4\x01,\n\nReportName\x12\x1eThe name of the report to run.\x12[\n\x05\x65mail\x18\x02 \x01(\tBL\xe2\xfc\xe3\xc4\x01\x46\n\x12\x44omainEmailAddress\x12\x30The email address that messages will be sent to.\"\xb8\x01\n\x15\x45numerateServicesArgs\x12M\n\x11\x64ownload_binaries\x18\x01 \x01(\x08:\x04trueB,\xe2\xfc\xe3\xc4\x01&\x12$If set, also downloads the binaries.\x12P\n\x08pathtype\x18\x03 \x01(\x0e\x32\x12.PathSpec.PathType:\x03TSKB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dHow to access the filesystem.\"\xd0\x02\n\x11\x43hromePluginsArgs\x12q\n\x04path\x18\x01 \x01(\tBc\xe2\xfc\xe3\xc4\x01]\x12[A path to a Chrome Extensions directory. If not set, the path is guessed from the username.\x12=\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\x13\xe2\xfc\xe3\xc4\x01\r\x12\x0b\x41\x63\x63\x65ss mode\x12@\n\x08username\x18\x04 \x01(\tB.\xe2\xfc\xe3\xc4\x01(\x12&The user to get Chrome extensions for.\x12G\n\x0e\x64ownload_files\x18\x05 \x01(\x08:\x05\x66\x61lseB(\xe2\xfc\xe3\xc4\x01\"\x12 Should extensions be downloaded?\"\x1f\n\x10PriorityFlowArgs\x12\x0b\n\x03msg\x18\x01 \x01(\t\"@\n\x16\x43lientActionRunnerArgs\x12&\n\x06\x61\x63tion\x18\x01 \x01(\tB\x16\xe2\xfc\xe3\xc4\x01\x10\x12\x0e\x41\x63tion to run.\"+\n\x10\x42\x61\x64\x41rgsFlow1Args\x12\x17\n\x04\x61rg1\x18\x01 \x01(\x0b\x32\t.PathSpec\"(\n\x0fSendingFlowArgs\x12\x15\n\rmessage_count\x18\x01 \x01(\x04\"&\n\x15RecursiveTestFlowArgs\x12\r\n\x05\x64\x65pth\x18\x01 \x01(\x04\"M\n\x1d\x44ummyCronHuntOutputPluginArgs\x12\x13\n\x0boutput_path\x18\x01 \x01(\t\x12\x17\n\x0f\x63ollection_name\x18\x02 \x01(\t\"\xe1\x01\n!RequestApprovalWithReasonFlowArgs\x12\x38\n\x06reason\x18\x01 \x01(\t:\x0bUnspecifiedB\x1b\xe2\xfc\xe3\xc4\x01\x15\x12\x13Reason for approval\x12+\n\x08\x61pprover\x18\x02 \x01(\tB\x19\xe2\xfc\xe3\xc4\x01\x13\x12\x11\x41pprover username\x12U\n\x0bsubject_urn\x18\x03 \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\x06RDFURN\x12\x30URN of the object that approval is required for.\"\xdf\x01\n\x1fGrantApprovalWithReasonFlowArgs\x12\x38\n\x06reason\x18\x01 \x01(\t:\x0bUnspecifiedB\x1b\xe2\xfc\xe3\xc4\x01\x15\x12\x13Reason for approval\x12+\n\x08\x64\x65legate\x18\x02 \x01(\tB\x19\xe2\xfc\xe3\xc4\x01\x13\x12\x11\x44\x65legate username\x12U\n\x0bsubject_urn\x18\x03 \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\x06RDFURN\x12\x30URN of the object that approval is required for.\"V\n\x11StartHuntFlowArgs\x12\x41\n\x08hunt_urn\x18\x01 \x01(\tB/\xe2\xfc\xe3\xc4\x01)\n\x06RDFURN\x12\x1fThe URN of the hunt to execute.\"T\n\x11PauseHuntFlowArgs\x12?\n\x08hunt_urn\x18\x01 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\x06RDFURN\x12\x1dThe URN of the hunt to pause.\"Z\n\x17\x43heckHuntAccessFlowArgs\x12?\n\x08hunt_urn\x18\x01 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\x06RDFURN\x12\x1dThe URN of the hunt to check.\"\x86\x01\n\x11UpdateVFSFileArgs\x12\x31\n\x0cvfs_file_urn\x18\x01 \x01(\tB\x1b\xe2\xfc\xe3\xc4\x01\x15\n\x06RDFURN\x12\x0bVFSFile urn\x12>\n\tattribute\x18\x02 \x01(\t:\raff4:containsB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14\x41ttribute to update.\"[\n\x18MultiGetFileTestFlowArgs\x12?\n\nfile_limit\x18\x01 \x01(\x04:\x01\x33\x42(\xe2\xfc\xe3\xc4\x01\"\x12 The number of files to retrieve.\"\xce\x02\n\x10MultiGetFileArgs\x12I\n\tpathspecs\x18\x02 \x03(\x0b\x32\t.PathSpecB+\xe2\xfc\xe3\xc4\x01%\x12#Pathspecs of files to be retrieved.\x12\xee\x01\n\x13use_external_stores\x18\x03 \x01(\x08:\x04trueB\xca\x01\xe2\xfc\xe3\xc4\x01\xc3\x01\x12\xbe\x01If true, look in any defined external file stores for filesbefore downloading them, and offer any new files to external stores.This should be true unless the external checks are misbehaving.\x18\x01\"\xb3\x03\n GetExecutablesFilteredByHashArgs\x12X\n\tpathspecs\x18\x01 \x03(\x0b\x32\t.PathSpecB:\xe2\xfc\xe3\xc4\x01\x34\x12\x32Pathspecs of files to be retrieved and their hash.\x12\x44\n\x06hashes\x18\x02 \x03(\x0c\x42\x34\xe2\xfc\xe3\xc4\x01.\n\nHashDigest\x12 SHA256 hash digest for the file.\x12\xee\x01\n\x13use_external_stores\x18\x03 \x01(\x08:\x04trueB\xca\x01\xe2\xfc\xe3\xc4\x01\xc3\x01\x12\xbe\x01If true, look in any defined external file stores for filesbefore downloading them, and offer any new files to external stores.This should be true unless the external checks are misbehaving.\x18\x01\"\xd0\x02\n\x1eProcessHuntResultsCronFlowArgs\x12\x62\n\nbatch_size\x18\x01 \x01(\x04\x42N\xe2\xfc\xe3\xc4\x01H\x12\x44Results will be processed by output plugins in batches of this size.\x18\x01\x12\xc9\x01\n\x10max_running_time\x18\x02 \x01(\x04\x42\xae\x01\xe2\xfc\xe3\xc4\x01\xa7\x01\n\x08\x44uration\x12\x98\x01ProcessHuntResultsCronFlow will run not much longer than max_running_time. It will finish (without an error) even if there are still results to process.\x18\x01\"\xbd\x01\n\x11ListProcessesArgs\x12q\n\x0e\x66ilename_regex\x18\x01 \x01(\t:\x01.BV\xe2\xfc\xe3\xc4\x01P\n\x11RegularExpression\x12+Regex used to filter the list of processes.\"\x0e\x46ilename Regex\x12\x35\n\x0e\x66\x65tch_binaries\x18\x02 \x01(\x08:\x05\x66\x61lseB\x16\xe2\xfc\xe3\xc4\x01\x10\"\x0e\x46\x65tch Binaries\"\xed\x01\n\x13ListVADBinariesArgs\x12p\n\x0e\x66ilename_regex\x18\x01 \x01(\t:\x01.BU\xe2\xfc\xe3\xc4\x01O\n\x11RegularExpression\x12*Regex used to filter the list of binaries.\"\x0e\x46ilename Regex\x12\x35\n\x0e\x66\x65tch_binaries\x18\x02 \x01(\x08:\x05\x66\x61lseB\x16\xe2\xfc\xe3\xc4\x01\x10\"\x0e\x46\x65tch Binaries\x12-\n\x07request\x18\x03 \x01(\x0b\x32\x12.VolatilityRequestB\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\"\x9e\x02\n#FileFinderModificationTimeCondition\x12^\n\x16min_last_modified_time\x18\x05 \x01(\x04:\x01\x30\x42;\xe2\xfc\xe3\xc4\x01\x35\n\x0bRDFDatetime\x12&File must be modified after this time.\x12\x96\x01\n\x16max_last_modified_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x61\xe2\xfc\xe3\xc4\x01[\n\x0bRDFDatetime\x12LFile must be modified before this time (default=heat death of the universe).\"\x94\x02\n\x1d\x46ileFinderAccessTimeCondition\x12\\\n\x14min_last_access_time\x18\x05 \x01(\x04:\x01\x30\x42;\xe2\xfc\xe3\xc4\x01\x35\n\x0bRDFDatetime\x12&File must be accessed after this time.\x12\x94\x01\n\x14max_last_access_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x61\xe2\xfc\xe3\xc4\x01[\n\x0bRDFDatetime\x12LFile must be accessed before this time (default=heat death of the universe).\"\xad\x02\n\"FileFinderInodeChangeTimeCondition\x12i\n\x1amin_last_inode_change_time\x18\x05 \x01(\x04:\x01\x30\x42\x42\xe2\xfc\xe3\xc4\x01<\n\x0bRDFDatetime\x12-File\'s inode must be changed after this time.\x12\x9b\x01\n\x1amax_last_inode_change_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x62\xe2\xfc\xe3\xc4\x01\\\n\x0bRDFDatetime\x12MFile\'s must be changed before this time (default=heat death of the universe).\"\xbe\x01\n\x17\x46ileFinderSizeCondition\x12=\n\rmin_file_size\x18\x0b \x01(\x04:\x01\x30\x42#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bMinimum file size in bytes.\x12\x64\n\rmax_file_size\x18\x0c \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x38\xe2\xfc\xe3\xc4\x01\x32\x12\x30Maximum file size in bytes (default=sys.maxint).\"\xf2\x04\n%FileFinderContentsRegexMatchCondition\x12^\n\x05regex\x18\x04 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\n\x11RegularExpression\x12\x34The regular expression which will be used to search.\x12\x8e\x01\n\x04mode\x18\x06 \x01(\x0e\x32+.FileFinderContentsRegexMatchCondition.Mode:\x08\x41LL_HITSBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41When should searching stop? Stop after one hit or search for all?\x12K\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\'Include this many bytes before the hit.\x18\x01\x12I\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\x12&Include this many bytes after the hit.\x18\x01\x12G\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x42.\xe2\xfc\xe3\xc4\x01(\x12$Start searching at this file offset.\x18\x01\x12R\n\x06length\x18\x03 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x35\xe2\xfc\xe3\xc4\x01/\x12+How far (in bytes) into the file to search.\x18\x01\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"\xee\x07\n\'FileFinderContentsLiteralMatchCondition\x12K\n\x07literal\x18\x05 \x01(\x0c\x42:\xe2\xfc\xe3\xc4\x01\x34\n\x11LiteralExpression\x12\x1fSearch for this literal string.\x12\x90\x01\n\x04mode\x18\x06 \x01(\x0e\x32-.FileFinderContentsLiteralMatchCondition.Mode:\x08\x41LL_HITSBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41When should searching stop? Stop after one hit or search for all?\x12G\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x42.\xe2\xfc\xe3\xc4\x01(\x12$Start searching at this file offset.\x18\x01\x12R\n\x06length\x18\x03 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x35\xe2\xfc\xe3\xc4\x01/\x12+How far (in bytes) into the file to search.\x18\x01\x12K\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\'Include this many bytes before the hit.\x18\x01\x12I\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\x12&Include this many bytes after the hit.\x18\x01\x12\xc2\x01\n\nxor_in_key\x18\t \x01(\r:\x01\x30\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\x12\xc3\x01\n\x0bxor_out_key\x18\n \x01(\r:\x01\x30\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"\xf6\x05\n\x13\x46ileFinderCondition\x12Y\n\x0e\x63ondition_type\x18\x01 \x01(\x0e\x32\x19.FileFinderCondition.TypeB&\xe2\xfc\xe3\xc4\x01 \x12\x0e\x43ondition type\"\x0e\x43ondition type\x12?\n\x11modification_time\x18\x02 \x01(\x0b\x32$.FileFinderModificationTimeCondition\x12\x33\n\x0b\x61\x63\x63\x65ss_time\x18\x03 \x01(\x0b\x32\x1e.FileFinderAccessTimeCondition\x12>\n\x11inode_change_time\x18\x04 \x01(\x0b\x32#.FileFinderInodeChangeTimeCondition\x12&\n\x04size\x18\x05 \x01(\x0b\x32\x18.FileFinderSizeCondition\x12\x44\n\x14\x63ontents_regex_match\x18\x06 \x01(\x0b\x32&.FileFinderContentsRegexMatchCondition\x12H\n\x16\x63ontents_literal_match\x18\x07 \x01(\x0b\x32(.FileFinderContentsLiteralMatchCondition\"\x95\x02\n\x04Type\x12.\n\x11MODIFICATION_TIME\x10\x00\x1a\x17\xea\xb9\xcb\xb9\x01\x11Modification time\x12\"\n\x0b\x41\x43\x43\x45SS_TIME\x10\x01\x1a\x11\xea\xb9\xcb\xb9\x01\x0b\x41\x63\x63\x65ss time\x12.\n\x11INODE_CHANGE_TIME\x10\x02\x1a\x17\xea\xb9\xcb\xb9\x01\x11Inode change time\x12\x19\n\x04SIZE\x10\x03\x1a\x0f\xea\xb9\xcb\xb9\x01\tFile size\x12\x34\n\x14\x43ONTENTS_REGEX_MATCH\x10\x04\x1a\x1a\xea\xb9\xcb\xb9\x01\x14\x43ontents regex match\x12\x38\n\x16\x43ONTENTS_LITERAL_MATCH\x10\x05\x1a\x1c\xea\xb9\xcb\xb9\x01\x16\x43ontents literal match\"\xf2\x02\n\x1f\x46ileFinderDownloadActionOptions\x12\\\n\x08max_size\x18\x05 \x01(\x04:\t100000000B?\xe2\xfc\xe3\xc4\x01\x39\n\x08\x42yteSize\x12+The maximum size of files we will download.\x18\x01\x12\xf0\x01\n\x13use_external_stores\x18\x06 \x01(\x08:\x04trueB\xcc\x01\xe2\xfc\xe3\xc4\x01\xc5\x01\x12\xc0\x01If true, look in any defined external file stores for files before downloading them, and offer any new files to external stores. This should be true unless the external checks are misbehaving.\x18\x01\"\xff\x01\n\x10\x46ileFinderAction\x12\x63\n\x0b\x61\x63tion_type\x18\x01 \x01(\x0e\x32\x18.FileFinderAction.Action:\x04STATB.\xe2\xfc\xe3\xc4\x01(\x12\x1e\x41\x63tion to apply to found files\"\x06\x41\x63tion\x12\x32\n\x08\x64ownload\x18\x02 \x01(\x0b\x32 .FileFinderDownloadActionOptions\"R\n\x06\x41\x63tion\x12\x14\n\x04STAT\x10\x00\x1a\n\xea\xb9\xcb\xb9\x01\x04Stat\x12\x14\n\x04HASH\x10\x01\x1a\n\xea\xb9\xcb\xb9\x01\x04Hash\x12\x1c\n\x08\x44OWNLOAD\x10\x02\x1a\x0e\xea\xb9\xcb\xb9\x01\x08\x44ownload\"\x85\x04\n\x0e\x46ileFinderArgs\x12\x8d\x01\n\x05paths\x18\x01 \x03(\tB~\xe2\xfc\xe3\xc4\x01x\n\x0eGlobExpression\x12\x66\x41 path to glob that can contain %% expansions. For example \'%%KnowledgeBase.environ_windir%%\notepad.*\'\x12L\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1aType of access to glob in.\x12(\n\nconditions\x18\x05 \x03(\x0b\x32\x14.FileFinderCondition\x12!\n\x06\x61\x63tion\x18\x06 \x01(\x0b\x32\x11.FileFinderAction\x12\xc7\x01\n\x12no_file_type_check\x18\x07 \x01(\x08:\x05\x66\x61lseB\xa3\x01\xe2\xfc\xe3\xc4\x01\x9c\x01\x12\x97\x01Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\x18\x02\"U\n\x10\x46ileFinderResult\x12\x1e\n\nstat_entry\x18\x01 \x01(\x0b\x32\n.StatEntry\x12!\n\x07matches\x18\x02 \x03(\x0b\x32\x10.BufferReference\"\xe6\x01\n\rFileReference\x12\x46\n\tclient_id\x18\x01 \x01(\tB3\xe2\xfc\xe3\xc4\x01-\n\tClientURN\x12 The client id the file lives on.\x12=\n\tpathspecs\x18\x02 \x03(\x0b\x32\t.PathSpecB\x1f\xe2\xfc\xe3\xc4\x01\x19\x12\x17The paths to the files.\x12N\n\rsha256_hashes\x18\x03 \x03(\x0c\x42\x37\xe2\xfc\xe3\xc4\x01\x31\n\nHashDigest\x12#A SHA256 hash digest for each file.\"3\n\x12\x42it9DownloaderArgs\x12\x1d\n\x05\x66iles\x18\x01 \x03(\x0b\x32\x0e.FileReference\"\xa4\x02\n\x18MemoryCollectorCondition\x12\x36\n\x0e\x63ondition_type\x18\x01 \x01(\x0e\x32\x1e.MemoryCollectorCondition.Type\x12?\n\rliteral_match\x18\x02 \x01(\x0b\x32(.FileFinderContentsLiteralMatchCondition\x12;\n\x0bregex_match\x18\x03 \x01(\x0b\x32&.FileFinderContentsRegexMatchCondition\"R\n\x04Type\x12&\n\rLITERAL_MATCH\x10\x01\x1a\x13\xea\xb9\xcb\xb9\x01\rLiteral match\x12\"\n\x0bREGEX_MATCH\x10\x02\x1a\x11\xea\xb9\xcb\xb9\x01\x0bRegex match\"+\n)MemoryCollectorWithoutLocalCopyDumpOption\"\xc9\x03\n&MemoryCollectorWithLocalCopyDumpOption\x12\xa8\x01\n\x07\x64\x65stdir\x18\x01 \x01(\tB\x96\x01\xe2\xfc\xe3\xc4\x01\x8f\x01\x12\x8a\x01\x44\x65stination directory on the client for the temporary image. Leave blank to use defaults. Parent directories will be created if necessary.\x18\x01\x12\x44\n\x06offset\x18\x02 \x01(\x04:\x01\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\x16Memory offset in bytes\x18\x01\"\x0fStarting Offset\x12\x66\n\x06length\x18\x03 \x01(\x04:\x01\x30\x42S\xe2\xfc\xe3\xc4\x01M\x12\x35Number of bytes to copy (default 0 copies all memory)\x18\x01\"\x12Length to download\x12\x46\n\x04gzip\x18\x04 \x01(\x08:\x04trueB2\xe2\xfc\xe3\xc4\x01,\x12(Gzip temporary image file on the client.\x18\x01\"\x8f\x03\n\x19MemoryCollectorDumpOption\x12s\n\x0boption_type\x18\x01 \x01(\x0e\x32!.MemoryCollectorDumpOption.Option:\x12WITHOUT_LOCAL_COPYB\'\xe2\xfc\xe3\xc4\x01!\x12\x12How to do the dump\"\x0b\x44ump option\x12\x46\n\x12without_local_copy\x18\x02 \x01(\x0b\x32*.MemoryCollectorWithoutLocalCopyDumpOption\x12@\n\x0fwith_local_copy\x18\x03 \x01(\x0b\x32\'.MemoryCollectorWithLocalCopyDumpOption\"s\n\x06Option\x12\x35\n\x12WITHOUT_LOCAL_COPY\x10\x00\x1a\x1d\xea\xb9\xcb\xb9\x01\x17\x44on\'t create local copy\x12\x32\n\x0fWITH_LOCAL_COPY\x10\x01\x1a\x1d\xea\xb9\xcb\xb9\x01\x17\x43reate local copy first\"n\n\x1dMemoryCollectorDownloadAction\x12M\n\x0b\x64ump_option\x18\x01 \x01(\x0b\x32\x1a.MemoryCollectorDumpOptionB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14Memory dump options.\"\xfe\x03\n!MemoryCollectorSendToSocketAction\x12M\n\x0b\x64ump_option\x18\x01 \x01(\x0b\x32\x1a.MemoryCollectorDumpOptionB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14Memory dump options.\x12j\n\x0e\x61\x64\x64ress_family\x18\x02 \x01(\x0e\x32\x16.NetworkAddress.Family:\x04INETB4\xe2\xfc\xe3\xc4\x01.\x12,address family to use (AF_INET or AF_INET6).\x12\x39\n\x04host\x18\x03 \x01(\tB+\xe2\xfc\xe3\xc4\x01%\x12#Hostname or IP to send the file to.\x12\x41\n\x04port\x18\x04 \x01(\x04:\x05\x31\x32\x33\x34\x35\x42,\xe2\xfc\xe3\xc4\x01&\x12$Port number on the listening server.\x12N\n\x03key\x18\x05 \x01(\x0c\x42\x41\xe2\xfc\xe3\xc4\x01;\n\tAES128Key\x12.An encryption key given in hex representation.\x12P\n\x02iv\x18\x06 \x01(\x0c\x42\x44\xe2\xfc\xe3\xc4\x01>\n\tAES128Key\x12\x31The iv for AES, also given in hex representation.\"\x81\x03\n\x15MemoryCollectorAction\x12\x64\n\x0b\x61\x63tion_type\x18\x01 \x01(\x0e\x32\x1d.MemoryCollectorAction.Action:\x04NONEB*\xe2\xfc\xe3\xc4\x01$\x12\x1aWhat to do with the memory\"\x06\x41\x63tion\x12\x30\n\x08\x64ownload\x18\x02 \x01(\x0b\x32\x1e.MemoryCollectorDownloadAction\x12:\n\x0esend_to_socket\x18\x03 \x01(\x0b\x32\".MemoryCollectorSendToSocketAction\"\x93\x01\n\x06\x41\x63tion\x12\x35\n\x04NONE\x10\x00\x1a+\xea\xb9\xcb\xb9\x01%None (just report conditions matches)\x12\x1c\n\x08\x44OWNLOAD\x10\x01\x1a\x0e\xea\xb9\xcb\xb9\x01\x08\x44ownload\x12\x34\n\x0eSEND_TO_SOCKET\x10\x02\x1a \xea\xb9\xcb\xb9\x01\x1aSend memory dump to socket\"\xae\x02\n\x13MemoryCollectorArgs\x12-\n\nconditions\x18\x01 \x03(\x0b\x32\x19.MemoryCollectorCondition\x12&\n\x06\x61\x63tion\x18\x02 \x01(\x0b\x32\x16.MemoryCollectorAction\x12\xbf\x01\n\x10\x64river_installer\x18\x05 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8c\x01\xe2\xfc\xe3\xc4\x01\x85\x01\x12\x80\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default installation proto will be used.\x18\x02\"\x96\x01\n\x1fKnowledgeBaseInitializationArgs\x12s\n\x10require_complete\x18\x01 \x01(\x08:\x04trueBS\xe2\xfc\xe3\xc4\x01M\x12KIf true require all dependencies to be complete.  Raise if any are missing.')
 
 
 
@@ -62,8 +62,8 @@ _BAREGREPSPEC_MODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=6152,
-  serialized_end=6187,
+  serialized_start=6171,
+  serialized_end=6206,
 )
 
 _MANAGECRONJOBFLOWARGS_ACTION = _descriptor.EnumDescriptor(
@@ -91,13 +91,13 @@ _MANAGECRONJOBFLOWARGS_ACTION = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=17373,
-  serialized_end=17566,
+  serialized_start=17743,
+  serialized_end=17936,
 )
 
-_FILEFINDERCONTENTSREGEXMATCHFILTER_MODE = _descriptor.EnumDescriptor(
+_FILEFINDERCONTENTSREGEXMATCHCONDITION_MODE = _descriptor.EnumDescriptor(
   name='Mode',
-  full_name='FileFinderContentsRegexMatchFilter.Mode',
+  full_name='FileFinderContentsRegexMatchCondition.Mode',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -112,13 +112,13 @@ _FILEFINDERCONTENTSREGEXMATCHFILTER_MODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=6152,
-  serialized_end=6187,
+  serialized_start=6171,
+  serialized_end=6206,
 )
 
-_FILEFINDERCONTENTSLITERALMATCHFILTER_MODE = _descriptor.EnumDescriptor(
+_FILEFINDERCONTENTSLITERALMATCHCONDITION_MODE = _descriptor.EnumDescriptor(
   name='Mode',
-  full_name='FileFinderContentsLiteralMatchFilter.Mode',
+  full_name='FileFinderContentsLiteralMatchCondition.Mode',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -133,13 +133,13 @@ _FILEFINDERCONTENTSLITERALMATCHFILTER_MODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=6152,
-  serialized_end=6187,
+  serialized_start=6171,
+  serialized_end=6206,
 )
 
-_FILEFINDERFILTER_TYPE = _descriptor.EnumDescriptor(
+_FILEFINDERCONDITION_TYPE = _descriptor.EnumDescriptor(
   name='Type',
-  full_name='FileFinderFilter.Type',
+  full_name='FileFinderCondition.Type',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -170,8 +170,8 @@ _FILEFINDERFILTER_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=24624,
-  serialized_end=24901,
+  serialized_start=25070,
+  serialized_end=25347,
 )
 
 _FILEFINDERACTION_ACTION = _descriptor.EnumDescriptor(
@@ -181,8 +181,8 @@ _FILEFINDERACTION_ACTION = _descriptor.EnumDescriptor(
   file=DESCRIPTOR,
   values=[
     _descriptor.EnumValueDescriptor(
-      name='DO_NOTHING', index=0, number=0,
-      options=_descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\nDo nothing'),
+      name='STAT', index=0, number=0,
+      options=_descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\004Stat'),
       type=None),
     _descriptor.EnumValueDescriptor(
       name='HASH', index=1, number=1,
@@ -195,13 +195,13 @@ _FILEFINDERACTION_ACTION = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=25456,
-  serialized_end=25550,
+  serialized_start=25896,
+  serialized_end=25978,
 )
 
-_MEMORYSCANNERFILTER_TYPE = _descriptor.EnumDescriptor(
+_MEMORYCOLLECTORCONDITION_TYPE = _descriptor.EnumDescriptor(
   name='Type',
-  full_name='MemoryScannerFilter.Type',
+  full_name='MemoryCollectorCondition.Type',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -216,13 +216,13 @@ _MEMORYSCANNERFILTER_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=26629,
-  serialized_end=26711,
+  serialized_start=27084,
+  serialized_end=27166,
 )
 
-_MEMORYSCANNERDUMPOPTION_OPTION = _descriptor.EnumDescriptor(
+_MEMORYCOLLECTORDUMPOPTION_OPTION = _descriptor.EnumDescriptor(
   name='Option',
-  full_name='MemoryScannerDumpOption.Option',
+  full_name='MemoryCollectorDumpOption.Option',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -237,23 +237,23 @@ _MEMORYSCANNERDUMPOPTION_OPTION = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=27491,
-  serialized_end=27606,
+  serialized_start=27958,
+  serialized_end=28073,
 )
 
-_MEMORYSCANNERACTION_ACTION = _descriptor.EnumDescriptor(
+_MEMORYCOLLECTORACTION_ACTION = _descriptor.EnumDescriptor(
   name='Action',
-  full_name='MemoryScannerAction.Action',
+  full_name='MemoryCollectorAction.Action',
   filename=None,
   file=DESCRIPTOR,
   values=[
     _descriptor.EnumValueDescriptor(
       name='NONE', index=0, number=0,
-      options=_descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\004None'),
+      options=_descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001%None (just report conditions matches)'),
       type=None),
     _descriptor.EnumValueDescriptor(
       name='DOWNLOAD', index=1, number=1,
-      options=_descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\023Dump memory to AFF4'),
+      options=_descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\010Download'),
       type=None),
     _descriptor.EnumValueDescriptor(
       name='SEND_TO_SOCKET', index=2, number=2,
@@ -262,8 +262,8 @@ _MEMORYSCANNERACTION_ACTION = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=28455,
-  serialized_end=28580,
+  serialized_start=28939,
+  serialized_end=29086,
 )
 
 
@@ -918,7 +918,7 @@ _BAREGREPSPEC = _descriptor.Descriptor(
       has_default_value=False, default_value="",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001!\022\037Search for this literal string.')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0014\n\021LiteralExpression\022\037Search for this literal string.')),
     _descriptor.FieldDescriptor(
       name='mode', full_name='BareGrepSpec.mode', index=4,
       number=6, type=14, cpp_type=8, label=1,
@@ -965,7 +965,7 @@ _BAREGREPSPEC = _descriptor.Descriptor(
   is_extendable=False,
   extension_ranges=[],
   serialized_start=5161,
-  serialized_end=6187,
+  serialized_end=6206,
 )
 
 
@@ -992,8 +992,8 @@ _CAENROLERARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6189,
-  serialized_end=6283,
+  serialized_start=6208,
+  serialized_end=6302,
 )
 
 
@@ -1020,8 +1020,8 @@ _DELETEGRRTEMPFILESARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6286,
-  serialized_end=6578,
+  serialized_start=6305,
+  serialized_end=6597,
 )
 
 
@@ -1048,8 +1048,8 @@ _UNINSTALLARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6580,
-  serialized_end=6643,
+  serialized_start=6599,
+  serialized_end=6662,
 )
 
 
@@ -1076,8 +1076,8 @@ _UPDATECONFIGARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6645,
-  serialized_end=6734,
+  serialized_start=6664,
+  serialized_end=6753,
 )
 
 
@@ -1111,8 +1111,8 @@ _EXECUTEPYTHONHACKARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6737,
-  serialized_end=6877,
+  serialized_start=6756,
+  serialized_end=6896,
 )
 
 
@@ -1153,8 +1153,8 @@ _EXECUTECOMMANDARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6880,
-  serialized_end=7096,
+  serialized_start=6899,
+  serialized_end=7115,
 )
 
 
@@ -1181,8 +1181,8 @@ _ONLINENOTIFICATIONARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7099,
-  serialized_end=7246,
+  serialized_start=7118,
+  serialized_end=7265,
 )
 
 
@@ -1209,8 +1209,8 @@ _UPDATECLIENTARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7248,
-  serialized_end=7359,
+  serialized_start=7267,
+  serialized_end=7378,
 )
 
 
@@ -1237,8 +1237,8 @@ _KEEPALIVEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7361,
-  serialized_end=7476,
+  serialized_start=7380,
+  serialized_end=7495,
 )
 
 
@@ -1272,8 +1272,8 @@ _TERMINATEFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7479,
-  serialized_end=7619,
+  serialized_start=7498,
+  serialized_end=7638,
 )
 
 
@@ -1307,8 +1307,8 @@ _LAUNCHBINARYARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7622,
-  serialized_end=7780,
+  serialized_start=7641,
+  serialized_end=7799,
 )
 
 
@@ -1377,8 +1377,8 @@ _WINUSERACTIVITYINVESTIGATIONARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7783,
-  serialized_end=8383,
+  serialized_start=7802,
+  serialized_end=8402,
 )
 
 
@@ -1440,8 +1440,8 @@ _ARTIFACTCOLLECTORFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8386,
-  serialized_end=9168,
+  serialized_start=8405,
+  serialized_end=9187,
 )
 
 
@@ -1468,8 +1468,8 @@ _INTERROGATEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=9170,
-  serialized_end=9275,
+  serialized_start=9189,
+  serialized_end=9294,
 )
 
 
@@ -1531,8 +1531,8 @@ _FETCHFILESARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=9278,
-  serialized_end=10190,
+  serialized_start=9297,
+  serialized_end=10209,
 )
 
 
@@ -1559,8 +1559,8 @@ _FINGERPRINTFILEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=10192,
-  serialized_end=10281,
+  serialized_start=10211,
+  serialized_end=10300,
 )
 
 
@@ -1622,8 +1622,8 @@ _DOWNLOADMEMORYIMAGEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=10284,
-  serialized_end=11027,
+  serialized_start=10303,
+  serialized_end=11046,
 )
 
 
@@ -1657,8 +1657,8 @@ _LOADMEMORYDRIVERARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11030,
-  serialized_end=11360,
+  serialized_start=11049,
+  serialized_end=11379,
 )
 
 
@@ -1692,8 +1692,8 @@ _ANALYZECLIENTMEMORYARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11363,
-  serialized_end=11678,
+  serialized_start=11382,
+  serialized_end=11697,
 )
 
 
@@ -1727,8 +1727,8 @@ _SCANMEMORYARGS = _descriptor.Descriptor(
   options=_descriptor._ParseOptions(descriptor_pb2.MessageOptions(), '\332\374\343\304\001=\n;A grep specification which operates only on memory devices.'),
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11681,
-  serialized_end=11902,
+  serialized_start=11700,
+  serialized_end=11921,
 )
 
 
@@ -1755,8 +1755,8 @@ _SOPHOSCOLLECTORARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11904,
-  serialized_end=12001,
+  serialized_start=11923,
+  serialized_end=12020,
 )
 
 
@@ -1783,8 +1783,8 @@ _MACTIMESARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=12003,
-  serialized_end=12100,
+  serialized_start=12022,
+  serialized_end=12119,
 )
 
 
@@ -1811,8 +1811,8 @@ _FILECOLLECTORARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=12102,
-  serialized_end=12191,
+  serialized_start=12121,
+  serialized_end=12210,
 )
 
 
@@ -1860,8 +1860,8 @@ _FIREFOXHISTORYARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=12194,
-  serialized_end=12647,
+  serialized_start=12213,
+  serialized_end=12666,
 )
 
 
@@ -1923,8 +1923,8 @@ _CACHEGREPARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=12650,
-  serialized_end=13097,
+  serialized_start=12669,
+  serialized_end=13116,
 )
 
 
@@ -1951,8 +1951,8 @@ _LISTDIRECTORYARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=13099,
-  serialized_end=13196,
+  serialized_start=13118,
+  serialized_end=13215,
 )
 
 
@@ -1986,8 +1986,50 @@ _RECURSIVELISTDIRECTORYARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=13199,
-  serialized_end=13361,
+  serialized_start=13218,
+  serialized_end=13380,
+)
+
+
+_FETCHBUFFERFORSPARSEIMAGEARGS = _descriptor.Descriptor(
+  name='FetchBufferForSparseImageArgs',
+  full_name='FetchBufferForSparseImageArgs',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='file_urn', full_name='FetchBufferForSparseImageArgs.file_urn', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001/\n\006RDFURN\022%The URN of the sparse image to update')),
+    _descriptor.FieldDescriptor(
+      name='length', full_name='FetchBufferForSparseImageArgs.length', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='offset', full_name='FetchBufferForSparseImageArgs.offset', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=13383,
+  serialized_end=13519,
 )
 
 
@@ -2021,8 +2063,78 @@ _SLOWGETFILEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=13363,
-  serialized_end=13443,
+  serialized_start=13521,
+  serialized_end=13601,
+)
+
+
+_MAKENEWAFF4SPARSEIMAGEARGS = _descriptor.Descriptor(
+  name='MakeNewAFF4SparseImageArgs',
+  full_name='MakeNewAFF4SparseImageArgs',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='pathspec', full_name='MakeNewAFF4SparseImageArgs.pathspec', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='size_threshold', full_name='MakeNewAFF4SparseImageArgs.size_threshold', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=13603,
+  serialized_end=13684,
+)
+
+
+_UPDATESPARSEIMAGECHUNKSARGS = _descriptor.Descriptor(
+  name='UpdateSparseImageChunksArgs',
+  full_name='UpdateSparseImageChunksArgs',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='file_urn', full_name='UpdateSparseImageChunksArgs.file_urn', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001/\n\006RDFURN\022%The URN of the sparse image to update')),
+    _descriptor.FieldDescriptor(
+      name='chunks_to_fetch', full_name='UpdateSparseImageChunksArgs.chunks_to_fetch', index=1,
+      number=2, type=4, cpp_type=4, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=13686,
+  serialized_end=13813,
 )
 
 
@@ -2049,8 +2161,8 @@ _GREPARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=13445,
-  serialized_end=13483,
+  serialized_start=13815,
+  serialized_end=13853,
 )
 
 
@@ -2091,8 +2203,8 @@ _GLOBARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=13486,
-  serialized_end=13916,
+  serialized_start=13856,
+  serialized_end=14286,
 )
 
 
@@ -2147,8 +2259,8 @@ _SEARCHFILECONTENTARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=13919,
-  serialized_end=14554,
+  serialized_start=14289,
+  serialized_end=14924,
 )
 
 
@@ -2189,8 +2301,8 @@ _FINDFILESARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=14557,
-  serialized_end=14786,
+  serialized_start=14927,
+  serialized_end=15156,
 )
 
 
@@ -2231,8 +2343,8 @@ _GETFILEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=14789,
-  serialized_end=15110,
+  serialized_start=15159,
+  serialized_end=15480,
 )
 
 
@@ -2259,8 +2371,8 @@ _GETMBRARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=15112,
-  serialized_end=15193,
+  serialized_start=15482,
+  serialized_end=15563,
 )
 
 
@@ -2308,8 +2420,8 @@ _CHROMEHISTORYARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=15196,
-  serialized_end=15648,
+  serialized_start=15566,
+  serialized_end=16018,
 )
 
 
@@ -2357,8 +2469,8 @@ _CLIENTACTIONARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=15651,
-  serialized_end=15981,
+  serialized_start=16021,
+  serialized_end=16351,
 )
 
 
@@ -2413,8 +2525,8 @@ _CONSOLEDEBUGFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=15984,
-  serialized_end=16371,
+  serialized_start=16354,
+  serialized_end=16741,
 )
 
 
@@ -2448,8 +2560,8 @@ _CREATEGENERICHUNTFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=16373,
-  serialized_end=16480,
+  serialized_start=16743,
+  serialized_end=16850,
 )
 
 
@@ -2511,8 +2623,8 @@ _CREATECRONJOBFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=16483,
-  serialized_end=17054,
+  serialized_start=16853,
+  serialized_end=17424,
 )
 
 
@@ -2553,8 +2665,8 @@ _MODIFYHUNTFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=17057,
-  serialized_end=17237,
+  serialized_start=17427,
+  serialized_end=17607,
 )
 
 
@@ -2589,8 +2701,8 @@ _MANAGECRONJOBFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=17240,
-  serialized_end=17566,
+  serialized_start=17610,
+  serialized_end=17936,
 )
 
 
@@ -2638,8 +2750,8 @@ _CRONHUNTOUTPUTFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=17569,
-  serialized_end=17885,
+  serialized_start=17939,
+  serialized_end=18255,
 )
 
 
@@ -2666,8 +2778,8 @@ _PLISTVALUEFILTERARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=17887,
-  serialized_end=17998,
+  serialized_start=18257,
+  serialized_end=18368,
 )
 
 
@@ -2701,8 +2813,8 @@ _RUNREPORTFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=18001,
-  serialized_end=18186,
+  serialized_start=18371,
+  serialized_end=18556,
 )
 
 
@@ -2736,8 +2848,8 @@ _ENUMERATESERVICESARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=18189,
-  serialized_end=18373,
+  serialized_start=18559,
+  serialized_end=18743,
 )
 
 
@@ -2785,8 +2897,8 @@ _CHROMEPLUGINSARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=18376,
-  serialized_end=18712,
+  serialized_start=18746,
+  serialized_end=19082,
 )
 
 
@@ -2813,8 +2925,8 @@ _PRIORITYFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=18714,
-  serialized_end=18745,
+  serialized_start=19084,
+  serialized_end=19115,
 )
 
 
@@ -2841,8 +2953,8 @@ _CLIENTACTIONRUNNERARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=18747,
-  serialized_end=18811,
+  serialized_start=19117,
+  serialized_end=19181,
 )
 
 
@@ -2869,8 +2981,8 @@ _BADARGSFLOW1ARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=18813,
-  serialized_end=18856,
+  serialized_start=19183,
+  serialized_end=19226,
 )
 
 
@@ -2897,8 +3009,8 @@ _SENDINGFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=18858,
-  serialized_end=18898,
+  serialized_start=19228,
+  serialized_end=19268,
 )
 
 
@@ -2925,8 +3037,8 @@ _RECURSIVETESTFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=18900,
-  serialized_end=18938,
+  serialized_start=19270,
+  serialized_end=19308,
 )
 
 
@@ -2960,8 +3072,8 @@ _DUMMYCRONHUNTOUTPUTPLUGINARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=18940,
-  serialized_end=19017,
+  serialized_start=19310,
+  serialized_end=19387,
 )
 
 
@@ -3002,8 +3114,8 @@ _REQUESTAPPROVALWITHREASONFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=19020,
-  serialized_end=19245,
+  serialized_start=19390,
+  serialized_end=19615,
 )
 
 
@@ -3044,8 +3156,8 @@ _GRANTAPPROVALWITHREASONFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=19248,
-  serialized_end=19471,
+  serialized_start=19618,
+  serialized_end=19841,
 )
 
 
@@ -3072,8 +3184,8 @@ _STARTHUNTFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=19473,
-  serialized_end=19559,
+  serialized_start=19843,
+  serialized_end=19929,
 )
 
 
@@ -3100,8 +3212,8 @@ _PAUSEHUNTFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=19561,
-  serialized_end=19645,
+  serialized_start=19931,
+  serialized_end=20015,
 )
 
 
@@ -3128,8 +3240,8 @@ _CHECKHUNTACCESSFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=19647,
-  serialized_end=19737,
+  serialized_start=20017,
+  serialized_end=20107,
 )
 
 
@@ -3163,8 +3275,8 @@ _UPDATEVFSFILEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=19740,
-  serialized_end=19874,
+  serialized_start=20110,
+  serialized_end=20244,
 )
 
 
@@ -3191,8 +3303,8 @@ _MULTIGETFILETESTFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=19876,
-  serialized_end=19967,
+  serialized_start=20246,
+  serialized_end=20337,
 )
 
 
@@ -3226,8 +3338,8 @@ _MULTIGETFILEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=19970,
-  serialized_end=20304,
+  serialized_start=20340,
+  serialized_end=20674,
 )
 
 
@@ -3268,8 +3380,8 @@ _GETEXECUTABLESFILTEREDBYHASHARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=20307,
-  serialized_end=20742,
+  serialized_start=20677,
+  serialized_end=21112,
 )
 
 
@@ -3303,8 +3415,8 @@ _PROCESSHUNTRESULTSCRONFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=20745,
-  serialized_end=21081,
+  serialized_start=21115,
+  serialized_end=21451,
 )
 
 
@@ -3338,8 +3450,8 @@ _LISTPROCESSESARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21084,
-  serialized_end=21273,
+  serialized_start=21454,
+  serialized_end=21643,
 )
 
 
@@ -3380,27 +3492,27 @@ _LISTVADBINARIESARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21276,
-  serialized_end=21513,
+  serialized_start=21646,
+  serialized_end=21883,
 )
 
 
-_FILEFINDERMODIFICATIONTIMEFILTER = _descriptor.Descriptor(
-  name='FileFinderModificationTimeFilter',
-  full_name='FileFinderModificationTimeFilter',
+_FILEFINDERMODIFICATIONTIMECONDITION = _descriptor.Descriptor(
+  name='FileFinderModificationTimeCondition',
+  full_name='FileFinderModificationTimeCondition',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='min_last_modified_time', full_name='FileFinderModificationTimeFilter.min_last_modified_time', index=0,
+      name='min_last_modified_time', full_name='FileFinderModificationTimeCondition.min_last_modified_time', index=0,
       number=5, type=4, cpp_type=4, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0015\n\013RDFDatetime\022&File must be modified after this time.')),
     _descriptor.FieldDescriptor(
-      name='max_last_modified_time', full_name='FileFinderModificationTimeFilter.max_last_modified_time', index=1,
+      name='max_last_modified_time', full_name='FileFinderModificationTimeCondition.max_last_modified_time', index=1,
       number=6, type=4, cpp_type=4, label=1,
       has_default_value=True, default_value=9223372036854775807,
       message_type=None, enum_type=None, containing_type=None,
@@ -3415,27 +3527,27 @@ _FILEFINDERMODIFICATIONTIMEFILTER = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21516,
-  serialized_end=21799,
+  serialized_start=21886,
+  serialized_end=22172,
 )
 
 
-_FILEFINDERACCESSTIMEFILTER = _descriptor.Descriptor(
-  name='FileFinderAccessTimeFilter',
-  full_name='FileFinderAccessTimeFilter',
+_FILEFINDERACCESSTIMECONDITION = _descriptor.Descriptor(
+  name='FileFinderAccessTimeCondition',
+  full_name='FileFinderAccessTimeCondition',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='min_last_access_time', full_name='FileFinderAccessTimeFilter.min_last_access_time', index=0,
+      name='min_last_access_time', full_name='FileFinderAccessTimeCondition.min_last_access_time', index=0,
       number=5, type=4, cpp_type=4, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0015\n\013RDFDatetime\022&File must be accessed after this time.')),
     _descriptor.FieldDescriptor(
-      name='max_last_access_time', full_name='FileFinderAccessTimeFilter.max_last_access_time', index=1,
+      name='max_last_access_time', full_name='FileFinderAccessTimeCondition.max_last_access_time', index=1,
       number=6, type=4, cpp_type=4, label=1,
       has_default_value=True, default_value=9223372036854775807,
       message_type=None, enum_type=None, containing_type=None,
@@ -3450,27 +3562,27 @@ _FILEFINDERACCESSTIMEFILTER = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21802,
-  serialized_end=22075,
+  serialized_start=22175,
+  serialized_end=22451,
 )
 
 
-_FILEFINDERINODECHANGETIMEFILTER = _descriptor.Descriptor(
-  name='FileFinderInodeChangeTimeFilter',
-  full_name='FileFinderInodeChangeTimeFilter',
+_FILEFINDERINODECHANGETIMECONDITION = _descriptor.Descriptor(
+  name='FileFinderInodeChangeTimeCondition',
+  full_name='FileFinderInodeChangeTimeCondition',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='min_last_inode_change_time', full_name='FileFinderInodeChangeTimeFilter.min_last_inode_change_time', index=0,
+      name='min_last_inode_change_time', full_name='FileFinderInodeChangeTimeCondition.min_last_inode_change_time', index=0,
       number=5, type=4, cpp_type=4, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001<\n\013RDFDatetime\022-File\'s inode must be changed after this time.')),
     _descriptor.FieldDescriptor(
-      name='max_last_inode_change_time', full_name='FileFinderInodeChangeTimeFilter.max_last_inode_change_time', index=1,
+      name='max_last_inode_change_time', full_name='FileFinderInodeChangeTimeCondition.max_last_inode_change_time', index=1,
       number=6, type=4, cpp_type=4, label=1,
       has_default_value=True, default_value=9223372036854775807,
       message_type=None, enum_type=None, containing_type=None,
@@ -3485,27 +3597,27 @@ _FILEFINDERINODECHANGETIMEFILTER = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=22078,
-  serialized_end=22376,
+  serialized_start=22454,
+  serialized_end=22755,
 )
 
 
-_FILEFINDERSIZEFILTER = _descriptor.Descriptor(
-  name='FileFinderSizeFilter',
-  full_name='FileFinderSizeFilter',
+_FILEFINDERSIZECONDITION = _descriptor.Descriptor(
+  name='FileFinderSizeCondition',
+  full_name='FileFinderSizeCondition',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='min_file_size', full_name='FileFinderSizeFilter.min_file_size', index=0,
+      name='min_file_size', full_name='FileFinderSizeCondition.min_file_size', index=0,
       number=11, type=4, cpp_type=4, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\035\022\033Minimum file size in bytes.')),
     _descriptor.FieldDescriptor(
-      name='max_file_size', full_name='FileFinderSizeFilter.max_file_size', index=1,
+      name='max_file_size', full_name='FileFinderSizeCondition.max_file_size', index=1,
       number=12, type=4, cpp_type=4, label=1,
       has_default_value=True, default_value=9223372036854775807,
       message_type=None, enum_type=None, containing_type=None,
@@ -3520,55 +3632,55 @@ _FILEFINDERSIZEFILTER = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=22379,
-  serialized_end=22566,
+  serialized_start=22758,
+  serialized_end=22948,
 )
 
 
-_FILEFINDERCONTENTSREGEXMATCHFILTER = _descriptor.Descriptor(
-  name='FileFinderContentsRegexMatchFilter',
-  full_name='FileFinderContentsRegexMatchFilter',
+_FILEFINDERCONTENTSREGEXMATCHCONDITION = _descriptor.Descriptor(
+  name='FileFinderContentsRegexMatchCondition',
+  full_name='FileFinderContentsRegexMatchCondition',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='regex', full_name='FileFinderContentsRegexMatchFilter.regex', index=0,
+      name='regex', full_name='FileFinderContentsRegexMatchCondition.regex', index=0,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001I\n\021RegularExpression\0224The regular expression which will be used to search.')),
     _descriptor.FieldDescriptor(
-      name='mode', full_name='FileFinderContentsRegexMatchFilter.mode', index=1,
+      name='mode', full_name='FileFinderContentsRegexMatchCondition.mode', index=1,
       number=6, type=14, cpp_type=8, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001C\022AWhen should searching stop? Stop after one hit or search for all?')),
     _descriptor.FieldDescriptor(
-      name='bytes_before', full_name='FileFinderContentsRegexMatchFilter.bytes_before', index=2,
+      name='bytes_before', full_name='FileFinderContentsRegexMatchCondition.bytes_before', index=2,
       number=7, type=13, cpp_type=3, label=1,
       has_default_value=True, default_value=10,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\022\'Include this many bytes before the hit.\030\001')),
     _descriptor.FieldDescriptor(
-      name='bytes_after', full_name='FileFinderContentsRegexMatchFilter.bytes_after', index=3,
+      name='bytes_after', full_name='FileFinderContentsRegexMatchCondition.bytes_after', index=3,
       number=8, type=13, cpp_type=3, label=1,
       has_default_value=True, default_value=10,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001*\022&Include this many bytes after the hit.\030\001')),
     _descriptor.FieldDescriptor(
-      name='start_offset', full_name='FileFinderContentsRegexMatchFilter.start_offset', index=4,
+      name='start_offset', full_name='FileFinderContentsRegexMatchCondition.start_offset', index=4,
       number=2, type=4, cpp_type=4, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001(\022$Start searching at this file offset.\030\001')),
     _descriptor.FieldDescriptor(
-      name='length', full_name='FileFinderContentsRegexMatchFilter.length', index=5,
+      name='length', full_name='FileFinderContentsRegexMatchCondition.length', index=5,
       number=3, type=4, cpp_type=4, label=1,
       has_default_value=True, default_value=10737418240,
       message_type=None, enum_type=None, containing_type=None,
@@ -3579,74 +3691,74 @@ _FILEFINDERCONTENTSREGEXMATCHFILTER = _descriptor.Descriptor(
   ],
   nested_types=[],
   enum_types=[
-    _FILEFINDERCONTENTSREGEXMATCHFILTER_MODE,
+    _FILEFINDERCONTENTSREGEXMATCHCONDITION_MODE,
   ],
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=22569,
-  serialized_end=23189,
+  serialized_start=22951,
+  serialized_end=23577,
 )
 
 
-_FILEFINDERCONTENTSLITERALMATCHFILTER = _descriptor.Descriptor(
-  name='FileFinderContentsLiteralMatchFilter',
-  full_name='FileFinderContentsLiteralMatchFilter',
+_FILEFINDERCONTENTSLITERALMATCHCONDITION = _descriptor.Descriptor(
+  name='FileFinderContentsLiteralMatchCondition',
+  full_name='FileFinderContentsLiteralMatchCondition',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='literal', full_name='FileFinderContentsLiteralMatchFilter.literal', index=0,
+      name='literal', full_name='FileFinderContentsLiteralMatchCondition.literal', index=0,
       number=5, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value="",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001!\022\037Search for this literal string.')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0014\n\021LiteralExpression\022\037Search for this literal string.')),
     _descriptor.FieldDescriptor(
-      name='mode', full_name='FileFinderContentsLiteralMatchFilter.mode', index=1,
+      name='mode', full_name='FileFinderContentsLiteralMatchCondition.mode', index=1,
       number=6, type=14, cpp_type=8, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001C\022AWhen should searching stop? Stop after one hit or search for all?')),
     _descriptor.FieldDescriptor(
-      name='start_offset', full_name='FileFinderContentsLiteralMatchFilter.start_offset', index=2,
+      name='start_offset', full_name='FileFinderContentsLiteralMatchCondition.start_offset', index=2,
       number=2, type=4, cpp_type=4, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001(\022$Start searching at this file offset.\030\001')),
     _descriptor.FieldDescriptor(
-      name='length', full_name='FileFinderContentsLiteralMatchFilter.length', index=3,
+      name='length', full_name='FileFinderContentsLiteralMatchCondition.length', index=3,
       number=3, type=4, cpp_type=4, label=1,
       has_default_value=True, default_value=10737418240,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001/\022+How far (in bytes) into the file to search.\030\001')),
     _descriptor.FieldDescriptor(
-      name='bytes_before', full_name='FileFinderContentsLiteralMatchFilter.bytes_before', index=4,
+      name='bytes_before', full_name='FileFinderContentsLiteralMatchCondition.bytes_before', index=4,
       number=7, type=13, cpp_type=3, label=1,
       has_default_value=True, default_value=10,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\022\'Include this many bytes before the hit.\030\001')),
     _descriptor.FieldDescriptor(
-      name='bytes_after', full_name='FileFinderContentsLiteralMatchFilter.bytes_after', index=5,
+      name='bytes_after', full_name='FileFinderContentsLiteralMatchCondition.bytes_after', index=5,
       number=8, type=13, cpp_type=3, label=1,
       has_default_value=True, default_value=10,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001*\022&Include this many bytes after the hit.\030\001')),
     _descriptor.FieldDescriptor(
-      name='xor_in_key', full_name='FileFinderContentsLiteralMatchFilter.xor_in_key', index=6,
+      name='xor_in_key', full_name='FileFinderContentsLiteralMatchCondition.xor_in_key', index=6,
       number=9, type=13, cpp_type=3, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\243\001\022\236\001When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\030\001')),
     _descriptor.FieldDescriptor(
-      name='xor_out_key', full_name='FileFinderContentsLiteralMatchFilter.xor_out_key', index=7,
+      name='xor_out_key', full_name='FileFinderContentsLiteralMatchCondition.xor_out_key', index=7,
       number=10, type=13, cpp_type=3, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -3657,67 +3769,67 @@ _FILEFINDERCONTENTSLITERALMATCHFILTER = _descriptor.Descriptor(
   ],
   nested_types=[],
   enum_types=[
-    _FILEFINDERCONTENTSLITERALMATCHFILTER_MODE,
+    _FILEFINDERCONTENTSLITERALMATCHCONDITION_MODE,
   ],
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=23192,
-  serialized_end=24173,
+  serialized_start=23580,
+  serialized_end=24586,
 )
 
 
-_FILEFINDERFILTER = _descriptor.Descriptor(
-  name='FileFinderFilter',
-  full_name='FileFinderFilter',
+_FILEFINDERCONDITION = _descriptor.Descriptor(
+  name='FileFinderCondition',
+  full_name='FileFinderCondition',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='filter_type', full_name='FileFinderFilter.filter_type', index=0,
+      name='condition_type', full_name='FileFinderCondition.condition_type', index=0,
       number=1, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\032\022\013Filter type\"\013Filter type')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001 \022\016Condition type\"\016Condition type')),
     _descriptor.FieldDescriptor(
-      name='modification_time', full_name='FileFinderFilter.modification_time', index=1,
+      name='modification_time', full_name='FileFinderCondition.modification_time', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='access_time', full_name='FileFinderFilter.access_time', index=2,
+      name='access_time', full_name='FileFinderCondition.access_time', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='inode_change_time', full_name='FileFinderFilter.inode_change_time', index=3,
+      name='inode_change_time', full_name='FileFinderCondition.inode_change_time', index=3,
       number=4, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='size', full_name='FileFinderFilter.size', index=4,
+      name='size', full_name='FileFinderCondition.size', index=4,
       number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='contents_regex_match', full_name='FileFinderFilter.contents_regex_match', index=5,
+      name='contents_regex_match', full_name='FileFinderCondition.contents_regex_match', index=5,
       number=6, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='contents_literal_match', full_name='FileFinderFilter.contents_literal_match', index=6,
+      name='contents_literal_match', full_name='FileFinderCondition.contents_literal_match', index=6,
       number=7, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -3728,13 +3840,13 @@ _FILEFINDERFILTER = _descriptor.Descriptor(
   ],
   nested_types=[],
   enum_types=[
-    _FILEFINDERFILTER_TYPE,
+    _FILEFINDERCONDITION_TYPE,
   ],
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=24176,
-  serialized_end=24901,
+  serialized_start=24589,
+  serialized_end=25347,
 )
 
 
@@ -3768,8 +3880,8 @@ _FILEFINDERDOWNLOADACTIONOPTIONS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=24904,
-  serialized_end=25274,
+  serialized_start=25350,
+  serialized_end=25720,
 )
 
 
@@ -3804,8 +3916,8 @@ _FILEFINDERACTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=25277,
-  serialized_end=25550,
+  serialized_start=25723,
+  serialized_end=25978,
 )
 
 
@@ -3831,7 +3943,7 @@ _FILEFINDERARGS = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\034\022\032Type of access to glob in.')),
     _descriptor.FieldDescriptor(
-      name='filters', full_name='FileFinderArgs.filters', index=2,
+      name='conditions', full_name='FileFinderArgs.conditions', index=2,
       number=5, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -3850,7 +3962,7 @@ _FILEFINDERARGS = _descriptor.Descriptor(
       has_default_value=True, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\232\001\022\225\001Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryScanner as an example.\030\002')),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\234\001\022\227\001Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\030\002')),
   ],
   extensions=[
   ],
@@ -3860,8 +3972,8 @@ _FILEFINDERARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=25553,
-  serialized_end=26062,
+  serialized_start=25981,
+  serialized_end=26498,
 )
 
 
@@ -3895,8 +4007,8 @@ _FILEFINDERRESULT = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=26064,
-  serialized_end=26149,
+  serialized_start=26500,
+  serialized_end=26585,
 )
 
 
@@ -3937,8 +4049,8 @@ _FILEREFERENCE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=26152,
-  serialized_end=26382,
+  serialized_start=26588,
+  serialized_end=26818,
 )
 
 
@@ -3965,34 +4077,34 @@ _BIT9DOWNLOADERARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=26384,
-  serialized_end=26435,
+  serialized_start=26820,
+  serialized_end=26871,
 )
 
 
-_MEMORYSCANNERFILTER = _descriptor.Descriptor(
-  name='MemoryScannerFilter',
-  full_name='MemoryScannerFilter',
+_MEMORYCOLLECTORCONDITION = _descriptor.Descriptor(
+  name='MemoryCollectorCondition',
+  full_name='MemoryCollectorCondition',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='filter_type', full_name='MemoryScannerFilter.filter_type', index=0,
+      name='condition_type', full_name='MemoryCollectorCondition.condition_type', index=0,
       number=1, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=1,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='literal_match', full_name='MemoryScannerFilter.literal_match', index=1,
+      name='literal_match', full_name='MemoryCollectorCondition.literal_match', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='regex_match', full_name='MemoryScannerFilter.regex_match', index=2,
+      name='regex_match', full_name='MemoryCollectorCondition.regex_match', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -4003,19 +4115,19 @@ _MEMORYSCANNERFILTER = _descriptor.Descriptor(
   ],
   nested_types=[],
   enum_types=[
-    _MEMORYSCANNERFILTER_TYPE,
+    _MEMORYCOLLECTORCONDITION_TYPE,
   ],
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=26438,
-  serialized_end=26711,
+  serialized_start=26874,
+  serialized_end=27166,
 )
 
 
-_MEMORYSCANNERWITHOUTLOCALCOPYDUMPOPTION = _descriptor.Descriptor(
-  name='MemoryScannerWithoutLocalCopyDumpOption',
-  full_name='MemoryScannerWithoutLocalCopyDumpOption',
+_MEMORYCOLLECTORWITHOUTLOCALCOPYDUMPOPTION = _descriptor.Descriptor(
+  name='MemoryCollectorWithoutLocalCopyDumpOption',
+  full_name='MemoryCollectorWithoutLocalCopyDumpOption',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
@@ -4029,41 +4141,41 @@ _MEMORYSCANNERWITHOUTLOCALCOPYDUMPOPTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=26713,
-  serialized_end=26754,
+  serialized_start=27168,
+  serialized_end=27211,
 )
 
 
-_MEMORYSCANNERWITHLOCALCOPYDUMPOPTION = _descriptor.Descriptor(
-  name='MemoryScannerWithLocalCopyDumpOption',
-  full_name='MemoryScannerWithLocalCopyDumpOption',
+_MEMORYCOLLECTORWITHLOCALCOPYDUMPOPTION = _descriptor.Descriptor(
+  name='MemoryCollectorWithLocalCopyDumpOption',
+  full_name='MemoryCollectorWithLocalCopyDumpOption',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='destdir', full_name='MemoryScannerWithLocalCopyDumpOption.destdir', index=0,
+      name='destdir', full_name='MemoryCollectorWithLocalCopyDumpOption.destdir', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\217\001\022\212\001Destination directory on the client for the temporary image. Leave blank to use defaults. Parent directories will be created if necessary.\030\001')),
     _descriptor.FieldDescriptor(
-      name='offset', full_name='MemoryScannerWithLocalCopyDumpOption.offset', index=1,
+      name='offset', full_name='MemoryCollectorWithLocalCopyDumpOption.offset', index=1,
       number=2, type=4, cpp_type=4, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\022\026Memory offset in bytes\030\001\"\017Starting Offset')),
     _descriptor.FieldDescriptor(
-      name='length', full_name='MemoryScannerWithLocalCopyDumpOption.length', index=2,
+      name='length', full_name='MemoryCollectorWithLocalCopyDumpOption.length', index=2,
       number=3, type=4, cpp_type=4, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001M\0225Number of bytes to copy (default 0 copies all memory)\030\001\"\022Length to download')),
     _descriptor.FieldDescriptor(
-      name='gzip', full_name='MemoryScannerWithLocalCopyDumpOption.gzip', index=3,
+      name='gzip', full_name='MemoryCollectorWithLocalCopyDumpOption.gzip', index=3,
       number=4, type=8, cpp_type=7, label=1,
       has_default_value=True, default_value=True,
       message_type=None, enum_type=None, containing_type=None,
@@ -4078,34 +4190,34 @@ _MEMORYSCANNERWITHLOCALCOPYDUMPOPTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=26757,
-  serialized_end=27212,
+  serialized_start=27214,
+  serialized_end=27671,
 )
 
 
-_MEMORYSCANNERDUMPOPTION = _descriptor.Descriptor(
-  name='MemoryScannerDumpOption',
-  full_name='MemoryScannerDumpOption',
+_MEMORYCOLLECTORDUMPOPTION = _descriptor.Descriptor(
+  name='MemoryCollectorDumpOption',
+  full_name='MemoryCollectorDumpOption',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='option_type', full_name='MemoryScannerDumpOption.option_type', index=0,
+      name='option_type', full_name='MemoryCollectorDumpOption.option_type', index=0,
       number=1, type=14, cpp_type=8, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001!\022\022How to do the dump\"\013Dump option')),
     _descriptor.FieldDescriptor(
-      name='without_local_copy', full_name='MemoryScannerDumpOption.without_local_copy', index=1,
+      name='without_local_copy', full_name='MemoryCollectorDumpOption.without_local_copy', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='with_local_copy', full_name='MemoryScannerDumpOption.with_local_copy', index=2,
+      name='with_local_copy', full_name='MemoryCollectorDumpOption.with_local_copy', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -4116,25 +4228,25 @@ _MEMORYSCANNERDUMPOPTION = _descriptor.Descriptor(
   ],
   nested_types=[],
   enum_types=[
-    _MEMORYSCANNERDUMPOPTION_OPTION,
+    _MEMORYCOLLECTORDUMPOPTION_OPTION,
   ],
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=27215,
-  serialized_end=27606,
+  serialized_start=27674,
+  serialized_end=28073,
 )
 
 
-_MEMORYSCANNERDOWNLOADACTION = _descriptor.Descriptor(
-  name='MemoryScannerDownloadAction',
-  full_name='MemoryScannerDownloadAction',
+_MEMORYCOLLECTORDOWNLOADACTION = _descriptor.Descriptor(
+  name='MemoryCollectorDownloadAction',
+  full_name='MemoryCollectorDownloadAction',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='dump_option', full_name='MemoryScannerDownloadAction.dump_option', index=0,
+      name='dump_option', full_name='MemoryCollectorDownloadAction.dump_option', index=0,
       number=1, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -4149,55 +4261,55 @@ _MEMORYSCANNERDOWNLOADACTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=27608,
-  serialized_end=27714,
+  serialized_start=28075,
+  serialized_end=28185,
 )
 
 
-_MEMORYSCANNERSENDTOSOCKETACTION = _descriptor.Descriptor(
-  name='MemoryScannerSendToSocketAction',
-  full_name='MemoryScannerSendToSocketAction',
+_MEMORYCOLLECTORSENDTOSOCKETACTION = _descriptor.Descriptor(
+  name='MemoryCollectorSendToSocketAction',
+  full_name='MemoryCollectorSendToSocketAction',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='dump_option', full_name='MemoryScannerSendToSocketAction.dump_option', index=0,
+      name='dump_option', full_name='MemoryCollectorSendToSocketAction.dump_option', index=0,
       number=1, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\026\022\024Memory dump options.')),
     _descriptor.FieldDescriptor(
-      name='address_family', full_name='MemoryScannerSendToSocketAction.address_family', index=1,
+      name='address_family', full_name='MemoryCollectorSendToSocketAction.address_family', index=1,
       number=2, type=14, cpp_type=8, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001.\022,address family to use (AF_INET or AF_INET6).')),
     _descriptor.FieldDescriptor(
-      name='host', full_name='MemoryScannerSendToSocketAction.host', index=2,
+      name='host', full_name='MemoryCollectorSendToSocketAction.host', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001%\022#Hostname or IP to send the file to.')),
     _descriptor.FieldDescriptor(
-      name='port', full_name='MemoryScannerSendToSocketAction.port', index=3,
+      name='port', full_name='MemoryCollectorSendToSocketAction.port', index=3,
       number=4, type=4, cpp_type=4, label=1,
       has_default_value=True, default_value=12345,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001&\022$Port number on the listening server.')),
     _descriptor.FieldDescriptor(
-      name='key', full_name='MemoryScannerSendToSocketAction.key', index=4,
+      name='key', full_name='MemoryCollectorSendToSocketAction.key', index=4,
       number=5, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value="",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001;\n\tAES128Key\022.An encryption key given in hex representation.')),
     _descriptor.FieldDescriptor(
-      name='iv', full_name='MemoryScannerSendToSocketAction.iv', index=5,
+      name='iv', full_name='MemoryCollectorSendToSocketAction.iv', index=5,
       number=6, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value="",
       message_type=None, enum_type=None, containing_type=None,
@@ -4212,34 +4324,34 @@ _MEMORYSCANNERSENDTOSOCKETACTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=27717,
-  serialized_end=28223,
+  serialized_start=28188,
+  serialized_end=28698,
 )
 
 
-_MEMORYSCANNERACTION = _descriptor.Descriptor(
-  name='MemoryScannerAction',
-  full_name='MemoryScannerAction',
+_MEMORYCOLLECTORACTION = _descriptor.Descriptor(
+  name='MemoryCollectorAction',
+  full_name='MemoryCollectorAction',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='action_type', full_name='MemoryScannerAction.action_type', index=0,
+      name='action_type', full_name='MemoryCollectorAction.action_type', index=0,
       number=1, type=14, cpp_type=8, label=1,
       has_default_value=True, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001$\022\032What to do with the memory\"\006Action')),
     _descriptor.FieldDescriptor(
-      name='download', full_name='MemoryScannerAction.download', index=1,
+      name='download', full_name='MemoryCollectorAction.download', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='send_to_socket', full_name='MemoryScannerAction.send_to_socket', index=2,
+      name='send_to_socket', full_name='MemoryCollectorAction.send_to_socket', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -4250,39 +4362,39 @@ _MEMORYSCANNERACTION = _descriptor.Descriptor(
   ],
   nested_types=[],
   enum_types=[
-    _MEMORYSCANNERACTION_ACTION,
+    _MEMORYCOLLECTORACTION_ACTION,
   ],
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=28226,
-  serialized_end=28580,
+  serialized_start=28701,
+  serialized_end=29086,
 )
 
 
-_MEMORYSCANNERARGS = _descriptor.Descriptor(
-  name='MemoryScannerArgs',
-  full_name='MemoryScannerArgs',
+_MEMORYCOLLECTORARGS = _descriptor.Descriptor(
+  name='MemoryCollectorArgs',
+  full_name='MemoryCollectorArgs',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='filters', full_name='MemoryScannerArgs.filters', index=0,
+      name='conditions', full_name='MemoryCollectorArgs.conditions', index=0,
       number=1, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='action', full_name='MemoryScannerArgs.action', index=1,
+      name='action', full_name='MemoryCollectorArgs.action', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='driver_installer', full_name='MemoryScannerArgs.driver_installer', index=2,
+      name='driver_installer', full_name='MemoryCollectorArgs.driver_installer', index=2,
       number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -4297,8 +4409,36 @@ _MEMORYSCANNERARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=28583,
-  serialized_end=28873,
+  serialized_start=29089,
+  serialized_end=29391,
+)
+
+
+_KNOWLEDGEBASEINITIALIZATIONARGS = _descriptor.Descriptor(
+  name='KnowledgeBaseInitializationArgs',
+  full_name='KnowledgeBaseInitializationArgs',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='require_complete', full_name='KnowledgeBaseInitializationArgs.require_complete', index=0,
+      number=1, type=8, cpp_type=7, label=1,
+      has_default_value=True, default_value=True,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001M\022KIf true require all dependencies to be complete.  Raise if any are missing.')),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=29394,
+  serialized_end=29544,
 )
 
 _GUISETTINGS.fields_by_name['mode'].enum_type = _GUISETTINGS_UIMODE
@@ -4338,6 +4478,7 @@ _CACHEGREPARGS.fields_by_name['pathtype'].enum_type = grr.proto.jobs_pb2._PATHSP
 _LISTDIRECTORYARGS.fields_by_name['pathspec'].message_type = grr.proto.jobs_pb2._PATHSPEC
 _RECURSIVELISTDIRECTORYARGS.fields_by_name['pathspec'].message_type = grr.proto.jobs_pb2._PATHSPEC
 _SLOWGETFILEARGS.fields_by_name['pathspec'].message_type = grr.proto.jobs_pb2._PATHSPEC
+_MAKENEWAFF4SPARSEIMAGEARGS.fields_by_name['pathspec'].message_type = grr.proto.jobs_pb2._PATHSPEC
 _GREPARGS.fields_by_name['request'].message_type = grr.proto.jobs_pb2._GREPSPEC
 _GLOBARGS.fields_by_name['pathtype'].enum_type = grr.proto.jobs_pb2._PATHSPEC_PATHTYPE
 _GLOBARGS.fields_by_name['root_path'].message_type = grr.proto.jobs_pb2._PATHSPEC
@@ -4359,46 +4500,46 @@ _BADARGSFLOW1ARGS.fields_by_name['arg1'].message_type = grr.proto.jobs_pb2._PATH
 _MULTIGETFILEARGS.fields_by_name['pathspecs'].message_type = grr.proto.jobs_pb2._PATHSPEC
 _GETEXECUTABLESFILTEREDBYHASHARGS.fields_by_name['pathspecs'].message_type = grr.proto.jobs_pb2._PATHSPEC
 _LISTVADBINARIESARGS.fields_by_name['request'].message_type = grr.proto.jobs_pb2._VOLATILITYREQUEST
-_FILEFINDERCONTENTSREGEXMATCHFILTER.fields_by_name['mode'].enum_type = _FILEFINDERCONTENTSREGEXMATCHFILTER_MODE
-_FILEFINDERCONTENTSREGEXMATCHFILTER_MODE.containing_type = _FILEFINDERCONTENTSREGEXMATCHFILTER;
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['mode'].enum_type = _FILEFINDERCONTENTSLITERALMATCHFILTER_MODE
-_FILEFINDERCONTENTSLITERALMATCHFILTER_MODE.containing_type = _FILEFINDERCONTENTSLITERALMATCHFILTER;
-_FILEFINDERFILTER.fields_by_name['filter_type'].enum_type = _FILEFINDERFILTER_TYPE
-_FILEFINDERFILTER.fields_by_name['modification_time'].message_type = _FILEFINDERMODIFICATIONTIMEFILTER
-_FILEFINDERFILTER.fields_by_name['access_time'].message_type = _FILEFINDERACCESSTIMEFILTER
-_FILEFINDERFILTER.fields_by_name['inode_change_time'].message_type = _FILEFINDERINODECHANGETIMEFILTER
-_FILEFINDERFILTER.fields_by_name['size'].message_type = _FILEFINDERSIZEFILTER
-_FILEFINDERFILTER.fields_by_name['contents_regex_match'].message_type = _FILEFINDERCONTENTSREGEXMATCHFILTER
-_FILEFINDERFILTER.fields_by_name['contents_literal_match'].message_type = _FILEFINDERCONTENTSLITERALMATCHFILTER
-_FILEFINDERFILTER_TYPE.containing_type = _FILEFINDERFILTER;
+_FILEFINDERCONTENTSREGEXMATCHCONDITION.fields_by_name['mode'].enum_type = _FILEFINDERCONTENTSREGEXMATCHCONDITION_MODE
+_FILEFINDERCONTENTSREGEXMATCHCONDITION_MODE.containing_type = _FILEFINDERCONTENTSREGEXMATCHCONDITION;
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['mode'].enum_type = _FILEFINDERCONTENTSLITERALMATCHCONDITION_MODE
+_FILEFINDERCONTENTSLITERALMATCHCONDITION_MODE.containing_type = _FILEFINDERCONTENTSLITERALMATCHCONDITION;
+_FILEFINDERCONDITION.fields_by_name['condition_type'].enum_type = _FILEFINDERCONDITION_TYPE
+_FILEFINDERCONDITION.fields_by_name['modification_time'].message_type = _FILEFINDERMODIFICATIONTIMECONDITION
+_FILEFINDERCONDITION.fields_by_name['access_time'].message_type = _FILEFINDERACCESSTIMECONDITION
+_FILEFINDERCONDITION.fields_by_name['inode_change_time'].message_type = _FILEFINDERINODECHANGETIMECONDITION
+_FILEFINDERCONDITION.fields_by_name['size'].message_type = _FILEFINDERSIZECONDITION
+_FILEFINDERCONDITION.fields_by_name['contents_regex_match'].message_type = _FILEFINDERCONTENTSREGEXMATCHCONDITION
+_FILEFINDERCONDITION.fields_by_name['contents_literal_match'].message_type = _FILEFINDERCONTENTSLITERALMATCHCONDITION
+_FILEFINDERCONDITION_TYPE.containing_type = _FILEFINDERCONDITION;
 _FILEFINDERACTION.fields_by_name['action_type'].enum_type = _FILEFINDERACTION_ACTION
 _FILEFINDERACTION.fields_by_name['download'].message_type = _FILEFINDERDOWNLOADACTIONOPTIONS
 _FILEFINDERACTION_ACTION.containing_type = _FILEFINDERACTION;
 _FILEFINDERARGS.fields_by_name['pathtype'].enum_type = grr.proto.jobs_pb2._PATHSPEC_PATHTYPE
-_FILEFINDERARGS.fields_by_name['filters'].message_type = _FILEFINDERFILTER
+_FILEFINDERARGS.fields_by_name['conditions'].message_type = _FILEFINDERCONDITION
 _FILEFINDERARGS.fields_by_name['action'].message_type = _FILEFINDERACTION
 _FILEFINDERRESULT.fields_by_name['stat_entry'].message_type = grr.proto.jobs_pb2._STATENTRY
 _FILEFINDERRESULT.fields_by_name['matches'].message_type = grr.proto.jobs_pb2._BUFFERREFERENCE
 _FILEREFERENCE.fields_by_name['pathspecs'].message_type = grr.proto.jobs_pb2._PATHSPEC
 _BIT9DOWNLOADERARGS.fields_by_name['files'].message_type = _FILEREFERENCE
-_MEMORYSCANNERFILTER.fields_by_name['filter_type'].enum_type = _MEMORYSCANNERFILTER_TYPE
-_MEMORYSCANNERFILTER.fields_by_name['literal_match'].message_type = _FILEFINDERCONTENTSLITERALMATCHFILTER
-_MEMORYSCANNERFILTER.fields_by_name['regex_match'].message_type = _FILEFINDERCONTENTSREGEXMATCHFILTER
-_MEMORYSCANNERFILTER_TYPE.containing_type = _MEMORYSCANNERFILTER;
-_MEMORYSCANNERDUMPOPTION.fields_by_name['option_type'].enum_type = _MEMORYSCANNERDUMPOPTION_OPTION
-_MEMORYSCANNERDUMPOPTION.fields_by_name['without_local_copy'].message_type = _MEMORYSCANNERWITHOUTLOCALCOPYDUMPOPTION
-_MEMORYSCANNERDUMPOPTION.fields_by_name['with_local_copy'].message_type = _MEMORYSCANNERWITHLOCALCOPYDUMPOPTION
-_MEMORYSCANNERDUMPOPTION_OPTION.containing_type = _MEMORYSCANNERDUMPOPTION;
-_MEMORYSCANNERDOWNLOADACTION.fields_by_name['dump_option'].message_type = _MEMORYSCANNERDUMPOPTION
-_MEMORYSCANNERSENDTOSOCKETACTION.fields_by_name['dump_option'].message_type = _MEMORYSCANNERDUMPOPTION
-_MEMORYSCANNERSENDTOSOCKETACTION.fields_by_name['address_family'].enum_type = grr.proto.jobs_pb2._NETWORKADDRESS_FAMILY
-_MEMORYSCANNERACTION.fields_by_name['action_type'].enum_type = _MEMORYSCANNERACTION_ACTION
-_MEMORYSCANNERACTION.fields_by_name['download'].message_type = _MEMORYSCANNERDOWNLOADACTION
-_MEMORYSCANNERACTION.fields_by_name['send_to_socket'].message_type = _MEMORYSCANNERSENDTOSOCKETACTION
-_MEMORYSCANNERACTION_ACTION.containing_type = _MEMORYSCANNERACTION;
-_MEMORYSCANNERARGS.fields_by_name['filters'].message_type = _MEMORYSCANNERFILTER
-_MEMORYSCANNERARGS.fields_by_name['action'].message_type = _MEMORYSCANNERACTION
-_MEMORYSCANNERARGS.fields_by_name['driver_installer'].message_type = grr.proto.jobs_pb2._DRIVERINSTALLTEMPLATE
+_MEMORYCOLLECTORCONDITION.fields_by_name['condition_type'].enum_type = _MEMORYCOLLECTORCONDITION_TYPE
+_MEMORYCOLLECTORCONDITION.fields_by_name['literal_match'].message_type = _FILEFINDERCONTENTSLITERALMATCHCONDITION
+_MEMORYCOLLECTORCONDITION.fields_by_name['regex_match'].message_type = _FILEFINDERCONTENTSREGEXMATCHCONDITION
+_MEMORYCOLLECTORCONDITION_TYPE.containing_type = _MEMORYCOLLECTORCONDITION;
+_MEMORYCOLLECTORDUMPOPTION.fields_by_name['option_type'].enum_type = _MEMORYCOLLECTORDUMPOPTION_OPTION
+_MEMORYCOLLECTORDUMPOPTION.fields_by_name['without_local_copy'].message_type = _MEMORYCOLLECTORWITHOUTLOCALCOPYDUMPOPTION
+_MEMORYCOLLECTORDUMPOPTION.fields_by_name['with_local_copy'].message_type = _MEMORYCOLLECTORWITHLOCALCOPYDUMPOPTION
+_MEMORYCOLLECTORDUMPOPTION_OPTION.containing_type = _MEMORYCOLLECTORDUMPOPTION;
+_MEMORYCOLLECTORDOWNLOADACTION.fields_by_name['dump_option'].message_type = _MEMORYCOLLECTORDUMPOPTION
+_MEMORYCOLLECTORSENDTOSOCKETACTION.fields_by_name['dump_option'].message_type = _MEMORYCOLLECTORDUMPOPTION
+_MEMORYCOLLECTORSENDTOSOCKETACTION.fields_by_name['address_family'].enum_type = grr.proto.jobs_pb2._NETWORKADDRESS_FAMILY
+_MEMORYCOLLECTORACTION.fields_by_name['action_type'].enum_type = _MEMORYCOLLECTORACTION_ACTION
+_MEMORYCOLLECTORACTION.fields_by_name['download'].message_type = _MEMORYCOLLECTORDOWNLOADACTION
+_MEMORYCOLLECTORACTION.fields_by_name['send_to_socket'].message_type = _MEMORYCOLLECTORSENDTOSOCKETACTION
+_MEMORYCOLLECTORACTION_ACTION.containing_type = _MEMORYCOLLECTORACTION;
+_MEMORYCOLLECTORARGS.fields_by_name['conditions'].message_type = _MEMORYCOLLECTORCONDITION
+_MEMORYCOLLECTORARGS.fields_by_name['action'].message_type = _MEMORYCOLLECTORACTION
+_MEMORYCOLLECTORARGS.fields_by_name['driver_installer'].message_type = grr.proto.jobs_pb2._DRIVERINSTALLTEMPLATE
 DESCRIPTOR.message_types_by_name['ACLToken'] = _ACLTOKEN
 DESCRIPTOR.message_types_by_name['GUISettings'] = _GUISETTINGS
 DESCRIPTOR.message_types_by_name['FlowRunnerArgs'] = _FLOWRUNNERARGS
@@ -4439,7 +4580,10 @@ DESCRIPTOR.message_types_by_name['FirefoxHistoryArgs'] = _FIREFOXHISTORYARGS
 DESCRIPTOR.message_types_by_name['CacheGrepArgs'] = _CACHEGREPARGS
 DESCRIPTOR.message_types_by_name['ListDirectoryArgs'] = _LISTDIRECTORYARGS
 DESCRIPTOR.message_types_by_name['RecursiveListDirectoryArgs'] = _RECURSIVELISTDIRECTORYARGS
+DESCRIPTOR.message_types_by_name['FetchBufferForSparseImageArgs'] = _FETCHBUFFERFORSPARSEIMAGEARGS
 DESCRIPTOR.message_types_by_name['SlowGetFileArgs'] = _SLOWGETFILEARGS
+DESCRIPTOR.message_types_by_name['MakeNewAFF4SparseImageArgs'] = _MAKENEWAFF4SPARSEIMAGEARGS
+DESCRIPTOR.message_types_by_name['UpdateSparseImageChunksArgs'] = _UPDATESPARSEIMAGECHUNKSARGS
 DESCRIPTOR.message_types_by_name['GrepArgs'] = _GREPARGS
 DESCRIPTOR.message_types_by_name['GlobArgs'] = _GLOBARGS
 DESCRIPTOR.message_types_by_name['SearchFileContentArgs'] = _SEARCHFILECONTENTARGS
@@ -4476,27 +4620,28 @@ DESCRIPTOR.message_types_by_name['GetExecutablesFilteredByHashArgs'] = _GETEXECU
 DESCRIPTOR.message_types_by_name['ProcessHuntResultsCronFlowArgs'] = _PROCESSHUNTRESULTSCRONFLOWARGS
 DESCRIPTOR.message_types_by_name['ListProcessesArgs'] = _LISTPROCESSESARGS
 DESCRIPTOR.message_types_by_name['ListVADBinariesArgs'] = _LISTVADBINARIESARGS
-DESCRIPTOR.message_types_by_name['FileFinderModificationTimeFilter'] = _FILEFINDERMODIFICATIONTIMEFILTER
-DESCRIPTOR.message_types_by_name['FileFinderAccessTimeFilter'] = _FILEFINDERACCESSTIMEFILTER
-DESCRIPTOR.message_types_by_name['FileFinderInodeChangeTimeFilter'] = _FILEFINDERINODECHANGETIMEFILTER
-DESCRIPTOR.message_types_by_name['FileFinderSizeFilter'] = _FILEFINDERSIZEFILTER
-DESCRIPTOR.message_types_by_name['FileFinderContentsRegexMatchFilter'] = _FILEFINDERCONTENTSREGEXMATCHFILTER
-DESCRIPTOR.message_types_by_name['FileFinderContentsLiteralMatchFilter'] = _FILEFINDERCONTENTSLITERALMATCHFILTER
-DESCRIPTOR.message_types_by_name['FileFinderFilter'] = _FILEFINDERFILTER
+DESCRIPTOR.message_types_by_name['FileFinderModificationTimeCondition'] = _FILEFINDERMODIFICATIONTIMECONDITION
+DESCRIPTOR.message_types_by_name['FileFinderAccessTimeCondition'] = _FILEFINDERACCESSTIMECONDITION
+DESCRIPTOR.message_types_by_name['FileFinderInodeChangeTimeCondition'] = _FILEFINDERINODECHANGETIMECONDITION
+DESCRIPTOR.message_types_by_name['FileFinderSizeCondition'] = _FILEFINDERSIZECONDITION
+DESCRIPTOR.message_types_by_name['FileFinderContentsRegexMatchCondition'] = _FILEFINDERCONTENTSREGEXMATCHCONDITION
+DESCRIPTOR.message_types_by_name['FileFinderContentsLiteralMatchCondition'] = _FILEFINDERCONTENTSLITERALMATCHCONDITION
+DESCRIPTOR.message_types_by_name['FileFinderCondition'] = _FILEFINDERCONDITION
 DESCRIPTOR.message_types_by_name['FileFinderDownloadActionOptions'] = _FILEFINDERDOWNLOADACTIONOPTIONS
 DESCRIPTOR.message_types_by_name['FileFinderAction'] = _FILEFINDERACTION
 DESCRIPTOR.message_types_by_name['FileFinderArgs'] = _FILEFINDERARGS
 DESCRIPTOR.message_types_by_name['FileFinderResult'] = _FILEFINDERRESULT
 DESCRIPTOR.message_types_by_name['FileReference'] = _FILEREFERENCE
 DESCRIPTOR.message_types_by_name['Bit9DownloaderArgs'] = _BIT9DOWNLOADERARGS
-DESCRIPTOR.message_types_by_name['MemoryScannerFilter'] = _MEMORYSCANNERFILTER
-DESCRIPTOR.message_types_by_name['MemoryScannerWithoutLocalCopyDumpOption'] = _MEMORYSCANNERWITHOUTLOCALCOPYDUMPOPTION
-DESCRIPTOR.message_types_by_name['MemoryScannerWithLocalCopyDumpOption'] = _MEMORYSCANNERWITHLOCALCOPYDUMPOPTION
-DESCRIPTOR.message_types_by_name['MemoryScannerDumpOption'] = _MEMORYSCANNERDUMPOPTION
-DESCRIPTOR.message_types_by_name['MemoryScannerDownloadAction'] = _MEMORYSCANNERDOWNLOADACTION
-DESCRIPTOR.message_types_by_name['MemoryScannerSendToSocketAction'] = _MEMORYSCANNERSENDTOSOCKETACTION
-DESCRIPTOR.message_types_by_name['MemoryScannerAction'] = _MEMORYSCANNERACTION
-DESCRIPTOR.message_types_by_name['MemoryScannerArgs'] = _MEMORYSCANNERARGS
+DESCRIPTOR.message_types_by_name['MemoryCollectorCondition'] = _MEMORYCOLLECTORCONDITION
+DESCRIPTOR.message_types_by_name['MemoryCollectorWithoutLocalCopyDumpOption'] = _MEMORYCOLLECTORWITHOUTLOCALCOPYDUMPOPTION
+DESCRIPTOR.message_types_by_name['MemoryCollectorWithLocalCopyDumpOption'] = _MEMORYCOLLECTORWITHLOCALCOPYDUMPOPTION
+DESCRIPTOR.message_types_by_name['MemoryCollectorDumpOption'] = _MEMORYCOLLECTORDUMPOPTION
+DESCRIPTOR.message_types_by_name['MemoryCollectorDownloadAction'] = _MEMORYCOLLECTORDOWNLOADACTION
+DESCRIPTOR.message_types_by_name['MemoryCollectorSendToSocketAction'] = _MEMORYCOLLECTORSENDTOSOCKETACTION
+DESCRIPTOR.message_types_by_name['MemoryCollectorAction'] = _MEMORYCOLLECTORACTION
+DESCRIPTOR.message_types_by_name['MemoryCollectorArgs'] = _MEMORYCOLLECTORARGS
+DESCRIPTOR.message_types_by_name['KnowledgeBaseInitializationArgs'] = _KNOWLEDGEBASEINITIALIZATIONARGS
 
 class ACLToken(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
@@ -4738,11 +4883,29 @@ class RecursiveListDirectoryArgs(_message.Message):
 
   # @@protoc_insertion_point(class_scope:RecursiveListDirectoryArgs)
 
+class FetchBufferForSparseImageArgs(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _FETCHBUFFERFORSPARSEIMAGEARGS
+
+  # @@protoc_insertion_point(class_scope:FetchBufferForSparseImageArgs)
+
 class SlowGetFileArgs(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
   DESCRIPTOR = _SLOWGETFILEARGS
 
   # @@protoc_insertion_point(class_scope:SlowGetFileArgs)
+
+class MakeNewAFF4SparseImageArgs(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _MAKENEWAFF4SPARSEIMAGEARGS
+
+  # @@protoc_insertion_point(class_scope:MakeNewAFF4SparseImageArgs)
+
+class UpdateSparseImageChunksArgs(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _UPDATESPARSEIMAGECHUNKSARGS
+
+  # @@protoc_insertion_point(class_scope:UpdateSparseImageChunksArgs)
 
 class GrepArgs(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
@@ -4960,47 +5123,47 @@ class ListVADBinariesArgs(_message.Message):
 
   # @@protoc_insertion_point(class_scope:ListVADBinariesArgs)
 
-class FileFinderModificationTimeFilter(_message.Message):
+class FileFinderModificationTimeCondition(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _FILEFINDERMODIFICATIONTIMEFILTER
+  DESCRIPTOR = _FILEFINDERMODIFICATIONTIMECONDITION
 
-  # @@protoc_insertion_point(class_scope:FileFinderModificationTimeFilter)
+  # @@protoc_insertion_point(class_scope:FileFinderModificationTimeCondition)
 
-class FileFinderAccessTimeFilter(_message.Message):
+class FileFinderAccessTimeCondition(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _FILEFINDERACCESSTIMEFILTER
+  DESCRIPTOR = _FILEFINDERACCESSTIMECONDITION
 
-  # @@protoc_insertion_point(class_scope:FileFinderAccessTimeFilter)
+  # @@protoc_insertion_point(class_scope:FileFinderAccessTimeCondition)
 
-class FileFinderInodeChangeTimeFilter(_message.Message):
+class FileFinderInodeChangeTimeCondition(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _FILEFINDERINODECHANGETIMEFILTER
+  DESCRIPTOR = _FILEFINDERINODECHANGETIMECONDITION
 
-  # @@protoc_insertion_point(class_scope:FileFinderInodeChangeTimeFilter)
+  # @@protoc_insertion_point(class_scope:FileFinderInodeChangeTimeCondition)
 
-class FileFinderSizeFilter(_message.Message):
+class FileFinderSizeCondition(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _FILEFINDERSIZEFILTER
+  DESCRIPTOR = _FILEFINDERSIZECONDITION
 
-  # @@protoc_insertion_point(class_scope:FileFinderSizeFilter)
+  # @@protoc_insertion_point(class_scope:FileFinderSizeCondition)
 
-class FileFinderContentsRegexMatchFilter(_message.Message):
+class FileFinderContentsRegexMatchCondition(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _FILEFINDERCONTENTSREGEXMATCHFILTER
+  DESCRIPTOR = _FILEFINDERCONTENTSREGEXMATCHCONDITION
 
-  # @@protoc_insertion_point(class_scope:FileFinderContentsRegexMatchFilter)
+  # @@protoc_insertion_point(class_scope:FileFinderContentsRegexMatchCondition)
 
-class FileFinderContentsLiteralMatchFilter(_message.Message):
+class FileFinderContentsLiteralMatchCondition(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _FILEFINDERCONTENTSLITERALMATCHFILTER
+  DESCRIPTOR = _FILEFINDERCONTENTSLITERALMATCHCONDITION
 
-  # @@protoc_insertion_point(class_scope:FileFinderContentsLiteralMatchFilter)
+  # @@protoc_insertion_point(class_scope:FileFinderContentsLiteralMatchCondition)
 
-class FileFinderFilter(_message.Message):
+class FileFinderCondition(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _FILEFINDERFILTER
+  DESCRIPTOR = _FILEFINDERCONDITION
 
-  # @@protoc_insertion_point(class_scope:FileFinderFilter)
+  # @@protoc_insertion_point(class_scope:FileFinderCondition)
 
 class FileFinderDownloadActionOptions(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
@@ -5038,53 +5201,59 @@ class Bit9DownloaderArgs(_message.Message):
 
   # @@protoc_insertion_point(class_scope:Bit9DownloaderArgs)
 
-class MemoryScannerFilter(_message.Message):
+class MemoryCollectorCondition(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _MEMORYSCANNERFILTER
+  DESCRIPTOR = _MEMORYCOLLECTORCONDITION
 
-  # @@protoc_insertion_point(class_scope:MemoryScannerFilter)
+  # @@protoc_insertion_point(class_scope:MemoryCollectorCondition)
 
-class MemoryScannerWithoutLocalCopyDumpOption(_message.Message):
+class MemoryCollectorWithoutLocalCopyDumpOption(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _MEMORYSCANNERWITHOUTLOCALCOPYDUMPOPTION
+  DESCRIPTOR = _MEMORYCOLLECTORWITHOUTLOCALCOPYDUMPOPTION
 
-  # @@protoc_insertion_point(class_scope:MemoryScannerWithoutLocalCopyDumpOption)
+  # @@protoc_insertion_point(class_scope:MemoryCollectorWithoutLocalCopyDumpOption)
 
-class MemoryScannerWithLocalCopyDumpOption(_message.Message):
+class MemoryCollectorWithLocalCopyDumpOption(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _MEMORYSCANNERWITHLOCALCOPYDUMPOPTION
+  DESCRIPTOR = _MEMORYCOLLECTORWITHLOCALCOPYDUMPOPTION
 
-  # @@protoc_insertion_point(class_scope:MemoryScannerWithLocalCopyDumpOption)
+  # @@protoc_insertion_point(class_scope:MemoryCollectorWithLocalCopyDumpOption)
 
-class MemoryScannerDumpOption(_message.Message):
+class MemoryCollectorDumpOption(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _MEMORYSCANNERDUMPOPTION
+  DESCRIPTOR = _MEMORYCOLLECTORDUMPOPTION
 
-  # @@protoc_insertion_point(class_scope:MemoryScannerDumpOption)
+  # @@protoc_insertion_point(class_scope:MemoryCollectorDumpOption)
 
-class MemoryScannerDownloadAction(_message.Message):
+class MemoryCollectorDownloadAction(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _MEMORYSCANNERDOWNLOADACTION
+  DESCRIPTOR = _MEMORYCOLLECTORDOWNLOADACTION
 
-  # @@protoc_insertion_point(class_scope:MemoryScannerDownloadAction)
+  # @@protoc_insertion_point(class_scope:MemoryCollectorDownloadAction)
 
-class MemoryScannerSendToSocketAction(_message.Message):
+class MemoryCollectorSendToSocketAction(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _MEMORYSCANNERSENDTOSOCKETACTION
+  DESCRIPTOR = _MEMORYCOLLECTORSENDTOSOCKETACTION
 
-  # @@protoc_insertion_point(class_scope:MemoryScannerSendToSocketAction)
+  # @@protoc_insertion_point(class_scope:MemoryCollectorSendToSocketAction)
 
-class MemoryScannerAction(_message.Message):
+class MemoryCollectorAction(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _MEMORYSCANNERACTION
+  DESCRIPTOR = _MEMORYCOLLECTORACTION
 
-  # @@protoc_insertion_point(class_scope:MemoryScannerAction)
+  # @@protoc_insertion_point(class_scope:MemoryCollectorAction)
 
-class MemoryScannerArgs(_message.Message):
+class MemoryCollectorArgs(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _MEMORYSCANNERARGS
+  DESCRIPTOR = _MEMORYCOLLECTORARGS
 
-  # @@protoc_insertion_point(class_scope:MemoryScannerArgs)
+  # @@protoc_insertion_point(class_scope:MemoryCollectorArgs)
+
+class KnowledgeBaseInitializationArgs(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _KNOWLEDGEBASEINITIALIZATIONARGS
+
+  # @@protoc_insertion_point(class_scope:KnowledgeBaseInitializationArgs)
 
 
 _ACLTOKEN.fields_by_name['expiry'].has_options = True
@@ -5186,7 +5355,7 @@ _BAREGREPSPEC.fields_by_name['length']._options = _descriptor._ParseOptions(desc
 _BAREGREPSPEC.fields_by_name['regex'].has_options = True
 _BAREGREPSPEC.fields_by_name['regex']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001I\n\021RegularExpression\0224The regular expression which will be used to search.')
 _BAREGREPSPEC.fields_by_name['literal'].has_options = True
-_BAREGREPSPEC.fields_by_name['literal']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001!\022\037Search for this literal string.')
+_BAREGREPSPEC.fields_by_name['literal']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0014\n\021LiteralExpression\022\037Search for this literal string.')
 _BAREGREPSPEC.fields_by_name['mode'].has_options = True
 _BAREGREPSPEC.fields_by_name['mode']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001C\022AWhen should searching stop? Stop after one hit or search for all?')
 _BAREGREPSPEC.fields_by_name['bytes_before'].has_options = True
@@ -5329,6 +5498,10 @@ _RECURSIVELISTDIRECTORYARGS.fields_by_name['pathspec'].has_options = True
 _RECURSIVELISTDIRECTORYARGS.fields_by_name['pathspec']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001)\022\'The pathspec for the directory to list.')
 _RECURSIVELISTDIRECTORYARGS.fields_by_name['max_depth'].has_options = True
 _RECURSIVELISTDIRECTORYARGS.fields_by_name['max_depth']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\032\022\030Maximum recursion depth.')
+_FETCHBUFFERFORSPARSEIMAGEARGS.fields_by_name['file_urn'].has_options = True
+_FETCHBUFFERFORSPARSEIMAGEARGS.fields_by_name['file_urn']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001/\n\006RDFURN\022%The URN of the sparse image to update')
+_UPDATESPARSEIMAGECHUNKSARGS.fields_by_name['file_urn'].has_options = True
+_UPDATESPARSEIMAGECHUNKSARGS.fields_by_name['file_urn']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001/\n\006RDFURN\022%The URN of the sparse image to update')
 _GLOBARGS.fields_by_name['paths'].has_options = True
 _GLOBARGS.fields_by_name['paths']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001j\n\016GlobExpression\022XA list of paths to glob that supports: ** path recursion, * wildcards and %% expansions.')
 _GLOBARGS.fields_by_name['pathtype'].has_options = True
@@ -5483,70 +5656,70 @@ _LISTVADBINARIESARGS.fields_by_name['fetch_binaries'].has_options = True
 _LISTVADBINARIESARGS.fields_by_name['fetch_binaries']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\020\"\016Fetch Binaries')
 _LISTVADBINARIESARGS.fields_by_name['request'].has_options = True
 _LISTVADBINARIESARGS.fields_by_name['request']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\002\030\001')
-_FILEFINDERMODIFICATIONTIMEFILTER.fields_by_name['min_last_modified_time'].has_options = True
-_FILEFINDERMODIFICATIONTIMEFILTER.fields_by_name['min_last_modified_time']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0015\n\013RDFDatetime\022&File must be modified after this time.')
-_FILEFINDERMODIFICATIONTIMEFILTER.fields_by_name['max_last_modified_time'].has_options = True
-_FILEFINDERMODIFICATIONTIMEFILTER.fields_by_name['max_last_modified_time']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001[\n\013RDFDatetime\022LFile must be modified before this time (default=heat death of the universe).')
-_FILEFINDERACCESSTIMEFILTER.fields_by_name['min_last_access_time'].has_options = True
-_FILEFINDERACCESSTIMEFILTER.fields_by_name['min_last_access_time']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0015\n\013RDFDatetime\022&File must be accessed after this time.')
-_FILEFINDERACCESSTIMEFILTER.fields_by_name['max_last_access_time'].has_options = True
-_FILEFINDERACCESSTIMEFILTER.fields_by_name['max_last_access_time']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001[\n\013RDFDatetime\022LFile must be accessed before this time (default=heat death of the universe).')
-_FILEFINDERINODECHANGETIMEFILTER.fields_by_name['min_last_inode_change_time'].has_options = True
-_FILEFINDERINODECHANGETIMEFILTER.fields_by_name['min_last_inode_change_time']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001<\n\013RDFDatetime\022-File\'s inode must be changed after this time.')
-_FILEFINDERINODECHANGETIMEFILTER.fields_by_name['max_last_inode_change_time'].has_options = True
-_FILEFINDERINODECHANGETIMEFILTER.fields_by_name['max_last_inode_change_time']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\\\n\013RDFDatetime\022MFile\'s must be changed before this time (default=heat death of the universe).')
-_FILEFINDERSIZEFILTER.fields_by_name['min_file_size'].has_options = True
-_FILEFINDERSIZEFILTER.fields_by_name['min_file_size']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\035\022\033Minimum file size in bytes.')
-_FILEFINDERSIZEFILTER.fields_by_name['max_file_size'].has_options = True
-_FILEFINDERSIZEFILTER.fields_by_name['max_file_size']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0012\0220Maximum file size in bytes (default=sys.maxint).')
-_FILEFINDERCONTENTSREGEXMATCHFILTER.fields_by_name['regex'].has_options = True
-_FILEFINDERCONTENTSREGEXMATCHFILTER.fields_by_name['regex']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001I\n\021RegularExpression\0224The regular expression which will be used to search.')
-_FILEFINDERCONTENTSREGEXMATCHFILTER.fields_by_name['mode'].has_options = True
-_FILEFINDERCONTENTSREGEXMATCHFILTER.fields_by_name['mode']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001C\022AWhen should searching stop? Stop after one hit or search for all?')
-_FILEFINDERCONTENTSREGEXMATCHFILTER.fields_by_name['bytes_before'].has_options = True
-_FILEFINDERCONTENTSREGEXMATCHFILTER.fields_by_name['bytes_before']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\022\'Include this many bytes before the hit.\030\001')
-_FILEFINDERCONTENTSREGEXMATCHFILTER.fields_by_name['bytes_after'].has_options = True
-_FILEFINDERCONTENTSREGEXMATCHFILTER.fields_by_name['bytes_after']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001*\022&Include this many bytes after the hit.\030\001')
-_FILEFINDERCONTENTSREGEXMATCHFILTER.fields_by_name['start_offset'].has_options = True
-_FILEFINDERCONTENTSREGEXMATCHFILTER.fields_by_name['start_offset']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001(\022$Start searching at this file offset.\030\001')
-_FILEFINDERCONTENTSREGEXMATCHFILTER.fields_by_name['length'].has_options = True
-_FILEFINDERCONTENTSREGEXMATCHFILTER.fields_by_name['length']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001/\022+How far (in bytes) into the file to search.\030\001')
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['literal'].has_options = True
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['literal']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001!\022\037Search for this literal string.')
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['mode'].has_options = True
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['mode']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001C\022AWhen should searching stop? Stop after one hit or search for all?')
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['start_offset'].has_options = True
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['start_offset']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001(\022$Start searching at this file offset.\030\001')
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['length'].has_options = True
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['length']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001/\022+How far (in bytes) into the file to search.\030\001')
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['bytes_before'].has_options = True
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['bytes_before']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\022\'Include this many bytes before the hit.\030\001')
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['bytes_after'].has_options = True
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['bytes_after']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001*\022&Include this many bytes after the hit.\030\001')
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['xor_in_key'].has_options = True
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['xor_in_key']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\243\001\022\236\001When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\030\001')
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['xor_out_key'].has_options = True
-_FILEFINDERCONTENTSLITERALMATCHFILTER.fields_by_name['xor_out_key']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\243\001\022\236\001When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\030\001')
-_FILEFINDERFILTER_TYPE.values_by_name["MODIFICATION_TIME"].has_options = True
-_FILEFINDERFILTER_TYPE.values_by_name["MODIFICATION_TIME"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\021Modification time')
-_FILEFINDERFILTER_TYPE.values_by_name["ACCESS_TIME"].has_options = True
-_FILEFINDERFILTER_TYPE.values_by_name["ACCESS_TIME"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\013Access time')
-_FILEFINDERFILTER_TYPE.values_by_name["INODE_CHANGE_TIME"].has_options = True
-_FILEFINDERFILTER_TYPE.values_by_name["INODE_CHANGE_TIME"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\021Inode change time')
-_FILEFINDERFILTER_TYPE.values_by_name["SIZE"].has_options = True
-_FILEFINDERFILTER_TYPE.values_by_name["SIZE"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\tFile size')
-_FILEFINDERFILTER_TYPE.values_by_name["CONTENTS_REGEX_MATCH"].has_options = True
-_FILEFINDERFILTER_TYPE.values_by_name["CONTENTS_REGEX_MATCH"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\024Contents regex match')
-_FILEFINDERFILTER_TYPE.values_by_name["CONTENTS_LITERAL_MATCH"].has_options = True
-_FILEFINDERFILTER_TYPE.values_by_name["CONTENTS_LITERAL_MATCH"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\026Contents literal match')
-_FILEFINDERFILTER.fields_by_name['filter_type'].has_options = True
-_FILEFINDERFILTER.fields_by_name['filter_type']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\032\022\013Filter type\"\013Filter type')
+_FILEFINDERMODIFICATIONTIMECONDITION.fields_by_name['min_last_modified_time'].has_options = True
+_FILEFINDERMODIFICATIONTIMECONDITION.fields_by_name['min_last_modified_time']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0015\n\013RDFDatetime\022&File must be modified after this time.')
+_FILEFINDERMODIFICATIONTIMECONDITION.fields_by_name['max_last_modified_time'].has_options = True
+_FILEFINDERMODIFICATIONTIMECONDITION.fields_by_name['max_last_modified_time']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001[\n\013RDFDatetime\022LFile must be modified before this time (default=heat death of the universe).')
+_FILEFINDERACCESSTIMECONDITION.fields_by_name['min_last_access_time'].has_options = True
+_FILEFINDERACCESSTIMECONDITION.fields_by_name['min_last_access_time']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0015\n\013RDFDatetime\022&File must be accessed after this time.')
+_FILEFINDERACCESSTIMECONDITION.fields_by_name['max_last_access_time'].has_options = True
+_FILEFINDERACCESSTIMECONDITION.fields_by_name['max_last_access_time']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001[\n\013RDFDatetime\022LFile must be accessed before this time (default=heat death of the universe).')
+_FILEFINDERINODECHANGETIMECONDITION.fields_by_name['min_last_inode_change_time'].has_options = True
+_FILEFINDERINODECHANGETIMECONDITION.fields_by_name['min_last_inode_change_time']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001<\n\013RDFDatetime\022-File\'s inode must be changed after this time.')
+_FILEFINDERINODECHANGETIMECONDITION.fields_by_name['max_last_inode_change_time'].has_options = True
+_FILEFINDERINODECHANGETIMECONDITION.fields_by_name['max_last_inode_change_time']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\\\n\013RDFDatetime\022MFile\'s must be changed before this time (default=heat death of the universe).')
+_FILEFINDERSIZECONDITION.fields_by_name['min_file_size'].has_options = True
+_FILEFINDERSIZECONDITION.fields_by_name['min_file_size']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\035\022\033Minimum file size in bytes.')
+_FILEFINDERSIZECONDITION.fields_by_name['max_file_size'].has_options = True
+_FILEFINDERSIZECONDITION.fields_by_name['max_file_size']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0012\0220Maximum file size in bytes (default=sys.maxint).')
+_FILEFINDERCONTENTSREGEXMATCHCONDITION.fields_by_name['regex'].has_options = True
+_FILEFINDERCONTENTSREGEXMATCHCONDITION.fields_by_name['regex']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001I\n\021RegularExpression\0224The regular expression which will be used to search.')
+_FILEFINDERCONTENTSREGEXMATCHCONDITION.fields_by_name['mode'].has_options = True
+_FILEFINDERCONTENTSREGEXMATCHCONDITION.fields_by_name['mode']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001C\022AWhen should searching stop? Stop after one hit or search for all?')
+_FILEFINDERCONTENTSREGEXMATCHCONDITION.fields_by_name['bytes_before'].has_options = True
+_FILEFINDERCONTENTSREGEXMATCHCONDITION.fields_by_name['bytes_before']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\022\'Include this many bytes before the hit.\030\001')
+_FILEFINDERCONTENTSREGEXMATCHCONDITION.fields_by_name['bytes_after'].has_options = True
+_FILEFINDERCONTENTSREGEXMATCHCONDITION.fields_by_name['bytes_after']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001*\022&Include this many bytes after the hit.\030\001')
+_FILEFINDERCONTENTSREGEXMATCHCONDITION.fields_by_name['start_offset'].has_options = True
+_FILEFINDERCONTENTSREGEXMATCHCONDITION.fields_by_name['start_offset']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001(\022$Start searching at this file offset.\030\001')
+_FILEFINDERCONTENTSREGEXMATCHCONDITION.fields_by_name['length'].has_options = True
+_FILEFINDERCONTENTSREGEXMATCHCONDITION.fields_by_name['length']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001/\022+How far (in bytes) into the file to search.\030\001')
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['literal'].has_options = True
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['literal']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0014\n\021LiteralExpression\022\037Search for this literal string.')
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['mode'].has_options = True
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['mode']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001C\022AWhen should searching stop? Stop after one hit or search for all?')
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['start_offset'].has_options = True
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['start_offset']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001(\022$Start searching at this file offset.\030\001')
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['length'].has_options = True
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['length']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001/\022+How far (in bytes) into the file to search.\030\001')
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['bytes_before'].has_options = True
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['bytes_before']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\022\'Include this many bytes before the hit.\030\001')
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['bytes_after'].has_options = True
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['bytes_after']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001*\022&Include this many bytes after the hit.\030\001')
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['xor_in_key'].has_options = True
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['xor_in_key']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\243\001\022\236\001When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\030\001')
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['xor_out_key'].has_options = True
+_FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['xor_out_key']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\243\001\022\236\001When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\030\001')
+_FILEFINDERCONDITION_TYPE.values_by_name["MODIFICATION_TIME"].has_options = True
+_FILEFINDERCONDITION_TYPE.values_by_name["MODIFICATION_TIME"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\021Modification time')
+_FILEFINDERCONDITION_TYPE.values_by_name["ACCESS_TIME"].has_options = True
+_FILEFINDERCONDITION_TYPE.values_by_name["ACCESS_TIME"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\013Access time')
+_FILEFINDERCONDITION_TYPE.values_by_name["INODE_CHANGE_TIME"].has_options = True
+_FILEFINDERCONDITION_TYPE.values_by_name["INODE_CHANGE_TIME"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\021Inode change time')
+_FILEFINDERCONDITION_TYPE.values_by_name["SIZE"].has_options = True
+_FILEFINDERCONDITION_TYPE.values_by_name["SIZE"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\tFile size')
+_FILEFINDERCONDITION_TYPE.values_by_name["CONTENTS_REGEX_MATCH"].has_options = True
+_FILEFINDERCONDITION_TYPE.values_by_name["CONTENTS_REGEX_MATCH"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\024Contents regex match')
+_FILEFINDERCONDITION_TYPE.values_by_name["CONTENTS_LITERAL_MATCH"].has_options = True
+_FILEFINDERCONDITION_TYPE.values_by_name["CONTENTS_LITERAL_MATCH"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\026Contents literal match')
+_FILEFINDERCONDITION.fields_by_name['condition_type'].has_options = True
+_FILEFINDERCONDITION.fields_by_name['condition_type']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001 \022\016Condition type\"\016Condition type')
 _FILEFINDERDOWNLOADACTIONOPTIONS.fields_by_name['max_size'].has_options = True
 _FILEFINDERDOWNLOADACTIONOPTIONS.fields_by_name['max_size']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0019\n\010ByteSize\022+The maximum size of files we will download.\030\001')
 _FILEFINDERDOWNLOADACTIONOPTIONS.fields_by_name['use_external_stores'].has_options = True
 _FILEFINDERDOWNLOADACTIONOPTIONS.fields_by_name['use_external_stores']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\305\001\022\300\001If true, look in any defined external file stores for files before downloading them, and offer any new files to external stores. This should be true unless the external checks are misbehaving.\030\001')
-_FILEFINDERACTION_ACTION.values_by_name["DO_NOTHING"].has_options = True
-_FILEFINDERACTION_ACTION.values_by_name["DO_NOTHING"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\nDo nothing')
+_FILEFINDERACTION_ACTION.values_by_name["STAT"].has_options = True
+_FILEFINDERACTION_ACTION.values_by_name["STAT"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\004Stat')
 _FILEFINDERACTION_ACTION.values_by_name["HASH"].has_options = True
 _FILEFINDERACTION_ACTION.values_by_name["HASH"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\004Hash')
 _FILEFINDERACTION_ACTION.values_by_name["DOWNLOAD"].has_options = True
@@ -5558,53 +5731,55 @@ _FILEFINDERARGS.fields_by_name['paths']._options = _descriptor._ParseOptions(des
 _FILEFINDERARGS.fields_by_name['pathtype'].has_options = True
 _FILEFINDERARGS.fields_by_name['pathtype']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\034\022\032Type of access to glob in.')
 _FILEFINDERARGS.fields_by_name['no_file_type_check'].has_options = True
-_FILEFINDERARGS.fields_by_name['no_file_type_check']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\232\001\022\225\001Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryScanner as an example.\030\002')
+_FILEFINDERARGS.fields_by_name['no_file_type_check']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\234\001\022\227\001Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\030\002')
 _FILEREFERENCE.fields_by_name['client_id'].has_options = True
 _FILEREFERENCE.fields_by_name['client_id']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001-\n\tClientURN\022 The client id the file lives on.')
 _FILEREFERENCE.fields_by_name['pathspecs'].has_options = True
 _FILEREFERENCE.fields_by_name['pathspecs']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\031\022\027The paths to the files.')
 _FILEREFERENCE.fields_by_name['sha256_hashes'].has_options = True
 _FILEREFERENCE.fields_by_name['sha256_hashes']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0011\n\nHashDigest\022#A SHA256 hash digest for each file.')
-_MEMORYSCANNERFILTER_TYPE.values_by_name["LITERAL_MATCH"].has_options = True
-_MEMORYSCANNERFILTER_TYPE.values_by_name["LITERAL_MATCH"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\rLiteral match')
-_MEMORYSCANNERFILTER_TYPE.values_by_name["REGEX_MATCH"].has_options = True
-_MEMORYSCANNERFILTER_TYPE.values_by_name["REGEX_MATCH"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\013Regex match')
-_MEMORYSCANNERWITHLOCALCOPYDUMPOPTION.fields_by_name['destdir'].has_options = True
-_MEMORYSCANNERWITHLOCALCOPYDUMPOPTION.fields_by_name['destdir']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\217\001\022\212\001Destination directory on the client for the temporary image. Leave blank to use defaults. Parent directories will be created if necessary.\030\001')
-_MEMORYSCANNERWITHLOCALCOPYDUMPOPTION.fields_by_name['offset'].has_options = True
-_MEMORYSCANNERWITHLOCALCOPYDUMPOPTION.fields_by_name['offset']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\022\026Memory offset in bytes\030\001\"\017Starting Offset')
-_MEMORYSCANNERWITHLOCALCOPYDUMPOPTION.fields_by_name['length'].has_options = True
-_MEMORYSCANNERWITHLOCALCOPYDUMPOPTION.fields_by_name['length']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001M\0225Number of bytes to copy (default 0 copies all memory)\030\001\"\022Length to download')
-_MEMORYSCANNERWITHLOCALCOPYDUMPOPTION.fields_by_name['gzip'].has_options = True
-_MEMORYSCANNERWITHLOCALCOPYDUMPOPTION.fields_by_name['gzip']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001,\022(Gzip temporary image file on the client.\030\001')
-_MEMORYSCANNERDUMPOPTION_OPTION.values_by_name["WITHOUT_LOCAL_COPY"].has_options = True
-_MEMORYSCANNERDUMPOPTION_OPTION.values_by_name["WITHOUT_LOCAL_COPY"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\027Don\'t create local copy')
-_MEMORYSCANNERDUMPOPTION_OPTION.values_by_name["WITH_LOCAL_COPY"].has_options = True
-_MEMORYSCANNERDUMPOPTION_OPTION.values_by_name["WITH_LOCAL_COPY"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\027Create local copy first')
-_MEMORYSCANNERDUMPOPTION.fields_by_name['option_type'].has_options = True
-_MEMORYSCANNERDUMPOPTION.fields_by_name['option_type']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001!\022\022How to do the dump\"\013Dump option')
-_MEMORYSCANNERDOWNLOADACTION.fields_by_name['dump_option'].has_options = True
-_MEMORYSCANNERDOWNLOADACTION.fields_by_name['dump_option']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\026\022\024Memory dump options.')
-_MEMORYSCANNERSENDTOSOCKETACTION.fields_by_name['dump_option'].has_options = True
-_MEMORYSCANNERSENDTOSOCKETACTION.fields_by_name['dump_option']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\026\022\024Memory dump options.')
-_MEMORYSCANNERSENDTOSOCKETACTION.fields_by_name['address_family'].has_options = True
-_MEMORYSCANNERSENDTOSOCKETACTION.fields_by_name['address_family']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001.\022,address family to use (AF_INET or AF_INET6).')
-_MEMORYSCANNERSENDTOSOCKETACTION.fields_by_name['host'].has_options = True
-_MEMORYSCANNERSENDTOSOCKETACTION.fields_by_name['host']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001%\022#Hostname or IP to send the file to.')
-_MEMORYSCANNERSENDTOSOCKETACTION.fields_by_name['port'].has_options = True
-_MEMORYSCANNERSENDTOSOCKETACTION.fields_by_name['port']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001&\022$Port number on the listening server.')
-_MEMORYSCANNERSENDTOSOCKETACTION.fields_by_name['key'].has_options = True
-_MEMORYSCANNERSENDTOSOCKETACTION.fields_by_name['key']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001;\n\tAES128Key\022.An encryption key given in hex representation.')
-_MEMORYSCANNERSENDTOSOCKETACTION.fields_by_name['iv'].has_options = True
-_MEMORYSCANNERSENDTOSOCKETACTION.fields_by_name['iv']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001>\n\tAES128Key\0221The iv for AES, also given in hex representation.')
-_MEMORYSCANNERACTION_ACTION.values_by_name["NONE"].has_options = True
-_MEMORYSCANNERACTION_ACTION.values_by_name["NONE"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\004None')
-_MEMORYSCANNERACTION_ACTION.values_by_name["DOWNLOAD"].has_options = True
-_MEMORYSCANNERACTION_ACTION.values_by_name["DOWNLOAD"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\023Dump memory to AFF4')
-_MEMORYSCANNERACTION_ACTION.values_by_name["SEND_TO_SOCKET"].has_options = True
-_MEMORYSCANNERACTION_ACTION.values_by_name["SEND_TO_SOCKET"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\032Send memory dump to socket')
-_MEMORYSCANNERACTION.fields_by_name['action_type'].has_options = True
-_MEMORYSCANNERACTION.fields_by_name['action_type']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001$\022\032What to do with the memory\"\006Action')
-_MEMORYSCANNERARGS.fields_by_name['driver_installer'].has_options = True
-_MEMORYSCANNERARGS.fields_by_name['driver_installer']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\205\001\022\200\001An optional DriverInstallTemplate proto to control driver installation. If not set, the default installation proto will be used.\030\002')
+_MEMORYCOLLECTORCONDITION_TYPE.values_by_name["LITERAL_MATCH"].has_options = True
+_MEMORYCOLLECTORCONDITION_TYPE.values_by_name["LITERAL_MATCH"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\rLiteral match')
+_MEMORYCOLLECTORCONDITION_TYPE.values_by_name["REGEX_MATCH"].has_options = True
+_MEMORYCOLLECTORCONDITION_TYPE.values_by_name["REGEX_MATCH"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\013Regex match')
+_MEMORYCOLLECTORWITHLOCALCOPYDUMPOPTION.fields_by_name['destdir'].has_options = True
+_MEMORYCOLLECTORWITHLOCALCOPYDUMPOPTION.fields_by_name['destdir']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\217\001\022\212\001Destination directory on the client for the temporary image. Leave blank to use defaults. Parent directories will be created if necessary.\030\001')
+_MEMORYCOLLECTORWITHLOCALCOPYDUMPOPTION.fields_by_name['offset'].has_options = True
+_MEMORYCOLLECTORWITHLOCALCOPYDUMPOPTION.fields_by_name['offset']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\022\026Memory offset in bytes\030\001\"\017Starting Offset')
+_MEMORYCOLLECTORWITHLOCALCOPYDUMPOPTION.fields_by_name['length'].has_options = True
+_MEMORYCOLLECTORWITHLOCALCOPYDUMPOPTION.fields_by_name['length']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001M\0225Number of bytes to copy (default 0 copies all memory)\030\001\"\022Length to download')
+_MEMORYCOLLECTORWITHLOCALCOPYDUMPOPTION.fields_by_name['gzip'].has_options = True
+_MEMORYCOLLECTORWITHLOCALCOPYDUMPOPTION.fields_by_name['gzip']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001,\022(Gzip temporary image file on the client.\030\001')
+_MEMORYCOLLECTORDUMPOPTION_OPTION.values_by_name["WITHOUT_LOCAL_COPY"].has_options = True
+_MEMORYCOLLECTORDUMPOPTION_OPTION.values_by_name["WITHOUT_LOCAL_COPY"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\027Don\'t create local copy')
+_MEMORYCOLLECTORDUMPOPTION_OPTION.values_by_name["WITH_LOCAL_COPY"].has_options = True
+_MEMORYCOLLECTORDUMPOPTION_OPTION.values_by_name["WITH_LOCAL_COPY"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\027Create local copy first')
+_MEMORYCOLLECTORDUMPOPTION.fields_by_name['option_type'].has_options = True
+_MEMORYCOLLECTORDUMPOPTION.fields_by_name['option_type']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001!\022\022How to do the dump\"\013Dump option')
+_MEMORYCOLLECTORDOWNLOADACTION.fields_by_name['dump_option'].has_options = True
+_MEMORYCOLLECTORDOWNLOADACTION.fields_by_name['dump_option']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\026\022\024Memory dump options.')
+_MEMORYCOLLECTORSENDTOSOCKETACTION.fields_by_name['dump_option'].has_options = True
+_MEMORYCOLLECTORSENDTOSOCKETACTION.fields_by_name['dump_option']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\026\022\024Memory dump options.')
+_MEMORYCOLLECTORSENDTOSOCKETACTION.fields_by_name['address_family'].has_options = True
+_MEMORYCOLLECTORSENDTOSOCKETACTION.fields_by_name['address_family']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001.\022,address family to use (AF_INET or AF_INET6).')
+_MEMORYCOLLECTORSENDTOSOCKETACTION.fields_by_name['host'].has_options = True
+_MEMORYCOLLECTORSENDTOSOCKETACTION.fields_by_name['host']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001%\022#Hostname or IP to send the file to.')
+_MEMORYCOLLECTORSENDTOSOCKETACTION.fields_by_name['port'].has_options = True
+_MEMORYCOLLECTORSENDTOSOCKETACTION.fields_by_name['port']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001&\022$Port number on the listening server.')
+_MEMORYCOLLECTORSENDTOSOCKETACTION.fields_by_name['key'].has_options = True
+_MEMORYCOLLECTORSENDTOSOCKETACTION.fields_by_name['key']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001;\n\tAES128Key\022.An encryption key given in hex representation.')
+_MEMORYCOLLECTORSENDTOSOCKETACTION.fields_by_name['iv'].has_options = True
+_MEMORYCOLLECTORSENDTOSOCKETACTION.fields_by_name['iv']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001>\n\tAES128Key\0221The iv for AES, also given in hex representation.')
+_MEMORYCOLLECTORACTION_ACTION.values_by_name["NONE"].has_options = True
+_MEMORYCOLLECTORACTION_ACTION.values_by_name["NONE"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001%None (just report conditions matches)')
+_MEMORYCOLLECTORACTION_ACTION.values_by_name["DOWNLOAD"].has_options = True
+_MEMORYCOLLECTORACTION_ACTION.values_by_name["DOWNLOAD"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\010Download')
+_MEMORYCOLLECTORACTION_ACTION.values_by_name["SEND_TO_SOCKET"].has_options = True
+_MEMORYCOLLECTORACTION_ACTION.values_by_name["SEND_TO_SOCKET"]._options = _descriptor._ParseOptions(descriptor_pb2.EnumValueOptions(), '\352\271\313\271\001\032Send memory dump to socket')
+_MEMORYCOLLECTORACTION.fields_by_name['action_type'].has_options = True
+_MEMORYCOLLECTORACTION.fields_by_name['action_type']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001$\022\032What to do with the memory\"\006Action')
+_MEMORYCOLLECTORARGS.fields_by_name['driver_installer'].has_options = True
+_MEMORYCOLLECTORARGS.fields_by_name['driver_installer']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\205\001\022\200\001An optional DriverInstallTemplate proto to control driver installation. If not set, the default installation proto will be used.\030\002')
+_KNOWLEDGEBASEINITIALIZATIONARGS.fields_by_name['require_complete'].has_options = True
+_KNOWLEDGEBASEINITIALIZATIONARGS.fields_by_name['require_complete']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001M\022KIf true require all dependencies to be complete.  Raise if any are missing.')
 # @@protoc_insertion_point(module_scope)

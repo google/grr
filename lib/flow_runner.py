@@ -388,7 +388,11 @@ class FlowRunner(object):
         # called above) to issue further client requests - hence postpone
         # termination.
         if not self.OutstandingRequests():
+          # TODO(user): Deprecate in favor of 'flow_completions' metric.
           stats.STATS.IncrementCounter("grr_flow_completed_count")
+
+          stats.STATS.IncrementCounter("flow_completions",
+                                       fields=[self.flow_obj.Name()])
           logging.info("Destroying session %s(%s) for client %s",
                        self.session_id, self.flow_obj.Name(),
                        self.args.client_id)
@@ -459,7 +463,12 @@ class FlowRunner(object):
     # to continue. Thus, we catch everything.
     except Exception:  # pylint: disable=broad-except
       # This flow will terminate now
+
+      # TODO(user): Deprecate in favor of 'flow_errors'.
       stats.STATS.IncrementCounter("grr_flow_errors")
+
+      stats.STATS.IncrementCounter("flow_errors",
+                                   fields=[self.flow_obj.Name()])
       logging.exception("Flow raised.")
 
       self.Error(traceback.format_exc(), client_id=client_id)

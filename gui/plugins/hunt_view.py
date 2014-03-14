@@ -547,9 +547,14 @@ class AbstractLogRenderer(renderers.TemplateRenderer):
 
   Implementations should implement the GetLog function.
   """
-
+  show_total_count = False
   layout_template = renderers.Template("""
 <table class="proto_table">
+{% if this.log|length > 0 %}
+  {% if this.show_total_count %}
+    <h5>{{this.log|length}} Entries</h5>
+  {% endif %}
+{% endif %}
 {% for line in this.log %}
   <tr>
   {% for val in line %}
@@ -735,6 +740,7 @@ class HuntContextView(renderers.TemplateRenderer):
 
 class HuntLogRenderer(AbstractLogRenderer):
   """Render the hunt log."""
+  show_total_count = True
 
   def GetLog(self, request):
     """Retrieve the log data."""
@@ -757,6 +763,7 @@ class HuntLogRenderer(AbstractLogRenderer):
 
 class HuntErrorRenderer(AbstractLogRenderer):
   """Render the hunt errors."""
+  show_total_count = True
 
   def GetLog(self, request):
     """Retrieve the log data."""

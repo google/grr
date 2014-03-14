@@ -103,35 +103,12 @@ class HuntOutputPlugin(object):
     pass
 
 
-# TODO(user): remove as soon as we don't care about old hunts with pickled
-# CollectionPluginArgs and CollectionPlugin.
-class CollectionPluginArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.CollectionPluginArgs
-
-
-# TODO(user): remove as soon as we don't care about old hunts with pickled
-# CollectionPluginArgs and CollectionPlugin.
-class CollectionPlugin(HuntOutputPlugin):
-  """An output plugin that stores the results in a collection."""
-
-  description = "Store results in a collection."
-  args_type = CollectionPluginArgs
-  # Making this class abstract, so that it doesn't show up in the UI
-  __abstract = True  # pylint: disable=invalid-name
-
-  def ProcessResponses(self, responses):
-    pass
-
-
 class EmailPluginArgs(rdfvalue.RDFProtoStruct):
   protobuf = flows_pb2.EmailPluginArgs
 
 
 class EmailPlugin(HuntOutputPlugin):
-  """An output plugin that sends an email for each response received.
-
-  TODO
-  """
+  """An output plugin that sends an email for each response received."""
 
   name = "email"
   description = "Send an email for each result."

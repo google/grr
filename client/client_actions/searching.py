@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """Client actions related to searching files and directories."""
 
 
@@ -261,7 +259,8 @@ class Grep(actions.ActionPlugin):
     if args.regex:
       find_func = functools.partial(self.FindRegex, args.regex)
     elif args.literal:
-      find_func = functools.partial(self.FindLiteral, bytearray(args.literal))
+      find_func = functools.partial(self.FindLiteral,
+                                    bytearray(utils.SmartStr(args.literal)))
     else:
       raise RuntimeError("Grep needs a regex or a literal.")
 

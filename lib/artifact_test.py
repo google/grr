@@ -366,6 +366,18 @@ class GrrKbTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(user.username, "jim")
     self.assertEqual(user.sid, "S-1-5-21-702227068-2140022151-3110739409-1000")
 
+  def testKnowledgeBaseRetrievalFailures(self):
+    """Test kb retrieval failure modes."""
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    self.assertRaises(artifact_lib.KnowledgeBaseUninitializedError,
+                      artifact.GetArtifactKnowledgeBase, client)
+    kb = rdfvalue.KnowledgeBase()
+    kb.hostname = "test"
+    client.Set(client.Schema.KNOWLEDGE_BASE(kb))
+    client.Flush(sync=True)
+    self.assertRaises(artifact_lib.KnowledgeBaseAttributesMissingError,
+                      artifact.GetArtifactKnowledgeBase, client)
+
   def testKnowledgeBaseRetrievalDarwin(self):
     """Check we can retrieve a Darwin kb."""
     test_lib.ClientFixture(self.client_id, token=self.token)
@@ -425,6 +437,36 @@ class GrrKbTest(test_lib.FlowTestsBaseclass):
                                                            "user3", "yagharek"])
     user = kb.GetUser(username="user1")
     self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
+
+  def testKnowledgeBaseRetrievalLinuxNoUsers(self):
+    """Cause a users.username dependency failure."""
+    test_lib.ClientFixture(self.client_id, token=self.token)
+    config_lib.CONFIG.Set("Artifacts.knowledge_base",
+                          ["NetgroupConfiguration",
+                           "NssCacheLinuxPasswdHomedirs"])
+    config_lib.CONFIG.Set("Artifacts.netgroup_filter_regexes",
+                          ["^doesntexist$"])
+
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientTestDataVFSFixture
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    client.Set(client.Schema.SYSTEM("Linux"))
+    client.Set(client.Schema.OS_VERSION("12.04"))
+    client.Close()
+
+    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
+                                      "HashBuffer", "ListDirectory", "HashFile")
+
+    for _ in test_lib.TestFlowHelper(
+        "KnowledgeBaseInitializationFlow", client_mock,
+        require_complete=False,
+        client_id=self.client_id, token=self.token):
+      pass
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    kb = artifact.GetArtifactKnowledgeBase(client)
+    self.assertEqual(kb.os_major_version, 12)
+    self.assertEqual(kb.os_minor_version, 4)
+    self.assertItemsEqual([x.username for x in kb.users], [])
 
   def testKnowledgeBaseNoOS(self):
     """Check unset OS dies."""

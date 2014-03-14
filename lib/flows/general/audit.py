@@ -24,10 +24,13 @@ class AuditEvent(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.AuditEvent
 
   def __init__(self, initializer=None, age=None, **kwargs):
+
     super(AuditEvent, self).__init__(initializer=initializer, age=age,
                                      **kwargs)
-    self.id = utils.PRNG.GetULong()
-    self.timestamp = rdfvalue.RDFDatetime().Now()
+    if not self.id:
+      self.id = utils.PRNG.GetULong()
+    if not self.timestamp:
+      self.timestamp = rdfvalue.RDFDatetime().Now()
 
 
 class AuditEventListener(flow.EventListener):

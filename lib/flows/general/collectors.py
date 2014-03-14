@@ -308,17 +308,16 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     content_regex_list = self.InterpolateList(
         collector.args.get("content_regex_list", []))
 
-    filters = []
+    conditions = []
     for regex in content_regex_list:
-      regexfilter = rdfvalue.FileFinderContentsRegexMatchFilter(regex=regex,
-                                                                bytes_before=0,
-                                                                bytes_after=0)
-      file_finder_filter = rdfvalue.FileFinderFilter(
-          filter_type=rdfvalue.FileFinderFilter.Type.CONTENTS_REGEX_MATCH,
-          contents_regex_match=regexfilter)
-      filters.append(file_finder_filter)
+      regex_condition = rdfvalue.FileFinderContentsRegexMatchCondition(
+          regex=regex, bytes_before=0, bytes_after=0)
+      file_finder_condition = rdfvalue.FileFinderCondition(
+          condition_type=rdfvalue.FileFinderCondition.Type.CONTENTS_REGEX_MATCH,
+          contents_regex_match=regex_condition)
+      conditions.append(file_finder_condition)
 
-    self.CallFlow("FileFinder", paths=path_list, filters=filters,
+    self.CallFlow("FileFinder", paths=path_list, conditions=conditions,
                   action=rdfvalue.FileFinderAction(), pathtype=pathtype,
                   request_data={"artifact_name": self.current_artifact_name,
                                 "collector": collector.ToPrimitiveDict()},

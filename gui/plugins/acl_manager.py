@@ -91,6 +91,7 @@ Client Access Request created. Please try again once an approval is granted.
     subject = request.REQ.get("subject")
     reason = request.REQ.get("reason")
     approver = request.REQ.get("approver")
+    keepalive = bool(request.REQ.get("keepalive"))
 
     client_id, _ = rdfvalue.RDFURN(subject).Split(2)
 
@@ -103,6 +104,10 @@ Client Access Request created. Please try again once an approval is granted.
                              reason=reason, approver=approver,
                              token=request.token,
                              subject_urn=rdfvalue.ClientURN(client_id))
+
+    if keepalive:
+      flow.GRRFlow.StartFlow(client_id=client_id, flow_name="KeepAlive",
+                             duration=3600, token=request.token)
 
     super(ClientApprovalRequestRenderer, self).Layout(request, response)
 
@@ -338,6 +343,8 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
 class CheckAccess(renderers.TemplateRenderer):
   """Check the level of access the user has for a specified client."""
 
+  show_keepalive_option = False
+
   # Allow the user to request access to the client.
   layout_template = renderers.Template("""
 {% if this.error %}
@@ -360,12 +367,21 @@ class CheckAccess(renderers.TemplateRenderer):
   <div class="control-group">
     <label class="control-label" for="acl_reason">Reason</label>
     <div class="controls">
-      <input type=text id="acl_reason" />
+      <input type="text" id="acl_reason" />
     </div>
   </div>
   <div id="acl_reason_warning" class="alert alert-error hide">
     Please enter the reason.
   </div>
+  {% if this.show_keepalive_option %}
+  <div class="control-group">
+    <div class="controls">
+      <input id="acl_keepalive" type=checkbox class="unset"
+       name="keepalive" value="yesplease"/>
+      Keep this client alive as soon as it comes online.
+    </div>
+  </div>
+  {% endif %}
 </form>
 
 <script>
@@ -381,8 +397,11 @@ $("#acl_form_{{unique|escapejs}}").submit(function (event) {
   var state = {
     subject: "{{this.subject|escapejs}}",
     approver: $("#acl_approver").val(),
-    reason: $("#acl_reason").val()
+    reason: $("#acl_reason").val(),
   };
+  if ($("#acl_keepalive").is(":checked")) {
+    state["keepalive"] = "yesplease";
+  }
 
   // When we complete the request refresh to the main screen.
   grr.layout("{{this.approval_renderer|escapejs}}", "acl_server_message", state,
@@ -476,6 +495,7 @@ Authorization request ({{this.reason|escape}}) failed:
       self.refresh_after_form_submit = False
     elif aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(namespace):
       self.approval_renderer = "ClientApprovalRequestRenderer"
+      self.show_keepalive_option = True
     else:
       raise RuntimeError(
           "Unexpected namespace for access check: %s (subject=%s)." %

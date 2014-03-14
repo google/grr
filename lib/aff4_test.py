@@ -435,6 +435,42 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       s = "Time2%08X\n" % i
       self.assertEqual(fd.Read(len(s)), s)
 
+  def testAFF4ImageContentLastUpdated(self):
+    """Make sure CONTENT_LAST gets updated only when content is written."""
+    path = "/C.12345/contentlastchecker"
+
+    self.WriteImage(path, timestamp=1)
+
+    fd = aff4.FACTORY.Open(path, token=self.token)
+    # Make sure the attribute was written when the write occured.
+    self.assertEqual(int(fd.GetContentAge()), 101000000)
+
+    # Write the image again, later in time.
+    self.WriteImage(path, timestamp=2)
+
+    fd = aff4.FACTORY.Open(path, token=self.token)
+    self.assertEqual(int(fd.GetContentAge()), 102000000)
+
+  def testAFF4ImageContentLastNotUpdated(self):
+    """Make sure CONTENT_LAST does not update when only STAT is written.."""
+    path = "/C.12345/contentlastchecker"
+
+    self.WriteImage(path, timestamp=1)
+
+    fd = aff4.FACTORY.Open(path, token=self.token)
+    # Make sure the attribute was written when the write occured.
+    self.assertEqual(int(fd.GetContentAge()), 101000000)
+
+    # Write the stat (to be the same as before, but this still counts
+    # as a write).
+    fd.Set(fd.Schema.STAT, fd.Get(fd.Schema.STAT))
+    fd.Flush()
+
+    fd = aff4.FACTORY.Open(path, token=self.token)
+
+    # The age of the content should still be the same.
+    self.assertEqual(int(fd.GetContentAge()), 101000000)
+
   def testAFF4FlowObject(self):
     """Test the AFF4 Flow switch and object."""
     client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient",

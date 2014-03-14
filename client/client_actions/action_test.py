@@ -19,6 +19,7 @@ from grr.client import actions
 from grr.client import client_actions
 from grr.client import comms
 from grr.client import vfs
+from grr.client.client_actions import standard
 from grr.client.client_actions import tests
 from grr.lib import flags
 from grr.lib import flow
@@ -29,8 +30,11 @@ from grr.lib import test_lib
 from grr.lib import utils
 # pylint: disable=g-bad-name
 
+# pylint: mode=test
+
 
 class MockWindowsProcess(object):
+  """A mock windows process."""
 
   pid = 10
   ppid = 1
@@ -147,6 +151,70 @@ class ActionTest(test_lib.EmptyActionTest):
       x.st_atime = y.st_atime = 0
 
       self.assertProtoEqual(x, y)
+
+  def testSuspendableListDirectory(self):
+    p = rdfvalue.PathSpec(path=self.base_path,
+                          pathtype=rdfvalue.PathSpec.PathType.OS)
+    request = rdfvalue.ListDirRequest(pathspec=p)
+    request.iterator.number = 2
+    results = []
+    while request.iterator.state != request.iterator.State.FINISHED:
+      responses = self.RunAction("SuspendableListDirectory", request)
+      results.extend(responses)
+      for response in responses:
+        if isinstance(response, rdfvalue.Iterator):
+          request.iterator = response
+
+    filenames = [os.path.basename(r.pathspec.path)
+                 for r in results if isinstance(r, rdfvalue.StatEntry)]
+
+    self.assertItemsEqual(filenames, os.listdir(self.base_path))
+
+    iterators = [r for r in results if isinstance(r, rdfvalue.Iterator)]
+    # One for two files plus one extra with the FINISHED status.
+    nr_files = len(os.listdir(self.base_path))
+    expected_iterators = (nr_files / 2) + 1
+    if nr_files % 2:
+      expected_iterators += 1
+    self.assertEqual(len(iterators), expected_iterators)
+
+    # Make sure the thread has been deleted.
+    self.assertFalse(actions.SuspendableAction.suspended_actions)
+
+  def testSuspendableActionException(self):
+
+    class RaisingListDirectory(standard.SuspendableListDirectory):
+
+      iterations = 3
+
+      def Suspend(self):
+        RaisingListDirectory.iterations -= 1
+        if not RaisingListDirectory.iterations:
+          raise IOError("Ran out of iterations.")
+        return super(RaisingListDirectory, self).Suspend()
+
+    p = rdfvalue.PathSpec(path=self.base_path,
+                          pathtype=rdfvalue.PathSpec.PathType.OS)
+    request = rdfvalue.ListDirRequest(pathspec=p)
+    request.iterator.number = 2
+    results = []
+    while request.iterator.state != request.iterator.State.FINISHED:
+      responses = self.ExecuteAction("RaisingListDirectory", request)
+      results.extend(responses)
+
+      for response in responses:
+        if isinstance(response, rdfvalue.Iterator):
+          request.iterator = response
+
+      status = responses[-1]
+      self.assertTrue(isinstance(status, rdfvalue.GrrStatus))
+      if status.status != rdfvalue.GrrStatus.ReturnedStatus.OK:
+        break
+
+      if len(results) > 100:
+        self.fail("Endless loop detected.")
+
+    self.assertIn("Ran out of iterations", status.error_message)
 
   def testHashFile(self):
     """Can we hash a file?"""
@@ -266,12 +334,9 @@ class ActionTest(test_lib.EmptyActionTest):
 
     message = rdfvalue.GrrMessage(name="ProgressAction", cpu_limit=3600)
 
-    old_proc = psutil.Process
-    psutil.Process = FakeProcess
-    try:
-      action_cls = actions.ActionPlugin.classes[message.name]
-      old_sendreply = action_cls.SendReply
-      action_cls.SendReply = MockSendReply
+    action_cls = actions.ActionPlugin.classes[message.name]
+    with test_lib.MultiStubber((psutil, "Process", FakeProcess),
+                               (action_cls, "SendReply", MockSendReply)):
       action_cls._authentication_required = False
       action = action_cls(message=message, grr_worker=MockWorker())
 
@@ -282,9 +347,6 @@ class ActionTest(test_lib.EmptyActionTest):
 
       self.assertTrue(len(received_messages), 1)
       self.assertEqual(received_messages[0], "Cpu limit exceeded.")
-    finally:
-      psutil.Process = old_proc
-      action_cls.SendReply = old_sendreply
 
 
 class ActionTestLoader(test_lib.GRRTestLoader):

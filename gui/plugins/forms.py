@@ -43,13 +43,13 @@ def GetTypeDescriptorRenderer(type_descriptor):
       if delegate is None:
         delegate = getattr(renderer_cls, "type_descriptor", None)
 
-      # Repeated form renderers go in their own cache.
-      if utils.issubclass(renderer_cls, RepeatedFieldFormRenderer):
-        repeated_renderer_cache[delegate] = renderer_cls
-        continue
-
       if delegate:
-        semantic_renderer_cache[delegate] = renderer_cls
+        # Repeated form renderers go in their own cache.
+        if utils.issubclass(renderer_cls, RepeatedFieldFormRenderer):
+          repeated_renderer_cache[delegate] = renderer_cls
+
+        else:
+          semantic_renderer_cache[delegate] = renderer_cls
 
   # Try to find a renderer for this type descriptor's type:
   if isinstance(type_descriptor, type_info.ProtoList):
@@ -216,6 +216,8 @@ class TypeDescriptorFormRenderer(renderers.TemplateRenderer):
   # This should be set to the type descriptor class we are responsible for.
   type_descriptor = None
 
+  context_help_url = None
+
   # This is the default view of the description.
   default_description_view = renderers.Template("""
   {% if this.render_label %}
@@ -223,6 +225,10 @@ class TypeDescriptorFormRenderer(renderers.TemplateRenderer):
     <abbr title='{{this.descriptor.description|escape}}'>
       {{this.friendly_name}}
     </abbr>
+  {% if this.context_help_url %}
+    <a href="/help/{{this.context_help_url|escape}}" target="_blank">
+    <i class="icon-question-sign"></i></a>
+  {% endif %}
   </label>
   {% endif %}
 """)

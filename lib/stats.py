@@ -458,4 +458,6 @@ STATS = None
 
 
 class StatsInit(registry.InitHook):
+  """Initialize stats collector."""
   pass
+

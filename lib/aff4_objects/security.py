@@ -528,6 +528,12 @@ class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):
 
   def BuildApprovalUrn(self):
     """Builds approval object urn."""
+    event = rdfvalue.AuditEvent(user=self.token.username,
+                                action="CLIENT_APPROVAL_REQUEST",
+                                client=self.client_id,
+                                description=self.args.reason)
+    flow.Events.PublishEvent("Audit", event, token=self.token)
+
     return self.ApprovalUrnBuilder(self.client_id.Path(), self.token.username,
                                    self.args.reason)
 
@@ -547,6 +553,13 @@ class GrantClientApprovalFlow(GrantApprovalWithReasonFlow):
 
   def BuildApprovalUrn(self):
     """Builds approval object urn."""
+    flow.Events.PublishEvent("Audit",
+                             rdfvalue.AuditEvent(user=self.token.username,
+                                                 action="CLIENT_APPROVAL_GRANT",
+                                                 client=self.client_id,
+                                                 description=self.args.reason),
+                             token=self.token)
+
     return self.ApprovalUrnBuilder(self.client_id.Path(), self.args.delegate,
                                    self.args.reason)
 
@@ -571,6 +584,12 @@ class BreakGlassGrantClientApprovalFlow(BreakGlassGrantApprovalWithReasonFlow):
 
   def BuildApprovalUrn(self):
     """Builds approval object urn."""
+    event = rdfvalue.AuditEvent(user=self.token.username,
+                                action="CLIENT_APPROVAL_BREAK_GLASS_REQUEST",
+                                client=self.client_id,
+                                description=self.args.reason)
+    flow.Events.PublishEvent("Audit", event, token=self.token)
+
     return self.ApprovalUrnBuilder(self.client_id.Path(), self.token.username,
                                    self.args.reason)
 
@@ -591,6 +610,13 @@ class RequestHuntApprovalFlow(RequestApprovalWithReasonFlow):
   def BuildApprovalUrn(self):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
+    flow.Events.PublishEvent("Audit",
+                             rdfvalue.AuditEvent(user=self.token.username,
+                                                 action="HUNT_APPROVAL_REQUEST",
+                                                 urn=self.args.subject_urn,
+                                                 description=self.args.reason),
+                             token=self.token)
+
     return self.ApprovalUrnBuilder(self.args.subject_urn.Path(),
                                    self.token.username, self.args.reason)
 
@@ -609,6 +635,13 @@ class GrantHuntApprovalFlow(GrantApprovalWithReasonFlow):
   def BuildApprovalUrn(self):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
+    flow.Events.PublishEvent("Audit",
+                             rdfvalue.AuditEvent(user=self.token.username,
+                                                 action="HUNT_APPROVAL_GRANT",
+                                                 urn=self.args.subject_urn,
+                                                 description=self.args.reason),
+                             token=self.token)
+
     return self.ApprovalUrnBuilder(self.args.subject_urn.Path(),
                                    self.args.delegate, self.args.reason)
 
@@ -632,6 +665,13 @@ class RequestCronJobApprovalFlow(RequestApprovalWithReasonFlow):
   def BuildApprovalUrn(self):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
+    flow.Events.PublishEvent("Audit",
+                             rdfvalue.AuditEvent(user=self.token.username,
+                                                 action="CRON_APPROVAL_REQUEST",
+                                                 urn=self.args.subject_urn,
+                                                 description=self.args.reason),
+                             token=self.token)
+
     return self.ApprovalUrnBuilder(self.args.subject_urn.Path(),
                                    self.token.username, self.args.reason)
 
@@ -650,6 +690,13 @@ class GrantCronJobApprovalFlow(GrantApprovalWithReasonFlow):
   def BuildApprovalUrn(self):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
+    flow.Events.PublishEvent("Audit",
+                             rdfvalue.AuditEvent(user=self.token.username,
+                                                 action="CRON_APPROVAL_GRANT",
+                                                 urn=self.args.subject_urn,
+                                                 description=self.args.reason),
+                             token=self.token)
+
     return self.ApprovalUrnBuilder(self.args.subject_urn.Path(),
                                    self.args.delegate, self.args.reason)
 

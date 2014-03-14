@@ -16,6 +16,11 @@ config_lib.DEFINE_integer("Worker.task_limit", 2000,
 config_lib.DEFINE_integer("Worker.flow_lease_time", 600,
                           "Duration of flow lease time in seconds.")
 
+config_lib.DEFINE_integer("Worker.worker_process_count", 1,
+                          "Number of worker processes to run. Each worker can "
+                          "only use a single CPU, so scaling this up on "
+                          "multiprocessor systems may make sense.")
+
 config_lib.DEFINE_integer("Frontend.throttle_average_interval", 60,
                           "Time interval over which average request rate is "
                           "calculated when throttling is enabled.")

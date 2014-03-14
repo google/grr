@@ -431,11 +431,10 @@ class ProtoUnsignedInteger(ProtoType):
     super(ProtoUnsignedInteger, self).__init__(default=default, **kwargs)
 
   def Validate(self, value, **_):
-    if not (value.__class__ is int or value.__class__ is long or
-            value.__class__ is rdfvalue.RDFInteger):
+    try:
+      return int(value)
+    except ValueError:
       raise type_info.TypeValueError("Invalid value %s for Integer" % value)
-
-    return value
 
   def Write(self, stream, value):
     stream.write(self.tag_data)
@@ -564,9 +563,10 @@ class Enum(int):
   Enums are just integers, except when printed they have a name.
   """
 
-  def __new__(cls, val, name=None):
+  def __new__(cls, val, name=None, description=None):
     instance = super(Enum, cls).__new__(cls, val)
     instance.name = name or str(val)
+    instance.description = description
 
     return instance
 
@@ -1819,19 +1819,6 @@ class ProtocolBufferSerializer(AbstractSerlializer):
     self.protobuf.ReadIntoObject(string, 0, value_obj)
 
 
-class EnumValue(int):
-  """An integer with a name and description."""
-
-  def __new__(cls, val, name=None, description=None):
-    inst = super(EnumValue, cls).__new__(cls, val)
-    inst.name = name
-    inst.description = description
-    return inst
-
-  def __str__(self):
-    return self.name
-
-
 class EnumContainer(object):
   """A data class to hold enum objects."""
 
@@ -1843,7 +1830,7 @@ class EnumContainer(object):
     self.name = name
 
     for k, v in kwargs.items():
-      v = EnumValue(v, name=k, description=descriptions.get(k, None))
+      v = Enum(v, name=k, description=descriptions.get(k, None))
       self.enum_dict[k] = v
       self.reverse_enum[v] = k
       setattr(self, k, v)

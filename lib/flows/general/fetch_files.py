@@ -18,7 +18,15 @@ class FetchFilesArgs(rdfvalue.RDFProtoStruct):
 class FetchFiles(flow.GRRFlow):
   """This flow downloads files from clients based on a file path glob.
 
-  e.g. this glob will download any files under the environment directory with
+  DEPRECATED.
+  This flow is now deprecated in favor of FileFinder. To use FileFinder instead
+  of FetchFiles:
+  Specify list of glob expressions corresponding to the files you
+  want to fetch. Set "action" to "Download". If needed, specify one or more
+  conditions. Only files matching these conditions will be downloaded.
+  ------------------------------------------------------------------------------
+
+  This glob will download any files under the environment directory with
   the basename "notepad" and any extension:
 
   %%KnowledgeBase.environ_windir%%/**notepad.*
@@ -38,7 +46,7 @@ class FetchFiles(flow.GRRFlow):
   friendly_name = "Fetch Files"
   category = "/Filesystem/"
   args_type = FetchFilesArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
 
   @classmethod
   def GetDefaultArgs(cls, token=None):

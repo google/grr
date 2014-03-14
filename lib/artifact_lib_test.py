@@ -158,6 +158,9 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
   def testInterpolation(self):
     """Check we can interpolate values from the knowledge base."""
     kb = rdfvalue.KnowledgeBase()
+    self.assertRaises(artifact_lib.KnowledgeBaseInterpolationError, list,
+                      artifact_lib.InterpolateKbAttributes(
+                          "test%%users.username%%test", kb))
     kb.users.Append(rdfvalue.KnowledgeBaseUser(username="joe", uid=1))
     kb.users.Append(rdfvalue.KnowledgeBaseUser(username="jim", uid=2))
     kb.Set("environ_allusersprofile", "c:\\programdata")

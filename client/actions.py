@@ -5,6 +5,7 @@
 import logging
 import os
 import pdb
+import threading
 import traceback
 
 
@@ -34,7 +35,10 @@ class CPUExceededError(Error):
 
 class NetworkBytesExceededError(Error):
   """Exceeded the maximum number of bytes allowed to be sent for this action."""
-  pass
+
+
+class ThreadNotFoundError(Error):
+  """A suspended thread was requested that doesn't exist on the client."""
 
 
 class ActionPlugin(object):
@@ -273,4 +277,109 @@ class IteratedAction(ActionPlugin):
                    message_type=rdfvalue.GrrMessage.Type.ITERATOR)
 
   def Iterate(self, request, client_state):
+    """Actions should override this."""
+
+
+class ClientActionWorker(threading.Thread):
+  """A worker thread for the suspendable client action."""
+
+  daemon = True
+
+  def __init__(self, *args, **kw):
+    super(ClientActionWorker, self).__init__(*args, **kw)
+    self.cond = threading.Condition(lock=threading.RLock())
+    self.id = None
+
+  def SetActionObj(self, action_obj):
+    self.action_obj = action_obj
+
+  def GetId(self):
+    if not self.id:
+      self.id = "%s-%04X" % (self.action_obj.__class__.__name__,
+                             utils.PRNG.GetUShort() & 0xFFFF)
+    return self.id
+
+  def Resume(self):
+    with self.cond:
+      self.cond.notify()
+      self.cond.wait()
+
+  def Suspend(self):
+    with self.cond:
+      self.cond.notify()
+      self.cond.wait()
+
+  def run(self):
+    # Suspend right after starting.
+    self.Suspend()
+    try:
+      # Do the actual work.
+      self.action_obj.Iterate()
+    except Exception as e:  # pylint: disable=broad-except
+      self.action_obj.RegisterException(e)
+    finally:
+      # Notify the action that we are about to exit. This always has to happen
+      # or the main thread will stop.
+      self.action_obj.Done()
+      with self.cond:
+        self.cond.notify()
+
+
+class SuspendableAction(ActionPlugin):
+  """An action that can be suspended on the client."""
+
+  suspended_actions = {}
+
+  def __init__(self, *args, **kw):
+    super(SuspendableAction, self).__init__(*args, **kw)
+    self.exceptions = []
+
+  def Run(self, request):
+    self.request = request
+    thread_id = self.request.iterator.client_state.get("thread_id")
+    if not thread_id:
+      # Start a new thread.
+      self.worker = ClientActionWorker()
+      self.worker.SetActionObj(self)
+      # Grab the lock before the thread is started.
+      self.worker.cond.acquire()
+      self.worker.start()
+      # The worker will be stuck trying to get the lock that we are
+      # already holding it so we call Resume() and enter a state where
+      # the main thread waits for the condition variable and, at the
+      # same time, releases the lock. Next the worker will notify the
+      # condition variable and suspend itself. This guarantees that we
+      # are now in a defined state where the worker is suspended and
+      # waiting on the condition variable and the main thread is
+      # running. After the next call to Resume() below, the worker
+      # will wake up and actually do the client action.
+      self.worker.Resume()
+      SuspendableAction.suspended_actions[self.worker.GetId()] = self.worker
+      self.request.iterator.client_state["thread_id"] = self.worker.GetId()
+    else:
+      self.worker = SuspendableAction.suspended_actions.get(thread_id)
+      if not self.worker:
+        raise ThreadNotFoundError()
+      self.worker.SetActionObj(self)
+
+    self.worker.Resume()
+
+    for e in self.exceptions:
+      raise e
+
+    # Return the iterator
+    self.SendReply(self.request.iterator,
+                   message_type=rdfvalue.GrrMessage.Type.ITERATOR)
+
+  def RegisterException(self, e):
+    self.exceptions.append(e)
+
+  def Done(self):
+    self.request.iterator.state = self.request.iterator.State.FINISHED
+    del SuspendableAction.suspended_actions[self.worker.GetId()]
+
+  def Suspend(self):
+    self.worker.Suspend()
+
+  def Iterate(self):
     """Actions should override this."""

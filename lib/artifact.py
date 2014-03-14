@@ -10,6 +10,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
+from grr.proto import flows_pb2
 
 
 class AFF4ResultWriter(object):
@@ -48,10 +49,14 @@ def GetArtifactKnowledgeBase(client_obj, allow_uninitialized=False):
   """
   client_schema = client_obj.Schema
   kb = client_obj.Get(client_schema.KNOWLEDGE_BASE)
-  if not allow_uninitialized and (not kb or not kb.os):
-    raise artifact_lib.KnowledgeBaseUninitializedError(
-        "Attempting to retreive uninitialized KnowledgeBase for %s. Failing." %
-        client_obj.urn)
+  if not allow_uninitialized:
+    if not kb:
+      raise artifact_lib.KnowledgeBaseUninitializedError(
+          "KnowledgeBase empty for %s." % client_obj.urn)
+    if not kb.os:
+      raise artifact_lib.KnowledgeBaseAttributesMissingError(
+          "KnowledgeBase missing OS for %s. Knowledgebase content: %s" %
+          (client_obj.urn, kb))
   if not kb:
     kb = client_schema.KNOWLEDGE_BASE()
 
@@ -87,6 +92,10 @@ def SetCoreGRRKnowledgeBaseValues(kb, client_obj):
     kb.os = utils.SmartUnicode(client_obj.Get(client_schema.SYSTEM))
 
 
+class KnowledgeBaseInitializationArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.KnowledgeBaseInitializationArgs
+
+
 class KnowledgeBaseInitializationFlow(flow.GRRFlow):
   """Flow that atttempts to initialize the knowledge base.
 
@@ -104,6 +113,7 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
   """
   category = "/Collectors/"
   behaviours = flow.GRRFlow.behaviours + "ADVANCED"
+  args_type = KnowledgeBaseInitializationArgs
 
   @flow.StateHandler(next_state="ProcessBootstrap")
   def Start(self):
@@ -240,10 +250,19 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
           not self.state.in_flight_artifacts):
         missing_deps = list(self.state.all_deps.difference(
             self.state.fulfilled_deps))
-        raise flow.FlowError("KnowledgeBase initialization failed as the "
-                             "following artifacts had dependencies that could "
-                             "not be fulfilled %s. Missing: %s" %
-                             (self.state.awaiting_deps_artifacts, missing_deps))
+
+        if self.args.require_complete:
+          raise flow.FlowError("KnowledgeBase initialization failed as the "
+                               "following artifacts had dependencies that could"
+                               " not be fulfilled %s. Missing: %s" %
+                               (self.state.awaiting_deps_artifacts,
+                                missing_deps))
+        else:
+          self.Log("Storing incomplete KnowledgeBase. The following artifacts"
+                   "had dependencies that could not be fulfilled %s. "
+                   "Missing: %s. Completed: %s" % (
+                       self.state.awaiting_deps_artifacts, missing_deps,
+                       self.state.completed_artifacts))
 
   def SetKBValue(self, artifact_name, responses):
     """Set values in the knowledge base based on responses."""

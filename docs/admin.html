@@ -1054,6 +1054,21 @@ they are not currently released  (Mar 2013). If you are interested in this
 functionality please just email the devs and we can release it.</p></div>
 </div>
 <div class="sect2">
+<h3 id="_enabling_ssl_on_the_adminui">Enabling SSL on the AdminUI.</h3>
+<div class="paragraph"><p>The AdminUI supports SSL if it is configured. We don&#8217;t currently generate
+certs to enable this by default as certificate management is messy, but you
+can enable by adding to your config something like:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>AdminUI.enable_ssl: True
+AdminUI.ssl_cert_file: "/etc/ssl/certs/grr.crt"
+AdminUI.ssl_key_file: "/etc/ssl/private/grr.plain.key"</tt></pre>
+</div></div>
+<div class="paragraph"><p>Note that SSL performance using this method may be average. If you have a lot
+of users and a single AdminUI, you may get better performance putting GRR behind
+an SSL reverse proxy such as Apache and letting it handle the SSL.</p></div>
+</div>
+<div class="sect2">
 <h3 id="_grr_security_checklist">GRR Security Checklist.</h3>
 <div class="ulist"><div class="title">For all deployments</div><ul>
 <li>
@@ -1099,7 +1114,7 @@ FullAccessControlManager.
 </li>
 <li>
 <p>
-Ensure the Administrative UI and it is SSL protected.
+Ensure the Administrative UI is SSL protected
 </p>
 </li>
 <li>
@@ -1156,8 +1171,9 @@ If you are running from the prepackaged release you are likely running the
 Additionally, you will probably want to run more than one worker. In a large
   deployment where you are running numerous hunts it makes sense to run 20+
   workers. As long as the datastore scales, the more workers you have the faster
-  things get done. Each worker will use 1 core maximum, so running up multiple
-  on the same box can make sense.
+  things get done. Each worker process will use 1 core maximum, so on multicore
+  boxes you will want to set the config setting Worker.worker_process_count to
+  something &gt; 1.
 </p>
 </li>
 <li>

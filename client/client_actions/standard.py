@@ -228,6 +228,25 @@ class IteratedListDirectory(actions.IteratedAction):
     client_state["index"] = index + length
 
 
+class SuspendableListDirectory(actions.SuspendableAction):
+  """Lists a directory as a suspendable client action."""
+  in_rdfvalue = rdfvalue.ListDirRequest
+  out_rdfvalue = rdfvalue.StatEntry
+
+  def Iterate(self):
+    try:
+      fd = vfs.VFSOpen(self.request.pathspec)
+    except (IOError, OSError), e:
+      self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.IOERROR, e)
+      return
+
+    length = self.request.iterator.number
+    for group in utils.Grouper(fd.ListFiles(), length):
+      for response in group:
+        self.SendReply(response)
+      self.Suspend()
+
+
 class StatFile(ListDirectory):
   """Sends a StatResponse for a single file."""
   in_rdfvalue = rdfvalue.ListDirRequest

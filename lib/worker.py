@@ -19,6 +19,7 @@ from grr.lib import rdfvalue
 # pylint: disable=unused-import
 from grr.lib import server_stubs
 # pylint: enable=unused-import
+from grr.lib import stats
 from grr.lib import threadpool
 from grr.lib import utils
 
@@ -205,6 +206,8 @@ class GRRWorker(object):
         # We still need to take a lock on the well known flow in the datastore,
         # but we can run a local instance.
         if session_id in self.well_known_flows:
+          stats.STATS.IncrementCounter("well_known_flow_requests",
+                                       fields=[str(session_id)])
           self.well_known_flows[session_id].ProcessRequests(
               self.thread_pool)
 

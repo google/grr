@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 #
-# Copyright 2012 Google Inc. All Rights Reserved.
 
 """This is the interface for managing cron jobs."""
 

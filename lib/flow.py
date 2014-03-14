@@ -282,6 +282,10 @@ def StateHandler(next_state="End", auth_required=True):
         stats.STATS.IncrementCounter("grr_worker_states_run")
         runner.SetAllowedFollowUpStates(next_states)
 
+        if f.__name__ == "Start":
+          stats.STATS.IncrementCounter("flow_starts",
+                                       fields=[self.Name()])
+
         # Run the state method (Allow for flexibility in prototypes)
         args = [self, responses]
         res = f(*args[:f.func_code.co_argcount])
@@ -491,7 +495,7 @@ class GRRFlow(aff4.AFF4Volume):
     return cls.args_type()
 
   @classmethod
-  def _FilterArgsFromSemanticProtobuf(cls, protobuf, kwargs):
+  def FilterArgsFromSemanticProtobuf(cls, protobuf, kwargs):
     """Assign kwargs to the protobuf, and remove them from the kwargs dict."""
     for descriptor in protobuf.type_infos:
       value = kwargs.pop(descriptor.name, None)
@@ -718,7 +722,7 @@ class GRRFlow(aff4.AFF4Volume):
     if runner_args is None:
       runner_args = FlowRunnerArgs()
 
-    cls._FilterArgsFromSemanticProtobuf(runner_args, kwargs)
+    cls.FilterArgsFromSemanticProtobuf(runner_args, kwargs)
 
     # When asked to run a flow in the future this implied it will run
     # asynchronously.
@@ -763,7 +767,7 @@ class GRRFlow(aff4.AFF4Volume):
     if args is None:
       args = flow_obj.args_type()
 
-    cls._FilterArgsFromSemanticProtobuf(args, kwargs)
+    cls.FilterArgsFromSemanticProtobuf(args, kwargs)
 
     # Check that the flow args are valid.
     args.Validate()
@@ -820,7 +824,8 @@ class GRRFlow(aff4.AFF4Volume):
         Events.PublishEvent("Audit",
                             rdfvalue.AuditEvent(user=token.username,
                                                 action="RUN_FLOW",
-                                                flow=runner_args.flow_name,
+                                                flow_name=runner_args.flow_name,
+                                                urn=flow_obj.urn,
                                                 client=runner_args.client_id),
                             token=token)
 
@@ -1708,7 +1713,12 @@ class FrontEndServer(object):
           queue_manager.QueueManager(token=self.token).DeleteNotification(
               msg.session_id)
 
+          # TODO(user): Deprecate in favor of 'well_known_flow_requests'
+          # metric.
           stats.STATS.IncrementCounter("grr_well_known_flow_requests")
+
+          stats.STATS.IncrementCounter("well_known_flow_requests",
+                                       fields=[str(msg.session_id)])
         else:
           # Message should be queued to be processed in the backend.
 
@@ -1755,3 +1765,13 @@ class FlowInit(registry.InitHook):
     stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_num")
     stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_throttled_num")
     stats.STATS.RegisterGaugeMetric("grr_frontendserver_throttle_setting", str)
+
+    # Flow-aware counters
+    stats.STATS.RegisterCounterMetric("flow_starts",
+                                      fields=[("flow", str)])
+    stats.STATS.RegisterCounterMetric("flow_errors",
+                                      fields=[("flow", str)])
+    stats.STATS.RegisterCounterMetric("flow_completions",
+                                      fields=[("flow", str)])
+    stats.STATS.RegisterCounterMetric("well_known_flow_requests",
+                                      fields=[("flow", str)])

@@ -63,6 +63,20 @@ class SearchTest(test_lib.FlowTestsBaseclass):
     results = list(search.SearchClients("mac:%s" % mac_addr, token=self.token))
     self.assertEqual(len(results), 1)
 
+    # Check beginning and end regex markers.
+    client1.Set(client1.Schema.FQDN("abc-extra"))
+    client1.Flush()
+    client2.Set(client2.Schema.FQDN("extra-abc"))
+    client2.Flush()
+    results = list(search.SearchClients("fqdn:abc$", token=self.token))
+    self.assertEqual(results[0], client2.urn)
+    self.assertEqual(len(results), 1)
+    results = list(search.SearchClients("fqdn:^abc", token=self.token))
+    self.assertEqual(results[0], client1.urn)
+    self.assertEqual(len(results), 1)
+    results = list(search.SearchClients("fqdn:^abc$", token=self.token))
+    self.assertEqual(len(results), 0)
+
   def testSearchLabels(self):
     """Test the ability to search for clients via label."""
     client_ids = self.SetupClients(2)

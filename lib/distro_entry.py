@@ -72,6 +72,12 @@ def Worker():
   flags.StartMain(worker.main)
 
 
+def GRRFuse():
+  from grr.tools import fuse_mount
+  SetConfigOptions()
+  flags.StartMain(fuse_mount.main)
+
+
 def Client():
   from grr.client import client
   # Note client doesn't call SetConfigOptions as this entry point is primarily

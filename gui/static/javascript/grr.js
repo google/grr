@@ -861,6 +861,7 @@ grr.update = function(renderer, domId, opt_state, on_success, inflight_key,
   if (!on_success) {
     on_success = function(data) {
       $('#' + domId).html(data);
+      grr.publish('on_renderer_load', domId);
     };
   }
 
@@ -883,6 +884,7 @@ grr.update = function(renderer, domId, opt_state, on_success, inflight_key,
 grr.layout = function(renderer, domId, opt_state, on_success) {
   success_handler = function(data) {
     $('#' + domId).html(data);
+    grr.publish('on_renderer_load', domId);
     if (on_success) {
       on_success(domId);
     }

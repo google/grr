@@ -158,7 +158,8 @@ class TestSearchFileContent(test_lib.FlowTestsBaseclass):
     args = rdfvalue.SearchFileContentArgs(
         paths=[path], pathtype=rdfvalue.PathSpec.PathType.OS)
 
-    args.grep.literal = "session opened for user dearjohn"
+    args.grep.literal = rdfvalue.LiteralExpression(
+        "session opened for user dearjohn")
     args.grep.mode = rdfvalue.GrepSpec.Mode.ALL_HITS
 
     # Run the flow.

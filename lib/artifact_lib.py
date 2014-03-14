@@ -40,6 +40,10 @@ class KnowledgeBaseUninitializedError(Error):
   """Attempt to process artifact without a valid Knowledge Base."""
 
 
+class KnowledgeBaseAttributesMissingError(Error):
+  """Knowledge Base is missing key attributes."""
+
+
 # These labels represent the full set of labels that an Artifact can have.
 # This set is tested on creation to ensure our list of labels doesn't get out
 # of hand.

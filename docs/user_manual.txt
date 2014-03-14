@@ -549,7 +549,6 @@ download the file from the GRR datastore to your computer.
 .Downloaded file
 image::images/grr-gui-vfs-downloaded.png[align="center"]
 
-
 File Versions
 ~~~~~~~~~~~~~
 One interesting property of GRR that may not be immediately obvious, is that
@@ -576,6 +575,130 @@ For safety reasons, GRR appends ".noexec" to the name of every file you request
 to download to your computer.
 ================================================================================
 
+Specifying File Paths
+---------------------
+Providing file names to flows is a core part of GRR, and many flows have been
+consolidated into the File Finder flow, which uses a glob+interpolation syntax.
+
+File Path Examples
+~~~~~~~~~~~~~~~~~~
+All executables or dlls in the user's download directory:
+---------------------------------------
+%%users.homedir%%\Downloads\*.{exe,dll}
+---------------------------------------
+All .evtx files found up to three directories under C:\Windows\System32\winevt:
+----------------------------------------------
+%%environ_systemroot%%\System32\winevt\**.evtx
+----------------------------------------------
+"findme.txt" files in user homedirs, up to 10 directories deep:
+---------------------------------
+%%users.homedir%%/**10/findme.txt
+---------------------------------
+
+[NOTE]
+================================================================================
+Either forward "/home/me" or backslash "C:\Users\me" path specifications are
+allowed for any target OS.  They will be converted to a common format
+internally.  We recommend using whatever is normal for the target OS: (backslash
+for Windows, fwdslash for OS X and Linux).
+================================================================================
+
+File Path Interpolation
+~~~~~~~~~~~~~~~~~~~~~~~
+
+GRR supports path interpolation from values in the artifact Knowledge Base.
+Interpolated values are enclosed with %%, and may expand to multiple elements.
+e.g.
+--------------------------
+%%users.homedir%%\blah.txt
+--------------------------
+
+Might expand to the following paths:
+---------------------------------------------------------------------
+C:\Users\alice\blah.txt, C:\Users\bob\blah.txt, C:\Users\eve\blah.txt
+---------------------------------------------------------------------
+
+A full list of possible interpolation values can be found by typing %% in the
+gui.
+
+Path Globbing
+~~~~~~~~~~~~~
+
+Curly braces work similarly to bash, e.g:
+-------------------
+{one,two}.{txt,doc}
+-------------------
+
+Will match: one.txt, two.txt, one.doc, two.doc
+
+Recursive searching of a directory is performed with **.  The default search
+depth is 3 directories.  So:
+------------
+/root/**.doc
+------------
+
+Will match:
+-----------------------
+/root/blah.doc
+/root/1/something.doc
+/root/1/2/other.doc
+/root/1/2/3/another.doc
+-----------------------
+
+More depth can be specified by adding a number to the **, e.g. this performs
+the same search 10 levels deep:
+--------------
+/root/**10.doc
+--------------
+
+Grep Syntax
+-----------
+A number of GRR flows (such as File Finder and Memory Collector) accept Grep
+specifications, which are a powerful way to search file and memory contents.
+There are two types of grep syntax: literal and regex.
+
+Literal Matches
+~~~~~~~~~~~~~~~
+Use this when you have a simple string to match, or want to match a byte string.
+Here's a simple string example (note no quotes required):
+-----------
+allyourbase
+-----------
+And a byte string example:
+------------------------------------------
+MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00
+------------------------------------------
+
+To minimise the potential for errors we recommend using python to create byte
+strings for you where possible, e.g.  the above byte string was created in
+ipython like this:
+----------------------------------------------------
+In [1]: content = open("test.exe","rb").read(12)
+
+In [2]: content
+Out[2]: 'MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00'
+----------------------------------------------------
+
+Regex Matches
+~~~~~~~~~~~~~
+Use this when you need more complex matching. The format is a regular python
+regex (see http://docs.python.org/2/library/re.html) with the following switches
+applied automatically:
+----------------------------------------
+re.IGNORECASE | re.DOTALL | re.MULTILINE
+----------------------------------------
+An example regex is below. The entire match is reported, () groups are not
+broken out separately.  Also note that 10 bytes before and after will be added
+to any matches by default - use the Advanced menu to change this behavior:
+-----------------------------------------------------
+Accepted [^ ]+ for [^ ]+ from [0-9.]+ port [0-9]+ ssh
+-----------------------------------------------------
+
+Advanced Options
+~~~~~~~~~~~~~~~~
+The default options under the 'Advanced' menu should be fine for most
+situations, but this is where you can specify byte offsets and lengths, and how
+much context to retrieve around matches.
 
 The Virtual Filesystem
 ----------------------
@@ -739,620 +862,13 @@ that's not available in the given platform an error will show up.
 Available flows
 ~~~~~~~~~~~~~~~
 
-
-Administrative/ExecuteCommand
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Execute a predefined command on the client.
-
-
-Administrative/GetClientStats
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-This flow retrieves information about the GRR client process.
-
-Arguments
-
-- 'context': A FlowContext object that will save the state for this flow.
-
-- 'notify_to_user': Should this flow notify completion to the user that started
-  it?
-
-
-Administrative/Kill
-^^^^^^^^^^^^^^^^^^^
-Terminate a running client (does not disable, just kill).
-
-Arguments
-
-- 'context': A FlowContext object that will save the state for this flow.
-
-- 'notify_to_user': Should this flow notify completion to the user that started
-  it?
-
-
-Administrative/OnlineNotification
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Notifies by email when a client comes online in GRR.
-
-Arguments
-
-- 'email': Email address to send to, can be comma separated. If not set, mail
-  will be sent to the logged in user.
-
-
-Administrative/Uninstall
-^^^^^^^^^^^^^^^^^^^^^^^^
-Removes the persistence mechanism which the client uses at boot. For Windows and
-OSX, this will disable the service, and then stop the service. For Linux this
-flow will fail as we haven't implemented it yet :)
-
-
-Administrative/Update
-^^^^^^^^^^^^^^^^^^^^^
-Updates the GRR client to a new version.
-
-Arguments
-
-- 'blob_path': An aff4 path to a GRRSignedBlob of a new client version.
-
-
-Automation/LinSystemActivityInvestigation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Do the initial work for a Linux system investigation.
-
-Arguments
-
-- 'list_processes': Call the ListProcesses flow.
-
-- 'list_network_connections': Call the Netstat flow.
-
-- 'artifact_list': List of artifacts to collect. If None use self.artifact_list.
-
-- 'use_tsk': Use raw filesystem access where possible.
-
-- 'timeline_collected_data': Once complete create a timeline for the host.
-
-
-Automation/WinSystemActivityInvestigation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Do the initial work for a system investigation.
-
-Arguments
-
-- 'list_processes': Call the ListProcesses flow.
-
-- 'list_network_connections': Call the Netstat flow.
-
-- 'artifact_list': List of artifacts to collect. If None use self.artifact_list.
-
-- 'collect_av_data': Call the Antivirus flows to collect quarantine/logs.
-  collect_bit9_database: Collect the bit9 database.
-
-- 'collect_prefetch': List the prefetch directory.
-
-- 'use_tsk': Use raw filesystem access where possible.
-
-- 'timeline_collected_data': Once complete create a timeline for the host.
-
-
-Automation/WinUserActivityInvestigation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Do the initial work for a user investigation.
-
-Arguments
-
-- 'username': The user to target the actions to.
-
-- 'get_browser_history': Call each of the browser history flows.
-- 'recursive_list_homedir': Recursively list the users homedir to this depth.
-
-- 'recursive_list_user_registry': Recursively list the users registry hive.
-- 'artifact_list': A list of Artifact names. If None use self.artifact_list.
-
-- 'timeline_collected_data': Once complete create a timeline for the host.
-- 'use_tsk': Use raw filesystem access where possible.
-
-
-Browser/ChromeHistory
-^^^^^^^^^^^^^^^^^^^^^
-Retrieve and analyze the chrome history for a machine. Default directories as
-per: http://www.chromium.org/user-experience/user-data-directory
-
-Windows XP
-Google Chrome:
-
-  c:\Documents and Settings\<username>\Local Settings\Application Data Google\
-  Chrome\User Data\Default
-
-Windows 7 or Vista
-  c:\Users\<username>\AppData\Local\Google\Chrome\User Data\Default
-
-Mac OS X
-
-  /Users/<user>/Library/Application Support/Google/Chrome/Default
-
-Linux
-
-  /home/<user>/.config/google-chrome/Default
-
-Arguments
-
-- 'username': String, the user to get Chrome history for. If history_path is not
-  set this will be used to guess the path to the history files. Can be in form
-  DOMAIN\user.
-
-- 'history_path': A specific file to parse.
-
-- 'get_archive': Should we get Archived History as well (3 months old).
-
-- 'pathtype': Type of path to use.
-
-- 'output': A path relative to the client to put the output.
-
-
-Browser/ChromePlugins
-^^^^^^^^^^^^^^^^^^^^^
-Extract information about the installed Chrome extensions. Default directories
-as per: http://www.chromium.org/user-experience/user-data-directory
-
-Windows XP
-
-  c:\Documents and Settings\<username>\Local Settings Application Data\
-  Google\Chrome\User Data\Default\Extensions
-
-Windows 7 or Vista
-
-  c:\Users\<username>\AppData\Local\Google\Chrome\User Data\Default\Extensions
-
-Mac OS X
-
-  /Users/<user>/Library/Application Support/Google/Chrome/Default/Extensions
-
-Linux
-
-  /home/<user>/.config/google-chrome/Default/Extensions
-
-Arguments
-
-- 'download_files': If set to 1, all files belonging to the extension are
-  downloaded for analysis.
-
-- 'path': A path to a Chrome Extensions directory. If path is None, the
-  directory is guessed.
-
-- 'pathtype': Identifies requested path type (Enum from Path protobuf).
-
-- 'output': A path relative to the client to put the output.
-
-- 'username': String, the user to get Chrome extension info for. If path is not
-  set this will be used to guess the path to the extensions. For Windows domain
-  can be specified using DOMAIN\user nomenclature.
-
-
-Browser/FirefoxHistory
-^^^^^^^^^^^^^^^^^^^^^^
-Retrieve and analyze the Firefox history for a machine. Default directories as
-per: http://www.forensicswiki.org/wiki/Mozilla_Firefox_3_History_File_Format
-
-Windows XP
-
-  C:\Documents and Settings\<username>\Application Data\Mozilla Firefox\
-  Profiles\<profile folder>\places.sqlite
-
-Windows Vista
-
-  C:\Users\<user>\AppData\Roaming\Mozilla\Firefox\Profiles\<profile
-  folder>\places.sqlite
-
-GNU/Linux
-
-  /home/<user>/.mozilla/firefox/<profile folder>/places.sqlite
-
-Mac OS X
-
-  /Users/<user>/Library/Application Support/Firefox/Profiles/<profile
-  folder>/places.sqlite
-
-Arguments
-
-- 'username': String, the user to get the history for. If history_path is not
-  set this will be used to guess the path to the history files. Can be in form
-  DOMAIN\user.
-- 'history_path': A specific file to parse.
-
-- 'pathtype': Type of path to use.
-
-- 'output': A path relative to the client to put the output.
-
-
-Collectors/JavaCacheCollector
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Collect all files in a user specific Java Cache directory.
-
-Arguments
-
-- 'pathtype': Identifies requested path type. Enum from Path protobuf.
-
-- 'username': A string containing the username.
-
-- 'domain': Optional string containing the domain of the username.
-
-- 'cachedir': Path to the Java cache. If provided, this overrides the guessing
-  of the cache directory using username/domain.
-- 'output': If set, a URN to an AFF4Collection to add each result to.  This will
-  create the collection if it does not exist.
-
-
-Collectors/SophosCollector
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-Collect all files related to Sophos.
-
-Arguments
-
-- 'pathtype': Identifies requested path type. Enum from Path protobuf.
-
-- 'output': If set, a URN to an AFF4Collection to add each result to.  This will
-  create the collection if it does not exist.
-
-
-Filesystem/DownloadDirectory
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Flow for recursively downloading all files in a directory.
-
-Arguments
-
-- 'path': The directory path to download.
-
-- 'pathtype': The type of path.
-
-- 'depth': Maximum recursion depth.
-
-- 'pathspec': If specified overrides path to the location of the directory.
-
-- 'ignore_errors': If True, we do not raise an error in the case that a
-  directory or file cannot be not found.
-
-
-Filesystem/MultiGetFile
-^^^^^^^^^^^^^^^^^^^^^^^
-An experimental GetFile which uses deduplication to save bandwidth.
-
-
-Filesystem/FetchAllFiles
-^^^^^^^^^^^^^^^^^^^^^^^^
-Fetch all files satisfying a findspec, unless already fetched.
-This flow finds files, computes their hashes, and fetches 'new' files.
-
-The result from this flow is a population of aff4 objects under
-aff4:/fp/(generic|pecoff)/<hashname>/<hashvalue>.  There may also be a symlink
-from the original file to the retrieved content.
-
-Arguments
-
-- 'pattern': filename_regex to search for. The default is good for windows.
-
-- 'pecoff': This causes the computation of Authenticode hashes, and their
-        use for deduplicating file fetches.
-
-- 'findspec': A jobs_pb2.Find, if specified, pattern and the pathspec
-        are ignored.
-
-- 'pathspec': If provided we start searching for the files recursively
-        from this path.
-
-
-Filesystem/FindFiles
-^^^^^^^^^^^^^^^^^^^^
-This flow searches for files on the client.
-
-The result from this flow is an AFF4Collection which will be created on the
-output path, containing all aff4 objects on the client which match the
-criteria. Note that these files will not be downloaded by this flow, only the
-metadata of the file in fetched.
-
-[CAUTION]
-==============================================================================
-This flow is inefficient for collecting a large number of files.
-==============================================================================
-
-Arguments
-
-- 'path': Search recursively from this place.
-
-- 'pathtype': Identifies requested path type. Enum from Path protobuf.
-
-- 'filename_regex': A regular expression to match the filename (Note only the
-  base component of the filename is matched).
-
-- 'data_regex': The file data should match this regex.
-
-- 'iterate_on_number': The total number of files to search before iterating on
-  the server.
-
-- 'max_results': Maximum number of results to get.
-
-- 'output': The path to the output container for this find. Will be created
-  under the client. supports format variables {u} and {t} for user and time.
-  E.g. /analysis/find/{u}-{t}.  If set to None, no collection will be created.
-
-- 'findspec': A jobs_pb2.Find, if specified, other arguments are ignored.
-
-- 'cross_devs': If True, the find action will descend into mounted devices.
-
-
-Filesystem/FingerprintFile
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-Retrieve all fingerprints of a file.
-
-Allows declaration of a path or pathspec to compute the fingerprint on.
-
-Arguments
-
-- 'path': The file path to fingerprint.
-
-- 'pathtype': Identifies requested path type. Enum from Path protobuf.
-
-- 'device': Optional raw device that should be accessed.
-
-- 'pathspec': Use a pathspec instead of a path.
-
-
-Filesystem/GetFile
-^^^^^^^^^^^^^^^^^^
-An efficient file transfer mechanism.
-
-This flow uses chunking and hashes to de-duplicate data and send it efficiently.
-
-Arguments
-
-- 'path': The directory path to list.
-
-- 'pathtype': Identifies requested path type. Enum from Path protobuf.
-
-- 'pathspec': This flow also accepts all the information in one pathspec.  which
-  is preferred over the path and pathtype definition
-
-
-Filesystem/GetMBR
-^^^^^^^^^^^^^^^^^
-A flow to retrieve the MBR.
-
-
-Filesystem/Grep
-^^^^^^^^^^^^^^^
-This flow greps a file on the client for a pattern or a regex.
-
-Arguments
-
-- 'path': A path to the file.
-
-- 'pathtype': Identifies requested path type. Enum from Path protobuf.
-
-- 'grep_regex': The file data should match this regex.
-
-- 'grep_literal': The file data should contain this pattern. Only one parameter
-  of grep_regex and grep_literal should be set.
-- 'offset': An offset in the file to start grepping from.
-
-- 'length': The maximum number of bytes this flow will look at.
-
-- 'mode': Should this grep return all hits or just the first.
-
-- 'bytes_before': The number of data bytes to return before each hit.
-
-- 'bytes_after': The number of data bytes to return after each hit.
-
-- 'output': The path to the output container for this find. Will be created
-  under the client. supports format variables {u} and {t} for user and time.
-  E.g. /analysis/grep/{u}-{t}.
-
-
-Filesystem/ListDirectory
-^^^^^^^^^^^^^^^^^^^^^^^^
-List files in a directory.
-
-Arguments
-
-- 'path': The directory path to list.
-
-- 'pathtype': Identifies requested path type (Enum from Path protobuf).
-- 'pathspec': This flow also accepts all the information in one pathspec.
-
-
-Filesystem/RecursiveListDirectory
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Recursively list directory on the client.  This flow builds a timeline for the
-filesystem on the client.
-
-Arguments
-
-- 'path': Search recursively from this place.
-
-- 'pathtype': Identifies requested path type. Enum from Path protobuf.
-
-- 'pathspec': This flow also accepts all the information in one pathspec.
-
-- 'max_depth': Maximum depth to recurse
-
-
-Filesystem/SlowGetFile
-^^^^^^^^^^^^^^^^^^^^^^
-Simple file retrival.
-
-This flow does not use the efficient hash transfer mechanism used in GetFile
-so its only really suitable for transferring very small files.
-
-Arguments
-
-- 'path': The directory path to list.
-
-- 'pathtype': Identifies requested path type. Enum from Path protobuf.
-
-- 'aff4_chunk_size': Specifies how much data is sent back from the client in
-  each chunk.
-
-- 'pathspec': Use a pathspec instead of a path.
-
-
-Memory/AnalyzeClientMemory
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-Runs client side analysis using volatility.
-
-Arguments
-
-- 'plugins': A list of volatility plugins to run on the client.
-
-- 'driver_installer': An optional driver installer protobuf.
-
-- 'profile': A volatility profile. None guesses.
-
-
-Memory/LoadMemoryDriver
-^^^^^^^^^^^^^^^^^^^^^^^
-Load a memory driver on the client.
-
-Arguments
-
-- 'driver_installer': An optional InstallDriverRequest proto to control driver
-  installation. If not set, the default installation proto will be used.
-
-
-Memory/UnloadMemoryDriver
-^^^^^^^^^^^^^^^^^^^^^^^^^
-Unloads a memory driver on the client.
-
-Arguments
-
-- 'driver_installer': An optional InstallDriverRequest proto to control driver
-  installation. If not set, the default installation proto will be used.
-
-
-Metadata/Interrogate
-^^^^^^^^^^^^^^^^^^^^
-Interrogate various things about the host.
-
-Arguments
-
-- 'context': A FlowContext object that will save the state for this flow.
-
-- 'notify_to_user': Should this flow notify completion to the user that started
-  it?
-
-Misc/TakeScreenshot
-^^^^^^^^^^^^^^^^^^^
-Take a screenshot from a running system.
-
-Arguments
-
-- 'context': A FlowContext object that will save the state for this flow.
-
-- 'notify_to_user': Should this flow notify completion to the user that started
-  it?
-
-Network/Netstat
-^^^^^^^^^^^^^^^
-List running processes on a system.
-
-Arguments
-
-- 'context': A FlowContext object that will save the state for this flow.
-
-- 'notify_to_user': Should this flow notify completion to the user that started
-  it?
-
-Processes/ListProcesses
-^^^^^^^^^^^^^^^^^^^^^^^
-List running processes on a system.
-Constructor for the Flow.
-
-Arguments
-
-- 'context': A FlowContext object that will save the state for this flow.
-
-- 'notify_to_user': Should this flow notify completion to the user that started
-  it?
-
-
-Registry/CollectRunKeys
-^^^^^^^^^^^^^^^^^^^^^^^
-Collect Run and RunOnce keys on the system for all users and System.
-
-Arguments
-
-- 'context': A FlowContext object that will save the state for this flow.
-
-- 'notify_to_user': Should this flow notify completion to the user that started
-  it?
-
-
-Registry/FindMRU
-^^^^^^^^^^^^^^^^
-Collect a list of the Most Recently Used files for all users.
-
-Arguments
-
-- 'context': A FlowContext object that will save the state for this flow.
-
-- 'notify_to_user': Should this flow notify completion to the user that started
-  it?
-
-Services/EnumerateRunningServices
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Collect running services.
-
-Arguments
-
-- 'context': A FlowContext object that will save the state for this flow.
-
-- 'notify_to_user': Should this flow notify completion to the user that started
-  it?
-
-Timeline/MACTimes
-^^^^^^^^^^^^^^^^^
-Calculate the MAC times from objects in the VFS.
-This flow builds a timeline for the filesystem on the client.
-
-[NOTE]
-=====================================================
-Currently only VFSDirectory objects are supported.
-=====================================================
-
-Arguments
-
-- 'path': An AFF4 path (relative to the client area of the VFS).
-
-- 'output': The path to the output container for this find. Will be created
-  under the client. supports format variables {u} and {t} for user and time.
-  E.g. /analysis/timeline/{u}-{t}.
-
-
-Volatility/Mutexes
-^^^^^^^^^^^^^^^^^^
-This flow uses a volatility plugin to find mutexes. It relies on a memory
-driver being loaded on the client or it will fail.
-
-Arguments
-
-- 'device': Name of the device the memory driver created.
-
-- 'output': The path to the output container for this find. Will be created
-  under the client. supports format variables {u} and {t} for user and time.
-  E.g. /analysis/mutexes/{u}-{t}.
-
-
-Volatility/VolatilityPlugins
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-This flow runs a volatility plugin. It relies on a memory driver being loaded on
-the client or it will fail.
-
-Arguments
-
-- 'plugins': A list of plugins to run.
-
-- 'device': Name of the device the memory driver created.
-
-- 'output': The path to the output container for this find. Will be created
-  under the client. supports format variables {u}, {p} and {t} for user, plugin
-  and time. E.g. /analysis/{p}/{u}-{t}.
+The easiest ways to see the current flows is to check in the AdminUI under
+StartFlow. These have useful documentation.
+
+Note that by default only BASIC flows are shown in the Admin UI. By clicking
+the settings (gear icon) in the top right, you can enable ADVANCED flows. With
+this set you will see many of the underlying flows which sometimes be useful,
+but require a deeper understanding of GRR.
 
 
 Hunting
@@ -1403,7 +919,7 @@ Exporting Data From GRR
 -----------------------
 Extracting bulk data from the GRR datastore using the UI is slow and cumbersome.
 It is possible to use the console to extract any data you wish, but we also
-provide a tool called file_exporter.
+provide a tool called file_exporter, and a FUSE layer.
 
 Exporting a Single File
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1521,6 +1037,32 @@ message Process {
  user_cpu_time : 2.36999988556
  username : u'root'
 }
+
+
+
+GRR's FUSE layer
+-----------
+
+GRR's FUSE layer allows you to mount remote filesystems at directories in your
+machine. Run it by running `grr_fuse`. For configuration options, see
+grr/tools/fuse_mount.py
+
+By default `grr_fuse` will mount the root AFF4 directory, so you'll be able to
+cd into any client from there. It's also possible to mount at arbitrary URNs
+using the --aff4_path flag to fuse_mount.py.
+
+Example invocation:
+`grr_fuse` --mountpoint=/mnt/aff4
+
+While using the FUSE layer, flows will be run on the client to update
+files/directories, so some commands (e.g. ls) might be slow the first time they
+are run. Results are cached so that subsequent calls (e.g. in tab completion) do
+not need to make a request to the client. The cache is time based, so any files
+older than the expiry time will be refreshed from the client. The default cache
+time is 5 minutes, and can be set with the --max_age_before_refresh flag in
+grr/tools/fuse_mount.py
+
+
 --------------------------------------------------------------------------
 
 Timeline

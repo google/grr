@@ -333,6 +333,7 @@ message BareGrepSpec {
     }];
 
   optional bytes literal = 5 [(sem_type) = {
+      type: "LiteralExpression",
       description: "Search for this literal string.",
     }];
 
@@ -748,12 +749,32 @@ message RecursiveListDirectoryArgs {
     }, default=5];
 }
 
+message FetchBufferForSparseImageArgs {
+  optional string file_urn= 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the sparse image to update",
+    }];
+  optional uint64 length = 2;
+  optional uint64 offset = 3;
+}
 
 message SlowGetFileArgs {
   optional PathSpec pathspec = 1;
   optional uint64 aff4_chunk_size = 2 [default=1048576];
 }
 
+message MakeNewAFF4SparseImageArgs {
+  optional PathSpec pathspec = 1;
+  optional uint64 size_threshold = 2;
+}
+
+message UpdateSparseImageChunksArgs {
+  optional string file_urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the sparse image to update",
+    }];
+  repeated uint64 chunks_to_fetch = 2;
+}
 
 message GrepArgs {
   optional GrepSpec request = 1;
@@ -1219,7 +1240,7 @@ message ListVADBinariesArgs {
     }];
 }
 
-message FileFinderModificationTimeFilter {
+message FileFinderModificationTimeCondition {
   optional uint64 min_last_modified_time = 5 [(sem_type) = {
       type: "RDFDatetime",
       description: "File must be modified after this time."
@@ -1232,7 +1253,7 @@ message FileFinderModificationTimeFilter {
     }, default = 9223372036854775807];
 }
 
-message FileFinderAccessTimeFilter {
+message FileFinderAccessTimeCondition {
   optional uint64 min_last_access_time = 5 [(sem_type) = {
       type: "RDFDatetime",
       description: "File must be accessed after this time."
@@ -1245,7 +1266,7 @@ message FileFinderAccessTimeFilter {
     }, default = 9223372036854775807];
 }
 
-message FileFinderInodeChangeTimeFilter {
+message FileFinderInodeChangeTimeCondition {
   optional uint64 min_last_inode_change_time = 5 [(sem_type) = {
       type: "RDFDatetime",
       description: "File's inode must be changed after this time."
@@ -1258,7 +1279,7 @@ message FileFinderInodeChangeTimeFilter {
     }, default = 9223372036854775807];
 }
 
-message FileFinderSizeFilter {
+message FileFinderSizeCondition {
   optional uint64 min_file_size = 11 [(sem_type) = {
       description: "Minimum file size in bytes."
     }, default = 0];
@@ -1270,7 +1291,7 @@ message FileFinderSizeFilter {
 
 }
 
-message FileFinderContentsRegexMatchFilter {
+message FileFinderContentsRegexMatchCondition {
 
   enum Mode {
     ALL_HITS = 0;   // Report all hits.
@@ -1309,7 +1330,7 @@ message FileFinderContentsRegexMatchFilter {
 }
 
 
-message FileFinderContentsLiteralMatchFilter {
+message FileFinderContentsLiteralMatchCondition {
 
   enum Mode {
     ALL_HITS = 0;   // Report all hits.
@@ -1317,6 +1338,7 @@ message FileFinderContentsLiteralMatchFilter {
   }
 
   optional bytes literal = 5 [(sem_type) = {
+      type: "LiteralExpression",
       description: "Search for this literal string.",
     }];
 
@@ -1360,7 +1382,7 @@ message FileFinderContentsLiteralMatchFilter {
     }, default = 0];
 }
 
-message FileFinderFilter {
+message FileFinderCondition {
   enum Type {
     MODIFICATION_TIME = 0 [(description) = "Modification time"];
     ACCESS_TIME = 1 [(description) = "Access time"];
@@ -1370,16 +1392,16 @@ message FileFinderFilter {
     CONTENTS_LITERAL_MATCH = 5 [(description) = "Contents literal match"];
   }
 
-  optional Type filter_type = 1 [(sem_type) = {
-      description: "Filter type",
-      friendly_name: "Filter type"
+  optional Type condition_type = 1 [(sem_type) = {
+      description: "Condition type",
+      friendly_name: "Condition type"
     }];
-  optional FileFinderModificationTimeFilter modification_time = 2;
-  optional FileFinderAccessTimeFilter access_time = 3;
-  optional FileFinderInodeChangeTimeFilter inode_change_time = 4;
-  optional FileFinderSizeFilter size = 5;
-  optional FileFinderContentsRegexMatchFilter contents_regex_match = 6;
-  optional FileFinderContentsLiteralMatchFilter contents_literal_match = 7;
+  optional FileFinderModificationTimeCondition modification_time = 2;
+  optional FileFinderAccessTimeCondition access_time = 3;
+  optional FileFinderInodeChangeTimeCondition inode_change_time = 4;
+  optional FileFinderSizeCondition size = 5;
+  optional FileFinderContentsRegexMatchCondition contents_regex_match = 6;
+  optional FileFinderContentsLiteralMatchCondition contents_literal_match = 7;
 }
 
 message FileFinderDownloadActionOptions {
@@ -1399,14 +1421,14 @@ message FileFinderDownloadActionOptions {
 
 message FileFinderAction {
   enum Action {
-    DO_NOTHING = 0 [(description) = "Do nothing"];
+    STAT = 0 [(description) = "Stat"];
 
     HASH = 1 [(description) = "Hash"];
 
     DOWNLOAD = 2 [(description) = "Download"];
   }
 
-  optional Action action_type = 1 [default = DO_NOTHING, (sem_type) = {
+  optional Action action_type = 1 [default = STAT, (sem_type) = {
       friendly_name: "Action",
       description: "Action to apply to found files"
     }];
@@ -1425,14 +1447,14 @@ message FileFinderArgs {
     }, default=OS];
 
 
-  repeated FileFinderFilter filters = 5;
+  repeated FileFinderCondition conditions = 5;
 
   optional FileFinderAction action = 6;
 
   optional bool no_file_type_check = 7 [(sem_type) = {
       description: "Work with all kinds of files - not only with regular ones."
       "NOTE: This is very dangerous and should be used with care, see "
-      "MemoryScanner as an example.",
+      "MemoryCollector as an example.",
       label: HIDDEN,
     }, default=false];
 }
@@ -1460,21 +1482,21 @@ message Bit9DownloaderArgs {
   repeated FileReference files = 1;
 }
 
-message MemoryScannerFilter {
+message MemoryCollectorCondition {
   enum Type {
     LITERAL_MATCH = 1 [(description) = "Literal match"];
     REGEX_MATCH = 2 [(description) = "Regex match"];
   }
 
-  optional Type filter_type = 1;
-  optional FileFinderContentsLiteralMatchFilter literal_match = 2;
-  optional FileFinderContentsRegexMatchFilter regex_match = 3;
+  optional Type condition_type = 1;
+  optional FileFinderContentsLiteralMatchCondition literal_match = 2;
+  optional FileFinderContentsRegexMatchCondition regex_match = 3;
 }
 
-message MemoryScannerWithoutLocalCopyDumpOption {
+message MemoryCollectorWithoutLocalCopyDumpOption {
 }
 
-message MemoryScannerWithLocalCopyDumpOption {
+message MemoryCollectorWithLocalCopyDumpOption {
   optional string destdir = 1 [(sem_type) = {
       description: "Destination directory on the client for the temporary "
       "image. Leave blank to use defaults. Parent directories will be "
@@ -1500,7 +1522,7 @@ message MemoryScannerWithLocalCopyDumpOption {
     }, default=true];
 }
 
-message MemoryScannerDumpOption {
+message MemoryCollectorDumpOption {
   enum Option {
     WITHOUT_LOCAL_COPY = 0 [(description) = "Don't create local copy"];
     WITH_LOCAL_COPY = 1 [(description) = "Create local copy first"];
@@ -1510,18 +1532,18 @@ message MemoryScannerDumpOption {
       friendly_name: "Dump option",
       description: "How to do the dump"
     }];
-  optional MemoryScannerWithoutLocalCopyDumpOption without_local_copy = 2;
-  optional MemoryScannerWithLocalCopyDumpOption with_local_copy = 3;
+  optional MemoryCollectorWithoutLocalCopyDumpOption without_local_copy = 2;
+  optional MemoryCollectorWithLocalCopyDumpOption with_local_copy = 3;
 }
 
-message MemoryScannerDownloadAction {
-  optional MemoryScannerDumpOption dump_option = 1 [(sem_type) = {
+message MemoryCollectorDownloadAction {
+  optional MemoryCollectorDumpOption dump_option = 1 [(sem_type) = {
       description: "Memory dump options."
     }];
 }
 
-message MemoryScannerSendToSocketAction {
-  optional MemoryScannerDumpOption dump_option = 1 [(sem_type) = {
+message MemoryCollectorSendToSocketAction {
+  optional MemoryCollectorDumpOption dump_option = 1 [(sem_type) = {
       description: "Memory dump options."
     }];
 
@@ -1548,10 +1570,10 @@ message MemoryScannerSendToSocketAction {
     }];
 }
 
-message MemoryScannerAction {
+message MemoryCollectorAction {
   enum Action {
-    NONE = 0 [(description) = "None"];
-    DOWNLOAD = 1 [(description) = "Dump memory to AFF4"];
+    NONE = 0 [(description) = "None (just report conditions matches)"];
+    DOWNLOAD = 1 [(description) = "Download"];
     SEND_TO_SOCKET = 2 [(description) = "Send memory dump to socket"];
   }
 
@@ -1559,13 +1581,13 @@ message MemoryScannerAction {
       friendly_name: "Action",
       description: "What to do with the memory"
     }];
-  optional MemoryScannerDownloadAction download = 2;
-  optional MemoryScannerSendToSocketAction send_to_socket = 3;
+  optional MemoryCollectorDownloadAction download = 2;
+  optional MemoryCollectorSendToSocketAction send_to_socket = 3;
 }
 
-message MemoryScannerArgs {
-  repeated MemoryScannerFilter filters = 1;
-  optional MemoryScannerAction action = 2;
+message MemoryCollectorArgs {
+  repeated MemoryCollectorCondition conditions = 1;
+  optional MemoryCollectorAction action = 2;
 
   optional DriverInstallTemplate driver_installer = 5 [(sem_type) = {
       description: "An optional DriverInstallTemplate proto to control "
@@ -1574,3 +1596,11 @@ message MemoryScannerArgs {
       label: HIDDEN
     }];
 }
+
+message KnowledgeBaseInitializationArgs {
+  optional bool require_complete = 1 [(sem_type) = {
+      description: "If true require all dependencies to be complete.  "
+      "Raise if any are missing.",
+    }, default=true];
+}
+

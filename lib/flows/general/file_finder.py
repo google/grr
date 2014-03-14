@@ -12,32 +12,32 @@ from grr.lib import utils
 from grr.proto import flows_pb2
 
 
-class FileFinderModificationTimeFilter(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderModificationTimeFilter
+class FileFinderModificationTimeCondition(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.FileFinderModificationTimeCondition
 
 
-class FileFinderAccessTimeFilter(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderAccessTimeFilter
+class FileFinderAccessTimeCondition(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.FileFinderAccessTimeCondition
 
 
-class FileFinderInodeChangeTimeFilter(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderInodeChangeTimeFilter
+class FileFinderInodeChangeTimeCondition(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.FileFinderInodeChangeTimeCondition
 
 
-class FileFinderSizeFilter(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderSizeFilter
+class FileFinderSizeCondition(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.FileFinderSizeCondition
 
 
-class FileFinderContentsRegexMatchFilter(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderContentsRegexMatchFilter
+class FileFinderContentsRegexMatchCondition(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.FileFinderContentsRegexMatchCondition
 
 
-class FileFinderContentsLiteralMatchFilter(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderContentsLiteralMatchFilter
+class FileFinderContentsLiteralMatchCondition(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.FileFinderContentsLiteralMatchCondition
 
 
-class FileFinderFilter(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderFilter
+class FileFinderCondition(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.FileFinderCondition
 
 
 class FileFinderDownloadActionOptions(rdfvalue.RDFProtoStruct):
@@ -58,14 +58,19 @@ class FileFinderResult(rdfvalue.RDFProtoStruct):
 
 class FileFinder(flow.GRRFlow):
   """This flow looks for files matching given criteria and acts on them.
+
+  FileFinder searches for files that match glob expressions.  The "action"
+  (e.g. Download) is applied to files that match all given "conditions".
+  Matches are then written to the results collection. If there are no
+  "conditions" specified, "action" is just applied to all found files.
+
+  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile
+  and SearchFileContent.
   """
   friendly_name = "File Finder"
   category = "/Filesystem/"
   args_type = FileFinderArgs
-  # TODO(user): move to BASIC as soon as this flow is properly
-  # tested and benchmarked. Remove Fetch Files and Find Files at the
-  # same moment.
-  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @classmethod
   def GetDefaultArgs(cls, token=None):
@@ -74,30 +79,32 @@ class FileFinder(flow.GRRFlow):
 
   def Initialize(self):
     super(FileFinder, self).Initialize()
-    type_enum = rdfvalue.FileFinderFilter.Type
-    # For every filter type we specify a tuple (handle, weight).
-    # Filters will be sorted by weight, so that the ones with the minimal
+    type_enum = rdfvalue.FileFinderCondition.Type
+    # For every condition type we specify a tuple (handle, weight).
+    # Conditions will be sorted by weight, so that the ones with the minimal
     # weight will be executed earlier.
-    self.filter_handlers = {
-        type_enum.MODIFICATION_TIME: (self.ModificationTimeFilter, 0),
-        type_enum.ACCESS_TIME: (self.AccessTimeFilter, 0),
-        type_enum.INODE_CHANGE_TIME: (self.InodeChangeTimeFilter, 0),
-        type_enum.SIZE: (self.SizeFilter, 0),
-        type_enum.CONTENTS_REGEX_MATCH: (self.ContentsRegexMatchFilter, 1),
-        type_enum.CONTENTS_LITERAL_MATCH: (self.ContentsLiteralMatchFilter, 1)
+    self.condition_handlers = {
+        type_enum.MODIFICATION_TIME: (self.ModificationTimeCondition, 0),
+        type_enum.ACCESS_TIME: (self.AccessTimeCondition, 0),
+        type_enum.INODE_CHANGE_TIME: (self.InodeChangeTimeCondition, 0),
+        type_enum.SIZE: (self.SizeCondition, 0),
+        type_enum.CONTENTS_REGEX_MATCH: (self.ContentsRegexMatchCondition, 1),
+        type_enum.CONTENTS_LITERAL_MATCH: (
+            self.ContentsLiteralMatchCondition, 1)
         }
 
-  def _FilterWeight(self, filter_options):
-    _, filter_weight = self.filter_handlers[filter_options.filter_type]
-    return filter_weight
+  def _ConditionWeight(self, condition_options):
+    _, condition_weight = self.condition_handlers[
+        condition_options.condition_type]
+    return condition_weight
 
-  @flow.StateHandler(next_state=["ProcessFilters"])
+  @flow.StateHandler(next_state=["ProcessConditions"])
   def Start(self):
     """Issue the find request."""
     self.state.Register("files_to_fetch", [])
     self.state.Register("files_found", 0)
-    self.state.Register("sorted_filters",
-                        sorted(self.args.filters, key=self._FilterWeight))
+    self.state.Register("sorted_conditions",
+                        sorted(self.args.conditions, key=self._ConditionWeight))
 
     if self.args.pathtype == rdfvalue.PathSpec.PathType.MEMORY:
       # We construct StatEntries ourselves and there's no way they can
@@ -117,13 +124,13 @@ class FileFinder(flow.GRRFlow):
         memory_devices.append(stat_entry)
 
       self.CallStateInline(messages=memory_devices,
-                           next_state="ProcessFilters")
+                           next_state="ProcessConditions")
     else:
-      self.CallFlow("Glob", next_state="ProcessFilters", paths=self.args.paths,
-                    pathtype=self.args.pathtype)
+      self.CallFlow("Glob", next_state="ProcessConditions",
+                    paths=self.args.paths, pathtype=self.args.pathtype)
 
-  @flow.StateHandler(next_state=["ApplyFilter"])
-  def ProcessFilters(self, responses):
+  @flow.StateHandler(next_state=["ApplyCondition"])
+  def ProcessConditions(self, responses):
     """Iterate through glob responses, and filter each hit."""
     if not responses.success:
       # Glob failing is fatal here.
@@ -135,63 +142,66 @@ class FileFinder(flow.GRRFlow):
       if self.args.no_file_type_check or stat.S_ISREG(response.st_mode):
         results.append(rdfvalue.FileFinderResult(stat_entry=response))
 
-    self.CallStateInline(messages=results, next_state="ApplyFilter",
-                         request_data=dict(filter_index=0))
+    self.CallStateInline(messages=results, next_state="ApplyCondition",
+                         request_data=dict(condition_index=0))
 
-  def ModificationTimeFilter(self, responses, filter_options, filter_index):
-    """Applies modification time filter to responses."""
+  def ModificationTimeCondition(self, responses, condition_options,
+                                condition_index):
+    """Applies modification time condition to responses."""
     results = []
     for response in responses:
-      settings = filter_options.modification_time
+      settings = condition_options.modification_time
       if (settings.min_last_modified_time.AsSecondsFromEpoch() <=
           response.stat_entry.st_mtime <=
           settings.max_last_modified_time.AsSecondsFromEpoch()):
         results.append(response)
 
-    self.CallStateInline(messages=results, next_state="ApplyFilter",
-                         request_data=dict(filter_index=filter_index + 1))
+    self.CallStateInline(messages=results, next_state="ApplyCondition",
+                         request_data=dict(condition_index=condition_index + 1))
 
-  def AccessTimeFilter(self, responses, filter_options, filter_index):
-    """Applies access time filter to responses."""
+  def AccessTimeCondition(self, responses, condition_options, condition_index):
+    """Applies access time condition to responses."""
     results = []
     for response in responses:
-      settings = filter_options.access_time
+      settings = condition_options.access_time
       if (settings.min_last_access_time.AsSecondsFromEpoch() <=
           response.stat_entry.st_atime <=
           settings.max_last_access_time.AsSecondsFromEpoch()):
         results.append(response)
 
-    self.CallStateInline(messages=results, next_state="ApplyFilter",
-                         request_data=dict(filter_index=filter_index + 1))
+    self.CallStateInline(messages=results, next_state="ApplyCondition",
+                         request_data=dict(condition_index=condition_index + 1))
 
-  def InodeChangeTimeFilter(self, responses, filter_options, filter_index):
-    """Applies inode change time filter to responses."""
+  def InodeChangeTimeCondition(self, responses, condition_options,
+                               condition_index):
+    """Applies inode change time condition to responses."""
     results = []
     for response in responses:
-      settings = filter_options.inode_change_time
+      settings = condition_options.inode_change_time
       if (settings.min_last_inode_change_time.AsSecondsFromEpoch() <=
           response.stat_entry.st_ctime <=
           settings.max_last_inode_change_time.AsSecondsFromEpoch()):
         results.append(response)
 
-    self.CallStateInline(messages=results, next_state="ApplyFilter",
-                         request_data=dict(filter_index=filter_index + 1))
+    self.CallStateInline(messages=results, next_state="ApplyCondition",
+                         request_data=dict(condition_index=condition_index + 1))
 
-  def SizeFilter(self, responses, filter_options, filter_index):
-    """Applies size filter to responses."""
+  def SizeCondition(self, responses, condition_options, condition_index):
+    """Applies size condition to responses."""
     results = []
     for response in responses:
-      if (filter_options.size.min_file_size <=
+      if (condition_options.size.min_file_size <=
           response.stat_entry.st_size <=
-          filter_options.size.max_file_size):
+          condition_options.size.max_file_size):
         results.append(response)
 
-    self.CallStateInline(messages=results, next_state="ApplyFilter",
-                         request_data=dict(filter_index=filter_index + 1))
+    self.CallStateInline(messages=results, next_state="ApplyCondition",
+                         request_data=dict(condition_index=condition_index + 1))
 
-  def ContentsRegexMatchFilter(self, responses, filter_options, filter_index):
-    """Applies contents regex filter to responses."""
-    options = filter_options.contents_regex_match
+  def ContentsRegexMatchCondition(self, responses, condition_options,
+                                  condition_index):
+    """Applies contents regex condition to responses."""
+    options = condition_options.contents_regex_match
     for response in responses:
       grep_spec = rdfvalue.GrepSpec(
           target=response.stat_entry.pathspec,
@@ -203,14 +213,15 @@ class FileFinder(flow.GRRFlow):
           bytes_after=options.bytes_after)
 
       self.CallClient(
-          "Grep", request=grep_spec, next_state="ApplyFilter",
+          "Grep", request=grep_spec, next_state="ApplyCondition",
           request_data=dict(
               original_result=response,
-              filter_index=filter_index + 1))
+              condition_index=condition_index + 1))
 
-  def ContentsLiteralMatchFilter(self, responses, filter_options, filter_index):
-    """Applies literal match filter to responses."""
-    options = filter_options.contents_literal_match
+  def ContentsLiteralMatchCondition(self, responses, condition_options,
+                                    condition_index):
+    """Applies literal match condition to responses."""
+    options = condition_options.contents_literal_match
     for response in responses:
       grep_spec = rdfvalue.GrepSpec(
           target=response.stat_entry.pathspec,
@@ -224,14 +235,14 @@ class FileFinder(flow.GRRFlow):
           xor_out_key=options.xor_out_key)
 
       self.CallClient(
-          "Grep", request=grep_spec, next_state="ApplyFilter",
+          "Grep", request=grep_spec, next_state="ApplyCondition",
           request_data=dict(
               original_result=response,
-              filter_index=filter_index + 1))
+              condition_index=condition_index + 1))
 
-  @flow.StateHandler(next_state=["ProcessAction", "ApplyFilter"])
-  def ApplyFilter(self, responses):
-    """Applies next filter to responses or calls ProcessAction."""
+  @flow.StateHandler(next_state=["ProcessAction", "ApplyCondition"])
+  def ApplyCondition(self, responses):
+    """Applies next condition to responses or calls ProcessAction."""
     # We filtered out everything, no need to continue
     if not responses:
       return
@@ -250,14 +261,15 @@ class FileFinder(flow.GRRFlow):
       else:
         messages.append(response)
 
-    filter_index = responses.request_data["filter_index"]
+    condition_index = responses.request_data["condition_index"]
 
-    if filter_index >= len(self.state.sorted_filters):
+    if condition_index >= len(self.state.sorted_conditions):
       self.CallStateInline(messages=messages, next_state="ProcessAction")
     else:
-      filter_options = self.state.sorted_filters[filter_index]
-      filter_handler, _ = self.filter_handlers[filter_options.filter_type]
-      filter_handler(messages, filter_options, filter_index)
+      condition_options = self.state.sorted_conditions[condition_index]
+      condition_handler, _ = self.condition_handlers[
+          condition_options.condition_type]
+      condition_handler(messages, condition_options, condition_index)
 
   @flow.StateHandler(next_state=["Done"])
   def ProcessAction(self, responses):
@@ -267,14 +279,15 @@ class FileFinder(flow.GRRFlow):
       self.SendReply(response)
 
     action = self.state.args.action.action_type
-    if action == rdfvalue.FileFinderAction.Action.DO_NOTHING:
-      self.DoNothingAction(responses)
+    if action == rdfvalue.FileFinderAction.Action.STAT:
+      self.StatAction(responses)
     elif action == rdfvalue.FileFinderAction.Action.HASH:
       self.HashAction(responses)
     elif action == rdfvalue.FileFinderAction.Action.DOWNLOAD:
       self.DownloadAction(responses)
 
-  def DoNothingAction(self, responses):
+  def StatAction(self, responses):
+    # No need to do anything here, we already have StatEntries for all the files
     pass
 
   def HashAction(self, responses):
@@ -293,8 +306,8 @@ class FileFinder(flow.GRRFlow):
       if file_size > self.args.action.download.max_size:
         self.Log("%s too large to fetch. Size=%d",
                  response.stat_entry.pathspec.CollapsePath(), file_size)
-
-      files_to_fetch.append(response.stat_entry.pathspec)
+      else:
+        files_to_fetch.append(response.stat_entry.pathspec)
 
     if files_to_fetch:
       use_stores = self.args.action.download.use_external_stores
@@ -309,3 +322,9 @@ class FileFinder(flow.GRRFlow):
   @flow.StateHandler()
   def End(self, responses):
     self.Log("Found and processed %d files.", self.state.files_found)
+    if self.runner.output:
+      urn = self.runner.output.urn
+    else:
+      urn = self.client_id
+    self.Notify("ViewObject", urn,
+                "Found and processed %d files." % self.state.files_found)

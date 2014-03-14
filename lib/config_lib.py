@@ -511,6 +511,7 @@ class StringInterpolator(lexer.Lexer):
       if filter_object is None:
         raise FilterError("Unknown filter function %r" % filter_name)
 
+      logging.info("Applying filter %s for %s.", filter_name, arg)
       arg = filter_object().Filter(arg)
 
     self.stack[-1] += arg

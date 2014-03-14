@@ -404,6 +404,7 @@ class TableRenderer(TemplateRenderer):
   """
 
   fixed_columns = False
+  show_total_count = False
   custom_class = ""
 
   # We receive change path events from this queue

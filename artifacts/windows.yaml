@@ -202,7 +202,9 @@ collectors:
   args:
     path_list: [HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\Run\*,
       HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\RunOnce\*,
-      HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run\*, HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce\*]
+      HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run\*,
+      HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce\*,
+      HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnceEx\*]
 labels: [Software]
 supported_os: [Windows]
 ---

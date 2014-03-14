@@ -94,9 +94,9 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
                 "content_regex_list": [r"^a%%users.username%%b$"]})
       collect_flow.Grep(collector, rdfvalue.PathSpec.PathType.TSK)
 
-    filters = mock_call_flow.kwargs["filters"]
+    conditions = mock_call_flow.kwargs["conditions"]
     regexes = [f.contents_regex_match.regex.SerializeToString()
-               for f in filters]
+               for f in conditions]
     self.assertItemsEqual(regexes, [r"^atest1b$", r"^atest2b$"])
     self.assertEqual(mock_call_flow.kwargs["paths"], ["/etc/passwd"])
 
@@ -275,6 +275,3 @@ class TestBootstrapKnowledgeBaseFlow(artifact_test.ArtifactTestHelper):
     bootstrap = fd[0]
     self.assertEqual(bootstrap["environ_systemdrive"], "C:")
     self.assertEqual(bootstrap["environ_systemroot"], "C:\\Windows")
-
-
-

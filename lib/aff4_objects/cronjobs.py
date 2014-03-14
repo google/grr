@@ -299,7 +299,7 @@ class CronJob(aff4.AFF4Volume):
 
     DISABLED = aff4.Attribute(
         "aff4:cron/disabled", rdfvalue.RDFBool,
-        "If True, don't run this job.")
+        "If True, don't run this job.", versioned=False)
 
     CURRENT_FLOW_URN = aff4.Attribute(
         "aff4:cron/current_flow_urn", rdfvalue.RDFURN,

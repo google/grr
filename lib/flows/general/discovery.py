@@ -103,13 +103,15 @@ class Interrogate(flow.GRRFlow):
       self.client.Set(self.client.Schema.ARCH(response.machine))
       self.client.Set(self.client.Schema.UNAME("%s-%s-%s" % (
           response.system, response.release, response.version)))
-      self.client.Flush()
+      self.client.Flush(sync=True)
 
     else:
       self.Log("Could not retrieve Platform info.")
 
     if self.client.Get(self.client.Schema.SYSTEM):
+      # We will accept a partial KBInit rather than raise.
       self.CallFlow("KnowledgeBaseInitializationFlow",
+                    require_complete=False,
                     next_state="ProcessKnowledgeBase")
     else:
       self.Log("Unknown system type, skipping KnowledgeBaseInitializationFlow")

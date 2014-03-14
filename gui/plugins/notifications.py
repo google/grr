@@ -211,7 +211,8 @@ class ViewNotifications(renderers.TableRenderer):
     flow.GRRFlow.StartFlow(flow_name="ResetUserNotifications",
                            token=request.token)
 
-  def BuildHashFromNotification(self, notification):
+  @staticmethod
+  def BuildHashFromNotification(notification):
     """Navigate to the most appropriate location for this navigation."""
     h = {}
 

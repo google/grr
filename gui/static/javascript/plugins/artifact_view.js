@@ -198,6 +198,9 @@ grr.artifact_view.renderArtifactFromObject = function(artifact, element) {
     $.each(artifact.collectors, function(index, collector) {
       collector_row = '<tr><td>Action<td>' + collector.action + '</tr>';
       $.each(collector.args, function(name, value) {
+        if ($.isArray(value)) {
+          value = value.join('<br>');
+        }
         collector_row += '<tr><td>arg:' + name + '<td>' + value + '</tr>';
       });
       collector_row += '<tr><td></tr>';
