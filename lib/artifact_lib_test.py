@@ -224,6 +224,25 @@ class KnowledgeBaseUserMergeTest(test_lib.GRRBaseTest):
     kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(username="test2", homedir="a"))
     self.assertEquals(len(kb.users), 2)
 
+    # This should create a new user since the sid is different.
+    new_attrs, conflicts = kb.MergeOrAddUser(
+        rdfvalue.KnowledgeBaseUser(username="test2", sid="12345", temp="/blah"))
+    self.assertEquals(len(kb.users), 3)
+    self.assertItemsEqual(new_attrs, ["users.username", "users.temp",
+                                      "users.sid"])
+    self.assertEquals(conflicts, [])
+
+    # This should create a new user since the uid is different.
+    kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(uid="12", username="blake"))
+    self.assertEquals(len(kb.users), 4)
+    new_attrs, conflicts = kb.MergeOrAddUser(
+        rdfvalue.KnowledgeBaseUser(username="blake", uid="13",
+                                   desktop="/home/blake/Desktop"))
+    self.assertEquals(len(kb.users), 5)
+    self.assertItemsEqual(new_attrs, ["users.username", "users.desktop",
+                                      "users.uid"])
+    self.assertEquals(conflicts, [])
+
 
 def main(argv):
   test_lib.main(argv)

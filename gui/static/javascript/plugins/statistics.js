@@ -4,6 +4,92 @@
 
 var grr = window.grr || {};
 
+grr.Renderer('ReportRenderer', {
+  Layout: function(state) {
+    var unique = state.unique;
+    var id = state.id;
+    var renderer = state.renderer;
+
+    grr.subscribe('tree_select', function(path) {
+      grr.state.path = path;
+      $('#' + id).html('<em>Loading&#8230;</em>');
+      grr.layout(renderer, id);
+    }, unique);
+  }
+});
+
+grr.Renderer('AFF4ClientStats', {
+  Layout: function(state) {
+    var unique = state.unique;
+    var id = state.id;
+    var graphs = state.graphs;
+
+    specs = {};
+    options = {};
+    plot = {};
+
+    selectTab = function(tabid) {
+      for (var i = 0; i < graphs.length; ++i) {
+        graph = graphs[i];
+        $('#' + unique + '_' + graph.id)[0].style.display = 'none';
+        $('#' + unique + '_' + graph.id + '_a').removeClass('selected');
+      }
+
+      $('#' + unique + '_' + tabid)[0].style.display = 'block';
+      $('#' + unique + '_click').text('');
+      $('#' + unique + '_' + tabid + '_a').addClass('selected');
+
+      $('#' + unique + '_' + tabid)[0].style.visibility = 'hidden';
+      $('#' + id).resize();
+      p = plot[tabid];
+      p.resize();
+      p.setupGrid();
+      p.draw();
+      $('#' + unique + '_' + tabid)[0].style.visibility = 'visible';
+    };
+
+    for (var i = 0; i < graphs.length; ++i) {
+      graph = graphs[i];
+      specs[graph.id] = [];
+
+      for (var j = 0; j < graph.series.length; ++j) {
+        stats = graph.series[j];
+        specs[graph.id].push({
+          label: stats.label,
+          data: [
+            stats.data
+          ]
+        });
+      }
+
+      options[graph.id] = {
+        xaxis: {mode: 'time',
+                timeformat: '%y/%m/%d - %H:%M:%S'},
+        lines: {show: true},
+        points: {show: true},
+        zoom: {interactive: true},
+        pan: {interactive: true},
+        grid: {clickable: true, autohighlight: true}
+      };
+
+      var placeholder = $('#' + unique + '_' + graph.id);
+      plot[graph.id] = $.plot(placeholder, specs[graph.id], options[graph.id]);
+
+      placeholder.bind('plotclick', function(event, pos, item) {
+        if (item) {
+          var date = new Date(item.datapoint[0]);
+          var msg = graph.click_text;
+          msg = msg.replace('%date', date.toString());
+          msg = msg.replace('%value', item.datapoint[1]);
+          $('#' + unique + '_click').text(msg);
+        }
+      });
+    }
+
+    selectTab('cpu');
+  }
+});
+
 grr.Renderer('PieChart', {
   Layout: function(state) {
     var unique = state.unique;
@@ -105,4 +191,3 @@ grr.Renderer('CustomXAxisChart', {
     });
   }
 });
-

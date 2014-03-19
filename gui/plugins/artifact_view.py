@@ -125,17 +125,13 @@ class ArtifactRDFValueRenderer(semantic.RDFValueRenderer):
 <div id={{unique|escape}}_artifact_description>"""
       + ArtifactListRenderer.artifact_template + """
 </div>
-<script>
-  var description_element = "{{unique|escapejs}}_artifact_description";
-  var artifact_obj = JSON.parse("{{this.artifact_str|escapejs}}");
-  grr.artifact_view.renderArtifactFromObject(artifact_obj, description_element);
-  $('div[name=artifact_name]').hide();   // Remove heading to clean up display.
-</script>
 """)
 
   def Layout(self, request, response):
     self.artifact_str = self.proxy.ToPrettyJson()
-    super(ArtifactRDFValueRenderer, self).Layout(request, response)
+    response = super(ArtifactRDFValueRenderer, self).Layout(request, response)
+    return self.CallJavascript(response, "ArtifactRDFValueRenderer.Layout",
+                               artifact_str=self.artifact_str)
 
 
 class ArtifactRawRDFValueRenderer(semantic.RDFValueRenderer):
@@ -228,16 +224,11 @@ class ArtifactManagerToolbar(renderers.TemplateRenderer):
     data-dismiss="modal" aria-hidden="true">Close</button>
   </div>
 </div>
-
-<script>
-
-$("#upload_dialog_{{unique|escapejs}}").on("show", function () {
-  grr.layout("ArtifactJsonUploadView",
-    "upload_dialog_body_{{unique|escapejs}}");
-});
-
-</script>
 """)
+
+  def Layout(self, request, response):
+    response = super(ArtifactManagerToolbar, self).Layout(request, response)
+    return self.CallJavascript(response, "ArtifactManagerToolbar.Layout")
 
 
 class ArtifactJsonUploadView(fileview.UploadView):

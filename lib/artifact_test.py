@@ -518,11 +518,16 @@ class GrrKbTest(test_lib.FlowTestsBaseclass):
                                                          "DepsHomedir",
                                                          "DepsWindir",
                                                          "DepsWindirRegex",
-                                                         "DepsControlSet"])
+                                                         "DepsControlSet",
+                                                         "FakeArtifact"])
       config_lib.CONFIG.Set("Artifacts.knowledge_base_additions",
                             ["DepsHomedir2"])
       config_lib.CONFIG.Set("Artifacts.knowledge_base_skip", ["DepsWindir"])
+      config_lib.CONFIG.Set("Artifacts.knowledge_base_heavyweight",
+                            ["FakeArtifact"])
+      args = rdfvalue.KnowledgeBaseInitializationArgs(lightweight=True)
       kb_init = artifact.KnowledgeBaseInitializationFlow(None, token=self.token)
+      kb_init.args = args
       kb_init.state.Register("all_deps", set())
       kb_init.state.Register("awaiting_deps_artifacts", [])
       kb_init.state.Register("knowledge_base",

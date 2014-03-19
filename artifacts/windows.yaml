@@ -234,7 +234,7 @@ supported_os: [Windows]
 name: WindowsWMIUsers
 doc: "Get all users the system knows about via WMI.\n\n  Note that in a domain setup,\
     \ this will probably return all users in the\n  domain which will be expensive\
-    \ and slow. Consider WindowsWMIProfileUsers\n  instead.\n  "
+    \ and slow. Consider limiting by SID like WindowsWMIProfileUsersHomeDir\n  "
 collectors:
 - action: WMIQuery
   args: {query: SELECT * FROM Win32_UserAccount}

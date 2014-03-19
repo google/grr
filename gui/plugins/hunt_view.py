@@ -37,15 +37,12 @@ class ManageHunts(renderers.Splitter2Way):
 
   context_help_url = "user_manual.html#_creating_a_hunt"
 
-  layout_template = renderers.Splitter2Way.layout_template + """
-<script>
-  // If hunt_id in hash, click that row.
-  if (grr.hash.hunt_id) {
-    var basename = grr.hash.hunt_id.split("/").reverse()[0];
-    $("table.HuntTable td:contains('" + basename + "')").click();
-  }
-</script>
-""" + renderers.TemplateRenderer.help_template
+  layout_template = (renderers.Splitter2Way.layout_template +
+                     renderers.TemplateRenderer.help_template)
+
+  def Layout(self, request, response):
+    response = super(ManageHunts, self).Layout(request, response)
+    return self.CallJavascript(response, "ManageHunts.Layout")
 
 
 class HuntStateIcon(semantic.RDFValueRenderer):
@@ -335,32 +332,23 @@ class HuntViewTabs(renderers.TabLayout):
                          "HuntStatsRenderer", "HuntCrashesRenderer",
                          "HuntOutstandingRenderer", "HuntContextView"]
 
-  subscribe_script_template = renderers.Template("""
-<script>
-  // When the hunt id is selected, redraw the tabs below.
-  grr.subscribe("file_select", function(hunt_id) {
-    grr.layout("HuntViewTabs", "main_bottomPane", {hunt_id: hunt_id});
-  }, "{{unique|escapejs}}");
-</script>
-""")
-
   empty_template = renderers.Template("""
 <div class="padded" id="{{unique|escape}}">
 <p>Please select a hunt to see its details here.</p>
 </div>
-""") + subscribe_script_template
-  layout_template = (renderers.TabLayout.layout_template +
-                     subscribe_script_template)
+""")
 
   post_parameters = ["hunt_id"]
 
   def Layout(self, request, response):
     hunt_id = request.REQ.get("hunt_id")
     if hunt_id:
-      super(HuntViewTabs, self).Layout(request, response)
+      response = super(HuntViewTabs, self).Layout(request, response)
     else:
-      super(HuntViewTabs, self).Layout(request, response,
-                                       apply_template=self.empty_template)
+      response = super(HuntViewTabs, self).Layout(
+          request, response, apply_template=self.empty_template)
+
+    return self.CallJavascript(response, "HuntViewTabs.Layout")
 
 
 class ManageHuntsClientView(renderers.Splitter2Way):
@@ -412,28 +400,7 @@ back to hunt view</a>
   <option>BAD</option>
 </select>
 </span>
-""" + fileview.AbstractFileTable.layout_template + """
-<script>
-  if (!grr.state.hunt_id) {
-    // Refresh the page with the hunt_id from the hash.
-    grr.state.hunt_id = grr.hash.hunt_id;
-    grr.layout('ContentView', 'content', grr.state);
-  }
-
-  // Add click handler to the backlink.
-  $("#" + "backlink_{{unique|escape}}").click(function () {
-    // clean up our state before we jump back to the hunt.
-    delete grr.state.client_id;
-    grr.loadFromHash("{{this.hunt_hash}}");
-  });
-
-  $("#" + "{{unique|escape}}_select").change(function () {
-    grr.state.completion_status = $("#{{unique|escape}}_select").val();
-    grr.layout('HuntClientTableRenderer', 'main_topPane', grr.state);
-  });
-
-</script>
-"""
+""" + fileview.AbstractFileTable.layout_template
 
   post_parameters = ["hunt_id"]
 
@@ -462,7 +429,10 @@ back to hunt view</a>
     self.title = "Viewing Hunt %s" % hunt_id
     h = dict(main="ManageHunts", hunt_id=hunt_id)
     self.hunt_hash = urllib.urlencode(sorted(h.items()))
-    super(HuntClientTableRenderer, self).Layout(request, response)
+
+    response = super(HuntClientTableRenderer, self).Layout(request, response)
+    return self.CallJavascript(response, "HuntClientTableRenderer.Layout",
+                               hunt_hash=self.hunt_hash)
 
   def BuildTable(self, start_row, end_row, request):
     """Called to fill in the data in the table."""
@@ -643,28 +613,16 @@ class HuntOverviewRenderer(AbstractLogRenderer):
 
   ajax_template = renderers.Template("""
 <div id="RunHuntResult_{{unique|escape}}"></div>
-<script>
-  // We execute CheckAccess renderer with silent=true. Therefore it searches
-  // for an approval and sets correct reason if approval is found. When
-  // CheckAccess completes, we execute HuntViewRunHunt renderer, which
-  // tries to run an actual hunt. If the approval wasn't found on CheckAccess
-  // stage, it will fail due to unauthorized access and proper ACLDialog will
-  // be displayed.
-  grr.layout("CheckAccess", "RunHuntResult_{{unique|escapejs}}",
-    {silent: true, subject: "{{this.subject|escapejs}}" },
-    function() {
-      grr.layout("HuntViewRunHunt", "RunHuntResult_{{unique|escapejs}}",
-        { hunt_id: "{{this.hunt_id|escapejs}}" });
-    });
-</script>
 """)
 
   def RenderAjax(self, request, response):
     self.hunt_id = request.REQ.get("hunt_id")
     self.subject = rdfvalue.RDFURN(self.hunt_id)
 
-    return renderers.TemplateRenderer.Layout(self, request, response,
-                                             apply_template=self.ajax_template)
+    response = renderers.TemplateRenderer.Layout(
+        self, request, response, apply_template=self.ajax_template)
+    return self.CallJavascript(response, "HuntOverviewRenderer.RenderAjax",
+                               subject=self.subject, hunt_id=self.hunt_id)
 
   def Layout(self, request, response):
     """Display the overview."""
@@ -818,19 +776,12 @@ class HuntClientViewTabs(renderers.TabLayout):
   delegated_renderers = ["HuntClientOverviewRenderer", "HuntLogRenderer",
                          "HuntErrorRenderer", "HuntHostInformationRenderer"]
 
-  layout_template = renderers.TabLayout.layout_template + """
-<script>
-  // When the hunt id is selected, redraw the tabs below.
-  grr.subscribe("file_select", function(client_id) {
-    grr.layout("HuntClientViewTabs", "main_bottomPane", {
-                 hunt_client: client_id,
-                 hunt_id: '{{this.state.hunt_id|escapejs}}'
-               });
-  }, "{{unique|escapejs}}");
-</script>
-"""
-
   post_parameters = ["hunt_id", "hunt_client"]
+
+  def Layout(self, request, response):
+    response = super(HuntClientViewTabs, self).Layout(request, response)
+    return self.CallJavascript(response, "HuntClientViewTabs.Layout",
+                               hunt_id=self.state["hunt_id"])
 
 
 class HuntClientOverviewRenderer(renderers.TemplateRenderer):
@@ -874,13 +825,6 @@ class HuntClientGraphRenderer(renderers.TemplateRenderer):
 <button id="{{ unique|escape }}">
  Generate
 </button>
-<script>
-  var button = $("#{{ unique|escapejs }}").button();
-
-  var state = {hunt_id: '{{this.hunt_id|escapejs}}'};
-  grr.downloadHandler(button, state, false,
-                      '/render/Download/HuntClientCompletionGraphRenderer');
-</script>
 {% else %}
 No data to graph yet.
 {% endif %}
@@ -891,7 +835,9 @@ No data to graph yet.
     hunt = aff4.FACTORY.Open(self.hunt_id, token=request.token)
 
     self.clients = bool(hunt.Get(hunt.Schema.CLIENTS))
-    super(HuntClientGraphRenderer, self).Layout(request, response)
+    response = super(HuntClientGraphRenderer, self).Layout(request, response)
+    return self.CallJavascript(response, "HuntClientGraphRenderer.Layout",
+                               hunt_id=self.hunt_id)
 
 
 class HuntClientCompletionGraphRenderer(renderers.ImageDownloadRenderer):
@@ -1087,73 +1033,6 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
 </table>
 </div>
 </div>
-
-<script>
-(function() {
-  $("#performers_{{unique|escapejs}} a[client_id!='']").click(function () {
-    client_id = $(this).attr("client_id");
-    grr.state.client_id = client_id;
-    grr.publish("hash_state", "c", client_id);
-
-    // Clear the authorization for new clients.
-    grr.publish("hash_state", "reason", "");
-    grr.state.reason = "";
-
-    grr.publish("hash_state", "main", null);
-    grr.publish("client_selection", client_id);
-  });
-
-  function formatTimeTick(tick) {
-    if (Math.abs(Math.floor(tick) - tick) > 1e-7) {
-      return tick.toFixed(1);
-    } else {
-      return Math.floor(tick);
-    }
-  }
-
-  function formatBytesTick(tick) {
-    if (tick < 1024) {
-      return tick + "B";
-    } else {
-      return Math.round(tick / 1024) + "K";
-    }
-  }
-
-  function plotStats(statName, jsonString, formatTickFn) {
-    var srcData = $.parseJSON(jsonString);
-    var data = [];
-    var ticks = [];
-    for (var i = 0; i < srcData.length; ++i) {
-      data.push([i, srcData[i][1]]);
-      ticks.push([i + 0.5, formatTickFn(srcData[i][0])]);
-    }
-
-    $.plot("#" + statName + "_{{unique|escapejs}}", [data], {
-      series: {
-        bars: {
-          show: true,
-          lineWidth: 1
-        }
-      },
-      xaxis: {
-        tickLength: 0,
-        ticks: ticks,
-      },
-      yaxis: {
-        minTickSize: 1,
-        tickDecimals: 0,
-      }
-    });
-  }
-
-  plotStats("user_cpu",
-    "{{this.user_cpu_json_data|escapejs}}", formatTimeTick);
-  plotStats("system_cpu",
-    "{{this.system_cpu_json_data|escapejs}}", formatTimeTick);
-  plotStats("network_bytes_sent",
-    "{{this.network_bytes_sent_json_data|escapejs}}", formatBytesTick);
-})();
-</script>
 """)
   error_template = renderers.Template(
       "No information available for this Hunt.")
@@ -1182,10 +1061,16 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
             self.stats.user_cpu_stats.histogram)
         self.network_bytes_sent_json_data = self._HistogramToJSON(
             self.stats.network_bytes_sent_stats.histogram)
+
+        response = super(HuntStatsRenderer, self).Layout(request, response)
+        return self.CallJavascript(
+            response, "HuntStatsRenderer.Layout",
+            user_cpu_json_data=self.user_cpu_json_data,
+            system_cpu_json_data=self.system_cpu_json_data,
+            network_bytes_sent_json_data=self.network_bytes_sent_json_data)
       except IOError:
         self.layout_template = self.error_template
-
-    return super(HuntStatsRenderer, self).Layout(request, response)
+        return super(HuntStatsRenderer, self).Layout(request, response)
 
 
 class HuntCrashesRenderer(crash_view.ClientCrashCollectionRenderer):

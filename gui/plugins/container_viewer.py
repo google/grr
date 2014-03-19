@@ -82,26 +82,6 @@ class ContainerFileTable(renderers.TableRenderer):
     - container: The container to query.
     - query: The query string to use.
   """
-  layout_template = (renderers.TableRenderer.layout_template + """
-<script>
-  //Receive the selection event and emit a path
-  grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
-    if (node) {
-      var element = node.find("span[aff4_path]");
-      if (element) {
-        grr.publish("file_select", element.attr("aff4_path"));
-      };
-    };
-  }, '{{ unique|escapejs }}');
-
-  // Redraw the table if the query changes
-  grr.subscribe("query_changed", function(query) {
-    grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}", {
-      container: "{{this.state.container|escapejs}}",
-      query: query,
-    });
-  }, "{{unique|escapejs}}");
-</script>""")
 
   content_cache = None
   max_items = 10000
@@ -125,7 +105,10 @@ class ContainerFileTable(renderers.TableRenderer):
     container = aff4.FACTORY.Open(self.state["container"], token=request.token)
     self.AddDynamicColumns(container)
 
-    return super(ContainerFileTable, self).Layout(request, response)
+    response = super(ContainerFileTable, self).Layout(request, response)
+    return self.CallJavascript(response, "ContainerFileTable.Layout",
+                               renderer=self.__class__.__name__,
+                               container=self.state["container"])
 
   def AddDynamicColumns(self, container):
     """Add the columns in the VIEW attribute."""
@@ -298,34 +281,15 @@ class ContainerToolbar(renderers.TemplateRenderer):
 </div>
 </form>
 </li>
-<script>
-$('#export').button().click(function () {
-  $("input#csrfmiddlewaretoken").val(grr.getCookie("csrftoken"));
-  $("input#csv_query").val($("input#query").val());
-  $("input#csv_reason").val(grr.state.reason);
-  $("#csv_{{unique|escape}}").submit();
-});
-
-grr.subscribe("tree_select", function(path) {
-   $("input#query").val("subject startswith '" +
-      path.replace("'", "\\'") + "/'");
-   $("#form_{{unique|escapejs}}").submit();
-}, "form_{{unique|escapejs}}");
-
-$("#form_{{unique|escapejs}}").submit(function () {
-  query = $("input#query").val();
-  grr.publish('query_changed', query);
-
-  return false;
-});
-</script>
 """)
 
   def Layout(self, request, response):
     """Render the toolbar."""
     self.container = request.REQ.get("container")
     self.query = request.REQ.get("query", "")
-    return super(ContainerToolbar, self).Layout(request, response)
+
+    response = super(ContainerToolbar, self).Layout(request, response)
+    return self.CallJavascript(response, "ContainerToolbar.Layout")
 
 
 class ContainerViewer(renderers.TemplateRenderer):
@@ -334,14 +298,11 @@ class ContainerViewer(renderers.TemplateRenderer):
   layout_template = renderers.Template("""
 <div id='toolbar_{{id|escape}}' class="breadcrumb"></div>
 <div id='{{unique|escape}}' class="fill-parent no-margins toolbar-margin"></div>
-<script>
-  grr.state.container = grr.hash.container;
-  grr.state.query = grr.hash.query || "";
-
-  grr.layout("ContainerToolbar", "toolbar_{{id|escapejs}}");
-  grr.layout("ContainerViewerSplitter", "{{unique|escapejs}}");
-</script>
 """)
+
+  def Layout(self, request, response):
+    response = super(ContainerViewer, self).Layout(request, response)
+    return self.CallJavascript(response, "ContainerViewer.Layout")
 
 
 class ContainerViewerSplitter(renderers.Splitter):

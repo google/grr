@@ -39,17 +39,6 @@ class RequestTable(renderers.TableRenderer):
   Post Parameters:
     - client_id: The client to show the flows for.
   """
-  layout_template = renderers.TableRenderer.layout_template + """
-<script>
-  //Receive the selection event and emit a path
-  grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
-    if (node) {
-      var task_id = node.find("span[rdfvalue]").attr("rdfvalue");
-      grr.publish("request_table_select", task_id);
-    };
-  }, '{{ unique|escapejs }}');
-</script>
-"""
 
   post_parameters = ["client_id"]
 
@@ -88,6 +77,10 @@ class RequestTable(renderers.TableRenderer):
       self.AddCell(i, "Flow", task.session_id)
       self.AddCell(i, "Due", rdfvalue.RDFDatetime(task.eta))
       self.AddCell(i, "Client Action", task.name)
+
+  def Layout(self, request, response):
+    response = super(RequestTable, self).Layout(request, response)
+    return self.CallJavascript(response, "RequestTable.Layout")
 
 
 class ResponsesTable(renderers.TableRenderer):
@@ -162,15 +155,9 @@ class RequestTabs(renderers.TabLayout):
 
   tab_hash = "rt"
 
-  # When a new request is selected we redraw the current tab.
-  layout_template = renderers.TabLayout.layout_template + """
-<script>
-grr.subscribe('request_table_select', function (task_id) {
-    $("#{{unique|escapejs}}").data().state.task_id = task_id;
-    $("#{{unique|escapejs}} li.active a").click();
-}, '{{unique|escapejs}}');
-</script>
-"""
+  def Layout(self, request, response):
+    response = super(RequestTabs, self).Layout(request, response)
+    return self.CallJavascript(response, "RequestTabs.Layout")
 
 
 class RequestRenderer(renderers.TemplateRenderer):

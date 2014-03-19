@@ -1093,7 +1093,7 @@ grr.hexview = {};
  *
  */
 grr.hexview.BuildTable = function(domId, width, height) {
-  var table = $($('#HexTableTemplate').text());
+  var table = $($('#HexTableTemplate').html());
 
   // Insert the offset headers
   var layout = '';

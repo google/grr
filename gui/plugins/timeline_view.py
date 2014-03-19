@@ -53,16 +53,11 @@ class TimelineMain(renderers.TemplateRenderer):
   layout_template = renderers.Template("""
 <ul id='toolbar_{{id|escape}}' class="breadcrumb"></ul>
 <div id='{{unique|escape}}' class="fill-parent no-margins toolbar-margin"></div>
-<script>
-  var state = {
-    container: grr.hash.container,
-    query: grr.hash.query || "",
-  };
-
-  grr.layout("TimelineToolbar", "toolbar_{{id|escapejs}}", state);
-  grr.layout("TimelineViewerSplitter", "{{unique|escapejs}}", state);
-</script>
 """)
+
+  def Layout(self, request, response):
+    response = super(TimelineMain, self).Layout(request, response)
+    return self.CallJavascript(response, "TimelineMain.Layout")
 
 
 class TimelineViewerSplitter(renderers.Splitter2Way):
@@ -110,24 +105,6 @@ class TimelineToolbar(renderers.TemplateRenderer):
     </div>
   </form>
 </li>
-<script>
-var container = "{{this.container|escapejs}}";
-var state = {query: $("input#container_query").val(),
-             container: container,
-             reason: '{{this.token.reason|escapejs}}',
-             client_id: grr.state.client_id,
-            };
-grr.downloadHandler($('#export_{{unique|escapejs}}'), state, true,
-                    '/render/Download/EventTable');
-
-$("#form_{{unique|escapejs}}").submit(function () {
-  var query = $("input#container_query").val();
-  grr.publish('query_changed', query);
-  grr.publish('hash_state', 'query', query);
-
-  return false;
-});
-</script>
 """) + renderers.TemplateRenderer.help_template
 
   context_help_url = "user_manual.html#_timeline"
@@ -138,7 +115,10 @@ $("#form_{{unique|escapejs}}").submit(function () {
     self.query = request.REQ.get("query", "")
     self.token = request.token
 
-    return super(TimelineToolbar, self).Layout(request, response)
+    response = super(TimelineToolbar, self).Layout(request, response)
+    return self.CallJavascript(response, "TimelineToolbar.Layout",
+                               container=self.container,
+                               reason=self.token.reason)
 
 
 class EventMessageRenderer(semantic.RDFValueRenderer):
@@ -184,23 +164,6 @@ class EventTable(renderers.TableRenderer):
     - query: The query to filter.
   """
 
-  layout_template = renderers.TableRenderer.layout_template + """
-<script>
-  grr.subscribe("query_changed", function (query) {
-    grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}", {
-      container: "{{this.state.container|escapejs}}",
-      query: query,
-    });
-  }, "{{unique|escapejs}}");
-
-  grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
-    var event_id = node.find("td").first().text();
-
-    grr.publish("event_select", event_id);
-  }, '{{ unique|escapejs }}');
-
-</script>
-"""
   content_cache = None
 
   def __init__(self, **kwargs):
@@ -217,7 +180,11 @@ class EventTable(renderers.TableRenderer):
     """Render the content of the tab or the container tabset."""
     self.state["container"] = request.REQ.get("container")
     self.state["query"] = request.REQ.get("query", "")
-    return super(EventTable, self).Layout(request, response)
+
+    response = super(EventTable, self).Layout(request, response)
+    return self.CallJavascript(response, "EventTable.Layout",
+                               container=self.state["container"],
+                               renderer=self.__class__.__name__)
 
   def BuildTable(self, start_row, end_row, request):
     """Populate the table."""
@@ -272,24 +239,16 @@ class EventViewTabs(renderers.TabLayout):
   names = ["Event", "Subject"]
   delegated_renderers = ["EventView", "EventSubjectView"]
 
-  # Listen to the event change events and switch to the first tab.
-  layout_template = renderers.TabLayout.layout_template + """
-<script>
-grr.subscribe("{{ this.event_queue|escapejs }}", function(event) {
-  grr.publish("hash_state", "event", event);
-  grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}", {
-    event: event,
-    container: "{{this.state.container|escapejs}}",
-  });
-}, 'tab_contents_{{unique|escapejs}}');
-</script>
-"""
-
   def Layout(self, request, response):
     """Check if the file is a readable and disable the tabs."""
     self.state["container"] = request.REQ.get("container")
     self.state["event"] = request.REQ.get("event")
-    return super(EventViewTabs, self).Layout(request, response)
+
+    response = super(EventViewTabs, self).Layout(request, response)
+    return self.CallJavascript(response, "EventViewTabs.Layout",
+                               event_queue=self.event_queue,
+                               container=self.state["container"],
+                               renderer=self.__class__.__name__)
 
 
 class EventSubjectView(fileview.AFF4Stats):

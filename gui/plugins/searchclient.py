@@ -32,13 +32,9 @@ class ContentView(renderers.Splitter2WayVertical):
   min_left_pane_width = 210
   max_left_pane_width = 210
 
-  layout_template = """
-<script>
-  if (grr.hash.c) {
-    grr.state.client_id = grr.hash.c;
-  };
-</script>
-""" + renderers.Splitter2WayVertical.layout_template
+  def Layout(self, request, response):
+    response = super(ContentView, self).Layout(request, response)
+    return self.CallJavascript(response, "ContentView.Layout")
 
 
 def FormatLastSeenTime(age):
@@ -184,34 +180,6 @@ class Navigator(renderers.TemplateRenderer):
 </div>
 
 </div>
-<script>
-
- grr.installNavigationActions("nav_{{unique|escapejs}}");
- if(!grr.hash.main) {
-   $('a[grrtarget=HostInformation]').click();
- } else {
-   $('a[grrtarget=' + grr.hash.main + ']').click();
- };
-
- grr.poll("StatusRenderer", "infoline_{{unique|escapejs}}",
-   function(data) {
-     $("#infoline_{{unique|escapejs}}").html(data);
-     return true;
-   }, {{this.poll_time|escapejs}}, grr.state, null,
-   function() {
-      $("#infoline_{{unique|escapejs}}").html("Client status not available.");
-   });
-
-  // Reload the navigator when a new client is selected.
-  grr.subscribe("client_selection", function () {
-    grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}");
-  }, "{{unique|escapejs}}");
-
-  if(grr.hash.c && grr.hash.c != "{{this.client_id|escapejs}}") {
-    grr.publish("client_selection", grr.hash.c);
-  };
-
-</script>
 """)
 
   def Layout(self, request, response):
@@ -276,7 +244,10 @@ class Navigator(renderers.TemplateRenderer):
       renderers.Renderer.GetPlugin("UnauthorizedRenderer")().Layout(
           request, response, exception=e)
 
-    return response
+    return self.CallJavascript(response, "Navigator.Layout",
+                               renderer=self.__class__.__name__,
+                               client_id=self.client_id,
+                               poll_time=self.poll_time)
 
 
 class OnlineStateIcon(semantic.RDFValueRenderer):
@@ -340,24 +311,6 @@ class HostTable(renderers.TableRenderer):
 
   fixed_columns = False
 
-  # Update the table if any messages appear in these queues:
-  vfs_table_template = renderers.Template("""<script>
-     //Receive the selection event and emit a client_id
-     grr.subscribe("select_table_{{ id|escapejs }}", function(node) {
-          var aff4_path = $("span[aff4_path]", node).attr("aff4_path");
-          var cn = aff4_path.replace("aff4:/", "");
-          grr.state.client_id = cn;
-          grr.publish("hash_state", "c", cn);
-
-          // Clear the authorization for new clients.
-          grr.publish("hash_state", "reason", "");
-          grr.state.reason = "";
-
-          grr.publish("hash_state", "main", null);
-          grr.publish("client_selection", cn);
-     }, "{{ unique|escapejs }}");
- </script>""")
-
   def __init__(self, **kwargs):
     renderers.TableRenderer.__init__(self, **kwargs)
     self.AddColumn(semantic.RDFValueColumn("Online", width="40px",
@@ -378,12 +331,7 @@ class HostTable(renderers.TableRenderer):
   @renderers.ErrorHandler()
   def Layout(self, request, response):
     response = super(HostTable, self).Layout(request, response)
-
-    return self.RenderFromTemplate(
-        self.vfs_table_template,
-        response,
-        event_queue=self.event_queue,
-        unique=self.unique, id=self.id)
+    return self.CallJavascript(response, "HostTable.Layout")
 
   @stats.Timed("grr_gui_search_host_time")
   def BuildTable(self, start, end, request):
@@ -424,22 +372,16 @@ class SearchHostView(renderers.Renderer):
 <form id="search_host" class="navbar-search pull-left">
   <input type="text" name="q" class="search-query" placeholder="Search">
 </form>
-
-<script>
- $("#search_host").submit(function () {
-   grr.layout("HostTable", "main", {q: $('input[name="q"]').val()});
-   return false;
- }).find("input[name=q]").focus();
-</script>
 """)
 
   def Layout(self, request, response):
     """Display a search screen for the host."""
     response = super(SearchHostView, self).Layout(request, response)
 
-    return self.RenderFromTemplate(
+    response = self.RenderFromTemplate(
         self.template, response, title=self.title,
         id=self.id)
+    return self.CallJavascript(response, "SearchHostView.Layout")
 
 
 class FrontPage(renderers.TemplateRenderer):
@@ -461,12 +403,8 @@ class FrontPage(renderers.TemplateRenderer):
    </div>  <!-- container -->
 
   </div>
-
-<script>
- // Update main's state from the hash
- if (grr.hash.main) {
-   grr.layout(grr.hash.main, "main");
- };
-
-</script>
 """)
+
+  def Layout(self, request, response):
+    response = super(FrontPage, self).Layout(request, response)
+    return self.CallJavascript(response, "FrontPage.Layout")

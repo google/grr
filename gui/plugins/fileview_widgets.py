@@ -26,7 +26,7 @@ class HexView(renderers.TemplateRenderer):
 
   # This is the template used by the js to build the hex viewer html.
   table_jquery_template = """
-<script id="HexTableTemplate" type="text/x-jquery-tmpl">
+<div id="HexTableTemplate">
 <table class="monospace">
  <tbody>
   <tr id="hex_header" class="ui-state-default">
@@ -50,30 +50,24 @@ class HexView(renderers.TemplateRenderer):
   </tr>
 </tbody>
 </table>
-</script>
+</div>
 """
 
   layout_template = renderers.Template("""
 <div id="{{unique|escape}}" style="position: absolute; top: 45px;
-right: 0; bottom: 0; left: 0"></div> """ + table_jquery_template + """
-<script>
-  $("#{{unique|escapejs}}").resize(function() {
-     grr.hexview.HexViewer("{{renderer|escapejs}}", "{{unique|escapejs}}",
-       {{this.table_width|escapejs}}, {{this.state_json|safe}});
-  });
-  $("#{{unique|escapejs}}").resize();
-</script>
-""")
+right: 0; bottom: 0; left: 0"></div> """ + table_jquery_template)
 
   def Layout(self, request, response):
     """Render the content of the tab or the container tabset."""
     self.state["aff4_path"] = request.REQ.get("aff4_path")
     self.state["age"] = request.REQ.get("age")
 
-    encoder = json.JSONEncoder()
-    self.state_json = encoder.encode(self.state)
-
-    return super(HexView, self).Layout(request, response)
+    response = super(HexView, self).Layout(request, response)
+    return self.CallJavascript(response, "HexView.Layout",
+                               renderer=self.__class__.__name__,
+                               table_width=self.table_width,
+                               aff4_path=self.state["aff4_path"],
+                               age=self.state["age"])
 
   def RenderAjax(self, request, response):
     """Return the contents of the hex viewer in JSON."""
@@ -145,11 +139,6 @@ class TextView(renderers.TemplateRenderer):
 <div id="text_viewer_data" total_size=0>
   <div id="text_viewer_data_content" total_size=0></div>
 </div>
-<script>
-  grr.textview.TextViewer("{{renderer|escapejs}}", "{{unique|escapejs}}",
-                          "{{this.default_codec|escapejs}}",
-                          {{this.state_json|safe}});
-</script>
 </div>
 </div>
 """)
@@ -171,10 +160,11 @@ class TextView(renderers.TemplateRenderer):
     self.state["aff4_path"] = request.REQ.get("aff4_path")
     self.state["age"] = request.REQ.get("age")
 
-    encoder = json.JSONEncoder()
-    self.state_json = encoder.encode(self.state)
-
-    return super(TextView, self).Layout(request, response)
+    response = super(TextView, self).Layout(request, response)
+    return self.CallJavascript(response, "TextView.Layout",
+                               default_codec=self.default_codec,
+                               aff4_path=self.state["aff4_path"],
+                               age=self.state["age"])
 
   def RenderAjax(self, request, response):
     """Return the contents of the text viewer."""

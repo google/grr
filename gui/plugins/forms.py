@@ -862,12 +862,12 @@ class MultiSelectListRenderer(RepeatedFieldFormRenderer):
     </select>
   </div>
 </div>
-<script>
-  // Height hack as CSS isn't handled properly for multiselect.
-  var multiselect_height = parseInt($("#{{this.prefix}} option").length) * 15;
-  $("#{{this.prefix}}").css("height", multiselect_height);
-</script>
 """)
+
+  def Layout(self, request, response):
+    response = super(MultiSelectListRenderer, self).Layout(request, response)
+    return self.CallJavascript(response, "MultiSelectListRenderer.Layout",
+                               prefix=self.prefix)
 
   def ParseArgs(self, request):
     """Parse all the post parameters and build a list."""

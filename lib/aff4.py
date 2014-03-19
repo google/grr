@@ -428,8 +428,8 @@ class Factory(object):
 
     return result
 
-  def MultiOpen(self, urns, mode="rw", token=None, aff4_type=None,
-                age=NEWEST_TIME):
+  def MultiOpen(self, urns, mode="rw", ignore_cache=False, token=None,
+                aff4_type=None, age=NEWEST_TIME):
     """Opens a bunch of urns efficiently."""
     if token is None:
       token = data_store.default_token
@@ -440,8 +440,9 @@ class Factory(object):
     symlinks = []
     for urn, values in self.GetAttributes(urns, token=token, age=age):
       try:
-        obj = self.Open(urn, mode=mode, token=token, local_cache={urn: values},
-                        aff4_type=aff4_type, age=age, follow_symlinks=False)
+        obj = self.Open(urn, mode=mode, ignore_cache=ignore_cache, token=token,
+                        local_cache={urn: values}, aff4_type=aff4_type, age=age,
+                        follow_symlinks=False)
         target = obj.Get(obj.Schema.SYMLINK_TARGET)
         if target is not None:
           symlinks.append(target)
@@ -451,8 +452,8 @@ class Factory(object):
         pass
 
     if symlinks:
-      for obj in self.MultiOpen(symlinks, mode=mode, token=token,
-                                aff4_type=aff4_type, age=age):
+      for obj in self.MultiOpen(symlinks, mode=mode, ignore_cache=ignore_cache,
+                                token=token, aff4_type=aff4_type, age=age):
         yield obj
 
   def OpenDiscreteVersions(self, urn, mode="r", ignore_cache=False, token=None,
@@ -2260,6 +2261,7 @@ class AFF4Image(AFF4Stream):
 
 
 class AFF4NotificationRule(AFF4Object):
+
   def OnWriteObject(self, unused_aff4_object):
     raise NotImplementedError()
 

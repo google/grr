@@ -219,11 +219,6 @@ message KnowledgeBase {
         "e.g. ControlSet001",
     }];
 
-  optional string sys_registry = 29 [(sem_type) = {
-      description: "The directory containing the system registry files. "
-        "E.g. c:\\windows\\system32\\config.",
-    }];
-
   optional string code_page = 30 [(sem_type) = {
       description: "The current code page of the system. Comes from "
         "HKLM\\CurrentControlSet\\Control\\Nls\\CodePage e.g. cp1252.",

@@ -2,6 +2,7 @@
 """Main Django renderer."""
 
 
+import importlib
 import os
 import pdb
 import time
@@ -15,6 +16,7 @@ import logging
 
 from grr import gui
 from grr.gui import renderers
+from grr.gui import urls
 from grr.gui import webauth
 from grr.lib import access_control
 from grr.lib import aff4
@@ -38,9 +40,12 @@ config_lib.DEFINE_string("AdminUI.report_url",
                          "URL of the 'Report a problem' link.")
 
 config_lib.DEFINE_string("AdminUI.help_url",
-                         "https://code.google.com/p/grr/",
+                         "/help/index.html",
                          "URL of the 'Help' link.")
 
+config_lib.DEFINE_string("AdminUI.github_docs_location",
+                         "https://github.com/google/grr-doc/blob/master",
+                         "Base path for GitHub-hosted GRR documentation. ")
 
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
 
@@ -76,7 +81,10 @@ def Homepage(request):
   renderers_js_files = set()
   for cls in renderers.Renderer.classes.values():
     if aff4.issubclass(cls, renderers.Renderer) and cls.__module__:
-      renderers_js_files.add(cls.__module__.split(".")[-1] + ".js")
+      module_components = cls.__module__.split(".")
+      # Only include files corresponding to renderers in "plugins" package.
+      if module_components[-2] == "plugins":
+        renderers_js_files.add(module_components[-1] + ".js")
 
   context = {"page_title": config_lib.CONFIG["AdminUI.page_title"],
              "heading": config_lib.CONFIG["AdminUI.heading"],
@@ -182,6 +190,58 @@ def RenderGenericRenderer(request):
     result.content = ")]}\n" + result.content
 
   return result
+
+
+def RedirectToRemoteHelp(path):
+  """Redirect to GitHub-hosted documentation."""
+  target_path = os.path.join(config_lib.CONFIG["AdminUI.github_docs_location"],
+                             path.replace(".html", ".adoc"))
+
+  # We have to redirect via JavaScript to have access to and to preserve the
+  # URL hash. We don't know the hash part of the url on the server.
+  response = http.HttpResponse()
+  response.write("""
+<script>
+var friendly_hash = window.location.hash.replace('#_', '#').replace(/_/g, '-');
+window.location = '%s' + friendly_hash;
+</script>
+""" % target_path)
+  return response
+
+
+@webauth.SecurityCheck
+def RenderHelp(request, path, document_root=None, content_type=None):
+  """Either serves local help files or redirects to the remote ones."""
+  _ = document_root
+  _ = content_type
+
+  request.REQ = request.REQUEST
+
+  help_path = request.path.split("/", 2)[-1]
+  if not help_path:
+    return AccessDenied("Error: Invalid help path.")
+
+  try:
+    user_record = aff4.FACTORY.Open(
+        aff4.ROOT_URN.Add("users").Add(request.user), "GRRUser",
+        token=BuildToken(request, 60))
+
+    settings = user_record.Get(user_record.Schema.GUI_SETTINGS)
+  except IOError:
+    settings = aff4.GRRUser.SchemaCls.GUI_SETTINGS()
+
+  if settings.docs_location == settings.DocsLocation.REMOTE:
+    # Proxy remote documentation.
+    return RedirectToRemoteHelp(help_path)
+  else:
+    # Serve prebuilt docs using static handler. To do that we have
+    # to resolve static handler's name to an actual function object.
+    static_handler_components = urls.static_handler.split(".")
+    static_handler_module = importlib.import_module(".".join(
+        static_handler_components[0:-1]))
+    static_handler = getattr(static_handler_module,
+                             static_handler_components[-1])
+    return static_handler(request, path, document_root=urls.help_root)
 
 
 def BuildToken(request, execution_time):

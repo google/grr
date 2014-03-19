@@ -154,6 +154,9 @@ class WinUserSpecialDirs(parsers.RegistryParser):
       "Environment": {
           "TEMP": "temp",
           },
+      "Volatile Environment": {
+          "USERDOMAIN": "userdomain",
+          },
   }
 
   def ParseMultiple(self, stats, knowledge_base):

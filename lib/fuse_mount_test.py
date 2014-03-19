@@ -244,14 +244,12 @@ class GRRFuseTest(test_lib.FlowTestsBaseclass):
   def testReadDoesNotTimeOut(self):
 
     # Make sure to use the least topical meme we can think of as dummy data.
-    self.WriteFile("password.txt", "hunter2")
-    filename = os.path.join(self.temp_dir, "password.txt")
-
+    filename = self.WriteFileAndList("password.txt", "hunter2")
     self.assertEqual(self.grr_fuse.Read(self.ClientPathToAFF4Path(filename),
                                         length=len("hunter2"), offset=0),
                      "hunter2")
 
-  def WriteFile(self, filename, contents):
+  def WriteFileAndList(self, filename, contents):
     path = os.path.join(self.temp_dir, filename)
     with open(path, "w") as f:
       f.write(contents)
@@ -375,22 +373,24 @@ class GRRFuseTest(test_lib.FlowTestsBaseclass):
     self.ListDirectoryOnClient(self.temp_dir)
     contents = self.grr_fuse.Readdir(self.ClientPathToAFF4Path(self.temp_dir))
     self.assertNotIn("password.txt", contents)
-    self.WriteFile("password.txt", "hunter2")
+    self.WriteFileAndList("password.txt", "hunter2")
     contents = self.grr_fuse.Readdir(self.ClientPathToAFF4Path(self.temp_dir))
     self.assertIn("password.txt", contents)
 
   def testClientSideUpdateFileContents(self):
 
-    filename = self.WriteFile("password.txt", "password1")
-    self.assertEqual(self.grr_fuse.Read(self.ClientPathToAFF4Path(filename)),
-                     "password1")
-    filename = self.WriteFile("password.txt", "hunter2")
-    self.assertEqual(self.grr_fuse.Read(self.ClientPathToAFF4Path(filename)),
-                     "hunter2")
+    new_contents = "hunter2" * 5
+    filename = self.WriteFileAndList("password.txt", "password1")
+    aff4path = self.ClientPathToAFF4Path(filename)
+    read_data = self.grr_fuse.Read(aff4path)
+    self.assertEqual(read_data, "password1")
+    filename = self.WriteFileAndList("password.txt", new_contents)
+    read_data = self.grr_fuse.Read(aff4path)
+    self.assertEqual(read_data, new_contents)
 
   def testReadNonzeroOffset(self):
 
-    filename = self.WriteFile("password.txt", "password1")
+    filename = self.WriteFileAndList("password.txt", "password1")
     self.assertEqual(self.grr_fuse.Read(self.ClientPathToAFF4Path(filename),
                                         length=5, offset=3),
                      "sword")

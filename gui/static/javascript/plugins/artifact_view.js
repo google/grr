@@ -6,6 +6,33 @@ var grr = window.grr || {};
 grr.artifact_view = {};
 
 
+grr.Renderer('ArtifactRDFValueRenderer', {
+  Layout: function(state) {
+    var unique = state.unique;
+    var artifact_str = state.artifact_str;
+
+    var description_element = unique + '_artifact_description';
+    var artifact_obj = JSON.parse(artifact_str);
+    grr.artifact_view.renderArtifactFromObject(artifact_obj,
+                                               description_element);
+    // Remove heading to clean up display.
+    $('div[name=artifact_name]').hide();
+  }
+});
+
+
+grr.Renderer('ArtifactManagerToolbar', {
+  Layout: function(state) {
+    var unique = state.unique;
+
+    $('#upload_dialog_' + unique).on('show', function() {
+      grr.layout('ArtifactJsonUploadView',
+                 'upload_dialog_body_' + unique);
+    });
+  }
+});
+
+
 grr.Renderer('ArtifactListRenderer', {
   Layout: function(state) {
     // Populate the artifact manager.

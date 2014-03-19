@@ -1,0 +1,794 @@
+GRR Administrator Documentation
+===============================
+:toc:
+:toc-placement: preamble
+:icons:
+
+This document is intended for administrators who wish to deploy and manage GRR
+in an enterprise. It is also applicable for anyone who wants to try it out.
+
+Deploying the GRR server.
+-------------------------
+
+Documentation on how deploy the GRR server on an Ubuntu system is currently
+covered in the wiki here:
+http://code.google.com/p/grr/wiki/ServerInstallation
+
+Key Management
+--------------
+
+GRR requires multiple key pairs. These are used to:
+
+- Sign the client certificates for enrollment.
+- Sign and decrypt messages from the client.
+- Sign code and drivers sent to the client.
+
+These keys can be generated using the config_updater script normally installed
+in the path as grr_config_updater using the generate_keys command.
+
+[source, shell]
+--------------------------------------------------------------------
+db@host:$ sudo grr_config_updater generate_keys
+Generating executable signing key
+..............+++
+.....+++
+Generating driver signing key
+..................................................................+++
+.............................................................+++
+Generating CA keys
+Generating Server keys
+Generating Django Secret key (used for xsrf protection etc)
+db@host:$
+--------------------------------------------------------------------
+
+User Management
+---------------
+
+GRR has a concept of users of the system. The GUI supports authentication and
+this verfication of user identity is used in all auditing functions (So for
+example GRR can properly record which user accessed which client, and who
+executed flows on clients).
+
+Users are modeled in the data store as AFF4 objects called GRRUser. These
+normally reside in the directory 'aff4:/users/<username>'. To manage users it is
+possible to use the config_updater.py script:
+
+To add the user joe as an admin:
+[source,shell]
+--------------------------------------------------------------------------------
+db@host:~$ sudo grr_config_updater add_user --username joe
+Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
+Please enter password for user 'joe':
+Updating user joe
+
+Username: joe
+Labels:
+Password: set
+--------------------------------------------------------------------------------
+
+To list all users:
+[source,shell]
+--------------------------------------------------------------------------------
+db@host:~$ sudo grr_config_updater show_user
+Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
+
+Username: test
+Labels:
+Password: set
+
+Username: admin
+Labels: admin
+Password: set
+--------------------------------------------------------------------------------
+
+To update a user (useful for setting labels or for changing passwords):
+--------------------------------------------------------------------------------
+db@host:~$ sudo grr_config_updater update_user joe --label admin,user
+Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
+Updating user joe
+
+Username: joe
+Labels: admin,user
+Password: set
+--------------------------------------------------------------------------------
+
+Security Managers.
+~~~~~~~~~~~~~~~~~~
+
+GRR supports the ideas of a Security Manager. The Security Manager
+(Datastore.security_manager config option) handles authorizing those users to
+resources based on a set of rules.
+
+The default Security Manager is the BasicAccessControlManager. This manager
+provides rudimentary Admin/Non-Admin functionality, but very little else. See
+the Auditing section for a discussion on the FullAccessControlManager.
+
+
+Authentication to the Admin UI.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Given the sensitivity of the data that GRR ends up holding, it is important to
+protect access to it. The AdminUI by default uses basic authentication, based on
+the passwords within the user objects stored in the data store.  However, we
+support the idea of a Webauth Manager (AdminUI.webauth_manager config
+option). This allows for customization to use an SSO or SAML based
+authentication mechanism. However, while we try and make it easy to integrate,
+this kind of auth is not currently built into GRR.
+
+
+Security Considerations
+-----------------------
+
+Because GRR is designed to be deployed on the Internet and provides very
+valuable functionality to an attacker, it comes with a number of security
+considerations to think about before deployment. This section will cover the key
+security mechanisms and the options you have.
+
+Communication Security.
+~~~~~~~~~~~~~~~~~~~~~~~
+
+GRR communication happens using signed and encrypted protobuf messages. We use
+1024 bit RSA keys to protect symmetric AES256 encryption. The security of the
+system does not rely on SSL transport for communication security. This enables
+easy replacement of the comms protocol with non-http mechanisms such as UDP
+packets.
+
+The communications use a CA and server public key pair generated on server
+install. The CA public key is deployed to the client so that it can ensure it
+is communicating with the correct server. If these keys are not kept secure,
+anyone with MITM capability can intercept communications and take control of
+your clients. Additionally, if you lose these keys, you lose the ability to
+communicate with your clients.
+
+Full details of this protocol and the security properties can be found in the
+link:implementation.html[Implementation document].
+
+
+Driver, Code Signing and CA Keys.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In addition to the CA and Server key pairs, GRR maintains a set of code
+signing and driver signing keys.
+By default GRR aims to provide only read-only actions, this means that GRR is
+unlikely to modify evidence, and cannot trivially be used to take control of
+systems running the agent footnote:[Read only access many not give direct code
+exec, but may well provide it indirectly via read access to important keys and
+passwords on disk or in memory.].
+However, there are a number of use cases where it makes sense to have GRR
+execute arbitrary code as explained in the section Deploying custom drivers
+and code.
+
+However, as part of the GRR design, we decided that administrative control of
+the GRR server shouldn't trivially lead to code execution on the clients. As
+such, we have a separate set of keys for driver signing and code signing.
+For a driver to be loaded, or binary to be run the code has to be signed by
+the specific key, the client will confirm this signature before execution.
+
+In the default install, the driver and code signing private keys are not
+passphrase protected. In a secure environment we strongly recommended
+generating and storing these keys off the GRR server and doing offline
+signing every time this functionality is required, or at a minimum setting
+passphrases which are required on every use.
+
+Agent Protection.
+~~~~~~~~~~~~~~~~~
+The open source agent does not contain protection against being disabled by
+administrator/root on the machine. E.g. on Windows, if an attacker stops the
+service, the agent will stop and will no longer be reachable.
+Currently, it is up to the deployer of GRR to provide more protection for the
+service.
+
+Obfuscation.
+~~~~~~~~~~~~
+If every deployment in the world is running from the same location and the
+same code, e.g. c:\program files\grr\grr.exe, it becomes a pretty obvious
+thing for an attacker to look for and disable. Luckily the attacker has the
+same problem an investigator has in finding malware on a system, and we can
+use the same techniques to protect the client.
+One of the key benefits of having an open architecture is that customization
+of the client and server is easy, and completely within your control.
+
+For a test, or low security deployment, using the defaults open source agents
+is fine. However, in a secure environment we strongly recommend using some
+form of obfuscation.
+
+This can come in many forms, but to give some examples:
+
+- Changing service, and binary names
+- Changing registry keys
+- Obfuscating the underlying python code
+- Using a packer to obfuscate the resulting binary
+- Implementing advanced protective or obfuscation functionality such as those
+ used in rootkits
+- Implementing watchers to monitor for failure of the client
+
+GRR does not include any obfuscation mechanisms by default. But we attempt to
+make this relatively easy by controlling the build process through the
+configuration file.
+
+Enrollment.
+~~~~~~~~~~
+In the default setup, clients can register to the GRR server with no prior
+knowledge. This means that anyone who has a copy of the GRR agent, and knows
+the address of your GRR server can register their client to your deployment.
+This significantly eases deployment, and is generally considered low risk as
+the client has no control or trust on the server.
+However, it does introduce some risk, in particular:
+- If there are flows or hunts you deploy to the entire fleet, a malicious
+client may receive them. These could give away information about what you are
+searching for.
+- Clients are allowed to send some limited messages to the server without
+prompting, these are called Well Known flows. By default these can be used
+to send log messages, or errors. A malicious client using these could fill up
+logs and disk space.
+- If you have custom Well Known Flows that perform interesting actions. You need
+ to be aware that untrusted clients can call them. Most often this could result
+ in a DoS condition, e.g. through a client sending multiple install failure or
+ client crash messages.
+
+In many environments this risk is unwarranted, so we suggest implementing
+further authorization in the Enrollment Flow using some information that only
+your client knows, to authenticate it before allowing it to become a
+registered client.
+
+Note that this does not give someone the ability to overwrite data from
+another client, as client name collisions are protected.
+
+Server Security.
+~~~~~~~~~~~~~~~~
+The http server is designed to be exposed to the Internet, but there is no
+reason for the other components in the GRR system to be.
+
+The Administration UI by default listens on all interfaces, and is protected by
+only basic authentication configured via the --htpasswd parameter. We strongly
+recommend putting the UI on SSL and IP limiting the clients that can connect.
+The best way to do this normally is by hosting it inside Apache via wsgi,
+using Apache to provide the SSL and other protection measures.
+
+Auditing.
+~~~~~~~~~
+By default GRR currently only offers limited audit logs in the /var/log/
+directory. However, the system is designed to allow for deployment of extensive
+auditing capabilities through the Security Manager.
+
+The idea is that we have a gateway process, and the Admin UI and any console
+access is brokered through the gateway. The gateway is the only access to the
+datastore and it audits all access and can provide intelligent access control.
+This is implemented in the FullAccessControlManager.
+
+Using this allows for sensible access control, e.g. another user must authorize
+access before someone is given access to a machine, or an admin must authorize
+before a hunt is run.
+
+These capabilities are powerful but add significant complexity to deployment so
+they are not currently released  (Mar 2013). If you are interested in this
+functionality please just email the devs and we can release it.
+
+
+Enabling SSL on the AdminUI.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The AdminUI supports SSL if it is configured. We don't currently generate
+certs to enable this by default as certificate management is messy, but you
+can enable by adding to your config something like:
+
+--------------------------------------------------------------------------------
+AdminUI.enable_ssl: True
+AdminUI.ssl_cert_file: "/etc/ssl/certs/grr.crt"
+AdminUI.ssl_key_file: "/etc/ssl/private/grr.plain.key"
+--------------------------------------------------------------------------------
+
+Note that SSL performance using this method may be average. If you have a lot
+of users and a single AdminUI, you may get better performance putting GRR behind
+an SSL reverse proxy such as Apache and letting it handle the SSL.
+
+
+GRR Security Checklist.
+~~~~~~~~~~~~~~~~~~~~~~~
+.For all deployments
+- Generate new CA/server keys on initial install. Back up these keys somewhere
+securely.
+- Ensure the GRR Administrative UI interface is not exposed to the Internet
+and is protected.
+
+.For a high security environment
+- Introduce controls on enrollment to protect the server from unauthorized
+clients.
+- Produce obfuscated clients.
+- Regenerate code and driver signing keys with passphrases.
+- Run the http server serving clients on a separate machine to the workers.
+- Introduce a stronger AdminUI sign in mechanism and use the
+FullAccessControlManager.
+- Ensure the Administrative UI is SSL protected
+- Ensure the database server is using strong passwords and is well protected.
+
+
+Managing the Datastore
+~~~~~~~~~~~~~~~~~~~~~~
+GRR currently ships with two usable datastores, MongoDB and MySQL, and an extra
+in memory only test datastore FakeDataStore.
+
+By default GRR will use the MongoDataStore and expect to find it on localhost.
+You can configure it in the config file, e.g.
+
+-----------------------------------------
+[MongoDataStore]
+server = mongodb.host.example.com
+port = 27017
+db_name = grr
+-----------------------------------------
+
+We also provide a useful script [scripts/database_reset.sh] to drop the Mongo
+database which is handy while testing things.
+
+
+Performance
+-----------
+
+GRR is designed to scale linearly, which it mostly does. It has been run in test
+environments with with greater than 100,000 clients reporting and hunting
+without problems. However, this depends significantly on the datastore
+implementation, how it is being run, and the hardware it is running on.
+
+As of April 2013, we don't have a clear set of metrics on performance in the
+main release, however there is work being done to create these.
+
+Deployment Performance Factors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The key issue with performance generally relates to how the server is deployed.
+
+- If you are running from the prepackaged release you are likely running the
+  grr_server.py binary. This binary runs all components in a single process,
+  which means you are using a single core and it will perform badly. We do this
+  to make life easy for first time users. In production you need to run each
+  component separately (see /etc/init/grr*) in its own process (this will also
+  help with more intelligent logging). You can switch on upstart based systems
+  easily using the script in scripts/initctl_switch.sh.
+- Additionally, you will probably want to run more than one worker. In a large
+  deployment where you are running numerous hunts it makes sense to run 20+
+  workers. As long as the datastore scales, the more workers you have the faster
+  things get done. Each worker process will use 1 core maximum, so on multicore
+  boxes you will want to set the config setting Worker.worker_process_count to
+  something > 1.
+- Also, the frontend http server can be a significant bottleneck. By default we
+  ship with a simple http server, but this is single process, written in python
+  which means it may have thread lock issues. To get better performance you will
+  need to run the http server with the wsgi_server in the tools directory from
+  inside a faster web server such as Apache. See section below for how.
+- As well as having a better performing http server, if you are moving a lot of
+  traffic you probably want to run multiple http servers. Again, assuming your
+  datastore handles it, these should scale linearly.
+- The admin UI and enroller components should have less load on them, depending
+  on your use case, but you can run as many as you want for redundancy.
+- Foreman check frequency. By default the foreman_check_frequency in the client
+  configuration is set to 10 minutes. This variable controls how often a client
+  checks if there are hunts scheduled for it. Adjusting this parameter has two
+  major affects. Firstly it slows down how fast a hunt ramps up, which
+  normalizes the load at the cost of making the hunt slower (this is useful in
+  large deployments). Secondly, each foreman check incurs a penalty on the
+  frontend server, as it must queue up a check against the rules. So setting
+  this to a shorter time increases frontend load. In a large deployment 30-40
+  minutes is a more reasonable setting.
+
+
+Datastore Performance
+~~~~~~~~~~~~~~~~~~~~~
+
+If you are not CPU bound on the individual components (workers, http server)
+then the key performance differentiator will be the datastore. At the moment
+we ship with a Mysql and a Mongo datastore.
+
+- The Mongo datastore is currently unoptimized (Mar 2013). This means there are
+  a number of hotspots causing performance issues. It is worth noting that the
+  primary developers work with a proprietary datastore so Mongo performance has
+  not been made a high priority up until recently. Patches welcome :)
+
+
+Running the GRR HTTP Server In Apache
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+TBD. User contributions welcome.
+Using the wsgi hasn't been thoroughly tested. If you test, please send feedback
+to the dev list and we can try and fix things.
+
+
+Scheduling Flows with Cron
+--------------------------
+The cron allows for scheduling flows to run regularly on the GRR server.
+This is currently used to collect statistics and do cleanup on the database.
+The cron runs as part of the workers.
+
+
+
+
+Customizing the client
+----------------------
+
+The client can be customized for deployment. There are two keys ways of doing
+this:
+
+1. Repack the released client with a new configuration.
+2. Rebuild the client from scratch (advanced users, set aside a few days the
+first time)
+
+Doing a rebuild allows full reconfiguration, changing names and everything else.
+A repack on the other hand limits what you can change. Each approach is
+described below.
+
+Repacking the Client with a New Configuration.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Changing basic configuration parameters can be done by editing the server config
+file (/etc/grr/server.local.yaml) to override default values, and then using the
+config_updater to repack the binaries.
+This allows for changing basic configuration parameters such as the URL
+the client reports back to.
+
+Once the config has been edited, you can repack all clients with the new config
+and upload them to the datastore using `grr_config_updater repack_clients`
+
+[source, shell]
+--------------------------------------------------------------------
+db@host:$ sudo grr_config_updater repack_clients
+Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
+
+## Repacking GRR windows amd64 2.5.0.4 client
+Packed to /usr/share/grr/executables/windows/installers/GRR_2.5.0.4_amd64.exe
+
+## Uploading
+Uploading Windows amd64 binary from /usr/share/grr/executables/windows/installer
+s/GRR_2.5.0.4_amd64.exe
+Uploaded to aff4:/config/executables/windows/installers/GRR_2.5.0.4_amd64.exe
+db@host:$
+--------------------------------------------------------------------
+
+Repacking works by taking the template zip file which are by default installed
+to `/usr/share/grr/executables`, injecting relevant configuration files,
+and renaming files inside the zip to match requested names. This template is
+then turned into something that can be deployed on the system by using the
+debian package builder on linux, creating a self extracting zip on Windows, or
+creating a DMG on OSX.
+
+
+Building the Client.
+~~~~~~~~~~~~~~~~~~~~
+Doing this is much harder than it should be due to a lot of dependencies and
+moving parts. It is also a bit of a moving target so we keep the docs for this
+on the wiki. See:
+
+- https://code.google.com/p/grr/wiki/BuildingWindowsClient
+- https://code.google.com/p/grr/wiki/BuildingOSXClient
+- https://code.google.com/p/grr/wiki/BuildingLinuxClient
+
+
+Client Configuration.
+~~~~~~~~~~~~~~~~~~~~~
+Configuration of the client is done during the packing/repacking of the client.
+The process looks like:
+
+.  For the client we are packing, find the correct context and platform,
+  e.g. `Platform: Windows` `Client Context`
+.  Extract the relevant configuration parameters for that context from the
+ server configuration file, and write them to a client specific configuration
+ file e.g. `GRR.exe.yaml`
+.  Pack that configuration file into the binary to be deployed.
+
+When the client runs, it determines the configuration in the following manner
+based on --config and --secondary_configs arguments that are given to it:
+
+.  Read the config file packed with the installer, default:
+`c:\windows\system32\GRR\GRR.exe.yaml`
+.  GRR.exe.yaml reads the Config.writeback value, default:
+`reg://HKEY_LOCAL_MACHINE/Software/GRR` by default
+.  Read in the values at that registry key and override any values from the yaml
+file with those values.
+
+Most parameters are able to be modified by changing parameters and then
+restarting GRR. However, some configuration options, such as `Client.name`
+affect the name of the actual binary itself and therefore can only be changed
+with a repack on the server.
+
+Updating a configuration variable in the client can be done in multiple ways:
+
+.  Change the configuration on the server, repack the clients and
+redeploy/update them.
+.  Edit the yaml configuration file on the machine running the client and
+restart the client.
+.  Update where Config.writeback points to with new values, e.g. by editing the
+registry key.
+.  Issue an UpdateConfig flow from the server (not visible in the UI), to
+achieve 3.
+
+In practice, you should nearly always do 3 or 4.
+
+As an example, to reduce how often the client polls the server to every 300
+seconds, you can update the registry as per below, and then restart the service:
+
+[source, shell]
+-------------------------------------------------------------
+C:\Windows\System32\>reg add HKLM\Software\GRR /v Client.poll_max /d 300
+
+The operation completed successfully.
+C:\Windows\System32\>
+-------------------------------------------------------------
+
+Common Client Configuration Options.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The client has numerous configuration parameters that control its behavior, the
+following explains some key ones you might want to change:
+
+[horizontal]
+Client Behavior Keys:: Keys which affect behavior of the client. Should take
+affect on client restart.
+Client.poll_max::: Maximum number of seconds between polls to the server.
+Client.foreman_check_frequency::: How often to check for foreman jobs (hunts).
+Client.rss_max::: Maximum memory for the client to use.
+Client.control_urls::: The list of URLs to contact the server on.
+Client.proxy_servers::: A list of proxy servers to try.
+Logging.verbose::: Enable more verbose logging.
+Logging.engines::: Enable or disable syslog, event logs or file logs.
+Logging.path::: Where log files get written to.
+
+[horizontal]
+Obfuscation Related Keys:: Keys you might want to change to affect obfuscation,
+these will require a rebuild.
+    Client.name::: The base name of the client. Changing this to Foo will change
+    the running binary to Foo.exe and Fooservice.exe on Windows.
+    Client.config_key::: The registry key to store config data on Windows
+    Client.control_urls::: The list of URLs to contact the server on.
+    Client.plist_path::: Where to store the plist on OSX.
+    MemoryDriver.display_name::: Description of the service used for the memory
+    driver on Windows
+    MemoryDriver.service_name::: Name of the service used for the memory driver
+    on Windows
+    MemoryDriver.install_write_path::: Path to write the memory driver to.
+    Nanny.service_name::: Name of the Windows service the nanny runs as.
+    Nanny.service_description::: Description of the Windows service the nanny
+    runs as.
+    ClientBuilder.console::: Affects whether the installer is silent.
+
+For a full list of available options you can run `grr_server --config-help` and
+look for `Client`, `Nanny` and `Logging` options.
+
+Deploying Custom Drivers and Code.
+----------------------------------
+
+Drivers, binaries or python code can be pushed from the server to the clients
+to enable new functionality. This has a number of use cases, such as:
+
+- Upgrades. When you want to update the client you need to be able to push new
+code.
+- Drivers. If you want to load a driver on the client system to do memory
+analysis, you may need a custom driver per system (e.g. in the case of Linux
+kernel differences.)
+- Protected functionality. If you have code that you want to deploy to deal with
+ a specific case, you may not want that to be part of the client, and should
+ only be deployed to specific clients.
+
+The code that is pushed from the server must be signed by the corresponding
+private key for `Client.executable_signing_public_key` for python and binaries
+or the corresponding private key for Client.driver_signing_public_key for
+drivers. These signatures will be checked by the client to ensure they match
+before the code is used.
+
+What is actually sent to the client is the code or binary wrapped in a protobuf
+which will contain a hash, a signature and some other configuration data.
+
+To sign code requires use of config_updater utility. In a secure environment the
+signing may occur on a different box from the server, but the examples below
+show the basic example.
+
+Deploying Arbitrary Python Code.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+To execute an arbitrary python blob, you need to create a file with python code
+that has the following attributes:
+- Code in the file must work when executed by exec() in the context of GRR.
+- Any return data that you want sent back to the server should be stored string
+encoded in a variable called "magic_return_str".
+
+E.g. as a simple example. The following code modifies the clients poll_max
+setting and pings test.com.
+
+[source,python]
+------------------------------------------------------------------------
+import commands
+status, output = commands.getstatusoutput("ping -c 3 test.com")
+config_lib.CONFIG.Set("Client.poll_max", 100)
+config_lib.CONFIG.Write()
+magic_return_str = "poll_max successfully set. ping output %s" % output
+------------------------------------------------------------------------
+
+This file then needs to be signed and converted into the protobuf format
+required, and then needs to be uploaded to the data store. You can do this using
+the following command line.
+
+[source, shell]
+------------------------------------------------------------------------
+grr_config_updater upload_python --file=myfile.py --platform=windows
+------------------------------------------------------------------------
+
+At the end of this you should see something like:
+------------------------------------------------------------------------
+Uploaded successfully to aff4:/config/python_hacks/myfile.py
+------------------------------------------------------------------------
+
+The uploaded files live by convention in aff4:/config/python_hacks and are
+viewable in the Manage Binaries section of the Admin UI.
+
+The ExecutePythonHack Flow is provided for executing the file on a client.
+
+NOTE: Specifying arguments to a PythonHack is possible as well through the
+py_args argument on the commandline, this can be useful for making them more
+useful.
+
+
+Deploying Drivers
+~~~~~~~~~~~~~~~~~
+
+Drivers are currently used in memory analysis. By default we use drivers
+developed and released by the GRR team named "pmem". We currently have Apache
+Licensed, tested drivers for OSX, Linux and Windows.
+
+The drivers are distributed with GRR but are also available from the Volatility
+project in binary form at http://code.google.com/p/volatility/downloads/list,
+the source is stored in the scudette branch at
+http://code.google.com/p/volatility/source/browse/#svn%2Fbranches%2Fscudette%2Ftools.
+
+Deploying a driver works much the same as deploying python code. We sign the
+file, encode it in a protobuf and upload it to a specific place in the GRR
+datastore. There is a shortcut to upload the existing memory drivers using
+config updater.
+
+[source,shell]
+------------------------------------------------------------------------
+db@host: ~$ sudo grr_config_updater load_memory_drivers
+Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
+uploaded aff4:/config/drivers/darwin/memory/osxpmem
+uploaded aff4:/config/drivers/windows/memory/winpmem.32.sys
+uploaded aff4:/config/drivers/windows/memory/winpmem.64.sys
+db@host:$
+------------------------------------------------------------------------
+
+NOTE: The signing we discuss here is independent of Authenticode driver signing,
+which is also required by modern 64 bit Windows distributions.
+
+Deploying this driver would normally be done using the LoadMemoryDriver flow.
+
+
+Deploying Executables.
+~~~~~~~~~~~~~~~~~~~~~~
+
+The GRR Agent provides an ExecuteBinaryCommand Client Action which allows us to
+send a binary and set of command line arguments to be executed. The binary must
+be signed using the executable signing key (config option
+PrivateKeys.executable_signing_private_key).
+
+To sign an exe for execution use the config updater script.
+
+[source,shell]
+------------------------------------------------------------------------
+db@host:$ grr_config_updater upload_exe --file=/tmp/bazinga.exe -platform=windows
+Using configuration <ConfigFileParser filename="/etc/grr/grr-server.conf">
+Uploaded successfully to /config/executables/windows/installers/bazinga.exe
+db@host:$
+------------------------------------------------------------------------
+
+This uploads to the installers directory by default. But you can override with
+the --dest_path option.
+
+
+Client Robustness Mechanisms
+----------------------------
+We have a number of mechanisms built into the client to try and ensure it has
+sensible resource requirements, doesn't get out of control, and doesn't
+accidentally die. We document them here.
+
+Heart beat
+~~~~~~~~~~
+The client process regularly writes to a registry key (file on Linux and OSX)
+with a timer. The nanny process watches this registry key called HeartBeat, if
+it notices that the the client hasn't updated the heartbeat in the time
+allocated by UNRESPONSIVE_KILL_PERIOD (default 3 minutes), the nanny will assume
+the client has hung and will kill it. In Windows we then rely on the Nanny to
+revive it, on Linux and OSX we rely on the service handling mechanism to do so.
+
+Transaction log
+~~~~~~~~~~~~~~~
+When the client is about to start an action it writes to a registry key
+containing information about what it is about to do. If the client dies while
+performing the action, when the client gets restarted it will send an error
+along with the data from the transaction log to help diagnose the issue.
+
+One tricky thing with the transaction log is the case of Bluescreens or kernel
+panics. Writing to the transaction log will write a registry key on Windows,
+but registry keys are not flushed to disk immediately. Therefore, writing a
+transaction log, and then getting a hard BlueScreen or kernel panic, the
+transaction log won't be persistent, and therefore the error won't be sent.
+We work around this by adding a Flush to the transaction log when we are about
+to do dangerous transactions, such as loading a memory driver. But if the client
+dies during a transaction we didn't deem as dangerous, it is possible that you
+will not get a crash report.
+
+Memory limit
+~~~~~~~~~~~~
+We have a hard and a soft memory limit built into the client to stop it getting
+out of control. The hard limit is enforced by the nanny, if the client goes over
+that limit it will be hard killed. The soft limit is enforced by the client, if
+the limit is exceeded the client will stop retrieving new work to do. Once it
+has finished its current work it will die cleanly.
+
+Default soft limit is 500MB, but GRR should only use about 30MB. Some volatility
+plugins can use a lot of memory so we try to be generous. Hard limit is double
+the soft limit. This is configurable from the config file.
+
+CPU limit
+~~~~~~~~~
+A ClientAction can be transmitted from the server with a specified CPU limit,
+this is how many seconds the action can use. If the action uses more than that
+it will be killed.
+The actual implementation is a little more complicated. An action can run for 3
+minutes using any CPU it wants before being killed by nanny. However actions
+that are good citizens (normally the dangerous ones) will call the Progress()
+function regularly. This function checks if limit has been exceeded and will
+exit.
+
+
+Crashes
+-------
+The client shouldn't ever crash... but it does because making software is hard.
+There are a few ways in which this can happen, all of which we try and catch,
+record and make visible to allow for debugging. In the UI they are visible in
+two ways, in "Crashes" when a client is selected, and in "All Client Crashes".
+These have the same information but the client view only shows crashes for the
+specific client.
+
+Each crash should contain the reason for the crash, optionally it may contain
+the flow or action that caused the crash. In some cases this information is not
+available because the client may have crashed when it wasn't doing anything or
+in a way where we could not tie it to the action. See
+xref:_client_robustness_mechanisms[Client Robustness Mechanisms] for a
+discussion of this.
+
+This data is also emailed to the email address configured in the config as
+Monitoring.alert_email
+
+Crash Types
+~~~~~~~~~~~
+
+Crashed while executing an action
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This means that while handling a specific action, the client died, the nanny
+knows this because the client recorded the action it was about to take in the
+Transaction Log before starting it.
+
+Causes
+
+* Client segfaults, could happen in native code such Sleuth Kit or psutil.
+* Hard reboot while it was running an action.
+
+Unexpected child process exit!
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This means the client exited, but the nanny didn't kill it.
+
+Causes
+
+* Uncaught exception in python, very unlikely due to the fact that we catch
+Exception for all client actions.
+
+
+Memory limit exceeded, exiting
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This means the client exited due to exceeding the soft memory limit.
+
+Causes
+
+* Client hits the soft memory limit. Soft memory limit is when the client knows
+it is using too much memory but will continue operation until it finishes what
+it is doing.
+
+Nanny Message - No heartbeat received
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This means that the Nanny killed the client because it didn't receive a
+Heartbeat within the allocated time.
+
+Causes
+
+* The client has hung, e.g. locked accessing network file
+* The client is performing an action that is taking longer than it should.

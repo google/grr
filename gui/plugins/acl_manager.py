@@ -17,24 +17,17 @@ from grr.lib import utils
 class UnauthorizedRenderer(renderers.TemplateRenderer):
   """Send UnauthorizedAccess Exceptions to the queue."""
 
-  layout_template = renderers.Template("""
-<script>
-  var subject = null;
-  {% if this.subject %}
-  subject = "{{this.subject|escapejs}}";
-  {% endif %}
-  grr.publish("unauthorized", subject, "{{this.message|escapejs}}");
-  grr.publish("grr_messages", "{{this.message|escapejs}}");
-</script>
-""")
-
   def Layout(self, request, response, exception=None):
+    subject = message = ""
+
     exception = exception or request.REQ.get("e", "")
     if exception:
-      self.subject = exception.subject
-      self.message = str(exception)
+      subject = str(exception.subject)
+      message = str(exception)
 
-    return super(UnauthorizedRenderer, self).Layout(request, response)
+    response = super(UnauthorizedRenderer, self).Layout(request, response)
+    return self.CallJavascript(response, "UnauthorizedRenderer.Layout",
+                               subject=subject, message=message)
 
 
 class ACLDialog(renderers.TemplateRenderer):
@@ -63,20 +56,11 @@ class ACLDialog(renderers.TemplateRenderer):
   </div>
 
 </div>
-
-<script>
-$("#acl_dialog_submit").click(function (event) {
-  $("#acl_form form").submit();
-});
-
-grr.subscribe("unauthorized", function(subject, message) {
-  if (subject) {
-    grr.layout("CheckAccess", "acl_form", {subject: subject});
-  };
-}, "acl_dialog");
-
-</script>
 """)
+
+  def Layout(self, request, response, exception=None):
+    response = super(ACLDialog, self).Layout(request, response)
+    return self.CallJavascript(response, "ACLDialog.Layout")
 
 
 class ClientApprovalRequestRenderer(renderers.TemplateRenderer):
@@ -217,29 +201,10 @@ class GrantAccess(fileview.HostInformation):
     Approve
   </button>
 </div>
-
-<script>
-  $("#{{unique|escapejs}}_approve").click(function () {
-    grr.update("{{renderer|escapejs}}", "{{unique|escapejs}}_container", {
-      acl: "{{this.acl|escapejs}}",
-    });
-  });
-  grr.layout("{{this.details_renderer|escapejs}}",
-    "details_{{unique|escapejs}}",
-    { acl: "{{this.acl|escapejs}}" });
-</script>
 """)
 
   ajax_template = renderers.Template("""
 You have granted access for {{this.subject|escape}} to {{this.user|escape}}
-""")
-
-  refresh_from_hash_template = renderers.Template("""
-<script>
-  var state = grr.parseHashState();
-  state.source = 'hash';
-  grr.layout("{{renderer|escapejs}}", "{{id|escapejs}}", state);
-</script>
 """)
 
   def Layout(self, request, response):
@@ -249,9 +214,8 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
     source = request.REQ.get("source")
 
     if self.acl is None and source != "hash":
-      return renderers.TemplateRenderer.Layout(
-          self, request, response,
-          apply_template=self.refresh_from_hash_template)
+      return self.CallJavascript(response, "GrantAccess.RefreshFromHash",
+                                 renderer=self.__class__.__name__)
 
     # There is a bug in Firefox that strips trailing "="s from get parameters
     # which is a problem with the base64 padding. To pass the selenium tests,
@@ -284,7 +248,11 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
 
     self.user = username
     self.reason = approval_request.Get(approval_request.Schema.REASON)
-    return renderers.TemplateRenderer.Layout(self, request, response)
+    response = renderers.TemplateRenderer.Layout(self, request, response)
+    return self.CallJavascript(response, "GrantAccess.Layout",
+                               renderer=self.__class__.__name__,
+                               acl=self.acl,
+                               details_renderer=self.details_renderer)
 
   def RenderAjax(self, request, response):
     """Run the flow for granting access."""
@@ -383,56 +351,6 @@ class CheckAccess(renderers.TemplateRenderer):
   </div>
   {% endif %}
 </form>
-
-<script>
-(function() {
-
-$("#acl_form_{{unique|escapejs}}").submit(function (event) {
-  if ($.trim($("#acl_reason").val()) == "") {
-    $("#acl_reason_warning").show();
-    event.preventDefault();
-    return;
-  }
-
-  var state = {
-    subject: "{{this.subject|escapejs}}",
-    approver: $("#acl_approver").val(),
-    reason: $("#acl_reason").val(),
-  };
-  if ($("#acl_keepalive").is(":checked")) {
-    state["keepalive"] = "yesplease";
-  }
-
-  // When we complete the request refresh to the main screen.
-  grr.layout("{{this.approval_renderer|escapejs}}", "acl_server_message", state,
-    function () {
-      {% if this.refresh_after_form_submit %}
-        window.location = "/";
-      {% else %}
-        $("#acl_dialog").modal("hide");
-      {% endif %}
-    });
-
-  event.preventDefault();
-});
-
-if ($("#acl_dialog[aria-hidden=false]").size() == 0) {
-
-$("#acl_dialog").detach().appendTo('body');
-
-// TODO(mbushkov): cleanup a bit. We use update_on_show attribute in
-// NewHunt wizard to avoid reloading the modal when it's hidden and shown
-// again because ACL dialog interrupted the UI flow.
-var openedModal = $(".modal[aria-hidden=false]");
-openedModal.attr("update_on_show", "false");
-openedModal.modal("hide");
-
-// Allow the user to request access through the dialog.
-$("#acl_dialog").modal('toggle');
-}
-
-})();
-</script>
 """)
 
   silent_template = renderers.Template("""
@@ -442,17 +360,6 @@ Authorization request ({{this.reason|escape}}) failed:
 {{this.error|escape}}
 </p>
 {% endif %}
-""")
-
-  # This will be shown when the user already has access.
-  access_ok_template = renderers.Template("""
-<script>
-  grr.publish("hash_state", "reason", "{{this.reason|escapejs}}");
-  grr.state.reason = "{{this.reason|escapejs}}";
-  {% if not this.silent %}
-    grr.publish("client_selection", grr.state.client_id);
-  {% endif %}
-</script>
 """)
 
   def CheckObjectAccess(self, object_urn, token):
@@ -466,7 +373,9 @@ Authorization request ({{this.reason|escape}}) failed:
 
     if approved_token:
       self.reason = approved_token.reason
-      self.layout_template = self.access_ok_template
+      return True
+    else:
+      return False
 
   def Layout(self, request, response):
     """Checks the level of access the user has to this client."""
@@ -485,7 +394,10 @@ Authorization request ({{this.reason|escape}}) failed:
 
     subject_urn = rdfvalue.RDFURN(self.subject)
     namespace, _ = subject_urn.Split(2)
-    self.CheckObjectAccess(subject_urn, token)
+    if self.CheckObjectAccess(subject_urn, token):
+      return self.CallJavascript(response, "CheckAccess.AccessOk",
+                                 reason=self.reason,
+                                 silent=self.silent)
 
     if namespace == "hunts":
       self.approval_renderer = "HuntApprovalRequestRenderer"
@@ -501,4 +413,11 @@ Authorization request ({{this.reason|escape}}) failed:
           "Unexpected namespace for access check: %s (subject=%s)." %
           (namespace, self.subject))
 
-    return super(CheckAccess, self).Layout(request, response)
+    response = super(CheckAccess, self).Layout(request, response)
+    if not self.silent:
+      return self.CallJavascript(
+          response, "CheckAccess.Layout", subject=self.subject,
+          refresh_after_form_submit=self.refresh_after_form_submit,
+          approval_renderer=self.approval_renderer)
+    else:
+      return response

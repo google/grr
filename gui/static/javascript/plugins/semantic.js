@@ -32,3 +32,42 @@ grr.Renderer('KeyValueFormRenderer', {
     });
   }
 });
+
+
+grr.Renderer('RDFValueArrayRenderer', {
+  Layout: function(state) {
+    var unique = state.unique;
+    var next_start = state.next_start;
+    var cache_urn = state.cache_urn;
+    var array_length = state.array_length;
+
+    $('#' + unique + ' a').click(function() {
+      grr.layout('RDFValueArrayRenderer', '{{unique}}', {
+        start: next_start,
+        cache: cache_urn,
+        length: array_length
+      });
+    });
+  }
+});
+
+
+grr.Renderer('ProgressButtonRenderer', {
+  Layout: function(state) {
+    var unique = state.unique;
+    var flow_id = state.flow_id;
+
+    var button = $('#' + unique).button();
+    grr.downloadHandler(button, {flow_id: flow_id}, false,
+                        '/render/Download/ProgressGraphRenderer');
+  }
+});
+
+
+grr.Renderer('AES128KeyFormRenderer', {
+  Layout: function(state) {
+    var prefix = state.prefix;
+
+    $('#' + prefix).change();
+  }
+});

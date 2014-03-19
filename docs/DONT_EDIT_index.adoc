@@ -1,0 +1,57 @@
+GRR Rapid Response documentation.
+=================================
+
+GRR is an Incident Response Framework focused on Remote Live Forensics.
+
+Index
+-----
+1. link:user_manual.adoc[User Manual]
+2. link:admin.adoc[Administration Documentation (Setup and Configuration)]
+3. link:implementation.adoc[Developer and Implementation Documentation]
+4. link:configuration.adoc[The GRR Configuration system]
+5. link:https://code.google.com/p/grr/w/list[Wiki]
+
+Search Wiki and Documentation
+-----------------------------
+++++
+<script>
+  (function() {
+    var cx = '017727954489331006196:9wffyoayvxs';
+    var gcse = document.createElement('script');
+    gcse.type = 'text/javascript';
+    gcse.async = true;
+    gcse.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') +
+        '//www.google.com/cse/cse.js?cx=' + cx;
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(gcse, s);
+  })();
+</script>
+<gcse:searchbox gname="docs"></gcse:searchbox>
+++++
+
+
+Search Code
+-----------
+++++
+<script>
+  (function() {
+    var cx = '017727954489331006196:pfi9rtrihuq';
+    var gcse = document.createElement('script');
+    gcse.type = 'text/javascript';
+    gcse.async = true;
+    gcse.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') +
+        '//www.google.com/cse/cse.js?cx=' + cx;
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(gcse, s);
+  })();
+</script>
+<gcse:searchbox gname="code"></gcse:searchbox>
+++++
+
+Results
+-------
+++++
+<gcse:searchresults gname="docs"></gcse:searchresults>
+<gcse:searchresults gname="code"></gcse:searchresults>
+
+++++

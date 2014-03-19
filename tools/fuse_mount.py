@@ -256,7 +256,8 @@ class GRRFuseDatastoreOnly(object):
     if self._IsDir(path):
       raise fuse.FuseOSError(errno.EISDIR)
 
-    fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token)
+    fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token,
+                           ignore_cache=True)
 
     # If the object has Read() and Seek() methods, let's use them.
     if all((hasattr(fd, "Read"),
@@ -498,8 +499,8 @@ class GRRFuse(GRRFuseDatastoreOnly):
                                 chunks_to_fetch=missing_chunks)
 
   def Read(self, path, length=None, offset=0, fh=None):
-
-    fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token)
+    fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token,
+                           ignore_cache=True)
     last = fd.Get(fd.Schema.CONTENT_LAST)
     client_id = self.GetClientURNFromPath(path)
 
@@ -532,7 +533,7 @@ class GRRFuse(GRRFuseDatastoreOnly):
       else:
         # This was a file we'd seen before that wasn't a sparse image, so update
         # it the usual way.
-        if self.DataRefreshRequired(last):
+        if self.DataRefreshRequired(last=last):
           self._RunAndWaitForVFSFileUpdate(path)
 
     # Read the file from the datastore as usual.

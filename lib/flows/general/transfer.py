@@ -158,6 +158,7 @@ class GetFile(flow.GRRFlow):
       stat_response = self.state.fd.Get(self.state.fd.Schema.STAT)
 
       fd.size = min(fd.size, self.state.file_size)
+      fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime().Now())
       fd.Close(sync=True)
 
       # Notify any parent flows the file is ready to be used now.
@@ -165,6 +166,7 @@ class GetFile(flow.GRRFlow):
 
 
 class HashTracker(object):
+
   def __init__(self, hash_response, is_known=False):
     self.hash_response = hash_response
     self.is_known = is_known
@@ -210,6 +212,7 @@ class FileTracker(object):
     self.fd.Set(self.fd.Schema.STAT(self.stat_entry))
     self.fd.Set(self.fd.Schema.SIZE(self.stat_entry.st_size))
     self.fd.Set(self.fd.Schema.PATHSPEC(self.pathspec))
+    self.fd.Set(self.fd.Schema.CONTENT_LAST(rdfvalue.RDFDatetime().Now()))
     return self.fd
 
 

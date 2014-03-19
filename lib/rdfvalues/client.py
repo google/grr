@@ -177,6 +177,10 @@ class KnowledgeBase(rdfvalue.RDFProtoStruct):
   """Information about the system and users."""
   protobuf = knowledge_base_pb2.KnowledgeBase
 
+  def _CreateNewUser(self, kb_user):
+    self.users.Append(kb_user)
+    return ["users.%s" % k for k in kb_user.AsDict().keys()]
+
   def MergeOrAddUser(self, kb_user):
     """Merge a user into existing users or add new if it doesn't exist.
 
@@ -191,8 +195,7 @@ class KnowledgeBase(rdfvalue.RDFProtoStruct):
     new_attrs = []
     merge_conflicts = []    # Record when we overwrite a value.
     if not user:
-      self.users.Append(kb_user)
-      new_attrs = ["users.%s" % k for k in kb_user.AsDict().keys()]
+      new_attrs = self._CreateNewUser(kb_user)
     else:
       for key, val in kb_user.AsDict().items():
         if user.Get(key) and user.Get(key) != val:
@@ -203,15 +206,28 @@ class KnowledgeBase(rdfvalue.RDFProtoStruct):
     return new_attrs, merge_conflicts
 
   def GetUser(self, sid=None, uid=None, username=None):
-    """Retrieve a KnowledgeBaseUser based on sid, uid or username."""
+    """Retrieve a KnowledgeBaseUser based on sid, uid or username.
+
+    If a sid or uid is provided, don't match by username to avoid combining
+    users with name collisions (such as local vs. domain users on Windows).
+
+    Args:
+      sid: Windows user sid
+      uid: Linux/Darwin user id
+      username: string
+    Returns:
+      rdfvalue.KnowledgeBaseUser or None
+    """
     if sid:
       for user in self.users:
         if user.sid == sid:
           return user
+      return None
     if uid:
       for user in self.users:
         if user.uid == uid:
           return user
+      return None
     if username:
       for user in self.users:
         if user.username == username:

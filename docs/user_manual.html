@@ -537,40 +537,6 @@ body.manpage div.sectionbody {
 @media print {
   body.manpage div#toc { display: none; }
 }
-@media screen {
-  body {
-    max-width: 50em; /* approximately 80 characters wide */
-    margin-left: 16em;
-  }
-
-  #toc {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 13em;
-    padding: 0.5em;
-    padding-bottom: 1.5em;
-    margin: 0;
-    overflow: auto;
-    border-right: 3px solid #f8f8f8;
-    background-color: white;
-  }
-
-  #toc .toclevel1 {
-    margin-top: 0.5em;
-  }
-
-  #toc .toclevel2 {
-    margin-top: 0.25em;
-    display: list-item;
-    color: #aaaaaa;
-  }
-
-  #toctitle {
-    margin-top: 0.5em;
-  }
-}
 </style>
 <script type="text/javascript">
 /*<![CDATA[*/
@@ -1967,65 +1933,67 @@ the right imports to do pretty much whatever you want.</p></div>
 </tr></table>
 </div>
 <div class="listingblock">
-<div class="content">
+<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
 <pre><tt>grr_console
 
-In [31]: flow.GRRFlow.ListProcesses?
-Type:       MetaclassRegistry
-String Form:&lt;class 'grr.lib.flows.general.processes.ListProcesses'&gt;
-File:       /usr/lib/python27/dist-packages/grr/lib/flows/general/processes.py
-Docstring:
-List running processes on a system.
+In <span style="color: #990000">[</span><span style="color: #993399">31</span><span style="color: #990000">]:</span> flow<span style="color: #990000">.</span>GRRFlow<span style="color: #990000">.</span>ListProcesses<span style="color: #990000">?</span>
+Type<span style="color: #990000">:</span>       MetaclassRegistry
+String Form<span style="color: #990000">:&lt;</span>class <span style="color: #FF0000">'grr.lib.flows.general.processes.ListProcesses'</span><span style="color: #990000">&gt;</span>
+File<span style="color: #990000">:</span>       /usr/lib/python<span style="color: #993399">27</span>/dist-packages/grr/lib/flows/general/processes<span style="color: #990000">.</span>py
+Docstring<span style="color: #990000">:</span>
+List running processes on a system<span style="color: #990000">.</span>
 
-Call Spec:
-  flow.GRRFlow.StartFlow(client_id=client_id, flow_name="ListProcesses")
+Call Spec<span style="color: #990000">:</span>
+  flow<span style="color: #990000">.</span>GRRFlow<span style="color: #990000">.</span>StartFlow<span style="color: #990000">(</span><span style="color: #009900">client_id</span><span style="color: #990000">=</span>client_id<span style="color: #990000">,</span> <span style="color: #009900">flow_name</span><span style="color: #990000">=</span><span style="color: #FF0000">"ListProcesses"</span><span style="color: #990000">)</span>
 
-Args: None
+Args<span style="color: #990000">:</span> None
 
-In [32]: flow.GRRFlow.StartFlow(client_id='C.93ce669b1b0c76b6', flow_name="ListProcesses")
-I0814 17:24:38.813689 24346 flow.py:810] Scheduling aff4:/C.93ce669b1b0c76b6/flows/W:52EBD0A7(ListProcesses) on aff4:/C.93ce669b1b0c76b6: {}
-Out[32]: &lt;aff4:/C.93ce669b1b0c76b6/flows/W:52EBD0A7 age=1970-01-01 00:00:00&gt;
+In <span style="color: #990000">[</span><span style="color: #993399">32</span><span style="color: #990000">]:</span> flow<span style="color: #990000">.</span>GRRFlow<span style="color: #990000">.</span>StartFlow<span style="color: #990000">(</span><span style="color: #009900">client_id</span><span style="color: #990000">=</span><span style="color: #FF0000">'C.93ce669b1b0c76b6'</span><span style="color: #990000">,</span> <span style="color: #009900">flow_name</span><span style="color: #990000">=</span><span style="color: #FF0000">"ListProcesses"</span><span style="color: #990000">)</span>
+I0814 <span style="color: #993399">17</span><span style="color: #990000">:</span><span style="color: #993399">24</span><span style="color: #990000">:</span><span style="color: #993399">38.813689</span> <span style="color: #993399">24346</span> flow<span style="color: #990000">.</span>py<span style="color: #990000">:</span><span style="color: #993399">810</span><span style="color: #990000">]</span> Scheduling aff4<span style="color: #990000">:</span>/C<span style="color: #990000">.</span>93ce669b1b0c76b6/flows/W<span style="color: #990000">:</span>52EBD0A7<span style="color: #990000">(</span>ListProcesses<span style="color: #990000">)</span> on aff4<span style="color: #990000">:</span>/C<span style="color: #990000">.</span>93ce669b1b0c76b6<span style="color: #990000">:</span> {}
+Out<span style="color: #990000">[</span><span style="color: #993399">32</span><span style="color: #990000">]:</span> <span style="color: #990000">&lt;</span>aff4<span style="color: #990000">:</span>/C<span style="color: #990000">.</span>93ce669b1b0c76b6/flows/W<span style="color: #990000">:</span>52EBD0A7 <span style="color: #009900">age</span><span style="color: #990000">=</span><span style="color: #993399">1970</span>-<span style="color: #993399">01</span>-<span style="color: #993399">01</span> <span style="color: #993399">00</span><span style="color: #990000">:</span><span style="color: #993399">00</span><span style="color: #990000">:</span><span style="color: #993399">00</span><span style="color: #990000">&gt;</span>
 
-### Alternatively you could use StartFlowAndWait to do the same thing but block while the flow is running like this:
-# flow_utils.StartFlowAndWait('C.93ce669b1b0c76b6', "ListProcesses")
+<span style="font-style: italic"><span style="color: #9A1900">### Alternatively you could use StartFlowAndWait to do the same thing but block while the flow is running like this:</span></span>
+<span style="font-style: italic"><span style="color: #9A1900"># flow_utils.StartFlowAndWait('C.93ce669b1b0c76b6', "ListProcesses")</span></span>
 
-In [33]: processes_fd = aff4.FACTORY.Open("aff4:/C.93ce669b1b0c76b6/processes", mode="r")
+In <span style="color: #990000">[</span><span style="color: #993399">33</span><span style="color: #990000">]:</span> processes_fd <span style="color: #990000">=</span> aff4<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span>Open<span style="color: #990000">(</span><span style="color: #FF0000">"aff4:/C.93ce669b1b0c76b6/processes"</span><span style="color: #990000">,</span> <span style="color: #009900">mode</span><span style="color: #990000">=</span><span style="color: #FF0000">"r"</span><span style="color: #990000">)</span>
 
-In [34]: plist = processes.Get(processes.Schema.PROCESSES)
+In <span style="color: #990000">[</span><span style="color: #993399">34</span><span style="color: #990000">]:</span> plist <span style="color: #990000">=</span> processes<span style="color: #990000">.</span>Get<span style="color: #990000">(</span>processes<span style="color: #990000">.</span>Schema<span style="color: #990000">.</span>PROCESSES<span style="color: #990000">)</span>
 
-In [35]: print plist[0].exe
+In <span style="color: #990000">[</span><span style="color: #993399">35</span><span style="color: #990000">]:</span> print plist<span style="color: #990000">[</span><span style="color: #993399">0</span><span style="color: #990000">].</span>exe
 /sbin/init
 
-In [36]: print plist[0]
+In <span style="color: #990000">[</span><span style="color: #993399">36</span><span style="color: #990000">]:</span> print plist<span style="color: #990000">[</span><span style="color: #993399">0</span><span style="color: #990000">]</span>
 message Process {
- RSS_size : 2805760
- VMS_size : 21372928
- cmdline : [
-   u'/sbin/init'
-  ]
- ctime : 1376328450160000
- effective_gid : 0
- effective_uid : 0
- exe : u'/sbin/init'
- memory_percent : 0.0110976351425
- name : u'init'
- nice : 0
- num_threads : 1
- pid : 1
- real_gid : 0
- real_uid : 0
- saved_gid : 0
- saved_uid : 0
- status : u'sleeping'
- system_cpu_time : 6.65999984741
- user_cpu_time : 2.36999988556
- username : u'root'
+ RSS_size <span style="color: #990000">:</span> <span style="color: #993399">2805760</span>
+ VMS_size <span style="color: #990000">:</span> <span style="color: #993399">21372928</span>
+ cmdline <span style="color: #990000">:</span> <span style="color: #990000">[</span>
+   u<span style="color: #FF0000">'/sbin/init'</span>
+  <span style="color: #990000">]</span>
+ ctime <span style="color: #990000">:</span> <span style="color: #993399">1376328450160000</span>
+ effective_gid <span style="color: #990000">:</span> <span style="color: #993399">0</span>
+ effective_uid <span style="color: #990000">:</span> <span style="color: #993399">0</span>
+ exe <span style="color: #990000">:</span> u<span style="color: #FF0000">'/sbin/init'</span>
+ memory_percent <span style="color: #990000">:</span> <span style="color: #993399">0.0110976351425</span>
+ name <span style="color: #990000">:</span> u<span style="color: #FF0000">'init'</span>
+ nice <span style="color: #990000">:</span> <span style="color: #993399">0</span>
+ num_threads <span style="color: #990000">:</span> <span style="color: #993399">1</span>
+ pid <span style="color: #990000">:</span> <span style="color: #993399">1</span>
+ real_gid <span style="color: #990000">:</span> <span style="color: #993399">0</span>
+ real_uid <span style="color: #990000">:</span> <span style="color: #993399">0</span>
+ saved_gid <span style="color: #990000">:</span> <span style="color: #993399">0</span>
+ saved_uid <span style="color: #990000">:</span> <span style="color: #993399">0</span>
+ status <span style="color: #990000">:</span> u<span style="color: #FF0000">'sleeping'</span>
+ system_cpu_time <span style="color: #990000">:</span> <span style="color: #993399">6.65999984741</span>
+ user_cpu_time <span style="color: #990000">:</span> <span style="color: #993399">2.36999988556</span>
+ username <span style="color: #990000">:</span> u<span style="color: #FF0000">'root'</span>
 }
 
 
 
-GRR's FUSE layer</tt></pre>
-</div></div>
+GRR<span style="color: #FF0000">'s FUSE layer</span></tt></pre></div></div>
 <div class="paragraph"><p>GRR&#8217;s FUSE layer allows you to mount remote filesystems at directories in your
 machine. Run it by running <tt>grr_fuse</tt>. For configuration options, see
 grr/tools/fuse_mount.py</p></div>
@@ -2057,13 +2025,15 @@ can also do basic filtering in the GUI. Filters work against the objects stored
 as events in timeline.</p></div>
 <div class="paragraph"><p>Below are some example filters that might be of use:</p></div>
 <div class="listingblock">
-<div class="content">
-<pre><tt>event.stat.st_size = 403
-event.timestamp &gt; 2012
-event.timestamp &gt; 2012-03-01 and event.timestamp &lt; 2013-12-01-13:04:23
-event.subject contains exe
-event.subject matches ini$</tt></pre>
-</div></div>
+<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>event<span style="color: #990000">.</span>stat<span style="color: #990000">.</span>st_size <span style="color: #990000">=</span> <span style="color: #993399">403</span>
+event<span style="color: #990000">.</span>timestamp <span style="color: #990000">&gt;</span> <span style="color: #993399">2012</span>
+event<span style="color: #990000">.</span>timestamp <span style="color: #990000">&gt;</span> <span style="color: #993399">2012</span><span style="color: #990000">-</span><span style="color: #993399">03</span><span style="color: #990000">-</span><span style="color: #993399">01</span> <span style="font-weight: bold"><span style="color: #0000FF">and</span></span> event<span style="color: #990000">.</span>timestamp <span style="color: #990000">&lt;</span> <span style="color: #993399">2013</span><span style="color: #990000">-</span><span style="color: #993399">12</span><span style="color: #990000">-</span><span style="color: #993399">01</span><span style="color: #990000">-</span><span style="color: #993399">13</span><span style="color: #990000">:</span><span style="color: #993399">04</span><span style="color: #990000">:</span><span style="color: #993399">23</span>
+event<span style="color: #990000">.</span>subject contains exe
+event<span style="color: #990000">.</span>subject matches ini$</tt></pre></div></div>
 </div>
 </div>
 </div>
@@ -2189,6 +2159,7 @@ requested its results and execute it.
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
+Last updated 2014-03-19 17:36:47 EST
 </div>
 </div>
 </body>

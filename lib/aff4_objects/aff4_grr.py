@@ -317,9 +317,9 @@ class VFSFile(aff4.AFF4Image):
 
     # Get the pathspec for this object
     pathspec = self.Get(self.Schema.STAT).pathspec
-    flow_urn = flow.GRRFlow.StartFlow(client_id=client_id,
-                                      flow_name="GetFile", token=self.token,
-                                      pathspec=pathspec, priority=priority)
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=client_id, flow_name="MultiGetFile", token=self.token,
+        pathspecs=[pathspec], priority=priority)
     self.Set(self.Schema.CONTENT_LOCK(flow_urn))
     self.Close()
 

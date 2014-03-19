@@ -109,9 +109,11 @@ class Interrogate(flow.GRRFlow):
       self.Log("Could not retrieve Platform info.")
 
     if self.client.Get(self.client.Schema.SYSTEM):
-      # We will accept a partial KBInit rather than raise.
+      # We will accept a partial KBInit rather than raise, so pass
+      # require_complete=False.
       self.CallFlow("KnowledgeBaseInitializationFlow",
                     require_complete=False,
+                    lightweight=self.args.lightweight,
                     next_state="ProcessKnowledgeBase")
     else:
       self.Log("Unknown system type, skipping KnowledgeBaseInitializationFlow")

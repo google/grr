@@ -82,3 +82,19 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
                      "acpi.inf_amd64_neutral_99aaaaabcccccccc")
     self.assertRaises(StopIteration, results.next)
 
+  def testWinUserSpecialDirs(self):
+    reg_str = rdfvalue.StatEntry.RegistryType.REG_SZ
+    hk_u = "registry/HKEY_USERS/S-1-1-1010-10101-1010"
+    service_keys = [
+        ("%s/Environment/TEMP" % hk_u, r"temp\path", reg_str),
+        ("%s/Volatile Environment/USERDOMAIN" % hk_u, "GEVULOT", reg_str)
+        ]
+
+    stats = [self._MakeRegStat(*x) for x in service_keys]
+    parser = windows_registry_parser.WinUserSpecialDirs()
+    results = list(parser.ParseMultiple(stats, None))
+    self.assertEqual(results[0].temp, r"temp\path")
+    self.assertEqual(results[0].userdomain, "GEVULOT")
+
+
+

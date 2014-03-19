@@ -266,3 +266,14 @@ grr.Renderer('RDFDatetimeFormRenderer', {
     });
   }
 });
+
+
+grr.Renderer('MultiSelectListRenderer', {
+  Layout: function(state) {
+    var prefix = state.prefix;
+
+    // Height hack as CSS isn't handled properly for multiselect.
+    var multiselect_height = parseInt($('#' + prefix + ' option').length) * 15;
+    $('#' + prefix).css('height', multiselect_height);
+  }
+});

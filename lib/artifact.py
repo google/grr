@@ -141,6 +141,8 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
     kb_base_set = set(config_lib.CONFIG["Artifacts.knowledge_base"])
     kb_add = set(config_lib.CONFIG["Artifacts.knowledge_base_additions"])
     kb_skip = set(config_lib.CONFIG["Artifacts.knowledge_base_skip"])
+    if self.args.lightweight:
+      kb_skip.update(config_lib.CONFIG["Artifacts.knowledge_base_heavyweight"])
     kb_set = kb_base_set.union(kb_add) - kb_skip
 
     # Ignore bootstrap dependencies since they have already been fulfilled.

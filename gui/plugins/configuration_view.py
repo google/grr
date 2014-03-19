@@ -233,21 +233,11 @@ class ConfigFileTableToolbar(renderers.TemplateRenderer):
     <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
   </div>
 </div>
-
-<script>
-grr.subscribe('file_select', function(aff4_path, age) {
-  var state = {aff4_path: aff4_path};
-  grr.downloadHandler($('#{{unique|escapejs}}_download'), state,
-                      safe_extension=true, '/render/Download/DownloadView');
-}, 'toolbar_{{unique|escapejs}}');
-
-$("#upload_dialog_{{unique|escapejs}}").on("show", function () {
-  grr.layout("ConfigBinaryUploadView",
-    "upload_dialog_body_{{unique|escapejs}}");
-});
-
-</script>
 """)
+
+  def Layout(self, request, response):
+    response = super(ConfigFileTableToolbar, self).Layout(request, response)
+    return self.CallJavascript(response, "ConfigFileTableToolbar.Layout")
 
 
 class ConfigBinaryUploadView(fileview.UploadView):

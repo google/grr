@@ -52,10 +52,12 @@ class WMIUserParser(parsers.WMIQueryParser):
   """Parser for WMI Win32_UserAccount and Win32_UserProfile output."""
 
   output_types = ["KnowledgeBaseUser"]
-  supported_artifacts = ["WindowsWMIProfileUsers", "WindowsWMIAccountUsers"]
+  supported_artifacts = ["WindowsWMIProfileUsersHomeDir",
+                         "WindowsWMIAccountUsersDomain"]
 
   account_mapping = {
       # Win32_UserAccount
+      "Name": "username",
       "Domain": "userdomain",
       "SID": "sid",
       # Win32_UserProfile
@@ -71,4 +73,9 @@ class WMIUserParser(parsers.WMIQueryParser):
         kb_user.Set(kb_key, result[wmi_key])
       except KeyError:
         pass
-    yield kb_user
+    # We need at least a sid or a username.  If these are missing its likely we
+    # retrieved just the userdomain for an AD account that has a name collision
+    # with a local account that is correctly populated.  We drop the bogus
+    # domain account.
+    if kb_user.sid or kb_user.username:
+      yield kb_user

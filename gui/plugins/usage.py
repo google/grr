@@ -52,49 +52,18 @@ class StackChart(statistics.Report):
   </div>
   <div id="hover">Hover to show exact numbers.</div>
   <div id="{{unique|escape}}" class="grr_graph"></div>
-  <script>
-
-  var specs = {{this.data|safe}};
-
-  $("#{{unique|escapejs}}").resize(function () {
-    $("#{{unique|escapejs}}").html("");
-    $.plot($("#{{unique|escapejs}}"), specs, {
-      series: {
-        stack: true,
-        bars: {
-          show: true,
-          barWidth: 0.6,
-        },
-        label: {
-          show: true,
-          radius: 0.5,
-        },
-        background: { opacity: 0.8 },
-      },
-      grid: {
-        hoverable: true,
-        clickable: true
-      },
-    });
-  });
-
-  $("#{{unique|escapejs}}").bind("plothover", function(event, pos, obj) {
-    if (obj) {
-      grr.test_obj = obj;
-      $("#hover").html(
-        '<span style="font-weight: bold; color: ' +
-        obj.series.color + '"> <b>' + obj.series.label + "</b>: " +
-        (obj.datapoint[1] - obj.datapoint[2]) + '</span>');
-    }
-  });
-
-  $("#{{unique|escapejs}}").resize();
-  </script>
 {% else %}
   <h3>No data Available</h3>
 {% endif %}
 </div>
 """)
+
+  def Layout(self, request, response):
+    response = super(StackChart, self).Layout(request, response)
+    if self.data:
+      response = self.CallJavascript(response, "StackChart.Layout",
+                                     specs=self.data)
+    return response
 
 
 class UserActivity(StackChart):

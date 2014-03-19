@@ -3,14 +3,28 @@
 # type make in this directory.
 
 # All html files depend on their respective txt files.
-html_files := $(patsubst %.txt,%.html,$(wildcard *.txt))
+html_files := $(patsubst DONT_EDIT_%.adoc,%.html,$(wildcard *.adoc))
+
+adoc_files := $(wildcard *.adoc)
+
+TEMPDIR := $(shell mktemp -d)
 
 # Make all html files from any txt files found here.
 all: $(html_files)
 
-%.html: %.txt
-	asciidoc -a icons $(<F)
+sync:
+	git clone https://github.com/google/grr-doc.git $(TEMPDIR)
 
-.PHONY: clean
+	for adoc_file in $(patsubst DONT_EDIT_%.adoc,%.adoc, $(adoc_files)); \
+	do \
+	cp $(TEMPDIR)/$$adoc_file ./DONT_EDIT_$$adoc_file; \
+	done
+
+	rm -rf $(TEMPDIR)
+
+%.html: DONT_EDIT_%.adoc
+	asciidoc -a icons -o $(@F) $(<F)
+
+.PHONY: sync clean
 clean:
 	rm *.html

@@ -314,12 +314,6 @@ class HuntInformation(renderers.TemplateRenderer):
 <div class="HuntInformation padded" id="{{unique|escape}}">
  Loading...
 </div>
-<script>
-$("#{{unique|escapejs}}").closest(".WizardPage").on('show', function () {
-  grr.update("{{renderer}}", "{{unique|escapejs}}",
-              $("#{{unique}}").closest(".FormData").data());
-});
-</script>
 """)
 
   ajax_template = renderers.Template("""
@@ -331,6 +325,12 @@ $("#{{unique|escapejs}}").closest(".WizardPage").on('show', function () {
 
   def Validate(self, request, response):
     pass
+
+  def Layout(self, request, response, apply_template=None):
+    response = super(HuntInformation, self).Layout(
+        request, response, apply_template=apply_template)
+    return self.CallJavascript(response, "HuntInformation.Layout",
+                               renderer=self.__class__.__name__)
 
   def RenderAjax(self, request, response):
     """Layout the hunt information."""

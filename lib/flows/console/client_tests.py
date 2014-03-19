@@ -66,12 +66,13 @@ class ClientTestBase(test_lib.GRRBaseTest):
   __metaclass__ = registry.MetaclassRegistry
 
   def __init__(self, client_id=None, platform=None, local_worker=False,
-               token=None):
+               token=None, timeout=None):
     # If we get passed a string, turn it into a urn.
     self.client_id = rdfvalue.RDFURN(client_id)
     self.platform = platform
     self.token = token
     self.local_worker = local_worker
+    self.timeout = timeout or flow_utils.DEFAULT_TIMEOUT
     super(ClientTestBase, self).__init__(methodName="runTest")
 
   def setUp(self):
@@ -91,7 +92,8 @@ class ClientTestBase(test_lib.GRRBaseTest):
           network_bytes_limit=self.network_bytes_limit, **self.args)
     else:
       self.session_id = flow_utils.StartFlowAndWait(
-          self.client_id, flow_name=self.flow, cpu_limit=self.cpu_limit,
+          self.client_id, flow_name=self.flow,
+          cpu_limit=self.cpu_limit, timeout=self.timeout,
           network_bytes_limit=self.network_bytes_limit, token=self.token,
           **self.args)
 
@@ -328,14 +330,33 @@ class TestClientInterrogateEndToEnd(ClientTestBase):
   platforms = ["windows", "linux", "darwin"]
   flow = "Interrogate"
 
-  attributes = [aff4.VFSGRRClient.SchemaCls.GRR_CONFIGURATION,
-                aff4.VFSGRRClient.SchemaCls.MAC_ADDRESS,
+  attributes = [aff4.VFSGRRClient.SchemaCls.CLIENT_INFO,
+                aff4.VFSGRRClient.SchemaCls.GRR_CONFIGURATION,
                 aff4.VFSGRRClient.SchemaCls.HOSTNAME,
                 aff4.VFSGRRClient.SchemaCls.INSTALL_DATE,
-                aff4.VFSGRRClient.SchemaCls.CLIENT_INFO,
+                aff4.VFSGRRClient.SchemaCls.MAC_ADDRESS,
                 aff4.VFSGRRClient.SchemaCls.OS_RELEASE,
                 aff4.VFSGRRClient.SchemaCls.OS_VERSION,
+                aff4.VFSGRRClient.SchemaCls.SYSTEM,
                 aff4.VFSGRRClient.SchemaCls.USERNAMES]
+
+  kb_attributes = ["hostname", "os", "os_major_version", "os_minor_version"]
+
+  # TODO(user): time_zone, environ_path, and environ_temp are currently only
+  # implemented for windows, move to kb_attributes once available on other OSes.
+  kb_win_attributes = ["time_zone", "environ_path", "environ_temp",
+                       "environ_systemroot", "environ_windir",
+                       "environ_programfiles", "environ_programfilesx86",
+                       "environ_systemdrive", "environ_allusersprofile",
+                       "environ_allusersappdata", "current_control_set",
+                       "code_page", "domain"]
+
+  # Intentionally excluded:
+  # userdomain: too slow to collect, not in lightweight interrogate
+  # local_settings: not always present in reg keys
+  user_win_kb_attributes = ["sid", "userprofile", "appdata", "localappdata",
+                            "internet_cache", "cookies", "recent", "personal",
+                            "startup", "localappdata_low"]
 
   def setUp(self):
     super(TestClientInterrogateEndToEnd, self).setUp()
@@ -343,15 +364,56 @@ class TestClientInterrogateEndToEnd(ClientTestBase):
         str(attribute) for attribute in self.attributes], sync=True)
     aff4.FACTORY.Flush()
 
+    # When run on windows this flow has 20 sub flows, so it takes some time to
+    # complete.
+    self.timeout = 240
     self.assertRaises(AssertionError, self.CheckFlow)
+
+  def _IsCompleteWindowsUser(self, user):
+    for attribute in self.user_win_kb_attributes:
+      value = user.Get(attribute)
+      if not value:
+        return False
+    return True
+
+  def _CheckAttributes(self, attributes, fd):
+    for attribute in attributes:
+      value = fd.Get(attribute)
+      self.assertTrue(value is not None, "Attribute %s is None." % attribute)
+      self.assertTrue(str(value), "str(%s) is empty" % attribute)
 
   def CheckFlow(self):
     fd = aff4.FACTORY.Open(self.client_id, mode="r", token=self.token)
     self.assertIsInstance(fd, aff4.VFSGRRClient)
-    for attribute in self.attributes:
-      value = fd.Get(attribute)
-      self.assertTrue(value is not None, "Attribute %s is None." % attribute)
+
+    # Check KnowledgeBase was populated correctly
+    kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
+    system = fd.Get(fd.Schema.SYSTEM)
+
+    self._CheckAttributes(self.attributes, fd)
+    self._CheckAttributes(self.kb_attributes, kb)
+    if system == "Windows":
+      self._CheckAttributes(self.kb_win_attributes, kb)
+
+    self.assertTrue(kb.users)
+    # Now check all the kb users have the right attributes
+    complete_user = False
+    for user in kb.users:
+      value = user.Get("username")
+      self.assertTrue(value is not None, "username is none for user: %s" % user)
       self.assertTrue(str(value))
+
+      if system == "Windows":
+        # The amount of information collected per user can vary wildly on
+        # windows depending on the type of user, whether they have logged in,
+        # whether they are local/domain etc.  We expect to find at least one
+        # user with all of these fields filled out.
+        complete_user = self._IsCompleteWindowsUser(user)
+      else:
+        complete_user = user.Get("uid") is not None
+
+    self.assertTrue(complete_user,
+                    "No users with complete KB user attributes: %s" % kb.users)
 
 
 class TestListDirectoryOSWindows(TestListDirectoryOSLinux):

@@ -51,6 +51,14 @@ message GUISettings {
       description: "User interface mode.",
     }, default=BASIC];
 
+  enum DocsLocation {
+    LOCAL = 0;
+    REMOTE = 1;
+  }
+
+  optional DocsLocation docs_location = 2 [(sem_type) = {
+      description: "Where to serve documentation from."
+    }, default=REMOTE];
 }
 
 
@@ -539,7 +547,7 @@ message ArtifactCollectorFlowArgs {
 message InterrogateArgs {
   optional bool lightweight = 1 [(sem_type) = {
       description: "Perform a light weight version of the interrogate.",
-    }, default=false];
+    }, default=true];
 }
 
 message FetchFilesArgs {
@@ -1602,5 +1610,11 @@ message KnowledgeBaseInitializationArgs {
       description: "If true require all dependencies to be complete.  "
       "Raise if any are missing.",
     }, default=true];
+
+  optional bool lightweight = 2 [(sem_type) = {
+      description: "If true skip all heavyweight artifacts defined in "
+      "Artifacts.knowledge_base_heavyweight.",
+    }, default=true];
+
 }
 

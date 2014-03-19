@@ -341,15 +341,6 @@ class RDFValueArrayRenderer(RDFValueRenderer):
 {% endif %}
 </tbody>
 </table>
-<script>
- $("#{{unique}} a").click(function () {
-   grr.layout("RDFValueArrayRenderer", "{{unique}}", {
-     start: "{{this.next_start}}",
-     cache: "{{this.cache.urn}}",
-     length: "{{this.length}}"
-   });
- });
-</script>
 """)
 
   def Layout(self, request, response):
@@ -377,6 +368,7 @@ class RDFValueArrayRenderer(RDFValueRenderer):
 
     self.data = []
 
+    self.next_start = 0
     for i, element in enumerate(self.proxy):
       if i < start:
         continue
@@ -394,7 +386,13 @@ class RDFValueArrayRenderer(RDFValueRenderer):
           logging.error(
               "Unable to render %s with %s: %s", type(element), renderer, e)
 
-    return super(RDFValueArrayRenderer, self).Layout(request, response)
+    response = super(RDFValueArrayRenderer, self).Layout(request, response)
+    if self.next_start:
+      response = self.CallJavascript(response, "RDFValueArrayRenderer.Layout",
+                                     next_start=self.next_start,
+                                     cache_urn=self.cache.urn,
+                                     array_length=self.length)
+    return response
 
 
 class DictRenderer(RDFValueRenderer):
@@ -529,18 +527,13 @@ Open a graph showing the download progress in a new window:
 <button id="{{ unique|escape }}">
  Generate
 </button>
-<script>
-  var button = $("#{{ unique|escapejs }}").button();
-
-  var state = {flow_id: '{{this.flow_id|escapejs}}'};
-  grr.downloadHandler(button, state, false,
-                      '/render/Download/ProgressGraphRenderer');
-</script>
 """)
 
   def Layout(self, request, response):
     self.flow_id = request.REQ.get("flow")
-    return super(ProgressButtonRenderer, self).Layout(request, response)
+    response = super(ProgressButtonRenderer, self).Layout(request, response)
+    return self.CallJavascript(response, "ProgressButtonRenderer.Layout",
+                               flow_id=self.flow_id)
 
 
 class FlowStateRenderer(DictRenderer):
@@ -568,14 +561,13 @@ class AES128KeyFormRenderer(forms.StringTypeFormRenderer):
     />
   </div>
 </div>
-<script>
-$("#{{this.prefix}}").change();
-</script>
 """
 
   def Layout(self, request, response):
     self.default = str(self.descriptor.type().Generate())
-    return super(AES128KeyFormRenderer, self).Layout(request, response)
+    response = super(AES128KeyFormRenderer, self).Layout(request, response)
+    return self.CallJavascript(response, "AES128KeyFormRenderer.Layout",
+                               prefix=self.prefix)
 
 
 class ClientURNRenderer(RDFValueRenderer):

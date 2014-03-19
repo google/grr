@@ -87,8 +87,10 @@ doc: The Shell Folders information for Windows users.
 collectors:
 - action: GetRegistryKeys
   args:
-    path_list: [HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell
-        Folders\*, HKEY_USERS\%%users.sid%%\Environment\*]
+    path_list:
+      - HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\*
+      - HKEY_USERS\%%users.sid%%\Environment\*
+      - HKEY_USERS\%%users.sid%%\Volatile Environment\*
 provides: [users.cookies, users.appdata, users.personal, users.startup, users.homedir,
   users.desktop, users.local_settings, users.internet_cache, users.localappdata, users.localappdata_low,
   users.recent, users.userprofile, users.temp]
@@ -158,10 +160,11 @@ supported_os: [Windows]
 urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/bb776892(v=vs.85).aspx']
 ---
 
-name: WindowsWMIProfileUsers
+name: WindowsWMIProfileUsersHomeDir
 doc: "Get user homedir from Win32_UserProfile based on a known user's SID.\n\n\
     This artifact relies on having the SID field users.sid populated in the knowledge\n\
-    \  base.\n  "
+    \  base. We expect it to be collected with WindowsRegistryProfiles to\n\
+    \ supply the rest of the user information.\n  "
 collectors:
 - action: WMIQuery
   args: {query: SELECT * FROM Win32_UserProfile WHERE SID='%%users.sid%%'}
@@ -171,18 +174,21 @@ supported_os: [Windows]
 urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/ee886409(v=vs.85).aspx']
 ---
 
-name: WindowsWMIAccountUsers
-doc: "Fill out user account information based on username.\n\n  This artifact optimizes\
+name: WindowsWMIAccountUsersDomain
+doc: "Fill out user AD domain information based on username.\n\n  We expect\
+    \ this artifact to be collected with WindowsRegistryProfiles to supply the\
+    \ rest of the user information. This artifact optimizes\
     \ retrieval of user information by limiting the WMI\n  query to users for which\
     \ we have a username for. Specifically this solves the issue\n  that in a domain setting,\
     \ querying for all users via WMI will give you the\n  list of all local and domain\
     \ accounts which means a large data transfer from\n  an Active Directory server.\n\
     \n  This artifact relies on having the users.username field populated in the knowledge\n\
-    \  base.\n  "
+    \  base. Unfortunately even limiting by username this query can be slow, and this artifact\n\
+    \ runs it for each user present on the system. \n "
 collectors:
 - action: WMIQuery
   args: {query: SELECT * FROM Win32_UserAccount WHERE name='%%users.username%%'}
 labels: [Users]
-provides: [users.sid, users.userdomain]
+provides: [users.userdomain]
 supported_os: [Windows]
 urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/aa394507(v=vs.85).aspx']
