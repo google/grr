@@ -1,0 +1,3 @@
+GRR docs are hosted (and should be edited) on: https://github.com/google/grr-doc
+Please don't edit files in this folder - they're used for build process only and
+synced periodically with GitHub repo.
