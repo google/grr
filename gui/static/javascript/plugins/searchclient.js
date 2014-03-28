@@ -2,6 +2,8 @@ var grr = window.grr || {};
 
 grr.Renderer('ContentView', {
   Layout: function(state) {
+    grr.canary_mode = state.canary_mode;
+
     if (grr.hash.c) {
       grr.state.client_id = grr.hash.c;
     }
@@ -25,7 +27,7 @@ grr.Renderer('Navigator', {
 
     grr.poll('StatusRenderer', 'infoline_' + unique,
              function(data) {
-               $('#infoline_{{unique|escapejs}}').html(data);
+               $('#infoline_' + unique).html(data);
                return true;
              }, poll_time, grr.state, null,
              function() {
@@ -68,7 +70,15 @@ grr.Renderer('HostTable', {
 grr.Renderer('SearchHostView', {
   Layout: function(state) {
     $('#search_host').submit(function() {
-      grr.layout('HostTable', 'main', {q: $('input[name="q"]').val()});
+      var input = $('input[name="q"]').val();
+      var sha_regex = /^[A-F0-9]{64}$/i;
+
+      if (sha_regex.test(input)) {
+        grr.layout('FilestoreTable', 'main', {q: input});
+      } else {
+        grr.layout('HostTable', 'main', {q: input});
+      }
+
       return false;
     }).find('input[name=q]').focus();
   }

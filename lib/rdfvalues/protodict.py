@@ -312,7 +312,7 @@ class EmbeddedRDFValue(rdfvalue.RDFProtoStruct):
     try:
       rdf_cls = self.classes.get(self.name)
       value = rdf_cls(self.data)
-      value.age = self.age
+      value.age = self.embedded_age
 
       return value
     except TypeError:
@@ -321,5 +321,5 @@ class EmbeddedRDFValue(rdfvalue.RDFProtoStruct):
   @payload.setter
   def payload(self, payload):
     self.name = payload.__class__.__name__
-    self.age = payload.age
+    self.embedded_age = payload.age
     self.data = payload.SerializeToString()

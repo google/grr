@@ -214,8 +214,11 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
     source = request.REQ.get("source")
 
     if self.acl is None and source != "hash":
+      # NOTE: we have to pass id explicitly because super().Layout() wasn't
+      # called yet, and therefore self.id is None.
       return self.CallJavascript(response, "GrantAccess.RefreshFromHash",
-                                 renderer=self.__class__.__name__)
+                                 renderer=self.__class__.__name__,
+                                 id=request.REQ.get("id", hash(self)))
 
     # There is a bug in Firefox that strips trailing "="s from get parameters
     # which is a problem with the base64 padding. To pass the selenium tests,

@@ -392,7 +392,8 @@ class SearchParser(Lexer):
       return self.InsertArg(string=self.string)
 
   def StoreAttribute(self, string="", **_):
-    logging.debug("Storing attribute %r", string)
+    if self.verbose:
+      logging.debug("Storing attribute %r", string)
 
     # TODO(user): Update the expected number_of_args
     try:
@@ -403,12 +404,14 @@ class SearchParser(Lexer):
     return "OPERATOR"
 
   def StoreOperator(self, string="", **_):
-    logging.debug("Storing operator %r", string)
+    if self.verbose:
+      logging.debug("Storing operator %r", string)
     self.current_expression.SetOperator(string)
 
   def InsertArg(self, string="", **_):
     """Insert an arg to the current expression."""
-    logging.debug("Storing Argument %s", utils.SmartUnicode(string))
+    if self.verbose:
+      logging.debug("Storing Argument %s", utils.SmartUnicode(string))
 
     # This expression is complete
     if self.current_expression.AddArg(string):

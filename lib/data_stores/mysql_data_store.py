@@ -43,12 +43,17 @@ class MySQLConnection(object):
 
   def _MakeConnection(self, database=""):
     try:
-      self.dbh = MySQLdb.connect(
+      connection_args = dict(
           user=config_lib.CONFIG["Mysql.database_username"],
           db=database, charset="utf8",
           passwd=config_lib.CONFIG["Mysql.database_password"],
           cursorclass=cursors.DictCursor)
+      if config_lib.CONFIG["Mysql.host"]:
+        connection_args["host"] = config_lib.CONFIG["Mysql.host"]
+      if config_lib.CONFIG["Mysql.port"]:
+        connection_args["port"] = config_lib.CONFIG["Mysql.port"]
 
+      self.dbh = MySQLdb.connect(**connection_args)
       self.cursor = self.dbh.cursor()
       self.cursor.connection.autocommit(False)
 

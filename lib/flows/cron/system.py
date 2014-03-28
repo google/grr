@@ -264,7 +264,7 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
         token=self.token) as hunt:
 
       with hunt.GetRunner() as runner:
-        runner.args.client_rate = 0
+        runner.args.client_rate = 50
         runner.args.expiry_time = "1w"
         runner.args.description = ("Interrogate run by cron to keep host"
                                    "info fresh.")

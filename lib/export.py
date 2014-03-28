@@ -10,12 +10,17 @@ import hashlib
 import stat
 import time
 
+from google.protobuf import descriptor_pb2
+from google.protobuf import descriptor
+from google.protobuf import message_factory
+
 import logging
 
 
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import filestore
 from grr.proto import export_pb2
@@ -177,8 +182,182 @@ class ExportConverter(object):
     except KeyError:
       results = [cls for cls in ExportConverter.classes.itervalues()
                  if cls.input_rdf_type == value.__class__.__name__]
+      if not results:
+        results = [DataAgnosticExportConverter]
+
       ExportConverter.converters_cache[value.__class__.__name__] = results
       return results
+
+
+class DataAgnosticExportConverter(ExportConverter):
+  """Export converter that yields flattened versions of passed values.
+
+  NOTE: DataAgnosticExportConverter discards complex types: repeated
+  fields and nested messages. Only the primitive types (including enums)
+  are preserved.
+  """
+
+  PRIMITIVE_TYPE_MAPPING = {
+      "string": descriptor_pb2.FieldDescriptorProto.TYPE_STRING,
+      "bytes": descriptor_pb2.FieldDescriptorProto.TYPE_BYTES,
+      "uint64": descriptor_pb2.FieldDescriptorProto.TYPE_UINT64,
+      "int64": descriptor_pb2.FieldDescriptorProto.TYPE_INT32,
+      "float": descriptor_pb2.FieldDescriptorProto.TYPE_FLOAT,
+      "double": descriptor_pb2.FieldDescriptorProto.TYPE_DOUBLE,
+      "bool": descriptor_pb2.FieldDescriptorProto.TYPE_BOOL
+      }
+
+  # Cache used for generated classes.
+  classes_cache = {}
+
+  def ExportedClassNameForValue(self, value):
+    return "Exported" + value.__class__.__name__
+
+  def MakeDescriptor(self, desc_proto, file_desc_proto, descriptors=None):
+    """Creates a protobuf descriptor out of DescriptorProto."""
+    descriptors = descriptors or dict()
+
+    full_message_name = [desc_proto.name]
+
+    # Create Descriptors for enum types
+    enum_types = {}
+    for enum_proto in desc_proto.enum_type:
+      full_name = ".".join(full_message_name + [enum_proto.name])
+
+      values = []
+      for index, enum_val in enumerate(enum_proto.value):
+        values.append(descriptor.EnumValueDescriptor(
+            enum_val.name, index, enum_val.number))
+
+      enum_desc = descriptor.EnumDescriptor(enum_proto.name, full_name,
+                                            None, values)
+      enum_types[full_name] = enum_desc
+
+    fields = []
+    for field_proto in desc_proto.field:
+      full_name = ".".join(full_message_name + [field_proto.name])
+      enum_desc = None
+      message_desc = None
+      if field_proto.HasField("type_name"):
+        type_name = field_proto.type_name
+        full_type_name = ".".join(full_message_name +
+                                  [type_name[type_name.rfind(".") + 1:]])
+
+        if full_type_name in enum_types:
+          enum_desc = enum_types[full_type_name]
+        elif type_name in descriptors:
+          message_desc = descriptors[type_name]
+
+      # Else type_name references a non-local type, which isn't implemented
+      field = descriptor.FieldDescriptor(
+          field_proto.name, full_name, field_proto.number - 1,
+          field_proto.number, field_proto.type,
+          descriptor.FieldDescriptor.ProtoTypeToCppProtoType(field_proto.type),
+          field_proto.label, None, message_desc, enum_desc, None, False, None,
+          options=field_proto.options, has_default_value=False)
+      fields.append(field)
+
+    file_descriptor = descriptor.FileDescriptor(
+        file_desc_proto.name, file_desc_proto.package,
+        serialized_pb=file_desc_proto.SerializeToString())
+    desc_name = ".".join(full_message_name)
+    return descriptor.Descriptor(desc_proto.name, desc_name, None, None, fields,
+                                 [], enum_types.values(), [],
+                                 file=file_descriptor)
+
+  def MakeFlatRDFClass(self, value):
+    """Generates flattened RDFValue class definition for the given value."""
+    file_descriptor = descriptor_pb2.FileDescriptorProto()
+    file_descriptor.name = (self.ExportedClassNameForValue(value).lower() +
+                            ".proto")
+
+    descriptors = dict()
+
+    metadata_type = file_descriptor.message_type.add()
+    rdfvalue.ExportedMetadata.protobuf.DESCRIPTOR.CopyToProto(metadata_type)
+    descriptors[
+        "." + rdfvalue.ExportedMetadata.protobuf.DESCRIPTOR.full_name] = (
+            rdfvalue.ExportedMetadata.protobuf.DESCRIPTOR)
+
+    message_type = file_descriptor.message_type.add()
+    message_type.name = self.ExportedClassNameForValue(value)
+
+    metadata_field = message_type.field.add()
+    metadata_field.name = "metadata"
+    metadata_field.number = 1
+    metadata_field.label = descriptor_pb2.FieldDescriptorProto.LABEL_OPTIONAL
+    metadata_field.type = descriptor_pb2.FieldDescriptorProto.TYPE_MESSAGE
+    metadata_field.type_name = (
+        "." + rdfvalue.ExportedMetadata.protobuf.DESCRIPTOR.full_name)
+
+    for number, desc in sorted(value.type_infos_by_field_number.items()):
+      # Name 'metadata' is reserved to store ExportedMetadata value.
+      if desc.name == "metadata":
+        continue
+
+      field = None
+      if isinstance(desc, type_info.ProtoEnum):
+        field = message_type.field.add()
+        field.type = descriptor_pb2.FieldDescriptorProto.TYPE_ENUM
+        field.type_name = desc.enum_name
+
+        enum_type = message_type.enum_type.add()
+        value.protobuf.DESCRIPTOR.enum_types_by_name[
+            desc.enum_name].CopyToProto(enum_type)
+      elif isinstance(desc, type_info.ProtoEmbedded):
+        # We don't support nested protobufs in data agnostic export yet.
+        pass
+      elif isinstance(desc, type_info.ProtoList):
+        # We don't support repeated fields in data agnostic export yet.
+        pass
+      else:
+        field = message_type.field.add()
+        field.type = self.PRIMITIVE_TYPE_MAPPING[desc.proto_type_name]
+
+      if field:
+        field.name = desc.name
+        field.number = number + 1
+        field.label = descriptor_pb2.FieldDescriptorProto.LABEL_OPTIONAL
+
+        field_options = value.protobuf.DESCRIPTOR.fields_by_name[
+            desc.name].GetOptions()
+        if field_options:
+          field.options.CopyFrom(field_options)
+
+    result_descriptor = self.MakeDescriptor(message_type, file_descriptor,
+                                            descriptors=descriptors)
+
+    factory = message_factory.MessageFactory()
+    proto_class = factory.GetPrototype(result_descriptor)
+
+    def Flatten(self, metadata, value):
+      self.metadata = metadata
+      for desc in value.type_infos:
+        if desc.name == "metadata":
+          continue
+        if hasattr(self, desc.name) and value.HasField(desc.name):
+          setattr(self, desc.name, getattr(value, desc.name))
+
+    return type(utils.SmartStr(message_type.name),
+                (rdfvalue.RDFProtoStruct,),
+                dict(protobuf=proto_class, Flatten=Flatten))
+
+  def Convert(self, metadata, value, token=None):
+    class_name = self.ExportedClassNameForValue(value)
+    try:
+      class_obj = DataAgnosticExportConverter.classes_cache[class_name]
+    except KeyError:
+      class_obj = self.MakeFlatRDFClass(value)
+      DataAgnosticExportConverter.classes_cache[class_name] = class_obj
+
+    result_obj = class_obj()
+    result_obj.Flatten(metadata, value)
+    yield result_obj
+
+  def BatchConvert(self, metadata_value_pairs, token=None):
+    for metadata, value in metadata_value_pairs:
+      for result in self.Convert(metadata, value, token=token):
+        yield result
 
 
 class StatEntryToExportedFileConverter(ExportConverter):

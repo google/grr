@@ -51,6 +51,10 @@ message GUISettings {
       description: "User interface mode.",
     }, default=BASIC];
 
+  optional bool canary_mode = 3 [(sem_type) = {
+      description: "If true, show features that are being canaried."
+    }];
+
   enum DocsLocation {
     LOCAL = 0;
     REMOTE = 1;

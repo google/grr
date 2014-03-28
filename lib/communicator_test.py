@@ -2,6 +2,7 @@
 """Test for client."""
 
 
+import array
 import pdb
 import StringIO
 import time
@@ -63,6 +64,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
         certificate=self.server_certificate,
         private_key=self.server_private_key,
         token=self.token)
+
+    self.last_urlmock_error = None
 
   def ClientServerCommunicate(self, timestamp=None):
     """Tests the end to end encrypted communicators."""
@@ -354,6 +357,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       raise urllib2.HTTPError(url=None, code=406, msg=None, hdrs=None, fp=None)
     except Exception as e:
       logging.info("Exception in mock urllib2.Open: %s.", e)
+      self.last_urlmock_error = e
+
       if flags.FLAGS.debug:
         pdb.post_mortem()
 
@@ -511,28 +516,54 @@ class HTTPClientTests(test_lib.GRRBaseTest):
   def testCorruption(self):
     """Simulate corruption of the http payload."""
 
-    def Corruptor(req):
+    self.corruptor_field = None
+
+    def Corruptor(req, **_):
       """Futz with some of the fields."""
       self.client_communication = rdfvalue.ClientCommunication(req.data)
 
-      cipher_text = self.client_communication.encrypted_cipher
-      cipher_text = (cipher_text[:10] +
-                     chr((ord(cipher_text[10]) % 250)+1) +
-                     cipher_text[11:])
+      if self.corruptor_field:
+        field_data = getattr(self.client_communication, self.corruptor_field)
+        modified_data = array.array("c", field_data)
 
-      self.client_communication.encrypted_cipher = cipher_text
+        offset = len(field_data) / 2
+        modified_data[offset] = chr((ord(field_data[offset]) % 250)+1)
+        setattr(self.client_communication, self.corruptor_field,
+                str(modified_data))
+
+        # Make sure we actually changed the data.
+        self.assertNotEqual(field_data, modified_data)
+
       req.data = self.client_communication.SerializeToString()
       return self.UrlMock(req)
 
-    old_urlopen = urllib2.urlopen
-    try:
-      urllib2.urlopen = Corruptor
-
+    with test_lib.Stubber(urllib2, "urlopen", Corruptor):
       self.SendToServer()
       status = self.client_communicator.RunOnce()
-      self.assertEqual(status.code, 500)
-    finally:
-      urllib2.urlopen = old_urlopen
+      self.assertEqual(status.code, 200)
+
+      for field in ["packet_iv", "encrypted"]:
+        # Corrupting each field should result in HMAC verification errors.
+        self.corruptor_field = field
+
+        self.SendToServer()
+        status = self.client_communicator.RunOnce()
+
+        self.assertEqual(status.code, 500)
+        self.assertTrue(
+            "HMAC verification failed" in str(self.last_urlmock_error))
+
+      # Corruption of these fields will likely result in RSA errors, since we do
+      # the RSA operations before the HMAC verification (in order to recover the
+      # hmac key):
+      for field in ["encrypted_cipher", "encrypted_cipher_metadata"]:
+        # Corrupting each field should result in HMAC verification errors.
+        self.corruptor_field = field
+
+        self.SendToServer()
+        status = self.client_communicator.RunOnce()
+
+        self.assertEqual(status.code, 500)
 
   def testClientRetransmission(self):
     """Test that client retransmits failed messages."""
@@ -542,27 +573,27 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     def FlakyServer(req):
       if not fail:
         return self.UrlMock(req)
+
       raise urllib2.HTTPError(url=None, code=500, msg=None, hdrs=None, fp=None)
 
-    urllib2.urlopen = FlakyServer
+    with test_lib.Stubber(urllib2, "urlopen", FlakyServer):
+      self.SendToServer()
+      status = self.client_communicator.RunOnce()
+      self.assertEqual(status.code, 500)
 
-    self.SendToServer()
-    status = self.client_communicator.RunOnce()
-    self.assertEqual(status.code, 500)
+      # Server should not receive anything.
+      self.assertEqual(len(self.messages), 0)
 
-    # Server should not receive anything.
-    self.assertEqual(len(self.messages), 0)
+      # Try to send these messages again.
+      fail = False
 
-    # Try to send these messages again.
-    fail = False
+      status = self.client_communicator.RunOnce()
 
-    status = self.client_communicator.RunOnce()
+      self.assertEqual(status.code, 200)
+      self.CheckClientQueue()
 
-    self.assertEqual(status.code, 200)
-    self.CheckClientQueue()
-
-    # Server should have received 10 messages this time.
-    self.assertEqual(len(self.messages), 10)
+      # Server should have received 10 messages this time.
+      self.assertEqual(len(self.messages), 10)
 
   def testClientStatsCollection(self):
     """Tests that the client stats are collected automatically."""

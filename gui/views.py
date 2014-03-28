@@ -12,6 +12,7 @@ from django import http
 from django import shortcuts
 from django import template
 from django.views.decorators import csrf
+import psutil
 import logging
 
 from grr import gui
@@ -86,11 +87,13 @@ def Homepage(request):
       if module_components[-2] == "plugins":
         renderers_js_files.add(module_components[-1] + ".js")
 
+  create_time = psutil.Process(os.getpid()).create_time
   context = {"page_title": config_lib.CONFIG["AdminUI.page_title"],
              "heading": config_lib.CONFIG["AdminUI.heading"],
              "report_url": config_lib.CONFIG["AdminUI.report_url"],
              "help_url": config_lib.CONFIG["AdminUI.help_url"],
-             "renderers_js": renderers_js_files}
+             "renderers_js": renderers_js_files,
+             "timestamp": create_time}
   return shortcuts.render_to_response(
       "base.html", context, context_instance=template.RequestContext(request))
 
@@ -152,6 +155,8 @@ def RenderGenericRenderer(request):
   # Build the security token for this request
   request.token = BuildToken(request, renderer.max_execution_time)
 
+  request.canary_mode = "canary_mode" in request.COOKIES
+
   # Allow the renderer to check its own ACLs.
   renderer.CheckAccess(request)
 
@@ -183,11 +188,6 @@ def RenderGenericRenderer(request):
 
   if not isinstance(result, http.HttpResponse):
     raise RuntimeError("Renderer returned invalid response %r" % result)
-
-  # Prepend bad json to break json script inclusion attacks.
-  content_type = result.get("Content-Type", 0)
-  if content_type and "json" in content_type.lower():
-    result.content = ")]}\n" + result.content
 
   return result
 

@@ -69,6 +69,34 @@ message ExportedMetadata {
     }];
 }
 
+// Used for DataAgnosticConverter tests.
+message DataAgnosticConverterTestValue {
+  optional string string_value = 1;
+  optional uint64 int_value = 2;
+
+  repeated string repeated_string_value = 3;
+  optional ExportedMetadata message_value = 4;
+
+  enum EnumOption {
+    OPTION_1 = 0;
+    OPTION_2 = 1;
+  }
+  optional EnumOption enum_value = 5 [default = OPTION_1];
+
+  optional string urn_value = 6 [(sem_type) = {
+      type: "RDFURN",
+    }];
+  optional uint64 datetime_value = 7 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+}
+
+// Used for DataAgnosticConverter tests.
+message DataAgnosticConverterTestValueWithMetadata {
+  optional uint64 metadata = 1;
+  optional string value = 2;
+}
+
 
 message ExportedClient {
   optional ExportedMetadata metadata = 1;

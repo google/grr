@@ -8,11 +8,13 @@ from grr.gui import renderers
 from grr.gui.plugins import semantic
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import search
 from grr.lib import stats
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 
 
 class SearchHostInit(registry.InitHook):
@@ -33,8 +35,27 @@ class ContentView(renderers.Splitter2WayVertical):
   max_left_pane_width = 210
 
   def Layout(self, request, response):
+    canary_mode = False
+    try:
+      user_record = aff4.FACTORY.Open(
+          aff4.ROOT_URN.Add("users").Add(request.user), aff4_type="GRRUser",
+          token=request.token)
+      canary_mode = user_record.Get(
+          user_record.Schema.GUI_SETTINGS).canary_mode
+    except IOError:
+      pass
+
+    if canary_mode:
+      response.set_cookie("canary_mode", "true")
+    else:
+      response.delete_cookie("canary_mode")
+
+    # Ensure that Javascript will be executed before the rest of the template
+    # gets processed.
+    response = self.CallJavascript(response, "ContentView.Layout",
+                                   canary=int(canary_mode))
     response = super(ContentView, self).Layout(request, response)
-    return self.CallJavascript(response, "ContentView.Layout")
+    return response
 
 
 def FormatLastSeenTime(age):
@@ -306,13 +327,45 @@ class CenteredOnlineStateIcon(OnlineStateIcon):
                      "</div>")
 
 
+class FilestoreTable(renderers.TableRenderer):
+  """Render filestore hits."""
+
+  def __init__(self, **kwargs):
+    super(FilestoreTable, self).__init__(**kwargs)
+
+    self.AddColumn(semantic.RDFValueColumn("Client"))
+    self.AddColumn(semantic.RDFValueColumn("File"))
+    self.AddColumn(semantic.RDFValueColumn("Timestamp"))
+
+  def BuildTable(self, start, end, request):
+    query_string = request.REQ.get("q", "")
+    if not query_string:
+      raise RuntimeError("A query string must be provided.")
+
+    hash_urn = rdfvalue.RDFURN("aff4:/files/hash/generic/sha256/").Add(
+        query_string)
+
+    for i, (_, value, timestamp) in enumerate(data_store.DB.ResolveRegex(
+        hash_urn, "index:.*", token=request.token)):
+
+      if i > end:
+        break
+
+      self.AddRow(row_index=i, File=value,
+                  Client=aff4_grr.VFSGRRClient.ClientURNFromURN(value),
+                  Timestamp=rdfvalue.RDFDatetime(timestamp))
+
+    # We only display 50 entries.
+    return False
+
+
 class HostTable(renderers.TableRenderer):
   """Render a table for searching hosts."""
 
   fixed_columns = False
 
   def __init__(self, **kwargs):
-    renderers.TableRenderer.__init__(self, **kwargs)
+    super(HostTable, self).__init__(**kwargs)
     self.AddColumn(semantic.RDFValueColumn("Online", width="40px",
                                            renderer=CenteredOnlineStateIcon))
     self.AddColumn(semantic.AttributeColumn("subject", width="13em"))
@@ -369,9 +422,12 @@ class SearchHostView(renderers.Renderer):
   title = "Search Client"
 
   template = renderers.Template("""
-<form id="search_host" class="navbar-search pull-left">
-  <input type="text" name="q" class="search-query" placeholder="Search">
-</form>
+  <form id="search_host" class="navbar-form form-search pull-right">
+    <div class="input-append">
+      <input type="text" id="client_query" name="q" class="span4 search-query" placeholder="Search Box"/>
+      <button type="submit" id="client_query_submit" class="btn search-query">Search</button>
+    </div>
+  </form>
 """)
 
   def Layout(self, request, response):
@@ -381,6 +437,7 @@ class SearchHostView(renderers.Renderer):
     response = self.RenderFromTemplate(
         self.template, response, title=self.title,
         id=self.id)
+
     return self.CallJavascript(response, "SearchHostView.Layout")
 
 

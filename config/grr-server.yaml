@@ -62,6 +62,8 @@ Mongo.port: 27017
 # Monitoring.emergency_access_email: grr-emergency-access@example.com
 # Monitoring.alert_email: grr-monitoring@example.com
 
+# Mysql.host:
+# Mysql.port:
 # Mysql.database_name:
 # Mysql.table_name:
 # Mysql.database_username:

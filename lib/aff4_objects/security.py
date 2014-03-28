@@ -362,8 +362,12 @@ Please click <a href='%(admin_ui)s#%(approval_urn)s'>
 </a> to review this request and then grant access.
 
 <p>Thanks,</p>
-<p>The GRR team.
+<p>The GRR team.</p>
+<p>%(image)s</p>
 </body></html>"""
+
+      # If you feel like it, add a funny cat picture here :)
+      image = ""
 
       url = urllib.urlencode((("acl", utils.SmartStr(approval_urn)),
                               ("main", "GrantAccess")))
@@ -375,7 +379,8 @@ Please click <a href='%(admin_ui)s#%(approval_urn)s'>
                                  reason=utils.SmartStr(self.args.reason),
                                  admin_ui=config_lib.CONFIG["AdminUI.url"],
                                  subject_title=subject_title,
-                                 approval_urn=url),
+                                 approval_urn=url,
+                                 image=image),
                              is_html=True)
 
 

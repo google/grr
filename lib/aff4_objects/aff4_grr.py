@@ -167,6 +167,10 @@ class VFSGRRClient(standard.VFSDirectory):
                    rdfvalue.PathSpec.PathType.MEMORY: "/devices/memory"}
 
   @staticmethod
+  def ClientURNFromURN(urn):
+    return rdfvalue.ClientURN(rdfvalue.RDFURN(urn).Split()[0])
+
+  @staticmethod
   def PathspecToURN(pathspec, client_urn):
     """Returns a mapping between a pathspec and an AFF4 URN.
 

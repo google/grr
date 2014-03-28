@@ -3,6 +3,8 @@
 
 
 import hashlib
+import os
+import struct
 import time
 import zlib
 
@@ -10,7 +12,6 @@ import zlib
 from M2Crypto import BIO
 from M2Crypto import EVP
 from M2Crypto import m2
-from M2Crypto import Rand
 from M2Crypto import RSA
 from M2Crypto import X509
 
@@ -32,13 +33,6 @@ class CommunicatorInit(registry.InitHook):
 
   def RunOnce(self):
     """This is run only once."""
-    # Initialize the PRNG.
-    seed = Rand.rand_bytes(1000)
-    if not seed:
-      raise RuntimeError("Unable to initialize random seed.")
-
-    Rand.rand_seed(seed)
-
     # Counters used here
     stats.STATS.RegisterCounterMetric("grr_client_unknown")
     stats.STATS.RegisterCounterMetric("grr_decoding_error")
@@ -145,11 +139,15 @@ class Cipher(object):
   def __init__(self, source, destination, private_key, pub_key_cache):
     self.private_key = private_key
 
+    # The CipherProperties() protocol buffer specifying the session keys, that
+    # we send to the other end point. It will be encrypted using the RSA private
+    # key.
     self.cipher = rdfvalue.CipherProperties(
         name=self.cipher_name,
-        key=Rand.rand_pseudo_bytes(self.key_size / 8)[0],
-        iv=Rand.rand_pseudo_bytes(self.iv_size / 8)[0],
-        hmac_key=Rand.rand_pseudo_bytes(self.key_size / 8)[0],
+        key=os.urandom(self.key_size / 8),
+        metadata_iv=os.urandom(self.iv_size / 8),
+        hmac_key=os.urandom(self.key_size / 8),
+        hmac_type="FULL_HMAC"
         )
 
     self.pub_key_cache = pub_key_cache
@@ -181,14 +179,14 @@ class Cipher(object):
 
     # Encrypt the metadata block symmetrically.
     _, self.encrypted_cipher_metadata = self.Encrypt(
-        self.cipher_metadata.SerializeToString(), self.cipher.iv)
+        self.cipher_metadata.SerializeToString(), self.cipher.metadata_iv)
 
     self.signature_verified = True
 
   def Encrypt(self, data, iv=None):
     """Symmetrically encrypt the data using the optional iv."""
     if iv is None:
-      iv = Rand.rand_pseudo_bytes(self.iv_size / 8)[0]
+      iv = os.urandom(self.iv_size / 8)
 
     evp_cipher = EVP.Cipher(alg=self.cipher_name, key=self.cipher.key,
                             iv=iv, op=ENCRYPT)
@@ -210,9 +208,15 @@ class Cipher(object):
     except EVP.EVPError as e:
       raise DecryptionError(str(e))
 
-  def HMAC(self, data):
+  @property
+  def hmac_type(self):
+    return self.cipher.hmac_type
+
+  def HMAC(self, *data):
     hmac = EVP.HMAC(self.cipher.hmac_key, algo="sha1")
-    hmac.update(data)
+    for d in data:
+      hmac.update(d)
+
     return hmac.final()
 
 
@@ -231,34 +235,71 @@ class ReceivedCipher(Cipher):
     private_key = self.private_key.GetPrivateKey()
 
     try:
+      # The encrypted_cipher contains the session key, iv and hmac_key.
       self.encrypted_cipher = response_comms.encrypted_cipher
+
       # M2Crypto verifies the key on each private_decrypt call which is horribly
       # slow therefore we just call the swig wrapped method directly.
       self.serialized_cipher = m2.rsa_private_decrypt(
           private_key.rsa, response_comms.encrypted_cipher, self.e_padding)
 
+      # If we get here we have the session keys.
       self.cipher = rdfvalue.CipherProperties(self.serialized_cipher)
 
       # Check the key lengths.
       if (len(self.cipher.key) != self.key_size / 8 or
-          len(self.cipher.iv) != self.iv_size / 8):
+          len(self.cipher.metadata_iv) != self.iv_size / 8):
         raise DecryptionError("Invalid cipher.")
 
-      if len(self.cipher.hmac_key) != self.key_size / 8:
-        raise DecryptionError("Invalid cipher.")
+      # Check the hmac key for sanity.
+      self.VerifyHMAC(response_comms)
 
-      # Cipher_metadata contains information about the cipher - decrypt the
-      # metadata symmetrically
-      self.encrypted_cipher_metadata = (
-          response_comms.encrypted_cipher_metadata)
-
+      # Cipher_metadata contains information about the cipher - It is encrypted
+      # using the symmetric session key. It contains the RSA signature of the
+      # digest of the serialized CipherProperties(). It is stored inside the
+      # encrypted payload.
       self.cipher_metadata = rdfvalue.CipherMetadata(self.Decrypt(
-          response_comms.encrypted_cipher_metadata, self.cipher.iv))
+          response_comms.encrypted_cipher_metadata, self.cipher.metadata_iv))
 
       self.VerifyCipherSignature()
 
     except RSA.RSAError as e:
       raise DecryptionError(e)
+
+  def IsEqual(self, a, b):
+    """A Constant time comparison."""
+    if len(a) != len(b):
+      return False
+
+    result = 0
+    for x, y in zip(a, b):
+      result |= ord(x) ^ ord(y)
+
+    return result == 0
+
+  def VerifyHMAC(self, response_comms):
+    # Ensure that the hmac key is reasonable.
+    if len(self.cipher.hmac_key) != self.key_size / 8:
+      raise DecryptionError("Invalid cipher.")
+
+    # Check the encrypted message integrity using HMAC.
+    if self.hmac_type == "SIMPLE_HMAC":
+      hmac = self.HMAC(response_comms.encrypted)
+      if not self.IsEqual(hmac, response_comms.hmac):
+        raise DecryptionError("HMAC verification failed.")
+
+    elif self.hmac_type == "FULL_HMAC":
+      hmac = self.HMAC(response_comms.encrypted,
+                       response_comms.encrypted_cipher,
+                       response_comms.encrypted_cipher_metadata,
+                       response_comms.packet_iv,
+                       struct.pack("<I", response_comms.api_version))
+
+      if  not self.IsEqual(hmac, response_comms.full_hmac):
+        raise DecryptionError("HMAC verification failed.")
+
+    else:
+      raise DecryptionError("HMAC type no supported.")
 
   def VerifyCipherSignature(self):
     """Verify the signature on the encrypted cipher block."""
@@ -370,6 +411,7 @@ class Communicator(object):
     # Do we have a cached cipher to talk to this destination?
     try:
       cipher = self.cipher_cache.Get(destination)
+
     except KeyError:
       # Make a new one
       cipher = Cipher(self.common_name, destination, self.private_key,
@@ -388,8 +430,21 @@ class Communicator(object):
 
     # Encrypt the message symmetrically.
     # New scheme cipher is signed plus hmac over message list.
-    result.iv, result.encrypted = cipher.Encrypt(serialized_message_list)
+    result.packet_iv, result.encrypted = cipher.Encrypt(
+        serialized_message_list)
+
+    # This is to support older endpoints.
     result.hmac = cipher.HMAC(result.encrypted)
+
+    # Newer endpoints only look at this HMAC. It is recalculated for each packet
+    # in the session. Note that encrypted_cipher and encrypted_cipher_metadata
+    # do not change between all packets in this session.
+    result.full_hmac = cipher.HMAC(
+        result.encrypted,
+        result.encrypted_cipher,
+        result.encrypted_cipher_metadata,
+        result.packet_iv,
+        struct.pack("<I", api_version))
 
     result.api_version = api_version
 
@@ -475,17 +530,13 @@ class Communicator(object):
           self.encrypted_cipher_cache.Put(response_comms.encrypted_cipher,
                                           cipher)
 
-      # Add entropy to the PRNG.
-      Rand.rand_add(response_comms.encrypted, len(response_comms.encrypted))
+      # Verify the cipher HMAC with the new response_comms. This will raise
+      # DecryptionError if the HMAC does not agree.
+      cipher.VerifyHMAC(response_comms)
 
-      # Check the encrypted message integrity using HMAC.
-      if cipher.HMAC(response_comms.encrypted) != response_comms.hmac:
-        raise DecryptionError("HMAC verification failed.")
-
-      # Decrypt the messages
-      iv = response_comms.iv or cipher.cipher.iv
-
-      plain = cipher.Decrypt(response_comms.encrypted, iv)
+      # Decrypt the message with the per packet IV.
+      plain = cipher.Decrypt(
+          response_comms.encrypted, response_comms.packet_iv)
       try:
         signed_message_list = rdfvalue.SignedMessageList(plain)
       except rdfvalue.DecodeError as e:

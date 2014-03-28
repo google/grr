@@ -18,6 +18,7 @@ from grr.gui.plugins import hunt_view_test
 from grr.gui.plugins import inspect_view_test
 from grr.gui.plugins import new_hunt_test
 from grr.gui.plugins import notifications_test
+from grr.gui.plugins import searchclient_test
 from grr.gui.plugins import statistics_test
 from grr.gui.plugins import timeline_view_test
 from grr.gui.plugins import usage_test

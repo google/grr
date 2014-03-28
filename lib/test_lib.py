@@ -19,6 +19,7 @@ import tempfile
 import threading
 import time
 import unittest
+import urlparse
 
 
 from M2Crypto import X509
@@ -828,6 +829,19 @@ class GRRSeleniumTest(GRRBaseTest):
   @SeleniumAction
   def Open(self, url):
     self.driver.get(self.base_url + url)
+
+    # Sometimes page doesn't get refreshed if url's path and query haven't
+    # changed, even if fragments part (part after '#' symbol) of the url has
+    # changed. We have to explicitly call Refresh() in such cases.
+    prev_parsed_url = urlparse.urlparse(self.driver.current_url)
+    new_parsed_url = urlparse.urlparse(url)
+    if (prev_parsed_url.path == new_parsed_url.path and
+        prev_parsed_url.query == new_parsed_url.query):
+      self.Refresh()
+
+  @SeleniumAction
+  def Refresh(self):
+    self.driver.refresh()
 
   def WaitUntilNot(self, condition_cb, *args):
     self.WaitUntil(lambda: not condition_cb(*args))

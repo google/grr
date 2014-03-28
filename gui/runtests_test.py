@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """This is a selenium test harness."""
+import os
+
 
 from selenium import webdriver
 
@@ -23,6 +25,8 @@ class SeleniumTestProgram(test_lib.GrrTestProgram):
         argv=argv, testLoader=SeleniumTestLoader())
 
   def SetupSelenium(self):
+    os.environ.pop("http_proxy", None)
+
     # This is very expensive to start up - we make it a class attribute so it
     # can be shared with all the classes.
     test_lib.GRRSeleniumTest.base_url = (

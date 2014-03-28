@@ -4,12 +4,15 @@
 """Tests the access control authorization workflow."""
 
 
+import re
 import time
+import urlparse
 
 from grr.gui import runtests_test
 
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import email_alerts
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import hunts
@@ -126,6 +129,8 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntilContains("aff4:/C.0000000000000001/fs",
                            self.GetText, "css=h3:contains('fs')")
 
+    # One email for the original request and one for each approval.
+    self.assertEqual(len(self.emails_sent), 3)
 
   def testHuntACLWorkflow(self):
     with self.ACLChecksDisabled():
@@ -538,6 +543,39 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=Proceed]")
 
     self.WaitUntil(self.IsTextPresent, "Cron job was ENABLEd successfully!")
+
+  def testEmailClientApprovalRequestLinkLeadsToACorrectPage(self):
+    with self.ACLChecksDisabled():
+      client_id = self.SetupClients(1)[0]
+
+    messages_sent = []
+    def SendEmailStub(unused_from_user, unused_to_user, unused_subject,
+                      message, **unused_kwargs):
+      messages_sent.append(message)
+
+    # Request client approval, it will trigger an email message.
+    with test_lib.Stubber(email_alerts, "SendEmail", SendEmailStub):
+      flow.GRRFlow.StartFlow(client_id=client_id,
+                             flow_name="RequestClientApprovalFlow",
+                             reason="Please please let me",
+                             subject_urn=client_id,
+                             approver="test",
+                             token=rdfvalue.ACLToken(username="iwantapproval",
+                                                     reason="test"))
+    self.assertEqual(len(messages_sent), 1)
+
+    # Extract link from the message text and open it.
+    m = re.search(r"href='(.+?)'", messages_sent[0], re.MULTILINE)
+    link = urlparse.urlparse(m.group(1))
+    self.Open(link.path + "?" + link.query + "#" + link.fragment)
+
+    # Check that requestor's username and  reason are correctly displayed.
+    self.WaitUntil(self.IsTextPresent, "iwantapproval")
+    self.WaitUntil(self.IsTextPresent, "Please please let me")
+    # Check that host information is displayed.
+    self.WaitUntil(self.IsTextPresent, str(client_id))
+    self.WaitUntil(self.IsTextPresent, "HOSTNAME")
+    self.WaitUntil(self.IsTextPresent, "MAC_ADDRESS")
 
 
 def main(argv):

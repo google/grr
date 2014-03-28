@@ -2,10 +2,6 @@
 """Widgets for advanced display of files."""
 
 
-import json
-
-
-from django import http
 
 from grr.gui import renderers
 from grr.lib import utils
@@ -81,15 +77,14 @@ right: 0; bottom: 0; left: 0"></div> """ + table_jquery_template)
     except ValueError:
       offset = 0
 
-    encoder = json.JSONEncoder()
     data = [ord(x) for x in self.ReadBuffer(
         request, offset, row_count * self.table_width)]
 
     response = dict(offset=offset, values=data)
     response["total_size"] = self.total_size
 
-    return http.HttpResponse(encoder.encode(response),
-                             content_type="text/json")
+    return renderers.JsonResponse(dict(
+        offset=offset, values=data, total_size=self.total_size))
 
   def ReadBuffer(self, request, offset, length):
     """Should be overriden by derived classes to satisfy read requests.

@@ -17,6 +17,8 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
+from grr.proto import export_pb2
+
 
 class DummyRDFValue(rdfvalue.RDFString):
   pass
@@ -81,11 +83,23 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertTrue(isinstance(result[0], rdfvalue.RDFString))
     self.assertEqual(result[0], "result")
 
-  def testRaisesWhenNoConverterFound(self):
+  def testDoesNotRaiseWhenNoSpecificConverterIsDefined(self):
     dummy_value = DummyRDFValue2("some")
-    result_gen = export.ConvertValues(rdfvalue.ExportedMetadata(),
-                                      [dummy_value])
-    self.assertRaises(export.NoConverterFound, list, result_gen)
+    export.ConvertValues(rdfvalue.ExportedMetadata(),
+                         [dummy_value])
+
+  def testDataAgnosticConverterIsUsedWhenNoSpecificConverterIsDefined(self):
+    original_value = rdfvalue.DataAgnosticConverterTestValue()
+
+    # There's no converter defined for DataAgnosticConverterTestValue, so
+    # we expect DataAgnosticExportConverter to be used.
+    converted_values = list(export.ConvertValues(rdfvalue.ExportedMetadata(),
+                                                 [original_value]))
+    self.assertEqual(len(converted_values), 1)
+    converted_value = converted_values[0]
+
+    self.assertEqual(converted_value.__class__.__name__,
+                     "ExportedDataAgnosticConverterTestValue")
 
   def testConvertsSingleValueWithMultipleAssociatedConverters(self):
     dummy_value = DummyRDFValue3("some")
@@ -755,6 +769,106 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(results[0].timestamp,
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
     self.assertEqual(results[0].source_urn, "aff4:/hunts/W:000000/Results")
+
+
+class DataAgnosticConverterTestValue(rdfvalue.RDFProtoStruct):
+  protobuf = export_pb2.DataAgnosticConverterTestValue
+
+
+class DataAgnosticConverterTestValueWithMetadata(rdfvalue.RDFProtoStruct):
+  protobuf = export_pb2.DataAgnosticConverterTestValueWithMetadata
+
+
+class DataAgnosticExportConverterTest(test_lib.GRRBaseTest):
+  """Tests for DataAgnosticExportConverter."""
+
+  def ConvertOriginalValue(self, original_value):
+    converted_values = list(export.DataAgnosticExportConverter().Convert(
+        rdfvalue.ExportedMetadata(source_urn=rdfvalue.RDFURN("aff4:/foo")),
+        original_value))
+    self.assertEqual(len(converted_values), 1)
+    return converted_values[0]
+
+  def testAddsMetadataAndIgnoresRepeatedAndMessagesFields(self):
+    original_value = rdfvalue.DataAgnosticConverterTestValue()
+    converted_value = self.ConvertOriginalValue(original_value)
+
+    # No 'metadata' field in the original value.
+    self.assertListEqual(sorted([t.name for t in original_value.type_infos]),
+                         sorted(["string_value",
+                                 "int_value",
+                                 "repeated_string_value",
+                                 "message_value",
+                                 "enum_value",
+                                 "urn_value",
+                                 "datetime_value"]))
+    # But there's one in the converted value.
+    self.assertListEqual(sorted([t.name for t in converted_value.type_infos]),
+                         sorted(["metadata",
+                                 "string_value",
+                                 "int_value",
+                                 "enum_value",
+                                 "urn_value",
+                                 "datetime_value"]))
+
+    # Metadata value is correctly initialized from user-supplied metadata.
+    self.assertEqual(converted_value.metadata.source_urn,
+                     rdfvalue.RDFURN("aff4:/foo"))
+
+  def testIgnoresPredefinedMetadataField(self):
+    original_value = rdfvalue.DataAgnosticConverterTestValueWithMetadata(
+        metadata=42, value="value")
+    converted_value = self.ConvertOriginalValue(original_value)
+
+    self.assertListEqual(sorted([t.name for t in converted_value.type_infos]),
+                         ["metadata", "value"])
+    self.assertEqual(converted_value.metadata.source_urn,
+                     rdfvalue.RDFURN("aff4:/foo"))
+    self.assertEqual(converted_value.value, "value")
+
+  def testProcessesPrimitiveTypesCorrectly(self):
+    original_value = rdfvalue.DataAgnosticConverterTestValue(
+        string_value="string value",
+        int_value=42,
+        enum_value=rdfvalue.DataAgnosticConverterTestValue.EnumOption.OPTION_2,
+        urn_value=rdfvalue.RDFURN("aff4:/bar"),
+        datetime_value=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
+    converted_value = self.ConvertOriginalValue(original_value)
+
+    self.assertEqual(converted_value.string_value.__class__,
+                     original_value.string_value.__class__)
+    self.assertEqual(converted_value.string_value, "string value")
+
+    self.assertEqual(converted_value.int_value.__class__,
+                     original_value.int_value.__class__)
+    self.assertEqual(converted_value.int_value, 42)
+
+    self.assertEqual(converted_value.enum_value.__class__,
+                     original_value.enum_value.__class__)
+    self.assertEqual(converted_value.enum_value,
+                     converted_value.EnumOption.OPTION_2)
+
+    self.assertTrue(isinstance(converted_value.urn_value, rdfvalue.RDFURN))
+    self.assertEqual(converted_value.urn_value, rdfvalue.RDFURN("aff4:/bar"))
+
+    self.assertTrue(isinstance(converted_value.datetime_value,
+                               rdfvalue.RDFDatetime))
+    self.assertEqual(converted_value.datetime_value,
+                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
+
+  def testConvertedValuesCanBeSerializedAndDeserialized(self):
+    original_value = rdfvalue.DataAgnosticConverterTestValue(
+        string_value="string value",
+        int_value=42,
+        enum_value=rdfvalue.DataAgnosticConverterTestValue.EnumOption.OPTION_2,
+        urn_value=rdfvalue.RDFURN("aff4:/bar"),
+        datetime_value=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
+    converted_value = self.ConvertOriginalValue(original_value)
+
+    serialized = converted_value.SerializeToString()
+    unserialized_converted_value = converted_value.__class__(serialized)
+
+    self.assertEqual(converted_value, unserialized_converted_value)
 
 
 def main(argv):

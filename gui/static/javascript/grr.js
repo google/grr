@@ -104,20 +104,29 @@ grr.init = function() {
    * basically patches the jQuery.ajax method to remove the XSSI preamble.
    */
   if (grr.installXssiProtection) {
+    var json_converter = function(data) {
+      if (typeof data !== 'string' || !data) {
+        return null;
+      }
+
+      if (data.substring(0, 4) != ')]}\n') {
+        return jQuery.error('JSON object not properly protected.');
+      }
+
+      return $.parseJSON(data.substring(4, data.length));
+    };
+
+    var test = function(data) {
+      return window.String(data);
+    };
+
     $.ajaxSetup({
       crossDomain: false,
-      converters:
-        { 'text json': function(data) {
-          if (typeof data !== 'string' || !data) {
-            return null;
-          }
-
-          if (data.substring(0, 4) != ')]}\n') {
-            return jQuery.error('JSON object not properly protected.');
-          }
-
-          return $.parseJSON(data.substring(4, data.length));
-        }
+      converters: {
+        '* application': window.String,
+        'application json': json_converter,
+        'application javascript': json_converter,
+        'text json': json_converter
       }
     });
     grr.installXssiProtection = false;

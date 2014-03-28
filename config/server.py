@@ -71,7 +71,12 @@ config_lib.DEFINE_integer("Mongo.port", 27017, "The mongo server port..")
 
 config_lib.DEFINE_string("Mongo.db_name", "grr", "The mongo database name")
 
-# Mysql data store.
+# MySQL data store.
+config_lib.DEFINE_string("Mysql.host", "localhost",
+                         "The MySQL server hostname.")
+
+config_lib.DEFINE_integer("Mysql.port", 0, "The MySQL server port.")
+
 config_lib.DEFINE_string("Mysql.database_name", default="grr",
                          help="Name of the database to use.")
 

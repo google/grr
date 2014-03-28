@@ -570,6 +570,9 @@ class Enum(int):
 
     return instance
 
+  def __eq__(self, other):
+    return int(self) == other or self.name == other
+
   def __str__(self):
     return self.name
 
@@ -614,14 +617,15 @@ class ProtoEnum(ProtoSignedInteger):
       return
 
     # If the value is a string we need to try to convert it to an integer.
+    checked_value = value
     if value.__class__ is str:
-      value = self.enum.get(value)
-      if value is None:
+      checked_value = self.enum.get(value)
+      if checked_value is None:
         raise type_info.TypeValueError(
             "Value %s is not a valid enum value for field %s" % (
                 value, self.name))
 
-    return Enum(value, name=self.reverse_enum.get(value))
+    return Enum(checked_value, name=self.reverse_enum.get(value))
 
   def Definition(self):
     """Return a string with the definition of this field."""

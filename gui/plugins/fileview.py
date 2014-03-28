@@ -928,15 +928,10 @@ class Toolbar(renderers.TemplateRenderer):
                              fullpath.RelativeName(client_urn)),
                          previous[3] + 1))
 
-    js_friendly_paths = []
-    for path, fullpath, fullpath_id, i in self.paths:
-      js_friendly_paths.append(
-          [path, utils.SmartUnicode(fullpath), fullpath_id, i])
-
     response = super(Toolbar, self).Layout(request, response)
     return self.CallJavascript(response, "Toolbar.Layout",
                                aff4_path=utils.SmartUnicode(aff4_path),
-                               paths=js_friendly_paths)
+                               paths=self.paths)
 
 
 class UpdateAttribute(renderers.TemplateRenderer):
@@ -1009,7 +1004,7 @@ class UpdateAttribute(renderers.TemplateRenderer):
       complete = True
 
     if complete:
-      return http.HttpResponse("1", content_type="text/json")
+      return renderers.JsonResponse("1")
 
 
 class AFF4ReaderMixin(object):

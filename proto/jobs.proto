@@ -186,11 +186,26 @@ message CipherProperties {
 
   required bytes key = 2;
 
-  // This is used to encrypt the cipher metadata block.
-  optional bytes iv = 3;
+  // This IV is used to encrypt the cipher metadata block. Note: Both the
+  // CipherProperties() and the CipherMetadata() protobufs do not change for all
+  // messages in this session.
+  optional bytes metadata_iv = 3;
 
   // The key used for the hmac.
   optional bytes hmac_key = 5;
+
+  enum HMACType {
+    // Older clients use a HMAC only on the encrypted message.
+    SIMPLE_HMAC = 0;
+
+    // Newer clients also include the encrypted cipher and API version in the
+    // hmac.
+    FULL_HMAC = 1;
+  };
+
+  // The API version of the cipher.
+  optional HMACType hmac_type = 6 [default=SIMPLE_HMAC];
+
 };
 
 message CipherMetadata {
@@ -203,16 +218,26 @@ message CipherMetadata {
   optional bytes signature = 2;
 };
 
+// Next field: 11
 message ClientCommunication {
+  // This message is a serialzed SignedMessageList() protobuf, encrypted using
+  // the session key (Encrypted inside field 2) and the per-packet IV (field 8).
   optional bytes encrypted = 1;
 
-  // This is a CipherProperties protobuf encrypted with the public key of the
-  // receiver.
+  // This is a CipherProperties() protobuf encrypted with the public key of the
+  // receiver. Contains the session key and iv, as well as hmac key. This IV
+  // does not change for the duration of the session. It is used to decrypt the
+  // CipherMetadata() (field 9).
   optional bytes encrypted_cipher = 2;
+
+  // A serialized CipherMetadata() protobuf, encrypted with the session
+  // key. Contains the RSA signature of the digest of the serialized
+  // CipherProperties() above, signed with the sender's private key.
   optional bytes encrypted_cipher_metadata = 9;
 
-  // This iv is used to encrypt the encrypted field.
-  optional bytes iv = 8;
+  // This iv is used to encrypt the encrypted field (No. 1). This IV changes for
+  // each packet.
+  optional bytes packet_iv = 8;
 
   optional HttpRequest orig_request = 3;
 
@@ -231,9 +256,20 @@ message ClientCommunication {
 
   optional uint32 api_version = 6;
 
-  // Protocol Version >= 3: This field contains the hmac of the message with the
-  // cipher key.
+  // The choice of which hmac is used is set in the CipherProperties() protocol
+  // buffer. A full hmac is more secure and is the new default, but we can still
+  // support the old hmac for backwards compatibility.
+
+  // This is the SIMPLE_HMAC. It covers the "encrypted" field only.
   optional bytes hmac = 7;
+
+  // This is the FULL_HMAC. It coverts:
+  // 1) the "encrypted" field,
+  // 2) The "encrypted_cipher" field.
+  // 3) The encrypted_cipher_metadata field
+  // 4) The packet iv
+  // 5) the api_version.
+  optional bytes full_hmac = 10;
 };
 
 // This is a status response that is sent for each complete
@@ -1491,7 +1527,7 @@ message Notification {
 
 // This is a way to serialize an arbitrary RDFValue.
 message EmbeddedRDFValue {
-  optional uint64 age = 1 [(sem_type) = {
+  optional uint64 embedded_age = 1 [(sem_type) = {
       type: "RDFDatetime",
       description: "The age of this RDFValue."
     }];

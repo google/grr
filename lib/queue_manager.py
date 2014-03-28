@@ -9,11 +9,17 @@ import random
 import socket
 import time
 
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
+
+
+config_lib.DEFINE_integer("Worker.queue_shards", 1,
+                          "Queue notifications will be sharded across "
+                          "this number of datastore subjects.")
 
 
 class Error(Exception):
@@ -78,10 +84,13 @@ class QueueManager(object):
   # This regex will return all the responses in order
   FLOW_RESPONSE_REGEX = "flow:response:.*"
 
-  PREDICATE_PREFIX = "task:%s"
+  TASK_PREDICATE_PREFIX = "task:%s"
+  NOTIFY_PREDICATE_PREFIX = "notify:%s"
 
   request_limit = 1000000
   response_limit = 1000000
+
+  notification_shard_counter = 0
 
   def __init__(self, store=None, sync=True, token=None):
     self.sync = sync
@@ -103,6 +112,24 @@ class QueueManager(object):
 
     self.prev_frozen_timestamps = []
     self.frozen_timestamp = None
+
+    self.num_notification_shards = config_lib.CONFIG["Worker.queue_shards"]
+
+    QueueManager.notification_shard_counter += 1
+    self.notification_shard_index = (
+        QueueManager.notification_shard_counter % self.num_notification_shards)
+
+  def GetNotificationShard(self, queue):
+    if self.notification_shard_index > 0:
+      return queue.Add(str(self.notification_shard_index))
+    else:
+      return queue
+
+  def GetAllNotificationShards(self, queue):
+    result = [queue]
+    for i in range(1, self.num_notification_shards):
+      result.append(queue.Add(str(i)))
+    return result
 
   def Copy(self):
     """Return a copy of the queue mananger.
@@ -397,7 +424,7 @@ class QueueManager(object):
 
   def _TaskIdToColumn(self, task_id):
     """Return a predicate representing this task."""
-    return self.PREDICATE_PREFIX % ("%08d" % task_id)
+    return self.TASK_PREDICATE_PREFIX % ("%08d" % task_id)
 
   def Delete(self, queue, tasks):
     """Removes the tasks from the queue.
@@ -447,14 +474,14 @@ class QueueManager(object):
     # Read all the sessions that have notifications.
     sessions_by_priority = {}
     for predicate, priority, _ in data_store.DB.ResolveRegex(
-        queue, self.PREDICATE_PREFIX % ".*",
+        self.GetNotificationShard(queue), self.NOTIFY_PREDICATE_PREFIX % ".*",
         # TODO(user): remove int() conversion when datastores accept
         # RDFDatetime instead of ints.
         timestamp=(0,
                    int(self.frozen_timestamp or rdfvalue.RDFDatetime().Now())),
         token=self.token, limit=10000):
       # Strip the prefix from the predicate.
-      predicate = predicate[len(self.PREDICATE_PREFIX % ""):]
+      predicate = predicate[len(self.NOTIFY_PREDICATE_PREFIX % ""):]
 
       sessions_by_priority.setdefault(priority, []).append(predicate)
 
@@ -508,8 +535,8 @@ class QueueManager(object):
   def _MultiNotifyQueue(self, queue, session_ids, priorities, timestamp=None,
                         sync=True):
     data_store.DB.MultiSet(
-        queue,
-        dict([(self.PREDICATE_PREFIX % session_id,
+        self.GetNotificationShard(queue),
+        dict([(self.NOTIFY_PREDICATE_PREFIX % session_id,
                [(str(int(priorities[session_id])), timestamp)])
               for session_id in session_ids]),
         sync=sync, replace=False, token=self.token)
@@ -520,10 +547,11 @@ class QueueManager(object):
       raise RuntimeError(
           "Can only delete notifications for rdfvalue.SessionIDs.")
 
-    data_store.DB.DeleteAttributes(
-        session_id.Queue(), [self.PREDICATE_PREFIX % session_id],
-        token=self.token, start=0,
-        end=int(self.frozen_timestamp or rdfvalue.RDFDatetime().Now()))
+    for queue_shard in self.GetAllNotificationShards(session_id.Queue()):
+      data_store.DB.DeleteAttributes(
+          queue_shard, [self.NOTIFY_PREDICATE_PREFIX % session_id],
+          token=self.token, start=0,
+          end=int(self.frozen_timestamp or rdfvalue.RDFDatetime().Now()))
 
   def Query(self, queue, limit=1, task_id=None):
     """Retrieves tasks from a queue without leasing them.
@@ -545,7 +573,7 @@ class QueueManager(object):
       queue = queue.Queue()
 
     if task_id is None:
-      regex = self.PREDICATE_PREFIX % ".*"
+      regex = self.TASK_PREDICATE_PREFIX % ".*"
     else:
       regex = utils.SmartStr(task_id)
 
@@ -607,7 +635,7 @@ class QueueManager(object):
 
     # Only grab attributes with timestamps in the past.
     for predicate, task, timestamp in transaction.ResolveRegex(
-        self.PREDICATE_PREFIX % ".*",
+        self.TASK_PREDICATE_PREFIX % ".*",
         timestamp=(0,
                    # TODO(user): remove int() conversion when datastores
                    # accept RDFDatetime instead of ints.

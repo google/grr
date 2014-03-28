@@ -92,8 +92,10 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
             type=rdfvalue.GrrMessage.Type.STATUS))
 
     # Signal on the worker queue that this flow is ready.
-    data_store.DB.Set(worker.DEFAULT_WORKER_QUEUE,
-                      "task:%s" % session_id, "X", token=self.token)
+    data_store.DB.Set(
+        worker.DEFAULT_WORKER_QUEUE,
+        queue_manager.QueueManager.NOTIFY_PREDICATE_PREFIX % session_id,
+        "X", token=self.token)
 
   def testProcessMessages(self):
     """Test processing of several inbound messages."""

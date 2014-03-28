@@ -36,6 +36,37 @@ def GetNextId():
   return COUNTER
 
 
+def StringifyJSON(item):
+  """Recursively convert item to a string.
+
+  Since JSON can only encode strings we need to convert complex types to string.
+
+  Args:
+    item: A python data object.
+
+  Returns:
+    A data object suitable for JSON encoding.
+  """
+  if isinstance(item, (tuple, list)):
+    return [StringifyJSON(x) for x in item]
+
+  elif isinstance(item, dict):
+    result = {}
+    for k, v in item.items():
+      result[k] = StringifyJSON(v)
+
+    return result
+
+  elif item is None:
+    return None
+
+  elif item in (True, False):
+    return item
+
+  else:
+    return utils.SmartUnicode(item)
+
+
 class Template(template.Template):
   """A specialized template which supports concatenation."""
 
@@ -145,9 +176,13 @@ class Renderer(object):
       Response object.
     """
     js_state = self.state.copy()
-    js_state.update(dict(unique=self.unique,
-                         id=self.id, renderer=self.__class__.__name__))
-    js_state.update(kwargs)
+    js_state.update(dict(
+        unique=self.unique,
+        id=self.id, renderer=self.__class__.__name__))
+
+    # Since JSON can only represent strings, we must force inputs to a string
+    # here.
+    js_state.update(StringifyJSON(kwargs))
 
     if "." not in method:
       method = "%s.%s" % (self.__class__.__name__, method)
@@ -186,8 +221,7 @@ class Renderer(object):
       self.id = request.REQ.get("id", hash(self))
 
     # Make the encoded state available for our template.
-    encoder = json.JSONEncoder()
-    self.state_json = encoder.encode(self.state)
+    self.state_json = JsonDumpForScriptContext(self.state)
 
     return response
 
@@ -277,7 +311,7 @@ class ErrorHandler(Renderer):
         return func(*args, **kwargs)
       except Exception as e:  # pylint: disable=broad-except
         logging.exception(utils.SmartUnicode(e))
-        response = http.HttpResponse(content_type="text/json")
+        response = http.HttpResponse()
         response = self.CallJavascript(response,
                                        "ErrorHandler.Layout",
                                        error=utils.SmartUnicode(e),
@@ -313,9 +347,12 @@ class TemplateRenderer(Renderer):
     if apply_template is None:
       apply_template = self.layout_template
 
+    canary_mode = getattr(request, "canary_mode", False)
+
     return self.RenderFromTemplate(apply_template, response,
                                    this=self, id=self.id, unique=self.unique,
-                                   renderer=self.__class__.__name__)
+                                   renderer=self.__class__.__name__,
+                                   canary_mode=canary_mode)
 
   def RenderAjax(self, request, response):
     return TemplateRenderer.Layout(self, request, response,
@@ -747,10 +784,8 @@ class TreeRenderer(TemplateRenderer):
                          attr=dict(id=DeriveIDFromPath(path),
                                    path=path)))
 
-    encoder = json.JSONEncoder()
-    return http.HttpResponse(encoder.encode(dict(
-        data=result, message=self.message, id=self.id)),
-                             content_type="text/json")
+    return JsonResponse(dict(
+        data=result, message=self.message, id=self.id))
 
   def AddElement(self, name, behaviour="branch", icon=None, friendly_name=None):
     """This should be called by the RenderBranch method to prepare the tree."""
@@ -1089,3 +1124,17 @@ def JsonDumpForScriptContext(dump_object):
   # and then by the json parser, so we must escape < & > to prevent someone
   # including <script> tags and creating XSS security bugs.
   return js_state_json.replace("<", r"\\x3c").replace(">", r"\\x3e")
+
+
+def JsonResponse(dump_object, xssi_protection=True):
+  """Return a django JSON response object with correct headers."""
+  result = JsonDumpForScriptContext(dump_object)
+  if xssi_protection:
+    result = ")]}\n" + result
+
+  response = http.HttpResponse(
+      result, content_type="application/json; charset=utf-8")
+
+  response["Content-Disposition"] = "attachment"
+
+  return response

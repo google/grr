@@ -81,7 +81,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     self.CompareFDs(fd1, fd2)
 
   def testGetFileWithZeroStat(self):
-    """Test that the GetFile flow works."""
+    """Test GetFile works on stat.st_size==0 files when read_length is set."""
     pathspec = rdfvalue.PathSpec(
         pathtype=rdfvalue.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"))

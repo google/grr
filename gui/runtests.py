@@ -115,6 +115,7 @@ class TestPluginInit(registry.InitHook):
 
   def RunOnce(self):
     # pylint: disable=unused-variable,g-import-not-at-top
+    from grr.gui import gui_testonly_plugins
     from grr.gui.plugins import tests
     # pylint: enable=unused-variable,g-import-not-at-top
 

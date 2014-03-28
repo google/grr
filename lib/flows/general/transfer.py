@@ -19,7 +19,14 @@ class GetFileArgs(rdfvalue.RDFProtoStruct):
 
 
 class GetFile(flow.GRRFlow):
-  """An efficient file transfer mechanism.
+  """An efficient file transfer mechanism (deprecated, use MultiGetFile).
+
+  This flow is deprecated in favor of MultiGetFile, but kept for now for use by
+  MemoryCollector since the buffer hashing performed by MultiGetFile is
+  pointless for memory acquisition.
+
+  GetFile can also retrieve content from device files that report a size of 0 in
+  stat when read_length is specified.
 
   Returns to parent flow:
     An PathSpec.

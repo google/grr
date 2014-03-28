@@ -53,8 +53,8 @@ from grr.lib.aff4_objects import security
 from grr.lib.console_utils import *
 
 from grr.lib.flows import console
-from grr.lib.flows.console import client_tests
 from grr.lib.flows.console import debugging
+from grr.lib.flows.console.client_tests import base
 from grr.lib.flows.general import memory
 # pylint: enable=unused-import
 
@@ -108,7 +108,7 @@ def main(unused_argv):
       # namespace.
       "StartFlowAndWait": flow_utils.StartFlowAndWait,
       "StartFlowAndWorker": debugging.StartFlowAndWorker,
-      "TestFlows": client_tests.TestFlows,
+      "TestFlows": base.TestFlows,
       }
 
   locals_vars.update(globals())   # add global variables to console

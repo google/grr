@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 """This plugin renders the client search page."""
-import json
 import urllib
-
-from django import http
 
 from grr.gui import renderers
 from grr.gui.plugins import forms
@@ -32,9 +29,7 @@ class NotificationCount(renderers.TemplateRenderer):
     except IOError:
       pass
 
-    encoder = json.JSONEncoder()
-    return http.HttpResponse(encoder.encode(dict(number=number)),
-                             content_type="text/json")
+    return renderers.JsonResponse(dict(number=number))
 
 
 class NotificationBar(renderers.TemplateRenderer):

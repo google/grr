@@ -59,11 +59,12 @@ class MemoryCollector(flow.GRRFlow):
   MemoryCollector replaces deprecated DownloadMemoryImage and
   ImageMemoryToSocket.
 
-  When imaging memory to AFF4:
-  If the file transfer fails you can attempt to download again using the GetFile
-  flow without needing to copy all of memory to disk again.  Note that if the
-  flow fails, you'll need to run Administrative/DeleteGRRTempFiles to clean up
-  the disk.
+  When downloading memory:
+  If the file transfer fails and you specified local copy, you can attempt to
+  download again using the FileFinder flow without needing to copy all of memory
+  to disk again.  FileFinder will only retrieve parts of the image that weren't
+  already downloaded.  Note that if the flow fails, you'll need to run
+  Administrative/DeleteGRRTempFiles to clean up the disk.
 
   When imaging memory to socket:
   Choose a key and an IV in hex format (if run from the GUI,
@@ -275,12 +276,6 @@ class DownloadMemoryImage(flow.GRRFlow):
   This flow is now deprecated in favor of MemoryCollector. Please use
   MemoryCollector without conditions with "Download" action. You can
   set "dump option" to "create local copy first" or "don't create local copy".
-  ------------------------------------------------------------------------------
-
-  If the file transfer fails you can attempt to download again using the GetFile
-  flow without needing to copy all of memory to disk again.  Note that if the
-  flow fails, you'll need to run Administrative/DeleteGRRTempFiles to clean up
-  the disk.
 
   Returns to parent flow:
     A rdfvalue.CopyPathToFileRequest.

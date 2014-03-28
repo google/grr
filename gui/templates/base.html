@@ -45,13 +45,7 @@
         <a class="brand" href="/">{{heading|escape}}</a>
 
         <div id="notifications"></div>
-        <form id="search_host" class="navbar-form form-search pull-right">
-          <div class="input-append">
-            <input type="text" id="client_query" name="q" class="span4 search-query" placeholder="Search Box"/>
-            <button type="submit" id="client_query_submit" class="btn search-query">Search</button>
-          </div>
-        </form>
-
+        <div id="search_container"></div>
       </div>
     </div>
   </div>
@@ -94,19 +88,17 @@
     </div>
   </div>
 
-  <script src="/static/javascript/grr.js"></script>
-  <script src="/static/javascript/renderers.js"></script>
+  <script src="/static/javascript/grr.js?timestamp={{timestamp|escape}}"></script>
+  <script src="/static/javascript/renderers.js?timestamp={{timestamp|escape}}"></script>
   {% for renderer in renderers_js %}
-  <script src="/static/javascript/plugins/{{renderer|escape}}"></script>
+  <script src="/static/javascript/plugins/{{renderer|escape}}?timestamp={{timestamp|escape}}">
+  </script>
   {% endfor %}
   <script type="text/javascript">
     grr.layout("ContentView", "content");
     grr.layout("NotificationBar", "notifications");
     grr.layout("ACLDialog", "ACL");
-    $("#search_host").submit(function () {
-    grr.layout("HostTable", "main", {q: $('input[name="q"]').val()});
-    return false;
-    }).find("input[name=q]").focus();
+    grr.layout("SearchHostView", "search_container");
     grr.enableSearchHelp($("input#client_query"));
   </script>
 </body>
