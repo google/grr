@@ -78,7 +78,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
   def SetupTestHuntView(self):
     # Create some clients and a hunt to view.
     with self.CreateSampleHunt() as hunt:
-      hunt.LogResult(self.client_ids[2], "Result 1")
+      hunt.Log("TestLogLine")
 
       # Log an error just with some random traceback.
       hunt.LogClientError(self.client_ids[1], "Client Error 1",
@@ -114,21 +114,18 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=dl.dl-hunt")
     self.WaitUntil(self.IsTextPresent, "Client Count")
     self.WaitUntil(self.IsTextPresent, "Hunt URN")
+    self.WaitUntil(self.IsTextPresent, "Regex Rules")
+    self.WaitUntil(self.IsTextPresent, "Integer Rules")
 
     # Click the Log Tab.
     self.Click("css=a[renderer=HuntLogRenderer]")
     self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntLogRenderer_]")
-    self.WaitUntil(self.IsTextPresent, "Result 1")
+    self.WaitUntil(self.IsTextPresent, "TestLogLine")
 
     # Click the Error Tab.
     self.Click("css=a[renderer=HuntErrorRenderer]")
     self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntErrorRenderer_]")
     self.WaitUntil(self.IsTextPresent, "Client Error 1")
-
-    # Click the Rules Tab.
-    self.Click("css=a[renderer=HuntRuleRenderer]")
-    self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntRuleRenderer_]")
-    self.WaitUntil(self.IsTextPresent, "GRR client")
 
   def testToolbarStateForStoppedHunt(self):
     with self.ACLChecksDisabled():
@@ -381,7 +378,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.Click("css=a:[renderer=HuntLogRenderer]")
     self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntLogRenderer_]")
-    self.WaitUntil(self.IsTextPresent, "Flow GetFile completed.")
+    self.WaitUntil(self.IsTextPresent, "GetFile Flow Completed")
 
     self.Click("css=a:[renderer=HuntErrorRenderer]")
     self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntErrorRenderer_]")

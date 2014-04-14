@@ -309,7 +309,7 @@ class PackedVersionedCollection(RDFValueCollection):
 
   Unfortunately reading from versioned data store attributes is slow. Therefore
   this object implements a compaction strategy, where writes are versioned,
-  until they can be compacted into a regular RDFValueCollection by then
+  until they can be compacted into a regular RDFValueCollection by the
   VersionedCollectionCompactor cron job.
   """
 

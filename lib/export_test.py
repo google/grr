@@ -17,7 +17,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
-from grr.proto import export_pb2
+from grr.proto import tests_pb2
 
 
 class DummyRDFValue(rdfvalue.RDFString):
@@ -249,6 +249,7 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(
         results[0].content_sha256,
         "69264282ca1a3d4e7f9b1f43720f719a4ea47964f0bfd1b2ba88424f1c61395d")
+    self.assertEqual("", results[0].metadata.annotations)
 
   def testStatEntryToExportedFileConverterWithHashedAFF4File(self):
     client_ids = self.SetupClients(1)
@@ -281,7 +282,8 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertTrue(hash_value)
 
     converter = export.StatEntryToExportedFileConverter(
-        options=rdfvalue.ExportOptions(export_files_hashes=True))
+        options=rdfvalue.ExportOptions(export_files_hashes=True,
+                                       annotations=["test1", "test2"]))
     results = list(converter.Convert(rdfvalue.ExportedMetadata(),
                                      rdfvalue.StatEntry(aff4path=urn,
                                                         pathspec=pathspec),
@@ -294,6 +296,9 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(
         results[0].hash_sha256,
         "0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4f06017acdb5")
+    for result in results:
+      self.assertItemsEqual(["test1", "test2"],
+                            result.metadata.annotations.split(","))
 
   def testStatEntryToExportedRegistryKeyConverter(self):
     stat = rdfvalue.StatEntry(
@@ -772,11 +777,11 @@ class ExportTest(test_lib.GRRBaseTest):
 
 
 class DataAgnosticConverterTestValue(rdfvalue.RDFProtoStruct):
-  protobuf = export_pb2.DataAgnosticConverterTestValue
+  protobuf = tests_pb2.DataAgnosticConverterTestValue
 
 
 class DataAgnosticConverterTestValueWithMetadata(rdfvalue.RDFProtoStruct):
-  protobuf = export_pb2.DataAgnosticConverterTestValueWithMetadata
+  protobuf = tests_pb2.DataAgnosticConverterTestValueWithMetadata
 
 
 class DataAgnosticExportConverterTest(test_lib.GRRBaseTest):

@@ -5,55 +5,50 @@ name: AllUsersAppDataEnvironmentVariable
 doc: The %ProgramData% environment variable.
 collectors:
 - action: GetRegistryValue
-  args: {path: HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProgramData}
+  args: {path: 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProgramData'}
 provides: [environ_allusersappdata]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/ProgramData']
 ---
-
 name: AllUsersProfileEnvironmentVariable
 doc: The %AllUsersProfile% environment variable.
 collectors:
 - action: GetRegistryKeys
   args:
-    path_list: [HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProfilesDirectory,
-      HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\AllUsersProfile]
+    path_list:
+      - 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProfilesDirectory'
+      - 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\AllUsersProfile'
 provides: [environ_allusersprofile]
 supported_os: [Windows]
 urls: ['http://support.microsoft.com/kb//214653']
 ---
-
 name: CurrentControlSet
 doc: The control set the system is currently using.
 collectors:
 - action: GetRegistryValue
-  args: {path: HKEY_LOCAL_MACHINE\SYSTEM\Select\Current}
+  args: {path: 'HKEY_LOCAL_MACHINE\SYSTEM\Select\Current'}
 provides: [current_control_set]
 supported_os: [Windows]
 urls: ['https://code.google.com/p/winreg-kb/wiki/SystemKeys']
 ---
-
 name: ProgramFiles
 doc: The %ProgramFiles% environment variable.
 collectors:
 - action: GetRegistryValue
-  args: {path: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\ProgramFilesDir}
+  args: {path: 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\ProgramFilesDir'}
 provides: [environ_programfiles]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/ProgramFiles']
 ---
-
 name: ProgramFilesx86
 doc: The %ProgramFiles (x86)% environment variable.
 collectors:
 - action: GetRegistryValue
-  args: {path: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\ProgramFilesDir
-      (x86)}
+  args: {path: 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\ProgramFilesDir (x86)'}
 provides: [environ_programfilesx86]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/ProgramFiles']
 ---
-
 name: SystemDriveEnvironmentVariable
 doc: The %SystemDrive% environment variable.
 collectors:
@@ -62,7 +57,6 @@ provides: [environ_systemdrive]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/SystemDrive']
 ---
-
 name: SystemRoot
 doc: The base system directory.
 collectors:
@@ -71,7 +65,6 @@ provides: [environ_systemroot]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/SystemRoot']
 ---
-
 name: TempEnvironmentVariable
 doc: The %TEMP% environment variable.
 collectors:
@@ -81,22 +74,31 @@ provides: [environ_temp]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/WinDir']
 ---
-
 name: UserShellFolders
 doc: The Shell Folders information for Windows users.
 collectors:
 - action: GetRegistryKeys
   args:
     path_list:
-      - HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\*
-      - HKEY_USERS\%%users.sid%%\Environment\*
-      - HKEY_USERS\%%users.sid%%\Volatile Environment\*
-provides: [users.cookies, users.appdata, users.personal, users.startup, users.homedir,
-  users.desktop, users.local_settings, users.internet_cache, users.localappdata, users.localappdata_low,
-  users.recent, users.userprofile, users.temp]
+      - 'HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\*'
+      - 'HKEY_USERS\%%users.sid%%\Environment\*'
+      - 'HKEY_USERS\%%users.sid%%\Volatile Environment\*'
+provides:
+  - users.cookies
+  - users.appdata
+  - users.personal
+  - users.startup
+  - users.homedir
+  - users.desktop
+  - users.local_settings
+  - users.internet_cache
+  - users.localappdata
+  - users.localappdata_low
+  - users.recent
+  - users.userprofile
+  - users.temp
 supported_os: [Windows]
 ---
-
 name: WinCodePage
 doc: The codepage of the system.
 collectors:
@@ -106,7 +108,6 @@ provides: [code_page]
 supported_os: [Windows]
 urls: ['http://en.wikipedia.org/wiki/Windows_code_page']
 ---
-
 name: WinDirEnvironmentVariable
 doc: The %WinDir% environment variable.
 collectors:
@@ -116,7 +117,6 @@ provides: [environ_windir]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/WinDir']
 ---
-
 name: WinDomainName
 doc: The Windows domain the system is connected to.
 collectors:
@@ -125,7 +125,6 @@ collectors:
 provides: [domain]
 supported_os: [Windows]
 ---
-
 name: WinPathEnvironmentVariable
 doc: The %PATH% environment variable.
 collectors:
@@ -135,7 +134,6 @@ provides: [environ_path]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/WinDir']
 ---
-
 name: WinTimeZone
 doc: The timezone of the system in Olson format.
 collectors:
@@ -145,7 +143,6 @@ provides: [time_zone]
 supported_os: [Windows]
 urls: ['https://code.google.com/p/winreg-kb/wiki/TimeZoneKeys']
 ---
-
 name: WindowsRegistryProfiles
 doc: "Get SIDs for all users on the system with profiles present in the registry.\n\
     \n  This looks in the Windows registry where the profiles are stored and retrieves\n\
@@ -153,13 +150,12 @@ doc: "Get SIDs for all users on the system with profiles present in the registry
 collectors:
 - action: GetRegistryKeys
   args:
-    path_list: [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*\ProfileImagePath]
+    path_list: ['HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*\ProfileImagePath']
 labels: [Users]
 provides: [users.sid, users.userprofile, users.homedir, users.username]
 supported_os: [Windows]
 urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/bb776892(v=vs.85).aspx']
 ---
-
 name: WindowsWMIProfileUsersHomeDir
 doc: "Get user homedir from Win32_UserProfile based on a known user's SID.\n\n\
     This artifact relies on having the SID field users.sid populated in the knowledge\n\
@@ -173,7 +169,6 @@ provides: [users.homedir]
 supported_os: [Windows]
 urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/ee886409(v=vs.85).aspx']
 ---
-
 name: WindowsWMIAccountUsersDomain
 doc: "Fill out user AD domain information based on username.\n\n  We expect\
     \ this artifact to be collected with WindowsRegistryProfiles to supply the\

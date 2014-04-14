@@ -141,7 +141,10 @@ class HuntFlowForm(flow_management.SemanticProtoFlowForm):
 {% else %}
   <p class="text-info">Nothing to configure for the Flow.</p>
 {% endif %}
-<legend>Hunt Parameters</legend>
+<legend>Hunt Parameters
+  <a href="/help/user_manual.html#hunt-parameters" target="_blank">
+  <i class="icon-question-sign"></i></a>
+</legend>
 {{this.hunt_params_form|safe}}
 
 <legend>Description</legend>
@@ -317,7 +320,10 @@ class HuntInformation(renderers.TemplateRenderer):
 """)
 
   ajax_template = renderers.Template("""
-  <h3>Hunt Parameters</h3>
+  <h3>Hunt Parameters
+    <a href="/help/user_manual.html#hunt-parameters" target="_blank">
+    <i class="icon-question-sign"></i></a>
+  </h3>
   {{this.rendered_hunt_runner_args|safe}}
 
   {{this.rendered_hunt_args|safe}}

@@ -17,6 +17,7 @@ import logging
 from grr.gui import renderers
 from grr.gui.plugins import crash_view
 from grr.gui.plugins import fileview
+from grr.gui.plugins import foreman
 from grr.gui.plugins import forms
 from grr.gui.plugins import searchclient
 from grr.gui.plugins import semantic
@@ -324,10 +325,10 @@ class HuntViewTabs(renderers.TabLayout):
 
   """
 
-  names = ["Overview", "Log", "Errors", "Rules", "Graph", "Results", "Stats",
+  names = ["Overview", "Log", "Errors", "Graph", "Results", "Stats",
            "Crashes", "Outstanding", "Context Detail"]
   delegated_renderers = ["HuntOverviewRenderer", "HuntLogRenderer",
-                         "HuntErrorRenderer", "HuntRuleRenderer",
+                         "HuntErrorRenderer",
                          "HuntClientGraphRenderer", "HuntResultsRenderer",
                          "HuntStatsRenderer", "HuntCrashesRenderer",
                          "HuntOutstandingRenderer", "HuntContextView"]
@@ -599,6 +600,12 @@ class HuntOverviewRenderer(AbstractLogRenderer):
   <dt>Total network traffic</dt>
   <dd>{{ this.net_sum|filesizeformat }}</dd>
 
+  <dt>Regex Rules</dt>
+  <dd>{{ this.regex_rules|safe }}</dd>
+
+  <dt>Integer Rules</dt>
+  <dd>{{ this.integer_rules|safe }}</dd>
+
   <dt>Arguments</dt><dd>{{ this.args_str|safe }}</dd>
 
 {% for key, val in this.data.items %}
@@ -668,6 +675,19 @@ class HuntOverviewRenderer(AbstractLogRenderer):
 
           self.args_str = renderers.DictRenderer(
               self.hunt.state, filter_keys=["context"]).RawHTML(request)
+
+          if runner.args.regex_rules:
+            self.regex_rules = foreman.RegexRuleArray(
+                runner.args.regex_rules).RawHTML(request)
+          else:
+            self.regex_rules = "None"
+
+          if runner.args.integer_rules:
+            self.integer_rules = foreman.IntegerRuleArray(
+                runner.args.integer_rules).RawHTML(request)
+          else:
+            self.integer_rules = "None"
+
       except IOError:
         self.layout_template = self.error_template
 
@@ -697,8 +717,14 @@ class HuntContextView(renderers.TemplateRenderer):
 
 
 class HuntLogRenderer(AbstractLogRenderer):
-  """Render the hunt log."""
+  """Render the hunt log.
+
+  TODO(user): This needs significant improvement. The logs for each flow
+  should probably be combined and collapsed by default, flow links should be
+  clickable, need proper pagination.
+  """
   show_total_count = True
+  max_size = 500
 
   def GetLog(self, request):
     """Retrieve the log data."""
@@ -707,16 +733,19 @@ class HuntLogRenderer(AbstractLogRenderer):
     if hunt_id is None:
       return []
 
-    fd = aff4.FACTORY.Open(hunt_id, token=request.token,
-                           age=aff4.ALL_TIMES)
-    log_vals = fd.GetValuesForAttribute(fd.Schema.LOG)
+    log_vals = aff4.FACTORY.Create(rdfvalue.RDFURN(hunt_id).Add("Logs"),
+                                   mode="r",
+                                   aff4_type="PackedVersionedCollection",
+                                   token=request.token)
+
     log = []
+    for i, line in enumerate(log_vals):
+      if ((not hunt_client or hunt_client == line.client_id) and
+          (line is not None) and
+          i < self.max_size):
+        log.append((line.age, line.urn, line.flow_name, line.log_message))
 
-    for l in log_vals:
-      if not hunt_client or hunt_client == l.client_id:
-        log.append((l.age, l.client_id, l.log_message))
-
-    return log
+    return sorted(log)
 
 
 class HuntErrorRenderer(AbstractLogRenderer):
@@ -739,34 +768,6 @@ class HuntErrorRenderer(AbstractLogRenderer):
         log.append((l.age, l.client_id, l.backtrace,
                     l.log_message))
     return log
-
-
-class HuntRuleRenderer(renderers.TableRenderer):
-  """Rule renderer that only shows our hunts rules."""
-
-  error_template = renderers.Template(
-      "No information available for this Hunt.")
-
-  def __init__(self, **kwargs):
-    super(HuntRuleRenderer, self).__init__(**kwargs)
-    self.AddColumn(semantic.RDFValueColumn("Rules", width="100%"))
-
-  def RenderAjax(self, request, response):
-    """Renders the table."""
-    hunt_id = request.REQ.get("hunt_id")
-
-    if hunt_id is not None:
-      hunt = aff4.FACTORY.Open(hunt_id, aff4_type="GRRHunt",
-                               token=request.token)
-
-      with hunt.GetRunner() as runner:
-        # Getting list of rules from hunt object: this doesn't require us to
-        # have admin privileges (which we need to go through foreman rules).
-        for rule in runner.args.regex_rules:
-          self.AddRow(Rules=rule)
-
-    # Call our raw TableRenderer to actually do the rendering
-    return renderers.TableRenderer.RenderAjax(self, request, response)
 
 
 class HuntClientViewTabs(renderers.TabLayout):

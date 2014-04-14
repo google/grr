@@ -143,6 +143,11 @@ class VFSGRRClient(standard.VFSDirectory):
         "aff4:summary", rdfvalue.ClientSummary,
         "A summary of this client", versioned=False)
 
+    LAST_CRASH = aff4.Attribute(
+        "aff4:last_crash", rdfvalue.ClientCrash,
+        "Last client crash.", creates_new_object_version=False,
+        versioned=False)
+
   # Valid client ids
   CLIENT_ID_RE = re.compile(r"^C\.[0-9a-fA-F]{16}$")
 
@@ -418,12 +423,10 @@ class GRRForeman(aff4.AFF4Object):
 
     if expired_session_ids:
       # Notify the worker to mark this hunt as terminated.
-      priorities = dict()
-      for session_id in expired_session_ids:
-        priorities[session_id] = rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY
-
       manager = queue_manager.QueueManager(token=self.token)
-      manager.MultiNotifyQueue(list(expired_session_ids), priorities)
+      manager.MultiNotifyQueue(
+          [rdfvalue.GrrNotification(session_id=session_id)
+           for session_id in expired_session_ids])
 
     if len(new_rules) < len(rules):
       self.Set(self.Schema.RULES, new_rules)

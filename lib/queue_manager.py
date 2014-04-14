@@ -17,11 +17,6 @@ from grr.lib import stats
 from grr.lib import utils
 
 
-config_lib.DEFINE_integer("Worker.queue_shards", 1,
-                          "Queue notifications will be sharded across "
-                          "this number of datastore subjects.")
-
-
 class Error(Exception):
   """Base class for errors in this module."""
 
@@ -87,6 +82,8 @@ class QueueManager(object):
   TASK_PREDICATE_PREFIX = "task:%s"
   NOTIFY_PREDICATE_PREFIX = "notify:%s"
 
+  STUCK_PRIORITY = "Flow stuck"
+
   request_limit = 1000000
   response_limit = 1000000
 
@@ -108,7 +105,7 @@ class QueueManager(object):
     # lists of task ids.
     self.client_messages_to_delete = {}
     self.new_client_messages = []
-    self.notifications = {}
+    self.notifications = []
 
     self.prev_frozen_timestamps = []
     self.frozen_timestamp = None
@@ -132,7 +129,7 @@ class QueueManager(object):
     return result
 
   def Copy(self):
-    """Return a copy of the queue mananger.
+    """Return a copy of the queue manager.
 
     Returns:
     Copy of the QueueManager object.
@@ -184,6 +181,25 @@ class QueueManager(object):
       client_id = rdfvalue.ClientURN(client_id)
 
       self.client_messages_to_delete.setdefault(client_id, []).append(task_id)
+
+  def MultiCheckStatus(self, messages):
+    """Checks if there is a client status queued for a number of requests."""
+    subjects = [m.session_id.Add("state") for m in messages]
+
+    statuses_found = {}
+
+    for subject, result in self.data_store.MultiResolveRegex(
+        subjects, self.FLOW_STATUS_REGEX,
+        token=self.token):
+      for predicate, _, _ in result:
+        request_nr = int(predicate.split(":")[-1], 16)
+        statuses_found.setdefault(subject, set()).add(request_nr)
+
+    status_available = set()
+    for m in messages:
+      if m.request_id in statuses_found.get(m.session_id.Add("state"), set()):
+        status_available.add(m)
+    return status_available
 
   def FetchCompletedRequests(self, session_id, timestamp=None):
     """Fetch all the requests with a status message queued for them."""
@@ -358,10 +374,8 @@ class QueueManager(object):
     if self.sync and session_ids:
       self.data_store.Flush()
 
-    for session_id, notifications in self.notifications.items():
-      for priority, timestamp in notifications:
-        self.NotifyQueue(
-            session_id, timestamp=timestamp, sync=False, priority=priority)
+    for notification, timestamp in self.notifications:
+      self.NotifyQueue(notification, timestamp=timestamp, sync=False)
 
     if self.sync:
       self.data_store.Flush()
@@ -369,7 +383,7 @@ class QueueManager(object):
     self.to_write = {}
     self.to_delete = {}
     self.client_messages_to_delete = {}
-    self.notifications = {}
+    self.notifications = []
     self.new_client_messages = []
 
   def QueueResponse(self, session_id, response, timestamp=None):
@@ -411,16 +425,19 @@ class QueueManager(object):
   def QueueClientMessage(self, msg):
     self.new_client_messages.append(msg)
 
-  def QueueNotification(self, session_id, timestamp=None,
-                        priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY):
-    # TODO(user): remove int() conversion when datastores accept
-    # RDFDatetime instead of ints.
-    if timestamp is not None:
-      timestamp = int(timestamp)
+  def QueueNotification(self, notification=None, timestamp=None, **kw):
+    """Queues a notification for a flow."""
 
-    if session_id:
-      self.notifications.setdefault(session_id, [])
-      self.notifications[session_id].append((priority, timestamp))
+    if notification is None:
+      notification = rdfvalue.GrrNotification(**kw)
+
+    if notification.session_id:
+      # TODO(user): remove int() conversion when datastores accept
+      # RDFDatetime instead of ints.
+      if timestamp is not None:
+        timestamp = int(timestamp)
+
+      self.notifications.append((notification, timestamp))
 
   def _TaskIdToColumn(self, task_id):
     """Return a predicate representing this task."""
@@ -467,51 +484,69 @@ class QueueManager(object):
             queue, to_schedule, timestamp=timestamp, sync=sync,
             token=self.token)
 
-  def GetSessionsFromQueue(self, queue):
-    """Retrieves candidate session ids for processing from the datastore."""
-
+  def GetNotificationsByPriority(self, queue):
+    """Retrieves session ids for processing grouped by priority."""
     # Check which sessions have new data.
     # Read all the sessions that have notifications.
-    sessions_by_priority = {}
-    for predicate, priority, _ in data_store.DB.ResolveRegex(
+    notifications_by_priority = {}
+
+    for notification in self._GetUnsortedNotifications(queue):
+      priority = notification.priority
+      if notification.in_progress:
+        priority = self.STUCK_PRIORITY
+
+      notifications_by_priority.setdefault(priority, []).append(notification)
+
+    for priority in notifications_by_priority:
+      random.shuffle(notifications_by_priority[priority])
+
+    return notifications_by_priority
+
+  def GetNotifications(self, queue):
+    notifications = self._GetUnsortedNotifications(queue)
+    notifications.sort(key=lambda notification: notification.priority,
+                       reverse=True)
+    return notifications
+
+  def _GetUnsortedNotifications(self, queue):
+    """Returns all the available notifications for a queue."""
+    notifications_by_session_id = {}
+    for predicate, serialized_notification, ts in data_store.DB.ResolveRegex(
         self.GetNotificationShard(queue), self.NOTIFY_PREDICATE_PREFIX % ".*",
         # TODO(user): remove int() conversion when datastores accept
         # RDFDatetime instead of ints.
         timestamp=(0,
                    int(self.frozen_timestamp or rdfvalue.RDFDatetime().Now())),
         token=self.token, limit=10000):
-      # Strip the prefix from the predicate.
-      predicate = predicate[len(self.NOTIFY_PREDICATE_PREFIX % ""):]
 
-      sessions_by_priority.setdefault(priority, []).append(predicate)
+      # Parse the notification.
+      notification = rdfvalue.GrrNotification(serialized_notification)
+      # Strip the prefix from the predicate to get the session_id.
+      session_id = predicate[len(self.NOTIFY_PREDICATE_PREFIX % ""):]
+      notification.session_id = session_id
+      notification.timestamp = ts
 
-    # We want to return the sessions by order of priority,
-    # but with all sessions at the same priority randomly shuffled.
-    sessions_available = []
-    for priority in sorted(sessions_by_priority, reverse=True):
-      # There may be multiple notifications for the same session id, so
-      # we only live unique session ids in the list.
-      session_ids = list(set(sessions_by_priority[priority]))
-      random.shuffle(session_ids)
-      sessions_available.extend(session_ids)
+      existing = notifications_by_session_id.get(notification.session_id)
+      if existing:
+        # If we have a notification for this session_id already, we only store
+        # the one that was scheduled last.
+        if notification.first_queued > existing.first_queued:
+          notifications_by_session_id[notification.session_id] = notification
+      else:
+        notifications_by_session_id[notification.session_id] = notification
 
-    return sessions_available
+    return notifications_by_session_id.values()
 
-  def NotifyQueue(self, session_id,
-                  priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY,
-                  **kwargs):
+  def NotifyQueue(self, notification, **kwargs):
     """This signals that there are new messages available in a queue."""
-    self._MultiNotifyQueue(session_id.Queue(), [session_id],
-                           {session_id: priority}, **kwargs)
+    self._MultiNotifyQueue(notification.session_id.Queue(), [notification],
+                           **kwargs)
 
-  def MultiNotifyQueue(self, session_ids, priorities, timestamp=None,
-                       sync=True):
+  def MultiNotifyQueue(self, notifications, timestamp=None, sync=True):
     """This is the same as NotifyQueue but for several session_ids at once.
 
     Args:
-      session_ids: A list of session_ids with new messages to process.
-      priorities: A dict of priorities, one for each session_id in the
-                  session_id list.
+      notifications: A list of notifications.
       timestamp: An optional timestamp for this notification.
       sync: If True, sync to the data_store immediately.
     Raises:
@@ -522,36 +557,60 @@ class QueueManager(object):
     if timestamp is not None:
       timestamp = int(timestamp)
 
-    for session_id in session_ids:
-      if not isinstance(session_id, rdfvalue.SessionID):
-        raise RuntimeError("Can only notify on rdfvalue.SessionIDs.")
-
-    for queue, ids in utils.GroupBy(
-        session_ids, lambda session_id: session_id.Queue()).iteritems():
-
+    extract_queue = lambda notification: notification.session_id.Queue()
+    for queue, notifications in utils.GroupBy(
+        notifications, extract_queue).iteritems():
       self._MultiNotifyQueue(
-          queue, ids, priorities, timestamp=timestamp, sync=sync)
+          queue, notifications, timestamp=timestamp, sync=sync)
 
-  def _MultiNotifyQueue(self, queue, session_ids, priorities, timestamp=None,
-                        sync=True):
+  def _MultiNotifyQueue(self, queue, notifications, timestamp=None, sync=True):
+    """Does the actual queuing."""
+    serialized_notifications = {}
+    now = rdfvalue.RDFDatetime().Now()
+    expiry_time = config_lib.CONFIG["Worker.notification_expiry_time"]
+    for notification in notifications:
+      if not notification.first_queued:
+        notification.first_queued = int(self.frozen_timestamp or
+                                        rdfvalue.RDFDatetime().Now())
+      else:
+        diff = now - notification.first_queued
+        if diff.seconds >= expiry_time:
+          # This notification has been around for too long, we drop it.
+          logging.debug("Dropping notification: %s", str(notification))
+          continue
+      session_id = notification.session_id
+      # Don't serialize session ids to save some bytes.
+      notification.session_id = None
+      notification.timestamp = None
+      serialized_notifications[session_id] = notification.SerializeToString()
+
     data_store.DB.MultiSet(
         self.GetNotificationShard(queue),
         dict([(self.NOTIFY_PREDICATE_PREFIX % session_id,
-               [(str(int(priorities[session_id])), timestamp)])
-              for session_id in session_ids]),
+               [(data, timestamp)])
+              for session_id, data in serialized_notifications.iteritems()]),
         sync=sync, replace=False, token=self.token)
 
-  def DeleteNotification(self, session_id):
+  def DeleteNotification(self, session_id, start=None, end=None):
     """This deletes the notification when all messages have been processed."""
     if not isinstance(session_id, rdfvalue.SessionID):
       raise RuntimeError(
           "Can only delete notifications for rdfvalue.SessionIDs.")
 
+    if start is None:
+      start = 0
+    else:
+      start = int(start)
+
+    if end is None:
+      end = int(self.frozen_timestamp or rdfvalue.RDFDatetime().Now())
+    else:
+      end = int(end)
+
     for queue_shard in self.GetAllNotificationShards(session_id.Queue()):
       data_store.DB.DeleteAttributes(
           queue_shard, [self.NOTIFY_PREDICATE_PREFIX % session_id],
-          token=self.token, start=0,
-          end=int(self.frozen_timestamp or rdfvalue.RDFDatetime().Now()))
+          token=self.token, start=start, end=end)
 
   def Query(self, queue, limit=1, task_id=None):
     """Retrieves tasks from a queue without leasing them.

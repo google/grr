@@ -606,30 +606,44 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
                       p.cpu_usage.system_cpu_time)
       prev = p
 
-  class MBRHuntMock(object):
-
-    def ReadBuffer(self, args):
-
-      response = rdfvalue.BufferReference(args)
-      response.data = "\x01" * response.length
-
-      return [response]
-
-  def testMBRHunt(self):
-    with hunts.GRRHunt.StartHunt(hunt_name="MBRHunt", length=3333,
-                                 client_limit=1,
-                                 token=self.token) as hunt:
+  def testHuntCollectionLogging(self):
+    """This tests running the hunt on some clients."""
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        flow_runner_args=rdfvalue.FlowRunnerArgs(flow_name="DummyLogFlow"),
+        client_rate=0, token=self.token) as hunt:
       hunt.Run()
-      hunt.StartClients(hunt.session_id, [self.client_id])
+      hunt.Log("Log from the hunt itself")
 
-    # Run the hunt.
-    client_mock = self.MBRHuntMock()
-    test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
+    hunt_urn = hunt.urn
 
-    mbr = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add("mbr"),
-                            token=self.token)
-    data = mbr.read(100000)
-    self.assertEqual(len(data), 3333)
+    self.AssignTasksToClients()
+    self.RunHunt()
+    self.StopHunt(hunt_urn)
+
+    # Check logs were written to the hunt collection
+    with aff4.FACTORY.Open(hunt_urn.Add("Logs"), token=self.token,
+                           age=aff4.ALL_TIMES) as hunt_logs:
+
+      # Can't use len with PackedVersionCollection
+      count = 0
+      for log in hunt_logs:
+        if log.client_id:
+          self.assertTrue(log.client_id in self.client_ids)
+          self.assertTrue(log.log_message in ["First", "Second", "Third",
+                                              "Fourth", "Uno", "Dos", "Tres",
+                                              "Cuatro"])
+          self.assertTrue(log.flow_name in ["DummyLogFlow",
+                                            "DummyLogFlowChild"])
+          self.assertTrue(str(hunt_urn) in str(log.urn))
+        else:
+          self.assertEqual(log.log_message, "Log from the hunt itself")
+          self.assertEqual(log.flow_name, "GenericHunt")
+          self.assertEqual(log.urn, hunt_urn)
+
+        count += 1
+      # 4 logs for each flow, 2 flow run.  One hunt-level log.
+      self.assertEqual(count, 8 * len(self.client_ids) + 1)
 
 
 class FlowTestLoader(test_lib.GRRTestLoader):

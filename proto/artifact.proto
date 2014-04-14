@@ -26,6 +26,12 @@ message Collector {
       description: "A list types that may be returned by this artifact. "
         "Anything returned that is not in this list will be filtered.",
     }];
+
+  repeated string supported_os = 5 [(sem_type) = {
+      description: "A list of operating systems the collector will use to "
+                  "decide if it should run on a given system.",
+    }];
+
 }
 
 

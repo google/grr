@@ -22,7 +22,7 @@ class FileExportPlugin(plugin.ExportPlugin):
                         "Can be either a file or a directory.")
 
     parser.add_argument("--output", required=True,
-                        help="Directory downloaded files will be written.")
+                        help="Directory downloaded files will be written to.")
 
     parser.add_argument("--depth", type=int, default=5,
                         help="Depth of recursion when path is a directory.")

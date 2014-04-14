@@ -25,11 +25,11 @@ Client.proxy_servers:
 
 Client.version_major: 2
 
-Client.version_minor: 9
+Client.version_minor: 10
 
 Client.version_release: 0
 
-Client.version_revision: 2
+Client.version_revision: 0
 
 Client.foreman_check_frequency: 600
 

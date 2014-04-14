@@ -19,9 +19,8 @@ class TestCrashView(test_lib.GRRSeleniumTest):
   def SetUpCrashedFlow(self):
     client = test_lib.CrashClientMock(self.client_id, self.token)
     for _ in test_lib.TestFlowHelper(
-        "ListDirectory", client, client_id=self.client_id,
-        pathspec=rdfvalue.PathSpec(path="/", pathtype=1), token=self.token,
-        check_flow_errors=False):
+        "FlowWithOneClientRequest", client, client_id=self.client_id,
+        token=self.token, check_flow_errors=False):
       pass
 
   def testClientCrashedFlow(self):
@@ -42,14 +41,13 @@ class TestCrashView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "VFSGRRClient")
 
     self.Click("css=a:contains('Manage launched flows')")
-    self.WaitUntil(self.IsTextPresent, "ListDirectory")
+    self.WaitUntil(self.IsTextPresent, "FlowWithOneClientRequest")
 
     # Check that skull icon is in place.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=img[src='/static/images/skull-icon.png']")
+    self.WaitUntil(self.IsElementPresent, "css=img[src$='skull-icon.png']")
 
     # Click on the crashed flow.
-    self.Click("css=td:contains(ListDirectory)")
+    self.Click("css=td:contains(FlowWithOneClientRequest)")
 
     # Check that "Flow Information" tab displays crash data.
     self.WaitUntil(self.AllTextsPresent, [

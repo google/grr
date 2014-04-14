@@ -471,6 +471,8 @@ class StatEntryToExportedFileConverter(ExportConverter):
         except KeyError:
           pass
 
+      result.metadata.annotations = u",".join(self.options.annotations)
+
       yield result
 
 

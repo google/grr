@@ -15,7 +15,7 @@ import grr.proto.semantic_pb2
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='grr/proto/artifact.proto',
   package='',
-  serialized_pb='\n\x18grr/proto/artifact.proto\x1a\x14grr/proto/jobs.proto\x1a\x18grr/proto/semantic.proto\"\xa3\x03\n\tCollector\x12\x46\n\x06\x61\x63tion\x18\x01 \x01(\tB6\xe2\xfc\xe3\xc4\x01\x30\x12.The name of the action the collector performs.\x12K\n\x04\x61rgs\x18\x02 \x01(\x0b\x32\x05.DictB6\xe2\xfc\xe3\xc4\x01\x30\x12.The name of the action the collector performs.\x12n\n\nconditions\x18\x03 \x03(\tBZ\xe2\xfc\xe3\xc4\x01T\x12RObject filter conditions that decide if this collector will run on a given system.\x12\x90\x01\n\x0ereturned_types\x18\x04 \x03(\tBx\xe2\xfc\xe3\xc4\x01r\x12pA list types that may be returned by this artifact. Anything returned that is not in this list will be filtered.\"\xca\x04\n\x08\x41rtifact\x12;\n\x04name\x18\x01 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\x12%Globally unique name of the artifact.\x12X\n\nconditions\x18\x02 \x03(\tBD\xe2\xfc\xe3\xc4\x01>\x12<A list of conditions that decide if the artifact should run.\x12\x31\n\x03\x64oc\x18\x03 \x01(\tB$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1c\x44oc string for the artifact.\x12\x41\n\x06labels\x18\x04 \x03(\tB1\xe2\xfc\xe3\xc4\x01+\x12)A list of labels the artifact belongs to.\x12P\n\x0csupported_os\x18\x05 \x03(\tB:\xe2\xfc\xe3\xc4\x01\x34\x12\x32\x41 list of operating systems the artifact supports.\x12\x45\n\x04urls\x18\x06 \x03(\tB7\xe2\xfc\xe3\xc4\x01\x31\x12/A list of urls that help document the artifact.\x12\x46\n\ncollectors\x18\x07 \x03(\x0b\x32\n.CollectorB&\xe2\xfc\xe3\xc4\x01 \x12\x1e\x41 list of artifact collectors.\x12P\n\x08provides\x18\x08 \x03(\tB>\xe2\xfc\xe3\xc4\x01\x38\x12\x36\x41 list of knowledgebase values this artifact provides.')
+  serialized_pb='\n\x18grr/proto/artifact.proto\x1a\x14grr/proto/jobs.proto\x1a\x18grr/proto/semantic.proto\"\xa3\x04\n\tCollector\x12\x46\n\x06\x61\x63tion\x18\x01 \x01(\tB6\xe2\xfc\xe3\xc4\x01\x30\x12.The name of the action the collector performs.\x12K\n\x04\x61rgs\x18\x02 \x01(\x0b\x32\x05.DictB6\xe2\xfc\xe3\xc4\x01\x30\x12.The name of the action the collector performs.\x12n\n\nconditions\x18\x03 \x03(\tBZ\xe2\xfc\xe3\xc4\x01T\x12RObject filter conditions that decide if this collector will run on a given system.\x12\x90\x01\n\x0ereturned_types\x18\x04 \x03(\tBx\xe2\xfc\xe3\xc4\x01r\x12pA list types that may be returned by this artifact. Anything returned that is not in this list will be filtered.\x12~\n\x0csupported_os\x18\x05 \x03(\tBh\xe2\xfc\xe3\xc4\x01\x62\x12`A list of operating systems the collector will use to decide if it should run on a given system.\"\xca\x04\n\x08\x41rtifact\x12;\n\x04name\x18\x01 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\x12%Globally unique name of the artifact.\x12X\n\nconditions\x18\x02 \x03(\tBD\xe2\xfc\xe3\xc4\x01>\x12<A list of conditions that decide if the artifact should run.\x12\x31\n\x03\x64oc\x18\x03 \x01(\tB$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1c\x44oc string for the artifact.\x12\x41\n\x06labels\x18\x04 \x03(\tB1\xe2\xfc\xe3\xc4\x01+\x12)A list of labels the artifact belongs to.\x12P\n\x0csupported_os\x18\x05 \x03(\tB:\xe2\xfc\xe3\xc4\x01\x34\x12\x32\x41 list of operating systems the artifact supports.\x12\x45\n\x04urls\x18\x06 \x03(\tB7\xe2\xfc\xe3\xc4\x01\x31\x12/A list of urls that help document the artifact.\x12\x46\n\ncollectors\x18\x07 \x03(\x0b\x32\n.CollectorB&\xe2\xfc\xe3\xc4\x01 \x12\x1e\x41 list of artifact collectors.\x12P\n\x08provides\x18\x08 \x03(\tB>\xe2\xfc\xe3\xc4\x01\x38\x12\x36\x41 list of knowledgebase values this artifact provides.')
 
 
 
@@ -55,6 +55,13 @@ _COLLECTOR = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001r\022pA list types that may be returned by this artifact. Anything returned that is not in this list will be filtered.')),
+    _descriptor.FieldDescriptor(
+      name='supported_os', full_name='Collector.supported_os', index=4,
+      number=5, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001b\022`A list of operating systems the collector will use to decide if it should run on a given system.')),
   ],
   extensions=[
   ],
@@ -65,7 +72,7 @@ _COLLECTOR = _descriptor.Descriptor(
   is_extendable=False,
   extension_ranges=[],
   serialized_start=77,
-  serialized_end=496,
+  serialized_end=624,
 )
 
 
@@ -141,8 +148,8 @@ _ARTIFACT = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=499,
-  serialized_end=1085,
+  serialized_start=627,
+  serialized_end=1213,
 )
 
 _COLLECTOR.fields_by_name['args'].message_type = grr.proto.jobs_pb2._DICT
@@ -171,6 +178,8 @@ _COLLECTOR.fields_by_name['conditions'].has_options = True
 _COLLECTOR.fields_by_name['conditions']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001T\022RObject filter conditions that decide if this collector will run on a given system.')
 _COLLECTOR.fields_by_name['returned_types'].has_options = True
 _COLLECTOR.fields_by_name['returned_types']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001r\022pA list types that may be returned by this artifact. Anything returned that is not in this list will be filtered.')
+_COLLECTOR.fields_by_name['supported_os'].has_options = True
+_COLLECTOR.fields_by_name['supported_os']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001b\022`A list of operating systems the collector will use to decide if it should run on a given system.')
 _ARTIFACT.fields_by_name['name'].has_options = True
 _ARTIFACT.fields_by_name['name']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\'\022%Globally unique name of the artifact.')
 _ARTIFACT.fields_by_name['conditions'].has_options = True

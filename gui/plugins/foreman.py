@@ -16,6 +16,11 @@ class RegexRuleArray(semantic.RDFValueArrayRenderer):
   proxy_field = "regex_rules"
 
 
+class IntegerRuleArray(semantic.RDFValueArrayRenderer):
+  """Nicely render all the rules."""
+  proxy_field = "integer_rules"
+
+
 class ActionRuleArray(semantic.RDFValueArrayRenderer):
   """Nicely render all the actions for a rule."""
   proxy_field = "actions"

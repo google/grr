@@ -160,6 +160,13 @@ message FlowRunnerArgs {
       "a collection will be created, and the result will be written to.",
       label: ADVANCED
     }, default="analysis/{p}/{u}-{t}"];
+
+  optional string logs_collection_urn = 17 [(sem_type) = {
+      type: "RDFURN",
+      description: "The logs collection to log to for the flow.",
+      label: HIDDEN,
+    }];
+
 }
 
 
@@ -210,7 +217,6 @@ message HuntRunnerArgs {
       label: ADVANCED,
     }];
 
-
   optional uint64 network_bytes_limit = 13 [(sem_type) = {
       description: "A limit on the total traffic used by this flow.",
       label: ADVANCED,
@@ -234,6 +240,13 @@ message HuntRunnerArgs {
       description: "The maximum number of clients to engage per minute."
       "A rate of 0 means to schedule clients as fast as possible."
     }, default=20];
+
+  optional string logs_collection_urn = 14 [(sem_type) = {
+      type: "RDFURN",
+      description: "The logs collection to log to for the hunt.",
+      label: HIDDEN,
+    }];
+
 };
 
 
@@ -300,12 +313,6 @@ message VariableGenericHuntArgs {
   repeated OutputPlugin output_plugins = 2 [(sem_type) = {
       description: "The output plugins to use for this hunt.",
     }];
-}
-
-message MBRHuntArgs {
-  optional uint64 length = 1 [(sem_type) = {
-      description: "Number of bytes to retrieve."
-    }, default=4096];
 }
 
 message GenericHuntArgs {
@@ -1083,35 +1090,6 @@ message ChromePluginsArgs {
     }, default=false];
 }
 
-// Testing flows and hunt output plugins.
-message PriorityFlowArgs {
-  optional string msg = 1;
-}
-
-message ClientActionRunnerArgs {
-  optional string action = 1 [(sem_type) = {
-      description: "Action to run.",
-    }];
-}
-
-message BadArgsFlow1Args {
-  optional PathSpec arg1 = 1;
-}
-
-message SendingFlowArgs {
-  optional uint64 message_count = 1;
-}
-
-message RecursiveTestFlowArgs {
-  optional uint64 depth = 1;
-}
-
-message DummyCronHuntOutputPluginArgs {
-  optional string output_path = 1;
-  optional string collection_name = 2;
-}
-
-
 // SUID Flows.
 message RequestApprovalWithReasonFlowArgs {
   optional string reason = 1 [(sem_type) = {
@@ -1173,12 +1151,6 @@ message UpdateVFSFileArgs {
   optional string attribute = 2 [(sem_type) = {
       description: "Attribute to update.",
     }, default="aff4:contains"];
-}
-
-message MultiGetFileTestFlowArgs {
-  optional uint64 file_limit = 1 [(sem_type) = {
-      description: "The number of files to retrieve.",
-    }, default=3];
 }
 
 message MultiGetFileArgs {

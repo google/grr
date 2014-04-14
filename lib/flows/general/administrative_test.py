@@ -17,7 +17,7 @@ from grr.lib import flow
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import flows_pb2
+from grr.proto import tests_pb2
 
 
 class TestClientConfigHandling(test_lib.FlowTestsBaseclass):
@@ -55,7 +55,7 @@ class TestClientConfigHandling(test_lib.FlowTestsBaseclass):
 
 
 class ClientActionRunnerArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.ClientActionRunnerArgs
+  protobuf = tests_pb2.ClientActionRunnerArgs
 
 
 class ClientActionRunner(flow.GRRFlow):
@@ -72,6 +72,16 @@ class ClientActionRunner(flow.GRRFlow):
 class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
   """Tests the administrative flows."""
 
+  def CheckCrash(self, crash, expected_session_id):
+    """Checks that ClientCrash object's fields are correctly filled in."""
+    self.assertTrue(crash is not None)
+    self.assertEqual(crash.client_id, self.client_id)
+    self.assertEqual(crash.session_id, expected_session_id)
+    self.assertEqual(crash.client_info.client_name, "GRR Monitor")
+    self.assertEqual(crash.crash_type, "aff4:/flows/W:CrashHandler")
+    self.assertEqual(crash.crash_message,
+                     "Client killed during transaction")
+
   def testClientKilled(self):
     """Test that client killed messages are handled correctly."""
     self.email_message = {}
@@ -83,9 +93,8 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
     with test_lib.Stubber(email_alerts, "SendEmail", SendEmail):
       client = test_lib.CrashClientMock(self.client_id, self.token)
       for _ in test_lib.TestFlowHelper(
-          "ListDirectory", client, client_id=self.client_id,
-          pathspec=rdfvalue.PathSpec(path="/"), token=self.token,
-          check_flow_errors=False):
+          "FlowWithOneClientRequest", client, client_id=self.client_id,
+          token=self.token, check_flow_errors=False):
         pass
 
       # We expect the email to be sent.
@@ -94,12 +103,17 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       self.assertTrue(str(self.client_id) in self.email_message["title"])
 
       # Make sure the flow state is included in the email message.
-      for s in ["Flow name", "ListDirectory", "current_state"]:
+      for s in ["Flow name", "FlowWithOneClientRequest", "current_state"]:
         self.assertTrue(s in self.email_message["message"])
 
       flow_obj = aff4.FACTORY.Open(client.flow_id, age=aff4.ALL_TIMES,
                                    token=self.token)
       self.assertEqual(flow_obj.state.context.state, rdfvalue.Flow.State.ERROR)
+
+      # Make sure client object is updated with the last crash.
+      client_obj = aff4.FACTORY.Open(self.client_id, token=self.token)
+      crash = client_obj.Get(client_obj.Schema.LAST_CRASH)
+      self.CheckCrash(crash, flow_obj.session_id)
 
       # Make sure crashes RDFValueCollections are created and written
       # into proper locations. First check the per-client crashes collection.
@@ -111,11 +125,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
 
       self.assertTrue(len(client_crashes) >= 1)
       crash = list(client_crashes)[0]
-      self.assertEqual(crash.client_id, self.client_id)
-      self.assertEqual(crash.session_id, flow_obj.session_id)
-      self.assertEqual(crash.client_info.client_name, "GRR Monitor")
-      self.assertEqual(crash.crash_type, "aff4:/flows/W:CrashHandler")
-      self.assertEqual(crash.crash_message, "Client killed during transaction")
+      self.CheckCrash(crash, flow_obj.session_id)
 
       # Check per-flow crash collection. Check that crash written there is
       # equal to per-client crash.

@@ -100,12 +100,12 @@ class FetchFiles(flow.GRRFlow):
         if file_size > self.args.max_size:
           self.Log("%s too large to fetch. Size=%d",
                    response.pathspec.CollapsePath(), file_size)
+        else:
+          files_to_fetch.append(response.pathspec)
 
         response.aff4path = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
             response.pathspec, self.client_id)
         self.SendReply(response)
-
-        files_to_fetch.append(response.pathspec)
 
     if files_to_fetch:
       self.CallFlow("MultiGetFile", pathspecs=files_to_fetch,

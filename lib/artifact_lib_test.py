@@ -205,8 +205,8 @@ class ArtifactParserTest(test_lib.GRRBaseTest):
 
 class KnowledgeBaseUserMergeTest(test_lib.GRRBaseTest):
 
-  def testUserMerge(self):
-    """Check users are accurately merged."""
+  def testUserMergeWindows(self):
+    """Check Windows users are accurately merged."""
     kb = rdfvalue.KnowledgeBase()
     self.assertEquals(len(kb.users), 0)
     kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(sid="1234"))
@@ -232,16 +232,37 @@ class KnowledgeBaseUserMergeTest(test_lib.GRRBaseTest):
                                       "users.sid"])
     self.assertEquals(conflicts, [])
 
-    # This should create a new user since the uid is different.
+  def testUserMergeLinux(self):
+    """Check Linux users are accurately merged."""
+    kb = rdfvalue.KnowledgeBase()
+    self.assertEquals(len(kb.users), 0)
+    kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(username="blake",
+                                                 last_logon=1111))
+    self.assertEquals(len(kb.users), 1)
+    # This should merge since the username is the same.
     kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(uid="12", username="blake"))
-    self.assertEquals(len(kb.users), 4)
+    self.assertEquals(len(kb.users), 1)
+
+    # This should create a new record because the uid is different
+    kb.MergeOrAddUser(
+        rdfvalue.KnowledgeBaseUser(username="blake",
+                                   uid="13", desktop="/home/blake/Desktop"))
+    self.assertEquals(len(kb.users), 2)
+
+    kb.MergeOrAddUser(
+        rdfvalue.KnowledgeBaseUser(username="newblake",
+                                   uid="14", desktop="/home/blake/Desktop"))
+
+    self.assertEquals(len(kb.users), 3)
+
+    # Check merging where we don't specify uid works
     new_attrs, conflicts = kb.MergeOrAddUser(
-        rdfvalue.KnowledgeBaseUser(username="blake", uid="13",
-                                   desktop="/home/blake/Desktop"))
-    self.assertEquals(len(kb.users), 5)
-    self.assertItemsEqual(new_attrs, ["users.username", "users.desktop",
-                                      "users.uid"])
-    self.assertEquals(conflicts, [])
+        rdfvalue.KnowledgeBaseUser(username="newblake",
+                                   desktop="/home/blakey/Desktop"))
+    self.assertEquals(len(kb.users), 3)
+    self.assertItemsEqual(new_attrs, ["users.username", "users.desktop"])
+    self.assertItemsEqual(conflicts, [("desktop", u"/home/blake/Desktop",
+                                       u"/home/blakey/Desktop")])
 
 
 def main(argv):

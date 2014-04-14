@@ -564,6 +564,7 @@ class ListFlowsTable(renderers.TableRenderer):
     flow_root = aff4.FACTORY.Open(flow_urn, mode="r", token=request.token)
     root_children_paths = sorted(flow_root.ListChildren(),
                                  key=lambda x: x.age, reverse=True)
+    additional_rows = (depth == 0 and len(root_children_paths) > end_row)
 
     if not depth:
       root_children_paths = root_children_paths[start_row:end_row]
@@ -603,16 +604,21 @@ class ListFlowsTable(renderers.TableRenderer):
         except AttributeError:
           row["Flow Name"] = "Failed to open flow."
 
-      else:
-        # We're dealing with a hunt here.
+      elif isinstance(flow_obj, aff4.AFF4Object.GRRHunt):
         row_name = flow_obj.urn.Dirname()
         row["Flow Name"] = "Hunt"
+
+      else:
+        # A logs collection, skip, it will be rendered separately
+        continue
 
       self.columns[1].AddElement(row_index, flow_obj.urn, depth, row_type,
                                  row_name)
 
       self.AddRow(row, row_index)
       row_index += 1
+
+    return additional_rows
 
   def Layout(self, request, response):
     response = super(ListFlowsTable, self).Layout(request, response)
@@ -683,7 +689,7 @@ class HistoricalFlowView(fileview.HistoricalView):
     self.AddColumn(semantic.RDFValueColumn(attribute_name))
     fd = aff4.FACTORY.Open(flow_name, token=request.token, age=aff4.ALL_TIMES)
 
-    self.BuildTableFromAttribute(attribute_name, fd, start_row, end_row)
+    return self.BuildTableFromAttribute(attribute_name, fd, start_row, end_row)
 
 
 class FlowPBRenderer(semantic.RDFProtoRenderer):

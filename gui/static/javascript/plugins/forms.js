@@ -151,8 +151,12 @@ grr.Renderer('RepeatedFieldFormRenderer', {
 grr.Renderer('StringTypeFormRenderer', {
   Layout: function(state) {
     var value = state.value;
+    var default_value = state.default;
+
     if (value != null) {
       $('input#' + state.prefix).val(value).change();
+    } else if (default_value != null) {
+      $('input#' + state.prefix).val(default_value);
     }
   }
 });
@@ -160,8 +164,12 @@ grr.Renderer('StringTypeFormRenderer', {
 grr.Renderer('EnumFormRenderer', {
   Layout: function(state) {
     var value = state.value;
+    var default_value = state.default;
+
     if (value != null) {
       $('select#' + state.prefix).val(value).change();
+    } else if (default_value != null) {
+      $('select#' + state.prefix).val(default_value);
     }
   }
 });
@@ -169,8 +177,14 @@ grr.Renderer('EnumFormRenderer', {
 grr.Renderer('ProtoBoolFormRenderer', {
   Layout: function(state) {
     var value = state.value;
+    var default_value = state.default;
+
     if (value != null) {
-      $('select#' + state.prefix).val(value).change();
+      $('input#' + state.prefix).prop(
+          'checked', value != null).val(value).change();
+    } else if (default_value) {
+      $('input#' + state.prefix).prop(
+          'checked', default_value).val(default_value);
     }
   }
 });

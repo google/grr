@@ -33,7 +33,8 @@ class ConfigManager(renderers.TemplateRenderer):
 <div class="row-fluid">
 
 <h2>Configuration</h2>
-<p>This is a read-only view of the frontend configuration.</p>
+<p>This is a read-only view of the frontend configuration. Purple values have
+been changed from the default settings.</p>
 <table class="table table-condensed table-bordered table-striped full-width">
 <colgroup>
   <col style="width: 30%" />
@@ -43,9 +44,9 @@ class ConfigManager(renderers.TemplateRenderer):
 
 <tbody class="TableBody">
 {% for section, data in this.sections %}
-  <tr><th colspan=2>{{ section|escape }}</th></tr>
-  {% for key, value, interpolated in data %}
-    <tr><td>{{ key|escape }}</td>
+  <tr><th colspan=2 class="config">{{ section|escape }}</th></tr>
+  {% for key, value, interpolated, row_class in data %}
+    <tr class={{ row_class }}><td>{{ key|escape }}</td>
     {% if value|escape != interpolated|escape %}
       <td>{{ interpolated|escape }}
       (<i>expanded from: {{ value|escape}}</i>)</td>
@@ -90,8 +91,14 @@ class ConfigManager(renderers.TemplateRenderer):
           else:
             option_value = config_lib.CONFIG.Get(parameter, default=None)
             raw_value = config_lib.CONFIG.GetRaw(parameter, default=None)
+            if option_value is None or raw_value is None:
+              row_class = "config_default"
+              option_value = config_lib.CONFIG.Get(parameter)
+              raw_value = config_lib.CONFIG.GetRaw(parameter)
+            else:
+              row_class = "config_modified"
 
-          info.append((parameter, raw_value, option_value))
+          info.append((parameter, raw_value, option_value, row_class))
 
         except (config_lib.Error, type_info.TypeValueError) as e:
           logging.warn("Bad config option in ConfigManager View %s", e)

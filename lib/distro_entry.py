@@ -56,6 +56,7 @@ def GrrServer():
 
 def Export():
   from grr.tools import export
+  export.AddPluginsSubparsers()
   SetConfigOptions()
   flags.StartMain(export.main)
 

@@ -1,5 +1,7 @@
+# Mac OS X (Darwin) specific artifacts.
+
 name: OSXServices
-doc: Collect running services from the servicemanagement framework.
+doc: Running services from the Max OS X service management framework.
 collectors:
 - action: RunGrrClientAction
   args: {client_action: OSXEnumerateRunningServices}
@@ -7,7 +9,7 @@ labels: [Software]
 supported_os: [Darwin]
 ---
 name: DarwinPersistenceMechanismFiles
-doc: Collect files that are run by Darwin persistence mechanisms.
+doc: Files that are run by Darwin persistence mechanisms.
 collectors:
 - action: CollectArtifactFiles
   args:
@@ -18,7 +20,7 @@ labels: [Software]
 supported_os: [Darwin]
 ---
 name: DarwinPersistenceMechanisms
-doc: Collect persistence mechanisms.
+doc: Persistence mechanisms on Darwin.
 collectors:
 - action: CollectArtifacts
   args:
@@ -28,13 +30,12 @@ labels: [Software]
 supported_os: [Darwin]
 ---
 name: OSXUsers
-doc: Collect users by listing /Users.
+doc: User directories in /Users.
 collectors:
 - action: ListFiles
   args:
-    path_list: [/Users/*]
+    path_list: ['/Users/*']
   returned_types: [KnowledgeBaseUser]
 labels: [Users]
 supported_os: [Darwin]
 provides: [users.username]
-

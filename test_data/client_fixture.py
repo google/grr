@@ -529,7 +529,6 @@ st_nlink: 1
 st_uid: 0
 st_gid: 0
 st_size: 168
-resident: "group1 (-,user11,) (-,user22,) (-,user33,)\\n#group1 comment\\ngroup2 (-,user45,) (-,user22,)\\nsuper_group (-,user5,) (-,user6,) group1 group2\\nsuper_group2 (-,user7,) super_group\\n"
 st_atime: 1309034899
 st_mtime: 1285093976
 st_ctime: 1299502221
@@ -539,6 +538,29 @@ st_rdev: 0
 pathspec {
   pathtype: OS
   path: "/etc/netgroup"
+}
+"""
+})),
+(u"/fs/os/etc/passwd", ("VFSFile", {
+"aff4:size": 261,
+"aff4:stat":
+"""
+st_mode: 33261
+st_ino: 1026280
+st_dev: 51713
+st_nlink: 1
+st_uid: 0
+st_gid: 0
+st_size: 261
+st_atime: 1309034899
+st_mtime: 1285093976
+st_ctime: 1299502221
+st_blocks: 80
+st_blksize: 4096
+st_rdev: 0
+pathspec {
+  pathtype: OS
+  path: "/etc/passwd"
 }
 """
 })),

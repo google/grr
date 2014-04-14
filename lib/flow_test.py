@@ -21,7 +21,9 @@ from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
-from grr.proto import flows_pb2
+from grr.proto import tests_pb2
+
+# pylint: mode=test
 
 
 class FlowResponseSerialization(flow.GRRFlow):
@@ -177,6 +179,7 @@ class FlowCreationTest(test_lib.FlowTestsBaseclass):
 
     # The child URN should be contained within the parent session_id URN.
     flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
+
     children = list(flow_obj.ListChildren())
     self.assertEqual(len(children), 1)
 
@@ -249,11 +252,11 @@ class FlowCreationTest(test_lib.FlowTestsBaseclass):
 
   notifications = {}
 
-  def CollectNotifications(self, queue, session_ids, priorities, **kwargs):
+  def CollectNotifications(self, queue, notifications, **kwargs):
     now = time.time()
-    for session_id in session_ids:
-      self.notifications.setdefault(session_id, []).append(now)
-    self.old_notify(queue, session_ids, priorities, **kwargs)
+    for notification in notifications:
+      self.notifications.setdefault(notification.session_id, []).append(now)
+    self.old_notify(queue, notifications, **kwargs)
 
   def testNoRequestChildFlowRace(self):
 
@@ -292,6 +295,30 @@ class FlowCreationTest(test_lib.FlowTestsBaseclass):
       self.assertLess(int(f.Get(f.Schema.TYPE).age), timestamp,
                       "The client request was issued before "
                       "the flow was created.")
+
+  def testFlowLogging(self):
+    """Check that flows log correctly."""
+    flow_urn = None
+    for session_id in test_lib.TestFlowHelper("DummyLogFlow",
+                                              test_lib.ActionMock(),
+                                              token=self.token,
+                                              client_id=self.client_id):
+      flow_urn = session_id
+
+    with aff4.FACTORY.Open(flow_urn.Add("Logs"), age=aff4.ALL_TIMES,
+                           token=self.token) as log_collection:
+      count = 0
+      # Can't use len with PackedVersionCollection
+      for log in log_collection:
+        self.assertEqual(log.client_id, self.client_id)
+        self.assertTrue(log.log_message in ["First", "Second", "Third",
+                                            "Fourth", "Uno", "Dos", "Tres",
+                                            "Cuatro"])
+        self.assertTrue(log.flow_name in ["DummyLogFlow",
+                                          "DummyLogFlowChild"])
+        self.assertTrue(str(flow_urn) in str(log.urn))
+        count += 1
+      self.assertEqual(count, 8)
 
 
 class FlowTest(test_lib.FlowTestsBaseclass):
@@ -929,7 +956,7 @@ class PriorityClientMock(object):
 
 
 class PriorityFlowArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.PriorityFlowArgs
+  protobuf = tests_pb2.PriorityFlowArgs
 
 
 class PriorityFlow(flow.GRRFlow):
@@ -1162,7 +1189,7 @@ class DelayedCallStateFlow(flow.GRRFlow):
 
 
 class BadArgsFlow1Args(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.BadArgsFlow1Args
+  protobuf = tests_pb2.BadArgsFlow1Args
 
 
 class BadArgsFlow1(flow.GRRFlow):

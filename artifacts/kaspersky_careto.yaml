@@ -1,3 +1,5 @@
+# Artifacts from the Kaspersky Careto report.
+
 name: KasperskyCaretoIndicators
 doc: Kaspersky Careto Indicators.
 collectors:

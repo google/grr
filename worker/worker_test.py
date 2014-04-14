@@ -2,6 +2,7 @@
 """Tests for the worker."""
 
 
+import threading
 import time
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -9,6 +10,7 @@ from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
@@ -64,8 +66,32 @@ class WorkerSendingWKTestFlow(flow.WellKnownFlow):
     RESULTS.append(message)
 
 
+class WorkerStuckableTestFlow(flow.GRRFlow):
+  """Tests that sent messages are correctly collected."""
+
+  # Semaphore used by test code to wait until the flow is being processed.
+  WAIT_FOR_FLOW_SEMAPHORE = threading.Semaphore(0)
+  # Semaphore used by the flow to wait until the external test code does its
+  # thing.
+  WAIT_FOR_TEST_SEMAPHORE = threading.Semaphore(0)
+
+  @classmethod
+  def Reset(cls):
+    cls.WAIT_FOR_FLOW_SEMAPHORE = threading.Semaphore(0)
+    cls.WAIT_FOR_TEST_SEMAPHORE = threading.Semaphore(0)
+
+  @flow.StateHandler(next_state="Incoming")
+  def Start(self):
+    self.WAIT_FOR_FLOW_SEMAPHORE.release()
+    self.WAIT_FOR_TEST_SEMAPHORE.acquire()
+
+
 class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   """Tests the GRR Worker."""
+
+  def setUp(self):
+    super(GrrWorkerTest, self).setUp()
+    WorkerStuckableTestFlow.Reset()
 
   def SendResponse(self, session_id, data, client_id=None, well_known=False):
     if not isinstance(data, rdfvalue.RDFValue):
@@ -91,11 +117,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
             request_id=request_id, response_id=response_id+1,
             type=rdfvalue.GrrMessage.Type.STATUS))
 
-    # Signal on the worker queue that this flow is ready.
-    data_store.DB.Set(
-        worker.DEFAULT_WORKER_QUEUE,
-        queue_manager.QueueManager.NOTIFY_PREDICATE_PREFIX % session_id,
-        "X", token=self.token)
+      flow_manager.QueueNotification(session_id=session_id)
 
   def testProcessMessages(self):
     """Test processing of several inbound messages."""
@@ -164,6 +186,78 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(flow_obj.state.context["current_state"],
                      "End")
 
+  def testStuckFlowGetsTerminated(self):
+    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+                                  token=self.token)
+    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
+    stuck_flows_timeout = rdfvalue.Duration(
+        config_lib.CONFIG["Worker.stuck_flows_timeout"])
+
+    try:
+      with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
+        session_id = flow.GRRFlow.StartFlow(flow_name="WorkerStuckableTestFlow",
+                                            client_id=self.client_id,
+                                            token=self.token,
+                                            sync=False)
+
+        # Process all messages
+        worker_obj.RunOnce()
+        # Wait until worker thread starts processing the flow.
+        WorkerStuckableTestFlow.WAIT_FOR_FLOW_SEMAPHORE.acquire()
+
+      # Set the time to max worker flow duration + 1 minute. The flow is
+      # currently blocked because of the way how semaphores are set up.
+      # Worker should consider the flow to be stuck and terminate it.
+      future_time = (initial_time + rdfvalue.Duration("1m") +
+                     stuck_flows_timeout)
+      with test_lib.FakeTime(future_time.AsSecondsFromEpoch()):
+        worker_obj.RunOnce()
+
+    finally:
+      # Release the semaphore so that worker thread unblocks and finishes
+      # processing the flow.
+      WorkerStuckableTestFlow.WAIT_FOR_TEST_SEMAPHORE.release()
+      worker_obj.thread_pool.Join()
+
+    killed_flow = aff4.FACTORY.Open(session_id, token=self.token)
+    self.assertEqual(killed_flow.state.context.state,
+                     rdfvalue.Flow.State.ERROR)
+    self.assertEqual(killed_flow.state.context.status,
+                     "Terminated by user test. Reason: Stuck in the worker")
+
+  def testNonStuckFlowDoesNotGetTerminated(self):
+    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+                                  token=self.token)
+    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
+    stuck_flows_timeout = rdfvalue.Duration(
+        config_lib.CONFIG["Worker.stuck_flows_timeout"])
+
+    with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
+      session_id = flow.GRRFlow.StartFlow(flow_name="WorkerSendingTestFlow",
+                                          client_id=self.client_id,
+                                          token=self.token,
+                                          sync=False)
+
+      # Process all messages
+      worker_obj.RunOnce()
+      worker_obj.thread_pool.Join()
+
+    flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
+    self.assertEqual(flow_obj.state.context.state,
+                     rdfvalue.Flow.State.RUNNING)
+
+    # Set the time to max worker flow duration + 1 minute. If the 'kill'
+    # notification isn't deleted we should get it now.
+    future_time = initial_time + rdfvalue.Duration("1m") + stuck_flows_timeout
+    with test_lib.FakeTime(future_time.AsSecondsFromEpoch()):
+      worker_obj.RunOnce()
+      worker_obj.thread_pool.Join()
+
+    flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
+    # Check that flow didn't get terminated due to a logic bug.
+    self.assertEqual(flow_obj.state.context.state,
+                     rdfvalue.Flow.State.RUNNING)
+
   def testProcessMessagesWellKnown(self):
     worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
                                   token=self.token)
@@ -192,20 +286,24 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
                                   token=self.token)
     manager = queue_manager.QueueManager(token=self.token)
-    manager.NotifyQueue(session_id)
+    notification = rdfvalue.GrrNotification(session_id=session_id)
+    manager.NotifyQueue(notification)
 
-    sessions = manager.GetSessionsFromQueue(worker.DEFAULT_WORKER_QUEUE)
+    notifications = manager.GetNotificationsByPriority(
+        worker.DEFAULT_WORKER_QUEUE).get(notification.priority, [])
+
     # Check the notification is there.
-    self.assertEqual(len(sessions), 1)
-    self.assertEqual(sessions[0], session_id)
+    self.assertEqual(len(notifications), 1)
+    self.assertEqual(notifications[0].session_id, session_id)
 
     # Process all messages
     worker_obj.RunOnce()
     worker_obj.thread_pool.Join()
 
-    sessions = manager.GetSessionsFromQueue(worker.DEFAULT_WORKER_QUEUE)
+    notifications = manager.GetNotificationsByPriority(
+        worker.DEFAULT_WORKER_QUEUE).get(notification.priority, [])
     # Check the notification is now gone.
-    self.assertEqual(len(sessions), 0)
+    self.assertEqual(len(notifications), 0)
 
   def testWorkerDeletesNotificationsForBrokenObjects(self):
     # Test notifications for objects that don't exist.
@@ -233,6 +331,47 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       aff4.FACTORY.Open(session_id, token=self.token)
 
     self.CheckNotificationsDisappear(session_id)
+
+  def testNotificationRacesAreResolved(self):
+    # We need a random flow object for this test.
+    session_id = flow.GRRFlow.StartFlow(client_id=self.client_id,
+                                        flow_name="WorkerSendingTestFlow",
+                                        token=self.token)
+    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+                                  token=self.token)
+    manager = queue_manager.QueueManager(token=self.token)
+    manager.DeleteNotification(session_id)
+    manager.Flush()
+
+    # We simulate a race condition here - the notification for request #1 is
+    # there but the actual request #1 is not. The worker should pick up the
+    # notification, notice that the request #1 is not there yet and reschedule
+    # the notification.
+    notification = rdfvalue.GrrNotification(session_id=session_id,
+                                            last_status=1)
+    manager.NotifyQueue(notification)
+
+    notifications = manager.GetNotifications(worker.DEFAULT_WORKER_QUEUE)
+    # Check the notification is there.
+    notifications = [n for n in notifications if n.session_id == session_id]
+    self.assertEqual(len(notifications), 1)
+
+    # Process all messages
+    worker_obj.RunOnce()
+    worker_obj.thread_pool.Join()
+
+    delay = config_lib.CONFIG["Worker.notification_retry_interval"]
+    with test_lib.FakeTime(time.time() + 10 + delay):
+      requeued_notifications = manager.GetNotifications(
+          worker.DEFAULT_WORKER_QUEUE)
+      # Check that there is a new notification.
+      notifications = [n for n in notifications if n.session_id == session_id]
+      self.assertEqual(len(requeued_notifications), 1)
+
+      self.assertEqual(requeued_notifications[0].first_queued,
+                       notifications[0].first_queued)
+      self.assertNotEqual(requeued_notifications[0].timestamp,
+                          notifications[0].timestamp)
 
 
 def main(_):

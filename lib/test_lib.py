@@ -62,7 +62,7 @@ from grr.lib import worker
 # pylint: disable=unused-import
 from grr.lib.flows.caenroll import ca_enroller
 # pylint: enable=unused-import
-from grr.proto import flows_pb2
+from grr.proto import tests_pb2
 
 from grr.test_data import client_fixture
 
@@ -80,6 +80,14 @@ class Error(Exception):
 
 class TimeoutError(Error):
   """Used when command line invocations time out."""
+
+
+class FlowWithOneClientRequest(flow.GRRFlow):
+  """Test flow that does one client request in Start() state."""
+
+  @flow.StateHandler(next_state="End")
+  def Start(self, unused_message=None):
+    self.CallClient("Test", data="test", next_state="End")
 
 
 class FlowOrderTest(flow.GRRFlow):
@@ -104,7 +112,7 @@ class FlowOrderTest(flow.GRRFlow):
 
 
 class SendingFlowArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.SendingFlowArgs
+  protobuf = tests_pb2.SendingFlowArgs
 
 
 class SendingFlow(flow.GRRFlow):
@@ -125,6 +133,38 @@ class BrokenFlow(flow.GRRFlow):
   def Start(self, unused_response=None):
     """Send a message to an incorrect state."""
     self.CallClient("ReadBuffer", next_state="WrongProcess")
+
+
+class DummyLogFlow(flow.GRRFlow):
+  """Just emit logs."""
+
+  @flow.StateHandler(next_state="Done")
+  def Start(self, unused_response=None):
+    """Log."""
+    self.Log("First")
+    self.CallFlow("DummyLogFlowChild", next_state="Done")
+    self.Log("Second")
+
+  @flow.StateHandler()
+  def Done(self, unused_response=None):
+    self.Log("Third")
+    self.Log("Fourth")
+
+
+class DummyLogFlowChild(flow.GRRFlow):
+  """Just emit logs."""
+
+  @flow.StateHandler(next_state="Done")
+  def Start(self, unused_response=None):
+    """Log."""
+    self.Log("Uno")
+    self.CallState(next_state="Done")
+    self.Log("Dos")
+
+  @flow.StateHandler()
+  def Done(self, unused_response=None):
+    self.Log("Tres")
+    self.Log("Cuatro")
 
 
 class WellKnownSessionTest(flow.WellKnownFlow):
@@ -1136,6 +1176,8 @@ class MockClient(object):
     if client_mock is None:
       client_mock = InvalidActionMock()
 
+    self.status_message_enforced = getattr(
+        client_mock, "STATUS_MESSAGE_ENFORCED", True)
     self.client_id = client_id
     self.client_mock = client_mock
     self.token = token
@@ -1179,6 +1221,7 @@ class MockClient(object):
                                           limit=1,
                                           lease_seconds=10000)
       for message in request_tasks:
+        status = None
         response_id = 1
         # Collect all responses for this message from the client mock
         try:
@@ -1193,14 +1236,16 @@ class MockClient(object):
           logging.info("Called client action %s generating %s responses",
                        message.name, len(responses) + 1)
 
-          status = rdfvalue.GrrStatus()
+          if self.status_message_enforced:
+            status = rdfvalue.GrrStatus()
         except Exception as e:  # pylint: disable=broad-except
           logging.exception("Error %s occurred in client", e)
 
           # Error occurred.
           responses = []
-          status = rdfvalue.GrrStatus(
-              status=rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR)
+          if self.status_message_enforced:
+            status = rdfvalue.GrrStatus(
+                status=rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR)
 
         # Now insert those on the flow state queue
         for response in responses:
@@ -1224,14 +1269,20 @@ class MockClient(object):
           response_id = response.response_id + 1
           self.PushToStateQueue(response)
 
-        # Add a Status message to the end
-        self.PushToStateQueue(message, response_id=response_id,
-                              payload=status,
-                              type=rdfvalue.GrrMessage.Type.STATUS)
+        # Status may only be None if the client reported itself as crashed.
+        if status is not None:
+          self.PushToStateQueue(message, response_id=response_id,
+                                payload=status,
+                                type=rdfvalue.GrrMessage.Type.STATUS)
+        else:
+          # Status may be None only if status_message_enforced is False.
+          if self.status_message_enforced:
+            raise RuntimeError("status message can only be None when "
+                               "status_message_enforced is False")
 
         # Additionally schedule a task for the worker
-        manager.NotifyQueue(message.session_id,
-                            priority=message.priority)
+        manager.QueueNotification(session_id=message.session_id,
+                                  priority=message.priority)
 
       return len(request_tasks)
 
@@ -1297,16 +1348,15 @@ class MockWorker(worker.GRRWorker):
       RuntimeError: if the flow terminates with an error.
     """
     with queue_manager.QueueManager(token=self.token) as manager:
-      sessions_available = manager.GetSessionsFromQueue(self.queue)
+      notifications_available = manager.GetNotifications(self.queue)
 
-      sessions_available = [rdfvalue.SessionID(session_id)
-                            for session_id in sessions_available]
       # Run all the flows until they are finished
       run_sessions = []
 
       # Only sample one session at the time to force serialization of flows
       # after each state run - this helps to catch unpickleable objects.
-      for session_id in sessions_available[:1]:
+      for notification in notifications_available[:1]:
+        session_id = notification.session_id
         manager.DeleteNotification(session_id)
         run_sessions.append(session_id)
 
@@ -1511,6 +1561,8 @@ def TestFlowHelper(flow_urn_or_cls_name, client_mock=None, client_id=None,
 
 class CrashClientMock(object):
 
+  STATUS_MESSAGE_ENFORCED = False
+
   def __init__(self, client_id, token):
     self.client_id = client_id
     self.token = token
@@ -1533,8 +1585,6 @@ class CrashClientMock(object):
     # This is normally done by the FrontEnd when a CLIENT_KILLED message is
     # received.
     flow.Events.PublishEvent("ClientCrash", msg, token=self.token)
-
-    return [status]
 
 
 class MemoryClientMock(ActionMock):

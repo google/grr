@@ -121,6 +121,36 @@ class HuntRunner(flow_runner.FlowRunner):
                         args=(request.next_state, request, responses, event),
                         name="Hunt processing")
 
+  def Log(self, format_str, *args):
+    """Logs the message using the flow's standard logging.
+
+    Args:
+      format_str: Format string
+      *args: arguments to the format string
+    Raises:
+      RuntimeError: on parent missing logs_collection
+    """
+    format_str = utils.SmartUnicode(format_str)
+
+    try:
+      # The status message is always in unicode
+      status = format_str % args
+    except TypeError:
+      logging.error("Tried to log a format string with the wrong number "
+                    "of arguments: %s", format_str)
+      status = format_str
+
+    logging.info("%s: %s", self.session_id, status)
+
+    self.SetStatus(utils.SmartUnicode(status))
+
+    logs_collection = self.OpenLogsCollection(self.args.logs_collection_urn)
+    logs_collection.Add(
+        rdfvalue.FlowLog(client_id=None, urn=self.session_id,
+                         flow_name=self.flow_obj.__class__.__name__,
+                         log_message=status))
+    logs_collection.Flush()
+
   def Error(self, backtrace, client_id=None):
     """Logs an error for a client but does not terminate the hunt."""
     logging.error("Hunt Error: %s", backtrace)
@@ -404,7 +434,7 @@ class HuntRunner(flow_runner.FlowRunner):
       messages.append(rdfvalue.GrrStatus())
 
     # Notify the worker about it.
-    self.QueueNotification(self.session_id, timestamp=start_time)
+    self.QueueNotification(session_id=self.session_id, timestamp=start_time)
 
 
 class GRRHunt(flow.GRRFlow):
@@ -441,7 +471,7 @@ class GRRHunt(flow.GRRFlow):
                             "The list of clients that returned an error.",
                             creates_new_object_version=False)
 
-    LOG = aff4.Attribute("aff4:result_log", rdfvalue.HuntLog,
+    LOG = aff4.Attribute("aff4:result_log", rdfvalue.FlowLog,
                          "The log entries.",
                          creates_new_object_version=False)
 
@@ -570,7 +600,7 @@ class GRRHunt(flow.GRRFlow):
         flow_manager.QueueResponse(hunt_id, msg)
 
         # And notify the worker about it.
-        flow_manager.QueueNotification(hunt_id)
+        flow_manager.QueueNotification(session_id=hunt_id)
 
   def Run(self):
     """A shortcut method for starting the hunt."""
@@ -596,10 +626,14 @@ class GRRHunt(flow.GRRFlow):
       base_session_id = self.urn.Add(client_id.Basename())
 
     # Actually start the new flow.
+    # We need to pass the logs_collection_urn here rather than in __init__ to
+    # wait for the hunt urn to be created.
     child_urn = self.runner.CallFlow(flow_name=flow_name, next_state=next_state,
                                      base_session_id=base_session_id,
                                      client_id=client_id,
-                                     request_data=request_data, **kwargs)
+                                     request_data=request_data,
+                                     logs_collection_urn=self.urn.Add("Logs"),
+                                     **kwargs)
 
     if client_id:
       # But we also create a symlink to it from the client's namespace.
@@ -730,16 +764,6 @@ class GRRHunt(flow.GRRFlow):
     if backtrace:
       error.backtrace = backtrace
     self.AddAttribute(error)
-
-  def LogResult(self, client_id, log_message=None, urn=None):
-    """Logs a message for a client."""
-    log_entry = self.Schema.LOG()
-    log_entry.client_id = client_id
-    if log_message:
-      log_entry.log_message = utils.SmartUnicode(log_message)
-    if urn:
-      log_entry.urn = utils.SmartUnicode(urn)
-    self.AddAttribute(log_entry)
 
   def MarkClient(self, client_id, attribute):
     """Adds a client to the list indicated by attribute."""

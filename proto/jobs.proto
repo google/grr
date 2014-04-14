@@ -124,7 +124,7 @@ message GrrMessage {
   optional uint64 task_id = 15;
 
   // The ttl used in the task scheduler.
-  optional int32 task_ttl = 16 [ default = 2 ];
+  optional int32 task_ttl = 16 [ default = 7 ];
   optional string queue = 17  [(sem_type) = {
       type: "RDFURN",
       description: "The scheduler queue this message is in."
@@ -220,7 +220,7 @@ message CipherMetadata {
 
 // Next field: 11
 message ClientCommunication {
-  // This message is a serialzed SignedMessageList() protobuf, encrypted using
+  // This message is a serialized SignedMessageList() protobuf, encrypted using
   // the session key (Encrypted inside field 2) and the per-packet IV (field 8).
   optional bytes encrypted = 1;
 
@@ -282,6 +282,7 @@ message GrrStatus {
     CLIENT_KILLED = 3;
     NETWORK_LIMIT_EXCEEDED = 4;
 
+    WORKER_STUCK = 9;
     GENERIC_ERROR = 10;
   };
 
@@ -302,6 +303,33 @@ message GrrStatus {
 
   optional string nanny_status = 7;
 };
+
+message GrrNotification {
+
+  optional string session_id = 1 [(sem_type) = {
+      type: "SessionID"
+    }];
+
+  optional GrrMessage.Priority priority = 2 [ default = MEDIUM_PRIORITY ];
+
+  optional uint64 first_queued = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The first time this notification was queued.",
+    }];
+
+  optional uint64 last_status = 4 [(sem_type) = {
+      description: "If this is for a status based event (flows), the request number of the last status we received.",
+    }];
+
+  optional bool in_progress = 5 [ default = false, (sem_type) = {
+      description: "This indicates that the flow is currently being processed by the worker.",
+    }];
+
+  optional uint64 timestamp = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The time the notification was scheduled for.",
+    }];
+}
 
 message ClientCrash {
   optional string client_id = 1 [(sem_type) = {
@@ -1431,12 +1459,19 @@ message HuntError {
   optional string backtrace = 3;
 }
 
-message HuntLog {
+message FlowLog {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN"
     }];
   optional string log_message = 2;
-  optional string urn = 3;
+  optional string urn = 3 [(sem_type) = {
+      type: "RDFURN",
+      description: "Session ID that generated the log."
+    }];
+
+  optional string flow_name = 4 [(sem_type) = {
+      description: "Human readable name for the session ID."
+    }];
 }
 
 message ClientResources {
@@ -1522,6 +1557,36 @@ message Notification {
       type: "RDFDatetime",
       description: "Time the notification was added."
     }];
+}
+
+
+// Global notifications are used in the GUI to alert all the users about certain
+// thing happening: new feature added in the latest release, temporary outage,
+// etc.
+message GlobalNotification {
+  enum Type {
+    INFO = 0;
+    WARNING = 1;
+    ERROR = 2;
+  }
+  optional Type type = 1;
+
+  optional string header = 2;
+  optional string content = 3;
+  optional string link = 4;
+
+  optional uint64 show_from = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Notification will be shown after this time."
+    }];
+  optional uint64 duration = 6 [(sem_type) = {
+      type: "Duration",
+      description: "Duration of this notification."
+    }];
+}
+
+message GlobalNotificationSet {
+  repeated GlobalNotification notifications = 1;
 }
 
 

@@ -55,19 +55,6 @@
     "supported_os": []
   },
 
-
-  { "name": "TestFileArtifact",
-    "collectors": [
-      { "action": "GetFile",
-        "args": { "path": "/var/log/auth.log"
-        }
-      }
-    ],
-    "doc": "Test file artifact.",
-    "labels": ["Logs", "Authentication"],
-    "supported_os": [ "Linux" ]
-  },
-
   { "name": "TestFilesArtifact",
     "collectors": [
       { "action": "GetFiles",

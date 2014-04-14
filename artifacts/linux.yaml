@@ -1,11 +1,28 @@
+# Linux specific artifacts.
 
-
+name: SystemCronFiles
+doc: System-wide cron files.
+collectors:
+- action: GetFiles
+  args:
+    path_list:
+      - '/etc/crontab'
+      - '/etc/cron.daily'
+      - '/etc/cron.hourly'
+      - '/etc/cron.monthly'
+      - '/etc/cron.weekly'
+      - '/etc/cron.d/*'
+labels: [Configuration Files]
+supported_os: [Linux]
+---
 name: HostAccessPolicyConfiguration
 doc: Linux files related to host access policy configuration.
 collectors:
 - action: GetFiles
   args:
-    path_list: [/etc/hosts.allow, /etc/hosts.deny]
+    path_list:
+      - '/etc/hosts.allow'
+      - '/etc/hosts.deny'
 labels: [Configuration Files]
 supported_os: [Linux]
 ---
@@ -22,8 +39,8 @@ supported_os: [Linux]
 name: LinuxPasswd
 doc: Linux passwd file.
 collectors:
-- action: GetFile
-  args: {path: /etc/passwd}
+- action: GetFiles
+  args: {path_list: ['/etc/passwd']}
 labels: [Authentication]
 supported_os: [Linux]
 ---
@@ -32,8 +49,8 @@ doc: Grep passwd file for user homedirs.
 collectors:
 - action: Grep
   args:
-    path_list: [/etc/passwd]
-    content_regex_list: ["%%users.username%%:[^:]*:[^:]*:[^:]*:[^:]*:[^:]+:[^:]*\n"]
+    path_list: ['/etc/passwd']
+    content_regex_list: ["^%%users.username%%:[^:]*:[^:]*:[^:]*:[^:]*:[^:]+:[^:]*\n"]
 provides: [users.homedir, users.full_name]
 labels: [Authentication]
 supported_os: [Linux]
@@ -43,8 +60,8 @@ doc: Grep /etc/passwd.cache file for user homedirs.
 collectors:
 - action: Grep
   args:
-    path_list: [/etc/passwd.cache]
-    content_regex_list: ["%%users.username%%:[^:]*:[^:]*:[^:]*:[^:]*:[^:]+:[^:]*\n"]
+    path_list: ['/etc/passwd.cache']
+    content_regex_list: ["^%%users.username%%:[^:]*:[^:]*:[^:]*:[^:]*:[^:]+:[^:]*\n"]
 provides: [users.homedir, users.full_name]
 labels: [Authentication]
 supported_os: [Linux]
@@ -55,24 +72,33 @@ doc: Linux root shell configuration files.
 collectors:
 - action: GetFiles
   args:
-    path_list: [/root/.bashrc, /root/.cshrc, /root/.ksh, /root/.logout, /root/.profile,
-      /root/.tcsh, /root/.zlogin, /root/.zlogout, /root/.zprofile, /root/.zprofile]
+    path_list:
+      - '/root/.bashrc'
+      - '/root/.cshrc'
+      - '/root/.ksh'
+      - '/root/.logout'
+      - '/root/.profile'
+      - '/root/.tcsh'
+      - '/root/.zlogin'
+      - '/root/.zlogout'
+      - '/root/.zprofile'
+      - '/root/.zprofile'
 labels: [Configuration Files]
 supported_os: [Linux]
 ---
 name: DebianPackagesStatus
 doc: Linux dpkg status file.
 collectors:
-- action: GetFile
-  args: {path: /var/lib/dpkg/status}
+- action: GetFiles
+  args: {path_list: ['/var/lib/dpkg/status']}
 labels: [Software]
 supported_os: [Linux]
 ---
 name: AuthLog
 doc: Linux auth log file.
 collectors:
-- action: GetFile
-  args: {path: /var/log/auth.log}
+- action: GetFiles
+  args: {path_list: ['/var/log/auth.log']}
 labels: [Logs, Authentication]
 supported_os: [Linux]
 ---
@@ -81,8 +107,13 @@ doc: Linux files related to login policy configuration.
 collectors:
 - action: GetFiles
   args:
-    path_list: [/etc/netgroup, /etc/nsswitch.conf, /etc/passwd, /etc/shadow, /etc/security/access.conf,
-      /root/.k5login]
+    path_list:
+      - '/etc/netgroup'
+      - '/etc/nsswitch.conf'
+      - '/etc/passwd'
+      - '/etc/shadow'
+      - '/etc/security/access.conf'
+      - '/root/.k5login'
 labels: [Authentication, Configuration Files]
 supported_os: [Linux]
 ---
@@ -91,17 +122,25 @@ doc: Linux global shell configuration files.
 collectors:
 - action: GetFiles
   args:
-    path_list: [/etc/bash.bashrc, /etc/csh.cshrc, /etc/csh.login, /etc/csh.logout,
-      /etc/profile, /etc/zsh/zlogin, /etc/zsh/zlogout, /etc/zsh/zprofile, /etc/zsh/zshenv,
-      /etc/zsh/zshrc]
+    path_list:
+      - '/etc/bash.bashrc'
+      - '/etc/csh.cshrc'
+      - '/etc/csh.login'
+      - '/etc/csh.logout'
+      - '/etc/profile'
+      - '/etc/zsh/zlogin'
+      - '/etc/zsh/zlogout'
+      - '/etc/zsh/zprofile'
+      - '/etc/zsh/zshenv'
+      - '/etc/zsh/zshrc'
 labels: [Configuration Files]
 supported_os: [Linux]
 ---
 name: LinuxWtmp
 doc: Linux wtmp file.
 collectors:
-- action: GetFile
-  args: {path: /var/log/wtmp}
+- action: GetFiles
+  args: {path_list: ['/var/log/wtmp']}
 labels: [Logs, Authentication]
 provides: [users.username, users.last_logon]
 supported_os: [Linux]
@@ -109,16 +148,18 @@ supported_os: [Linux]
 name: NetgroupConfiguration
 doc: Linux netgroup configuration.
 collectors:
-- action: GetFile
-  args: {path: /etc/netgroup}
+- action: GetFiles
+  args: {path_list: ['/etc/netgroup']}
 labels: [Authentication, Configuration Files]
 provides: [users.username]
 supported_os: [Linux]
 ---
 name: LinuxUserProfiles
-doc: "Linux user profile information.\n\n \
-      Looks for recent logins in wtmp and uses getpwnam to find user \
-      metadata\n "
+doc: |
+  Linux user profile information.
+
+  * recent logins in wtmp;
+  * user metadata in the output of getpwnam.
 collectors:
 - action: RunGrrClientAction
   args: {client_action: EnumerateUsers}
@@ -141,6 +182,6 @@ doc: Linux sudoers configuration.
 collectors:
 - action: GetFiles
   args:
-    path_list: [/etc/sudoers]
+    path_list: ['/etc/sudoers']
 labels: [Authentication, Configuration Files]
 supported_os: [Linux]

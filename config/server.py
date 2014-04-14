@@ -21,6 +21,25 @@ config_lib.DEFINE_integer("Worker.worker_process_count", 1,
                           "only use a single CPU, so scaling this up on "
                           "multiprocessor systems may make sense.")
 
+config_lib.DEFINE_integer("Worker.queue_shards", 1,
+                          "Queue notifications will be sharded across "
+                          "this number of datastore subjects.")
+
+config_lib.DEFINE_integer("Worker.notification_expiry_time", 600,
+                          "The queue manager expires stale notifications "
+                          "after this many seconds.")
+
+config_lib.DEFINE_integer("Worker.notification_retry_interval", 30,
+                          "The queue manager retries to work on requests it "
+                          "could not complete after this many seconds.")
+
+# We write a journal entry for the flow when it's about to be processed.
+# If the journal entry is there after this time, the flow will get terminated.
+config_lib.DEFINE_integer(
+    "Worker.stuck_flows_timeout", 60 * 60 * 6,
+    "Flows who got stuck in the worker for more than this time (in seconds) "
+    "are forcibly terminated")
+
 config_lib.DEFINE_integer("Frontend.throttle_average_interval", 60,
                           "Time interval over which average request rate is "
                           "calculated when throttling is enabled.")

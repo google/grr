@@ -1,3 +1,5 @@
+# Artifacts that run GRR client actions
+
 name: NetstatGrr
 doc: List open network connections using the GRR netstat client action.
 collectors:

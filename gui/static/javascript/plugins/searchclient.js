@@ -2,11 +2,27 @@ var grr = window.grr || {};
 
 grr.Renderer('ContentView', {
   Layout: function(state) {
+    var global_notification_poll_time = state.global_notification_poll_time;
+
     grr.canary_mode = state.canary_mode;
 
     if (grr.hash.c) {
       grr.state.client_id = grr.hash.c;
     }
+
+    grr.poll('GlobalNotificationBar', 'global-notification',
+             function(data) { // success handler
+               $('#global-notification').html(data);
+               $('#global-notification button.close').click(function() {
+                 var notification_hash = $(this).attr('notification-hash');
+                 grr.update('GlobalNotificationBar', null,
+                            {notification_hash: notification_hash});
+
+                 $(this).closest('.alert').alert('close');
+               });
+               return true;
+             },
+             global_notification_poll_time, {});
   }
 });
 

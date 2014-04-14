@@ -190,6 +190,7 @@ class KnowledgeBase(rdfvalue.RDFProtoStruct):
     Returns:
       A list of strings with the set attribute names, e.g. ["users.sid"]
     """
+
     user = self.GetUser(sid=kb_user.sid, uid=kb_user.uid,
                         username=kb_user.username)
     new_attrs = []
@@ -208,8 +209,18 @@ class KnowledgeBase(rdfvalue.RDFProtoStruct):
   def GetUser(self, sid=None, uid=None, username=None):
     """Retrieve a KnowledgeBaseUser based on sid, uid or username.
 
-    If a sid or uid is provided, don't match by username to avoid combining
-    users with name collisions (such as local vs. domain users on Windows).
+    On windows we first get a SID and use it to find the username.  We want to
+    avoid combining users with name collisions, which occur when local users
+    have the same username as domain users (something like Admin is particularly
+    common).  So if a SID is provided, don't also try to match by username.
+
+    On linux we first get a username, then use this to find the UID, so we want
+    to combine these records or we end up with multiple partially-filled user
+    records.
+
+    TODO(user): this won't work at all well with a query for uid=0 because
+    that is also the default for KnowledgeBaseUser objects that don't have uid
+    set.
 
     Args:
       sid: Windows user sid
@@ -227,11 +238,15 @@ class KnowledgeBase(rdfvalue.RDFProtoStruct):
       for user in self.users:
         if user.uid == uid:
           return user
-      return None
     if username:
       for user in self.users:
         if user.username == username:
-          return user
+          # Make sure we aren't combining different uids if we know them
+          # user.uid = 0 is the default, which makes this more complicated.
+          if uid and user.uid and user.uid != uid:
+            return None
+          else:
+            return user
 
   def GetKbFieldNames(self):
     fields = self.type_infos.descriptor_names

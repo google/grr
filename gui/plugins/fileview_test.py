@@ -124,6 +124,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
     with test_lib.Stubber(fileview.DownloadView, "Download", FakeDownload):
       # Try to download the file.
       self.Click("css=#Download")
+
       self.WaitUntil(self.IsTextPresent, "As downloaded on 2012-04-09 16:27:13")
       self.Click("css=button:contains(\"Download\")")
 
@@ -250,6 +251,24 @@ class TestFileView(test_lib.GRRSeleniumTest):
         "cat", self.GetText,
         "css=table > tbody td.proto_key:contains(\"Vfs file urn\") "
         "~ td.proto_value")
+
+  def testExportToolHintIsDisplayed(self):
+    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView")
+
+    self.Click("css=li[path='/fs'] > a")
+    self.Click("css=li[path='/fs/os'] > a")
+    self.Click("css=li[path='/fs/os/c'] > a")
+    self.Click("css=li[path='/fs/os/c/Downloads'] > a")
+
+    # Click on the row and on the Download tab.
+    self.Click("css=tr:contains(\"a.txt\")")
+    self.Click("css=#Download")
+
+    # Check that export tool download hint is displayed.
+    self.WaitUntil(
+        self.IsTextPresent, "env PYTHONPATH=. python grr/tools/export.py "
+        "--username test --reason 'Running tests' file --path "
+        "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt --output .")
 
   def testUpdateButton(self):
     self.Open("/")

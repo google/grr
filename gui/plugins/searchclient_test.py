@@ -2,6 +2,8 @@
 """Tests for the main content view."""
 
 
+import time
+
 from grr.gui import runtests_test
 
 # We have to import test_lib first to properly initialize aff4 and rdfvalues.
@@ -12,6 +14,7 @@ from grr.lib import test_lib
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
+from grr.lib import test_lib
 
 
 class TestNavigatorView(test_lib.GRRSeleniumTest):
@@ -19,7 +22,7 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
 
   def CreateClient(self, last_ping=None):
     if last_ping is None:
-      raise ValueError("last_ping can't be None")
+      last_ping = rdfvalue.RDFDatetime().Now()
 
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
@@ -32,8 +35,16 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
     client_obj = aff4.FACTORY.Open(client_id, token=self.token)
     return client_id
 
+  def RecordCrash(self, client_id, timestamp):
+    with test_lib.Stubber(time, "time", timestamp.AsSecondsFromEpoch):
+      client = test_lib.CrashClientMock(client_id, self.token)
+      for _ in test_lib.TestFlowHelper(
+          "FlowWithOneClientRequest", client, client_id=client_id,
+          token=self.token, check_flow_errors=False):
+        pass
+
   def testOnlineClientStatus(self):
-    client_id = self.CreateClient(last_ping=rdfvalue.RDFDatetime().Now())
+    client_id = self.CreateClient()
     self.Open("/#c=" + str(client_id))
     self.WaitUntil(self.IsElementPresent, "css=img[src$='online.png']")
 
@@ -49,9 +60,292 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
     self.Open("/#c=" + str(client_id))
     self.WaitUntil(self.IsElementPresent, "css=img[src$='offline.png']")
 
+  def testOnlineClientStatusInClientSearch(self):
+    client_id = self.CreateClient()
+
+    self.Open("/")
+    self.Type("client_query", client_id.Basename())
+    self.Click("client_query_submit")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('%s') > "
+                   "td:first img[src$='online.png']" % client_id.Basename())
+
+  def testOneDayClientStatusInClientSearch(self):
+    client_id = self.CreateClient(
+        last_ping=rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("1h"))
+
+    self.Open("/")
+    self.Type("client_query", client_id.Basename())
+    self.Click("client_query_submit")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('%s') > "
+                   "td:first img[src$='online-1d.png']" % client_id.Basename())
+
+  def testOfflineClientStatusInClientSearch(self):
+    client_id = self.CreateClient(
+        last_ping=rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("1d"))
+
+    self.Open("/")
+    self.Type("client_query", client_id.Basename())
+    self.Click("client_query_submit")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('%s') > "
+                   "td:first img[src$='offline.png']" % client_id.Basename())
+
+  def testLatestCrashesStatusIsNotDisplayedWhenThereAreNoCrashes(self):
+    client_id = self.CreateClient()
+    self.Open("/#c=" + str(client_id))
+    self.WaitUntil(self.IsTextPresent, "Host-0")
+    self.WaitUntilNot(self.IsTextPresent, "Last crash")
+
+  def testCrashIsDisplayedInClientStatus(self):
+    timestamp = rdfvalue.RDFDatetime().Now()
+    client_id = self.CreateClient(last_ping=timestamp)
+    with self.ACLChecksDisabled():
+      self.RecordCrash(client_id, timestamp - rdfvalue.Duration("5s"))
+      self.GrantClientApproval(client_id)
+
+    with test_lib.Stubber(time, "time",
+                          lambda: float(timestamp.AsSecondsFromEpoch())):
+      self.Open("/#c=" + str(client_id))
+      self.WaitUntil(self.IsTextPresent, "Last crash")
+      self.WaitUntil(self.IsTextPresent, "5 seconds ago")
+
+  def testOnlyTheLatestCrashIsDisplayed(self):
+    timestamp = rdfvalue.RDFDatetime().Now()
+    client_id = self.CreateClient(last_ping=timestamp)
+    with self.ACLChecksDisabled():
+      self.RecordCrash(client_id, timestamp - rdfvalue.Duration("10s"))
+      self.RecordCrash(client_id, timestamp - rdfvalue.Duration("5s"))
+      self.GrantClientApproval(client_id)
+
+    with test_lib.Stubber(time, "time",
+                          lambda: float(timestamp.AsSecondsFromEpoch())):
+      self.Open("/#c=" + str(client_id))
+      self.WaitUntil(self.IsTextPresent, "Last crash")
+      self.WaitUntil(self.IsTextPresent, "5 seconds ago")
+      # This one is not displayed, because it exceeds the limit.
+      self.WaitUntilNot(self.IsTextPresent, "10 seconds ago")
+
+  def testOnlyCrashesHappenedInPastWeekAreDisplayed(self):
+    timestamp = rdfvalue.RDFDatetime().Now()
+    client_id = self.CreateClient(last_ping=timestamp)
+    with self.ACLChecksDisabled():
+      self.RecordCrash(client_id, timestamp - rdfvalue.Duration("8d"))
+      self.GrantClientApproval(client_id)
+
+    with test_lib.Stubber(time, "time",
+                          lambda: float(timestamp.AsSecondsFromEpoch())):
+      self.Open("/#c=" + str(client_id))
+      self.WaitUntil(self.IsTextPresent, "Host-0")
+      # This one is not displayed, because it happened more than 24 hours ago.
+      self.WaitUntilNot(self.IsTextPresent, "Last crash")
+      self.WaitUntilNot(self.IsTextPresent, "8 days ago")
+
+  def testCrashIconDoesNotAppearInClientSearchWhenClientDidNotCrash(self):
+    client_id = self.CreateClient()
+
+    self.Open("/")
+    self.Type("client_query", client_id.Basename())
+    self.Click("client_query_submit")
+
+    # There should be a result row with the client id.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('%s')" % client_id.Basename())
+    # But it shouldn't have the skull.
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=tr:contains('%s') > "
+        "td:first img[src$='skull-icon.png']" % client_id.Basename())
+
+  def testCrashIconDoesNotAppearInClientSearchIfClientCrashedLongTimeAgo(self):
+    client_id = self.CreateClient()
+    with self.ACLChecksDisabled():
+      self.RecordCrash(client_id,
+                       rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("25h"))
+
+    self.Open("/")
+    self.Type("client_query", client_id.Basename())
+    self.Click("client_query_submit")
+
+    # There should be a result row with the client id.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('%s')" % client_id.Basename())
+    # But it shouldn't have the skull.
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=tr:contains('%s') > "
+        "td:first img[src$='skull-icon.png']" % client_id.Basename())
+
+  def testCrashIconAppearsInClientSearchIfClientCrashedRecently(self):
+    timestamp = rdfvalue.RDFDatetime().Now()
+    client_id = self.CreateClient()
+    with self.ACLChecksDisabled():
+      self.RecordCrash(client_id, timestamp)
+
+    self.Open("/")
+    self.Type("client_query", client_id.Basename())
+    self.Click("client_query_submit")
+
+    # There should be a result row with the client id.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('%s')" % client_id.Basename())
+    # But it shouldn't have the skull.
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=tr:contains('%s') > "
+        "td:first img[src$='skull-icon.png']" % client_id.Basename())
+
 
 class TestContentView(test_lib.GRRSeleniumTest):
   """Tests the main content view."""
+
+  def testGlobalNotificationIsShownWhenSet(self):
+    with self.ACLChecksDisabled():
+      with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
+                               aff4_type="GlobalNotificationStorage",
+                               mode="rw", token=self.token) as storage:
+        storage.AddNotification(
+            rdfvalue.GlobalNotification(
+                type=rdfvalue.GlobalNotification.Type.ERROR,
+                header="Oh no, we're doomed!",
+                content="Houston, Houston, we have a prob...",
+                link="http://www.google.com"
+                ))
+
+    self.Open("/")
+    self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
+
+  def testNotificationsOfDifferentTypesAreShownTogether(self):
+    with self.ACLChecksDisabled():
+      with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
+                               aff4_type="GlobalNotificationStorage",
+                               mode="rw", token=self.token) as storage:
+        storage.AddNotification(
+            rdfvalue.GlobalNotification(
+                type=rdfvalue.GlobalNotification.Type.ERROR,
+                header="Oh no, we're doomed!",
+                content="Houston, Houston, we have a prob...",
+                link="http://www.google.com"
+                ))
+        storage.AddNotification(
+            rdfvalue.GlobalNotification(
+                type=rdfvalue.GlobalNotification.Type.INFO,
+                header="Nothing to worry about!",
+                link="http://www.google.com"
+                ))
+
+    self.Open("/")
+    self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
+    self.WaitUntil(self.IsTextPresent, "Nothing to worry about!")
+
+  def testNewNotificationReplacesPreviousNotificationOfTheSameType(self):
+    with self.ACLChecksDisabled():
+      with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
+                               aff4_type="GlobalNotificationStorage",
+                               mode="rw", token=self.token) as storage:
+        storage.AddNotification(
+            rdfvalue.GlobalNotification(
+                type=rdfvalue.GlobalNotification.Type.ERROR,
+                header="Oh no, we're doomed!",
+                content="Houston, Houston, we have a prob...",
+                link="http://www.google.com"
+                ))
+
+    self.Open("/")
+    self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
+
+    with self.ACLChecksDisabled():
+      with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
+                               aff4_type="GlobalNotificationStorage",
+                               mode="rw", token=self.token) as storage:
+        storage.AddNotification(
+            rdfvalue.GlobalNotification(
+                type=rdfvalue.GlobalNotification.Type.ERROR,
+                content="Too late to do anything!",
+                link="http://www.google.com"
+                ))
+
+    self.Open("/")
+    self.WaitUntil(self.IsTextPresent, "Too late to do anything!")
+    self.assertFalse(self.IsTextPresent("Houston, Houston, we have a prob..."))
+
+  def testGlobalNotificationDisappearsAfterClosing(self):
+    with self.ACLChecksDisabled():
+      with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
+                               aff4_type="GlobalNotificationStorage",
+                               mode="rw", token=self.token) as storage:
+        storage.AddNotification(
+            rdfvalue.GlobalNotification(
+                type=rdfvalue.GlobalNotification.Type.ERROR,
+                header="Oh no, we're doomed!",
+                content="Houston, Houston, we have a prob...",
+                link="http://www.google.com"
+                ))
+
+    self.Open("/")
+    self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
+
+    self.Click("css=#global-notification button.close")
+    self.WaitUntilNot(self.IsTextPresent, "Houston, Houston, we have a prob...")
+
+    self.Open("/")
+    self.WaitUntil(self.IsElementPresent, "client_query")
+    self.WaitUntilNot(self.IsTextPresent, "Houston, Houston, we have a prob...")
+
+  def testClosingOneNotificationLeavesAnotherIntact(self):
+    with self.ACLChecksDisabled():
+      with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
+                               aff4_type="GlobalNotificationStorage",
+                               mode="rw", token=self.token) as storage:
+        storage.AddNotification(
+            rdfvalue.GlobalNotification(
+                type=rdfvalue.GlobalNotification.Type.ERROR,
+                header="Oh no, we're doomed!",
+                content="Houston, Houston, we have a prob...",
+                link="http://www.google.com"
+                ))
+        storage.AddNotification(
+            rdfvalue.GlobalNotification(
+                type=rdfvalue.GlobalNotification.Type.INFO,
+                header="Nothing to worry about!",
+                link="http://www.google.com"
+                ))
+
+    self.Open("/")
+    self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
+
+    self.Click("css=#global-notification .alert-error button.close")
+    self.WaitUntilNot(self.IsTextPresent, "Houston, Houston, we have a prob...")
+    self.WaitUntil(self.IsTextPresent, "Nothing to worry about!")
+
+    self.Open("/")
+    self.WaitUntil(self.IsTextPresent, "Nothing to worry about!")
+    self.assertFalse(self.IsTextPresent("Houston, Houston, we have a prob..."))
+
+  def testGlobalNotificationIsSetViaGlobalFlow(self):
+    with self.ACLChecksDisabled():
+      self.MakeUserAdmin("test")
+
+    self.Open("/")
+    self.WaitUntil(self.IsElementPresent, "client_query")
+    self.WaitUntilNot(self.IsTextPresent, "Houston, Houston, we have a prob...")
+
+    self.Click("css=a[grrtarget=GlobalLaunchFlows]")
+    self.Click("css=#_Administrative")
+    self.Click("link=SetGlobalNotification")
+
+    self.Type("css=input#args-header", "Oh no, we're doomed!")
+    self.Type("css=input#args-content", "Houston, Houston, we have a prob...")
+
+    self.Click("css=button.Launch")
+
+    self.Open("/")
+    self.WaitUntil(self.IsTextPresent, "Oh no, we're doomed!")
+    self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
 
   def testRendererShowsCanaryContentWhenInCanaryMode(self):
     with self.ACLChecksDisabled():

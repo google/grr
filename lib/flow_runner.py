@@ -62,6 +62,7 @@ import traceback
 
 import logging
 from grr.client import actions
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import queue_manager
@@ -130,6 +131,7 @@ class FlowRunner(object):
       # responsible for storing our context, although they do not generally
       # access it directly.
       self.context = self.flow_obj.state.context
+
       self.args = self.context.args
 
     # Populate the flow object's urn with the new session id.
@@ -153,6 +155,40 @@ class FlowRunner(object):
       return aff4.FACTORY.Create(
           args.client_id.Add(output_name), "RDFValueCollection",
           token=self.token)
+
+  def _GetLogsCollectionURN(self, logs_collection_urn):
+    if self.parent_runner is not None and not logs_collection_urn:
+      # We are a child runner, we should have been passed a
+      # logs_collection_urn
+      raise RuntimeError("Flow: %s has a parent %s but no logs_collection_urn"
+                         " set." % (self.flow_obj.urn, self.parent_runner))
+
+    # If we weren't passed a collection urn, create one in our namespace.
+    return logs_collection_urn or self.flow_obj.urn.Add("Logs")
+
+  def OpenLogsCollection(self, logs_collection_urn):
+    """Open the parent-flow logs collection for writing or create a new one.
+
+    If we receive a logs_collection_urn here it is being passed from the parent
+    flow runner into the new runner created by the flow object.
+
+    For a regular flow the call sequence is:
+    flow_runner --StartFlow--> flow object --CreateRunner--> (new) flow_runner
+
+    For a hunt the call sequence is:
+    hunt_runner --CallFlow--> flow_runner --StartFlow--> flow object
+     --CreateRunner--> (new) flow_runner
+
+    Args:
+      logs_collection_urn: RDFURN pointing to parent logs collection
+    Returns:
+      PackedVersionedCollection open for writing
+    Raises:
+      RuntimeError: on parent missing logs_collection
+    """
+    return aff4.FACTORY.Create(self._GetLogsCollectionURN(logs_collection_urn),
+                               "PackedVersionedCollection", mode="w",
+                               token=self.token)
 
   def InitializeContext(self, args):
     """Initializes the context of this flow."""
@@ -285,7 +321,7 @@ class FlowRunner(object):
       self.QueueResponse(msg, start_time)
 
     # Notify the worker about it.
-    self.QueueNotification(self.session_id, timestamp=start_time)
+    self.QueueNotification(session_id=self.session_id, timestamp=start_time)
 
   def ProcessCompletedRequests(self, thread_pool):
     """Go through the list of requests and process the completed ones.
@@ -637,8 +673,8 @@ class FlowRunner(object):
     # Forward the message to the well known flow's queue.
     for event_urn in handler_urns:
       self.queue_manager.QueueResponse(event_urn, msg)
-      self.queue_manager.QueueNotification(event_urn, priority=msg.priority,
-                                           timestamp=timestamp)
+      self.queue_manager.QueueNotification(
+          session_id=event_urn, priority=msg.priority, timestamp=timestamp)
 
   def CallFlow(self, flow_name=None, next_state=None, sync=True,
                request_data=None, client_id=None, base_session_id=None,
@@ -706,6 +742,13 @@ class FlowRunner(object):
     if request_data:
       state.data = rdfvalue.Dict().FromDict(request_data)
 
+    # If the urn is passed explicitly (e.g. from the hunt runner) use that,
+    # otherwise use the urn from the flow_runner args. If both are None, create
+    # a new collection and give the urn to the flow object.
+    logs_urn = self._GetLogsCollectionURN(
+        kwargs.pop("logs_collection_urn", None) or
+        self.args.logs_collection_urn)
+
     cpu_limit = self.context.args.cpu_limit
     network_bytes_limit = self.context.args.network_bytes_limit
 
@@ -717,7 +760,8 @@ class FlowRunner(object):
         request_state=state, token=self.token, notify_to_user=False,
         parent_flow=self.flow_obj, _store=self.data_store,
         network_bytes_limit=network_bytes_limit, sync=sync, output=output,
-        queue=self.args.queue, cpu_limit=cpu_limit, **kwargs)
+        queue=self.args.queue, cpu_limit=cpu_limit,
+        logs_collection_urn=logs_urn, **kwargs)
 
     self.QueueRequest(state)
 
@@ -775,13 +819,17 @@ class FlowRunner(object):
     if self.parent_runner is None:
       self.queue_manager.Flush()
 
-  def Error(self, backtrace, client_id=None):
+  def Error(self, backtrace, client_id=None, status=None):
     """Kills this flow with an error."""
     client_id = client_id or self.args.client_id
     if self.IsRunning():
       # Set an error status
       reply = rdfvalue.GrrStatus()
-      reply.status = rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR
+      if status is None:
+        reply.status = rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR
+      else:
+        reply.status = status
+
       if backtrace:
         reply.error_message = backtrace
 
@@ -815,12 +863,16 @@ class FlowRunner(object):
     if self.context.state != rdfvalue.Flow.State.RUNNING:
       return
 
-    # Close off the output collection.
-    if self.output and len(self.output):
-      self.output.Close()
-      logging.info("%s flow results written to %s", len(self.output),
-                   self.output.urn)
-      self.output = None
+    try:
+      # Close off the output collection.
+      if self.output and len(self.output):
+        self.output.Close()
+        logging.info("%s flow results written to %s", len(self.output),
+                     self.output.urn)
+        self.output = None
+    except access_control.UnauthorizedAccess:
+      # This might fail if the output has a pickled token.
+      pass
 
     if self.args.request_state.session_id:
       logging.debug("Terminating flow %s", self.session_id)
@@ -852,7 +904,7 @@ class FlowRunner(object):
         # Queue the response now
         self.queue_manager.QueueResponse(request_state.session_id, msg)
       finally:
-        self.QueueNotification(request_state.session_id)
+        self.QueueNotification(session_id=request_state.session_id)
 
     # Mark as terminated.
     self.context.state = rdfvalue.Flow.State.TERMINATED
@@ -917,8 +969,8 @@ class FlowRunner(object):
     self.queue_manager.QueueResponse(self.session_id, response,
                                      timestamp=timestamp)
 
-  def QueueNotification(self, session_id, timestamp=None):
-    self.queue_manager.QueueNotification(session_id, timestamp=timestamp)
+  def QueueNotification(self, *args, **kw):
+    self.queue_manager.QueueNotification(*args, **kw)
 
   def SetStatus(self, status):
     self.context.status = status
@@ -929,6 +981,8 @@ class FlowRunner(object):
     Args:
       format_str: Format string
       *args: arguments to the format string
+    Raises:
+      RuntimeError: on parent missing logs_collection
     """
     format_str = utils.SmartUnicode(format_str)
 
@@ -944,7 +998,15 @@ class FlowRunner(object):
 
     self.SetStatus(utils.SmartUnicode(status))
 
-    # Add the message to the flow's log attribute
+    logs_collection = self.OpenLogsCollection(self.args.logs_collection_urn)
+    logs_collection.Add(
+        rdfvalue.FlowLog(client_id=self.args.client_id, urn=self.session_id,
+                         flow_name=self.flow_obj.__class__.__name__,
+                         log_message=status))
+    logs_collection.Flush()
+
+    # TODO(user): stop writing to the LOG attribute once we have GUI pieces
+    # to display this sanely for flows and hunts. Write to both for now.
     data_store.DB.Set(self.session_id,
                       aff4.AFF4Object.GRRFlow.SchemaCls.LOG,
                       status, replace=False, sync=False, token=self.token)

@@ -13,11 +13,11 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib.flows.console.client_tests import base
 from grr.lib.rdfvalues import crypto
-from grr.proto import flows_pb2
+from grr.proto import tests_pb2
 
 
 class MultiGetFileTestFlowArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.MultiGetFileTestFlowArgs
+  protobuf = tests_pb2.MultiGetFileTestFlowArgs
 
 
 class MultiGetFileTestFlow(flow.GRRFlow):
@@ -337,6 +337,3 @@ class TestMultiGetFileTSKWindows(TestGetFileTSKWindows):
   args = {"pathspecs": [rdfvalue.PathSpec(
       path="C:\\Windows\\regedit.exe",
       pathtype=rdfvalue.PathSpec.PathType.TSK)]}
-
-
-

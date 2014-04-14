@@ -16,6 +16,7 @@ from grr.lib import flow
 from grr.lib import master
 from grr.lib import queue_manager as queue_manager_lib
 from grr.lib import rdfvalue
+from grr.lib import registry
 # pylint: disable=unused-import
 from grr.lib import server_stubs
 # pylint: enable=unused-import
@@ -119,13 +120,23 @@ class GRRWorker(object):
     # notifications to avoid possible race conditions.
     queue_manager.FreezeTimestamp()
 
-    sessions_available = queue_manager.GetSessionsFromQueue(self.queue)
-
+    notifications_by_priority = queue_manager.GetNotificationsByPriority(
+        self.queue)
     time_to_fetch_messages = time.time() - now
 
-    # Filter out session ids we already tried to lock but failed.
-    sessions_available = [session for session in sessions_available
-                          if session not in self.queued_flows]
+    # Process stuck flows first
+    stuck_flows = notifications_by_priority.pop(
+        queue_manager.STUCK_PRIORITY, [])
+
+    if stuck_flows:
+      self.ProcessStuckFlows(stuck_flows)
+
+    notifications_available = []
+    for priority in sorted(notifications_by_priority, reverse=True):
+      for notification in notifications_by_priority[priority]:
+        # Filter out session ids we already tried to lock but failed.
+        if notification.session_id not in self.queued_flows:
+          notifications_available.append(notification)
 
     try:
       # If we spent too much time processing what we have so far, the
@@ -137,7 +148,7 @@ class GRRWorker(object):
       # processing time. This is a tradeoff between checking the data store
       # for current information and processing out of date information.
       processed = self.ProcessMessages(
-          sessions_available, queue_manager,
+          notifications_available, queue_manager,
           min(time_to_fetch_messages * 100, 300))
       return processed
 
@@ -151,7 +162,19 @@ class GRRWorker(object):
 
       return 0
 
-  def ProcessMessages(self, active_sessions, queue_manager, time_limit=0):
+  def ProcessStuckFlows(self, stuck_flows):
+    stats.STATS.IncrementCounter("grr_flows_stuck", len(stuck_flows))
+
+    for stuck_flow in stuck_flows:
+      try:
+        flow.GRRFlow.TerminateFlow(
+            stuck_flow.session_id, reason="Stuck in the worker",
+            status=rdfvalue.GrrStatus.ReturnedStatus.WORKER_STUCK,
+            token=self.token)
+      except Exception:   # pylint: disable=broad-except
+        logging.exception("Error terminating stuck flow: %s", stuck_flow)
+
+  def ProcessMessages(self, active_notifications, queue_manager, time_limit=0):
     """Processes all the flows in the messages.
 
     Precondition: All tasks come from the same queue (self.queue).
@@ -162,7 +185,7 @@ class GRRWorker(object):
     completed messages in the flow RDFValue.
 
     Args:
-        active_sessions: The list of sessions which had messages received.
+        active_notifications: The list of notifications.
         queue_manager: QueueManager object used to manage notifications,
                        requests and responses.
         time_limit: If set return as soon as possible after this many seconds.
@@ -172,23 +195,24 @@ class GRRWorker(object):
     """
     now = time.time()
     processed = 0
-    for session_id in active_sessions:
-      if session_id not in self.queued_flows:
+    for notification in active_notifications:
+      if notification.session_id not in self.queued_flows:
         if time_limit and time.time() - now > time_limit:
           break
 
         processed += 1
-        self.queued_flows.Put(session_id, 1)
+        self.queued_flows.Put(notification.session_id, 1)
         self.thread_pool.AddTask(target=self._ProcessMessages,
-                                 args=(rdfvalue.SessionID(session_id),
+                                 args=(notification,
                                        queue_manager.Copy()),
                                  name=self.__class__.__name__)
 
     return processed
 
-  def _ProcessMessages(self, session_id, queue_manager):
+  def _ProcessMessages(self, notification, queue_manager):
     """Does the real work with a single flow."""
     flow_obj = None
+    session_id = notification.session_id
 
     # Take a lease on the flow:
     try:
@@ -217,6 +241,19 @@ class GRRWorker(object):
                          type(flow_obj))
             return
 
+          # Create a notification for the flow in the future that
+          # indicates that this flow is in progess. We'll delete this
+          # notification when we're done with processing completed
+          # requests. If we're stuck for some reason, the notification
+          # will be delivered later and the stuck flow will get
+          # terminated.
+          stuck_flows_timeout = rdfvalue.Duration(
+              config_lib.CONFIG["Worker.stuck_flows_timeout"])
+          kill_timestamp = rdfvalue.RDFDatetime().Now() + stuck_flows_timeout
+          with queue_manager_lib.QueueManager(token=self.token) as manager:
+            manager.QueueNotification(session_id=session_id, in_progress=True,
+                                      timestamp=kill_timestamp)
+
           with flow_obj.GetRunner() as runner:
             try:
               runner.ProcessCompletedRequests(self.thread_pool)
@@ -228,6 +265,26 @@ class GRRWorker(object):
 
               logging.error("Flow %s: %s", flow_obj, e)
               return
+
+            finally:
+              # Delete kill notification as the flow got processed and is not
+              # stuck.
+              with queue_manager_lib.QueueManager(token=self.token) as manager:
+                manager.DeleteNotification(
+                    session_id, start=kill_timestamp,
+                    end=kill_timestamp + rdfvalue.Duration("1s"))
+                if (runner.process_requests_in_order and
+                    notification.last_status and
+                    (runner.context.next_processed_request <=
+                     notification.last_status)):
+                  # We are processing requests in order and have received a
+                  # notification for a specific request but could not process
+                  # that request. This might be a race condition in the data
+                  # store so we reschedule the notification in the future.
+                  delay = config_lib.CONFIG[
+                      "Worker.notification_retry_interval"]
+                  manager.QueueNotification(
+                      notification, timestamp=notification.timestamp + delay)
 
             # NOTE: Flow object must be flushed _before_ the runner is
             # flushed. The flow object must exist in the data store before any
@@ -257,3 +314,13 @@ class GRREnroler(GRRWorker):
 
   Subclassed here so that log messages arrive from the right class.
   """
+
+
+class WorkerInit(registry.InitHook):
+  """Registers worker stats variables."""
+
+  pre = ["StatsInit"]
+
+  def RunOnce(self):
+    """Exports the vars.."""
+    stats.STATS.RegisterCounterMetric("grr_flows_stuck")

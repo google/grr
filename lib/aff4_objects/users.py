@@ -11,6 +11,82 @@ import time
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.proto import flows_pb2
+from grr.proto import jobs_pb2
+
+
+class GlobalNotification(rdfvalue.RDFProtoStruct):
+  """Global notification shown to all the users of GRR."""
+
+  protobuf = jobs_pb2.GlobalNotification
+
+  def __init__(self, *args, **kwargs):
+    super(GlobalNotification, self).__init__(*args, **kwargs)
+
+    if not self.duration:
+      self.duration = rdfvalue.Duration("2w")
+
+    if not self.show_from:
+      self.show_from = rdfvalue.RDFDatetime().Now()
+
+  @property
+  def hash(self):
+    """Having hash property makes things easier in Django templates."""
+    return hash(self)
+
+  @property
+  def type_name(self):
+    return self.Type.reverse_enum[self.type]
+
+
+class GlobalNotificationSet(rdfvalue.RDFProtoStruct):
+  """A set of global notifications: one notification per notification's type."""
+
+  protobuf = jobs_pb2.GlobalNotificationSet
+
+  def AddNotification(self, new_notification):
+    """Adds new notification to the set.
+
+    There can be only one notification of particular type (info, warning,
+    error) in the set. Notifications are guaranteed to be stored in the
+    order of their priority.
+
+    Args:
+      new_notification: New notification to add.
+    """
+    current_list = [notification for notification in self.notifications
+                    if notification.type != new_notification.type]
+    current_list.append(new_notification)
+    current_list = sorted(current_list, key=lambda x: x.type)
+    self.notifications = current_list
+
+  def __iter__(self):
+    for notification in self.notifications:
+      yield notification
+
+  def __contains__(self, notification):
+    return notification in self.notifications
+
+
+class GlobalNotificationStorage(aff4.AFF4Object):
+  """Object that stores GRR's GlobalNotifications."""
+
+  DEFAULT_PATH = rdfvalue.RDFURN("aff4:/config/global_notifications")
+
+  class SchemaCls(aff4.AFF4Object.SchemaCls):
+    """Schema for GlobalNotificationsManager."""
+
+    NOTIFICATIONS = aff4.Attribute(
+        "aff4:global_notification_storage/notifications", GlobalNotificationSet,
+        "List of currently active notifications", versioned=False)
+
+  def AddNotification(self, new_notification):
+    """Adds new notification to the set."""
+    current_set = self.GetNotifications()
+    current_set.AddNotification(new_notification)
+    self.Set(self.Schema.NOTIFICATIONS, current_set)
+
+  def GetNotifications(self):
+    return self.Get(self.Schema.NOTIFICATIONS, default=GlobalNotificationSet())
 
 
 class CryptedPassword(rdfvalue.RDFString):
@@ -52,6 +128,11 @@ class GRRUser(aff4.AFF4Object):
         "aff4:notifications/shown", rdfvalue.NotificationList,
         "Notifications already shown to the user.", default="",
         versioned=False)
+
+    SHOWN_GLOBAL_NOTIFICATIONS = aff4.Attribute(
+        "aff4:global_notification/timestamp_list", GlobalNotificationSet,
+        "Global notifications shown to this user.",
+        default=GlobalNotificationSet(), versioned=False)
 
     GUI_SETTINGS = aff4.Attribute(
         "aff4:gui/settings", rdfvalue.GUISettings,
@@ -144,3 +225,29 @@ class GRRUser(aff4.AFF4Object):
   def GetLabels(self):
     fd = aff4.FACTORY.Open(self.urn.Add("labels"), token=self.token)
     return [str(x) for x in fd.Get(fd.Schema.LABEL, [])]
+
+  def GetPendingGlobalNotifications(self):
+    storage = aff4.FACTORY.Create(GlobalNotificationStorage.DEFAULT_PATH,
+                                  aff4_type="GlobalNotificationStorage",
+                                  mode="r", token=self.token)
+    current_notifications = storage.GetNotifications()
+
+    shown_notifications = self.Get(self.Schema.SHOWN_GLOBAL_NOTIFICATIONS,
+                                   default=GlobalNotificationSet())
+
+    result = []
+    for notification in current_notifications:
+      if notification in shown_notifications:
+        continue
+
+      current_time = rdfvalue.RDFDatetime().Now()
+      if (notification.show_from + notification.duration >= current_time and
+          current_time >= notification.show_from):
+        result.append(notification)
+
+    return result
+
+  def MarkGlobalNotificationAsShown(self, notification):
+    shown_notifications = self.Get(self.Schema.SHOWN_GLOBAL_NOTIFICATIONS)
+    shown_notifications.AddNotification(notification)
+    self.Set(self.Schema.SHOWN_GLOBAL_NOTIFICATIONS, shown_notifications)

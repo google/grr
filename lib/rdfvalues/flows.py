@@ -103,6 +103,11 @@ class GrrStatus(rdfvalue.RDFProtoStruct):
   rdf_map = dict(cpu_used=rdfvalue.CpuSeconds)
 
 
+class GrrNotification(rdfvalue.RDFProtoStruct):
+  """A flow notification."""
+  protobuf = jobs_pb2.GrrNotification
+
+
 class Backtrace(rdfvalue.RDFString):
   """A special type representing a backtrace."""
 
@@ -325,9 +330,9 @@ class HuntError(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.HuntError
 
 
-class HuntLog(rdfvalue.RDFProtoStruct):
-  """An RDFValue class representing the hunt log entries."""
-  protobuf = jobs_pb2.HuntLog
+class FlowLog(rdfvalue.RDFProtoStruct):
+  """An RDFValue class representing flow log entries."""
+  protobuf = jobs_pb2.FlowLog
 
 
 class HttpRequest(rdfvalue.RDFProtoStruct):

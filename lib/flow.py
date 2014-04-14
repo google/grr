@@ -598,11 +598,13 @@ class GRRFlow(aff4.AFF4Volume):
       format_str: Format string
       *args: arguments to the format string
     """
-    self.runner.Log(format_str, *args)
+    with self.GetRunner() as runner:
+      runner.Log(format_str, *args)
 
   def Status(self, format_str, *args):
     """Flows can call this method to set a status message visible to users."""
-    self.runner.Status(format_str, *args)
+    with self.GetRunner() as runner:
+      runner.Status(format_str, *args)
 
   def Notify(self, message_type, subject, msg):
     """Send a notification to the originating user.
@@ -689,8 +691,7 @@ class GRRFlow(aff4.AFF4Volume):
 
   @classmethod
   def StartFlow(cls, args=None, runner_args=None,  # pylint: disable=g-bad-name
-                parent_flow=None, _store=None, sync=True,
-                **kwargs):
+                parent_flow=None, _store=None, sync=True, **kwargs):
     """The main factory function for Creating and executing a new flow.
 
     Args:
@@ -832,12 +833,14 @@ class GRRFlow(aff4.AFF4Volume):
     return flow_obj.urn
 
   @classmethod
-  def TerminateFlow(cls, flow_id, reason=None, token=None, force=False):
+  def TerminateFlow(cls, flow_id, reason=None, status=None, token=None,
+                    force=False):
     """Terminate a flow.
 
     Args:
       flow_id: The flow session_id to terminate.
       reason: A reason to log.
+      status: Status code used in the generated status message.
       token: The access token to be used for this request.
       force: If True then terminate locked flows hard.
 
@@ -845,10 +848,11 @@ class GRRFlow(aff4.AFF4Volume):
       FlowError: If the flow can not be found.
     """
     if not force:
-      flow_obj = aff4.FACTORY.OpenWithLock(flow_id, blocking=True,
-                                           token=token)
+      flow_obj = aff4.FACTORY.OpenWithLock(flow_id, aff4_type="GRRFlow",
+                                           blocking=True, token=token)
     else:
-      flow_obj = aff4.FACTORY.Open(flow_id, mode="rw", token=token)
+      flow_obj = aff4.FACTORY.Open(flow_id, aff4_type="GRRFlow", mode="rw",
+                                   token=token)
 
     if not flow_obj:
       raise FlowError("Could not terminate flow %s" % flow_id)
@@ -864,7 +868,7 @@ class GRRFlow(aff4.AFF4Volume):
         if reason is None:
           reason = "Manual termination by console."
 
-        runner.Error(reason)
+        runner.Error(reason, status=status)
         runner.Terminate()
 
         flow_obj.Log("Terminated by user {0}. Reason: {1}".format(
@@ -879,8 +883,11 @@ class GRRFlow(aff4.AFF4Volume):
         super_token = token.SetUID()
 
         # Also terminate its children
-        for child in flow_obj.ListChildren():
-          cls.TerminateFlow(child, reason="Parent flow terminated.",
+        children_to_kill = aff4.FACTORY.MultiOpen(
+            flow_obj.ListChildren(), token=super_token, aff4_type="GRRFlow")
+
+        for child_obj in children_to_kill:
+          cls.TerminateFlow(child_obj.urn, reason="Parent flow terminated.",
                             token=super_token, force=force)
 
   @classmethod
@@ -1259,7 +1266,9 @@ class Events(object):
           # Forward the message to the well known flow's queue.
           for event_urn in handler_urns:
             manager.QueueResponse(event_urn, msg)
-            manager.QueueNotification(event_urn, priority=msg.priority)
+            manager.QueueNotification(
+                rdfvalue.GrrNotification(session_id=event_urn,
+                                         priority=msg.priority))
 
   @classmethod
   def PublishEventInline(cls, event_name, msg, token=None):
@@ -1634,13 +1643,33 @@ class FrontEndServer(object):
         queue=client.Queue(), limit=max_count,
         lease_seconds=self.message_expiry_time)
 
+    initial_ttl = rdfvalue.GrrMessage().task_ttl
+    check_before_sending = []
+    result = []
     for task in new_tasks:
-      response_message.job.Append(task)
-    stats.STATS.IncrementCounter("grr_messages_sent", len(new_tasks))
-    logging.debug("Drained %d messages for %s in %s seconds.",
-                  len(new_tasks), client, time.time() - start_time)
+      if task.task_ttl < initial_ttl - 1:
+        # This message has been leased before.
+        check_before_sending.append(task)
+      else:
+        response_message.job.Append(task)
+        result.append(task)
 
-    return new_tasks
+    if check_before_sending:
+      with queue_manager.QueueManager(token=self.token) as manager:
+        status_found = manager.MultiCheckStatus(check_before_sending)
+
+        # All messages that don't have a status yet should be sent again.
+        for task in check_before_sending:
+          if task not in status_found:
+            result.append(task)
+          else:
+            manager.DeQueueClientRequest(client, task.task_id)
+
+    stats.STATS.IncrementCounter("grr_messages_sent", len(result))
+    logging.debug("Drained %d messages for %s in %s seconds.",
+                  len(result), client, time.time() - start_time)
+
+    return result
 
   def ReceiveMessages(self, client_id, messages):
     """Receives and processes the messages from the source.
@@ -1660,14 +1689,17 @@ class FrontEndServer(object):
         # Messages for well known flows should notify even though they dont have
         # a status.
         if msg.request_id == 0:
-          manager.QueueNotification(msg.session_id, priority=msg.priority)
+          manager.QueueNotification(session_id=msg.session_id,
+                                    priority=msg.priority)
 
         elif msg.type == rdfvalue.GrrMessage.Type.STATUS:
           # If we receive a status message from the client it means the client
           # has finished processing this request. We therefore can de-queue it
           # from the client queue.
           manager.DeQueueClientRequest(client_id, msg.task_id)
-          manager.QueueNotification(msg.session_id, priority=msg.priority)
+          manager.QueueNotification(session_id=msg.session_id,
+                                    priority=msg.priority,
+                                    last_status=msg.request_id)
 
           status = rdfvalue.GrrStatus(msg.args)
           if status.status == rdfvalue.GrrStatus.ReturnedStatus.CLIENT_KILLED:
@@ -1745,6 +1777,19 @@ class FlowInit(registry.InitHook):
   def RunOnce(self):
     """Exports our vars."""
     Events.BuildCache()
+
+    # Frontend metrics. These metrics should be used ty the code that
+    # feeds requests into the frontend.
+    stats.STATS.RegisterGaugeMetric(
+        "frontend_active_count", int, fields=[("source", str)])
+    stats.STATS.RegisterCounterMetric(
+        "frontend_in_bytes", fields=[("source", str)])
+    stats.STATS.RegisterCounterMetric(
+        "frontend_out_bytes", fields=[("source", str)])
+    stats.STATS.RegisterCounterMetric(
+        "frontend_request_count", fields=[("source", str)])
+    stats.STATS.RegisterEventMetric(
+        "frontend_request_latency", fields=[("source", str)])
 
     # Counters defined here
     stats.STATS.RegisterCounterMetric("grr_flow_completed_count")

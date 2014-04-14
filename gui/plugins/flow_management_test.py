@@ -10,11 +10,11 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.proto import flows_pb2
+from grr.proto import tests_pb2
 
 
 class RecursiveTestFlowArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.RecursiveTestFlowArgs
+  protobuf = tests_pb2.RecursiveTestFlowArgs
 
 
 class RecursiveTestFlow(flow.GRRFlow):

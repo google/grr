@@ -51,6 +51,12 @@ class ClientCrashEventListener(flow.EventListener):
 
   def WriteAllCrashDetails(self, client_id, crash_details,
                            flow_session_id=None, hunt_session_id=None):
+    # Update last crash attribute of the client.
+    client_obj = aff4.FACTORY.Create(client_id, "VFSGRRClient",
+                                     token=self.token)
+    client_obj.Set(client_obj.Schema.LAST_CRASH(crash_details))
+    client_obj.Close(sync=False)
+
     # Duplicate the crash information in a number of places so we can find it
     # easily.
     self._AppendCrashDetails(client_id.Add("crashes"), crash_details)

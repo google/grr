@@ -1,11 +1,10 @@
 # Windows specific artifacts.
 
-
 name: ApplicationEventLog
-doc: Windows Application Event Log.
+doc: Windows Application Event log.
 collectors:
-- action: GetFile
-  args: {path: '%%environ_systemroot%%\System32\winevt\Logs\AppEvent.evt'}
+- action: GetFiles
+  args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\AppEvent.evt']}
 conditions: [os_major_version >= 6]
 labels: [Logs]
 supported_os: [Windows]
@@ -13,10 +12,10 @@ urls: ['http://www.forensicswiki.org/wiki/Windows_Event_Log_(EVT)']
 ---
 
 name: ApplicationEventLogEvtx
-doc: Windows Application Event Log for Vista or newer systems.
+doc: Windows Application Event log for Vista or later systems.
 collectors:
-- action: GetFile
-  args: {path: '%%environ_systemroot%%\System32\winevt\Logs\Application.evtx'}
+- action: GetFiles
+  args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\Application.evtx']}
 conditions: [os_major_version >= 6]
 labels: [Logs]
 supported_os: [Windows]
@@ -28,17 +27,51 @@ doc: The timezones avaialable on the system.
 collectors:
 - action: GetRegistryKeys
   args:
-    path_list: [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Time
-        Zones\*\*]
+    path_list: ['HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Time Zones\*\*']
 supported_os: [Windows]
 urls: ['https://code.google.com/p/winreg-kb/wiki/TimeZoneKeys']
 ---
 
-name: SecurityEventLog
-doc: Windows Security Event Log.
+name: EventLogs
+doc: Windows Event logs.
 collectors:
-- action: GetFile
-  args: {path: '%%environ_systemroot%%\System32\winevt\Logs\SecEvent.evt'}
+- action: CollectArtifactFiles
+  args:
+    artifact_list: ['ApplicationEventLog',
+      'ApplicationEventLogEvtx',
+      'SecurityEventLog',
+      'SecurityEventLogEvtx',
+      'SystemEventLog',
+      'SystemEventLogEvtx']
+labels: [Logs]
+supported_os: [Windows]
+---
+
+name: InternetExplorerTypedURLsKeys
+doc: Microsoft Internet Explorer TypedUrls keys.
+collectors:
+- action: GetRegistryKeys
+  args:
+    path_list: ['HKEY_USERS\%%users.sid%%\Software\Microsoft\Internet Explorer\TypedURLs\*']
+labels: [Software]
+supported_os: [Windows]
+urls: ['http://www.forensicswiki.org/wiki/Internet_Explorer#Typed_URLs']
+---
+
+name: PrefectFiles
+doc: Windows Prefetch files.
+collectors:
+- action: GetFiles
+  args: {path_list: ['%%environ_systemroot%%\Prefetch\*.pf']}
+supported_os: [Windows]
+urls: ['http://www.forensicswiki.org/wiki/Prefetch']
+---
+
+name: SecurityEventLog
+doc: Windows Security Event log.
+collectors:
+- action: GetFiles
+  args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\SecEvent.evt']}
 conditions: [os_major_version >= 6]
 labels: [Logs]
 supported_os: [Windows]
@@ -46,21 +79,38 @@ urls: ['http://www.forensicswiki.org/wiki/Windows_Event_Log_(EVT)']
 ---
 
 name: SecurityEventLogEvtx
-doc: Windows Security Event Log for Vista or newer systems.
+doc: Windows Security Event log for Vista or later systems.
 collectors:
-- action: GetFile
-  args: {path: '%%environ_systemroot%%\System32\winevt\Logs\Security.evtx'}
+- action: GetFiles
+  args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\Security.evtx']}
 conditions: [os_major_version >= 6]
 labels: [Logs]
 supported_os: [Windows]
 urls: ['http://www.forensicswiki.org/wiki/Windows_XML_Event_Log_(EVTX)']
 ---
 
-name: SystemEventLog
-doc: Windows System Event Log.
+name: SetupApiLogs
+doc: Windows setup API logs.
 collectors:
-- action: GetFile
-  args: {path: '%%environ_systemroot%%\System32\winevt\Logs\SysEvent.evt'}
+- action: GetFiles
+  args: {path_list: ['%%environ_systemroot%%\setupapi.log']}
+  conditions: [os_major_version < 6]
+- action: GetFiles
+  args:
+    path_list:
+      - '%%environ_systemroot%%\inf\setupapi.app.log'
+      - '%%environ_systemroot%%\inf\setupapi.dev.log'
+      - '%%environ_systemroot%%\inf\setupapi.offline.log'
+  conditions: [os_major_version >= 6]
+labels: [Logs]
+supported_os: [Windows]
+---
+
+name: SystemEventLog
+doc: Windows System Event log.
+collectors:
+- action: GetFiles
+  args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\SysEvent.evt']}
 conditions: [os_major_version >= 6]
 labels: [Logs]
 supported_os: [Windows]
@@ -68,10 +118,10 @@ urls: ['http://www.forensicswiki.org/wiki/Windows_Event_Log_(EVT)']
 ---
 
 name: SystemEventLogEvtx
-doc: Windows System Event Log for Vista or newer systems.
+doc: Windows System Event log for Vista or later systems.
 collectors:
-- action: GetFile
-  args: {path: '%%environ_systemroot%%\System32\winevt\Logs\System.evtx'}
+- action: GetFiles
+  args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\System.evtx']}
 conditions: [os_major_version >= 6]
 labels: [Logs]
 supported_os: [Windows]
@@ -79,10 +129,10 @@ urls: ['http://www.forensicswiki.org/wiki/Windows_XML_Event_Log_(EVTX)']
 ---
 
 name: TerminalServicesEventLogEvtx
-doc: Windows TerminalServices Event Log.
+doc: Windows TerminalServices Event log.
 collectors:
-- action: GetFile
-  args: {path: '%%environ_systemroot%%\System32\winevt\Logs\Microsoft-Windows-TerminalServices-LocalSessionManager%4Operational.evtx'}
+- action: GetFiles
+  args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\Microsoft-Windows-TerminalServices-LocalSessionManager%4Operational.evtx']}
 conditions: [os_major_version >= 6]
 labels: [Logs]
 supported_os: [Windows]
@@ -123,8 +173,8 @@ supported_os: [Windows]
 name: WinHostsFile
 doc: The Windows hosts file.
 collectors:
-- action: GetFile
-  args: {path: '%%environ_systemroot%%\System32\Drivers\etc\hosts'}
+- action: GetFiles
+  args: {path_list: ['%%environ_systemroot%%\System32\Drivers\etc\hosts']}
 supported_os: [Windows]
 ---
 
@@ -160,9 +210,11 @@ supported_os: [Windows]
 ---
 
 name: WindowsLoginUsers
-doc: "Extract the Login Users on Windows via WMI.\n\n  If on a domain this will query\
-    \ the domain which may take a long time and\n  create load on a domain controller.\n\
-    \  "
+doc: |
+  Login Users on Windows via WMI.
+
+  This WMI query may take a long time to complete when run on a domain and
+  will create load on a domain controller.
 collectors:
 - action: WMIQuery
   args: {query: SELECT * from Win32_GroupUser where Name = "login_users"}
@@ -172,7 +224,7 @@ supported_os: [Windows]
 ---
 
 name: WindowsPersistenceMechanismFiles
-doc: Collect files that are run by Windows persistence mechanisms.
+doc: Files that are run by Windows persistence mechanisms.
 collectors:
 - action: CollectArtifactFiles
   args:
@@ -184,7 +236,7 @@ supported_os: [Windows]
 ---
 
 name: WindowsPersistenceMechanisms
-doc: Collect persistence mechanisms.
+doc: Persistence mechanisms in Windows.
 collectors:
 - action: CollectArtifacts
   args:
@@ -195,29 +247,47 @@ supported_os: [Windows]
 ---
 
 name: WindowsRunKeys
-doc: "Collect windows run keys.\n\n Note users.sid will currently only expand \
-     to SIDs with profiles on the system, not all SIDs.\n "
+doc: |
+  Windows Run and RunOnce keys.
+
+  Note users.sid will currently only expand to SIDs with profiles
+  on the system, not all SIDs.
 collectors:
 - action: GetRegistryKeys
   args:
-    path_list: [HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\Run\*,
-      HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\RunOnce\*,
-      HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run\*,
-      HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce\*,
-      HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnceEx\*]
+    path_list:
+      - 'HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\Run\*'
+      - 'HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\RunOnce\*'
+      - 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run\*'
+      - 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce\*'
+      - 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnceEx\*'
 labels: [Software]
 supported_os: [Windows]
 ---
 
+name: WindowsSearchDatabase
+doc: Windows Search database (Windows.edb).
+collectors:
+- action: GetFiles
+  args: {path_list: ['%%environ_allusersappdata%%\Microsoft\Search\Data\Applications\Windows\Windows.edb']}
+labels: [Software]
+supported_os: [Windows]
+urls: ['http://www.forensicswiki.org/wiki/Windows_Desktop_Search']
+---
+
 name: WindowsServices
-doc: "Collect windows services from the registry.\n\n  See service key doco:\n  \
-    \  http://support.microsoft.com/kb/103000\n  "
+doc: Windows services from the registry.
 collectors:
 - action: GetRegistryKeys
   args:
-    path_list: ['%%current_control_set%%\services\*\*', '%%current_control_set%%\services\*\Parameters\*']
+    path_list:
+      - '%%current_control_set%%\services\*\*'
+      - '%%current_control_set%%\services\*\Parameters\*'
 labels: [Software]
 supported_os: [Windows]
+urls:
+  - 'http://support.microsoft.com/kb/103000'
+  - 'https://code.google.com/p/winreg-kb/wiki/SystemKeys'
 ---
 
 name: WindowsWMIInstalledSoftware
@@ -232,9 +302,12 @@ supported_os: [Windows]
 ---
 
 name: WindowsWMIUsers
-doc: "Get all users the system knows about via WMI.\n\n  Note that in a domain setup,\
-    \ this will probably return all users in the\n  domain which will be expensive\
-    \ and slow. Consider limiting by SID like WindowsWMIProfileUsersHomeDir\n  "
+doc: |
+  Get all users the system knows about via WMI.
+
+  Note that in a domain setup, this will probably return all users in the
+  domain which will be expensive and slow. Consider limiting by SID like
+  WindowsWMIProfileUsersHomeDir
 collectors:
 - action: WMIQuery
   args: {query: SELECT * FROM Win32_UserAccount}

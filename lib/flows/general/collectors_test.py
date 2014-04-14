@@ -70,8 +70,20 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
     list_args = collect_flow.InterpolateList(["one"])
     self.assertEqual(list_args, ["one"])
 
+  def testGrepRegexCombination(self):
+    collect_flow = collectors.ArtifactCollectorFlow(None, token=self.token)
+    self.assertEqual(collect_flow._CombineRegex([r"simple"]),
+                     "simple")
+    self.assertEqual(collect_flow._CombineRegex(["a", "b"]),
+                     "(a)|(b)")
+    self.assertEqual(collect_flow._CombineRegex(["a", "b", "c"]),
+                     "(a)|(b)|(c)")
+    self.assertEqual(collect_flow._CombineRegex(["a|b", "[^_]b", "c|d"]),
+                     "(a|b)|([^_]b)|(c|d)")
+
   def testGrep(self):
     class MockCallFlow(object):
+
       def CallFlow(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
@@ -95,9 +107,9 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
       collect_flow.Grep(collector, rdfvalue.PathSpec.PathType.TSK)
 
     conditions = mock_call_flow.kwargs["conditions"]
-    regexes = [f.contents_regex_match.regex.SerializeToString()
-               for f in conditions]
-    self.assertItemsEqual(regexes, [r"^atest1b$", r"^atest2b$"])
+    self.assertEqual(len(conditions), 1)
+    regexes = conditions[0].contents_regex_match.regex.SerializeToString()
+    self.assertItemsEqual(regexes.split("|"), ["(^atest1b$)", "(^atest2b$)"])
     self.assertEqual(mock_call_flow.kwargs["paths"], ["/etc/passwd"])
 
   def testGetArtifact1(self):
@@ -111,7 +123,8 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
 
     # Dynamically add a Collector specifying the base path.
     file_path = os.path.join(self.base_path, "test_img.dd")
-    coll1 = rdfvalue.Collector(action="GetFile", args={"path": file_path})
+    coll1 = rdfvalue.Collector(action="GetFiles",
+                               args={"path_list": [file_path]})
     self.fakeartifact.collectors.append(coll1)
 
     artifact_list = ["FakeArtifact"]
@@ -173,6 +186,33 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
 
     # Now run with impossible or condition.
     coll1.conditions.append("os == 'NotTrue'")
+    self.fakeartifact.collectors = []
+    self.fakeartifact.collectors.append(coll1)
+    fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
+    self.assertEquals(fd.__class__.__name__, "AFF4Volume")
+
+  def testSupportedOS(self):
+    """Test supported_os inside the collector object."""
+    # Run with false condition.
+    client_mock = test_lib.ActionMock("ListProcesses")
+    coll1 = rdfvalue.Collector(action="RunGrrClientAction",
+                               args={"client_action": "ListProcesses"},
+                               supported_os=["Windows"])
+    self.fakeartifact.collectors.append(coll1)
+    fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
+    self.assertEquals(fd.__class__.__name__, "AFF4Volume")
+
+    # Now run with matching or condition.
+    coll1.conditions = []
+    coll1.supported_os = ["Linux", "Windows"]
+    self.fakeartifact.collectors = []
+    self.fakeartifact.collectors.append(coll1)
+    fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
+    self.assertEquals(fd.__class__.__name__, "RDFValueCollection")
+
+    # Now run with impossible or condition.
+    coll1.conditions = ["os == 'Linux' or os == 'Windows'"]
+    coll1.supported_os = ["NotTrue"]
     self.fakeartifact.collectors = []
     self.fakeartifact.collectors.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])

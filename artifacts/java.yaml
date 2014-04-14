@@ -5,13 +5,15 @@ doc: Java Plug-in cache.
 collectors:
 - action: GetFiles
   args:
-    path_list: ['%%users.localappdata_low%%\Sun\Java\Deployment\cache\**', '%%users.homedir%%\AppData\LocalLow\Sun\Java\Deployment\cache\**',
-      '%%users.homedir%%\Application Data\Sun\Java\Deployment\cache\**']
-  conditions: [os == 'Windows']
-- action: GetFile
-  args: {path: '%%users.homedir%%/Library/Caches/Java/cache/**'}
-  conditions: [os == 'Darwin']
-- action: GetFile
-  args: {path: '%%users.homedir%%/.java/deployment/cache/**'}
-  conditions: [os == 'Linux']
+    path_list:
+      - '%%users.localappdata_low%%\Sun\Java\Deployment\cache\**'
+      - '%%users.homedir%%\AppData\LocalLow\Sun\Java\Deployment\cache\**'
+      - '%%users.homedir%%\Application Data\Sun\Java\Deployment\cache\**'
+  supported_os: [Windows]
+- action: GetFiles
+  args: {path_list: ['%%users.homedir%%/Library/Caches/Java/cache/**']}
+  supported_os: [Darwin]
+- action: GetFiles
+  args: {path_list: ['%%users.homedir%%/.java/deployment/cache/**']}
+  supported_os: [Linux]
 supported_os: [Windows, Linux, Darwin]

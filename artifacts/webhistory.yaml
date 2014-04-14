@@ -1,50 +1,90 @@
+# Web Web browser specific artifacts.
+
 name: InternetExplorerHistory
-doc: IE index.dat files.
+doc: |
+  Microsoft Internet Explorer (MSIE) browser history files.
+
+  * MSIE 4 - 9 Cache files (index.dat);
+  * MSIE 10 WebCacheV*.dat files.
 collectors:
 - action: GetFiles
   args:
-    path_list: ['%%users.localappdata%%\Microsoft\Windows\Temporary Internet Files\Content.IE5\index.dat',
-      '%%users.localappdata%%\Microsoft\Windows\Temporary Internet Files\Low\Content.IE5\index.dat']
+    path_list:
+      - '%%users.localappdata%%\Microsoft\Windows\Temporary Internet Files\Content.IE5\index.dat'
+      - '%%users.localappdata%%\Microsoft\Windows\Temporary Internet Files\Low\Content.IE5\index.dat'
+      - '%%users.localappdata%%\Microsoft\Windows\WebCache\WebCacheV*.dat'
 labels: [Browser]
 supported_os: [Windows]
+urls: ['http://www.forensicswiki.org/wiki/Internet_Explorer']
 ---
-
 name: ChromeHistory
-doc: Chrome history files.
+doc: Chrome browser history.
 collectors:
 - action: GetFiles
   args:
-    path_list: ['%%users.localappdata%%\Google\Chrome\User Data\*\History', '%%users.localappdata%%\Chromium\User
-        Data\*\History']
+    path_list:
+      - '%%users.localappdata%%\Google\Chrome\User Data\*\Archived History'
+      - '%%users.localappdata%%\Google\Chrome\User Data\*\History'
+      - '%%users.localappdata%%\Chromium\User Data\*\Archived History'
+      - '%%users.localappdata%%\Chromium\User Data\*\History'
   conditions: [os == 'Windows']
 - action: GetFiles
   args:
-    path_list: ['%%users.homedir%%/Library/Application Support/Google/Chrome/*/History',
-      '%%users.homedir%%/Library/Application Support/Chromium/*/History']
+    path_list:
+      - '%%users.homedir%%/Library/Application Support/Google/Chrome/*/Archived History'
+      - '%%users.homedir%%/Library/Application Support/Google/Chrome/*/History'
+      - '%%users.homedir%%/Library/Application Support/Chromium/*/Archived History'
+      - '%%users.homedir%%/Library/Application Support/Chromium/*/History'
   conditions: [os == 'Darwin']
 - action: GetFiles
   args:
-    path_list: ['%%users.homedir%%/.config/google-chrome/*/History', '%%users.homedir%%/.config/chromium/*/History']
+    path_list:
+      - '%%users.homedir%%/.config/google-chrome/*/Archived History'
+      - '%%users.homedir%%/.config/google-chrome/*/History'
+      - '%%users.homedir%%/.config/chromium/*/Archived History'
+      - '%%users.homedir%%/.config/chromium/*/History'
   conditions: [os == 'Linux']
 labels: [Browser]
 supported_os: [Windows, Linux, Darwin]
+urls: ['http://www.forensicswiki.org/wiki/Google_Chrome']
 ---
-
 name: FirefoxHistory
-doc: Firefox places.sqlite files.
+doc: Firefox browser history (places.sqlite).
 collectors:
 - action: GetFiles
   args:
-    path_list: ['%%users.localappdata%%\Mozilla\Firefox\Profiles\*\places.sqlite',
-      '%%users.appdata%%\Mozilla\Firefox\Profiles\*\places.sqlite']
+    path_list:
+      - '%%users.localappdata%%\Mozilla\Firefox\Profiles\*\places.sqlite'
+      - '%%users.appdata%%\Mozilla\Firefox\Profiles\*\places.sqlite'
   conditions: [os == 'Windows']
 - action: GetFiles
   args:
-    path_list: ['%%users.homedir%%/Library/Application Support/Firefox/Profiles/*/places.sqlite']
+    path_list:
+      - '%%users.homedir%%/Library/Application Support/Firefox/Profiles/*/places.sqlite'
   conditions: [os == 'Darwin']
 - action: GetFiles
   args:
-    path_list: ['%%users.homedir%%/.mozilla/firefox/*/places.sqlite']
+    path_list:
+      - '%%users.homedir%%/.mozilla/firefox/*/places.sqlite'
   conditions: [os == 'Linux']
 labels: [Browser]
 supported_os: [Windows, Linux, Darwin]
+urls: ['http://www.forensicswiki.org/wiki/Mozilla_Firefox']
+---
+name: SafariHistory
+doc: Safari browser history (History.plist).
+collectors:
+- action: GetFiles
+  args:
+    path_list:
+      - '%%users.localappdata%%\Apple Computer\Safari\History.plist'
+      - '%%users.appdata%%\Roaming\Apple Computer\Safari\History.plist'
+  conditions: [os == 'Windows']
+- action: GetFiles
+  args:
+    path_list:
+      - '%%users.homedir%%/Library/Safari/History.plist'
+  conditions: [os == 'Darwin']
+labels: [Browser]
+supported_os: [Windows, Darwin]
+urls: ['http://www.forensicswiki.org/wiki/Apple_Safari']

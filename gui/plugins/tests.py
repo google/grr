@@ -14,6 +14,7 @@ from grr.gui.plugins import crash_view_test
 from grr.gui.plugins import cron_view_test
 from grr.gui.plugins import fileview_test
 from grr.gui.plugins import flow_management_test
+from grr.gui.plugins import forms_test
 from grr.gui.plugins import hunt_view_test
 from grr.gui.plugins import inspect_view_test
 from grr.gui.plugins import new_hunt_test

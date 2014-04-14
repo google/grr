@@ -195,15 +195,19 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
       self.Collect(artifact_obj)
 
+  def ConvertSupportedOSToConditions(self, src_object, filter_list):
+    """Turn supported_os into a condition."""
+    if src_object.supported_os:
+      filter_str = " OR ".join("os == '%s'" % o for o in
+                               src_object.supported_os)
+      return filter_list.append(filter_str)
+
   def Collect(self, artifact_obj):
     """Collect the raw data from the client for this artifact."""
     artifact_name = artifact_obj.name
 
     test_conditions = list(artifact_obj.conditions)
-    # Turn supported_os into a condition.
-    if artifact_obj.supported_os:
-      filt = " OR ".join("os == '%s'" % o for o in artifact_obj.supported_os)
-      test_conditions.append(filt)
+    self.ConvertSupportedOSToConditions(artifact_obj, test_conditions)
 
     # Check each of the conditions match our target.
     for condition in test_conditions:
@@ -219,6 +223,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
       # Check conditions on the collector.
       collector_conditions_met = True
+      self.ConvertSupportedOSToConditions(collector, collector.conditions)
       if collector.conditions:
         for condition in collector.conditions:
           if not artifact_lib.CheckCondition(condition,
@@ -233,8 +238,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           pass
         elif action_name == "RunCommand":
           self.RunCommand(collector)
-        elif action_name == "GetFile":
-          self.GetFiles(collector, self.state.path_type)
         elif action_name == "GetFiles":
           self.GetFiles(collector, self.state.path_type)
         elif action_name == "Grep":
@@ -275,12 +278,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def GetFiles(self, collector, path_type):
     """Get a set of files."""
-    if collector.action == "GetFile":
-      path_list = [collector.args["path"]]
-    elif collector.action == "GetFiles":
-      path_list = collector.args["path_list"]
     new_path_list = []
-    for path in path_list:
+    for path in collector.args["path_list"]:
       # Interpolate any attributes from the knowledgebase.
       new_path_list.extend(artifact_lib.InterpolateKbAttributes(
           path, self.state.knowledge_base))
@@ -302,22 +301,42 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         next_state="ProcessCollected"
         )
 
+  def _CombineRegex(self, regex_list):
+    if len(regex_list) == 1:
+      return regex_list[0]
+
+    regex_combined = ""
+    for regex in regex_list:
+      if regex_combined:
+        regex_combined = "%s|(%s)" % (regex_combined, regex)
+      else:
+        regex_combined = "(%s)" % regex
+    return regex_combined
+
   def Grep(self, collector, pathtype):
-    """Grep files in path_list for any matches to content_regex_list."""
+    """Grep files in path_list for any matches to content_regex_list.
+
+    Args:
+      collector: artifact collector
+      pathtype: pathspec path type
+
+    When multiple regexes are supplied, combine them into a single regex as an
+    OR match so that we check all regexes at once.
+    """
     path_list = self.InterpolateList(collector.args.get("path_list", []))
     content_regex_list = self.InterpolateList(
         collector.args.get("content_regex_list", []))
 
-    conditions = []
-    for regex in content_regex_list:
-      regex_condition = rdfvalue.FileFinderContentsRegexMatchCondition(
-          regex=regex, bytes_before=0, bytes_after=0)
-      file_finder_condition = rdfvalue.FileFinderCondition(
-          condition_type=rdfvalue.FileFinderCondition.Type.CONTENTS_REGEX_MATCH,
-          contents_regex_match=regex_condition)
-      conditions.append(file_finder_condition)
+    regex_condition = rdfvalue.FileFinderContentsRegexMatchCondition(
+        regex=self._CombineRegex(content_regex_list), bytes_before=0,
+        bytes_after=0)
 
-    self.CallFlow("FileFinder", paths=path_list, conditions=conditions,
+    file_finder_condition = rdfvalue.FileFinderCondition(
+        condition_type=rdfvalue.FileFinderCondition.Type.CONTENTS_REGEX_MATCH,
+        contents_regex_match=regex_condition)
+
+    self.CallFlow("FileFinder", paths=path_list,
+                  conditions=[file_finder_condition],
                   action=rdfvalue.FileFinderAction(), pathtype=pathtype,
                   request_data={"artifact_name": self.current_artifact_name,
                                 "collector": collector.ToPrimitiveDict()},
@@ -349,6 +368,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def CollectArtifacts(self, collector):
     self.CallFlow(
         "ArtifactCollectorFlow", artifact_list=collector.args["artifact_list"],
+        use_tsk=self.args.use_tsk,
         store_results_in_aff4=False,
         request_data={"artifact_name": self.current_artifact_name,
                       "collector": collector.ToPrimitiveDict()},
@@ -359,6 +379,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     """Collect files from artifact pathspecs."""
     self.CallFlow(
         "ArtifactCollectorFlow", artifact_list=collector.args["artifact_list"],
+        use_tsk=self.args.use_tsk,
         store_results_in_aff4=False,
         request_data={"artifact_name": self.current_artifact_name,
                       "collector": collector.ToPrimitiveDict()},

@@ -6,6 +6,7 @@
 
 import cgi
 import os
+import pipes
 import random
 import socket
 
@@ -17,9 +18,16 @@ from grr.gui.plugins import fileview_widgets
 from grr.gui.plugins import forms
 from grr.gui.plugins import semantic
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+
+
+config_lib.DEFINE_string("AdminUI.export_command",
+                         "env PYTHONPATH=. python grr/tools/export.py",
+                         "Command to show in the fileview for downloading the "
+                         "files from the command line.")
 
 
 # pylint: disable=g-bad-name
@@ -1071,14 +1079,21 @@ As downloaded on {{ this.age|escape }}.<br>
  Download ({{this.size|escape}} bytes)
 </button>
 </p>
+<p>or download using command line export tool:</p>
+<pre>
+{{ this.export_command_str|escape }}
+</pre>
+<hr/>
 {% endif %}
-
 <button id="{{ unique|escape }}" class="btn">Get a new Version</button>
 </div>
 """)
 
   error_template = renderers.Template("""
-<h1>Error</h1>{{this.urn|escape}} does not appear to be a file object.
+<div class="alert alert-error alert-block">
+  <h4>Error!</h4> {{this.path|escape}} does not appear to be a file object.
+  <p><em>{{this.error_message|escape}}</em></p>
+</div>
 """)
   bad_extensions = [".bat", ".cmd", ".exe", ".com", ".pif", ".py", ".pl",
                     ".scr", ".vbs"]
@@ -1104,6 +1119,15 @@ As downloaded on {{ this.age|escape }}.<br>
       except (IOError, AttributeError):
         pass
 
+      # TODO(user): replace pipes.quote with shlex.quote when time comes.
+      self.export_command_str = " ".join([
+          config_lib.CONFIG["AdminUI.export_command"],
+          "--username", pipes.quote(request.token.username),
+          "--reason", pipes.quote(request.token.reason),
+          "file",
+          "--path", pipes.quote(aff4_path),
+          "--output", "."])
+
       response = super(DownloadView, self).Layout(request, response)
       return self.CallJavascript(response, "DownloadView.Layout",
                                  aff4_path=aff4_path,
@@ -1112,8 +1136,9 @@ As downloaded on {{ this.age|escape }}.<br>
                                  file_exists=self.file_exists,
                                  renderer=self.__class__.__name__,
                                  reason=request.token.reason)
-    except (AttributeError, IOError):
+    except (AttributeError, IOError) as e:
       # Render the error template instead.
+      self.error_message = e.message
       return renderers.TemplateRenderer.Layout(self, request, response,
                                                self.error_template)
 
@@ -1545,15 +1570,21 @@ class HistoricalView(renderers.TableRenderer):
     """Build the table for the attribute."""
     attribute = getattr(fd.Schema, attribute_name)
 
+    additional_rows = False
     i = 0
     for i, value in enumerate(fd.GetValuesForAttribute(attribute)):
-      if i > end_row: break
-      if i < start_row: continue
+      if i > end_row:
+        additional_rows = True
+        break
+
+      if i < start_row:
+        continue
 
       self.AddCell(i, "Age", rdfvalue.RDFDatetime(value.age))
       self.AddCell(i, attribute_name, value)
 
     self.size = i + 1
+    return additional_rows
 
 
 class VersionSelectorDialog(renderers.TableRenderer):
@@ -1585,6 +1616,7 @@ class VersionSelectorDialog(renderers.TableRenderer):
   def Layout(self, request, response):
     """Populates the table state with the request."""
     self.state["aff4_path"] = request.REQ.get("aff4_path")
+
     response = super(VersionSelectorDialog, self).Layout(request, response)
     return self.CallJavascript(response, "VersionSelectorDialog.Layout",
                                aff4_path=self.state["aff4_path"])

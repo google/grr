@@ -1,3 +1,5 @@
+# Process related artifacts
+
 name: AllRunningProcessBinaryFiles
 doc: Download binaries of all the running processes.
 collectors:

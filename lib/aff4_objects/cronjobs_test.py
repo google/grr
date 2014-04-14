@@ -368,10 +368,12 @@ class CronTest(test_lib.GRRBaseTest):
       self.assertFalse(cron_job.IsRunning())
 
       # Check the termination log
-      current_flow = aff4.FACTORY.Open(urn=flow_urn,
-                                       token=self.token, mode="r")
-      log = current_flow.Get(current_flow.Schema.LOG)
-      self.assertTrue("lifetime exceeded" in str(log))
+      log_collection = aff4.FACTORY.Open(urn=flow_urn.Add("Logs"),
+                                         token=self.token, mode="r")
+
+      for line in log_collection:
+        if line.urn == flow_urn:
+          self.assertTrue("lifetime exceeded" in str(line.log_message))
 
       # Check that timeout counter got updated.
       current_timeout_value = stats.STATS.GetMetricValue(

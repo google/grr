@@ -3,6 +3,7 @@
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
+from grr.lib.flows.general import filesystem
 
 
 class ListVolumeShadowCopies(flow.GRRFlow):
@@ -54,16 +55,21 @@ class ListVolumeShadowCopies(flow.GRRFlow):
 
   @flow.StateHandler()
   def ProcessListDirectory(self, responses):
+    """Processes the results of the ListDirectory client action.
+
+    Args:
+      responses: a flow Responses object.
+    """
+    if not responses.success:
+      raise flow.FlowError("Unable to list directory.")
+
     for response in responses:
-      urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-          response.pathspec, self.client_id)
-      fd = aff4.FACTORY.Create(urn, "VFSDirectory", mode="w",
-                               token=self.token)
+      stat_entry = rdfvalue.StatEntry(response)
+      filesystem.CreateAFF4Object(
+          stat_entry, self.client_id, self.token, sync=False)
+      self.SendReply(stat_entry)
 
-      fd.Set(fd.Schema.PATHSPEC(response.pathspec))
-      fd.Set(fd.Schema.STAT(response))
-
-      fd.Close(sync=False)
+      aff4.FACTORY.Flush()
 
   @flow.StateHandler()
   def End(self):

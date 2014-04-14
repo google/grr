@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Tests for Windows Volume Shadow Copy flow."""
+import stat
+
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -67,7 +69,8 @@ class TestClient(object):
     for i in range(10):
       mock_pathspec = pathspec.Copy()
       mock_pathspec.last.path = "/file %s" % i
-      result.append(rdfvalue.StatEntry(pathspec=mock_pathspec))
+      result.append(rdfvalue.StatEntry(pathspec=mock_pathspec,
+                                       st_mode=stat.S_IFDIR))
 
     return result
 

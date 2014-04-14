@@ -9,11 +9,13 @@ from grr.gui.plugins import semantic
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import search
 from grr.lib import stats
 from grr.lib import utils
+
 from grr.lib.aff4_objects import aff4_grr
 
 
@@ -34,16 +36,17 @@ class ContentView(renderers.Splitter2WayVertical):
   min_left_pane_width = 210
   max_left_pane_width = 210
 
+  layout_template = ("""<div id="global-notification"></div>""" +
+                     renderers.Splitter2WayVertical.layout_template)
+
   def Layout(self, request, response):
     canary_mode = False
-    try:
-      user_record = aff4.FACTORY.Open(
-          aff4.ROOT_URN.Add("users").Add(request.user), aff4_type="GRRUser",
-          token=request.token)
-      canary_mode = user_record.Get(
-          user_record.Schema.GUI_SETTINGS).canary_mode
-    except IOError:
-      pass
+
+    user_record = aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users").Add(request.user), aff4_type="GRRUser",
+        mode="r", token=request.token)
+    canary_mode = user_record.Get(
+        user_record.Schema.GUI_SETTINGS).canary_mode
 
     if canary_mode:
       response.set_cookie("canary_mode", "true")
@@ -52,10 +55,101 @@ class ContentView(renderers.Splitter2WayVertical):
 
     # Ensure that Javascript will be executed before the rest of the template
     # gets processed.
-    response = self.CallJavascript(response, "ContentView.Layout",
-                                   canary=int(canary_mode))
+    response = self.CallJavascript(
+        response, "ContentView.Layout",
+        global_notification_poll_time=GlobalNotificationBar.POLL_TIME,
+        canary=int(canary_mode))
     response = super(ContentView, self).Layout(request, response)
     return response
+
+
+class SetGlobalNotification(flow.GRRGlobalFlow):
+  """Updates user's global notification timestamp."""
+
+  # This is an administrative flow.
+  category = "/Administrative/"
+
+  # Only admins can run this flow.
+  AUTHORIZED_LABELS = ["admin"]
+
+  # This flow is a SUID flow.
+  ACL_ENFORCED = False
+
+  args_type = rdfvalue.GlobalNotification
+
+  @flow.StateHandler()
+  def Start(self):
+    with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
+                             aff4_type="GlobalNotificationStorage",
+                             mode="rw", token=self.token) as storage:
+      storage.AddNotification(self.args)
+
+
+class MarkGlobalNotificationAsShown(flow.GRRFlow):
+  """Updates user's global notification timestamp."""
+
+  # This flow is a SUID flow.
+  ACL_ENFORCED = False
+
+  args_type = rdfvalue.GlobalNotification
+
+  @flow.StateHandler()
+  def Start(self):
+    with aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users").Add(self.token.username), "GRRUser",
+        token=self.token, mode="rw") as user_record:
+      user_record.MarkGlobalNotificationAsShown(self.args)
+
+
+class GlobalNotificationBar(renderers.TemplateRenderer):
+  """Renders global notification bar on top of the admin UI."""
+
+  POLL_TIME = 5 * 60 * 1000
+
+  layout_template = renderers.Template("""
+{% for notification in this.notifications %}
+<div class="alert alert-block alert-{{notification.type_name|lower|escape}}">
+  <button type="button" notification-hash="{{notification.hash|escape}}"
+    class="close">&times;</button>
+  <h4>{{notification.header|escape}}</h4>
+  <p>{{notification.content|escape}}</h4>
+  {% if notification.link %}
+    <p><a href="{{notification.link|escape}}" target="_blank">More...</a></p>
+  {% endif %}
+</div>
+{% endfor %}
+""")
+
+  def Layout(self, request, response):
+    try:
+      user_record = aff4.FACTORY.Open(
+          aff4.ROOT_URN.Add("users").Add(request.user), "GRRUser",
+          token=request.token)
+
+      self.notifications = user_record.GetPendingGlobalNotifications()
+    except IOError:
+      self.notifications = []
+
+    return super(GlobalNotificationBar, self).Layout(request, response)
+
+  def RenderAjax(self, request, response):
+    # If notification_hash is part of request, remove notification with a
+    # given hash, otherwise just render list of notifications as usual.
+    if "notification_hash" in request.REQ:
+      hash_to_remove = int(request.REQ["notification_hash"])
+
+      user_record = aff4.FACTORY.Create(
+          aff4.ROOT_URN.Add("users").Add(request.user), "GRRUser",
+          mode="r", token=request.token)
+
+      notifications = user_record.GetPendingGlobalNotifications()
+      for notification in notifications:
+        if notification.hash == hash_to_remove:
+          flow.GRRFlow.StartFlow(flow_name="MarkGlobalNotificationAsShown",
+                                 args=notification, token=request.token)
+          break
+    else:
+      return self.Layout(request, response)
 
 
 def FormatLastSeenTime(age):
@@ -79,12 +173,19 @@ def FormatLastSeenTime(age):
 class StatusRenderer(renderers.TemplateRenderer):
   """A renderer for the online status line."""
 
+  MAX_TIME_SINCE_CRASH = rdfvalue.Duration("1w")
+
   layout_template = renderers.Template("""
 Status: {{this.icon|safe}}
 {{this.last_seen_msg|escape}}.
 {% if this.ip_description %}
 <br>
 {{this.ip_icon|safe}} {{this.ip_description|escape}}
+{% endif %}
+{% if this.last_crash %}
+<br>
+<strong>Last crash:</strong><br>
+<img class='grr-icon' src='/static/images/skull-icon.png'> {{this.last_crash}}<br/>
 {% endif %}
 <br>
 """)
@@ -94,7 +195,16 @@ Status: {{this.icon|safe}}
 
     client_id = request.REQ.get("client_id")
     if client_id:
+      client_id = rdfvalue.ClientURN(client_id)
       client = aff4.FACTORY.Open(client_id, token=request.token)
+
+      self.last_crash = None
+      crash = client.Get(client.Schema.LAST_CRASH)
+      if crash:
+        time_since_crash = rdfvalue.RDFDatetime().Now() - crash.timestamp
+        if time_since_crash < self.MAX_TIME_SINCE_CRASH:
+          self.last_crash = FormatLastSeenTime(crash.timestamp)
+
       ping = client.Get(client.Schema.PING)
       if ping:
         age = ping
@@ -319,12 +429,32 @@ class IPStatusIcon(semantic.RDFValueRenderer):
     return super(IPStatusIcon, self).Layout(request, response)
 
 
-class CenteredOnlineStateIcon(OnlineStateIcon):
+class ClientStatusIconsRenderer(semantic.RDFValueRenderer):
   """Render the online state by using a centered icon."""
 
-  layout_template = ("<div class=\"centered\">" +
-                     OnlineStateIcon.layout_template +
-                     "</div>")
+  MAX_TIME_SINCE_CRASH = rdfvalue.Duration("1d")
+
+  layout_template = renderers.Template("""<div class="centered">
+{{this.online_icon_code|safe}}
+{% if this.show_crash_icon %}
+  <img class='grr-icon' src='/static/images/skull-icon.png'
+    title="{{this.crash_time|escape}}" />
+{% endif %}
+</div>""")
+
+  def Layout(self, request, response):
+    last_ping = self.proxy.Get(self.proxy.Schema.PING, 0)
+    self.online_icon_code = OnlineStateIcon(last_ping).RawHTML(request)
+
+    last_crash = self.proxy.Get(self.proxy.Schema.LAST_CRASH)
+    if (last_crash and
+        (rdfvalue.RDFDatetime().Now() - last_crash.timestamp) <
+        self.MAX_TIME_SINCE_CRASH):
+      self.crash_time = "%s (%s)" % (str(last_crash.timestamp),
+                                     FormatLastSeenTime(last_crash.timestamp))
+      self.show_crash_icon = True
+
+    return super(ClientStatusIconsRenderer, self).Layout(request, response)
 
 
 class FilestoreTable(renderers.TableRenderer):
@@ -367,7 +497,7 @@ class HostTable(renderers.TableRenderer):
   def __init__(self, **kwargs):
     super(HostTable, self).__init__(**kwargs)
     self.AddColumn(semantic.RDFValueColumn("Online", width="40px",
-                                           renderer=CenteredOnlineStateIcon))
+                                           renderer=ClientStatusIconsRenderer))
     self.AddColumn(semantic.AttributeColumn("subject", width="13em"))
     self.AddColumn(semantic.AttributeColumn("Host", width="13em"))
     self.AddColumn(semantic.AttributeColumn("Version", width="20%"))
@@ -406,9 +536,8 @@ class HostTable(renderers.TableRenderer):
       # Add the fd to all the columns
       self.AddRowFromFd(row_count + start, child)
 
-      # Also update the online status.
-      ping = child.Get(child.Schema.PING) or 0
-      self.columns[0].AddElement(row_count + start, long(ping))
+      # Also update the online and crash status.
+      self.columns[0].AddElement(row_count + start, child)
 
       row_count += 1
 

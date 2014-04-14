@@ -71,8 +71,6 @@ OUTPUT_UNDEFINED = "Undefined"
 
 ACTIONS_MAP = {"RunGrrClientAction": {"required_args": ["client_action"],
                                       "output_type": OUTPUT_UNDEFINED},
-               "GetFile": {"required_args": ["path"],
-                           "output_type": "StatEntry"},
                "GetFiles": {"required_args": ["path_list"],
                             "output_type": "StatEntry"},
                "Grep": {"required_args": ["path_list", "content_regex_list"],
