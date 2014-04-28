@@ -94,12 +94,28 @@ collectors:
 labels: [Software]
 supported_os: [Linux]
 ---
-name: AuthLog
-doc: Linux auth log file.
+name: LinuxAuditLogs
+doc: Linux audit log files.
 collectors:
 - action: GetFiles
-  args: {path_list: ['/var/log/auth.log']}
+  args: {path_list: ['/var/log/audit/*']}
+labels: [Logs]
+supported_os: [Linux]
+---
+name: LinuxAuthLogs
+doc: Linux auth log files.
+collectors:
+- action: GetFiles
+  args: {path_list: ['/var/log/auth.log*']}
 labels: [Logs, Authentication]
+supported_os: [Linux]
+---
+name: LinuxCronLogs
+doc: Linux cron log files.
+collectors:
+- action: GetFiles
+  args: {path_list: ['/var/log/cron.log*']}
+labels: [Logs]
 supported_os: [Linux]
 ---
 name: LoginPolicyConfiguration

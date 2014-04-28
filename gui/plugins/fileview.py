@@ -6,7 +6,6 @@
 
 import cgi
 import os
-import pipes
 import random
 import socket
 
@@ -1119,13 +1118,12 @@ As downloaded on {{ this.age|escape }}.<br>
       except (IOError, AttributeError):
         pass
 
-      # TODO(user): replace pipes.quote with shlex.quote when time comes.
       self.export_command_str = " ".join([
           config_lib.CONFIG["AdminUI.export_command"],
-          "--username", pipes.quote(request.token.username),
-          "--reason", pipes.quote(request.token.reason),
+          "--username", utils.ShellQuote(request.token.username),
+          "--reason", utils.ShellQuote(request.token.reason),
           "file",
-          "--path", pipes.quote(aff4_path),
+          "--path", utils.ShellQuote(aff4_path),
           "--output", "."])
 
       response = super(DownloadView, self).Layout(request, response)
@@ -1462,14 +1460,24 @@ class FileViewTabs(renderers.TabLayout):
     - aff4_path - The AFF4 object we are currently showing.
     - age: The version of the AFF4 object to display.
   """
-  names = ["Stats", "Download", "TextView", "HexView"]
-  delegated_renderers = ["AFF4Stats", "DownloadView", "FileTextViewer",
-                         "FileHexViewer"]
+
+  FILE_TAB_NAMES = ["Stats", "Download", "TextView", "HexView"]
+  FILE_DELEGATED_RENDERERS = ["AFF4Stats", "DownloadView", "FileTextViewer",
+                              "FileHexViewer"]
+
+  COLLECTION_TAB_NAMES = ["Stats", "Collection",
+                          "Export"]
+  COLLECTION_DELEGATED_RENDERERS = ["AFF4Stats", "RDFValueCollectionRenderer",
+                                    "CollectionExportView"]
 
   def __init__(self, fd=None, **kwargs):
     if fd:
       self.fd = fd
     super(FileViewTabs, self).__init__(**kwargs)
+
+  def DisableTabs(self):
+    self.disabled = [tab_renderer for tab_renderer in self.delegated_renderers
+                     if tab_renderer != "AFF4Stats"]
 
   def Layout(self, request, response):
     """Check if the file is a readable and disable the tabs."""
@@ -1478,15 +1486,70 @@ class FileViewTabs(renderers.TabLayout):
     self.age = request.REQ.get("age", rdfvalue.RDFDatetime().Now())
     self.state = dict(aff4_path=self.aff4_path, age=int(self.age))
 
+    # By default we assume that we're dealing with a regular file,
+    # so we show tabs for files.
+    self.names = self.FILE_TAB_NAMES
+    self.delegated_renderers = self.FILE_DELEGATED_RENDERERS
     try:
       if not self.fd:
         self.fd = aff4.FACTORY.Open(self.aff4_path, token=request.token)
-      # We just check if the object has a read method.
-      _ = self.fd.Read
-    except (IOError, AttributeError):
-      self.disabled = ["DownloadView", "FileHexViewer", "FileTextViewer"]
+
+      # If file is actually a collection, then show collections-related tabs.
+      if isinstance(self.fd, aff4.RDFValueCollection):
+        self.names = self.COLLECTION_TAB_NAMES
+        self.delegated_renderers = self.COLLECTION_DELEGATED_RENDERERS
+
+        # If collection doesn't have StatEntries or FileFinderResults, disable
+        # the Export tab.
+        if not CollectionExportView.IsCollectionExportable(self.fd):
+          self.disabled = ["CollectionExportView"]
+      else:
+        if not hasattr(self.fd, "Read"):
+          self.DisableTabs()
+
+    except IOError:
+      self.DisableTabs()
 
     return super(FileViewTabs, self).Layout(request, response)
+
+
+class CollectionExportView(renderers.TemplateRenderer):
+  """Displays export command to be used to export collection."""
+
+  layout_template = renderers.Template("""
+<p>To download all the files referenced in the collection, you can use
+this command:</p>
+<pre>
+{{ this.export_command_str|escape }}
+</pre>
+<p><em>NOTE: You can optionally add <tt>--dump_client_info</tt> flag to
+dump client info in YAML format.</em></p>
+""")
+
+  @staticmethod
+  def IsCollectionExportable(collection_urn_or_obj, token=None):
+    if isinstance(collection_urn_or_obj, aff4.RDFValueCollection):
+      collection = collection_urn_or_obj
+    else:
+      collection = aff4.FACTORY.Create(
+          collection_urn_or_obj, aff4_type="RDFValueCollection",
+          mode="r", token=token)
+
+    return collection and isinstance(
+        collection[0], (rdfvalue.StatEntry, rdfvalue.FileFinderResult))
+
+  def Layout(self, request, response, aff4_path=None):
+    aff4_path = aff4_path or request.REQ.get("aff4_path")
+
+    self.export_command_str = " ".join([
+        config_lib.CONFIG["AdminUI.export_command"],
+        "--username", utils.ShellQuote(request.token.username),
+        "--reason", utils.ShellQuote(request.token.reason),
+        "collection_files",
+        "--path", utils.ShellQuote(aff4_path),
+        "--output", "."])
+
+    return super(CollectionExportView, self).Layout(request, response)
 
 
 class RWeOwned(renderers.TemplateRenderer):

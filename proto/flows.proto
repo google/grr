@@ -1466,6 +1466,29 @@ message Bit9DownloaderArgs {
   repeated FileReference files = 1;
 }
 
+message RegistryFinderCondition {
+  enum Type {
+    VALUE_LITERAL_MATCH = 0 [(description) = "Value literal match"];
+    VALUE_REGEX_MATCH = 1 [(description) = "Value regex match"];
+    MODIFICATION_TIME = 2 [(description) = "Modification time"];
+  }
+
+  optional Type condition_type = 1;
+
+  optional FileFinderContentsLiteralMatchCondition value_literal_match = 2;
+  optional FileFinderContentsRegexMatchCondition value_regex_match = 3;
+  optional FileFinderModificationTimeCondition modification_time = 4;
+}
+
+message RegistryFinderArgs {
+  repeated string keys_paths = 1 [(sem_type) = {
+      type: "GlobExpression",
+      description: "Glob expression for registry keys to be retrieved."
+    }];
+
+  repeated RegistryFinderCondition conditions = 2;
+}
+
 message MemoryCollectorCondition {
   enum Type {
     LITERAL_MATCH = 1 [(description) = "Literal match"];

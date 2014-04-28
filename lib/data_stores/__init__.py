@@ -19,3 +19,9 @@ except ImportError:
   # MySql data store not supported.
   pass
 
+
+# Simple data store based on the trivial database (tdb)
+try:
+  from grr.lib.data_stores import tdb_data_store
+except ImportError:
+  pass

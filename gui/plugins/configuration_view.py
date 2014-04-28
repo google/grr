@@ -145,10 +145,22 @@ class ConfigurationTree(renderers.TreeRenderer):
     try:
       directory = aff4.FACTORY.Create(urn, "VFSDirectory", mode="r",
                                       token=request.token)
-      children = [ch for ch in directory.OpenChildren(limit=100000)
-                  if "Container" in ch.behaviours]
-      for child in children:
-        self.AddElement(child.urn.RelativeName(urn))
+      children = list(directory.ListChildren(limit=100000))
+      infos = aff4.FACTORY.Stat(children)
+      info_by_urn = {}
+      for info in infos:
+        info_by_urn[info["urn"]] = info
+
+      for child_urn in children:
+        info = info_by_urn.get(child_urn)
+        if info:
+          typeinfo = info.get("type")
+          if typeinfo:
+            class_name = typeinfo[1]
+            cls = aff4.AFF4Object.classes.get(class_name)
+            if cls and "Container" not in cls.behaviours:
+              continue
+        self.AddElement(child_urn.RelativeName(urn))
 
     except IOError as e:
       self.message = "Error fetching %s: %s" % (urn, e)

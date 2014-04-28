@@ -382,10 +382,20 @@ class FlowTabView(renderers.TabLayout):
   Internal State:
     - flow_path - The category and name of the flow we display.
   """
-  names = ["Flow Information", "Requests"]
-  delegated_renderers = ["ShowFlowInformation", "FlowRequestView"]
+  names = ["Flow Information", "Requests", "Results", "Export"]
+  delegated_renderers = ["ShowFlowInformation", "FlowRequestView",
+                         "FlowResultsView", "FlowResultsExportView"]
 
   tab_hash = "ftv"
+
+  def IsOutputExportable(self, flow_urn, token=None):
+    flow_obj = aff4.FACTORY.Open(flow_urn, token=token)
+    with flow_obj.GetRunner() as runner:
+      if getattr(runner, "output_urn", None):
+        return fileview.CollectionExportView.IsCollectionExportable(
+            runner.output_urn, token=token)
+
+    return False
 
   def Layout(self, request, response):
     req_flow = request.REQ.get("flow")
@@ -395,6 +405,9 @@ class FlowTabView(renderers.TabLayout):
     client_id = request.REQ.get("client_id")
     if client_id:
       self.state["client_id"] = client_id
+
+    if req_flow and not self.IsOutputExportable(req_flow, token=request.token):
+      self.disabled = ["FlowResultsExportView"]
 
     response = super(FlowTabView, self).Layout(request, response)
     return self.CallJavascript(response, "FlowTabView.Layout",
@@ -441,6 +454,49 @@ class FlowRequestView(renderers.TableRenderer):
       self.AddCell(i, "Request", request)
       if responses:
         self.AddCell(i, "Last Response", responses[-1])
+
+
+class FlowResultsView(semantic.RDFValueCollectionRenderer):
+  """Displays a collection of flow's results."""
+
+  error_template = renderers.Template("""
+<p>This flow hasn't stored any results yet.</p>
+""")
+
+  context_help_url = "user_manual.html#_exporting_a_collection"
+
+  def Layout(self, request, response):
+    session_id = request.REQ.get("flow", "")
+
+    if not session_id:
+      return
+
+    flow_obj = aff4.FACTORY.Open(session_id, token=request.token)
+    with flow_obj.GetRunner() as runner:
+      # If there's collection in the runner, use it, otherwise display
+      # 'no results' message.
+      if getattr(runner, "output_urn", None):
+        return super(FlowResultsView, self).Layout(
+            request, response, aff4_path=runner.output_urn)
+      else:
+        return self.RenderFromTemplate(self.error_template, response,
+                                       unique=self.unique)
+
+
+class FlowResultsExportView(fileview.CollectionExportView):
+  """Displays export command to export flow's results."""
+
+  def Layout(self, request, response):
+    session_id = request.REQ.get("flow", "")
+
+    if not session_id:
+      return
+
+    flow_obj = aff4.FACTORY.Open(session_id, token=request.token)
+    with flow_obj.GetRunner() as runner:
+      if runner.output_urn is not None:
+        return super(FlowResultsExportView, self).Layout(
+            request, response, aff4_path=runner.output_urn)
 
 
 class TreeColumn(semantic.RDFValueColumn, renderers.TemplateRenderer):
@@ -845,8 +901,9 @@ class GlobExpressionFormRenderer(forms.ProtoRDFValueFormRenderer):
     self.completions = sorted(set(rdfvalue.KnowledgeBase().GetKbFieldNames()))
 
     response = super(GlobExpressionFormRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "Layout", prefix=self.prefix,
-                               completions=self.completions)
+    return self.CallJavascript(
+        response, "GlobExpressionFormRenderer.Layout", prefix=self.prefix,
+        completions=self.completions)
 
 
 class FileFinderConditionFormRenderer(forms.UnionMultiFormRenderer):
@@ -893,6 +950,20 @@ class MemoryCollectorActionFormRenderer(forms.UnionMultiFormRenderer):
   """Renders a memory collector action selector."""
   type = rdfvalue.MemoryCollectorAction
   union_by_field = "action_type"
+
+
+class RegistryFinderConditionFormRenderer(forms.UnionMultiFormRenderer):
+  """Renders a single option in a list of conditions."""
+  type = rdfvalue.RegistryFinderCondition
+  union_by_field = "condition_type"
+
+
+class RegistryFinderConditionListFormRenderer(forms.RepeatedFieldFormRenderer):
+  """Renders multiple conditions. Doesn't display a "default" condition."""
+  type = rdfvalue.RegistryFinderCondition
+
+  # We want list of conditions to be empty by default.
+  add_element_on_first_show = False
 
 
 class RegularExpressionFormRenderer(forms.ProtoRDFValueFormRenderer):

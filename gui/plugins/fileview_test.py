@@ -361,6 +361,89 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=.tab-content td.proto_value=423")
 
+  def testFileViewHasCollectionTabForRDFValueCollection(self):
+    collection_urn = "aff4:/C.0000000000000001/analysis/SomeFlow/results"
+    with self.ACLChecksDisabled():
+      with aff4.FACTORY.Create(
+          collection_urn, "RDFValueCollection", token=self.token) as fd:
+        fd.Add(rdfvalue.StatEntry(aff4path="aff4:/some/unique/path"))
+
+      self.GrantClientApproval("C.0000000000000001")
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Browse Virtual Filesystem')")
+    self.Click("css=li[path='/analysis'] > a")
+    self.Click("css=li[path='/analysis/SomeFlow'] > a")
+    self.Click("css=tr:contains('results')")
+
+    # Collection tab should appear and there should be no HexView and TextView
+    # and Download tabs.
+    self.WaitUntil(self.IsElementPresent, "css=#Collection")
+    self.WaitUntilNot(self.IsElementPresent, "css=#DownloadView")
+    self.WaitUntilNot(self.IsElementPresent, "css=#FileTextViewer")
+    self.WaitUntilNot(self.IsElementPresent, "css=#FileHexViewer")
+
+    # Click on Collection tab and check that the StatEntry we added before is
+    # there.
+    self.Click("css=#Collection")
+    self.WaitUntil(self.IsTextPresent, "aff4:/some/unique/path")
+
+  def testFileViewDoesNotHaveExportTabWhenCollectionHasNoFiles(self):
+    collection_urn = "aff4:/C.0000000000000001/analysis/SomeFlow/results"
+    with self.ACLChecksDisabled():
+      with aff4.FACTORY.Create(
+          collection_urn, "RDFValueCollection", token=self.token) as fd:
+        fd.Add(rdfvalue.NetworkConnection(pid=42))
+
+      self.GrantClientApproval("C.0000000000000001")
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Browse Virtual Filesystem')")
+    self.Click("css=li[path='/analysis'] > a")
+    self.Click("css=li[path='/analysis/SomeFlow'] > a")
+    self.Click("css=tr:contains('results')")
+
+    # Collection tab should appear, but the "Export" tab should be
+    # disabled since we only display export hint when we have collections of
+    # StatEntries or FileFinderResults.
+    self.WaitUntil(self.IsElementPresent, "css=#Export.disabled")
+
+  def CheckExportTabIsPresent(self):
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Browse Virtual Filesystem')")
+    self.Click("css=li[path='/analysis'] > a")
+    self.Click("css=li[path='/analysis/SomeFlow'] > a")
+    self.Click("css=tr:contains('results')")
+
+    # 'Export' tab should be there, since we're dealing with StatEntries.
+    self.Click("css=#Export")
+    self.WaitUntil(self.IsTextPresent,
+                   "--username test --reason 'Running tests' collection_files "
+                   "--path aff4:/C.0000000000000001/analysis/SomeFlow/results")
+
+  def testFileViewHasExportTabWhenCollectionHasStatEntries(self):
+    collection_urn = "aff4:/C.0000000000000001/analysis/SomeFlow/results"
+    with self.ACLChecksDisabled():
+      with aff4.FACTORY.Create(
+          collection_urn, "RDFValueCollection", token=self.token) as fd:
+        fd.Add(rdfvalue.StatEntry(aff4path="aff4:/some/unique/path"))
+
+      self.GrantClientApproval("C.0000000000000001")
+
+    self.CheckExportTabIsPresent()
+
+  def testFileViewHasExportTabWhenCollectionHasFileFinderResults(self):
+    collection_urn = "aff4:/C.0000000000000001/analysis/SomeFlow/results"
+    with self.ACLChecksDisabled():
+      with aff4.FACTORY.Create(
+          collection_urn, "RDFValueCollection", token=self.token) as fd:
+        fd.Add(rdfvalue.FileFinderResult(
+            stat_entry=rdfvalue.StatEntry(aff4path="aff4:/some/unique/path")))
+
+      self.GrantClientApproval("C.0000000000000001")
+
+    self.CheckExportTabIsPresent()
+
   def testDoubleClickGoesInsideDirectory(self):
     """Tests that double click in FileTable goes inside the directory."""
 

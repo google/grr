@@ -626,11 +626,9 @@ class AFF4Index(aff4.AFF4Object):
     self.to_delete = self.to_delete.difference(self.to_set)
 
     # Convert sets into dicts that MultiSet handles.
-    to_delete = dict(zip(self.to_delete,
-                         self.PLACEHOLDER_VALUE*len(self.to_delete)))
     to_set = dict(zip(self.to_set, self.PLACEHOLDER_VALUE*len(self.to_set)))
 
-    data_store.DB.MultiSet(self.urn, to_set, to_delete=to_delete,
+    data_store.DB.MultiSet(self.urn, to_set, to_delete=list(self.to_delete),
                            token=self.token, replace=True, sync=sync)
     self.to_set = set()
     self.to_delete = set()

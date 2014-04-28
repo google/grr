@@ -8,6 +8,7 @@ Google proto implementation, and generate Semantic proto descriptors.
 This file contains interoperability code with the Google protocol buffer
 library.
 """
+
 import logging
 
 from grr.lib import rdfvalue

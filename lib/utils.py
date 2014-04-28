@@ -5,6 +5,7 @@
 import __builtin__
 import base64
 import os
+import pipes
 import Queue
 import random
 import re
@@ -644,13 +645,14 @@ def NormalizePath(path, sep="/"):
       return sep + sep.join(path_list)
 
 
-def JoinPath(*parts):
+def JoinPath(stem, *parts):
   """A sane version of os.path.join.
 
   The intention here is to append the stem to the path. The standard module
   removes the path if the stem begins with a /.
 
   Args:
+     stem: The stem to join to.
      *parts: parts of the path to join. The first arg is always the root and
         directory traversal is not allowed.
 
@@ -660,7 +662,10 @@ def JoinPath(*parts):
   # Ensure all path components are unicode
   parts = [SmartUnicode(path) for path in parts]
 
-  return NormalizePath(u"/".join(parts))
+  result = (stem + NormalizePath(u"/".join(parts))).replace("//", "/")
+  result = result.rstrip("/")
+
+  return result or "/"
 
 
 def GuessWindowsFileNameFromString(str_in):
@@ -692,6 +697,12 @@ def GuessWindowsFileNameFromString(str_in):
       guesses.append(current_str)
 
   return guesses
+
+
+def ShellQuote(value):
+  """Escapes the string for the safe use inside shell command line."""
+  # TODO(user): replace pipes.quote with shlex.quote when time comes.
+  return pipes.quote(SmartStr(value))
 
 
 def Join(*parts):

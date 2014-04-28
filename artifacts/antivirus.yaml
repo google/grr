@@ -1,33 +1,32 @@
-# Antivirus artifacts
+# Anti-Virus artifacts
 
-name: SophosWinLogs
-doc: Sophos Logs for Windows.
+name: SophosAVLogs
+doc: Sophos Anti-Virus log files.
 collectors:
 - action: GetFiles
   args: {path_list: ['%%environ_allusersappdata%%\Sophos\Sophos Anti-Virus\Logs\*']}
-labels: [Antivirus, Logs]
-supported_os: [Windows]
----
-name: SophosWinQuarantineFiles
-doc: Sophos Infected files for Windows.
-collectors:
-- action: GetFiles
-  args: {path_list: ['%%environ_allusersappdata%%\Sophos\Sophos Anti-Virus\INFECTED\*']}
-labels: [Antivirus]
-supported_os: [Windows]
----
-name: SophosMacLogs
-doc: Sophos Logs for OSX.
+  supported_os: [Windows]
 collectors:
 - action: GetFiles
   args: {path_list: ['/Library/Logs/Sophos*.log']}
+  supported_os: [Darwin]
 labels: [Antivirus, Logs]
-supported_os: [Darwin]
 ---
-name: SophosMacQuarantineFiles
-doc: Sophos Infected files for OSX.
+name: SophosAVQuarantine
+doc: Sophos Anti-Virus Quarantine (Infected) files.
 collectors:
 - action: GetFiles
+  args: {path_list: ['%%environ_allusersappdata%%\Sophos\Sophos Anti-Virus\INFECTED\*']}
+  supported_os: [Windows]
+- action: GetFiles
   args: {path_list: ['/Users/Shared/Infected']}
+  supported_os: [Darwin]
 labels: [Antivirus]
-supported_os: [Darwin]
+---
+name: MicrosoftAVQuarantine
+doc: Microsoft Anti-Virus Quarantine (Infected) files.
+collectors:
+- action: GetFiles
+  args: {path_list: ['%%environ_systemdrive%%\ProgramData\Microsoft\Microsoft Antimalware\Quarantine\**3']}
+  supported_os: [Windows]
+labels: [Antivirus]

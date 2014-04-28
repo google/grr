@@ -82,6 +82,10 @@ config_lib.DEFINE_string("Datastore.implementation", "FakeDataStore",
 config_lib.DEFINE_integer("Datastore.transaction_timeout", default=600,
                           help="How long do we wait for a transaction lock.")
 
+config_lib.DEFINE_string("TDBDatastore.root_path", default="/tmp",
+                         help=("The root directory under which the tdb files "
+                               "are created."))
+
 # Mongo data store.
 config_lib.DEFINE_string("Mongo.server", "localhost",
                          "The mongo server hostname.")

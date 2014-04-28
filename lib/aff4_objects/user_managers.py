@@ -13,8 +13,9 @@ AccessControlManager Classes:
 
 
 import fnmatch
-import logging
 import re
+
+import logging
 
 from grr.lib import access_control
 from grr.lib import aff4

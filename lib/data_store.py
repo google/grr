@@ -266,8 +266,7 @@ class DataStore(object):
       AccessError: if anything goes wrong.
     """
     for _, value, timestamp in self.ResolveMulti(
-        subject, [utils.EscapeRegex(predicate)],
-        token=token, timestamp=self.NEWEST_TIMESTAMP):
+        subject, [predicate], token=token, timestamp=self.NEWEST_TIMESTAMP):
 
       # Just return the first one.
       return value, timestamp

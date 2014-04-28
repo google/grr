@@ -828,6 +828,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       urn = self.runner.output.urn
     else:
       urn = self.client_id
+
     self.Notify("ViewObject", urn,
                 "Completed artifact collection of %s. Collected %d. Errors %d."
                 % (self.args.artifact_list, collect_count,

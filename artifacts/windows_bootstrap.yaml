@@ -144,9 +144,11 @@ supported_os: [Windows]
 urls: ['https://code.google.com/p/winreg-kb/wiki/TimeZoneKeys']
 ---
 name: WindowsRegistryProfiles
-doc: "Get SIDs for all users on the system with profiles present in the registry.\n\
-    \n  This looks in the Windows registry where the profiles are stored and retrieves\n\
-    \  the paths for each profile.\n  "
+doc: |
+  Get SIDs for all users on the system with profiles present in the registry.
+
+  This looks in the Windows registry where the profiles are stored and retrieves
+  the paths for each profile.
 collectors:
 - action: GetRegistryKeys
   args:
@@ -156,30 +158,19 @@ provides: [users.sid, users.userprofile, users.homedir, users.username]
 supported_os: [Windows]
 urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/bb776892(v=vs.85).aspx']
 ---
-name: WindowsWMIProfileUsersHomeDir
-doc: "Get user homedir from Win32_UserProfile based on a known user's SID.\n\n\
-    This artifact relies on having the SID field users.sid populated in the knowledge\n\
-    \  base. We expect it to be collected with WindowsRegistryProfiles to\n\
-    \ supply the rest of the user information.\n  "
-collectors:
-- action: WMIQuery
-  args: {query: SELECT * FROM Win32_UserProfile WHERE SID='%%users.sid%%'}
-labels: [Users]
-provides: [users.homedir]
-supported_os: [Windows]
-urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/ee886409(v=vs.85).aspx']
----
-name: WindowsWMIAccountUsersDomain
-doc: "Fill out user AD domain information based on username.\n\n  We expect\
-    \ this artifact to be collected with WindowsRegistryProfiles to supply the\
-    \ rest of the user information. This artifact optimizes\
-    \ retrieval of user information by limiting the WMI\n  query to users for which\
-    \ we have a username for. Specifically this solves the issue\n  that in a domain setting,\
-    \ querying for all users via WMI will give you the\n  list of all local and domain\
-    \ accounts which means a large data transfer from\n  an Active Directory server.\n\
-    \n  This artifact relies on having the users.username field populated in the knowledge\n\
-    \  base. Unfortunately even limiting by username this query can be slow, and this artifact\n\
-    \ runs it for each user present on the system. \n "
+name: WMIAccountUsersDomain
+doc: |
+  Fill out user AD domain information based on username.
+
+  We expect this artifact to be collected with WindowsRegistryProfiles
+  to supply the rest of the user information. This artifact optimizes retrieval
+  of user information by limiting the WMI query to users for which we have
+  a username for. Specifically this solves the issue that in a domain setting,
+  querying for all users via WMI will give you the list of all local and domain
+  accounts which means a large data transfer from an Active Directory server.
+  This artifact relies on having the users.username field populated in the knowledge
+  base. Unfortunately even limiting by username this query can be slow, and
+  this artifact runs it for each user present on the system.
 collectors:
 - action: WMIQuery
   args: {query: SELECT * FROM Win32_UserAccount WHERE name='%%users.username%%'}
@@ -187,3 +178,18 @@ labels: [Users]
 provides: [users.userdomain]
 supported_os: [Windows]
 urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/aa394507(v=vs.85).aspx']
+---
+name: WMIProfileUsersHomeDir
+doc: |
+  Get user homedir from Win32_UserProfile based on a known user's SID.
+
+  This artifact relies on having the SID field users.sid populated in the knowledge
+  base. We expect it to be collected with WindowsRegistryProfiles to
+  supply the rest of the user information.
+collectors:
+- action: WMIQuery
+  args: {query: SELECT * FROM Win32_UserProfile WHERE SID='%%users.sid%%'}
+labels: [Users]
+provides: [users.homedir]
+supported_os: [Windows]
+urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/ee886409(v=vs.85).aspx']

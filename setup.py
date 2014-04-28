@@ -93,7 +93,7 @@ def GRRFindDataFiles(data_files_specs):
       for filename in GRRFind(package_path, patterns):
         package_data_files.append(filename)
 
-    data_files[package_name] = []
+    data_files.setdefault(package_name, [])
 
     for filename in package_data_files:
       filename = GRRGetRelativeFilename(package_path_prefix, filename)
@@ -118,6 +118,10 @@ def GRRFindPackages():
 
   return packages
 
+
+grr_artifact_files_spec = ('grr',
+                           ['artifacts'],
+                           ['*.yaml'])
 
 grr_data_files_spec = ('grr',
                        ['tools', 'worker'],
@@ -152,10 +156,10 @@ setup(name='grr',
       license='Apache License, Version 2.0',
       url='http://code.google.com/p/grr',
       install_requires=[],
-      include_package_data=True,
       packages=GRRFindPackages(),
       package_dir={'grr': '../grr'},
-      package_data=GRRFindDataFiles([grr_data_files_spec,
+      package_data=GRRFindDataFiles([grr_artifact_files_spec,
+                                     grr_data_files_spec,
                                      grr_gui_data_files_spec,
                                      grr_client_data_files_spec,
                                      grr_test_data_files_spec,

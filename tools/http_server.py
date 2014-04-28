@@ -2,6 +2,7 @@
 """This is the GRR frontend HTTP Server."""
 
 
+
 import BaseHTTPServer
 import cgi
 import cStringIO
@@ -25,8 +26,10 @@ from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import master
 from grr.lib import rdfvalue
 from grr.lib import startup
+from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
 
@@ -84,6 +87,15 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     self.Control()
 
   def Control(self):
+    """Handle POSTS."""
+    if not master.MASTER_WATCHER.IsMaster():
+      # We shouldn't be getting requests from the client unless we
+      # are the active instance.
+      stats.STATS.IncrementCounter("frontend_inactive_request_count",
+                                   fields=["http"])
+      logging.info("Request sent to inactive frontend from %s" %
+                   self.client_address[0])
+
     # Get the api version
     try:
       api_version = int(cgi.parse_qs(self.path.split("?")[1])["api"][0])

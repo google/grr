@@ -28,8 +28,8 @@ config_lib.DEFINE_list("Artifacts.knowledge_base",
                         "WinPathEnvironmentVariable",
                         "WinTimeZone",
                         "WindowsRegistryProfiles",
-                        "WindowsWMIProfileUsersHomeDir",
-                        "WindowsWMIAccountUsersDomain",
+                        "WMIProfileUsersHomeDir",
+                        "WMIAccountUsersDomain",
                         "OSXUsers",
                         "LinuxUserProfiles"],
                        "List of artifacts that are collected regularly by"
@@ -50,7 +50,7 @@ config_lib.DEFINE_list("Artifacts.knowledge_base_skip", [],
                        " whole list.")
 
 config_lib.DEFINE_list("Artifacts.knowledge_base_heavyweight",
-                       ["WindowsWMIAccountUsersDomain"],
+                       ["WMIAccountUsersDomain"],
                        "Artifacts to skip when the 'lightweight' option is"
                        " set on interrogate. These artifacts are too expensive"
                        " or slow to collect regularly from all machines.")

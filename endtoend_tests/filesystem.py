@@ -3,9 +3,9 @@
 
 import re
 
+from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import rdfvalue
-from grr.lib.flows.console.client_tests import base
 
 
 ####################

@@ -23,6 +23,7 @@ from grr.lib import server_plugins
 
 import logging
 
+from grr.endtoend_tests import base
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import artifact
@@ -54,7 +55,6 @@ from grr.lib.console_utils import *
 
 from grr.lib.flows import console
 from grr.lib.flows.console import debugging
-from grr.lib.flows.console.client_tests import base
 from grr.lib.flows.general import memory
 # pylint: enable=unused-import
 

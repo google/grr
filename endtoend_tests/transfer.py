@@ -8,10 +8,10 @@ import threading
 
 
 import logging
+from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib.flows.console.client_tests import base
 from grr.lib.rdfvalues import crypto
 from grr.proto import tests_pb2
 

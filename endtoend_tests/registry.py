@@ -3,13 +3,13 @@
 
 import os
 
+from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.flows.console import debugging
-from grr.lib.flows.console.client_tests import base
 
 
 class TestFindWindowsRegistry(base.ClientTestBase):

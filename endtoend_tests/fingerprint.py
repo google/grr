@@ -2,8 +2,8 @@
 """End to end tests for lib.flows.general.fingerprint."""
 
 
+from grr.endtoend_tests import transfer
 from grr.lib import aff4
-from grr.lib.flows.console.client_tests import transfer
 
 
 class FingerPrintTestBase(object):

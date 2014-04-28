@@ -106,11 +106,12 @@ class FileFinder(flow.GRRFlow):
     self.state.Register("sorted_conditions",
                         sorted(self.args.conditions, key=self._ConditionWeight))
 
-    if self.args.pathtype == rdfvalue.PathSpec.PathType.MEMORY:
-      # We construct StatEntries ourselves and there's no way they can
-      # pass the file type check.
+    if self.args.pathtype in (rdfvalue.PathSpec.PathType.MEMORY,
+                              rdfvalue.PathSpec.PathType.REGISTRY):
+      # Memory and Registry StatEntries won't pass the file type check.
       self.args.no_file_type_check = True
 
+    if self.args.pathtype == rdfvalue.PathSpec.PathType.MEMORY:
       # If pathtype is MEMORY, we're treating provided paths not as globs,
       # but as paths to memory devices.
       memory_devices = []
@@ -326,5 +327,6 @@ class FileFinder(flow.GRRFlow):
       urn = self.runner.output.urn
     else:
       urn = self.client_id
+
     self.Notify("ViewObject", urn,
                 "Found and processed %d files." % self.state.files_found)

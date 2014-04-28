@@ -2,9 +2,9 @@
 """End to end tests for lib.flows.general.discovery."""
 
 
+from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import data_store
-from grr.lib.flows.console.client_tests import base
 
 
 class TestClientInterrogateEndToEnd(base.ClientTestBase):

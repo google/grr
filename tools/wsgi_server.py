@@ -39,6 +39,8 @@ if grrpath not in sys.path:
   sys.path.append(grrpath)
 
 
+import logging
+
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 from grr.tools import http_server
@@ -49,8 +51,10 @@ from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import master
 from grr.lib import rdfvalue
 from grr.lib import startup
+from grr.lib import stats
 
 
 flags.DEFINE_integer("max_queue_size", 500,
@@ -84,6 +88,12 @@ class GrrWSGIServer(object):
 
   def handle(self, environ, start_response):
     """The request handler."""
+    if not master.MASTER_WATCHER.IsMaster():
+      # We shouldn't be getting requests from the client unless we
+      # are the active instance.
+      stats.STATS.IncrementCounter("frontend_inactive_request_count",
+                                   fields=["http"])
+      logging.info("Request sent to inactive frontend")
 
     if environ["REQUEST_METHOD"] == "GET":
       if environ["PATH_INFO"] == "/server.pem":

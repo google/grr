@@ -33,9 +33,6 @@ flags.DEFINE_string("output", None,
 flags.DEFINE_integer("processes", 5,
                      "Total number of simultaneous tests to run.")
 
-flags.DEFINE_string("type", "normal",
-                    "The type of the tests to run (normal, benchmarks).")
-
 
 class Colorizer(object):
   """A Class which wraps a string with colors."""

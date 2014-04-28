@@ -3,11 +3,12 @@
 
 
 
-import logging
 import os
 import random
 import socket
 import time
+
+import logging
 
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -511,16 +512,27 @@ class QueueManager(object):
   def _GetUnsortedNotifications(self, queue):
     """Returns all the available notifications for a queue."""
     notifications_by_session_id = {}
+    queue_shard = self.GetNotificationShard(queue)
+    end_time = int(self.frozen_timestamp or rdfvalue.RDFDatetime().Now())
     for predicate, serialized_notification, ts in data_store.DB.ResolveRegex(
-        self.GetNotificationShard(queue), self.NOTIFY_PREDICATE_PREFIX % ".*",
+        queue_shard, self.NOTIFY_PREDICATE_PREFIX % ".*",
         # TODO(user): remove int() conversion when datastores accept
         # RDFDatetime instead of ints.
-        timestamp=(0,
-                   int(self.frozen_timestamp or rdfvalue.RDFDatetime().Now())),
+        timestamp=(0, end_time),
         token=self.token, limit=10000):
 
       # Parse the notification.
-      notification = rdfvalue.GrrNotification(serialized_notification)
+      try:
+        notification = rdfvalue.GrrNotification(serialized_notification)
+      except Exception:  # pylint: disable=broad-except
+        logging.exception("Can't unserialize notification, deleting it: "
+                          "predicate=%s, ts=%d", predicate, ts)
+        data_store.DB.DeleteAttributes(
+            queue_shard, [predicate], token=self.token,
+            # Make the time range narrow, but be sure to include the needed
+            # notification.
+            start=int(ts) - 1, end=int(ts) + 1)
+
       # Strip the prefix from the predicate to get the session_id.
       session_id = predicate[len(self.NOTIFY_PREDICATE_PREFIX % ""):]
       notification.session_id = session_id

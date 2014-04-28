@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """An LL(1) lexer. This lexer is very tolerant of errors and can resync."""
 
-import logging
+
 import re
 
+import logging
 
 from grr.lib import utils
 

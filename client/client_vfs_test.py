@@ -417,7 +417,7 @@ class VFSTest(test_lib.GRRBaseTest):
       self.assertEqual(s.pathspec.nested_path.path, "/home/image2.img")
       names.append(s.pathspec.nested_path.nested_path.path)
 
-    self.assertTrue("/home/a.txt" in names)
+    self.assertTrue("home/a.txt" in names)
 
   def testRegistryListing(self):
     """Test our ability to list registry keys."""

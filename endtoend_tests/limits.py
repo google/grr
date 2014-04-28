@@ -2,10 +2,10 @@
 """End to end tests for client resource limits."""
 
 
+from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib.flows.console.client_tests import base
 
 
 class NetworkLimitTestFlow(flow.GRRFlow):

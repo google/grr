@@ -11,6 +11,7 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
@@ -18,17 +19,25 @@ class TestNotifications(test_lib.GRRSeleniumTest):
   """Test the fileview interface."""
 
   @classmethod
-  def GenerateNotifications(cls):
+  def GenerateNotifications(cls, notification_type=None,
+                            subject=None, message=None):
     """Generate some fake notifications."""
+    if notification_type is None:
+      notification_type = "ViewObject"
+
+    if subject is None:
+      subject = "aff4:/C.0000000000000001/fs/os/proc/10/exe"
+
+    if message is None:
+      message = "File fetch completed."
+
     token = access_control.ACLToken(username="test", reason="test fixture")
     cls.session_id = flow.GRRFlow.StartFlow(
         client_id="aff4:/C.0000000000000001", flow_name="Interrogate",
         token=token)
 
     with aff4.FACTORY.Open(cls.session_id, mode="rw", token=token) as flow_obj:
-      flow_obj.Notify("ViewObject",
-                      "aff4:/C.0000000000000001/fs/os/proc/10/exe",
-                      "File fetch completed.")
+      flow_obj.Notify(notification_type, subject, message)
 
       # Generate an error for this flow.
       with flow_obj.GetRunner() as runner:
@@ -103,6 +112,26 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     # The stats pane shows the relevant flow
     self.WaitUntilContains(
         self.session_id, self.GetText, "css=.tab-content h3")
+
+  def testViewObjectNotificationForCollection(self):
+    # Create sample collection
+    collection_urn = "aff4:/C.0000000000000001/analysis/SomeFlow/results"
+    with self.ACLChecksDisabled():
+      with aff4.FACTORY.Create(
+          collection_urn, "RDFValueCollection", token=self.token) as fd:
+        fd.Add(rdfvalue.StatEntry(aff4path="aff4:/some/unique/path"))
+
+      self.GenerateNotifications(
+          notification_type="ViewObject", subject=collection_urn,
+          message="Look at this awesome collection!")
+
+    self.Open("/")
+    self.Click("css=button[id=notification_button]")
+    self.Click("css=td:contains('Look at this awesome collection!')")
+    # The collection tab should appear.
+    self.Click("css=#Collection")
+    # And it should contain the result we've written.
+    self.WaitUntil(self.IsTextPresent, "aff4:/some/unique/path")
 
   def testUserSettings(self):
     """Tests that user settings UI is working."""

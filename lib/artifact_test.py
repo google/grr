@@ -230,7 +230,7 @@ class ArtifactFlowTest(ArtifactTestHelper):
   def testWMIQueryArtifact(self):
     """Check we can run WMI based artifacts."""
     self.SetWindowsClient()
-    self.RunCollectorAndGetCollection(["WindowsWMIInstalledSoftware"],
+    self.RunCollectorAndGetCollection(["WMIInstalledSoftware"],
                                       store_results_in_aff4=True)
     urn = self.client_id.Add("info/software")
     fd = aff4.FACTORY.Open(urn, token=self.token)

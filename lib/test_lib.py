@@ -69,7 +69,6 @@ from grr.test_data import client_fixture
 flags.DEFINE_list("tests", None,
                   help=("Test module to run. If not specified we run"
                         "All modules in the test suite."))
-
 flags.DEFINE_list("labels", ["small"],
                   "A list of test labels to run. (e.g. benchmarks,small).")
 
@@ -265,7 +264,11 @@ class GRRBaseTest(unittest.TestCase):
     logging.info("Completed test: %s.%s",
                  self.__class__.__name__, self._testMethodName)
 
-    shutil.rmtree(self.temp_dir, True)
+    # This may fail on filesystems which do not support unicode filenames.
+    try:
+      shutil.rmtree(self.temp_dir, True)
+    except UnicodeError:
+      pass
 
   def shortDescription(self):  # pylint: disable=g-bad-name
     doc = self._testMethodDoc or ""
@@ -1112,6 +1115,7 @@ class MicroBenchmarks(GRRBaseTest):
     self.AddResult(name, time_taken, repetitions, v)
 
   def AddResult(self, name, time_taken, repetitions, v=None):
+    logging.info("%s: %s (%s)", name, time_taken, repetitions)
     self.benchmark_scratchpad.append(
         [name, time_taken, repetitions, v])
 

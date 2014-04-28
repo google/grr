@@ -399,7 +399,8 @@ class Communicator(object):
        RuntimeError: If we do not support this api version.
     """
     if api_version not in [3]:
-      raise RuntimeError("Unsupported api version.")
+      raise RuntimeError("Unsupported api version: %s, expected 3." %
+                         api_version)
 
     if destination is None:
       destination = self.server_name
@@ -514,7 +515,8 @@ class Communicator(object):
        DecryptionError: If the message failed to decrypt properly.
     """
     if response_comms.api_version not in [3]:
-      raise DecryptionError("Unsupported api version.")
+      raise DecryptionError("Unsupported api version: %s, expected 3." %
+                            response_comms.api_version)
 
     if response_comms.encrypted_cipher:
       # Have we seen this cipher before?

@@ -16,6 +16,14 @@ class FakeDataStoreTest(data_store_test.DataStoreTest):
   """Test the fake data store."""
 
 
+class FakeDataStoreBenchmarks(data_store_test.DataStoreBenchmarks):
+  """Benchmark the fake data store.
+
+  This gives an upper bound on data store performance - since the fake data
+  store is the most trivial data store and therefore the fastest.
+  """
+
+
 def main(args):
   test_lib.main(args)
 

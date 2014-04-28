@@ -410,12 +410,16 @@ def LoadArtifactsFromFiles(file_paths, overwrite_if_exists=True):
 
 def LoadArtifactsFromDir(dir_path):
   """Load artifacts from all .json or .yaml files in a directory."""
-  files_to_load = []
-  for file_name in os.listdir(dir_path):
-    if (file_name.endswith(".json") or file_name.endswith(".yaml") and
-        not file_name.startswith("test")):
-      files_to_load.append(os.path.join(dir_path, file_name))
-  return LoadArtifactsFromFiles(files_to_load)
+  try:
+    files_to_load = []
+    for file_name in os.listdir(dir_path):
+      if (file_name.endswith(".json") or file_name.endswith(".yaml") and
+          not file_name.startswith("test")):
+        files_to_load.append(os.path.join(dir_path, file_name))
+    return LoadArtifactsFromFiles(files_to_load)
+  except (IOError, OSError):
+    logging.warn("Artifact directory not found: %s", dir_path)
+    return []
 
 
 def DumpArtifactsToYaml(artifact_list, sort_by_os=True):

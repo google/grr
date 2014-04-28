@@ -10,7 +10,7 @@ class WMIInstalledSoftwareParser(parsers.WMIQueryParser):
   """Parser for WMI output. Yields SoftwarePackage rdfvalues."""
 
   output_types = ["SoftwarePackage"]
-  supported_artifacts = ["WindowsWMIInstalledSoftware"]
+  supported_artifacts = ["WMIInstalledSoftware"]
 
   def Parse(self, query, result, knowledge_base):
     """Parse the wmi packages output."""
@@ -29,7 +29,7 @@ class WMIHotfixesSoftwareParser(parsers.WMIQueryParser):
   """Parser for WMI output. Yields SoftwarePackage rdfvalues."""
 
   output_types = ["SoftwarePackage"]
-  supported_artifacts = ["WindowsHotFixes"]
+  supported_artifacts = ["WMIHotFixes"]
 
   def Parse(self, query, result, knowledge_base):
     """Parse the wmi packages output."""
@@ -52,8 +52,8 @@ class WMIUserParser(parsers.WMIQueryParser):
   """Parser for WMI Win32_UserAccount and Win32_UserProfile output."""
 
   output_types = ["KnowledgeBaseUser"]
-  supported_artifacts = ["WindowsWMIProfileUsersHomeDir",
-                         "WindowsWMIAccountUsersDomain"]
+  supported_artifacts = ["WMIProfileUsersHomeDir",
+                         "WMIAccountUsersDomain"]
 
   account_mapping = {
       # Win32_UserAccount

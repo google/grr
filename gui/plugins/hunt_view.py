@@ -943,10 +943,6 @@ class HuntResultsRenderer(semantic.RDFValueCollectionRenderer):
 <p>This hunt hasn't stored any results yet.</p>
 """)
 
-  no_plugin_template = renderers.Template("""
-<p>This hunt is not configured to store results in a collection.</p>
-""")
-
   context_help_url = "user_manual.html#_exporting_a_collection"
 
   def Layout(self, request, response):
@@ -958,8 +954,6 @@ class HuntResultsRenderer(semantic.RDFValueCollectionRenderer):
     with hunt.GetRunner() as runner:
       return super(HuntResultsRenderer, self).Layout(
           request, response, aff4_path=runner.context.results_collection_urn)
-
-    return self.RenderFromTemplate(self.no_plugin_template, response)
 
 
 class HuntStatsRenderer(renderers.TemplateRenderer):

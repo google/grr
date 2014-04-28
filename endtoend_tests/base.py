@@ -133,6 +133,7 @@ class LocalClientTest(ClientTestBase):
 def RunTests(client_id=None, platform=None, testname=None,
              token=None, local_worker=False):
   runner = unittest.TextTestRunner()
+
   for cls in ClientTestBase.classes.values():
     if testname is not None and testname != cls.__name__:
       continue

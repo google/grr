@@ -10,6 +10,70 @@ from grr.lib import artifact_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.proto import flows_pb2
+
+
+class RegistryFinderCondition(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.RegistryFinderCondition
+
+
+class RegistryFinderArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.RegistryFinderArgs
+
+
+class RegistryFinder(flow.GRRFlow):
+  """This flow looks for registry items matching given criteria."""
+
+  friendly_name = "Registry Finder"
+  category = "/Registry/"
+  args_type = RegistryFinderArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
+
+  def ConditionsToFileFinderConditions(self, conditions):
+    ff_condition_type_cls = rdfvalue.FileFinderCondition.Type
+    result = []
+    for c in conditions:
+      if c.condition_type == RegistryFinderCondition.Type.MODIFICATION_TIME:
+        result.append(rdfvalue.FileFinderCondition(
+            condition_type=ff_condition_type_cls.MODIFICATION_TIME,
+            modification_time=c.modification_time))
+      elif c.condition_type == RegistryFinderCondition.Type.VALUE_LITERAL_MATCH:
+        result.append(rdfvalue.FileFinderCondition(
+            condition_type=ff_condition_type_cls.CONTENTS_LITERAL_MATCH,
+            contents_literal_match=c.value_literal_match))
+      elif c.condition_type == RegistryFinderCondition.Type.VALUE_REGEX_MATCH:
+        result.append(rdfvalue.FileFinderCondition(
+            condition_type=ff_condition_type_cls.CONTENTS_REGEX_MATCH,
+            contents_regex_match=c.value_regex_match))
+      else:
+        raise ValueError("Unknown condition type: %s", c.condition_type)
+
+    return result
+
+  @classmethod
+  def GetDefaultArgs(cls, token=None):
+    _ = token
+    return cls.args_type(keys_paths=["HKEY_USERS/%%users.sid%%/Software/"
+                                     "Microsoft/Windows/CurrentVersion/Run/*"])
+
+  @flow.StateHandler(next_state="Done")
+  def Start(self):
+    self.CallFlow("FileFinder",
+                  paths=self.args.keys_paths,
+                  pathtype=rdfvalue.PathSpec.PathType.REGISTRY,
+                  conditions=self.ConditionsToFileFinderConditions(
+                      self.args.conditions),
+                  action=rdfvalue.FileFinderAction(
+                      action_type=rdfvalue.FileFinderAction.Action.STAT),
+                  next_state="Done")
+
+  @flow.StateHandler()
+  def Done(self, responses):
+    if not responses.success:
+      raise flow.FlowError("Registry search failed %s" % responses.status)
+
+    for response in responses:
+      self.SendReply(response)
 
 
 # TODO(user): replace this flow with chained artifacts once the capability

@@ -92,8 +92,9 @@ filter is easy. Three basic filter implementations are given:
 
 import abc
 import binascii
-import logging
 import re
+
+import logging
 
 from grr.lib import lexer
 from grr.lib import utils

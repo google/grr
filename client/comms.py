@@ -11,6 +11,7 @@ import Queue
 import sys
 import threading
 import time
+import traceback
 import urllib2
 
 
@@ -708,6 +709,9 @@ class GRRHTTPClient(object):
 
     Returns:
       A boolean indicating success.
+    Side-effect:
+      On success we set self.active_server_url, which is used by other methods
+      to check if we have made a successful connection in the past.
     """
     # This gets proxies from the platform specific proxy settings.
     proxies = client_utils.FindProxies()
@@ -753,7 +757,9 @@ class GRRHTTPClient(object):
                        cert_url, e)
 
     # No connection is possible at all.
-    logging.info("Could not connect to GRR server.")
+    logging.info("Could not connect to GRR servers %s, directly or through "
+                 "these proxies: %s.", config_lib.CONFIG["Client.control_urls"],
+                 proxies)
     return False
 
   def MakeRequest(self, data, status):
@@ -851,11 +857,14 @@ class GRRHTTPClient(object):
 
       nonce = self.communicator.EncodeMessages(message_list, payload)
       response = self.MakeRequest(payload.SerializeToString(), status)
+
       if status.code != 200:
-        logging.info("%s: Could not connect to server at %s, status %s (%s)",
+        # We don't print response here since it should be encrypted and will
+        # cause ascii conversion errors.
+        logging.info("%s: Could not connect to server at %s, status %s",
                      self.communicator.common_name,
                      self.GetServerUrl(),
-                     status.code, response)
+                     status.code)
 
         # Reschedule the tasks back on the queue so they get retried next time.
         messages = list(message_list.job)
@@ -901,10 +910,9 @@ class GRRHTTPClient(object):
       # any order since clients do not have state.
       self.client_worker.QueueMessages(messages)
 
-    except Exception as e:  # pylint: disable=broad-except
+    except Exception:  # pylint: disable=broad-except
       # Catch everything, yes, this is terrible but necessary
-      logging.warn("Uncaught exception caught. %s: %s",
-                   sys.exc_info()[0], e)
+      logging.warn("Uncaught exception caught: %s" % traceback.format_exc())
       if status:
         status.code = 500
       if flags.FLAGS.debug:

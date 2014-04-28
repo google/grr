@@ -141,9 +141,23 @@ class FlowRunner(object):
   def output(self):
     return self.context.output
 
+  @property
+  def output_urn(self):
+    """Returns urn of the output collection.
+
+    Note that the output collection itself is nullified when flow is terminated,
+    so we're keeping the urn separately for further reference.
+
+    Returns:
+      URN of the output collection.
+    """
+    return self.context.output_urn
+
   @output.setter
   def output(self, value):
     self.context.output = value
+    if self.context.output:
+      self.context.output_urn = self.context.output.urn
 
   def _CreateOutputCollection(self, args):
     # Can only really have an output collection if we are using a client.
@@ -195,6 +209,7 @@ class FlowRunner(object):
     if args is None:
       args = rdfvalue.FlowRunnerArgs()
 
+    output_collection = self._CreateOutputCollection(args)
     context = flows.DataObject(
         args=args,
         backtrace=None,
@@ -206,7 +221,10 @@ class FlowRunner(object):
         next_outbound_id=1,
         next_processed_request=1,
         next_states=set(),
-        output=self._CreateOutputCollection(args),
+        output=output_collection,
+        # Output collection is nullified when flow is terminated, so we're
+        # keeping the urn separately for further reference.
+        output_urn=output_collection and output_collection.urn,
         outstanding_requests=0,
         remaining_cpu_quota=args.cpu_limit,
         state=rdfvalue.Flow.State.RUNNING,

@@ -17,11 +17,12 @@ File%20format/MSIE%20Cache%20File%20%28index.dat%29%20format.pdf
 
 import datetime
 import glob
-import logging
 import os
 import struct
 import sys
 import urlparse
+
+import logging
 
 from grr.lib import parsers
 from grr.lib import rdfvalue

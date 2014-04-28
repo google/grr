@@ -1788,6 +1788,10 @@ class FlowInit(registry.InitHook):
         "frontend_out_bytes", fields=[("source", str)])
     stats.STATS.RegisterCounterMetric(
         "frontend_request_count", fields=[("source", str)])
+    # Client requests sent to an inactive datacenter. This indicates a
+    # misconfiguration.
+    stats.STATS.RegisterCounterMetric(
+        "frontend_inactive_request_count", fields=[("source", str)])
     stats.STATS.RegisterEventMetric(
         "frontend_request_latency", fields=[("source", str)])
 

@@ -29,6 +29,22 @@ class RecursiveTestFlow(flow.GRRFlow):
                       next_state="End")
 
 
+class FlowWithOneStatEntryResult(flow.GRRFlow):
+  """Test flow that calls SendReply once with a StatEntry value."""
+
+  @flow.StateHandler()
+  def Start(self):
+    self.SendReply(rdfvalue.StatEntry(aff4path="aff4:/some/unique/path"))
+
+
+class FlowWithOneNetworkConnectionResult(flow.GRRFlow):
+  """Test flow that calls SendReply once with a NetworkConnection value."""
+
+  @flow.StateHandler()
+  def Start(self):
+    self.SendReply(rdfvalue.NetworkConnection(pid=42))
+
+
 class TestFlowManagement(test_lib.GRRSeleniumTest):
   """Test the flow management GUI."""
 
@@ -115,6 +131,78 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     # flow.
     self.WaitUntil(self.IsElementPresent,
                    "css=.tab-content td.proto_value:contains(StatFile)")
+
+  def testResultsAreDisplayedInResultsTab(self):
+    client_id = rdfvalue.ClientURN("C.0000000000000001")
+
+    with self.ACLChecksDisabled():
+      for _ in test_lib.TestFlowHelper(
+          "FlowWithOneStatEntryResult", test_lib.ActionMock(),
+          client_id=client_id, token=self.token):
+        pass
+
+      self.GrantClientApproval(client_id)
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=td:contains('FlowWithOneStatEntryResult')")
+    self.Click("css=#Results")
+
+    self.WaitUntil(self.IsTextPresent, "aff4:/some/unique/path")
+
+  def testExportTabIsEnabledForStatEntryResults(self):
+    client_id = rdfvalue.ClientURN("C.0000000000000001")
+
+    with self.ACLChecksDisabled():
+      for _ in test_lib.TestFlowHelper(
+          "FlowWithOneStatEntryResult", test_lib.ActionMock(),
+          client_id=client_id, token=self.token):
+        pass
+
+      self.GrantClientApproval(client_id)
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=td:contains('FlowWithOneStatEntryResult')")
+    self.Click("css=#Export")
+
+    self.WaitUntil(
+        self.IsTextPresent,
+        "--username test --reason 'Running tests' collection_files "
+        "--path aff4:/C.0000000000000001/analysis/FlowWithOneStatEntryResult")
+
+  def testExportTabIsDisabledWhenNoResults(self):
+    client_id = rdfvalue.ClientURN("C.0000000000000001")
+
+    # RecursiveTestFlow doesn't send any results back.
+    with self.ACLChecksDisabled():
+      for _ in test_lib.TestFlowHelper(
+          "RecursiveTestFlow", test_lib.ActionMock(),
+          client_id=client_id, token=self.token):
+        pass
+
+      self.GrantClientApproval(client_id)
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=td:contains('RecursiveTestFlow')")
+    self.WaitUntil(self.IsElementPresent, "css=#Export.disabled")
+
+  def testExportTabIsDisabledForNonFileResults(self):
+    client_id = rdfvalue.ClientURN("C.0000000000000001")
+
+    with self.ACLChecksDisabled():
+      for _ in test_lib.TestFlowHelper(
+          "FlowWithOneNetworkConnectionResult", test_lib.ActionMock(),
+          client_id=client_id, token=self.token):
+        pass
+
+      self.GrantClientApproval(client_id)
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=td:contains('FlowWithOneNetworkConnectionResult')")
+    self.WaitUntil(self.IsElementPresent, "css=#Export.disabled")
 
   def testCancelFlowWorksCorrectly(self):
     """Tests that cancelling flows works."""

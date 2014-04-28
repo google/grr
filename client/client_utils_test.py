@@ -96,7 +96,7 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
       raw_pathspec, path = client_utils_windows.WinGetRawDevice(filename)
 
       # Pathspec paths are always absolute and therefore must have a leading /.
-      self.assertEqual("/" + expected_device, raw_pathspec.path)
+      self.assertEqual(expected_device, raw_pathspec.path)
       self.assertEqual(expected_path, path)
 
   def SetupWinEnvironment(self):

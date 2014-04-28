@@ -129,7 +129,7 @@ class GRRWorker(object):
         queue_manager.STUCK_PRIORITY, [])
 
     if stuck_flows:
-      self.ProcessStuckFlows(stuck_flows)
+      self.ProcessStuckFlows(stuck_flows, queue_manager)
 
     notifications_available = []
     for priority in sorted(notifications_by_priority, reverse=True):
@@ -162,7 +162,7 @@ class GRRWorker(object):
 
       return 0
 
-  def ProcessStuckFlows(self, stuck_flows):
+  def ProcessStuckFlows(self, stuck_flows, queue_manager):
     stats.STATS.IncrementCounter("grr_flows_stuck", len(stuck_flows))
 
     for stuck_flow in stuck_flows:
@@ -173,6 +173,10 @@ class GRRWorker(object):
             token=self.token)
       except Exception:   # pylint: disable=broad-except
         logging.exception("Error terminating stuck flow: %s", stuck_flow)
+      finally:
+        # Remove notifications for this flow. This will also remove the
+        # "stuck flow" notification itself.
+        queue_manager.DeleteNotification(stuck_flow.session_id)
 
   def ProcessMessages(self, active_notifications, queue_manager, time_limit=0):
     """Processes all the flows in the messages.

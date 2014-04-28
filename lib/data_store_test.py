@@ -451,6 +451,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
     t2 = data_store.DB.Transaction(row, token=self.token)
     self.assertEqual(t2.Resolve(predicate)[0], None)
     t2.Set(predicate, "2")
+
     t2.Commit()
 
     self.assertEqual(t2.Resolve(predicate)[0], "2")
@@ -828,8 +829,12 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
 
   def StartFlow(self, client_id):
     flow_id = flow.GRRFlow.StartFlow(client_id=client_id,
-                                     flow_name="RecursiveListDirectory",
-                                     max_depth=5, queue=self.queue,
+                                     flow_name="ListDirectory",
+                                     queue=self.queue,
+                                     pathspec=rdfvalue.PathSpec(
+                                         path="/",
+                                         pathtype="OS",
+                                         ),
                                      token=self.token)
     self.flow_ids.append(flow_id)
 
@@ -868,9 +873,10 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
       self.tp.AddTask(self.StartFlow, (client_id,))
     self.tp.Join()
 
-    priorities = dict([(f, 1) for f in self.flow_ids])
-    queue_manager.QueueManager(token=self.token).MultiNotifyQueue(
-        self.flow_ids, priorities)
+    notifications = [
+        rdfvalue.GrrNotification(session_id=f) for f in self.flow_ids]
+    with queue_manager.QueueManager(sync=True, token=self.token) as manager:
+      manager.MultiNotifyQueue(notifications)
 
     time_used = time.time() - start_time
 
@@ -897,6 +903,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
     self.n = 1000
     self.small_n = self.n / 100
     self.units = "ms"
+
     self.BenchmarkWriting()
     self.BenchmarkReading()
 

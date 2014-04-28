@@ -4,10 +4,10 @@
 import copy
 import cStringIO
 import json
-import logging
 import struct
 
 from google.protobuf import text_format
+import logging
 
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -648,6 +648,16 @@ class ProtoEnum(ProtoSignedInteger):
 
   def ConvertFromWireFormat(self, value, container=None):
     return Enum(value, name=self.reverse_enum.get(value))
+
+
+class EnumValue(Enum):
+  """Backwards compatibility for stored data.
+
+  This class is necessary for reading data created with GRR server version
+  0.2.9-1 and earlier.  It can be removed when we can drop support for this old
+  data.
+  """
+  pass
 
 
 class ProtoBoolean(ProtoEnum):
@@ -1581,7 +1591,7 @@ class RDFStruct(rdfvalue.RDFValue):
       try:
         self.ParseFromString(initializer)
       except rdfvalue.DecodeError:
-        logging.error("Unable to parse: %s.", initializer.encode("hex"))
+        logging.error("Unable to parse: %s.", initializer.encode("hex")[:2048])
         raise
 
     else:

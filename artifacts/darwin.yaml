@@ -1,13 +1,5 @@
 # Mac OS X (Darwin) specific artifacts.
 
-name: OSXServices
-doc: Running services from the Max OS X service management framework.
-collectors:
-- action: RunGrrClientAction
-  args: {client_action: OSXEnumerateRunningServices}
-labels: [Software]
-supported_os: [Darwin]
----
 name: DarwinPersistenceMechanismFiles
 doc: Files that are run by Darwin persistence mechanisms.
 collectors:
@@ -16,7 +8,7 @@ collectors:
     artifact_list: [DarwinPersistenceMechanisms]
     pathspec_attribute: pathspec
   returned_types: [StatEntry]
-labels: [Software]
+labels: [System]
 supported_os: [Darwin]
 ---
 name: DarwinPersistenceMechanisms
@@ -26,16 +18,100 @@ collectors:
   args:
     artifact_list: [OSXServices]
   returned_types: [PersistenceFile]
+labels: [System]
+supported_os: [Darwin]
+---
+name: OSXLaunchAgents
+doc: Mac OS X Launch Agent files.
+collectors:
+- action: GetFiles
+  args: {path_list: ['/System/Library/LaunchAgents/*']}
+labels: [System]
+supported_os: [Darwin]
+urls: ['http://www.forensicswiki.org/wiki/Mac_OS_X']
+---
+name: OSXLaunchDaemons
+doc: Mac OS X Launch Daemons files.
+collectors:
+- action: GetFiles
+  args:
+    path_list:
+      - '/Library/LaunchDaemons/*'
+      - '/System/Library/LaunchDaemons/*'
+labels: [System]
+supported_os: [Darwin]
+urls: ['http://www.forensicswiki.org/wiki/Mac_OS_X']
+---
+name: OSXQuarantineEvents
+doc: Mac OS X quarantine event database.
+collectors:
+- action: GetFiles
+  args:
+    path_list:
+      - '%%users.homedir%%/Library/Preferences/com.apple.LaunchServices.QuarantineEvents'
+      - '%%users.homedir%%/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV2'
 labels: [Software]
+supported_os: [Darwin]
+urls: ['http://www.forensicswiki.org/wiki/Mac_OS_X']
+---
+name: OSXServices
+doc: Running services from the Max OS X service management framework.
+collectors:
+- action: RunGrrClientAction
+  args: {client_action: OSXEnumerateRunningServices}
+labels: [System]
+supported_os: [Darwin]
+---
+name: OSXStartupItems
+doc: Mac OS X Startup Items files.
+collectors:
+- action: GetFiles
+  args:
+    path_list:
+      - '/Library/StartupItems/*'
+      - '/System/Library/StartupItems/*'
+labels: [System]
+supported_os: [Darwin]
+urls: ['http://www.forensicswiki.org/wiki/Mac_OS_X']
+---
+name: OSXSystemLogs
+doc: Mac OS X system log files (/var/log).
+collectors:
+- action: GetFiles
+  args: {path_list: ['/var/log/*']}
+labels: [Logs, System]
+supported_os: [Darwin]
+---
+name: OSXSystemPreferences
+doc: Mac OS X system preferences files.
+collectors:
+- action: GetFiles
+  args: {path_list: ['/Library/Preferences/*']}
+labels: [System]
 supported_os: [Darwin]
 ---
 name: OSXUsers
 doc: User directories in /Users.
 collectors:
 - action: ListFiles
-  args:
-    path_list: ['/Users/*']
+  args: {path_list: ['/Users/*']}
   returned_types: [KnowledgeBaseUser]
 labels: [Users]
 supported_os: [Darwin]
 provides: [users.username]
+---
+name: OSXUserLogs
+doc: Mac OS X user log files.
+collectors:
+- action: GetFiles
+  args: {path_list: ['%%users.homedir%%/Library/Logs/*']}
+labels: [Logs, Users]
+supported_os: [Darwin]
+---
+name: OSXUserPreferences
+doc: Mac OS X user preferences files.
+collectors:
+- action: GetFiles
+  args: {path_list: ['%%users.homedir%%/Library/Preferences/*']}
+labels: [Users]
+supported_os: [Darwin]

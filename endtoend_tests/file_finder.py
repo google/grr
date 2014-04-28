@@ -2,9 +2,9 @@
 """End to end tests for lib.flows.general.file_finder."""
 
 
+from grr.endtoend_tests import transfer
 from grr.lib import aff4
 from grr.lib import rdfvalue
-from grr.lib.flows.console.client_tests import transfer
 
 
 class TestFileFinderOSWindows(transfer.TestGetFileOSWindows):

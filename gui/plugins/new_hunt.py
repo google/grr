@@ -2,9 +2,9 @@
 """Implementation of "New Hunt" wizard."""
 
 
-import logging
 import os
 
+import logging
 
 from grr.gui import renderers
 from grr.gui.plugins import flow_management
