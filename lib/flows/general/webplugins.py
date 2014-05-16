@@ -135,9 +135,12 @@ class ChromePlugins(flow.GRRFlow):
       self.CreateAnalysisVFile(extension_directory, manifest)
 
       if self.args.download_files:
-        self.CallFlow("FetchFiles", next_state="Done",
-                      findspec=rdfvalue.FindSpec(pathspec=extension_directory,
-                                                 max_depth=3, path_glob="*"))
+        self.CallFlow(
+            "FileFinder",
+            paths=[os.path.join(extension_directory.CollapsePath(), "**3")],
+            action=rdfvalue.FileFinderAction(
+                action_type=rdfvalue.FileFinderAction.Action.DOWNLOAD),
+            next_state="Done")
 
   @flow.StateHandler(next_state="Done")
   def GetLocalizedName(self, responses):
@@ -168,9 +171,12 @@ class ChromePlugins(flow.GRRFlow):
     self.CreateAnalysisVFile(extension_directory, manifest)
 
     if self.args.download_files:
-      self.CallFlow("FetchFiles", next_state="Done",
-                    findspec=rdfvalue.FindSpec(pathspec=extension_directory,
-                                               max_depth=3, path_glob="*"))
+      self.CallFlow(
+          "FileFinder",
+          paths=[os.path.join(extension_directory.CollapsePath(), "**3")],
+          action=rdfvalue.FileFinderAction(
+              action_type=rdfvalue.FileFinderAction.Action.DOWNLOAD),
+          next_state="Done")
 
   def CreateAnalysisVFile(self, extension_directory, manifest):
     """Creates the analysis result object."""

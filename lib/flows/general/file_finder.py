@@ -272,14 +272,18 @@ class FileFinder(flow.GRRFlow):
           condition_options.condition_type]
       condition_handler(messages, condition_options, condition_index)
 
-  @flow.StateHandler(next_state=["Done"])
+  @flow.StateHandler(next_state=["HandleFingerprintResults", "Done"])
   def ProcessAction(self, responses):
     """Applies action specified by user to responses."""
     self.state.files_found += len(responses)
-    for response in responses:
-      self.SendReply(response)
 
     action = self.state.args.action.action_type
+    # For stat and download we can sendreply now, for hash we need to call
+    # fingerprint file first.
+    if action != rdfvalue.FileFinderAction.Action.HASH:
+      for response in responses:
+        self.SendReply(response)
+
     if action == rdfvalue.FileFinderAction.Action.STAT:
       self.StatAction(responses)
     elif action == rdfvalue.FileFinderAction.Action.HASH:
@@ -295,7 +299,8 @@ class FileFinder(flow.GRRFlow):
     """Calls FingerprintFile for every response."""
     for response in responses:
       self.CallFlow("FingerprintFile", pathspec=response.stat_entry.pathspec,
-                    next_state="Done")
+                    request_data=dict(original_result=response),
+                    next_state="HandleFingerprintResults")
 
   def DownloadAction(self, responses):
     """Downloads files corresponding to all the responses."""
@@ -315,6 +320,17 @@ class FileFinder(flow.GRRFlow):
       self.CallFlow(
           "MultiGetFile", pathspecs=files_to_fetch,
           use_external_stores=use_stores, next_state="Done")
+
+  @flow.StateHandler(next_state=["Done"])
+  def HandleFingerprintResults(self, responses):
+    """Handle hash results."""
+    if "original_result" in responses.request_data:
+      result = responses.request_data["original_result"]
+      result.hash_entry = responses.First().hash_entry
+      self.SendReply(result)
+    else:
+      raise RuntimeError("Got a fingerprintfileresult, but original result "
+                         "is missing")
 
   @flow.StateHandler()
   def Done(self, responses):

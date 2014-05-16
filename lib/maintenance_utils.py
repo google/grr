@@ -19,27 +19,32 @@ from grr.lib import data_store
 from grr.lib import rdfvalue
 
 
-DIGEST_ALGORITHM = hashlib.sha256
+DIGEST_ALGORITHM = hashlib.sha256  # pylint: disable=invalid-name
 DIGEST_ALGORITHM_STR = "sha256"
 
 SUPPORTED_PLATFORMS = ["windows", "linux", "darwin"]
 SUPPORTED_ARCHICTECTURES = ["i386", "amd64"]
 
 
-def UploadSignedConfigBlob(content, aff4_path, client_context=None, token=None):
+def UploadSignedConfigBlob(content, aff4_path, client_context=None,
+                           limit=None, token=None):
   """Upload a signed blob into the datastore.
 
   Args:
     content: File content to upload.
     aff4_path: aff4 path to upload to.
     client_context: The configuration contexts to use.
+    limit: The maximum size of the chunk to use.
     token: A security token.
 
   Raises:
     IOError: On failure to write.
   """
+  if limit is None:
+    limit = config_lib.CONFIG["Datastore.maximum_blob_size"]
+
   # Get the values of these parameters which apply to the client running on the
-  # trarget platform.
+  # target platform.
   if client_context is None:
     # Default to the windows client.
     client_context = ["Platform:Windows", "Client"]
@@ -52,13 +57,15 @@ def UploadSignedConfigBlob(content, aff4_path, client_context=None, token=None):
 
   ver_key = config_lib.CONFIG.Get("Client.executable_signing_public_key",
                                   context=client_context)
+  with aff4.FACTORY.Create(
+      aff4_path, "GRRSignedBlob", mode="w", token=token) as fd:
 
-  blob_rdf = rdfvalue.SignedBlob()
-  blob_rdf.Sign(content, sig_key, ver_key, prompt=True)
+    for start_of_chunk in xrange(0, len(content), limit):
+      chunk = content[start_of_chunk:start_of_chunk + limit]
 
-  fd = aff4.FACTORY.Create(aff4_path, "GRRSignedBlob", mode="w", token=token)
-  fd.Set(fd.Schema.BINARY(blob_rdf))
-  fd.Close()
+      blob_rdf = rdfvalue.SignedBlob()
+      blob_rdf.Sign(chunk, sig_key, ver_key, prompt=True)
+      fd.Add(blob_rdf)
 
   logging.info("Uploaded to %s", fd.urn)
 
@@ -105,22 +112,24 @@ def UploadSignedDriverBlob(content, aff4_path=None, client_context=None,
   blob_rdf = rdfvalue.SignedBlob()
   blob_rdf.Sign(content, sig_key, ver_key, prompt=True)
 
-  fd = aff4.FACTORY.Create(aff4_path, "GRRMemoryDriver", mode="w", token=token)
-  fd.Set(fd.Schema.BINARY(blob_rdf))
+  with aff4.FACTORY.Create(
+      aff4_path, "GRRMemoryDriver", mode="w", token=token) as fd:
+    fd.Add(blob_rdf)
 
-  if install_request is None:
-    # Create install_request from the configuration.
-    install_request = rdfvalue.DriverInstallTemplate(
-        device_path=config_lib.CONFIG.Get(
-            "MemoryDriver.device_path", context=client_context),
-        driver_display_name=config_lib.CONFIG.Get(
-            "MemoryDriver.driver_display_name", context=client_context),
-        driver_name=config_lib.CONFIG.Get(
-            "MemoryDriver.driver_service_name", context=client_context))
+    if install_request is None:
+      # Create install_request from the configuration.
+      install_request = rdfvalue.DriverInstallTemplate(
+          device_path=config_lib.CONFIG.Get(
+              "MemoryDriver.device_path", context=client_context),
+          driver_display_name=config_lib.CONFIG.Get(
+              "MemoryDriver.driver_display_name", context=client_context),
+          driver_name=config_lib.CONFIG.Get(
+              "MemoryDriver.driver_service_name", context=client_context))
 
-  fd.Set(fd.Schema.INSTALLATION(install_request))
-  fd.Close()
+    fd.Set(fd.Schema.INSTALLATION(install_request))
+
   logging.info("Uploaded to %s", fd.urn)
+
   return fd.urn
 
 

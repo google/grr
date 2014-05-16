@@ -244,6 +244,7 @@ class SuspendableListDirectory(actions.SuspendableAction):
     for group in utils.Grouper(fd.ListFiles(), length):
       for response in group:
         self.SendReply(response)
+
       self.Suspend()
 
 
@@ -325,17 +326,40 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
   which should be stored offline and well protected.
 
   This method can be utilized as part of an autoupdate mechanism if necessary.
+
+  NOTE: If the binary is too large to fit inside a single request, the request
+  will have the more_data flag enabled, indicating more data is coming.
   """
   in_rdfvalue = rdfvalue.ExecuteBinaryRequest
   out_rdfvalue = rdfvalue.ExecuteBinaryResponse
 
-  def WriteBlobToFile(self, signed_pb, lifetime, suffix=""):
+  def WriteBlobToFile(self, request, suffix=""):
     """Writes the blob to a file and returns its path."""
+    lifetime = 0
+    # Only set the lifetime thread on the last chunk written.
+    if not request.more_data:
+      lifetime = request.time_limit
 
-    temp_file = tempfiles.CreateGRRTempFile(suffix=suffix, lifetime=lifetime)
+      # Keep the file for at least 5 seconds after execution.
+      if lifetime > 0:
+        lifetime += 5
+
+    # First chunk truncates the file, later chunks append.
+    if request.offset == 0:
+      mode = "w+b"
+    else:
+      mode = "r+b"
+
+    temp_file = tempfiles.CreateGRRTempFile(filename=request.write_path,
+                                            suffix=suffix, mode=mode)
     with temp_file:
       path = temp_file.name
-      temp_file.write(signed_pb.data)
+      temp_file.seek(0, 2)
+      if temp_file.tell() != request.offset:
+        raise IOError("Chunks out of order Error.")
+
+      # Write the new chunk.
+      temp_file.write(request.executable.data)
 
     return path
 
@@ -359,31 +383,28 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
     else:
       suffix = ""
 
-    lifetime = args.time_limit
-    # Keep the file for at least 5 seconds after execution.
-    if lifetime > 0:
-      lifetime += 5
+    path = self.WriteBlobToFile(args, suffix)
 
-    path = self.WriteBlobToFile(args.executable, lifetime, suffix)
+    # Only actually run the file on the last chunk.
+    if not args.more_data:
+      res = client_utils_common.Execute(path, args.args, args.time_limit,
+                                        bypass_whitelist=True)
+      (stdout, stderr, status, time_used) = res
 
-    res = client_utils_common.Execute(path, args.args, args.time_limit,
-                                      bypass_whitelist=True)
-    (stdout, stderr, status, time_used) = res
+      self.CleanUp(path)
 
-    self.CleanUp(path)
+      # Limit output to 10MB so our response doesn't get too big.
+      stdout = stdout[:10 * 1024 * 1024]
+      stderr = stderr[:10 * 1024 * 1024]
 
-    # Limit output to 10MB so our response doesn't get too big.
-    stdout = stdout[:10 * 1024 * 1024]
-    stderr = stderr[:10 * 1024 * 1024]
+      result = rdfvalue.ExecuteBinaryResponse(
+          stdout=stdout,
+          stderr=stderr,
+          exit_status=status,
+          # We have to return microseconds.
+          time_used=int(1e6 * time_used))
 
-    result = rdfvalue.ExecuteBinaryResponse(
-        stdout=stdout,
-        stderr=stderr,
-        exit_status=status,
-        # We have to return microseconds.
-        time_used=int(1e6 * time_used))
-
-    self.SendReply(result)
+      self.SendReply(result)
 
 
 class ExecutePython(actions.ActionPlugin):
@@ -448,14 +469,18 @@ class ListProcesses(actions.ActionPlugin):
       response = rdfvalue.Process()
       for field in ["pid", "ppid", "name", "exe", "username", "terminal"]:
         try:
-          if not hasattr(proc, field) or not getattr(proc, field):
+          value = getattr(proc, field, None)
+          if value is None:
             continue
-          value = getattr(proc, field)
-          if isinstance(value, (int, long)):
-            setattr(response, field, value)
-          else:
-            setattr(response, field, utils.SmartUnicode(value))
 
+          # Newer psutils actually replace properties with methods.
+          if callable(value):
+            value = value()
+
+          if not isinstance(value, (int, long)):
+            value = utils.SmartUnicode(value)
+
+          setattr(response, field, value)
         except (psutil.NoSuchProcess, psutil.AccessDenied):
           pass
 

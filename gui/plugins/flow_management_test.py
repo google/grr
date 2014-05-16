@@ -24,7 +24,8 @@ class RecursiveTestFlow(flow.GRRFlow):
   @flow.StateHandler(next_state="End")
   def Start(self):
     if self.args.depth < 2:
-      for _ in range(2):
+      for i in range(2):
+        self.Log("Subflow call %d", i)
         self.CallFlow("RecursiveTestFlow", depth=self.args.depth+1,
                       next_state="End")
 
@@ -131,6 +132,31 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     # flow.
     self.WaitUntil(self.IsElementPresent,
                    "css=.tab-content td.proto_value:contains(StatFile)")
+
+  def testLogsCanBeOpenedByClickingOnPlusIcon(self):
+    client_id = rdfvalue.ClientURN("C.0000000000000001")
+
+    # RecursiveTestFlow doesn't send any results back.
+    with self.ACLChecksDisabled():
+      for _ in test_lib.TestFlowHelper(
+          "RecursiveTestFlow", test_lib.ActionMock(),
+          client_id=client_id, token=self.token):
+        pass
+
+      self.GrantClientApproval(client_id)
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=td:contains('RecursiveTestFlow')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=td.attribute_opener[attribute=LOG]")
+    self.WaitUntil(self.IsTextPresent,
+                   "Subflow call 1")
+    self.WaitUntilNot(self.IsTextPresent,
+                      "Subflow call 0")
+    self.Click("css=td.attribute_opener[attribute=LOG]")
+    self.WaitUntil(self.IsTextPresent,
+                   "Subflow call 0")
 
   def testResultsAreDisplayedInResultsTab(self):
     client_id = rdfvalue.ClientURN("C.0000000000000001")

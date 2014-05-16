@@ -23,12 +23,22 @@ from grr.client.client_actions import tempfiles
 # pylint: disable=g-import-not-at-top
 # pylint: disable=g-wrong-blank-lines
 
+# TODO(user): Volatility is deprecated, remove this as soon as Rekall is
+# rolled out.
 try:
   from grr.client.client_actions import grr_volatility
 except ImportError:
   class VolatilityAction(actions.ActionPlugin):
     """Runs a volatility command on live memory."""
     in_rdfvalue = rdfvalue.VolatilityRequest
+    out_rdfvalue = rdfvalue.VolatilityResult
+
+try:
+  from grr.client.client_actions import grr_rekall
+except ImportError:
+  class RekallAction(actions.ActionPlugin):
+    """Runs a Rekall command on live memory."""
+    in_rdfvalue = rdfvalue.RekallRequest
     out_rdfvalue = rdfvalue.VolatilityResult
 
 if platform.system() == "Linux":

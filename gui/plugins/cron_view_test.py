@@ -271,9 +271,8 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=#_Filesystem > ins.jstree-icon")
     self.Click("css=#_Filesystem > ins.jstree-icon")
 
-    # Click on Fetch Files item in Filesystem flows list
-    self.WaitUntil(self.IsElementPresent, "link=Fetch Files")
-    self.Click("link=Fetch Files")
+    # Click on Find Files item in Filesystem flows list
+    self.Click("link=File Finder")
 
     # Wait for flow configuration form to be rendered (just wait for first
     # input field).
@@ -283,7 +282,6 @@ class TestCronView(test_lib.GRRSeleniumTest):
     # Change "path", "pathtype", "depth" and "ignore_errors" values
     self.Type("css=.Wizard input[id=args-paths-0]", "/tmp")
     self.Select("css=.Wizard select[id=args-pathtype]", "TSK")
-    self.Type("css=.Wizard input[id=args-max_size]", "42")
 
     # Click on "Next" button
     self.Click("css=.Wizard button.Next")
@@ -355,8 +353,6 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     # Check that the arguments summary is present.
     self.assertTrue(self.IsTextPresent("Paths"))
     self.assertTrue(self.IsTextPresent("/tmp"))
-    self.assertTrue(self.IsTextPresent("Max size"))
-    self.assertTrue(self.IsTextPresent("42"))
 
     # Check that output plugins are shown.
     self.assertTrue(self.IsTextPresent("EmailPlugin"))
@@ -389,8 +385,6 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
 
     self.assertTrue(self.IsTextPresent("Paths"))
     self.assertTrue(self.IsTextPresent("/tmp"))
-    self.assertTrue(self.IsTextPresent("Max size"))
-    self.assertTrue(self.IsTextPresent("42"))
 
   def testStuckCronJobIsHighlighted(self):
     # Make sure a lot of time has passed since the last

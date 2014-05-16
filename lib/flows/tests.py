@@ -13,7 +13,6 @@ from grr.lib.flows.general import administrative_test
 from grr.lib.flows.general import audit_test
 from grr.lib.flows.general import collectors_test
 from grr.lib.flows.general import discovery_test
-from grr.lib.flows.general import fetch_files_test
 from grr.lib.flows.general import file_finder_test
 from grr.lib.flows.general import filesystem_test
 from grr.lib.flows.general import filetypes_test

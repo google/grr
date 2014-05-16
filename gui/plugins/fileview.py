@@ -23,12 +23,6 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 
 
-config_lib.DEFINE_string("AdminUI.export_command",
-                         "env PYTHONPATH=. python grr/tools/export.py",
-                         "Command to show in the fileview for downloading the "
-                         "files from the command line.")
-
-
 # pylint: disable=g-bad-name
 class BufferReferenceRenderer(semantic.RDFProtoRenderer):
   """Render the buffer reference."""
@@ -659,6 +653,7 @@ class AbstractFileTable(renderers.TableRenderer):
       key = utils.SmartUnicode(urn)
       if filter_string:
         key += ":" + filter_string
+
       # Open the directory as a directory.
       directory_node = aff4.FACTORY.Open(urn, token=request.token).Upgrade(
           "VFSDirectory")
@@ -1118,7 +1113,7 @@ As downloaded on {{ this.age|escape }}.<br>
       except (IOError, AttributeError):
         pass
 
-      self.export_command_str = " ".join([
+      self.export_command_str = u" ".join([
           config_lib.CONFIG["AdminUI.export_command"],
           "--username", utils.ShellQuote(request.token.username),
           "--reason", utils.ShellQuote(request.token.reason),
@@ -1465,14 +1460,14 @@ class FileViewTabs(renderers.TabLayout):
   FILE_DELEGATED_RENDERERS = ["AFF4Stats", "DownloadView", "FileTextViewer",
                               "FileHexViewer"]
 
-  COLLECTION_TAB_NAMES = ["Stats", "Collection",
-                          "Export"]
+  COLLECTION_TAB_NAMES = ["Stats", "Collection", "Export"]
   COLLECTION_DELEGATED_RENDERERS = ["AFF4Stats", "RDFValueCollectionRenderer",
                                     "CollectionExportView"]
 
+  fd = None
+
   def __init__(self, fd=None, **kwargs):
-    if fd:
-      self.fd = fd
+    self.fd = fd
     super(FileViewTabs, self).__init__(**kwargs)
 
   def DisableTabs(self):
@@ -1503,6 +1498,12 @@ class FileViewTabs(renderers.TabLayout):
         # the Export tab.
         if not CollectionExportView.IsCollectionExportable(self.fd):
           self.disabled = ["CollectionExportView"]
+
+        if isinstance(self.fd, aff4.RekallResponseCollection):
+          # Make a copy so this change is not permanent.
+          self.delegated_renderers = self.delegated_renderers[:]
+          self.delegated_renderers[1] = "RekallResponseCollectionRenderer"
+
       else:
         if not hasattr(self.fd, "Read"):
           self.DisableTabs()

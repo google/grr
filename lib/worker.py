@@ -170,7 +170,7 @@ class GRRWorker(object):
         flow.GRRFlow.TerminateFlow(
             stuck_flow.session_id, reason="Stuck in the worker",
             status=rdfvalue.GrrStatus.ReturnedStatus.WORKER_STUCK,
-            token=self.token)
+            force=True, token=self.token)
       except Exception:   # pylint: disable=broad-except
         logging.exception("Error terminating stuck flow: %s", stuck_flow)
       finally:
@@ -259,6 +259,10 @@ class GRRWorker(object):
                                       timestamp=kill_timestamp)
 
           with flow_obj.GetRunner() as runner:
+            # kill_timestamp may get updated via flow.HeartBeat() calls, so we
+            # have to store it in the runner context.
+            runner.context.kill_timestamp = kill_timestamp
+
             try:
               runner.ProcessCompletedRequests(self.thread_pool)
 
@@ -275,8 +279,10 @@ class GRRWorker(object):
               # stuck.
               with queue_manager_lib.QueueManager(token=self.token) as manager:
                 manager.DeleteNotification(
-                    session_id, start=kill_timestamp,
-                    end=kill_timestamp + rdfvalue.Duration("1s"))
+                    session_id, start=runner.context.kill_timestamp,
+                    end=runner.context.kill_timestamp + rdfvalue.Duration("1s"))
+                runner.context.kill_timestamp = None
+
                 if (runner.process_requests_in_order and
                     notification.last_status and
                     (runner.context.next_processed_request <=

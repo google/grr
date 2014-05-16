@@ -72,6 +72,10 @@ config_lib.DEFINE_semantic(
 config_lib.DEFINE_integer("ACL.cache_age", 600, "The number of seconds "
                           "approval objects live in the cache.")
 
+config_lib.DEFINE_integer("Datastore.maximum_blob_size",
+                          15*1024*1024,
+                          "Maximum blob size we may store in the datastore.")
+
 config_lib.DEFINE_string("Datastore.security_manager",
                          "NullAccessControlManager",
                          "The ACL manager for controlling access to data.")
@@ -175,6 +179,23 @@ config_lib.DEFINE_string(
     "The SSL key to use. The key may also be part of the cert file, in which "
     "case this can be omitted.")
 
+config_lib.DEFINE_string("AdminUI.export_command",
+                         "/usr/bin/grr_export",
+                         "Command to show in the fileview for downloading the "
+                         "files from the command line.")
 
 config_lib.DEFINE_string("Server.master_watcher_class", "DefaultMasterWatcher",
                          "The master watcher class to use.")
+
+config_lib.DEFINE_string(
+    "Rekall.profile_repository",
+    "https://profiles.rekall.googlecode.com/git/",
+    "The repository to use when downloading Rekall profiles.")
+
+config_lib.DEFINE_string(
+    "Rekall.profile_cache_urn", "aff4:/rekall_profiles",
+    "A cache in the aff4 space to store downloaded Rekall profiles.")
+
+config_lib.DEFINE_string(
+    "Rekall.profile_server", "GRRRekallProfileServer",
+    "Which Rekall profile server to use.")

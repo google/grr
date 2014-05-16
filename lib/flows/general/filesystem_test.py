@@ -91,42 +91,6 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     self.assertEqual(
         os.path.basename(utils.SmartUnicode(child.urn)), u"入乡随俗.txt")
 
-  def testSlowGetFile(self):
-    """Test that the SlowGetFile flow works."""
-    client_mock = test_lib.ActionMock("ReadBuffer", "HashFile", "StatFile")
-
-    # Deliberately specify incorrect casing
-    pb = rdfvalue.PathSpec(
-        path=os.path.join(self.base_path, "test_img.dd"),
-        pathtype=rdfvalue.PathSpec.PathType.OS)
-
-    pb.Append(path="test directory/NumBers.txt",
-              pathtype=rdfvalue.PathSpec.PathType.TSK)
-
-    for _ in test_lib.TestFlowHelper(
-        "SlowGetFile", client_mock, client_id=self.client_id,
-        pathspec=pb, token=self.token):
-      pass
-
-    # Check the output file is created
-    output_path = self.client_id.Add("fs/tsk").Add(
-        pb.first.path.replace("\\", "/")).Add(
-            "Test Directory").Add("numbers.txt")
-
-    fd = aff4.FACTORY.Open(output_path, token=self.token)
-    self.assertEqual(fd.Read(10), "1\n2\n3\n4\n5\n")
-    self.assertEqual(fd.size, 3893)
-
-    # And the wrong object is not there
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.assertRaises(IOError, client.OpenMember, pb.first.path)
-
-    # Check that the hash is recorded correctly.
-    sha256 = fd.Get(fd.Schema.HASH).sha256
-    self.assertEqual(
-        sha256,
-        "67d4ff71d43921d5739f387da09746f405e425b07d727e4c69d029461d1f051f")
-
   def testGlob(self):
     """Test that glob works properly."""
 
@@ -463,44 +427,20 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         stat_paths = [c.pathspec.path for c in stat_args]
         self.assertListEqual(sorted(stat_paths), sorted(set(stat_paths)))
 
-  def testFetchFilesFlow(self):
-
-    pattern = "test_data/*.log"
-
-    client_mock = test_lib.ActionMock("Find", "TransferBuffer",
-                                      "StatFile", "HashBuffer", "HashFile")
-    path = os.path.join(os.path.dirname(self.base_path), pattern)
-
-    # Run the flow.
-    for _ in test_lib.TestFlowHelper(
-        "FetchFiles", client_mock, client_id=self.client_id,
-        paths=[path], pathtype=rdfvalue.PathSpec.PathType.OS,
-        token=self.token):
-      pass
-
-    for f in "auth.log dpkg.log dpkg_false.log".split():
-      fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(
-          os.path.join(os.path.dirname(self.base_path), "test_data", f)),
-                             token=self.token)
-      # Make sure that some data was downloaded.
-      self.assertTrue(fd.Get(fd.Schema.SIZE) > 100)
-
   def testDownloadDirectory(self):
-    """Test a FetchFiles flow with depth=1."""
+    """Test a FileFinder flow with depth=1."""
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
 
-    # Mock the client actions FetchFiles uses
+    # Mock the client actions FileFinder uses.
     client_mock = test_lib.ActionMock("HashFile", "HashBuffer", "StatFile",
                                       "Find", "TransferBuffer")
 
-    pathspec = rdfvalue.PathSpec(
-        path="/c/Downloads", pathtype=rdfvalue.PathSpec.PathType.OS)
-
     for _ in test_lib.TestFlowHelper(
-        "FetchFiles", client_mock, client_id=self.client_id,
-        findspec=rdfvalue.FindSpec(max_depth=1, pathspec=pathspec,
-                                   path_glob="*"),
+        "FileFinder", client_mock, client_id=self.client_id,
+        paths=["/c/Downloads/*"],
+        action=rdfvalue.FileFinderAction(
+            action_type=rdfvalue.FileFinderAction.Action.DOWNLOAD),
         token=self.token):
       pass
 
@@ -511,10 +451,12 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     children = list(output_fd.OpenChildren())
 
-    # There should be 5 children: a.txt, b.txt, c.txt, d.txt sub1
-    self.assertEqual(len(children), 5)
+    # There should be 6 children:
+    expected_children = u"a.txt b.txt c.txt d.txt sub1 中国新闻网新闻中.txt"
 
-    self.assertEqual("a.txt b.txt c.txt d.txt sub1".split(),
+    self.assertEqual(len(children), 6)
+
+    self.assertEqual(expected_children.split(),
                      sorted([child.urn.Basename() for child in children]))
 
     # Find the child named: a.txt
@@ -527,21 +469,19 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     self.assertEqual(child.__class__.__name__, "VFSBlobImage")
 
   def testDownloadDirectorySub(self):
-    """Test a FetchFiles flow with depth=5."""
+    """Test a FileFinder flow with depth=5."""
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
 
-    # Mock the client actions FetchFiles uses
+    # Mock the client actions FileFinder uses.
     client_mock = test_lib.ActionMock("HashFile", "HashBuffer", "StatFile",
                                       "Find", "TransferBuffer")
 
-    pathspec = rdfvalue.PathSpec(
-        path="/c/Downloads", pathtype=rdfvalue.PathSpec.PathType.OS)
-
     for _ in test_lib.TestFlowHelper(
-        "FetchFiles", client_mock, client_id=self.client_id,
-        findspec=rdfvalue.FindSpec(max_depth=5, pathspec=pathspec,
-                                   path_glob="*"),
+        "FileFinder", client_mock, client_id=self.client_id,
+        paths=["/c/Downloads/**5"],
+        action=rdfvalue.FileFinderAction(
+            action_type=rdfvalue.FileFinderAction.Action.DOWNLOAD),
         token=self.token):
       pass
 
@@ -552,10 +492,12 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     children = list(output_fd.OpenChildren())
 
-    # There should be 5 children: a.txt, b.txt, c.txt, d.txt, sub1
-    self.assertEqual(len(children), 5)
+    # There should be 6 children:
+    expected_children = u"a.txt b.txt c.txt d.txt sub1 中国新闻网新闻中.txt"
 
-    self.assertEqual("a.txt b.txt c.txt d.txt sub1".split(),
+    self.assertEqual(len(children), 6)
+
+    self.assertEqual(expected_children.split(),
                      sorted([child.urn.Basename() for child in children]))
 
     # Find the child named: sub1
@@ -566,9 +508,11 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     children = list(child.OpenChildren())
 
     # There should be 4 children: a.txt, b.txt, c.txt, d.txt
+    expected_children = "a.txt b.txt c.txt d.txt"
+
     self.assertEqual(len(children), 4)
 
-    self.assertEqual("a.txt b.txt c.txt d.txt".split(),
+    self.assertEqual(expected_children.split(),
                      sorted([child.urn.Basename() for child in children]))
 
   def CreateNewSparseImage(self):

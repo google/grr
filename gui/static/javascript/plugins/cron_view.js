@@ -36,13 +36,14 @@ grr.Renderer('CronTable', {
 
       $('.cron-job-state-icon', row).each(function() {
         var state = $(this).attr('state');
+        $('#run_cron_job_' + unique).removeAttr('disabled');
+        $('#delete_cron_job_' + unique).removeAttr('disabled');
+
         if (state == 'enabled') {
           $('#enable_cron_job_' + unique).attr('disabled', 'true');
-          $('#delete_cron_job_' + unique).removeAttr('disabled');
           $('#disable_cron_job_' + unique).removeAttr('disabled');
         } else if (state == 'disabled') {
           $('#enable_cron_job_' + unique).removeAttr('disabled');
-          $('#delete_cron_job_' + unique).removeAttr('disabled');
           $('#disable_cron_job_' + unique).attr('disabled', 'true');
         }
       });
@@ -58,6 +59,17 @@ grr.Renderer('CronTable', {
       $('#' + unique).trigger('refresh');
       $(this).html('');
     });
+
+    $('#run_cron_job_dialog_' + unique).on('show', function(event) {
+      if (event.target != this) return;
+
+      grr.layout('ForceRunCronJobConfirmationDialog',
+                 'run_cron_job_dialog_' + unique, dom_node.data());
+    }).on('hidden', function(event) {
+      $('#' + unique).trigger('refresh');
+      $(this).html('');
+    });
+
 
     $('#disable_cron_job_dialog_' + unique).on('show', function(event) {
       if (event.target != this) return;

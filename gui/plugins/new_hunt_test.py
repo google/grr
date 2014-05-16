@@ -86,19 +86,17 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=#_Filesystem > ins.jstree-icon")
     self.Click("css=#_Filesystem > ins.jstree-icon")
 
-    # Click on FetchFiles item in Filesystem flows list
-    self.WaitUntil(self.IsElementPresent, "link=Fetch Files")
-    self.Click("link=Fetch Files")
+    # Click on the FileFinder item in Filesystem flows list
+    self.Click("link=File Finder")
 
     # Wait for flow configuration form to be rendered (just wait for first
     # input field).
     self.WaitUntil(self.IsElementPresent,
                    "css=.Wizard input[id=args-paths-0]")
 
-    # Change "path", "pathtype", "depth" and "ignore_errors" values
+    # Change "path" and "pathtype" values
     self.Type("css=.Wizard input[id=args-paths-0]", "/tmp")
     self.Select("css=.Wizard select[id=args-pathtype]", "TSK")
-    self.Type("css=.Wizard input[id=args-max_size]", "42")
 
     # Click on "Next" button
     self.Click("css=.Wizard button.Next")
@@ -115,9 +113,6 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     self.assertEqual(
         "TSK", self.GetSelectedLabel("css=.Wizard select#args-pathtype"))
-
-    self.assertEqual("42",
-                     self.GetValue("css=.Wizard input#args-max_size"))
 
     # Click on "Next" button
     self.Click("css=.Wizard button.Next")
@@ -190,8 +185,6 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     # Check that the arguments summary is present.
     self.WaitUntil(self.IsTextPresent, "Paths")
     self.WaitUntil(self.IsTextPresent, "/tmp")
-    self.WaitUntil(self.IsTextPresent, "Max size")
-    self.WaitUntil(self.IsTextPresent, "42")
 
     # Check that output plugins are shown.
     self.assertTrue(self.IsTextPresent("EmailPlugin"))
@@ -219,8 +212,6 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
 
     self.assertTrue(self.IsTextPresent("Paths"))
     self.assertTrue(self.IsTextPresent("/tmp"))
-    self.assertTrue(self.IsTextPresent("Max size"))
-    self.assertTrue(self.IsTextPresent("42"))
 
     self.assertTrue(self.IsTextPresent("EmailPlugin"))
     self.assertTrue(self.IsTextPresent("test@%s" %
@@ -234,11 +225,10 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     # Check that the hunt was created with a correct flow
     hunt = hunts_list[0]
     self.assertEqual(hunt.state.args.flow_runner_args.flow_name,
-                     "FetchFiles")
+                     "FileFinder")
     self.assertEqual(hunt.state.args.flow_args.paths[0], "/tmp")
     self.assertEqual(hunt.state.args.flow_args.pathtype,
                      rdfvalue.PathSpec.PathType.TSK)
-    self.assertEqual(hunt.state.args.flow_args.max_size, 42)
     # self.assertEqual(hunt.state.args.flow_args.ignore_errors, True)
     self.assertTrue(hunt.state.args.output_plugins[0].plugin_name,
                     "EmailPlugin")

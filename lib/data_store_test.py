@@ -80,6 +80,39 @@ class DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(stored, "hello")
     self.assertEqual(type(stored), str)
 
+    # Test setting values with timestamp.
+    data_store.DB.MultiSet(self.test_row,
+                           {"aff4:size": [(1, 100)],
+                            "aff4:stored": [(unicode_string, 200)]},
+                           token=self.token)
+
+    (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:size",
+                                         token=self.token)
+    self.assertEqual(stored, 1)
+    self.assertEqual(ts, 100)
+
+    (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:stored",
+                                         token=self.token)
+    self.assertEqual(stored, unicode_string)
+    self.assertEqual(ts, 200)
+
+    # Test giving a broken timestamp definition.
+    with test_lib.FakeTime(555):
+      data_store.DB.MultiSet(self.test_row,
+                             {"aff4:size": [(1, None)],
+                              "aff4:stored": [(unicode_string, 200)]},
+                             token=self.token)
+
+    (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:size",
+                                         token=self.token)
+    self.assertEqual(stored, 1)
+    self.assertEqual(ts, 555000000)
+
+    (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:stored",
+                                         token=self.token)
+    self.assertEqual(stored, unicode_string)
+    self.assertEqual(ts, 200)
+
   def testMultiSetAsync(self):
     """Test the async MultiSet() methods."""
     unicode_string = u"this is a uñîcödé string"

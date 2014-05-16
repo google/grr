@@ -250,6 +250,51 @@ class AFF4Collection(aff4.AFF4Volume, RDFValueCollection):
       yield aff4object_summary.urn
 
 
+class GRRSignedBlobCollection(AFF4Collection):
+  _rdf_type = rdfvalue.SignedBlob
+
+
+class GRRSignedBlob(aff4.AFF4MemoryStream):
+  """A container for storing a signed binary blob such as a driver."""
+
+  def Initialize(self):
+    self.collection = aff4.FACTORY.Create(
+        self.urn.Add("collection"), "GRRSignedBlobCollection", mode=self.mode,
+        token=self.token)
+    self.fd = cStringIO.StringIO()
+
+    if "r" in self.mode:
+      for x in self.collection:
+        self.fd.write(x.data)
+
+      self.size = self.fd.tell()
+      self.fd.seek(0)
+
+    # How many chunks we have?
+    self.chunks = len(self.collection)
+
+  def Add(self, item):
+    self.collection.Add(item)
+
+  def __iter__(self):
+    return iter(self.collection)
+
+  def Close(self):
+    super(GRRSignedBlob, self).Close()
+    self.collection.Close()
+
+
+class GRRMemoryDriver(GRRSignedBlob):
+  """A driver for acquiring memory."""
+
+  class SchemaCls(GRRSignedBlob.SchemaCls):
+    INSTALLATION = aff4.Attribute(
+        "aff4:driver/installation", rdfvalue.DriverInstallTemplate,
+        "The driver installation control protobuf.", "installation",
+        default=rdfvalue.DriverInstallTemplate(
+            driver_name="pmem", device_path=r"\\.\pmem"))
+
+
 class GrepResultsCollection(RDFValueCollection):
   """A collection of grep results."""
   _rdf_type = rdfvalue.BufferReference

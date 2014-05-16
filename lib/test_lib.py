@@ -18,6 +18,7 @@ import sys
 import tempfile
 import threading
 import time
+import types
 import unittest
 import urlparse
 
@@ -51,6 +52,7 @@ from grr.lib import maintenance_utils
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import rekall_profile_server
 
 # Server components must also be imported even when the client code is tested.
 # pylint: disable=unused-import
@@ -431,20 +433,22 @@ class GRRBaseTest(unittest.TestCase):
     for i in range(nr_clients):
       client_id = rdfvalue.ClientURN("C.1%015d" % i)
       client_ids.append(client_id)
-      fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=self.token)
-      cert = rdfvalue.RDFX509Cert(
-          self.ClientCertFromPrivateKey(
-              config_lib.CONFIG["Client.private_key"]).as_pem())
-      fd.Set(fd.Schema.CERT, cert)
 
-      info = fd.Schema.CLIENT_INFO()
-      info.client_name = "GRR Monitor"
-      fd.Set(fd.Schema.CLIENT_INFO, info)
-      fd.Set(fd.Schema.PING, rdfvalue.RDFDatetime().Now())
-      fd.Set(fd.Schema.HOSTNAME("Host-%s" % i))
-      fd.Set(fd.Schema.FQDN("Host-%s.example.com" % i))
-      fd.Set(fd.Schema.MAC_ADDRESS("aabbccddee%02x" % i))
-      fd.Close()
+      with aff4.FACTORY.Create(client_id, "VFSGRRClient",
+                               token=self.token) as fd:
+        cert = rdfvalue.RDFX509Cert(
+            self.ClientCertFromPrivateKey(
+                config_lib.CONFIG["Client.private_key"]).as_pem())
+        fd.Set(fd.Schema.CERT, cert)
+
+        info = fd.Schema.CLIENT_INFO()
+        info.client_name = "GRR Monitor"
+        fd.Set(fd.Schema.CLIENT_INFO, info)
+        fd.Set(fd.Schema.PING, rdfvalue.RDFDatetime().Now())
+        fd.Set(fd.Schema.HOSTNAME("Host-%s" % i))
+        fd.Set(fd.Schema.FQDN("Host-%s.example.com" % i))
+        fd.Set(fd.Schema.MAC_ADDRESS("aabbccddee%02x" % i))
+
     return client_ids
 
   def DeleteClients(self, nr_clients):
@@ -546,69 +550,64 @@ class EmptyActionTest(GRRBaseTest):
 
   __metaclass__ = registry.MetaclassRegistry
 
-  def RunAction(self, action_name, arg=None):
-    """Run an action and generate responses.
-
-    Args:
-       action_name: The action to run.
-       arg: A protobuf to pass the action.
-
-    Returns:
-      A list of response protobufs.
-    """
+  def RunAction(self, action_name, arg=None, grr_worker=None):
     if arg is None:
       arg = rdfvalue.GrrMessage()
 
-    results = []
+    self.results = []
+    action = self._GetActionInstantace(action_name, arg=arg,
+                                       grr_worker=grr_worker)
 
-    # A mock SendReply() method to collect replies.
-    def MockSendReply(self, reply=None, **kwargs):
-      if reply is None:
-        reply = self.out_rdfvalue(**kwargs)
+    action.Run(arg)
 
-      results.append(reply)
+    return self.results
 
-    message = rdfvalue.GrrMessage(name=action_name, payload=arg)
-    action_cls = actions.ActionPlugin.classes[message.name]
-    with Stubber(action_cls, "SendReply", MockSendReply):
-      action = action_cls(message=message)
-      action.grr_worker = FakeClientWorker()
-      action.Run(arg)
+  def ExecuteAction(self, action_name, arg=None, grr_worker=None):
+    message = rdfvalue.GrrMessage(name=action_name, payload=arg,
+                                  auth_state="AUTHENTICATED")
 
-    return results
+    self.results = []
+    action = self._GetActionInstantace(action_name, arg=arg,
+                                       grr_worker=grr_worker)
 
-  def ExecuteAction(self, action_name, arg=None):
+    action.Execute(message)
+
+    return self.results
+
+  def _GetActionInstantace(self, action_name, arg=None, grr_worker=None):
     """Run an action and generate responses.
 
-    Opposed to RunAction, this also runs the accounting and exception catching
-    code and returns GrrStatus messages along with the responses.
+    This basically emulates GRRClientWorker.HandleMessage().
 
     Args:
        action_name: The action to run.
        arg: A protobuf to pass the action.
-
+       grr_worker: The GRRClientWorker instance to use. If not provided we make
+         a new one.
     Returns:
       A list of response protobufs.
     """
-    results = []
-
-    # Monkey patch a mock SendReply() method
-    def MockSendReply(self, reply=None, **kwargs):
+    # A mock SendReply() method to collect replies.
+    def MockSendReply(mock_self, reply=None, **kwargs):
       if reply is None:
-        reply = self.out_rdfvalue(**kwargs)
+        reply = mock_self.out_rdfvalue(**kwargs)
 
-      results.append(reply)
+      self.results.append(reply)
 
-    authenticated = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
-    message = rdfvalue.GrrMessage(name=action_name, payload=arg,
-                                  auth_state=authenticated)
-    action_cls = actions.ActionPlugin.classes[message.name]
-    with Stubber(action_cls, "SendReply", MockSendReply):
-      action = action_cls(message=message)
-      action.grr_worker = FakeClientWorker()
-      action.Execute()
+    if grr_worker is None:
+      grr_worker = FakeClientWorker()
 
-    return results
+    try:
+      suspended_action_id = arg.iterator.suspended_action
+      action = grr_worker.suspended_actions[suspended_action_id]
+
+    except (AttributeError, KeyError):
+      action_cls = actions.ActionPlugin.classes[action_name]
+      action = action_cls(grr_worker=grr_worker)
+
+    action.SendReply = types.MethodType(MockSendReply, action)
+
+    return action
 
 
 class FlowTestsBaseclass(GRRBaseTest):
@@ -655,6 +654,7 @@ def SeleniumAction(f):
 
 
 class ACLChecksDisabledContextManager(object):
+
   def __enter__(self):
     self.old_security_manager = data_store.DB.security_manager
     data_store.DB.security_manager = access_control.NullAccessControlManager()
@@ -1173,6 +1173,7 @@ class GRRTestLoader(unittest.TestLoader):
 
 
 class MockClient(object):
+
   def __init__(self, client_id, client_mock, token=None):
     if not isinstance(client_id, rdfvalue.ClientURN):
       raise RuntimeError("Client id must be an instance of ClientURN")
@@ -1227,6 +1228,7 @@ class MockClient(object):
       for message in request_tasks:
         status = None
         response_id = 1
+
         # Collect all responses for this message from the client mock
         try:
           if hasattr(self.client_mock, "HandleMessage"):
@@ -1398,6 +1400,10 @@ class MockWorker(worker.GRRWorker):
 class FakeClientWorker(comms.GRRClientWorker):
   """A Fake GRR client worker which just collects SendReplys."""
 
+  # Global store of suspended actions, indexed by the unique ID of the client
+  # action.
+  suspended_actions = {}
+
   def __init__(self):
     self.responses = []
     self.sent_bytes_per_flow = {}
@@ -1413,6 +1419,11 @@ class FakeClientWorker(comms.GRRClientWorker):
         type=message_type, payload=rdf_value, **kw)
 
     self.responses.append(message)
+
+  def Drain(self):
+    result = self.responses
+    self.responses = []
+    return result
 
 
 class ActionMock(object):
@@ -1442,23 +1453,35 @@ class ActionMock(object):
          if k in action_names])
     self.action_counts = dict((x, 0) for x in action_names)
 
+    # Create a single long lived client worker mock.
+    self.client_worker = FakeClientWorker()
+
   def RecordCall(self, action_name, action_args):
     pass
 
   def HandleMessage(self, message):
     message.auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
-    client_worker = FakeClientWorker()
 
     # We allow special methods to be specified for certain actions.
     if hasattr(self, message.name):
       return getattr(self, message.name)(message.payload)
 
     self.RecordCall(message.name, message.payload)
-    action_cls = self.action_classes[message.name]
-    action = action_cls(message=message, grr_worker=client_worker)
-    action.Execute()
+
+    # Try to retrieve a suspended action from the client worker.
+    try:
+      suspended_action_id = message.payload.iterator.suspended_action
+      action = self.client_worker.suspended_actions[suspended_action_id]
+
+    except (AttributeError, KeyError):
+      # Otherwise make a new action instance.
+      action_cls = self.action_classes[message.name]
+      action = action_cls(grr_worker=self.client_worker)
+
+    action.Execute(message)
     self.action_counts[message.name] += 1
-    return client_worker.responses
+
+    return self.client_worker.Drain()
 
 
 class RecordingActionMock(ActionMock):
@@ -2075,6 +2098,27 @@ class RemotePDB(pdb.Pdb):
     (clientsocket, address) = RemotePDB.skt.accept()
     RemotePDB.handle = clientsocket.makefile("rw", 1)
     logging.warn("Received a connection from %s", address)
+
+
+class TestRekallRepositoryProfileServer(rekall_profile_server.ProfileServer):
+  """This server gets the profiles locally from the test data dir."""
+
+  def __init__(self, *args, **kw):
+    super(TestRekallRepositoryProfileServer, self).__init__(*args, **kw)
+    self.profiles_served = 0
+
+  def GetProfileByName(self, profile_name):
+    if not profile_name.endswith(".gz"):
+      profile_name = "%s.gz" % profile_name
+
+    profile_data = open(os.path.join(
+        config_lib.CONFIG["Test.data_dir"], "profiles",
+        profile_name), "rb").read()
+
+    self.profiles_served += 1
+
+    return rdfvalue.RekallProfile(name=profile_name,
+                                  data=profile_data)
 
 
 def main(argv=None):

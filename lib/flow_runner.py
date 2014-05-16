@@ -217,6 +217,9 @@ class FlowRunner(object):
         create_time=rdfvalue.RDFDatetime().Now(),
         creator=self.token.username,
         current_state="Start",
+        # If not None, kill-stuck-flow notification is scheduled at the given
+        # time.
+        kill_timestamp=None,
         network_bytes_sent=0,
         next_outbound_id=1,
         next_processed_request=1,

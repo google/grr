@@ -3,7 +3,6 @@
 
 
 import re
-import StringIO
 import time
 
 
@@ -307,7 +306,8 @@ class VFSFile(aff4.AFF4Image):
 
     FINGERPRINT = aff4.Attribute("aff4:fingerprint",
                                  rdfvalue.FingerprintResponse,
-                                 "Protodict containing arrays of hashes.")
+                                 "DEPRECATED protodict containing arrays of "
+                                 " hashes. Use AFF4Stream.HASH instead.")
 
   def Update(self, attribute=None, priority=None):
     """Update an attribute from the client."""
@@ -363,39 +363,6 @@ class VFSAnalysisFile(VFSFile):
 
   def Update(self, attribute=None):
     pass
-
-
-class GRRSignedBlob(aff4.AFF4MemoryStream):
-  """A container for storing a signed binary blob such as a driver."""
-
-  class SchemaCls(aff4.AFF4MemoryStream.SchemaCls):
-    """Signed blob attributes."""
-
-    BINARY = aff4.Attribute("aff4:signed_blob", rdfvalue.SignedBlob,
-                            "Signed blob proto for deployment to clients."
-                            "This is used for signing drivers, binaries "
-                            "and python code.")
-
-  def Initialize(self):
-    contents = ""
-    if "r" in self.mode:
-      contents = self.Get(self.Schema.BINARY)
-      if contents:
-        contents = contents.data
-
-    self.fd = StringIO.StringIO(contents)
-    self.size = self.fd.len
-
-
-class GRRMemoryDriver(GRRSignedBlob):
-  """A driver for acquiring memory."""
-
-  class SchemaCls(GRRSignedBlob.SchemaCls):
-    INSTALLATION = aff4.Attribute(
-        "aff4:driver/installation", rdfvalue.DriverInstallTemplate,
-        "The driver installation control protobuf.", "installation",
-        default=rdfvalue.DriverInstallTemplate(
-            driver_name="pmem", device_path=r"\\.\pmem"))
 
 
 class GRRForeman(aff4.AFF4Object):
@@ -747,3 +714,11 @@ class VFSBlobImage(aff4.BlobImage, aff4.VFSFile):
 
   class SchemaCls(aff4.BlobImage.SchemaCls, aff4.VFSFile.SchemaCls):
     pass
+
+
+class AFF4RekallProfile(aff4.AFF4MemoryStream):
+  """A Rekall profile in the AFF4 namespace."""
+
+  class SchemaCls(aff4.AFF4MemoryStream.SchemaCls):
+    PROFILE = aff4.Attribute("aff4:profile", rdfvalue.RekallProfile,
+                             "A Rekall profile.")

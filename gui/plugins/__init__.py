@@ -16,6 +16,7 @@ from grr.gui.plugins import hunt_view
 from grr.gui.plugins import inspect_view
 from grr.gui.plugins import new_hunt
 from grr.gui.plugins import notifications
+from grr.gui.plugins import rekall_viewer
 from grr.gui.plugins import reports_view
 from grr.gui.plugins import searchclient
 from grr.gui.plugins import semantic

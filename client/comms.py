@@ -116,6 +116,10 @@ class GRRClientWorker(object):
 
     self.proc = psutil.Process(os.getpid())
 
+    # We store suspended actions in this dict. We can retrieve the suspended
+    # client action from here if needed.
+    self.suspended_actions = {}
+
     # Use this to control the nanny transaction log.
     self.nanny_controller = client_utils.NannyController()
     self.nanny_controller.StartNanny()
@@ -272,12 +276,21 @@ class GRRClientWorker(object):
     try:
       # Write the message to the transaction log.
       self.nanny_controller.WriteTransactionLog(message)
-      action_cls = actions.ActionPlugin.classes.get(
-          message.name, actions.ActionPlugin)
-      action = action_cls(message=message, grr_worker=self)
+
+      # Try to retrieve a suspended action from the client worker.
+      try:
+        suspended_action_id = message.payload.iterator.suspended_action
+        action = self.suspended_actions[suspended_action_id]
+
+      except (AttributeError, KeyError):
+        # Otherwise make a new action instance.
+        action_cls = actions.ActionPlugin.classes.get(
+            message.name, actions.ActionPlugin)
+        action = action_cls(grr_worker=self)
+
       # Heartbeat so we have the full period to work on this message.
       action.Progress()
-      action.Execute()
+      action.Execute(message)
 
       # If we get here without exception, we can remove the transaction.
       self.nanny_controller.CleanTransactionLog()
@@ -361,7 +374,7 @@ class GRRClientWorker(object):
 
       action_cls = actions.ActionPlugin.classes.get(
           "GetClientStatsAuto", actions.ActionPlugin)
-      action = action_cls(None, grr_worker=self)
+      action = action_cls(grr_worker=self)
       action.Run(None)
 
   def SendNannyMessage(self):
@@ -590,7 +603,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     # Inform the server that we started.
     action_cls = actions.ActionPlugin.classes.get(
         "SendStartupInfo", actions.ActionPlugin)
-    action = action_cls(None, grr_worker=self)
+    action = action_cls(grr_worker=self)
     action.Run(None, ttl=1)
 
   def run(self):

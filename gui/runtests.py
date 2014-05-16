@@ -4,7 +4,6 @@
 import copy
 import socket
 import threading
-import urllib
 from wsgiref import simple_server
 
 # pylint: disable=unused-import
@@ -32,6 +31,7 @@ class DjangoThread(threading.Thread):
   """A class to run the wsgi server in another thread."""
 
   keep_running = True
+  daemon = True
 
   def __init__(self, **kwargs):
     super(DjangoThread, self).__init__(**kwargs)
@@ -52,16 +52,6 @@ class DjangoThread(threading.Thread):
 
     while self.keep_running:
       server.handle_request()
-
-  def Stop(self):
-    self.keep_running = False
-    try:
-      # Force a request so the socket leaves accept()
-      urllib.urlopen(self.base_url + "/quitmenow").read()
-    except IOError:
-      pass
-
-    self.join()
 
 
 class RunTestsInit(registry.InitHook):
@@ -136,17 +126,16 @@ def main(_):
 
   # Start up a server in another thread
   trd = DjangoThread()
+  trd.daemon = True
   trd.start()
-  try:
-    user_ns = dict()
-    user_ns.update(globals())
-    user_ns.update(locals())
 
-    # Wait in the shell so selenium IDE can be used.
-    ipshell.IPShell(argv=[], user_ns=user_ns)
-  finally:
-    # Kill the server thread
-    trd.Stop()
+  user_ns = dict()
+  user_ns.update(globals())
+  user_ns.update(locals())
+
+  # Wait in the shell so selenium IDE can be used.
+  ipshell.IPShell(argv=[], user_ns=user_ns)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

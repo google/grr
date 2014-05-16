@@ -148,12 +148,3 @@ def RunTests(client_id=None, platform=None, testname=None,
                        token=token, local_worker=local_worker))
       except Exception:  # pylint: disable=broad-except
         logging.exception("Failed to run test %s", cls)
-
-
-
-
-
-
-
-
-

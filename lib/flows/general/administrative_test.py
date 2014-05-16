@@ -361,9 +361,71 @@ sys.test_code_ran_here = py_args['value']
       self.assertTrue(Popen.running_args[0].startswith(
           config_lib.CONFIG["Client.tempdir"]))
 
+  def testExecuteLargeBinaries(self):
+    client_mock = test_lib.ActionMock("ExecuteBinaryCommand")
+
+    code = "I am a large binary file" * 100
+    upload_path = config_lib.CONFIG["Executables.aff4_path"].Add("test.exe")
+
+    maintenance_utils.UploadSignedConfigBlob(
+        code, aff4_path=upload_path, limit=100, token=self.token)
+
+    # Ensure the aff4 collection has many items.
+    fd = aff4.FACTORY.Open(upload_path, token=self.token)
+
+    # There should be 24 parts to this binary.
+    self.assertEqual(len(fd.collection), 24)
+
+    # Total size is 2400.
+    self.assertEqual(len(fd), 2400)
+
+    class Popen(object):
+      """A mock object for subprocess.Popen."""
+
+      def __init__(self, run, stdout, stderr, stdin):
+        Popen.running_args = run
+        Popen.stdout = stdout
+        Popen.stderr = stderr
+        Popen.stdin = stdin
+        Popen.returncode = 0
+
+        # Store the content of the executable file.
+        Popen.binary = open(run[0]).read()
+
+      def communicate(self):  # pylint: disable=g-bad-name
+        return "stdout here", "stderr here"
+
+    # This flow has an acl, the user needs to be admin.
+    user = aff4.FACTORY.Create("aff4:/users/%s" % self.token.username,
+                               mode="rw", aff4_type="GRRUser", token=self.token)
+    user.SetLabels("admin")
+    user.Close()
+
+    with test_lib.Stubber(subprocess, "Popen", Popen):
+      for _ in test_lib.TestFlowHelper(
+          "LaunchBinary", client_mock, client_id=self.client_id,
+          binary=upload_path, command_line="--value 356", token=self.token):
+        pass
+
+      # Check that the executable file contains the code string.
+      self.assertEqual(Popen.binary, code)
+
+      # At this point, the actual binary should have been cleaned up by the
+      # client action so it should not exist.
+      self.assertRaises(IOError, open, Popen.running_args[0])
+
+      # Check the binary was run with the correct command line.
+      self.assertEqual(Popen.running_args[1], "--value")
+      self.assertEqual(Popen.running_args[2], "356")
+
+      # Check the command was in the tmp file.
+      self.assertTrue(Popen.running_args[0].startswith(
+          config_lib.CONFIG["Client.tempdir"]))
+
   def testGetClientStats(self):
 
     class ClientMock(object):
+
       def GetClientStats(self, _):
         """Fake get client stats method."""
         response = rdfvalue.ClientStats()

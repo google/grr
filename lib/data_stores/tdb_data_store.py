@@ -252,9 +252,11 @@ class TDBDataStore(data_store.DataStore):
                         self.INDEX_SUFFIX,
                         context=tdb_context) as timestamp_index:
             for v in seq:
+              element_timestamp = None
               if isinstance(v, (list, tuple)):
                 v, element_timestamp = v
-              else:
+
+              if element_timestamp is None:
                 element_timestamp = timestamp
 
               element_timestamp = str(long(element_timestamp))
@@ -262,10 +264,13 @@ class TDBDataStore(data_store.DataStore):
               tdb_context.Put(self._Encode(v),
                               subject, attribute, element_timestamp)
 
-  def DeleteAttributes(self, subject, attributes, sync=None, token=None):
+  def DeleteAttributes(self, subject, attributes, start=None, end=None,
+                       sync=None, token=None):
     """Remove some attributes from a subject."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     _ = sync
+
+    # TODO(user): This has to work with start and end.
 
     with TDB_CACHE.Get(subject) as tdb_context:
       with TDBIndex(subject, self.INDEX_SUFFIX,

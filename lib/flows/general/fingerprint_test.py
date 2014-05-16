@@ -9,13 +9,14 @@
 import os
 
 from grr.lib import aff4
+from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 
 
 class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
-  """Test the FetchAllFiles flow."""
+  """Test the Fingerprint flow."""
 
   def testFingerprintPresence(self):
     path = os.path.join(self.base_path, "winexec_img.dd")
@@ -26,14 +27,31 @@ class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
                     pathtype=rdfvalue.PathSpec.PathType.TSK)
 
     client_mock = test_lib.ActionMock("FingerprintFile")
-    for _ in test_lib.TestFlowHelper(
-        "FingerprintFile", client_mock, token=self.token,
-        client_id=self.client_id, pathspec=pathspec):
-      pass
+    with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
+      for _ in test_lib.TestFlowHelper(
+          "FingerprintFile", client_mock, token=self.token,
+          client_id=self.client_id, pathspec=pathspec):
+        pass
+
+      self.assertEqual(len(send_reply.args), 1)
+      for _, reply in send_reply.args:
+        self.assertTrue(isinstance(reply, rdfvalue.FingerprintFileResult))
+        self.assertTrue(str(reply.file_urn).endswith(
+            "test_data/winexec_img.dd/winpmem-amd64.sys"))
+
+        self.assertEqual(str(reply.hash_entry.sha256),
+                         "40ac571d6d85d669a9a19d498d9f926525481430056ff65746f"
+                         "baf36bee8855f")
+        self.assertEqual(str(reply.hash_entry.sha1),
+                         "6e17df1a1020a152f2bf4445d1004b192ae8e42d")
+        self.assertEqual(str(reply.hash_entry.md5),
+                         "12be1109aa3d3b46c9398972af2008e1")
 
     urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
     fd = aff4.FACTORY.Open(urn, token=self.token)
     self.assertEqual(fd.__class__, aff4_grr.VFSFile)
+
+    # FINGERPRINT is deprecated in favour of HASH, check it anyway
     fingerprint = fd.Get(fd.Schema.FINGERPRINT)
     pecoff = fingerprint.GetFingerprint("pecoff")["sha1"].encode("hex")
     self.assertEqual(pecoff, "1f32fa4eedfba023653c094143d90999f6b9bc4f")

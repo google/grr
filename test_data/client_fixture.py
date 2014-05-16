@@ -3596,6 +3596,28 @@ pathspec {
 }
 """
 })),
+(u"/fs/os/c/Downloads/中国新闻网新闻中.txt", ("VFSFile", {
+"aff4:stat":
+"""
+st_mode: 33261
+st_ino: 1026267
+st_dev: 51713
+st_nlink: 1
+st_uid: 0
+st_gid: 0
+st_size: 60064
+st_atime: 1308964274
+st_mtime: 1285093975
+st_ctime: 1299502221
+st_blocks: 128
+st_blksize: 4096
+st_rdev: 0
+pathspec {
+  pathtype: OS
+  path: "/c/Downloads/中国新闻网新闻中.txt"
+}
+"""
+})),
 (u"/fs/os/c/Downloads/sub1", ("VFSDirectory", {
 "aff4:stat":
 """

@@ -6,6 +6,7 @@
 
 # These import populate the AFF4 registry
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import aff4_rekall
 from grr.lib.aff4_objects import browser
 from grr.lib.aff4_objects import client_stats
 from grr.lib.aff4_objects import collections

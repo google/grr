@@ -32,7 +32,8 @@ class ErrorNotTempFile(Error):
   """Attempt to delete a file that isn't a GRR tempfile."""
 
 
-def CreateGRRTempFile(directory=None, lifetime=0, suffix=""):
+def CreateGRRTempFile(directory=None, filename=None, lifetime=0, mode="w+b",
+                      suffix=""):
   """Open file with GRR prefix in directory to allow easy deletion.
 
   Missing parent dirs will be created. If an existing directory is specified
@@ -51,15 +52,27 @@ def CreateGRRTempFile(directory=None, lifetime=0, suffix=""):
     directory: string representing absolute directory where file should be
                written. If None, use 'tmp' under the directory we're running
                from.
+
+    filename: The name of the file to use. Note that setting both filename and
+       directory name is not allowed.
+
     lifetime: time in seconds before we should delete this tempfile.
+
+    mode: The mode to open the file.
+
     suffix: optional suffix to use for the temp file
+
   Returns:
     Python file object
+
   Raises:
     OSError: on permission denied
     ErrorBadPath: if path is not absolute
     ValueError: if Client.tempfile_prefix is undefined in the config.
   """
+  if filename and directory:
+    raise ErrorBadPath("Providing both filename and directory name forbidden.")
+
   if not directory:
     directory = config_lib.CONFIG["Client.tempdir"]
 
@@ -77,8 +90,14 @@ def CreateGRRTempFile(directory=None, lifetime=0, suffix=""):
       os.chmod(directory, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
 
   prefix = config_lib.CONFIG.Get("Client.tempfile_prefix")
-  outfile = tempfile.NamedTemporaryFile(prefix=prefix, suffix=suffix,
-                                        dir=directory, delete=False)
+  if filename is None:
+    outfile = tempfile.NamedTemporaryFile(prefix=prefix, suffix=suffix,
+                                          dir=directory, delete=False)
+  else:
+    if suffix:
+      filename = "%s.%s" % (filename, suffix)
+
+    outfile = open(os.path.join(directory, filename), mode)
 
   if lifetime > 0:
     cleanup = threading.Timer(lifetime, DeleteGRRTempFile, (outfile.name,))

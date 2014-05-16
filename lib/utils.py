@@ -702,7 +702,7 @@ def GuessWindowsFileNameFromString(str_in):
 def ShellQuote(value):
   """Escapes the string for the safe use inside shell command line."""
   # TODO(user): replace pipes.quote with shlex.quote when time comes.
-  return pipes.quote(SmartStr(value))
+  return pipes.quote(SmartUnicode(value))
 
 
 def Join(*parts):

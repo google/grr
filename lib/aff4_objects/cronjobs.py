@@ -122,9 +122,16 @@ class CronManager(object):
     """Deletes cron job with the given URN."""
     aff4.FACTORY.Delete(job_urn, token=token)
 
-  def RunOnce(self, token=None, force=False):
-    """Tries to lock and run every cron job."""
-    for cron_job_urn in self.ListJobs(token=token):
+  def RunOnce(self, token=None, force=False, urns=None):
+    """Tries to lock and run cron jobs.
+
+    Args:
+      token: security token
+      force: If True, force a run
+      urns: List of URNs to run.  If unset, run them all
+    """
+    urns = urns or self.ListJobs(token=token)
+    for cron_job_urn in urns:
       try:
 
         with aff4.FACTORY.OpenWithLock(
@@ -273,6 +280,9 @@ class ManageCronJobFlow(flow.GRRFlow):
       CRON_MANAGER.EnableJob(self.state.args.urn, token=self.token)
     elif self.state.args.action == self.args_type.Action.DELETE:
       CRON_MANAGER.DeleteJob(self.state.args.urn, token=self.token)
+    elif self.state.args.action == self.args_type.Action.RUN:
+      CRON_MANAGER.RunOnce(urns=[self.state.args.urn], token=self.token,
+                           force=True)
 
 
 class CreateCronJobFlow(flow.GRRFlow):

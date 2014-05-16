@@ -86,6 +86,10 @@ class CronTable(renderers.TableRenderer):
   class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
 </div>
 
+<div id="run_cron_job_dialog_{{unique|escape}}"
+  class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
+</div>
+
 <div id="schedule_hunt_cron_job_dialog_{{unique|escape}}"
   class="modal wide-modal high-modal hide" update_on_show="true"
   tabindex="-1" role="dialog" aria-hidden="true">
@@ -109,6 +113,14 @@ class CronTable(renderers.TableRenderer):
     disabled="true"
     >
       <img src='/static/images/play_button.png' class='toolbar_icon'>
+  </button>
+
+  <button id='run_cron_job_{{unique|escape}}' title='Force Run Cron Job'
+    class="btn" name="RunCronJob" data-toggle="modal"
+    data-target="#run_cron_job_dialog_{{unique|escape}}"
+    disabled="true"
+    >
+      <img src='/static/images/play_force_button.png' class='toolbar_icon'>
   </button>
 
   <button id='disable_cron_job_{{unique|escape}}' title='Disable Cron Job'
@@ -277,20 +289,29 @@ successfully!</p>
 
 
 class DisableCronJobConfirmationDialog(CronJobManagementConfirmationDialog):
-  """Dialog that asks confirmation to disable a cron job."""
+  """Dialog that asks for confirmation to disable a cron job."""
 
   action_name = rdfvalue.ManageCronJobFlowArgs.Action.DISABLE
 
 
 class EnableCronJobConfirmationDialog(CronJobManagementConfirmationDialog):
-  """Dialog that asks confirmation to enable a cron job."""
+  """Dialog that asks for confirmation to enable a cron job."""
 
   action_name = rdfvalue.ManageCronJobFlowArgs.Action.ENABLE
 
 
 class DeleteCronJobConfirmationDialog(CronJobManagementConfirmationDialog):
-  """Dialog that asks confirmation to delete a cron job."""
+  """Dialog that asks for confirmation to delete a cron job."""
   action_name = rdfvalue.ManageCronJobFlowArgs.Action.DELETE
+
+
+class ForceRunCronJobConfirmationDialog(CronJobManagementConfirmationDialog):
+  """Dialog that asks for confirmation to force a cron job run.
+
+  This action can be run at any time regardless of whether the cronjob is
+  enabled or disabled.
+  """
+  action_name = rdfvalue.ManageCronJobFlowArgs.Action.RUN
 
 
 class CronConfigureSchedule(renderers.TemplateRenderer):

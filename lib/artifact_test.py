@@ -30,6 +30,8 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 
+# pylint: mode=test
+
 
 class GRRArtifactTest(test_lib.GRRBaseTest):
 

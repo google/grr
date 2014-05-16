@@ -17,7 +17,10 @@ from grr.lib.rdfvalues import hunts
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import plist
 from grr.lib.rdfvalues import protodict
+from grr.lib.rdfvalues import rekall_types
 from grr.lib.rdfvalues import stats
 from grr.lib.rdfvalues import structs
+# TODO(user): Volatility is deprecated, remove this as soon as Rekall is
+# rolled out.
 from grr.lib.rdfvalues import volatility_types
 from grr.lib.rdfvalues import webhistory

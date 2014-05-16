@@ -509,6 +509,25 @@ class GRRFlow(aff4.AFF4Volume):
         logging.info("%s: Extending Lease", self.session_id)
         self.UpdateLease(lease_time)
 
+        # If kill timestamp is set (i.e. if the flow is currently being
+        # processed by the worker), delete the old "kill if stuck" notification
+        # and schedule a new one, further in the future.
+        if self.runner.context.kill_timestamp:
+          with queue_manager.QueueManager(token=self.token) as manager:
+            manager.DeleteNotification(
+                self.session_id,
+                start=self.runner.context.kill_timestamp,
+                end=self.runner.context.kill_timestamp +
+                rdfvalue.Duration("1s"))
+
+            stuck_flows_timeout = rdfvalue.Duration(
+                config_lib.CONFIG["Worker.stuck_flows_timeout"])
+            self.runner.context.kill_timestamp = (rdfvalue.RDFDatetime().Now() +
+                                                  stuck_flows_timeout)
+            manager.QueueNotification(
+                session_id=self.session_id, in_progress=True,
+                timestamp=self.runner.context.kill_timestamp)
+
   def WriteState(self):
     if "w" in self.mode:
       if self.state.Empty():

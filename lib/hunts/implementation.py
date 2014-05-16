@@ -184,6 +184,9 @@ class HuntRunner(flow_runner.FlowRunner):
         create_time=rdfvalue.RDFDatetime().Now(),
         creator=self.token.username,
         expires=rdfvalue.RDFDatetime().Now(),
+        # If not None, kill-stuck-flow notification is scheduled at the given
+        # time.
+        kill_timestamp=None,
         network_bytes_sent=0,
         next_outbound_id=1,
         next_processed_request=1,

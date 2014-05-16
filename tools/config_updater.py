@@ -115,6 +115,22 @@ def UpdateUser(username, password, labels):
   print "Updating user %s" % username
   ShowUser(username)
 
+# Delete an existing user.
+parser_update_user = subparsers.add_parser(
+    "delete_user", help="Delete an user account.")
+
+parser_update_user.add_argument("username", help="Username to update.")
+
+
+def DeleteUser(username):
+  try:
+    aff4.FACTORY.Open("aff4:/users/%s" % username, "GRRUser")
+  except aff4.InstantiationError:
+    print "User %s not found." % username
+    return
+
+  aff4.FACTORY.Delete("aff4:/users/%s" % username)
+  print "User %s has been deleted." % username
 
 # Show user account.
 parser_show_user = subparsers.add_parser(
@@ -489,6 +505,9 @@ def main(unused_argv):
 
   elif flags.FLAGS.subparser_name == "update_user":
     UpdateUser(flags.FLAGS.username, flags.FLAGS.password, flags.FLAGS.label)
+
+  elif flags.FLAGS.subparser_name == "delete_user":
+    DeleteUser(flags.FLAGS.username)
 
   elif flags.FLAGS.subparser_name == "add_user":
     password = getpass.getpass(prompt="Please enter password for user '%s': " %

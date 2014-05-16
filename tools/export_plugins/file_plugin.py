@@ -37,10 +37,18 @@ class FileExportPlugin(plugin.ExportPlugin):
     """Downloads files/directories with the given path."""
 
     try:
-      directory = aff4.FACTORY.Open(args.path, "VFSDirectory",
+      directory = aff4.FACTORY.Open(args.path, "AFF4Volume",
                                     token=data_store.default_token)
     except aff4.InstantiationError:
       directory = None
+
+    if directory and not isinstance(directory, aff4.VFSDirectory):
+      # If directory is not a VFSDirectory, check that it's in its' parent
+      # children list. This way we check that the path actually exists.
+      directory_parent = aff4.FACTORY.Open(directory.urn.Dirname(),
+                                           token=data_store.default_token)
+      if directory.urn not in directory_parent.ListChildren():
+        raise RuntimeError("Specified path doesn't exist!")
 
     if directory:
       export_utils.RecursiveDownload(directory, args.output,

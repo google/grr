@@ -279,7 +279,7 @@ class StatGraph(object):
     if max_samples:
       downsample_ratio = int(math.ceil(float(len(series)) / max_samples))
     data = [[k, series[k]] for k in sorted(series)[::downsample_ratio]]
-    self.series.append(StatData(series_name, ",".join(map(str, data))))
+    self.series.append(StatData(series_name, data))
     self.downsample = downsample_ratio
 
   def ToDict(self):

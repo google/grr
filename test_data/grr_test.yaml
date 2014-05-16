@@ -263,5 +263,8 @@ Test Context:
   Client.tempdir: |
     /tmp/
 
+  Client.rekall_profile_cache_path: |
+    /tmp/rekall_profiles
+
   # Disable write back
   Config.writeback: ""

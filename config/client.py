@@ -39,6 +39,11 @@ config_lib.DEFINE_string(
     default=r"%(SystemRoot|env)\\System32\\%(name)\\%(version_string)",
     help="Where the client binaries are installed.")
 
+config_lib.DEFINE_string(
+    name="Client.rekall_profile_cache_path",
+    default=r"%(Client.install_path)\\rekall_profiles",
+    help="Where GRR stores cached Rekall profiles needed for memory analysis")
+
 config_lib.DEFINE_list("Client.control_urls",
                        ["http://www.example.com/control"],
                        "List of URLs of the controlling server.")
@@ -226,4 +231,3 @@ For example:
 
   HKEY_LOCAL_MACHINE\\Software\\GRR\\certificate -> Client.private_key
 """)
-

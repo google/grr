@@ -1,25 +1,60 @@
 # Web browser artifacts.
 
 name: ChromeCache
-doc: Chrome browser cache.
+doc: |
+  Google Chrome and Chromium browser caches.
+
+  * Disk cache (or Cache)
+  * Media cache
+  * Application cache
+  * GPU shader cache
+  * PNaCl translation cache
 collectors:
 - action: GetFiles
   args:
     path_list:
+      - '%%users.localappdata%%\Google\Chrome\User Data\*\Application Cache\Cache\*'
       - '%%users.localappdata%%\Google\Chrome\User Data\*\Cache\*'
+      - '%%users.localappdata%%\Google\Chrome\User Data\*\Media Cache\*'
+      - '%%users.localappdata%%\Google\Chrome\User Data\*\GPUCache\*'
+      - '%%users.localappdata%%\Chromium\User Data\*\Application Cache\Cache\*'
       - '%%users.localappdata%%\Chromium\User Data\*\Cache\*'
+      - '%%users.localappdata%%\Chromium\User Data\*\Media Cache\*'
+      - '%%users.localappdata%%\Chromium\User Data\*\GPUCache\*'
   supported_os: [Windows]
 - action: GetFiles
   args:
     path_list:
       - '%%users.homedir%%/Caches/Google/Chrome/*/Cache/*'
+      - '%%users.homedir%%/Library/Caches/Google/Chrome/*/Cache/*'
+      - '%%users.homedir%%/Library/Caches/Google/Chrome/*/Media Cache/*'
+      - '%%users.homedir%%/Library/Application Support/Google/Chrome/*/Application Cache/Cache/*'
+      - '%%users.homedir%%/Library/Application Support/Google/Chrome/*/GPUCache/*'
+      - '%%users.homedir%%/Library/Caches/Google/Chrome/PnaclTranslationCache/*'
       - '%%users.homedir%%/Caches/Chromium/*/Cache/*'
+      - '%%users.homedir%%/Library/Caches/Chromium/*/Cache/*'
+      - '%%users.homedir%%/Library/Caches/Chromium/*/Media Cache/*'
+      - '%%users.homedir%%/Library/Application Support/Chromium/*/Application Cache/Cache/*'
+      - '%%users.homedir%%/Library/Application Support/Chromium/*/GPUCache/*'
+      - '%%users.homedir%%/Library/Caches/Chromium/PnaclTranslationCache/*'
   supported_os: [Darwin]
 - action: GetFiles
   args:
     path_list:
+      - '%%users.homedir%%/.cache/google-chrome/*/Cache/*'
+      - '%%users.homedir%%/.cache/google-chrome/*/Media Cache/*'
+      - '%%users.homedir%%/.cache/google-chrome/PnaclTranslationCache/*'
+      - '%%users.homedir%%/.config/google-chrome/*/Application Cache/*'
       - '%%users.homedir%%/.config/google-chrome/*/Cache/*'
+      - '%%users.homedir%%/.config/google-chrome/*/Media Cache/*'
+      - '%%users.homedir%%/.config/google-chrome/*/GPUCache/*'
+      - '%%users.homedir%%/.cache/chromium/*/Cache/*'
+      - '%%users.homedir%%/.cache/chromium/*/Media Cache/*'
+      - '%%users.homedir%%/.cache/chromium/PnaclTranslationCache/*'
+      - '%%users.homedir%%/.config/chromium/*/Application Cache/*'
       - '%%users.homedir%%/.config/chromium/*/Cache/*'
+      - '%%users.homedir%%/.config/chromium/*/Media Cache/*'
+      - '%%users.homedir%%/.config/chromium/*/GPUCache/*'
   supported_os: [Linux]
 labels: [Browser]
 urls: ['http://www.forensicswiki.org/wiki/Google_Chrome']

@@ -1,11 +1,12 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """Execute a volatility command on the client memory.
 
 This module implements the volatility enabled client actions which enable
 volatility to operate directly on the client.
 """
+
+# TODO(user): This module is deprecated, as soon as Rekall support is rolled
+# out, remove this.
 
 
 
@@ -147,20 +148,6 @@ class ProtobufRenderer(renderer.RendererBaseClass):
 
   def RenderProgress(self, *args):
     self.session.progress(*args)
-
-
-class UnicodeStringIO(object):
-  """Just like StringIO but uses unicode strings."""
-
-  def __init__(self):
-    self.data = u""
-
-  # Have to stick to an interface here so pylint: disable=g-bad-name
-  def write(self, data):
-    self.data += utils.SmartUnicode(data)
-
-  def getvalue(self):
-    return self.data
 
 
 class CachingFDAddressSpace(addrspace.CachingAddressSpaceMixIn,

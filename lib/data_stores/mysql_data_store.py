@@ -314,9 +314,12 @@ class MySQLDataStore(data_store.DataStore):
     # Build a document for each unique timestamp.
     for attribute, sequence in values.items():
       for value in sequence:
+        entry_timestamp = None
+
         if isinstance(value, tuple):
           value, entry_timestamp = value
-        else:
+
+        if entry_timestamp is None:
           entry_timestamp = timestamp
 
         predicate = utils.SmartUnicode(attribute)

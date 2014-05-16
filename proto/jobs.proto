@@ -1118,6 +1118,62 @@ message VolatilityRequest {
   optional Dict session = 5;
 }
 
+
+message PluginRequest {
+  optional string plugin = 2 [(sem_type) = {
+      description: "The plugin name to run.",
+    }];
+
+  optional Dict args = 3 [(sem_type) = {
+      description: "The args to the plugin.",
+    }];
+}
+
+// Issue a request for Rekall memory analysis.
+message RekallRequest {
+  optional Iterator iterator = 1;
+
+  repeated PluginRequest plugins = 2 [(sem_type) = {
+      description: "We can execute multiple plugins in the same session. "
+      "This can take advantage of caching in the session to be more efficient."
+    }];
+
+  optional PathSpec device = 4 [(sem_type) = {
+      description: "The raw device to use.",
+    }];
+
+  optional Dict session = 6 [(sem_type) = {
+      description: "These parameters are used to initialize the session.",
+    }];
+
+  optional RekallProfile profile_data = 8 [(sem_type) = {
+      description: "Profiles sent by the server to store on the client.",
+    }];
+}
+
+message RekallResponse {
+  optional string json_messages = 1;
+  optional string plugin = 2;
+
+  optional string client_urn = 3 [(sem_type) = {
+      type: "ClientURN",
+      description: "The client this response comes from."
+    }];
+
+  optional string missing_profile = 4 [(sem_type) = {
+      description: "Missing profiles that should be retrieved from "
+      "the server."
+    }];
+}
+
+message RekallProfile {
+  // The profile name to use.
+  optional string name = 1;
+
+  // A Rekall profile as a data blob.
+  optional bytes data = 2;
+}
+
 message VolatilityHeader {
   optional string print_name = 1;
   optional string name = 2;
@@ -1171,6 +1227,18 @@ message ExecuteBinaryRequest {
   repeated string args = 3;
   // An execution time limit, given in seconds.
   optional int32 time_limit = 4;
+
+  optional bool more_data = 5 [(sem_type) = {
+      description: "If the binary does not fit inside a single request, "
+      "the server will set this flag and send the file in chunks. The "
+      "file will not be actually executed until the more_data flags is False."
+    }];
+
+  optional int64 offset = 6 [(sem_type) = {
+      description: "The position in the file where this chunk exists. "
+      "This must be the end of the file to ensure we did not lose any "
+      "requests on the way."
+    }];
 }
 
 message ExecuteBinaryResponse {
@@ -1527,6 +1595,11 @@ message Iterator {
     FINISHED = 1;
   };
   optional State state = 4 [ default = RUNNING ];
+
+  optional uint64 suspended_action = 5 [(sem_type) = {
+      description: "If this is an iterator for a client action, we store "
+      "the unique action id by which it is kept on the client."
+    }];
 };
 
 // FindAction returns these protobufs.

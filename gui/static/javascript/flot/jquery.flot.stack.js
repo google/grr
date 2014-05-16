@@ -1,5 +1,6 @@
 /* Flot plugin for stacking data sets rather than overlyaing them.
 
+@license
 Copyright (c) 2007-2013 IOLA and Ole Laursen.
 Licensed under the MIT license.
 

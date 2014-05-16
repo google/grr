@@ -13,7 +13,6 @@ from grr.lib.flows.general import audit
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import discovery
 
-from grr.lib.flows.general import fetch_files
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import filetypes

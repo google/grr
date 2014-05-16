@@ -172,6 +172,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   @flow.StateHandler(next_state=["ProcessCollected",
                                  "ProcessCollectedArtifactFiles",
+                                 "ProcessFileFinderResults",
                                  "ProcessRegistryValue", "ProcessBootstrap"])
   def StartCollection(self, responses):
     """Start collecting."""
@@ -285,11 +286,22 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           path, self.state.knowledge_base))
 
     self.CallFlow(
-        "FetchFiles", paths=new_path_list, pathtype=path_type,
+        "FileFinder", paths=new_path_list, pathtype=path_type,
+        action=rdfvalue.FileFinderAction(
+            action_type=rdfvalue.FileFinderAction.Action.DOWNLOAD),
         request_data={"artifact_name": self.current_artifact_name,
                       "collector": collector.ToPrimitiveDict()},
-        next_state="ProcessCollected"
-        )
+        next_state="ProcessFileFinderResults")
+
+  @flow.StateHandler(next_state=["ProcessCollected"])
+  def ProcessFileFinderResults(self, responses):
+    if not responses.success:
+      self.Log("Failed to fetch files %s" %
+               responses.request_data["artifact_name"])
+    else:
+      self.CallStateInline(next_state="ProcessCollected",
+                           request_data=responses.request_data,
+                           messages=[r.stat_entry for r in responses])
 
   def Glob(self, collector, pathtype):
     """Glob paths, return StatEntry objects."""
@@ -414,7 +426,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         collector.args.get("args", {}))
 
     self.CallFlow(
-        "AnalyzeClientMemory", request=request,
+        "AnalyzeClientMemoryVolatility", request=request,
         request_data={"artifact_name": self.current_artifact_name,
                       "vol_plugin": collector.args["plugin"],
                       "collector": collector.ToPrimitiveDict()},
@@ -672,7 +684,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           result_iterator = parse_method(responses, file_objects,
                                          self.state.knowledge_base)
         else:
-          fd = aff4.FACTORY.Open(responses.aff4path, token=self.token)
+          fd = aff4.FACTORY.Open(responses.aff4path,
+                                 token=self.token)
           result_iterator = parse_method(responses, fd,
                                          self.state.knowledge_base)
 
@@ -781,7 +794,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     rdf_type = artifact.GRRArtifactMappings.rdf_map.get(output_type)
     if rdf_type is None:
       raise artifact_lib.ArtifactProcessingError(
-          "No defined RDF type for %s" % output_type)
+          "No defined RDF type for %s.  See the description for "
+          " the store_results_in_aff4 option, you probably want it set to "
+          "false. Supported types are: %s" %
+          (output_type, artifact.GRRArtifactMappings.rdf_map.keys()))
 
     # "info/software", "InstalledSoftwarePackages", "INSTALLED_PACKAGES",
     # "Append"

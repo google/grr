@@ -14,20 +14,19 @@ import psutil
 
 
 # Populate the action registry
-# pylint: disable=unused-import
-from grr.client import actions
-from grr.client import client_actions
-from grr.client import comms
-from grr.client import vfs
+# pylint: disable=unused-import, g-bad-import-order
+from grr.client import client_plugins
 from grr.client.client_actions import standard
 from grr.client.client_actions import tests
+# pylint: enable=unused-import, g-bad-import-order
+
+from grr.client import actions
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib import stats
 from grr.lib import test_lib
-from grr.lib import utils
+
+
+# pylint: mode=test
 # pylint: disable=g-bad-name
 
 # pylint: mode=test
@@ -153,13 +152,17 @@ class ActionTest(test_lib.EmptyActionTest):
       self.assertProtoEqual(x, y)
 
   def testSuspendableListDirectory(self):
-    p = rdfvalue.PathSpec(path=self.base_path,
-                          pathtype=rdfvalue.PathSpec.PathType.OS)
-    request = rdfvalue.ListDirRequest(pathspec=p)
+    request = rdfvalue.ListDirRequest()
+    request.pathspec.path = self.base_path
+    request.pathspec.pathtype = "OS"
     request.iterator.number = 2
     results = []
+
+    grr_worker = test_lib.FakeClientWorker()
+
     while request.iterator.state != request.iterator.State.FINISHED:
-      responses = self.RunAction("SuspendableListDirectory", request)
+      responses = self.RunAction("SuspendableListDirectory", request,
+                                 grr_worker=grr_worker)
       results.extend(responses)
       for response in responses:
         if isinstance(response, rdfvalue.Iterator):
@@ -179,7 +182,7 @@ class ActionTest(test_lib.EmptyActionTest):
     self.assertEqual(len(iterators), expected_iterators)
 
     # Make sure the thread has been deleted.
-    self.assertFalse(actions.SuspendableAction.suspended_actions)
+    self.assertEqual(grr_worker.suspended_actions, {})
 
   def testSuspendableActionException(self):
 
@@ -191,6 +194,7 @@ class ActionTest(test_lib.EmptyActionTest):
         RaisingListDirectory.iterations -= 1
         if not RaisingListDirectory.iterations:
           raise IOError("Ran out of iterations.")
+
         return super(RaisingListDirectory, self).Suspend()
 
     p = rdfvalue.PathSpec(path=self.base_path,
@@ -198,8 +202,11 @@ class ActionTest(test_lib.EmptyActionTest):
     request = rdfvalue.ListDirRequest(pathspec=p)
     request.iterator.number = 2
     results = []
+
+    grr_worker = test_lib.FakeClientWorker()
     while request.iterator.state != request.iterator.State.FINISHED:
-      responses = self.ExecuteAction("RaisingListDirectory", request)
+      responses = self.ExecuteAction("RaisingListDirectory", request,
+                                     grr_worker=grr_worker)
       results.extend(responses)
 
       for response in responses:
@@ -215,6 +222,7 @@ class ActionTest(test_lib.EmptyActionTest):
         self.fail("Endless loop detected.")
 
     self.assertIn("Ran out of iterations", status.error_message)
+    self.assertEqual(grr_worker.suspended_actions, {})
 
   def testHashFile(self):
     """Can we hash a file?"""
@@ -338,9 +346,8 @@ class ActionTest(test_lib.EmptyActionTest):
     with test_lib.MultiStubber((psutil, "Process", FakeProcess),
                                (action_cls, "SendReply", MockSendReply)):
       action_cls._authentication_required = False
-      action = action_cls(message=message, grr_worker=MockWorker())
-
-      action.Execute()
+      action = action_cls(grr_worker=MockWorker())
+      action.Execute(message)
 
       self.assertTrue("Action exceeded cpu limit." in results[0].error_message)
       self.assertTrue("CPUExceededError" in results[0].error_message)

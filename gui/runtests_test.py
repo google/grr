@@ -51,7 +51,6 @@ class SeleniumTestProgram(test_lib.GrrTestProgram):
     self.SetupSelenium()
 
   def tearDown(self):
-    self.trd.Stop()
     self.TearDownSelenium()
 
 

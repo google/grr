@@ -108,7 +108,7 @@ function run_cmd_confirm()
 header "Updating APT and Installing dependencies"
 run_cmd_confirm sudo apt-get --yes update;
 run_cmd_confirm sudo apt-get --yes upgrade;
-run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil python-matplotlib python-mox python-yaml python-pip dpkg-dev debhelper;
+run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil python-matplotlib python-mox python-yaml python-pip dpkg-dev debhelper libpython-dev;
 
 header "Getting the right version of M2Crypto installed"
 run_cmd_confirm sudo apt-get --yes remove python-m2crypto;
@@ -127,6 +127,13 @@ run_cmd_confirm sudo dpkg -i ${DEB_DEPENDENCIES_DIR}/${SLEUTHKIT_DEB} ${DEB_DEPE
 
 header "Installing Mongodb"
 run_cmd_confirm sudo apt-get --yes --force-yes install mongodb python-pymongo;
+sudo service mongodb start 2>/dev/null
+
+# TODO(user): Move this to stable once 0.2.10 is out.
+if [ $GRR_TESTING = 1 ]; then
+  header "Installing Rekall"
+  run_cmd_confirm sudo pip install rekall --pre
+fi
 
 header "Getting correct psutil version (we require 0.6 or newer)"
 PSUTIL_VERSION=`dpkg-query -W python-psutil | cut -f 2`

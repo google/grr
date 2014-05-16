@@ -15,6 +15,8 @@ from grr.lib import test_lib
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import transfer
 
+# pylint: mode=test
+
 
 class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
   """Test the artifact collection mechanism works."""

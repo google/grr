@@ -5,6 +5,8 @@
 
 import platform
 
+import logging
+
 # pylint: disable=unused-import
 # pylint: disable=g-import-not-at-top
 # These import populate the action test registry
@@ -15,12 +17,20 @@ from grr.client.client_actions import searching_test
 from grr.client.client_actions import standard_test
 from grr.client.client_actions import tempfiles_test
 
-# Enable the volatility specific client actions only if volatility is installed.
+# TODO(user): Volatility is deprecated, remove this as soon as Rekall is
+# rolled out.
 try:
   from grr.client.client_actions import grr_volatility
   from grr.client.client_actions import grr_volatility_test
 except ImportError:
   pass
+
+# Enable the Rekall specific client actions only if Rekall is installed.
+try:
+  from grr.client.client_actions import grr_rekall
+  from grr.client.client_actions import grr_rekall_test
+except ImportError:
+  logging.warning("Could not import Rekall, memory analysis will not work.")
 
 if platform.system() == "Darwin":
   from grr.client.client_actions.osx import osx_test

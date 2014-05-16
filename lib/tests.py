@@ -26,6 +26,7 @@ from grr.lib import lexer_test
 from grr.lib import objectfilter_test
 from grr.lib import parsers_test
 from grr.lib import queue_manager_test
+from grr.lib import rekall_profile_server_test
 from grr.lib import search_test
 from grr.lib import stats_store_test
 from grr.lib import stats_test

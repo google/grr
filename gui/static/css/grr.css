@@ -415,6 +415,10 @@ td.lease_available {
     height: 0ex;
 }
 
+.proto_error {
+    color: red;
+}
+
 
 .notification_pane {
   background-color: #F0F0F0;

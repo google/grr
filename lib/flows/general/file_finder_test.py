@@ -8,6 +8,7 @@ import os
 from grr.client import vfs
 
 from grr.lib import aff4
+from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -15,6 +16,7 @@ from grr.lib import test_lib
 
 
 class FileFinderActionMock(test_lib.ActionMock):
+
   def __init__(self):
     super(FileFinderActionMock, self).__init__(
         "Find", "TransferBuffer", "HashBuffer", "HashFile",
@@ -48,7 +50,7 @@ class FileFinderActionMock(test_lib.ActionMock):
 
 
 class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
-  """Test the FetchFiles flow."""
+  """Test the FileFinder flow."""
 
   def FileNameToURN(self, fname):
     return rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(
@@ -79,6 +81,16 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
                            "hashes: %s" % fname)
 
       fd = aff4.FACTORY.Open(self.FileNameToURN(fname), token=self.token)
+
+      hash_obj = fd.Get(fd.Schema.HASH)
+      self.assertEqual(str(hash_obj.sha1),
+                       file_hashes[0])
+      self.assertEqual(str(hash_obj.md5),
+                       file_hashes[1])
+      self.assertEqual(str(hash_obj.sha256),
+                       file_hashes[2])
+
+      # FINGERPRINT is deprecated in favour of HASH, but we check it anyway.
       fingerprint = fd.Get(fd.Schema.FINGERPRINT)
       self.assertEqual(fingerprint.GetFingerprint(
           "generic")["sha1"].encode("hex"),
@@ -93,6 +105,9 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
   def CheckFilesNotHashed(self, fnames):
     for fname in fnames:
       fd = aff4.FACTORY.Open(self.FileNameToURN(fname), token=self.token)
+      self.assertTrue(fd.Get(fd.Schema.HASH) is None)
+
+      # FINGERPRINT is deprecated in favour of HASH, but we check it anyway.
       self.assertTrue(fd.Get(fd.Schema.FINGERPRINT) is None)
 
   def CheckFilesDownloaded(self, fnames):
@@ -126,6 +141,22 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
                         aff4_type="RDFValueCollection",
                         token=self.token)
 
+  def CheckReplies(self, replies, action, expected_files):
+    reply_count = 0
+    for _, reply in replies:
+      if isinstance(reply, rdfvalue.FileFinderResult):
+        reply_count += 1
+        if action == rdfvalue.FileFinderAction.Action.STAT:
+          self.assertTrue(reply.stat_entry)
+          self.assertFalse(reply.hash_entry)
+        elif action == rdfvalue.FileFinderAction.Action.DOWNLOAD:
+          self.assertTrue(reply.stat_entry)
+          self.assertFalse(reply.hash_entry)
+        elif action == rdfvalue.FileFinderAction.Action.HASH:
+          self.assertTrue(reply.stat_entry)
+          self.assertTrue(reply.hash_entry)
+    self.assertEqual(reply_count, len(expected_files))
+
   def RunFlowAndCheckResults(
       self, conditions=None, action=rdfvalue.FileFinderAction.Action.STAT,
       expected_files=None, non_expected_files=None):
@@ -137,13 +168,16 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     for fname in expected_files + non_expected_files:
       aff4.FACTORY.Delete(self.FileNameToURN(fname), token=self.token)
 
-    for _ in test_lib.TestFlowHelper(
-        "FileFinder", self.client_mock, client_id=self.client_id,
-        paths=[self.path], pathtype=rdfvalue.PathSpec.PathType.OS,
-        action=rdfvalue.FileFinderAction(
-            action_type=action),
-        conditions=conditions, token=self.token, output=self.output_path):
-      pass
+    with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
+      for _ in test_lib.TestFlowHelper(
+          "FileFinder", self.client_mock, client_id=self.client_id,
+          paths=[self.path], pathtype=rdfvalue.PathSpec.PathType.OS,
+          action=rdfvalue.FileFinderAction(
+              action_type=action),
+          conditions=conditions, token=self.token, output=self.output_path):
+        pass
+
+      self.CheckReplies(send_reply.args, action, expected_files)
 
     self.CheckFilesInCollection(expected_files)
 
@@ -153,7 +187,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     elif action == rdfvalue.FileFinderAction.Action.DOWNLOAD:
       self.CheckFilesDownloaded(expected_files)
       self.CheckFilesNotDownloaded(non_expected_files)
-      self.CheckFilesNotHashed(expected_files + non_expected_files)
+      # Downloaded files are hashed to allow for deduping.
     elif action == rdfvalue.FileFinderAction.Action.HASH:
       self.CheckFilesNotDownloaded(expected_files + non_expected_files)
       self.CheckFilesHashed(expected_files)
@@ -336,7 +370,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
     self.CheckFilesDownloaded(expected_files)
     self.CheckFilesNotDownloaded(non_expected_files)
-    self.CheckFilesNotHashed(expected_files + non_expected_files)
+    self.CheckFilesNotHashed(non_expected_files)
 
   def testSizeAndRegexConditionsWithDifferentActions(self):
     files_over_size_limit = ["auth.log"]

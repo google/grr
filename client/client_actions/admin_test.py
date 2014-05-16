@@ -118,6 +118,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
       io_samples = [(100, 100, 100), (110, 200, 200)]
 
     class MockContext(object):
+
       def __init__(self):
         self.stats_collector = MockCollector()
 
@@ -133,8 +134,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
 
       action_cls = actions.ActionPlugin.classes.get(
           "GetClientStatsAuto", actions.ActionPlugin)
-      action = action_cls(None, grr_worker=self)
-      action.grr_worker = MockContext()
+      action = action_cls(grr_worker=MockContext())
       action.Send = lambda r: self.VerifyResponse(r, received_bytes, sent_bytes)
       action.Run(None)
     finally:

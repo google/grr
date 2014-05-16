@@ -719,8 +719,11 @@ Please select a flow to manage from the above table.
     except (KeyError, IOError):
       self.path = None
 
-    # Skip our parent's Layout method.
-    return super(fileview.AFF4Stats, self).Layout(request, response)
+    # Skip our parent's Layout method and install parent's javascript code.
+    response = super(fileview.AFF4Stats, self).Layout(request, response)
+    return self.CallJavascript(response, "AFF4Stats.Layout",
+                               historical_renderer=self.historical_renderer,
+                               historical_renderer_state=self.state)
 
 
 class HistoricalFlowView(fileview.HistoricalView):

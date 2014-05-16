@@ -18,18 +18,11 @@ class FingerPrintTestBase(object):
   def CheckFlow(self):
     """Check results of flow."""
     fd = aff4.FACTORY.Open(self.urn)
-    fp = fd.Get(fd.Schema.FINGERPRINT)
-    self.assertNotEqual(fp, None)
-    results = list(fp.results)
-    self.assertGreater(len(results), 0)
-
-    result = results[0]
-    self.assertTrue("md5" in result)
-    self.assertEqual(len(result["md5"]), 16)
-    self.assertTrue("sha1" in result)
-    self.assertEqual(len(result["sha1"]), 20)
-    self.assertTrue("sha256" in result)
-    self.assertEqual(len(result["sha256"]), 32)
+    hash_obj = fd.Get(fd.Schema.HASH)
+    self.assertNotEqual(hash_obj, None)
+    self.assertEqual(len(hash_obj.md5), 16)
+    self.assertEqual(len(hash_obj.sha1), 20)
+    self.assertEqual(len(hash_obj.sha256), 32)
 
 
 class TestFingerprintFileOSLinux(FingerPrintTestBase,

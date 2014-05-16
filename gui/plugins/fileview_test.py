@@ -160,6 +160,12 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.WaitUntilContains("Hello World", self.GetText,
                            "css=div#text_viewer_data_content")
 
+    # Some more unicode testing.
+    self.Click(u"css=tr:contains(\"中.txt\")")
+    self.Click("css=#Download")
+
+    self.WaitUntil(self.IsTextPresent, u"fs/os/c/Downloads/中国新闻网新闻中.txt")
+
     # Test the hex viewer.
     self.Click("css=#_fs-os-proc ins.jstree-icon")
     self.Click("css=#_fs-os-proc-10 a")
@@ -266,7 +272,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
 
     # Check that export tool download hint is displayed.
     self.WaitUntil(
-        self.IsTextPresent, "env PYTHONPATH=. python grr/tools/export.py "
+        self.IsTextPresent, "/usr/bin/grr_export "
         "--username test --reason 'Running tests' file --path "
         "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt --output .")
 

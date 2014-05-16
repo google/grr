@@ -56,9 +56,7 @@ grr.Renderer('AFF4ClientStats', {
         stats = graph.series[j];
         specs[graph.id].push({
           label: stats.label,
-          data: [
-            stats.data
-          ]
+          data: stats.data
         });
       }
 

@@ -262,7 +262,8 @@ class BlobImage(aff4.AFF4Image):
 
     FINGERPRINT = aff4.Attribute("aff4:fingerprint",
                                  rdfvalue.FingerprintResponse,
-                                 "Protodict containing arrays of hashes.")
+                                 "DEPRECATED protodict containing arrays of "
+                                 " hashes. Use AFF4Stream.HASH instead.")
 
     FINALIZED = aff4.Attribute("aff4:finalized",
                                rdfvalue.RDFBool,
@@ -366,7 +367,8 @@ class HashImage(aff4.AFF4Image):
 
     FINGERPRINT = aff4.Attribute("aff4:fingerprint",
                                  rdfvalue.FingerprintResponse,
-                                 "Protodict containing arrays of hashes.")
+                                 "DEPRECATED protodict containing arrays of "
+                                 " hashes. Use AFF4Stream.HASH instead.")
 
 
 class AFF4SparseImage(BlobImage):

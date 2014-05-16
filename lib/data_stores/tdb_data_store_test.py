@@ -16,6 +16,8 @@ from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.data_stores import tdb_data_store
 
+# pylint: mode=test
+
 
 class TDBTestMixin(object):
 

@@ -13,6 +13,10 @@ class FingerprintFileArgs(rdfvalue.RDFProtoStruct):
   protobuf = flows_pb2.FingerprintFileArgs
 
 
+class FingerprintFileResult(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.FingerprintFileResult
+
+
 class FingerprintFile(flow.GRRFlow):
   """Retrieve all fingerprints of a file."""
 
@@ -89,10 +93,11 @@ class FingerprintFile(flow.GRRFlow):
     fd.Set(fd.Schema.FINGERPRINT(response))
     fd.Close(sync=False)
 
+    # Notify any parent flows.
+    self.SendReply(FingerprintFileResult(file_urn=urn, hash_entry=hash_obj))
+
   @flow.StateHandler()
   def End(self):
     """Finalize the flow."""
     self.Notify("ViewObject", self.state.urn, "Fingerprint retrieved.")
     self.Status("Finished fingerprinting %s", self.args.pathspec.path)
-    # Notify any parent flows.
-    self.SendReply(self.state.urn)

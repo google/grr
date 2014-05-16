@@ -532,7 +532,10 @@ message ArtifactCollectorFlowArgs {
 
   optional bool store_results_in_aff4 = 3 [(sem_type) = {
       description: "Should the collected artifacts be written to the GRR "
-      "AFF4 namespace based on the AFF4->RDF map.",
+      "AFF4 namespace based on the AFF4->RDF map. Collectors like GetFiles "
+      "and GetRegistryKeys already write their results to the client space "
+      "and only a small number of types are included in the map. Users should "
+      "not enable this in the vast majority of cases.",
     label: ADVANCED,
     }, default=false];
 
@@ -561,48 +564,22 @@ message InterrogateArgs {
     }, default=true];
 }
 
-message FetchFilesArgs {
-  repeated string paths = 1 [(sem_type) = {
-      type: "GlobExpression",
-      description: "A path to glob that supports: ** path recursion, * "
-          "wildcards and %% expansions",
-    }];
-
-  optional PathSpec.PathType pathtype = 2 [(sem_type) = {
-      description: "Type of access to glob in.",
-    }, default=OS];
-
-  optional PathSpec root_path = 6 [(sem_type) = {
-      description: "The root path to begin the glob.  Users should almost never"
-                   " need to change this. root_path.pathtype is unused in"
-                   " favor of pathtype to allow it to be modified by users.",
-      label: ADVANCED;
-    }];
-
-  optional FindSpec findspec = 4 [(sem_type) = {
-      description: "Which files to search for. The default is to search "
-      "the entire system for files with an executable extension.",
-      label: ADVANCED
-    }];
-
-  optional bool use_external_stores = 3 [(sem_type) = {
-      description: "If true, look in any defined external file stores for "
-      "files before downloading them, and offer any new files to external "
-      "stores. This should be true unless the external checks are misbehaving.",
-      label: ADVANCED
-    }, default=true];
-
-  optional uint64 max_size = 5 [(sem_type) = {
-      type: "ByteSize",
-      description: "The maximum size of files we will download.",
-    }, default=100000000];
-}
-
 message FingerprintFileArgs {
   optional PathSpec pathspec = 1 [(sem_type) = {
       description: "The file path to fingerprint.",
     }];
 }
+
+message FingerprintFileResult {
+  optional string file_urn= 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the file fingerprinted",
+    }];
+  optional Hash hash_entry = 2 [(sem_type) = {
+      description: "File hash object.",
+    }];
+}
+
 
 message DownloadMemoryImageArgs {
   optional string destdir = 1 [(sem_type) = {
@@ -656,7 +633,7 @@ message LoadMemoryDriverArgs {
     }, default=false];
 }
 
-message AnalyzeClientMemoryArgs {
+message AnalyzeClientMemoryArgsVolatility {
   optional DriverInstallTemplate driver_installer = 1 [(sem_type) = {
       description: "An optional DriverInstallTemplate proto to control "
       "driver installation. If not set, the default  installation proto will "
@@ -666,6 +643,19 @@ message AnalyzeClientMemoryArgs {
 
   optional VolatilityRequest request = 2 [(sem_type) = {
       description: "A request for the client's volatility subsystem.",
+    }];
+}
+
+message AnalyzeClientMemoryArgs {
+  optional DriverInstallTemplate driver_installer = 1 [(sem_type) = {
+      description: "An optional DriverInstallTemplate proto to control "
+      "driver installation. If not set, the default  installation proto will "
+      "be used.",
+      label: HIDDEN,
+    }];
+
+  optional RekallRequest request = 2 [(sem_type) = {
+      description: "A request for the client's Rekall subsystem.",
     }];
 }
 
@@ -775,11 +765,6 @@ message FetchBufferForSparseImageArgs {
     }];
   optional uint64 length = 2;
   optional uint64 offset = 3;
-}
-
-message SlowGetFileArgs {
-  optional PathSpec pathspec = 1;
-  optional uint64 aff4_chunk_size = 2 [default=1048576];
 }
 
 message MakeNewAFF4SparseImageArgs {
@@ -1015,6 +1000,8 @@ message ManageCronJobFlowArgs {
     ENABLE = 2 [(description) = "Enable the cron job"];
 
     DELETE = 3 [(description) = "Delete the cron job"];
+
+    RUN = 4 [(description) = "Force the cron job to run now"];
   }
 
   optional string urn = 1 [(sem_type) = {
@@ -1423,11 +1410,11 @@ message FileFinderArgs {
   repeated string paths = 1 [(sem_type) = {
       type: "GlobExpression",
       description: "A path to glob that can contain %% "
-      "expansions. For example '%%KnowledgeBase.environ_windir%%\notepad.*'",
+      "expansions.",
     }];
 
   optional PathSpec.PathType pathtype = 2 [(sem_type) = {
-      description: "Type of access to glob in.",
+      description: "Path type to glob in.",
     }, default=OS];
 
 
@@ -1446,6 +1433,7 @@ message FileFinderArgs {
 message FileFinderResult {
   optional StatEntry stat_entry = 1;
   repeated BufferReference matches = 2;
+  optional Hash hash_entry = 3;
 }
 
 message FileReference {

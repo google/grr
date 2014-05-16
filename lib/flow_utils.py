@@ -72,7 +72,7 @@ def UpdateVFSFileAndWait(client_id, vfs_file_urn, token=None,
               timeout=timeout)
 
 
-def WaitForFlow(flow_urn, token=None, timeout=30, max_sleep_time=1,
+def WaitForFlow(flow_urn, token=None, timeout=DEFAULT_TIMEOUT, max_sleep_time=1,
                 min_sleep_time=0.2, dampening_multiplier=0.9):
 
   """Waits for a flow to finish, polling while we wait.

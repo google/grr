@@ -32,7 +32,7 @@ class TestWebHistory(test_lib.FlowTestsBaseclass):
 
     self.client_mock = test_lib.ActionMock(
         "ReadBuffer", "HashFile", "HashBuffer", "TransferBuffer", "StatFile",
-        "Find", "ListDirectory")
+        "Find", "ListDirectory", "Grep")
 
     # Mock the client to make it look like the root partition is mounted off the
     # test image. This will force all flow access to come off the image.

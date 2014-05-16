@@ -43,9 +43,12 @@ class ListProcesses(flow.GRRFlow):
       self.Log("Got %d processes, fetching binaries for %d...", len(responses),
                len(paths_to_fetch))
 
-      self.CallFlow("FetchFiles",
-                    next_state="HandleDownloadedFiles",
-                    paths=paths_to_fetch)
+      self.CallFlow("FileFinder",
+                    paths=paths_to_fetch,
+                    action=rdfvalue.FileFinderAction(
+                        action_type=rdfvalue.FileFinderAction.Action.DOWNLOAD),
+                    next_state="HandleDownloadedFiles")
+
     else:
       # Only send the list of processes if we don't fetch the binaries
       for response in responses:
@@ -53,11 +56,11 @@ class ListProcesses(flow.GRRFlow):
 
   @flow.StateHandler()
   def HandleDownloadedFiles(self, responses):
-    """Handle success/failure of the FetchFiles flow."""
+    """Handle success/failure of the FileFinder flow."""
     if responses.success:
-      for response_stat in responses:
-        self.Log("Downloaded %s", response_stat.pathspec)
-        self.SendReply(response_stat)
+      for response in responses:
+        self.Log("Downloaded %s", response.stat_entry.pathspec)
+        self.SendReply(response.stat_entry)
 
     else:
       self.Log("Download of file %s failed %s",

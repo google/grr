@@ -57,6 +57,9 @@ def StringifyJSON(item):
 
     return result
 
+  elif isinstance(item, (int, long, float)):
+    return item
+
   elif item is None:
     return None
 
@@ -365,6 +368,9 @@ class TemplateRenderer(Renderer):
     result = http.HttpResponse(content_type="text/html")
     method(request, result, **kwargs)
     return result.content
+
+  def __str__(self):
+    return self.RawHTML()
 
 
 class EscapingRenderer(TemplateRenderer):

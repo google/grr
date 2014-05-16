@@ -1,5 +1,6 @@
 /* Javascript plotting library for jQuery, version 0.8.2.
 
+@license
 Copyright (c) 2007-2013 IOLA and Ole Laursen.
 Licensed under the MIT license.
 
@@ -14,6 +15,8 @@ Licensed under the MIT license.
  *
  * Inspiration from jQuery color animation plugin by John Resig.
  *
+ * @license
+ * Copyright (c) 2007-2013 IOLA and Ole Laursen.
  * Released under the MIT license by Ole Laursen, October 2009.
  *
  * Examples:

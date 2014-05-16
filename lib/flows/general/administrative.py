@@ -23,6 +23,7 @@ from grr.lib import registry
 from grr.lib import rendering
 from grr.lib import stats
 from grr.lib import utils
+from grr.lib.aff4_objects import collections
 from grr.lib.aff4_objects import reports
 from grr.proto import flows_pb2
 
@@ -256,11 +257,12 @@ class ExecutePythonHack(flow.GRRFlow):
     fd = aff4.FACTORY.Open(python_hack_root_urn.Add(self.args.hack_name),
                            token=self.token)
 
-    python_blob = fd.Get(fd.Schema.BINARY)
-    if python_blob is None:
+    if not isinstance(fd, aff4.GRRSignedBlob):
       raise RuntimeError("Python hack %s not found." % self.args.hack_name)
-    self.CallClient("ExecutePython", python_code=python_blob,
-                    py_args=self.args.py_args, next_state="Done")
+
+    for python_blob in fd:
+      self.CallClient("ExecutePython", python_code=python_blob,
+                      py_args=self.args.py_args, next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -808,13 +810,17 @@ class LaunchBinary(flow.GRRFlow):
   @flow.StateHandler(next_state=["End"])
   def Start(self):
     fd = aff4.FACTORY.Open(self.args.binary, token=self.token)
-
-    blob = fd.Get(fd.Schema.BINARY)
-    if blob is None:
+    if not isinstance(fd, collections.GRRSignedBlob):
       raise RuntimeError("Executable binary %s not found." % self.args.binary)
 
-    self.CallClient("ExecuteBinaryCommand", executable=blob,
-                    args=shlex.split(self.args.command_line), next_state="End")
+    offset = 0
+    for i, blob in enumerate(fd):
+      self.CallClient(
+          "ExecuteBinaryCommand", executable=blob, more_data=i < fd.chunks-1,
+          args=shlex.split(self.args.command_line), offset=offset,
+          write_path="%s.exe" % int(time.time()), next_state="End")
+
+      offset += len(blob.data)
 
   def _TruncateResult(self, data):
     if len(data) > 2000:

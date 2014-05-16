@@ -348,6 +348,8 @@ Test Context:
 
     Logging.engines: stderr
 
+  Rekall.profile_server: TestRekallRepositoryProfileServer
+
 # These jobs will be enabled by default both for Worker Context and
 # Test Context. They will only actually run if Cron.active is True.
 Cron.enabled_system_jobs:

@@ -433,6 +433,14 @@ class RDFDatetime(RDFInteger):
 
     return NotImplemented
 
+  def __iadd__(self, other):
+    if isinstance(other, (int, long, float, Duration)):
+      # Assume other is in seconds
+      self._value += other * self.converter
+      return self
+
+    return NotImplemented
+
   def __sub__(self, other):
     if isinstance(other, (int, long, float, Duration)):
       # Assume other is in seconds
@@ -440,6 +448,14 @@ class RDFDatetime(RDFInteger):
 
     if isinstance(other, RDFDatetime):
       return Duration(self.AsSecondsFromEpoch() - other.AsSecondsFromEpoch())
+
+    return NotImplemented
+
+  def __isub__(self, other):
+    if isinstance(other, (int, long, float, Duration)):
+      # Assume other is in seconds
+      self._value -= other * self.converter
+      return self
 
     return NotImplemented
 
@@ -556,6 +572,36 @@ class Duration(RDFInteger):
 
   def __unicode__(self):
     return utils.SmartUnicode(str(self))
+
+  def __add__(self, other):
+    if isinstance(other, (int, long, float, Duration)):
+      # Assume other is in seconds
+      return self.__class__(self._value + other)
+
+    return NotImplemented
+
+  def __iadd__(self, other):
+    if isinstance(other, (int, long, float, Duration)):
+      # Assume other is in seconds
+      self._value += other
+      return self
+
+    return NotImplemented
+
+  def __sub__(self, other):
+    if isinstance(other, (int, long, float, Duration)):
+      # Assume other is in seconds
+      return self.__class__(self._value - other)
+
+    return NotImplemented
+
+  def __isub__(self, other):
+    if isinstance(other, (int, long, float, Duration)):
+      # Assume other is in seconds
+      self._value -= other
+      return self
+
+    return NotImplemented
 
   def Expiry(self, base_time=None):
     if base_time is None:

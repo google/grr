@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
 """RDFValues used to communicate with the memory analysis framework."""
 
 
@@ -10,11 +9,6 @@ from grr.proto import jobs_pb2
 class VolatilityRequest(rdfvalue.RDFProtoStruct):
   """A request to the volatility subsystem on the client."""
   protobuf = jobs_pb2.VolatilityRequest
-
-
-class MemoryInformation(rdfvalue.RDFProtoStruct):
-  """Information about the client's memory geometry."""
-  protobuf = jobs_pb2.MemoryInformation
 
 
 # The following define the data returned by Volatility plugins in a structured
