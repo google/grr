@@ -273,8 +273,8 @@ class WinTimezoneParser(parsers.RegistryValueParser):
     value = stat.registry_data.GetValue()
     result = ZONE_LIST.get(value.strip())
     if not result:
-      raise parsers.ParseError("Unknown value for TimeZoneKeyName key %s" %
-                               value)
+      yield rdfvalue.RDFString("Unknown (%s)" % value.strip())
+
     yield rdfvalue.RDFString(result)
 
 

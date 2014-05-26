@@ -12,7 +12,6 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.flows.cron import compactors
 
 
 class RDFValueCollection(aff4.AFF4Object):
@@ -94,7 +93,7 @@ class RDFValueCollection(aff4.AFF4Object):
     self.size += 1
     self._dirty = True
 
-  def AddAll(self, rdf_values):
+  def AddAll(self, rdf_values, callback=None):
     """Adds a list of rdfvalues to the collection."""
     for rdf_value in rdf_values:
       if rdf_value is None:
@@ -108,10 +107,13 @@ class RDFValueCollection(aff4.AFF4Object):
         rdf_value.age.Now()
 
     buf = cStringIO.StringIO()
-    for rdf_value in rdf_values:
+    for index, rdf_value in enumerate(rdf_values):
       data = rdfvalue.EmbeddedRDFValue(payload=rdf_value).SerializeToString()
       buf.write(struct.pack("<i", len(data)))
       buf.write(data)
+      if callback:
+        callback(index, rdf_value)
+
     self.fd.Seek(0, 2)
     self.fd.Write(buf.getvalue())
     self.size += len(rdf_values)
@@ -119,6 +121,9 @@ class RDFValueCollection(aff4.AFF4Object):
 
   def __len__(self):
     return self.size
+
+  def __nonzero__(self):
+    return self.size != 0
 
   def __iter__(self):
     """Iterate over all contained RDFValues.
@@ -373,7 +378,7 @@ class PackedVersionedCollection(RDFValueCollection):
     self.Set(self.Schema.DATA(payload=rdf_value, age=rdf_value.age))
 
     # Let the compactor know we need compacting.
-    data_store.DB.Set(compactors.PackedVersionedCollectionCompactor.URN,
+    data_store.DB.Set("aff4:/cron/versioned_collection_compactor",
                       "index:changed/%s" % self.urn, self.urn,
                       replace=True, token=self.token, sync=False)
 
@@ -389,6 +394,10 @@ class PackedVersionedCollection(RDFValueCollection):
       yield x
 
   def __len__(self):
-    logging.warning(
+    raise AttributeError(
         "Len called on a PackedVersionedCollection, this will not work.")
-    return super(PackedVersionedCollection, self).__len__()
+
+  def __nonzero__(self):
+    raise AttributeError(
+        "__nonzero__ called on a PackedVersionedCollection, this will not "
+        "work.")

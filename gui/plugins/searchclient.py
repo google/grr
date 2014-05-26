@@ -523,23 +523,28 @@ class HostTable(renderers.TableRenderer):
 
     query_string = request.REQ.get("q", "")
     if not query_string:
-      raise RuntimeError("A query string must be provided.")
+      self.message = "A query string must be provided."
+      return False
 
-    result_urns = search.SearchClients(query_string, start=start,
-                                       max_results=end-start,
-                                       token=request.token)
-    result_set = aff4.FACTORY.MultiOpen(result_urns, token=request.token)
+    try:
+      result_urns = search.SearchClients(query_string, start=start,
+                                         max_results=end-start,
+                                         token=request.token)
+      result_set = aff4.FACTORY.MultiOpen(result_urns, token=request.token)
 
-    self.message = "Searched for %s" % query_string
+      self.message = "Searched for %s" % query_string
 
-    for child in result_set:
-      # Add the fd to all the columns
-      self.AddRowFromFd(row_count + start, child)
+      for child in result_set:
+        # Add the fd to all the columns
+        self.AddRowFromFd(row_count + start, child)
 
-      # Also update the online and crash status.
-      self.columns[0].AddElement(row_count + start, child)
+        # Also update the online and crash status.
+        self.columns[0].AddElement(row_count + start, child)
 
-      row_count += 1
+        row_count += 1
+
+    except Exception as e:  # pylint: disable=broad-except
+      self.message = str(e)
 
     # We only show 50 hits here.
     return False

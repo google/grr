@@ -1592,6 +1592,14 @@ class AFF4Object(object):
     return self.urn < other
 
   def __nonzero__(self):
+    """We override this because we don't want to fall back to __len__.
+
+    We want to avoid the case where a nonzero check causes iteration over all
+    items. Subclasses may override as long as their implementation is efficient.
+
+    Returns:
+      True always
+    """
     return True
 
   # Support the with protocol.
@@ -1971,6 +1979,7 @@ class AFF4Stream(AFF4Object):
   tell = utils.Proxy("Tell")
   close = utils.Proxy("Close")
   write = utils.Proxy("Write")
+  flush = utils.Proxy("Flush")
 
 
 class AFF4MemoryStream(AFF4Stream):

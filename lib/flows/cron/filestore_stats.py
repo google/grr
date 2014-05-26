@@ -8,29 +8,6 @@ from grr.lib import stats as stats_lib
 from grr.lib import utils
 
 from grr.lib.aff4_objects import cronjobs
-from grr.lib.rdfvalues import stats
-
-
-class FilestoreStats(aff4.AFF4Object):
-  """AFF4 object for storing filestore statistics."""
-
-  class SchemaCls(aff4.AFF4Object.SchemaCls):
-    """SchemaCls."""
-    FILESTORE_FILETYPES = aff4.Attribute(
-        "aff4:stats/filestore/filetypes", stats.Graph,
-        "Number of files in the filestore by type")
-
-    FILESTORE_FILETYPES_SIZE = aff4.Attribute(
-        "aff4:stats/filestore/filetypes_size", stats.GraphFloat,
-        "Total filesize in GB of files in the filestore by type")
-
-    FILESTORE_FILESIZE_HISTOGRAM = aff4.Attribute(
-        "aff4:stats/filestore/filesize", stats.Graph,
-        "Filesize histogram of files in the filestore")
-
-    FILESTORE_CLIENTCOUNT_HISTOGRAM = aff4.Attribute(
-        "aff4:stats/filestore/clientcount", stats.Graph,
-        "File distribution across clients")
 
 
 class ClassCounter(object):

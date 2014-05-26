@@ -140,6 +140,8 @@ class Interrogate(flow.GRRFlow):
       self.state.summary.users.Append(
           rdfvalue.User().FromKnowledgeBaseUser(kbuser))
 
+  FILTERED_IPS = ["127.0.0.1", "::1", "fe80::1"]
+
   @flow.StateHandler()
   def EnumerateInterfaces(self, responses):
     """Enumerates the interfaces."""
@@ -148,6 +150,7 @@ class Interrogate(flow.GRRFlow):
                                    token=self.token)
       interface_list = net_fd.Schema.INTERFACES()
       mac_addresses = []
+      ip_addresses = []
       for response in responses:
         interface_list.Append(response)
 
@@ -156,8 +159,16 @@ class Interrogate(flow.GRRFlow):
             response.mac_address != "\x00" * len(response.mac_address)):
           mac_addresses.append(response.mac_address.human_readable_address)
 
+        for address in response.addresses:
+          if (address.human_readable and
+              address.human_readable not in self.FILTERED_IPS):
+            ip_addresses.append(address.human_readable)
+
       self.client.Set(self.client.Schema.MAC_ADDRESS(
           "\n".join(mac_addresses)))
+      self.client.Set(self.client.Schema.HOST_IPS(
+          "\n".join(ip_addresses)))
+
       net_fd.Set(net_fd.Schema.INTERFACES, interface_list)
       net_fd.Close()
 

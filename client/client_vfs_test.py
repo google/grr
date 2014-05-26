@@ -25,6 +25,9 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 
 
+# pylint: mode=test
+
+
 def setUpModule():
   # Initialize the VFS system
   vfs.VFSInit()

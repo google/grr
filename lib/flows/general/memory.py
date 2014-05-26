@@ -566,7 +566,7 @@ class AnalyzeClientMemoryVolatility(flow.GRRFlow):
     self.Log("Volatility returned %s responses." % len(responses))
     for response in responses:
       self.SendReply(response)
-      if self.runner.output:
+      if self.runner.output is not None:
         output_urn = self.runner.output.urn.Add(response.plugin)
         with aff4.FACTORY.Create(output_urn, "VolatilityResponse",
                                  mode="rw", token=self.token) as fd:
@@ -576,7 +576,7 @@ class AnalyzeClientMemoryVolatility(flow.GRRFlow):
 
   @flow.StateHandler()
   def End(self):
-    if self.runner.output:
+    if self.runner.output is not None:
       self.Notify("ViewObject", self.runner.output.urn,
                   "Ran analyze client memory")
 
@@ -604,7 +604,7 @@ class AnalyzeClientMemory(flow.GRRFlow):
   @flow.StateHandler(next_state=["RunPlugins"])
   def Start(self, _):
     # Our output collection is a RekallResultCollection.
-    if self.runner.output:
+    if self.runner.output is not None:
       self.runner.output = aff4.FACTORY.Create(
           self.runner.output.urn, "RekallResponseCollection",
           mode="rw", token=self.token)
@@ -657,7 +657,7 @@ class AnalyzeClientMemory(flow.GRRFlow):
 
   @flow.StateHandler()
   def End(self):
-    if self.runner.output:
+    if self.runner.output is not None:
       self.Notify("ViewObject", self.runner.output.urn,
                   "Ran analyze client memory")
 
@@ -806,7 +806,7 @@ class ListVADBinaries(flow.GRRFlow):
   @flow.StateHandler(next_state="FetchBinaries")
   def Start(self):
     """Request VAD data."""
-    if self.runner.output:
+    if self.runner.output is not None:
       self.runner.output.Set(self.runner.output.Schema.DESCRIPTION(
           "GetProcessesBinariesVolatility binaries (regex: %s) " %
           self.args.filename_regex or "None"))

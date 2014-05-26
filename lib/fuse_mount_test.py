@@ -39,8 +39,7 @@ class MockFuse(object):
 
 # pylint: disable=invalid-name
 
-# If fuse is not installed, replace the None returned by utils.ConditionalImport
-# with our MockFuse object.
+# If fuse is not installed, replace it with our MockFuse object.
 if fuse_mount.fuse is None:
   fuse = MockFuse()
   fuse_mount.fuse = fuse

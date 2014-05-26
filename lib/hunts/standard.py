@@ -542,7 +542,10 @@ class GenericHunt(implementation.GRRHunt):
         self.processed_responses = True
         msgs = [rdfvalue.GrrMessage(payload=response, source=client_id)
                 for response in responses]
-        self.state.context.results_collection.AddAll(msgs)
+        # Pass the callback to ensure we heartbeat while writing the
+        # results.
+        self.state.context.results_collection.AddAll(
+            msgs, callback=lambda index, rdf_value: self.HeartBeat())
 
     else:
       self.LogClientError(client_id, log_message=utils.SmartStr(

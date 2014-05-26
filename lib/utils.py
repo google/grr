@@ -16,6 +16,8 @@ import struct
 import tempfile
 import threading
 import time
+import zipfile
+import zlib
 
 
 
@@ -609,6 +611,8 @@ def NormalizePath(path, sep="/"):
      that would result in the system opening the same physical file will produce
      the same normalized path.
   """
+  if not path:
+    return sep
   path = SmartUnicode(path)
 
   path_list = path.split(sep)
@@ -809,13 +813,6 @@ def issubclass(obj, cls):    # pylint: disable=redefined-builtin,g-bad-name
   return isinstance(obj, type) and __builtin__.issubclass(obj, cls)
 
 
-def ConditionalImport(name):
-  try:
-    return __import__(name)
-  except ImportError:
-    pass
-
-
 class HeartbeatQueue(Queue.Queue):
   """A queue that periodically calls a provided callback while waiting."""
 
@@ -844,3 +841,160 @@ class HeartbeatQueue(Queue.Queue):
 
     self.last_item_time = time.time()
     return message
+
+
+class StreamingZipWriter(object):
+  """A streaming zip file writer which can copy from file like objects.
+
+  The streaming writer should be capable of compressing files of arbitrary
+  size without eating all the memory. It's built on top of Python's zipfile
+  module, but has to use some hacks, as standard library doesn't provide
+  all the necessary API to do streaming writes.
+  """
+
+  def __init__(self, fd_or_path, mode="w", compression=zipfile.ZIP_STORED):
+    """Open streaming ZIP file with mode read "r", write "w" or append "a".
+
+    Args:
+      fd_or_path: Either the path to the file, or a file-like object.
+                  If it is a path, the file will be opened and closed by
+                  ZipFile.
+      mode: The mode can be either read "r", write "w" or append "a".
+      compression: ZIP_STORED (no compression) or ZIP_DEFLATED (requires zlib).
+    """
+
+    self.zip_fd = zipfile.ZipFile(fd_or_path, mode,
+                                  compression=zipfile.ZIP_STORED,
+                                  allowZip64=True)
+    self.out_fd = self.zip_fd.fp
+    self.compression = compression
+
+  def __enter__(self):
+    return self
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    self.Close()
+
+  def Close(self):
+    self.zip_fd.close()
+
+  def GenerateZipInfo(self, arcname=None, compress_type=None, st=None):
+    """Generate ZipInfo instance for the given name, compression and stat.
+
+    Args:
+      arcname: The name in the archive this should take.
+      compress_type: Compression type (zipfile.ZIP_DEFLATED, or ZIP_STORED)
+      st: An optional stat object to be used for setting headers.
+
+    Returns:
+      ZipInfo instance.
+
+    Raises:
+      ValueError: If arcname is not provided.
+    """
+    # Fake stat response.
+    if st is None:
+      st = os.stat_result((0644, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+
+    mtime = time.localtime(st.st_mtime or time.time())
+    date_time = mtime[0:6]
+    # Create ZipInfo instance to store file information
+    if arcname is None:
+      raise ValueError("An arcname must be provided.")
+
+    zinfo = zipfile.ZipInfo(arcname, date_time)
+    zinfo.external_attr = (st[0] & 0xFFFF) << 16L      # Unix attributes
+
+    if compress_type is None:
+      zinfo.compress_type = self.compression
+    else:
+      zinfo.compress_type = compress_type
+
+    zinfo.file_size = 0
+    zinfo.compress_size = 0
+    zinfo.flag_bits = 0x08  # Setting data descriptor flag.
+    zinfo.CRC = 0x08074b50  # Predefined CRC for archives using data
+                            # descriptors.
+
+    return zinfo
+
+  def WriteFromFD(self, src_fd, arcname=None, compress_type=None, st=None):
+    """Write a zip member from a file like object.
+
+    Args:
+      src_fd: A file like object, must support seek(), tell(), read().
+      arcname: The name in the archive this should take.
+      compress_type: Compression type (zipfile.ZIP_DEFLATED, or ZIP_STORED)
+      st: An optional stat object to be used for setting headers.
+
+    Raises:
+      RuntimeError: If the zip if already closed.
+    """
+    zinfo = self.GenerateZipInfo(arcname=arcname, compress_type=compress_type,
+                                 st=st)
+
+    crc = 0
+    compress_size = 0
+
+    if not self.out_fd:
+      raise RuntimeError(
+          "Attempt to write to ZIP archive that was already closed")
+
+    zinfo.header_offset = self.out_fd.tell()
+    # Call _writeCheck(zinfo) to do sanity checking on zinfo structure that
+    # we've constructed.
+    self.zip_fd._writecheck(zinfo)  # pylint: disable=protected-access
+    # Mark ZipFile as dirty. We have to keep self.zip_fd's internal state
+    # coherent so that it behaves correctly when close() is called.
+    self.zip_fd._didModify = True   # pylint: disable=protected-access
+
+    # Write FileHeader now. It's incomplete, but CRC and uncompressed/compressed
+    # sized will be written later in data descriptor.
+    self.out_fd.write(zinfo.FileHeader())
+
+    if zinfo.compress_type == zipfile.ZIP_DEFLATED:
+      cmpr = zlib.compressobj(zlib.Z_DEFAULT_COMPRESSION,
+                              zlib.DEFLATED, -15)
+    else:
+      cmpr = None
+
+    file_size = 0
+    while 1:
+      buf = src_fd.read(1024 * 8)
+      if not buf:
+        break
+      file_size += len(buf)
+      crc = zipfile.crc32(buf, crc) & 0xffffffff
+
+      if cmpr:
+        buf = cmpr.compress(buf)
+        compress_size += len(buf)
+      self.out_fd.write(buf)
+
+    if cmpr:
+      buf = cmpr.flush()
+      compress_size += len(buf)
+      zinfo.compress_size = compress_size
+      self.out_fd.write(buf)
+    else:
+      zinfo.compress_size = file_size
+
+    zinfo.CRC = crc
+    zinfo.file_size = file_size
+    if file_size > zipfile.ZIP64_LIMIT or compress_size > zipfile.ZIP64_LIMIT:
+      # Writing data descriptor ZIP64-way:
+      # crc-32                          8 bytes (little endian)
+      # compressed size                 8 bytes (little endian)
+      # uncompressed size               8 bytes (little endian)
+      self.out_fd.write(struct.pack("<LLL", crc, compress_size, file_size))
+    else:
+      # Writing data descriptor non-ZIP64-way:
+      # crc-32                          4 bytes (little endian)
+      # compressed size                 4 bytes (little endian)
+      # uncompressed size               4 bytes (little endian)
+      self.out_fd.write(struct.pack("<III", crc, compress_size, file_size))
+
+    # Register the file in the zip file, so that central directory gets
+    # written correctly.
+    self.zip_fd.filelist.append(zinfo)
+    self.zip_fd.NameToInfo[zinfo.filename] = zinfo

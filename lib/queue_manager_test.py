@@ -39,7 +39,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
   def testQueueing(self):
     """Tests that queueing and fetching of requests and responses work."""
-    session_id = rdfvalue.SessionID("aff4:/flows/test")
+    session_id = rdfvalue.SessionID("aff4:/flows/W:test")
 
     request = rdfvalue.RequestState(
         id=1, client_id=self.client_id,
@@ -119,7 +119,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
   def testDeleteFlowRequestStates(self):
     """Check that we can efficiently destroy a single flow request."""
-    session_id = rdfvalue.SessionID("aff4:/flows/test3")
+    session_id = rdfvalue.SessionID("aff4:/flows/W:test3")
 
     request = rdfvalue.RequestState(
         id=1, client_id=self.client_id,
@@ -144,7 +144,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
   def testDestroyFlowStates(self):
     """Check that we can efficiently destroy the flow's request queues."""
-    session_id = rdfvalue.SessionID("aff4:/flows/test2")
+    session_id = rdfvalue.SessionID("aff4:/flows/W:test2")
 
     request = rdfvalue.RequestState(
         id=1, client_id=self.client_id,

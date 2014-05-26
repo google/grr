@@ -7,23 +7,18 @@ from grr.lib import aff4
 from grr.lib import rdfvalue
 
 
-class TestAnalyzeClientMemory(base.ClientTestBase):
-  """Test AnalyzeClientMemory."""
-  platforms = ["windows"]
-  flow = "AnalyzeClientMemory"
-  args = {"request": rdfvalue.VolatilityRequest(plugins=["pslist"],
-                                                args={"pslist": {}}),
-          "output": "analysis/pslist/testing"}
-
-  def setUp(self):
-    super(TestAnalyzeClientMemory, self).setUp()
-    self.urn = self.client_id.Add(self.args["output"])
-    self.DeleteUrn(self.urn)
-
-    self.assertRaises(AssertionError, self.CheckFlow)
+class TestAnalyzeClientMemoryVolatility(base.AutomatedTest):
+  """Test AnalyzeClientMemoryVolatility."""
+  platforms = ["Windows"]
+  flow = "AnalyzeClientMemoryVolatility"
+  test_output_path = "analysis/pslist/testing"
+  args = {"request": rdfvalue.VolatilityRequest(
+      plugins=["pslist"], args={"pslist": {}}),
+          "output": test_output_path}
 
   def CheckFlow(self):
-    response = aff4.FACTORY.Open(self.urn, token=self.token)
+    response = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
+                                 token=self.token)
     self.assertIsInstance(response, aff4.RDFValueCollection)
     self.assertEqual(len(response), 1)
     result = response[0]
@@ -43,25 +38,21 @@ class TestAnalyzeClientMemory(base.ClientTestBase):
     self.fail("Process listing does not contain %s." % expected_name)
 
 
-class TestGrepMemory(base.ClientTestBase):
+class TestGrepMemory(base.AutomatedTest):
   """Test ScanMemory."""
-  platforms = ["windows", "darwin"]
+  platforms = ["Windows", "Darwin"]
   flow = "ScanMemory"
-
-  def setUp(self):
-    self.args = {"also_download": False,
-                 "grep": rdfvalue.BareGrepSpec(
-                     literal="grr", length=4*1024*1024*1024,
-                     mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
-                     bytes_before=10, bytes_after=10),
-                 "output": "analysis/grep/testing",}
-    super(TestGrepMemory, self).setUp()
-    self.urn = self.client_id.Add(self.args["output"])
-    self.DeleteUrn(self.urn)
-    self.assertRaises(AssertionError, self.CheckFlow)
+  test_output_path = "analysis/grep/testing"
+  args = {"also_download": False,
+          "grep": rdfvalue.BareGrepSpec(
+              literal="grr", length=4*1024*1024*1024,
+              mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
+              bytes_before=10, bytes_after=10),
+          "output": test_output_path,}
 
   def CheckFlow(self):
-    collection = aff4.FACTORY.Open(self.urn, token=self.token)
+    collection = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
+                                   token=self.token)
     self.assertIsInstance(collection, aff4.RDFValueCollection)
     self.assertEqual(len(list(collection)), 1)
     reference = collection[0]

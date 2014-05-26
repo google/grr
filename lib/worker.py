@@ -245,23 +245,26 @@ class GRRWorker(object):
                          type(flow_obj))
             return
 
-          # Create a notification for the flow in the future that
-          # indicates that this flow is in progess. We'll delete this
-          # notification when we're done with processing completed
-          # requests. If we're stuck for some reason, the notification
-          # will be delivered later and the stuck flow will get
-          # terminated.
-          stuck_flows_timeout = rdfvalue.Duration(
-              config_lib.CONFIG["Worker.stuck_flows_timeout"])
-          kill_timestamp = rdfvalue.RDFDatetime().Now() + stuck_flows_timeout
-          with queue_manager_lib.QueueManager(token=self.token) as manager:
-            manager.QueueNotification(session_id=session_id, in_progress=True,
-                                      timestamp=kill_timestamp)
-
           with flow_obj.GetRunner() as runner:
-            # kill_timestamp may get updated via flow.HeartBeat() calls, so we
-            # have to store it in the runner context.
-            runner.context.kill_timestamp = kill_timestamp
+            if runner.schedule_kill_notifications:
+              # Create a notification for the flow in the future that
+              # indicates that this flow is in progess. We'll delete this
+              # notification when we're done with processing completed
+              # requests. If we're stuck for some reason, the notification
+              # will be delivered later and the stuck flow will get
+              # terminated.
+              stuck_flows_timeout = rdfvalue.Duration(
+                  config_lib.CONFIG["Worker.stuck_flows_timeout"])
+              kill_timestamp = (rdfvalue.RDFDatetime().Now() +
+                                stuck_flows_timeout)
+              with queue_manager_lib.QueueManager(token=self.token) as manager:
+                manager.QueueNotification(session_id=session_id,
+                                          in_progress=True,
+                                          timestamp=kill_timestamp)
+
+              # kill_timestamp may get updated via flow.HeartBeat() calls, so we
+              # have to store it in the runner context.
+              runner.context.kill_timestamp = kill_timestamp
 
             try:
               runner.ProcessCompletedRequests(self.thread_pool)
@@ -278,10 +281,12 @@ class GRRWorker(object):
               # Delete kill notification as the flow got processed and is not
               # stuck.
               with queue_manager_lib.QueueManager(token=self.token) as manager:
-                manager.DeleteNotification(
-                    session_id, start=runner.context.kill_timestamp,
-                    end=runner.context.kill_timestamp + rdfvalue.Duration("1s"))
-                runner.context.kill_timestamp = None
+                if runner.schedule_kill_notifications:
+                  manager.DeleteNotification(
+                      session_id, start=runner.context.kill_timestamp,
+                      end=runner.context.kill_timestamp +
+                      rdfvalue.Duration("1s"))
+                  runner.context.kill_timestamp = None
 
                 if (runner.process_requests_in_order and
                     notification.last_status and

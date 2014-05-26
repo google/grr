@@ -7,9 +7,9 @@ from grr.lib import aff4
 from grr.lib import data_store
 
 
-class TestClientInterrogateEndToEnd(base.ClientTestBase):
-  """Tests the Interrogate flow on windows."""
-  platforms = ["windows", "linux", "darwin"]
+class TestClientInterrogateEndToEnd(base.AutomatedTest):
+  """Tests the Interrogate flow on Windows."""
+  platforms = ["Windows", "Linux", "Darwin"]
   flow = "Interrogate"
 
   attributes = [aff4.VFSGRRClient.SchemaCls.CLIENT_INFO,
@@ -25,7 +25,7 @@ class TestClientInterrogateEndToEnd(base.ClientTestBase):
   kb_attributes = ["hostname", "os", "os_major_version", "os_minor_version"]
 
   # TODO(user): time_zone, environ_path, and environ_temp are currently only
-  # implemented for windows, move to kb_attributes once available on other OSes.
+  # implemented for Windows, move to kb_attributes once available on other OSes.
   kb_win_attributes = ["time_zone", "environ_path", "environ_temp",
                        "environ_systemroot", "environ_windir",
                        "environ_programfiles", "environ_programfilesx86",
@@ -39,6 +39,7 @@ class TestClientInterrogateEndToEnd(base.ClientTestBase):
   user_win_kb_attributes = ["sid", "userprofile", "appdata", "localappdata",
                             "internet_cache", "cookies", "recent", "personal",
                             "startup", "localappdata_low"]
+  timeout = 240
 
   def setUp(self):
     super(TestClientInterrogateEndToEnd, self).setUp()
@@ -46,9 +47,8 @@ class TestClientInterrogateEndToEnd(base.ClientTestBase):
         str(attribute) for attribute in self.attributes], sync=True)
     aff4.FACTORY.Flush()
 
-    # When run on windows this flow has 20 sub flows, so it takes some time to
+    # When run on Windows this flow has 20 sub flows, so it takes some time to
     # complete.
-    self.timeout = 240
     self.assertRaises(AssertionError, self.CheckFlow)
 
   def _IsCompleteWindowsUser(self, user):
@@ -87,7 +87,7 @@ class TestClientInterrogateEndToEnd(base.ClientTestBase):
 
       if system == "Windows":
         # The amount of information collected per user can vary wildly on
-        # windows depending on the type of user, whether they have logged in,
+        # Windows depending on the type of user, whether they have logged in,
         # whether they are local/domain etc.  We expect to find at least one
         # user with all of these fields filled out.
         complete_user = self._IsCompleteWindowsUser(user)

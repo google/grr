@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """Tests for utility classes."""
 
+import StringIO
 import time
+import zipfile
 
 
 from grr.lib import flags
@@ -273,6 +275,45 @@ class UtilsTest(test_lib.GRRBaseTest):
 
     for in_str, result in fixture:
       self.assertTrue(result in g(in_str))
+
+  def testZipFileWithOneFile(self):
+    """Test the zipfile implementation."""
+    compressions = [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED]
+    for compression in compressions:
+      outfd = StringIO.StringIO()
+
+      # Write the zip into a file like object.
+      infd = StringIO.StringIO("this is a test string")
+      with utils.StreamingZipWriter(outfd, compression=compression) as writer:
+        writer.WriteFromFD(infd, "test.txt")
+
+      test_zip = zipfile.ZipFile(outfd, "r")
+      test_zip.testzip()
+
+      self.assertEqual(test_zip.namelist(), ["test.txt"])
+      self.assertEqual(test_zip.read("test.txt"), infd.getvalue())
+
+  def testZipFileWithMultipleFiles(self):
+    """Test the zipfile implementation."""
+    compressions = [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED]
+    for compression in compressions:
+      outfd = StringIO.StringIO()
+
+      # Write the zip into a file like object.
+      infd1 = StringIO.StringIO("this is a test string")
+      infd2 = StringIO.StringIO("this is another test string")
+      with utils.StreamingZipWriter(outfd, compression=compression) as writer:
+        writer.WriteFromFD(infd1, "test1.txt")
+        writer.WriteFromFD(infd2, "test2.txt")
+
+      test_zip = zipfile.ZipFile(outfd, "r")
+      test_zip.testzip()
+
+      self.assertEqual(sorted(test_zip.namelist()), ["test1.txt", "test2.txt"])
+      self.assertEqual(test_zip.read("test1.txt"), infd1.getvalue())
+
+      self.assertEqual(sorted(test_zip.namelist()), ["test1.txt", "test2.txt"])
+      self.assertEqual(test_zip.read("test2.txt"), infd2.getvalue())
 
 
 def main(argv):

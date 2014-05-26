@@ -44,6 +44,23 @@ class DurationTest(test_base.RDFValueTestCase):
     self.assertEqual(t, rdfvalue.Duration(300))
     self.assertEqual(str(t), "5m")
 
+  def testMulNumber(self):
+    t = rdfvalue.Duration("5m")
+    t2 = t * 3
+    self.assertEqual(t2.seconds, 300 * 3)
+    t2 = t * 1000.23
+    self.assertEqual(t2.seconds, int(300 * 1000.23))
+    t2 = t * (-10)
+    self.assertEqual(t2.seconds, int(300 * (-10)))
+
+    # Test rmul
+    t2 = 3 * t
+    self.assertEqual(t2.seconds, 300 * 3)
+    t2 = 1000.23 * t
+    self.assertEqual(t2.seconds, int(300 * 1000.23))
+    t2 = (-10) * t
+    self.assertEqual(t2.seconds, int(300 * (-10)))
+
 
 class ByteSizeTest(test_base.RDFValueTestCase):
   rdfvalue_class = rdfvalue.ByteSize
@@ -146,6 +163,17 @@ class RDFDatetimeTest(test_base.RDFValueTestCase):
     self.assertEqual(int(date + 60), 1e9 + 60e6)
     self.assertEqual(int(date + 1000.23), 1e9 + 1000230e3)
     self.assertEqual(int(date + (-10)), 1e9 - 10e6)
+
+  def testMulNumber(self):
+    date = rdfvalue.RDFDatetime(1e9)
+    self.assertEqual(int(date * 3), 1e9 * 3)
+    self.assertEqual(int(date * 1000.23), int(1e9 * 1000.23))
+    self.assertEqual(int(date * (-10)), int(1e9 * (-10)))
+
+    # Test rmul
+    self.assertEqual(int(3 * date), 1e9 * 3)
+    self.assertEqual(int(1000.23 * date), int(1e9 * 1000.23))
+    self.assertEqual(int((-10) * date), int(1e9 * (-10)))
 
   def testSubNumber(self):
     date = rdfvalue.RDFDatetime(1e9)

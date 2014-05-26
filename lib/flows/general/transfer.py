@@ -301,6 +301,7 @@ class MultiGetFile(flow.GRRFlow):
       self.state.pending_hashes.pop(vfs_urn, None)
       return
 
+    self.state.files_hashed += 1
     self.state.pending_hashes[vfs_urn].digest = rdfvalue.HashDigest(
         responses.First().data)
 

@@ -3,34 +3,26 @@
 
 
 
+import traceback
 import unittest
 
 
-import logging
-from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import test_lib
+from grr.lib import search
 from grr.lib.flows.console import debugging
 
 
-def TestFlows(client_id, platform, testname=None, local_worker=False):
-  """Test a bunch of flows."""
+class Error(Exception):
+  """Test base error."""
 
-  if platform not in ["windows", "linux", "darwin"]:
-    raise RuntimeError("Requested operating system not supported.")
 
-  # This token is not really used since there is no approval for the
-  # tested client - these tests are designed for raw access - but we send it
-  # anyways to have an access reason.
-  token = access_control.ACLToken(username="test", reason="client testing")
-
-  client_id = rdfvalue.RDFURN(client_id)
-  RunTests(client_id, platform=platform, testname=testname,
-           token=token, local_worker=local_worker)
+class TestStateUncleanError(Error):
+  """Raised when tests encounter bad state that indicates a cleanup failure."""
 
 
 def RecursiveListChildren(prefix=None, token=None):
@@ -47,36 +39,65 @@ def RecursiveListChildren(prefix=None, token=None):
   return all_urns
 
 
-class ClientTestBase(test_lib.GRRBaseTest):
-  """This is the base class for all client tests."""
+class ClientTestBase(unittest.TestCase):
+  """This is the base class for all client tests.
+
+  Tests should only inherit from this class if they are not safe to be run in
+  prod with the EndToEndTests cronjob.
+  """
   platforms = []
   flow = None
   args = {}
   cpu_limit = None
   network_bytes_limit = None
+  timeout = flow_utils.DEFAULT_TIMEOUT
+  delete_urns = set()
+  test_output_path = None
 
   __metaclass__ = registry.MetaclassRegistry
 
+  def __call__(self):
+    """Stub out __call__ to avoid django calling it during rendering.
+
+    See
+    https://docs.djangoproject.com/en/dev/ref/templates/api/#variables-and-lookups
+
+    Since __call__ is used by the Python testing framework to run tests, the
+    effect of __call__ is to run the test inside the adminui, resulting in very
+    slow rendering and extra test runs. We put the real __call__ back when tests
+    are run from tools/end_to_end_tests.py, but we don't need it here since we
+    effectively have our own test runner.
+    """
+    pass
+
+  def __str__(self):
+    return self.__class__.__name__
+
   def __init__(self, client_id=None, platform=None, local_worker=False,
-               token=None, timeout=None, local_client=True):
+               token=None, local_client=True):
     # If we get passed a string, turn it into a urn.
-    self.client_id = rdfvalue.RDFURN(client_id)
+    self.client_id = rdfvalue.ClientURN(client_id)
     self.platform = platform
     self.token = token
     self.local_worker = local_worker
     self.local_client = local_client
-    self.timeout = timeout or flow_utils.DEFAULT_TIMEOUT
     super(ClientTestBase, self).__init__(methodName="runTest")
 
+  def _CleanState(self):
+    if self.test_output_path:
+      self.delete_urns.add(self.client_id.Add(self.test_output_path))
+
+    for urn in self.delete_urns:
+      self.DeleteUrn(urn)
+
+    if self.delete_urns:
+      self.VerifyEmpty(self.delete_urns)
+
   def setUp(self):
-    # Disable setUp since the cleanup between unit tests does not make sense
-    # here.
-    pass
+    self._CleanState()
 
   def tearDown(self):
-    # Disable tearDown since the cleanup between unit tests does not make sense
-    # here.
-    pass
+    self._CleanState()
 
   def runTest(self):
     if self.local_worker:
@@ -94,6 +115,18 @@ class ClientTestBase(test_lib.GRRBaseTest):
 
   def CheckFlow(self):
     pass
+
+  def VerifyEmpty(self, urns):
+    """Verify urns have been deleted."""
+    try:
+      for urn in urns:
+        # We open each urn to generate InstantiationError on failures, multiopen
+        # ignores these errors.  This isn't too slow since it's almost always
+        # just one path anyway.
+        aff4.FACTORY.Open(urn, aff4_type="AFF4Volume", token=self.token)
+    except aff4.InstantiationError:
+      raise TestStateUncleanError(
+          "Path wasn't deleted: %s" % traceback.format_exc())
 
   def DeleteUrn(self, urn):
     """Deletes an object from the db and the index, and flushes the caches."""
@@ -120,31 +153,71 @@ class ClientTestBase(test_lib.GRRBaseTest):
       return self.binary_name
 
 
-class LocalClientTest(ClientTestBase):
+class AutomatedTest(ClientTestBase):
+  """All tests that are safe to run in prod should inherit from this class."""
+  __metaclass__ = registry.MetaclassRegistry
+
+  # Prevents this from automatically registering.
+  __abstract = True  # pylint: disable=g-bad-name
+
+
+class LocalWorkerTest(ClientTestBase):
+
+  SKIP_MESSAGE = ("This test uses a flow that is debug only. Use a "
+                  "local worker to run this test.")
 
   def runTest(self):
     if not self.local_worker:
-      print ("This test uses a flow that is debug only. Use a local worker"
-             " to run this test.")
-      return
+      print self.SKIP_MESSAGE
+      return self.skipTest(self.SKIP_MESSAGE)
+    super(LocalWorkerTest, self).runTest()
+
+
+class LocalClientTest(ClientTestBase):
+
+  SKIP_MESSAGE = ("This test needs to run with a local client and be invoked"
+                  " with local_client=True.")
+
+  def runTest(self):
+    if not self.local_client:
+      print self.SKIP_MESSAGE
+      return self.skipTest(self.SKIP_MESSAGE)
     super(LocalClientTest, self).runTest()
 
 
-def RunTests(client_id=None, platform=None, testname=None,
-             token=None, local_worker=False):
-  runner = unittest.TextTestRunner()
+def GetClientTestTargets(client_ids=None, hostnames=None, token=None,
+                         checkin_duration_threshold="20m"):
+  """Get client urns for end-to-end tests.
 
-  for cls in ClientTestBase.classes.values():
-    if testname is not None and testname != cls.__name__:
-      continue
+  Args:
+    client_ids: list of client id URN strings or rdfvalue.ClientURNs
+    hostnames: list of hostnames to search for
+    token: access token
+    checkin_duration_threshold: clients that haven't checked in for this long
+                                will be excluded
+  Returns:
+    client_id_set: set of rdfvalue.ClientURNs available for end-to-end tests.
+  """
 
-    if not aff4.issubclass(cls, ClientTestBase):
-      continue
+  client_ids = client_ids or set(
+      config_lib.CONFIG.Get("Test.end_to_end_client_ids"))
 
-    if platform in cls.platforms:
-      print "Running %s." % cls.__name__
-      try:
-        runner.run(cls(client_id=client_id, platform=platform,
-                       token=token, local_worker=local_worker))
-      except Exception:  # pylint: disable=broad-except
-        logging.exception("Failed to run test %s", cls)
+  hosts = hostnames or set(
+      config_lib.CONFIG.Get("Test.end_to_end_client_hostnames"))
+
+  if hosts:
+    client_id_dict = search.GetClientURNsForHostnames(hosts, token=token)
+    for client_list in client_id_dict.values():
+      client_ids.update(client_list)
+
+  client_id_set = set([rdfvalue.ClientURN(x) for x in client_ids])
+  duration_threshold = rdfvalue.Duration(checkin_duration_threshold)
+  for client in aff4.FACTORY.MultiOpen(client_id_set, token=token):
+    # Only test against client IDs that have checked in recently.  Test machines
+    # tend to have lots of old client IDs hanging around that will cause lots of
+    # waiting for timeouts in the tests.
+    if (rdfvalue.RDFDatetime().Now() - client.Get(client.Schema.LAST) >
+        duration_threshold):
+      client_id_set.remove(client.urn)
+
+  return client_id_set

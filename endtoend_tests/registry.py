@@ -17,8 +17,12 @@ class TestFindWindowsRegistry(base.ClientTestBase):
 
   We basically list the registry and then run Find on the same place, we expect
   a single ProfileImagePath value for each user.
+
+  TODO(user): this is excluded from automated tests for now because it needs
+  to run two flows and defines its own runTest to do so.  We should support
+  this but it requires more work.
   """
-  platforms = ["windows"]
+  platforms = ["Windows"]
   reg_path = ("/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/"
               "CurrentVersion/ProfileList/")
 
@@ -68,9 +72,9 @@ class TestFindWindowsRegistry(base.ClientTestBase):
       self.assertEqual(x.Add("ProfileImagePath"), y)
 
 
-class TestClientRegistry(base.ClientTestBase):
+class TestClientRegistry(base.AutomatedTest):
   """Tests if listing registry keys works on Windows."""
-  platforms = ["windows"]
+  platforms = ["Windows"]
   flow = "ListDirectory"
 
   args = {"pathspec": rdfvalue.PathSpec(

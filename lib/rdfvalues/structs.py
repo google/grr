@@ -1606,18 +1606,40 @@ class RDFStruct(rdfvalue.RDFValue):
     """Checks if the field exists."""
     return field_name in self._data
 
+  def _CopyRawData(self):
+    new_raw_data = {}
+
+    # We need to copy all entries in _data. Those entries are tuples of
+    # - an object (if it has already been deserialized)
+    # - the serialized object (if it has been serialized)
+    # - the type_info.
+    # To copy this, it's easiest to just copy the serialized object if it
+    # exists. We have to make sure though that the object is not a protobuf.
+    # If it is, someone else might have changed the subobject and the
+    # serialization is not accurate anymore. This is indicated by the dirty
+    # flag. Type_infos can be just copied by reference.
+    for name, (obj, serialized, t_info) in self._data.iteritems():
+      if serialized is None:
+        obj = copy.copy(obj)
+      else:
+        try:
+          if t_info.IsDirty(obj):
+            obj, serialized = copy.copy(obj), None
+          else:
+            obj = None
+        except AttributeError:
+          obj = None
+
+      new_raw_data[name] = (obj, serialized, t_info)
+    return new_raw_data
+
   def Copy(self):
     """Make an efficient copy of this protobuf."""
-    result = copy.deepcopy(self)
+    result = self.__class__()
+    result.SetRawData(self._CopyRawData())
 
     # The copy should have the same age as us.
     result.age = self.age
-
-    return result
-
-  def __copy__(self):
-    result = self.__class__()
-    result.SetRawData(copy.copy(self._data))
 
     return result
 

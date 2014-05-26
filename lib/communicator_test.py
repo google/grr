@@ -15,6 +15,7 @@ import mox
 import logging
 
 from grr.client import actions
+from grr.client import client
 from grr.client import comms
 from grr.lib import aff4
 from grr.lib import communicator
@@ -31,6 +32,8 @@ from grr.lib import utils
 
 
 from grr.lib.flows.caenroll import ca_enroller
+
+# pylint: mode=test
 
 
 class ServerCommunicatorFake(flow.ServerCommunicator):
@@ -651,6 +654,24 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # Disable stats collection again.
     self.client_communicator.client_worker.last_stats_sent_time = (
         time.time() + 3600)
+
+  def RaiseError(self, request, timeout=0):
+    raise urllib2.URLError("Not a real connection.")
+
+  def testClientConnectionErrors(self):
+    client_obj = client.GRRClient()
+
+    # Make the connection unavailable and skip the retry interval.
+    with test_lib.MultiStubber((urllib2, "urlopen", self.RaiseError),
+                               (time, "sleep", lambda s: None)):
+
+      # Simulate a client run but keep control.
+      generator = client_obj.client.Run()
+      for _ in range(config_lib.CONFIG["Client.connection_error_limit"]):
+        generator.next()
+
+      # One too many connection errors, this should raise.
+      self.assertRaises(RuntimeError, generator.next)
 
 
 def main(argv):

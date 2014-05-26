@@ -21,7 +21,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
   reason = "Felt like it!"
 
-  def CreateSampleHunt(self, stopped=False):
+  def CreateSampleHunt(self, flow_runner_args=None, flow_args=None,
+                       stopped=False):
     self.client_ids = self.SetupClients(10)
 
     with hunts.GRRHunt.StartHunt(
@@ -52,8 +53,13 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     return aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token,
                              age=aff4.ALL_TIMES)
 
-  def CreateGenericHuntWithCollection(self):
+  def CreateGenericHuntWithCollection(self, values=None):
     self.client_ids = self.SetupClients(10)
+
+    if values is None:
+      values = [rdfvalue.RDFURN("aff4:/sample/1"),
+                rdfvalue.RDFURN("aff4:/C.0000000000000001/fs/os/c/bin/bash"),
+                rdfvalue.RDFURN("aff4:/sample/3")]
 
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
@@ -70,10 +76,11 @@ class TestHuntView(test_lib.GRRSeleniumTest):
             runner.context.results_collection_urn,
             aff4_type="RDFValueCollection", mode="w",
             token=self.token) as collection:
-          collection.Add(rdfvalue.RDFURN("aff4:/sample/1"))
-          collection.Add(rdfvalue.RDFURN(
-              "aff4:/C.0000000000000001/fs/os/c/bin/bash"))
-          collection.Add(rdfvalue.RDFURN("aff4:/sample/3"))
+
+          for value in values:
+            collection.Add(value)
+
+      return hunt.urn
 
   def SetupTestHuntView(self):
     # Create some clients and a hunt to view.
@@ -454,6 +461,110 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.assertTrue(self.IsTextPresent("Network bytes sent stdev"))
     self.assertTrue(self.IsTextPresent("8.6"))
+
+  def testDoesNotShowGenerateZipButtonForNonExportableRDFValues(self):
+    values = [rdfvalue.Process(pid=1),
+              rdfvalue.Process(pid=42423)]
+
+    with self.ACLChecksDisabled():
+      self.CreateGenericHuntWithCollection(values=values)
+
+    self.Open("/")
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=a[renderer=HuntResultsRenderer]")
+
+    self.WaitUntil(self.IsTextPresent, "42423")
+    self.WaitUntilNot(self.IsTextPresent,
+                      "Results of this hunt can be downloaded as ZIP archive")
+
+  def testDoesNotShowGenerateZipButtonWhenResultsCollectionIsEmpty(self):
+    with self.ACLChecksDisabled():
+      self.CreateGenericHuntWithCollection([])
+
+    self.Open("/")
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=a[renderer=HuntResultsRenderer]")
+
+    self.WaitUntil(self.IsTextPresent, "Value")
+    self.WaitUntilNot(self.IsTextPresent,
+                      "Results of this hunt can be downloaded as ZIP archive")
+
+  def testShowsGenerateZipButtonForFileFinderHunt(self):
+    stat_entry = rdfvalue.StatEntry(aff4path="aff4:/foo/bar")
+    values = [rdfvalue.FileFinderResult(stat_entry=stat_entry)]
+
+    with self.ACLChecksDisabled():
+      self.CreateGenericHuntWithCollection(values=values)
+
+    self.Open("/")
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=a[renderer=HuntResultsRenderer]")
+
+    self.WaitUntil(self.IsTextPresent,
+                   "Results of this hunt can be downloaded as ZIP archive")
+
+  def testHuntAuthorizationIsRequiredToGenerateZipResults(self):
+    stat_entry = rdfvalue.StatEntry(aff4path="aff4:/foo/bar")
+    values = [rdfvalue.FileFinderResult(stat_entry=stat_entry)]
+
+    with self.ACLChecksDisabled():
+      self.CreateGenericHuntWithCollection(values=values)
+
+    self.Open("/")
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=a[renderer=HuntResultsRenderer]")
+    self.Click("css=button[name=generate_zip]")
+
+    self.WaitUntil(self.IsElementPresent, "acl_dialog")
+
+  def testGenerateZipButtonGetsDisabledAfterClick(self):
+    stat_entry = rdfvalue.StatEntry(aff4path="aff4:/foo/bar")
+    values = [rdfvalue.FileFinderResult(stat_entry=stat_entry)]
+
+    with self.ACLChecksDisabled():
+      hunt_urn = self.CreateGenericHuntWithCollection(values=values)
+      self.GrantHuntApproval(hunt_urn)
+
+    self.Open("/")
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=a[renderer=HuntResultsRenderer]")
+    self.Click("css=button[name=generate_zip]")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button[name=generate_zip][disabled]")
+    self.WaitUntil(self.IsTextPresent,
+                   "Generation has started. Notification will "
+                   "be sent upon completion.")
+
+  def testStartsZipGenerationWhenGenerateZipButtonIsClicked(self):
+    stat_entry = rdfvalue.StatEntry(aff4path="aff4:/foo/bar")
+    values = [rdfvalue.FileFinderResult(stat_entry=stat_entry)]
+
+    with self.ACLChecksDisabled():
+      hunt_urn = self.CreateGenericHuntWithCollection(values=values)
+      self.GrantHuntApproval(hunt_urn)
+
+    self.Open("/")
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=a[renderer=HuntResultsRenderer]")
+    self.Click("css=button[name=generate_zip]")
+    self.WaitUntil(self.IsTextPresent,
+                   "Generation has started. Notification will "
+                   "be sent upon completion.")
+
+    with self.ACLChecksDisabled():
+      flows_dir = aff4.FACTORY.Open("aff4:/flows")
+      flows = list(flows_dir.OpenChildren())
+      export_flows = [f for f in flows
+                      if f.__class__.__name__ == "ExportHuntResultFilesAsZip"]
+      self.assertEqual(len(export_flows), 1)
+      self.assertEqual(export_flows[0].args.hunt_urn, hunt_urn)
 
 
 def main(argv):

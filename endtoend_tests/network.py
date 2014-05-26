@@ -7,21 +7,15 @@ from grr.endtoend_tests import base
 from grr.lib import aff4
 
 
-class TestNetstat(base.ClientTestBase):
+class TestNetstat(base.AutomatedTest):
   """Test Netstat."""
-  platforms = ["linux", "windows", "darwin"]
-
+  platforms = ["Linux", "Windows", "Darwin"]
+  test_output_path = "network"
   flow = "Netstat"
 
-  def setUp(self):
-    super(TestNetstat, self).setUp()
-    self.network_urn = self.client_id.Add("network")
-    self.DeleteUrn(self.network_urn)
-
-    self.assertRaises(AssertionError, self.CheckFlow)
-
   def CheckFlow(self):
-    netstat = aff4.FACTORY.Open(self.network_urn, mode="r", token=self.token)
+    netstat = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
+                                mode="r", token=self.token)
     self.assertIsInstance(netstat, aff4.Network)
     connections = netstat.Get(netstat.Schema.CONNECTIONS)
     self.assertGreater(len(connections), 5)

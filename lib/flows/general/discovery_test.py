@@ -54,8 +54,8 @@ class InterrogatedClient(test_lib.ActionMock):
         addresses=[
             rdfvalue.NetworkAddress(
                 address_type=rdfvalue.NetworkAddress.Family.INET,
-                human_readable="127.0.0.1",
-                packed_bytes=socket.inet_aton("127.0.0.1"),
+                human_readable="100.100.100.1",
+                packed_bytes=socket.inet_aton("100.100.100.1"),
                 )]
         )]
 
@@ -178,13 +178,17 @@ class TestClientInterrogate(artifact_test.ArtifactTestHelper):
     net_fd = self.fd.OpenMember("network")
     interfaces = list(net_fd.Get(net_fd.Schema.INTERFACES))
     self.assertEqual(interfaces[0].mac_address, "123456")
-    self.assertEqual(interfaces[0].addresses[0].human_readable, "127.0.0.1")
+    self.assertEqual(interfaces[0].addresses[0].human_readable, "100.100.100.1")
     self.assertEqual(socket.inet_ntoa(interfaces[0].addresses[0].packed_bytes),
-                     "127.0.0.1")
+                     "100.100.100.1")
 
     # Mac addresses should be available as hex for searching
     mac_addresses = self.fd.Get(self.fd.Schema.MAC_ADDRESS)
     self.assertTrue("123456".encode("hex") in str(mac_addresses))
+
+    # Same for IP addresses.
+    ip_addresses = self.fd.Get(self.fd.Schema.HOST_IPS)
+    self.assertTrue("100.100.100.1" in str(ip_addresses))
 
   def _CheckVFS(self):
     # Check that virtual directories exist for the mount points
@@ -281,5 +285,3 @@ class TestClientInterrogate(artifact_test.ArtifactTestHelper):
     self._CheckNetworkInfo()
     self._CheckVFS()
     self._CheckLabelIndex()
-
-

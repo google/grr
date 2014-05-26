@@ -294,7 +294,8 @@ class Notification(rdfvalue.RDFProtoStruct):
   notification_types = ["Discovery",        # Link to the client object
                         "ViewObject",       # Link to any URN
                         "FlowStatus",       # Link to a flow
-                        "GrantAccess"]      # Link to an access grant page
+                        "GrantAccess",      # Link to an access grant page
+                        "DownloadFile"]     # Directly download a file.
 
 
 class FlowNotification(rdfvalue.RDFProtoStruct):

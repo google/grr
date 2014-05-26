@@ -69,7 +69,7 @@ class ListProcesses(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     """Save the results collection and update the notification line."""
-    if self.runner.output:
+    if self.runner.output is not None:
       num_items = len(self.runner.output)
       if self.args.fetch_binaries:
         self.Notify("ViewObject", self.runner.output.urn,

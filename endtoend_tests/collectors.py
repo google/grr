@@ -4,24 +4,25 @@
 
 from grr.endtoend_tests import base
 from grr.lib import aff4
+from grr.lib import rdfvalue
 
 
-class TestCollector(base.ClientTestBase):
+class TestCollector(base.AutomatedTest):
   """Test ArtifactCollectorFlow."""
-  platforms = ["windows"]
+  platforms = ["Windows"]
   flow = "ArtifactCollectorFlow"
-
-  args = {"output": "analysis/artifact/testing",
-          "artifact_list": ["VolatilityPsList"],
+  test_output_path = "analysis/artifact/testing"
+  args = {"output": test_output_path,
+          "artifact_list": ["WindowsRunKeys"],
           "store_results_in_aff4": False}
 
-  def setUp(self):
-    super(TestCollector, self).setUp()
-    self.urn = self.client_id.Add(self.args["output"])
-    self.DeleteUrn(self.urn)
-
   def CheckFlow(self):
-    collection = aff4.FACTORY.Open(self.urn, token=self.token)
+    collection = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
+                                   token=self.token)
     self.assertIsInstance(collection, aff4.RDFValueCollection)
-    self.assertTrue(len(list(collection)) > 40)
+
+    self.assertTrue(len(collection) > 3)
+    for statentry in collection:
+      self.assertTrue(isinstance(statentry, rdfvalue.StatEntry))
+      self.assertTrue("Run" in statentry.pathspec.path)
 

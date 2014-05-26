@@ -512,7 +512,8 @@ class GRRFlow(aff4.AFF4Volume):
         # If kill timestamp is set (i.e. if the flow is currently being
         # processed by the worker), delete the old "kill if stuck" notification
         # and schedule a new one, further in the future.
-        if self.runner.context.kill_timestamp:
+        if (self.runner.schedule_kill_notifications and
+            self.runner.context.kill_timestamp):
           with queue_manager.QueueManager(token=self.token) as manager:
             manager.DeleteNotification(
                 self.session_id,
@@ -527,6 +528,8 @@ class GRRFlow(aff4.AFF4Volume):
             manager.QueueNotification(
                 session_id=self.session_id, in_progress=True,
                 timestamp=self.runner.context.kill_timestamp)
+    else:
+      logging.warning("%s is heartbeating while not being locked.", self.urn)
 
   def WriteState(self):
     if "w" in self.mode:
@@ -576,7 +579,7 @@ class GRRFlow(aff4.AFF4Volume):
     This method is called prior to destruction of the flow to give
     the flow a chance to clean up.
     """
-    if self.runner.output:
+    if self.runner.output is not None:
       self.Notify(
           "ViewObject", self.runner.output.urn,
           u"Completed with {0} results".format(len(self.runner.output)))

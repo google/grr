@@ -7,7 +7,6 @@ import socket
 import threading
 
 
-import logging
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import flow
@@ -61,10 +60,11 @@ class MultiGetFileTestFlow(flow.GRRFlow):
     if not responses.success:
       raise flow.FlowError(responses.status)
     for response in responses:
-      fd = aff4.FACTORY.Open(response, "VFSFile", mode="r", token=self.token)
+      fd = aff4.FACTORY.Open(response.file_urn, "VFSFile", mode="r",
+                             token=self.token)
       binary_hash = fd.Get(fd.Schema.FINGERPRINT)
       hash_digest = binary_hash.results[0].GetItem("sha256").encode("hex")
-      self.state.client_hashes[str(response)] = hash_digest
+      self.state.client_hashes[str(response.file_urn)] = hash_digest
 
       self.CallFlow("MultiGetFile", pathspecs=[binary_hash.pathspec],
                     next_state="VerifyHashes")
@@ -86,19 +86,20 @@ class MultiGetFileTestFlow(flow.GRRFlow):
                                               response.aff4path))
 
 
-class TestMultiGetFile(base.LocalClientTest):
-  platforms = ["linux", "darwin"]
+class TestMultiGetFile(base.AutomatedTest):
+  platforms = ["Linux", "Darwin"]
   flow = "MultiGetFileTestFlow"
   args = {}
+  timeout = 60
 
   def CheckFlow(self):
     # Reopen the object to update the state.
     flow_obj = aff4.FACTORY.Open(self.session_id, token=self.token)
 
     # Check flow completed normally, checking is done inside the flow
+    self.assertFalse(flow_obj.state.context.get("backtrace", ""))
     self.assertEqual(
         flow_obj.state.context.state, rdfvalue.Flow.State.TERMINATED)
-    self.assertFalse(flow_obj.state.context.get("backtrace", ""))
 
 
 #########
@@ -106,47 +107,38 @@ class TestMultiGetFile(base.LocalClientTest):
 #########
 
 
-class TestGetFileTSKLinux(base.ClientTestBase):
+class TestGetFileTSKLinux(base.AutomatedTest):
   """Tests if GetFile works on Linux using Sleuthkit."""
-  platforms = ["linux"]
-
+  platforms = ["Linux"]
   flow = "GetFile"
   args = {"pathspec": rdfvalue.PathSpec(
       path="/bin/ls",
       pathtype=rdfvalue.PathSpec.PathType.TSK)}
 
   # Interpolate for /dev/mapper-...
-  output_path = "/fs/tsk/.*/bin/ls"
+  test_output_path = "/fs/tsk/.*/bin/ls"
 
   def CheckFlow(self):
-    pos = self.output_path.find("*")
+    pos = self.test_output_path.find("*")
     if pos > 0:
-      prefix = self.client_id.Add(self.output_path[:pos])
+      prefix = self.client_id.Add(self.test_output_path[:pos])
       for urn in base.RecursiveListChildren(prefix=prefix):
-        if re.search(self.output_path + "$", str(urn)):
-          self.to_delete = urn
-          return self.CheckFile(aff4.FACTORY.Open(urn))
+        if re.search(self.test_output_path + "$", str(urn)):
+          self.delete_urns.add(urn)
+          return self.CheckFile(aff4.FACTORY.Open(urn, token=self.token))
+
+      self.fail("Output file not found.")
+
     else:
-      urn = self.client_id.Add(self.output_path)
-      fd = aff4.FACTORY.Open(urn)
+      urn = self.client_id.Add(self.test_output_path)
+      fd = aff4.FACTORY.Open(urn, token=self.token)
       if isinstance(fd, aff4.BlobImage):
         return self.CheckFile(fd)
-
-    self.fail("Output file not found.")
+      self.fail("Output file %s not found." % urn)
 
   def CheckFile(self, fd):
     data = fd.Read(10)
     self.assertEqual(data[1:4], "ELF")
-
-  def tearDown(self):
-    super(TestGetFileTSKLinux, self).tearDown()
-    if hasattr(self, "to_delete"):
-      urn = self.to_delete
-    else:
-      urn = self.client_id.Add(self.output_path)
-    self.DeleteUrn(urn)
-    # Make sure the deletion acutally worked.
-    self.assertRaises(AssertionError, self.CheckFlow)
 
 
 class TestMultiGetFileTSKLinux(TestGetFileTSKLinux):
@@ -162,7 +154,7 @@ class TestGetFileOSLinux(TestGetFileTSKLinux):
   args = {"pathspec": rdfvalue.PathSpec(
       path="/bin/ls",
       pathtype=rdfvalue.PathSpec.PathType.OS)}
-  output_path = "/fs/os/bin/ls"
+  test_output_path = "/fs/os/bin/ls"
 
 
 class TestMultiGetFileOSLinux(TestGetFileOSLinux):
@@ -173,9 +165,9 @@ class TestMultiGetFileOSLinux(TestGetFileOSLinux):
       pathtype=rdfvalue.PathSpec.PathType.OS)]}
 
 
-class TestSendFile(base.ClientTestBase):
+class TestSendFile(base.LocalClientTest):
   """Test SendFile."""
-  platforms = ["linux"]
+  platforms = ["Linux"]
   flow = "SendFile"
   key = rdfvalue.AES128Key("1a5eafcc77d428863d4c2441ea26e5a5")
   iv = rdfvalue.AES128Key("2241b14c64874b1898dad4de7173d8c0")
@@ -187,15 +179,6 @@ class TestSendFile(base.ClientTestBase):
               iv=iv)
 
   def setUp(self):
-
-    if self.local_client:
-      logging.info("Setting up local listener.  This only works if the client"
-                   " is running on localhost!! Pass local_client=False if it "
-                   "isn't.")
-    else:
-      logging.info("Skipping TestSendFile because client isn't running "
-                   "locally.")
-      return
 
     class Listener(threading.Thread):
       result = []
@@ -247,7 +230,7 @@ class TestSendFile(base.ClientTestBase):
 
 class TestGetFileTSKMac(TestGetFileTSKLinux):
   """Tests if GetFile works on Mac using Sleuthkit."""
-  platforms = ["darwin"]
+  platforms = ["Darwin"]
 
   def CheckFile(self, fd):
     data = fd.Read(10)
@@ -288,7 +271,7 @@ class TestGetFileOSWindows(TestGetFileOSLinux):
   args = {"pathspec": rdfvalue.PathSpec(
       path="C:\\Windows\\regedit.exe",
       pathtype=rdfvalue.PathSpec.PathType.OS)}
-  output_path = "/fs/os/C:/Windows/regedit.exe"
+  test_output_path = "/fs/os/C:/Windows/regedit.exe"
 
   def CheckFile(self, fd):
     data = fd.Read(10)
@@ -322,7 +305,7 @@ class TestGetFileTSKWindows(TestGetFileOSWindows):
         data = fd.Read(10)
         if data[:2] == "MZ":
           found = True
-          self.to_delete = file_urn
+          self.delete_urns.add(file_urn)
           break
       except AttributeError:
         # If the file does not exist on this volume, Open returns a aff4volume

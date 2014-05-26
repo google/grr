@@ -51,7 +51,7 @@ supported_os: [Windows]
 name: EventLogs
 doc: Windows Event logs.
 collectors:
-- action: CollectArtifactFiles
+- action: CollectArtifacts
   args:
     artifact_list:
       - 'ApplicationEventLog'
@@ -188,7 +188,6 @@ collectors:
 - action: CollectArtifactFiles
   args:
     artifact_list: [WindowsPersistenceMechanisms]
-    pathspec_attribute: pathspec
   returned_types: [StatEntry]
 labels: [Software]
 supported_os: [Windows]

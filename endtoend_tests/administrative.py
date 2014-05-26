@@ -11,22 +11,16 @@ from grr.lib import config_lib
 from grr.lib import maintenance_utils
 
 
-class TestGetClientStats(base.ClientTestBase):
+class TestGetClientStats(base.AutomatedTest):
   """GetClientStats test."""
-  platforms = ["linux", "windows", "darwin"]
-
+  platforms = ["Linux", "Windows", "Darwin"]
+  test_output_path = "stats"
   flow = "GetClientStats"
-
-  def setUp(self):
-    super(TestGetClientStats, self).setUp()
-    self.stats_urn = self.client_id.Add("stats")
-    self.DeleteUrn(self.stats_urn)
-
-    self.assertRaises(AssertionError, self.CheckFlow)
 
   def CheckFlow(self):
     aff4.FACTORY.Flush()
-    client_stats = aff4.FACTORY.Open(self.stats_urn, token=self.token)
+    client_stats = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
+                                     token=self.token)
     self.assertIsInstance(client_stats, aff4.ClientStats)
 
     stats = list(client_stats.Get(client_stats.Schema.STATS))
@@ -56,11 +50,14 @@ class TestLaunchBinaries(base.ClientTestBase):
     printf("Hello world!!!");
     return 0;
   };
+
+  This class deliberately doesn't inherit from base.AutomatedTest because the
+  code signing requires a password.
   """
-  platforms = ["windows", "linux"]
+  platforms = ["Windows", "Linux"]
   flow = "LaunchBinary"
-  filenames = {"windows": "hello.exe",
-               "linux": "hello"}
+  filenames = {"Windows": "hello.exe",
+               "Linux": "hello"}
 
   def __init__(self, **kwargs):
     super(TestLaunchBinaries, self).__init__(**kwargs)

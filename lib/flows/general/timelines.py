@@ -24,7 +24,7 @@ class MACTimes(flow.GRRFlow):
   def Start(self):
     """This could take a while so we just schedule for the worker."""
     self.state.Register("urn", self.client_id.Add(self.args.path))
-    if self.runner.output:
+    if self.runner.output is not None:
       self.runner.output = aff4.FACTORY.Create(
           self.runner.output.urn, "GRRTimeSeries", token=self.token)
 
@@ -78,5 +78,5 @@ class MACTimes(flow.GRRFlow):
             # We are taking about the file which is a direct child of the
             # source.
             event.subject = utils.SmartUnicode(subject)
-            if self.runner.output:
+            if self.runner.output is not None:
               self.runner.output.AddEvent(event)

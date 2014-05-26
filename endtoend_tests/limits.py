@@ -61,17 +61,20 @@ class CPULimitTestFlow(flow.GRRFlow):
     pass
 
 
-class TestCPULimit(base.LocalClientTest):
-  platforms = ["linux", "windows", "darwin"]
-
+class TestCPULimit(base.AutomatedTest):
+  platforms = ["Linux", "Windows", "Darwin"]
   flow = "CPULimitTestFlow"
 
+  # TODO(user): need to move these limits into the args dictionary.
   cpu_limit = 7
 
   def CheckFlow(self):
-    # Reopen the object to update the state.
-    flow_obj = aff4.FACTORY.Open(self.session_id, token=self.token)
-    backtrace = flow_obj.state.context.get("backtrace", "")
+    # Reopen the object to check the state.  We use OpenWithLock to avoid
+    # reading old state.
+    with aff4.FACTORY.OpenWithLock(
+        self.session_id, token=self.token) as flow_obj:
+      backtrace = flow_obj.state.context.get("backtrace", "")
+
     if backtrace:
       if "BusyHang not available" in backtrace:
         print "Client does not support this test."
@@ -81,47 +84,43 @@ class TestCPULimit(base.LocalClientTest):
       self.fail("Flow did not raise the proper error.")
 
 
-class TestNetworkFlowLimit(base.ClientTestBase):
+class TestNetworkFlowLimit(base.AutomatedTest):
   """Test limit on bytes transferred for a flow."""
-  platforms = ["linux", "darwin"]
+  platforms = ["Linux", "Darwin"]
   flow = "GetFile"
   network_bytes_limit = 500 * 1024
   args = {"pathspec": rdfvalue.PathSpec(path="/bin/bash",
                                         pathtype=rdfvalue.PathSpec.PathType.OS)}
 
-  output_path = "/fs/os/bin/bash"
-
-  def setUp(self):
-    self.urn = self.client_id.Add(self.output_path)
-    self.DeleteUrn(self.urn)
-    fd = aff4.FACTORY.Open(self.urn, mode="r", token=self.token)
-    self.assertEqual(type(fd), aff4.AFF4Volume)
+  test_output_path = "/fs/os/bin/bash"
 
   def CheckFlow(self):
-    # Reopen the object to update the state.
-    flow_obj = aff4.FACTORY.Open(self.session_id, token=self.token)
+    # Reopen the object to check the state.  We use OpenWithLock to avoid
+    # reading old state.
+    with aff4.FACTORY.OpenWithLock(
+        self.session_id, token=self.token) as flow_obj:
+      # Make sure we transferred approximately the right amount of data.
+      self.assertAlmostEqual(flow_obj.state.context.network_bytes_sent,
+                             self.network_bytes_limit, delta=30000)
+      backtrace = flow_obj.state.context.get("backtrace", "")
+      self.assertTrue("Network bytes limit exceeded." in backtrace)
 
-    # Make sure we transferred approximately the right amount of data.
-    self.assertAlmostEqual(flow_obj.state.context.network_bytes_sent,
-                           self.network_bytes_limit, delta=30000)
-    backtrace = flow_obj.state.context.get("backtrace", "")
-    self.assertTrue("Network bytes limit exceeded." in backtrace)
 
-
-class TestMultiGetFileNetworkLimitExceeded(base.LocalClientTest):
-  platforms = ["linux", "darwin"]
+class TestMultiGetFileNetworkLimitExceeded(base.AutomatedTest):
+  platforms = ["Linux", "Darwin"]
   flow = "NetworkLimitTestFlow"
   args = {}
   network_bytes_limit = 3 * 512 * 1024
 
   def CheckFlow(self):
-    # Reopen the object to update the state.
-    flow_obj = aff4.FACTORY.Open(self.session_id, token=self.token)
-    backtrace = flow_obj.state.context.get("backtrace", "")
-    self.assertTrue("Network bytes limit exceeded." in backtrace)
+    # Reopen the object to check the state.  We use OpenWithLock to avoid
+    # reading old state.
+    with aff4.FACTORY.OpenWithLock(
+        self.session_id, token=self.token) as flow_obj:
+      backtrace = flow_obj.state.context.get("backtrace", "")
+      self.assertTrue("Network bytes limit exceeded." in backtrace)
 
-    self.output_path = flow_obj.state.dest_path.path
-    self.urn = self.client_id.Add(self.output_path)
+      self.urn = self.client_id.Add(flow_obj.state.dest_path.path)
 
     fd = aff4.FACTORY.Open(self.urn, mode="r", token=self.token)
     self.assertEqual(type(fd), aff4.AFF4Volume)

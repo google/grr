@@ -14,10 +14,12 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import hunts
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import worker
+from grr.lib.hunts import implementation
 
 
 # A global collector for test results
@@ -64,6 +66,44 @@ class WorkerSendingWKTestFlow(flow.WellKnownFlow):
 
   def ProcessMessage(self, message):
     RESULTS.append(message)
+
+
+class WorkerStuckableHunt(implementation.GRRHunt):
+
+  # Semaphore used by test code to wait until the hunt is being processed.
+  WAIT_FOR_HUNT_SEMAPHORE = threading.Semaphore(0)
+  # Semaphore used by the hunt to wait until the external test code does its
+  # thing.
+  WAIT_FOR_TEST_SEMAPHORE = threading.Semaphore(0)
+
+  @classmethod
+  def Reset(cls):
+    cls.WAIT_FOR_HUNT_SEMAPHORE = threading.Semaphore(0)
+    cls.WAIT_FOR_TEST_SEMAPHORE = threading.Semaphore(0)
+
+  @classmethod
+  def WaitUntilWorkerStartsProcessing(cls):
+    cls.WAIT_FOR_HUNT_SEMAPHORE.acquire()
+
+  @classmethod
+  def LetWorkerFinishProcessing(cls):
+    cls.WAIT_FOR_TEST_SEMAPHORE.release()
+
+  @flow.StateHandler()
+  def RunClient(self, responses):
+    cls = WorkerStuckableHunt
+
+    # After starting this hunt, the test should call
+    # WaitUntilWorkerStartsProcessing() which will block until
+    # WAIT_FOR_HUNT_SEMAPHORE is released. This way the test
+    # knows exactly when the hunt has actually started being
+    # executed.
+    cls.WAIT_FOR_HUNT_SEMAPHORE.release()
+
+    # We block here until WAIT_FOR_TEST_SEMAPHORE is released. It's released
+    # when the test calls LetWorkerFinishProcessing(). This way the test
+    # can control precisely when flow finishes.
+    cls.WAIT_FOR_TEST_SEMAPHORE.acquire()
 
 
 class WorkerStuckableTestFlow(flow.GRRFlow):
@@ -252,6 +292,69 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
                     rdfvalue.Flow.State.TERMINATED)
     self.assertEqual(flow_obj.state.context["current_state"],
                      "End")
+
+  def testNoKillNotificationsScheduledForHunts(self):
+    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+                                  token=self.token)
+    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
+
+    try:
+      with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
+        hunt = hunts.GRRHunt.StartHunt(hunt_name="WorkerStuckableHunt",
+                                       client_rate=0,
+                                       token=self.token)
+        with hunt.GetRunner() as runner:
+          runner.Start()
+
+        hunts.GRRHunt.StartClients(hunt.session_id, [self.client_id])
+
+        # Process all messages
+        worker_obj.RunOnce()
+        # Wait until worker thread starts processing the flow.
+        WorkerStuckableHunt.WaitUntilWorkerStartsProcessing()
+
+      # Assert that there are no stuck notifications in the worker's
+      # queue.
+      with queue_manager.QueueManager(token=self.token) as manager:
+        notifications = manager.GetNotificationsByPriority(
+            worker_obj.queue)
+        self.assertFalse(manager.STUCK_PRIORITY in notifications)
+
+    finally:
+      # Release the semaphore so that worker thread unblocks and finishes
+      # processing the flow.
+      WorkerStuckableHunt.LetWorkerFinishProcessing()
+      worker_obj.thread_pool.Join()
+
+  def testKillNotificationsScheduledForFlows(self):
+    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+                                  token=self.token)
+    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
+
+    try:
+      with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
+        flow.GRRFlow.StartFlow(flow_name="WorkerStuckableTestFlow",
+                               client_id=self.client_id,
+                               token=self.token,
+                               sync=False)
+
+        # Process all messages
+        worker_obj.RunOnce()
+        # Wait until worker thread starts processing the flow.
+        WorkerStuckableTestFlow.WaitUntilWorkerStartsProcessing()
+
+      # Assert that there are no stuck notifications in the worker's
+      # queue.
+      with queue_manager.QueueManager(token=self.token) as manager:
+        notifications = manager.GetNotificationsByPriority(
+            worker_obj.queue)
+        self.assertTrue(manager.STUCK_PRIORITY in notifications)
+
+    finally:
+      # Release the semaphore so that worker thread unblocks and finishes
+      # processing the flow.
+      WorkerStuckableTestFlow.LetWorkerFinishProcessing()
+      worker_obj.thread_pool.Join()
 
   def testStuckFlowGetsTerminated(self):
     worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,

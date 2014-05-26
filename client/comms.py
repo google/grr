@@ -29,7 +29,6 @@ import logging
 from grr.client import actions
 from grr.client import client_stats
 from grr.client import client_utils
-from grr.client import client_utils_common
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flags
@@ -764,8 +763,6 @@ class GRRHTTPClient(object):
         except urllib2.URLError:
           pass
         except Exception as e:  # pylint: disable=broad-except
-          client_utils_common.ErrorOnceAnHour(
-              "Unable to verify server certificate at %s: %s", cert_url, e)
           logging.info("Unable to verify server certificate at %s: %s",
                        cert_url, e)
 
@@ -779,6 +776,8 @@ class GRRHTTPClient(object):
     """Make a HTTP Post request and return the raw results."""
     status.sent_len = len(data)
     stats.STATS.IncrementCounter("grr_client_sent_bytes", len(data))
+    return_msg = ""
+
     try:
       # Now send the request using POST
       start = time.time()
@@ -801,30 +800,28 @@ class GRRHTTPClient(object):
       # Server can not talk with us - re-enroll.
       if e.code == 406:
         self.InitiateEnrolment(status)
-        return ""
+        return_msg = ""
       else:
         self.consecutive_connection_errors += 1
         if self.consecutive_connection_errors % PROXY_SCAN_ERROR_LIMIT == 0:
           # Reset the active connection, this will trigger a reconnect attempt.
           self.active_server_url = None
-        status.sent_count = 0
-        return str(e)
+        return_msg = str(e)
 
     except urllib2.URLError as e:
       # Wait a bit to prevent expiring messages too quickly when aggressively
       # polling
       time.sleep(5)
       status.code = 500
-      status.sent_count = 0
       self.consecutive_connection_errors += 1
       if self.consecutive_connection_errors % PROXY_SCAN_ERROR_LIMIT == 0:
         # Reset the active connection, this will trigger a reconnect attempt.
         self.active_server_url = None
-      return str(e)
+      return_msg = str(e)
 
     # Error path:
     status.sent_count = 0
-    return ""
+    return return_msg
 
   def RunOnce(self):
     """Makes a single request to the GRR server.
@@ -947,16 +944,28 @@ class GRRHTTPClient(object):
     order to enforce the required network and CPU utilization
     policies.
 
+    Raises:
+      RuntimeError: Too many connection errors have been encountered.
     Yields:
       A Status() object indicating how the last POST went.
     """
     while True:
+      self.consecutive_connection_errors = 0
       while self.active_server_url is None:
         if self.EstablishConnection():
           # Everything went as expected - we don't need to return to
           # the main loop (which would mean sleeping for a poll_time).
           break
         else:
+          # If we can't reconnect to the server for a long time, we restart
+          # to reset our state. In some very rare cases, the urrlib can get
+          # confused and we need to reset it before we can start talking to
+          # the server again.
+          self.consecutive_connection_errors += 1
+          limit = config_lib.CONFIG["Client.connection_error_limit"]
+          if self.consecutive_connection_errors > limit:
+            raise RuntimeError("Too many connection errors, exiting.")
+
           # Constantly retrying will not work, we back off a bit.
           time.sleep(60)
         yield Status()

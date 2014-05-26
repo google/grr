@@ -142,7 +142,7 @@ message FlowRunnerArgs {
     }];
 
   optional string base_session_id = 12 [(sem_type) = {
-      type: "SessionID",
+      type: "RDFURN",
       description: "The session id for the flow runner. "
       "If not specified we make one.",
       label: HIDDEN,
@@ -556,6 +556,12 @@ message ArtifactCollectorFlowArgs {
       " error. This is useful where you always expect results."
     }, default=false];
 
+  optional bool apply_parsers = 8 [(sem_type) = {
+      description: "If True, apply any relevant parser to the collected data. "
+      "If False, return the raw collected data e.g Files or Registry Keys.",
+      label: ADVANCED,
+    }, default=true];
+
 }
 
 message InterrogateArgs {
@@ -801,6 +807,14 @@ message GlobArgs {
                    " favor of pathtype to allow it to be modified by users.",
       label: ADVANCED;
     }];
+
+  optional bool no_file_type_check = 4 [(sem_type) = {
+      description: "Work with all kinds of files - not only with regular ones."
+      "NOTE: This is very dangerous and should be used with care, see "
+      "MemoryCollector as an example.",
+      label: HIDDEN,
+    }, default=false];
+
 }
 
 message SearchFileContentArgs {
@@ -1605,3 +1619,16 @@ message KnowledgeBaseInitializationArgs {
 
 }
 
+message ExportHuntResultsFilesAsZipArgs {
+  optional string hunt_urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the hunt."
+    }];
+}
+
+message EndToEndTestFlowArgs {
+  repeated string test_names = 1 [(sem_type) = {
+      description: "List of endtoend test classes to run. If none are specifed,"
+      " run all automated endtoend tests.",
+    }];
+}

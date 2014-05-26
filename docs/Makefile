@@ -24,6 +24,7 @@ sync:
 
 %.html: DONT_EDIT_%.adoc
 	asciidoc -a icons -o $(@F) $(<F)
+	sed -ri 's/\"(.*).adoc/\"\1\.html/' $(@F)
 
 .PHONY: sync clean
 clean:

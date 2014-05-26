@@ -116,6 +116,16 @@ class EntryPointTest(test_lib.GRRBaseTest):
                                     [run_bin] + self.extra_opts,
                                     timeout=self.default_timeout)
 
+  @test_lib.SetLabel("large")
+  def testEndToEnd(self):
+    self.extra_opts.append("--testnames=''")
+    run_bin = os.path.join(self.bin_dir, "tools", "end_to_end_tests" +
+                           self.bin_ext)
+    self.RunForTimeWithNoExceptions(self.interpreter,
+                                    [run_bin] + self.extra_opts,
+                                    should_exit=True, check_exit_code=True,
+                                    timeout=self.default_timeout*2)
+
 
 
 def main(argv):

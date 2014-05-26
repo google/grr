@@ -184,9 +184,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # We should find some files.
     self.assertEqual(children, ["foo"])
 
-  def testGlobWithStarStar(self):
-    """Test that ** expressions mean recursion."""
-
+  def _MakeTestDirs(self):
     fourth_level_dir = utils.JoinPath(self.temp_dir, "1/2/3/4")
     os.makedirs(fourth_level_dir)
 
@@ -198,6 +196,11 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         file_path = utils.JoinPath(top_level_path, filename + str(level))
         open(file_path, "w").close()
         self.assertTrue(os.path.exists(file_path))
+
+  def testGlobWithStarStar(self):
+    """Test that ** expressions mean recursion."""
+
+    self._MakeTestDirs()
 
     # Test filename and directory with spaces
     os.makedirs(utils.JoinPath(self.temp_dir, "1/2 space"))
@@ -225,6 +228,25 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # Get all of the bars.
     paths = [os.path.join(self.temp_dir, "**10bar*")]
     results = ["bar", "1/bar1", "/1/2/bar2", "/1/2/3/bar3", "/1/2/3/4/bar4"]
+    self._RunGlob(paths)
+    self.assertItemsEqual(self.flow_replies,
+                          [utils.JoinPath(self.temp_dir, x) for x in results])
+
+  def testGlobWithTwoStars(self):
+    self._MakeTestDirs()
+    paths = [os.path.join(self.temp_dir, "1/", "*/*/foo*")]
+    results = ["1/2/3/foo3", "1/2/3/fOo3"]
+    self._RunGlob(paths)
+    self.assertItemsEqual(self.flow_replies,
+                          [utils.JoinPath(self.temp_dir, x) for x in results])
+
+  def testGlobWithMultiplePaths(self):
+    self._MakeTestDirs()
+    paths = [os.path.join(self.temp_dir, "*/*/foo*"),
+             os.path.join(self.temp_dir, "notthere"),
+             os.path.join(self.temp_dir, "*/notthere"),
+             os.path.join(self.temp_dir, "*/foo*")]
+    results = ["1/foo1", "1/fOo1", "/1/2/fOo2", "/1/2/foo2"]
     self._RunGlob(paths)
     self.assertItemsEqual(self.flow_replies,
                           [utils.JoinPath(self.temp_dir, x) for x in results])
@@ -296,6 +318,44 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(len(children), 1)
     self.assertEqual(children[0].Basename(), "foo")
+
+  def testGlobWildcardsAndTSK(self):
+    client_mock = test_lib.ActionMock("Find", "StatFile")
+
+    # This glob should find this file in test data: glob_test/a/b/foo.
+    path = os.path.join(self.base_path,
+                        "test_IMG.dd", "glob_test", "a", "b", "FOO*")
+    for _ in test_lib.TestFlowHelper(
+        "Glob", client_mock, client_id=self.client_id,
+        paths=[path], pathtype=rdfvalue.PathSpec.PathType.OS,
+        token=self.token):
+      pass
+
+    output_path = self.client_id.Add("fs/tsk").Add(os.path.join(
+        self.base_path, "test_img.dd", "glob_test", "a", "b"))
+
+    fd = aff4.FACTORY.Open(output_path, token=self.token)
+    children = list(fd.ListChildren())
+
+    self.assertEqual(len(children), 1)
+    self.assertEqual(children[0].Basename(), "foo")
+
+    aff4.FACTORY.Delete(self.client_id.Add("fs/tsk").Add(os.path.join(
+        self.base_path)), token=self.token)
+
+    # Specifying a wildcard for the image will not open it.
+    path = os.path.join(self.base_path,
+                        "*.dd", "glob_test", "a", "b", "FOO*")
+    for _ in test_lib.TestFlowHelper(
+        "Glob", client_mock, client_id=self.client_id,
+        paths=[path], pathtype=rdfvalue.PathSpec.PathType.OS,
+        token=self.token):
+      pass
+
+    fd = aff4.FACTORY.Open(output_path, token=self.token)
+    children = list(fd.ListChildren())
+
+    self.assertEqual(len(children), 0)
 
   def testGlobDirectory(self):
     """Test that glob expands directories."""
@@ -401,7 +461,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         ("test_data/{*.log,*.raw}", 1, 0),
         ("test_data/a/**/helloc.txt", 1, None),
         ("test_data/a/**/hello{c,d}.txt", 1, None),
-        ("test_data/a/**/hello*.txt", 6, None),
+        ("test_data/a/**/hello*.txt", 4, None),
         ("test_data/a/**.txt", 1, None),
         ("test_data/a/**5*.txt", 1, None),
         ("test_data/a/**{.json,.txt}", 1, 0),

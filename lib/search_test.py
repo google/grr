@@ -15,10 +15,6 @@ from grr.lib import test_lib
 class SearchTest(test_lib.FlowTestsBaseclass):
   """Test the search handling."""
 
-  def setUp(self):
-    super(SearchTest, self).setUp()
-    self.clients = self.SetupClients(5)
-
   def testSearch(self):
     """Test the ability to search for clients."""
     client_ids = self.SetupClients(10)
@@ -62,6 +58,12 @@ class SearchTest(test_lib.FlowTestsBaseclass):
     # Check we handle mac addresses in : format with prefix.
     results = list(search.SearchClients("mac:%s" % mac_addr, token=self.token))
     self.assertEqual(len(results), 1)
+
+    # Check searching for IP addresses.
+    results = search.SearchClients("ip:192.168.0.2", token=self.token)
+    self.assertEqual(len(list(results)), 1)
+    results = search.SearchClients("ip:168.0", token=self.token)
+    self.assertEqual(len(list(results)), 10)
 
     # Check beginning and end regex markers.
     client1.Set(client1.Schema.FQDN("abc-extra"))

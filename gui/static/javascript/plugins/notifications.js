@@ -54,7 +54,15 @@ grr.Renderer('ViewNotifications', {
       if (node) {
         var element = node.find('a');
         if (element) {
-          grr.loadFromHash(element.attr('target_hash'));
+          if (element.attr('notification_type') == 'DownloadFile') {
+            var parsedHash = grr.parseHashState(element.attr('target_hash'));
+            var fileState = { aff4_path: parsedHash['aff4_path']};
+            grr.downloadHandler(element, fileState, false,
+                                '/render/Download/DownloadView');
+            element.trigger('download');
+          } else {
+            grr.loadFromHash(element.attr('target_hash'));
+          }
         }
       }
     }, state['unique']);

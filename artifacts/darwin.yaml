@@ -6,7 +6,6 @@ collectors:
 - action: CollectArtifactFiles
   args:
     artifact_list: [DarwinPersistenceMechanisms]
-    pathspec_attribute: pathspec
   returned_types: [StatEntry]
 labels: [System]
 supported_os: [Darwin]

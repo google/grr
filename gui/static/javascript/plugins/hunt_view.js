@@ -239,3 +239,32 @@ grr.Renderer('HuntTable', {
 
   }
 });
+
+grr.Renderer('HuntResultsRenderer', {
+  Layout: function(state) {
+    var unique = state.unique;
+    var hunt_id = state.hunt_id;
+    var exportable_results = state.exportable_results;
+
+    if (exportable_results) {
+      var button = $('#generate_hunt_results_zip_' + unique).button();
+      button.click(function() {
+        button.attr('disabled', 'disabled');
+
+        // We execute CheckAccess renderer with silent=true. Therefore it
+        // searches for an approval and sets correct reason if approval is
+        // found. When CheckAccess completes, we execute HuntGenerateResultsZip
+        // renderer, which tries to run an actual hunt. If the approval
+        // wasn't found on CheckAccess stage, it will fail due to unauthorized
+        // access and proper ACLDialog will be displayed.
+        grr.layout('CheckAccess', 'generate_action_' + unique,
+                   {silent: true, subject: hunt_id},
+                   function() {
+                     grr.layout('HuntGenerateResultsZip',
+                                'generate_action_' + unique,
+                                {hunt_id: hunt_id});
+                   });
+      });
+    }
+  }
+});

@@ -118,6 +118,9 @@ class RDFValue(object):
     """Make a new copy of this RDFValue."""
     return self.__class__(initializer=self.SerializeToString())
 
+  def __copy__(self):
+    return self.Copy()
+
   @property
   def age(self):
     if self._age.__class__ is not RDFDatetime:
@@ -441,6 +444,15 @@ class RDFDatetime(RDFInteger):
 
     return NotImplemented
 
+  def __mul__(self, other):
+    if isinstance(other, (int, long, float, Duration)):
+      return self.__class__(self._value * other)
+
+    return NotImplemented
+
+  def __rmul__(self, other):
+    return self.__mul__(other)
+
   def __sub__(self, other):
     if isinstance(other, (int, long, float, Duration)):
       # Assume other is in seconds
@@ -587,6 +599,15 @@ class Duration(RDFInteger):
       return self
 
     return NotImplemented
+
+  def __mul__(self, other):
+    if isinstance(other, (int, long, float, Duration)):
+      return self.__class__(self._value * other)
+
+    return NotImplemented
+
+  def __rmul__(self, other):
+    return self.__mul__(other)
 
   def __sub__(self, other):
     if isinstance(other, (int, long, float, Duration)):
@@ -829,7 +850,7 @@ class RDFURN(RDFValue):
     """Make a copy of ourselves."""
     if age is None:
       age = int(time.time() * MICROSECONDS)
-    return self.__class__(str(self), age=age)
+    return self.__class__(self, age=age)
 
   def __str__(self):
     return utils.SmartStr(self._string_urn)
@@ -966,6 +987,10 @@ class SessionID(RDFURN):
 
   def Queue(self):
     return RDFURN(self.Basename().split(":")[0])
+
+  def Add(self, path, age=None):
+    # Adding to a SessionID results in a normal RDFURN.
+    return RDFURN(self).Add(path, age=age)
 
 
 class FlowSessionID(SessionID):

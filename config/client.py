@@ -61,6 +61,11 @@ config_lib.DEFINE_float("Client.poll_max", 600,
 config_lib.DEFINE_float("Client.poll_slew", 1.15,
                         "Slew of poll time in seconds")
 
+config_lib.DEFINE_integer("Client.connection_error_limit", 60 * 24,
+                          "If the client encounters this many connection "
+                          "errors, it exits and restarts. Retries are one "
+                          "minute apart.")
+
 config_lib.DEFINE_list(
     name="Client.proxy_servers",
     help="List of valid proxy servers the client should try.",

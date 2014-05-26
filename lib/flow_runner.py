@@ -84,6 +84,10 @@ class FlowRunner(object):
   doesn't respond does not make the whole hunt wait.
   """
 
+  # If True, kill notifications will be scheduled by the worker when
+  # running runner.ProcessCompletedRequests().
+  schedule_kill_notifications = True
+
   # Normal flows must process responses in order.
   process_requests_in_order = True
   queue_manager = None
@@ -156,7 +160,7 @@ class FlowRunner(object):
   @output.setter
   def output(self, value):
     self.context.output = value
-    if self.context.output:
+    if self.context.output is not None:
       self.context.output_urn = self.context.output.urn
 
   def _CreateOutputCollection(self, args):
@@ -227,7 +231,7 @@ class FlowRunner(object):
         output=output_collection,
         # Output collection is nullified when flow is terminated, so we're
         # keeping the urn separately for further reference.
-        output_urn=output_collection and output_collection.urn,
+        output_urn=(output_collection is not None) and output_collection.urn,
         outstanding_requests=0,
         remaining_cpu_quota=args.cpu_limit,
         state=rdfvalue.Flow.State.RUNNING,
@@ -699,7 +703,7 @@ class FlowRunner(object):
 
   def CallFlow(self, flow_name=None, next_state=None, sync=True,
                request_data=None, client_id=None, base_session_id=None,
-               output="", **kwargs):
+               output=None, **kwargs):
     """Creates a new flow and send its responses to a state.
 
     This creates a new flow. The flow may send back many responses which will be
@@ -802,7 +806,7 @@ class FlowRunner(object):
     if not isinstance(response, rdfvalue.RDFValue):
       raise RuntimeError("SendReply can only send a Semantic Value")
 
-    if self.context.output:
+    if self.context.output is not None:
       self.context.output.Add(response)
 
     # Only send the reply if we have a parent and if flow's send_replies

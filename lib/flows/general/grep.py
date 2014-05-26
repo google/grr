@@ -54,7 +54,7 @@ class SearchFileContent(flow.GRRFlow):
   @flow.StateHandler(next_state=["Grep"])
   def Start(self):
     """Run the glob first."""
-    if self.runner.output:
+    if self.runner.output is not None:
       self.runner.output = aff4.FACTORY.Create(
           self.runner.output.urn, "GrepResultsCollection", mode="rw",
           token=self.token)

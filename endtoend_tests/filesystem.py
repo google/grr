@@ -13,9 +13,9 @@ from grr.lib import rdfvalue
 ####################
 
 
-class TestListDirectoryOSLinuxDarwin(base.ClientTestBase):
+class TestListDirectoryOSLinuxDarwin(base.AutomatedTest):
   """Tests if ListDirectory works on Linux and Darwin."""
-  platforms = ["linux", "darwin"]
+  platforms = ["Linux", "Darwin"]
   flow = "ListDirectory"
   args = {"pathspec": rdfvalue.PathSpec(
       path="/bin",
@@ -31,7 +31,8 @@ class TestListDirectoryOSLinuxDarwin(base.ClientTestBase):
       base_urn = self.client_id.Add(self.output_path[:pos])
       for urn in base.RecursiveListChildren(prefix=base_urn):
         if re.search(self.output_path + "$", str(urn)):
-          self.to_delete = urn
+          self.delete_urns.add(urn.Add(self.file_to_find))
+          self.delete_urns.add(urn)
           break
       self.assertNotEqual(urn, None, "Could not locate Directory.")
     else:
@@ -42,15 +43,10 @@ class TestListDirectoryOSLinuxDarwin(base.ClientTestBase):
     self.assertEqual(type(fd), aff4.VFSFile)
 
   def tearDown(self):
+    if not self.delete_urns:
+      self.delete_urns.add(
+          self.client_id.Add(self.output_path).Add(self.file_to_find))
     super(TestListDirectoryOSLinuxDarwin, self).tearDown()
-    if hasattr(self, "to_delete"):
-      urn = self.to_delete
-    else:
-      urn = self.client_id.Add(self.output_path)
-    self.DeleteUrn(urn.Add(self.file_to_find))
-    self.DeleteUrn(urn)
-    # Make sure the deletion acutally worked.
-    self.assertRaises(AssertionError, self.CheckFlow)
 
 
 class TestListDirectoryTSKLinuxDarwin(TestListDirectoryOSLinuxDarwin):
@@ -62,6 +58,7 @@ class TestListDirectoryTSKLinuxDarwin(TestListDirectoryOSLinuxDarwin):
 
 
 class TestRecursiveListDirectoryLinuxDarwin(TestListDirectoryOSLinuxDarwin):
+  """Test recursive list directory on linux and darwin."""
   flow = "RecursiveListDirectory"
   args = {"pathspec": rdfvalue.PathSpec(
       path="/usr",
@@ -69,6 +66,14 @@ class TestRecursiveListDirectoryLinuxDarwin(TestListDirectoryOSLinuxDarwin):
           "max_depth": 1}
   file_to_find = "less"
   output_path = "/fs/os/usr/bin"
+  args = {"pathspec": rdfvalue.PathSpec(
+      path="/usr", pathtype=rdfvalue.PathSpec.PathType.OS),
+          "max_depth": 1}
+
+  # This is a fair number of files and directories so it takes more than the
+  # default 30s, but it isn't that easy to pick one that is guaranteed to be
+  # there on mac and linux and has at least a few subfolders.
+  timeout = 60
 
 
 class TestFindTSKLinuxDarwin(TestListDirectoryTSKLinuxDarwin):
@@ -100,7 +105,7 @@ class TestFindOSLinuxDarwin(TestListDirectoryOSLinuxDarwin):
 
 class TestListDirectoryOSWindows(TestListDirectoryOSLinuxDarwin):
   """Tests if ListDirectory works on Windows."""
-  platforms = ["windows"]
+  platforms = ["Windows"]
   args = {"pathspec": rdfvalue.PathSpec(
       path="C:\\Windows",
       pathtype=rdfvalue.PathSpec.PathType.OS)}
@@ -110,7 +115,7 @@ class TestListDirectoryOSWindows(TestListDirectoryOSLinuxDarwin):
 
 class TestListDirectoryTSKWindows(TestListDirectoryTSKLinuxDarwin):
   """Tests if ListDirectory works on Windows using Sleuthkit."""
-  platforms = ["windows"]
+  platforms = ["Windows"]
   args = {"pathspec": rdfvalue.PathSpec(
       path="C:\\Windows",
       pathtype=rdfvalue.PathSpec.PathType.TSK)}
@@ -131,7 +136,8 @@ class TestListDirectoryTSKWindows(TestListDirectoryTSKLinuxDarwin):
           if self.file_to_find == child.urn.Basename():
             # We found what we were looking for.
             found = True
-            self.to_delete = child.urn
+            self.delete_urns.add(child.urn.Add(self.file_to_find))
+            self.delete_urns.add(child.urn)
             break
     self.assertTrue(found)
 

@@ -120,6 +120,11 @@ class VFSGRRClient(standard.VFSDirectory):
                                  "A hex encoded MAC address.", "MAC",
                                  index=client_index)
 
+    # Same for IP addresses.
+    HOST_IPS = aff4.Attribute("aff4:host_ips", rdfvalue.RDFString,
+                              "An IP address.", "Host_ip",
+                              index=client_index)
+
     PING = aff4.Attribute("metadata:ping", rdfvalue.RDFDatetime,
                           "The last time the server heard from this client.",
                           "LastCheckin", versioned=False, default=0)

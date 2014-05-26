@@ -154,7 +154,8 @@ class ViewNotifications(renderers.TableRenderer):
   """Render the notifications for the user."""
 
   target_template = renderers.Template("""
-<a href="/#{{hash|escape}}" target_hash="{{hash|escape}}">{{target}}</span>""")
+<a href="/#{{hash|escape}}" target_hash="{{hash|escape}}"
+   notification_type="{{notification_type|escape}}">{{target}}</span>""")
 
   layout_template = renderers.TableRenderer.layout_template
 
@@ -197,6 +198,7 @@ class ViewNotifications(renderers.TableRenderer):
              "Target": self.FormatFromTemplate(
                  self.target_template,
                  hash=self.BuildHashFromNotification(notification),
+                 notification_type=notification.type,
                  target=notification.subject),
              "Timestamp": rdfvalue.RDFDatetime(notification.timestamp),
             }
@@ -224,7 +226,10 @@ class ViewNotifications(renderers.TableRenderer):
       h["c"] = components[0]
       h["main"] = "HostInformation"
 
-    # Downloading a file
+    elif notification.type == "DownloadFile":
+      h["aff4_path"] = notification.subject
+      h["main"] = "DownloadFile"
+
     elif notification.type == "ViewObject":
       path = rdfvalue.RDFURN(urn)
       components = path.Path().split("/")[1:]

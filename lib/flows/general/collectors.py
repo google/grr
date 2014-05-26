@@ -527,7 +527,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       return
 
     # Initialize some local non-state saved variables for processing.
-    if self.runner.output:
+    if self.runner.output is not None:
       if self.args.split_output_by_artifact:
         self.output_collection_map = {}
 
@@ -538,7 +538,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     processors = parsers.Parser.GetClassesByArtifact(artifact_name)
     saved_responses = {}
     for response in responses:
-      if processors:
+      if processors and self.args.apply_parsers:
         for processor in processors:
           processor_obj = processor()
           if processor_obj.process_together:
@@ -560,7 +560,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                            artifact_name, collector)
 
     # Flush the results to the objects.
-    if self.runner.output:
+    if self.runner.output is not None:
       self._FinalizeCollection(artifact_name)
     if self.args.store_results_in_aff4:
       self._FinalizeMappedAFF4Locations(artifact_name)
@@ -591,6 +591,13 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           continue
       else:
         pathspec = response
+
+      # Check the default .pathspec attribute.
+      if not isinstance(pathspec, rdfvalue.PathSpec):
+        try:
+          pathspec = response.pathspec
+        except AttributeError:
+          pass
 
       if isinstance(pathspec, basestring):
         pathspec = rdfvalue.PathSpec(path=pathspec)
@@ -714,7 +721,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           self._ProcessAnomaly(result)
         elif not artifact_return_types or result_type in artifact_return_types:
           self.SendReply(result)    # Send to parent.
-          if self.runner.output:
+          if self.runner.output is not None:
             # Output is set, we need to write to a collection.
             self._WriteResultToCollection(result, artifact_name)
           if self.args.store_results_in_aff4:
@@ -724,7 +731,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def _WriteResultToCollection(self, result, artifact_name):
     """Write any results to the collection."""
     if self.args.split_output_by_artifact:
-      if self.runner.output and artifact_name not in self.output_collection_map:
+      if (self.runner.output is not None and
+          artifact_name not in self.output_collection_map):
         urn = self.runner.output.urn.Add(artifact_name)
         collection = aff4.FACTORY.Create(urn, "RDFValueCollection", mode="rw",
                                          token=self.token)
@@ -743,11 +751,11 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         total += len(collection)
         collection.Flush()
     else:
-      if self.runner.output:
+      if self.runner.output is not None:
         self.runner.output.Flush()
         total += len(self.runner.output)
 
-    if self.runner.output:
+    if self.runner.output is not None:
       self.Log("Wrote results from Artifact %s to %s. Collection size %d.",
                artifact_name, self.runner.output.urn, total)
 
@@ -840,7 +848,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     if self.args.no_results_errors and collect_count == 0:
       raise artifact_lib.ArtifactProcessingError("Artifact collector returned "
                                                  "0 responses.")
-    if self.runner.output:
+    if self.runner.output is not None:
       urn = self.runner.output.urn
     else:
       urn = self.client_id

@@ -939,6 +939,18 @@ class HuntHostInformationRenderer(fileview.AFF4Stats):
 class HuntResultsRenderer(semantic.RDFValueCollectionRenderer):
   """Displays a collection of hunt's results."""
 
+  layout_template = renderers.Template("""
+{% if this.exportable_results %}
+Results of this hunt can be downloaded as ZIP archive:
+<button name="generate_zip"
+  id="generate_hunt_results_zip_{{unique|escape}}" class="btn">
+Generate ZIP archive
+</button>
+<div id='generate_action_{{unique|escape}}'>
+</div>
+{% endif %}
+""") + semantic.RDFValueCollectionRenderer.layout_template
+
   error_template = renderers.Template("""
 <p>This hunt hasn't stored any results yet.</p>
 """)
@@ -947,13 +959,39 @@ class HuntResultsRenderer(semantic.RDFValueCollectionRenderer):
 
   def Layout(self, request, response):
     """Layout the hunt results."""
-    hunt_id = request.REQ.get("hunt_id")
+    hunt_id = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
     hunt = aff4.FACTORY.Open(hunt_id, token=request.token)
+
+    export_view = renderers.CollectionExportView
+    self.exportable_results = export_view.IsCollectionExportable(
+        hunt.state.context.results_collection_urn,
+        token=request.token)
 
     # In this renderer we show hunt results stored in the results collection.
     with hunt.GetRunner() as runner:
-      return super(HuntResultsRenderer, self).Layout(
+      response = super(HuntResultsRenderer, self).Layout(
           request, response, aff4_path=runner.context.results_collection_urn)
+      return self.CallJavascript(response, "HuntResultsRenderer.Layout",
+                                 exportable_results=self.exportable_results,
+                                 hunt_id=hunt_id)
+
+
+class HuntGenerateResultsZip(renderers.TemplateRenderer):
+
+  layout_template = renderers.Template("""
+<em>Generation has started. Notification will be sent upon completion.</em>
+""")
+
+  def Layout(self, request, response):
+    """Start the flow to generate zip file."""
+
+    hunt_id = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
+    urn = flow.GRRFlow.StartFlow(flow_name="ExportHuntResultFilesAsZip",
+                                 hunt_urn=hunt_id, token=request.token)
+    logging.info("Generating ZIP results for %s with flow %s.",
+                 hunt_id, urn)
+
+    return super(HuntGenerateResultsZip, self).Layout(request, response)
 
 
 class HuntStatsRenderer(renderers.TemplateRenderer):

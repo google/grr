@@ -12,7 +12,8 @@ INDEX_PREFIX_MAP = {"host": CLIENT_SCHEMA.HOSTNAME,
                     "fqdn": CLIENT_SCHEMA.FQDN,
                     "mac": CLIENT_SCHEMA.MAC_ADDRESS,
                     "label": CLIENT_SCHEMA.LABEL,
-                    "user": CLIENT_SCHEMA.USERNAMES}
+                    "user": CLIENT_SCHEMA.USERNAMES,
+                    "ip": CLIENT_SCHEMA.HOST_IPS}
 
 
 def SearchClients(query_string, start=0, max_results=1000, token=None):
@@ -44,18 +45,20 @@ def SearchClients(query_string, start=0, max_results=1000, token=None):
     if ":" in query_string:
       prefix = query_string.split(":", 1)[0]
       if re.match(r"^[0-9a-f]{2}$", prefix):
-        # Handle the special MAC wierd case e.g. mac:DE:AD:BE:EF:AA:AA.
+        # Handle the special MAC weird case e.g. mac:DE:AD:BE:EF:AA:AA.
         prefix = ""
       if prefix:
         if prefix not in INDEX_PREFIX_MAP:
           raise IOError("Invalid prefix %s. Choose from %s" % (
               prefix, INDEX_PREFIX_MAP.keys()))
-        else:
-          query_string = query_string.split(":", 1)[1]
+
+        query_string = query_string.split(":", 1)[1]
 
     if prefix:
       # Search a specific index.
-      indexed_attrs = [INDEX_PREFIX_MAP[prefix]]
+      indexed_attrs = INDEX_PREFIX_MAP[prefix]
+      if not isinstance(indexed_attrs, list):
+        indexed_attrs = [INDEX_PREFIX_MAP[prefix]]
     else:
       # Search all indexes.
       indexed_attrs = [a for a in client_schema().ListAttributes() if a.index]

@@ -108,7 +108,12 @@ function run_cmd_confirm()
 header "Updating APT and Installing dependencies"
 run_cmd_confirm sudo apt-get --yes update;
 run_cmd_confirm sudo apt-get --yes upgrade;
-run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil python-matplotlib python-mox python-yaml python-pip dpkg-dev debhelper libpython-dev;
+run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil python-matplotlib python-mox python-yaml python-pip dpkg-dev debhelper;
+
+# Fail silently if python-dev or libpython-dev is not available in the apt repo
+# python-dev is for Ubuntu version < 12.10 and libpython-dev is for > 12.04
+sudo apt-get --force-yes --yes install python-dev 2>/dev/null
+sudo apt-get --force-yes --yes install libpython-dev 2>/dev/null
 
 header "Getting the right version of M2Crypto installed"
 run_cmd_confirm sudo apt-get --yes remove python-m2crypto;

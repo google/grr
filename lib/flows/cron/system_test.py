@@ -4,11 +4,34 @@
 
 import time
 
+from grr.endtoend_tests import base
 from grr.lib import aff4
+from grr.lib import config_lib
+from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.flows.cron import system
 from grr.test_data import client_fixture
+
+
+class MockEndToEndTest(base.AutomatedTest):
+  platforms = ["Linux", "Darwin"]
+  flow = "ListDirectory"
+  args = {"pathspec": rdfvalue.PathSpec(
+      path="/bin",
+      pathtype=rdfvalue.PathSpec.PathType.OS)}
+
+  output_path = "/fs/os/bin"
+  file_to_find = "ls"
+
+  def setUp(self):
+    pass
+
+  def CheckFlow(self):
+    pass
+
+  def tearDown(self):
+    pass
 
 
 class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
@@ -146,3 +169,100 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     stat_entries = list(stat_obj.GetValuesForAttribute(stat_obj.Schema.STATS))
     self.assertEqual(len(stat_entries), 1)
     self.assertTrue(max_age not in [e.RSS_size for e in stat_entries])
+
+  def _SetSummaries(self, client_id):
+    summary = rdfvalue.ClientSummary(system_info=rdfvalue.Uname(
+        system="Darwin",
+        node=client_id,
+        release="OSX",
+        version="10.9.2",
+        machine="AMD64",
+        kernel="13.1.0",
+        fqdn="%s.example.com" % client_id))
+    client = aff4.FACTORY.Create(client_id, "VFSGRRClient", mode="rw",
+                                 token=self.token)
+    client.Set(client.SchemaCls.SUMMARY(summary))
+    client.Flush()
+
+  def testEndToEndTests(self):
+
+    self.client_ids = ["aff4:/C.6000000000000000",
+                       "aff4:/C.6000000000000001",
+                       "aff4:/C.6000000000000002"]
+    for clientid in self.client_ids:
+      self._SetSummaries(clientid)
+
+    self.client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+
+    config_lib.CONFIG.Set("Test.end_to_end_client_ids", self.client_ids)
+    with test_lib.MultiStubber((base.AutomatedTest, "classes",
+                                {"MockEndToEndTest": MockEndToEndTest}),
+                               (system.EndToEndTests, "lifetime", 0)):
+
+      # The test harness doesn't understand the callstate at a later time that
+      # this flow is doing, so we need to disable check_flow_errors.
+      for _ in test_lib.TestFlowHelper("EndToEndTests", self.client_mock,
+                                       client_id=self.client_id,
+                                       check_flow_errors=False,
+                                       token=self.token):
+        pass
+
+    hunt_ids = list(aff4.FACTORY.Open("aff4:/hunts",
+                                      token=self.token).ListChildren())
+    # We have only created one hunt, and we should have started with clean aff4
+    # space.
+    self.assertEqual(len(hunt_ids), 1)
+    hunt = aff4.FACTORY.Open(hunt_ids[0], token=self.token, age=aff4.ALL_TIMES)
+    self.assertItemsEqual(hunt.GetValuesForAttribute(hunt.Schema.CLIENTS),
+                          self.client_ids)
+
+  def _CreateResult(self, success, clientid):
+    success = rdfvalue.EndToEndTestResult(success=success)
+    return rdfvalue.GrrMessage(source=clientid,
+                               payload=success)
+
+  def testEndToEndTestsResultChecking(self):
+
+    self.client_ids = ["aff4:/C.6000000000000000",
+                       "aff4:/C.6000000000000001",
+                       "aff4:/C.6000000000000002"]
+    for clientid in self.client_ids:
+      self._SetSummaries(clientid)
+
+    self.client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+
+    endtoend = system.EndToEndTests(None, token=self.token)
+    endtoend.state.Register("hunt_id", "aff4:/temphuntid")
+    endtoend.state.Register("client_ids", set(self.client_ids))
+    endtoend.state.Register("client_ids_failures", set())
+    endtoend.state.Register("client_ids_result_reported", set())
+
+    # No results at all
+    self.assertRaises(flow.FlowError, endtoend._CheckForSuccess, [])
+
+    # Not enough client results
+    endtoend.state.Register("client_ids_failures", set())
+    endtoend.state.Register("client_ids_result_reported", set())
+    self.assertRaises(flow.FlowError,
+                      endtoend._CheckForSuccess,
+                      [self._CreateResult(True, "aff4:/C.6000000000000001")])
+
+    # All clients succeeded
+    endtoend.state.Register("client_ids_failures", set())
+    endtoend.state.Register("client_ids_result_reported", set())
+    endtoend._CheckForSuccess(
+        [self._CreateResult(True, "aff4:/C.6000000000000000"),
+         self._CreateResult(True, "aff4:/C.6000000000000001"),
+         self._CreateResult(True, "aff4:/C.6000000000000002")])
+
+    # All clients complete, but some failures
+    endtoend.state.Register("client_ids_failures", set())
+    endtoend.state.Register("client_ids_result_reported", set())
+    self.assertRaises(flow.FlowError,
+                      endtoend._CheckForSuccess,
+                      [self._CreateResult(True, "aff4:/C.6000000000000000"),
+                       self._CreateResult(False, "aff4:/C.6000000000000001"),
+                       self._CreateResult(False, "aff4:/C.6000000000000002")])
+
+
+

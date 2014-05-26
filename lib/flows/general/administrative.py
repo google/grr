@@ -28,9 +28,6 @@ from grr.lib.aff4_objects import reports
 from grr.proto import flows_pb2
 
 
-from grr.proto import flows_pb2
-
-
 class AdministrativeInit(registry.InitHook):
   """Initialize the Django environment."""
 

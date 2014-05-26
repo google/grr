@@ -7,23 +7,17 @@ from grr.endtoend_tests import base
 from grr.lib import aff4
 
 
-class TestProcessListing(base.ClientTestBase):
+class TestProcessListing(base.AutomatedTest):
   """Test ListProcesses."""
-  platforms = ["linux", "windows", "darwin"]
+  platforms = ["Linux", "Windows", "Darwin"]
 
   flow = "ListProcesses"
-
-  args = {"output": "analysis/ListProcesses/testing"}
-
-  def setUp(self):
-    super(TestProcessListing, self).setUp()
-    self.process_urn = self.client_id.Add(self.args["output"])
-    self.DeleteUrn(self.process_urn)
-
-    self.assertRaises(AssertionError, self.CheckFlow)
+  output_path = "analysis/ListProcesses/testing"
+  args = {"output": output_path}
 
   def CheckFlow(self):
-    procs = aff4.FACTORY.Open(self.process_urn, mode="r", token=self.token)
+    procs = aff4.FACTORY.Open(self.client_id.Add(self.output_path), mode="r",
+                              token=self.token)
     self.assertIsInstance(procs, aff4.RDFValueCollection)
     process_list = list(procs)
     # Make sure there are at least some results.

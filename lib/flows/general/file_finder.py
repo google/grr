@@ -128,7 +128,8 @@ class FileFinder(flow.GRRFlow):
                            next_state="ProcessConditions")
     else:
       self.CallFlow("Glob", next_state="ProcessConditions",
-                    paths=self.args.paths, pathtype=self.args.pathtype)
+                    paths=self.args.paths, pathtype=self.args.pathtype,
+                    no_file_type_check=self.args.no_file_type_check)
 
   @flow.StateHandler(next_state=["ApplyCondition"])
   def ProcessConditions(self, responses):
@@ -339,7 +340,7 @@ class FileFinder(flow.GRRFlow):
   @flow.StateHandler()
   def End(self, responses):
     self.Log("Found and processed %d files.", self.state.files_found)
-    if self.runner.output:
+    if self.runner.output is not None:
       urn = self.runner.output.urn
     else:
       urn = self.client_id

@@ -58,6 +58,8 @@ from grr.lib.flows.console import debugging
 from grr.lib.flows.general import memory
 # pylint: enable=unused-import
 
+from grr.tools import end_to_end_tests
+
 
 flags.DEFINE_string("client", None,
                     "Initialise the console with this client id "
@@ -108,7 +110,7 @@ def main(unused_argv):
       # namespace.
       "StartFlowAndWait": flow_utils.StartFlowAndWait,
       "StartFlowAndWorker": debugging.StartFlowAndWorker,
-      "TestFlows": base.TestFlows,
+      "RunEndToEndTests": end_to_end_tests.RunEndToEndTests,
       }
 
   locals_vars.update(globals())   # add global variables to console

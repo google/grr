@@ -59,6 +59,7 @@ class HuntRunner(flow_runner.FlowRunner):
   3) Resources are tallied for each client and as a hunt total.
   """
 
+  schedule_kill_notifications = False
   process_requests_in_order = False
 
   def _AddClient(self, client_id):

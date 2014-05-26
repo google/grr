@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """VFS Handler which provides access to the raw physical memory.
 
 Memory access is provided by use of a special driver. Note that it is preferred
@@ -17,11 +15,15 @@ import sys
 
 from grr.client import vfs
 from grr.lib import rdfvalue
-from grr.lib import utils
 
-
-win32file = utils.ConditionalImport("win32file")
-fcntl = utils.ConditionalImport("fcntl")
+# pylint: disable=g-import-not-at-top
+try:
+  import win32file
+  import fcntl
+except ImportError:
+  win32file = None
+  fcntl = None
+# pylint: enable=g-import-not-at-top
 
 
 class MemoryVFS(vfs.VFSHandler):

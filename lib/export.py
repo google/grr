@@ -216,8 +216,11 @@ class DataAgnosticExportConverter(ExportConverter):
   def MakeDescriptor(self, desc_proto, file_desc_proto, descriptors=None):
     """Creates a protobuf descriptor out of DescriptorProto."""
     descriptors = descriptors or dict()
-
     full_message_name = [desc_proto.name]
+
+    file_descriptor = descriptor.FileDescriptor(
+        file_desc_proto.name, file_desc_proto.package,
+        serialized_pb=file_desc_proto.SerializeToString())
 
     # Create Descriptors for enum types
     enum_types = {}
@@ -257,9 +260,6 @@ class DataAgnosticExportConverter(ExportConverter):
           options=field_proto.options, has_default_value=False)
       fields.append(field)
 
-    file_descriptor = descriptor.FileDescriptor(
-        file_desc_proto.name, file_desc_proto.package,
-        serialized_pb=file_desc_proto.SerializeToString())
     desc_name = ".".join(full_message_name)
     return descriptor.Descriptor(desc_proto.name, desc_name, None, None, fields,
                                  [], enum_types.values(), [],
@@ -272,12 +272,12 @@ class DataAgnosticExportConverter(ExportConverter):
                             ".proto")
 
     descriptors = dict()
-
-    metadata_type = file_descriptor.message_type.add()
-    rdfvalue.ExportedMetadata.protobuf.DESCRIPTOR.CopyToProto(metadata_type)
     descriptors[
         "." + rdfvalue.ExportedMetadata.protobuf.DESCRIPTOR.full_name] = (
             rdfvalue.ExportedMetadata.protobuf.DESCRIPTOR)
+    # Register import of a proto file containing ExportedMetadata definiition.
+    file_descriptor.dependency.append(
+        rdfvalue.ExportedMetadata.protobuf.DESCRIPTOR.file.name)
 
     message_type = file_descriptor.message_type.add()
     message_type.name = self.ExportedClassNameForValue(value)

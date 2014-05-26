@@ -999,11 +999,21 @@ grr.update_form = function(formId, state) {
 /**
  * Parses the location bar's #hash value into an object.
  *
+ * @param {Object=} hash Optional hash to be parsed. If not passed,
+ *                       window.location.hash will be parsed instead.
  * @return {Object} an associative array of encoded values.
  */
-grr.parseHashState = function() {
+grr.parseHashState = function(hash) {
+  if (hash === undefined) {
+    hash = window.location.hash;
+  }
+
+  if (hash.indexOf('#') == 0) {
+    hash = hash.substr(1);
+  }
+
   var result = {};
-  var parts = window.location.hash.substr(1).split('&');
+  var parts = hash.split('&');
 
   for (var i = 0; i < parts.length; i++) {
     var kv = parts[i].split('=');
@@ -1574,6 +1584,9 @@ grr.downloadHandler = function(clickNode, state, safe_extension, url, target) {
   clickNode.unbind('click').click(function() {
     tmpform.submit();
   });
+  clickNode.bind('download', function() {
+    tmpform.submit();
+  });
 };
 
 
@@ -1618,7 +1631,7 @@ grr.getCookie = function(name) {
  */
 grr.enableSearchHelp = function(clickNode) {
   var help_content = 'Search by hostname, username, id or MAC<br/>' +
-      'Limit scope using mac: host: label: fqdn: or user:<br/>e.g.' +
+      'Limit scope using mac: host: label: fqdn: ip: or user:<br/>e.g.' +
       ' user:sham<br/>Regex is supported<br/> e.g. test1[2-5].*\.' +
       'example.com$';
   var popover_opts = {'placement': 'bottom',

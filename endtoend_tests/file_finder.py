@@ -13,7 +13,7 @@ class TestFileFinderOSWindows(transfer.TestGetFileOSWindows):
   Exercise globbing, interpolation and filtering.
   """
   flow = "FileFinder"
-  output_path = "/fs/os/.*/Windows/System32/notepad.exe"
+  test_output_path = "/fs/os/.*/Windows/System32/notepad.exe"
 
   sizecondition = rdfvalue.FileFinderSizeCondition(max_file_size=1000000)
   filecondition = rdfvalue.FileFinderCondition(
@@ -31,9 +31,9 @@ class TestFileFinderOSWindows(transfer.TestGetFileOSWindows):
 
 class TestFileFinderOSLinuxDarwin(transfer.TestGetFileOSLinux):
   """Download a file with FileFinder."""
-  platforms = ["linux", "darwin"]
+  platforms = ["Linux", "Darwin"]
   flow = "FileFinder"
-  output_path = "/fs/os/bin/ps"
+  test_output_path = "/fs/os/bin/ps"
 
   sizecondition = rdfvalue.FileFinderSizeCondition(max_file_size=1000000)
   filecondition = rdfvalue.FileFinderCondition(
@@ -54,17 +54,15 @@ class TestFileFinderOSHomedir(TestFileFinderOSLinuxDarwin):
 
   Exercise globbing and interpolation.
   """
-  platforms = ["linux", "darwin", "windows"]
-  download = rdfvalue.FileFinderDownloadActionOptions()
+  platforms = ["Linux", "Darwin", "Windows"]
+  test_output_path = "/analysis/test/homedirs"
   action = rdfvalue.FileFinderAction(
       action_type=rdfvalue.FileFinderAction.Action.STAT)
-
-  output_path = "/analysis/test/homedirs"
   args = {"paths": ["%%users.homedir%%/*"], "action": action,
-          "runner_args": rdfvalue.FlowRunnerArgs(output=output_path)}
+          "runner_args": rdfvalue.FlowRunnerArgs(output=test_output_path)}
 
   def CheckFlow(self):
-    results = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
+    results = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
                                 token=self.token)
     self.assertEqual(type(results), aff4.RDFValueCollection)
     self.assertTrue(len(results) > 1)

@@ -878,15 +878,27 @@ message Certificate {
 
 // Message to carry uname information.
 message Uname {
-  optional string system = 1;
+  optional string system = 1 [(sem_type) = {
+      description: "The system platform (Windows|Darwin|Linux).",
+    }];
   optional string node = 2 [(sem_type) = {
       description: "The hostname of this system.",
-    }];;
-  optional string release = 3;
-  optional string version = 4;
-  optional string machine = 5;
-  optional string kernel = 6;
-  optional string fqdn = 7;
+    }];
+  optional string release = 3 [(sem_type) = {
+      description: "The OS release identifier e.g. 7, OSX, debian.",
+    }];
+  optional string version = 4 [(sem_type) = {
+      description: "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04.",
+    }];
+  optional string machine = 5 [(sem_type) = {
+      description: "The system architecture e.g. AMD64, x86_64.",
+    }];
+  optional string kernel = 6 [(sem_type) = {
+      description: "The kernel version string e.g. 6.1.7601, 13.1.0, 3.15-rc2.",
+    }];
+  optional string fqdn = 7 [(sem_type) = {
+      description: "The system's fully qualified domain name.",
+    }];
 };
 
 message FolderInformation {
@@ -1789,6 +1801,18 @@ message PersistenceFile {
     description: "URN for rdfvalue that used this file for "
         " persistence. e.g. WindowsServiceInformation, StatEntry."
   }];
+}
+
+message EndToEndTestResult {
+  optional bool success = 1 [(sem_type) = {
+      description: "Whether the test was successful.",
+    }, default = false];
+  optional string test_class_name = 2;
+  optional uint64 timestamp = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp for when the test was run.",
+    }];
+  optional string log = 4;
 }
 
 

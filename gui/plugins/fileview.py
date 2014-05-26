@@ -21,6 +21,7 @@ from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.flows.general import export
 
 
 # pylint: disable=g-bad-name
@@ -1496,7 +1497,8 @@ class FileViewTabs(renderers.TabLayout):
 
         # If collection doesn't have StatEntries or FileFinderResults, disable
         # the Export tab.
-        if not CollectionExportView.IsCollectionExportable(self.fd):
+        if not CollectionExportView.IsCollectionExportable(self.fd,
+                                                           token=request.token):
           self.disabled = ["CollectionExportView"]
 
         if isinstance(self.fd, aff4.RekallResponseCollection):
@@ -1528,16 +1530,23 @@ dump client info in YAML format.</em></p>
 """)
 
   @staticmethod
-  def IsCollectionExportable(collection_urn_or_obj, token=None):
+  def IsCollectionExportable(collection_urn_or_obj,
+                             token=None):
     if isinstance(collection_urn_or_obj, aff4.RDFValueCollection):
       collection = collection_urn_or_obj
     else:
       collection = aff4.FACTORY.Create(
-          collection_urn_or_obj, aff4_type="RDFValueCollection",
-          mode="r", token=token)
+          collection_urn_or_obj, "RDFValueCollection", mode="r", token=token)
 
-    return collection and isinstance(
-        collection[0], (rdfvalue.StatEntry, rdfvalue.FileFinderResult))
+    if not collection:
+      return False
+
+    try:
+      export.CollectionItemToAff4Path(collection[0])
+    except export.ItemNotExportableError:
+      return False
+
+    return True
 
   def Layout(self, request, response, aff4_path=None):
     aff4_path = aff4_path or request.REQ.get("aff4_path")

@@ -7,36 +7,36 @@ from grr.lib import aff4
 from grr.lib import rdfvalue
 
 
-class TestSearchFiles(base.ClientTestBase):
+class TestSearchFiles(base.AutomatedTest):
   """Test SearchFileContent."""
-  platforms = ["linux"]
+  platforms = ["Linux"]
   flow = "SearchFileContent"
-
-  args = {"output": "analysis/SearchFiles/testing",
+  test_output_path = "analysis/SearchFiles/testing"
+  args = {"output": test_output_path,
           "paths": ["/bin/ls*"],
           "also_download": True}
 
-  def setUp(self):
-    super(TestSearchFiles, self).setUp()
-    self.urn = self.client_id.Add(self.args["output"])
-    self.DeleteUrn(self.urn)
-    self.assertRaises(Exception, self.CheckFlow)
-
   def CheckFlow(self):
-    results = aff4.FACTORY.Open(self.urn, token=self.token)
+    results = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
+                                token=self.token)
     self.assertGreater(len(results), 1)
     for result in results:
       self.assertTrue(result.pathspec.path.startswith("/bin/ls"))
 
 
-class TestSearchFilesGrep(TestSearchFiles):
-  args = {"output": "analysis/SearchFilesGrep/testing",
+class TestSearchFilesGrep(base.AutomatedTest):
+  """Test SearchFileContent with grep."""
+  platforms = ["Linux"]
+  flow = "SearchFileContent"
+  test_output_path = "analysis/SearchFilesGrep/testing"
+  args = {"output": test_output_path,
           "paths": ["/bin/ls*"],
           "grep": rdfvalue.BareGrepSpec(literal="ELF"),
           "also_download": True}
 
   def CheckFlow(self):
-    results = aff4.FACTORY.Open(self.urn, token=self.token)
+    results = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
+                                token=self.token)
     self.assertGreater(len(results), 1)
     for result in results:
       self.assertTrue("ELF" in result.data)

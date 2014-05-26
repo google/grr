@@ -54,6 +54,12 @@ def GrrServer():
   flags.StartMain(grr_server.main)
 
 
+def EndToEndTests():
+  from grr.tools import end_to_end_tests
+  SetConfigOptions()
+  flags.StartMain(end_to_end_tests.main)
+
+
 def Export():
   from grr.tools import export
   export.AddPluginsSubparsers()

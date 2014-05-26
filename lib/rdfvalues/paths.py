@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
 """Pathspecs are methods of specifying the path on the client.
 
 The GRR client has a number of drivers to virtualize access to different objects
@@ -16,6 +15,7 @@ handler. The type of the handler is carried by the pathtype parameter.
 On the server the PathSpec is represented as a PathSpec object, and stored
 as an attribute of the AFF4 object. This module defines this abstraction.
 """
+
 
 import fnmatch
 import itertools
@@ -50,7 +50,9 @@ class PathSpec(structs.RDFProtoStruct):
 
     # Instantiate from another PathSpec.
     if isinstance(initializer, PathSpec):
-      self.SetRawData(initializer.Copy().GetRawData())
+      # pylint: disable=protected-access
+      self.SetRawData(initializer._CopyRawData())
+      # pylint: enable=protected-access
       self.age = initializer.age
 
     # Allow initialization from a list of protobufs each representing a
