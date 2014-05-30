@@ -98,10 +98,6 @@ class VFSGRRClient(standard.VFSDirectory):
                                     rdfvalue.KnowledgeBase,
                                     "Artifact Knowledge Base", "KnowledgeBase")
 
-    # Deprecated for new clients - DO NOT USE.
-    GRR_CONFIG = aff4.Attribute("aff4:client_config", rdfvalue.GRRConfig,
-                                "Running configuration for the GRR client.")
-
     GRR_CONFIGURATION = aff4.Attribute(
         "aff4:client_configuration", rdfvalue.Dict,
         "Running configuration for the GRR client.", "Config")

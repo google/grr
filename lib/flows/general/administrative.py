@@ -210,11 +210,11 @@ class Kill(flow.GRRFlow):
       self.Log("Kill failed on the client.")
 
 
-class UpdateConfigArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.UpdateConfigArgs
+class UpdateConfigurationArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.UpdateConfigurationArgs
 
 
-class UpdateConfig(flow.GRRFlow):
+class UpdateConfiguration(flow.GRRFlow):
   """Update the configuration of the client.
 
     Note: This flow is somewhat dangerous, so we don't expose it in the UI.
@@ -222,12 +222,12 @@ class UpdateConfig(flow.GRRFlow):
 
   # Still accessible (e.g. via ajax but not visible in the UI.)
   category = None
-  args_type = UpdateConfigArgs
+  args_type = rdfvalue.UpdateConfigurationArgs
 
   @flow.StateHandler(next_state=["Confirmation"])
   def Start(self):
-    """Call the GetConfig function on the client."""
-    self.CallClient("UpdateConfig", self.args.config,
+    """Call the UpdateConfiguration function on the client."""
+    self.CallClient("UpdateConfiguration", request=self.args.config,
                     next_state="Confirmation")
 
   @flow.StateHandler(next_state="End")

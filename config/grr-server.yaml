@@ -50,7 +50,7 @@ Logging.engines: "stderr,file"
 
 Logging.path: /var/log/grr
 
-Logging.verbose: True
+Logging.verbose: False
 
 Mongo.db_name: grr
 

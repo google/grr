@@ -381,11 +381,6 @@ class InterfaceRenderer(semantic.RDFProtoRenderer):
                     mac_address=TranslateMacAddress)
 
 
-class ConfigRenderer(semantic.RDFProtoRenderer):
-  classname = "GRRConfig"
-  name = "GRR Configuration"
-
-
 class StringListRenderer(renderers.TemplateRenderer):
   """Renders a list of strings as a proto table."""
   layout_template = renderers.Template("""

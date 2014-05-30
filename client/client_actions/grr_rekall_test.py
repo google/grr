@@ -44,8 +44,7 @@ class RekallTestSuite(test_lib.FlowTestsBaseclass):
 
     image_path = os.path.join(self.base_path, "win7_trial_64bit.raw")
     if not os.access(image_path, os.R_OK):
-      logging.warning("Unable to locate test memory image. Skipping test.")
-      return
+      self.fail("Unable to locate test memory image. Skipping test.")
 
     self.CreateClient()
     self.CreateSignedDriver()

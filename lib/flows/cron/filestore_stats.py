@@ -9,6 +9,10 @@ from grr.lib import utils
 
 from grr.lib.aff4_objects import cronjobs
 
+# We need some rdfvalue definitions so pylint: disable=unused-import
+from grr.lib.flows.general import file_finder
+# pylint: enable=unused-import
+
 
 class ClassCounter(object):
   """Populates a stats.Graph with counts of each object class."""

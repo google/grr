@@ -50,7 +50,7 @@ supported_os: [Windows]
 urls: ['http://environmentvariables.org/ProgramFiles']
 ---
 name: SystemDriveEnvironmentVariable
-doc: The %SystemDrive% environment variable.
+doc: The %SystemDrive% environment variable, usually "C:".
 collectors:
 - {action: Bootstrap}
 provides: [environ_systemdrive]
@@ -58,7 +58,7 @@ supported_os: [Windows]
 urls: ['http://environmentvariables.org/SystemDrive']
 ---
 name: SystemRoot
-doc: The base system directory.
+doc: The base system directory, usually "C:\Windows".
 collectors:
 - {action: Bootstrap}
 provides: [environ_systemroot]

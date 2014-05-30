@@ -269,24 +269,6 @@ class RDFValueArray(rdfvalue.RDFProtoStruct):
   def Pop(self, index=0):
     return self.content.Pop(index).GetValue()
 
-  def GetFields(self, field_names):
-    """Recurse into an attribute to get sub fields by name."""
-    result = []
-
-    for value in self.content:
-      value = value.GetValue()
-      for field_name in field_names:
-        if value.HasField(field_name):
-          value = getattr(value, field_name, None)
-        else:
-          value = None
-          break
-
-      if value is not None:
-        result.append(value)
-
-    return result
-
 
 class EmbeddedRDFValue(rdfvalue.RDFProtoStruct):
   """An object that contains a serialized RDFValue."""

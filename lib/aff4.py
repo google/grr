@@ -882,13 +882,46 @@ class Attribute(object):
 
     return result
 
+  def _GetSubField(self, value, field_names):
+    for field_name in field_names:
+      if value.HasField(field_name):
+        value = getattr(value, field_name, None)
+      else:
+        value = None
+        break
+
+    if value is not None:
+      yield value
+
+  def GetSubFields(self, fd, field_names):
+    """Gets all the subfields indicated by field_names.
+
+    This resolves specifications like "Users.special_folders.app_data" where for
+    each entry in the Users protobuf the corresponding app_data folder entry
+    should be returned.
+
+    Args:
+      fd: The base RDFValue or Array.
+      field_names: A list of strings indicating which subfields to get.
+    Yields:
+      All the subfields matching the field_names specification.
+    """
+
+    if isinstance(fd, rdfvalue.RDFValueArray):
+      for value in fd:
+        for res in self._GetSubField(value, field_names):
+          yield res
+    else:
+      for res in self._GetSubField(fd, field_names):
+        yield res
+
   def GetValues(self, fd):
     """Return the values for this attribute as stored in an AFF4Object."""
     result = None
     for result in fd.new_attributes.get(self, []):
       # We need to interpolate sub fields in this rdfvalue.
       if self.field_names:
-        for x in result.GetFields(self.field_names):
+        for x in self.GetSubFields(result, self.field_names):
           yield x
 
       else:
@@ -900,7 +933,7 @@ class Attribute(object):
       # We need to interpolate sub fields in this rdfvalue.
       if result is not None:
         if self.field_names:
-          for x in result.GetFields(self.field_names):
+          for x in self.GetSubFields(result, self.field_names):
             yield x
 
         else:

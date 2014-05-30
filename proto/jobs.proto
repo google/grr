@@ -986,32 +986,6 @@ message MemoryInformation {
   optional uint64 cr3 = 3;
 }
 
-// Updates the client configuration. We deliberately only allow to update a few
-// options. Setting these should take effect immediately.
-
-// This message is deprecated ... Client configuration is now set via an
-// RDFProtoDict. Those fields which are allowed to be modified remotely are
-// described in their TypeInfo description.
-message GRRConfig {
-  optional int32 foreman_check_frequency = 1;
-  optional string location = 2;
-  optional int32 max_post_size = 3;
-  optional int32 max_out_queue = 4;
-  optional float poll_min = 5;
-  optional float poll_max = 6;
-  optional float poll_slew = 7;
-  optional string compression = 8;
-  optional bool verbose = 9;
-
-  // These options can be read but not modified.
-  optional string camode = 10;
-  optional int32 server_serial_number = 11;
-  optional string regpath = 12;
-  optional string config = 13;
-  optional bool debug = 14;
-  optional bool process_separate = 15;   // deprecated
-  optional float rss_max = 16;
-};
 
 message AuthenticodeSignedData {
   optional uint64 revision = 1;

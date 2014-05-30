@@ -240,7 +240,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         elif action_name == "RunCommand":
           self.RunCommand(collector)
         elif action_name == "GetFiles":
-          self.GetFiles(collector, self.state.path_type)
+          self.GetFiles(collector, self.state.path_type,
+                        self.args.max_file_size)
         elif action_name == "Grep":
           self.Grep(collector, self.state.path_type)
         elif action_name == "ListFiles":
@@ -277,7 +278,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         return False
     return True
 
-  def GetFiles(self, collector, path_type):
+  def GetFiles(self, collector, path_type, max_size):
     """Get a set of files."""
     new_path_list = []
     for path in collector.args["path_list"]:
@@ -285,10 +286,12 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       new_path_list.extend(artifact_lib.InterpolateKbAttributes(
           path, self.state.knowledge_base))
 
+    action = rdfvalue.FileFinderAction(
+        action_type=rdfvalue.FileFinderAction.Action.DOWNLOAD,
+        download=rdfvalue.FileFinderDownloadActionOptions(max_size=max_size))
+
     self.CallFlow(
-        "FileFinder", paths=new_path_list, pathtype=path_type,
-        action=rdfvalue.FileFinderAction(
-            action_type=rdfvalue.FileFinderAction.Action.DOWNLOAD),
+        "FileFinder", paths=new_path_list, pathtype=path_type, action=action,
         request_data={"artifact_name": self.current_artifact_name,
                       "collector": collector.ToPrimitiveDict()},
         next_state="ProcessFileFinderResults")

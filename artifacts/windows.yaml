@@ -64,13 +64,18 @@ labels: [Logs]
 supported_os: [Windows]
 ---
 name: MFTFiles
-doc: $MFT and $MFTMirr files.
+doc: |
+  $MFT and $MFTMirr files.
+
+  GRR collection note: you currently need to specify 'use tsk' and
+  'ignore download size limits' for this artifact to work. This will go away in
+  the future.
 collectors:
 - action: GetFiles
   args:
     path_list:
-      - '\$MFT'
-      - '\$MFTMirr'
+      - '%%environ_systemdrive%%\$MFT'
+      - '%%environ_systemdrive%%\$MFTMirr'
 labels: [System]
 supported_os: [Windows]
 ---

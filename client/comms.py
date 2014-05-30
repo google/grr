@@ -809,9 +809,6 @@ class GRRHTTPClient(object):
         return_msg = str(e)
 
     except urllib2.URLError as e:
-      # Wait a bit to prevent expiring messages too quickly when aggressively
-      # polling
-      time.sleep(5)
       status.code = 500
       self.consecutive_connection_errors += 1
       if self.consecutive_connection_errors % PROXY_SCAN_ERROR_LIMIT == 0:
@@ -832,9 +829,15 @@ class GRRHTTPClient(object):
     try:
       status = Status()
 
-      # Grab some messages to send
-      message_list = self.client_worker.Drain(
-          max_size=config_lib.CONFIG["Client.max_post_size"])
+      # Here we only drain messages if we were able to connect to the server in
+      # the last poll request. Otherwise we just wait until the connection comes
+      # back so we don't expire our messages too fast.
+      if self.consecutive_connection_errors == 0:
+        # Grab some messages to send
+        message_list = self.client_worker.Drain(
+            max_size=config_lib.CONFIG["Client.max_post_size"])
+      else:
+        message_list = rdfvalue.MessageList()
 
       sent_count = 0
       sent = {}
@@ -1022,6 +1025,17 @@ class GRRHTTPClient(object):
     Args:
       status: The status of the last request.
     """
+    if status.code == 500:
+      # In this case, the server just became unavailable. We have been able
+      # to make connections before but now we can't anymore for some reason.
+      # We want to wait at least some time before retrying in case the frontend
+      # served a 500 error because it is overloaded already.
+      error_sleep_time = max(config_lib.CONFIG["Client.error_poll_min"],
+                             self.sleep_time)
+      logging.debug("Could not reach server. Sleeping for %s", error_sleep_time)
+      self.Sleep(error_sleep_time, heartbeat=False)
+      return
+
     # If we communicated this time we want to continue aggressively
     if status.require_fastpoll > 0 or status.received_count > 0:
       self.sleep_time = config_lib.CONFIG["Client.poll_min"]

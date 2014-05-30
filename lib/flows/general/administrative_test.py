@@ -3,6 +3,7 @@
 
 
 
+import os
 import subprocess
 import sys
 import time
@@ -18,40 +19,6 @@ from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.proto import tests_pb2
-
-
-class TestClientConfigHandling(test_lib.FlowTestsBaseclass):
-  """Test the GetConfig flow."""
-
-  def testUpdateConfig(self):
-    """Ensure we can retrieve the config."""
-    pass
-    # # Only mock the pieces we care about.
-    # client_mock = test_lib.ActionMock("GetConfig", "UpdateConfig")
-    # # Fix up the client actions to not use /etc.
-    # conf.FLAGS.config = FLAGS.test_tmpdir + "/config.ini"
-    # loc = "http://www.example.com"
-    # grr_config = rdfvalue.GRRConfig(location=loc,
-    #                                 foreman_check_frequency=3600,
-    #                                 poll_min=1)
-    # # Write the config.
-    # for _ in test_lib.TestFlowHelper("UpdateConfig", client_mock,
-    #                                  client_id=self.client_id,
-    #                                  token=self.token,
-    #                                  grr_config=grr_config):
-    #   pass
-
-    # # Now retrieve it again to see if it got written.
-    # for _ in test_lib.TestFlowHelper("Interrogate", client_mock,
-    #                                  token=self.token,
-    #                                  client_id=self.client_id):
-    #   pass
-
-    # urn = aff4.ROOT_URN.Add(self.client_id)
-    # fd = aff4.FACTORY.Open(urn, token=self.token)
-    # config_dat = fd.Get(fd.Schema.GRR_CONFIG)
-    # self.assertEqual(config_dat.data.location, loc)
-    # self.assertEqual(config_dat.data.poll_min, 1)
 
 
 class ClientActionRunnerArgs(rdfvalue.RDFProtoStruct):
@@ -71,6 +38,43 @@ class ClientActionRunner(flow.GRRFlow):
 
 class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
   """Tests the administrative flows."""
+
+  def setUp(self):
+    super(TestAdministrativeFlows, self).setUp()
+
+    test_tmp = os.environ.get("TEST_TMPDIR")
+    if test_tmp:
+      config_lib.CONFIG.Set("Client.tempdir", test_tmp)
+
+  def testUpdateConfig(self):
+    """Ensure we can retrieve and update the config."""
+
+    # Only mock the pieces we care about.
+    client_mock = test_lib.ActionMock("GetConfiguration", "UpdateConfiguration")
+
+    loc = "http://www.example.com"
+    new_config = rdfvalue.Dict(
+        {"Client.control_urls": [loc],
+         "Client.foreman_check_frequency": 3600,
+         "Client.poll_min": 1})
+
+    # Write the config.
+    for _ in test_lib.TestFlowHelper("UpdateConfiguration", client_mock,
+                                     client_id=self.client_id,
+                                     token=self.token,
+                                     config=new_config):
+      pass
+
+    # Now retrieve it again to see if it got written.
+    for _ in test_lib.TestFlowHelper("Interrogate", client_mock,
+                                     token=self.token,
+                                     client_id=self.client_id):
+      pass
+
+    fd = aff4.FACTORY.Open(self.client_id, token=self.token)
+    config_dat = fd.Get(fd.Schema.GRR_CONFIGURATION)
+    self.assertEqual(config_dat["Client.control_urls"], [loc])
+    self.assertEqual(config_dat["Client.poll_min"], 1)
 
   def CheckCrash(self, crash, expected_session_id):
     """Checks that ClientCrash object's fields are correctly filled in."""
@@ -149,16 +153,13 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
 
   def testNannyMessage(self):
     nanny_message = "Oh no!"
-    try:
-      old_send_email = email_alerts.SendEmail
+    self.email_message = {}
 
-      self.email_message = {}
+    def SendEmail(address, sender, title, message, **_):
+      self.email_message.update(dict(address=address, sender=sender,
+                                     title=title, message=message))
 
-      def SendEmail(address, sender, title, message, **_):
-        self.email_message.update(dict(address=address, sender=sender,
-                                       title=title, message=message))
-
-      email_alerts.SendEmail = SendEmail
+    with test_lib.Stubber(email_alerts, "SendEmail", SendEmail):
       msg = rdfvalue.GrrMessage(
           session_id=rdfvalue.SessionID("aff4:/flows/W:NannyMessage"),
           args=rdfvalue.DataBlob(string=nanny_message).SerializeToString(),
@@ -204,9 +205,6 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
           token=self.token))
       self.assertEqual(len(global_crashes), 1)
       self.assertEqual(global_crashes[0], crash)
-
-    finally:
-      email_alerts.SendEmail = old_send_email
 
   def testStartupHandler(self):
     # Clean the client records.

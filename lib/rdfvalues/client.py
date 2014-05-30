@@ -332,12 +332,6 @@ class Interfaces(protodict.RDFValueArray):
     return results
 
 
-# DEPRECATED - do not use.
-class GRRConfig(rdfvalue.RDFProtoStruct):
-  """The configuration of a GRR Client."""
-  protobuf = jobs_pb2.GRRConfig
-
-
 class ClientInformation(rdfvalue.RDFProtoStruct):
   """The GRR client information."""
   protobuf = jobs_pb2.ClientInformation

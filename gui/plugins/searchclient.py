@@ -555,11 +555,16 @@ class SearchHostView(renderers.Renderer):
 
   title = "Search Client"
 
+  context_help_url = "user_manual.html#searching-for-a-client"
   template = renderers.Template("""
   <form id="search_host" class="navbar-form form-search pull-right">
     <div class="input-append">
       <input type="text" id="client_query" name="q" class="span4 search-query" placeholder="Search Box"/>
       <button type="submit" id="client_query_submit" class="btn search-query">Search</button>
+      {% if this.context_help_url %}
+        <a href="/help/{{this.context_help_url|escape}}" target="_blank">
+        <i class="icon-question-sign input-append"></i></a>
+      {% endif %}
     </div>
   </form>
 """)

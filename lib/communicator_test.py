@@ -319,7 +319,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.client_communicator.communicator.LoadServerCertificate(
         self.server_certificate, config_lib.CONFIG["CA.certificate"])
 
-  def UrlMock(self, req, **kwargs):
+  def UrlMock(self, req, num_messages=10, **kwargs):
     """A mock for url handler processing from the server's POV."""
     if "server.pem" in req.get_full_url():
       return StringIO.StringIO(config_lib.CONFIG["Frontend.certificate"])
@@ -344,7 +344,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       # Now prepare a response
       response_comms = rdfvalue.ClientCommunication()
       message_list = rdfvalue.MessageList()
-      for i in range(0, 10):
+      for i in range(0, num_messages):
         message_list.job.Append(session_id="aff4:/W:session", name="Echo",
                                 response_id=2, request_id=i)
 
@@ -570,12 +570,12 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
   def testClientRetransmission(self):
     """Test that client retransmits failed messages."""
-
     fail = True
+    num_messages = 10
 
     def FlakyServer(req):
       if not fail:
-        return self.UrlMock(req)
+        return self.UrlMock(req, num_messages=num_messages)
 
       raise urllib2.HTTPError(url=None, code=500, msg=None, hdrs=None, fp=None)
 
@@ -590,10 +590,27 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       # Try to send these messages again.
       fail = False
 
+      self.assertEqual(self.client_communicator.client_worker.InQueueSize(), 0)
+
       status = self.client_communicator.RunOnce()
 
       self.assertEqual(status.code, 200)
+
+      # We have received 10 client messages.
+      self.assertEqual(self.client_communicator.client_worker.InQueueSize(), 10)
       self.CheckClientQueue()
+      # But we don't send anything to the server on the first successful
+      # connection.
+      self.assertEqual(len(self.messages), 0)
+
+      # There are no more messages coming in from the server.
+      num_messages = 0
+
+      status = self.client_communicator.RunOnce()
+
+      self.assertEqual(status.code, 200)
+
+      self.assertEqual(self.client_communicator.client_worker.InQueueSize(), 0)
 
       # Server should have received 10 messages this time.
       self.assertEqual(len(self.messages), 10)

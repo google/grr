@@ -53,13 +53,17 @@ config_lib.DEFINE_string("Client.plist_path",
                          "Location of our launchctl plist.")
 
 config_lib.DEFINE_float("Client.poll_min", 0.2,
-                        "Minimum time between polls in seconds")
+                        "Minimum time between polls in seconds.")
 
 config_lib.DEFINE_float("Client.poll_max", 600,
-                        "Maximum time between polls in seconds")
+                        "Maximum time between polls in seconds.")
+
+config_lib.DEFINE_float("Client.error_poll_min", 15,
+                        "Minimum time between polls in seconds if the server "
+                        "reported an error.")
 
 config_lib.DEFINE_float("Client.poll_slew", 1.15,
-                        "Slew of poll time in seconds")
+                        "Slew of poll time.")
 
 config_lib.DEFINE_integer("Client.connection_error_limit", 60 * 24,
                           "If the client encounters this many connection "

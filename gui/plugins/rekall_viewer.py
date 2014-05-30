@@ -156,7 +156,7 @@ class FreeFormatText(renderers.TemplateRenderer):
     self.data = data
 
 
-class ErrorRenderer(renderers.TemplateRenderer):
+class RekallErrorRenderer(renderers.TemplateRenderer):
   """Render Rekall Errors."""
 
   layout_template = renderers.Template("""
@@ -164,7 +164,7 @@ class ErrorRenderer(renderers.TemplateRenderer):
 """)
 
   def __init__(self, data, **kwargs):
-    super(ErrorRenderer, self).__init__(**kwargs)
+    super(RekallErrorRenderer, self).__init__(**kwargs)
     self.data = data
 
 
@@ -296,7 +296,7 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
         elif command == "e":
           self._flush_table()
           self._flush_freetext()
-          self.elements.append(ErrorRenderer(statement[1]))
+          self.elements.append(RekallErrorRenderer(statement[1]))
 
         # Start Table
         elif command == "t":

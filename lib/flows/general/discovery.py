@@ -60,11 +60,7 @@ class Interrogate(flow.GRRFlow):
     self.CallClient("GetPlatformInfo", next_state="Platform")
     self.CallClient("GetInstallDate", next_state="InstallDate")
     self.CallClient("GetClientInfo", next_state="ClientInfo")
-
-    # Support both new and old clients.
-    self.CallClient("GetConfig", next_state="ClientConfig")
     self.CallClient("GetConfiguration", next_state="ClientConfiguration")
-
     self.CallClient("EnumerateInterfaces", next_state="EnumerateInterfaces")
     self.CallClient("EnumerateFilesystems", next_state="EnumerateFilesystems")
 

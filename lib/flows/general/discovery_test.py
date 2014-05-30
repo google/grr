@@ -71,16 +71,6 @@ class InterrogatedClient(test_lib.ActionMock):
         labels=["GRRLabel1", "Label2"],
         )]
 
-  def GetConfig(self, _):
-    return [rdfvalue.GRRConfig(
-        location="http://www.example.com",
-        foreman_check_frequency=1,
-        max_post_size=1000000,
-        max_out_queue=100,
-        poll_min=1.0,
-        poll_max=5
-        )]
-
   def GetUserInfo(self, user):
     user.homedir = "/usr/local/home/%s" % user.username
     user.full_name = user.username.capitalize()
@@ -123,10 +113,6 @@ class TestClientInterrogate(artifact_test.ArtifactTestHelper):
 
   def _CheckGRRConfig(self):
     """Check old and new client config."""
-    config_info = self.fd.Get(self.fd.Schema.GRR_CONFIG)
-    self.assertEqual(config_info.location, "http://www.example.com")
-    self.assertEqual(config_info.poll_min, 1.0)
-
     config_info = self.fd.Get(self.fd.Schema.GRR_CONFIGURATION)
     self.assertEqual(config_info["Client.control_urls"],
                      ["http://localhost:8001/control"])

@@ -42,13 +42,18 @@ ORD_MAP = dict((chr(x), x) for x in range(0, 256))
 CHR_MAP = dict((x, chr(x)) for x in range(0, 256))
 HIGH_CHR_MAP = dict((x, chr(0x80 | x)) for x in range(0, 256))
 
+# Some optimizations to get rid of AND operations below since they are really
+# slow in Python.
+ORD_MAP_AND_0X80 = dict((chr(x), x & 0x80) for x in range(0, 256))
+ORD_MAP_AND_0X7F = dict((chr(x), x & 0x7F) for x in range(0, 256))
+
 
 # This function is HOT.
 def ReadTag(buf, pos):
   """Read a tag from the buffer, and return a (tag_bytes, new_pos) tuple."""
   try:
     start = pos
-    while ORD_MAP[buf[pos]] & 0x80:
+    while ORD_MAP_AND_0X80[buf[pos]]:
       pos += 1
     pos += 1
     return (buf[start:pos], pos)
@@ -93,11 +98,11 @@ def VarintReader(buf, pos):
   result = 0
   shift = 0
   while 1:
-    b = ORD_MAP[buf[pos]]
+    b = buf[pos]
 
-    result |= ((b & 0x7f) << shift)
+    result |= (ORD_MAP_AND_0X7F[b] << shift)
     pos += 1
-    if not b & 0x80:
+    if not ORD_MAP_AND_0X80[b]:
       return (result, pos)
     shift += 7
     if shift >= 64:
@@ -109,10 +114,10 @@ def SignedVarintReader(buf, pos):
   result = 0
   shift = 0
   while 1:
-    b = ORD_MAP[buf[pos]]
-    result |= ((b & 0x7f) << shift)
+    b = buf[pos]
+    result |= (ORD_MAP_AND_0X7F[b] << shift)
     pos += 1
-    if not b & 0x80:
+    if not ORD_MAP_AND_0X80[b]:
       if result > 0x7fffffffffffffff:
         result -= (1 << 64)
 
@@ -1895,21 +1900,6 @@ class RDFProtoStruct(RDFStruct):
   # added if needed.
   dependencies = dict(RDFURN=rdfvalue.RDFURN,
                       RDFDatetime=rdfvalue.RDFDatetime)
-
-  def GetFields(self, field_names):
-    """Get a field embedded deeply in this object.
-
-    Args:
-      field_names: A list of field names to search.
-
-    Returns:
-      A list of values which match the field names.
-    """
-    value = self
-    for field_name in field_names:
-      value = getattr(value, field_name)
-
-    return [value]
 
   def AsPrimitiveProto(self):
     """Return an old style protocol buffer object."""

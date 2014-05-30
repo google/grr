@@ -416,8 +416,8 @@ message UninstallArgs {
 }
 
 
-message UpdateConfigArgs {
-  optional GRRConfig config = 1 [(sem_type) = {
+message UpdateConfigurationArgs {
+  optional Dict config = 1 [(sem_type) = {
       description: "The config to send to the client."
     }];
 }
@@ -561,6 +561,13 @@ message ArtifactCollectorFlowArgs {
       "If False, return the raw collected data e.g Files or Registry Keys.",
       label: ADVANCED,
     }, default=true];
+
+  optional uint64 max_file_size = 9 [(sem_type) = {
+      type: "ByteSize",
+      description: "The maximum size of files we will download in bytes,"
+      " 100MB by default.",
+      label: ADVANCED
+    }, default=100000000];
 
 }
 

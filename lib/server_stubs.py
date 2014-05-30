@@ -22,9 +22,3 @@ class OSXEnumerateRunningServices(actions.ActionPlugin):
   """Enumerate all running launchd jobs."""
   in_rdfvalue = None
   out_rdfvalue = rdfvalue.OSXServiceInformation
-
-
-# The following are deprecated client actions which have been removed.
-class GetConfig(actions.ActionPlugin):
-  """Get configuration - DEPRECATED."""
-  out_rdfvalue = rdfvalue.GRRConfig
