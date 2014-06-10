@@ -42,7 +42,7 @@ class PlistQuery(actions.ActionPlugin):
     self.context = args.context
     self.filter_query = args.query
 
-    with vfs.VFSOpen(args.pathspec) as fd:
+    with vfs.VFSOpen(args.pathspec, progress_callback=self.Progress) as fd:
       data = fd.Read(self.MAX_PLIST_SIZE)
       plist = binplist.readPlist(cStringIO.StringIO(data))
 

@@ -67,7 +67,7 @@ class PEMPublicKey(rdfvalue.RDFString):
 
       return rsa
     except RSA.RSAError as e:
-      raise type_info.TypeValueError("Public key invalid." % e)
+      raise type_info.TypeValueError("Public key invalid: %s" % e)
 
   def ParseFromString(self, pem_string):
     super(PEMPublicKey, self).ParseFromString(pem_string)

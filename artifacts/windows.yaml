@@ -362,3 +362,12 @@ collectors:
 labels: [Users]
 supported_os: [Windows]
 urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/aa394507(v=vs.85).aspx']
+---
+name: WMILogicalDisks
+doc: Disk information via Windows Management Instrumentation (WMI).
+collectors:
+- action: WMIQuery
+  args: {query: SELECT * FROM Win32_LogicalDisk}
+labels: [System]
+supported_os: [Windows]
+urls: ['http://msdn.microsoft.com/en-us/library/aa394173(v=vs.85).aspx']

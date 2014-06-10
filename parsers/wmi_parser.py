@@ -79,3 +79,31 @@ class WMIUserParser(parsers.WMIQueryParser):
     # domain account.
     if kb_user.sid or kb_user.username:
       yield kb_user
+
+
+class WMILogicalDisksParser(parsers.WMIQueryParser):
+  """Parser for LogicalDisk WMI output. Yields Volume rdfvalues."""
+
+  output_types = ["Volume"]
+  supported_artifacts = ["WMILogicalDisks"]
+
+  def Parse(self, query, result, knowledge_base):
+    """Parse the wmi packages output."""
+    _ = query, knowledge_base
+    result = result.ToDict()
+    winvolume = rdfvalue.WindowsVolume(drive_letter=result.get("DeviceID"),
+                                       drive_type=result.get("DriveType"))
+
+    # Since we don't get the sector sizes from WMI, we just set them at 1 byte
+    volume = rdfvalue.Volume(windows=winvolume,
+                             name=result.get("VolumeName"),
+                             file_system_type=result.get("FileSystem"),
+                             serial_number=result.get("VolumeSerialNumber"),
+                             sectors_per_allocation_unit=1,
+                             bytes_per_sector=1,
+                             total_allocation_units=result.get("Size"),
+                             actual_available_allocation_units=result.get(
+                                 "FreeSpace"))
+
+    yield volume
+

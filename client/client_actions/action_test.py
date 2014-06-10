@@ -8,14 +8,15 @@ import __builtin__
 import hashlib
 import os
 import platform
+import posix
 import stat
 
 import psutil
 
-
 # Populate the action registry
 # pylint: disable=unused-import, g-bad-import-order
 from grr.client import client_plugins
+from grr.client import client_utils
 from grr.client.client_actions import standard
 from grr.client.client_actions import tests
 # pylint: enable=unused-import, g-bad-import-order
@@ -78,11 +79,14 @@ class ProgressAction(actions.ActionPlugin):
   in_rdfvalue = rdfvalue.LogMessage
   out_rdfvalue = rdfvalue.LogMessage
 
+  time = 100
+
   def Run(self, message):
     _ = message
-    self.Progress()
-    self.Progress()
-    self.Progress()
+    for _ in range(3):
+      self.time += 5
+      with test_lib.FakeTime(self.time):
+        self.Progress()
 
 
 def process_iter():
@@ -345,6 +349,7 @@ class ActionTest(test_lib.EmptyActionTest):
     action_cls = actions.ActionPlugin.classes[message.name]
     with test_lib.MultiStubber((psutil, "Process", FakeProcess),
                                (action_cls, "SendReply", MockSendReply)):
+
       action_cls._authentication_required = False
       action = action_cls(grr_worker=MockWorker())
       action.Execute(message)
@@ -354,6 +359,69 @@ class ActionTest(test_lib.EmptyActionTest):
 
       self.assertTrue(len(received_messages), 1)
       self.assertEqual(received_messages[0], "Cpu limit exceeded.")
+
+  def testStatFS(self):
+    f_bsize = 4096
+    # Simulate pre-2.6 kernel
+    f_frsize = 0
+    f_blocks = 9743394
+    f_bfree = 5690052
+    f_bavail = 5201809
+    f_files = 2441216
+    f_ffree = 2074221
+    f_favail = 2074221
+    f_flag = 4096
+    f_namemax = 255
+
+    def MockStatFS(unused_path):
+      return posix.statvfs_result((f_bsize, f_frsize, f_blocks, f_bfree,
+                                   f_bavail, f_files, f_ffree, f_favail, f_flag,
+                                   f_namemax))
+
+    def MockIsMount(path):
+      """Only return True for the root path."""
+      return path == "/"
+
+    with test_lib.MultiStubber((os, "statvfs", MockStatFS),
+                               (os.path, "ismount", MockIsMount)):
+
+      # This test assumes "/" is the mount point for /usr/bin
+      results = self.RunAction(
+          "StatFS", rdfvalue.StatFSRequest(path_list=["/usr/bin", "/"]))
+      self.assertEqual(len(results), 2)
+
+      # Both results should have mount_point as "/"
+      self.assertEqual(results[0].unix.mount_point,
+                       results[1].unix.mount_point)
+      result = results[0]
+      self.assertEqual(result.bytes_per_sector, f_bsize)
+      self.assertEqual(result.sectors_per_allocation_unit, 1)
+      self.assertEqual(result.total_allocation_units, f_blocks)
+      self.assertEqual(result.actual_available_allocation_units, f_bavail)
+      self.assertAlmostEqual(result.FreeSpacePercent(), 53.388, delta=0.001)
+      self.assertEqual(result.unix.mount_point, "/")
+      self.assertEqual(result.Name(), "/")
+
+      # Test we get a result even if one path is bad
+      results = self.RunAction(
+          "StatFS", rdfvalue.StatFSRequest(path_list=["/does/not/exist", "/"]))
+      self.assertEqual(len(results), 1)
+      self.assertEqual(result.Name(), "/")
+
+  def testProgressThrottling(self):
+    action = actions.ActionPlugin.classes["ProgressAction"]()
+
+    with test_lib.Instrument(client_utils, "KeepAlive") as instrument:
+      for time, expected_count in [(100, 1),
+                                   (101, 1),
+                                   (102, 1),
+                                   (103, 2),
+                                   (104, 2),
+                                   (105, 2),
+                                   (106, 3)]:
+        with test_lib.FakeTime(time):
+          action.Progress()
+          self.assertEqual(instrument.call_count, expected_count)
 
 
 class ActionTestLoader(test_lib.GRRTestLoader):

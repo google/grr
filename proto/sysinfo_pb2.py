@@ -15,7 +15,7 @@ import grr.proto.semantic_pb2
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='grr/proto/sysinfo.proto',
   package='',
-  serialized_pb='\n\x17grr/proto/sysinfo.proto\x1a\x14grr/proto/jobs.proto\x1a\x18grr/proto/semantic.proto\"\x97\x04\n\x07Process\x12\x0b\n\x03pid\x18\x01 \x01(\r\x12\x0c\n\x04ppid\x18\x02 \x01(\r\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0b\n\x03\x65xe\x18\x04 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x05 \x03(\t\x12\r\n\x05\x63time\x18\x06 \x01(\x04\x12\x10\n\x08real_uid\x18\x07 \x01(\r\x12\x15\n\reffective_uid\x18\x08 \x01(\r\x12\x11\n\tsaved_uid\x18\t \x01(\r\x12\x10\n\x08real_gid\x18\n \x01(\r\x12\x15\n\reffective_gid\x18\x0b \x01(\r\x12\x11\n\tsaved_gid\x18\x0c \x01(\r\x12\x10\n\x08username\x18\r \x01(\t\x12\x10\n\x08terminal\x18\x0e \x01(\t\x12\x0e\n\x06status\x18\x0f \x01(\t\x12\x0c\n\x04nice\x18\x10 \x01(\x05\x12\x0b\n\x03\x63wd\x18\x11 \x01(\t\x12\x13\n\x0bnum_threads\x18\x12 \x01(\r\x12\x15\n\ruser_cpu_time\x18\x13 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x14 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x15 \x01(\x02\x12\x10\n\x08RSS_size\x18\x16 \x01(\x04\x12\x10\n\x08VMS_size\x18\x17 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x18 \x01(\x02\x12\x12\n\nopen_files\x18\x19 \x03(\t\x12\'\n\x0b\x63onnections\x18\x1a \x03(\x0b\x32\x12.NetworkConnection:\x1c\xda\xfc\xe3\xc4\x01\x16\n\x14Process information.\"+\n\x0fNetworkEndpoint\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x0c\n\x04port\x18\x02 \x01(\x05\"\xde\x04\n\x11NetworkConnection\x12)\n\x06\x66\x61mily\x18\x01 \x01(\x0e\x32\x19.NetworkConnection.Family\x12\x35\n\x04type\x18\x02 \x01(\x0e\x32\x17.NetworkConnection.Type:\x0eUNKNOWN_SOCKET\x12\'\n\rlocal_address\x18\x03 \x01(\x0b\x32\x10.NetworkEndpoint\x12(\n\x0eremote_address\x18\x04 \x01(\x0b\x32\x10.NetworkEndpoint\x12\x30\n\x05state\x18\x05 \x01(\x0e\x32\x18.NetworkConnection.State:\x07UNKNOWN\x12\x0b\n\x03pid\x18\x06 \x01(\r\x12\r\n\x05\x63time\x18\x07 \x01(\x04\";\n\x06\x46\x61mily\x12\x08\n\x04INET\x10\x02\x12\t\n\x05INET6\x10\n\x12\r\n\tINET6_WIN\x10\x17\x12\r\n\tINET6_OSX\x10\x1e\";\n\x04Type\x12\x12\n\x0eUNKNOWN_SOCKET\x10\x00\x12\x0f\n\x0bSOCK_STREAM\x10\x01\x12\x0e\n\nSOCK_DGRAM\x10\x02\"\xcb\x01\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\n\n\x06\x43LOSED\x10\x01\x12\n\n\x06LISTEN\x10\x02\x12\x0c\n\x08SYN_SENT\x10\x03\x12\x0c\n\x08SYN_RECV\x10\x04\x12\x0f\n\x0b\x45STABLISHED\x10\x05\x12\r\n\tFIN_WAIT1\x10\x06\x12\r\n\tFIN_WAIT2\x10\x07\x12\x0e\n\nCLOSE_WAIT\x10\x08\x12\x0b\n\x07\x43LOSING\x10\t\x12\x0c\n\x08LAST_ACK\x10\n\x12\r\n\tTIME_WAIT\x10\x0b\x12\x0e\n\nDELETE_TCB\x10\x0c\x12\x08\n\x04NONE\x10\r\"N\n\nFilesystem\x12\x0e\n\x06\x64\x65vice\x18\x01 \x01(\t\x12\x13\n\x0bmount_point\x18\x02 \x01(\t\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\r\n\x05label\x18\x04 \x01(\t\"1\n\x07MRUFile\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x14\n\ttimestamp\x18\x02 \x01(\x04:\x01\x30\"C\n\x06RunKey\x12\x0f\n\x07keyname\x18\x01 \x01(\t\x12\x10\n\x08\x66ilepath\x18\x02 \x01(\t\x12\x16\n\x0blastwritten\x18\x03 \x01(\x04:\x01\x30\"\xac\x0e\n\x19WindowsServiceInformation\x12.\n\x04name\x18\x01 \x01(\tB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18The name of the service.\x12\x43\n\x0b\x64\x65scription\x18\x02 \x01(\tB.\xe2\xfc\xe3\xc4\x01(\x12&The description string of the service.\x12\x84\x01\n\x06\x62inary\x18\x03 \x01(\x0b\x32\n.StatEntryBh\xe2\xfc\xe3\xc4\x01\x62\x12`The binary on the client. This may also contain an AFF4 urn to the server copy of the same file.\x12\x34\n\x05state\x18\x04 \x01(\tB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1d\x43urrent state of the service.\x12U\n\x0fwmi_information\x18\x05 \x01(\x0b\x32\x05.DictB5\xe2\xfc\xe3\xc4\x01/\x12-Additional information available through WMI.\x12T\n\x0c\x64isplay_name\x18\x06 \x01(\tB>\xe2\xfc\xe3\xc4\x01\x38\x12\x36\x44isplayed name of the service in Windows GUI controls.\x12\x44\n\x11\x64river_package_id\x18\x07 \x01(\tB)\xe2\xfc\xe3\xc4\x01#\x12!Driver Package ID of the service.\x12~\n\rerror_control\x18\x08 \x01(\x0e\x32\'.WindowsServiceInformation.ErrorControlB>\xe2\xfc\xe3\xc4\x01\x38\x12\x36\x42\x65haviour of the service on failure to load/initialize\x12\x35\n\nimage_path\x18\t \x01(\tB!\xe2\xfc\xe3\xc4\x01\x1b\x12\x19ImagePath of the service.\x12\x37\n\x0bobject_name\x18\n \x01(\tB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1aObjectName of the service.\x12[\n\x0cstartup_type\x18\x0b \x01(\x0e\x32&.WindowsServiceInformation.ServiceModeB\x1d\xe2\xfc\xe3\xc4\x01\x17\x12\x15Service start options\x12Z\n\x0cservice_type\x18\x0c \x01(\x0e\x32&.WindowsServiceInformation.ServiceTypeB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14Type of the service.\x12l\n\ngroup_name\x18\r \x01(\tBX\xe2\xfc\xe3\xc4\x01R\x12PSpecifies the name of the load ordering group of which this service is a member.\x12I\n\x0bservice_dll\x18\x0e \x01(\tB4\xe2\xfc\xe3\xc4\x01.\x12,Name of the DLL instantiated in the service.\x12U\n\x0cregistry_key\x18\x0f \x01(\tB?\xe2\xfc\xe3\xc4\x01\x39\n\x06RDFURN\x12/The AFF4 location for the service registry key.\"@\n\x0c\x45rrorControl\x12\x0c\n\x08\x43RITICAL\x10\x03\x12\n\n\x06SEVERE\x10\x02\x12\n\n\x06NORMAL\x10\x01\x12\n\n\x06IGNORE\x10\x00\"\x87\x01\n\x0bServiceMode\x12\x16\n\x12SERVICE_BOOT_START\x10\x00\x12\x18\n\x14SERVICE_SYSTEM_START\x10\x01\x12\x16\n\x12SERVICE_AUTO_START\x10\x02\x12\x18\n\x14SERVICE_DEMAND_START\x10\x03\x12\x14\n\x10SERVICE_DISABLED\x10\x04\"\xa2\x01\n\x0bServiceType\x12\x19\n\x15SERVICE_KERNEL_DRIVER\x10\x01\x12\x1e\n\x1aSERVICE_FILE_SYSTEM_DRIVER\x10\x02\x12\x18\n\x14SERVICE_ADAPTER_ARGS\x10\x04\x12\x1d\n\x19SERVICE_WIN32_OWN_PROCESS\x10\x10\x12\x1f\n\x1bSERVICE_WIN32_SHARE_PROCESS\x10 :\xbf\x01\xda\xfc\xe3\xc4\x01\xb8\x01\n\xb5\x01\x44\x65scribe a windows service or driver. Field names follow the cybox naming scheme where possible: http://cybox.mitre.org/language/version2.0.1/xsddocs/objects/Win_Service_Object.html\"\xce\x06\n\x15OSXServiceInformation\x12%\n\x05label\x18\x01 \x01(\tB\x16\xe2\xfc\xe3\xc4\x01\x10\x12\x0eService label.\x12\x39\n\x07program\x18\x02 \x01(\tB(\xe2\xfc\xe3\xc4\x01\"\x12 Program path run by the service.\x12W\n\x04\x61rgs\x18\x03 \x03(\tBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41Program args.  May also include executable if Program is not set.\x12(\n\x03pid\x18\x04 \x01(\x04\x42\x1b\xe2\xfc\xe3\xc4\x01\x15\x12\x13\x43urrent service PID\x12P\n\x0bsessiontype\x18\x05 \x01(\tB;\xe2\xfc\xe3\xc4\x01\x35\x12\x33SessionType: Aqua|StandardIO|Background|LoginWindow\x12\x41\n\x0elastexitstatus\x18\x06 \x01(\x04\x42)\xe2\xfc\xe3\xc4\x01#\x12!Last exit return code of service.\x12)\n\x07timeout\x18\x07 \x01(\x04\x42\x18\xe2\xfc\xe3\xc4\x01\x12\x12\x10Service timeout.\x12\x44\n\x08ondemand\x18\x08 \x01(\x08\x42\x32\xe2\xfc\xe3\xc4\x01,\x12*True if the service should start ondemand.\x12\x45\n\x0bmachservice\x18\t \x03(\tB0\xe2\xfc\xe3\xc4\x01*\x12(Machservices advertised by this service.\x12K\n\x11perjobmachservice\x18\n \x03(\tB0\xe2\xfc\xe3\xc4\x01*\x12(Machservices advertised by this service.\x12\x35\n\x06socket\x18\x0b \x03(\tB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dSockets used by this service.\x12G\n\x05plist\x18\x0f \x01(\tB8\xe2\xfc\xe3\xc4\x01\x32\n\x06RDFURN\x12(The AFF4 location for the service plist.:6\xda\xfc\xe3\xc4\x01\x30\n.Describe an OS X service (launchagent/daemon).\"\xa3\x02\n\x0fSoftwarePackage\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x14\n\x0c\x61rchitecture\x18\x03 \x01(\t\x12\x11\n\tpublisher\x18\x04 \x01(\t\x12=\n\rinstall_state\x18\x05 \x01(\x0e\x32\x1d.SoftwarePackage.InstallState:\x07UNKNOWN\x12\x13\n\x0b\x64\x65scription\x18\x06 \x01(\t\x12\x14\n\x0cinstalled_on\x18\x07 \x01(\x04\x12\x14\n\x0cinstalled_by\x18\x08 \x01(\t\"H\n\x0cInstallState\x12\r\n\tINSTALLED\x10\x00\x12\x0b\n\x07PENDING\x10\x01\x12\x0f\n\x0bUNINSTALLED\x10\x02\x12\x0b\n\x07UNKNOWN\x10\x03\"\x93\x04\n\x12\x42rowserHistoryItem\x12%\n\x03url\x18\x01 \x01(\tB\x18\xe2\xfc\xe3\xc4\x01\x12\x12\x10The URL visited.\x12-\n\x06\x64omain\x18\x02 \x01(\tB\x1d\xe2\xfc\xe3\xc4\x01\x17\x12\x15\x44omain name accessed.\x12\x44\n\x0b\x61\x63\x63\x65ss_time\x18\x03 \x01(\x04\x42/\xe2\xfc\xe3\xc4\x01)\n\x0bRDFDatetime\x12\x1aTime the URL was accessed.\x12\x36\n\x08referrer\x18\x04 \x01(\tB$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1cReferrer used for the access\x12@\n\x05title\x18\x05 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\x12)Title attribute of the page if available.\x12X\n\x0cprogram_name\x18\x06 \x01(\tBB\xe2\xfc\xe3\xc4\x01<\x12:Name of the program that generated the entry, e.g. Chrome.\x12T\n\nsource_urn\x18\x07 \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\x06RDFURN\x12\x30Location of object that this entry was found in.\x12\x37\n\rdownload_path\x18\x08 \x01(\tB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18Path of downloaded file.')
+  serialized_pb='\n\x17grr/proto/sysinfo.proto\x1a\x14grr/proto/jobs.proto\x1a\x18grr/proto/semantic.proto\"\x97\x04\n\x07Process\x12\x0b\n\x03pid\x18\x01 \x01(\r\x12\x0c\n\x04ppid\x18\x02 \x01(\r\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0b\n\x03\x65xe\x18\x04 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x05 \x03(\t\x12\r\n\x05\x63time\x18\x06 \x01(\x04\x12\x10\n\x08real_uid\x18\x07 \x01(\r\x12\x15\n\reffective_uid\x18\x08 \x01(\r\x12\x11\n\tsaved_uid\x18\t \x01(\r\x12\x10\n\x08real_gid\x18\n \x01(\r\x12\x15\n\reffective_gid\x18\x0b \x01(\r\x12\x11\n\tsaved_gid\x18\x0c \x01(\r\x12\x10\n\x08username\x18\r \x01(\t\x12\x10\n\x08terminal\x18\x0e \x01(\t\x12\x0e\n\x06status\x18\x0f \x01(\t\x12\x0c\n\x04nice\x18\x10 \x01(\x05\x12\x0b\n\x03\x63wd\x18\x11 \x01(\t\x12\x13\n\x0bnum_threads\x18\x12 \x01(\r\x12\x15\n\ruser_cpu_time\x18\x13 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x14 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x15 \x01(\x02\x12\x10\n\x08RSS_size\x18\x16 \x01(\x04\x12\x10\n\x08VMS_size\x18\x17 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x18 \x01(\x02\x12\x12\n\nopen_files\x18\x19 \x03(\t\x12\'\n\x0b\x63onnections\x18\x1a \x03(\x0b\x32\x12.NetworkConnection:\x1c\xda\xfc\xe3\xc4\x01\x16\n\x14Process information.\"+\n\x0fNetworkEndpoint\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x0c\n\x04port\x18\x02 \x01(\x05\"\xde\x04\n\x11NetworkConnection\x12)\n\x06\x66\x61mily\x18\x01 \x01(\x0e\x32\x19.NetworkConnection.Family\x12\x35\n\x04type\x18\x02 \x01(\x0e\x32\x17.NetworkConnection.Type:\x0eUNKNOWN_SOCKET\x12\'\n\rlocal_address\x18\x03 \x01(\x0b\x32\x10.NetworkEndpoint\x12(\n\x0eremote_address\x18\x04 \x01(\x0b\x32\x10.NetworkEndpoint\x12\x30\n\x05state\x18\x05 \x01(\x0e\x32\x18.NetworkConnection.State:\x07UNKNOWN\x12\x0b\n\x03pid\x18\x06 \x01(\r\x12\r\n\x05\x63time\x18\x07 \x01(\x04\";\n\x06\x46\x61mily\x12\x08\n\x04INET\x10\x02\x12\t\n\x05INET6\x10\n\x12\r\n\tINET6_WIN\x10\x17\x12\r\n\tINET6_OSX\x10\x1e\";\n\x04Type\x12\x12\n\x0eUNKNOWN_SOCKET\x10\x00\x12\x0f\n\x0bSOCK_STREAM\x10\x01\x12\x0e\n\nSOCK_DGRAM\x10\x02\"\xcb\x01\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\n\n\x06\x43LOSED\x10\x01\x12\n\n\x06LISTEN\x10\x02\x12\x0c\n\x08SYN_SENT\x10\x03\x12\x0c\n\x08SYN_RECV\x10\x04\x12\x0f\n\x0b\x45STABLISHED\x10\x05\x12\r\n\tFIN_WAIT1\x10\x06\x12\r\n\tFIN_WAIT2\x10\x07\x12\x0e\n\nCLOSE_WAIT\x10\x08\x12\x0b\n\x07\x43LOSING\x10\t\x12\x0c\n\x08LAST_ACK\x10\n\x12\r\n\tTIME_WAIT\x10\x0b\x12\x0e\n\nDELETE_TCB\x10\x0c\x12\x08\n\x04NONE\x10\r\"N\n\nFilesystem\x12\x0e\n\x06\x64\x65vice\x18\x01 \x01(\t\x12\x13\n\x0bmount_point\x18\x02 \x01(\t\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\r\n\x05label\x18\x04 \x01(\t\"1\n\x07MRUFile\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x14\n\ttimestamp\x18\x02 \x01(\x04:\x01\x30\"C\n\x06RunKey\x12\x0f\n\x07keyname\x18\x01 \x01(\t\x12\x10\n\x08\x66ilepath\x18\x02 \x01(\t\x12\x16\n\x0blastwritten\x18\x03 \x01(\x04:\x01\x30\"\xac\x0e\n\x19WindowsServiceInformation\x12.\n\x04name\x18\x01 \x01(\tB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18The name of the service.\x12\x43\n\x0b\x64\x65scription\x18\x02 \x01(\tB.\xe2\xfc\xe3\xc4\x01(\x12&The description string of the service.\x12\x84\x01\n\x06\x62inary\x18\x03 \x01(\x0b\x32\n.StatEntryBh\xe2\xfc\xe3\xc4\x01\x62\x12`The binary on the client. This may also contain an AFF4 urn to the server copy of the same file.\x12\x34\n\x05state\x18\x04 \x01(\tB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1d\x43urrent state of the service.\x12U\n\x0fwmi_information\x18\x05 \x01(\x0b\x32\x05.DictB5\xe2\xfc\xe3\xc4\x01/\x12-Additional information available through WMI.\x12T\n\x0c\x64isplay_name\x18\x06 \x01(\tB>\xe2\xfc\xe3\xc4\x01\x38\x12\x36\x44isplayed name of the service in Windows GUI controls.\x12\x44\n\x11\x64river_package_id\x18\x07 \x01(\tB)\xe2\xfc\xe3\xc4\x01#\x12!Driver Package ID of the service.\x12~\n\rerror_control\x18\x08 \x01(\x0e\x32\'.WindowsServiceInformation.ErrorControlB>\xe2\xfc\xe3\xc4\x01\x38\x12\x36\x42\x65haviour of the service on failure to load/initialize\x12\x35\n\nimage_path\x18\t \x01(\tB!\xe2\xfc\xe3\xc4\x01\x1b\x12\x19ImagePath of the service.\x12\x37\n\x0bobject_name\x18\n \x01(\tB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1aObjectName of the service.\x12[\n\x0cstartup_type\x18\x0b \x01(\x0e\x32&.WindowsServiceInformation.ServiceModeB\x1d\xe2\xfc\xe3\xc4\x01\x17\x12\x15Service start options\x12Z\n\x0cservice_type\x18\x0c \x01(\x0e\x32&.WindowsServiceInformation.ServiceTypeB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14Type of the service.\x12l\n\ngroup_name\x18\r \x01(\tBX\xe2\xfc\xe3\xc4\x01R\x12PSpecifies the name of the load ordering group of which this service is a member.\x12I\n\x0bservice_dll\x18\x0e \x01(\tB4\xe2\xfc\xe3\xc4\x01.\x12,Name of the DLL instantiated in the service.\x12U\n\x0cregistry_key\x18\x0f \x01(\tB?\xe2\xfc\xe3\xc4\x01\x39\n\x06RDFURN\x12/The AFF4 location for the service registry key.\"@\n\x0c\x45rrorControl\x12\x0c\n\x08\x43RITICAL\x10\x03\x12\n\n\x06SEVERE\x10\x02\x12\n\n\x06NORMAL\x10\x01\x12\n\n\x06IGNORE\x10\x00\"\x87\x01\n\x0bServiceMode\x12\x16\n\x12SERVICE_BOOT_START\x10\x00\x12\x18\n\x14SERVICE_SYSTEM_START\x10\x01\x12\x16\n\x12SERVICE_AUTO_START\x10\x02\x12\x18\n\x14SERVICE_DEMAND_START\x10\x03\x12\x14\n\x10SERVICE_DISABLED\x10\x04\"\xa2\x01\n\x0bServiceType\x12\x19\n\x15SERVICE_KERNEL_DRIVER\x10\x01\x12\x1e\n\x1aSERVICE_FILE_SYSTEM_DRIVER\x10\x02\x12\x18\n\x14SERVICE_ADAPTER_ARGS\x10\x04\x12\x1d\n\x19SERVICE_WIN32_OWN_PROCESS\x10\x10\x12\x1f\n\x1bSERVICE_WIN32_SHARE_PROCESS\x10 :\xbf\x01\xda\xfc\xe3\xc4\x01\xb8\x01\n\xb5\x01\x44\x65scribe a windows service or driver. Field names follow the cybox naming scheme where possible: http://cybox.mitre.org/language/version2.0.1/xsddocs/objects/Win_Service_Object.html\"\xce\x06\n\x15OSXServiceInformation\x12%\n\x05label\x18\x01 \x01(\tB\x16\xe2\xfc\xe3\xc4\x01\x10\x12\x0eService label.\x12\x39\n\x07program\x18\x02 \x01(\tB(\xe2\xfc\xe3\xc4\x01\"\x12 Program path run by the service.\x12W\n\x04\x61rgs\x18\x03 \x03(\tBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41Program args.  May also include executable if Program is not set.\x12(\n\x03pid\x18\x04 \x01(\x04\x42\x1b\xe2\xfc\xe3\xc4\x01\x15\x12\x13\x43urrent service PID\x12P\n\x0bsessiontype\x18\x05 \x01(\tB;\xe2\xfc\xe3\xc4\x01\x35\x12\x33SessionType: Aqua|StandardIO|Background|LoginWindow\x12\x41\n\x0elastexitstatus\x18\x06 \x01(\x04\x42)\xe2\xfc\xe3\xc4\x01#\x12!Last exit return code of service.\x12)\n\x07timeout\x18\x07 \x01(\x04\x42\x18\xe2\xfc\xe3\xc4\x01\x12\x12\x10Service timeout.\x12\x44\n\x08ondemand\x18\x08 \x01(\x08\x42\x32\xe2\xfc\xe3\xc4\x01,\x12*True if the service should start ondemand.\x12\x45\n\x0bmachservice\x18\t \x03(\tB0\xe2\xfc\xe3\xc4\x01*\x12(Machservices advertised by this service.\x12K\n\x11perjobmachservice\x18\n \x03(\tB0\xe2\xfc\xe3\xc4\x01*\x12(Machservices advertised by this service.\x12\x35\n\x06socket\x18\x0b \x03(\tB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dSockets used by this service.\x12G\n\x05plist\x18\x0f \x01(\tB8\xe2\xfc\xe3\xc4\x01\x32\n\x06RDFURN\x12(The AFF4 location for the service plist.:6\xda\xfc\xe3\xc4\x01\x30\n.Describe an OS X service (launchagent/daemon).\"\xa3\x02\n\x0fSoftwarePackage\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x14\n\x0c\x61rchitecture\x18\x03 \x01(\t\x12\x11\n\tpublisher\x18\x04 \x01(\t\x12=\n\rinstall_state\x18\x05 \x01(\x0e\x32\x1d.SoftwarePackage.InstallState:\x07UNKNOWN\x12\x13\n\x0b\x64\x65scription\x18\x06 \x01(\t\x12\x14\n\x0cinstalled_on\x18\x07 \x01(\x04\x12\x14\n\x0cinstalled_by\x18\x08 \x01(\t\"H\n\x0cInstallState\x12\r\n\tINSTALLED\x10\x00\x12\x0b\n\x07PENDING\x10\x01\x12\x0f\n\x0bUNINSTALLED\x10\x02\x12\x0b\n\x07UNKNOWN\x10\x03\"\x93\x04\n\x12\x42rowserHistoryItem\x12%\n\x03url\x18\x01 \x01(\tB\x18\xe2\xfc\xe3\xc4\x01\x12\x12\x10The URL visited.\x12-\n\x06\x64omain\x18\x02 \x01(\tB\x1d\xe2\xfc\xe3\xc4\x01\x17\x12\x15\x44omain name accessed.\x12\x44\n\x0b\x61\x63\x63\x65ss_time\x18\x03 \x01(\x04\x42/\xe2\xfc\xe3\xc4\x01)\n\x0bRDFDatetime\x12\x1aTime the URL was accessed.\x12\x36\n\x08referrer\x18\x04 \x01(\tB$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1cReferrer used for the access\x12@\n\x05title\x18\x05 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\x12)Title attribute of the page if available.\x12X\n\x0cprogram_name\x18\x06 \x01(\tBB\xe2\xfc\xe3\xc4\x01<\x12:Name of the program that generated the entry, e.g. Chrome.\x12T\n\nsource_urn\x18\x07 \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\x06RDFURN\x12\x30Location of object that this entry was found in.\x12\x37\n\rdownload_path\x18\x08 \x01(\tB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18Path of downloaded file.\"\xb8\r\n\x06Volume\x12\x39\n\nis_mounted\x18\x01 \x01(\x08\x42%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dTrue if the volume is mounted\x12,\n\x04name\x18\x02 \x01(\tB\x1e\xe2\xfc\xe3\xc4\x01\x18\x12\x16The name of the volume\x12^\n\x0b\x64\x65vice_path\x18\x03 \x01(\tBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41\x46ull path to the volume, including the device on which it resides\x12K\n\x10\x66ile_system_type\x18\x04 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\x12)Name of the filesystem used on the volume\x12`\n\x16total_allocation_units\x18\x05 \x01(\x04\x42@\xe2\xfc\xe3\xc4\x01:\x12\x38Total number of allocation units available on the volume\x12\\\n\x1bsectors_per_allocation_unit\x18\x06 \x01(\x04\x42\x37\xe2\xfc\xe3\xc4\x01\x31\x12/Number of disk sectors for each allocation unit\x12Q\n\x10\x62ytes_per_sector\x18\x07 \x01(\x04\x42\x37\xe2\xfc\xe3\xc4\x01\x31\x12/Number of disk sectors for each allocation unit\x12\x65\n!actual_available_allocation_units\x18\x08 \x01(\x04\x42:\xe2\xfc\xe3\xc4\x01\x34\x12\x32Number of allocation units available on the volume\x12M\n\rcreation_time\x18\t \x01(\x04\x42\x36\xe2\xfc\xe3\xc4\x01\x30\n\x0bRDFDatetime\x12!Creation timestamp for the volume\x12\x61\n\x15\x66ile_system_flag_list\x18\n \x03(\x0e\x32 .Volume.VolumeFileSystemFlagEnumB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18\x46lags set for the volume\x12:\n\rserial_number\x18\x0b \x01(\tB#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bSerial number of the volume\x12K\n\x07windows\x18\x0c \x01(\x0b\x32\x0e.WindowsVolumeB*\xe2\xfc\xe3\xc4\x01$\x12\"Windows specific volume attributes\x12\x42\n\x04unix\x18\r \x01(\x0b\x32\x0b.UnixVolumeB\'\xe2\xfc\xe3\xc4\x01!\x12\x1fUnix specific volume attributes\"\x9e\x05\n\x18VolumeFileSystemFlagEnum\x12\x1e\n\x1a\x46ILE_CASE_SENSITIVE_SEARCH\x10\x01\x12\x1d\n\x19\x46ILE_CASE_PRESERVED_NAMES\x10\x02\x12\x18\n\x14\x46ILE_UNICODE_ON_DISK\x10\x03\x12\x18\n\x14\x46ILE_PERSISTENT_ACLS\x10\x04\x12\x19\n\x15\x46ILE_FILE_COMPRESSION\x10\x05\x12\x16\n\x12\x46ILE_VOLUME_QUOTAS\x10\x06\x12\x1e\n\x1a\x46ILE_SUPPORTS_SPARSE_FILES\x10\x07\x12 \n\x1c\x46ILE_SUPPORTS_REPARSE_POINTS\x10\x08\x12 \n\x1c\x46ILE_SUPPORTS_REMOTE_STORAGE\x10\t\x12\x1d\n\x19\x46ILE_VOLUME_IS_COMPRESSED\x10\n\x12\x1c\n\x18\x46ILE_SUPPORTS_OBJECT_IDS\x10\x0b\x12\x1c\n\x18\x46ILE_SUPPORTS_ENCRYPTION\x10\x0c\x12\x16\n\x12\x46ILE_NAMED_STREAMS\x10\r\x12\x19\n\x15\x46ILE_READ_ONLY_VOLUME\x10\x0e\x12\x1e\n\x1a\x46ILE_SEQUENTIAL_WRITE_ONCE\x10\x0f\x12\x1e\n\x1a\x46ILE_SUPPORTS_TRANSACTIONS\x10\x10\x12\x1c\n\x18\x46ILE_SUPPORTS_HARD_LINKS\x10\x11\x12%\n!FILE_SUPPORTS_EXTENDED_ATTRIBUTES\x10\x12\x12!\n\x1d\x46ILE_SUPPORTS_OPEN_BY_FILE_ID\x10\x13\x12\x1d\n\x19\x46ILE_SUPPORTS_USN_JOURNAL\x10\x14\x12#\n\x1f\x46ILE_SUPPORTS_INTEGRITY_STREAMS\x10\x15\"\x81\x04\n\rWindowsVolume\x12\x64\n\x0f\x61ttributes_list\x18\x01 \x03(\x0e\x32).WindowsVolume.WindowsVolumeAttributeEnumB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18\x41ttributes of the volume\x12\x32\n\x0c\x64rive_letter\x18\x02 \x01(\tB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14Windows drive letter\x12U\n\ndrive_type\x18\x03 \x01(\x0e\x32#.WindowsVolume.WindowsDriveTypeEnumB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14Windows drive letter\"`\n\x1aWindowsVolumeAttributeEnum\x12\x0c\n\x08READONLY\x10\x00\x12\n\n\x06HIDDEN\x10\x01\x12\x18\n\x14NODEFAULTDRIVELETTER\x10\x02\x12\x0e\n\nSHADOWCOPY\x10\x03\"\x9c\x01\n\x14WindowsDriveTypeEnum\x12\x11\n\rDRIVE_UNKNOWN\x10\x00\x12\x15\n\x11\x44RIVE_NO_ROOT_DIR\x10\x01\x12\x13\n\x0f\x44RIVE_REMOVABLE\x10\x02\x12\x0f\n\x0b\x44RIVE_FIXED\x10\x03\x12\x10\n\x0c\x44RIVE_REMOTE\x10\x04\x12\x0f\n\x0b\x44RIVE_CDROM\x10\x05\x12\x11\n\rDRIVE_RAMDISK\x10\x06\"v\n\nUnixVolume\x12(\n\x0bmount_point\x18\x01 \x01(\tB\x13\xe2\xfc\xe3\xc4\x01\r\x12\x0bMount point\x12>\n\x07options\x18\x02 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\x12%Options used when mounting the volume')
 
 
 
@@ -264,6 +264,173 @@ _SOFTWAREPACKAGE_INSTALLSTATE = _descriptor.EnumDescriptor(
   options=None,
   serialized_start=4375,
   serialized_end=4447,
+)
+
+_VOLUME_VOLUMEFILESYSTEMFLAGENUM = _descriptor.EnumDescriptor(
+  name='VolumeFileSystemFlagEnum',
+  full_name='Volume.VolumeFileSystemFlagEnum',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='FILE_CASE_SENSITIVE_SEARCH', index=0, number=1,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_CASE_PRESERVED_NAMES', index=1, number=2,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_UNICODE_ON_DISK', index=2, number=3,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_PERSISTENT_ACLS', index=3, number=4,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_FILE_COMPRESSION', index=4, number=5,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_VOLUME_QUOTAS', index=5, number=6,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_SUPPORTS_SPARSE_FILES', index=6, number=7,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_SUPPORTS_REPARSE_POINTS', index=7, number=8,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_SUPPORTS_REMOTE_STORAGE', index=8, number=9,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_VOLUME_IS_COMPRESSED', index=9, number=10,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_SUPPORTS_OBJECT_IDS', index=10, number=11,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_SUPPORTS_ENCRYPTION', index=11, number=12,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_NAMED_STREAMS', index=12, number=13,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_READ_ONLY_VOLUME', index=13, number=14,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_SEQUENTIAL_WRITE_ONCE', index=14, number=15,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_SUPPORTS_TRANSACTIONS', index=15, number=16,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_SUPPORTS_HARD_LINKS', index=16, number=17,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_SUPPORTS_EXTENDED_ATTRIBUTES', index=17, number=18,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_SUPPORTS_OPEN_BY_FILE_ID', index=18, number=19,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_SUPPORTS_USN_JOURNAL', index=19, number=20,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FILE_SUPPORTS_INTEGRITY_STREAMS', index=20, number=21,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=6034,
+  serialized_end=6704,
+)
+
+_WINDOWSVOLUME_WINDOWSVOLUMEATTRIBUTEENUM = _descriptor.EnumDescriptor(
+  name='WindowsVolumeAttributeEnum',
+  full_name='WindowsVolume.WindowsVolumeAttributeEnum',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='READONLY', index=0, number=0,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='HIDDEN', index=1, number=1,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='NODEFAULTDRIVELETTER', index=2, number=2,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='SHADOWCOPY', index=3, number=3,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=6965,
+  serialized_end=7061,
+)
+
+_WINDOWSVOLUME_WINDOWSDRIVETYPEENUM = _descriptor.EnumDescriptor(
+  name='WindowsDriveTypeEnum',
+  full_name='WindowsVolume.WindowsDriveTypeEnum',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='DRIVE_UNKNOWN', index=0, number=0,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='DRIVE_NO_ROOT_DIR', index=1, number=1,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='DRIVE_REMOVABLE', index=2, number=2,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='DRIVE_FIXED', index=3, number=3,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='DRIVE_REMOTE', index=4, number=4,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='DRIVE_CDROM', index=5, number=5,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='DRIVE_RAMDISK', index=6, number=6,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=7064,
+  serialized_end=7220,
 )
 
 
@@ -1092,6 +1259,198 @@ _BROWSERHISTORYITEM = _descriptor.Descriptor(
   serialized_end=4981,
 )
 
+
+_VOLUME = _descriptor.Descriptor(
+  name='Volume',
+  full_name='Volume',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='is_mounted', full_name='Volume.is_mounted', index=0,
+      number=1, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\037\022\035True if the volume is mounted')),
+    _descriptor.FieldDescriptor(
+      name='name', full_name='Volume.name', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\030\022\026The name of the volume')),
+    _descriptor.FieldDescriptor(
+      name='device_path', full_name='Volume.device_path', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001C\022AFull path to the volume, including the device on which it resides')),
+    _descriptor.FieldDescriptor(
+      name='file_system_type', full_name='Volume.file_system_type', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\022)Name of the filesystem used on the volume')),
+    _descriptor.FieldDescriptor(
+      name='total_allocation_units', full_name='Volume.total_allocation_units', index=4,
+      number=5, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001:\0228Total number of allocation units available on the volume')),
+    _descriptor.FieldDescriptor(
+      name='sectors_per_allocation_unit', full_name='Volume.sectors_per_allocation_unit', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0011\022/Number of disk sectors for each allocation unit')),
+    _descriptor.FieldDescriptor(
+      name='bytes_per_sector', full_name='Volume.bytes_per_sector', index=6,
+      number=7, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0011\022/Number of disk sectors for each allocation unit')),
+    _descriptor.FieldDescriptor(
+      name='actual_available_allocation_units', full_name='Volume.actual_available_allocation_units', index=7,
+      number=8, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0014\0222Number of allocation units available on the volume')),
+    _descriptor.FieldDescriptor(
+      name='creation_time', full_name='Volume.creation_time', index=8,
+      number=9, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0010\n\013RDFDatetime\022!Creation timestamp for the volume')),
+    _descriptor.FieldDescriptor(
+      name='file_system_flag_list', full_name='Volume.file_system_flag_list', index=9,
+      number=10, type=14, cpp_type=8, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\032\022\030Flags set for the volume')),
+    _descriptor.FieldDescriptor(
+      name='serial_number', full_name='Volume.serial_number', index=10,
+      number=11, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\035\022\033Serial number of the volume')),
+    _descriptor.FieldDescriptor(
+      name='windows', full_name='Volume.windows', index=11,
+      number=12, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001$\022\"Windows specific volume attributes')),
+    _descriptor.FieldDescriptor(
+      name='unix', full_name='Volume.unix', index=12,
+      number=13, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001!\022\037Unix specific volume attributes')),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+    _VOLUME_VOLUMEFILESYSTEMFLAGENUM,
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=4984,
+  serialized_end=6704,
+)
+
+
+_WINDOWSVOLUME = _descriptor.Descriptor(
+  name='WindowsVolume',
+  full_name='WindowsVolume',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='attributes_list', full_name='WindowsVolume.attributes_list', index=0,
+      number=1, type=14, cpp_type=8, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\032\022\030Attributes of the volume')),
+    _descriptor.FieldDescriptor(
+      name='drive_letter', full_name='WindowsVolume.drive_letter', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\026\022\024Windows drive letter')),
+    _descriptor.FieldDescriptor(
+      name='drive_type', full_name='WindowsVolume.drive_type', index=2,
+      number=3, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\026\022\024Windows drive letter')),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+    _WINDOWSVOLUME_WINDOWSVOLUMEATTRIBUTEENUM,
+    _WINDOWSVOLUME_WINDOWSDRIVETYPEENUM,
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=6707,
+  serialized_end=7220,
+)
+
+
+_UNIXVOLUME = _descriptor.Descriptor(
+  name='UnixVolume',
+  full_name='UnixVolume',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='mount_point', full_name='UnixVolume.mount_point', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\r\022\013Mount point')),
+    _descriptor.FieldDescriptor(
+      name='options', full_name='UnixVolume.options', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\'\022%Options used when mounting the volume')),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=7222,
+  serialized_end=7340,
+)
+
 _PROCESS.fields_by_name['connections'].message_type = _NETWORKCONNECTION
 _NETWORKCONNECTION.fields_by_name['family'].enum_type = _NETWORKCONNECTION_FAMILY
 _NETWORKCONNECTION.fields_by_name['type'].enum_type = _NETWORKCONNECTION_TYPE
@@ -1111,6 +1470,14 @@ _WINDOWSSERVICEINFORMATION_SERVICEMODE.containing_type = _WINDOWSSERVICEINFORMAT
 _WINDOWSSERVICEINFORMATION_SERVICETYPE.containing_type = _WINDOWSSERVICEINFORMATION;
 _SOFTWAREPACKAGE.fields_by_name['install_state'].enum_type = _SOFTWAREPACKAGE_INSTALLSTATE
 _SOFTWAREPACKAGE_INSTALLSTATE.containing_type = _SOFTWAREPACKAGE;
+_VOLUME.fields_by_name['file_system_flag_list'].enum_type = _VOLUME_VOLUMEFILESYSTEMFLAGENUM
+_VOLUME.fields_by_name['windows'].message_type = _WINDOWSVOLUME
+_VOLUME.fields_by_name['unix'].message_type = _UNIXVOLUME
+_VOLUME_VOLUMEFILESYSTEMFLAGENUM.containing_type = _VOLUME;
+_WINDOWSVOLUME.fields_by_name['attributes_list'].enum_type = _WINDOWSVOLUME_WINDOWSVOLUMEATTRIBUTEENUM
+_WINDOWSVOLUME.fields_by_name['drive_type'].enum_type = _WINDOWSVOLUME_WINDOWSDRIVETYPEENUM
+_WINDOWSVOLUME_WINDOWSVOLUMEATTRIBUTEENUM.containing_type = _WINDOWSVOLUME;
+_WINDOWSVOLUME_WINDOWSDRIVETYPEENUM.containing_type = _WINDOWSVOLUME;
 DESCRIPTOR.message_types_by_name['Process'] = _PROCESS
 DESCRIPTOR.message_types_by_name['NetworkEndpoint'] = _NETWORKENDPOINT
 DESCRIPTOR.message_types_by_name['NetworkConnection'] = _NETWORKCONNECTION
@@ -1121,6 +1488,9 @@ DESCRIPTOR.message_types_by_name['WindowsServiceInformation'] = _WINDOWSSERVICEI
 DESCRIPTOR.message_types_by_name['OSXServiceInformation'] = _OSXSERVICEINFORMATION
 DESCRIPTOR.message_types_by_name['SoftwarePackage'] = _SOFTWAREPACKAGE
 DESCRIPTOR.message_types_by_name['BrowserHistoryItem'] = _BROWSERHISTORYITEM
+DESCRIPTOR.message_types_by_name['Volume'] = _VOLUME
+DESCRIPTOR.message_types_by_name['WindowsVolume'] = _WINDOWSVOLUME
+DESCRIPTOR.message_types_by_name['UnixVolume'] = _UNIXVOLUME
 
 class Process(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
@@ -1181,6 +1551,24 @@ class BrowserHistoryItem(_message.Message):
   DESCRIPTOR = _BROWSERHISTORYITEM
 
   # @@protoc_insertion_point(class_scope:BrowserHistoryItem)
+
+class Volume(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _VOLUME
+
+  # @@protoc_insertion_point(class_scope:Volume)
+
+class WindowsVolume(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _WINDOWSVOLUME
+
+  # @@protoc_insertion_point(class_scope:WindowsVolume)
+
+class UnixVolume(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _UNIXVOLUME
+
+  # @@protoc_insertion_point(class_scope:UnixVolume)
 
 
 _PROCESS.has_options = True
@@ -1259,4 +1647,40 @@ _BROWSERHISTORYITEM.fields_by_name['source_urn'].has_options = True
 _BROWSERHISTORYITEM.fields_by_name['source_urn']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001:\n\006RDFURN\0220Location of object that this entry was found in.')
 _BROWSERHISTORYITEM.fields_by_name['download_path'].has_options = True
 _BROWSERHISTORYITEM.fields_by_name['download_path']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\032\022\030Path of downloaded file.')
+_VOLUME.fields_by_name['is_mounted'].has_options = True
+_VOLUME.fields_by_name['is_mounted']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\037\022\035True if the volume is mounted')
+_VOLUME.fields_by_name['name'].has_options = True
+_VOLUME.fields_by_name['name']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\030\022\026The name of the volume')
+_VOLUME.fields_by_name['device_path'].has_options = True
+_VOLUME.fields_by_name['device_path']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001C\022AFull path to the volume, including the device on which it resides')
+_VOLUME.fields_by_name['file_system_type'].has_options = True
+_VOLUME.fields_by_name['file_system_type']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\022)Name of the filesystem used on the volume')
+_VOLUME.fields_by_name['total_allocation_units'].has_options = True
+_VOLUME.fields_by_name['total_allocation_units']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001:\0228Total number of allocation units available on the volume')
+_VOLUME.fields_by_name['sectors_per_allocation_unit'].has_options = True
+_VOLUME.fields_by_name['sectors_per_allocation_unit']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0011\022/Number of disk sectors for each allocation unit')
+_VOLUME.fields_by_name['bytes_per_sector'].has_options = True
+_VOLUME.fields_by_name['bytes_per_sector']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0011\022/Number of disk sectors for each allocation unit')
+_VOLUME.fields_by_name['actual_available_allocation_units'].has_options = True
+_VOLUME.fields_by_name['actual_available_allocation_units']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0014\0222Number of allocation units available on the volume')
+_VOLUME.fields_by_name['creation_time'].has_options = True
+_VOLUME.fields_by_name['creation_time']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0010\n\013RDFDatetime\022!Creation timestamp for the volume')
+_VOLUME.fields_by_name['file_system_flag_list'].has_options = True
+_VOLUME.fields_by_name['file_system_flag_list']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\032\022\030Flags set for the volume')
+_VOLUME.fields_by_name['serial_number'].has_options = True
+_VOLUME.fields_by_name['serial_number']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\035\022\033Serial number of the volume')
+_VOLUME.fields_by_name['windows'].has_options = True
+_VOLUME.fields_by_name['windows']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001$\022\"Windows specific volume attributes')
+_VOLUME.fields_by_name['unix'].has_options = True
+_VOLUME.fields_by_name['unix']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001!\022\037Unix specific volume attributes')
+_WINDOWSVOLUME.fields_by_name['attributes_list'].has_options = True
+_WINDOWSVOLUME.fields_by_name['attributes_list']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\032\022\030Attributes of the volume')
+_WINDOWSVOLUME.fields_by_name['drive_letter'].has_options = True
+_WINDOWSVOLUME.fields_by_name['drive_letter']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\026\022\024Windows drive letter')
+_WINDOWSVOLUME.fields_by_name['drive_type'].has_options = True
+_WINDOWSVOLUME.fields_by_name['drive_type']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\026\022\024Windows drive letter')
+_UNIXVOLUME.fields_by_name['mount_point'].has_options = True
+_UNIXVOLUME.fields_by_name['mount_point']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\r\022\013Mount point')
+_UNIXVOLUME.fields_by_name['options'].has_options = True
+_UNIXVOLUME.fields_by_name['options']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\'\022%Options used when mounting the volume')
 # @@protoc_insertion_point(module_scope)

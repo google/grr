@@ -330,6 +330,28 @@ class VFSTest(test_lib.GRRBaseTest):
     self.assertEqual(s.pathspec.nested_path.ntfs_type, 128)
     self.assertEqual(s.pathspec.nested_path.ntfs_id, 4)
 
+  def testNTFSProgressCallback(self):
+
+    self.progress_counter = 0
+
+    def Progress():
+      self.progress_counter += 1
+
+    path = os.path.join(self.base_path, "ntfs_img.dd")
+    path2 = "test directory"
+
+    ps2 = rdfvalue.PathSpec(path=path2,
+                            pathtype=rdfvalue.PathSpec.PathType.TSK)
+
+    ps = rdfvalue.PathSpec(path=path,
+                           pathtype=rdfvalue.PathSpec.PathType.OS,
+                           offset=63*512)
+    ps.Append(ps2)
+
+    vfs.VFSOpen(ps, progress_callback=Progress)
+
+    self.assertTrue(self.progress_counter > 0)
+
   def testUnicodeFile(self):
     """Test ability to read unicode files from images."""
     path = os.path.join(self.base_path, "test_img.dd")

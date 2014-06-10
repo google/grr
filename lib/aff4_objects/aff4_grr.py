@@ -148,6 +148,10 @@ class VFSGRRClient(standard.VFSDirectory):
         "Last client crash.", creates_new_object_version=False,
         versioned=False)
 
+    VOLUMES = aff4.Attribute(
+        "aff4:volumes", rdfvalue.Volumes,
+        "Client disk volumes.")
+
   # Valid client ids
   CLIENT_ID_RE = re.compile(r"^C\.[0-9a-fA-F]{16}$")
 

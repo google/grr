@@ -211,7 +211,7 @@ class TestNetworkByteLimits(test_lib.EmptyActionTest):
     self.buffer_ref = rdfvalue.BufferReference(pathspec=pathspec, length=5000)
     self.data = "X" * 500
     self.old_read = standard.vfs.ReadVFS
-    standard.vfs.ReadVFS = lambda x, y, z: self.data
+    standard.vfs.ReadVFS = lambda x, y, z, progress_callback=None: self.data
     self.transfer_buf = test_lib.ActionMock("TransferBuffer")
 
   def testTransferNetworkByteLimitError(self):

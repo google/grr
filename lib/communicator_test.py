@@ -164,11 +164,9 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
   def testX509Verify(self):
     """X509 Verify can have several failure paths."""
-    x509_verify = X509.X509.verify
 
-    try:
-      # This is a successful verify.
-      X509.X509.verify = lambda self, pkey=None: 1
+    # This is a successful verify.
+    with test_lib.Stubber(X509.X509, "verify", lambda self, pkey=None: 1):
       self.client_communicator.LoadServerCertificate(
           self.server_certificate, config_lib.CONFIG["CA.certificate"])
 
@@ -183,9 +181,6 @@ class ClientCommsTest(test_lib.GRRBaseTest):
       self.assertRaises(
           IOError, self.client_communicator.LoadServerCertificate,
           self.server_certificate, config_lib.CONFIG["CA.certificate"])
-
-    finally:
-      X509.X509.verify = x509_verify
 
   def testErrorDetection(self):
     """Tests the end to end encrypted communicators."""

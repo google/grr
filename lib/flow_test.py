@@ -929,8 +929,9 @@ class MockVFSHandler(vfs.VFSHandler):
 
   supported_pathtype = rdfvalue.PathSpec.PathType.OS
 
-  def __init__(self, base_fd, pathspec=None):
-    super(MockVFSHandler, self).__init__(base_fd, pathspec=pathspec)
+  def __init__(self, base_fd, pathspec=None, progress_callback=None):
+    super(MockVFSHandler, self).__init__(
+        base_fd, pathspec=pathspec, progress_callback=progress_callback)
 
     self.pathspec.Append(pathspec)
 

@@ -170,6 +170,25 @@ def FormatLastSeenTime(age):
     return "%d days ago" % int(time_last_seen // (60 * 60 * 24))
 
 
+def GetLowDiskWarnings(client):
+  """Check disk free space for a client.
+
+  Args:
+    client: client object open for reading
+  Returns:
+    array of warning strings, empty if no warnings
+  """
+  warnings = []
+  volumes = client.Get(client.Schema.VOLUMES)
+  if volumes:
+    for volume in volumes:
+      freespace = volume.FreeSpacePercent()
+      if freespace < 5.0:
+        warnings.append("{0} {1:.0f}% free".format(volume.Name(),
+                                                   freespace))
+  return warnings
+
+
 class StatusRenderer(renderers.TemplateRenderer):
   """A renderer for the online status line."""
 
@@ -179,13 +198,21 @@ class StatusRenderer(renderers.TemplateRenderer):
 Status: {{this.icon|safe}}
 {{this.last_seen_msg|escape}}.
 {% if this.ip_description %}
-<br>
-{{this.ip_icon|safe}} {{this.ip_description|escape}}
+  <br>
+  {{this.ip_icon|safe}} {{this.ip_description|escape}}
 {% endif %}
 {% if this.last_crash %}
-<br>
-<strong>Last crash:</strong><br>
-<img class='grr-icon' src='/static/images/skull-icon.png'> {{this.last_crash}}<br/>
+  <br>
+  <strong>Last crash:</strong><br>
+  <img class='grr-icon' src='/static/images/skull-icon.png'> {{this.last_crash}}<br/>
+{% endif %}
+{% if this.disk_full %}
+  <br>
+  <img class='grr-icon' src='/static/images/hdd-bang-icon.png'>
+  <strong>Disk free space low:</strong><br>
+  {% for message in this.disk_full %}
+    {{message|escape}}<br/>
+  {% endfor %}
 {% endif %}
 <br>
 """)
@@ -204,6 +231,8 @@ Status: {{this.icon|safe}}
         time_since_crash = rdfvalue.RDFDatetime().Now() - crash.timestamp
         if time_since_crash < self.MAX_TIME_SINCE_CRASH:
           self.last_crash = FormatLastSeenTime(crash.timestamp)
+
+      self.disk_full = GetLowDiskWarnings(client)
 
       ping = client.Get(client.Schema.PING)
       if ping:
@@ -440,6 +469,10 @@ class ClientStatusIconsRenderer(semantic.RDFValueRenderer):
   <img class='grr-icon' src='/static/images/skull-icon.png'
     title="{{this.crash_time|escape}}" />
 {% endif %}
+{% if this.disk_full %}
+  <img class='grr-icon' src='/static/images/hdd-bang-icon.png'
+    title="{{this.disk_full|escape}}" />
+{% endif %}
 </div>""")
 
   def Layout(self, request, response):
@@ -454,6 +487,7 @@ class ClientStatusIconsRenderer(semantic.RDFValueRenderer):
                                      FormatLastSeenTime(last_crash.timestamp))
       self.show_crash_icon = True
 
+    self.disk_full = ", ".join(GetLowDiskWarnings(self.proxy))
     return super(ClientStatusIconsRenderer, self).Layout(request, response)
 
 

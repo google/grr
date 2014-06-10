@@ -31,7 +31,8 @@ class FingerprintFile(standard.ReadBuffer):
 
   def Run(self, args):
     """Fingerprint a file."""
-    with vfs.VFSOpen(args.pathspec) as file_obj:
+    with vfs.VFSOpen(args.pathspec,
+                     progress_callback=self.Progress) as file_obj:
       fingerprinter = fingerprint.Fingerprinter(file_obj)
       response = rdfvalue.FingerprintResponse()
       response.pathspec = file_obj.pathspec

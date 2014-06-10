@@ -274,8 +274,9 @@ class RegistryFile(vfs.VFSHandler):
       _winreg.REG_MULTI_SZ: rdfvalue.StatEntry.RegistryType.REG_MULTI_SZ,
       }
 
-  def __init__(self, base_fd, pathspec=None):
-    super(RegistryFile, self).__init__(base_fd, pathspec=pathspec)
+  def __init__(self, base_fd, pathspec=None, progress_callback=None):
+    super(RegistryFile, self).__init__(base_fd, pathspec=pathspec,
+                                       progress_callback=progress_callback)
 
     if base_fd is None:
       self.pathspec.Append(pathspec)

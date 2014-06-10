@@ -778,6 +778,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     elif operator == "Overwrite":
       # We set for each new value, overwriting older ones.
       aff4_obj.Set(aff4_attr)
+    else:
+      raise RuntimeError("Bad RDFMap writing method")
 
   def _FinalizeMappedAFF4Locations(self, artifact_name):
     for aff4_obj, aff4_attr, operator in self.aff4_output_map.values():

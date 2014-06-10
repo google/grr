@@ -143,7 +143,8 @@ class RekallAction(actions.SuspendableAction):
   def Iterate(self):
     """Run a Rekall plugin and return the result."""
     # Open the device pathspec as requested by the server.
-    with vfs.VFSOpen(self.request.device) as fhandle:
+    with vfs.VFSOpen(self.request.device,
+                     progress_callback=self.Progress) as fhandle:
 
       # Create a session and run all the plugins with it.
       session_args = self.request.session.ToDict()

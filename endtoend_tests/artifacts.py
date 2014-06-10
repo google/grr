@@ -30,3 +30,22 @@ class TestDarwinPersistenceMechanisms(base.AutomatedTest):
     self.fail("Service listing does not contain launchservices: %s." %
               launchservices)
 
+
+class TestRootDiskVolumeUsage(base.AutomatedTest):
+  """Test RootDiskVolumeUsage."""
+  platforms = ["Linux", "Darwin"]
+  flow = "ArtifactCollectorFlow"
+  test_output_path = "analysis/diskusage/testing"
+  args = {"artifact_list": ["RootDiskVolumeUsage"],
+          "output": test_output_path}
+
+  def CheckFlow(self):
+    output_urn = self.client_id.Add(self.test_output_path)
+    collection = aff4.FACTORY.Open(output_urn, mode="r", token=self.token)
+    self.assertIsInstance(collection, aff4.RDFValueCollection)
+    volume_list = list(collection)
+    # Make sure there are at least some results.
+    self.assertEqual(len(volume_list), 1)
+    self.assertEqual(volume_list[0].unix.mount_point, "/")
+    self.assertTrue(isinstance(volume_list[0].FreeSpacePercent(), float))
+

@@ -4,6 +4,7 @@
 
 from grr.lib import aff4
 from grr.lib import artifact
+from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import worker
@@ -125,7 +126,7 @@ class Interrogate(flow.GRRFlow):
     else:
       self.Log("Could not get InstallDate")
 
-  @flow.StateHandler()
+  @flow.StateHandler(next_state=["ProcessArtifactResponses"])
   def ProcessKnowledgeBase(self, responses):
     """Update the SUMMARY from the knowledgebase data."""
     if not responses.success:
@@ -135,6 +136,18 @@ class Interrogate(flow.GRRFlow):
     for kbuser in knowledge_base.users:
       self.state.summary.users.Append(
           rdfvalue.User().FromKnowledgeBaseUser(kbuser))
+
+    # Collect any non-knowledgebase artifacts that will be stored in aff4.
+    self.CallFlow(
+        "ArtifactCollectorFlow",
+        artifact_list=config_lib.CONFIG["Artifacts.interrogate_store_in_aff4"],
+        next_state="ProcessArtifactResponses",
+        store_results_in_aff4=True)
+
+  @flow.StateHandler()
+  def ProcessArtifactResponses(self, responses):
+    if not responses.success:
+      self.Log("Error collecting artifacts: %s" % responses.status)
 
   FILTERED_IPS = ["127.0.0.1", "::1", "fe80::1"]
 

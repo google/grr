@@ -120,10 +120,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     urn = rdfvalue.ClientURN("C.%016X" % 0).Add("/fs/os/c")
     self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn)
 
-    old_time = time.time
-    try:
-      time.time = lambda: 100
-
+    with test_lib.FakeTime(100):
       # Token expires in 5 seconds.
       super_token = access_control.ACLToken(username="test", expiry=105)
       super_token.supervisor = True
@@ -131,14 +128,12 @@ class AccessControlTest(test_lib.GRRBaseTest):
       # This should work since token is a super token.
       aff4.FACTORY.Open(urn, mode="rw", token=super_token)
 
-      # Change the time to 200
-      time.time = lambda: 200
+    # Change the time to 200
+    with test_lib.FakeTime(200):
 
       # Should be expired now.
       self.assertRaises(access_control.ExpiryError, aff4.FACTORY.Open, urn,
                         token=super_token, mode="rw")
-    finally:
-      time.time = old_time
 
   def testApprovalExpiry(self):
     """Tests that approvals expire after the correct time."""

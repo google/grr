@@ -660,11 +660,7 @@ class CentosClientDeployer(LinuxClientDeployer):
       template_binary_dir = os.path.join(
           tmp_dir, "dist/rpmbuild/grr-client")
 
-      rpmroot = "./rpmroot/"
-      try:
-        shutil.rmtree(rpmroot)
-      except OSError:
-        pass
+      rpmroot = os.path.join(tmp_dir, "rpmroot")
       self.EnsureDirExists(rpmroot)
 
       target_binary_dir = "%s%s" % (
@@ -713,7 +709,7 @@ class CentosClientDeployer(LinuxClientDeployer):
       # Set the daemon to executable.
       os.chmod(os.path.join(target_binary_dir, client_binary_name), 0755)
 
-      command = [rpmbuild_binary, "-bb", spec_filename]
+      command = [rpmbuild_binary, "--buildroot", rpmroot, "-bb", spec_filename]
       try:
         subprocess.check_output(command, stderr=subprocess.STDOUT)
       except subprocess.CalledProcessError as e:

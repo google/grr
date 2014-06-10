@@ -566,7 +566,7 @@ class AFF4SparseIndex(aff4.AFF4Image):
       return False
 
   def Write(self, data):
-    """"""
+    """Write data to the file."""
     self._dirty = True
     if not isinstance(data, bytes):
       raise IOError("Cannot write unencoded string.")
@@ -742,11 +742,21 @@ class AFF4Index(aff4.AFF4Object):
     self.to_delete.add(column_name)
 
 
-class TempFile(aff4.AFF4MemoryStream):
-  """A temporary file (with a random URN) to store an RDFValue."""
+class TempMemoryFile(aff4.AFF4MemoryStream):
+  """A temporary AFF4MemoryStream-based file with a random URN."""
 
   def __init__(self, urn, **kwargs):
     if urn is None:
       urn = rdfvalue.RDFURN("aff4:/tmp").Add("%X" % utils.PRNG.GetULong())
 
-    super(TempFile, self).__init__(urn, **kwargs)
+    super(TempMemoryFile, self).__init__(urn, **kwargs)
+
+
+class TempImageFile(aff4.AFF4Image):
+  """A temporary file AFF4Image-based file with a random URN."""
+
+  def __init__(self, urn, **kwargs):
+    if urn is None:
+      urn = rdfvalue.RDFURN("aff4:/tmp").Add("%X" % utils.PRNG.GetULong())
+
+    super(TempImageFile, self).__init__(urn, **kwargs)

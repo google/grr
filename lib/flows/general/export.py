@@ -3,6 +3,7 @@
 
 
 
+import io
 import os
 import zipfile
 
@@ -32,6 +33,38 @@ def CollectionItemToAff4Path(item):
     return item.stat_entry.aff4path
   else:
     raise ItemNotExportableError()
+
+
+# pylint: disable=invalid-name
+class RawIOBaseBridge(io.RawIOBase):
+  """Bridge between python descriptor-like objects and RawIOBase interface."""
+
+  def __init__(self, fd):  # pylint: disable=super-init-not-called
+    self.fd = fd
+
+  def writable(self):
+    return True
+
+  def seekable(self):
+    return True
+
+  def tell(self):
+    return self.fd.tell()
+
+  def seek(self, offset, whence=0):
+    self.fd.seek(offset, whence)
+
+  def write(self, b):
+    data = b.tobytes()
+    self.fd.write(data)
+    return len(data)
+
+  def close(self):
+    self.fd.close()
+
+  def flush(self):
+    self.fd.flush()
+# pylint: enable=invalid-name
 
 
 class ExportHuntResultsFilesAsZipArgs(rdfvalue.RDFProtoStruct):
@@ -89,11 +122,11 @@ class ExportHuntResultFilesAsZip(flow.GRRFlow):
   @flow.StateHandler()
   def CreateZipFile(self, _):
     # Create an output zip file in the temp space.
-    friendly_hunt_name = self.args.hunt_urn.Basename().replace(":", "_")
-    urn = rdfvalue.RDFURN("aff4:/tmp").Add("hunt_%s_%X%X.zip" % (
-        friendly_hunt_name, utils.PRNG.GetULong(), utils.PRNG.GetULong()))
+    with aff4.FACTORY.Create(None, "TempImageFile", token=self.token) as outfd:
+      friendly_hunt_name = self.args.hunt_urn.Basename().replace(":", "_")
+      outfd.urn = outfd.urn.Add("hunt_%s_%X%X.zip" % (
+          friendly_hunt_name, utils.PRNG.GetULong(), utils.PRNG.GetULong()))
 
-    with aff4.FACTORY.Create(urn, "TempFile", token=self.token) as outfd:
       self.Log("Will create output on %s" % outfd.urn)
       self.state.output_zip_urn = outfd.urn
 
@@ -105,7 +138,9 @@ class ExportHuntResultFilesAsZip(flow.GRRFlow):
           hunt_output_urn, aff4_type="RDFValueCollection",
           token=self.token)
 
-      with utils.StreamingZipWriter(outfd, "w",
+      buffered_outfd = io.BufferedWriter(RawIOBaseBridge(outfd),
+                                         buffer_size=1024 * 1024 * 12)
+      with utils.StreamingZipWriter(buffered_outfd, "w",
                                     zipfile.ZIP_DEFLATED) as output_zip:
         self.DownloadCollectionFiles(collection, output_zip, friendly_hunt_name)
 

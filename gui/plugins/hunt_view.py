@@ -223,6 +223,12 @@ class HuntTable(fileview.AbstractFileTable):
     <img src='/static/images/modify.png' class='toolbar_icon'>
   </button>
 
+  <button id='toggle_robot_hunt_display_{{unique|escape}}'
+    title='Show/Hide Automated hunts'
+    class="btn" name="ToggleRobotHuntDisplay">
+    <img src='/static/images/robot.png' class='toolbar_icon'>
+  </button>
+
   </div>
 
   <div class="new_hunt_dialog" id="new_hunt_dialog_{{unique|escape}}"
@@ -301,6 +307,11 @@ class HuntTable(fileview.AbstractFileTable):
                      "Creator": runner.context.creator,
                      "Description": description},
                     row_index=row_index)
+
+        # Hide automated hunts by default
+        if runner.context.creator == "GRRWorker":
+          self.SetRowClass(row_index, "robot-hunt hide")
+
         row_index += 1
 
       for hunt_obj, reason in could_not_display:

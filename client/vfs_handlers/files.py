@@ -4,6 +4,7 @@
 
 import logging
 import os
+import platform
 import re
 import sys
 import threading
@@ -114,8 +115,9 @@ class File(vfs.VFSHandler):
   alignment = 1
   file_offset = 0
 
-  def __init__(self, base_fd, pathspec=None):
-    super(File, self).__init__(base_fd, pathspec=pathspec)
+  def __init__(self, base_fd, pathspec=None, progress_callback=None):
+    super(File, self).__init__(base_fd, pathspec=pathspec,
+                               progress_callback=progress_callback)
     if base_fd is None:
       self.pathspec.Append(pathspec)
 
@@ -275,3 +277,44 @@ class File(vfs.VFSHandler):
 
   def IsDirectory(self):
     return self.size is None
+
+  def StatFS(self, path=None):
+    """Call os.statvfs for a given list of paths. OS X and Linux only.
+
+    Note that a statvfs call for a network filesystem (e.g. NFS) that is
+    unavailable, e.g. due to no network, will result in the call blocking.
+
+    Args:
+      path: a Unicode string containing the path or None.
+            If path is None the value in self.path is used.
+    Returns:
+      posix.statvfs_result object
+    Raises:
+      RuntimeError: if called on windows
+    """
+    if platform.system() == "Windows":
+      raise RuntimeError("os.statvfs not available on Windows")
+
+    local_path = client_utils.CanonicalPathToLocalPath(
+        path or self.path)
+
+    return os.statvfs(local_path)
+
+  def GetMountPoint(self, path=None):
+    """Walk back from the path to find the mount point.
+
+    Args:
+      path: a Unicode string containing the path or None.
+            If path is None the value in self.path is used.
+
+    Returns:
+      path string of the mount point
+    """
+    path = os.path.abspath(client_utils.CanonicalPathToLocalPath(
+        path or self.path))
+
+    while not os.path.ismount(path):
+      path = os.path.dirname(path)
+
+    return path
+

@@ -169,7 +169,8 @@ class VolatilityAction(actions.ActionPlugin):
       self.Progress()
 
     # Create a session and run all the plugins with it.
-    with vfs.VFSOpen(request.device) as fhandle:
+    with vfs.VFSOpen(request.device,
+                     progress_callback=self.Progress) as fhandle:
       session_args = request.session.ToDict()
       vol_session = session.Session(**session_args)
 

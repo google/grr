@@ -763,6 +763,16 @@ message ListDirRequest {
   optional Iterator iterator = 2;
 };
 
+// StatFS client action request
+message StatFSRequest {
+  repeated string path_list = 1[(sem_type) = {
+      description: "List of paths for statfs."
+    }];
+  optional PathSpec.PathType pathtype = 2 [(sem_type) = {
+      description: "Type of path to call statfs on.",
+    }, default=OS];
+};
+
 // A stat() record for a given path
 message StatEntry {
   // This contains the URN of the aff4 object represented by this protobuf.

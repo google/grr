@@ -4,6 +4,9 @@
 """This is a test fixture for client objects.."""
 
 
+
+from grr.lib import rdfvalue
+
 # This file is mostly data so pylint: disable=g-continuation-in-parens-misaligned,g-line-too-long
 
 
@@ -4101,3 +4104,45 @@ pathspec {
 })),
 
 ]
+
+
+WMI_SAMPLE = [
+      rdfvalue.Dict(
+          {u"QuotasDisabled": u"True", u"ProviderName": u"",
+           u"PowerManagementSupported": u"", u"PowerManagementCapabilities":
+           u"", u"Access": u"0", u"SystemName": u"myhost", u"DriveType": u"3",
+           u"Status": u"", u"VolumeDirty": u"False", u"PNPDeviceID": u"",
+           u"Description": u"Local Fixed Disk", u"VolumeName": u"",
+           u"ConfigManagerUserConfig": u"", u"ErrorCleared": u"", u"Compressed":
+           u"False", u"FileSystem": u"NTFS", u"Purpose": u"",
+           u"QuotasIncomplete": u"False", u"Name": u"C:", u"InstallDate": u"",
+           u"BlockSize": u"", u"MediaType": u"12", u"Caption": u"C:",
+           u"StatusInfo": u"", u"DeviceID": u"C:", u"ConfigManagerErrorCode":
+           u"", u"ErrorMethodology": u"", u"MaximumComponentLength": u"255",
+           u"QuotasRebuilding": u"False", u"SupportsFileBasedCompression":
+           u"True", u"NumberOfBlocks": u"", u"FreeSpace": u"190119194624",
+           u"VolumeSerialNumber": u"0FFFFFFF", u"SupportsDiskQuotas": u"True",
+           u"ErrorDescription": u"", u"LastErrorCode": u"", u"Availability":
+           u"", u"SystemCreationClassName": u"Win32_ComputerSystem", u"Size":
+           u"249690058752"}),
+        rdfvalue.Dict(
+            {u"QuotasDisabled": u"", u"ProviderName":
+             u"\\\\homefileshare\\home\\user", u"PowerManagementSupported": u"",
+             u"PowerManagementCapabilities": u"", u"Access": u"0",
+             u"SystemName": u"myhost", u"DriveType": u"4", u"Status": u"",
+             u"VolumeDirty": u"", u"PNPDeviceID": u"",
+             u"Description": u"Network Connection",
+             u"VolumeName": u"homefileshare$",
+             u"ConfigManagerUserConfig": u"", u"ErrorCleared": u"",
+             u"Compressed": u"False", u"FileSystem": u"FAT", u"Purpose": u"",
+             u"QuotasIncomplete": u"", u"Name": u"Z:", u"InstallDate": u"",
+             u"BlockSize": u"", u"MediaType": u"0", u"Caption": u"Z:",
+             u"StatusInfo": u"", u"DeviceID": u"Z:", u"ConfigManagerErrorCode":
+             u"", u"ErrorMethodology": u"", u"MaximumComponentLength": u"255",
+             u"QuotasRebuilding": u"", u"SupportsFileBasedCompression":
+             u"False", u"NumberOfBlocks": u"", u"FreeSpace": u"15790276608",
+             u"VolumeSerialNumber": u"12345678", u"SupportsDiskQuotas":
+             u"False", u"ErrorDescription": u"", u"LastErrorCode": u"",
+             u"Availability": u"", u"SystemCreationClassName":
+             u"Win32_ComputerSystem", u"Size": u"26843545600"})]
+

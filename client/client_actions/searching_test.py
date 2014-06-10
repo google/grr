@@ -36,8 +36,9 @@ class MockVFSHandlerFind(vfs.VFSHandler):
                                                      "A Secret"),
                }
 
-  def __init__(self, base_fd, pathspec):
-    super(MockVFSHandlerFind, self).__init__(base_fd, pathspec=pathspec)
+  def __init__(self, base_fd, pathspec=None, progress_callback=None):
+    super(MockVFSHandlerFind, self).__init__(
+        base_fd, pathspec=pathspec, progress_callback=progress_callback)
 
     self.pathspec.Append(pathspec)
     self.path = self.pathspec.CollapsePath()

@@ -32,7 +32,7 @@ class Find(actions.IteratedAction):
     if depth >= self.request.max_depth: return
 
     try:
-      fd = vfs.VFSOpen(pathspec)
+      fd = vfs.VFSOpen(pathspec, progress_callback=self.Progress)
       files = fd.ListFiles()
     except (IOError, OSError) as e:
       if depth == 0:
@@ -115,7 +115,8 @@ class Find(actions.IteratedAction):
     try:
 
       data = ""
-      with vfs.VFSOpen(file_stat.pathspec) as fd:
+      with vfs.VFSOpen(file_stat.pathspec,
+                       progress_callback=self.Progress) as fd:
         # Only read this much data from the file.
         while fd.Tell() < self.request.max_data:
           data_read = fd.read(1024000)
@@ -249,7 +250,7 @@ class Grep(actions.ActionPlugin):
       RuntimeError: No search pattern has been given in the request.
 
     """
-    fd = vfs.VFSOpen(args.target)
+    fd = vfs.VFSOpen(args.target, progress_callback=self.Progress)
     fd.Seek(args.start_offset)
     base_offset = args.start_offset
 

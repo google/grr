@@ -6,6 +6,7 @@ import logging
 import os
 import pdb
 import threading
+import time
 import traceback
 
 
@@ -66,6 +67,8 @@ class ActionPlugin(object):
   priority = rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY
 
   require_fastpoll = True
+
+  last_progress_time = 0
 
   def __init__(self, grr_worker=None):
     """Initializes the action plugin.
@@ -219,6 +222,12 @@ class ActionPlugin(object):
     Raises:
       CPUExceededError: CPU limit exceeded.
     """
+    now = time.time()
+    if now - self.last_progress_time <= 2:
+      return
+
+    self.last_progress_time = now
+
     # Prevent the machine from sleeping while the action is running.
     client_utils.KeepAlive()
 

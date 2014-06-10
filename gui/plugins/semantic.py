@@ -360,7 +360,7 @@ class RDFValueArrayRenderer(RDFValueRenderer):
       # We need to create a cache if this is too long.
       if len(self.proxy) > length:
         # Make a cache
-        with aff4.FACTORY.Create(None, "TempFile",
+        with aff4.FACTORY.Create(None, "TempMemoryFile",
                                  token=request.token) as self.cache:
           data = rdfvalue.RDFValueArray()
           data.Extend(self.proxy)

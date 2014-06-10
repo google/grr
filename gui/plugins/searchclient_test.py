@@ -43,6 +43,20 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
           token=self.token, check_flow_errors=False):
         pass
 
+  def CreateClientWithVolumes(self, available=50):
+    with self.ACLChecksDisabled():
+      client_id = self.SetupClients(1)[0]
+      with aff4.FACTORY.Open(
+          client_id, mode="rw", token=self.token) as client_obj:
+        volume = rdfvalue.Volume(total_allocation_units=100,
+                                 actual_available_allocation_units=available)
+        client_obj.Set(client_obj.Schema.VOLUMES([volume]))
+
+      self.GrantClientApproval(client_id)
+
+    client_obj = aff4.FACTORY.Open(client_id, token=self.token)
+    return client_id
+
   def testOnlineClientStatus(self):
     client_id = self.CreateClient()
     self.Open("/#c=" + str(client_id))
@@ -198,6 +212,50 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
         self.IsElementPresent,
         "css=tr:contains('%s') > "
         "td:first img[src$='skull-icon.png']" % client_id.Basename())
+
+  def testDiskIconDoesNotAppearInClientSearchIfDiskIsNotFull(self):
+    client_id = self.CreateClientWithVolumes()
+    self.Open("/")
+    self.Type("client_query", client_id.Basename())
+    self.Click("client_query_submit")
+
+    # There should be a result row with the client id.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('%s')" % client_id.Basename())
+
+    # But it shouldn't have the disk icon.
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=tr:contains('%s') > "
+        "td:first img[src$='hdd-bang-icon.png']" % client_id.Basename())
+
+  def testDiskIconDoesAppearsInClientSearchIfDiskIsFull(self):
+    client_id = self.CreateClientWithVolumes(available=1)
+    self.Open("/")
+    self.Type("client_query", client_id.Basename())
+    self.Click("client_query_submit")
+
+    # There should be a result row with the client id.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('%s')" % client_id.Basename())
+
+    # With the disk icon.
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=tr:contains('%s') > "
+        "td:first img[src$='hdd-bang-icon.png']" % client_id.Basename())
+
+  def testDiskWarningIsNotDisplayed(self):
+    client_id = self.CreateClientWithVolumes()
+    self.Open("/#c=" + str(client_id))
+    self.WaitUntil(self.IsTextPresent, "Host-0")
+    self.WaitUntilNot(self.IsTextPresent, "Disk free space")
+
+  def testDiskWarningIsDisplayed(self):
+    client_id = self.CreateClientWithVolumes(available=1)
+    self.Open("/#c=" + str(client_id))
+    self.WaitUntil(self.IsTextPresent, "Host-0")
+    self.WaitUntil(self.IsTextPresent, "Disk free space")
 
 
 class TestContentView(test_lib.GRRSeleniumTest):

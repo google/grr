@@ -55,6 +55,13 @@ config_lib.DEFINE_list("Artifacts.knowledge_base_heavyweight",
                        " set on interrogate. These artifacts are too expensive"
                        " or slow to collect regularly from all machines.")
 
+config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4",
+                       ["WMILogicalDisks", "RootDiskVolumeUsage"],
+                       "Artifacts to collect during interrogate that don't"
+                       " populate the knowledgebase, but store results "
+                       "elsewhere in aff4.")
+
+
 config_lib.DEFINE_list("Artifacts.netgroup_filter_regexes", [],
                        help="Only parse groups that match one of these regexes"
                        " from /etc/netgroup files.")

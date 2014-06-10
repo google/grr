@@ -30,14 +30,14 @@ class MemoryVFS(vfs.VFSHandler):
   """A base class for memory drivers."""
   page_size = 0x1000
 
-  def __init__(self, base_fd, pathspec):
+  def __init__(self, base_fd, pathspec=None, progress_callback=None):
     self.fd = base_fd
     self.pathspec = pathspec
 
   @classmethod
-  def Open(cls, base_fd, component, pathspec=None):
-    _ = pathspec
-    return cls(base_fd, pathspec=component)
+  def Open(cls, fd, component, pathspec=None, progress_callback=None):
+    _ = pathspec, progress_callback
+    return cls(fd, pathspec=component, progress_callback=progress_callback)
 
   def IsDirectory(self):
     return False
@@ -81,16 +81,20 @@ class MemoryVFS(vfs.VFSHandler):
 class LinuxMemory(MemoryVFS):
   """A Linux memory VFS driver."""
 
-  def __init__(self, base_fd, pathspec=None):
+  def __init__(self, base_fd, pathspec=None, progress_callback=None):
     """Open the raw memory image.
 
     Args:
       base_fd: The file like object we read this component from.
       pathspec: An optional pathspec to open directly.
+      progress_callback: A callback to indicate that the open call is still
+                         working but needs more time.
+
     Raises:
       IOError: If the file can not be opened.
     """
-    super(LinuxMemory, self).__init__(base_fd, pathspec=pathspec)
+    super(LinuxMemory, self).__init__(base_fd, pathspec=pathspec,
+                                      progress_callback=progress_callback)
     if self.base_fd is not None:
       raise IOError("Memory driver must be a top level VFS handler.")
 
@@ -134,16 +138,20 @@ class WindowsMemory(MemoryVFS):
   def CtlCode(device_type, function, method, access):
     return (device_type << 16) | (access << 14) | (function << 2) | method
 
-  def __init__(self, base_fd, pathspec=None):
+  def __init__(self, base_fd, pathspec=None, progress_callback=None):
     """Open the raw memory image.
 
     Args:
       base_fd: The file like object we read this component from.
       pathspec: An optional pathspec to open directly.
+      progress_callback: A callback to indicate that the open call is still
+                         working but needs more time.
+
     Raises:
       IOError: If the file can not be opened.
     """
-    super(WindowsMemory, self).__init__(base_fd, pathspec=pathspec)
+    super(WindowsMemory, self).__init__(base_fd, pathspec=pathspec,
+                                        progress_callback=progress_callback)
     if self.base_fd is not None:
       raise IOError("Memory driver must be a top level.")
 
@@ -209,16 +217,20 @@ class OSXMemory(MemoryVFS):
                         13,  # Pal Code
                         14)  # Max Memory Type
 
-  def __init__(self, base_fd, pathspec=None):
+  def __init__(self, base_fd=None, pathspec=None, progress_callback=None):
     """Open the memory device and get the memory map.
 
     Args:
       base_fd: The file like object we read this component from.
       pathspec: An optional pathspec to open directly.
+      progress_callback: A callback to indicate that the open call is still
+                         working but needs more time.
+
     Raises:
       IOError: If the file can not be opened or an ioctl fails.
     """
-    super(OSXMemory, self).__init__(base_fd, pathspec=pathspec)
+    super(OSXMemory, self).__init__(base_fd, pathspec=pathspec,
+                                    progress_callback=progress_callback)
     if self.base_fd is not None:
       raise IOError("Memory driver must be a top level.")
 

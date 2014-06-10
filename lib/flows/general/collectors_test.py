@@ -14,6 +14,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import transfer
+from grr.test_data import client_fixture
 
 # pylint: mode=test
 
@@ -167,6 +168,39 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
                            token=self.token)
     self.assertTrue(isinstance(list(fd)[0], rdfvalue.Process))
     self.assertTrue(len(fd) > 5)
+
+  def testRunWMIArtifact(self):
+
+    class WMIActionMock(test_lib.ActionMock):
+
+      def WmiQuery(self, _):
+        return client_fixture.WMI_SAMPLE
+
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    client.Set(client.Schema.SYSTEM("Windows"))
+    client.Set(client.Schema.OS_VERSION("6.2"))
+    client.Flush()
+
+    client_mock = WMIActionMock()
+    for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
+                                     artifact_list=["WMILogicalDisks"],
+                                     token=self.token, client_id=self.client_id,
+                                     store_results_in_aff4=True):
+      pass
+
+    # Test that we set the client VOLUMES attribute
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    volumes = client.Get(client.Schema.VOLUMES)
+    self.assertEqual(len(volumes), 2)
+    for result in volumes:
+      self.assertTrue(isinstance(result, rdfvalue.Volume))
+      self.assertTrue(result.windows.drive_letter in ["Z:", "C:"])
+      if result.windows.drive_letter == "C:":
+        self.assertAlmostEqual(result.FreeSpacePercent(), 76.142, delta=0.001)
+        self.assertEqual(result.Name(), "C:")
+      elif result.windows.drive_letter == "Z:":
+        self.assertEqual(result.Name(), "homefileshare$")
+        self.assertAlmostEqual(result.FreeSpacePercent(), 58.823, delta=0.001)
 
   def testConditions(self):
     """Test we can get a GRR client artifact with conditions."""

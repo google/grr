@@ -13,6 +13,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import search
 from grr.lib import test_lib
+from grr.test_data import client_fixture
 
 
 class DiscoveryTestEventListener(flow.EventListener):
@@ -80,6 +81,12 @@ class InterrogatedClient(test_lib.ActionMock):
     return [rdfvalue.Dict({"Client.control_urls":
                            ["http://localhost:8001/control"], "Client.poll_min":
                            1.0})]
+
+  def WmiQuery(self, query):
+    if query.query == u"SELECT * FROM Win32_LogicalDisk":
+      return client_fixture.WMI_SAMPLE
+    else:
+      return None
 
 
 class TestClientInterrogate(artifact_test.ArtifactTestHelper):
@@ -199,6 +206,14 @@ class TestClientInterrogate(artifact_test.ArtifactTestHelper):
         list(search.SearchClients("label:Label2", token=self.token)),
         [self.client_id])
 
+  def _CheckWindowsDiskInfo(self):
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    volumes = client.Get(client.Schema.VOLUMES)
+    self.assertEqual(len(volumes), 2)
+    for result in volumes:
+      self.assertTrue(isinstance(result, rdfvalue.Volume))
+      self.assertTrue(result.windows.drive_letter in ["Z:", "C:"])
+
   def testInterrogateLinuxWithWtmp(self):
     """Test the Interrogate flow."""
     test_lib.ClientFixture(self.client_id, token=self.token)
@@ -271,3 +286,4 @@ class TestClientInterrogate(artifact_test.ArtifactTestHelper):
     self._CheckNetworkInfo()
     self._CheckVFS()
     self._CheckLabelIndex()
+    self._CheckWindowsDiskInfo()

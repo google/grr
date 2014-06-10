@@ -313,3 +313,138 @@ message BrowserHistoryItem {
       description: "Path of downloaded file.",
     }];
 }
+
+// Based on cybox definition:
+// http://cybox.mitre.org/language/version2.1/xsddocs/objects/Volume_Object.html
+message Volume {
+
+  optional bool is_mounted = 1 [(sem_type) = {
+      description: "True if the volume is mounted",
+    }];
+
+  optional string name = 2 [(sem_type) = {
+      description: "The name of the volume",
+    }];
+
+  optional string device_path = 3 [(sem_type) = {
+      description: "Full path to the volume, including the device on which "
+      "it resides",
+    }];
+
+  optional string file_system_type = 4 [(sem_type) = {
+      description: "Name of the filesystem used on the volume",
+    }];
+
+  optional uint64 total_allocation_units = 5 [(sem_type) = {
+      description: "Total number of allocation units available on the volume",
+    }];
+
+  optional uint64 sectors_per_allocation_unit = 6 [(sem_type) = {
+      description: "Number of disk sectors for each allocation unit",
+    }];
+
+  optional uint64 bytes_per_sector = 7 [(sem_type) = {
+      description: "Number of disk sectors for each allocation unit",
+    }];
+
+  optional uint64 actual_available_allocation_units = 8 [(sem_type) = {
+      description: "Number of allocation units available on the volume",
+    }];
+
+  optional uint64 creation_time = 9 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Creation timestamp for the volume",
+    }];
+
+  enum VolumeFileSystemFlagEnum {
+    FILE_CASE_SENSITIVE_SEARCH = 1;
+    FILE_CASE_PRESERVED_NAMES = 2;
+    FILE_UNICODE_ON_DISK = 3;
+    FILE_PERSISTENT_ACLS = 4;
+    FILE_FILE_COMPRESSION = 5;
+    FILE_VOLUME_QUOTAS = 6;
+    FILE_SUPPORTS_SPARSE_FILES = 7;
+    FILE_SUPPORTS_REPARSE_POINTS = 8;
+    FILE_SUPPORTS_REMOTE_STORAGE = 9;
+    FILE_VOLUME_IS_COMPRESSED = 10;
+    FILE_SUPPORTS_OBJECT_IDS = 11;
+    FILE_SUPPORTS_ENCRYPTION = 12;
+    FILE_NAMED_STREAMS = 13;
+    FILE_READ_ONLY_VOLUME = 14;
+    FILE_SEQUENTIAL_WRITE_ONCE = 15;
+    FILE_SUPPORTS_TRANSACTIONS = 16;
+    FILE_SUPPORTS_HARD_LINKS = 17;
+    FILE_SUPPORTS_EXTENDED_ATTRIBUTES = 18;
+    FILE_SUPPORTS_OPEN_BY_FILE_ID = 19;
+    FILE_SUPPORTS_USN_JOURNAL = 20;
+    FILE_SUPPORTS_INTEGRITY_STREAMS = 21;
+  };
+
+  repeated VolumeFileSystemFlagEnum file_system_flag_list = 10 [(sem_type) = {
+      description: "Flags set for the volume",
+    }];
+
+  optional string serial_number = 11 [(sem_type) = {
+      description: "Serial number of the volume",
+    }];
+
+  optional WindowsVolume windows = 12 [(sem_type) = {
+      description: "Windows specific volume attributes",
+    }];
+
+  optional UnixVolume unix = 13 [(sem_type) = {
+      description: "Unix specific volume attributes",
+    }];
+
+}
+
+// Based on cybox definition:
+// http://cybox.mitre.org/language/version2.1/xsddocs/objects/Win_Volume_Object.html
+message WindowsVolume {
+
+  // WindowsVolume
+  enum WindowsVolumeAttributeEnum {
+    READONLY = 0;
+    HIDDEN = 1;
+    NODEFAULTDRIVELETTER = 2;
+    SHADOWCOPY = 3;
+  };
+
+  repeated WindowsVolumeAttributeEnum attributes_list = 1 [(sem_type) = {
+      description: "Attributes of the volume",
+    }];
+
+  optional string drive_letter = 2 [(sem_type) = {
+      description: "Windows drive letter",
+    }];
+
+  enum WindowsDriveTypeEnum {
+    DRIVE_UNKNOWN = 0;
+    DRIVE_NO_ROOT_DIR = 1;
+    DRIVE_REMOVABLE = 2;
+    DRIVE_FIXED = 3;
+    DRIVE_REMOTE = 4;
+    DRIVE_CDROM = 5;
+    DRIVE_RAMDISK = 6;
+  };
+
+  optional WindowsDriveTypeEnum drive_type = 3 [(sem_type) = {
+      description: "Windows drive letter",
+    }];
+
+}
+
+// Based on cybox definition:
+// http://cybox.mitre.org/language/version2.1/xsddocs/objects/Unix_Volume_Object.html
+message UnixVolume {
+
+  optional string mount_point = 1 [(sem_type) = {
+      description: "Mount point",
+    }];
+
+  optional string options = 2 [(sem_type) = {
+      description: "Options used when mounting the volume",
+    }];
+
+}
+

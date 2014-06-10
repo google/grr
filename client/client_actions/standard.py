@@ -44,7 +44,7 @@ class ReadBuffer(actions.ActionPlugin):
       raise RuntimeError("Can not read buffers this large.")
 
     try:
-      fd = vfs.VFSOpen(args.pathspec)
+      fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
 
       fd.Seek(args.offset)
       offset = fd.Tell()
@@ -74,7 +74,8 @@ class TransferBuffer(actions.ActionPlugin):
     if args.length > MAX_BUFFER_SIZE:
       raise RuntimeError("Can not read buffers this large.")
 
-    data = vfs.ReadVFS(args.pathspec, args.offset, args.length)
+    data = vfs.ReadVFS(args.pathspec, args.offset, args.length,
+                       progress_callback=self.Progress)
     result = rdfvalue.DataBlob(
         data=zlib.compress(data),
         compression=rdfvalue.DataBlob.CompressionType.ZCOMPRESSION)
@@ -153,7 +154,7 @@ class CopyPathToFile(actions.ActionPlugin):
     Args:
       args: see CopyPathToFile in jobs.proto
     """
-    self.src_fd = vfs.VFSOpen(args.src_path)
+    self.src_fd = vfs.VFSOpen(args.src_path, progress_callback=self.Progress)
     self.src_fd.Seek(args.offset)
     offset = self.src_fd.Tell()
 
@@ -192,7 +193,7 @@ class ListDirectory(ReadBuffer):
   def Run(self, args):
     """Lists a directory."""
     try:
-      directory = vfs.VFSOpen(args.pathspec)
+      directory = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
     except (IOError, OSError), e:
       self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.IOERROR, e)
       return
@@ -212,7 +213,7 @@ class IteratedListDirectory(actions.IteratedAction):
   def Iterate(self, request, client_state):
     """Restores its way through the directory using an Iterator."""
     try:
-      fd = vfs.VFSOpen(request.pathspec)
+      fd = vfs.VFSOpen(request.pathspec, progress_callback=self.Progress)
     except (IOError, OSError), e:
       self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.IOERROR, e)
       return
@@ -235,7 +236,7 @@ class SuspendableListDirectory(actions.SuspendableAction):
 
   def Iterate(self):
     try:
-      fd = vfs.VFSOpen(self.request.pathspec)
+      fd = vfs.VFSOpen(self.request.pathspec, progress_callback=self.Progress)
     except (IOError, OSError), e:
       self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.IOERROR, e)
       return
@@ -256,7 +257,7 @@ class StatFile(ListDirectory):
   def Run(self, args):
     """Sends a StatResponse for a single file."""
     try:
-      fd = vfs.VFSOpen(args.pathspec)
+      fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
       res = fd.Stat()
 
       self.SendReply(res)
@@ -273,7 +274,7 @@ class HashFile(ListDirectory):
   def Run(self, args):
     """Hash a file."""
     try:
-      fd = vfs.VFSOpen(args.pathspec)
+      fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
       hasher = hashlib.sha256()
       while True:
         data = fd.Read(1024*1024)
@@ -598,7 +599,7 @@ class SendFile(actions.ActionPlugin):
     """Run."""
 
     # Open the file.
-    fd = vfs.VFSOpen(args.pathspec)
+    fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
 
     if args.address_family == rdfvalue.NetworkAddress.Family.INET:
       family = socket.AF_INET
@@ -628,3 +629,41 @@ class SendFile(actions.ActionPlugin):
     s.close()
 
     self.SendReply(fd.Stat())
+
+
+class StatFS(actions.ActionPlugin):
+  """Call os.statvfs for a given list of paths. OS X and Linux only.
+
+  Note that a statvfs call for a network filesystem (e.g. NFS) that is
+  unavailable, e.g. due to no network, will result in the call blocking.
+  """
+  in_rdfvalue = rdfvalue.StatFSRequest
+  out_rdfvalue = rdfvalue.Volume
+
+  def Run(self, args):
+    if platform.system() == "Windows":
+      raise RuntimeError("os.statvfs not available on Windows")
+
+    for path in args.path_list:
+
+      try:
+        fd = vfs.VFSOpen(rdfvalue.PathSpec(path=path, pathtype=args.pathtype),
+                         progress_callback=self.Progress)
+        st = fd.StatFS()
+        mount_point = fd.GetMountPoint()
+      except (IOError, OSError), e:
+        self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.IOERROR, e)
+        continue
+
+      unix = rdfvalue.UnixVolume(mount_point=mount_point)
+
+      # On linux pre 2.6 kernels don't have frsize, so we fall back to bsize.
+      # The actual_available_allocation_units attribute is set to blocks
+      # available to the unprivileged user, root may have some additional
+      # reserved space.
+      result = rdfvalue.Volume(bytes_per_sector=(st.f_frsize or st.f_bsize),
+                               sectors_per_allocation_unit=1,
+                               total_allocation_units=st.f_blocks,
+                               actual_available_allocation_units=st.f_bavail,
+                               unix=unix)
+      self.SendReply(result)

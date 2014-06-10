@@ -211,6 +211,14 @@ grr.Renderer('HuntTable', {
       $(this).html('');
     });
 
+    $('#toggle_robot_hunt_display_' + unique).click(function() {
+      $('#body_main_topPane tr').each(function() {
+        if ($(this).hasClass('robot-hunt')) {
+          $(this).toggleClass('hide');
+        }
+      });
+    });
+
     grr.subscribe('WizardComplete', function(wizardStateName) {
       $('#new_hunt_dialog_' + unique).modal('hide');
     }, 'new_hunt_dialog_' + unique);

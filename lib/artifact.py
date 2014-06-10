@@ -387,12 +387,13 @@ class GRRArtifactMappings(object):
     1. Location stored relative to the client.
     2. Name of the AFF4 type.
     3. Name of the attribute to be changed.
-    4. Method for adding the RDFValue to the Attribute (Set, Append)
+    4. Method for adding the RDFValue to the Attribute (Overwrite, Append)
   """
 
   rdf_map = {
       "SoftwarePackage": ("info/software", "InstalledSoftwarePackages",
-                          "INSTALLED_PACKAGES", "Append")
+                          "INSTALLED_PACKAGES", "Append"),
+      "Volume": ("", "VFSGRRClient", "VOLUMES", "Append")
       }
 
 

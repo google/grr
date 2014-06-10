@@ -99,6 +99,36 @@ class GrrMessageRenderer(semantic.RDFProtoRenderer):
   translator = dict(args=RenderPayload)
 
 
+class VolumeRenderer(semantic.RDFProtoRenderer):
+  """Make the disk volume values human readable."""
+  classname = "Volume"
+  name = "Disk Volume"
+
+  def Layout(self, request, response):
+    """Render the protobuf as a table."""
+    self.result = []
+    for descriptor, value in self.proxy.ListFields():
+      name = descriptor.name
+      friendly_name = descriptor.friendly_name or name
+
+      if name == "total_allocation_units" and value is not None:
+        value_str = "{0} ({1:.2f} GB)".format(
+            value, self.proxy.AUToGBytes(value))
+        self.result.append((friendly_name, descriptor.description, value_str))
+
+      elif name == "actual_available_allocation_units" and value is not None:
+        value_str = "{0} ({1:.2f} GB, {2:.0f}% free)".format(
+            value, self.proxy.AUToGBytes(value), self.proxy.FreeSpacePercent())
+        self.result.append((friendly_name, descriptor.description, value_str))
+      else:
+        renderer = semantic.FindRendererForObject(value)
+
+        self.result.append((friendly_name, descriptor.description,
+                            renderer.RawHTML(request)))
+
+    return super(semantic.RDFProtoRenderer, self).Layout(request, response)
+
+
 class CollectionRenderer(StatEntryRenderer):
   """Nicely format a Collection."""
   classname = "CollectionList"

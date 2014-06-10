@@ -327,6 +327,7 @@ class EndToEndTests(cronjobs.SystemCronFlow):
         args=hunt_args,
         regex_rules=[bogus_rule],
         client_rate=0,
+        expiry_time="1d",
         token=token) as hunt:
 
       self.state.hunt_id = hunt.session_id

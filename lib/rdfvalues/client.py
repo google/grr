@@ -332,6 +332,44 @@ class Interfaces(protodict.RDFValueArray):
     return results
 
 
+class Volume(structs.RDFProtoStruct):
+  """A disk volume on the client."""
+  protobuf = sysinfo_pb2.Volume
+
+  def FreeSpacePercent(self):
+    return (self.actual_available_allocation_units/
+            float(self.total_allocation_units)) * 100.0
+
+  def AUToBytes(self, allocation_units):
+    """Convert a number of allocation units to bytes."""
+    return (allocation_units * self.sectors_per_allocation_unit *
+            self.bytes_per_sector)
+
+  def AUToGBytes(self, allocation_units):
+    """Convert a number of allocation units to GigaBytes."""
+    return self.AUToBytes(allocation_units) / 1000.0**3
+
+  def Name(self):
+    """Return the best available name for this volume."""
+    return (self.name or self.device_path or self.windows.drive_letter or
+            self.unix.mount_point or None)
+
+
+class Volumes(protodict.RDFValueArray):
+  """A list of disk volumes on the client."""
+  rdf_type = Volume
+
+
+class WindowsVolume(structs.RDFProtoStruct):
+  """A disk volume on a windows client."""
+  protobuf = sysinfo_pb2.WindowsVolume
+
+
+class UnixVolume(structs.RDFProtoStruct):
+  """A disk volume on a unix client."""
+  protobuf = sysinfo_pb2.UnixVolume
+
+
 class ClientInformation(rdfvalue.RDFProtoStruct):
   """The GRR client information."""
   protobuf = jobs_pb2.ClientInformation
@@ -653,6 +691,10 @@ class ClientResources(rdfvalue.RDFProtoStruct):
 
   dependencies = dict(ClientURN=ClientURN,
                       RDFURN=rdfvalue.RDFURN)
+
+
+class StatFSRequest(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.StatFSRequest
 
 
 # Start of the Registry Specific Data types
